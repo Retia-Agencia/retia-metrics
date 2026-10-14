@@ -100,7 +100,7 @@ export function urlDeLista(
   if (claveCloser) q.set("closer", codigoDeCloser(claveCloser));
   if (moneda) q.set("moneda", moneda);
   if (cohorteId) q.set("cohorte", cohorteId);
-  return `/p/${encodeURIComponent(slug)}/dashboard/lista?${q}`;
+  return `/p/${encodeURIComponent(slug)}/hub/lista?${q}`;
 }
 
 export interface EntradaDeDetalles {

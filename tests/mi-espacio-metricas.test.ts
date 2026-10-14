@@ -70,7 +70,7 @@ describe("read model de Mis métricas", () => {
     });
     expect(miEspacio.a.comisionUsd).toBe(comisiones.find((c) => c.userId === closer.id)?.comisionUsd);
     for (const detalle of Object.values(miEspacio.detalles)) {
-      expect(detalle.href).toContain("/p/programa-a/dashboard/lista?");
+      expect(detalle.href).toContain("/p/programa-a/hub/lista?");
       expect(detalle.href).toMatch(/closer=[a-f0-9]{64}/);
       expect(detalle.href).not.toContain("Ana");
       expect(detalle.desgloses.porCloser).toEqual([]);

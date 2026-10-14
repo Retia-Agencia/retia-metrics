@@ -37,7 +37,7 @@ export async function PautaPorPrograma({ programas, periodo, hoy }: {
         const q = new URLSearchParams(queryDePeriodo(periodo));
         q.set("seccion", "pauta");
         for (const [clave, valor] of Object.entries(filtros)) if (valor !== undefined) q.set(clave, valor);
-        return `/p/${encodeURIComponent(programa.slug)}/dashboard?${q}`;
+        return `/p/${encodeURIComponent(programa.slug)}/hub?${q}`;
       };
       return <div key={programa.id} className="space-y-4">
         <h3 className="text-lg font-semibold">

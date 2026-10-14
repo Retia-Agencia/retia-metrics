@@ -344,7 +344,7 @@ const VISTA_TODOS_VACIA = {
   detalles: Object.fromEntries(["leads", "agendas", "shows", "cierres", "caja"].map((metrica) => [metrica, {
     resumen: { programId: "todos", disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
     desgloses: { porCloser: [], porEtapa: [], porAntiguedad: [] },
-    href: `/dashboard/lista?metrica=${metrica}`,
+    href: `/hub/lista?metrica=${metrica}`,
   }])),
   programas: [],
 };
@@ -387,7 +387,7 @@ const PAGINAS_DE_AJUSTES = [
  * ANTES de mirar el slug: sin sesion redirige a login aunque el slug no exista, y
  * nunca filtra que slugs existen.
  */
-const RUTA_PROGRAMA = "@/app/(app)/p/[programa]/dashboard/page";
+const RUTA_PROGRAMA = "@/app/(app)/p/[programa]/hub/page";
 
 /** Ejecuta la pagina de programa con un slug y devuelve que hizo. */
 async function correrPrograma(
@@ -417,7 +417,7 @@ async function correrPrograma(
 async function correrTodos(
   busqueda: Record<string, string> = {},
 ): Promise<"paso" | "login" | "midia" | "notFound"> {
-  const modulo = (await import("@/app/(app)/dashboard/page")) as {
+  const modulo = (await import("@/app/(app)/hub/page")) as {
     default: (props: {
       searchParams: Promise<Record<string, string | string[] | undefined>>;
     }) => Promise<unknown>;
@@ -664,9 +664,8 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
   }
 
   const RUTAS = [
-    ["dashboard", "@/app/(app)/p/[programa]/dashboard/page"],
-    ["dashboard/lista", "@/app/(app)/p/[programa]/dashboard/lista/page"],
-    ["metas", "@/app/(app)/p/[programa]/metas/page"],
+    ["hub", "@/app/(app)/p/[programa]/hub/page"],
+    ["hub/lista", "@/app/(app)/p/[programa]/hub/lista/page"],
     ["programa", "@/app/(app)/p/[programa]/programa/page"],
   ] as const;
 
@@ -701,29 +700,104 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     });
   }
 
-  it("el gerente pasa la guarda de las cuatro rutas", async () => {
+  it("el gerente pasa la guarda de las tres rutas", async () => {
     auth.mockResolvedValue(sesionGerente);
     for (const [, ruta] of RUTAS) {
       expect(await correr(ruta)).toBe("paso-la-guarda");
     }
   });
 
-  it("el developer (vista todo) pasa la guarda de las cuatro rutas (ADR 0025)", async () => {
+  it("el developer (vista todo) pasa la guarda de las tres rutas (ADR 0025)", async () => {
     auth.mockResolvedValue(sesionDeveloper);
     for (const [, ruta] of RUTAS) {
       expect(await correr(ruta)).toBe("paso-la-guarda");
     }
   });
 
-  it("el paid trafficker ve el Dashboard y las Metas, pero NO la lista ni la ficha del Programa", async () => {
+  it("el paid trafficker ve el Hub, pero NO la lista ni la ficha del Programa", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
-    // Dashboard y Metas: ve el tablero (`veTableroDelPrograma`).
-    expect(await correr("@/app/(app)/p/[programa]/dashboard/page")).toBe("paso-la-guarda");
-    expect(await correr("@/app/(app)/p/[programa]/metas/page")).toBe("paso-la-guarda");
+    // Hub: ve el tablero (`veTableroDelPrograma`).
+    expect(await correr("@/app/(app)/p/[programa]/hub/page")).toBe("paso-la-guarda");
     // Lista: nunca fue suya (ticket 102); la guarda es `esAdministrador`.
-    expect(await correr("@/app/(app)/p/[programa]/dashboard/lista/page")).toBe("notFound");
+    expect(await correr("@/app/(app)/p/[programa]/hub/lista/page")).toBe("notFound");
     // Ficha del Programa: solo quien configura (`configuraPrograma`).
     expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("notFound");
+  });
+});
+
+/**
+ * El Dashboard y Metas pasaron a ser el Hub (ticket 250, ADR 0086). Sus rutas viejas solo
+ * redirigen, pero con la MISMA guarda que tenían: un closer que forja una URL vieja recibe el
+ * mismo 404 que con el Hub, y quien entra llega a la misma vista con todos sus filtros.
+ */
+describe("las rutas viejas del Dashboard y de Metas redirigen al Hub (ticket 250)", () => {
+  const SLUG = "programa-a";
+  const CLOSER = "6f1c2a9e-3b4d-4c5e-8f70-1a2b3c4d5e6f";
+
+  async function destino(ruta: string, busqueda: Record<string, string | string[]> = {}): Promise<string> {
+    const modulo = (await import(/* @vite-ignore */ ruta)) as {
+      default: (props: {
+        params: Promise<{ programa: string }>;
+        searchParams: Promise<Record<string, string | string[] | undefined>>;
+      }) => Promise<unknown>;
+    };
+    try {
+      await modulo.default({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve(busqueda) });
+      return "sin-redireccion";
+    } catch (e) {
+      if (e instanceof NoEncontrado) return "notFound";
+      if (e instanceof Redireccion) return e.destino;
+      throw e;
+    }
+  }
+
+  const VIEJAS = [
+    "@/app/(app)/p/[programa]/dashboard/page",
+    "@/app/(app)/p/[programa]/dashboard/lista/page",
+    "@/app/(app)/p/[programa]/metas/page",
+  ];
+
+  it.each(VIEJAS)("%s responde 404 a un closer, como el Hub (ADR 0082)", async (ruta) => {
+    auth.mockResolvedValue(sesionCloser);
+    expect(await destino(ruta)).toBe("notFound");
+  });
+
+  it.each(VIEJAS)("%s manda al login a quien no tiene sesión", async (ruta) => {
+    auth.mockResolvedValue(null);
+    expect(await destino(ruta)).toBe("/login");
+  });
+
+  it("el Dashboard abre el Hub con sus filtros y la pestaña con su nombre nuevo", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const busqueda = { seccion: "operacion", rango: "custom", desde: "2026-10-01", hasta: "2026-10-14", closer: CLOSER };
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/page", busqueda)).toBe(
+      `/p/${SLUG}/hub?seccion=comercial&rango=custom&desde=2026-10-01&hasta=2026-10-14&closer=${CLOSER}`,
+    );
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/page", { seccion: "pulso" })).toBe(`/p/${SLUG}/hub?seccion=hoy`);
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/page", { seccion: "dinero" })).toBe(`/p/${SLUG}/hub?seccion=dinero`);
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/page")).toBe(`/p/${SLUG}/hub`);
+  });
+
+  it("Metas abre la pestaña Hoy en el mismo mes", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await destino("@/app/(app)/p/[programa]/metas/page", { mes: "2026-09" })).toBe(
+      `/p/${SLUG}/hub?mes=2026-09&seccion=hoy#metas`,
+    );
+  });
+
+  it("la lista de una cifra abre la misma lista en el Hub", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/lista/page", { metrica: "cierres", pagina: "2" })).toBe(
+      `/p/${SLUG}/hub/lista?metrica=cierres&pagina=2`,
+    );
+  });
+
+  it("el Dashboard de todos los programas y su lista abren el Hub de todos", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    expect(await destino("@/app/(app)/dashboard/page", { seccion: "pulso", rango: "mes" })).toBe("/hub?seccion=hoy&rango=mes");
+    expect(await destino("@/app/(app)/dashboard/lista/page", { metrica: "caja", moneda: "USD" })).toBe(
+      "/hub/lista?metrica=caja&moneda=USD",
+    );
   });
 });
 
@@ -872,7 +946,7 @@ describe("redirecciones al programa como segmento (ticket 097)", () => {
 
   it("/p/[programa] a secas entra por la tab por defecto", async () => {
     expect(await destinoConParams("@/app/(app)/p/[programa]/page", { programa: "programa-a" })).toBe(
-      "/p/programa-a/dashboard",
+      "/p/programa-a/hub",
     );
   });
 });
@@ -994,7 +1068,7 @@ describe("pagina de closer", () => {
     // El gerente rechazado aterriza en su primer programa VISIBLE (destinoInicial ->
     // programasVisibles por el alcance del rol, ticket 071).
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/dashboard");
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/hub");
   });
 
   it("/mi-dia manda al login a quien no tiene sesion", async () => {
@@ -1025,7 +1099,7 @@ describe("pagina de closer", () => {
     // En vista gerente, `paginaConRol("closer")` lo estrecha a gerente y lo rechaza,
     // igual que a un gerente de verdad: aterriza en su primer programa VISIBLE.
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/dashboard");
+    expect(await destinoDe("@/app/(app)/mi-dia/page")).toBe("/p/programa-a/hub");
   });
 
   it("/mi-dia deja pasar a un developer en vista 'closer'", async () => {
@@ -1055,7 +1129,7 @@ describe("pagina de developer /nerd-stats (ticket 025)", () => {
   it("rechaza a un gerente y lo manda a su primer programa", async () => {
     auth.mockResolvedValue(sesionGerente);
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    expect(await destinoDe(RUTA)).toBe("/p/programa-a/dashboard");
+    expect(await destinoDe(RUTA)).toBe("/p/programa-a/hub");
   });
 
   it("rechaza a un closer y lo manda a su vista", async () => {
@@ -1097,7 +1171,7 @@ describe("bitacora /nerd-stats/bitacora (ticket 076)", () => {
 
   it("un gerente con filtros forjados es rebotado y la consulta no corre", async () => {
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    expect(await correr(sesionGerente)).toBe("/p/programa-a/dashboard");
+    expect(await correr(sesionGerente)).toBe("/p/programa-a/hub");
     expect(paginaDeBitacora).not.toHaveBeenCalled();
     expect(opcionesDeBitacora).not.toHaveBeenCalled();
   });
@@ -1255,7 +1329,7 @@ describe("la tab Leads /p/[programa]/leads (ticket 170)", () => {
 
 describe("la lista de una cifra respeta la frontera del dashboard (137)", () => {
   async function abrir(busqueda: Record<string, string | string[]> = { metrica: "agendas" }) {
-    const { default: pagina } = await import("@/app/(app)/p/[programa]/dashboard/lista/page");
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/hub/lista/page");
     return pagina({ params: Promise.resolve({ programa: "programa-a" }), searchParams: Promise.resolve(busqueda) });
   }
 
@@ -1369,11 +1443,11 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
       agendas: {
         resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 4, caja: [] }, grupos: [{ closer: "Ana" }] },
         desgloses: { porCloser: [{ etiqueta: "Ana", cantidad: 4, caja: [] }], porEtapa: [], porAntiguedad: [] },
-        href: "/p/programa-a/dashboard/lista?metrica=agendas",
+        href: "/p/programa-a/hub/lista?metrica=agendas",
       },
     } as never);
     auth.mockResolvedValue(sesionPaidTrafficker);
-    const arbol = await renderizar({ seccion: "pulso" });
+    const arbol = await renderizar({ seccion: "hoy" });
     const seccion = buscar(arbol, "DashboardPrograma");
     expect(seccion?.props.veEquipo).toBe(false);
     const agendas = (seccion?.props.detalles as Record<string, { href: string; resumen: { disponible: boolean; grupos: unknown[] } }>).agendas;
@@ -1386,15 +1460,15 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
   const detalleConLista = () => ({
     resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 3, caja: [] }, grupos: [{ closer: "Ana" }] },
     desgloses: { porCloser: [{ etiqueta: "Ana", cantidad: 3, caja: [] }], porEtapa: [], porAntiguedad: [] },
-    href: "/p/programa-a/dashboard/lista?metrica=cierres",
+    href: "/p/programa-a/hub/lista?metrica=cierres",
   });
   type ConComparativo = { comparativo: Record<string, Record<string, ReturnType<typeof detalleConLista>>> };
 
-  it("en Operación el comparativo y el embudo contra agendas llegan sin lista ni closer", async () => {
+  it("en Comercial el comparativo y el embudo contra agendas llegan sin lista ni closer", async () => {
     detallesDeOperacion.mockResolvedValueOnce({ comparativo: { "u-ana": { cierres: detalleConLista() } }, embudo: {}, semanas: [], proximas: [] } as never);
     vistaDealsContraAgendas.mockResolvedValueOnce({ disponible: true, cifras: { agendas: detalleConLista() } } as never);
     auth.mockResolvedValue(sesionPaidTrafficker);
-    const arbol = await renderizar({ seccion: "operacion" });
+    const arbol = await renderizar({ seccion: "comercial" });
     const seccion = buscar(arbol, "DashboardPrograma");
     expect(seccion?.props).toMatchObject({ seccion: "operacion", veEquipo: false });
     const cierres = (seccion?.props.detallesOperacion as ConComparativo).comparativo["u-ana"].cierres;
@@ -1412,19 +1486,19 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     expect(buscar(arbol, "DashboardPrograma")?.props).toMatchObject({ seccion: "dinero", veEquipo: false });
   });
 
-  it.each(["operacion", "dinero"])("al gerente, %s le llega con equipo y con sus listas", async (pestana) => {
+  it.each(["comercial", "dinero"])("al gerente, %s le llega con equipo y con sus listas", async (pestana) => {
     detallesDeOperacion.mockResolvedValueOnce({ comparativo: { "u-ana": { cierres: detalleConLista() } }, embudo: {}, semanas: [], proximas: [] } as never);
     auth.mockResolvedValue(sesionGerente);
     const seccion = buscar(await renderizar({ seccion: pestana }), "DashboardPrograma");
     expect(seccion?.props.veEquipo).toBe(true);
-    if (pestana === "operacion") {
+    if (pestana === "comercial") {
       expect((seccion?.props.detallesOperacion as ConComparativo).comparativo["u-ana"].cierres.href).toBe(detalleConLista().href);
     }
   });
 
   it("al gerente nada de eso le cambia (mordido en el otro sentido)", async () => {
     auth.mockResolvedValue(sesionGerente);
-    const arbol = await renderizar({ seccion: "pulso" });
+    const arbol = await renderizar({ seccion: "hoy" });
     expect(buscar(arbol, "DashboardPrograma")?.props.veEquipo).toBe(true);
     expect(buscar(arbol, "FiltroDashboard")?.props.filtraCloser).toBe(true);
   });
@@ -1432,7 +1506,7 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
   it("la lista detrás de una cifra lo rechaza aunque forje la URL, sin consultar filas", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     vistaDeLista.mockReset();
-    const { default: pagina } = await import("@/app/(app)/p/[programa]/dashboard/lista/page");
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/hub/lista/page");
     // Desde el ticket 224 la lista se cierra con 404 (antes redirigía): sigue sin ser suya,
     // ahora porque la guarda es `esAdministrador` (ni closer ni paid trafficker la ven).
     await expect(
@@ -1523,7 +1597,7 @@ describe("el customer success solo entra a Students (ticket 145)", () => {
 
   it("la tab Dashboard forjada le responde 404 (ticket 224, ADR 0082): no ve el tablero", async () => {
     auth.mockResolvedValue(sesionCustomerSuccess);
-    const modulo = (await import("@/app/(app)/p/[programa]/dashboard/page")) as {
+    const modulo = (await import("@/app/(app)/p/[programa]/hub/page")) as {
       default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
     };
     await expect(

@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  RUTA_DASHBOARD_TODOS,
+  RUTA_HUB_TODOS,
   VALOR_PROGRAMA_TODOS,
   rutaAlCambiarDePrograma,
 } from "@/lib/nav";
@@ -59,7 +59,7 @@ export function ProgramSwitcher({
   const [nuevo, setNuevo] = useState({ nombre: "", slug: "", ticketUsd: "" });
 
   const ofreceTodos = puedeVerTodos && programas.length >= 2;
-  const enTodos = pathname === RUTA_DASHBOARD_TODOS || pathname.startsWith(`${RUTA_DASHBOARD_TODOS}/`);
+  const enTodos = pathname === RUTA_HUB_TODOS || pathname.startsWith(`${RUTA_HUB_TODOS}/`);
   const seleccionado = ofreceTodos && enTodos ? VALOR_PROGRAMA_TODOS : actual;
   const items = [
     ...(ofreceTodos ? [{ value: VALOR_PROGRAMA_TODOS, label: "Todos los programas" }] : []),

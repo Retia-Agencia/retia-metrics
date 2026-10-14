@@ -102,7 +102,7 @@ function Cohorte({ vista }: { vista: VistaDelDashboard }) {
   );
 }
 
-function MetaDelMes({ vista, slug, veEquipo }: { vista: VistaDelDashboard; slug: string; veEquipo: boolean }) {
+function MetaDelMes({ vista }: { vista: VistaDelDashboard }) {
   const meta = vista.metasDelMes;
   return (
     <Card>
@@ -135,16 +135,15 @@ function MetaDelMes({ vista, slug, veEquipo }: { vista: VistaDelDashboard; slug:
             La meta es del programa, no individual.
           </p>
         ) : null}
-        {veEquipo ? (
-          <Button
-            variant="link"
-            className="h-auto p-0"
-            nativeButton={false}
-            render={<Link href={`/p/${encodeURIComponent(slug)}/metas`} />}
-          >
-            Ver Metas
-          </Button>
-        ) : null}
+        {/* Las metas del mes viven más abajo en la misma pestaña (ticket 250). */}
+        <Button
+          variant="link"
+          className="h-auto p-0"
+          nativeButton={false}
+          render={<Link href="#metas" />}
+        >
+          Ver las metas del mes
+        </Button>
       </CardContent>
     </Card>
   );
@@ -246,7 +245,7 @@ export function Pulso({
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <Cohorte vista={vista} />
-        <MetaDelMes vista={vista} slug={slug} veEquipo={veEquipo} />
+        <MetaDelMes vista={vista} />
       </div>
       {alertas ? <Alertas alertas={alertas} slug={slug} configurable={veEquipo} /> : null}
     </section>

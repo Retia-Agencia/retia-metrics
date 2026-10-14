@@ -13,7 +13,7 @@ import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } 
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 
-type Seccion = "pulso" | "operacion" | "dinero";
+type Seccion = "hoy" | "comercial" | "dinero";
 const GRILLA = "grid gap-4 sm:grid-cols-2 xl:grid-cols-4";
 
 /** Sin periodo B no hay contra qué comparar: no se pinta nada. */
@@ -93,7 +93,7 @@ function Conteos({ vista, pulso = false }: { vista: VistaDeTodos; pulso?: boolea
   ));
 }
 
-/** Las banderas del Pulso (ticket 191): foto de hoy, sin B; el % va por programa en su dashboard. */
+/** Las banderas del Pulso (ticket 191): foto de hoy, sin B; el % va por programa en su Hub. */
 function Banderas({ vista }: { vista: VistaDeTodos }) {
   const { banderas } = vista;
   const campos = [
@@ -111,7 +111,7 @@ function Banderas({ vista }: { vista: VistaDeTodos }) {
 
 function MetasPorPrograma({ vista }: { vista: VistaDeTodos }) {
   return <>
-    <TablaPorPrograma titulo="Cohorte activa por programa" vista={vista} seccion="pulso"
+    <TablaPorPrograma titulo="Cohorte activa por programa" vista={vista} seccion="hoy"
       cabeceras={["Cohorte", "Meta cupos", "Vendidos", "Faltan", "Meta dinámica", "Cumplimiento"]}
       celdas={(fila) => <>
         <td className="text-right">{fila.dashboard.cohorte?.codigo ?? "Sin cohorte activa"}</td>
@@ -121,7 +121,7 @@ function MetasPorPrograma({ vista }: { vista: VistaDeTodos }) {
         <td className="text-right">{fila.metaDinamica ? num(fila.metaDinamica.valor) : "—"}</td>
         <td className="text-right">{tasa(fila.dashboard.cohorte?.ventana?.cumplimiento ?? null)}</td>
       </>} />
-    <TablaPorPrograma titulo="Meta del mes por programa" vista={vista} seccion="pulso"
+    <TablaPorPrograma titulo="Meta del mes por programa" vista={vista} seccion="hoy"
       cabeceras={["Meta cupos", "Meta USD", "Vendidos", "Avance", "Deuda cupos"]}
       celdas={({ dashboard: { metasDelMes: meta } }) => <>
         <td className="text-right">{meta.mesSinVentana ? "—" : num(meta.metaCupos)}</td>
@@ -168,8 +168,8 @@ function VentasPorCohorte({ vista }: { vista: VistaDeTodos }) {
 
 /** Solo servidor: las piezas compartidas se importan, nunca se modifican. */
 export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTodos; seccion: Seccion; hoy: string }) {
-  if (seccion === "pulso") return <section id="pulso" className="space-y-4">
-    <h2 className="text-xl font-semibold">Pulso</h2>
+  if (seccion === "hoy") return <section id="hoy" className="space-y-4">
+    <h2 className="text-xl font-semibold">Hoy</h2>
     <div className={GRILLA}><ContratadoYCaja vista={vista} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
     <MetasPorPrograma vista={vista} />
   </section>;
@@ -190,10 +190,10 @@ export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTo
     <VentasPorCohorte vista={vista} />
   </section>;
 
-  return <section id="operacion" className="space-y-4">
-    <h2 className="text-xl font-semibold">Operación comercial</h2>
+  return <section id="comercial" className="space-y-4">
+    <h2 className="text-xl font-semibold">Comercial</h2>
     <div className={GRILLA}><Conteos vista={vista} /></div>
-    <TablaPorPrograma titulo="Tasas por programa" vista={vista} seccion="operacion"
+    <TablaPorPrograma titulo="Tasas por programa" vista={vista} seccion="comercial"
       cabeceras={["% show", "% cierre", "% shows sin Grain"]}
       celdas={(fila) => <>
         <td className="text-right">{tasa(fila.pctShow.valor)}</td>

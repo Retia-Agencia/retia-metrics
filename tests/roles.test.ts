@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
-import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
+import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
 const sujeto = (rol: Rol | null | undefined, operaComoCloser = false) => ({ rol, operaComoCloser });
@@ -237,7 +237,7 @@ describe("navegacion por rol", () => {
   it("el closer ya no ve Ajustes, Dashboard, Metas ni Programa (ticket 224, ADR 0082)", () => {
     const rutas = rutasDe("closer");
     expect(rutas).not.toContain("/ajustes");
-    expect(rutas).not.toContain("/p/programa-a/dashboard");
+    expect(rutas).not.toContain("/p/programa-a/hub");
     expect(rutas).not.toContain("/p/programa-a/metas");
     expect(rutas).not.toContain("/p/programa-a/programa");
     // Lo que SÍ conserva: su trabajo diario y los recursos.
@@ -256,9 +256,9 @@ describe("navegacion por rol", () => {
 
   it("gerente y developer ven la tab Dashboard; el closer no (ticket 224, ADR 0082)", () => {
     for (const rol of ["gerente", "developer"] as const) {
-      expect(rutasDe(rol)).toContain("/p/programa-a/dashboard");
+      expect(rutasDe(rol)).toContain("/p/programa-a/hub");
     }
-    expect(rutasDe("closer")).not.toContain("/p/programa-a/dashboard");
+    expect(rutasDe("closer")).not.toContain("/p/programa-a/hub");
   });
 
   it("gerente y developer ven la tab Programa; el closer no (ticket 224, ADR 0082)", () => {
@@ -269,8 +269,8 @@ describe("navegacion por rol", () => {
   });
 
   it("la tab Dashboard apunta al programa que se le pasa, no a uno fijo", () => {
-    expect(rutasDe("gerente", "programa-b")).toContain("/p/programa-b/dashboard");
-    expect(rutasDe("gerente", "programa-b")).not.toContain("/p/programa-a/dashboard");
+    expect(rutasDe("gerente", "programa-b")).toContain("/p/programa-b/hub");
+    expect(rutasDe("gerente", "programa-b")).not.toContain("/p/programa-a/hub");
   });
 
   it("los roles operativos ven la tab Calls del programa elegido (ticket 098)", () => {
@@ -316,7 +316,7 @@ describe("navegacion por rol", () => {
   });
 
   it("el gerente aterriza en el Dashboard del primer programa; el closer en Mi espacio (ticket 172)", () => {
-    expect(rutaInicial(sujeto("gerente"), "programa-a")).toBe("/p/programa-a/dashboard");
+    expect(rutaInicial(sujeto("gerente"), "programa-a")).toBe("/p/programa-a/hub");
     expect(rutaInicial(sujeto("closer"), "programa-a")).toBe("/mi-espacio");
   });
 
@@ -331,7 +331,7 @@ describe("navegacion por rol", () => {
   it("el developer ve la union de items: mi-espacio, dashboard, recursos y ajustes (ADR 0025)", () => {
     const rutas = rutasDe("developer");
     expect(rutas).toContain("/mi-espacio");
-    expect(rutas).toContain("/p/programa-a/dashboard");
+    expect(rutas).toContain("/p/programa-a/hub");
     expect(rutas).not.toContain("/productos");
     expect(rutas).toContain("/recursos");
     expect(rutas).toContain("/ajustes");
@@ -345,9 +345,9 @@ describe("navegacion por rol", () => {
     const rutas = rutasDe("gerente", PROGRAMA, true);
     expect(rutas).toContain("/mi-espacio");
     expect(rutas).toContain("/ajustes");
-    expect(rutas).toContain(`/p/${PROGRAMA}/dashboard`);
+    expect(rutas).toContain(`/p/${PROGRAMA}/hub`);
     expect(navParaRol(sujeto("gerente", true), PROGRAMA).find((i) => i.href === "/mi-espacio")?.roles).toEqual(["closer"]);
-    expect(rutaInicial(sujeto("gerente", true), PROGRAMA)).toBe(`/p/${PROGRAMA}/dashboard`);
+    expect(rutaInicial(sujeto("gerente", true), PROGRAMA)).toBe(`/p/${PROGRAMA}/hub`);
   });
 
   it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
@@ -358,10 +358,10 @@ describe("navegacion por rol", () => {
 
   it("el paid trafficker ve Mi espacio, el Dashboard y Ajustes (tickets 173, 179, 102): ni otras tabs, ni Recursos ni Mi día", () => {
     const rutas = rutasDe("paid_trafficker");
-    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/dashboard`, "/ajustes"]);
+    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, "/ajustes"]);
     expect(rutas).not.toContain("/mi-dia");
     expect(rutas).not.toContain("/recursos");
-    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/dashboard`]);
+    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/hub`]);
     // Sin programa visible no hay Dashboard.
     expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio", "/ajustes"]);
   });
@@ -377,7 +377,7 @@ describe("navegacion por rol", () => {
     expect(rutas).not.toContain("/mi-espacio");
     expect(rutas).not.toContain("/ajustes");
     expect(rutas).not.toContain("/recursos");
-    expect(rutas).not.toContain(`/p/${PROGRAMA}/dashboard`);
+    expect(rutas).not.toContain(`/p/${PROGRAMA}/hub`);
     expect(rutas).not.toContain(`/p/${PROGRAMA}/deals`);
     // Sin programa visible no tiene ninguna tab.
     expect(rutasDe("customer_success", null)).toEqual([]);
@@ -391,7 +391,7 @@ describe("navegacion por rol", () => {
   });
 
   it("el developer aterriza en el Dashboard del primer programa, como el gerente", () => {
-    expect(rutaInicial(sujeto("developer"), "programa-a")).toBe("/p/programa-a/dashboard");
+    expect(rutaInicial(sujeto("developer"), "programa-a")).toBe("/p/programa-a/hub");
     // Sin programas activos, cae en ajustes: tiene acceso total de administracion.
     expect(rutaInicial(sujeto("developer"), null)).toBe("/ajustes");
   });
@@ -399,7 +399,7 @@ describe("navegacion por rol", () => {
 
 describe("el programa en la URL (ticket 097)", () => {
   it("lee el programa de una ruta /p/<slug>/..., y nada de las demas", () => {
-    expect(programaDeRuta("/p/programa-a/dashboard")).toBe("programa-a");
+    expect(programaDeRuta("/p/programa-a/hub")).toBe("programa-a");
     expect(programaDeRuta("/p/programa-a")).toBe("programa-a");
     expect(programaDeRuta("/p")).toBeNull();
     expect(programaDeRuta("/ajustes/canales/programa-a")).toBeNull();
@@ -407,19 +407,19 @@ describe("el programa en la URL (ticket 097)", () => {
   });
 
   it("cambiar de programa mantiene la tab y cambia la URL", () => {
-    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", "programa-b")).toBe(
-      "/p/programa-b/dashboard",
+    expect(rutaAlCambiarDePrograma("/p/programa-a/hub", "programa-b")).toBe(
+      "/p/programa-b/hub",
     );
   });
 
   it("mantiene la subpestaña elegida y suelta los filtros del programa anterior", () => {
     expect(
       rutaAlCambiarDePrograma(
-        "/p/programa-a/dashboard",
+        "/p/programa-a/hub",
         "programa-b",
         new URLSearchParams("seccion=dinero&closer=anterior&periodo=mes"),
       ),
-    ).toBe("/p/programa-b/dashboard?seccion=dinero");
+    ).toBe("/p/programa-b/hub?seccion=dinero");
     expect(
       rutaAlCambiarDePrograma(
         "/p/programa-a/inbox",
@@ -437,30 +437,30 @@ describe("el programa en la URL (ticket 097)", () => {
   });
 
   it("la opción Todos navega a la ruta superior y desde ella un programa abre su dashboard", () => {
-    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", VALOR_PROGRAMA_TODOS)).toBe("/dashboard");
-    expect(rutaAlCambiarDePrograma("/dashboard", "programa-b")).toBe("/p/programa-b/dashboard");
+    expect(rutaAlCambiarDePrograma("/p/programa-a/hub", VALOR_PROGRAMA_TODOS)).toBe("/hub");
+    expect(rutaAlCambiarDePrograma("/hub", "programa-b")).toBe("/p/programa-b/hub");
   });
 
   it("mantiene la subpestaña del dashboard al entrar y salir de Todos", () => {
     const query = new URLSearchParams("seccion=pauta&source=meta");
-    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard", VALOR_PROGRAMA_TODOS, query)).toBe(
-      "/dashboard?seccion=pauta",
+    expect(rutaAlCambiarDePrograma("/p/programa-a/hub", VALOR_PROGRAMA_TODOS, query)).toBe(
+      "/hub?seccion=pauta",
     );
-    expect(rutaAlCambiarDePrograma("/dashboard", "programa-b", query)).toBe(
-      "/p/programa-b/dashboard?seccion=pauta",
+    expect(rutaAlCambiarDePrograma("/hub", "programa-b", query)).toBe(
+      "/p/programa-b/hub?seccion=pauta",
     );
   });
 
   it("suelta lo que venga detras de la tab: un id es del programa anterior", () => {
-    expect(rutaAlCambiarDePrograma("/p/programa-a/dashboard/algo", "programa-b")).toBe(
-      "/p/programa-b/dashboard",
+    expect(rutaAlCambiarDePrograma("/p/programa-a/hub/algo", "programa-b")).toBe(
+      "/p/programa-b/hub",
     );
   });
 
   it("desde una ruta sin programa, o una tab que no existe, entra por la tab por defecto", () => {
-    expect(rutaAlCambiarDePrograma("/ajustes", "programa-b")).toBe("/p/programa-b/dashboard");
+    expect(rutaAlCambiarDePrograma("/ajustes", "programa-b")).toBe("/p/programa-b/hub");
     expect(rutaAlCambiarDePrograma("/p/programa-a/inventada", "programa-b")).toBe(
-      "/p/programa-b/dashboard",
+      "/p/programa-b/hub",
     );
   });
 });
@@ -507,5 +507,23 @@ describe("fallar cerrado sin rol", () => {
 
   it("no hay destino dentro de la app: va al login", () => {
     expect(rutaInicial(sujeto(null), null)).toBe("/login");
+  });
+});
+
+describe("el Hub reemplaza al Dashboard y a Metas (ticket 250, ADR 0086)", () => {
+  it("el menú tiene una sola entrada Hub y ninguna de Dashboard ni Metas", () => {
+    for (const rol of ["gerente", "developer", "paid_trafficker"] as const) {
+      const items = navParaRol(sujeto(rol), "programa-a");
+      expect(items.filter((i) => i.etiqueta === "Hub").map((i) => i.href)).toEqual(["/p/programa-a/hub"]);
+      expect(items.some((i) => i.etiqueta === "Dashboard" || i.etiqueta === "Metas")).toBe(false);
+    }
+  });
+
+  it("una query vieja conserva cada filtro y traduce la pestaña", () => {
+    expect(queryHaciaElHub({})).toBe("");
+    expect(queryHaciaElHub({ seccion: "pulso", rango: "mes" })).toBe("?seccion=hoy&rango=mes");
+    expect(queryHaciaElHub({ seccion: "operacion" })).toBe("?seccion=comercial");
+    expect(queryHaciaElHub({ seccion: "pauta", source: ["meta", "google"] })).toBe("?seccion=pauta&source=meta&source=google");
+    expect(queryHaciaElHub({ mes: "2026-09", vacio: undefined }, "hoy")).toBe("?mes=2026-09&seccion=hoy");
   });
 });

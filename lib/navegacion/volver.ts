@@ -87,13 +87,13 @@ function etiquetaDePath(path: string): string {
   if (/^\/p\/[^/]+\/deals$/.test(path)) return "Deals";
   if (/^\/p\/[^/]+\/leads$/.test(path)) return "Leads";
   if (/^\/p\/[^/]+\/students$/.test(path)) return "Students";
-  if (/^\/p\/[^/]+\/dashboard\/lista$/.test(path)) return "Dashboard · lista";
-  if (/^\/p\/[^/]+\/dashboard$/.test(path)) return "Dashboard";
+  if (/^\/p\/[^/]+\/hub\/lista$/.test(path)) return "Hub · lista";
+  if (/^\/p\/[^/]+\/hub$/.test(path)) return "Hub";
   // Las listas sin programa en la ruta.
   if (path === "/calls" || /^\/p\/[^/]+\/calls$/.test(path)) return "Calls";
   if (path === "/inbox" || /^\/p\/[^/]+\/inbox$/.test(path)) return "Inbox";
-  if (path === "/dashboard/lista") return "Dashboard · lista";
-  if (path === "/dashboard") return "Dashboard";
+  if (path === "/hub/lista") return "Hub · lista";
+  if (path === "/hub") return "Hub";
   if (path === "/nerd-stats") return "Nerd stats";
   if (path === "/mi-espacio") return "Mi espacio";
   return "Atras";

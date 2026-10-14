@@ -106,10 +106,10 @@ describe("etiquetaDeOrigen", () => {
   });
 
   it("etiqueta el dashboard y su lista, con y sin programa", () => {
-    expect(etiquetaDeOrigen("/dashboard")).toBe("Dashboard");
-    expect(etiquetaDeOrigen("/dashboard/lista")).toBe("Dashboard · lista");
-    expect(etiquetaDeOrigen("/p/x/dashboard")).toBe("Dashboard");
-    expect(etiquetaDeOrigen("/p/x/dashboard/lista")).toBe("Dashboard · lista");
+    expect(etiquetaDeOrigen("/hub")).toBe("Hub");
+    expect(etiquetaDeOrigen("/hub/lista")).toBe("Hub · lista");
+    expect(etiquetaDeOrigen("/p/x/hub")).toBe("Hub");
+    expect(etiquetaDeOrigen("/p/x/hub/lista")).toBe("Hub · lista");
   });
 
   it("lo desconocido es Atras", () => {

@@ -19,7 +19,7 @@ function detalle(cantidad: number): DetalleDeCifra {
       porEtapa: [{ etiqueta: "Atendido", cantidad, caja: [] }],
       porAntiguedad: [{ etiqueta: "0-7", cantidad, caja: [] }],
     },
-    href: "/p/programa-a/dashboard/lista?metrica=agendas",
+    href: "/p/programa-a/hub/lista?metrica=agendas",
   };
 }
 

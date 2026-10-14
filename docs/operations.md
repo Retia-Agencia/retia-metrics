@@ -281,6 +281,10 @@ el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como his
   comprobantes en foto (1 a 5 MB cada uno) van a Storage, no a la base. Mani lo quiere en sesión propia.
 - **Extraer los componentes grandes** (`mi-dia-registro`, dashboard y administradores) solo cuando haya
   una frontera de dominio estable (ADR 0033). Buena parte se reescribe igual en la etapa de UI.
+- **Rutas viejas del Dashboard y de Metas (ticket 250, 14-oct):** `/p/<programa>/dashboard`, `/dashboard`,
+  `/p/<programa>/metas` y sus `lista` solo redirigen al Hub, con la query y la misma guarda (como `/mi-dia`).
+  Se borran el **14-nov-2026**, un mes después; antes de borrarlas, mirar en Vercel que ya no reciban visitas.
+  `/mi-dia` (ticket 172) tampoco tiene fecha anotada y puede salir el mismo día.
 - **Código muerto:** `lib/abonos/plataforma.ts` no lo importa nadie (verificado el 27-sep). Se señala,
   no se borra de paso.
 - **`users.calendly_email` sin lector (28-sep, ticket 096):** la cuenta de Calendly pasó a la membresía

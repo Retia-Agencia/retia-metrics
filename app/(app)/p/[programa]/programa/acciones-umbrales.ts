@@ -23,7 +23,7 @@ export async function guardarUmbralAccion(input: EntradaUmbral & { activo: boole
     const rol = await rolDeVista(session);
     if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
     await guardarUmbral(db, { id: session.user.id, rol }, input);
-    revalidatePath("/p/[programa]/dashboard", "page");
+    revalidatePath("/p/[programa]/hub", "page");
     return { ok: true };
   } catch (error) {
     if (error instanceof ErrorDeApp) return { ok: false, error: error.message };

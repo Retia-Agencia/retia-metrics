@@ -93,7 +93,7 @@ export function urlDeListaTodos(metrica: Metrica, periodo: PeriodoResuelto, mone
   const q = new URLSearchParams(queryDePeriodo(periodo));
   q.set("metrica", metrica);
   if (moneda) q.set("moneda", moneda);
-  return `/dashboard/lista?${q}`;
+  return `/hub/lista?${q}`;
 }
 
 function totales(resumenes: Record<MetricaDeTodos, ResumenDeMetrica[]>): TotalesDePeriodo {
@@ -182,7 +182,7 @@ export async function armarVistaDeTodos(
         comision: dinero("USD", dashboard.comision.totalUsd),
         descuento: tasa(dashboard.descuento.promedioPct),
         dashboard,
-        href: `/p/${encodeURIComponent(programa.slug)}/dashboard?${queryDePeriodo(periodo)}`,
+        href: `/p/${encodeURIComponent(programa.slug)}/hub?${queryDePeriodo(periodo)}`,
       };
     })),
   ]);

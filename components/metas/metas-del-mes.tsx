@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, num, pct } from "@/lib/format";
@@ -8,13 +9,23 @@ type Props = {
   metas: MetasDelMes;
   hrefVentasMes: string;
   hrefVentasSemana: string | null;
+  /**
+   * Si la cifra abre su lista. Sin el equipo comercial (paid trafficker, ticket 102) la lista
+   * no es suya: la cifra se pinta igual, pero como texto.
+   */
+  conListas?: boolean;
 };
+
+/** La cifra abre su lista solo si la sesión ve las listas; si no, es texto. */
+function Cifra({ href, enlaza, className, children }: { href: string; enlaza: boolean; className: string; children: ReactNode }) {
+  return enlaza ? <Link className={className} href={href}>{children}</Link> : <span className={className}>{children}</span>;
+}
 
 function porcentaje(valor: number | null): string {
   return valor === null ? "—" : pct(valor);
 }
 
-export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana }: Props) {
+export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana, conListas = true }: Props) {
   return (
     <div className="space-y-6">
       {metas.mesSinVentana ? (
@@ -32,9 +43,9 @@ export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana }: Props) {
         <Card className="shadow-tarjeta">
           <CardHeader><CardTitle>Vendido</CardTitle></CardHeader>
           <CardContent className="space-y-1">
-            <Link className="cifra text-2xl font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={hrefVentasMes}>
+            <Cifra enlaza={conListas} className="cifra text-2xl font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={hrefVentasMes}>
               {num(metas.vendidos)} {metas.vendidos === 1 ? "cupo" : "cupos"}
-            </Link>
+            </Cifra>
             <p className="cifra text-sm text-muted-foreground">{porcentaje(metas.avancePct)} de la meta del mes</p>
             <p className="cifra text-sm text-muted-foreground">{monto(metas.contratadoUsd, "USD")} contratado</p>
             {metas.ventasSinValorVendido > 0 ? (
@@ -71,9 +82,9 @@ export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana }: Props) {
                 )}
                 <p className="text-sm text-muted-foreground">
                   Meta {num(metas.compensacionSemanal.meta, 2)} ·{" "}
-                  <Link className="cifra underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={hrefVentasSemana}>
+                  <Cifra enlaza={conListas} className="cifra underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={hrefVentasSemana}>
                     {num(metas.compensacionSemanal.vendidos)} vendidas
-                  </Link>
+                  </Cifra>
                 </p>
               </div>
             ) : <p className="text-sm text-muted-foreground">Solo se calcula para el mes actual.</p>}

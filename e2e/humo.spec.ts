@@ -39,6 +39,12 @@ const RUTAS_GLOBALES = [
   "/",
   "/mi-espacio",
   "/mi-dia",
+  // El Hub de todos y cada pestaña suya; `/dashboard` queda para probar que la ruta vieja redirige (ticket 250).
+  "/hub",
+  "/hub?seccion=comercial",
+  "/hub?seccion=dinero",
+  "/hub?seccion=pauta",
+  "/hub?seccion=origen",
   "/dashboard",
   "/perfil",
   "/recursos",
@@ -53,7 +59,12 @@ const RUTAS_GLOBALES = [
   "/ajustes/migracion",
 ];
 
-const TABS_DE_PROGRAMA = ["", "/inbox", "/deals", "/leads", "/calls", "/students", "/dashboard", "/metas", "/programa"];
+// Las pestañas del Hub van una por una; `/dashboard` y `/metas` prueban las redirecciones viejas (ticket 250).
+const TABS_DE_PROGRAMA = [
+  "", "/inbox", "/deals", "/leads", "/calls", "/students", "/programa",
+  "/hub", "/hub?seccion=comercial", "/hub?seccion=dinero", "/hub?seccion=pauta", "/hub?seccion=origen",
+  "/dashboard", "/metas",
+];
 
 /**
  * Todo lo que se puede abrir: los disparadores de Base UI (`aria-haspopup`, `aria-expanded`, combobox),
@@ -125,7 +136,7 @@ async function entrar(page: Page, correo: string): Promise<boolean> {
 
 async function descubrirProgramas(page: Page): Promise<string[]> {
   const slugs = new Set<string>();
-  for (const ruta of ["/", "/mi-espacio", "/dashboard"]) {
+  for (const ruta of ["/", "/mi-espacio", "/hub"]) {
     await page.goto(ruta);
     const hrefs = await page.locator("a[href^='/p/']").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
     for (const href of hrefs) {

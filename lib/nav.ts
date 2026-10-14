@@ -4,7 +4,7 @@ import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLe
 export type ItemNav = {
   href: string;
   etiqueta: string;
-  icono: "dashboard" | "metas" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "miespacio" | "nerdstats" | "students" | "leads" | "programa";
+  icono: "hub" | "deals" | "inbox" | "calls" | "recursos" | "ajustes" | "miespacio" | "nerdstats" | "students" | "leads" | "programa";
   roles: readonly Rol[];
 };
 
@@ -16,14 +16,45 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["dashboard", "metas", "leads", "deals", "inbox", "calls", "students", "programa"] as const;
+export const TABS_DE_PROGRAMA = ["hub", "leads", "deals", "inbox", "calls", "students", "programa"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
-export const TAB_POR_DEFECTO: TabDePrograma = "dashboard";
+export const TAB_POR_DEFECTO: TabDePrograma = "hub";
 
-/** Ruta del comparativo permitido entre todos los programas visibles (ADR 0048). */
-export const RUTA_DASHBOARD_TODOS = "/dashboard";
+/** Ruta del Hub de todos los programas visibles: solo suma (ADR 0048, ADR 0086). */
+export const RUTA_HUB_TODOS = "/hub";
+
+/** Las pestañas del Hub, en el orden del ADR 0086. */
+export const SECCIONES_DEL_HUB = ["hoy", "comercial", "dinero", "pauta", "origen"] as const;
+export type SeccionDelHub = (typeof SECCIONES_DEL_HUB)[number];
+
+/** Las pestañas del Dashboard que cambiaron de nombre al pasar al Hub (ticket 250). */
+const SECCION_VIEJA_EN_EL_HUB: Readonly<Record<string, SeccionDelHub>> = {
+  pulso: "hoy",
+  operacion: "comercial",
+};
+
+/**
+ * La query con la que una URL vieja (`dashboard`, `metas` y sus listas) abre la misma vista
+ * en el Hub (ticket 250): conserva cada filtro y traduce la pestaña al nombre nuevo.
+ * `seccion` la fija cuando la ruta vieja era una pestaña entera (Metas vive en Hoy).
+ * Devuelve `""` o `"?..."`.
+ */
+export function queryHaciaElHub(
+  busqueda: Record<string, string | string[] | undefined>,
+  seccion?: SeccionDelHub,
+): string {
+  const q = new URLSearchParams();
+  for (const [clave, valor] of Object.entries(busqueda)) {
+    for (const v of Array.isArray(valor) ? valor : valor === undefined ? [] : [valor]) {
+      q.append(clave, clave === "seccion" ? SECCION_VIEJA_EN_EL_HUB[v] ?? v : v);
+    }
+  }
+  if (seccion) q.set("seccion", seccion);
+  const texto = q.toString();
+  return texto ? `?${texto}` : "";
+}
 /** No puede ser un slug: los slugs no admiten dos puntos. */
 export const VALOR_PROGRAMA_TODOS = ":todos";
 
@@ -59,14 +90,14 @@ export function rutaAlCambiarDePrograma(
   };
 
   if (nuevoSlug === VALOR_PROGRAMA_TODOS) {
-    return primero === "p" && slug && tab === "dashboard"
-      ? conSeccion(RUTA_DASHBOARD_TODOS)
-      : RUTA_DASHBOARD_TODOS;
+    return primero === "p" && slug && tab === "hub"
+      ? conSeccion(RUTA_HUB_TODOS)
+      : RUTA_HUB_TODOS;
   }
   if (primero === "p" && slug && (TABS_DE_PROGRAMA as readonly string[]).includes(tab ?? "")) {
     return conSeccion(rutaDePrograma(nuevoSlug, tab as TabDePrograma));
   }
-  if (pathname === RUTA_DASHBOARD_TODOS || pathname.startsWith(`${RUTA_DASHBOARD_TODOS}/`)) {
+  if (pathname === RUTA_HUB_TODOS || pathname.startsWith(`${RUTA_HUB_TODOS}/`)) {
     return conSeccion(rutaDePrograma(nuevoSlug));
   }
   return rutaDePrograma(nuevoSlug);
@@ -85,7 +116,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
 
   // El paid trafficker (ADR 0052) entra a Ajustes —adentro solo ve Canales (lo proyecta
   // el índice)— y, desde el ticket 179, a Mi espacio, su propia sección Canales (pares sin
-  // clasificar y conteo por canal). Desde el ticket 102 ve el Dashboard del programa elegido,
+  // clasificar y conteo por canal). Desde el ticket 102 ve el Hub (antes Dashboard) del programa elegido,
   // sin el trabajo del equipo comercial. No administra la app ni trabaja leads, así que no
   // tiene las demás tabs de programa ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
   // administrar ni trabajar leads—, nunca por el literal del rol (ADR 0025).
@@ -93,7 +124,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
     return [
       { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["paid_trafficker"] },
       ...(programa
-        ? [{ href: rutaDePrograma(programa, "dashboard"), etiqueta: "Dashboard", icono: "dashboard", roles: ["paid_trafficker"] } satisfies ItemNav]
+        ? [{ href: rutaDePrograma(programa, "hub"), etiqueta: "Hub", icono: "hub", roles: ["paid_trafficker"] } satisfies ItemNav]
         : []),
       { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] },
     ];
@@ -121,23 +152,17 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
     items.push({ href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles });
   }
 
-  // Dashboard del programa elegido. Lo ve quien ve el tablero (gerente, developer y el paid
-  // trafficker por su rama de arriba); el closer ya NO (ticket 224, ADR 0082): la ruta le
-  // responde 404. El selector solo ofrece los programas visibles y cada ruta valida su rol en
-  // el servidor. Se pregunta por capacidad (`veTableroDelPrograma`), nunca por el literal del rol.
+  // Hub del programa elegido (ADR 0086, ticket 250; antes Dashboard, y Metas vive ahora en su
+  // pestaña Hoy). Lo ve quien ve el tablero (gerente, developer y el paid trafficker por su
+  // rama de arriba); el closer NO (ticket 224, ADR 0082): la ruta le responde 404. El selector
+  // solo ofrece los programas visibles y cada ruta valida su rol en el servidor. Se pregunta
+  // por capacidad (`veTableroDelPrograma`), nunca por el literal del rol.
   if (programa) {
     if (veTableroDelPrograma(rol)) {
       items.push({
-        href: rutaDePrograma(programa, "dashboard"),
-        etiqueta: "Dashboard",
-        icono: "dashboard",
-        roles: ["gerente"],
-      });
-      // Metas: cae con el Dashboard (misma capacidad, ticket 224).
-      items.push({
-        href: rutaDePrograma(programa, "metas"),
-        etiqueta: "Metas",
-        icono: "metas",
+        href: rutaDePrograma(programa, "hub"),
+        etiqueta: "Hub",
+        icono: "hub",
         roles: ["gerente"],
       });
     }
@@ -150,7 +175,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
       roles: ["gerente", "closer"],
     });
     // Deals: el Kanban del programa (ADR 0050, ticket 069). Lo ven gerente y closer (y el
-    // developer por `esAccesoTotal`); un closer solo en sus programas, como el Dashboard.
+    // developer por `esAccesoTotal`); un closer solo en sus programas.
     items.push({
       href: rutaDePrograma(programa, "deals"),
       etiqueta: "Deals",
@@ -225,7 +250,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
 /**
  * A donde mandar a alguien que entra a "/" segun su rol.
  * Sin rol no hay destino valido dentro de la app: va al login.
- * El gerente y el developer (ADR 0025) aterrizan en el Dashboard del primer programa
+ * El gerente y el developer (ADR 0025) aterrizan en el Hub del primer programa
  * (ADR 0050); si no hay ninguno, en ajustes. El closer y el paid trafficker aterrizan en
  * **Mi espacio** (tickets 172 y 179): el closer ve su perfil y, por programa, sus
  * pendientes, deals, llamadas y students; el paid trafficker ve su sección Canales. El
@@ -249,5 +274,5 @@ export function rutaInicial(sujeto: SujetoDeCapacidad, primerPrograma: string | 
   if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
     return primerPrograma ? rutaDePrograma(primerPrograma, "students") : "/mi-espacio";
   }
-  return primerPrograma ? rutaDePrograma(primerPrograma, "dashboard") : "/ajustes";
+  return primerPrograma ? rutaDePrograma(primerPrograma, "hub") : "/ajustes";
 }

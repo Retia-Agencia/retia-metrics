@@ -65,7 +65,8 @@ async function correr() {
   }
 }
 
-describe("146: guarda de la página de metas", () => {
+// Desde el 250 la página Metas solo redirige a la pestaña Hoy del Hub, con su misma guarda.
+describe("146 y 250: guarda de la página de metas", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.rolDeVista.mockResolvedValue("gerente");
@@ -87,18 +88,15 @@ describe("146: guarda de la página de metas", () => {
     expect(mocks.leerMetasDelMes).not.toHaveBeenCalled();
   });
 
-  it("un paid trafficker ve las Metas (ve el tablero, ADR 0052/ticket 102)", async () => {
+  it("un paid trafficker llega a las Metas en Hoy (ve el tablero, ADR 0052/ticket 102)", async () => {
     mocks.auth.mockResolvedValue({ user: { id: "u-3", email: "pauta@example.test", rol: "paid_trafficker" } });
     mocks.rolDeVista.mockResolvedValue("paid_trafficker");
-    mocks.programaVisiblePorSlug.mockResolvedValue({ id: "programa-1", slug: "comunicarte", nombre: "ComunicArte" });
-    expect(await correr()).toBe("paso");
-    expect(mocks.leerMetasDelMes).toHaveBeenCalledWith("programa-1", "2026-10", "2026-10-04");
+    expect(await correr()).toBe("/p/comunicarte/hub?mes=2026-10&seccion=hoy#metas");
   });
 
-  it("el gerente llega al lector con el id del programa", async () => {
+  it("el gerente llega a las Metas en Hoy, en el mismo mes", async () => {
     mocks.auth.mockResolvedValue({ user: { id: "u-2", email: "gerente@example.test", rol: "gerente" } });
-    mocks.programaVisiblePorSlug.mockResolvedValue({ id: "programa-1", slug: "comunicarte", nombre: "ComunicArte" });
-    expect(await correr()).toBe("paso");
-    expect(mocks.leerMetasDelMes).toHaveBeenCalledWith("programa-1", "2026-10", "2026-10-04");
+    expect(await correr()).toBe("/p/comunicarte/hub?mes=2026-10&seccion=hoy#metas");
+    expect(mocks.leerMetasDelMes).not.toHaveBeenCalled();
   });
 });
