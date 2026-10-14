@@ -190,15 +190,15 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | done · `cp-20261005-2` · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); cadenero (5-oct): aprobado, con los tests de petición forjada y de Operación y Dinero |
 | [x] | 119 | [La conexión con Meta: un solo token y las cuentas de cada programa](./119-la-conexion-con-meta.md) | — | done · 14-oct · Mani · CI verde `e020948` · 0080 aplicada en producción; un solo token (enmienda del 14-oct), cuentas por programa solo de quien administra; recorrido local con el token real (7 cuentas) |
 | [x] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | done · 14-oct · Mani · CI verde `803e6fc` · migración 0081 aplicada; primera corrida en producción: agendas 9-13 oct iguales al audit, gasto a menos de 0,1% |
-| [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
+| [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | en curso · 14-oct · Codex en `.claude/worktrees/t122` · migración 0083 escrita en la rama, sin aplicar |
 | [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) |
 | [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123, 253 | todo · PQ3 = HQ-5, con valor por defecto del 253 |
 | [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · enmendado 14-oct: vive en Hub › Pauta |
 | [ ] | 244 | [La TRM oficial de cada día, guardada](./244-la-trm-del-dia.md) | — | en curso · 14-oct · Codex en `.claude/worktrees/t244` · migración 0082 · cierra A12 (ADR 0088) |
-| [ ] | 245 | [Las fotos del gasto durante el día](./245-las-fotos-del-gasto-durante-el-dia.md) | 120 | todo · migración |
+| [ ] | 245 | [Las fotos del gasto durante el día](./245-las-fotos-del-gasto-durante-el-dia.md) | 120 | en curso · 14-oct · Codex en `.claude/worktrees/t245` (sale de t122) · migración 0084 escrita en la rama, sin aplicar |
 | [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | en curso · 14-oct · Codex en `.claude/worktrees/t247` · los campos ocultos ya están en los tres Typeform (14-oct) |
 | [ ] | 249 | [Agendas según Meta contra el CRM: el control](./249-agendas-segun-meta-contra-el-crm.md) | 120, 123 | todo |
-| [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 123, 245, 262 | todo |
+| [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 245, 262 (v1); 247 (v2) | todo · enmendado 14-oct: v1 por programa sin el 123, v2 por campaña |
 | [ ] | 259 | [El endpoint de máquina del semáforo](./259-el-endpoint-de-maquina-del-semaforo.md) | 258 | todo · segunda excepción a "nada es público" (ADR 0089) |
 | [ ] | 260 | [Juanito manda el semáforo](./260-juanito-manda-el-semaforo.md) | 259 | todo · **se implementa en el repo de Juanito** |
 | [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
