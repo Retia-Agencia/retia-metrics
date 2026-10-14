@@ -16,7 +16,9 @@ import { abonos, calls, deals, etapaDealEnum, leadContactos, pendienteDealEnum }
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
+import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
+import { almacenDeArchivos, confirmarArchivo, pedirSubida } from "@/lib/archivos";
+import { MAX_BYTES, TIPOS_PERMITIDOS } from "@/lib/archivos/reglas";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { registrarActividad } from "@/lib/deals/actividades";
@@ -30,7 +32,7 @@ import { completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlam
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { marcarCortesia } from "@/lib/deals/cortesia";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 
 /**
@@ -432,6 +434,55 @@ export async function pegarComprobanteAccion(entrada: EntradaPegarComprobante): 
     const datos = esquemaComprobanteAccion.parse(entrada);
     await exigirAbonoVisible(ctx, datos.abonoId);
     await pegarComprobante(db, ctx.actor, datos);
+    return {};
+  });
+}
+
+const esquemaPedirSubidaComprobanteAccion = z.object({
+  abonoId: id("Abono inválido."),
+  tipoMime: z.enum(TIPOS_PERMITIDOS, { error: "El tipo de archivo no está permitido." }),
+  bytes: z.number().int().positive("El archivo debe tener contenido.").max(MAX_BYTES, "El archivo supera 5 MB."),
+});
+export type EntradaPedirSubidaComprobante = z.input<typeof esquemaPedirSubidaComprobanteAccion>;
+
+export async function pedirSubidaComprobanteAccion(
+  entrada: EntradaPedirSubidaComprobante,
+): Promise<ResultadoFicha<{ archivoId: string; subida: { url: string; metodo: "PUT"; cabeceras: Record<string, string> } }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaPedirSubidaComprobanteAccion.parse(entrada);
+    await exigirAbonoVisible(ctx, datos.abonoId);
+    const [fila] = await db
+      .select({ abono: { programId: abonos.programId }, deal: deals })
+      .from(abonos)
+      .innerJoin(deals, eq(deals.id, abonos.dealId))
+      .where(and(eq(abonos.id, datos.abonoId), vigente(abonos), incluyendoAnulados(deals)));
+    if (!fila) throw new ErrorDeApp("No existe el abono vigente.", 404);
+    if (!puedeTrabajarDeal(ctx.actor, fila.deal)) {
+      throw new ErrorDeApp("Solo el dueño del deal puede adjuntar el comprobante.", 403);
+    }
+    return pedirSubida(db, almacenDeArchivos(), {
+      programId: fila.abono.programId,
+      tipoMime: datos.tipoMime,
+      bytes: datos.bytes,
+      actorId: ctx.actor.userId,
+    });
+  });
+}
+
+const esquemaConfirmarComprobanteAccion = z.object({
+  abonoId: id("Abono inválido."),
+  archivoId: id("Archivo inválido."),
+});
+export type EntradaConfirmarComprobante = z.input<typeof esquemaConfirmarComprobanteAccion>;
+
+export async function confirmarComprobanteAccion(
+  entrada: EntradaConfirmarComprobante,
+): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const datos = esquemaConfirmarComprobanteAccion.parse(entrada);
+    await exigirAbonoVisible(ctx, datos.abonoId);
+    await confirmarArchivo(db, almacenDeArchivos(), { archivoId: datos.archivoId, actorId: ctx.actor.userId });
+    await adjuntarComprobante(db, ctx.actor, datos);
     return {};
   });
 }

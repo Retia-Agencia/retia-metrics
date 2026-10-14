@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useParams } from "next/navigation";
 import { ID_DE_SECCION } from "./accion-pedida";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -17,12 +18,15 @@ import {
   editarAcuerdoAccion,
   marcarOnboardedAccion,
   pegarComprobanteAccion,
+  pedirSubidaComprobanteAccion,
+  confirmarComprobanteAccion,
   editarDealAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
 import { cn } from "@/lib/utils";
 import { ControlPlataforma } from "../formulario-abono";
+import { SubirArchivo } from "@/components/archivos/subir-archivo";
 
 /**
  * El dinero y el pago del deal (ticket 074): precio, abonado y saldo, el acuerdo de pago,
@@ -60,6 +64,7 @@ export function FichaPago({
   /** Calculado en el servidor: esta etapa admite una flecha de pago. */
   aceptaAbono: boolean;
 }) {
+  const { programa: programaSlug } = useParams<{ programa: string }>();
   const { pendiente, correr } = useAccion();
   const [dialogo, setDialogo] = useState<Dialogo | null>(null);
   const cerrar = () => setDialogo(null);
@@ -221,9 +226,20 @@ export function FichaPago({
                     <a className="text-xs text-marca-texto underline-offset-2 hover:underline" href={a.comprobanteUrl} target="_blank" rel="noreferrer">
                       Comprobante
                     </a>
-                  ) : !anulada && puedeTrabajar && !anulado ? (
+                  ) : null}
+                  {a.comprobanteArchivoId ? (
+                    <a
+                      className="text-xs text-marca-texto underline-offset-2 hover:underline"
+                      href={`/p/${programaSlug}/archivos/${a.comprobanteArchivoId}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Ver comprobante
+                    </a>
+                  ) : null}
+                  {!a.comprobanteUrl && !a.comprobanteArchivoId && !anulada && puedeTrabajar && !anulado ? (
                     <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "comprobante", abono: a })}>
-                      Pegar comprobante
+                      Agregar comprobante
                     </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
@@ -373,9 +389,47 @@ function DialogoCambiarPlataforma({
 function DialogoComprobante({ abono, onCerrar }: { abono: FichaDeAbono; onCerrar: () => void }) {
   const { pendiente, correr } = useAccion();
   const [url, setUrl] = useState("");
+  const [modo, setModo] = useState<"elegir" | "subir" | "link">("elegir");
+
+  if (modo === "elegir") {
+    return (
+      <DialogoForm
+        titulo="Agregar comprobante"
+        descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}.`}
+        pendiente={false}
+        onCerrar={onCerrar}
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          <Button type="button" onClick={() => setModo("subir")}>Subir archivo</Button>
+          <Button type="button" variant="secondary" onClick={() => setModo("link")}>Pegar link</Button>
+        </div>
+      </DialogoForm>
+    );
+  }
+
+  if (modo === "subir") {
+    return (
+      <DialogoForm
+        titulo="Subir comprobante"
+        descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}.`}
+        pendiente={false}
+        onCerrar={onCerrar}
+      >
+        <SubirArchivo
+          pedirSubida={(meta) => pedirSubidaComprobanteAccion({ abonoId: abono.id, ...meta })}
+          alSubir={async (archivoId) => {
+            const resultado = await confirmarComprobanteAccion({ abonoId: abono.id, archivoId });
+            if (!resultado.ok) throw new Error(resultado.error);
+            onCerrar();
+          }}
+        />
+      </DialogoForm>
+    );
+  }
+
   return (
     <DialogoForm
-      titulo="Pegar comprobante"
+      titulo="Pegar link del comprobante"
       descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}.`}
       pendiente={pendiente}
       onCerrar={onCerrar}

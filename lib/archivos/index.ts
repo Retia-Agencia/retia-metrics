@@ -10,6 +10,8 @@ import { fechaDeInstanteEnBogota } from "@/lib/format";
 import type { Almacen } from "./almacen";
 import { extensionDeTipo, MAX_BYTES, TIPOS_PERMITIDOS, tipoPorBytesMagicos } from "./reglas";
 import { crearAlmacenSupabase } from "./supabase";
+import { crearAlmacenEnDisco } from "./disco";
+import { esUrlLocal } from "@/lib/db/es-local";
 
 const entradaSubida = z.object({
   programId: z.string().uuid(),
@@ -19,6 +21,7 @@ const entradaSubida = z.object({
 });
 
 export function almacenDeArchivos(): Almacen {
+  if (esUrlLocal(process.env.DATABASE_URL ?? "")) return crearAlmacenEnDisco();
   const url = process.env.SUPABASE_URL;
   const clave = process.env.SUPABASE_SECRET_KEY;
   if (!url || !clave) throw new ErrorDeApp("El almacén de archivos no está configurado.", 503);

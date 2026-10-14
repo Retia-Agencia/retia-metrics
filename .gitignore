@@ -60,3 +60,6 @@ next-env.d.ts
 # humo de la UI (playwright)
 /test-results
 /playwright-report
+
+# Comprobantes del adaptador de desarrollo local
+/.archivos-locales/

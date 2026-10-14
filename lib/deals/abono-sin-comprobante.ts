@@ -9,6 +9,11 @@ export async function dealsConAbonoSinComprobante(db: Db, dealIds: readonly stri
   const filas = await db
     .select({ dealId: abonos.dealId })
     .from(abonos)
-    .where(and(inArray(abonos.dealId, [...dealIds]), isNull(abonos.comprobanteUrl), vigente(abonos)));
+    .where(and(
+      inArray(abonos.dealId, [...dealIds]),
+      isNull(abonos.comprobanteUrl),
+      isNull(abonos.comprobanteArchivoId),
+      vigente(abonos),
+    ));
   return new Set(filas.map((fila) => fila.dealId));
 }

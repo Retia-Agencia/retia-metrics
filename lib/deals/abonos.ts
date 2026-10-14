@@ -1,6 +1,6 @@
 import { and, eq, ne, notInArray } from "drizzle-orm";
 import { z } from "zod";
-import { abonos, cohorts, deals, leads, users } from "@/lib/db/schema";
+import { abonos, archivos, cohorts, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { dejarNotaDelActor } from "@/lib/deals/nota-del-sistema";
@@ -77,6 +77,12 @@ export const esquemaPegarComprobante = z.object({
   comprobanteUrl: z.string().url("El comprobante debe ser una URL válida."),
 });
 export type DatosPegarComprobante = z.input<typeof esquemaPegarComprobante>;
+
+export const esquemaAdjuntarComprobante = z.object({
+  abonoId: z.string().uuid("El abono no es válido."),
+  archivoId: z.string().uuid("El archivo no es válido."),
+});
+export type DatosAdjuntarComprobante = z.input<typeof esquemaAdjuntarComprobante>;
 
 export const esquemaCambiarPlataformaDeAbono = z.object({
   abonoId: z.string().uuid("El abono no es válido."),
@@ -254,6 +260,55 @@ export async function pegarComprobante(
           deal.id,
           actor.userId,
           "Se pegó el comprobante del abono con el deal ya en Ganado completo.",
+        );
+      }
+    });
+  });
+}
+
+/** Adjunta un archivo ya verificado sin alterar la caja ni la etapa del deal. */
+export async function adjuntarComprobante(
+  db: Db,
+  actor: ActorDeAbono,
+  datos: DatosAdjuntarComprobante,
+): Promise<void> {
+  return normalizando(async () => {
+    const entrada = esquemaAdjuntarComprobante.parse(datos);
+    await (db as unknown as Transaccion).transaction(async (tx) => {
+      const [referencia] = await tx
+        .select({ dealId: abonos.dealId, programId: abonos.programId })
+        .from(abonos)
+        .where(and(eq(abonos.id, entrada.abonoId), vigente(abonos)));
+      if (!referencia) throw new ErrorDeApp("No existe el abono vigente.", 404);
+
+      const { deal, emailLead } = await dealBloqueado(tx, referencia.dealId);
+      if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado.", 409);
+      if (!puedeTrabajarDeal(actor, deal)) {
+        throw new ErrorDeApp("Solo el dueño del deal puede adjuntar el comprobante.", 403);
+      }
+
+      const [archivo] = await tx.select().from(archivos).where(eq(archivos.id, entrada.archivoId));
+      if (!archivo || archivo.estado !== "listo") {
+        throw new ErrorDeApp("El archivo no está listo para adjuntarse.", 422);
+      }
+      if (archivo.programId !== referencia.programId) {
+        throw new ErrorDeApp("El archivo no pertenece al programa del abono.", 422);
+      }
+      if (archivo.subidoPorUserId !== actor.userId) {
+        throw new ErrorDeApp("No puedes adjuntar un archivo subido por otra persona.", 403);
+      }
+
+      await editarConRastro(
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
+        entrada.abonoId,
+        { comprobanteArchivoId: entrada.archivoId },
+      );
+      if (deal.etapa === "ganado_completo") {
+        await dejarNotaDelActor(
+          tx,
+          deal.id,
+          actor.userId,
+          "Se adjuntó el comprobante del abono con el deal ya en Ganado completo.",
         );
       }
     });

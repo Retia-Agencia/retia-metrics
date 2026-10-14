@@ -78,6 +78,7 @@ export interface FichaDeAbono {
   plataformaId: string | null;
   plataformaNombre: string | null;
   comprobanteUrl: string | null;
+  comprobanteArchivoId: string | null;
   closerId: string | null;
   anuladoEn: Date | null;
   motivoAnulacion: string | null;
@@ -689,6 +690,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
       plataformaId: a.plataformaId,
       plataformaNombre: plataformasFilas.find((p) => p.id === a.plataformaId)?.nombre ?? null,
       comprobanteUrl: a.comprobanteUrl,
+      comprobanteArchivoId: a.comprobanteArchivoId,
       closerId: a.closerId,
       anuladoEn: a.anuladoEn,
       motivoAnulacion: a.motivoAnulacion,
