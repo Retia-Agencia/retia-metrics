@@ -4,6 +4,7 @@ import {
   calls,
   changeLog,
   cohorts,
+  dealActividades,
   dealEtapaHistorial,
   deals,
   leads,
@@ -155,6 +156,27 @@ async function capturar(p: Promise<unknown>): Promise<ErrorDeApp> {
 // ───────────────────────────────────────────────────────────── 058 · pegarGrain
 
 describe("pegarGrain: pegar el link es decir que la llamada sucedió", () => {
+  it("completa un Ganado completo sin moverlo y deja la nota firmada por el actor", async () => {
+    const dealId = await nuevoDeal("ganado_completo");
+    const call = await agendadaDe(dealId);
+
+    const resultado = await pegarGrain(db, comoCloser(), {
+      callId: call.id,
+      linkGrain: "https://grain.com/share/completo",
+    });
+
+    expect(resultado).toEqual({ movioAAtendido: false, etapa: "ganado_completo" });
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
+    expect(await callPorId(call.id)).toMatchObject({ resultado: "show", linkGrain: "https://grain.com/share/completo" });
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toMatchObject([
+      {
+        tipo: "nota",
+        userId: closer,
+        nota: "Se pegó el link de Grain con el deal ya en Ganado completo.",
+      },
+    ]);
+  });
+
   it("desde Agendado deja show, link, fecha y deal en Atendido, en una operación, con historial", async () => {
     const dealId = await nuevoDeal("agendado");
     const call = await agendadaDe(dealId);
@@ -319,13 +341,11 @@ describe("pegarGrain: rechazos", () => {
     expect(guardada.linkGrain).toBeNull();
   });
 
-  it("un deal cerrado se rechaza", async () => {
-    for (const etapa of ["ganado_completo", "cierre_perdido"] as EtapaDeal[]) {
-      const dealId = await nuevoDeal(etapa);
-      const call = await agendadaDe(dealId);
-      const err = await capturar(pegarGrain(db, comoCloser(), { callId: call.id, linkGrain: "https://grain.com/x" }));
-      expect(err.status).toBe(409);
-    }
+  it("un deal en Cierre perdido se rechaza", async () => {
+    const dealId = await nuevoDeal("cierre_perdido");
+    const call = await agendadaDe(dealId);
+    const err = await capturar(pegarGrain(db, comoCloser(), { callId: call.id, linkGrain: "https://grain.com/x" }));
+    expect(err.status).toBe(409);
   });
 
   it("un link que no es URL es entrada inválida (400)", async () => {
@@ -349,6 +369,26 @@ describe("pegarGrain: rechazos", () => {
 // ─────────────────────────────────────────────────── 059 · marcarFallida → Re-agenda
 
 describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () => {
+  it("completa una llamada pasada de Ganado completo sin mover etapa ni pendiente y deja nota", async () => {
+    const dealId = await nuevoDeal("ganado_completo");
+    const call = await agendadaDe(dealId);
+
+    expect(await marcarFallida(db, comoCloser(), { callId: call.id, resultado: "no_show" }))
+      .toEqual({ etapa: "ganado_completo" });
+
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(deal).toMatchObject({ etapa: "ganado_completo", pendiente: null });
+    expect(await callPorId(call.id).then((fila) => fila.resultado)).toBe("no_show");
+    expect(await historial(dealId)).toHaveLength(0);
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toMatchObject([
+      {
+        tipo: "nota",
+        userId: closer,
+        nota: "Se marcó el resultado de la llamada (no_show) con el deal ya en Ganado completo.",
+      },
+    ]);
+  });
+
   for (const resultado of ["no_show", "cancelada"] as const) {
     it(`${resultado} desde Agendado mueve a Re-agenda (T8, sistema) con historial`, async () => {
       const dealId = await nuevoDeal("agendado");

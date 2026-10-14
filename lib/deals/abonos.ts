@@ -3,6 +3,7 @@ import { z } from "zod";
 import { abonos, cohorts, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { dejarNotaDelActor } from "@/lib/deals/nota-del-sistema";
 import { usd } from "@/lib/format";
 import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
@@ -247,6 +248,14 @@ export async function pegarComprobante(
         entrada.abonoId,
         { comprobanteUrl: entrada.comprobanteUrl },
       );
+      if (deal.etapa === "ganado_completo") {
+        await dejarNotaDelActor(
+          tx,
+          deal.id,
+          actor.userId,
+          "Se pegó el comprobante del abono con el deal ya en Ganado completo.",
+        );
+      }
     });
   });
 }

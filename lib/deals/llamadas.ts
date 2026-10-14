@@ -9,6 +9,7 @@ import { fechaHoraEnBogota } from "@/lib/format";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { dejarNotaDelActor } from "./nota-del-sistema";
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
@@ -291,8 +292,8 @@ export async function pegarGrain(
     // (resultado show, fecha si estaba vacía, movimiento a Atendido) vive en
     // `marcarComoShow`; aquí solo se le suma el campo del enlace.
     return (db as unknown as Transaccion).transaction(async (db) => {
-      const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
-      return marcarComoShow(db, actor, call, deal, { linkGrain });
+      const { call, deal } = await llamadaVigenteDeDealCompletable(db, callId, actor);
+      return marcarComoShow(db, actor, call, deal, { linkGrain }, "Se pegó el link de Grain con el deal ya en Ganado completo.");
     });
   });
 }
@@ -332,11 +333,11 @@ export async function marcarShow(
     exigirQueTrabajeLeads(actor);
 
     return (db as unknown as Transaccion).transaction(async (db) => {
-      const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+      const { call, deal } = await llamadaVigenteDeDealCompletable(db, callId, actor);
       if (call.resultado !== "agendada") {
         throw new ErrorDeApp("Solo se marca como show una llamada agendada.", 409);
       }
-      return marcarComoShow(db, actor, call, deal, {});
+      return marcarComoShow(db, actor, call, deal, {}, "Se marcó el resultado de la llamada (show) con el deal ya en Ganado completo.");
     });
   });
 }
@@ -358,6 +359,7 @@ async function marcarComoShow(
   call: typeof calls.$inferSelect,
   deal: FilaDeal,
   extra: { linkGrain?: string },
+  notaSiCompleto: string,
 ): Promise<GrainPegado> {
   const ahora = new Date();
   exigirQueLaLlamadaYaPudoOcurrir(call.fechaAgenda, ahora);
@@ -378,6 +380,11 @@ async function marcarComoShow(
       ...(call.fechaLlamada == null ? { fechaLlamada } : {}),
     },
   );
+
+  if (deal.etapa === "ganado_completo") {
+    await dejarNotaDelActor(db, deal.id, actor.userId, notaSiCompleto);
+    return { movioAAtendido: false, etapa: deal.etapa };
+  }
 
   // Mover a Atendido solo si la tabla tiene la flecha desde la etapa actual. Si no hay
   // flecha (ya está en Atendido o más adelante), no se mueve y no se inventa una transición.
@@ -551,7 +558,7 @@ export async function marcarFallida(
     exigirQueTrabajeLeads(actor);
 
     return (db as unknown as Transaccion).transaction(async (db) => {
-      const { call, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
+      const { call, deal } = await llamadaVigenteDeDealCompletable(db, callId, actor);
 
       // El resultado se escribe ANTES de mover: `llamada_fallida` mira la última llamada
       // vigente del deal, así que el motor tiene que verlo ya escrito. Ambos van en la
@@ -567,6 +574,16 @@ export async function marcarFallida(
         call.id,
         { resultado },
       );
+
+      if (deal.etapa === "ganado_completo") {
+        await dejarNotaDelActor(
+          db,
+          deal.id,
+          actor.userId,
+          `Se marcó el resultado de la llamada (${resultado}) con el deal ya en Ganado completo.`,
+        );
+        return { etapa: deal.etapa };
+      }
 
       // La flecha a Re-agenda decide quién la toma: desde Agendado es del sistema (PR1, el
       // resultado de la llamada es el hecho), desde Atendido es del closer con motivo (PR2).
@@ -616,6 +633,27 @@ async function llamadaVigenteDeDealAbierto(
   return { call, deal };
 }
 
+/** La variante para completar datos faltantes: permite Ganado completo, nunca Cierre perdido. */
+async function llamadaVigenteDeDealCompletable(
+  db: Db,
+  callId: string,
+  actor: ActorDeLlamada,
+): Promise<{ call: typeof calls.$inferSelect; deal: FilaDeal }> {
+  const [call] = await db
+    .select()
+    .from(calls)
+    .where(and(eq(calls.id, callId), vigente(calls)));
+  if (!call) throw new ErrorDeApp("No existe la llamada, o está anulada.", 404);
+  if (call.dealId == null) {
+    throw new ErrorDeApp(
+      "La llamada está suelta: asígnala a un deal antes de operarla.",
+      409,
+    );
+  }
+  const { deal } = await dealCompletableDelActor(db, call.dealId, actor);
+  return { call, deal };
+}
+
 /**
  * Registrar una llamada es trabajar el lead: lo hace quien `trabajaLeads` (closer o
  * developer, ADR 0025). Un gerente administra pero no registra (ADR 0003). Nunca se
@@ -654,6 +692,15 @@ async function dealAbiertoDelActor(
   dealId: string,
   actor: ActorDeLlamada,
 ): Promise<DealDelActor> {
+  return dealDelActor(db, dealId, actor, false);
+}
+
+async function dealDelActor(
+  db: Db,
+  dealId: string,
+  actor: ActorDeLlamada,
+  permiteGanadoCompleto: boolean,
+): Promise<DealDelActor> {
   const [fila] = await db
     .select({ deal: deals, emailLead: leads.emailNormalizado })
     .from(deals)
@@ -667,7 +714,7 @@ async function dealAbiertoDelActor(
       409,
     );
   }
-  if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
+  if ((!permiteGanadoCompleto && deal.etapa === "ganado_completo") || deal.etapa === "cierre_perdido") {
     throw new ErrorDeApp(
       "El deal está cerrado: no se le agregan llamadas nuevas.",
       409,
@@ -686,4 +733,13 @@ async function dealAbiertoDelActor(
     );
   }
   return { deal, emailLead };
+}
+
+/** Mismas rejas y mensajes que el deal abierto, pero permite completar Ganado completo. */
+async function dealCompletableDelActor(
+  db: Db,
+  dealId: string,
+  actor: ActorDeLlamada,
+): Promise<DealDelActor> {
+  return dealDelActor(db, dealId, actor, true);
 }

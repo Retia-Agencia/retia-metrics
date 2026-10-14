@@ -32,12 +32,15 @@ export function FichaLlamadas({
   dealId,
   opciones,
   puedeRegistrar,
+  puedeCompletar,
 }: {
   llamadas: FichaDeLlamada[];
   dealId: string;
   opciones: OpcionesDeFicha;
   /** Trabaja leads Y es el dueño (o administra) Y el deal esta abierto. Proyeccion: la reja es el servidor. */
   puedeRegistrar: boolean;
+  /** Puede completar resultados y Grain de llamadas existentes, incluso en Ganado completo. */
+  puedeCompletar: boolean;
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
   const [detalleId, setDetalleId] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export function FichaLlamadas({
   // Tras marcar Show la cita deja de ser activa y cae al colapsable: la última con Show y
   // sin Grain se queda a la vista con su campo, porque es justo cuando se tiene el link (180).
   const pendienteDeGrain =
-    puedeRegistrar
+    puedeCompletar
       ? sinActiva
           .filter((llamada) => llamada.sinGrain && llamada.anuladoEn == null)
           .sort((a, b) => instanteDe(b) - instanteDe(a))[0] ?? null
@@ -61,6 +64,7 @@ export function FichaLlamadas({
     const anulada = c.anuladoEn != null;
     const sinCompletar = c.resultado === "agendada" && !c.closerNombre;
     const puedeRegistrarEnEsta = puedeRegistrar && !anulada;
+    const puedeCompletarEnEsta = puedeCompletar && !anulada;
     return (
       <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
         <button type="button" className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setDetalleId(c.id)}>
@@ -80,9 +84,9 @@ export function FichaLlamadas({
         </div>
         {c.notas ? <p className="whitespace-pre-wrap text-muted-foreground">{c.notas}</p> : null}
         {anulada ? <p className="text-xs text-muted-foreground"><Badge variant="neutro">Anulada</Badge> {c.anuladoPorNombre ?? ""} · {c.motivoAnulacion}</p> : null}
-        {puedeRegistrarEnEsta && esActiva ? (
+        {puedeCompletarEnEsta && esActiva ? (
           <div className="space-y-2 pt-1">
-            {sinCompletar ? <CompletarFecha llamada={c} /> : null}
+            {sinCompletar && puedeRegistrarEnEsta ? <CompletarFecha llamada={c} /> : null}
             <AccionesDeLlamada
               callId={c.id}
               dealId={dealId}
@@ -91,10 +95,11 @@ export function FichaLlamadas({
               motivosReagenda={opciones.motivos}
               puedeMarcarAtendida={c.puedeMarcarAtendida}
               mensajeNoPuedeMarcarAtendida={c.mensajeNoPuedeMarcarAtendida}
+              puedeReagendar={puedeRegistrar}
             />
           </div>
         ) : null}
-        {puedeRegistrarEnEsta && !esActiva && c.resultado === "show" && !c.linkGrain ? (
+        {puedeCompletarEnEsta && !esActiva && c.resultado === "show" && !c.linkGrain ? (
           <div className="pt-1">
             <CampoGrain
               callId={c.id}
@@ -143,7 +148,8 @@ export function FichaLlamadas({
           callId={detalleId}
           esActiva={detalleId === activaId}
           conIrAlDeal={false}
-          puedeRegistrar={puedeRegistrar}
+          puedeRegistrar={puedeCompletar}
+          puedeReagendar={puedeRegistrar}
           motivosReagenda={opciones.motivos}
           onCerrar={() => setDetalleId(null)}
         />

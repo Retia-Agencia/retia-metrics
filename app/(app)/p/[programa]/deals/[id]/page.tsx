@@ -146,6 +146,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
               dealId={ficha.dealId}
               opciones={opciones}
               puedeRegistrar={puedeRegistrar && !cerrado}
+              puedeCompletar={puedeRegistrar && ficha.etapa !== "cierre_perdido"}
             />
             <FichaActividades actividades={ficha.actividades} puedeRegistrar={puedeTrabajar} />
             <FichaPago

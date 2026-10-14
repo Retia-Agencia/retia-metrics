@@ -4,6 +4,7 @@ import {
   abonos,
   changeLog,
   cohorts,
+  dealActividades,
   dealEtapaHistorial,
   deals,
   leads,
@@ -555,6 +556,32 @@ describe("anularAbono: la etapa se recalcula", () => {
 });
 
 describe("comprobante posterior", () => {
+  it("completa el comprobante de Ganado completo y deja la nota firmada por el actor", async () => {
+    const dealId = await nuevoDeal("ganado_completo");
+    const [registrado] = await db.insert(abonos).values({
+      dealId,
+      programId,
+      fecha: "2026-09-28",
+      monto: "1000",
+      moneda: "USD",
+      registradoPorUserId: closer,
+    }).returning();
+
+    await pegarComprobante(db, comoCloser(), {
+      abonoId: registrado.id,
+      comprobanteUrl: "https://drive.google.com/completo",
+    });
+
+    expect((await abonosDe(dealId))[0].comprobanteUrl).toBe("https://drive.google.com/completo");
+    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, dealId))).toMatchObject([
+      {
+        tipo: "nota",
+        userId: closer,
+        nota: "Se pegó el comprobante del abono con el deal ya en Ganado completo.",
+      },
+    ]);
+  });
+
   it("ignora abonos anulados y pegar el link deja rastro", async () => {
     const dealId = await nuevoDeal("atendido");
     const registrado = await registrarAbono(db, comoCloser(), abono(dealId, "300", { comprobanteUrl: undefined }));

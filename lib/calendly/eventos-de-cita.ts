@@ -1,5 +1,5 @@
-import { and, eq } from "drizzle-orm";
-import { calls, deals } from "@/lib/db/schema";
+import { and, desc, eq, gte, isNull } from "drizzle-orm";
+import { calls, changeLog, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -153,7 +153,49 @@ async function reagendar(
 
     const etiqueta = vieja.emailLead ?? normalizarEmail(cita.correoInvitado) ?? vieja.id;
     const host = closerHost(cita.correoHost, await closersConCalendly(tx, programId));
-    await editarConRastro({ db: tx, tabla: calls, nombreTabla: "calls", actorId: null, etiqueta }, vieja.id, {
+    let llamadaAAdoptar = vieja;
+    if (vieja.resultado === "reagendada" && vieja.dealId) {
+      const [marcaDeReagenda] = await tx
+        .select({ detectadoEn: changeLog.detectadoEn })
+        .from(changeLog)
+        .where(and(
+          eq(changeLog.tabla, "calls"),
+          eq(changeLog.registroId, vieja.id),
+          eq(changeLog.campo, "resultado"),
+          eq(changeLog.valorNuevo, "reagendada"),
+        ))
+        .orderBy(desc(changeLog.detectadoEn))
+        .limit(1);
+      if (marcaDeReagenda) {
+        const [crm] = await tx
+          .select({
+            id: calls.id,
+            dealId: calls.dealId,
+            resultado: calls.resultado,
+            emailLead: calls.emailLead,
+            fechaAgenda: calls.fechaAgenda,
+            etapa: deals.etapa,
+            pendiente: deals.pendiente,
+          })
+          .from(calls)
+          .innerJoin(deals, and(eq(deals.id, calls.dealId), vigente(deals)))
+          .where(and(
+            eq(calls.dealId, vieja.dealId),
+            eq(calls.origen, "crm"),
+            eq(calls.resultado, "agendada"),
+            isNull(calls.huellaFila),
+            // `now()` es estable dentro de la transacción de la reagenda CRM: la marca y
+            // la llamada sucesora pueden compartir timestamp aunque la creación ocurra después.
+            gte(calls.createdAt, marcaDeReagenda.detectadoEn),
+            vigente(calls),
+          ))
+          .orderBy(desc(calls.createdAt))
+          .limit(1);
+        if (crm) llamadaAAdoptar = crm;
+      }
+    }
+
+    await editarConRastro({ db: tx, tabla: calls, nombreTabla: "calls", actorId: null, etiqueta }, llamadaAAdoptar.id, {
       huellaFila: huellaDeCita(cita.uuidInvitado),
       fechaAgenda: cita.inicio,
       calendlyHostEmail: cita.correoHost,
@@ -162,21 +204,21 @@ async function reagendar(
       raw: rawDelInvitado(cita),
     });
 
-    if (vieja.dealId) {
+    if (llamadaAAdoptar.dealId) {
       await registrarNovedadCalendly(tx, {
         programId,
-        dealId: vieja.dealId,
-        callId: vieja.id,
+        dealId: llamadaAAdoptar.dealId,
+        callId: llamadaAAdoptar.id,
         tipo: "cita_reagendada",
         claveEvento: cita.claveEvento,
       });
     }
 
-    if (!vieja.dealId || vieja.etapa === null || vieja.etapa === "ganado_completo" || vieja.etapa === "cierre_perdido") {
-      return { tipo: "reagendada", callId: vieja.id, movioAAgendado: false } as const;
+    if (!llamadaAAdoptar.dealId || llamadaAAdoptar.etapa === null || llamadaAAdoptar.etapa === "ganado_completo" || llamadaAAdoptar.etapa === "cierre_perdido") {
+      return { tipo: "reagendada", callId: llamadaAAdoptar.id, movioAAgendado: false } as const;
     }
-    const efecto = await efectoSobreElDeal(tx, vieja.dealId, host, etiqueta, cita.inicio);
-    return { tipo: "reagendada", callId: vieja.id, movioAAgendado: efecto.movioAAgendado, rechazo: efecto.rechazo };
+    const efecto = await efectoSobreElDeal(tx, llamadaAAdoptar.dealId, host, etiqueta, cita.inicio);
+    return { tipo: "reagendada", callId: llamadaAAdoptar.id, movioAAgendado: efecto.movioAAgendado, rechazo: efecto.rechazo };
   });
 }
 

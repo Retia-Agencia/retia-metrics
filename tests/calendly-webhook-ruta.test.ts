@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { calls, deals, entregasWebhook, leads, miembrosPrograma, notificacionesCalendly, programs, sobresCrudos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
+import { reagendarLlamada } from "@/lib/deals/llamadas";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -282,6 +283,29 @@ describe("reagenda: la MISMA llamada, en los dos ordenes", () => {
     await enviar(cancelado("VIEJA", true));
     await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
     await verificar();
+  });
+
+  it("adopta la cita CRM creada por el closer después de marcar la anterior como reagendada", async () => {
+    await enviar(creado("VIEJA"));
+    const [vieja] = await llamadas();
+    const crm = await reagendarLlamada(
+      db,
+      { userId: maru, rol: "closer", operaComoCloser: false },
+      { callId: vieja.id, fechaAgenda: new Date("2026-10-05T16:00:00Z") },
+    );
+
+    await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
+
+    const todas = await llamadas();
+    expect(todas).toHaveLength(2);
+    expect(todas.find((call) => call.id === vieja.id)?.resultado).toBe("reagendada");
+    expect(todas.find((call) => call.id === crm.callId)).toMatchObject({
+      resultado: "agendada",
+      origen: "crm",
+      huellaFila: "calendly:NUEVA",
+      closerUserId: maru,
+    });
+    expect(todas.filter((call) => call.resultado === "agendada" && call.anuladoEn == null)).toHaveLength(1);
   });
 
   it("una reagenda con otra host cambia el closer de la misma llamada", async () => {

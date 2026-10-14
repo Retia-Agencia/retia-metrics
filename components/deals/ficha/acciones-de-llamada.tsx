@@ -47,6 +47,7 @@ export function AccionesDeLlamada({
   motivosReagenda,
   puedeMarcarAtendida,
   mensajeNoPuedeMarcarAtendida,
+  puedeReagendar = true,
   abrirInicial = null,
   onCambio,
 }: {
@@ -58,6 +59,8 @@ export function AccionesDeLlamada({
   motivosReagenda: OpcionesDeFicha["motivos"];
   puedeMarcarAtendida: boolean;
   mensajeNoPuedeMarcarAtendida: string | null;
+  /** Crear la cita sucesora requiere que el deal siga abierto. */
+  puedeReagendar?: boolean;
   abrirInicial?: "resultado" | null;
   /**
    * Se llama tras CADA resultado exitoso (Show, fallida, reagendada, Grain), ticket 229 (A-141):
@@ -101,7 +104,7 @@ export function AccionesDeLlamada({
 
       {dialogo === "resultado" ? (
         <DialogoResultado
-          conReagenda={dealId != null}
+          conReagenda={dealId != null && puedeReagendar}
           onCerrar={() => setDialogo(null)}
           onShow={marcarShow}
           puedeMarcarAtendida={puedeMarcarAtendida}

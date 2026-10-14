@@ -32,6 +32,7 @@ export function DetalleDeLlamada({
   esActiva = false,
   conIrAlDeal = false,
   puedeRegistrar = false,
+  puedeReagendar = true,
   motivosReagenda = [],
   origen,
 }: {
@@ -42,6 +43,8 @@ export function DetalleDeLlamada({
   conIrAlDeal?: boolean;
   /** Si se puede registrar sobre esta llamada: muestra el Grain y el botón "Resultado" (ticket 176). */
   puedeRegistrar?: boolean;
+  /** Reagendar crea otra llamada y por eso solo se ofrece sobre deals abiertos. */
+  puedeReagendar?: boolean;
   motivosReagenda?: OpcionesDeFicha["motivos"];
   /** El origen de la pantalla, para que "Ir al deal" vuelva aqui (ticket 174). */
   origen?: string;
@@ -89,6 +92,7 @@ export function DetalleDeLlamada({
               motivosReagenda={motivosReagenda}
               puedeMarcarAtendida={detalle!.puedeMarcarAtendida}
               mensajeNoPuedeMarcarAtendida={detalle!.mensajeNoPuedeMarcarAtendida}
+              puedeReagendar={puedeReagendar}
               onCambio={() => setRecarga((n) => n + 1)}
             />
           </div>
