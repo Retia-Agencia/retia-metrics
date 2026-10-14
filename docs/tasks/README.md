@@ -137,8 +137,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 017 | [Productos por programa](./017-productos-por-programa.md) | 011 | done · 16-sep (migración 0007 en `dev` y `production`; productos sin sembrar en `production`) |
 | [x] | 018 | [Esquema del registro + abonos](./018-esquema-registro-y-abonos.md) | 012, 017 | done · 17-sep (migración 0008 en `dev` y `production`) |
 | [x] | 019 | [Registrar abono](./019-registrar-abono.md) | 018 | done · 17-sep (`registrarAbono` + `saldoDeVenta`, sin migración) |
-| [ ] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | todo · **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
-| [ ] | 035 | [Comprobante: link **o** foto subida](./035-comprobante-link-o-foto.md) | 019 | todo · **se muda a la etapa 4** del plan v2 (21-sep): colgara de `abonos.deal_id`. Siguen debiendose los dos analisis. Nota previa: nuevo 20-sep (Mani) · enmienda PARCIAL al ADR 0017: los recursos siguen siendo links · pide analisis de crecimiento y de control de acceso antes de codear |
+| [x] | 035 | [Comprobante: link **o** foto](./035-comprobante-link-o-foto.md) (E4-8) | 060 | reemplazado por el 235 (13-oct) · antes: **aterriza aquí**, colgando de `abonos.deal_id`. Siguen debiéndose los dos análisis. 22-sep: la foto va a Supabase Storage (ADR 0047) |
+| [x] | 035 | [Comprobante: link **o** foto subida](./035-comprobante-link-o-foto.md) | 019 | reemplazado por el 235 (13-oct) · antes: **se muda a la etapa 4** del plan v2 (21-sep): colgara de `abonos.deal_id`. Siguen debiendose los dos analisis. Nota previa: nuevo 20-sep (Mani) · enmienda PARCIAL al ADR 0017: los recursos siguen siendo links · pide analisis de crecimiento y de control de acceso antes de codear |
 | [x] | 060 | [Abonos sobre el deal](./060-abonos-sobre-el-deal.md) (E4-4) | 057, 045 | done · 28-sep · `lib/deals/abonos.ts` (`registrarAbono`, `anularAbono`) + `tests/abonos-del-deal.test.ts` y `tests/saldo-centralizado.test.ts` recreado. Sin migración. Falta la pantalla para registrar/anular (074) y el comprobante con foto (035) |
 | [x] | 061 | [Acuerdo de pago y cartera vencida](./061-cuotas-pactadas-y-cartera-vencida.md) (E4-5) | 060 | done · 28-sep · `lib/deals/pago.ts` (`editarAcuerdoDePago`, `fechaLimiteMaxima`) y `lib/queries/cartera.ts` (`carteraVencida`); sin migración (las columnas ya venían de la 0025). Falta la pantalla (074) y la cartera en el día del closer (071) |
 | [x] | 062 | [La comisión se calcula, nunca se guarda](./062-comision-calculada.md) (E4-6) | 060 | done · 29-sep (Alejo) · monto fijo por venta en `programs.comision_por_venta_usd` (0044), `lib/queries/comision.ts`, columna en el comparativo; montos 80 y 100 cargados; corrige el doble conteo de cierres entre periodos |
@@ -316,9 +316,13 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 232 | [Marcar Show sobre una cita existente no pide ni valida hora](./232-show-sobre-cita-sin-pedir-hora.md) | 230 | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 233 | ["Pagó ahora" con el pago completo deja el deal en Ganado Completo](./233-pago-completo-desde-pago-ahora.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
 | [ ] | 234 | [Log de eventos en texto para quien no es developer, y sin SQL guardado como valor](./234-log-de-eventos-legible.md) | · | hecho · 12-oct · implementó Codex, revisado; falta checkpoint |
-| [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | todo · 12-oct · se decide en su propia sesión |
+| [ ] | 235 | [El comprobante de un abono se puede subir como archivo](./235-comprobante-como-archivo.md) | 233 | 13-oct · audit hecho; C-1 a C-5 aceptadas (ADR 0085); se construye en 238 a 241. Falta C-6 con Michael |
 | [ ] | 236 | [Un gerente puede operar como closer sin dejar de ser gerente](./236-gerente-opera-como-closer.md) | · | hecho · 12-oct · implementó Codex, revisado; 0077 aplicada en producción; falta checkpoint |
 | [ ] | 237 | [Completar requisitos en Ganado completo, y una cita = una llamada](./237-completar-requisitos-en-ganado-completo.md) | · | hecho · 13-oct · implementó Codex, revisado; falta checkpoint |
+| [ ] | 238 | [El almacén de archivos: `lib/archivos/`, la tabla y el bucket](./238-almacen-de-archivos.md) | 235 | todo · 13-oct · ADR 0085 · lleva la migración de todo el 235 |
+| [ ] | 239 | [Subir y ver el comprobante de un abono desde la ficha](./239-comprobante-en-la-ficha.md) | 238 | todo · 13-oct |
+| [ ] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | todo · 13-oct |
+| [ ] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | todo · 13-oct · estructura decidida; antes de construir, Mani crea la unidad compartida "Comprobantes CRM Retia" |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
@@ -606,8 +610,8 @@ _(las filas de tickets de esta tabla viven ahora en su componente, arriba)_
 
 ## Época MVP (tickets 001 a 035) — ejecutada
 
-Se conserva como historia. **Dos siguen abiertos:** 021 (congelado hasta el dashboard nuevo) y 035 (se
-mudó a E4). El 007 se cerró el 2-oct.
+Se conserva como historia. **Uno sigue abierto:** 021 (congelado hasta el dashboard nuevo). El 035 lo
+absorbió el 235 el 13-oct. El 007 se cerró el 2-oct.
 
 ### F0 · Contrato de extensión
 

@@ -3,8 +3,11 @@ id: 035
 fase: F1
 serves: "spec §5 criterio 5 (registrar el abono con su respaldo) · enmienda parcial al ADR 0017"
 depends: [019]
-status: todo
+status: reemplazado
 ---
+
+> **13-oct: absorbido por el [235](./235-comprobante-como-archivo.md)**, que trae los dos análisis que este ticket
+> pedía (crecimiento medido y acceso) y el diseño. Este archivo queda como historia.
 
 # 035 — El comprobante de un abono: link **o** foto subida
 

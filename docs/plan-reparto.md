@@ -121,6 +121,20 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O9 · el comprobante como archivo · abierta el 13-oct
+
+Sale del 235 (A-146) y del ADR 0085. Dos carriles; 239 y 240 comparten `app/(app)/p/[programa]/deals/[id]/acciones.ts`
+y los componentes del abono, así que van en el mismo carril y en orden.
+
+| Sesión | Tickets, en orden | Archivos calientes | Migración |
+|---|---|---|---|
+| **S1 · Comprobante** | 238 → 239 → 240 | `lib/archivos/*` (dueño), `lib/db/schema.ts` (solo 238), `lib/deals/{abonos,abono-sin-comprobante,mover-con-hecho}.ts`, `components/deals/{formulario-abono,responder-pregunta,ficha/ficha-pago}.tsx`, `app/(app)/p/[programa]/deals/[id]/acciones.ts`, `app/(app)/p/[programa]/archivos/*` | sí, una sola: 238 (`archivos` + `abonos.comprobante_archivo_id`) |
+| **S2 · Respaldo** | 241 (cuando 238 esté en `main` y exista la unidad compartida) | `lib/archivos/respaldo*.ts` (archivo nuevo, no toca los del 238), `app/api/cron/*`, `vercel.json`, `lib/sheets/auth.ts` (solo un scope nuevo) | no |
+
+Choques a vigilar: 241 solo agrega archivos a `lib/archivos/`; si necesita cambiar el puerto, lo pide y lo hace S1.
+Cola de migraciones: 238. Implementa Codex en un worktree dentro del repo; el thread principal genera y aplica la
+migración con el ok de Mani, revisa cada diff contra su "Done cuando", integra a `main` y corre el checkpoint.
+
 ### 🌊 Ola O8 · Mover o anotar, y el hub del closer · abierta el 9-oct
 
 Sale de la reunión del 9-oct (A-118 a A-131) y de los ADR 0081 y 0082. Tres carriles; los archivos de la ficha del

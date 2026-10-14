@@ -28,6 +28,23 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
 
 ## Memory
 
+- **2026-10-13 (Mani + Claude): audit del 235, comprobante como archivo.** Solo docs, sin código. El 235 absorbe
+  el 035 y trae los dos análisis que este pedía. Medido en producción (lectura): 30 abonos, 0 con comprobante, base
+  39 MB, Storage vacío. Supuesto ~200 a 300 comprobantes/mes: comprimidos en el navegador ~0,9 GB/año (cabe en el
+  gratis ~1 año), sin comprimir ~11 GB/año (llena el gratis en un mes). Hallazgos que deciden la forma: la subida va
+  directo navegador→Storage con URL firmada (Vercel corta en 4,5 MB) y **los respaldos de Supabase no incluyen los
+  archivos**. Diseño propuesto en el ticket (tabla `archivos` + FK en el dueño, `lib/archivos/` con adaptadores,
+  `tieneComprobante` como única respuesta). Pendiente: decisiones C-1 a C-6 de Mani (en el ticket y en `plan.md` §7);
+  al cerrarlas, ADR 0085 y se delega a Codex.
+  - **Mismo día, más tarde:** Mani aceptó C-1 a C-5 → **ADR 0085**. Se partió en 238 (almacén + la única migración)
+    → 239 y 241 en paralelo → 240. Abierto: la estructura del respaldo en Drive (propuesta en el 241: programa /
+    cohorte / `fecha lead monto (id).ext`, espejo derivado) y si Retia tiene unidad compartida, porque una cuenta de
+    servicio no tiene cuota en Mi unidad. Tarea en Notion creada.
+  - **Cierre del día:** el respaldo va en una unidad compartida NUEVA "Comprobantes CRM Retia" en el Workspace de
+    Retia (`administrativa@retiagrowth.com`), no dentro de la unidad "Retia": los miembros de una unidad ven todo lo de
+    adentro y la cuenta de servicio tendría escritura sobre toda la empresa. Mani la crea y agrega a la cuenta de
+    servicio como Administrador de contenido (pasos en el 241). Ola **O9** abierta en `plan-reparto.md` §4: S1
+    238 → 239 → 240, S2 241. Esta sesión queda como thread principal de la O9.
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un

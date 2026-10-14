@@ -68,7 +68,7 @@ El estado de cada componente, en una línea:
 | 2 · Deal y motor de etapas | ✅ las 11 etapas de 30X, cortesía, tres intentos | 182 corregir el último movimiento y Transición en dos columnas · 181 Kanban fijo con dinero por etapa |
 | 3 · Inbox | ✅ · Mi espacio es el hub (172, 179) | 183 Mi espacio con alertas y métricas del closer · la cola por Lead Value |
 | 4 · Llamadas y Calendly | ✅ | 🟡 152 y 157 · Grain por API (🔴 QM-4) |
-| 5 · Dinero | ✅ valor vendido, abonos, comisión | 167 quién cobró es FK (O4) · ⛔ 144 · ❌ 035 comprobante con foto |
+| 5 · Dinero | ✅ valor vendido, abonos, comisión | 167 quién cobró es FK (O4) · ⛔ 144 · ❌ 235 comprobante como archivo (absorbe el 035) |
 | 6 · Students y onboarding | ✅ una marca | ⛔ 145 (rol Customer Success y cuatro pasos) |
 | 7 · Origen y atribución | ✅ canales, áreas, emparejador | 092 en curso · ❌ 086 (Mi link) |
 | 8 · Pauta | ❌ | 102, 119, 120, 122 a 125, 067; espera el token de Meta |
@@ -238,7 +238,7 @@ congelado y nunca se guarda el monto; solo USD (ADR 0013, 0024, 0053, 0065).
 
 - ✅ Valor vendido (132), comisión por porcentaje (133), ticket base de la cohorte (134), abonos y saldo
   (060), acuerdo de pago y cartera vencida (061), el comprobante no bloquea el abono (156).
-- Falta: **035** comprobante con foto (Supabase Storage) · **144** próxima fecha de pago y cartera por fecha.
+- Falta: **235** comprobante como archivo (Supabase Storage; absorbe el 035) · **144** próxima fecha de pago y cartera por fecha.
 - Frena: ⛔ **QM-3** y **GC-17** (hablar con 2 o 3 closers sobre cómo pactan los abonos) · 🔴 formato del
   comprobante (closers).
 
@@ -419,7 +419,7 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | A2 | Las alertas también por correo, con un solo mecanismo | 11 | · | no bloquea |
 
 **B. Closers** (por chat, cuando llegue el ticket que la necesita): cómo mandan el comprobante (foto, link o
-PDF; 035) · uso desde el celular y cómo se paga la comisión · revisar los 13 motivos cargados (104) ·
+PDF; 235, C-6) · uso desde el celular y cómo se paga la comisión · revisar los 13 motivos cargados (104) ·
 confirmar la venta sin llamada y la recuperación de perdidos.
 
 **B2. Equipo:** ¿para qué sirven las preguntas del formulario que no deciden nada (motivación, urgencia,
