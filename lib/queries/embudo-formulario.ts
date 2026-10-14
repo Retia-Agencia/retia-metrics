@@ -1,7 +1,8 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { emparejar, ARBOL_VACIO } from "@/lib/atribucion/emparejar";
+import type { Area } from "@/lib/atribucion/canal";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
-import { canales, sources, submissions } from "@/lib/db/schema";
+import { sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { agendoElEnvio } from "@/lib/ingesta/etapa-de-entrada";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
@@ -16,8 +17,8 @@ import type { AlcanceDeSerie } from "@/lib/queries/serie";
  * - **Por la fecha de su primer envío**, en días de Bogotá. Un token que empezó en el rango
  *   cuenta entero aunque complete después.
  * - **El canal sale del envío completo** si lo hay (el último que mandó el formulario), si no
- *   del primer parcial; por `emparejar`, igual que el resto del embudo. "Sin UTM" y "sin
- *   clasificar" son dos filas aparte, siempre.
+ *   del primer parcial; por `emparejar`, igual que el resto del embudo. "Sin UTM" queda
+ *   como una fila aparte, siempre.
  * - **Agendó** es el hecho que pone el código (`agendoElEnvio`, `ESTADO_CON_CALENDLY`: la pregunta de agenda
  *   trae link). **Llegó al Calendly** es agendó, o la calidad `High`: a quien es High el
  *   formulario le ofrece la agenda (ADR 0069 punto 2; medido el 1-oct: todo
@@ -29,7 +30,7 @@ import type { AlcanceDeSerie } from "@/lib/queries/serie";
 /** La calidad con la que el formulario ofrece la agenda (ADR 0069, estándar de puntaje). */
 export const CALIDAD_QUE_VE_LA_AGENDA = "high";
 
-export type OrigenDelEmbudoFormulario = "canal" | "sin_utm" | "sin_clasificar";
+export type OrigenDelEmbudoFormulario = "canal" | "sin_utm";
 
 export interface PasosDelFormulario {
   dejoDatos: number;
@@ -40,9 +41,9 @@ export interface PasosDelFormulario {
 
 export interface FilaEmbudoFormulario extends PasosDelFormulario {
   origen: OrigenDelEmbudoFormulario;
-  canalId: string | null;
+  canalClave: string | null;
   canal: string | null;
-  areaId: string | null;
+  area: Area;
 }
 
 export interface EmbudoDelFormulario {
@@ -81,10 +82,7 @@ type Envio = Awaited<ReturnType<typeof leerEnvios>>[number] & { fechaEnvio: Date
 const vacio = (): PasosDelFormulario => ({ dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 });
 
 export async function embudoDelFormulario(db: Db, { programId, rango }: AlcanceDeSerie): Promise<EmbudoDelFormulario> {
-  const [catalogo, envios] = await Promise.all([
-    db.select().from(canales).where(eq(canales.activo, true)),
-    leerEnvios(db, programId, rango.desde),
-  ]);
+  const envios = await leerEnvios(db, programId, rango.desde);
 
   const porRegistro = new Map<string, Envio[]>();
   for (const e of envios) {
@@ -106,16 +104,17 @@ export async function embudoDelFormulario(db: Db, { programId, rango }: AlcanceD
 
     const completas = lista.filter((e) => !e.esParcial);
     const conUtm = completas.at(-1) ?? lista[0];
-    const traza = emparejar(utmsDelEnvio(conUtm), catalogo, ARBOL_VACIO);
+    const traza = emparejar(utmsDelEnvio(conUtm), ARBOL_VACIO);
     const origen = traza.origen;
-    const clave = origen.tipo === "canal" ? origen.canal.id : origen.tipo;
+    const tipo = origen.regla === "sin_utm" ? "sin_utm" : "canal";
+    const clave = tipo === "canal" ? `canal:${origen.area}:${origen.canal?.clave ?? ""}` : tipo;
     const fila =
       filas.get(clave) ??
       ({
-        origen: origen.tipo,
-        canalId: origen.tipo === "canal" ? origen.canal.id : null,
-        canal: origen.tipo === "canal" ? origen.canal.nombre : null,
-        areaId: origen.tipo === "canal" ? origen.canal.areaId : null,
+        origen: tipo,
+        canalClave: tipo === "canal" ? origen.canal?.clave ?? null : null,
+        canal: tipo === "canal" ? origen.canal?.nombre ?? "(sin utm_source)" : null,
+        area: origen.area,
         ...vacio(),
       } satisfies FilaEmbudoFormulario);
 
@@ -137,15 +136,18 @@ export async function embudoDelFormulario(db: Db, { programId, rango }: AlcanceD
     filas.set(clave, fila);
   }
 
-  // Las dos cubetas de huérfanos se muestran siempre, aunque estén en cero (AGENTS.md).
-  for (const tipo of ["sin_utm", "sin_clasificar"] as const) {
-    if (!filas.has(tipo)) filas.set(tipo, { origen: tipo, canalId: null, canal: null, areaId: null, ...vacio() });
+  if (!filas.has("sin_utm")) {
+    filas.set("sin_utm", { origen: "sin_utm", canalClave: null, canal: null, area: "sin_utm", ...vacio() });
   }
 
-  const orden = { canal: 0, sin_clasificar: 1, sin_utm: 2 } as const;
+  const orden = { canal: 0, sin_utm: 1 } as const;
   return {
     filas: [...filas.values()].sort(
-      (a, b) => orden[a.origen] - orden[b.origen] || b.dejoDatos - a.dejoDatos || (a.canal ?? "").localeCompare(b.canal ?? ""),
+      (a, b) =>
+        orden[a.origen] - orden[b.origen] ||
+        b.dejoDatos - a.dejoDatos ||
+        (a.canal ?? "").localeCompare(b.canal ?? "") ||
+        a.area.localeCompare(b.area),
     ),
     total,
     sinCalidad,

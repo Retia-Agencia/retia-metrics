@@ -19,10 +19,8 @@ import { and, asc, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   abonos,
-  areas,
   calls,
   cohorts,
-  canales,
   deals,
   leads,
   motivos,
@@ -34,6 +32,7 @@ import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/clo
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
+import { nombreDeCanal, type Area } from "@/lib/atribucion/canal";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
@@ -624,9 +623,9 @@ export async function embudoPorCloser(
 
 export interface FilaEmbudoPorCanal {
   origen: OrigenDelHecho;
-  canalId: string | null;
+  canalClave: string | null;
   canal: string | null;
-  area: string | null;
+  area: Area | null;
   envios: number;
   agendas: number;
   shows: number;
@@ -635,20 +634,20 @@ export interface FilaEmbudoPorCanal {
 }
 
 /** Reagrupa los hechos ya filtrados sin cambiar su universo. */
-export function embudoPorCanal(
-  hechos: FilaHechosDelEmbudo[],
-  nombres: ReadonlyMap<string, { canal: string; area: string | null }>,
-): FilaEmbudoPorCanal[] {
+export function embudoPorCanal(hechos: FilaHechosDelEmbudo[]): FilaEmbudoPorCanal[] {
   const filas = new Map<string, FilaEmbudoPorCanal>();
 
   for (const hecho of hechos) {
-    const clave = hecho.origen === "canal" ? `canal:${hecho.canalId ?? ""}` : hecho.origen;
-    const nombre = hecho.canalId === null ? undefined : nombres.get(hecho.canalId);
+    const clave = hecho.origen === "canal"
+      ? `canal:${hecho.area ?? ""}:${hecho.canalClave ?? ""}`
+      : hecho.origen;
     const fila = filas.get(clave) ?? {
       origen: hecho.origen,
-      canalId: hecho.origen === "canal" ? hecho.canalId : null,
-      canal: hecho.origen === "canal" ? (nombre?.canal ?? null) : null,
-      area: hecho.origen === "canal" ? (nombre?.area ?? null) : null,
+      canalClave: hecho.origen === "canal" ? hecho.canalClave : null,
+      canal: hecho.origen === "canal"
+        ? hecho.canalClave === null ? "(sin utm_source)" : nombreDeCanal(hecho.canalClave)
+        : null,
+      area: hecho.area,
       envios: 0,
       agendas: 0,
       shows: 0,
@@ -667,22 +666,16 @@ export function embudoPorCanal(
     .map((fila) => ({ ...fila, pctShow: tasa(fila.shows, fila.agendas) }));
   const canalesAgrupados = conTasa
     .filter((fila) => fila.origen === "canal")
-    .sort((a, b) => b.envios - a.envios || (a.canal ?? "").localeCompare(b.canal ?? ""));
-  const ordenHuerfanos: OrigenDelHecho[] = ["sin_clasificar", "sin_utm", "sin_envio_origen"];
+    .sort((a, b) =>
+      b.envios - a.envios ||
+      (a.canal ?? "").localeCompare(b.canal ?? "") ||
+      (a.area ?? "").localeCompare(b.area ?? ""),
+    );
+  const ordenHuerfanos: OrigenDelHecho[] = ["sin_utm", "sin_envio_origen"];
   return [
     ...canalesAgrupados,
     ...ordenHuerfanos.flatMap((origen) => conTasa.filter((fila) => fila.origen === origen)),
   ];
-}
-
-export async function nombresDeCanales(
-  db: Db,
-): Promise<Map<string, { canal: string; area: string | null }>> {
-  const filas = await db
-    .select({ id: canales.id, canal: canales.nombre, area: areas.nombre })
-    .from(canales)
-    .leftJoin(areas, eq(areas.id, canales.areaId));
-  return new Map(filas.map((fila) => [fila.id, { canal: fila.canal, area: fila.area }]));
 }
 
 /**

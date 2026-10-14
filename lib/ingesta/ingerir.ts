@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
-import { canales, changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
+import { changeLog, leadContactos, leads, sources, submissions } from "@/lib/db/schema";
 import { ARBOL_VACIO, emparejar } from "@/lib/atribucion/emparejar";
 import { miembrosActivos, traidoPorDeEnvios } from "@/lib/atribucion/captacion-del-closer";
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -405,14 +405,12 @@ async function escribirTraidoPor(
 ): Promise<number> {
   const conLead = escritos.filter((f) => f.leadId !== null);
   if (conLead.length === 0) return 0;
-  const catalogo = await tx.select().from(canales).where(eq(canales.activo, true));
-  if (!catalogo.some((c) => c.formato === "closer")) return 0;
   const candidatos = await miembrosActivos(tx, programId);
   const traidos = traidoPorDeEnvios(
     conLead.map((f) => ({
       leadId: f.leadId,
       fechaEnvio: f.fechaEnvio,
-      traza: emparejar(utmsDelEnvio(f), catalogo, ARBOL_VACIO),
+      traza: emparejar(utmsDelEnvio(f), ARBOL_VACIO),
     })),
     candidatos,
   );

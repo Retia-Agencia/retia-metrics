@@ -1,8 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  areas,
   calls,
-  canales,
   dealEtapaHistorial,
   deals,
   leads,
@@ -27,8 +25,6 @@ let otroProgramId: string;
 let sourceId: string;
 let sourceOtroId: string;
 let ownerUserId: string;
-let areaId: string;
-let canalId: string;
 let secuencia = 0;
 
 beforeEach(async () => {
@@ -46,12 +42,6 @@ beforeEach(async () => {
     .values({ email: "duena@retia.co", rol: "closer", closerId: "Mani" })
     .returning()
     .then(([u]) => u.id);
-  areaId = await db.insert(areas).values({ nombre: "Pauta" }).returning().then(([a]) => a.id);
-  canalId = await db
-    .insert(canales)
-    .values({ nombre: "Meta", utmSource: "facebook", utmMedium: "cpc", areaId })
-    .returning()
-    .then(([c]) => c.id);
 }, 60_000);
 
 afterEach(async () => {
@@ -178,9 +168,9 @@ describe("hechos del embudo", () => {
     expect(sumar(filas, "ventas")).toBe(2);
     expect(filas.every((fila) => fila.programId === programId)).toBe(true);
 
-    expect(filas.some((fila) => fila.origen === "canal" && fila.canalId === canalId && fila.areaId === areaId)).toBe(true);
+    expect(filas.some((fila) => fila.origen === "canal" && fila.canalClave === "facebook" && fila.area === "paid")).toBe(true);
     expect(filas.some((fila) => fila.origen === "sin_utm" && fila.envios === 1)).toBe(true);
-    expect(filas.some((fila) => fila.origen === "sin_clasificar" && fila.envios === 1)).toBe(true);
+    expect(filas.some((fila) => fila.origen === "canal" && fila.canalClave === "desconocido" && fila.area === "organico" && fila.envios === 1)).toBe(true);
     expect(filas.some((fila) => fila.origen === "sin_envio_origen" && fila.agendas === 1)).toBe(true);
 
     const duenosDeVentas = new Set(

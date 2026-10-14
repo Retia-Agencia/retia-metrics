@@ -23,7 +23,6 @@ function porcentaje(parte: number, base: number): string {
 
 function Origen({ fila }: { fila: FilaEmbudoFormulario }) {
   if (fila.origen === "sin_utm") return <Badge variant="neutro">Sin UTM</Badge>;
-  if (fila.origen === "sin_clasificar") return <Badge variant="alerta">Sin clasificar</Badge>;
   return <>{fila.canal}</>;
 }
 
@@ -74,7 +73,7 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
             </thead>
             <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
               {filas.map((f) => (
-                <tr key={f.canalId ?? f.origen}>
+                <tr key={f.origen === "canal" ? `${f.area}:${f.canalClave ?? ""}` : f.origen}>
                   <td className="py-2 pr-3">
                     <Origen fila={f} />
                   </td>

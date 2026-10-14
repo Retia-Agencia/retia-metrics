@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { areas, calls, canales, deals, leads, programs, sources, submissions } from "@/lib/db/schema";
+import { calls, deals, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { agruparPorCanal, registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -7,7 +7,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
  * Ticket 088: registros contra agendas por canal. Reagrupa la serie de Pauta (093) por el
- * catálogo de Canales; el denominador son ENVÍOS, no deals; los huérfanos van aparte, siempre.
+ * la regla de atribución; el denominador son ENVÍOS, no deals; los huérfanos van aparte.
  */
 
 const RANGO = { desde: "2026-09-01", hasta: "2026-09-30" };
@@ -34,11 +34,6 @@ beforeEach(async () => {
   otroProgramId = q.id;
   fuente = (await db.insert(sources).values({ programId, nombre: "Typeform" }).returning())[0].id;
   fuenteOtro = (await db.insert(sources).values({ programId: otroProgramId, nombre: "Typeform" }).returning())[0].id;
-  const [pauta, organico] = await db.insert(areas).values([{ nombre: "Pauta" }, { nombre: "Orgánico" }]).returning();
-  await db.insert(canales).values([
-    { nombre: "Meta", utmSource: "facebook", utmMedium: "cpc", areaId: pauta.id },
-    { nombre: "TikTok", utmSource: "tiktok", utmMedium: "organic", areaId: organico.id },
-  ]);
 }, 60_000);
 
 afterEach(async () => {
@@ -81,23 +76,23 @@ describe("registrosYAgendasPorCanal", () => {
     await envio(["tiktok", "organic", "c"]);
     await envio(["tiktok", "organic", "c"]);
     const r = await registrosYAgendasPorCanal(db, programId, RANGO, HOY);
-    expect(fila(r, "TikTok")).toMatchObject({ registros: 3, agendas: 1, area: "Orgánico" });
+    expect(fila(r, "Tiktok")).toMatchObject({ registros: 3, agendas: 1, area: "organico" });
   });
 
   it("un canal con registros y sin agendas se muestra con 0 agendas", async () => {
     await envio(["facebook", "cpc", "c"]);
     const r = await registrosYAgendasPorCanal(db, programId, RANGO, HOY);
-    expect(fila(r, "Meta")).toMatchObject({ registros: 1, agendas: 0, area: "Pauta" });
+    expect(fila(r, "Facebook")).toMatchObject({ registros: 1, agendas: 0, area: "paid" });
   });
 
-  it("sin UTM, sin clasificar y sin envío de origen van aparte, siempre, con su conteo", async () => {
+  it("sin UTM y sin envío de origen van aparte, mientras todo par con UTM forma canal", async () => {
     await envio([null, null, null]);
     await envio(["youtube", "video", "c"]);
     const suelto = await db.insert(leads).values({ programId, emailNormalizado: "suelto@c.co" }).returning();
     await agendar({ leadId: suelto[0].id, envioId: null, programa: programId });
     const r = await registrosYAgendasPorCanal(db, programId, RANGO, HOY);
     expect(fila(r, "sin_utm")).toMatchObject({ registros: 1, agendas: 0 });
-    expect(fila(r, "sin_clasificar")).toMatchObject({ registros: 1, agendas: 0 });
+    expect(fila(r, "Youtube")).toMatchObject({ registros: 1, agendas: 0, area: "organico" });
     expect(fila(r, "sin_envio_origen")).toMatchObject({ registros: 0, agendas: 1 });
     expect(r.total).toEqual({ registros: 2, agendas: 1 });
   });
@@ -105,7 +100,7 @@ describe("registrosYAgendasPorCanal", () => {
   it("los huérfanos salen aunque estén en cero, al final y en orden fijo", async () => {
     await envio(["facebook", "cpc", "c"]);
     const r = await registrosYAgendasPorCanal(db, programId, RANGO, HOY);
-    expect(r.filas.map((f) => f.canal ?? f.origen)).toEqual(["Meta", "sin_clasificar", "sin_utm", "sin_envio_origen"]);
+    expect(r.filas.map((f) => f.canal ?? f.origen)).toEqual(["Facebook", "sin_utm", "sin_envio_origen"]);
   });
 
   it("otro programa no cuenta", async () => {
@@ -116,17 +111,13 @@ describe("registrosYAgendasPorCanal", () => {
 });
 
 describe("agruparPorCanal", () => {
-  it("da lo mismo con el catálogo en otro orden", () => {
+  it("deriva el canal sin catálogo y conserva áreas distintas para el mismo source", () => {
     const serie = [
       { dia: "2026-09-10", categoria: "con_utm" as const, source: "facebook", medium: "cpc", campaign: "c", content: null, term: null, registros: 2, agendas: 1 },
+      { dia: "2026-09-10", categoria: "con_utm" as const, source: "facebook", medium: "organic", campaign: "c", content: null, term: null, registros: 1, agendas: 0 },
     ];
-    const base = { formato: null, activo: true, areaId: "a" };
-    const exacto = { ...base, id: "1", nombre: "Meta", utmSource: "facebook", utmMedium: "cpc" };
-    const comodin = { ...base, id: "2", nombre: "Cualquier CPC", utmSource: null, utmMedium: "cpc" };
-    const areas = new Map([["a", "Pauta"]]);
-    const uno = agruparPorCanal(serie, [exacto, comodin], areas);
-    const otro = agruparPorCanal(serie, [comodin, exacto], areas);
-    expect(uno).toEqual(otro);
-    expect(uno.filas[0]).toMatchObject({ canal: "Meta", registros: 2, agendas: 1 });
+    const resultado = agruparPorCanal(serie);
+    expect(resultado.filas[0]).toMatchObject({ canal: "Facebook", area: "paid", registros: 2, agendas: 1 });
+    expect(resultado.filas[1]).toMatchObject({ canal: "Facebook", area: "organico", registros: 1, agendas: 0 });
   });
 });

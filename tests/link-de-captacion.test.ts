@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { CanalActivo } from "@/lib/atribucion/canal";
 import { ARBOL_VACIO, emparejar } from "@/lib/atribucion/emparejar";
 import { generarLink, sanearUtm } from "@/lib/atribucion/link-de-captacion";
 import type { UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -10,24 +9,8 @@ import { codigoDeDeal, dealDeCodigo, linkDeAgenda } from "@/lib/calendly/link-de
 /**
  * Ticket 092 — el generador de links de captacion. El corazon del ticket: **el emparejador
  * reconoce el link que el generador acaba de producir**. Son dos actos (armar el link y
- * leerlo al llegar el envio) y si divergen, el lead entra "sin clasificar" sin un error.
+ * leerlo al llegar el envio) y si divergen, la atribucion del lead cambia sin un error.
  */
-
-const canal = (c: Partial<CanalActivo> & Pick<CanalActivo, "id" | "utmMedium">): CanalActivo => ({
-  nombre: c.id,
-  utmSource: null,
-  areaId: "area",
-  formato: null,
-  activo: true,
-  ...c,
-});
-
-const CATALOGO: CanalActivo[] = [
-  canal({ id: "ig-bio", utmSource: "instagram", utmMedium: "bio" }),
-  canal({ id: "linktree", utmSource: "l.linktr.ee", utmMedium: "referral" }),
-  canal({ id: "closer", utmSource: "closer", utmMedium: "referido", formato: "closer" }),
-  canal({ id: "organico", utmSource: null, utmMedium: "organic" }),
-];
 
 /** Lo que el formulario captura del link: sus parametros, tal cual llegan al envio. */
 function utmsQueLlegan(link: string): UtmsDelEnvio {
@@ -78,7 +61,7 @@ describe("generarLink", () => {
     expect(p.has("utm_id")).toBe(false);
     expect(p.has("UTM_Term")).toBe(false);
     expect(p.get("ref")).toBe("y");
-    expect(emparejar(utmsQueLlegan(link), CATALOGO, {
+    expect(emparejar(utmsQueLlegan(link), {
       anuncios: [{ id: "123", conjuntoId: "c", campanaId: "meta" }],
       campanas: [],
     }).anuncio).toBeNull();
@@ -128,13 +111,13 @@ describe("el emparejador reconoce el link que el generador produce", () => {
   const DESTINO = "https://form.typeform.com/to/abc";
 
   it.each([
-    ["ig-bio", { source: "instagram", medium: "bio", campaign: "Lanzamiento Octubre" }],
-    ["linktree", { source: "l.linktr.ee", medium: "referral", campaign: "Bio 2026" }],
-    ["organico", { source: "Manychat", medium: "organic", campaign: "Webinar", content: "DM día 1", term: "hoy" }],
+    ["instagram", { source: "instagram", medium: "bio", campaign: "Lanzamiento Octubre" }],
+    ["l.linktr.ee", { source: "l.linktr.ee", medium: "referral", campaign: "Bio 2026" }],
+    ["manychat", { source: "Manychat", medium: "organic", campaign: "Webinar", content: "DM día 1", term: "hoy" }],
   ])("canal %s", (esperado, utms) => {
     const link = generarLink(DESTINO, utms);
-    const traza = emparejar(utmsQueLlegan(link), CATALOGO, ARBOL_VACIO);
-    expect(traza.origen).toMatchObject({ tipo: "canal", canal: { id: esperado } });
+    const traza = emparejar(utmsQueLlegan(link), ARBOL_VACIO);
+    expect(traza.origen).toMatchObject({ canal: { clave: esperado } });
     expect(traza.campana).toEqual({ tipo: "texto", texto: sanearUtm(utms.campaign) });
     expect(traza.macros).toEqual([]);
   });
@@ -146,8 +129,8 @@ describe("el emparejador reconoce el link que el generador produce", () => {
       campaign: "comunicarte",
       content: "c7x2",
     });
-    const traza = emparejar(utmsQueLlegan(link), CATALOGO, ARBOL_VACIO);
-    expect(traza.origen).toMatchObject({ tipo: "canal", canal: { id: "closer" } });
+    const traza = emparejar(utmsQueLlegan(link), ARBOL_VACIO);
+    expect(traza.origen).toMatchObject({ area: "referidos", canal: { clave: "closer" } });
     expect(traza.contenido).toEqual({ formato: "closer", codigoCloser: "c7x2" });
   });
 });

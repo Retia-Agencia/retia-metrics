@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ProgramaVisible } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import type { PeriodoResuelto } from "@/lib/periodo";
-import { embudoPorCanal, nombresDeCanales } from "@/lib/queries/dashboard";
+import { embudoPorCanal } from "@/lib/queries/dashboard";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
@@ -22,7 +22,6 @@ export async function PautaPorPrograma({ programas, periodo, hoy }: {
   periodo: PeriodoResuelto;
   hoy: string;
 }) {
-  const canales = await nombresDeCanales(db);
   return <section id="pauta" className="space-y-6">
     <h2 className="text-xl font-semibold">Pauta y origen (interina)</h2>
     {await Promise.all(programas.map(async (programa) => {
@@ -44,7 +43,7 @@ export async function PautaPorPrograma({ programas, periodo, hoy }: {
           <Button variant="link" nativeButton={false} render={<Link href={hrefCon({})} />}>{programa.nombre}</Button>
         </h3>
         <PautaInterina vista={pauta} filtros={{}} hrefCon={hrefCon} />
-        <OrigenPorCanal filas={embudoPorCanal(hechos, canales)} />
+        <OrigenPorCanal filas={embudoPorCanal(hechos)} />
         <RegistrosAgendasCanal vista={porCanal} />
         <EmbudoFormulario embudo={formulario} />
         <EmbudoPorPregunta embudos={porPregunta} />

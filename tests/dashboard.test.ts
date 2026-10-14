@@ -643,21 +643,20 @@ describe("embudoPorCloser", () => {
 });
 
 describe("embudoPorCanal", () => {
-  it("separa canales, sin UTM y sin clasificar sin cambiar los totales", () => {
+  it("separa canales y Sin UTM sin cambiar los totales", () => {
     const dimensiones = { programId: programaA, dia: "2026-09-15", duenoUserId: null, cohorteId: null };
     const hechos = [
-      { ...dimensiones, areaId: "area-a", canalId: "canal-a", origen: "canal" as const, envios: 2, agendas: 1, shows: 1, ventas: 0 },
-      { ...dimensiones, areaId: "area-a", canalId: "canal-a", origen: "canal" as const, envios: 3, agendas: 2, shows: 1, ventas: 1 },
-      { ...dimensiones, areaId: null, canalId: null, origen: "sin_utm" as const, envios: 4, agendas: 0, shows: 0, ventas: 0 },
-      { ...dimensiones, areaId: null, canalId: null, origen: "sin_clasificar" as const, envios: 1, agendas: 1, shows: 0, ventas: 0 },
+      { ...dimensiones, area: "paid" as const, canalClave: "facebook", origen: "canal" as const, envios: 2, agendas: 1, shows: 1, ventas: 0 },
+      { ...dimensiones, area: "paid" as const, canalClave: "facebook", origen: "canal" as const, envios: 3, agendas: 2, shows: 1, ventas: 1 },
+      { ...dimensiones, area: "sin_utm" as const, canalClave: null, origen: "sin_utm" as const, envios: 4, agendas: 0, shows: 0, ventas: 0 },
+      { ...dimensiones, area: "organico" as const, canalClave: "desconocido", origen: "canal" as const, envios: 1, agendas: 1, shows: 0, ventas: 0 },
+      { ...dimensiones, area: "organico" as const, canalClave: "facebook", origen: "canal" as const, envios: 1, agendas: 0, shows: 0, ventas: 0 },
     ];
-    const filas = embudoPorCanal(
-      hechos,
-      new Map([["canal-a", { canal: "Meta", area: "Pauta" }]]),
-    );
+    const filas = embudoPorCanal(hechos);
 
-    expect(filas.map((fila) => fila.origen)).toEqual(["canal", "sin_clasificar", "sin_utm"]);
-    expect(filas[0]).toMatchObject({ canal: "Meta", area: "Pauta", envios: 5, agendas: 3, shows: 2, ventas: 1 });
+    expect(filas.map((fila) => fila.canal ?? fila.origen)).toEqual(["Facebook", "Desconocido", "Facebook", "sin_utm"]);
+    expect(filas[0]).toMatchObject({ canal: "Facebook", area: "paid", envios: 5, agendas: 3, shows: 2, ventas: 1 });
+    expect(filas[2]).toMatchObject({ canal: "Facebook", area: "organico", envios: 1 });
     for (const medida of ["envios", "agendas", "shows", "ventas"] as const) {
       expect(filas.reduce((total, fila) => total + fila[medida], 0)).toBe(
         hechos.reduce((total, hecho) => total + hecho[medida], 0),

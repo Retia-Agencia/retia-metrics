@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { areas, canales, leads, programs, sources, submissions } from "@/lib/db/schema";
+import { leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
@@ -20,7 +20,6 @@ let sourceId: string;
 let otraFuenteId: string;
 let leadId: string;
 let otroLeadId: string;
-let canalId: string;
 
 beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
@@ -40,12 +39,6 @@ beforeEach(async () => {
     db.insert(leads).values({ programId, emailNormalizado: "a@c.co" }).returning().then(([l]) => l.id),
     db.insert(leads).values({ programId: q.id, emailNormalizado: "a@c.co" }).returning().then(([l]) => l.id),
   ]);
-  const areaId = await db.insert(areas).values({ nombre: "Pauta" }).returning().then(([a]) => a.id);
-  canalId = await db
-    .insert(canales)
-    .values({ nombre: "Meta", utmSource: "facebook", utmMedium: "cpc", areaId })
-    .returning()
-    .then(([c]) => c.id);
 }, 60_000);
 
 afterEach(async () => {
@@ -70,7 +63,7 @@ describe("embudoDelFormulario", () => {
     ]);
     const r = await embudoDelFormulario(db, { programId, rango: RANGO });
     expect(r.total).toEqual({ dejoDatos: 1, completo: 1, llegoCalendly: 0, agendo: 0 });
-    expect(r.filas.find((f) => f.canalId === canalId)).toMatchObject({ canal: "Meta", dejoDatos: 1, completo: 1 });
+    expect(r.filas.find((f) => f.canalClave === "facebook")).toMatchObject({ canal: "Facebook", area: "paid", dejoDatos: 1, completo: 1 });
   });
 
   it("un parcial solo dejó datos y no completó", async () => {
@@ -128,12 +121,24 @@ describe("embudoDelFormulario", () => {
     expect(r.total.dejoDatos).toBe(2);
   });
 
-  it("sin UTM y sin clasificar son dos filas aparte, siempre, aunque estén en cero", async () => {
+  it("todo par con UTM forma un canal y Sin UTM se muestra siempre", async () => {
     await db.insert(submissions).values(envio("t1", "2026-09-10T15:00:00Z", { utmSource: "tiktok", utmMedium: "video" }));
     const r = await embudoDelFormulario(db, { programId, rango: RANGO });
     const de = (o: string) => r.filas.find((f) => f.origen === o);
-    expect(de("sin_clasificar")).toMatchObject({ dejoDatos: 1, canal: null });
+    expect(de("canal")).toMatchObject({ dejoDatos: 1, canal: "Tiktok", area: "organico" });
     expect(de("sin_utm")).toMatchObject({ dejoDatos: 0 });
-    expect(r.filas.map((f) => f.origen)).toEqual(["sin_clasificar", "sin_utm"]);
+    expect(r.filas.map((f) => f.origen)).toEqual(["canal", "sin_utm"]);
+  });
+
+  it("conserva áreas distintas cuando el mismo source llega con medios diferentes", async () => {
+    await db.insert(submissions).values([
+      envio("paid", "2026-09-10T15:00:00Z", { utmSource: "facebook", utmMedium: "cpc" }),
+      envio("organico", "2026-09-10T15:01:00Z", { utmSource: "facebook", utmMedium: "organic" }),
+    ]);
+    const r = await embudoDelFormulario(db, { programId, rango: RANGO });
+    expect(r.filas.filter((f) => f.canalClave === "facebook").map((f) => [f.area, f.dejoDatos])).toEqual([
+      ["organico", 1],
+      ["paid", 1],
+    ]);
   });
 });

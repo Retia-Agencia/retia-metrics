@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
 import type { FilaPorCanal, RegistrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
+import { NOMBRE_DE_AREA } from "@/lib/atribucion/canal";
 
 /**
  * Registros contra agendas por canal (ticket 088). Pinta lo que calculó
@@ -10,7 +11,6 @@ import type { FilaPorCanal, RegistrosYAgendasPorCanal } from "@/lib/queries/regi
  */
 
 const HUERFANO: Record<Exclude<FilaPorCanal["origen"], "canal">, { texto: string; variante: "neutro" | "alerta" }> = {
-  sin_clasificar: { texto: "Sin clasificar", variante: "alerta" },
   sin_utm: { texto: "Sin UTM", variante: "neutro" },
   sin_envio_origen: { texto: "Sin envío de origen", variante: "neutro" },
 };
@@ -46,7 +46,7 @@ export function RegistrosAgendasCanal({ vista }: { vista: RegistrosYAgendasPorCa
             </thead>
             <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
               {filas.map((f) => (
-                <tr key={f.canalId ?? f.origen}>
+                <tr key={f.origen === "canal" ? `${f.area}:${f.canalClave ?? ""}` : f.origen}>
                   <td className="py-2 pr-3">
                     {f.origen === "canal" ? (
                       f.canal
@@ -54,7 +54,7 @@ export function RegistrosAgendasCanal({ vista }: { vista: RegistrosYAgendasPorCa
                       <Badge variant={HUERFANO[f.origen].variante}>{HUERFANO[f.origen].texto}</Badge>
                     )}
                   </td>
-                  <td className="py-2 pl-3 text-muted-foreground">{f.area ?? "—"}</td>
+                  <td className="py-2 pl-3 text-muted-foreground">{f.area === null ? "—" : NOMBRE_DE_AREA[f.area]}</td>
                   <td className="cifra py-2 pl-3 text-right">{num(f.registros)}</td>
                   <td className="cifra py-2 pl-3 text-right">{num(f.agendas)}</td>
                   <td className="cifra py-2 pl-3 text-right text-muted-foreground">{tasa(f.agendas, f.registros)}</td>

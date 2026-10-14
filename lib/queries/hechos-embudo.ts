@@ -1,19 +1,20 @@
 import { and, between, eq, inArray, sql } from "drizzle-orm";
 import { emparejar, ARBOL_VACIO } from "@/lib/atribucion/emparejar";
+import type { Area } from "@/lib/atribucion/canal";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
-import { calls, canales, deals, sources, submissions } from "@/lib/db/schema";
+import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/dashboard";
 import type { AlcanceDeSerie, Serie } from "@/lib/queries/serie";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
-export type OrigenDelHecho = "canal" | "sin_utm" | "sin_clasificar" | "sin_envio_origen";
+export type OrigenDelHecho = "canal" | "sin_utm" | "sin_envio_origen";
 
 export interface DimensionesDelEmbudo {
   dia: string;
-  areaId: string | null;
-  canalId: string | null;
+  area: Area | null;
+  canalClave: string | null;
   origen: OrigenDelHecho;
   duenoUserId: string | null;
   cohorteId: string | null;
@@ -37,8 +38,7 @@ export async function hechosDelEmbudo(
   { programId, rango }: AlcanceDeSerie,
 ): Promise<Serie<DimensionesDelEmbudo, MedidasDelEmbudo>> {
   const anclaCall = fechaAnclaCall();
-  const [catalogo, envios, llamadas, ventas, diasDeVenta] = await Promise.all([
-    db.select().from(canales).where(eq(canales.activo, true)),
+  const [envios, llamadas, ventas, diasDeVenta] = await Promise.all([
     db
       .select({
         dia: diaDeEnvio(),
@@ -115,8 +115,8 @@ export async function hechosDelEmbudo(
     const llave = JSON.stringify([
       programId,
       dimensiones.dia,
-      dimensiones.areaId,
-      dimensiones.canalId,
+      dimensiones.area,
+      dimensiones.canalClave,
       dimensiones.origen,
       dimensiones.duenoUserId,
       dimensiones.cohorteId,
@@ -137,11 +137,11 @@ export async function hechosDelEmbudo(
   };
 
   const origenDe = (fila: Parameters<typeof utmsDelEnvio>[0], tieneEnvio: boolean) => {
-    if (!tieneEnvio) return { areaId: null, canalId: null, origen: "sin_envio_origen" as const };
-    const traza = emparejar(utmsDelEnvio(fila), catalogo, ARBOL_VACIO);
-    return traza.origen.tipo === "canal"
-      ? { areaId: traza.origen.canal.areaId, canalId: traza.origen.canal.id, origen: "canal" as const }
-      : { areaId: null, canalId: null, origen: traza.origen.tipo };
+    if (!tieneEnvio) return { area: null, canalClave: null, origen: "sin_envio_origen" as const };
+    const { origen } = emparejar(utmsDelEnvio(fila), ARBOL_VACIO);
+    return origen.regla === "sin_utm"
+      ? { area: origen.area, canalClave: null, origen: "sin_utm" as const }
+      : { area: origen.area, canalClave: origen.canal?.clave ?? null, origen: "canal" as const };
   };
 
   for (const envio of envios) {

@@ -17,7 +17,8 @@ import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { fecha, num, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
-import { embudoPorCanal, nombresDeCanales } from "@/lib/queries/dashboard";
+import { embudoPorCanal } from "@/lib/queries/dashboard";
+import { AREAS } from "@/lib/atribucion/canal";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
@@ -56,7 +57,7 @@ const esquemaFiltrosPauta = z.object({
   campaign: z.string().trim().min(1).max(300).optional().catch(undefined),
 });
 
-const esquemaFiltroArea = z.string().uuid().optional().catch(undefined);
+const esquemaFiltroArea = z.enum(AREAS).optional().catch(undefined);
 
 // El filtro de closer de la URL es un `users.id` (ticket 167, Decision 5): un valor
 // que no es uuid se ignora (no filtra), igual que el filtro de area.
@@ -297,14 +298,14 @@ async function SeccionPauta({
   // El Insights de Typeform (126 B) puede tardar hasta su timeout: va en paralelo, no en serie.
   const porPreguntaPendiente = embudoPorPregunta(db, programId);
   const pauta = await pautaInterina(db, programId, rango, filtrosPauta, hoy);
-  const areaId = esquemaFiltroArea.parse(texto(busqueda.area));
+  const area = esquemaFiltroArea.parse(texto(busqueda.area));
   const hechos = await hechosDelEmbudo(db, { programId, rango });
   const embudoFormulario = await embudoDelFormulario(db, { programId, rango });
   const porPregunta = await porPreguntaPendiente;
   const porCanal = await registrosYAgendasPorCanal(db, programId, rango, hoy);
-  const hechosFiltrados = areaId === undefined ? hechos : hechos.filter((fila) => fila.areaId === areaId);
+  const hechosFiltrados = area === undefined ? hechos : hechos.filter((fila) => fila.area === area);
   // Con un closer en el filtro el bloque Origen por canal no se muestra (129).
-  const origenPorCanal = claveCloser ? null : embudoPorCanal(hechosFiltrados, await nombresDeCanales(db));
+  const origenPorCanal = claveCloser ? null : embudoPorCanal(hechosFiltrados);
   const resumenSerie = hechosFiltrados.reduce(
     (total, fila) => ({
       envios: total.envios + fila.envios,
@@ -336,7 +337,7 @@ async function SeccionPauta({
         <CardHeader>
           <div className="flex items-center gap-2">
             <CardTitle id="resumen-serie">Serie del embudo</CardTitle>
-            {areaId !== undefined ? <Badge variant="info">Área filtrada</Badge> : null}
+            {area !== undefined ? <Badge variant="info">Área filtrada</Badge> : null}
           </div>
         </CardHeader>
         <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -406,4 +407,3 @@ async function SeccionMetas({
     </section>
   );
 }
-

@@ -1,17 +1,18 @@
 import { createHash } from "node:crypto";
 import { and, asc, eq } from "drizzle-orm";
-import { canales, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { trabajaLeads } from "@/lib/auth/roles";
 import type { Traza } from "./emparejar";
 import { destinoDeCaptacion, generarLink } from "./link-de-captacion";
+import { UTM_MEDIUM_REFERIDO, UTM_SOURCE_CLOSER } from "./canal";
 
 /**
  * El enlace de captacion del closer y su codigo (ticket 086, ADR 0044 puntos 1 y 2).
  *
  * El enlace va al formulario del programa con el canal del closer (`utm_source=closer`,
- * `utm_medium=referido`, los del Canal con formato `closer`), la campaña de referidos y
+ * `utm_medium=referido`), la campaña de referidos y
  * en `utm_content` un **codigo opaco** del closer. Nunca el nombre: `Maru`, `maru` y
  * `Maru Marquez` serian tres closers (ADR 0030). El closer no teclea nada.
  *
@@ -94,47 +95,30 @@ export type EnlaceDeCaptacion =
 /**
  * Los enlaces de captacion de un usuario: uno por programa ACTIVO donde tiene membresia
  * activa. El mismo closer en dos programas tiene dos enlaces (otro formulario). Un
- * programa sin fuente principal, o sin el canal del closer activo, devuelve el motivo
- * en vez de una URL rota.
+ * programa sin fuente principal devuelve el motivo en vez de una URL rota.
  */
 export async function enlacesDeCaptacion(db: Db, userId: string): Promise<EnlaceDeCaptacion[]> {
-  const [membresias, canalDelCloser] = await Promise.all([
-    db
-      .select({ programId: programs.id, programa: programs.nombre })
-      .from(miembrosPrograma)
-      .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
-      .where(
-        and(
-          eq(miembrosPrograma.userId, userId),
-          eq(miembrosPrograma.activo, true),
-          eq(programs.activo, true),
-        ),
-      )
-      .orderBy(asc(programs.nombre)),
-    db
-      .select({ utmSource: canales.utmSource, utmMedium: canales.utmMedium })
-      .from(canales)
-      .where(and(eq(canales.formato, "closer"), eq(canales.activo, true))),
-  ]);
+  const membresias = await db
+    .select({ programId: programs.id, programa: programs.nombre })
+    .from(miembrosPrograma)
+    .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
+    .where(
+      and(
+        eq(miembrosPrograma.userId, userId),
+        eq(miembrosPrograma.activo, true),
+        eq(programs.activo, true),
+      ),
+    )
+    .orderBy(asc(programs.nombre));
   const codigo = codigoDeCaptacion(userId);
-  // Un solo canal de closer con source fijo: el link tiene que caer en el y en ningun otro.
-  const canal = canalDelCloser.length === 1 ? canalDelCloser[0] : null;
 
   return Promise.all(
     membresias.map(async ({ programId, programa }): Promise<EnlaceDeCaptacion> => {
-      if (!canal || canal.utmSource === null) {
-        return {
-          programId,
-          programa,
-          ok: false,
-          error: "Falta el canal de closer (closer / referido). Pídele a tu gerente que lo active en Ajustes → Canales.",
-        };
-      }
       try {
         const destino = await destinoDeCaptacion(db, programId);
         const url = generarLink(destino.url, {
-          source: canal.utmSource,
-          medium: canal.utmMedium,
+          source: UTM_SOURCE_CLOSER,
+          medium: UTM_MEDIUM_REFERIDO,
           campaign: CAMPANA_DE_REFERIDOS,
           content: codigo,
         });

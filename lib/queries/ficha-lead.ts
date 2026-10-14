@@ -1,5 +1,5 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
-import { canales, cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
+import { cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
@@ -264,12 +264,9 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     .from(leadContactos)
     .where(and(eq(leadContactos.leadId, lead.id), eq(leadContactos.programId, programId)))
     .orderBy(asc(leadContactos.createdAt));
-  const [fuentesFilas, canalesFilas] = await Promise.all([
-    enviosFilas.length > 0
-      ? db.select({ id: sources.id, nombre: sources.nombre }).from(sources).where(inArray(sources.id, [...new Set(enviosFilas.map((e) => e.sourceId))]))
-      : Promise.resolve([]),
-    db.select().from(canales).where(eq(canales.activo, true)),
-  ]);
+  const fuentesFilas = enviosFilas.length > 0
+    ? await db.select({ id: sources.id, nombre: sources.nombre }).from(sources).where(inArray(sources.id, [...new Set(enviosFilas.map((e) => e.sourceId))]))
+    : [];
   const dealsFilas = await db
     .select()
     .from(deals)
@@ -299,7 +296,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
   const envios: EnvioDeLaFicha[] = [];
   for (const [i, e] of ordenados.entries()) {
     const campos = camposDelEnvio(e);
-    const canal = resolverCanal(utmsDelEnvio(e), canalesFilas);
+    const canal = resolverCanal(utmsDelEnvio(e));
     envios.push({
       id: e.id,
       numero: i + 1,
@@ -310,7 +307,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       posicionEnHoja: e.posicionEnHoja,
       calificacion: e.calificacion,
       fuente: nombreDeFuente.get(e.sourceId) ?? "Fuente desconocida",
-      canal: canal.tipo === "canal" ? canal.canal.nombre : canal.tipo === "sin_utm" ? "Sin UTM" : "Sin clasificar",
+      canal: canal.regla === "sin_utm" ? "Sin UTM" : canal.canal?.nombre ?? "(sin utm_source)",
       campos,
       cambios: previos === null ? null : diferenciasEntreEnvios(previos, campos),
     });

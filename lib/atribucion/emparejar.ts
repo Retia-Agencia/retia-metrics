@@ -1,4 +1,4 @@
-import { resolverCanal, type CanalActivo, type ResultadoCanal } from "@/lib/atribucion/canal";
+import { normalizarUtm, resolverCanal, type ResultadoCanal } from "@/lib/atribucion/canal";
 import { esMacro, type CampoUtm, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
 export interface ArbolDePauta {
@@ -17,7 +17,7 @@ type Contenido =
 
 export interface Traza {
   origen: ResultadoCanal;
-  nivel: "N3" | "N2" | "N1" | "N0" | "sin_clasificar";
+  nivel: "N3" | "N2" | "N1" | "N0";
   campana: Campana | null;
   anuncio: Anuncio | null;
   contenido: Contenido | null;
@@ -33,16 +33,12 @@ function valorAtribuible(valor: string | null): string | null {
   return limpio === "" ? null : limpio;
 }
 
-/** Empareja un envio de forma pura, estable y sin depender del orden de sus catalogos. */
-export function emparejar(
-  utms: UtmsDelEnvio,
-  catalogo: readonly CanalActivo[],
-  arbol: ArbolDePauta,
-): Traza {
+/** Empareja un envio de forma pura, estable y sin depender de catalogos. */
+export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta): Traza {
   const macros = CAMPOS_UTM.filter((campo) => esMacro(utms[campo]));
-  const origen = resolverCanal(utms, catalogo);
-  const canal = origen.tipo === "canal" ? origen.canal : null;
-  const esMeta = canal?.formato === "plantilla_pauta" || canal?.formato === "meta_historico";
+  const origen = resolverCanal(utms);
+  const esMeta = origen.area === "paid";
+  const medium = normalizarUtm(utms.medium);
   const avisos: Traza["avisos"] = [];
 
   const id = valorAtribuible(utms.id);
@@ -59,31 +55,28 @@ export function emparejar(
       .filter((candidata) => candidata.nombre.trim().toLowerCase() === campaign.toLowerCase());
     if (coincidencias.length === 1) campana = { tipo: "meta", campanaId: coincidencias[0].id };
     if (coincidencias.length > 1) avisos.push("campana_ambigua");
-  } else if (campana === null && canal !== null && !esMeta && campaign !== null) {
+  } else if (campana === null && origen.regla !== "sin_utm" && campaign !== null) {
     campana = { tipo: "texto", texto: campaign };
   }
 
   const content = valorAtribuible(utms.content);
   const term = valorAtribuible(utms.term);
   let contenido: Contenido | null = null;
-  if (canal?.formato === "plantilla_pauta") {
+  if (medium === "paid_social") {
     contenido = { formato: "plantilla_pauta", anuncioNombre: content, placement: term };
-  } else if (canal?.formato === "meta_historico") {
+  } else if (medium === "cpc") {
     contenido = { formato: "meta_historico", conjunto: content, anuncio: term };
-  } else if (canal?.formato === "closer") {
+  } else if (medium === "referido") {
     contenido = { formato: "closer", codigoCloser: content };
   }
 
-  const nivel =
-    origen.tipo === "sin_utm"
-      ? "N0"
-      : origen.tipo === "sin_clasificar"
-        ? "sin_clasificar"
-        : anuncio !== null
-          ? "N3"
-          : campana !== null
-            ? "N2"
-            : "N1";
+  const nivel = origen.regla === "sin_utm"
+    ? "N0"
+    : anuncio !== null
+      ? "N3"
+      : campana !== null
+        ? "N2"
+        : "N1";
 
   return { origen, nivel, campana, anuncio, contenido, macros, avisos };
 }

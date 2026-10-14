@@ -3,8 +3,6 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import {
-  areas,
-  canales,
   changeLog,
   leads,
   miembrosPrograma,
@@ -18,7 +16,7 @@ import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { ingerirEntradas } from "@/lib/ingesta/ingerir";
 import { crearPersonaManual } from "@/lib/mutations/personas";
 import { ARBOL_VACIO, emparejar } from "@/lib/atribucion/emparejar";
-import type { CanalActivo } from "@/lib/atribucion/canal";
+import { UTM_MEDIUM_REFERIDO, UTM_SOURCE_CLOSER } from "@/lib/atribucion/canal";
 import {
   CAMPANA_DE_REFERIDOS,
   closerDelCodigo,
@@ -59,19 +57,10 @@ describe("el codigo y el enlace (puro)", () => {
   });
 
   it("🩸 el emparejador reconoce el enlace que el generador produce y su codigo da el closer", () => {
-    const canal: CanalActivo = {
-      id: "c",
-      nombre: "closer / referido",
-      utmSource: "closer",
-      utmMedium: "referido",
-      areaId: "a",
-      formato: "closer",
-      activo: true,
-    };
     const url = new URL(
       generarLink("https://form.typeform.com/to/x?utm_source=xxxxx&utm_id=xxxxx", {
-        source: "closer",
-        medium: "referido",
+        source: UTM_SOURCE_CLOSER,
+        medium: UTM_MEDIUM_REFERIDO,
         campaign: CAMPANA_DE_REFERIDOS,
         content: codigoDeCaptacion(MARU),
       }),
@@ -79,10 +68,9 @@ describe("el codigo y el enlace (puro)", () => {
     const q = (k: string) => url.searchParams.get(k);
     const traza = emparejar(
       { source: q("utm_source"), medium: q("utm_medium"), campaign: q("utm_campaign"), content: q("utm_content"), term: q("utm_term"), id: q("utm_id") },
-      [canal],
       ARBOL_VACIO,
     );
-    expect(traza.origen).toEqual({ tipo: "canal", canal });
+    expect(traza.origen).toMatchObject({ area: "referidos", regla: "referido", canal: { clave: "closer" } });
     expect(traza.contenido?.formato).toBe("closer");
     const codigo = traza.contenido?.formato === "closer" ? traza.contenido.codigoCloser : null;
     expect(closerDelCodigo(codigo, [JERO, MARU])).toBe(MARU);
@@ -132,8 +120,8 @@ function envio(o: { token: string; correo: string; fecha: string; utm?: Record<s
 }
 
 const delCloser = (userId: string) => ({
-  source: "closer",
-  medium: "referido",
+  source: UTM_SOURCE_CLOSER,
+  medium: UTM_MEDIUM_REFERIDO,
   campaign: "referidos",
   content: codigoDeCaptacion(userId),
 });
@@ -173,11 +161,6 @@ beforeEach(async () => {
     { userId: jero, programId: programA },
     { userId: ajeno, programId: programB },
   ]);
-  const existente = await db.select().from(canales).where(eq(canales.formato, "closer"));
-  if (existente.length === 0) {
-    const [area] = await db.insert(areas).values({ nombre: "Referidos" }).returning();
-    await db.insert(canales).values({ nombre: "closer / referido", utmSource: "closer", utmMedium: "referido", areaId: area.id, formato: "closer" });
-  }
 }, 60_000);
 
 afterEach(async () => {
