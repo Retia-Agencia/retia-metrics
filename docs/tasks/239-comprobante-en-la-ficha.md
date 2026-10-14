@@ -24,6 +24,8 @@ el link con "Pegar comprobante".
   trafficker no) y redirige a una URL firmada de 60 s.
 - **`tieneComprobante`** en `lib/deals/abono-sin-comprobante.ts` (link o archivo listo), y que la usen el kanban, el
   Inbox y la ficha.
+- **Adaptador de disco** para `dev:local` (sale del 238): guarda en una carpeta ignorada por git y recibe la subida en
+  una ruta local que solo existe con `esLocal()` (`lib/db/es-local.ts`), para poder hacer el recorrido visual.
 - En la ficha: el diálogo de comprobante ofrece "Subir archivo" o "Pegar link".
 
 ## Done cuando

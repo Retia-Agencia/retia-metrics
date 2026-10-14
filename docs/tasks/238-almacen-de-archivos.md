@@ -19,8 +19,10 @@ de una interfaz, probado contra el adaptador de memoria.
   única, `tipo_mime`, `bytes`, `sha256`, `estado` `pendiente`/`listo`, `subido_por_user_id`, `created_at`,
   `confirmado_en`, `drive_file_id`, `respaldado_en`), `abonos.comprobante_archivo_id` (FK `restrict`, nula). La
   generan, leen y aplican la sesión principal con el ok de Mani; Codex no corre `db:generate` ni `db:migrate`.
-- **`lib/archivos/`:** el puerto (`pedirSubida`, `inspeccionar`, `urlDeLectura`, `borrar`) y tres adaptadores:
-  Supabase por REST con `fetch` (sin SDK), memoria (tests) y disco (`dev:local`, elegido con `lib/db/es-local.ts`).
+- **`lib/archivos/`:** el puerto (`urlDeSubida`, `leer`, `urlDeLectura`, `borrar`), dos adaptadores (Supabase por
+  REST con `fetch`, sin SDK; memoria para tests) y las funciones de dominio `pedirSubida`, `confirmarArchivo` y
+  `urlParaVer`. El adaptador de disco para `dev:local` pasa al 239, que es cuando hay una pantalla que lo use (necesita
+  una ruta local que reciba la subida).
 - **La regla de contenido en un solo lugar:** lista blanca (JPEG, PNG, WebP, PDF), máximo 5 MB, verificación por bytes
   mágicos.
 - **Ruta en el bucket:** `<program_id>/<AAAA-MM>/<archivo_id>.<ext>`, sin datos personales.
