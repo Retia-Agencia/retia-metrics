@@ -3,7 +3,7 @@ id: 119
 etapa: E6
 serves: "ADR 0062 puntos 3 y 4 · docs/analytics.md PT-38"
 depends: []
-status: en curso
+status: done
 quien: Mani (14-oct)
 ---
 

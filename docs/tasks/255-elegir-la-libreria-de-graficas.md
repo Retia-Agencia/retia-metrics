@@ -3,7 +3,7 @@ id: 255
 etapa: hub
 serves: "docs/hub.md H-8, O5 (Mani: las gráficas están pésimas; ticket aparte para escoger la herramienta)"
 depends: []
-status: en curso
+status: done
 quien: Mani (14-oct)
 ---
 

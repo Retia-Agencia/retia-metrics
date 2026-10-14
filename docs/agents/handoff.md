@@ -28,6 +28,28 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
 
 ## Memory
 
+- **2026-10-14 (Mani + Claude, sesión principal de la O10, carril B y la línea 246 del A): 246, 119 y 255 cerrados.**
+  Codex implementó los tres en worktrees dentro del repo; la sesión revisó, integró y miró el CI.
+  - **246 (`5882457`):** el área y el canal salen de `resolverCanal` sin catálogo; "sin clasificar" desaparece;
+    `/ajustes/canales` queda con una nota hasta que la retire el 248. Medido en producción (solo lectura): los 627
+    envíos completos de 14 días que el catálogo clasificaba conservan su área; 8 que eran "sin clasificar" pasan a
+    Orgánico (`instagram francisco` y un `prueba / test`, que Hub › Origen debería marcar).
+  - **119 (`4d33d1b`, `e020948`; migración 0080 aplicada en producción con el ok de Mani):** **un solo token** (Mani: el
+    portafolio de Retia es socio de los de los clientes; verificado, ve las 7 cuentas), en `meta_conexiones` con un
+    índice que admite una sola activa; las cuentas se mapean a cada programa **solo por quien administra**, en la ficha
+    del programa; el trafficker conecta el token en Ajustes › Meta y ahí ve el mapeo sin editar (decisión de Mani).
+    Meta caído no rompe la ficha. Recorrido local con el token real cargado por script, nunca tecleado.
+  - **255 (ADR 0091):** Mani descartó visx y pidió entre Recharts y ECharts la de más capacidades y flexibilidad:
+    **ECharts**, siempre por una pieza propia (envoltorio sobre `echarts/core`, no `echarts-for-react`). El 256 quedó
+    enmendado. Rama del prototipo borrada (`f28ba57`).
+  - **CI:** una corrida salió roja por un comentario de `schema.ts` que nombraba un programa (guardián del ADR 0012);
+    arreglado en `64c24a7`. Verde en `e020948` con todo integrado. Sin tag de checkpoint formal.
+  - **Lecciones de delegar:** el sandbox de Codex no tiene red (no instala paquetes: los instala la sesión) y no
+    puede escribir en `.git` de un worktree (deja los cambios sin commit: el commit lo hace la sesión).
+    `--resume` toma el trabajo más reciente de cualquier carpeta, no el del ticket: relanzar como tarea nueva.
+  - **Sigue:** carril B → 120 (con su migración de turno) y luego 244 y 245; carril A (Alejandro va en 252) → 262,
+    que ya no espera a nadie. El 251 es el que quita A y B de la interfaz.
+
 - **2026-10-14 (Mani + Claude): audit del Hub de métricas, plan y tickets.** Solo docs y una configuración (Typeform).
   Fuentes revisadas: los cinco reportes diarios de septiembre, el handoff de Meta del 13-oct, las notas de Mani
   (ROAS, CPI, CAC, semáforo), el código del dashboard, producción, la API de Meta y la de Typeform (solo lecturas).

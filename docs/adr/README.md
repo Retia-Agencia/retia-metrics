@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0091)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0092)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -113,6 +113,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0086](./0086-el-hub-reemplaza-al-dashboard-y-a-metas.md) | El Hub reemplaza al Dashboard y a Metas (Hoy · Comercial · Dinero · Pauta · Origen) y el periodo se compara "con" algo, sin A ni B |
 | [0089](./0089-el-crm-calcula-el-semaforo-y-juanito-lo-manda.md) | El CRM calcula el semáforo de pauta y Juanito lo manda; endpoint de máquina con secreto y sin datos personales (segunda excepción a "nada es público") |
 | [0090](./0090-los-planes-de-accion-viven-en-el-crm.md) | Los planes de acción viven en el CRM, y un rojo del semáforo se cierra con una acción |
+| [0091](./0091-las-graficas-son-echarts-con-una-pieza-propia.md) | Las gráficas del CRM son ECharts, siempre a través de una pieza propia (envoltorio, tema de Tinta y accesibilidad una sola vez) |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

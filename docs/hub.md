@@ -199,7 +199,7 @@ Mani, en la sesión del audit. Cada una baja a su ADR; aquí va el resumen para 
 | H-5 | **La TRM oficial de cada día del gasto, guardada, y la tasa usada siempre a la vista.** Cierra A12 | 0088 |
 | H-6 | **El CRM calcula el semáforo y Juanito lo manda.** Juanito además es el reloj de la sincronización durante el día (Vercel Hobby solo deja un cron diario). Un endpoint de máquina, con secreto y sin datos personales | 0089 |
 | H-7 | **Los planes de acción viven en el CRM.** Objeto Acción; un rojo del semáforo no se cierra sin una | 0090 |
-| H-8 | **Las gráficas se hacen con una librería dentro del CRM.** La elige un ticket de exploración con criterios escritos; Claude Dashboards (8-oct) queda solo como referencia, porque vive fuera del CRM y se salta sus permisos | ADR en el 255 |
+| H-8 | **Las gráficas se hacen con una librería dentro del CRM.** La elige un ticket de exploración con criterios escritos; Claude Dashboards (8-oct) queda solo como referencia, porque vive fuera del CRM y se salta sus permisos. **Elegida el 14-oct: ECharts, siempre por una pieza propia** | 0091 |
 | H-9 | **Foco: operación comercial y gasto de pauta.** Kapso (masivos y cola) después | · |
 | H-10 | **Del reporte entran:** proyección y requeridos, origen del cierre y planes de acción | · |
 | H-11 | **Una conexión de Meta (el portafolio de Retia) y N cuentas por programa, cada una con su moneda.** Enmienda la respuesta del 29-sep en el 119 | 0087 |

@@ -188,7 +188,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 |---|---|---|---|---|
 | [x] | 067 | [ROAS por cohorte y captura de pauta](./067-roas-por-cohorte-y-captura-de-pauta.md) (E5-4) | 064, 120 | reemplazado · 14-oct (ok de Mani): ROAS en el 123, gasto en el 120 (`docs/hub.md` §6) |
 | [x] | 102 | [El rol Paid Trafficker y `manejaPauta`](./102-rol-paid-trafficker.md) | 094 | done · `cp-20261005-2` · Alejo · 5-oct · su Dashboard: ve todos los programas (ADR 0052 enmendado), sin comparativo, comisión ni listas (`veEquipoComercial`, `sinListas`); cadenero (5-oct): aprobado, con los tests de petición forjada y de Operación y Dinero |
-| [ ] | 119 | [La conexión con Meta: token por portafolio y cuentas por programa](./119-la-conexion-con-meta.md) | — | todo · migración · enmendado 14-oct: una conexión, N cuentas por programa con su moneda; el token ya existe |
+| [x] | 119 | [La conexión con Meta: un solo token y las cuentas de cada programa](./119-la-conexion-con-meta.md) | — | done · 14-oct · Mani · CI verde `e020948` · 0080 aplicada en producción; un solo token (enmienda del 14-oct), cuentas por programa solo de quien administra; recorrido local con el token real (7 cuentas) |
 | [ ] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | todo · migración (retira `ad_spend`) · enmendado 14-oct: agendas según Meta, `url_tags`, registro de corridas |
 | [ ] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | todo · carril Mani · migración |
 | [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) |
@@ -229,14 +229,14 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 147 | [Alertas por persistencia](./147-alertas-por-persistencia.md) | 136 | done · `cp-20261005-1` · Alejo · 5-oct · meta del mes y de la cohorte; 0067 aplicada en producción con el ok de Mani; umbrales en Programa › Ventas, alerta en el Pulso; faltan los umbrales reales de Dani (dato, no código) |
 | [x] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | done · `cp-20261004-4` · O5 · M1 · Pulso, Operación comercial, Dinero y Pauta interina; monta 146 y 065; el comparativo cuenta las llamadas de Calendly por `closer_user_id`. Lo que sigue: O6 (187 a 192) |
 | [-] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | descartado · 4-oct (Mani): el reporte del día ya está en Mi espacio › Métricas con el periodo en "hoy"; medir objeciones era sobrediseño |
-| [ ] | 246 | [La regla del área y el canal que se define solo](./246-la-regla-del-area-y-el-canal-que-se-define-solo.md) | — | todo · sin migración (ADR 0087) |
+| [x] | 246 | [La regla del área y el canal que se define solo](./246-la-regla-del-area-y-el-canal-que-se-define-solo.md) | — | done · 14-oct · Mani · CI verde `e020948` · implementó Codex; medido en producción: los 627 envíos de 14 días que el catálogo clasificaba conservan su área, 8 "sin clasificar" pasan a Orgánico |
 | [ ] | 248 | [Hub › Origen: cómo cuenta cada UTM](./248-la-vista-origen-como-cuenta-cada-utm.md) | 246, 250, 262 | todo · retira `/ajustes/canales` |
 | [ ] | 250 | [El Dashboard y Metas pasan a ser el Hub](./250-el-dashboard-y-metas-pasan-a-ser-el-hub.md) | — | todo · ADR 0086 |
 | [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | todo |
 | [ ] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | todo |
 | [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | todo |
 | [ ] | 254 | [El origen del cierre](./254-el-origen-del-cierre.md) | 252, 262 | todo |
-| [ ] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | todo · exploración + ADR |
+| [x] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | done · 14-oct · Mani · ECharts con una pieza propia (ADR 0091); rama del prototipo borrada |
 | [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | todo |
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
 | [ ] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | todo · contrato C-2 de `docs/hub.md` |
