@@ -1,0 +1,143 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
+import {
+  copiarObjetivos,
+  crearObjetivo,
+  editarObjetivo,
+} from "@/lib/catalogo/objetivos";
+import { changeLog, cohorts, objetivos, programs, users } from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { ErrorDeApp } from "@/lib/errors";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+let db: Db;
+let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
+let gerente: string;
+let programId: string;
+let cohortId: string;
+const actor = () => ({ id: gerente, rol: "gerente" as const });
+
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
+beforeEach(async () => {
+  await vaciar();
+  const [programa] = await db
+    .insert(programs)
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-a", nombre: "Objetivos A", ticketUsd: "1000.00" })
+    .returning();
+  programId = programa.id;
+  const [cohorte] = await db.insert(cohorts).values({
+    programId,
+    codigo: "A-1",
+    metaCupos: 70,
+    precioUsd: "1000.00",
+    estado: "futuro",
+  }).returning();
+  cohortId = cohorte.id;
+  const [usuario] = await db.insert(users).values({ email: "objetivos@retia.test", rol: "gerente" }).returning();
+  gerente = usuario.id;
+}, 60_000);
+
+afterAll(async () => {
+  await cerrar();
+});
+
+function cupos(area: "paid" | "organico" | "referidos", meta: number) {
+  return { cohortId, area, metrica: "cupos" as const, meta, aceptable: null, moneda: null };
+}
+
+describe("objetivos de la cohorte", () => {
+  it("guarda un reparto 36/24/10 de una meta de 70", async () => {
+    await crearObjetivo(db, actor(), cupos("paid", 36));
+    await crearObjetivo(db, actor(), cupos("organico", 24));
+    await crearObjetivo(db, actor(), cupos("referidos", 10));
+    const filas = await db.select().from(objetivos).where(eq(objetivos.cohortId, cohortId));
+    expect(filas.map((fila) => Number(fila.meta))).toEqual(expect.arrayContaining([36, 24, 10]));
+  });
+
+  it("rechaza 40/40 cuando la meta es 70", async () => {
+    await crearObjetivo(db, actor(), cupos("paid", 40));
+    await expect(crearObjetivo(db, actor(), cupos("organico", 40))).rejects.toMatchObject({
+      message: "Los cupos por área sumarían 80 y la meta de la cohorte es 70.",
+      status: 400,
+    });
+  });
+
+  it("al editar no cuenta la misma fila dos veces", async () => {
+    const paid = await crearObjetivo(db, actor(), cupos("paid", 30));
+    await crearObjetivo(db, actor(), cupos("organico", 30));
+    await expect(editarObjetivo(db, actor(), paid.id, cupos("paid", 40))).resolves.toMatchObject({ meta: 40 });
+  });
+
+  it("rechaza costo sin moneda", async () => {
+    await expect(crearObjetivo(db, actor(), {
+      cohortId,
+      area: "paid",
+      metrica: "costo_por_lead",
+      meta: 20,
+      aceptable: 25,
+      moneda: null,
+    })).rejects.toMatchObject({ message: "Una métrica de costo necesita moneda.", status: 400 });
+  });
+
+  it("rechaza el aceptable del lado incorrecto", async () => {
+    await expect(crearObjetivo(db, actor(), {
+      cohortId,
+      area: null,
+      metrica: "roas",
+      meta: 3,
+      aceptable: 4,
+      moneda: null,
+    })).rejects.toMatchObject({ message: "El aceptable debe ser menor o igual que la meta.", status: 400 });
+  });
+
+  it("rechaza cupos con área total", async () => {
+    await expect(crearObjetivo(db, actor(), { ...cupos("paid", 10), area: null })).rejects.toMatchObject({
+      message: "Los cupos totales se definen en la meta de la cohorte; elige un área.",
+      status: 400,
+    });
+  });
+
+  it("deja change_log al crear y editar", async () => {
+    const fila = await crearObjetivo(db, actor(), cupos("paid", 20));
+    await editarObjetivo(db, actor(), fila.id, cupos("paid", 25));
+    const cambios = await db.select().from(changeLog).where(eq(changeLog.registroId, fila.id));
+    expect(cambios.some((cambio) => cambio.campo === "cohortId")).toBe(true);
+    expect(cambios.some((cambio) => cambio.campo === "meta" && cambio.valorAnterior === "20.00")).toBe(true);
+  });
+
+  it("rechaza copiar entre programas y copia dentro del mismo programa", async () => {
+    await crearObjetivo(db, actor(), cupos("paid", 36));
+    const [programaB] = await db
+      .insert(programs)
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-b", nombre: "Objetivos B", ticketUsd: "1000.00" })
+      .returning();
+    const [ajena] = await db.insert(cohorts).values({
+      programId: programaB.id,
+      codigo: "B-1",
+      metaCupos: 70,
+      precioUsd: "1000.00",
+      estado: "futuro",
+    }).returning();
+    await expect(copiarObjetivos(db, actor(), {
+      desdeCohorteId: cohortId,
+      haciaCohorteId: ajena.id,
+    })).rejects.toEqual(expect.objectContaining<Partial<ErrorDeApp>>({ status: 400 }));
+
+    const [destino] = await db.insert(cohorts).values({
+      programId,
+      codigo: "A-2",
+      metaCupos: 70,
+      precioUsd: "1000.00",
+      estado: "futuro",
+    }).returning();
+    await copiarObjetivos(db, actor(), { desdeCohorteId: cohortId, haciaCohorteId: destino.id });
+    const copiadas = await db.select().from(objetivos).where(eq(objetivos.cohortId, destino.id));
+    expect(copiadas).toHaveLength(1);
+    expect(Number(copiadas[0].meta)).toBe(36);
+  });
+});

@@ -23,6 +23,7 @@ import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { puedeSerMiembro } from "@/lib/auth/roles";
 import { PlataformasDelPrograma } from "./plataformas-del-programa";
 import { UmbralesDelPrograma } from "./umbrales-del-programa";
+import { ObjetivosDeLaCohorte } from "./objetivos-de-la-cohorte";
 import {
   DIAS_SEGUIDOS_POR_DEFECTO,
   METRICAS_CON_UMBRAL,
@@ -40,6 +41,8 @@ import {
   estadoConexionMeta,
 } from "@/lib/catalogo/meta";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
+import { cuposSinAsignar, objetivosDeCohortes } from "@/lib/catalogo/objetivos";
+import { DEFINICION_METRICAS_OBJETIVO, METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +158,31 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   const seccion = pestanaActiva(uno(query.seccion), pestanas, "general");
   // Los umbrales de las alertas (147) solo se leen en su pestaña.
   const umbrales = seccion === "ventas" ? await umbralesDelPrograma(db, programa.id) : [];
+  const objetivos = seccion === "ventas" ? await objetivosDeCohortes(db, cohortes.map((c) => c.id)) : [];
+  // Lo sin asignar sale de la misma función que usa la reja del reparto (ADR 0024: una cifra, un módulo).
+  const sinAsignar =
+    seccion === "ventas"
+      ? await Promise.all(cohortes.map((c) => cuposSinAsignar(db, c.id)))
+      : cohortes.map(() => 0);
+  const cohortesConObjetivos = cohortes.map((cohorte, i) => {
+    const filas = objetivos.filter((objetivo) => objetivo.cohortId === cohorte.id);
+    const anterior = cohortes
+      .filter((otra) => otra.id !== cohorte.id && otra.fechaInicioVentas !== null)
+      .sort((a, b) => b.fechaInicioVentas!.localeCompare(a.fechaInicioVentas!))[0];
+    return {
+      id: cohorte.id,
+      codigo: cohorte.codigo,
+      estado: cohorte.estado,
+      cuposSinAsignar: sinAsignar[i],
+      tieneObjetivos: filas.length > 0,
+      anteriorId: anterior?.id ?? null,
+    };
+  });
+  const metricasObjetivo = METRICAS_OBJETIVO.map((metrica) => ({
+    metrica,
+    nombre: DEFINICION_METRICAS_OBJETIVO[metrica].nombre,
+    esCosto: DEFINICION_METRICAS_OBJETIVO[metrica].esCosto,
+  }));
   const umbralesEditables = METRICAS_CON_UMBRAL.map((metrica) => {
     const fila = umbrales.find((u) => u.metrica === metrica);
     return {
@@ -470,6 +498,20 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       moneda: c.moneda,
                       plataformaId: c.plataformaId,
                     }))}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <CardTitle className="text-base">Objetivos de la cohorte</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ObjetivosDeLaCohorte
+                    cohortes={cohortesConObjetivos}
+                    objetivos={objetivos}
+                    metricas={metricasObjetivo}
+                    editable={administra}
                   />
                 </CardContent>
               </Card>
