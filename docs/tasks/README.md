@@ -194,9 +194,9 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) |
 | [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123, 253 | todo · PQ3 = HQ-5, con valor por defecto del 253 |
 | [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · enmendado 14-oct: vive en Hub › Pauta |
-| [ ] | 244 | [La TRM oficial de cada día, guardada](./244-la-trm-del-dia.md) | — | en curso · 14-oct · Codex en `.claude/worktrees/t244` · migración 0082 · cierra A12 (ADR 0088) |
+| [ ] | 244 | [La TRM oficial de cada día, guardada](./244-la-trm-del-dia.md) | — | integrado · 14-oct · Codex + central · 0082 aplicada · falta cuadrar 3 fechas tras la primera corrida · cierra A12 (ADR 0088) |
 | [ ] | 245 | [Las fotos del gasto durante el día](./245-las-fotos-del-gasto-durante-el-dia.md) | 120 | en curso · 14-oct · Codex en `.claude/worktrees/t245` (sale de t122) · migración 0084 escrita en la rama, sin aplicar |
-| [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | en curso · 14-oct · Codex en `.claude/worktrees/t247` · los campos ocultos ya están en los tres Typeform (14-oct) |
+| [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | integrado · 14-oct · Codex + central · CA en N3 medido; falta el primer envío de TI con `ad_id` |
 | [ ] | 249 | [Agendas según Meta contra el CRM: el control](./249-agendas-segun-meta-contra-el-crm.md) | 120, 123 | todo |
 | [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 245, 262 (v1); 247 (v2) | todo · enmendado 14-oct: v1 por programa sin el 123, v2 por campaña |
 | [ ] | 259 | [El endpoint de máquina del semáforo](./259-el-endpoint-de-maquina-del-semaforo.md) | 258 | todo · segunda excepción a "nada es público" (ADR 0089) |

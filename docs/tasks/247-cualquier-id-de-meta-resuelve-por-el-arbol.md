@@ -30,11 +30,11 @@ y que los anuncios de TI y CA (que mandan `ad_id`) lleguen a nivel anuncio sin p
 
 ## Done cuando
 
-- [ ] El `utm_id` de CA (`52532647547375`, una campaña) resuelve a N2 con su campaña, con test sobre un árbol
+- [x] El `utm_id` de CA (`52532647547375`, una campaña) resuelve a N2 con su campaña, con test sobre un árbol
   grabado.
-- [ ] Un envío con `ad_id` de un anuncio de TI resuelve a N3 con su conjunto y su campaña, con test.
+- [x] Un envío con `ad_id` de un anuncio de TI resuelve a N3 con su conjunto y su campaña, con test.
 - [ ] El primer envío real de TI con `ad_id` después del cambio en el Typeform se ve en N3 (nota de cierre).
-- [ ] El orden del árbol no cambia el resultado, con test.
+- [x] El orden del árbol no cambia el resultado, con test.
 
 ## Notas
 
@@ -45,3 +45,20 @@ anuncio.
 **No hay plantilla por programa** (Mani preguntó, 14-oct): cada envío dice cómo leerse por su `utm_medium` (246), y
 en una misma cuenta conviven varias plantillas (Tactical tiene anuncios con cuatro). Lo que sí se ve es qué
 plantilla usa cada anuncio activo: el 120 guarda sus `url_tags` y el 248 los muestra por cuenta.
+
+## Nota de cierre (14-oct, parcial)
+
+Codex implementó; la sesión revisó e integró (`8d91b4b`, `96a4612`, `6fc448d`). Sin migración. Decisiones de la sesión:
+
+- Candidatos en orden fijo `ad_id`, `utm_id`, `adset_id`, `campaign_id`; gana el más profundo (anuncio > conjunto >
+  campaña) y, a igual nivel, el primero del orden: el orden del árbol no cambia nada. `Traza` gana `conjunto`.
+- Un id resuelto da `area: paid`, `regla: id_en_arbol` (paso 1 del ADR 0087), conservando el canal. La gemela SQL
+  (`idEnArbolSql`, un `exists` sobre `pauta_objetos` del MISMO programa) entra en `areaSql` y la usan los cinco hechos.
+  `utm_id` cae a `respuestas` igual que en TypeScript.
+- `anuncio_desconocido` se avisa una vez, y solo si algún id es numérico: medido en producción, los links orgánicos de
+  ComunicArte mandan `ad_id=organic` (14 envíos), que es un centinela y no un anuncio que falte.
+- El embudo del formulario carga el árbol real; la ingesta sigue con `ARBOL_VACIO` (solo lee el código del closer).
+
+Medido en producción el 14-oct (lectura): ComunicArte, 34 envíos con `ad_id` desde el cambio del Typeform, 20 caen en
+un anuncio del árbol (N3) y los otros 14 son `organic`; sus 111 `utm_id` de 14 días están todos en el árbol
+(campaña, N2). **Falta:** Tactical aún no tiene envíos con `ad_id`; ver el primero en N3 y marcar el criterio.

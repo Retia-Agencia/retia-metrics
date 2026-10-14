@@ -11,11 +11,12 @@
 ```
 Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión orquesta: Codex implementa en
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
-Lee AGENTS.md, docs/hub.md y la entrada del 14-oct (tarde) en Memory.
+Lee AGENTS.md, docs/hub.md y las entradas del 14-oct (tarde y noche) en Memory.
 
-Listos ahora: carril B → 244 (la TRM; trae la siguiente migración de la cola, la genera, lee y aplica esta sesión
-con el ok de Mani) y luego 245; carril A → 247 (conectar arbolDePauta al emparejador) y 248, si Alejandro no los
-tomó (mira el status de cada ticket antes). Reclama el ticket (status en curso) y empuja antes de lanzar.
+En curso por otra sesión (14-oct, noche): 122 y 245 (migraciones 0083 y 0084 en sus ramas, sin aplicar). Listo:
+carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status antes).
+Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM tras la primera corrida del cron) y 247
+(el primer envío de Tactical con `ad_id` en N3). Reclama el ticket (status en curso) y empuja antes de lanzar.
 
 Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
 (tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
@@ -24,6 +25,19 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
 ```
 
 ## Memory
+
+- **2026-10-14 (noche; Mani + Claude, sesión principal de la O10): 244 y 247 integrados.** Codex implementó los dos
+  en paralelo (`.claude/worktrees/t244` y `t247`); la sesión decidió el diseño en el brief, revisó e integró.
+  - **244:** `lib/trm/`, una fila por publicación de datos.gov.co (el viernes cubre el fin de semana); el relleno es
+    la primera corrida del cron de pauta. **0082 aplicada en producción** con el ok de Mani. Falta cuadrar 3 fechas
+    contra la TRM publicada cuando corra el cron.
+  - **247:** los cuatro ids de Meta se resuelven por el árbol y un id del árbol hace Paid (también en SQL, para los
+    hechos). Medido: CA tiene 20 envíos en N3 y 111 `utm_id` de campaña, todos en el árbol; TI aún sin `ad_id`.
+    Los links orgánicos mandan `ad_id=organic`: centinela, ya no avisa anuncio desconocido.
+  - **CI:** rojo una vez (`tests/ficha-deal-lectura.test.ts` no esperaba el campo `idsMeta`); arreglado en `96a4612`.
+  - **Lecciones:** un `Monitor` en este equipo corre en zsh (sin `declare -A` ni separación de palabras): escribirlo
+    con `bash -c`. El hook de la bóveda bloquea un `cd` al checkout principal desde un worktree: integrar con
+    `git -C <principal>`.
 
 - **2026-10-14 (tarde; Mani + Claude, sesión principal de la O10): 120 y 262 cerrados, CI verde en `803e6fc`.**
   - **120:** Codex implementó; Kiro hizo el arreglo (corrida cortada que bloqueaba para siempre, gasto corregido a

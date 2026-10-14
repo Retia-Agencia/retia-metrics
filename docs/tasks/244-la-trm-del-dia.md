@@ -28,11 +28,28 @@ pauta y cruzarlo con las ventas sin convertir nunca en silencio.
 
 ## Done cuando
 
-- [ ] Correr la lectura dos veces no duplica filas, con test.
-- [ ] Un sábado devuelve la tasa vigente, con test.
-- [ ] Una fecha sin tasa guardada se dice como tal (la cifra convertida no sale), nunca se usa una tasa inventada.
+- [x] Correr la lectura dos veces no duplica filas, con test.
+- [x] Un sábado devuelve la tasa vigente, con test.
+- [x] Una fecha sin tasa guardada se dice como tal (la cifra convertida no sale), nunca se usa una tasa inventada.
 - [ ] El relleno cuadra con la tasa publicada en tres fechas elegidas a mano (nota de cierre).
 
 ## Notas
 
 Los tests no llaman a la fuente: usan respuestas grabadas. La regla dura de fechas aplica: la fecha es de Bogotá.
+
+## Nota de cierre (14-oct, parcial)
+
+Codex implementó; la sesión revisó e integró (`c3efa1f` a `02ee0d6`). Migración **0082 aplicada en producción** con
+el ok de Mani (sin transacciones largas antes; `tasas_cambio` con RLS, vacía). Decisiones de la sesión:
+
+- Una fila por **publicación** (`vigente_desde` a `vigente_hasta`), no por día: el viernes cubre el fin de semana y el
+  festivo, y la consulta lo resuelve por el rango. Fuente `datos.gov.co/resource/32sa-8pi3.json`, confirmada con una
+  llamada real (la del 15-oct se publica el 14). Respuesta grabada en `tests/fixtures/trm/`.
+- `lib/trm/`: `registrarTasa` (único escritor, upsert por `vigente_desde`), `leerTrm` (desde la última publicación
+  menos 7 días; con la tabla vacía, desde el primer gasto: **el relleno es la primera corrida**, sin script),
+  `tasaDelDia` y `tasasDelRango` (con `faltantes` y la etiqueta).
+- Corre dentro del cron de pauta (11:00 UTC), antes de sincronizar y en su propio try: si falla, la pauta corre igual
+  y la respuesta trae `trm.error` (y el log). Sin cron nuevo.
+
+**Falta:** después de la primera corrida en producción, cuadrar tres fechas contra la TRM publicada (sugeridas: 1-oct
+3.312,84 · 10-oct 3.194,44 · 14-oct 3.181,74) y marcar el último criterio.
