@@ -167,10 +167,12 @@ export async function arbolDeCuenta(
   f: FetchMeta = globalThis.fetch,
 ): Promise<ObjetoDePautaMeta[]> {
   const base = `${META_BASE}/act_${idMeta}`;
-  const url = (borde: string, fields: string) => {
+  // Con el creativo anidado, Meta rechaza 500 anuncios por pagina en las cuentas grandes
+  // ("reduce the amount of data", medido el 14-oct en Tactical y Milena); 100 pasa.
+  const url = (borde: string, fields: string, limite = 500) => {
     const u = new URL(`${base}/${borde}`);
     u.searchParams.set("fields", fields);
-    u.searchParams.set("limit", "500");
+    u.searchParams.set("limit", String(limite));
     return u;
   };
   const [campanas, conjuntos, anuncios] = await Promise.all([
@@ -184,6 +186,7 @@ export async function arbolDeCuenta(
       url(
         "ads",
         "id,name,effective_status,adset_id,campaign_id,url_tags,creative{object_type,video_id,asset_feed_spec,url_tags}",
+        100,
       ),
       token,
       f,
