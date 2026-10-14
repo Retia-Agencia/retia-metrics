@@ -414,6 +414,11 @@ The agent should run these to get fast signal on whether code works. Keep them c
   (ticket 150) la base se migra UNA vez por corrida** en el `globalSetup` (`tests/helpers/volcado-global.ts`) y
   cada archivo carga ese volcado; si no existe, migra por su cuenta como antes. Una migración con SQL roto
   revienta la corrida entera, una vez, con el error de la migración (probado en una rama desechable).
+  **Desde el 14-oct, una base por ARCHIVO:** `crearBaseReutilizable()` en `beforeAll`, `await vaciar()` al
+  empezar cada `beforeEach` y `cerrar` en `afterAll`. `vaciar` trunca las tablas y restaura las filas que
+  siembran las migraciones (~25 ms contra ~0,6 s por test de un PGlite nuevo en el CI; la suite llegó a 462 s).
+  `crearBaseDePrueba()` (base nueva) queda solo para las excepciones con razón que nombra
+  `tests/base-por-archivo-guardian.test.ts`: tests que cambian el esquema o prueban migraciones.
   **Bucle local opcional: `npm run test:cambios`** (`vitest run --changed`, mismo candado): solo los tests
   afectados por lo que no está commiteado.
   El lock se resincronizó otra vez el 28-sep (`649bf2c`): la primera corrida del CI lo midió roto en
