@@ -160,6 +160,10 @@ vi.mock("@/lib/catalogo/meta", () => ({
   cuentasDisponibles: vi.fn(async () => []),
 }));
 
+vi.mock("@/lib/pauta/sincronizar", () => ({
+  ultimaSincronizacionPauta: vi.fn(async () => null),
+}));
+
 // La tab Students (ticket 099) lee la base por estos dos modulos; sin base en los tests se
 // mockean para que la guarda de rol sea lo unico bajo prueba. `totalesDeStudents` es puro
 // (recibe filas), pero se mockea igual para no depender de su forma interna aca.

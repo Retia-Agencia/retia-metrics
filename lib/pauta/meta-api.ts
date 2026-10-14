@@ -168,7 +168,7 @@ export async function arbolDeCuenta(
 ): Promise<ObjetoDePautaMeta[]> {
   const base = `${META_BASE}/act_${idMeta}`;
   // Con el creativo anidado, Meta rechaza 500 anuncios por pagina en las cuentas grandes
-  // ("reduce the amount of data", medido el 14-oct en Tactical y Milena); 100 pasa.
+  // ("reduce the amount of data", medido el 14-oct en las dos cuentas mas grandes); 100 pasa.
   const url = (borde: string, fields: string, limite = 500) => {
     const u = new URL(`${base}/${borde}`);
     u.searchParams.set("fields", fields);
