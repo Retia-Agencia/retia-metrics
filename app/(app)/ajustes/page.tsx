@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, FileWarning, ListChecks, Radio, Shapes, Users } from "lucide-react";
+import { Activity, FileWarning, ListChecks, Megaphone, Radio, Shapes, Users } from "lucide-react";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { esAdministrador, manejaPauta, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  * Lo que entra es PROYECCIÓN, no permiso: cada subpágina conserva su guarda de servidor
  * (esconder un enlace no es seguridad). La pregunta se hace por capacidad sobre el ROL
  * DE VISTA (ADR 0025 punto 5, ADR 0028), nunca `rol === "..."`: `esAdministrador` para
- * casi todo, `manejaPauta` para Canales (ADR 0052). Un rol que no ve ninguna tarjeta
+ * casi todo, `manejaPauta` para Canales y Meta (ADR 0052). Un rol que no ve ninguna tarjeta
  * (hoy el paid trafficker sin acceso a nada más que Canales) recibe un estado vacío.
  */
 const ENLACES = [
@@ -31,6 +31,13 @@ const ENLACES = [
     icono: Radio,
     titulo: "Canales",
     descripcion: "De qué canal y área viene cada envío.",
+    requisito: "pauta",
+  },
+  {
+    href: "/ajustes/meta",
+    icono: Megaphone,
+    titulo: "Meta",
+    descripcion: "Conecta el usuario del sistema que lee las cuentas publicitarias.",
     requisito: "pauta",
   },
   {
@@ -70,7 +77,7 @@ function puedeVer(requisito: (typeof ENLACES)[number]["requisito"], rol: Rol | n
 
 export default async function AjustesPage() {
   // Ajustes es de quien administra la app (gerente, developer por `esAccesoTotal`) y del paid
-  // trafficker, que entra a Canales (ADR 0052). El closer dejo de verlo (ticket 224, ADR 0082):
+  // trafficker, que entra a los ajustes de pauta (ADR 0052). El closer dejo de verlo (ticket 224, ADR 0082):
   // ya no administra plataformas de pago desde aqui. Se conserva la mecanica de hoy
   // (`paginaConRol`, que rebota a su vista); la proyeccion y la guarda de cada subpagina deciden
   // que puede tocar cada rol que si entra.

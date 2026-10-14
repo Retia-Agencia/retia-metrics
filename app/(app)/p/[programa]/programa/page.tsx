@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, configuraPrograma } from "@/lib/auth/roles";
+import { esAdministrador, configuraPrograma, manejaPauta } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
@@ -34,6 +34,12 @@ import { EquipoDelPrograma } from "./equipo-del-programa";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  cuentasDelPrograma,
+  cuentasDisponibles,
+  estadoConexionMeta,
+} from "@/lib/catalogo/meta";
+import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 
 export const dynamic = "force-dynamic";
 
@@ -61,17 +67,20 @@ const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: 
  * programa ajeno es 404, igual que uno que no existe. La ficha se LEE; quien administra
  * (`esAdministrador`: gerente o developer) edita las cohortes AQUÍ con el mismo
  * `CohortesAdmin` y las mismas acciones de Ajustes (A-10: las cohortes se encuentran desde el
- * programa). Las plataformas se vinculan aquí para todos los que ven la ficha; la reja de verdad
- * son sus acciones (`requireRole` y alcance del programa), no que el control aparezca.
+ * programa). Quien maneja pauta también entra para vincular las cuentas de Meta; el resto de los
+ * controles editables sigue proyectado por capacidad. La reja de verdad son las acciones
+ * (`requireRole` y alcance del programa), no que el control aparezca.
  *
  * Ningún secreto llega aquí: la ficha dice SI hay token de Calendly y webhook conectado, nunca
  * cuál (ADR 0057); lo garantiza `programaPorId`, que pasa por el mismo `sinToken` del catálogo.
  */
 export default async function FichaDelProgramaPage({ params, searchParams }: Props) {
-  // La ficha del programa la CONFIGURA quien administra (gerente y developer); el closer, que
-  // antes la leia, ya no entra (ticket 224, ADR 0082) y recibe 404. Por capacidad
-  // (`configuraPrograma`), nunca `rol === "..."`.
-  const session = await paginaConCapacidad(configuraPrograma);
+  // La ficha admite a quien configura el programa y a quien maneja pauta para vincular las
+  // cuentas de Meta. El closer no entra (ticket 224, ADR 0082) y recibe 404. Se decide por
+  // capacidades, nunca con `rol === "..."`.
+  const session = await paginaConCapacidad((rolActual) =>
+    configuraPrograma(rolActual) || manejaPauta(rolActual),
+  );
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const visible = await programaDeLaFichaPorSlug(session.user.id, rol, slug);
@@ -81,6 +90,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   if (!ficha) notFound();
 
   const administra = esAdministrador(rol);
+  const pauta = manejaPauta(rol);
   const query = await searchParams;
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
     ficha;
@@ -160,6 +170,13 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       activo: fila?.activo ?? false,
     };
   });
+  const estadoMeta = pauta && seccion === "general" ? await estadoConexionMeta(db) : { conectada: false as const };
+  const [cuentasMeta, cuentasMetaDisponibles] = pauta && seccion === "general"
+    ? await Promise.all([
+        cuentasDelPrograma(db, programa.id),
+        estadoMeta.conectada ? cuentasDisponibles(db) : Promise.resolve([]),
+      ])
+    : [[], []];
 
   return (
     <PageShell
@@ -272,6 +289,22 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                   </div>
                 </CardContent>
               </Card>
+
+              {pauta ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Cuentas de Meta</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CuentasDelPrograma
+                      programId={programa.id}
+                      conectada={estadoMeta.conectada}
+                      cuentas={cuentasMeta}
+                      disponibles={cuentasMetaDisponibles}
+                    />
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
           ) : null}
 

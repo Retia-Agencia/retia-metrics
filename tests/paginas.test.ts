@@ -506,7 +506,7 @@ describe("paginas de gerente", () => {
 /**
  * Visibilidad del índice de Ajustes por rol (ticket 173). El índice proyecta tarjetas
  * según la capacidad del rol —`esAdministrador` para casi todo, `manejaPauta` para
- * Canales—, nunca por el literal del rol. Se renderiza la página real y se recogen los
+ * Canales y Meta—, nunca por el literal del rol. Se renderiza la página real y se recogen los
  * `href` de las tarjetas del árbol de React.
  */
 async function hrefsDeAjustes(): Promise<string[]> {
@@ -551,10 +551,10 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     expect(hrefs).toContain("/ajustes/areas");
   });
 
-  it("el paid trafficker SOLO ve Canales (maneja pauta, no administra)", async () => {
+  it("el paid trafficker solo ve los ajustes de pauta", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     const hrefs = await hrefsDeAjustes();
-    expect(hrefs).toEqual(["/ajustes/canales"]);
+    expect(hrefs).toEqual(["/ajustes/canales", "/ajustes/meta"]);
   });
 
   it("un closer ni siquiera entra al índice (ticket 224, ADR 0082): la raíz lo rebota", async () => {
@@ -626,7 +626,7 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
  * esconden del menú. Se forja la sesión de un closer contra cada ruta real y se exige
  * `notFound()`. El developer en vista `closer` ve lo del closer, así que recibe los mismos
  * 404. Gerente y developer (vista `todo`) conservan todo; el paid trafficker ve el tablero
- * (Dashboard, lista, Metas) pero NO la ficha del Programa (`configuraPrograma`).
+ * (Dashboard y ficha del Programa para gestionar Meta), pero NO la lista comercial.
  *
  * Para las rutas que SÍ debe ver cada rol se afirma que la guarda no lanza `NoEncontrado`:
  * leer la base falla en los tests (no hay base), y ese fallo —cualquiera menos `NoEncontrado`—
@@ -708,14 +708,14 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     }
   });
 
-  it("el paid trafficker ve el Hub, pero NO la lista ni la ficha del Programa", async () => {
+  it("el paid trafficker ve el Hub y la ficha del Programa, pero NO la lista", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     // Hub: ve el tablero (`veTableroDelPrograma`).
     expect(await correr("@/app/(app)/p/[programa]/hub/page")).toBe("paso-la-guarda");
     // Lista: nunca fue suya (ticket 102); la guarda es `esAdministrador`.
     expect(await correr("@/app/(app)/p/[programa]/hub/lista/page")).toBe("notFound");
-    // Ficha del Programa: solo quien configura (`configuraPrograma`).
-    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("notFound");
+    // Ficha del Programa: entra para gestionar las cuentas de Meta.
+    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("paso-la-guarda");
   });
 });
 
