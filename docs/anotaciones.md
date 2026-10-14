@@ -393,3 +393,4 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | A-147 | Ficha de un deal ganado → llamadas | cambio | En Ganado completo no deja pegar el Grain ni completar lo que levanta alertas; debe dejarlo, con nota en actividades (Michael, 13-oct). | 237 | hecho |
 | A-148 | Reagenda en CRM y en Calendly | bug | Reagendar en el CRM y luego en Calendly deja dos llamadas para la misma cita (Andrey Siabato, Nicolás, 13-oct). | 237 | hecho |
 | A-149 | Abono → devolución | cambio | Debe haber manera de registrar una devolución; hoy solo existe anular, que borra la venta de la historia como si fuera un error (Mani, 14-oct). | 242 | en ticket |
+| A-150 | Nerd Stats | bug | `/nerd-stats` no carga en producción (Mani lo ve como 404); el log muestra un error de tipos en la consulta de corridas del sync (Mani, 14-oct). | 243 | en ticket |

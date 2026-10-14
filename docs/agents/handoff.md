@@ -69,6 +69,10 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
     (mismo peso). Revertida con su ok: FK quitada por `editarConRastro` (queda en `change_log`, a propósito), nota
     visible de la ficha y fila de `archivos` borradas, objeto de Storage borrado, copia y carpetas de Drive a la
     papelera. El abono quedó como estaba (sin comprobante, USD 797). Las filas de bitácora de la prueba se conservan.
+  - **Para retomar en otra sesión (14-oct):** **242** devoluciones (decisiones D-1 a D-8 antes de construir) y **243**
+    `/nerd-stats` revienta en producción: el log da `bigint: "f"` en `ultimasCorridasDeSync` con `params [8]`; sola
+    funciona; con las seis del `Promise.all` la reproducción local se colgó >7 min. Sospecha: parámetros cruzados en el
+    pooler (afectaría a otras pantallas). Diagnóstico completo dentro del ticket.
 - **2026-10-13 (Mani + Claude): ticket 237, deals ganados completables y reagenda duplicada.**
   - **A-147** (Michael): en Ganado completo ahora se pega el Grain, se marca el resultado de una llamada pasada y el
     comprobante, sin mover etapa y con nota del actor en actividades. Crear/reagendar llamadas sigue bloqueado en un

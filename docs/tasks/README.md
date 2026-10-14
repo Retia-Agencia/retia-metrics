@@ -324,6 +324,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 240 | [El comprobante se sube al registrar el abono](./240-comprobante-al-registrar-el-abono.md) | 239 | done (cp-20261014-1) · 13-oct · implementó Codex, revisado; recorrido local ok (abono + archivo en una transacción)  |
 | [x] | 241 | [Respaldo de los comprobantes en Drive, y barrido de pendientes](./241-respaldo-de-comprobantes-en-drive.md) | 238 | done (cp-20261014-1) · 13-oct · implementó Codex, revisado; probado contra la unidad real; cron diario 09:00 UTC  |
 | [ ] | 242 | [Una devolución se registra como devolución, no como abono anulado](./242-devoluciones.md) | 240 | todo · 14-oct · **prioridad**: hoy no hay forma correcta de devolver; decisiones D-1 a D-8 con Michael y Gerencia antes de construir |
+| [ ] | 243 | [`/nerd-stats` revienta en producción](./243-nerd-stats-revienta.md) | · | todo · 14-oct · **prioridad**: causa raíz primero (posibles parámetros cruzados en el pooler, que afectaría a otras pantallas) |
 
 ## 14 · Ola O4 · la operación sin fricción (3-oct, noche)
 
