@@ -547,6 +547,13 @@
       "when": 1791849253752,
       "tag": "0077_opera-como-closer",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1791950804852,
+      "tag": "0078_comprobante-como-archivo",
+      "breakpoints": true
     }
   ]
 }

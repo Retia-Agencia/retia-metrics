@@ -80,6 +80,7 @@ export const etapaDealEnum = pgEnum("etapa_deal", [
 export const pendienteDealEnum = pgEnum("pendiente_deal", ["reagenda", "seguimiento", "proxima_cohorte"]);
 
 export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
+export const estadoArchivoEnum = pgEnum("estado_archivo", ["pendiente", "listo"]);
 
 /**
  * Que clase de actividad quedo registrada sobre un deal (ADR 0037, ADR 0071). Es tipo
@@ -1258,7 +1259,37 @@ export const notificacionesCalendly = pgTable(
   ],
 );
 
-// ─────────────────────────────────────────────────────────── abonos
+// ─────────────────────────────────────────────────────────── archivos y abonos
+
+/**
+ * Metadatos de los comprobantes guardados fuera de Postgres (ADR 0085). La fila nace
+ * `pendiente` antes de que el navegador suba el objeto y solo pasa a `listo` despues
+ * de verificar sus bytes. La ruta no contiene datos personales y es unica en el bucket.
+ *
+ * `onDelete: "restrict"` en programa y usuario conserva el contexto y la autoria del
+ * archivo; un comprobante usado tampoco se puede borrar a traves de su abono.
+ */
+export const archivos = pgTable(
+  "archivos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    ruta: text("ruta").notNull(),
+    tipoMime: text("tipo_mime").notNull(),
+    bytes: integer("bytes").notNull(),
+    sha256: text("sha256"),
+    estado: estadoArchivoEnum("estado").notNull().default("pendiente"),
+    subidoPorUserId: uuid("subido_por_user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    confirmadoEn: timestamp("confirmado_en", { withTimezone: true }),
+    driveFileId: text("drive_file_id"),
+    respaldadoEn: timestamp("respaldado_en", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("archivos_ruta_idx").on(t.ruta),
+    index("archivos_estado_created_at_idx").on(t.estado, t.createdAt),
+  ],
+);
 
 /**
  * Un pago recibido sobre un deal (ADR 0013, ADR 0037). Un deal puede tener varios abonos;
@@ -1294,6 +1325,7 @@ export const abonos = pgTable(
     moneda: text("moneda").notNull().default("USD"),
     plataformaId: uuid("plataforma_id").references(() => plataformasPago.id, { onDelete: "restrict" }),
     comprobanteUrl: text("comprobante_url"),
+    comprobanteArchivoId: uuid("comprobante_archivo_id").references(() => archivos.id, { onDelete: "restrict" }),
     /** Identidad de quien registro el abono. Nula solo para la historia pendiente de relleno. */
     registradoPorUserId: uuid("registrado_por_user_id").references(() => users.id, { onDelete: "restrict" }),
     /** Texto historico para el corte de datos; no identifica abonos nuevos. */
@@ -1313,6 +1345,9 @@ export const abonos = pgTable(
       .where(sql`${t.huellaMigracion} is not null`),
     index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
     index("abonos_deal_idx").on(t.dealId),
+    uniqueIndex("abonos_comprobante_archivo_idx")
+      .on(t.comprobanteArchivoId)
+      .where(sql`${t.comprobanteArchivoId} is not null`),
     // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
     // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
     // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
