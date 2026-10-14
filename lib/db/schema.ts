@@ -1753,6 +1753,63 @@ export const enlacesPago = pgTable(
   (t) => [index("enlaces_pago_programa_idx").on(t.programId)],
 );
 
+// ─────────────────────────────────────────────────────────── Meta (ticket 119)
+
+/**
+ * La conexion con la API de Meta: el token del usuario del sistema de Retia (ADR 0062
+ * punto 4, enmendado por el 0087 y el 119 el 14-oct). El portafolio de Retia es socio
+ * de los portafolios de los clientes, asi que UN token lee las cuentas de todos los
+ * programas: la base admite una sola conexion activa (indice unico parcial, ADR 0005).
+ *
+ * El token sigue las reglas del ADR 0057: lo escribe SOLO `guardarTokenMeta`, nunca
+ * pasa por el molde ni por `change_log`, y ninguna lectura lo devuelve.
+ *
+ * ponytail: si un cliente algun dia no comparte sus cuentas con el portafolio de Retia,
+ * se quita el indice de una activa y `cuentas_publicitarias` gana la FK a su conexion.
+ */
+export const metaConexiones = pgTable(
+  "meta_conexiones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Como se llama el usuario del sistema en Meta (`/me`), leido al probar el token. */
+    nombre: text("nombre").notNull(),
+    tokenSecreto: text("token_secreto").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("meta_conexiones_una_activa_idx").on(sql`(true)`).where(sql`${t.activo}`)],
+);
+
+/**
+ * Una cuenta publicitaria de Meta y el programa al que sirve (ticket 119). Un programa
+ * puede tener varias (ComunicArte tiene cuatro, dos en USD); una cuenta es de UN programa
+ * (frontera, ADR 0043), y lo garantiza el indice unico sobre `id_meta`.
+ *
+ * Moneda y zona horaria se leen de Meta al vincular, nunca se teclean: el gasto se guarda
+ * en la moneda de la cuenta (nada se convierte en silencio) y una zona distinta de Bogota
+ * correria el gasto por dia.
+ */
+export const cuentasPublicitarias = pgTable(
+  "cuentas_publicitarias",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** El `account_id` de Meta, sin el prefijo `act_`. */
+    idMeta: text("id_meta").notNull(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    nombre: text("nombre").notNull(),
+    moneda: text("moneda").notNull(),
+    zonaHoraria: text("zona_horaria").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cuentas_publicitarias_id_meta_idx").on(t.idMeta),
+    index("cuentas_publicitarias_programa_idx").on(t.programId),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
@@ -1787,3 +1844,5 @@ export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;
 export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
+export type MetaConexion = typeof metaConexiones.$inferSelect;
+export type CuentaPublicitaria = typeof cuentasPublicitarias.$inferSelect;
