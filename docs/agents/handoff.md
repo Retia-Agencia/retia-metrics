@@ -35,8 +35,8 @@ leer es libre, escribir pide el ok de Mani. Recorrido visual en dev:local hacien
     reagendó en el CRM y 12 min después en Calendly; el webhook revivía la llamada vieja → dos llamadas el 16-oct
     17:00. Ahora Calendly adopta la sucesora del CRM. Implementó Codex (medium), revisado; typecheck, lint y build
     limpios; los tests del ticket los corrió Codex (101 en verde), la suite la valida el CI.
-  - **Pendiente:** limpiar el duplicado de Andrey en producción (anular la llamada `b4ae0ea1…`, origen crm, y dejar
-    la de Calendly `8872f20c…`) **espera el ok explícito de Mani**. Menor sin ticket: reagendar sin notas deja una
+  - **Hecho con el ok de Mani:** el duplicado de Andrey en producción quedó anulado (llamada `b4ae0ea1…`, origen crm,
+    con rastro y motivo); queda solo la de Calendly `8872f20c…`, 16-oct 17:00. Menor sin ticket: reagendar sin notas deja una
     actividad con nota vacía.
 - **2026-10-12 (noche, Mani + Claude): reporte de Michael y Andrea en producción → tickets 232 a 235.**
   - **232** "La hora debe ser HH:MM" al marcar Show sobre una cita de Calendly: el diálogo manda `hora: ""` con el
