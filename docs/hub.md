@@ -452,7 +452,7 @@ flowchart LR
 | **E · Gráficas** | 255, 256 | una librería y un contrato de gráficas en `structure.md` §9 | nada |
 | **F · Semáforo y acciones** | 257, 258, 259, 260, 261 | el semáforo llega por Juanito y cada rojo termina en una acción | 257 sale con D; 258 espera A y C |
 
-**Orden sugerido.** El reparto para dos personas (P1 Mani, P2 el compañero), con la cola de migraciones y los
+**Orden sugerido.** El reparto en dos carriles (A y B, que toma cualquiera), con la cola de migraciones y los
 archivos de cada uno, es la ola **O10** de `plan-reparto.md` §4:
 
 1. **Ya, en paralelo:** D (250 → 252) y E (255) no esperan a nadie y son lo que Gerencia ve. A (119 → 120, 244)
