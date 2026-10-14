@@ -16,6 +16,27 @@ jobs:
   chequeos:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
+
+  # 14-oct: la suite en un solo job llego a 462 s y una corrida se corto en los 480 s de
+  # scripts/test.mjs sin un test rojo. Partida en 3, cada parte corre en su propio runner.
+  # El checkpoint es verde solo si las 3 lo son.
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     services:
       postgres:
         image: postgres:16
@@ -39,7 +60,4 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
-      - run: npm run build
+      - run: npm test -- --shard=${{ matrix.shard }}/3

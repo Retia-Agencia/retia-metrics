@@ -455,6 +455,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
   (`lib/db/es-local.ts`, la unica respuesta a "¿es local?"), asi que en produccion no se registra y el rol
   sigue saliendo de la base por los callbacks de siempre.
 - **CI:** `.github/workflows/ci.yml` corre `npm ci`, typecheck, lint, test y build en cada push a `main`.
+  Desde el 14-oct `npm test` va en 3 shards (`--shard=i/3`, un runner cada uno) y typecheck, lint y build en
+  otro job: en un solo job la suite llegó a 462 s y se cortó en los 480 s. El checkpoint es verde solo si
+  los 4 jobs lo son.
   Sin proteccion de `main` (Mani, 28-sep): es alarma, no reja; si queda en rojo, se arregla primero.
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
