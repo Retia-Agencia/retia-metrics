@@ -1892,9 +1892,10 @@ export const pautaSincronizaciones = pgTable(
     error: text("error"),
   },
   (t) => [
+    // 'endpoint' y 'hub' son las corridas livianas del día en curso (245, 259): Juanito y abrir el Hub.
     check(
       "pauta_sincronizaciones_disparada_por_chk",
-      sql`${t.disparadaPor} in ('cron', 'manual')`,
+      sql`${t.disparadaPor} in ('cron', 'manual', 'endpoint', 'hub')`,
     ),
     uniqueIndex("pauta_sincronizaciones_una_corriendo_idx")
       .on(sql`(true)`)
@@ -1923,6 +1924,35 @@ export const tasasCambio = pgTable(
   (t) => [
     check("tasas_cambio_rango_chk", sql`${t.vigenteHasta} >= ${t.vigenteDesde}`),
     check("tasas_cambio_positiva_chk", sql`${t.pesosPorDolar} > 0`),
+  ],
+);
+
+// ─────────────────────────────────────────────────────────── fotos del gasto durante el día (ticket 245, ADR 0089)
+
+/**
+ * Una foto del gasto acumulado de HOY de una campaña, tomada en una corrida liviana (245). Sirve para que
+ * el semáforo compare contra "ayer a esta misma hora" y no contra el umbral de cierre (ADR 0089 punto 5).
+ * No es historia: el gasto del día cerrado lo escribe solo el 120 en `gasto_pauta`, y las fotos de más de
+ * 30 días se borran en la misma corrida. `fecha` es el día de Bogotá al que pertenece el acumulado.
+ * La escribe solo `sincronizarDiaEnCurso` (`lib/pauta/`).
+ */
+export const fotosPauta = pgTable(
+  "fotos_pauta",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tomadaEn: timestamp("tomada_en", { withTimezone: true }).notNull(),
+    fecha: date("fecha").notNull(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    campanaId: uuid("campana_id").notNull().references(() => pautaObjetos.id, { onDelete: "restrict" }),
+    gasto: numeric("gasto", { precision: 14, scale: 2 }).notNull(),
+    moneda: text("moneda").notNull(),
+    agendasMeta: integer("agendas_meta"),
+  },
+  (t) => [
+    uniqueIndex("fotos_pauta_campana_tomada_idx").on(t.campanaId, t.tomadaEn),
+    index("fotos_pauta_programa_fecha_idx").on(t.programId, t.fecha, t.tomadaEn),
+    index("fotos_pauta_tomada_idx").on(t.tomadaEn),
+    check("fotos_pauta_gasto_chk", sql`${t.gasto} >= 0`),
   ],
 );
 
@@ -2027,3 +2057,5 @@ export type NuevaTasaCambio = typeof tasasCambio.$inferInsert;
 
 export type Objetivo = typeof objetivos.$inferSelect;
 export type NuevoObjetivo = typeof objetivos.$inferInsert;
+export type FotoPauta = typeof fotosPauta.$inferSelect;
+export type NuevaFotoPauta = typeof fotosPauta.$inferInsert;

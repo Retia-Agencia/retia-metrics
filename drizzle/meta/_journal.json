@@ -589,6 +589,13 @@
       "when": 1792021066066,
       "tag": "0083_objetivos-de-la-cohorte",
       "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1792021088823,
+      "tag": "0084_fotos-del-gasto",
+      "breakpoints": true
     }
   ]
 }
