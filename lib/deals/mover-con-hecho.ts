@@ -152,6 +152,7 @@ export async function moverConHecho(
         moneda: entrada.hecho.moneda,
         plataformaId: entrada.hecho.plataformaId,
         comprobanteUrl: entrada.hecho.comprobanteUrl,
+        archivo: entrada.hecho.archivo,
       });
     }
 

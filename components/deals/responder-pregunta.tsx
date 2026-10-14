@@ -184,7 +184,7 @@ export function useResponder(
       : tipoDeHecho === "agendado" && datos.llamada
         ? { tipo: "agendado" as const, dia: datos.llamada.dia, hora: datos.llamada.hora }
         : tipoDeHecho === "abono" && datos.abono
-          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), plataformaId: datos.abono.plataformaId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl }
+          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), plataformaId: datos.abono.plataformaId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
           : undefined;
     const r = pendiente === "proxima_cohorte" && !correccion
       ? await proximaCohorteAccion({

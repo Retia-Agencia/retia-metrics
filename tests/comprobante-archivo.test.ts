@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { AlmacenEnMemoria } from "@/lib/archivos/memoria";
-import { confirmarArchivo, pedirSubida } from "@/lib/archivos";
-import { adjuntarComprobante } from "@/lib/deals/abonos";
+import { confirmarArchivo, pedirSubida, verificarArchivo } from "@/lib/archivos";
+import { adjuntarComprobante, registrarAbono } from "@/lib/deals/abonos";
+import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { abonos, archivos, changeLog, cohorts, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -84,6 +85,33 @@ async function archivoListo(programa = programId, usuario = closer) {
   return subida.archivoId;
 }
 
+async function archivoVerificado(programa = programId, usuario = closer) {
+  const subida = await pedirSubida(db, almacen, { programId: programa, tipoMime: "image/png", bytes: 8, actorId: usuario });
+  const [archivo] = await db.select().from(archivos).where(eq(archivos.id, subida.archivoId));
+  await almacen.escribir(archivo.ruta, new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  return verificarArchivo(db, almacen, { archivoId: subida.archivoId, actorId: usuario });
+}
+
+async function nuevoDeal() {
+  const [lead] = await db.insert(leads).values({
+    programId,
+    emailNormalizado: `abono-con-archivo-${++secuencia}@retia.co`,
+  }).returning();
+  const [deal] = await db.insert(deals).values({
+    leadId: lead.id,
+    programId,
+    cohortId,
+    ownerUserId: closer,
+    etapa: "atendido",
+    valorVendidoUsd: "1000",
+  }).returning();
+  return deal;
+}
+
+function datosDeAbono(dealId: string, monto = "100") {
+  return { dealId, fecha: "2026-10-13", monto, moneda: "USD" as const };
+}
+
 async function errorDe(promesa: Promise<unknown>) {
   try {
     await promesa;
@@ -149,4 +177,91 @@ it("una URL o un archivo bastan como comprobante y solo falta cuando ambos son n
 
   expect(await dealsConAbonoSinComprobante(db, [conUrl.dealId, conArchivo.dealId, sinComprobante.dealId]))
     .toEqual(new Set([sinComprobante.dealId]));
+});
+
+describe("registrar abono con archivo", () => {
+  it("adjunta el archivo, lo marca listo, deja un rastro por campo y mueve la etapa", async () => {
+    const deal = await nuevoDeal();
+    const archivo = await archivoVerificado();
+
+    const resultado = await registrarAbono(db, actor(), { ...datosDeAbono(deal.id), archivo });
+
+    expect(resultado).toMatchObject({ etapa: "ganado_parcial", movioElDeal: true, saldo: 900 });
+    const [abono] = await db.select().from(abonos).where(eq(abonos.id, resultado.abonoId));
+    expect(abono.comprobanteArchivoId).toBe(archivo.archivoId);
+    expect((await db.select().from(archivos).where(eq(archivos.id, archivo.archivoId)))[0].estado).toBe("listo");
+    expect((await db.select().from(deals).where(and(eq(deals.id, deal.id), incluyendoAnulados(deals))))[0].etapa).toBe("ganado_parcial");
+
+    const rastros = await db.select().from(changeLog).where(and(
+      eq(changeLog.tabla, "abonos"),
+      eq(changeLog.registroId, resultado.abonoId),
+    ));
+    expect(rastros.length).toBeGreaterThan(0);
+    expect(new Set(rastros.map((r) => r.campo)).size).toBe(rastros.length);
+    expect(rastros.filter((r) => r.campo === "comprobanteArchivoId")).toHaveLength(1);
+  });
+
+  it("rechaza un archivo de otro programa y lo deja pendiente", async () => {
+    const deal = await nuevoDeal();
+    const archivo = await archivoVerificado(otroProgramId);
+
+    expect((await errorDe(registrarAbono(db, actor(), { ...datosDeAbono(deal.id), archivo }))).status).toBe(422);
+    expect((await db.select().from(archivos).where(eq(archivos.id, archivo.archivoId)))[0].estado).toBe("pendiente");
+  });
+
+  it("rechaza un archivo subido por otra persona y lo deja pendiente", async () => {
+    const deal = await nuevoDeal();
+    const archivo = await archivoVerificado(programId, otroCloser);
+
+    expect((await errorDe(registrarAbono(db, actor(), { ...datosDeAbono(deal.id), archivo }))).status).toBe(403);
+    expect((await db.select().from(archivos).where(eq(archivos.id, archivo.archivoId)))[0].estado).toBe("pendiente");
+  });
+
+  it("deja el archivo pendiente cuando el abono falla por sobrepago", async () => {
+    const deal = await nuevoDeal();
+    const archivo = await archivoVerificado();
+
+    expect((await errorDe(registrarAbono(db, actor(), { ...datosDeAbono(deal.id, "1001"), archivo }))).status).toBe(422);
+    expect((await db.select().from(archivos).where(eq(archivos.id, archivo.archivoId)))[0].estado).toBe("pendiente");
+  });
+
+  it("adjunta el archivo en el camino Pagó ahora", async () => {
+    const deal = await nuevoDeal();
+    const archivo = await archivoVerificado();
+
+    await moverConHecho(db, actor(), {
+      dealId: deal.id,
+      a: "ganado_parcial",
+      datos: {},
+      hecho: { tipo: "abono", fecha: "2026-10-13", monto: "100", moneda: "USD", archivo },
+    });
+
+    const [abono] = await db.select().from(abonos).where(eq(abonos.dealId, deal.id));
+    expect(abono.comprobanteArchivoId).toBe(archivo.archivoId);
+    expect((await db.select().from(archivos).where(eq(archivos.id, archivo.archivoId)))[0].estado).toBe("listo");
+  });
+
+  it("conserva el registro con solo link o sin comprobante", async () => {
+    const conLink = await nuevoDeal();
+    const sinComprobante = await nuevoDeal();
+
+    const primero = await registrarAbono(db, actor(), {
+      ...datosDeAbono(conLink.id),
+      comprobanteUrl: "https://drive.google.com/comprobante",
+    });
+    const segundo = await registrarAbono(db, actor(), datosDeAbono(sinComprobante.id));
+
+    const filas = await db.select().from(abonos).where(and(
+      vigente(abonos),
+      inArray(abonos.id, [primero.abonoId, segundo.abonoId]),
+    ));
+    expect(filas.find((a) => a.id === primero.abonoId)).toMatchObject({
+      comprobanteUrl: "https://drive.google.com/comprobante",
+      comprobanteArchivoId: null,
+    });
+    expect(filas.find((a) => a.id === segundo.abonoId)).toMatchObject({
+      comprobanteUrl: null,
+      comprobanteArchivoId: null,
+    });
+  });
 });

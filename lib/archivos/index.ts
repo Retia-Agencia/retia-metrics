@@ -20,6 +20,13 @@ const entradaSubida = z.object({
   actorId: z.string().uuid(),
 });
 
+export interface ArchivoVerificado {
+  archivoId: string;
+  programId: string;
+  bytes: number;
+  sha256: string;
+}
+
 export function almacenDeArchivos(): Almacen {
   if (esUrlLocal(process.env.DATABASE_URL ?? "")) return crearAlmacenEnDisco();
   const url = process.env.SUPABASE_URL;
@@ -50,17 +57,24 @@ export async function pedirSubida(
   });
 }
 
-export async function confirmarArchivo(
+export async function verificarArchivo(
   db: Db,
   almacen: Almacen,
   entrada: { archivoId: string; actorId: string },
-) {
+): Promise<ArchivoVerificado> {
   const [archivo] = await db.select().from(archivos).where(eq(archivos.id, entrada.archivoId));
   if (!archivo) throw new ErrorDeApp("No existe el archivo.", 404);
   if (archivo.subidoPorUserId !== entrada.actorId) {
     throw new ErrorDeApp("No puedes confirmar un archivo subido por otra persona.", 403);
   }
-  if (archivo.estado === "listo") return archivo;
+  if (archivo.estado === "listo") {
+    return {
+      archivoId: archivo.id,
+      programId: archivo.programId,
+      bytes: archivo.bytes,
+      sha256: archivo.sha256!,
+    };
+  }
 
   const contenido = await almacen.leer(archivo.ruta);
   if (!contenido) throw new ErrorDeApp("El archivo no se subió.", 409);
@@ -76,13 +90,28 @@ export async function confirmarArchivo(
   }
 
   const sha256 = createHash("sha256").update(contenido).digest("hex");
+  return { archivoId: archivo.id, programId: archivo.programId, bytes: contenido.byteLength, sha256 };
+}
+
+export async function marcarListo(db: Db, verificado: ArchivoVerificado) {
   const [confirmado] = await db.update(archivos).set({
-    bytes: contenido.byteLength,
-    sha256,
+    bytes: verificado.bytes,
+    sha256: verificado.sha256,
     estado: "listo",
     confirmadoEn: new Date(),
-  }).where(eq(archivos.id, archivo.id)).returning();
-  return confirmado;
+  }).where(and(eq(archivos.id, verificado.archivoId), eq(archivos.estado, "pendiente"))).returning();
+  if (confirmado) return confirmado;
+  const [existente] = await db.select().from(archivos).where(eq(archivos.id, verificado.archivoId));
+  if (!existente) throw new ErrorDeApp("No existe el archivo.", 404);
+  return existente;
+}
+
+export async function confirmarArchivo(
+  db: Db,
+  almacen: Almacen,
+  entrada: { archivoId: string; actorId: string },
+) {
+  return marcarListo(db, await verificarArchivo(db, almacen, entrada));
 }
 
 /** La autorización de quien puede ver el comprobante corresponde al llamador (ticket 239). */

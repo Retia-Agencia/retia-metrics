@@ -17,6 +17,7 @@ import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 import { congelarValorVendido } from "./valor-vendido";
+import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
 
 /**
  * Registrar y anular un abono, y los movimientos que el SISTEMA hace por el dinero
@@ -55,7 +56,7 @@ export interface ActorDeAbono {
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
 export const esquemaRegistrarAbono = esquemaAbono.omit({ programId: true });
-export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono>;
+export type DatosRegistrarAbono = z.input<typeof esquemaRegistrarAbono> & { archivo?: ArchivoVerificado };
 
 export interface AbonoRegistrado {
   abonoId: string;
@@ -115,6 +116,25 @@ async function closerDeLaCuenta(tx: Db, userId: string): Promise<string | null> 
   return u?.closerId ?? null;
 }
 
+async function exigirArchivoDelAbono(
+  tx: Db,
+  actorId: string,
+  archivoId: string,
+  programId: string,
+  exigirListo: boolean,
+): Promise<void> {
+  const [archivo] = await tx.select().from(archivos).where(eq(archivos.id, archivoId));
+  if (!archivo || (exigirListo && archivo.estado !== "listo")) {
+    throw new ErrorDeApp("El archivo no está listo para adjuntarse.", 422);
+  }
+  if (archivo.programId !== programId) {
+    throw new ErrorDeApp("El archivo no pertenece al programa del abono.", 422);
+  }
+  if (archivo.subidoPorUserId !== actorId) {
+    throw new ErrorDeApp("No puedes adjuntar un archivo subido por otra persona.", 403);
+  }
+}
+
 export async function registrarAbono(
   db: Db,
   actor: ActorDeAbono,
@@ -122,6 +142,7 @@ export async function registrarAbono(
 ): Promise<AbonoRegistrado> {
   return normalizando(async () => {
     const entrada = esquemaRegistrarAbono.parse(datos);
+    const archivo = datos.archivo;
 
     // Registrar plata es trabajar el lead, igual que una llamada (ADR 0003, ADR 0025).
     if (!trabajaLeads(actor)) {
@@ -183,6 +204,11 @@ export async function registrarAbono(
         );
       }
 
+      if (archivo) {
+        await exigirArchivoDelAbono(tx, actor.userId, archivo.archivoId, deal.programId, false);
+        await marcarListo(tx, archivo);
+      }
+
       const abonoId = await crearConRastro(
         { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
         {
@@ -194,6 +220,7 @@ export async function registrarAbono(
           moneda: entrada.moneda,
           plataformaId: entrada.plataformaId ?? null,
           comprobanteUrl: entrada.comprobanteUrl ?? null,
+          comprobanteArchivoId: archivo?.archivoId ?? null,
           registradoPorUserId: actor.userId,
           // Compatibilidad temporal para consumidores historicos; la identidad nueva es la FK.
           closerId: await closerDeLaCuenta(tx, actor.userId),
@@ -287,16 +314,7 @@ export async function adjuntarComprobante(
         throw new ErrorDeApp("Solo el dueño del deal puede adjuntar el comprobante.", 403);
       }
 
-      const [archivo] = await tx.select().from(archivos).where(eq(archivos.id, entrada.archivoId));
-      if (!archivo || archivo.estado !== "listo") {
-        throw new ErrorDeApp("El archivo no está listo para adjuntarse.", 422);
-      }
-      if (archivo.programId !== referencia.programId) {
-        throw new ErrorDeApp("El archivo no pertenece al programa del abono.", 422);
-      }
-      if (archivo.subidoPorUserId !== actor.userId) {
-        throw new ErrorDeApp("No puedes adjuntar un archivo subido por otra persona.", 403);
-      }
+      await exigirArchivoDelAbono(tx, actor.userId, entrada.archivoId, referencia.programId, true);
 
       await editarConRastro(
         { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { crearPlataformaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { crearPlataformaParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { SubirArchivo } from "@/components/archivos/subir-archivo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -13,10 +14,11 @@ export interface DatosFormularioAbono {
   monto: string;
   plataformaId: string | null;
   comprobanteUrl: string;
+  archivoId: string | null;
 }
 
 export function datosInicialesDeAbono(): DatosFormularioAbono {
-  return { fecha: hoyEnBogota(), monto: "", plataformaId: null, comprobanteUrl: "" };
+  return { fecha: hoyEnBogota(), monto: "", plataformaId: null, comprobanteUrl: "", archivoId: null };
 }
 
 export function FormularioAbono({
@@ -51,8 +53,21 @@ export function FormularioAbono({
           onValueChange={(plataformaId) => cambiar({ plataformaId })}
         />
       </Campo>
-      <Campo etiqueta="Link del comprobante" ayuda="Si no lo tienes ahora, lo pegas después.">
-        <input type="url" className={claseInput} value={datos.comprobanteUrl} onChange={(e) => cambiar({ comprobanteUrl: e.target.value })} placeholder="https://…" />
+      <Campo etiqueta="Comprobante (link o archivo)" ayuda="Si no lo tienes ahora, lo agregas después.">
+        <div className="space-y-3">
+          <input type="url" className={claseInput} value={datos.comprobanteUrl} onChange={(e) => cambiar({ comprobanteUrl: e.target.value })} placeholder="https://…" />
+          {datos.archivoId ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm">Archivo listo</span>
+              <Button type="button" size="xs" variant="ghost" onClick={() => cambiar({ archivoId: null })}>Quitar</Button>
+            </div>
+          ) : (
+            <SubirArchivo
+              pedirSubida={(meta) => pedirSubidaParaAbonoAccion({ dealId, ...meta })}
+              alSubir={(archivoId) => cambiar({ archivoId })}
+            />
+          )}
+        </div>
       </Campo>
     </>
   );

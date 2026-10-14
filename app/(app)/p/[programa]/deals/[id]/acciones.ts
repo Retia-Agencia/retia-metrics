@@ -17,7 +17,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
 import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
-import { almacenDeArchivos, confirmarArchivo, pedirSubida } from "@/lib/archivos";
+import { almacenDeArchivos, confirmarArchivo, pedirSubida, verificarArchivo } from "@/lib/archivos";
 import { MAX_BYTES, TIPOS_PERMITIDOS } from "@/lib/archivos/reglas";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
@@ -168,6 +168,7 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
     monto: z.string(),
     plataformaId: textoOpcional(id("Plataforma inválida.")),
     comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
+    archivoId: textoOpcional(id("Archivo inválido.")),
   }),
 ]);
 
@@ -193,6 +194,9 @@ export async function moverConHechoAccion(
   return correr(async (ctx) => {
     const datos = esquemaMoverConHechoAccion.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
+    const archivo = datos.hecho?.tipo === "abono" && datos.hecho.archivoId
+      ? await verificarArchivo(db, almacenDeArchivos(), { archivoId: datos.hecho.archivoId, actorId: ctx.actor.userId })
+      : undefined;
     const hecho = datos.hecho?.tipo === "atendido"
       ? {
           tipo: "atendido" as const,
@@ -203,7 +207,7 @@ export async function moverConHechoAccion(
       : datos.hecho?.tipo === "agendado"
         ? { tipo: "agendado" as const, fechaAgenda: instante(datos.hecho.dia, datos.hecho.hora) }
         : datos.hecho?.tipo === "abono"
-          ? { ...datos.hecho, moneda: "USD" as const }
+          ? { ...datos.hecho, moneda: "USD" as const, archivo }
           : undefined;
     // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
     const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho });
@@ -362,6 +366,7 @@ const esquemaAbonoAccion = z.object({
   monto: z.string(),
   plataformaId: textoOpcional(id("Plataforma inválida.")),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
+  archivoId: textoOpcional(id("Archivo inválido.")),
 });
 export type EntradaAbono = z.input<typeof esquemaAbonoAccion>;
 
@@ -372,7 +377,10 @@ export async function registrarAbonoAccion(
     const { actor } = ctx;
     const datos = esquemaAbonoAccion.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
-    const r = await registrarAbono(db, actor, datos);
+    const archivo = datos.archivoId
+      ? await verificarArchivo(db, almacenDeArchivos(), { archivoId: datos.archivoId, actorId: actor.userId })
+      : undefined;
+    const r = await registrarAbono(db, actor, { ...datos, archivo });
     return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo, cohorteAsignada: r.cohorteAsignada };
   });
 }
@@ -381,6 +389,33 @@ const esquemaCrearPlataformaParaAbono = z.object({
   dealId: id("Deal inválido."),
   nombre: z.string().trim().min(2, "Escribe al menos 2 caracteres."),
 });
+
+const esquemaPedirSubidaParaAbono = z.object({
+  dealId: id("Deal inválido."),
+  tipoMime: z.enum(TIPOS_PERMITIDOS, { error: "El tipo de archivo no está permitido." }),
+  bytes: z.number().int().positive("El archivo debe tener contenido.").max(MAX_BYTES, "El archivo supera 5 MB."),
+});
+export type EntradaPedirSubidaParaAbono = z.input<typeof esquemaPedirSubidaParaAbono>;
+
+export async function pedirSubidaParaAbonoAccion(
+  entrada: EntradaPedirSubidaParaAbono,
+): Promise<ResultadoFicha<{ archivoId: string; subida: { url: string; metodo: "PUT"; cabeceras: Record<string, string> } }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaPedirSubidaParaAbono.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    const [deal] = await db.select().from(deals).where(and(eq(deals.id, datos.dealId), incluyendoAnulados(deals)));
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    if (!trabajaLeads(ctx.actor) || !puedeTrabajarDeal(ctx.actor, deal)) {
+      throw new ErrorDeApp("Solo el dueño del deal puede subir un comprobante para sus abonos.", 403);
+    }
+    return pedirSubida(db, almacenDeArchivos(), {
+      programId: deal.programId,
+      tipoMime: datos.tipoMime,
+      bytes: datos.bytes,
+      actorId: ctx.actor.userId,
+    });
+  });
+}
 export type EntradaCrearPlataformaParaAbono = z.input<typeof esquemaCrearPlataformaParaAbono>;
 
 export async function crearPlataformaParaAbonoAccion(
