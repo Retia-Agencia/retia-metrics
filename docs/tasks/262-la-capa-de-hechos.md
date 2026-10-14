@@ -3,7 +3,7 @@ id: 262
 etapa: hub
 serves: "docs/hub.md §8, contratos C-1 y C-2 (Mani, 14-oct: métricas como consultas bien construidas, reutilizables y escalables; nada escrito a mano para el estado de hoy)"
 depends: [246]
-status: todo
+status: en curso (Mani, sesión O10 + Codex, 14-oct)
 ---
 
 # 262 — La capa de hechos: cada métrica es una consulta reutilizable, con dimensiones, filtros y orden

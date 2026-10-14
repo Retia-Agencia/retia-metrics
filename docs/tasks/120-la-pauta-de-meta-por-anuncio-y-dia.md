@@ -3,7 +3,7 @@ id: 120
 etapa: E6
 serves: "ADR 0062 puntos 2 y 3 · docs/analytics.md PT-14, PT-24, PT-39, PT-58"
 depends: [119]
-status: todo
+status: en curso (Mani, sesión O10 + Codex, 14-oct)
 ---
 
 # 120 — La pauta de Meta: el árbol de campañas y el gasto por anuncio y día
