@@ -1,13 +1,9 @@
-import { and, between, eq, inArray, sql } from "drizzle-orm";
-import { emparejar, ARBOL_VACIO } from "@/lib/atribucion/emparejar";
 import type { Area } from "@/lib/atribucion/canal";
-import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
-import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
-import { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/dashboard";
+import { agrupar as agruparCitas } from "@/lib/queries/hechos/cita";
+import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
+import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
 import type { AlcanceDeSerie, Serie } from "@/lib/queries/serie";
-import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 export type OrigenDelHecho = "canal" | "sin_utm" | "sin_envio_origen";
 
@@ -29,82 +25,33 @@ export interface MedidasDelEmbudo {
 
 export type FilaHechosDelEmbudo = Serie<DimensionesDelEmbudo, MedidasDelEmbudo>[number];
 
-const diaDeEnvio = () =>
-  sql<string>`(${submissions.fechaEnvio} AT TIME ZONE 'America/Bogota')::date`;
+function origenDe(area: string, canal: string | null) {
+  if (area === "sin_envio_origen") {
+    return { area: null, canalClave: null, origen: "sin_envio_origen" as const };
+  }
+  if (area === "sin_utm") {
+    return { area: "sin_utm" as const, canalClave: null, origen: "sin_utm" as const };
+  }
+  return { area: area as Area, canalClave: canal, origen: "canal" as const };
+}
 
-/** Hechos del embudo, listos para filtrar o reagrupar sin cambiar la consulta. */
+/** Compatibilidad del embudo construida solo con agregaciones de la capa de hechos. */
 export async function hechosDelEmbudo(
   db: Db,
   { programId, rango }: AlcanceDeSerie,
 ): Promise<Serie<DimensionesDelEmbudo, MedidasDelEmbudo>> {
-  const anclaCall = fechaAnclaCall();
-  const [envios, llamadas, ventas, diasDeVenta] = await Promise.all([
-    db
-      .select({
-        dia: diaDeEnvio(),
-        ...columnasUtmDelEnvio,
-        envios: sql<number>`count(*)::int`,
-      })
-      .from(submissions)
-      .innerJoin(sources, eq(sources.id, submissions.sourceId))
-      .where(
-        and(
-          eq(sources.programId, programId),
-          eq(submissions.esParcial, false),
-          between(diaDeEnvio(), rango.desde, rango.hasta),
-        ),
-      )
-      .groupBy(
-        diaDeEnvio(),
-        ...Object.values(columnasUtmDelEnvio),
-      ),
-    db
-      .select({
-        dia: anclaCall,
-        submissionId: submissions.id,
-        duenoUserId: deals.ownerUserId,
-        cohorteId: deals.cohortId,
-        ...columnasUtmDelEnvio,
-        agendas: sql<number>`count(*)::int`,
-        shows: sql<number>`count(*) filter (where ${inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON])})::int`,
-      })
-      .from(calls)
-      .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
-      .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(
-        and(
-          eq(calls.programId, programId),
-          between(anclaCall, rango.desde, rango.hasta),
-          vigente(calls),
-        ),
-      )
-      .groupBy(
-        anclaCall,
-        submissions.id,
-        deals.ownerUserId,
-        deals.cohortId,
-        ...Object.values(columnasUtmDelEnvio),
-      ),
-    // Un deal por fila: el dia de su venta se une en memoria con `ventasConDiaEn`, que es la
-    // misma definicion que `vendidosEn` (sin subconsulta, AGENTS.md).
-    db
-      .select({
-        dealId: deals.id,
-        submissionId: submissions.id,
-        duenoUserId: deals.ownerUserId,
-        cohorteId: deals.cohortId,
-        ...columnasUtmDelEnvio,
-      })
-      .from(deals)
-      .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(
-        and(
-          eq(deals.programId, programId),
-          inArray(deals.id, vendidosEn(db, rango)),
-          vigente(deals),
-        ),
-      ),
-    ventasConDiaEn(db, rango),
+  const [envios, citas, ventas] = await Promise.all([
+    agruparEnvios(db, { programId, rango, agruparPor: ["dia", "area", "canal"] }),
+    agruparCitas(db, {
+      programId,
+      rango,
+      agruparPor: ["dia", "area", "canal", "dueno", "cohorte"],
+    }),
+    agruparVentas(db, {
+      programId,
+      rango,
+      agruparPor: ["dia", "area", "canal", "dueno", "cohorte"],
+    }),
   ]);
 
   const serie = new Map<string, FilaHechosDelEmbudo>();
@@ -136,50 +83,29 @@ export async function hechosDelEmbudo(
     serie.set(llave, fila);
   };
 
-  const origenDe = (fila: Parameters<typeof utmsDelEnvio>[0], tieneEnvio: boolean) => {
-    if (!tieneEnvio) return { area: null, canalClave: null, origen: "sin_envio_origen" as const };
-    const { origen } = emparejar(utmsDelEnvio(fila), ARBOL_VACIO);
-    return origen.regla === "sin_utm"
-      ? { area: origen.area, canalClave: null, origen: "sin_utm" as const }
-      : { area: origen.area, canalClave: origen.canal?.clave ?? null, origen: "canal" as const };
-  };
-
   for (const envio of envios) {
-    sumar(
-      {
-        dia: envio.dia,
-        ...origenDe(envio, true),
-        duenoUserId: null,
-        cohorteId: null,
-      },
-      { envios: envio.envios },
-    );
+    sumar({
+      dia: envio.dia!,
+      ...origenDe(envio.area!, envio.canal),
+      duenoUserId: null,
+      cohorteId: null,
+    }, { envios: envio.envios });
   }
-  for (const llamada of llamadas) {
-    sumar(
-      {
-        dia: llamada.dia,
-        ...origenDe(llamada, llamada.submissionId !== null),
-        duenoUserId: llamada.duenoUserId,
-        cohorteId: llamada.cohorteId,
-      },
-      { agendas: llamada.agendas, shows: llamada.shows },
-    );
+  for (const cita of citas) {
+    sumar({
+      dia: cita.dia!,
+      ...origenDe(cita.area!, cita.canal),
+      duenoUserId: cita.dueno,
+      cohorteId: cita.cohorte,
+    }, { agendas: cita.citas, shows: cita.shows });
   }
-  const diaDeVenta = new Map(diasDeVenta.map((v) => [v.dealId, v.dia]));
   for (const venta of ventas) {
-    const dia = diaDeVenta.get(venta.dealId);
-    // `vendidosEn` y `ventasConDiaEn` son la misma consulta: un deal vendido siempre tiene dia.
-    if (dia === undefined) continue;
-    sumar(
-      {
-        dia,
-        ...origenDe(venta, venta.submissionId !== null),
-        duenoUserId: venta.duenoUserId,
-        cohorteId: venta.cohorteId,
-      },
-      { ventas: 1 },
-    );
+    sumar({
+      dia: venta.dia!,
+      ...origenDe(venta.area!, venta.canal),
+      duenoUserId: venta.dueno,
+      cohorteId: venta.cohorte,
+    }, { ventas: venta.ventas });
   }
 
   return [...serie.values()];

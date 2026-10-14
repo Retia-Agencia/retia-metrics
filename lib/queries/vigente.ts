@@ -1,4 +1,4 @@
-import { isNull, sql, type SQL } from "drizzle-orm";
+import { isNull, sql, type SQL, type SQLWrapper } from "drizzle-orm";
 import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 
 /**
@@ -52,8 +52,18 @@ export function vigente(tabla: PgTable): SQL {
  * contar solo lo vigente daria cero y la app ofreceria borrar algo que la base va a
  * rechazar. Ademas una fila referenciada por un registro anulado SI se uso. Aqui no se
  * esta midiendo nada: se esta preguntando si alguien apunta a esta fila.
+ *
+ * **Tercer uso, agregado el 14-oct (ticket 262):** marcar una SUBCONSULTA ya filtrada.
+ * Acepta un `SQLWrapper` ademas de una `PgTable` —a diferencia de `vigente`, que se
+ * queda estricto a proposito—. La ampliacion es segura porque esta funcion **nunca
+ * filtra**: ignora su argumento y siempre devuelve `SIEMPRE`. El peligro que `vigente`
+ * previene —que un derivado sin `anuladoEn` devuelva "verdadero" en silencio y cuente
+ * anulados— no existe aqui, porque "verdadero" es la unica respuesta que da. Lo usa la
+ * capa de hechos sobre `ventasConDiaEn`, un conjunto cerrado que YA aplico
+ * `vigente(deals)` adentro: el nombre dice en voz alta que la vigencia se decidio dentro
+ * del derivado y la consulta externa no la re-filtra.
  */
-export function incluyendoAnulados(tabla: PgTable): SQL {
+export function incluyendoAnulados(tabla: PgTable | SQLWrapper): SQL {
   // El argumento no se usa: esta para que la consulta diga SOBRE QUE tabla tomo la
   // decision, y para que el guardian la vea. Un comentario no se puede grepear con
   // la misma confianza que una llamada.

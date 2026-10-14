@@ -216,7 +216,7 @@ function esEtapaDeCierre(etapa: string): boolean {
 /** Lo mismo que `vendidosEn`, con el dia de la venta. */
 export function ventasConDiaEn(db: Db, rango: Rango) {
   return db
-    .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta() })
+    .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta().as("dia") })
     .from(dealEtapaHistorial)
     .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
     .where(esMovimientoDeVenta(db))
