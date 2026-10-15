@@ -13,8 +13,8 @@ Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión o
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
 Lee AGENTS.md, docs/hub.md y las entradas del 14-oct (tarde y noche) en Memory.
 
-En curso por otra sesión (14-oct, noche): 122 y 245 (migraciones 0083 y 0084 en sus ramas, sin aplicar). Listo:
-carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status antes).
+Semáforo por WhatsApp (ADR 0089): 122 y 245 done. Listo: 258 v1 (por programa, ver su enmienda del 14-oct),
+luego 259 y 260 (este en el repo de Juanito). Carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status).
 Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM: 8, 10 y 14-oct), 247 (que la landing
 de Tactical pase `ad_id` al Typeform y ver el primero en N3). Reclama el ticket (status en curso) y empuja antes de lanzar.
 
@@ -25,6 +25,30 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
 ```
 
 ## Memory
+
+- **2026-10-14 (noche, 2ª sesión; Mani + Claude): el semáforo de pauta por WhatsApp arranca. 122 y 245 done.**
+  - **Decisión de Mani:** el semáforo llega por WhatsApp con **Juanito**, siguiendo el ADR 0089 tal cual: el CRM
+    calcula, Juanito es reloj y mensajero, y **Juanito no lee el Graph API** (dos definiciones del costo y una segunda
+    copia del token).
+  - **258 enmendado:** v1 **por programa** (depende de 122, 245 y 262; ya no del 123) y v2 por campaña (además 247).
+    El costo por agenda vive en un módulo propio que el 123 importará después. HQ-4 abierto: hasta que Pauta decida,
+    la v1 usa el gasto de todas las campañas y la nota de calidad lo dice.
+  - **122:** tabla `objetivos` (0083) por el molde, semáforo puro (`lib/objetivos/`), reparto de cupos validado en
+    la misma transacción con candado sobre la cohorte, pantalla en Programa › Ventas. **El recorrido con clic encontró
+    seis defectos que ningún test veía** (aceptable vacío guardado como 0, "Desactivar" que dejaba un callejón sin
+    salida contra el índice único, selects mostrando el UUID, la cohorte anterior que podía ser la futura...); los
+    arregló Codex en `ddb1676`. Forjada la server action desde un closer: rechaza y la base no se mueve.
+  - **245:** tabla `fotos_pauta` (0084) y dos orígenes nuevos de corrida (`endpoint`, `hub`).
+    `sincronizarDiaEnCurso` lee solo hoy, el árbol solo si tiene más de 24 h, no le pega a Meta si la última foto
+    tiene menos de 20 min y borra fotos de más de 30 días; `gastoAEstaHora` da la foto más cercana sin pasarse. El
+    cron conserva su firma (`sincronizarPauta` envuelve a `sincronizarPautaEnVentana`).
+  - **0083 y 0084 aplicadas en producción** con el ok de Mani (cero transacciones largas antes). CI verde `ebf5072`.
+  - **Pendiente de Mani (HQ-1):** cargar en Programa › Ventas la meta y el aceptable de `costo_por_agenda` de cada
+    cohorte activa; sin eso el semáforo dirá "sin umbral". **HQ-2 y HQ-3:** quién recibe y los horarios. Crear el
+    grupo de WhatsApp y meter a Juanito (`/grupos` por DM da el id del grupo).
+  - **Lecciones:** el esquema y la migración los escribe la sesión antes de despachar, y Codex trabaja encima (nunca
+    toca `schema.ts`); dos tickets con migración van en ramas apiladas (t245 salió de t122) para que la cola no
+    choque. `next build` en un worktree: cambiar el enlace de `node_modules` por la copia APFS.
 
 - **2026-10-14 (noche; Mani + Claude, sesión principal de la O10): 244 y 247 integrados.** Codex implementó los dos
   en paralelo (`.claude/worktrees/t244` y `t247`); la sesión decidió el diseño en el brief, revisó e integró.

@@ -3,7 +3,7 @@ id: 122
 etapa: E7
 serves: "ADR 0063 puntos 4, 5 y 6 · docs/analytics.md PT-40, PT-44, PT-48"
 depends: [083]
-status: todo
+status: done
 ---
 
 # 122 — Los objetivos de la cohorte y el reparto de cupos por área

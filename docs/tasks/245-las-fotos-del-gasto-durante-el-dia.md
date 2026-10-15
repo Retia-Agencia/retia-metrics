@@ -3,7 +3,7 @@ id: 245
 etapa: hub
 serves: "ADR 0089 puntos 2, 4 y 5 · docs/hub.md §4.1 · el semáforo compara contra ayer a la misma hora"
 depends: [120]
-status: todo
+status: done
 ---
 
 # 245 — Las fotos del gasto durante el día
