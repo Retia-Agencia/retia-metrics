@@ -60,8 +60,12 @@ Tactical 3), creadas el 4 y 6-oct con inicio el 7 y 8-oct, ninguna cancelada. La
 llamada en el programa**, ni por huella ni por correo. Es el mismo hueco del caso de Edwin Yesod: el corte en cero del
 7-oct (203) borró la llamada y la recuperación del 8-oct solo trajo citas futuras, así que se quedaron afuera las que
 empezaban el 7 y el 8. No es una falla del webhook. Las reagendas viejas de ese periodo no salieron como faltantes
-(la cadena `new_invitee` las resolvió). Si esas 6 llamadas se registran, es decisión de cada closer; la auditoría
-no escribe nada.
+(la cadena `new_invitee` las resolvió). Las seis resultaron ser estudiantes que importó el 208, con deal ya vendido (3 Abonado, 3 Completo).
+Registrarlas por el escritor de Calendly le habría cambiado el dueño a un deal vendido (comisión) y habría dejado
+sueltas las de Completo. **Corregido el 15-oct con el ok de Mani:** un script desechable creó las 6 llamadas
+directo en su deal con `crearConRastro` (actor: Mani por `SCRIPT_ACTOR_EMAIL`), resultado **Cerrada**, fecha de la
+cita, closer la dueña de la cuenta host, huella `calendly:<uuid>` y origen `calendly`, sin tocar etapa, dueño ni
+notificaciones. Re-corrida la auditoría sobre esas ventanas: 0 faltantes.
 
 ## Fuera
 
