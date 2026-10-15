@@ -42,6 +42,9 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
     ADR 0082 (la ficha es solo de quien administra). Codex ya lo había hecho en la rama t265 (guarda `manejaPauta`,
     pestaña General en solo lectura, `lib/nav.ts` y los tests de roles y páginas) y se revirtió por el ADR: retomarlo
     como enmienda del ADR 0082 y ticket nuevo, decidiendo qué ve (¿solo General? ¿también Ventas para los umbrales?).
+  - **Recorrido de Mani en Programa › Ventas (cierre):** A-151 a A-154 en `docs/anotaciones.md` (cupos sin asignar
+    ilegible, la plantilla de colores no le sirve a Cupos, Alertas por persistencia no se entienden) y una regla nueva
+    en `docs/structure.md` §9 paso 7: **crear es un botón que abre un diálogo**. Sin ticket todavía.
   - **Siguiente:** brief del 259 listo (al final del ticket 259, listo para despachar: ruta
     `/api/semaforo/envios`, `SEMAFORO_SECRETO`, `sincronizacion` puede ser null, `error` por envío); luego 260 en Juanito.
 
