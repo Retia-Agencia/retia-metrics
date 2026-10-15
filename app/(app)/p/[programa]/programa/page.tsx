@@ -12,7 +12,8 @@ import {
   fuentesDelProgramaParaAdmin,
   type CohorteVista,
 } from "@/lib/queries/ficha-programa";
-import { fecha, num, usd } from "@/lib/format";
+import { fecha, hoyEnBogota, num, usd } from "@/lib/format";
+import { costoPorAgendaDeLosUltimosHabiles } from "@/lib/semaforo/costo-por-agenda";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
@@ -164,6 +165,10 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   // Los umbrales de las alertas (147) solo se leen en su pestaña.
   const umbrales = seccion === "ventas" ? await umbralesDelPrograma(db, programa.id) : [];
   const objetivos = seccion === "ventas" ? await objetivosDeCohortes(db, cohortes.map((c) => c.id)) : [];
+  // El valor de hoy al lado del umbral (264): la misma definición que usa el semáforo (258, ADR 0024).
+  const costoReciente = seccion === "ventas"
+    ? await costoPorAgendaDeLosUltimosHabiles(db, { programId: programa.id, hoy: hoyEnBogota(), dias: 7 })
+    : null;
   // Lo sin asignar sale de la misma función que usa la reja del reparto (ADR 0024: una cifra, un módulo).
   const sinAsignar =
     seccion === "ventas"
@@ -514,7 +519,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     cohortes={cohortesConObjetivos}
                     objetivos={objetivos}
                     metricas={metricasObjetivo}
-                    valoresDeHoy={{}}
+                    valoresDeHoy={{ costo_por_agenda: costoReciente?.costo ?? null }}
                     editable={administra}
                   />
                 </CardContent>

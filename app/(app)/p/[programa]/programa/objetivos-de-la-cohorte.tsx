@@ -375,7 +375,7 @@ function FormularioObjetivo({
             {valorDeHoy === null || valorDeHoy === undefined
               ? "Sin dato todavía"
               : colorHoy
-                ? `Hoy: ${valorConUnidad(valorDeHoy, definicion.unidad)} → saldría ${NOMBRE_COLOR[colorHoy]}`
+                ? `Últimos 7 días hábiles: ${valorConUnidad(valorDeHoy, definicion.unidad)} → saldría ${NOMBRE_COLOR[colorHoy]}`
                 : "Completa los umbrales para ver el color de hoy."}
           </p>
         </div>

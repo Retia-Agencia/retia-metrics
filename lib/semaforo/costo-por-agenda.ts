@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, lte, or } from "drizzle-orm";
 import { fotosPauta, gastoPauta } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { diaHabilAnterior } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import * as agenda from "@/lib/queries/hechos/agenda";
 import { tasaDelDia } from "@/lib/trm/consultar";
@@ -169,4 +170,19 @@ export async function costoPorAgendaDeVentana(
     }),
   ]);
   return completar(suma.gasto, agendas, suma.agendasMeta, suma.notas);
+}
+
+/**
+ * El costo por agenda de los últimos `dias` días hábiles cerrados (sin hoy): el "valor de hoy" que la
+ * plantilla de objetivos (264) pone al lado del umbral. La ventana va de calendario entre el primero y
+ * el último, así que un fin de semana en medio también suma su gasto y sus agendas.
+ */
+export async function costoPorAgendaDeLosUltimosHabiles(
+  db: Db,
+  args: { programId: string; hoy: string; dias: number },
+): Promise<CostoPorAgenda> {
+  const hasta = diaHabilAnterior(args.hoy);
+  let desde = hasta;
+  for (let i = 1; i < args.dias; i++) desde = diaHabilAnterior(desde);
+  return costoPorAgendaDeVentana(db, { programId: args.programId, desde, hasta });
 }

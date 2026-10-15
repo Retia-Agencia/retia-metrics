@@ -14,7 +14,7 @@ import {
   submissions,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { costoPorAgenda } from "@/lib/semaforo/costo-por-agenda";
+import { costoPorAgenda, costoPorAgendaDeLosUltimosHabiles } from "@/lib/semaforo/costo-por-agenda";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -242,5 +242,17 @@ describe("semáforo del programa", () => {
       programId: propio.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
     });
     expect(resultado).toMatchObject({ agendas: 1, costo: 70000 });
+  });
+
+  it("el valor de los últimos días hábiles deja fuera hoy y lo que queda antes de la ventana", async () => {
+    const p = await crearPrograma("ventana");
+    await gastoCerrado(p.programId, "2026-10-09", 999000);
+    await gastoCerrado(p.programId, "2026-10-12", 60000);
+    await gastoCerrado(p.programId, "2026-10-13", 90000);
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-12T10:00:00-05:00") });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-13T10:00:00-05:00") });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
+    const resultado = await costoPorAgendaDeLosUltimosHabiles(db, { programId: p.programId, hoy: "2026-10-14", dias: 2 });
+    expect(resultado).toMatchObject({ gasto: 150000, agendas: 2, costo: 75000 });
   });
 });
