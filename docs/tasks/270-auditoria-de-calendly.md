@@ -3,7 +3,7 @@ id: 270
 etapa: calendly
 serves: "Incidente del 15-oct (cita de Edwin Yesod sin llamada): que una cita sin llamada o una suscripción caída se vean sin buscarlas a mano"
 depends: [096, 110]
-status: en curso (falta checkpoint)
+status: en curso (en main, falta checkpoint)
 ---
 
 # 270 — La auditoría de Calendly en Webhook Health
@@ -50,6 +50,18 @@ llamada. Hoy nadie se enteraría hasta notar el hueco a mano. Esta auditoría es
       el 401 sin tumbar la pantalla; consola limpia. El camino feliz se midió contra Calendly real y la base de producción
       (solo lectura): los tres programas con suscripción activa y 0 citas sin llamada, 2 a 5 s por programa (por eso el
       `Suspense`). La lista con faltantes reales no se vio en pantalla: la cubren los tests.
+
+## Datos reales (15-oct, solo lectura)
+
+Se corrió `auditarCalendly` contra Calendly y la base de producción moviendo `ahora` del 4 al 15-oct (ventanas de
+48 h). Hoy los tres programas tienen la suscripción activa y **0 citas sin llamada**. Desde la ventana del 8-oct en
+adelante, cero en todas. La ventana del 4-oct y la del 6-oct encuentran **6 citas sin llamada** (ComunicArte 3,
+Tactical 3), creadas el 4 y 6-oct con inicio el 7 y 8-oct, ninguna cancelada. Las seis tienen lead y **ninguna
+llamada en el programa**, ni por huella ni por correo. Es el mismo hueco del caso de Edwin Yesod: el corte en cero del
+7-oct (203) borró la llamada y la recuperación del 8-oct solo trajo citas futuras, así que se quedaron afuera las que
+empezaban el 7 y el 8. No es una falla del webhook. Las reagendas viejas de ese periodo no salieron como faltantes
+(la cadena `new_invitee` las resolvió). Si esas 6 llamadas se registran, es decisión de cada closer; la auditoría
+no escribe nada.
 
 ## Fuera
 
