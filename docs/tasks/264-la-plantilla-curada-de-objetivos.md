@@ -3,7 +3,7 @@ id: 264
 etapa: hub
 serves: "ADR 0063 · ADR 0077 (lo que no se usa se quita) · ADR 0088 (el costo en COP) · la pantalla del 122, recorrida el 14-oct"
 depends: [122]
-status: todo
+status: en curso
 ---
 
 # 264 — La plantilla curada de objetivos
