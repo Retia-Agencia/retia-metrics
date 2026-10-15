@@ -63,3 +63,64 @@ calculado, sin ver nunca un dato de una persona.
   correos, teléfonos ni ids de lead.
 - Done cuando, además: a una hora sin envíos devuelve lista vacía; una métrica apagada no aparece; un programa
   apagado no aparece; con tests sobre el handler real.
+
+---
+
+## El contrato Juanito ↔ CRM (15-oct, Mani: "la conexión es lo más crucial de definir")
+
+**La dirección:** Juanito llama al CRM; el CRM nunca llama al VPS. Una llamada HTTPS saliente desde el VPS a Vercel:
+sin puertos abiertos ni IP fija. El grupo, las horas y las métricas viven en el CRM (265); en el `.env` de Juanito
+solo la URL y el secreto.
+
+**La pregunta**, cada hora en punto de un día hábil (6 a 19 h, Bogotá):
+
+```
+POST /api/semaforo/envios
+x-semaforo-secreto: <secreto>          (comparado en tiempo constante; sin él o malo: 401, cuerpo vacío)
+{}                                      (el instante lo pone el servidor; nunca lo manda Juanito)
+```
+
+**La respuesta** (200, validada con zod en el servidor y con lista blanca en el test de contrato):
+
+```jsonc
+{
+  "generadoEn": "2026-10-16T11:00:04-05:00",
+  "sincronizacion": { "estado": "ok" | "reciente" | "corriendo" | "error", "ultimaFoto": "<ISO>" | null },
+  "envios": [                                   // lo que toca AHORA; vacía si no toca nada
+    {
+      "programa": "ComunicArte",                // nombre visible, nunca el id
+      "destino": "1203630...@g.us",             // el grupo, tal cual lo dio /grupos
+      "tipo": "dia" | "cierre",
+      "hora": "11:00",
+      "enlaceHub": "https://.../p/<slug>/hub?seccion=pauta",
+      "metricas": [ /* MetricaSemaforo, solo las encendidas */ ]
+    }
+  ],
+  "configuracion": [                            // lo vigente, para que Juanito guarde la última buena
+    { "programa": "ComunicArte", "destino": "...@g.us", "horas": ["07:00","09:00","11:00"], "horaCierre": "18:00" }
+  ]
+}
+```
+
+**`MetricaSemaforo`** (la arma el 258; la misma forma la pinta Hub › Pauta):
+
+```jsonc
+{
+  "metrica": "costo_por_agenda",
+  "color": "exito" | "alerta" | "peligro" | "sin_dato",
+  "motivo": null | "sin_cohorte" | "sin_umbral" | "sin_pauta" | "sin_referencia",
+  "moneda": "COP",
+  "gasto": 609860, "agendas": 1, "costo": 609860 | null,
+  "umbral": { "meta": 70000, "aceptable": 93000 } | null,
+  "porcentajeDelUmbral": 8.71 | null,          // costo ÷ meta
+  "ayerALaMismaHora": { "dia": "2026-10-15", "gasto": 0, "agendas": 0, "costo": null } | null,
+  "trayectoria": [ { "hora": "09:00", "gasto": 0, "agendas": 0, "costo": null } ],
+  "diasSeguidosEnRojo": 0,
+  "agendasMeta": 3 | null,                     // control de Meta, nunca el costo oficial
+  "campanas": [],                              // v2 del 258; en la v1 siempre vacía
+  "notas": [ { "tipo": "problema" | "info", "texto": "..." } ]
+}
+```
+
+Ni nombres, ni correos, ni teléfonos, ni ids de lead. Si el CRM no responde (timeout, 5xx), Juanito usa la última
+`configuracion` guardada: si a esa hora había envíos, avisa a esos destinos que no hay datos.
