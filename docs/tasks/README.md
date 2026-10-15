@@ -271,7 +271,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 100 | [La tab Programs](./100-tab-programs-ficha-del-programa.md) | 097, 101 | done · `cp-20261002-2` · 2-oct (Alejo) · ficha del programa: destinos, Calendly, comisión, cohortes, fuentes y equipo; recorrido visual hecho |
 | [x] | 109 | [El programa lleva su formulario y su token de Calendly](./109-formulario-y-token-de-calendly-del-programa.md) | 105 | done · 28-sep: migración **0030**; Forms Link y Calendly Token obligatorios en `/ajustes/programas` (un programa no se activa sin los dos); la lectura de la cita (hoy `citaDeCalendly`) probada contra Calendly real; migración **0031**: nace inactivo y un CHECK exige los dos; Mani cargó los dos tokens y se borraron de `.env.local` |
 | [ ] | 149 | [El manual de uso del CRM, por rol](./149-manual-de-uso-por-rol.md) | 075 | todo · 1-oct (QD-7) · E9, sesión principal |
-| [ ] | 154 | [Manual de operación comercial (artifact para closers)](./154-manual-de-operacion-comercial.md) | 153, 203 | en curso · 7-oct · el corte en cero está hecho; falta cerrar 153 y revisar "Lo que le falta al CRM" |
+| [ ] | 154 | [Manual de operación comercial (artifact para closers)](./154-manual-de-operacion-comercial.md) | 153, 203 | en curso · 15-oct · el 078 ya no aplica (lo reemplazó el 203); falta el recorrido de Mani del 153, contar "Crear deal" y la adopción por correo del Inbox (205, 206) y revisar "Lo que le falta al CRM" |
 
 ## 11 · Plataforma
 
