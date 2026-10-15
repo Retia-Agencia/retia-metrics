@@ -41,8 +41,11 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    comisión es un porcentaje, hay meta del mes y de la cohorte, y la v1 es comercial. Léelo antes de tocar
    etapas, dinero, metas o el dashboard.
    **`docs/hub.md`** (14-oct) es el plan del **Hub**, que reemplaza al Dashboard y a Metas (ADR 0086 a 0090): el
-   audit medido, **el diccionario de métricas (§5, la única tabla de definiciones)**, los frentes con sus tickets
-   (244 a 262) y los contratos C-1 y C-2 (§8). Léelo antes de tocar métricas, pauta, atribución o el Hub.
+   audit medido, los frentes con sus tickets (244 a 262) y los contratos C-1 y C-2 (§8). Léelo antes de tocar
+   métricas, pauta, atribución o el Hub.
+   **`docs/metricas.md`** (15-oct) es **el diccionario de métricas, la única tabla de definiciones**: de qué tabla
+   sale cada cifra, qué cuenta y qué no, con qué fecha y moneda, en qué función vive y cómo verificarla. Una métrica
+   nueva o un cambio de fórmula lo actualiza en el mismo commit.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que

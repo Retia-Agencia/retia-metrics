@@ -450,7 +450,7 @@ agenda→venta, la ventana del ritmo y cuándo dejan de contar agendas (PQ3) · 
 | HQ-4 | El costo por agenda del programa: con el gasto de todas las campañas o solo el de las que buscan agendas | Pauta |
 | HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos (253) | Pauta y Gerencia |
 | HQ-6 | Qué cuentas entran (las USD de CA; Rosario \| Retia solo corre registros) | Pauta |
-| HQ-7 | CAC en las dos monedas y los tres grupos del origen del cierre (propuestas de `hub.md` §5.2) | Mani |
+| HQ-7 | CAC en las dos monedas y los tres grupos del origen del cierre (propuestas de `docs/metricas.md` §3.4) | Mani |
 | HQ-8 | ¿Pauta adopta la plantilla del 29-sep en las campañas nuevas? ¿Editar los `url_tags` de un anuncio activo lo manda a revisión? | Pauta |
 
 **F. Media:** si el orgánico usa el mismo formulario que la pauta; qué cuentas o creadoras van en

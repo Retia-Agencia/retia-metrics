@@ -495,7 +495,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*
 - **ROAS y ad profit:** contratado frente al gasto, con la TRM de cada día (ADR 0088).
 - **Costo por agenda (CPI):** el gasto de Paid entre las agendas **del CRM** de Paid. **CPL** es lo mismo por registro y
-  **costo por venta (CAC)** por venta. Definiciones en `docs/hub.md` §5.
+  **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
 - **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Van al lado como control,
   nunca en el costo oficial (ADR 0088).
 - **TRM del día:** la tasa oficial COP/USD de una fecha, guardada; toda cifra convertida dice la que usó.

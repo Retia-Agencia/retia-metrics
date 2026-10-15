@@ -27,6 +27,17 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-15 (mediodía; misma sesión): respuestas de Pauta, `docs/metricas.md` y el 268 lanzado.**
+  - **Michael respondió en Tech - Retia** (HQ-3, HQ-4, HQ-6 en `docs/hub.md`): gasto de todas las campañas; el
+    mensaje debe traer el presupuesto del día; entran las cuentas de Milena, Rosario, Juan Pablo y Francisco. Dani:
+    8, 11, 14, 17 y cierre 20 h. Umbrales: "lo conversamos con paid en el daily".
+  - **Medido en producción:** el usuario de sistema ve 7 cuentas y **ninguna es de Juan Pablo ni de Francisco**;
+    `[CP] - Milena - [Nas & Be]` (USD) no está mapeada. Tactical ya tiene objetivo de costo por agenda en C3
+    (75.000 / 90.000) y su reporte existe apagado.
+  - **`docs/metricas.md`**: el diccionario se mudó de `hub.md` §5 con el linaje de cada cifra; AGENTS.md lo nombra.
+  - **268** (horas libres, cron de Juanito cada hora, un solo grupo en el `.env` de Juanito) en su propia sesión.
+  - **Pendiente:** el presupuesto del día en el mensaje espera que Pauta diga de dónde sale.
+
 - **2026-10-15 (mañana, segunda sesión; Claude orquesta): 266 y 267 done, Juanito manda el texto del CRM.**
   - **266 (`6250249`, CI verde):** rebase sobre main; recorrido como `pauta@retia.local`: ve General y Ventas, sin
     comisión, Equipo por URL cae a General, crea "Costo por agenda" (el selector solo ofrece las de pauta). Forja de

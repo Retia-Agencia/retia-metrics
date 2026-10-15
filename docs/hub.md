@@ -9,8 +9,8 @@
 > única, letra E). Si algo aquí contradice un ADR o un ticket, gana el ADR o el ticket y este documento se
 > corrige.
 >
-> **Desde el 14-oct, §5 es el diccionario de métricas: la única tabla de definiciones.** Reemplaza a
-> `analytics.md` §6, que queda como historia de la reunión con Pauta.
+> **El diccionario de métricas es [`docs/metricas.md`](./metricas.md) (desde el 15-oct; del 14 al 15-oct fue §5):
+> la única tabla de definiciones.** Reemplaza a `analytics.md` §6, que queda como historia de la reunión con Pauta.
 
 Leyenda: ✅ existe o decidido · 🟡 propuesta, falta el ok de alguien · 🔴 falta decidir · ❌ no existe · 🩸 dato
 medido que cambia el plan.
@@ -36,7 +36,7 @@ entrada y proceso del lead. Los masivos de Kapso y la cola de descartados van de
 |---|---|---|
 | O1 | El reporte diario se lee en el Hub, sin armar nada a mano | la estructura del reporte del 15-sep (día, semana, cohorte, mes, acciones) sale entera de la pestaña Hoy con datos del CRM |
 | O2 | El gasto de Meta entra solo, por anuncio y por día | el gasto de un día elegido a mano cuadra con el Administrador de anuncios en cada cuenta |
-| O3 | CPL, costo por agenda, costo por venta y ROAS con una sola definición | cada cifra sale de un módulo (§5), con la TRM usada a la vista |
+| O3 | CPL, costo por agenda, costo por venta y ROAS con una sola definición | cada cifra sale de un módulo (`docs/metricas.md`), con la TRM usada a la vista |
 | O4 | El semáforo llega por WhatsApp y cada rojo termina en una acción | un rojo armado a mano llega por Juanito y no se cierra sin una acción registrada |
 | O5 | Las gráficas se leen sin explicación | una librería, ejes lineales, número y % en cada punto, clic que abre la lista |
 
@@ -229,7 +229,7 @@ flowchart LR
     ARBOL[("Árbol, gasto y agendas según Meta")]
     ENVIOS[("Envíos, deals, llamadas, abonos")]
     REGLA["Regla del área y resolución del id (246, 247)"]
-    DICC["Diccionario de métricas §5 (lib/queries)"]
+    DICC["Diccionario de métricas, docs/metricas.md (lib/queries)"]
     HUB["Hub: Hoy · Comercial · Dinero · Pauta · Origen"]
     SEMA["Semáforo (258)"]
     ACC[("Acciones (257)")]
@@ -347,52 +347,9 @@ migración lo permita; `ad_spend` (vacía) la reemplaza `gasto_pauta` (120).
 
 ## 5. El diccionario de métricas
 
-**La única tabla de definiciones del CRM.** Todas por programa (el programa es frontera, ADR 0043); en "todos
-los programas" solo lo que se suma (ADR 0048). Fechas de Bogotá. Cada fórmula vive en **un** módulo de
-`lib/queries/` y la importan el Hub, el semáforo y cualquier otra consulta (ADR 0024). Lo de §5.1 ya existe; lo
-de §5.2 es nuevo.
-
-### 5.1 Lo que ya existe (sin cambios)
-
-| Métrica | Definición | ¿Se suma? |
-|---|---|---|
-| Registro | token con envío completo, por su fecha; parcial y completa cuentan una vez (ADR 0063) | sí |
-| Dejó datos · Llegó al Calendly | como en el 126 (ADR 0069) | sí |
-| Agenda | llamada vigente creada en el rango (`calls.created_at`) | sí |
-| Llamada · Show | cita en el rango · llamada que ocurrió (`llamadaOcurrio`) | sí |
-| Grupo de citas, % de show, % de cierre, agenda → venta | ADR 0079 (`tasas-del-grupo.ts`) | no |
-| Venta | deal que entró a Abonado o Completo en el rango, sin cortesías (064, 200) | sí |
-| Contratado · Recaudado | valor vendido de las ventas del rango · abonos por su fecha (ADR 0013, 0065) | sí, en USD |
-| Meta del mes, de la semana y de la cohorte | 020 y 146 | no |
-
-### 5.2 Lo nuevo del Hub
-
-| Métrica | Definición | Unidad | ¿Se suma? | Ticket |
-|---|---|---|---|---|
-| Área de un envío | la regla de H-3: un id de Meta que existe en el árbol, o `utm_medium` pago (`cpc`, `paid_social`, `paid`) = Paid; `utm_medium=referido` = Referidos; con UTM, lo demás = Orgánico; sin `utm_source` ni `utm_medium` = Sin UTM. Una macro sin expandir cuenta como ausente | · | · | 246 |
-| Canal | la primera palabra de `utm_source`, normalizada (`ig` = instagram, `fb` = facebook); la segunda es la cuenta (`instagram rosario` = Instagram · Rosario) | · | · | 246 |
-| Nivel de la traza | el id más profundo que resuelve en el árbol: anuncio (N3), conjunto o campaña (N2, también por nombre exacto único), solo área (N1), sin UTM (N0) | % | no | 247 |
-| Gasto | Σ `gasto_pauta` por fecha, en la moneda de cada cuenta; para sumar dos monedas se convierte con la tasa del día (§ TRM) | COP | sí, por moneda | 120 |
-| TRM del día | pesos por dólar de la tasa oficial de esa fecha; un fin de semana usa la vigente. Toda cifra convertida dice la tasa usada (una fecha: "TRM 3.912"; un rango: "TRM 3.880 a 3.950") | COP/USD | · | 244 |
-| CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 |
-| Costo por agenda (CPI) | gasto de Paid ÷ **agendas del CRM** de Paid, por el envío que abrió el deal (ADR 0060). Por campaña: gasto de la campaña ÷ sus agendas | COP | no | 123 |
-| Agendas según Meta | `conversions` → `offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled` del rango. **Control, nunca el costo oficial** | agendas | sí | 120, 249 |
-| Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 |
-| Costo por venta (CAC) | gasto de Paid ÷ ventas de Paid | COP y USD 🟡 | no | 123 |
-| ROAS | contratado de las ventas de Paid (USD) ÷ gasto de Paid en USD (cada día con su TRM) | razón | no | 123 |
-| Ritmo | ventas por día hábil en la ventana de ritmo (🔴 PQ3: cuál) | ventas/día | no | 253 |
-| Proyección | vendidos + ritmo × días hábiles que quedan de la cohorte | cupos | no | 253 |
-| Ventas requeridas por día | faltan ÷ días hábiles que quedan (es la meta dinámica, 020) | cupos/día | no | 253 |
-| Agendas requeridas por día | ventas requeridas ÷ conversión agenda → venta (🔴 PQ3: la de qué cohorte, o el objetivo declarado del 122) | agendas/día | no | 253 |
-| Leads requeridos por día | agendas requeridas ÷ (agendas ÷ registros) de la misma ventana | leads/día | no | 253 |
-| Origen del cierre 🟡 | por venta: **agenda del día** (tuvo un show el mismo día de la venta), **seguimiento** (su último show fue antes), **sin llamada** (ningún show) | ventas | sí | 254 |
-| Semáforo de costo por agenda | por programa y campaña, contra el objetivo `costo_por_agenda` de la cohorte (122): ≤ meta verde; hasta el aceptable amarillo; encima rojo. Durante el día se compara contra ayer a la misma hora, nunca contra el umbral de cierre (el retraso de atribución). Un verde con 0 agendas no es verde | · | no | 258 |
-| Días seguidos en rojo | días hábiles consecutivos de una campaña o programa en rojo al cierre | días | no | 258 |
-| Cierre del ciclo | rojos con una acción registrada ÷ rojos, y horas hasta la acción | % | no | 261 |
-
-🟡 **CAC en las dos monedas** (propuesta): en COP para compararlo con el costo por agenda y en USD para
-compararlo con el ticket. **Origen del cierre** (propuesta): los tres grupos salen del deal sin pedirle un clic al
-closer; "cola de descartados" y "masivos" no se distinguen hasta que entre Kapso (H-9).
+**Se mudó a [`docs/metricas.md`](./metricas.md) el 15-oct**, con el linaje completo de cada cifra (tabla, filtros,
+fecha, moneda, función y cómo verificarla). Ese es el único diccionario; aquí no se repite. Las tablas que vivían
+aquí siguen en git (`git show cbdc31a:docs/hub.md`).
 
 ---
 
@@ -485,11 +442,11 @@ Vive en `plan.md` §7, **letra E (Hub)**, la lista única. Aquí el índice:
 |---|---|---|
 | HQ-1 | Los umbrales de costo por agenda por programa (meta y aceptable), con la línea base de §2.4 y `CPI máx = ticket × % de CAC aceptable × tasa de cierre` | Pauta y Gerencia |
 | HQ-2 | A quién le llega el semáforo (grupo nuevo o 1:1), quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia · se carga en la pantalla del 265 (ADR 0089 enmendado) |
-| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + resumen a las 18 h) | Mani y Pauta · se carga en la pantalla del 265 |
-| HQ-4 | El costo por agenda del programa: con el gasto de **todas** las campañas o solo el de las que buscan agendas (las de registro e interacción gastan sin agendar) | Pauta |
+| HQ-3 | ✅ 15-oct (Dani Tovar): 8, 11, 14 y 17 h, y el resumen de cierre a las 20 h. Lo hace posible el 268 | Mani y Pauta |
+| HQ-4 | ✅ 15-oct (Michael): con el gasto de **todas** las campañas. El mensaje debe traer además el **presupuesto del día** (fijo todo el día), el gasto y las agendas hasta ese momento y el costo por agenda | Pauta |
 | HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos | Pauta y Gerencia |
-| HQ-6 | Qué cuentas entran (las USD de CA; Rosario \| Retia solo corre registros) | Pauta |
-| HQ-7 | Las dos propuestas de §5.2: CAC en las dos monedas y los tres grupos del origen del cierre | Mani |
+| HQ-6 | 🟡 15-oct (Michael): entran las de Milena, Rosario, Juan Pablo y Francisco; ComunicArte usa las de sus creadoras. Falta: a qué programa va cada una, y que Juan Pablo y Francisco le den acceso al usuario de sistema (hoy no las ve, `docs/metricas.md` §4) | Pauta |
+| HQ-7 | Las dos propuestas de `docs/metricas.md` §3.4: CAC en las dos monedas y los tres grupos del origen del cierre | Mani |
 | HQ-8 | ¿Adoptan la plantilla del 29-sep en las campañas **nuevas** de TI y CA? ¿Editar los `url_tags` de un anuncio activo lo manda a revisión o reinicia su aprendizaje? (si sí, los activos no se tocan) | Pauta |
 
 ---
