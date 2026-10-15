@@ -1,5 +1,5 @@
 import type { Rol, SujetoDeCapacidad } from "@/lib/auth/roles";
-import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, configuraPrograma } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -116,15 +116,18 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
 
   // El paid trafficker (ADR 0052) entra a Ajustes —adentro solo ve Canales (lo proyecta
   // el índice)— y, desde el ticket 179, a Mi espacio, su propia sección Canales (pares sin
-  // clasificar y conteo por canal). Desde el ticket 102 ve el Hub (antes Dashboard) del programa elegido,
-  // sin el trabajo del equipo comercial. No administra la app ni trabaja leads, así que no
-  // tiene las demás tabs de programa ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
+  // clasificar y conteo por canal). Ve el Hub y, desde el ticket 266, la ficha del Programa
+  // elegido, sin el trabajo del equipo comercial. No administra la app ni trabaja leads, así que no
+  // tiene las demás tabs operativas ni Recursos. Se pregunta por capacidad —`manejaPauta` sin
   // administrar ni trabajar leads—, nunca por el literal del rol (ADR 0025).
   if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto)) {
     return [
       { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["paid_trafficker"] },
       ...(programa
-        ? [{ href: rutaDePrograma(programa, "hub"), etiqueta: "Hub", icono: "hub", roles: ["paid_trafficker"] } satisfies ItemNav]
+        ? [
+            { href: rutaDePrograma(programa, "hub"), etiqueta: "Hub", icono: "hub", roles: ["paid_trafficker"] } satisfies ItemNav,
+            { href: rutaDePrograma(programa, "programa"), etiqueta: "Programa", icono: "programa", roles: ["paid_trafficker"] } satisfies ItemNav,
+          ]
         : []),
       { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] },
     ];
@@ -207,16 +210,15 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
       roles: ["gerente", "closer"],
     });
     // Programa: la ficha del programa elegido (ticket 100, la tab Programs del ADR 0050):
-    // cohortes, destinos, Calendly, fuentes, comision y equipo. Solo quien CONFIGURA el
-    // programa (gerente y developer, `configuraPrograma`); el closer, que antes la LEIA, ya
-    // no entra (ticket 224, ADR 0082): la ruta le responde 404. Por capacidad, nunca por el
-    // literal del rol.
-    if (configuraPrograma(rol)) {
+    // cohortes, destinos, Calendly, fuentes, comision y equipo. La LEE quien administra y
+    // el paid trafficker (ticket 266, ADR 0082 enmendado el 15-oct); el closer no entra.
+    // Por capacidad, nunca por el literal del rol.
+    if (leePrograma(rol)) {
       items.push({
         href: rutaDePrograma(programa, "programa"),
         etiqueta: "Programa",
         icono: "programa",
-        roles: ["gerente"],
+        roles: ["gerente", "paid_trafficker"],
       });
     }
   }

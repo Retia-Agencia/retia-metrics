@@ -1,6 +1,6 @@
 import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
-import { esAdministrador, type Rol } from "@/lib/auth/roles";
+import { editaObjetivo, esAdministrador, type Rol } from "@/lib/auth/roles";
 import { cohorts, objetivos } from "@/lib/db/schema";
 import { esViolacionCheck } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
@@ -107,9 +107,9 @@ function catalogo(db: Db) {
   );
 }
 
-function exigirAdministrador(actor: ActorObjetivos) {
-  if (!esAdministrador(actor.rol)) {
-    throw new ErrorDeApp("Solo quien administra cambia los objetivos.", 403);
+function exigirEdicion(actor: ActorObjetivos, metrica: MetricaObjetivo) {
+  if (!editaObjetivo(actor.rol, DEFINICION_METRICAS_OBJETIVO[metrica].dePauta)) {
+    throw new ErrorDeApp("Solo quien administra cambia este objetivo.", 403);
   }
 }
 
@@ -208,19 +208,21 @@ async function crearEnTransaccion(db: Db, actor: ActorObjetivos, input: EntradaO
 }
 
 export async function crearObjetivo(db: Db, actor: ActorObjetivos, input: EntradaObjetivo) {
-  exigirAdministrador(actor);
-  return normalizarEscritura(() =>
-    (db as unknown as BaseConTransaccion).transaction((tx) => crearEnTransaccion(tx, actor, input)),
-  );
+  return normalizarEscritura(async () => {
+    const datos = esquemaObjetivo.parse(input);
+    exigirEdicion(actor, datos.metrica);
+    return (db as unknown as BaseConTransaccion).transaction((tx) => crearEnTransaccion(tx, actor, input));
+  });
 }
 
 export async function editarObjetivo(db: Db, actor: ActorObjetivos, id: string, input: EntradaObjetivo) {
-  exigirAdministrador(actor);
   return normalizarEscritura(() =>
     (db as unknown as BaseConTransaccion).transaction(async (tx) => {
-      const [actual] = await tx.select().from(objetivos).where(eq(objetivos.id, id));
+      const [actual] = await tx.select().from(objetivos).where(eq(objetivos.id, id)).for("update");
       if (!actual) throw new ErrorDeApp("No existe un objetivo con ese id.", 404);
       const datos = esquemaObjetivo.parse(input);
+      exigirEdicion(actor, actual.metrica);
+      exigirEdicion(actor, datos.metrica);
       if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
         throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
       }
@@ -231,8 +233,18 @@ export async function editarObjetivo(db: Db, actor: ActorObjetivos, id: string, 
 }
 
 export async function borrarObjetivo(db: Db, actor: ActorObjetivos, id: string) {
-  exigirAdministrador(actor);
-  return normalizarEscritura(() => catalogo(db).borrarSiNoSeUso(actor.id, id));
+  return normalizarEscritura(() =>
+    (db as unknown as BaseConTransaccion).transaction(async (tx) => {
+      const [actual] = await tx
+        .select({ metrica: objetivos.metrica })
+        .from(objetivos)
+        .where(eq(objetivos.id, id))
+        .for("update");
+      if (!actual) throw new ErrorDeApp("No existe un objetivo con ese id.", 404);
+      exigirEdicion(actor, actual.metrica);
+      return catalogo(tx).borrarSiNoSeUso(actor.id, id);
+    }),
+  );
 }
 
 export async function cuposSinAsignar(db: Db, cohortId: string): Promise<number> {
@@ -245,7 +257,9 @@ export async function copiarObjetivos(
   actor: ActorObjetivos,
   ids: { desdeCohorteId: string; haciaCohorteId: string },
 ): Promise<ObjetivoDeCohorte[]> {
-  exigirAdministrador(actor);
+  if (!esAdministrador(actor.rol)) {
+    throw new ErrorDeApp("Solo quien administra cambia este objetivo.", 403);
+  }
   return normalizarEscritura(() =>
     (db as unknown as BaseConTransaccion).transaction(async (tx) => {
       const filasCohorte = await tx

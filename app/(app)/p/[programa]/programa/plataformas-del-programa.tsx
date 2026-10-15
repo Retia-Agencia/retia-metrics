@@ -57,11 +57,13 @@ export function PlataformasDelPrograma({
   plataformas,
   disponibles,
   enlaces,
+  puedeEditar,
 }: {
   programId: string;
   plataformas: Plataforma[];
   disponibles: Plataforma[];
   enlaces: EnlaceDePlataforma[];
+  puedeEditar: boolean;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -105,6 +107,7 @@ export function PlataformasDelPrograma({
               enlaces={enlacesDe(plataforma.id)}
               pendiente={pendiente}
               correr={correr}
+              puedeEditar={puedeEditar}
             />
           ))}
         </ul>
@@ -112,7 +115,7 @@ export function PlataformasDelPrograma({
 
       {/* Dar de alta un medio de cobro: por nombre libre (lo crea o lo reusa) o
           vinculando uno que ya existe en otro programa. */}
-      <div className="flex flex-col gap-2 rounded-md border p-3">
+      {puedeEditar ? <div className="flex flex-col gap-2 rounded-md border p-3">
         {disponibles.length > 0 ? (
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select
@@ -204,7 +207,7 @@ export function PlataformasDelPrograma({
             </div>
           </form>
         )}
-      </div>
+      </div> : null}
     </div>
   );
 }
@@ -216,12 +219,14 @@ function PlataformaItem({
   enlaces,
   pendiente,
   correr,
+  puedeEditar,
 }: {
   programId: string;
   plataforma: Plataforma;
   enlaces: EnlaceDePlataforma[];
   pendiente: boolean;
   correr: (accion: () => Promise<ResultadoAccion>, exito: string, alExito?: () => void) => void;
+  puedeEditar: boolean;
 }) {
   const [agregando, setAgregando] = useState(false);
 
@@ -229,7 +234,7 @@ function PlataformaItem({
     <li className="rounded-md border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm font-medium">{plataforma.nombre}</span>
-        <Button
+        {puedeEditar ? <Button
           type="button"
           size="icon-sm"
           variant="ghost"
@@ -243,7 +248,7 @@ function PlataformaItem({
           aria-label={`Quitar ${plataforma.nombre}`}
         >
           <X className="size-4" />
-        </Button>
+        </Button> : null}
       </div>
 
       {enlaces.length > 0 ? (
@@ -253,6 +258,7 @@ function PlataformaItem({
               key={enlace.id}
               enlace={enlace}
               pendiente={pendiente}
+              puedeEditar={puedeEditar}
               onReemplazar={(nuevaUrl, reset) =>
                 correr(
                   () => reemplazarEnlacePagoAccion(enlace.id, nuevaUrl),
@@ -268,7 +274,7 @@ function PlataformaItem({
         </ul>
       ) : null}
 
-      {agregando ? (
+      {puedeEditar && agregando ? (
         <FormularioEnlace
           programId={programId}
           plataformaId={plataforma.id}
@@ -281,7 +287,7 @@ function PlataformaItem({
           }
           onCancelar={() => setAgregando(false)}
         />
-      ) : (
+      ) : puedeEditar ? (
         <Button
           type="button"
           size="sm"
@@ -293,7 +299,7 @@ function PlataformaItem({
           <Plus className="size-4" />
           Agregar link
         </Button>
-      )}
+      ) : null}
     </li>
   );
 }
@@ -334,11 +340,13 @@ function AccionesEnlace({ url }: { url: string }) {
 function EnlaceItem({
   enlace,
   pendiente,
+  puedeEditar,
   onReemplazar,
   onRetirar,
 }: {
   enlace: EnlaceDePlataforma;
   pendiente: boolean;
+  puedeEditar: boolean;
   onReemplazar: (nuevaUrl: string, reset: () => void) => void;
   onRetirar: () => void;
 }) {
@@ -365,7 +373,7 @@ function EnlaceItem({
         <AccionesEnlace url={enlace.url} />
       </div>
 
-      <div className="mt-2 flex flex-wrap items-center gap-1">
+      {puedeEditar ? <div className="mt-2 flex flex-wrap items-center gap-1">
         <Button
           size="sm"
           variant="ghost"
@@ -377,9 +385,9 @@ function EnlaceItem({
         <Button size="sm" variant="ghost" disabled={pendiente} onClick={onRetirar}>
           Retirar
         </Button>
-      </div>
+      </div> : null}
 
-      {reemplazando ? (
+      {puedeEditar && reemplazando ? (
         <form
           className="mt-2 flex flex-col gap-2 sm:flex-row"
           onSubmit={(e) => {

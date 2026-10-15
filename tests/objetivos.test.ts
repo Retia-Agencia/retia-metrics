@@ -56,6 +56,32 @@ function cupos(area: "paid" | "organico" | "referidos", meta: number) {
 }
 
 describe("objetivos de la cohorte", () => {
+  it("pauta crea y edita su objetivo, pero no mueve cupos ni los disfraza como pauta", async () => {
+    const pauta = { id: gerente, rol: "paid_trafficker" as const };
+    const entradaPauta = {
+      cohortId,
+      area: null,
+      metrica: "costo_por_agenda" as const,
+      meta: 20,
+      aceptable: 25,
+    };
+    const costo = await crearObjetivo(db, pauta, entradaPauta);
+    await expect(editarObjetivo(db, pauta, costo.id, { ...entradaPauta, meta: 22, aceptable: 27 }))
+      .resolves.toMatchObject({ meta: 22, aceptable: 27 });
+
+    await expect(crearObjetivo(db, pauta, cupos("paid", 10))).rejects.toMatchObject({
+      message: "Solo quien administra cambia este objetivo.",
+      status: 403,
+    });
+    const reparto = await crearObjetivo(db, actor(), cupos("paid", 10));
+    await expect(editarObjetivo(db, pauta, reparto.id, entradaPauta)).rejects.toMatchObject({
+      message: "Solo quien administra cambia este objetivo.",
+      status: 403,
+    });
+    const [sinMover] = await db.select().from(objetivos).where(eq(objetivos.id, reparto.id));
+    expect(sinMover).toMatchObject({ metrica: "cupos", meta: "10.00" });
+  });
+
   it("guarda un reparto 36/24/10 de una meta de 70", async () => {
     await crearObjetivo(db, actor(), cupos("paid", 36));
     await crearObjetivo(db, actor(), cupos("organico", 24));

@@ -16,7 +16,7 @@ import { ErrorDeApp } from "@/lib/errors";
 export type ResultadoAccionObjetivo = { ok: true } | { ok: false; error: string };
 
 async function actorDeLaSesion() {
-  const session = await requireRole("gerente", "closer");
+  const session = await requireRole("gerente", "closer", "paid_trafficker");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
   return { id: session.user.id, rol };

@@ -27,12 +27,14 @@ export function CuentasDelPrograma({
   cuentas,
   disponibles,
   errorDeConsulta,
+  puedeEditar,
 }: {
   programId: string;
   conectada: boolean;
   cuentas: CuentaDelPrograma[];
   disponibles: CuentaVisibleMeta[];
   errorDeConsulta: string | null;
+  puedeEditar: boolean;
 }) {
   const router = useRouter();
   const [idMeta, setIdMeta] = useState<string | null>(null);
@@ -71,7 +73,7 @@ export function CuentasDelPrograma({
                 <th className="px-2 py-2 font-medium">Moneda</th>
                 <th className="px-2 py-2 font-medium">Zona</th>
                 <th className="px-2 py-2 font-medium">Estado</th>
-                <th className="px-2 py-2"><span className="sr-only">Acción</span></th>
+                {puedeEditar ? <th className="px-2 py-2"><span className="sr-only">Acción</span></th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -95,7 +97,7 @@ export function CuentasDelPrograma({
                       {cuenta.activo ? "Activa" : "Inactiva"}
                     </Badge>
                   </td>
-                  <td className="px-2 py-3 text-right">
+                  {puedeEditar ? <td className="px-2 py-3 text-right">
                     <Button
                       type="button"
                       size="sm"
@@ -113,7 +115,7 @@ export function CuentasDelPrograma({
                     >
                       {cuenta.activo ? "Desactivar" : "Activar"}
                     </Button>
-                  </td>
+                  </td> : null}
                 </tr>
               ))}
             </tbody>
@@ -121,11 +123,11 @@ export function CuentasDelPrograma({
         </div>
       )}
 
-      {conectada && errorDeConsulta ? (
+      {puedeEditar && conectada && errorDeConsulta ? (
         <p className="text-sm text-muted-foreground">
           No se pudo consultar Meta: {errorDeConsulta}. Revisa la conexión en Ajustes &gt; Meta.
         </p>
-      ) : conectada ? (
+      ) : puedeEditar && conectada ? (
         disponibles.length > 0 ? (
           <div className="flex flex-col gap-2 sm:flex-row">
             <Select

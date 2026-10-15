@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, configuraPrograma } from "@/lib/auth/roles";
+import { configuraPrograma, editaObjetivo, leePrograma, veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
@@ -72,6 +72,16 @@ const ENLACE =
 const TONO_DE_COHORTE = { activo: "exito", futuro: "info", cerrado: "neutro" } as const;
 const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: "Cerrada" } as const;
 
+/** Proyección visible de la ficha; la página la usa y `paginas.test.ts` fija su contrato por rol. */
+export function presentacionDeLaFicha(rol: Rol | null) {
+  const configura = configuraPrograma(rol);
+  return {
+    configura,
+    secciones: configura ? ["general", "equipo", "captacion", "ventas"] : ["general", "ventas"],
+    muestraComision: veEquipoComercial(rol),
+  } as const;
+}
+
 /**
  * La tab Programa (ticket 100, la tab Programs del ADR 0050): la ficha del programa elegido,
  * con todo lo que lo define sin entrar a Ajustes: cohortes, destinos (formulario y checkouts),
@@ -88,9 +98,8 @@ const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: 
  * cuál (ADR 0057); lo garantiza `programaPorId`, que pasa por el mismo `sinToken` del catálogo.
  */
 export default async function FichaDelProgramaPage({ params, searchParams }: Props) {
-  // La ficha del programa la CONFIGURA quien administra (gerente y developer); el closer y
-  // paid trafficker no entran (ticket 224, ADR 0082) y reciben 404. Se decide por capacidad.
-  const session = await paginaConCapacidad(configuraPrograma);
+  // La ficha la leen quien administra y quien maneja pauta; el closer recibe 404.
+  const session = await paginaConCapacidad(leePrograma);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const visible = await programaDeLaFichaPorSlug(session.user.id, rol, slug);
@@ -99,7 +108,8 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   const ficha = await fichaDelPrograma(visible.id, db);
   if (!ficha) notFound();
 
-  const administra = esAdministrador(rol);
+  const presentacion = presentacionDeLaFicha(rol);
+  const { configura } = presentacion;
   const query = await searchParams;
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
     ficha;
@@ -119,7 +129,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     activo: programa.activo,
   };
 
-  const [fuentesAdmin, membresias, usuarios, cuentas] = administra
+  const [fuentesAdmin, membresias, usuarios, cuentas] = configura
     ? await Promise.all([
         fuentesDelProgramaParaAdmin(programa.id, db),
         membresiasConCalendly(db, programa.id),
@@ -135,34 +145,37 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     .filter((usuario) => usuario.activo && puedeSerMiembro(usuario) && !miembros.has(usuario.id))
     .map(({ id, nombre, email }) => ({ id, nombre, email }));
   const base = `/p/${programa.slug}/programa`;
+  const todasLasPestanas = [
+    {
+      id: "general",
+      etiqueta: "General",
+      descripcion: "El estado del programa y a dónde llevan sus links.",
+      href: urlConSeccion(base, query, "general"),
+    },
+    {
+      id: "equipo",
+      etiqueta: "Equipo",
+      descripcion: "Quién trabaja este programa y con qué rol.",
+      href: urlConSeccion(base, query, "equipo"),
+    },
+    {
+      id: "captacion",
+      etiqueta: "Captación",
+      descripcion: "Por dónde entran los leads y las citas.",
+      href: urlConSeccion(base, query, "captacion"),
+    },
+    {
+      id: "ventas",
+      etiqueta: "Ventas",
+      descripcion: "Las cohortes que se venden, cómo se cobra y cuándo alerta la meta.",
+      href: urlConSeccion(base, query, "ventas"),
+    },
+  ];
   const grupos: GrupoDePestanas[] = [
     {
-      pestanas: [
-        {
-          id: "general",
-          etiqueta: "General",
-          descripcion: "El estado del programa y a dónde llevan sus links.",
-          href: urlConSeccion(base, query, "general"),
-        },
-        {
-          id: "equipo",
-          etiqueta: "Equipo",
-          descripcion: "Quién trabaja este programa y con qué rol.",
-          href: urlConSeccion(base, query, "equipo"),
-        },
-        {
-          id: "captacion",
-          etiqueta: "Captación",
-          descripcion: "Por dónde entran los leads y las citas.",
-          href: urlConSeccion(base, query, "captacion"),
-        },
-        {
-          id: "ventas",
-          etiqueta: "Ventas",
-          descripcion: "Las cohortes que se venden, cómo se cobra y cuándo alerta la meta.",
-          href: urlConSeccion(base, query, "ventas"),
-        },
-      ],
+      pestanas: configura
+        ? todasLasPestanas
+        : todasLasPestanas.filter((pestana) => presentacion.secciones.includes(pestana.id)),
     },
   ];
   const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
@@ -195,6 +208,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     metrica,
     ...DEFINICION_METRICAS_OBJETIVO[metrica],
     ofrecida: METRICAS_OFRECIDAS.includes(metrica),
+    puedeEditar: editaObjetivo(rol, DEFINICION_METRICAS_OBJETIVO[metrica].dePauta),
   }));
   const umbralesEditables = METRICAS_CON_UMBRAL.map((metrica) => {
     const fila = umbrales.find((u) => u.metrica === metrica);
@@ -206,13 +220,13 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       activo: fila?.activo ?? false,
     };
   });
-  const estadoMeta = administra && seccion === "general"
+  const estadoMeta = seccion === "general"
     ? await estadoConexionMeta(db)
     : { conectada: false as const };
-  const [cuentasMeta, consultaMeta] = administra && seccion === "general"
+  const [cuentasMeta, consultaMeta] = seccion === "general"
     ? await Promise.all([
         cuentasDelPrograma(db, programa.id),
-        estadoMeta.conectada
+        configura && estadoMeta.conectada
           ? cuentasDisponibles(db)
               .then((disponibles) => ({ disponibles, error: null as string | null }))
               .catch((error: unknown) => ({
@@ -251,7 +265,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       descripcion="Programa"
       fija
       acciones={
-        administra ? (
+        configura ? (
           <div className="flex items-center gap-2">
             {!programa.activo ? <Badge variant="neutro">Inactivo</Badge> : null}
             <EditarPrograma programa={programaParaEditar} />
@@ -265,7 +279,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         <div className={clasesDeZonaConScroll()}>
           {seccion === "general" ? (
             <div className="space-y-4">
-              {!programa.activo && administra ? (
+              {!programa.activo && configura ? (
                 <Card>
                   <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
                     <CardTitle className="text-base">Le falta para activarse</CardTitle>
@@ -303,14 +317,14 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 <Kpi etiqueta="Ticket de referencia">
                   <p className="cifra text-2xl font-semibold">{usd(Number(programa.ticketUsd))}</p>
                 </Kpi>
-                <Kpi etiqueta="Comisión del closer">
+                {presentacion.muestraComision ? <Kpi etiqueta="Comisión del closer">
                   {programa.comisionPorcentaje == null ? (
                     <Badge variant="alerta">Sin cargar</Badge>
                   ) : (
                     <p className="cifra text-2xl font-semibold">{num(Number(programa.comisionPorcentaje), 2)} %</p>
                   )}
                   <p className="text-xs text-muted-foreground">del valor vendido</p>
-                </Kpi>
+                </Kpi> : null}
                 <Kpi etiqueta="Cohorte activa">
                   {activa ? (
                     <p className="cifra text-2xl font-semibold">{activa.codigo}</p>
@@ -346,19 +360,21 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       <div className="space-y-1">
                         <Badge variant="peligro">Sin fuente principal</Badge>
                         <p className="text-muted-foreground">
-                          Ningún formulario está marcado como principal: es el que se usa para generar los links de captación (ADR 0068). Edita el formulario, pega su URL pública y márcalo como principal.
+                          Ningún formulario está marcado como principal: es el que se usa para generar los links de captación (ADR 0068).
+                          {configura ? " Edita el formulario, pega su URL pública y márcalo como principal." : ""}
                         </p>
-                        <Link href={urlConSeccion(base, query, "captacion")} className={ENLACE}>
-                          Ir a Formularios
-                        </Link>
+                        {configura ? (
+                          <Link href={urlConSeccion(base, query, "captacion")} className={ENLACE}>
+                            Ir a Formularios
+                          </Link>
+                        ) : null}
                       </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
 
-              {administra ? (
-                <Card>
+              <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Cuentas de Meta</CardTitle>
                   </CardHeader>
@@ -369,10 +385,10 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       cuentas={cuentasMeta}
                       disponibles={consultaMeta.disponibles}
                       errorDeConsulta={consultaMeta.error}
+                      puedeEditar={configura}
                     />
                   </CardContent>
                 </Card>
-              ) : null}
 
               <Card>
                 <CardHeader>
@@ -383,7 +399,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     programId={programa.id}
                     configuracion={configuracionReporte}
                     metricasDisponibles={metricasDelReporte}
-                    puedeEditar={administra}
+                    puedeEditar={configura}
                   />
                 </CardContent>
               </Card>
@@ -399,7 +415,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm">
-                  {administra ? (
+                  {configura ? (
                     <EquipoDelPrograma
                       programa={{ id: programa.id, nombre: programa.nombre }}
                       membresias={membresias}
@@ -434,7 +450,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
 
           {seccion === "captacion" ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              {administra && fuentesAdmin ? (
+              {configura && fuentesAdmin ? (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-base">Formularios</CardTitle>
@@ -518,7 +534,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                   <CardTitle className="text-base">Cohortes</CardTitle>
                 </CardHeader>
                 <CardContent className="md:max-h-[calc(100dvh-18rem)] md:overflow-y-auto">
-                  {administra ? (
+                  {configura ? (
                     <CohortesAdmin
                       slug={programa.slug}
                       programId={programa.id}
@@ -547,6 +563,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       moneda: c.moneda,
                       plataformaId: c.plataformaId,
                     }))}
+                    puedeEditar={configura}
                   />
                 </CardContent>
               </Card>
@@ -561,7 +578,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     objetivos={objetivos}
                     metricas={metricasObjetivo}
                     valoresDeHoy={{ costo_por_agenda: costoReciente?.costo ?? null }}
-                    editable={administra}
+                    puedeCopiar={configura}
                   />
                 </CardContent>
               </Card>
@@ -575,7 +592,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     programId={programa.id}
                     umbrales={umbralesEditables}
                     diasPorDefecto={DIAS_SEGUIDOS_POR_DEFECTO}
-                    editable={administra}
+                    editable={configura}
                   />
                 </CardContent>
               </Card>

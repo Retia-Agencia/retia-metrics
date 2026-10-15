@@ -32,6 +32,7 @@ interface MetricaEditable {
   unidad: DefinicionMetricaObjetivo["unidad"];
   admiteArea: boolean;
   ofrecida: boolean;
+  puedeEditar: boolean;
 }
 
 export interface CohorteConObjetivos {
@@ -94,13 +95,13 @@ export function ObjetivosDeLaCohorte({
   objetivos,
   metricas,
   valoresDeHoy,
-  editable,
+  puedeCopiar,
 }: {
   cohortes: CohorteConObjetivos[];
   objetivos: ObjetivoDeCohorte[];
   metricas: MetricaEditable[];
   valoresDeHoy: Partial<Record<MetricaObjetivo, number | null>>;
-  editable: boolean;
+  puedeCopiar: boolean;
 }) {
   const predeterminada = cohortes.find((cohorte) => cohorte.estado === "activo")?.id ?? cohortes[0]?.id ?? "";
   const [cohortId, setCohortId] = useState(predeterminada);
@@ -113,6 +114,7 @@ export function ObjetivosDeLaCohorte({
     () => objetivos.filter((fila) => fila.cohortId === cohortId && fila.activo),
     [cohortId, objetivos],
   );
+  const hayEditables = metricas.some((metrica) => metrica.puedeEditar);
 
   function ejecutar(
     accion: () => Promise<ResultadoAccionObjetivo>,
@@ -166,7 +168,7 @@ export function ObjetivosDeLaCohorte({
             </SelectContent>
           </Select>
         </label>
-        {editable && cohorte && !cohorte.tieneObjetivos && cohorte.anteriorId ? (
+        {puedeCopiar && cohorte && !cohorte.tieneObjetivos && cohorte.anteriorId ? (
           <Button
             type="button"
             variant="outline"
@@ -200,7 +202,7 @@ export function ObjetivosDeLaCohorte({
                 <th className="px-2 py-2 font-medium">Métrica</th>
                 <th className="px-2 py-2 font-medium">Área</th>
                 <th className="px-2 py-2 font-medium">Umbrales</th>
-                {editable ? <th className="px-2 py-2 text-right font-medium">Acciones</th> : null}
+                {hayEditables ? <th className="px-2 py-2 text-right font-medium">Acciones</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -215,9 +217,9 @@ export function ObjetivosDeLaCohorte({
                         ? fraseDeUmbrales(definicion, fila.meta, fila.aceptable)
                         : `${num(fila.meta, 2)} verde`}
                     </td>
-                    {editable ? (
+                    {hayEditables ? (
                       <td className="px-2 py-3">
-                        <div className="flex justify-end gap-2">
+                        {definicion?.puedeEditar ? <div className="flex justify-end gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => setEditando(fila)}>
                             Editar
                           </Button>
@@ -230,7 +232,7 @@ export function ObjetivosDeLaCohorte({
                           >
                             Quitar
                           </Button>
-                        </div>
+                        </div> : null}
                       </td>
                     ) : null}
                   </tr>
@@ -241,7 +243,7 @@ export function ObjetivosDeLaCohorte({
         </div>
       )}
 
-      {editable && cohorte ? (
+      {hayEditables && cohorte ? (
         <FormularioObjetivo
           key={`${cohorte.id}-${editando?.id ?? `nuevo-${versionFormulario}`}`}
           cohortId={cohorte.id}
@@ -280,7 +282,7 @@ function FormularioObjetivo({
   guardar: (input: Parameters<typeof guardarObjetivoAccion>[0]) => void;
   cancelar?: () => void;
 }) {
-  const ofrecidas = metricas.filter((fila) => fila.ofrecida);
+  const ofrecidas = metricas.filter((fila) => fila.ofrecida && fila.puedeEditar);
   const [metrica, setMetrica] = useState<MetricaObjetivo>(
     objetivo?.metrica ?? "costo_por_agenda",
   );

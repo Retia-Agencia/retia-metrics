@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esAdministrador, etiquetaDeRol, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -108,6 +108,29 @@ describe("configuraPrograma (ticket 224)", () => {
   it("coincide con esAdministrador en todos los roles", () => {
     for (const rol of ["gerente", "closer", "developer", "paid_trafficker", "customer_success"] as const) {
       expect(configuraPrograma(rol)).toBe(esAdministrador(rol));
+    }
+  });
+});
+
+describe("leePrograma y editaObjetivo (ticket 266)", () => {
+  it("la ficha la leen gerente, developer y paid trafficker", () => {
+    expect(leePrograma("gerente")).toBe(true);
+    expect(leePrograma("developer")).toBe(true);
+    expect(leePrograma("paid_trafficker")).toBe(true);
+    expect(leePrograma("closer")).toBe(false);
+    expect(leePrograma("customer_success")).toBe(false);
+  });
+
+  it("quien administra edita todo y pauta solo sus métricas", () => {
+    for (const rol of ["gerente", "developer"] as const) {
+      expect(editaObjetivo(rol, true)).toBe(true);
+      expect(editaObjetivo(rol, false)).toBe(true);
+    }
+    expect(editaObjetivo("paid_trafficker", true)).toBe(true);
+    expect(editaObjetivo("paid_trafficker", false)).toBe(false);
+    for (const rol of ["closer", "customer_success"] as const) {
+      expect(editaObjetivo(rol, true)).toBe(false);
+      expect(editaObjetivo(rol, false)).toBe(false);
     }
   });
 });
@@ -261,8 +284,8 @@ describe("navegacion por rol", () => {
     expect(rutasDe("closer")).not.toContain("/p/programa-a/hub");
   });
 
-  it("gerente y developer ven la tab Programa; el closer no (ticket 224, ADR 0082)", () => {
-    for (const rol of ["gerente", "developer"] as const) {
+  it("gerente, developer y paid trafficker ven Programa; el closer no (ticket 266)", () => {
+    for (const rol of ["gerente", "developer", "paid_trafficker"] as const) {
       expect(rutasDe(rol)).toContain("/p/programa-a/programa");
     }
     expect(rutasDe("closer")).not.toContain("/p/programa-a/programa");
@@ -356,12 +379,12 @@ describe("navegacion por rol", () => {
     expect(rutasDe("closer")).not.toContain("/nerd-stats");
   });
 
-  it("el paid trafficker ve Mi espacio, el Dashboard y Ajustes (tickets 173, 179, 102): ni otras tabs, ni Recursos ni Mi día", () => {
+  it("el paid trafficker ve Mi espacio, Hub, Programa y Ajustes: ni otras tabs, ni Recursos ni Mi día", () => {
     const rutas = rutasDe("paid_trafficker");
-    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, "/ajustes"]);
+    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`, "/ajustes"]);
     expect(rutas).not.toContain("/mi-dia");
     expect(rutas).not.toContain("/recursos");
-    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/hub`]);
+    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
     // Sin programa visible no hay Dashboard.
     expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio", "/ajustes"]);
   });

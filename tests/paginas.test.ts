@@ -646,7 +646,7 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
  * esconden del menú. Se forja la sesión de un closer contra cada ruta real y se exige
  * `notFound()`. El developer en vista `closer` ve lo del closer, así que recibe los mismos
  * 404. Gerente y developer (vista `todo`) conservan todo; el paid trafficker ve el tablero,
- * pero NO la lista comercial ni la ficha del Programa. Gestiona la conexión en Ajustes > Meta.
+ * pero NO la lista comercial. Desde el ticket 266 sí lee la ficha del Programa.
  *
  * Para las rutas que SÍ debe ver cada rol se afirma que la guarda no lanza `NoEncontrado`:
  * leer la base falla en los tests (no hay base), y ese fallo —cualquiera menos `NoEncontrado`—
@@ -728,14 +728,28 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     }
   });
 
-  it("el paid trafficker ve el Hub, pero NO la lista ni la ficha del Programa", async () => {
+  it("el paid trafficker ve el Hub y la ficha del Programa, pero NO la lista", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     // Hub: ve el tablero (`veTableroDelPrograma`).
     expect(await correr("@/app/(app)/p/[programa]/hub/page")).toBe("paso-la-guarda");
     // Lista: nunca fue suya (ticket 102); la guarda es `esAdministrador`.
     expect(await correr("@/app/(app)/p/[programa]/hub/lista/page")).toBe("notFound");
-    // Ficha del Programa: vincular cuentas es una operación administrativa.
-    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("notFound");
+    // Ficha del Programa: General y Ventas son de lectura, salvo los objetivos de pauta.
+    expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("paso-la-guarda");
+  });
+
+  it("en Programa el paid trafficker solo ve General y Ventas, sin comisión", async () => {
+    const { presentacionDeLaFicha } = await import("@/app/(app)/p/[programa]/programa/page");
+    expect(presentacionDeLaFicha("paid_trafficker")).toEqual({
+      configura: false,
+      secciones: ["general", "ventas"],
+      muestraComision: false,
+    });
+    expect(presentacionDeLaFicha("gerente")).toEqual({
+      configura: true,
+      secciones: ["general", "equipo", "captacion", "ventas"],
+      muestraComision: true,
+    });
   });
 });
 

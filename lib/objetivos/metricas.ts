@@ -10,6 +10,7 @@ export interface DefinicionMetricaObjetivo {
   sentido: SentidoObjetivo;
   unidad: "COP" | "conteo" | "razon" | "porcentaje";
   admiteArea: boolean;
+  dePauta: boolean;
   lector: string | null;
 }
 
@@ -21,6 +22,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "mayor_es_mejor",
     unidad: "conteo",
     admiteArea: true,
+    dePauta: false,
     lector: "122",
   },
   agendas_por_dia: {
@@ -29,6 +31,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "mayor_es_mejor",
     unidad: "conteo",
     admiteArea: true,
+    dePauta: false,
     lector: null,
   },
   costo_por_agenda: {
@@ -37,6 +40,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "menor_es_mejor",
     unidad: "COP",
     admiteArea: false,
+    dePauta: true,
     lector: "258",
   },
   costo_por_lead: {
@@ -45,6 +49,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "menor_es_mejor",
     unidad: "COP",
     admiteArea: true,
+    dePauta: true,
     lector: null,
   },
   costo_por_venta: {
@@ -53,6 +58,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "menor_es_mejor",
     unidad: "COP",
     admiteArea: true,
+    dePauta: true,
     lector: null,
   },
   roas: {
@@ -61,6 +67,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "mayor_es_mejor",
     unidad: "razon",
     admiteArea: true,
+    dePauta: true,
     lector: null,
   },
   conversion_agenda_venta: {
@@ -69,6 +76,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     sentido: "mayor_es_mejor",
     unidad: "porcentaje",
     admiteArea: true,
+    dePauta: false,
     lector: null,
   },
 };

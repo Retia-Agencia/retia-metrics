@@ -182,6 +182,24 @@ export function configuraPrograma(rol: Rol | undefined | null): boolean {
 }
 
 /**
+ * Quien LEE la ficha de un programa: quien lo configura y quien maneja pauta. El paid
+ * trafficker entra para consultar General y Ventas, aunque solo configura sus objetivos
+ * de pauta (ticket 266, enmienda del 15-oct al ADR 0082).
+ */
+export function leePrograma(rol: Rol | undefined | null): boolean {
+  return configuraPrograma(rol) || manejaPauta(rol);
+}
+
+/**
+ * Quien edita un objetivo: quien administra puede editar cualquiera; quien maneja pauta,
+ * solo una metrica declarada como de pauta. Recibe el dato ya resuelto para mantener este
+ * modulo puro y apto para clientes.
+ */
+export function editaObjetivo(rol: Rol | undefined | null, dePauta: boolean): boolean {
+  return esAdministrador(rol) || (manejaPauta(rol) && dePauta);
+}
+
+/**
  * Quien marca y desmarca el onboarding de un estudiante (ticket 145). Es la SEXTA
  * pregunta de esta familia, para el rol `customer_success`: ve los Students de sus
  * programas y su UNICA acción es el onboarding. La cumplen el customer success, el
