@@ -240,7 +240,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | todo |
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
 | [x] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | done · 14-oct · Mani · CI verde `803e6fc` · cinco hechos en `lib/queries/hechos/`; a 10x el volumen, un mes por día y área en 82,8 ms |
-| [ ] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | integrado · 14-oct · Codex + central · `85c5213` · 12 s contra Meta (antes 2 min 18 s); falta la corrida real |
+| [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |
 
 ## 10 · Configuración
 
