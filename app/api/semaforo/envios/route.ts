@@ -7,7 +7,7 @@ import { fotosPauta } from "@/lib/db/schema";
 import { isoEnBogota } from "@/lib/format";
 import { sincronizarDiaEnCurso } from "@/lib/pauta/dia-en-curso";
 import { esquemaRespuestaSemaforo, type RespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
-import { armarMensaje, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
+import { armarMensajeDeLaHora, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
 import { queTocaAhora } from "@/lib/reporte-whatsapp/que-toca";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
 
@@ -67,41 +67,46 @@ export async function POST(request: Request) {
 
   const porPrograma = new Map(reportes.map((reporte) => [reporte.programId, reporte]));
   const origen = new URL(request.url).origin;
-  const envios = await Promise.all(pendientes.map(async (pendiente) => {
-    const reporte = porPrograma.get(pendiente.programId)!;
-    try {
-      const metricas = await Promise.all(pendiente.metricas.map((metrica) => {
-        switch (metrica) {
-          case "costo_por_agenda":
-            return semaforoDelPrograma(db, {
-              programId: pendiente.programId,
-              ahora,
-              tipo: pendiente.tipo,
-              horas: [...reporte.horas, ...(reporte.horaCierre === null ? [] : [reporte.horaCierre])],
-            });
-        }
-      }));
-      const envio = {
-        programa: reporte.programa,
-        tipo: pendiente.tipo,
-        hora: pendiente.hora,
-        enlaceHub: enlaceAlHub(origen, reporte.slug),
-        metricas,
-        error: null,
-      };
-      return { ...envio, texto: armarMensaje(envio, sincronizacion) };
-    } catch {
-      const envio = {
-        programa: reporte.programa,
-        tipo: pendiente.tipo,
-        hora: pendiente.hora,
-        enlaceHub: enlaceAlHub(origen, reporte.slug),
-        metricas: [],
-        error: "No se pudo calcular el semáforo de este programa.",
-      };
-      return { ...envio, texto: armarMensaje(envio, sincronizacion) };
-    }
-  }));
+  const bloques: RespuestaSemaforo["envios"][number]["bloques"] = await Promise.all(
+    pendientes.map(async (pendiente) => {
+      const reporte = porPrograma.get(pendiente.programId)!;
+      try {
+        const metricas = await Promise.all(pendiente.metricas.map((metrica) => {
+          switch (metrica) {
+            case "costo_por_agenda":
+              return semaforoDelPrograma(db, {
+                programId: pendiente.programId,
+                ahora,
+                tipo: pendiente.tipo,
+                horas: [
+                  ...reporte.horas,
+                  ...(reporte.horaCierre === null ? [] : [reporte.horaCierre]),
+                ],
+              });
+          }
+        }));
+        return {
+          programa: reporte.programa,
+          tipo: pendiente.tipo,
+          enlaceHub: enlaceAlHub(origen, reporte.slug),
+          metricas,
+          error: null,
+        };
+      } catch {
+        return {
+          programa: reporte.programa,
+          tipo: pendiente.tipo,
+          enlaceHub: enlaceAlHub(origen, reporte.slug),
+          metricas: [],
+          error: "No se pudo calcular el semáforo de este programa.",
+        };
+      }
+    }),
+  );
+  const hora = pendientes[0]?.hora;
+  const envios = hora === undefined
+    ? []
+    : [{ hora, texto: armarMensajeDeLaHora(bloques, hora, sincronizacion), bloques }];
 
   const respuesta = esquemaRespuestaSemaforo.parse({
     generadoEn: isoEnBogota(ahora),

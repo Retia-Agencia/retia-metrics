@@ -62,7 +62,8 @@ export async function reportesActivos(db: Db): Promise<ReporteWhatsappActivo[]> 
     })
     .from(reportesWhatsapp)
     .innerJoin(programs, eq(programs.id, reportesWhatsapp.programId))
-    .where(and(eq(reportesWhatsapp.activo, true), eq(programs.activo, true)));
+    .where(and(eq(reportesWhatsapp.activo, true), eq(programs.activo, true)))
+    .orderBy(programs.nombre);
 
   return filas.map((fila) => ({
     ...fila,

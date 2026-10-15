@@ -39,14 +39,18 @@ const esquemaSincronizacion = z.object({
   ultimaFoto: z.string().nullable(),
 }).strict();
 
-const esquemaEnvio = z.object({
+export const esquemaBloque = z.object({
   programa: z.string(),
   tipo: z.enum(["dia", "cierre"]),
-  hora: z.string(),
   enlaceHub: z.string().url(),
   metricas: z.array(esquemaMetricaSemaforo),
   error: z.string().nullable(),
+}).strict();
+
+const esquemaEnvio = z.object({
+  hora: z.string(),
   texto: z.string(),
+  bloques: z.array(esquemaBloque),
 }).strict();
 
 const esquemaConfiguracion = z.object({

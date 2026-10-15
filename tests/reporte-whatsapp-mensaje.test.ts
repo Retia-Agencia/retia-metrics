@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armarMensaje } from "@/lib/reporte-whatsapp/mensaje";
+import { armarMensaje, armarMensajeDeLaHora } from "@/lib/reporte-whatsapp/mensaje";
 import type { MetricaSemaforo } from "@/lib/semaforo/semaforo";
 
 const METRICA: MetricaSemaforo = {
@@ -82,5 +82,33 @@ describe("mensaje del reporte por WhatsApp", () => {
       ultimaFoto: "2026-07-14T15:27:00Z",
     });
     expect(mensaje).toMatch(/⚠️ No se pudo leer Meta; cifras de la última foto \(10:27\)/);
+  });
+
+  it("con un bloque sin error de sincronizacion coincide con armarMensaje", () => {
+    const { hora, ...bloque } = envio();
+
+    expect(armarMensajeDeLaHora([bloque], hora, null)).toBe(armarMensaje(envio(), null));
+  });
+
+  it("une dos bloques con el separador", () => {
+    const { hora, ...primero } = envio();
+    const segundo = { ...primero, programa: "Beta", enlaceHub: "https://hub.test/beta" };
+
+    expect(armarMensajeDeLaHora([primero, segundo], hora, null)).toBe([
+      armarMensaje(envio(), null),
+      armarMensaje({ ...segundo, hora }, null),
+    ].join("\n\n━━━━━━━━━━\n\n"));
+  });
+
+  it("agrega una sola vez el aviso de sincronizacion", () => {
+    const { hora, ...primero } = envio();
+    const segundo = { ...primero, programa: "Beta", enlaceHub: "https://hub.test/beta" };
+    const mensaje = armarMensajeDeLaHora([primero, segundo], hora, {
+      estado: "error",
+      ultimaFoto: "2026-07-14T15:27:00Z",
+    });
+
+    expect(mensaje.match(/⚠️ No se pudo leer Meta/g)).toHaveLength(1);
+    expect(mensaje).toMatch(/\n\n⚠️ No se pudo leer Meta; cifras de la última foto \(10:27\)$/);
   });
 });

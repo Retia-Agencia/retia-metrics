@@ -165,17 +165,22 @@ describe("endpoint de maquina del semaforo", () => {
       generadoEn: "2026-10-13T11:00:00-05:00",
       sincronizacion: { estado: "ok", ultimaFoto: "2026-10-13T11:00:00-05:00" },
       envios: [{
-        programa: "Programa uno",
-        tipo: "dia",
         hora: "11:00",
-        enlaceHub: "https://crm.retia.test/p/uno/hub?seccion=pauta",
-        metricas: [{ metrica: "costo_por_agenda" }],
-        error: null,
+        bloques: [{
+          programa: "Programa uno",
+          tipo: "dia",
+          enlaceHub: "https://crm.retia.test/p/uno/hub?seccion=pauta",
+          metricas: [{ metrica: "costo_por_agenda" }],
+          error: null,
+        }],
       }],
     });
-    const [envio] = respuesta.envios as Array<{ texto: string; enlaceHub: string }>;
+    const [envio] = respuesta.envios as Array<{
+      texto: string;
+      bloques: Array<{ enlaceHub: string }>;
+    }>;
     expect(envio.texto).toMatch(/^🚦/);
-    expect(envio.texto.endsWith(envio.enlaceHub)).toBe(true);
+    expect(envio.texto.endsWith(envio.bloques[0]!.enlaceHub)).toBe(true);
   });
 
   it("a una hora sin envios no sincroniza ni llama a Meta", async () => {
@@ -197,15 +202,22 @@ describe("endpoint de maquina del semaforo", () => {
     expect(respuesta).toMatchObject({ envios: [], sincronizacion: null });
   });
 
-  it("conserva dos programas como dos envios", async () => {
+  it("dos programas a la misma hora salen en un solo envio con los dos bloques", async () => {
     await crearPrograma("uno");
     await crearPrograma("dos");
 
     const respuesta = await cuerpo();
+    const [envio] = respuesta.envios as Array<{
+      texto: string;
+      bloques: Array<{ programa: string }>;
+    }>;
 
-    expect(respuesta.envios).toHaveLength(2);
-    expect((respuesta.envios as Array<{ programa: string }>).map((envio) => envio.programa).sort())
+    expect(respuesta.envios).toHaveLength(1);
+    expect(envio.bloques.map((bloque) => bloque.programa))
       .toEqual(["Programa dos", "Programa uno"]);
+    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa dos · 11:00");
+    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa uno · 11:00");
+    expect(envio.texto.match(/━━━━━━━━━━/g)).toHaveLength(1);
   });
 
   it("dos llamadas seguidas leen Meta una sola vez", async () => {
@@ -221,7 +233,7 @@ describe("endpoint de maquina del semaforo", () => {
     expect(segunda.sincronizacion).toMatchObject({ estado: "reciente" });
   });
 
-  it("si falla el semaforo de un programa conserva el otro envio", async () => {
+  it("si falla el semaforo de un programa conserva su bloque y el del otro", async () => {
     const roto = await crearPrograma("roto");
     await crearPrograma("sano");
     const original = semaforo.semaforoDelPrograma;
@@ -231,23 +243,30 @@ describe("endpoint de maquina del semaforo", () => {
     });
 
     const respuesta = await cuerpo();
-    const envios = respuesta.envios as Array<{
-      programa: string; metricas: unknown[]; error: string | null;
+    const [envio] = respuesta.envios as Array<{
+      texto: string;
+      bloques: Array<{ programa: string; metricas: unknown[]; error: string | null }>;
     }>;
 
-    expect(envios.find((envio) => envio.programa === "Programa roto")).toMatchObject({
+    expect(respuesta.envios).toHaveLength(1);
+    expect(envio.bloques.find((bloque) => bloque.programa === "Programa roto")).toMatchObject({
       metricas: [],
       error: "No se pudo calcular el semáforo de este programa.",
     });
-    expect(envios.find((envio) => envio.programa === "Programa sano")).toMatchObject({
+    expect(envio.bloques.find((bloque) => bloque.programa === "Programa sano")).toMatchObject({
+      metricas: [{ metrica: "costo_por_agenda" }],
       error: null,
     });
+    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa roto · 11:00");
+    expect(envio.texto).toContain("⚠️ No se pudo calcular el semáforo de este programa.");
+    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa sano · 11:00");
+    expect(envio.texto).toContain("Costo por agenda");
   });
 });
 
 const LLAVES_PERMITIDAS = new Set([
   "generadoEn", "sincronizacion", "estado", "ultimaFoto", "envios", "configuracion",
-  "programa", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
+  "bloques", "programa", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendas", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "ayerALaMismaHora", "dia",
   "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "notas", "texto",
@@ -289,9 +308,13 @@ describe("lista blanca del contrato", () => {
   it("rechaza destino aunque antes perteneciera al contrato", async () => {
     await crearPrograma("contrato");
     const respuesta = await cuerpo();
+    const [envio] = respuesta.envios as Array<{ bloques: object[] }>;
     const adulterada = {
       ...respuesta,
-      envios: [{ ...(respuesta.envios as object[])[0], destino: "grupo@g.us" }],
+      envios: [{
+        ...(respuesta.envios as object[])[0],
+        bloques: [{ ...envio.bloques[0], destino: "grupo@g.us" }],
+      }],
     };
 
     expect(() => exigirListaBlanca(adulterada)).toThrow("Llave no permitida: destino");

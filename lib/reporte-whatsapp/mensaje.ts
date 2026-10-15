@@ -17,10 +17,8 @@ const MOTIVO = {
   sin_referencia: "Sin referencia para comparar",
 } as const;
 
-type Envio = Pick<
-  RespuestaSemaforo["envios"][number],
-  "programa" | "tipo" | "hora" | "enlaceHub" | "metricas" | "error"
->;
+type Bloque = RespuestaSemaforo["envios"][number]["bloques"][number];
+type Envio = Bloque & { hora: string };
 type Sincronizacion = RespuestaSemaforo["sincronizacion"];
 type Metrica = Envio["metricas"][number];
 
@@ -70,6 +68,14 @@ export function enlaceAlHub(origen: string, slug: string): string {
   return `${origen}${rutaDePrograma(slug, "hub")}?seccion=pauta`;
 }
 
+export function avisoDeErrorDeSincronizacion(
+  sincronizacion: Sincronizacion,
+): string | null {
+  if (sincronizacion?.estado !== "error") return null;
+  const hora = sincronizacion.ultimaFoto ? horaEnBogota(sincronizacion.ultimaFoto) : null;
+  return `⚠️ No se pudo leer Meta; cifras de la última foto${hora ? ` (${hora})` : ""}`;
+}
+
 export function armarMensaje(envio: Envio, sincronizacion: Sincronizacion): string {
   const titulo = envio.tipo === "cierre" ? "Cierre del día" : "Semáforo de pauta";
   const lineas = [`🚦 ${titulo} · ${envio.programa} · ${envio.hora}`];
@@ -79,10 +85,20 @@ export function armarMensaje(envio: Envio, sincronizacion: Sincronizacion): stri
     for (const metrica of envio.metricas) lineas.push(...lineasMetrica(metrica, envio.tipo));
   }
 
-  if (sincronizacion?.estado === "error") {
-    const hora = sincronizacion.ultimaFoto ? horaEnBogota(sincronizacion.ultimaFoto) : null;
-    lineas.push(`⚠️ No se pudo leer Meta; cifras de la última foto${hora ? ` (${hora})` : ""}`);
-  }
+  const avisoSincronizacion = avisoDeErrorDeSincronizacion(sincronizacion);
+  if (avisoSincronizacion) lineas.push(avisoSincronizacion);
   lineas.push(`Ver en el Hub: ${envio.enlaceHub}`);
   return lineas.join("\n");
+}
+
+export function armarMensajeDeLaHora(
+  bloques: Bloque[],
+  hora: string,
+  sincronizacion: Sincronizacion,
+): string {
+  const texto = bloques
+    .map((bloque) => armarMensaje({ ...bloque, hora }, null))
+    .join("\n\n━━━━━━━━━━\n\n");
+  const avisoSincronizacion = avisoDeErrorDeSincronizacion(sincronizacion);
+  return avisoSincronizacion ? `${texto}\n\n${avisoSincronizacion}` : texto;
 }

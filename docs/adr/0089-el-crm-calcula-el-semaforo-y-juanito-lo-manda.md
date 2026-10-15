@@ -102,3 +102,11 @@ columna `destino` (migración 0087) y la llave del contrato. Las horas válidas 
 no una lista de negocio) y Juanito pregunta **cada hora en punto** (`0 * * * 1-5`): una hora nueva no exige tocar
 Juanito. La trayectoria del cierre sale de las horas configuradas del reporte más la del cierre.
 
+## Enmienda 15-oct (Mani, ticket 269): un mensaje por hora
+
+A cada hora sale **un solo** mensaje al grupo con los bloques de todos los programas que tocan, en orden de nombre y
+separados por `━━━━━━━━━━`. El endpoint devuelve a lo sumo un envío (`hora`, `texto`, `bloques`); cada bloque es el
+de `armarMensaje` y el aviso de que Meta no se pudo leer va una sola vez al final (`armarMensajeDeLaHora`). Un
+programa que falla deja su error en su bloque y los demás salen igual. La vista previa de Programa › General sigue
+mostrando el bloque del programa.
+
