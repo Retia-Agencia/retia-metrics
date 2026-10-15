@@ -215,8 +215,9 @@ describe("endpoint de maquina del semaforo", () => {
     expect(respuesta.envios).toHaveLength(1);
     expect(envio.bloques.map((bloque) => bloque.programa))
       .toEqual(["Programa dos", "Programa uno"]);
-    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa dos · 11:00");
-    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa uno · 11:00");
+    expect(envio.texto.match(/🚦 Semáforo de pauta · 11:00/g)).toHaveLength(1);
+    expect(envio.texto).toContain("*Programa dos*\n");
+    expect(envio.texto).toContain("*Programa uno*\n");
     expect(envio.texto.match(/━━━━━━━━━━/g)).toHaveLength(1);
   });
 
@@ -257,9 +258,9 @@ describe("endpoint de maquina del semaforo", () => {
       metricas: [{ metrica: "costo_por_agenda" }],
       error: null,
     });
-    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa roto · 11:00");
+    expect(envio.texto).toContain("*Programa roto*\n⚠️");
     expect(envio.texto).toContain("⚠️ No se pudo calcular el semáforo de este programa.");
-    expect(envio.texto).toContain("🚦 Semáforo de pauta · Programa sano · 11:00");
+    expect(envio.texto).toContain("*Programa sano*\n");
     expect(envio.texto).toContain("Costo por agenda");
   });
 });

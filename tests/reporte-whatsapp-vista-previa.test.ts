@@ -70,14 +70,14 @@ describe("vista previa del reporte por WhatsApp", () => {
     });
   });
 
-  it("arma el reporte del dia con el enlace al Hub", async () => {
+  it("arma el reporte del dia con el enlace al CRM", async () => {
     const programa = await crearPrograma("uno");
 
     const resultado = await vista(programa);
 
     expect(resultado.aviso).toBeNull();
     expect(resultado.dia).toMatch(/^🚦 Semáforo de pauta ·/);
-    expect(resultado.dia).toMatch(/https:\/\/crm\.retia\.test\/p\/uno\/hub\?seccion=pauta$/);
+    expect(resultado.dia).toMatch(/CRM: https:\/\/crm\.retia\.test$/);
     expect(resultado.cierre).toBeNull();
   });
 
