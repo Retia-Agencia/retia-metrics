@@ -35,6 +35,13 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
     hechos). Medido: CA tiene 20 envíos en N3 y 111 `utm_id` de campaña, todos en el árbol; TI aún sin `ad_id`.
     Los links orgánicos mandan `ad_id=organic`: centinela, ya no avisa anuncio desconocido.
   - **CI:** rojo una vez (`tests/ficha-deal-lectura.test.ts` no esperaba el campo `idsMeta`); arreglado en `96a4612`.
+  - **Primera corrida del cron con la TRM (Mani lo lanzó a mano):** la TRM quedó (5 publicaciones, 8 a 15-oct, sin
+    huecos; el relleno empieza en el primer gasto, 8-oct). La **pauta falló**: Rosario Gomez ADS (171 anuncios con
+    creativos pesados) rechaza 100 anuncios por página. Arreglo en `a44c55d`: una página que Meta rechaza por pesada
+    se vuelve a pedir con la mitad de filas (mínimo 5). Resincronizado: ok, 446 filas, 6 cuentas, **2 min 18 s**
+    (la función tiene 300 s: si sigue creciendo, partir la corrida por cuenta).
+  - **Abierto (244):** si se carga un gasto anterior a la primera TRM guardada, ese día queda sin tasa (el relleno
+    solo mira 7 días atrás una vez la tabla tiene filas). Cambio chico en `leerTrm`, sin decidir.
   - **Lecciones:** un `Monitor` en este equipo corre en zsh (sin `declare -A` ni separación de palabras): escribirlo
     con `bash -c`. El hook de la bóveda bloquea un `cd` al checkout principal desde un worktree: integrar con
     `git -C <principal>`.
