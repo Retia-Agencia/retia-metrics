@@ -8,11 +8,14 @@
  * token de rol `owner`, que ve las citas de todos los closers de su organizacion):
  *
  *   1. `GET /users/me` para saber la URI de la organizacion del token.
- *   2. `GET /scheduled_events?organization=...&invitee_email=...` acota por el correo
- *      del lead (viene en el mismo envio). NO se filtra por estado: una cita cancelada
- *      tiene que verse (una re-agenda no debe abrir una llamada muerta).
- *   3. Por cada evento, `GET <event_uri>/invitees` y se busca el invitado cuyo uuid
- *      coincide EXACTAMENTE con el del link.
+ *   2. `GET /scheduled_events?organization=...&invitee_email=...` acota primero por el
+ *      correo del lead (viene en el mismo envio). Si ahi no aparece el uuid, busca entre
+ *      los eventos recientes de la organizacion: el 9-oct y el 15-oct aparecieron casos
+ *      donde la persona escribio un correo en el formulario y otro en Calendly. NO se
+ *      filtra por estado: una cita cancelada tiene que verse (una re-agenda no debe abrir
+ *      una llamada muerta).
+ *   3. Por cada evento candidato, `GET <event_uri>/invitees` y se busca el invitado cuyo
+ *      uuid coincide EXACTAMENTE con el del link, tambien en el fallback.
  *
  * El emparejamiento es por uuid, nunca solo por correo: un correo puede tener varias
  * citas y tomar la equivocada es invisible (ADR 0057 punto 4). Se devuelve la cita con
@@ -78,6 +81,8 @@ export interface ParametrosCita {
   uuidInvitado: string;
   /** `fetch` inyectable; por defecto el global. */
   fetch?: FetchLike;
+  /** Instante de referencia para acotar el fallback; por defecto, ahora. */
+  ahora?: Date;
 }
 
 /**
@@ -181,16 +186,88 @@ function uuidDeUri(uri: unknown): string | null {
   return partes[partes.length - 1] ?? null;
 }
 
+interface EventoCalendly {
+  uri?: unknown;
+  start_time?: unknown;
+  created_at?: unknown;
+  status?: unknown;
+  event_memberships?: unknown;
+}
+
+/** Busca el uuid exacto entre los invitados de un evento y arma la cita compartida. */
+async function citaDelEvento(
+  fetchImpl: FetchLike,
+  token: string,
+  evento: EventoCalendly,
+  uuidInvitado: string,
+): Promise<CitaDeCalendly | null> {
+  const eventUri = typeof evento.uri === "string" ? evento.uri : null;
+  if (!eventUri) return null;
+
+  const lista = await coleccionCompleta(
+    fetchImpl,
+    `${eventUri}/invitees?count=100`,
+    token,
+    "invitados",
+  );
+
+  for (const invitado of lista) {
+    if (typeof invitado !== "object" || invitado === null) continue;
+    const inv = invitado as { uri?: unknown; status?: unknown };
+    if (uuidDeUri(inv.uri) !== uuidInvitado) continue;
+
+    const inicio = evento.start_time;
+    if (typeof inicio !== "string") {
+      throw new ErrorDeCalendly("El evento de Calendly no trae fecha de inicio.");
+    }
+    const fecha = new Date(inicio);
+    if (Number.isNaN(fecha.getTime())) {
+      throw new ErrorDeCalendly(`Calendly devolvió una fecha inválida: ${inicio}.`);
+    }
+    // Cancelada si el evento O el invitado quedaron en `canceled`. Cualquiera de las
+    // dos formas basta: un lead que reagenda cancela su invitado, y el organizador
+    // que cancela la reunion marca el evento.
+    const cancelada = evento.status === "canceled" || inv.status === "canceled";
+    return { inicio: fecha, cancelada, correoHost: correoDelHost(evento) };
+  }
+
+  return null;
+}
+
+/** Busca con hasta cinco consultas simultaneas y no toma mas trabajo al encontrar. */
+async function citaEnEventosConcurrentes(
+  eventos: EventoCalendly[],
+  buscar: (evento: EventoCalendly) => Promise<CitaDeCalendly | null>,
+): Promise<CitaDeCalendly | null> {
+  let siguiente = 0;
+  let encontrada: CitaDeCalendly | null = null;
+
+  async function trabajador(): Promise<void> {
+    while (!encontrada) {
+      const indice = siguiente++;
+      const evento = eventos[indice];
+      if (!evento) return;
+      const cita = await buscar(evento);
+      if (cita) encontrada = cita;
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(5, eventos.length) }, () => trabajador()));
+  return encontrada;
+}
+
 /**
  * Devuelve la cita (inicio + si esta cancelada) cuyo invitado tiene EXACTAMENTE el
- * uuid dado, o `null` si no aparece entre los eventos del correo. Empareja por uuid,
- * nunca solo por correo. Un fallo de la API lanza `ErrorDeCalendly`.
+ * uuid dado, o `null` si no aparece ni entre los eventos del correo ni entre los
+ * eventos recientes de la organizacion. Empareja por uuid, nunca solo por correo. Un
+ * fallo de la API lanza `ErrorDeCalendly`.
  */
 export async function citaDeCalendly({
   token,
   correo,
   uuidInvitado,
   fetch: fetchInyectado,
+  ahora = new Date(),
 }: ParametrosCita): Promise<CitaDeCalendly | null> {
   const fetchImpl = fetchInyectado ?? (globalThis.fetch as unknown as FetchLike);
   if (!fetchImpl) throw new ErrorDeCalendly("No hay implementación de fetch disponible.");
@@ -201,42 +278,44 @@ export async function citaDeCalendly({
     organizacion,
   )}&invitee_email=${encodeURIComponent(correo)}&count=100`;
   const coleccion = await coleccionCompleta(fetchImpl, url, token, "eventos");
+  const eventosEscaneados = new Set<string>();
 
   for (const evento of coleccion) {
     if (typeof evento !== "object" || evento === null) continue;
-    const e = evento as { uri?: unknown; start_time?: unknown; status?: unknown; event_memberships?: unknown };
+    const e = evento as EventoCalendly;
     const eventUri = typeof e.uri === "string" ? e.uri : null;
     if (!eventUri) continue;
-
-    const lista = await coleccionCompleta(
-      fetchImpl,
-      `${eventUri}/invitees?count=100`,
-      token,
-      "invitados",
-    );
-
-    for (const invitado of lista) {
-      if (typeof invitado !== "object" || invitado === null) continue;
-      const inv = invitado as { uri?: unknown; status?: unknown };
-      if (uuidDeUri(inv.uri) === uuidInvitado) {
-        // El invitado del uuid vive en este evento: su fecha es la del evento.
-        const inicio = e.start_time;
-        if (typeof inicio !== "string") {
-          throw new ErrorDeCalendly("El evento de Calendly no trae fecha de inicio.");
-        }
-        const fecha = new Date(inicio);
-        if (Number.isNaN(fecha.getTime())) {
-          throw new ErrorDeCalendly(`Calendly devolvió una fecha inválida: ${inicio}.`);
-        }
-        // Cancelada si el evento O el invitado quedaron en `canceled`. Cualquiera de las
-        // dos formas basta: un lead que reagenda cancela su invitado, y el organizador
-        // que cancela la reunion marca el evento.
-        const cancelada = e.status === "canceled" || inv.status === "canceled";
-        return { inicio: fecha, cancelada, correoHost: correoDelHost(e) };
-      }
-    }
+    eventosEscaneados.add(eventUri);
+    const cita = await citaDelEvento(fetchImpl, token, e, uuidInvitado);
+    if (cita) return cita;
   }
 
-  // El uuid no aparece entre las citas del correo: la cita no se inventa.
+  const dia = 24 * 60 * 60 * 1000;
+  const desde = new Date(ahora.getTime() - 14 * dia);
+  const hastaInicio = new Date(ahora.getTime() + 60 * dia);
+  const hastaCreacion = ahora.getTime() + dia;
+  const urlRecientes = `${BASE}/scheduled_events?organization=${encodeURIComponent(
+    organizacion,
+  )}&min_start_time=${encodeURIComponent(desde.toISOString())}&max_start_time=${encodeURIComponent(
+    hastaInicio.toISOString(),
+  )}&count=100`;
+  const recientes = await coleccionCompleta(fetchImpl, urlRecientes, token, "eventos recientes");
+  const candidatos = recientes
+    .filter((evento): evento is EventoCalendly => typeof evento === "object" && evento !== null)
+    .filter((evento) => typeof evento.uri === "string" && !eventosEscaneados.has(evento.uri))
+    .map((evento) => ({ evento, creada: new Date(String(evento.created_at)).getTime() }))
+    .filter(({ creada }) => !Number.isNaN(creada) && creada >= desde.getTime() && creada <= hastaCreacion)
+    .sort((a, b) => b.creada - a.creada)
+    .map(({ evento }) => evento);
+
+  const cita = await citaEnEventosConcurrentes(candidatos.slice(0, 200), (evento) =>
+    citaDelEvento(fetchImpl, token, evento, uuidInvitado),
+  );
+  if (cita) return cita;
+  if (candidatos.length > 200) {
+    throw new ErrorDeCalendly(
+      "Demasiadas citas recientes para buscar la del enlace; revísala a mano.",
+    );
+  }
   return null;
 }

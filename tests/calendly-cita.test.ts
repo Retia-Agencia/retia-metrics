@@ -50,6 +50,26 @@ function fetchFalso(mapa: Record<string, unknown>): FetchLike {
   }) as unknown as FetchLike;
 }
 
+/** Fetch por tipo de listado y URI exacta de evento, para escenarios con varios eventos. */
+function fetchFalsoPorUrl(mapa: Record<string, unknown>): FetchLike {
+  return vi.fn(async (url: string) => {
+    if (url.endsWith("/users/me") && mapa["/users/me"] !== undefined) {
+      return ok(mapa["/users/me"]);
+    }
+    if (url.includes("/invitees")) {
+      const clave = url.split("?")[0];
+      if (mapa[clave] !== undefined) return ok(mapa[clave]);
+    }
+    if (url.includes("/scheduled_events?")) {
+      const clave = url.includes("invitee_email=")
+        ? "/scheduled_events?correo"
+        : "/scheduled_events?recientes";
+      if (mapa[clave] !== undefined) return ok(mapa[clave]);
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  }) as unknown as FetchLike;
+}
+
 describe("uuidInvitadoDelLink", () => {
   it("saca el uuid de un link de invitee", () => {
     const url = "https://calendly.com/d/abc-def/reunion-retia/invitees/UUID-123";
@@ -252,8 +272,12 @@ describe("citaDeCalendly", () => {
     const fetch = vi.fn(async (url: string) => {
       if (url.includes("/users/me")) return ok({ resource: { current_organization: ORG } });
       if (url.includes("/scheduled_events")) {
-        expect(url).toContain("invitee_email=lead%40correo.com");
         expect(url).toContain(`organization=${encodeURIComponent(ORG)}`);
+        if (url.includes("invitee_email=")) {
+          expect(url).toContain("invitee_email=lead%40correo.com");
+        } else {
+          expect(url).toContain("min_start_time=");
+        }
         return ok({ collection: [] });
       }
       throw new Error(`URL inesperada: ${url}`);
@@ -293,5 +317,175 @@ describe("citaDeCalendly — paginacion", () => {
     });
     const cita = await citaDeCalendly({ token: "t", correo: "a@b.co", uuidInvitado: "UUID-123", fetch });
     expect(cita?.inicio.toISOString()).toBe("2026-10-01T14:00:00.000Z");
+  });
+});
+
+describe("citaDeCalendly — fallback por uuid en eventos recientes", () => {
+  const AHORA = new Date("2026-10-15T12:00:00.000Z");
+  const EV2 = "https://api.calendly.com/scheduled_events/EV2";
+  const usuario = { resource: { current_organization: ORG } };
+
+  it("encuentra por uuid una cita reciente con otro correo y conserva inicio y host", async () => {
+    const fetch = fetchFalsoPorUrl({
+      "/users/me": usuario,
+      "/scheduled_events?correo": { collection: [] },
+      "/scheduled_events?recientes": {
+        collection: [
+          {
+            uri: EV2,
+            created_at: "2026-10-14T10:00:00Z",
+            start_time: "2026-10-20T15:30:00Z",
+            event_memberships: [{ user_email: "Closer@Retia.co" }],
+          },
+        ],
+      },
+      [`${EV2}/invitees`]: {
+        collection: [{ uri: `${EV2}/invitees/UUID-123`, email: "otro@correo.com" }],
+      },
+    });
+
+    const cita = await citaDeCalendly({
+      token: "tok",
+      correo: "formulario@correo.com",
+      uuidInvitado: "UUID-123",
+      fetch,
+      ahora: AHORA,
+    });
+
+    expect(cita).toEqual({
+      inicio: new Date("2026-10-20T15:30:00Z"),
+      cancelada: false,
+      correoHost: "closer@retia.co",
+    });
+    const urlRecientes = vi.mocked(fetch).mock.calls
+      .map(([url]) => url)
+      .find((url) => url.includes("min_start_time="));
+    expect(urlRecientes).toContain("min_start_time=2026-10-01T12%3A00%3A00.000Z");
+    expect(urlRecientes).toContain("max_start_time=2026-12-14T12%3A00%3A00.000Z");
+    expect(urlRecientes).not.toContain("status=");
+  });
+
+  it("ignora un evento creado fuera de la ventana", async () => {
+    const fetch = fetchFalsoPorUrl({
+      "/users/me": usuario,
+      "/scheduled_events?correo": { collection: [] },
+      "/scheduled_events?recientes": {
+        collection: [
+          { uri: EV2, created_at: "2026-09-30T11:59:59Z", start_time: "2026-10-20T15:30:00Z" },
+        ],
+      },
+    });
+
+    await expect(
+      citaDeCalendly({
+        token: "tok",
+        correo: "lead@correo.com",
+        uuidInvitado: "UUID-123",
+        fetch,
+        ahora: AHORA,
+      }),
+    ).resolves.toBeNull();
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining(`${EV2}/invitees`), expect.anything());
+  });
+
+  it("no empareja por correo ni nombre si el uuid es otro", async () => {
+    const fetch = fetchFalsoPorUrl({
+      "/users/me": usuario,
+      "/scheduled_events?correo": { collection: [] },
+      "/scheduled_events?recientes": {
+        collection: [
+          { uri: EV2, created_at: "2026-10-15T10:00:00Z", start_time: "2026-10-20T15:30:00Z" },
+        ],
+      },
+      [`${EV2}/invitees`]: {
+        collection: [
+          { uri: `${EV2}/invitees/OTRO`, email: "lead@correo.com", name: "La misma persona" },
+        ],
+      },
+    });
+
+    await expect(
+      citaDeCalendly({
+        token: "tok",
+        correo: "lead@correo.com",
+        uuidInvitado: "UUID-123",
+        fetch,
+        ahora: AHORA,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("lanza ErrorDeCalendly si hay mas de 200 candidatos y no encuentra el uuid", async () => {
+    const eventos = Array.from({ length: 201 }, (_, indice) => ({
+      uri: `https://api.calendly.com/scheduled_events/MASIVO-${indice}`,
+      created_at: new Date(AHORA.getTime() - indice * 1_000).toISOString(),
+      start_time: "2026-10-20T15:30:00Z",
+    }));
+    const fetch = vi.fn(async (url: string) => {
+      if (url.endsWith("/users/me")) return ok(usuario);
+      if (url.includes("invitee_email=")) return ok({ collection: [] });
+      if (url.includes("min_start_time=")) return ok({ collection: eventos });
+      if (url.includes("/invitees?")) return ok({ collection: [] });
+      throw new Error(`URL inesperada: ${url}`);
+    }) as unknown as FetchLike;
+
+    await expect(
+      citaDeCalendly({
+        token: "tok",
+        correo: "lead@correo.com",
+        uuidInvitado: "NO-EXISTE",
+        fetch,
+        ahora: AHORA,
+      }),
+    ).rejects.toEqual(
+      new ErrorDeCalendly("Demasiadas citas recientes para buscar la del enlace; revísala a mano."),
+    );
+  });
+
+  it("no consulta el fallback cuando encuentra el uuid en el paso por correo", async () => {
+    const fetch = fetchFalsoPorUrl({
+      "/users/me": usuario,
+      "/scheduled_events?correo": {
+        collection: [{ uri: EVENT_URI, start_time: "2026-10-20T15:30:00Z" }],
+      },
+      [`${EVENT_URI}/invitees`]: {
+        collection: [{ uri: `${EVENT_URI}/invitees/UUID-123` }],
+      },
+    });
+
+    await expect(
+      citaDeCalendly({
+        token: "tok",
+        correo: "lead@correo.com",
+        uuidInvitado: "UUID-123",
+        fetch,
+        ahora: AHORA,
+      }),
+    ).resolves.not.toBeNull();
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining("min_start_time="), expect.anything());
+  });
+
+  it("marca cancelada una cita encontrada por fallback", async () => {
+    const fetch = fetchFalsoPorUrl({
+      "/users/me": usuario,
+      "/scheduled_events?correo": { collection: [] },
+      "/scheduled_events?recientes": {
+        collection: [
+          { uri: EV2, created_at: "2026-10-15T10:00:00Z", start_time: "2026-10-20T15:30:00Z" },
+        ],
+      },
+      [`${EV2}/invitees`]: {
+        collection: [{ uri: `${EV2}/invitees/UUID-123`, status: "canceled" }],
+      },
+    });
+
+    const cita = await citaDeCalendly({
+      token: "tok",
+      correo: "lead@correo.com",
+      uuidInvitado: "UUID-123",
+      fetch,
+      ahora: AHORA,
+    });
+    expect(cita?.cancelada).toBe(true);
   });
 });
