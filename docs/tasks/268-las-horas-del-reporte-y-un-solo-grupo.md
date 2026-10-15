@@ -53,7 +53,7 @@ Las horas ya viven en el CRM (265) y la base acepta de 0 a 23 (`reportes_whatsap
       `.env.bak-<fecha>`) y compose; tests; suite en Linux con la línea base; deploy `alcance: todo` mirando antes
       los pushes de closers agendados (`calendly_pushes`, ver el handoff del CRM del 15-oct).
 - [x] Recorrido local: cargar 8, 11, 14, 17 y cierre 20; la vista previa del cierre dice 20:00.
-- [ ] En producción, con el ok de Mani: el reporte de los tres programas con esas horas, encendido.
+- [x] En producción, con el ok de Mani: el reporte de los tres programas con esas horas, encendido.
 
 ## Fuera
 

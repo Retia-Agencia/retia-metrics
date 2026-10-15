@@ -27,7 +27,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
-- **2026-10-15 (tarde; sesión lanzada por la orquestadora): 268 en `main` (`8e7b463`, CI verde), Juanito desplegado. La 0087 y el encendido esperan el ok de Mani. 269 también en `main`.**
+- **2026-10-15 (tarde; sesión lanzada por la orquestadora): 268 en `main` (`8e7b463`, CI verde), Juanito desplegado. 269 también en `main`. Con el ok de Mani: 0087 aplicada y los tres reportes encendidos.**
   - **CRM (Codex con brief, una pasada):** zod de horas 0 a 23; la pantalla elige horas con chips que se quitan y un
     select de 00:00 a 23:00 sin las ya elegidas; `semaforoDelPrograma` recibe `horas?` y la trayectoria usa las
     horas del reporte más la del cierre (sin `horas`, el Hub, toda hora del día hasta ahora; ya no 6 a 19).
@@ -46,6 +46,10 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
     `armarMensajeDeLaHora` une los bloques de `armarMensaje` con `━━━━━━━━━━` y pone el aviso de Meta una sola vez.
     Juanito no cambia (manda `texto`); su log de "envío sin texto" nombra `envio.programa`, que ya no existe: solo
     afecta ese log. Recorrido: `dev:local` con dos reportes a las 14 h devolvió un envío con los dos bloques.
+  - **Producción (ok de Mani):** 0087 aplicada (`drizzle-kit migrate`, ref verificado). Los tres programas encendidos
+    por `guardarReporte` con `actorDelScript` (con `change_log`): 8, 11, 14, 17 y cierre 20. El endpoint de
+    producción ya responde sin `destino` y con los tres en `configuracion`. **Por verificar:** que a las 17:00 llegue
+    un solo mensaje con los tres bloques al grupo "Alertas Paid Media - Retia".
   - **Lección:** las coordenadas del navegador integrado van en el marco de la captura (800 px), no en px CSS; y
     un clic sobre el disparador de un `Select` ya abierto escoge la opción alineada con él (00:00), no es un bug.
 - **2026-10-15 (tarde; cierre de la sesión orquestadora): umbrales provisionales, 269 y la lista para Pauta.**
