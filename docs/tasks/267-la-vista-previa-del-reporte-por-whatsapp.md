@@ -3,7 +3,7 @@ id: 267
 etapa: hub
 serves: "ADR 0089 (el CRM calcula, Juanito manda) · pedido de Mani del 15-oct: la pantalla deja claro qué sale en las alertas"
 depends: [259, 260, 266]
-status: en curso
+status: done
 ---
 
 # 267 — La vista previa del reporte por WhatsApp
@@ -42,6 +42,6 @@ debe dejar claro qué sale en las alertas"*).
 - [x] El endpoint devuelve `texto` y el test de la lista blanca lo admite y sigue mordiendo con una llave de más.
 - [x] La vista previa sin romperse con un programa sin reporte: `tests/reporte-whatsapp-vista-previa.test.ts` (la función que usa la ficha; `tests/paginas.test.ts` sigue cubriendo la guarda).
 - [x] Recorrido local: encender el reporte, guardar y ver el mensaje; `npm run build` (toca un componente cliente).
-- [ ] Juanito (PR aparte en su repo, con su convención): manda `envio.texto`, borra `src/semaforo/mensaje.js` y
+- [x] Juanito (PR aparte en su repo, con su convención): manda `envio.texto`, borra `src/semaforo/mensaje.js` y
       ajusta sus tests; suite en Linux con la línea base; despliegue como el PR #28 (merge commit + workflow
       `alcance: todo`, esperando a que no haya pushes de closers en los minutos siguientes).

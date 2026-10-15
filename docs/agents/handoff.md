@@ -11,17 +11,11 @@
 ```
 Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión orquesta: Codex implementa en
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
-Lee AGENTS.md, docs/hub.md y la entrada del 15-oct (mañana) en Memory.
+Lee AGENTS.md, docs/hub.md y la entrada del 15-oct (266 y 267) en Memory.
 
-Semáforo por WhatsApp: 259 done (en producción) y 260 desplegado en Juanito (job activo, aún sin envíos porque
-ningún programa tiene el reporte encendido). En orden:
-1. 266 (el Paid Trafficker ve Programa): ya implementado y commiteado en la rama local `t266` (`ca5cdf0`, worktree
-   .claude/worktrees/t266), typecheck, lint y build ok. Falta: rebase sobre main, recorrido local con un paid
-   trafficker (ve General y Ventas, edita costo por agenda, no cupos) y forjar la server action de un objetivo de
-   cupos desde el paid trafficker (403, base quieta); luego empujar a main y esperar el CI.
-2. 267 (vista previa del mensaje; el texto lo arma el CRM y Juanito lo manda tal cual): ticket con las decisiones;
-   escribir el brief y despachar a Codex encima de main con el 266 ya integrado (tocan la misma página). Después,
-   el PR de Juanito que manda `envio.texto` (ver el ticket; deploy como el #28).
+Semáforo por WhatsApp completo: 259 (endpoint), 260 (Juanito), 266 (el Paid Trafficker ve Programa y edita las
+metas de pauta) y 267 (el texto lo arma el CRM; vista previa en Programa › General) están en producción con CI
+verde. Juanito manda `envio.texto` (PR #33, desplegado 15-oct). Lo que sigue es operación, no código.
 Pendientes de Mani: cargar la meta del costo por agenda y encender el reporte (pasos en Memory); respuestas de
 Pauta y Gerencia (HQ-1 a HQ-4). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct), 247 (`ad_id` de Tactical).
 
@@ -32,6 +26,26 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 ```
 
 ## Memory
+
+- **2026-10-15 (mañana, segunda sesión; Claude orquesta): 266 y 267 done, Juanito manda el texto del CRM.**
+  - **266 (`6250249`, CI verde):** rebase sobre main; recorrido como `pauta@retia.local`: ve General y Ventas, sin
+    comisión, Equipo por URL cae a General, crea "Costo por agenda" (el selector solo ofrece las de pauta). Forja de
+    la server action con la cabecera `Next-Action` capturada: `cupos` con área, editar la fila de costo por agenda
+    a `cupos` y `conversion_agenda_venta` → "Solo quien administra cambia este objetivo.", `objetivos` y
+    `change_log` quietos. Arreglo extra: "Ir a Formularios" (lleva a Captación) solo para quien configura.
+  - **267 (`5c9da2d`, CI verde, vivo en producción):** Codex lo hizo con el brief (una pasada). `armarMensaje` y
+    `enlaceAlHub` en `lib/reporte-whatsapp/mensaje.ts`, `vistaPreviaDelReporte` en `vista-previa.ts`,
+    `horaEnBogota` en `lib/format.ts`; el contrato gana `texto` (fila de AGENTS.md actualizada). Recorrido local:
+    sin reporte da el aviso; al cambiar algo, "Guarda para ver…"; guardado, muestra día y cierre con la meta.
+  - **Juanito (PR #33, merge `3682a0b`, §18.CS):** manda `envio.texto`, borra `src/semaforo/mensaje.js` (queda
+    huérfano en el VPS: rsync no borra fuera de `dashboard/`), un envío sin texto se salta. Suite en Linux en un
+    contenedor desechable con la imagen del bot y `src`/`test` de la rama montados: solo los 2 rojos de la línea
+    base (los 3 de `dashboard` necesitan montar esa carpeta: 30/30). Desplegado con `alcance: todo` a las 15:00
+    UTC por decisión de Mani sin esperar la ventana: los pushes que vencen durante el reinicio salen al reconectar
+    (el delivery corre cada minuto; solo se descarta un recordatorio previo cuya llamada ya empezó). Verificado: los 9 pushes de 15:05 a 15:15 UTC salieron
+    a tiempo; WhatsApp reconectó sin QR y `[SemaforoRetia] Semáforo activo`.
+  - **Lecciones:** `codex-busy.sh` dio FREE con el job corriendo (fase "verifying"); `codex-companion.mjs status`
+    es la fuente de verdad. Con el swap en 12 GB los tests de base quedaron para el CI, que los pasó.
 
 - **2026-10-15 (mañana; Mani + Claude, sesión central del semáforo): 259 done, 260 desplegado en Juanito, 266 implementado sin empujar, 267 escrito.**
   - **259 (`f98d2b7`, CI verde):** `POST /api/semaforo/envios` en producción (`https://retia-metrics-seven.vercel.app`),
