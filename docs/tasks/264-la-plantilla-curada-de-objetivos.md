@@ -50,3 +50,17 @@ elegir aunque la decide el CRM, y aparecen métricas que nada usa. La pantalla p
 ## Notas
 
 Sin migración: la tabla de la 0083 no cambia.
+
+---
+
+## Nota de cierre (15-oct, Codex + central)
+
+- `DefinicionMetricaObjetivo` lleva descripción, unidad, si admite área y lector; `METRICAS_OFRECIDAS` = las que
+  tienen lector: **cupos (122) y costo por agenda (258)**. El servidor rechaza crear o editar una métrica sin lector
+  (400) e ignora la moneda y el área que lleguen en el cuerpo: la moneda sale de la unidad (`monedaDeMetrica`).
+- La plantilla escribe los umbrales en colores y la tabla los lee igual ("hasta 70.000 COP verde · hasta 93.000 COP
+  amarillo"). El valor al lado es el costo por agenda de los **últimos 7 días hábiles cerrados** (la función del 258).
+- **Recorrido con clic** (base local, gerente): editar el umbral a 70.000/93.000 guarda y la tabla lo dice; la vista
+  previa muestra "Últimos 7 días hábiles: 157.500 COP → saldría rojo". Defecto encontrado y arreglado: con la meta
+  vacía, la vista previa inventaba "rojo" (leía el vacío como 0).
+- Falta la validación de Mani (que alguien que no conoce el modelo lo llene sin preguntar).

@@ -56,3 +56,27 @@ Paid, por el envío que abrió el deal, ADR 0060), no el embudo ni sus pantallas
 - **Abierto, HQ-4:** el gasto del programa es el de todas sus campañas o solo el de las que buscan agendas. Hasta que
   Pauta lo decida, la v1 usa **todas** y la nota de calidad lo dice.
 - Done cuando de la v1: los tres criterios de arriba, por programa. Los de campaña pasan a la v2.
+
+---
+
+## Nota de cierre de la v1 (15-oct, Codex + central)
+
+- **Dónde vive:** `lib/semaforo/costo-por-agenda.ts` es la única definición del costo por agenda (ADR 0024; el 123
+  la importa, no la reescribe): `costoPorAgenda` (un día; hoy o con `hasta` sale de la última foto por campaña ≤ el
+  instante), `costoPorAgendaDeVentana` (días cerrados, de `gasto_pauta`: `meta_api` más `manual` de Paid) y
+  `costoPorAgendaDeLosUltimosHabiles` (el valor de hoy del 264). `lib/semaforo/color.ts` (puro) tiene las reglas de
+  día y de cierre; `lib/semaforo/semaforo.ts` arma la `MetricaSemaforo` del contrato del 259. El hecho `agenda`
+  aceptó `creadaHasta` (corte por la hora de creación de la cita). `diaHabilAnterior` entró a `lib/dias-habiles.ts`.
+- **Reglas de color** (decididas en el brief): día contra ayer hábil a la misma hora, con la banda amarilla
+  proporcional a la del objetivo (`ref × aceptable/meta`); hoy con agendas y ayer sin = verde; hoy sin y ayer con =
+  rojo; los dos sin = `sin_referencia`; gasto 0 = `sin_pauta`. Cierre contra el objetivo `costo_por_agenda` total de
+  la cohorte activa; 0 agendas con gasto = rojo. Los días seguidos en rojo usan el umbral de hoy (simplificación).
+- **Bug cazado en la revisión:** el cierre de las 18 h leía `gasto_pauta`, que de hoy no existe hasta el cron
+  diario: salía "sin pauta". Ahora hoy siempre sale de las fotos.
+- **Recorrido con clic** (base local, gerente, escritorio y celular, sin errores de consola): con 150.000 COP y 2
+  agendas hoy contra 100.000/1 ayer a la misma hora, la tarjeta dice COP 75.000 (umbral 70.000), "En meta", 2 días
+  hábiles seguidos en rojo y las notas.
+- **Tests:** `tests/semaforo-color.test.ts`, `tests/semaforo-programa.test.ts` (incluido el caso de 30X del 19-sep),
+  `diaHabilAnterior` en `tests/dias-habiles.test.ts`.
+- **Pendiente para la v2:** el detalle por campaña (247) y la etiqueta del color de día ("En meta" se lee como
+  cumplir el umbral, y de día significa "mejor que ayer a esta hora").
