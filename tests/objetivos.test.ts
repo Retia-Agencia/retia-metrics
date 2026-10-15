@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
+  borrarObjetivo,
   copiarObjetivos,
   crearObjetivo,
   editarObjetivo,
@@ -82,6 +83,33 @@ describe("objetivos de la cohorte", () => {
       aceptable: 25,
       moneda: null,
     })).rejects.toMatchObject({ message: "Una métrica de costo necesita moneda.", status: 400 });
+  });
+
+  it("guarda como nulo un aceptable vacío", async () => {
+    const fila = await crearObjetivo(db, actor(), {
+      cohortId,
+      area: null,
+      metrica: "costo_por_agenda",
+      meta: 20,
+      aceptable: "",
+      moneda: "COP",
+    });
+
+    expect(fila.aceptable).toBeNull();
+    const [guardada] = await db.select().from(objetivos).where(eq(objetivos.id, fila.id));
+    expect(guardada.aceptable).toBeNull();
+  });
+
+  it("permite quitar y volver a crear el mismo objetivo", async () => {
+    const fila = await crearObjetivo(db, actor(), cupos("paid", 20));
+
+    await borrarObjetivo(db, actor(), fila.id);
+
+    await expect(crearObjetivo(db, actor(), cupos("paid", 25))).resolves.toMatchObject({
+      area: "paid",
+      metrica: "cupos",
+      meta: 25,
+    });
   });
 
   it("rechaza el aceptable del lado incorrecto", async () => {

@@ -43,6 +43,7 @@ import {
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { cuposSinAsignar, objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { DEFINICION_METRICAS_OBJETIVO, METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
+import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
 
 export const dynamic = "force-dynamic";
 
@@ -166,9 +167,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       : cohortes.map(() => 0);
   const cohortesConObjetivos = cohortes.map((cohorte, i) => {
     const filas = objetivos.filter((objetivo) => objetivo.cohortId === cohorte.id);
-    const anterior = cohortes
-      .filter((otra) => otra.id !== cohorte.id && otra.fechaInicioVentas !== null)
-      .sort((a, b) => b.fechaInicioVentas!.localeCompare(a.fechaInicioVentas!))[0];
+    const anterior = cohorteAnterior(cohortes, cohorte.id);
     return {
       id: cohorte.id,
       codigo: cohorte.codigo,

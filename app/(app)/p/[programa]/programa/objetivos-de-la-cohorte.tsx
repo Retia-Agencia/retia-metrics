@@ -15,8 +15,8 @@ import type {
 import type { MetricaObjetivo } from "@/lib/objetivos/metricas";
 import {
   copiarObjetivosAccion,
-  desactivarObjetivoAccion,
   guardarObjetivoAccion,
+  quitarObjetivoAccion,
   type ResultadoAccionObjetivo,
 } from "./acciones-objetivos";
 
@@ -41,6 +41,18 @@ const NOMBRE_AREA: Record<AreaDeObjetivo, string> = {
   referidos: "Referidos",
 };
 
+const ITEMS_AREA = [
+  { value: "total", label: "Total" },
+  { value: "paid", label: "Paid" },
+  { value: "organico", label: "Orgánico" },
+  { value: "referidos", label: "Referidos" },
+];
+
+const ITEMS_MONEDA = [
+  { value: "COP", label: "COP" },
+  { value: "USD", label: "USD" },
+];
+
 export function ObjetivosDeLaCohorte({
   cohortes,
   objetivos,
@@ -55,6 +67,7 @@ export function ObjetivosDeLaCohorte({
   const predeterminada = cohortes.find((cohorte) => cohorte.estado === "activo")?.id ?? cohortes[0]?.id ?? "";
   const [cohortId, setCohortId] = useState(predeterminada);
   const [editando, setEditando] = useState<ObjetivoDeCohorte | null>(null);
+  const [versionFormulario, setVersionFormulario] = useState(0);
   const [pendiente, startTransition] = useTransition();
   const router = useRouter();
   const cohorte = cohortes.find((fila) => fila.id === cohortId) ?? null;
@@ -63,12 +76,17 @@ export function ObjetivosDeLaCohorte({
     [cohortId, objetivos],
   );
 
-  function ejecutar(accion: () => Promise<ResultadoAccionObjetivo>, mensaje: string) {
+  function ejecutar(
+    accion: () => Promise<ResultadoAccionObjetivo>,
+    mensaje: string,
+    alCompletar?: () => void,
+  ) {
     startTransition(async () => {
       const resultado = await accion();
       if (resultado.ok) {
         toast.success(mensaje);
         setEditando(null);
+        alCompletar?.();
         router.refresh();
       } else {
         toast.error("No se pudo completar", { description: resultado.error });
@@ -87,6 +105,10 @@ export function ObjetivosDeLaCohorte({
           <span className="block">Cohorte</span>
           <Select
             value={cohortId}
+            items={cohortes.map((fila) => ({
+              value: fila.id,
+              label: `${fila.codigo}${fila.estado === "activo" ? " · Activa" : ""}`,
+            }))}
             onValueChange={(valor) => {
               if (valor) {
                 setCohortId(valor);
@@ -148,7 +170,11 @@ export function ObjetivosDeLaCohorte({
             <tbody className="divide-y divide-border">
               {filas.map((fila) => {
                 const definicion = metricas.find((metrica) => metrica.metrica === fila.metrica);
-                const mostrar = (valor: number) => fila.moneda ? monto(valor, fila.moneda) : num(valor, 2);
+                const mostrar = (valor: number) => {
+                  if (fila.moneda) return monto(valor, fila.moneda);
+                  if (fila.metrica === "cupos" || fila.metrica === "agendas_por_dia") return num(valor);
+                  return num(valor, 2);
+                };
                 return (
                   <tr key={fila.id}>
                     <td className="px-2 py-3 font-medium">{definicion?.nombre ?? fila.metrica}</td>
@@ -169,9 +195,9 @@ export function ObjetivosDeLaCohorte({
                             variant="ghost"
                             size="sm"
                             disabled={pendiente}
-                            onClick={() => ejecutar(() => desactivarObjetivoAccion(fila.id), "Objetivo desactivado")}
+                            onClick={() => ejecutar(() => quitarObjetivoAccion(fila.id), "Objetivo quitado")}
                           >
-                            Desactivar
+                            Quitar
                           </Button>
                         </div>
                       </td>
@@ -186,13 +212,19 @@ export function ObjetivosDeLaCohorte({
 
       {editable && cohorte ? (
         <FormularioObjetivo
-          key={`${cohorte.id}-${editando?.id ?? "nuevo"}`}
+          key={`${cohorte.id}-${editando?.id ?? `nuevo-${versionFormulario}`}`}
           cohortId={cohorte.id}
           metricas={metricas}
           objetivo={editando}
           pendiente={pendiente}
           cancelar={editando ? () => setEditando(null) : undefined}
-          guardar={(input) => ejecutar(() => guardarObjetivoAccion(input), editando ? "Objetivo actualizado" : "Objetivo creado")}
+          guardar={(input) =>
+            ejecutar(
+              () => guardarObjetivoAccion(input),
+              editando ? "Objetivo actualizado" : "Objetivo creado",
+              editando ? undefined : () => setVersionFormulario((version) => version + 1),
+            )
+          }
         />
       ) : null}
     </div>
@@ -214,7 +246,7 @@ function FormularioObjetivo({
   guardar: (input: Parameters<typeof guardarObjetivoAccion>[0]) => void;
   cancelar?: () => void;
 }) {
-  const [metrica, setMetrica] = useState<MetricaObjetivo>(objetivo?.metrica ?? "cupos");
+  const [metrica, setMetrica] = useState<MetricaObjetivo>(objetivo?.metrica ?? "costo_por_agenda");
   const [area, setArea] = useState<AreaDeObjetivo | "total">(objetivo?.area ?? "total");
   const [meta, setMeta] = useState(objetivo?.meta.toString() ?? "");
   const [aceptable, setAceptable] = useState(objetivo?.aceptable?.toString() ?? "");
@@ -241,8 +273,12 @@ function FormularioObjetivo({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">Métrica</span>
-          <Select value={metrica} onValueChange={(valor) => valor && setMetrica(valor as MetricaObjetivo)}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <Select
+            value={metrica}
+            items={metricas.map((fila) => ({ value: fila.metrica, label: fila.nombre }))}
+            onValueChange={(valor) => valor && setMetrica(valor as MetricaObjetivo)}
+          >
+            <SelectTrigger className="w-full" aria-label="Métrica del objetivo"><SelectValue /></SelectTrigger>
             <SelectContent>
               {metricas.map((fila) => <SelectItem key={fila.metrica} value={fila.metrica}>{fila.nombre}</SelectItem>)}
             </SelectContent>
@@ -250,8 +286,12 @@ function FormularioObjetivo({
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">Área</span>
-          <Select value={area} onValueChange={(valor) => valor && setArea(valor as AreaDeObjetivo | "total")}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <Select
+            value={area}
+            items={ITEMS_AREA}
+            onValueChange={(valor) => valor && setArea(valor as AreaDeObjetivo | "total")}
+          >
+            <SelectTrigger className="w-full" aria-label="Área del objetivo"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="total">Total</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
@@ -262,20 +302,21 @@ function FormularioObjetivo({
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">Meta</span>
-          <Input inputMode="decimal" required value={meta} onChange={(e) => setMeta(e.target.value)} />
+          <Input aria-label="Meta del objetivo" inputMode="decimal" required value={meta} onChange={(e) => setMeta(e.target.value)} />
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">Aceptable</span>
-          <Input inputMode="decimal" value={aceptable} onChange={(e) => setAceptable(e.target.value)} />
+          <Input aria-label="Valor aceptable del objetivo" inputMode="decimal" value={aceptable} onChange={(e) => setAceptable(e.target.value)} />
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">Moneda</span>
           <Select
             value={moneda}
+            items={ITEMS_MONEDA}
             disabled={!esCosto}
             onValueChange={(valor) => valor && setMoneda(valor as MonedaDeObjetivo)}
           >
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full" aria-label="Moneda del objetivo"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="COP">COP</SelectItem>
               <SelectItem value="USD">USD</SelectItem>

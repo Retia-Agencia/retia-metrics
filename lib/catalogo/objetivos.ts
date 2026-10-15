@@ -31,8 +31,8 @@ export const esquemaObjetivo = z
     metrica: z.enum(METRICAS_OBJETIVO),
     meta: numeroDecimal("La meta"),
     aceptable: z
-      .union([numeroDecimal("El aceptable"), z.literal(""), z.null(), z.undefined()])
-      .transform((valor) => (valor === "" || valor === undefined ? null : valor)),
+      .union([z.literal(""), z.null(), z.undefined(), numeroDecimal("El aceptable")])
+      .transform((valor) => (valor === "" || valor === null || valor === undefined ? null : valor)),
     moneda: z
       .union([z.enum(["COP", "USD"]), z.literal(""), z.null(), z.undefined()])
       .transform((valor) => (valor === "" || valor === undefined ? null : valor)),
@@ -218,13 +218,6 @@ export async function editarObjetivo(db: Db, actor: ActorObjetivos, id: string, 
       await validarReparto(tx, datos, { excluirId: id, incluir: actual.activo });
       return aObjetivo((await catalogo(tx).editar(actor.id, id, datos)) as typeof objetivos.$inferSelect);
     }),
-  );
-}
-
-export async function desactivarObjetivo(db: Db, actor: ActorObjetivos, id: string) {
-  exigirAdministrador(actor);
-  return normalizarEscritura(async () =>
-    aObjetivo((await catalogo(db).desactivar(actor.id, id)) as typeof objetivos.$inferSelect),
   );
 }
 

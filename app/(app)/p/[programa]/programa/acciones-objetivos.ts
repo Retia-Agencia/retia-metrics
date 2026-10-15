@@ -4,9 +4,9 @@ import { requireRole } from "@/lib/auth/guards";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import {
+  borrarObjetivo,
   copiarObjetivos,
   crearObjetivo,
-  desactivarObjetivo,
   editarObjetivo,
   type EntradaObjetivo,
 } from "@/lib/catalogo/objetivos";
@@ -43,8 +43,8 @@ export async function guardarObjetivoAccion(
   });
 }
 
-export async function desactivarObjetivoAccion(id: string): Promise<ResultadoAccionObjetivo> {
-  return responder(async () => desactivarObjetivo(db, await actorDeLaSesion(), id));
+export async function quitarObjetivoAccion(id: string): Promise<ResultadoAccionObjetivo> {
+  return responder(async () => borrarObjetivo(db, await actorDeLaSesion(), id));
 }
 
 export async function copiarObjetivosAccion(input: {
