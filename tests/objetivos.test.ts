@@ -9,6 +9,10 @@ import {
 import { changeLog, cohorts, objetivos, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import {
+  DEFINICION_METRICAS_OBJETIVO,
+  METRICAS_OFRECIDAS,
+} from "@/lib/objetivos/metricas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -74,15 +78,28 @@ describe("objetivos de la cohorte", () => {
     await expect(editarObjetivo(db, actor(), paid.id, cupos("paid", 40))).resolves.toMatchObject({ meta: 40 });
   });
 
-  it("rechaza costo sin moneda", async () => {
-    await expect(crearObjetivo(db, actor(), {
+  it("deriva moneda y área, y rechaza una métrica sin lector sin mover la tabla", async () => {
+    const fila = await crearObjetivo(db, actor(), {
       cohortId,
       area: "paid",
-      metrica: "costo_por_lead",
+      metrica: "costo_por_agenda",
       meta: 20,
       aceptable: 25,
-      moneda: null,
-    })).rejects.toMatchObject({ message: "Una métrica de costo necesita moneda.", status: 400 });
+      moneda: "USD",
+    });
+    expect(fila).toMatchObject({ moneda: "COP", area: null });
+
+    await expect(crearObjetivo(db, actor(), {
+      cohortId,
+      area: null,
+      metrica: "roas",
+      meta: 3,
+      aceptable: 2,
+    })).rejects.toMatchObject({
+      message: "Esa métrica todavía no tiene quien la lea.",
+      status: 400,
+    });
+    expect(await db.select().from(objetivos).where(eq(objetivos.cohortId, cohortId))).toHaveLength(1);
   });
 
   it("guarda como nulo un aceptable vacío", async () => {
@@ -92,7 +109,6 @@ describe("objetivos de la cohorte", () => {
       metrica: "costo_por_agenda",
       meta: 20,
       aceptable: "",
-      moneda: "COP",
     });
 
     expect(fila.aceptable).toBeNull();
@@ -116,11 +132,13 @@ describe("objetivos de la cohorte", () => {
     await expect(crearObjetivo(db, actor(), {
       cohortId,
       area: null,
-      metrica: "roas",
+      metrica: "costo_por_agenda",
       meta: 3,
-      aceptable: 4,
-      moneda: null,
-    })).rejects.toMatchObject({ message: "El aceptable debe ser menor o igual que la meta.", status: 400 });
+      aceptable: 2,
+    })).rejects.toMatchObject({
+      message: "En una métrica de costo, el aceptable debe ser mayor o igual que la meta.",
+      status: 400,
+    });
   });
 
   it("rechaza cupos con área total", async () => {
@@ -167,5 +185,20 @@ describe("objetivos de la cohorte", () => {
     const copiadas = await db.select().from(objetivos).where(eq(objetivos.cohortId, destino.id));
     expect(copiadas).toHaveLength(1);
     expect(Number(copiadas[0].meta)).toBe(36);
+  });
+});
+
+describe("definición de métricas ofrecidas", () => {
+  it("solo ofrece métricas completas y costo por agenda es el único costo ofrecido", () => {
+    for (const metrica of METRICAS_OFRECIDAS) {
+      expect(DEFINICION_METRICAS_OBJETIVO[metrica]).toMatchObject({
+        lector: expect.any(String),
+        unidad: expect.any(String),
+        sentido: expect.any(String),
+      });
+    }
+    expect(METRICAS_OFRECIDAS.filter(
+      (metrica) => DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "COP",
+    )).toEqual(["costo_por_agenda"]);
   });
 });

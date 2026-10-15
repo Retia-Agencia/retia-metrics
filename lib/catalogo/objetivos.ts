@@ -9,6 +9,8 @@ import { normalizando } from "@/lib/errors-zod";
 import {
   DEFINICION_METRICAS_OBJETIVO,
   METRICAS_OBJETIVO,
+  METRICAS_OFRECIDAS,
+  monedaDeMetrica,
   type MetricaObjetivo,
 } from "@/lib/objetivos/metricas";
 import { moldeDeCatalogo } from "./molde";
@@ -24,7 +26,7 @@ const numeroDecimal = (nombre: string) =>
     .transform((valor) => valor.toFixed(2));
 
 /** El único esquema de la entidad; altas y ediciones pasan por la misma validación. */
-export const esquemaObjetivo = z
+const esquemaEntradaObjetivo = z
   .object({
     cohortId: z.string().uuid("Cohorte inválida."),
     area: z.enum(AREAS_DE_OBJETIVO).nullable(),
@@ -33,18 +35,9 @@ export const esquemaObjetivo = z
     aceptable: z
       .union([z.literal(""), z.null(), z.undefined(), numeroDecimal("El aceptable")])
       .transform((valor) => (valor === "" || valor === null || valor === undefined ? null : valor)),
-    moneda: z
-      .union([z.enum(["COP", "USD"]), z.literal(""), z.null(), z.undefined()])
-      .transform((valor) => (valor === "" || valor === undefined ? null : valor)),
   })
   .superRefine((datos, ctx) => {
     const definicion = DEFINICION_METRICAS_OBJETIVO[datos.metrica];
-    if (definicion.esCosto && datos.moneda === null) {
-      ctx.addIssue({ code: "custom", path: ["moneda"], message: "Una métrica de costo necesita moneda." });
-    }
-    if (!definicion.esCosto && datos.moneda !== null) {
-      ctx.addIssue({ code: "custom", path: ["moneda"], message: "Esta métrica no lleva moneda." });
-    }
     if (datos.metrica === "cupos" && datos.area === null) {
       ctx.addIssue({
         code: "custom",
@@ -69,7 +62,17 @@ export const esquemaObjetivo = z
     }
   });
 
-export type EntradaObjetivo = z.input<typeof esquemaObjetivo>;
+/** Moneda y área se derivan de la métrica aunque un cliente viejo todavía las mande. */
+export const esquemaObjetivo = esquemaEntradaObjetivo.transform((datos) => {
+  const definicion = DEFINICION_METRICAS_OBJETIVO[datos.metrica];
+  return {
+    ...datos,
+    area: definicion.admiteArea ? datos.area : null,
+    moneda: monedaDeMetrica(datos.metrica),
+  };
+});
+
+export type EntradaObjetivo = z.input<typeof esquemaObjetivo> & { moneda?: unknown };
 type ObjetivoValidado = z.output<typeof esquemaObjetivo>;
 
 export interface ObjetivoDeCohorte {
@@ -197,6 +200,9 @@ async function normalizarEscritura<T>(fn: () => Promise<T>): Promise<T> {
 
 async function crearEnTransaccion(db: Db, actor: ActorObjetivos, input: EntradaObjetivo) {
   const datos = esquemaObjetivo.parse(input);
+  if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
+    throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
+  }
   await validarReparto(db, datos);
   return aObjetivo((await catalogo(db).crear(actor.id, datos)) as typeof objetivos.$inferSelect);
 }
@@ -215,6 +221,9 @@ export async function editarObjetivo(db: Db, actor: ActorObjetivos, id: string, 
       const [actual] = await tx.select().from(objetivos).where(eq(objetivos.id, id));
       if (!actual) throw new ErrorDeApp("No existe un objetivo con ese id.", 404);
       const datos = esquemaObjetivo.parse(input);
+      if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
+        throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
+      }
       await validarReparto(tx, datos, { excluirId: id, incluir: actual.activo });
       return aObjetivo((await catalogo(tx).editar(actor.id, id, datos)) as typeof objetivos.$inferSelect);
     }),
@@ -269,7 +278,6 @@ export async function copiarObjetivos(
             metrica: fila.metrica,
             meta: fila.meta,
             aceptable: fila.aceptable,
-            moneda: fila.moneda as MonedaDeObjetivo | null,
           }),
         );
       }

@@ -6,13 +6,17 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { monto, num } from "@/lib/format";
+import { num } from "@/lib/format";
 import type {
   AreaDeObjetivo,
-  MonedaDeObjetivo,
   ObjetivoDeCohorte,
 } from "@/lib/catalogo/objetivos";
-import type { MetricaObjetivo } from "@/lib/objetivos/metricas";
+import type {
+  MetricaObjetivo,
+  SentidoObjetivo,
+  DefinicionMetricaObjetivo,
+} from "@/lib/objetivos/metricas";
+import { colorDeObjetivo, type ColorDeObjetivo } from "@/lib/objetivos/semaforo";
 import {
   copiarObjetivosAccion,
   guardarObjetivoAccion,
@@ -23,7 +27,11 @@ import {
 interface MetricaEditable {
   metrica: MetricaObjetivo;
   nombre: string;
-  esCosto: boolean;
+  descripcion: string;
+  sentido: SentidoObjetivo;
+  unidad: DefinicionMetricaObjetivo["unidad"];
+  admiteArea: boolean;
+  ofrecida: boolean;
 }
 
 export interface CohorteConObjetivos {
@@ -48,20 +56,50 @@ const ITEMS_AREA = [
   { value: "referidos", label: "Referidos" },
 ];
 
-const ITEMS_MONEDA = [
-  { value: "COP", label: "COP" },
-  { value: "USD", label: "USD" },
-];
+const NOMBRE_COLOR: Record<ColorDeObjetivo, string> = {
+  exito: "verde",
+  alerta: "amarillo",
+  peligro: "rojo",
+};
+
+function unidadCorta(unidad: MetricaEditable["unidad"]): string {
+  if (unidad === "COP") return "COP";
+  if (unidad === "razon") return "×";
+  if (unidad === "porcentaje") return "%";
+  return "";
+}
+
+function valorConUnidad(valor: number, unidad: MetricaEditable["unidad"]): string {
+  if (unidad === "COP") return `${num(valor)} COP`;
+  if (unidad === "razon") return `${num(valor, 2)} ×`;
+  if (unidad === "porcentaje") return `${num(valor, 2)}%`;
+  return num(valor, 2);
+}
+
+function fraseDeUmbrales(
+  definicion: MetricaEditable,
+  meta: number,
+  aceptable: number | null,
+): string {
+  const preposicion = definicion.sentido === "menor_es_mejor" ? "hasta" : "desde";
+  const verde = `${preposicion} ${valorConUnidad(meta, definicion.unidad)} verde`;
+  const amarillo = aceptable === null
+    ? null
+    : `${preposicion} ${valorConUnidad(aceptable, definicion.unidad)} amarillo`;
+  return [verde, amarillo].filter(Boolean).join(" · ");
+}
 
 export function ObjetivosDeLaCohorte({
   cohortes,
   objetivos,
   metricas,
+  valoresDeHoy,
   editable,
 }: {
   cohortes: CohorteConObjetivos[];
   objetivos: ObjetivoDeCohorte[];
   metricas: MetricaEditable[];
+  valoresDeHoy: Partial<Record<MetricaObjetivo, number | null>>;
   editable: boolean;
 }) {
   const predeterminada = cohortes.find((cohorte) => cohorte.estado === "activo")?.id ?? cohortes[0]?.id ?? "";
@@ -161,29 +199,22 @@ export function ObjetivosDeLaCohorte({
               <tr>
                 <th className="px-2 py-2 font-medium">Métrica</th>
                 <th className="px-2 py-2 font-medium">Área</th>
-                <th className="px-2 py-2 text-right font-medium">Meta</th>
-                <th className="px-2 py-2 text-right font-medium">Aceptable</th>
-                <th className="px-2 py-2 font-medium">Moneda</th>
+                <th className="px-2 py-2 font-medium">Umbrales</th>
                 {editable ? <th className="px-2 py-2 text-right font-medium">Acciones</th> : null}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {filas.map((fila) => {
                 const definicion = metricas.find((metrica) => metrica.metrica === fila.metrica);
-                const mostrar = (valor: number) => {
-                  if (fila.moneda) return monto(valor, fila.moneda);
-                  if (fila.metrica === "cupos" || fila.metrica === "agendas_por_dia") return num(valor);
-                  return num(valor, 2);
-                };
                 return (
                   <tr key={fila.id}>
                     <td className="px-2 py-3 font-medium">{definicion?.nombre ?? fila.metrica}</td>
                     <td className="px-2 py-3">{fila.area ? NOMBRE_AREA[fila.area] : "Total"}</td>
-                    <td className="cifra px-2 py-3 text-right">{mostrar(fila.meta)}</td>
-                    <td className="cifra px-2 py-3 text-right">
-                      {fila.aceptable === null ? "—" : mostrar(fila.aceptable)}
+                    <td className="cifra px-2 py-3">
+                      {definicion
+                        ? fraseDeUmbrales(definicion, fila.meta, fila.aceptable)
+                        : `${num(fila.meta, 2)} verde`}
                     </td>
-                    <td className="px-2 py-3">{fila.moneda ?? "—"}</td>
                     {editable ? (
                       <td className="px-2 py-3">
                         <div className="flex justify-end gap-2">
@@ -215,6 +246,7 @@ export function ObjetivosDeLaCohorte({
           key={`${cohorte.id}-${editando?.id ?? `nuevo-${versionFormulario}`}`}
           cohortId={cohorte.id}
           metricas={metricas}
+          valoresDeHoy={valoresDeHoy}
           objetivo={editando}
           pendiente={pendiente}
           cancelar={editando ? () => setEditando(null) : undefined}
@@ -234,6 +266,7 @@ export function ObjetivosDeLaCohorte({
 function FormularioObjetivo({
   cohortId,
   metricas,
+  valoresDeHoy,
   objetivo,
   pendiente,
   guardar,
@@ -241,17 +274,31 @@ function FormularioObjetivo({
 }: {
   cohortId: string;
   metricas: MetricaEditable[];
+  valoresDeHoy: Partial<Record<MetricaObjetivo, number | null>>;
   objetivo: ObjetivoDeCohorte | null;
   pendiente: boolean;
   guardar: (input: Parameters<typeof guardarObjetivoAccion>[0]) => void;
   cancelar?: () => void;
 }) {
-  const [metrica, setMetrica] = useState<MetricaObjetivo>(objetivo?.metrica ?? "costo_por_agenda");
+  const ofrecidas = metricas.filter((fila) => fila.ofrecida);
+  const [metrica, setMetrica] = useState<MetricaObjetivo>(
+    objetivo?.metrica ?? "costo_por_agenda",
+  );
   const [area, setArea] = useState<AreaDeObjetivo | "total">(objetivo?.area ?? "total");
   const [meta, setMeta] = useState(objetivo?.meta.toString() ?? "");
   const [aceptable, setAceptable] = useState(objetivo?.aceptable?.toString() ?? "");
-  const [moneda, setMoneda] = useState<MonedaDeObjetivo>(objetivo?.moneda ?? "COP");
-  const esCosto = metricas.find((fila) => fila.metrica === metrica)?.esCosto ?? false;
+  const definicion = metricas.find((fila) => fila.metrica === metrica) ?? ofrecidas[0];
+  const valorDeHoy = valoresDeHoy[metrica];
+  const unidad = definicion ? unidadCorta(definicion.unidad) : "";
+  const metaNumero = Number(meta);
+  const aceptableNumero = aceptable === "" ? null : Number(aceptable);
+  const colorHoy = definicion && valorDeHoy !== null && valorDeHoy !== undefined
+    && Number.isFinite(metaNumero) && (aceptableNumero === null || Number.isFinite(aceptableNumero))
+    ? colorDeObjetivo({ metrica, meta: metaNumero, aceptable: aceptableNumero, valor: valorDeHoy })
+    : null;
+  const metaEnPlantilla = meta || "[meta]";
+  const aceptableEnPlantilla = aceptable || "[aceptable]";
+  const sufijoUnidad = unidad ? ` ${unidad}` : "";
 
   return (
     <form
@@ -262,68 +309,77 @@ function FormularioObjetivo({
           id: objetivo?.id,
           cohortId,
           metrica,
-          area: area === "total" ? null : area,
+          area: definicion?.admiteArea && area !== "total" ? area : null,
           meta,
           aceptable,
-          moneda: esCosto ? moneda : null,
         });
       }}
     >
       <p className="text-sm font-medium">{objetivo ? "Editar objetivo" : "Nuevo objetivo"}</p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="space-y-1 text-xs text-muted-foreground">
           <span className="block">Métrica</span>
           <Select
             value={metrica}
-            items={metricas.map((fila) => ({ value: fila.metrica, label: fila.nombre }))}
+            items={ofrecidas.map((fila) => ({ value: fila.metrica, label: fila.nombre }))}
             onValueChange={(valor) => valor && setMetrica(valor as MetricaObjetivo)}
           >
             <SelectTrigger className="w-full" aria-label="Métrica del objetivo"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {metricas.map((fila) => <SelectItem key={fila.metrica} value={fila.metrica}>{fila.nombre}</SelectItem>)}
+              {ofrecidas.map((fila) => <SelectItem key={fila.metrica} value={fila.metrica}>{fila.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
         </label>
+        {definicion?.admiteArea ? (
+          <label className="space-y-1 text-xs text-muted-foreground">
+            <span className="block">Área</span>
+            <Select
+              value={area}
+              items={ITEMS_AREA}
+              onValueChange={(valor) => valor && setArea(valor as AreaDeObjetivo | "total")}
+            >
+              <SelectTrigger className="w-full" aria-label="Área del objetivo"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="total">Total</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="organico">Orgánico</SelectItem>
+                <SelectItem value="referidos">Referidos</SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+        ) : null}
         <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">Área</span>
-          <Select
-            value={area}
-            items={ITEMS_AREA}
-            onValueChange={(valor) => valor && setArea(valor as AreaDeObjetivo | "total")}
-          >
-            <SelectTrigger className="w-full" aria-label="Área del objetivo"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="total">Total</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="organico">Orgánico</SelectItem>
-              <SelectItem value="referidos">Referidos</SelectItem>
-            </SelectContent>
-          </Select>
+          <span className="block">🟢 Verde {definicion?.sentido === "menor_es_mejor" ? "hasta" : "desde"}</span>
+          <span className="flex items-center gap-2">
+            <Input aria-label="Meta del objetivo" inputMode="decimal" required value={meta} onChange={(e) => setMeta(e.target.value)} />
+            {unidad ? <span className="cifra text-foreground">{unidad}</span> : null}
+          </span>
         </label>
         <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">Meta</span>
-          <Input aria-label="Meta del objetivo" inputMode="decimal" required value={meta} onChange={(e) => setMeta(e.target.value)} />
-        </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">Aceptable</span>
-          <Input aria-label="Valor aceptable del objetivo" inputMode="decimal" value={aceptable} onChange={(e) => setAceptable(e.target.value)} />
-        </label>
-        <label className="space-y-1 text-xs text-muted-foreground">
-          <span className="block">Moneda</span>
-          <Select
-            value={moneda}
-            items={ITEMS_MONEDA}
-            disabled={!esCosto}
-            onValueChange={(valor) => valor && setMoneda(valor as MonedaDeObjetivo)}
-          >
-            <SelectTrigger className="w-full" aria-label="Moneda del objetivo"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="COP">COP</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-            </SelectContent>
-          </Select>
+          <span className="block">🟡 Amarillo {definicion?.sentido === "menor_es_mejor" ? "hasta" : "desde"}</span>
+          <span className="flex items-center gap-2">
+            <Input aria-label="Valor aceptable del objetivo" inputMode="decimal" value={aceptable} onChange={(e) => setAceptable(e.target.value)} />
+            {unidad ? <span className="cifra text-foreground">{unidad}</span> : null}
+          </span>
         </label>
       </div>
+      {definicion ? (
+        <div className="space-y-1 text-sm">
+          <p>
+            {definicion.sentido === "menor_es_mejor"
+              ? `🟢 Verde si cuesta hasta ${metaEnPlantilla}${sufijoUnidad} · 🟡 Amarillo si cuesta hasta ${aceptableEnPlantilla}${sufijoUnidad} · 🔴 Rojo si cuesta más de eso`
+              : `🟢 Verde desde ${metaEnPlantilla}${sufijoUnidad} · 🟡 Amarillo desde ${aceptableEnPlantilla}${sufijoUnidad} · 🔴 Rojo por debajo`}
+          </p>
+          <p className="text-muted-foreground">{definicion.descripcion}</p>
+          <p className="text-muted-foreground">
+            {valorDeHoy === null || valorDeHoy === undefined
+              ? "Sin dato todavía"
+              : colorHoy
+                ? `Hoy: ${valorConUnidad(valorDeHoy, definicion.unidad)} → saldría ${NOMBRE_COLOR[colorHoy]}`
+                : "Completa los umbrales para ver el color de hoy."}
+          </p>
+        </div>
+      ) : null}
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pendiente}>{pendiente ? "Guardando…" : "Guardar"}</Button>
         {cancelar ? <Button type="button" variant="ghost" size="sm" onClick={cancelar}>Cancelar</Button> : null}

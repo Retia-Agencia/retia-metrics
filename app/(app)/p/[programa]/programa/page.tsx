@@ -42,7 +42,11 @@ import {
 } from "@/lib/catalogo/meta";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { cuposSinAsignar, objetivosDeCohortes } from "@/lib/catalogo/objetivos";
-import { DEFINICION_METRICAS_OBJETIVO, METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
+import {
+  DEFINICION_METRICAS_OBJETIVO,
+  METRICAS_OBJETIVO,
+  METRICAS_OFRECIDAS,
+} from "@/lib/objetivos/metricas";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
 
 export const dynamic = "force-dynamic";
@@ -179,8 +183,8 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   });
   const metricasObjetivo = METRICAS_OBJETIVO.map((metrica) => ({
     metrica,
-    nombre: DEFINICION_METRICAS_OBJETIVO[metrica].nombre,
-    esCosto: DEFINICION_METRICAS_OBJETIVO[metrica].esCosto,
+    ...DEFINICION_METRICAS_OBJETIVO[metrica],
+    ofrecida: METRICAS_OFRECIDAS.includes(metrica),
   }));
   const umbralesEditables = METRICAS_CON_UMBRAL.map((metrica) => {
     const fila = umbrales.find((u) => u.metrica === metrica);
@@ -510,6 +514,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     cohortes={cohortesConObjetivos}
                     objetivos={objetivos}
                     metricas={metricasObjetivo}
+                    valoresDeHoy={{}}
                     editable={administra}
                   />
                 </CardContent>
