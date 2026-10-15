@@ -1,0 +1,287 @@
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  cuentasPublicitarias,
+  metaConexiones,
+  pautaObjetos,
+  pautaSincronizaciones,
+  programs,
+  reportesWhatsapp,
+} from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { esquemaRespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
+import * as semaforo from "@/lib/semaforo/semaforo";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+const holder: { db: Db | null } = { db: null };
+vi.mock("@/lib/db", () => ({
+  get db() {
+    return holder.db;
+  },
+}));
+
+import { POST } from "@/app/api/semaforo/envios/route";
+
+const AHORA = new Date("2026-10-13T11:00:00-05:00");
+const SECRETO = "secreto-del-semaforo";
+const secretoAnterior = process.env.SEMAFORO_SECRETO;
+const fetchAnterior = globalThis.fetch;
+
+let db: Db;
+let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
+
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  holder.db = db;
+});
+
+beforeEach(async () => {
+  await vaciar();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(AHORA);
+  process.env.SEMAFORO_SECRETO = SECRETO;
+  await db.insert(metaConexiones).values({ nombre: "Retia", tokenSecreto: "token-meta" });
+  globalThis.fetch = vi.fn(async (entrada: string | URL | Request) => {
+    const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
+    const cuenta = /\/act_([^/]+)\/insights$/.exec(url.pathname)?.[1];
+    return Response.json({
+      data: cuenta ? [{
+        ad_id: `ad-${cuenta}`,
+        spend: "10000",
+        date_start: "2026-10-13",
+        conversions: [],
+      }] : [],
+    });
+  }) as typeof globalThis.fetch;
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
+  globalThis.fetch = fetchAnterior;
+  if (secretoAnterior === undefined) delete process.env.SEMAFORO_SECRETO;
+  else process.env.SEMAFORO_SECRETO = secretoAnterior;
+});
+
+afterAll(async () => cerrar());
+
+async function crearPrograma(
+  slug: string,
+  opciones: { activo?: boolean; hora?: number; metricas?: [] | ["costo_por_agenda"] } = {},
+) {
+  const activo = opciones.activo ?? true;
+  const [programa] = await db.insert(programs).values({
+    ...PROGRAMA_DE_PRUEBA,
+    activo,
+    slug,
+    nombre: `Programa ${slug}`,
+    ticketUsd: "1000",
+  }).returning();
+  await db.insert(reportesWhatsapp).values({
+    programId: programa.id,
+    activo: true,
+    destino: `${slug}@g.us`,
+    horas: [opciones.hora ?? 11],
+    horaCierre: 18,
+    metricas: opciones.metricas ?? ["costo_por_agenda"],
+  });
+  if (activo) {
+    const idMeta = `cuenta-${slug}`;
+    const [cuenta] = await db.insert(cuentasPublicitarias).values({
+      idMeta,
+      programId: programa.id,
+      nombre: `Cuenta ${slug}`,
+      moneda: "COP",
+      zonaHoraria: "America/Bogota",
+    }).returning();
+    await db.insert(pautaObjetos).values([
+      {
+        cuentaId: cuenta.id, programId: programa.id, idMeta: `campana-${slug}`,
+        nivel: "campana", padreIdMeta: null, nombre: "Campana", estado: "ACTIVE",
+        actualizadoEn: AHORA,
+      },
+      {
+        cuentaId: cuenta.id, programId: programa.id, idMeta: `conjunto-${slug}`,
+        nivel: "conjunto", padreIdMeta: `campana-${slug}`, nombre: "Conjunto", estado: "ACTIVE",
+        actualizadoEn: AHORA,
+      },
+      {
+        cuentaId: cuenta.id, programId: programa.id, idMeta: `ad-${idMeta}`,
+        nivel: "anuncio", padreIdMeta: `conjunto-${slug}`, nombre: "Anuncio", estado: "ACTIVE",
+        actualizadoEn: AHORA,
+      },
+    ]);
+  }
+  return programa;
+}
+
+function request(secreto: string | null = SECRETO): Request {
+  const headers = secreto === null ? undefined : { "x-semaforo-secreto": secreto };
+  return new Request("https://crm.retia.test/api/semaforo/envios", { method: "POST", headers });
+}
+
+async function cuerpo() {
+  const respuesta = await POST(request());
+  expect(respuesta.status).toBe(200);
+  return respuesta.json() as Promise<Record<string, unknown>>;
+}
+
+describe("endpoint de maquina del semaforo", () => {
+  it("sin secreto responde 401 vacio sin tocar la base ni Meta", async () => {
+    const respuesta = await POST(request(null));
+
+    expect(respuesta.status).toBe(401);
+    expect(await respuesta.text()).toBe("");
+    expect(await db.select().from(pautaSincronizaciones)).toHaveLength(0);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("con secreto incorrecto responde 401", async () => {
+    const respuesta = await POST(request("incorrecto"));
+
+    expect(respuesta.status).toBe(401);
+    expect(await respuesta.text()).toBe("");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("sin secreto configurado responde 401 antes de leer la base", async () => {
+    delete process.env.SEMAFORO_SECRETO;
+    holder.db = null;
+
+    const respuesta = await POST(request());
+
+    holder.db = db;
+    expect(respuesta.status).toBe(401);
+    expect(await respuesta.text()).toBe("");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("a las once devuelve el envio de dia con su destino y metrica", async () => {
+    await crearPrograma("uno");
+
+    const respuesta = await cuerpo();
+
+    expect(respuesta).toMatchObject({
+      generadoEn: "2026-10-13T11:00:00-05:00",
+      sincronizacion: { estado: "ok", ultimaFoto: "2026-10-13T11:00:00-05:00" },
+      envios: [{
+        programa: "Programa uno",
+        destino: "uno@g.us",
+        tipo: "dia",
+        hora: "11:00",
+        enlaceHub: "https://crm.retia.test/p/uno/hub?seccion=pauta",
+        metricas: [{ metrica: "costo_por_agenda" }],
+        error: null,
+      }],
+    });
+  });
+
+  it("a una hora sin envios no sincroniza ni llama a Meta", async () => {
+    vi.setSystemTime(new Date("2026-10-13T12:00:00-05:00"));
+    await crearPrograma("uno");
+
+    const respuesta = await cuerpo();
+
+    expect(respuesta).toMatchObject({ envios: [], sincronizacion: null });
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("omite programas y metricas apagados", async () => {
+    await crearPrograma("apagado", { activo: false });
+    await crearPrograma("sin-metrica", { metricas: [] });
+
+    const respuesta = await cuerpo();
+
+    expect(respuesta).toMatchObject({ envios: [], sincronizacion: null });
+  });
+
+  it("conserva dos programas como dos envios", async () => {
+    await crearPrograma("uno");
+    await crearPrograma("dos");
+
+    const respuesta = await cuerpo();
+
+    expect(respuesta.envios).toHaveLength(2);
+    expect((respuesta.envios as Array<{ programa: string }>).map((envio) => envio.programa).sort())
+      .toEqual(["Programa dos", "Programa uno"]);
+  });
+
+  it("dos llamadas seguidas leen Meta una sola vez", async () => {
+    await crearPrograma("uno");
+
+    const primera = await cuerpo();
+    const llamadas = vi.mocked(globalThis.fetch).mock.calls.length;
+    const segunda = await cuerpo();
+
+    expect(llamadas).toBeGreaterThan(0);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(llamadas);
+    expect(primera.sincronizacion).toMatchObject({ estado: "ok" });
+    expect(segunda.sincronizacion).toMatchObject({ estado: "reciente" });
+  });
+
+  it("si falla el semaforo de un programa conserva el otro envio", async () => {
+    const roto = await crearPrograma("roto");
+    await crearPrograma("sano");
+    const original = semaforo.semaforoDelPrograma;
+    vi.spyOn(semaforo, "semaforoDelPrograma").mockImplementation((base, args) => {
+      if (args.programId === roto.id) return Promise.reject(new Error("fallo de prueba"));
+      return original(base, args);
+    });
+
+    const respuesta = await cuerpo();
+    const envios = respuesta.envios as Array<{
+      programa: string; metricas: unknown[]; error: string | null;
+    }>;
+
+    expect(envios.find((envio) => envio.programa === "Programa roto")).toMatchObject({
+      metricas: [],
+      error: "No se pudo calcular el semáforo de este programa.",
+    });
+    expect(envios.find((envio) => envio.programa === "Programa sano")).toMatchObject({
+      error: null,
+    });
+  });
+});
+
+const LLAVES_PERMITIDAS = new Set([
+  "generadoEn", "sincronizacion", "estado", "ultimaFoto", "envios", "configuracion",
+  "programa", "destino", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
+  "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendas", "costo",
+  "umbral", "meta", "aceptable", "porcentajeDelUmbral", "ayerALaMismaHora", "dia",
+  "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "notas", "texto",
+]);
+
+function exigirListaBlanca(valor: unknown): void {
+  if (Array.isArray(valor)) {
+    valor.forEach(exigirListaBlanca);
+    return;
+  }
+  if (!valor || typeof valor !== "object") return;
+  for (const [llave, hijo] of Object.entries(valor)) {
+    if (!LLAVES_PERMITIDAS.has(llave)) throw new Error(`Llave no permitida: ${llave}`);
+    exigirListaBlanca(hijo);
+  }
+}
+
+describe("lista blanca del contrato", () => {
+  it("la respuesta real solo contiene llaves permitidas", async () => {
+    await crearPrograma("contrato");
+    const respuesta = await cuerpo();
+
+    expect(() => exigirListaBlanca(respuesta)).not.toThrow();
+    expect(esquemaRespuestaSemaforo.safeParse(respuesta).success).toBe(true);
+  });
+
+  it("rechaza recursivamente una llave extra", async () => {
+    await crearPrograma("contrato");
+    const respuesta = await cuerpo();
+    const adulterada = {
+      ...respuesta,
+      envios: [{ ...(respuesta.envios as object[])[0], persona: "no debe salir" }],
+    };
+
+    expect(() => exigirListaBlanca(adulterada)).toThrow("Llave no permitida: persona");
+    expect(esquemaRespuestaSemaforo.safeParse(adulterada).success).toBe(false);
+  });
+});

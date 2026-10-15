@@ -21,6 +21,8 @@ export default auth((req) => {
     pathname === "/api/health" ||
     // Los cron no tienen sesion: cada handler exige su propio secreto de Vercel.
     pathname.startsWith("/api/cron/") ||
+    // Juanito consulta que reportes enviar y se autentica en el handler con su secreto.
+    pathname === "/api/semaforo/envios" ||
     // El webhook de formularios (ADR 0055): no tiene sesion, se autentica con la firma
     // HMAC en el propio handler. Nunca redirige a /login, o cada envio se perderia.
     pathname.startsWith("/api/webhooks/formularios/") ||

@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
+  debeSincronizarDesdeElHub,
   gastoAEstaHora,
   sincronizarDiaEnCurso,
 } from "@/lib/pauta/dia-en-curso";
@@ -68,6 +69,27 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let programId: string;
 let cuentaId: string;
+
+describe("sincronizacion desde el Hub", () => {
+  it("sincroniza si nunca ha corrido o la ultima corrida tiene mas de una hora", () => {
+    const ahora = new Date("2026-10-14T16:00:00-05:00");
+
+    expect(debeSincronizarDesdeElHub(null, ahora)).toBe(true);
+    expect(debeSincronizarDesdeElHub(
+      new Date(ahora.getTime() - 61 * 60_000),
+      ahora,
+    )).toBe(true);
+  });
+
+  it("no sincroniza si la ultima corrida tiene menos de una hora", () => {
+    const ahora = new Date("2026-10-14T16:00:00-05:00");
+
+    expect(debeSincronizarDesdeElHub(
+      new Date(ahora.getTime() - 59 * 60_000),
+      ahora,
+    )).toBe(false);
+  });
+});
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());

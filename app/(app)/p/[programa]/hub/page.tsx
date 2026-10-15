@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { after } from "next/server";
+import { desc } from "drizzle-orm";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
@@ -42,6 +44,12 @@ import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agenda
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
+import { pautaSincronizaciones } from "@/lib/db/schema";
+import { tokenActivoMeta } from "@/lib/catalogo/meta";
+import {
+  debeSincronizarDesdeElHub,
+  sincronizarDiaEnCurso,
+} from "@/lib/pauta/dia-en-curso";
 
 export const dynamic = "force-dynamic";
 
@@ -304,6 +312,28 @@ async function SeccionPauta({
   claveCloser: string | null;
   busqueda: Record<string, string | string[] | undefined>;
 }) {
+  const ahora = new Date();
+  const [ultimaSincronizacion] = await db
+    .select({ inicio: pautaSincronizaciones.inicio })
+    .from(pautaSincronizaciones)
+    .orderBy(desc(pautaSincronizaciones.inicio))
+    .limit(1);
+  if (debeSincronizarDesdeElHub(ultimaSincronizacion?.inicio ?? null, ahora)) {
+    after(async () => {
+      try {
+        const resultado = await sincronizarDiaEnCurso(db, {
+          token: await tokenActivoMeta(db),
+          ahora,
+          disparadaPor: "hub",
+        });
+        if (resultado.estado === "error") {
+          console.error("hub pauta: no se pudo sincronizar el dia en curso", resultado.error);
+        }
+      } catch (error) {
+        console.error("hub pauta: no se pudo sincronizar el dia en curso", error);
+      }
+    });
+  }
   const filtrosPauta: FiltrosPauta = esquemaFiltrosPauta.parse({
     source: texto(busqueda.source),
     medium: texto(busqueda.medium),

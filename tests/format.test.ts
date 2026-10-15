@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fecha, fechaDeInstanteEnBogota, instanteDeBogota, monto, saldoLegible } from "@/lib/format";
+import { fecha, fechaDeInstanteEnBogota, instanteDeBogota, isoEnBogota, monto, saldoLegible } from "@/lib/format";
 
 /**
  * Ticket 005 — la moneda va SIEMPRE al lado del numero y nunca se convierte
@@ -125,5 +125,17 @@ describe("instante de una fecha y hora de Bogota", () => {
     expect(instanteDeBogota("", "09:00")).toBeNull();
     expect(instanteDeBogota("2026-09-29", "9am")).toBeNull();
     expect(instanteDeBogota("2026-13-45", "09:00")).toBeNull();
+  });
+});
+
+describe("instante en ISO con el offset de Bogota", () => {
+  it("escribe la hora de Bogota con -05:00, tambien pasada la medianoche UTC", () => {
+    expect(isoEnBogota(new Date("2026-10-16T16:00:04Z"))).toBe("2026-10-16T11:00:04-05:00");
+    expect(isoEnBogota(new Date("2026-10-17T02:30:00Z"))).toBe("2026-10-16T21:30:00-05:00");
+  });
+
+  it("es el mismo instante al leerlo de vuelta", () => {
+    const instante = new Date("2026-10-16T16:00:04Z");
+    expect(new Date(isoEnBogota(instante)).getTime()).toBe(instante.getTime());
   });
 });

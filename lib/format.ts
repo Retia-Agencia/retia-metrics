@@ -152,6 +152,16 @@ export function fechaDeInstanteEnBogota(instante: Date | string): string {
 }
 
 /**
+ * Un instante en ISO con el offset de Bogota explicito: "2026-10-16T11:00:04-05:00". Lo
+ * pide un contrato de maquina (el endpoint del semaforo, ticket 259), donde `toISOString()`
+ * daria la hora en UTC con `Z` y quien lo lee tendria que convertirla. Sin horario de
+ * verano: correr el instante cinco horas y escribir el offset fijo es exacto.
+ */
+export function isoEnBogota(instante: Date): string {
+  return `${new Date(instante.getTime() - 5 * 3_600_000).toISOString().slice(0, 19)}-05:00`;
+}
+
+/**
  * Un instante escrito con su HORA en Bogota: "14 ago 2026, 19:05". Lo pide la
  * pantalla de salud del CRM (ticket 110), donde una entrega del webhook a las 7pm y
  * otra a las 11pm son eventos distintos y la hora importa. TODA fecha del sistema es

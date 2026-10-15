@@ -19,6 +19,13 @@ export type ResultadoSincronizacionDiaEnCurso =
   | { estado: "ok"; fotos: number; omitidas: number }
   | { estado: "error"; error: string };
 
+const UNA_HORA_MS = 60 * 60_000;
+
+/** El Hub refresca en segundo plano cuando nunca ha corrido o la ultima corrida ya envejecio. */
+export function debeSincronizarDesdeElHub(ultimoInicio: Date | null, ahora: Date): boolean {
+  return ultimoInicio === null || ahora.getTime() - ultimoInicio.getTime() > UNA_HORA_MS;
+}
+
 type AcumuladoCampana = {
   programId: string;
   campanaId: string;

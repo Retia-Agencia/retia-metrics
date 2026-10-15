@@ -1,7 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
-import { reportesWhatsapp } from "@/lib/db/schema";
+import { programs, reportesWhatsapp } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -49,6 +49,41 @@ export interface EntradaReporteWhatsapp {
 }
 export type ReporteWhatsapp = typeof reportesWhatsapp.$inferSelect;
 type ActorReporte = { id: string; rol: Rol };
+
+export interface ReporteWhatsappActivo {
+  programId: string;
+  programa: string;
+  slug: string;
+  destino: string;
+  horas: number[];
+  horaCierre: number | null;
+  metricas: MetricaDelReporte[];
+}
+
+/** Configuraciones que pueden producir un envio; nunca cruza programas inactivos. */
+export async function reportesActivos(db: Db): Promise<ReporteWhatsappActivo[]> {
+  const filas = await db
+    .select({
+      programId: programs.id,
+      programa: programs.nombre,
+      slug: programs.slug,
+      destino: reportesWhatsapp.destino,
+      horas: reportesWhatsapp.horas,
+      horaCierre: reportesWhatsapp.horaCierre,
+      metricas: reportesWhatsapp.metricas,
+    })
+    .from(reportesWhatsapp)
+    .innerJoin(programs, eq(programs.id, reportesWhatsapp.programId))
+    .where(and(eq(reportesWhatsapp.activo, true), eq(programs.activo, true)));
+
+  return filas.map((fila) => ({
+    ...fila,
+    destino: fila.destino!,
+    metricas: fila.metricas.filter(
+      (metrica): metrica is MetricaDelReporte => metrica === "costo_por_agenda",
+    ),
+  }));
+}
 
 function catalogo(db: Db) {
   return moldeDeCatalogo(
