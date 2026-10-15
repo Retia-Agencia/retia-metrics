@@ -3,7 +3,7 @@ id: 259
 etapa: hub
 serves: "ADR 0089 puntos 2 y 4 (la segunda excepción a \"nada es público\")"
 depends: [258, 265]
-status: todo
+status: en curso
 ---
 
 # 259 — El endpoint de máquina del semáforo

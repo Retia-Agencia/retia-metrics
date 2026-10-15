@@ -3,7 +3,7 @@ id: 260
 etapa: hub
 serves: "ADR 0089 punto 3 · docs/hub.md O4"
 depends: [259]
-status: todo
+status: en curso
 repo: "Juanito (~/Desktop/mani/work/30X/repos/Juanito), no este"
 ---
 
