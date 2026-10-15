@@ -7,7 +7,7 @@ import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { haceCuanto, num } from "@/lib/format";
+import { fechaHoraEnBogota, haceCuanto, num } from "@/lib/format";
 import {
   EntregasWebhook,
   SelectorYRefresco,
@@ -15,6 +15,9 @@ import {
 } from "@/components/admin/entregas-webhook";
 import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
+import { auditarCalendly, type EstadoSuscripcion } from "@/lib/calendly/auditoria";
+import { db } from "@/lib/db";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +150,22 @@ export default async function SaludPage({
         </Card>
 
         <div className={clasesDeZonaConScroll("space-y-6")}>
+          <Suspense
+            key={programa.id}
+            fallback={
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Calendly</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  Revisando Calendly…
+                </CardContent>
+              </Card>
+            }
+          >
+            <TarjetaCalendly programId={programa.id} />
+          </Suspense>
+
           {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
           <EntregasWebhook
             entregas={entregasVista}
@@ -205,6 +224,72 @@ export default async function SaludPage({
       </PantallaFija>
     </PageShell>
   );
+}
+
+async function TarjetaCalendly({ programId }: { programId: string }) {
+  const auditoriaCalendly = await auditarCalendly(db, programId);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Calendly</CardTitle>
+      </CardHeader>
+      <CardContent className="text-sm">
+        {auditoriaCalendly.estado === "sin_token" ? (
+          <p className="text-muted-foreground">Este programa no tiene token de Calendly.</p>
+        ) : auditoriaCalendly.estado === "error" ? (
+          <p className="text-tono-peligro">
+            No se pudo auditar Calendly: {auditoriaCalendly.mensaje}
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <BadgeSuscripcion estado={auditoriaCalendly.suscripcion} />
+            <p className="flex flex-wrap items-center gap-2 text-muted-foreground">
+              <span>
+                <span className="cifra">{num(auditoriaCalendly.citasRevisadas)}</span> citas de las
+                últimas 48 h ·
+              </span>
+              <Badge
+                variant={auditoriaCalendly.faltantes.length === 0 ? "exito" : "peligro"}
+                className="cifra"
+              >
+                {num(auditoriaCalendly.faltantes.length)} sin llamada
+              </Badge>
+            </p>
+            {auditoriaCalendly.faltantes.length > 0 ? (
+              <ul className="divide-y">
+                {auditoriaCalendly.faltantes.map((cita) => (
+                  <li key={cita.uuidInvitado} className="space-y-1 py-3 first:pt-0 last:pb-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{cita.nombre ?? "Sin nombre"}</span>
+                      {cita.cancelada ? <Badge variant="neutro">Cancelada</Badge> : null}
+                      {cita.motivo === "reagenda_sin_llamada" ? (
+                        <Badge variant="alerta">Mitad de reagenda</Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-muted-foreground">{cita.correo ?? "Sin correo"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Inicio <span className="cifra">{fechaHoraEnBogota(cita.inicio)}</span> · creada{" "}
+                      <span className="cifra">{fechaHoraEnBogota(cita.creada)}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BadgeSuscripcion({ estado }: { estado: EstadoSuscripcion }) {
+  if (estado.tipo === "activa") return <Badge variant="exito">Suscripción activa</Badge>;
+  if (estado.tipo === "ausente") return <Badge variant="peligro">Sin suscripción</Badge>;
+  if (estado.tipo === "deshabilitada") {
+    return <Badge variant="peligro">Suscripción deshabilitada ({estado.estado})</Badge>;
+  }
+  return <Badge variant="alerta">Faltan eventos: {estado.faltan.join(", ")}</Badge>;
 }
 
 /** Una lista de tokens de la conciliacion, con su estado vacio escrito. */

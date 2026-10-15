@@ -180,7 +180,7 @@ export async function organizacionDelToken(fetchImpl: FetchLike, token: string):
 }
 
 /** El uuid del invitado que trae la URI de Calendly (`.../invitees/<uuid>`). */
-function uuidDeUri(uri: unknown): string | null {
+export function uuidDeUri(uri: unknown): string | null {
   if (typeof uri !== "string") return null;
   const partes = uri.split("/").filter(Boolean);
   return partes[partes.length - 1] ?? null;
