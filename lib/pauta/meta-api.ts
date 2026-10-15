@@ -5,8 +5,17 @@ const META_BASE = "https://graph.facebook.com/v26.0";
 type FetchMeta = typeof globalThis.fetch;
 
 type RespuestaMeta<T> = T & {
-  error?: { message?: unknown };
+  error?: { message?: unknown; code?: unknown };
 };
+
+/**
+ * Meta rechaza una página que pesa demasiado con el código 1 y este texto, sin subcódigo. El
+ * peso depende de cuántos anuncios y qué tan grandes son sus creativos, así que crece solo.
+ */
+const PEDIDO_DEMASIADO_GRANDE = /reduce the amount of data/i;
+const LIMITE_MINIMO_POR_PAGINA = 5;
+
+class PaginaDemasiadoGrandeError extends ErrorDeApp {}
 
 interface PaginaMeta<T> {
   data?: T[];
@@ -31,7 +40,11 @@ async function consultar<T>(url: URL, token: string, f: FetchMeta): Promise<Resp
   }
   if (!respuesta.ok || cuerpo?.error) {
     const detalle = cuerpo?.error?.message ?? respuesta.statusText;
-    throw new ErrorDeApp(`Meta rechazó la consulta: ${mensajeSeguro(detalle, token)}`, 422);
+    const mensaje = `Meta rechazó la consulta: ${mensajeSeguro(detalle, token)}`;
+    if (cuerpo?.error?.code === 1 && typeof detalle === "string" && PEDIDO_DEMASIADO_GRANDE.test(detalle)) {
+      throw new PaginaDemasiadoGrandeError(mensaje, 422);
+    }
+    throw new ErrorDeApp(mensaje, 422);
   }
   if (!cuerpo) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
   return cuerpo;
@@ -41,7 +54,17 @@ async function consultarPaginas<T>(url: URL, token: string, f: FetchMeta): Promi
   const filas: T[] = [];
   let siguiente: URL | null = url;
   while (siguiente) {
-    const cuerpo: RespuestaMeta<PaginaMeta<T>> = await consultar(siguiente, token, f);
+    let cuerpo: RespuestaMeta<PaginaMeta<T>>;
+    try {
+      cuerpo = await consultar(siguiente, token, f);
+    } catch (error) {
+      // La misma página (mismo cursor) se vuelve a pedir con la mitad de filas, hasta el mínimo:
+      // medido el 14-oct, una cuenta con creativos pesados rechaza 100 anuncios y acepta 50.
+      const limite = Number(siguiente.searchParams.get("limit"));
+      if (!(error instanceof PaginaDemasiadoGrandeError) || !(limite > LIMITE_MINIMO_POR_PAGINA)) throw error;
+      siguiente.searchParams.set("limit", String(Math.max(LIMITE_MINIMO_POR_PAGINA, Math.floor(limite / 2))));
+      continue;
+    }
     if (!Array.isArray(cuerpo.data)) {
       throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
     }
