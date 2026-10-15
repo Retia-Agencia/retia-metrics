@@ -4578,6 +4578,11 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- 🚦 **15-oct, el semáforo de pauta por WhatsApp está encendido** (tickets 259 a 269, ADR 0089 con sus enmiendas):
+  los tres programas a las 8, 11, 14 y 17 h y el cierre a las 20 h, un solo mensaje por hora al grupo "Alertas Paid
+  Media - Retia". Cómo se opera: `docs/operations.md` §3.1. Pendiente: confirmar que el envío de las 17:00 del 15-oct
+  llegó como un solo mensaje; el presupuesto del día en el mensaje espera la respuesta de Pauta.
+
 - 🧭 **14-oct, el Hub de métricas: audit, plan y tickets** (`docs/hub.md`). Decisiones de Mani en ADR 0086 a 0090: el
   Hub reemplaza Dashboard y Metas (Hoy · Comercial · Dinero · Pauta · Origen), "Comparar con" en vez de A/B, área por
   regla + árbol de Meta (los canales se definen solos), costo por agenda con agendas del CRM y TRM de cada día (A12

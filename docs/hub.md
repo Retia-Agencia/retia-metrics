@@ -442,7 +442,7 @@ Vive en `plan.md` §7, **letra E (Hub)**, la lista única. Aquí el índice:
 |---|---|---|
 | HQ-1 | 🟡 Los umbrales de costo por agenda por programa (meta y aceptable). **Provisionales en producción desde el 15-oct** para probar los mensajes (ComunicArte C3 85.000/105.000, Comunícate con Confianza C1 100.000/125.000, Tactical C3 75.000/90.000); Pauta los confirma después del daily y los cambia ella misma en el CRM | Pauta y Gerencia |
 | HQ-2 | ✅ 15-oct: un solo grupo para todos los programas ("Alertas Paid Media - Retia", en el `.env` de Juanito, 268); los rojos los atienden Gerencia y Pauta | Mani |
-| HQ-3 | ✅ 15-oct (Dani Tovar): 8, 11, 14 y 17 h, y el resumen de cierre a las 20 h. Lo hace posible el 268 | Mani y Pauta |
+| HQ-3 | ✅ 15-oct (Dani Tovar): 8, 11, 14 y 17 h, y el resumen de cierre a las 20 h. Lo hace posible el 268; encendido en los tres programas el 15-oct | Mani y Pauta |
 | HQ-4 | ✅ 15-oct (Michael): con el gasto de **todas** las campañas. El mensaje debe traer además el **presupuesto del día** (fijo todo el día), el gasto y las agendas hasta ese momento y el costo por agenda | Pauta |
 | HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos | Pauta y Gerencia |
 | HQ-6 | ✅ 15-oct: tres programas en curso y todas sus cuentas mapeadas: Tactical = Tactical Assets SAS (de Juan Pablo Vieira), Comunícate con Confianza = la de Francisco (Power Talk), ComunicArte = las de Milena y Rosario (COP y USD). `[CP] - Milena - [Nas & Be]` está restringida y no entra (Mani) | Pauta |

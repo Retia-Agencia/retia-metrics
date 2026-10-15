@@ -117,9 +117,23 @@ editor) y en Vercel.
 | `TYPEFORM_TOKEN` | token personal de Typeform, **por cuenta**: ve los forms de los tres programas (Comunícate con Confianza: `E5F4chVT`, en la cuenta de Francisco) (lectura de forms, variables, webhooks y respuestas). Solo para scripts y revisiones de devs; la app no lo lee | local |
 | `META_SYSTEM_TOKEN` | token del usuario del sistema `retia-insights` del portafolio Agencia Retia Growth (14-oct): **solo `ads_read`**, caducidad Nunca, ve las 7 cuentas publicitarias (`docs/hub.md` §2.4). Solo para scripts y devs; **la app no lo lee**: en producción el token vive en la base (`meta_conexiones`, 119, ADR 0062). Copia de respaldo fuera del repo en `~/.config/retia/meta.env` de Mani. La API exige `v26.0` | local |
 | `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL`, `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
+| `SEMAFORO_SECRETO` | el secreto con que Juanito llama a `POST /api/semaforo/envios` (ADR 0089, 259); el mismo valor va en `RETIA_SEMAFORO_SECRETO` del `.env` de Juanito, local y VPS. Generado el 15-oct sin mostrarlo | Vercel |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
+
+### 3.1 El reporte de pauta por WhatsApp (semáforo; ADR 0089, tickets 259 a 269)
+
+- **Qué se manda y cuándo** se configura en el CRM, Programa › General › Reporte por WhatsApp: encendido, horas del
+  día (0 a 23), resumen de cierre y métricas. Al 15-oct los tres programas están encendidos a las 8, 11, 14 y 17 h,
+  con el cierre a las 20 h (pedido de Dani Tovar).
+- **A dónde** no se configura en el CRM: un solo grupo, "Alertas Paid Media - Retia", en `RETIA_SEMAFORO_GRUPO` del
+  `.env` de Juanito (y en `environment:` de su `docker-compose.yml`).
+- **Cómo sale:** Juanito pregunta cada hora en punto de lunes a viernes (`0 * * * 1-5`); el CRM responde a lo sumo un
+  envío con un bloque por programa que toca a esa hora (269) y el texto ya armado. Si el CRM no responde, Juanito
+  avisa en el grupo con la última configuración que guardó.
+- **Apagarlo:** el interruptor "Enviar reporte" de cada programa. Para apagarlo todo desde Juanito, vaciar
+  `RETIA_SEMAFORO_URL` en su `.env` del VPS y `docker compose up -d` (el job se autodesactiva).
 
 ## 4. La base de datos
 
