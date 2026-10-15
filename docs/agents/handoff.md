@@ -27,6 +27,17 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
 
 ## Memory
 
+- **2026-10-15 (noche; Mani + Claude, sesión del semáforo por WhatsApp): 258 v1 y 264 done (CI verde `93f6966`); 265 integrado en `main` LOCAL, sin empujar.**
+  - **Decisión de Mani:** las horas del reporte viven en el CRM (265), no en el reloj de Juanito. La conexión es de
+    Juanito hacia el CRM (POST con secreto); el contrato quedó fijado en el 259 (`6007587`).
+  - **265:** tabla `reportes_whatsapp` (migración 0085, **no aplicada en producción**), sección en Programa › General
+    solo para quien administra (se revirtió que Codex abriera la ficha al paid trafficker: contradecía el ADR 0082).
+    Recorrido local ok: guarda, deja 6 filas en `change_log`. **No empujar `main` antes de aplicar la 0085** (el código
+    lee la tabla en Programa › General): primero el ok de Mani, `SET lock_timeout` ya va en la migración, luego push.
+  - **Grupo de prueba:** "Alertas Paid Media - Retia" = `120363431126105889@g.us` (Juanito ya está y autorizado).
+  - **Siguiente:** brief del 259 listo (en el scratchpad de la sesión; resumen en el ticket: ruta
+    `/api/semaforo/envios`, `SEMAFORO_SECRETO`, `sincronizacion` puede ser null, `error` por envío); luego 260 en Juanito.
+
 - **2026-10-15 (Mani + Claude): el reporte de WhatsApp se configura en el CRM.** Usando la pantalla del 122, Mani vio
   que "Meta" y "Aceptable" no se entienden, que la moneda no debería elegirse y que aparecen métricas sin uso → **264**
   (plantilla curada por métrica, en colores, con el valor de hoy). Y pidió elegir qué métricas lleva el WhatsApp de
