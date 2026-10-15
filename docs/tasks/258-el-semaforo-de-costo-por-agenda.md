@@ -3,7 +3,7 @@ id: 258
 etapa: hub
 serves: "ADR 0089 puntos 1, 5 y 6 · ADR 0088 · docs/hub.md §5.2 (semáforo, días seguidos) · semaforo-30x-analisis del vault"
 depends: [122, 245, 262]  # v1; la v2 además 247
-status: en curso
+status: en curso  # v1 done (15-oct, CI verde 93f6966); v2 por campaña espera el 247
 ---
 
 # 258 — El semáforo de costo por agenda, calculado en el CRM

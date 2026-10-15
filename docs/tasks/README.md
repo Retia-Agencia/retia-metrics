@@ -198,11 +198,11 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 245 | [Las fotos del gasto durante el día](./245-las-fotos-del-gasto-durante-el-dia.md) | 120 | done · 14-oct · Mani · CI verde `ebf5072` · migración 0084 aplicada; nadie la dispara aún (259) |
 | [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | integrado · 14-oct · Codex + central · CA en N3 medido; falta el primer envío de TI con `ad_id` |
 | [ ] | 249 | [Agendas según Meta contra el CRM: el control](./249-agendas-segun-meta-contra-el-crm.md) | 120, 123 | todo |
-| [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 245, 262 (v1); 247 (v2) | v1 integrada · 15-oct · Codex + central · `a0075af` · CI pendiente; v2 por campaña espera el 247 · enmendado 14-oct: v1 por programa sin el 123, v2 por campaña |
+| [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 245, 262 (v1); 247 (v2) | v1 done · 15-oct · Codex + central · CI verde `93f6966`; v2 por campaña espera el 247 · enmendado 14-oct: v1 por programa sin el 123, v2 por campaña |
 | [ ] | 259 | [El endpoint de máquina del semáforo](./259-el-endpoint-de-maquina-del-semaforo.md) | 258, 265 | todo · segunda excepción a "nada es público" (ADR 0089) · enmendado 15-oct: responde qué mandar ahora |
 | [ ] | 260 | [Juanito manda el semáforo](./260-juanito-manda-el-semaforo.md) | 259 | todo · **se implementa en el repo de Juanito** |
 | [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
-| [ ] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | integrado · 15-oct · Codex + central · `93f6966` · CI pendiente; falta la validación de Mani · sin migración (Mani, 15-oct) |
+| [x] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | done · 15-oct · Codex + central · CI verde `93f6966` · falta que Mani lo valide llenándolo · sin migración (Mani, 15-oct) |
 | [ ] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | en curso · 15-oct · migración 0085 escrita (sin aplicar) · ADR 0089 enmendado 15-oct |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
