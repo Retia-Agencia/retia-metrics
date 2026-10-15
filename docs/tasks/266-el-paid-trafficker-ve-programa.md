@@ -3,7 +3,7 @@ id: 266
 etapa: hub
 serves: "ADR 0082, enmienda del 15-oct (el paid trafficker abre Programa); ADR 0089 (los umbrales del semáforo)"
 depends: [122, 265]
-status: en curso
+status: done
 ---
 
 # 266 — El Paid Trafficker ve Programa y edita las metas de pauta
@@ -33,13 +33,13 @@ Meta, reporte por WhatsApp) y escriba él mismo la meta y el aceptable de las m�
 
 ## Done cuando
 
-- [ ] `tests/roles.test.ts`: `leePrograma` y `editaObjetivo` en los cinco roles (developer siempre sí).
-- [ ] `tests/paginas.test.ts`: el paid trafficker abre Programa (General y Ventas), no ve Equipo ni Captación ni la
+- [x] `tests/roles.test.ts`: `leePrograma` y `editaObjetivo` en los cinco roles (developer siempre sí).
+- [x] `tests/paginas.test.ts`: el paid trafficker abre Programa (General y Ventas), no ve Equipo ni Captación ni la
       comisión; el closer sigue con 404.
-- [ ] Mordida en el servidor (test del catálogo, no de la pantalla): el paid trafficker crea y edita un objetivo de
+- [x] Mordida en el servidor (test del catálogo, no de la pantalla): el paid trafficker crea y edita un objetivo de
       `costo_por_agenda` y recibe 403 en uno de `cupos`, sin que la base se mueva; editar una fila de `cupos`
       mandando `costo_por_agenda` como métrica también da 403.
-- [ ] Recorrido local con un paid trafficker: ve las dos pestañas y edita la meta del costo por agenda.
+- [x] Recorrido local con un paid trafficker: ve las dos pestañas y edita la meta del costo por agenda.
 
 ## Fuera
 
