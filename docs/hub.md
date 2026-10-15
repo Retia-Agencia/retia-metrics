@@ -484,8 +484,8 @@ Vive en `plan.md` §7, **letra E (Hub)**, la lista única. Aquí el índice:
 | # | Qué | A quién |
 |---|---|---|
 | HQ-1 | Los umbrales de costo por agenda por programa (meta y aceptable), con la línea base de §2.4 y `CPI máx = ticket × % de CAC aceptable × tasa de cierre` | Pauta y Gerencia |
-| HQ-2 | A quién le llega el semáforo (grupo nuevo o 1:1), quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia |
-| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + resumen a las 18 h) | Mani y Pauta |
+| HQ-2 | A quién le llega el semáforo (grupo nuevo o 1:1), quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia · se carga en la pantalla del 265 (ADR 0089 enmendado) |
+| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + resumen a las 18 h) | Mani y Pauta · se carga en la pantalla del 265 |
 | HQ-4 | El costo por agenda del programa: con el gasto de **todas** las campañas o solo el de las que buscan agendas (las de registro e interacción gastan sin agendar) | Pauta |
 | HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos | Pauta y Gerencia |
 | HQ-6 | Qué cuentas entran (las USD de CA; Rosario \| Retia solo corre registros) | Pauta |

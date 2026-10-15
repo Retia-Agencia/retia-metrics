@@ -13,8 +13,9 @@ Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión o
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
 Lee AGENTS.md, docs/hub.md y las entradas del 14-oct (tarde y noche) en Memory.
 
-Semáforo por WhatsApp (ADR 0089): 122 y 245 done. Listo: 258 v1 (por programa, ver su enmienda del 14-oct),
-luego 259 y 260 (este en el repo de Juanito). Carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status).
+Semáforo por WhatsApp (ADR 0089, enmendado el 15-oct: el reporte se configura por programa en el CRM): 122 y 245
+done. Listos: 258 v1 (por programa, ver su enmienda) y 264 (plantilla curada de objetivos, sin migración); luego
+265 (configuración del reporte, migración), 259 (responde qué mandar ahora) y 260 (en el repo de Juanito). Carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status).
 Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM: 8, 10 y 14-oct), 247 (que la landing
 de Tactical pase `ad_id` al Typeform y ver el primero en N3). Reclama el ticket (status en curso) y empuja antes de lanzar.
 
@@ -25,6 +26,13 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
 ```
 
 ## Memory
+
+- **2026-10-15 (Mani + Claude): el reporte de WhatsApp se configura en el CRM.** Usando la pantalla del 122, Mani vio
+  que "Meta" y "Aceptable" no se entienden, que la moneda no debería elegirse y que aparecen métricas sin uso → **264**
+  (plantilla curada por métrica, en colores, con el valor de hoy). Y pidió elegir qué métricas lleva el WhatsApp de
+  cada programa → **ADR 0089 enmendado** y **265**: encendido, grupo, horarios y métricas por programa en el CRM;
+  Juanito solo pregunta "¿qué mando ahora?" y guarda la última configuración buena por si el CRM no responde. 259 y
+  260 enmendados en ese sentido.
 
 - **2026-10-14 (noche, 2ª sesión; Mani + Claude): el semáforo de pauta por WhatsApp arranca. 122 y 245 done.**
   - **Decisión de Mani:** el semáforo llega por WhatsApp con **Juanito**, siguiendo el ADR 0089 tal cual: el CRM

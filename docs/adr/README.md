@@ -111,7 +111,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0050](./0050-la-navegacion-es-por-objetos.md) | La navegación es por objetos, con selector de programa, Inbox y Dashboard |
 | [0067](./0067-numero-y-porcentaje-periodo-a-contra-b-y-toda-cifra-abre-su-lista.md) | Número y porcentaje siempre, periodo A contra B al mismo día hábil, y toda cifra abre su lista (resumen primero) (**cómo se presenta el selector lo enmienda el 0086**) |
 | [0086](./0086-el-hub-reemplaza-al-dashboard-y-a-metas.md) | El Hub reemplaza al Dashboard y a Metas (Hoy · Comercial · Dinero · Pauta · Origen) y el periodo se compara "con" algo, sin A ni B |
-| [0089](./0089-el-crm-calcula-el-semaforo-y-juanito-lo-manda.md) | El CRM calcula el semáforo de pauta y Juanito lo manda; endpoint de máquina con secreto y sin datos personales (segunda excepción a "nada es público") |
+| [0089](./0089-el-crm-calcula-el-semaforo-y-juanito-lo-manda.md) | El CRM calcula el semáforo de pauta y Juanito lo manda; endpoint de máquina con secreto y sin datos personales (segunda excepción a "nada es público"). Enmendado 15-oct: el reporte (destino, horarios, métricas) se configura por programa en el CRM |
 | [0090](./0090-los-planes-de-accion-viven-en-el-crm.md) | Los planes de acción viven en el CRM, y un rojo del semáforo se cierra con una acción |
 | [0091](./0091-las-graficas-son-echarts-con-una-pieza-propia.md) | Las gráficas del CRM son ECharts, siempre a través de una pieza propia (envoltorio, tema de Tinta y accesibilidad una sola vez) |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |

@@ -58,3 +58,31 @@ cron corre una vez al día, y el semáforo necesita varias lecturas en horario h
 | Intradía desde Meta en Juanito y cierre desde el CRM | dos números durante el día para la misma pregunta |
 | WhatsApp 1:1 por Kapso con plantilla | pide una plantilla aprobada por Meta y no deja escribir en un grupo que ya existe; Juanito ya está en los grupos |
 | Pasar Vercel a Pro para tener crons cada hora | es la decisión R3, abierta; Juanito ya corre crons y no cuesta más |
+
+---
+
+## Enmienda 15-oct-2026 (Mani): el reporte se configura en el CRM, por programa
+
+Cambian los puntos 3 y el cierre de "Consecuencias" ("el destino, los horarios... son datos" seguía siendo cierto,
+pero dejaba el destino y los horarios en el `.env` de Juanito). Ahora:
+
+1. **El reporte por WhatsApp es configuración del programa, en el CRM** (ticket 265): encendido o apagado, el grupo
+   de destino, los horarios y **qué métricas incluye**, cada una con su interruptor. Una métrica solo se puede
+   encender si tiene semáforo implementado y umbral cargado en la cohorte activa (122, 264). El programa sigue siendo
+   frontera: un reporte es de un programa y nunca mezcla dos.
+2. **Juanito queda sin estado de negocio.** Su cron llama al endpoint en cada hora hábil y pregunta *"¿qué mando
+   ahora?"*; el CRM responde la lista de envíos que tocan en ese momento, cada uno con su destino y su contenido ya
+   calculado. Juanito arma el texto con el formato de 30X y lo pone en su cola anti-ban. En su `.env` quedan solo la
+   URL del endpoint y el secreto.
+3. **Por qué:** un programa nuevo, un horario distinto o una métrica más se cambian desde el CRM sin tocar ni
+   desplegar Juanito (contrato C-1, `docs/hub.md` §8: lo de hoy son datos). Una métrica nueva es una fila de
+   configuración y un interruptor, no una variable en un VPS.
+4. **Costo aceptado:** el endpoint (259) decide además qué toca a qué hora; la regla de horario vive en un módulo
+   puro con tests. Y como Juanito ya no sabe solo a quién escribir, **guarda la última configuración buena** (destinos
+   y horarios) que le devolvió el endpoint: si el CRM no responde en un horario que tocaba, avisa a esos destinos que
+   no hay datos, en vez de callarse.
+5. **Lo que sigue igual:** el CRM calcula, Juanito no lee Meta ni la base, el endpoint devuelve solo agregados y se
+   autentica con un secreto en tiempo constante, y durante el día se compara contra ayer a la misma hora.
+
+Las decisiones abiertas HQ-2 y HQ-3 (`docs/plan.md` §7) dejan de ser configuración de Juanito: se responden llenando
+esa pantalla.

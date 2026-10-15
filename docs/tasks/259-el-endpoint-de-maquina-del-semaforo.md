@@ -2,7 +2,7 @@
 id: 259
 etapa: hub
 serves: "ADR 0089 puntos 2 y 4 (la segunda excepción a \"nada es público\")"
-depends: [258]
+depends: [258, 265]
 status: todo
 ---
 
@@ -47,3 +47,19 @@ calculado, sin ver nunca un dato de una persona.
   programas; la liviana debería quedar en segundos (nota de cierre con lo medido).
 - Done cuando, además: abrir el Hub con la última corrida vieja dispara una sola corrida liviana y la página no la
   espera, con test; con una corrida de hace menos de 1 hora, no dispara nada.
+
+---
+
+## Enmienda 15-oct (Mani, ADR 0089 enmendado): el endpoint responde "qué mandar ahora"
+
+- **Depende además del 265** (la configuración del reporte por programa).
+- La respuesta deja de ser "el semáforo de todos los programas": es **la lista de envíos que tocan en este instante**
+  según la regla del 265 (programas encendidos con ese horario, en día hábil), cada uno con: el programa, el destino
+  (id del grupo), si es de día o de cierre, y **solo las métricas encendidas** para ese programa, con su semáforo
+  (258). Sin envíos que toquen: lista vacía, 200.
+- Además devuelve **la configuración vigente** (destinos y horarios de cada programa encendido), para que Juanito
+  guarde la última buena y pueda avisar si el CRM no responde (ADR 0089 enmendado, punto 4).
+- La lista blanca del test de contrato agrega `destino`, `tipo` (día o cierre) y `metricas`; sigue sin nombres,
+  correos, teléfonos ni ids de lead.
+- Done cuando, además: a una hora sin envíos devuelve lista vacía; una métrica apagada no aparece; un programa
+  apagado no aparece; con tests sobre el handler real.

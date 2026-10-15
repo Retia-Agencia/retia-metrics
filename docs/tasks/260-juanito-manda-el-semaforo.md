@@ -38,3 +38,17 @@ Que el semáforo de pauta de Retia llegue por WhatsApp en horario hábil y con u
 
 El estado vive aquí (el tracker del CRM); el código y sus tests, en Juanito. Riesgo aceptado: Baileys no es oficial
 (ADR 0089, consecuencias).
+
+---
+
+## Enmienda 15-oct (Mani, ADR 0089 enmendado): Juanito solo pregunta y manda
+
+- **Los horarios y el destino ya no son configuración de Juanito**: los decide el CRM (265). El job llama al endpoint
+  en cada hora en punto de días hábiles (horario fijo amplio, p. ej. 6 a 19 h) y manda lo que la respuesta diga, a su
+  destino. En el `.env` quedan solo la URL del endpoint y el secreto (el job se autodesactiva sin ellos).
+- **Guarda la última configuración buena** que trae la respuesta (destinos y horarios). Si el endpoint falla en una
+  hora en la que esa configuración tenía envíos, avisa a esos destinos que no hay datos; si nunca recibió una, solo
+  lo registra.
+- El mensaje arma **solo las métricas que vengan** en la respuesta (las encendidas en el CRM), con el formato de 30X.
+- Done cuando, además: con una respuesta de dos programas manda dos mensajes a sus dos destinos; con lista vacía no
+  manda nada; con el endpoint caído avisa a los destinos guardados; con tests en el repo de Juanito.

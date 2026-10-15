@@ -199,9 +199,11 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | integrado · 14-oct · Codex + central · CA en N3 medido; falta el primer envío de TI con `ad_id` |
 | [ ] | 249 | [Agendas según Meta contra el CRM: el control](./249-agendas-segun-meta-contra-el-crm.md) | 120, 123 | todo |
 | [ ] | 258 | [El semáforo de costo por agenda](./258-el-semaforo-de-costo-por-agenda.md) | 122, 245, 262 (v1); 247 (v2) | todo · **listo (v1)** · enmendado 14-oct: v1 por programa sin el 123, v2 por campaña |
-| [ ] | 259 | [El endpoint de máquina del semáforo](./259-el-endpoint-de-maquina-del-semaforo.md) | 258 | todo · segunda excepción a "nada es público" (ADR 0089) |
+| [ ] | 259 | [El endpoint de máquina del semáforo](./259-el-endpoint-de-maquina-del-semaforo.md) | 258, 265 | todo · segunda excepción a "nada es público" (ADR 0089) · enmendado 15-oct: responde qué mandar ahora |
 | [ ] | 260 | [Juanito manda el semáforo](./260-juanito-manda-el-semaforo.md) | 259 | todo · **se implementa en el repo de Juanito** |
 | [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
+| [ ] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | todo · **listo** · sin migración (Mani, 15-oct) |
+| [ ] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | todo · migración · ADR 0089 enmendado 15-oct |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 

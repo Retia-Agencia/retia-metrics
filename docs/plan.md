@@ -445,8 +445,8 @@ agenda→venta, la ventana del ritmo y cuándo dejan de contar agendas (PQ3) · 
 | # | Qué | A quién |
 |---|---|---|
 | HQ-1 | Los umbrales de costo por agenda por programa (meta y aceptable), con la línea base de `hub.md` §2.4 | Pauta y Gerencia |
-| HQ-2 | A quién le llega el semáforo, quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia |
-| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + 18 h) | Mani y Pauta |
+| HQ-2 | A quién le llega el semáforo, quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia · se carga en la pantalla del 265 (ADR 0089 enmendado) |
+| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + 18 h) | Mani y Pauta · se carga en la pantalla del 265 |
 | HQ-4 | El costo por agenda del programa: con el gasto de todas las campañas o solo el de las que buscan agendas | Pauta |
 | HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos (253) | Pauta y Gerencia |
 | HQ-6 | Qué cuentas entran (las USD de CA; Rosario \| Retia solo corre registros) | Pauta |

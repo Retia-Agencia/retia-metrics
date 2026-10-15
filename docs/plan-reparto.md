@@ -140,7 +140,7 @@ carril, y si los dos quieren el mismo carril, se parten por línea de la tabla (
 calientes, salvo lo que dice abajo).
 
 **Cola de migraciones** (una sola; la genera y aplica la sesión principal, con el ok de Mani y leyendo el SQL):
-119 → 120 → 244 → 122 → 245 → 257 → 261. Quien llegue a su migración y no le toque, espera o sigue con otro ticket
+119 → 120 → 244 → 122 → 245 → 265 → 257 → 261. Quien llegue a su migración y no le toque, espera o sigue con otro ticket
 listo sin migración.
 
 **Choques a vigilar:**
