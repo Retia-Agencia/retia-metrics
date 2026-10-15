@@ -702,7 +702,10 @@ cada etapa están en la tabla de §3.
 3. Estados en `<Badge variant>`, nunca un color suelto.
 4. Números con `cifra` y el formato de `lib/format.ts`.
 5. Estado vacío escrito (qué falta y cómo llenarlo), nunca una tarjeta en blanco.
-6. Revisarla en claro **y** en oscuro, y abrir todo lo que se abre: cargar una pantalla no es probarla.
+. **Crear es un botón que abre un diálogo** (Mani, 15-oct, A-154): la pantalla muestra lo que ya existe y el
+   formulario de alta vive en un `<Dialog>`, nunca abierto debajo de la lista. Editar puede usar el mismo diálogo. Un
+   campo de configuración se lee como frase con huecos ("Avísame si llevo menos del [80] % ...") antes que como
+   etiquetas sueltas, y un valor de ejemplo nunca se confunde con uno guardado.
 
 **Criterios de uso** (de los closers, 24-sep): el cierre de una llamada cuesta pegar el Grain y un clic;
 nada que decida se teclea; utilidad sobre estética. 🔴 Uso desde el celular: no se alcanzó a preguntar.
