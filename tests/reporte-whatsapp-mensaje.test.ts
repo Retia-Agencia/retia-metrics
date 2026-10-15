@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { armarMensaje, armarMensajeDeLaHora } from "@/lib/reporte-whatsapp/mensaje";
-import type { MetricaSemaforo } from "@/lib/semaforo/semaforo";
+import { armarMensajeDeLaHora } from "@/lib/reporte-whatsapp/mensaje";
+import { NOTA_SIN_ERRORES, type MetricaSemaforo } from "@/lib/semaforo/semaforo";
 
+const ORIGEN = "https://crm.test";
 const METRICA: MetricaSemaforo = {
   metrica: "costo_por_agenda",
   color: "peligro",
@@ -23,11 +24,10 @@ const METRICA: MetricaSemaforo = {
   notas: [{ tipo: "problema", texto: "Creativo agotado" }],
 };
 
-function envio() {
+function bloque() {
   return {
     programa: "Alpha",
     tipo: "dia" as const,
-    hora: "09:00",
     enlaceHub: "https://hub.test/alpha",
     error: null,
     metricas: [METRICA],
@@ -35,31 +35,33 @@ function envio() {
 }
 
 describe("mensaje del reporte por WhatsApp", () => {
-  it("incluye umbral, gasto, ayer, rojo y Hub", () => {
-    const mensaje = armarMensaje(envio(), null);
-    expect(mensaje).toMatch(/^🚦 Semáforo de pauta · Alpha · 09:00/);
-    expect(mensaje).toMatch(/🔴 Costo por agenda: \$304\.930 COP/);
-    expect(mensaje).toMatch(/Meta \$200\.000 COP · aceptable \$250\.000 COP/);
-    expect(mensaje).toMatch(/Gasto \$609\.860 COP · 2 agendas/);
-    expect(mensaje).toMatch(/Ayer a esta hora: \$100\.000 COP \(3 agendas\)/);
-    expect(mensaje).toMatch(/🔴 3 días seguidos en rojo/);
-    expect(mensaje).toMatch(/• ⚠️ Creativo agotado/);
-    expect(mensaje).toMatch(/Ver en el Hub: https:\/\/hub\.test\/alpha$/);
+  it("compacta umbral, gasto, ayer, rojo y problema en un bloque", () => {
+    const mensaje = armarMensajeDeLaHora([bloque()], "09:00", null, ORIGEN);
+
     expect(mensaje).toBe([
-      "🚦 Semáforo de pauta · Alpha · 09:00",
+      "🚦 Semáforo de pauta · 09:00",
+      "",
+      "*Alpha*",
       "🔴 Costo por agenda: $304.930 COP",
       "Meta $200.000 COP · aceptable $250.000 COP",
-      "Gasto $609.860 COP · 2 agendas",
-      "Ayer a esta hora: $100.000 COP (3 agendas)",
+      "Gasto $609.860 COP · 2 agendas · ayer $100.000 COP (3)",
       "🔴 3 días seguidos en rojo",
-      "• ⚠️ Creativo agotado",
-      "Ver en el Hub: https://hub.test/alpha",
+      "⚠️ Creativo agotado",
+      "",
+      "CRM: https://crm.test",
     ].join("\n"));
+    expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
 
   it("incluye la trayectoria completa al cierre", () => {
-    const mensaje = armarMensaje({ ...envio(), tipo: "cierre", hora: "18:00" }, null);
-    expect(mensaje).toMatch(/^🚦 Cierre del día · Alpha · 18:00/);
+    const mensaje = armarMensajeDeLaHora(
+      [{ ...bloque(), tipo: "cierre" }],
+      "18:00",
+      null,
+      ORIGEN,
+    );
+
+    expect(mensaje).toMatch(/^🚦 Cierre del día · 18:00/);
     expect(mensaje).toMatch(/Trayectoria: 09:00 \$0 COP · 0 ag \| 11:00 \$120\.000 COP · 1 ag/);
   });
 
@@ -71,44 +73,69 @@ describe("mensaje del reporte por WhatsApp", () => {
       umbral: null,
       motivo: "sin_umbral",
     };
-    const mensaje = armarMensaje({ ...envio(), metricas: [metrica] }, null);
+    const mensaje = armarMensajeDeLaHora(
+      [{ ...bloque(), metricas: [metrica] }],
+      "09:00",
+      null,
+      ORIGEN,
+    );
+
     expect(mensaje).toMatch(/⚪ Costo por agenda: sin dato/);
     expect(mensaje).toMatch(/Falta cargar la meta en el CRM/);
   });
 
-  it("muestra la hora de la ultima foto en Bogota si falla la sincronizacion", () => {
-    const mensaje = armarMensaje(envio(), {
+  it("muestra una sola vez la sincronizacion y termina con el CRM general", () => {
+    const mensaje = armarMensajeDeLaHora([bloque(), { ...bloque(), programa: "Beta" }], "09:00", {
       estado: "error",
       ultimaFoto: "2026-07-14T15:27:00Z",
-    });
-    expect(mensaje).toMatch(/⚠️ No se pudo leer Meta; cifras de la última foto \(10:27\)/);
-  });
-
-  it("con un bloque sin error de sincronizacion coincide con armarMensaje", () => {
-    const { hora, ...bloque } = envio();
-
-    expect(armarMensajeDeLaHora([bloque], hora, null)).toBe(armarMensaje(envio(), null));
-  });
-
-  it("une dos bloques con el separador", () => {
-    const { hora, ...primero } = envio();
-    const segundo = { ...primero, programa: "Beta", enlaceHub: "https://hub.test/beta" };
-
-    expect(armarMensajeDeLaHora([primero, segundo], hora, null)).toBe([
-      armarMensaje(envio(), null),
-      armarMensaje({ ...segundo, hora }, null),
-    ].join("\n\n━━━━━━━━━━\n\n"));
-  });
-
-  it("agrega una sola vez el aviso de sincronizacion", () => {
-    const { hora, ...primero } = envio();
-    const segundo = { ...primero, programa: "Beta", enlaceHub: "https://hub.test/beta" };
-    const mensaje = armarMensajeDeLaHora([primero, segundo], hora, {
-      estado: "error",
-      ultimaFoto: "2026-07-14T15:27:00Z",
-    });
+    }, ORIGEN);
 
     expect(mensaje.match(/⚠️ No se pudo leer Meta/g)).toHaveLength(1);
-    expect(mensaje).toMatch(/\n\n⚠️ No se pudo leer Meta; cifras de la última foto \(10:27\)$/);
+    expect(mensaje).toContain("⚠️ No se pudo leer Meta; cifras de la última foto (10:27)");
+    expect(mensaje).toMatch(/CRM: https:\/\/crm\.test$/);
+  });
+
+  it("une dos programas, deduplica la info y confirma una corrida limpia", () => {
+    const textoHQ4 = "HQ-4: Meta entregó datos parciales";
+    const metricaLimpia: MetricaSemaforo = {
+      ...METRICA,
+      notas: [
+        { tipo: "info", texto: textoHQ4 },
+        { tipo: "info", texto: NOTA_SIN_ERRORES },
+      ],
+    };
+    const primero = { ...bloque(), metricas: [metricaLimpia] };
+    const segundo = { ...primero, programa: "Beta", enlaceHub: "https://hub.test/beta" };
+    const mensaje = armarMensajeDeLaHora([primero, segundo], "09:00", null, ORIGEN);
+
+    expect(mensaje.match(/🚦 Semáforo de pauta · 09:00/g)).toHaveLength(1);
+    expect(mensaje.match(/━━━━━━━━━━/g)).toHaveLength(1);
+    expect(mensaje).toContain("*Alpha*\n🔴 Costo por agenda");
+    expect(mensaje).toContain("\n━━━━━━━━━━\n*Beta*\n");
+    expect(mensaje.match(new RegExp(textoHQ4, "g"))).toHaveLength(1);
+    expect(mensaje).toContain(`ℹ️ ${textoHQ4}\n✅ Sin errores en esta corrida`);
+    expect(mensaje).toMatch(/CRM: https:\/\/crm\.test$/);
+  });
+
+  it("marca solo el bloque de cierre cuando mezcla tipos", () => {
+    const mensaje = armarMensajeDeLaHora([
+      bloque(),
+      { ...bloque(), programa: "Beta", tipo: "cierre" },
+    ], "18:00", null, ORIGEN);
+
+    expect(mensaje).toMatch(/^🚦 Semáforo de pauta · 18:00/);
+    expect(mensaje).toContain("*Alpha*\n");
+    expect(mensaje).toContain("*Beta* (cierre)\n");
+  });
+
+  it("un error reemplaza las metricas del programa y elimina la confirmacion", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      ...bloque(),
+      error: "No se pudo calcular el semáforo de este programa.",
+    }], "09:00", null, ORIGEN);
+
+    expect(mensaje).toContain("*Alpha*\n⚠️ No se pudo calcular el semáforo de este programa.");
+    expect(mensaje).not.toContain("Costo por agenda");
+    expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
 });

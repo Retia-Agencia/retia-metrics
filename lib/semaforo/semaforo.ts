@@ -20,6 +20,8 @@ import {
   type UmbralCostoPorAgenda,
 } from "./color";
 
+export const NOTA_SIN_ERRORES = "Sin errores en esta corrida.";
+
 export interface PuntoSemaforo {
   hora: string;
   gasto: number;
@@ -201,7 +203,7 @@ export async function semaforoDelPrograma(
   agregarSinDuplicar(notas, datosAyer.notas);
   agregarSinDuplicar(notas, calidad);
   if (!notas.some((nota) => nota.tipo === "problema")) {
-    notas.push({ tipo: "info", texto: "Sin errores en esta corrida." });
+    notas.push({ tipo: "info", texto: NOTA_SIN_ERRORES });
   }
 
   return {

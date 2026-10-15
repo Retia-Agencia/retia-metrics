@@ -106,7 +106,7 @@ export async function POST(request: Request) {
   const hora = pendientes[0]?.hora;
   const envios = hora === undefined
     ? []
-    : [{ hora, texto: armarMensajeDeLaHora(bloques, hora, sincronizacion), bloques }];
+    : [{ hora, texto: armarMensajeDeLaHora(bloques, hora, sincronizacion, origen), bloques }];
 
   const respuesta = esquemaRespuestaSemaforo.parse({
     generadoEn: isoEnBogota(ahora),

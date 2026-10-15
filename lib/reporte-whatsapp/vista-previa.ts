@@ -2,7 +2,7 @@ import { reporteDelPrograma } from "@/lib/catalogo/reportes-whatsapp";
 import type { Db } from "@/lib/db/tipos";
 import { horaEnBogota } from "@/lib/format";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
-import { armarMensaje, enlaceAlHub } from "./mensaje";
+import { armarMensajeDeLaHora, enlaceAlHub } from "./mensaje";
 
 interface ArgsVistaPrevia {
   programId: string;
@@ -45,14 +45,13 @@ export async function vistaPreviaDelReporte(
           });
       }
     }));
-    return armarMensaje({
+    return armarMensajeDeLaHora([{
       programa: args.programa,
       tipo,
-      hora,
       enlaceHub,
       metricas,
       error: null,
-    }, null);
+    }], hora, null, args.origen);
   };
 
   try {

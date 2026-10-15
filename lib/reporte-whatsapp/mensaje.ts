@@ -1,6 +1,7 @@
 import { horaEnBogota, num } from "@/lib/format";
 import { rutaDePrograma } from "@/lib/nav";
 import { DEFINICION_METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
+import { NOTA_SIN_ERRORES } from "@/lib/semaforo/semaforo";
 import type { RespuestaSemaforo } from "./contrato";
 
 const EMOJI = {
@@ -18,9 +19,8 @@ const MOTIVO = {
 } as const;
 
 type Bloque = RespuestaSemaforo["envios"][number]["bloques"][number];
-type Envio = Bloque & { hora: string };
 type Sincronizacion = RespuestaSemaforo["sincronizacion"];
-type Metrica = Envio["metricas"][number];
+type Metrica = Bloque["metricas"][number];
 
 function dinero(valor: number | null): string {
   return valor === null ? "sin dato" : `$${num(Math.round(valor))} COP`;
@@ -30,7 +30,7 @@ function cantidadAgendas(valor: number): string {
   return `${num(valor)} ${valor === 1 ? "agenda" : "agendas"}`;
 }
 
-function lineasMetrica(metrica: Metrica, tipo: Envio["tipo"]): string[] {
+function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   const lineas = [
     `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${dinero(metrica.costo)}`,
   ];
@@ -40,20 +40,18 @@ function lineasMetrica(metrica: Metrica, tipo: Envio["tipo"]): string[] {
       `Meta ${dinero(metrica.umbral.meta)} · aceptable ${dinero(metrica.umbral.aceptable)}`,
     );
   }
-  lineas.push(`Gasto ${dinero(metrica.gasto)} · ${cantidadAgendas(metrica.agendas)}`);
-
+  let gasto = `Gasto ${dinero(metrica.gasto)} · ${cantidadAgendas(metrica.agendas)}`;
   if (metrica.ayerALaMismaHora) {
-    lineas.push(
-      `Ayer a esta hora: ${dinero(metrica.ayerALaMismaHora.costo)} (${cantidadAgendas(metrica.ayerALaMismaHora.agendas)})`,
-    );
+    gasto += ` · ayer ${dinero(metrica.ayerALaMismaHora.costo)} (${num(metrica.ayerALaMismaHora.agendas)})`;
   }
+  lineas.push(gasto);
   if (metrica.diasSeguidosEnRojo > 0) {
     const dias = Number(metrica.diasSeguidosEnRojo);
     lineas.push(`🔴 ${num(dias)} ${dias === 1 ? "día seguido" : "días seguidos"} en rojo`);
   }
   if (metrica.motivo) lineas.push(MOTIVO[metrica.motivo]);
-  for (const nota of metrica.notas) {
-    lineas.push(`• ${nota.tipo === "problema" ? "⚠️ " : ""}${nota.texto}`);
+  for (const nota of metrica.notas.filter((nota) => nota.tipo === "problema")) {
+    lineas.push(`⚠️ ${nota.texto}`);
   }
   if (tipo === "cierre" && metrica.trayectoria.length > 0) {
     const puntos = metrica.trayectoria.map(
@@ -76,29 +74,46 @@ export function avisoDeErrorDeSincronizacion(
   return `⚠️ No se pudo leer Meta; cifras de la última foto${hora ? ` (${hora})` : ""}`;
 }
 
-export function armarMensaje(envio: Envio, sincronizacion: Sincronizacion): string {
-  const titulo = envio.tipo === "cierre" ? "Cierre del día" : "Semáforo de pauta";
-  const lineas = [`🚦 ${titulo} · ${envio.programa} · ${envio.hora}`];
-
-  if (envio.error) lineas.push(`⚠️ ${envio.error}`);
-  else {
-    for (const metrica of envio.metricas) lineas.push(...lineasMetrica(metrica, envio.tipo));
-  }
-
-  const avisoSincronizacion = avisoDeErrorDeSincronizacion(sincronizacion);
-  if (avisoSincronizacion) lineas.push(avisoSincronizacion);
-  lineas.push(`Ver en el Hub: ${envio.enlaceHub}`);
-  return lineas.join("\n");
-}
-
 export function armarMensajeDeLaHora(
   bloques: Bloque[],
   hora: string,
   sincronizacion: Sincronizacion,
+  origen: string,
 ): string {
-  const texto = bloques
-    .map((bloque) => armarMensaje({ ...bloque, hora }, null))
-    .join("\n\n━━━━━━━━━━\n\n");
+  const todosSonCierre = bloques.every((bloque) => bloque.tipo === "cierre");
+  const tiposMixtos = new Set(bloques.map((bloque) => bloque.tipo)).size > 1;
+  const titulo = todosSonCierre ? "Cierre del día" : "Semáforo de pauta";
+  const lineas = [`🚦 ${titulo} · ${hora}`, ""];
+
+  const bloquesFormateados = bloques.map((bloque) => {
+    const cierre = tiposMixtos && bloque.tipo === "cierre" ? " (cierre)" : "";
+    const lineasBloque = [`*${bloque.programa}*${cierre}`];
+    if (bloque.error) lineasBloque.push(`⚠️ ${bloque.error}`);
+    else {
+      for (const metrica of bloque.metricas) {
+        lineasBloque.push(...lineasMetrica(metrica, bloque.tipo));
+      }
+    }
+    return lineasBloque.join("\n");
+  });
+  lineas.push(bloquesFormateados.join("\n━━━━━━━━━━\n"), "");
+
   const avisoSincronizacion = avisoDeErrorDeSincronizacion(sincronizacion);
-  return avisoSincronizacion ? `${texto}\n\n${avisoSincronizacion}` : texto;
+  if (avisoSincronizacion) lineas.push(avisoSincronizacion);
+
+  const notasInformativas = new Set<string>();
+  let tieneProblemas = bloques.some((bloque) => bloque.error !== null);
+  for (const bloque of bloques) {
+    if (bloque.error) continue;
+    for (const metrica of bloque.metricas) {
+      for (const nota of metrica.notas) {
+        if (nota.tipo === "problema") tieneProblemas = true;
+        else if (nota.texto !== NOTA_SIN_ERRORES) notasInformativas.add(nota.texto);
+      }
+    }
+  }
+  for (const nota of notasInformativas) lineas.push(`ℹ️ ${nota}`);
+  if (!tieneProblemas) lineas.push("✅ Sin errores en esta corrida");
+  lineas.push(`CRM: ${origen}`);
+  return lineas.join("\n");
 }

@@ -180,7 +180,7 @@ describe("endpoint de maquina del semaforo", () => {
       bloques: Array<{ enlaceHub: string }>;
     }>;
     expect(envio.texto).toMatch(/^🚦/);
-    expect(envio.texto.endsWith(envio.bloques[0]!.enlaceHub)).toBe(true);
+    expect(envio.texto.endsWith("CRM: https://crm.retia.test")).toBe(true);
   });
 
   it("a una hora sin envios no sincroniza ni llama a Meta", async () => {
