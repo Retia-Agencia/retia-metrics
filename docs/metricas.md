@@ -238,6 +238,6 @@ Lo que hoy suma el gasto de cada programa (`cuentas_publicitarias`, todas en `Am
 | Comunícate con Confianza | 567726836094755 | COP |
 | Tactical Investor | Tactical Assets SAS | COP |
 
-`[CP] - Milena - [Nas & Be]` (USD) es visible para el usuario de sistema pero **no está mapeada** a ningún
-programa. Pauta nombró además las cuentas de **Juan Pablo** y **Francisco**, que el usuario de sistema **no ve**
-(no tiene acceso en el Business Manager): su gasto hoy no entra a ninguna cifra.
+`[CP] - Milena - [Nas & Be]` (USD) es visible para el usuario de sistema pero está restringida y **no entra**
+(Mani, 15-oct). Francisco es la creadora de Power Talk (Comunícate con Confianza, la cuenta 567726836094755). Pauta
+nombró además una cuenta de **Juan Pablo** que el usuario de sistema no ve: se le preguntó quién es (HQ-6).

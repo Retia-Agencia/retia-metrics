@@ -13,11 +13,11 @@ Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión o
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
 Lee AGENTS.md, docs/hub.md y la entrada del 15-oct (266 y 267) en Memory.
 
-Semáforo por WhatsApp completo: 259 (endpoint), 260 (Juanito), 266 (el Paid Trafficker ve Programa y edita las
-metas de pauta) y 267 (el texto lo arma el CRM; vista previa en Programa › General) están en producción con CI
-verde. Juanito manda `envio.texto` (PR #33, desplegado 15-oct). Lo que sigue es operación, no código.
-Pendientes de Mani: cargar la meta del costo por agenda y encender el reporte (pasos en Memory); respuestas de
-Pauta y Gerencia (HQ-1 a HQ-4). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct), 247 (`ad_id` de Tactical).
+Semáforo por WhatsApp: 259, 260, 266 y 267 en producción. En curso, en su sesión (t268-horas): 268 (horas libres,
+un solo grupo; Juanito ya desplegado, falta el CRM y la 0087) y después 269 (un envío por hora con los tres
+programas). Umbrales provisionales cargados el 15-oct; Pauta confirma los suyos después del daily.
+Pendientes de Mani: encender los reportes cuando el 268 esté en producción; respuestas de Pauta (HQ-1, HQ-6,
+HQ-8 a HQ-12 en docs/hub.md). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct), 247 (`ad_id` de Tactical).
 
 Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
 (tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
@@ -26,6 +26,20 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 ```
 
 ## Memory
+
+- **2026-10-15 (tarde; cierre de la sesión orquestadora): umbrales provisionales, 269 y la lista para Pauta.**
+  - **Umbrales provisionales en producción** (ok de Mani, por `crearObjetivo` con `actorDelScript`, con su
+    `change_log`): ComunicArte C3 85.000/105.000, Comunícate con Confianza C1 100.000/125.000; Tactical ya tenía
+    C3 75.000/90.000. Son para probar los mensajes: Pauta los confirma después del daily y los cambia en el CRM.
+  - **Decisiones de Mani:** un solo grupo para todos (HQ-2; en el 268); `[CP] - Milena - [Nas & Be]` no entra
+    (restringida); Francisco es Power Talk; solo hay 3 programas en curso; **un envío por hora con los tres
+    programas** → ticket **269**, asignado a la misma sesión del 268 (toca los mismos archivos).
+  - **268:** la sesión [t268-horas] llegó al límite a media tarea. Juanito ya quedó desplegado (PR #34, `8234864`, 15:50
+    UTC: cron cada hora y `RETIA_SEMAFORO_GRUPO`); el lado del CRM está sin commit en `.claude/worktrees/t268` con
+    la 0087 generada y **sin aplicar**. Se le mandó retomar y seguir con el 269.
+  - **Preguntas abiertas a Pauta:** HQ-1, HQ-6 (quién es Juan Pablo), HQ-8 (plantilla de UTM), HQ-9 (presupuesto
+    del día), HQ-10 (color de cada hora), HQ-11 (fines de semana; 30X sí manda), HQ-12 (correos). La lista para
+    mandarles quedó en el chat del 15-oct; las preguntas, en `docs/hub.md` y `docs/plan.md`.
 
 - **2026-10-15 (mediodía; misma sesión): respuestas de Pauta, `docs/metricas.md` y el 268 lanzado.**
   - **Michael respondió en Tech - Retia** (HQ-3, HQ-4, HQ-6 en `docs/hub.md`): gasto de todas las campañas; el

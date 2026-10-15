@@ -444,14 +444,18 @@ agenda→venta, la ventana del ritmo y cuándo dejan de contar agendas (PQ3) · 
 
 | # | Qué | A quién |
 |---|---|---|
-| HQ-1 | Los umbrales de costo por agenda por programa (meta y aceptable), con la línea base de `hub.md` §2.4 | Pauta y Gerencia |
-| HQ-2 | A quién le llega el semáforo, quién es el dueño de los rojos de cada programa y a quién escala a las 48 h | Mani y Gerencia · se carga en la pantalla del 265 (ADR 0089 enmendado) |
-| HQ-3 | Los horarios del semáforo (30X: 7, 9, 11, 13 y 15 h + 18 h) | Mani y Pauta · se carga en la pantalla del 265 |
-| HQ-4 | El costo por agenda del programa: con el gasto de todas las campañas o solo el de las que buscan agendas | Pauta |
-| HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos (253) | Pauta y Gerencia |
-| HQ-6 | Qué cuentas entran (las USD de CA; Rosario \| Retia solo corre registros) | Pauta |
-| HQ-7 | CAC en las dos monedas y los tres grupos del origen del cierre (propuestas de `docs/metricas.md` §3.4) | Mani |
-| HQ-8 | ¿Pauta adopta la plantilla del 29-sep en las campañas nuevas? ¿Editar los `url_tags` de un anuncio activo lo manda a revisión? | Pauta |
+| HQ-1 | 🟡 Los umbrales de costo por agenda por programa (meta y aceptable). **Provisionales en producción desde el 15-oct** para probar los mensajes (ComunicArte C3 85.000/105.000, Comunícate con Confianza C1 100.000/125.000, Tactical C3 75.000/90.000); Pauta los confirma después del daily y los cambia ella misma en el CRM | Pauta y Gerencia |
+| HQ-2 | ✅ 15-oct: un solo grupo para todos los programas ("Alertas Paid Media - Retia", en el `.env` de Juanito, 268); los rojos los atienden Gerencia y Pauta | Mani |
+| HQ-3 | ✅ 15-oct (Dani Tovar): 8, 11, 14 y 17 h, y el resumen de cierre a las 20 h. Lo hace posible el 268 | Mani y Pauta |
+| HQ-4 | ✅ 15-oct (Michael): con el gasto de **todas** las campañas. El mensaje debe traer además el **presupuesto del día** (fijo todo el día), el gasto y las agendas hasta ese momento y el costo por agenda | Pauta |
+| HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos | Pauta y Gerencia |
+| HQ-6 | 🟡 15-oct: tres programas en curso, cada uno con su cuenta mapeada; ComunicArte suma las de Milena y Rosario (COP y USD). `[CP] - Milena - [Nas & Be]` está restringida y no entra (Mani). Francisco es Power Talk (Comunícate con Confianza). Falta: quién es Juan Pablo y qué cuenta maneja | Pauta |
+| HQ-7 | Las dos propuestas de `docs/metricas.md` §3.4: CAC en las dos monedas y los tres grupos del origen del cierre | Mani |
+| HQ-8 | ¿Adoptan la plantilla del 29-sep en las campañas **nuevas** de TI y CA? ¿Editar los `url_tags` de un anuncio activo lo manda a revisión o reinicia su aprendizaje? (si sí, los activos no se tocan) | Pauta |
+| HQ-9 | El **presupuesto del día** en el mensaje (pedido de Michael): ¿la suma de los presupuestos diarios activos en Meta a primera hora, o un número que fija Pauta? ¿por programa? | Pauta |
+| HQ-10 | El color de cada hora: contra el día hábil anterior a la misma hora (hoy, como 30X) o contra la meta (`docs/metricas.md` §3.3) | Pauta |
+| HQ-11 | ¿Mensaje los fines de semana? (hoy, lunes a viernes; 30X sí manda: el análisis de su semáforo trae un sábado) | Pauta y Gerencia |
+| HQ-12 | Los correos de Pauta para crearles usuario Paid Trafficker y la sesión para mostrarles dónde se ajustan los umbrales | Pauta |
 
 **F. Media:** si el orgánico usa el mismo formulario que la pauta; qué cuentas o creadoras van en
 `utm_content`.
