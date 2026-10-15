@@ -3,7 +3,7 @@ id: 206
 etapa: O7
 serves: "docs/anotaciones.md A-109; amplía ADR 0049 punto 7"
 depends: [096, 052]
-status: todo
+status: done
 ---
 
 # 206 — Una suelta se adopta por correo cuando llega el formulario
@@ -34,7 +34,15 @@ deal abierto): no se escribe un segundo criterio.
 
 ## Done cuando
 
-- [ ] Test por la ruta real del webhook: suelta → envío del mismo correo → llamada colgada y deal en
+- [x] Test por la ruta real del webhook: suelta → envío del mismo correo → llamada colgada y deal en
       Agendado con la host de dueña; con dos deals abiertos se queda suelta; otro programa no la ve.
-- [ ] La adopción por uuid (`adoptarSueltaDeCita`) sigue igual.
-- [ ] typecheck, lint y los tests de ingesta y Calendly en verde.
+- [x] La adopción por uuid (`adoptarSueltaDeCita`) sigue igual.
+- [x] typecheck, lint y los tests de ingesta y Calendly en verde.
+
+## Cierre (15-oct)
+
+Hecho en `40aeff2` (8-oct), dentro del checkpoint verde `cp-20261009-1`; el tracker lo tenía en `todo`.
+La adopción por correo corre en `lib/ingesta/regla-de-deals.ts` y decide con `emparejarLlamada`. Diferencia
+con el "Done cuando": los tests van por `ingerirEntradas` (el escritor que llama la ruta del webhook), no por
+la ruta HTTP firmada. Cubren adopción con host y nota, dos deals abiertos (sigue suelta), otro programa (no
+la toca) y la adopción por uuid primero sin duplicar.

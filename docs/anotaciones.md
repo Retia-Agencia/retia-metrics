@@ -230,11 +230,11 @@ personales que se consumen al verlas, sin abrir otra pantalla.
 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
-| A-107 | Leads, Deals, Calls, Students, Dashboard, Recursos, Migración, Bitácora | cambio | La barra tiene de todo y cada pestaña la arma distinto. Debe ser buscar, un botón de Filtros y otro de Ordenar, igual en todas; los filtros activos se ven como chips debajo. | 207 | en ticket |
-| A-108 | Inbox → Sin deal | cambio | Una suelta de alguien que nunca envió el formulario (solo agendó) no tiene salida. Debe poder crear el deal (plantilla básica) o asociarse a uno existente, y conservar la host como dueña. | 205 | en ticket |
-| A-109 | Inbox → Sin deal | cambio | Si después llega el formulario del mismo correo, la suelta debe colgarse sola del deal, sin duda. | 206 | en ticket |
-| A-110 | Deals, Leads | usabilidad | Cambiar el orden o un filtro no muestra nada mientras carga: en producción tardó más de 2 s y parecía que no había funcionado. | 207 | en ticket |
-| A-111 | Deals | bug | El filtro por defecto "Cohorte activa" está aplicado pero escondido en el popover y no cuenta en "Filtros · n". | 207 | en ticket |
+| A-107 | Leads, Deals, Calls, Students, Dashboard, Recursos, Migración, Bitácora | cambio | La barra tiene de todo y cada pestaña la arma distinto. Debe ser buscar, un botón de Filtros y otro de Ordenar, igual en todas; los filtros activos se ven como chips debajo. | 207 | resuelta · 8-oct (5f62161, cp-20261009-1) |
+| A-108 | Inbox → Sin deal | cambio | Una suelta de alguien que nunca envió el formulario (solo agendó) no tiene salida. Debe poder crear el deal (plantilla básica) o asociarse a uno existente, y conservar la host como dueña. | 205 | resuelta · 8-oct (40aeff2, cp-20261009-1) |
+| A-109 | Inbox → Sin deal | cambio | Si después llega el formulario del mismo correo, la suelta debe colgarse sola del deal, sin duda. | 206 | resuelta · 8-oct (40aeff2, cp-20261009-1) |
+| A-110 | Deals, Leads | usabilidad | Cambiar el orden o un filtro no muestra nada mientras carga: en producción tardó más de 2 s y parecía que no había funcionado. | 207 | resuelta · 8-oct (5f62161, cp-20261009-1) |
+| A-111 | Deals | bug | El filtro por defecto "Cohorte activa" está aplicado pero escondido en el popover y no cuenta en "Filtros · n". | 207 | resuelta · 8-oct (5f62161, cp-20261009-1) |
 
 ### Respuestas
 

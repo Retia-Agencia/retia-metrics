@@ -3,7 +3,7 @@ id: 207
 etapa: O7
 serves: "docs/anotaciones.md A-107, A-110, A-111; enmienda el ticket 202 (A-105)"
 depends: [202]
-status: todo
+status: done
 ---
 
 # 207 — La barra de lista: buscar, Filtros y Ordenar
@@ -48,8 +48,17 @@ Una sola forma, en todas las pantallas que usan `BarraDeLista`:
 
 ## Done cuando
 
-- [ ] Las 10 pantallas que usan `BarraDeLista` muestran la misma fila; ninguna declara `aVista`.
-- [ ] El filtro por defecto de Deals cuenta en "Filtros · n" y sale como chip.
-- [ ] Señal de carga al cambiar filtro u orden.
-- [ ] Tests de la declaración (conteo con valores por defecto); typecheck, lint y build limpios.
+- [x] Las 10 pantallas que usan `BarraDeLista` muestran la misma fila; ninguna declara `aVista`.
+- [x] El filtro por defecto de Deals cuenta en "Filtros · n" y sale como chip.
+- [x] Señal de carga al cambiar filtro u orden.
+- [x] Tests de la declaración (conteo con valores por defecto); typecheck, lint y build limpios.
 - [ ] Recorrido en producción: abrir cada popover y cada orden en las 10 pantallas, sin errores en consola.
+
+## Cierre (15-oct)
+
+Hecho en `5f62161` (8-oct), dentro del checkpoint verde `cp-20261009-1`; el tracker lo tenía en `todo`.
+`aVista` ya no existe; la cohorte activa de Deals entra como `porDefecto` y cuenta; `useFiltrosUrl` expone
+`pendiente` y la lista se atenúa. **Queda sin registrar el recorrido en producción** de las pantallas de
+`BarraDeLista` (popover y orden, consola limpia). El 213 se recorrió encima de esta barra en Deals; las
+demás no tienen recorrido anotado. Se hace en el próximo recorrido visual; si sale algo, va a
+`docs/anotaciones.md` como anotación nueva.

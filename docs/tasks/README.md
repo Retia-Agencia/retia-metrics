@@ -104,8 +104,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | done · `cp-20261002-4` · 2-oct · Mani · "se perdió en el Calendly" arriba del Inbox (D-7 del ADR 0071) |
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 | [ ] | 270 | [La auditoría de Calendly en Webhook Health](./270-auditoria-de-calendly.md) | 096, 110 | en curso · 15-oct · en `main` (`267d514`), falta checkpoint · con datos reales: hoy 0 faltantes y suscripciones activas; el 4 y 6-oct quedaron 6 citas sin llamada por el corte del 203, creadas como Cerrada en su deal con el ok de Mani |
-| [ ] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | todo · 8-oct · A-108 |
-| [ ] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | todo · 8-oct · A-109 |
+| [x] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | done · `40aeff2` · `cp-20261009-1` · 8-oct · tests de la transacción, 409 sin escribir nada, 404 ajeno y lead reutilizado; el 409 ofrece "Asignar a un deal" · A-108 resuelta · cerrado en el tracker el 15-oct |
+| [x] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | done · `40aeff2` · `cp-20261009-1` · 8-oct · el test va por `ingerirEntradas` (el escritor que llama el webhook), no por la ruta HTTP · A-109 resuelta · cerrado en el tracker el 15-oct |
 | [x] | 210 | [El setter del programa recibe solo los deals sin agenda](./210-setter-del-programa-recibe-los-deals-sin-agenda.md) | 157 | done · `cp-20261009-3` · 9-oct · implementó Codex; 0073 aplicada; recorrido local; cadenero PASS con notas, corregidas en `36b6a7f` (rol revalidado, Asignarme todos ordenado y tolerante, la marca se limpia al quitar la membresía) · Jero setter en CA y TI con sus 79 deals · abierta A-116 |
 
 ## 4 · Llamadas y Calendly
@@ -298,7 +298,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 150 | [Tests rápidos: la base migrada una vez por corrida](./150-tests-rapidos-base-migrada-una-vez.md) | · | done · 1-oct · Mani · checkpoint `cp-20261002-1` · vitest en el CI 372 s → 274 s; migración rota revienta la corrida una vez; `npm run test:cambios` |
 | [ ] | 159 | [`closer_id` se retira: quién cobró y quién vendió son FK a `users`](./159-closer-id-se-retira.md) | 203, 167 | todo · 7-oct · el corte en cero reemplazó la migración; mientras tanto todo closer nuevo se da de alta con `closer_id` |
 | [x] | 204 | [Cambiar de programa conserva la pestaña visible](./204-cambiar-programa-conserva-la-pestana.md) | 097, 193, 194, 197 | done · 7-oct · conserva `seccion`, suelta filtros e ids del programa anterior |
-| [ ] | 207 | [La barra de lista: buscar, Filtros y Ordenar](./207-barra-filtros-y-ordenar.md) | 202 | todo · 8-oct · A-107, A-110, A-111 |
+| [x] | 207 | [La barra de lista: buscar, Filtros y Ordenar](./207-barra-filtros-y-ordenar.md) | 202 | done · `5f62161` · `cp-20261009-1` · 8-oct · falta registrar el recorrido en producción de las pantallas (el 213 recorrió Deals encima) · A-107, A-110, A-111 resueltas · cerrado en el tracker el 15-oct |
 
 ## 12 · Migración y corte
 

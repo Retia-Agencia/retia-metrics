@@ -3,7 +3,7 @@ id: 205
 etapa: O7
 serves: "docs/anotaciones.md A-108; enmienda el ticket 096 (ADR 0049 punto 7)"
 depends: [096, 098, 157]
-status: todo
+status: done
 ---
 
 # 205 — Desde una llamada suelta se crea el deal o se asocia a uno existente
@@ -38,7 +38,14 @@ suelta ofrece **dos acciones, al mismo nivel**:
 
 ## Done cuando
 
-- [ ] Las dos acciones en cada suelta del Inbox; la de crear deja el deal en Agendado con la host como dueña.
-- [ ] Tests: crea lead + deal + cuelga en una transacción; correo con deal abierto → 409 sin escribir nada;
+- [x] Las dos acciones en cada suelta del Inbox; la de crear deja el deal en Agendado con la host como dueña.
+- [x] Tests: crea lead + deal + cuelga en una transacción; correo con deal abierto → 409 sin escribir nada;
       programa ajeno → 404; correo existente sin deal abierto reutiliza el lead.
-- [ ] typecheck, lint y build limpios.
+- [x] typecheck, lint y build limpios.
+
+## Cierre (15-oct)
+
+Hecho en `40aeff2` (8-oct), dentro del checkpoint verde `cp-20261009-1`; el tracker lo tenía en `todo`.
+`crearDealDesdeSuelta` (`lib/calendly/colgar-llamada.ts`) y su acción en el Inbox; tests en
+`tests/calendly-colgar-llamada.test.ts`. El 409 muestra el mensaje de `crearDealAMano` y un botón
+"Asignar a un deal" en vez del texto literal "asócialo"; la salida es la misma.
