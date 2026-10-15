@@ -603,6 +603,13 @@
       "when": 1792042470105,
       "tag": "0085_reporte-por-whatsapp",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1792063679214,
+      "tag": "0086_rls-reportes-whatsapp",
+      "breakpoints": true
     }
   ]
 }
