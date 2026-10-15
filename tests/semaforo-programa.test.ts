@@ -1,0 +1,246 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  calls,
+  cohorts,
+  cuentasPublicitarias,
+  deals,
+  fotosPauta,
+  gastoPauta,
+  leads,
+  objetivos,
+  pautaObjetos,
+  programs,
+  sources,
+  submissions,
+} from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+import { costoPorAgenda } from "@/lib/semaforo/costo-por-agenda";
+import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+let db: Db;
+let cerrar: () => Promise<void>;
+let vaciar: () => Promise<void>;
+let secuencia = 0;
+
+beforeAll(async () => {
+  ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
+beforeEach(async () => {
+  await vaciar();
+  secuencia = 0;
+});
+
+afterAll(async () => cerrar());
+
+async function crearPrograma(slug: string, opciones: { cohorte?: boolean; objetivo?: boolean } = {}) {
+  const [programa] = await db.insert(programs).values({
+    ...PROGRAMA_DE_PRUEBA,
+    slug,
+    nombre: slug,
+    ticketUsd: "1000",
+  }).returning();
+  const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
+  const [cuenta] = await db.insert(cuentasPublicitarias).values({
+    idMeta: `cuenta-${slug}`,
+    programId: programa.id,
+    nombre: "Cuenta",
+    moneda: "COP",
+    zonaHoraria: "America/Bogota",
+  }).returning();
+  const [campana] = await db.insert(pautaObjetos).values({
+    cuentaId: cuenta.id,
+    programId: programa.id,
+    idMeta: `campana-${slug}`,
+    nivel: "campana",
+    padreIdMeta: null,
+    nombre: "Campaña",
+    estado: "ACTIVE",
+  }).returning();
+  let cohortId: string | null = null;
+  if (opciones.cohorte !== false) {
+    const [cohorte] = await db.insert(cohorts).values({
+      programId: programa.id,
+      codigo: "C1",
+      metaCupos: 10,
+      precioUsd: "1000",
+      fechaInicioVentas: "2026-09-01",
+      fechaCierreVentas: "2026-10-31",
+      fechaInicioClases: "2026-11-01",
+      estado: "activo",
+    }).returning();
+    cohortId = cohorte.id;
+    if (opciones.objetivo !== false) {
+      await db.insert(objetivos).values({
+        cohortId,
+        area: null,
+        metrica: "costo_por_agenda",
+        meta: "70000",
+        aceptable: "93000",
+        moneda: "COP",
+      });
+    }
+  }
+  return { programId: programa.id, fuenteId: fuente.id, campanaId: campana.id, cohortId };
+}
+
+async function crearAgenda(args: {
+  programId: string;
+  fuenteId: string;
+  creadaEn: Date;
+}): Promise<void> {
+  secuencia += 1;
+  const [lead] = await db.insert(leads).values({
+    programId: args.programId,
+    emailNormalizado: `agenda-${secuencia}@test.co`,
+  }).returning();
+  const [envio] = await db.insert(submissions).values({
+    leadId: lead.id,
+    sourceId: args.fuenteId,
+    token: `token-${secuencia}`,
+    utmSource: "facebook",
+    utmMedium: "cpc",
+    createdAt: args.creadaEn,
+  }).returning();
+  const [deal] = await db.insert(deals).values({
+    leadId: lead.id,
+    programId: args.programId,
+    submissionOrigenId: envio.id,
+  }).returning();
+  await db.insert(calls).values({
+    dealId: deal.id,
+    programId: args.programId,
+    resultado: "agendada",
+    createdAt: args.creadaEn,
+  });
+}
+
+async function foto(args: {
+  programId: string;
+  campanaId: string;
+  dia: string;
+  hora: string;
+  gasto: number;
+  agendasMeta?: number;
+}): Promise<void> {
+  await db.insert(fotosPauta).values({
+    programId: args.programId,
+    campanaId: args.campanaId,
+    fecha: args.dia,
+    tomadaEn: new Date(`${args.dia}T${args.hora}:00-05:00`),
+    gasto: String(args.gasto),
+    moneda: "COP",
+    agendasMeta: args.agendasMeta,
+  });
+}
+
+async function gastoCerrado(programId: string, dia: string, monto: number): Promise<void> {
+  await db.insert(gastoPauta).values({
+    programId,
+    fecha: dia,
+    monto: String(monto),
+    moneda: "COP",
+    origen: "manual",
+    area: "paid",
+  });
+}
+
+describe("semáforo del programa", () => {
+  it("un caso armado con gasto, fotos y agendas da el color de día y cierre", async () => {
+    const p = await crearPrograma("armado");
+    await foto({ ...p, dia: "2026-10-13", hora: "11:00", gasto: 100000 });
+    await foto({ ...p, dia: "2026-10-14", hora: "11:00", gasto: 80000, agendasMeta: 2 });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-13T10:00:00-05:00") });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
+    await foto({ ...p, dia: "2026-10-14", hora: "17:45", gasto: 80000 });
+
+    const dia = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-14T11:00:00-05:00"), tipo: "dia",
+    });
+    const cierre = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+    });
+
+    expect(dia).toMatchObject({ color: "exito", gasto: 80000, agendas: 1, costo: 80000, agendasMeta: 2 });
+    expect(cierre).toMatchObject({ color: "alerta", gasto: 80000, agendas: 1, costo: 80000 });
+  });
+
+  it("el caso 30X del 19-sep no pinta falso rojo de día y sí rojo al cierre", async () => {
+    const p = await crearPrograma("treinta-x");
+    await foto({ ...p, dia: "2026-09-18", hora: "11:00", gasto: 600000 });
+    await foto({ ...p, dia: "2026-09-19", hora: "11:00", gasto: 609860 });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-09-18T10:00:00-05:00") });
+    for (let i = 0; i < 8; i++) {
+      const hora = i === 0 ? 10 : 11 + i;
+      await crearAgenda({ ...p, creadaEn: new Date(`2026-09-19T${String(hora).padStart(2, "0")}:00:00-05:00`) });
+    }
+    await foto({ ...p, dia: "2026-09-19", hora: "17:45", gasto: 878460 });
+
+    const dia = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-09-19T11:00:00-05:00"), tipo: "dia",
+    });
+    const cierre = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-09-19T18:00:00-05:00"), tipo: "cierre",
+    });
+
+    expect(dia.color).not.toBe("peligro");
+    expect(dia).toMatchObject({ gasto: 609860, agendas: 1 });
+    expect(cierre).toMatchObject({ color: "peligro", gasto: 878460, agendas: 8 });
+  });
+
+  it("sin cohorte o sin objetivo dice el motivo y nunca queda verde", async () => {
+    const sinCohorte = await crearPrograma("sin-cohorte", { cohorte: false });
+    const sinObjetivo = await crearPrograma("sin-objetivo", { objetivo: false });
+    await foto({ ...sinCohorte, dia: "2026-10-14", hora: "17:45", gasto: 1000 });
+    await foto({ ...sinObjetivo, dia: "2026-10-14", hora: "17:45", gasto: 1000 });
+    const primero = await semaforoDelPrograma(db, {
+      programId: sinCohorte.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+    });
+    const segundo = await semaforoDelPrograma(db, {
+      programId: sinObjetivo.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+    });
+    expect(primero).toMatchObject({ color: "sin_dato", motivo: "sin_cohorte" });
+    expect(segundo).toMatchObject({ color: "sin_dato", motivo: "sin_umbral" });
+  });
+
+  it("no cuenta agendas creadas después del instante consultado", async () => {
+    const p = await crearPrograma("corte-hora");
+    await foto({ ...p, dia: "2026-10-14", hora: "11:00", gasto: 100000 });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-14T12:00:00-05:00") });
+    const resultado = await costoPorAgenda(db, {
+      programId: p.programId,
+      dia: "2026-10-14",
+      hasta: new Date("2026-10-14T11:00:00-05:00"),
+    });
+    expect(resultado).toMatchObject({ agendas: 1, costo: 100000 });
+  });
+
+  it("cuenta dos días hábiles rojos y para en el primero que no es rojo", async () => {
+    const p = await crearPrograma("racha");
+    for (const dia of ["2026-10-13", "2026-10-12"]) {
+      await gastoCerrado(p.programId, dia, 100000);
+      await crearAgenda({ ...p, creadaEn: new Date(`${dia}T10:00:00-05:00`) });
+    }
+    await gastoCerrado(p.programId, "2026-10-09", 60000);
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-09T10:00:00-05:00") });
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-14T11:00:00-05:00"), tipo: "dia",
+    });
+    expect(resultado.diasSeguidosEnRojo).toBe(2);
+  });
+
+  it("una agenda de otro programa nunca cuenta", async () => {
+    const propio = await crearPrograma("frontera-a");
+    const ajeno = await crearPrograma("frontera-b");
+    await foto({ ...propio, dia: "2026-10-14", hora: "17:45", gasto: 70000 });
+    await crearAgenda({ ...propio, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
+    await crearAgenda({ ...ajeno, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
+    const resultado = await semaforoDelPrograma(db, {
+      programId: propio.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+    });
+    expect(resultado).toMatchObject({ agendas: 1, costo: 70000 });
+  });
+});
