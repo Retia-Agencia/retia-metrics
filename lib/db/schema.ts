@@ -2010,6 +2010,43 @@ export const objetivos = pgTable(
   ],
 );
 
+/**
+ * El reporte de pauta por WhatsApp de un programa (ticket 265, ADR 0089 enmendado el 15-oct): si se
+ * manda, a qué grupo, a qué horas y con qué métricas. Juanito no guarda nada de esto: pregunta al
+ * endpoint (259) "¿qué mando ahora?" y el CRM responde con esta fila. Una por programa (el programa es
+ * frontera: un reporte nunca mezcla dos). `destino` es el id del grupo tal cual lo da `/grupos` de
+ * Juanito; `horas`, las horas en punto (Bogotá) de los envíos de día; `hora_cierre`, la del resumen.
+ * Se escribe por el molde (`lib/catalogo/`), con `change_log`.
+ */
+export const reportesWhatsapp = pgTable(
+  "reportes_whatsapp",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    activo: boolean("activo").notNull().default(false),
+    destino: text("destino"),
+    horas: integer("horas").array().notNull().default(sql`'{}'::integer[]`),
+    horaCierre: integer("hora_cierre"),
+    metricas: metricaObjetivoEnum("metricas").array().notNull().default(sql`'{}'::metrica_objetivo[]`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("reportes_whatsapp_programa_idx").on(t.programId),
+    check(
+      "reportes_whatsapp_horas_chk",
+      sql`${t.horas} <@ array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]`,
+    ),
+    check(
+      "reportes_whatsapp_hora_cierre_chk",
+      sql`${t.horaCierre} is null or ${t.horaCierre} between 0 and 23`,
+    ),
+    check(
+      "reportes_whatsapp_activo_completo_chk",
+      sql`not ${t.activo} or (${t.destino} is not null and (cardinality(${t.horas}) > 0 or ${t.horaCierre} is not null))`,
+    ),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── tipos
 
 export type Usuario = typeof users.$inferSelect;
