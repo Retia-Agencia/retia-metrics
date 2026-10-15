@@ -290,7 +290,7 @@ function FormularioObjetivo({
   const definicion = metricas.find((fila) => fila.metrica === metrica) ?? ofrecidas[0];
   const valorDeHoy = valoresDeHoy[metrica];
   const unidad = definicion ? unidadCorta(definicion.unidad) : "";
-  const metaNumero = Number(meta);
+  const metaNumero = meta.trim() === "" ? Number.NaN : Number(meta);
   const aceptableNumero = aceptable === "" ? null : Number(aceptable);
   const colorHoy = definicion && valorDeHoy !== null && valorDeHoy !== undefined
     && Number.isFinite(metaNumero) && (aceptableNumero === null || Number.isFinite(aceptableNumero))
