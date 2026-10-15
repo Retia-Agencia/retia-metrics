@@ -1,4 +1,4 @@
-import { and, between, eq, sql } from "drizzle-orm";
+import { and, between, eq, lte, sql } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
@@ -43,9 +43,17 @@ export interface FilaAgenda {
   etapa: string | null;
 }
 
+type ConsultaAgendaAgrupada<D extends DimensionAgenda> = ConsultaAgrupada<D, D | MedidaAgenda> & {
+  creadaHasta?: Date;
+};
+
+type ConsultaAgendaLista<D extends DimensionAgenda> = ConsultaDeLista<D, D> & {
+  creadaHasta?: Date;
+};
+
 export async function agrupar<D extends DimensionAgenda>(
   db: Db,
-  opciones: ConsultaAgrupada<D, D | MedidaAgenda>,
+  opciones: ConsultaAgendaAgrupada<D>,
 ): Promise<Array<Record<D, string | null> & { agendas: number }>> {
   const elegidas = seleccionarDimensiones(dimensiones, opciones.agruparPor);
   let consulta = db.select({ ...elegidas, agendas: sql<number>`count(*)::int` }).from(calls)
@@ -55,6 +63,7 @@ export async function agrupar<D extends DimensionAgenda>(
       eq(calls.programId, opciones.programId),
       between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
       condicionesDeFiltros(dimensiones, opciones.filtros),
+      opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
       vigente(calls),
     ))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
@@ -66,7 +75,7 @@ export async function agrupar<D extends DimensionAgenda>(
 
 export async function listar<D extends DimensionAgenda = DimensionAgenda>(
   db: Db,
-  opciones: ConsultaDeLista<D, D>,
+  opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {
   const construir = () => db.select({ callId: calls.id, dealId: calls.dealId, ...dimensiones }).from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
@@ -74,6 +83,7 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
       eq(calls.programId, opciones.programId),
       between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
       condicionesDeFiltros(dimensiones, opciones.filtros),
+      opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
       vigente(calls),
     ));
   let consulta = construir().$dynamic();

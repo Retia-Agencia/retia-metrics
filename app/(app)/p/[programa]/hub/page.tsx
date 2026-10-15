@@ -41,6 +41,7 @@ import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 
 export const dynamic = "force-dynamic";
 
@@ -341,6 +342,7 @@ async function SeccionPauta({
 
   return (
     <section className="space-y-4">
+      <SemaforoDelPrograma programId={programId} />
       <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
       <OrigenPorCanal filas={origenPorCanal} />
       <RegistrosAgendasCanal vista={porCanal} />

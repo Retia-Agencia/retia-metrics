@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  diaHabilAnterior,
   esDiaHabil,
   diasHabilesEntre,
   diaHabilDe,
@@ -129,5 +130,14 @@ describe("ventanas de venta de las cohortes C2 (ADR 0022, numeros del reporte)",
   it("Tactical C2 (19-ago a 29-sep): 30 habiles y el 15-sep es el dia 20", () => {
     expect(diasHabilesEntre("2026-08-19", "2026-09-29")).toBe(30);
     expect(diaHabilDe("2026-09-15", "2026-08-19", "2026-09-29")).toEqual({ dia: 20, total: 30 });
+  });
+});
+
+describe("diaHabilAnterior", () => {
+  it("salta el fin de semana y no salta un festivo", () => {
+    expect(diaHabilAnterior("2026-10-12")).toBe("2026-10-09");
+    expect(diaHabilAnterior("2026-10-14")).toBe("2026-10-13");
+    // 12-oct es festivo en Colombia y para Retia es hábil.
+    expect(diaHabilAnterior("2026-10-13")).toBe("2026-10-12");
   });
 });
