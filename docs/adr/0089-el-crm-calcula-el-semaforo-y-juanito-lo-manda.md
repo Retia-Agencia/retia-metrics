@@ -86,3 +86,10 @@ pero dejaba el destino y los horarios en el `.env` de Juanito). Ahora:
 
 Las decisiones abiertas HQ-2 y HQ-3 (`docs/plan.md` §7) dejan de ser configuración de Juanito: se responden llenando
 esa pantalla.
+
+## Enmienda 15-oct (Mani): el texto también lo arma el CRM
+
+El mensaje deja de armarse en Juanito: el CRM lo arma (`armarMensaje` en `lib/reporte-whatsapp/mensaje.ts`) y lo
+manda como `texto` en cada envío, y la pantalla de Programa › General muestra ese mismo texto como vista previa. Una
+sola función para lo que se ve y lo que sale. Juanito solo conserva el aviso de "el CRM no respondió". Se construye
+en el 267.

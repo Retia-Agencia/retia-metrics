@@ -11,22 +11,59 @@
 ```
 Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión orquesta: Codex implementa en
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
-Lee AGENTS.md, docs/hub.md y las entradas del 14-oct (tarde y noche) en Memory.
+Lee AGENTS.md, docs/hub.md y la entrada del 15-oct (mañana) en Memory.
 
-Semáforo por WhatsApp (ADR 0089 enmendado; las horas viven en el CRM): 122, 245, 258 v1, 264 y 265 done (0085
-aplicada). Siguiente: 259 (contrato fijado en su ticket; la entrada del 15-oct noche en Memory tiene las decisiones del
-brief) y luego 260 en el repo de Juanito (grupo de prueba `120363431126105889@g.us`). Pendiente de decisión: que Paid
-Trafficker vea Programa (enmienda del ADR 0082). Carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status).
-Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM: 8, 10 y 14-oct), 247 (que la landing
-de Tactical pase `ad_id` al Typeform y ver el primero en N3). Reclama el ticket (status en curso) y empuja antes de lanzar.
+Semáforo por WhatsApp: 259 done (en producción) y 260 desplegado en Juanito (job activo, aún sin envíos porque
+ningún programa tiene el reporte encendido). En orden:
+1. 266 (el Paid Trafficker ve Programa): ya implementado y commiteado en la rama local `t266` (`ca5cdf0`, worktree
+   .claude/worktrees/t266), typecheck, lint y build ok. Falta: rebase sobre main, recorrido local con un paid
+   trafficker (ve General y Ventas, edita costo por agenda, no cupos) y forjar la server action de un objetivo de
+   cupos desde el paid trafficker (403, base quieta); luego empujar a main y esperar el CI.
+2. 267 (vista previa del mensaje; el texto lo arma el CRM y Juanito lo manda tal cual): ticket con las decisiones;
+   escribir el brief y despachar a Codex encima de main con el 266 ya integrado (tocan la misma página). Después,
+   el PR de Juanito que manda `envio.texto` (ver el ticket; deploy como el #28).
+Pendientes de Mani: cargar la meta del costo por agenda y encender el reporte (pasos en Memory); respuestas de
+Pauta y Gerencia (HQ-1 a HQ-4). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct), 247 (`ad_id` de Tactical).
 
 Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
 (tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
-página; npm run build si toca un componente cliente. Codex: sin red, sin commit (lo hace la sesión), --resume toma
-el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pasa, Kiro termina el ticket.
+página; npm run build si toca un componente cliente. Codex: sin red, sin commit (lo hace la sesión), relanzar
+como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la agrega al brief.
 ```
 
 ## Memory
+
+- **2026-10-15 (mañana; Mani + Claude, sesión central del semáforo): 259 done, 260 desplegado en Juanito, 266 implementado sin empujar, 267 escrito.**
+  - **259 (`f98d2b7`, CI verde):** `POST /api/semaforo/envios` en producción (`https://retia-metrics-seven.vercel.app`),
+    probado: 401 sin secreto o con uno malo, 200 con el bueno (`envios: []` mientras nada esté encendido).
+    `SEMAFORO_SECRETO` en Vercel (producción) y el mismo valor en el `.env` de Juanito, local y VPS (generado, nunca
+    mostrado). `isoEnBogota` nuevo en `lib/format.ts`. AGENTS.md nombra la segunda excepción a "nada es público" y
+    la fila del contrato. El Hub sincroniza de fondo con `after()` si la última corrida tiene más de 1 hora.
+  - **260 (repo de Juanito, §18.CR de su handoff):** PR #31 + #32, desplegado `86b4b5d` con `alcance: todo` después
+    de esperar a que salieran los pushes de closers; WhatsApp reconectó sin QR y `[SemaforoRetia] Semáforo activo`.
+    Suite en Linux: 1349, 1347 verdes (los 2 rojos de la línea base). 🩸 El primer deploy arrancó el job desactivado:
+    las variables estaban en el `.env` del VPS pero no en `environment:` del `docker-compose.yml` (gotcha §12 de
+    Juanito). El `.env` local de Juanito quedó sincronizado con el del VPS (31 llaves que faltaban; `ADMIN_LID` y
+    `CALENDLY_PUSH4_CLOSERS` difieren y se dejaron como estaban en local: Mani decide cuál vale). En una salida de
+    esta sesión se imprimieron 14 caracteres del secreto: rotarlo si se quiere (Vercel + `.env` de Juanito).
+  - **266 (ADR 0082 enmendado):** Mani decidió que el paid trafficker ve Programa (General y Ventas en solo
+    lectura, sin comisión, Equipo ni Captación) **y edita** la meta y el aceptable de las métricas de pauta
+    (`dePauta`: costo por agenda, por lead, por venta, ROAS); los cupos siguen siendo de Gerencia. Codex lo hizo en
+    `t266`; la sesión revisó y corrió typecheck, lint y build. Commit local `ca5cdf0`, **sin empujar**.
+  - **267 (nuevo):** vista previa del mensaje en Programa › General; el texto lo arma el CRM (`armarMensaje`,
+    portado de Juanito) y viaja como `texto` en el contrato, así la pantalla y el WhatsApp salen de la misma función.
+  - **Cómo Mani enciende la primera prueba:** (1) Programa › Ventas › Objetivos de la cohorte, en la cohorte activa:
+    "Costo por agenda" con meta y aceptable en COP (referencia del 9 al 13-oct, gasto ÷ agendas según Meta: Tactical
+    ~90.000, ComunicArte ~85.700, Comunícate con Confianza ~102.000). (2) Programa › General › Reporte por WhatsApp:
+    encender, grupo `120363431126105889@g.us` ("Alertas Paid Media - Retia"), las horas, el resumen de cierre y la
+    métrica "Costo por agenda"; guardar. (3) A la siguiente hora en punto de un día hábil llega al grupo.
+  - **Preguntas abiertas para Pauta (HQ-1, HQ-3, HQ-4, HQ-6) y Gerencia (HQ-2):** metas por programa, qué gasto
+    cuenta (todas las campañas o solo las de agendas), qué cuentas entran, horarios, quién está en el grupo y a quién
+    escala un rojo de 48 h.
+  - **Lecciones:** Codex paró dos veces con razón (faltaba un helper; un componente sin modo de solo lectura): la
+    sesión decidió, lo agregó al brief y relanzó como tarea nueva. Antes de un deploy de Juanito, comparar el `src`
+    del VPS contra la rama (`rsync -rcn`) y la imagen contra el disco: así se supo que solo cambiaban los tres
+    archivos del 260 (el §18.CQ ya estaba desplegado aunque su título dijera lo contrario).
 
 - **2026-10-15 (noche; Mani + Claude, sesión del semáforo por WhatsApp): 258 v1 y 264 done (CI verde `93f6966`); 265 en `main` con la 0085 aplicada en producción.**
   - **Decisión de Mani:** las horas del reporte viven en el CRM (265), no en el reloj de Juanito. La conexión es de
