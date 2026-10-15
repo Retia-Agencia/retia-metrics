@@ -126,6 +126,9 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
     de atribución, aunque haya entrado por el Instagram de la creadora. No se puede revisar persona por persona.
   - El CRM solo cuenta como Paid la agenda cuyo formulario llegó con un UTM de anuncio. Es el piso: no cuenta a
     quien vio un anuncio y entró después por otro enlace.
+  - Ninguna de las 54 llegó sin UTM: la plantilla vieja de Meta (`facebook / cpc`) también cuenta como Paid. La
+    plantilla solo decide si se sabe **qué anuncio** trajo la agenda, no si cuenta como pauta.
+  - Ninguna agenda "se pierde" del CRM: lo que puede quedar mal es la **etiqueta** (orgánica cuando era de pauta).
   - **Lo que no se sabe:** de dónde sale el enlace `utm_source=direct&utm_medium=organic&utm_campaign=direct` (10
     agendas). Si está dentro del recorrido de un anuncio (una landing, un mensaje automático), esas agendas son de
     pauta y se están perdiendo; se le preguntó a Pauta (15-oct).
