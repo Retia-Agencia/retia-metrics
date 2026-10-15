@@ -27,7 +27,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
-- **2026-10-15 (tarde; sesión lanzada por la orquestadora): 268 en `main` (`8e7b463`, CI verde), Juanito desplegado. La 0087 y el encendido esperan el ok de Mani.**
+- **2026-10-15 (tarde; sesión lanzada por la orquestadora): 268 en `main` (`8e7b463`, CI verde), Juanito desplegado. La 0087 y el encendido esperan el ok de Mani. 269 también en `main`.**
   - **CRM (Codex con brief, una pasada):** zod de horas 0 a 23; la pantalla elige horas con chips que se quitan y un
     select de 00:00 a 23:00 sin las ya elegidas; `semaforoDelPrograma` recibe `horas?` y la trayectoria usa las
     horas del reporte más la del cierre (sin `horas`, el Hub, toda hora del día hasta ahora; ya no 6 a 19).
@@ -41,6 +41,11 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
     `.env.bak-20261015-pre268`). Suite en Linux: 1347, 1345 verdes (los 2 rojos de la línea base). Deploy
     `alcance: todo` a las 15:50 UTC, justo después de un Push 3 y antes de los 6 de las 16:05: todos salieron a
     tiempo; WhatsApp reconectó sin QR y `[SemaforoRetia] Semáforo activo ✅ (cron "0 * * * 1-5")`.
+  - **269 (`e396d8b`, CI verde):** el endpoint devuelve a lo sumo un envío por hora: `{ hora, texto, bloques }`, con
+    un bloque por programa en orden de nombre (`reportesActivos` ahora ordena por `programs.nombre`).
+    `armarMensajeDeLaHora` une los bloques de `armarMensaje` con `━━━━━━━━━━` y pone el aviso de Meta una sola vez.
+    Juanito no cambia (manda `texto`); su log de "envío sin texto" nombra `envio.programa`, que ya no existe: solo
+    afecta ese log. Recorrido: `dev:local` con dos reportes a las 14 h devolvió un envío con los dos bloques.
   - **Lección:** las coordenadas del navegador integrado van en el marco de la captura (800 px), no en px CSS; y
     un clic sobre el disparador de un `Select` ya abierto escoge la opción alineada con él (00:00), no es un bug.
 - **2026-10-15 (tarde; cierre de la sesión orquestadora): umbrales provisionales, 269 y la lista para Pauta.**

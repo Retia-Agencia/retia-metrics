@@ -3,7 +3,7 @@ id: 269
 etapa: hub
 serves: "ADR 0089 · Mani, 15-oct: un solo envío por hora que contenga los mensajes de los tres programas"
 depends: [268]
-status: todo
+status: done
 ---
 
 # 269 — Un mensaje por hora con todos los programas
@@ -27,9 +27,9 @@ debajo del otro y bien separados, en vez de un mensaje por programa (5 horas × 
 
 ## Done cuando
 
-- [ ] `tests/semaforo-endpoint.test.ts`: dos programas a la misma hora salen en un solo envío con los dos bloques;
+- [x] `tests/semaforo-endpoint.test.ts`: dos programas a la misma hora salen en un solo envío con los dos bloques;
       un programa con error no tumba al otro; la lista blanca sigue mordiendo.
-- [ ] Recorrido: la vista previa no cambia; el endpoint local con dos reportes encendidos a la misma hora devuelve
+- [x] Recorrido: la vista previa no cambia; el endpoint local con dos reportes encendidos a la misma hora devuelve
       un envío.
 - [ ] En producción con el 268 desplegado: a la siguiente hora llega un solo mensaje al grupo.
 
