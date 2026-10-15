@@ -173,6 +173,67 @@ function formatoCreativo(creativo: unknown): ObjetoDePautaMeta["formato"] {
   return null;
 }
 
+export interface AnuncioConocido {
+  actualizadoEn: Date;
+  formato: ObjetoDePautaMeta["formato"];
+  urlTags: string | null;
+}
+
+/** Anuncios nuevos, sin fecha legible o modificados en Meta desde la copia local. */
+export function anunciosQueNecesitanCreativo(
+  anuncios: readonly Record<string, unknown>[],
+  conocidos: ReadonlyMap<string, AnuncioConocido>,
+): string[] {
+  return anuncios.flatMap((anuncio) => {
+    const id = texto(anuncio.id);
+    if (!id) return [];
+    const conocido = conocidos.get(id);
+    const actualizadoEn = typeof anuncio.updated_time === "string"
+      ? new Date(anuncio.updated_time)
+      : null;
+    return !conocido || !actualizadoEn || Number.isNaN(actualizadoEn.getTime())
+      || actualizadoEn > conocido.actualizadoEn
+      ? [id]
+      : [];
+  });
+}
+
+export interface CreativoDeAnuncio {
+  formato: ObjetoDePautaMeta["formato"];
+  urlTagsDelCreativo: string | null;
+}
+
+/** Creativos de anuncios concretos, en lotes que Meta puede responder sin exceder el peso. */
+export async function creativosDeAnuncios(
+  cuentaIdMeta: string,
+  idsAnuncio: readonly string[],
+  token: string,
+  f: FetchMeta = globalThis.fetch,
+): Promise<Map<string, CreativoDeAnuncio>> {
+  if (idsAnuncio.length === 0) return new Map();
+  const lotes: string[][] = [];
+  for (let i = 0; i < idsAnuncio.length; i += 50) lotes.push(idsAnuncio.slice(i, i + 50));
+  const respuestas: Record<string, unknown>[][] = [];
+  for (const ids of lotes) {
+    const url = new URL(`${META_BASE}/act_${cuentaIdMeta}/ads`);
+    url.searchParams.set("fields", "id,creative{object_type,video_id,asset_feed_spec,url_tags}");
+    url.searchParams.set("limit", "50");
+    url.searchParams.set("filtering", JSON.stringify([{ field: "id", operator: "IN", value: ids }]));
+    respuestas.push(await consultarPaginas<Record<string, unknown>>(url, token, f));
+  }
+  return new Map(respuestas.flat().map((fila) => {
+    const id = texto(fila.id);
+    if (!id) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+    const creativo = fila.creative && typeof fila.creative === "object"
+      ? fila.creative as Record<string, unknown>
+      : {};
+    return [id, {
+      formato: formatoCreativo(creativo),
+      urlTagsDelCreativo: texto(creativo.url_tags),
+    }];
+  }));
+}
+
 function exigirBase(fila: Record<string, unknown>): { id: string; nombre: string; estado: string } {
   const id = texto(fila.id);
   const nombre = texto(fila.name);
@@ -187,15 +248,14 @@ function exigirBase(fila: Record<string, unknown>): { id: string; nombre: string
 export async function arbolDeCuenta(
   idMeta: string,
   token: string,
+  conocidos: ReadonlyMap<string, AnuncioConocido>,
   f: FetchMeta = globalThis.fetch,
 ): Promise<ObjetoDePautaMeta[]> {
   const base = `${META_BASE}/act_${idMeta}`;
-  // Con el creativo anidado, Meta rechaza 500 anuncios por pagina en las cuentas grandes
-  // ("reduce the amount of data", medido el 14-oct en las dos cuentas mas grandes); 100 pasa.
-  const url = (borde: string, fields: string, limite = 500) => {
+  const url = (borde: string, fields: string) => {
     const u = new URL(`${base}/${borde}`);
     u.searchParams.set("fields", fields);
-    u.searchParams.set("limit", String(limite));
+    u.searchParams.set("limit", "500");
     return u;
   };
   const [campanas, conjuntos, anuncios] = await Promise.all([
@@ -206,15 +266,17 @@ export async function arbolDeCuenta(
       url("adsets", "id,name,effective_status,campaign_id"), token, f,
     ),
     consultarPaginas<Record<string, unknown>>(
-      url(
-        "ads",
-        "id,name,effective_status,adset_id,campaign_id,url_tags,creative{object_type,video_id,asset_feed_spec,url_tags}",
-        100,
-      ),
+      url("ads", "id,name,effective_status,adset_id,campaign_id,url_tags,updated_time"),
       token,
       f,
     ),
   ]);
+  const creativos = await creativosDeAnuncios(
+    idMeta,
+    anunciosQueNecesitanCreativo(anuncios, conocidos),
+    token,
+    f,
+  );
 
   return [
     ...campanas.map((fila): ObjetoDePautaMeta => {
@@ -233,12 +295,13 @@ export async function arbolDeCuenta(
       const b = exigirBase(fila);
       const padre = texto(fila.adset_id);
       if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
-      const creativo = fila.creative && typeof fila.creative === "object"
-        ? fila.creative as Record<string, unknown>
-        : {};
+      const conocido = conocidos.get(b.id);
+      const creativo = creativos.get(b.id);
       return { idMeta: b.id, nivel: "anuncio", padreIdMeta: padre, nombre: b.nombre,
-        estado: b.estado, objetivo: null, formato: formatoCreativo(creativo),
-        urlTags: texto(fila.url_tags) ?? texto(creativo.url_tags) };
+        estado: b.estado, objetivo: null,
+        formato: creativo ? creativo.formato : conocido?.formato ?? null,
+        urlTags: texto(fila.url_tags)
+          ?? (creativo ? creativo.urlTagsDelCreativo : conocido?.urlTags ?? null) };
     }),
   ];
 }

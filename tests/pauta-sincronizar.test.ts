@@ -23,18 +23,40 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let programId: string;
 
-function fetchMeta(datosInsights: unknown = insights) {
+function fetchMeta(
+  datosInsights: unknown = insights,
+  opciones: { actualizadoEn?: string; fallarCuenta?: string } = {},
+) {
   return vi.fn(async (entrada: string | URL | Request, init?: RequestInit) => {
     const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
     expect(url.toString()).not.toContain(TOKEN);
     expect(new Headers(init?.headers).get("Authorization")).toBe(`Bearer ${TOKEN}`);
+    if (opciones.fallarCuenta && url.pathname.includes(`/act_${opciones.fallarCuenta}/`)) {
+      return Response.json({ error: { message: `falló ${TOKEN}` } }, { status: 500 });
+    }
     const borde = url.pathname.split("/").at(-1);
-    if (borde === "campaigns" || borde === "adsets" || borde === "ads") {
+    if (borde === "campaigns" || borde === "adsets") {
       return Response.json({ data: arbol[borde] });
+    }
+    if (borde === "ads" && url.searchParams.has("filtering")) {
+      expect(url.searchParams.get("fields"))
+        .toBe("id,creative{object_type,video_id,asset_feed_spec,url_tags}");
+      return Response.json({ data: arbol.creatives });
+    }
+    if (borde === "ads") {
+      expect(url.searchParams.get("fields"))
+        .toBe("id,name,effective_status,adset_id,campaign_id,url_tags,updated_time");
+      expect(url.searchParams.get("limit")).toBe("500");
+      return Response.json({
+        data: arbol.ads.map((anuncio) => ({
+          ...anuncio,
+          updated_time: opciones.actualizadoEn ?? anuncio.updated_time,
+        })),
+      });
     }
     if (borde === "insights") return Response.json(datosInsights);
     return Response.json({ error: { message: "ruta inesperada" } }, { status: 404 });
-  }) as typeof globalThis.fetch;
+  });
 }
 
 beforeAll(async () => {
@@ -62,6 +84,48 @@ describe("sincronización de pauta", () => {
     const gastos = await db.select().from(gastoPauta);
     expect(gastos).toHaveLength(1);
     expect(gastos[0]).toMatchObject({ monto: "135.25", agendasMeta: 4, programId });
+  });
+
+  it("una segunda corrida sin cambios conserva el formato y no vuelve a pedir el creativo", async () => {
+    const f = fetchMeta();
+    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f });
+    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f });
+    const llamadasCreativo = f.mock.calls.filter(([entrada]) =>
+      new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.has("filtering"));
+    expect(llamadasCreativo).toHaveLength(1);
+    const [anuncio] = await db.select().from(pautaObjetos)
+      .where(eq(pautaObjetos.nivel, "anuncio"));
+    expect(anuncio).toMatchObject({ formato: "video", urlTags: "utm_id={{ad.id}}" });
+  });
+
+  it("vuelve a pedir el creativo de un anuncio cuyo updated_time avanzó", async () => {
+    await sincronizarPauta(db, {
+      token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(),
+    });
+    const f = fetchMeta(insights, { actualizadoEn: "2099-10-14T12:00:00-05:00" });
+    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f });
+    expect(f.mock.calls.filter(([entrada]) =>
+      new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.has("filtering")))
+      .toHaveLength(1);
+  });
+
+  it("una cuenta que falla no impide que otra escriba", async () => {
+    const [otroPrograma] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA, slug: "programa-dos", nombre: "Programa dos", ticketUsd: "1000",
+    }).returning();
+    await db.insert(cuentasPublicitarias).values({
+      idMeta: "456", programId: otroPrograma.id, nombre: "Cuenta sana", moneda: "COP",
+      zonaHoraria: "America/Bogota",
+    });
+    const resumen = await sincronizarPauta(db, {
+      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron",
+      f: fetchMeta(insights, { fallarCuenta: "123" }),
+    });
+    expect(resumen).toMatchObject({ estado: "error", filas: 1, omitidas: 1 });
+    expect(resumen.error).toContain("Cuenta: Meta rechazó la consulta");
+    expect(resumen.error).toContain("(oculto)");
+    expect(await db.select().from(gastoPauta)).toHaveLength(1);
+    expect((await db.select().from(gastoPauta))[0].programId).toBe(otroPrograma.id);
   });
 
   it("omite un anuncio que no pertenece al árbol de esa cuenta", async () => {

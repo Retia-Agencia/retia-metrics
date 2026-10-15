@@ -4,7 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ErrorDeApp } from "@/lib/errors";
 import { sumarDias } from "@/lib/rangos";
-import { arbolDeCuenta, insightsPorAnuncioYDia } from "./meta-api";
+import { arbolDeCuenta, insightsPorAnuncioYDia, type AnuncioConocido } from "./meta-api";
 import { registrarGasto } from "./gasto";
 
 export type FetchMeta = typeof globalThis.fetch;
@@ -75,7 +75,8 @@ export async function sincronizarPautaEnVentana(
   try {
     const cuentas = await db.select().from(cuentasPublicitarias)
       .where(eq(cuentasPublicitarias.activo, true));
-    for (const cuenta of cuentas) {
+    const resultados = await Promise.allSettled(cuentas.map(async (cuenta) => {
+      let omitidasDeCuenta = 0;
       let debeRefrescarArbol = args.refrescarArbol;
       if (!debeRefrescarArbol) {
         const [objetoMasNuevo] = await db.select({ actualizadoEn: pautaObjetos.actualizadoEn })
@@ -90,7 +91,21 @@ export async function sincronizarPautaEnVentana(
           );
       }
       if (debeRefrescarArbol) {
-        const arbol = await arbolDeCuenta(cuenta.idMeta, args.token, args.f);
+        const anunciosGuardados = await db.select({
+          idMeta: pautaObjetos.idMeta,
+          actualizadoEn: pautaObjetos.actualizadoEn,
+          formato: pautaObjetos.formato,
+          urlTags: pautaObjetos.urlTags,
+        }).from(pautaObjetos).where(and(
+          eq(pautaObjetos.cuentaId, cuenta.id),
+          eq(pautaObjetos.nivel, "anuncio"),
+        ));
+        const conocidos = new Map(anunciosGuardados.map((anuncio) => [anuncio.idMeta, {
+          actualizadoEn: anuncio.actualizadoEn,
+          formato: anuncio.formato as AnuncioConocido["formato"],
+          urlTags: anuncio.urlTags,
+        }]));
+        const arbol = await arbolDeCuenta(cuenta.idMeta, args.token, conocidos, args.f);
         for (let i = 0; i < arbol.length; i += LOTE) {
           await db.insert(pautaObjetos).values(arbol.slice(i, i + LOTE).map((objeto) => ({
             ...objeto,
@@ -123,7 +138,7 @@ export async function sincronizarPautaEnVentana(
       const aceptados = insights.flatMap((insight) => {
         const pautaObjetoId = ids.get(insight.adId);
         if (!pautaObjetoId) {
-          omitidas += 1;
+          omitidasDeCuenta += 1;
           return [];
         }
         return [{
@@ -155,7 +170,23 @@ export async function sincronizarPautaEnVentana(
           ));
         await registrarGasto(tx as Db, aceptados);
       });
-      filas += aceptados.length;
+      return { filas: aceptados.length, omitidas: omitidasDeCuenta };
+    }));
+    const errores: string[] = [];
+    resultados.forEach((resultado, indice) => {
+      if (resultado.status === "fulfilled") {
+        filas += resultado.value.filas;
+        omitidas += resultado.value.omitidas;
+      } else {
+        errores.push(`${cuentas[indice].nombre}: ${mensajeSeguroDePauta(resultado.reason, args.token)}`);
+      }
+    });
+    if (errores.length > 0) {
+      const error = errores.join(" · ");
+      await db.update(pautaSincronizaciones).set({
+        estado: "error", fin: new Date(), filas, error,
+      }).where(eq(pautaSincronizaciones.id, corrida.id));
+      return { estado: "error", filas, omitidas, error };
     }
     await db.update(pautaSincronizaciones).set({
       estado: "ok", fin: new Date(), filas,
