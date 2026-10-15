@@ -44,6 +44,11 @@ import {
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { cuposSinAsignar, objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import {
+  METRICAS_DEL_REPORTE,
+  reporteDelPrograma,
+} from "@/lib/catalogo/reportes-whatsapp";
+import { ReporteWhatsapp } from "@/components/pauta/reporte-whatsapp";
+import {
   DEFINICION_METRICAS_OBJETIVO,
   METRICAS_OBJETIVO,
   METRICAS_OFRECIDAS,
@@ -76,8 +81,8 @@ const NOMBRE_DE_ESTADO_COHORTE = { activo: "Activa", futuro: "Futura", cerrado: 
  * programa ajeno es 404, igual que uno que no existe. La ficha se LEE; quien administra
  * (`esAdministrador`: gerente o developer) edita las cohortes AQUÍ con el mismo
  * `CohortesAdmin` y las mismas acciones de Ajustes (A-10: las cohortes se encuentran desde el
- * programa). Las cuentas de Meta también las vincula quien administra. La reja de verdad son las acciones
- * (`requireRole` y alcance del programa), no que el control aparezca.
+ * programa). Las cuentas de Meta y el reporte por WhatsApp (265) también los configura quien administra.
+ * La reja de verdad son las acciones (`requireRole` y alcance del programa), no que el control aparezca.
  *
  * Ningún secreto llega aquí: la ficha dice SI hay token de Calendly y webhook conectado, nunca
  * cuál (ADR 0057); lo garantiza `programaPorId`, que pasa por el mismo `sinToken` del catálogo.
@@ -217,6 +222,28 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
           : Promise.resolve({ disponibles: [], error: null as string | null }),
       ])
     : [[], { disponibles: [], error: null }];
+  const [reporteWhatsapp, objetivosDelReporte] = seccion === "general"
+    ? await Promise.all([
+        reporteDelPrograma(db, programa.id),
+        activa ? objetivosDeCohortes(db, [activa.id]) : Promise.resolve([]),
+      ])
+    : [null, []];
+  const metricasDelReporte = METRICAS_DEL_REPORTE.map((metrica) => ({
+    metrica,
+    nombre: DEFINICION_METRICAS_OBJETIVO[metrica].nombre,
+    tieneUmbral: objetivosDelReporte.some(
+      (objetivo) => objetivo.activo && objetivo.area === null && objetivo.metrica === metrica,
+    ),
+  }));
+  const configuracionReporte = reporteWhatsapp
+    ? {
+        activo: reporteWhatsapp.activo,
+        destino: reporteWhatsapp.destino,
+        horas: reporteWhatsapp.horas,
+        horaCierre: reporteWhatsapp.horaCierre,
+        metricas: reporteWhatsapp.metricas.filter((metrica) => metrica === "costo_por_agenda"),
+      }
+    : null;
 
   return (
     <PageShell
@@ -346,6 +373,20 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                   </CardContent>
                 </Card>
               ) : null}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Reporte por WhatsApp</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ReporteWhatsapp
+                    programId={programa.id}
+                    configuracion={configuracionReporte}
+                    metricasDisponibles={metricasDelReporte}
+                    puedeEditar={administra}
+                  />
+                </CardContent>
+              </Card>
             </div>
           ) : null}
 
