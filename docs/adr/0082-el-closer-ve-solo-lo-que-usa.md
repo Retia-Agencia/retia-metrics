@@ -28,3 +28,10 @@ están en Mi espacio → Métricas). Mani: que al closer *"solo le salgan las pa
 - Una pantalla nueva para el closer entra al menú solo si su ruta lo deja entrar, y al revés.
 - Si Gerencia quiere que los closers vuelvan a ver el tablero del programa, se reabre este ADR, no se agrega un
   link suelto.
+
+## Enmienda 15-oct (Mani): el paid trafficker abre Programa
+
+La ficha deja de ser solo de quien la configura. El paid trafficker la **lee** (General y Ventas, sin la comisión ni
+el equipo) porque ahí viven las piezas de su semáforo, y **escribe** la meta y el aceptable de las métricas de pauta
+(costo por agenda, por lead, por venta y ROAS), nunca los cupos ni lo comercial. Dos preguntas nuevas en
+`lib/auth/roles.ts`: `leePrograma` y `editaObjetivo`. El closer sigue sin abrir Programa. Se construye en el 266.
