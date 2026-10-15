@@ -110,6 +110,25 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
   (`gasto_pauta.agendas_meta`, `fotos_pauta.agendas_meta`).
 - **Uso:** **control**, nunca el costo oficial (H-4 de `docs/hub.md`, ADR 0088). Sirve para ver la diferencia
   contra el CRM.
+- **Por qué difieren (medido el 15-oct, ComunicArte, agendas creadas del 9 al 13-oct):**
+
+  | Fuente | Agendas |
+  |---|---|
+  | Calendly (citas creadas, 49 activas y 5 canceladas) | 54 |
+  | CRM, todas las áreas | 54, una por cita de Calendly |
+  | CRM, Paid (por el UTM del envío que abrió el deal) | 35 |
+  | CRM, no Paid | 19: 10 `direct / organic` (campaña `direct`), 9 de Instagram de las creadoras (linktree, manychat, stories) |
+  | Meta (`invitee_meeting_scheduled`) | 51 |
+
+  - El total del CRM es confiable: coincide uno a uno con Calendly.
+  - Meta se atribuye 51 de las 54 citas, casi todas, incluidas las que entraron por enlaces orgánicos. El pixel
+    se dispara en toda cita del sitio, y Meta la cuenta como suya si la persona vio o tocó un anuncio en su ventana
+    de atribución, aunque haya entrado por el Instagram de la creadora. No se puede revisar persona por persona.
+  - El CRM solo cuenta como Paid la agenda cuyo formulario llegó con un UTM de anuncio. Es el piso: no cuenta a
+    quien vio un anuncio y entró después por otro enlace.
+  - **Lo que no se sabe:** de dónde sale el enlace `utm_source=direct&utm_medium=organic&utm_campaign=direct` (10
+    agendas). Si está dentro del recorrido de un anuncio (una landing, un mensaje automático), esas agendas son de
+    pauta y se están perdiendo; se le preguntó a Pauta (15-oct).
 
 ## 2. El origen: a qué área pertenece cada cosa
 
@@ -239,5 +258,5 @@ Lo que hoy suma el gasto de cada programa (`cuentas_publicitarias`, todas en `Am
 | Tactical Investor | Tactical Assets SAS | COP |
 
 `[CP] - Milena - [Nas & Be]` (USD) es visible para el usuario de sistema pero está restringida y **no entra**
-(Mani, 15-oct). Francisco es la creadora de Power Talk (Comunícate con Confianza, la cuenta 567726836094755). Pauta
-nombró además una cuenta de **Juan Pablo** que el usuario de sistema no ve: se le preguntó quién es (HQ-6).
+(Mani, 15-oct). Las cuentas que nombró Pauta son todas las de la tabla: la de Juan Pablo Vieira es Tactical Assets
+SAS (Tactical) y la de Francisco es 567726836094755 (Power Talk, Comunícate con Confianza).

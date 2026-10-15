@@ -445,7 +445,7 @@ Vive en `plan.md` §7, **letra E (Hub)**, la lista única. Aquí el índice:
 | HQ-3 | ✅ 15-oct (Dani Tovar): 8, 11, 14 y 17 h, y el resumen de cierre a las 20 h. Lo hace posible el 268 | Mani y Pauta |
 | HQ-4 | ✅ 15-oct (Michael): con el gasto de **todas** las campañas. El mensaje debe traer además el **presupuesto del día** (fijo todo el día), el gasto y las agendas hasta ese momento y el costo por agenda | Pauta |
 | HQ-5 | PQ3: la ventana del ritmo y la conversión agenda → venta de los requeridos | Pauta y Gerencia |
-| HQ-6 | 🟡 15-oct: tres programas en curso, cada uno con su cuenta mapeada; ComunicArte suma las de Milena y Rosario (COP y USD). `[CP] - Milena - [Nas & Be]` está restringida y no entra (Mani). Francisco es Power Talk (Comunícate con Confianza). Falta: quién es Juan Pablo y qué cuenta maneja | Pauta |
+| HQ-6 | ✅ 15-oct: tres programas en curso y todas sus cuentas mapeadas: Tactical = Tactical Assets SAS (de Juan Pablo Vieira), Comunícate con Confianza = la de Francisco (Power Talk), ComunicArte = las de Milena y Rosario (COP y USD). `[CP] - Milena - [Nas & Be]` está restringida y no entra (Mani) | Pauta |
 | HQ-7 | Las dos propuestas de `docs/metricas.md` §3.4: CAC en las dos monedas y los tres grupos del origen del cierre | Mani |
 | HQ-8 | ¿Adoptan la plantilla del 29-sep en las campañas **nuevas** de TI y CA? ¿Editar los `url_tags` de un anuncio activo lo manda a revisión o reinicia su aprendizaje? (si sí, los activos no se tocan) | Pauta |
 | HQ-9 | El **presupuesto del día** en el mensaje (pedido de Michael): ¿la suma de los presupuestos diarios activos en Meta a primera hora, o un número que fija Pauta? ¿por programa? | Pauta |

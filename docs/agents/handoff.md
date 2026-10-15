@@ -53,7 +53,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   - **268:** la sesión [t268-horas] llegó al límite a media tarea. Juanito ya quedó desplegado (PR #34, `8234864`, 15:50
     UTC: cron cada hora y `RETIA_SEMAFORO_GRUPO`); el lado del CRM está sin commit en `.claude/worktrees/t268` con
     la 0087 generada y **sin aplicar**. Se le mandó retomar y seguir con el 269.
-  - **Preguntas abiertas a Pauta:** HQ-1, HQ-6 (quién es Juan Pablo), HQ-8 (plantilla de UTM), HQ-9 (presupuesto
+  - **Preguntas abiertas a Pauta:** HQ-1, HQ-8 (plantilla de UTM), HQ-9 (presupuesto
     del día), HQ-10 (color de cada hora), HQ-11 (fines de semana; 30X sí manda), HQ-12 (correos). La lista para
     mandarles quedó en el chat del 15-oct; las preguntas, en `docs/hub.md` y `docs/plan.md`.
 
@@ -61,7 +61,8 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   - **Michael respondió en Tech - Retia** (HQ-3, HQ-4, HQ-6 en `docs/hub.md`): gasto de todas las campañas; el
     mensaje debe traer el presupuesto del día; entran las cuentas de Milena, Rosario, Juan Pablo y Francisco. Dani:
     8, 11, 14, 17 y cierre 20 h. Umbrales: "lo conversamos con paid en el daily".
-  - **Medido en producción:** el usuario de sistema ve 7 cuentas y **ninguna es de Juan Pablo ni de Francisco**;
+  - **Medido en producción:** el usuario de sistema ve 7 cuentas y todas las de Pauta están mapeadas (corregido: la de Juan Pablo Vieira es
+    Tactical Assets SAS y la de Francisco es la de Power Talk);
     `[CP] - Milena - [Nas & Be]` (USD) no está mapeada. Tactical ya tiene objetivo de costo por agenda en C3
     (75.000 / 90.000) y su reporte existe apagado.
   - **`docs/metricas.md`**: el diccionario se mudó de `hub.md` §5 con el linaje de cada cifra; AGENTS.md lo nombra.
