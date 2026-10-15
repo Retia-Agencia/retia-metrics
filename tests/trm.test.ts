@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import fixture from "./fixtures/trm/datos-gov-2026-10-01-a-15.json";
-import { tasasCambio } from "@/lib/db/schema";
+import { gastoPauta, programs, tasasCambio } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { tasaDelDia, tasasDelRango } from "@/lib/trm/consultar";
 import { leerTrmPublicada } from "@/lib/trm/fuente";
 import { leerTrm } from "@/lib/trm/registrar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -37,6 +38,22 @@ describe("TRM oficial", () => {
     );
     expect(primeraUrl.searchParams.get("$order")).toBe("vigenciadesde");
     expect(primeraUrl.searchParams.get("$limit")).toBe("5000");
+  });
+
+  it("un gasto cargado tarde, anterior a la primera tasa, baja el relleno hasta su fecha", async () => {
+    const fetchImpl = fetchGrabado();
+    await db.insert(tasasCambio).values({
+      vigenteDesde: "2026-10-08", vigenteHasta: "2026-10-08", pesosPorDolar: "3238.88", fuente: "prueba",
+    });
+    const [programa] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA, slug: "trm", nombre: "TRM", ticketUsd: "1000",
+    }).returning();
+    await db.insert(gastoPauta).values({
+      programId: programa.id, fecha: "2026-10-02", monto: "1000", moneda: "COP", origen: "manual", area: "paid",
+    });
+    const lectura = await leerTrm(db, { hoy: "2026-10-14", fetchImpl });
+    expect(lectura.desde).toBe("2026-10-02");
+    expect((await tasaDelDia(db, "2026-10-02"))?.pesosPorDolar).toBe(3307.73);
   });
 
   it("resuelve la publicación vigente en sábado y no inventa una tasa", async () => {

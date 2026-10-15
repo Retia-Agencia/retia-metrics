@@ -51,5 +51,9 @@ el ok de Mani (sin transacciones largas antes; `tasas_cambio` con RLS, vacía). 
 - Corre dentro del cron de pauta (11:00 UTC), antes de sincronizar y en su propio try: si falla, la pauta corre igual
   y la respuesta trae `trm.error` (y el log). Sin cron nuevo.
 
-**Falta:** después de la primera corrida en producción, cuadrar tres fechas contra la TRM publicada (sugeridas: 1-oct
-3.312,84 · 10-oct 3.194,44 · 14-oct 3.181,74) y marcar el último criterio.
+**Primera corrida (14-oct, cron lanzado a mano):** 5 publicaciones, 8 a 15-oct, sin huecos; el relleno empieza en el
+primer gasto (8-oct). **Arreglo posterior:** un gasto cargado tarde con fecha anterior a la primera tasa guardada baja el
+relleno hasta su fecha (antes quedaba sin tasa para siempre), con test.
+
+**Falta:** cuadrar tres fechas contra la TRM publicada (8-oct 3.238,88 · 10-oct 3.194,44 · 14-oct 3.181,74) y marcar el
+último criterio.

@@ -61,4 +61,7 @@ Codex implementó; la sesión revisó e integró (`8d91b4b`, `96a4612`, `6fc448d
 
 Medido en producción el 14-oct (lectura): ComunicArte, 34 envíos con `ad_id` desde el cambio del Typeform, 20 caen en
 un anuncio del árbol (N3) y los otros 14 son `organic`; sus 111 `utm_id` de 14 días están todos en el árbol
-(campaña, N2). **Falta:** Tactical aún no tiene envíos con `ad_id`; ver el primero en N3 y marcar el criterio.
+(campaña, N2). **Falta:** Tactical no trae el id. Medido el 14-oct en la noche: 22 envíos de TI (y 4 de Confianza) llegan con la
+llave `ad_id` en NULL, aunque sus 17 anuncios activos sí ponen `ad_id={{ad.id}}` en sus `url_tags`. El Typeform declara
+el campo, pero la página que lo embebe no le pasa ese parámetro (CA sí lo pasa). Es configuración de la landing de TI
+(pasar `ad_id`, `adset_id` y `campaign_id` al embed), no código; cuando llegue el primero, verlo en N3.

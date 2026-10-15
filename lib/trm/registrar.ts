@@ -31,14 +31,15 @@ export async function leerTrm(
   opciones: { hoy: string; fetchImpl?: typeof fetch },
 ): Promise<{ leidas: number; desde: string; hasta: string }> {
   const hoy = fechaBogotaSchema.parse(opciones.hoy);
-  const [{ ultima }] = await db.select({ ultima: max(tasasCambio.vigenteDesde) }).from(tasasCambio);
-  let desde: string;
-  if (ultima) {
-    desde = desplazarFecha(ultima, -7);
-  } else {
-    const [{ primera }] = await db.select({ primera: min(gastoPauta.fecha) }).from(gastoPauta);
-    desde = primera ?? desplazarFecha(hoy, -30);
-  }
+  const [[{ primeraTasa, ultima }], [{ primerGasto }]] = await Promise.all([
+    db.select({ primeraTasa: min(tasasCambio.vigenteDesde), ultima: max(tasasCambio.vigenteDesde) })
+      .from(tasasCambio),
+    db.select({ primerGasto: min(gastoPauta.fecha) }).from(gastoPauta),
+  ]);
+  // Lo normal es repasar la última semana. Pero un gasto anterior a la primera tasa guardada
+  // (uno manual cargado tarde) también tiene que poder convertirse: el relleno baja hasta él.
+  let desde = ultima ? desplazarFecha(ultima, -7) : primerGasto ?? desplazarFecha(hoy, -30);
+  if (primeraTasa && primerGasto && primerGasto < primeraTasa) desde = primerGasto;
   const hasta = desplazarFecha(hoy, 1);
   const filas = await leerTrmPublicada(desde, hasta, opciones.fetchImpl);
 
