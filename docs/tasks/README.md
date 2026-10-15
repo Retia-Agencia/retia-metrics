@@ -203,7 +203,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 260 | [Juanito manda el semáforo](./260-juanito-manda-el-semaforo.md) | 259 | todo · **se implementa en el repo de Juanito** |
 | [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
 | [x] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | done · 15-oct · Codex + central · CI verde `93f6966` · falta que Mani lo valide llenándolo · sin migración (Mani, 15-oct) |
-| [x] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | done · 15-oct · Codex + central · `237ff93` · 0085 aplicada en producción (ok de Mani); CI pendiente al cierre · ADR 0089 enmendado 15-oct |
+| [x] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | done · 15-oct · Codex + central · `237ff93` · 0085 y 0086 (RLS) aplicadas en producción (ok de Mani) · CI verde `84ab927` · ADR 0089 enmendado 15-oct |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 
