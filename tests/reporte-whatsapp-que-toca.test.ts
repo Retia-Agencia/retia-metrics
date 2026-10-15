@@ -7,9 +7,8 @@ import {
 const base: ReporteConfig = {
   programId: "programa-a",
   activo: true,
-  destino: "grupo@g.us",
-  horas: [11],
-  horaCierre: 18,
+  horas: [8, 11, 14, 17],
+  horaCierre: 20,
   metricas: ["costo_por_agenda"],
 };
 
@@ -21,11 +20,20 @@ describe("que toca enviar por WhatsApp", () => {
     ]);
     expect(resultado).toEqual([{
       programId: "programa-a",
-      destino: "grupo@g.us",
       tipo: "dia",
       hora: "11:00",
       metricas: ["costo_por_agenda"],
     }]);
+  });
+
+  it("a las 17 toca el reporte del día configurado", () => {
+    expect(queTocaAhora(new Date("2026-10-13T22:00:00Z"), [base]))
+      .toMatchObject([{ tipo: "dia", hora: "17:00" }]);
+  });
+
+  it("a las 20 toca el cierre configurado", () => {
+    expect(queTocaAhora(new Date("2026-10-14T01:00:00Z"), [base]))
+      .toMatchObject([{ tipo: "cierre", hora: "20:00" }]);
   });
 
   it("no devuelve nada un sabado", () => {
@@ -34,7 +42,7 @@ describe("que toca enviar por WhatsApp", () => {
 
   it("el cierre gana si coincide con una hora del dia", () => {
     expect(queTocaAhora(new Date("2026-10-13T23:00:00Z"), [
-      { ...base, horas: [18] },
+      { ...base, horas: [18], horaCierre: 18 },
     ])).toMatchObject([{ tipo: "cierre", hora: "18:00" }]);
   });
 
@@ -43,7 +51,7 @@ describe("que toca enviar por WhatsApp", () => {
     expect(queTocaAhora(new Date("2026-10-13T16:20:00Z"), [base])).toEqual([]);
   });
 
-  it("conserva dos programas aunque compartan destino", () => {
+  it("conserva dos programas en la misma hora", () => {
     const resultado = queTocaAhora(new Date("2026-10-13T16:00:00Z"), [
       base,
       { ...base, programId: "programa-b" },

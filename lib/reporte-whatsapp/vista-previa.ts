@@ -24,7 +24,6 @@ export async function vistaPreviaDelReporte(
 ): Promise<VistaPreviaDelReporte> {
   const reporte = await reporteDelPrograma(db, args.programId);
   if (!reporte) return { dia: null, cierre: null, aviso: "Todavía no hay reporte configurado." };
-  if (!reporte.destino) return { dia: null, cierre: null, aviso: "Falta el grupo de WhatsApp." };
 
   const metricasEncendidas = reporte.metricas.filter(
     (metrica) => metrica === "costo_por_agenda",
@@ -38,7 +37,12 @@ export async function vistaPreviaDelReporte(
     const metricas = await Promise.all(metricasEncendidas.map((metrica) => {
       switch (metrica) {
         case "costo_por_agenda":
-          return semaforoDelPrograma(db, { programId: args.programId, ahora: args.ahora, tipo });
+          return semaforoDelPrograma(db, {
+            programId: args.programId,
+            ahora: args.ahora,
+            tipo,
+            horas: [...reporte.horas, ...(reporte.horaCierre === null ? [] : [reporte.horaCierre])],
+          });
       }
     }));
     return armarMensaje({

@@ -167,6 +167,28 @@ describe("semáforo del programa", () => {
     expect(cierre).toMatchObject({ color: "alerta", gasto: 80000, agendas: 1, costo: 80000 });
   });
 
+  it("la trayectoria usa solo las horas configuradas hasta la hora actual", async () => {
+    const p = await crearPrograma("trayectoria-configurada");
+    for (const hora of [8, 11, 14, 17, 20]) {
+      await foto({
+        ...p,
+        dia: "2026-10-14",
+        hora: `${String(hora).padStart(2, "0")}:00`,
+        gasto: hora * 1000,
+      });
+    }
+
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId,
+      ahora: new Date("2026-10-14T20:00:00-05:00"),
+      tipo: "cierre",
+      horas: [20, 8, 14, 11, 17, 20],
+    });
+
+    expect(resultado.trayectoria.map((punto) => punto.hora))
+      .toEqual(["08:00", "11:00", "14:00", "17:00", "20:00"]);
+  });
+
   it("el caso 30X del 19-sep no pinta falso rojo de día y sí rojo al cierre", async () => {
     const p = await crearPrograma("treinta-x");
     await foto({ ...p, dia: "2026-09-18", hora: "11:00", gasto: 600000 });

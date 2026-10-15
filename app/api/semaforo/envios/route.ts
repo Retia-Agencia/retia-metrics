@@ -43,7 +43,6 @@ export async function POST(request: Request) {
   const pendientes = queTocaAhora(ahora, reportes.map((reporte) => ({
     programId: reporte.programId,
     activo: true,
-    destino: reporte.destino,
     horas: reporte.horas,
     horaCierre: reporte.horaCierre,
     metricas: reporte.metricas,
@@ -78,12 +77,12 @@ export async function POST(request: Request) {
               programId: pendiente.programId,
               ahora,
               tipo: pendiente.tipo,
+              horas: [...reporte.horas, ...(reporte.horaCierre === null ? [] : [reporte.horaCierre])],
             });
         }
       }));
       const envio = {
         programa: reporte.programa,
-        destino: pendiente.destino,
         tipo: pendiente.tipo,
         hora: pendiente.hora,
         enlaceHub: enlaceAlHub(origen, reporte.slug),
@@ -94,7 +93,6 @@ export async function POST(request: Request) {
     } catch {
       const envio = {
         programa: reporte.programa,
-        destino: pendiente.destino,
         tipo: pendiente.tipo,
         hora: pendiente.hora,
         enlaceHub: enlaceAlHub(origen, reporte.slug),
@@ -111,7 +109,6 @@ export async function POST(request: Request) {
     envios,
     configuracion: reportes.map((reporte) => ({
       programa: reporte.programa,
-      destino: reporte.destino,
       horas: reporte.horas.map(horaTexto),
       horaCierre: reporte.horaCierre === null ? null : horaTexto(reporte.horaCierre),
     })),

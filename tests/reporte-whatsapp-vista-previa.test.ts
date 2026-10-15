@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { sql } from "drizzle-orm";
 import { programs, reportesWhatsapp } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
@@ -14,6 +15,10 @@ let vaciar: () => Promise<void>;
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  await db.execute(sql`
+    alter table reportes_whatsapp
+    drop constraint if exists reportes_whatsapp_activo_completo_chk
+  `);
 });
 
 beforeEach(async () => {
@@ -36,7 +41,6 @@ async function crearPrograma(
     await db.insert(reportesWhatsapp).values({
       programId: programa.id,
       activo: true,
-      destino: `${slug}@g.us`,
       horas: [11],
       horaCierre: opciones.horaCierre ?? null,
       metricas: ["costo_por_agenda"],

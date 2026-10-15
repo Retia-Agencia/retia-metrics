@@ -2012,10 +2012,10 @@ export const objetivos = pgTable(
 
 /**
  * El reporte de pauta por WhatsApp de un programa (ticket 265, ADR 0089 enmendado el 15-oct): si se
- * manda, a qué grupo, a qué horas y con qué métricas. Juanito no guarda nada de esto: pregunta al
+ * manda, a qué horas y con qué métricas. Juanito no guarda nada de esto: pregunta al
  * endpoint (259) "¿qué mando ahora?" y el CRM responde con esta fila. Una por programa (el programa es
- * frontera: un reporte nunca mezcla dos). `destino` es el id del grupo tal cual lo da `/grupos` de
- * Juanito; `horas`, las horas en punto (Bogotá) de los envíos de día; `hora_cierre`, la del resumen.
+ * frontera: un reporte nunca mezcla dos). `horas` son las horas en punto (Bogotá) de los envíos de
+ * día; `hora_cierre`, la del resumen.
  * Se escribe por el molde (`lib/catalogo/`), con `change_log`.
  */
 export const reportesWhatsapp = pgTable(
@@ -2024,7 +2024,6 @@ export const reportesWhatsapp = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     activo: boolean("activo").notNull().default(false),
-    destino: text("destino"),
     horas: integer("horas").array().notNull().default(sql`'{}'::integer[]`),
     horaCierre: integer("hora_cierre"),
     metricas: metricaObjetivoEnum("metricas").array().notNull().default(sql`'{}'::metrica_objetivo[]`),
@@ -2042,7 +2041,7 @@ export const reportesWhatsapp = pgTable(
     ),
     check(
       "reportes_whatsapp_activo_completo_chk",
-      sql`not ${t.activo} or (${t.destino} is not null and (cardinality(${t.horas}) > 0 or ${t.horaCierre} is not null))`,
+      sql`not ${t.activo} or (cardinality(${t.horas}) > 0 or ${t.horaCierre} is not null)`,
     ),
   ],
 );

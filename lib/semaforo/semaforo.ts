@@ -75,11 +75,12 @@ async function leerUmbral(db: Db, programId: string): Promise<{
 
 async function trayectoriaDelDia(
   db: Db,
-  args: { programId: string; dia: string; ahora: Date },
+  args: { programId: string; dia: string; ahora: Date; horas?: number[] },
 ): Promise<PuntoSemaforo[]> {
   const { hora } = partesDeHoraEnBogota(args.ahora);
-  const ultimaHora = Math.min(hora, 19);
-  if (ultimaHora < 6) return [];
+  const horas = args.horas === undefined
+    ? Array.from({ length: hora + 1 }, (_, horaPunto) => horaPunto)
+    : [...new Set(args.horas)].filter((horaPunto) => horaPunto <= hora).sort((a, b) => a - b);
   const [primera] = await db.select({ tomadaEn: fotosPauta.tomadaEn }).from(fotosPauta).where(and(
     eq(fotosPauta.programId, args.programId),
     eq(fotosPauta.fecha, args.dia),
@@ -87,8 +88,7 @@ async function trayectoriaDelDia(
   )).orderBy(fotosPauta.tomadaEn).limit(1);
   if (!primera) return [];
 
-  const puntos = await Promise.all(Array.from({ length: ultimaHora - 5 }, async (_, indice) => {
-    const horaPunto = indice + 6;
+  const puntos = await Promise.all(horas.map(async (horaPunto) => {
     const horaTexto = `${String(horaPunto).padStart(2, "0")}:00`;
     const hasta = instanteDeBogota(args.dia, horaTexto);
     if (!hasta || primera.tomadaEn > hasta) return null;
@@ -168,7 +168,7 @@ function resumen(datos: CostoPorAgenda): Omit<PuntoSemaforo, "hora"> {
 
 export async function semaforoDelPrograma(
   db: Db,
-  args: { programId: string; ahora: Date; tipo: "dia" | "cierre" },
+  args: { programId: string; ahora: Date; tipo: "dia" | "cierre"; horas?: number[] },
 ): Promise<MetricaSemaforo> {
   const hoy = fechaDeInstanteEnBogota(args.ahora);
   const ayer = diaHabilAnterior(hoy);
@@ -187,7 +187,12 @@ export async function semaforoDelPrograma(
     ? colorDeDia({ hoy: datos, ayer: datosAyer, umbral })
     : colorDeCierre({ datos, tieneCohorte, umbral });
   const [trayectoria, diasRojos, calidad] = await Promise.all([
-    trayectoriaDelDia(db, { programId: args.programId, dia: hoy, ahora: args.ahora }),
+    trayectoriaDelDia(db, {
+      programId: args.programId,
+      dia: hoy,
+      ahora: args.ahora,
+      horas: args.horas,
+    }),
     diasSeguidosEnRojo(db, { programId: args.programId, hoy, tieneCohorte, umbral }),
     notasDeCalidad(db, { programId: args.programId, hoy, ayer, tieneCohorte, umbral }),
   ]);

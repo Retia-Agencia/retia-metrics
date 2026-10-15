@@ -5,7 +5,6 @@ import type { MetricaDelReporte } from "@/lib/catalogo/reportes-whatsapp";
 export interface ReporteConfig {
   programId: string;
   activo: boolean;
-  destino: string | null;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -13,7 +12,6 @@ export interface ReporteConfig {
 
 export interface ReportePendiente {
   programId: string;
-  destino: string;
   tipo: "dia" | "cierre";
   hora: `${string}:00`;
   metricas: MetricaDelReporte[];
@@ -35,7 +33,7 @@ export function queTocaAhora(instante: Date, reportes: ReporteConfig[]): Reporte
   if (minuto >= 15) return [];
 
   return reportes.flatMap((reporte) => {
-    if (!reporte.activo || !reporte.destino || reporte.metricas.length === 0) return [];
+    if (!reporte.activo || reporte.metricas.length === 0) return [];
     const tipo = reporte.horaCierre === hora
       ? "cierre"
       : reporte.horas.includes(hora)
@@ -44,7 +42,6 @@ export function queTocaAhora(instante: Date, reportes: ReporteConfig[]): Reporte
     if (!tipo) return [];
     return [{
       programId: reporte.programId,
-      destino: reporte.destino,
       tipo,
       hora: `${horaTexto}:00` as const,
       metricas: reporte.metricas,

@@ -8,7 +8,6 @@ import {
   type ResultadoAccionReporte,
 } from "@/app/(app)/p/[programa]/programa/acciones-reporte-whatsapp";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -22,7 +21,7 @@ import type {
   MetricaDelReporte,
 } from "@/lib/catalogo/reportes-whatsapp";
 
-const HORAS = Array.from({ length: 14 }, (_, indice) => indice + 6);
+const HORAS = Array.from({ length: 24 }, (_, hora) => hora);
 const SIN_RESUMEN = "sin_resumen";
 
 interface MetricaVisible {
@@ -33,7 +32,6 @@ interface MetricaVisible {
 
 interface ConfiguracionVisible {
   activo: boolean;
-  destino: string | null;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -62,7 +60,6 @@ export function ReporteWhatsapp({
   const [pendiente, startTransition] = useTransition();
   const [borrador, setBorrador] = useState<EntradaReporteWhatsapp>({
     activo: configuracion?.activo ?? false,
-    destino: configuracion?.destino ?? "",
     horas: configuracion?.horas ?? [],
     horaCierre: configuracion?.horaCierre ?? null,
     metricas: configuracion?.metricas ?? [],
@@ -70,23 +67,26 @@ export function ReporteWhatsapp({
   const deshabilitado = pendiente || !puedeEditar;
   const guardada: EntradaReporteWhatsapp = {
     activo: configuracion?.activo ?? false,
-    destino: configuracion?.destino ?? "",
     horas: configuracion?.horas ?? [],
     horaCierre: configuracion?.horaCierre ?? null,
     metricas: configuracion?.metricas ?? [],
   };
   const tieneCambios = borrador.activo !== guardada.activo
-    || (borrador.destino ?? "") !== (guardada.destino ?? "")
     || borrador.horaCierre !== guardada.horaCierre
     || JSON.stringify(borrador.horas) !== JSON.stringify(guardada.horas)
     || JSON.stringify(borrador.metricas) !== JSON.stringify(guardada.metricas);
 
-  function alternarHora(hora: number, marcada: boolean) {
+  function agregarHora(hora: number) {
     setBorrador((actual) => ({
       ...actual,
-      horas: marcada
-        ? [...actual.horas, hora].sort((a, b) => Number(a) - Number(b))
-        : actual.horas.filter((valor) => Number(valor) !== hora),
+      horas: [...new Set([...actual.horas, hora])].sort((a, b) => a - b),
+    }));
+  }
+
+  function quitarHora(hora: number) {
+    setBorrador((actual) => ({
+      ...actual,
+      horas: actual.horas.filter((valor) => valor !== hora),
     }));
   }
 
@@ -126,35 +126,49 @@ export function ReporteWhatsapp({
         />
       </div>
 
-      <label className="block space-y-1.5">
-        <span className="font-medium">Grupo de WhatsApp</span>
-        <Input
-          value={borrador.destino ?? ""}
-          onChange={(event) => setBorrador((actual) => ({ ...actual, destino: event.target.value }))}
-          placeholder="1203…@g.us"
-          disabled={deshabilitado}
-        />
-        <span className="block text-xs text-muted-foreground">
-          Pega el id que entrega /grupos de Juanito.
-        </span>
-      </label>
-
-      <fieldset disabled={deshabilitado} className="space-y-2">
-        <legend className="font-medium">Horas del día</legend>
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
-          {HORAS.map((hora) => (
-            <label key={hora} className="flex items-center gap-2 rounded-lg border border-border px-2 py-2">
-              <input
-                type="checkbox"
-                checked={borrador.horas.some((valor) => Number(valor) === hora)}
-                onChange={(event) => alternarHora(hora, event.target.checked)}
-                className="size-4 accent-primary"
-              />
+      <div className="space-y-2">
+        <p className="font-medium">Horas del día</p>
+        <div className="flex flex-wrap gap-2">
+          {[...borrador.horas].sort((a, b) => a - b).map((hora) => (
+            <Button
+              key={hora}
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => quitarHora(hora)}
+              disabled={deshabilitado}
+              aria-label={`Quitar ${String(hora).padStart(2, "0")}:00`}
+            >
               <span className="cifra">{String(hora).padStart(2, "0")}:00</span>
-            </label>
+              <span aria-hidden="true">×</span>
+            </Button>
           ))}
         </div>
-      </fieldset>
+        {HORAS.some((hora) => !borrador.horas.includes(hora)) ? (
+          <Select
+            value={null}
+            items={HORAS.filter((hora) => !borrador.horas.includes(hora)).map((hora) => ({
+              value: String(hora),
+              label: `${String(hora).padStart(2, "0")}:00`,
+            }))}
+            onValueChange={(valor) => {
+              if (valor !== null) agregarHora(Number(valor));
+            }}
+            disabled={deshabilitado}
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Agregar una hora" />
+            </SelectTrigger>
+            <SelectContent>
+              {HORAS.filter((hora) => !borrador.horas.includes(hora)).map((hora) => (
+                <SelectItem key={hora} value={String(hora)}>
+                  {String(hora).padStart(2, "0")}:00
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
+      </div>
 
       <div className="space-y-1.5">
         <p className="font-medium">Resumen de cierre</p>

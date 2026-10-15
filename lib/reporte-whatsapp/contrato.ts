@@ -41,7 +41,6 @@ const esquemaSincronizacion = z.object({
 
 const esquemaEnvio = z.object({
   programa: z.string(),
-  destino: z.string(),
   tipo: z.enum(["dia", "cierre"]),
   hora: z.string(),
   enlaceHub: z.string().url(),
@@ -52,7 +51,6 @@ const esquemaEnvio = z.object({
 
 const esquemaConfiguracion = z.object({
   programa: z.string(),
-  destino: z.string(),
   horas: z.array(z.string()),
   horaCierre: z.string().nullable(),
 }).strict();

@@ -81,7 +81,6 @@ async function crearPrograma(
   await db.insert(reportesWhatsapp).values({
     programId: programa.id,
     activo: true,
-    destino: `${slug}@g.us`,
     horas: [opciones.hora ?? 11],
     horaCierre: 18,
     metricas: opciones.metricas ?? ["costo_por_agenda"],
@@ -157,7 +156,7 @@ describe("endpoint de maquina del semaforo", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("a las once devuelve el envio de dia con su destino y metrica", async () => {
+  it("a las once devuelve el envio de dia con su metrica", async () => {
     await crearPrograma("uno");
 
     const respuesta = await cuerpo();
@@ -167,7 +166,6 @@ describe("endpoint de maquina del semaforo", () => {
       sincronizacion: { estado: "ok", ultimaFoto: "2026-10-13T11:00:00-05:00" },
       envios: [{
         programa: "Programa uno",
-        destino: "uno@g.us",
         tipo: "dia",
         hora: "11:00",
         enlaceHub: "https://crm.retia.test/p/uno/hub?seccion=pauta",
@@ -249,7 +247,7 @@ describe("endpoint de maquina del semaforo", () => {
 
 const LLAVES_PERMITIDAS = new Set([
   "generadoEn", "sincronizacion", "estado", "ultimaFoto", "envios", "configuracion",
-  "programa", "destino", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
+  "programa", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendas", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "ayerALaMismaHora", "dia",
   "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "notas", "texto",
@@ -285,6 +283,18 @@ describe("lista blanca del contrato", () => {
     };
 
     expect(() => exigirListaBlanca(adulterada)).toThrow("Llave no permitida: persona");
+    expect(esquemaRespuestaSemaforo.safeParse(adulterada).success).toBe(false);
+  });
+
+  it("rechaza destino aunque antes perteneciera al contrato", async () => {
+    await crearPrograma("contrato");
+    const respuesta = await cuerpo();
+    const adulterada = {
+      ...respuesta,
+      envios: [{ ...(respuesta.envios as object[])[0], destino: "grupo@g.us" }],
+    };
+
+    expect(() => exigirListaBlanca(adulterada)).toThrow("Llave no permitida: destino");
     expect(esquemaRespuestaSemaforo.safeParse(adulterada).success).toBe(false);
   });
 });

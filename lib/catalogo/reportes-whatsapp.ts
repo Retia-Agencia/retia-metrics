@@ -17,24 +17,15 @@ import { moldeDeCatalogo } from "./molde";
 export const METRICAS_DEL_REPORTE = ["costo_por_agenda"] as const satisfies readonly MetricaObjetivo[];
 export type MetricaDelReporte = (typeof METRICAS_DEL_REPORTE)[number];
 
-const destino = z
-  .union([z.string(), z.null(), z.undefined()])
-  .transform((valor) => valor?.trim() || null)
-  .refine(
-    (valor) => valor === null || valor.endsWith("@g.us"),
-    "Pega el id del grupo tal como lo da /grupos de Juanito (termina en @g.us).",
-  );
-
 /** El unico esquema de la configuracion; crear y editar validan exactamente lo mismo. */
 export const esquemaReporteWhatsapp = z.object({
   programId: z.string().uuid("Programa inválido."),
   activo: z.boolean(),
-  destino,
   horas: z
-    .array(z.coerce.number().int().min(6).max(19))
+    .array(z.coerce.number().int().min(0).max(23))
     .refine((horas) => new Set(horas).size === horas.length, "Las horas no se pueden repetir.")
     .transform((horas) => [...horas].sort((a, b) => a - b)),
-  horaCierre: z.union([z.null(), z.coerce.number().int().min(6).max(19)]),
+  horaCierre: z.union([z.null(), z.coerce.number().int().min(0).max(23)]),
   metricas: z
     .array(z.enum(METRICAS_DEL_REPORTE))
     .transform((metricas) => [...new Set(metricas)]),
@@ -42,7 +33,6 @@ export const esquemaReporteWhatsapp = z.object({
 
 export interface EntradaReporteWhatsapp {
   activo: boolean;
-  destino?: string | null;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -54,7 +44,6 @@ export interface ReporteWhatsappActivo {
   programId: string;
   programa: string;
   slug: string;
-  destino: string;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -67,7 +56,6 @@ export async function reportesActivos(db: Db): Promise<ReporteWhatsappActivo[]> 
       programId: programs.id,
       programa: programs.nombre,
       slug: programs.slug,
-      destino: reportesWhatsapp.destino,
       horas: reportesWhatsapp.horas,
       horaCierre: reportesWhatsapp.horaCierre,
       metricas: reportesWhatsapp.metricas,
@@ -78,7 +66,6 @@ export async function reportesActivos(db: Db): Promise<ReporteWhatsappActivo[]> 
 
   return filas.map((fila) => ({
     ...fila,
-    destino: fila.destino!,
     metricas: fila.metricas.filter(
       (metrica): metrica is MetricaDelReporte => metrica === "costo_por_agenda",
     ),
@@ -115,7 +102,6 @@ function exigirAdministrador(actor: ActorReporte) {
 
 function validarConfiguracionActiva(datos: z.output<typeof esquemaReporteWhatsapp>) {
   if (!datos.activo) return;
-  if (!datos.destino) throw new ErrorDeApp("El reporte encendido necesita el id del grupo.", 422);
   if (datos.horas.length === 0 && datos.horaCierre === null) {
     throw new ErrorDeApp("El reporte encendido necesita al menos una hora o un resumen de cierre.", 422);
   }

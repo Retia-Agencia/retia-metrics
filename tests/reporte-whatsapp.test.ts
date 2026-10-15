@@ -27,9 +27,8 @@ let cohortId: string;
 
 const configuracion: EntradaReporteWhatsapp = {
   activo: true,
-  destino: "grupo@g.us",
-  horas: [11],
-  horaCierre: 18,
+  horas: [8, 11, 14, 17],
+  horaCierre: 20,
   metricas: ["costo_por_agenda"],
 };
 
@@ -112,11 +111,13 @@ describe("configuracion del reporte por WhatsApp", () => {
     expect(await db.select().from(reportesWhatsapp)).toHaveLength(0);
   });
 
-  it("guarda costo por agenda cuando la cohorte activa tiene umbral", async () => {
+  it("guarda horas del día y cierre entre 0 y 23 sin necesitar destino", async () => {
     await cargarUmbral();
     await expect(guardarReporte(db, gerente(), programId, configuracion)).resolves.toMatchObject({
       programId,
       activo: true,
+      horas: [8, 11, 14, 17],
+      horaCierre: 20,
       metricas: ["costo_por_agenda"],
     });
   });
@@ -135,24 +136,12 @@ describe("configuracion del reporte por WhatsApp", () => {
     expect(await reporteDelPrograma(db, programId)).toBeNull();
   });
 
-  it("rechaza un reporte activo sin destino", async () => {
+  it.each([-1, 24])("rechaza la hora %s", async (hora) => {
     await cargarUmbral();
     await expect(guardarReporte(db, gerente(), programId, {
       ...configuracion,
-      destino: "",
-    })).rejects.toMatchObject({ status: 422 });
-    expect(await db.select().from(reportesWhatsapp)).toHaveLength(0);
-  });
-
-  it("rechaza con 400 un destino que no termina en @g.us", async () => {
-    await cargarUmbral();
-    await expect(guardarReporte(db, gerente(), programId, {
-      ...configuracion,
-      destino: "grupo-invalido",
-    })).rejects.toMatchObject({
-      status: 400,
-      message: "Pega el id del grupo tal como lo da /grupos de Juanito (termina en @g.us).",
-    });
+      horas: [hora],
+    })).rejects.toMatchObject({ status: 400 });
     expect(await db.select().from(reportesWhatsapp)).toHaveLength(0);
   });
 });

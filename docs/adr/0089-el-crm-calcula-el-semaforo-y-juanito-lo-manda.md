@@ -93,3 +93,12 @@ El mensaje deja de armarse en Juanito: el CRM lo arma (`armarMensaje` en `lib/re
 manda como `texto` en cada envío, y la pantalla de Programa › General muestra ese mismo texto como vista previa. Una
 sola función para lo que se ve y lo que sale. Juanito solo conserva el aviso de "el CRM no respondió". Se construye
 en el 267.
+
+## Enmienda 15-oct (Mani, ticket 268): un solo grupo y las horas son las del día
+
+Un solo grupo de WhatsApp ("Alertas Paid Media - Retia") recibe todos los programas, así que el grupo deja de ser
+configuración del programa: vive en el `.env` de Juanito (`RETIA_SEMAFORO_GRUPO`) y el CRM quitó el campo, la
+columna `destino` (migración 0087) y la llave del contrato. Las horas válidas son 0 a 23 (el dominio de la columna,
+no una lista de negocio) y Juanito pregunta **cada hora en punto** (`0 * * * 1-5`): una hora nueva no exige tocar
+Juanito. La trayectoria del cierre sale de las horas configuradas del reporte más la del cierre.
+
