@@ -7,8 +7,9 @@ import { sumarDias } from "@/lib/rangos";
 import { arbolDeCuenta, insightsPorAnuncioYDia } from "./meta-api";
 import { registrarGasto } from "./gasto";
 
-type FetchMeta = typeof globalThis.fetch;
+export type FetchMeta = typeof globalThis.fetch;
 const LOTE = 200;
+const HORAS_ENTRE_ARBOLES = 24;
 
 /** Una corrida 'corriendo' más vieja que esto murió a mitad y libera el candado. */
 export const MINUTOS_PARA_CORRIDA_CORTADA = 15;
@@ -25,16 +26,26 @@ export interface ResumenSincronizacionPauta {
   error?: string;
 }
 
-function mensajeSeguro(error: unknown, token: string): string {
+export function mensajeSeguroDePauta(error: unknown, token: string): string {
   const mensaje = error instanceof Error ? error.message : "Error interno.";
   return mensaje.replaceAll(token, "(oculto)");
 }
 
-export async function sincronizarPauta(
+type ArgsSincronizacionPauta = {
+  token: string;
+  desde: string;
+  hasta: string;
+  disparadaPor: "cron" | "manual" | "endpoint" | "hub";
+  refrescarArbol: boolean;
+  ahora?: Date;
+  f?: FetchMeta;
+};
+
+/** Escritor compartido por el cron y las fotos del día; `refrescarArbol` conserva el refresco total del cron. */
+export async function sincronizarPautaEnVentana(
   db: Db,
-  args: { token: string; hoy: string; disparadaPor: "cron" | "manual"; f?: FetchMeta },
+  args: ArgsSincronizacionPauta,
 ): Promise<ResumenSincronizacionPauta> {
-  const desde = sumarDias(args.hoy, -6);
   const limite = new Date(Date.now() - MINUTOS_PARA_CORRIDA_CORTADA * 60_000);
   await db.update(pautaSincronizaciones).set({
     estado: "error",
@@ -49,8 +60,8 @@ export async function sincronizarPauta(
   try {
     [corrida] = await db.insert(pautaSincronizaciones).values({
       disparadaPor: args.disparadaPor,
-      desde,
-      hasta: args.hoy,
+      desde: args.desde,
+      hasta: args.hasta,
     }).returning();
   } catch (error) {
     if (esViolacionUnica(error)) {
@@ -65,34 +76,49 @@ export async function sincronizarPauta(
     const cuentas = await db.select().from(cuentasPublicitarias)
       .where(eq(cuentasPublicitarias.activo, true));
     for (const cuenta of cuentas) {
-      const arbol = await arbolDeCuenta(cuenta.idMeta, args.token, args.f);
-      for (let i = 0; i < arbol.length; i += LOTE) {
-        await db.insert(pautaObjetos).values(arbol.slice(i, i + LOTE).map((objeto) => ({
-          ...objeto,
-          cuentaId: cuenta.id,
-          programId: cuenta.programId,
-        }))).onConflictDoUpdate({
-          target: pautaObjetos.idMeta,
-          set: {
+      let debeRefrescarArbol = args.refrescarArbol;
+      if (!debeRefrescarArbol) {
+        const [objetoMasNuevo] = await db.select({ actualizadoEn: pautaObjetos.actualizadoEn })
+          .from(pautaObjetos)
+          .where(eq(pautaObjetos.cuentaId, cuenta.id))
+          .orderBy(desc(pautaObjetos.actualizadoEn))
+          .limit(1);
+        const referencia = args.ahora ?? new Date();
+        debeRefrescarArbol = !objetoMasNuevo
+          || objetoMasNuevo.actualizadoEn < new Date(
+            referencia.getTime() - HORAS_ENTRE_ARBOLES * 60 * 60_000,
+          );
+      }
+      if (debeRefrescarArbol) {
+        const arbol = await arbolDeCuenta(cuenta.idMeta, args.token, args.f);
+        for (let i = 0; i < arbol.length; i += LOTE) {
+          await db.insert(pautaObjetos).values(arbol.slice(i, i + LOTE).map((objeto) => ({
+            ...objeto,
             cuentaId: cuenta.id,
             programId: cuenta.programId,
-            nivel: sql`excluded.nivel`,
-            padreIdMeta: sql`excluded.padre_id_meta`,
-            nombre: sql`excluded.nombre`,
-            estado: sql`excluded.estado`,
-            objetivo: sql`excluded.objetivo`,
-            formato: sql`excluded.formato`,
-            urlTags: sql`excluded.url_tags`,
-            actualizadoEn: sql`now()`,
-          },
-        });
+          }))).onConflictDoUpdate({
+            target: pautaObjetos.idMeta,
+            set: {
+              cuentaId: cuenta.id,
+              programId: cuenta.programId,
+              nivel: sql`excluded.nivel`,
+              padreIdMeta: sql`excluded.padre_id_meta`,
+              nombre: sql`excluded.nombre`,
+              estado: sql`excluded.estado`,
+              objetivo: sql`excluded.objetivo`,
+              formato: sql`excluded.formato`,
+              urlTags: sql`excluded.url_tags`,
+              actualizadoEn: sql`now()`,
+            },
+          });
+        }
       }
       const objetos = await db.select({ id: pautaObjetos.id, idMeta: pautaObjetos.idMeta })
         .from(pautaObjetos)
         .where(eq(pautaObjetos.cuentaId, cuenta.id));
       const ids = new Map(objetos.map((objeto) => [objeto.idMeta, objeto.id]));
       const insights = await insightsPorAnuncioYDia(
-        cuenta.idMeta, desde, args.hoy, args.token, args.f,
+        cuenta.idMeta, args.desde, args.hasta, args.token, args.f,
       );
       const aceptados = insights.flatMap((insight) => {
         const pautaObjetoId = ids.get(insight.adId);
@@ -119,8 +145,8 @@ export async function sincronizarPauta(
           .set({ monto: "0", agendasMeta: null, actualizadoEn: sql`now()` })
           .where(and(
             eq(gastoPauta.origen, "meta_api"),
-            gte(gastoPauta.fecha, desde),
-            lte(gastoPauta.fecha, args.hoy),
+            gte(gastoPauta.fecha, args.desde),
+            lte(gastoPauta.fecha, args.hasta),
             inArray(
               gastoPauta.pautaObjetoId,
               (tx as Db).select({ id: pautaObjetos.id }).from(pautaObjetos)
@@ -136,12 +162,24 @@ export async function sincronizarPauta(
     }).where(eq(pautaSincronizaciones.id, corrida.id));
     return { estado: "ok", filas, omitidas };
   } catch (error) {
-    const mensaje = mensajeSeguro(error, args.token);
+    const mensaje = mensajeSeguroDePauta(error, args.token);
     await db.update(pautaSincronizaciones).set({
       estado: "error", fin: new Date(), filas, error: mensaje,
     }).where(eq(pautaSincronizaciones.id, corrida.id));
     return { estado: "error", filas, omitidas, error: mensaje };
   }
+}
+
+export async function sincronizarPauta(
+  db: Db,
+  args: { token: string; hoy: string; disparadaPor: "cron" | "manual"; f?: FetchMeta },
+): Promise<ResumenSincronizacionPauta> {
+  return sincronizarPautaEnVentana(db, {
+    ...args,
+    desde: sumarDias(args.hoy, -6),
+    hasta: args.hoy,
+    refrescarArbol: true,
+  });
 }
 
 export type UltimaSincronizacionPauta = {
