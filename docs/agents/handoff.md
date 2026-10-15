@@ -15,8 +15,8 @@ Lee AGENTS.md, docs/hub.md y las entradas del 14-oct (tarde y noche) en Memory.
 
 En curso por otra sesión (14-oct, noche): 122 y 245 (migraciones 0083 y 0084 en sus ramas, sin aplicar). Listo:
 carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status antes).
-Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM tras la primera corrida del cron) y 247
-(el primer envío de Tactical con `ad_id` en N3). Reclama el ticket (status en curso) y empuja antes de lanzar.
+Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM: 8, 10 y 14-oct), 247 (que la landing
+de Tactical pase `ad_id` al Typeform y ver el primero en N3) y 263 (la corrida real de pauta en menos de 30 s). Reclama el ticket (status en curso) y empuja antes de lanzar.
 
 Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
 (tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
@@ -40,7 +40,13 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
     creativos pesados) rechaza 100 anuncios por página. Arreglo en `a44c55d`: una página que Meta rechaza por pesada
     se vuelve a pedir con la mitad de filas (mínimo 5). Resincronizado: ok, 446 filas, 6 cuentas, **2 min 18 s**
     (la función tiene 300 s: si sigue creciendo, partir la corrida por cuenta).
-  - **Abierto (244):** si se carga un gasto anterior a la primera TRM guardada, ese día queda sin tasa (el relleno
+  - **263 (nuevo, integrado `85c5213`):** la sincronización de pauta pide el creativo solo de anuncios nuevos o
+    cambiados (`updated_time`, lotes de 50 por `filtering`; `ids` está deprecado en v26) y corre las cuentas en
+    paralelo. Contra Meta real: 12 s en vez de 2 min 18 s. Falta la corrida real desde la app.
+  - **244 cerrado el hueco:** un gasto cargado tarde baja el relleno de la TRM hasta su fecha (`8758b2a`).
+  - **247:** Tactical no trae `ad_id` porque su landing no se lo pasa al Typeform (llega la llave en NULL en 22 de 22
+    envíos); CA sí. Es configuración de la landing, no código.
+  - **Abierto (244, ya resuelto):** si se carga un gasto anterior a la primera TRM guardada, ese día queda sin tasa (el relleno
     solo mira 7 días atrás una vez la tabla tiene filas). Cambio chico en `leerTrm`, sin decidir.
   - **Lecciones:** un `Monitor` en este equipo corre en zsh (sin `declare -A` ni separación de palabras): escribirlo
     con `bash -c`. El hook de la bóveda bloquea un `cd` al checkout principal desde un worktree: integrar con

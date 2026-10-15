@@ -36,7 +36,14 @@ Que la corrida de pauta tarde segundos y no minutos, y deje de crecer con el nú
 
 ## Done cuando
 
-- [ ] Un anuncio sin cambios no vuelve a pedir creativo y conserva su formato, con test.
-- [ ] Un anuncio nuevo o cambiado sí lo pide, en lotes de 50, con test.
-- [ ] Una cuenta que falla deja las otras escritas y la corrida en error con el nombre de la cuenta, con test.
+- [x] Un anuncio sin cambios no vuelve a pedir creativo y conserva su formato, con test.
+- [x] Un anuncio nuevo o cambiado sí lo pide, en lotes de 50, con test.
+- [x] Una cuenta que falla deja las otras escritas y la corrida en error con el nombre de la cuenta, con test.
 - [ ] La corrida real en producción tarda menos de 30 s (nota de cierre).
+
+## Nota de cierre (14-oct, parcial)
+
+Codex implementó; la sesión revisó e integró (`85c5213`, CI verde). Medido contra Meta con los anuncios guardados
+en producción (solo lectura, el código nuevo): las 6 cuentas en **12,1 s** (Tactical 12,1 s, Milena 9,7 s), 0 lotes
+de creativos (nada cambió desde la última corrida) y 0 anuncios con un formato distinto al guardado. **Falta:** la
+corrida real desde la app, para el último criterio.
