@@ -34,7 +34,9 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
   - **265:** tabla `reportes_whatsapp` (migración 0085, **no aplicada en producción**), sección en Programa › General
     solo para quien administra (se revirtió que Codex abriera la ficha al paid trafficker: contradecía el ADR 0082).
     Recorrido local ok: guarda, deja 6 filas en `change_log`. **0085 aplicada en producción** con el ok de Mani (cero transacciones
-    largas antes; 87 migraciones). Falta cargar en producción el umbral (HQ-1) y la sección con el grupo de abajo.
+    largas antes; 87 migraciones). El CI la cazó sin RLS (`tests/rls-en-todas-las-tablas.test.ts`, ADR 0047):
+    **0086** lo enciende, aplicada en producción y verificada (`relrowsecurity = true`). Lección: una tabla nueva
+    lleva `ENABLE ROW LEVEL SECURITY` en su misma migración (`drizzle-kit generate` no lo escribe). Falta cargar en producción el umbral (HQ-1) y la sección con el grupo de abajo.
   - **Grupo de prueba:** "Alertas Paid Media - Retia" = `120363431126105889@g.us` (Juanito ya está y autorizado).
   - **Decisión pendiente (Mani, al cierre):** *"siento que Paid Trafficker debería poder ver Programa"*. Enmienda el
     ADR 0082 (la ficha es solo de quien administra). Codex ya lo había hecho en la rama t265 (guarda `manejaPauta`,
