@@ -175,6 +175,9 @@ describe("endpoint de maquina del semaforo", () => {
         error: null,
       }],
     });
+    const [envio] = respuesta.envios as Array<{ texto: string; enlaceHub: string }>;
+    expect(envio.texto).toMatch(/^🚦/);
+    expect(envio.texto.endsWith(envio.enlaceHub)).toBe(true);
   });
 
   it("a una hora sin envios no sincroniza ni llama a Meta", async () => {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -54,6 +55,7 @@ import {
   METRICAS_OFRECIDAS,
 } from "@/lib/objetivos/metricas";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
+import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
 
 export const dynamic = "force-dynamic";
 
@@ -258,6 +260,19 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         metricas: reporteWhatsapp.metricas.filter((metrica) => metrica === "costo_por_agenda"),
       }
     : null;
+  const vistaPrevia = seccion === "general"
+    ? await (async () => {
+        const encabezados = await headers();
+        const origen = `${encabezados.get("x-forwarded-proto") ?? "http"}://${encabezados.get("host")!}`;
+        return vistaPreviaDelReporte(db, {
+          programId: programa.id,
+          programa: programa.nombre,
+          slug: programa.slug,
+          origen,
+          ahora: new Date(),
+        });
+      })()
+    : { dia: null, cierre: null, aviso: null };
 
   return (
     <PageShell
@@ -400,6 +415,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     configuracion={configuracionReporte}
                     metricasDisponibles={metricasDelReporte}
                     puedeEditar={configura}
+                    vistaPrevia={vistaPrevia}
                   />
                 </CardContent>
               </Card>

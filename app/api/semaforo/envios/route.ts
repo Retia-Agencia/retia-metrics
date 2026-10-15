@@ -5,9 +5,9 @@ import { tokenActivoMeta } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
 import { fotosPauta } from "@/lib/db/schema";
 import { isoEnBogota } from "@/lib/format";
-import { rutaDePrograma } from "@/lib/nav";
 import { sincronizarDiaEnCurso } from "@/lib/pauta/dia-en-curso";
 import { esquemaRespuestaSemaforo, type RespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
+import { armarMensaje, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
 import { queTocaAhora } from "@/lib/reporte-whatsapp/que-toca";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
 
@@ -67,6 +67,7 @@ export async function POST(request: Request) {
   }
 
   const porPrograma = new Map(reportes.map((reporte) => [reporte.programId, reporte]));
+  const origen = new URL(request.url).origin;
   const envios = await Promise.all(pendientes.map(async (pendiente) => {
     const reporte = porPrograma.get(pendiente.programId)!;
     try {
@@ -80,25 +81,27 @@ export async function POST(request: Request) {
             });
         }
       }));
-      return {
+      const envio = {
         programa: reporte.programa,
         destino: pendiente.destino,
         tipo: pendiente.tipo,
         hora: pendiente.hora,
-        enlaceHub: `${new URL(request.url).origin}${rutaDePrograma(reporte.slug, "hub")}?seccion=pauta`,
+        enlaceHub: enlaceAlHub(origen, reporte.slug),
         metricas,
         error: null,
       };
+      return { ...envio, texto: armarMensaje(envio, sincronizacion) };
     } catch {
-      return {
+      const envio = {
         programa: reporte.programa,
         destino: pendiente.destino,
         tipo: pendiente.tipo,
         hora: pendiente.hora,
-        enlaceHub: `${new URL(request.url).origin}${rutaDePrograma(reporte.slug, "hub")}?seccion=pauta`,
+        enlaceHub: enlaceAlHub(origen, reporte.slug),
         metricas: [],
         error: "No se pudo calcular el semáforo de este programa.",
       };
+      return { ...envio, texto: armarMensaje(envio, sincronizacion) };
     }
   }));
 

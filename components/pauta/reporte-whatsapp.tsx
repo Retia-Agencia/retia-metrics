@@ -39,16 +39,24 @@ interface ConfiguracionVisible {
   metricas: MetricaDelReporte[];
 }
 
+interface VistaPrevia {
+  dia: string | null;
+  cierre: string | null;
+  aviso: string | null;
+}
+
 export function ReporteWhatsapp({
   programId,
   configuracion,
   metricasDisponibles,
   puedeEditar,
+  vistaPrevia,
 }: {
   programId: string;
   configuracion: ConfiguracionVisible | null;
   metricasDisponibles: MetricaVisible[];
   puedeEditar: boolean;
+  vistaPrevia: VistaPrevia;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -60,6 +68,18 @@ export function ReporteWhatsapp({
     metricas: configuracion?.metricas ?? [],
   });
   const deshabilitado = pendiente || !puedeEditar;
+  const guardada: EntradaReporteWhatsapp = {
+    activo: configuracion?.activo ?? false,
+    destino: configuracion?.destino ?? "",
+    horas: configuracion?.horas ?? [],
+    horaCierre: configuracion?.horaCierre ?? null,
+    metricas: configuracion?.metricas ?? [],
+  };
+  const tieneCambios = borrador.activo !== guardada.activo
+    || (borrador.destino ?? "") !== (guardada.destino ?? "")
+    || borrador.horaCierre !== guardada.horaCierre
+    || JSON.stringify(borrador.horas) !== JSON.stringify(guardada.horas)
+    || JSON.stringify(borrador.metricas) !== JSON.stringify(guardada.metricas);
 
   function alternarHora(hora: number, marcada: boolean) {
     setBorrador((actual) => ({
@@ -193,6 +213,31 @@ export function ReporteWhatsapp({
       ) : (
         <p className="text-xs text-muted-foreground">Solo quien administra puede cambiar esta configuración.</p>
       )}
+
+      <div className="space-y-3 border-t pt-5">
+        <p className="font-medium">Así se vería ahora</p>
+        {vistaPrevia.aviso ? (
+          <p className="text-muted-foreground">{vistaPrevia.aviso}</p>
+        ) : (
+          <div className="space-y-3">
+            {vistaPrevia.dia ? (
+              <pre className="font-sans text-sm whitespace-pre-wrap rounded-md border bg-muted/40 p-3">
+                {vistaPrevia.dia}
+              </pre>
+            ) : null}
+            {vistaPrevia.cierre ? (
+              <pre className="font-sans text-sm whitespace-pre-wrap rounded-md border bg-muted/40 p-3">
+                {vistaPrevia.cierre}
+              </pre>
+            ) : null}
+          </div>
+        )}
+        {tieneCambios ? (
+          <p className="text-xs text-muted-foreground">
+            Guarda para ver la vista previa con estos cambios.
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }

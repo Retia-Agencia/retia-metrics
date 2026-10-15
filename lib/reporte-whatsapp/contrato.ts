@@ -47,6 +47,7 @@ const esquemaEnvio = z.object({
   enlaceHub: z.string().url(),
   metricas: z.array(esquemaMetricaSemaforo),
   error: z.string().nullable(),
+  texto: z.string(),
 }).strict();
 
 const esquemaConfiguracion = z.object({

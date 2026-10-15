@@ -183,6 +183,18 @@ export function fechaHoraEnBogota(instante: Date | string): string {
   return `${Number(p.day)} ${nombre} ${p.year}, ${p.hour}:${p.minute}`;
 }
 
+/** Hora de un instante observada en Bogota, para contratos y mensajes de negocio. */
+export function horaEnBogota(instante: Date | string): string | null {
+  const fecha = new Date(instante);
+  if (Number.isNaN(fecha.getTime())) return null;
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Bogota",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(fecha);
+}
+
 export function fecha(iso: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!partes) return iso;
