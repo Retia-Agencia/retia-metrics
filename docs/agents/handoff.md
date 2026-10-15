@@ -27,6 +27,23 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-15 (tarde, sesión de consulta; sin código): las hojas se corrieron por tercera vez, y el MCP queda anotado.**
+  - **Hojas:** los campos ocultos del 14-oct (`ad_id`, `adset_id`, `campaign_id`) metieron 3 columnas después de
+    `utm_id` en las dos hojas: Submitted = T, Token = U, Estado = V. Typeform **sigue escribiendo** en el intake
+    (medido: 69/69 envíos de CA y 44/44 de TI desde el corte están en la hoja y en el CRM). Lo roto es el Apps
+    Script: en CA ninguna fila desde el 14-oct 01:45 tiene Estado y Descartados no recibe nada (26 personas sin
+    agenda fuera de Setteo y Descartados); en TI clasifica, pero escribe el Estado en la S (encima de
+    `campaign_id`, desde la fila 4677) y copia a Setteo y Descartados sin fecha. El CRM, sano: 0 errores en
+    `sobres_crudos` en 10 días. Reporte para Jero en `.local/leads-fuera-de-las-hojas-2026-10-15.md` (fuera de
+    git, tiene datos personales). **Mani arregla las constantes de los Apps Script** (lista de archivos en esta
+    sesión: `CA`, `URG` de los dos, `MIG`, y las columnas 19, 17 y `$Q:$Q` de `panel.gs` de TI); falta
+    actualizar la copia de `work/retia/apps-script-sheets/` y su README cuando lo aplique.
+  - **MCP-1 en `plan.md` §7 A:** servidor MCP para los closers. Mani quiere investigar cómo se arma antes del
+    `/grill-with-docs`.
+  - **Visto al responder a Jero, sin decidir:** los días de la tarjeta del Kanban son **días en la etapa actual**
+    (`diasDesde` en `lib/queries/kanban.ts`: desde el último movimiento a esa etapa, o desde que nació el deal),
+    no recencia de llegada ni días sin actividad. Cuenta **días calendario**, y `AGENTS.md` dice "solo días
+    hábiles": confirmar con Mani si la regla aplica a la tarjeta.
 - **2026-10-15 (tarde; sesión lanzada por la orquestadora): 268 en `main` (`8e7b463`, CI verde), Juanito desplegado. 269 también en `main`. Con el ok de Mani: 0087 aplicada y los tres reportes encendidos.**
   - **CRM (Codex con brief, una pasada):** zod de horas 0 a 23; la pantalla elige horas con chips que se quitan y un
     select de 00:00 a 23:00 sin las ya elegidas; `semaforoDelPrograma` recibe `horas?` y la trayectoria usa las
