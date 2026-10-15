@@ -13,9 +13,10 @@ Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión o
 worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
 Lee AGENTS.md, docs/hub.md y las entradas del 14-oct (tarde y noche) en Memory.
 
-Semáforo por WhatsApp (ADR 0089, enmendado el 15-oct: el reporte se configura por programa en el CRM): 122 y 245
-done. Listos: 258 v1 (por programa, ver su enmienda) y 264 (plantilla curada de objetivos, sin migración); luego
-265 (configuración del reporte, migración), 259 (responde qué mandar ahora) y 260 (en el repo de Juanito). Carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status).
+Semáforo por WhatsApp (ADR 0089 enmendado; las horas viven en el CRM): 122, 245, 258 v1, 264 y 265 done (0085
+aplicada). Siguiente: 259 (contrato fijado en su ticket; la entrada del 15-oct noche en Memory tiene las decisiones del
+brief) y luego 260 en el repo de Juanito (grupo de prueba `120363431126105889@g.us`). Pendiente de decisión: que Paid
+Trafficker vea Programa (enmienda del ADR 0082). Carril A → 248 (Hub › Origen), si Alejandro no lo tomó (mira el status).
 Pendientes de verificación en producción: 244 (cuadrar 3 fechas de la TRM: 8, 10 y 14-oct), 247 (que la landing
 de Tactical pase `ad_id` al Typeform y ver el primero en N3). Reclama el ticket (status en curso) y empuja antes de lanzar.
 
@@ -27,15 +28,19 @@ el trabajo más reciente (relanzar como tarea nueva) y su cuota se acaba: si pas
 
 ## Memory
 
-- **2026-10-15 (noche; Mani + Claude, sesión del semáforo por WhatsApp): 258 v1 y 264 done (CI verde `93f6966`); 265 integrado en `main` LOCAL, sin empujar.**
+- **2026-10-15 (noche; Mani + Claude, sesión del semáforo por WhatsApp): 258 v1 y 264 done (CI verde `93f6966`); 265 en `main` con la 0085 aplicada en producción.**
   - **Decisión de Mani:** las horas del reporte viven en el CRM (265), no en el reloj de Juanito. La conexión es de
     Juanito hacia el CRM (POST con secreto); el contrato quedó fijado en el 259 (`6007587`).
   - **265:** tabla `reportes_whatsapp` (migración 0085, **no aplicada en producción**), sección en Programa › General
     solo para quien administra (se revirtió que Codex abriera la ficha al paid trafficker: contradecía el ADR 0082).
-    Recorrido local ok: guarda, deja 6 filas en `change_log`. **No empujar `main` antes de aplicar la 0085** (el código
-    lee la tabla en Programa › General): primero el ok de Mani, `SET lock_timeout` ya va en la migración, luego push.
+    Recorrido local ok: guarda, deja 6 filas en `change_log`. **0085 aplicada en producción** con el ok de Mani (cero transacciones
+    largas antes; 87 migraciones). Falta cargar en producción el umbral (HQ-1) y la sección con el grupo de abajo.
   - **Grupo de prueba:** "Alertas Paid Media - Retia" = `120363431126105889@g.us` (Juanito ya está y autorizado).
-  - **Siguiente:** brief del 259 listo (en el scratchpad de la sesión; resumen en el ticket: ruta
+  - **Decisión pendiente (Mani, al cierre):** *"siento que Paid Trafficker debería poder ver Programa"*. Enmienda el
+    ADR 0082 (la ficha es solo de quien administra). Codex ya lo había hecho en la rama t265 (guarda `manejaPauta`,
+    pestaña General en solo lectura, `lib/nav.ts` y los tests de roles y páginas) y se revirtió por el ADR: retomarlo
+    como enmienda del ADR 0082 y ticket nuevo, decidiendo qué ve (¿solo General? ¿también Ventas para los umbrales?).
+  - **Siguiente:** brief del 259 listo (al final del ticket 259, listo para despachar: ruta
     `/api/semaforo/envios`, `SEMAFORO_SECRETO`, `sincronizacion` puede ser null, `error` por envío); luego 260 en Juanito.
 
 - **2026-10-15 (Mani + Claude): el reporte de WhatsApp se configura en el CRM.** Usando la pantalla del 122, Mani vio

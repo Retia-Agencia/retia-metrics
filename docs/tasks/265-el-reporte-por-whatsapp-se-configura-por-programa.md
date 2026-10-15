@@ -3,7 +3,7 @@ id: 265
 etapa: hub
 serves: "ADR 0089 (enmienda 15-oct) · contrato C-1 de docs/hub.md §8 · HQ-2 y HQ-3 de docs/plan.md §7"
 depends: [258]
-status: todo
+status: done
 ---
 
 # 265 — El reporte por WhatsApp se configura por programa

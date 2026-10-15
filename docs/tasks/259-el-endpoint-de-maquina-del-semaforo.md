@@ -124,3 +124,44 @@ x-semaforo-secreto: <secreto>          (comparado en tiempo constante; sin él o
 
 Ni nombres, ni correos, ni teléfonos, ni ids de lead. Si el CRM no responde (timeout, 5xx), Juanito usa la última
 `configuracion` guardada: si a esa hora había envíos, avisa a esos destinos que no hay datos.
+
+---
+
+## Brief para Codex, listo para despachar (15-oct, sesión central)
+
+Decidido en la sesión; quien lo retome lo despacha tal cual en un worktree dentro del repo (lee primero la sección del contrato).
+
+```text
+Goal: ticket 259 (docs/tasks/259-el-endpoint-de-maquina-del-semaforo.md, with both enmiendas and the section "El contrato Juanito ↔ CRM"). Juanito hace POST cada hora hábil; el CRM responde qué mandar ahora, ya calculado, sin un solo dato de persona.
+
+Decisions (already made, do not revisit):
+1. Ruta `app/api/semaforo/envios/route.ts`, `export const runtime = "nodejs"`, solo `POST`. Agrégala a las excepciones de `proxy.ts` (junto a `/api/cron/`), exacta: `pathname === "/api/semaforo/envios"`.
+2. Autenticación: cabecera `x-semaforo-secreto` contra `process.env.SEMAFORO_SECRETO`. Compara con `crypto.timingSafeEqual` sobre los SHA-256 de ambos (así las longitudes son iguales). Sin variable de entorno, sin cabecera o distinta: `new Response(null, { status: 401 })`, sin tocar la base ni Meta.
+3. Contrato en `lib/reporte-whatsapp/contrato.ts`: esquemas zod `.strict()` de la respuesta tal cual el contrato del ticket 259, con DOS ajustes ya decididos: `sincronizacion` puede ser `null` (no tocaba ningún envío, así que no se le pega a Meta), y cada envío lleva `error: string | null` (si el semáforo de ese programa revienta, `metricas: []` y `error: "No se pudo calcular el semáforo de este programa."`; los demás envíos siguen). El esquema de la métrica reutiliza el tipo `MetricaSemaforo` de lib/semaforo/semaforo.ts (el zod debe coincidir con él; si no compila contra el tipo, STOP y reporta). El handler valida su respuesta con este esquema antes de devolverla.
+4. Flujo del handler, con `ahora = new Date()`:
+   a. Lee las configuraciones activas: agrega en `lib/catalogo/reportes-whatsapp.ts` (existe, del 265) `reportesActivos(db)` que devuelve programa (id, nombre, slug) + destino + horas + horaCierre + metricas de las filas `activo = true` de programas activos.
+   b. `queTocaAhora(ahora, reportes)` de `lib/reporte-whatsapp/que-toca.ts` (existe, del 265).
+   c. Si hay envíos: `sincronizarDiaEnCurso(db, { token, ahora, disparadaPor: "endpoint" })` (lib/pauta/dia-en-curso.ts) con `token = await tokenActivoMeta(db)` (lib/catalogo/meta.ts); si leer el token lanza, `sincronizacion = { estado: "error", ultimaFoto: <última foto o null> }` y sigue (el semáforo sale con lo último y su nota lo dice). Mapea el resultado al contrato: `ok`/`reciente`/`corriendo`/`error` y `ultimaFoto` = la `tomada_en` más reciente de `fotos_pauta` (consulta aparte, después de sincronizar). Sin envíos: `sincronizacion = null` y NO se sincroniza.
+   d. Por envío: para cada métrica encendida (hoy solo `costo_por_agenda`) `semaforoDelPrograma(db, { programId, ahora, tipo })` en try/catch por envío. `programa` = nombre visible; `enlaceHub` = `new URL(request.url).origin + rutaDePrograma(slug, "hub") + "?seccion=pauta"` (lib/nav.ts).
+   e. `configuracion` = todas las activas, con horas como "HH:00" y horaCierre "HH:00" o null.
+   f. `generadoEn` en ISO con offset de Bogotá (`-05:00`), con el helper que ya exista en lib/format.ts; si no existe uno que dé ISO con offset, STOP y reporta.
+5. Hub (enmienda 14-oct): en `SeccionPauta` de app/(app)/p/[programa]/hub/page.tsx, si la última fila de `pauta_sincronizaciones` (cualquier `disparada_por`) empezó hace más de 1 hora o no hay ninguna, se lanza `sincronizarDiaEnCurso(..., disparadaPor: "hub")` con `after()` de `next/server` (no se espera; los errores se registran con console.error y no rompen la página). La decisión vive en una función pura `debeSincronizarDesdeElHub(ultimoInicio: Date | null, ahora: Date): boolean` en `lib/pauta/dia-en-curso.ts`, con test. Lee `node_modules/next/dist/docs/` sobre `after` antes de usarlo (rg -l "after" node_modules/next/dist/docs | head).
+6. Ningún nombre de persona, correo, teléfono, id de lead/deal/call ni id de grupo fuera de `destino`. El test de contrato recorre la respuesta recursivamente y falla si aparece una llave fuera de la lista blanca.
+Read map (only this; rg before reading; max ~150 lines per read):
+- docs/tasks/259-el-endpoint-de-maquina-del-semaforo.md (rg -n "Enmienda|El contrato" and read those sections)
+- app/api/cron/pauta/route.ts (molde de ruta de máquina), proxy.ts:1-70
+- lib/semaforo/semaforo.ts:1-60 (tipos), lib/reporte-whatsapp/que-toca.ts, lib/catalogo/reportes-whatsapp.ts
+- lib/pauta/dia-en-curso.ts:1-60, lib/catalogo/meta.ts (rg -n "export async function tokenActivoMeta" -A15)
+- lib/nav.ts:55-75, lib/format.ts:120-175
+- app/(app)/p/[programa]/hub/page.tsx:290-350
+- tests/cron-pauta.test.ts (molde de test de ruta con vi.mock de "@/lib/db") and tests/webhook-matriz.test.ts:1-70
+Constraints: AGENTS.md rules (no need to read it): dates in Bogotá; the secret never logged nor returned; tests use `crearBaseReutilizable()`/`vaciar()`/`cerrar`; `vi.setSystemTime` for the instant; mock Meta with a stubbed global `fetch` that counts calls to graph.facebook.com. No new deps. Typed, no dead code, Spanish names without accents.
+Reading budget: max ~20 tool calls; if you need more, stop and report.
+If a decision comes up that is not listed above: STOP, do not choose, report the question.
+Done when (write tests to pass; you cannot run them):
+- tests/semaforo-endpoint.test.ts invoking the real `POST`: sin secreto → 401, cuerpo vacío, ninguna fila nueva en pauta_sincronizaciones ni llamada a fetch; secreto malo → 401; con secreto un martes 11:00 Bogotá con un programa encendido a las 11 → 1 envío con su destino, tipo "dia" y la métrica; a las 12:00 → `envios: []`, `sincronizacion: null` y cero llamadas a Meta; un programa apagado o con la métrica apagada no aparece; dos programas → dos envíos; dos llamadas seguidas → una sola lectura de Meta (la segunda sale "reciente"); un semáforo que lanza en un programa no tumba el otro (vi.spyOn).
+- Test de lista blanca que muerde en los dos sentidos (una llave de más en un objeto armado a mano lo rompe; la respuesta real pasa).
+- Test de `debeSincronizarDesdeElHub`: null → true; hace 61 min → true; hace 59 min → false.
+- `npm run typecheck` and `npm run lint` clean if you can run them.
+Out of scope: Juanito (260), AGENTS.md and docs (la sesión los escribe), schema/migrations, vercel.json, git commit.
+```
