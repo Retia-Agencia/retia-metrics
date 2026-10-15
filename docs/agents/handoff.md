@@ -27,6 +27,22 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-15 (tarde; sesión lanzada por la orquestadora): 268 en `main` (`8e7b463`, CI verde), Juanito desplegado. La 0087 y el encendido esperan el ok de Mani.**
+  - **CRM (Codex con brief, una pasada):** zod de horas 0 a 23; la pantalla elige horas con chips que se quitan y un
+    select de 00:00 a 23:00 sin las ya elegidas; `semaforoDelPrograma` recibe `horas?` y la trayectoria usa las
+    horas del reporte más la del cierre (sin `horas`, el Hub, toda hora del día hasta ahora; ya no 6 a 19).
+    `destino` fuera de la pantalla, del catálogo, de `queTocaAhora`, del endpoint y del contrato (la lista blanca
+    muerde con él). Migración **0087** (`SET lock_timeout`, quita la columna y rehace el CHECK sin ella), generada
+    por la sesión y leída. Recorrido local (`dev:local` en `app268.localhost:3268`, developer): se cargan 8, 11, 14,
+    17 y cierre 20; la vista previa del cierre dice 20:00; base local con `{8,11,14,17}|20`; consola limpia.
+  - **Juanito (PR #34, merge `8234864`, §18.CT):** cron por defecto `0 * * * 1-5`; todo envío y el aviso de caída
+    van a `RETIA_SEMAFORO_GRUPO` (120363431126105889@g.us, "Alertas Paid Media - Retia"), el `destino` del CRM se
+    ignora; sin URL, secreto o grupo se apaga. Variable en `.env.example`, compose, `.env` local y del VPS (respaldo
+    `.env.bak-20261015-pre268`). Suite en Linux: 1347, 1345 verdes (los 2 rojos de la línea base). Deploy
+    `alcance: todo` a las 15:50 UTC, justo después de un Push 3 y antes de los 6 de las 16:05: todos salieron a
+    tiempo; WhatsApp reconectó sin QR y `[SemaforoRetia] Semáforo activo ✅ (cron "0 * * * 1-5")`.
+  - **Lección:** las coordenadas del navegador integrado van en el marco de la captura (800 px), no en px CSS; y
+    un clic sobre el disparador de un `Select` ya abierto escoge la opción alineada con él (00:00), no es un bug.
 - **2026-10-15 (tarde; cierre de la sesión orquestadora): umbrales provisionales, 269 y la lista para Pauta.**
   - **Umbrales provisionales en producción** (ok de Mani, por `crearObjetivo` con `actorDelScript`, con su
     `change_log`): ComunicArte C3 85.000/105.000, Comunícate con Confianza C1 100.000/125.000; Tactical ya tenía

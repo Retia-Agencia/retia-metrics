@@ -3,7 +3,7 @@ id: 268
 etapa: hub
 serves: "ADR 0089 (las horas viven en el CRM) · pedido de Dani Tovar del 15-oct (8, 11, 14, 17 y 20 h) · Mani, 15-oct: un solo grupo para todos los programas"
 depends: [265, 267]
-status: todo
+status: done
 ---
 
 # 268 — Las horas del reporte se eligen libres y el grupo es uno solo
@@ -45,14 +45,14 @@ Las horas ya viven en el CRM (265) y la base acepta de 0 a 23 (`reportes_whatsap
 
 ## Done cuando
 
-- [ ] `tests/reportes-whatsapp*.test.ts`: se guardan las 8, 11, 14 y 17 con cierre a las 20; 24 y -1 se rechazan.
-- [ ] `tests/reporte-whatsapp-que-toca*` (o el que exista): a las 20 h toca el cierre; a las 17 h el del día.
-- [ ] La trayectoria del cierre de las 20 h tiene los puntos de las horas configuradas.
-- [ ] El contrato ya no tiene `destino` y la lista blanca muerde con él.
-- [ ] Juanito: cron cada hora, `RETIA_SEMAFORO_GRUPO` en `.env.example`, `.env` local y VPS (respaldo
+- [x] `tests/reportes-whatsapp*.test.ts`: se guardan las 8, 11, 14 y 17 con cierre a las 20; 24 y -1 se rechazan.
+- [x] `tests/reporte-whatsapp-que-toca*` (o el que exista): a las 20 h toca el cierre; a las 17 h el del día.
+- [x] La trayectoria del cierre de las 20 h tiene los puntos de las horas configuradas.
+- [x] El contrato ya no tiene `destino` y la lista blanca muerde con él.
+- [x] Juanito: cron cada hora, `RETIA_SEMAFORO_GRUPO` en `.env.example`, `.env` local y VPS (respaldo
       `.env.bak-<fecha>`) y compose; tests; suite en Linux con la línea base; deploy `alcance: todo` mirando antes
       los pushes de closers agendados (`calendly_pushes`, ver el handoff del CRM del 15-oct).
-- [ ] Recorrido local: cargar 8, 11, 14, 17 y cierre 20; la vista previa del cierre dice 20:00.
+- [x] Recorrido local: cargar 8, 11, 14, 17 y cierre 20; la vista previa del cierre dice 20:00.
 - [ ] En producción, con el ok de Mani: el reporte de los tres programas con esas horas, encendido.
 
 ## Fuera
