@@ -57,3 +57,25 @@ Sí. La migración, la sesión principal.
   `/ajustes/programas`.
 - Un programa nuevo arranca sin objetivos y el Hub lo dice ("sin umbral"); "copiar los de la cohorte anterior" sirve
   solo dentro del mismo programa (frontera).
+
+---
+
+## Nota de cierre, 14-oct (recorrido con clic, base local)
+
+Recorrido de Programa › Ventas › Objetivos como gerente (escritorio y celular, claro y oscuro), con la consola abierta en
+cada interacción: cero errores. Funcionaron desde el principio: crear, editar, el reparto que se pasa de la meta
+(*"Los cupos por área sumarían 35 y la meta de la cohorte es 30."*), copiar de la cohorte anterior y la reja de
+permisos. **Forjada la server action desde un closer** con el id capturado en la vista del gerente: responde *"Solo
+quien administra cambia los objetivos."* y la base no se mueve.
+
+Seis defectos que ningún test veía, arreglados en `d241a68` y verificados de nuevo con clic:
+
+1. El aceptable vacío se guardaba como **0** (`z.coerce.number("")`); en cupos eso es "nunca peligro" sin error.
+2. **Desactivar dejaba un callejón sin salida**: la fila se ocultaba, no se podía reactivar y seguía ocupando el único
+   `(cohorte, área, métrica)`. Ahora es **Quitar** y borra (ADR 0026: nadie referencia un objetivo).
+3. Los selects cerrados mostraban el valor crudo (el UUID de la cohorte): faltaba `items` de Base UI.
+4. La "cohorte anterior" podía ser la futura (C1 copiaba de C2). Ahora es `cohorteAnterior` (`lib/objetivos/`), con test.
+5. El formulario no se limpiaba y su valor por defecto (cupos · Total) era inválido; cupos salían "20,00".
+6. Los campos del formulario no tenían nombre accesible.
+
+Producción no tenía ninguna fila en `objetivos` al arreglarlo. Falta para `done`: el CI verde que lo incluya.
