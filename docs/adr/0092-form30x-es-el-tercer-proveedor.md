@@ -48,7 +48,7 @@ La documentación (leída el 15-oct) y el form real (leído por la API, solo GET
 6. *(Enmendado por el ADR 0093: la app la lee en producción, solo para leer respuestas.)* **La API key (`FORM_30X_API_KEY`) es de dev, y se usa con UN solo form:** el de título exacto
    `AI Second Brain Jurídico | Registro | EstadoX` (id `cmulcaari04c001s6m0x1ats6`). Todo script la usa con ese id
    explícito, nunca lista y recorre. Leer ese form es libre; escribir en él pide el ok de Mani; **tocar cualquier
-   otro form está prohibido**. Ninguna ruta de la app la lee: para recibir leads basta el webhook.
+   otro form está prohibido**. ~~Ninguna ruta de la app la lee~~: desde el ADR 0093 la lee `lib/form30x/api.ts`, solo `GET /responses`.
 7. **El `salesFlow` del form hacia HubSpot no se toca.** El CRM recibe en paralelo, como una fuente más. Si 30X lo
    apaga, es decisión de ellos.
 
