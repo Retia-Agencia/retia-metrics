@@ -194,8 +194,10 @@ de Form30x, y no se copia: SBJ conserva la suya.
 
 1. ✅ Medir capacidad, leer la doc y el form de Form30x, decidir el proveedor (ADR 0092) — Claude, 15-oct.
 2. ✅ Decidir nombre y slug (S2) y el puntaje (S3) — Mani, 15-oct.
-3. 271 fase A: migración + proveedor que acepta hex o base64 — Codex implementa; la sesión aplica la migración con
-   el ok de Mani y despliega.
+3. ✅ 271 fase A: migración + proveedor que acepta hex o base64 — Codex implementa; la sesión aplica la migración con
+   el ok de Mani y despliega. Hecho el 15-oct: 0088 aplicada en producción; la ruta antepone `firma form30x: hex` o
+   `firma form30x: base64` al error del sobre, y el adaptador lanza a propósito, así que cada sobre de la prueba queda
+   con error, pendiente de reproceso, con la codificación anotada.
 4. Crear el programa (nace inactivo) y su fuente Form30x en la tab Programa; generar el secreto y activar la fuente —
    Mani, a mano (el secreto no pasa por el chat).
 5. Pegar la URL de la fuente y el secreto en *Connect* del form — Mani.

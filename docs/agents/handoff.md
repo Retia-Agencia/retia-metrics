@@ -27,6 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-15 (noche): paso 3 de SBJ hecho, el 271 fase A está en `main` y la 0088 en producción.** Codex escribió
+  `PROVEEDORES.form30x` (header `x-form30x-signature`, `sha256=`, HMAC en hex o base64 con `timingSafeEqual`) y un
+  método opcional `notaDeFirma` que la ruta antepone al error del sobre (`firma form30x: hex|base64 · …`); se quita en
+  la fase B. El adaptador lanza "pendiente (fase B)" a propósito: el sobre queda guardado con error y pendiente de
+  reproceso, la respuesta es 200. 25/25 en `tests/contrato-proveedores.test.ts`. **Pendiente, de Mani:** pasos 4 a 6
+  de `operations.md` §2.2: crear el programa SBJ y su fuente con proveedor **Form30x** (secreto a mano), pegar URL y
+  secreto en *Connect*, y mandar un envío **parcial** y uno **completo** con datos falsos. Luego la sesión lee
+  `sobres_crudos`: qué codificación cuadró y si el parcial llegó. Con eso, fase B (paso 7).
+
 - **2026-10-15 (noche, sesión de setup; sin código): AI Second Brain Jurídico (EstadoX) entra al CRM por Form30x.**
   HubSpot Support y el assigner de 30X no responden, así que la operación de SBJ corre en el CRM. Medido: la base pesa
   42 MB de 500 (Supabase free) y Vercel es Hobby con volumen mínimo; un programa más cabe. Form30x leído por su doc y
