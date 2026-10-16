@@ -30,7 +30,13 @@ Dos hechos ponen el límite:
    (ADR 0012). Solo se leen las fuentes `form30x` activas que lo tengan.
 3. **Cada 30 minutos lo dispara GitHub Actions** (workflow programado del repo, gratis) contra
    `POST /api/cron/form30x`, protegida con `CRON_SECRET` como los otros crons. Un retraso del programador de GitHub
-   solo atrasa el parcial; no lo pierde.
+   solo atrasa el parcial; no lo pierde. **Corre en los minutos 13 y 43** (`13,43 * * * *`, 16-oct), no en `:00` y
+   `:30`: GitHub dice que el schedule es "best effort" y que se atrasa o se salta con carga alta, que se concentra al
+   empezar la hora. El primer `*/30` no disparó ni una vez en ~90 min tras arreglar el YAML (las manuales sí). Si
+   GitHub sigue sin ser confiable, la alternativa es `pg_cron` + `pg_net` en Supabase ($0, sin proveedor nuevo, pero
+   infraestructura fuera del repo y el secreto en la base); Vercel Pro (R3 de `docs/plan.md` §7) cuesta USD 20 por
+   usuario al mes, y un cron externo (cron-job.org) le entrega `CRON_SECRET` a un tercero. Ningún runner se da por
+   confiable: un aviso de lectura vieja en Webhook Health tiene que delatar al que se caiga.
 4. **Se lee una ventana de 48 horas** por `submittedAt`, de la más nueva hacia atrás, siguiendo el cursor. Cada
    respuesta entra por la MISMA puerta que el webhook (sobre crudo con origen `form30x_api` y el adaptador del 271),
    así que la idempotencia de la ingesta `(fuente, token, es_parcial)` evita duplicados. Una respuesta que ya entró

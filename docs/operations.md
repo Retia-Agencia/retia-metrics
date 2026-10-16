@@ -235,6 +235,11 @@ de Form30x, y no se copia: SBJ conserva la suya.
    Potencial: venía `High`; desde el 16-oct un parcial nace en Potencial venga con la calidad que venga), `ManuelTEST` y el parcial sin correo saltados, y la prueba de Hugo
    rechazada como entrega de prueba (correo reservado), con su sobre en error. Segunda corrida: 4 saltadas, nada
    escrito. El deal de `ManuelTEST2` quedó anulado.
+   🔴 **El schedule no disparó** (16-oct): el push de las 03:18 UTC llevaba YAML inválido (corrida en 0 s, sin
+   jobs); arreglado a las 03:31, el `*/30` siguió sin correr en los turnos de 04:00, 04:30 y 05:00, mientras que las
+   corridas manuales sí salieron bien. Se movió a `13,43 * * * *`, lejos de la carga de `:00` (ADR 0093, punto 3,
+   con las alternativas si GitHub sigue fallando). Mientras tanto se dispara a mano:
+   `gh workflow run form30x.yml`.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
@@ -263,7 +268,8 @@ de Form30x, y no se copia: SBJ conserva la suya.
     Form30x** (ni webhook ni API; la API lista solo los dos de arriba). Probable: hecho en el mismo navegador que el
     de agenda, el form retomó esa respuesta. Repetir en una ventana de incógnito con un correo real.
     🔴 **El horario del workflow `form30x.yml` no ha corrido nunca** (16-oct, 04:52 UTC): solo hay corridas
-    manuales. Sin él, los parciales de SBJ no entran solos. Revisarlo antes de repetir el camino sin agenda.
+    manuales. Sin él, los parciales de SBJ no entran solos. Diagnóstico y arreglo en el paso 7b: pasó a
+    `13,43 * * * *`.
 14. Avisar al equipo en "Core Estado X" — Mani.
 
 ## 3. Variables de entorno
