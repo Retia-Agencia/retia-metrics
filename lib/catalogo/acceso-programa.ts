@@ -3,7 +3,7 @@ import { miembrosPrograma } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { programasDelAlcance } from "@/lib/auth/alcance";
-import { esAccesoTotal, esAdministrador, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, tieneAlcanceConfigurable, type Rol } from "@/lib/auth/roles";
 
 /**
  * "¿Este actor puede tocar una fila de ESTE programa?" — LA respuesta, en un solo
@@ -68,4 +68,26 @@ export async function exigirAccesoAlPrograma(
   if (!membresia) {
     throw new ErrorDeApp(mensajeNegado, 403);
   }
+}
+
+/**
+ * Como `exigirAccesoAlPrograma`, pero el paid trafficker entra por su ALCANCE y no por
+ * membresía (ADR 0094). Es para lo que el paid trafficker sí edita dentro de un programa,
+ * como sus objetivos de pauta (266): no tiene membresías porque no trabaja leads, y sin
+ * esta función lo dejaría afuera de todos. Para el gerente y el developer responde igual.
+ * El resto de los catálogos (productos, recursos, plataformas) sigue con
+ * `exigirAccesoAlPrograma`, donde el paid trafficker no escribe.
+ */
+export async function exigirProgramaEnAlcance(
+  db: Db,
+  actor: ActorConAcceso,
+  programId: string,
+  mensajeNegado: string,
+): Promise<void> {
+  if (esAccesoTotal(actor.rol) || !tieneAlcanceConfigurable(actor.rol)) {
+    return exigirAccesoAlPrograma(db, actor, programId, mensajeNegado);
+  }
+  const alcance = await programasDelAlcance(actor.id, db);
+  if (alcance.size === 0 || alcance.has(programId)) return;
+  throw new ErrorDeApp(mensajeNegado, 403);
 }

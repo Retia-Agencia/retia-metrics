@@ -322,6 +322,16 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     // ticket 094 deja explícitamente FUERA (eso ya lo contesta exigirAccesoAlPrograma).
     [path.join("lib", "queries", "programas.ts")]:
       "write-side: programasGestionablesPorUsuario es el alcance de EDICIÓN, no de lectura (fuera del 094)",
+
+    // Quitar a alguien del equipo (ADR 0094 punto 4): resuelve el programa de la MEMBRESÍA que
+    // se va a tocar y lo pasa a exigirAccesoAlPrograma. No acota una lectura a la sesión.
+    [path.join("app", "(app)", "p", "[programa]", "programa", "acciones-programa.ts")]:
+      "write-side: resuelve el programa de la membresía que la acción va a tocar, antes de autorizarla",
+
+    // Vincular el Calendly de una membresía (096): igual que la de arriba, resuelve el programa
+    // de la membresía y lo compara con programaEnAlcance antes de escribir.
+    [path.join("app", "(app)", "ajustes", "usuarios", "acciones.ts")]:
+      "write-side: resuelve el programa de la membresía cuyo Calendly se va a vincular, antes de autorizarlo",
   };
 
   /**

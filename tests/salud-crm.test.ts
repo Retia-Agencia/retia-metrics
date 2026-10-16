@@ -368,7 +368,7 @@ describe("server action de reprocesar: rol en el servidor", () => {
     sesionHolder.rol = "closer";
     const r = await reprocesarSobreAccion(sobre.id);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain("solo para");
+    if (!r.ok) expect(r.error).toContain("No tienes permiso");
 
     // Y el sobre no se tocó.
     const [despues] = await db.select().from(sobresCrudos).where(eq(sobresCrudos.id, sobre.id));

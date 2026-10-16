@@ -26,6 +26,8 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+// El developer pasa por `rolDeVista`, que lee la cookie de vista.
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
 
 let cerrar: () => Promise<void>;
 
@@ -137,7 +139,8 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
       const res = await llamada();
       expect(res.ok).toBe(false);
     }
-    expect(await db.select().from(programs)).toHaveLength(1);
+    // Los dos programas del beforeEach, ninguno más.
+    expect(await db.select().from(programs)).toHaveLength(2);
     expect(await db.select().from(miembrosPrograma)).toHaveLength(0);
   });
 
@@ -297,7 +300,7 @@ describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094
     const [cohorteDespues] = await db.select().from(cohorts).where(eq(cohorts.id, cohorte.id));
     const [membresiaDespues] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresia.id));
     expect(programa.nombre).toBe("Programa Ajeno");
-    expect(programa.plantillaLead).toEqual({});
+    expect(programa.plantillaLead).toEqual(PROGRAMA_DE_PRUEBA.plantillaLead);
     expect(cohorteDespues.codigo).toBe("AJENA");
     expect(membresiaDespues.activo).toBe(true);
   });

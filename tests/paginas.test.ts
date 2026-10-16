@@ -597,12 +597,10 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     expect(hrefs).toContain("/ajustes/areas");
   });
 
-  it("el paid trafficker sin límite administra los ajustes globales", async () => {
+  it("el paid trafficker sin límite solo ve los ajustes de pauta (ADR 0094: nunca administra lo global)", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     const hrefs = await hrefsDeAjustes();
-    expect(hrefs).toContain("/ajustes/usuarios");
-    expect(hrefs).toContain("/ajustes/canales");
-    expect(hrefs).toContain("/ajustes/meta");
+    expect(hrefs).toEqual(["/ajustes/canales", "/ajustes/meta"]);
   });
 
   it("un closer ni siquiera entra al índice (ticket 224, ADR 0082): la raíz lo rebota", async () => {

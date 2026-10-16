@@ -6,7 +6,7 @@ import {
   crearObjetivo,
   editarObjetivo,
 } from "@/lib/catalogo/objetivos";
-import { changeLog, cohorts, objetivos, programs, users } from "@/lib/db/schema";
+import { changeLog, cohorts, objetivos, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -80,6 +80,23 @@ describe("objetivos de la cohorte", () => {
     });
     const [sinMover] = await db.select().from(objetivos).where(eq(objetivos.id, reparto.id));
     expect(sinMover).toMatchObject({ metrica: "cupos", meta: "10.00" });
+  });
+
+  it("pauta limitada a otro programa no toca objetivos de este (ADR 0094)", async () => {
+    const [otro] = await db
+      .insert(programs)
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "objetivos-b", nombre: "Objetivos B", ticketUsd: "1000.00" })
+      .returning();
+    const [usuario] = await db.insert(users).values({ email: "pauta@retia.test", rol: "paid_trafficker" }).returning();
+    await db.insert(usuariosProgramasAlcance).values({ userId: usuario.id, programId: otro.id });
+    const pauta = { id: usuario.id, rol: "paid_trafficker" as const };
+    const entrada = { cohortId, area: null, metrica: "costo_por_agenda" as const, meta: 20, aceptable: 25 };
+
+    await expect(crearObjetivo(db, pauta, entrada)).rejects.toMatchObject({ status: 403 });
+    expect(await db.select().from(objetivos).where(eq(objetivos.cohortId, cohortId))).toHaveLength(0);
+
+    await db.insert(usuariosProgramasAlcance).values({ userId: usuario.id, programId });
+    await expect(crearObjetivo(db, pauta, entrada)).resolves.toMatchObject({ meta: 20 });
   });
 
   it("guarda un reparto 36/24/10 de una meta de 70", async () => {
