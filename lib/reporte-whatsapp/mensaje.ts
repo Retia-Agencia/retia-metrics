@@ -26,12 +26,20 @@ function dinero(valor: number | null): string {
   return valor === null ? "sin dato" : `$${num(Math.round(valor))} COP`;
 }
 
+function frenteALaMeta(porcentajeDelUmbral: number | null): string {
+  if (porcentajeDelUmbral === null) return "";
+  const diferencia = Math.round(porcentajeDelUmbral) - 100;
+  if (diferencia > 0) return ` · ${num(diferencia)}% más caro que la meta`;
+  if (diferencia < 0) return ` · ${num(-diferencia)}% más barato que la meta`;
+  return " · igual a la meta";
+}
+
 function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
-  const porcentaje = metrica.porcentajeDelUmbral === null
-    ? ""
-    : ` · ${num(Math.round(metrica.porcentajeDelUmbral))}% de la meta`;
+  const costo = metrica.costo === null && metrica.agendasMeta === 0 && metrica.gasto > 0
+    ? "sin agendas"
+    : dinero(metrica.costo);
   const lineas = [
-    `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${dinero(metrica.costo)}${porcentaje}`,
+    `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${costo}${frenteALaMeta(metrica.porcentajeDelUmbral)}`,
   ];
 
   if (metrica.umbral) {
@@ -145,6 +153,6 @@ export function armarMensajeDeLaHora(
   for (const nota of notasInformativas) lineas.push(`ℹ️ ${nota}`);
   if (!tieneProblemas) lineas.push("✅ Sin errores en esta corrida");
   lineas.push(`CRM: ${origen}`);
-  lineas.push('ℹ️ El costo por agenda divide el gasto entre las agendas que reporta Meta (pixel). "CRM" son las citas de Calendly que llegaron con UTM de pauta. Si difieren mucho, revisar el pixel o los UTM.');
+  lineas.push("ℹ️ Costo = gasto ÷ agendas Meta (pixel). CRM = citas con UTM de pauta.");
   return lineas.join("\n");
 }

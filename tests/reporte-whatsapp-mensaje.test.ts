@@ -50,7 +50,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       "🚦 Semáforo de pauta · 09:00 · 1🔴",
       "",
       "*Alpha*",
-      "🔴 Costo por agenda: $304.930 COP · 153% de la meta",
+      "🔴 Costo por agenda: $304.930 COP · 53% más caro que la meta",
       "Meta $200.000 COP · aceptable $250.000 COP",
       "Gasto $609.860 COP · agendas Meta 2 · CRM 4",
       "Ayer a esta hora: $100.000 COP · agendas Meta 3 · CRM 2",
@@ -58,7 +58,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       "⚠️ Creativo agotado",
       "",
       "CRM: https://crm.test",
-      'ℹ️ El costo por agenda divide el gasto entre las agendas que reporta Meta (pixel). "CRM" son las citas de Calendly que llegaron con UTM de pauta. Si difieren mucho, revisar el pixel o los UTM.',
+      "ℹ️ Costo = gasto ÷ agendas Meta (pixel). CRM = citas con UTM de pauta.",
     ].join("\n"));
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
@@ -73,6 +73,33 @@ describe("mensaje del reporte por WhatsApp", () => {
 
     expect(mensaje).toMatch(/^🌙 Cierre del viernes 16-oct/);
     expect(mensaje).toMatch(/Trayectoria: 09:00 \$0 COP · 0 ag Meta \| 11:00 \$120\.000 COP · 1 ag Meta/);
+  });
+
+  it("dice cuánto más barato que la meta, o igual", () => {
+    const conPorcentaje = (porcentajeDelUmbral: number) => armarMensajeDeLaHora(
+      [{ ...bloque(), metricas: [{ ...METRICA, color: "exito", porcentajeDelUmbral }] }],
+      "09:00",
+      null,
+      ORIGEN,
+    );
+
+    expect(conPorcentaje(72.4)).toContain("🟢 Costo por agenda: $304.930 COP · 28% más barato que la meta");
+    expect(conPorcentaje(100.2)).toContain("🟢 Costo por agenda: $304.930 COP · igual a la meta");
+  });
+
+  it("con gasto y cero agendas de Meta dice sin agendas, no sin dato", () => {
+    const metrica: MetricaSemaforo = {
+      ...METRICA,
+      gasto: 63902,
+      agendasMeta: 0,
+      agendasCrm: 0,
+      costo: null,
+      porcentajeDelUmbral: null,
+    };
+    const mensaje = armarMensajeDeLaHora([{ ...bloque(), metricas: [metrica] }], "11:00", null, ORIGEN);
+
+    expect(mensaje).toContain("🔴 Costo por agenda: sin agendas\n");
+    expect(mensaje).toContain("Gasto $63.902 COP · agendas Meta 0 · CRM 0");
   });
 
   it("explica cuando falta cargar el umbral", () => {

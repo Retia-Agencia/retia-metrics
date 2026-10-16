@@ -188,7 +188,7 @@ describe("endpoint de maquina del semaforo", () => {
     }>;
     expect(envio.texto).toMatch(/^🚦/);
     expect(envio.texto).toContain("CRM: https://crm.retia.test");
-    expect(envio.texto).toMatch(/revisar el pixel o los UTM\.$/);
+    expect(envio.texto).toMatch(/CRM = citas con UTM de pauta\.$/);
   });
 
   it("a una hora sin envios no sincroniza ni llama a Meta", async () => {

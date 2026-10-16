@@ -219,6 +219,37 @@ describe("semáforo del programa", () => {
     });
   });
 
+  it("sin agendas de Meta hoy cuenta 0 y pinta rojo si el programa ya tuvo agendas de Meta", async () => {
+    const p = await crearPrograma("mide-agendas");
+    await db.insert(gastoPauta).values({
+      programId: p.programId,
+      fecha: "2026-10-14",
+      monto: "60000",
+      moneda: "COP",
+      origen: "meta_api",
+      pautaObjetoId: p.campanaId,
+      agendasMeta: 1,
+    });
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 63902, agendasMeta: null });
+
+    const dia = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-16T11:05:00-05:00"), tipo: "dia",
+    });
+
+    expect(dia).toMatchObject({ color: "peligro", motivo: null, agendasMeta: 0, costo: null, gasto: 63902 });
+  });
+
+  it("sin agendas de Meta nunca, el programa sigue sin dato porque no las mide", async () => {
+    const p = await crearPrograma("no-mide-agendas");
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 63902, agendasMeta: null });
+
+    const dia = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-16T11:05:00-05:00"), tipo: "dia",
+    });
+
+    expect(dia).toMatchObject({ color: "sin_dato", motivo: "sin_agendas_meta", agendasMeta: null });
+  });
+
   it("sin cohorte o sin objetivo dice el motivo y nunca queda verde", async () => {
     const sinCohorte = await crearPrograma("sin-cohorte", { cohorte: false });
     const sinObjetivo = await crearPrograma("sin-objetivo", { objetivo: false });

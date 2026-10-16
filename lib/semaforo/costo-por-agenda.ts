@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNotNull, lte, or } from "drizzle-orm";
 import { fotosPauta, gastoPauta } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilAnterior } from "@/lib/dias-habiles";
@@ -26,7 +26,7 @@ type FilaDeGasto = {
   agendasMeta: number | null;
 };
 
-const NOTA_HQ4 = "El gasto incluye todas las campañas del programa (HQ-4 abierta).";
+const NOTA_HQ4 = "El gasto incluye todas las campañas del programa ";
 
 async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
   gasto: number;
@@ -84,12 +84,28 @@ async function contarAgendas(
   return filas.reduce((total, fila) => total + fila.agendas, 0);
 }
 
+/**
+ * Meta omite la conversión de agenda cuando cuenta 0, así que una fila sin agendas es ambigua: si el
+ * programa ya tuvo agendas de Meta alguna vez, mide con el pixel y la ausencia es un 0; si nunca las
+ * tuvo, de verdad no las mide.
+ */
+async function programaMideAgendasMeta(db: Db, programId: string): Promise<boolean> {
+  const [fila] = await db.select({ id: gastoPauta.id }).from(gastoPauta).where(and(
+    eq(gastoPauta.programId, programId),
+    eq(gastoPauta.origen, "meta_api"),
+    isNotNull(gastoPauta.agendasMeta),
+  )).limit(1);
+  return fila !== undefined;
+}
+
 function completar(
   gasto: number,
   agendasCrm: number,
-  agendasMeta: number | null,
+  agendasMetaLeidas: number | null,
   notas: NotaSemaforo[],
+  mideAgendasMeta: boolean,
 ): CostoPorAgenda {
+  const agendasMeta = agendasMetaLeidas === null && mideAgendasMeta ? 0 : agendasMetaLeidas;
   return {
     gasto,
     agendasMeta,
@@ -113,7 +129,7 @@ async function costoDesdeFotos(
     eq(fotosPauta.fecha, args.dia),
     lte(fotosPauta.tomadaEn, args.hasta),
   )).orderBy(asc(fotosPauta.campanaId), desc(fotosPauta.tomadaEn));
-  const [suma, agendasCrm] = await Promise.all([
+  const [suma, agendasCrm, mide] = await Promise.all([
     sumarEnCop(db, fotos),
     contarAgendas(db, {
       programId: args.programId,
@@ -121,8 +137,9 @@ async function costoDesdeFotos(
       hasta: args.dia,
       creadaHasta: args.hasta,
     }),
+    programaMideAgendasMeta(db, args.programId),
   ]);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide);
 }
 
 export async function costoPorAgenda(
@@ -161,15 +178,16 @@ export async function costoPorAgendaDeVentana(
       and(eq(gastoPauta.origen, "manual"), eq(gastoPauta.area, "paid")),
     ),
   ));
-  const [suma, agendasCrm] = await Promise.all([
+  const [suma, agendasCrm, mide] = await Promise.all([
     sumarEnCop(db, filas),
     contarAgendas(db, {
       programId: args.programId,
       desde: args.desde,
       hasta: args.hasta,
     }),
+    programaMideAgendasMeta(db, args.programId),
   ]);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide);
 }
 
 /**

@@ -78,7 +78,7 @@ describe("vista previa del reporte por WhatsApp", () => {
     expect(resultado.aviso).toBeNull();
     expect(resultado.dia).toMatch(/^🚦 Semáforo de pauta ·/);
     expect(resultado.dia).toContain("CRM: https://crm.retia.test");
-    expect(resultado.dia).toMatch(/revisar el pixel o los UTM\.$/);
+    expect(resultado.dia).toMatch(/CRM = citas con UTM de pauta\.$/);
     expect(resultado.cierre).toBeNull();
   });
 
