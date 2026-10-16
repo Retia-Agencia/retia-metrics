@@ -19,13 +19,17 @@ import type { JWT } from "@auth/core/jwt";
 
 const select = vi.fn();
 vi.mock("@/lib/db", () => ({ db: { select } }));
+const programasDelAlcance = vi.fn();
+vi.mock("@/lib/auth/alcance", () => ({ programasDelAlcance }));
 
 /** Deja la consulta de `buscarUsuario` devolviendo la fila que se le pase (o ninguna). */
 function enLaBase(fila: Record<string, unknown> | null, alcanceLimitado = false) {
+  programasDelAlcance.mockResolvedValue(
+    alcanceLimitado ? new Set(["programa-1"]) : new Set(),
+  );
   select.mockReturnValue({
     from: () => ({
       where: () => ({ limit: async () => (fila ? [fila] : []) }),
-      innerJoin: () => ({ limit: async () => alcanceLimitado ? [{ userId: fila?.id }] : [] }),
     }),
   });
 }
@@ -40,6 +44,7 @@ const activo = {
 
 beforeEach(() => {
   select.mockReset();
+  programasDelAlcance.mockReset();
 });
 
 describe("revalidarToken", () => {

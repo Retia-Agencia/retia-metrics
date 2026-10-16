@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { JWT } from "@auth/core/jwt";
 import { esRolValido, tieneAlcanceConfigurable } from "./roles";
 
@@ -27,13 +27,8 @@ async function buscarUsuario(email: string) {
 
 async function tieneFilasDeAlcance(userId: string): Promise<boolean> {
   const { db } = await import("@/lib/db");
-  const { usuariosProgramasAlcance, users } = await import("@/lib/db/schema");
-  const filas = await db
-    .select({ userId: usuariosProgramasAlcance.userId })
-    .from(usuariosProgramasAlcance)
-    .innerJoin(users, and(eq(users.id, usuariosProgramasAlcance.userId), eq(users.id, userId)))
-    .limit(1);
-  return filas.length > 0;
+  const { programasDelAlcance } = await import("@/lib/auth/alcance");
+  return (await programasDelAlcance(userId, db)).size > 0;
 }
 
 /**

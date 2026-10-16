@@ -10,7 +10,7 @@ import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { AuthorizationError, esAccesoTotal, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -440,10 +440,11 @@ export async function editarUsuario(
  */
 export async function guardarAlcanceDeUsuario(
   db: Db,
-  actorId: string,
+  actor: { id: string; rol: Rol | null },
   id: string,
   programasElegidos: readonly string[] | null,
 ): Promise<void> {
+  if (!esAccesoTotal(actor.rol)) throw new AuthorizationError("No autorizado.");
   const objetivoId = idValido(id);
   const [objetivo] = await db.select().from(users).where(eq(users.id, objetivoId)).limit(1);
   if (!objetivo) throw new ErrorDeApp("No existe el usuario.", 404);
@@ -486,7 +487,7 @@ export async function guardarAlcanceDeUsuario(
       valorAnterior: antes.length === 0 ? "Todos" : JSON.stringify(antes),
       valorNuevo: despues.length === 0 ? "Todos" : JSON.stringify(despues),
       origen: "app" as const,
-      userId: actorId,
+      userId: actor.id,
     }),
   ]);
 }

@@ -1,8 +1,9 @@
 import { and, eq } from "drizzle-orm";
-import { miembrosPrograma, usuariosProgramasAlcance } from "@/lib/db/schema";
+import { miembrosPrograma } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { esAccesoTotal, tieneAlcanceConfigurable, type Rol } from "@/lib/auth/roles";
+import { programasDelAlcance } from "@/lib/auth/alcance";
+import { esAccesoTotal, esAdministrador, type Rol } from "@/lib/auth/roles";
 
 /**
  * "¿Este actor puede tocar una fila de ESTE programa?" — LA respuesta, en un solo
@@ -15,11 +16,11 @@ import { esAccesoTotal, tieneAlcanceConfigurable, type Rol } from "@/lib/auth/ro
  * respondiendo lo mismo —justo lo que se desincroniza—. Por eso vive aca y la
  * importan varios catálogos.
  *
- * La regla: quien ADMINISTRA (`esAdministrador`: gerente o developer, ADR 0025)
- * entra a cualquier programa; un closer solo a los programas donde tiene una
- * membresia ACTIVA. Es una regla de DATOS, verificada en el servidor contra la base,
- * aparte de la barrera de rol que ya enforza `requireRole("gerente","closer")` en la
- * ruta. No es seguridad de UI.
+ * La regla: el developer entra a cualquier programa; un gerente entra a los de su
+ * alcance explícito (o a todos si no tiene filas); los demás roles solo a programas
+ * donde tienen una membresía ACTIVA. Es una regla de DATOS, verificada en el
+ * servidor contra la base, aparte de la barrera de rol de la ruta. No es seguridad
+ * de UI.
  *
  * `esAdministrador`, NO `rol === "gerente"` (ADR 0025 punto 5): el developer tambien
  * administra y no es miembro de ningun programa, asi que el chequeo a mano lo
@@ -48,12 +49,9 @@ export async function exigirAccesoAlPrograma(
   mensajeNegado = "No puedes gestionar contenido de un programa donde no vendes.",
 ): Promise<void> {
   if (esAccesoTotal(actor.rol)) return;
-  if (tieneAlcanceConfigurable(actor.rol)) {
-    const alcance = await db
-      .select({ programId: usuariosProgramasAlcance.programId })
-      .from(usuariosProgramasAlcance)
-      .where(eq(usuariosProgramasAlcance.userId, actor.id));
-    if (alcance.length === 0 || alcance.some((fila) => fila.programId === programId)) return;
+  if (esAdministrador(actor.rol)) {
+    const alcance = await programasDelAlcance(actor.id, db);
+    if (alcance.size === 0 || alcance.has(programId)) return;
     throw new ErrorDeApp(mensajeNegado, 403);
   }
   const [membresia] = await db

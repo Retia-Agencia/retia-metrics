@@ -4,6 +4,7 @@ import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance 
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { guardarAlcanceDeUsuario } from "@/lib/catalogo/usuarios";
 
 /**
  * Ticket 015: las server actions de `/ajustes/usuarios`. Cada accion envuelve la
@@ -160,6 +161,18 @@ describe("acciones de usuarios — el gerente administra", () => {
 });
 
 describe("alcance visible de un usuario (ADR 0094)", () => {
+  it("la función de catálogo rechaza a un gerente sin cambiar filas", async () => {
+    await expect(
+      guardarAlcanceDeUsuario(
+        db,
+        { id: gerenteId, rol: "gerente" },
+        gerenteId,
+        [programaAId],
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
+  });
+
   it("solo el developer lo guarda y deja change_log", async () => {
     const [objetivo] = await db
       .insert(users)

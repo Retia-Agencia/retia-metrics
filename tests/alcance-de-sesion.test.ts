@@ -22,6 +22,7 @@ import {
   programasInactivosParaAdministrar,
 } from "@/lib/auth/alcance";
 import { buscarLeads } from "@/lib/queries/leads";
+import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
@@ -138,6 +139,24 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     expect((await programasVisibles(pt.id, "paid_trafficker", db)).map((p) => p.id)).toEqual([programaB]);
     await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, gerenteId));
     await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, pt.id));
+  });
+
+  it("autoriza escrituras de gerente según alcance, pero Pauta conserva la reja de membresía", async () => {
+    const [pt] = await db
+      .insert(users)
+      .values({ email: "pauta-sin-membresia@retia.co", rol: "paid_trafficker" })
+      .returning();
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId: programaA });
+
+    await expect(exigirAccesoAlPrograma(db, { id: gerenteId, rol: "gerente" }, programaA)).resolves.toBeUndefined();
+    await expect(exigirAccesoAlPrograma(db, { id: gerenteId, rol: "gerente" }, programaB)).rejects.toMatchObject({
+      status: 403,
+    });
+    await expect(exigirAccesoAlPrograma(db, { id: pt.id, rol: "paid_trafficker" }, programaA)).rejects.toMatchObject({
+      status: 403,
+    });
+
+    await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, gerenteId));
   });
 
   it("el developer ve todos aunque tenga filas de alcance", async () => {

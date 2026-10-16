@@ -59,12 +59,13 @@ export async function editarUsuarioAccion(
 ): Promise<ResultadoAccion> {
   try {
     const session = await requireAdministracionGlobal();
-    if (programasQueVe !== undefined && !esAccesoTotal(await rolDeVista(session))) {
+    const rol = programasQueVe !== undefined ? await rolDeVista(session) : null;
+    if (programasQueVe !== undefined && !esAccesoTotal(rol)) {
       throw new ErrorDeApp("No autorizado.", 403);
     }
     await editarUsuario(db, session.user.id, id, input);
     if (programasQueVe !== undefined) {
-      await guardarAlcanceDeUsuario(db, session.user.id, id, programasQueVe);
+      await guardarAlcanceDeUsuario(db, { id: session.user.id, rol }, id, programasQueVe);
     }
     revalidar();
     return { ok: true };

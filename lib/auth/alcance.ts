@@ -42,6 +42,18 @@ export interface ProgramaDeLaFicha extends ProgramaVisible {
   activo: boolean;
 }
 
+/** Filas explícitas de alcance del usuario. Un Set vacío significa sin límite. */
+export async function programasDelAlcance(
+  userId: string,
+  db: Db = dbDeLaApp,
+): Promise<Set<string>> {
+  const filas = await db
+    .select({ programId: usuariosProgramasAlcance.programId })
+    .from(usuariosProgramasAlcance)
+    .where(eq(usuariosProgramasAlcance.userId, userId));
+  return new Set(filas.map((fila) => fila.programId));
+}
+
 /**
  * Los programas ACTIVOS que ve esta sesión, ordenados por nombre.
  *
@@ -70,19 +82,16 @@ export async function programasVisibles(
   }
 
   if (tieneAlcanceConfigurable(rol)) {
-    const alcance = await db
-      .select({ programId: usuariosProgramasAlcance.programId })
-      .from(usuariosProgramasAlcance)
-      .where(eq(usuariosProgramasAlcance.userId, userId));
-    if (alcance.length === 0) {
+    const alcance = await programasDelAlcance(userId, db);
+    if (alcance.size === 0) {
       return db.select(columnas).from(programs).where(eq(programs.activo, true)).orderBy(asc(programs.nombre));
     }
-    return db
+    const activos = await db
       .select(columnas)
       .from(programs)
-      .innerJoin(usuariosProgramasAlcance, eq(usuariosProgramasAlcance.programId, programs.id))
-      .where(and(eq(programs.activo, true), eq(usuariosProgramasAlcance.userId, userId)))
+      .where(eq(programs.activo, true))
       .orderBy(asc(programs.nombre));
+    return activos.filter((programa) => alcance.has(programa.id));
   }
 
   return db
@@ -155,11 +164,8 @@ export async function programaDeLaFichaPorSlug(
     .where(and(eq(programs.slug, slug), eq(programs.activo, false)))
     .limit(1);
   if (!inactivo || esAccesoTotal(rol)) return inactivo ?? null;
-  const alcance = await db
-    .select({ programId: usuariosProgramasAlcance.programId })
-    .from(usuariosProgramasAlcance)
-    .where(eq(usuariosProgramasAlcance.userId, userId));
-  if (alcance.length > 0 && !alcance.some((fila) => fila.programId === inactivo.id)) return null;
+  const alcance = await programasDelAlcance(userId, db);
+  if (alcance.size > 0 && !alcance.has(inactivo.id)) return null;
   return inactivo ?? null;
 }
 
@@ -176,14 +182,10 @@ export async function programasInactivosParaAdministrar(
     .where(eq(programs.activo, false))
     .orderBy(asc(programs.nombre));
   if (esAccesoTotal(rol)) return filas;
-  const alcance = await db
-    .select({ programId: usuariosProgramasAlcance.programId })
-    .from(usuariosProgramasAlcance)
-    .where(eq(usuariosProgramasAlcance.userId, userId));
-  if (alcance.length === 0) return filas;
-  const ids = new Set(alcance.map((fila) => fila.programId));
+  const alcance = await programasDelAlcance(userId, db);
+  if (alcance.size === 0) return filas;
   const inactivos = await db.select({ id: programs.id, slug: programs.slug, nombre: programs.nombre }).from(programs).where(eq(programs.activo, false));
-  return inactivos.filter((programa) => ids.has(programa.id)).map(({ slug, nombre }) => ({ slug, nombre }));
+  return inactivos.filter((programa) => alcance.has(programa.id)).map(({ slug, nombre }) => ({ slug, nombre }));
 }
 
 /**
