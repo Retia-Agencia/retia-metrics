@@ -154,13 +154,16 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
         });
         pendiente = null;
       } else if (datos.reagenda) {
-        if (original.etapa === "agendado") {
-          const [llamada] = await tx
+        // En Agendado se re-agenda la cita viva. Sin cita viva (la anterior ya quedó en
+        // no-show con Re-agenda puesta), se sigue como en Atendido: la fecha crea la llamada.
+        const [llamada] = original.etapa === "agendado"
+          ? await tx
             .select({ id: calls.id })
             .from(calls)
             .where(and(eq(calls.dealId, original.id), eq(calls.resultado, "agendada"), vigente(calls)))
-            .orderBy(desc(calls.createdAt));
-          if (!llamada) throw new ErrorDeApp("No hay una llamada agendada para re-agendar.", 409);
+            .orderBy(desc(calls.createdAt))
+          : [];
+        if (llamada) {
           if (datos.reagenda.fechaLlamada) {
             await reagendarLlamada(tx, actor, {
               callId: llamada.id,

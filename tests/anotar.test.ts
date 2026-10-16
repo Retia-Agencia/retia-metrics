@@ -290,6 +290,22 @@ describe("anotar", () => {
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "agendado", pendiente: null });
   });
 
+  it("en Agendado con Re-agenda ya puesta (la llamada quedó en no-show), la fecha crea la llamada nueva", async () => {
+    const deal = await nuevoDeal("agendado");
+    await llamadaAgendada(deal.id);
+    await anotar(db, actor(), { dealId: deal.id, reagenda: { motivoId: motivoReagendaId } });
+    const nuevaFecha = new Date("2026-10-20T00:00:00.000Z");
+    await anotar(db, actor(), {
+      dealId: deal.id,
+      reagenda: { motivoId: motivoReagendaId, fechaLlamada: nuevaFecha },
+    });
+
+    const filas = await db.select().from(calls).where(eq(calls.dealId, deal.id));
+    expect(filas.map((c) => c.resultado).sort()).toEqual(["agendada", "no_show"]);
+    expect(filas.find((c) => c.resultado === "agendada")?.fechaAgenda?.getTime()).toBe(nuevaFecha.getTime());
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "agendado", pendiente: null });
+  });
+
   it("en Atendido pone Re-agenda con motivo y, con fecha, crea la nueva llamada", async () => {
     const deal = await nuevoDeal("atendido");
     const nuevaFecha = new Date("2026-10-16T16:30:00.000Z");
