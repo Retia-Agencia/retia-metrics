@@ -3,7 +3,7 @@ id: 275
 etapa: llamadas
 serves: "Gerencia baja en un CSV todos los links de Grain de un programa, filtrados por closer y por fechas, sin abrir llamada por llamada (Mani, 16-oct)"
 depends: [098]
-status: todo
+status: done
 ---
 
 # 275 — Export CSV de los links de Grain
