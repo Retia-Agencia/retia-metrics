@@ -27,6 +27,19 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-16: un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069, Mani).** Antes un
+  parcial High nacía en Calificado, que le dice al closer que el lead está listo; se destapó con Form30x, donde casi
+  todo llega High. `etapaDeEntrada` queda agendó → parcial → completo High → Registrado (`50fc5b3`). Efecto que no
+  estaba en el brief: la pestaña "No agendaron" del Inbox (`perdidosEnCalendly`, 118) buscaba Calificado + parcial y
+  habría quedado vacía; ahora busca Potencial + parcial High (decisión de Mani). Migración en producción: 7 deals de
+  Confianza estaban en Calificado sin trabajar, todos nacidos en Potencial y subidos por S2 con un parcial High
+  posterior (los "25" medidos antes eran todos los parciales High; el resto ya avanzó o está anulado). El motor no
+  tiene flecha Calificado → Potencial y Mani no quiere que un closer pueda tomarla: se agregó una flecha solo del
+  sistema SIN commitear, el script desechable movió los 7 con `moverEtapa` (actor sistema por el usuario del script)
+  y nota del sistema, y la flecha se quitó. Tests locales no corridos (swap de 11 GB): los valida el CI. El
+  `operations.md` §2.2 paso 13 de SBJ sigue abierto: sin corregir las `scoreTagRules`, todo completo cae en
+  Calificado y no hay Registrado.
+
 - **2026-10-16 (madrugada): 271 fase B y 272 hechos; SBJ recibe completos por webhook y parciales por la API.**
   Codex implementó, la sesión revisó. 271 B (`96ebaa2`): firma solo hex, `lib/ingesta/adaptador-form30x.ts`, y
   `uuidInvitadoDelLink` acepta `api.calendly.com` (Form30x manda la URI de la API). 272 (`2fa57bf`, `70dc3a9`):
