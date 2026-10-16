@@ -180,14 +180,18 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
             pendiente = "reagenda";
           }
         } else {
-          const mov = await moverEtapa(tx, {
-            dealId: original.id,
-            a: etapa,
-            pendiente: "reagenda",
-            motivoId: datos.reagenda.motivoId,
-            actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
-          });
-          pendiente = mov.pendienteA;
+          // En Agendado sin cita viva, Re-agenda ya la puso el no-show y esa flecha (PR1) es
+          // del sistema: solo falta la llamada, que lo devuelve a Agendado sin pendiente (E7).
+          if (original.etapa !== "agendado") {
+            const mov = await moverEtapa(tx, {
+              dealId: original.id,
+              a: etapa,
+              pendiente: "reagenda",
+              motivoId: datos.reagenda.motivoId,
+              actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
+            });
+            pendiente = mov.pendienteA;
+          }
           if (datos.reagenda.fechaLlamada) {
             const llamada = await agregarLlamada(tx, actor, {
               dealId: original.id,
