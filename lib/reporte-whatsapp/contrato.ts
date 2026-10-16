@@ -4,29 +4,33 @@ import type { MetricaSemaforo } from "@/lib/semaforo/semaforo";
 const esquemaPunto = z.object({
   hora: z.string(),
   gasto: z.number(),
-  agendas: z.number(),
+  agendasMeta: z.number().nullable(),
+  agendasCrm: z.number(),
   costo: z.number().nullable(),
 }).strict();
 
 export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
   metrica: z.literal("costo_por_agenda"),
   color: z.enum(["exito", "alerta", "peligro", "sin_dato"]),
-  motivo: z.enum(["sin_cohorte", "sin_umbral", "sin_pauta", "sin_referencia"]).nullable(),
+  motivo: z.enum(["sin_cohorte", "sin_umbral", "sin_pauta", "sin_agendas_meta"]).nullable(),
   moneda: z.literal("COP"),
+  dia: z.string(),
   gasto: z.number(),
-  agendas: z.number(),
+  agendasMeta: z.number().nullable(),
+  agendasCrm: z.number(),
   costo: z.number().nullable(),
   umbral: z.object({ meta: z.number(), aceptable: z.number().nullable() }).strict().nullable(),
   porcentajeDelUmbral: z.number().nullable(),
-  ayerALaMismaHora: z.object({
+  comparacion: z.object({
     dia: z.string(),
     gasto: z.number(),
-    agendas: z.number(),
+    agendasMeta: z.number().nullable(),
+    agendasCrm: z.number(),
     costo: z.number().nullable(),
+    etiqueta: z.enum(["ayer a esta hora", "día anterior"]),
   }).strict().nullable(),
   trayectoria: z.array(esquemaPunto),
   diasSeguidosEnRojo: z.number(),
-  agendasMeta: z.number().nullable(),
   campanas: z.tuple([]),
   notas: z.array(z.object({
     tipo: z.enum(["problema", "info"]),

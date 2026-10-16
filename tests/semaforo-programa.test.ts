@@ -123,20 +123,21 @@ async function foto(args: {
   dia: string;
   hora: string;
   gasto: number;
-  agendasMeta?: number;
+  agendasMeta?: number | null;
+  tomadaEn?: Date;
 }): Promise<void> {
   await db.insert(fotosPauta).values({
     programId: args.programId,
     campanaId: args.campanaId,
     fecha: args.dia,
-    tomadaEn: new Date(`${args.dia}T${args.hora}:00-05:00`),
+    tomadaEn: args.tomadaEn ?? new Date(`${args.dia}T${args.hora}:00-05:00`),
     gasto: String(args.gasto),
     moneda: "COP",
-    agendasMeta: args.agendasMeta,
+    agendasMeta: args.agendasMeta === undefined ? 1 : args.agendasMeta,
   });
 }
 
-async function gastoCerrado(programId: string, dia: string, monto: number): Promise<void> {
+async function gastoCerrado(programId: string, dia: string, monto: number, agendasMeta = 1): Promise<void> {
   await db.insert(gastoPauta).values({
     programId,
     fecha: dia,
@@ -144,6 +145,7 @@ async function gastoCerrado(programId: string, dia: string, monto: number): Prom
     moneda: "COP",
     origen: "manual",
     area: "paid",
+    agendasMeta,
   });
 }
 
@@ -155,16 +157,25 @@ describe("semáforo del programa", () => {
     await crearAgenda({ ...p, creadaEn: new Date("2026-10-13T10:00:00-05:00") });
     await crearAgenda({ ...p, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
     await foto({ ...p, dia: "2026-10-14", hora: "17:45", gasto: 80000 });
+    await gastoCerrado(p.programId, "2026-10-14", 80000);
+    await gastoCerrado(p.programId, "2026-10-13", 100000);
 
     const dia = await semaforoDelPrograma(db, {
       programId: p.programId, ahora: new Date("2026-10-14T11:00:00-05:00"), tipo: "dia",
     });
     const cierre = await semaforoDelPrograma(db, {
-      programId: p.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+      programId: p.programId, ahora: new Date("2026-10-15T00:05:00-05:00"), tipo: "cierre",
     });
 
-    expect(dia).toMatchObject({ color: "exito", gasto: 80000, agendas: 1, costo: 80000, agendasMeta: 2 });
-    expect(cierre).toMatchObject({ color: "alerta", gasto: 80000, agendas: 1, costo: 80000 });
+    expect(dia).toMatchObject({ color: "exito", gasto: 80000, agendasCrm: 1, costo: 40000, agendasMeta: 2 });
+    expect(cierre).toMatchObject({
+      color: "alerta",
+      dia: "2026-10-14",
+      gasto: 80000,
+      agendasCrm: 1,
+      costo: 80000,
+      comparacion: { dia: "2026-10-13", gasto: 100000, etiqueta: "día anterior" },
+    });
   });
 
   it("la trayectoria usa solo las horas configuradas hasta la hora actual", async () => {
@@ -181,7 +192,7 @@ describe("semáforo del programa", () => {
     const resultado = await semaforoDelPrograma(db, {
       programId: p.programId,
       ahora: new Date("2026-10-14T20:00:00-05:00"),
-      tipo: "cierre",
+      tipo: "dia",
       horas: [20, 8, 14, 11, 17, 20],
     });
 
@@ -189,27 +200,23 @@ describe("semáforo del programa", () => {
       .toEqual(["08:00", "11:00", "14:00", "17:00", "20:00"]);
   });
 
-  it("el caso 30X del 19-sep no pinta falso rojo de día y sí rojo al cierre", async () => {
-    const p = await crearPrograma("treinta-x");
-    await foto({ ...p, dia: "2026-09-18", hora: "11:00", gasto: 600000 });
-    await foto({ ...p, dia: "2026-09-19", hora: "11:00", gasto: 609860 });
-    await crearAgenda({ ...p, creadaEn: new Date("2026-09-18T10:00:00-05:00") });
-    for (let i = 0; i < 8; i++) {
-      const hora = i === 0 ? 10 : 11 + i;
-      await crearAgenda({ ...p, creadaEn: new Date(`2026-09-19T${String(hora).padStart(2, "0")}:00:00-05:00`) });
-    }
-    await foto({ ...p, dia: "2026-09-19", hora: "17:45", gasto: 878460 });
+  it("el caso real del 16-oct a las 8 pinta rojo contra la meta aunque ayer no tuviera agendas", async () => {
+    const p = await crearPrograma("caso-real");
+    await foto({ ...p, dia: "2026-10-15", hora: "08:00", gasto: 100000, agendasMeta: 0 });
+    await foto({ ...p, dia: "2026-10-16", hora: "08:00", gasto: 218653, agendasMeta: 1 });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-16T07:30:00-05:00") });
 
     const dia = await semaforoDelPrograma(db, {
-      programId: p.programId, ahora: new Date("2026-09-19T11:00:00-05:00"), tipo: "dia",
-    });
-    const cierre = await semaforoDelPrograma(db, {
-      programId: p.programId, ahora: new Date("2026-09-19T18:00:00-05:00"), tipo: "cierre",
+      programId: p.programId, ahora: new Date("2026-10-16T08:05:00-05:00"), tipo: "dia",
     });
 
-    expect(dia.color).not.toBe("peligro");
-    expect(dia).toMatchObject({ gasto: 609860, agendas: 1 });
-    expect(cierre).toMatchObject({ color: "peligro", gasto: 878460, agendas: 8 });
+    expect(dia).toMatchObject({
+      color: "peligro",
+      gasto: 218653,
+      agendasMeta: 1,
+      agendasCrm: 1,
+      costo: 218653,
+    });
   });
 
   it("sin cohorte o sin objetivo dice el motivo y nunca queda verde", async () => {
@@ -218,10 +225,10 @@ describe("semáforo del programa", () => {
     await foto({ ...sinCohorte, dia: "2026-10-14", hora: "17:45", gasto: 1000 });
     await foto({ ...sinObjetivo, dia: "2026-10-14", hora: "17:45", gasto: 1000 });
     const primero = await semaforoDelPrograma(db, {
-      programId: sinCohorte.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+      programId: sinCohorte.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "dia",
     });
     const segundo = await semaforoDelPrograma(db, {
-      programId: sinObjetivo.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+      programId: sinObjetivo.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "dia",
     });
     expect(primero).toMatchObject({ color: "sin_dato", motivo: "sin_cohorte" });
     expect(segundo).toMatchObject({ color: "sin_dato", motivo: "sin_umbral" });
@@ -237,19 +244,19 @@ describe("semáforo del programa", () => {
       dia: "2026-10-14",
       hasta: new Date("2026-10-14T11:00:00-05:00"),
     });
-    expect(resultado).toMatchObject({ agendas: 1, costo: 100000 });
+    expect(resultado).toMatchObject({ agendasCrm: 1, costo: 100000 });
   });
 
-  it("cuenta dos días hábiles rojos y para en el primero que no es rojo", async () => {
+  it("cuenta sábado y domingo rojos y para en el primero que no es rojo", async () => {
     const p = await crearPrograma("racha");
-    for (const dia of ["2026-10-13", "2026-10-12"]) {
+    for (const dia of ["2026-10-18", "2026-10-17"]) {
       await gastoCerrado(p.programId, dia, 100000);
       await crearAgenda({ ...p, creadaEn: new Date(`${dia}T10:00:00-05:00`) });
     }
-    await gastoCerrado(p.programId, "2026-10-09", 60000);
-    await crearAgenda({ ...p, creadaEn: new Date("2026-10-09T10:00:00-05:00") });
+    await gastoCerrado(p.programId, "2026-10-16", 60000);
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-16T10:00:00-05:00") });
     const resultado = await semaforoDelPrograma(db, {
-      programId: p.programId, ahora: new Date("2026-10-14T11:00:00-05:00"), tipo: "dia",
+      programId: p.programId, ahora: new Date("2026-10-19T11:00:00-05:00"), tipo: "dia",
     });
     expect(resultado.diasSeguidosEnRojo).toBe(2);
   });
@@ -261,9 +268,9 @@ describe("semáforo del programa", () => {
     await crearAgenda({ ...propio, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
     await crearAgenda({ ...ajeno, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
     const resultado = await semaforoDelPrograma(db, {
-      programId: propio.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "cierre",
+      programId: propio.programId, ahora: new Date("2026-10-14T18:00:00-05:00"), tipo: "dia",
     });
-    expect(resultado).toMatchObject({ agendas: 1, costo: 70000 });
+    expect(resultado).toMatchObject({ agendasCrm: 1, costo: 70000 });
   });
 
   it("el valor de los últimos días hábiles deja fuera hoy y lo que queda antes de la ventana", async () => {
@@ -275,6 +282,38 @@ describe("semáforo del programa", () => {
     await crearAgenda({ ...p, creadaEn: new Date("2026-10-13T10:00:00-05:00") });
     await crearAgenda({ ...p, creadaEn: new Date("2026-10-14T10:00:00-05:00") });
     const resultado = await costoPorAgendaDeLosUltimosHabiles(db, { programId: p.programId, hoy: "2026-10-14", dias: 2 });
-    expect(resultado).toMatchObject({ gasto: 150000, agendas: 2, costo: 75000 });
+    expect(resultado).toMatchObject({ gasto: 150000, agendasCrm: 2, costo: 75000 });
+  });
+
+  it("sin foto de ayer a esa hora deja la comparación en null", async () => {
+    const p = await crearPrograma("sin-foto-ayer");
+    await foto({ ...p, dia: "2026-10-16", hora: "08:00", gasto: 70000, agendasMeta: 1 });
+
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-16T08:05:00-05:00"), tipo: "dia",
+    });
+
+    expect(resultado.comparacion).toBeNull();
+  });
+
+  it("incluye una foto tomada 0,6 segundos después de las 20:00 en el punto de las 20", async () => {
+    const p = await crearPrograma("gracia-foto");
+    await foto({
+      ...p,
+      dia: "2026-10-16",
+      hora: "20:00",
+      gasto: 70000,
+      agendasMeta: 1,
+      tomadaEn: new Date("2026-10-16T20:00:00.600-05:00"),
+    });
+
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId,
+      ahora: new Date("2026-10-16T20:05:00-05:00"),
+      tipo: "dia",
+      horas: [20],
+    });
+
+    expect(resultado.trayectoria).toMatchObject([{ hora: "20:00", gasto: 70000 }]);
   });
 });

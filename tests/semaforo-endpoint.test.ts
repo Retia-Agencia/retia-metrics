@@ -180,7 +180,8 @@ describe("endpoint de maquina del semaforo", () => {
       bloques: Array<{ enlaceHub: string }>;
     }>;
     expect(envio.texto).toMatch(/^🚦/);
-    expect(envio.texto.endsWith("CRM: https://crm.retia.test")).toBe(true);
+    expect(envio.texto).toContain("CRM: https://crm.retia.test");
+    expect(envio.texto).toMatch(/revisar el pixel o los UTM\.$/);
   });
 
   it("a una hora sin envios no sincroniza ni llama a Meta", async () => {
@@ -268,8 +269,8 @@ describe("endpoint de maquina del semaforo", () => {
 const LLAVES_PERMITIDAS = new Set([
   "generadoEn", "sincronizacion", "estado", "ultimaFoto", "envios", "configuracion",
   "bloques", "programa", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
-  "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendas", "costo",
-  "umbral", "meta", "aceptable", "porcentajeDelUmbral", "ayerALaMismaHora", "dia",
+  "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendasCrm", "costo",
+  "umbral", "meta", "aceptable", "porcentajeDelUmbral", "comparacion", "dia", "etiqueta",
   "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "notas", "texto",
 ]);
 

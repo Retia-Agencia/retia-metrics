@@ -72,6 +72,11 @@ export function diaHabilAnterior(fecha: FechaCalendario): string {
   return new Date(dia * MS_POR_DIA).toISOString().slice(0, 10);
 }
 
+/** El día de calendario anterior, sin depender de la zona horaria del proceso. */
+export function diaCalendarioAnterior(fecha: string): string {
+  return new Date((numeroDeDia(fecha) - 1) * MS_POR_DIA).toISOString().slice(0, 10);
+}
+
 /**
  * Dias habiles entre dos fechas de calendario, inclusive en ambos extremos.
  * Devuelve 0 si `fin` es anterior a `inicio`.

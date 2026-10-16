@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   diaHabilAnterior,
+  diaCalendarioAnterior,
   esDiaHabil,
   diasHabilesEntre,
   diaHabilDe,
@@ -31,6 +32,12 @@ describe("esDiaHabil", () => {
     // 2026-09-21T02:00:00Z = 21:00 del domingo 2026-09-20 en Bogota: NO habil,
     // aunque en UTC ya sea lunes 21.
     expect(esDiaHabil(new Date("2026-09-21T02:00:00Z"))).toBe(false);
+  });
+});
+
+describe("diaCalendarioAnterior", () => {
+  it("incluye el domingo anterior a un lunes", () => {
+    expect(diaCalendarioAnterior("2026-10-19")).toBe("2026-10-18");
   });
 });
 
