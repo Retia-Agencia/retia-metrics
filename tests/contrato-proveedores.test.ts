@@ -4,7 +4,11 @@ import { leads, programs, sobresCrudos, sources, submissions } from "@/lib/db/sc
 import type { Db } from "@/lib/db/tipos";
 import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import { construirEnvio } from "@/lib/ingesta/envio";
-import { PROVEEDORES, type OpcionesAdaptador } from "@/lib/ingesta/proveedores";
+import {
+  codificacionDeFirmaForm30x,
+  PROVEEDORES,
+  type OpcionesAdaptador,
+} from "@/lib/ingesta/proveedores";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import typeformParcial from "./fixtures/typeform-parcial.json";
@@ -79,7 +83,7 @@ const CASOS = {
       return `sha256=${createHmac("sha256", secreto).update(cuerpo).digest("hex")}`;
     },
   },
-} satisfies Record<ProveedorFormulario, CasoContrato>;
+} satisfies Record<Exclude<ProveedorFormulario, "form30x">, CasoContrato>;
 
 const OPCIONES: OpcionesAdaptador = {
   sourceId: "source-del-registro",
@@ -91,7 +95,7 @@ const OPCIONES: OpcionesAdaptador = {
   },
 };
 
-const proveedores = Object.keys(PROVEEDORES) as ProveedorFormulario[];
+const proveedores = Object.keys(CASOS) as Exclude<ProveedorFormulario, "form30x">[];
 
 for (const nombre of proveedores) {
   const proveedor = PROVEEDORES[nombre];
@@ -157,6 +161,155 @@ for (const nombre of proveedores) {
 it("Dapta aplana una respuesta de objeto", () => {
   const entrada = PROVEEDORES.dapta.adaptar(JSON.stringify(daptaCompleto), OPCIONES);
   expect(entrada.columnas.nombre_dividido).toBe("Ana Pérez");
+});
+
+describe("contrato de form30x (fase A)", () => {
+  const cuerpo = JSON.stringify({ prueba: true });
+  const secreto = "secreto-form30x";
+  const firmaHex = `sha256=${createHmac("sha256", secreto).update(cuerpo).digest("hex")}`;
+  const firmaBase64 = `sha256=${createHmac("sha256", secreto).update(cuerpo).digest("base64")}`;
+
+  it("acepta hex y base64 y anota cual codificacion cuadro", () => {
+    expect(codificacionDeFirmaForm30x(cuerpo, firmaHex, secreto)).toBe("hex");
+    expect(codificacionDeFirmaForm30x(cuerpo, firmaBase64, secreto)).toBe("base64");
+    expect(PROVEEDORES.form30x.verificarFirma(cuerpo, firmaHex, secreto)).toBe(true);
+    expect(PROVEEDORES.form30x.verificarFirma(cuerpo, firmaBase64, secreto)).toBe(true);
+    expect(PROVEEDORES.form30x.notaDeFirma?.(cuerpo, firmaHex, secreto)).toBe(
+      "firma form30x: hex",
+    );
+    expect(PROVEEDORES.form30x.notaDeFirma?.(cuerpo, firmaBase64, secreto)).toBe(
+      "firma form30x: base64",
+    );
+  });
+
+  it.each([
+    ["firma mala", "sha256=00", secreto],
+    ["sin prefijo", firmaHex.slice("sha256=".length), secreto],
+    ["header nulo", null, secreto],
+    [
+      "hex de otro secreto",
+      `sha256=${createHmac("sha256", "otro-secreto").update(cuerpo).digest("hex")}`,
+      secreto,
+    ],
+    ["base64 truncado", firmaBase64.slice(0, -1), secreto],
+  ])("rechaza %s", (_caso, header, secretoDePrueba) => {
+    expect(codificacionDeFirmaForm30x(cuerpo, header, secretoDePrueba)).toBeNull();
+    expect(PROVEEDORES.form30x.verificarFirma(cuerpo, header, secretoDePrueba)).toBe(false);
+    expect(PROVEEDORES.form30x.notaDeFirma?.(cuerpo, header, secretoDePrueba)).toBeNull();
+  });
+
+  it("deja pendiente el adaptador", () => {
+    expect(() => PROVEEDORES.form30x.adaptar(cuerpo, OPCIONES)).toThrow(
+      "Form30x: adaptador pendiente (ticket 271, fase B).",
+    );
+  });
+});
+
+describe("ruta real de form30x (fase A)", () => {
+  const cuerpo = JSON.stringify({ prueba: "form30x" });
+  const secreto = "secreto-del-contrato";
+
+  it.each(["hex", "base64"] as const)(
+    "guarda el cuerpo y la codificacion %s cuando el adaptador pendiente falla",
+    async (codificacion) => {
+      const { db, cerrar } = await crearBaseDePrueba();
+      holder.db = db;
+      try {
+        const [programa] = await db
+          .insert(programs)
+          .values({
+            ...PROGRAMA_DE_PRUEBA,
+            slug: `form30x-${codificacion}`,
+            nombre: `Form30x ${codificacion}`,
+            ticketUsd: "1500",
+          })
+          .returning();
+        const [fuente] = await db
+          .insert(sources)
+          .values({
+            programId: programa.id,
+            nombre: `Fuente Form30x ${codificacion}`,
+            tipo: "webhook",
+            proveedor: "form30x",
+            secretoWebhook: secreto,
+            activo: true,
+          })
+          .returning();
+        const firma = createHmac("sha256", secreto).update(cuerpo).digest(codificacion);
+        const { POST } = await import("@/app/api/webhooks/formularios/[fuente]/route");
+        const respuesta = await POST(
+          new Request("https://app.retia.co/api/webhooks/formularios/x", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              [PROVEEDORES.form30x.headerFirma]: `sha256=${firma}`,
+            },
+            body: cuerpo,
+          }),
+          { params: Promise.resolve({ fuente: fuente.id }) },
+        );
+
+        expect(respuesta.status).toBe(200);
+        const sobres = await db.select().from(sobresCrudos);
+        expect(sobres).toHaveLength(1);
+        expect(sobres[0].cuerpo).toBe(cuerpo);
+        expect(sobres[0].error).toMatch(new RegExp(`^firma form30x: ${codificacion}`));
+        expect(sobres[0].error).toContain("adaptador pendiente");
+        expect(await db.select().from(leads)).toHaveLength(0);
+        expect(await db.select().from(submissions)).toHaveLength(0);
+      } finally {
+        holder.db = null;
+        await cerrar();
+      }
+    },
+  );
+
+  it("rechaza una firma mala sin guardar el sobre", async () => {
+    const { db, cerrar } = await crearBaseDePrueba();
+    holder.db = db;
+    try {
+      const [programa] = await db
+        .insert(programs)
+        .values({
+          ...PROGRAMA_DE_PRUEBA,
+          slug: "form30x-firma-mala",
+          nombre: "Form30x firma mala",
+          ticketUsd: "1500",
+        })
+        .returning();
+      const [fuente] = await db
+        .insert(sources)
+        .values({
+          programId: programa.id,
+          nombre: "Fuente Form30x firma mala",
+          tipo: "webhook",
+          proveedor: "form30x",
+          secretoWebhook: secreto,
+          activo: true,
+        })
+        .returning();
+      const { POST } = await import("@/app/api/webhooks/formularios/[fuente]/route");
+      const respuesta = await POST(
+        new Request("https://app.retia.co/api/webhooks/formularios/x", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            [PROVEEDORES.form30x.headerFirma]: "sha256=00",
+          },
+          body: cuerpo,
+        }),
+        { params: Promise.resolve({ fuente: fuente.id }) },
+      );
+
+      expect(respuesta.status).toBe(401);
+      expect(await db.select().from(sobresCrudos)).toHaveLength(0);
+      expect(await db.select().from(leads)).toHaveLength(0);
+      expect(await db.select().from(submissions)).toHaveLength(0);
+    } finally {
+      holder.db = null;
+      await cerrar();
+    }
+  });
 });
 
 it.each(proveedores)("una firma mala de %s no cambia ninguna tabla por la ruta real", async (nombre) => {
@@ -226,7 +379,10 @@ const REALES = {
     valores: (c: typeof daptaReal) =>
       Object.entries(c.data).filter(([k]) => k !== "utm").map(([, v]) => v),
   },
-} satisfies Record<ProveedorFormulario, { cuerpo: unknown; utm(c: never): Record<string, string>; valores(c: never): unknown[] }>;
+} satisfies Record<
+  Exclude<ProveedorFormulario, "form30x">,
+  { cuerpo: unknown; utm(c: never): Record<string, string>; valores(c: never): unknown[] }
+>;
 
 it.each(proveedores)(
   "un cuerpo REAL de %s deja en la base todas sus UTM y todos sus campos intactos",
