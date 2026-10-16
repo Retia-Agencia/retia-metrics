@@ -33,15 +33,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   por la API (solo GET, solo el form de SBJ): webhook firmado, payload con `tags`/`score`/`hidden`, y la respuesta de
   Calendly trae el uuid del invitado. Decidido: Form30x es el tercer proveedor (ADR 0092, ticket 271) y la key
   `FORM_30X_API_KEY` se usa con un solo form (regla en `AGENTS.md`). El form ya empuja a HubSpot (`salesFlow`) y no se
-  toca. Pendiente: S2 (nombre y slug) y S3 (puntaje del form, que se aparta del estándar) en `plan.md` §7; pagar
+  toca. S2 y S3 cerradas el mismo día (`AI Second Brain Jurídico`, `second-brain-juridico`; puntaje en §2.2, con el
+  form de AI Second Brain de 30X leído una vez como contraste). Pendiente: pagar
   Calendly, round robin y closers; el 271; la firma (hex o base64) y si hay webhook de parciales, las dos con
   envíos reales. Todo en `operations.md` §2.2.
   **Para retomar el setup en otra sesión, pegar:**
   ```
   Seguimos con el setup de AI Second Brain Jurídico (EstadoX) en el CRM de Retia. Lee AGENTS.md (la regla de
   FORM_30X_API_KEY: un solo form, por id, escribir pide mi ok), el ADR 0092, docs/operations.md §2.2 (estado y
-  checklist de 14 pasos) y el ticket 271 (dos fases). Arranca por el primer paso sin ✅ del checklist. Si S2 o S3
-  de docs/plan.md §7 siguen abiertas, pregúntamelas primero.
+  checklist de 14 pasos) y el ticket 271 (dos fases). Arranca por el primer paso sin ✅ del checklist.
   ```
 - **2026-10-15 (tarde, sesión de consulta; sin código): las hojas se corrieron por tercera vez, y el MCP queda anotado.**
   - **Hojas:** los campos ocultos del 14-oct (`ad_id`, `adset_id`, `campaign_id`) metieron 3 columnas después de

@@ -107,7 +107,7 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 
 | Pieza | Estado al 15-oct |
 |---|---|
-| Programa en el CRM | 🔴 no existe. Nombre y slug por decidir (S2 en `plan.md` §7); ticket USD 1.750 (el del producto en HubSpot) |
+| Programa en el CRM | 🔴 no existe. Nombre `AI Second Brain Jurídico`, slug `second-brain-juridico` (Mani, 15-oct); ticket USD 1.750 (el del producto en HubSpot) |
 | Formulario | Form30x, `AI Second Brain Jurídico \| Registro \| EstadoX`, id `cmulcaari04c001s6m0x1ats6`, público en `form.30x.com/to/cmulcaari04c101s6llqgpzze`, publicado, con parciales y pixel de Meta |
 | Calendly | evento `postulacion-second-brain-juridico-estadox`. 🔴 La cuenta está en plan gratis: el link no sirve hasta pagarla. Falta el round robin, invitar a los closers y cruzar sus calendarios. `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` está en `.env.local`, vacío |
 | HubSpot | el form ya empuja cada envío a HubSpot por su `salesFlow` (pipeline `944331885`, producto `segundocerebrojuridico_noviembre_2026`). **No se toca** |
@@ -133,21 +133,32 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
   `High`, `≤ −1` → `Low`. La variable `tag_lead_quality` es un texto fijo en `High` y no sirve.
 
 **El puntaje del form se aparta del estándar** (`docs/dapta/README.md`) y se corrige antes del primer envío real, con
-el ok de Mani:
+el ok de Mani. Lo que va, decidido por Mani el 15-oct (era S3):
 
-| Pregunta | Hoy | Estándar |
+| Pregunta | Hoy | Va |
 |---|---|---|
-| Ingreso mensual | las cuatro opciones en 0 | 0, 10, 20 o 30 puntos por rango, y −100 al rango descalificante (en Tactical y Memorable, menos de 1.000) |
-| Situación | por cargo (Socio/CEO … Desempleado), sin puntos | 0 a 20 puntos. Por cargo no hay tabla: la decide Mani (S3) |
+| Ingreso mensual | las cuatro opciones en 0 | los rangos de Tactical: <1.000 → 0 y −100 · 1.000-3.000 → 10 · 3.000-10.000 → 20 · >10.000 → 30 |
+| Situación | por cargo, sin puntos | Socio/CEO, Director/C-Level y Gerente Intermedio → 20 · Coordinador, Analista y Otro → 10 · Estudiante y Desempleado → 0. Mismo orden que el form de AI Second Brain de 30X (3/3/2/1/1/0/0/1) |
 | Urgencia "No es prioridad" | −100 | −100 ✅ |
 | Inversión "No cuento con los recursos" | **−129** | −100 |
-| Puede instalar IA "No lo tengo permitido" | −100 | no existe en el estándar: descalificante propio de SBJ (S3) |
-| `lead_value` | no existe | niveles por puntos, y baja uno con un descalificante (S3: cómo se arma en Form30x) |
+| Puede instalar IA | "No lo tengo permitido" −100 | igual ✅: solo esa descalifica; "No sé, debo preguntar" no resta (lo resuelve el closer) |
+| `lead_value` | no existe | niveles del estándar, por `scoreTagRules` sobre `score` (abajo) |
+
+**`lead_value` en Form30x:** los puntos de valor van de 0 a 50, así que cada cantidad de descalificantes (0 a 4) cae en
+una franja de `score` que no se pisa con otra: `[−100k, −100k + 50]`. Una regla por franja y nivel: sin
+descalificantes, 30-50 MUY ALTO VALOR, 15-29 ALTO VALOR, 0-14 VALOR MEDIO; con uno o más, la misma posición dentro de
+su franja baja un nivel (ALTO VALOR, VALOR MEDIO, BAJO VALOR). Son 15 reglas, más las dos de calidad que ya existen.
+Se verifica con `simulate` antes de escribir (paso 8) que dos reglas puedan dar tag a la vez; si no, la etiqueta se
+arma compuesta (`High|MUY ALTO VALOR`) y el adaptador del 271 la parte.
+
+**Contraste con 30X** (form `AI Second Brain | Registro | 30X`, ticket 2.000, leído una vez el 15-oct con el ok de
+Mani): ahí el Calendly solo se ve con ingreso de 3.000 o más, y también lo esconden Estudiante y "No sé, debo
+preguntar". SBJ es más abierto a propósito: descalifica solo menos de 1.000.
 
 **Checklist para dejarlo listo** (en orden; ✅ = hecho):
 
 1. ✅ Medir capacidad, leer la doc y el form de Form30x, decidir el proveedor (ADR 0092) — Claude, 15-oct.
-2. Decidir S2 (nombre y slug) y S3 (puntaje) en `plan.md` §7 — Mani.
+2. ✅ Decidir nombre y slug (S2) y el puntaje (S3) — Mani, 15-oct.
 3. 271 fase A: migración + proveedor que acepta hex o base64 — Codex implementa; la sesión aplica la migración con
    el ok de Mani y despliega.
 4. Crear el programa (nace inactivo) y su fuente Form30x en la tab Programa; generar el secreto y activar la fuente —
