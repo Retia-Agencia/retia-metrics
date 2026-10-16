@@ -8,6 +8,7 @@ import {
   type ResultadoAccionReporte,
 } from "@/app/(app)/p/[programa]/programa/acciones-reporte-whatsapp";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,6 +33,7 @@ interface MetricaVisible {
 
 interface ConfiguracionVisible {
   activo: boolean;
+  destino: string | null;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -60,6 +62,7 @@ export function ReporteWhatsapp({
   const [pendiente, startTransition] = useTransition();
   const [borrador, setBorrador] = useState<EntradaReporteWhatsapp>({
     activo: configuracion?.activo ?? false,
+    destino: configuracion?.destino ?? null,
     horas: configuracion?.horas ?? [],
     horaCierre: configuracion?.horaCierre ?? null,
     metricas: configuracion?.metricas ?? [],
@@ -67,11 +70,13 @@ export function ReporteWhatsapp({
   const deshabilitado = pendiente || !puedeEditar;
   const guardada: EntradaReporteWhatsapp = {
     activo: configuracion?.activo ?? false,
+    destino: configuracion?.destino ?? null,
     horas: configuracion?.horas ?? [],
     horaCierre: configuracion?.horaCierre ?? null,
     metricas: configuracion?.metricas ?? [],
   };
   const tieneCambios = borrador.activo !== guardada.activo
+    || borrador.destino !== guardada.destino
     || borrador.horaCierre !== guardada.horaCierre
     || JSON.stringify(borrador.horas) !== JSON.stringify(guardada.horas)
     || JSON.stringify(borrador.metricas) !== JSON.stringify(guardada.metricas);
@@ -116,7 +121,7 @@ export function ReporteWhatsapp({
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="font-medium">Enviar reporte</p>
-          <p className="text-muted-foreground">Juanito enviará cada programa por separado.</p>
+          <p className="text-muted-foreground">Juanito agrupará los programas que compartan destino.</p>
         </div>
         <Switch
           checked={borrador.activo}
@@ -124,6 +129,21 @@ export function ReporteWhatsapp({
           disabled={deshabilitado}
           aria-label="Enviar reporte por WhatsApp"
         />
+      </div>
+
+      <div className="space-y-1.5">
+        <label htmlFor="grupo-whatsapp" className="font-medium">Grupo de WhatsApp</label>
+        <Input
+          id="grupo-whatsapp"
+          value={borrador.destino ?? ""}
+          onChange={(evento) => setBorrador((actual) => ({
+            ...actual,
+            destino: evento.target.value,
+          }))}
+          disabled={deshabilitado}
+          placeholder="120363000000000000@g.us"
+        />
+        <p className="text-xs text-muted-foreground">Vacío: el grupo de alertas de Retia.</p>
       </div>
 
       <div className="space-y-2">

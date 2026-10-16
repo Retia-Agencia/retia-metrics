@@ -68,7 +68,12 @@ afterAll(async () => cerrar());
 
 async function crearPrograma(
   slug: string,
-  opciones: { activo?: boolean; hora?: number; metricas?: [] | ["costo_por_agenda"] } = {},
+  opciones: {
+    activo?: boolean;
+    hora?: number;
+    metricas?: [] | ["costo_por_agenda"];
+    destino?: string | null;
+  } = {},
 ) {
   const activo = opciones.activo ?? true;
   const [programa] = await db.insert(programs).values({
@@ -81,6 +86,7 @@ async function crearPrograma(
   await db.insert(reportesWhatsapp).values({
     programId: programa.id,
     activo: true,
+    destino: opciones.destino ?? null,
     horas: [opciones.hora ?? 11],
     horaCierre: 18,
     metricas: opciones.metricas ?? ["costo_por_agenda"],
@@ -166,6 +172,7 @@ describe("endpoint de maquina del semaforo", () => {
       sincronizacion: { estado: "ok", ultimaFoto: "2026-10-13T11:00:00-05:00" },
       envios: [{
         hora: "11:00",
+        destino: null,
         bloques: [{
           programa: "Programa uno",
           tipo: "dia",
@@ -221,6 +228,42 @@ describe("endpoint de maquina del semaforo", () => {
     expect(envio.texto.match(/━━━━━━━━━━/g)).toHaveLength(1);
   });
 
+  it("separa, ordena y declara los envíos por destino", async () => {
+    await crearPrograma("predeterminado");
+    await crearPrograma("grupo-dos", { destino: "120363000000000002@g.us" });
+    await crearPrograma("grupo-uno", { destino: "120363000000000001@g.us" });
+
+    const respuesta = await cuerpo();
+    const envios = respuesta.envios as Array<{
+      destino: string | null;
+      texto: string;
+      bloques: Array<{ programa: string }>;
+    }>;
+
+    expect(envios.map((envio) => envio.destino)).toEqual([
+      null,
+      "120363000000000001@g.us",
+      "120363000000000002@g.us",
+    ]);
+    expect(envios.map((envio) => envio.bloques.map((bloque) => bloque.programa))).toEqual([
+      ["Programa predeterminado"],
+      ["Programa grupo-uno"],
+      ["Programa grupo-dos"],
+    ]);
+    expect(envios.every((envio) => envio.texto.match(/🚦 Semáforo de pauta · 11:00/g)?.length === 1))
+      .toBe(true);
+    expect(respuesta.configuracion).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        programa: "Programa predeterminado",
+        destino: null,
+      }),
+      expect.objectContaining({
+        programa: "Programa grupo-uno",
+        destino: "120363000000000001@g.us",
+      }),
+    ]));
+  });
+
   it("dos llamadas seguidas leen Meta una sola vez", async () => {
     await crearPrograma("uno");
 
@@ -270,7 +313,7 @@ const LLAVES_PERMITIDAS = new Set([
   "bloques", "programa", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendas", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "ayerALaMismaHora", "dia",
-  "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "notas", "texto",
+  "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "notas", "texto", "destino",
 ]);
 
 function exigirListaBlanca(valor: unknown): void {
@@ -306,7 +349,7 @@ describe("lista blanca del contrato", () => {
     expect(esquemaRespuestaSemaforo.safeParse(adulterada).success).toBe(false);
   });
 
-  it("rechaza destino aunque antes perteneciera al contrato", async () => {
+  it("rechaza destino dentro de un bloque aunque sea válido en un envío", async () => {
     await crearPrograma("contrato");
     const respuesta = await cuerpo();
     const [envio] = respuesta.envios as Array<{ bloques: object[] }>;
@@ -318,7 +361,7 @@ describe("lista blanca del contrato", () => {
       }],
     };
 
-    expect(() => exigirListaBlanca(adulterada)).toThrow("Llave no permitida: destino");
+    expect(() => exigirListaBlanca(adulterada)).not.toThrow();
     expect(esquemaRespuestaSemaforo.safeParse(adulterada).success).toBe(false);
   });
 });

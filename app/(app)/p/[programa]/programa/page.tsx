@@ -254,6 +254,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   const configuracionReporte = reporteWhatsapp
     ? {
         activo: reporteWhatsapp.activo,
+        destino: reporteWhatsapp.destino,
         horas: reporteWhatsapp.horas,
         horaCierre: reporteWhatsapp.horaCierre,
         metricas: reporteWhatsapp.metricas.filter((metrica) => metrica === "costo_por_agenda"),

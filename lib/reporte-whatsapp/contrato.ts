@@ -49,12 +49,14 @@ export const esquemaBloque = z.object({
 
 const esquemaEnvio = z.object({
   hora: z.string(),
+  destino: z.string().nullable(),
   texto: z.string(),
   bloques: z.array(esquemaBloque),
 }).strict();
 
 const esquemaConfiguracion = z.object({
   programa: z.string(),
+  destino: z.string().nullable(),
   horas: z.array(z.string()),
   horaCierre: z.string().nullable(),
 }).strict();
