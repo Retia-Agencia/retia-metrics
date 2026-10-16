@@ -53,6 +53,11 @@ export const esquemaBloque = z.object({
   tipo: z.enum(["dia", "cierre"]),
   enlaceHub: z.string().url(),
   metricas: z.array(esquemaMetricaSemaforo),
+  cuentasMeta: z.array(z.object({
+    nombre: z.string(),
+    estado: z.enum(["al_dia", "problema"]),
+    detalle: z.string().nullable(),
+  }).strict()),
   error: z.string().nullable(),
 }).strict();
 

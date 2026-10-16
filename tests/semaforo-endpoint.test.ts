@@ -45,6 +45,9 @@ beforeEach(async () => {
   globalThis.fetch = vi.fn(async (entrada: string | URL | Request) => {
     const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
     const cuenta = /\/act_([^/]+)\/insights$/.exec(url.pathname)?.[1];
+    if (/\/act_[^/]+$/.test(url.pathname)) {
+      return Response.json({ account_status: 1, disable_reason: 0, amount_spent: "10000", spend_cap: "0" });
+    }
     return Response.json({
       data: cuenta ? [{
         ad_id: `ad-${cuenta}`,
@@ -273,9 +276,22 @@ describe("endpoint de maquina del semaforo", () => {
     const segunda = await cuerpo();
 
     expect(llamadas).toBeGreaterThan(0);
-    expect(globalThis.fetch).toHaveBeenCalledTimes(llamadas);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(llamadas + 1);
     expect(primera.sincronizacion).toMatchObject({ estado: "ok" });
     expect(segunda.sincronizacion).toMatchObject({ estado: "reciente" });
+  });
+
+  it("incluye en el bloque las cuentas de Meta de su programa", async () => {
+    await crearPrograma("cuentas");
+
+    const respuesta = await cuerpo();
+    const [envio] = respuesta.envios as Array<{
+      bloques: Array<{ cuentasMeta: unknown[] }>;
+    }>;
+
+    expect(envio.bloques[0]?.cuentasMeta).toEqual([
+      { nombre: "Cuenta cuentas", estado: "al_dia", detalle: null },
+    ]);
   });
 
   it("si falla el semaforo de un programa conserva su bloque y el del otro", async () => {
@@ -311,7 +327,7 @@ describe("endpoint de maquina del semaforo", () => {
 
 const LLAVES_PERMITIDAS = new Set([
   "generadoEn", "sincronizacion", "estado", "ultimaFoto", "envios", "configuracion",
-  "bloques", "programa", "tipo", "hora", "enlaceHub", "metricas", "error", "horas",
+  "bloques", "programa", "tipo", "hora", "enlaceHub", "metricas", "cuentasMeta", "detalle", "error", "horas",
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendasCrm", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "comparacion", "dia", "etiqueta",
   "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "nombre", "notas", "texto", "destino",

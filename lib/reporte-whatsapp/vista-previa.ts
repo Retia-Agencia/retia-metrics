@@ -50,6 +50,7 @@ export async function vistaPreviaDelReporte(
       tipo,
       enlaceHub,
       metricas,
+      cuentasMeta: [],
       error: null,
     }], hora, null, args.origen);
   };

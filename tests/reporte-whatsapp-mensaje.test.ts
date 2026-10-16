@@ -43,6 +43,7 @@ function bloque() {
     enlaceHub: "https://hub.test/alpha",
     error: null,
     metricas: [METRICA],
+    cuentasMeta: [],
   };
 }
 
@@ -163,6 +164,34 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).toContain("CRM: https://crm.test");
   });
 
+  it("resume todas las cuentas de Meta al dia", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      ...bloque(),
+      metricas: [{ ...METRICA, notas: [] }],
+      cuentasMeta: [
+        { nombre: "Cuenta uno", estado: "al_dia", detalle: null },
+        { nombre: "Cuenta dos", estado: "al_dia", detalle: null },
+      ],
+    }], "09:00", null, ORIGEN);
+
+    expect(mensaje).toContain("💳 Cuentas de Meta: todas al día (2)");
+  });
+
+  it("lista las cuentas de Meta con problema y elimina la confirmacion limpia", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      ...bloque(),
+      metricas: [{ ...METRICA, notas: [] }],
+      cuentasMeta: [
+        { nombre: "Cuenta sana", estado: "al_dia", detalle: null },
+        { nombre: "Cuenta cobros", estado: "problema", detalle: "pago pendiente" },
+      ],
+    }], "09:00", null, ORIGEN);
+
+    expect(mensaje).toContain("💳 Cuentas de Meta con problema:\n🔴 Cuenta cobros (Alpha): pago pendiente");
+    expect(mensaje).not.toContain("Cuenta sana (Alpha)");
+    expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
+  });
+
   it("marca solo el bloque de cierre cuando mezcla tipos", () => {
     const mensaje = armarMensajeDeLaHora([
       bloque(),
@@ -236,6 +265,7 @@ describe("nombres cortos de campaña", () => {
         ...METRICA,
         campanas: [{ nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930 }],
       }],
+      cuentasMeta: [],
       error: null,
     }], "11:00", null, ORIGEN);
     expect(mensaje).not.toContain("•");

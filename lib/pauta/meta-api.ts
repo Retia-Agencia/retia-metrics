@@ -74,6 +74,38 @@ async function consultarPaginas<T>(url: URL, token: string, f: FetchMeta): Promi
   return filas;
 }
 
+export interface EstadoDeCuentaMeta {
+  accountStatus: number;
+  disableReason: number;
+  amountSpent: number;
+  spendCap: number;
+}
+
+/** Estado de pago de una cuenta concreta; no usa el listado incompleto de cuentas visibles. */
+export async function estadoDeCuenta(
+  idMeta: string,
+  token: string,
+  f: FetchMeta = globalThis.fetch,
+): Promise<EstadoDeCuentaMeta> {
+  const url = new URL(`${META_BASE}/act_${idMeta}`);
+  url.searchParams.set("fields", "account_status,disable_reason,amount_spent,spend_cap");
+  const cuerpo = await consultar<{
+    account_status?: unknown;
+    disable_reason?: unknown;
+    amount_spent?: unknown;
+    spend_cap?: unknown;
+  }>(url, token, f);
+  if (typeof cuerpo.account_status !== "number") {
+    throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+  }
+  return {
+    accountStatus: cuerpo.account_status,
+    disableReason: Number(cuerpo.disable_reason ?? 0),
+    amountSpent: Number(cuerpo.amount_spent ?? 0),
+    spendCap: Number(cuerpo.spend_cap ?? 0),
+  };
+}
+
 /** Nombre del usuario del sistema al que pertenece el token. */
 export async function usuarioDelToken(
   token: string,

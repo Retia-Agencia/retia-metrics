@@ -194,8 +194,23 @@ export function armarMensajeDeLaHora(
   const avisoSincronizacion = avisoDeErrorDeSincronizacion(sincronizacion);
   if (avisoSincronizacion) lineas.push(avisoSincronizacion);
 
+  const cuentasMeta = bloques.flatMap((bloque) =>
+    bloque.cuentasMeta.map((cuenta) => ({ ...cuenta, programa: bloque.programa })),
+  );
+  const cuentasConProblema = cuentasMeta.filter((cuenta) => cuenta.estado === "problema");
+  if (cuentasMeta.length > 0) {
+    if (cuentasConProblema.length === 0) {
+      lineas.push(`💳 Cuentas de Meta: todas al día (${cuentasMeta.length})`);
+    } else {
+      lineas.push("💳 Cuentas de Meta con problema:");
+      for (const cuenta of cuentasConProblema) {
+        lineas.push(`🔴 ${cuenta.nombre} (${cuenta.programa}): ${cuenta.detalle}`);
+      }
+    }
+  }
+
   const notasInformativas = new Set<string>();
-  let tieneProblemas = bloques.some((bloque) => bloque.error !== null);
+  let tieneProblemas = cuentasConProblema.length > 0 || bloques.some((bloque) => bloque.error !== null);
   for (const bloque of bloques) {
     if (bloque.error) continue;
     for (const metrica of bloque.metricas) {

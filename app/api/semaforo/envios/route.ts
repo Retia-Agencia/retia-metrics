@@ -7,6 +7,7 @@ import { fotosPauta } from "@/lib/db/schema";
 import { diaCalendarioAnterior } from "@/lib/dias-habiles";
 import { fechaDeInstanteEnBogota, isoEnBogota } from "@/lib/format";
 import { sincronizarDiaEnCurso } from "@/lib/pauta/dia-en-curso";
+import { saludDeCuentasMeta } from "@/lib/pauta/salud-cuentas";
 import { sincronizarPautaEnVentana } from "@/lib/pauta/sincronizar";
 import { esquemaRespuestaSemaforo, type RespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
 import { armarMensajeDeLaHora, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
@@ -86,6 +87,18 @@ export async function POST(request: Request) {
     }
   }
 
+  let cuentasMetaPorPrograma = new Map<string, RespuestaSemaforo["envios"][number]["bloques"][number]["cuentasMeta"]>();
+  if (pendientes.length > 0) {
+    try {
+      cuentasMetaPorPrograma = await saludDeCuentasMeta(db, {
+        token: await tokenActivoMeta(db),
+        programIds: pendientes.map((pendiente) => pendiente.programId),
+      });
+    } catch {
+      cuentasMetaPorPrograma = new Map();
+    }
+  }
+
   const porPrograma = new Map(reportes.map((reporte) => [reporte.programId, reporte]));
   const origen = new URL(request.url).origin;
   const bloquesConDestino = await Promise.all(
@@ -115,6 +128,7 @@ export async function POST(request: Request) {
             tipo: pendiente.tipo,
             enlaceHub: enlaceAlHub(origen, reporte.slug),
             metricas,
+            cuentasMeta: cuentasMetaPorPrograma.get(pendiente.programId) ?? [],
             error: null,
           },
         };
@@ -126,6 +140,7 @@ export async function POST(request: Request) {
             tipo: pendiente.tipo,
             enlaceHub: enlaceAlHub(origen, reporte.slug),
             metricas: [],
+            cuentasMeta: cuentasMetaPorPrograma.get(pendiente.programId) ?? [],
             error: "No se pudo calcular el semáforo de este programa.",
           },
         };
