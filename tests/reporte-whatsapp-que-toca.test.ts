@@ -36,8 +36,14 @@ describe("que toca enviar por WhatsApp", () => {
       .toMatchObject([{ tipo: "cierre", hora: "20:00" }]);
   });
 
-  it("no devuelve nada un sabado", () => {
-    expect(queTocaAhora(new Date("2026-10-17T16:00:00Z"), [base])).toEqual([]);
+  it("envia también en sábado dentro de la gracia", () => {
+    expect(queTocaAhora(new Date("2026-10-17T13:05:00Z"), [base]))
+      .toMatchObject([{ tipo: "dia", hora: "08:00" }]);
+  });
+
+  it("a las 00:05 devuelve el cierre configurado", () => {
+    expect(queTocaAhora(new Date("2026-10-17T05:05:00Z"), [{ ...base, horaCierre: 0 }]))
+      .toMatchObject([{ tipo: "cierre", hora: "00:00" }]);
   });
 
   it("el cierre gana si coincide con una hora del dia", () => {
@@ -67,9 +73,8 @@ describe("que toca enviar por WhatsApp", () => {
   });
 
   it("resuelve en Bogota el instante UTC que cae en otro dia", () => {
-    // En UTC ya es lunes; en Bogota todavía es domingo.
     expect(queTocaAhora(new Date("2026-10-12T03:00:00Z"), [
       { ...base, horas: [22] },
-    ])).toEqual([]);
+    ])).toMatchObject([{ tipo: "dia", hora: "22:00" }]);
   });
 });

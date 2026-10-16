@@ -94,7 +94,7 @@ programa nuevo los campos van al crear el formulario. En Dapta, verificar con un
 El puntaje del formulario sigue el estándar único (`docs/dapta/README.md`, "Estándar de puntaje"). Desde el ADR 0069
 el formulario no decide la etapa: manda agenda, calidad y valor, y el CRM enruta (se construye con las etapas de 30X).
 
-### 2.2 AI Second Brain Jurídico (EstadoX) y Form30x (15-oct, en setup)
+### 2.2 AI Second Brain Jurídico (EstadoX) y Form30x (desde el 15-oct; recibe leads desde el 16-oct)
 
 Programa nuevo de EstadoX. HubSpot Support y el assigner de 30X no han respondido, así que la operación comercial
 corre en el CRM de Retia (Mani, 15-oct). Grupo donde se decide: WhatsApp "Core Estado X". Decisión de arquitectura
@@ -107,12 +107,12 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 
 | Pieza | Estado al 15-oct |
 |---|---|
-| Programa en el CRM | 🔴 no existe. Nombre `AI Second Brain Jurídico`, slug `second-brain-juridico` (Mani, 15-oct); ticket USD 1.750 (el del producto en HubSpot) |
+| Programa en el CRM | ✅ `AI Second Brain Jurídico`, slug `second-brain-juridico`, **activo** y con token de Calendly (16-oct); ticket USD 1.750 (el del producto en HubSpot). 🔴 **0 closers con membresía**: pasos 10 y 11 |
 | Formulario | Form30x, `AI Second Brain Jurídico \| Registro \| EstadoX`, id `cmulcaari04c001s6m0x1ats6`, público en `form.30x.com/to/cmulcaari04c101s6llqgpzze`, publicado, con parciales y pixel de Meta |
 | Calendly | evento `postulacion-second-brain-juridico-estadox`. ✅ Cuenta pagada (Mani, 16-oct); token y webhook del programa montados (paso 10). Falta vincular la cuenta de Calendly de cada closer en `/ajustes/usuarios` cuando estén dados de alta (paso 11) |
 | HubSpot | el form ya empuja cada envío a HubSpot por su `salesFlow` (pipeline `944331885`, producto `segundocerebrojuridico_noviembre_2026`). **No se toca** |
 | Fuente webhook | ✅ `Form30x - Registro SBJ`, activa y principal, firma hex, `form30x_form_id` puesto (16-oct). Los completos entran por el webhook y todo lo de las últimas 48 h, parciales incluidos, por la API cada 30 min (272) |
-| Envíos reales | 2 completos (4-oct con agenda, 14-oct sin agenda, este último una prueba interna de 30X) y 3 parciales, todos sin UTM |
+| Envíos reales | Antes del CRM: 2 completos (4-oct con agenda, 14-oct prueba interna de 30X) y 3 parciales, sin UTM. Las pruebas del paso 13 (16-oct) entraron bien y quedaron anuladas: al 16-oct, 3 leads y 0 deals vigentes |
 
 **Limitar al equipo de EstadoX (ADR 0094):** entra como developer a `/ajustes/usuarios`, edita la
 fila del gerente o del paid trafficker, elige **Programas que ve → Solo estos** y marca únicamente
@@ -140,8 +140,6 @@ setter. Para deshacer la limitación, vuelve a elegir **Todos**.
   y se ejecuta ese SQL (no hay workflow de GitHub desde el 16-oct).
 - **Respuestas:** las opciones se leen por `label` (sus ids se repiten entre preguntas). La de Calendly trae las URIs
   del evento y del invitado.
-- **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. **Se prueba con un
-  envío parcial real** (Mani, 15-oct) con la fuente ya montada: si no llega nada a `sobres_crudos`, SBJ no tiene Potencial.
 - **Campos ocultos:** ya declara `utm_*` (incluido `utm_id`), `campaign_id`, `ad_id`, `gclid`, `fbclid`, `hsa_*` y
   `referral_30x`, y desde el paso 8 (15-oct) también `adset_id` (regla del 14-oct, §2.1).
 - **Calidad y valor salen de `tags`**, que el form calcula con `scoreTagRules` sobre `score`. Hoy: `score ≥ 0` →
@@ -272,7 +270,7 @@ de Form30x, y no se copia: SBJ conserva la suya.
     sesión. Token y webhook del programa ✅ (15-oct; el `invitee.created` de la prueba entró sin error). Falta vincular
     a cada closer, que espera el paso 11.
 11. Dar de alta a los closers con membresía en el programa — Mani.
-12. Marcar la fuente principal con su URL y activar el programa — Mani.
+12. ✅ Marcar la fuente principal con su URL y activar el programa — Mani (verificado en la base el 16-oct).
 13. ✅ Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
     valor, UTMs y llamada colgada — la sesión. ✅ Desbloqueado el 16-oct: las `scoreTagRules` ya eran las del
     estándar (score 0 sin descalificantes es `High`); lo que faltaba era que el ingreso bajo descalificara y que un

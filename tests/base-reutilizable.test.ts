@@ -22,7 +22,8 @@ async function contenidoPublico(db: Db): Promise<Record<string, unknown>> {
   for (const { tablename } of resultado.rows) {
     const tabla = `"${tablename.replaceAll('"', '""')}"`;
     const filas = await cliente.query<{ filas: unknown }>(
-      `SELECT coalesce(json_agg(fila ORDER BY id), '[]'::json) AS filas FROM ${tabla} AS fila`,
+      // Orden por la fila entera: una tabla puente (usuarios_programas_alcance) no tiene `id`.
+      `SELECT coalesce(json_agg(fila ORDER BY to_jsonb(fila)::text), '[]'::json) AS filas FROM ${tabla} AS fila`,
     );
     contenido[tablename] = filas.rows[0]?.filas;
   }

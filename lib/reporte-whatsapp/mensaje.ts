@@ -1,4 +1,4 @@
-import { horaEnBogota, num } from "@/lib/format";
+import { horaEnBogota, instanteDeBogota, num } from "@/lib/format";
 import { rutaDePrograma } from "@/lib/nav";
 import { DEFINICION_METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
 import { NOTA_SIN_ERRORES } from "@/lib/semaforo/semaforo";
@@ -15,7 +15,7 @@ const MOTIVO = {
   sin_cohorte: "No hay cohorte activa",
   sin_umbral: "Falta cargar la meta en el CRM",
   sin_pauta: "No hay gasto de pauta hoy",
-  sin_referencia: "Sin referencia para comparar",
+  sin_agendas_meta: "Meta no reporta agendas de este programa",
 } as const;
 
 type Bloque = RespuestaSemaforo["envios"][number]["bloques"][number];
@@ -26,13 +26,12 @@ function dinero(valor: number | null): string {
   return valor === null ? "sin dato" : `$${num(Math.round(valor))} COP`;
 }
 
-function cantidadAgendas(valor: number): string {
-  return `${num(valor)} ${valor === 1 ? "agenda" : "agendas"}`;
-}
-
 function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
+  const porcentaje = metrica.porcentajeDelUmbral === null
+    ? ""
+    : ` · ${num(Math.round(metrica.porcentajeDelUmbral))}% de la meta`;
   const lineas = [
-    `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${dinero(metrica.costo)}`,
+    `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${dinero(metrica.costo)}${porcentaje}`,
   ];
 
   if (metrica.umbral) {
@@ -40,11 +39,13 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
       `Meta ${dinero(metrica.umbral.meta)} · aceptable ${dinero(metrica.umbral.aceptable)}`,
     );
   }
-  let gasto = `Gasto ${dinero(metrica.gasto)} · ${cantidadAgendas(metrica.agendas)}`;
-  if (metrica.ayerALaMismaHora) {
-    gasto += ` · ayer ${dinero(metrica.ayerALaMismaHora.costo)} (${num(metrica.ayerALaMismaHora.agendas)})`;
-  }
-  lineas.push(gasto);
+  lineas.push(
+    `Gasto ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
+  );
+  const etiqueta = tipo === "cierre" ? "Día anterior" : "Ayer a esta hora";
+  lineas.push(metrica.comparacion
+    ? `${etiqueta}: ${dinero(metrica.comparacion.costo)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
+    : `${etiqueta}: sin foto`);
   if (metrica.diasSeguidosEnRojo > 0) {
     const dias = Number(metrica.diasSeguidosEnRojo);
     lineas.push(`🔴 ${num(dias)} ${dias === 1 ? "día seguido" : "días seguidos"} en rojo`);
@@ -55,11 +56,37 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   }
   if (tipo === "cierre" && metrica.trayectoria.length > 0) {
     const puntos = metrica.trayectoria.map(
-      (punto) => `${punto.hora} ${dinero(punto.gasto)} · ${num(punto.agendas)} ag`,
+      (punto) => `${punto.hora} ${dinero(punto.gasto)} · ${punto.agendasMeta === null ? "—" : num(punto.agendasMeta)} ag Meta`,
     );
     lineas.push(`Trayectoria: ${puntos.join(" | ")}`);
   }
   return lineas;
+}
+
+function conteoDeColores(bloques: Bloque[]): string {
+  const conteos = { peligro: 0, alerta: 0, exito: 0, sin_dato: 0 };
+  for (const bloque of bloques) {
+    const color = bloque.metricas[0]?.color;
+    if (color) conteos[color] += 1;
+  }
+  return (["peligro", "alerta", "exito", "sin_dato"] as const)
+    .filter((color) => conteos[color] > 0)
+    .map((color) => `${conteos[color]}${EMOJI[color]}`)
+    .join(" · ");
+}
+
+function fechaDeCierre(dia: string): string {
+  const instante = instanteDeBogota(dia, "12:00");
+  if (!instante) return dia;
+  const partes = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  }).formatToParts(instante);
+  const valor = (tipo: Intl.DateTimeFormatPartTypes) =>
+    partes.find((parte) => parte.type === tipo)?.value.replace(".", "") ?? "";
+  return `${valor("weekday")} ${valor("day")}-${valor("month")}`;
 }
 
 export function enlaceAlHub(origen: string, slug: string): string {
@@ -82,8 +109,11 @@ export function armarMensajeDeLaHora(
 ): string {
   const todosSonCierre = bloques.every((bloque) => bloque.tipo === "cierre");
   const tiposMixtos = new Set(bloques.map((bloque) => bloque.tipo)).size > 1;
-  const titulo = todosSonCierre ? "Cierre del día" : "Semáforo de pauta";
-  const lineas = [`🚦 ${titulo} · ${hora}`, ""];
+  const conteo = conteoDeColores(bloques);
+  const titulo = todosSonCierre
+    ? `🌙 Cierre del ${fechaDeCierre(bloques[0]?.metricas[0]?.dia ?? "")}`
+    : `🚦 Semáforo de pauta · ${hora}${conteo ? ` · ${conteo}` : ""}`;
+  const lineas = [titulo, ""];
 
   const bloquesFormateados = bloques.map((bloque) => {
     const cierre = tiposMixtos && bloque.tipo === "cierre" ? " (cierre)" : "";
@@ -115,5 +145,6 @@ export function armarMensajeDeLaHora(
   for (const nota of notasInformativas) lineas.push(`ℹ️ ${nota}`);
   if (!tieneProblemas) lineas.push("✅ Sin errores en esta corrida");
   lineas.push(`CRM: ${origen}`);
+  lineas.push('ℹ️ El costo por agenda divide el gasto entre las agendas que reporta Meta (pixel). "CRM" son las citas de Calendly que llegaron con UTM de pauta. Si difieren mucho, revisar el pixel o los UTM.');
   return lineas.join("\n");
 }

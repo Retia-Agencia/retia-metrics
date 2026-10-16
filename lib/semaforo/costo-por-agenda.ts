@@ -13,9 +13,9 @@ export interface NotaSemaforo {
 
 export interface CostoPorAgenda {
   gasto: number;
-  agendas: number;
-  costo: number | null;
   agendasMeta: number | null;
+  agendasCrm: number;
+  costo: number | null;
   notas: NotaSemaforo[];
 }
 
@@ -86,15 +86,15 @@ async function contarAgendas(
 
 function completar(
   gasto: number,
-  agendas: number,
+  agendasCrm: number,
   agendasMeta: number | null,
   notas: NotaSemaforo[],
 ): CostoPorAgenda {
   return {
     gasto,
-    agendas,
-    costo: agendas > 0 ? gasto / agendas : null,
     agendasMeta,
+    agendasCrm,
+    costo: agendasMeta !== null && agendasMeta > 0 ? gasto / agendasMeta : null,
     notas,
   };
 }
@@ -113,7 +113,7 @@ async function costoDesdeFotos(
     eq(fotosPauta.fecha, args.dia),
     lte(fotosPauta.tomadaEn, args.hasta),
   )).orderBy(asc(fotosPauta.campanaId), desc(fotosPauta.tomadaEn));
-  const [suma, agendas] = await Promise.all([
+  const [suma, agendasCrm] = await Promise.all([
     sumarEnCop(db, fotos),
     contarAgendas(db, {
       programId: args.programId,
@@ -122,7 +122,7 @@ async function costoDesdeFotos(
       creadaHasta: args.hasta,
     }),
   ]);
-  return completar(suma.gasto, agendas, suma.agendasMeta, suma.notas);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas);
 }
 
 export async function costoPorAgenda(
@@ -161,7 +161,7 @@ export async function costoPorAgendaDeVentana(
       and(eq(gastoPauta.origen, "manual"), eq(gastoPauta.area, "paid")),
     ),
   ));
-  const [suma, agendas] = await Promise.all([
+  const [suma, agendasCrm] = await Promise.all([
     sumarEnCop(db, filas),
     contarAgendas(db, {
       programId: args.programId,
@@ -169,7 +169,7 @@ export async function costoPorAgendaDeVentana(
       hasta: args.hasta,
     }),
   ]);
-  return completar(suma.gasto, agendas, suma.agendasMeta, suma.notas);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas);
 }
 
 /**

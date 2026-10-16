@@ -1,6 +1,5 @@
-import { esDiaHabil } from "@/lib/dias-habiles";
-import { fechaDeInstanteEnBogota } from "@/lib/format";
 import type { MetricaDelReporte } from "@/lib/catalogo/reportes-whatsapp";
+import { MINUTOS_DE_GRACIA } from "@/lib/semaforo/semaforo";
 
 export interface ReporteConfig {
   programId: string;
@@ -26,11 +25,10 @@ const horaEnBogota = new Intl.DateTimeFormat("en-CA", {
 
 /** Regla pura que Juanito consulta: no lee la base ni mezcla programas. */
 export function queTocaAhora(instante: Date, reportes: ReporteConfig[]): ReportePendiente[] {
-  if (!esDiaHabil(fechaDeInstanteEnBogota(instante))) return [];
   const [horaTexto, minutoTexto] = horaEnBogota.format(instante).split(":");
   const hora = Number(horaTexto);
   const minuto = Number(minutoTexto);
-  if (minuto >= 15) return [];
+  if (minuto >= MINUTOS_DE_GRACIA) return [];
 
   return reportes.flatMap((reporte) => {
     if (!reporte.activo || reporte.metricas.length === 0) return [];

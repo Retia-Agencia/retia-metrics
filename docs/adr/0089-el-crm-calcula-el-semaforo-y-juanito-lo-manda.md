@@ -123,3 +123,24 @@ que el aviso de "el CRM no respondió" vaya al grupo correcto. Juanito manda cad
 RETIA_SEMAFORO_GRUPO` y sigue siendo el mismo número; tiene que estar en el grupo. **Se despliega primero Juanito**:
 hoy ignora `destino`, así que un CRM nuevo con un Juanito viejo mandaría el reporte de SBJ al grupo de Retia. El id
 del grupo no es un dato personal y no rompe la lista blanca del contrato (259).
+
+## Enmienda 16-oct-2026 (Mani): color contra la meta, cierre a medianoche y todos los días
+
+Sale del mensaje de las 8 a.m. del 16-oct: ComunicArte salió 🟢 con 218.653 COP por agenda y una meta de 85.000,
+porque de día el color comparaba contra ayer a la misma hora (ayer a las 8 había 0 agendas, hoy 1). Cambian los
+puntos 5 y el horario:
+
+1. **El color siempre sale contra el objetivo de la cohorte** (meta = verde, aceptable = amarillo, encima = rojo), a
+   cualquier hora. "Ayer a la misma hora" queda **al lado, como contexto**, nunca decide el color. Gasto con 0
+   agendas es rojo; el retraso de atribución se dice en el mensaje en vez de esconder el color.
+2. **El cierre de un día sale a medianoche (00:00), como primer mensaje del día siguiente**, con el día completo:
+   antes de responder se sincroniza ese día en Meta y se lee de `gasto_pauta`. Las 20 h pasan a ser un semáforo
+   normal. El cron diario sigue releyendo los últimos siete días (Meta ajusta hacia atrás), así que el cierre de
+   medianoche puede moverse un poco al día siguiente.
+3. **El semáforo corre todos los días, también sábado y domingo** (la pauta gasta los siete días; en 30X el semáforo
+   sale el sábado). Para el semáforo, "ayer" es el día calendario anterior y los días seguidos en rojo son días
+   calendario. La regla de días hábiles de `AGENTS.md` sigue rigiendo el resto del CRM (metas por día, comercial).
+4. **Una foto que no existe no es $0.** Si no hay foto de ayer a esa hora, la comparación dice "sin foto" y no
+   calcula nada.
+5. Los horarios siguen siendo datos del programa: 0 (cierre), 8, 11, 14, 17 y 20. Juanito pregunta cada hora todos
+   los días (`SEMAFORO_RETIA_CRON=0 * * * *` en su `.env`).

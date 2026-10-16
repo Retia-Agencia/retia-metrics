@@ -26,7 +26,8 @@ Form30x guarda los parciales pero su webhook solo manda `response.completed` (me
    el envío `(fuente, responseId, es_parcial)`, se salta sin escribir sobre. Un parcial sin correo se salta.
    Devuelve un resumen (leídas, nuevas, saltadas, con error).
 4. **`POST /api/cron/form30x`:** `CRON_SECRET` como `/api/cron/pauta`; responde el resumen sin datos personales.
-5. **`.github/workflows/form30x.yml`:** `schedule: */30 * * * *` y `workflow_dispatch`, un `curl` con los secretos
+5. *(Reemplazado el 16-oct: el disparo es pg_cron en Supabase, job `leer-form30x`, migración 0092; el workflow y sus
+   secretos se borraron en `85344ce`. Ver ADR 0093 punto 3.)* **`.github/workflows/form30x.yml`:** `schedule: */30 * * * *` y `workflow_dispatch`, un `curl` con los secretos
    del repo `CRON_SECRET` y `CRM_URL`. Falla si la respuesta no es 200.
 6. **Guardianes:** ningún archivo fuera de `lib/form30x/api.ts` nombra `FORM_30X_API_KEY` ni `form.30x.com/api`;
    ese archivo no contiene `PATCH`, `PUT`, `POST` ni `DELETE`.
@@ -34,7 +35,8 @@ Form30x guarda los parciales pero su webhook solo manda `response.completed` (me
 ## Configuración (Mani y la sesión, con el ok de Mani)
 
 - `FORM_30X_API_KEY` en Vercel, solo producción (la sube la sesión desde `.env.local`, sin mostrarla).
-- `CRON_SECRET` y `CRM_URL` como secretos del repo en GitHub.
+- ~~`CRON_SECRET` y `CRM_URL` como secretos del repo en GitHub.~~ Borrados el 16-oct: pg_cron los lee del Vault de
+  Supabase (`crm_url`, `cron_secret`).
 - `form30x_form_id = cmulcaari04c001s6m0x1ats6` en la fuente de SBJ.
 
 ## Fuera de alcance

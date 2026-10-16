@@ -1,7 +1,7 @@
 import { and, desc, eq, lte } from "drizzle-orm";
 import { fotosPauta, pautaSincronizaciones } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaHabilAnterior } from "@/lib/dias-habiles";
+import { diaCalendarioAnterior } from "@/lib/dias-habiles";
 import { fechaDeInstanteEnBogota, instanteDeBogota } from "@/lib/format";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { cohorteActiva } from "@/lib/queries/cohortes";
@@ -12,8 +12,7 @@ import {
   type NotaSemaforo,
 } from "./costo-por-agenda";
 import {
-  colorDeCierre,
-  colorDeDia,
+  colorDelCosto,
   porcentajeDelUmbral,
   type ColorSemaforo,
   type MotivoSemaforo,
@@ -21,12 +20,19 @@ import {
 } from "./color";
 
 export const NOTA_SIN_ERRORES = "Sin errores en esta corrida.";
+export const MINUTOS_DE_GRACIA = 15;
 
 export interface PuntoSemaforo {
   hora: string;
   gasto: number;
-  agendas: number;
+  agendasMeta: number | null;
+  agendasCrm: number;
   costo: number | null;
+}
+
+export interface ComparacionSemaforo extends Omit<PuntoSemaforo, "hora"> {
+  dia: string;
+  etiqueta: "ayer a esta hora" | "día anterior";
 }
 
 export interface MetricaSemaforo {
@@ -34,17 +40,24 @@ export interface MetricaSemaforo {
   color: ColorSemaforo;
   motivo: MotivoSemaforo;
   moneda: "COP";
+  dia: string;
   gasto: number;
-  agendas: number;
+  agendasMeta: number | null;
+  agendasCrm: number;
   costo: number | null;
   umbral: UmbralCostoPorAgenda | null;
   porcentajeDelUmbral: number | null;
-  ayerALaMismaHora: (Omit<PuntoSemaforo, "hora"> & { dia: string }) | null;
+  comparacion: ComparacionSemaforo | null;
   trayectoria: PuntoSemaforo[];
   diasSeguidosEnRojo: number;
-  agendasMeta: number | null;
   campanas: [];
   notas: NotaSemaforo[];
+}
+
+function corteDeHora(dia: string, hora: number): Date {
+  const instante = instanteDeBogota(dia, `${String(hora).padStart(2, "0")}:00`);
+  if (!instante) throw new Error("No se pudo construir el corte horario en Bogotá.");
+  return new Date(instante.getTime() + MINUTOS_DE_GRACIA * 60_000);
 }
 
 function partesDeHoraEnBogota(instante: Date): { hora: number; minuto: number; texto: string } {
@@ -92,10 +105,16 @@ async function trayectoriaDelDia(
 
   const puntos = await Promise.all(horas.map(async (horaPunto) => {
     const horaTexto = `${String(horaPunto).padStart(2, "0")}:00`;
-    const hasta = instanteDeBogota(args.dia, horaTexto);
-    if (!hasta || primera.tomadaEn > hasta) return null;
+    const hasta = corteDeHora(args.dia, horaPunto);
+    if (primera.tomadaEn > hasta) return null;
     const datos = await costoPorAgenda(db, { programId: args.programId, dia: args.dia, hasta });
-    return { hora: horaTexto, gasto: datos.gasto, agendas: datos.agendas, costo: datos.costo };
+    return {
+      hora: horaTexto,
+      gasto: datos.gasto,
+      agendasMeta: datos.agendasMeta,
+      agendasCrm: datos.agendasCrm,
+      costo: datos.costo,
+    };
   }));
   return puntos.filter((punto): punto is PuntoSemaforo => punto !== null).slice(-14);
 }
@@ -104,7 +123,7 @@ async function diasSeguidosEnRojo(
   db: Db,
   args: { programId: string; hoy: string; tieneCohorte: boolean; umbral: UmbralCostoPorAgenda | null },
 ): Promise<number> {
-  let dia = diaHabilAnterior(args.hoy);
+  let dia = diaCalendarioAnterior(args.hoy);
   let cantidad = 0;
   // La v1 compara el historial con el umbral de la cohorte activa de hoy, no con umbrales históricos.
   for (let revisados = 0; revisados < 20; revisados++) {
@@ -113,10 +132,10 @@ async function diasSeguidosEnRojo(
       desde: dia,
       hasta: dia,
     });
-    const resultado = colorDeCierre({ datos, tieneCohorte: args.tieneCohorte, umbral: args.umbral });
+    const resultado = colorDelCosto({ datos, tieneCohorte: args.tieneCohorte, umbral: args.umbral });
     if (resultado.color !== "peligro") break;
     cantidad += 1;
-    dia = diaHabilAnterior(dia);
+    dia = diaCalendarioAnterior(dia);
   }
   return cantidad;
 }
@@ -131,9 +150,15 @@ function agregarSinDuplicar(destino: NotaSemaforo[], notas: NotaSemaforo[]): voi
 
 async function notasDeCalidad(
   db: Db,
-  args: { programId: string; hoy: string; ayer: string; tieneCohorte: boolean; umbral: UmbralCostoPorAgenda | null },
+  args: {
+    programId: string;
+    hoy: string;
+    gastoComparacion: number | null;
+    tieneCohorte: boolean;
+    umbral: UmbralCostoPorAgenda | null;
+  },
 ): Promise<NotaSemaforo[]> {
-  const [ultimoError, ultimoOk, fotoHoy, gastoAyer] = await Promise.all([
+  const [ultimoError, ultimoOk, fotoHoy] = await Promise.all([
     db.select({ inicio: pautaSincronizaciones.inicio }).from(pautaSincronizaciones)
       .where(eq(pautaSincronizaciones.estado, "error"))
       .orderBy(desc(pautaSincronizaciones.inicio)).limit(1).then((filas) => filas[0] ?? null),
@@ -144,7 +169,6 @@ async function notasDeCalidad(
       eq(fotosPauta.programId, args.programId),
       eq(fotosPauta.fecha, args.hoy),
     )).limit(1).then((filas) => filas[0] ?? null),
-    costoPorAgendaDeVentana(db, { programId: args.programId, desde: args.ayer, hasta: args.ayer }),
   ]);
   const notas: NotaSemaforo[] = [];
   if (ultimoError && (!ultimoOk || ultimoError.inicio > ultimoOk.inicio)) {
@@ -153,7 +177,7 @@ async function notasDeCalidad(
       texto: `La última sincronización con Meta falló a las ${partesDeHoraEnBogota(ultimoError.inicio).texto}.`,
     });
   }
-  if (!fotoHoy && gastoAyer.gasto > 0) {
+  if (!fotoHoy && args.gastoComparacion !== null && args.gastoComparacion > 0) {
     notas.push({ tipo: "problema", texto: "Meta no trajo datos hoy de este programa." });
   }
   if (!args.tieneCohorte) {
@@ -165,7 +189,12 @@ async function notasDeCalidad(
 }
 
 function resumen(datos: CostoPorAgenda): Omit<PuntoSemaforo, "hora"> {
-  return { gasto: datos.gasto, agendas: datos.agendas, costo: datos.costo };
+  return {
+    gasto: datos.gasto,
+    agendasMeta: datos.agendasMeta,
+    agendasCrm: datos.agendasCrm,
+    costo: datos.costo,
+  };
 }
 
 export async function semaforoDelPrograma(
@@ -173,34 +202,61 @@ export async function semaforoDelPrograma(
   args: { programId: string; ahora: Date; tipo: "dia" | "cierre"; horas?: number[] },
 ): Promise<MetricaSemaforo> {
   const hoy = fechaDeInstanteEnBogota(args.ahora);
-  const ayer = diaHabilAnterior(hoy);
+  const dia = args.tipo === "cierre" ? diaCalendarioAnterior(hoy) : hoy;
+  const diaComparacion = diaCalendarioAnterior(dia);
   const hora = partesDeHoraEnBogota(args.ahora);
-  const instanteAyer = instanteDeBogota(ayer, hora.texto);
-  if (!instanteAyer) throw new Error("No se pudo construir el instante de ayer en Bogotá.");
+  const instanteComparacion = corteDeHora(diaComparacion, hora.hora);
+  const [fotoComparacion] = args.tipo === "dia"
+    ? await db.select({ id: fotosPauta.id }).from(fotosPauta).where(and(
+      eq(fotosPauta.programId, args.programId),
+      eq(fotosPauta.fecha, diaComparacion),
+      lte(fotosPauta.tomadaEn, instanteComparacion),
+    )).limit(1)
+    : [null];
 
-  const [{ tieneCohorte, umbral }, datos, datosAyer] = await Promise.all([
+  const [{ tieneCohorte, umbral }, datos, datosComparacion] = await Promise.all([
     leerUmbral(db, args.programId),
-    // Hoy, de día o al cierre, sale de las fotos: el gasto cerrado de hoy lo escribe el cron diario
-    // después de las 18 h, así que `gasto_pauta` todavía no lo tiene.
-    costoPorAgenda(db, { programId: args.programId, dia: hoy, hasta: args.ahora }),
-    costoPorAgenda(db, { programId: args.programId, dia: ayer, hasta: instanteAyer }),
+    args.tipo === "cierre"
+      ? costoPorAgendaDeVentana(db, { programId: args.programId, desde: dia, hasta: dia })
+      : costoPorAgenda(db, { programId: args.programId, dia, hasta: corteDeHora(dia, hora.hora) }),
+    args.tipo === "cierre"
+      ? costoPorAgendaDeVentana(db, {
+        programId: args.programId,
+        desde: diaComparacion,
+        hasta: diaComparacion,
+      })
+      : fotoComparacion
+        ? costoPorAgenda(db, {
+          programId: args.programId,
+          dia: diaComparacion,
+          hasta: instanteComparacion,
+        })
+        : Promise.resolve(null),
   ]);
-  const resultado = args.tipo === "dia"
-    ? colorDeDia({ hoy: datos, ayer: datosAyer, umbral })
-    : colorDeCierre({ datos, tieneCohorte, umbral });
+  const resultado = colorDelCosto({ datos, tieneCohorte, umbral });
+  const ahoraTrayectoria = args.tipo === "cierre"
+    ? instanteDeBogota(dia, "23:59")
+    : args.ahora;
+  if (!ahoraTrayectoria) throw new Error("No se pudo construir el fin del día en Bogotá.");
   const [trayectoria, diasRojos, calidad] = await Promise.all([
     trayectoriaDelDia(db, {
       programId: args.programId,
-      dia: hoy,
-      ahora: args.ahora,
+      dia,
+      ahora: ahoraTrayectoria,
       horas: args.horas,
     }),
     diasSeguidosEnRojo(db, { programId: args.programId, hoy, tieneCohorte, umbral }),
-    notasDeCalidad(db, { programId: args.programId, hoy, ayer, tieneCohorte, umbral }),
+    notasDeCalidad(db, {
+      programId: args.programId,
+      hoy: dia,
+      gastoComparacion: args.tipo === "dia" ? (datosComparacion?.gasto ?? null) : null,
+      tieneCohorte,
+      umbral,
+    }),
   ]);
   const notas: NotaSemaforo[] = [];
   agregarSinDuplicar(notas, datos.notas);
-  agregarSinDuplicar(notas, datosAyer.notas);
+  if (datosComparacion) agregarSinDuplicar(notas, datosComparacion.notas);
   agregarSinDuplicar(notas, calidad);
   if (!notas.some((nota) => nota.tipo === "problema")) {
     notas.push({ tipo: "info", texto: NOTA_SIN_ERRORES });
@@ -211,13 +267,17 @@ export async function semaforoDelPrograma(
     color: resultado.color,
     motivo: resultado.motivo,
     moneda: "COP",
+    dia,
     ...resumen(datos),
     umbral,
     porcentajeDelUmbral: porcentajeDelUmbral(datos.costo, umbral),
-    ayerALaMismaHora: { dia: ayer, ...resumen(datosAyer) },
+    comparacion: datosComparacion ? {
+      dia: diaComparacion,
+      ...resumen(datosComparacion),
+      etiqueta: args.tipo === "cierre" ? "día anterior" : "ayer a esta hora",
+    } : null,
     trayectoria,
     diasSeguidosEnRojo: diasRojos,
-    agendasMeta: datos.agendasMeta,
     campanas: [],
     notas,
   };

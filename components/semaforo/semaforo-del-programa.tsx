@@ -51,14 +51,14 @@ export async function SemaforoDelPrograma({ programId }: { programId: string }) 
           {metrica.umbral ? (
             <p className="text-sm text-muted-foreground">(umbral {cop(metrica.umbral.meta)})</p>
           ) : null}
-          <p>{metrica.agendas === 0 ? "0 agendas" : `${metrica.agendas} agendas`}</p>
+          <p>{metrica.agendasCrm === 0 ? "0 agendas CRM" : `${metrica.agendasCrm} agendas CRM`}</p>
         </div>
 
         <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <dt className="text-muted-foreground">Ayer a esta hora</dt>
             <dd className="cifra">
-              {metrica.ayerALaMismaHora ? costo(metrica.ayerALaMismaHora.costo) : "Sin referencia"}
+              {metrica.comparacion ? costo(metrica.comparacion.costo) : "Sin foto"}
             </dd>
           </div>
           <div>
@@ -67,7 +67,7 @@ export async function SemaforoDelPrograma({ programId }: { programId: string }) 
           </div>
           {metrica.diasSeguidosEnRojo > 0 ? (
             <div>
-              <dt className="text-muted-foreground">Días hábiles seguidos en rojo</dt>
+              <dt className="text-muted-foreground">Días seguidos en rojo</dt>
               <dd className="cifra">{metrica.diasSeguidosEnRojo}</dd>
             </div>
           ) : null}

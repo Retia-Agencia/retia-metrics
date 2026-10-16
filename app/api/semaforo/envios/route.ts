@@ -4,8 +4,10 @@ import { reportesActivos } from "@/lib/catalogo/reportes-whatsapp";
 import { tokenActivoMeta } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
 import { fotosPauta } from "@/lib/db/schema";
-import { isoEnBogota } from "@/lib/format";
+import { diaCalendarioAnterior } from "@/lib/dias-habiles";
+import { fechaDeInstanteEnBogota, isoEnBogota } from "@/lib/format";
 import { sincronizarDiaEnCurso } from "@/lib/pauta/dia-en-curso";
+import { sincronizarPautaEnVentana } from "@/lib/pauta/sincronizar";
 import { esquemaRespuestaSemaforo, type RespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
 import { armarMensajeDeLaHora, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
 import { queTocaAhora } from "@/lib/reporte-whatsapp/que-toca";
@@ -49,6 +51,7 @@ export async function POST(request: Request) {
   })));
 
   let sincronizacion: RespuestaSemaforo["sincronizacion"] = null;
+  let problemaCierre: string | null = null;
   if (pendientes.length > 0) {
     let estado: NonNullable<RespuestaSemaforo["sincronizacion"]>["estado"] = "error";
     try {
@@ -65,6 +68,24 @@ export async function POST(request: Request) {
     sincronizacion = { estado, ultimaFoto: foto ? isoEnBogota(foto) : null };
   }
 
+  if (pendientes.some((pendiente) => pendiente.tipo === "cierre")) {
+    const dia = diaCalendarioAnterior(fechaDeInstanteEnBogota(ahora));
+    const aviso = `No se pudo releer el ${dia} en Meta; cifras del último cron.`;
+    try {
+      const resultado = await sincronizarPautaEnVentana(db, {
+        token: await tokenActivoMeta(db),
+        desde: dia,
+        hasta: dia,
+        disparadaPor: "endpoint",
+        refrescarArbol: false,
+        ahora,
+      });
+      if (resultado.estado === "error") problemaCierre = aviso;
+    } catch {
+      problemaCierre = aviso;
+    }
+  }
+
   const porPrograma = new Map(reportes.map((reporte) => [reporte.programId, reporte]));
   const origen = new URL(request.url).origin;
   const bloques: RespuestaSemaforo["envios"][number]["bloques"] = await Promise.all(
@@ -78,11 +99,13 @@ export async function POST(request: Request) {
                 programId: pendiente.programId,
                 ahora,
                 tipo: pendiente.tipo,
-                horas: [
-                  ...reporte.horas,
-                  ...(reporte.horaCierre === null ? [] : [reporte.horaCierre]),
-                ],
-              });
+                horas: reporte.horas,
+              }).then((resultado) => pendiente.tipo === "cierre" && problemaCierre
+                ? {
+                  ...resultado,
+                  notas: [...resultado.notas, { tipo: "problema" as const, texto: problemaCierre }],
+                }
+                : resultado);
           }
         }));
         return {

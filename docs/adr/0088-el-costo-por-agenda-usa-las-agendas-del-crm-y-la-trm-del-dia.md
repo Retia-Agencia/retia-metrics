@@ -50,3 +50,23 @@
 | La TRM de hoy para todo | el ROAS de septiembre cambiaría cada día con el dólar |
 | Una TRM fija por cohorte | se aleja del costo real si el dólar se mueve en las seis semanas de venta |
 | No convertir | sin ROAS ni costo por venta en una sola cifra, que es lo que se pidió |
+
+---
+
+## Enmienda 16-oct-2026 (Mani): en el semáforo, el costo por agenda divide por las agendas de Meta
+
+Cambia el punto 1 **solo para el semáforo** (258, 260) y la consecuencia del último punto ("su color sale del costo
+oficial"). El Hub y el diccionario de métricas siguen con las agendas del CRM hasta que se decida otra cosa.
+
+1. **El color del semáforo sale de gasto ÷ agendas según Meta** (`agendas_meta` de las fotos durante el día y de
+   `gasto_pauta` para un día cerrado). Las agendas del CRM de Paid van al lado, en la misma línea.
+2. **Por qué:** el equipo de pauta (Michael, Ander) mide y decide con las agendas de Meta desde sus Excel, y el umbral
+   que cargaron está pensado sobre ese número. El 16-oct el semáforo dividía por el CRM y el Excel por Meta: la misma
+   pauta salía en colores distintos (TI 14-oct: 70 mil en el Excel, 92 mil en el CRM) y la discusión se fue a "¿cuál
+   número es real?". Medido ese día: el gasto cuadra con el Excel peso a peso; lo que difiere es el denominador.
+3. **Lo que no se pierde:** la diferencia Meta contra CRM sigue siendo el control del punto 2 (ticket 249), y el
+   mensaje lo dice al final: qué cuenta cada número y que el color sale de Meta.
+4. **Riesgo aceptado:** Meta subreporta o sobrereporta según el pixel (en 30X, hasta 166% contra los formularios). Si
+   el control del 249 muestra una diferencia sostenida de más de 40%, esta enmienda se revisa.
+5. **Sin agendas según Meta** (una cuenta sin el evento del pixel, `agendas_meta` nulo), el semáforo dice "Meta no
+   reporta agendas" y no pinta color: nunca cae en silencio al número del CRM.

@@ -77,7 +77,8 @@ describe("vista previa del reporte por WhatsApp", () => {
 
     expect(resultado.aviso).toBeNull();
     expect(resultado.dia).toMatch(/^🚦 Semáforo de pauta ·/);
-    expect(resultado.dia).toMatch(/CRM: https:\/\/crm\.retia\.test$/);
+    expect(resultado.dia).toContain("CRM: https://crm.retia.test");
+    expect(resultado.dia).toMatch(/revisar el pixel o los UTM\.$/);
     expect(resultado.cierre).toBeNull();
   });
 
@@ -87,6 +88,6 @@ describe("vista previa del reporte por WhatsApp", () => {
     const resultado = await vista(programa);
 
     expect(resultado.aviso).toBeNull();
-    expect(resultado.cierre).toMatch(/^🚦 Cierre del día ·/);
+    expect(resultado.cierre).toMatch(/^🌙 Cierre del lunes 12-oct/);
   });
 });

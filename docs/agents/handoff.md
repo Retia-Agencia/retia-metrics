@@ -27,6 +27,11 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-16 (mañana): estado de SBJ revisado contra la base; docs al día.** El cron de Form30x ya es confiable:
+  pg_cron (`leer-form30x`) salió bien a las 14:13 y 14:43 UTC y `form30x_leido_en` se actualiza. El programa está
+  activo, con token de Calendly y la fuente Form30x activa y principal. Falta lo único que bloquea avisar en "Core
+  Estado X": **dar de alta a los closers con membresía en SBJ (hoy 0) y vincular su cuenta de Calendly** (pasos 10 y
+  11 de `operations.md` §2.2); hasta entonces una cita que entre queda suelta en el Inbox.
 - **2026-10-16 (05:30 UTC): paso 13 de SBJ cerrado; el cron de Form30x no se da por confiable.** El `*/30` no
   disparó: el YAML fue inválido hasta las 03:31 UTC y después GitHub no lo programó en los turnos de 04:00 a 05:00
   (ni el `13,43` nuevo a las 05:13); repo público, no fork, Actions habilitado, workflow `active`, las manuales salen

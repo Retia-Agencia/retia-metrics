@@ -183,7 +183,7 @@ cuenta por deal, no por llamada (ADR 0079). Por closer, cada deal va a quien tom
 | Métrica | Fórmula | Unidad | ¿Se suma? | Función | Estado |
 |---|---|---|---|---|---|
 | Gasto | Σ gasto de las cuentas del programa (§1.6 y §1.7), convertido a COP con la TRM del día (§1.8) | COP | sí | `sumarEnCop` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
-| Costo por agenda | gasto ÷ agendas **del CRM** de área Paid (§3.3) | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` | ✅ |
+| Costo por agenda | semáforo: gasto ÷ agendas según Meta; Hub: gasto ÷ agendas **del CRM** de área Paid (§3.3) | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` | ✅ |
 | Agendas según Meta | §1.9 | agendas | sí | ídem | ✅ |
 | Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 | 🟡 |
 | CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 | 🟡 |
@@ -202,30 +202,18 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
      registro o interacción. Así lo pidió Pauta el 15-oct (HQ-4: "todas las campañas"), y cada mensaje lo
      recuerda con la nota "El gasto incluye todas las campañas del programa".
    - Lo que viene en USD se pasa a COP con la TRM del día.
-2. **Agendas:** las agendas del CRM (§1.2) creadas ese día, hasta el momento del cálculo, de área **Paid** (§2).
-3. **Costo = gasto ÷ agendas.** Con 0 agendas no hay costo ("sin dato").
+2. **Agendas:** el semáforo usa las agendas que reporta Meta (pixel). Muestra al lado las agendas del CRM (§1.2)
+   creadas ese día, hasta el momento del cálculo, de área **Paid** (§2), para detectar diferencias. El Hub conserva
+   como denominador las agendas del CRM (ADR 0088, enmienda del 16-oct).
+3. **Costo del semáforo = gasto ÷ agendas según Meta.** Con gasto y 0 agendas de Meta queda rojo; si Meta no
+   reporta el dato, queda sin dato.
 4. **Umbral:** el objetivo "Costo por agenda" (área Total) de la **cohorte activa** del programa, que se carga en
    Programa › Ventas › Objetivos de la cohorte: `meta` y `aceptable` en COP. Lo pueden editar quien administra y
    el paid trafficker (266).
-5. **Color** (`lib/semaforo/color.ts`):
-   - **Al cierre del día** y para "días seguidos en rojo": contra el umbral. ≤ meta 🟢; ≤ aceptable 🟡; más 🔴.
-     Sin agendas pero con gasto 🔴. Sin gasto ni agendas ⚪ ("No hay gasto de pauta hoy").
-   - **Durante el día** (los mensajes de cada hora): contra **el día hábil anterior a la misma hora**, no
-     contra la meta. La razón (ADR 0089): las agendas llegan con retraso respecto del gasto, así que a media
-     mañana casi cualquier día "se ve caro" contra la meta de cierre; comparar contra ayer a la misma hora mide
-     si hoy va mejor o peor que un día comparable.
-     - 🟢 si hoy cuesta ≤ lo que costaba ayer a esta hora.
-     - 🟡 si cuesta más, pero sin pasar de ayer × (aceptable ÷ meta).
-     - 🔴 si pasa de eso. Hoy hay agendas y ayer no 🟢; hoy no y ayer sí 🔴; ninguno de los dos ⚪.
-   - Sin umbral cargado, cualquier costo por encima del de ayer es 🔴 (no hay franja amarilla).
-   - **Ejemplo** (meta 80.000, aceptable 100.000; la franja amarilla es 100.000 ÷ 80.000 = 1,25 veces la referencia):
-     - Martes a las 11 h: 360.000 de gasto y 3 agendas = **120.000** por agenda.
-     - Miércoles a las 11 h: 330.000 y 3 agendas = **110.000**. Contra el martes (110.000 ≤ 120.000) es 🟢:
-       va mejor que un día comparable, aunque contra la meta de cierre sería 🔴.
-     - Si el miércoles llevara 390.000 y 3 agendas = 130.000: el tope es 120.000 × 1,25 = 150.000, así que 🟡.
-     - Con 600.000 y 3 agendas = 200.000: 🔴.
-     - Al cierre (20 h), el mismo miércoles se juzga contra la meta: si cerró en 85.000 por agenda, 🟡.
-6. **Días seguidos en rojo:** cuántos días hábiles anteriores cerraron en 🔴 contra el umbral **de hoy** (no el
+5. **Color** (`lib/semaforo/color.ts`): durante el día, al cierre y para "días seguidos en rojo" se compara
+   siempre contra el objetivo de la cohorte activa: ≤ meta 🟢; ≤ aceptable 🟡; más 🔴. Sin agendas de Meta pero
+   con gasto 🔴; sin gasto ⚪; sin dato de agendas de Meta ⚪ (ADR 0088 y 0089, enmiendas del 16-oct).
+6. **Días seguidos en rojo:** cuántos días calendario anteriores cerraron en 🔴 contra el umbral **de hoy** (no el
    que había esos días), hasta 20.
 - **Funciones:** `semaforoDelPrograma` en `lib/semaforo/semaforo.ts`; el texto, `armarMensaje` en
   `lib/reporte-whatsapp/mensaje.ts`.
