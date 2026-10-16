@@ -4,7 +4,7 @@ import { recursos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { esAdministrador } from "@/lib/auth/roles";
+import { administraGlobal } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo, type ResultadoBorrado } from "./molde";
 import { reemplazarVersionado, type FilaVersionada } from "./versionar";
 import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
@@ -123,7 +123,9 @@ async function exigirAccesoAlRecurso(
   programId: string | null,
 ): Promise<void> {
   if (programId === null) {
-    if (!esAdministrador(actor.rol)) throw new ErrorDeApp(NEGADO_GLOBAL, 403);
+    if (!administraGlobal({ rol: actor.rol, alcanceLimitado: actor.alcanceLimitado ?? false })) {
+      throw new ErrorDeApp(NEGADO_GLOBAL, 403);
+    }
     return;
   }
   await exigirAccesoAlPrograma(db, actor, programId, NEGADO_RECURSO);

@@ -346,6 +346,11 @@ violaciones en el MVP):
 
 - **El alcance se valida en el servidor, antes de escribir:** que el actor pueda tocar ese programa y
   que el registro pertenezca al programa. El objetivo sale de la sesión, nunca del input.
+- **Alcance no es membresía (ADR 0094):** `usuarios_programas_alcance` limita a un gerente o paid
+  trafficker a programas concretos sin volverlo dueño, setter ni closer. Cero filas significa todos;
+  una o más filas, solo esos programas. El developer siempre ve todos. Quien está limitado administra
+  dentro de esos programas, pero no ve Ajustes ni crea o modifica configuración global; las rutas de
+  un programa ajeno responden 404.
 - **Leer, decidir y escribir van en la misma transacción** (por ejemplo, validar el saldo y registrar
   el abono), o dos peticiones simultáneas aprueban lo mismo.
 - **Ningún historial ni lista crece sin tope en una pantalla:** carga por lotes o bajo demanda.

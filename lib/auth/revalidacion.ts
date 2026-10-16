@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { JWT } from "@auth/core/jwt";
-import { esRolValido } from "./roles";
+import { esRolValido, tieneAlcanceConfigurable } from "./roles";
 
 /**
  * Las dos decisiones de Auth.js que dependen de la tabla `users`, sacadas de la
@@ -23,6 +23,17 @@ async function buscarUsuario(email: string) {
   const { users } = await import("@/lib/db/schema");
   const filas = await db.select().from(users).where(eq(users.email, email)).limit(1);
   return filas[0] ?? null;
+}
+
+async function tieneFilasDeAlcance(userId: string): Promise<boolean> {
+  const { db } = await import("@/lib/db");
+  const { usuariosProgramasAlcance, users } = await import("@/lib/db/schema");
+  const filas = await db
+    .select({ userId: usuariosProgramasAlcance.userId })
+    .from(usuariosProgramasAlcance)
+    .innerJoin(users, and(eq(users.id, usuariosProgramasAlcance.userId), eq(users.id, userId)))
+    .limit(1);
+  return filas.length > 0;
 }
 
 /**
@@ -57,12 +68,15 @@ export async function revalidarToken(token: JWT, emailDelLogin?: string | null):
     // Desactivado despues de haber iniciado sesion: se vacia el token. No se borra el
     // token entero porque Auth.js necesita la envoltura; lo que se va es TODO lo que
     // una guarda podria leer para dejar pasar a alguien.
-    return { ...token, usuarioId: undefined, rol: undefined, operaComoCloser: undefined, closerId: undefined };
+    return { ...token, usuarioId: undefined, rol: undefined, operaComoCloser: undefined, closerId: undefined, alcanceLimitado: undefined };
   }
 
   token.usuarioId = registro.id;
   token.rol = esRolValido(registro.rol) ? registro.rol : "closer";
   token.operaComoCloser = registro.operaComoCloser;
   token.closerId = registro.closerId;
+  token.alcanceLimitado = tieneAlcanceConfigurable(token.rol)
+    ? await tieneFilasDeAlcance(registro.id)
+    : false;
   return token;
 }

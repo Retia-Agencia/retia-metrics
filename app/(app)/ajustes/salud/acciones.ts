@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
+import { requireAdministracionGlobal } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -42,7 +42,7 @@ const idSchema = z.string().uuid("Id de sobre inválido.");
  */
 export async function reprocesarSobreAccion(sobreId: string): Promise<ResultadoReproceso> {
   try {
-    await requireRole("gerente");
+    await requireAdministracionGlobal();
     const id = await normalizando(async () => idSchema.parse(sobreId));
 
     const reproceso = await reprocesarSobre(db, id);
@@ -107,7 +107,7 @@ export async function cargarMasEntregasAccion(
   cursor: string,
 ): Promise<ResultadoMasEntregas> {
   try {
-    await requireRole("gerente");
+    await requireAdministracionGlobal();
     const datos = await normalizando(async () => esquemaMas.parse({ programaSlug, cursor }));
     const cur = descifrarCursor(datos.cursor);
 

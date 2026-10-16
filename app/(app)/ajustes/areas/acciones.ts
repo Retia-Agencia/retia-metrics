@@ -2,9 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
-import { esAdministrador } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { requireAdministracionGlobal } from "@/lib/auth/guards";
 import { areas, esquemaArea, type EntradaArea } from "@/lib/catalogo/areas";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -30,8 +28,7 @@ function errorSeguro(error: unknown): { ok: false; error: string } {
 }
 
 async function actorAdministrador(): Promise<string> {
-  const session = await requireRole("gerente");
-  if (!esAdministrador(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  const session = await requireAdministracionGlobal();
   return session.user.id;
 }
 

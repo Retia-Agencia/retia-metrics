@@ -1,9 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
 const sujeto = (rol: Rol | null | undefined, operaComoCloser = false) => ({ rol, operaComoCloser });
+
+describe("administraGlobal (ADR 0094, ticket 273)", () => {
+  it("aplica alcance a gerente y paid trafficker, nunca al developer", () => {
+    for (const alcanceLimitado of [false, true]) {
+      expect(administraGlobal({ rol: "developer", alcanceLimitado })).toBe(true);
+      expect(administraGlobal({ rol: "closer", alcanceLimitado })).toBe(false);
+      expect(administraGlobal({ rol: "customer_success", alcanceLimitado })).toBe(false);
+    }
+    expect(administraGlobal({ rol: "gerente", alcanceLimitado: false })).toBe(true);
+    expect(administraGlobal({ rol: "gerente", alcanceLimitado: true })).toBe(false);
+    expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: false })).toBe(true);
+    expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: true })).toBe(false);
+  });
+});
 
 describe("trabajaLeads", () => {
   // Las tres preguntas de la familia son distintas y hay que poder contestarlas
@@ -275,6 +289,12 @@ describe("navegacion por rol", () => {
       expect(rutasDe(rol)).toContain("/ajustes");
     }
     expect(rutasDe("closer")).not.toContain("/ajustes");
+  });
+
+  it("gerente y paid trafficker limitados no ven Ajustes; el developer nunca se limita", () => {
+    expect(navParaRol(sujeto("gerente"), PROGRAMA, true).map((i) => i.href)).not.toContain("/ajustes");
+    expect(navParaRol(sujeto("paid_trafficker"), PROGRAMA, true).map((i) => i.href)).not.toContain("/ajustes");
+    expect(navParaRol(sujeto("developer"), PROGRAMA, true).map((i) => i.href)).toContain("/ajustes");
   });
 
   it("gerente y developer ven la tab Dashboard; el closer no (ticket 224, ADR 0082)", () => {

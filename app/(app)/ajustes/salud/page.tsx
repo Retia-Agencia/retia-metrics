@@ -1,4 +1,4 @@
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { programasActivos } from "@/lib/queries/programas";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { conciliarProgramaConHoja } from "@/lib/queries/conciliacion-sheets";
@@ -59,7 +59,7 @@ export default async function SaludPage({
 }: {
   searchParams: Promise<{ programa?: string; desde?: string }>;
 }) {
-  await paginaConRol("gerente");
+  await paginaConAdministracionGlobal();
   const { programa: slugPedido, desde } = await searchParams;
 
   // Quien administra ve todos los programas activos (no una membresia de closer): esta

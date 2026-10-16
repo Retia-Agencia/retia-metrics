@@ -14,6 +14,7 @@ declare module "next-auth" {
       rol: Rol | null;
       operaComoCloser: boolean;
       closerId: string | null;
+      alcanceLimitado: boolean;
       /**
        * Presente SOLO cuando un developer está suplantando a un closer ("ver como",
        * ticket 172): el id y el nombre del developer REAL detrás de la vista. Las
@@ -35,5 +36,6 @@ declare module "@auth/core/jwt" {
     rol?: Rol;
     operaComoCloser?: boolean;
     closerId?: string | null;
+    alcanceLimitado?: boolean;
   }
 }

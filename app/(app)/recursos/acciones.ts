@@ -51,7 +51,7 @@ function aResultado(error: unknown): ResultadoAccion {
 async function actorDe(session: Session): Promise<Actor> {
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
-  return { id: session.user.id, rol };
+  return { id: session.user.id, rol, alcanceLimitado: session.user.alcanceLimitado };
 }
 
 // ─────────────────────────────────────────────────────────────── recursos

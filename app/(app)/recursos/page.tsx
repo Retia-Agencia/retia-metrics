@@ -1,5 +1,5 @@
 import { paginaConRol } from "@/lib/auth/page-guards";
-import { esAdministrador } from "@/lib/auth/roles";
+import { administraGlobal, esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
@@ -59,6 +59,10 @@ export default async function RecursosPage({ searchParams }: Props) {
   // exigir el rol y el acceso por programa (ADR 0003).
   const rolVista = await rolDeVista(session);
   const esAdmin = esAdministrador(rolVista);
+  const administraLoGlobal = administraGlobal({
+    rol: rolVista,
+    alcanceLimitado: session.user.alcanceLimitado,
+  });
 
   // El ALCANCE de la sesion (ADR 0048): los programas que esta sesion ve. Un admin ve
   // todos los activos; un closer, solo los de su membresia activa. La misma lista
@@ -70,10 +74,9 @@ export default async function RecursosPage({ searchParams }: Props) {
   // Los programas que un closer puede EDITAR: sus membresias activas (un subconjunto de
   // lo que ve, pero se consulta aparte porque un admin ve todo sin ser miembro). Para un
   // admin no importa (edita todo), asi que solo se consulta cuando es closer.
-  const programasEditables =
-    !esAdmin && rolVista === "closer"
-      ? (await programasGestionablesPorUsuario(session.user.id, "closer", db)).map((p) => p.id)
-      : [];
+  const programasEditables = esAdmin
+    ? idsVisibles
+    : (await programasGestionablesPorUsuario(session.user.id, "closer", db)).map((p) => p.id);
 
   const busqueda = await searchParams;
   const slug = texto(busqueda.programa);
@@ -140,7 +143,7 @@ export default async function RecursosPage({ searchParams }: Props) {
       fija
     >
       <RecursosPantalla
-        esAdmin={esAdmin}
+        esAdmin={administraLoGlobal}
         programasEditables={programasEditables}
         q={q ?? null}
         seccion={seccion}

@@ -1,8 +1,8 @@
 import { and, asc, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { miembrosPrograma, programs } from "@/lib/db/schema";
+import { miembrosPrograma, programs, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { esAdministrador, manejaPauta, type Rol } from "./roles";
+import { esAccesoTotal, esAdministrador, tieneAlcanceConfigurable, type Rol } from "./roles";
 
 /**
  * "¿Qué programas ve esta sesión?" — LA respuesta, en un solo módulo (ADR 0048
@@ -61,11 +61,27 @@ export async function programasVisibles(
   // Quien maneja la pauta ve todos también (Alejo, 5-oct, ticket 102; enmienda el ADR 0052
   // punto 2): el paid trafficker no tiene membresías —son del equipo que trabaja leads— y Pauta
   // lleva todos los programas.
-  if (esAdministrador(rol) || manejaPauta(rol)) {
+  if (esAccesoTotal(rol)) {
     return db
       .select(columnas)
       .from(programs)
       .where(eq(programs.activo, true))
+      .orderBy(asc(programs.nombre));
+  }
+
+  if (tieneAlcanceConfigurable(rol)) {
+    const alcance = await db
+      .select({ programId: usuariosProgramasAlcance.programId })
+      .from(usuariosProgramasAlcance)
+      .where(eq(usuariosProgramasAlcance.userId, userId));
+    if (alcance.length === 0) {
+      return db.select(columnas).from(programs).where(eq(programs.activo, true)).orderBy(asc(programs.nombre));
+    }
+    return db
+      .select(columnas)
+      .from(programs)
+      .innerJoin(usuariosProgramasAlcance, eq(usuariosProgramasAlcance.programId, programs.id))
+      .where(and(eq(programs.activo, true), eq(usuariosProgramasAlcance.userId, userId)))
       .orderBy(asc(programs.nombre));
   }
 
@@ -138,20 +154,36 @@ export async function programaDeLaFichaPorSlug(
     .from(programs)
     .where(and(eq(programs.slug, slug), eq(programs.activo, false)))
     .limit(1);
+  if (!inactivo || esAccesoTotal(rol)) return inactivo ?? null;
+  const alcance = await db
+    .select({ programId: usuariosProgramasAlcance.programId })
+    .from(usuariosProgramasAlcance)
+    .where(eq(usuariosProgramasAlcance.userId, userId));
+  if (alcance.length > 0 && !alcance.some((fila) => fila.programId === inactivo.id)) return null;
   return inactivo ?? null;
 }
 
 /** Programas inactivos que un administrador puede terminar de configurar. */
 export async function programasInactivosParaAdministrar(
+  userId: string,
   rol: Rol | null,
   db: Db = dbDeLaApp,
 ): Promise<{ slug: string; nombre: string }[]> {
   if (!esAdministrador(rol)) return [];
-  return db
+  const filas = await db
     .select({ slug: programs.slug, nombre: programs.nombre })
     .from(programs)
     .where(eq(programs.activo, false))
     .orderBy(asc(programs.nombre));
+  if (esAccesoTotal(rol)) return filas;
+  const alcance = await db
+    .select({ programId: usuariosProgramasAlcance.programId })
+    .from(usuariosProgramasAlcance)
+    .where(eq(usuariosProgramasAlcance.userId, userId));
+  if (alcance.length === 0) return filas;
+  const ids = new Set(alcance.map((fila) => fila.programId));
+  const inactivos = await db.select({ id: programs.id, slug: programs.slug, nombre: programs.nombre }).from(programs).where(eq(programs.activo, false));
+  return inactivos.filter((programa) => ids.has(programa.id)).map(({ slug, nombre }) => ({ slug, nombre }));
 }
 
 /**

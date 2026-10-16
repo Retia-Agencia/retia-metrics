@@ -21,9 +21,12 @@ const select = vi.fn();
 vi.mock("@/lib/db", () => ({ db: { select } }));
 
 /** Deja la consulta de `buscarUsuario` devolviendo la fila que se le pase (o ninguna). */
-function enLaBase(fila: Record<string, unknown> | null) {
+function enLaBase(fila: Record<string, unknown> | null, alcanceLimitado = false) {
   select.mockReturnValue({
-    from: () => ({ where: () => ({ limit: async () => (fila ? [fila] : []) }) }),
+    from: () => ({
+      where: () => ({ limit: async () => (fila ? [fila] : []) }),
+      innerJoin: () => ({ limit: async () => alcanceLimitado ? [{ userId: fila?.id }] : [] }),
+    }),
   });
 }
 
@@ -49,6 +52,23 @@ describe("revalidarToken", () => {
     expect(token.usuarioId).toBe("u-1");
     expect(token.rol).toBe("closer");
     expect(token.closerId).toBe("Andrea");
+    expect(token.alcanceLimitado).toBe(false);
+  });
+
+  it("recalcula alcanceLimitado en cada emisión para gerente y paid trafficker", async () => {
+    const { revalidarToken } = await import("@/lib/auth/revalidacion");
+    for (const rol of ["gerente", "paid_trafficker"] as const) {
+      enLaBase({ ...activo, rol }, true);
+      expect((await revalidarToken({ email: activo.email } as JWT)).alcanceLimitado).toBe(true);
+      enLaBase({ ...activo, rol }, false);
+      expect((await revalidarToken({ email: activo.email } as JWT)).alcanceLimitado).toBe(false);
+    }
+  });
+
+  it("el developer nunca queda limitado aunque existan filas", async () => {
+    enLaBase({ ...activo, rol: "developer" }, true);
+    const { revalidarToken } = await import("@/lib/auth/revalidacion");
+    expect((await revalidarToken({ email: activo.email } as JWT)).alcanceLimitado).toBe(false);
   });
 
   /** El corazon de S-02. */
@@ -66,6 +86,7 @@ describe("revalidarToken", () => {
     expect(token.usuarioId).toBeUndefined();
     expect(token.rol).toBeUndefined();
     expect(token.closerId).toBeUndefined();
+    expect(token.alcanceLimitado).toBeUndefined();
   });
 
   it("a quien ya no esta en la tabla tambien", async () => {

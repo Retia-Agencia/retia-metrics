@@ -20,10 +20,10 @@ vi.mock("@/lib/db", () => ({
 
 // La server action pasa por `requireRole` + `manejaPauta`: se controla el rol con este
 // holder para forjar un closer (que NO debe poder) o un paid trafficker (que sí).
-const sesionHolder: { rol: string | null; id: string } = { rol: null, id: "u-actor" };
+const sesionHolder: { rol: string | null; id: string; alcanceLimitado: boolean } = { rol: null, id: "u-actor", alcanceLimitado: false };
 vi.mock("@/lib/auth/index", () => ({
   auth: async () =>
-    sesionHolder.rol ? { user: { id: sesionHolder.id, rol: sesionHolder.rol } } : null,
+    sesionHolder.rol ? { user: { id: sesionHolder.id, rol: sesionHolder.rol, alcanceLimitado: sesionHolder.alcanceLimitado } } : null,
 }));
 vi.mock("@/lib/auth/vista", () => ({
   rolDeVista: async (session: { user?: { rol?: string } }) => session?.user?.rol ?? null,
@@ -44,6 +44,7 @@ beforeEach(async () => {
   await vaciar();
   holder.db = db;
   sesionHolder.rol = null;
+  sesionHolder.alcanceLimitado = false;
   // El actor que crea el área (admin) existe; el paid trafficker se siembra para ser el
   // actor de la acción (su id debe existir en `users` por la FK de `change_log`).
   const [admin] = await db.insert(users).values({ email: "admin@retia.local", rol: "gerente" }).returning();
@@ -95,5 +96,13 @@ describe("crearCanalAccion: rol en el servidor (ticket 173)", () => {
     expect(filas[0].utmSource).toBe("facebook");
     // Sanidad: el área sigue existiendo (no la tocó la acción de canal).
     expect(await db.select().from(tablaAreas)).toHaveLength(1);
+  });
+
+  it("un paid trafficker limitado recibe 403 y no mueve la base", async () => {
+    const { crearCanalAccion } = await import("@/app/(app)/ajustes/canales/acciones");
+    sesionHolder.rol = "paid_trafficker";
+    sesionHolder.alcanceLimitado = true;
+    expect((await crearCanalAccion(entrada())).ok).toBe(false);
+    expect(await db.select().from(tablaCanales)).toHaveLength(0);
   });
 });

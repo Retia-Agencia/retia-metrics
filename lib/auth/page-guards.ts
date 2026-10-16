@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
-import { puedeAcceder, type Rol } from "./roles";
+import { administraGlobal, puedeAcceder, type Rol } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
 import { rutaInicial } from "@/lib/nav";
 import { programasVisibles } from "@/lib/auth/alcance";
@@ -58,6 +58,16 @@ export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {
   // usuario, que no depende de la vista.
   const rol = await rolDeVista(session);
   if (!puedeAcceder(rol, permitidos)) {
+    redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
+  }
+  return session;
+}
+
+/** Ajustes y cualquier otra pantalla global: el alcance explícito los cierra completos. */
+export async function paginaConAdministracionGlobal(): Promise<Session> {
+  const session = await paginaConSesion();
+  const rol = await rolDeVista(session);
+  if (!administraGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
     redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
   }
   return session;

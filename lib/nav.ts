@@ -1,5 +1,5 @@
 import type { Rol, SujetoDeCapacidad } from "@/lib/auth/roles";
-import { esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
+import { administraGlobal, esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -110,7 +110,7 @@ export function rutaAlCambiarDePrograma(
  * de programa no aparecen.
  * Ojo: esconder un item NO es seguridad — cada ruta valida su rol en el servidor.
  */
-export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): ItemNav[] {
+export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, alcanceLimitado = false): ItemNav[] {
   const { rol } = sujeto;
   if (!rol) return [];
 
@@ -129,7 +129,9 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
             { href: rutaDePrograma(programa, "programa"), etiqueta: "Programa", icono: "programa", roles: ["paid_trafficker"] } satisfies ItemNav,
           ]
         : []),
-      { href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] },
+      ...(administraGlobal({ rol, alcanceLimitado })
+        ? [{ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] } satisfies ItemNav]
+        : []),
     ];
   }
 
@@ -236,7 +238,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null): 
   // ficha del Programa, donde lo hacia, es ahora de administradores. El paid trafficker lo ve
   // por su rama de arriba (entra a Canales). El INDICE proyecta por rol y cada subpagina
   // conserva su propia guarda, que es donde vive la seguridad.
-  if (esAdministrador(rol)) {
+  if (administraGlobal({ rol, alcanceLimitado })) {
     items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] });
   }
 

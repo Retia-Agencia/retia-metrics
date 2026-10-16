@@ -1,4 +1,4 @@
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
@@ -6,7 +6,8 @@ import { UsuariosAdmin, type UsuarioVista } from "@/components/usuarios-admin";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
-import { trabajaLeads } from "@/lib/auth/roles";
+import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
+import { rolDeVista } from "@/lib/auth/vista";
 import { programasActivos } from "@/lib/queries/programas";
 import { asignarCalendlyDeMembresiaAccion } from "./acciones";
 
@@ -21,7 +22,8 @@ export const dynamic = "force-dynamic";
  * mutaciones viven en `./acciones.ts`.
  */
 export default async function UsuariosPage() {
-  const session = await paginaConRol("gerente");
+  const session = await paginaConAdministracionGlobal();
+  const puedeEditarAlcance = esAccesoTotal(await rolDeVista(session));
 
   const [usuarios, programas, todasLasMembresias] = await Promise.all([
     listarUsuarios(db),
@@ -44,6 +46,7 @@ export default async function UsuariosPage() {
     closerId: u.closerId,
     calendlyEmail: u.calendlyEmail,
     activo: u.activo,
+    programasQueVe: u.programasQueVe,
   }));
 
   return (
@@ -57,6 +60,8 @@ export default async function UsuariosPage() {
         <UsuariosAdmin
           usuarios={vista}
           usuarioActualId={session.user.id}
+          programas={programas}
+          puedeEditarAlcance={puedeEditarAlcance}
         >
           {membresias.length > 0 ? (
             <CalendlyMembresias

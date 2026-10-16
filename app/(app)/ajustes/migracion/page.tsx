@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { programasActivos } from "@/lib/queries/programas";
 import { LIMITE_DE_RAREZAS, nombreDeRareza, rarezasDelPrograma } from "@/lib/migracion/rarezas";
 import { PageShell } from "@/components/page-shell";
@@ -28,7 +28,7 @@ export default async function MigracionPage(props: {
   searchParams: Promise<{ programa?: string; tipo?: string }>;
 }) {
   // La guarda antes de leer cualquier cosa, tambien las props.
-  await paginaConRol("gerente");
+  await paginaConAdministracionGlobal();
 
   const programas = await programasActivos();
   if (programas.length === 0) {

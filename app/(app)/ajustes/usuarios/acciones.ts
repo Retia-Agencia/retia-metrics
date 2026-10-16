@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth/guards";
+import { requireAdministracionGlobal } from "@/lib/auth/guards";
+import { esAccesoTotal } from "@/lib/auth/roles";
+import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -10,6 +12,7 @@ import {
   desactivarUsuario,
   editarUsuario,
   reactivarUsuario,
+  guardarAlcanceDeUsuario,
   type EntradaCalendlyDeMembresia,
   type EntradaUsuario,
 } from "@/lib/catalogo/usuarios";
@@ -40,7 +43,7 @@ function aResultado(error: unknown): ResultadoAccion {
 
 export async function crearUsuarioAccion(input: EntradaUsuario): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     await crearUsuario(db, session.user.id, input);
     revalidar();
     return { ok: true };
@@ -52,10 +55,17 @@ export async function crearUsuarioAccion(input: EntradaUsuario): Promise<Resulta
 export async function editarUsuarioAccion(
   id: string,
   input: EntradaUsuario,
+  programasQueVe?: readonly string[] | null,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
+    if (programasQueVe !== undefined && !esAccesoTotal(await rolDeVista(session))) {
+      throw new ErrorDeApp("No autorizado.", 403);
+    }
     await editarUsuario(db, session.user.id, id, input);
+    if (programasQueVe !== undefined) {
+      await guardarAlcanceDeUsuario(db, session.user.id, id, programasQueVe);
+    }
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -65,7 +75,7 @@ export async function editarUsuarioAccion(
 
 export async function desactivarUsuarioAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     await desactivarUsuario(db, session.user.id, id);
     revalidar();
     return { ok: true };
@@ -76,7 +86,7 @@ export async function desactivarUsuarioAccion(id: string): Promise<ResultadoAcci
 
 export async function reactivarUsuarioAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     await reactivarUsuario(db, session.user.id, id);
     revalidar();
     return { ok: true };
@@ -94,7 +104,7 @@ export async function asignarCalendlyDeMembresiaAccion(
   input: EntradaCalendlyDeMembresia,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     await asignarCalendlyDeMembresia(db, session.user.id, input);
     revalidar();
     return { ok: true };

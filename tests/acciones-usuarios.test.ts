@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -17,6 +17,10 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => new Headers({ "next-action": "prueba" }),
+}));
 
 // Las acciones usan la `db` de la app; en el test se apunta a la de PGlite.
 let db: Db;
@@ -41,6 +45,9 @@ const sesionGerente = {
 const sesionCloser = {
   user: { id: "u-2", email: "closer@retiagrowth.com", rol: "closer", closerId: "andrea" },
 };
+const sesionDeveloper = {
+  user: { id: "", email: "dev@retiagrowth.com", rol: "developer", closerId: null },
+};
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -60,6 +67,11 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
     .returning();
   programaAId = p.id;
+  const [developer] = await db
+    .insert(users)
+    .values({ email: sesionDeveloper.user.email, rol: "developer" })
+    .returning();
+  sesionDeveloper.user.id = developer.id;
 });
 
 afterAll(async () => {
@@ -144,5 +156,28 @@ describe("acciones de usuarios — el gerente administra", () => {
     expect(res.ok).toBe(false);
     const [u] = await db.select().from(users).where(eq(users.id, gerenteId));
     expect(u.activo).toBe(true);
+  });
+});
+
+describe("alcance visible de un usuario (ADR 0094)", () => {
+  it("solo el developer lo guarda y deja change_log", async () => {
+    const [objetivo] = await db
+      .insert(users)
+      .values({ email: "gerente-sbj@estadox.co", rol: "gerente" })
+      .returning();
+    const entrada = { email: objetivo.email, rol: "gerente" as const, closerId: "", programas: [] };
+    const { editarUsuarioAccion } = await acciones();
+
+    auth.mockResolvedValue(sesionGerente);
+    expect((await editarUsuarioAccion(objetivo.id, entrada, [programaAId])).ok).toBe(false);
+    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
+
+    auth.mockResolvedValue(sesionDeveloper);
+    expect((await editarUsuarioAccion(objetivo.id, entrada, [programaAId])).ok).toBe(true);
+    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(1);
+    expect((await db.select().from(changeLog)).some((fila) => fila.tabla === "usuarios_programas_alcance")).toBe(true);
+
+    expect((await editarUsuarioAccion(objetivo.id, entrada, null)).ok).toBe(true);
+    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
   });
 });

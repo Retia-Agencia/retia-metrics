@@ -1,10 +1,7 @@
-import { paginaConRol } from "@/lib/auth/page-guards";
-import { manejaPauta } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { canales as catalogoCanales } from "@/lib/catalogo/canales";
 import { db } from "@/lib/db";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
-import { ErrorDeApp } from "@/lib/errors";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { CanalesAdmin, type CanalVista } from "@/components/admin/canales-admin";
@@ -19,8 +16,7 @@ export default async function CanalesPage({
   // Los Canales los administra quien maneja pauta (ADR 0052, ADR 0077 punto 4): el
   // paid trafficker, el gerente y el developer. La guarda admite esos roles base y
   // `manejaPauta` sobre el ROL DE VISTA cierra la vista `closer` (ADR 0025, ADR 0028).
-  const session = await paginaConRol("gerente", "paid_trafficker");
-  if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  await paginaConAdministracionGlobal();
   const { desde } = await searchParams;
 
   const [filas, todasLasAreas] = await Promise.all([

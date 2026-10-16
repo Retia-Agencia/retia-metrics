@@ -27,6 +27,7 @@ export const authConfig = {
         session.user.rol = esRolValido(token.rol) ? token.rol : null;
         session.user.operaComoCloser = token.operaComoCloser ?? false;
         session.user.closerId = token.closerId ?? null;
+        session.user.alcanceLimitado = token.alcanceLimitado ?? false;
       }
       return session;
     },

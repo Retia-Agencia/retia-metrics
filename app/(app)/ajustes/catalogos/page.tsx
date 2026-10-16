@@ -1,8 +1,5 @@
-import { paginaConRol } from "@/lib/auth/page-guards";
-import { esAdministrador } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
-import { ErrorDeApp } from "@/lib/errors";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { CatalogosAdmin, type CatalogoVista } from "@/components/catalogos-admin";
@@ -25,8 +22,7 @@ export const dynamic = "force-dynamic";
  * repo ya arreglo dos veces.
  */
 export default async function CatalogosPage() {
-  const session = await paginaConRol("gerente");
-  if (!esAdministrador(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  await paginaConAdministracionGlobal();
 
   // Quien llega aqui administra: ve todos los catalogos del registro y todos los
   // programas activos para vincular una plataforma.

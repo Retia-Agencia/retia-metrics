@@ -250,6 +250,7 @@ const sesionGerente = { user: { id: "u-1", email: "gerente@retia.co", rol: "gere
 const sesionCloser = { user: { id: "u-2", email: "closer@retia.co", rol: "closer", closerId: "andrea" } };
 const sesionDeveloper = { user: { id: "u-3", email: "dev@retia.co", rol: "developer", closerId: null } };
 const sesionPaidTrafficker = { user: { id: "u-4", email: "pauta@retia.co", rol: "paid_trafficker", closerId: null } };
+const sesionGerenteLimitado = { user: { ...sesionGerente.user, alcanceLimitado: true } };
 const sesionCustomerSuccess = { user: { id: "u-5", email: "cs@retia.co", rol: "customer_success", closerId: null } };
 
 beforeEach(() => {
@@ -394,6 +395,17 @@ const PAGINAS_DE_AJUSTES = [
   ["/ajustes/meta", "@/app/(app)/ajustes/meta/page"],
 ] as const;
 
+const TODAS_LAS_PAGINAS_DE_AJUSTES = [
+  "@/app/(app)/ajustes/page",
+  "@/app/(app)/ajustes/usuarios/page",
+  "@/app/(app)/ajustes/canales/page",
+  "@/app/(app)/ajustes/meta/page",
+  "@/app/(app)/ajustes/salud/page",
+  "@/app/(app)/ajustes/catalogos/page",
+  "@/app/(app)/ajustes/areas/page",
+  "@/app/(app)/ajustes/migracion/page",
+] as const;
+
 /**
  * El dashboard de programa vive en una ruta dinamica `/p/[programa]/dashboard`
  * (ticket 097; antes `/programas/[slug]`, que ahora solo redirige). Se
@@ -506,7 +518,21 @@ describe("índice de Ajustes por rol en el servidor (ticket 224, ADR 0082)", () 
       auth.mockResolvedValue(null);
       expect(await destinoDe(ruta)).toBe("/login");
     });
+
   }
+});
+
+describe("Ajustes completo respeta administraGlobal (ADR 0094)", () => {
+  it.each(TODAS_LAS_PAGINAS_DE_AJUSTES)("%s rebota a un gerente limitado", async (ruta) => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+    const modulo = (await import(/* @vite-ignore */ ruta)) as {
+      default: (props?: { searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+    };
+    await expect(modulo.default({ searchParams: Promise.resolve({}) })).rejects.toMatchObject({
+      destino: "/p/programa-a/hub",
+    });
+  });
 });
 
 describe("paginas de gerente", () => {
@@ -571,10 +597,12 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     expect(hrefs).toContain("/ajustes/areas");
   });
 
-  it("el paid trafficker solo ve los ajustes de pauta", async () => {
+  it("el paid trafficker sin límite administra los ajustes globales", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     const hrefs = await hrefsDeAjustes();
-    expect(hrefs).toEqual(["/ajustes/canales", "/ajustes/meta"]);
+    expect(hrefs).toContain("/ajustes/usuarios");
+    expect(hrefs).toContain("/ajustes/canales");
+    expect(hrefs).toContain("/ajustes/meta");
   });
 
   it("un closer ni siquiera entra al índice (ticket 224, ADR 0082): la raíz lo rebota", async () => {

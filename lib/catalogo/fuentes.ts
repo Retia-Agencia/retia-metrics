@@ -9,6 +9,7 @@ import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { probarMapeoDeFuente, type ResultadoPrueba } from "@/lib/sheets/probar-fuente";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+import { exigirAccesoAlPrograma } from "./acceso-programa";
 import { PROVEEDORES_FORMULARIO, type ProveedorFormulario } from "./fuentes-webhook";
 
 /**
@@ -303,6 +304,7 @@ export async function crearFuente(
     exigirAdministrador(actor);
     const datos = esquemaFuente.parse(input);
     await plantillaDelPrograma(db, datos.programId); // valida que el programa exista
+    await exigirAccesoAlPrograma(db, actor, datos.programId, "No puedes administrar fuentes de este programa.");
     // `activo: false` va explicito para que la fuente nazca inactiva pese al default
     // `true` de la tabla. Queda registrado en `change_log`, que es lo correcto: la
     // fuente existe pero todavia no se probo.
@@ -329,6 +331,7 @@ export async function editarFuente(
     const datos = esquemaFuente.parse(input);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     const plantilla = await plantillaDelPrograma(db, datos.programId);
 
     // Una hoja no se vuelve webhook ni al reves: son dos intakes distintos, con envios
@@ -419,6 +422,7 @@ export async function probarFuente(
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     if (!actual.sheetId || !actual.tab) {
       throw new ErrorDeApp("La fuente no tiene hoja o pestaña configurada.", 422);
     }
@@ -451,6 +455,7 @@ export async function activarFuente(
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     if (actual.tipo === "webhook") {
       // Un webhook no tiene hoja contra la cual probar: lo que se exige es poder
       // verificar la firma. Activarlo sin secreto seria un intake que rechaza todo.
@@ -490,6 +495,7 @@ export async function desactivarFuente(
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     // Apagar la principal obliga a escoger otra antes (ADR 0068 punto 2): si no, el
     // programa se queda sin a donde mandar sus links sin que nadie lo decida.
     if (actual.principal) {
@@ -523,6 +529,7 @@ export async function marcarFuentePrincipal(
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     if (!actual.activo || actual.urlPublica === null) {
       throw new ErrorDeApp(
         "Solo una fuente activa y con URL del formulario puede ser la principal.",
@@ -609,6 +616,7 @@ export async function rotarSecretoDeFuente(db: Db, actor: Actor, id: string): Pr
     const objetivoId = idValido(id);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     if (actual.tipo !== "webhook") {
       throw new ErrorDeApp("Solo una fuente webhook tiene secreto.", 422);
     }
@@ -630,6 +638,7 @@ export async function guardarSecretoDeFuente(db: Db, actor: Actor, id: string, s
     const valor = esquemaSecretoWebhook.parse(secreto);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     if (actual.tipo !== "webhook") {
       throw new ErrorDeApp("Solo una fuente webhook tiene secreto.", 422);
     }
@@ -655,6 +664,7 @@ export async function guardarTokenTypeform(db: Db, actor: Actor, id: string, tok
     const valor = esquemaTokenTypeform.parse(token);
     const actual = await leerFuente(db, objetivoId);
     if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    await exigirAccesoAlPrograma(db, actor, actual.programId, "No puedes administrar fuentes de este programa.");
     if (actual.tipo !== "webhook" || actual.proveedor !== "typeform") {
       throw new ErrorDeApp("Solo una fuente de Typeform tiene token de Typeform.", 422);
     }

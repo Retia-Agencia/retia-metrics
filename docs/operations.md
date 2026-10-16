@@ -114,6 +114,14 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 | Fuente webhook | ✅ `Form30x - Registro SBJ`, activa y principal, firma hex, `form30x_form_id` puesto (16-oct). Los completos entran por el webhook y todo lo de las últimas 48 h, parciales incluidos, por la API cada 30 min (272) |
 | Envíos reales | 2 completos (4-oct con agenda, 14-oct sin agenda, este último una prueba interna de 30X) y 3 parciales, todos sin UTM |
 
+**Limitar al equipo de EstadoX (ADR 0094):** entra como developer a `/ajustes/usuarios`, edita la
+fila del gerente o del paid trafficker, elige **Programas que ve → Solo estos** y marca únicamente
+AI Second Brain Jurídico. **Todos** elimina las filas de alcance y devuelve la visibilidad de todos
+los programas activos. Solo el developer ve y guarda este selector. La restricción rige en la
+siguiente petición: el usuario deja de ver Ajustes y cualquier programa ajeno responde 404. No se
+usan membresías para esto; una membresía significa trabajar leads y puede volver a alguien dueño o
+setter. Para deshacer la limitación, vuelve a elegir **Todos**.
+
 **Convenciones de Form30x** (de la doc del 15-oct y del form real; ADR 0092):
 
 - **La API key toca todos los forms de 30X y EstadoX.** Solo se usa con el id de arriba (regla completa en

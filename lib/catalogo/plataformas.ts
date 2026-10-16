@@ -11,7 +11,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
-import { esAdministrador } from "@/lib/auth/roles";
+import { administraGlobal } from "@/lib/auth/roles";
 import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
@@ -276,7 +276,7 @@ export async function crearPlataformaConProgramas(
     throw new ErrorDeApp(entrada.error.issues[0]?.message ?? "Petición inválida.", 400);
   }
 
-  if (!esAdministrador(actor.rol) && programIds.length === 0) {
+  if (!administraGlobal({ rol: actor.rol, alcanceLimitado: actor.alcanceLimitado ?? false }) && programIds.length === 0) {
     throw new ErrorDeApp(
       "Elige al menos un programa: una plataforma sin programa no aparece en ningún selector.",
       400,

@@ -34,6 +34,7 @@ type Props = {
   /** El rol DE VISTA (ya proyectado): la nav se estrecha con el (ticket 028). */
   rol: Rol | null;
   operaComoCloser: boolean;
+  alcanceLimitado: boolean;
   nombre: string;
   email: string;
   imagen?: string | null;
@@ -68,6 +69,7 @@ type Props = {
 export function AppSidebar({
   rol,
   operaComoCloser,
+  alcanceLimitado,
   nombre,
   email,
   imagen,
@@ -104,7 +106,7 @@ export function AppSidebar({
 
   // La lista viene filtrada por el ROL DE VISTA. Esconder no es seguridad: cada ruta
   // valida en servidor, tambien contra el rol de vista (ticket 028).
-  const items = navParaRol({ rol, operaComoCloser }, programa);
+  const items = navParaRol({ rol, operaComoCloser }, programa, alcanceLimitado);
 
   return (
     <>

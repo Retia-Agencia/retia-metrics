@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { Session } from "next-auth";
-import { requireRole } from "@/lib/auth/guards";
-import { esAdministrador, esRolValido } from "@/lib/auth/roles";
+import { requireAdministracionGlobal } from "@/lib/auth/guards";
+import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -48,6 +48,7 @@ export async function agregarAccion(
   booleanos: Record<string, boolean> = {},
 ): Promise<ResultadoAccion> {
   try {
+    await requireAdministracionGlobal();
     await crearItem(db, slug, { nombre, ...booleanos });
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
@@ -63,6 +64,7 @@ export async function editarBooleanoAccion(
   valor: boolean,
 ): Promise<ResultadoAccion> {
   try {
+    await requireAdministracionGlobal();
     await editarBooleanoItem(db, slug, id, campo, valor);
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
@@ -77,6 +79,7 @@ export async function renombrarAccion(
   nombre: string,
 ): Promise<ResultadoAccion> {
   try {
+    await requireAdministracionGlobal();
     await renombrarItem(db, slug, id, { nombre });
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
@@ -87,6 +90,7 @@ export async function renombrarAccion(
 
 export async function desactivarAccion(slug: string, id: string): Promise<ResultadoAccion> {
   try {
+    await requireAdministracionGlobal();
     await desactivarItem(db, slug, id);
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
@@ -97,6 +101,7 @@ export async function desactivarAccion(slug: string, id: string): Promise<Result
 
 export async function reactivarAccion(slug: string, id: string): Promise<ResultadoAccion> {
   try {
+    await requireAdministracionGlobal();
     await reactivarItem(db, slug, id);
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
@@ -123,6 +128,7 @@ export type ResultadoBorradoAccion =
  */
 export async function borrarAccion(slug: string, id: string): Promise<ResultadoBorradoAccion> {
   try {
+    await requireAdministracionGlobal();
     const res = await borrarItemSiNoSeUso(db, slug, id);
     revalidatePath("/ajustes/catalogos");
     return res.borrado
@@ -160,9 +166,8 @@ export async function crearPlataformaAccion(
   programIds: readonly string[],
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     const actor = await actorDe(session);
-    if (!esAdministrador(actor.rol)) throw new ErrorDeApp("No autorizado.", 403);
     await crearPlataformaConProgramas(db, actor, { nombre }, programIds);
     revalidatePath("/ajustes/catalogos");
     return { ok: true };
@@ -177,9 +182,8 @@ export async function asociarProgramaAccion(
   programId: string,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     const actor = await actorDe(session);
-    if (!esAdministrador(actor.rol)) throw new ErrorDeApp("No autorizado.", 403);
     await asociarPrograma(db, actor, plataformaId, programId);
     revalidatePath("/ajustes/catalogos");
     // El selector de plataformas de estas dos pantallas cambia con el vinculo, asi que
@@ -201,9 +205,8 @@ export async function desasociarProgramaAccion(
   programId: string,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     const actor = await actorDe(session);
-    if (!esAdministrador(actor.rol)) throw new ErrorDeApp("No autorizado.", 403);
     await desasociarPrograma(db, actor, plataformaId, programId);
     revalidatePath("/ajustes/catalogos");
     revalidatePath("/recursos");

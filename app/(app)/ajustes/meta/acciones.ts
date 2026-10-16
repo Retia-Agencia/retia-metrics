@@ -1,9 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth/guards";
-import { manejaPauta } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { requireAdministracionGlobal } from "@/lib/auth/guards";
 import { guardarTokenMeta, tokenActivoMeta } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -16,8 +14,7 @@ export type ResultadoGuardarMeta =
 
 export async function guardarTokenMetaAccion(token: string): Promise<ResultadoGuardarMeta> {
   try {
-    const session = await requireRole("gerente", "paid_trafficker");
-    if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+    const session = await requireAdministracionGlobal();
     const resultado = await guardarTokenMeta(db, session.user.id, token);
     revalidatePath("/ajustes/meta");
     return { ok: true, ...resultado };
@@ -36,8 +33,7 @@ export type ResultadoSincronizarMeta =
 
 export async function sincronizarMetaAccion(): Promise<ResultadoSincronizarMeta> {
   try {
-    const session = await requireRole("gerente", "paid_trafficker");
-    if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+    await requireAdministracionGlobal();
     const resumen = await sincronizarPauta(db, {
       token: await tokenActivoMeta(db),
       hoy: hoyEnBogota(),

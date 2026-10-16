@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { etiquetaDeRol, puedeConfigurarOperaComoCloser, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { etiquetaDeRol, puedeConfigurarOperaComoCloser, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { cn } from "@/lib/utils";
 import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import {
@@ -37,6 +37,12 @@ export interface UsuarioVista {
   closerId: string | null;
   calendlyEmail: string | null;
   activo: boolean;
+  programasQueVe: string[];
+}
+
+interface ProgramaParaAlcance {
+  id: string;
+  nombre: string;
 }
 
 interface Borrador {
@@ -46,6 +52,8 @@ interface Borrador {
   operaComoCloser: boolean;
   closerId: string;
   calendlyEmail: string;
+  alcance: "todos" | "solo";
+  programasQueVe: string[];
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -55,6 +63,8 @@ const BORRADOR_VACIO: Borrador = {
   operaComoCloser: false,
   closerId: "",
   calendlyEmail: "",
+  alcance: "todos",
+  programasQueVe: [],
 };
 
 function aBorrador(u: UsuarioVista): Borrador {
@@ -65,16 +75,22 @@ function aBorrador(u: UsuarioVista): Borrador {
     operaComoCloser: u.operaComoCloser,
     closerId: u.closerId ?? "",
     calendlyEmail: u.calendlyEmail ?? "",
+    alcance: u.programasQueVe.length > 0 ? "solo" : "todos",
+    programasQueVe: u.programasQueVe,
   };
 }
 
 export function UsuariosAdmin({
   usuarios,
   usuarioActualId,
+  programas,
+  puedeEditarAlcance,
   children,
 }: {
   usuarios: UsuarioVista[];
   usuarioActualId: string;
+  programas: ProgramaParaAlcance[];
+  puedeEditarAlcance: boolean;
   children?: ReactNode;
 }) {
   const router = useRouter();
@@ -115,6 +131,8 @@ export function UsuariosAdmin({
             titulo="Nuevo usuario"
             inicial={BORRADOR_VACIO}
             pendiente={pendiente}
+            programas={programas}
+            puedeEditarAlcance={false}
             onCancelar={() => setCreando(false)}
             onGuardar={(borrador) =>
               correr(() => crearUsuarioAccion(aEntrada(borrador)), "Usuario creado", () =>
@@ -137,11 +155,19 @@ export function UsuariosAdmin({
                   titulo={`Editar ${u.email}`}
                   inicial={aBorrador(u)}
                   pendiente={pendiente}
+                  programas={programas}
+                  puedeEditarAlcance={puedeEditarAlcance}
                   emailBloqueado
                   onCancelar={() => setEditando(null)}
                   onGuardar={(borrador) =>
                     correr(
-                      () => editarUsuarioAccion(u.id, aEntrada(borrador)),
+                      () => editarUsuarioAccion(
+                        u.id,
+                        aEntrada(borrador),
+                        puedeEditarAlcance && tieneAlcanceConfigurable(borrador.rol)
+                          ? borrador.alcance === "todos" ? null : borrador.programasQueVe
+                          : undefined,
+                      ),
                       "Usuario actualizado",
                       () => setEditando(null),
                     )
@@ -231,6 +257,8 @@ function FormularioUsuario({
   titulo,
   inicial,
   pendiente,
+  programas,
+  puedeEditarAlcance,
   emailBloqueado,
   onCancelar,
   onGuardar,
@@ -238,6 +266,8 @@ function FormularioUsuario({
   titulo: string;
   inicial: Borrador;
   pendiente: boolean;
+  programas: ProgramaParaAlcance[];
+  puedeEditarAlcance: boolean;
   emailBloqueado?: boolean;
   onCancelar: () => void;
   onGuardar: (borrador: Borrador) => void;
@@ -247,6 +277,8 @@ function FormularioUsuario({
   // para que el developer no quede fuera por olvido (ADR 0025). Un gerente sigue sin
   // closer_id ni membresias, porque administra pero no registra (ADR 0003).
   const trabajaConLeads = trabajaLeads(borrador);
+  const muestraAlcance = Boolean(emailBloqueado && puedeEditarAlcance && tieneAlcanceConfigurable(borrador.rol));
+  const alcanceInvalido = muestraAlcance && borrador.alcance === "solo" && borrador.programasQueVe.length === 0;
 
   const claseInput =
     "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -341,6 +373,54 @@ function FormularioUsuario({
             </label>
           ) : null}
 
+          {muestraAlcance ? (
+            <fieldset className="space-y-2 rounded-lg border border-border p-3 sm:col-span-2">
+              <legend className="px-1 text-sm text-muted-foreground">Programas que ve</legend>
+              <div className="flex flex-wrap gap-4 text-sm">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`alcance-${borrador.email}`}
+                    checked={borrador.alcance === "todos"}
+                    onChange={() => setBorrador({ ...borrador, alcance: "todos" })}
+                  />
+                  Todos
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name={`alcance-${borrador.email}`}
+                    checked={borrador.alcance === "solo"}
+                    onChange={() => setBorrador({ ...borrador, alcance: "solo" })}
+                  />
+                  Solo estos
+                </label>
+              </div>
+              {borrador.alcance === "solo" ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {programas.map((programa) => (
+                    <label key={programa.id} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={borrador.programasQueVe.includes(programa.id)}
+                        onChange={(evento) => setBorrador({
+                          ...borrador,
+                          programasQueVe: evento.target.checked
+                            ? [...borrador.programasQueVe, programa.id]
+                            : borrador.programasQueVe.filter((id) => id !== programa.id),
+                        })}
+                      />
+                      {programa.nombre}
+                    </label>
+                  ))}
+                </div>
+              ) : null}
+              {alcanceInvalido ? (
+                <p className="text-xs text-muted-foreground">Elige al menos un programa.</p>
+              ) : null}
+            </fieldset>
+          ) : null}
+
           {/* La cuenta de Calendly ya no es del usuario sino de cada membresia (ticket 096):
               se vincula en "Cuentas de Calendly por programa", debajo de la lista. */}
 
@@ -349,7 +429,7 @@ function FormularioUsuario({
             <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>
               Cancelar
             </Button>
-            <Button type="submit" size="sm" disabled={pendiente || !borrador.email.trim()}>
+            <Button type="submit" size="sm" disabled={pendiente || !borrador.email.trim() || alcanceInvalido}>
               Guardar
             </Button>
           </div>

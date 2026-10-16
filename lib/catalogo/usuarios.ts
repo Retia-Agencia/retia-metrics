@@ -1,7 +1,7 @@
 import { and, asc, eq, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { esViolacionUnica } from "@/lib/db/errores";
@@ -10,7 +10,7 @@ import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { AuthorizationError, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 
 /**
@@ -320,18 +320,26 @@ export interface UsuarioConProgramas extends FilaCatalogo {
   closerId: string | null;
   calendlyEmail: string | null;
   programas: string[];
+  programasQueVe: string[];
 }
 
 /** Lista todos los usuarios (activos e inactivos) con sus programas activos. */
 export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProgramas[]> {
   const filas = await db.select().from(users);
   const membresias = await db.select().from(miembrosPrograma);
+  const alcances = await db.select().from(usuariosProgramasAlcance);
   const activasPorUsuario = new Map<string, string[]>();
   for (const m of membresias) {
     if (!m.activo) continue;
     const lista = activasPorUsuario.get(m.userId) ?? [];
     lista.push(m.programId);
     activasPorUsuario.set(m.userId, lista);
+  }
+  const alcancePorUsuario = new Map<string, string[]>();
+  for (const alcance of alcances) {
+    const lista = alcancePorUsuario.get(alcance.userId) ?? [];
+    lista.push(alcance.programId);
+    alcancePorUsuario.set(alcance.userId, lista);
   }
   return filas.map((u) => ({
     id: u.id,
@@ -343,6 +351,7 @@ export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProg
     closerId: u.closerId,
     calendlyEmail: u.calendlyEmail,
     programas: activasPorUsuario.get(u.id) ?? [],
+    programasQueVe: alcancePorUsuario.get(u.id) ?? [],
   }));
 }
 
@@ -397,6 +406,7 @@ export async function crearUsuario(
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, fila.id),
+      programasQueVe: [],
     };
   });
 }
@@ -418,8 +428,67 @@ export async function editarUsuario(
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, objetivoId),
+      programasQueVe: (await listarUsuarios(db)).find((u) => u.id === objetivoId)?.programasQueVe ?? [],
     };
   });
+}
+
+/**
+ * Sincroniza el alcance explícito de un gerente o paid trafficker. `null` significa
+ * Todos (cero filas); una lista no vacía significa Solo estos. La tabla es puente y
+ * se borra de verdad, pero el cambio completo queda auditado como una sola decisión.
+ */
+export async function guardarAlcanceDeUsuario(
+  db: Db,
+  actorId: string,
+  id: string,
+  programasElegidos: readonly string[] | null,
+): Promise<void> {
+  const objetivoId = idValido(id);
+  const [objetivo] = await db.select().from(users).where(eq(users.id, objetivoId)).limit(1);
+  if (!objetivo) throw new ErrorDeApp("No existe el usuario.", 404);
+  if (!tieneAlcanceConfigurable(objetivo.rol)) {
+    throw new ErrorDeApp("Este rol no admite un alcance de programas.", 400);
+  }
+
+  const elegidos = programasElegidos === null
+    ? []
+    : [...new Set(programasElegidos.map((programId) => esquemaId.parse(programId)))];
+  if (programasElegidos !== null && elegidos.length === 0) {
+    throw new ErrorDeApp("Elige al menos un programa o selecciona Todos.", 400);
+  }
+  if (elegidos.length > 0) {
+    const existentes = await db.select({ id: programs.id }).from(programs);
+    const ids = new Set(existentes.map((programa) => programa.id));
+    if (elegidos.some((programId) => !ids.has(programId))) {
+      throw new ErrorDeApp("Uno de los programas no existe.", 404);
+    }
+  }
+
+  const actuales = await db
+    .select({ programId: usuariosProgramasAlcance.programId })
+    .from(usuariosProgramasAlcance)
+    .where(eq(usuariosProgramasAlcance.userId, objetivoId));
+  const antes = actuales.map((fila) => fila.programId).sort();
+  const despues = [...elegidos].sort();
+  if (JSON.stringify(antes) === JSON.stringify(despues)) return;
+
+  await ejecutarJuntas(db, (tx) => [
+    tx.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, objetivoId)),
+    ...(despues.length > 0
+      ? [tx.insert(usuariosProgramasAlcance).values(despues.map((programId) => ({ userId: objetivoId, programId })))]
+      : []),
+    tx.insert(changeLog).values({
+      tabla: "usuarios_programas_alcance",
+      registroId: objetivoId,
+      etiqueta: objetivo.email,
+      campo: "programas_que_ve",
+      valorAnterior: antes.length === 0 ? "Todos" : JSON.stringify(antes),
+      valorNuevo: despues.length === 0 ? "Todos" : JSON.stringify(despues),
+      origen: "app" as const,
+      userId: actorId,
+    }),
+  ]);
 }
 
 /** Agrega o reactiva una membresia usando el mismo camino auditado del editor. */

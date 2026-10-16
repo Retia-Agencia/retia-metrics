@@ -3,7 +3,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { BarraSuplantacion } from "@/components/barra-suplantacion";
 import { paginaConSesion } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
-import { esAccesoTotal, esAdministrador } from "@/lib/auth/roles";
+import { administraGlobal, esAccesoTotal } from "@/lib/auth/roles";
 import { VISTAS, rolDeVista, vistaActual } from "@/lib/auth/vista";
 import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
 import { closersActivos } from "@/lib/catalogo/usuarios";
@@ -25,8 +25,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   // closer no ve el link del otro programa en el sidebar. La misma funcion de alcance
   // que el dashboard y el selector, no `programasActivos`.
   const programas = await programasVisibles(session.user.id, rolVista);
-  const inactivos = await programasInactivosParaAdministrar(rolVista);
-  const puedeCrear = esAdministrador(rolVista);
+  const inactivos = await programasInactivosParaAdministrar(session.user.id, rolVista);
+  const puedeCrear = administraGlobal({ rol: rolVista, alcanceLimitado: session.user.alcanceLimitado });
   const puedeCambiarVista = esAccesoTotal(real.user.rol);
   const vista = await vistaActual();
   // Los closers que el developer puede suplantar (ticket 172). Solo se cargan si de
@@ -39,6 +39,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AppSidebar
         rol={rolVista}
         operaComoCloser={session.user.operaComoCloser}
+        alcanceLimitado={session.user.alcanceLimitado}
         nombre={session.user.name ?? session.user.email ?? "Usuario"}
         email={session.user.email ?? ""}
         imagen={session.user.image}

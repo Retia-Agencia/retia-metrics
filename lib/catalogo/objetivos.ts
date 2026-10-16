@@ -14,6 +14,7 @@ import {
   type MetricaObjetivo,
 } from "@/lib/objetivos/metricas";
 import { moldeDeCatalogo } from "./molde";
+import { exigirAccesoAlPrograma } from "./acceso-programa";
 
 export const AREAS_DE_OBJETIVO = ["paid", "organico", "referidos"] as const;
 export type AreaDeObjetivo = (typeof AREAS_DE_OBJETIVO)[number];
@@ -111,6 +112,15 @@ function exigirEdicion(actor: ActorObjetivos, metrica: MetricaObjetivo) {
   if (!editaObjetivo(actor.rol, DEFINICION_METRICAS_OBJETIVO[metrica].dePauta)) {
     throw new ErrorDeApp("Solo quien administra cambia este objetivo.", 403);
   }
+}
+
+async function programaDeCohorte(db: Db, cohortId: string): Promise<string> {
+  const [cohorte] = await db
+    .select({ programId: cohorts.programId })
+    .from(cohorts)
+    .where(eq(cohorts.id, cohortId));
+  if (!cohorte) throw new ErrorDeApp("No existe la cohorte.", 404);
+  return cohorte.programId;
 }
 
 function aObjetivo(fila: typeof objetivos.$inferSelect): ObjetivoDeCohorte {
@@ -211,6 +221,7 @@ export async function crearObjetivo(db: Db, actor: ActorObjetivos, input: Entrad
   return normalizarEscritura(async () => {
     const datos = esquemaObjetivo.parse(input);
     exigirEdicion(actor, datos.metrica);
+    await exigirAccesoAlPrograma(db, actor, await programaDeCohorte(db, datos.cohortId), "No puedes cambiar objetivos de este programa.");
     return (db as unknown as BaseConTransaccion).transaction((tx) => crearEnTransaccion(tx, actor, input));
   });
 }
@@ -223,6 +234,8 @@ export async function editarObjetivo(db: Db, actor: ActorObjetivos, id: string, 
       const datos = esquemaObjetivo.parse(input);
       exigirEdicion(actor, actual.metrica);
       exigirEdicion(actor, datos.metrica);
+      await exigirAccesoAlPrograma(tx, actor, await programaDeCohorte(tx, actual.cohortId), "No puedes cambiar objetivos de este programa.");
+      await exigirAccesoAlPrograma(tx, actor, await programaDeCohorte(tx, datos.cohortId), "No puedes cambiar objetivos de este programa.");
       if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
         throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
       }
@@ -236,12 +249,13 @@ export async function borrarObjetivo(db: Db, actor: ActorObjetivos, id: string) 
   return normalizarEscritura(() =>
     (db as unknown as BaseConTransaccion).transaction(async (tx) => {
       const [actual] = await tx
-        .select({ metrica: objetivos.metrica })
+        .select({ metrica: objetivos.metrica, cohortId: objetivos.cohortId })
         .from(objetivos)
         .where(eq(objetivos.id, id))
         .for("update");
       if (!actual) throw new ErrorDeApp("No existe un objetivo con ese id.", 404);
       exigirEdicion(actor, actual.metrica);
+      await exigirAccesoAlPrograma(tx, actor, await programaDeCohorte(tx, actual.cohortId), "No puedes cambiar objetivos de este programa.");
       return catalogo(tx).borrarSiNoSeUso(actor.id, id);
     }),
   );
@@ -272,6 +286,7 @@ export async function copiarObjetivos(
       if (desde.programId !== hacia.programId) {
         throw new ErrorDeApp("Solo se pueden copiar objetivos entre cohortes del mismo programa.", 400);
       }
+      await exigirAccesoAlPrograma(tx, actor, desde.programId, "No puedes cambiar objetivos de este programa.");
       const [conteo] = await tx
         .select({ n: sql<number>`count(*)::int` })
         .from(objetivos)

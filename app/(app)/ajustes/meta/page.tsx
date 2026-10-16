@@ -1,13 +1,10 @@
-import { paginaConRol } from "@/lib/auth/page-guards";
-import { manejaPauta } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import {
   cuentasVinculadas,
   estadoConexionMeta,
   type CuentaVinculada,
 } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
-import { ErrorDeApp } from "@/lib/errors";
 import { fechaHoraEnBogota, haceCuanto } from "@/lib/format";
 import { ultimaSincronizacionPauta } from "@/lib/pauta/sincronizar";
 import { PageShell } from "@/components/page-shell";
@@ -29,8 +26,7 @@ function agruparPorPrograma(cuentas: CuentaVinculada[]) {
 }
 
 export default async function MetaPage() {
-  const session = await paginaConRol("gerente", "paid_trafficker");
-  if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  await paginaConAdministracionGlobal();
   const [estado, cuentas, ultima] = await Promise.all([
     estadoConexionMeta(db),
     cuentasVinculadas(db),

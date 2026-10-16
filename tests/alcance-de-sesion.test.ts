@@ -9,6 +9,7 @@ import {
   leads,
   programs,
   users,
+  usuariosProgramasAlcance,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
@@ -127,6 +128,33 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     expect(vistos.map((p) => p.id).sort()).toEqual([programaA, programaB].sort());
   });
 
+  it("gerente y paid trafficker con filas ven solo esos programas", async () => {
+    const [pt] = await db.insert(users).values({ email: "pauta-limitada@retia.co", rol: "paid_trafficker" }).returning();
+    await db.insert(usuariosProgramasAlcance).values([
+      { userId: gerenteId, programId: programaA },
+      { userId: pt.id, programId: programaB },
+    ]);
+    expect((await programasVisibles(gerenteId, "gerente", db)).map((p) => p.id)).toEqual([programaA]);
+    expect((await programasVisibles(pt.id, "paid_trafficker", db)).map((p) => p.id)).toEqual([programaB]);
+    await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, gerenteId));
+    await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, pt.id));
+  });
+
+  it("el developer ve todos aunque tenga filas de alcance", async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: devId, programId: programaA });
+    expect((await programasVisibles(devId, "developer", db)).map((p) => p.id).sort()).toEqual([programaA, programaB].sort());
+    await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, devId));
+  });
+
+  it("un administrador limitado no ve un programa inactivo fuera de su alcance", async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId: programaA });
+    await db.update(programs).set({ activo: false }).where(eq(programs.id, programaB));
+    expect(await programaDeLaFichaPorSlug(gerenteId, "gerente", slugB, db)).toBeNull();
+    expect(await programasInactivosParaAdministrar(gerenteId, "gerente", db)).toEqual([]);
+    await db.update(programs).set({ activo: true }).where(eq(programs.id, programaB));
+    await db.delete(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, gerenteId));
+  });
+
   it("una membresía INACTIVA no cuenta", async () => {
     await db.insert(miembrosPrograma).values({ userId: anaUserId, programId: programaB, activo: false });
     const vistos = await programasVisibles(anaUserId, "closer", db);
@@ -164,8 +192,8 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
     expect((await programaDeLaFichaPorSlug(gerenteId, "gerente", slugB, db))?.activo).toBe(false);
     expect(await programaDeLaFichaPorSlug(anaUserId, "closer", slugB, db)).toBeNull();
     expect(await programaDeLaFichaPorSlug(anaUserId, "closer", slugA, db)).not.toBeNull();
-    expect(await programasInactivosParaAdministrar("closer", db)).toEqual([]);
-    expect(await programasInactivosParaAdministrar("gerente", db)).toEqual([
+    expect(await programasInactivosParaAdministrar(anaUserId, "closer", db)).toEqual([]);
+    expect(await programasInactivosParaAdministrar(gerenteId, "gerente", db)).toEqual([
       { slug: slugB, nombre: "Programa B" },
     ]);
     await db.update(programs).set({ activo: true }).where(eq(programs.id, programaB));

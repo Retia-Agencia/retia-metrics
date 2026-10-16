@@ -35,6 +35,9 @@ const sesionCloser = {
 const sesionDeveloper = {
   user: { id: "u-3", email: "dev@retia.co", rol: "developer", closerId: null },
 };
+const sesionGerenteLimitado = {
+  user: { ...sesionGerente.user, alcanceLimitado: true },
+};
 
 beforeEach(() => {
   auth.mockReset();
@@ -64,6 +67,12 @@ describe("GET /api/admin/ping — endpoint solo de gerente", () => {
     const res = await GET();
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toMatchObject({ ok: true });
+  });
+
+  it("un gerente limitado recibe 403 en el handler global", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    const { GET } = await import("@/app/api/admin/ping/route");
+    expect((await GET()).status).toBe(403);
   });
 
   it("el developer tambien entra a un endpoint de gerente (ADR 0025)", async () => {

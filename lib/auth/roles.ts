@@ -76,6 +76,25 @@ export function esAdministrador(rol: Rol | undefined | null): boolean {
   return rol === "gerente" || rol === "developer";
 }
 
+/** Quien puede quedar limitado por filas de alcance (ADR 0094). */
+export function tieneAlcanceConfigurable(rol: Rol | undefined | null): boolean {
+  return rol === "gerente" || rol === "paid_trafficker";
+}
+
+/**
+ * Quien administra decisiones globales. Un alcance explícito conserva la administración
+ * dentro de sus programas, pero cierra Ajustes y cualquier otro dato transversal.
+ */
+export function administraGlobal({
+  rol,
+  alcanceLimitado,
+}: {
+  rol: Rol | undefined | null;
+  alcanceLimitado: boolean;
+}): boolean {
+  return esAccesoTotal(rol) || (tieneAlcanceConfigurable(rol) && !alcanceLimitado);
+}
+
 /** El dueño de la membresía o quien administra puede cambiarla (ADR 0074). */
 export function puedeTocarMembresia(
   rol: Rol | null | undefined,

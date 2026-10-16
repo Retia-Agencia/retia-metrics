@@ -197,7 +197,11 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   olvidaria de el. Y pasar la guarda no es tener una pantalla util: lo que la pagina proyecta
   adentro sigue decidiendose por rol (`/mi-dia` y `/productos` le dan la union de programas, no la
   de un closer sin membresias). "Administrar" es OTRA pregunta: `esAdministrador` la cumplen el
-  gerente y el developer, y es la que usa la salvaguarda del ultimo administrador. Y hay una
+  gerente y el developer, y es la que usa la salvaguarda del ultimo administrador. **La SEXTA
+  pregunta, `administraGlobal`** (ADR 0094), distingue esa capacidad dentro de un programa de
+  administrar lo transversal: el developer siempre la cumple; gerente y paid trafficker solo
+  cuando no tienen filas en `usuarios_programas_alcance`. Con filas ven únicamente esos programas
+  y no entran a Ajustes. Y hay una
   TERCERA, `trabajaLeads`: quien tiene `closer_id`, membresias, puede ser responsable de una
   persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). **Y una
   CUARTA, `manejaPauta`** (ADR 0052, construida el 3-oct con el 173), para el rol `paid_trafficker`,
@@ -205,7 +209,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   QUINTA, `veEquipoComercial`** (102, 5-oct): quien ve el trabajo de los closers en el Dashboard (comparativo, comision,
   abiertos por owner, filtro de closer y la lista detras de cada cifra); la cumplen gerente, closer y developer, no el paid
   trafficker, y sus cifras se proyectan en el servidor con `sinListas`. Y la pregunta de **alcance**, *"¿que
-  programas ve esta sesion?"* (ADR 0048), tambien en `lib/auth/`. Son preguntas distintas y funciones
+  programas ve esta sesion?"* (ADR 0048, enmendado por el 0094), tambien en `lib/auth/`: gerente y
+  paid trafficker sin filas ven todos los activos; con filas, solo esos; developer siempre todos;
+  closer y customer success conservan sus membresias. Son preguntas distintas y funciones
   distintas: una pantalla que pregunte `rol === "closer"` a mano deja al developer
   afuera, que es justo como `/ajustes/usuarios` quedo sin poder cargarle su `closer_id` (18-sep).
 - 👑 **El developer es el DUEÑO: no se le restringe NADA, en lo absoluto** (Mani, 18-sep; ADR 0025

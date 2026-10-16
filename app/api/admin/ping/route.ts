@@ -1,4 +1,4 @@
-import { requireRole, respuestaDeError } from "@/lib/auth/guards";
+import { requireAdministracionGlobal, respuestaDeError } from "@/lib/auth/guards";
 
 export const runtime = "nodejs";
 
@@ -9,7 +9,7 @@ export const runtime = "nodejs";
  */
 export async function GET() {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     return Response.json({ ok: true, gerente: session.user.email });
   } catch (error) {
     return respuestaDeError(error);

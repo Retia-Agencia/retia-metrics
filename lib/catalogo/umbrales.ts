@@ -6,6 +6,7 @@ import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { moldeDeCatalogo } from "./molde";
+import { exigirAccesoAlPrograma } from "./acceso-programa";
 
 /**
  * Los umbrales de las alertas por persistencia (ticket 147, DP-23), sobre el molde de catálogo:
@@ -99,6 +100,7 @@ async function guardar(
 ): Promise<UmbralDeAlerta> {
   if (!esAdministrador(actor.rol)) throw new ErrorDeApp("Solo quien administra cambia los umbrales.", 403);
   const datos = esquemaUmbral.parse(input);
+  await exigirAccesoAlPrograma(db, actor, datos.programId, "No puedes cambiar umbrales de este programa.");
   const molde = catalogo(db);
   const [existente] = await db
     .select({ id: umbralesAlerta.id, activo: umbralesAlerta.activo })

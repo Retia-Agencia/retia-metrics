@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Activity, FileWarning, ListChecks, Megaphone, Radio, Shapes, Users } from "lucide-react";
-import { paginaConRol } from "@/lib/auth/page-guards";
-import { esAdministrador, manejaPauta, type Rol } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -24,56 +22,44 @@ const ENLACES = [
     icono: Users,
     titulo: "Usuarios",
     descripcion: "Quién puede entrar y con qué rol: se agregan, editan y desactivan sin CLI.",
-    requisito: "administra",
   },
   {
     href: "/ajustes/canales",
     icono: Radio,
     titulo: "Canales",
     descripcion: "De qué canal y área viene cada envío.",
-    requisito: "pauta",
   },
   {
     href: "/ajustes/meta",
     icono: Megaphone,
     titulo: "Meta",
     descripcion: "Conecta el usuario del sistema que lee las cuentas publicitarias.",
-    requisito: "pauta",
   },
   {
     href: "/ajustes/salud",
     icono: Activity,
     titulo: "Webhook Health",
     descripcion: "Cada entrega del webhook por programa, la conciliación y el aviso de fuentes en silencio.",
-    requisito: "administra",
   },
   {
     href: "/ajustes/catalogos",
     icono: ListChecks,
     titulo: "Motivos",
     descripcion: "Los motivos que se usan al perder, retroceder o recuperar un deal.",
-    requisito: "administra",
   },
   {
     href: "/ajustes/areas",
     icono: Shapes,
     titulo: "Áreas",
     descripcion: "Agrupan los canales por área de origen, para el rendimiento por área.",
-    requisito: "administra",
   },
   {
     href: "/ajustes/migracion",
     icono: FileWarning,
     titulo: "Rarezas de la migración",
     descripcion: "Lo que la migración no pudo clasificar, por programa y por tipo, con el deal o lead que apunta.",
-    requisito: "administra",
   },
 ] as const;
-
-/** ¿Este actor ve esta tarjeta? Por capacidad, nunca por el literal del rol (ADR 0025). */
-function puedeVer(requisito: (typeof ENLACES)[number]["requisito"], rol: Rol | null): boolean {
-  return requisito === "pauta" ? manejaPauta(rol) : esAdministrador(rol);
-}
 
 export default async function AjustesPage() {
   // Ajustes es de quien administra la app (gerente, developer por `esAccesoTotal`) y del paid
@@ -81,33 +67,23 @@ export default async function AjustesPage() {
   // ya no administra plataformas de pago desde aqui. Se conserva la mecanica de hoy
   // (`paginaConRol`, que rebota a su vista); la proyeccion y la guarda de cada subpagina deciden
   // que puede tocar cada rol que si entra.
-  const session = await paginaConRol("gerente", "paid_trafficker");
-  const rol = await rolDeVista(session);
-  const visibles = ENLACES.filter((e) => puedeVer(e.requisito, rol));
+  await paginaConAdministracionGlobal();
 
   return (
     <PageShell titulo="Ajustes" descripcion="Usuarios y roles, canales, webhook, motivos y áreas.">
-      {visibles.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-sm text-muted-foreground">
-            No hay ajustes disponibles para tu rol.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {visibles.map(({ href, icono: Icono, titulo, descripcion }) => (
-            <Link key={href} href={href} className="block">
-              <Card className="h-full transition-colors hover:bg-accent/40">
-                <CardHeader className="flex-row items-center gap-2 space-y-0">
-                  <Icono className="size-4 text-muted-foreground" />
-                  <CardTitle className="text-base">{titulo}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">{descripcion}</CardContent>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ENLACES.map(({ href, icono: Icono, titulo, descripcion }) => (
+          <Link key={href} href={href} className="block">
+            <Card className="h-full transition-colors hover:bg-accent/40">
+              <CardHeader className="flex-row items-center gap-2 space-y-0">
+                <Icono className="size-4 text-muted-foreground" />
+                <CardTitle className="text-base">{titulo}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-muted-foreground">{descripcion}</CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </PageShell>
   );
 }

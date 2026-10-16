@@ -1,8 +1,8 @@
 import { and, eq } from "drizzle-orm";
-import { miembrosPrograma } from "@/lib/db/schema";
+import { miembrosPrograma, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { esAdministrador, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, tieneAlcanceConfigurable, type Rol } from "@/lib/auth/roles";
 
 /**
  * "¿Este actor puede tocar una fila de ESTE programa?" — LA respuesta, en un solo
@@ -31,6 +31,8 @@ export interface ActorConAcceso {
   id: string;
   /** Su rol de vista, no `session.user.rol` crudo (ADR 0028). */
   rol: Rol;
+  /** Si la sesión tiene filas explícitas de alcance (ADR 0094). */
+  alcanceLimitado?: boolean;
 }
 
 /**
@@ -45,7 +47,15 @@ export async function exigirAccesoAlPrograma(
   programId: string,
   mensajeNegado = "No puedes gestionar contenido de un programa donde no vendes.",
 ): Promise<void> {
-  if (esAdministrador(actor.rol)) return;
+  if (esAccesoTotal(actor.rol)) return;
+  if (tieneAlcanceConfigurable(actor.rol)) {
+    const alcance = await db
+      .select({ programId: usuariosProgramasAlcance.programId })
+      .from(usuariosProgramasAlcance)
+      .where(eq(usuariosProgramasAlcance.userId, actor.id));
+    if (alcance.length === 0 || alcance.some((fila) => fila.programId === programId)) return;
+    throw new ErrorDeApp(mensajeNegado, 403);
+  }
   const [membresia] = await db
     .select({ id: miembrosPrograma.id })
     .from(miembrosPrograma)

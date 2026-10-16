@@ -7,6 +7,7 @@ import {
   plataformasPrograma,
   programs,
   users,
+  usuariosProgramasAlcance,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -254,6 +255,16 @@ describe("crear una plataforma y asociarla en la misma operacion (Mani, 20-sep)"
     // Lo que se prueba es el ORDEN: el acceso se verifica antes de crear. Al reves,
     // quedaria la plataforma huerfana que esta funcion existe para evitar.
     const error = await crearPlataformaConProgramas(db, closer, { nombre: "Wise" }, [programaB]).catch(
+      (e) => e,
+    );
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(403);
+    expect(await porNombre("Wise")).toHaveLength(0);
+  });
+
+  it("un gerente limitado no crea una plataforma en un programa ajeno", async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerente.id, programId: programaA });
+    const error = await crearPlataformaConProgramas(db, gerente, { nombre: "Wise" }, [programaB]).catch(
       (e) => e,
     );
     expect(error).toBeInstanceOf(ErrorDeApp);

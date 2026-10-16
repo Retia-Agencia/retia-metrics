@@ -4,6 +4,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { auth } from "./index";
 import {
   AuthenticationError,
+  administraGlobal,
   AuthorizationError,
   etiquetaDeRol,
   puedeAcceder,
@@ -117,6 +118,16 @@ async function exigirRol(session: Session, permitidos: Rol[]): Promise<Session> 
  */
 export async function requireRole(...permitidos: Rol[]): Promise<Session> {
   return exigirRol(await requireSession(), permitidos);
+}
+
+/** Guarda de servidor para escrituras y handlers que administran datos globales. */
+export async function requireAdministracionGlobal(): Promise<Session> {
+  const session = await requireSession();
+  const rol = await rolDeVista(session);
+  if (!administraGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
+    throw new AuthorizationError("No tienes permiso para administrar la configuración global.");
+  }
+  return session;
 }
 
 /**

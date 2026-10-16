@@ -276,7 +276,7 @@ describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
  * quitar el vinculo es la operacion, no una perdida de historial. Agregar una tabla
  * a esta lista es una decision consciente, no un descuido que pasa en silencio.
  */
-const TABLAS_PUENTE_BORRABLES = ["plataformasprograma"];
+const TABLAS_PUENTE_BORRABLES = ["plataformasprograma", "usuariosprogramasalcance"];
 
 describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => {
   it("h2. el unico archivo de lib/catalogo/ con un DELETE es molde.ts", () => {

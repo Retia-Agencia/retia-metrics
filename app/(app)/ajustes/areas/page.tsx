@@ -1,10 +1,7 @@
-import { paginaConRol } from "@/lib/auth/page-guards";
-import { esAdministrador } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
 import { canales as catalogoCanales } from "@/lib/catalogo/canales";
 import { db } from "@/lib/db";
-import { ErrorDeApp } from "@/lib/errors";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { AreasAdmin } from "@/components/admin/areas-admin";
@@ -19,8 +16,7 @@ export const dynamic = "force-dynamic";
  * `esAdministrador` sobre el ROL DE VISTA cierra la vista `closer` —nunca `rol === "..."`.
  */
 export default async function AreasPage() {
-  const session = await paginaConRol("gerente");
-  if (!esAdministrador(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  await paginaConAdministracionGlobal();
 
   const [todasLasAreas, canales] = await Promise.all([
     catalogoAreas(db).listar(),

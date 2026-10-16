@@ -2,9 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth/guards";
-import { manejaPauta } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { requireAdministracionGlobal } from "@/lib/auth/guards";
 import { canales, esquemaCanal, type EntradaCanal } from "@/lib/catalogo/canales";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -27,8 +25,7 @@ function errorSeguro(error: unknown): { ok: false; error: string } {
  * y la regla vale aunque el boton no aparezca: esta accion se puede forjar.
  */
 async function actorDePauta(): Promise<string> {
-  const session = await requireRole("gerente", "paid_trafficker");
-  if (!manejaPauta(await rolDeVista(session))) throw new ErrorDeApp("No autorizado.", 403);
+  const session = await requireAdministracionGlobal();
   return session.user.id;
 }
 
