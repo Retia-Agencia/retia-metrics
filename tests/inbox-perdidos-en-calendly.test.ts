@@ -54,6 +54,7 @@ async function crear(o: {
   parcial?: boolean;
   anulado?: boolean;
   token?: string;
+  leadQuality?: string | null;
 } = {}) {
   const numero = ++n;
   const programa = o.programa ?? programId;
@@ -69,6 +70,7 @@ async function crear(o: {
       sourceId,
       token,
       esParcial: o.parcial ?? true,
+      leadQuality: o.leadQuality === undefined ? "High" : o.leadQuality,
       fechaEnvio: new Date(AHORA.getTime() - (o.minutos ?? 6) * 60_000),
       utmSource: "facebook",
       utmMedium: "paid_social",
@@ -85,7 +87,7 @@ async function crear(o: {
       programId: programa,
       submissionOrigenId: envio.id,
       ownerUserId: o.owner ?? null,
-      etapa: o.etapa ?? "calificado",
+      etapa: o.etapa ?? "potencial",
       ...anulacion,
     })
     .returning();
@@ -126,9 +128,11 @@ describe("perdidosEnCalendly", () => {
     expect((await perdidosEnCalendly(db, programId, AHORA)).map((fila) => fila.dealId)).toEqual([dealId]);
   });
 
-  it("excluye deals con dueno, en otra etapa, nacidos de completo, anulados o de otro programa", async () => {
+  it("excluye deals con dueno, en otra etapa, sin calidad High, nacidos de completo, anulados o de otro programa", async () => {
     await crear({ owner: ownerId });
-    await crear({ etapa: "potencial" });
+    await crear({ etapa: "calificado" });
+    await crear({ leadQuality: null });
+    await crear({ leadQuality: "Low" });
     await crear({ parcial: false });
     await crear({ anulado: true });
     await crear({ programa: otroProgramId });

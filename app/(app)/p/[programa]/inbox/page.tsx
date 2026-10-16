@@ -123,7 +123,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
           id: "no-agendaron",
           etiqueta: "No agendaron",
           total: perdidos.length,
-          descripcion: "Leads calificados que abrieron Calendly y no terminaron de agendar hace más de 5 minutos.",
+          descripcion: "Leads High que abrieron Calendly y no terminaron de agendar hace más de 5 minutos.",
           href: urlConSeccion(base, query, "no-agendaron"),
         },
       ],

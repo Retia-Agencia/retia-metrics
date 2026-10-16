@@ -124,7 +124,7 @@ y deals según su origen (ADR 0043).
 **El Sistema** (nadie lo opera; su trabajo se ve en el historial como "sistema"):
 
 1. ✅ Recibe cada envío del formulario, identifica al lead y abre el deal en su **puerta de entrada**:
-   Potencial (parcial), Registrado (completo sin calidad alta), Calificado (Lead Quality High) o Agendado
+   Potencial (parcial, venga con la calidad que venga), Registrado (completo sin calidad alta), Calificado (completo con Lead Quality High) o Agendado
    (agendó) (ADR 0069). Si la persona vuelve a llenar el formulario con un envío mejor, sube el deal (ADR
    0073).
 2. ✅ Cuelga cada cita de Calendly de su deal y lo mueve a Agendado; si tiene duda, deja la llamada suelta
@@ -199,8 +199,9 @@ su estado está en `plan.md` §4.0 ("Los traspasos entre actores").
 2. **Se identifica a la persona.** Mismo correo, mismo lead. Mismo teléfono con otro correo: se une y se
    marca para que un gerente lo revise, nunca se fusiona a ciegas.
 3. **Nace el deal en su puerta.** El CRM decide la etapa con tres hechos del envío (ADR 0069): agendó →
-   Agendado; Lead Quality High → Calificado; completo con otra calidad → Registrado; parcial → Potencial. Si
-   llegó al Calendly y a los 5 minutos no agendó, sale urgente en el Inbox ("se perdió en el Calendly").
+   Agendado; parcial → Potencial, venga con la calidad que venga; completo High → Calificado; completo con otra
+   calidad → Registrado. Si llegó al Calendly (parcial High) y a los 5 minutos no agendó, sale urgente en el Inbox
+   ("No agendaron").
 4. **Se trabaja.** Con la primera actividad comercial el deal pasa a **En gestión**, la cola del setter; un
    contacto logrado lo pasa a **Contactado** (ADR 0071). El setter manda el link de agenda; cuando la cita
    entra por Calendly, el deal pasa a **Agendado** y queda de quien da la llamada (ADR 0076). Si no hay

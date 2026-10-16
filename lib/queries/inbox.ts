@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, lte, notInArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 import {
   calls,
   deals,
@@ -164,7 +164,10 @@ export interface FilaPerdidoEnCalendly {
 }
 
 /**
- * Deals Calificados sin dueno cuyo parcial de Calendly nunca tuvo su envio completo.
+ * Deals en Potencial sin dueno que nacieron de un parcial High (llego al Calendly) cuyo
+ * envio completo nunca llego. Desde el 16-oct un parcial nace en Potencial venga con la
+ * calidad que venga (enmienda del ADR 0069), asi que la senal es la calidad del parcial y
+ * no la etapa: antes buscaba en Calificado.
  * Es una lista de equipo: no recibe ni aplica el alcance del Inbox.
  */
 export async function perdidosEnCalendly(
@@ -197,8 +200,9 @@ export async function perdidosEnCalendly(
         eq(deals.programId, programId),
         vigente(deals),
         isNull(deals.ownerUserId),
-        eq(deals.etapa, "calificado"),
+        eq(deals.etapa, "potencial"),
         eq(submissions.esParcial, true),
+        sql`lower(trim(${submissions.leadQuality})) = 'high'`,
         or(
           lte(submissions.fechaEnvio, limite),
           and(isNull(submissions.fechaEnvio), lte(submissions.createdAt, limite)),

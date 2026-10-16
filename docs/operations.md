@@ -176,7 +176,7 @@ cambian.
 
 **Qué sale de cada envío en el CRM, y es coherente:** la etapa la deciden los hechos del envío (ADR 0069): agendó →
 Agendado, aunque sea `Low`; completo `High` sin agenda → Calificado; completo `Low` sin agenda → Registrado; parcial →
-Potencial. Un lead con ingreso bajo que agenda entra a Agendado con calidad `Low` y su valor, y el closer lo ve. Nadie
+Potencial, aunque sea `High` (16-oct). Un lead con ingreso bajo que agenda entra a Agendado con calidad `Low` y su valor, y el closer lo ve. Nadie
 queda sin deal.
 
 **`lead_value` en Form30x:** los puntos de valor van de 0 a 50, así que cada cantidad de descalificantes (0 a 3:
@@ -222,7 +222,7 @@ de Form30x, y no se copia: SBJ conserva la suya.
 7b. ✅ 272: los parciales por la API (ADR 0093) — Codex; la sesión aplica 0089 (`sources.form30x_form_id`) y 0090
    (`sobres_crudos.origen` admite `form30x_api`), sube la key a Vercel (solo producción) y los secretos de GitHub, todo
    con el ok de Mani. Primera corrida (16-oct): 4 leídas, el parcial `ManuelTEST2` entró (en **Calificado**, no en
-   Potencial: venía `High`, ver el paso 13), `ManuelTEST` y el parcial sin correo saltados, y la prueba de Hugo
+   Potencial: venía `High`; desde el 16-oct un parcial nace en Potencial venga con la calidad que venga), `ManuelTEST` y el parcial sin correo saltados, y la prueba de Hugo
    rechazada como entrega de prueba (correo reservado), con su sobre en error. Segunda corrida: 4 saltadas, nada
    escrito. El deal de `ManuelTEST2` quedó anulado.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
@@ -244,7 +244,8 @@ de Form30x, y no se copia: SBJ conserva la suya.
 13. Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
     valor, UTMs y llamada colgada — la sesión. 🔴 **Antes, revisar las `scoreTagRules`:** todas las respuestas del
     form vienen `High` (el parcial con solo el nombre, score 0; la prueba de Hugo, score 0; `ManuelTEST2`, score 10).
-    Por el ADR 0069 un parcial `High` nace en Calificado, así que hoy SBJ no tendría Potencial ni Registrado. Decide
+    Desde el 16-oct un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069), así que SBJ
+    sí tiene Potencial; sin corregir los tags, todo completo seguiría en Calificado y no habría Registrado. Decide
     Mani: si `High` es el defecto del form, la regla de tags en Form30x es la que se corrige.
 14. Avisar al equipo en "Core Estado X" — Mani.
 

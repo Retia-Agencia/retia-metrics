@@ -4,6 +4,13 @@
   CRM y no el formulario; estandarizado para todos los programas"*). **Reemplaza** al ADR 0061 cuando se construya con las etapas de 30X; hasta entonces rige el código del 117.
 - **Enmendado por el [ADR 0073](./0073-un-reenvio-sube-el-deal-a-su-mejor-etapa-de-entrada.md)** (2-oct): la tabla vale
   para cada envío y sube un deal abierto que sigue en una puerta (S1 a S3); el parcial Low nace en Potencial.
+- **Enmendado el 16-oct-2026 (Mani): un parcial nace en Potencial venga con la calidad que venga.** Un parcial es
+  alguien que se fue a mitad del formulario, y Calificado le dice al closer que está listo. Se destapó al conectar AI
+  Second Brain Jurídico por Form30x, donde casi todo llega `High`. Las cuatro puertas quedan como un paso más del
+  embudo cada una: agendó → Agendado; parcial sin agenda → Potencial; completo High → Calificado; completo Low, Mid o
+  sin calidad → Registrado. Si ese parcial termina con High, la subida del ADR 0073 (S2) lo lleva a Calificado. Los
+  7 deals de Comunícate con Confianza que un parcial High había dejado en Calificado sin trabajar se devolvieron a
+  Potencial con nota del sistema. La pestaña "No agendaron" del Inbox (118) busca ahora Potencial con parcial High.
 - **Relacionadas:** ADR 0061 (la tabla de Estados de llegada, ticket 117), ADR 0064 (varios formularios),
   `docs/comercial.md` (la operación de 30X, la misma para todos los programas; GC-27: ningún lead se descarta).
 
@@ -26,9 +33,9 @@ hay razón para que cada programa enrute distinto.
    | Formulario | Calidad | Agendó | Etapa de entrada (30X) | Hoy, mientras no entren las etapas de 30X |
    |---|---|---|---|---|
    | cualquiera | cualquiera | sí | **Agendado** | Agendado |
-   | parcial o completo | High | no | **Calificado** (se le ofrece la agenda) | Pendiente Setteo, prioridad alta |
+   | parcial | cualquiera (enmienda del 16-oct) | no | **Potencial** | Pendiente Setteo |
+   | completo | High | no | **Calificado** (se le ofrece la agenda) | Pendiente Setteo, prioridad alta |
    | completo | Low (o Mid) | no | **Registrado** | Pendiente Setteo |
-   | parcial | sin calidad | no | **Potencial** | Pendiente Setteo |
 
    Ningún envío se descarta (GC-27): todo envío abre deal o actualiza el abierto. En 30X un workflow pasa
    Potencial y Registrado a *En gestión* en minutos; eso es parte de la migración comercial, no de este ADR.

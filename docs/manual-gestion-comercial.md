@@ -164,16 +164,16 @@ formulario (✅ ADR 0069; QD-3):
 | Formulario | Calidad (Lead Quality) | ¿Agendó? | El deal nace en |
 |---|---|---|---|
 | cualquiera | cualquiera | sí | **Agendado** (§3.4) |
-| parcial o completo | High | no | **Calificado** |
-| completo | Low o Mid | no | **Registrado** |
-| parcial | Low, Mid o sin calidad | no | **Potencial** |
+| parcial | cualquiera | no | **Potencial** (✅ Mani, 16-oct: un parcial High ya no nace en Calificado) |
+| completo | High | no | **Calificado** |
+| completo | Low, Mid o sin calidad | no | **Registrado** |
 
 - **Ningún envío se descarta:** todo envío abre un deal o actualiza el abierto (✅ GC-27, ADR 0069).
 - **Lead Value no cambia la etapa:** se guarda y ordena el trabajo dentro de la etapa (✅ ADR 0069 punto 4;
   GC-29). Lead Quality y Lead Value se muestran en el deal (✅ QD-10, QD-12).
 - **La regla vale para cada envío, no solo para el primero** (✅ ADR 0073, Mani 2-oct). Si el lead ya tiene un deal
   abierto que **sigue en una puerta** (Potencial o Registrado), el envío nuevo lo sube a la etapa que le tocaría:
-  Potencial → Registrado al llegar el completo, Potencial o Registrado → Calificado al llegar calidad High. Solo hacia
+  Potencial → Registrado al llegar el completo, Potencial o Registrado → Calificado al llegar un completo High. Solo hacia
   arriba, lo hace el sistema y deja nota en el log del deal. Si el deal ya está En gestión o más adelante, alguien lo
   trabaja y el envío no lo mueve (salvo la cita, §3.4).
 - **El parcial y su completo son el mismo envío** (✅ ADR 0073): el parcial se va actualizando y, al terminar, el completo
@@ -184,8 +184,9 @@ formulario (✅ ADR 0069; QD-3):
 
 **Potencial**
 
-- **Significa:** empezó el formulario y no lo terminó; no hay calidad todavía.
-- **Entra:** solo el sistema, al llegar un envío parcial sin calidad y sin agenda.
+- **Significa:** empezó el formulario y no lo terminó. Puede traer calidad (un parcial High llegó al Calendly), pero
+  todavía no está listo: por eso no es Calificado (✅ Mani, 16-oct).
+- **Entra:** solo el sistema, al llegar un envío parcial sin agenda, con la calidad que traiga.
 - **Tiene:** lead, envío de origen, cohorte activa del programa (✅ ADR 0065, segunda enmienda), sin dueño.
 - **Sale a:** En gestión · Registrado o Calificado cuando llega otro envío que le toca esa puerta (✅ S1, S2, ADR
   0073) · Agendado · Cierre perdido.
@@ -206,9 +207,8 @@ formulario (✅ ADR 0069; QD-3):
 - **Tiene:** lo de las otras puertas. En la cola de trabajo va **primero**, por calidad alta (es la
   "prioridad alta" que hoy tiene en Pendiente Setteo, ADR 0069).
 - **Sale a:** Agendado · Compromiso Verbal o ganado sin llamada (§4, venta por chat) · Cierre perdido.
-- **Alerta:** "se perdió en el Calendly" (ticket 118) cuando llegó a la pantalla del Calendly y a los
-  minutos no agendó. 🔴 Con la variable `estado` retirada (ADR 0069 punto 5), la regla del 118 se reescribe
-  sobre "nació en Calificado por un parcial y no llegó su completo" (§10, D-7 ✅: a los 5 minutos).
+- **Alerta:** ninguna propia. "No agendaron" (ticket 118, §10 D-7 ✅: a los 5 minutos) vive en **Potencial** desde
+  el 16-oct: un deal sin dueño nacido de un parcial High cuyo completo no llegó.
 
 ### 3.2 En gestión
 

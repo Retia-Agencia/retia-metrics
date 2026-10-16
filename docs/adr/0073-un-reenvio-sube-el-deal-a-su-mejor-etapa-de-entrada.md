@@ -25,9 +25,9 @@ persona había aplicado más de una vez.
    | Formulario | Calidad | Agendó | Etapa de entrada |
    |---|---|---|---|
    | cualquiera | cualquiera | sí | Agendado |
-   | parcial o completo | High | no | Calificado |
+   | parcial | cualquiera | no | **Potencial** (el parcial Low es nuevo: Registrado es "terminó el formulario"; el parcial High, del 16-oct, enmienda del ADR 0069) |
+   | completo | High | no | Calificado |
    | completo | Low, Mid o sin calidad | no | Registrado |
-   | parcial | Low, Mid o sin calidad | no | **Potencial** (el parcial Low es nuevo: Registrado es "terminó el formulario") |
 
 2. **Un envío sobre un deal abierto que sigue en una puerta lo sube a la etapa de entrada de ese envío**, solo hacia
    arriba y solo por tres flechas del sistema:
@@ -35,7 +35,7 @@ persona había aplicado más de una vez.
    | Id | De → a | Cuándo |
    |---|---|---|
    | S1 | Potencial → Registrado | llega el completo, sin calidad alta y sin agenda |
-   | S2 | Potencial → Calificado | llega un envío con calidad High, sin agenda |
+   | S2 | Potencial → Calificado | llega un completo con calidad High, sin agenda (desde el 16-oct un parcial High ya no sube) |
    | S3 | Registrado → Calificado | llega un envío con calidad High, sin agenda |
 
    - **Nunca baja:** un Calificado que reenvía con calidad Low sigue en Calificado. No hay flecha de bajada.

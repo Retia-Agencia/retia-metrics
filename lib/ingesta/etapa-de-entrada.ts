@@ -6,12 +6,12 @@ import { ESTADO_CON_CALENDLY, type Calificacion } from "./calificacion";
  * CRM con TRES hechos que el formulario ya mide, la misma regla para todos los programas y
  * la misma de 30X (`docs/manual-gestion-comercial.md` §3.1):
  *
- * | Formulario         | Calidad        | Agendó | Nace en      |
- * |--------------------|----------------|--------|--------------|
- * | cualquiera         | cualquiera     | sí     | Agendado     |
- * | parcial o completo | High           | no     | Calificado   |
- * | completo           | Low, Mid o ∅   | no     | Registrado   |
- * | parcial            | Low, Mid o ∅   | no     | Potencial    |
+ * | Formulario | Calidad        | Agendó | Nace en      |
+ * |------------|----------------|--------|--------------|
+ * | cualquiera | cualquiera     | sí     | Agendado     |
+ * | parcial    | cualquiera     | no     | Potencial    |
+ * | completo   | High           | no     | Calificado   |
+ * | completo   | Low, Mid o ∅   | no     | Registrado   |
  *
  * - **La variable `estado` del formulario ya no decide nada** (ADR 0069 punto 5). Lo único
  *   que se lee de `calificacion` es el hecho de agendar, que pone el CÓDIGO del adaptador
@@ -19,8 +19,9 @@ import { ESTADO_CON_CALENDLY, type Calificacion } from "./calificacion";
  * - **Ningún envío se descarta** (GC-27): no hay combinación que no abra deal. Un completo
  *   sin calidad cae en Registrado y un parcial sin calidad en Potencial.
  * - **`lead_value` no enruta** (ADR 0069 punto 4): ni siquiera entra aquí.
- * - Un parcial Low no está en la tabla del ADR: nace en Potencial, porque Registrado es
- *   "terminó el formulario" (manual §3.1).
+ * - **Un parcial nace en Potencial venga con la calidad que venga** (Mani, 16-oct, enmienda
+ *   del ADR 0069): se fue a mitad del formulario, y Calificado le diría al closer que está
+ *   listo. Si después termina con High, la subida de puerta del ADR 0073 lo lleva a Calificado.
  *
  * Funciones PURAS: la regla de deals (`regla-de-deals.ts`) decide con ellas y el embudo
  * del formulario (`lib/queries/embudo-formulario.ts`) cuenta "agendó" con la misma.
@@ -55,6 +56,6 @@ export function esCalidadAlta(leadQuality: string | null): boolean {
 /** La etapa de entrada para un envío (tabla de arriba). */
 export function etapaDeEntrada(hechos: HechosDeEntrada): EtapaDeEntrada {
   if (hechos.agendo) return "agendado";
-  if (esCalidadAlta(hechos.leadQuality)) return "calificado";
-  return hechos.esParcial ? "potencial" : "registrado";
+  if (hechos.esParcial) return "potencial";
+  return esCalidadAlta(hechos.leadQuality) ? "calificado" : "registrado";
 }

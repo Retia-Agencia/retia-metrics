@@ -59,8 +59,12 @@ describe("etapaDeEntrada: la tabla del ADR 0069, fila por fila", () => {
     expect(etapaDeEntrada(hechos(esParcial, true, q))).toBe("agendado");
   });
 
-  it.each([false, true])("High sin agenda (parcial=%s): Calificado", (esParcial) => {
-    expect(etapaDeEntrada(hechos(esParcial, false, "High"))).toBe("calificado");
+  it("completo High sin agenda: Calificado", () => {
+    expect(etapaDeEntrada(hechos(false, false, "High"))).toBe("calificado");
+  });
+
+  it.each(["High", " high ", "Low", "Mid", null])("🩸 parcial sin agenda con calidad %s: Potencial, nunca Calificado (16-oct)", (q) => {
+    expect(etapaDeEntrada(hechos(true, false, q))).toBe("potencial");
   });
 
   it.each(["Low", "Mid", null, ""])("completo %s sin agenda: Registrado (ningún envío se descarta)", (q) => {
@@ -728,7 +732,7 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     ["completo High sin agenda", { esParcial: false, leadQuality: "High" }, "calificado"],
     ["completo Low sin agenda", { esParcial: false, leadQuality: "Low" }, "registrado"],
     ["completo Mid sin agenda", { esParcial: false, leadQuality: "Mid" }, "registrado"],
-    ["parcial High sin agenda", { esParcial: true, leadQuality: "High" }, "calificado"],
+    ["parcial High sin agenda", { esParcial: true, leadQuality: "High" }, "potencial"],
     ["parcial sin calidad", { esParcial: true, leadQuality: null }, "potencial"],
   ] as const)("%s nace en %s", async (_caso, hechos, etapa) => {
     const r = await ingerir([
@@ -760,11 +764,11 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     expect(deal.etapa).toBe("calificado");
   });
 
-  it("parcial High y luego su completa con cita: un lead, un deal, de Calificado a Agendado con su llamada", async () => {
+  it("parcial High y luego su completa con cita: un lead, un deal, de Potencial a Agendado con su llamada", async () => {
     const parcial = await ingerir([
       entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null, leadQuality: "High" }),
     ]);
-    expect(parcial.reglaDeDeals[0].accion).toEqual({ tipo: "abrir", etapa: "calificado" });
+    expect(parcial.reglaDeDeals[0].accion).toEqual({ tipo: "abrir", etapa: "potencial" });
     const [calificado] = await db.select().from(deals);
 
     // La completa del MISMO token, con la cita: el mismo deal pasa a Agendado por el motor.
@@ -782,7 +786,7 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     expect(llamadas).toHaveLength(1);
     expect(llamadas[0].fechaAgenda?.toISOString()).toBe(CITA_VIGENTE.inicio.toISOString());
     const historial = await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, calificado.id));
-    expect(historial.map((h) => h.a)).toEqual(["calificado", "agendado"]);
+    expect(historial.map((h) => h.a)).toEqual(["potencial", "agendado"]);
   });
 
   it("parcial sin calidad y luego su completa High sin agenda: el deal sube de Potencial a Calificado (S2, ADR 0073)", async () => {
@@ -793,6 +797,17 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     expect(r.reglaDeDeals[0].accion.tipo).toBe("subir");
     const [deal] = await db.select().from(deals);
     expect(deal.etapa).toBe("calificado");
+  });
+
+  it("parcial High y luego su completa High sin agenda: el MISMO deal sube de Potencial a Calificado (16-oct, ADR 0073)", async () => {
+    await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", esParcial: true, fecha: null, leadQuality: "High" })]);
+    const [antes] = await db.select().from(deals);
+    expect(antes.etapa).toBe("potencial");
+    const r = await ingerir([entrada({ token: "tok-1", correo: "ana@correo.co", leadQuality: "High" })]);
+    expect(r.reglaDeDeals[0].accion.tipo).toBe("subir");
+    const todos = await db.select().from(deals);
+    expect(todos).toHaveLength(1);
+    expect(todos[0]).toMatchObject({ id: antes.id, etapa: "calificado" });
   });
 
   describe("🩸 los dos puntos parciales comparten token: el viejo no pisa al nuevo (revisión de Codex)", () => {
@@ -825,7 +840,7 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
     it("fuera de orden: el del WhatsApp que llega tarde no le borra la calidad ni las respuestas", async () => {
       await ingerir([calendly()]);
       const [deal] = await db.select().from(deals);
-      expect(deal.etapa).toBe("calificado");
+      expect(deal.etapa).toBe("potencial");
       const r = await ingerir([whatsapp()]);
       const envios = await db.select().from(submissions);
       expect(envios).toHaveLength(1);
@@ -844,7 +859,7 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
       expect(envios).toHaveLength(1);
       expect(envios[0].leadQuality).toBe("High");
       const [deal] = await db.select().from(deals);
-      expect(deal.etapa).toBe("calificado");
+      expect(deal.etapa).toBe("potencial");
     });
 
     it("el mismo parcial reintentado sí se re-escribe (idempotente)", async () => {
