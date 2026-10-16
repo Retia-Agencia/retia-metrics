@@ -3,7 +3,7 @@ id: 277
 etapa: llamadas
 serves: "Bajar los Grain de una semana de llamadas, de una semana de agendas o de una cohorte (Mani, 16-oct, tras el recorrido del 275)"
 depends: [275]
-status: todo
+status: done
 ---
 
 # 277 — Calls: fecha por llamada o por agenda, y filtro de cohorte
