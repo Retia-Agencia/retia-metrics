@@ -1,5 +1,5 @@
-import { and, eq, isNotNull } from "drizzle-orm";
-import { sources, submissions } from "@/lib/db/schema";
+import { and, eq, isNotNull, like } from "drizzle-orm";
+import { sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { leerRespuestas } from "@/lib/form30x/api";
 import { guardarSobre, marcarSobreConError, type DuenoDelSobre } from "./caja-negra";
@@ -56,6 +56,30 @@ async function yaExiste(db: Db, sourceId: string, respuesta: RespuestaForm30x): 
   return fila !== undefined;
 }
 
+/**
+ * Una respuesta que ya dejo un sobre de esta lectura y fallo (una entrega de prueba, un
+ * mapeo roto) no se vuelve a escribir en cada corrida: su sobre con error ya esta a la vista
+ * en Webhook Health y se reprocesa desde ahi. Sin esto, cada media hora sumaria un sobre
+ * igual mientras la respuesta siga en la ventana. El cuerpo lo escribe
+ * `cuerpoDeWebhookDesdeRespuesta` con `JSON.stringify`, asi que el texto es compacto.
+ */
+async function yaTieneSobre(db: Db, sourceId: string, respuesta: RespuestaForm30x): Promise<boolean> {
+  const evento = respuesta.completed ? "response.completed" : "response.partial";
+  const [fila] = await db
+    .select({ id: sobresCrudos.id })
+    .from(sobresCrudos)
+    .where(
+      and(
+        eq(sobresCrudos.sourceId, sourceId),
+        eq(sobresCrudos.origen, "form30x_api"),
+        like(sobresCrudos.cuerpo, `%"event":"${evento}"%`),
+        like(sobresCrudos.cuerpo, `%"responseId":${JSON.stringify(respuesta.id)}%`),
+      ),
+    )
+    .limit(1);
+  return fila !== undefined;
+}
+
 /** Lee las respuestas recientes de cada fuente Form30x activa (ADR 0093, ticket 272). */
 export async function leerForm30x(
   db: Db,
@@ -105,6 +129,7 @@ export async function leerForm30x(
           resumen.leidas += 1;
           if (
             (await yaExiste(db, fuente.id, respuesta)) ||
+            (await yaTieneSobre(db, fuente.id, respuesta)) ||
             (!respuesta.completed && !parcialTieneCorreo(respuesta))
           ) {
             resumen.saltadas += 1;

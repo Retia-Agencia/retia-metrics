@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const ARCHIVO_API = "lib/form30x/api.ts";
 const NOMBRES_PRIVADOS = /FORM_30X_API_KEY|form\.30x\.com\/api/;
-const ESCRITURA = /["'`](?:PATCH|PUT|POST|DELETE)["'`]|method\s*:\s*(?!["'`]GET["'`])/;
+const ESCRITURA = /["'`](?:PATCH|PUT|POST|DELETE)["'`]|method\s*:(?!\s*["'`]GET["'`])/;
 
 /** Devuelve las reglas privadas o de solo lectura que viola un archivo. */
 export function detectarViolacionesForm30x(ruta: string, texto: string): string[] {

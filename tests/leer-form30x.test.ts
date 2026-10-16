@@ -95,6 +95,26 @@ describe("lectura periodica", () => {
     expect(await db.select().from(sobresCrudos)).toHaveLength(1);
   });
 
+  it("una respuesta que fallo deja un solo sobre con error y no se reescribe en cada corrida", async () => {
+    await crearFuente();
+    const dePrueba = {
+      ...paginaReal.data[0],
+      id: "de-prueba",
+      completed: true,
+      answers: paginaReal.data[0].answers.map((answer) =>
+        answer.type === "email" ? { ...answer, value: "alguien@example.com" } : answer,
+      ),
+    };
+    const leer = vi.fn().mockResolvedValue(paginaCon(dePrueba));
+    const ahora = new Date("2026-10-16T03:00:00.000Z");
+
+    await expect(leerForm30x(db, { leer, ahora })).resolves.toMatchObject({ conError: 1, saltadas: 0 });
+    await expect(leerForm30x(db, { leer, ahora })).resolves.toMatchObject({ conError: 0, saltadas: 1 });
+    const sobres = await db.select().from(sobresCrudos);
+    expect(sobres).toHaveLength(1);
+    expect(sobres[0].error).toMatch(/Entrega de prueba de Form30x/);
+  });
+
   it("corta la paginacion al encontrar una respuesta anterior a 48 horas", async () => {
     await crearFuente();
     const vieja = { ...paginaReal.data[0], id: "vieja", submittedAt: "2026-10-13T01:00:00.000Z" };
