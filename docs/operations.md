@@ -141,12 +141,16 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
   `x30x_urgencia`, `x30x_perfil`, `x30x_disposicion_inversion`, `motivation_crm`), nunca `score` ni `tags`.
 - **El score solo produce `tags`** (`High`/`Low`), que hoy no lee nadie. El primero en leerlos será el CRM (271).
 - 🔴 **La pregunta de IA nunca se muestra.** La lógica salta de "situación" a "inversión"; ninguna de las 5 respuestas
-  la tiene. Su −100 no actúa. En el form de 30X sí se muestra (situación → IA → inversión). Mostrarla o no cambia el
-  form y es decisión de EstadoX; mientras siga oculta, no cuenta.
+  la tiene. En el form de 30X sí se muestra (situación → IA → inversión). **Se corrige en el paso 8 (Mani, 15-oct):**
+  la regla de `logic` que va de situación (`c23a9366-…`) a inversión (`34f6e3c2-…`) pasa a ir a la pregunta de IA
+  (ref `7twn2s7h`), y de IA se sigue a inversión (con `simulate` se comprueba que pase por orden; si no, se agrega la
+  regla IA → inversión). La pregunta no tiene `hubspotProperty`, así que HubSpot no cambia. Desde ahí "No lo tengo
+  permitido" resta 100 y deja la calidad en `Low`, pero **no esconde el Calendly** (eso sigue siendo solo de la
+  respuesta de inversión).
 
-**Por eso el arreglo del puntaje no rompe el form, con una condición:** se tocan SOLO los `score` de las opciones y
-las `scoreTagRules`. **No se tocan `logic`, `fields` (textos, orden, opciones), `salesFlow`, `hiddenFields` ni el
-Calendly.** Así lo que ve la persona, quién agenda y lo que llega a HubSpot quedan idénticos; lo único que cambia es
+**Por eso el arreglo del puntaje no rompe el form, con una condición:** se tocan SOLO los `score` de las opciones, las
+`scoreTagRules`, `adset_id` en `hiddenFields` y **la única regla de `logic` que salta la pregunta de IA** (arriba).
+**No se tocan los textos, el orden ni las opciones de `fields`, el resto de `logic`, el `salesFlow` ni el Calendly.** Así lo que ve la persona, quién agenda y lo que llega a HubSpot quedan idénticos; lo único que cambia es
 la etiqueta que lee el CRM. Agregar `adset_id` a `hiddenFields` es aditivo (un campo oculto más que se llena desde la
 URL) y va en la misma escritura. Antes de escribir: `validate` y `simulate`, y comparar el JSON completo antes/después
 (solo deben cambiar esos campos).
@@ -160,7 +164,7 @@ como S3). El form conserva sus descalificantes; solo se le dan puntos a lo que h
 | Situación | por cargo, sin puntos | Socio/CEO, Director/C-Level y Gerente Intermedio → 20 · Coordinador, Analista y Otro → 10 · Estudiante y Desempleado → 0 (el orden del form de 30X) |
 | Urgencia "No es prioridad" | −100 | igual |
 | Inversión "No cuento con los recursos" | −129 | **−100**, única corrección: con −129 las franjas de score de un descalificante se pisan (`−80` sería urgencia con 20 puntos o inversión con 49). Sigue en `Low` y el Calendly se esconde por la respuesta, no por el score |
-| Puede instalar IA | "No lo tengo permitido" −100 | igual (hoy no se muestra, S4) |
+| Puede instalar IA | "No lo tengo permitido" −100, pero no se muestra | igual, y **se muestra** (la regla de situación pasa a ir a IA) |
 | Calidad | `scoreTagRules` `≥ 0` High · `≤ −1` Low | igual: **ya sale en `tags`, no se toca** |
 | `lead_value` | no existe | reglas nuevas en `scoreTagRules` (abajo) |
 | Pauta | `utm_*`, `utm_id`, `campaign_id`, `ad_id` | + `adset_id` en `hiddenFields` (aditivo) |
@@ -199,7 +203,7 @@ de Form30x, y no se copia: SBJ conserva la suya.
    llegó el parcial — Mani envía, la sesión revisa.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
 8. Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
-   `scoreTagRules` y `hiddenFields`): `validate` +
+   `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
    paso 6 si se quiere que los envíos de prueba ya traigan las etiquetas buenas.
 9. Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la

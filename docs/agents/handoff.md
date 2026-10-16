@@ -57,11 +57,23 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   decide quién agenda (solo inversión "no cuento" esconde el Calendly) ni va a HubSpot (el `salesFlow` manda las
   respuestas, no `score`/`tags`); solo produce `tags`, que leerá el CRM. Regla del paso 8: tocar solo `score` de
   opciones y `scoreTagRules` (+ `adset_id` en `hiddenFields`), nunca `logic`, `fields`, `salesFlow` ni Calendly, con
-  diff antes/después. 🔴 La pregunta de IA no se muestra en SBJ (decisión S4, de EstadoX). El "<3.000" era lógica
+  diff antes/después. 🔴 La pregunta de IA no se mostraba en SBJ: Mani da el permiso de corregirlo (la regla situación → inversión pasa a situación → IA, en el paso 8). El "<3.000" era lógica
   propia del form de 30X, no de Form30x; no se copia. Detalle en `operations.md` §2.2.
   **Enmienda de Mani, misma noche: modificar el form lo mínimo.** El ingreso NO descalifica (se olvida el <1.000); solo
   se le dan puntos a ingreso y situación para que exista el valor, inversión pasa de −129 a −100 (si no, las franjas
-  del valor se pisan) y se agregan las reglas de valor y `adset_id`. La calidad queda igual que hoy. Tabla en §2.2.
+  del valor se pisan) y se agregan las reglas de valor y `adset_id`. La calidad queda igual que hoy, salvo quien diga
+  "No lo tengo permitido" en IA, que ahora se le pregunta. Tabla en §2.2.
+  **Para la sesión que edita el form (paso 8, ya con el ok de Mani), pegar:**
+  ```
+  Paso 8 del checklist de AI Second Brain Jurídico (docs/operations.md §2.2), con mi ok para escribir en el form
+  cmulcaari04c001s6m0x1ats6 por la API de Form30x (regla de FORM_30X_API_KEY en AGENTS.md: solo ese id). Cambia
+  SOLO: los score de ingreso (0/10/20/30, sin −100) y situación (20/10/0), inversión "No cuento" de −129 a −100,
+  las 12 reglas de lead_value en scoreTagRules (las dos de calidad se quedan), adset_id en hiddenFields y la regla
+  de logic situación → inversión para que vaya a la pregunta de IA (ref 7twn2s7h). Antes: GET con ETag, guarda el
+  JSON, validate y simulate (calidad y valor por combinación; que se vea la de IA; que el Calendly lo esconda solo
+  inversión "No cuento"). Muéstrame el diff del JSON antes de escribir; escribe con If-Match; vuelve a leer y
+  compara. Nada de salesFlow, textos, orden ni Calendly. Al final marca el paso 8 en §2.2 y anota en el handoff.
+  ```
 - **2026-10-15 (tarde, sesión de consulta; sin código): las hojas se corrieron por tercera vez, y el MCP queda anotado.**
   - **Hojas:** los campos ocultos del 14-oct (`ad_id`, `adset_id`, `campaign_id`) metieron 3 columnas después de
     `utm_id` en las dos hojas: Submitted = T, Token = U, Estado = V. Typeform **sigue escribiendo** en el intake
