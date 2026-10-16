@@ -132,8 +132,26 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 - **Calidad y valor salen de `tags`**, que el form calcula con `scoreTagRules` sobre `score`. Hoy: `score ≥ 0` →
   `High`, `≤ −1` → `Low`. La variable `tag_lead_quality` es un texto fijo en `High` y no sirve.
 
-**El puntaje del form se aparta del estándar** (`docs/dapta/README.md`) y se corrige antes del primer envío real, con
-el ok de Mani. Lo que va, decidido por Mani el 15-oct (era S3):
+**Qué hace el puntaje hoy, medido el 15-oct (la copia del form y sus 5 respuestas, por la API):**
+
+- **El score no decide quién agenda.** La lógica (`logic`) solo esconde el Calendly a quien responde inversión "No, en
+  este momento no cuento con los recursos": va a la pantalla "Estamos analizando tu aplicación". Todos los demás ven
+  el Calendly, sin mirar ingreso, urgencia ni cargo.
+- **El score tampoco va a HubSpot.** El `salesFlow` manda las respuestas por pregunta (`income_range_crm`,
+  `x30x_urgencia`, `x30x_perfil`, `x30x_disposicion_inversion`, `motivation_crm`), nunca `score` ni `tags`.
+- **El score solo produce `tags`** (`High`/`Low`), que hoy no lee nadie. El primero en leerlos será el CRM (271).
+- 🔴 **La pregunta de IA nunca se muestra.** La lógica salta de "situación" a "inversión"; ninguna de las 5 respuestas
+  la tiene. Su −100 no actúa. En el form de 30X sí se muestra (situación → IA → inversión). Mostrarla o no cambia el
+  form y es decisión de EstadoX; mientras siga oculta, no cuenta.
+
+**Por eso el arreglo del puntaje no rompe el form, con una condición:** se tocan SOLO los `score` de las opciones y
+las `scoreTagRules`. **No se tocan `logic`, `fields` (textos, orden, opciones), `salesFlow`, `hiddenFields` ni el
+Calendly.** Así lo que ve la persona, quién agenda y lo que llega a HubSpot quedan idénticos; lo único que cambia es
+la etiqueta que lee el CRM. Agregar `adset_id` a `hiddenFields` es aditivo (un campo oculto más que se llena desde la
+URL) y va en la misma escritura. Antes de escribir: `validate` y `simulate`, y comparar el JSON completo antes/después
+(solo deben cambiar esos campos).
+
+**El puntaje que va**, decidido por Mani el 15-oct (era S3; estándar en `docs/dapta/README.md`):
 
 | Pregunta | Hoy | Va |
 |---|---|---|
@@ -141,8 +159,13 @@ el ok de Mani. Lo que va, decidido por Mani el 15-oct (era S3):
 | Situación | por cargo, sin puntos | Socio/CEO, Director/C-Level y Gerente Intermedio → 20 · Coordinador, Analista y Otro → 10 · Estudiante y Desempleado → 0. Mismo orden que el form de AI Second Brain de 30X (3/3/2/1/1/0/0/1) |
 | Urgencia "No es prioridad" | −100 | −100 ✅ |
 | Inversión "No cuento con los recursos" | **−129** | −100 |
-| Puede instalar IA | "No lo tengo permitido" −100 | igual ✅: solo esa descalifica; "No sé, debo preguntar" no resta (lo resuelve el closer) |
+| Puede instalar IA | "No lo tengo permitido" −100 | igual ✅ (solo esa; "No sé" no resta). Hoy no actúa: la pregunta no se muestra |
 | `lead_value` | no existe | niveles del estándar, por `scoreTagRules` sobre `score` (abajo) |
+
+**Qué sale de cada envío en el CRM, y es coherente:** la etapa la deciden los hechos del envío (ADR 0069): agendó →
+Agendado, aunque sea `Low`; completo `High` sin agenda → Calificado; completo `Low` sin agenda → Registrado; parcial →
+Potencial. Un lead con ingreso bajo que agenda entra a Agendado con calidad `Low` y su valor, y el closer lo ve. Nadie
+queda sin deal.
 
 **`lead_value` en Form30x:** los puntos de valor van de 0 a 50, así que cada cantidad de descalificantes (0 a 4) cae en
 una franja de `score` que no se pisa con otra: `[−100k, −100k + 50]`. Una regla por franja y nivel: sin
@@ -152,8 +175,9 @@ Se verifica con `simulate` antes de escribir (paso 8) que dos reglas puedan dar 
 arma compuesta (`High|MUY ALTO VALOR`) y el adaptador del 271 la parte.
 
 **Contraste con 30X** (form `AI Second Brain | Registro | 30X`, ticket 2.000, leído una vez el 15-oct con el ok de
-Mani): ahí el Calendly solo se ve con ingreso de 3.000 o más, y también lo esconden Estudiante y "No sé, debo
-preguntar". SBJ es más abierto a propósito: descalifica solo menos de 1.000.
+Mani): ahí el puntaje SÍ decide quién agenda, porque su lógica muestra el Calendly solo con `score > 6`, ingreso de
+3.000 o más, sin Estudiante, sin "No es prioridad" y con IA "Definitivamente sí". Es lógica de ese form, no una regla
+de Form30x, y no se copia: SBJ conserva la suya.
 
 **Checklist para dejarlo listo** (en orden; ✅ = hecho):
 
@@ -167,8 +191,9 @@ preguntar". SBJ es más abierto a propósito: descalifica solo menos de 1.000.
 6. Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
    llegó el parcial — Mani envía, la sesión revisa.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
-8. Corregir el puntaje del form según S3 y agregar `adset_id` (`validate` + `simulate` antes de escribir, `If-Match`)
-   — la sesión por la API, con el ok de Mani.
+8. Corregir el puntaje del form (solo `score` de opciones y `scoreTagRules`) y agregar `adset_id`: `validate` +
+   `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
+   paso 6 si se quiere que los envíos de prueba ya traigan las etiquetas buenas.
 9. Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la
    pregunta de Calendly del form — Mani / EstadoX.
 10. Poner `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` en `.env.local` y el token en la tab Programa; montar el webhook de

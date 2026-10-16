@@ -43,6 +43,22 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   FORM_30X_API_KEY: un solo form, por id, escribir pide mi ok), el ADR 0092, docs/operations.md §2.2 (estado y
   checklist de 14 pasos) y el ticket 271 (dos fases). Arranca por el primer paso sin ✅ del checklist.
   ```
+  **Para la sesión que delega la fase A del 271 (paso 3 del checklist), pegar:**
+  ```
+  /delegate el ticket 271 fase A (docs/tasks/271-el-adaptador-de-form30x.md, puntos 1 y 2; ADR 0092): Codex escribe
+  PROVEEDORES.form30x en lib/ingesta/proveedores.ts (header x-form30x-signature, prefijo sha256=, HMAC-SHA256 en
+  tiempo constante que acepta hex o base64 y anota en el sobre cuál cuadró) y su caso en
+  tests/contrato-proveedores.test.ts. Codex NO genera ni aplica la migración (ALTER TYPE proveedor_formulario ADD
+  VALUE 'form30x'): la sesión la genera, la lee, le pone lock_timeout y la aplica con mi ok. Verificación: typecheck,
+  lint y los tests del cambio; build si toca un componente cliente. No tocar Form30x ni la base de producción salvo
+  la migración.
+  ```
+- **2026-10-15 (noche, misma sesión): el arreglo del puntaje de SBJ no rompe el form, medido.** En SBJ el score no
+  decide quién agenda (solo inversión "no cuento" esconde el Calendly) ni va a HubSpot (el `salesFlow` manda las
+  respuestas, no `score`/`tags`); solo produce `tags`, que leerá el CRM. Regla del paso 8: tocar solo `score` de
+  opciones y `scoreTagRules` (+ `adset_id` en `hiddenFields`), nunca `logic`, `fields`, `salesFlow` ni Calendly, con
+  diff antes/después. 🔴 La pregunta de IA no se muestra en SBJ (decisión S4, de EstadoX). El "<3.000" era lógica
+  propia del form de 30X, no de Form30x; no se copia. Detalle en `operations.md` §2.2.
 - **2026-10-15 (tarde, sesión de consulta; sin código): las hojas se corrieron por tercera vez, y el MCP queda anotado.**
   - **Hojas:** los campos ocultos del 14-oct (`ad_id`, `adset_id`, `campaign_id`) metieron 3 columnas después de
     `utm_id` en las dos hojas: Submitted = T, Token = U, Estado = V. Typeform **sigue escribiendo** en el intake
