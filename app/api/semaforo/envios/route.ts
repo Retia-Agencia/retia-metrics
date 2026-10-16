@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 
   const porPrograma = new Map(reportes.map((reporte) => [reporte.programId, reporte]));
   const origen = new URL(request.url).origin;
-  const bloques: RespuestaSemaforo["envios"][number]["bloques"] = await Promise.all(
+  const bloquesConDestino = await Promise.all(
     pendientes.map(async (pendiente) => {
       const reporte = porPrograma.get(pendiente.programId)!;
       try {
@@ -109,27 +109,52 @@ export async function POST(request: Request) {
           }
         }));
         return {
-          programa: reporte.programa,
-          tipo: pendiente.tipo,
-          enlaceHub: enlaceAlHub(origen, reporte.slug),
-          metricas,
-          error: null,
+          destino: reporte.destino,
+          bloque: {
+            programa: reporte.programa,
+            tipo: pendiente.tipo,
+            enlaceHub: enlaceAlHub(origen, reporte.slug),
+            metricas,
+            error: null,
+          },
         };
       } catch {
         return {
-          programa: reporte.programa,
-          tipo: pendiente.tipo,
-          enlaceHub: enlaceAlHub(origen, reporte.slug),
-          metricas: [],
-          error: "No se pudo calcular el semáforo de este programa.",
+          destino: reporte.destino,
+          bloque: {
+            programa: reporte.programa,
+            tipo: pendiente.tipo,
+            enlaceHub: enlaceAlHub(origen, reporte.slug),
+            metricas: [],
+            error: "No se pudo calcular el semáforo de este programa.",
+          },
         };
       }
     }),
   );
   const hora = pendientes[0]?.hora;
+  const bloquesPorDestino = new Map<string | null, RespuestaSemaforo["envios"][number]["bloques"]>();
+  for (const { destino, bloque } of bloquesConDestino) {
+    const bloques = bloquesPorDestino.get(destino) ?? [];
+    bloques.push(bloque);
+    bloquesPorDestino.set(destino, bloques);
+  }
+  const destinos = [...bloquesPorDestino.keys()].sort((a, b) => {
+    if (a === null) return -1;
+    if (b === null) return 1;
+    return a.localeCompare(b);
+  });
   const envios = hora === undefined
     ? []
-    : [{ hora, texto: armarMensajeDeLaHora(bloques, hora, sincronizacion, origen), bloques }];
+    : destinos.map((destino) => {
+        const bloques = bloquesPorDestino.get(destino)!;
+        return {
+          hora,
+          destino,
+          texto: armarMensajeDeLaHora(bloques, hora, sincronizacion, origen),
+          bloques,
+        };
+      });
 
   const respuesta = esquemaRespuestaSemaforo.parse({
     generadoEn: isoEnBogota(ahora),
@@ -137,6 +162,7 @@ export async function POST(request: Request) {
     envios,
     configuracion: reportes.map((reporte) => ({
       programa: reporte.programa,
+      destino: reporte.destino,
       horas: reporte.horas.map(horaTexto),
       horaCierre: reporte.horaCierre === null ? null : horaTexto(reporte.horaCierre),
     })),

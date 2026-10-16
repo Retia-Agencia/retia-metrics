@@ -27,6 +27,7 @@ let cohortId: string;
 
 const configuracion: EntradaReporteWhatsapp = {
   activo: true,
+  destino: null,
   horas: [8, 11, 14, 17],
   horaCierre: 20,
   metricas: ["costo_por_agenda"],
@@ -89,17 +90,23 @@ async function cargarUmbral() {
 describe("configuracion del reporte por WhatsApp", () => {
   it("crea y luego edita la misma fila con change_log", async () => {
     await cargarUmbral();
-    const creada = await guardarReporte(db, gerente(), programId, configuracion);
+    const creada = await guardarReporte(db, gerente(), programId, {
+      ...configuracion,
+      destino: " 120363000000000000@g.us ",
+    });
     const editada = await guardarReporte(db, gerente(), programId, {
       ...configuracion,
       horas: [15, 9],
     });
 
     expect(editada.id).toBe(creada.id);
+    expect(creada.destino).toBe("120363000000000000@g.us");
+    expect(editada.destino).toBeNull();
     expect(editada.horas).toEqual([9, 15]);
     expect(await db.select().from(reportesWhatsapp)).toHaveLength(1);
     const cambios = await db.select().from(changeLog).where(eq(changeLog.registroId, creada.id));
     expect(cambios.some((cambio) => cambio.campo === "programId")).toBe(true);
+    expect(cambios.some((cambio) => cambio.campo === "destino" && cambio.valorAnterior !== null)).toBe(true);
     expect(cambios.some((cambio) => cambio.campo === "horas" && cambio.valorAnterior !== null)).toBe(true);
   });
 
@@ -120,6 +127,41 @@ describe("configuracion del reporte por WhatsApp", () => {
       horaCierre: 20,
       metricas: ["costo_por_agenda"],
     });
+  });
+
+  it("convierte un destino vacío en null y rechaza un id inválido", async () => {
+    await cargarUmbral();
+    await expect(guardarReporte(db, gerente(), programId, {
+      ...configuracion,
+      destino: "   ",
+    })).resolves.toMatchObject({ destino: null });
+    await expect(guardarReporte(db, gerente(), programId, {
+      ...configuracion,
+      destino: "abc",
+    })).rejects.toMatchObject({
+      status: 400,
+      message: "El grupo debe ser un id de WhatsApp que termina en @g.us.",
+    });
+  });
+
+  it("enforza el CHECK del destino en la base real", async () => {
+    await expect(db.insert(reportesWhatsapp).values({
+      programId,
+      activo: false,
+      destino: "abc",
+      horas: [],
+      horaCierre: null,
+      metricas: [],
+    })).rejects.toThrow();
+
+    await expect(db.insert(reportesWhatsapp).values({
+      programId,
+      activo: false,
+      destino: "120363000000000000@g.us",
+      horas: [],
+      horaCierre: null,
+      metricas: [],
+    })).resolves.toBeDefined();
   });
 
   it("rechaza a un closer y no mueve la tabla", async () => {

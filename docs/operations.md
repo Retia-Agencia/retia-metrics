@@ -327,11 +327,12 @@ editor) y en Vercel.
 - **Qué se manda y cuándo** se configura en el CRM, Programa › General › Reporte por WhatsApp: encendido, horas del
   día (0 a 23), resumen de cierre y métricas. Al 15-oct los tres programas están encendidos a las 8, 11, 14 y 17 h,
   con el cierre a las 20 h (pedido de Dani Tovar).
-- **A dónde** no se configura en el CRM: un solo grupo, "Alertas Paid Media - Retia", en `RETIA_SEMAFORO_GRUPO` del
-  `.env` de Juanito (y en `environment:` de su `docker-compose.yml`).
-- **Cómo sale:** Juanito pregunta cada hora en punto de lunes a viernes (`0 * * * 1-5`); el CRM responde a lo sumo un
-  envío con un bloque por programa que toca a esa hora (269) y el texto ya armado. Si el CRM no responde, Juanito
-  avisa en el grupo con la última configuración que guardó.
+- **A dónde** se configura por programa en el CRM, Programa › General › Reporte por WhatsApp, con el id del grupo
+  terminado en `@g.us`. Vacío usa el grupo por defecto de `RETIA_SEMAFORO_GRUPO` en el `.env` de Juanito (y en
+  `environment:` de su `docker-compose.yml`). El mismo número de Juanito tiene que estar dentro de cada grupo.
+- **Cómo sale:** Juanito pregunta cada hora en punto de lunes a viernes (`0 * * * 1-5`); el CRM responde un envío por
+  grupo con los bloques de los programas que tocan a esa hora y el texto ya armado. Si el CRM no responde, Juanito
+  avisa a cada destino con la última configuración que guardó.
 - **Apagarlo:** el interruptor "Enviar reporte" de cada programa. Para apagarlo todo desde Juanito, vaciar
   `RETIA_SEMAFORO_URL` en su `.env` del VPS y `docker compose up -d` (el job se autodesactiva).
 

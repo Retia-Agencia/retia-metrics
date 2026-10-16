@@ -21,6 +21,16 @@ export type MetricaDelReporte = (typeof METRICAS_DEL_REPORTE)[number];
 export const esquemaReporteWhatsapp = z.object({
   programId: z.string().uuid("Programa inválido."),
   activo: z.boolean(),
+  destino: z.preprocess(
+    (valor) => typeof valor === "string" && valor.trim() === "" ? null : valor,
+    z.string()
+      .trim()
+      .regex(
+        /^[0-9-]+@g\.us$/,
+        "El grupo debe ser un id de WhatsApp que termina en @g.us.",
+      )
+      .nullable(),
+  ),
   horas: z
     .array(z.coerce.number().int().min(0).max(23))
     .refine((horas) => new Set(horas).size === horas.length, "Las horas no se pueden repetir.")
@@ -33,6 +43,7 @@ export const esquemaReporteWhatsapp = z.object({
 
 export interface EntradaReporteWhatsapp {
   activo: boolean;
+  destino: string | null;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -44,6 +55,7 @@ export interface ReporteWhatsappActivo {
   programId: string;
   programa: string;
   slug: string;
+  destino: string | null;
   horas: number[];
   horaCierre: number | null;
   metricas: MetricaDelReporte[];
@@ -56,6 +68,7 @@ export async function reportesActivos(db: Db): Promise<ReporteWhatsappActivo[]> 
       programId: programs.id,
       programa: programs.nombre,
       slug: programs.slug,
+      destino: reportesWhatsapp.destino,
       horas: reportesWhatsapp.horas,
       horaCierre: reportesWhatsapp.horaCierre,
       metricas: reportesWhatsapp.metricas,
