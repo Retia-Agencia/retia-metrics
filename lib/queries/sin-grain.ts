@@ -19,6 +19,11 @@ export function sinGrabacion() {
   return or(isNull(calls.linkGrain), sql`trim(${calls.linkGrain}) = ''`);
 }
 
+/** Complemento en memoria de `sinGrabacion`: nulo o blanco no es un link de Grain. */
+export function tieneGrain(link: string | null): boolean {
+  return link != null && link.trim() !== "";
+}
+
 export function atendidaSinGrain() {
   return and(llamadaOcurrio(), sinGrabacion());
 }
