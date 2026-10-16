@@ -151,26 +151,33 @@ la etiqueta que lee el CRM. Agregar `adset_id` a `hiddenFields` es aditivo (un c
 URL) y va en la misma escritura. Antes de escribir: `validate` y `simulate`, y comparar el JSON completo antes/después
 (solo deben cambiar esos campos).
 
-**El puntaje que va**, decidido por Mani el 15-oct (era S3; estándar en `docs/dapta/README.md`):
+**El puntaje que va: lo mínimo para que salgan calidad y valor** (Mani, 15-oct; reemplaza lo decidido horas antes
+como S3). El form conserva sus descalificantes; solo se le dan puntos a lo que hoy vale 0 para que exista el valor:
 
 | Pregunta | Hoy | Va |
 |---|---|---|
-| Ingreso mensual | las cuatro opciones en 0 | los rangos de Tactical: <1.000 → 0 y −100 · 1.000-3.000 → 10 · 3.000-10.000 → 20 · >10.000 → 30 |
-| Situación | por cargo, sin puntos | Socio/CEO, Director/C-Level y Gerente Intermedio → 20 · Coordinador, Analista y Otro → 10 · Estudiante y Desempleado → 0. Mismo orden que el form de AI Second Brain de 30X (3/3/2/1/1/0/0/1) |
-| Urgencia "No es prioridad" | −100 | −100 ✅ |
-| Inversión "No cuento con los recursos" | **−129** | −100 |
-| Puede instalar IA | "No lo tengo permitido" −100 | igual ✅ (solo esa; "No sé" no resta). Hoy no actúa: la pregunta no se muestra |
-| `lead_value` | no existe | niveles del estándar, por `scoreTagRules` sobre `score` (abajo) |
+| Ingreso mensual | las cuatro opciones en 0 | <1.000 → 0 · 1.000-3.000 → 10 · 3.000-10.000 → 20 · >10.000 → 30. **Sin −100**: el ingreso no descalifica |
+| Situación | por cargo, sin puntos | Socio/CEO, Director/C-Level y Gerente Intermedio → 20 · Coordinador, Analista y Otro → 10 · Estudiante y Desempleado → 0 (el orden del form de 30X) |
+| Urgencia "No es prioridad" | −100 | igual |
+| Inversión "No cuento con los recursos" | −129 | **−100**, única corrección: con −129 las franjas de score de un descalificante se pisan (`−80` sería urgencia con 20 puntos o inversión con 49). Sigue en `Low` y el Calendly se esconde por la respuesta, no por el score |
+| Puede instalar IA | "No lo tengo permitido" −100 | igual (hoy no se muestra, S4) |
+| Calidad | `scoreTagRules` `≥ 0` High · `≤ −1` Low | igual: **ya sale en `tags`, no se toca** |
+| `lead_value` | no existe | reglas nuevas en `scoreTagRules` (abajo) |
+| Pauta | `utm_*`, `utm_id`, `campaign_id`, `ad_id` | + `adset_id` en `hiddenFields` (aditivo) |
+
+Resultado: la calidad de cada envío queda **igual que hoy**; el valor aparece; la persona, el Calendly y HubSpot no
+cambian.
 
 **Qué sale de cada envío en el CRM, y es coherente:** la etapa la deciden los hechos del envío (ADR 0069): agendó →
 Agendado, aunque sea `Low`; completo `High` sin agenda → Calificado; completo `Low` sin agenda → Registrado; parcial →
 Potencial. Un lead con ingreso bajo que agenda entra a Agendado con calidad `Low` y su valor, y el closer lo ve. Nadie
 queda sin deal.
 
-**`lead_value` en Form30x:** los puntos de valor van de 0 a 50, así que cada cantidad de descalificantes (0 a 4) cae en
-una franja de `score` que no se pisa con otra: `[−100k, −100k + 50]`. Una regla por franja y nivel: sin
-descalificantes, 30-50 MUY ALTO VALOR, 15-29 ALTO VALOR, 0-14 VALOR MEDIO; con uno o más, la misma posición dentro de
-su franja baja un nivel (ALTO VALOR, VALOR MEDIO, BAJO VALOR). Son 15 reglas, más las dos de calidad que ya existen.
+**`lead_value` en Form30x:** los puntos de valor van de 0 a 50, así que cada cantidad de descalificantes (0 a 3:
+urgencia, inversión e IA) cae en una franja de `score` que no se pisa con otra: `[−100k, −100k + 50]`. Una regla por
+franja y nivel: sin descalificantes, 30-50 MUY ALTO VALOR, 15-29 ALTO VALOR, 0-14 VALOR MEDIO; con uno o más, la
+misma posición dentro de su franja baja un nivel (ALTO VALOR, VALOR MEDIO, BAJO VALOR). Son 12 reglas, más las dos de
+calidad que ya existen.
 Se verifica con `simulate` antes de escribir (paso 8) que dos reglas puedan dar tag a la vez; si no, la etiqueta se
 arma compuesta (`High|MUY ALTO VALOR`) y el adaptador del 271 la parte.
 
@@ -191,7 +198,8 @@ de Form30x, y no se copia: SBJ conserva la suya.
 6. Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
    llegó el parcial — Mani envía, la sesión revisa.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
-8. Corregir el puntaje del form (solo `score` de opciones y `scoreTagRules`) y agregar `adset_id`: `validate` +
+8. Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
+   `scoreTagRules` y `hiddenFields`): `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
    paso 6 si se quiere que los envíos de prueba ya traigan las etiquetas buenas.
 9. Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la

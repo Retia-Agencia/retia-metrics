@@ -59,6 +59,9 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   opciones y `scoreTagRules` (+ `adset_id` en `hiddenFields`), nunca `logic`, `fields`, `salesFlow` ni Calendly, con
   diff antes/después. 🔴 La pregunta de IA no se muestra en SBJ (decisión S4, de EstadoX). El "<3.000" era lógica
   propia del form de 30X, no de Form30x; no se copia. Detalle en `operations.md` §2.2.
+  **Enmienda de Mani, misma noche: modificar el form lo mínimo.** El ingreso NO descalifica (se olvida el <1.000); solo
+  se le dan puntos a ingreso y situación para que exista el valor, inversión pasa de −129 a −100 (si no, las franjas
+  del valor se pisan) y se agregan las reglas de valor y `adset_id`. La calidad queda igual que hoy. Tabla en §2.2.
 - **2026-10-15 (tarde, sesión de consulta; sin código): las hojas se corrieron por tercera vez, y el MCP queda anotado.**
   - **Hojas:** los campos ocultos del 14-oct (`ad_id`, `adset_id`, `campaign_id`) metieron 3 columnas después de
     `utm_id` en las dos hojas: Submitted = T, Token = U, Estado = V. Typeform **sigue escribiendo** en el intake
