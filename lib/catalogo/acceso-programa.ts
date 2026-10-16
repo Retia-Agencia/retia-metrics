@@ -75,7 +75,7 @@ export async function exigirAccesoAlPrograma(
  * membresía (ADR 0094). Es para lo que el paid trafficker sí edita dentro de un programa,
  * como sus objetivos de pauta (266): no tiene membresías porque no trabaja leads, y sin
  * esta función lo dejaría afuera de todos. Para el gerente y el developer responde igual.
- * El resto de los catálogos (productos, recursos, plataformas) sigue con
+ * El resto de los catálogos (recursos, plataformas, enlaces de pago) sigue con
  * `exigirAccesoAlPrograma`, donde el paid trafficker no escribe.
  */
 export async function exigirProgramaEnAlcance(
