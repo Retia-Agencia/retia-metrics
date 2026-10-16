@@ -198,13 +198,19 @@ de Form30x, y no se copia: SBJ conserva la suya.
    el ok de Mani y despliega. Hecho el 15-oct: 0088 aplicada en producción; la ruta antepone `firma form30x: hex` o
    `firma form30x: base64` al error del sobre, y el adaptador lanza a propósito, así que cada sobre de la prueba queda
    con error, pendiente de reproceso, con la codificación anotada.
-4. Crear el programa (nace inactivo), su plantilla de lead (`nombre` → `nombre completo`, `emailNormalizado` →
+4. ✅ Crear el programa (nace inactivo), su plantilla de lead (`nombre` → `nombre completo`, `emailNormalizado` →
    `correo electronico`, `telefono` → `whatsapp`) y su fuente Form30x en la tab Programa, con un solo par de mapeo:
    `agenda` → `agenda tu entrevista` (sin `leadQuality`, `leadValue` ni `puntaje`: salen de `tags`) — Mani, a mano.
-5. Pegar la URL de la fuente en *Connect* del form; Form30x genera el secreto (no acepta uno propio), y ese se pega
+5. ✅ Pegar la URL de la fuente en *Connect* del form; Form30x genera el secreto (no acepta uno propio), y ese se pega
    en la fuente con "Pegar secreto del proveedor" (15-oct); luego activar la fuente — Mani. El secreto no pasa por el chat.
-6. Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
-   llegó el parcial — Mani envía, la sesión revisa.
+6. ✅ Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
+   llegó el parcial — Mani envía, la sesión revisa. Medido el 15-oct (noche): **la firma es hex**. El completo llegó
+   (`response.completed`, `score` 50, `tags` `["High", "MUY ALTO VALOR"]`, `hidden` vacío porque se llenó sin UTMs) y
+   queda con error, pendiente de reproceso. 🔴 **El parcial NO llegó por el webhook:** Form30x lo guardó (`completed:
+   false` en `GET /forms/:id/responses`, con sus `tags` ya calculados) pero solo dispara `response.completed`. La cita
+   entró 2 s antes por el webhook de Calendly y quedó suelta en el Inbox; al procesar el envío, la regla la adopta
+   (`adoptarSueltaDeCita`). Las dos filas son de prueba (`ManuelTEST`): al reprocesar crean un lead de prueba que hay
+   que anular.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
@@ -214,11 +220,12 @@ de Form30x, y no se copia: SBJ conserva la suya.
    acepta borradores, así que se midió la línea base antes (108 combinaciones, cuadró con lo de arriba) y las 324 después
    (ingreso × urgencia × 3 situaciones × IA × inversión): 0 descuadres en score, calidad, valor, paso por IA y Calendly;
    sin "No lo tengo permitido", calidad y Calendly quedan idénticos a antes.
-9. Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la
+9. ✅ Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la
    pregunta de Calendly del form — Mani / EstadoX.
 10. Poner `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` en `.env.local` y el token en la tab Programa; montar el webhook de
     Calendly del programa (096) y vincular la cuenta de Calendly de cada closer en `/ajustes/usuarios` — Mani y la
-    sesión.
+    sesión. Token y webhook del programa ✅ (15-oct; el `invitee.created` de la prueba entró sin error). Falta vincular
+    a cada closer, que espera el paso 11.
 11. Dar de alta a los closers con membresía en el programa — Mani.
 12. Marcar la fuente principal con su URL y activar el programa — Mani.
 13. Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,

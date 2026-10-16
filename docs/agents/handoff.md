@@ -62,6 +62,10 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   lint y los tests del cambio; build si toca un componente cliente. No tocar Form30x ni la base de producción salvo
   la migración.
   ```
+- **2026-10-15 (noche): la prueba de SBJ con Form30x está hecha; la fase B del 271 queda lista para delegar.** Pasos 4, 5,
+  6 y 9 del checklist ✅. La firma es hex y el completo llegó con `tags` bien. **El parcial no llega por webhook**
+  (Form30x solo manda `response.completed`), así que Potencial en SBJ es una decisión abierta de Mani. Detalle en
+  `operations.md` §2.2 y en el ticket 271. Falta: dar de alta a los closers en el CRM y en Calendly (pasos 10 y 11).
 - **2026-10-15 (noche): una fuente webhook acepta el secreto que genera el proveedor.** Form30x genera su secreto y no
   deja pegar uno propio, así que el paso 5 estaba bloqueado. Nuevo `guardarSecretoDeFuente` + botón "Pegar secreto del
   proveedor" en la fuente (cualquier proveedor). Un solo escritor de la columna, `escribirSecreto`, con guardián en

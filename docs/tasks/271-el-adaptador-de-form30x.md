@@ -42,6 +42,17 @@ real no se manda a un receptor de terceros (el form está publicado: los leads r
    - el token de idempotencia es `responseId`.
 4. **Parciales:** se prueban con un envío parcial real a la fuente montada (Mani, 15-oct). Si llega, se adapta con
    `es_parcial` según lo que traiga el cuerpo; si no llega, no se inventa.
+   **Medido el 15-oct (noche): no llega.** Form30x guarda el parcial (`completed: false` en `/responses`) pero el
+   webhook solo dispara `response.completed`. Cómo tener Potencial en SBJ queda como decisión abierta de Mani.
+
+**Lo que dejó la prueba de la fase A** (15-oct, noche; cuerpos en `sobres_crudos` del programa SBJ):
+- La firma es **hex**: la fase B quita base64.
+- El cuerpo trae `event`, `formId`, `formTitle`, `responseId`, `submittedAt`, `answers`, `hidden`, `score`, `tags` y
+  `variables`. Cada respuesta trae `fieldRef`, `type`, `question` y `value`; las de opción, además `label` y `choices`
+  (`value` es el id). La de Calendly: `value: { scheduled, event, invitee }` con las URIs completas.
+- Si la cita entra antes por el webhook de Calendly, queda suelta y la regla la adopta al procesar el envío
+  (`adoptarSueltaDeCita`): no hace falta nada nuevo.
+- Al terminar la fase B se reprocesa el sobre de prueba (`ManuelTEST`) y el lead que crea se anula.
 
 ## Fuera de alcance
 
