@@ -110,3 +110,16 @@ de `armarMensaje` y el aviso de que Meta no se pudo leer va una sola vez al fina
 programa que falla deja su error en su bloque y los demás salen igual. La vista previa de Programa › General sigue
 mostrando el bloque del programa.
 
+
+## Enmienda 16-oct (Mani, ticket 274): el grupo vuelve al programa, con un grupo por defecto
+
+AI Second Brain Jurídico (EstadoX) no es de Retia y su reporte va a otro grupo, así que el grupo vuelve a ser
+configuración del programa, pero **opcional**: `reportes_whatsapp.destino` (texto, nulo) guarda el id del grupo de
+WhatsApp (`…@g.us`). **Nulo significa el grupo por defecto**, el de `RETIA_SEMAFORO_GRUPO` en el `.env` de Juanito,
+así que los programas de Retia no cambian ni hay que configurarles nada. Cada hora, el endpoint devuelve **un envío
+por destino** (`hora`, `destino`, `texto`, `bloques`): los programas que comparten grupo siguen saliendo en un solo
+mensaje (269), y uno con grupo propio sale aparte. `configuracion` lleva también el `destino` de cada programa, para
+que el aviso de "el CRM no respondió" vaya al grupo correcto. Juanito manda cada envío a `destino ??
+RETIA_SEMAFORO_GRUPO` y sigue siendo el mismo número; tiene que estar en el grupo. **Se despliega primero Juanito**:
+hoy ignora `destino`, así que un CRM nuevo con un Juanito viejo mandaría el reporte de SBJ al grupo de Retia. El id
+del grupo no es un dato personal y no rompe la lista blanca del contrato (259).

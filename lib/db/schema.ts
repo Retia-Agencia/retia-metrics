@@ -257,6 +257,21 @@ export const miembrosPrograma = pgTable(
   ],
 );
 
+/**
+ * Los programas que ve un gerente o un paid trafficker LIMITADO (ADR 0094, ticket 273). Sin
+ * filas, ve todos; con filas, solo esos. Es ALCANCE, no membresia: una fila aqui no hace a nadie
+ * dueño, setter ni closer (eso es `miembros_programa`). Tabla puente: se borra de verdad.
+ */
+export const usuariosProgramasAlcance = pgTable(
+  "usuarios_programas_alcance",
+  {
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("usuarios_programas_alcance_par_idx").on(t.userId, t.programId)],
+);
+
 // ─────────────────────────────────────────────────────────── programas y cohortes
 
 export const programs = pgTable(
@@ -2041,10 +2056,13 @@ export const reportesWhatsapp = pgTable(
     horas: integer("horas").array().notNull().default(sql`'{}'::integer[]`),
     horaCierre: integer("hora_cierre"),
     metricas: metricaObjetivoEnum("metricas").array().notNull().default(sql`'{}'::metrica_objetivo[]`),
+    /** El id del grupo de WhatsApp (`…@g.us`); nulo = el grupo por defecto de Juanito (ADR 0089, 274). */
+    destino: text("destino"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     uniqueIndex("reportes_whatsapp_programa_idx").on(t.programId),
+    check("reportes_whatsapp_destino_chk", sql`${t.destino} IS NULL OR ${t.destino} ~ '^[0-9-]+@g[.]us$'`),
     check(
       "reportes_whatsapp_horas_chk",
       sql`${t.horas} <@ array[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]`,

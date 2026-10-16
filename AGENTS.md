@@ -653,8 +653,8 @@ The agent should run these to get fast signal on whether code works. Keep them c
   - `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL` y `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` (5-oct): uno por programa, de una cuenta
     OWNER de su organizacion. Ven miembros, tipos de evento, citas y webhooks de esa organizacion. Cada
     programa usa SU token: nunca uno para consultar el otro. `CALENDLY_PAT_LOCAL_*` no se usa.
-    `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` (15-oct) es el de AI Second Brain Jurídico (EstadoX): **todavía vacío**
-    (la cuenta de Calendly sigue en plan gratis; falta pagarla, el round robin y los closers).
+    `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` (15-oct) es el de AI Second Brain Jurídico (EstadoX); la cuenta
+    está pagada desde el 16-oct.
   - 🚨 `FORM_30X_API_KEY` (15-oct, ADR 0092): key de la API de Form30x (`https://form.30x.com/api/v1`, Bearer).
     **Lee y edita TODOS los formularios de 30X y EstadoX, no solo los de Retia: cuidado como prioridad 1.** Se usa con
     UN solo form, el de título exacto `AI Second Brain Jurídico | Registro | EstadoX` (id
