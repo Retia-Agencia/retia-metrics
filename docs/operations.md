@@ -122,9 +122,13 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
   `simulate` se verifica el puntaje combinación por combinación, como se hizo con Typeform (216 combinaciones).
 - **Webhook:** se configura en la página *Connect* del form, no por la API de settings. Firma
   `X-Form30x-Signature: sha256=<HMAC>` en **hex** (medido con la entrega del 15-oct; base64 ya no se acepta).
-- **Parciales:** el webhook no los manda. Los lee `POST /api/cron/form30x` cada 30 min (GitHub Actions,
-  `.github/workflows/form30x.yml`, secretos del repo `CRON_SECRET` y `CRM_URL`) con `lib/form30x/api.ts`, el único
-  lector de la key, que solo hace `GET /responses` (ADR 0093). Se corre a mano con `gh workflow run form30x.yml`.
+- **Parciales:** el webhook no los manda. Los lee `POST /api/cron/form30x` en los minutos 13 y 43 de cada hora (UTC)
+  con `lib/form30x/api.ts`, el único lector de la key, que solo hace `GET /responses` (ADR 0093). **Lo dispara
+  pg_cron en Supabase** (job `leer-form30x`, migración 0092) con pg_net; la URL y el secreto los lee en cada corrida
+  del Vault (`crm_url`, `cron_secret`), así que rotar `CRON_SECRET` exige actualizar también `cron_secret` en el
+  Vault. Las corridas: `select * from cron.job_run_details order by start_time desc` (que el SQL salió) y
+  `select status_code, content from net._http_response order by created desc` (qué respondió la ruta; pg_net las
+  guarda 6 h). Se corre a mano con `gh workflow run form30x.yml` (el workflow ya no tiene horario).
 - **Respuestas:** las opciones se leen por `label` (sus ids se repiten entre preguntas). La de Calendly trae las URIs
   del evento y del invitado.
 - **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. **Se prueba con un
@@ -241,6 +245,9 @@ de Form30x, y no se copia: SBJ conserva la suya.
    con las alternativas si GitHub sigue fallando). Mientras tanto se dispara a mano:
    `gh workflow run form30x.yml`. **Webhook Health marca la fuente** si no hay una lectura exitosa en 2 h o si
    nunca se leyó (`sources.form30x_leido_en`, migración 0091; `27c326b`): un runner caído ya no pasa en silencio.
+   ✅ **El horario pasó a pg_cron** (16-oct): en 11 h el schedule de GitHub corrió una sola vez (09:42 UTC). La 0092
+   instala pg_cron y pg_net y programa `leer-form30x` en `13,43 * * * *`; en PGlite y en el Postgres local no hace
+   nada. El workflow quedó solo con `workflow_dispatch`.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
@@ -270,7 +277,7 @@ de Form30x, y no se copia: SBJ conserva la suya.
     de agenda, el form retomó esa respuesta. Repetir en una ventana de incógnito con un correo real.
     🔴 **El horario del workflow `form30x.yml` no ha corrido nunca** (16-oct, 04:52 UTC): solo hay corridas
     manuales. Sin él, los parciales de SBJ no entran solos. Diagnóstico y arreglo en el paso 7b: pasó a
-    `13,43 * * * *`.
+    `13,43 * * * *` y, como siguió sin correr, a pg_cron (0092).
     ✅ **Segunda vuelta (16-oct, 05:05 a 05:23 UTC, Mani):** descalificado con correo real → **Registrado**, `Low`,
     `VALOR MEDIO`, sin llamada (entró por el webhook). Sin agenda en incógnito → entró con la lectura manual
     (`gh workflow run form30x.yml`: 7 leídas, 1 nueva, 0 errores) en **Potencial**, `High`, `MUY ALTO VALOR`, sin
@@ -292,7 +299,7 @@ editor) y en Vercel.
 | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` | login con Google (Auth.js) | local, Vercel |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas: "probar" y activar una fuente de hoja en la tab Programa (Formularios), los scripts y el traslado | local, Vercel |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | el almacén de comprobantes (Supabase Storage, bucket privado `comprobantes`; ADR 0085). La llave secreta solo vive en el servidor; con una `DATABASE_URL` local se usa el adaptador de disco y no hacen falta | local, Vercel |
-| `CRON_SECRET` | protege `/api/cron/comprobantes` (respaldo diario en Drive y barrido de subidas a medias); Vercel lo manda en cada llamada del cron. El mismo valor es secreto del repo en GitHub para `/api/cron/form30x` (272), junto con `CRM_URL` (`https://retia-metrics-seven.vercel.app`). Lo generó la sesión del 13-oct sin mostrarlo | local, Vercel |
+| `CRON_SECRET` | protege `/api/cron/comprobantes` (respaldo diario en Drive y barrido de subidas a medias); Vercel lo manda en cada llamada del cron. El mismo valor es secreto del repo en GitHub para `/api/cron/form30x` (272), junto con `CRM_URL` (`https://retia-metrics-seven.vercel.app`). Desde el 16-oct también está en el Vault de Supabase (`cron_secret`, con `crm_url`), que es de donde lo lee pg_cron: al rotarlo se cambia en los tres lugares. Lo generó la sesión del 13-oct sin mostrarlo | local, Vercel |
 | `DRIVE_COMPROBANTES_ID` | la unidad compartida "Comprobantes CRM Retia" (`0ADSvd0QdWDh-Uk9PVA`, Workspace de Retia); la cuenta de servicio es Administrador de contenido. Sin ella el cron solo barre | local, Vercel |
 | `SHEET_ID_COMUNICARTE`, `SHEET_ID_TACTICAL` | los IDs de las hojas, para los scripts | local |
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |

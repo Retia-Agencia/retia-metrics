@@ -1,8 +1,8 @@
 name: Leer respuestas de Form30x
 
+# El horario vive en pg_cron (job `leer-form30x`, migracion 0092): el schedule de GitHub
+# corrio una vez en 11 h el 16-oct. Esto queda solo para dispararlo a mano.
 on:
-  schedule:
-    - cron: "13,43 * * * *"
   workflow_dispatch:
 
 jobs:
