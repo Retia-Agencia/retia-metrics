@@ -23,6 +23,8 @@ import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFecha } from "@/components/filtros/filtro-fecha";
 import { Button } from "@/components/ui/button";
+import { listarCohortes } from "@/lib/catalogo/cohortes";
+import { FiltroSelectUrl } from "@/components/filtros/filtro-select-url";
 
 export const dynamic = "force-dynamic";
 
@@ -46,11 +48,15 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
   const query = await searchParams;
   const pagina = Math.max(0, Number.parseInt(uno(query.pagina) ?? "0", 10) || 0);
   const filtro = await filtroDeLlamadasDesdeUrl(db, programa.id, alcance, query);
-  const [llamadas, opciones, opcionesFicha] = await Promise.all([
+  const [llamadas, opciones, opcionesFicha, cohortesSinOrdenar] = await Promise.all([
     llamadasDelPrograma(db, programa.id, alcance, filtro),
     opcionesDeLlamadas(db, programa.id),
     opcionesDeFicha(db, programa.id, null, null),
+    listarCohortes(db, programa.id),
   ]);
+  const cohortes = cohortesSinOrdenar.sort((a, b) =>
+    (b.fechaInicioVentas ?? "").localeCompare(a.fechaInicioVentas ?? ""),
+  );
   const paginas = Math.max(1, Math.ceil(llamadas.length / LLAMADAS_POR_PAGINA));
   const llamadasDeLaPagina = llamadas.slice(
     pagina * LLAMADAS_POR_PAGINA,
@@ -97,6 +103,16 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
       etiqueta: "Resultado",
       opciones: RESULTADOS.map(([value, label]) => ({ value, label })),
     },
+    {
+      tipo: "select",
+      nombre: "cohorte",
+      etiqueta: "Cohorte",
+      todos: "Todas las cohortes",
+      opciones: cohortes.map((cohorte) => ({
+        value: cohorte.id,
+        label: `${cohorte.codigo}${cohorte.estado === "activo" ? " (activa)" : ""}`,
+      })),
+    },
   ];
 
   return (
@@ -108,14 +124,26 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
             sustantivo={{ singular: "llamada", plural: "llamadas" }}
             filtros={filtrosCalls}
             buscador={<BuscadorUrl />}
-            clavesCompuestas={["desde", "hasta", "q"]}
+            clavesCompuestas={["fecha", "desde", "hasta", "q"]}
             compuestosPopover={
-              <div className="grid grid-cols-2 gap-2">
-                <FiltroFecha nombre="desde" etiqueta="Desde" />
-                <FiltroFecha nombre="hasta" etiqueta="Hasta" />
+              <div className="space-y-2">
+                <FiltroSelectUrl
+                  nombre="fecha"
+                  etiqueta="Fecha por"
+                  valor={filtro.fecha}
+                  porDefecto="llamada"
+                  opciones={[
+                    { value: "llamada", label: "Llamada" },
+                    { value: "agenda", label: "Agendada" },
+                  ]}
+                />
+                <div className="grid grid-cols-2 gap-2">
+                  <FiltroFecha nombre="desde" etiqueta="Desde" />
+                  <FiltroFecha nombre="hasta" etiqueta="Hasta" />
+                </div>
               </div>
             }
-            compuestoActivo={Boolean(filtro.desde || filtro.hasta)}
+            compuestoActivo={Boolean(filtro.fecha !== "llamada" || filtro.desde || filtro.hasta)}
             orden={
               <ControlDeOrden
                 nombre="orden"

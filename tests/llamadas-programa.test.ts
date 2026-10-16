@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { llamadaVisiblePara } from "@/lib/auth/alcance-deals";
 import { calls, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { llamadasDelPrograma, opcionesDeLlamadas, visibilidadDeLlamada } from "@/lib/queries/llamadas";
+import { filtroDeLlamadasDesdeUrl, llamadasDelPrograma, opcionesDeLlamadas, visibilidadDeLlamada } from "@/lib/queries/llamadas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -18,6 +19,8 @@ let llamadaAjena: string;
 let llamadaSuelta: string;
 let llamadaOtroPrograma: string;
 let dealPropio: string;
+let cohorteId: string;
+let cohorteOtroProgramaId: string;
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -51,6 +54,8 @@ beforeEach(async () => {
     { programId, ...datosCohorte },
     { programId: otroPrograma.id, ...datosCohorte },
   ]).returning();
+  cohorteId = cohorte.id;
+  cohorteOtroProgramaId = cohorteOtroPrograma.id;
 
   const [leadPropio, leadComoCloser, leadAjeno, leadOtroPrograma] = await db.insert(leads).values([
     { programId, emailNormalizado: "propio@correo.co", nombre: "Deal propio" },
@@ -145,6 +150,59 @@ describe("llamadasDelPrograma", () => {
       hasta: "2026-09-29",
     });
     expect(filas.map((fila) => fila.callId)).toEqual([llamadaComoCloser]);
+  });
+
+  it("elige llamada o agenda, cae a llamada ante un valor desconocido y ordena por la fecha elegida", async () => {
+    await db.update(calls).set({
+      createdAt: new Date("2026-10-02T10:00:00-05:00"),
+      fechaAgenda: new Date("2026-10-06T10:00:00-05:00"),
+      fechaLlamada: new Date("2026-10-09T10:00:00-05:00"),
+    }).where(eq(calls.id, llamadaDealPropio));
+
+    const alcance = { tipo: "todos" as const };
+    const llamada = await filtroDeLlamadasDesdeUrl(db, programId, alcance, {
+      fecha: "desconocida",
+      desde: "2026-10-09",
+      hasta: "2026-10-09",
+    });
+    expect(llamada.fecha).toBe("llamada");
+    expect((await llamadasDelPrograma(db, programId, alcance, llamada)).map((fila) => fila.callId))
+      .toContain(llamadaDealPropio);
+
+    const diaOriginal = await llamadasDelPrograma(db, programId, alcance, {
+      fecha: "llamada",
+      desde: "2026-10-06",
+      hasta: "2026-10-06",
+    });
+    expect(diaOriginal.map((fila) => fila.callId)).not.toContain(llamadaDealPropio);
+
+    const agenda = await llamadasDelPrograma(db, programId, alcance, {
+      fecha: "agenda",
+      desde: "2026-10-02",
+      hasta: "2026-10-02",
+    });
+    expect(agenda.map((fila) => fila.callId)).toContain(llamadaDealPropio);
+
+    await db.update(calls).set({
+      fechaAgenda: new Date("2026-10-05T10:00:00-05:00"),
+      fechaLlamada: new Date("2026-10-10T10:00:00-05:00"),
+    }).where(eq(calls.id, llamadaComoCloser));
+    const ordenadas = await llamadasDelPrograma(db, programId, alcance, {
+      desde: "2026-10-01",
+      orden: "llamada:asc",
+    });
+    expect(ordenadas.map((fila) => fila.callId)).toEqual([llamadaDealPropio, llamadaComoCloser]);
+  });
+
+  it("filtra por la cohorte del deal y una cohorte de otro programa no casa", async () => {
+    const alcance = { tipo: "todos" as const };
+    const propias = await llamadasDelPrograma(db, programId, alcance, { cohortId: cohorteId });
+    expect(propias.map((fila) => fila.callId).sort()).toEqual(
+      [llamadaDealPropio, llamadaComoCloser, llamadaAjena].sort(),
+    );
+    await expect(
+      llamadasDelPrograma(db, programId, alcance, { cohortId: cohorteOtroProgramaId }),
+    ).resolves.toEqual([]);
   });
 
   it("mantiene las opciones de closer, incluidas las de llamadas sueltas", async () => {
