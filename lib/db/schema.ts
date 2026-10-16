@@ -152,7 +152,7 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
  * porque el codigo elige el adaptador con el: un proveedor nuevo es un valor mas y un
  * adaptador, nunca un endpoint nuevo.
  */
-export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta"]);
+export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta", "form30x"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
 export const nivelPautaEnum = pgEnum("nivel_pauta", ["campana", "conjunto", "anuncio"]);
 export const origenGastoEnum = pgEnum("origen_gasto", ["meta_api", "manual"]);
