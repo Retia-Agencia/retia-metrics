@@ -239,7 +239,8 @@ de Form30x, y no se copia: SBJ conserva la suya.
    jobs); arreglado a las 03:31, el `*/30` siguió sin correr en los turnos de 04:00, 04:30 y 05:00, mientras que las
    corridas manuales sí salieron bien. Se movió a `13,43 * * * *`, lejos de la carga de `:00` (ADR 0093, punto 3,
    con las alternativas si GitHub sigue fallando). Mientras tanto se dispara a mano:
-   `gh workflow run form30x.yml`.
+   `gh workflow run form30x.yml`. **Webhook Health marca la fuente** si no hay una lectura exitosa en 2 h o si
+   nunca se leyó (`sources.form30x_leido_en`, migración 0091; `27c326b`): un runner caído ya no pasa en silencio.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
@@ -256,7 +257,7 @@ de Form30x, y no se copia: SBJ conserva la suya.
     a cada closer, que espera el paso 11.
 11. Dar de alta a los closers con membresía en el programa — Mani.
 12. Marcar la fuente principal con su URL y activar el programa — Mani.
-13. Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
+13. ✅ Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
     valor, UTMs y llamada colgada — la sesión. ✅ Desbloqueado el 16-oct: las `scoreTagRules` ya eran las del
     estándar (score 0 sin descalificantes es `High`); lo que faltaba era que el ingreso bajo descalificara y que un
     descalificado no viera el Calendly (enmienda de arriba). Con eso un completo descalificado es `Low` y cae en
@@ -270,6 +271,11 @@ de Form30x, y no se copia: SBJ conserva la suya.
     🔴 **El horario del workflow `form30x.yml` no ha corrido nunca** (16-oct, 04:52 UTC): solo hay corridas
     manuales. Sin él, los parciales de SBJ no entran solos. Diagnóstico y arreglo en el paso 7b: pasó a
     `13,43 * * * *`.
+    ✅ **Segunda vuelta (16-oct, 05:05 a 05:23 UTC, Mani):** descalificado con correo real → **Registrado**, `Low`,
+    `VALOR MEDIO`, sin llamada (entró por el webhook). Sin agenda en incógnito → entró con la lectura manual
+    (`gh workflow run form30x.yml`: 7 leídas, 1 nueva, 0 errores) en **Potencial**, `High`, `MUY ALTO VALOR`, sin
+    dueño, y salió en Inbox › "No agendaron". Los dos deals quedaron anulados con `anularDeal` (actor del script).
+    Paso 13 cerrado.
 14. Avisar al equipo en "Core Estado X" — Mani.
 
 ## 3. Variables de entorno

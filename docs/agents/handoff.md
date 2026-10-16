@@ -27,6 +27,19 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-16 (05:30 UTC): paso 13 de SBJ cerrado; el cron de Form30x no se da por confiable.** El `*/30` no
+  disparó: el YAML fue inválido hasta las 03:31 UTC y después GitHub no lo programó en los turnos de 04:00 a 05:00
+  (ni el `13,43` nuevo a las 05:13); repo público, no fork, Actions habilitado, workflow `active`, las manuales salen
+  bien. El schedule de GitHub es "best effort" y lo peor está en `:00`. Se movió a `13,43 * * * *` (`b5dd577`) y,
+  para no confiar en ningún runner, **Webhook Health marca una fuente Form30x sin lectura exitosa en 2 h o nunca
+  leída** (`27c326b`, Codex por una sesión aparte): `leerForm30x` escribe `sources.form30x_leido_en` al terminar
+  cada fuente sin error, aunque lea 0. Migración 0091 aplicada en producción antes de empujar; tests contra la base
+  pendientes del CI (la Mac tenía 11 GB de swap). Si GitHub sigue sin disparar, la alternativa es `pg_cron` +
+  `pg_net` en Supabase (ADR 0093, punto 3). Paso 13 con una lectura manual (`gh workflow run form30x.yml`): ✅
+  descalificado con correo real → Registrado, `Low`, sin llamada; ✅ sin agenda en incógnito → Potencial, `High`,
+  en Inbox › "No agendaron". Los dos deals anulados con `anularDeal` (actor del script). **Lo próximo: mirar que
+  aparezca alguna corrida con `event: schedule`** (`gh run list --workflow form30x.yml --event schedule`).
+
 - **2026-10-16: un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069, Mani).** Antes un
   parcial High nacía en Calificado, que le dice al closer que el lead está listo; se destapó con Form30x, donde casi
   todo llega High. `etapaDeEntrada` queda agendó → parcial → completo High → Registrado (`50fc5b3`). Efecto que no

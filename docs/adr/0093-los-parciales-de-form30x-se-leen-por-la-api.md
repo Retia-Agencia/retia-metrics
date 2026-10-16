@@ -36,7 +36,8 @@ Dos hechos ponen el límite:
    GitHub sigue sin ser confiable, la alternativa es `pg_cron` + `pg_net` en Supabase ($0, sin proveedor nuevo, pero
    infraestructura fuera del repo y el secreto en la base); Vercel Pro (R3 de `docs/plan.md` §7) cuesta USD 20 por
    usuario al mes, y un cron externo (cron-job.org) le entrega `CRON_SECRET` a un tercero. Ningún runner se da por
-   confiable: un aviso de lectura vieja en Webhook Health tiene que delatar al que se caiga.
+   confiable: Webhook Health marca la fuente cuando la última lectura exitosa (`sources.form30x_leido_en`, que
+   `leerForm30x` escribe aunque lea 0) tiene 2 h o más, o nunca existió (16-oct, migración 0091).
 4. **Se lee una ventana de 48 horas** por `submittedAt`, de la más nueva hacia atrás, siguiendo el cursor. Cada
    respuesta entra por la MISMA puerta que el webhook (sobre crudo con origen `form30x_api` y el adaptador del 271),
    así que la idempotencia de la ingesta `(fuente, token, es_parcial)` evita duplicados. Una respuesta que ya entró
