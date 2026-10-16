@@ -38,7 +38,9 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   `pg_net` en Supabase (ADR 0093, punto 3). Paso 13 con una lectura manual (`gh workflow run form30x.yml`): ✅
   descalificado con correo real → Registrado, `Low`, sin llamada; ✅ sin agenda en incógnito → Potencial, `High`,
   en Inbox › "No agendaron". Los dos deals anulados con `anularDeal` (actor del script). **Lo próximo: mirar que
-  aparezca alguna corrida con `event: schedule`** (`gh run list --workflow form30x.yml --event schedule`).
+  aparezca alguna corrida con `event: schedule`** (`gh run list --workflow form30x.yml --event schedule`). Los 3
+  sobres de prueba (`example.com`) de SBJ se reprocesaron para descartarlos: el adaptador los volvió a rechazar y
+  salieron del conteo de "sin procesar".
 
 - **2026-10-16: un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069, Mani).** Antes un
   parcial High nacía en Calificado, que le dice al closer que el lead está listo; se destapó con Form30x, donde casi
