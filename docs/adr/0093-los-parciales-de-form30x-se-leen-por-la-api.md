@@ -28,14 +28,14 @@ Dos hechos ponen el límite:
    Form30x, y un guardián lo vigila: ningún otro archivo nombra la variable ni el host de la API.
 2. **El form que se lee lo dice la fuente** (`sources.form30x_form_id`, columna nueva), nunca un literal en el código
    (ADR 0012). Solo se leen las fuentes `form30x` activas que lo tengan.
-3. **Cada 30 minutos lo dispara GitHub Actions** (workflow programado del repo, gratis) contra
-   `POST /api/cron/form30x`, protegida con `CRON_SECRET` como los otros crons. Un retraso del programador de GitHub
-   solo atrasa el parcial; no lo pierde. **Corre en los minutos 13 y 43** (`13,43 * * * *`, 16-oct), no en `:00` y
-   `:30`: GitHub dice que el schedule es "best effort" y que se atrasa o se salta con carga alta, que se concentra al
-   empezar la hora. El primer `*/30` no disparó ni una vez en ~90 min tras arreglar el YAML (las manuales sí). Si
-   GitHub sigue sin ser confiable, la alternativa es `pg_cron` + `pg_net` en Supabase ($0, sin proveedor nuevo, pero
-   infraestructura fuera del repo y el secreto en la base); Vercel Pro (R3 de `docs/plan.md` §7) cuesta USD 20 por
-   usuario al mes, y un cron externo (cron-job.org) le entrega `CRON_SECRET` a un tercero. Ningún runner se da por
+3. **Cada 30 minutos lo dispara `pg_cron` en Supabase** (job `leer-form30x`, migración 0092, 16-oct) con `pg_net`
+   contra `POST /api/cron/form30x`, protegida con `CRON_SECRET` como los otros crons. La URL y el secreto los lee el
+   job en cada corrida del Vault de Supabase (`crm_url`, `cron_secret`), nunca del repo. **Corre en los minutos 13 y
+   43** (`13,43 * * * *`, UTC), lejos de la carga de `:00`. Empezó en GitHub Actions y se cambió el mismo día: su
+   schedule es "best effort" y en 11 h corrió una sola vez, aun movido a `13,43`; el workflow y sus secretos se
+   borraron. Se descartaron Vercel Pro (R3 de `docs/plan.md` §7, USD 20 por usuario al mes) y un cron externo
+   (cron-job.org), que le entrega `CRON_SECRET` a un tercero. El costo aceptado: es infraestructura que vive en la
+   base y no en el código, y rotar `CRON_SECRET` exige cambiarlo también en el Vault. Ningún runner se da por
    confiable: Webhook Health marca la fuente cuando la última lectura exitosa (`sources.form30x_leido_en`, que
    `leerForm30x` escribe aunque lea 0) tiene 2 h o más, o nunca existió (16-oct, migración 0091).
 4. **Se lee una ventana de 48 horas** por `submittedAt`, de la más nueva hacia atrás, siguiendo el cursor. Cada
