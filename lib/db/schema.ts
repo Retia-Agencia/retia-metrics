@@ -459,6 +459,12 @@ export const sources = pgTable(
      */
     typeformToken: text("typeform_token"),
     /**
+     * El id del form de Form30x cuyas respuestas lee la lectura periodica (ADR 0093, ticket
+     * 272). Solo en una fuente `form30x`; nula = la lectura la salta. Es dato de la fuente,
+     * nunca un literal en el codigo (ADR 0012).
+     */
+    form30xFormId: text("form30x_form_id"),
+    /**
      * Cuanto silencio aguanta ESTA fuente antes de que la app la marque (ticket 107).
      * Por fuente y no fijo (ADR 0012): un programa con pauta prendida recibe varios
      * envios al dia y uno sin pauta puede pasar dias sin ninguno. Los defectos son de
