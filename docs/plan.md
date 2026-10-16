@@ -415,6 +415,8 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | # | Qué | Componente | Bloquea | Cuándo |
 |---|---|---|---|---|
 | S1 | 🚨 **Supabase Pro: pagar o no.** El plan gratis no trae respaldos y la única base es producción. El 203 hizo un `pg_dump` manual antes del reinicio; falta decidir el respaldo continuo | 11, 12 | operación diaria | cuanto antes |
+| S2 | **AI Second Brain Jurídico (EstadoX): nombre y slug del programa en el CRM** (recomendación: `AI Second Brain Jurídico`, slug `second-brain-juridico`). Contexto en `operations.md` §2.2 | 10 | crear el programa | antes del 271 en producción |
+| S3 | **El puntaje del form de SBJ:** puntos por cargo en "situación", qué rango de ingreso descalifica (recomendación: menos de 1.000, como Tactical), si "no puedo instalar IA" descalifica, y cómo arma Form30x `lead_value` (bajar un nivel con descalificante no sale de un solo rango de `score` cuando hay dos o más). Tabla en `operations.md` §2.2 | 1 | 271 (prueba con envío real) | antes del primer envío real |
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |
 | QM-5 | Los cuatro pasos del onboarding: fijos o filas por programa (recomendación: filas) | 6 | 145 | NC3 |

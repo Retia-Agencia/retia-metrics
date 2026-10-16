@@ -653,7 +653,16 @@ The agent should run these to get fast signal on whether code works. Keep them c
   - `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL` y `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` (5-oct): uno por programa, de una cuenta
     OWNER de su organizacion. Ven miembros, tipos de evento, citas y webhooks de esa organizacion. Cada
     programa usa SU token: nunca uno para consultar el otro. `CALENDLY_PAT_LOCAL_*` no se usa.
-  - **Reglas:** leer es libre; **crear, editar o borrar en Typeform, Calendly o la base pide el ok de Mani**
+    `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` (15-oct) es el de AI Second Brain Jurídico (EstadoX): **todavía vacío**
+    (la cuenta de Calendly sigue en plan gratis; falta pagarla, el round robin y los closers).
+  - 🚨 `FORM_30X_API_KEY` (15-oct, ADR 0092): key de la API de Form30x (`https://form.30x.com/api/v1`, Bearer).
+    **Lee y edita TODOS los formularios de 30X y EstadoX, no solo los de Retia: cuidado como prioridad 1.** Se usa con
+    UN solo form, el de título exacto `AI Second Brain Jurídico | Registro | EstadoX` (id
+    `cmulcaari04c001s6m0x1ats6`), y todo script lo pide por ese id explícito: nunca lista y recorre, nunca escribe
+    en otro form. Leer ese form es libre; escribir en él (`PATCH`, `PUT`, `POST`, `DELETE`) pide el ok de Mani, con
+    `If-Match` del ETag para no pisar al que lo tenga abierto en el builder. **Su `salesFlow` (el envío a HubSpot de
+    30X) no se toca.** La app no la lee: los leads entran por el webhook.
+  - **Reglas:** leer es libre; **crear, editar o borrar en Typeform, Form30x, Calendly o la base pide el ok de Mani**
     (un webhook o un form editado por API se ve igual que uno bueno y no lanza error). Nunca imprimir un token
     ni pegarlo en un commit, un ticket o el chat: se comprueba por presencia o por lo que devuelve la API. Usa
     `node` con `fetch`, no el Python del sistema (falla el certificado SSL en la maquina de Mani). Un script

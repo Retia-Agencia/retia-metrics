@@ -27,6 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-15 (noche, sesión de setup; sin código): AI Second Brain Jurídico (EstadoX) entra al CRM por Form30x.**
+  HubSpot Support y el assigner de 30X no responden, así que la operación de SBJ corre en el CRM. Medido: la base pesa
+  42 MB de 500 (Supabase free) y Vercel es Hobby con volumen mínimo; un programa más cabe. Form30x leído por su doc y
+  por la API (solo GET, solo el form de SBJ): webhook firmado, payload con `tags`/`score`/`hidden`, y la respuesta de
+  Calendly trae el uuid del invitado. Decidido: Form30x es el tercer proveedor (ADR 0092, ticket 271) y la key
+  `FORM_30X_API_KEY` se usa con un solo form (regla en `AGENTS.md`). El form ya empuja a HubSpot (`salesFlow`) y no se
+  toca. Pendiente: S2 (nombre y slug) y S3 (puntaje del form, que se aparta del estándar) en `plan.md` §7; pagar
+  Calendly, round robin y closers; el 271; la firma (hex o base64) con una entrega real; preguntar a 30X si hay
+  webhook de parciales. Todo en `operations.md` §2.2.
 - **2026-10-15 (tarde, sesión de consulta; sin código): las hojas se corrieron por tercera vez, y el MCP queda anotado.**
   - **Hojas:** los campos ocultos del 14-oct (`ad_id`, `adset_id`, `campaign_id`) metieron 3 columnas después de
     `utm_id` en las dos hojas: Submitted = T, Token = U, Estado = V. Typeform **sigue escribiendo** en el intake

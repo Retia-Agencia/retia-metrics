@@ -94,6 +94,62 @@ programa nuevo los campos van al crear el formulario. En Dapta, verificar con un
 El puntaje del formulario sigue el estándar único (`docs/dapta/README.md`, "Estándar de puntaje"). Desde el ADR 0069
 el formulario no decide la etapa: manda agenda, calidad y valor, y el CRM enruta (se construye con las etapas de 30X).
 
+### 2.2 AI Second Brain Jurídico (EstadoX) y Form30x (15-oct, en setup)
+
+Programa nuevo de EstadoX. HubSpot Support y el assigner de 30X no han respondido, así que la operación comercial
+corre en el CRM de Retia (Mani, 15-oct). Grupo donde se decide: WhatsApp "Core Estado X". Decisión de arquitectura
+en el ADR 0092; la construcción en el ticket 271.
+
+**Capacidad, medida el 15-oct:** la base pesa **42 MB** de los 500 MB del plan gratis de Supabase (lo más grande:
+`submissions` 10 MB, con 948 envíos de cuatro programas). Vercel está en **Hobby**, con dos crons diarios (lo que ese
+plan permite) y un volumen de webhooks mínimo. Un programa más no mueve ninguno de los dos límites. Lo que sí pesa es
+lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `plan.md` §7).
+
+| Pieza | Estado al 15-oct |
+|---|---|
+| Programa en el CRM | 🔴 no existe. Nombre y slug por decidir (S2 en `plan.md` §7); ticket USD 1.750 (el del producto en HubSpot) |
+| Formulario | Form30x, `AI Second Brain Jurídico \| Registro \| EstadoX`, id `cmulcaari04c001s6m0x1ats6`, público en `form.30x.com/to/cmulcaari04c101s6llqgpzze`, publicado, con parciales y pixel de Meta |
+| Calendly | evento `postulacion-second-brain-juridico-estadox`. 🔴 La cuenta está en plan gratis: el link no sirve hasta pagarla. Falta el round robin, invitar a los closers y cruzar sus calendarios. `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` está en `.env.local`, vacío |
+| HubSpot | el form ya empuja cada envío a HubSpot por su `salesFlow` (pipeline `944331885`, producto `segundocerebrojuridico_noviembre_2026`). **No se toca** |
+| Fuente webhook | 🔴 bloqueada por el 271: Form30x no es proveedor registrado todavía |
+| Envíos reales | 2 completos (4-oct con agenda, 14-oct sin agenda, este último una prueba interna de 30X) y 3 parciales, todos sin UTM |
+
+**Convenciones de Form30x** (de la doc del 15-oct y del form real; ADR 0092):
+
+- **La API key toca todos los forms de 30X y EstadoX.** Solo se usa con el id de arriba (regla completa en
+  `AGENTS.md`, sección del `.env.local`). Escribir pide el ok de Mani y va con `If-Match` (ETag).
+- Antes de escribir en el form, `POST /forms/:id/validate` y `POST /forms/:id/simulate` (no escriben nada). Con
+  `simulate` se verifica el puntaje combinación por combinación, como se hizo con Typeform (216 combinaciones).
+- **Webhook:** se configura en la página *Connect* del form, no por la API de settings. Firma
+  `X-Form30x-Signature: sha256=<HMAC>`; la codificación (hex o base64) se fija con la primera entrega guardada en
+  `sobres_crudos`.
+- **Respuestas:** las opciones se leen por `label` (sus ids se repiten entre preguntas). La de Calendly trae las URIs
+  del evento y del invitado.
+- **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. Preguntar a 30X si
+  existe un evento de parcial; si no, SBJ no tiene Potencial.
+- **Campos ocultos:** ya declara `utm_*` (incluido `utm_id`), `campaign_id`, `ad_id`, `gclid`, `fbclid`, `hsa_*` y
+  `referral_30x`. **Falta `adset_id`** (regla del 14-oct, §2.1).
+- **Calidad y valor salen de `tags`**, que el form calcula con `scoreTagRules` sobre `score`. Hoy: `score ≥ 0` →
+  `High`, `≤ −1` → `Low`. La variable `tag_lead_quality` es un texto fijo en `High` y no sirve.
+
+**El puntaje del form se aparta del estándar** (`docs/dapta/README.md`) y se corrige antes del primer envío real, con
+el ok de Mani:
+
+| Pregunta | Hoy | Estándar |
+|---|---|---|
+| Ingreso mensual | las cuatro opciones en 0 | 0, 10, 20 o 30 puntos por rango, y −100 al rango descalificante (en Tactical y Memorable, menos de 1.000) |
+| Situación | por cargo (Socio/CEO … Desempleado), sin puntos | 0 a 20 puntos. Por cargo no hay tabla: la decide Mani (S3) |
+| Urgencia "No es prioridad" | −100 | −100 ✅ |
+| Inversión "No cuento con los recursos" | **−129** | −100 |
+| Puede instalar IA "No lo tengo permitido" | −100 | no existe en el estándar: descalificante propio de SBJ (S3) |
+| `lead_value` | no existe | niveles por puntos, y baja uno con un descalificante (S3: cómo se arma en Form30x) |
+
+**Orden para dejarlo listo:** decidir S2 y S3 → corregir el puntaje y agregar `adset_id` (con `validate` y
+`simulate`) → 271 (adaptador + migración) → crear el programa y su fuente Form30x en la tab Programa → pegar la URL
+y el secreto en *Connect* del form → un envío de prueba y fijar la firma → pagar Calendly, round robin, closers →
+token de Calendly en la tab Programa y webhook de Calendly → marcar la fuente principal y activar el programa → un
+envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base → avisar al equipo.
+
 ## 3. Variables de entorno
 
 Solo nombres; los valores viven en `.env.local` (permisos `600`, nunca en el repo ni abiertos en un
@@ -117,6 +173,8 @@ editor) y en Vercel.
 | `TYPEFORM_TOKEN` | token personal de Typeform, **por cuenta**: ve los forms de los tres programas (Comunícate con Confianza: `E5F4chVT`, en la cuenta de Francisco) (lectura de forms, variables, webhooks y respuestas). Solo para scripts y revisiones de devs; la app no lo lee | local |
 | `META_SYSTEM_TOKEN` | token del usuario del sistema `retia-insights` del portafolio Agencia Retia Growth (14-oct): **solo `ads_read`**, caducidad Nunca, ve las 7 cuentas publicitarias (`docs/hub.md` §2.4). Solo para scripts y devs; **la app no lo lee**: en producción el token vive en la base (`meta_conexiones`, 119, ADR 0062). Copia de respaldo fuera del repo en `~/.config/retia/meta.env` de Mani. La API exige `v26.0` | local |
 | `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL`, `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
+| `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` | el de AI Second Brain Jurídico (15-oct). Vacío hasta pagar la cuenta de Calendly | local |
+| `FORM_30X_API_KEY` | key de la API de Form30x (15-oct, ADR 0092). **Lee y edita todos los forms de 30X y EstadoX**: se usa solo con el form de SBJ (§2.2); la app no la lee | local |
 | `SEMAFORO_SECRETO` | el secreto con que Juanito llama a `POST /api/semaforo/envios` (ADR 0089, 259); el mismo valor va en `RETIA_SEMAFORO_SECRETO` del `.env` de Juanito, local y VPS. Generado el 15-oct sin mostrarlo | Vercel |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 

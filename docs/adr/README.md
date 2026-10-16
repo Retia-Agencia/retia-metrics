@@ -114,6 +114,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0089](./0089-el-crm-calcula-el-semaforo-y-juanito-lo-manda.md) | El CRM calcula el semáforo de pauta y Juanito lo manda; endpoint de máquina con secreto y sin datos personales (segunda excepción a "nada es público"). Enmendado 15-oct: el reporte (destino, horarios, métricas) se configura por programa en el CRM |
 | [0090](./0090-los-planes-de-accion-viven-en-el-crm.md) | Los planes de acción viven en el CRM, y un rojo del semáforo se cierra con una acción |
 | [0091](./0091-las-graficas-son-echarts-con-una-pieza-propia.md) | Las gráficas del CRM son ECharts, siempre a través de una pieza propia (envoltorio, tema de Tinta y accesibilidad una sola vez) |
+| [0092](./0092-form30x-es-el-tercer-proveedor.md) | Form30x es el tercer proveedor de formularios (webhook firmado, calidad y valor por `tags`), y su API key se usa con un solo form |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
