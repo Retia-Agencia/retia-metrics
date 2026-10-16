@@ -3,7 +3,7 @@ id: 272
 etapa: entrada
 serves: "Los parciales de AI Second Brain Jurídico llegan al CRM como Potencial aunque Form30x no los mande por webhook (ADR 0093)"
 depends: [271]
-status: todo · espera la fase B del 271
+status: done
 ---
 
 # 272 — Los parciales de Form30x, por la API

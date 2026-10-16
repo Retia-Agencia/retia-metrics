@@ -3,7 +3,7 @@ id: 271
 etapa: entrada
 serves: "AI Second Brain Jurídico (EstadoX) recibe sus leads en el CRM desde Form30x (ADR 0092)"
 depends: [130, 117]
-status: in-progress · fase A hecha (15-oct, 0088 aplicada)
+status: done
 ---
 
 # 271 — El adaptador de Form30x

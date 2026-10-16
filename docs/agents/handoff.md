@@ -27,6 +27,21 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-16 (madrugada): 271 fase B y 272 hechos; SBJ recibe completos por webhook y parciales por la API.**
+  Codex implementó, la sesión revisó. 271 B (`96ebaa2`): firma solo hex, `lib/ingesta/adaptador-form30x.ts`, y
+  `uuidInvitadoDelLink` acepta `api.calendly.com` (Form30x manda la URI de la API). 272 (`2fa57bf`, `70dc3a9`):
+  `lib/form30x/api.ts` (único lector de la key, solo GET), `lib/ingesta/leer-form30x.ts` (ventana 48 h, salta lo ya
+  ingerido, los parciales sin correo y lo que ya dejó sobre), `POST /api/cron/form30x` y
+  `.github/workflows/form30x.yml`. Migraciones 0089 (`sources.form30x_form_id`) y 0090 (`sobres_crudos.origen`
+  admite `form30x_api`, decisión de Mani por el ADR) aplicadas. Key en Vercel (producción), `CRON_SECRET` y `CRM_URL`
+  en GitHub. Pruebas en producción: `ManuelTEST` → Agendado, High, MUY ALTO VALOR, cita adoptada; `ManuelTEST2` entró
+  por la API; los dos deals anulados; segunda corrida sin escrituras. Tres tropiezos que el CI o la corrida real
+  cazaron: el guardián de UTM detallados necesita al adaptador como excepción nombrada; el `run:` del workflow con
+  `Authorization: Bearer` sin bloque es YAML inválido (GitHub lo lista por ruta y rechaza el dispatch); y una
+  respuesta que falla escribía un sobre por corrida. Tests locales no corridos (swap de 11 GB): los validó el CI.
+  🔴 **Abierto, de Mani:** Form30x etiqueta `High` casi todo (score 0 incluido), así que un parcial nace en
+  Calificado y SBJ no tendría Potencial; revisar las `scoreTagRules` antes del paso 13 de `operations.md` §2.2.
+
 - **2026-10-15 (noche): paso 3 de SBJ hecho, el 271 fase A está en `main` y la 0088 en producción.** Codex escribió
   `PROVEEDORES.form30x` (header `x-form30x-signature`, `sha256=`, HMAC en hex o base64 con `timingSafeEqual`) y un
   método opcional `notaDeFirma` que la ruta antepone al error del sobre (`firma form30x: hex|base64 · …`); se quita en

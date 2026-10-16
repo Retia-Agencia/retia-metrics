@@ -111,7 +111,7 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 | Formulario | Form30x, `AI Second Brain Jurídico \| Registro \| EstadoX`, id `cmulcaari04c001s6m0x1ats6`, público en `form.30x.com/to/cmulcaari04c101s6llqgpzze`, publicado, con parciales y pixel de Meta |
 | Calendly | evento `postulacion-second-brain-juridico-estadox`. 🔴 La cuenta está en plan gratis: el link no sirve hasta pagarla. Falta el round robin, invitar a los closers y cruzar sus calendarios. `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` está en `.env.local`, vacío |
 | HubSpot | el form ya empuja cada envío a HubSpot por su `salesFlow` (pipeline `944331885`, producto `segundocerebrojuridico_noviembre_2026`). **No se toca** |
-| Fuente webhook | 🔴 bloqueada por el 271: Form30x no es proveedor registrado todavía |
+| Fuente webhook | ✅ `Form30x - Registro SBJ`, activa y principal, firma hex, `form30x_form_id` puesto (16-oct). Los completos entran por el webhook y todo lo de las últimas 48 h, parciales incluidos, por la API cada 30 min (272) |
 | Envíos reales | 2 completos (4-oct con agenda, 14-oct sin agenda, este último una prueba interna de 30X) y 3 parciales, todos sin UTM |
 
 **Convenciones de Form30x** (de la doc del 15-oct y del form real; ADR 0092):
@@ -121,8 +121,10 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 - Antes de escribir en el form, `POST /forms/:id/validate` y `POST /forms/:id/simulate` (no escriben nada). Con
   `simulate` se verifica el puntaje combinación por combinación, como se hizo con Typeform (216 combinaciones).
 - **Webhook:** se configura en la página *Connect* del form, no por la API de settings. Firma
-  `X-Form30x-Signature: sha256=<HMAC>`; la codificación (hex o base64) se fija con la primera entrega guardada en
-  `sobres_crudos`.
+  `X-Form30x-Signature: sha256=<HMAC>` en **hex** (medido con la entrega del 15-oct; base64 ya no se acepta).
+- **Parciales:** el webhook no los manda. Los lee `POST /api/cron/form30x` cada 30 min (GitHub Actions,
+  `.github/workflows/form30x.yml`, secretos del repo `CRON_SECRET` y `CRM_URL`) con `lib/form30x/api.ts`, el único
+  lector de la key, que solo hace `GET /responses` (ADR 0093). Se corre a mano con `gh workflow run form30x.yml`.
 - **Respuestas:** las opciones se leen por `label` (sus ids se repiten entre preguntas). La de Calendly trae las URIs
   del evento y del invitado.
 - **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. **Se prueba con un
@@ -212,7 +214,17 @@ de Form30x, y no se copia: SBJ conserva la suya.
    (`adoptarSueltaDeCita`). Las dos filas son de prueba (`ManuelTEST`): al reprocesar crean un lead de prueba que hay
    que anular. Los parciales se leerán por la API cada 30 minutos (ADR 0093, ticket 272); Mani le pide a 30X que
    el webhook también los mande.
-7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
+7. ✅ 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega. Hecho el 16-oct
+   (`96ebaa2`, `4199ab3`): firma solo hex, `lib/ingesta/adaptador-form30x.ts` (respuestas por `question` y `label`,
+   `hidden` como UTM, calidad y valor desde `tags`, agenda por la respuesta `calendly`), y `uuidInvitadoDelLink` acepta
+   la URI de `api.calendly.com`. El sobre de `ManuelTEST` reprocesado: lead en **Agendado**, `High`, `MUY ALTO VALOR`,
+   puntaje 50, con la cita adoptada; luego el deal anulado (y su llamada con él).
+7b. ✅ 272: los parciales por la API (ADR 0093) — Codex; la sesión aplica 0089 (`sources.form30x_form_id`) y 0090
+   (`sobres_crudos.origen` admite `form30x_api`), sube la key a Vercel (solo producción) y los secretos de GitHub, todo
+   con el ok de Mani. Primera corrida (16-oct): 4 leídas, el parcial `ManuelTEST2` entró (en **Calificado**, no en
+   Potencial: venía `High`, ver el paso 13), `ManuelTEST` y el parcial sin correo saltados, y la prueba de Hugo
+   rechazada como entrega de prueba (correo reservado), con su sobre en error. Segunda corrida: 4 saltadas, nada
+   escrito. El deal de `ManuelTEST2` quedó anulado.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
@@ -230,7 +242,10 @@ de Form30x, y no se copia: SBJ conserva la suya.
 11. Dar de alta a los closers con membresía en el programa — Mani.
 12. Marcar la fuente principal con su URL y activar el programa — Mani.
 13. Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
-    valor, UTMs y llamada colgada — la sesión.
+    valor, UTMs y llamada colgada — la sesión. 🔴 **Antes, revisar las `scoreTagRules`:** todas las respuestas del
+    form vienen `High` (el parcial con solo el nombre, score 0; la prueba de Hugo, score 0; `ManuelTEST2`, score 10).
+    Por el ADR 0069 un parcial `High` nace en Calificado, así que hoy SBJ no tendría Potencial ni Registrado. Decide
+    Mani: si `High` es el defecto del form, la regla de tags en Form30x es la que se corrige.
 14. Avisar al equipo en "Core Estado X" — Mani.
 
 ## 3. Variables de entorno
@@ -247,7 +262,7 @@ editor) y en Vercel.
 | `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `AUTH_URL` | login con Google (Auth.js) | local, Vercel |
 | `GOOGLE_SERVICE_ACCOUNT_JSON_B64` | la cuenta de servicio que lee las hojas: "probar" y activar una fuente de hoja en la tab Programa (Formularios), los scripts y el traslado | local, Vercel |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | el almacén de comprobantes (Supabase Storage, bucket privado `comprobantes`; ADR 0085). La llave secreta solo vive en el servidor; con una `DATABASE_URL` local se usa el adaptador de disco y no hacen falta | local, Vercel |
-| `CRON_SECRET` | protege `/api/cron/comprobantes` (respaldo diario en Drive y barrido de subidas a medias); Vercel lo manda en cada llamada del cron. Lo generó la sesión del 13-oct sin mostrarlo | local, Vercel |
+| `CRON_SECRET` | protege `/api/cron/comprobantes` (respaldo diario en Drive y barrido de subidas a medias); Vercel lo manda en cada llamada del cron. El mismo valor es secreto del repo en GitHub para `/api/cron/form30x` (272), junto con `CRM_URL` (`https://retia-metrics-seven.vercel.app`). Lo generó la sesión del 13-oct sin mostrarlo | local, Vercel |
 | `DRIVE_COMPROBANTES_ID` | la unidad compartida "Comprobantes CRM Retia" (`0ADSvd0QdWDh-Uk9PVA`, Workspace de Retia); la cuenta de servicio es Administrador de contenido. Sin ella el cron solo barre | local, Vercel |
 | `SHEET_ID_COMUNICARTE`, `SHEET_ID_TACTICAL` | los IDs de las hojas, para los scripts | local |
 | `SCRIPT_ACTOR_EMAIL` | quién firma el rastro de un script que escribe en una base viva (ADR 0029) | local |
@@ -257,7 +272,7 @@ editor) y en Vercel.
 | `META_SYSTEM_TOKEN` | token del usuario del sistema `retia-insights` del portafolio Agencia Retia Growth (14-oct): **solo `ads_read`**, caducidad Nunca, ve las 7 cuentas publicitarias (`docs/hub.md` §2.4). Solo para scripts y devs; **la app no lo lee**: en producción el token vive en la base (`meta_conexiones`, 119, ADR 0062). Copia de respaldo fuera del repo en `~/.config/retia/meta.env` de Mani. La API exige `v26.0` | local |
 | `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL`, `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
 | `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` | el de AI Second Brain Jurídico (15-oct). Vacío hasta pagar la cuenta de Calendly | local |
-| `FORM_30X_API_KEY` | key de la API de Form30x (15-oct, ADR 0092; en Vercel desde el 272, ADR 0093). **Lee y edita todos los forms de 30X y EstadoX**: se usa solo con el form de SBJ (§2.2); la app no la lee | local |
+| `FORM_30X_API_KEY` | key de la API de Form30x (15-oct, ADR 0092; en Vercel, solo producción, desde el 16-oct, ADR 0093). **Lee y edita todos los forms de 30X y EstadoX**: se usa solo con el form de SBJ (§2.2). En la app la lee solo `lib/form30x/api.ts`, que solo hace `GET` (guardián en `tests/form30x-api-guardian.test.ts`) | local, Vercel |
 | `SEMAFORO_SECRETO` | el secreto con que Juanito llama a `POST /api/semaforo/envios` (ADR 0089, 259); el mismo valor va en `RETIA_SEMAFORO_SECRETO` del `.env` de Juanito, local y VPS. Generado el 15-oct sin mostrarlo | Vercel |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 
