@@ -32,8 +32,8 @@ La documentación (leída el 15-oct) y el form real (leído por la API, solo GET
 1. **Form30x entra como un proveedor más del registro `PROVEEDORES`** (`lib/ingesta/proveedores.ts`): header
    `x-form30x-signature`, verificación en tiempo constante, adaptador `entradaDesdeForm30x` y un valor nuevo en el
    enum `proveedor_formulario` (migración). Mismo molde que Dapta (ticket 130). La codificación de la firma se fija
-   con la primera entrega real guardada, no se adivina: mientras no esté medida, el adaptador no se activa en
-   producción.
+   con una entrega real, no se adivina: mientras no esté medida (fase A del 271), la verificación acepta hex o base64
+   y anota cuál cuadró, y el programa sigue inactivo. Con la medida, la otra se quita.
 2. **El correo sale de la respuesta `type: "email"`**, sin mapeo (`correoPorDefecto: true`), igual que Dapta. Las
    opciones se leen por `label`, nunca por el id de la opción.
 3. **La calidad y el valor salen de `tags`**, que el form calcula con sus `scoreTagRules` sobre `score`

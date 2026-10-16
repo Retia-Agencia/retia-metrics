@@ -125,8 +125,8 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
   `sobres_crudos`.
 - **Respuestas:** las opciones se leen por `label` (sus ids se repiten entre preguntas). La de Calendly trae las URIs
   del evento y del invitado.
-- **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. Preguntar a 30X si
-  existe un evento de parcial; si no, SBJ no tiene Potencial.
+- **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. **Se prueba con un
+  envío parcial real** (Mani, 15-oct) con la fuente ya montada: si no llega nada a `sobres_crudos`, SBJ no tiene Potencial.
 - **Campos ocultos:** ya declara `utm_*` (incluido `utm_id`), `campaign_id`, `ad_id`, `gclid`, `fbclid`, `hsa_*` y
   `referral_30x`. **Falta `adset_id`** (regla del 14-oct, §2.1).
 - **Calidad y valor salen de `tags`**, que el form calcula con `scoreTagRules` sobre `score`. Hoy: `score ≥ 0` →
@@ -144,11 +144,30 @@ el ok de Mani:
 | Puede instalar IA "No lo tengo permitido" | −100 | no existe en el estándar: descalificante propio de SBJ (S3) |
 | `lead_value` | no existe | niveles por puntos, y baja uno con un descalificante (S3: cómo se arma en Form30x) |
 
-**Orden para dejarlo listo:** decidir S2 y S3 → corregir el puntaje y agregar `adset_id` (con `validate` y
-`simulate`) → 271 (adaptador + migración) → crear el programa y su fuente Form30x en la tab Programa → pegar la URL
-y el secreto en *Connect* del form → un envío de prueba y fijar la firma → pagar Calendly, round robin, closers →
-token de Calendly en la tab Programa y webhook de Calendly → marcar la fuente principal y activar el programa → un
-envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base → avisar al equipo.
+**Checklist para dejarlo listo** (en orden; ✅ = hecho):
+
+1. ✅ Medir capacidad, leer la doc y el form de Form30x, decidir el proveedor (ADR 0092) — Claude, 15-oct.
+2. Decidir S2 (nombre y slug) y S3 (puntaje) en `plan.md` §7 — Mani.
+3. 271 fase A: migración + proveedor que acepta hex o base64 — Codex implementa; la sesión aplica la migración con
+   el ok de Mani y despliega.
+4. Crear el programa (nace inactivo) y su fuente Form30x en la tab Programa; generar el secreto y activar la fuente —
+   Mani, a mano (el secreto no pasa por el chat).
+5. Pegar la URL de la fuente y el secreto en *Connect* del form — Mani.
+6. Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
+   llegó el parcial — Mani envía, la sesión revisa.
+7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
+8. Corregir el puntaje del form según S3 y agregar `adset_id` (`validate` + `simulate` antes de escribir, `If-Match`)
+   — la sesión por la API, con el ok de Mani.
+9. Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la
+   pregunta de Calendly del form — Mani / EstadoX.
+10. Poner `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` en `.env.local` y el token en la tab Programa; montar el webhook de
+    Calendly del programa (096) y vincular la cuenta de Calendly de cada closer en `/ajustes/usuarios` — Mani y la
+    sesión.
+11. Dar de alta a los closers con membresía en el programa — Mani.
+12. Marcar la fuente principal con su URL y activar el programa — Mani.
+13. Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
+    valor, UTMs y llamada colgada — la sesión.
+14. Avisar al equipo en "Core Estado X" — Mani.
 
 ## 3. Variables de entorno
 
