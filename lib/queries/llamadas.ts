@@ -5,6 +5,8 @@ import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { llamadaVisiblePara, type AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { vigente } from "@/lib/queries/vigente";
+import { z } from "zod";
+import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 
 export const LLAMADAS_POR_PAGINA = 50;
 
@@ -22,6 +24,17 @@ export type OrdenLlamadas = (typeof ORDENES_LLAMADAS)[number]["value"];
 
 export const ORDEN_LLAMADAS_POR_DEFECTO: OrdenLlamadas = "llamada:desc";
 
+export const RESULTADOS = [
+  ["agendada", "Agendada"],
+  ["show", "Show"],
+  ["no_show", "No show"],
+  ["cancelada", "Cancelada"],
+  ["reagendada", "Reagendada"],
+  ["compromiso_pago", "Compromiso de pago"],
+  ["cerrada", "Cerrada"],
+  ["perdida", "Perdida"],
+] as const;
+
 export type FiltroLlamadas = {
   closerUserId?: string | null;
   resultado?: (typeof calls.$inferSelect)["resultado"] | null;
@@ -36,6 +49,49 @@ export type FiltroLlamadas = {
   /** El orden de la lista; por defecto `llamada:desc` (el de siempre). */
   orden?: OrdenLlamadas;
 };
+
+type ParametrosDeLlamadas =
+  | Record<string, string | string[] | undefined>
+  | Pick<URLSearchParams, "get">;
+
+function valorDeParametro(parametros: ParametrosDeLlamadas, nombre: string): string | undefined {
+  const conGet = parametros as Pick<URLSearchParams, "get">;
+  if (typeof conGet.get === "function") {
+    return conGet.get(nombre) ?? undefined;
+  }
+  const valor = (parametros as Record<string, string | string[] | undefined>)[nombre];
+  return Array.isArray(valor) ? valor[0] : valor;
+}
+
+/** Una sola interpretación de los filtros de Calls guardados en la URL. */
+export async function filtroDeLlamadasDesdeUrl(
+  db: Db,
+  programId: string,
+  alcance: AlcanceDeals,
+  parametros: ParametrosDeLlamadas,
+): Promise<FiltroLlamadas & { orden: OrdenLlamadas }> {
+  const resultado = valorDeParametro(parametros, "resultado");
+  const ordenValues = ORDENES_LLAMADAS.map((opcion) => opcion.value) as [
+    OrdenLlamadas,
+    ...OrdenLlamadas[],
+  ];
+  const orden = z
+    .enum(ordenValues)
+    .catch(ORDEN_LLAMADAS_POR_DEFECTO)
+    .parse(valorDeParametro(parametros, "orden"));
+  const leadsCasan = await leadsQueCasan(db, programId, valorDeParametro(parametros, "q") ?? "");
+
+  return {
+    closerUserId: alcance.tipo === "todos" ? valorDeParametro(parametros, "closer") || null : null,
+    resultado: RESULTADOS.some(([value]) => value === resultado)
+      ? (resultado as FiltroLlamadas["resultado"])
+      : null,
+    desde: valorDeParametro(parametros, "desde") || null,
+    hasta: valorDeParametro(parametros, "hasta") || null,
+    leadsCasan,
+    orden,
+  };
+}
 
 export interface FilaLlamadaPrograma {
   callId: string;
