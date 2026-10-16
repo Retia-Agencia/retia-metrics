@@ -1,0 +1,181 @@
+{
+  "event": "response.completed",
+  "formId": "cmulcaari04c001s6m0x1ats6",
+  "formTitle": "AI Second Brain Jurídico | Registro | EstadoX",
+  "responseId": "cmvadazfn0glo01s6iehus2fo",
+  "submittedAt": "2026-10-16T02:48:58.560Z",
+  "answers": [
+    {
+      "fieldRef": "57b569e4-5e39-4de4-ae1a-511a40fd62fa",
+      "type": "short_text",
+      "question": "¿Cuál es tu nombre completo?",
+      "value": "Persona Prueba"
+    },
+    {
+      "fieldRef": "a97a964f-ae42-4c4f-be1a-cbc4c77b907b",
+      "type": "email",
+      "question": "¿Cuál es tu correo electrónico?",
+      "value": "persona.prueba@correo-falso.co"
+    },
+    {
+      "fieldRef": "6a44ba2e-ec13-405e-8b42-34476c3b4ee5",
+      "type": "phone_number",
+      "question": "¿Cuál es tu número de WhatsApp?",
+      "value": "+57 3001234567"
+    },
+    {
+      "fieldRef": "8c38345c-c587-4fa7-8d50-3ac8b2f98e48",
+      "type": "multiple_choice",
+      "question": "¿Cuánto ganas mensualmente? (en dólares)",
+      "value": "9f139ca8-fffa-4e49-b72c-374617949424",
+      "label": "Más de $10.000",
+      "choices": [
+        {
+          "id": "73668ba1-51b2-4d14-9181-fd0568d22065",
+          "label": "Menos de $1.000 USD"
+        },
+        {
+          "id": "5a32a484-d10a-42dc-8e3d-e21c096be679",
+          "label": "$1.000 - $3.000"
+        },
+        {
+          "id": "e6f93dd0-5d8d-445c-98e5-a96ee58352a2",
+          "label": "$3.000 - $10.000"
+        },
+        {
+          "id": "9f139ca8-fffa-4e49-b72c-374617949424",
+          "label": "Más de $10.000"
+        }
+      ]
+    },
+    {
+      "fieldRef": "29fcfc6e-cbec-4413-a69e-ff2c5bf84e28",
+      "type": "long_text",
+      "question": "¿Qué te motivó a hacer parte del Programa de Implementación AI Second Brain Jurídico?",
+      "value": "AURA"
+    },
+    {
+      "fieldRef": "9465f620-dee5-47f8-b5a1-c2c4b06805a6",
+      "type": "multiple_choice",
+      "question": "¿Qué tan urgente es para ti empezar el programa para implementar un segundo cerebro de AI que te ayude a operar como un/a crack en tus proyectos legales?",
+      "value": "b210fa83-e82a-47df-86fa-1bb7b38e9120",
+      "label": "Muy urgente",
+      "choices": [
+        {
+          "id": "b210fa83-e82a-47df-86fa-1bb7b38e9120",
+          "label": "Muy urgente"
+        },
+        {
+          "id": "c2bb78db-e037-431e-a671-71e97eaca77c",
+          "label": "Estoy interesado pero puede esperar"
+        },
+        {
+          "id": "225da20b-4e19-40eb-8333-d4c43fe805fd",
+          "label": "No es prioridad"
+        }
+      ]
+    },
+    {
+      "fieldRef": "c23a9366-55e2-4ff5-b666-9e058bb2a24b",
+      "type": "multiple_choice",
+      "question": "¿Cómo se podría describir mejor tu situación?",
+      "value": "469a97c6-9ce4-4cf3-8660-f24b98233274",
+      "label": "Director, Vice Presidente/a o C-Level",
+      "choices": [
+        {
+          "id": "fad41b62-5721-4278-9f61-99257f166bc9",
+          "label": "Socio/a, Fundador o CEO"
+        },
+        {
+          "id": "469a97c6-9ce4-4cf3-8660-f24b98233274",
+          "label": "Director, Vice Presidente/a o C-Level"
+        },
+        {
+          "id": "e21ff45f-4af3-47f4-ba9e-f20a94f448ac",
+          "label": "Gerente Intermedio"
+        },
+        {
+          "id": "53502b98-3c68-415f-9897-c1fbf4868887",
+          "label": "Coordinador/a - Supervisor/a"
+        },
+        {
+          "id": "5fa8f901-3bae-406e-9ad6-248e155a8aff",
+          "label": "Analista"
+        },
+        {
+          "id": "5a3ceef7-7a5a-4ebc-ba57-d23d329457ab",
+          "label": "Estudiante"
+        },
+        {
+          "id": "0bf06de4-9076-4b2a-b2f9-332dde62789c",
+          "label": "Desempleado"
+        },
+        {
+          "id": "fea2da8c-0a6b-4229-8566-4a9908ada8f3",
+          "label": "Otro"
+        }
+      ]
+    },
+    {
+      "fieldRef": "7twn2s7h",
+      "type": "multiple_choice",
+      "question": "¿Tienes posibilidad de instalar y/o utilizar programas de inteligencia artificial en tu computador de uso diario? Por ejemplo: Claude, Chat GPT, Gemini, entre otras.",
+      "value": "viuutc7",
+      "label": "No sé, debo preguntar",
+      "choices": [
+        {
+          "id": "a1th220",
+          "label": "Definitivamente sí"
+        },
+        {
+          "id": "viuutc7",
+          "label": "No sé, debo preguntar"
+        },
+        {
+          "id": "xiuydts",
+          "label": "No lo tengo permitido"
+        }
+      ]
+    },
+    {
+      "fieldRef": "34f6e3c2-31b5-4905-ba68-f7ad0b1e3459",
+      "type": "multiple_choice",
+      "question": "¿Estás dispuesto y en la capacidad de invertir 1.750 USD en ti?",
+      "value": "9fcbf395-4e57-4ce0-9cd2-a44bcefa0849",
+      "label": "Sí, tengo la disposición y capacidad de invertir en este momento",
+      "choices": [
+        {
+          "id": "9fcbf395-4e57-4ce0-9cd2-a44bcefa0849",
+          "label": "Sí, tengo la disposición y capacidad de invertir en este momento"
+        },
+        {
+          "id": "38fbc329-fd74-4993-be74-bd2ea8299382",
+          "label": "Sí, pero necesito facilidades de pago"
+        },
+        {
+          "id": "756ed013-9dc8-4d8b-964e-15b8d7961c9c",
+          "label": "No, en este momento no cuento con los recursos"
+        }
+      ]
+    },
+    {
+      "fieldRef": "2tms8xvk",
+      "type": "calendly",
+      "question": "Agenda tu entrevista",
+      "value": {
+        "scheduled": true,
+        "event": "https://api.calendly.com/scheduled_events/a3c01d41-ca55-4413-ae76-6cc8d04a09a6",
+        "invitee": "https://api.calendly.com/scheduled_events/a3c01d41-ca55-4413-ae76-6cc8d04a09a6/invitees/11111111-2222-4333-8444-555555555555"
+      }
+    }
+  ],
+  "hidden": {},
+  "score": 50,
+  "tags": [
+    "High",
+    "MUY ALTO VALOR"
+  ],
+  "variables": {
+    "score": 50
+  }
+}

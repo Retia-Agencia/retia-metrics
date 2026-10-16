@@ -86,10 +86,9 @@ export interface ParametrosCita {
 }
 
 /**
- * El uuid del invitado que lleva un link de Calendly guardado por Typeform. El link
- * tiene la forma `https://calendly.com/d/<evento>/<nombre>/invitees/<uuid>`. Devuelve
- * el uuid, o `null` si la URL no casa con ese patron (otro dominio, sin segmento
- * `invitees`, etc.).
+ * El uuid del invitado que lleva un link de Calendly guardado por Typeform o Form30x.
+ * Acepta el link publico de `calendly.com` y la URI de `api.calendly.com`; devuelve el
+ * uuid, o `null` si la URL no casa (otro dominio, sin segmento `invitees`, etc.).
  */
 export function uuidInvitadoDelLink(url: string): string | null {
   let parsed: URL;
@@ -98,7 +97,7 @@ export function uuidInvitadoDelLink(url: string): string | null {
   } catch {
     return null;
   }
-  if (parsed.hostname !== "calendly.com" && parsed.hostname !== "www.calendly.com") return null;
+  if (!["calendly.com", "www.calendly.com", "api.calendly.com"].includes(parsed.hostname)) return null;
   const segmentos = parsed.pathname.split("/").filter(Boolean);
   const i = segmentos.indexOf("invitees");
   if (i === -1) return null;

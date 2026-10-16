@@ -7,6 +7,7 @@ import {
   type MapeoWebhook,
 } from "./adaptador-typeform";
 import { entradaDesdeDapta, payloadDaptaSchema } from "./adaptador-dapta";
+import { entradaDesdeForm30x, payloadForm30xSchema } from "./adaptador-form30x";
 
 export interface OpcionesAdaptador {
   sourceId: string;
@@ -22,8 +23,6 @@ export interface ProveedorWebhook {
    */
   correoPorDefecto: boolean;
   verificarFirma(cuerpoCrudo: string, header: string | null, secreto: string): boolean;
-  /** Temporal de la fase A del 271 (ADR 0092); se quita al medir la codificacion en fase B. */
-  notaDeFirma?(cuerpoCrudo: string, header: string | null, secreto: string): string | null;
   adaptar(cuerpoCrudo: string, opciones: OpcionesAdaptador): EntradaEnvio;
 }
 
@@ -51,26 +50,6 @@ function firmaDaptaValida(cuerpoCrudo: string, header: string | null, secreto: s
   return recibido.length === esperado.length && timingSafeEqual(recibido, esperado);
 }
 
-export function codificacionDeFirmaForm30x(
-  cuerpoCrudo: string,
-  header: string | null,
-  secreto: string,
-): "hex" | "base64" | null {
-  if (!header?.startsWith(prefijoFirma)) return null;
-  const enviado = header.slice(prefijoFirma.length);
-  const codificacion = /^[0-9a-f]{64}$/i.test(enviado)
-    ? "hex"
-    : /^[A-Za-z0-9+/]{43}=$/.test(enviado)
-      ? "base64"
-      : null;
-  if (codificacion === null) return null;
-  const esperado = createHmac("sha256", secreto).update(cuerpoCrudo, "utf8").digest();
-  const recibido = Buffer.from(enviado, codificacion);
-  return recibido.length === esperado.length && timingSafeEqual(recibido, esperado)
-    ? codificacion
-    : null;
-}
-
 export const PROVEEDORES: Record<ProveedorFormulario, ProveedorWebhook> = {
   typeform: {
     headerFirma: "typeform-signature",
@@ -91,15 +70,9 @@ export const PROVEEDORES: Record<ProveedorFormulario, ProveedorWebhook> = {
   form30x: {
     headerFirma: "x-form30x-signature",
     correoPorDefecto: true,
-    verificarFirma(cuerpoCrudo, header, secreto) {
-      return codificacionDeFirmaForm30x(cuerpoCrudo, header, secreto) !== null;
-    },
-    notaDeFirma(cuerpoCrudo, header, secreto) {
-      const codificacion = codificacionDeFirmaForm30x(cuerpoCrudo, header, secreto);
-      return codificacion === null ? null : `firma form30x: ${codificacion}`;
-    },
-    adaptar() {
-      throw new Error("Form30x: adaptador pendiente (ticket 271, fase B).");
+    verificarFirma: firmaDaptaValida,
+    adaptar(cuerpoCrudo, opciones) {
+      return entradaDesdeForm30x(payloadForm30xSchema.parse(JSON.parse(cuerpoCrudo)), opciones);
     },
   },
 };

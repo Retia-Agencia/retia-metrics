@@ -82,6 +82,12 @@ describe("uuidInvitadoDelLink", () => {
     ).toBe("ZZ");
   });
 
+  it("acepta la URI de invitado de la API de Calendly", () => {
+    expect(
+      uuidInvitadoDelLink("https://api.calendly.com/scheduled_events/EV1/invitees/API-UUID"),
+    ).toBe("API-UUID");
+  });
+
   it("devuelve null si no es calendly", () => {
     expect(uuidInvitadoDelLink("https://ejemplo.com/d/x/invitees/AA")).toBeNull();
   });

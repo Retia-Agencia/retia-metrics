@@ -135,8 +135,6 @@ export async function POST(
     });
     return Response.json({ error: "No autorizado." }, { status: 401 });
   }
-  const notaFirma = proveedor.notaDeFirma?.(cuerpo, header, fila.secreto) ?? null;
-
   // 3. Firma buena. La CAJA NEGRA guarda el cuerpo crudo YA. Luego `procesarSobre` (el
   // mismo camino que el reproceso del ticket 110) adapta e ingiere.
   const dueno: DuenoDelSobre = { canal: "formulario", sourceId: fila.id, programId: fila.programId };
@@ -156,13 +154,7 @@ export async function POST(
   // Si algo no se pudo procesar (sin correo, contenido invalido, fallo de ingesta) se
   // marca el sobre con el error; si salio bien, queda con `error: null` (caja negra).
   if (resultado.error !== null) {
-    await marcarSobreConError(
-      db,
-      sobreId,
-      dueno,
-      cuerpo,
-      notaFirma ? `${notaFirma} · ${resultado.error}` : resultado.error,
-    );
+    await marcarSobreConError(db, sobreId, dueno, cuerpo, resultado.error);
   }
 
   // La entrega, con su motivo, el lead que trajo y el sobre. Registrar la entrega no
