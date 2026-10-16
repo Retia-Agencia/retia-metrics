@@ -31,7 +31,12 @@ export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
   }).strict().nullable(),
   trayectoria: z.array(esquemaPunto),
   diasSeguidosEnRojo: z.number(),
-  campanas: z.tuple([]),
+  campanas: z.array(z.object({
+    nombre: z.string(),
+    gasto: z.number(),
+    agendasMeta: z.number().nullable(),
+    costo: z.number().nullable(),
+  }).strict()),
   notas: z.array(z.object({
     tipo: z.enum(["problema", "info"]),
     texto: z.string(),

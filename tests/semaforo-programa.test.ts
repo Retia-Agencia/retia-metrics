@@ -12,6 +12,7 @@ import {
   programs,
   sources,
   submissions,
+  tasasCambio,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { costoPorAgenda, costoPorAgendaDeLosUltimosHabiles } from "@/lib/semaforo/costo-por-agenda";
@@ -83,7 +84,13 @@ async function crearPrograma(slug: string, opciones: { cohorte?: boolean; objeti
       });
     }
   }
-  return { programId: programa.id, fuenteId: fuente.id, campanaId: campana.id, cohortId };
+  return {
+    programId: programa.id,
+    fuenteId: fuente.id,
+    cuentaId: cuenta.id,
+    campanaId: campana.id,
+    cohortId,
+  };
 }
 
 async function crearAgenda(args: {
@@ -150,6 +157,153 @@ async function gastoCerrado(programId: string, dia: string, monto: number, agend
 }
 
 describe("semáforo del programa", () => {
+  it("desglosa el día por campaña con la misma conversión y los mismos totales", async () => {
+    const p = await crearPrograma("campanas-dia");
+    const [campanaUsd] = await db.insert(pautaObjetos).values({
+      cuentaId: p.cuentaId,
+      programId: p.programId,
+      idMeta: "campana-usd-dia",
+      nivel: "campana",
+      padreIdMeta: null,
+      nombre: "Campaña USD sin recortar",
+      estado: "ACTIVE",
+    }).returning();
+    await db.insert(tasasCambio).values({
+      vigenteDesde: "2026-10-16",
+      vigenteHasta: "2026-10-16",
+      pesosPorDolar: "4000",
+      fuente: "prueba",
+    });
+    await db.insert(fotosPauta).values([
+      {
+        tomadaEn: new Date("2026-10-16T11:00:00-05:00"),
+        fecha: "2026-10-16",
+        programId: p.programId,
+        campanaId: p.campanaId,
+        gasto: "150000",
+        moneda: "COP",
+        agendasMeta: 3,
+      },
+      {
+        tomadaEn: new Date("2026-10-16T11:00:00-05:00"),
+        fecha: "2026-10-16",
+        programId: p.programId,
+        campanaId: campanaUsd.id,
+        gasto: "25",
+        moneda: "USD",
+        agendasMeta: 2,
+      },
+    ]);
+    await db.insert(gastoPauta).values({
+      programId: p.programId,
+      fecha: "2026-10-16",
+      monto: "50000",
+      moneda: "COP",
+      agendasMeta: null,
+      origen: "manual",
+      area: "paid",
+    });
+
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId,
+      ahora: new Date("2026-10-16T11:05:00-05:00"),
+      tipo: "dia",
+    });
+
+    expect(resultado.campanas.map((campana) => campana.nombre)).toEqual([
+      "Campaña",
+      "Campaña USD sin recortar",
+    ]);
+    expect(resultado.campanas.map((campana) => campana.gasto)).toEqual([150000, 100000]);
+    expect(Math.abs(resultado.campanas.reduce((total, campana) => total + campana.gasto, 0) - resultado.gasto)).toBeLessThanOrEqual(1);
+    expect(resultado.campanas.reduce((total, campana) => total + (campana.agendasMeta ?? 0), 0)).toBe(resultado.agendasMeta ?? 0);
+  });
+
+  it("desglosa el cierre por campaña y reúne en Sin campaña las filas sin árbol", async () => {
+    const p = await crearPrograma("campanas-cierre");
+    const [campanaUsd] = await db.insert(pautaObjetos).values({
+      cuentaId: p.cuentaId,
+      programId: p.programId,
+      idMeta: "campana-usd-cierre",
+      nivel: "campana",
+      padreIdMeta: null,
+      nombre: "Campaña USD",
+      estado: "ACTIVE",
+    }).returning();
+    const crearAnuncio = async (campanaIdMeta: string, sufijo: string) => {
+      const [conjunto] = await db.insert(pautaObjetos).values({
+        cuentaId: p.cuentaId,
+        programId: p.programId,
+        idMeta: `conjunto-${sufijo}`,
+        nivel: "conjunto" as const,
+        padreIdMeta: campanaIdMeta,
+        nombre: `Conjunto ${sufijo}`,
+        estado: "ACTIVE",
+      }).returning();
+      const [anuncio] = await db.insert(pautaObjetos).values({
+        cuentaId: p.cuentaId,
+        programId: p.programId,
+        idMeta: `anuncio-${sufijo}`,
+        nivel: "anuncio" as const,
+        padreIdMeta: conjunto.idMeta,
+        nombre: `Anuncio ${sufijo}`,
+        estado: "ACTIVE",
+      }).returning();
+      return anuncio.id;
+    };
+    const anuncioCop = await crearAnuncio("campana-campanas-cierre", "cop");
+    const anuncioUsd = await crearAnuncio(campanaUsd.idMeta, "usd");
+    await db.insert(tasasCambio).values({
+      vigenteDesde: "2026-10-16",
+      vigenteHasta: "2026-10-16",
+      pesosPorDolar: "4000",
+      fuente: "prueba",
+    });
+    await db.insert(gastoPauta).values([
+      {
+        programId: p.programId,
+        fecha: "2026-10-16",
+        monto: "150000",
+        moneda: "COP",
+        agendasMeta: 3,
+        origen: "meta_api",
+        pautaObjetoId: anuncioCop,
+      },
+      {
+        programId: p.programId,
+        fecha: "2026-10-16",
+        monto: "25",
+        moneda: "USD",
+        agendasMeta: null,
+        origen: "meta_api",
+        pautaObjetoId: anuncioUsd,
+      },
+      {
+        programId: p.programId,
+        fecha: "2026-10-16",
+        monto: "50000",
+        moneda: "COP",
+        agendasMeta: null,
+        origen: "manual",
+        area: "paid",
+      },
+    ]);
+
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId,
+      ahora: new Date("2026-10-17T00:05:00-05:00"),
+      tipo: "cierre",
+    });
+
+    expect(resultado.campanas.map((campana) => [campana.nombre, campana.gasto])).toEqual([
+      ["Campaña", 150000],
+      ["Campaña USD", 100000],
+      ["Sin campaña", 50000],
+    ]);
+    expect(Math.abs(resultado.campanas.reduce((total, campana) => total + campana.gasto, 0) - resultado.gasto)).toBeLessThanOrEqual(1);
+    expect(resultado.campanas.reduce((total, campana) => total + (campana.agendasMeta ?? 0), 0)).toBe(resultado.agendasMeta ?? 0);
+  });
+
   it("un caso armado con gasto, fotos y agendas da el color de día y cierre", async () => {
     const p = await crearPrograma("armado");
     await foto({ ...p, dia: "2026-10-13", hora: "11:00", gasto: 100000 });

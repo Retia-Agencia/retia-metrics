@@ -8,6 +8,7 @@ import { cohorteActiva } from "@/lib/queries/cohortes";
 import {
   costoPorAgenda,
   costoPorAgendaDeVentana,
+  type CampanaSemaforo,
   type CostoPorAgenda,
   type NotaSemaforo,
 } from "./costo-por-agenda";
@@ -50,7 +51,7 @@ export interface MetricaSemaforo {
   comparacion: ComparacionSemaforo | null;
   trayectoria: PuntoSemaforo[];
   diasSeguidosEnRojo: number;
-  campanas: [];
+  campanas: CampanaSemaforo[];
   notas: NotaSemaforo[];
 }
 
@@ -278,7 +279,7 @@ export async function semaforoDelPrograma(
     } : null,
     trayectoria,
     diasSeguidosEnRojo: diasRojos,
-    campanas: [],
+    campanas: datos.campanas,
     notas,
   };
 }

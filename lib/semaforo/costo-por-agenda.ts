@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, isNotNull, lte, or } from "drizzle-orm";
-import { fotosPauta, gastoPauta } from "@/lib/db/schema";
+import { fotosPauta, gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilAnterior } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
@@ -11,11 +11,19 @@ export interface NotaSemaforo {
   texto: string;
 }
 
+export interface CampanaSemaforo {
+  nombre: string;
+  gasto: number;
+  agendasMeta: number | null;
+  costo: number | null;
+}
+
 export interface CostoPorAgenda {
   gasto: number;
   agendasMeta: number | null;
   agendasCrm: number;
   costo: number | null;
+  campanas: CampanaSemaforo[];
   notas: NotaSemaforo[];
 }
 
@@ -24,6 +32,8 @@ type FilaDeGasto = {
   monto: string;
   moneda: string;
   agendasMeta: number | null;
+  campanaId: string | null;
+  campanaNombre: string | null;
 };
 
 const NOTA_HQ4 = "El gasto incluye todas las campañas del programa ";
@@ -31,6 +41,12 @@ const NOTA_HQ4 = "El gasto incluye todas las campañas del programa ";
 async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
   gasto: number;
   agendasMeta: number | null;
+  campanas: Array<{
+    id: string;
+    nombre: string;
+    gasto: number;
+    agendasMeta: number | null;
+  }>;
   notas: NotaSemaforo[];
 }> {
   let gasto = 0;
@@ -38,11 +54,25 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
   let tieneAgendasMeta = false;
   const sinTrm = new Map<string, number>();
   const tasas = new Map<string, number | null>();
+  const campanas = new Map<string, {
+    nombre: string;
+    gasto: number;
+    agendasMeta: number;
+    tieneAgendasMeta: boolean;
+  }>();
 
   for (const fila of filas) {
     const monto = Number(fila.monto);
+    const claveCampana = fila.campanaId ?? "sin-campana";
+    const campana = campanas.get(claveCampana) ?? {
+      nombre: fila.campanaNombre ?? "Sin campaña",
+      gasto: 0,
+      agendasMeta: 0,
+      tieneAgendasMeta: false,
+    };
     if (fila.moneda === "COP") {
       gasto += monto;
+      campana.gasto += monto;
     } else {
       if (!tasas.has(fila.dia)) {
         tasas.set(fila.dia, (await tasaDelDia(db, fila.dia))?.pesosPorDolar ?? null);
@@ -52,12 +82,16 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
         sinTrm.set(fila.dia, (sinTrm.get(fila.dia) ?? 0) + 1);
       } else {
         gasto += monto * tasa;
+        campana.gasto += monto * tasa;
       }
     }
     if (fila.agendasMeta !== null) {
       agendasMeta += fila.agendasMeta;
       tieneAgendasMeta = true;
+      campana.agendasMeta += fila.agendasMeta;
+      campana.tieneAgendasMeta = true;
     }
+    campanas.set(claveCampana, campana);
   }
 
   const notas: NotaSemaforo[] = [{ tipo: "info", texto: NOTA_HQ4 }];
@@ -67,7 +101,17 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
       texto: `Sin TRM del ${dia}: ${cantidad} filas en USD no se sumaron.`,
     });
   }
-  return { gasto, agendasMeta: tieneAgendasMeta ? agendasMeta : null, notas };
+  return {
+    gasto,
+    agendasMeta: tieneAgendasMeta ? agendasMeta : null,
+    campanas: [...campanas].map(([id, campana]) => ({
+      id,
+      nombre: campana.nombre,
+      gasto: campana.gasto,
+      agendasMeta: campana.tieneAgendasMeta ? campana.agendasMeta : null,
+    })),
+    notas,
+  };
 }
 
 async function contarAgendas(
@@ -104,6 +148,7 @@ function completar(
   agendasMetaLeidas: number | null,
   notas: NotaSemaforo[],
   mideAgendasMeta: boolean,
+  campanasLeidas: Awaited<ReturnType<typeof sumarEnCop>>["campanas"],
 ): CostoPorAgenda {
   const agendasMeta = agendasMetaLeidas === null && mideAgendasMeta ? 0 : agendasMetaLeidas;
   return {
@@ -111,6 +156,18 @@ function completar(
     agendasMeta,
     agendasCrm,
     costo: agendasMeta !== null && agendasMeta > 0 ? gasto / agendasMeta : null,
+    campanas: campanasLeidas
+      .map((campana) => {
+        const agendas = campana.agendasMeta === null && mideAgendasMeta ? 0 : campana.agendasMeta;
+        return {
+          nombre: campana.nombre,
+          gasto: campana.gasto,
+          agendasMeta: agendas,
+          costo: agendas !== null && agendas > 0 ? campana.gasto / agendas : null,
+        };
+      })
+      .filter((campana) => campana.gasto > 0)
+      .sort((a, b) => b.gasto - a.gasto),
     notas,
   };
 }
@@ -124,11 +181,14 @@ async function costoDesdeFotos(
     monto: fotosPauta.gasto,
     moneda: fotosPauta.moneda,
     agendasMeta: fotosPauta.agendasMeta,
+    campanaId: fotosPauta.campanaId,
+    campanaNombre: pautaObjetos.nombre,
   }).from(fotosPauta).where(and(
     eq(fotosPauta.programId, args.programId),
     eq(fotosPauta.fecha, args.dia),
     lte(fotosPauta.tomadaEn, args.hasta),
-  )).orderBy(asc(fotosPauta.campanaId), desc(fotosPauta.tomadaEn));
+  )).innerJoin(pautaObjetos, eq(fotosPauta.campanaId, pautaObjetos.id))
+    .orderBy(asc(fotosPauta.campanaId), desc(fotosPauta.tomadaEn));
   const [suma, agendasCrm, mide] = await Promise.all([
     sumarEnCop(db, fotos),
     contarAgendas(db, {
@@ -139,7 +199,7 @@ async function costoDesdeFotos(
     }),
     programaMideAgendasMeta(db, args.programId),
   ]);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas);
 }
 
 export async function costoPorAgenda(
@@ -169,6 +229,7 @@ export async function costoPorAgendaDeVentana(
     monto: gastoPauta.monto,
     moneda: gastoPauta.moneda,
     agendasMeta: gastoPauta.agendasMeta,
+    pautaObjetoId: gastoPauta.pautaObjetoId,
   }).from(gastoPauta).where(and(
     eq(gastoPauta.programId, args.programId),
     gte(gastoPauta.fecha, args.desde),
@@ -178,8 +239,31 @@ export async function costoPorAgendaDeVentana(
       and(eq(gastoPauta.origen, "manual"), eq(gastoPauta.area, "paid")),
     ),
   ));
+  const objetos = await db.select({
+    id: pautaObjetos.id,
+    idMeta: pautaObjetos.idMeta,
+    nivel: pautaObjetos.nivel,
+    padreIdMeta: pautaObjetos.padreIdMeta,
+    nombre: pautaObjetos.nombre,
+  }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId));
+  const objetosPorId = new Map(objetos.map((objeto) => [objeto.id, objeto]));
+  const objetosPorIdMeta = new Map(objetos.map((objeto) => [objeto.idMeta, objeto]));
+  const filasConCampana: FilaDeGasto[] = filas.map((fila) => {
+    const anuncio = fila.pautaObjetoId ? objetosPorId.get(fila.pautaObjetoId) : undefined;
+    const conjunto = anuncio?.nivel === "anuncio" && anuncio.padreIdMeta
+      ? objetosPorIdMeta.get(anuncio.padreIdMeta)
+      : undefined;
+    const campana = conjunto?.nivel === "conjunto" && conjunto.padreIdMeta
+      ? objetosPorIdMeta.get(conjunto.padreIdMeta)
+      : undefined;
+    return {
+      ...fila,
+      campanaId: campana?.nivel === "campana" ? campana.id : null,
+      campanaNombre: campana?.nivel === "campana" ? campana.nombre : null,
+    };
+  });
   const [suma, agendasCrm, mide] = await Promise.all([
-    sumarEnCop(db, filas),
+    sumarEnCop(db, filasConCampana),
     contarAgendas(db, {
       programId: args.programId,
       desde: args.desde,
@@ -187,7 +271,7 @@ export async function costoPorAgendaDeVentana(
     }),
     programaMideAgendasMeta(db, args.programId),
   ]);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas);
 }
 
 /**

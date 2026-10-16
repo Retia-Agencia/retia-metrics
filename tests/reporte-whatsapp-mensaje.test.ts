@@ -28,7 +28,11 @@ const METRICA: MetricaSemaforo = {
     { hora: "11:00", gasto: 120000, agendasMeta: 1, agendasCrm: 2, costo: 120000 },
   ],
   diasSeguidosEnRojo: 3,
-  campanas: [],
+  campanas: [
+    { nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000 },
+    { nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null },
+    { nombre: "Prospección amplia", gasto: 109860, agendasMeta: null, costo: null },
+  ],
   notas: [{ tipo: "problema", texto: "Creativo agotado" }],
 };
 
@@ -53,11 +57,15 @@ describe("mensaje del reporte por WhatsApp", () => {
       "🔴 Costo por agenda: $304.930 COP · 53% más caro que la meta",
       "Meta $200.000 COP · aceptable $250.000 COP",
       "Gasto $609.860 COP · agendas Meta 2 · CRM 4",
-      "Ayer a esta hora: $100.000 COP · agendas Meta 3 · CRM 2",
+      "• Ventas abiertas: $300.000 COP · 2 ag · $150.000 COP c/u",
+      "• Retargeting: $200.000 COP · 0 ag · sin agendas",
+      "• Prospección amplia: $109.860 COP · — ag · sin dato",
+      "Ayer a esta hora: costo $100.000 COP · gasto $300.000 COP · agendas Meta 3 · CRM 2",
       "🔴 3 días seguidos en rojo",
       "⚠️ Creativo agotado",
       "",
       "CRM: https://crm.test",
+      "ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.",
       "ℹ️ Costo = gasto ÷ agendas Meta (pixel). CRM = citas con UTM de pauta.",
     ].join("\n"));
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
@@ -73,6 +81,7 @@ describe("mensaje del reporte por WhatsApp", () => {
 
     expect(mensaje).toMatch(/^🌙 Cierre del viernes 16-oct/);
     expect(mensaje).toMatch(/Trayectoria: 09:00 \$0 COP · 0 ag Meta \| 11:00 \$120\.000 COP · 1 ag Meta/);
+    expect(mensaje).not.toContain("Las agendas de hoy pueden seguir subiendo");
   });
 
   it("dice cuánto más barato que la meta, o igual", () => {

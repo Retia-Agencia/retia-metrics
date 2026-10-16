@@ -50,9 +50,24 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   lineas.push(
     `Gasto ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
   );
+  for (const campana of metrica.campanas) {
+    const costoCampana = campana.agendasMeta === null
+      ? "sin dato"
+      : campana.agendasMeta === 0
+        ? "sin agendas"
+        : `${dinero(campana.costo)} c/u`;
+    lineas.push(
+      `• ${campana.nombre}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
+    );
+  }
   const etiqueta = tipo === "cierre" ? "Día anterior" : "Ayer a esta hora";
+  const costoComparacion = metrica.comparacion?.costo === null
+    && metrica.comparacion.agendasMeta === 0
+    && metrica.comparacion.gasto > 0
+    ? "sin agendas"
+    : dinero(metrica.comparacion?.costo ?? null);
   lineas.push(metrica.comparacion
-    ? `${etiqueta}: ${dinero(metrica.comparacion.costo)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
+    ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
     : `${etiqueta}: sin foto`);
   if (metrica.diasSeguidosEnRojo > 0) {
     const dias = Number(metrica.diasSeguidosEnRojo);
@@ -153,6 +168,9 @@ export function armarMensajeDeLaHora(
   for (const nota of notasInformativas) lineas.push(`ℹ️ ${nota}`);
   if (!tieneProblemas) lineas.push("✅ Sin errores en esta corrida");
   lineas.push(`CRM: ${origen}`);
+  if (bloques.some((bloque) => bloque.tipo === "dia")) {
+    lineas.push("ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.");
+  }
   lineas.push("ℹ️ Costo = gasto ÷ agendas Meta (pixel). CRM = citas con UTM de pauta.");
   return lineas.join("\n");
 }

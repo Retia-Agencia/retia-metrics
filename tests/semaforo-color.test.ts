@@ -10,6 +10,7 @@ function datos(gasto: number, agendasMeta: number | null, agendasCrm = 0): Costo
     agendasMeta,
     agendasCrm,
     costo: agendasMeta !== null && agendasMeta > 0 ? gasto / agendasMeta : null,
+    campanas: [],
     notas: [],
   };
 }
