@@ -367,10 +367,17 @@ export async function ingerirEntradas(
           const delLote = enviosDelLote.get(lead.id) ?? [];
           const origen = envioMasReciente(delLote);
           const envio = delLote.find((e) => e.id === origen);
+          // Sin envio escrito en este lote (un parcial viejo que llego tarde y no piso al
+          // nuevo) no hay hecho nuevo: inventarle "completo sin calidad" subia el deal de
+          // Potencial a Registrado (16-oct).
+          if (!envio) {
+            resultado.reglaDeDeals.push({ leadId: lead.id, accion: { tipo: "nada", motivo: "ningun envio nuevo en el lote" } });
+            continue;
+          }
           const hechos = hechosDeEntradaDelEnvio({
-            esParcial: envio?.esParcial ?? false,
-            calificacion: envio?.calificacion ?? null,
-            leadQuality: envio?.leadQuality ?? null,
+            esParcial: envio.esParcial,
+            calificacion: envio.calificacion,
+            leadQuality: envio.leadQuality,
           });
           const r = await aplicarReglaDeDeal(tx, { ...lead, hechos }, cita, origen);
           resultado.reglaDeDeals.push({

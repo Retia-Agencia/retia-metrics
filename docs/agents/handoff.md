@@ -36,7 +36,9 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   posterior (los "25" medidos antes eran todos los parciales High; el resto ya avanzó o está anulado). El motor no
   tiene flecha Calificado → Potencial y Mani no quiere que un closer pueda tomarla: se agregó una flecha solo del
   sistema SIN commitear, el script desechable movió los 7 con `moverEtapa` (actor sistema por el usuario del script)
-  y nota del sistema, y la flecha se quitó. Tests locales no corridos (swap de 11 GB): los valida el CI. El
+  y nota del sistema, y la flecha se quitó. 🩸 El CI destapó un bug que la regla vieja escondía: un parcial viejo que
+  llega tarde no escribe envío, y la regla corría igual con hechos inventados (completo sin calidad) y subía el deal
+  de Potencial a Registrado; ahora, sin envío del lote, la regla no decide (`lib/ingesta/ingerir.ts`). El
   `operations.md` §2.2 paso 13 de SBJ sigue abierto: sin corregir las `scoreTagRules`, todo completo cae en
   Calificado y no hay Registrado.
 

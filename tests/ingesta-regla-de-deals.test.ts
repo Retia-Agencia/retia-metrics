@@ -848,6 +848,8 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
       expect(Object.keys(envios[0].respuestas as object)).toEqual(expect.arrayContaining(["Motivo", "Urgencia"]));
       expect(r.reglaDeDeals.every((x) => x.accion.tipo === "nada")).toBe(true);
       expect(await db.select().from(deals)).toHaveLength(1);
+      // 🩸 16-oct: el parcial viejo no escribe envío, así que no mueve el deal (antes subía a Registrado).
+      expect((await db.select().from(deals))[0].etapa).toBe("potencial");
     });
 
     it.each([
@@ -871,17 +873,17 @@ describe("la etapa de entrada la decide el CRM con agenda y calidad, no el formu
   });
 
   it("la regla decide con los hechos del ENVIO que la dispara, no con el resumen del lead", async () => {
-    // Una completa vieja Low abre en Registrado y se pierde; después llega un parcial High.
-    // El resumen del lead sigue siendo la completa (Low), pero el parcial abre en Calificado.
-    await ingerir([entrada({ token: "viejo", correo: "ana@correo.co", leadQuality: "Low", fecha: "2026-09-01T10:00:00Z" })]);
+    // Una completa vieja High abre en Calificado y se pierde; después llega un parcial.
+    // El resumen del lead sigue siendo la completa (High), pero el parcial abre en Potencial.
+    await ingerir([entrada({ token: "viejo", correo: "ana@correo.co", leadQuality: "High", fecha: "2026-09-01T10:00:00Z" })]);
     const [viejo] = await db.select().from(deals);
-    expect(viejo.etapa).toBe("registrado");
+    expect(viejo.etapa).toBe("calificado");
     await db.update(deals).set({ etapa: "cierre_perdido" }).where(eq(deals.id, viejo.id));
 
-    await ingerir([entrada({ token: "nuevo", correo: "ana@correo.co", esParcial: true, fecha: null, leadQuality: "High" })]);
-    expect((await leadDeCorreo("ana@correo.co")).leadQuality).toBe("Low");
+    await ingerir([entrada({ token: "nuevo", correo: "ana@correo.co", esParcial: true, fecha: null })]);
+    expect((await leadDeCorreo("ana@correo.co")).leadQuality).toBe("High");
     const nuevos = (await db.select().from(deals)).filter((d) => d.id !== viejo.id);
-    expect(nuevos.map((d) => d.etapa)).toEqual(["calificado"]);
+    expect(nuevos.map((d) => d.etapa)).toEqual(["potencial"]);
   });
 });
 
