@@ -215,7 +215,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
 | [x] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | done · 15-oct · Codex + central · CI verde `93f6966` · falta que Mani lo valide llenándolo · sin migración (Mani, 15-oct) |
 | [x] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | done · 15-oct · Codex + central · `237ff93` · 0085 y 0086 (RLS) aplicadas en producción (ok de Mani) · CI verde `84ab927` · ADR 0089 enmendado 15-oct |
-| [ ] | 276 | [La salud de las cuentas de Meta](./276-salud-de-las-cuentas-de-meta.md) | 119 | todo · 16-oct · señal medida (`account_status`, tope y saldo); falta decidir si va a Juanito, al Hub o a los dos, y por qué el token lista 4 cuentas y no 7 |
+| [x] | 276 | [La salud de las cuentas de Meta](./276-salud-de-las-cuentas-de-meta.md) | 119 | done · 16-oct · Juanito avisa el estado de pago de cada cuenta (por id) y el tope alcanzado; sin Hub · e4afa69, CI verde |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 

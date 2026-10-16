@@ -3,7 +3,7 @@ id: 276
 etapa: pauta
 serves: "Un error de pago o un bloqueo de una cuenta publicitaria de Meta se ve el mismo día, no cuando la pauta ya se cayó (Mani, 16-oct)"
 depends: [119]
-status: todo
+status: done
 ---
 
 # 276 — La salud de las cuentas de Meta
@@ -51,3 +51,15 @@ su estado en español, y una cuenta que el token no ve se avisa en vez de contar
 ## Fuera de alcance
 
 Cambiar medios de pago o tocar campañas (el token es `ads_read`).
+
+## Cerrado (16-oct, e4afa69, CI verde)
+
+- **Destino: solo Juanito.** El Hub queda fuera (Mani, 16-oct). Cada envío termina con `💳 Cuentas de Meta: todas al día (n)`
+  o lista cada cuenta con problema, y un problema quita el "Sin errores".
+- **Las 4 contra 7 se resolvió leyendo cada cuenta por su id** (`act_<id>`), no listando `/me/adaccounts`: las 6 cuentas
+  activas del CRM responden. Una cuenta que no se lee sale como "no se pudo leer en Meta", nunca como sana.
+- **Regla** (`diagnosticoDeCuenta`, `lib/pauta/salud-cuentas.ts`): `account_status` 1 = al día; si no, el estado en español
+  más la razón. Con estado 1, `amount_spent >= spend_cap` (tope > 0) es "llegó al tope de gasto": un hecho de Meta, sin
+  umbral. Un aviso anticipado del tope (porcentaje) necesitaría un umbral por programa (C-1) y no se construyó.
+- La vista previa de Programa › General no llama a Meta: ahí no sale la línea 💳.
+
