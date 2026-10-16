@@ -37,6 +37,9 @@ solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario q
 - **Descalificantes** (−100 cada uno en el score de Dapta): ingreso en un rango marcado como descalificante, urgencia
   "No es prioridad", inversión "No, en este momento no cuento con los recursos".
 - **`lead_quality`:** `High` sin descalificantes (ve el Calendly), `Low` con alguno.
+- **Excepción nombrada (Mani, 16-oct): AI Second Brain Jurídico (Form30x)** descalifica además "No lo tengo permitido"
+  (instalar o usar programas de IA), porque sin eso no puede implementar el producto. Su ingreso descalifica por debajo
+  de USD 1.000 (`docs/operations.md` §2.2).
 - **`lead_value`:** 30-50 puntos → MUY ALTO VALOR (con descalificantes, ALTO VALOR) · 15-29 → ALTO VALOR (VALOR
   MEDIO) · 0-14 → VALOR MEDIO (BAJO VALOR). Mide poder económico, y baja un nivel con un descalificante.
 - **Score de Dapta** = puntos de valor − 100 × descalificantes. En Typeform son las variables `hvm_points`,

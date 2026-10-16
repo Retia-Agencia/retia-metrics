@@ -39,8 +39,10 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   y nota del sistema, y la flecha se quitó. 🩸 El CI destapó un bug que la regla vieja escondía: un parcial viejo que
   llega tarde no escribe envío, y la regla corría igual con hechos inventados (completo sin calidad) y subía el deal
   de Potencial a Registrado; ahora, sin envío del lote, la regla no decide (`lib/ingesta/ingerir.ts`). El
-  `operations.md` §2.2 paso 13 de SBJ sigue abierto: sin corregir las `scoreTagRules`, todo completo cae en
-  Calificado y no hay Registrado.
+  form de SBJ también se corrigió por la API con el ok de Mani: "Menos de $1.000" descalifica (−100) y cualquier
+  descalificante va a la pantalla de gracias sin Calendly, como en los demás programas (antes solo inversión).
+  `simulate` de 324 combinaciones, 0 descuadres; detalle y cómo revertir en `operations.md` §2.2. El paso 13 (un envío
+  real por camino) queda listo para hacerse.
 
 - **2026-10-16 (madrugada): 271 fase B y 272 hechos; SBJ recibe completos por webhook y parciales por la API.**
   Codex implementó, la sesión revisó. 271 B (`96ebaa2`): firma solo hex, `lib/ingesta/adaptador-form30x.ts`, y

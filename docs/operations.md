@@ -157,6 +157,16 @@ la etiqueta que lee el CRM. Agregar `adset_id` a `hiddenFields` es aditivo (un c
 URL) y va en la misma escritura. Antes de escribir: `validate` y `simulate`, y comparar el JSON completo antes/después
 (solo deben cambiar esos campos).
 
+> **Enmendado el 16-oct (Mani): el ingreso bajo descalifica y todo descalificado va sin Calendly, como en los demás
+> programas.** "Menos de $1.000 USD" pasó de 0 a −100, la regla `oji31ox` de `logic` manda a la pantalla de gracias
+> con cualquier descalificante (ingreso bajo, "No es prioridad", "No lo tengo permitido" o "No cuento con los
+> recursos"; antes solo con el último) y se agregaron tres reglas de valor para 4 descalificantes (`stv-4-*`,
+> −350 a −400). "No lo tengo permitido" se queda: es una excepción del estándar propia del producto. PATCH con
+> `If-Match` y `validate` sin issues; solo cambiaron esos 7 caminos del JSON. `simulate` sobre las 324 combinaciones:
+> 0 descuadres en score, calidad, valor y Calendly; ven el Calendly 72 (antes 216) y salen `Low` 252 (antes 228).
+> Para revertir: el `score` de esa opción a 0, quitar las tres condiciones nuevas de `oji31ox` y las tres `stv-4-*`.
+> La tabla de abajo es el estado del 15-oct.
+
 **El puntaje que va: lo mínimo para que salgan calidad y valor** (Mani, 15-oct; reemplaza lo decidido horas antes
 como S3). El form conserva sus descalificantes; solo se le dan puntos a lo que hoy vale 0 para que exista el valor:
 
@@ -242,11 +252,10 @@ de Form30x, y no se copia: SBJ conserva la suya.
 11. Dar de alta a los closers con membresía en el programa — Mani.
 12. Marcar la fuente principal con su URL y activar el programa — Mani.
 13. Un envío real por camino (descalificado, sin agenda, con agenda, con UTM) revisado en la base: etapa, calidad,
-    valor, UTMs y llamada colgada — la sesión. 🔴 **Antes, revisar las `scoreTagRules`:** todas las respuestas del
-    form vienen `High` (el parcial con solo el nombre, score 0; la prueba de Hugo, score 0; `ManuelTEST2`, score 10).
-    Desde el 16-oct un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069), así que SBJ
-    sí tiene Potencial; sin corregir los tags, todo completo seguiría en Calificado y no habría Registrado. Decide
-    Mani: si `High` es el defecto del form, la regla de tags en Form30x es la que se corrige.
+    valor, UTMs y llamada colgada — la sesión. ✅ Desbloqueado el 16-oct: las `scoreTagRules` ya eran las del
+    estándar (score 0 sin descalificantes es `High`); lo que faltaba era que el ingreso bajo descalificara y que un
+    descalificado no viera el Calendly (enmienda de arriba). Con eso un completo descalificado es `Low` y cae en
+    Registrado, y un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069).
 14. Avisar al equipo en "Core Estado X" — Mani.
 
 ## 3. Variables de entorno
