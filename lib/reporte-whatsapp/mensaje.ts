@@ -18,6 +18,43 @@ const MOTIVO = {
   sin_agendas_meta: "Meta no reporta agendas de este programa",
 } as const;
 
+const LARGO_MAXIMO_CAMPANA = 40;
+
+function piezasDelNombre(nombre: string): string[] {
+  return nombre.split(/ \| |_/).map((pieza) => pieza.trim()).filter(Boolean);
+}
+
+function clavePieza(pieza: string): string {
+  return pieza.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
+function cortar(texto: string): string {
+  return texto.length > LARGO_MAXIMO_CAMPANA
+    ? `${texto.slice(0, LARGO_MAXIMO_CAMPANA - 1).trimEnd()}…`
+    : texto;
+}
+
+/**
+ * Acorta los nombres de campaña de un bloque sin catálogo: quita las piezas (separadas por " | " o "_")
+ * que aparecen en más de la mitad de las campañas, porque no distinguen una de otra. Si un nombre
+ * queda vacío o igual a otro, vuelve al nombre completo; todo se corta a 40 caracteres.
+ */
+export function nombresCortosDeCampanas(nombres: string[]): string[] {
+  const piezas = nombres.map(piezasDelNombre);
+  const apariciones = new Map<string, number>();
+  for (const lista of piezas) {
+    for (const clave of new Set(lista.map(clavePieza))) {
+      apariciones.set(clave, (apariciones.get(clave) ?? 0) + 1);
+    }
+  }
+  const cortos = piezas.map((lista) => cortar(
+    lista.filter((pieza) => (apariciones.get(clavePieza(pieza)) ?? 0) * 2 <= nombres.length).join(" · "),
+  ));
+  return cortos.map((corto, indice) =>
+    corto === "" || cortos.indexOf(corto) !== cortos.lastIndexOf(corto) ? cortar(nombres[indice]) : corto
+  );
+}
+
 type Bloque = RespuestaSemaforo["envios"][number]["bloques"][number];
 type Sincronizacion = RespuestaSemaforo["sincronizacion"];
 type Metrica = Bloque["metricas"][number];
@@ -50,14 +87,17 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   lineas.push(
     `Gasto ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
   );
-  for (const campana of metrica.campanas) {
+  // Con una sola campaña el desglose repetiría el total.
+  const campanas = metrica.campanas.length > 1 ? metrica.campanas : [];
+  const nombresCortos = nombresCortosDeCampanas(campanas.map((campana) => campana.nombre));
+  for (const [indice, campana] of campanas.entries()) {
     const costoCampana = campana.agendasMeta === null
       ? "sin dato"
       : campana.agendasMeta === 0
         ? "sin agendas"
         : `${dinero(campana.costo)} c/u`;
     lineas.push(
-      `• ${campana.nombre}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
+      `• ${nombresCortos[indice]}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
     );
   }
   const etiqueta = tipo === "cierre" ? "Día anterior" : "Ayer a esta hora";

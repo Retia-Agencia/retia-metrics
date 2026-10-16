@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { armarMensajeDeLaHora } from "@/lib/reporte-whatsapp/mensaje";
+import { armarMensajeDeLaHora, nombresCortosDeCampanas } from "@/lib/reporte-whatsapp/mensaje";
 import { NOTA_SIN_ERRORES, type MetricaSemaforo } from "@/lib/semaforo/semaforo";
 
 const ORIGEN = "https://crm.test";
@@ -193,5 +193,51 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).toContain("*Alpha*\n⚠️ No se pudo calcular el semáforo de este programa.");
     expect(mensaje).not.toContain("Costo por agenda");
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
+  });
+});
+
+describe("nombres cortos de campaña", () => {
+  it("quita las piezas que comparten más de la mitad de las campañas", () => {
+    expect(nombresCortosDeCampanas([
+      "AS | CBO | Invite | Metodo Comunicarte | Oct 2026 | Collab",
+      "Metodo_Comunicarte_Rosario_Agendamiento_Llamada",
+      "AS | CBO | Invite | Metodo Comunicarte | Oct 2026",
+      "AS | ABO | Metodo Comunicarte | Direct TypeForm | Sept 2026",
+    ])).toEqual([
+      "CBO · Invite · Oct 2026 · Collab",
+      "Metodo · Comunicarte · Rosario · Agenda…",
+      "CBO · Invite · Oct 2026",
+      "ABO · Direct TypeForm · Sept 2026",
+    ]);
+    expect(nombresCortosDeCampanas([
+      "AS | CBO | Invite | Power Talk | Oct 2026 | Pub Orig - Copia",
+      "AS | CBO | Invite | Power Talk | Oct 2026 | Pub Orig",
+    ])).toEqual(["Pub Orig - Copia", "Pub Orig"]);
+  });
+
+  it("compara sin mayúsculas ni tildes", () => {
+    expect(nombresCortosDeCampanas(["Campaña | Uno", "campana | Dos"])).toEqual(["Uno", "Dos"]);
+  });
+
+  it("vuelve al nombre completo si queda vacío o repetido, siempre cortado a 40", () => {
+    expect(nombresCortosDeCampanas([
+      "AS | Mismo",
+      "AS | Mismo",
+      "Una campaña con un nombre larguísimo sin separadores",
+    ])).toEqual(["AS | Mismo", "AS | Mismo", "Una campaña con un nombre larguísimo si…"]);
+  });
+
+  it("con una sola campaña no hay desglose", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      programa: "Tactical",
+      tipo: "dia",
+      enlaceHub: "https://crm.test/p/tactical/hub?seccion=pauta",
+      metricas: [{
+        ...METRICA,
+        campanas: [{ nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930 }],
+      }],
+      error: null,
+    }], "11:00", null, ORIGEN);
+    expect(mensaje).not.toContain("•");
   });
 });
