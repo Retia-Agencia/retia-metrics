@@ -1,5 +1,5 @@
 import { and, eq, isNotNull } from "drizzle-orm";
-import { calls, deals, leads, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -22,6 +22,9 @@ export const ORDENES_LLAMADAS = [
 
 export type OrdenLlamadas = (typeof ORDENES_LLAMADAS)[number]["value"];
 
+export const FECHAS_LLAMADAS = ["llamada", "agenda"] as const;
+export type FechaLlamadas = (typeof FECHAS_LLAMADAS)[number];
+
 export const ORDEN_LLAMADAS_POR_DEFECTO: OrdenLlamadas = "llamada:desc";
 
 export const RESULTADOS = [
@@ -40,6 +43,8 @@ export type FiltroLlamadas = {
   resultado?: (typeof calls.$inferSelect)["resultado"] | null;
   desde?: string | null;
   hasta?: string | null;
+  fecha?: FechaLlamadas;
+  cohortId?: string | null;
   /**
    * Los leads que casan con la búsqueda (`leadsQueCasan`): si es un `Set`, solo pasan las
    * llamadas cuyo deal tiene un lead ahí (las sin deal quedan fuera al buscar); `null` =
@@ -69,7 +74,7 @@ export async function filtroDeLlamadasDesdeUrl(
   programId: string,
   alcance: AlcanceDeals,
   parametros: ParametrosDeLlamadas,
-): Promise<FiltroLlamadas & { orden: OrdenLlamadas }> {
+): Promise<FiltroLlamadas & { orden: OrdenLlamadas; fecha: FechaLlamadas }> {
   const resultado = valorDeParametro(parametros, "resultado");
   const ordenValues = ORDENES_LLAMADAS.map((opcion) => opcion.value) as [
     OrdenLlamadas,
@@ -79,6 +84,10 @@ export async function filtroDeLlamadasDesdeUrl(
     .enum(ordenValues)
     .catch(ORDEN_LLAMADAS_POR_DEFECTO)
     .parse(valorDeParametro(parametros, "orden"));
+  const fecha = z
+    .enum(FECHAS_LLAMADAS)
+    .catch("llamada")
+    .parse(valorDeParametro(parametros, "fecha"));
   const leadsCasan = await leadsQueCasan(db, programId, valorDeParametro(parametros, "q") ?? "");
 
   return {
@@ -88,6 +97,8 @@ export async function filtroDeLlamadasDesdeUrl(
       : null,
     desde: valorDeParametro(parametros, "desde") || null,
     hasta: valorDeParametro(parametros, "hasta") || null,
+    fecha,
+    cohortId: valorDeParametro(parametros, "cohorte") || null,
     leadsCasan,
     orden,
   };
@@ -103,6 +114,8 @@ export interface FilaLlamadaPrograma {
   pendiente: PendienteDeal | null;
   fechaAgenda: Date | null;
   fechaLlamada: Date | null;
+  createdAt: Date;
+  cohorteCodigo: string | null;
   linkCalendly: string | null;
   linkGrain: string | null;
   ownerUserId: string | null;
@@ -144,10 +157,13 @@ export async function llamadasDelPrograma(
       closerNombre: users.nombre,
       closerEmail: users.email,
       notas: calls.notas,
+      cohortId: deals.cohortId,
+      cohorteCodigo: cohorts.codigo,
     })
     .from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), vigente(deals)))
     .leftJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(cohorts, eq(cohorts.id, deals.cohortId))
     .leftJoin(users, eq(users.id, calls.closerUserId))
     .where(and(eq(calls.programId, programId), isNotNull(calls.dealId), vigente(calls)));
 
@@ -157,8 +173,11 @@ export async function llamadasDelPrograma(
     .filter((f) => llamadaVisiblePara(alcance, f))
     .filter((f) => !filtros.closerUserId || f.closerUserId === filtros.closerUserId)
     .filter((f) => !filtros.resultado || f.resultado === filtros.resultado)
+    .filter((f) => !filtros.cohortId || f.cohortId === filtros.cohortId)
     .filter((f) => {
-      const fecha = f.fechaAgenda ?? f.fechaLlamada;
+      // Para traslados desde Sheets, `createdAt` es el traslado y no la agenda original.
+      // Es una limitación aceptada del filtro "Agendada" (ticket 277).
+      const fecha = filtros.fecha === "agenda" ? f.createdAt : fechaDeLaLlamada(f);
       if (!fecha) return !filtros.desde && !filtros.hasta;
       const dia = diaDeCalendario(fecha);
       return (!filtros.desde || dia >= filtros.desde) && (!filtros.hasta || dia <= filtros.hasta);
@@ -177,6 +196,8 @@ export async function llamadasDelPrograma(
       pendiente: f.pendiente,
       fechaAgenda: f.fechaAgenda,
       fechaLlamada: f.fechaLlamada,
+      createdAt: f.createdAt,
+      cohorteCodigo: f.cohorteCodigo,
       linkCalendly: f.linkCalendly,
       linkGrain: f.linkGrain,
       ownerUserId: f.ownerUserId,
@@ -197,18 +218,25 @@ interface FilaOrdenable {
   emailSuelta: string | null;
 }
 
+/** El instante operativo de la llamada: el ocurrido y, mientras no ocurra, el agendado. */
+export function fechaDeLaLlamada(
+  fila: Pick<FilaOrdenable, "fechaLlamada" | "fechaAgenda">,
+): Date | null {
+  return fila.fechaLlamada ?? fila.fechaAgenda;
+}
+
 /**
- * El orden de la lista de Calls. El de por defecto (`llamada:desc`) es exactamente el de
- * siempre: por la fecha de la llamada (o la de agenda), de la más reciente a la más antigua.
+ * El orden de la lista de Calls. El de por defecto (`llamada:desc`) usa la fecha ocurrida
+ * y, mientras no haya ocurrido, la fecha de agenda.
  */
 function compararLlamadas(a: FilaOrdenable, b: FilaOrdenable, orden: OrdenLlamadas): number {
-  const fechaLlamada = (f: FilaOrdenable) => (f.fechaAgenda ?? f.fechaLlamada)?.getTime() ?? 0;
+  const instanteLlamada = (f: FilaOrdenable) => fechaDeLaLlamada(f)?.getTime() ?? 0;
   const nombre = (f: FilaOrdenable) => (f.leadNombre ?? f.leadEmail ?? f.emailSuelta ?? "").toLocaleLowerCase("es");
   switch (orden) {
     case "llamada:desc":
-      return fechaLlamada(b) - fechaLlamada(a);
+      return instanteLlamada(b) - instanteLlamada(a);
     case "llamada:asc":
-      return fechaLlamada(a) - fechaLlamada(b);
+      return instanteLlamada(a) - instanteLlamada(b);
     case "creacion:desc":
       return b.createdAt.getTime() - a.createdAt.getTime();
     case "creacion:asc":

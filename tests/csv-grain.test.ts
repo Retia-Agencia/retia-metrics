@@ -5,11 +5,13 @@ import { tieneGrain } from "@/lib/queries/sin-grain";
 function fila(cambios: Partial<FilaCsvGrain> = {}): FilaCsvGrain {
   return {
     fechaLlamada: "16 oct 2026, 09:30",
+    fechaAgendada: "10 oct 2026, 08:00",
     lead: "Ana, \"Anita\"",
     correo: "ana@example.test",
     closer: "Maru",
     resultado: "Show",
     etapaDeal: "Agendado",
+    cohorte: "C1",
     linkGrain: "https://grain.com/grabacion",
     linkCrm: "https://crm.example/p/programa/deals/1",
     ...cambios,
@@ -22,7 +24,7 @@ describe("csvDeGrain", () => {
 
     expect(csv.startsWith("\uFEFF")).toBe(true);
     expect(csv).toContain(
-      '"Fecha llamada","Lead","Correo","Closer","Resultado","Etapa del deal","Link Grain","Link CRM"\r\n',
+      '"Fecha llamada","Fecha agendada","Lead","Correo","Closer","Resultado","Etapa del deal","Cohorte","Link Grain","Link CRM"\r\n',
     );
     expect(csv).toContain('"Ana, ""Anita"""');
     expect(csv.replaceAll("\r\n", "")).not.toContain("\n");
@@ -39,17 +41,19 @@ describe("csvDeGrain", () => {
     const csv = csvDeGrain([
       fila({
         fechaLlamada: null,
+        fechaAgendada: null,
         lead: null,
         correo: null,
         closer: null,
         resultado: null,
         etapaDeal: null,
+        cohorte: null,
         linkGrain: null,
         linkCrm: null,
       }),
     ]);
 
-    expect(csv.split("\r\n")[1]).toBe('"","","","","","","",""');
+    expect(csv.split("\r\n")[1]).toBe('"","","","","","","","","",""');
   });
 });
 

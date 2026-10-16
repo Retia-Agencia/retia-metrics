@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { csvDeGrain } from "@/lib/llamadas/csv-grain";
-import { filtroDeLlamadasDesdeUrl, llamadasDelPrograma, RESULTADOS } from "@/lib/queries/llamadas";
+import { fechaDeLaLlamada, filtroDeLlamadasDesdeUrl, llamadasDelPrograma, RESULTADOS } from "@/lib/queries/llamadas";
 import { tieneGrain } from "@/lib/queries/sin-grain";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 
@@ -35,21 +35,23 @@ export async function GET(
     const origen = url.origin;
     const etiquetasResultado = new Map<string, string>(RESULTADOS);
     const csv = csvDeGrain(
-      llamadas.map((fila) => ({
-        fechaLlamada:
-          fila.fechaLlamada || fila.fechaAgenda
-            ? fechaHoraEnBogota(fila.fechaLlamada ?? fila.fechaAgenda!)
+      llamadas.map((fila) => {
+        const instanteLlamada = fechaDeLaLlamada(fila);
+        return {
+          fechaLlamada: instanteLlamada ? fechaHoraEnBogota(instanteLlamada) : null,
+          fechaAgendada: fechaHoraEnBogota(fila.createdAt),
+          lead: fila.leadNombre,
+          correo: fila.leadEmail,
+          closer: fila.closerNombre ?? fila.closerEmail,
+          resultado: etiquetasResultado.get(fila.resultado) ?? fila.resultado,
+          etapaDeal: fila.etapa ? nombreDeEtapa(fila.etapa) : null,
+          cohorte: fila.cohorteCodigo,
+          linkGrain: fila.linkGrain,
+          linkCrm: fila.dealId
+            ? new URL(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen).toString()
             : null,
-        lead: fila.leadNombre,
-        correo: fila.leadEmail,
-        closer: fila.closerNombre ?? fila.closerEmail,
-        resultado: etiquetasResultado.get(fila.resultado) ?? fila.resultado,
-        etapaDeal: fila.etapa ? nombreDeEtapa(fila.etapa) : null,
-        linkGrain: fila.linkGrain,
-        linkCrm: fila.dealId
-          ? new URL(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen).toString()
-          : null,
-      })),
+        };
+      }),
     );
 
     return new Response(csv, {

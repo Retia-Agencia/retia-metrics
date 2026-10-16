@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { calls, deals, leads, programs, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { llamadasDelPrograma, filtroDeLlamadasDesdeUrl } from "@/lib/queries/llamadas";
 import { tieneGrain } from "@/lib/queries/sin-grain";
@@ -28,6 +28,7 @@ let vaciar: () => Promise<void>;
 let programId: string;
 let closerPropio: string;
 let closerAjeno: string;
+let cohortId: string;
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -43,6 +44,17 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "visible", nombre: "Visible", ticketUsd: "1000" })
     .returning();
   programId = programa.id;
+  const [cohorte] = await db.insert(cohorts).values({
+    programId,
+    codigo: "C1",
+    metaCupos: 10,
+    precioUsd: "1000",
+    fechaInicioClases: "2026-11-01",
+    fechaInicioVentas: "2026-09-01",
+    fechaCierreVentas: "2026-10-30",
+    estado: "activo",
+  }).returning();
+  cohortId = cohorte.id;
   const creados = await db
     .insert(users)
     .values([
@@ -88,7 +100,7 @@ async function crearLlamada({
     .returning();
   const [deal] = await db
     .insert(deals)
-    .values({ programId, leadId: lead.id, ownerUserId, etapa: "agendado" })
+    .values({ programId, leadId: lead.id, ownerUserId, cohortId, etapa: "agendado" })
     .returning();
   await db.insert(calls).values({
     programId,
@@ -97,6 +109,7 @@ async function crearLlamada({
     linkGrain,
     resultado,
     fechaLlamada: new Date(fecha),
+    createdAt: new Date(fecha),
     anuladoEn: anulada ? new Date("2026-10-16T10:00:00Z") : null,
     anuladoPor: anulada ? sesionGerente.user.id : null,
     motivoAnulacion: anulada ? "Duplicada" : null,
@@ -157,7 +170,7 @@ describe("GET /p/[programa]/calls/grain.csv", () => {
     await crearLlamada({ nombre: "Ana A", correo: "ana-a@example.test", ownerUserId: closerPropio, linkGrain: null });
     await crearLlamada({ nombre: "Ana No show", correo: "ana-no@example.test", ownerUserId: closerPropio, resultado: "no_show" });
     await crearLlamada({ nombre: "Ana Vieja", correo: "ana-vieja@example.test", ownerUserId: closerPropio, fecha: "2026-10-01T15:00:00Z" });
-    const query = "?resultado=show&desde=2026-10-10&hasta=2026-10-16&q=Ana&orden=nombre%3Aasc";
+    const query = `?resultado=show&fecha=agenda&cohorte=${cohortId}&desde=2026-10-10&hasta=2026-10-16&q=Ana&orden=nombre%3Aasc`;
     const parametros = new URL(`https://crm.example/${query}`).searchParams;
     const alcance = { tipo: "todos" as const };
     const filtro = await filtroDeLlamadasDesdeUrl(db, programId, alcance, parametros);
@@ -178,5 +191,7 @@ describe("GET /p/[programa]/calls/grain.csv", () => {
     expect(respuesta.headers.get("cache-control")).toBe("no-store");
     expect(respuesta.headers.get("content-disposition")).toMatch(/^attachment; filename="grain-visible-\d{4}-\d{2}-\d{2}\.csv"$/);
     expect(csv).toContain("https://crm.example/p/visible/deals/");
+    expect(csv).toContain('"Fecha llamada","Fecha agendada"');
+    expect(csv).toContain('"C1","https://grain.com/grabacion"');
   });
 });
