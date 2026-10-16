@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0092)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0094)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -115,6 +115,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0090](./0090-los-planes-de-accion-viven-en-el-crm.md) | Los planes de acción viven en el CRM, y un rojo del semáforo se cierra con una acción |
 | [0091](./0091-las-graficas-son-echarts-con-una-pieza-propia.md) | Las gráficas del CRM son ECharts, siempre a través de una pieza propia (envoltorio, tema de Tinta y accesibilidad una sola vez) |
 | [0092](./0092-form30x-es-el-tercer-proveedor.md) | Form30x es el tercer proveedor de formularios (webhook firmado, calidad y valor por `tags`), y su API key se usa con un solo form |
+| [0093](./0093-los-parciales-de-form30x-se-leen-por-la-api.md) | Los parciales de Form30x se leen por la API cada 30 minutos (GitHub Actions), con la key de la compañía en Vercel y un solo módulo que solo lee; enmienda el 0092 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

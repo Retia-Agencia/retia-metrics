@@ -62,6 +62,10 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   lint y los tests del cambio; build si toca un componente cliente. No tocar Form30x ni la base de producción salvo
   la migración.
   ```
+- **2026-10-15 (noche): Potencial en SBJ por la API (ADR 0093, ticket 272).** Mani decidió leer los parciales con la key
+  actual (no hay keys de solo lectura; asume el riesgo), cada 30 min por GitHub Actions (Hobby solo da crons diarios), y
+  pedirle a 30X que el webhook los mande. Orden: 271 fase B y después 272. El 272 lleva migración
+  (`sources.form30x_form_id`) y configuración en Vercel y GitHub con el ok de Mani.
 - **2026-10-15 (noche): la prueba de SBJ con Form30x está hecha; la fase B del 271 queda lista para delegar.** Pasos 4, 5,
   6 y 9 del checklist ✅. La firma es hex y el completo llegó con `tags` bien. **El parcial no llega por webhook**
   (Form30x solo manda `response.completed`), así que Potencial en SBJ es una decisión abierta de Mani. Detalle en

@@ -43,7 +43,8 @@ real no se manda a un receptor de terceros (el form está publicado: los leads r
 4. **Parciales:** se prueban con un envío parcial real a la fuente montada (Mani, 15-oct). Si llega, se adapta con
    `es_parcial` según lo que traiga el cuerpo; si no llega, no se inventa.
    **Medido el 15-oct (noche): no llega.** Form30x guarda el parcial (`completed: false` en `/responses`) pero el
-   webhook solo dispara `response.completed`. Cómo tener Potencial en SBJ queda como decisión abierta de Mani.
+   webhook solo dispara `response.completed`. Se leen por la API cada 30 minutos (ADR 0093, ticket 272), con el
+   mismo adaptador: la traducción de `/responses` al cuerpo del webhook vive en el 272.
 
 **Lo que dejó la prueba de la fase A** (15-oct, noche; cuerpos en `sobres_crudos` del programa SBJ):
 - La firma es **hex**: la fase B quita base64.

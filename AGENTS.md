@@ -661,7 +661,9 @@ The agent should run these to get fast signal on whether code works. Keep them c
     `cmulcaari04c001s6m0x1ats6`), y todo script lo pide por ese id explícito: nunca lista y recorre, nunca escribe
     en otro form. Leer ese form es libre; escribir en él (`PATCH`, `PUT`, `POST`, `DELETE`) pide el ok de Mani, con
     `If-Match` del ETag para no pisar al que lo tenga abierto en el builder. **Su `salesFlow` (el envío a HubSpot de
-    30X) no se toca.** La app no la lee: los leads entran por el webhook.
+    30X) no se toca.** **Desde el ADR 0093 (15-oct) la app la lee en producción** (Vercel), en UN solo módulo,
+    `lib/form30x/api.ts`, que solo hace `GET /forms/:id/responses` de los forms de fuentes activas: ningún otro
+    archivo nombra la variable ni el host, y el código no tiene forma de escribir en Form30x (guardián del 272).
   - **Reglas:** leer es libre; **crear, editar o borrar en Typeform, Form30x, Calendly o la base pide el ok de Mani**
     (un webhook o un form editado por API se ve igual que uno bueno y no lanza error). Nunca imprimir un token
     ni pegarlo en un commit, un ticket o el chat: se comprueba por presencia o por lo que devuelve la API. Usa

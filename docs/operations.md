@@ -210,7 +210,8 @@ de Form30x, y no se copia: SBJ conserva la suya.
    false` en `GET /forms/:id/responses`, con sus `tags` ya calculados) pero solo dispara `response.completed`. La cita
    entró 2 s antes por el webhook de Calendly y quedó suelta en el Inbox; al procesar el envío, la regla la adopta
    (`adoptarSueltaDeCita`). Las dos filas son de prueba (`ManuelTEST`): al reprocesar crean un lead de prueba que hay
-   que anular.
+   que anular. Los parciales se leerán por la API cada 30 minutos (ADR 0093, ticket 272); Mani le pide a 30X que
+   el webhook también los mande.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
 8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
@@ -256,7 +257,7 @@ editor) y en Vercel.
 | `META_SYSTEM_TOKEN` | token del usuario del sistema `retia-insights` del portafolio Agencia Retia Growth (14-oct): **solo `ads_read`**, caducidad Nunca, ve las 7 cuentas publicitarias (`docs/hub.md` §2.4). Solo para scripts y devs; **la app no lo lee**: en producción el token vive en la base (`meta_conexiones`, 119, ADR 0062). Copia de respaldo fuera del repo en `~/.config/retia/meta.env` de Mani. La API exige `v26.0` | local |
 | `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL`, `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` | un access token por programa, de una cuenta OWNER (ve miembros, tipos de evento, citas y webhooks de su organizacion). Solo para scripts y revisiones de devs; en produccion el token vive en la base (ADR 0057) | local |
 | `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` | el de AI Second Brain Jurídico (15-oct). Vacío hasta pagar la cuenta de Calendly | local |
-| `FORM_30X_API_KEY` | key de la API de Form30x (15-oct, ADR 0092). **Lee y edita todos los forms de 30X y EstadoX**: se usa solo con el form de SBJ (§2.2); la app no la lee | local |
+| `FORM_30X_API_KEY` | key de la API de Form30x (15-oct, ADR 0092; en Vercel desde el 272, ADR 0093). **Lee y edita todos los forms de 30X y EstadoX**: se usa solo con el form de SBJ (§2.2); la app no la lee | local |
 | `SEMAFORO_SECRETO` | el secreto con que Juanito llama a `POST /api/semaforo/envios` (ADR 0089, 259); el mismo valor va en `RETIA_SEMAFORO_SECRETO` del `.env` de Juanito, local y VPS. Generado el 15-oct sin mostrarlo | Vercel |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 

@@ -43,9 +43,9 @@ La documentación (leída el 15-oct) y el form real (leído por la API, solo GET
    − 100 × descalificantes, con los puntos y los −100 puestos en las opciones. El form de SBJ hoy se aparta (ingreso
    sin puntos, −129 en inversión, situación por cargo); se corrige en el form, con el ok de Mani, antes del primer
    envío real.
-5. **Los parciales llegan solo si Form30x los manda por webhook.** Si no, SBJ no tiene la etapa Potencial: es un
+5. *(Enmendado por el ADR 0093: los parciales se leen por la API cada 30 minutos.)* **Los parciales llegan solo si Form30x los manda por webhook.** Si no, SBJ no tiene la etapa Potencial: es un
    hecho del proveedor, se dice en la pantalla del programa y no se rellena consultando la API.
-6. **La API key (`FORM_30X_API_KEY`) es de dev, y se usa con UN solo form:** el de título exacto
+6. *(Enmendado por el ADR 0093: la app la lee en producción, solo para leer respuestas.)* **La API key (`FORM_30X_API_KEY`) es de dev, y se usa con UN solo form:** el de título exacto
    `AI Second Brain Jurídico | Registro | EstadoX` (id `cmulcaari04c001s6m0x1ats6`). Todo script la usa con ese id
    explícito, nunca lista y recorre. Leer ese form es libre; escribir en él pide el ok de Mani; **tocar cualquier
    otro form está prohibido**. Ninguna ruta de la app la lee: para recibir leads basta el webhook.
