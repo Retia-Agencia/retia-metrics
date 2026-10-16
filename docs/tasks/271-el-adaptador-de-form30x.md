@@ -35,7 +35,9 @@ real no se manda a un receptor de terceros (el form está publicado: los leads r
    - el correo de la respuesta `type: "email"`, el nombre y el WhatsApp por el mapeo de la fuente;
    - toda respuesta entra a `respuestas` por su `question`, las de opción con su `label` (nunca el id);
    - `hidden` completo como UTMs y campos ocultos (los macros sin expandir cuentan como ausentes, ADR 0087);
-   - `lead_quality` y `lead_value` desde `tags` (ADR 0092 punto 3); `tag_lead_quality` se ignora;
+   - `lead_quality` y `lead_value` desde `tags` (ADR 0092 punto 3); `tag_lead_quality` se ignora. Medido con el paso 8
+     (15-oct): `tags` trae dos elementos sueltos, `High`/`Low` y uno de `MUY ALTO VALOR`, `ALTO VALOR`, `VALOR MEDIO`,
+     `BAJO VALOR` (ej. `["High", "MUY ALTO VALOR"]`); no hay etiqueta compuesta que partir;
    - agendó = la respuesta `calendly` con `scheduled: true`; el uuid del invitado sale de `value.invitee` para el 052;
    - el token de idempotencia es `responseId`.
 4. **Parciales:** se prueban con un envío parcial real a la fuente montada (Mani, 15-oct). Si llega, se adapta con

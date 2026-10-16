@@ -128,7 +128,7 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 - **Parciales:** el form los guarda, pero la doc solo promete el webhook en `response.completed`. **Se prueba con un
   envío parcial real** (Mani, 15-oct) con la fuente ya montada: si no llega nada a `sobres_crudos`, SBJ no tiene Potencial.
 - **Campos ocultos:** ya declara `utm_*` (incluido `utm_id`), `campaign_id`, `ad_id`, `gclid`, `fbclid`, `hsa_*` y
-  `referral_30x`. **Falta `adset_id`** (regla del 14-oct, §2.1).
+  `referral_30x`, y desde el paso 8 (15-oct) también `adset_id` (regla del 14-oct, §2.1).
 - **Calidad y valor salen de `tags`**, que el form calcula con `scoreTagRules` sobre `score`. Hoy: `score ≥ 0` →
   `High`, `≤ −1` → `Low`. La variable `tag_lead_quality` es un texto fijo en `High` y no sirve.
 
@@ -140,7 +140,7 @@ lo que ya estaba abierto: el plan gratis de Supabase no trae respaldos (S1 en `p
 - **El score tampoco va a HubSpot.** El `salesFlow` manda las respuestas por pregunta (`income_range_crm`,
   `x30x_urgencia`, `x30x_perfil`, `x30x_disposicion_inversion`, `motivation_crm`), nunca `score` ni `tags`.
 - **El score solo produce `tags`** (`High`/`Low`), que hoy no lee nadie. El primero en leerlos será el CRM (271).
-- 🔴 **La pregunta de IA nunca se muestra.** La lógica salta de "situación" a "inversión"; ninguna de las 5 respuestas
+- ✅ **La pregunta de IA no se mostraba (corregido en el paso 8, 15-oct).** La lógica salta de "situación" a "inversión"; ninguna de las 5 respuestas
   la tiene. En el form de 30X sí se muestra (situación → IA → inversión). **Se corrige en el paso 8 (Mani, 15-oct):**
   la regla de `logic` que va de situación (`c23a9366-…`) a inversión (`34f6e3c2-…`) pasa a ir a la pregunta de IA
   (ref `7twn2s7h`), y de IA se sigue a inversión (con `simulate` se comprueba que pase por orden; si no, se agrega la
@@ -182,8 +182,8 @@ urgencia, inversión e IA) cae en una franja de `score` que no se pisa con otra:
 franja y nivel: sin descalificantes, 30-50 MUY ALTO VALOR, 15-29 ALTO VALOR, 0-14 VALOR MEDIO; con uno o más, la
 misma posición dentro de su franja baja un nivel (ALTO VALOR, VALOR MEDIO, BAJO VALOR). Son 12 reglas, más las dos de
 calidad que ya existen.
-Se verifica con `simulate` antes de escribir (paso 8) que dos reglas puedan dar tag a la vez; si no, la etiqueta se
-arma compuesta (`High|MUY ALTO VALOR`) y el adaptador del 271 la parte.
+Medido con `simulate` después de escribir (paso 8): dos reglas dan tag a la vez, así que `tags` trae las dos por
+separado (`["High", "MUY ALTO VALOR"]`); no hace falta etiqueta compuesta.
 
 **Contraste con 30X** (form `AI Second Brain | Registro | 30X`, ticket 2.000, leído una vez el 15-oct con el ok de
 Mani): ahí el puntaje SÍ decide quién agenda, porque su lógica muestra el Calendly solo con `score > 6`, ingreso de
@@ -202,10 +202,14 @@ de Form30x, y no se copia: SBJ conserva la suya.
 6. Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
    llegó el parcial — Mani envía, la sesión revisa.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.
-8. Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
+8. ✅ Puntos de ingreso y situación, inversión a −100, reglas de valor y `adset_id` (solo `score` de opciones,
    `scoreTagRules` y `hiddenFields`) y la regla de `logic` situación → IA: `validate` +
    `simulate`, diff del JSON antes/después, `If-Match` — la sesión por la API, con el ok de Mani. Va **antes** del
    paso 6 si se quiere que los envíos de prueba ya traigan las etiquetas buenas.
+   Hecho el 15-oct por la API (PATCH con `If-Match`, `validate` sin issues). Releído: solo cambió lo previsto. `simulate` no
+   acepta borradores, así que se midió la línea base antes (108 combinaciones, cuadró con lo de arriba) y las 324 después
+   (ingreso × urgencia × 3 situaciones × IA × inversión): 0 descuadres en score, calidad, valor, paso por IA y Calendly;
+   sin "No lo tengo permitido", calidad y Calendly quedan idénticos a antes.
 9. Pagar Calendly, montar el round robin, invitar a los closers y cruzar sus calendarios; conectar el evento en la
    pregunta de Calendly del form — Mani / EstadoX.
 10. Poner `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` en `.env.local` y el token en la tab Programa; montar el webhook de

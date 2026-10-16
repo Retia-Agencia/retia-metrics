@@ -53,6 +53,11 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   lint y los tests del cambio; build si toca un componente cliente. No tocar Form30x ni la base de producción salvo
   la migración.
   ```
+- **2026-10-15 (noche): paso 8 de SBJ hecho, el form de Form30x ya da calidad y valor.** PATCH con `If-Match` sobre
+  `cmulcaari04c001s6m0x1ats6` (solo `score` de ingreso, situación e inversión, 12 reglas de `lead_value`, `adset_id` y
+  `tf_6` situación → IA). Releído igual a lo esperado. `simulate` no acepta borradores: línea base antes (108) y 324
+  combinaciones después, 0 descuadres. `tags` trae calidad y valor como dos elementos (no compuestos): así los lee el
+  adaptador del 271. Para revertir: los valores de antes están en la tabla "Hoy" de `operations.md` §2.2. Siguiente: paso 3.
 - **2026-10-15 (noche, misma sesión): el arreglo del puntaje de SBJ no rompe el form, medido.** En SBJ el score no
   decide quién agenda (solo inversión "no cuento" esconde el Calendly) ni va a HubSpot (el `salesFlow` manda las
   respuestas, no `score`/`tags`); solo produce `tags`, que leerá el CRM. Regla del paso 8: tocar solo `score` de
