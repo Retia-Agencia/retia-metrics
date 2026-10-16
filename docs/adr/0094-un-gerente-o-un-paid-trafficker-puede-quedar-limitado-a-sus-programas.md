@@ -32,12 +32,18 @@ programa a un gerente que hoy ve todo le recortaría los demás sin aviso.
 3. **La respuesta sigue viviendo en `lib/auth/alcance.ts`**: `programasVisibles` lee las filas para gerente y paid
    trafficker. Quien filtre por programa sigue importando ese módulo, así que el Hub, las listas, el selector y la
    vista "todos los programas" se limitan solos.
-4. **Un usuario limitado no administra lo global.** Se agrega a `lib/auth/roles.ts` una pregunta nueva,
-   `administraGlobal`: la cumple el developer, y el gerente o el paid trafficker **sin** filas de alcance. Ajustes
-   completo (la página y cada subpágina, sus acciones y sus route handlers) se protege con ella, no con
-   `paginaConRol("gerente")`. Dentro de sus programas, el gerente limitado sigue administrando igual (pestaña
-   Programa, metas, plataformas, productos, recursos): esa regla es `exigirAccesoAlPrograma`, que ahora compara contra
-   el alcance en lugar de dejar pasar a todo administrador.
+4. **Un usuario limitado no administra lo global, y nadie gana permisos que no tenía.** Dos preguntas nuevas en
+   `lib/auth/roles.ts`, las dos con el alcance: `administraGlobal` la cumplen el developer y el gerente **sin** filas
+   (es `esAdministrador` sin límite; el paid trafficker **nunca**, porque antes no administraba usuarios ni roles); y
+   `manejaPautaGlobal`, que cumplen el developer, el gerente sin filas y el paid trafficker sin filas, para lo único
+   de Ajustes que el paid trafficker ya veía (Canales y Meta). Ajustes completo se protege con `administraGlobal`;
+   Canales y Meta, con `manejaPautaGlobal`. Crear un programa es global: `administraGlobal`. Dentro de sus programas,
+   el gerente limitado sigue administrando igual (pestaña Programa, metas, plataformas, productos, recursos,
+   cohortes, equipo), pero **toda acción que muta un programa resuelve el programa de la fila que toca** (programa,
+   cohorte, membresía, fuente) y lo compara con el alcance; el slug de la ruta no cuenta, porque una server action se
+   puede forjar. La lista de candidatos del equipo de un programa no muestra a quien solo pertenece a otros programas.
+   🩸 La primera versión de este punto decía "el gerente o el paid trafficker sin filas" y la revisión adversarial del
+   16-oct midió el efecto: un paid trafficker podía cambiarse el rol a developer.
 5. **La sesión lleva si el usuario está limitado** (`alcanceLimitado`), que `revalidarToken` recalcula en cada
    emisión como hace con el rol (S-02): quitarle o ponerle programas a alguien rige en su próxima petición. Cada guarda
    decide con la sesión, pero toda lectura con programa vuelve a pasar por `programasVisibles`, que lee la base.
