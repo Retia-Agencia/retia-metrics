@@ -12,6 +12,7 @@ import {
   crearFuente,
   desactivarFuente,
   editarFuente,
+  guardarSecretoDeFuente,
   guardarTokenTypeform,
   marcarFuentePrincipal,
   probarFuente,
@@ -133,6 +134,18 @@ export async function rotarSecretoFuenteAccion(id: string): Promise<ResultadoSec
     const secreto = await rotarSecretoDeFuente(db, await actorDe(session), id);
     revalidar();
     return { ok: true, secreto };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/** Guarda el secreto que genero el proveedor. El valor entra y no vuelve a salir. */
+export async function guardarSecretoFuenteAccion(id: string, secreto: string): Promise<ResultadoAccion> {
+  try {
+    const session = await requireRole("gerente");
+    await guardarSecretoDeFuente(db, await actorDe(session), id, secreto);
+    revalidar();
+    return { ok: true };
   } catch (error) {
     return aResultado(error);
   }

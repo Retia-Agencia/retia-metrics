@@ -198,9 +198,11 @@ de Form30x, y no se copia: SBJ conserva la suya.
    el ok de Mani y despliega. Hecho el 15-oct: 0088 aplicada en producción; la ruta antepone `firma form30x: hex` o
    `firma form30x: base64` al error del sobre, y el adaptador lanza a propósito, así que cada sobre de la prueba queda
    con error, pendiente de reproceso, con la codificación anotada.
-4. Crear el programa (nace inactivo) y su fuente Form30x en la tab Programa; generar el secreto y activar la fuente —
-   Mani, a mano (el secreto no pasa por el chat).
-5. Pegar la URL de la fuente y el secreto en *Connect* del form — Mani.
+4. Crear el programa (nace inactivo), su plantilla de lead (`nombre` → `nombre completo`, `emailNormalizado` →
+   `correo electronico`, `telefono` → `whatsapp`) y su fuente Form30x en la tab Programa, con un solo par de mapeo:
+   `agenda` → `agenda tu entrevista` (sin `leadQuality`, `leadValue` ni `puntaje`: salen de `tags`) — Mani, a mano.
+5. Pegar la URL de la fuente en *Connect* del form; Form30x genera el secreto (no acepta uno propio), y ese se pega
+   en la fuente con "Pegar secreto del proveedor" (15-oct); luego activar la fuente — Mani. El secreto no pasa por el chat.
 6. Un envío parcial y uno completo **con datos falsos**; revisar `sobres_crudos`: codificación de la firma y si
    llegó el parcial — Mani envía, la sesión revisa.
 7. 271 fase B: adaptador completo con los cuerpos reales — Codex; la sesión revisa y despliega.

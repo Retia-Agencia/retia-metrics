@@ -1,11 +1,14 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import fs from "node:fs";
+import path from "node:path";
 import { changeLog, programs, proveedorFormularioEnum, sources, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   activarFuente,
   crearFuente,
   editarFuente,
+  guardarSecretoDeFuente,
   listarFuentes,
   rotarSecretoDeFuente,
   rutaDelWebhook,
@@ -117,6 +120,14 @@ describe("crear una fuente webhook", () => {
 });
 
 describe("el secreto", () => {
+  it("guarda exactamente el valor del proveedor con trim y permite activar", async () => {
+    const f = await crearFuente(db, actorGerente(), entradaWebhook());
+    const secreto = "secreto-del-proveedor-123";
+    await guardarSecretoDeFuente(db, actorGerente(), f.id, `  ${secreto}  `);
+    expect(await secretoEnLaBase(f.id)).toBe(secreto);
+    expect((await activarFuente(db, actorGerente(), f.id)).activo).toBe(true);
+  });
+
   it("se genera una vez, se devuelve y queda guardado", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
     const secreto = await rotarSecretoDeFuente(db, actorGerente(), f.id);
@@ -134,18 +145,25 @@ describe("el secreto", () => {
 
   it("no aparece en change_log, pero el cambio si queda", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    const secreto = await rotarSecretoDeFuente(db, actorGerente(), f.id);
+    const secreto = "secreto-proveedor-que-no-debe-salir";
+    await guardarSecretoDeFuente(db, actorGerente(), f.id, secreto);
+    const rotado = await rotarSecretoDeFuente(db, actorGerente(), f.id);
     const log = await db.select().from(changeLog).where(eq(changeLog.registroId, f.id));
     expect(JSON.stringify(log)).not.toContain(secreto);
+    expect(JSON.stringify(log)).not.toContain(rotado);
     const fila = log.find((l) => l.campo === "secreto_webhook");
     expect(fila).toMatchObject({ valorNuevo: "(oculto)", userId: gerenteId });
   });
 
   it("no sale en lo que devuelve el catalogo ni en la lectura de la pantalla", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    const secreto = await rotarSecretoDeFuente(db, actorGerente(), f.id);
-    const lista = await listarFuentes(db, programId);
+    const secreto = "otro-secreto-del-proveedor";
+    await guardarSecretoDeFuente(db, actorGerente(), f.id, secreto);
+    let lista = await listarFuentes(db, programId);
     expect(JSON.stringify(lista)).not.toContain(secreto);
+    const rotado = await rotarSecretoDeFuente(db, actorGerente(), f.id);
+    lista = await listarFuentes(db, programId);
+    expect(JSON.stringify(lista)).not.toContain(rotado);
     expect(lista[0].tieneSecreto).toBe(true);
     const { fuentes } = await fuentesParaAdmin(db);
     expect(JSON.stringify(fuentes)).not.toContain(secreto);
@@ -161,6 +179,36 @@ describe("el secreto", () => {
       tab: "Hoja",
     });
     await expect(rotarSecretoDeFuente(db, actorGerente(), f.id)).rejects.toMatchObject({ status: 422 });
+    await expect(guardarSecretoDeFuente(db, actorGerente(), f.id, "secreto-de-proveedor")).rejects.toMatchObject({
+      status: 422,
+    });
+  });
+
+  it.each(["muy-corto", "secreto con espacios internos"])(
+    "rechaza un valor invalido (%s) y la base no se mueve",
+    async (secreto) => {
+      const f = await crearFuente(db, actorGerente(), entradaWebhook());
+      await expect(guardarSecretoDeFuente(db, actorGerente(), f.id, secreto)).rejects.toMatchObject({ status: 400 });
+      expect(await secretoEnLaBase(f.id)).toBeNull();
+    },
+  );
+
+  it("solo escribirSecreto actualiza la columna del secreto", () => {
+    const raiz = process.cwd();
+    const archivos: string[] = [];
+    const recorrer = (dir: string) => {
+      for (const entrada of fs.readdirSync(dir, { withFileTypes: true })) {
+        const ruta = path.join(dir, entrada.name);
+        if (entrada.isDirectory()) recorrer(ruta);
+        else if (/\.(?:ts|tsx)$/.test(entrada.name)) archivos.push(ruta);
+      }
+    };
+    for (const dir of ["lib", "app", "components", "scripts"]) recorrer(path.join(raiz, dir));
+    const escritores = archivos.flatMap((archivo) => {
+      const cuantos = [...fs.readFileSync(archivo, "utf8").matchAll(/\.set\(\{\s*secretoWebhook\b/g)].length;
+      return Array.from({ length: cuantos }, () => path.relative(raiz, archivo));
+    });
+    expect(escritores).toEqual(["lib/catalogo/fuentes.ts"]);
   });
 });
 
@@ -172,6 +220,14 @@ describe("permisos: un closer no toca fuentes webhook", () => {
   it("ni rota el secreto, y la base no se mueve", async () => {
     const f = await crearFuente(db, actorGerente(), entradaWebhook());
     await expect(rotarSecretoDeFuente(db, actorCloser(), f.id)).rejects.toMatchObject({ status: 403 });
+    expect(await secretoEnLaBase(f.id)).toBeNull();
+  });
+
+  it("ni pega el secreto, y la base no se mueve", async () => {
+    const f = await crearFuente(db, actorGerente(), entradaWebhook());
+    await expect(
+      guardarSecretoDeFuente(db, actorCloser(), f.id, "secreto-del-proveedor"),
+    ).rejects.toMatchObject({ status: 403 });
     expect(await secretoEnLaBase(f.id)).toBeNull();
   });
 });

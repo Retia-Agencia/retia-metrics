@@ -15,6 +15,7 @@ import {
   desactivarFuenteAccion,
   editarFuenteAccion,
   editarPlantillaLeadAccion,
+  guardarSecretoFuenteAccion,
   guardarTokenTypeformAccion,
   marcarFuentePrincipalAccion,
   probarFuenteAccion,
@@ -293,6 +294,9 @@ function FilaFuente({
   // El secreto recien generado vive SOLO en el estado de este componente: no hay forma
   // de volver a pedirlo al servidor. Al recargar la pagina desaparece.
   const [secretoNuevo, setSecretoNuevo] = useState<string | null>(null);
+  const [editandoSecreto, setEditandoSecreto] = useState(false);
+  const [secretoPegado, setSecretoPegado] = useState("");
+  const [guardandoSecreto, startGuardarSecreto] = useTransition();
   // El token de Typeform (126) se pega aqui y no vuelve: el campo se vacia al guardar.
   const [editandoToken, setEditandoToken] = useState(false);
   const [token, setToken] = useState("");
@@ -334,6 +338,33 @@ function FilaFuente({
         router.refresh();
       } else {
         toast.error("No se pudo guardar el token", { description: res.error });
+      }
+    });
+  }
+
+  function abrirSecretoPegado() {
+    if (
+      fuente.tieneSecreto &&
+      !window.confirm(
+        "El secreto actual deja de funcionar en el acto. Tendrás que actualizarlo en el formulario enseguida. ¿Seguir?",
+      )
+    ) {
+      return;
+    }
+    setEditandoSecreto((v) => !v);
+  }
+
+  function guardarSecreto() {
+    startGuardarSecreto(async () => {
+      const res = await guardarSecretoFuenteAccion(fuente.id, secretoPegado);
+      if (res.ok) {
+        setSecretoPegado("");
+        setEditandoSecreto(false);
+        setSecretoNuevo(null);
+        toast.success("Secreto guardado");
+        router.refresh();
+      } else {
+        toast.error("No se pudo guardar el secreto", { description: res.error });
       }
     });
   }
@@ -414,6 +445,9 @@ function FilaFuente({
             <Button size="sm" variant="ghost" disabled={pendiente || rotando} onClick={rotar}>
               {rotando ? "Generando…" : fuente.tieneSecreto ? "Rotar secreto" : "Generar secreto"}
             </Button>
+            <Button size="sm" variant="ghost" disabled={pendiente} onClick={abrirSecretoPegado}>
+              Pegar secreto del proveedor
+            </Button>
             {esTypeform ? (
               <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setEditandoToken((v) => !v)}>
                 {fuente.tieneTokenTypeform ? "Reemplazar token de Typeform" : "Cargar token de Typeform"}
@@ -446,6 +480,44 @@ function FilaFuente({
           </Button>
         )}
       </div>
+      {editandoSecreto ? (
+        <form
+          className="mt-2 space-y-1 rounded-md bg-muted/50 p-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            guardarSecreto();
+          }}
+        >
+          <label htmlFor={`secreto-proveedor-${fuente.id}`} className="block text-xs font-medium">
+            Secreto del webhook generado por el proveedor. Una vez guardado no se vuelve a mostrar.
+          </label>
+          <input
+            id={`secreto-proveedor-${fuente.id}`}
+            type="password"
+            autoComplete="off"
+            required
+            value={secretoPegado}
+            onChange={(e) => setSecretoPegado(e.target.value)}
+            className="w-full rounded-md border bg-background px-2 py-1 text-xs"
+          />
+          <div className="flex gap-1">
+            <Button type="submit" size="sm" variant="outline" disabled={guardandoSecreto || secretoPegado.trim() === ""}>
+              {guardandoSecreto ? "Guardando…" : "Guardar secreto"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setSecretoPegado("");
+                setEditandoSecreto(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </form>
+      ) : null}
       {editandoToken ? (
         <form
           className="mt-2 space-y-1 rounded-md bg-muted/50 p-2"

@@ -62,6 +62,11 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   lint y los tests del cambio; build si toca un componente cliente. No tocar Form30x ni la base de producción salvo
   la migración.
   ```
+- **2026-10-15 (noche): una fuente webhook acepta el secreto que genera el proveedor.** Form30x genera su secreto y no
+  deja pegar uno propio, así que el paso 5 estaba bloqueado. Nuevo `guardarSecretoDeFuente` + botón "Pegar secreto del
+  proveedor" en la fuente (cualquier proveedor). Un solo escritor de la columna, `escribirSecreto`, con guardián en
+  `tests/fuentes-webhook.test.ts`. Codex implementó; typecheck, lint y build limpios; los tests los corre el CI (había
+  10 GB de swap). Mapeo de SBJ decidido: plantilla igual a los otros programas y en la fuente solo `agenda`.
 - **2026-10-15 (noche): paso 8 de SBJ hecho, el form de Form30x ya da calidad y valor.** PATCH con `If-Match` sobre
   `cmulcaari04c001s6m0x1ats6` (solo `score` de ingreso, situación e inversión, 12 reglas de `lead_value`, `adset_id` y
   `tf_6` situación → IA). Releído igual a lo esperado. `simulate` no acepta borradores: línea base antes (108) y 324

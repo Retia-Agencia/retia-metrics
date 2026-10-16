@@ -553,9 +553,33 @@ export async function marcarFuentePrincipal(
 /** Etiqueta que guarda `change_log` en vez del secreto: se sabe que cambio, no a que. */
 const SECRETO_OCULTO = "(oculto)";
 
+const esquemaSecretoWebhook = z
+  .string()
+  .trim()
+  .min(16, "El secreto debe tener al menos 16 caracteres.")
+  .max(512, "El secreto debe tener máximo 512 caracteres.")
+  .regex(/^\S+$/, "El secreto no puede contener espacios.");
+
+/** UNICO escritor de `sources.secreto_webhook`; guarda el valor y su rastro juntos. */
+async function escribirSecreto(db: Db, actor: Actor, actual: FuenteVista, secreto: string): Promise<void> {
+  await db.transaction(async (tx) => {
+    await tx.update(sources).set({ secretoWebhook: secreto }).where(eq(sources.id, actual.id));
+    await tx.insert(changeLog).values({
+      tabla: "sources",
+      registroId: actual.id,
+      etiqueta: actual.nombre,
+      campo: "secreto_webhook",
+      valorAnterior: actual.tieneSecreto ? SECRETO_OCULTO : null,
+      valorNuevo: SECRETO_OCULTO,
+      origen: "app",
+      userId: actor.id,
+    });
+  });
+}
+
 /**
- * Genera el secreto HMAC de una fuente webhook, o lo reemplaza (ticket 105). Es el
- * UNICO escritor de `sources.secreto_webhook`, y devuelve el valor **una sola vez**:
+ * Genera el secreto HMAC de una fuente webhook, o lo reemplaza (ticket 105), y
+ * devuelve el valor **una sola vez**:
  * la pantalla lo muestra para pegarlo en el proveedor y despues no hay forma de
  * leerlo. Rotar deja de aceptar el viejo en el acto, asi que hay que pegar el nuevo
  * en el proveedor enseguida (el aviso del ticket 107 lo haria visible si no).
@@ -573,20 +597,27 @@ export async function rotarSecretoDeFuente(db: Db, actor: Actor, id: string): Pr
       throw new ErrorDeApp("Solo una fuente webhook tiene secreto.", 422);
     }
     const secreto = randomBytes(32).toString("base64url");
-    await db.transaction(async (tx) => {
-      await tx.update(sources).set({ secretoWebhook: secreto }).where(eq(sources.id, objetivoId));
-      await tx.insert(changeLog).values({
-        tabla: "sources",
-        registroId: objetivoId,
-        etiqueta: actual.nombre,
-        campo: "secreto_webhook",
-        valorAnterior: actual.tieneSecreto ? SECRETO_OCULTO : null,
-        valorNuevo: SECRETO_OCULTO,
-        origen: "app",
-        userId: actor.id,
-      });
-    });
+    await escribirSecreto(db, actor, actual, secreto);
     return secreto;
+  });
+}
+
+/**
+ * Guarda el secreto HMAC generado por el proveedor de cualquier fuente webhook
+ * (ticket 271). El valor se valida y se escribe, pero nunca se devuelve ni se vuelve
+ * a mostrar. `escribirSecreto` es el unico escritor y registra el cambio sin el valor.
+ */
+export async function guardarSecretoDeFuente(db: Db, actor: Actor, id: string, secreto: string): Promise<void> {
+  return normalizando(async () => {
+    exigirAdministrador(actor);
+    const objetivoId = idValido(id);
+    const valor = esquemaSecretoWebhook.parse(secreto);
+    const actual = await leerFuente(db, objetivoId);
+    if (!actual) throw new ErrorDeApp("No existe una fuente con ese id.", 404);
+    if (actual.tipo !== "webhook") {
+      throw new ErrorDeApp("Solo una fuente webhook tiene secreto.", 422);
+    }
+    await escribirSecreto(db, actor, actual, valor);
   });
 }
 

@@ -245,7 +245,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **Secretos solo en `.env.local` y en Vercel.** Nunca en el repo, nunca abiertos en un editor
   (ver la seccion de incidentes en `docs/agents/handoff.md`). **Excepcion nombrada (ticket 105, ADR
   0055):** el secreto HMAC de cada fuente webhook vive en `sources.secreto_webhook`, porque es una fila
-  editable (ADR 0012) y verificar una firma exige el valor. Lo escribe SOLO `rotarSecretoDeFuente`, se
+  editable (ADR 0012) y verificar una firma exige el valor. Lo escribe SOLO `escribirSecreto` (privada en `lib/catalogo/fuentes.ts`), por dos puertas: `rotarSecretoDeFuente` lo genera y `guardarSecretoDeFuente` guarda el que genera el proveedor (Form30x no acepta uno propio, 15-oct); se
   muestra una vez, nunca pasa por el molde ni por `change_log`, y ninguna lectura del catalogo ni de la
   pantalla lo devuelve (`tests/fuentes-webhook.test.ts`). **Segunda excepcion (ADR 0057, 28-sep):** el token de
   Calendly de cada programa vive en `programs`, con las mismas reglas (ticket 109); su clave de firma del
