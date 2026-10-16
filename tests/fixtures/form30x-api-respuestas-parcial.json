@@ -1,0 +1,82 @@
+{
+  "data": [
+    {
+      "id": "cmvadd2t30gsj01s6yqariytg",
+      "submittedAt": "2026-10-16T02:49:29.463Z",
+      "completed": false,
+      "metadata": {
+        "tags": [
+          "High",
+          "VALOR MEDIO"
+        ],
+        "entry": {
+          "ip": "203.0.113.10",
+          "os": "macos",
+          "bot": false,
+          "device": "desktop",
+          "browser": "chrome",
+          "channel": "form.30x.com",
+          "userAgent": "Mozilla/5.0 (prueba)",
+          "confidence": "medium"
+        },
+        "score": 10,
+        "hidden": {},
+        "variables": {
+          "score": 10
+        }
+      },
+      "answers": [
+        {
+          "fieldRef": "57b569e4-5e39-4de4-ae1a-511a40fd62fa",
+          "type": "short_text",
+          "value": "Persona Parcial",
+          "question": "¿Cuál es tu nombre completo?"
+        },
+        {
+          "fieldRef": "a97a964f-ae42-4c4f-be1a-cbc4c77b907b",
+          "type": "email",
+          "value": "persona.parcial@correo-falso.co",
+          "question": "¿Cuál es tu correo electrónico?"
+        },
+        {
+          "fieldRef": "6a44ba2e-ec13-405e-8b42-34476c3b4ee5",
+          "type": "phone_number",
+          "value": "+57 3007654321",
+          "question": "¿Cuál es tu número de WhatsApp?"
+        },
+        {
+          "fieldRef": "8c38345c-c587-4fa7-8d50-3ac8b2f98e48",
+          "type": "multiple_choice",
+          "value": "5a32a484-d10a-42dc-8e3d-e21c096be679",
+          "question": "¿Cuánto ganas mensualmente? (en dólares)",
+          "label": "$1.000 - $3.000",
+          "choices": [
+            {
+              "id": "73668ba1-51b2-4d14-9181-fd0568d22065",
+              "label": "Menos de $1.000 USD"
+            },
+            {
+              "id": "5a32a484-d10a-42dc-8e3d-e21c096be679",
+              "label": "$1.000 - $3.000"
+            },
+            {
+              "id": "e6f93dd0-5d8d-445c-98e5-a96ee58352a2",
+              "label": "$3.000 - $10.000"
+            },
+            {
+              "id": "9f139ca8-fffa-4e49-b72c-374617949424",
+              "label": "Más de $10.000"
+            }
+          ]
+        },
+        {
+          "fieldRef": "29fcfc6e-cbec-4413-a69e-ff2c5bf84e28",
+          "type": "long_text",
+          "value": "Texto de prueba",
+          "question": "¿Qué te motivó a hacer parte del Programa de Implementación AI Second Brain Jurídico?"
+        }
+      ]
+    }
+  ],
+  "nextCursor": null
+}

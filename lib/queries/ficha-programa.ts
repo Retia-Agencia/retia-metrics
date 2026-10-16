@@ -282,6 +282,7 @@ export async function fuentesDelProgramaParaAdmin(
           umbralSinRespuestaHoras: fuente.umbralSinRespuestaHoras,
           umbralMuertaHoras: fuente.umbralMuertaHoras,
           urlPublica: fuente.urlPublica ?? null,
+          form30xFormId: fuente.form30xFormId ?? null,
           principal: Boolean(fuente.principal),
           salud: salud
             ? {

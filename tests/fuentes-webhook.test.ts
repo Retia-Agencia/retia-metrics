@@ -260,4 +260,27 @@ describe("activar y editar", () => {
     expect(e.nombre).toBe("Nuevo");
     expect(await secretoEnLaBase(f.id)).not.toBeNull();
   });
+
+  it("guarda el id del form en una fuente Form30x", async () => {
+    const f = await crearFuente(db, actorGerente(), {
+      ...entradaWebhook(),
+      proveedor: "form30x",
+    });
+    const editada = await editarFuente(db, actorGerente(), f.id, {
+      ...entradaWebhook(),
+      proveedor: "form30x",
+      form30xFormId: "form-sbj",
+    });
+    expect(editada.form30xFormId).toBe("form-sbj");
+  });
+
+  it("pone el id de Form30x en null cuando la fuente es Typeform", async () => {
+    const f = await crearFuente(db, actorGerente(), entradaWebhook());
+    await db.update(sources).set({ form30xFormId: "id-viejo" }).where(eq(sources.id, f.id));
+    const editada = await editarFuente(db, actorGerente(), f.id, {
+      ...entradaWebhook(),
+      form30xFormId: "no-aplica",
+    });
+    expect(editada.form30xFormId).toBeNull();
+  });
 });

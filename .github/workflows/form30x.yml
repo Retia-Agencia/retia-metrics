@@ -1,0 +1,13 @@
+name: Leer respuestas de Form30x
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+jobs:
+  leer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: curl -sS --fail-with-body -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.CRM_URL }}/api/cron/form30x"

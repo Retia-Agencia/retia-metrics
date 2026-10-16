@@ -79,6 +79,11 @@ const esquemaUrlPublica = z.preprocess(
     .nullable(),
 );
 
+const esquemaForm30xFormId = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+  z.string().trim().min(1).nullable().optional(),
+);
+
 const esquemaMapeo: z.ZodType<MapeoColumnas> = z.record(
   z.string(),
   z.union([z.string(), z.array(z.string())]),
@@ -137,6 +142,7 @@ export const esquemaFuente = z.union([
     sheetId: z.string().trim().min(1, "El ID de la hoja es obligatorio."),
     tab: z.string().trim().min(1, "La pestaña es obligatoria."),
     proveedor: z.null().default(null),
+    form30xFormId: z.null().default(null),
   }),
   z.object({
     ...camposComunes,
@@ -144,6 +150,7 @@ export const esquemaFuente = z.union([
     sheetId: z.null().default(null),
     tab: z.null().default(null),
     proveedor: z.enum(PROVEEDORES_FORMULARIO, "Elige el proveedor del formulario."),
+    form30xFormId: esquemaForm30xFormId,
   }),
 ]).refine(umbralesEnOrden, {
   message: "El umbral de fuente muerta tiene que ser mayor que el de sin respuestas.",
@@ -169,6 +176,7 @@ export interface FuenteVista extends FilaCatalogo {
   rango: string;
   mapeoColumnas: MapeoColumnas;
   proveedor: ProveedorFormulario | null;
+  form30xFormId: string | null;
   /** Si la fuente ya tiene secreto. El valor nunca sale de aqui (ticket 105). */
   tieneSecreto: boolean;
   /** Si la fuente ya tiene token de Typeform (126). El valor nunca sale de aqui. */
@@ -214,6 +222,7 @@ type CamposFuente = {
   rango: string;
   mapeoColumnas: MapeoColumnas;
   proveedor: ProveedorFormulario | null;
+  form30xFormId?: string | null;
   activo: boolean;
   umbralSinRespuestaHoras?: number;
   umbralMuertaHoras?: number;
@@ -370,6 +379,12 @@ export async function editarFuente(
       throw new ErrorDeApp("El umbral de fuente muerta tiene que ser mayor que el de sin respuestas.", 400);
     }
     const urlPublica = datos.urlPublica === undefined ? actual.urlPublica : datos.urlPublica;
+    const form30xFormId =
+      datos.proveedor !== "form30x"
+        ? null
+        : datos.form30xFormId === undefined
+          ? actual.form30xFormId
+          : datos.form30xFormId;
     // Una principal siempre es repartible (ADR 0068 punto 2). La base lo exige con
     // `sources_principal_repartible`; se dice aqui antes, con un mensaje que explica que hacer.
     if (actual.principal && urlPublica === null) {
@@ -382,6 +397,7 @@ export async function editarFuente(
       ...datos,
       ...umbrales,
       urlPublica,
+      form30xFormId,
       activo: actual.activo,
     });
     return sinSecreto(fila);
