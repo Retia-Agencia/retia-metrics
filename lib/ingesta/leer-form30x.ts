@@ -86,7 +86,8 @@ export async function leerForm30x(
   opciones: { leer?: typeof leerRespuestas; ahora?: Date } = {},
 ): Promise<ResumenLecturaForm30x> {
   const leer = opciones.leer ?? leerRespuestas;
-  const limite = (opciones.ahora ?? new Date()).getTime() - 48 * 60 * 60 * 1000;
+  const ahora = opciones.ahora ?? new Date();
+  const limite = ahora.getTime() - 48 * 60 * 60 * 1000;
   const fuentes = await db
     .select({
       id: sources.id,
@@ -154,6 +155,7 @@ export async function leerForm30x(
         cursor = pagina.nextCursor ?? undefined;
         if (pagina.nextCursor === null) termino = true;
       } while (!termino);
+      await db.update(sources).set({ form30xLeidoEn: ahora }).where(eq(sources.id, fuente.id));
     } catch (error) {
       console.error(`lectura Form30x: fallo la fuente ${fuente.id}`, error);
       resumen.fuentesConError += 1;

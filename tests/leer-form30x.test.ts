@@ -43,6 +43,7 @@ async function crearFuente(datos: {
   proveedor?: "form30x" | "typeform";
   activo?: boolean;
   form30xFormId?: string | null;
+  form30xLeidoEn?: Date | null;
 } = {}) {
   const [fuente] = await db
     .insert(sources)
@@ -53,6 +54,7 @@ async function crearFuente(datos: {
       proveedor: datos.proveedor ?? "form30x",
       activo: datos.activo ?? true,
       form30xFormId: datos.form30xFormId === undefined ? "form-sbj" : datos.form30xFormId,
+      form30xLeidoEn: datos.form30xLeidoEn,
     })
     .returning();
   return fuente;
@@ -162,6 +164,27 @@ describe("lectura periodica", () => {
     expect(resumen).toMatchObject({ fuentes: 2, nuevas: 1, fuentesConError: 1 });
     const [envio] = await db.select().from(submissions).where(eq(submissions.sourceId, buena.id));
     expect(envio).toBeDefined();
+  });
+
+  it("una lectura exitosa sin respuestas actualiza el latido", async () => {
+    const fuente = await crearFuente();
+    const ahora = new Date("2026-10-16T03:00:00.000Z");
+
+    await leerForm30x(db, { leer: vi.fn().mockResolvedValue({ data: [], nextCursor: null }), ahora });
+
+    const [actualizada] = await db.select().from(sources).where(eq(sources.id, fuente.id));
+    expect(actualizada.form30xLeidoEn?.getTime()).toBe(ahora.getTime());
+  });
+
+  it("una lectura fallida no actualiza el latido", async () => {
+    const anterior = new Date("2026-10-16T00:00:00.000Z");
+    const fuente = await crearFuente({ form30xLeidoEn: anterior });
+    const leer = vi.fn().mockRejectedValue(new Error("API no disponible"));
+
+    await leerForm30x(db, { leer, ahora: new Date("2026-10-16T03:00:00.000Z") });
+
+    const [sinCambio] = await db.select().from(sources).where(eq(sources.id, fuente.id));
+    expect(sinCambio.form30xLeidoEn?.getTime()).toBe(anterior.getTime());
   });
 });
 

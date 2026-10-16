@@ -39,10 +39,14 @@ export interface DatosDeSalud {
    * que el formulario calcule la calidad.
    */
   sinCalidad: number;
+  /** La ultima lectura por API; nula cuando esta fuente no se lee por la API de Form30x. */
+  lecturaApi: { leidaEn: Date | null } | null;
 }
 
 /** La ventana del conteo de "sin calidad": lo reciente, para que un arreglo se note al dia siguiente. */
 export const HORAS_SIN_CALIDAD = 24;
+/** Cuatro turnos perdidos del cron de 30 min (ADR 0093 punto 3); ningun runner se da por confiable. */
+export const HORAS_LECTURA_FORM30X_VIEJA = 2;
 
 export interface SaludDeFuente {
   estado: EstadoDeFuente;
@@ -50,13 +54,21 @@ export interface SaludDeFuente {
   marcada: boolean;
   sobresPendientes: number;
   sinCalidad: number;
+  lecturaApi: DatosDeSalud["lecturaApi"];
+  lecturaVieja: boolean;
 }
 
 const HORA_MS = 3_600_000;
 
 export function saludDeFuente(d: DatosDeSalud, ahora: Date = new Date()): SaludDeFuente {
-  const { sobresPendientes, sinCalidad } = d;
-  if (!d.ultimo) return { estado: "sin_envios", marcada: true, sobresPendientes, sinCalidad };
+  const { sobresPendientes, sinCalidad, lecturaApi } = d;
+  const lecturaVieja =
+    lecturaApi !== null &&
+    (lecturaApi.leidaEn === null ||
+      ahora.getTime() - lecturaApi.leidaEn.getTime() >= HORAS_LECTURA_FORM30X_VIEJA * HORA_MS);
+  if (!d.ultimo) {
+    return { estado: "sin_envios", marcada: true, sobresPendientes, sinCalidad, lecturaApi, lecturaVieja };
+  }
 
   const silencio = (ahora.getTime() - d.ultimo.getTime()) / HORA_MS;
   let estado: EstadoDeFuente;
@@ -67,7 +79,14 @@ export function saludDeFuente(d: DatosDeSalud, ahora: Date = new Date()): SaludD
   } else estado = "al_dia";
 
   const silenciosa = estado === "sin_respuestas" || estado === "muerta";
-  return { estado, marcada: silenciosa || sobresPendientes > 0 || sinCalidad > 0, sobresPendientes, sinCalidad };
+  return {
+    estado,
+    marcada: silenciosa || sobresPendientes > 0 || sinCalidad > 0 || lecturaVieja,
+    sobresPendientes,
+    sinCalidad,
+    lecturaApi,
+    lecturaVieja,
+  };
 }
 
 export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
@@ -98,6 +117,9 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
         programaNombre: programs.nombre,
         umbralSinRespuestaHoras: sources.umbralSinRespuestaHoras,
         umbralMuertaHoras: sources.umbralMuertaHoras,
+        proveedor: sources.proveedor,
+        form30xFormId: sources.form30xFormId,
+        form30xLeidoEn: sources.form30xLeidoEn,
       })
       .from(sources)
       .innerJoin(programs, eq(programs.id, sources.programId))
@@ -138,6 +160,11 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
   const sinCalidadDe = new Map(recientes.map((r) => [r.sourceId, Number(r.n)]));
 
   return fuentes.map((f) => {
+    const { proveedor, form30xFormId, form30xLeidoEn, ...fuente } = f;
+    const lecturaApi =
+      proveedor === "form30x" && form30xFormId?.trim()
+        ? { leidaEn: fecha(form30xLeidoEn) }
+        : null;
     const datos: DatosDeSalud = {
       umbralSinRespuestaHoras: f.umbralSinRespuestaHoras,
       umbralMuertaHoras: f.umbralMuertaHoras,
@@ -145,7 +172,8 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       penultimo: penultimoDe.get(f.sourceId) ?? null,
       sobresPendientes: sobresDe.get(f.sourceId) ?? 0,
       sinCalidad: sinCalidadDe.get(f.sourceId) ?? 0,
+      lecturaApi,
     };
-    return { ...f, ...datos, ...saludDeFuente(datos, ahora) };
+    return { ...fuente, ...datos, ...saludDeFuente(datos, ahora) };
   });
 }

@@ -465,6 +465,11 @@ export const sources = pgTable(
      */
     form30xFormId: text("form30x_form_id"),
     /**
+     * La hora de la ultima lectura EXITOSA por la API (ADR 0093 punto 3); la escribe
+     * solo `leerForm30x`; es el latido del cron. Una corrida que lee 0 respuestas tambien la escribe.
+     */
+    form30xLeidoEn: timestamp("form30x_leido_en", { withTimezone: true }),
+    /**
      * Cuanto silencio aguanta ESTA fuente antes de que la app la marque (ticket 107).
      * Por fuente y no fijo (ADR 0012): un programa con pauta prendida recibe varios
      * envios al dia y uno sin pauta puede pasar dias sin ninguno. Los defectos son de
