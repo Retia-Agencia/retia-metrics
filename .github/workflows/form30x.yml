@@ -10,4 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: curl -sS --fail-with-body -X POST -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "${{ secrets.CRM_URL }}/api/cron/form30x"
+      - name: Llamar al cron del CRM
+        run: |
+          curl -sS --fail-with-body -X POST \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.CRM_URL }}/api/cron/form30x"
