@@ -42,7 +42,11 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   form de SBJ también se corrigió por la API con el ok de Mani: "Menos de $1.000" descalifica (−100) y cualquier
   descalificante va a la pantalla de gracias sin Calendly, como en los demás programas (antes solo inversión).
   `simulate` de 324 combinaciones, 0 descuadres; detalle y cómo revertir en `operations.md` §2.2. El paso 13 (un envío
-  real por camino) queda listo para hacerse.
+  real por camino): ✅ con agenda y UTM (Agendado, High, llamada, seis UTM; deal anulado). 🟡 descalificado: el form
+  dio `Low` sin Calendly, pero con correo `example.com` el CRM lo descartó; repetir con correo real. 🔴 sin agenda: no
+  existe en Form30x (probable: mismo navegador, el form retomó la respuesta); repetir en incógnito. 🔴 **El
+  `schedule` de `.github/workflows/form30x.yml` nunca corrió** (solo corridas manuales a las 03:32, 03:35 y 04:52
+  UTC): sin él los parciales no entran solos. Es lo primero de la próxima sesión.
 
 - **2026-10-16 (madrugada): 271 fase B y 272 hechos; SBJ recibe completos por webhook y parciales por la API.**
   Codex implementó, la sesión revisó. 271 B (`96ebaa2`): firma solo hex, `lib/ingesta/adaptador-form30x.ts`, y

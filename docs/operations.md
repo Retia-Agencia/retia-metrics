@@ -256,6 +256,14 @@ de Form30x, y no se copia: SBJ conserva la suya.
     estándar (score 0 sin descalificantes es `High`); lo que faltaba era que el ingreso bajo descalificara y que un
     descalificado no viera el Calendly (enmienda de arriba). Con eso un completo descalificado es `Low` y cae en
     Registrado, y un parcial nace en Potencial venga con la calidad que venga (enmienda del ADR 0069).
+    **Primera vuelta (16-oct, Mani):** ✅ con agenda y UTM: entró por el webhook en **Agendado**, `High`, `MUY ALTO
+    VALOR`, llamada colgada y los seis UTM guardados como llegaron (deal anulado después). 🟡 descalificado: el form
+    hizo lo correcto (`Low`, `VALOR MEDIO`, completo, sin Calendly), pero se llenó con un correo `example.com` y el CRM
+    lo descartó como entrega de prueba: **falta repetirlo con un correo real**. 🔴 sin agenda: **no existe en
+    Form30x** (ni webhook ni API; la API lista solo los dos de arriba). Probable: hecho en el mismo navegador que el
+    de agenda, el form retomó esa respuesta. Repetir en una ventana de incógnito con un correo real.
+    🔴 **El horario del workflow `form30x.yml` no ha corrido nunca** (16-oct, 04:52 UTC): solo hay corridas
+    manuales. Sin él, los parciales de SBJ no entran solos. Revisarlo antes de repetir el camino sin agenda.
 14. Avisar al equipo en "Core Estado X" — Mani.
 
 ## 3. Variables de entorno
