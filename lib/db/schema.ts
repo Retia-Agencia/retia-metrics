@@ -793,7 +793,10 @@ export const sobresCrudos = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     sourceId: uuid("source_id").references(() => sources.id, { onDelete: "restrict" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
-    /** `formulario` (Typeform, con su fuente) o `calendly` (del programa, sin fuente). */
+    /**
+     * `formulario` (webhook de un proveedor, con su fuente), `form30x_api` (respuesta leida
+     * de la API de Form30x, con su fuente; ADR 0093) o `calendly` (del programa, sin fuente).
+     */
     origen: text("origen").notNull().default("formulario"),
     cuerpo: text("cuerpo").notNull(),
     /** Nulo = se proceso bien. Con texto = por que no se pudo procesar. */
@@ -809,7 +812,7 @@ export const sobresCrudos = pgTable(
       .where(sql`${t.error} is not null and ${t.reprocesadoEn} is null`),
     check(
       "sobres_crudos_origen_chk",
-      sql`(${t.origen} = 'formulario' AND ${t.sourceId} IS NOT NULL) OR (${t.origen} = 'calendly' AND ${t.sourceId} IS NULL)`,
+      sql`(${t.origen} IN ('formulario', 'form30x_api') AND ${t.sourceId} IS NOT NULL) OR (${t.origen} = 'calendly' AND ${t.sourceId} IS NULL)`,
     ),
   ],
 );

@@ -1,0 +1,3 @@
+SET lock_timeout = '5s';--> statement-breakpoint
+ALTER TABLE "sobres_crudos" DROP CONSTRAINT "sobres_crudos_origen_chk";--> statement-breakpoint
+ALTER TABLE "sobres_crudos" ADD CONSTRAINT "sobres_crudos_origen_chk" CHECK (("sobres_crudos"."origen" IN ('formulario', 'form30x_api') AND "sobres_crudos"."source_id" IS NOT NULL) OR ("sobres_crudos"."origen" = 'calendly' AND "sobres_crudos"."source_id" IS NULL));
