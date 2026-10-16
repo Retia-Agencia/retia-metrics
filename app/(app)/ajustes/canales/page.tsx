@@ -1,4 +1,4 @@
-import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
+import { paginaConPautaGlobal } from "@/lib/auth/page-guards";
 import { canales as catalogoCanales } from "@/lib/catalogo/canales";
 import { db } from "@/lib/db";
 import { areas as catalogoAreas } from "@/lib/catalogo/areas";
@@ -16,7 +16,7 @@ export default async function CanalesPage({
   // Los Canales los administra quien maneja pauta (ADR 0052, ADR 0077 punto 4): el
   // paid trafficker, el gerente y el developer. La guarda admite esos roles base y
   // `manejaPauta` sobre el ROL DE VISTA cierra la vista `closer` (ADR 0025, ADR 0028).
-  await paginaConAdministracionGlobal();
+  await paginaConPautaGlobal();
   const { desde } = await searchParams;
 
   const [filas, todasLasAreas] = await Promise.all([

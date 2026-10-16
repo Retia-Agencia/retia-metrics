@@ -1,4 +1,4 @@
-import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
+import { paginaConPautaGlobal } from "@/lib/auth/page-guards";
 import {
   cuentasVinculadas,
   estadoConexionMeta,
@@ -26,7 +26,7 @@ function agruparPorPrograma(cuentas: CuentaVinculada[]) {
 }
 
 export default async function MetaPage() {
-  await paginaConAdministracionGlobal();
+  await paginaConPautaGlobal();
   const [estado, cuentas, ultima] = await Promise.all([
     estadoConexionMeta(db),
     cuentasVinculadas(db),

@@ -92,7 +92,18 @@ export function administraGlobal({
   rol: Rol | undefined | null;
   alcanceLimitado: boolean;
 }): boolean {
-  return esAccesoTotal(rol) || (tieneAlcanceConfigurable(rol) && !alcanceLimitado);
+  return esAccesoTotal(rol) || (esAdministrador(rol) && !alcanceLimitado);
+}
+
+/** Quien administra la configuración global de pauta (Canales y Meta, ADR 0094). */
+export function manejaPautaGlobal({
+  rol,
+  alcanceLimitado,
+}: {
+  rol: Rol | undefined | null;
+  alcanceLimitado: boolean;
+}): boolean {
+  return esAccesoTotal(rol) || ((esAdministrador(rol) || manejaPauta(rol)) && !alcanceLimitado);
 }
 
 /** El dueño de la membresía o quien administra puede cambiarla (ADR 0074). */

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { cohorts, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { cohorts, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -32,9 +32,17 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let gerenteId: string;
 let programId: string;
+let programaAjenoId: string;
+let developerId: string;
 
 const sesionGerente = {
-  user: { id: "", email: "gerente@retiagrowth.com", rol: "gerente", closerId: null },
+  user: { id: "", email: "gerente@retiagrowth.com", rol: "gerente", closerId: null, alcanceLimitado: false },
+};
+const sesionGerenteLimitado = {
+  user: { ...sesionGerente.user, alcanceLimitado: true },
+};
+const sesionDeveloper = {
+  user: { id: "", email: "developer@retiagrowth.com", rol: "developer", closerId: null, alcanceLimitado: false },
 };
 const sesionCloser = {
   user: { id: "u-2", email: "closer@retiagrowth.com", rol: "closer", closerId: "andrea" },
@@ -55,11 +63,23 @@ beforeEach(async () => {
     .returning();
   gerenteId = g.id;
   sesionGerente.user.id = gerenteId;
+  sesionGerenteLimitado.user.id = gerenteId;
   const [p] = await db
     .insert(programs)
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
     .returning();
   programId = p.id;
+  const [ajeno] = await db
+    .insert(programs)
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-ajeno", nombre: "Programa Ajeno", ticketUsd: "1500" })
+    .returning();
+  programaAjenoId = ajeno.id;
+  const [developer] = await db
+    .insert(users)
+    .values({ email: sesionDeveloper.user.email, rol: "developer", nombre: "Developer" })
+    .returning();
+  developerId = developer.id;
+  sesionDeveloper.user.id = developerId;
 });
 
 afterAll(async () => {
@@ -207,6 +227,13 @@ describe("acciones de programas — el gerente administra", () => {
     expect(programa.activo).toBe(false);
   });
 
+  it("un programa INACTIVO se sigue configurando: la reja de alcance no mira si esta activo (ADR 0094)", async () => {
+    const { crearCohorteAccion } = await acciones();
+    await db.update(programs).set({ activo: false }).where(eq(programs.id, programId));
+    const resultado = await crearCohorteAccion("programa-a", { ...cohorteValida, codigo: "INACT", programId });
+    expect(resultado).toEqual({ ok: true });
+  });
+
   it("esquemaPrograma acepta diasSinActividad y rechaza cero", async () => {
     const { esquemaPrograma } = await import("@/lib/catalogo/programas");
     expect(esquemaPrograma.parse({ ...programaValido, diasSinActividad: "9" }).diasSinActividad).toBe(9);
@@ -230,5 +257,54 @@ describe("acciones de programas — el gerente administra", () => {
     const res = await activarCohorteAccion("programa-a", c2.id);
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.toLowerCase()).toContain("activa");
+  });
+});
+
+describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094)", () => {
+  beforeEach(async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId });
+    auth.mockResolvedValue(sesionGerenteLimitado);
+  });
+
+  it("un gerente limitado no crea programas", async () => {
+    const { crearProgramaInactivoAccion } = await acciones();
+    expect((await crearProgramaInactivoAccion({ nombre: "Forjado", slug: "forjado", ticketUsd: "100" })).ok).toBe(false);
+    expect(await db.select().from(programs).where(eq(programs.slug, "forjado"))).toHaveLength(0);
+  });
+
+  it("rechaza programa, cohorte, membresía y plantilla ajenos sin cambiar la base", async () => {
+    const [miembro] = await db
+      .insert(users)
+      .values({ email: "miembro@retiagrowth.com", rol: "closer", nombre: "Miembro" })
+      .returning();
+    const [membresia] = await db
+      .insert(miembrosPrograma)
+      .values({ userId: miembro.id, programId: programaAjenoId })
+      .returning();
+    const [cohorte] = await db
+      .insert(cohorts)
+      .values({ ...cohorteValida, programId: programaAjenoId, codigo: "AJENA", estado: "futuro" })
+      .returning();
+    const { editarProgramaAccion, editarCohorteAccion, quitarDelProgramaAccion } = await acciones();
+    const { editarPlantillaLeadAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-fuentes");
+
+    expect((await editarProgramaAccion(programaAjenoId, { ...programaValido, slug: "programa-ajeno" }, "")).ok).toBe(false);
+    expect((await editarCohorteAccion("slug-forjado", cohorte.id, { ...cohorteValida, programId: programaAjenoId, codigo: "CAMBIO", estado: "futuro" })).ok).toBe(false);
+    expect((await quitarDelProgramaAccion({ userId: miembro.id, programId: programaAjenoId })).ok).toBe(false);
+    expect((await editarPlantillaLeadAccion(programaAjenoId, { correo: "Email forjado" })).ok).toBe(false);
+
+    const [programa] = await db.select().from(programs).where(eq(programs.id, programaAjenoId));
+    const [cohorteDespues] = await db.select().from(cohorts).where(eq(cohorts.id, cohorte.id));
+    const [membresiaDespues] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresia.id));
+    expect(programa.nombre).toBe("Programa Ajeno");
+    expect(programa.plantillaLead).toEqual({});
+    expect(cohorteDespues.codigo).toBe("AJENA");
+    expect(membresiaDespues.activo).toBe(true);
+  });
+
+  it("el developer conserva la creación global", async () => {
+    auth.mockResolvedValue(sesionDeveloper);
+    const { crearProgramaInactivoAccion } = await acciones();
+    expect((await crearProgramaInactivoAccion({ nombre: "Dev", slug: "dev", ticketUsd: "100" })).ok).toBe(true);
   });
 });

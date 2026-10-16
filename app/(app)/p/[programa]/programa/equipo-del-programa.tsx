@@ -34,11 +34,13 @@ export function EquipoDelPrograma({
   programa,
   membresias,
   elegibles,
+  puedeAgregar,
   cuentas,
 }: {
   programa: { id: string; nombre: string };
   membresias: MembresiaConCalendly[];
   elegibles: UsuarioElegible[];
+  puedeAgregar: boolean;
   cuentas: Record<string, CuentasDelPrograma>;
 }) {
   const router = useRouter();
@@ -107,7 +109,7 @@ export function EquipoDelPrograma({
         </>
       )}
 
-      {elegibles.length > 0 ? (
+      {puedeAgregar && elegibles.length > 0 ? (
         <div className="flex flex-col gap-2 sm:flex-row">
           <Select
             value={userId}

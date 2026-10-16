@@ -5,6 +5,7 @@ import { auth } from "./index";
 import {
   AuthenticationError,
   administraGlobal,
+  manejaPautaGlobal,
   AuthorizationError,
   etiquetaDeRol,
   puedeAcceder,
@@ -126,6 +127,16 @@ export async function requireAdministracionGlobal(): Promise<Session> {
   const rol = await rolDeVista(session);
   if (!administraGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
     throw new AuthorizationError("No tienes permiso para administrar la configuración global.");
+  }
+  return session;
+}
+
+/** Guarda de servidor para Canales y Meta, sin ampliar el resto de Ajustes. */
+export async function requirePautaGlobal(): Promise<Session> {
+  const session = await requireSession();
+  const rol = await rolDeVista(session);
+  if (!manejaPautaGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
+    throw new AuthorizationError("No tienes permiso para administrar la configuración global de pauta.");
   }
   return session;
 }

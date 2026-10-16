@@ -1,10 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdministracionGlobal } from "@/lib/auth/guards";
-import { esAccesoTotal } from "@/lib/auth/roles";
+import { eq } from "drizzle-orm";
+import { requireAdministracionGlobal, requireRole } from "@/lib/auth/guards";
+import { programaEnAlcance } from "@/lib/auth/alcance";
+import { esAccesoTotal, esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
+import { miembrosPrograma } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import {
   asignarCalendlyDeMembresia,
@@ -105,7 +108,16 @@ export async function asignarCalendlyDeMembresiaAccion(
   input: EntradaCalendlyDeMembresia,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireAdministracionGlobal();
+    const session = await requireRole("gerente");
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    const [membresia] = await db
+      .select({ programId: miembrosPrograma.programId })
+      .from(miembrosPrograma)
+      .where(eq(miembrosPrograma.id, input.membresiaId));
+    if (!membresia || !(await programaEnAlcance(session.user.id, rol, membresia.programId, db))) {
+      throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    }
     await asignarCalendlyDeMembresia(db, session.user.id, input);
     revalidar();
     return { ok: true };

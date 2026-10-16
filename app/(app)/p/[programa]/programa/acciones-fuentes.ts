@@ -2,10 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import type { Session } from "next-auth";
+import { eq } from "drizzle-orm";
 import { requireRole } from "@/lib/auth/guards";
+import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
+import { programs, sources } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import {
   activarFuente,
@@ -64,6 +67,22 @@ async function actorDe(session: Session): Promise<Actor> {
   return { id: session.user.id, rol };
 }
 
+async function exigirProgramaVisible(session: Session, actor: Actor, programId: string | undefined): Promise<void> {
+  // Igual que en acciones-programa.ts: la fuente de un programa inactivo tambien se configura.
+  if (!programId) throw new ErrorDeApp("No existe la fuente.", 404);
+  await exigirAccesoAlPrograma(db, { id: session.user.id, rol: actor.rol }, programId, "No puedes administrar este programa.");
+}
+
+async function exigirProgramaPorId(session: Session, actor: Actor, id: string): Promise<void> {
+  const [programa] = await db.select({ programId: programs.id }).from(programs).where(eq(programs.id, id));
+  await exigirProgramaVisible(session, actor, programa?.programId);
+}
+
+async function exigirProgramaDeFuente(session: Session, actor: Actor, id: string): Promise<void> {
+  const [fuente] = await db.select({ programId: sources.programId }).from(sources).where(eq(sources.id, id));
+  await exigirProgramaVisible(session, actor, fuente?.programId);
+}
+
 /** Revalida la pantalla de fuentes tras una escritura. */
 function revalidar() {
   revalidatePath("/p/[programa]/programa", "page");
@@ -72,7 +91,9 @@ function revalidar() {
 export async function crearFuenteAccion(input: EntradaFuente): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await crearFuente(db, await actorDe(session), input);
+    const actor = await actorDe(session);
+    await exigirProgramaPorId(session, actor, input.programId);
+    await crearFuente(db, actor, input);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -86,7 +107,9 @@ export async function editarFuenteAccion(
 ): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await editarFuente(db, await actorDe(session), id, input);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    await editarFuente(db, actor, id, input);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -102,7 +125,9 @@ export async function editarFuenteAccion(
 export async function probarFuenteAccion(id: string): Promise<ResultadoPrueba> {
   try {
     const session = await requireRole("gerente");
-    const { columnas } = await probarFuente(db, await actorDe(session), id);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    const { columnas } = await probarFuente(db, actor, id);
     return { ok: true, columnas };
   } catch (error) {
     return aResultado(error);
@@ -116,7 +141,9 @@ export async function probarFuenteAccion(id: string): Promise<ResultadoPrueba> {
 export async function activarFuenteAccion(id: string): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await activarFuente(db, await actorDe(session), id);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    await activarFuente(db, actor, id);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -131,7 +158,9 @@ export async function activarFuenteAccion(id: string): Promise<ResultadoAccion> 
 export async function rotarSecretoFuenteAccion(id: string): Promise<ResultadoSecreto> {
   try {
     const session = await requireRole("gerente");
-    const secreto = await rotarSecretoDeFuente(db, await actorDe(session), id);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    const secreto = await rotarSecretoDeFuente(db, actor, id);
     revalidar();
     return { ok: true, secreto };
   } catch (error) {
@@ -143,7 +172,9 @@ export async function rotarSecretoFuenteAccion(id: string): Promise<ResultadoSec
 export async function guardarSecretoFuenteAccion(id: string, secreto: string): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await guardarSecretoDeFuente(db, await actorDe(session), id, secreto);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    await guardarSecretoDeFuente(db, actor, id, secreto);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -158,7 +189,9 @@ export async function guardarSecretoFuenteAccion(id: string, secreto: string): P
 export async function guardarTokenTypeformAccion(id: string, token: string): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await guardarTokenTypeform(db, await actorDe(session), id, token);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    await guardarTokenTypeform(db, actor, id, token);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -169,7 +202,9 @@ export async function guardarTokenTypeformAccion(id: string, token: string): Pro
 export async function desactivarFuenteAccion(id: string): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await desactivarFuente(db, await actorDe(session), id);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    await desactivarFuente(db, actor, id);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -184,7 +219,9 @@ export async function desactivarFuenteAccion(id: string): Promise<ResultadoAccio
 export async function marcarFuentePrincipalAccion(id: string): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
-    await marcarFuentePrincipal(db, await actorDe(session), id);
+    const actor = await actorDe(session);
+    await exigirProgramaDeFuente(session, actor, id);
+    await marcarFuentePrincipal(db, actor, id);
     revalidar();
     revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
@@ -204,6 +241,8 @@ export async function editarPlantillaLeadAccion(
 ): Promise<ResultadoAccion> {
   try {
     const session = await requireRole("gerente");
+    const actor = await actorDe(session);
+    await exigirProgramaPorId(session, actor, programId);
     await editarPlantillaLead(db, session.user.id, programId, plantilla);
     revalidar();
     return { ok: true };

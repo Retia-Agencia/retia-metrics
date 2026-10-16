@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { configuraPrograma, editaObjetivo, leePrograma, veEquipoComercial, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, configuraPrograma, editaObjetivo, leePrograma, veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
@@ -112,6 +112,10 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
 
   const presentacion = presentacionDeLaFicha(rol);
   const { configura } = presentacion;
+  const puedeAgregarMiembros = administraGlobal({
+    rol,
+    alcanceLimitado: session.user.alcanceLimitado,
+  });
   const query = await searchParams;
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
     ficha;
@@ -135,7 +139,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     ? await Promise.all([
         fuentesDelProgramaParaAdmin(programa.id, db),
         membresiasConCalendly(db, programa.id),
-        listarUsuarios(db),
+        puedeAgregarMiembros ? listarUsuarios(db) : Promise.resolve([]),
         cuentasPorPrograma(db, [programa.id]),
       ])
     : [null, [], [], {}];
@@ -435,6 +439,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       programa={{ id: programa.id, nombre: programa.nombre }}
                       membresias={membresias}
                       elegibles={elegibles}
+                      puedeAgregar={puedeAgregarMiembros}
                       cuentas={cuentas}
                     />
                   ) : equipo.length === 0 ? (

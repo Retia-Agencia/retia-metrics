@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdministracionGlobal } from "@/lib/auth/guards";
+import { requirePautaGlobal } from "@/lib/auth/guards";
 import { guardarTokenMeta, tokenActivoMeta } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -14,7 +14,7 @@ export type ResultadoGuardarMeta =
 
 export async function guardarTokenMetaAccion(token: string): Promise<ResultadoGuardarMeta> {
   try {
-    const session = await requireAdministracionGlobal();
+    const session = await requirePautaGlobal();
     const resultado = await guardarTokenMeta(db, session.user.id, token);
     revalidatePath("/ajustes/meta");
     return { ok: true, ...resultado };
@@ -33,7 +33,7 @@ export type ResultadoSincronizarMeta =
 
 export async function sincronizarMetaAccion(): Promise<ResultadoSincronizarMeta> {
   try {
-    await requireAdministracionGlobal();
+    await requirePautaGlobal();
     const resumen = await sincronizarPauta(db, {
       token: await tokenActivoMeta(db),
       hoy: hoyEnBogota(),

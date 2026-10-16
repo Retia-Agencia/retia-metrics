@@ -1,10 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth/guards";
+import { and, eq } from "drizzle-orm";
+import type { Session } from "next-auth";
+import { requireAdministracionGlobal, requireRole } from "@/lib/auth/guards";
+import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
+import { cohorts, miembrosPrograma, programs } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import {
   crearPrograma,
@@ -59,6 +63,44 @@ function revalidarNav() {
   revalidatePath("/p/[programa]/programa", "page");
 }
 
+async function actorGerente(): Promise<{ session: Session; rol: NonNullable<Awaited<ReturnType<typeof rolDeVista>>> }> {
+  const session = await requireRole("gerente");
+  const rol = await rolDeVista(session);
+  if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+  return { session, rol };
+}
+
+async function exigirProgramaVisible(
+  actor: Awaited<ReturnType<typeof actorGerente>>,
+  programId: string | undefined,
+): Promise<void> {
+  // `exigirAccesoAlPrograma` y no `programaEnAlcance`: este decide por alcance sin mirar si el
+  // programa esta activo, y la ficha configura y activa programas inactivos (ADR 0094 punto 4).
+  if (!programId) throw new ErrorDeApp("No existe el programa.", 404);
+  await exigirAccesoAlPrograma(db, { id: actor.session.user.id, rol: actor.rol }, programId, "No puedes administrar este programa.");
+}
+
+async function exigirProgramaPorId(actor: Awaited<ReturnType<typeof actorGerente>>, id: string): Promise<void> {
+  const [programa] = await db.select({ programId: programs.id }).from(programs).where(eq(programs.id, id));
+  await exigirProgramaVisible(actor, programa?.programId);
+}
+
+async function exigirProgramaDeCohorte(actor: Awaited<ReturnType<typeof actorGerente>>, id: string): Promise<void> {
+  const [cohorte] = await db.select({ programId: cohorts.programId }).from(cohorts).where(eq(cohorts.id, id));
+  await exigirProgramaVisible(actor, cohorte?.programId);
+}
+
+async function exigirProgramaDeMembresia(
+  actor: Awaited<ReturnType<typeof actorGerente>>,
+  input: { userId: string; programId: string },
+): Promise<void> {
+  const [membresia] = await db
+    .select({ programId: miembrosPrograma.programId })
+    .from(miembrosPrograma)
+    .where(and(eq(miembrosPrograma.userId, input.userId), eq(miembrosPrograma.programId, input.programId)));
+  await exigirProgramaVisible(actor, membresia?.programId);
+}
+
 type EntradaProgramaNuevo = Pick<EntradaPrograma, "nombre" | "slug" | "ticketUsd">;
 type ResultadoCreacion = { ok: true; slug: string } | { ok: false; error: string };
 
@@ -67,7 +109,7 @@ export async function crearProgramaInactivoAccion(
   input: EntradaProgramaNuevo,
 ): Promise<ResultadoCreacion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     const programa = await crearPrograma(db, session.user.id, input);
     revalidarNav();
     return { ok: true, slug: String(programa.slug) };
@@ -89,7 +131,7 @@ export async function crearProgramaAccion(
   tokenCalendly: string,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     const programa = await crearPrograma(db, session.user.id, input);
     await guardarTokenCalendly(db, session.user.id, programa.id, tokenCalendly);
     revalidarNav();
@@ -109,7 +151,8 @@ export async function editarProgramaAccion(
   tokenCalendly: string,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const { session, ...actor } = await actorGerente();
+    await exigirProgramaPorId({ session, ...actor }, id);
     await editarPrograma(db, session.user.id, id, input);
     if (tokenCalendly.trim()) {
       await guardarTokenCalendly(db, session.user.id, id, tokenCalendly);
@@ -123,7 +166,8 @@ export async function editarProgramaAccion(
 
 export async function desactivarProgramaAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const { session, ...actor } = await actorGerente();
+    await exigirProgramaPorId({ session, ...actor }, id);
     await desactivarPrograma(db, session.user.id, id);
     revalidarNav();
     return { ok: true };
@@ -134,7 +178,8 @@ export async function desactivarProgramaAccion(id: string): Promise<ResultadoAcc
 
 export async function reactivarProgramaAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const { session, ...actor } = await actorGerente();
+    await exigirProgramaPorId({ session, ...actor }, id);
     await reactivarPrograma(db, session.user.id, id);
     revalidarNav();
     return { ok: true };
@@ -146,7 +191,8 @@ export async function reactivarProgramaAccion(id: string): Promise<ResultadoAcci
 /** La ficha vuelve a comprobar todos los requisitos antes de activar. */
 export async function activarProgramaDesdeFichaAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const { session, ...actor } = await actorGerente();
+    await exigirProgramaPorId({ session, ...actor }, id);
     const ficha = await fichaDelPrograma(id, db);
     if (!ficha) throw new ErrorDeApp("No existe el programa.", 404);
     const faltan = faltaParaActivar(ficha.programa);
@@ -169,7 +215,7 @@ export async function agregarAlProgramaAccion(input: {
   programId: string;
 }): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionGlobal();
     await agregarMembresia(db, session.user.id, input.userId, input.programId);
     revalidarNav();
     return { ok: true };
@@ -183,7 +229,9 @@ export async function quitarDelProgramaAccion(input: {
   programId: string;
 }): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const actor = await actorGerente();
+    await exigirProgramaDeMembresia(actor, input);
+    const { session } = actor;
     await quitarMembresia(db, session.user.id, input.userId, input.programId);
     revalidarNav();
     return { ok: true };
@@ -197,9 +245,10 @@ export async function marcarSetterPorDefectoAccion(input: {
   userId: string | null;
 }): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
-    const rol = await rolDeVista(session);
-    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    const actor = await actorGerente();
+    if (input.userId) await exigirProgramaDeMembresia(actor, { userId: input.userId, programId: input.programId });
+    else await exigirProgramaPorId(actor, input.programId);
+    const { session, rol } = actor;
     await marcarSetterPorDefecto(db, { userId: session.user.id, rol }, input);
     revalidarNav();
     return { ok: true };
@@ -215,7 +264,9 @@ export async function marcarSetterPorDefectoAccion(input: {
  */
 export async function conectarCalendlyAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const actor = await actorGerente();
+    await exigirProgramaPorId(actor, id);
+    const { session } = actor;
     await conectarCalendly(db, session.user.id, id, { urlBase: process.env.AUTH_URL });
     revalidarNav();
     return { ok: true };
@@ -231,7 +282,9 @@ export async function crearCohorteAccion(
   input: EntradaCohorte,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const actor = await actorGerente();
+    await exigirProgramaPorId(actor, input.programId);
+    const { session } = actor;
     await crearCohorte(db, session.user.id, input);
     revalidarNav();
     return { ok: true };
@@ -246,7 +299,9 @@ export async function editarCohorteAccion(
   input: EntradaCohorte,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const actor = await actorGerente();
+    await exigirProgramaDeCohorte(actor, id);
+    const { session } = actor;
     await editarCohorte(db, session.user.id, id, input);
     revalidarNav();
     return { ok: true };
@@ -257,7 +312,9 @@ export async function editarCohorteAccion(
 
 export async function activarCohorteAccion(slug: string, id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const actor = await actorGerente();
+    await exigirProgramaDeCohorte(actor, id);
+    const { session } = actor;
     await activarCohorte(db, session.user.id, id);
     revalidarNav();
     return { ok: true };
@@ -268,7 +325,9 @@ export async function activarCohorteAccion(slug: string, id: string): Promise<Re
 
 export async function desactivarCohorteAccion(slug: string, id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const actor = await actorGerente();
+    await exigirProgramaDeCohorte(actor, id);
+    const { session } = actor;
     await desactivarCohorte(db, session.user.id, id);
     revalidarNav();
     return { ok: true };

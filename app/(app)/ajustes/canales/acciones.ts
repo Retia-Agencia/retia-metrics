@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { requireAdministracionGlobal } from "@/lib/auth/guards";
+import { requirePautaGlobal } from "@/lib/auth/guards";
 import { canales, esquemaCanal, type EntradaCanal } from "@/lib/catalogo/canales";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
@@ -25,7 +25,7 @@ function errorSeguro(error: unknown): { ok: false; error: string } {
  * y la regla vale aunque el boton no aparezca: esta accion se puede forjar.
  */
 async function actorDePauta(): Promise<string> {
-  const session = await requireAdministracionGlobal();
+  const session = await requirePautaGlobal();
   return session.user.id;
 }
 

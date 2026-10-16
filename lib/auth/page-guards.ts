@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
-import { administraGlobal, puedeAcceder, type Rol } from "./roles";
+import { administraGlobal, manejaPautaGlobal, puedeAcceder, type Rol } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
 import { rutaInicial } from "@/lib/nav";
 import { programasVisibles } from "@/lib/auth/alcance";
@@ -68,6 +68,16 @@ export async function paginaConAdministracionGlobal(): Promise<Session> {
   const session = await paginaConSesion();
   const rol = await rolDeVista(session);
   if (!administraGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
+    redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
+  }
+  return session;
+}
+
+/** Índice de Ajustes, Canales y Meta: pauta global conserva su acceso histórico. */
+export async function paginaConPautaGlobal(): Promise<Session> {
+  const session = await paginaConSesion();
+  const rol = await rolDeVista(session);
+  if (!manejaPautaGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
     redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
   }
   return session;

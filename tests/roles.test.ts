@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
 const sujeto = (rol: Rol | null | undefined, operaComoCloser = false) => ({ rol, operaComoCloser });
 
 describe("administraGlobal (ADR 0094, ticket 273)", () => {
-  it("aplica alcance a gerente y paid trafficker, nunca al developer", () => {
+  it("solo el gerente sin límite y el developer administran globalmente", () => {
     for (const alcanceLimitado of [false, true]) {
       expect(administraGlobal({ rol: "developer", alcanceLimitado })).toBe(true);
       expect(administraGlobal({ rol: "closer", alcanceLimitado })).toBe(false);
@@ -14,8 +14,18 @@ describe("administraGlobal (ADR 0094, ticket 273)", () => {
     }
     expect(administraGlobal({ rol: "gerente", alcanceLimitado: false })).toBe(true);
     expect(administraGlobal({ rol: "gerente", alcanceLimitado: true })).toBe(false);
-    expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: false })).toBe(true);
+    expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: false })).toBe(false);
     expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: true })).toBe(false);
+  });
+});
+
+describe("manejaPautaGlobal (ADR 0094, ticket 273)", () => {
+  it("conserva Canales y Meta para pauta sin límite, nunca con alcance limitado", () => {
+    expect(manejaPautaGlobal({ rol: "paid_trafficker", alcanceLimitado: false })).toBe(true);
+    expect(manejaPautaGlobal({ rol: "paid_trafficker", alcanceLimitado: true })).toBe(false);
+    expect(manejaPautaGlobal({ rol: "gerente", alcanceLimitado: false })).toBe(true);
+    expect(manejaPautaGlobal({ rol: "gerente", alcanceLimitado: true })).toBe(false);
+    expect(manejaPautaGlobal({ rol: "developer", alcanceLimitado: true })).toBe(true);
   });
 });
 

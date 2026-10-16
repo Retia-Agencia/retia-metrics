@@ -49,6 +49,9 @@ const sesionCloser = {
 const sesionDeveloper = {
   user: { id: "", email: "dev@retiagrowth.com", rol: "developer", closerId: null },
 };
+const sesionPaidTrafficker = {
+  user: { id: "", email: "pauta@retiagrowth.com", rol: "paid_trafficker", closerId: null, alcanceLimitado: false },
+};
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -73,6 +76,34 @@ beforeEach(async () => {
     .values({ email: sesionDeveloper.user.email, rol: "developer" })
     .returning();
   sesionDeveloper.user.id = developer.id;
+  const [paidTrafficker] = await db
+    .insert(users)
+    .values({ email: sesionPaidTrafficker.user.email, rol: "paid_trafficker" })
+    .returning();
+  sesionPaidTrafficker.user.id = paidTrafficker.id;
+});
+
+describe("paid trafficker no administra usuarios (ADR 0094)", () => {
+  it("no puede cambiar un rol a developer y la fila queda igual", async () => {
+    const [objetivo] = await db
+      .insert(users)
+      .values({ email: "objetivo@retiagrowth.com", rol: "closer", nombre: "Objetivo" })
+      .returning();
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const { editarUsuarioAccion } = await acciones();
+
+    const resultado = await editarUsuarioAccion(objetivo.id, {
+      email: objetivo.email,
+      nombre: objetivo.nombre ?? "",
+      rol: "developer",
+      closerId: "",
+      programas: [],
+    });
+
+    expect(resultado).toMatchObject({ ok: false });
+    const [despues] = await db.select().from(users).where(eq(users.id, objetivo.id));
+    expect(despues.rol).toBe("closer");
+  });
 });
 
 afterAll(async () => {
