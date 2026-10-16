@@ -107,6 +107,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 071 | [El Inbox (antes Mis deals)](./071-mi-dia-del-closer.md) (E6-3) | 069, 061, 070, 096, 097 | done · 29-sep · código en `main`; recorrido visual funcional a 390 px realizado con consola y estados/interacciones revisados |
 | [x] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | done · `cp-20261002-4` · 2-oct · Mani · "se perdió en el Calendly" arriba del Inbox (D-7 del ADR 0071) |
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
+| [ ] | 275 | [Export CSV de los links de Grain](./275-export-csv-de-grain.md) | 098 | en curso · 16-oct · Codex terminó en la rama `t275`, typecheck y lint limpios; falta commit, merge y CI |
 | [ ] | 270 | [La auditoría de Calendly en Webhook Health](./270-auditoria-de-calendly.md) | 096, 110 | en curso · 15-oct · en `main` (`267d514`), falta checkpoint · con datos reales: hoy 0 faltantes y suscripciones activas; el 4 y 6-oct quedaron 6 citas sin llamada por el corte del 203, creadas como Cerrada en su deal con el ok de Mani |
 | [x] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | done · `40aeff2` · `cp-20261009-1` · 8-oct · tests de la transacción, 409 sin escribir nada, 404 ajeno y lead reutilizado; el 409 ofrece "Asignar a un deal" · A-108 resuelta · cerrado en el tracker el 15-oct |
 | [x] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | done · `40aeff2` · `cp-20261009-1` · 8-oct · el test va por `ingerirEntradas` (el escritor que llama el webhook), no por la ruta HTTP · A-109 resuelta · cerrado en el tracker el 15-oct |
@@ -114,7 +115,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 4 · Llamadas y Calendly
 
-16 tickets, 3 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+17 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -213,6 +214,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 261 | [Un rojo del semáforo se cierra con una acción](./261-un-rojo-se-cierra-con-una-accion.md) | 257, 258 | todo · migración |
 | [x] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | done · 15-oct · Codex + central · CI verde `93f6966` · falta que Mani lo valide llenándolo · sin migración (Mani, 15-oct) |
 | [x] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | done · 15-oct · Codex + central · `237ff93` · 0085 y 0086 (RLS) aplicadas en producción (ok de Mani) · CI verde `84ab927` · ADR 0089 enmendado 15-oct |
+| [ ] | 276 | [La salud de las cuentas de Meta](./276-salud-de-las-cuentas-de-meta.md) | 119 | todo · 16-oct · señal medida (`account_status`, tope y saldo); falta decidir si va a Juanito, al Hub o a los dos, y por qué el token lista 4 cuentas y no 7 |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 

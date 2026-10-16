@@ -27,6 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-16 (tarde): export CSV de Grain (275) y salud de las cuentas de Meta (276).** El **275** (botón
+  "Descargar Grain (CSV)" en Calls: las llamadas con Grain que muestra la lista con los filtros de la URL, sin paginar)
+  lo implementó Codex en la rama `t275` (worktree `.claude/worktrees/t275`): la lectura de filtros de Calls pasó a
+  `filtroDeLlamadasDesdeUrl` (`lib/queries/llamadas.ts`), `tieneGrain` vive en `lib/queries/sin-grain.ts` y el CSV
+  en `lib/llamadas/csv-grain.ts` (BOM, CRLF, inyección de fórmulas neutralizada). Typecheck y lint limpios; Codex pasó
+  17 tests; la sesión no corrió tests ni build (11 GB de swap). **Sin commit, sin merge**: falta el ok de Mani y el
+  CI. El **276** queda anotado, sin construir: la API de Meta da `account_status` (3 = pago sin liquidar, 2 =
+  deshabilitada, 9 = gracia), tope y saldo con `ads_read`; el destino (Juanito o Hub) está por decidir, y
+  `/me/adaccounts` lista 4 cuentas, no las 7 que dice AGENTS.md.
 - **2026-10-16 (mañana): estado de SBJ revisado contra la base; docs al día.** El cron de Form30x ya es confiable:
   pg_cron (`leer-form30x`) salió bien a las 14:13 y 14:43 UTC y `form30x_leido_en` se actualiza. El programa está
   activo, con token de Calendly y la fuente Form30x activa y principal. Falta lo único que bloquea avisar en "Core
