@@ -108,6 +108,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 118 | ["Se perdió en el Calendly": urgente arriba del Inbox](./118-se-perdio-en-el-calendly.md) | 117 | done · `cp-20261002-4` · 2-oct · Mani · "se perdió en el Calendly" arriba del Inbox (D-7 del ADR 0071) |
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 | [x] | 275 | [Export CSV de los links de Grain](./275-export-csv-de-grain.md) | 098 | done · 16-oct · `d401229`, CI verde en `3b0795f` · recorrido local: gerente baja 6 de 6 con Grain (BOM, 404 a programa inexistente), closer solo lo suyo e ignora `?closer=` ajeno, filtros de fecha iguales a la lista; consola y servidor limpios |
+| [ ] | 277 | [Calls: fecha por llamada o por agenda, y filtro de cohorte](./277-calls-fecha-por-llamada-o-agenda-y-cohorte.md) | 275 | en curso · 16-oct · Codex, rama `t277`; typecheck, lint y build limpios; falta CI y recorrido |
 | [ ] | 270 | [La auditoría de Calendly en Webhook Health](./270-auditoria-de-calendly.md) | 096, 110 | en curso · 15-oct · en `main` (`267d514`), falta checkpoint · con datos reales: hoy 0 faltantes y suscripciones activas; el 4 y 6-oct quedaron 6 citas sin llamada por el corte del 203, creadas como Cerrada en su deal con el ok de Mani |
 | [x] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | done · `40aeff2` · `cp-20261009-1` · 8-oct · tests de la transacción, 409 sin escribir nada, 404 ajeno y lead reutilizado; el 409 ofrece "Asignar a un deal" · A-108 resuelta · cerrado en el tracker el 15-oct |
 | [x] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | done · `40aeff2` · `cp-20261009-1` · 8-oct · el test va por `ingerirEntradas` (el escritor que llama el webhook), no por la ruta HTTP · A-109 resuelta · cerrado en el tracker el 15-oct |
@@ -115,7 +116,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 4 · Llamadas y Calendly
 
-17 tickets, 3 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+18 tickets, 4 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
