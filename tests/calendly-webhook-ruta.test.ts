@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { calls, deals, entregasWebhook, leads, miembrosPrograma, notificacionesCalendly, programs, sobresCrudos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
-import { reagendarLlamada } from "@/lib/deals/llamadas";
+import { agregarLlamada, reagendarLlamada } from "@/lib/deals/llamadas";
 import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -312,6 +312,54 @@ describe("reagenda: la MISMA llamada, en los dos ordenes", () => {
       origen: "crm",
       huellaFila: "calendly:NUEVA",
       closerUserId: maru,
+    });
+    expect(todas.filter((call) => call.resultado === "agendada" && call.anuladoEn == null)).toHaveLength(1);
+  });
+
+  it("adopta la cita CRM creada por el closer después de marcar la anterior como no-show", async () => {
+    await enviar(creado("VIEJA"));
+    const [vieja] = await llamadas();
+    await enviar(noShow("VIEJA"));
+    const crm = await agregarLlamada(
+      db,
+      { userId: maru, rol: "closer", operaComoCloser: false },
+      { dealId, fechaAgenda: new Date("2026-10-05T16:00:00Z") },
+    );
+
+    await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
+
+    const todas = await llamadas();
+    expect(todas).toHaveLength(2);
+    expect(todas.find((call) => call.id === vieja.id)?.resultado).toBe("no_show");
+    expect(todas.find((call) => call.id === crm.callId)).toMatchObject({
+      resultado: "agendada",
+      origen: "crm",
+      huellaFila: "calendly:NUEVA",
+      fechaAgenda: new Date("2026-10-05T16:00:00Z"),
+    });
+    expect(todas.filter((call) => call.resultado === "agendada" && call.anuladoEn == null)).toHaveLength(1);
+  });
+
+  it("adopta la cita CRM creada por el closer después de cancelar la anterior", async () => {
+    await enviar(creado("VIEJA"));
+    const [vieja] = await llamadas();
+    await enviar(cancelado("VIEJA"));
+    const crm = await agregarLlamada(
+      db,
+      { userId: maru, rol: "closer", operaComoCloser: false },
+      { dealId, fechaAgenda: new Date("2026-10-05T16:00:00Z") },
+    );
+
+    await enviar(creado("NUEVA", { viejo: "VIEJA", inicio: "2026-10-05T16:00:00Z" }));
+
+    const todas = await llamadas();
+    expect(todas).toHaveLength(2);
+    expect(todas.find((call) => call.id === vieja.id)?.resultado).toBe("cancelada");
+    expect(todas.find((call) => call.id === crm.callId)).toMatchObject({
+      resultado: "agendada",
+      origen: "crm",
+      huellaFila: "calendly:NUEVA",
+      fechaAgenda: new Date("2026-10-05T16:00:00Z"),
     });
     expect(todas.filter((call) => call.resultado === "agendada" && call.anuladoEn == null)).toHaveLength(1);
   });
