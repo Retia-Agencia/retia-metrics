@@ -443,7 +443,23 @@ describe("semáforo del programa", () => {
     const resultado = await semaforoDelPrograma(db, {
       programId: p.programId, ahora: new Date("2026-10-19T11:00:00-05:00"), tipo: "dia",
     });
-    expect(resultado.diasSeguidosEnRojo).toBe(2);
+    expect(resultado.racha).toEqual({ color: "peligro", dias: 2 });
+  });
+
+  it("la racha sigue el color del último día cerrado, también en verde, y hoy no cuenta", async () => {
+    const p = await crearPrograma("racha-verde");
+    for (const dia of ["2026-10-18", "2026-10-17"]) {
+      await gastoCerrado(p.programId, dia, 60000);
+      await crearAgenda({ ...p, creadaEn: new Date(`${dia}T10:00:00-05:00`) });
+    }
+    await gastoCerrado(p.programId, "2026-10-16", 100000);
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-16T10:00:00-05:00") });
+    await gastoCerrado(p.programId, "2026-10-19", 100000);
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-19T10:00:00-05:00") });
+    const resultado = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-19T11:00:00-05:00"), tipo: "dia",
+    });
+    expect(resultado.racha).toEqual({ color: "exito", dias: 2 });
   });
 
   it("una agenda de otro programa nunca cuenta", async () => {

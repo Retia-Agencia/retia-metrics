@@ -27,7 +27,7 @@ const METRICA: MetricaSemaforo = {
     { hora: "09:00", gasto: 0, agendasMeta: 0, agendasCrm: 0, costo: null },
     { hora: "11:00", gasto: 120000, agendasMeta: 1, agendasCrm: 2, costo: 120000 },
   ],
-  diasSeguidosEnRojo: 3,
+  racha: { color: "peligro", dias: 3 },
   campanas: [
     { nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000 },
     { nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null },
@@ -62,7 +62,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       "• Retargeting: $200.000 COP · 0 ag · sin agendas",
       "• Prospección amplia: $109.860 COP · — ag · sin dato",
       "Ayer a esta hora: costo $100.000 COP · gasto $300.000 COP · agendas Meta 3 · CRM 2",
-      "🔴 3 días seguidos en rojo",
+      "Días cerrados: 🔴 3 seguidos en rojo",
       "⚠️ Creativo agotado",
       "",
       "CRM: https://crm.test",

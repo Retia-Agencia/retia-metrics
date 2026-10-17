@@ -11,6 +11,12 @@ const EMOJI = {
   sin_dato: "⚪",
 } as const;
 
+const NOMBRE_DEL_COLOR = {
+  exito: "verde",
+  alerta: "amarillo",
+  peligro: "rojo",
+} as const;
+
 const MOTIVO = {
   sin_cohorte: "No hay cohorte activa",
   sin_umbral: "Falta cargar la meta en el CRM",
@@ -109,9 +115,9 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   lineas.push(metrica.comparacion
     ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
     : `${etiqueta}: sin foto`);
-  if (metrica.diasSeguidosEnRojo > 0) {
-    const dias = Number(metrica.diasSeguidosEnRojo);
-    lineas.push(`🔴 ${num(dias)} ${dias === 1 ? "día seguido" : "días seguidos"} en rojo`);
+  if (metrica.racha) {
+    const { color, dias } = metrica.racha;
+    lineas.push(`Días cerrados: ${EMOJI[color]} ${num(dias)} ${dias === 1 ? "" : "seguidos "}en ${NOMBRE_DEL_COLOR[color]}`);
   }
   if (metrica.motivo) lineas.push(MOTIVO[metrica.motivo]);
   for (const nota of metrica.notas.filter((nota) => nota.tipo === "problema")) {

@@ -65,10 +65,14 @@ export async function SemaforoDelPrograma({ programId }: { programId: string }) 
             <dt className="text-muted-foreground">Agendas según Meta</dt>
             <dd className="cifra">{metrica.agendasMeta ?? "—"}</dd>
           </div>
-          {metrica.diasSeguidosEnRojo > 0 ? (
+          {metrica.racha ? (
             <div>
-              <dt className="text-muted-foreground">Días seguidos en rojo</dt>
-              <dd className="cifra">{metrica.diasSeguidosEnRojo}</dd>
+              <dt className="text-muted-foreground">Días cerrados seguidos</dt>
+              <dd>
+                <Badge variant={metrica.racha.color}>
+                  <span className="cifra">{metrica.racha.dias}</span> · {etiquetaDeColor[metrica.racha.color]}
+                </Badge>
+              </dd>
             </div>
           ) : null}
         </dl>

@@ -210,11 +210,13 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
 4. **Umbral:** el objetivo "Costo por agenda" (área Total) de la **cohorte activa** del programa, que se carga en
    Programa › Ventas › Objetivos de la cohorte: `meta` y `aceptable` en COP. Lo pueden editar quien administra y
    el paid trafficker (266).
-5. **Color** (`lib/semaforo/color.ts`): durante el día, al cierre y para "días seguidos en rojo" se compara
+5. **Color** (`lib/semaforo/color.ts`): durante el día, al cierre y para la racha de días cerrados se compara
    siempre contra el objetivo de la cohorte activa: ≤ meta 🟢; ≤ aceptable 🟡; más 🔴. Sin agendas de Meta pero
    con gasto 🔴; sin gasto ⚪; sin dato de agendas de Meta ⚪ (ADR 0088 y 0089, enmiendas del 16-oct).
-6. **Días seguidos en rojo:** cuántos días calendario anteriores cerraron en 🔴 contra el umbral **de hoy** (no el
-   que había esos días), hasta 20.
+6. **Racha de días cerrados** (`racha`, 17-oct, Mani): el color del último día cerrado (ayer) y cuántos días
+   cerrados seguidos tienen ESE mismo color (🟢, 🟡 o 🔴), contra el umbral **de hoy** (no el que había esos días),
+   hasta 20. Se corta en el primer día de otro color o ⚪, y hoy no cuenta. Antes solo contaba el rojo, y un día
+   verde con "1 día seguido en rojo" se leía como si hoy estuviera en rojo.
 - **Funciones:** `semaforoDelPrograma` en `lib/semaforo/semaforo.ts`; el texto, `armarMensaje` en
   `lib/reporte-whatsapp/mensaje.ts`.
 - **Verificar un día cerrado:**

@@ -36,6 +36,11 @@ export interface ComparacionSemaforo extends Omit<PuntoSemaforo, "hora"> {
   etiqueta: "ayer a esta hora" | "día anterior";
 }
 
+export interface RachaSemaforo {
+  color: Exclude<ColorSemaforo, "sin_dato">;
+  dias: number;
+}
+
 export interface MetricaSemaforo {
   metrica: "costo_por_agenda";
   color: ColorSemaforo;
@@ -50,7 +55,8 @@ export interface MetricaSemaforo {
   porcentajeDelUmbral: number | null;
   comparacion: ComparacionSemaforo | null;
   trayectoria: PuntoSemaforo[];
-  diasSeguidosEnRojo: number;
+  /** El color del último día cerrado y cuántos días cerrados seguidos lo repiten; null sin dato. */
+  racha: RachaSemaforo | null;
   campanas: CampanaSemaforo[];
   notas: NotaSemaforo[];
 }
@@ -120,12 +126,13 @@ async function trayectoriaDelDia(
   return puntos.filter((punto): punto is PuntoSemaforo => punto !== null).slice(-14);
 }
 
-async function diasSeguidosEnRojo(
+async function rachaDeDiasCerrados(
   db: Db,
   args: { programId: string; hoy: string; tieneCohorte: boolean; umbral: UmbralCostoPorAgenda | null },
-): Promise<number> {
+): Promise<RachaSemaforo | null> {
   let dia = diaCalendarioAnterior(args.hoy);
-  let cantidad = 0;
+  let colorDeRacha: RachaSemaforo["color"] | null = null;
+  let dias = 0;
   // La v1 compara el historial con el umbral de la cohorte activa de hoy, no con umbrales históricos.
   for (let revisados = 0; revisados < 20; revisados++) {
     const datos = await costoPorAgendaDeVentana(db, {
@@ -133,12 +140,13 @@ async function diasSeguidosEnRojo(
       desde: dia,
       hasta: dia,
     });
-    const resultado = colorDelCosto({ datos, tieneCohorte: args.tieneCohorte, umbral: args.umbral });
-    if (resultado.color !== "peligro") break;
-    cantidad += 1;
+    const { color } = colorDelCosto({ datos, tieneCohorte: args.tieneCohorte, umbral: args.umbral });
+    if (color === "sin_dato" || (colorDeRacha !== null && color !== colorDeRacha)) break;
+    colorDeRacha = color;
+    dias += 1;
     dia = diaCalendarioAnterior(dia);
   }
-  return cantidad;
+  return colorDeRacha === null ? null : { color: colorDeRacha, dias };
 }
 
 function agregarSinDuplicar(destino: NotaSemaforo[], notas: NotaSemaforo[]): void {
@@ -239,14 +247,14 @@ export async function semaforoDelPrograma(
     ? instanteDeBogota(dia, "23:59")
     : args.ahora;
   if (!ahoraTrayectoria) throw new Error("No se pudo construir el fin del día en Bogotá.");
-  const [trayectoria, diasRojos, calidad] = await Promise.all([
+  const [trayectoria, racha, calidad] = await Promise.all([
     trayectoriaDelDia(db, {
       programId: args.programId,
       dia,
       ahora: ahoraTrayectoria,
       horas: args.horas,
     }),
-    diasSeguidosEnRojo(db, { programId: args.programId, hoy, tieneCohorte, umbral }),
+    rachaDeDiasCerrados(db, { programId: args.programId, hoy, tieneCohorte, umbral }),
     notasDeCalidad(db, {
       programId: args.programId,
       hoy: dia,
@@ -278,7 +286,7 @@ export async function semaforoDelPrograma(
       etiqueta: args.tipo === "cierre" ? "día anterior" : "ayer a esta hora",
     } : null,
     trayectoria,
-    diasSeguidosEnRojo: diasRojos,
+    racha,
     campanas: datos.campanas,
     notas,
   };

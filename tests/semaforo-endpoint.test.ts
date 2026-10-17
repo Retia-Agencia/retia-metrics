@@ -330,7 +330,7 @@ const LLAVES_PERMITIDAS = new Set([
   "bloques", "programa", "tipo", "hora", "enlaceHub", "metricas", "cuentasMeta", "detalle", "error", "horas",
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendasCrm", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "comparacion", "dia", "etiqueta",
-  "trayectoria", "diasSeguidosEnRojo", "agendasMeta", "campanas", "nombre", "notas", "texto", "destino",
+  "trayectoria", "racha", "dias", "agendasMeta", "campanas", "nombre", "notas", "texto", "destino",
 ]);
 
 function exigirListaBlanca(valor: unknown): void {
