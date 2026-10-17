@@ -154,7 +154,7 @@ async function reagendar(
     const etiqueta = vieja.emailLead ?? normalizarEmail(cita.correoInvitado) ?? vieja.id;
     const host = closerHost(cita.correoHost, await closersConCalendly(tx, programId));
     let llamadaAAdoptar = vieja;
-    if (vieja.resultado === "reagendada" && vieja.dealId) {
+    if (["reagendada", "no_show", "cancelada"].includes(vieja.resultado) && vieja.dealId) {
       const [marcaDeReagenda] = await tx
         .select({ detectadoEn: changeLog.detectadoEn })
         .from(changeLog)
@@ -162,7 +162,7 @@ async function reagendar(
           eq(changeLog.tabla, "calls"),
           eq(changeLog.registroId, vieja.id),
           eq(changeLog.campo, "resultado"),
-          eq(changeLog.valorNuevo, "reagendada"),
+          eq(changeLog.valorNuevo, vieja.resultado),
         ))
         .orderBy(desc(changeLog.detectadoEn))
         .limit(1);
