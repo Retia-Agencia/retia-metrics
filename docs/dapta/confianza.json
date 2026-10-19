@@ -1,0 +1,286 @@
+{
+  "name": "Postulación Comunícate con Confianza",
+  "config": {
+    "version": 1,
+    "title": "Comunícate con Confianza",
+    "language": "es",
+    "layout": "slides",
+    "steps": [
+      {
+        "key": "nombre",
+        "type": "text",
+        "question": "¿Cuál es tu nombre completo?",
+        "required": true
+      },
+      {
+        "key": "email",
+        "type": "email",
+        "question": "¿Cuál es tu correo electrónico?",
+        "required": true
+      },
+      {
+        "key": "whatsapp",
+        "type": "phone",
+        "question": "¿Cuál es tu número de WhatsApp?",
+        "phoneDefaultCountry": "CO",
+        "required": true
+      },
+      {
+        "key": "ingreso",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Cuánto ganas mensualmente? (en dólares)",
+        "options": [
+          {
+            "label": "Menos de $1.000 USD",
+            "value": "Menos de $1.000 USD",
+            "points": -100
+          },
+          {
+            "label": "$1.000 - $3.000 USD",
+            "value": "$1.000 - $3.000 USD",
+            "points": 10
+          },
+          {
+            "label": "$3.000 - $10.000 USD",
+            "value": "$3.000 - $10.000 USD",
+            "points": 20
+          },
+          {
+            "label": "Más de $10.000 USD",
+            "value": "Más de $10.000 USD",
+            "points": 30
+          }
+        ]
+      },
+      {
+        "key": "motivacion",
+        "type": "textarea",
+        "required": true,
+        "scoringEnabled": false,
+        "question": "¿Qué te motivó a hacer parte del Programa Comunícate con confianza?",
+        "helper": "Cuéntanos por qué quieres participar y qué esperarías obtener del programa"
+      },
+      {
+        "key": "urgencia",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Qué tan urgente es para ti empezar a comunícarte como un experto ?",
+        "options": [
+          {
+            "label": "Muy urgente",
+            "value": "Muy urgente",
+            "points": 0
+          },
+          {
+            "label": "Estoy interesado pero puede esperar",
+            "value": "Estoy interesado pero puede esperar",
+            "points": 0
+          },
+          {
+            "label": "No es prioridad",
+            "value": "No es prioridad",
+            "points": -100
+          }
+        ]
+      },
+      {
+        "key": "situacion",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Cómo se podría describir mejor tu situación profesional?",
+        "options": [
+          {
+            "label": "Estudiante",
+            "value": "Estudiante",
+            "points": 0
+          },
+          {
+            "label": "Desempleado",
+            "value": "Desempleado",
+            "points": 0
+          },
+          {
+            "label": "0-5 años de experiencia",
+            "value": "0-5 años de experiencia",
+            "points": 10
+          },
+          {
+            "label": "5-15 años de experiencia",
+            "value": "5-15 años de experiencia",
+            "points": 20
+          },
+          {
+            "label": "+15 años de experiencia",
+            "value": "+15 años de experiencia",
+            "points": 20
+          },
+          {
+            "label": "Pensionado",
+            "value": "Pensionado",
+            "points": 10
+          }
+        ]
+      },
+      {
+        "key": "inversion",
+        "type": "multiple_choice",
+        "required": true,
+        "question": "¿Estás dispuesto y en la capacidad de invertir 800 USD en ti?",
+        "options": [
+          {
+            "label": "Sí, tengo la disposición y capacidad de invertir en este momento",
+            "value": "Sí, tengo la disposición y capacidad de invertir en este momento",
+            "points": 0
+          },
+          {
+            "label": "Sí, pero necesito facilidades de pago",
+            "value": "Sí, pero necesito facilidades de pago",
+            "points": 0
+          },
+          {
+            "label": "No, en este momento no cuento con los recursos",
+            "value": "No, en este momento no cuento con los recursos",
+            "points": -100
+          }
+        ]
+      },
+      {
+        "key": "agenda",
+        "type": "scheduler",
+        "required": true,
+        "question": "Agenda aquí tu entrevista",
+        "helper": "Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo",
+        "hideWhen": {
+          "field": "@score",
+          "op": "lt",
+          "value": 0
+        },
+        "scheduler": {
+          "provider": "calendly",
+          "url": "https://calendly.com/d/dv7k-r6w-g55/postulacion-comunicate-con-confianza",
+          "prefill": true,
+          "prefillMap": {
+            "name": "nombre",
+            "email": "email"
+          },
+          "eventTypeUri": "https://api.calendly.com/event_types/030f9e46-1bf8-4be7-b8f4-406a19fd78f7",
+          "eventTypeName": "Postulación Comunícate con Confianza"
+        }
+      },
+      {
+        "key": "utm_id",
+        "type": "text",
+        "question": "utm_id",
+        "hidden": true
+      },
+      {
+        "key": "ad_id",
+        "type": "text",
+        "question": "ad_id",
+        "hidden": true
+      },
+      {
+        "key": "adset_id",
+        "type": "text",
+        "question": "adset_id",
+        "hidden": true
+      },
+      {
+        "key": "campaign_id",
+        "type": "text",
+        "question": "campaign_id",
+        "hidden": true
+      }
+    ],
+    "scoring": {
+      "enabled": true
+    },
+    "outcomes": [
+      {
+        "id": "limpio_30",
+        "label": "Gracias ¡nos vemos en tu entrevista!",
+        "minScore": 30,
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc1_30",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -70,
+        "maxScore": -50,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc2_30",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -170,
+        "maxScore": -150,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc3_30",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -270,
+        "maxScore": -250,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "limpio_15",
+        "label": "Gracias ¡nos vemos en tu entrevista!",
+        "minScore": 15,
+        "maxScore": 29,
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc1_15",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -85,
+        "maxScore": -71,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc2_15",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -185,
+        "maxScore": -171,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc3_15",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -285,
+        "maxScore": -271,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "limpio_0",
+        "label": "Gracias ¡nos vemos en tu entrevista!",
+        "minScore": 0,
+        "maxScore": 14,
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc1_0",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -100,
+        "maxScore": -86,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc2_0",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -200,
+        "maxScore": -186,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      },
+      {
+        "id": "desc3_0",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
+        "minScore": -300,
+        "maxScore": -286,
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
+      }
+    ],
+    "partialSubmitAfterStep": 8
+  }
+}

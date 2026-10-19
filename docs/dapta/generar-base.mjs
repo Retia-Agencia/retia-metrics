@@ -1,5 +1,5 @@
 // Genera un form de Dapta por programa (<slug>.json) que replica la logica de los Typeform
-// (Tactical GmPGBOf9, ComunicArte nkMLdeh8) con los estados del ADR 0061.
+// (Tactical GmPGBOf9, ComunicArte nkMLdeh8, Comunícate con Confianza E5F4chVT) con los estados del ADR 0061.
 // Uso: node generar-base.mjs            -> todos los programas de PROGRAMAS
 // score = hvm_points + (-100 por cada respuesta descalificante). Un solo numero guarda los dos
 // ejes del Typeform: score >= 0 es "sin descalificar" y hvm = score mod 100.
@@ -14,12 +14,42 @@ const PROGRAMAS = {
     motivacion: '¿Qué te motivó a hacer parte del Método Comunicarte?',
     urgencia: '¿Qué tan urgente es para ti empezar el programa para aprender a comunicarte como un experto?',
     agendaAyuda: 'Si eres seleccionado, en la misma llamada podrás reservar tu cupo',
-    calendly: 'https://calendly.com/eventoscomunicarte-info/postulacion-comunicarte', // Mani, 30-sep
+    // El evento de las citas reales desde octubre (medido en Calendly el 19-oct); el del 30-sep era postulacion-comunicarte
+    calendly: 'https://calendly.com/d/d3xv-66m-ynn/postulacion-metodo-comunicarte',
+    evento: ['https://api.calendly.com/event_types/098ad9d0-5268-4156-afc1-b371a42f6945', 'Postulación Método Comunicarte'],
     ingresos: [
       ['ingreso_1', 'Menos de $700 USD', 0, true],
       ['ingreso_2', '$700 - $1.500 USD', 10, true],
       ['ingreso_3', '$1.500 - $3.000 USD', 20, false],
       ['ingreso_4', 'Más de $3.000 USD', 30, false],
+    ],
+  },
+  tactical: {
+    nombre: 'Postulación De Cero a Tactical Investor', titulo: 'De Cero a Tactical Investor', ticket: '1.500',
+    motivacion: '¿Qué te motivó a hacer parte del Programa de Cero a Tactical Investor?',
+    urgencia: '¿Qué tan urgente es para ti empezar el programa para aprender a invertir como un experto?',
+    agendaAyuda: 'Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo',
+    calendly: 'https://calendly.com/d/d2ft-nk5-gns/postulacion-de-cero-a-tactical-investor', // 19-oct
+    evento: ['https://api.calendly.com/event_types/0049872a-7a3f-4e9c-a7d2-d9f88bfc1927', 'Postulación: De Cero a Tactical Investor'],
+    ingresos: [ // descalifica menos de 1.000, como su Typeform; los puntos son el estandar (su Typeform no los tiene)
+      ['ingreso_1', 'Menos de $1.000 USD', 0, true],
+      ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
+      ['ingreso_3', '$3.000 - $10.000 USD', 20, false],
+      ['ingreso_4', 'Más de $10.000 USD', 30, false],
+    ],
+  },
+  confianza: {
+    nombre: 'Postulación Comunícate con Confianza', titulo: 'Comunícate con Confianza', ticket: '800',
+    motivacion: '¿Qué te motivó a hacer parte del Programa Comunícate con confianza?',
+    urgencia: '¿Qué tan urgente es para ti empezar a comunícarte como un experto ?', // tal cual el Typeform
+    agendaAyuda: 'Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo',
+    calendly: 'https://calendly.com/d/dv7k-r6w-g55/postulacion-comunicate-con-confianza', // 19-oct
+    evento: ['https://api.calendly.com/event_types/030f9e46-1bf8-4be7-b8f4-406a19fd78f7', 'Postulación Comunícate con Confianza'],
+    ingresos: [
+      ['ingreso_1', 'Menos de $1.000 USD', 0, true],
+      ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
+      ['ingreso_3', '$3.000 - $10.000 USD', 20, false],
+      ['ingreso_4', 'Más de $10.000 USD', 30, false],
     ],
   },
   memorable: {
@@ -39,7 +69,8 @@ const PROGRAMAS = {
 // El value es la misma etiqueta (A10, 30-sep): Dapta manda el value en el webhook, y asi `respuestas`
 // se lee igual que un envio de Typeform. Ninguna condicion usa el value: los saltos van por @score.
 const opt = (_slug, label, points) => ({ label, value: label, points });
-const lead = { flowGroup: 'lead_capture', required: true };
+// flowGroup no va: la API de Dapta lo deriva del tipo y rechaza el que no sale de el (UNSUPPORTED_FIELD, 19-oct).
+const lead = { required: true };
 
 function formDe(p) {
 const steps = [
@@ -78,9 +109,12 @@ const steps = [
     helper: p.agendaAyuda,
     hideWhen: { field: '@score', op: 'lt', value: 0 },
     scheduler: { provider: 'calendly', url: p.calendly ?? 'https://calendly.com/REEMPLAZAR', prefill: true,
-      prefillMap: { name: 'nombre', email: 'email' } } },
+      prefillMap: { name: 'nombre', email: 'email' },
+      // El evento escogido, el mismo que guarda el editor con Calendly conectado en Integrations
+      ...(p.evento ? { eventTypeUri: p.evento[0], eventTypeName: p.evento[1] } : {}) } },
   // utm_source/medium/campaign/content/term los captura Dapta solo; utm_id (llave del anuncio, ADR 0062) no.
-  { key: 'utm_id', type: 'text', hidden: true },
+  // ad_id, adset_id y campaign_id: los ocultos completos del ADR 0087, como los Typeform desde el 14-oct.
+  ...['utm_id', 'ad_id', 'adset_id', 'campaign_id'].map((key) => ({ key, type: 'text', question: key, hidden: true })),
 ];
 
 // lead_value del Typeform: [hvm minimo, valor si limpio, valor si descalificado]
@@ -91,15 +125,17 @@ const TRAMOS = [
 ];
 const GRACIAS = 'Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
 const AGENDADO = 'Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
+// Las dos pantallas finales del Typeform, tal cual (19-oct). La etiqueta del outcome es el titulo de la pantalla
+// y lo que manda el webhook: el CRM ya no la parte, saca estado, lead_value y lead_quality del score.
+const TITULO_GRACIAS = '¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo';
+const TITULO_AGENDADO = 'Gracias ¡nos vemos en tu entrevista!';
 const outcomes = [];
 for (const t of TRAMOS) {
-  outcomes.push({ id: `limpio_${t.min}`, label: `con_calendly_sin_agenda|${t.limpio}|High`,
-    minScore: t.min, ...(t.min === 30 ? {} : { maxScore: t.max }),
-    message: AGENDADO, redirectUrl: 'https://example.com/REEMPLAZAR-agendado' });
+  outcomes.push({ id: `limpio_${t.min}`, label: TITULO_AGENDADO,
+    minScore: t.min, ...(t.min === 30 ? {} : { maxScore: t.max }), message: AGENDADO });
   for (const k of [1, 2, 3]) // hasta tres respuestas descalificantes (ingreso, urgencia, inversion)
-    outcomes.push({ id: `desc${k}_${t.min}`, label: `setteo_no_calificado|${t.desc}|Low`,
-      minScore: t.min - 100 * k, maxScore: t.max - 100 * k,
-      message: GRACIAS, redirectUrl: 'https://example.com/REEMPLAZAR-gracias' });
+    outcomes.push({ id: `desc${k}_${t.min}`, label: TITULO_GRACIAS,
+      minScore: t.min - 100 * k, maxScore: t.max - 100 * k, message: GRACIAS });
 }
 
 const config = {

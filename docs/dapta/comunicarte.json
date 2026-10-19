@@ -10,14 +10,12 @@
         "key": "nombre",
         "type": "text",
         "question": "¿Cuál es tu nombre completo?",
-        "flowGroup": "lead_capture",
         "required": true
       },
       {
         "key": "email",
         "type": "email",
         "question": "¿Cuál es tu correo electrónico?",
-        "flowGroup": "lead_capture",
         "required": true
       },
       {
@@ -25,7 +23,6 @@
         "type": "phone",
         "question": "¿Cuál es tu número de WhatsApp?",
         "phoneDefaultCountry": "CO",
-        "flowGroup": "lead_capture",
         "required": true
       },
       {
@@ -161,17 +158,38 @@
         },
         "scheduler": {
           "provider": "calendly",
-          "url": "https://calendly.com/eventoscomunicarte-info/postulacion-comunicarte",
+          "url": "https://calendly.com/d/d3xv-66m-ynn/postulacion-metodo-comunicarte",
           "prefill": true,
           "prefillMap": {
             "name": "nombre",
             "email": "email"
-          }
+          },
+          "eventTypeUri": "https://api.calendly.com/event_types/098ad9d0-5268-4156-afc1-b371a42f6945",
+          "eventTypeName": "Postulación Método Comunicarte"
         }
       },
       {
         "key": "utm_id",
         "type": "text",
+        "question": "utm_id",
+        "hidden": true
+      },
+      {
+        "key": "ad_id",
+        "type": "text",
+        "question": "ad_id",
+        "hidden": true
+      },
+      {
+        "key": "adset_id",
+        "type": "text",
+        "question": "adset_id",
+        "hidden": true
+      },
+      {
+        "key": "campaign_id",
+        "type": "text",
+        "question": "campaign_id",
         "hidden": true
       }
     ],
@@ -181,98 +199,86 @@
     "outcomes": [
       {
         "id": "limpio_30",
-        "label": "con_calendly_sin_agenda|MUY ALTO VALOR|High",
+        "label": "Gracias ¡nos vemos en tu entrevista!",
         "minScore": 30,
-        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc1_30",
-        "label": "setteo_no_calificado|ALTO VALOR|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -70,
         "maxScore": -50,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc2_30",
-        "label": "setteo_no_calificado|ALTO VALOR|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -170,
         "maxScore": -150,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc3_30",
-        "label": "setteo_no_calificado|ALTO VALOR|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -270,
         "maxScore": -250,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "limpio_15",
-        "label": "con_calendly_sin_agenda|ALTO VALOR|High",
+        "label": "Gracias ¡nos vemos en tu entrevista!",
         "minScore": 15,
         "maxScore": 29,
-        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc1_15",
-        "label": "setteo_no_calificado|VALOR MEDIO|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -85,
         "maxScore": -71,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc2_15",
-        "label": "setteo_no_calificado|VALOR MEDIO|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -185,
         "maxScore": -171,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc3_15",
-        "label": "setteo_no_calificado|VALOR MEDIO|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -285,
         "maxScore": -271,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "limpio_0",
-        "label": "con_calendly_sin_agenda|VALOR MEDIO|High",
+        "label": "Gracias ¡nos vemos en tu entrevista!",
         "minScore": 0,
         "maxScore": 14,
-        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-agendado"
+        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc1_0",
-        "label": "setteo_no_calificado|BAJO VALOR|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -100,
         "maxScore": -86,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc2_0",
-        "label": "setteo_no_calificado|BAJO VALOR|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -200,
         "maxScore": -186,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "desc3_0",
-        "label": "setteo_no_calificado|BAJO VALOR|Low",
+        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -300,
         "maxScore": -286,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.",
-        "redirectUrl": "https://example.com/REEMPLAZAR-gracias"
+        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       }
     ],
     "partialSubmitAfterStep": 8

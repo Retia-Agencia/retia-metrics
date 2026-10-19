@@ -13,9 +13,11 @@ etiqueta final). Por eso el score guarda los dos ejes del Typeform:
 - Ingreso y situación profesional suman los `hvm_points` del Typeform (10, 20, 30).
 - `score >= 0` quiere decir que la persona no tiene descalificantes, y entonces ve el Calendly (`hideWhen`
   sobre `@score`). Si tiene alguno, `hvm = score mod 100`.
-- Los 12 outcomes son los rangos de score que reproducen el `lead_value` del Typeform. Su etiqueta es
-  `<estado>|<lead_value>|<lead_quality>`, por ejemplo `con_calendly_sin_agenda|MUY ALTO VALOR|High` (`High` si no
-  tiene descalificantes, `Low` si sí, como el `tag_lead_quality` del Typeform). El adaptador del 130 la parte.
+- Los 12 outcomes son los rangos de score que reproducen el `lead_value` del Typeform. **Desde el 19-oct su etiqueta
+  es el título de la pantalla final del Typeform** ("Gracias ¡nos vemos en tu entrevista!" o "¡Perfecto! Estamos
+  analizando…"), con su texto como `message` y sin redirect. El CRM saca estado, `lead_value` y `lead_quality` del
+  score (`calidadDesdeScore` en `lib/ingesta/adaptador-dapta.ts`). Una etiqueta vieja de tres partes
+  `<estado>|<lead_value>|<lead_quality>` se sigue leyendo como antes.
 - El `value` de cada opción es su misma etiqueta: Dapta manda el value en el webhook y así `respuestas` se lee
   igual que un Typeform. Ningún salto usa el value (van por `@score`), así que es seguro.
 - El paso de agenda prellena Calendly con `prefillMap: { name: 'nombre', email: 'email' }`. Sin el mapa, Dapta solo
@@ -51,6 +53,14 @@ solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario q
 |---|---|---|---|---|
 | ComunicArte | Eventos ComunicArte SAS | `003e5f13-3b73-45cf-b922-d0504b5b8548` | USD 797 | los de su Typeform: descalifica menos de 1.500 |
 | Memorable en Instagram & TikTok | Memorable en Instagram & TikTok | `36772ec5-c79e-45de-97fb-791b7cd8f668` | USD 1.200 | los de Tactical: descalifica menos de 1.000 |
+| Tactical Investor | Tactical Investor S.A.S. (`uszmwp`) | `4c702036-f76f-4318-9a78-48ca7e882295` | USD 1.500 | descalifica menos de 1.000 |
+| Comunícate con Confianza | Comunícate con Confianza (`68d3sh`) | `136161d3-b671-45d0-9238-db2866f192b5` | USD 800 | descalifica menos de 1.000 |
+
+**Tactical y Confianza se crearon por la API pública de Dapta el 19-oct** (`POST /v1/forms`, una llave por workspace:
+`DFORMS_API_KEY_<WORKSPACE>` en `~/.zshrc`). Esa API rechaza `flowGroup` distinto del que deriva del tipo y pide `question`
+en todo paso, también en los ocultos: por eso el nombre quedó en `qualification`. Conviven con su Typeform; ninguno
+tiene destino webhook todavía. El Typeform vivo de Tactical (`GmPGBOf9`) no tiene `hvm_points` ni `lead_value` y le
+faltan `utm_id`, `ad_id`, `adset_id` y `campaign_id`: su form de Dapta sigue el estándar de puntaje, no esa versión.
 
 **Publicados por Mani el 30-sep, con los placeholders todavía puestos** (Calendly `calendly.com/REEMPLAZAR` y redirects
 `example.com/REEMPLAZAR-*`, verificado en la página pública). Links: ComunicArte
@@ -135,7 +145,9 @@ el programa tuviera una plantilla de lead con títulos de Typeform: hoy ninguno 
 
 1. Agregar o editar su bloque en `PROGRAMAS` de `generar-base.mjs` y correr `node docs/dapta/generar-base.mjs`.
    Sale `<slug>.json`.
-2. Crear un formulario vacío en el workspace del programa (botón *Create a form*) y cargarle el JSON desde la
-   misma sesión: `POST /admin/forms/<id>/flush` con `{ kind: "config", name, config }`. Es la ruta con la que
-   el editor guarda. La API de Dapta no acepta API key (ver `docs/plan.md` §7, A9).
-3. Recargar el editor y revisar que quedó como borrador.
+2. Cargarlo por la API pública (`https://forms-api.dapta.ai`, desde el 19-oct; skill `dforms-api`), con la llave
+   del workspace del programa (`DFORMS_API_KEY_<WORKSPACE>` en `~/.zshrc`) y comprobando antes con `GET /v1/me` que
+   es ese workspace. Form nuevo: `POST /v1/forms` con `{ name, config }`, que queda en vivo de una. Cambio: `PUT
+   /v1/forms/<id>` sobre el borrador si lo hay (guarda borrador) y `POST /v1/forms/<id>/publish`. El webhook va aparte
+   (`PUT /v1/forms/<id>/destinations`), con el secreto pegado a mano.
+3. Revisar el borrador en el editor antes de publicar un form que ya recibe leads.
