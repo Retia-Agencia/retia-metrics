@@ -5,6 +5,16 @@
     "title": "Postulación Evento Comunicarte",
     "language": "es",
     "layout": "slides",
+    "branding": {
+      "background": "#FFFFFF",
+      "foreground": "#000000",
+      "primaryColor": "#0445AF",
+      "fontFamily": "inter",
+      "backgroundStyle": "solid",
+      "radius": "soft",
+      "buttonStyle": "solid",
+      "contentAlign": "left"
+    },
     "steps": [
       {
         "key": "nombre",

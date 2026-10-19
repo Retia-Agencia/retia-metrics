@@ -5,6 +5,16 @@
     "title": "De Cero a Tactical Investor",
     "language": "es",
     "layout": "slides",
+    "branding": {
+      "background": "#2A222B",
+      "foreground": "#FAFAFA",
+      "primaryColor": "#FAFAFA",
+      "fontFamily": "inter",
+      "backgroundStyle": "solid",
+      "radius": "soft",
+      "buttonStyle": "solid",
+      "contentAlign": "left"
+    },
     "steps": [
       {
         "key": "nombre",

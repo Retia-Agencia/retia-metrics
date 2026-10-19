@@ -5,6 +5,16 @@
     "title": "Comunícate con Confianza",
     "language": "es",
     "layout": "slides",
+    "branding": {
+      "background": "#0B0E11",
+      "foreground": "#FFFFFF",
+      "primaryColor": "#00B2F0",
+      "fontFamily": "inter",
+      "backgroundStyle": "solid",
+      "radius": "soft",
+      "buttonStyle": "solid",
+      "contentAlign": "left"
+    },
     "steps": [
       {
         "key": "nombre",

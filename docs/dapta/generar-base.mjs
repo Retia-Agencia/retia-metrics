@@ -17,6 +17,8 @@ const PROGRAMAS = {
     // El evento de las citas reales desde octubre (medido en Calendly el 19-oct); el del 30-sep era postulacion-comunicarte
     calendly: 'https://calendly.com/d/d3xv-66m-ynn/postulacion-metodo-comunicarte',
     evento: ['https://api.calendly.com/event_types/098ad9d0-5268-4156-afc1-b371a42f6945', 'Postulación Método Comunicarte'],
+    // Tema "Classic blue" del Typeform. Su fuente es la del sistema, que Dapta no tiene: inter es la mas cercana
+    marca: { background: '#FFFFFF', foreground: '#000000', primaryColor: '#0445AF', fontFamily: 'inter' },
     ingresos: [
       ['ingreso_1', 'Menos de $700 USD', 0, true],
       ['ingreso_2', '$700 - $1.500 USD', 10, true],
@@ -31,6 +33,7 @@ const PROGRAMAS = {
     agendaAyuda: 'Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo',
     calendly: 'https://calendly.com/d/d2ft-nk5-gns/postulacion-de-cero-a-tactical-investor', // 19-oct
     evento: ['https://api.calendly.com/event_types/0049872a-7a3f-4e9c-a7d2-d9f88bfc1927', 'Postulación: De Cero a Tactical Investor'],
+    marca: { background: '#2A222B', foreground: '#FAFAFA', primaryColor: '#FAFAFA', fontFamily: 'inter' }, // "Inky black"
     ingresos: [ // descalifica menos de 1.000, como su Typeform; los puntos son el estandar (su Typeform no los tiene)
       ['ingreso_1', 'Menos de $1.000 USD', 0, true],
       ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
@@ -45,6 +48,7 @@ const PROGRAMAS = {
     agendaAyuda: 'Si eres seleccionado te invitaremos allí de una vez a reservar tu cupo',
     calendly: 'https://calendly.com/d/dv7k-r6w-g55/postulacion-comunicate-con-confianza', // 19-oct
     evento: ['https://api.calendly.com/event_types/030f9e46-1bf8-4be7-b8f4-406a19fd78f7', 'Postulación Comunícate con Confianza'],
+    marca: { background: '#0B0E11', foreground: '#FFFFFF', primaryColor: '#00B2F0', fontFamily: 'inter' }, // "PowerTalk"
     ingresos: [
       ['ingreso_1', 'Menos de $1.000 USD', 0, true],
       ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
@@ -143,6 +147,8 @@ const config = {
   title: p.titulo,
   language: 'es',
   layout: 'slides',
+  // Los colores del tema de su Typeform (19-oct); esquinas pequenas y texto a la izquierda, como alla
+  ...(p.marca ? { branding: { ...p.marca, backgroundStyle: 'solid', radius: 'soft', buttonStyle: 'solid', contentAlign: 'left' } } : {}),
   steps,
   scoring: { enabled: true },
   outcomes,
