@@ -97,6 +97,27 @@ export function esEntregaDePrueba(payload: PayloadDapta): boolean {
   return payload.data.test === true || payload.submission.id === "test-submission";
 }
 
+/** Deriva la calificacion segun docs/dapta/README.md, "Estándar de puntaje". */
+export function calidadDesdeScore(score: number): {
+  estado: string;
+  leadValue: string;
+  leadQuality: "High" | "Low";
+} {
+  const descalificado = score < 0;
+  const puntos = ((score % 100) + 100) % 100;
+  let leadValue: string;
+
+  if (puntos >= 30) leadValue = descalificado ? "ALTO VALOR" : "MUY ALTO VALOR";
+  else if (puntos >= 15) leadValue = descalificado ? "VALOR MEDIO" : "ALTO VALOR";
+  else leadValue = descalificado ? "BAJO VALOR" : "VALOR MEDIO";
+
+  return {
+    estado: descalificado ? "setteo_no_calificado" : "con_calendly_sin_agenda",
+    leadValue,
+    leadQuality: descalificado ? "Low" : "High",
+  };
+}
+
 /** Convierte un evento de Dapta Forms a la entrada comun de la ingesta. */
 export function entradaDesdeDapta(
   payload: PayloadDapta,
@@ -153,10 +174,19 @@ export function entradaDesdeDapta(
     columnas[campo] = payload.utm[campo] ?? (campo === "utm_id" ? textoPlano(payload.data.utm_id) : null);
   }
 
+  const puntaje =
+    payload.submission.score !== undefined && Number.isFinite(payload.submission.score)
+      ? Math.round(payload.submission.score)
+      : null;
   const outcome = payload.submission.outcome ?? null;
-  const [estado, leadValue, leadQuality] = outcome?.split("|") ?? [];
+  const partesOutcome = outcome?.split("|") ?? [];
+  const calidad = partesOutcome.length === 3
+    ? { estado: partesOutcome[0], leadValue: partesOutcome[1], leadQuality: partesOutcome[2] }
+    : puntaje === null
+      ? { estado: "", leadValue: undefined, leadQuality: undefined }
+      : calidadDesdeScore(puntaje);
   columnas.outcome = outcome;
-  columnas["__estado"] = estado ?? "";
+  columnas["__estado"] = calidad.estado ?? "";
   columnas["__submitted_at"] = payload.submittedAt;
   columnas["__token"] = payload.submission.id;
   columnas["form.id"] = payload.form.id;
@@ -170,10 +200,6 @@ export function entradaDesdeDapta(
     if (encontrado !== undefined) campos[campo as CampoEnvio] = encontrado;
   }
 
-  const puntaje =
-    payload.submission.score !== undefined && Number.isFinite(payload.submission.score)
-      ? Math.round(payload.submission.score)
-      : null;
   const valorOAusente = (valor: string | undefined): string | null =>
     valor === undefined || valor === "" ? null : valor;
 
@@ -186,7 +212,7 @@ export function entradaDesdeDapta(
     esParcial: payload.phase === "partial",
     linkAgenda: null,
     puntaje,
-    leadValue: valorOAusente(leadValue),
-    leadQuality: valorOAusente(leadQuality),
+    leadValue: valorOAusente(calidad.leadValue),
+    leadQuality: valorOAusente(calidad.leadQuality),
   };
 }

@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  calidadDesdeScore,
   entradaDesdeDapta,
   payloadDaptaSchema,
   type PayloadDapta,
@@ -14,6 +15,27 @@ import realUtm from "./fixtures/dapta-real-completo-utm.json";
 import realParcial from "./fixtures/dapta-real-parcial-sin-agenda.json";
 
 const OPCIONES = { sourceId: "src-dapta", zona: "America/Bogota" };
+
+describe("calidadDesdeScore", () => {
+  it.each([
+    [50, "con_calendly_sin_agenda", "MUY ALTO VALOR", "High"],
+    [30, "con_calendly_sin_agenda", "MUY ALTO VALOR", "High"],
+    [29, "con_calendly_sin_agenda", "ALTO VALOR", "High"],
+    [15, "con_calendly_sin_agenda", "ALTO VALOR", "High"],
+    [14, "con_calendly_sin_agenda", "VALOR MEDIO", "High"],
+    [0, "con_calendly_sin_agenda", "VALOR MEDIO", "High"],
+    [-50, "setteo_no_calificado", "ALTO VALOR", "Low"],
+    [-70, "setteo_no_calificado", "ALTO VALOR", "Low"],
+    [-71, "setteo_no_calificado", "VALOR MEDIO", "Low"],
+    [-85, "setteo_no_calificado", "VALOR MEDIO", "Low"],
+    [-86, "setteo_no_calificado", "BAJO VALOR", "Low"],
+    [-100, "setteo_no_calificado", "BAJO VALOR", "Low"],
+    [-170, "setteo_no_calificado", "ALTO VALOR", "Low"],
+    [-300, "setteo_no_calificado", "BAJO VALOR", "Low"],
+  ] as const)("deriva los bordes para score %i", (score, estado, leadValue, leadQuality) => {
+    expect(calidadDesdeScore(score)).toEqual({ estado, leadValue, leadQuality });
+  });
+});
 
 function payload(): PayloadDapta {
   return payloadDaptaSchema.parse(structuredClone(completo));
@@ -116,10 +138,49 @@ describe("entradaDesdeDapta", () => {
     expect(entrada.linkAgenda).toBeNull();
   });
 
+  it.each([
+    ["completo con agenda", realAgenda],
+    ["completo con UTM", realUtm],
+    ["parcial sin agenda", realParcial],
+  ])("deriva del score el mismo resultado del outcome original: %s", (_nombre, cuerpo) => {
+    const original = entradaDesdeDapta(payloadDaptaSchema.parse(cuerpo), OPCIONES);
+    const conTitulo = structuredClone(cuerpo);
+    conTitulo.submission.outcome = "Gracias ¡nos vemos en tu entrevista!";
+    const derivado = entradaDesdeDapta(payloadDaptaSchema.parse(conTitulo), OPCIONES);
+
+    expect({
+      estado: derivado.columnas.__estado,
+      leadValue: derivado.leadValue,
+      leadQuality: derivado.leadQuality,
+    }).toEqual({
+      estado: original.columnas.__estado,
+      leadValue: original.leadValue,
+      leadQuality: original.leadQuality,
+    });
+    expect(derivado.columnas.outcome).toBe("Gracias ¡nos vemos en tu entrevista!");
+  });
+
   it("copia y redondea el score del formulario sin calcularlo", () => {
     const p = payload();
     p.submission.score = 17.6;
     expect(entradaDesdeDapta(p, OPCIONES).puntaje).toBe(18);
+  });
+
+  it("redondea el score antes de derivar la calidad", () => {
+    const p = payload();
+    p.submission.score = 29.6;
+    p.submission.outcome = "Gracias ¡nos vemos en tu entrevista!";
+    expect(entradaDesdeDapta(p, OPCIONES).leadValue).toBe("MUY ALTO VALOR");
+  });
+
+  it("deja vacia la calidad si el outcome no tiene tres partes y no hay score", () => {
+    const p = payload();
+    delete p.submission.score;
+    p.submission.outcome = "Gracias ¡nos vemos en tu entrevista!";
+    const entrada = entradaDesdeDapta(p, OPCIONES);
+    expect(entrada.columnas.__estado).toBe("");
+    expect(entrada.leadValue).toBeNull();
+    expect(entrada.leadQuality).toBeNull();
   });
 
   it("guarda metadatos permitidos y excluye delivery, sesion y hutk", () => {
