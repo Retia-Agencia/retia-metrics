@@ -10,6 +10,7 @@ import { registrarAbono, type DatosRegistrarAbono } from "./abonos";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { exigirTextoDelMotivo } from "./motivo-con-texto";
 import {
+  escribirDatosDelDeal,
   moverEtapa,
   resolverTransicion,
   type DatosMovimiento,
@@ -145,6 +146,17 @@ export async function moverConHecho(
         await pegarGrain(tx, actor, { callId, linkGrain: entrada.hecho.linkGrain.trim() });
       }
     } else if (entrada.hecho?.tipo === "abono") {
+      // El descuento y la fecha límite del diálogo van ANTES del pago: el saldo que deja el
+      // abono decide la etapa, y `registrarAbono` congela el ticket completo si no hay total.
+      // Sin esto el descuento tecleado se perdía sin error y el deal quedaba con saldo de más.
+      if (entrada.datos) {
+        await escribirDatosDelDeal(tx, inicial, entrada.datos, {
+          tipo: "usuario",
+          userId: actor.userId,
+          rol: actor.rol,
+          operaComoCloser: actor.operaComoCloser,
+        });
+      }
       await registrarAbono(tx, actor, {
         dealId: inicial.id,
         fecha: entrada.hecho.fecha,

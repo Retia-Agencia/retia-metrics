@@ -175,8 +175,9 @@ export function DialogoMover({
   const manana = fechaDeInstanteEnBogota(new Date(new Date(`${hoy}T12:00:00-05:00`).getTime() + 86_400_000));
   // Solo arranca lleno lo que esta flecha pide: un dato que no se pide no viaja, porque
   // `moverEtapa` escribe todo lo que llega y pisaria el descuento o la fecha que ya tenia.
+  // El descuento arranca VACIO por la misma razon: vacio no viaja y conserva el que el deal
+  // ya tenga (o, en un abono, el ticket completo); lo que se teclea es lo que se escribe.
   const inicial = (): DatosDialogo => ({
-    ...(campos.includes("valor_vendido") ? { descuentoUsd: 0 } : {}),
     ...(campos.includes("fecha_limite_pago") ? { fechaLimitePago: fechaLimiteSugerida } : {}),
     ...(campos.includes("fecha_seguimiento") ? { fechaSeguimiento: proximoContactoSugerido(hoy) } : {}),
     ...(movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
@@ -185,6 +186,9 @@ export function DialogoMover({
     ...(movimiento.hecho === "abono" ? { abono: datosInicialesDeAbono() } : {}),
   });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
+  // El texto del descuento vive aparte del numero: un input controlado por un numero no se
+  // deja borrar (al vaciarlo vuelve a pintar el 0) ni escribir con soltura.
+  const [textoDescuento, setTextoDescuento] = useState("");
   const [revision, setRevision] = useState<(Revision & { con: string }) | null>(null);
   const [errorDeRevision, setErrorDeRevision] = useState<string | null>(null);
 
@@ -240,7 +244,8 @@ export function DialogoMover({
       : movimiento.hecho === "agendado"
         ? ["llamada_con_fecha"]
         : movimiento.hecho === "abono"
-          ? ["abono", "saldo_pendiente", "saldo_en_cero"]
+          // Sin descuento tecleado, el abono congela el ticket completo (`registrarAbono`).
+          ? ["abono", "saldo_pendiente", "saldo_en_cero", "valor_vendido"]
           : [],
   );
   // El servidor reclama el deal sin dueño al mover por E1 (como Anotar y registrar contacto),
@@ -278,7 +283,10 @@ export function DialogoMover({
       open={abierto}
       onOpenChange={(v) => {
         onAbrir(v);
-        if (!v) setDatos(inicial());
+        if (!v) {
+          setDatos(inicial());
+          setTextoDescuento("");
+        }
       }}
     >
       <DialogContent>
@@ -371,13 +379,20 @@ export function DialogoMover({
               {campo === "valor_vendido" ? (
                 <Input
                   type="number"
+                  inputMode="decimal"
                   min="0"
                   max="99999999.99"
                   step="0.01"
-                  value={datos.descuentoUsd ?? 0}
+                  placeholder="0"
+                  value={textoDescuento}
                   onChange={(e) => {
-                    const valor = e.currentTarget.valueAsNumber;
-                    setDatos((d) => ({ ...d, descuentoUsd: Number.isFinite(valor) && valor >= 0 ? valor : undefined }));
+                    const texto = e.currentTarget.value;
+                    setTextoDescuento(texto);
+                    // Vacio = sin cambio. Lo que no es un numero valido tampoco viaja: el motor
+                    // valida el resto (dos decimales, menor que el ticket, no menos de lo abonado).
+                    const valor = Number(texto);
+                    const descuentoUsd = texto.trim() !== "" && Number.isFinite(valor) && valor >= 0 ? valor : undefined;
+                    setDatos((d) => ({ ...d, descuentoUsd }));
                   }}
                 />
               ) : null}
@@ -479,6 +494,9 @@ export function DialogoMover({
             </p>
           ) : null}
           {!movimiento.hecho ? <ListaDeRequisitos revision={revision} error={errorDeRevision} cubiertos={cubiertos} /> : null}
+          {/* Con un hecho la lista no se muestra, pero un dato rechazado (un descuento mayor que
+              el ticket) sí: sin esto el botón quedaba apagado sin decir por qué. */}
+          {movimiento.hecho && errorDeRevision ? <p className="text-sm text-tono-peligro">{errorDeRevision}</p> : null}
           {!movimiento.hecho && revision?.requisitos.some((q) => !q.cumple && !cubiertos.has(q.codigo) && DONDE[q.codigo]) ? (
             <Link href={rutaDeLaFicha} className="inline-block text-sm text-marca-texto underline-offset-2 hover:underline">
               Abrir la ficha del deal

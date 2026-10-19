@@ -127,6 +127,50 @@ describe("moverConHecho", () => {
     expect(await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos)))).toHaveLength(1);
   });
 
+  it("el descuento del diálogo del abono congela el total antes del pago (Ganado Completo)", async () => {
+    const deal = await nuevoDeal("compromiso_verbal");
+    const resultado = await moverConHecho(db, actor(), {
+      dealId: deal.id,
+      a: "ganado_parcial",
+      datos: { descuentoUsd: 200 },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "800", moneda: "USD" },
+    });
+
+    expect(resultado.etapa).toBe("ganado_completo");
+    const [fila] = await db.select({ valor: deals.valorVendidoUsd }).from(deals).where(eq(deals.id, deal.id));
+    expect(Number(fila.valor)).toBe(800);
+  });
+
+  it("el descuento del diálogo del abono deja el saldo correcto (Ganado Parcial)", async () => {
+    const deal = await nuevoDeal("atendido");
+    const resultado = await moverConHecho(db, actor(), {
+      dealId: deal.id,
+      a: "ganado_parcial",
+      datos: { descuentoUsd: 200, fechaLimitePago: "2026-11-20" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "300", moneda: "USD" },
+    });
+
+    expect(resultado.etapa).toBe("ganado_parcial");
+    const [fila] = await db
+      .select({ valor: deals.valorVendidoUsd, fechaLimite: deals.fechaLimitePago })
+      .from(deals)
+      .where(eq(deals.id, deal.id));
+    expect(Number(fila.valor)).toBe(800);
+    expect(fila.fechaLimite).toBe("2026-11-20");
+  });
+
+  it("un descuento igual al ticket deshace el abono", async () => {
+    const deal = await nuevoDeal("compromiso_verbal");
+    await expect(moverConHecho(db, actor(), {
+      dealId: deal.id,
+      a: "ganado_parcial",
+      datos: { descuentoUsd: 1000 },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "100", moneda: "USD" },
+    })).rejects.toThrow(/descuento/);
+    expect(await etapaDe(deal.id)).toBe("compromiso_verbal");
+    expect(await db.select().from(abonos).where(eq(abonos.dealId, deal.id))).toHaveLength(0);
+  });
+
   it("Calificado → Agendado crea la cita", async () => {
     const deal = await nuevoDeal("calificado");
     await moverConHecho(db, actor(), {

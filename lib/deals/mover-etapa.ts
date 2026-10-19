@@ -390,6 +390,22 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<FilaDeal> {
   const datos = mov.datos;
   if (!datos) return deal;
+  return escribirDatosDelDeal(tx, deal, datos, mov.actor);
+}
+
+/**
+ * Lo mismo que el movimiento escribe con sus `datos`, para el camino donde la etapa la
+ * decide un HECHO y no la flecha: el abono (`moverConHecho`). Ahí el descuento y la
+ * fecha límite tienen que quedar escritos ANTES de registrar el pago, porque el saldo
+ * que deja el abono decide entre Ganado Pago Parcial y Ganado Pagado.
+ */
+export async function escribirDatosDelDeal(
+  tx: Db,
+  deal: FilaDeal,
+  datos: DatosMovimiento,
+  actor: Actor,
+): Promise<FilaDeal> {
+  const mov = { actor };
 
   const cambios: Record<string, unknown> = {};
   const aplicar = <K extends keyof FilaDeal>(campo: K, valor: FilaDeal[K]) => {
