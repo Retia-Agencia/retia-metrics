@@ -39,3 +39,15 @@ Decisión: **ADR 0098**. Léelo antes de empezar; no se re-litiga.
 - Typecheck, lint, build y tests del cambio limpios; checkpoint verde.
 - Migración aplicada en producción con ok de Mani; Second Brain Jurídico marcado como org compartida con su round
   robin; las 24 sueltas ajenas anuladas con rastro (ok de Mani).
+
+## Estado (19-oct, noche)
+
+- Código en `main` (`6367b5f`); typecheck, lint y build en verde; tests del cambio al CI (swap sin aire en local).
+- Migración 0098 aplicada en producción (ok de Mani).
+- Second Brain Jurídico: round robin `…/postulacion-second-brain-juridico-estadox` resuelto a
+  `event_types/9ef431be-4023-4dac-bd12-4c0ae64c2f09` por `guardarRoundRobin`, org compartida, con `change_log`.
+- Anuladas con rastro **25** sueltas ajenas (24 medidas + 1 que entró antes del deploy), motivo "Cita de otro programa
+  de la organización de Calendly de EstadoX (ADR 0098)". Quedan 0 llamadas vigentes en el programa.
+- Sin cubrir por test: la entrega `evento_de_otro_programa` por la ruta real (está cubierto el efecto). Se verifica
+  con la próxima cita ajena en Webhook Health.
+- Pendiente de Mani: evento personal de Andrea y Maru (ComunicArte y Tactical) y la cuenta de Jerónimo.
