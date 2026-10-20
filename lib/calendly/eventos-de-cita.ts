@@ -13,6 +13,7 @@ import { camposDeInvitadoCalendly, rawDelInvitado, type EventoDeCalendly } from 
 import { closerHost } from "./emparejar-llamada";
 import { conjuntoDeEventosDelPrograma, eventoEsDelPrograma } from "./pertenencia";
 import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
+import type { CitaACancelar } from "./una-cita-activa";
 import {
   closersConCalendly,
   efectoSobreElDeal,
@@ -47,8 +48,8 @@ import {
  */
 
 export type EfectoDeEvento =
-  | { tipo: "registrada"; llamada: LlamadaRegistrada }
-  | { tipo: "reagendada"; callId: string; movioAAgendado: boolean; rechazo?: string }
+  | { tipo: "registrada"; llamada: LlamadaRegistrada; citasACancelar: CitaACancelar[] }
+  | { tipo: "reagendada"; callId: string; movioAAgendado: boolean; citasACancelar: CitaACancelar[]; rechazo?: string }
   | { tipo: "marcada"; callId: string; resultado: "cancelada" | "no_show" | "agendada"; etapa: EtapaDeal | null; rechazo?: string }
   /** El evento no cambia nada: repetido, la mitad vieja de una reagenda, o ya estaba asi. */
   | { tipo: "sin_cambio"; motivo: string }
@@ -83,9 +84,7 @@ export async function aplicarEventoDeCalendly(
       if (!(await citaConocida(db, programId, evento)) && !(await citaEsDelPrograma(db, programId, evento.eventType))) {
         return { tipo: "otro_programa", eventType: evento.eventType };
       }
-      return {
-        tipo: "registrada",
-        llamada: await registrarLlamadaDeCalendly(db, programId, {
+      const llamada = await registrarLlamadaDeCalendly(db, programId, {
           uuidInvitado: evento.uuidInvitado,
           inicio: evento.inicio,
           correoInvitado: evento.correoInvitado,
@@ -93,7 +92,11 @@ export async function aplicarEventoDeCalendly(
           linkCalendly: evento.joinUrl,
           ...camposDeInvitadoCalendly(evento),
           claveEvento: evento.claveEvento,
-        }),
+        });
+      return {
+        tipo: "registrada",
+        llamada,
+        citasACancelar: llamada.tipo === "colgada" ? llamada.citasACancelar : [],
       };
     case "cancelada":
       if (evento.reagendada) {
@@ -254,10 +257,16 @@ async function reagendar(
     }
 
     if (!llamadaAAdoptar.dealId || llamadaAAdoptar.etapa === null || llamadaAAdoptar.etapa === "ganado_completo" || llamadaAAdoptar.etapa === "cierre_perdido") {
-      return { tipo: "reagendada", callId: llamadaAAdoptar.id, movioAAgendado: false } as const;
+      return { tipo: "reagendada", callId: llamadaAAdoptar.id, movioAAgendado: false, citasACancelar: [] } as const;
     }
-    const efecto = await efectoSobreElDeal(tx, llamadaAAdoptar.dealId, host, etiqueta, cita.inicio);
-    return { tipo: "reagendada", callId: llamadaAAdoptar.id, movioAAgendado: efecto.movioAAgendado, rechazo: efecto.rechazo };
+    const efecto = await efectoSobreElDeal(tx, llamadaAAdoptar.dealId, llamadaAAdoptar.id, host, etiqueta, cita.inicio);
+    return {
+      tipo: "reagendada",
+      callId: llamadaAAdoptar.id,
+      movioAAgendado: efecto.movioAAgendado,
+      citasACancelar: efecto.citasACancelar,
+      rechazo: efecto.rechazo,
+    };
   });
 }
 

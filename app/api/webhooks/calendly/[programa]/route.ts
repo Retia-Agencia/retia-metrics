@@ -7,6 +7,7 @@ import { registrarEntrega } from "@/lib/queries/entregas-webhook";
 import { HEADER_FIRMA_CALENDLY, leerEventoDeCalendly, verificarFirmaCalendly } from "@/lib/calendly/evento-webhook";
 import { aplicarEventoDeCalendly } from "@/lib/calendly/eventos-de-cita";
 import { claveFirmaCalendly } from "@/lib/integraciones";
+import { cancelarCitasReemplazadas } from "@/lib/calendly/una-cita-activa";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -68,6 +69,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ program
 
   try {
     const efecto = await aplicarEventoDeCalendly(db, programa.id, lectura.evento);
+    if (efecto.tipo === "registrada" || efecto.tipo === "reagendada") {
+      await cancelarCitasReemplazadas(db, efecto.citasACancelar);
+    }
     if (efecto.tipo === "desconocida") {
       console.warn(`[calendly] evento sobre una cita que el CRM no conoce (programa ${programa.id})`);
     }

@@ -10,10 +10,10 @@ import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { dejarNotaDelActor } from "./nota-del-sistema";
-import { dejarNotaDelSistema } from "./nota-del-sistema";
-import { citaDeCalendly, type FetchLike } from "@/lib/calendly/cita";
-import { cancelarCita, tokenDeCalendlyDelPrograma, type CitaReservada } from "@/lib/calendly/escritura";
+import type { FetchLike } from "@/lib/calendly/cita";
+import { type CitaReservada } from "@/lib/calendly/escritura";
 import { adoptarSueltaDeCita, huellaDeCita } from "@/lib/calendly/colgar-llamada";
+import { cancelarCitaEnCalendly, cancelarCitasReemplazadas, reemplazarCitasAnteriores } from "@/lib/calendly/una-cita-activa";
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
@@ -134,17 +134,10 @@ export async function agregarLlamada(
     // ninguno. Sin ella, un rechazo del motor dejaria la llamada creada y el deal
     // en su etapa vieja. `moverEtapa` abre la suya adentro (savepoint), igual que
     // cuando la llama la ingesta.
-    return (db as unknown as Transaccion).transaction(async (db) => {
+    const escrito = await (db as unknown as Transaccion).transaction(async (db) => {
       const { deal, emailLead } = await dealAbiertoDelActor(db, dealId, actor);
 
       if (reservado) {
-        const [activa] = await db
-          .select({ id: calls.id, huellaFila: calls.huellaFila })
-          .from(calls)
-          .where(and(eq(calls.dealId, deal.id), eq(calls.resultado, "agendada"), vigente(calls)));
-        if (activa && activa.huellaFila !== huellaDeCita(reservado.uuidInvitado)) {
-          throw new ErrorDeApp("El deal ya tiene una cita agendada.", 409);
-        }
         const existente = await adoptarSueltaDeCita(db, deal.programId, reservado.uuidInvitado, { id: deal.id, cohortId: deal.cohortId });
         if (existente.estado !== "no_existe") {
           if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
@@ -154,7 +147,8 @@ export async function agregarLlamada(
               actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
             });
           }
-          return { callId: existente.callId, movioAAgendado: unaCitaMueveAAgendado(deal.etapa, deal.pendiente) };
+          const citasACancelar = await reemplazarCitasAnteriores(db, { dealId: deal.id, callIdNueva: existente.callId });
+          return { callId: existente.callId, movioAAgendado: unaCitaMueveAAgendado(deal.etapa, deal.pendiente), citasACancelar };
         }
       }
 
@@ -180,6 +174,9 @@ export async function agregarLlamada(
           notas: notas ?? null,
         },
       );
+      const citasACancelar = reservado
+        ? await reemplazarCitasAnteriores(db, { dealId: deal.id, callIdNueva: callId })
+        : [];
 
       // La etapa nunca se escribe aquí: el motor ve la llamada recién creada en la misma transacción.
       if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
@@ -188,12 +185,14 @@ export async function agregarLlamada(
           a: "agendado",
           actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         });
-        return { callId, movioAAgendado: true };
+        return { callId, movioAAgendado: true, citasACancelar };
       }
 
       // Si la regla no mueve, la llamada queda registrada sin inventar una transición.
-      return { callId, movioAAgendado: false };
+      return { callId, movioAAgendado: false, citasACancelar };
     });
+    await cancelarCitasReemplazadas(db, escrito.citasACancelar);
+    return { callId: escrito.callId, movioAAgendado: escrito.movioAAgendado };
   });
 }
 
@@ -554,7 +553,7 @@ export async function reagendarLlamada(
       return { callId: callId2, movioAAgendado: false, vieja, dealId: deal.id };
     });
     const cancelacionPendiente = reservado
-      ? await cancelarCitaAnterior(db, escrito.dealId, escrito.vieja, "Reagendada", opciones)
+      ? await cancelarCitaEnCalendly(db, escrito.dealId, escrito.vieja, "Reagendada", opciones)
       : false;
     return { callId: escrito.callId, movioAAgendado: escrito.movioAAgendado, cancelacionPendiente };
   });
@@ -659,38 +658,10 @@ export async function marcarFallida(
       return { etapa: hecho.a, call, dealId: deal.id };
     });
     const cancelacionPendiente = resultado === "cancelada"
-      ? await cancelarCitaAnterior(db, escrito.dealId, escrito.call, "Cancelada", opciones)
+      ? await cancelarCitaEnCalendly(db, escrito.dealId, escrito.call, "Cancelada", opciones)
       : false;
     return { etapa: escrito.etapa, cancelacionPendiente };
   });
-}
-
-async function cancelarCitaAnterior(
-  db: Db,
-  dealId: string,
-  llamada: typeof calls.$inferSelect,
-  motivo: "Reagendada" | "Cancelada",
-  opciones: { fetch?: FetchLike; ahora?: Date },
-): Promise<boolean> {
-  const ahora = opciones.ahora ?? new Date();
-  if (!llamada.fechaAgenda || llamada.fechaAgenda <= ahora || !llamada.huellaFila?.startsWith("calendly:")) return false;
-  const uuid = llamada.huellaFila.slice("calendly:".length);
-  try {
-    const token = await tokenDeCalendlyDelPrograma(db, llamada.programId);
-    const cita = await citaDeCalendly({
-      token,
-      correo: llamada.emailLead ?? "",
-      uuidInvitado: uuid,
-      fetch: opciones.fetch,
-      ahora,
-    });
-    if (!cita) throw new Error("No se encontró la cita anterior en Calendly.");
-    await cancelarCita(token, cita.eventUri, motivo, opciones.fetch);
-    return false;
-  } catch {
-    await dejarNotaDelSistema(db, dealId, "La cita anterior de Calendly no se pudo cancelar. Reintenta la cancelación.");
-    return true;
-  }
 }
 
 /**

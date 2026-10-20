@@ -13,6 +13,7 @@ import { mapeoWebhookDesdeFuente, type MapeoWebhookResuelto } from "@/lib/ingest
 import { PROVEEDORES } from "@/lib/ingesta/proveedores";
 import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import { tokenCalendly } from "@/lib/integraciones";
+import { cancelarCitasReemplazadas } from "@/lib/calendly/una-cita-activa";
 
 /**
  * El procesamiento de un envio DESPUES de que la firma cuadro (ticket 110). Es lo que
@@ -147,6 +148,7 @@ export async function procesarSobre(
       aplicarReglaDeDeals: true,
       citasPorCorreo,
     });
+    await cancelarCitasReemplazadas(db, resultado.citasACancelar);
 
     // Un envio COMPLETO con firma buena y sin correo entra como envio "sin lead": no es
     // un error de la ingesta, pero no hay lead que crear. Se marca el sobre y se reporta

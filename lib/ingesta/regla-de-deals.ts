@@ -19,6 +19,7 @@ import {
 } from "@/lib/calendly/colgar-llamada";
 import { agendoElEnvio, etapaDeEntrada, type EtapaDeEntrada, type HechosDeEntrada } from "./etapa-de-entrada";
 import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
+import { reemplazarCitasAnteriores, type CitaACancelar } from "@/lib/calendly/una-cita-activa";
 
 /**
  * Los tres hechos con los que la regla enruta UN envio. Lo comparten la ingesta y
@@ -291,6 +292,7 @@ export interface ResultadoReglaDeDeal {
    * reporte de la ingesta.
    */
   nota?: string;
+  citasACancelar: CitaACancelar[];
 }
 
 /** El deal abierto del lead con su id, o `null`. */
@@ -448,7 +450,7 @@ async function aplicarReglaDeDealSinAdoptar(
       await notificarCitaNueva(db, { id: dealId, programId: lead.programId }, callId, accion.llamada.uuidInvitado);
     }
     if (accion.nota) await dejarNotaDelSistema(db, dealId, accion.nota);
-    return { leadId: lead.id, accion, dealAbiertoId: dealId, nota: accion.nota };
+    return { leadId: lead.id, accion, dealAbiertoId: dealId, nota: accion.nota, citasACancelar: [] };
   }
 
   if (accion.tipo === "mover" && dealAbierto !== null) {
@@ -461,6 +463,9 @@ async function aplicarReglaDeDealSinAdoptar(
       lead.emailNormalizado,
       accion.llamada,
     );
+    const citasACancelar = callId
+      ? await reemplazarCitasAnteriores(db, { dealId: dealAbierto.id, callIdNueva: callId })
+      : [];
     await darDealAlHost(db, dealAbierto.id, dealAbierto.ownerUserId, host, lead.emailNormalizado);
     await notificarCitaNueva(db, { id: dealAbierto.id, programId: lead.programId }, callId, accion.llamada.uuidInvitado);
 
@@ -474,11 +479,11 @@ async function aplicarReglaDeDealSinAdoptar(
       await dejarNotaDelSistema(db, dealAbierto.id, accion.nota);
     } catch (e) {
       if (e instanceof MovimientoRechazado) {
-        return { leadId: lead.id, accion, rechazo: e.message };
+        return { leadId: lead.id, accion, rechazo: e.message, citasACancelar };
       }
       throw e;
     }
-    return { leadId: lead.id, accion };
+    return { leadId: lead.id, accion, citasACancelar };
   }
 
   if (accion.tipo === "subir" && dealAbierto !== null) {
@@ -487,11 +492,11 @@ async function aplicarReglaDeDealSinAdoptar(
       await dejarNotaDelSistema(db, dealAbierto.id, accion.nota);
     } catch (e) {
       if (e instanceof MovimientoRechazado) {
-        return { leadId: lead.id, accion, rechazo: e.message };
+        return { leadId: lead.id, accion, rechazo: e.message, citasACancelar: [] };
       }
       throw e;
     }
-    return { leadId: lead.id, accion };
+    return { leadId: lead.id, accion, citasACancelar: [] };
   }
 
   if (accion.tipo === "agregar_llamada" && dealAbierto !== null) {
@@ -502,17 +507,20 @@ async function aplicarReglaDeDealSinAdoptar(
       lead.emailNormalizado,
       accion.llamada,
     );
+    const citasACancelar = callId
+      ? await reemplazarCitasAnteriores(db, { dealId: dealAbierto.id, callIdNueva: callId })
+      : [];
     await darDealAlHost(db, dealAbierto.id, dealAbierto.ownerUserId, host, lead.emailNormalizado);
     await notificarCitaNueva(db, { id: dealAbierto.id, programId: lead.programId }, callId, accion.llamada.uuidInvitado);
     await dejarNotaDelSistema(db, dealAbierto.id, accion.nota);
-    return { leadId: lead.id, accion };
+    return { leadId: lead.id, accion, citasACancelar };
   }
 
   // `nada` y `notificar_reenvio` no mueven el deal. Un `nada` con nota (cita no vigente
   // sobre un deal en 1/2/3/9/11) la deja escrita en ese deal.
   const nota = accion.tipo === "nada" ? accion.nota : accion.tipo === "notificar_reenvio" ? accion.nota : undefined;
   if (nota && dealAbierto !== null) await dejarNotaDelSistema(db, dealAbierto.id, nota);
-  return { leadId: lead.id, accion, nota };
+  return { leadId: lead.id, accion, nota, citasACancelar: [] };
 }
 
 /** Aplica la regla y, después de la adopción exacta por UUID, rescata las sueltas por correo. */

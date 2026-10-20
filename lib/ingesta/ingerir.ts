@@ -9,6 +9,7 @@ import type { Calificacion } from "./calificacion";
 import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, hechosDeEntradaDelEnvio, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
+import type { CitaACancelar } from "@/lib/calendly/una-cita-activa";
 import {
   resolverIdentidad,
   type ContactoConocido,
@@ -67,6 +68,7 @@ export interface ResultadoIngesta {
    * `nota` de una cita de Calendly que no estaba vigente.
    */
   reglaDeDeals: { leadId: string; accion: AccionDeDeal; dealAbiertoId?: string; rechazo?: string; nota?: string }[];
+  citasACancelar: CitaACancelar[];
 }
 
 export interface OpcionesIngesta {
@@ -127,6 +129,7 @@ export async function ingerirEntradas(
     posiblesDuplicados: [],
     cambiosRegistrados: 0,
     reglaDeDeals: [],
+    citasACancelar: [],
   };
   if (entradas.length === 0) return resultado;
 
@@ -387,6 +390,7 @@ export async function ingerirEntradas(
             rechazo: r.rechazo,
             nota: r.nota,
           });
+          resultado.citasACancelar.push(...r.citasACancelar);
         }
       }
 
