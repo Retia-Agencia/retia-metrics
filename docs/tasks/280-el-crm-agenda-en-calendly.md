@@ -57,6 +57,22 @@ cualquier momento.
 - Una reserva de prueba en un hueco real y su cancelación: payload del webhook, `rescheduled`, link del Meet en
   `location.join_url`, correo al invitado (usar un correo propio).
 
+### Resultado del spike (19-oct, Confianza, ok de Mani)
+
+- ✅ **El token del owner (Francisco) reserva en el evento personal de otro miembro (Nicolás):** `POST /invitees`
+  → 201, host Nicolás, `google_conference` con `join_url`, `rescheduled: false`. El diseño se sostiene.
+- `tracking` exige **las seis llaves** (`utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term`,
+  `salesforce_uuid`); las que no se usan van en `null`. Sin ellas, 400.
+- La pregunta de texto del evento no es obligatoria; se puede omitir o llenar.
+- El webhook vivo creó la llamada `suelta` con huella `calendly:<uuid>`, host y fecha, **pero sin el link del Meet**
+  (`link_calendly` vacío): el 280 guarda el `join_url`, en la reserva del CRM y en el webhook.
+- Cancelar → 201 y el webhook marcó la llamada `cancelada`. La cancelación sale **a nombre del dueño del token**
+  (`canceled_by: "Francisco Vargas"`, `canceler_type: host`), y eso lo ve el lead en el correo. El `reason` se manda
+  neutro (sin nombres internos). Cancelar otra vez → **403** `Event is already canceled` (no 409): se trata como éxito.
+- Sin probar: cancelar un evento pasado (documentado como `Event in the past`).
+- Residuo en producción: la llamada suelta cancelada `0953a21e-f3e8-4151-a045-187e7c084615` (Confianza, sin deal),
+  pendiente de anular.
+
 ## Done cuando
 
 - Tests: `eventoParaAgendar` en los dos sentidos; reagenda con la API simulada en sus tres fallos (reserva falla →
