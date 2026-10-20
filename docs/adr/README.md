@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0094)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0096)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -117,6 +117,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0092](./0092-form30x-es-el-tercer-proveedor.md) | Form30x es el tercer proveedor de formularios (webhook firmado, calidad y valor por `tags`), y su API key se usa con un solo form |
 | [0093](./0093-los-parciales-de-form30x-se-leen-por-la-api.md) | Los parciales de Form30x se leen por la API cada 30 minutos (pg_cron en Supabase), con la key de la compañía en Vercel y un solo módulo que solo lee; enmienda el 0092 |
 | [0094](./0094-un-gerente-o-un-paid-trafficker-puede-quedar-limitado-a-sus-programas.md) | Un gerente o un paid trafficker puede quedar limitado a sus programas, con una tabla de alcance aparte de las membresías; un usuario limitado no administra lo global (`administraGlobal`); enmienda el 0048 y el 0052 |
+| [0095](./0095-las-integraciones-de-un-programa-viven-en-una-tabla.md) | Las integraciones de un programa (Dapta, Typeform, Calendly, Meta) viven en `integraciones`, una fila por programa y tipo, con un solo molde de secreto en `lib/integraciones/`; Ajustes › Meta se retira; enmienda el 0057 y el 0062 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
