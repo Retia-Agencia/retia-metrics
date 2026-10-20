@@ -1,7 +1,11 @@
 import { and, count, eq, gte, isNotNull, isNull, lt, max } from "drizzle-orm";
+import { MEDIOS_PAGOS, normalizarUtm } from "@/lib/atribucion/canal";
+import { emparejar } from "@/lib/atribucion/emparejar";
+import { columnasUtmDelEnvio, esMacro, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { db as dbDeLaApp } from "@/lib/db";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { arbolDePauta } from "@/lib/pauta/arbol";
 
 /**
  * La salud de una fuente de leads (ticket 107): ¿sigue recibiendo envios?
@@ -43,8 +47,17 @@ export interface DatosDeSalud {
   lecturaApi: { leidaEn: Date | null } | null;
 }
 
+export interface DatosDeTraza {
+  pagos: number;
+  pagosSinId: number;
+  pagosIdDesconocido: number;
+  trazaRota: boolean;
+}
+
 /** La ventana del conteo de "sin calidad": lo reciente, para que un arreglo se note al dia siguiente. */
 export const HORAS_SIN_CALIDAD = 24;
+/** Evita marcar por una muestra demasiado pequena de envios pagos. */
+export const MIN_PAGOS_TRAZA = 5;
 /** Cuatro turnos perdidos del cron de 30 min (ADR 0093 punto 3); ningun runner se da por confiable. */
 export const HORAS_LECTURA_FORM30X_VIEJA = 2;
 
@@ -56,18 +69,30 @@ export interface SaludDeFuente {
   sinCalidad: number;
   lecturaApi: DatosDeSalud["lecturaApi"];
   lecturaVieja: boolean;
+  pagos: number;
+  pagosSinId: number;
+  pagosIdDesconocido: number;
+  trazaRota: boolean;
 }
 
 const HORA_MS = 3_600_000;
 
-export function saludDeFuente(d: DatosDeSalud, ahora: Date = new Date()): SaludDeFuente {
+export function saludDeFuente(
+  d: DatosDeSalud & Partial<DatosDeTraza>,
+  ahora: Date = new Date(),
+): SaludDeFuente {
   const { sobresPendientes, sinCalidad, lecturaApi } = d;
+  const pagos = d.pagos ?? 0;
+  const pagosSinId = d.pagosSinId ?? 0;
+  const pagosIdDesconocido = d.pagosIdDesconocido ?? 0;
+  const trazaRota = pagos >= MIN_PAGOS_TRAZA && pagosSinId * 2 > pagos;
+  const traza = { pagos, pagosSinId, pagosIdDesconocido, trazaRota };
   const lecturaVieja =
     lecturaApi !== null &&
     (lecturaApi.leidaEn === null ||
       ahora.getTime() - lecturaApi.leidaEn.getTime() >= HORAS_LECTURA_FORM30X_VIEJA * HORA_MS);
   if (!d.ultimo) {
-    return { estado: "sin_envios", marcada: true, sobresPendientes, sinCalidad, lecturaApi, lecturaVieja };
+    return { estado: "sin_envios", marcada: true, sobresPendientes, sinCalidad, lecturaApi, lecturaVieja, ...traza };
   }
 
   const silencio = (ahora.getTime() - d.ultimo.getTime()) / HORA_MS;
@@ -81,11 +106,12 @@ export function saludDeFuente(d: DatosDeSalud, ahora: Date = new Date()): SaludD
   const silenciosa = estado === "sin_respuestas" || estado === "muerta";
   return {
     estado,
-    marcada: silenciosa || sobresPendientes > 0 || sinCalidad > 0 || lecturaVieja,
+    marcada: silenciosa || sobresPendientes > 0 || sinCalidad > 0 || lecturaVieja || trazaRota,
     sobresPendientes,
     sinCalidad,
     lecturaApi,
     lecturaVieja,
+    ...traza,
   };
 }
 
@@ -108,7 +134,7 @@ export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
  */
 export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date()): Promise<SaludDeFuenteConDatos[]> {
   const desde = new Date(ahora.getTime() - HORAS_SIN_CALIDAD * HORA_MS);
-  const [fuentes, filasUltimo, filasSobres, recientes] = await Promise.all([
+  const [fuentes, filasUltimo, filasSobres, recientesSinCalidad, enviosRecientes] = await Promise.all([
     db
       .select({
         sourceId: sources.id,
@@ -139,7 +165,34 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       .from(submissions)
       .where(and(gte(submissions.createdAt, desde), eq(submissions.esParcial, false), isNull(submissions.leadQuality)))
       .groupBy(submissions.sourceId),
+    db
+      .select({ sourceId: submissions.sourceId, ...columnasUtmDelEnvio })
+      .from(submissions)
+      .where(gte(submissions.createdAt, desde)),
   ]);
+
+  const programas = [...new Set(fuentes.map((fuente) => fuente.programId))];
+  const arboles = new Map(await Promise.all(programas.map(async (programId) =>
+    [programId, await arbolDePauta(db, programId)] as const
+  )));
+  const programaPorFuente = new Map(fuentes.map((fuente) => [fuente.sourceId, fuente.programId]));
+  const trazaDe = new Map<string, Omit<DatosDeTraza, "trazaRota">>();
+  for (const envio of enviosRecientes) {
+    const programId = programaPorFuente.get(envio.sourceId);
+    if (!programId) continue;
+    const utms = utmsDelEnvio(envio);
+    const medium = normalizarUtm(utms.medium);
+    if (!MEDIOS_PAGOS.some((medio) => medio === medium)) continue;
+    const conteo = trazaDe.get(envio.sourceId) ?? { pagos: 0, pagosSinId: 0, pagosIdDesconocido: 0 };
+    conteo.pagos += 1;
+    const tieneId = [utms.idsMeta.adId, utms.id, utms.idsMeta.adsetId, utms.idsMeta.campaignId]
+      .some((id) => id !== null && id.trim() !== "" && !esMacro(id));
+    if (!tieneId) conteo.pagosSinId += 1;
+    else if (emparejar(utms, arboles.get(programId)!).avisos.includes("anuncio_desconocido")) {
+      conteo.pagosIdDesconocido += 1;
+    }
+    trazaDe.set(envio.sourceId, conteo);
+  }
 
   const fecha = (v: Date | string | null | undefined) => (v ? new Date(v) : null);
   const ultimoDe = new Map(filasUltimo.map((f) => [f.sourceId, fecha(f.ultimo)]));
@@ -157,7 +210,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     ),
   );
   const sobresDe = new Map(filasSobres.map((f) => [f.sourceId, Number(f.pendientes)]));
-  const sinCalidadDe = new Map(recientes.map((r) => [r.sourceId, Number(r.n)]));
+  const sinCalidadDe = new Map(recientesSinCalidad.map((r) => [r.sourceId, Number(r.n)]));
 
   return fuentes.map((f) => {
     const { proveedor, form30xFormId, form30xLeidoEn, ...fuente } = f;
@@ -174,6 +227,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       sinCalidad: sinCalidadDe.get(f.sourceId) ?? 0,
       lecturaApi,
     };
-    return { ...fuente, ...datos, ...saludDeFuente(datos, ahora) };
+    const traza = trazaDe.get(f.sourceId) ?? { pagos: 0, pagosSinId: 0, pagosIdDesconocido: 0 };
+    return { ...fuente, ...datos, ...saludDeFuente({ ...datos, ...traza }, ahora) };
   });
 }

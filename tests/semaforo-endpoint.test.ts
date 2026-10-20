@@ -181,6 +181,7 @@ describe("endpoint de maquina del semaforo", () => {
           tipo: "dia",
           enlaceHub: "https://crm.retia.test/p/uno/hub?seccion=pauta",
           metricas: [{ metrica: "costo_por_agenda" }],
+          trazaRota: [],
           error: null,
         }],
       }],

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { saludDeFuente, saludDeFuentes } from "@/lib/queries/salud-fuentes";
+import { MIN_PAGOS_TRAZA, saludDeFuente, saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -102,6 +102,13 @@ describe("saludDeFuente (pura)", () => {
     expect(s.lecturaVieja).toBe(true);
     expect(s.marcada).toBe(true);
   });
+  it("marca la traza solo desde cinco pagos y cuando falta el id en mas de la mitad", () => {
+    const base = { ...UMBRALES, ultimo: hace(1), penultimo: hace(2), sobresPendientes: 0, sinCalidad: 0, lecturaApi: null };
+    expect(MIN_PAGOS_TRAZA).toBe(5);
+    expect(saludDeFuente({ ...base, pagos: 4, pagosSinId: 4 }).trazaRota).toBe(false);
+    expect(saludDeFuente({ ...base, pagos: 5, pagosSinId: 5 }).trazaRota).toBe(true);
+    expect(saludDeFuente({ ...base, pagos: 5, pagosSinId: 2 }).trazaRota).toBe(false);
+  });
 });
 
 describe("saludDeFuentes (contra la base)", () => {
@@ -180,6 +187,34 @@ describe("saludDeFuentes (contra la base)", () => {
     const [s] = await saludDeFuentes(db, AHORA);
     expect(s.sinCalidad).toBe(2);
     expect(s.marcada).toBe(true);
+  });
+
+  it("cuenta la cobertura de ids solo en envios pagos de la fuente y programa", async () => {
+    const id = await fuente("Typeform");
+    const [otroPrograma] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "otro",
+      nombre: "Otro",
+      ticketUsd: "900",
+    }).returning();
+    const [otraFuente] = await db.insert(sources).values({
+      programId: otroPrograma.id,
+      nombre: "Otra fuente",
+      tipo: "webhook",
+      proveedor: "typeform",
+    }).returning();
+    await db.insert(submissions).values([
+      { sourceId: id, token: "ad", createdAt: hace(1), utmMedium: "paid", respuestas: { ad_id: "101" } },
+      { sourceId: id, token: "utm", createdAt: hace(1), utmMedium: "cpc", utmId: "102" },
+      { sourceId: id, token: "macro", createdAt: hace(1), utmMedium: "paid", utmId: "{{ad.id}}" },
+      { sourceId: id, token: "vacio", createdAt: hace(1), utmMedium: "paid" },
+      { sourceId: id, token: "organico", createdAt: hace(1), utmMedium: "organic" },
+      { sourceId: otraFuente.id, token: "otro", createdAt: hace(1), utmMedium: "paid" },
+    ]);
+
+    const salud = await saludDeFuentes(db, AHORA);
+    const s = salud.find((fila) => fila.sourceId === id)!;
+    expect(s).toMatchObject({ pagos: 4, pagosSinId: 2, pagosIdDesconocido: 2, trazaRota: false });
   });
 
   it("solo mira las fuentes activas", async () => {

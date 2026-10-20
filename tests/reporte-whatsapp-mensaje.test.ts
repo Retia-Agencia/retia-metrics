@@ -85,6 +85,16 @@ describe("mensaje del reporte por WhatsApp", () => {
     expect(mensaje).not.toContain("Las agendas de hoy pueden seguir subiendo");
   });
 
+  it("avisa cada fuente cuya traza de pauta esta rota", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      ...bloque(),
+      trazaRota: [{ fuente: "Typeform Tactical", pagos: 7, pagosSinId: 5 }],
+    }], "09:00", null, ORIGEN);
+
+    expect(mensaje).toContain("⚠️ Typeform Tactical: 5 de 7 envíos pagos sin anuncio (24 h)");
+    expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
+  });
+
   it("dice cuánto más barato que la meta, o igual", () => {
     const conPorcentaje = (porcentajeDelUmbral: number) => armarMensajeDeLaHora(
       [{ ...bloque(), metricas: [{ ...METRICA, color: "exito", porcentajeDelUmbral }] }],

@@ -1,6 +1,7 @@
 import { reporteDelPrograma } from "@/lib/catalogo/reportes-whatsapp";
 import type { Db } from "@/lib/db/tipos";
 import { horaEnBogota } from "@/lib/format";
+import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
 import { armarMensajeDeLaHora, enlaceAlHub } from "./mensaje";
 
@@ -33,6 +34,9 @@ export async function vistaPreviaDelReporte(
   }
 
   const enlaceHub = enlaceAlHub(args.origen, args.slug);
+  const trazaRota = (await saludDeFuentes(db, args.ahora))
+    .filter((fuente) => fuente.programId === args.programId && fuente.trazaRota)
+    .map((fuente) => ({ fuente: fuente.nombre, pagos: fuente.pagos, pagosSinId: fuente.pagosSinId }));
   const mensaje = async (tipo: "dia" | "cierre", hora: string) => {
     const metricas = await Promise.all(metricasEncendidas.map((metrica) => {
       switch (metrica) {
@@ -51,6 +55,7 @@ export async function vistaPreviaDelReporte(
       enlaceHub,
       metricas,
       cuentasMeta: [],
+      trazaRota,
       error: null,
     }], hora, null, args.origen);
   };

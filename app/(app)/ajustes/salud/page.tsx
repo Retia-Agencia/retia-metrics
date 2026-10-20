@@ -152,6 +152,16 @@ export default async function SaludPage({
                         · {num(s.sinCalidad)} {s.sinCalidad === 1 ? "envío" : "envíos"} completos sin calidad en {HORAS_SIN_CALIDAD} h
                       </span>
                     ) : null}
+                    {s.trazaRota ? (
+                      <span className="text-tono-alerta">
+                        · {num(s.pagosSinId)} de {num(s.pagos)} envíos pagos sin anuncio ({HORAS_SIN_CALIDAD} h)
+                      </span>
+                    ) : null}
+                    {s.pagosIdDesconocido > 0 ? (
+                      <span className="text-muted-foreground">
+                        · {num(s.pagosIdDesconocido)} con anuncio desconocido
+                      </span>
+                    ) : null}
                     {s.lecturaApi !== null ? (
                       s.lecturaVieja ? (
                         <span className="text-tono-alerta">

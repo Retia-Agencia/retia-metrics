@@ -61,6 +61,11 @@ export const esquemaBloque = z.object({
     estado: z.enum(["al_dia", "problema"]),
     detalle: z.string().nullable(),
   }).strict()),
+  trazaRota: z.array(z.object({
+    fuente: z.string(),
+    pagos: z.number(),
+    pagosSinId: z.number(),
+  }).strict()).optional(),
   error: z.string().nullable(),
 }).strict();
 

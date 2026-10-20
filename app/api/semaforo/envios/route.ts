@@ -9,6 +9,7 @@ import { fechaDeInstanteEnBogota, isoEnBogota } from "@/lib/format";
 import { sincronizarDiaEnCurso } from "@/lib/pauta/dia-en-curso";
 import { saludDeCuentasMeta } from "@/lib/pauta/salud-cuentas";
 import { sincronizarPautaEnVentana } from "@/lib/pauta/sincronizar";
+import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { esquemaRespuestaSemaforo, type RespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
 import { armarMensajeDeLaHora, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
 import { queTocaAhora } from "@/lib/reporte-whatsapp/que-toca";
@@ -100,6 +101,14 @@ export async function POST(request: Request) {
   }
 
   const porPrograma = new Map(reportes.map((reporte) => [reporte.programId, reporte]));
+  const salud = pendientes.length > 0 ? await saludDeFuentes(db, ahora) : [];
+  const trazaRotaPorPrograma = new Map<string, NonNullable<RespuestaSemaforo["envios"][number]["bloques"][number]["trazaRota"]>>();
+  for (const fuente of salud) {
+    if (!fuente.trazaRota) continue;
+    const fuentes = trazaRotaPorPrograma.get(fuente.programId) ?? [];
+    fuentes.push({ fuente: fuente.nombre, pagos: fuente.pagos, pagosSinId: fuente.pagosSinId });
+    trazaRotaPorPrograma.set(fuente.programId, fuentes);
+  }
   const origen = new URL(request.url).origin;
   const bloquesConDestino = await Promise.all(
     pendientes.map(async (pendiente) => {
@@ -129,6 +138,7 @@ export async function POST(request: Request) {
             enlaceHub: enlaceAlHub(origen, reporte.slug),
             metricas,
             cuentasMeta: cuentasMetaPorPrograma.get(pendiente.programId) ?? [],
+            trazaRota: trazaRotaPorPrograma.get(pendiente.programId) ?? [],
             error: null,
           },
         };
@@ -141,6 +151,7 @@ export async function POST(request: Request) {
             enlaceHub: enlaceAlHub(origen, reporte.slug),
             metricas: [],
             cuentasMeta: cuentasMetaPorPrograma.get(pendiente.programId) ?? [],
+            trazaRota: trazaRotaPorPrograma.get(pendiente.programId) ?? [],
             error: "No se pudo calcular el semáforo de este programa.",
           },
         };

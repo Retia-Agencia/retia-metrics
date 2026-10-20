@@ -193,6 +193,9 @@ export function armarMensajeDeLaHora(
         lineasBloque.push(...lineasMetrica(metrica, bloque.tipo));
       }
     }
+    for (const fuente of bloque.trazaRota ?? []) {
+      lineasBloque.push(`⚠️ ${fuente.fuente}: ${num(fuente.pagosSinId)} de ${num(fuente.pagos)} envíos pagos sin anuncio (24 h)`);
+    }
     return lineasBloque.join("\n");
   });
   lineas.push(bloquesFormateados.join("\n━━━━━━━━━━\n"), "");
@@ -216,7 +219,9 @@ export function armarMensajeDeLaHora(
   }
 
   const notasInformativas = new Set<string>();
-  let tieneProblemas = cuentasConProblema.length > 0 || bloques.some((bloque) => bloque.error !== null);
+  let tieneProblemas = cuentasConProblema.length > 0 || bloques.some(
+    (bloque) => bloque.error !== null || (bloque.trazaRota?.length ?? 0) > 0,
+  );
   for (const bloque of bloques) {
     if (bloque.error) continue;
     for (const metrica of bloque.metricas) {

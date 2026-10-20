@@ -250,6 +250,7 @@ describe("emparejador de atribucion", () => {
 });
 
 const PROHIBIDO = [
+  { nombre: "lista copiada de medios pagos", re: /(["'`])paid_social\1/ },
   { nombre: "identificador de columna UTM", re: /\butm(?:Content|Term|Id)\b/ },
   { nombre: "llave cruda UTM", re: /(["'`])utm_(?:content|term|id)\1/ },
   { nombre: "llave cruda de Meta", re: /(["'`])(?:ad_id|adset_id|campaign_id)\1/ },
@@ -278,6 +279,7 @@ describe("guardian: los UTM detallados se leen solo dentro de atribucion", () =>
     [path.join("lib", "ingesta", "mapeo-webhook.ts"), "traduce la llave del mapeo de la fuente; no interpreta"],
     [path.join("lib", "calendly", "evento-webhook.ts"), "lee el tracking del invitado de Calendly para el codigo del deal (ADR 0076); no interpreta UTM de atribucion"],
     [path.join("scripts", "seed-local.ts"), "arma envios ficticios para la base local; escribe y no interpreta"],
+    [path.join("scripts", "cargar-canales.ts"), "carga el catalogo historico retirado; no clasifica envios"],
   ]);
 
   function archivos(dir: string): string[] {
@@ -306,6 +308,8 @@ describe("guardian: los UTM detallados se leen solo dentro de atribucion", () =>
   it("el detector muerde las dos formas clandestinas", () => {
     expect(detectarLecturasUtm("fila.utmContent")).not.toEqual([]);
     expect(detectarLecturasUtm('r["utm_term"]')).not.toEqual([]);
+    expect(detectarLecturasUtm('const medios = ["paid_social"]')).toContain("lista copiada de medios pagos");
+    expect(detectarLecturasUtm('const id = respuestas["ad_id"]')).toContain("llave cruda de Meta");
   });
 
   it("el detector no castiga las formas autorizadas", () => {
