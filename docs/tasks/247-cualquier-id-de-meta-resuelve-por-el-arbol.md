@@ -65,3 +65,16 @@ un anuncio del árbol (N3) y los otros 14 son `organic`; sus 111 `utm_id` de 14 
 llave `ad_id` en NULL, aunque sus 17 anuncios activos sí ponen `ad_id={{ad.id}}` en sus `url_tags`. El Typeform declara
 el campo, pero la página que lo embebe no le pasa ese parámetro (CA sí lo pasa). Es configuración de la landing de TI
 (pasar `ad_id`, `adset_id` y `campaign_id` al embed), no código; cuando llegue el primero, verlo en N3.
+
+## 20-oct: por qué TI y Confianza no traen el id (diagnóstico)
+
+- Los anuncios SÍ mandan el id: Tactical pone `campaign_id`, `adset_id`, `ad_id` y `fbclid` en sus `url_tags` (17
+  activos); Confianza pone `utm_id={{ad.id}}` (15 activos). Medido con `retia-insights`.
+- Se pierden en la **landing**: las dos son de Lovable (`deceroatactical.ttrading.co` y
+  `programapowertalk.lovable.app`) y su botón "Postular" copia al Typeform solo una lista fija de cinco
+  (`utm_source`, `utm_medium`, `utm_campaign`, `utm_term`, `utm_content`). ComunicArte funciona porque su landing pasa
+  todos los parámetros.
+- El Typeform de TI había perdido `ad_id`, `adset_id` y `campaign_id` en una edición del 19-oct; se le devolvieron
+  por API el 20-oct (ok de Mani, con respaldo, el resto del form idéntico).
+- **Falta (operación):** que cada landing agregue a su lista `utm_id`, `ad_id`, `adset_id`, `campaign_id` y `fbclid`.
+  Cuando entre el primer envío de TI con id, verlo en N3 y cerrar.
