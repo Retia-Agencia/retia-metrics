@@ -179,12 +179,6 @@
         }
       },
       {
-        "key": "utm_id",
-        "type": "text",
-        "question": "utm_id",
-        "hidden": true
-      },
-      {
         "key": "ad_id",
         "type": "text",
         "question": "ad_id",
@@ -206,88 +200,21 @@
     "scoring": {
       "enabled": true
     },
+    "tracking": {
+      "metaPixelId": "1068355778485503"
+    },
     "outcomes": [
       {
-        "id": "limpio_30",
-        "label": "Gracias ¡nos vemos en tu entrevista!",
-        "minScore": 30,
-        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc1_30",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -70,
-        "maxScore": -50,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc2_30",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -170,
-        "maxScore": -150,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc3_30",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -270,
-        "maxScore": -250,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "limpio_15",
-        "label": "Gracias ¡nos vemos en tu entrevista!",
-        "minScore": 15,
-        "maxScore": 29,
-        "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc1_15",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -85,
-        "maxScore": -71,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc2_15",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -185,
-        "maxScore": -171,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc3_15",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -285,
-        "maxScore": -271,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "limpio_0",
+        "id": "agendado",
         "label": "Gracias ¡nos vemos en tu entrevista!",
         "minScore": 0,
-        "maxScore": 14,
         "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
-        "id": "desc1_0",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -100,
-        "maxScore": -86,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc2_0",
-        "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -200,
-        "maxScore": -186,
-        "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
-      },
-      {
-        "id": "desc3_0",
+        "id": "en_revision",
         "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
         "minScore": -300,
-        "maxScore": -286,
+        "maxScore": -1,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       }
     ],

@@ -19,6 +19,7 @@ const PROGRAMAS = {
     evento: ['https://api.calendly.com/event_types/098ad9d0-5268-4156-afc1-b371a42f6945', 'Postulación Método Comunicarte'],
     // Tema "Classic blue" del Typeform. Su fuente es la del sistema, que Dapta no tiene: inter es la mas cercana
     marca: { background: '#FFFFFF', foreground: '#000000', primaryColor: '#0445AF', fontFamily: 'inter' },
+    pixel: '974573078957944', // Pixel_Comunicarte_2026, el mismo de su Typeform
     ingresos: [
       ['ingreso_1', 'Menos de $700 USD', 0, true],
       ['ingreso_2', '$700 - $1.500 USD', 10, true],
@@ -34,6 +35,7 @@ const PROGRAMAS = {
     calendly: 'https://calendly.com/d/d2ft-nk5-gns/postulacion-de-cero-a-tactical-investor', // 19-oct
     evento: ['https://api.calendly.com/event_types/0049872a-7a3f-4e9c-a7d2-d9f88bfc1927', 'Postulación: De Cero a Tactical Investor'],
     marca: { background: '#2A222B', foreground: '#FAFAFA', primaryColor: '#FAFAFA', fontFamily: 'inter' }, // "Inky black"
+    pixel: '1526923172471788', // Pixel_Deceroatactical_2026, el mismo de su Typeform
     ingresos: [ // descalifica menos de 1.000, como su Typeform; los puntos son el estandar (su Typeform no los tiene)
       ['ingreso_1', 'Menos de $1.000 USD', 0, true],
       ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
@@ -49,6 +51,7 @@ const PROGRAMAS = {
     calendly: 'https://calendly.com/d/dv7k-r6w-g55/postulacion-comunicate-con-confianza', // 19-oct
     evento: ['https://api.calendly.com/event_types/030f9e46-1bf8-4be7-b8f4-406a19fd78f7', 'Postulación Comunícate con Confianza'],
     marca: { background: '#0B0E11', foreground: '#FFFFFF', primaryColor: '#00B2F0', fontFamily: 'inter' }, // "PowerTalk"
+    pixel: '1068355778485503', // Power Talk, el mismo de su Typeform
     ingresos: [
       ['ingreso_1', 'Menos de $1.000 USD', 0, true],
       ['ingreso_2', '$1.000 - $3.000 USD', 10, false],
@@ -116,31 +119,21 @@ const steps = [
       prefillMap: { name: 'nombre', email: 'email' },
       // El evento escogido, el mismo que guarda el editor con Calendly conectado en Integrations
       ...(p.evento ? { eventTypeUri: p.evento[0], eventTypeName: p.evento[1] } : {}) } },
-  // utm_source/medium/campaign/content/term los captura Dapta solo; utm_id (llave del anuncio, ADR 0062) no.
-  // ad_id, adset_id y campaign_id: los ocultos completos del ADR 0087, como los Typeform desde el 14-oct.
-  ...['utm_id', 'ad_id', 'adset_id', 'campaign_id'].map((key) => ({ key, type: 'text', question: key, hidden: true })),
+  // Las seis UTM (utm_id incluido) las captura Dapta solo desde la URL (medido el 1-oct). ad_id, adset_id y
+  // campaign_id no: van como pasos ocultos, los ocultos completos del ADR 0087. Un oculto no se le muestra a nadie.
+  ...['ad_id', 'adset_id', 'campaign_id'].map((key) => ({ key, type: 'text', question: key, hidden: true })),
 ];
 
-// lead_value del Typeform: [hvm minimo, valor si limpio, valor si descalificado]
-const TRAMOS = [
-  { min: 30, max: 50, limpio: 'MUY ALTO VALOR', desc: 'ALTO VALOR' },
-  { min: 15, max: 29, limpio: 'ALTO VALOR', desc: 'VALOR MEDIO' },
-  { min: 0, max: 14, limpio: 'VALOR MEDIO', desc: 'BAJO VALOR' },
-];
 const GRACIAS = 'Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
 const AGENDADO = 'Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
 // Las dos pantallas finales del Typeform, tal cual (19-oct). La etiqueta del outcome es el titulo de la pantalla
-// y lo que manda el webhook: el CRM ya no la parte, saca estado, lead_value y lead_quality del score.
-const TITULO_GRACIAS = '¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo';
-const TITULO_AGENDADO = 'Gracias ¡nos vemos en tu entrevista!';
-const outcomes = [];
-for (const t of TRAMOS) {
-  outcomes.push({ id: `limpio_${t.min}`, label: TITULO_AGENDADO,
-    minScore: t.min, ...(t.min === 30 ? {} : { maxScore: t.max }), message: AGENDADO });
-  for (const k of [1, 2, 3]) // hasta tres respuestas descalificantes (ingreso, urgencia, inversion)
-    outcomes.push({ id: `desc${k}_${t.min}`, label: TITULO_GRACIAS,
-      minScore: t.min - 100 * k, maxScore: t.max - 100 * k, message: GRACIAS });
-}
+// y lo que manda el webhook: el CRM ya no la parte, saca estado, lead_value y lead_quality del score
+// (calidadDesdeScore). Por eso bastan dos: sin descalificantes (score >= 0, vio el Calendly) y con alguno.
+const outcomes = [
+  { id: 'agendado', label: 'Gracias ¡nos vemos en tu entrevista!', minScore: 0, message: AGENDADO },
+  { id: 'en_revision', label: '¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo',
+    minScore: -300, maxScore: -1, message: GRACIAS }, // -300: los tres descalificantes posibles
+];
 
 const config = {
   version: 1,
@@ -151,6 +144,7 @@ const config = {
   ...(p.marca ? { branding: { ...p.marca, backgroundStyle: 'solid', radius: 'soft', buttonStyle: 'solid', contentAlign: 'left' } } : {}),
   steps,
   scoring: { enabled: true },
+  ...(p.pixel ? { tracking: { metaPixelId: p.pixel } } : {}),
   outcomes,
   partialSubmitAfterStep: 8, // tras "inversion": el parcial previo al Calendly (ADR 0061 punto 6)
 };

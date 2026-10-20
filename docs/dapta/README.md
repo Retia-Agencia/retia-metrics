@@ -13,11 +13,11 @@ etiqueta final). Por eso el score guarda los dos ejes del Typeform:
 - Ingreso y situación profesional suman los `hvm_points` del Typeform (10, 20, 30).
 - `score >= 0` quiere decir que la persona no tiene descalificantes, y entonces ve el Calendly (`hideWhen`
   sobre `@score`). Si tiene alguno, `hvm = score mod 100`.
-- Los 12 outcomes son los rangos de score que reproducen el `lead_value` del Typeform. **Desde el 19-oct su etiqueta
-  es el título de la pantalla final del Typeform** ("Gracias ¡nos vemos en tu entrevista!" o "¡Perfecto! Estamos
-  analizando…"), con su texto como `message` y sin redirect. El CRM saca estado, `lead_value` y `lead_quality` del
-  score (`calidadDesdeScore` en `lib/ingesta/adaptador-dapta.ts`). Una etiqueta vieja de tres partes
-  `<estado>|<lead_value>|<lead_quality>` se sigue leyendo como antes.
+- **Dos outcomes desde el 19-oct**, las dos pantallas finales del Typeform: score >= 0 → "Gracias ¡nos vemos en tu
+  entrevista!" y score < 0 → "¡Perfecto! Estamos analizando…", con su texto como `message` y sin redirect. El CRM saca
+  estado, `lead_value` y `lead_quality` del score (`calidadDesdeScore` en `lib/ingesta/adaptador-dapta.ts`), así que la
+  etiqueta ya no tiene que cargarlos. Antes eran 12 outcomes (3 tramos de valor × 0 a 3 descalificantes) con etiqueta
+  `<estado>|<lead_value>|<lead_quality>`; una etiqueta así se sigue leyendo como antes.
 - El `value` de cada opción es su misma etiqueta: Dapta manda el value en el webhook y así `respuestas` se lee
   igual que un Typeform. Ningún salto usa el value (van por `@score`), así que es seguro.
 - El paso de agenda prellena Calendly con `prefillMap: { name: 'nombre', email: 'email' }`. Sin el mapa, Dapta solo
@@ -79,10 +79,11 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
 ## Antes de publicar uno
 
 1. Conectar Calendly en Dapta y escoger el tipo de evento en la pregunta 9 (hoy `calendly.com/REEMPLAZAR`).
-2. Poner las dos URLs de gracias en los outcomes (hoy `example.com/REEMPLAZAR-*`). Sin redirect, la
+2. ~~Poner las dos URLs de gracias en los outcomes~~ (ya no: desde el 19-oct no hay redirect). Antes, sin redirect, la
    persona vería la etiqueta `estado|lead_value` como título de la pantalla final.
 3. **Anti-spam apagado:** con él prendido, Dapta no manda el parcial por webhook.
-4. No borrar la pregunta 10: es el campo oculto `utm_id`, que se llena desde la URL.
+4. No borrar los pasos ocultos `ad_id`, `adset_id` y `campaign_id`: se llenan desde la URL. `utm_id` ya no es paso
+   (19-oct): Dapta lo captura solo, como las otras UTM.
 5. La destinación webhook de Dapta con URL y **secreto** de la fuente del CRM. El secreto se genera en
    la tab Programa, en Formularios (se muestra una vez) y se pega a mano: nunca pasa por un chat ni un script. La URL es
    `/api/webhooks/formularios/<id de la fuente>`, y la fuente tiene que estar **activa** (inactiva = 404).
@@ -111,14 +112,14 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
 
 ## Lo que se midió con envíos reales (1-oct, ticket 130 cerrado)
 
-- **Las UTM llegan como `utm.utm_source` … `utm.utm_id`**, con el prefijo, y `utm_id` llega solo desde la URL (el campo
-  oculto `utm_id` del generador queda de respaldo). `data.utm` repite lo mismo y no se guarda dos veces. 🩸 El adaptador
+- **Las UTM llegan como `utm.utm_source` … `utm.utm_id`**, con el prefijo, y `utm_id` llega solo desde la URL (el paso
+  oculto `utm_id` del generador se quitó el 19-oct; el adaptador todavía lo lee de `data.utm_id` si llega). `data.utm` repite lo mismo y no se guarda dos veces. 🩸 El adaptador
   las leía sin prefijo y los primeros envíos entraron sin UTM: arreglado y blindado con el contrato de proveedores
   sobre cuerpos reales (`tests/fixtures/dapta-real-*.json`).
 - **El `label` del outcome es a la vez el título de la pantalla final y lo que manda el webhook** (`resolveEnding` en
   `packages/engine/src/form-logic.ts`; `webhook.ts`). Por eso los outcomes llevan redirect: sin él la persona vería
   `estado|lead_value|lead_quality`. Se le pide a Dapta mandar también el `id` del outcome; con eso el título vuelve a
-  ser un texto normal. Hasta entonces los redirects siguen en `example.com/REEMPLAZAR-*`.
+  ser un texto normal. Resuelto el 19-oct de otra forma: la etiqueta es el título humano y el CRM lee el score.
 - La completa puede llegar antes que la parcial (medido): la ingesta lo aguanta.
 
 ## Los formularios de Dapta no los creó el CRM
