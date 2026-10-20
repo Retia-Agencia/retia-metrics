@@ -78,3 +78,8 @@ el campo, pero la página que lo embebe no le pasa ese parámetro (CA sí lo pas
   por API el 20-oct (ok de Mani, con respaldo, el resto del form idéntico).
 - **Falta (operación):** que cada landing agregue a su lista `utm_id`, `ad_id`, `adset_id`, `campaign_id` y `fbclid`.
   Cuando entre el primer envío de TI con id, verlo en N3 y cerrar.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+Se cierra cuando Tactical y Confianza lleguen a N3 con un envío real, después de los tres arreglos de operación del ADR 0099 (plantilla, landing, formulario). La alarma que vigila que no se vuelva a cortar es el 290.

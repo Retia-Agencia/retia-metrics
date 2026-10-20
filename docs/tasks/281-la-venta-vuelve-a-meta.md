@@ -69,3 +69,8 @@ formulario. Decisiones en el ADR 0097.
 
 Un programa encendido manda el `Purchase` de una venta real, aparece en Events Manager con su valor y una calidad de
 coincidencia visible, y un segundo movimiento del mismo deal no manda otro.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+El `fbc` depende de que el `fbclid` sobreviva la landing y el formulario (ADR 0099). La pantalla de Meta CAPI muestra, junto a los conteos, cuántas ventas enviadas llevaron `fbc`: es la cobertura que dice si el arreglo de las landings funcionó.

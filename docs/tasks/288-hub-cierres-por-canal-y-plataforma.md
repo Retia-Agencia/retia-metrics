@@ -37,3 +37,8 @@ Daniel Tovar mandó el 19-oct, para "pulir" el CRM, un tablero de 30X hecho sobr
 
 La suma por plataforma da las ventas del periodo (sin cortesías ni $0, que salen aparte), cada cifra abre su lista, y
 la vista de conflictos lista los deals donde el UTM y lo declarado no coinciden.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+Toda cifra por anuncio muestra su cobertura: cuántas agendas, citas o ventas quedaron sin anuncio ("12 de 40 sin anuncio"), nunca un total que cuadra a la fuerza (ADR 0099 punto 6). La cobertura sale de la misma función del 290.

@@ -75,3 +75,8 @@ denominador del costo de Pauta. El área sale de `emparejar` (085), el conteo es
 Anderson pidió (mensaje de Michael, 19-oct) "embudo de agendas por canal, creativo y UTM". Decidido con Mani: el 123 y
 el 125 se construyen **antes del 250**, sobre la capa de hechos (262), en una ruta de Programa; el 250 los mueve al Hub
 sin rehacerlos. "Creativo" es el anuncio de Meta (`utm_id`, ADR 0062). El 244 y el 247 están integrados.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+Toda cifra por anuncio muestra su cobertura: cuántas agendas, citas o ventas quedaron sin anuncio ("12 de 40 sin anuncio"), nunca un total que cuadra a la fuerza (ADR 0099 punto 6). La cobertura sale de la misma función del 290.

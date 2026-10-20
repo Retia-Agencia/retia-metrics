@@ -44,3 +44,8 @@ y que un par nuevo se note sin tener que mantener nada.
 
 La parte de plantillas en uso y la del nivel de la traza leen lo que traen el 120 y el 247. Si este ticket llega
 antes, esas dos secciones se dejan para después del 120 y la vista sale con lo demás.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+Hub › Origen muestra, por fuente, la alarma de la traza del 290 (envíos pagos sin id del anuncio y con id desconocido), leída de la misma función; no cuenta por su cuenta.

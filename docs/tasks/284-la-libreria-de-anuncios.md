@@ -28,3 +28,8 @@ los que cierran)" cada 15 días; hoy lo arma a mano desde Ads Manager, que no ve
 
 Pauta abre la librería de un programa, ordena por costo por venta y cada tarjeta abre la lista de agendas y ventas de
 ese anuncio.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+Toda cifra por anuncio muestra su cobertura: cuántas agendas, citas o ventas quedaron sin anuncio ("12 de 40 sin anuncio"), nunca un total que cuadra a la fuerza (ADR 0099 punto 6). La cobertura sale de la misma función del 290.

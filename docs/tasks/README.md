@@ -267,6 +267,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 | [x] | 289 | [El webhook de Calendly filtra por tipo de evento](./289-el-webhook-de-calendly-filtra-por-evento.md) | 280, 278 | done · 20-oct · checkpoint `cp-20261020-1` · en main · 19-oct · ADR 0098, 0098 aplicada, SBJ configurado, 25 sueltas anuladas · falta checkpoint verde |
+| [ ] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | todo · 20-oct · Webhook Health, semáforo de Juanito y Hub › Origen; sin migración |
 
 ## 10 · Configuración
 

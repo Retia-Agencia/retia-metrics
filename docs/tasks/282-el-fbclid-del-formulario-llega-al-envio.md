@@ -28,3 +28,8 @@ ni `fbp`.
 ## Done cuando
 
 Un envío que entró desde un anuncio trae su `fbclid` en la base, y el 281 lo usa para armar `fbc`.
+
+
+## Enmienda 20-oct (ADR 0099)
+
+El campo oculto `fbclid` es parte del set estándar de todo formulario con pauta (ADR 0099 punto 3), y la landing tiene que pasar todos los parámetros (punto 4). Este ticket suma "sin `fbclid`" a la alarma del 290, con el mismo molde.
