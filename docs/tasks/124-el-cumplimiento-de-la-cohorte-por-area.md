@@ -53,3 +53,11 @@ Sí, con revisión visual.
 Ritmo, proyección y requeridos ya los calcula el 253 para el total; este ticket los parte por área con los mismos
 módulos (no una segunda fórmula) y los muestra en Hub › Hoy y Pauta. Los dos supuestos de PQ3 son los del 253
 (HQ-5). Depende además del 253.
+
+## Enmienda 19-oct: la vista de cumplimiento diario de Pauta
+
+Anderson pidió (mensaje de Michael, 19-oct) una "vista de cumplimiento diario" y dijo que mandaría su artefacto de
+cumplimiento de pauta contra comercial. Decidido con Mani: la vista es el 252 (Hub › Hoy) con el 124 (cumplimiento por
+área); cuando llegue el artefacto, cada fila suya se mapea a una métrica de `docs/metricas.md` o se vuelve métrica
+nueva, y se enmienda este ticket. **Bloqueado por ese insumo.** También falta cruzar el artifact de métricas que
+mandó Daniel Tovar (19-oct) para pulir el Hub: no se pudo leer desde la sesión.

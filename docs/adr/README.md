@@ -119,6 +119,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0094](./0094-un-gerente-o-un-paid-trafficker-puede-quedar-limitado-a-sus-programas.md) | Un gerente o un paid trafficker puede quedar limitado a sus programas, con una tabla de alcance aparte de las membresías; un usuario limitado no administra lo global (`administraGlobal`); enmienda el 0048 y el 0052 |
 | [0095](./0095-las-integraciones-de-un-programa-viven-en-una-tabla.md) | Las integraciones de un programa (Dapta, Typeform, Calendly, Meta) viven en `integraciones`, una fila por programa y tipo, con un solo molde de secreto en `lib/integraciones/`; Ajustes › Meta se retira; enmienda el 0057 y el 0062 |
 | [0096](./0096-el-crm-agenda-reagenda-y-cancela-en-calendly.md) | El CRM agenda, reagenda y cancela en Calendly: toda llamada del CRM es una cita real; en setteo se reserva en el round robin del programa (el webhook entrega el deal, ADR 0076), en otra etapa en el evento personal del dueño, guardado en la membresía; Calendly manda el orden; enmienda el 0049 |
+| [0097](./0097-el-crm-le-devuelve-las-ventas-a-meta.md) | El CRM le devuelve las ventas a Meta por la API de Conversiones: `Purchase` una vez por deal (primera entrada a Abonado o Completo) con el valor vendido, token por portafolio cliente en `integraciones` (`meta_capi`), bandeja de salida con reintento de 7 días; enmienda el 0095 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

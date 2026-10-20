@@ -1,0 +1,30 @@
+---
+id: 282
+etapa: pauta
+serves: "El clic de Meta (fbclid) del formulario se guarda en el envío para que la venta que vuelve a Meta se reconozca mejor (ADR 0097 punto 5)"
+depends: []
+status: todo
+---
+
+# 282 — El fbclid del formulario llega al envío
+
+## Por qué
+
+Meta añade `fbclid` a la URL de cada clic en un anuncio. Mandado como `fbc` en la API de Conversiones (281), es el dato
+que mejor amarra la venta a la persona que vio el anuncio. Hoy el CRM no lo guarda: ninguna tabla tiene `fbclid`, `fbc`
+ni `fbp`.
+
+## Alcance
+
+- **Formularios:** un campo oculto `fbclid` en el Typeform de cada programa y en los forms de Dapta (y Form30x si
+  aplica). Editar un formulario pide el ok de Mani (AGENTS.md); en Typeform, que el campo oculto lea el parámetro de la
+  URL.
+- **El mapeo de la fuente** lo trae como un campo conocido, igual que los UTM: se guarda en `submissions.fbclid`, como
+  llegó (ADR 0004). Una macro sin expandir o un valor vacío cuenta como ausente.
+- **El momento del clic:** se guarda la hora en que llegó el envío (es el más cercano que tenemos) para armar
+  `fb.1.<ms>.<fbclid>`.
+- **Fuera:** `fbp` (cookie del dominio del formulario, inaccesible) y rellenar envíos viejos.
+
+## Done cuando
+
+Un envío que entró desde un anuncio trae su `fbclid` en la base, y el 281 lo usa para armar `fbc`.

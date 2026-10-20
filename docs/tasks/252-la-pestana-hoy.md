@@ -80,3 +80,11 @@ Cohorte C3: día 13 de 32".
 **Recorrido:** escritorio y 375 px en la base local con el developer y el paid trafficker, sin desborde horizontal ni
 errores de consola; humo 6/6 (escritorio y celular, developer, closer y paid trafficker; la base local no tiene
 gerente). Typecheck, lint, build y los tests del cambio en verde. Falta el checkpoint.
+
+## Enmienda 19-oct: la vista de cumplimiento diario de Pauta
+
+Anderson pidió (mensaje de Michael, 19-oct) una "vista de cumplimiento diario" y dijo que mandaría su artefacto de
+cumplimiento de pauta contra comercial. Decidido con Mani: la vista es el 252 (Hub › Hoy) con el 124 (cumplimiento por
+área); cuando llegue el artefacto, cada fila suya se mapea a una métrica de `docs/metricas.md` o se vuelve métrica
+nueva, y se enmienda este ticket. **Bloqueado por ese insumo.** También falta cruzar el artifact de métricas que
+mandó Daniel Tovar (19-oct) para pulir el Hub: no se pudo leer desde la sesión.
