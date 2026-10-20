@@ -220,7 +220,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 278 | [Programa › Integraciones](./278-integraciones-por-programa.md) | · | done · 20-oct · checkpoint `cp-20261020-1` · recorrido local: developer abre Dapta, Typeform, Calendly y Meta, Probar responde Conectada en Calendly y Meta, sin errores de consola; el paid trafficker no ve la pestaña · en curso · ADR 0095 · en producción el 19-oct con el paso 2 (0094 y 0096 aplicadas, columnas viejas borradas, sin `meta_capi`); falta checkpoint y recorrido visual |
 | [ ] | 279 | [El pixel de Meta del form de Dapta, desde la fuente](./279-pixel-de-meta-del-form-de-dapta.md) | 278 | todo · 19-oct · decidido: el CRM escribe en Dapta, la llave en Integraciones, solo el pixel |
 | [ ] | 280 | [El CRM agenda, reagenda y cancela en Calendly](./280-el-crm-agenda-en-calendly.md) | · | en main · 20-oct · spike hecho el 19-oct; implementación en `main` desde el checkpoint `cp-20261020-1`; falta revisar el Done cuando y el recorrido · todo · 19-oct · ADR 0096 · spike primero: reservar con el token del owner en el evento de otro miembro (escribe, pide ok) |
-| [ ] | 281 | [La venta vuelve a Meta (API de Conversiones)](./281-la-venta-vuelve-a-meta.md) | 278 | todo · 19-oct · ADR 0097 · migración (`meta_capi` en el enum) · **prioridad de Pauta**; operación: seat y token en cada portafolio cliente |
+| [ ] | 281 | [La venta vuelve a Meta (API de Conversiones)](./281-la-venta-vuelve-a-meta.md) | 278 | en main · 20-oct · Codex + central · migración 0099 aplicada, CI verde `3ba6988b`; falta el Done cuando (operación: seat y token por portafolio, evento de prueba, un Purchase real) · ADR 0097 · **prioridad de Pauta**; operación: seat y token en cada portafolio cliente |
 | [ ] | 282 | [El fbclid del formulario llega al envío](./282-el-fbclid-del-formulario-llega-al-envio.md) | · | todo · 19-oct · editar formularios pide el ok de Mani |
 | [ ] | 283 | [Schedule y Atendido vuelven a Meta](./283-schedule-y-atendido-vuelven-a-meta.md) | 281 | todo · 19-oct · revisar antes si el pixel ya manda Schedule |
 | [ ] | 284 | [La librería de anuncios](./284-la-libreria-de-anuncios.md) | 120, 262, 125 | todo · 19-oct · lista de Anderson |
@@ -267,7 +267,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 | [x] | 289 | [El webhook de Calendly filtra por tipo de evento](./289-el-webhook-de-calendly-filtra-por-evento.md) | 280, 278 | done · 20-oct · checkpoint `cp-20261020-1` · en main · 19-oct · ADR 0098, 0098 aplicada, SBJ configurado, 25 sueltas anuladas · falta checkpoint verde |
-| [ ] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | todo · 20-oct · Webhook Health, semáforo de Juanito y Hub › Origen; sin migración |
+| [x] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | done · 20-oct · Codex + central · CI verde `3ba6988b` · medido en producción: marca Tactical (63 de 63 pagos sin id) y Confianza (82 de 82), no ComunicArte (0 de 50) |
 
 ## 10 · Configuración
 

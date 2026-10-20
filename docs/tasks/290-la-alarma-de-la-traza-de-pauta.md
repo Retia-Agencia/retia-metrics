@@ -3,7 +3,7 @@ id: 290
 etapa: pauta
 serves: "Pauta y Mani se enteran el mismo día cuando los envíos pagos de un programa dejan de traer el anuncio de origen (ADR 0099)"
 depends: [247]
-status: todo
+status: done
 ---
 
 # 290 — La alarma de la traza de pauta
