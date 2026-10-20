@@ -60,20 +60,23 @@ beforeEach(async () => {
 });
 
 describe("eventoParaAgendar", () => {
-  it("usa el round robin en setteo y lleva el código del deal", async () => {
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
-      .mockResolvedValueOnce(json(200, { collection: [{ user: { uri: "https://api.calendly.com/users/A" } }, { user: { uri: "https://api.calendly.com/users/B" } }], pagination: {} }))
-      // El mismo round robin sale en los dos miembros del pool: es UNO, no un empate.
-      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/event_types/RR", scheduling_url: "https://calendly.com/retia/round-robin" }], pagination: {} }))
-      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/event_types/RR", scheduling_url: "https://calendly.com/retia/round-robin" }, { uri: "https://api.calendly.com/event_types/B1", scheduling_url: "https://calendly.com/b/otro" }], pagination: {} }));
-    const evento = await eventoParaAgendar(db, dealId, fetchImpl);
+  it("usa el round robin guardado en setteo y lleva el código del deal", async () => {
+    // El round robin ya está resuelto en `programs.calendly_event_type` (ADR 0098, 289):
+    // `eventoParaAgendar` ya no lo busca por la API en cada reserva.
+    await db.update(programs).set({ calendlyEventType: "https://api.calendly.com/event_types/RR" }).where(eq(programs.id, programId));
+    const evento = await eventoParaAgendar(db, dealId);
     expect(evento).toMatchObject({
       eventTypeUri: "https://api.calendly.com/event_types/RR",
       conLocation: false,
       etiqueta: "Round robin del programa: Calendly asigna el closer",
     });
     expect(evento.tracking.codigoDeTracking).toBe(dealId.replaceAll("-", ""));
+  });
+
+  it("rechaza setteo sin round robin guardado", async () => {
+    const error = await eventoParaAgendar(db, dealId).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect(error).toMatchObject({ status: 422, message: "El programa no tiene configurado su evento round robin de Calendly." });
   });
 
   it("usa el evento personal del dueño fuera de setteo", async () => {
@@ -92,17 +95,6 @@ describe("eventoParaAgendar", () => {
     const error = await eventoParaAgendar(db, dealId).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect(error).toMatchObject({ status: 422, message: "Nico no tiene su evento de Calendly configurado en este programa." });
-  });
-
-  it.each([0, 2])("rechaza round robin no encontrado o ambiguo (%s coincidencias)", async (cantidad) => {
-    const coincidencias = Array.from({ length: cantidad }, (_, i) => ({ uri: `https://api.calendly.com/event_types/R${i}`, scheduling_url: "https://calendly.com/retia/round-robin" }));
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
-      .mockResolvedValueOnce(json(200, { collection: [{ user: { uri: "https://api.calendly.com/users/A" } }, { user: { uri: "https://api.calendly.com/users/B" } }], pagination: {} }))
-      .mockResolvedValueOnce(json(200, { collection: coincidencias, pagination: {} }))
-      .mockResolvedValueOnce(json(200, { collection: [], pagination: {} }));
-    const error = await eventoParaAgendar(db, dealId, fetchImpl).catch((e) => e);
-    expect(error).toMatchObject({ status: 422 });
   });
 });
 

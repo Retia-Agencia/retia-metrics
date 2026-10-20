@@ -37,6 +37,7 @@ const CREADO = {
   old_invitee: null,
   scheduled_event: {
     start_time: "2026-10-02T15:00:00.000000Z",
+    event_type: "https://api.calendly.com/event_types/RR-TACTICAL",
     event_memberships: [{ user_email: "Maru.Tactical@calendly.co" }],
   },
 };
@@ -81,10 +82,18 @@ describe("leerEventoDeCalendly", () => {
         nombreInvitado: "Ana Pérez",
         telefonoInvitado: "+57 300 123 4567",
         joinUrl: null,
+        eventType: "https://api.calendly.com/event_types/RR-TACTICAL",
         uuidAnterior: null,
         claveEvento: "invitee.created:2026-09-28T20:00:00.000Z:INV-NUEVO",
       },
     });
+  });
+
+  it("sin event_type en la cita, eventType es null", () => {
+    const l = leerEventoDeCalendly(
+      evento("invitee.created", { ...CREADO, scheduled_event: { start_time: CREADO.scheduled_event.start_time, event_memberships: CREADO.scheduled_event.event_memberships } }),
+    );
+    expect(l.ok && l.evento.tipo === "agendada" && l.evento.eventType).toBeNull();
   });
 
   it("la mitad nueva de una reagenda trae el uuid viejo", () => {

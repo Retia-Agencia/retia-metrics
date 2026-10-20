@@ -56,7 +56,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ program
 
   const dueno: DuenoDelSobre = { canal: "calendly", programId: programa.id };
   const sobreId = await guardarSobre(db, dueno, cuerpo);
-  const entrega = (motivo: "procesado" | "contenido_invalido" | "fallo_ingesta") =>
+  const entrega = (motivo: "procesado" | "contenido_invalido" | "fallo_ingesta" | "evento_de_otro_programa") =>
     registrarEntrega(db, { programId: programa.id, sourceId: null, sobreId, leadId: null, codigoHttp: 200, motivo });
 
   const lectura = leerEventoDeCalendly(cuerpo);
@@ -70,6 +70,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ program
     const efecto = await aplicarEventoDeCalendly(db, programa.id, lectura.evento);
     if (efecto.tipo === "desconocida") {
       console.warn(`[calendly] evento sobre una cita que el CRM no conoce (programa ${programa.id})`);
+    }
+    // Org compartida (ADR 0098): la cita es de otro evento. El sobre queda guardado sin
+    // error (no es un fallo: es una cita que no es del programa) y la entrega lo dice.
+    if (efecto.tipo === "otro_programa") {
+      await entrega("evento_de_otro_programa");
+      return Response.json({ ok: true, otroPrograma: true }, { status: 200 });
     }
   } catch (e) {
     console.error(`[calendly] no se pudo aplicar el evento (programa ${programa.id})`, e);

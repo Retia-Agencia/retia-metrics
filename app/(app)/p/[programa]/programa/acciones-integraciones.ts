@@ -12,6 +12,7 @@ import { programs, tipoIntegracionEnum, type TipoIntegracion } from "@/lib/db/sc
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota } from "@/lib/format";
 import { guardarIntegracion, probarIntegracionGuardada, tokensMeta } from "@/lib/integraciones";
+import { guardarRoundRobin } from "@/lib/calendly/round-robin";
 import { sincronizarPauta, type ResumenSincronizacionPauta } from "@/lib/pauta/sincronizar";
 import type { ResultadoAccion } from "./acciones-programa";
 
@@ -42,6 +43,26 @@ export async function guardarIntegracionAccion(
     if (!tipoLeido.success) throw new ErrorDeApp("Integración inválida.", 400);
     const tipo = tipoLeido.data;
     await guardarIntegracion(db, actorId, programId, tipo, valor);
+    revalidatePath("/p/[programa]/programa", "page");
+    return { ok: true };
+  } catch (error) {
+    return fallo(error);
+  }
+}
+
+/**
+ * El round robin del programa en Integraciones › Calendly (ADR 0098, ticket 289): su URL de
+ * agenda y la marca de org compartida. Mismo enforce que el resto de Integraciones
+ * (`actorGerente`: `requireRole("gerente")` + acceso al programa). El programa se resuelve
+ * desde la fila por su id; el resultado es serializable.
+ */
+export async function guardarRoundRobinAccion(
+  programId: string,
+  input: { calendlyUrl: string; orgCompartida: boolean },
+): Promise<ResultadoAccion> {
+  try {
+    const actorId = await actorGerente(programId);
+    await guardarRoundRobin(db, actorId, programId, input);
     revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
   } catch (error) {

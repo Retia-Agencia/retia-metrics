@@ -781,20 +781,35 @@ export async function asignarEventoDeMembresia(
       if (!eventos.some((evento) => evento.uri === datos.calendlyEventType)) {
         throw new ErrorDeApp("Ese evento no pertenece a la cuenta de Calendly vinculada.", 422);
       }
+      // Un evento personal no puede ser el round robin de ningun programa (ADR 0098 punto 4).
+      // El indice ataja el choque entre dos membresias; este, el choque entre tablas.
+      const [choque] = await db
+        .select({ id: programs.id })
+        .from(programs)
+        .where(eq(programs.calendlyEventType, datos.calendlyEventType))
+        .limit(1);
+      if (choque) throw new ErrorDeApp("Ese evento ya es el round robin de un programa.", 422);
     }
-    await db.transaction(async (tx) => {
-      await tx.update(miembrosPrograma).set({ calendlyEventType: datos.calendlyEventType }).where(eq(miembrosPrograma.id, m.id));
-      await tx.insert(changeLog).values({
-        tabla: "miembros_programa",
-        registroId: m.id,
-        etiqueta: m.email,
-        campo: "calendlyEventType",
-        valorAnterior: m.actual,
-        valorNuevo: datos.calendlyEventType,
-        origen: "app" as const,
-        userId: actorId,
+    try {
+      await db.transaction(async (tx) => {
+        await tx.update(miembrosPrograma).set({ calendlyEventType: datos.calendlyEventType }).where(eq(miembrosPrograma.id, m.id));
+        await tx.insert(changeLog).values({
+          tabla: "miembros_programa",
+          registroId: m.id,
+          etiqueta: m.email,
+          campo: "calendlyEventType",
+          valorAnterior: m.actual,
+          valorNuevo: datos.calendlyEventType,
+          origen: "app" as const,
+          userId: actorId,
+        });
       });
-    });
+    } catch (e) {
+      // El indice unico parcial sobre `miembros_programa.calendly_event_type`: dos membresias
+      // no pueden tener el mismo evento personal (ADR 0098 punto 4).
+      if (esViolacionUnica(e)) throw new ErrorDeApp("Ese evento ya lo tiene otra persona.", 409);
+      throw e;
+    }
   });
 }
 

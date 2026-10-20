@@ -198,10 +198,43 @@ export async function cancelarCita(
   throw new ErrorDeApp(mensaje || `Calendly respondió ${res.status}.`, 502);
 }
 
+/**
+ * Resuelve la URI del event type round robin de un programa por su URL de agenda
+ * (`scheduling_url`), con el token del programa (ADR 0098, ticket 289). El listado por
+ * organizacion NO trae los eventos de equipo (round robin), medido el 19-oct; el de cada
+ * miembro si. Se juntan los de todos los miembros, sin repetir por URI, y se busca el que
+ * tiene exactamente esa `scheduling_url`. Cero o mas de uno es un error visible (422): no
+ * se adivina cual es el round robin.
+ */
+export async function resolverRoundRobin(
+  token: string,
+  schedulingUrl: string,
+  fetchImpl?: FetchLike,
+): Promise<string> {
+  const fetcher = fetchDisponible(fetchImpl);
+  const organizacion = await organizacionDelToken(fetcher, token);
+  const miembros = await coleccionCompleta(fetcher, `${BASE}/organization_memberships?organization=${encodeURIComponent(organizacion)}&count=100`, token, "miembros");
+  const porUri = new Map<string, unknown>();
+  for (const miembro of miembros) {
+    const usuario = (miembro as { user?: { uri?: unknown } } | null)?.user?.uri;
+    if (typeof usuario !== "string") continue;
+    const tipos = await coleccionCompleta(fetcher, `${BASE}/event_types?user=${encodeURIComponent(usuario)}&count=100`, token, "tipos de evento");
+    for (const tipo of tipos) {
+      const uri = (tipo as { uri?: unknown } | null)?.uri;
+      if (typeof uri === "string") porUri.set(uri, tipo);
+    }
+  }
+  const encontrados = [...porUri.values()].filter((tipo) => (tipo as { scheduling_url?: unknown }).scheduling_url === schedulingUrl);
+  if (encontrados.length === 0) throw new ErrorDeApp("No se encontró el evento round robin configurado para el programa.", 422);
+  if (encontrados.length > 1) throw new ErrorDeApp("Hay más de un evento round robin con la URL configurada para el programa.", 422);
+  const uri = (encontrados[0] as { uri?: unknown }).uri;
+  if (typeof uri !== "string") throw new ErrorDeApp("El evento round robin de Calendly no tiene una URI válida.", 422);
+  return uri;
+}
+
 export async function eventoParaAgendar(
   db: Db,
   dealId: string,
-  fetchImpl?: FetchLike,
 ): Promise<EventoParaAgendar> {
   const [fila] = await db
     .select({
@@ -210,7 +243,7 @@ export async function eventoParaAgendar(
       ownerNombre: users.nombre,
       ownerEmail: users.email,
       eventTypeUri: miembrosPrograma.calendlyEventType,
-      calendlyUrl: programs.calendlyUrl,
+      roundRobinUri: programs.calendlyEventType,
     })
     .from(deals)
     .innerJoin(programs, eq(programs.id, deals.programId))
@@ -224,26 +257,8 @@ export async function eventoParaAgendar(
     if (!fila.eventTypeUri) throw new ErrorDeApp(`${dueno} no tiene su evento de Calendly configurado en este programa.`, 422);
     return { token, eventTypeUri: fila.eventTypeUri, conLocation: true, tracking: { codigoDeTracking: null }, etiqueta: `Agenda de ${dueno}` };
   }
-  if (!fila.calendlyUrl) throw new ErrorDeApp("El programa no tiene configurado su evento round robin de Calendly.", 422);
-  const fetcher = fetchDisponible(fetchImpl);
-  const organizacion = await organizacionDelToken(fetcher, token);
-  // El listado por organización NO trae los eventos de equipo (round robin), medido el 19-oct;
-  // el de cada miembro sí. Se juntan los de todos los miembros, sin repetir por URI.
-  const miembros = await coleccionCompleta(fetcher, `${BASE}/organization_memberships?organization=${encodeURIComponent(organizacion)}&count=100`, token, "miembros");
-  const porUri = new Map<string, unknown>();
-  for (const miembro of miembros) {
-    const usuario = (miembro as { user?: { uri?: unknown } } | null)?.user?.uri;
-    if (typeof usuario !== "string") continue;
-    const tipos = await coleccionCompleta(fetcher, `${BASE}/event_types?user=${encodeURIComponent(usuario)}&count=100`, token, "tipos de evento");
-    for (const tipo of tipos) {
-      const uri = (tipo as { uri?: unknown } | null)?.uri;
-      if (typeof uri === "string") porUri.set(uri, tipo);
-    }
-  }
-  const encontrados = [...porUri.values()].filter((tipo) => (tipo as { scheduling_url?: unknown }).scheduling_url === fila.calendlyUrl);
-  if (encontrados.length === 0) throw new ErrorDeApp("No se encontró el evento round robin configurado para el programa.", 422);
-  if (encontrados.length > 1) throw new ErrorDeApp("Hay más de un evento round robin con la URL configurada para el programa.", 422);
-  const uri = (encontrados[0] as { uri?: unknown }).uri;
-  if (typeof uri !== "string") throw new ErrorDeApp("El evento round robin de Calendly no tiene una URI válida.", 422);
-  return { token, eventTypeUri: uri, conLocation: false, tracking: { codigoDeTracking: codigoDeDeal(dealId) }, etiqueta: "Round robin del programa: Calendly asigna el closer" };
+  // El round robin se resuelve al configurarlo (ADR 0098, ticket 289) y se guarda en
+  // `programs.calendly_event_type`: ya no se busca por la API en cada reserva.
+  if (!fila.roundRobinUri) throw new ErrorDeApp("El programa no tiene configurado su evento round robin de Calendly.", 422);
+  return { token, eventTypeUri: fila.roundRobinUri, conLocation: false, tracking: { codigoDeTracking: codigoDeDeal(dealId) }, etiqueta: "Round robin del programa: Calendly asigna el closer" };
 }

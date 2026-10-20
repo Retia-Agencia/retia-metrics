@@ -17,6 +17,8 @@ import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 import { auditarCalendly, type EstadoSuscripcion } from "@/lib/calendly/auditoria";
 import { db } from "@/lib/db";
+import { eq } from "drizzle-orm";
+import { programs } from "@/lib/db/schema";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
@@ -88,12 +90,20 @@ export default async function SaludPage({
   const preferido = await programaPreferidoDeCookie();
   const programa = programas.find((p) => p.slug === slugPedido) ?? elegirPrograma(programas, preferido)!;
 
-  const [paginaEntregas, paginaHuerfanas, salud, conciliacion] = await Promise.all([
+  const [paginaEntregas, paginaHuerfanas, salud, conciliacion, calendlyPrograma] = await Promise.all([
     entregasDePrograma(programa.id),
     entregasHuerfanas(),
     saludDeFuentes(),
     conciliarProgramaConHoja(programa.id),
+    db
+      .select({ orgCompartida: programs.calendlyOrgCompartida, eventType: programs.calendlyEventType })
+      .from(programs)
+      .where(eq(programs.id, programa.id))
+      .then((filas) => filas[0] ?? { orgCompartida: false, eventType: null }),
   ]);
+  // Org compartida sin round robin (ADR 0098): en ese estado solo entran los eventos
+  // personales de los closers. El aviso vive en la tarjeta de Calendly.
+  const faltaRoundRobinCompartida = calendlyPrograma.orgCompartida && calendlyPrograma.eventType === null;
 
   const saludDelPrograma = salud.filter((s) => s.programId === programa.id);
   const entregasVista: EntregaVista[] = paginaEntregas.entregas.map((e) => ({
@@ -180,7 +190,7 @@ export default async function SaludPage({
               </Card>
             }
           >
-            <TarjetaCalendly programId={programa.id} />
+            <TarjetaCalendly programId={programa.id} faltaRoundRobinCompartida={faltaRoundRobinCompartida} />
           </Suspense>
 
           {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
@@ -243,7 +253,7 @@ export default async function SaludPage({
   );
 }
 
-async function TarjetaCalendly({ programId }: { programId: string }) {
+async function TarjetaCalendly({ programId, faltaRoundRobinCompartida }: { programId: string; faltaRoundRobinCompartida: boolean }) {
   const auditoriaCalendly = await auditarCalendly(db, programId);
 
   return (
@@ -252,6 +262,11 @@ async function TarjetaCalendly({ programId }: { programId: string }) {
         <CardTitle className="text-base">Calendly</CardTitle>
       </CardHeader>
       <CardContent className="text-sm">
+        {faltaRoundRobinCompartida ? (
+          <p className="mb-4 text-tono-alerta">
+            La organización de Calendly es compartida y falta el round robin: solo entran los eventos personales.
+          </p>
+        ) : null}
         {auditoriaCalendly.estado === "sin_token" ? (
           <p className="text-muted-foreground">Este programa no tiene token de Calendly.</p>
         ) : auditoriaCalendly.estado === "error" ? (

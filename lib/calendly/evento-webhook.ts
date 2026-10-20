@@ -74,6 +74,9 @@ export type EventoDeCalendly =
       utmContent: string | null;
       nombreInvitado: string | null;
       telefonoInvitado: string | null;
+      /** La URI del tipo de evento de la cita (`scheduled_event.event_type`), para el filtro
+       * por programa en una org compartida (ADR 0098). Nula si el payload no la trae. */
+      eventType: string | null;
       /** Si es una REAGENDA: el uuid del invitado de la cita vieja (`old_invitee`). */
       uuidAnterior: string | null;
       claveEvento: string;
@@ -195,6 +198,7 @@ export function leerEventoDeCalendly(cuerpoCrudo: string): LecturaDeEvento {
           utmContent: esObjeto(p.tracking) && typeof p.tracking.utm_content === "string" ? p.tracking.utm_content : null,
           nombreInvitado: typeof p.name === "string" ? p.name : null,
           telefonoInvitado: typeof p.text_reminder_number === "string" ? p.text_reminder_number : null,
+          eventType: typeof cita.event_type === "string" ? cita.event_type : null,
           uuidAnterior: uuidDeInvitado(p.old_invitee),
           claveEvento,
         },

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { conectarCalendlyAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
-import { guardarIntegracionAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
+import { guardarIntegracionAccion, guardarRoundRobinAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
 
 export type IntegracionVisible = {
   tipo: TipoIntegracion;
@@ -41,7 +41,7 @@ function Config({ config }: { config: Record<string, string> }) {
 }
 
 export function IntegracionesDelPrograma({
-  programId, integraciones, cuentasMeta, disponiblesMeta, errorMeta, fuentes, hrefCaptacion,
+  programId, integraciones, cuentasMeta, disponiblesMeta, errorMeta, fuentes, hrefCaptacion, roundRobin,
 }: {
   programId: string;
   integraciones: IntegracionVisible[];
@@ -50,6 +50,9 @@ export function IntegracionesDelPrograma({
   errorMeta: string | null;
   fuentes: FuenteExterna[];
   hrefCaptacion: string;
+  /** El round robin de Calendly del programa (ADR 0098): su URL, la marca de org compartida
+   * y si el evento ya quedó resuelto. Llega por props: el cliente no lee la base. */
+  roundRobin: { calendlyUrl: string | null; orgCompartida: boolean; configurado: boolean };
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState<TipoIntegracion | null>(null);
@@ -148,6 +151,10 @@ export function IntegracionesDelPrograma({
               </div>
             ) : null}
 
+            {integracion.tipo === "calendly" ? (
+              <RoundRobinCalendly programId={programId} valores={roundRobin} conectada={integracion.configurada} />
+            ) : null}
+
             {integracion.tipo === "meta" ? (
               <div className="space-y-3 border-t border-border pt-3">
                 <CuentasDelPrograma
@@ -182,5 +189,84 @@ export function IntegracionesDelPrograma({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+/**
+ * El round robin de Calendly del programa (ADR 0098, ticket 289): su URL de agenda y la
+ * marca de org compartida. Al guardar con URL, el servidor la resuelve a la URI del evento
+ * por la API y la guarda; vacía, limpia la configuración. Todo por props: el cliente no lee
+ * la base.
+ */
+function RoundRobinCalendly({
+  programId,
+  valores,
+  conectada,
+}: {
+  programId: string;
+  valores: { calendlyUrl: string | null; orgCompartida: boolean; configurado: boolean };
+  conectada: boolean;
+}) {
+  const router = useRouter();
+  const [url, setUrl] = useState(valores.calendlyUrl ?? "");
+  const [orgCompartida, setOrgCompartida] = useState(valores.orgCompartida);
+  const [pendiente, startTransition] = useTransition();
+
+  function guardar() {
+    startTransition(async () => {
+      const resultado = await guardarRoundRobinAccion(programId, { calendlyUrl: url.trim(), orgCompartida });
+      if (!resultado.ok) {
+        toast.error("No se pudo guardar el round robin", { description: resultado.error });
+        return;
+      }
+      toast.success("Round robin de Calendly guardado");
+      router.refresh();
+    });
+  }
+
+  return (
+    <form
+      className="space-y-3 border-t border-border pt-3"
+      onSubmit={(e) => { e.preventDefault(); guardar(); }}
+    >
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">Round robin</span>
+        <Badge variant={valores.configurado ? "exito" : "alerta"}>
+          {valores.configurado ? "Configurado" : "Sin configurar"}
+        </Badge>
+      </div>
+      <label className="block space-y-1">
+        <span className="text-sm text-muted-foreground">URL del round robin</span>
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://calendly.com/d/…"
+          maxLength={500}
+          aria-label="URL del round robin"
+          className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+        <span className="block text-xs text-muted-foreground">
+          Déjala vacía para quitar el round robin del programa.
+        </span>
+      </label>
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={orgCompartida}
+          onChange={(e) => setOrgCompartida(e.target.checked)}
+          className="mt-0.5"
+        />
+        <span>
+          La organización de Calendly la comparten otros programas
+          <span className="block text-xs text-muted-foreground">
+            Si se comparte, solo cuentan las citas del round robin y de los eventos personales de los closers.
+          </span>
+        </span>
+      </label>
+      <Button type="submit" size="sm" disabled={pendiente || !conectada}>
+        {pendiente ? "Guardando…" : "Guardar round robin"}
+      </Button>
+    </form>
   );
 }

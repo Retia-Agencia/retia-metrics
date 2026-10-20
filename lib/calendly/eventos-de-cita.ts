@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { calls, changeLog, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { editarConRastro } from "@/lib/crm/rastro";
@@ -11,6 +11,7 @@ import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { camposDeInvitadoCalendly, rawDelInvitado, type EventoDeCalendly } from "./evento-webhook";
 import { closerHost } from "./emparejar-llamada";
+import { conjuntoDeEventosDelPrograma, eventoEsDelPrograma } from "./pertenencia";
 import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
 import {
   closersConCalendly,
@@ -53,6 +54,8 @@ export type EfectoDeEvento =
   | { tipo: "sin_cambio"; motivo: string }
   /** La cita no es de ninguna llamada del CRM: no se inventa. */
   | { tipo: "desconocida"; uuidInvitado: string }
+  /** Org compartida: la cita es de un evento que no es del programa (ADR 0098). No se escribe. */
+  | { tipo: "otro_programa"; eventType: string | null }
   | { tipo: "ignorado"; evento: string };
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
@@ -72,6 +75,13 @@ export async function aplicarEventoDeCalendly(
       if (evento.uuidAnterior) {
         const reagenda = await reagendar(db, programId, evento, evento.uuidAnterior);
         if (reagenda) return reagenda;
+      }
+      // Org compartida (ADR 0098): una cita de un evento que no es del programa no crea
+      // llamada. Pero lo que el CRM YA conoce va antes del filtro: una huella que ya existe
+      // (reintento, o la registro el 052) o una reagenda cuyo `old_invitee` es una llamada
+      // del programa se procesan como siempre, aunque su evento no este en el conjunto.
+      if (!(await citaConocida(db, programId, evento)) && !(await citaEsDelPrograma(db, programId, evento.eventType))) {
+        return { tipo: "otro_programa", eventType: evento.eventType };
       }
       return {
         tipo: "registrada",
@@ -95,6 +105,34 @@ export async function aplicarEventoDeCalendly(
     case "no_show_retirado":
       return retirarNoShow(db, programId, evento.uuidInvitado, evento.claveEvento);
   }
+}
+
+/**
+ * ¿El CRM ya conoce esta cita? Una huella `calendly:<uuid>` que ya existe (reintento, o la
+ * creo el 052) o una reagenda cuyo `old_invitee` apunta a una llamada del programa. En esos
+ * casos la cita se procesa como siempre, aunque su evento no este en el conjunto (ADR 0098
+ * punto 3). `incluyendoAnulados` para la existencia: una cita registrada y anulada sigue
+ * siendo esa cita.
+ */
+async function citaConocida(
+  db: Db,
+  programId: string,
+  evento: Extract<EventoDeCalendly, { tipo: "agendada" }>,
+): Promise<boolean> {
+  const huellas = [huellaDeCita(evento.uuidInvitado)];
+  if (evento.uuidAnterior) huellas.push(huellaDeCita(evento.uuidAnterior));
+  const [fila] = await db
+    .select({ id: calls.id })
+    .from(calls)
+    .where(and(eq(calls.programId, programId), inArray(calls.huellaFila, huellas), incluyendoAnulados(calls)))
+    .limit(1);
+  return Boolean(fila);
+}
+
+/** ¿El evento de la cita es del programa? Lee el conjunto y pregunta (ADR 0098). */
+async function citaEsDelPrograma(db: Db, programId: string, eventType: string | null): Promise<boolean> {
+  const conjunto = await conjuntoDeEventosDelPrograma(db, programId);
+  return eventoEsDelPrograma({ eventType, ...conjunto });
 }
 
 /** La llamada VIGENTE de una cita, con la etapa de su deal (si tiene uno vigente). */

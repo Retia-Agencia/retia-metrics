@@ -46,6 +46,7 @@ const TEXTO_MOTIVO: Record<string, string> = {
   sin_secreto: "Fuente sin secreto",
   firma_ausente: "Firma ausente",
   firma_invalida: "Firma inválida",
+  evento_de_otro_programa: "Evento de otro programa",
 };
 
 /** El tono de cada codigo HTTP: 200 bien, 401/404 mal. Un fallo con firma buena, alerta. */

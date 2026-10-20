@@ -23,7 +23,8 @@ export type MotivoEntrega =
   | "fuente_no_encontrada"
   | "sin_secreto"
   | "firma_ausente"
-  | "firma_invalida";
+  | "firma_invalida"
+  | "evento_de_otro_programa";
 
 /** Los 200 con firma buena tienen sobre crudo y pueden reprocesarse si fallaron. */
 const MOTIVOS_CON_SOBRE: MotivoEntrega[] = ["procesado", "sin_correo", "contenido_invalido", "fallo_ingesta"];

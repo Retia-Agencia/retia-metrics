@@ -43,6 +43,10 @@ export interface DatosDelPrograma {
    */
   formulario: { fuente: string; url: string } | null;
   calendlyUrl: string | null;
+  /** La org de Calendly del programa la comparten otros programas (ADR 0098). */
+  calendlyOrgCompartida: boolean;
+  /** Si el round robin ya quedó resuelto a su URI (`programs.calendly_event_type`, ADR 0098). */
+  calendlyRoundRobinConfigurado: boolean;
   tieneTokenCalendly: boolean;
   webhookCalendlyConectado: boolean;
   diasSinActividad: number;
@@ -158,6 +162,8 @@ export async function fichaDelPrograma(
       comisionPorcentaje: programa.comisionPorcentaje == null ? null : String(programa.comisionPorcentaje),
       formulario: formularioPrincipal(fuentes),
       calendlyUrl: (programa.calendlyUrl as string | null) ?? null,
+      calendlyOrgCompartida: Boolean(programa.calendlyOrgCompartida),
+      calendlyRoundRobinConfigurado: Boolean(programa.calendlyEventType),
       tieneTokenCalendly: programa.tieneTokenCalendly,
       webhookCalendlyConectado: programa.webhookCalendlyConectado,
       diasSinActividad: Number(programa.diasSinActividad),

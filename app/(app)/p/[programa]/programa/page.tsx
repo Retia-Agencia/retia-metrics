@@ -522,6 +522,11 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 tieneSecreto: fuente.tieneSecreto,
               }))}
               hrefCaptacion={urlConSeccion(base, query, "captacion")}
+              roundRobin={{
+                calendlyUrl: programa.calendlyUrl,
+                orgCompartida: programa.calendlyOrgCompartida,
+                configurado: programa.calendlyRoundRobinConfigurado,
+              }}
             />
           ) : null}
 
