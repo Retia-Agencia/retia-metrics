@@ -12,6 +12,7 @@ import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { mapeoWebhookDesdeFuente, type MapeoWebhookResuelto } from "@/lib/ingesta/mapeo-webhook";
 import { PROVEEDORES } from "@/lib/ingesta/proveedores";
 import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
+import { tokenCalendly } from "@/lib/integraciones";
 
 /**
  * El procesamiento de un envio DESPUES de que la firma cuadro (ticket 110). Es lo que
@@ -69,12 +70,7 @@ async function resolverCitas(
   const conAgenda = entradas.filter((e) => e.linkAgenda);
   if (conAgenda.length === 0) return citas;
 
-  const [programa] = await db
-    .select({ calendlyToken: programs.calendlyToken })
-    .from(programs)
-    .where(eq(programs.id, programId))
-    .limit(1);
-  const token = programa?.calendlyToken ?? null;
+  const token = await tokenCalendly(db, programId);
 
   for (const entrada of conAgenda) {
     const correo = normalizarEmail(

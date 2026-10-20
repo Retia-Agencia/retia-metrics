@@ -5,6 +5,8 @@ import { db } from "../lib/db";
 import { programs } from "../lib/db/schema";
 import { HEADER_FIRMA_CALENDLY } from "../lib/calendly/evento-webhook";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
+import { claveFirmaCalendly, guardarClaveFirmaCalendly } from "../lib/integraciones";
+import { actorDelScript } from "./actor";
 
 function argumento(nombre: string): string | null {
   const i = process.argv.indexOf(nombre);
@@ -38,15 +40,15 @@ async function main() {
   if (!cancelar && (!host || !lead)) throw new Error("Para crear faltan --host <correo> y --lead <correo>.");
 
   const [programa] = await db
-    .select({ id: programs.id, clave: programs.calendlySigningKey })
+    .select({ id: programs.id })
     .from(programs)
     .where(eq(programs.slug, slug));
   if (!programa) throw new Error(`No existe el programa local "${slug}".`);
 
-  let clave = programa.clave;
+  let clave = await claveFirmaCalendly(db, programa.id);
   if (!clave) {
     clave = randomBytes(32).toString("hex");
-    await db.update(programs).set({ calendlySigningKey: clave }).where(eq(programs.id, programa.id));
+    await guardarClaveFirmaCalendly(db, await actorDelScript(db), programa.id, clave);
   }
 
   const uri = `https://api.calendly.com/scheduled_events/SIMULADA/invitees/${uuid}`;

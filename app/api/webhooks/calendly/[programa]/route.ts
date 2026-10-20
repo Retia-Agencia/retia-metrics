@@ -6,6 +6,7 @@ import { guardarSobre, marcarSobreConError, type DuenoDelSobre } from "@/lib/ing
 import { registrarEntrega } from "@/lib/queries/entregas-webhook";
 import { HEADER_FIRMA_CALENDLY, leerEventoDeCalendly, verificarFirmaCalendly } from "@/lib/calendly/evento-webhook";
 import { aplicarEventoDeCalendly } from "@/lib/calendly/eventos-de-cita";
+import { claveFirmaCalendly } from "@/lib/integraciones";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -16,7 +17,7 @@ export const maxDuration = 60;
  *
  *  1. El id de la URL es el del PROGRAMA (opaco). El programa sale de ahi y nunca del
  *     cuerpo (ADR 0043). Si no existe: 404 sin leer el cuerpo.
- *  2. Firma con la `calendly_signing_key` del programa (la guarda "Conectar Calendly").
+ *  2. Firma con la clave del programa guardada por "Conectar webhook" en Integraciones.
  *     Sin clave o sin firma buena: 401 y la base no se mueve.
  *  3. Caja negra: el cuerpo crudo va a `sobres_crudos` apenas la firma cuadra. Si despues
  *     algo falla, esa fila guarda el error y se responde 200, nunca 500: Calendly no
@@ -39,15 +40,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ program
     return rechazo(null, 404, "fuente_no_encontrada");
   }
   const [programa] = await db
-    .select({ id: programs.id, clave: programs.calendlySigningKey })
+    .select({ id: programs.id })
     .from(programs)
     .where(eq(programs.id, programaId))
     .limit(1);
   if (!programa) return rechazo(null, 404, "fuente_no_encontrada");
-  if (!programa.clave) return rechazo(programa.id, 401, "sin_secreto");
+  const clave = await claveFirmaCalendly(db, programa.id);
+  if (!clave) return rechazo(programa.id, 401, "sin_secreto");
 
   const cuerpo = await req.text();
-  const firma = verificarFirmaCalendly(cuerpo, req.headers.get(HEADER_FIRMA_CALENDLY), programa.clave);
+  const firma = verificarFirmaCalendly(cuerpo, req.headers.get(HEADER_FIRMA_CALENDLY), clave);
   if (firma !== "valida") {
     return rechazo(programa.id, 401, firma === "ausente" ? "firma_ausente" : "firma_invalida");
   }

@@ -8,7 +8,6 @@ import {
   desactivarPrograma,
   editarPrograma,
   esquemaPrograma,
-  guardarTokenCalendly,
   listarProgramas,
   reactivarPrograma,
 } from "@/lib/catalogo/programas";
@@ -27,8 +26,8 @@ import {
   rotarSecretoDeFuente,
 } from "@/lib/catalogo/fuentes";
 import { programasActivos } from "@/lib/queries/programas";
-import { esViolacionCheck } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
+import { guardarIntegracion, tokenCalendly } from "@/lib/integraciones";
 
 /**
  * Ticket 014 — administrar programas y cohortes desde /ajustes.
@@ -71,6 +70,12 @@ async function logDe(registroId: string) {
   return db.select().from(changeLog).where(eq(changeLog.registroId, registroId));
 }
 
+async function conectarCalendlyPrueba(base: Db, actorId: string, programId: string, token: string) {
+  return guardarIntegracion(base, actorId, programId, "calendly", token, async () =>
+    Response.json({ resource: { current_organization: "https://api.calendly.com/organizations/prueba" } }),
+  );
+}
+
 const programaValido = {
   nombre: "Programa Alfa",
   slug: "programa-alfa",
@@ -111,7 +116,7 @@ async function crearProgramaActivo(
   input: typeof programaValido = programaValido,
 ) {
   const creado = await crearPrograma(base, actorId, input);
-  await guardarTokenCalendly(base, actorId, creado.id, "tok-calendly-de-prueba");
+  await conectarCalendlyPrueba(base, actorId, creado.id, "tok-calendly-de-prueba");
   await darFuentePrincipal(base, actorId, creado.id);
   return reactivarPrograma(base, actorId, creado.id);
 }
@@ -187,7 +192,7 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
 
   it("con token y una fuente activa que NO es principal, reactivar es 422 y no se mueve", async () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
-    await guardarTokenCalendly(db, gerenteId, creado.id, "tok");
+    await conectarCalendlyPrueba(db, gerenteId, creado.id, "tok");
     await fuenteActiva(db, gerenteId, creado.id, "Sin marcar");
     const error = await reactivarPrograma(db, gerenteId, creado.id).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
@@ -203,7 +208,7 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
     const otro = await crearPrograma(db, gerenteId, { ...programaValido, slug: "otro" });
     await darFuentePrincipal(db, gerenteId, otro.id);
     const creado = await crearPrograma(db, gerenteId, programaValido);
-    await guardarTokenCalendly(db, gerenteId, creado.id, "tok");
+    await conectarCalendlyPrueba(db, gerenteId, creado.id, "tok");
     const logAntes = await logDe(creado.id);
     const error = await reactivarPrograma(db, gerenteId, creado.id).catch((e) => e);
     expect((error as ErrorDeApp).status).toBe(422);
@@ -223,22 +228,19 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
   });
 });
 
-describe("el token de Calendly (ADR 0057)", () => {
-  it("guardarTokenCalendly escribe el token pero listarProgramas no lo devuelve", async () => {
+describe("la integración de Calendly", () => {
+  it("guarda el token pero listarProgramas no lo devuelve", async () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
     const secreto = "token-super-secreto-de-calendly";
-    await guardarTokenCalendly(db, gerenteId, creado.id, secreto);
+    await conectarCalendlyPrueba(db, gerenteId, creado.id, secreto);
 
-    // En la base sí está.
-    const [enBase] = await db.select().from(programs).where(eq(programs.id, creado.id));
-    expect(enBase.calendlyToken).toBe(secreto);
+    expect(await tokenCalendly(db, creado.id)).toBe(secreto);
 
     // Pero ninguna lectura del catálogo lo devuelve: solo el booleano.
     const lista = await listarProgramas(db);
     expect(JSON.stringify(lista)).not.toContain(secreto);
     const vista = lista.find((p) => p.id === creado.id)!;
     expect(vista.tieneTokenCalendly).toBe(true);
-    expect("calendlyToken" in vista).toBe(false);
   });
 
   it("un programa sin token reporta tieneTokenCalendly=false", async () => {
@@ -250,10 +252,10 @@ describe("el token de Calendly (ADR 0057)", () => {
   it("el token NUNCA aparece en change_log, pero el cambio sí queda", async () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
     const secreto = "otro-token-secreto";
-    await guardarTokenCalendly(db, gerenteId, creado.id, secreto);
-    const log = await logDe(creado.id);
+    await conectarCalendlyPrueba(db, gerenteId, creado.id, secreto);
+    const log = (await db.select().from(changeLog)).filter((fila) => fila.tabla === "integraciones");
     expect(JSON.stringify(log)).not.toContain(secreto);
-    const fila = log.find((l) => l.campo === "calendly_token");
+    const fila = log.find((l) => l.campo === "secretos.token");
     expect(fila).toMatchObject({ valorNuevo: "(oculto)", userId: gerenteId });
     // El primer guardado no tenía token previo: valorAnterior es null.
     expect(fila!.valorAnterior).toBeNull();
@@ -261,10 +263,9 @@ describe("el token de Calendly (ADR 0057)", () => {
 
   it("reemplazar el token deja valorAnterior oculto (no el valor viejo)", async () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
-    await guardarTokenCalendly(db, gerenteId, creado.id, "viejo");
-    await guardarTokenCalendly(db, gerenteId, creado.id, "nuevo");
-    const log = await logDe(creado.id);
-    const filas = log.filter((l) => l.campo === "calendly_token");
+    await conectarCalendlyPrueba(db, gerenteId, creado.id, "viejo");
+    await conectarCalendlyPrueba(db, gerenteId, creado.id, "nuevo");
+    const filas = (await db.select().from(changeLog)).filter((l) => l.campo === "secretos.token");
     expect(filas.length).toBe(2);
     expect(JSON.stringify(filas)).not.toContain("viejo");
     expect(JSON.stringify(filas)).not.toContain("nuevo");
@@ -273,15 +274,14 @@ describe("el token de Calendly (ADR 0057)", () => {
 
   it("un token vacío es 400 y no toca la base", async () => {
     const creado = await crearPrograma(db, gerenteId, programaValido);
-    const error = await guardarTokenCalendly(db, gerenteId, creado.id, "   ").catch((e) => e);
+    const error = await conectarCalendlyPrueba(db, gerenteId, creado.id, "   ").catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
-    const [enBase] = await db.select().from(programs).where(eq(programs.id, creado.id));
-    expect(enBase.calendlyToken).toBeNull();
+    expect(await tokenCalendly(db, creado.id)).toBeNull();
   });
 
   it("guardar el token de un id que no existe es 404", async () => {
-    const error = await guardarTokenCalendly(
+    const error = await conectarCalendlyPrueba(
       db,
       gerenteId,
       "00000000-0000-0000-0000-000000000000",
@@ -630,32 +630,13 @@ describe("cohortes de un programa", () => {
   });
 });
 
-describe("CHECK programs_activo_con_token (ADR 0057; la mitad del formulario se fue con el ADR 0068)", () => {
-  it("la base rechaza un programa ACTIVO sin token, aunque se salte lib/", async () => {
-    const error = await db
-      .insert(programs)
-      .values({ slug: "directo", nombre: "Directo", ticketUsd: "100", activo: true })
-      .then(() => null, (e: unknown) => e);
-    expect(esViolacionCheck(error)).toBe(true);
-  });
-
-  it("un programa nace inactivo por default y con el token se puede activar", async () => {
+describe("activar un programa (ADR 0057, enmendado por el 0068 y el 0095)", () => {
+  it("un programa nace inactivo por default; la reja de activación vive en el catálogo", async () => {
     const [p] = await db
       .insert(programs)
       .values({ slug: "default", nombre: "Default", ticketUsd: "100" })
       .returning();
     expect(p!.activo).toBe(false);
-    const error = await db
-      .update(programs)
-      .set({ activo: true })
-      .where(eq(programs.id, p!.id))
-      .then(() => null, (e: unknown) => e);
-    expect(esViolacionCheck(error)).toBe(true);
-    await db
-      .update(programs)
-      .set({ activo: true, calendlyToken: "t" })
-      .where(eq(programs.id, p!.id));
-    const [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
-    expect(tras!.activo).toBe(true);
+    await expect(reactivarPrograma(db, gerenteId, p!.id)).rejects.toMatchObject({ status: 422 });
   });
 });

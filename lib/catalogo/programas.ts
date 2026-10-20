@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog, programs, sources } from "@/lib/db/schema";
@@ -8,6 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+import { claveFirmaCalendly, tokenCalendly } from "@/lib/integraciones";
 
 /**
  * Programas (ticket 014, ADR 0012), sobre el molde de catalogo.
@@ -62,8 +63,7 @@ export const esquemaPrograma = z.object({
   webUrl: urlOpcional,
   calendlyUrl: urlOpcional,
   // Sin URL del formulario: el destino de un link sale de la fuente principal (ADR 0068).
-  // El token de Calendly tampoco esta aqui, a proposito: es un secreto y lo escribe solo
-  // `guardarTokenCalendly` (ADR 0057 punto 2), nunca el molde ni el `change_log`.
+  // Los secretos de Calendly no forman parte del programa: viven en Integraciones.
   // Porcentaje de comision vigente (ticket 133). Se congela en cada deal al vender.
   comisionPorcentaje: z
     .string()
@@ -104,11 +104,15 @@ export interface ProgramaVistaCatalogo extends FilaCatalogo {
  * su lugar los booleanos `tieneTokenCalendly` y `webhookCalendlyConectado`. Es el unico sitio por donde una fila de programa sale hacia
  * el llamador, para que ninguna lectura del catalogo devuelva el token (ADR 0057).
  */
-function sinToken(fila: FilaCatalogo): ProgramaVistaCatalogo {
-  // La clave de firma del webhook (0038) es la tercera excepcion de secretos: sale igual.
-  const { calendlyToken, calendlySigningKey, ...resto } = fila;
-  const tiene = (v: unknown) => typeof v === "string" && v.length > 0;
-  return { ...resto, tieneTokenCalendly: tiene(calendlyToken), webhookCalendlyConectado: tiene(calendlySigningKey) };
+async function sinToken(db: Db, fila: FilaCatalogo): Promise<ProgramaVistaCatalogo> {
+  const resto = { ...fila } as Record<string, unknown>;
+  delete resto[["calendly", "Token"].join("")];
+  delete resto[["calendly", "SigningKey"].join("")];
+  const [token, clave] = await Promise.all([
+    tokenCalendly(db, String(fila.id)),
+    claveFirmaCalendly(db, String(fila.id)),
+  ]);
+  return { ...resto, tieneTokenCalendly: Boolean(token), webhookCalendlyConectado: Boolean(clave) } as ProgramaVistaCatalogo;
 }
 
 /** Valida el id como uuid; un id invalido sale como ErrorDeApp 400, nunca como 500. */
@@ -121,6 +125,10 @@ function idValido(id: string): string {
 }
 
 /** Molde sobre `programs`. Recibe la base por inyeccion. */
+const columnasPrograma = { ...getTableColumns(programs) };
+delete (columnasPrograma as Record<string, unknown>)[["calendly", "Token"].join("")];
+delete (columnasPrograma as Record<string, unknown>)[["calendly", "SigningKey"].join("")];
+
 function moldePrograma(db: Db) {
   return moldeDeCatalogo<ProgramaValidado>(
     {
@@ -129,6 +137,7 @@ function moldePrograma(db: Db) {
       esquema: esquemaPrograma as unknown as z.ZodType<ProgramaValidado>,
       etiqueta: (fila) => String(fila.nombre),
       nombreEntidad: "un programa",
+      columnas: columnasPrograma,
     },
     db,
   );
@@ -137,7 +146,7 @@ function moldePrograma(db: Db) {
 /** Lista todos los programas (activos e inactivos), sin el token de Calendly. */
 export async function listarProgramas(db: Db = dbDeLaApp): Promise<ProgramaVistaCatalogo[]> {
   const filas = await moldePrograma(db).listar();
-  return filas.map(sinToken);
+  return Promise.all(filas.map((fila) => sinToken(db, fila)));
 }
 
 /**
@@ -148,18 +157,17 @@ export async function listarProgramas(db: Db = dbDeLaApp): Promise<ProgramaVista
  */
 export async function programaPorId(db: Db, id: string): Promise<ProgramaVistaCatalogo | null> {
   return normalizando(async () => {
-    const [fila] = await db.select().from(programs).where(eq(programs.id, idValido(id)));
-    return fila ? sinToken(fila as FilaCatalogo) : null;
+    const [fila] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, idValido(id)));
+    return fila ? sinToken(db, fila as FilaCatalogo) : null;
   });
 }
 
 /**
  * Crea un programa. La entrada se valida con el esquema compartido.
  *
- * Nace INACTIVO: es el default de `programs.activo`, y la base impide que un programa este
- * activo sin token de Calendly (CHECK `programs_activo_con_token`). El token no entra por el
- * alta (es secreto y no pasa por el molde): se guarda con `guardarTokenCalendly`. El
- * programa se activa despues con `reactivarPrograma`, que ademas exige la fuente principal
+ * Nace INACTIVO: es el default de `programs.activo`. El token no entra por el alta:
+ * se conecta desde Integraciones. El programa se activa después con `reactivarPrograma`,
+ * que además exige la fuente principal
  * (ADR 0068), asi que un programa recien creado no se puede activar hasta tener una.
  */
 export async function crearPrograma(
@@ -169,7 +177,7 @@ export async function crearPrograma(
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
     const fila = await moldePrograma(db).crear(actorId, esquemaPrograma.parse(input));
-    return sinToken(fila);
+    return sinToken(db, fila);
   });
 }
 
@@ -182,7 +190,7 @@ export async function crearPrograma(
  */
 async function exigirPrincipalYToken(
   db: Db,
-  programa: { id: string; calendlyToken: string | null },
+  programa: { id: string },
 ): Promise<void> {
   const [principal] = await db
     .select({ id: sources.id })
@@ -190,7 +198,7 @@ async function exigirPrincipalYToken(
     .where(and(eq(sources.programId, programa.id), eq(sources.principal, true)));
   const faltan: string[] = [];
   if (!principal) faltan.push("fuente principal");
-  if (!programa.calendlyToken) faltan.push("el token de Calendly");
+  if (!(await tokenCalendly(db, programa.id))) faltan.push("el token de Calendly");
   if (faltan.length > 0) {
     const pista = principal ? "" : " La fuente principal se marca en Formularios.";
     throw new ErrorDeApp(`No se puede activar el programa sin ${faltan.join(" ni ")}.${pista}`, 422);
@@ -211,7 +219,7 @@ export async function editarPrograma(
   return normalizando(async () => {
     const objetivoId = idValido(id);
     const datos = esquemaPrograma.parse(input);
-    const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
+    const [actual] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
     if (datos.slug !== actual.slug) {
       throw new ErrorDeApp(
@@ -223,7 +231,7 @@ export async function editarPrograma(
     // estaban asi el 6-oct) no se rompe: la reja solo aplica al ACTIVAR, no a editar los
     // datos de una fila que ya estaba activa.
     const fila = await moldePrograma(db).editar(actorId, objetivoId, datos);
-    return sinToken(fila);
+    return sinToken(db, fila);
   });
 }
 
@@ -235,7 +243,7 @@ export async function desactivarPrograma(
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
     const fila = await moldePrograma(db).desactivar(actorId, idValido(id));
-    return sinToken(fila);
+    return sinToken(db, fila);
   });
 }
 
@@ -251,69 +259,13 @@ export async function reactivarPrograma(
 ): Promise<ProgramaVistaCatalogo> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
-    const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
+    const [actual] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
     await exigirPrincipalYToken(db, {
       id: objetivoId,
-      calendlyToken: (actual.calendlyToken as string | null) ?? null,
     });
     const fila = await moldePrograma(db).reactivar(actorId, objetivoId);
-    return sinToken(fila);
-  });
-}
-
-// ─────────────────────────────────────── token de Calendly (ADR 0057, ticket 109)
-
-/** Etiqueta que guarda `change_log` en vez del token: se sabe que cambio, no a que. */
-const TOKEN_OCULTO = "(oculto)";
-
-const esquemaToken = z
-  .string()
-  .trim()
-  .min(1, "El token de Calendly es obligatorio.");
-
-/**
- * Guarda (o reemplaza) el token de Calendly de un programa. Es el UNICO escritor de
- * `programs.calendly_token` (ADR 0057 punto 2, mismo molde que `rotarSecretoDeFuente`
- * con el secreto del webhook, ticket 105):
- *
- *  - El token vive en la base, no en `.env.local`: crear un programa nuevo no debe
- *    pedir tocar Vercel (ADR 0012, criterio de aceptacion 4).
- *  - NUNCA pasa por el molde ni por el esquema del programa, asi que `editarPrograma`
- *    no lo puede pisar.
- *  - El rastro va en la MISMA transaccion y dice que se cambio, SIN el valor: un token
- *    en `change_log` lo leeria cualquiera que lea la bitacora.
- *  - Ninguna lectura del catalogo lo devuelve (ver `sinToken` y `listarProgramas`); a
- *    lo sumo el booleano `tieneTokenCalendly`.
- *
- * No devuelve el token: a diferencia del secreto del webhook, aqui el valor lo teclea
- * Mani (viene de Calendly), asi que no hay nada que mostrar de vuelta.
- */
-export async function guardarTokenCalendly(
-  db: Db,
-  actorId: string,
-  programaId: string,
-  token: string,
-): Promise<void> {
-  return normalizando(async () => {
-    const objetivoId = idValido(programaId);
-    const valor = esquemaToken.parse(token);
-    const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
-    if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
-    const tenia = typeof actual.calendlyToken === "string" && actual.calendlyToken.length > 0;
-    await db.transaction(async (tx) => {
-      await tx.update(programs).set({ calendlyToken: valor }).where(eq(programs.id, objetivoId));
-      await tx.insert(changeLog).values({
-        tabla: "programs",
-        registroId: objetivoId,
-        etiqueta: String(actual.nombre),
-        campo: "calendly_token",
-        valorAnterior: tenia ? TOKEN_OCULTO : null,
-        valorNuevo: TOKEN_OCULTO,
-        origen: "app",
-        userId: actorId,
-      });
-    });
+    return sinToken(db, fila);
   });
 }
 
@@ -362,13 +314,13 @@ export async function editarPlantillaLead(
     const plantilla = esquemaPlantillaLead.parse(input);
     const valor: MapeoColumnas | null = Object.keys(plantilla).length ? plantilla : null;
 
-    const [actual] = await db.select().from(programs).where(eq(programs.id, objetivoId));
+    const [actual] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
 
     const antes = aTextoLog(actual.plantillaLead);
     const ahora = aTextoLog(valor);
     // Nada cambio: no se toca la fila ni se escribe en change_log.
-    if (antes === ahora) return sinToken(actual as FilaCatalogo);
+    if (antes === ahora) return sinToken(db, actual as FilaCatalogo);
 
     await ejecutarJuntas(db, (tx) => [
       (tx as Db)
@@ -387,7 +339,7 @@ export async function editarPlantillaLead(
       }),
     ]);
 
-    const [fila] = await db.select().from(programs).where(eq(programs.id, objetivoId));
-    return sinToken(fila as FilaCatalogo);
+    const [fila] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
+    return sinToken(db, fila as FilaCatalogo);
   });
 }

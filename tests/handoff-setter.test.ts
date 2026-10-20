@@ -8,6 +8,7 @@ import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -33,7 +34,8 @@ beforeAll(async () => {
 beforeEach(async () => {
   await vaciar();
   holder.db = db;
-  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff", ticketUsd: "1000", calendlySigningKey: CLAVE }).returning();
+  const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "handoff", nombre: "Handoff", ticketUsd: "1000" }).returning();
+  await sembrarIntegracion(db, programa.id, "calendly", { token: "token", claveFirma: CLAVE });
   programId = programa.id;
   const [owner] = await db.insert(users).values({ email: "setter@retia.co", rol: "closer" }).returning();
   const [otro] = await db.insert(users).values({ email: "otro@retia.co", rol: "closer" }).returning();

@@ -1,5 +1,5 @@
 import { respuestaDeError } from "@/lib/auth/guards";
-import { tokenActivoMeta } from "@/lib/catalogo/meta";
+import { tokensMeta } from "@/lib/integraciones";
 import { db } from "@/lib/db";
 import { hoyEnBogota } from "@/lib/format";
 import { sincronizarPauta } from "@/lib/pauta/sincronizar";
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   }
   try {
     const resumen = await sincronizarPauta(db, {
-      token: await tokenActivoMeta(db),
+      tokens: await tokensMeta(db),
       hoy,
       disparadaPor: "cron",
     });

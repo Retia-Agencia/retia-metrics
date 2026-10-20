@@ -4,6 +4,7 @@ import { miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 /**
  * Ticket 031 — la server action del perfil propio.
@@ -84,9 +85,9 @@ beforeEach(async () => {
       slug: "programa-perfil",
       nombre: "Programa perfil",
       ticketUsd: "797",
-      calendlyToken: "pat",
     })
     .returning();
+  await sembrarIntegracion(db, programa.id, "calendly", { token: "pat" });
   [{ id: membresiaCloserId }, { id: membresiaOtraCloserId }] = await db
     .insert(miembrosPrograma)
     .values([

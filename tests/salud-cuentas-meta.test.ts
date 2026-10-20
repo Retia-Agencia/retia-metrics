@@ -75,7 +75,9 @@ describe("salud de cuentas de Meta", () => {
       return Response.json({ account_status: 1, disable_reason: 0, amount_spent: "120", spend_cap: "0" });
     }) as typeof globalThis.fetch;
 
-    const resultado = await saludDeCuentasMeta(db, { token: "secreto", programIds: [pedido.id], f });
+    const resultado = await saludDeCuentasMeta(db, {
+      tokens: new Map([[pedido.id, "secreto"]]), programIds: [pedido.id], f,
+    });
 
     expect(resultado.get(pedido.id)).toEqual(expect.arrayContaining([
       { nombre: "Sana", estado: "al_dia", detalle: null },

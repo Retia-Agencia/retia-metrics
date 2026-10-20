@@ -1,7 +1,8 @@
 import { and, inArray, isNotNull } from "drizzle-orm";
-import { miembrosPrograma, programs } from "@/lib/db/schema";
+import { miembrosPrograma } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { BASE, coleccionCompleta, ErrorDeCalendly, organizacionDelToken, type FetchLike } from "./cita";
+import { tokensCalendly } from "@/lib/integraciones";
 
 /**
  * Las cuentas de Calendly de la organizacion de un programa (ticket 096), leidas con el
@@ -72,10 +73,7 @@ export async function cuentasPorPrograma(
   opciones: { fetch?: FetchLike } = {},
 ): Promise<Record<string, CuentasDelPrograma>> {
   if (programIds.length === 0) return {};
-  const filas = await db
-    .select({ id: programs.id, token: programs.calendlyToken })
-    .from(programs)
-    .where(inArray(programs.id, [...programIds]));
+  const tokens = await tokensCalendly(db, programIds);
   const ocupadas = await db
     .select({
       programId: miembrosPrograma.programId,
@@ -89,22 +87,23 @@ export async function cuentasPorPrograma(
   );
 
   const pares = await Promise.all(
-    filas.map(async (p): Promise<[string, CuentasDelPrograma]> => {
-      if (!p.token) return [p.id, { ok: false, error: "El programa no tiene token de Calendly." }];
+    programIds.map(async (id): Promise<[string, CuentasDelPrograma]> => {
+      const token = tokens.get(id);
+      if (!token) return [id, { ok: false, error: "El programa no tiene token de Calendly." }];
       try {
-        const cuentas = await cuentasDeCalendly({ token: p.token, fetch: opciones.fetch });
+        const cuentas = await cuentasDeCalendly({ token, fetch: opciones.fetch });
         return [
-          p.id,
+          id,
           {
             ok: true,
             cuentas: cuentas.map((cuenta) => ({
               ...cuenta,
-              membresiaId: membresiaPorCuenta.get(`${p.id}:${cuenta.correo}`) ?? null,
+              membresiaId: membresiaPorCuenta.get(`${id}:${cuenta.correo}`) ?? null,
             })),
           },
         ];
       } catch (e) {
-        if (e instanceof ErrorDeCalendly) return [p.id, { ok: false, error: e.message }];
+        if (e instanceof ErrorDeCalendly) return [id, { ok: false, error: e.message }];
         throw e;
       }
     }),

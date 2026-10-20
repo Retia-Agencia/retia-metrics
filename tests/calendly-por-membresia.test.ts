@@ -109,13 +109,3 @@ describe("calls: la llamada del CRM siempre tiene deal; la suelta de Calendly no
     expect((await db.select().from(calls).where(eq(calls.id, c.id)))[0].dealId).toBe(d.id);
   });
 });
-
-describe("programs.calendly_signing_key", () => {
-  it("nace nula y se puede escribir", async () => {
-    const [antes] = await db.select({ k: programs.calendlySigningKey }).from(programs).where(eq(programs.id, programId));
-    expect(antes.k).toBeNull();
-    await db.update(programs).set({ calendlySigningKey: "clave-de-prueba" }).where(eq(programs.id, programId));
-    const [despues] = await db.select({ k: programs.calendlySigningKey }).from(programs).where(eq(programs.id, programId));
-    expect(despues.k).toBe("clave-de-prueba");
-  });
-});

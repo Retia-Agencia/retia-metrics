@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   activarProgramaDesdeFichaAccion,
-  conectarCalendlyAccion,
   desactivarProgramaAccion,
   editarProgramaAccion,
 } from "@/app/(app)/p/[programa]/programa/acciones-programa";
@@ -53,7 +52,7 @@ export function EditarPrograma({
 
   function guardar(borrador: Borrador) {
     correr(
-      () => editarProgramaAccion(programa.id, aEntrada(borrador), borrador.tokenCalendly),
+      () => editarProgramaAccion(programa.id, aEntrada(borrador)),
       "Programa actualizado",
       true,
     );
@@ -66,14 +65,11 @@ export function EditarPrograma({
       </DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-y-auto">
         <DialogTitle>Editar programa</DialogTitle>
-        <DialogDescription>
-          El token guardado nunca se muestra. Déjalo vacío para conservarlo.
-        </DialogDescription>
+        <DialogDescription>Actualiza los datos generales del programa.</DialogDescription>
         <FormularioPrograma
           inicial={aBorrador(programa)}
           pendiente={pendiente}
           slugBloqueado
-          tieneTokenCalendly={programa.tieneTokenCalendly}
           onCancelar={() => setAbierto(false)}
           onGuardar={guardar}
         />
@@ -91,19 +87,8 @@ export function EditarPrograma({
           ) : (
             <span />
           )}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={pendiente}
-            onClick={() => correr(() => conectarCalendlyAccion(programa.id), "Calendly reconectado")}
-          >
-            Reconectar Calendly
-          </Button>
+          <span />
         </div>
-        <p className="text-xs text-muted-foreground">
-          Reconectar Calendly vuelve a crear la suscripción de Calendly de este programa con el token guardado. Úsalo si las citas dejaron de llegar o si cambiaste el token.
-        </p>
       </DialogContent>
     </Dialog>
   );

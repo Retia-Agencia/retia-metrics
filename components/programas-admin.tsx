@@ -19,10 +19,6 @@ export interface ProgramaVista {
   comisionPorcentaje: string | null;
   webUrl: string | null;
   calendlyUrl: string | null;
-  /** Si el programa ya tiene token de Calendly. El valor nunca llega al cliente (ADR 0057). */
-  tieneTokenCalendly: boolean;
-  /** Si el webhook de Calendly esta conectado. La clave nunca llega al cliente (ticket 096). */
-  webhookCalendlyConectado: boolean;
   diasSinActividad: number;
   activo: boolean;
 }
@@ -34,8 +30,6 @@ export interface Borrador {
   comisionPorcentaje: string;
   webUrl: string;
   calendlyUrl: string;
-  /** Lo que se teclea o pega en Calendly Token. Nunca se rellena con el guardado. */
-  tokenCalendly: string;
   diasSinActividad: string;
 }
 
@@ -47,7 +41,6 @@ export function aBorrador(p: ProgramaVista): Borrador {
     comisionPorcentaje: p.comisionPorcentaje ?? "",
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
-    tokenCalendly: "",
     diasSinActividad: String(p.diasSinActividad),
   };
 }
@@ -69,15 +62,12 @@ export function FormularioPrograma({
   inicial,
   pendiente,
   slugBloqueado,
-  tieneTokenCalendly = false,
   onCancelar,
   onGuardar,
 }: {
   inicial: Borrador;
   pendiente: boolean;
   slugBloqueado?: boolean;
-  /** Si ya hay token guardado: el campo puede quedar vacio y se conserva. */
-  tieneTokenCalendly?: boolean;
   onCancelar: () => void;
   onGuardar: (borrador: Borrador) => void;
 }) {
@@ -165,22 +155,6 @@ export function FormularioPrograma({
 
       {/* `webUrl` y `calendlyUrl` ya no se muestran (vacias en produccion y sin
           lector, 28-sep): el borrador las pasa tal cual para no pisar nada. */}
-      <label className="block space-y-1 text-sm sm:col-span-2">
-        <span className="text-muted-foreground">Calendly Token</span>
-        {/* type="password": se ve con puntos y se puede pegar. El valor guardado
-            nunca vuelve al navegador (ADR 0057), asi que el campo arranca vacio;
-            autoComplete="new-password" evita que el gestor del navegador lo llene. */}
-        <input
-          type="password"
-          autoComplete="new-password"
-          value={borrador.tokenCalendly}
-          onChange={(e) => setBorrador({ ...borrador, tokenCalendly: e.target.value })}
-          placeholder={tieneTokenCalendly ? "Cargado. Déjalo vacío para conservarlo" : ""}
-          className={claseInput}
-          aria-label="Calendly Token"
-        />
-      </label>
-
       <div className="flex justify-end gap-2 sm:col-span-2">
         <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>
           Cancelar

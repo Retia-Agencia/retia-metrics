@@ -1,10 +1,11 @@
 import { randomBytes } from "node:crypto";
 import { eq } from "drizzle-orm";
-import { changeLog, programs } from "@/lib/db/schema";
+import { programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { BASE, coleccionCompleta, ErrorDeCalendly, organizacionDelToken, type FetchLike } from "./cita";
 import { EVENTOS_CALENDLY } from "./evento-webhook";
+import { guardarClaveFirmaCalendly, tokenCalendly } from "@/lib/integraciones";
 
 /**
  * "Conectar Calendly" (ticket 096, A5): crea la suscripcion del webhook de un programa en
@@ -12,10 +13,8 @@ import { EVENTOS_CALENDLY } from "./evento-webhook";
  * a firmar. Los webhooks de Calendly se crean SOLO por la API y exigen plan Standard o
  * superior en la cuenta.
  *
- * Es el UNICO escritor de `programs.calendly_signing_key` (tercera excepcion nombrada de
- * secretos, AGENTS.md): no pasa por el molde, el `change_log` dice que cambio SIN el valor,
- * y ninguna lectura del catalogo la devuelve (`sinToken` en `lib/catalogo/programas.ts`).
- * `tests/calendly-suscripcion.test.ts` vigila que nadie mas la escriba.
+ * La clave se guarda por el módulo de Integraciones: no pasa por el molde y el
+ * `change_log` dice que cambió sin copiar el valor.
  *
  * La clave la genera el CRM y se la manda a Calendly (`signing_key` al crear), asi que no
  * depende de leerla de la respuesta. Conectar otra vez REHACE la suscripcion: borra la que
@@ -35,8 +34,6 @@ export type FetchConCuerpo = (
   init?: { method?: string; headers?: Record<string, string>; body?: string },
 ) => ReturnType<FetchLike>;
 
-const CLAVE_OCULTA = "(oculto)";
-
 /**
  * Conecta (o reconecta) el webhook de Calendly del programa. `urlBase` es el origen publico
  * de produccion (`AUTH_URL`): Calendly solo entrega a HTTPS.
@@ -55,31 +52,32 @@ export async function conectarCalendly(
     );
   }
   const [programa] = await db
-    .select({ id: programs.id, nombre: programs.nombre, token: programs.calendlyToken, clave: programs.calendlySigningKey })
+    .select({ id: programs.id })
     .from(programs)
     .where(eq(programs.id, programId));
   if (!programa) throw new ErrorDeApp("No existe un programa con ese id.", 404);
-  if (!programa.token) throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo primero.", 422);
+  const token = await tokenCalendly(db, programId);
+  if (!token) throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo primero.", 422);
 
   const url = `${base}${rutaDelWebhookDeCalendly(programa.id)}`;
   const fetchImpl = opciones.fetch ?? (globalThis.fetch as unknown as FetchConCuerpo);
   const clave = randomBytes(32).toString("hex");
 
   try {
-    const organizacion = await organizacionDelToken(fetchImpl as FetchLike, programa.token);
+    const organizacion = await organizacionDelToken(fetchImpl as FetchLike, token);
     const existentes = await coleccionCompleta(
       fetchImpl as FetchLike,
       `${BASE}/webhook_subscriptions?organization=${encodeURIComponent(organizacion)}&scope=organization&count=100`,
-      programa.token,
+      token,
       "suscripciones",
     );
     for (const s of existentes) {
       const sub = s as { uri?: unknown; callback_url?: unknown };
       if (sub.callback_url === url && typeof sub.uri === "string") {
-        await pedir(fetchImpl, sub.uri, programa.token, "DELETE");
+        await pedir(fetchImpl, sub.uri, token, "DELETE");
       }
     }
-    await pedir(fetchImpl, `${BASE}/webhook_subscriptions`, programa.token, "POST", {
+    await pedir(fetchImpl, `${BASE}/webhook_subscriptions`, token, "POST", {
       url,
       events: EVENTOS_CALENDLY,
       organization: organizacion,
@@ -91,19 +89,7 @@ export async function conectarCalendly(
     throw e;
   }
 
-  await db.transaction(async (tx) => {
-    await tx.update(programs).set({ calendlySigningKey: clave }).where(eq(programs.id, programa.id));
-    await tx.insert(changeLog).values({
-      tabla: "programs",
-      registroId: programa.id,
-      etiqueta: programa.nombre,
-      campo: "calendly_signing_key",
-      valorAnterior: programa.clave ? CLAVE_OCULTA : null,
-      valorNuevo: CLAVE_OCULTA,
-      origen: "app",
-      userId: actorId,
-    });
-  });
+  await db.transaction(async (tx) => guardarClaveFirmaCalendly(tx as Db, actorId, programa.id, clave));
   return { url };
 }
 
