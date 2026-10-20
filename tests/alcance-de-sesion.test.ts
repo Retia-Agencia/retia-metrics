@@ -286,6 +286,18 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "calendly", "colgar-llamada.ts")]:
       "identidad de la host: qué closer es dueña de una cuenta de Calendly en el programa",
 
+    // Calendly desde el CRM (ticket 280): la acción lee UNA membresía por su id para saber
+    // su correo de Calendly y luego pregunta el alcance con programaEnAlcance; no acota
+    // ninguna lectura por su cuenta. Es la configuración de la propia membresía.
+    [path.join("app", "(app)", "acciones-calendly.ts")]:
+      "configuración de una membresía por id; el alcance sí se pregunta con programaEnAlcance",
+
+    // Agendar desde el deal (ticket 280): trae el evento de Calendly de la membresía del
+    // DUEÑO del deal para armar la agenda. Es identidad del dueño, no acota una lectura a una
+    // sesión: el acceso al deal ya lo decidió quien llama.
+    [path.join("lib", "calendly", "escritura.ts")]:
+      "identidad del dueño del deal: qué evento de Calendly tiene su membresía activa",
+
     // El setter por defecto del programa (ticket 210): "¿qué miembro ACTIVO recibe los deals
     // que nacen sin agenda?", y su configuración por quien administra. Es identidad, como la
     // host de una cita: decide de quién es un deal, lo pregunta la ingesta sin sesión, y no

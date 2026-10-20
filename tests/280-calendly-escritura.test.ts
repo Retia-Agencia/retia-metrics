@@ -73,7 +73,7 @@ describe("eventoParaAgendar", () => {
       conLocation: false,
       etiqueta: "Round robin del programa: Calendly asigna el closer",
     });
-    expect(evento.tracking.utmContent).toBe(dealId.replaceAll("-", ""));
+    expect(evento.tracking.codigoDeTracking).toBe(dealId.replaceAll("-", ""));
   });
 
   it("usa el evento personal del dueño fuera de setteo", async () => {
@@ -81,7 +81,7 @@ describe("eventoParaAgendar", () => {
     await expect(eventoParaAgendar(db, dealId)).resolves.toMatchObject({
       eventTypeUri: "https://api.calendly.com/event_types/PERSONAL",
       conLocation: true,
-      tracking: { utmContent: null },
+      tracking: { codigoDeTracking: null },
       etiqueta: "Agenda de Nico",
     });
   });
@@ -142,7 +142,7 @@ describe("API de escritura", () => {
       startTime: new Date("2026-10-20T14:00:00Z"),
       invitado: { nombre: "Ana", correo: "ana@correo.co" },
       conLocation: true,
-      tracking: { utmContent: "codigo" },
+      tracking: { codigoDeTracking: "codigo" },
     }, fetchImpl);
     const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
     expect(body.tracking).toEqual({ utm_source: "crm", utm_medium: "agenda", utm_campaign: null, utm_content: "codigo", utm_term: null, salesforce_uuid: null });

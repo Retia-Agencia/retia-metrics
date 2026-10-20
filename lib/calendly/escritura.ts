@@ -20,7 +20,7 @@ export interface EventoParaAgendar {
   token: string;
   eventTypeUri: string;
   conLocation: boolean;
-  tracking: { utmContent: string | null };
+  tracking: { codigoDeTracking: string | null };
   etiqueta: string;
 }
 
@@ -129,7 +129,7 @@ export async function reservarCita(
     startTime: Date;
     invitado: { nombre: string; correo: string };
     conLocation: boolean;
-    tracking: { utmContent: string | null };
+    tracking: { codigoDeTracking: string | null };
   },
   fetchImpl?: FetchLike,
 ): Promise<CitaReservada> {
@@ -146,7 +146,7 @@ export async function reservarCita(
         utm_source: "crm",
         utm_medium: "agenda",
         utm_campaign: null,
-        utm_content: datos.tracking.utmContent,
+        utm_content: datos.tracking.codigoDeTracking,
         utm_term: null,
         salesforce_uuid: null,
       },
@@ -222,7 +222,7 @@ export async function eventoParaAgendar(
   if (!ETAPAS_DE_SETTEO.includes(fila.etapa)) {
     const dueno = fila.ownerNombre ?? fila.ownerEmail ?? "El dueño";
     if (!fila.eventTypeUri) throw new ErrorDeApp(`${dueno} no tiene su evento de Calendly configurado en este programa.`, 422);
-    return { token, eventTypeUri: fila.eventTypeUri, conLocation: true, tracking: { utmContent: null }, etiqueta: `Agenda de ${dueno}` };
+    return { token, eventTypeUri: fila.eventTypeUri, conLocation: true, tracking: { codigoDeTracking: null }, etiqueta: `Agenda de ${dueno}` };
   }
   if (!fila.calendlyUrl) throw new ErrorDeApp("El programa no tiene configurado su evento round robin de Calendly.", 422);
   const fetcher = fetchDisponible(fetchImpl);
@@ -245,5 +245,5 @@ export async function eventoParaAgendar(
   if (encontrados.length > 1) throw new ErrorDeApp("Hay más de un evento round robin con la URL configurada para el programa.", 422);
   const uri = (encontrados[0] as { uri?: unknown }).uri;
   if (typeof uri !== "string") throw new ErrorDeApp("El evento round robin de Calendly no tiene una URI válida.", 422);
-  return { token, eventTypeUri: uri, conLocation: false, tracking: { utmContent: codigoDeDeal(dealId) }, etiqueta: "Round robin del programa: Calendly asigna el closer" };
+  return { token, eventTypeUri: uri, conLocation: false, tracking: { codigoDeTracking: codigoDeDeal(dealId) }, etiqueta: "Round robin del programa: Calendly asigna el closer" };
 }

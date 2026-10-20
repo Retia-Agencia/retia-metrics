@@ -66,7 +66,7 @@ describe("reagendar contra Calendly", () => {
       startTime: new Date("2026-11-20T15:00:00Z"),
       invitado: { nombre: "Ana", correo: "ana@correo.co" },
       conLocation: true,
-      tracking: { utmContent: null },
+      tracking: { codigoDeTracking: null },
     }, vi.fn().mockResolvedValue(json(400, { message: "The event is not available" })))).rejects.toThrow("The event is not available");
     expect(await db.select().from(calls)).toHaveLength(0);
   });
