@@ -3,7 +3,7 @@ id: 270
 etapa: calendly
 serves: "Incidente del 15-oct (cita de Edwin Yesod sin llamada): que una cita sin llamada o una suscripción caída se vean sin buscarlas a mano"
 depends: [096, 110]
-status: en curso (en main, falta checkpoint)
+status: done
 ---
 
 # 270 — La auditoría de Calendly en Webhook Health

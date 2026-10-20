@@ -3,7 +3,7 @@ id: 280
 etapa: llamadas
 serves: "Agendar, reagendar y cancelar desde el CRM crea, mueve y cancela la cita real en Calendly, con su Meet y su correo al lead, en cualquier estado del deal (Nicolás y Daniel, grupo Nuevos closers Retia, 14 y 19-oct; Mani, 19-oct)"
 depends: []
-status: todo
+status: en main
 ---
 
 # 280 — El CRM agenda, reagenda y cancela en Calendly

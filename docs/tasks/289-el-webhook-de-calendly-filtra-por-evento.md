@@ -3,7 +3,7 @@ id: 289
 etapa: llamadas
 serves: "Una cita de otro programa de la misma org de Calendly no crea llamada ni cuenta como agenda (Second Brain Jurídico, EstadoX, 19-oct)"
 depends: [280, 278]
-status: todo
+status: done
 ---
 
 # 289 — El webhook de Calendly filtra por tipo de evento

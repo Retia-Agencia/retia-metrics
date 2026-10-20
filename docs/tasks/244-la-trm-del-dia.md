@@ -3,7 +3,7 @@ id: 244
 etapa: hub
 serves: "ADR 0088 puntos 3 a 5 · docs/hub.md H-5, §5.2 (TRM del día) · cierra A12"
 depends: []
-status: en curso
+status: done
 ---
 
 # 244 — La TRM oficial de cada día, guardada

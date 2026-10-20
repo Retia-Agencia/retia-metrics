@@ -3,7 +3,7 @@ id: 273
 etapa: acceso
 serves: "Los gerentes y el paid trafficker de AI Second Brain Jurídico ven solo ese programa y no administran lo global (ADR 0094)"
 depends: [094, 173]
-status: todo
+status: done
 ---
 
 # 273 — Un gerente o un paid trafficker limitado a sus programas

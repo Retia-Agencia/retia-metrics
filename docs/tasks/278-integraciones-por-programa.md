@@ -3,7 +3,7 @@ id: 278
 etapa: plataforma
 serves: "Todas las conexiones de un programa con servicios externos (tokens, llaves de API, secretos de webhook) se ven y se configuran en un solo lugar, y agregar una integración nueva es agregar un tipo, no una pantalla (Mani, 19-oct)"
 depends: []
-status: en curso (en producción con el paso 2 el 19-oct, falta checkpoint y recorrido visual)
+status: done
 ---
 
 # 278 — Programa › Integraciones

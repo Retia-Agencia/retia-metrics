@@ -3,7 +3,7 @@ id: 274
 etapa: hub
 serves: "El reporte de pauta de AI Second Brain Jurídico va a su propio grupo de WhatsApp (ADR 0089, enmienda del 16-oct)"
 depends: [268, 269]
-status: todo
+status: done
 ---
 
 # 274 — El grupo del reporte vuelve al programa
