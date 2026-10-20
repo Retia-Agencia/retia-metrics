@@ -7,6 +7,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const VACIOS = {
+  fbclid: null,
   source: null,
   medium: null,
   campaign: null,

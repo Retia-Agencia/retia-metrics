@@ -68,6 +68,7 @@ describe("el codigo y el enlace (puro)", () => {
     const q = (k: string) => url.searchParams.get(k);
     const traza = emparejar(
       {
+        fbclid: null,
         source: q("utm_source"),
         medium: q("utm_medium"),
         campaign: q("utm_campaign"),

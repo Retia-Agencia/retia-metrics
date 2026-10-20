@@ -56,6 +56,7 @@ import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
 import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
 import { estadoDeIntegraciones } from "@/lib/integraciones";
 import { IntegracionesDelPrograma } from "@/components/integraciones/integraciones-del-programa";
+import { resumenMetaCapi } from "@/lib/meta-capi/resumen";
 
 export const dynamic = "force-dynamic";
 
@@ -233,6 +234,9 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   const estadosIntegraciones = seccion === "integraciones"
     ? await estadoDeIntegraciones(db, programa.id)
     : [];
+  const resumenCapi = seccion === "integraciones"
+    ? await resumenMetaCapi(db, programa.id)
+    : { enviado: 0, fallido: 0, vencido: 0, omitido: 0, enviadosConFbc: 0, enviadosTotal: 0 };
   const metaConectada = estadosIntegraciones.find((estado) => estado.tipo === "meta")?.configurada ?? false;
   const [cuentasMeta, consultaMeta] = seccion === "integraciones"
     ? await Promise.all([
@@ -527,6 +531,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 orgCompartida: programa.calendlyOrgCompartida,
                 configurado: programa.calendlyRoundRobinConfigurado,
               }}
+              resumenCapi={resumenCapi}
             />
           ) : null}
 

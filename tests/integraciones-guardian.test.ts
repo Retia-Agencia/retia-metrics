@@ -18,6 +18,23 @@ describe("límite de secretos de integraciones", () => {
     expect(/integraciones\.secretos/.test("integraciones.secretos")).toBe(true);
   });
 
+  it("solo lib/meta-capi habla con el endpoint de eventos de Meta", () => {
+    const infractores = fuentes.filter((archivo) => {
+      if (archivo.includes(`${path.sep}lib${path.sep}meta-capi${path.sep}`)) return false;
+      return /graph\.facebook\.com[^\n]*\/events/.test(sinComentarios(fs.readFileSync(archivo, "utf8")));
+    });
+    expect(infractores).toEqual([]);
+  });
+
+  it("solo lib/meta-capi importa credencialesMetaCapi", () => {
+    const infractores = fuentes.filter((archivo) => {
+      if (archivo.includes(`${path.sep}lib${path.sep}meta-capi${path.sep}`)
+        || archivo.endsWith(`${path.sep}lib${path.sep}integraciones${path.sep}index.ts`)) return false;
+      return /\bcredencialesMetaCapi\b/.test(sinComentarios(fs.readFileSync(archivo, "utf8")));
+    });
+    expect(infractores).toEqual([]);
+  });
+
   // Desde la 0096 las columnas no existen ni en el esquema (paso 2 del ADR 0095).
   it("nadie, ni el esquema, nombra las columnas secretas antiguas", () => {
     const nombres = ["calendlyToken", "calendlySigningKey", "typeformToken", "metaConexiones"];

@@ -11,7 +11,8 @@ import { db } from "@/lib/db";
 import { programs, tipoIntegracionEnum, type TipoIntegracion } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota } from "@/lib/format";
-import { guardarIntegracion, probarIntegracionGuardada, tokensMeta } from "@/lib/integraciones";
+import { configurarMetaCapi, guardarIntegracion, probarIntegracionGuardada, tokensMeta } from "@/lib/integraciones";
+import { mandarPruebaMetaCapi } from "@/lib/meta-capi/prueba";
 import { guardarRoundRobin } from "@/lib/calendly/round-robin";
 import { sincronizarPauta, type ResumenSincronizacionPauta } from "@/lib/pauta/sincronizar";
 import type { ResultadoAccion } from "./acciones-programa";
@@ -35,14 +36,41 @@ function fallo(error: unknown): { ok: false; error: string } {
 }
 
 export async function guardarIntegracionAccion(
-  programId: string, tipoCrudo: TipoIntegracion, valor: string,
+  programId: string, tipoCrudo: TipoIntegracion, valor: string, datasetId?: string,
 ): Promise<ResultadoAccion> {
   try {
     const actorId = await actorGerente(programId);
     const tipoLeido = esquemaTipo.safeParse(tipoCrudo);
     if (!tipoLeido.success) throw new ErrorDeApp("Integración inválida.", 400);
     const tipo = tipoLeido.data;
-    await guardarIntegracion(db, actorId, programId, tipo, valor);
+    const config = tipo === "meta_capi" ? { datasetId: datasetId ?? "", encendido: false } : undefined;
+    await guardarIntegracion(db, actorId, programId, tipo, valor, globalThis.fetch, config);
+    revalidatePath("/p/[programa]/programa", "page");
+    return { ok: true };
+  } catch (error) {
+    return fallo(error);
+  }
+}
+
+export async function configurarMetaCapiAccion(
+  programId: string, input: { datasetId: string; encendido: boolean },
+): Promise<ResultadoAccion> {
+  try {
+    const actorId = await actorGerente(programId);
+    await configurarMetaCapi(db, actorId, programId, input);
+    revalidatePath("/p/[programa]/programa", "page");
+    return { ok: true };
+  } catch (error) {
+    return fallo(error);
+  }
+}
+
+export async function mandarPruebaMetaCapiAccion(
+  programId: string, testEventCode: string,
+): Promise<ResultadoAccion> {
+  try {
+    const actorId = await actorGerente(programId);
+    await mandarPruebaMetaCapi(db, actorId, programId, testEventCode);
     revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
   } catch (error) {

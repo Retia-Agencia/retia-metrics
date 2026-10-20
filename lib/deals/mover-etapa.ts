@@ -46,6 +46,7 @@ import {
 } from "./requisitos";
 import { congelarValorVendido } from "./valor-vendido";
 import { camposDeDueno, reclamarAlMoverPorE1 } from "./cambiar-dueno";
+import { encolarVenta } from "@/lib/meta-capi/disparo";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -326,6 +327,9 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       .returning();
     if (escritas.length === 0) {
       throw new ErrorDeApp("El deal cambió de etapa mientras tanto. Vuelve a cargarlo.", 409);
+    }
+    if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(mov.a)) {
+      await encolarVenta(tx, escritas[0]);
     }
 
     await tx.insert(dealEtapaHistorial).values({

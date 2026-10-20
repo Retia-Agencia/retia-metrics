@@ -7,12 +7,17 @@ import { toast } from "sonner";
 import type { TipoIntegracion } from "@/lib/db/schema";
 import type { CuentaDelPrograma } from "@/lib/catalogo/meta";
 import type { CuentaVisibleMeta } from "@/lib/pauta/meta-api";
+import type { ResumenMetaCapi } from "@/lib/meta-capi/resumen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { conectarCalendlyAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
-import { guardarIntegracionAccion, guardarRoundRobinAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
+import { configurarMetaCapiAccion, guardarIntegracionAccion, guardarRoundRobinAccion, mandarPruebaMetaCapiAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
+
+type ConfigVisible = Record<string, string | boolean | null>;
 
 export type IntegracionVisible = {
   tipo: TipoIntegracion;
@@ -20,28 +25,28 @@ export type IntegracionVisible = {
   campo: string;
   configurada: boolean;
   probadaEn: string | null;
-  config: Record<string, string>;
+  config: ConfigVisible;
   actualizadaEn: string | null;
   webhookConectado?: boolean;
 };
 
 type FuenteExterna = { id: string; nombre: string; proveedor: string | null; tieneSecreto: boolean };
 
-function Config({ config }: { config: Record<string, string> }) {
+function Config({ config }: { config: ConfigVisible }) {
   const etiquetas: Record<string, string> = {
     cuentaId: "ID de cuenta", cuenta: "Cuenta", alias: "Alias",
     organizacion: "Organización", nombre: "Usuario",
   };
-  const valores = Object.entries(config).filter(([, valor]) => Boolean(valor));
+  const valores = Object.entries(config).filter(([clave, valor]) => Boolean(valor) && !["encendido", "ultimaPruebaEn"].includes(clave));
   return valores.length > 0 ? (
     <p className="text-sm text-muted-foreground">
-      {valores.map(([clave, valor]) => `${etiquetas[clave] ?? clave}: ${valor}`).join(" · ")}
+      {valores.map(([clave, valor]) => `${etiquetas[clave] ?? clave}: ${String(valor)}`).join(" · ")}
     </p>
   ) : null;
 }
 
 export function IntegracionesDelPrograma({
-  programId, integraciones, cuentasMeta, disponiblesMeta, errorMeta, fuentes, hrefCaptacion, roundRobin,
+  programId, integraciones, cuentasMeta, disponiblesMeta, errorMeta, fuentes, hrefCaptacion, roundRobin, resumenCapi,
 }: {
   programId: string;
   integraciones: IntegracionVisible[];
@@ -53,15 +58,18 @@ export function IntegracionesDelPrograma({
   /** El round robin de Calendly del programa (ADR 0098): su URL, la marca de org compartida
    * y si el evento ya quedó resuelto. Llega por props: el cliente no lee la base. */
   roundRobin: { calendlyUrl: string | null; orgCompartida: boolean; configurado: boolean };
+  resumenCapi: ResumenMetaCapi;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState<TipoIntegracion | null>(null);
   const [valor, setValor] = useState("");
+  const capi = integraciones.find((integracion) => integracion.tipo === "meta_capi");
+  const [datasetId, setDatasetId] = useState(typeof capi?.config.datasetId === "string" ? capi.config.datasetId : "");
   const [pendiente, startTransition] = useTransition();
 
   function guardar(tipo: TipoIntegracion) {
     startTransition(async () => {
-      const resultado = await guardarIntegracionAccion(programId, tipo, valor);
+      const resultado = await guardarIntegracionAccion(programId, tipo, valor, tipo === "meta_capi" ? datasetId : undefined);
       if (!resultado.ok) {
         toast.error("No se pudo conectar", { description: resultado.error });
         return;
@@ -118,6 +126,13 @@ export function IntegracionesDelPrograma({
             {integracion.probadaEn ? <p className="text-xs text-muted-foreground">Probada el {integracion.probadaEn}</p> : null}
             {editando === integracion.tipo ? (
               <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); guardar(integracion.tipo); }}>
+                {integracion.tipo === "meta_capi" ? (
+                  <Input
+                    inputMode="numeric" pattern="[0-9]+" required value={datasetId}
+                    onChange={(e) => setDatasetId(e.target.value)} placeholder="ID del dataset"
+                    aria-label="ID del dataset de Meta"
+                  />
+                ) : null}
                 <input
                   type="password" autoComplete="new-password" required maxLength={500}
                   value={valor} onChange={(e) => setValor(e.target.value)}
@@ -132,7 +147,7 @@ export function IntegracionesDelPrograma({
                 <Button type="button" size="sm" variant="outline" onClick={() => { setValor(""); setEditando(integracion.tipo); }}>
                   {integracion.configurada ? "Reemplazar" : "Conectar"} {integracion.campo}
                 </Button>
-                {integracion.configurada ? (
+                {integracion.configurada && integracion.tipo !== "meta_capi" ? (
                   <Button type="button" size="sm" variant="outline" disabled={pendiente} onClick={() => probar(integracion.tipo)}>
                     Probar
                   </Button>
@@ -167,6 +182,15 @@ export function IntegracionesDelPrograma({
                 </Button>
               </div>
             ) : null}
+
+            {integracion.tipo === "meta_capi" ? (
+              <MetaCapi
+                programId={programId}
+                configurada={integracion.configurada}
+                config={integracion.config}
+                resumen={resumenCapi}
+              />
+            ) : null}
           </CardContent>
         </Card>
       ))}
@@ -188,6 +212,93 @@ export function IntegracionesDelPrograma({
           <Link className="font-medium text-marca-texto underline-offset-2 hover:underline" href={hrefCaptacion}>Ir a Captación</Link>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function MetaCapi({
+  programId, configurada, config, resumen,
+}: {
+  programId: string;
+  configurada: boolean;
+  config: ConfigVisible;
+  resumen: ResumenMetaCapi;
+}) {
+  const router = useRouter();
+  const [datasetId, setDatasetId] = useState(typeof config.datasetId === "string" ? config.datasetId : "");
+  const [encendido, setEncendido] = useState(config.encendido === true);
+  const [codigo, setCodigo] = useState("");
+  const [pendiente, startTransition] = useTransition();
+  const ultimaPrueba = typeof config.ultimaPruebaEn === "string" ? config.ultimaPruebaEn : null;
+
+  function guardarConfiguracion(siguiente = encendido) {
+    startTransition(async () => {
+      const resultado = await configurarMetaCapiAccion(programId, { datasetId, encendido: siguiente });
+      if (!resultado.ok) {
+        setEncendido(config.encendido === true);
+        toast.error("No se pudo guardar Meta CAPI", { description: resultado.error });
+        return;
+      }
+      toast.success("Configuración de Meta CAPI guardada");
+      router.refresh();
+    });
+  }
+
+  function probar() {
+    startTransition(async () => {
+      const resultado = await mandarPruebaMetaCapiAccion(programId, codigo);
+      if (!resultado.ok) toast.error("La prueba falló", { description: resultado.error });
+      else {
+        setCodigo("");
+        toast.success("Evento de prueba enviado");
+        router.refresh();
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-4 border-t border-border pt-3">
+      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        <label className="space-y-1">
+          <span className="text-sm font-medium">ID del dataset</span>
+          <Input inputMode="numeric" pattern="[0-9]+" value={datasetId} onChange={(e) => setDatasetId(e.target.value)} disabled={!configurada || pendiente} />
+        </label>
+        <Button type="button" size="sm" variant="outline" disabled={!configurada || pendiente || !datasetId.trim()} onClick={() => guardarConfiguracion()}>
+          Guardar ID
+        </Button>
+      </div>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium">Enviar ventas a Meta</p>
+          <p className="text-xs text-muted-foreground">Solo se puede encender después de una prueba exitosa.</p>
+        </div>
+        <Switch
+          checked={encendido}
+          onCheckedChange={(checked) => { setEncendido(checked); guardarConfiguracion(checked); }}
+          disabled={!configurada || pendiente}
+          aria-label="Enviar ventas a Meta"
+        />
+      </div>
+      <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); probar(); }}>
+        <label className="space-y-1">
+          <span className="text-sm font-medium">Código del evento de prueba</span>
+          <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} disabled={!configurada || pendiente} placeholder="TEST12345" maxLength={200} />
+        </label>
+        <Button type="submit" size="sm" disabled={!configurada || pendiente || !codigo.trim()}>Mandar evento de prueba</Button>
+        <p className="text-xs text-muted-foreground">
+          {ultimaPrueba ? `Última prueba: ${new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" }).format(new Date(ultimaPrueba))}` : "Todavía no hay una prueba exitosa."}
+        </p>
+      </form>
+      <div className="space-y-2">
+        <p className="text-sm font-medium">Últimos 7 días</p>
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="exito">{resumen.enviado} enviados</Badge>
+          <Badge variant="alerta">{resumen.fallido} fallidos</Badge>
+          <Badge variant="neutro">{resumen.vencido} vencidos</Badge>
+          <Badge variant="neutro">{resumen.omitido} omitidos</Badge>
+        </div>
+        <p className="text-xs text-muted-foreground">{resumen.enviadosConFbc} de {resumen.enviadosTotal} enviados con fbc</p>
+      </div>
     </div>
   );
 }

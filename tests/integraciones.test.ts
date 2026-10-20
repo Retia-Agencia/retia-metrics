@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { changeLog, cuentasPublicitarias, integraciones, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { estadoDeIntegraciones, guardarIntegracion, probarIntegracionGuardada } from "@/lib/integraciones";
+import { configurarMetaCapi, estadoDeIntegraciones, guardarIntegracion, probarIntegracionGuardada, registrarPruebaMetaCapi } from "@/lib/integraciones";
 import { sincronizarPauta } from "@/lib/pauta/sincronizar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -50,6 +50,22 @@ describe("integraciones por programa", () => {
     expect(await db.select().from(changeLog)).toHaveLength(0);
   });
 
+  it("Meta CAPI valida el dataset y no se enciende antes del evento de prueba", async () => {
+    const f = vi.fn(async () => Response.json({ id: "123", name: "Dataset Retia" })) as typeof globalThis.fetch;
+    await guardarIntegracion(db, actorId, programId, "meta_capi", "token-capi", f, {
+      datasetId: "123", encendido: false,
+    });
+    expect(f).toHaveBeenCalledWith("https://graph.facebook.com/v26.0/123?fields=id,name", {
+      headers: { Authorization: "Bearer token-capi" },
+    });
+    await expect(configurarMetaCapi(db, actorId, programId, { datasetId: "123", encendido: true }))
+      .rejects.toMatchObject({ status: 422 });
+    await registrarPruebaMetaCapi(db, actorId, programId, new Date("2026-10-20T15:00:00Z"));
+    await configurarMetaCapi(db, actorId, programId, { datasetId: "123", encendido: true });
+    const [fila] = await db.select().from(integraciones);
+    expect(fila.config).toMatchObject({ datasetId: "123", dataset: "Dataset Retia", encendido: true });
+  });
+
   it("reemplazar el token de Calendly conserva la clave de firma", async () => {
     await sembrarIntegracion(db, programId, "calendly", { token: "anterior", claveFirma: "firma" });
     const f = vi.fn(async () => Response.json({ resource: { current_organization: "https://api.calendly.com/organizations/1" } })) as typeof globalThis.fetch;
@@ -61,7 +77,7 @@ describe("integraciones por programa", () => {
   it("el estado no contiene el secreto y conserva el orden del registro", async () => {
     await sembrarIntegracion(db, programId, "dapta", { llaveApi: "ultrasecreta" }, { cuenta: "Retia" });
     const estado = await estadoDeIntegraciones(db, programId);
-    expect(estado.map((fila) => fila.tipo)).toEqual(["dapta", "typeform", "calendly", "meta"]);
+    expect(estado.map((fila) => fila.tipo)).toEqual(["dapta", "typeform", "calendly", "meta", "meta_capi"]);
     expect(JSON.stringify(estado)).not.toContain("ultrasecreta");
   });
 

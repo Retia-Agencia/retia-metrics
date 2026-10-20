@@ -16,6 +16,7 @@ import { codigoDeDeal, dealDeCodigo, linkDeAgenda } from "@/lib/calendly/link-de
 function utmsQueLlegan(link: string): UtmsDelEnvio {
   const p = new URL(link).searchParams;
   return {
+    fbclid: p.get("fbclid"),
     source: p.get("utm_source"),
     medium: p.get("utm_medium"),
     campaign: p.get("utm_campaign"),

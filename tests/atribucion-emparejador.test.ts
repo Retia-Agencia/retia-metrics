@@ -6,6 +6,7 @@ import { ARBOL_VACIO, emparejar, type ArbolDePauta } from "@/lib/atribucion/empa
 import { utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
 const VACIOS: UtmsDelEnvio = {
+  fbclid: null,
   source: null,
   medium: null,
   campaign: null,
@@ -49,6 +50,7 @@ describe("UTM crudos del envio", () => {
         },
       }),
     ).toEqual({
+      fbclid: null,
       source: "facebook",
       medium: "cpc",
       campaign: "cruda",
@@ -69,6 +71,17 @@ describe("UTM crudos del envio", () => {
         respuestas: null,
       }),
     ).toEqual(VACIOS);
+
+    expect(utmsDelEnvio({
+      utmSource: null, utmMedium: null, utmCampaign: null,
+      utmContent: null, utmTerm: null, utmId: null,
+      respuestas: { fbclid: "click-123" },
+    }).fbclid).toBe("click-123");
+    expect(utmsDelEnvio({
+      utmSource: null, utmMedium: null, utmCampaign: null,
+      utmContent: null, utmTerm: null, utmId: null,
+      respuestas: { fbclid: "{{fbclid}}" },
+    }).fbclid).toBeNull();
   });
 
   it("desde el 116 el id del anuncio sale de su columna, y respuestas queda para lo anterior", () => {

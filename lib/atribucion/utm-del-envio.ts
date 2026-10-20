@@ -8,6 +8,7 @@ export function esMacro(valor: string | null): boolean {
 }
 
 export interface UtmsDelEnvio {
+  fbclid: string | null;
   source: string | null;
   medium: string | null;
   campaign: string | null;
@@ -54,7 +55,9 @@ export function utmsDelEnvio(fila: {
     return null;
   };
 
+  const fbclid = leer("fbclid");
   return {
+    fbclid: fbclid && !esMacro(fbclid) ? fbclid : null,
     source: fila.utmSource,
     medium: fila.utmMedium,
     campaign: fila.utmCampaign,

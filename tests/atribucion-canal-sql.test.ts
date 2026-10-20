@@ -80,6 +80,7 @@ describe("la atribucion SQL es gemela de resolverCanal", () => {
       campanas: [{ id: "camp-1", nombre: "Campaña" }],
     };
     const utms = {
+      fbclid: null,
       source: "ig",
       medium: "social",
       campaign: null,

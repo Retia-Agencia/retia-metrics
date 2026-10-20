@@ -5,12 +5,13 @@ import { organizacionDelToken, type FetchLike } from "@/lib/calendly/cita";
 import { cuentasVisibles, usuarioDelToken } from "@/lib/pauta/meta-api";
 
 type Fetch = typeof globalThis.fetch;
+export type ConfigIntegracion = Record<string, string | boolean | null>;
 type Definicion = {
   nombre: string;
   campo: string;
   llave: "llaveApi" | "token";
   esquema: z.ZodType<string>;
-  probar: (valor: string, f: Fetch) => Promise<Record<string, string>>;
+  probar: (valor: string, f: Fetch, config?: ConfigIntegracion) => Promise<ConfigIntegracion>;
 };
 
 const valorPegado = (nombre: string) => z.string().trim()
@@ -68,11 +69,26 @@ export const INTEGRACIONES = {
       return { nombre: usuario.nombre };
     },
   },
+  meta_capi: {
+    nombre: "Meta CAPI", campo: "token", llave: "token",
+    esquema: valorPegado("El token de Meta CAPI"),
+    probar: async (valor, f, config) => {
+      const datasetId = z.string().trim().regex(/^\d+$/, "El ID del dataset debe contener solo números.")
+        .parse(config?.datasetId);
+      const cuerpo = await jsonSeguro(await f(`https://graph.facebook.com/v26.0/${datasetId}?fields=id,name`, {
+        headers: { Authorization: `Bearer ${valor}` },
+      }), "Meta CAPI");
+      if (typeof cuerpo.name !== "string" || !cuerpo.name.trim()) {
+        throw new ErrorDeApp("Meta CAPI devolvió una respuesta inválida.", 422);
+      }
+      return { dataset: cuerpo.name };
+    },
+  },
 } satisfies Record<TipoIntegracion, Definicion>;
 
-export async function probarIntegracion(tipo: TipoIntegracion, valor: string, f: Fetch) {
+export async function probarIntegracion(tipo: TipoIntegracion, valor: string, f: Fetch, config?: ConfigIntegracion) {
   try {
-    return await INTEGRACIONES[tipo].probar(valor, f);
+    return await INTEGRACIONES[tipo].probar(valor, f, config);
   } catch {
     throw new ErrorDeApp(`No se pudo probar ${INTEGRACIONES[tipo].nombre}. Revisa el ${INTEGRACIONES[tipo].campo} e inténtalo de nuevo.`, 422);
   }
