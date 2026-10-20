@@ -3,7 +3,7 @@ id: 278
 etapa: plataforma
 serves: "Todas las conexiones de un programa con servicios externos (tokens, llaves de API, secretos de webhook) se ven y se configuran en un solo lugar, y agregar una integración nueva es agregar un tipo, no una pantalla (Mani, 19-oct)"
 depends: []
-status: en curso (en producción el 19-oct, falta checkpoint y paso 2)
+status: en curso (en producción con el paso 2 el 19-oct, falta checkpoint y recorrido visual)
 ---
 
 # 278 — Programa › Integraciones
@@ -67,3 +67,9 @@ Ajustes › Meta incluido. **`meta_capi` no entró**: lo agrega el 281 como un v
 `INTEGRACIONES` (con su migración). Falta: checkpoint verde, recorrido visual de la pestaña y el **paso 2** (otra
 migración que borra `programs.calendly_token`, `programs.calendly_signing_key`, `sources.typeform_token` y
 `meta_conexiones`, cuando producción muestre citas, envíos y gasto entrando).
+
+**Paso 2 hecho el mismo 19-oct (Mani: "borremos ya").** Antes de borrar, los 10 tokens copiados respondieron 200 en su
+proveedor. Se aplicó la 0095 del 280 (Mani lo autorizó) para que la 0096 pudiera ir detrás; se desplegó `66b1a1e`, que ya
+no nombra las columnas, y después se aplicó la **0096**: `meta_conexiones`, `programs.calendly_token`,
+`programs.calendly_signing_key` y `sources.typeform_token` ya no existen. El guardián ahora exige que ni el esquema las
+nombre. Queda el checkpoint verde y el recorrido visual de la pestaña.
