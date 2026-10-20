@@ -116,7 +116,6 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
   it("un closer es rechazado en todas las acciones de programa", async () => {
     auth.mockResolvedValue(sesionCloser);
     const {
-      crearProgramaAccion,
       editarProgramaAccion,
       desactivarProgramaAccion,
       reactivarProgramaAccion,
@@ -127,8 +126,7 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
     } = await acciones();
 
     for (const llamada of [
-      () => crearProgramaAccion(programaValido, "tok"),
-      () => editarProgramaAccion(UUID, programaValido, "tok"),
+      () => editarProgramaAccion(UUID, programaValido),
       () => desactivarProgramaAccion(UUID),
       () => reactivarProgramaAccion(UUID),
       () => activarProgramaDesdeFichaAccion(programId),
@@ -168,39 +166,9 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
 describe("acciones de programas — el gerente administra", () => {
   beforeEach(() => auth.mockResolvedValue(sesionGerente));
 
-  it("crea un programa con Calendly Token y queda INACTIVO: sin fuentes no hay principal (ADR 0068)", async () => {
-    const { crearProgramaAccion } = await acciones();
-    const res = await crearProgramaAccion(programaValido, "token-beta");
-    expect(res.ok).toBe(true);
-    const [creado] = await db.select().from(programs).where(eq(programs.slug, "programa-beta"));
-    expect(creado?.activo).toBe(false);
-    expect(creado?.calendlyToken).toBe("token-beta");
-  });
-
-  it("crear sin Calendly Token es ok:false y el programa NO queda activo", async () => {
-    const { crearProgramaAccion } = await acciones();
-    const res = await crearProgramaAccion({ ...programaValido, slug: "programa-gamma" }, "  ");
-    expect(res.ok).toBe(false);
-    const filas = await db.select().from(programs).where(eq(programs.slug, "programa-gamma"));
-    expect(filas.every((f) => !f.activo)).toBe(true);
-  });
-
-  it("editar con el token vacio conserva el guardado; con valor lo reemplaza", async () => {
-    const { crearProgramaAccion, editarProgramaAccion } = await acciones();
-    await crearProgramaAccion({ ...programaValido, slug: "programa-delta" }, "token-uno");
-    const [p] = await db.select().from(programs).where(eq(programs.slug, "programa-delta"));
-    const entrada = { ...programaValido, slug: "programa-delta", nombre: "Delta" };
-    expect((await editarProgramaAccion(p!.id, entrada, "")).ok).toBe(true);
-    let [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
-    expect(tras?.calendlyToken).toBe("token-uno");
-    expect((await editarProgramaAccion(p!.id, entrada, "token-dos")).ok).toBe(true);
-    [tras] = await db.select().from(programs).where(eq(programs.id, p!.id));
-    expect(tras?.calendlyToken).toBe("token-dos");
-  });
-
   it("un slug invalido devuelve ok:false con mensaje", async () => {
-    const { crearProgramaAccion } = await acciones();
-    const res = await crearProgramaAccion({ ...programaValido, slug: "Con Mayusculas" }, "tok");
+    const { crearProgramaInactivoAccion } = await acciones();
+    const res = await crearProgramaInactivoAccion({ nombre: "Inválido", slug: "Con Mayusculas", ticketUsd: "100" });
     expect(res.ok).toBe(false);
     if (!res.ok) expect(res.error.length).toBeGreaterThan(0);
   });
@@ -215,14 +183,13 @@ describe("acciones de programas — el gerente administra", () => {
     expect(resultado).toEqual({ ok: true, slug: "programa-incompleto" });
     const [creado] = await db.select().from(programs).where(eq(programs.slug, "programa-incompleto"));
     expect(creado.activo).toBe(false);
-    expect(creado.calendlyToken).toBeNull();
   });
 
   it("activar desde la ficha rechaza faltantes y deja el programa inactivo", async () => {
     const { activarProgramaDesdeFichaAccion } = await acciones();
     await db
       .update(programs)
-      .set({ activo: false, calendlyToken: null })
+      .set({ activo: false })
       .where(eq(programs.id, programId));
     const resultado = await activarProgramaDesdeFichaAccion(programId);
     expect(resultado.ok).toBe(false);
@@ -291,7 +258,7 @@ describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094
     const { editarProgramaAccion, editarCohorteAccion, quitarDelProgramaAccion } = await acciones();
     const { editarPlantillaLeadAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-fuentes");
 
-    expect((await editarProgramaAccion(programaAjenoId, { ...programaValido, slug: "programa-ajeno" }, "")).ok).toBe(false);
+    expect((await editarProgramaAccion(programaAjenoId, { ...programaValido, slug: "programa-ajeno" })).ok).toBe(false);
     expect((await editarCohorteAccion("slug-forjado", cohorte.id, { ...cohorteValida, programId: programaAjenoId, codigo: "CAMBIO", estado: "futuro" })).ok).toBe(false);
     expect((await quitarDelProgramaAccion({ userId: miembro.id, programId: programaAjenoId })).ok).toBe(false);
     expect((await editarPlantillaLeadAccion(programaAjenoId, { correo: "Email forjado" })).ok).toBe(false);

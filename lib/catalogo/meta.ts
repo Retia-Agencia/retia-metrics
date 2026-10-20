@@ -1,23 +1,18 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {
-  changeLog,
   cuentasPublicitarias,
-  metaConexiones,
   programs,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { cuentasVisibles, usuarioDelToken, type CuentaVisibleMeta } from "@/lib/pauta/meta-api";
+import { cuentasVisibles, type CuentaVisibleMeta } from "@/lib/pauta/meta-api";
+import { tokenMeta } from "@/lib/integraciones";
 import { moldeDeCatalogo } from "./molde";
 
 type FetchMeta = typeof globalThis.fetch;
 
-/** Valor auditable que confirma el cambio sin copiar el secreto. */
-export const TOKEN_OCULTO = "(oculto)";
-
-const esquemaTokenMeta = z.string().trim().min(1, "El token de Meta es obligatorio.");
 const esquemaIdMeta = z.string().trim().min(1, "La cuenta de Meta es obligatoria.");
 
 const esquemaCuenta = z.object({
@@ -42,111 +37,13 @@ function catalogoCuentas(db: Db, mensajeDuplicado = "Esa cuenta de Meta ya está
   );
 }
 
-/** Único lector del secreto: ninguna función pública puede devolverlo. */
-async function tokenActivo(db: Db): Promise<string> {
-  const [conexion] = await db
-    .select({ token: metaConexiones.tokenSecreto })
-    .from(metaConexiones)
-    .where(eq(metaConexiones.activo, true));
-  if (!conexion) throw new ErrorDeApp("Primero conecta Meta en Ajustes.", 422);
-  return conexion.token;
-}
-
-/** Lector deliberadamente estrecho para los dos disparadores de la sincronización. */
-export async function tokenActivoMeta(db: Db): Promise<string> {
-  return tokenActivo(db);
-}
-
-/** Prueba el token antes de tocar la base y conserva una única conexión activa. */
-export async function guardarTokenMeta(
-  db: Db,
-  actorId: string,
-  token: string,
-  f: FetchMeta = globalThis.fetch,
-): Promise<{ nombre: string; cuentasVisibles: number }> {
-  return normalizando(async () => {
-    const valor = esquemaTokenMeta.parse(token);
-    const [usuario, cuentas] = await Promise.all([
-      usuarioDelToken(valor, f),
-      cuentasVisibles(valor, f),
-    ]);
-
-    await db.transaction(async (tx) => {
-      const [actual] = await tx
-        .select({ id: metaConexiones.id })
-        .from(metaConexiones)
-        .where(eq(metaConexiones.activo, true));
-      const registroId = actual?.id ?? crypto.randomUUID();
-      if (actual) {
-        await tx
-          .update(metaConexiones)
-          .set({ tokenSecreto: valor, nombre: usuario.nombre })
-          .where(eq(metaConexiones.id, actual.id));
-      } else {
-        await tx.insert(metaConexiones).values({
-          id: registroId,
-          tokenSecreto: valor,
-          nombre: usuario.nombre,
-        });
-      }
-      await tx.insert(changeLog).values({
-        tabla: "meta_conexiones",
-        registroId,
-        etiqueta: usuario.nombre,
-        campo: "token_secreto",
-        valorAnterior: actual ? TOKEN_OCULTO : null,
-        valorNuevo: TOKEN_OCULTO,
-        origen: "app",
-        userId: actorId,
-      });
-    });
-
-    return { nombre: usuario.nombre, cuentasVisibles: cuentas.length };
-  });
-}
-
-export type EstadoConexionMeta =
-  | { conectada: false }
-  | { conectada: true; nombre: string; desde: Date };
-
-/** Estado seguro para la pantalla: selecciona sólo columnas no secretas. */
-export async function estadoConexionMeta(db: Db): Promise<EstadoConexionMeta> {
-  const [conexion] = await db
-    .select({
-      id: metaConexiones.id,
-      nombre: metaConexiones.nombre,
-      creadaEn: metaConexiones.createdAt,
-    })
-    .from(metaConexiones)
-    .where(eq(metaConexiones.activo, true));
-  if (!conexion) return { conectada: false };
-
-  const [cambioDelToken] = await db
-    .select({ desde: changeLog.detectadoEn })
-    .from(changeLog)
-    .where(
-      and(
-        eq(changeLog.tabla, "meta_conexiones"),
-        eq(changeLog.registroId, conexion.id),
-        eq(changeLog.campo, "token_secreto"),
-      ),
-    )
-    .orderBy(desc(changeLog.detectadoEn))
-    .limit(1);
-
-  return {
-    conectada: true,
-    nombre: conexion.nombre,
-    desde: cambioDelToken?.desde ?? conexion.creadaEn,
-  };
-}
-
 /** Cuentas que Meta muestra y que todavía no pertenecen a ningún programa. */
 export async function cuentasDisponibles(
   db: Db,
+  programId: string,
   f: FetchMeta = globalThis.fetch,
 ): Promise<CuentaVisibleMeta[]> {
-  const visibles = await cuentasVisibles(await tokenActivo(db), f);
+  const visibles = await cuentasVisibles(await tokenMeta(db, programId), f);
   const vinculadas = await db.select({ idMeta: cuentasPublicitarias.idMeta }).from(cuentasPublicitarias);
   const ids = new Set(vinculadas.map((cuenta) => cuenta.idMeta));
   return visibles.filter((cuenta) => !ids.has(cuenta.idMeta));
@@ -171,7 +68,7 @@ export async function vincularCuenta(
 ): Promise<void> {
   return normalizando(async () => {
     const cuentaId = esquemaIdMeta.parse(idMeta);
-    const token = await tokenActivo(db);
+    const token = await tokenMeta(db, programaId);
     const cuenta = (await cuentasVisibles(token, f)).find((visible) => visible.idMeta === cuentaId);
     if (!cuenta) throw new ErrorDeApp("Esa cuenta no la ve el token de Meta.", 422);
 
@@ -249,34 +146,6 @@ export async function cuentasDelPrograma(db: Db, programaId: string): Promise<Cu
     .from(cuentasPublicitarias)
     .where(and(eq(cuentasPublicitarias.programId, programaId)))
     .orderBy(asc(cuentasPublicitarias.nombre));
-  return filas.map((fila) => ({
-    ...fila,
-    zonaDistintaDeBogota: fila.zonaHoraria !== "America/Bogota",
-  }));
-}
-
-export interface CuentaVinculada extends CuentaDelPrograma {
-  programId: string;
-  programa: string;
-}
-
-/** Inventario seguro para Ajustes: agrupa por programa sin leer la conexión ni su token. */
-export async function cuentasVinculadas(db: Db): Promise<CuentaVinculada[]> {
-  const filas = await db
-    .select({
-      id: cuentasPublicitarias.id,
-      idMeta: cuentasPublicitarias.idMeta,
-      nombre: cuentasPublicitarias.nombre,
-      moneda: cuentasPublicitarias.moneda,
-      zonaHoraria: cuentasPublicitarias.zonaHoraria,
-      activo: cuentasPublicitarias.activo,
-      programId: programs.id,
-      programa: programs.nombre,
-    })
-    .from(cuentasPublicitarias)
-    .innerJoin(programs, eq(programs.id, cuentasPublicitarias.programId))
-    .orderBy(asc(programs.nombre), asc(cuentasPublicitarias.nombre));
-
   return filas.map((fila) => ({
     ...fila,
     zonaDistintaDeBogota: fila.zonaHoraria !== "America/Bogota",

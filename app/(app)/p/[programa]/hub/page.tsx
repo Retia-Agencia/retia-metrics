@@ -45,7 +45,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 import { pautaSincronizaciones } from "@/lib/db/schema";
-import { tokenActivoMeta } from "@/lib/catalogo/meta";
+import { tokensMeta } from "@/lib/integraciones";
 import {
   debeSincronizarDesdeElHub,
   sincronizarDiaEnCurso,
@@ -322,7 +322,7 @@ async function SeccionPauta({
     after(async () => {
       try {
         const resultado = await sincronizarDiaEnCurso(db, {
-          token: await tokenActivoMeta(db),
+          tokens: await tokensMeta(db),
           ahora,
           disparadaPor: "hub",
         });

@@ -57,7 +57,7 @@ export function CuentasDelPrograma({
     <div className="space-y-4">
       {!conectada ? (
         <p className="text-sm text-muted-foreground">
-          Primero conecta Meta en Ajustes para ver las cuentas disponibles.
+          Primero conecta Meta en Integraciones para ver las cuentas disponibles.
         </p>
       ) : null}
 
@@ -125,7 +125,7 @@ export function CuentasDelPrograma({
 
       {puedeEditar && conectada && errorDeConsulta ? (
         <p className="text-sm text-muted-foreground">
-          No se pudo consultar Meta: {errorDeConsulta}. Revisa la conexión en Ajustes &gt; Meta.
+          No se pudo consultar Meta: {errorDeConsulta}. Revisa la conexión de este programa.
         </p>
       ) : puedeEditar && conectada ? (
         disponibles.length > 0 ? (

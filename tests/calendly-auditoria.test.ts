@@ -7,6 +7,7 @@ import type { FetchLike } from "@/lib/calendly/cita";
 import { huellaDeCita } from "@/lib/calendly/colgar-llamada";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const AHORA = new Date("2026-10-15T17:00:00.000Z");
 const ORG = "https://api.calendly.com/organizations/ORG1";
@@ -101,11 +102,11 @@ describe("auditarCalendly", () => {
         slug: "auditoria",
         nombre: "Auditoría",
         ticketUsd: "1500",
-        calendlyToken: "token",
         activo: false,
       })
       .returning();
     programId = programa.id;
+    await sembrarIntegracion(db, programId, "calendly", { token: "token" });
     const [actor] = await db
       .insert(users)
       .values({ email: "gerente-auditoria@retia.co", rol: "gerente" })
@@ -251,7 +252,6 @@ describe("auditarCalendly", () => {
         slug: "sin-token",
         nombre: "Sin token",
         ticketUsd: "100",
-        calendlyToken: null,
         activo: false,
       })
       .returning();
@@ -274,7 +274,6 @@ describe("auditarCalendly", () => {
         slug: "otro",
         nombre: "Otro",
         ticketUsd: "100",
-        calendlyToken: "token-otro",
         activo: false,
       })
       .returning();

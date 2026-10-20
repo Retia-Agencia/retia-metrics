@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/auth/guards", () => ({
   respuestaDeError: () => Response.json({ error: "Error interno." }, { status: 500 }),
 }));
-vi.mock("@/lib/catalogo/meta", () => ({ tokenActivoMeta: vi.fn().mockResolvedValue("token") }));
+vi.mock("@/lib/integraciones", () => ({ tokensMeta: vi.fn().mockResolvedValue(new Map([["programa", "token"]])) }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/format", () => ({ hoyEnBogota: () => "2026-10-14" }));
 vi.mock("@/lib/pauta/sincronizar", () => ({

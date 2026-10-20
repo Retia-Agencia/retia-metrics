@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { desc } from "drizzle-orm";
 import { reportesActivos } from "@/lib/catalogo/reportes-whatsapp";
-import { tokenActivoMeta } from "@/lib/catalogo/meta";
+import { tokensMeta } from "@/lib/integraciones";
 import { db } from "@/lib/db";
 import { fotosPauta } from "@/lib/db/schema";
 import { diaCalendarioAnterior } from "@/lib/dias-habiles";
@@ -57,7 +57,7 @@ export async function POST(request: Request) {
     let estado: NonNullable<RespuestaSemaforo["sincronizacion"]>["estado"] = "error";
     try {
       const resultado = await sincronizarDiaEnCurso(db, {
-        token: await tokenActivoMeta(db),
+        tokens: await tokensMeta(db),
         ahora,
         disparadaPor: "endpoint",
       });
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const aviso = `No se pudo releer el ${dia} en Meta; cifras del último cron.`;
     try {
       const resultado = await sincronizarPautaEnVentana(db, {
-        token: await tokenActivoMeta(db),
+        tokens: await tokensMeta(db),
         desde: dia,
         hasta: dia,
         disparadaPor: "endpoint",
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   if (pendientes.length > 0) {
     try {
       cuentasMetaPorPrograma = await saludDeCuentasMeta(db, {
-        token: await tokenActivoMeta(db),
+        tokens: await tokensMeta(db),
         programIds: pendientes.map((pendiente) => pendiente.programId),
       });
     } catch {

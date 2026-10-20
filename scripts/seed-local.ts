@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { existsSync, readFileSync } from "node:fs";
 import { parse } from "dotenv";
 import { db } from "../lib/db";
-import { deals, etapaDealEnum, leads, programs, submissions, users } from "../lib/db/schema";
+import { deals, etapaDealEnum, integraciones, leads, programs, submissions, users } from "../lib/db/schema";
 import type { PendienteDeal } from "../lib/deals/etapas";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
@@ -10,7 +10,6 @@ import {
   crearPrograma,
   editarPlantillaLead,
   editarPrograma,
-  guardarTokenCalendly,
   reactivarPrograma,
 } from "../lib/catalogo/programas";
 import { PLANTILLA_LEAD_BASE } from "./plantilla-lead-base";
@@ -599,12 +598,11 @@ export async function sembrarLocal(): Promise<void> {
     slug: "comunicarte-local",
     ticketUsd: "797.00",
   });
-  await guardarTokenCalendly(
-    db,
-    actorId,
-    p1.id,
-    patLocal("CALENDLY_PAT_LOCAL_COMUNICARTE") ?? "calendly-token-local-comunicarte",
-  );
+  await db.insert(integraciones).values({
+    programId: p1.id, tipo: "calendly",
+    secretos: { token: patLocal("CALENDLY_PAT_LOCAL_COMUNICARTE") ?? "calendly-token-local-comunicarte" },
+    config: {}, actualizadaPorUserId: actorId,
+  });
   // Se activan despues de tener fuente principal (paso 7): la reja la exige (ADR 0068).
   let prog1 = p1;
 
@@ -613,12 +611,11 @@ export async function sembrarLocal(): Promise<void> {
     slug: "tactical-local",
     ticketUsd: "1500.00",
   });
-  await guardarTokenCalendly(
-    db,
-    actorId,
-    p2.id,
-    patLocal("CALENDLY_PAT_LOCAL_TACTICAL") ?? "calendly-token-local-tactical",
-  );
+  await db.insert(integraciones).values({
+    programId: p2.id, tipo: "calendly",
+    secretos: { token: patLocal("CALENDLY_PAT_LOCAL_TACTICAL") ?? "calendly-token-local-tactical" },
+    config: {}, actualizadaPorUserId: actorId,
+  });
   let prog2 = p2;
 
   // 5b. Estados de llegada y plantilla de lead (ticket 117): sin ellos ningun envio abre

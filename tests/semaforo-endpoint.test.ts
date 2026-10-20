@@ -1,7 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cuentasPublicitarias,
-  metaConexiones,
   pautaObjetos,
   pautaSincronizaciones,
   programs,
@@ -12,6 +11,7 @@ import { esquemaRespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
 import * as semaforo from "@/lib/semaforo/semaforo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const holder: { db: Db | null } = { db: null };
 vi.mock("@/lib/db", () => ({
@@ -41,7 +41,6 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(AHORA);
   process.env.SEMAFORO_SECRETO = SECRETO;
-  await db.insert(metaConexiones).values({ nombre: "Retia", tokenSecreto: "token-meta" });
   globalThis.fetch = vi.fn(async (entrada: string | URL | Request) => {
     const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
     const cuenta = /\/act_([^/]+)\/insights$/.exec(url.pathname)?.[1];
@@ -86,6 +85,7 @@ async function crearPrograma(
     nombre: `Programa ${slug}`,
     ticketUsd: "1000",
   }).returning();
+  await sembrarIntegracion(db, programa.id, "meta", { token: "token-meta" }, { nombre: "Retia" });
   await db.insert(reportesWhatsapp).values({
     programId: programa.id,
     activo: true,

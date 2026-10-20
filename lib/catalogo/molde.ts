@@ -80,6 +80,8 @@ export interface OpcionesMolde<Entrada extends Record<string, unknown>> {
    * cuenta nada y siempre borra. Se declara aca, junto al catalogo, no en el molde.
    */
   dependientes?: readonly Dependiente[];
+  /** Proyección segura cuando la tabla contiene columnas que el catálogo no debe leer. */
+  columnas?: Record<string, unknown>;
 }
 
 export interface Catalogo<Entrada extends Record<string, unknown>> {
@@ -110,6 +112,7 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
   db: Db = dbDeLaApp,
 ): Catalogo<Entrada> {
   const { tabla, nombreTabla, esquema, etiqueta, nombreEntidad, dependientes } = opciones;
+  const seleccion = opciones.columnas;
 
   // La tabla es generica; internamente sacamos de ella las columnas id y activo
   // para construir where/update sin conocer la entidad.
@@ -119,7 +122,7 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
 
   async function leerFila(id: string): Promise<FilaCatalogo | undefined> {
     const filas = await db
-      .select()
+      .select(seleccion as never)
       .from(tabla as never)
       .where(eq(idCol, id));
     return filas[0] as FilaCatalogo | undefined;
@@ -129,7 +132,7 @@ export function moldeDeCatalogo<Entrada extends Record<string, unknown>>(
 
   return {
     async listar(opcionesListar) {
-      const query = db.select().from(tabla as never);
+      const query = db.select(seleccion as never).from(tabla as never);
       const filas = opcionesListar?.soloActivos
         ? await query.where(eq(activoCol, true as never))
         : await query;

@@ -7,7 +7,6 @@ import vacios from "./fixtures/meta/insights-vacios.json";
 import {
   cuentasPublicitarias,
   gastoPauta,
-  metaConexiones,
   pautaObjetos,
   pautaSincronizaciones,
   programs,
@@ -16,6 +15,7 @@ import type { Db } from "@/lib/db/tipos";
 import { MINUTOS_PARA_CORRIDA_CORTADA, sincronizarPauta } from "@/lib/pauta/sincronizar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const TOKEN = "token-super-secreto";
 let db: Db;
@@ -69,7 +69,7 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA, slug: "programa-pauta", nombre: "Programa pauta", ticketUsd: "1000",
   }).returning();
   programId = programa.id;
-  await db.insert(metaConexiones).values({ nombre: "Retia", tokenSecreto: TOKEN });
+  await sembrarIntegracion(db, programId, "meta", { token: TOKEN }, { nombre: "Retia" });
   await db.insert(cuentasPublicitarias).values({
     idMeta: "123", programId, nombre: "Cuenta", moneda: "COP", zonaHoraria: "America/Bogota",
   });
@@ -79,8 +79,8 @@ afterAll(async () => cerrar());
 
 describe("sincronización de pauta", () => {
   it("es idempotente y una corrección de Meta actualiza el día", async () => {
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta() });
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(ajustados) });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta() });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(ajustados) });
     const gastos = await db.select().from(gastoPauta);
     expect(gastos).toHaveLength(1);
     expect(gastos[0]).toMatchObject({ monto: "135.25", agendasMeta: 4, programId });
@@ -88,8 +88,8 @@ describe("sincronización de pauta", () => {
 
   it("una segunda corrida sin cambios conserva el formato y no vuelve a pedir el creativo", async () => {
     const f = fetchMeta();
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f });
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f });
     const llamadasCreativo = f.mock.calls.filter(([entrada]) =>
       new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.has("filtering"));
     expect(llamadasCreativo).toHaveLength(1);
@@ -100,10 +100,10 @@ describe("sincronización de pauta", () => {
 
   it("vuelve a pedir el creativo de un anuncio cuyo updated_time avanzó", async () => {
     await sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(),
     });
     const f = fetchMeta(insights, { actualizadoEn: "2099-10-14T12:00:00-05:00" });
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f });
     expect(f.mock.calls.filter(([entrada]) =>
       new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.has("filtering")))
       .toHaveLength(1);
@@ -117,8 +117,9 @@ describe("sincronización de pauta", () => {
       idMeta: "456", programId: otroPrograma.id, nombre: "Cuenta sana", moneda: "COP",
       zonaHoraria: "America/Bogota",
     });
+    await sembrarIntegracion(db, otroPrograma.id, "meta", { token: TOKEN }, { nombre: "Retia" });
     const resumen = await sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron",
+      tokens: new Map([[programId, TOKEN], [otroPrograma.id, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron",
       f: fetchMeta(insights, { fallarCuenta: "123" }),
     });
     expect(resumen).toMatchObject({ estado: "error", filas: 1, omitidas: 1 });
@@ -146,7 +147,7 @@ describe("sincronización de pauta", () => {
       estado: "ACTIVE",
     });
     const resumen = await sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
     });
     expect(resumen).toMatchObject({ estado: "ok", filas: 1, omitidas: 1 });
     const [externo] = await db.select().from(pautaObjetos)
@@ -161,14 +162,14 @@ describe("sincronización de pauta", () => {
       disparadaPor: "manual", desde: "2026-10-08", hasta: "2026-10-14",
     });
     await expect(sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
     })).rejects.toMatchObject({ status: 409, message: "Ya hay una sincronización corriendo." });
   });
 
   it("deja la corrida en error sin guardar el token", async () => {
     const f = vi.fn(async () => Response.json({ error: { message: `token malo ${TOKEN}` } }, { status: 400 })) as typeof globalThis.fetch;
     const resumen = await sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron", f,
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron", f,
     });
     expect(resumen.estado).toBe("error");
     const [corrida] = await db.select().from(pautaSincronizaciones);
@@ -183,7 +184,7 @@ describe("sincronización de pauta", () => {
       disparadaPor: "manual", desde: "2026-10-08", hasta: "2026-10-14", inicio: viejo,
     });
     const resumen = await sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
     });
     expect(resumen).toMatchObject({ estado: "ok", filas: 1 });
     const colgada = await db.select().from(pautaSincronizaciones)
@@ -201,14 +202,14 @@ describe("sincronización de pauta", () => {
       inicio: new Date(Date.now() - 1 * 60_000),
     });
     await expect(sincronizarPauta(db, {
-      token: TOKEN, hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron", f: fetchMeta(),
     })).rejects.toMatchObject({ status: 409, message: "Ya hay una sincronización corriendo." });
     expect(MINUTOS_PARA_CORRIDA_CORTADA).toBe(15);
   });
 
   it("corrige a cero un día que Meta deja de reportar", async () => {
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta() });
-    await sincronizarPauta(db, { token: TOKEN, hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(vacios) });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta() });
+    await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(vacios) });
     const gastos = await db.select().from(gastoPauta);
     expect(gastos).toHaveLength(1);
     expect(gastos[0]).toMatchObject({ monto: "0.00", agendasMeta: null, programId });

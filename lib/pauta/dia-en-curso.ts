@@ -8,6 +8,7 @@ import {
   sincronizarPautaEnVentana,
   type FetchMeta,
 } from "./sincronizar";
+import type { TokensMeta } from "@/lib/integraciones";
 
 export const MINUTOS_ENTRE_FOTOS = 20;
 const DIAS_DE_FOTOS = 30;
@@ -41,7 +42,7 @@ function centavos(monto: string): number {
 
 export async function sincronizarDiaEnCurso(
   db: Db,
-  args: { token: string; ahora: Date; disparadaPor: "endpoint" | "hub"; f?: FetchMeta },
+  args: { tokens: TokensMeta; ahora: Date; disparadaPor: "endpoint" | "hub"; f?: FetchMeta },
 ): Promise<ResultadoSincronizacionDiaEnCurso> {
   try {
     const [ultima] = await db.select({ tomadaEn: fotosPauta.tomadaEn })
@@ -59,7 +60,7 @@ export async function sincronizarDiaEnCurso(
     let sincronizacion;
     try {
       sincronizacion = await sincronizarPautaEnVentana(db, {
-        token: args.token,
+        tokens: args.tokens,
         desde: hoy,
         hasta: hoy,
         disparadaPor: args.disparadaPor,
@@ -151,7 +152,7 @@ export async function sincronizarDiaEnCurso(
     });
     return { estado: "ok", ...resultado };
   } catch (error) {
-    return { estado: "error", error: mensajeSeguroDePauta(error, args.token) };
+    return { estado: "error", error: mensajeSeguroDePauta(error, args.tokens) };
   }
 }
 

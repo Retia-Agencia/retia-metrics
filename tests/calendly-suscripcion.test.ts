@@ -1,16 +1,14 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
-import { changeLog, programs, users } from "@/lib/db/schema";
+import { and, eq } from "drizzle-orm";
+import { changeLog, integraciones, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { conectarCalendly, type FetchConCuerpo } from "@/lib/calendly/suscripcion";
 import { listarProgramas } from "@/lib/catalogo/programas";
-import { archivos, sinComentarios } from "./helpers/codigo-fuente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
+import { claveFirmaCalendly, guardarClaveFirmaCalendly } from "@/lib/integraciones";
 
 /**
  * "Conectar Calendly" (ticket 096, A5): crea la suscripcion por la API con el token del
@@ -49,8 +47,7 @@ function calendlySimulado(opciones: { existentes?: { uri: string; callback_url: 
   return { fetch, pedidos };
 }
 
-const clave = async () =>
-  (await db.select({ k: programs.calendlySigningKey }).from(programs).where(eq(programs.id, programId)))[0].k;
+const clave = () => claveFirmaCalendly(db, programId);
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -65,6 +62,7 @@ beforeEach(async () => {
   programId = p.id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
+  await sembrarIntegracion(db, programId, "calendly", { token: "token-de-prueba" });
 });
 
 afterAll(async () => {
@@ -93,13 +91,12 @@ describe("conectarCalendly", () => {
     const { fetch } = calendlySimulado();
     await conectarCalendly(db, gerente, programId, { urlBase: BASE_URL, fetch });
     const guardada = (await clave())!;
-    const rastro = await db.select().from(changeLog).where(eq(changeLog.campo, "calendly_signing_key"));
+    const rastro = await db.select().from(changeLog).where(eq(changeLog.campo, "secretos.claveFirma"));
     expect(rastro).toHaveLength(1);
     expect(JSON.stringify(rastro)).not.toContain(guardada);
 
     const [vista] = await listarProgramas(db);
     expect(vista.webhookCalendlyConectado).toBe(true);
-    expect("calendlySigningKey" in vista).toBe(false);
     expect(JSON.stringify(vista)).not.toContain(guardada);
   });
 
@@ -111,7 +108,7 @@ describe("conectarCalendly", () => {
         { uri: "https://api.calendly.com/webhook_subscriptions/AJENA", callback_url: "https://otra.app/hook" },
       ],
     });
-    await db.update(programs).set({ calendlySigningKey: "vieja" }).where(eq(programs.id, programId));
+    await guardarClaveFirmaCalendly(db, gerente, programId, "vieja");
     await conectarCalendly(db, gerente, programId, { urlBase: BASE_URL, fetch });
     expect(pedidos.filter((p) => p.method === "DELETE").map((p) => p.url)).toEqual([
       "https://api.calendly.com/webhook_subscriptions/MIA",
@@ -125,7 +122,7 @@ describe("conectarCalendly", () => {
       status: 422,
     });
     await expect(conectarCalendly(db, gerente, programId, { urlBase: undefined, fetch })).rejects.toBeInstanceOf(ErrorDeApp);
-    await db.update(programs).set({ activo: false, calendlyToken: null }).where(eq(programs.id, programId));
+    await db.delete(integraciones).where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, "calendly")));
     await expect(conectarCalendly(db, gerente, programId, { urlBase: BASE_URL, fetch })).rejects.toMatchObject({
       status: 422,
     });
@@ -139,29 +136,5 @@ describe("conectarCalendly", () => {
     expect(error.status).toBe(502);
     expect(error.message).toMatch(/Standard/);
     expect(await clave()).toBeNull();
-  });
-});
-
-describe("guardian: solo `conectarCalendly` escribe la clave de firma", () => {
-  const RAIZ = fileURLToPath(new URL("../", import.meta.url));
-  const ESCRITOR = path.join("lib", "calendly", "suscripcion.ts");
-  const escribe = (texto: string) => /calendlySigningKey\s*:/.test(sinComentarios(texto));
-
-  it("ningun otro archivo de lib/, app/, components/ o scripts/ la asigna", () => {
-    const culpables = ["lib", "app", "components", "scripts"]
-      .flatMap((d) => archivos(path.join(RAIZ, d)))
-      .map((f) => path.relative(RAIZ, f))
-      .filter((f) => f !== ESCRITOR && f !== path.join("lib", "db", "schema.ts"))
-      // Excepción nombrada (ticket 169): `simular:cita` solo corre contra la base local
-      // (`validarUrlLocal`) y le pone una clave de prueba al programa local que no la tiene.
-      .filter((f) => f !== path.join("scripts", "simular-cita.ts"))
-      .filter((f) => escribe(fs.readFileSync(path.join(RAIZ, f), "utf8")));
-    expect(culpables).toEqual([]);
-  });
-
-  it("muerde en los dos sentidos", () => {
-    expect(escribe(fs.readFileSync(path.join(RAIZ, ESCRITOR), "utf8"))).toBe(true);
-    expect(escribe(`db.update(programs).set({ calendlySigningKey: "x" })`)).toBe(true);
-    expect(escribe(`const { calendlySigningKey, ...resto } = fila;`)).toBe(false);
   });
 });

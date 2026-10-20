@@ -287,17 +287,13 @@ export const programs = pgTable(
     /** Calendly del programa, para cruzar agendamientos. Editable desde la tab Programa (ticket 014). */
     calendlyUrl: text("calendly_url"),
     /**
-     * Token de Calendly de la organizacion del programa (ADR 0057): con el se lee la fecha
-     * de una cita. Segunda excepcion nombrada a "secretos solo en .env.local y Vercel": lo
-     * escribe SOLO `guardarTokenCalendly`, nunca pasa por el molde ni por `change_log`, y
-     * ninguna lectura del catalogo lo devuelve. Nula hasta que Mani lo cargue.
+     * Columna heredada del token de Calendly. Se conserva hasta la migración de limpieza;
+     * el código ya usa exclusivamente la fila `calendly` de `integraciones`.
      */
     calendlyToken: text("calendly_token"),
     /**
-     * La clave con la que Calendly FIRMA los eventos del webhook de este programa (ticket 096,
-     * A5): cada suscripcion tiene la suya. Tercera excepcion nombrada a "secretos solo en
-     * .env.local y Vercel", con las reglas del token: la escribe una sola funcion, nunca pasa
-     * por el molde ni por `change_log`, y ninguna lectura del catalogo la devuelve.
+     * Columna heredada de la clave de firma de Calendly. Se conserva hasta la migración de
+     * limpieza; el código ya usa exclusivamente `integraciones`.
      */
     calendlySigningKey: text("calendly_signing_key"),
     /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
@@ -462,11 +458,8 @@ export const sources = pgTable(
      */
     secretoWebhook: text("secreto_webhook"),
     /**
-     * El token de la API de Typeform con el que se lee el Insights del formulario (ticket
-     * 126 parte B, decision de Mani del 29-sep). Por fuente y no por programa: el token es
-     * de la CUENTA de Typeform, y dos fuentes de un programa pueden vivir en cuentas
-     * distintas. Mismas reglas que el secreto del webhook: nunca pasa por el molde ni por
-     * `change_log`, ninguna lectura lo devuelve, y lo escribe solo `guardarTokenTypeform`.
+     * Columna heredada del token de Typeform. Se conserva hasta la migración de limpieza;
+     * el token único del programa ya vive en `integraciones`.
      */
     typeformToken: text("typeform_token"),
     /**
@@ -1806,8 +1799,8 @@ export const integraciones = pgTable(
  * de los portafolios de los clientes, asi que UN token lee las cuentas de todos los
  * programas: la base admite una sola conexion activa (indice unico parcial, ADR 0005).
  *
- * El token sigue las reglas del ADR 0057: lo escribe SOLO `guardarTokenMeta`, nunca
- * pasa por el molde ni por `change_log`, y ninguna lectura lo devuelve.
+ * Tabla heredada: se conserva hasta una migración posterior, pero el código ya no la
+ * consulta. Meta es por programa y sus tokens viven en `integraciones`.
  *
  * ponytail: si un cliente algun dia no comparte sus cuentas con el portafolio de Retia,
  * se quita el indice de una activa y `cuentas_publicitarias` gana la FK a su conexion.
@@ -2142,6 +2135,7 @@ export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;
 export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
 export type MetaConexion = typeof metaConexiones.$inferSelect;
+export type TipoIntegracion = (typeof tipoIntegracionEnum.enumValues)[number];
 export type CuentaPublicitaria = typeof cuentasPublicitarias.$inferSelect;
 export type PautaObjeto = typeof pautaObjetos.$inferSelect;
 export type NuevoPautaObjeto = typeof pautaObjetos.$inferInsert;
