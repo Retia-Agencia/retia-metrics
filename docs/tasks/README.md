@@ -220,7 +220,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 278 | [Programa › Integraciones](./278-integraciones-por-programa.md) | · | en curso · ADR 0095 · en producción el 19-oct (0094 aplicada, fases A y B juntas, sin `meta_capi`); falta checkpoint, recorrido visual y paso 2 (borrar columnas viejas) |
 | [ ] | 279 | [El pixel de Meta del form de Dapta, desde la fuente](./279-pixel-de-meta-del-form-de-dapta.md) | 278 | todo · 19-oct · decidido: el CRM escribe en Dapta, la llave en Integraciones, solo el pixel |
 | [ ] | 280 | [El CRM agenda, reagenda y cancela en Calendly](./280-el-crm-agenda-en-calendly.md) | · | todo · 19-oct · ADR 0096 · spike primero: reservar con el token del owner en el evento de otro miembro (escribe, pide ok) |
-| [ ] | 281 | [La venta vuelve a Meta (API de Conversiones)](./281-la-venta-vuelve-a-meta.md) | 278 (fase A) | todo · 19-oct · ADR 0097 · **prioridad de Pauta**; operación: seat y token en cada portafolio cliente |
+| [ ] | 281 | [La venta vuelve a Meta (API de Conversiones)](./281-la-venta-vuelve-a-meta.md) | 278 | todo · 19-oct · ADR 0097 · migración (`meta_capi` en el enum) · **prioridad de Pauta**; operación: seat y token en cada portafolio cliente |
 | [ ] | 282 | [El fbclid del formulario llega al envío](./282-el-fbclid-del-formulario-llega-al-envio.md) | · | todo · 19-oct · editar formularios pide el ok de Mani |
 | [ ] | 283 | [Schedule y Atendido vuelven a Meta](./283-schedule-y-atendido-vuelven-a-meta.md) | 281 | todo · 19-oct · revisar antes si el pixel ya manda Schedule |
 | [ ] | 284 | [La librería de anuncios](./284-la-libreria-de-anuncios.md) | 120, 262, 125 | todo · 19-oct · lista de Anderson |

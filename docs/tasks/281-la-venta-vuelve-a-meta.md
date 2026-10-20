@@ -30,8 +30,9 @@ formulario. Decisiones en el ADR 0097.
 
 ## Alcance
 
-- **Integración `meta_capi`** en el registro de `lib/integraciones/` (278 fase A): secreto `token`, config `dataset_id`
-  y `encendido`; `probar()` manda un evento de prueba.
+- **Integración `meta_capi`**: el 278 ya está en producción sin ella. El 281 agrega el valor `meta_capi` al enum
+  `integraciones.tipo` (migración, la aplica la sesión principal) y su entrada en `INTEGRACIONES`: secreto `token`,
+  config `dataset_id` y `encendido`; `probar()` manda un evento de prueba.
 - **Tabla `eventos_meta`** (la bandeja de salida): deal, programa, evento (`purchase` hoy), `event_id`, `event_time`,
   valor y moneda, estado (`pendiente`, `enviado`, `fallido`, `vencido`, `omitido`), intentos, último error,
   `enviado_en`, y la marca de anulado después del envío. Índice único `(deal_id, evento)`: una sola vez por deal.
