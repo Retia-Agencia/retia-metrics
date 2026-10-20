@@ -464,6 +464,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 **El origen**
 
 - **Área:** Gerencial, Comercial, Pauta o Media. Agrupa leads por su origen. No es un rol.
+- **Dataset:** donde Meta recibe los eventos de un programa (antes "pixel"; en el portafolio aparece en Conjuntos de
+  datos). Le llegan el `Lead` del formulario y las ventas que manda el CRM. Uno por programa.
+- **Venta devuelta a Meta:** el `Purchase` que el CRM manda al dataset del programa la primera vez que un deal entra a
+  Abonado o Completo, con su valor vendido (ADR 0097). Meta decide a qué anuncio la atribuye; *no confundir con la
+  atribución del CRM, que sale del UTM.*
 - **Canal:** la plataforma de donde vino un envío: la primera palabra de su `utm_source` (`instagram rosario` =
   Instagram, cuenta Rosario). Se define solo; el área sale de una regla sobre el `utm_medium` y los ids de Meta (ADR
   0087, se construye en el 246). *Evitar: "origen" a secas.*

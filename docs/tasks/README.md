@@ -109,6 +109,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 201 | [Novedades de Deals y Calendly para el closer](./201-novedades-de-deals-y-calendly.md) | 183, 096, 157 | done · `cp-20261006-1` · 6-oct · 0072 aplicada en producción; CI verde (`76c921c`) |
 | [x] | 275 | [Export CSV de los links de Grain](./275-export-csv-de-grain.md) | 098 | done · 16-oct · `d401229`, CI verde en `3b0795f` · recorrido local: gerente baja 6 de 6 con Grain (BOM, 404 a programa inexistente), closer solo lo suyo e ignora `?closer=` ajeno, filtros de fecha iguales a la lista; consola y servidor limpios |
 | [x] | 277 | [Calls: fecha por llamada o por agenda, y filtro de cohorte](./277-calls-fecha-por-llamada-o-agenda-y-cohorte.md) | 275 | done · 16-oct · `e34693e`, CI verde en `e4afa69` · recorrido local: Fecha por Llamada/Agendada y Cohorte cambian la lista y el CSV, cohorte ajena vacía |
+| [ ] | 287 | [Grain con el anuncio de origen](./287-grain-con-el-anuncio-de-origen.md) | 277, 247 | todo · 19-oct · lista de Anderson; el análisis va por fuera (PT-60) |
 | [ ] | 270 | [La auditoría de Calendly en Webhook Health](./270-auditoria-de-calendly.md) | 096, 110 | en curso · 15-oct · en `main` (`267d514`), falta checkpoint · con datos reales: hoy 0 faltantes y suscripciones activas; el 4 y 6-oct quedaron 6 citas sin llamada por el corte del 203, creadas como Cerrada en su deal con el ok de Mani |
 | [x] | 205 | [Desde una suelta se crea el deal o se asocia a uno existente](./205-crear-o-asociar-deal-desde-la-suelta.md) | 096, 098, 157 | done · `40aeff2` · `cp-20261009-1` · 8-oct · tests de la transacción, 409 sin escribir nada, 404 ajeno y lead reutilizado; el 409 ofrece "Asignar a un deal" · A-108 resuelta · cerrado en el tracker el 15-oct |
 | [x] | 206 | [Una suelta se adopta por correo cuando llega el formulario](./206-adoptar-sueltas-por-correo.md) | 096, 052 | done · `40aeff2` · `cp-20261009-1` · 8-oct · el test va por `ingerirEntradas` (el escritor que llama el webhook), no por la ruta HTTP · A-109 resuelta · cerrado en el tracker el 15-oct |
@@ -198,9 +199,9 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 119 | [La conexión con Meta: un solo token y las cuentas de cada programa](./119-la-conexion-con-meta.md) | — | done · 14-oct · Mani · CI verde `e020948` · 0080 aplicada en producción; un solo token (enmienda del 14-oct), cuentas por programa solo de quien administra; recorrido local con el token real (7 cuentas) |
 | [x] | 120 | [La pauta de Meta: árbol y gasto por anuncio y día](./120-la-pauta-de-meta-por-anuncio-y-dia.md) | 119 | done · 14-oct · Mani · CI verde `803e6fc` · migración 0081 aplicada; primera corrida en producción: agendas 9-13 oct iguales al audit, gasto a menos de 0,1% |
 | [x] | 122 | [Los objetivos de la cohorte y el reparto de cupos por área](./122-los-objetivos-de-la-cohorte.md) | 083 | done · 14-oct · Mani · CI verde `ebf5072` · migración 0083 aplicada; recorrido con clic: seis defectos arreglados (`ddb1676`) |
-| [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) |
-| [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123, 253 | todo · PQ3 = HQ-5, con valor por defecto del 253 |
-| [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · enmendado 14-oct: vive en Hub › Pauta |
+| [ ] | 123 | [El embudo de Pauta y los costos por etapa](./123-el-embudo-de-pauta-y-los-costos-por-etapa.md) | 085, 089, 115, 120, 244, 247, 262 | todo · enmendado 14-oct: agendas del CRM, TRM del día (ADR 0088) | · enmendado 19-oct: se adelanta al 250
+| [ ] | 124 | [El cumplimiento de la cohorte por área](./124-el-cumplimiento-de-la-cohorte-por-area.md) | 122, 123, 253 | todo · PQ3 = HQ-5, con valor por defecto del 253 | · enmendado 19-oct: espera el artefacto de Anderson
+| [ ] | 125 | [La tab Campañas: el árbol de Meta con su embudo](./125-la-tab-campanas-con-el-arbol-de-meta.md) | 120, 123 | todo · enmendado 14-oct: vive en Hub › Pauta | · enmendado 19-oct: se adelanta al 250
 | [ ] | 244 | [La TRM oficial de cada día, guardada](./244-la-trm-del-dia.md) | — | integrado · 14-oct · Codex + central · 0082 aplicada · falta cuadrar 3 fechas tras la primera corrida · cierra A12 (ADR 0088) |
 | [x] | 245 | [Las fotos del gasto durante el día](./245-las-fotos-del-gasto-durante-el-dia.md) | 120 | done · 14-oct · Mani · CI verde `ebf5072` · migración 0084 aplicada; nadie la dispara aún (259) |
 | [ ] | 247 | [Cualquier id de Meta se resuelve por el árbol](./247-cualquier-id-de-meta-resuelve-por-el-arbol.md) | 120, 246 | integrado · 14-oct · Codex + central · CA en N3 medido; falta el primer envío de TI con `ad_id` |
@@ -216,9 +217,14 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 264 | [La plantilla curada de objetivos](./264-la-plantilla-curada-de-objetivos.md) | 122 | done · 15-oct · Codex + central · CI verde `93f6966` · falta que Mani lo valide llenándolo · sin migración (Mani, 15-oct) |
 | [x] | 265 | [El reporte por WhatsApp se configura por programa](./265-el-reporte-por-whatsapp-se-configura-por-programa.md) | 258 | done · 15-oct · Codex + central · `237ff93` · 0085 y 0086 (RLS) aplicadas en producción (ok de Mani) · CI verde `84ab927` · ADR 0089 enmendado 15-oct |
 | [x] | 276 | [La salud de las cuentas de Meta](./276-salud-de-las-cuentas-de-meta.md) | 119 | done · 16-oct · Juanito avisa el estado de pago de cada cuenta (por id) y el tope alcanzado; sin Hub · e4afa69, CI verde |
-| [ ] | 278 | [Programa › Integraciones](./278-integraciones-por-programa.md) | · | todo · 19-oct · Mani: todas las integraciones del programa en una pestaña; antes, `/grill-with-docs` |
+| [ ] | 278 | [Programa › Integraciones](./278-integraciones-por-programa.md) | · | en curso · ADR 0095 · en producción el 19-oct (0094 aplicada, fases A y B juntas, sin `meta_capi`); falta checkpoint, recorrido visual y paso 2 (borrar columnas viejas) |
 | [ ] | 279 | [El pixel de Meta del form de Dapta, desde la fuente](./279-pixel-de-meta-del-form-de-dapta.md) | 278 | todo · 19-oct · decidido: el CRM escribe en Dapta, la llave en Integraciones, solo el pixel |
 | [ ] | 280 | [El CRM agenda, reagenda y cancela en Calendly](./280-el-crm-agenda-en-calendly.md) | · | todo · 19-oct · ADR 0096 · spike primero: reservar con el token del owner en el evento de otro miembro (escribe, pide ok) |
+| [ ] | 281 | [La venta vuelve a Meta (API de Conversiones)](./281-la-venta-vuelve-a-meta.md) | 278 | todo · 19-oct · ADR 0097 · migración (`meta_capi` en el enum) · **prioridad de Pauta**; operación: seat y token en cada portafolio cliente |
+| [ ] | 282 | [El fbclid del formulario llega al envío](./282-el-fbclid-del-formulario-llega-al-envio.md) | · | todo · 19-oct · editar formularios pide el ok de Mani |
+| [ ] | 283 | [Schedule y Atendido vuelven a Meta](./283-schedule-y-atendido-vuelven-a-meta.md) | 281 | todo · 19-oct · revisar antes si el pixel ya manda Schedule |
+| [ ] | 284 | [La librería de anuncios](./284-la-libreria-de-anuncios.md) | 120, 262, 125 | todo · 19-oct · lista de Anderson |
+| [ ] | 285 | [Agendas por hora y día de la semana](./285-agendas-por-hora-y-dia-de-la-semana.md) | 262, 269 | todo · 19-oct · cierre de 0h y Hub › Pauta |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 
@@ -250,7 +256,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 248 | [Hub › Origen: cómo cuenta cada UTM](./248-la-vista-origen-como-cuenta-cada-utm.md) | 246, 250, 262 | todo · retira `/ajustes/canales` |
 | [ ] | 250 | [El Dashboard y Metas pasan a ser el Hub](./250-el-dashboard-y-metas-pasan-a-ser-el-hub.md) | — | todo · ADR 0086 |
 | [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | todo |
-| [ ] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | todo |
+| [ ] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | todo · enmendado 19-oct: espera el artefacto de Anderson |
 | [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | todo |
 | [ ] | 254 | [El origen del cierre](./254-el-origen-del-cierre.md) | 252, 262 | todo |
 | [x] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | done · 14-oct · Mani · ECharts con una pieza propia (ADR 0091); rama del prototipo borrada |
@@ -258,6 +264,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
 | [x] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | done · 14-oct · Mani · CI verde `803e6fc` · cinco hechos en `lib/queries/hechos/`; a 10x el volumen, un mes por día y área en 82,8 ms |
 | [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |
+| [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
+| [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 
 ## 10 · Configuración
 

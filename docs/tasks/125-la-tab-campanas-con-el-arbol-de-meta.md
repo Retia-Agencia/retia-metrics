@@ -43,3 +43,9 @@ Sí, con revisión visual.
   el `utm_id` de CA), con el nivel de la traza del 247.
 - **El builder no va aquí:** el link de captación ya vive en la fuente principal y en Mi espacio (092, 086).
 - Ordenar y filtrar el árbol por cualquier columna (gasto, agendas, costo, ROAS) sale de la capa de hechos (262).
+
+## Enmienda 19-oct: se adelanta al Hub
+
+Igual que el 123: se construye antes del 250, sobre la capa de hechos, y el 250 lo mueve a Hub › Pauta. Es la vista
+de "embudo de agendas por canal, creativo y UTM" que pidió Anderson (19-oct). La librería de anuncios (284) es su
+hermana: la misma fila de anuncio, vista como tarjeta con el creativo.

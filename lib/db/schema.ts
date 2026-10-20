@@ -292,16 +292,6 @@ export const programs = pgTable(
     webUrl: text("web_url"),
     /** Calendly del programa, para cruzar agendamientos. Editable desde la tab Programa (ticket 014). */
     calendlyUrl: text("calendly_url"),
-    /**
-     * Columna heredada del token de Calendly. Se conserva hasta la migración de limpieza;
-     * el código ya usa exclusivamente la fila `calendly` de `integraciones`.
-     */
-    calendlyToken: text("calendly_token"),
-    /**
-     * Columna heredada de la clave de firma de Calendly. Se conserva hasta la migración de
-     * limpieza; el código ya usa exclusivamente `integraciones`.
-     */
-    calendlySigningKey: text("calendly_signing_key"),
     /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
     recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
     /**
@@ -463,11 +453,6 @@ export const sources = pgTable(
      * Nulo en una fuente webhook = todavia no puede recibir: activarla lo exige.
      */
     secretoWebhook: text("secreto_webhook"),
-    /**
-     * Columna heredada del token de Typeform. Se conserva hasta la migración de limpieza;
-     * el token único del programa ya vive en `integraciones`.
-     */
-    typeformToken: text("typeform_token"),
     /**
      * El id del form de Form30x cuyas respuestas lee la lectura periodica (ADR 0093, ticket
      * 272). Solo en una fuente `form30x`; nula = la lectura la salta. Es dato de la fuente,
@@ -1800,31 +1785,6 @@ export const integraciones = pgTable(
 );
 
 /**
- * La conexion con la API de Meta: el token del usuario del sistema de Retia (ADR 0062
- * punto 4, enmendado por el 0087 y el 119 el 14-oct). El portafolio de Retia es socio
- * de los portafolios de los clientes, asi que UN token lee las cuentas de todos los
- * programas: la base admite una sola conexion activa (indice unico parcial, ADR 0005).
- *
- * Tabla heredada: se conserva hasta una migración posterior, pero el código ya no la
- * consulta. Meta es por programa y sus tokens viven en `integraciones`.
- *
- * ponytail: si un cliente algun dia no comparte sus cuentas con el portafolio de Retia,
- * se quita el indice de una activa y `cuentas_publicitarias` gana la FK a su conexion.
- */
-export const metaConexiones = pgTable(
-  "meta_conexiones",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    /** Como se llama el usuario del sistema en Meta (`/me`), leido al probar el token. */
-    nombre: text("nombre").notNull(),
-    tokenSecreto: text("token_secreto").notNull(),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("meta_conexiones_una_activa_idx").on(sql`(true)`).where(sql`${t.activo}`)],
-);
-
-/**
  * Una cuenta publicitaria de Meta y el programa al que sirve (ticket 119). Un programa
  * puede tener varias, en monedas distintas; una cuenta es de UN programa
  * (frontera, ADR 0043), y lo garantiza el indice unico sobre `id_meta`.
@@ -2140,7 +2100,6 @@ export type Recurso = typeof recursos.$inferSelect;
 export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;
 export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
-export type MetaConexion = typeof metaConexiones.$inferSelect;
 export type TipoIntegracion = (typeof tipoIntegracionEnum.enumValues)[number];
 export type CuentaPublicitaria = typeof cuentasPublicitarias.$inferSelect;
 export type PautaObjeto = typeof pautaObjetos.$inferSelect;

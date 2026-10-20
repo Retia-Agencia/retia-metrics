@@ -69,3 +69,9 @@ denominador del costo de Pauta. El área sale de `emparejar` (085), el conteo es
 - **Se construye sobre la capa de hechos** (262); el área sale de la regla del 246 y el detalle de pauta del 247.
 - **Vive en Hub › Pauta** (ADR 0086).
 - **Absorbe el 067** (ROAS por cohorte: es el atajo de cohorte del periodo) y la parte de costos del 090.
+
+## Enmienda 19-oct: se adelanta al Hub
+
+Anderson pidió (mensaje de Michael, 19-oct) "embudo de agendas por canal, creativo y UTM". Decidido con Mani: el 123 y
+el 125 se construyen **antes del 250**, sobre la capa de hechos (262), en una ruta de Programa; el 250 los mueve al Hub
+sin rehacerlos. "Creativo" es el anuncio de Meta (`utm_id`, ADR 0062). El 244 y el 247 están integrados.
