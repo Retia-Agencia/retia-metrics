@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { changeLog, cuentasPublicitarias, integraciones, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { estadoDeIntegraciones, guardarIntegracion } from "@/lib/integraciones";
+import { estadoDeIntegraciones, guardarIntegracion, probarIntegracionGuardada } from "@/lib/integraciones";
 import { sincronizarPauta } from "@/lib/pauta/sincronizar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -63,6 +63,36 @@ describe("integraciones por programa", () => {
     const estado = await estadoDeIntegraciones(db, programId);
     expect(estado.map((fila) => fila.tipo)).toEqual(["dapta", "typeform", "calendly", "meta"]);
     expect(JSON.stringify(estado)).not.toContain("ultrasecreta");
+  });
+
+  it("probar un secreto guardado marca probada_en, actualiza config y no toca secretos ni change_log", async () => {
+    await sembrarIntegracion(db, programId, "typeform", { token: "secreto-vivo" }, { alias: "viejo" });
+    const config = await probarIntegracionGuardada(db, actorId, programId, "typeform", fetchTypeform("al-dia"));
+    expect(config).toEqual({ alias: "al-dia" });
+    const [fila] = await db.select().from(integraciones);
+    expect(fila.probadaEn).toBeInstanceOf(Date);
+    expect(fila.config).toEqual({ alias: "al-dia" });
+    expect(fila.secretos).toEqual({ token: "secreto-vivo" });
+    expect(await db.select().from(changeLog)).toHaveLength(0);
+  });
+
+  it("si la prueba del secreto guardado falla, borra probada_en y no cambia secretos ni config", async () => {
+    await sembrarIntegracion(db, programId, "typeform", { token: "secreto-muerto" }, { alias: "viejo" });
+    await db.update(integraciones).set({ probadaEn: new Date() });
+    const f = vi.fn(async () => new Response("no", { status: 401 })) as typeof globalThis.fetch;
+    await expect(probarIntegracionGuardada(db, actorId, programId, "typeform", f)).rejects.toMatchObject({ status: 422 });
+    const [fila] = await db.select().from(integraciones);
+    expect(fila.probadaEn).toBeNull();
+    expect(fila.secretos).toEqual({ token: "secreto-muerto" });
+    expect(fila.config).toEqual({ alias: "viejo" });
+    expect(await db.select().from(changeLog)).toHaveLength(0);
+  });
+
+  it("probar sin integración guardada responde 422 y no escribe nada", async () => {
+    await expect(probarIntegracionGuardada(db, actorId, programId, "typeform", fetchTypeform()))
+      .rejects.toMatchObject({ status: 422 });
+    expect(await db.select().from(integraciones)).toHaveLength(0);
+    expect(await db.select().from(changeLog)).toHaveLength(0);
   });
 
   it("una cuenta sin token reporta error y las demás se siguen procesando", async () => {

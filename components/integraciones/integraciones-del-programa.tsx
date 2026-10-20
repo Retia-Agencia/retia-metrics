@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { conectarCalendlyAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
-import { guardarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
+import { guardarIntegracionAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
 
 export type IntegracionVisible = {
   tipo: TipoIntegracion;
@@ -70,6 +70,15 @@ export function IntegracionesDelPrograma({
     });
   }
 
+  function probar(tipo: TipoIntegracion) {
+    startTransition(async () => {
+      const resultado = await probarIntegracionAccion(programId, tipo);
+      if (!resultado.ok) toast.error("La prueba falló", { description: resultado.error });
+      else toast.success("Conexión probada");
+      router.refresh();
+    });
+  }
+
   function conectarWebhook() {
     startTransition(async () => {
       const resultado = await conectarCalendlyAccion(programId);
@@ -116,9 +125,16 @@ export function IntegracionesDelPrograma({
                 <Button type="button" size="sm" variant="ghost" onClick={() => { setValor(""); setEditando(null); }}>Cancelar</Button>
               </form>
             ) : (
-              <Button type="button" size="sm" variant="outline" onClick={() => { setValor(""); setEditando(integracion.tipo); }}>
-                {integracion.configurada ? "Reemplazar" : "Conectar"} {integracion.campo}
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => { setValor(""); setEditando(integracion.tipo); }}>
+                  {integracion.configurada ? "Reemplazar" : "Conectar"} {integracion.campo}
+                </Button>
+                {integracion.configurada ? (
+                  <Button type="button" size="sm" variant="outline" disabled={pendiente} onClick={() => probar(integracion.tipo)}>
+                    Probar
+                  </Button>
+                ) : null}
+              </div>
             )}
 
             {integracion.tipo === "calendly" ? (

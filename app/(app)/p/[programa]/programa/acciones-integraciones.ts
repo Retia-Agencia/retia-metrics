@@ -11,7 +11,7 @@ import { db } from "@/lib/db";
 import { programs, tipoIntegracionEnum, type TipoIntegracion } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota } from "@/lib/format";
-import { guardarIntegracion, tokensMeta } from "@/lib/integraciones";
+import { guardarIntegracion, probarIntegracionGuardada, tokensMeta } from "@/lib/integraciones";
 import { sincronizarPauta, type ResumenSincronizacionPauta } from "@/lib/pauta/sincronizar";
 import type { ResultadoAccion } from "./acciones-programa";
 
@@ -42,6 +42,22 @@ export async function guardarIntegracionAccion(
     if (!tipoLeido.success) throw new ErrorDeApp("Integración inválida.", 400);
     const tipo = tipoLeido.data;
     await guardarIntegracion(db, actorId, programId, tipo, valor);
+    revalidatePath("/p/[programa]/programa", "page");
+    return { ok: true };
+  } catch (error) {
+    return fallo(error);
+  }
+}
+
+export async function probarIntegracionAccion(
+  programId: string, tipoCrudo: TipoIntegracion,
+): Promise<ResultadoAccion> {
+  try {
+    const actorId = await actorGerente(programId);
+    const tipoLeido = esquemaTipo.safeParse(tipoCrudo);
+    if (!tipoLeido.success) throw new ErrorDeApp("Integración inválida.", 400);
+    const tipo = tipoLeido.data;
+    await probarIntegracionGuardada(db, actorId, programId, tipo);
     revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
   } catch (error) {

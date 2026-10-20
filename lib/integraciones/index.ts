@@ -72,6 +72,27 @@ export async function guardarClaveFirmaCalendly(
   }));
 }
 
+export async function probarIntegracionGuardada(
+  db: Db, actorId: string, programId: string, tipo: TipoIntegracion,
+  f: typeof globalThis.fetch = globalThis.fetch,
+): Promise<Record<string, string>> {
+  const definicion = INTEGRACIONES[tipo];
+  const valor = await secreto(db, programId, tipo, definicion.llave);
+  if (!valor) throw new ErrorDeApp(`Primero conecta ${definicion.nombre} en Integraciones.`, 422);
+  let config: Record<string, string>;
+  try {
+    config = await probarIntegracion(tipo, valor, f);
+  } catch (error) {
+    await db.update(integraciones).set({ probadaEn: null })
+      .where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, tipo)));
+    throw error;
+  }
+  await db.update(integraciones).set({
+    probadaEn: new Date(), config, updatedAt: new Date(), actualizadaPorUserId: actorId,
+  }).where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, tipo)));
+  return config;
+}
+
 async function secreto(db: Db, programId: string, tipo: TipoIntegracion, llave: keyof Secretos): Promise<string | null> {
   const [fila] = await db.select({ secretos: integraciones.secretos }).from(integraciones)
     .where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, tipo)));
