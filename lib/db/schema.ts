@@ -237,6 +237,12 @@ export const miembrosPrograma = pgTable(
      */
     calendlyEmail: text("calendly_email"),
     /**
+     * El evento personal de esta closer en el Calendly de ESTE programa (URI de la API), donde el
+     * CRM reserva las citas fuera de setteo (ADR 0096, ticket 280). Nulo: no se puede agendar
+     * desde el CRM para un deal suyo fuera de setteo, y la pantalla lo dice.
+     */
+    calendlyEventType: text("calendly_event_type"),
+    /**
      * El setter por defecto del programa (ticket 210): los deals que nacen sin agenda le
      * llegan con el de dueño. A lo sumo UNO por programa entre las membresias activas, y lo
      * garantiza el indice `miembros_programa_setter_idx`, no el codigo (ADR 0005).
