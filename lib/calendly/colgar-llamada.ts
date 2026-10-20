@@ -17,7 +17,7 @@ import {
   type CamposDeInvitadoCalendly,
 } from "./evento-webhook";
 import { moverEtapa, MovimientoRechazado } from "@/lib/deals/mover-etapa";
-import { NOMBRE_DE_PENDIENTE, unaCitaMueveAAgendado } from "@/lib/deals/etapas";
+import { ETAPAS_DE_SETTEO, NOMBRE_DE_PENDIENTE, unaCitaMueveAAgendado } from "@/lib/deals/etapas";
 import { dejarNotaDelSistema } from "@/lib/deals/nota-del-sistema";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
@@ -453,6 +453,8 @@ export async function adoptarSueltasPorCorreo(tx: Db, programId: string, leadId:
  * La host registrada se queda el deal (decision de Mani del 28-sep). Devuelve el dueño
  * anterior SOLO si habia uno distinto, y deja la nota que lo avisa. Sin host registrada, el
  * dueño no se toca.
+ * El dueño anterior recibe el setter solo si el deal seguia en setteo (`ETAPAS_DE_SETTEO`);
+ * una reagenda desde Agendado o posterior no es setteo (Mani, 20-oct).
  */
 export async function darDealAlHost(
   tx: Db,
@@ -463,7 +465,7 @@ export async function darDealAlHost(
 ): Promise<string | null> {
   if (host === null || host === ownerActual) return null;
   const [actual] = await tx
-    .select({ setterUserId: deals.setterUserId })
+    .select({ setterUserId: deals.setterUserId, etapa: deals.etapa })
     .from(deals)
     .where(and(eq(deals.id, dealId), vigente(deals)));
   await cambiarDuenoDeal(tx, {
@@ -473,7 +475,9 @@ export async function darDealAlHost(
     actorId: null,
     etiqueta,
     cambiosAdicionales:
-      ownerActual !== null && actual?.setterUserId == null ? { setterUserId: ownerActual } : undefined,
+      ownerActual !== null && actual?.setterUserId == null && ETAPAS_DE_SETTEO.includes(actual.etapa)
+        ? { setterUserId: ownerActual }
+        : undefined,
   });
   if (ownerActual === null) return null;
   await crearConRastro(
