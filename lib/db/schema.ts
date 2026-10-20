@@ -146,6 +146,8 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
   "sin_secreto",
   "firma_ausente",
   "firma_invalida",
+  // Una cita de Calendly de un evento que no es del programa (ADR 0098): el sobre se guarda y nada se escribe.
+  "evento_de_otro_programa",
 ]);
 /**
  * De que proveedor viene el payload de una fuente webhook (ADR 0055 punto 2). Es TIPO
@@ -260,6 +262,10 @@ export const miembrosPrograma = pgTable(
     uniqueIndex("miembros_programa_calendly_idx")
       .on(t.programId, sql`lower(${t.calendlyEmail})`)
       .where(sql`${t.calendlyEmail} IS NOT NULL`),
+    // Un evento personal es de una sola membresia, y por eso de un solo programa (ADR 0098).
+    uniqueIndex("miembros_programa_calendly_evento_idx")
+      .on(t.calendlyEventType)
+      .where(sql`${t.calendlyEventType} IS NOT NULL`),
   ],
 );
 
@@ -292,6 +298,18 @@ export const programs = pgTable(
     webUrl: text("web_url"),
     /** Calendly del programa, para cruzar agendamientos. Editable desde la tab Programa (ticket 014). */
     calendlyUrl: text("calendly_url"),
+    /**
+     * La URI del event type del round robin de `calendly_url`, resuelta por la API al configurarla
+     * (ADR 0098). Un event type es de UN solo programa: indice unico aqui y en
+     * `miembros_programa.calendly_event_type`, y el escritor valida que no choquen entre tablas.
+     */
+    calendlyEventType: text("calendly_event_type"),
+    /**
+     * La organizacion de Calendly del programa la comparten otros programas (ADR 0098, EstadoX).
+     * `false` (Retia: una org por programa): toda cita de la org es del programa. `true`: solo
+     * cuentan el round robin y los eventos personales de sus miembros activos.
+     */
+    calendlyOrgCompartida: boolean("calendly_org_compartida").notNull().default(false),
     /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
     recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
     /**
@@ -328,6 +346,9 @@ export const programs = pgTable(
     activo: boolean("activo").notNull().default(false),
   },
   (t) => [
+    uniqueIndex("programs_calendly_evento_idx")
+      .on(t.calendlyEventType)
+      .where(sql`${t.calendlyEventType} IS NOT NULL`),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
     check(
       "programs_comision_porcentaje_rango",

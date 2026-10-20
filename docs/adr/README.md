@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0096)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0099)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -120,6 +120,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0095](./0095-las-integraciones-de-un-programa-viven-en-una-tabla.md) | Las integraciones de un programa (Dapta, Typeform, Calendly, Meta) viven en `integraciones`, una fila por programa y tipo, con un solo molde de secreto en `lib/integraciones/`; Ajustes › Meta se retira; enmienda el 0057 y el 0062 |
 | [0096](./0096-el-crm-agenda-reagenda-y-cancela-en-calendly.md) | El CRM agenda, reagenda y cancela en Calendly: toda llamada del CRM es una cita real; en setteo se reserva en el round robin del programa (el webhook entrega el deal, ADR 0076), en otra etapa en el evento personal del dueño, guardado en la membresía; Calendly manda el orden; enmienda el 0049 |
 | [0097](./0097-el-crm-le-devuelve-las-ventas-a-meta.md) | El CRM le devuelve las ventas a Meta por la API de Conversiones: `Purchase` una vez por deal (primera entrada a Abonado o Completo) con el valor vendido, token por portafolio cliente en `integraciones` (`meta_capi`), bandeja de salida con reintento de 7 días; enmienda el 0095 |
+| [0098](./0098-una-cita-de-calendly-es-del-programa-de-su-evento.md) | Una cita de Calendly es del programa de su evento: round robin ∪ eventos personales; el filtro solo aplica si el programa declara su org de Calendly compartida (EstadoX); lo que el CRM ya conoce pasa antes; un event type es de un solo programa; enmienda el 0049 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
