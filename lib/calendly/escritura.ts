@@ -24,7 +24,7 @@ export interface EventoParaAgendar {
   etiqueta: string;
 }
 
-export interface TipoDeEventoCalendly { uri: string; nombre: string }
+export interface TipoDeEventoCalendly { uri: string; nombre: string; schedulingUrl: string | null }
 
 export async function eventosDelUsuario(
   token: string,
@@ -50,11 +50,11 @@ export async function eventosDelUsuario(
   const tipos = await coleccionCompleta(fetcher, `${BASE}/event_types?user=${encodeURIComponent(usuarios[0])}&count=100`, token, "tipos de evento");
   return tipos.flatMap((tipo) => {
     if (typeof tipo !== "object" || tipo === null) return [];
-    const valor = tipo as { uri?: unknown; name?: unknown; active?: unknown; pooling_type?: unknown };
+    const valor = tipo as { uri?: unknown; name?: unknown; active?: unknown; pooling_type?: unknown; scheduling_url?: unknown };
     // Un evento de equipo (round robin) no es la agenda del closer: ahí Calendly escoge el host
     // y la cita podría caerle a otro (ADR 0096 punto 2). Solo se ofrecen los individuales.
     return typeof valor.uri === "string" && typeof valor.name === "string" && valor.active !== false && valor.pooling_type == null
-      ? [{ uri: valor.uri, nombre: valor.name }]
+      ? [{ uri: valor.uri, nombre: valor.name, schedulingUrl: typeof valor.scheduling_url === "string" ? valor.scheduling_url : null }]
       : [];
   });
 }

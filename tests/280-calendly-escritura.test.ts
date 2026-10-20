@@ -11,7 +11,7 @@ import {
   reservarCita,
   eventosDelUsuario,
 } from "@/lib/calendly/escritura";
-import { asignarEventoDeMembresia } from "@/lib/catalogo/usuarios";
+import { asignarEventoDeMembresia, autoAsignarEventoPersonal } from "@/lib/catalogo/usuarios";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -160,8 +160,43 @@ describe("eventosDelUsuario", () => {
         { uri: "https://api.calendly.com/event_types/RR", name: "Postulación", active: true, pooling_type: "round_robin" },
       ], pagination: {} }));
     await expect(eventosDelUsuario("token", "nico@calendly.co", fetchImpl)).resolves.toEqual([
-      { uri: "https://api.calendly.com/event_types/SOLO", nombre: "30 minutos" },
+      { uri: "https://api.calendly.com/event_types/SOLO", nombre: "30 minutos", schedulingUrl: null },
     ]);
+  });
+});
+
+describe("autoAsignarEventoPersonal", () => {
+  const eventos = (lista: unknown[]) => vi.fn()
+    .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
+    .mockResolvedValueOnce(json(200, { collection: [{ user: { uri: "https://api.calendly.com/users/U" } }], pagination: {} }))
+    .mockResolvedValueOnce(json(200, { collection: lista, pagination: {} }));
+  const individual = (id: string, url: string) => ({ uri: `https://api.calendly.com/event_types/${id}`, name: id, active: true, pooling_type: null, scheduling_url: url });
+
+  beforeEach(async () => {
+    await db.update(miembrosPrograma).set({ calendlyEventType: null }).where(eq(miembrosPrograma.id, membresiaId));
+  });
+
+  it("asigna el único individual, sin contar el evento del formulario del programa, y deja rastro", async () => {
+    const fetchImpl = eventos([individual("FORM", "https://calendly.com/retia/round-robin"), individual("MIO", "https://calendly.com/nico/30min")]);
+    await expect(autoAsignarEventoPersonal(db, ownerId, membresiaId, { fetch: fetchImpl })).resolves.toBe("asignado");
+    const [m] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresiaId));
+    expect(m.calendlyEventType).toBe("https://api.calendly.com/event_types/MIO");
+    const rastros = await db.select().from(changeLog).where(eq(changeLog.registroId, membresiaId));
+    expect(rastros.some((r) => r.campo === "calendlyEventType" && r.valorNuevo === m.calendlyEventType)).toBe(true);
+  });
+
+  it("no adivina con dos candidatos", async () => {
+    const fetchImpl = eventos([individual("A", "https://calendly.com/nico/a"), individual("B", "https://calendly.com/nico/b")]);
+    await expect(autoAsignarEventoPersonal(db, ownerId, membresiaId, { fetch: fetchImpl })).resolves.toBe("sin_cambio");
+    const [m] = await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresiaId));
+    expect(m.calendlyEventType).toBeNull();
+  });
+
+  it("no pisa un evento ya escogido", async () => {
+    await db.update(miembrosPrograma).set({ calendlyEventType: "https://api.calendly.com/event_types/ELEGIDO" }).where(eq(miembrosPrograma.id, membresiaId));
+    const fetchImpl = vi.fn();
+    await expect(autoAsignarEventoPersonal(db, ownerId, membresiaId, { fetch: fetchImpl })).resolves.toBe("sin_cambio");
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
 

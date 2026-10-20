@@ -737,7 +737,60 @@ export async function asignarCalendlyDeMembresia(
       }
       throw e;
     }
+    if (calendlyEmail !== null) {
+      // Lo vinculado ya quedó guardado; si Calendly falla al buscar el evento, se escoge a mano.
+      await autoAsignarEventoPersonal(db, actorId, membresiaId, opciones).catch(() => "sin_cambio" as const);
+    }
   });
+}
+
+/**
+ * Le pone a la membresía su evento personal sin que nadie lo escoja (ADR 0096), solo si no
+ * tiene uno y hay UN candidato sin duda: los eventos individuales activos de su cuenta en
+ * el Calendly del programa, sin contar el evento del formulario del programa
+ * (`programs.calendly_url`), que es la entrada de los leads y no la agenda del closer. Con
+ * cero o varios candidatos no adivina: queda el selector de Mi espacio. Escribe con rastro.
+ */
+export async function autoAsignarEventoPersonal(
+  db: Db,
+  actorId: string,
+  membresiaId: string,
+  opciones: { fetch?: FetchLike } = {},
+): Promise<"asignado" | "sin_cambio"> {
+  const [m] = await db
+    .select({
+      id: miembrosPrograma.id,
+      activo: miembrosPrograma.activo,
+      programId: miembrosPrograma.programId,
+      calendlyEmail: miembrosPrograma.calendlyEmail,
+      actual: miembrosPrograma.calendlyEventType,
+      email: users.email,
+      urlDelPrograma: programs.calendlyUrl,
+    })
+    .from(miembrosPrograma)
+    .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+    .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
+    .where(eq(miembrosPrograma.id, membresiaId));
+  if (!m?.activo || !m.calendlyEmail || m.actual) return "sin_cambio";
+  const token = await tokenDeCalendlyDelPrograma(db, m.programId);
+  const candidatos = (await eventosDelUsuario(token, m.calendlyEmail, opciones.fetch))
+    .filter((evento) => evento.schedulingUrl === null || evento.schedulingUrl !== m.urlDelPrograma);
+  if (candidatos.length !== 1) return "sin_cambio";
+  const elegido = candidatos[0].uri;
+  await db.transaction(async (tx) => {
+    await tx.update(miembrosPrograma).set({ calendlyEventType: elegido }).where(eq(miembrosPrograma.id, m.id));
+    await tx.insert(changeLog).values({
+      tabla: "miembros_programa",
+      registroId: m.id,
+      etiqueta: m.email,
+      campo: "calendlyEventType",
+      valorAnterior: null,
+      valorNuevo: elegido,
+      origen: "app" as const,
+      userId: actorId,
+    });
+  });
+  return "asignado";
 }
 
 const esquemaEventoDeMembresia = z.object({
