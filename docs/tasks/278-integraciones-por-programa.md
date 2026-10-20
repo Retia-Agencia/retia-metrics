@@ -3,7 +3,7 @@ id: 278
 etapa: plataforma
 serves: "Todas las conexiones de un programa con servicios externos (tokens, llaves de API, secretos de webhook) se ven y se configuran en un solo lugar, y agregar una integración nueva es agregar un tipo, no una pantalla (Mani, 19-oct)"
 depends: []
-status: todo
+status: en curso (en producción el 19-oct, falta checkpoint y paso 2)
 ---
 
 # 278 — Programa › Integraciones
@@ -58,3 +58,12 @@ El 281 (ADR 0097) necesita guardar un token por programa ya, y no debe estrenar 
 
 El enum queda `dapta`, `typeform`, `calendly`, `meta`, `meta_capi`: `meta` es el token de lectura (`ads_read`) y
 `meta_capi` el que escribe eventos al dataset de un portafolio cliente. Son dos tokens distintos a propósito.
+
+## Construido (19-oct, noche)
+
+Se hicieron las fases A y B juntas: tabla, registro, escritor, lectores, guardián y la pestaña con Dapta, Typeform,
+Calendly y Meta; la 0094 está aplicada en producción (copió 4 Calendly, 3 Typeform, 3 Meta) y lo suelto se quitó,
+Ajustes › Meta incluido. **`meta_capi` no entró**: lo agrega el 281 como un valor del enum y una entrada de
+`INTEGRACIONES` (con su migración). Falta: checkpoint verde, recorrido visual de la pestaña y el **paso 2** (otra
+migración que borra `programs.calendly_token`, `programs.calendly_signing_key`, `sources.typeform_token` y
+`meta_conexiones`, cuando producción muestre citas, envíos y gasto entrando).
