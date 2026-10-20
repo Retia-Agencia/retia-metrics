@@ -18,10 +18,10 @@ describe("límite de secretos de integraciones", () => {
     expect(/integraciones\.secretos/.test("integraciones.secretos")).toBe(true);
   });
 
-  it("ningún consumidor usa las columnas secretas antiguas", () => {
+  // Desde la 0096 las columnas no existen ni en el esquema (paso 2 del ADR 0095).
+  it("nadie, ni el esquema, nombra las columnas secretas antiguas", () => {
     const nombres = ["calendlyToken", "calendlySigningKey", "typeformToken", "metaConexiones"];
     const infractores = fuentes.filter((archivo) => {
-      if (archivo.endsWith(`${path.sep}lib${path.sep}db${path.sep}schema.ts`)) return false;
       const codigo = sinComentarios(fs.readFileSync(archivo, "utf8"));
       return nombres.some((nombre) => codigo.includes(nombre));
     });
