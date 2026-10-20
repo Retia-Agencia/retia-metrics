@@ -659,6 +659,13 @@
       "when": 1792161630380,
       "tag": "0093_alcance-y-destino",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1792459648984,
+      "tag": "0094_integraciones",
+      "breakpoints": true
     }
   ]
 }

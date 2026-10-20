@@ -329,17 +329,13 @@ export const programs = pgTable(
      */
     comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     /**
-     * Nace INACTIVO (ADR 0057): un programa se activa solo con su token de Calendly, y el
-     * CHECK de abajo lo garantiza en la base (ADR 0005). La otra mitad, la fuente principal
-     * (ADR 0068), es entre dos tablas y la verifica `reactivarPrograma`.
+     * Nace INACTIVO (ADR 0057): un programa se activa solo con su integracion de Calendly y
+     * su fuente principal (ADR 0068). Las dos son entre tablas desde el ADR 0095 y las
+     * verifica `reactivarPrograma`.
      */
     activo: boolean("activo").notNull().default(false),
   },
   (t) => [
-    check(
-      "programs_activo_con_token",
-      sql`NOT ${t.activo} OR ${t.calendlyToken} IS NOT NULL`,
-    ),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
     check(
       "programs_comision_porcentaje_rango",
@@ -1769,6 +1765,40 @@ export const enlacesPago = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────── Meta (ticket 119)
+
+/**
+ * Que proveedor conecta una integracion (ADR 0095). Es un TIPO, no una instancia: el codigo
+ * decide con el como se prueba y quien lee su secreto (`INTEGRACIONES` en
+ * `lib/integraciones/`). Agregar una integracion es un valor aqui y una entrada alli.
+ */
+export const tipoIntegracionEnum = pgEnum("tipo_integracion", ["dapta", "typeform", "calendly", "meta"]);
+
+/**
+ * Las conexiones de un programa con sus proveedores (ADR 0095, ticket 278): una fila por
+ * programa y tipo. `secretos` son los valores que no se devuelven nunca (Calendly tiene dos:
+ * el token y la clave de firma del webhook); los escribe y los lee SOLO `lib/integraciones/`,
+ * nunca pasan por el molde ni van a `change_log` con su valor, y un test guardian lo vigila.
+ * `config` es lo no secreto (el usuario o el workspace del proveedor) y si se puede mostrar.
+ *
+ * `probada_en` nula = cargada sin probar (asi quedan las copiadas por la migracion 0094).
+ */
+export const integraciones = pgTable(
+  "integraciones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    tipo: tipoIntegracionEnum("tipo").notNull(),
+    secretos: jsonb("secretos").notNull(),
+    config: jsonb("config").notNull().default(sql`'{}'::jsonb`),
+    probadaEn: timestamp("probada_en", { withTimezone: true }),
+    actualizadaPorUserId: uuid("actualizada_por_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("integraciones_programa_tipo_idx").on(t.programId, t.tipo)],
+);
 
 /**
  * La conexion con la API de Meta: el token del usuario del sistema de Retia (ADR 0062
