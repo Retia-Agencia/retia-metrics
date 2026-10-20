@@ -1776,7 +1776,7 @@ export const enlacesPago = pgTable(
  * decide con el como se prueba y quien lee su secreto (`INTEGRACIONES` en
  * `lib/integraciones/`). Agregar una integracion es un valor aqui y una entrada alli.
  */
-export const tipoIntegracionEnum = pgEnum("tipo_integracion", ["dapta", "typeform", "calendly", "meta"]);
+export const tipoIntegracionEnum = pgEnum("tipo_integracion", ["dapta", "typeform", "calendly", "meta", "meta_capi"]);
 
 /**
  * Las conexiones de un programa con sus proveedores (ADR 0095, ticket 278): una fila por
@@ -1803,6 +1803,57 @@ export const integraciones = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [uniqueIndex("integraciones_programa_tipo_idx").on(t.programId, t.tipo)],
+);
+
+/**
+ * Que evento del CRM le llega a Meta por la API de Conversiones (ADR 0097, ticket 281). Es un
+ * TIPO: el codigo decide con el cuando se dispara y que payload arma. Hoy solo `purchase`; el 283
+ * agrega los suyos.
+ */
+export const eventoMetaEnum = pgEnum("evento_meta", ["purchase"]);
+
+/**
+ * Donde va una fila de la bandeja de salida hacia Meta (ADR 0097 punto 6). `fallido` se reintenta
+ * con espera creciente; `vencido` es terminal (pasaron los 7 dias que Meta acepta); `omitido` es
+ * terminal y dice por que en `razon` (cortesia, sin valor, programa apagado, deal anulado).
+ */
+export const estadoEventoMetaEnum = pgEnum("estado_evento_meta", ["pendiente", "enviado", "fallido", "vencido", "omitido"]);
+
+/**
+ * La bandeja de salida hacia la API de Conversiones de Meta (ADR 0097, ticket 281). La fila la
+ * escribe `moverEtapa` en la misma transaccion en que el deal entra por primera vez a una etapa
+ * vendida; la manda el cron de `lib/meta-capi/`. Una sola por deal y evento, por el indice unico.
+ * "Anulado despues del envio" no se guarda: se deriva de `deals.anulado_en > enviado_en`.
+ */
+export const eventosMeta = pgTable(
+  "eventos_meta",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "restrict" }),
+    evento: eventoMetaEnum("evento").notNull(),
+    estado: estadoEventoMetaEnum("estado").notNull().default("pendiente"),
+    razon: text("razon"),
+    eventId: text("event_id").notNull(),
+    eventTime: timestamp("event_time", { withTimezone: true }).notNull(),
+    valor: numeric("valor", { precision: 10, scale: 2 }),
+    moneda: text("moneda").notNull().default("USD"),
+    intentos: integer("intentos").notNull().default(0),
+    proximoIntentoEn: timestamp("proximo_intento_en", { withTimezone: true }),
+    ultimoError: text("ultimo_error"),
+    enviadoEn: timestamp("enviado_en", { withTimezone: true }),
+    llevoFbc: boolean("llevo_fbc"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("eventos_meta_deal_evento_idx").on(t.dealId, t.evento),
+    index("eventos_meta_programa_estado_idx").on(t.programId, t.estado),
+  ],
 );
 
 /**

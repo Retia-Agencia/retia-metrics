@@ -694,6 +694,13 @@
       "when": 1792468114986,
       "tag": "0098_evento-de-calendly-por-programa",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1792508086135,
+      "tag": "0099_eventos-meta",
+      "breakpoints": true
     }
   ]
 }
