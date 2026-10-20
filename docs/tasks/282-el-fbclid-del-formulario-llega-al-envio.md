@@ -33,3 +33,5 @@ Un envío que entró desde un anuncio trae su `fbclid` en la base, y el 281 lo u
 ## Enmienda 20-oct (ADR 0099)
 
 El campo oculto `fbclid` es parte del set estándar de todo formulario con pauta (ADR 0099 punto 3), y la landing tiene que pasar todos los parámetros (punto 4). Este ticket suma "sin `fbclid`" a la alarma del 290, con el mismo molde.
+
+- ✅ **20-oct (ok de Mani, por API, con respaldo; el resto de cada form idéntico):** los tres Typeform (TI `GmPGBOf9`, CA `nkMLdeh8`, Confianza `E5F4chVT`) tienen el set completo del ADR 0099; se agregó `fbclid` a los tres y `utm_id` a TI. Desde hoy el `fbclid` queda en `respuestas` (ADR 0058) aunque este ticket todavía no lo lea. Faltan los forms de Dapta y Form30x.
