@@ -9,6 +9,7 @@ import {
   eventoParaAgendar,
   horasDisponibles,
   reservarCita,
+  eventosDelUsuario,
 } from "@/lib/calendly/escritura";
 import { asignarEventoDeMembresia } from "@/lib/catalogo/usuarios";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -62,7 +63,10 @@ describe("eventoParaAgendar", () => {
   it("usa el round robin en setteo y lleva el código del deal", async () => {
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
-      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/event_types/RR", scheduling_url: "https://calendly.com/retia/round-robin" }], pagination: {} }));
+      .mockResolvedValueOnce(json(200, { collection: [{ user: { uri: "https://api.calendly.com/users/A" } }, { user: { uri: "https://api.calendly.com/users/B" } }], pagination: {} }))
+      // El mismo round robin sale en los dos miembros del pool: es UNO, no un empate.
+      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/event_types/RR", scheduling_url: "https://calendly.com/retia/round-robin" }], pagination: {} }))
+      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/event_types/RR", scheduling_url: "https://calendly.com/retia/round-robin" }, { uri: "https://api.calendly.com/event_types/B1", scheduling_url: "https://calendly.com/b/otro" }], pagination: {} }));
     const evento = await eventoParaAgendar(db, dealId, fetchImpl);
     expect(evento).toMatchObject({
       eventTypeUri: "https://api.calendly.com/event_types/RR",
@@ -94,7 +98,9 @@ describe("eventoParaAgendar", () => {
     const coincidencias = Array.from({ length: cantidad }, (_, i) => ({ uri: `https://api.calendly.com/event_types/R${i}`, scheduling_url: "https://calendly.com/retia/round-robin" }));
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
-      .mockResolvedValueOnce(json(200, { collection: coincidencias, pagination: {} }));
+      .mockResolvedValueOnce(json(200, { collection: [{ user: { uri: "https://api.calendly.com/users/A" } }, { user: { uri: "https://api.calendly.com/users/B" } }], pagination: {} }))
+      .mockResolvedValueOnce(json(200, { collection: coincidencias, pagination: {} }))
+      .mockResolvedValueOnce(json(200, { collection: [], pagination: {} }));
     const error = await eventoParaAgendar(db, dealId, fetchImpl).catch((e) => e);
     expect(error).toMatchObject({ status: 422 });
   });
@@ -106,8 +112,20 @@ describe("API de escritura", () => {
       { status: "available", start_time: "2026-10-20T14:00:00Z" },
       { status: "unavailable", start_time: "2026-10-20T15:00:00Z" },
     ] }));
-    const horas = await horasDisponibles("token", "evento", new Date("2026-10-20T00:00:00Z"), new Date("2026-10-27T00:00:00Z"), fetchImpl);
+    const desde = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const horas = await horasDisponibles("token", "evento", desde, new Date(desde.getTime() + 7 * 24 * 60 * 60 * 1000), fetchImpl);
     expect(horas.map((h) => h.toISOString())).toEqual(["2026-10-20T14:00:00.000Z"]);
+  });
+
+  it("pide horas desde el futuro y en menos de 7 días, como exige Calendly", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(json(200, { collection: [] }));
+    const antes = Date.now();
+    await horasDisponibles("token", "evento", new Date(antes - 60_000), new Date(antes + 7 * 24 * 60 * 60 * 1000), fetchImpl);
+    const url = new URL(fetchImpl.mock.calls[0][0]);
+    const inicio = new Date(url.searchParams.get("start_time")!).getTime();
+    const fin = new Date(url.searchParams.get("end_time")!).getTime();
+    expect(inicio).toBeGreaterThan(antes);
+    expect(fin - inicio).toBeLessThan(7 * 24 * 60 * 60 * 1000);
   });
 
   it("reserva con las seis llaves de tracking y lee el evento", async () => {
@@ -137,6 +155,21 @@ describe("API de escritura", () => {
     [201, "", "cancelada"],
   ])("clasifica la cancelación %s", async (status, message, esperado) => {
     await expect(cancelarCita("token", "https://api.calendly.com/scheduled_events/EV", "Cancelada", vi.fn().mockResolvedValue(json(status as number, { message })))).resolves.toBe(esperado);
+  });
+});
+
+describe("eventosDelUsuario", () => {
+  it("ofrece solo eventos individuales: un round robin no es la agenda del closer", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
+      .mockResolvedValueOnce(json(200, { collection: [{ user: { uri: "https://api.calendly.com/users/U" } }], pagination: {} }))
+      .mockResolvedValueOnce(json(200, { collection: [
+        { uri: "https://api.calendly.com/event_types/SOLO", name: "30 minutos", active: true, pooling_type: null },
+        { uri: "https://api.calendly.com/event_types/RR", name: "Postulación", active: true, pooling_type: "round_robin" },
+      ], pagination: {} }));
+    await expect(eventosDelUsuario("token", "nico@calendly.co", fetchImpl)).resolves.toEqual([
+      { uri: "https://api.calendly.com/event_types/SOLO", nombre: "30 minutos" },
+    ]);
   });
 });
 

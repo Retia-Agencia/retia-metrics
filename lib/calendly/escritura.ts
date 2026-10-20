@@ -50,8 +50,10 @@ export async function eventosDelUsuario(
   const tipos = await coleccionCompleta(fetcher, `${BASE}/event_types?user=${encodeURIComponent(usuarios[0])}&count=100`, token, "tipos de evento");
   return tipos.flatMap((tipo) => {
     if (typeof tipo !== "object" || tipo === null) return [];
-    const valor = tipo as { uri?: unknown; name?: unknown; active?: unknown };
-    return typeof valor.uri === "string" && typeof valor.name === "string" && valor.active !== false
+    const valor = tipo as { uri?: unknown; name?: unknown; active?: unknown; pooling_type?: unknown };
+    // Un evento de equipo (round robin) no es la agenda del closer: ahí Calendly escoge el host
+    // y la cita podría caerle a otro (ADR 0096 punto 2). Solo se ofrecen los individuales.
+    return typeof valor.uri === "string" && typeof valor.name === "string" && valor.active !== false && valor.pooling_type == null
       ? [{ uri: valor.uri, nombre: valor.name }]
       : [];
   });
@@ -102,7 +104,13 @@ export async function horasDisponibles(
   fetchImpl?: FetchLike,
 ): Promise<Date[]> {
   const fetcher = fetchDisponible(fetchImpl);
-  const url = `${BASE}/event_type_available_times?event_type=${encodeURIComponent(eventTypeUri)}&start_time=${encodeURIComponent(desde.toISOString())}&end_time=${encodeURIComponent(hasta.toISOString())}`;
+  // Calendly rechaza (400) un inicio que ya pasó y un rango de 7 días o más: el inicio se
+  // corre a un minuto en el futuro y el fin se recorta justo antes de los 7 días.
+  const MINUTO = 60_000;
+  const inicio = new Date(Math.max(desde.getTime(), Date.now() + MINUTO));
+  const fin = new Date(Math.min(hasta.getTime(), inicio.getTime() + 7 * 24 * 60 * MINUTO - MINUTO));
+  if (fin <= inicio) return [];
+  const url = `${BASE}/event_type_available_times?event_type=${encodeURIComponent(eventTypeUri)}&start_time=${encodeURIComponent(inicio.toISOString())}&end_time=${encodeURIComponent(fin.toISOString())}`;
   const cuerpo = await jsonDeCalendly(await fetcher(url, { method: "GET", headers: headers(token) }));
   if (!Array.isArray(cuerpo.collection)) throw new ErrorDeApp("Calendly no devolvió las horas disponibles.", 502);
   return cuerpo.collection.flatMap((fila) => {
@@ -219,8 +227,20 @@ export async function eventoParaAgendar(
   if (!fila.calendlyUrl) throw new ErrorDeApp("El programa no tiene configurado su evento round robin de Calendly.", 422);
   const fetcher = fetchDisponible(fetchImpl);
   const organizacion = await organizacionDelToken(fetcher, token);
-  const tipos = await coleccionCompleta(fetcher, `${BASE}/event_types?organization=${encodeURIComponent(organizacion)}&count=100`, token, "tipos de evento");
-  const encontrados = tipos.filter((tipo) => typeof tipo === "object" && tipo !== null && (tipo as { scheduling_url?: unknown }).scheduling_url === fila.calendlyUrl);
+  // El listado por organización NO trae los eventos de equipo (round robin), medido el 19-oct;
+  // el de cada miembro sí. Se juntan los de todos los miembros, sin repetir por URI.
+  const miembros = await coleccionCompleta(fetcher, `${BASE}/organization_memberships?organization=${encodeURIComponent(organizacion)}&count=100`, token, "miembros");
+  const porUri = new Map<string, unknown>();
+  for (const miembro of miembros) {
+    const usuario = (miembro as { user?: { uri?: unknown } } | null)?.user?.uri;
+    if (typeof usuario !== "string") continue;
+    const tipos = await coleccionCompleta(fetcher, `${BASE}/event_types?user=${encodeURIComponent(usuario)}&count=100`, token, "tipos de evento");
+    for (const tipo of tipos) {
+      const uri = (tipo as { uri?: unknown } | null)?.uri;
+      if (typeof uri === "string") porUri.set(uri, tipo);
+    }
+  }
+  const encontrados = [...porUri.values()].filter((tipo) => (tipo as { scheduling_url?: unknown }).scheduling_url === fila.calendlyUrl);
   if (encontrados.length === 0) throw new ErrorDeApp("No se encontró el evento round robin configurado para el programa.", 422);
   if (encontrados.length > 1) throw new ErrorDeApp("Hay más de un evento round robin con la URL configurada para el programa.", 422);
   const uri = (encontrados[0] as { uri?: unknown }).uri;
