@@ -8,6 +8,7 @@ import {
   type FetchLike,
   type InsightsDelFormulario,
 } from "@/lib/typeform/insights";
+import { tokenTypeform } from "@/lib/integraciones";
 
 /**
  * El embudo por pregunta de cada formulario de Typeform del programa (ticket 126 parte B).
@@ -45,25 +46,25 @@ export async function embudoPorPregunta(
       id: sources.id,
       nombre: sources.nombre,
       urlPublica: sources.urlPublica,
-      token: sources.typeformToken,
     })
     .from(sources)
     .where(and(eq(sources.programId, programId), eq(sources.activo, true), eq(sources.tipo, "webhook"), eq(sources.proveedor, "typeform")))
     .orderBy(desc(sources.principal), asc(sources.orden), asc(sources.nombre));
 
+  const token = await tokenTypeform(db, programId);
   return Promise.all(
     fuentes.map(async (f): Promise<EmbudoPorPreguntaDeFuente> => {
       const base = { fuenteId: f.id, fuente: f.nombre };
-      if (!f.token) return { ...base, estado: "sin_token" };
+      if (!token) return { ...base, estado: "sin_token" };
       const formId = formIdDeTypeform(f.urlPublica);
       if (!formId) return { ...base, estado: "sin_url" };
       const enCache = cache.get(f.id);
-      if (enCache && enCache.formId === formId && enCache.token === f.token && ahora.getTime() - enCache.leidoEn.getTime() < CACHE_INSIGHTS_MS) {
+      if (enCache && enCache.formId === formId && enCache.token === token && ahora.getTime() - enCache.leidoEn.getTime() < CACHE_INSIGHTS_MS) {
         return { ...base, estado: "ok", leidoEn: enCache.leidoEn, insights: enCache.insights };
       }
       try {
-        const insights = await leerInsights({ token: f.token, formId, fetch });
-        cache.set(f.id, { formId, token: f.token, leidoEn: ahora, insights });
+        const insights = await leerInsights({ token, formId, fetch });
+        cache.set(f.id, { formId, token, leidoEn: ahora, insights });
         return { ...base, estado: "ok", leidoEn: ahora, insights };
       } catch (error) {
         if (!(error instanceof ErrorDeTypeform)) console.error("[insights] error no controlado", error);

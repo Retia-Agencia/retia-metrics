@@ -3,7 +3,6 @@ import { asc, eq } from "drizzle-orm";
 import {
   cuentasPublicitarias,
   fotosPauta,
-  metaConexiones,
   pautaObjetos,
   pautaSincronizaciones,
   programs,
@@ -16,6 +15,7 @@ import {
 } from "@/lib/pauta/dia-en-curso";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const TOKEN = "token-dia-en-curso";
 const AHORA = new Date("2026-10-14T16:00:00-05:00");
@@ -104,7 +104,7 @@ beforeEach(async () => {
     ticketUsd: "1000",
   }).returning();
   programId = programa.id;
-  await db.insert(metaConexiones).values({ nombre: "Retia", tokenSecreto: TOKEN });
+  await sembrarIntegracion(db, programId, "meta", { token: TOKEN }, { nombre: "Retia" });
   const [cuenta] = await db.insert(cuentasPublicitarias).values({
     idMeta: "123",
     programId,
@@ -132,11 +132,11 @@ describe("fotos de pauta del día en curso", () => {
   it("dos llamadas dentro de veinte minutos hacen una sola lectura de Meta", async () => {
     const f = fetchMeta();
     const primera = await sincronizarDiaEnCurso(db, {
-      token: TOKEN, ahora: AHORA, disparadaPor: "endpoint", f,
+      tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "endpoint", f,
     });
     const llamadasPrimera = f.mock.calls.length;
     const segunda = await sincronizarDiaEnCurso(db, {
-      token: TOKEN,
+      tokens: new Map([[programId, TOKEN]]),
       ahora: new Date(AHORA.getTime() + 19 * 60_000),
       disparadaPor: "hub",
       f,
@@ -149,7 +149,7 @@ describe("fotos de pauta del día en curso", () => {
 
   it("suma los anuncios por campaña y cuenta los que no llegan a una campaña", async () => {
     const resultado = await sincronizarDiaEnCurso(db, {
-      token: TOKEN, ahora: AHORA, disparadaPor: "endpoint", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "endpoint", f: fetchMeta(),
     });
     const fotos = await db.select().from(fotosPauta).orderBy(asc(fotosPauta.gasto));
 
@@ -175,7 +175,7 @@ describe("fotos de pauta del día en curso", () => {
     });
 
     await sincronizarDiaEnCurso(db, {
-      token: TOKEN, ahora: AHORA, disparadaPor: "hub", f: fetchMeta(),
+      tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "hub", f: fetchMeta(),
     });
 
     expect(await db.select().from(fotosPauta)).toHaveLength(1);
@@ -188,7 +188,7 @@ describe("fotos de pauta del día en curso", () => {
     const f = fetchMeta();
 
     expect(await sincronizarDiaEnCurso(db, {
-      token: TOKEN, ahora: AHORA, disparadaPor: "hub", f,
+      tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "hub", f,
     })).toEqual({ estado: "corriendo" });
     expect(f).not.toHaveBeenCalled();
   });
@@ -198,7 +198,7 @@ describe("fotos de pauta del día en curso", () => {
     const f = fetchMeta();
 
     await sincronizarDiaEnCurso(db, {
-      token: TOKEN, ahora: AHORA, disparadaPor: "endpoint", f,
+      tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "endpoint", f,
     });
 
     const bordes = f.mock.calls.map(([entrada]) => new URL(String(entrada)).pathname.split("/").at(-1));
@@ -210,7 +210,7 @@ describe("fotos de pauta del día en curso", () => {
     const f = fetchMeta();
 
     await sincronizarDiaEnCurso(db, {
-      token: TOKEN, ahora: AHORA, disparadaPor: "endpoint", f,
+      tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "endpoint", f,
     });
 
     const bordes = f.mock.calls.map(([entrada]) => new URL(String(entrada)).pathname.split("/").at(-1));

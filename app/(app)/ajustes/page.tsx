@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, FileWarning, ListChecks, Megaphone, Radio, Shapes, Users } from "lucide-react";
+import { Activity, FileWarning, ListChecks, Radio, Shapes, Users } from "lucide-react";
 import { paginaConPautaGlobal } from "@/lib/auth/page-guards";
 import { administraGlobal, manejaPautaGlobal, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -31,13 +31,6 @@ const ENLACES = [
     icono: Radio,
     titulo: "Canales",
     descripcion: "De qué canal y área viene cada envío.",
-    requisito: "pauta",
-  },
-  {
-    href: "/ajustes/meta",
-    icono: Megaphone,
-    titulo: "Meta",
-    descripcion: "Conecta el usuario del sistema que lee las cuentas publicitarias.",
     requisito: "pauta",
   },
   {

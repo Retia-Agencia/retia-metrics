@@ -151,13 +151,12 @@ vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAge
 const listarCohortes = vi.fn();
 vi.mock("@/lib/catalogo/cohortes", () => ({ listarCohortes }));
 
-// Ajustes > Meta es de pauta y lee la conexión y el inventario; se vacían para probar
-// la guarda real sin una base. La ficha de Programa usa las mismas lecturas tras su guarda.
 vi.mock("@/lib/catalogo/meta", () => ({
-  estadoConexionMeta: vi.fn(async () => ({ conectada: false })),
-  cuentasVinculadas: vi.fn(async () => []),
   cuentasDelPrograma: vi.fn(async () => []),
   cuentasDisponibles: vi.fn(async () => []),
+}));
+vi.mock("@/lib/integraciones", () => ({
+  estadoDeIntegraciones: vi.fn(async () => []),
 }));
 
 vi.mock("@/lib/pauta/sincronizar", () => ({
@@ -392,14 +391,12 @@ const PAGINAS_DE_GERENTE = [
  */
 const PAGINAS_DE_AJUSTES = [
   ["/ajustes", "@/app/(app)/ajustes/page"],
-  ["/ajustes/meta", "@/app/(app)/ajustes/meta/page"],
 ] as const;
 
 const TODAS_LAS_PAGINAS_DE_AJUSTES = [
   "@/app/(app)/ajustes/page",
   "@/app/(app)/ajustes/usuarios/page",
   "@/app/(app)/ajustes/canales/page",
-  "@/app/(app)/ajustes/meta/page",
   "@/app/(app)/ajustes/salud/page",
   "@/app/(app)/ajustes/catalogos/page",
   "@/app/(app)/ajustes/areas/page",
@@ -600,7 +597,7 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
   it("el paid trafficker sin límite solo ve los ajustes de pauta (ADR 0094: nunca administra lo global)", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     const hrefs = await hrefsDeAjustes();
-    expect(hrefs).toEqual(["/ajustes/canales", "/ajustes/meta"]);
+    expect(hrefs).toEqual(["/ajustes/canales"]);
   });
 
   it("un closer ni siquiera entra al índice (ticket 224, ADR 0082): la raíz lo rebota", async () => {
@@ -773,7 +770,7 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     });
     expect(presentacionDeLaFicha("gerente")).toEqual({
       configura: true,
-      secciones: ["general", "equipo", "captacion", "ventas"],
+      secciones: ["general", "equipo", "captacion", "integraciones", "ventas"],
       muestraComision: true,
     });
   });

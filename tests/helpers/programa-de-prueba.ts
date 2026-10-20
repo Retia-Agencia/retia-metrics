@@ -2,9 +2,8 @@ import { PLANTILLA_LEAD_BASE } from "../../scripts/plantilla-lead-base";
 
 /**
  * Lo minimo para que un programa de prueba este ACTIVO: desde la migracion 0031 un
- * programa nace inactivo y el CHECK `programs_activo_con_token` exige el token de
- * Calendly para activarlo (ADR 0057). La fuente principal (ADR 0068) la exige
- * `reactivarPrograma`, no la base, asi que un insert directo no la necesita.
+ * programa nace inactivo. La fuente principal y la integración de Calendly las exige
+ * `reactivarPrograma`, no la base, así que un insert directo no las necesita.
  *
  * Trae tambien la plantilla de lead (ticket 117): el webhook ya no tiene defecto en el
  * codigo, y sin saber que pregunta trae el correo cada envio fallaria. Es la misma que
@@ -15,6 +14,5 @@ import { PLANTILLA_LEAD_BASE } from "../../scripts/plantilla-lead-base";
  */
 export const PROGRAMA_DE_PRUEBA = {
   activo: true,
-  calendlyToken: "token-de-prueba",
   plantillaLead: PLANTILLA_LEAD_BASE,
 } as const;

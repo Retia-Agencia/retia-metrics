@@ -14,7 +14,6 @@ import {
   crearPrograma,
   desactivarPrograma,
   editarPrograma,
-  guardarTokenCalendly,
   reactivarPrograma,
   type EntradaPrograma,
 } from "@/lib/catalogo/programas";
@@ -119,44 +118,15 @@ export async function crearProgramaInactivoAccion(
   }
 }
 
-/**
- * Crea un programa con su Calendly Token. El token NO viaja por la entrada del molde
- * (ADR 0057): se guarda aparte con `guardarTokenCalendly`. El programa queda INACTIVO:
- * activarlo exige fuente principal (ADR 0068), y un programa recien creado no tiene
- * fuentes. Se activa desde su ficha, por `reactivarPrograma`. Ninguna pantalla la llama hoy
- * (la creación usa `crearProgramaInactivoAccion`); queda para crear con token de una vez.
- */
-export async function crearProgramaAccion(
-  input: EntradaPrograma,
-  tokenCalendly: string,
-): Promise<ResultadoAccion> {
-  try {
-    const session = await requireAdministracionGlobal();
-    const programa = await crearPrograma(db, session.user.id, input);
-    await guardarTokenCalendly(db, session.user.id, programa.id, tokenCalendly);
-    revalidarNav();
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-/**
- * Edita un programa. `tokenCalendly` vacio = conservar el que tiene; con valor, lo
- * reemplaza por `guardarTokenCalendly` (nunca por el molde, ADR 0057).
- */
+/** Edita únicamente los datos generales; los secretos viven en Integraciones. */
 export async function editarProgramaAccion(
   id: string,
   input: EntradaPrograma,
-  tokenCalendly: string,
 ): Promise<ResultadoAccion> {
   try {
     const { session, ...actor } = await actorGerente();
     await exigirProgramaPorId({ session, ...actor }, id);
     await editarPrograma(db, session.user.id, id, input);
-    if (tokenCalendly.trim()) {
-      await guardarTokenCalendly(db, session.user.id, id, tokenCalendly);
-    }
     revalidarNav();
     return { ok: true };
   } catch (error) {

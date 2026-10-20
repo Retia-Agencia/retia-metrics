@@ -8,6 +8,7 @@ import { asignarCalendlyDeMembresia } from "@/lib/catalogo/usuarios";
 import { AuthorizationError } from "@/lib/auth/roles";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 /**
  * La cuenta de Calendly de cada membresia sale de la organizacion del programa (ticket 096):
@@ -70,9 +71,10 @@ describe("vincular la cuenta de una membresia", () => {
     await vaciar();
     const [p] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500", calendlyToken: "pat" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
       .returning();
     programId = p.id;
+    await sembrarIntegracion(db, programId, "calendly", { token: "pat" });
     const [a] = await db.insert(users).values({ email: "admin@retiagrowth.com", rol: "gerente" }).returning();
     admin = a.id;
     const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
@@ -204,7 +206,7 @@ describe("vincular la cuenta de una membresia", () => {
   it("cuentasPorPrograma: el programa sin token dice por que, sin tumbar a los demas", async () => {
     const [sin] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797", calendlyToken: null, activo: false })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797", activo: false })
       .returning();
     const r = await cuentasPorPrograma(db, [programId, sin.id], { fetch: calendly(ORGANIZACION) });
     expect(r[programId]).toMatchObject({ ok: true });
@@ -215,9 +217,10 @@ describe("vincular la cuenta de una membresia", () => {
     await db.update(miembrosPrograma).set({ calendlyEmail: "maru@calendly.co", activo: false }).where(eq(miembrosPrograma.id, membresiaMaru));
     const [otro] = await db
       .insert(programs)
-      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-ocupado", nombre: "Otro", ticketUsd: "797", calendlyToken: "pat" })
+      .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-ocupado", nombre: "Otro", ticketUsd: "797" })
       .returning();
     await db.insert(miembrosPrograma).values({ userId: maru, programId: otro.id });
+    await sembrarIntegracion(db, otro.id, "calendly", { token: "pat" });
 
     const r = await cuentasPorPrograma(db, [programId, otro.id], { fetch: calendly(ORGANIZACION) });
     expect(r[programId]).toMatchObject({

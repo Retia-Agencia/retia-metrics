@@ -15,6 +15,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 import daptaParcial from "./fixtures/dapta-parcial.json";
 import daptaCompleto from "./fixtures/dapta-completo.json";
@@ -176,6 +177,7 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
+  await sembrarIntegracion(db, p.id, "calendly", { token: "token-de-prueba" });
   const [f] = await db
     .insert(sources)
     .values({

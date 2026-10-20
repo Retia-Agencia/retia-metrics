@@ -16,6 +16,7 @@ import type { Db } from "@/lib/db/tipos";
 import { navParaRol, rutaAlCambiarDePrograma } from "@/lib/nav";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 /**
  * Ticket 100 — la tab Programa: la ficha del programa (ADR 0050).
@@ -82,16 +83,16 @@ beforeEach(async () => {
       nombre: "A",
       ticketUsd: "797",
       comisionPorcentaje: "10.04",
-      calendlyToken: TOKEN_A,
-      calendlySigningKey: FIRMA_A,
     })
     .returning();
   programaA = pa.id;
   const [pb] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500", calendlyToken: "token-de-b" })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "b", nombre: "B", ticketUsd: "1500" })
     .returning();
   programaB = pb.id;
+  await sembrarIntegracion(db, programaA, "calendly", { token: TOKEN_A, claveFirma: FIRMA_A });
+  await sembrarIntegracion(db, programaB, "calendly", { token: "token-de-b" });
 
   const [a] = await db.insert(users).values({ email: "ana@retiagrowth.com", rol: "closer", nombre: "Ana" }).returning();
   const [b] = await db.insert(users).values({ email: "beto@retiagrowth.com", rol: "closer", nombre: "Beto" }).returning();
@@ -335,7 +336,6 @@ describe("forjar la escritura desde un closer con membresía", () => {
     const r = await editarProgramaAccion(
       programaA,
       { nombre: "A", slug: "a", ticketUsd: "797", comisionPorcentaje: "50" },
-      "",
     );
     expect(r.ok).toBe(false);
     const [p] = await db.select().from(programs).where(eq(programs.id, programaA));

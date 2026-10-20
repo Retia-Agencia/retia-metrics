@@ -13,7 +13,7 @@ import {
   fuentesDelProgramaParaAdmin,
   type CohorteVista,
 } from "@/lib/queries/ficha-programa";
-import { fecha, hoyEnBogota, num, usd } from "@/lib/format";
+import { fecha, fechaHoraEnBogota, hoyEnBogota, num, usd } from "@/lib/format";
 import { costoPorAgendaDeLosUltimosHabiles } from "@/lib/semaforo/costo-por-agenda";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
@@ -40,9 +40,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   cuentasDelPrograma,
   cuentasDisponibles,
-  estadoConexionMeta,
 } from "@/lib/catalogo/meta";
-import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { cuposSinAsignar, objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import {
   METRICAS_DEL_REPORTE,
@@ -56,6 +54,8 @@ import {
 } from "@/lib/objetivos/metricas";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
 import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
+import { estadoDeIntegraciones } from "@/lib/integraciones";
+import { IntegracionesDelPrograma } from "@/components/integraciones/integraciones-del-programa";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +79,7 @@ export function presentacionDeLaFicha(rol: Rol | null) {
   const configura = configuraPrograma(rol);
   return {
     configura,
-    secciones: configura ? ["general", "equipo", "captacion", "ventas"] : ["general", "ventas"],
+    secciones: configura ? ["general", "equipo", "captacion", "integraciones", "ventas"] : ["general", "ventas"],
     muestraComision: veEquipoComercial(rol),
   } as const;
 }
@@ -129,8 +129,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     comisionPorcentaje: programa.comisionPorcentaje,
     webUrl: null,
     calendlyUrl: programa.calendlyUrl,
-    tieneTokenCalendly: programa.tieneTokenCalendly,
-    webhookCalendlyConectado: programa.webhookCalendlyConectado,
     diasSinActividad: programa.diasSinActividad,
     activo: programa.activo,
   };
@@ -169,6 +167,12 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       etiqueta: "Captación",
       descripcion: "Por dónde entran los leads y las citas.",
       href: urlConSeccion(base, query, "captacion"),
+    },
+    {
+      id: "integraciones",
+      etiqueta: "Integraciones",
+      descripcion: "Conexiones del programa con sus proveedores.",
+      href: urlConSeccion(base, query, "integraciones"),
     },
     {
       id: "ventas",
@@ -226,14 +230,15 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       activo: fila?.activo ?? false,
     };
   });
-  const estadoMeta = seccion === "general"
-    ? await estadoConexionMeta(db)
-    : { conectada: false as const };
-  const [cuentasMeta, consultaMeta] = seccion === "general"
+  const estadosIntegraciones = seccion === "integraciones"
+    ? await estadoDeIntegraciones(db, programa.id)
+    : [];
+  const metaConectada = estadosIntegraciones.find((estado) => estado.tipo === "meta")?.configurada ?? false;
+  const [cuentasMeta, consultaMeta] = seccion === "integraciones"
     ? await Promise.all([
         cuentasDelPrograma(db, programa.id),
-        configura && estadoMeta.conectada
-          ? cuentasDisponibles(db)
+        configura && metaConectada
+          ? cuentasDisponibles(db, programa.id)
               .then((disponibles) => ({ disponibles, error: null as string | null }))
               .catch((error: unknown) => ({
                 disponibles: [],
@@ -242,6 +247,11 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
           : Promise.resolve({ disponibles: [], error: null as string | null }),
       ])
     : [[], { disponibles: [], error: null }];
+  const integracionesVisibles = estadosIntegraciones.map((estado) => ({
+    ...estado,
+    probadaEn: estado.probadaEn ? fechaHoraEnBogota(estado.probadaEn) : null,
+    actualizadaEn: estado.actualizadaEn ? fechaHoraEnBogota(estado.actualizadaEn) : null,
+  }));
   const [reporteWhatsapp, objetivosDelReporte] = seccion === "general"
     ? await Promise.all([
         reporteDelPrograma(db, programa.id),
@@ -394,22 +404,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
               </Card>
 
               <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Cuentas de Meta</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CuentasDelPrograma
-                      programId={programa.id}
-                      conectada={estadoMeta.conectada}
-                      cuentas={cuentasMeta}
-                      disponibles={consultaMeta.disponibles}
-                      errorDeConsulta={consultaMeta.error}
-                      puedeEditar={configura}
-                    />
-                  </CardContent>
-                </Card>
-
-              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Reporte por WhatsApp</CardTitle>
                 </CardHeader>
@@ -511,41 +505,24 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 </Card>
               )}
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Calendly</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {programa.tieneTokenCalendly ? (
-                      <Badge variant="exito">Token cargado</Badge>
-                    ) : (
-                      <Badge variant="peligro">Sin token</Badge>
-                    )}
-                    {programa.webhookCalendlyConectado ? (
-                      <Badge variant="exito">Webhook conectado</Badge>
-                    ) : (
-                      <Badge variant="alerta">Webhook sin conectar</Badge>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground">
-                    {programa.tieneTokenCalendly
-                      ? programa.webhookCalendlyConectado
-                        ? "Las citas de Calendly llegan solas y se cuelgan del deal cuando no hay duda."
-                        : "Hay token, pero el webhook no está conectado: las citas nuevas no llegan solas."
-                      : "Sin token no se puede leer la fecha de una cita ni conectar el webhook."}
-                  </p>
-                  {programa.calendlyUrl ? (
-                    <a href={programa.calendlyUrl} target="_blank" rel="noreferrer" className={`${ENLACE} break-all`}>
-                      {programa.calendlyUrl}
-                    </a>
-                  ) : null}
-                  <p className="text-xs text-muted-foreground">
-                    La cuenta de Calendly de cada closer en este programa está en Equipo.
-                  </p>
-                </CardContent>
-              </Card>
             </div>
+          ) : null}
+
+          {seccion === "integraciones" ? (
+            <IntegracionesDelPrograma
+              programId={programa.id}
+              integraciones={integracionesVisibles}
+              cuentasMeta={cuentasMeta}
+              disponiblesMeta={consultaMeta.disponibles}
+              errorMeta={consultaMeta.error}
+              fuentes={(fuentesAdmin?.fuentes ?? []).filter((fuente) => fuente.activo && fuente.tipo === "webhook").map((fuente) => ({
+                id: fuente.id,
+                nombre: fuente.nombre,
+                proveedor: fuente.proveedor,
+                tieneSecreto: fuente.tieneSecreto,
+              }))}
+              hrefCaptacion={urlConSeccion(base, query, "captacion")}
+            />
           ) : null}
 
           {seccion === "ventas" ? (

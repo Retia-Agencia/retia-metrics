@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { calls, deals, entregasWebhook, leads, miembrosPrograma, notificacionesCalendly, programs, sobresCrudos, users } from "@/lib/db/schema";
+import { calls, deals, entregasWebhook, integraciones, leads, miembrosPrograma, notificacionesCalendly, programs, sobresCrudos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { agregarLlamada, reagendarLlamada } from "@/lib/deals/llamadas";
@@ -9,6 +9,7 @@ import { aplicarReglaDeDeal } from "@/lib/ingesta/regla-de-deals";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 /**
  * El webhook de Calendly (ticket 096, A5) invocando la RUTA real con eventos firmados,
@@ -103,14 +104,16 @@ beforeEach(async () => {
   holder.db = db;
   const [p] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500", calendlySigningKey: CLAVE })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" })
     .returning();
   programId = p.id;
   const [o] = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797", calendlySigningKey: CLAVE_OTRO })
+    .values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "797" })
     .returning();
   otroProgramId = o.id;
+  await sembrarIntegracion(db, programId, "calendly", { token: "token", claveFirma: CLAVE });
+  await sembrarIntegracion(db, otroProgramId, "calendly", { token: "token", claveFirma: CLAVE_OTRO });
   const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
   leadId = l.id;
   dealId = await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
@@ -138,7 +141,7 @@ describe("rechazos: la base no se mueve", () => {
   });
 
   it("programa sin clave (no conectado): 401 sin_secreto", async () => {
-    await db.update(programs).set({ calendlySigningKey: null }).where(eq(programs.id, programId));
+    await db.delete(integraciones).where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, "calendly")));
     expect((await enviar(creado("A"))).status).toBe(401);
     const [e] = await db.select().from(entregasWebhook);
     expect(e.motivo).toBe("sin_secreto");

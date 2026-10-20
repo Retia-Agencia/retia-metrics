@@ -12,6 +12,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { AuthorizationError, esAccesoTotal, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+import { tokenCalendly } from "@/lib/integraciones";
 
 /**
  * Usuarios y closers (ticket 015, ADR 0012), sobre el molde de catalogo.
@@ -659,7 +660,6 @@ export async function asignarCalendlyDeMembresia(
         email: users.email,
         rol: users.rol,
         operaComoCloser: users.operaComoCloser,
-        token: programs.calendlyToken,
       })
       .from(miembrosPrograma)
       .innerJoin(users, eq(users.id, miembrosPrograma.userId))
@@ -688,12 +688,13 @@ export async function asignarCalendlyDeMembresia(
       if (ocupada && ocupada.id !== membresiaId) {
         throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
       }
-      if (!m.token) {
+      const token = await tokenCalendly(db, m.programId);
+      if (!token) {
         throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo antes de vincular cuentas.", 409);
       }
       let cuentas;
       try {
-        cuentas = await cuentasDeCalendly({ token: m.token, fetch: opciones.fetch });
+        cuentas = await cuentasDeCalendly({ token, fetch: opciones.fetch });
       } catch (e) {
         if (e instanceof ErrorDeCalendly) throw new ErrorDeApp(e.message, 502);
         throw e;

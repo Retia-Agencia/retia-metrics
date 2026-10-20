@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { cuentasPublicitarias } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { estadoDeCuenta, type EstadoDeCuentaMeta } from "@/lib/pauta/meta-api";
+import type { TokensMeta } from "@/lib/integraciones";
 
 type FetchMeta = typeof globalThis.fetch;
 
@@ -38,7 +39,7 @@ export function diagnosticoDeCuenta(
 
 export async function saludDeCuentasMeta(
   db: Db,
-  args: { token: string; programIds: string[]; f?: FetchMeta },
+  args: { tokens: TokensMeta; programIds: string[]; f?: FetchMeta },
 ): Promise<Map<string, CuentaMetaSalud[]>> {
   const resultado = new Map(args.programIds.map((programId) => [programId, [] as CuentaMetaSalud[]]));
   if (args.programIds.length === 0) return resultado;
@@ -51,13 +52,17 @@ export async function saludDeCuentasMeta(
     eq(cuentasPublicitarias.activo, true),
     inArray(cuentasPublicitarias.programId, args.programIds),
   ));
-  const estados = await Promise.allSettled(cuentas.map((cuenta) =>
-    estadoDeCuenta(cuenta.idMeta, args.token, args.f),
-  ));
+  const estados = await Promise.allSettled(cuentas.map((cuenta) => {
+    const token = args.tokens.get(cuenta.programId);
+    if (!token) throw new Error("El programa no tiene Meta conectado en Integraciones.");
+    return estadoDeCuenta(cuenta.idMeta, token, args.f);
+  }));
 
   for (const [indice, cuenta] of cuentas.entries()) {
     const estado = estados[indice]!;
-    const salud: CuentaMetaSalud = estado.status === "fulfilled"
+    const salud: CuentaMetaSalud = !args.tokens.has(cuenta.programId)
+      ? { nombre: cuenta.nombre, estado: "problema", detalle: "el programa no tiene Meta conectado en Integraciones" }
+      : estado.status === "fulfilled"
       ? { nombre: cuenta.nombre, ...diagnosticoDeCuenta(estado.value) }
       : { nombre: cuenta.nombre, estado: "problema", detalle: "no se pudo leer en Meta" };
     resultado.get(cuenta.programId)!.push(salud);

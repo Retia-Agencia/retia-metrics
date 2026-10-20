@@ -14,6 +14,7 @@ import {
 } from "./cita";
 import { EVENTOS_CALENDLY } from "./evento-webhook";
 import { rutaDelWebhookDeCalendly } from "./suscripcion";
+import { tokenCalendly } from "@/lib/integraciones";
 
 /**
  * Auditoria de Calendly (ticket 270), nacida del incidente del 15-oct: una cita
@@ -164,21 +165,22 @@ export async function auditarCalendly(
   opciones: { fetch?: FetchLike; ahora?: Date } = {},
 ): Promise<AuditoriaCalendly> {
   const [programa] = await db
-    .select({ token: programs.calendlyToken })
+    .select({ id: programs.id })
     .from(programs)
     .where(eq(programs.id, programId));
   if (!programa) throw new ErrorDeApp("No existe un programa con ese id.", 404);
-  if (!programa.token) return { estado: "sin_token" };
+  const token = await tokenCalendly(db, programId);
+  if (!token) return { estado: "sin_token" };
 
   const fetchImpl = opciones.fetch ?? (globalThis.fetch as unknown as FetchLike);
   const ahora = opciones.ahora ?? new Date();
   try {
     if (!fetchImpl) throw new ErrorDeCalendly("No hay implementación de fetch disponible.");
-    const organizacion = await organizacionDelToken(fetchImpl, programa.token);
+    const organizacion = await organizacionDelToken(fetchImpl, token);
     const suscripciones = await coleccionCompleta(
       fetchImpl,
       `${BASE}/webhook_subscriptions?organization=${encodeURIComponent(organizacion)}&scope=organization&count=100`,
-      programa.token,
+      token,
       "suscripciones",
     );
     const suscripcion = estadoDeSuscripcion(suscripciones, programId);
@@ -188,13 +190,13 @@ export async function auditarCalendly(
     const eventosCrudos = await coleccionCompleta(
       fetchImpl,
       `${BASE}/scheduled_events?organization=${encodeURIComponent(organizacion)}&min_start_time=${encodeURIComponent(desde.toISOString())}&max_start_time=${encodeURIComponent(hastaInicio.toISOString())}&count=100`,
-      programa.token,
+      token,
       "eventos",
     );
     const eventos = eventosCrudos.filter(
       (evento): evento is EventoCalendly => typeof evento === "object" && evento !== null,
     );
-    const todos = await invitadosDeEventos(fetchImpl, programa.token, eventos);
+    const todos = await invitadosDeEventos(fetchImpl, token, eventos);
     const limiteReciente = ahora.getTime() - 10 * MINUTO;
     const revisados = todos.filter(({ invitado }) => {
       if (typeof invitado.created_at !== "string") return false;
@@ -220,7 +222,7 @@ export async function auditarCalendly(
         cadena.push(uuidNuevo);
         const conocido = porUuid.get(uuidNuevo)?.invitado;
         invitado =
-          conocido ?? (await recursoInvitado(fetchImpl, programa.token, invitado.new_invitee));
+          conocido ?? (await recursoInvitado(fetchImpl, token, invitado.new_invitee));
         if (!conocido) porUuid.set(uuidNuevo, { invitado, evento: entrada.evento });
       }
       cadenas.set(entrada, cadena);

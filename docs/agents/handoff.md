@@ -27,6 +27,20 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-19 (noche): 278 Programa › Integraciones construido y en producción (ADR 0095).** Decidido con Mani en
+  `/grill-with-docs` (las 6 preguntas del ticket): tabla `integraciones` (programa, tipo `pgEnum`, `secretos` jsonb,
+  `config`, `probada_en`); entran Dapta, Typeform, Calendly y **Meta por programa**; el HMAC y Form30x se quedan fuera
+  como heredados; un solo molde en `lib/integraciones/` (registro `INTEGRACIONES` con `probar()`, un escritor con
+  `change_log` oculto, lectores por tipo, guardián `tests/integraciones-guardian.test.ts`). La **0094** se aplicó en
+  producción el 19-oct y copió en SQL 4 Calendly (token y clave de firma), 3 Typeform y 3 Meta (los programas con
+  cuentas). Se retiraron el token de Typeform de las fuentes, la tarjeta Calendly de Captación, Cuentas de Meta de
+  General y **Ajustes › Meta** (el paid trafficker deja de ver la conexión). Codex implementó; la sesión corrió
+  typecheck, lint, build y 53 archivos de tests (todo verde; la suite completa la decide el CI, máquina sin aire).
+  **Pendiente:** (1) recorrido visual de la pestaña (no se hizo: 11 GB de swap); (2) **paso 2**, otra migración que
+  borra `programs.calendly_token`, `programs.calendly_signing_key`, `sources.typeform_token` y `meta_conexiones`
+  cuando producción muestre citas, envíos y gasto entrando; (3) el 281 agrega `meta_capi` al enum (su enmienda del
+  278, fase A); (4) el 280 tenía sin commitear una lectura de `programs.calendlyToken` en `usuarios.ts`: se le avisó
+  que use `tokenCalendly`. Lo de la 0095 del 280 no se tocó.
 - **2026-10-16 (tarde): export CSV de Grain (275) y salud de las cuentas de Meta (276).** El **275** (botón
   "Descargar Grain (CSV)" en Calls: las llamadas con Grain que muestra la lista con los filtros de la URL, sin paginar)
   lo implementó Codex en la rama `t275` (worktree `.claude/worktrees/t275`): la lectura de filtros de Calls pasó a
