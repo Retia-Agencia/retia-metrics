@@ -298,6 +298,19 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "calendly", "escritura.ts")]:
       "identidad del dueño del deal: qué evento de Calendly tiene su membresía activa",
 
+    // El round robin de un programa (ticket 289, ADR 0098): antes de guardarlo mira si esa URI
+    // ya es el evento personal de alguna membresía, de cualquier programa. Es unicidad del
+    // event type entre tablas, no acota ninguna lectura a una sesión: el acceso al programa
+    // ya lo decidió la acción (`actorGerente`).
+    [path.join("lib", "calendly", "round-robin.ts")]:
+      "unicidad del event type: un round robin no puede ser el evento personal de nadie",
+
+    // Los eventos de un programa (ticket 289, ADR 0098): el webhook lee los eventos personales
+    // de las membresías activas para decidir si una cita es del programa. No hay sesión (lo
+    // llama el sistema) y no acota ninguna lectura: es la pertenencia de una cita.
+    [path.join("lib", "calendly", "pertenencia.ts")]:
+      "pertenencia de una cita: los eventos personales de las membresías activas del programa",
+
     // El setter por defecto del programa (ticket 210): "¿qué miembro ACTIVO recibe los deals
     // que nacen sin agenda?", y su configuración por quien administra. Es identidad, como la
     // host de una cita: decide de quién es un deal, lo pregunta la ingesta sin sesión, y no
