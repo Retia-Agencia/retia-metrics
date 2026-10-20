@@ -71,7 +71,7 @@ cualquier momento.
   neutro (sin nombres internos). Cancelar otra vez → **403** `Event is already canceled` (no 409): se trata como éxito.
 - Sin probar: cancelar un evento pasado (documentado como `Event in the past`).
 - Residuo en producción: la llamada suelta cancelada `0953a21e-f3e8-4151-a045-187e7c084615` (Confianza, sin deal),
-  pendiente de anular.
+  anulada el 19-oct con rastro (motivo: cita de prueba del spike).
 
 ## Done cuando
 
