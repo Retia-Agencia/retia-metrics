@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { CuentaDeCalendly, CuentasDelPrograma } from "@/lib/calendly/cuentas";
 import type { EntradaCalendlyDeMembresia, MembresiaConCalendly } from "@/lib/catalogo/usuarios";
 import { trabajaLeads } from "@/lib/auth/roles";
+import { asignarEventoDeMembresiaAccion, eventosDeMembresiaAccion } from "@/app/(app)/acciones-calendly";
+import type { TipoDeEventoCalendly } from "@/lib/calendly/escritura";
 
 /**
  * La cuenta de Calendly de cada closer, por programa. La usan `/ajustes/usuarios` y
@@ -155,6 +157,23 @@ export function FilaMembresia({
   const [guardada, setGuardada] = useState(membresia.calendlyEmail);
   const [valor, setValor] = useState(membresia.calendlyEmail ?? SIN_CUENTA);
   const [error, setError] = useState<string | null>(null);
+  const [eventos, setEventos] = useState<TipoDeEventoCalendly[]>([]);
+  const [evento, setEvento] = useState(membresia.calendlyEventType ?? "");
+  const [errorEvento, setErrorEvento] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!guardada) {
+      setEventos([]);
+      return;
+    }
+    let vigente = true;
+    eventosDeMembresiaAccion(membresia.id).then((res) => {
+      if (!vigente) return;
+      if (res.ok) setEventos(res.eventos);
+      else setErrorEvento(res.error);
+    });
+    return () => { vigente = false; };
+  }, [guardada, membresia.id]);
 
   // La guardada puede ya no estar en Calendly (alguien salio de la organizacion): se
   // muestra igual, marcada, para que se vea y se pueda cambiar.
@@ -187,6 +206,23 @@ export function FilaMembresia({
     });
   }
 
+  function guardarEvento(nuevo: string) {
+    const anterior = evento;
+    setEvento(nuevo);
+    setErrorEvento(null);
+    startTransition(async () => {
+      const res = await asignarEventoDeMembresiaAccion({ membresiaId: membresia.id, calendlyEventType: nuevo || null });
+      if (!res.ok) {
+        setEvento(anterior);
+        setErrorEvento(res.error);
+        toast.error("No se pudo guardar el evento", { description: res.error });
+        return;
+      }
+      toast.success("Evento de Calendly guardado");
+      router.refresh();
+    });
+  }
+
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
       <span className="min-w-0">
@@ -214,7 +250,21 @@ export function FilaMembresia({
             </option>
           ))}
             </select>
+            {guardada ? (
+              <select
+                value={evento}
+                onChange={(e) => guardarEvento(e.target.value)}
+                disabled={pendiente}
+                aria-label={`Evento de Calendly de ${membresia.usuario}`}
+                className="h-8 max-w-64 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <option value="">Sin evento personal</option>
+                {evento && !eventos.some((e) => e.uri === evento) ? <option value={evento}>Evento guardado (ya no disponible)</option> : null}
+                {eventos.map((e) => <option key={e.uri} value={e.uri}>{e.nombre}</option>)}
+              </select>
+            ) : null}
             {error ? <span className="max-w-64 text-xs text-destructive">{error}</span> : null}
+            {errorEvento ? <span className="max-w-64 text-xs text-destructive">{errorEvento}</span> : null}
           </>
         ) : null}
         {extra}

@@ -30,6 +30,10 @@
 /** Una cita de Calendly emparejada por uuid: su inicio y si esta cancelada. */
 export interface CitaDeCalendly {
   inicio: Date;
+  /** URI del evento programado; es la que acepta el endpoint de cancelacion. */
+  eventUri: string;
+  /** Link de la videollamada, cuando Calendly ya lo genero. */
+  joinUrl: string | null;
   /** El evento o el invitado quedaron en estado `canceled`. */
   cancelada: boolean;
   /**
@@ -63,7 +67,7 @@ export class ErrorDeCalendly extends Error {
 /** La firma de `fetch` que este modulo usa (subconjunto de la global). */
 export type FetchLike = (
   url: string,
-  init?: { method?: string; headers?: Record<string, string> },
+  init?: { method?: string; headers?: Record<string, string>; body?: string },
 ) => Promise<{
   ok: boolean;
   status: number;
@@ -191,6 +195,7 @@ interface EventoCalendly {
   created_at?: unknown;
   status?: unknown;
   event_memberships?: unknown;
+  location?: unknown;
 }
 
 /** Busca el uuid exacto entre los invitados de un evento y arma la cita compartida. */
@@ -227,7 +232,16 @@ async function citaDelEvento(
     // dos formas basta: un lead que reagenda cancela su invitado, y el organizador
     // que cancela la reunion marca el evento.
     const cancelada = evento.status === "canceled" || inv.status === "canceled";
-    return { inicio: fecha, cancelada, correoHost: correoDelHost(evento) };
+    const location = typeof evento.location === "object" && evento.location !== null
+      ? evento.location as { join_url?: unknown }
+      : null;
+    return {
+      inicio: fecha,
+      cancelada,
+      correoHost: correoDelHost(evento),
+      eventUri,
+      joinUrl: typeof location?.join_url === "string" ? location.join_url : null,
+    };
   }
 
   return null;

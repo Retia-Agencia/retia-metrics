@@ -8,6 +8,8 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import { cuentasDeCalendly } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
+import { eventosDelUsuario } from "@/lib/calendly/escritura";
+import { editarConRastro } from "@/lib/crm/rastro";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { AuthorizationError, esAccesoTotal, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
@@ -738,6 +740,58 @@ export async function asignarCalendlyDeMembresia(
   });
 }
 
+const esquemaEventoDeMembresia = z.object({
+  membresiaId: z.string().uuid("La membresía no es válida."),
+  calendlyEventType: z.string().url("El evento de Calendly no es válido.").nullable(),
+});
+
+export type EntradaEventoDeMembresia = z.input<typeof esquemaEventoDeMembresia>;
+
+export async function asignarEventoDeMembresia(
+  db: Db,
+  actorId: string,
+  input: EntradaEventoDeMembresia,
+  opciones: { fetch?: FetchLike } = {},
+): Promise<void> {
+  return normalizando(async () => {
+    const datos = esquemaEventoDeMembresia.parse(input);
+    const [m] = await db
+      .select({
+        id: miembrosPrograma.id,
+        userId: miembrosPrograma.userId,
+        activo: miembrosPrograma.activo,
+        programId: miembrosPrograma.programId,
+        calendlyEmail: miembrosPrograma.calendlyEmail,
+        actual: miembrosPrograma.calendlyEventType,
+        email: users.email,
+        token: programs.calendlyToken,
+      })
+      .from(miembrosPrograma)
+      .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+      .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
+      .where(eq(miembrosPrograma.id, datos.membresiaId));
+    if (!m?.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    const [actor] = await db.select().from(users).where(eq(users.id, actorId));
+    if (!actor?.activo || !puedeTocarMembresia(actor.rol, actorId, m.userId)) {
+      throw new AuthorizationError("Solo puedes cambiar tu propio evento de Calendly.");
+    }
+    if (m.actual === datos.calendlyEventType) return;
+    if (datos.calendlyEventType !== null) {
+      if (!m.token) throw new ErrorDeApp("El programa no tiene conectado Calendly.", 422);
+      if (!m.calendlyEmail) throw new ErrorDeApp("Vincula primero la cuenta de Calendly.", 422);
+      const eventos = await eventosDelUsuario(m.token, m.calendlyEmail, opciones.fetch);
+      if (!eventos.some((evento) => evento.uri === datos.calendlyEventType)) {
+        throw new ErrorDeApp("Ese evento no pertenece a la cuenta de Calendly vinculada.", 422);
+      }
+    }
+    await editarConRastro(
+      { db, tabla: miembrosPrograma, nombreTabla: "miembros_programa", actorId, etiqueta: m.email },
+      m.id,
+      { calendlyEventType: datos.calendlyEventType },
+    );
+  });
+}
+
 /** Una membresia activa de alguien que trabaja leads, con su cuenta de Calendly. */
 export interface MembresiaConCalendly {
   id: string;
@@ -746,6 +800,7 @@ export interface MembresiaConCalendly {
   emailUsuario: string;
   programId: string;
   calendlyEmail: string | null;
+  calendlyEventType: string | null;
   rol: Rol;
   operaComoCloser: boolean;
   setterPorDefecto: boolean;
@@ -789,6 +844,7 @@ async function consultarMembresiasConCalendly(
       email: users.email,
       programId: miembrosPrograma.programId,
       calendlyEmail: miembrosPrograma.calendlyEmail,
+      calendlyEventType: miembrosPrograma.calendlyEventType,
       rol: users.rol,
       operaComoCloser: users.operaComoCloser,
       setterPorDefecto: miembrosPrograma.setterPorDefecto,
@@ -804,6 +860,7 @@ async function consultarMembresiasConCalendly(
       emailUsuario: f.email,
       programId: f.programId,
       calendlyEmail: f.calendlyEmail,
+      calendlyEventType: f.calendlyEventType,
       rol: f.rol,
       operaComoCloser: f.operaComoCloser,
       setterPorDefecto: f.setterPorDefecto,

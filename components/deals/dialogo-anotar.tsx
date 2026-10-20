@@ -6,10 +6,11 @@ import { anotarAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { pendientesParaAnotar, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
-import { hoyEnBogota, instanteDeBogota } from "@/lib/format";
+import { hoyEnBogota } from "@/lib/format";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { Campo, DialogoForm, claseInput, claseTextarea } from "./ficha/campos";
 import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
+import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
 
 type Eleccion = "ninguno" | PendienteDeal;
 
@@ -34,8 +35,7 @@ export function DialogoAnotar({
   const [proximoContacto, setProximoContacto] = useState("");
   const [cohorteDestinoId, setCohorteDestinoId] = useState<string | null>(null);
   const [motivoId, setMotivoId] = useState<string | null>(null);
-  const [fechaLlamada, setFechaLlamada] = useState("");
-  const [horaLlamada, setHoraLlamada] = useState("09:00");
+  const [fechaLlamada, setFechaLlamada] = useState<Date | null>(null);
   const [guardando, setGuardando] = useState(false);
   const ofrecidos = pendientesParaAnotar(etapa, pendienteActual);
   const motivosReagenda = opciones.motivos.filter((m) => m.tipo === "reagenda");
@@ -47,15 +47,10 @@ export function DialogoAnotar({
     || (eleccion === "reagenda" && (
       !motivoId
       || (motivoElegido?.pideTexto === true && comentario.trim() === "")
-      || (fechaLlamada !== "" && horaLlamada === "")
     ));
 
   async function guardar() {
-    const nuevaLlamada = fechaLlamada ? instanteDeBogota(fechaLlamada, horaLlamada) : null;
-    if (fechaLlamada && !nuevaLlamada) {
-      toast.error("La fecha de la nueva llamada no es válida.");
-      return;
-    }
+    const nuevaLlamada = fechaLlamada;
     setGuardando(true);
     const resultado = await anotarAccion({
       dealId,
@@ -155,16 +150,7 @@ export function DialogoAnotar({
                   </SelectContent>
                 </Select>
               </Campo>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Campo etiqueta="Nueva llamada (opcional)">
-                  <input type="date" className={claseInput} min={hoyEnBogota()} value={fechaLlamada} onChange={(e) => setFechaLlamada(e.currentTarget.value)} />
-                </Campo>
-                {fechaLlamada ? (
-                  <Campo etiqueta="Hora de Bogotá">
-                    <input type="time" className={claseInput} value={horaLlamada} onChange={(e) => setHoraLlamada(e.currentTarget.value)} />
-                  </Campo>
-                ) : null}
-              </div>
+              <SelectorDeHora dealId={dealId} valor={fechaLlamada} onChange={setFechaLlamada} />
             </>
           ) : null}
         </DialogoForm>

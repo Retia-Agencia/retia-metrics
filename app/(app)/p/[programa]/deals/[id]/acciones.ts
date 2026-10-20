@@ -12,7 +12,7 @@ import { esRolValido, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { abonos, calls, deals, etapaDealEnum, leadContactos, pendienteDealEnum } from "@/lib/db/schema";
+import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDealEnum } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
@@ -28,7 +28,8 @@ import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
-import { completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
+import { agregarLlamada, completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
+import { eventoParaAgendar, horasDisponibles, reservarCita, type CitaReservada } from "@/lib/calendly/escritura";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { marcarCortesia } from "@/lib/deals/cortesia";
@@ -210,7 +211,9 @@ export async function moverConHechoAccion(
           ? { ...datos.hecho, moneda: "USD" as const, archivo }
           : undefined;
     // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
-    const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho });
+    if (hecho?.tipo === "agendado") await exigirSinCitaAgendada(datos.dealId);
+    const cita = hecho?.tipo === "agendado" ? await reservarParaDeal(datos.dealId, hecho.fechaAgenda) : undefined;
+    const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho }, { cita });
     return { etapa, resumen: resumenDelCambio(cambio) };
   });
 }
@@ -314,7 +317,8 @@ export async function anotarAccion(
     const datos = esquemaAnotar.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
     // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
-    const { cambio, ...resto } = await anotar(db, ctx.actor, datos);
+    const cita = datos.reagenda?.fechaLlamada ? await reservarParaDeal(datos.dealId, datos.reagenda.fechaLlamada) : undefined;
+    const { cambio, ...resto } = await anotar(db, ctx.actor, datos, { cita });
     return { ...resto, resumen: resumenDelCambio(cambio) };
   });
 }
@@ -637,19 +641,21 @@ const esquemaReagendar = z.object({
   callId: id("Llamada inválida."),
   dia,
   hora,
-  linkCalendly: textoOpcional(z.string().url("El link de la reunión no es una URL válida.")),
   notas: textoOpcional(z.string().max(2000)),
 });
 export type EntradaReagendar = z.input<typeof esquemaReagendar>;
 
 /** Cierra la cita vieja (`reagendada`) y crea la nueva en la misma transacción (`reagendarLlamada`). */
-export async function reagendarLlamadaAccion(entrada: EntradaReagendar): Promise<ResultadoFicha<{ movioAAgendado: boolean }>> {
+export async function reagendarLlamadaAccion(entrada: EntradaReagendar): Promise<ResultadoFicha<{ movioAAgendado: boolean; cancelacionPendiente: boolean }>> {
   return correr(async (ctx) => {
     const { actor } = ctx;
-    const { callId, dia: d, hora: h, linkCalendly, notas } = esquemaReagendar.parse(entrada);
+    const { callId, dia: d, hora: h, notas } = esquemaReagendar.parse(entrada);
     await exigirLlamadaVisible(ctx, callId);
-    const r = await reagendarLlamada(db, actor, { callId, fechaAgenda: instante(d, h), linkCalendly, notas });
-    return { movioAAgendado: r.movioAAgendado };
+    const [llamada] = await db.select({ dealId: calls.dealId }).from(calls).where(and(eq(calls.id, callId), vigente(calls)));
+    if (!llamada?.dealId) throw new ErrorDeApp("La llamada no pertenece a un deal.", 409);
+    const cita = await reservarParaDeal(llamada.dealId, instante(d, h));
+    const r = await reagendarLlamada(db, actor, { callId, cita, notas });
+    return { movioAAgendado: r.movioAAgendado, cancelacionPendiente: r.cancelacionPendiente };
   });
 }
 
@@ -660,12 +666,62 @@ const esquemaFallida = z.object({
 });
 export type EntradaMarcarFallida = z.input<typeof esquemaFallida>;
 
-export async function marcarFallidaAccion(entrada: EntradaMarcarFallida): Promise<ResultadoFicha<{ etapa: string }>> {
+export async function marcarFallidaAccion(entrada: EntradaMarcarFallida): Promise<ResultadoFicha<{ etapa: string; cancelacionPendiente: boolean }>> {
   return correr(async (ctx) => {
     const { actor } = ctx;
     const { callId, resultado, motivoId } = esquemaFallida.parse(entrada);
     await exigirLlamadaVisible(ctx, callId);
     const r = await marcarFallida(db, actor, { callId, resultado, motivoId });
-    return { etapa: r.etapa };
+    return { etapa: r.etapa, cancelacionPendiente: r.cancelacionPendiente ?? false };
+  });
+}
+
+async function reservarParaDeal(dealId: string, fecha: Date): Promise<CitaReservada> {
+  const [invitado] = await db
+    .select({ nombre: leads.nombre, correo: leads.emailNormalizado })
+    .from(deals)
+    .innerJoin(leads, eq(leads.id, deals.leadId))
+    .where(and(eq(deals.id, dealId), vigente(deals)));
+  if (!invitado?.correo) throw new ErrorDeApp("El lead no tiene correo para reservar en Calendly.", 422);
+  const evento = await eventoParaAgendar(db, dealId);
+  return reservarCita(evento.token, {
+    eventTypeUri: evento.eventTypeUri,
+    startTime: fecha,
+    invitado: { nombre: invitado.nombre ?? invitado.correo, correo: invitado.correo },
+    conLocation: evento.conLocation,
+    tracking: evento.tracking,
+  });
+}
+
+async function exigirSinCitaAgendada(dealId: string): Promise<void> {
+  const [activa] = await db
+    .select({ id: calls.id })
+    .from(calls)
+    .where(and(eq(calls.dealId, dealId), eq(calls.resultado, "agendada"), vigente(calls)));
+  if (activa) throw new ErrorDeApp("El deal ya tiene una cita agendada.", 409);
+}
+
+const esquemaHoras = z.object({ dealId: id("Deal inválido."), desde: z.date(), hasta: z.date() });
+
+export async function horasDisponiblesAccion(entrada: z.input<typeof esquemaHoras>): Promise<ResultadoFicha<{ horas: string[]; etiqueta: string }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaHoras.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    const evento = await eventoParaAgendar(db, datos.dealId);
+    const horas = await horasDisponibles(evento.token, evento.eventTypeUri, datos.desde, datos.hasta);
+    return { horas: horas.map((fecha) => fecha.toISOString()), etiqueta: evento.etiqueta };
+  });
+}
+
+const esquemaAgendar = z.object({ dealId: id("Deal inválido."), fecha: z.date(), notas: textoOpcional(z.string().max(2000)) });
+
+export async function agendarLlamadaAccion(entrada: z.input<typeof esquemaAgendar>): Promise<ResultadoFicha<{ movioAAgendado: boolean }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaAgendar.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    await exigirSinCitaAgendada(datos.dealId);
+    const cita = await reservarParaDeal(datos.dealId, datos.fecha);
+    const resultado = await agregarLlamada(db, ctx.actor, { dealId: datos.dealId, cita, notas: datos.notas });
+    return { movioAAgendado: resultado.movioAAgendado };
   });
 }

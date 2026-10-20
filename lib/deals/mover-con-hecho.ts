@@ -6,6 +6,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { ErrorDeApp } from "@/lib/errors";
 import { reclamarAlMoverPorE1 } from "./cambiar-dueno";
 import { agregarLlamada, marcarShow, pegarGrain } from "./llamadas";
+import type { CitaReservada } from "@/lib/calendly/escritura";
 import { registrarAbono, type DatosRegistrarAbono } from "./abonos";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { exigirTextoDelMotivo } from "./motivo-con-texto";
@@ -52,6 +53,7 @@ export async function moverConHecho(
   db: Db,
   actor: ActorDeDeal,
   entrada: DatosMoverConHecho,
+  opciones: { cita?: CitaReservada } = {},
 ): Promise<{ etapa: EtapaDeal; cambio: CambioHecho }> {
   return (db as unknown as Transaccion).transaction(async (tx) => {
     const { deal: inicial, emailLead } = await dealBloqueadoConLead(tx, entrada.dealId);
@@ -123,16 +125,27 @@ export async function moverConHecho(
     // sin callId): de ahí sale `llamadaCreada` del aviso. Null si no se creó ninguna.
     let fechaLlamadaCreada: Date | null = null;
     if (entrada.hecho?.tipo === "agendado") {
-      await agregarLlamada(tx, actor, { dealId: inicial.id, fechaAgenda: entrada.hecho.fechaAgenda });
+      await agregarLlamada(tx, actor, opciones.cita
+        ? { dealId: inicial.id, cita: opciones.cita }
+        : { dealId: inicial.id, fechaAgenda: entrada.hecho.fechaAgenda });
       fechaLlamadaCreada = entrada.hecho.fechaAgenda;
     } else if (entrada.hecho?.tipo === "atendido") {
       let callId = entrada.hecho.callId;
       if (!callId) {
         if (!entrada.hecho.fechaAgenda) throw new ErrorDeApp("Falta la fecha de la llamada.", 422);
-        callId = (await agregarLlamada(tx, actor, {
-          dealId: inicial.id,
-          fechaAgenda: entrada.hecho.fechaAgenda,
-        })).callId;
+        callId = await crearConRastro(
+          { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: emailLead ?? inicial.id },
+          {
+            dealId: inicial.id,
+            programId: inicial.programId,
+            cohortId: inicial.cohortId,
+            emailLead,
+            closerUserId: actor.userId,
+            fechaAgenda: entrada.hecho.fechaAgenda,
+            resultado: "agendada" as const,
+            origen: "crm",
+          },
+        );
         fechaLlamadaCreada = entrada.hecho.fechaAgenda;
       } else {
         const [llamada] = await tx

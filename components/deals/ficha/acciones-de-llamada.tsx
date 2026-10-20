@@ -3,14 +3,14 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { hoyEnBogota } from "@/lib/format";
+import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
 import {
   marcarFallidaAccion,
   marcarShowAccion,
   reagendarLlamadaAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
-import { Campo, claseInput, claseTextarea, DialogoForm } from "./campos";
+import { Campo, claseTextarea, DialogoForm } from "./campos";
 import { CampoGrain } from "./campo-grain";
 import { useAccion } from "./uso-accion";
 
@@ -117,7 +117,7 @@ export function AccionesDeLlamada({
         <DialogoFallida callId={callId} resultado={dialogo} motivos={motivosReagenda} onCerrar={() => setDialogo(null)} onCambio={onCambio} />
       ) : null}
       {dialogo === "reagendar" ? (
-        <DialogoReagendar callId={callId} onCerrar={() => setDialogo(null)} onCambio={onCambio} />
+        <DialogoReagendar callId={callId} dealId={dealId!} onCerrar={() => setDialogo(null)} onCambio={onCambio} />
       ) : null}
     </div>
   );
@@ -207,7 +207,9 @@ function DialogoFallida({
         enCurso: "Guardando…",
         onClick: () =>
           correr(() => marcarFallidaAccion({ callId, resultado, motivoId: motivoId ?? undefined }), {
-            exito: "Marcada: el deal quedó con Re-agenda pendiente.",
+            exito: (r) => r.cancelacionPendiente
+              ? "Marcada en el CRM. La cancelación en Calendly quedó pendiente."
+              : "Marcada: el deal quedó con Re-agenda pendiente.",
             alExito: () => { onCambio?.(); onCerrar(); },
           }),
       }}
@@ -246,11 +248,9 @@ function DialogoFallida({
   );
 }
 
-function DialogoReagendar({ callId, onCerrar, onCambio }: { callId: string; onCerrar: () => void; onCambio?: () => void }) {
+function DialogoReagendar({ callId, dealId, onCerrar, onCambio }: { callId: string; dealId: string; onCerrar: () => void; onCambio?: () => void }) {
   const { pendiente, correr } = useAccion();
-  const [dia, setDia] = useState(hoyEnBogota());
-  const [hora, setHora] = useState("");
-  const [link, setLink] = useState("");
+  const [fecha, setFecha] = useState<Date | null>(null);
   const [notas, setNotas] = useState("");
   return (
     <DialogoForm
@@ -258,28 +258,25 @@ function DialogoReagendar({ callId, onCerrar, onCambio }: { callId: string; onCe
       descripcion="Esta cita queda como reagendada y se crea una nueva con su fecha. Si el deal está en una etapa previa, pasa a Agendado."
       pendiente={pendiente}
       onCerrar={onCerrar}
-      deshabilitarConfirmar={!dia || !hora}
+      deshabilitarConfirmar={!fecha}
       confirmar={{
         texto: "Reagendar",
         enCurso: "Reagendando…",
         onClick: () =>
-          correr(() => reagendarLlamadaAccion({ callId, dia, hora, linkCalendly: link, notas }), {
-            exito: (r) => (r.movioAAgendado ? "Reagendada: el deal pasó a Agendado." : "Reagendada: la nueva cita quedó agendada."),
+          correr(() => {
+            if (!fecha) throw new Error("Elige una hora disponible.");
+            const partes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(fecha);
+            const parte = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((p) => p.type === tipo)?.value ?? "";
+            return reagendarLlamadaAccion({ callId, dia: `${parte("year")}-${parte("month")}-${parte("day")}`, hora: `${parte("hour")}:${parte("minute")}`, notas });
+          }, {
+            exito: (r) => r.cancelacionPendiente
+              ? "La nueva cita quedó agendada; falta cancelar la anterior en Calendly."
+              : r.movioAAgendado ? "Reagendada: el deal pasó a Agendado." : "Reagendada: la nueva cita quedó agendada.",
             alExito: () => { onCambio?.(); onCerrar(); },
           }),
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Día de la cita" ayuda="Hora de Bogotá.">
-          <input type="date" className={claseInput} value={dia} onChange={(e) => setDia(e.target.value)} />
-        </Campo>
-        <Campo etiqueta="Hora">
-          <input type="time" className={claseInput} value={hora} onChange={(e) => setHora(e.target.value)} />
-        </Campo>
-      </div>
-      <Campo etiqueta="Link de la reunión (opcional)" ayuda="Calendly, Meet, Zoom o el que acordaron">
-        <input type="url" className={claseInput} value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://calendly.com/…" />
-      </Campo>
+      <SelectorDeHora dealId={dealId} valor={fecha} onChange={setFecha} />
       <Campo etiqueta="Notas (opcional)">
         <textarea className={claseTextarea} value={notas} onChange={(e) => setNotas(e.target.value)} />
       </Campo>

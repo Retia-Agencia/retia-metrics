@@ -32,6 +32,7 @@ import { fechaDeInstanteEnBogota, fechaHoraEnBogota, hoyEnBogota, monto } from "
 import { proximoContactoSugerido } from "@/lib/deals/proximo-contacto";
 import { Campo, claseTextarea } from "./ficha/campos";
 import { FormularioAbono, datosInicialesDeAbono, type DatosFormularioAbono } from "./formulario-abono";
+import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
 
 /**
  * El dialogo de una respuesta de la pregunta de la etapa (ADR 0072): recoge lo que la
@@ -186,6 +187,7 @@ export function DialogoMover({
     ...(movimiento.hecho === "abono" ? { abono: datosInicialesDeAbono() } : {}),
   });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
+  const [fechaCalendly, setFechaCalendly] = useState<Date | null>(null);
   // El texto del descuento vive aparte del numero: un input controlado por un numero no se
   // deja borrar (al vaciarlo vuelve a pintar el 0) ni escribir con soltura.
   const [textoDescuento, setTextoDescuento] = useState("");
@@ -339,14 +341,17 @@ export function DialogoMover({
           ) : null}
 
           {movimiento.hecho === "agendado" ? (
-            <section className="grid grid-cols-2 gap-3">
-              <Campo etiqueta="Día de la cita" ayuda="Hora de Bogotá.">
-                <input type="date" className={claseInput} value={datos.llamada?.dia ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: e.target.value } }))} />
-              </Campo>
-              <Campo etiqueta="Hora">
-                <input type="time" className={claseInput} value={datos.llamada?.hora ?? ""} onChange={(e) => setDatos((d) => ({ ...d, llamada: { ...d.llamada!, hora: e.target.value } }))} />
-              </Campo>
-            </section>
+            <SelectorDeHora
+              dealId={dealId}
+              valor={fechaCalendly}
+              onChange={(fecha) => {
+                setFechaCalendly(fecha);
+                if (!fecha) return setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: "", hora: "" } }));
+                const partes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(fecha);
+                const parte = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((p) => p.type === tipo)?.value ?? "";
+                setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: `${parte("year")}-${parte("month")}-${parte("day")}`, hora: `${parte("hour")}:${parte("minute")}` } }));
+              }}
+            />
           ) : null}
 
           {movimiento.hecho === "abono" && datos.abono ? (

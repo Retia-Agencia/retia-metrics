@@ -10,11 +10,14 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { citaActiva, ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import type { FichaDeLlamada, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
-import { completarAgendadaAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { Campo, claseInput, Vacio } from "./campos";
+import { agendarLlamadaAccion, completarAgendadaAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { Campo, claseInput, DialogoForm, Vacio } from "./campos";
 import { CampoGrain } from "./campo-grain";
 import { AccionesDeLlamada } from "./acciones-de-llamada";
 import { useAccion } from "./uso-accion";
+import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
+import type { EtapaDeal } from "@/lib/deals/etapas";
+import type { PendienteDeal } from "@/lib/deals/etapas";
 
 /**
  * Las llamadas del deal (ticket 074, ADR 0037, ADR 0015; segunda pasada, ticket 176):
@@ -30,12 +33,16 @@ import { useAccion } from "./uso-accion";
 export function FichaLlamadas({
   llamadas,
   dealId,
+  etapa,
+  pendiente,
   opciones,
   puedeRegistrar,
   puedeCompletar,
 }: {
   llamadas: FichaDeLlamada[];
   dealId: string;
+  etapa: EtapaDeal;
+  pendiente: PendienteDeal | null;
   opciones: OpcionesDeFicha;
   /** Trabaja leads Y es el dueño (o administra) Y el deal esta abierto. Proyeccion: la reja es el servidor. */
   puedeRegistrar: boolean;
@@ -44,6 +51,7 @@ export function FichaLlamadas({
 }) {
   const { programa: programaSlug } = useParams<{ programa: string }>();
   const [detalleId, setDetalleId] = useState<string | null>(null);
+  const [agendando, setAgendando] = useState(false);
   // La pregunta de la etapa de Agendado abre "Resultado" sobre la cita activa (ADR 0072):
   // "Se movió" y "No asistió o canceló" se eligen ahí. "Agendar" agrega una cita nueva. Se
   // remonta el bloque de acciones con una llave para abrir el diálogo sin un efecto.
@@ -117,7 +125,12 @@ export function FichaLlamadas({
   return (
     <Card id={ID_DE_SECCION.llamadas} className="scroll-mt-24">
       <CardHeader>
-        <CardTitle>Llamadas</CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle>Llamadas</CardTitle>
+          {!activa && puedeRegistrar && (["potencial", "registrado", "en_gestion", "contactado", "calificado"].includes(etapa) || pendiente === "reagenda" || pendiente === "seguimiento") ? (
+            <Button size="xs" variant="secondary" onClick={() => setAgendando(true)}>Agendar</Button>
+          ) : null}
+        </div>
       </CardHeader>
 
       {llamadas.length === 0 ? (
@@ -154,7 +167,32 @@ export function FichaLlamadas({
           onCerrar={() => setDetalleId(null)}
         />
       ) : null}
+      {agendando ? <DialogoAgendar dealId={dealId} onCerrar={() => setAgendando(false)} /> : null}
     </Card>
+  );
+}
+
+function DialogoAgendar({ dealId, onCerrar }: { dealId: string; onCerrar: () => void }) {
+  const { pendiente, correr } = useAccion();
+  const [fecha, setFecha] = useState<Date | null>(null);
+  return (
+    <DialogoForm
+      titulo="Agendar cita"
+      descripcion="Elige una hora disponible en Calendly."
+      pendiente={pendiente}
+      deshabilitarConfirmar={!fecha}
+      onCerrar={onCerrar}
+      confirmar={{
+        texto: "Agendar",
+        enCurso: "Agendando…",
+        onClick: () => {
+          if (!fecha) return;
+          correr(() => agendarLlamadaAccion({ dealId, fecha }), { exito: "Cita agendada en Calendly.", alExito: onCerrar });
+        },
+      }}
+    >
+      <SelectorDeHora dealId={dealId} valor={fecha} onChange={setFecha} />
+    </DialogoForm>
   );
 }
 

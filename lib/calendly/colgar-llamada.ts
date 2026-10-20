@@ -174,7 +174,28 @@ export async function registrarLlamadaDeCalendly(
 ): Promise<LlamadaRegistrada> {
   return enTransaccion(db, async (tx) => {
     const previa = await llamadaPorHuella(tx, programId, cita.uuidInvitado);
-    if (previa) return { tipo: "repetida", callId: previa };
+    if (previa) {
+      const [existente] = await tx
+        .select({ dealId: calls.dealId, emailLead: calls.emailLead })
+        .from(calls)
+        .where(and(eq(calls.id, previa), incluyendoAnulados(calls)));
+      if (cita.linkCalendly || cita.correoHost) {
+        await editarConRastro(
+          { db: tx, tabla: calls, nombreTabla: "calls", actorId: null, etiqueta: cita.correoInvitado ?? previa },
+          previa,
+          {
+            ...(cita.linkCalendly ? { linkCalendly: cita.linkCalendly } : {}),
+            ...(cita.correoHost ? { calendlyHostEmail: cita.correoHost } : {}),
+          },
+        );
+      }
+      if (existente?.dealId) {
+        const closers = await closersConCalendly(tx, programId);
+        const host = closerHost(cita.correoHost, closers);
+        await efectoSobreElDeal(tx, existente.dealId, host, existente.emailLead, cita.inicio);
+      }
+      return { tipo: "repetida", callId: previa };
+    }
 
     const correo = normalizarEmail(cita.correoInvitado);
     const candidatos = correo ? await candidatosPorCorreo(tx, programId, correo) : [];

@@ -70,6 +70,7 @@ export type EventoDeCalendly =
       inicio: Date;
       correoInvitado: string | null;
       correoHost: string | null;
+      joinUrl: string | null;
       utmContent: string | null;
       nombreInvitado: string | null;
       telefonoInvitado: string | null;
@@ -190,6 +191,7 @@ export function leerEventoDeCalendly(cuerpoCrudo: string): LecturaDeEvento {
           inicio,
           correoInvitado: typeof p.email === "string" ? p.email : null,
           correoHost: correoDelHost(cita),
+          joinUrl: esObjeto(cita.location) && typeof cita.location.join_url === "string" ? cita.location.join_url : null,
           utmContent: esObjeto(p.tracking) && typeof p.tracking.utm_content === "string" ? p.tracking.utm_content : null,
           nombreInvitado: typeof p.name === "string" ? p.name : null,
           telefonoInvitado: typeof p.text_reminder_number === "string" ? p.text_reminder_number : null,

@@ -80,6 +80,7 @@ export async function aplicarEventoDeCalendly(
           inicio: evento.inicio,
           correoInvitado: evento.correoInvitado,
           correoHost: evento.correoHost,
+          linkCalendly: evento.joinUrl,
           ...camposDeInvitadoCalendly(evento),
           claveEvento: evento.claveEvento,
         }),

@@ -10,6 +10,10 @@ import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { dejarNotaDelActor } from "./nota-del-sistema";
+import { dejarNotaDelSistema } from "./nota-del-sistema";
+import { citaDeCalendly, type FetchLike } from "@/lib/calendly/cita";
+import { cancelarCita, tokenDeCalendlyDelPrograma, type CitaReservada } from "@/lib/calendly/escritura";
+import { adoptarSueltaDeCita, huellaDeCita } from "@/lib/calendly/colgar-llamada";
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
@@ -94,6 +98,7 @@ export const esquemaAgregarLlamada = z.object({
 });
 
 export type DatosAgregarLlamada = z.input<typeof esquemaAgregarLlamada>;
+export type DatosAgregarCita = { dealId: string; cita: CitaReservada; notas?: string };
 
 /** Lo que dejó `agregarLlamada`: el id de la llamada y si el deal se movió a Agendado. */
 export interface LlamadaAgregada {
@@ -115,11 +120,13 @@ export interface LlamadaAgregada {
 export async function agregarLlamada(
   db: Db,
   actor: ActorDeLlamada,
-  datos: DatosAgregarLlamada,
+  datos: DatosAgregarLlamada | DatosAgregarCita,
 ): Promise<LlamadaAgregada> {
   return normalizando(async () => {
-    const { dealId, fechaAgenda, linkCalendly, notas } =
-      esquemaAgregarLlamada.parse(datos);
+    const reservado = "cita" in datos ? datos.cita : null;
+    const { dealId, fechaAgenda, linkCalendly, notas } = reservado
+      ? { dealId: datos.dealId, fechaAgenda: reservado.fecha, linkCalendly: reservado.joinUrl ?? undefined, notas: datos.notas }
+      : esquemaAgregarLlamada.parse(datos);
 
     exigirQueTrabajeLeads(actor);
 
@@ -129,6 +136,27 @@ export async function agregarLlamada(
     // cuando la llama la ingesta.
     return (db as unknown as Transaccion).transaction(async (db) => {
       const { deal, emailLead } = await dealAbiertoDelActor(db, dealId, actor);
+
+      if (reservado) {
+        const [activa] = await db
+          .select({ id: calls.id, huellaFila: calls.huellaFila })
+          .from(calls)
+          .where(and(eq(calls.dealId, deal.id), eq(calls.resultado, "agendada"), vigente(calls)));
+        if (activa && activa.huellaFila !== huellaDeCita(reservado.uuidInvitado)) {
+          throw new ErrorDeApp("El deal ya tiene una cita agendada.", 409);
+        }
+        const existente = await adoptarSueltaDeCita(db, deal.programId, reservado.uuidInvitado, { id: deal.id, cohortId: deal.cohortId });
+        if (existente.estado !== "no_existe") {
+          if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
+            await moverEtapa(db, {
+              dealId: deal.id,
+              a: "agendado",
+              actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
+            });
+          }
+          return { callId: existente.callId, movioAAgendado: unaCitaMueveAAgendado(deal.etapa, deal.pendiente) };
+        }
+      }
 
       const callId = await crearConRastro(
         {
@@ -146,8 +174,9 @@ export async function agregarLlamada(
           closerUserId: actor.userId,
           fechaAgenda,
           linkCalendly: linkCalendly ?? null,
+          calendlyHostEmail: reservado?.hostEmail ?? null,
+          ...(reservado ? { huellaFila: huellaDeCita(reservado.uuidInvitado), origen: "calendly" } : { origen: "crm" }),
           resultado: "agendada" as const,
-          origen: "crm",
           notas: notas ?? null,
         },
       );
@@ -220,6 +249,7 @@ export async function completarAgendada(
         call.id,
         { fechaAgenda, closerUserId: actor.userId, ...(linkCalendly !== undefined ? { linkCalendly } : {}) },
       );
+
       if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
         await moverEtapa(tx, {
           dealId: deal.id,
@@ -418,6 +448,7 @@ export const esquemaReagendar = z.object({
 });
 
 export type DatosReagendar = z.input<typeof esquemaReagendar>;
+export type DatosReagendarCita = Omit<DatosReagendar, "fechaAgenda" | "linkCalendly"> & { cita: CitaReservada };
 
 /**
  * Reagendar una cita en un solo acto (ticket 177): marca la cita vieja `reagendada` y
@@ -434,15 +465,20 @@ export type DatosReagendar = z.input<typeof esquemaReagendar>;
 export async function reagendarLlamada(
   db: Db,
   actor: ActorDeLlamada,
-  datos: DatosReagendar,
+  datos: DatosReagendar | DatosReagendarCita,
   comentarioDelMotivo?: string,
-): Promise<LlamadaAgregada> {
+  opciones: { fetch?: FetchLike; ahora?: Date } = {},
+): Promise<LlamadaAgregada & { cancelacionPendiente: boolean }> {
   return normalizando(async () => {
-    const { callId, fechaAgenda, motivoId, linkCalendly, notas } = esquemaReagendar.parse(datos);
+    const reservado = "cita" in datos ? datos.cita : null;
+    const parsed = reservado
+      ? { callId: datos.callId, motivoId: datos.motivoId, notas: datos.notas, fechaAgenda: reservado.fecha, linkCalendly: reservado.joinUrl ?? undefined }
+      : esquemaReagendar.parse(datos);
+    const { callId, fechaAgenda, motivoId, linkCalendly, notas } = parsed;
 
     exigirQueTrabajeLeads(actor);
 
-    return (db as unknown as Transaccion).transaction(async (db) => {
+    const escrito = await (db as unknown as Transaccion).transaction(async (db) => {
       // La cita vieja y su deal, con las mismas rejas que las demás mutaciones de llamada.
       const { call: vieja, deal } = await llamadaVigenteDeDealAbierto(db, callId, actor);
       if (vieja.resultado !== "agendada") {
@@ -467,6 +503,20 @@ export async function reagendarLlamada(
         { resultado: "reagendada" as const, ...(motivoId ? { motivoId } : {}) },
       );
 
+      if (reservado) {
+        const existente = await adoptarSueltaDeCita(db, deal.programId, reservado.uuidInvitado, { id: deal.id, cohortId: deal.cohortId });
+        if (existente.estado !== "no_existe") {
+          if (unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
+            await moverEtapa(db, {
+              dealId: deal.id,
+              a: "agendado",
+              actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
+            });
+          }
+          return { callId: existente.callId, movioAAgendado: unaCitaMueveAAgendado(deal.etapa, deal.pendiente), vieja, dealId: deal.id };
+        }
+      }
+
       // La nueva cita nace exactamente como en `agregarLlamada`: heredando del deal,
       // `agendada`, `origen = "crm"`, y moviendo a Agendado si la regla lo pide.
       const callId2 = await crearConRastro(
@@ -485,8 +535,9 @@ export async function reagendarLlamada(
           closerUserId: actor.userId,
           fechaAgenda,
           linkCalendly: linkCalendly ?? null,
+          calendlyHostEmail: reservado?.hostEmail ?? null,
+          ...(reservado ? { huellaFila: huellaDeCita(reservado.uuidInvitado), origen: "calendly" } : { origen: "crm" }),
           resultado: "agendada" as const,
-          origen: "crm",
           notas: notas ?? null,
         },
       );
@@ -497,11 +548,15 @@ export async function reagendarLlamada(
           a: "agendado",
           actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         });
-        return { callId: callId2, movioAAgendado: true };
+        return { callId: callId2, movioAAgendado: true, vieja, dealId: deal.id };
       }
 
-      return { callId: callId2, movioAAgendado: false };
+      return { callId: callId2, movioAAgendado: false, vieja, dealId: deal.id };
     });
+    const cancelacionPendiente = reservado
+      ? await cancelarCitaAnterior(db, escrito.dealId, escrito.vieja, "Reagendada", opciones)
+      : false;
+    return { callId: escrito.callId, movioAAgendado: escrito.movioAAgendado, cancelacionPendiente };
   });
 }
 
@@ -535,6 +590,7 @@ export type DatosMarcarFallida = z.input<typeof esquemaMarcarFallida>;
 /** Lo que dejó `marcarFallida`: la etapa final del deal tras el movimiento. */
 export interface LlamadaFallida {
   etapa: EtapaDeal;
+  cancelacionPendiente?: boolean;
 }
 
 /**
@@ -551,13 +607,14 @@ export async function marcarFallida(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosMarcarFallida,
+  opciones: { fetch?: FetchLike; ahora?: Date } = {},
 ): Promise<LlamadaFallida> {
   return normalizando(async () => {
     const { callId, resultado, motivoId } = esquemaMarcarFallida.parse(datos);
 
     exigirQueTrabajeLeads(actor);
 
-    return (db as unknown as Transaccion).transaction(async (db) => {
+    const escrito = await (db as unknown as Transaccion).transaction(async (db) => {
       const { call, deal } = await llamadaVigenteDeDealCompletable(db, callId, actor);
 
       // El resultado se escribe ANTES de mover: `llamada_fallida` mira la última llamada
@@ -582,7 +639,7 @@ export async function marcarFallida(
           actor.userId,
           `Se marcó el resultado de la llamada (${resultado}) con el deal ya en Ganado completo.`,
         );
-        return { etapa: deal.etapa };
+        return { etapa: deal.etapa, call, dealId: deal.id };
       }
 
       // La flecha a Re-agenda decide quién la toma: desde Agendado es del sistema (PR1, el
@@ -599,9 +656,41 @@ export async function marcarFallida(
         ...(motivoId !== undefined ? { motivoId } : {}),
       });
 
-      return { etapa: hecho.a };
+      return { etapa: hecho.a, call, dealId: deal.id };
     });
+    const cancelacionPendiente = resultado === "cancelada"
+      ? await cancelarCitaAnterior(db, escrito.dealId, escrito.call, "Cancelada", opciones)
+      : false;
+    return { etapa: escrito.etapa, cancelacionPendiente };
   });
+}
+
+async function cancelarCitaAnterior(
+  db: Db,
+  dealId: string,
+  llamada: typeof calls.$inferSelect,
+  motivo: "Reagendada" | "Cancelada",
+  opciones: { fetch?: FetchLike; ahora?: Date },
+): Promise<boolean> {
+  const ahora = opciones.ahora ?? new Date();
+  if (!llamada.fechaAgenda || llamada.fechaAgenda <= ahora || !llamada.huellaFila?.startsWith("calendly:")) return false;
+  const uuid = llamada.huellaFila.slice("calendly:".length);
+  try {
+    const token = await tokenDeCalendlyDelPrograma(db, llamada.programId);
+    const cita = await citaDeCalendly({
+      token,
+      correo: llamada.emailLead ?? "",
+      uuidInvitado: uuid,
+      fetch: opciones.fetch,
+      ahora,
+    });
+    if (!cita) throw new Error("No se encontró la cita anterior en Calendly.");
+    await cancelarCita(token, cita.eventUri, motivo, opciones.fetch);
+    return false;
+  } catch {
+    await dejarNotaDelSistema(db, dealId, "La cita anterior de Calendly no se pudo cancelar. Reintenta la cancelación.");
+    return true;
+  }
 }
 
 /**

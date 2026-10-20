@@ -12,6 +12,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { cambiarDuenoDeal } from "./cambiar-dueno";
 import { pendientesParaAnotar, type EtapaDeal, type PendienteDeal } from "./etapas";
 import { agregarLlamada, marcarFallida, reagendarLlamada } from "./llamadas";
+import type { CitaReservada } from "@/lib/calendly/escritura";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
@@ -52,7 +53,12 @@ export interface AnotacionHecha {
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): Promise<AnotacionHecha> {
+export async function anotar(
+  db: Db,
+  actor: ActorDeDeal,
+  entrada: DatosAnotar,
+  opciones: { cita?: CitaReservada } = {},
+): Promise<AnotacionHecha> {
   return normalizando(async () => {
     const datos = esquemaAnotar.parse(entrada);
     return (db as unknown as Transaccion).transaction(async (tx) => {
@@ -167,7 +173,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
           if (datos.reagenda.fechaLlamada) {
             await reagendarLlamada(tx, actor, {
               callId: llamada.id,
-              fechaAgenda: datos.reagenda.fechaLlamada,
+              ...(opciones.cita ? { cita: opciones.cita } : { fechaAgenda: datos.reagenda.fechaLlamada }),
               motivoId: datos.reagenda.motivoId,
             }, datos.comentario);
             pendiente = null;
@@ -195,7 +201,7 @@ export async function anotar(db: Db, actor: ActorDeDeal, entrada: DatosAnotar): 
           if (datos.reagenda.fechaLlamada) {
             const llamada = await agregarLlamada(tx, actor, {
               dealId: original.id,
-              fechaAgenda: datos.reagenda.fechaLlamada,
+              ...(opciones.cita ? { cita: opciones.cita } : { fechaAgenda: datos.reagenda.fechaLlamada }),
             });
             fechaLlamadaCreada = datos.reagenda.fechaLlamada;
             if (llamada.movioAAgendado) {
