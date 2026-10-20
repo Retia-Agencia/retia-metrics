@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import { eq } from "drizzle-orm";
 import { changeLog, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -38,10 +39,11 @@ beforeEach(async () => {
     ...PROGRAMA_DE_PRUEBA,
     slug: "p-280",
     nombre: "P 280",
-    calendlyToken: "token-280",
+    ticketUsd: "1000",
     calendlyUrl: "https://calendly.com/retia/round-robin",
   }).returning();
   programId = programa.id;
+  await sembrarIntegracion(db, programId, "calendly", { token: "token-280", claveFirma: "firma-280" });
   const [owner] = await db.insert(users).values({ email: "owner@retia.co", nombre: "Nico", rol: "closer" }).returning();
   ownerId = owner.id;
   const [m] = await db.insert(miembrosPrograma).values({

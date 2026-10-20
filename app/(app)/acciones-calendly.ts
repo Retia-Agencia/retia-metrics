@@ -6,19 +6,18 @@ import { programaEnAlcance } from "@/lib/auth/alcance";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
-import { miembrosPrograma, programs } from "@/lib/db/schema";
+import { miembrosPrograma } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import { asignarEventoDeMembresia } from "@/lib/catalogo/usuarios";
-import { eventosDelUsuario, type TipoDeEventoCalendly } from "@/lib/calendly/escritura";
+import { eventosDelUsuario, tokenDeCalendlyDelPrograma, type TipoDeEventoCalendly } from "@/lib/calendly/escritura";
 
 async function contexto(membresiaId: string) {
   const session = await requireRole("gerente", "closer");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
   const [m] = await db
-    .select({ programId: miembrosPrograma.programId, email: miembrosPrograma.calendlyEmail, token: programs.calendlyToken })
+    .select({ programId: miembrosPrograma.programId, email: miembrosPrograma.calendlyEmail })
     .from(miembrosPrograma)
-    .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
     .where(and(eq(miembrosPrograma.id, membresiaId), eq(miembrosPrograma.activo, true)));
   if (!m || !(await programaEnAlcance(session.user.id, rol, m.programId, db))) throw new ErrorDeApp("No existe esa membresía activa.", 404);
   return { session, m };
@@ -27,8 +26,9 @@ async function contexto(membresiaId: string) {
 export async function eventosDeMembresiaAccion(membresiaId: string): Promise<{ ok: true; eventos: TipoDeEventoCalendly[] } | { ok: false; error: string }> {
   try {
     const { m } = await contexto(membresiaId);
-    if (!m.token || !m.email) throw new ErrorDeApp("Vincula primero la cuenta de Calendly.", 422);
-    return { ok: true, eventos: await eventosDelUsuario(m.token, m.email) };
+    if (!m.email) throw new ErrorDeApp("Vincula primero la cuenta de Calendly.", 422);
+    const token = await tokenDeCalendlyDelPrograma(db, m.programId);
+    return { ok: true, eventos: await eventosDelUsuario(token, m.email) };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "No se pudieron leer los eventos." };
   }

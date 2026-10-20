@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { deals, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { tokenCalendly } from "@/lib/integraciones";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { ETAPAS_DE_SETTEO } from "@/lib/deals/etapas";
@@ -88,9 +89,9 @@ function headers(token: string): Record<string, string> {
 }
 
 export async function tokenDeCalendlyDelPrograma(db: Db, programId: string): Promise<string> {
-  const [programa] = await db.select({ token: programs.calendlyToken }).from(programs).where(eq(programs.id, programId));
-  if (!programa?.token) throw new ErrorDeApp("El programa no tiene conectado Calendly.", 422);
-  return programa.token;
+  const token = await tokenCalendly(db, programId);
+  if (!token) throw new ErrorDeApp("El programa no tiene conectado Calendly.", 422);
+  return token;
 }
 
 export async function horasDisponibles(

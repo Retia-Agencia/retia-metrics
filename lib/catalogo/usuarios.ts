@@ -8,8 +8,7 @@ import { esViolacionUnica } from "@/lib/db/errores";
 import { cuentasDeCalendly } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly, type FetchLike } from "@/lib/calendly/cita";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
-import { eventosDelUsuario } from "@/lib/calendly/escritura";
-import { editarConRastro } from "@/lib/crm/rastro";
+import { eventosDelUsuario, tokenDeCalendlyDelPrograma } from "@/lib/calendly/escritura";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { AuthorizationError, esAccesoTotal, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
@@ -765,11 +764,9 @@ export async function asignarEventoDeMembresia(
         calendlyEmail: miembrosPrograma.calendlyEmail,
         actual: miembrosPrograma.calendlyEventType,
         email: users.email,
-        token: programs.calendlyToken,
       })
       .from(miembrosPrograma)
       .innerJoin(users, eq(users.id, miembrosPrograma.userId))
-      .innerJoin(programs, eq(programs.id, miembrosPrograma.programId))
       .where(eq(miembrosPrograma.id, datos.membresiaId));
     if (!m?.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
     const [actor] = await db.select().from(users).where(eq(users.id, actorId));
@@ -778,18 +775,26 @@ export async function asignarEventoDeMembresia(
     }
     if (m.actual === datos.calendlyEventType) return;
     if (datos.calendlyEventType !== null) {
-      if (!m.token) throw new ErrorDeApp("El programa no tiene conectado Calendly.", 422);
       if (!m.calendlyEmail) throw new ErrorDeApp("Vincula primero la cuenta de Calendly.", 422);
-      const eventos = await eventosDelUsuario(m.token, m.calendlyEmail, opciones.fetch);
+      const token = await tokenDeCalendlyDelPrograma(db, m.programId);
+      const eventos = await eventosDelUsuario(token, m.calendlyEmail, opciones.fetch);
       if (!eventos.some((evento) => evento.uri === datos.calendlyEventType)) {
         throw new ErrorDeApp("Ese evento no pertenece a la cuenta de Calendly vinculada.", 422);
       }
     }
-    await editarConRastro(
-      { db, tabla: miembrosPrograma, nombreTabla: "miembros_programa", actorId, etiqueta: m.email },
-      m.id,
-      { calendlyEventType: datos.calendlyEventType },
-    );
+    await db.transaction(async (tx) => {
+      await tx.update(miembrosPrograma).set({ calendlyEventType: datos.calendlyEventType }).where(eq(miembrosPrograma.id, m.id));
+      await tx.insert(changeLog).values({
+        tabla: "miembros_programa",
+        registroId: m.id,
+        etiqueta: m.email,
+        campo: "calendlyEventType",
+        valorAnterior: m.actual,
+        valorNuevo: datos.calendlyEventType,
+        origen: "app" as const,
+        userId: actorId,
+      });
+    });
   });
 }
 

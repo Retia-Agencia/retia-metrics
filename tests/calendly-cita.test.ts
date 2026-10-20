@@ -362,6 +362,8 @@ describe("citaDeCalendly — fallback por uuid en eventos recientes", () => {
       inicio: new Date("2026-10-20T15:30:00Z"),
       cancelada: false,
       correoHost: "closer@retia.co",
+      eventUri: "https://api.calendly.com/scheduled_events/EV2",
+      joinUrl: null,
     });
     const urlRecientes = vi.mocked(fetch).mock.calls
       .map(([url]) => url)

@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import { eq } from "drizzle-orm";
 import { calls, dealActividades, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -33,8 +34,9 @@ beforeAll(async () => {
 afterAll(async () => cerrar());
 beforeEach(async () => {
   await vaciar();
-  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "r-280", nombre: "R 280", calendlyToken: "token" }).returning();
+  const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "r-280", nombre: "R 280", ticketUsd: "1000" }).returning();
   programId = p.id;
+  await sembrarIntegracion(db, programId, "calendly", { token: "token", claveFirma: "firma" });
   const [u] = await db.insert(users).values({ email: "nico@retia.co", nombre: "Nico", rol: "closer" }).returning();
   ownerId = u.id;
   await db.insert(miembrosPrograma).values({ programId, userId: ownerId, calendlyEmail: "nico@calendly.co", calendlyEventType: "https://api.calendly.com/event_types/E" });

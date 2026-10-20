@@ -162,10 +162,7 @@ export function FilaMembresia({
   const [errorEvento, setErrorEvento] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!guardada) {
-      setEventos([]);
-      return;
-    }
+    if (!guardada) return;
     let vigente = true;
     eventosDeMembresiaAccion(membresia.id).then((res) => {
       if (!vigente) return;

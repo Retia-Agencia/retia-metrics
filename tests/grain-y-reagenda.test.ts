@@ -379,7 +379,7 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
     const call = await agendadaDe(dealId);
 
     expect(await marcarFallida(db, comoCloser(), { callId: call.id, resultado: "no_show" }))
-      .toEqual({ etapa: "ganado_completo" });
+      .toEqual({ etapa: "ganado_completo", cancelacionPendiente: false });
 
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
     expect(deal).toMatchObject({ etapa: "ganado_completo", pendiente: null });

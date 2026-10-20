@@ -80,6 +80,7 @@ describe("leerEventoDeCalendly", () => {
         utmContent: "0123456789abcdef0123456789abcdef",
         nombreInvitado: "Ana Pérez",
         telefonoInvitado: "+57 300 123 4567",
+        joinUrl: null,
         uuidAnterior: null,
         claveEvento: "invitee.created:2026-09-28T20:00:00.000Z:INV-NUEVO",
       },

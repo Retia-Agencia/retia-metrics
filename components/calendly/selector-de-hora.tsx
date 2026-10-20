@@ -15,30 +15,29 @@ export function SelectorDeHora({
   valor: Date | null;
   onChange: (fecha: Date | null) => void;
 }) {
-  const [desde, setDesde] = useState(() => new Date());
-  const [horas, setHoras] = useState<Date[]>([]);
-  const [etiqueta, setEtiqueta] = useState("Calendly");
-  const [cargando, setCargando] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [hoy] = useState(() => Date.now());
+  const [desde, setDesde] = useState(() => new Date(hoy));
+  // La respuesta guarda para qué semana es: mientras no coincida con `desde`, se está cargando.
+  const [respuesta, setRespuesta] = useState<
+    { desde: number; horas: Date[]; etiqueta: string; error: null } | { desde: number; horas: Date[]; etiqueta: null; error: string } | null
+  >(null);
 
   useEffect(() => {
     let vigente = true;
-    setCargando(true);
-    setError(null);
     const hasta = new Date(desde.getTime() + 7 * DIA);
     horasDisponiblesAccion({ dealId, desde, hasta }).then((resultado) => {
       if (!vigente) return;
-      setCargando(false);
-      if (!resultado.ok) {
-        setError(resultado.error);
-        setHoras([]);
-        return;
-      }
-      setEtiqueta(resultado.etiqueta);
-      setHoras(resultado.horas.map((hora) => new Date(hora)));
+      setRespuesta(resultado.ok
+        ? { desde: desde.getTime(), horas: resultado.horas.map((hora) => new Date(hora)), etiqueta: resultado.etiqueta, error: null }
+        : { desde: desde.getTime(), horas: [], etiqueta: null, error: resultado.error });
     });
     return () => { vigente = false; };
   }, [dealId, desde]);
+
+  const cargando = respuesta?.desde !== desde.getTime();
+  const horas = cargando ? [] : respuesta.horas;
+  const error = cargando ? null : respuesta.error;
+  const etiqueta = respuesta?.etiqueta ?? "Calendly";
 
   const porDia = new Map<string, Date[]>();
   for (const hora of horas) {
@@ -71,7 +70,7 @@ export function SelectorDeHora({
         </section>
       ))}
       <div className="flex justify-between gap-2">
-        <Button type="button" size="xs" variant="ghost" disabled={desde.getTime() <= Date.now()} onClick={() => setDesde(new Date(Math.max(Date.now(), desde.getTime() - 7 * DIA)))}>Semana anterior</Button>
+        <Button type="button" size="xs" variant="ghost" disabled={desde.getTime() <= hoy} onClick={() => setDesde(new Date(Math.max(hoy, desde.getTime() - 7 * DIA)))}>Semana anterior</Button>
         <Button type="button" size="xs" variant="ghost" onClick={() => setDesde(new Date(desde.getTime() + 7 * DIA))}>Semana siguiente</Button>
       </div>
     </div>
