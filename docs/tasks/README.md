@@ -265,6 +265,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | done · 14-oct · Mani · CI verde `803e6fc` · cinco hechos en `lib/queries/hechos/`; a 10x el volumen, un mes por día y área en 82,8 ms |
 | [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
+| [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 
 ## 10 · Configuración
 
