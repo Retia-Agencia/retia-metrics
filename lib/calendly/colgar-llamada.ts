@@ -11,6 +11,7 @@ import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { puedeColgarSuelta, sueltaPorAsignar } from "./suelta";
 import { dealDeCodigo } from "./link-de-agenda";
+import { huellaDeCita } from "./huella";
 import {
   codigoDeDealDelInvitado,
   rawDelInvitado,
@@ -103,7 +104,7 @@ function enTransaccion<T>(db: Db, fn: (tx: Db) => Promise<T>): Promise<T> {
 }
 
 /** La huella de una cita en `calls.huella_fila`: la usan este modulo y el 052, y nadie la arma a mano. */
-export const huellaDeCita = (uuidInvitado: string) => `calendly:${uuidInvitado}`;
+export { huellaDeCita };
 
 /**
  * Los closers del programa con su cuenta de Calendly: membresia ACTIVA, usuario activo y

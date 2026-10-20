@@ -15,7 +15,9 @@ import { archivos, sinComentarios } from "./helpers/codigo-fuente";
  *  - `lib/ingesta/regla-de-deals.ts`: la cita del envio "Con Calendly" (052), que ya sabe
  *    de que lead es porque el lead lleno el formulario;
  *  - `lib/deals/llamadas.ts`: la cita que el CRM reserva en Calendly desde el deal (ADR 0096,
- *    280), que ya sabe su deal porque sale de el.
+ *    280), que ya sabe su deal porque sale de el;
+ *  - `lib/calendly/huella.ts`: no escribe llamadas, pero es el UNICO lugar que arma y lee el prefijo
+ *    de la huella (`huellaDeCita`, `uuidDeHuella`); quien necesita el uuid de una cita lo importa de ahi.
  *
  * Se caza la marca de una llamada de Calendly: `origen: "calendly"` y la huella
  * `calendly:<uuid>` escrita a mano (la arma `huellaDeCita`). Los comentarios no cuentan.
@@ -26,6 +28,7 @@ const ESCRITORES = new Set([
   path.join("lib", "calendly", "colgar-llamada.ts"),
   path.join("lib", "ingesta", "regla-de-deals.ts"),
   path.join("lib", "deals", "llamadas.ts"),
+  path.join("lib", "calendly", "huella.ts"),
 ]);
 
 const MARCAS = [/origen\s*:\s*["'`]calendly["'`]/, /["'`]calendly:/];

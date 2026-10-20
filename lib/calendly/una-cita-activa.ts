@@ -8,6 +8,7 @@ import { fechaHoraEnBogota } from "@/lib/format";
 import { registrarNovedadCalendly } from "@/lib/notificaciones-calendly/notificaciones";
 import { citaDeCalendly, type FetchLike } from "./cita";
 import { cancelarCita, tokenDeCalendlyDelPrograma } from "./escritura";
+import { uuidDeHuella } from "./huella";
 
 export type CitaACancelar = { dealId: string; callId: string };
 
@@ -80,8 +81,8 @@ export async function cancelarCitaEnCalendly(
   opciones: { fetch?: FetchLike; ahora?: Date },
 ): Promise<boolean> {
   const ahora = opciones.ahora ?? new Date();
-  if (!llamada.fechaAgenda || llamada.fechaAgenda <= ahora || !llamada.huellaFila?.startsWith("calendly:")) return false;
-  const uuid = llamada.huellaFila.slice("calendly:".length);
+  const uuid = uuidDeHuella(llamada.huellaFila);
+  if (!llamada.fechaAgenda || llamada.fechaAgenda <= ahora || uuid === null) return false;
   try {
     const token = await tokenDeCalendlyDelPrograma(db, llamada.programId);
     const cita = await citaDeCalendly({
