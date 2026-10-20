@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { deals, eventosMeta, integraciones, leads, programs } from "@/lib/db/schema";
+import { deals, eventosMeta, integraciones, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { enviarEventosPendientes } from "@/lib/meta-capi/enviar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -30,8 +30,12 @@ async function evento(input: { token?: string; dataset?: string; eventTime?: Dat
     });
   }
   const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `envio-${secuencia}@retia.co` }).returning();
+  const anulador = input.anulado
+    ? (await db.insert(users).values({ email: `anula-${secuencia}@retia.co`, rol: "gerente" }).returning())[0]
+    : null;
   const [deal] = await db.insert(deals).values({
-    programId, leadId: lead.id, valorVendidoUsd: "1000", anuladoEn: input.anulado ? ahora : null,
+    programId, leadId: lead.id, valorVendidoUsd: "1000",
+    ...(anulador ? { anuladoEn: ahora, anuladoPor: anulador.id, motivoAnulacion: "Registrado sobre el lead equivocado" } : {}),
   }).returning();
   const [fila] = await db.insert(eventosMeta).values({
     programId, dealId: deal.id, evento: "purchase", eventId: deal.id,

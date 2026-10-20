@@ -129,6 +129,7 @@ describe("fichaDeDeal", () => {
 
     const f = (await fichaDeDeal(db, programId, dealId))!;
     expect(f.origen?.utm).toEqual({
+      fbclid: null,
       source: " Facebook ",
       medium: "CPC",
       campaign: "{{campaign.name}}",
