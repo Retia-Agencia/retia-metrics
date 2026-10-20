@@ -416,6 +416,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   puerta de entrada (High → Calificado); Value ordena la cola. El CRM no las calcula.
 - **Atendido sin Grain:** una llamada que ocurrió (cuenta como show) y no tiene link de Grain. Es una
   alarma que se calcula y se apaga sola al pegar el Grain (ADR 0066).
+- **Cita:** una reserva real en el Calendly del programa, con su hora, su host y su Meet. Toda llamada que agenda
+  el CRM es una cita (ADR 0096): agendar, reagendar o cancelar en el CRM lo hace también en Calendly. *Reagendar es
+  reservar una cita nueva y retirar la vieja, no moverla.*
 - **Llamada suelta:** una llamada de Calendly que no se pudo colgar de un deal sin duda; espera en el
   Inbox.
 - **Student:** un deal en Ganado Pago Parcial o Ganado Pagado Completo, en la cohorte de su deal, desde el
