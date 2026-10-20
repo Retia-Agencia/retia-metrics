@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0099)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0101)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -122,6 +122,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0097](./0097-el-crm-le-devuelve-las-ventas-a-meta.md) | El CRM le devuelve las ventas a Meta por la API de Conversiones: `Purchase` una vez por deal (primera entrada a Abonado o Completo) con el valor vendido, token por portafolio cliente en `integraciones` (`meta_capi`), bandeja de salida con reintento de 7 días; enmienda el 0095 |
 | [0098](./0098-una-cita-de-calendly-es-del-programa-de-su-evento.md) | Una cita de Calendly es del programa de su evento: round robin ∪ eventos personales; el filtro solo aplica si el programa declara su org de Calendly compartida (EstadoX); lo que el CRM ya conoce pasa antes; un event type es de un solo programa; enmienda el 0049 |
 | [0099](./0099-la-traza-de-un-envio-pago-de-punta-a-punta.md) | La traza de un envío pago tiene cinco eslabones con dueño (plantilla única de Meta, landing que pasa todo, set estándar de campos ocultos, ingesta, deal); el CRM alarma cuando los envíos pagos llegan sin id del anuncio (290) y toda cifra por anuncio dice su cobertura |
+| [0100](./0100-un-deal-tiene-una-sola-cita-activa.md) | Un deal tiene una sola cita futura activa: la reserva que llega reemplaza a la anterior (vieja `reagendada` y cancelada en Calendly, dueño = host de la nueva) por las cuatro puertas (formulario, webhook, suelta, CRM); enmienda el 0049 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
