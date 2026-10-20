@@ -32,7 +32,10 @@ formulario. Decisiones en el ADR 0097.
 
 - **Integración `meta_capi`**: el 278 ya está en producción sin ella. El 281 agrega el valor `meta_capi` al enum
   `integraciones.tipo` (migración, la aplica la sesión principal) y su entrada en `INTEGRACIONES`: secreto `token`,
-  config `dataset_id` y `encendido`; `probar()` manda un evento de prueba.
+  config `dataset_id` y `encendido`; `probar()` manda un evento de prueba. Dónde: `tipoIntegracionEnum` en
+  `lib/db/schema.ts` (la migración es la siguiente libre después de la 0095 del 280), la entrada en
+  `lib/integraciones/registro.ts`, el secreto solo por un lector de `lib/integraciones/`, y el guardián
+  `tests/integraciones-guardian.test.ts` cubre `lib/meta-capi/`. La pestaña la pinta sola.
 - **Tabla `eventos_meta`** (la bandeja de salida): deal, programa, evento (`purchase` hoy), `event_id`, `event_time`,
   valor y moneda, estado (`pendiente`, `enviado`, `fallido`, `vencido`, `omitido`), intentos, último error,
   `enviado_en`, y la marca de anulado después del envío. Índice único `(deal_id, evento)`: una sola vez por deal.
