@@ -133,6 +133,14 @@ describe("handoff por la ruta real de Calendly", () => {
     expect(llamada.closerUserId).toBe(hostId);
   });
 
+  it("una reagenda cambia el dueño sin acreditar setter", async () => {
+    await db.update(deals).set({ etapa: "agendado" }).where(eq(deals.id, dealId));
+    expect((await enviarCita("host@calendly.co", "REAGENDA-1")).status).toBe(200);
+
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    expect(deal).toMatchObject({ ownerUserId: hostId, setterUserId: null });
+  });
+
   it("sin cuenta guarda la llamada sin closer y la muestra en el Inbox del programa", async () => {
     await marcarLinkEnviado(db, { userId: ownerId, rol: "closer", operaComoCloser: false }, dealId);
     expect((await enviarCita("externa@calendly.co", "HANDOFF-2")).status).toBe(200);
