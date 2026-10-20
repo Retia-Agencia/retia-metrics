@@ -680,6 +680,13 @@
       "when": 1792462397243,
       "tag": "0096_borrar-secretos-viejos",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1792464520611,
+      "tag": "0097_rls-integraciones",
+      "breakpoints": true
     }
   ]
 }
