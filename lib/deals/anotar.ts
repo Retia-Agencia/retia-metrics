@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { crearConRastro } from "@/lib/crm/rastro";
@@ -7,12 +7,9 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { exigirTextoDelMotivo } from "@/lib/deals/motivo-con-texto";
 import { normalizando } from "@/lib/errors-zod";
-import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { cambiarDuenoDeal } from "./cambiar-dueno";
 import { pendientesParaAnotar, type EtapaDeal, type PendienteDeal } from "./etapas";
-import { agregarLlamada, marcarFallida, reagendarLlamada } from "./llamadas";
-import type { CitaReservada } from "@/lib/calendly/escritura";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
@@ -29,8 +26,7 @@ export const esquemaAnotar = z.object({
   proximaCohorte: z.object({ cohorteDestinoId: z.string().uuid("La cohorte destino no es válida.") }).optional(),
   reagenda: z.object({
     motivoId: z.string().uuid("El motivo de re-agenda no es válido."),
-    fechaLlamada: z.date({ message: "La fecha de la nueva llamada no es válida." }).optional(),
-  }).optional(),
+  }).strict().optional(),
 }).superRefine((datos, ctx) => {
   const cuantos = Number(datos.proximoContacto !== undefined)
     + Number(datos.proximaCohorte !== undefined)
@@ -57,7 +53,6 @@ export async function anotar(
   db: Db,
   actor: ActorDeDeal,
   entrada: DatosAnotar,
-  opciones: { cita?: CitaReservada } = {},
 ): Promise<AnotacionHecha> {
   return normalizando(async () => {
     const datos = esquemaAnotar.parse(entrada);
@@ -84,6 +79,16 @@ export async function anotar(
         });
       }
 
+      if (datos.reagenda) {
+        const [citaViva] = await tx
+          .select({ id: calls.id })
+          .from(calls)
+          .where(and(eq(calls.dealId, original.id), eq(calls.resultado, "agendada"), vigente(calls)));
+        if (citaViva) {
+          throw new ErrorDeApp("Esta cita se resuelve desde Resultado, en la llamada.", 409);
+        }
+      }
+
       const opcionSolicitada: PendienteDeal | null = datos.proximoContacto !== undefined
         ? "seguimiento"
         : datos.proximaCohorte !== undefined
@@ -108,18 +113,15 @@ export async function anotar(
             userId: actor.userId,
             fecha: new Date(),
             nota: datos.comentario ?? null,
-            proximoContacto: datos.proximoContacto ?? (datos.reagenda?.fechaLlamada ? fechaDeInstanteEnBogota(datos.reagenda.fechaLlamada) : null),
+            proximoContacto: datos.proximoContacto ?? null,
             pendientePuesto: datos.proximaCohorte ? null : opcionSolicitada,
           },
         );
       }
 
-      let etapa = original.etapa;
+      const etapa = original.etapa;
       let pendiente: PendienteDeal | null = original.pendiente;
       let cohorteCambiada: CambioDeCohorteEscrito | null = null;
-      // La fecha de agenda de la llamada que la rama de re-agenda haya CREADO (no la que
-      // reagenda una existente): de ahí sale `llamadaCreada` del aviso (ticket 220).
-      let fechaLlamadaCreada: Date | null = null;
       // Anotar NUNCA mueve de etapa (ticket 228, Mani 9-oct): la tarjeta Transición ya decía
       // que Anotar "deja un comentario o el próximo paso sin cambiar la etapa". Pasar de
       // Potencial/Registrado a En gestión es ahora una respuesta de "Mover a" (E1, pasó de
@@ -160,55 +162,17 @@ export async function anotar(
         });
         pendiente = null;
       } else if (datos.reagenda) {
-        // En Agendado se re-agenda la cita viva. Sin cita viva (la anterior ya quedó en
-        // no-show con Re-agenda puesta), se sigue como en Atendido: la fecha crea la llamada.
-        const [llamada] = original.etapa === "agendado"
-          ? await tx
-            .select({ id: calls.id })
-            .from(calls)
-            .where(and(eq(calls.dealId, original.id), eq(calls.resultado, "agendada"), vigente(calls)))
-            .orderBy(desc(calls.createdAt))
-          : [];
-        if (llamada) {
-          if (datos.reagenda.fechaLlamada) {
-            await reagendarLlamada(tx, actor, {
-              callId: llamada.id,
-              ...(opciones.cita ? { cita: opciones.cita } : { fechaAgenda: datos.reagenda.fechaLlamada }),
-              motivoId: datos.reagenda.motivoId,
-            }, datos.comentario);
-            pendiente = null;
-          } else {
-            await marcarFallida(tx, actor, {
-              callId: llamada.id,
-              resultado: "no_show",
-              motivoId: datos.reagenda.motivoId,
-            });
-            pendiente = "reagenda";
-          }
-        } else {
-          // En Agendado sin cita viva, Re-agenda ya la puso el no-show y esa flecha (PR1) es
-          // del sistema: solo falta la llamada, que lo devuelve a Agendado sin pendiente (E7).
-          if (original.etapa !== "agendado") {
-            const mov = await moverEtapa(tx, {
-              dealId: original.id,
-              a: etapa,
-              pendiente: "reagenda",
-              motivoId: datos.reagenda.motivoId,
-              actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
-            });
-            pendiente = mov.pendienteA;
-          }
-          if (datos.reagenda.fechaLlamada) {
-            const llamada = await agregarLlamada(tx, actor, {
-              dealId: original.id,
-              ...(opciones.cita ? { cita: opciones.cita } : { fechaAgenda: datos.reagenda.fechaLlamada }),
-            });
-            fechaLlamadaCreada = datos.reagenda.fechaLlamada;
-            if (llamada.movioAAgendado) {
-              etapa = "agendado";
-              pendiente = null;
-            }
-          }
+        // En Agendado sin cita viva, Re-agenda ya quedó puesta al resolver la cita anterior.
+        // En las demás etapas, Anotar deja el pendiente sin crear ni mover ninguna cita.
+        if (original.etapa !== "agendado") {
+          const mov = await moverEtapa(tx, {
+            dealId: original.id,
+            a: etapa,
+            pendiente: "reagenda",
+            motivoId: datos.reagenda.motivoId,
+            actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
+          });
+          pendiente = mov.pendienteA;
         }
       }
 
@@ -225,7 +189,7 @@ export async function anotar(
         pendienteAntes: original.pendiente,
         pendienteDespues: final.pendiente,
         fechaPendiente: final.pendiente === "seguimiento" ? final.fechaSeguimiento : null,
-        llamadaCreada: fechaLlamadaCreada ? { fecha: fechaLlamadaCreada } : null,
+        llamadaCreada: null,
         abonoRegistrado: null,
         cohorteCambiada: cohorteCambiada
           ? { de: cohorteCambiada.origenCodigo, a: cohorteCambiada.destinoCodigo }
@@ -236,7 +200,7 @@ export async function anotar(
         etapaAntes: original.etapa,
         etapaDespues: etapa,
         pendientePuesto: pendiente,
-        fecha: datos.proximoContacto ?? (datos.reagenda?.fechaLlamada ? fechaDeInstanteEnBogota(datos.reagenda.fechaLlamada) : null),
+        fecha: datos.proximoContacto ?? null,
         cambio,
       };
     });

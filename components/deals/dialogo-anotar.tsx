@@ -10,7 +10,6 @@ import { hoyEnBogota } from "@/lib/format";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { Campo, DialogoForm, claseInput, claseTextarea } from "./ficha/campos";
 import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
-import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
 
 type Eleccion = "ninguno" | PendienteDeal;
 
@@ -20,6 +19,7 @@ export function DialogoAnotar({
   pendienteActual,
   nombreLead,
   opciones,
+  tieneCitaViva,
   onGuardado,
 }: {
   dealId: string;
@@ -27,6 +27,7 @@ export function DialogoAnotar({
   pendienteActual: PendienteDeal | null;
   nombreLead: string;
   opciones: OpcionesDeFicha;
+  tieneCitaViva: boolean;
   onGuardado: () => void;
 }) {
   const [abierto, setAbierto] = useState(false);
@@ -35,7 +36,6 @@ export function DialogoAnotar({
   const [proximoContacto, setProximoContacto] = useState("");
   const [cohorteDestinoId, setCohorteDestinoId] = useState<string | null>(null);
   const [motivoId, setMotivoId] = useState<string | null>(null);
-  const [fechaLlamada, setFechaLlamada] = useState<Date | null>(null);
   const [guardando, setGuardando] = useState(false);
   const ofrecidos = pendientesParaAnotar(etapa, pendienteActual);
   const motivosReagenda = opciones.motivos.filter((m) => m.tipo === "reagenda");
@@ -50,7 +50,6 @@ export function DialogoAnotar({
     ));
 
   async function guardar() {
-    const nuevaLlamada = fechaLlamada;
     setGuardando(true);
     const resultado = await anotarAccion({
       dealId,
@@ -58,7 +57,7 @@ export function DialogoAnotar({
       ...(eleccion === "seguimiento" ? { proximoContacto } : {}),
       ...(eleccion === "proxima_cohorte" && cohorteDestinoId ? { proximaCohorte: { cohorteDestinoId } } : {}),
       ...(eleccion === "reagenda" && motivoId
-        ? { reagenda: { motivoId, ...(nuevaLlamada ? { fechaLlamada: nuevaLlamada } : {}) } }
+        ? { reagenda: { motivoId } }
         : {}),
     });
     setGuardando(false);
@@ -118,8 +117,11 @@ export function DialogoAnotar({
                 <Opcion valor="proxima_cohorte" eleccion={eleccion} onElegir={setEleccion}>Quiere la próxima cohorte</Opcion>
               )
             ) : null}
-            {ofrecidos.includes("reagenda") ? (
+            {ofrecidos.includes("reagenda") && !tieneCitaViva ? (
               <Opcion valor="reagenda" eleccion={eleccion} onElegir={setEleccion}>La llamada no se hizo / se reagenda</Opcion>
+            ) : null}
+            {ofrecidos.includes("reagenda") && tieneCitaViva ? (
+              <p className="text-sm text-muted-foreground">Esta cita se resuelve desde Resultado, en la llamada.</p>
             ) : null}
           </fieldset>
 
@@ -150,7 +152,6 @@ export function DialogoAnotar({
                   </SelectContent>
                 </Select>
               </Campo>
-              <SelectorDeHora dealId={dealId} valor={fechaLlamada} onChange={setFechaLlamada} />
             </>
           ) : null}
         </DialogoForm>

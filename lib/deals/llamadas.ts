@@ -641,9 +641,9 @@ export async function reagendarLlamada(
 
       return { callId: callId2, movioAAgendado: false, vieja, dealId: deal.id };
     });
-    const cancelacionPendiente = reservado
-      ? await cancelarCitaEnCalendly(db, escrito.dealId, escrito.vieja, "Reagendada", opciones)
-      : false;
+    // También al elegir una hora manual hay que liberar la cita vieja en Calendly. Lo único
+    // que se omite en ese camino es reservar la nueva (`POST /invitees`).
+    const cancelacionPendiente = await cancelarCitaEnCalendly(db, escrito.dealId, escrito.vieja, "Reagendada", opciones);
     return { callId: escrito.callId, movioAAgendado: escrito.movioAAgendado, cancelacionPendiente };
   });
 }
