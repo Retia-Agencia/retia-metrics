@@ -123,6 +123,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0098](./0098-una-cita-de-calendly-es-del-programa-de-su-evento.md) | Una cita de Calendly es del programa de su evento: round robin ∪ eventos personales; el filtro solo aplica si el programa declara su org de Calendly compartida (EstadoX); lo que el CRM ya conoce pasa antes; un event type es de un solo programa; enmienda el 0049 |
 | [0099](./0099-la-traza-de-un-envio-pago-de-punta-a-punta.md) | La traza de un envío pago tiene cinco eslabones con dueño (plantilla única de Meta, landing que pasa todo, set estándar de campos ocultos, ingesta, deal); el CRM alarma cuando los envíos pagos llegan sin id del anuncio (290) y toda cifra por anuncio dice su cobertura |
 | [0100](./0100-un-deal-tiene-una-sola-cita-activa.md) | Un deal tiene una sola cita futura activa: la reserva que llega reemplaza a la anterior (vieja `reagendada` y cancelada en Calendly, dueño = host de la nueva) por las cuatro puertas (formulario, webhook, suelta, CRM); enmienda el 0049 |
+| [0101](./0101-un-resultado-se-corrige-con-rastro-y-la-cita-se-resuelve-en-un-solo-lugar.md) | Un resultado de llamada se corrige (Show, No show, Cancelada) con motivo y rastro, y la etapa la mueve el motor; Resultado es la única puerta de una cita viva, el selector muestra el horario de Calendly y permite una hora fuera de Calendly (tickets 291 y 292) |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

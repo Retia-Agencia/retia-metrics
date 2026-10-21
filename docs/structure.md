@@ -275,6 +275,10 @@ Después de una llamada atendida, una sola pregunta decide el siguiente paso (AD
 
 Una llamada `no_show` o `cancelada` sobre Agendado pone Re-agenda por PR1. Una cita nueva limpia Re-agenda: en Agendado usa E7 y desde Atendido con pendiente usa E9. Grain o la confirmación manual de que ocurrió llevan Agendado a Atendido por E8.
 
+**Una cita viva se resuelve solo desde Resultado** (ADR 0101): Show, No show, Cancelada o Reagendada en la llamada. Anotar deja Re-agenda con su motivo solo cuando el deal no tiene cita `agendada` (con cita viva, 409). El selector de horas dice de qué evento de Calendly salen, muestra su horario y permite una **hora fuera de Calendly** (fecha, hora y link; origen `crm`, no se reserva en Calendly y la cita vieja sí se cancela allá), en Reagendar, Agendar y Mover a Agendado.
+
+**Un resultado se corrige, no se borra** (ADR 0101, `corregirResultado`): entre Show, No show y Cancelada, con motivo obligatorio, rastro en `change_log` y nota en el deal. Show a fallida en Atendido pone Re-agenda (PR2, con motivo); fallida a Show lleva a Atendido sin pendiente (E8, o E14 desde Atendido con pendiente, del sistema). Si el deal ya avanzó (Compromiso, Ganado, Perdido) y la corrección cambia si la llamada sucedió, se rechaza.
+
 Los motivos conservan cuatro listas (ADR 0056): pérdida para P, re-agenda para PR2, retroceso para RETRO y recuperación para R. El resultado de la llamada es el hecho de PR1; no pide un motivo escrito por el closer.
 
 ## 4. La arquitectura técnica
