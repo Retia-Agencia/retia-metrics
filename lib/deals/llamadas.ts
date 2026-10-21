@@ -17,6 +17,7 @@ import { cancelarCitaEnCalendly, cancelarCitasReemplazadas, reemplazarCitasAnter
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
+import { ETIQUETA_DE_RESULTADO } from "./estado-de-llamada";
 
 /**
  * Agregar una llamada NATIVA a un deal, y completar la `agendada` que el sistema dejó
@@ -335,6 +336,94 @@ export const esquemaMarcarShow = z.object({
 });
 
 export type DatosMarcarShow = z.input<typeof esquemaMarcarShow>;
+
+const RESULTADOS_CORREGIBLES = ["show", "no_show", "cancelada"] as const;
+
+export const esquemaCorregirResultado = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  resultado: z.enum(RESULTADOS_CORREGIBLES, {
+    message: "El resultado tiene que ser show, no_show o cancelada.",
+  }),
+  motivo: z.string().trim().min(3, "Explica el motivo en al menos 3 caracteres.").max(500),
+  motivoReagendaId: z.string().uuid("El motivo de re-agenda no es válido.").optional(),
+});
+
+export type DatosCorregirResultado = z.input<typeof esquemaCorregirResultado>;
+
+/** Corrige un resultado resuelto con rastro, nota y el movimiento mínimo del motor. */
+export async function corregirResultado(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosCorregirResultado,
+): Promise<{ etapa: EtapaDeal }> {
+  return normalizando(async () => {
+    const { callId, resultado, motivo, motivoReagendaId } = esquemaCorregirResultado.parse(datos);
+    exigirQueTrabajeLeads(actor);
+
+    return (db as unknown as Transaccion).transaction(async (tx) => {
+      const { call, deal } = await llamadaVigenteDeDealCorregible(tx, callId, actor);
+      if (!(RESULTADOS_CORREGIBLES as readonly string[]).includes(call.resultado)) {
+        throw new ErrorDeApp("Solo se corrige una llamada con resultado Show, No show o Cancelada.", 409);
+      }
+      if (call.resultado === resultado) {
+        throw new ErrorDeApp("El resultado nuevo es igual al actual.", 409);
+      }
+
+      const cambiaSiSucedio = call.resultado === "show" || resultado === "show";
+      if (cambiaSiSucedio && ["compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"].includes(deal.etapa)) {
+        throw new ErrorDeApp("El deal ya avanzó; corrígelo primero desde el deal.", 409);
+      }
+
+      await editarConRastro(
+        {
+          db: tx,
+          tabla: calls,
+          nombreTabla: "calls",
+          actorId: actor.userId,
+          etiqueta: call.emailLead ?? call.id,
+        },
+        call.id,
+        {
+          resultado,
+          ...(resultado === "show" && call.fechaLlamada == null && call.fechaAgenda != null
+            ? { fechaLlamada: call.fechaAgenda }
+            : {}),
+        },
+      );
+
+      const antes = call.resultado as (typeof RESULTADOS_CORREGIBLES)[number];
+      await dejarNotaDelActor(
+        tx,
+        deal.id,
+        actor.userId,
+        `Corrigió el resultado de la llamada${call.fechaAgenda ? ` del ${fechaHoraEnBogota(call.fechaAgenda)}` : ""}: ${ETIQUETA_DE_RESULTADO[antes]} → ${ETIQUETA_DE_RESULTADO[resultado]}. Motivo: ${motivo}`,
+      );
+
+      if (antes === "show" && resultado !== "show" && deal.etapa === "atendido") {
+        const hecho = await moverEtapa(tx, {
+          dealId: deal.id,
+          a: "atendido",
+          pendiente: "reagenda",
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
+          ...(motivoReagendaId !== undefined ? { motivoId: motivoReagendaId } : {}),
+        });
+        return { etapa: hecho.a };
+      }
+
+      if (antes !== "show" && resultado === "show"
+        && (deal.etapa === "agendado" || (deal.etapa === "atendido" && deal.pendiente === "reagenda"))) {
+        const hecho = await moverEtapa(tx, {
+          dealId: deal.id,
+          a: "atendido",
+          actor: { tipo: "sistema" },
+        });
+        return { etapa: hecho.a };
+      }
+
+      return { etapa: deal.etapa };
+    });
+  });
+}
 
 /**
  * Marcar una llamada como **show** en un clic (ticket 177, decisión de Mani del 3-oct),
@@ -711,6 +800,34 @@ async function llamadaVigenteDeDealCompletable(
     );
   }
   const { deal } = await dealCompletableDelActor(db, call.dealId, actor);
+  return { call, deal };
+}
+
+/** Una corrección también puede distinguir No show de Cancelada en Cierre perdido. */
+async function llamadaVigenteDeDealCorregible(
+  db: Db,
+  callId: string,
+  actor: ActorDeLlamada,
+): Promise<{ call: typeof calls.$inferSelect; deal: FilaDeal }> {
+  const [call] = await db
+    .select()
+    .from(calls)
+    .where(and(eq(calls.id, callId), vigente(calls)));
+  if (!call) throw new ErrorDeApp("No existe la llamada, o está anulada.", 404);
+  if (call.dealId == null) {
+    throw new ErrorDeApp("La llamada está suelta: asígnala a un deal antes de operarla.", 409);
+  }
+  const [deal] = await db
+    .select()
+    .from(deals)
+    .where(and(eq(deals.id, call.dealId), incluyendoAnulados(deals)));
+  if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+  if (deal.anuladoEn) {
+    throw new ErrorDeApp("El deal está anulado: no cuenta en ninguna métrica.", 409);
+  }
+  if (!puedeTrabajarDeal(actor, deal)) {
+    throw new ErrorDeApp("Solo el dueño del deal puede corregir sus llamadas.", 403);
+  }
   return { call, deal };
 }
 

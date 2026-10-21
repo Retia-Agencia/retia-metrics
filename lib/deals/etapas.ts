@@ -89,6 +89,7 @@ const FILAS_ETAPA: readonly FilaEtapa[] = [
   ["E11", "atendido", ["ganado_parcial", "ganado_completo"], "sistema"],
   ["E12", "compromiso_verbal", ["ganado_parcial", "ganado_completo"], "sistema"],
   ["E13", "ganado_parcial", "ganado_completo", "sistema"],
+  ["E14", "atendido", "atendido", "sistema", { soloConPendiente: true }],
   ["RETRO", "compromiso_verbal", ["atendido", "contactado", "calificado"], "closer", { motivo: "retroceso" }],
   ["P", SE_PUEDEN_PERDER, "cierre_perdido", "closer", { motivo: "perdida" }],
   ["R", "cierre_perdido", ["en_gestion", "agendado"], "closer", { motivo: "recuperacion" }],

@@ -16,7 +16,7 @@ const ESPERADAS: Readonly<Record<EtapaDeal, readonly EtapaDeal[]>> = {
   contactado: ["calificado", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
   calificado: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
   agendado: ["agendado", "atendido", "cierre_perdido"],
-  atendido: ["agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
+  atendido: ["atendido", "agendado", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"],
   compromiso_verbal: ["contactado", "calificado", "atendido", "ganado_parcial", "ganado_completo", "cierre_perdido"],
   ganado_parcial: ["contactado", "calificado", "atendido", "compromiso_verbal", "ganado_completo", "cierre_perdido"],
   ganado_completo: ["ganado_parcial"],
@@ -46,9 +46,9 @@ describe("la tabla de transiciones", () => {
     expect(new Set(pares).size).toBe(pares.length);
   });
 
-  it("trae cada id del documento: S1 a S3, E1 a E13, RETRO, P, R, A1 y A2", () => {
+  it("trae cada id del documento: S1 a S3, E1 a E14, RETRO, P, R, A1 y A2", () => {
     const ids = new Set(TRANSICIONES.map((t) => t.id));
-    const esperados = ["S1", "S2", "S3", ...Array.from({ length: 13 }, (_, i) => `E${i + 1}`), "RETRO", "P", "R", "A1", "A2"];
+    const esperados = ["S1", "S2", "S3", ...Array.from({ length: 14 }, (_, i) => `E${i + 1}`), "RETRO", "P", "R", "A1", "A2"];
     expect([...ids].sort()).toEqual(esperados.sort());
   });
 

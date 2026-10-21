@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
 import {
+  corregirResultadoAccion,
   marcarFallidaAccion,
   marcarShowAccion,
   reagendarLlamadaAccion,
@@ -14,7 +15,8 @@ import { Campo, claseTextarea, DialogoForm } from "./campos";
 import { CampoGrain } from "./campo-grain";
 import { useAccion } from "./uso-accion";
 
-type DialogoLlamada = "resultado" | "no_show" | "cancelada" | "reagendar" | null;
+type DialogoLlamada = "resultado" | "no_show" | "cancelada" | "reagendar" | "corregir" | null;
+type ResultadoCorregible = "show" | "no_show" | "cancelada";
 
 /**
  * Las acciones de una cita, iguales en la ficha, en Calls, en el Inbox y en el detalle
@@ -101,6 +103,9 @@ export function AccionesDeLlamada({
           <span className="text-xs text-muted-foreground">Show, no show, cancelada o reagendada.</span>
         </div>
       ) : null}
+      {resultado === "show" || resultado === "no_show" || resultado === "cancelada" ? (
+        <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("corregir")}>Corregir resultado</Button>
+      ) : null}
 
       {dialogo === "resultado" ? (
         <DialogoResultado
@@ -119,7 +124,87 @@ export function AccionesDeLlamada({
       {dialogo === "reagendar" ? (
         <DialogoReagendar callId={callId} dealId={dealId!} onCerrar={() => setDialogo(null)} onCambio={onCambio} />
       ) : null}
+      {dialogo === "corregir" ? (
+        <DialogoCorregir
+          callId={callId}
+          actual={resultado as ResultadoCorregible}
+          motivos={motivosReagenda}
+          onCerrar={() => setDialogo(null)}
+          onCambio={onCambio}
+        />
+      ) : null}
     </div>
+  );
+}
+
+function DialogoCorregir({
+  callId,
+  actual,
+  motivos,
+  onCerrar,
+  onCambio,
+}: {
+  callId: string;
+  actual: ResultadoCorregible;
+  motivos: OpcionesDeFicha["motivos"];
+  onCerrar: () => void;
+  onCambio?: () => void;
+}) {
+  const opciones = ([
+    { value: "show", label: "Show" },
+    { value: "no_show", label: "No apareció (no show)" },
+    { value: "cancelada", label: "Avisó y canceló" },
+  ] as const).filter((opcion) => opcion.value !== actual);
+  const [resultado, setResultado] = useState<ResultadoCorregible>(opciones[0].value);
+  const [motivo, setMotivo] = useState("");
+  const [motivoReagendaId, setMotivoReagendaId] = useState<string | null>(null);
+  const { pendiente, correr } = useAccion();
+  const deReagenda = motivos.filter((m) => m.tipo === "reagenda" && !m.pideTexto);
+  const pideReagenda = actual === "show" && resultado !== "show";
+
+  return (
+    <DialogoForm
+      titulo="Corregir resultado"
+      descripcion="El cambio quedará en el historial y en una nota del deal."
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      deshabilitarConfirmar={motivo.trim().length < 3 || (pideReagenda && deReagenda.length > 0 && !motivoReagendaId)}
+      confirmar={{
+        texto: "Corregir",
+        enCurso: "Corrigiendo…",
+        onClick: () => correr(() => corregirResultadoAccion({
+          callId,
+          resultado,
+          motivo,
+          ...(pideReagenda && motivoReagendaId ? { motivoReagendaId } : {}),
+        }), {
+          exito: "Resultado corregido.",
+          alExito: () => { onCambio?.(); onCerrar(); },
+        }),
+      }}
+    >
+      <Campo etiqueta="Resultado correcto">
+        <Select value={resultado} items={opciones} onValueChange={(v: string | null) => v && setResultado(v as ResultadoCorregible)}>
+          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {opciones.map((opcion) => <SelectItem key={opcion.value} value={opcion.value}>{opcion.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </Campo>
+      <Campo etiqueta="Motivo de la corrección">
+        <textarea required minLength={3} maxLength={500} className={claseTextarea} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+      </Campo>
+      {pideReagenda && deReagenda.length > 0 ? (
+        <Campo etiqueta="Motivo de la re-agenda">
+          <Select value={motivoReagendaId} items={deReagenda.map((m) => ({ value: m.id, label: m.nombre }))} onValueChange={setMotivoReagendaId}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="Elige un motivo" /></SelectTrigger>
+            <SelectContent>
+              {deReagenda.map((m) => <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </Campo>
+      ) : null}
+    </DialogoForm>
   );
 }
 

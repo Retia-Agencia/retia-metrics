@@ -28,7 +28,7 @@ import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
-import { agregarLlamada, completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
+import { agregarLlamada, completarAgendada, corregirResultado, esquemaCorregirResultado, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS, type DatosCorregirResultado } from "@/lib/deals/llamadas";
 import { eventoParaAgendar, horasDisponibles, reservarCita, type CitaReservada } from "@/lib/calendly/escritura";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
@@ -673,6 +673,16 @@ export async function marcarFallidaAccion(entrada: EntradaMarcarFallida): Promis
     await exigirLlamadaVisible(ctx, callId);
     const r = await marcarFallida(db, actor, { callId, resultado, motivoId });
     return { etapa: r.etapa, cancelacionPendiente: r.cancelacionPendiente ?? false };
+  });
+}
+
+export type EntradaCorregirResultado = DatosCorregirResultado;
+
+export async function corregirResultadoAccion(entrada: EntradaCorregirResultado): Promise<ResultadoFicha<{ etapa: string }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaCorregirResultado.parse(entrada);
+    await exigirLlamadaVisible(ctx, datos.callId);
+    return corregirResultado(db, ctx.actor, datos);
   });
 }
 

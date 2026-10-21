@@ -28,7 +28,7 @@ describe("etapas 30X", () => {
   it("contiene exactamente las flechas de etapa decididas", () => {
     expect(new Set(TRANSICIONES.map((t) => t.id))).toEqual(new Set([
       "S1", "S2", "S3",
-      "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13",
+      "E1", "E2", "E3", "E4", "E5", "E6", "E7", "E8", "E9", "E10", "E11", "E12", "E13", "E14",
       "RETRO", "P", "R", "A1", "A2",
     ]));
     for (const t of TRANSICIONES) expect(transicion(t.de, t.a), `${t.id}: ${t.de} → ${t.a}`).toEqual(t);

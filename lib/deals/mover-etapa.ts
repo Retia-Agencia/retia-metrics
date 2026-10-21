@@ -149,7 +149,8 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
  * `moverEtapa` y `revisarMovimiento`, así que la vista previa y el motor no pueden
  * resolver distinto. Si `a` es otra etapa, es una flecha de etapa (el pendiente queda
  * nulo, salvo RETRO, que deja Seguimiento). Si es la misma etapa con un pendiente,
- * es una flecha de pendiente. Si es la misma sin pendiente, solo E7 (Agendado).
+ * es una flecha de pendiente. Si es la misma sin pendiente, usa la flecha de etapa
+ * declarada para limpiar el pendiente (E7 en Agendado, E14 en Atendido).
  */
 export function resolverTransicion(
   de: EtapaDeal,
@@ -163,7 +164,7 @@ export function resolverTransicion(
     return { transicion: t, pendienteA: null };
   }
   if (pendiente != null) return { transicion: transicionPendiente(de, pendiente), pendienteA: pendiente };
-  return { transicion: de === "agendado" ? transicion(de, de) : null, pendienteA: null };
+  return { transicion: transicion(de, de), pendienteA: null };
 }
 
 /**
@@ -245,7 +246,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       throw new MovimientoRechazado(faltantes[0].mensaje, faltantes);
     }
     if (t.tipo === "etapa" && t.soloConPendiente && pendienteDe == null) {
-      const faltantes = [{ codigo: "transicion_no_permitida" as const, mensaje: "Atendido solo vuelve a Agendado cuando tiene un pendiente." }];
+      const faltantes = [{ codigo: "transicion_no_permitida" as const, mensaje: "Este movimiento solo está permitido cuando el deal tiene un pendiente." }];
       throw new MovimientoRechazado(faltantes[0].mensaje, faltantes, 409);
     }
     if (t.id === "PC" && de === "agendado" && pendienteDe == null) {
