@@ -17,7 +17,7 @@ Semáforo por WhatsApp: 259, 260, 266 y 267 en producción. En curso, en su sesi
 un solo grupo; Juanito ya desplegado, falta el CRM y la 0087) y después 269 (un envío por hora con los tres
 programas). Umbrales provisionales cargados el 15-oct; Pauta confirma los suyos después del daily.
 Pendientes de Mani: encender los reportes cuando el 268 esté en producción; respuestas de Pauta (HQ-1, HQ-6,
-HQ-8 a HQ-12 en docs/hub.md). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct), 247 (`ad_id` de Tactical).
+HQ-8 a HQ-12 en docs/hub.md). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct). El 247 cerró el 21-oct (los tres programas en N3).
 
 Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
 (tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
@@ -26,6 +26,28 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 ```
 
 ## Memory
+
+- **2026-10-21 (tarde): la traza de pauta quedó completa en los tres programas; 247 cerrado; reunión con Pauta.**
+  Medido en producción (solo lectura): de ~1.000 envíos pagos de Tactical y Confianza en 14 días, solo 3 traían id
+  del anuncio. Los anuncios sí lo mandaban (`url_tags` leídos por la API de Meta): las landings de Lovable lo botaban.
+  El botón de postular copiaba una lista fija de cinco `utm_*` en Tactical (`deceroatactical.ttrading.co`, proyecto
+  "De cero a Tactical Investor Amarilla") y en Confianza, que es un A/B (`programapowertalk.lovable.app` = "Francisco
+  Landing", redirige la mitad a `powertalkprograma.lovable.app` = "Francisco Landing Prueba B"); la de ComunicArte
+  (`programavirtual.eventoscomunicarte.com`, un iframe a `landing.html`) botaba `utm_id` y `fbclid` y rellenaba
+  `direct / organic` y `ad_id=organic` a quien llegaba sin UTM (154 envíos en 14 días contados como orgánico). Mani
+  pegó los prompts en Lovable y publicó; la sesión verificó las cuatro páginas publicadas interceptando el clic, sin
+  enviar el formulario: 15 botones pasan los 10 parámetros y sin parámetros abren el form limpio. Primeros envíos
+  pagos después: TI 7 de 7 con `ad_id`, CA y Confianza con id, los tres en N3 (247 cerrado). **Reunión con Michael y
+  César** (Wispr Flow "UTM Template Standardization"): plantilla única = la de Confianza (ADR 0099 enmendado: `utm_id`,
+  `adset_id`/`campaign_id` opcionales, `ad_id` redundante); Sin UTM nunca es orgánico; los links orgánicos saldrán de
+  un generador (César trae las reglas de Ander; Michael y Mani, la propuesta, que parte de `generarLink`). Reporte para
+  el equipo: doc "UTMs en Retia: diagnóstico y estándar" (claude.ai/artifact/XZYPPXCbvr92szwqUgiHgA). Otros hallazgos:
+  el 8 vs 6 de agendas CRM contra Meta del semáforo fue retraso del pixel (al cierre del 20-oct, 14 y 14); los links
+  de Linktree traen su propio `utm_id` no numérico (`97760_v0_...`), que el emparejador ignora como centinela; un
+  `utm_source` llegó como `tiktok francsico` (link a mano). **Pendiente:** (1) Pauta migra los anuncios vivos de CA y
+  TI a la plantilla (el token `retia-insights` es solo `ads_read`: no puede editarlos); (2) el generador de links;
+  (3) los 83 envíos sin UTM de TI en 14 días; (4) el 258 v2 (por campaña) ya no espera al 247; (5) el 281 sigue
+  esperando la operación de los pixeles y el 282 leer `fbclid`, que ya llega a `respuestas`.
 
 - **2026-10-21: 291 y 292 en main (ADR 0101), corregir resultado y Resultado como única puerta de la cita.** Salieron de dos casos reales: Maru marcó Show en una llamada que fue No show y no podía corregirlo (Resultado solo existía sobre `agendada` y el servidor rechazaba con 409), y Juanjo quiso mover una cita de 7:30pm a 8pm del mismo día por Anotar y solo le salían horas del día siguiente. Medido por la API de Calendly: su horario de ese día era 7 a 10pm, así que la causa más probable es el **aviso mínimo** de su evento (`TOOSOON`), que la API no expone; Mani o Juanjo lo confirman en Calendly › evento › Limits. La disponibilidad es mixta: horario, aviso mínimo, buffers y límites son por evento; los choques (otra cita de Calendly, calendario conectado) son globales. Codex implementó en dos worktrees; la sesión arregló un `!` sobre `fechaAgenda`, el motivo de re-agenda obligatorio en el diálogo de corregir, el `ticketUsd` del test y un lint, unió las ramas (un conflicto de imports) y corrió typecheck, lint y build en main. Decisiones por defecto: la hora manual la usa quien puede trabajar el deal; Anotar conserva Re-agenda sin hora solo sin cita viva; `horarioDelEvento` ignora las excepciones por fecha en v1. El primer CI cayó: la flecha E14 hacía que pegar Grain o marcar Show sobre un deal ya en Atendido intentara moverlo (`marcarComoShow` preguntaba por cualquier flecha a Atendido); se arregló en `2c2b2abe` y el CI quedó verde. **Pendiente:** (1) el recorrido de Mani en el CRM; (3) el show mal marcado de Maru lo corrige ella con el botón nuevo.
 

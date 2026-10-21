@@ -406,7 +406,7 @@ flowchart LR
 | Frente | Tickets | Qué queda al cerrarlo | Depende de |
 |---|---|---|---|
 | **A · Datos de Meta y moneda** | 119, 120, 244, 245 | el gasto, el árbol y las agendas según Meta entran solos; la TRM de cada día está guardada | nada (el token ya existe) |
-| **B · Atribución y la capa de hechos** | 246, 247, 248, 262 | ningún canal se mantiene a mano; cada UTM dice cómo cuenta; el anuncio llega; toda métrica nueva es una agregación sobre un hecho (C-2) | 247 espera al 120 |
+| **B · Atribución y la capa de hechos** | 246, 247, 248, 262 | ningún canal se mantiene a mano; cada UTM dice cómo cuenta; el anuncio llega; toda métrica nueva es una agregación sobre un hecho (C-2) | 247 cerrado el 21-oct (los tres programas en N3) |
 | **C · Costos de pauta** | 122, 123, 249, 125, 124 | CPL, costo por agenda, CAC y ROAS por programa, campaña, conjunto y anuncio, con el control contra Meta | A y B |
 | **D · El Hub** | 250, 251, 252, 253, 254 | el Hub reemplaza Dashboard y Metas; Hoy es el reporte diario | nada (sale con lo que ya existe) |
 | **E · Gráficas** | 255, 256 | una librería y un contrato de gráficas en `structure.md` §9 | nada |

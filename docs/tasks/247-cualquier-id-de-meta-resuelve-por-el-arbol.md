@@ -3,7 +3,7 @@ id: 247
 etapa: hub
 serves: "ADR 0087 puntos 1 (paso 1), 3 y 4 · docs/hub.md §2.4 (el id del anuncio no llega), §5.2 (nivel de la traza)"
 depends: [120, 246]
-status: en curso
+status: done
 ---
 
 # 247 — Cualquier id de Meta que llegue se resuelve por el árbol, y el `ad_id` deja de perderse
@@ -33,7 +33,7 @@ y que los anuncios de TI y CA (que mandan `ad_id`) lleguen a nivel anuncio sin p
 - [x] El `utm_id` de CA (`52532647547375`, una campaña) resuelve a N2 con su campaña, con test sobre un árbol
   grabado.
 - [x] Un envío con `ad_id` de un anuncio de TI resuelve a N3 con su conjunto y su campaña, con test.
-- [ ] El primer envío real de TI con `ad_id` después del cambio en el Typeform se ve en N3 (nota de cierre).
+- [x] El primer envío real de TI con `ad_id` después del cambio en el Typeform se ve en N3 (nota de cierre).
 - [x] El orden del árbol no cambia el resultado, con test.
 
 ## Notas
@@ -83,3 +83,13 @@ el campo, pero la página que lo embebe no le pasa ese parámetro (CA sí lo pas
 ## Enmienda 20-oct (ADR 0099)
 
 Se cierra cuando Tactical y Confianza lleguen a N3 con un envío real, después de los tres arreglos de operación del ADR 0099 (plantilla, landing, formulario). La alarma que vigila que no se vuelva a cortar es el 290.
+
+## Nota de cierre (21-oct)
+
+El `ad_id` no se perdía solo en el Typeform: las landings de Tactical y de Confianza (A y B) copiaban al formulario una
+lista fija de cinco `utm_*`, y la de ComunicArte botaba `utm_id` y `fbclid` (ADR 0099, enmienda del 21-oct). Las cuatro
+se arreglaron y se verificaron el 21-oct. Medido en producción esa tarde (solo lectura), envíos pagos posteriores al
+arreglo: **Tactical 7 de 7** con `ad_id` desde las 14:57 (el primero, `Jptactical_FKT8_Invite_`, está en el árbol como
+anuncio), **ComunicArte** con `ad_id` de anuncios del árbol y **Confianza** con `utm_id` del anuncio
+`VID_FV2_Invite_Jerarquia_PubOrig`. Los tres programas resuelven a N3. Lo anterior al arreglo se queda sin anuncio
+(irrecuperable, ADR 0099).

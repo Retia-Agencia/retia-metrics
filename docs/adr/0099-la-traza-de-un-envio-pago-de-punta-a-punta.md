@@ -76,3 +76,29 @@ anuncio (123, 125, 288), el árbol (247) y la librería de anuncios (284) quedan
   error medido el 21-sep (anuncio en un programa, conjunto en otro) deja de ser posible para la pauta nueva.
 - CAPI (281) no necesita el id del anuncio (Meta atribuye por su cuenta), pero su calidad de coincidencia depende del
   `fbclid`, que viaja por el mismo camino: la misma corrección sirve a las dos cosas.
+
+## Enmienda 21-oct (reunión con Pauta: Michael, César y Mani)
+
+Medido y corregido el 21-oct. Las cuatro landings con pauta copiaban una lista fija: Tactical y Confianza (A
+`programapowertalk.lovable.app` y B `powertalkprograma.lovable.app`) botaban `utm_id`, `ad_id`, `adset_id`,
+`campaign_id` y `fbclid`, y ComunicArte botaba `utm_id` y `fbclid` y además **inventaba** `direct / organic` y
+`ad_id=organic` a quien llegaba sin UTM. Las cuatro se arreglaron en Lovable ese día (pasan todo lo que llega y no
+rellenan nada) y se verificaron en las páginas publicadas, interceptando el clic sin enviar el formulario. Los primeros
+envíos pagos posteriores resolvieron a N3 en los tres programas (cierra el 247).
+
+1. **La plantilla única es la de Confianza** (la de Pauta, compartida por Anderson), sin los tres ids extra del punto 2:
+   `utm_source={{site_source_name}}&utm_medium=paid_social&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{placement}}&utm_id={{ad.id}}`.
+   `ad_id` era redundante (el mismo `{{ad.id}}` que `utm_id`). `adset_id` y `campaign_id` quedan **opcionales**: el
+   emparejador los usa como respaldo (N2/N1) cuando el anuncio todavía no está en el árbol. Pauta pasa a esta plantilla
+   los anuncios vivos de ComunicArte y Tactical y la usa en todo anuncio nuevo; el emparejador sigue leyendo la
+   histórica (`facebook / cpc`, `ad_id`).
+2. **Sin UTM es Sin UTM, nunca orgánico** (Michael: no se le atribuyen leads ni ventas a un canal que no se sabe si
+   los trajo). Una landing no rellena valores por defecto. Confirma el ADR 0087.
+3. **Los links orgánicos salen de un generador**, no se escriben a mano: César consigue las reglas de Ander y Michael
+   con Mani arman la propuesta. No se construye otro: el generador que ya tiene el CRM (`generarLink`, ADR 0051) se
+   ajusta a las reglas que defina Pauta. Lo usan quienes
+   hoy crean links: Maju, Ander, César y Daniela.
+
+Consecuencia medible: desde el 21-oct el orgánico de ComunicArte baja (unos 75 envíos por semana, medido sobre los 154
+`direct / organic` de los 14 días previos) y su Sin UTM sube lo mismo. No es tráfico perdido: es la clasificación
+corregida, y los envíos anteriores se quedan como entraron (ADR 0004).
