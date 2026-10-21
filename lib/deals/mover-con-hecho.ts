@@ -24,7 +24,7 @@ type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> 
 
 export type HechoDelMovimiento =
   | { tipo: "atendido"; callId?: string; fechaAgenda?: Date; linkGrain?: string }
-  | { tipo: "agendado"; fechaAgenda: Date }
+  | { tipo: "agendado"; fechaAgenda: Date; linkCalendly?: string }
   | ({ tipo: "abono" } & Omit<DatosRegistrarAbono, "dealId">);
 
 export interface DatosMoverConHecho {
@@ -127,7 +127,7 @@ export async function moverConHecho(
     if (entrada.hecho?.tipo === "agendado") {
       await agregarLlamada(tx, actor, opciones.cita
         ? { dealId: inicial.id, cita: opciones.cita }
-        : { dealId: inicial.id, fechaAgenda: entrada.hecho.fechaAgenda });
+        : { dealId: inicial.id, fechaAgenda: entrada.hecho.fechaAgenda, linkCalendly: entrada.hecho.linkCalendly });
       fechaLlamadaCreada = entrada.hecho.fechaAgenda;
     } else if (entrada.hecho?.tipo === "atendido") {
       let callId = entrada.hecho.callId;

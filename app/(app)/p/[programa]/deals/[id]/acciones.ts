@@ -29,7 +29,7 @@ import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
 import { agregarLlamada, completarAgendada, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS } from "@/lib/deals/llamadas";
-import { eventoParaAgendar, horasDisponibles, reservarCita, type CitaReservada } from "@/lib/calendly/escritura";
+import { eventoParaAgendar, horarioDelEvento, horasDisponibles, reservarCita, type CitaReservada, type HorarioDeEvento } from "@/lib/calendly/escritura";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
 import { marcarCortesia } from "@/lib/deals/cortesia";
@@ -133,11 +133,26 @@ const vacioAUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "
 const textoOpcional = <T extends z.ZodTypeAny>(esquema: T) => z.preprocess(vacioAUndefined, esquema.optional());
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");
 const hora = z.string().regex(/^\d{2}:\d{2}$/, "La hora debe ser HH:MM.");
+const esquemaHoraElegida = z.discriminatedUnion("tipo", [
+  z.object({ tipo: z.literal("calendly"), fecha: z.date({ message: "La fecha de la cita no es válida." }) }),
+  z.object({
+    tipo: z.literal("manual"),
+    dia,
+    hora,
+    link: z.string().url("El link de la reunión no es una URL válida."),
+  }),
+]);
 
 function instante(d: string, h: string): Date {
   const i = instanteDeBogota(d, h);
   if (!i) throw new ErrorDeApp("La fecha y la hora de la cita no son válidas.", 400);
   return i;
+}
+
+function resolverHoraElegida(elegida: z.infer<typeof esquemaHoraElegida>): { fecha: Date; link?: string } {
+  const fecha = elegida.tipo === "calendly" ? elegida.fecha : instante(elegida.dia, elegida.hora);
+  if (fecha.getTime() <= Date.now()) throw new ErrorDeApp("La fecha de la cita tiene que estar en el futuro.", 400);
+  return elegida.tipo === "manual" ? { fecha, link: elegida.link } : { fecha };
 }
 
 // ───────────────────────────────────────────── mover con el hecho de la etapa
@@ -162,7 +177,7 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
       ctx.addIssue({ code: "custom", message: "Pon la fecha y la hora de la llamada." });
     }
   }),
-  z.object({ tipo: z.literal("agendado"), dia, hora }),
+  z.object({ tipo: z.literal("agendado"), horaElegida: esquemaHoraElegida }),
   z.object({
     tipo: z.literal("abono"),
     fecha: dia,
@@ -206,14 +221,19 @@ export async function moverConHechoAccion(
           linkGrain: datos.hecho.linkGrain,
         }
       : datos.hecho?.tipo === "agendado"
-        ? { tipo: "agendado" as const, fechaAgenda: instante(datos.hecho.dia, datos.hecho.hora) }
+        ? { tipo: "agendado" as const, ...resolverHoraElegida(datos.hecho.horaElegida) }
         : datos.hecho?.tipo === "abono"
           ? { ...datos.hecho, moneda: "USD" as const, archivo }
           : undefined;
     // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
     if (hecho?.tipo === "agendado") await exigirSinCitaAgendada(datos.dealId);
-    const cita = hecho?.tipo === "agendado" ? await reservarParaDeal(datos.dealId, hecho.fechaAgenda) : undefined;
-    const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho }, { cita });
+    const cita = hecho?.tipo === "agendado" && datos.hecho?.tipo === "agendado" && datos.hecho.horaElegida.tipo === "calendly"
+      ? await reservarParaDeal(datos.dealId, hecho.fecha)
+      : undefined;
+    const hechoDelDominio = hecho?.tipo === "agendado"
+      ? { tipo: "agendado" as const, fechaAgenda: hecho.fecha, ...(hecho.link ? { linkCalendly: hecho.link } : {}) }
+      : hecho;
+    const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho: hechoDelDominio }, { cita });
     return { etapa, resumen: resumenDelCambio(cambio) };
   });
 }
@@ -317,8 +337,7 @@ export async function anotarAccion(
     const datos = esquemaAnotar.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
     // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
-    const cita = datos.reagenda?.fechaLlamada ? await reservarParaDeal(datos.dealId, datos.reagenda.fechaLlamada) : undefined;
-    const { cambio, ...resto } = await anotar(db, ctx.actor, datos, { cita });
+    const { cambio, ...resto } = await anotar(db, ctx.actor, datos);
     return { ...resto, resumen: resumenDelCambio(cambio) };
   });
 }
@@ -639,8 +658,7 @@ export async function marcarShowAccion(entrada: EntradaMarcarShow): Promise<Resu
 
 const esquemaReagendar = z.object({
   callId: id("Llamada inválida."),
-  dia,
-  hora,
+  horaElegida: esquemaHoraElegida,
   notas: textoOpcional(z.string().max(2000)),
 });
 export type EntradaReagendar = z.input<typeof esquemaReagendar>;
@@ -649,12 +667,15 @@ export type EntradaReagendar = z.input<typeof esquemaReagendar>;
 export async function reagendarLlamadaAccion(entrada: EntradaReagendar): Promise<ResultadoFicha<{ movioAAgendado: boolean; cancelacionPendiente: boolean }>> {
   return correr(async (ctx) => {
     const { actor } = ctx;
-    const { callId, dia: d, hora: h, notas } = esquemaReagendar.parse(entrada);
+    const { callId, horaElegida, notas } = esquemaReagendar.parse(entrada);
     await exigirLlamadaVisible(ctx, callId);
     const [llamada] = await db.select({ dealId: calls.dealId }).from(calls).where(and(eq(calls.id, callId), vigente(calls)));
     if (!llamada?.dealId) throw new ErrorDeApp("La llamada no pertenece a un deal.", 409);
-    const cita = await reservarParaDeal(llamada.dealId, instante(d, h));
-    const r = await reagendarLlamada(db, actor, { callId, cita, notas });
+    const elegida = resolverHoraElegida(horaElegida);
+    const cita = horaElegida.tipo === "calendly" ? await reservarParaDeal(llamada.dealId, elegida.fecha) : null;
+    const r = await reagendarLlamada(db, actor, cita
+      ? { callId, cita, notas }
+      : { callId, fechaAgenda: elegida.fecha, linkCalendly: elegida.link, notas });
     return { movioAAgendado: r.movioAAgendado, cancelacionPendiente: r.cancelacionPendiente };
   });
 }
@@ -703,25 +724,31 @@ async function exigirSinCitaAgendada(dealId: string): Promise<void> {
 
 const esquemaHoras = z.object({ dealId: id("Deal inválido."), desde: z.date(), hasta: z.date() });
 
-export async function horasDisponiblesAccion(entrada: z.input<typeof esquemaHoras>): Promise<ResultadoFicha<{ horas: string[]; etiqueta: string }>> {
+export async function horasDisponiblesAccion(entrada: z.input<typeof esquemaHoras>): Promise<ResultadoFicha<{ horas: string[]; etiqueta: string; horario: HorarioDeEvento | null }>> {
   return correr(async (ctx) => {
     const datos = esquemaHoras.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
     const evento = await eventoParaAgendar(db, datos.dealId);
-    const horas = await horasDisponibles(evento.token, evento.eventTypeUri, datos.desde, datos.hasta);
-    return { horas: horas.map((fecha) => fecha.toISOString()), etiqueta: evento.etiqueta };
+    const [horas, horario] = await Promise.all([
+      horasDisponibles(evento.token, evento.eventTypeUri, datos.desde, datos.hasta),
+      horarioDelEvento(evento.token, evento.eventTypeUri),
+    ]);
+    return { horas: horas.map((fecha) => fecha.toISOString()), etiqueta: evento.etiqueta, horario };
   });
 }
 
-const esquemaAgendar = z.object({ dealId: id("Deal inválido."), fecha: z.date(), notas: textoOpcional(z.string().max(2000)) });
+const esquemaAgendar = z.object({ dealId: id("Deal inválido."), horaElegida: esquemaHoraElegida, notas: textoOpcional(z.string().max(2000)) });
 
 export async function agendarLlamadaAccion(entrada: z.input<typeof esquemaAgendar>): Promise<ResultadoFicha<{ movioAAgendado: boolean }>> {
   return correr(async (ctx) => {
     const datos = esquemaAgendar.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
     await exigirSinCitaAgendada(datos.dealId);
-    const cita = await reservarParaDeal(datos.dealId, datos.fecha);
-    const resultado = await agregarLlamada(db, ctx.actor, { dealId: datos.dealId, cita, notas: datos.notas });
+    const elegida = resolverHoraElegida(datos.horaElegida);
+    const cita = datos.horaElegida.tipo === "calendly" ? await reservarParaDeal(datos.dealId, elegida.fecha) : null;
+    const resultado = await agregarLlamada(db, ctx.actor, cita
+      ? { dealId: datos.dealId, cita, notas: datos.notas }
+      : { dealId: datos.dealId, fechaAgenda: elegida.fecha, linkCalendly: elegida.link, notas: datos.notas });
     return { movioAAgendado: resultado.movioAAgendado };
   });
 }

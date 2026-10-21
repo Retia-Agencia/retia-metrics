@@ -32,7 +32,7 @@ import { fechaDeInstanteEnBogota, fechaHoraEnBogota, hoyEnBogota, monto } from "
 import { proximoContactoSugerido } from "@/lib/deals/proximo-contacto";
 import { Campo, claseTextarea } from "./ficha/campos";
 import { FormularioAbono, datosInicialesDeAbono, type DatosFormularioAbono } from "./formulario-abono";
-import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
+import { horaElegidaCompleta, SelectorDeHora, type HoraElegida } from "@/components/calendly/selector-de-hora";
 
 /**
  * El dialogo de una respuesta de la pregunta de la etapa (ADR 0072): recoge lo que la
@@ -61,6 +61,7 @@ export interface DatosDialogo {
   /** Comentario de "Lo estoy trabajando" (ticket 228): se guarda como nota al mover por E1. */
   comentario?: string;
   llamada?: { dia: string; hora: string; linkGrain: string };
+  horaElegida?: HoraElegida | null;
   abono?: DatosFormularioAbono;
 }
 
@@ -181,13 +182,13 @@ export function DialogoMover({
   const inicial = (): DatosDialogo => ({
     ...(campos.includes("fecha_limite_pago") ? { fechaLimitePago: fechaLimiteSugerida } : {}),
     ...(campos.includes("fecha_seguimiento") ? { fechaSeguimiento: proximoContactoSugerido(hoy) } : {}),
-    ...(movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
+    ...(movimiento.hecho === "atendido"
       ? { llamada: { dia: hoy, hora: "", linkGrain: "" } }
       : {}),
+    ...(movimiento.hecho === "agendado" ? { horaElegida: null } : {}),
     ...(movimiento.hecho === "abono" ? { abono: datosInicialesDeAbono() } : {}),
   });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
-  const [fechaCalendly, setFechaCalendly] = useState<Date | null>(null);
   // El texto del descuento vive aparte del numero: un input controlado por un numero no se
   // deja borrar (al vaciarlo vuelve a pintar el 0) ni escribir con soltura.
   const [textoDescuento, setTextoDescuento] = useState("");
@@ -262,8 +263,10 @@ export function DialogoMover({
   const cubiertos = new Set<CodigoRequisito>(pideComentario && datos.comentario?.trim() ? ["actividad"] : []);
   const llamadaCompleta = movimiento.hecho === "atendido" && llamada
     ? true
-    : movimiento.hecho === "atendido" || movimiento.hecho === "agendado"
+    : movimiento.hecho === "atendido"
       ? Boolean(datos.llamada?.dia && datos.llamada.hora)
+      : movimiento.hecho === "agendado"
+        ? horaElegidaCompleta(datos.horaElegida ?? null)
       : true;
   const abonoCompleto = movimiento.hecho !== "abono" || Boolean(datos.abono?.fecha && datos.abono.monto.trim());
   const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
@@ -343,14 +346,8 @@ export function DialogoMover({
           {movimiento.hecho === "agendado" ? (
             <SelectorDeHora
               dealId={dealId}
-              valor={fechaCalendly}
-              onChange={(fecha) => {
-                setFechaCalendly(fecha);
-                if (!fecha) return setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: "", hora: "" } }));
-                const partes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(fecha);
-                const parte = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((p) => p.type === tipo)?.value ?? "";
-                setDatos((d) => ({ ...d, llamada: { ...d.llamada!, dia: `${parte("year")}-${parte("month")}-${parte("day")}`, hora: `${parte("hour")}:${parte("minute")}` } }));
-              }}
+              valor={datos.horaElegida ?? null}
+              onChange={(horaElegida) => setDatos((d) => ({ ...d, horaElegida }))}
             />
           ) : null}
 

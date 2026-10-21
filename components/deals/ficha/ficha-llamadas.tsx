@@ -15,7 +15,7 @@ import { Campo, claseInput, DialogoForm, Vacio } from "./campos";
 import { CampoGrain } from "./campo-grain";
 import { AccionesDeLlamada } from "./acciones-de-llamada";
 import { useAccion } from "./uso-accion";
-import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
+import { horaElegidaCompleta, SelectorDeHora, type HoraElegida } from "@/components/calendly/selector-de-hora";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { PendienteDeal } from "@/lib/deals/etapas";
 
@@ -174,20 +174,20 @@ export function FichaLlamadas({
 
 function DialogoAgendar({ dealId, onCerrar }: { dealId: string; onCerrar: () => void }) {
   const { pendiente, correr } = useAccion();
-  const [fecha, setFecha] = useState<Date | null>(null);
+  const [fecha, setFecha] = useState<HoraElegida | null>(null);
   return (
     <DialogoForm
       titulo="Agendar cita"
-      descripcion="Elige una hora disponible en Calendly."
+      descripcion="Elige una hora de Calendly o pon una hora manual con su link de reunión."
       pendiente={pendiente}
-      deshabilitarConfirmar={!fecha}
+      deshabilitarConfirmar={!horaElegidaCompleta(fecha)}
       onCerrar={onCerrar}
       confirmar={{
         texto: "Agendar",
         enCurso: "Agendando…",
         onClick: () => {
-          if (!fecha) return;
-          correr(() => agendarLlamadaAccion({ dealId, fecha }), { exito: "Cita agendada en Calendly.", alExito: onCerrar });
+          if (!horaElegidaCompleta(fecha)) return;
+          correr(() => agendarLlamadaAccion({ dealId, horaElegida: fecha }), { exito: fecha.tipo === "manual" ? "Cita agendada fuera de Calendly." : "Cita agendada en Calendly.", alExito: onCerrar });
         },
       }}
     >

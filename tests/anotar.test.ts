@@ -13,7 +13,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { anotar } from "@/lib/deals/anotar";
+import { anotar, esquemaAnotar } from "@/lib/deals/anotar";
 import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
@@ -265,61 +265,27 @@ describe("anotar", () => {
     expect(metricas.find((fila) => fila.cohorteId === cohorteDestinoId)?.ventas).toBe(1);
   });
 
-  it("en Agendado sin fecha marca no-show y deja Re-agenda", async () => {
+  it("con cita viva rechaza la reagenda con 409 y no mueve nada", async () => {
     const deal = await nuevoDeal("agendado");
     const llamada = await llamadaAgendada(deal.id);
-    await anotar(db, actor(), { dealId: deal.id, reagenda: { motivoId: motivoReagendaId } });
+    const error = await anotar(db, actor(), { dealId: deal.id, reagenda: { motivoId: motivoReagendaId } }).catch((e) => e as ErrorDeApp);
 
-    expect((await db.select().from(calls).where(eq(calls.id, llamada.id)))[0].resultado).toBe("no_show");
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].pendiente).toBe("reagenda");
+    expect(error).toMatchObject({ status: 409, message: "Esta cita se resuelve desde Resultado, en la llamada." });
+    expect((await db.select().from(calls).where(eq(calls.id, llamada.id)))[0].resultado).toBe("agendada");
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].pendiente).toBeNull();
   });
 
-  it("en Agendado con fecha cierra la llamada vieja, guarda su motivo y crea otra sin pendiente", async () => {
-    const deal = await nuevoDeal("agendado");
-    const vieja = await llamadaAgendada(deal.id);
-    const nuevaFecha = new Date("2026-10-15T14:00:00.000Z");
-    await anotar(db, actor(), {
-      dealId: deal.id,
-      reagenda: { motivoId: motivoReagendaId, fechaLlamada: nuevaFecha },
-    });
-
-    const filas = await db.select().from(calls).where(eq(calls.dealId, deal.id));
-    expect(filas.find((c) => c.id === vieja.id)).toMatchObject({ resultado: "reagendada", motivoId: motivoReagendaId });
-    expect(filas.find((c) => c.id !== vieja.id)).toMatchObject({ resultado: "agendada", origen: "crm" });
-    expect(filas.find((c) => c.id !== vieja.id)?.fechaAgenda?.getTime()).toBe(nuevaFecha.getTime());
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "agendado", pendiente: null });
-  });
-
-  it("en Agendado con Re-agenda ya puesta (la llamada quedó en no-show), la fecha crea la llamada nueva", async () => {
-    const deal = await nuevoDeal("agendado");
-    await llamadaAgendada(deal.id);
-    await anotar(db, actor(), { dealId: deal.id, reagenda: { motivoId: motivoReagendaId } });
-    const nuevaFecha = new Date("2026-10-20T00:00:00.000Z");
-    await anotar(db, actor(), {
-      dealId: deal.id,
-      reagenda: { motivoId: motivoReagendaId, fechaLlamada: nuevaFecha },
-    });
-
-    const filas = await db.select().from(calls).where(eq(calls.dealId, deal.id));
-    expect(filas.map((c) => c.resultado).sort()).toEqual(["agendada", "no_show"]);
-    expect(filas.find((c) => c.resultado === "agendada")?.fechaAgenda?.getTime()).toBe(nuevaFecha.getTime());
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "agendado", pendiente: null });
-  });
-
-  it("en Atendido pone Re-agenda con motivo y, con fecha, crea la nueva llamada", async () => {
+  it("sin cita viva deja Re-agenda con motivo y el esquema rechaza fechaLlamada", async () => {
     const deal = await nuevoDeal("atendido");
-    const nuevaFecha = new Date("2026-10-16T16:30:00.000Z");
     await anotar(db, actor(), {
       dealId: deal.id,
       comentario: "Pidió otra hora",
-      reagenda: { motivoId: motivoReagendaId, fechaLlamada: nuevaFecha },
+      reagenda: { motivoId: motivoReagendaId },
     });
 
-    expect((await db.select().from(calls).where(eq(calls.dealId, deal.id)))[0]).toMatchObject({
-      resultado: "agendada",
-      origen: "crm",
-    });
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "agendado", pendiente: null });
+    expect(await db.select().from(calls).where(eq(calls.dealId, deal.id))).toHaveLength(0);
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "atendido", pendiente: "reagenda", motivoId: motivoReagendaId });
+    expect(esquemaAnotar.safeParse({ dealId: deal.id, reagenda: { motivoId: motivoReagendaId, fechaLlamada: new Date() } }).success).toBe(false);
   });
 
   it("anotar NUNCA mueve: un deal en Registrado o Potencial se queda donde está (ticket 228)", async () => {

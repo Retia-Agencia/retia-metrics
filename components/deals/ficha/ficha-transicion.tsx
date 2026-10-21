@@ -153,6 +153,7 @@ export function FichaTransicion({
                 pendienteActual={ficha.pendiente}
                 nombreLead={deal.nombreLead}
                 opciones={opciones}
+                tieneCitaViva={ficha.tieneCitaVigente}
                 onGuardado={() => router.refresh()}
               />
             </section>

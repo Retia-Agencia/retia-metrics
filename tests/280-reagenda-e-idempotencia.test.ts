@@ -60,6 +60,26 @@ async function vieja(fechaAgenda: Date) {
 }
 
 describe("reagendar contra Calendly", () => {
+  it("la hora manual crea cita CRM con link, cierra la vieja y no reserva invitee", async () => {
+    const anterior = await vieja(new Date("2026-11-19T15:00:00Z"));
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(json(200, { resource: { current_organization: "https://api.calendly.com/organizations/O" } }))
+      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/scheduled_events/VIEJA", start_time: "2026-11-19T15:00:00Z", event_memberships: [{ user_email: "nico@calendly.co" }] }], pagination: {} }))
+      .mockResolvedValueOnce(json(200, { collection: [{ uri: "https://api.calendly.com/scheduled_events/VIEJA/invitees/VIEJA", status: "active" }], pagination: {} }))
+      .mockResolvedValueOnce(json(204, {}));
+
+    const resultado = await reagendarLlamada(db, actor(ownerId), {
+      callId: anterior.id,
+      fechaAgenda: new Date("2026-11-20T16:00:00Z"),
+      linkCalendly: "https://meet.google.com/manual",
+    }, undefined, { fetch: fetchImpl, ahora: new Date("2026-11-01T00:00:00Z") });
+
+    const filas = await db.select().from(calls).where(eq(calls.dealId, dealId));
+    expect(filas.find((c) => c.id === anterior.id)?.resultado).toBe("reagendada");
+    expect(filas.find((c) => c.id === resultado.callId)).toMatchObject({ origen: "crm", linkCalendly: "https://meet.google.com/manual", resultado: "agendada" });
+    expect(fetchImpl.mock.calls.some(([url, opciones]) => String(url).endsWith("/invitees") && opciones?.method === "POST")).toBe(false);
+  });
+
   it("si la reserva falla no escribe ninguna llamada", async () => {
     await expect(reservarCita("token", {
       eventTypeUri: "https://api.calendly.com/event_types/E",

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SelectorDeHora } from "@/components/calendly/selector-de-hora";
+import { horaElegidaCompleta, SelectorDeHora, type HoraElegida } from "@/components/calendly/selector-de-hora";
 import {
   marcarFallidaAccion,
   marcarShowAccion,
@@ -250,7 +250,7 @@ function DialogoFallida({
 
 function DialogoReagendar({ callId, dealId, onCerrar, onCambio }: { callId: string; dealId: string; onCerrar: () => void; onCambio?: () => void }) {
   const { pendiente, correr } = useAccion();
-  const [fecha, setFecha] = useState<Date | null>(null);
+  const [fecha, setFecha] = useState<HoraElegida | null>(null);
   const [notas, setNotas] = useState("");
   return (
     <DialogoForm
@@ -258,16 +258,14 @@ function DialogoReagendar({ callId, dealId, onCerrar, onCambio }: { callId: stri
       descripcion="Esta cita queda como reagendada y se crea una nueva con su fecha. Si el deal está en una etapa previa, pasa a Agendado."
       pendiente={pendiente}
       onCerrar={onCerrar}
-      deshabilitarConfirmar={!fecha}
+      deshabilitarConfirmar={!horaElegidaCompleta(fecha)}
       confirmar={{
         texto: "Reagendar",
         enCurso: "Reagendando…",
         onClick: () =>
           correr(() => {
-            if (!fecha) throw new Error("Elige una hora disponible.");
-            const partes = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(fecha);
-            const parte = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((p) => p.type === tipo)?.value ?? "";
-            return reagendarLlamadaAccion({ callId, dia: `${parte("year")}-${parte("month")}-${parte("day")}`, hora: `${parte("hour")}:${parte("minute")}`, notas });
+            if (!horaElegidaCompleta(fecha)) throw new Error("Elige una hora.");
+            return reagendarLlamadaAccion({ callId, horaElegida: fecha, notas });
           }, {
             exito: (r) => r.cancelacionPendiente
               ? "La nueva cita quedó agendada; falta cancelar la anterior en Calendly."

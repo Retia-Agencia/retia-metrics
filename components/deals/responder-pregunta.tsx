@@ -181,8 +181,8 @@ export function useResponder(
       ? deal.llamada?.id
         ? { tipo: "atendido" as const, callId: deal.llamada.id, linkGrain: datos.llamada.linkGrain }
         : { tipo: "atendido" as const, dia: datos.llamada.dia, hora: datos.llamada.hora, linkGrain: datos.llamada.linkGrain }
-      : tipoDeHecho === "agendado" && datos.llamada
-        ? { tipo: "agendado" as const, dia: datos.llamada.dia, hora: datos.llamada.hora }
+      : tipoDeHecho === "agendado" && datos.horaElegida
+        ? { tipo: "agendado" as const, horaElegida: datos.horaElegida }
         : tipoDeHecho === "abono" && datos.abono
           ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), plataformaId: datos.abono.plataformaId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
           : undefined;

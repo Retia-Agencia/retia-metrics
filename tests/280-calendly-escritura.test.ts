@@ -7,6 +7,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import {
   cancelarCita,
   eventoParaAgendar,
+  horarioDelEvento,
   horasDisponibles,
   reservarCita,
   eventosDelUsuario,
@@ -99,6 +100,43 @@ describe("eventoParaAgendar", () => {
 });
 
 describe("API de escritura", () => {
+  it("lee reglas por día que ya están en hora de Bogotá", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(json(200, { collection: [{ availability_rule: {
+      timezone: "America/Bogota",
+      rules: [{ type: "wday", wday: "thursday", intervals: [{ from: "18:30", to: "22:00" }] }],
+    } }] }));
+    await expect(horarioDelEvento("token", "evento", fetchImpl)).resolves.toEqual({
+      dias: [{ wday: "thursday", intervalos: [{ desde: "18:30", hasta: "22:00" }] }],
+      esRoundRobin: false,
+    });
+  });
+
+  it("lee el horario semanal y convierte sus horas a Bogotá", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(json(200, { collection: [{ availability_rule: {
+      timezone: "UTC",
+      rules: [
+        { type: "wday", wday: "monday", intervals: [{ from: "19:00", to: "22:00" }] },
+        { type: "date", date: "2026-10-26", intervals: [{ from: "20:00", to: "21:00" }] },
+      ],
+    } }] }));
+
+    await expect(horarioDelEvento("token", "evento", fetchImpl)).resolves.toEqual({
+      dias: [{ wday: "monday", intervalos: [{ desde: "14:00", hasta: "17:00" }] }],
+      esRoundRobin: false,
+    });
+    expect(fetchImpl.mock.calls[0][0]).toContain("event_type_availability_schedules?event_type=evento");
+  });
+
+  it("devuelve round robin sin enumerar hosts y null ante vacío o error", async () => {
+    const roundRobin = vi.fn().mockResolvedValue(json(200, { collection: [
+      { availability_rule: { timezone: "America/Bogota", rules: [] } },
+      { availability_rule: { timezone: "America/Bogota", rules: [] } },
+    ] }));
+    await expect(horarioDelEvento("token", "evento", roundRobin)).resolves.toEqual({ dias: [], esRoundRobin: true });
+    await expect(horarioDelEvento("token", "evento", vi.fn().mockResolvedValue(json(200, { collection: [] })))).resolves.toBeNull();
+    await expect(horarioDelEvento("token", "evento", vi.fn().mockRejectedValue(new Error("sin red")))).resolves.toBeNull();
+  });
+
   it("filtra horas disponibles", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(json(200, { collection: [
       { status: "available", start_time: "2026-10-20T14:00:00Z" },

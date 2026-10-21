@@ -253,6 +253,24 @@ describe("marcar Show sobre una cita existente (ticket 232)", () => {
   });
 });
 
+describe("hora manual fuera de Calendly (ticket 292)", () => {
+  it("rechaza link inválido y fecha pasada en el borde", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+    const accionesFicha = await acciones();
+
+    await expect(accionesFicha.agendarLlamadaAccion({
+      dealId,
+      horaElegida: { tipo: "manual", dia: "2099-10-22", hora: "20:00", link: "no-es-url" },
+    })).resolves.toEqual({ ok: false, error: "El link de la reunión no es una URL válida." });
+    await expect(accionesFicha.agendarLlamadaAccion({
+      dealId,
+      horaElegida: { tipo: "manual", dia: "2000-01-01", hora: "20:00", link: "https://meet.google.com/manual" },
+    })).resolves.toEqual({ ok: false, error: "La fecha de la cita tiene que estar en el futuro." });
+    expect(await db.select().from(calls).where(eq(calls.dealId, dealId))).toHaveLength(0);
+  });
+});
+
 describe("el paid trafficker no toca deals, forjando la petición (102)", () => {
   // Desde el 102 ve todos los programas (`programaEnAlcance` le dice que sí), así que la única reja
   // de estas acciones es el rol: si alguien la afloja, esto lo dice.

@@ -24,6 +24,11 @@ export interface EventoParaAgendar {
   etiqueta: string;
 }
 
+export interface HorarioDeEvento {
+  dias: { wday: string; intervalos: { desde: string; hasta: string }[] }[];
+  esRoundRobin: boolean;
+}
+
 export interface TipoDeEventoCalendly { uri: string; nombre: string; schedulingUrl: string | null }
 
 export async function eventosDelUsuario(
@@ -120,6 +125,101 @@ export async function horasDisponibles(
     const fecha = new Date(valor.start_time);
     return Number.isNaN(fecha.getTime()) ? [] : [fecha];
   });
+}
+
+const DIAS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+
+function partesEnZona(fecha: Date, timeZone: string): Record<string, string> {
+  return Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    weekday: "long",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(fecha).map((parte) => [parte.type, parte.value]));
+}
+
+/** Convierte una hora de pared de cualquier zona a un instante, sin depender de la zona del proceso. */
+function instanteEnZona(dia: string, hora: string, timeZone: string): Date | null {
+  const [year, month, day] = dia.split("-").map(Number);
+  const [hour, minute] = hora.split(":").map(Number);
+  if (![year, month, day, hour, minute].every(Number.isFinite)) return null;
+  const deseado = Date.UTC(year, month - 1, day, hour, minute);
+  let candidato = new Date(deseado);
+  for (let intento = 0; intento < 3; intento += 1) {
+    const p = partesEnZona(candidato, timeZone);
+    const visto = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute));
+    candidato = new Date(candidato.getTime() + deseado - visto);
+  }
+  return candidato;
+}
+
+function proximaFechaDelDia(wday: string, timeZone: string): string | null {
+  const inicio = new Date();
+  for (let n = 0; n < 14; n += 1) {
+    const candidato = new Date(inicio.getTime() + n * 86_400_000);
+    const p = partesEnZona(candidato, timeZone);
+    if (p.weekday.toLowerCase() === wday) return `${p.year}-${p.month}-${p.day}`;
+  }
+  return null;
+}
+
+/**
+ * Lee el horario semanal del evento. Las excepciones puntuales `type: date` se ignoran en
+ * esta primera versión: las horas reales de los próximos siete días siguen viniendo de
+ * `event_type_available_times`, que sí aplica esas excepciones.
+ */
+export async function horarioDelEvento(
+  token: string,
+  eventTypeUri: string,
+  fetchImpl?: FetchLike,
+): Promise<HorarioDeEvento | null> {
+  try {
+    const fetcher = fetchDisponible(fetchImpl);
+    const url = `${BASE}/event_type_availability_schedules?event_type=${encodeURIComponent(eventTypeUri)}`;
+    const cuerpo = await jsonDeCalendly(await fetcher(url, { method: "GET", headers: headers(token) }));
+    if (!Array.isArray(cuerpo.collection) || cuerpo.collection.length === 0) return null;
+    if (cuerpo.collection.length > 1) return { dias: [], esRoundRobin: true };
+    const fila = cuerpo.collection[0];
+    if (typeof fila !== "object" || fila === null) return null;
+    const regla = (fila as { availability_rule?: unknown }).availability_rule;
+    if (typeof regla !== "object" || regla === null) return null;
+    const { timezone, rules } = regla as { timezone?: unknown; rules?: unknown };
+    if (typeof timezone !== "string" || !Array.isArray(rules)) return null;
+
+    const agrupados = new Map<string, { desde: string; hasta: string }[]>();
+    for (const rule of rules) {
+      if (typeof rule !== "object" || rule === null) continue;
+      const r = rule as { type?: unknown; wday?: unknown; intervals?: unknown };
+      if (r.type !== "wday" || typeof r.wday !== "string" || !Array.isArray(r.intervals)) continue;
+      const fecha = proximaFechaDelDia(r.wday, timezone);
+      if (!fecha) continue;
+      for (const intervalo of r.intervals) {
+        if (typeof intervalo !== "object" || intervalo === null) continue;
+        const { from, to } = intervalo as { from?: unknown; to?: unknown };
+        if (typeof from !== "string" || typeof to !== "string") continue;
+        const desde = instanteEnZona(fecha, from, timezone);
+        const hasta = instanteEnZona(fecha, to, timezone);
+        if (!desde || !hasta) continue;
+        const pDesde = partesEnZona(desde, "America/Bogota");
+        const pHasta = partesEnZona(hasta, "America/Bogota");
+        const wday = pDesde.weekday.toLowerCase();
+        const intervalos = agrupados.get(wday) ?? [];
+        intervalos.push({ desde: `${pDesde.hour}:${pDesde.minute}`, hasta: `${pHasta.hour}:${pHasta.minute}` });
+        agrupados.set(wday, intervalos);
+      }
+    }
+    return {
+      dias: DIAS.flatMap((wday) => agrupados.has(wday) ? [{ wday, intervalos: agrupados.get(wday)! }] : []),
+      esRoundRobin: false,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export async function reservarCita(
