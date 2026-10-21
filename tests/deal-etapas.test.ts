@@ -87,7 +87,8 @@ describe("las reglas generales del motor", () => {
 
   it("a Atendido entra una cita, un retroceso o la anulacion de un abono, con el actor de cada flecha", () => {
     const aAtendido = TRANSICIONES.filter((t) => t.a === "atendido");
-    expect(new Set(aAtendido.map((t) => t.id))).toEqual(new Set(["E8", "RETRO", "A1"]));
+    expect(new Set(aAtendido.map((t) => t.id))).toEqual(new Set(["E8", "E14", "RETRO", "A1"]));
+    expect(aAtendido.find((t) => t.id === "E14")).toMatchObject({ quien: "sistema", soloConPendiente: true });
     expect(aAtendido.find((t) => t.id === "E8")?.quien).toBe("ambos");
     expect(aAtendido.find((t) => t.id === "RETRO")?.quien).toBe("closer");
     expect(aAtendido.find((t) => t.id === "A1")?.quien).toBe("sistema");
@@ -105,13 +106,13 @@ describe("las reglas generales del motor", () => {
     for (const t of todas.filter((t) => !t.exigeMotivo)) expect(t.tipoDeMotivo, t.id).toBeNull();
   });
 
-  it("la unica flecha de etapa sobre si misma es reprogramar una cita Agendada (E7)", () => {
-    expect(TRANSICIONES.filter((t) => t.de === t.a).map((t) => t.id)).toEqual(["E7"]);
+  it("las flechas de etapa sobre si misma son reprogramar en Agendado (E7) y limpiar el pendiente de Atendido (E14, ADR 0101)", () => {
+    expect(TRANSICIONES.filter((t) => t.de === t.a).map((t) => t.id)).toEqual(["E7", "E14"]);
   });
 
   it("devuelve null para un movimiento que no esta en la tabla", () => {
     expect(transicion("registrado", "ganado_completo")).toBeNull();
-    expect(transicion("atendido", "atendido")).toBeNull();
+    expect(transicion("ganado_completo", "potencial")).toBeNull();
   });
 });
 

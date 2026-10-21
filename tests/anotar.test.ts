@@ -284,7 +284,8 @@ describe("anotar", () => {
     });
 
     expect(await db.select().from(calls).where(eq(calls.dealId, deal.id))).toHaveLength(0);
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "atendido", pendiente: "reagenda", motivoId: motivoReagendaId });
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({ etapa: "atendido", pendiente: "reagenda" });
+    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id))).toMatchObject([{ pendienteA: "reagenda", motivoId: motivoReagendaId }]);
     expect(esquemaAnotar.safeParse({ dealId: deal.id, reagenda: { motivoId: motivoReagendaId, fechaLlamada: new Date() } }).success).toBe(false);
   });
 

@@ -506,7 +506,8 @@ async function marcarComoShow(
 
   // Mover a Atendido solo si la tabla tiene la flecha desde la etapa actual. Si no hay
   // flecha (ya está en Atendido o más adelante), no se mueve y no se inventa una transición.
-  if (transicion(deal.etapa, "atendido") != null) {
+  // E14 (Atendido sobre sí misma) solo limpia un pendiente: no es la llegada a Atendido.
+  if (deal.etapa !== "atendido" && transicion(deal.etapa, "atendido") != null) {
     const hecho = await moverEtapa(db, {
       dealId: deal.id,
       a: "atendido",
