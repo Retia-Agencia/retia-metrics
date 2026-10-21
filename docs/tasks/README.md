@@ -268,8 +268,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 | [x] | 289 | [El webhook de Calendly filtra por tipo de evento](./289-el-webhook-de-calendly-filtra-por-evento.md) | 280, 278 | done · 20-oct · checkpoint `cp-20261020-1` · en main · 19-oct · ADR 0098, 0098 aplicada, SBJ configurado, 25 sueltas anuladas · falta checkpoint verde |
 | [x] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | done · 20-oct · Codex + central · CI verde `3ba6988b` · medido en producción: marca Tactical (63 de 63 pagos sin id) y Confianza (82 de 82), no ComunicArte (0 de 50) |
-| [x] | 291 | [Corregir el resultado de una llamada](./291-corregir-el-resultado-de-una-llamada.md) (ADR 0101) | 177 | done · 21-oct · en main (`14bd95a`) · Codex + central · falta checkpoint verde |
-| [x] | 292 | [Resultado es la única puerta de la cita: horario visible y hora fuera de Calendly](./292-resultado-unica-puerta-de-la-cita.md) (ADR 0101) | 177, 280 | done · 21-oct · en main (`14bd95a`) · Codex + central · falta checkpoint verde |
+| [x] | 291 | [Corregir el resultado de una llamada](./291-corregir-el-resultado-de-una-llamada.md) (ADR 0101) | 177 | done · 21-oct · en main · Codex + central · CI verde `2c2b2abe` (el primero cayó: E14 rompía pegar Grain sobre Atendido) |
+| [x] | 292 | [Resultado es la única puerta de la cita: horario visible y hora fuera de Calendly](./292-resultado-unica-puerta-de-la-cita.md) (ADR 0101) | 177, 280 | done · 21-oct · en main · Codex + central · CI verde `2c2b2abe` (el primero cayó: E14 rompía pegar Grain sobre Atendido) |
 
 ## 10 · Configuración
 
