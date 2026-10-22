@@ -199,7 +199,11 @@ describe("agregarLlamada: el efecto sobre la etapa (decisión 24-sep)", () => {
 
   for (const { etapa, pendiente } of AVANZAN) {
     it(`desde ${etapa} pasa a Agendado y deja fila de historial`, async () => {
-      const dealId = await nuevoDeal(etapa, { pendiente });
+      // Esperando corte (293): la base exige el texto con Próxima cohorte sin destino.
+      const dealId = await nuevoDeal(etapa, {
+        pendiente,
+        cohorteDestinoTexto: pendiente === "proxima_cohorte" ? "2027" : null,
+      });
       const { movioAAgendado } = await agregarLlamada(db, comoCloser(), {
         dealId,
         fechaAgenda: enUnaHora(),

@@ -27,6 +27,22 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-21 (noche): Daily Tech con Michael; 293 "Esperando corte" en main; reporte del alcance del Hub para Gerencia.**
+  - **Daily Tech** (Wispr Flow, 6 pm): el CRM pasa a ser el "segundo cerebro" de Retia (pendientes del día por área);
+    prioridad, que la venta vuelva a Meta (281 en main, falta la operación: seat y token por portafolio, evento de
+    prueba, un Purchase real). El Hub viejo da cifras distintas a Leads y Anderson y César (paid trafficker) ya lo
+    ven: urge el refactor. Michael pide UN periodo y un botón "+" para B, C (enmienda el 251). MCP-1: Mani manda
+    propuesta de tools por rol. Accesos de media para Majo Duarte y Daniela, ligados al video de Michael.
+  - **Reporte del Hub para Gerencia:** `docs/reportes/hub-alcance-para-gerencia-2026-10-21.md` (sin commit) y
+    publicado como página privada. Mani no quiere tickets nuevos del Hub hasta que Gerencia lo apruebe.
+  - **293 cerrado en main** (Mani aprobó D-1 a D-3): Anotar › Próxima cohorte acepta "La corte todavía no existe"
+    con texto obligatorio; la bandeja vive en Programa › Ventas. Migraciones 0100 y 0101 aplicadas en producción.
+    En producción Comunicarte y Tactical no tienen cohorte futura (solo C3): anotar ya no lo necesita; pasar los
+    deals, sí. Lecciones: un CHECK que da NULL pasa (usar `coalesce`); el recorrido cazó un bug de `e.currentTarget`
+    en un updater de `setState` que ningún test veía.
+  - **Pendiente:** checkpoint verde del 293; Mani revisa en vivo (lista en el chat del 21-oct); 281 operación con
+    Pauta; enmendar el 251 con el pedido de Michael cuando Gerencia responda el reporte.
+
 - **2026-10-21 (tarde): la traza de pauta quedó completa en los tres programas; 247 cerrado; reunión con Pauta.**
   Medido en producción (solo lectura): de ~1.000 envíos pagos de Tactical y Confianza en 14 días, solo 3 traían id
   del anuncio. Los anuncios sí lo mandaban (`url_tags` leídos por la API de Meta): las landings de Lovable lo botaban.

@@ -3,7 +3,7 @@ id: 293
 etapa: corte
 serves: "Daily Tech 21-oct (Michael: caso de Andre, corte 2027); decisión de Mani del 21-oct"
 depends: [231]
-status: todo
+status: done
 ---
 
 # 293 — Próxima corte sin que la corte exista: la bandeja "Esperando corte"
@@ -63,14 +63,25 @@ nueva: Próxima cohorte ya es un Pendiente, no una etapa (ADR 0070), y una etapa
 
 ## Done cuando
 
-- [ ] Test: sin cohortes futuras, Próxima cohorte con texto pone el pendiente, guarda el texto, no cambia
+- [x] Test: sin cohortes futuras, Próxima cohorte con texto pone el pendiente, guarda el texto, no cambia
       `cohort_id`, deja nota y `change_log`; sin texto (o solo espacios) se rechaza con 400.
-- [ ] Test: el CHECK de la base rechaza el pendiente sin destino y sin texto (con el índice real, no un error
+- [x] Test: el CHECK de la base rechaza el pendiente sin destino y sin texto (con el índice real, no un error
       fabricado).
-- [ ] Test: pasar N deals de la bandeja a una cohorte nueva los muda por `cambiarCohorteDelDeal` en una
+- [x] Test: pasar N deals de la bandeja a una cohorte nueva los muda por `cambiarCohorteDelDeal` en una
       transacción, limpia pendiente y texto, y un deal de otro programa se rechaza.
-- [ ] Test: las métricas de la cohorte de origen cuentan el deal mientras espera y dejan de contarlo al pasar.
-- [ ] Con cohorte futura creada, el camino de hoy (231) sigue igual: sus tests en verde.
-- [ ] `npm run build` (toca componentes cliente) y recorrido en base local: closer anota "2027", gerente crea
+- [x] Test: las métricas de la cohorte de origen cuentan el deal mientras espera y dejan de contarlo al pasar.
+- [x] Con cohorte futura creada, el camino de hoy (231) sigue igual: sus tests en verde.
+- [x] `npm run build` (toca componentes cliente) y recorrido en base local: closer anota "2027", gerente crea
       C4 y la pantalla muestra el deal en espera y lo pasa; clic en todo lo que se abre y consola limpia.
-- [ ] `docs/structure.md` §3 (PC) y `docs/overview.md` §11 (vocabulario: "Esperando corte") actualizados.
+- [x] `docs/structure.md` §3 (PC) y `docs/overview.md` §11 (vocabulario: "Esperando corte") actualizados.
+
+## Cierre (21-oct)
+
+En main en `edd5bf69` y `b2eff32f`, más el arreglo del CI. Implementó Codex; la sesión central hizo la base y la revisión.
+- La 0100 tenía un CHECK que dejaba pasar el pendiente sin destino ni texto (`length(trim(NULL))` es NULL y un CHECK
+  NULL pasa); lo cazó el test y lo corrigió la 0101. Las dos están aplicadas en producción.
+- La regla destapó un bug real: Corregir el último movimiento devolvía el pendiente sin el texto. Ahora lo restaura
+  desde `change_log`, y con datos viejos sin texto responde 409.
+- El recorrido destapó otro: marcar un deal en la bandeja tumbaba la pantalla (`e.currentTarget` dentro del updater).
+- El primer CI cayó por una fixture de `tests/llamadas-del-deal.test.ts` que insertaba el pendiente sin texto.
+- Queda abierto: "Pasar a" también ofrece la cohorte en la que ya está el deal (no rompe, sobra).

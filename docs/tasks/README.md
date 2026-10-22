@@ -270,7 +270,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | done · 20-oct · Codex + central · CI verde `3ba6988b` · medido en producción: marca Tactical (63 de 63 pagos sin id) y Confianza (82 de 82), no ComunicArte (0 de 50) |
 | [x] | 291 | [Corregir el resultado de una llamada](./291-corregir-el-resultado-de-una-llamada.md) (ADR 0101) | 177 | done · 21-oct · en main · Codex + central · CI verde `2c2b2abe` (el primero cayó: E14 rompía pegar Grain sobre Atendido) |
 | [x] | 292 | [Resultado es la única puerta de la cita: horario visible y hora fuera de Calendly](./292-resultado-unica-puerta-de-la-cita.md) (ADR 0101) | 177, 280 | done · 21-oct · en main · Codex + central · CI verde `2c2b2abe` (el primero cayó: E14 rompía pegar Grain sobre Atendido) |
-| [ ] | 293 | [Próxima corte sin que la corte exista: la bandeja "Esperando corte"](./293-proxima-corte-sin-corte-creada.md) | 231 | en main · 21-oct · Codex + central · migraciones 0100 y 0101 aplicadas · D-1 a D-3 aprobadas por Mani · recorrido en base local (closer anota 2027, gerente crea C2 y lo pasa) · falta checkpoint verde y `docs/structure.md` §3 / `overview.md` §11 |
+| [x] | 293 | [Próxima corte sin que la corte exista: la bandeja "Esperando corte"](./293-proxima-corte-sin-corte-creada.md) | 231 | done · 21-oct · Codex + central · migraciones 0100 y 0101 en producción · recorrido local (closer anota 2027, gerente crea C2 y lo pasa) · el primer CI cayó por una fixture; falta el checkpoint verde |
 
 ## 10 · Configuración
 

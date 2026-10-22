@@ -193,9 +193,9 @@ Los pendientes son tres (ADR 0070, ampliado por ADR 0072):
 |---|---|---|---|---|
 | Re-agenda | la cita falló o hace falta otra llamada | Calendly en Agendado; el dueño en Atendido con motivo | una cita nueva lleva el deal a Agendado | `alerta` |
 | Seguimiento | hay que volver a contactar en una fecha | el dueño en Calificado, Atendido o Compromiso Verbal; también el retroceso | un cambio de etapa o un hecho que retoma el deal | `info` |
-| Próxima Cohorte | valor legado: los deals que ya lo tenían lo siguen mostrando hasta sanearlos | nadie lo pone desde la app | el saneamiento muda el deal a `cohorte_destino_id` y lo limpia con `change_log` | `neutro` |
+| Próxima Cohorte (Esperando corte) | quiere entrar a una corte que todavía no existe; `cohorte_destino_texto` dice cuál, en texto libre (293) | el closer desde Anotar, eligiendo "La corte todavía no existe" | quien administra la pasa a una cohorte creada desde Programa › Ventas, o el dueño con Cambiar cohorte; también cualquier cambio de etapa (agendar incluido) o Corregir, que restaura el texto desde `change_log` | `neutro` |
 
-Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defecto. Re-agenda guarda el resultado de la llamada y Seguimiento exige fecha. Desde el ticket 231, elegir **Próxima cohorte** ya no pone un pendiente: cambia `cohort_id` en el acto a una cohorte futura del mismo programa, conserva la etapa y deja `change_log` y nota del sistema. El enum y `cohorte_destino_id` se conservan solo para leer y sanear filas anteriores. No hay reloj que quite los otros pendientes: lo vencido aparece como alerta al leer (ADR 0070).
+Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defecto. Re-agenda guarda el resultado de la llamada y Seguimiento exige fecha. Elegir **Próxima cohorte** con una cohorte futura ya creada cambia `cohort_id` en el acto (231), conserva la etapa y deja `change_log` y nota del sistema. Si la corte todavía no existe (293), pone el pendiente con `cohorte_destino_texto` obligatorio y **no** cambia `cohort_id`: mientras espera, el deal cuenta en su cohorte de origen. La base lo garantiza con el CHECK `deals_esperando_corte_con_texto` (migraciones 0100 y 0101): el texto solo vive con este pendiente, y el pendiente sin destino exige texto. El texto lo escribe una persona y nada empareja con él. No hay reloj que quite los otros pendientes: lo vencido aparece como alerta al leer (ADR 0070).
 
 ### 3.1 La tabla de transiciones
 
@@ -233,7 +233,7 @@ Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defect
 | PS1 | Atendido | Seguimiento | closer | fecha de seguimiento |
 | PS2 | Calificado | Seguimiento | closer | contacto previo y fecha |
 | PS3 | Compromiso Verbal | Seguimiento | closer | fecha de seguimiento |
-| PC | setteo, Agendado, Atendido o Compromiso Verbal | ninguno | closer | cambia la cohorte inmediatamente a una futura del mismo programa; no cambia la etapa |
+| PC | setteo, Agendado, Atendido o Compromiso Verbal | ninguno | closer | con una cohorte futura, cambia la cohorte en el acto; sin ella, deja el deal en Esperando corte con el texto obligatorio (293); no cambia la etapa |
 
 PC ya no es una flecha del motor aunque conserva su id de negocio en la pregunta de la etapa. RET se retiró: no existe una mudanza diferida por contacto.
 
@@ -270,7 +270,7 @@ Después de una llamada atendida, una sola pregunta decide el siguiente paso (AD
 | Compromiso | Compromiso Verbal | valor vendido, área y fecha límite | E10 |
 | Seguimiento | se queda en Atendido con Seguimiento | fecha de seguimiento | PS1 |
 | Otra llamada | se queda en Atendido con Re-agenda | motivo | PR2 |
-| Próxima cohorte | se queda en Atendido con Próxima Cohorte | cohorte destino | PC |
+| Próxima cohorte | se queda en Atendido; cambia de cohorte o queda en Esperando corte | cohorte destino, o el texto de la corte si no existe (293) | PC |
 | Perdido | Cierre perdido | motivo | P |
 
 Una llamada `no_show` o `cancelada` sobre Agendado pone Re-agenda por PR1. Una cita nueva limpia Re-agenda: en Agendado usa E7 y desde Atendido con pendiente usa E9. Grain o la confirmación manual de que ocurrió llevan Agendado a Atendido por E8.
