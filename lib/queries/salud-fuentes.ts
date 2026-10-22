@@ -50,8 +50,10 @@ export interface DatosDeSalud {
 export interface DatosDeTraza {
   pagos: number;
   pagosSinId: number;
+  pagosSinFbclid: number;
   pagosIdDesconocido: number;
   trazaRota: boolean;
+  fbclidRoto: boolean;
 }
 
 /** La ventana del conteo de "sin calidad": lo reciente, para que un arreglo se note al dia siguiente. */
@@ -71,8 +73,10 @@ export interface SaludDeFuente {
   lecturaVieja: boolean;
   pagos: number;
   pagosSinId: number;
+  pagosSinFbclid: number;
   pagosIdDesconocido: number;
   trazaRota: boolean;
+  fbclidRoto: boolean;
 }
 
 const HORA_MS = 3_600_000;
@@ -84,9 +88,11 @@ export function saludDeFuente(
   const { sobresPendientes, sinCalidad, lecturaApi } = d;
   const pagos = d.pagos ?? 0;
   const pagosSinId = d.pagosSinId ?? 0;
+  const pagosSinFbclid = d.pagosSinFbclid ?? 0;
   const pagosIdDesconocido = d.pagosIdDesconocido ?? 0;
   const trazaRota = pagos >= MIN_PAGOS_TRAZA && pagosSinId * 2 > pagos;
-  const traza = { pagos, pagosSinId, pagosIdDesconocido, trazaRota };
+  const fbclidRoto = pagos >= MIN_PAGOS_TRAZA && pagosSinFbclid * 2 > pagos;
+  const traza = { pagos, pagosSinId, pagosSinFbclid, pagosIdDesconocido, trazaRota, fbclidRoto };
   const lecturaVieja =
     lecturaApi !== null &&
     (lecturaApi.leidaEn === null ||
@@ -106,7 +112,7 @@ export function saludDeFuente(
   const silenciosa = estado === "sin_respuestas" || estado === "muerta";
   return {
     estado,
-    marcada: silenciosa || sobresPendientes > 0 || sinCalidad > 0 || lecturaVieja || trazaRota,
+    marcada: silenciosa || sobresPendientes > 0 || sinCalidad > 0 || lecturaVieja || trazaRota || fbclidRoto,
     sobresPendientes,
     sinCalidad,
     lecturaApi,
@@ -176,15 +182,21 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     [programId, await arbolDePauta(db, programId)] as const
   )));
   const programaPorFuente = new Map(fuentes.map((fuente) => [fuente.sourceId, fuente.programId]));
-  const trazaDe = new Map<string, Omit<DatosDeTraza, "trazaRota">>();
+  const trazaDe = new Map<string, Omit<DatosDeTraza, "trazaRota" | "fbclidRoto">>();
   for (const envio of enviosRecientes) {
     const programId = programaPorFuente.get(envio.sourceId);
     if (!programId) continue;
     const utms = utmsDelEnvio(envio);
     const medium = normalizarUtm(utms.medium);
     if (!MEDIOS_PAGOS.some((medio) => medio === medium)) continue;
-    const conteo = trazaDe.get(envio.sourceId) ?? { pagos: 0, pagosSinId: 0, pagosIdDesconocido: 0 };
+    const conteo = trazaDe.get(envio.sourceId) ?? {
+      pagos: 0,
+      pagosSinId: 0,
+      pagosSinFbclid: 0,
+      pagosIdDesconocido: 0,
+    };
     conteo.pagos += 1;
+    if (!utms.fbclid) conteo.pagosSinFbclid += 1;
     const tieneId = [utms.idsMeta.adId, utms.id, utms.idsMeta.adsetId, utms.idsMeta.campaignId]
       .some((id) => id !== null && id.trim() !== "" && !esMacro(id));
     if (!tieneId) conteo.pagosSinId += 1;
@@ -227,7 +239,12 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       sinCalidad: sinCalidadDe.get(f.sourceId) ?? 0,
       lecturaApi,
     };
-    const traza = trazaDe.get(f.sourceId) ?? { pagos: 0, pagosSinId: 0, pagosIdDesconocido: 0 };
+    const traza = trazaDe.get(f.sourceId) ?? {
+      pagos: 0,
+      pagosSinId: 0,
+      pagosSinFbclid: 0,
+      pagosIdDesconocido: 0,
+    };
     return { ...fuente, ...datos, ...saludDeFuente({ ...datos, ...traza }, ahora) };
   });
 }

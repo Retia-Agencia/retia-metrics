@@ -157,6 +157,11 @@ export default async function SaludPage({
                         · {num(s.pagosSinId)} de {num(s.pagos)} envíos pagos sin anuncio ({HORAS_SIN_CALIDAD} h)
                       </span>
                     ) : null}
+                    {s.fbclidRoto ? (
+                      <span className="text-tono-alerta">
+                        · {num(s.pagosSinFbclid)} de {num(s.pagos)} envíos pagos sin fbclid ({HORAS_SIN_CALIDAD} h)
+                      </span>
+                    ) : null}
                     {s.pagosIdDesconocido > 0 ? (
                       <span className="text-muted-foreground">
                         · {num(s.pagosIdDesconocido)} con anuncio desconocido

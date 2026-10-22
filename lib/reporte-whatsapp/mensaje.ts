@@ -194,7 +194,12 @@ export function armarMensajeDeLaHora(
       }
     }
     for (const fuente of bloque.trazaRota ?? []) {
-      lineasBloque.push(`⚠️ ${fuente.fuente}: ${num(fuente.pagosSinId)} de ${num(fuente.pagos)} envíos pagos sin anuncio (24 h)`);
+      if (fuente.sinId) {
+        lineasBloque.push(`⚠️ ${fuente.fuente}: ${num(fuente.pagosSinId)} de ${num(fuente.pagos)} envíos pagos sin anuncio (24 h)`);
+      }
+      if (fuente.fbclidRoto) {
+        lineasBloque.push(`⚠️ ${fuente.fuente}: ${num(fuente.pagosSinFbclid)} de ${num(fuente.pagos)} envíos pagos sin fbclid (24 h)`);
+      }
     }
     return lineasBloque.join("\n");
   });

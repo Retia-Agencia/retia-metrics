@@ -3,7 +3,7 @@ id: 282
 etapa: pauta
 serves: "El clic de Meta (fbclid) del formulario se guarda en el envío para que la venta que vuelve a Meta se reconozca mejor (ADR 0097 punto 5)"
 depends: []
-status: todo
+status: done
 ---
 
 # 282 — El fbclid del formulario llega al envío
@@ -38,3 +38,14 @@ El campo oculto `fbclid` es parte del set estándar de todo formulario con pauta
 - ✅ **21-oct:** las cuatro landings con pauta pasan ahora todos los parámetros al Typeform (antes Tactical, Confianza y
   ComunicArte botaban `fbclid`; ADR 0099, enmienda del 21-oct). Con eso el `fbclid` de un clic de Meta llega a
   `respuestas`. Falta lo de este ticket: leerlo a `submissions.fbclid` y usarlo en el 281.
+
+## Cierre 22-oct
+
+- **Sin columna `submissions.fbclid`:** el fbclid ya se lee en un solo lugar, `utmsDelEnvio` (macro o vacío = ausente),
+  y el 281 ya arma `fbc` con la hora del envío. Una columna sería una segunda copia sin consumidor.
+- **La alarma "sin fbclid"** entra al molde del 290: `pagosSinFbclid` y `fbclidRoto` en `lib/queries/salud-fuentes.ts`
+  (mismo umbral `MIN_PAGOS_TRAZA` y más de la mitad), en Webhook Health y en el semáforo (contrato con
+  `pagosSinFbclid`, `sinId`, `fbclidRoto`).
+- **Hallazgo:** los 8 anuncios activos de Tactical llevan `&fbclid={{click_id}}` en los url_tags; `{{click_id}}` no es
+  macro de Meta y llega literal. Lo arregla Pauta en Meta. La alarma lo marca hasta que se quite.
+- Quedan fuera, para su propio paso: los forms de Dapta y Form30x (editar pide el ok de Mani).

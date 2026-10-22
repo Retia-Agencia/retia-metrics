@@ -65,6 +65,9 @@ export const esquemaBloque = z.object({
     fuente: z.string(),
     pagos: z.number(),
     pagosSinId: z.number(),
+    pagosSinFbclid: z.number(),
+    sinId: z.boolean(),
+    fbclidRoto: z.boolean(),
   }).strict()).optional(),
   error: z.string().nullable(),
 }).strict();

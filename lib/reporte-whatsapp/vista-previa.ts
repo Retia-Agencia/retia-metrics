@@ -35,8 +35,15 @@ export async function vistaPreviaDelReporte(
 
   const enlaceHub = enlaceAlHub(args.origen, args.slug);
   const trazaRota = (await saludDeFuentes(db, args.ahora))
-    .filter((fuente) => fuente.programId === args.programId && fuente.trazaRota)
-    .map((fuente) => ({ fuente: fuente.nombre, pagos: fuente.pagos, pagosSinId: fuente.pagosSinId }));
+    .filter((fuente) => fuente.programId === args.programId && (fuente.trazaRota || fuente.fbclidRoto))
+    .map((fuente) => ({
+      fuente: fuente.nombre,
+      pagos: fuente.pagos,
+      pagosSinId: fuente.pagosSinId,
+      pagosSinFbclid: fuente.pagosSinFbclid,
+      sinId: fuente.trazaRota,
+      fbclidRoto: fuente.fbclidRoto,
+    }));
   const mensaje = async (tipo: "dia" | "cierre", hora: string) => {
     const metricas = await Promise.all(metricasEncendidas.map((metrica) => {
       switch (metrica) {

@@ -104,9 +104,16 @@ export async function POST(request: Request) {
   const salud = pendientes.length > 0 ? await saludDeFuentes(db, ahora) : [];
   const trazaRotaPorPrograma = new Map<string, NonNullable<RespuestaSemaforo["envios"][number]["bloques"][number]["trazaRota"]>>();
   for (const fuente of salud) {
-    if (!fuente.trazaRota) continue;
+    if (!fuente.trazaRota && !fuente.fbclidRoto) continue;
     const fuentes = trazaRotaPorPrograma.get(fuente.programId) ?? [];
-    fuentes.push({ fuente: fuente.nombre, pagos: fuente.pagos, pagosSinId: fuente.pagosSinId });
+    fuentes.push({
+      fuente: fuente.nombre,
+      pagos: fuente.pagos,
+      pagosSinId: fuente.pagosSinId,
+      pagosSinFbclid: fuente.pagosSinFbclid,
+      sinId: fuente.trazaRota,
+      fbclidRoto: fuente.fbclidRoto,
+    });
     trazaRotaPorPrograma.set(fuente.programId, fuentes);
   }
   const origen = new URL(request.url).origin;

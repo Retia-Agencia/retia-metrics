@@ -27,6 +27,23 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-22 (madrugada): CAPI encendido en ComunicArte y Confianza; 282 en main; el fbclid de Tactical, roto en los anuncios.**
+  - **CAPI:** Mani conectó Meta CAPI en ComunicArte (dataset `974573078957944`) y Confianza (`1068355778485503`) el
+    21-oct a las 11:18 y 11:37 pm; los dos coinciden con el pixel del form. El cron `enviar-meta-capi` (pg_cron, cada
+    5 min) responde 200. Las 7 ventas del 20 y 21-oct quedaron `omitido/programa_apagado` (se cerraron antes de
+    conectar, comportamiento correcto; esto corrige la entrada de abajo, que las daba por perdidas y a Confianza sin pegar). Con ok de Mani se reencolaron a mano las 4 de CA y Confianza (razón
+    `reencolado_a_mano: ...`, dentro de los 7 días de Meta); las 3 de Tactical siguen omitidas: no tiene conector.
+  - **282:** sin columna `submissions.fbclid` (el fbclid ya se lee en un solo lugar, `utmsDelEnvio`, y el 281 ya arma
+    `fbc`); lo que faltaba era la alarma: `fbclidRoto` en `salud-fuentes.ts` con el umbral de la traza, en Webhook
+    Health y el semáforo. Medido tras el arreglo de las landings (21-oct desde las 6 pm): CA 40/42, Confianza 45/45,
+    Tactical 4/18.
+  - **🩸 Tactical:** sus 8 anuncios activos llevan `&fbclid={{click_id}}` en los url_tags. `{{click_id}}` no es macro de
+    Meta: llega literal y choca con el fbclid real que Meta agrega, así que la mayoría de envíos trae la macro
+    (el CRM la descarta como centinela, no manda `fbc` falso). ComunicArte usa la misma plantilla sin ese parámetro.
+    **Arreglo:** Pauta quita `&fbclid={{click_id}}` de los url_tags (el token del CRM es solo lectura). Pendiente
+    antes de conectar CAPI en Tactical.
+  - Pendiente del frente: el primer Purchase real visible en Events Manager (Done del 281), forms de Dapta/Form30x
+    con `fbclid`, 283 y 279.
 - **2026-10-22 (madrugada): Meta CAPI encendida en ComunicArte y la tarjeta de conexión rehecha (281).**
   - **Pixeles medidos** con `retia-insights` (a qué dataset optimizan los conjuntos con gasto en 30 días): uno solo
     por programa. Tactical `1526923172471788` (Pixel_Deceroatactical_2026), ComunicArte `974573078957944`

@@ -109,6 +109,13 @@ describe("saludDeFuente (pura)", () => {
     expect(saludDeFuente({ ...base, pagos: 5, pagosSinId: 5 }).trazaRota).toBe(true);
     expect(saludDeFuente({ ...base, pagos: 5, pagosSinId: 2 }).trazaRota).toBe(false);
   });
+
+  it("marca el fbclid roto solo desde cinco pagos y cuando falta en mas de la mitad", () => {
+    const base = { ...UMBRALES, ultimo: hace(1), penultimo: hace(2), sobresPendientes: 0, sinCalidad: 0, lecturaApi: null };
+    expect(saludDeFuente({ ...base, pagos: 4, pagosSinFbclid: 4 }).fbclidRoto).toBe(false);
+    expect(saludDeFuente({ ...base, pagos: 5, pagosSinFbclid: 5 }).fbclidRoto).toBe(true);
+    expect(saludDeFuente({ ...base, pagos: 5, pagosSinFbclid: 2 }).fbclidRoto).toBe(false);
+  });
 });
 
 describe("saludDeFuentes (contra la base)", () => {
@@ -204,9 +211,9 @@ describe("saludDeFuentes (contra la base)", () => {
       proveedor: "typeform",
     }).returning();
     await db.insert(submissions).values([
-      { sourceId: id, token: "ad", createdAt: hace(1), utmMedium: "paid", respuestas: { ad_id: "101" } },
-      { sourceId: id, token: "utm", createdAt: hace(1), utmMedium: "cpc", utmId: "102" },
-      { sourceId: id, token: "macro", createdAt: hace(1), utmMedium: "paid", utmId: "{{ad.id}}" },
+      { sourceId: id, token: "ad", createdAt: hace(1), utmMedium: "paid", respuestas: { ad_id: "101", fbclid: "clic-1" } },
+      { sourceId: id, token: "utm", createdAt: hace(1), utmMedium: "cpc", utmId: "102", respuestas: { fbclid: "clic-2" } },
+      { sourceId: id, token: "macro", createdAt: hace(1), utmMedium: "paid", utmId: "{{ad.id}}", respuestas: { fbclid: "{{fbclid}}" } },
       { sourceId: id, token: "vacio", createdAt: hace(1), utmMedium: "paid" },
       { sourceId: id, token: "organico", createdAt: hace(1), utmMedium: "organic" },
       { sourceId: otraFuente.id, token: "otro", createdAt: hace(1), utmMedium: "paid" },
@@ -214,7 +221,14 @@ describe("saludDeFuentes (contra la base)", () => {
 
     const salud = await saludDeFuentes(db, AHORA);
     const s = salud.find((fila) => fila.sourceId === id)!;
-    expect(s).toMatchObject({ pagos: 4, pagosSinId: 2, pagosIdDesconocido: 2, trazaRota: false });
+    expect(s).toMatchObject({
+      pagos: 4,
+      pagosSinId: 2,
+      pagosSinFbclid: 2,
+      pagosIdDesconocido: 2,
+      trazaRota: false,
+      fbclidRoto: false,
+    });
   });
 
   it("solo mira las fuentes activas", async () => {

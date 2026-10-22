@@ -88,11 +88,35 @@ describe("mensaje del reporte por WhatsApp", () => {
   it("avisa cada fuente cuya traza de pauta esta rota", () => {
     const mensaje = armarMensajeDeLaHora([{
       ...bloque(),
-      trazaRota: [{ fuente: "Typeform Tactical", pagos: 7, pagosSinId: 5 }],
+      trazaRota: [{
+        fuente: "Typeform Tactical",
+        pagos: 7,
+        pagosSinId: 5,
+        pagosSinFbclid: 0,
+        sinId: true,
+        fbclidRoto: false,
+      }],
     }], "09:00", null, ORIGEN);
 
     expect(mensaje).toContain("⚠️ Typeform Tactical: 5 de 7 envíos pagos sin anuncio (24 h)");
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
+  });
+
+  it("muestra solo el aviso de fbclid cuando esa es la unica traza rota", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      ...bloque(),
+      trazaRota: [{
+        fuente: "Typeform Tactical",
+        pagos: 5,
+        pagosSinId: 0,
+        pagosSinFbclid: 5,
+        sinId: false,
+        fbclidRoto: true,
+      }],
+    }], "09:00", null, ORIGEN);
+
+    expect(mensaje).toContain("⚠️ Typeform Tactical: 5 de 5 envíos pagos sin fbclid (24 h)");
+    expect(mensaje).not.toContain("envíos pagos sin anuncio");
   });
 
   it("dice cuánto más barato que la meta, o igual", () => {
