@@ -29,6 +29,8 @@ export async function cambiarCohorteDelDeal(
     nota: (origenCodigo: string, destinoCodigo: string) => string;
     limpiarProximaCohorte?: boolean;
     userIdDeNota?: string | null;
+    /** Conserva literalmente la nota del llamador, sin anexar el ajuste del plazo. */
+    notaExacta?: boolean;
   },
 ): Promise<CambioDeCohorteEscrito> {
   let origenCodigo = "sin cohorte";
@@ -79,7 +81,7 @@ export async function cambiarCohorteDelDeal(
       userId: datos.userIdDeNota === undefined ? datos.actorId : datos.userIdDeNota,
       nota:
         datos.nota(origenCodigo, datos.destino.codigo)
-        + (fechaLimiteAjustada
+        + (!datos.notaExacta && fechaLimiteAjustada
           ? ` (La fecha límite de pago pasó de ${datos.deal.fechaLimitePago} a ${fechaLimiteAjustada}, el inicio de clases.)`
           : ""),
     },

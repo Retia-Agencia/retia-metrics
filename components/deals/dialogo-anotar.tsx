@@ -12,7 +12,7 @@ import { Campo, DialogoForm, claseInput, claseTextarea } from "./ficha/campos";
 import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
 
 type Eleccion = "ninguno" | PendienteDeal;
-const CORTE_SIN_CREAR = "sin_crear";
+const COHORTE_SIN_CREAR = "sin_crear";
 
 export function DialogoAnotar({
   dealId,
@@ -36,7 +36,7 @@ export function DialogoAnotar({
   const [eleccion, setEleccion] = useState<Eleccion>("ninguno");
   const [proximoContacto, setProximoContacto] = useState("");
   const [cohorteDestinoId, setCohorteDestinoId] = useState<string | null>(null);
-  const [textoCorte, setTextoCorte] = useState("");
+  const [textoCohorte, setTextoCohorte] = useState("");
   const [motivoId, setMotivoId] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const ofrecidos = pendientesParaAnotar(etapa, pendienteActual);
@@ -45,7 +45,7 @@ export function DialogoAnotar({
 
   const invalido = ((eleccion === "ninguno" || eleccion === "seguimiento") && comentario.trim() === "")
     || (eleccion === "seguimiento" && !proximoContacto)
-    || (eleccion === "proxima_cohorte" && (!cohorteDestinoId || (cohorteDestinoId === CORTE_SIN_CREAR && !textoCorte.trim())))
+    || (eleccion === "proxima_cohorte" && (!cohorteDestinoId || (cohorteDestinoId === COHORTE_SIN_CREAR && !textoCohorte.trim())))
     || (eleccion === "reagenda" && (
       !motivoId
       || (motivoElegido?.pideTexto === true && comentario.trim() === "")
@@ -58,7 +58,7 @@ export function DialogoAnotar({
       comentario,
       ...(eleccion === "seguimiento" ? { proximoContacto } : {}),
       ...(eleccion === "proxima_cohorte" && cohorteDestinoId
-        ? { proximaCohorte: cohorteDestinoId === CORTE_SIN_CREAR ? { textoCorte } : { cohorteDestinoId } }
+        ? { proximaCohorte: cohorteDestinoId === COHORTE_SIN_CREAR ? { textoCohorte } : { cohorteDestinoId } }
         : {}),
       ...(eleccion === "reagenda" && motivoId
         ? { reagenda: { motivoId } }
@@ -133,26 +133,26 @@ export function DialogoAnotar({
                 value={cohorteDestinoId}
                 items={[
                   ...opciones.cohortesDestino.map((c) => ({ value: c.id, label: c.nombre })),
-                  { value: CORTE_SIN_CREAR, label: "La corte todavía no existe" },
+                  { value: COHORTE_SIN_CREAR, label: "La cohorte todavía no existe" },
                 ]}
                 onValueChange={setCohorteDestinoId}
               >
                 <SelectTrigger className="w-full"><SelectValue placeholder="Elige la cohorte" /></SelectTrigger>
                 <SelectContent>
                   {opciones.cohortesDestino.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
-                  <SelectItem value={CORTE_SIN_CREAR}>La corte todavía no existe</SelectItem>
+                  <SelectItem value={COHORTE_SIN_CREAR}>La cohorte todavía no existe</SelectItem>
                 </SelectContent>
               </Select>
             </Campo>
-            {cohorteDestinoId === CORTE_SIN_CREAR ? (
-              <Campo etiqueta="¿A qué corte quiere entrar?">
+            {cohorteDestinoId === COHORTE_SIN_CREAR ? (
+              <Campo etiqueta="¿A qué cohorte quiere entrar?">
                 <input
                   className={claseInput}
-                  value={textoCorte}
+                  value={textoCohorte}
                   maxLength={120}
                   required
                   placeholder="Ej. 2027 o la de enero"
-                  onChange={(e) => setTextoCorte(e.currentTarget.value)}
+                  onChange={(e) => setTextoCohorte(e.currentTarget.value)}
                 />
               </Campo>
             ) : null}

@@ -91,7 +91,7 @@ export function FichaCabecera({
           </Dato>
           {ficha.cohorteDestino ? <Dato etiqueta="Cambia a cohorte">{ficha.cohorteDestino.codigo}</Dato> : null}
           {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto ? (
-            <Dato etiqueta="Esperando corte">{ficha.cohorteDestinoTexto}</Dato>
+            <Dato etiqueta="Sin cohorte asignada">{ficha.cohorteDestinoTexto}</Dato>
           ) : null}
           {ficha.pendiente === "seguimiento" ? (
             <Dato etiqueta="Próximo contacto">{ficha.fechaSeguimiento ? fecha(ficha.fechaSeguimiento) : null}</Dato>

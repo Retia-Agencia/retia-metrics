@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { fecha } from "@/lib/format";
 import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { BotonDeEtapa } from "../boton-de-etapa";
 import { gruposDeTransicion, gruposSinDueno, type ClaveDestino } from "../pregunta-de-etapa";
@@ -159,14 +158,9 @@ export function FichaTransicion({
             </section>
           </div>
         ) : null}
-        {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino?.inicioVentas ? (
+        {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino ? (
           <p className="text-xs text-muted-foreground">
-            Se retoma solo cuando se registre un contacto desde el {fecha(ficha.cohorteDestino.inicioVentas)}.
-          </p>
-        ) : null}
-        {ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestino && !ficha.cohorteDestino.inicioVentas ? (
-          <p className="text-xs text-muted-foreground">
-            Se retoma cuando se defina el inicio de ventas de {ficha.cohorteDestino.codigo}.
+            Pasa a {ficha.cohorteDestino.codigo} en su misma etapa cuando esa cohorte se active.
           </p>
         ) : null}
       </CardContent>

@@ -168,6 +168,7 @@ export interface TableroKanban {
   columnas: ColumnaKanban[];
   /** El total de tarjetas visibles tras aplicar los filtros, en las columnas de la vista. */
   total: number;
+  enProximaCohorte: number;
 }
 
 export interface OrdenKanban {
@@ -352,7 +353,7 @@ export async function tableroKanban(
       return dia >= seguimiento.desde && dia <= seguimiento.hasta;
     });
   }
-  if (filas.length === 0) return { columnas: columnasVacias(), total: 0 };
+  if (filas.length === 0) return { columnas: columnasVacias(), total: 0, enProximaCohorte: 0 };
 
   const dealIds = filas.map((f) => f.dealId);
   const leadIds = [...new Set(filas.map((f) => f.leadId))];
@@ -475,7 +476,10 @@ export async function tableroKanban(
   });
 
   const filtrosVisibles = alcance.tipo === "dueno" ? { ...filtros, ownerUserId: null } : filtros;
-  const filtradas = tarjetas.filter((t) => pasaFiltros(t, filtrosVisibles));
+  const enProximaCohorte = tarjetas.filter((t) =>
+    t.pendiente === "proxima_cohorte" && pasaFiltros(t, { ...filtrosVisibles, cohorteId: null }),
+  ).length;
+  const filtradas = tarjetas.filter((t) => t.pendiente !== "proxima_cohorte" && pasaFiltros(t, filtrosVisibles));
 
   // Cada deal va a UNA columna; las que la vista no muestra simplemente no salen.
   const porColumna = new Map<ColumnaDelTablero, TarjetaDeal[]>();
@@ -492,7 +496,7 @@ export async function tableroKanban(
       confirmadoUsd: confirmadoDeColumna(clave, tarjetas),
     };
   });
-  return { columnas, total: columnas.reduce((total, columna) => total + columna.tarjetas.length, 0) };
+  return { columnas, total: columnas.reduce((total, columna) => total + columna.tarjetas.length, 0), enProximaCohorte };
 }
 
 function compararTarjetas(

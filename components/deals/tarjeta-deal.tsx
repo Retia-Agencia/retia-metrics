@@ -154,7 +154,7 @@ export function TarjetaDealCard({
       </div>
 
       {tarjeta.pendiente === "proxima_cohorte" && tarjeta.cohorteDestinoTexto ? (
-        <p className="mt-2 text-xs text-muted-foreground">Corte: {tarjeta.cohorteDestinoTexto}</p>
+        <p className="mt-2 text-xs text-muted-foreground">Cohorte: {tarjeta.cohorteDestinoTexto}</p>
       ) : null}
 
       {tieneAvisos(avisos) ? (

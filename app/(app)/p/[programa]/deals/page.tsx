@@ -23,6 +23,8 @@ import { cohorteActiva } from "@/lib/queries/cohortes";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { BusquedaDeDeals } from "@/components/deals/busqueda-de-deals";
 import { BuscadorDeDeals } from "@/components/deals/buscador-de-deals";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -95,6 +97,13 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       <PantallaFija>
         <BusquedaDeDeals key={programa.id}>
           <div className="shrink-0">
+            {tablero.enProximaCohorte > 0 ? (
+              <div className="mb-3 flex justify-end">
+                <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/p/${programa.slug}/proxima-cohorte`} />}>
+                  <span className="cifra">{tablero.enProximaCohorte}</span> en Próxima cohorte
+                </Button>
+              </div>
+            ) : null}
             <FiltroKanban
               total={tablero.total}
               buscador={<BuscadorDeDeals programaSlug={programa.slug} idsDelTablero={tarjetas.map((t) => t.dealId)} />}

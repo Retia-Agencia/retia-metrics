@@ -28,7 +28,6 @@ import {
   editarCohorte,
   type EntradaCohorte,
 } from "@/lib/catalogo/cohortes";
-import { pasarDealsEsperandoCorte } from "@/lib/deals/pasar-esperando-corte";
 
 /**
  * Server actions de la administracion de programas y cohortes (ticket 014). Viven en la
@@ -301,24 +300,6 @@ export async function desactivarCohorteAccion(slug: string, id: string): Promise
     const { session } = actor;
     await desactivarCohorte(db, session.user.id, id);
     revalidarNav();
-    return { ok: true };
-  } catch (error) {
-    return aResultado(error);
-  }
-}
-
-export async function pasarEsperandoCorteAccion(
-  slug: string,
-  entrada: { dealIds: string[]; destinoId: string },
-): Promise<ResultadoAccion> {
-  try {
-    const actor = await actorGerente();
-    await exigirProgramaDeCohorte(actor, entrada.destinoId);
-    await pasarDealsEsperandoCorte(db, {
-      ...entrada,
-      actor: { userId: actor.session.user.id },
-    });
-    revalidatePath(`/p/${slug}/programa`);
     return { ok: true };
   } catch (error) {
     return aResultado(error);

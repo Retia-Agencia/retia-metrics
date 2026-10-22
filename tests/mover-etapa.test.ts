@@ -501,7 +501,7 @@ describe("corregir el último movimiento", () => {
       motivoId: motivoCorreccion,
     })).rejects.toMatchObject({
       status: 409,
-      message: "No se puede restaurar Próxima cohorte: falta a qué corte iba.",
+      message: "No se puede restaurar Próxima cohorte: falta a qué cohorte iba.",
     });
     expect(await etapaDe(dealId)).toBe("calificado");
   });

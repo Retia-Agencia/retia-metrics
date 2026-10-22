@@ -14,7 +14,6 @@ import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import type { CambioHecho } from "./resumen-del-cambio";
-import { cambiarCohorteDelDeal, type CambioDeCohorteEscrito } from "./cambiar-cohorte";
 
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");
 const comentario = z.string().trim().max(4000, "El comentario es muy largo.").optional();
@@ -26,7 +25,7 @@ export const esquemaAnotar = z.object({
   proximaCohorte: z.union([
     z.object({ cohorteDestinoId: z.string().uuid("La cohorte destino no es válida.") }).strict(),
     z.object({
-      textoCorte: z.string().trim().min(1, "Escribe a qué corte quiere entrar.").max(120, "El corte es muy largo."),
+      textoCohorte: z.string().trim().min(1, "Escribe a qué cohorte quiere entrar.").max(120, "La cohorte es muy larga."),
     }).strict(),
   ]).optional(),
   reagenda: z.object({
@@ -124,21 +123,20 @@ export async function anotar(
         );
       }
 
-      if (datos.proximaCohorte && "textoCorte" in datos.proximaCohorte) {
+      if (datos.proximaCohorte && "textoCohorte" in datos.proximaCohorte) {
         await crearConRastro(
           { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
           {
             dealId: original.id,
             tipo: "nota",
             userId: null,
-            nota: `Esperando corte: ${datos.proximaCohorte.textoCorte}`,
+            nota: `Esperando cohorte: ${datos.proximaCohorte.textoCohorte}`,
           },
         );
       }
 
       const etapa = original.etapa;
       let pendiente: PendienteDeal | null = original.pendiente;
-      let cohorteCambiada: CambioDeCohorteEscrito | null = null;
       // Anotar NUNCA mueve de etapa (ticket 228, Mani 9-oct): la tarjeta Transición ya decía
       // que Anotar "deja un comentario o el próximo paso sin cambiar la etapa". Pasar de
       // Potencial/Registrado a En gestión es ahora una respuesta de "Mover a" (E1, pasó de
@@ -154,13 +152,13 @@ export async function anotar(
         });
         pendiente = mov.pendienteA;
       } else if (datos.proximaCohorte) {
-        if ("textoCorte" in datos.proximaCohorte) {
+        if ("textoCohorte" in datos.proximaCohorte) {
           const mov = await moverEtapa(tx, {
             dealId: original.id,
             a: etapa,
             pendiente: "proxima_cohorte",
             actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
-            datos: { cohorteDestinoId: null, cohorteDestinoTexto: datos.proximaCohorte.textoCorte },
+            datos: { cohorteDestinoId: null, cohorteDestinoTexto: datos.proximaCohorte.textoCohorte },
           });
           pendiente = mov.pendienteA;
         } else {
@@ -177,17 +175,18 @@ export async function anotar(
         if (destino.estado !== "futuro") {
           throw new ErrorDeApp("Próxima cohorte solo admite una cohorte futura.", 409);
         }
-        cohorteCambiada = await cambiarCohorteDelDeal(tx, {
-          deal: original,
-          destino,
-          actorId: actor.userId,
-          etiqueta: emailLead,
-          limpiarProximaCohorte: true,
-          userIdDeNota: null,
-          nota: (origen, codigoDestino) =>
-            `Cohorte cambiada por Próxima cohorte: ${origen} → ${codigoDestino}. El deal ya cuenta en ${codigoDestino}.`,
+        const mov = await moverEtapa(tx, {
+          dealId: original.id,
+          a: etapa,
+          pendiente: "proxima_cohorte",
+          actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
+          datos: { cohorteDestinoId: destino.id, cohorteDestinoTexto: null },
         });
-        pendiente = null;
+        await crearConRastro(
+          { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead },
+          { dealId: original.id, tipo: "nota", userId: null, nota: `Cohorte asignada: ${destino.codigo}` },
+        );
+        pendiente = mov.pendienteA;
         }
       } else if (datos.reagenda) {
         // En Agendado sin cita viva, Re-agenda ya quedó puesta al resolver la cita anterior.
@@ -219,9 +218,7 @@ export async function anotar(
         fechaPendiente: final.pendiente === "seguimiento" ? final.fechaSeguimiento : null,
         llamadaCreada: null,
         abonoRegistrado: null,
-        cohorteCambiada: cohorteCambiada
-          ? { de: cohorteCambiada.origenCodigo, a: cohorteCambiada.destinoCodigo }
-          : null,
+        cohorteCambiada: null,
       };
 
       return {

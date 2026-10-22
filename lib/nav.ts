@@ -188,6 +188,12 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
       icono: "deals",
       roles: ["gerente", "closer"],
     });
+    items.push({
+      href: `/p/${programa}/proxima-cohorte`,
+      etiqueta: "Próxima cohorte",
+      icono: "deals",
+      roles: ["gerente", "closer"],
+    });
     // Inbox: las dos listas por las que un deal consigue dueño —Por settear y
     // Agendados sin dueño— (ADR 0050, ticket 070). Junto a Deals, del mismo programa; un
     // closer solo en sus programas. El boton de reclamar lo ve quien trabaja leads, pero

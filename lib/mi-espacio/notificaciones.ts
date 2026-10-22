@@ -64,7 +64,7 @@ export const DESCRIPCION_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   hoy: "Tus llamadas de hoy y los seguimientos o re-agendas que vencen hoy.",
   reagenda: "Deals con una llamada que no se hizo y hay que volver a agendar.",
   seguimiento: "Deals con un próximo contacto puesto, por fecha.",
-  proxima_cohorte: "Leads que quieren entrar en la próxima cohorte.",
+  proxima_cohorte: "Leads que esperan otra cohorte; se gestionan en la pantalla Próxima cohorte.",
   vencidos: "Seguimientos, compromisos de pago o cartera con la fecha ya pasada.",
   sin_grain: "Llamadas que ya se hicieron y todavía no tienen el link de Grain.",
   calendly: "Citas nuevas, cambiadas o canceladas en Calendly.",

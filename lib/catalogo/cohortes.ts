@@ -6,6 +6,7 @@ import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
 import { esViolacionCheck, esViolacionUnica, nombreDeConstraint } from "@/lib/db/errores";
+import { mudarDealsDeProximaCohorte } from "@/lib/deals/asignar-proxima-cohorte";
 
 /**
  * Cohortes (ticket 014, ADR 0012 + ADR 0005), sobre las mismas piezas del molde.
@@ -336,13 +337,15 @@ export async function editarCohorte(db: Db, actorId: string, id: string, input: 
 export async function activarCohorte(db: Db, actorId: string, id: string) {
   return normalizando(async () => {
     const objetivoId = idValido(id);
-    const actual = await leerCohorte(db, objetivoId);
-    if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
-    if (actual.estado === ESTADO_ACTIVO) return actual;
-    if (await yaHayActiva(db, actual.programId, objetivoId)) {
-      throw new ErrorDeApp(MENSAJE_UNA_ACTIVA, 400);
-    }
-    return cambiarEstado(db, actorId, actual, ESTADO_ACTIVO);
+    return (db as unknown as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> }).transaction(async (tx) => {
+      const actual = await leerCohorte(tx, objetivoId);
+      if (!actual) throw new ErrorDeApp("No existe una cohorte con ese id.", 404);
+      if (actual.estado === ESTADO_ACTIVO) return actual;
+      if (await yaHayActiva(tx, actual.programId, objetivoId)) throw new ErrorDeApp(MENSAJE_UNA_ACTIVA, 400);
+      const activada = await cambiarEstado(tx, actorId, actual, ESTADO_ACTIVO);
+      await mudarDealsDeProximaCohorte(tx, { cohorte: activada, actorId });
+      return activada;
+    });
   });
 }
 

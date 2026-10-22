@@ -449,7 +449,7 @@ async function datosDeEsperaParaCorreccion(
   const cohorteDestinoId = ultimo("cohorteDestinoId");
   const cohorteDestinoTexto = ultimo("cohorteDestinoTexto");
   if (cohorteDestinoId == null && !cohorteDestinoTexto?.trim()) {
-    throw new ErrorDeApp("No se puede restaurar Próxima cohorte: falta a qué corte iba.", 409);
+    throw new ErrorDeApp("No se puede restaurar Próxima cohorte: falta a qué cohorte iba.", 409);
   }
   return { cohorteDestinoId, cohorteDestinoTexto };
 }
