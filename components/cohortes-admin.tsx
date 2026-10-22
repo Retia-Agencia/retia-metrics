@@ -7,16 +7,19 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { usd } from "@/lib/format";
+import { fechaHoraEnBogota, usd } from "@/lib/format";
 import { siguienteCodigoDeCohorte } from "@/lib/catalogo/codigo-de-cohorte";
 import {
   activarCohorteAccion,
   crearCohorteAccion,
   desactivarCohorteAccion,
   editarCohorteAccion,
+  pasarEsperandoCorteAccion,
   type ResultadoAccion,
 } from "@/app/(app)/p/[programa]/programa/acciones-programa";
+import type { DealEsperandoCorte } from "@/lib/queries/deals-esperando-corte";
 
 /**
  * Administracion de las cohortes de un programa (ticket 014), solo gerente.
@@ -90,16 +93,20 @@ export function CohortesAdmin({
   programId,
   ticketUsd,
   cohortes,
+  esperandoCorte,
 }: {
   slug: string;
   programId: string;
   ticketUsd: string;
   cohortes: CohorteVista[];
+  esperandoCorte: DealEsperandoCorte[];
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
   const [creando, setCreando] = useState(false);
   const [editando, setEditando] = useState<string | null>(null);
+  const [seleccionados, setSeleccionados] = useState<string[]>([]);
+  const [destinoId, setDestinoId] = useState<string | null>(null);
 
   function correr(accion: () => Promise<ResultadoAccion>, exito: string, alExito?: () => void) {
     startTransition(async () => {
@@ -138,6 +145,63 @@ export function CohortesAdmin({
             )
           }
         />
+      ) : null}
+
+      {esperandoCorte.length > 0 ? (
+        <div className="space-y-3 rounded-lg bg-muted/40 p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium">
+              <span className="cifra">{esperandoCorte.length}</span> {esperandoCorte.length === 1 ? "deal espera" : "deals esperan"} corte
+            </p>
+            <Badge variant="info">Esperando corte</Badge>
+          </div>
+          <ul className="divide-y">
+            {esperandoCorte.map((deal) => (
+              <li key={deal.dealId} className="flex items-start gap-2 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={seleccionados.includes(deal.dealId)}
+                  onChange={(e) => setSeleccionados((actual) => e.currentTarget.checked
+                    ? [...actual, deal.dealId]
+                    : actual.filter((id) => id !== deal.dealId))}
+                  aria-label={`Elegir ${deal.nombreLead ?? deal.emailLead}`}
+                />
+                <div className="min-w-0">
+                  <p className="font-medium">{deal.nombreLead ?? deal.emailLead}</p>
+                  <p className="text-muted-foreground">{deal.textoCorte} · {deal.ownerNombre ?? "Sin dueño"}</p>
+                  <p className="text-xs text-muted-foreground">Anotado {fechaHoraEnBogota(deal.anotadoEn)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="min-w-52 flex-1 space-y-1 text-sm">
+              <span className="text-muted-foreground">Pasar a</span>
+              <Select
+                value={destinoId}
+                items={ordenadas.filter((c) => c.estado !== "cerrado").map((c) => ({ value: c.id, label: c.codigo }))}
+                onValueChange={setDestinoId}
+              >
+                <SelectTrigger className="w-full"><SelectValue placeholder="Elige la cohorte" /></SelectTrigger>
+                <SelectContent>
+                  {ordenadas.filter((c) => c.estado !== "cerrado").map((c) => <SelectItem key={c.id} value={c.id}>{c.codigo}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </label>
+            <Button
+              size="sm"
+              disabled={pendiente || seleccionados.length === 0 || !destinoId}
+              onClick={() => destinoId && correr(
+                () => pasarEsperandoCorteAccion(slug, { dealIds: seleccionados, destinoId }),
+                `${seleccionados.length} ${seleccionados.length === 1 ? "deal movido" : "deals movidos"}`,
+                () => setSeleccionados([]),
+              )}
+            >
+              Pasar seleccionados
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       <ul className="divide-y rounded-md border">

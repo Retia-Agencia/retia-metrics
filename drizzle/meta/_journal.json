@@ -701,6 +701,20 @@
       "when": 1792508086135,
       "tag": "0099_eventos-meta",
       "breakpoints": true
+    },
+    {
+      "idx": 100,
+      "version": "7",
+      "when": 1792640248286,
+      "tag": "0100_esperando-corte",
+      "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "7",
+      "when": 1792640992155,
+      "tag": "0101_esperando-corte-null",
+      "breakpoints": true
     }
   ]
 }

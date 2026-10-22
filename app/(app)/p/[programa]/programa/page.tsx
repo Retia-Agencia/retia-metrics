@@ -57,6 +57,7 @@ import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
 import { estadoDeIntegraciones } from "@/lib/integraciones";
 import { IntegracionesDelPrograma } from "@/components/integraciones/integraciones-del-programa";
 import { resumenMetaCapi } from "@/lib/meta-capi/resumen";
+import { dealsEsperandoCorte } from "@/lib/queries/deals-esperando-corte";
 
 export const dynamic = "force-dynamic";
 
@@ -194,6 +195,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   // Los umbrales de las alertas (147) solo se leen en su pestaña.
   const umbrales = seccion === "ventas" ? await umbralesDelPrograma(db, programa.id) : [];
   const objetivos = seccion === "ventas" ? await objetivosDeCohortes(db, cohortes.map((c) => c.id)) : [];
+  const esperandoCorte = seccion === "ventas" && configura ? await dealsEsperandoCorte(db, programa.id) : [];
   // El valor de hoy al lado del umbral (264): la misma definición que usa el semáforo (258, ADR 0024).
   const costoReciente = seccion === "ventas"
     ? await costoPorAgendaDeLosUltimosHabiles(db, { programId: programa.id, hoy: hoyEnBogota(), dias: 7 })
@@ -548,6 +550,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                       programId={programa.id}
                       ticketUsd={programa.ticketUsd}
                       cohortes={cohortes}
+                      esperandoCorte={esperandoCorte}
                     />
                   ) : (
                     <ListaDeCohortes cohortes={cohortes} />

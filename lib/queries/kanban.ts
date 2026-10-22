@@ -106,6 +106,7 @@ export interface TarjetaDeal {
   emailLead: string;
   etapa: EtapaDeal;
   pendiente: PendienteDeal | null;
+  cohorteDestinoTexto: string | null;
   ownerUserId: string | null;
   ownerNombre: string | null;
   /** Solo la ve el dueño en su alcance personal; para equipo siempre es false. */
@@ -256,6 +257,7 @@ export async function tableroKanban(
       leadId: deals.leadId,
       etapa: deals.etapa,
       pendiente: deals.pendiente,
+      cohorteDestinoTexto: deals.cohorteDestinoTexto,
       ownerUserId: deals.ownerUserId,
       ownerNovedadEn: deals.ownerNovedadEn,
       fechaLimitePago: deals.fechaLimitePago,
@@ -396,6 +398,7 @@ export async function tableroKanban(
       emailLead: f.emailLead,
       etapa: f.etapa,
       pendiente: f.pendiente,
+      cohorteDestinoTexto: f.cohorteDestinoTexto,
       ownerUserId: f.ownerUserId,
       ownerNombre: f.ownerNombre,
       esNuevo:

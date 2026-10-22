@@ -139,6 +139,7 @@ function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opc
   const [motivo, setMotivo] = useState("");
   const destinos = opciones.cohortes.filter((c) => c.id !== ficha.cohorte?.id);
   const esEstudiante = ficha.etapa === "ganado_parcial" || ficha.etapa === "ganado_completo";
+  const esperandoCorte = ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null;
   // Sin otra cohorte a la que mover, no hay selector que mostrar (ticket 229, A-139): un
   // mensaje dice por qué y no se ofrece Cambiar. El texto depende de qué cohortes cuentan:
   // para un estudiante, futuras o activas; para un deal normal, las que venden hoy.
@@ -151,7 +152,7 @@ function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opc
             <DialogDescription>La venta cuenta donde el estudiante asiste.</DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            {esEstudiante ? "No hay otra cohorte activa o futura." : "No hay otra cohorte vendiendo hoy."}
+            {esEstudiante || esperandoCorte ? "No hay otra cohorte activa o futura." : "No hay otra cohorte vendiendo hoy."}
           </p>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onCerrar}>Cerrar</Button>
@@ -180,7 +181,7 @@ function DialogoCohorte({ ficha, opciones, onCerrar }: { ficha: FichaDeDeal; opc
           }),
       }}
     >
-      <Campo etiqueta="Cohorte nueva" ayuda={esEstudiante ? "Solo futuras o activas." : "Solo cohortes que están vendiendo hoy."}>
+      <Campo etiqueta="Cohorte nueva" ayuda={esEstudiante || esperandoCorte ? "Solo futuras o activas." : "Solo cohortes que están vendiendo hoy."}>
         <Select value={cohortId} items={destinos.map((c) => ({ value: c.id, label: c.nombre }))} onValueChange={(v: string | null) => setCohortId(v)}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Elige la cohorte" />

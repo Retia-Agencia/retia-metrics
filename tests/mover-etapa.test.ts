@@ -449,6 +449,17 @@ describe("corregir el último movimiento", () => {
       userId: closer,
       fecha: new Date("2026-10-03T15:00:00-05:00"),
     });
+    await db.insert(changeLog).values({
+      tabla: "deals",
+      registroId: dealId,
+      etiqueta: dealId,
+      campo: "cohorteDestinoTexto",
+      valorAnterior: "2027",
+      valorNuevo: null,
+      origen: "app",
+      userId: closer,
+      detectadoEn: new Date("2026-10-03T15:00:00-05:00"),
+    });
 
     expect(await etapaDeCorreccion(db, dealId)).toEqual({ a: "contactado", pendiente: "proxima_cohorte" });
     await moverEtapa(db, {
@@ -460,14 +471,39 @@ describe("corregir el último movimiento", () => {
     });
 
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
-    expect(deal).toMatchObject({ etapa: "contactado", pendiente: "proxima_cohorte" });
+    expect(deal).toMatchObject({ etapa: "contactado", pendiente: "proxima_cohorte", cohorteDestinoTexto: "2027" });
     expect(await historial(dealId)).toEqual(expect.arrayContaining([
       expect.objectContaining({ de: "calificado", a: "contactado", pendienteA: "proxima_cohorte", motivoId: motivoCorreccion, userId: closer }),
     ]));
     expect(await db.select().from(changeLog).where(eq(changeLog.registroId, dealId))).toEqual(expect.arrayContaining([
       expect.objectContaining({ campo: "etapa", valorAnterior: "calificado", valorNuevo: "contactado", userId: closer }),
+      expect.objectContaining({ campo: "cohorteDestinoTexto", valorAnterior: null, valorNuevo: "2027", userId: closer }),
     ]));
     expect(await etapaDeCorreccion(db, dealId)).toBeNull();
+  });
+
+  it("rechaza con 409 si el rastro legado no dice a qué corte iba", async () => {
+    const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
+    await db.insert(dealEtapaHistorial).values({
+      dealId,
+      de: "contactado",
+      a: "calificado",
+      pendienteDe: "proxima_cohorte",
+      pendienteA: null,
+      userId: closer,
+    });
+
+    await expect(moverEtapa(db, {
+      dealId,
+      a: "contactado",
+      correccion: true,
+      actor: comoCloser(),
+      motivoId: motivoCorreccion,
+    })).rejects.toMatchObject({
+      status: 409,
+      message: "No se puede restaurar Próxima cohorte: falta a qué corte iba.",
+    });
+    expect(await etapaDe(dealId)).toBe("calificado");
   });
 
   it("el tablero calcula el destino de varias tarjetas con la misma regla", async () => {

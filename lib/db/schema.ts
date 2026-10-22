@@ -960,6 +960,12 @@ export const deals = pgTable(
       onDelete: "restrict",
     }),
     /**
+     * A que corte quiere entrar, en texto libre, cuando esa corte todavia no existe
+     * (ticket 293, "Esperando corte"): lo escribe una persona y nadie empareja con el.
+     * Solo vive con el pendiente Proxima Cohorte, y sin cohorte destino es obligatorio.
+     */
+    cohorteDestinoTexto: text("cohorte_destino_texto"),
+    /**
      * Lo que de verdad se vendió, en USD: ticket de la cohorte menos el descuento
      * escrito por el closer. Se congela al vender; de aquí salen saldo y Completo.
      */
@@ -1050,6 +1056,16 @@ export const deals = pgTable(
       sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
           OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
               AND length(trim(${t.motivoAnulacion})) > 0)`,
+    ),
+    // Esperando corte (ticket 293): el texto solo vive con el pendiente Proxima Cohorte,
+    // y un deal en espera sin cohorte destino lleva texto. Sin la primera mitad, salir del
+    // pendiente sin limpiar el texto dejaria una nota huerfana que la bandeja ya no ve.
+    // El coalesce no es adorno: un CHECK que da NULL PASA, y length(trim(NULL)) es NULL.
+    check(
+      "deals_esperando_corte_con_texto",
+      sql`(${t.cohorteDestinoTexto} IS NULL OR ${t.pendiente} = 'proxima_cohorte')
+          AND (${t.pendiente} IS DISTINCT FROM 'proxima_cohorte' OR ${t.cohorteDestinoId} IS NOT NULL
+               OR coalesce(length(trim(${t.cohorteDestinoTexto})), 0) > 0)`,
     ),
   ],
 );

@@ -70,7 +70,14 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
     });
   }
   const [opciones, alertas, correccion] = await Promise.all([
-    opcionesDeFicha(db, programa.id, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null, ficha.etapa),
+    opcionesDeFicha(
+      db,
+      programa.id,
+      ficha.owner?.id ?? null,
+      ficha.cohorte?.id ?? null,
+      ficha.etapa,
+      ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null,
+    ),
     alertasDelDeal(db, programa.id, ficha.dealId),
     etapaDeCorreccion(db, ficha.dealId),
   ]);

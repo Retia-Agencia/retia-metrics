@@ -103,6 +103,8 @@ export interface DatosMovimiento {
   acuerdoPago?: string | null;
   /** La cohorte a la que quiere entrar (Proxima Cohorte). `deals.cohorte_destino_id`. */
   cohorteDestinoId?: string | null;
+  /** Texto libre de Esperando corte cuando la cohorte todavía no existe (ticket 293). */
+  cohorteDestinoTexto?: string | null;
   fechaSeguimiento?: string | null;
 }
 
@@ -178,10 +180,10 @@ export async function limpiarPendientePorCambioDeCohorte(
   actorId: string,
   etiqueta: string,
 ): Promise<void> {
-  if (deal.pendiente == null && deal.cohorteDestinoId == null) return;
+  if (deal.pendiente == null && deal.cohorteDestinoId == null && deal.cohorteDestinoTexto == null) return;
   await tx
     .update(deals)
-    .set({ pendiente: null, cohorteDestinoId: null, updatedAt: new Date() })
+    .set({ pendiente: null, cohorteDestinoId: null, cohorteDestinoTexto: null, updatedAt: new Date() })
     .where(eq(deals.id, deal.id));
   await tx.insert(changeLog).values([
     ...(deal.pendiente != null
@@ -203,6 +205,18 @@ export async function limpiarPendientePorCambioDeCohorte(
           etiqueta,
           campo: "cohorteDestinoId",
           valorAnterior: deal.cohorteDestinoId,
+          valorNuevo: null,
+          origen: "app" as const,
+          userId: actorId,
+        }]
+      : []),
+    ...(deal.cohorteDestinoTexto != null
+      ? [{
+          tabla: "deals",
+          registroId: deal.id,
+          etiqueta,
+          campo: "cohorteDestinoTexto",
+          valorAnterior: deal.cohorteDestinoTexto,
           valorNuevo: null,
           origen: "app" as const,
           userId: actorId,
@@ -235,6 +249,9 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
         409,
       );
     }
+    const esperaRestaurada = mov.correccion && correccion?.pendiente === "proxima_cohorte"
+      ? await datosDeEsperaParaCorreccion(tx, deal.id)
+      : null;
     const resuelta = mov.correccion
       ? { transicion: FLECHA_CORRECCION, pendienteA: correccion?.pendiente ?? null }
       : resolverTransicion(de, pendienteDe, mov.a, mov.pendiente ?? null);
@@ -315,11 +332,16 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       comisionPorcentaje = programa?.comisionPorcentaje ?? null;
     }
 
+    const saleDeProximaCohorte = pendienteDe === "proxima_cohorte" && pendienteA !== "proxima_cohorte";
+    const textoDestino = mov.datos?.cohorteDestinoTexto;
     const escritas = await tx
       .update(deals)
       .set({
         etapa: mov.a,
         pendiente: pendienteA,
+        ...(esperaRestaurada ?? {}),
+        ...(textoDestino !== undefined ? { cohorteDestinoTexto: textoDestino } : {}),
+        ...(saleDeProximaCohorte ? { cohorteDestinoId: null, cohorteDestinoTexto: null } : {}),
         updatedAt: new Date(),
         ...(comisionPorcentaje !== undefined ? { comisionPorcentaje } : {}),
         ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
@@ -328,6 +350,33 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       .returning();
     if (escritas.length === 0) {
       throw new ErrorDeApp("El deal cambió de etapa mientras tanto. Vuelve a cargarlo.", 409);
+    }
+    const cambiosDeEspera = [
+      ...(textoDestino !== undefined && textoDestino !== deal.cohorteDestinoTexto
+        ? [{ campo: "cohorteDestinoTexto", valorAnterior: deal.cohorteDestinoTexto, valorNuevo: textoDestino }]
+        : []),
+      ...(saleDeProximaCohorte && deal.cohorteDestinoId != null
+        ? [{ campo: "cohorteDestinoId", valorAnterior: deal.cohorteDestinoId, valorNuevo: null }]
+        : []),
+      ...(saleDeProximaCohorte && deal.cohorteDestinoTexto != null
+        ? [{ campo: "cohorteDestinoTexto", valorAnterior: deal.cohorteDestinoTexto, valorNuevo: null }]
+        : []),
+      ...(esperaRestaurada?.cohorteDestinoId != null
+        ? [{ campo: "cohorteDestinoId", valorAnterior: deal.cohorteDestinoId, valorNuevo: esperaRestaurada.cohorteDestinoId }]
+        : []),
+      ...(esperaRestaurada?.cohorteDestinoTexto != null
+        ? [{ campo: "cohorteDestinoTexto", valorAnterior: deal.cohorteDestinoTexto, valorNuevo: esperaRestaurada.cohorteDestinoTexto }]
+        : []),
+    ];
+    if (cambiosDeEspera.length > 0) {
+      await tx.insert(changeLog).values(cambiosDeEspera.map((cambio) => ({
+        tabla: "deals",
+        registroId: deal.id,
+        etiqueta: deal.id,
+        ...cambio,
+        origen: "app" as const,
+        userId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
+      })));
     }
     if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(mov.a)) {
       await encolarVenta(tx, escritas[0]);
@@ -376,6 +425,33 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
 
     return { de, a: mov.a, pendienteDe, pendienteA, transicion: t };
   });
+}
+
+/**
+ * Una corrección que revive Próxima cohorte también revive el dato que ese movimiento
+ * limpió. La bitácora es la fuente porque el historial de etapas solo guarda el pendiente.
+ */
+async function datosDeEsperaParaCorreccion(
+  tx: Db,
+  dealId: string,
+): Promise<{ cohorteDestinoId: string | null; cohorteDestinoTexto: string | null }> {
+  const filas = await tx
+    .select({ campo: changeLog.campo, valorAnterior: changeLog.valorAnterior })
+    .from(changeLog)
+    .where(and(
+      eq(changeLog.tabla, "deals"),
+      eq(changeLog.registroId, dealId),
+      inArray(changeLog.campo, ["cohorteDestinoId", "cohorteDestinoTexto"]),
+      sql`${changeLog.valorNuevo} is null`,
+    ))
+    .orderBy(desc(changeLog.detectadoEn), desc(changeLog.id));
+  const ultimo = (campo: string) => filas.find((fila) => fila.campo === campo)?.valorAnterior ?? null;
+  const cohorteDestinoId = ultimo("cohorteDestinoId");
+  const cohorteDestinoTexto = ultimo("cohorteDestinoTexto");
+  if (cohorteDestinoId == null && !cohorteDestinoTexto?.trim()) {
+    throw new ErrorDeApp("No se puede restaurar Próxima cohorte: falta a qué corte iba.", 409);
+  }
+  return { cohorteDestinoId, cohorteDestinoTexto };
 }
 
 /**
@@ -451,6 +527,11 @@ export async function escribirDatosDelDeal(
       }
     }
     aplicar("cohorteDestinoId", datos.cohorteDestinoId);
+  }
+  // Se escribe junto con `pendiente` en el update final de `moverEtapa`: el CHECK de
+  // Esperando corte no admite que el texto exista ni un instante sin ese pendiente.
+  if (datos.cohorteDestinoTexto !== undefined) {
+    deal = { ...deal, cohorteDestinoTexto: datos.cohorteDestinoTexto };
   }
 
   if (Object.keys(cambios).length === 0) return deal;
@@ -968,6 +1049,7 @@ export async function leerHechos(
     // siendo la de origen y no se toca al ir a Proxima Cohorte, asi la conversion de la
     // cohorte de origen no pierde el deal. Ya no se exige que sea una cohorte `futuro`.
     cohorteDestinoId: deal.cohorteDestinoId,
+    cohorteDestinoTexto: deal.cohorteDestinoTexto,
     fechaInicioVentasCohorteDestino: cohorteDestino?.fechaInicioVentas ?? null,
     fechaUltimoContacto: contacto?.fecha ?? null,
     fechaSeguimiento: deal.fechaSeguimiento,

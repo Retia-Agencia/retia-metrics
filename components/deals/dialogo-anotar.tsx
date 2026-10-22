@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { anotarAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Campo, DialogoForm, claseInput, claseTextarea } from "./ficha/campos";
 import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
 
 type Eleccion = "ninguno" | PendienteDeal;
+const CORTE_SIN_CREAR = "sin_crear";
 
 export function DialogoAnotar({
   dealId,
@@ -35,6 +36,7 @@ export function DialogoAnotar({
   const [eleccion, setEleccion] = useState<Eleccion>("ninguno");
   const [proximoContacto, setProximoContacto] = useState("");
   const [cohorteDestinoId, setCohorteDestinoId] = useState<string | null>(null);
+  const [textoCorte, setTextoCorte] = useState("");
   const [motivoId, setMotivoId] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const ofrecidos = pendientesParaAnotar(etapa, pendienteActual);
@@ -43,7 +45,7 @@ export function DialogoAnotar({
 
   const invalido = ((eleccion === "ninguno" || eleccion === "seguimiento") && comentario.trim() === "")
     || (eleccion === "seguimiento" && !proximoContacto)
-    || (eleccion === "proxima_cohorte" && !cohorteDestinoId)
+    || (eleccion === "proxima_cohorte" && (!cohorteDestinoId || (cohorteDestinoId === CORTE_SIN_CREAR && !textoCorte.trim())))
     || (eleccion === "reagenda" && (
       !motivoId
       || (motivoElegido?.pideTexto === true && comentario.trim() === "")
@@ -55,7 +57,9 @@ export function DialogoAnotar({
       dealId,
       comentario,
       ...(eleccion === "seguimiento" ? { proximoContacto } : {}),
-      ...(eleccion === "proxima_cohorte" && cohorteDestinoId ? { proximaCohorte: { cohorteDestinoId } } : {}),
+      ...(eleccion === "proxima_cohorte" && cohorteDestinoId
+        ? { proximaCohorte: cohorteDestinoId === CORTE_SIN_CREAR ? { textoCorte } : { cohorteDestinoId } }
+        : {}),
       ...(eleccion === "reagenda" && motivoId
         ? { reagenda: { motivoId } }
         : {}),
@@ -106,16 +110,7 @@ export function DialogoAnotar({
               <Opcion valor="seguimiento" eleccion={eleccion} onElegir={setEleccion}>Próximo contacto</Opcion>
             ) : null}
             {ofrecidos.includes("proxima_cohorte") ? (
-              opciones.cohortesDestino.length === 0 ? (
-                <OpcionDesactivada>
-                  Quiere la próxima cohorte
-                  <span className="block text-xs text-muted-foreground">
-                    No hay cohortes futuras. Gerencia la crea en Programa, aunque no tenga fechas.
-                  </span>
-                </OpcionDesactivada>
-              ) : (
-                <Opcion valor="proxima_cohorte" eleccion={eleccion} onElegir={setEleccion}>Quiere la próxima cohorte</Opcion>
-              )
+              <Opcion valor="proxima_cohorte" eleccion={eleccion} onElegir={setEleccion}>Quiere la próxima cohorte</Opcion>
             ) : null}
             {ofrecidos.includes("reagenda") && !tieneCitaViva ? (
               <Opcion valor="reagenda" eleccion={eleccion} onElegir={setEleccion}>La llamada no se hizo / se reagenda</Opcion>
@@ -132,14 +127,36 @@ export function DialogoAnotar({
           ) : null}
 
           {eleccion === "proxima_cohorte" ? (
+            <>
             <Campo etiqueta="Cohorte destino">
-              <Select value={cohorteDestinoId} items={opciones.cohortesDestino.map((c) => ({ value: c.id, label: c.nombre }))} onValueChange={setCohorteDestinoId}>
+              <Select
+                value={cohorteDestinoId}
+                items={[
+                  ...opciones.cohortesDestino.map((c) => ({ value: c.id, label: c.nombre })),
+                  { value: CORTE_SIN_CREAR, label: "La corte todavía no existe" },
+                ]}
+                onValueChange={setCohorteDestinoId}
+              >
                 <SelectTrigger className="w-full"><SelectValue placeholder="Elige la cohorte" /></SelectTrigger>
                 <SelectContent>
                   {opciones.cohortesDestino.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
+                  <SelectItem value={CORTE_SIN_CREAR}>La corte todavía no existe</SelectItem>
                 </SelectContent>
               </Select>
             </Campo>
+            {cohorteDestinoId === CORTE_SIN_CREAR ? (
+              <Campo etiqueta="¿A qué corte quiere entrar?">
+                <input
+                  className={claseInput}
+                  value={textoCorte}
+                  maxLength={120}
+                  required
+                  placeholder="Ej. 2027 o la de enero"
+                  onChange={(e) => setTextoCorte(e.currentTarget.value)}
+                />
+              </Campo>
+            ) : null}
+            </>
           ) : null}
 
           {eleccion === "reagenda" ? (
@@ -174,20 +191,6 @@ function Opcion({
   return (
     <label className="flex items-center gap-2 text-sm">
       <input type="radio" name="pendiente-anotacion" checked={eleccion === valor} onChange={() => onElegir(valor)} />
-      <span>{children}</span>
-    </label>
-  );
-}
-
-/**
- * Una opción que se ofrece pero no se puede elegir, con el porqué (ticket 227): "Quiere la
- * próxima cohorte" sin ninguna cohorte futura creada. El radio va deshabilitado para que se
- * vea el motivo en vez de desaparecer la opción.
- */
-function OpcionDesactivada({ children }: { children: ReactNode }) {
-  return (
-    <label className="flex items-start gap-2 text-sm text-muted-foreground">
-      <input type="radio" name="pendiente-anotacion" disabled className="mt-1" />
       <span>{children}</span>
     </label>
   );

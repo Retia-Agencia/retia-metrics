@@ -223,6 +223,7 @@ export interface FichaDeDeal {
   cohortesVendiendoHoy: { id: string; codigo: string }[];
   /** Destino legado de un pendiente Próxima Cohorte anterior al ticket 231. */
   cohorteDestino: { id: string; codigo: string; inicioVentas: string | null } | null;
+  cohorteDestinoTexto: string | null;
   acuerdoPago: string | null;
   fechaLimitePago: string | null;
   /**
@@ -652,6 +653,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
     cohorteDestino: cohorteDestino
       ? { id: cohorteDestino.id, codigo: cohorteDestino.codigo, inicioVentas: cohorteDestino.fechaInicioVentas }
       : null,
+    cohorteDestinoTexto: deal.cohorteDestinoTexto,
     acuerdoPago: deal.acuerdoPago,
     fechaLimitePago: deal.fechaLimitePago,
     fechaLimiteSugerida,
@@ -748,13 +750,14 @@ export async function opcionesDeFicha(
   cohorteActualId: string | null,
   /** Sin etapa (p. ej. el listado de llamadas) conserva el catalogo general. */
   etapa?: EtapaDeal,
+  esperandoCorte: boolean = false,
 ): Promise<OpcionesDeFicha> {
   const esEstudiante = etapa === "ganado_parcial" || etapa === "ganado_completo";
   const cohortesFilas = await db
     .select()
     .from(cohorts)
     .where(and(eq(cohorts.programId, programId), ne(cohorts.estado, "cerrado")));
-  const cohortesParaCambiar = etapa !== undefined && !esEstudiante
+  const cohortesParaCambiar = etapa !== undefined && !esEstudiante && !esperandoCorte
     ? await cohortesVendiendo(db, programId, hoyEnBogota())
     : cohortesFilas;
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));

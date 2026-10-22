@@ -13,6 +13,7 @@ export interface HechosDelDeal {
   esHistorico: boolean;
   fechaLimitePago: string | null;
   cohorteDestinoId: string | null;
+  cohorteDestinoTexto?: string | null;
   fechaInicioVentasCohorteDestino: string | null;
   fechaUltimoContacto: Date | null;
   fechaSeguimiento: string | null;
@@ -72,7 +73,7 @@ const CUMPLE: Record<CodigoReal, (h: HechosEvaluables, eximirHistorico?: boolean
   llamada_fallida: (h) => h.llamadaFallida === true,
   valor_vendido: (h, eximir) => h.cortesia === true || (h.valorVendidoUsd ?? 0) > 0 || (eximir === true && h.esHistorico === true),
   fecha_limite_pago: (h) => h.fechaLimitePago != null,
-  cohorte_destino: (h) => h.cohorteDestinoId != null,
+  cohorte_destino: (h) => h.cohorteDestinoId != null || Boolean(h.cohorteDestinoTexto?.trim()),
   fecha_seguimiento: (h) => h.fechaSeguimiento != null,
   abono: (h) => h.abonosVigentes > 0 || h.cortesia === true,
   saldo_pendiente: (h) => h.saldo != null && h.saldo > 0,

@@ -162,6 +162,7 @@ async function deal(o: OpcDeal): Promise<{ dealId: string; leadId: string }> {
       cohortId: prog === programId ? cohortId : null,
       etapa: o.etapa,
       pendiente: o.pendiente ?? null,
+      cohorteDestinoTexto: o.pendiente === "proxima_cohorte" ? "2027" : null,
       ownerUserId: o.owner ?? yo,
       ownerNovedadEn: o.nuevo ? new Date("2026-10-20T12:00:00Z") : null,
       valorVendidoUsd: "1000.00",

@@ -166,10 +166,11 @@ export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: Da
       }
       if (destino.id === deal.cohortId) throw new ErrorDeApp("El deal ya está en esa cohorte.", 422);
       const esEstudiante = deal.etapa === "ganado_parcial" || deal.etapa === "ganado_completo";
-      if (esEstudiante && destino.estado === "cerrado") {
+      const estabaEsperandoCorte = deal.pendiente === "proxima_cohorte" && deal.cohorteDestinoTexto != null;
+      if ((esEstudiante || estabaEsperandoCorte) && destino.estado === "cerrado") {
         throw new ErrorDeApp("Solo se puede mover a una cohorte futura o activa.", 422);
       }
-      if (!esEstudiante) {
+      if (!esEstudiante && !estabaEsperandoCorte) {
         const vendiendoHoy = await cohortesVendiendo(tx, deal.programId, hoyEnBogota());
         if (!vendiendoHoy.some((cohorte) => cohorte.id === destino.id)) {
           throw new ErrorDeApp("Solo se puede elegir una cohorte que esté vendiendo hoy.", 422);
@@ -181,6 +182,7 @@ export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: Da
         destino,
         actorId: actor.userId,
         etiqueta: emailLead,
+        limpiarProximaCohorte: estabaEsperandoCorte,
         nota: (origen, codigoDestino) => `Cambio de cohorte: ${origen} → ${codigoDestino}. ${motivo}`,
       });
     });

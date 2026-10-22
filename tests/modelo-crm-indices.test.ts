@@ -93,7 +93,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
   it("`proxima_cohorte` SI ocupa el cupo: es un deal abierto, no un cierre", async () => {
     await db
       .insert(deals)
-      .values({ leadId: leadA, programId: programaA, etapa: "registrado", pendiente: "proxima_cohorte" });
+      .values({ leadId: leadA, programId: programaA, etapa: "registrado", pendiente: "proxima_cohorte", cohorteDestinoTexto: "2027" });
 
     await expect(
       db.insert(deals).values({ leadId: leadA, programId: programaA }),

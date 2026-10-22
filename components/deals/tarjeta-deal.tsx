@@ -148,6 +148,10 @@ export function TarjetaDealCard({
         </span>
       </div>
 
+      {tarjeta.pendiente === "proxima_cohorte" && tarjeta.cohorteDestinoTexto ? (
+        <p className="mt-2 text-xs text-muted-foreground">Corte: {tarjeta.cohorteDestinoTexto}</p>
+      ) : null}
+
       {tieneAvisos(avisos) ? (
         <div className="mt-2 flex flex-wrap gap-1">
           {avisos.faltanALaEtapa > 0 ? <Badge variant="peligro">Le falta {avisos.faltanALaEtapa}</Badge> : null}
