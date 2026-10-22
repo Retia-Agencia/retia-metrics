@@ -11,6 +11,7 @@ import type { ResumenMetaCapi } from "@/lib/meta-capi/resumen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
@@ -63,13 +64,11 @@ export function IntegracionesDelPrograma({
   const router = useRouter();
   const [editando, setEditando] = useState<TipoIntegracion | null>(null);
   const [valor, setValor] = useState("");
-  const capi = integraciones.find((integracion) => integracion.tipo === "meta_capi");
-  const [datasetId, setDatasetId] = useState(typeof capi?.config.datasetId === "string" ? capi.config.datasetId : "");
   const [pendiente, startTransition] = useTransition();
 
   function guardar(tipo: TipoIntegracion) {
     startTransition(async () => {
-      const resultado = await guardarIntegracionAccion(programId, tipo, valor, tipo === "meta_capi" ? datasetId : undefined);
+      const resultado = await guardarIntegracionAccion(programId, tipo, valor);
       if (!resultado.ok) {
         toast.error("No se pudo conectar", { description: resultado.error });
         return;
@@ -111,7 +110,14 @@ export function IntegracionesDelPrograma({
 
   return (
     <div className="space-y-4">
-      {integraciones.map((integracion) => (
+      {integraciones.map((integracion) => integracion.tipo === "meta_capi" ? (
+        <MetaCapi
+          key={integracion.tipo}
+          programId={programId}
+          integracion={integracion}
+          resumen={resumenCapi}
+        />
+      ) : (
         <Card key={integracion.tipo}>
           <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
             <div className="space-y-1">
@@ -126,13 +132,6 @@ export function IntegracionesDelPrograma({
             {integracion.probadaEn ? <p className="text-xs text-muted-foreground">Probada el {integracion.probadaEn}</p> : null}
             {editando === integracion.tipo ? (
               <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); guardar(integracion.tipo); }}>
-                {integracion.tipo === "meta_capi" ? (
-                  <Input
-                    inputMode="numeric" pattern="[0-9]+" required value={datasetId}
-                    onChange={(e) => setDatasetId(e.target.value)} placeholder="ID del dataset"
-                    aria-label="ID del dataset de Meta"
-                  />
-                ) : null}
                 <input
                   type="password" autoComplete="new-password" required maxLength={500}
                   value={valor} onChange={(e) => setValor(e.target.value)}
@@ -147,7 +146,7 @@ export function IntegracionesDelPrograma({
                 <Button type="button" size="sm" variant="outline" onClick={() => { setValor(""); setEditando(integracion.tipo); }}>
                   {integracion.configurada ? "Reemplazar" : "Conectar"} {integracion.campo}
                 </Button>
-                {integracion.configurada && integracion.tipo !== "meta_capi" ? (
+                {integracion.configurada ? (
                   <Button type="button" size="sm" variant="outline" disabled={pendiente} onClick={() => probar(integracion.tipo)}>
                     Probar
                   </Button>
@@ -183,14 +182,6 @@ export function IntegracionesDelPrograma({
               </div>
             ) : null}
 
-            {integracion.tipo === "meta_capi" ? (
-              <MetaCapi
-                programId={programId}
-                configurada={integracion.configurada}
-                config={integracion.config}
-                resumen={resumenCapi}
-              />
-            ) : null}
           </CardContent>
         </Card>
       ))}
@@ -217,29 +208,63 @@ export function IntegracionesDelPrograma({
 }
 
 function MetaCapi({
-  programId, configurada, config, resumen,
+  programId, integracion, resumen,
 }: {
   programId: string;
-  configurada: boolean;
-  config: ConfigVisible;
+  integracion: IntegracionVisible;
   resumen: ResumenMetaCapi;
 }) {
   const router = useRouter();
-  const [datasetId, setDatasetId] = useState(typeof config.datasetId === "string" ? config.datasetId : "");
+  const { configurada, config, probadaEn } = integracion;
+  const datasetActual = typeof config.datasetId === "string" ? config.datasetId : "";
+  const [dialogoAbierto, setDialogoAbierto] = useState(false);
+  const [datasetId, setDatasetId] = useState(datasetActual);
+  const [token, setToken] = useState("");
   const [encendido, setEncendido] = useState(config.encendido === true);
   const [codigo, setCodigo] = useState("");
+  const [repitiendoPrueba, setRepitiendoPrueba] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const ultimaPrueba = typeof config.ultimaPruebaEn === "string" ? config.ultimaPruebaEn : null;
+  const fecha = (valor: string) => new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short",
+  }).format(new Date(valor));
+  const estado = !configurada
+    ? { variante: "neutro" as const, texto: "Sin conectar" }
+    : !ultimaPrueba
+      ? { variante: "alerta" as const, texto: "Falta la prueba" }
+      : encendido
+        ? { variante: "exito" as const, texto: "Enviando ventas" }
+        : { variante: "alerta" as const, texto: "Apagada" };
 
-  function guardarConfiguracion(siguiente = encendido) {
+  function abrirDialogo() {
+    setDatasetId(datasetActual);
+    setToken("");
+    setDialogoAbierto(true);
+  }
+
+  function conectar() {
     startTransition(async () => {
-      const resultado = await configurarMetaCapiAccion(programId, { datasetId, encendido: siguiente });
+      const resultado = await guardarIntegracionAccion(programId, "meta_capi", token, datasetId);
       if (!resultado.ok) {
-        setEncendido(config.encendido === true);
-        toast.error("No se pudo guardar Meta CAPI", { description: resultado.error });
+        toast.error("No se pudo conectar Meta CAPI", { description: resultado.error });
         return;
       }
-      toast.success("Configuración de Meta CAPI guardada");
+      setDialogoAbierto(false);
+      setToken("");
+      toast.success("Meta CAPI conectada y probada");
+      router.refresh();
+    });
+  }
+
+  function cambiarEnvio(siguiente: boolean) {
+    setEncendido(siguiente);
+    startTransition(async () => {
+      const resultado = await configurarMetaCapiAccion(programId, { encendido: siguiente });
+      if (!resultado.ok) {
+        setEncendido(config.encendido === true);
+        toast.error("No se pudo cambiar el envío", { description: resultado.error });
+        return;
+      }
       router.refresh();
     });
   }
@@ -250,6 +275,7 @@ function MetaCapi({
       if (!resultado.ok) toast.error("La prueba falló", { description: resultado.error });
       else {
         setCodigo("");
+        setRepitiendoPrueba(false);
         toast.success("Evento de prueba enviado");
         router.refresh();
       }
@@ -257,49 +283,138 @@ function MetaCapi({
   }
 
   return (
-    <div className="space-y-4 border-t border-border pt-3">
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label className="space-y-1">
-          <span className="text-sm font-medium">ID del dataset</span>
-          <Input inputMode="numeric" pattern="[0-9]+" value={datasetId} onChange={(e) => setDatasetId(e.target.value)} disabled={!configurada || pendiente} />
-        </label>
-        <Button type="button" size="sm" variant="outline" disabled={!configurada || pendiente || !datasetId.trim()} onClick={() => guardarConfiguracion()}>
-          Guardar ID
-        </Button>
-      </div>
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium">Enviar ventas a Meta</p>
-          <p className="text-xs text-muted-foreground">Solo se puede encender después de una prueba exitosa.</p>
+    <Card>
+      <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
+        <div className="space-y-1">
+          <CardTitle className="text-base">Meta CAPI</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Devuelve cada venta del CRM a Meta como Purchase para que la pauta optimice por ventas.
+          </p>
         </div>
-        <Switch
-          checked={encendido}
-          onCheckedChange={(checked) => { setEncendido(checked); guardarConfiguracion(checked); }}
-          disabled={!configurada || pendiente}
-          aria-label="Enviar ventas a Meta"
-        />
-      </div>
-      <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); probar(); }}>
-        <label className="space-y-1">
-          <span className="text-sm font-medium">Código del evento de prueba</span>
-          <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} disabled={!configurada || pendiente} placeholder="TEST12345" maxLength={200} />
-        </label>
-        <Button type="submit" size="sm" disabled={!configurada || pendiente || !codigo.trim()}>Mandar evento de prueba</Button>
-        <p className="text-xs text-muted-foreground">
-          {ultimaPrueba ? `Última prueba: ${new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", dateStyle: "medium", timeStyle: "short" }).format(new Date(ultimaPrueba))}` : "Todavía no hay una prueba exitosa."}
-        </p>
-      </form>
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Últimos 7 días</p>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="exito">{resumen.enviado} enviados</Badge>
-          <Badge variant="alerta">{resumen.fallido} fallidos</Badge>
-          <Badge variant="neutro">{resumen.vencido} vencidos</Badge>
-          <Badge variant="neutro">{resumen.omitido} omitidos</Badge>
+        <Badge variant={estado.variante}>{estado.texto}</Badge>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <section className="space-y-3 border-t border-border pt-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={configurada ? "exito" : "neutro"}>1 · {configurada ? "Hecho" : "Pendiente"}</Badge>
+            <h3 className="text-sm font-medium">Conectar el dataset</h3>
+          </div>
+          {configurada ? (
+            <div className="space-y-2">
+              <p className="text-sm">{String(config.dataset ?? "Dataset")} · {datasetActual}</p>
+              {probadaEn ? <p className="text-xs text-muted-foreground">Probada el {fecha(probadaEn)}</p> : null}
+              <Button type="button" size="sm" variant="outline" onClick={abrirDialogo}>Cambiar conexión</Button>
+            </div>
+          ) : (
+            <Button type="button" size="sm" onClick={abrirDialogo}>Conectar Meta CAPI</Button>
+          )}
+        </section>
+
+        <section className={`space-y-3 border-t border-border pt-4${configurada ? "" : " opacity-60"}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={ultimaPrueba ? "exito" : "neutro"}>2 · {ultimaPrueba ? "Hecho" : "Pendiente"}</Badge>
+            <h3 className="text-sm font-medium">Mandar un evento de prueba</h3>
+          </div>
+          {!configurada ? <p className="text-xs text-muted-foreground">Primero conecta el dataset.</p> : (
+            <>
+              <p className="text-sm text-muted-foreground">
+                En Events Manager › el dataset › Probar eventos, copia el código que empieza por TEST y pégalo aquí. Debe aparecer un Purchase de USD 1.
+              </p>
+              {ultimaPrueba ? (
+                <div className="space-y-2">
+                  <p className="text-sm">Prueba exitosa el {fecha(ultimaPrueba)}</p>
+                  {!repitiendoPrueba ? (
+                    <Button type="button" size="sm" variant="outline" onClick={() => setRepitiendoPrueba(true)}>Repetir prueba</Button>
+                  ) : null}
+                </div>
+              ) : null}
+              {(!ultimaPrueba || repitiendoPrueba) ? (
+                <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); probar(); }}>
+                  <Input
+                    value={codigo} onChange={(e) => setCodigo(e.target.value)} disabled={pendiente}
+                    placeholder="TEST12345" maxLength={200} aria-label="Código del evento de prueba"
+                  />
+                  <Button type="submit" size="sm" disabled={pendiente || !codigo.trim()}>Mandar prueba</Button>
+                </form>
+              ) : null}
+            </>
+          )}
+        </section>
+
+        <section className={`space-y-3 border-t border-border pt-4${ultimaPrueba ? "" : " opacity-60"}`}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={encendido ? "exito" : "neutro"}>3 · {encendido ? "Hecho" : "Pendiente"}</Badge>
+            <h3 className="text-sm font-medium">Enviar ventas a Meta</h3>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Cada deal que entra por primera vez a Abonado o Completo sale como Purchase en menos de 5 minutos. Las cortesías no se mandan.
+              </p>
+              {!ultimaPrueba ? <p className="text-xs text-muted-foreground">Disponible después de una prueba exitosa.</p> : null}
+            </div>
+            <Switch
+              checked={encendido} onCheckedChange={cambiarEnvio}
+              disabled={!ultimaPrueba || pendiente} aria-label="Enviar ventas a Meta"
+            />
+          </div>
+        </section>
+
+        <div className="space-y-2 border-t border-border pt-4">
+          <p className="text-sm font-medium">Últimos 7 días</p>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="exito">{resumen.enviado} enviados</Badge>
+            <Badge variant="alerta">{resumen.fallido} fallidos</Badge>
+            <Badge variant="neutro">{resumen.vencido} vencidos</Badge>
+            <Badge variant="neutro">{resumen.omitido} omitidos</Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">{resumen.enviadosConFbc} de {resumen.enviadosTotal} enviados con fbc</p>
+          <p className="text-xs text-muted-foreground">Omitidos: ventas que entraron con el envío apagado o cortesías.</p>
         </div>
-        <p className="text-xs text-muted-foreground">{resumen.enviadosConFbc} de {resumen.enviadosTotal} enviados con fbc</p>
-      </div>
-    </div>
+      </CardContent>
+
+      <Dialog open={dialogoAbierto} onOpenChange={setDialogoAbierto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{configurada ? "Cambiar conexión" : "Conectar Meta CAPI"}</DialogTitle>
+            <DialogDescription>Conecta el dataset y comprueba que Meta acepta el token.</DialogDescription>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); conectar(); }}>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">ID del dataset</span>
+              <Input
+                inputMode="numeric" pattern="[0-9]+" required value={datasetId}
+                onChange={(e) => setDatasetId(e.target.value.replace(/\D/g, ""))}
+                autoComplete="off"
+              />
+              <span className="block text-xs text-muted-foreground">
+                Events Manager › Conjuntos de datos: el número debajo del nombre del dataset.
+              </span>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">Token de acceso</span>
+              <textarea
+                rows={3} required maxLength={500} value={token} onChange={(e) => setToken(e.target.value)}
+                autoComplete="off" spellCheck={false}
+                className="h-auto w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              />
+              <span className="block text-xs text-muted-foreground">
+                Events Manager › el dataset › Configuración › API de Conversiones › Generar token. Queda guardado en el servidor y no se vuelve a mostrar.
+              </span>
+            </label>
+            {configurada ? (
+              <p className="text-sm text-muted-foreground">Cambiar la conexión apaga el envío y pide una nueva prueba.</p>
+            ) : null}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setDialogoAbierto(false)}>Cancelar</Button>
+              <Button type="submit" disabled={pendiente || !datasetId.trim() || !token.trim()}>
+                {pendiente ? "Probando…" : "Conectar y probar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 }
 

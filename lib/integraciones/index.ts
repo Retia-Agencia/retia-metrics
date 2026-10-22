@@ -59,7 +59,9 @@ export async function guardarIntegracion(
     const definicion = INTEGRACIONES[tipo];
     const valor = definicion.esquema.parse(valorCrudo);
     const probada = await probarIntegracion(tipo, valor, f, configInicial);
-    const config = { ...(configInicial ?? {}), ...probada };
+    const config = tipo === "meta_capi"
+      ? { ...(configInicial ?? {}), ...probada, encendido: false, ultimaPruebaEn: null }
+      : { ...(configInicial ?? {}), ...probada };
     await db.transaction(async (tx) => escribir(tx as Db, {
       actorId, programId, tipo, secretos: { [definicion.llave]: valor }, config,
       probadaEn: new Date(), campo: definicion.llave,
@@ -149,10 +151,8 @@ export async function credencialesMetaCapi(
 }
 
 export async function configurarMetaCapi(
-  db: Db, actorId: string, programId: string, input: { datasetId: string; encendido: boolean },
+  db: Db, actorId: string, programId: string, input: { encendido: boolean },
 ): Promise<void> {
-  const datasetId = input.datasetId.trim();
-  if (!/^\d+$/.test(datasetId)) throw new ErrorDeApp("El ID del dataset debe contener solo números.", 422);
   const [fila] = await db.select({ id: integraciones.id, config: integraciones.config }).from(integraciones)
     .where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, "meta_capi")));
   if (!fila) throw new ErrorDeApp("Primero conecta Meta CAPI.", 422);
@@ -161,12 +161,12 @@ export async function configurarMetaCapi(
     throw new ErrorDeApp("Manda un evento de prueba exitoso antes de encender Meta CAPI.", 422);
   }
   // Encender CAPI decide si salen datos personales con hash hacia Meta: quien y cuando queda en change_log.
-  const cambios = ([["datasetId", config.datasetId ?? null, datasetId], ["encendido", config.encendido ?? false, input.encendido]] as const)
+  const cambios = ([["encendido", config.encendido ?? false, input.encendido]] as const)
     .filter(([, antes, despues]) => textoDeBitacora(antes) !== textoDeBitacora(despues));
   const p = await programa(db, programId);
   await db.transaction(async (tx) => {
     await tx.update(integraciones).set({
-      config: { ...config, datasetId, encendido: input.encendido },
+      config: { ...config, encendido: input.encendido },
       actualizadaPorUserId: actorId, updatedAt: new Date(),
     }).where(eq(integraciones.id, fila.id));
     if (cambios.length > 0) {

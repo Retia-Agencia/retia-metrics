@@ -27,6 +27,26 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-22 (madrugada): Meta CAPI encendida en ComunicArte y la tarjeta de conexión rehecha (281).**
+  - **Pixeles medidos** con `retia-insights` (a qué dataset optimizan los conjuntos con gasto en 30 días): uno solo
+    por programa. Tactical `1526923172471788` (Pixel_Deceroatactical_2026), ComunicArte `974573078957944`
+    (Pixel_Comunicarte_2026, lo usan las cuatro cuentas, Milena y Rosario) y Confianza `1068355778485503` (Power
+    Talk). Los otros que aparecen son restos sin gasto. **No se soportan varios datasets por programa** (ADR 0097
+    sigue): Rosario no hace falta para CAPI.
+  - **Cómo se saca el token** (lo hizo Mani): usuario del sistema tipo Empleado por portafolio, con el dataset
+    asignado en control total y una app del portafolio con el caso de uso "Create & manage ads with Marketing API"
+    asignada al usuario; token sin caducidad. Si "Generar token" dice "No permissions available", al usuario le
+    falta la app asignada.
+  - **En producción:** ComunicArte conectada, prueba exitosa y envío encendido (22-oct 04:21 UTC). Confianza tiene
+    token pero no está pegado; Tactical espera que otro admin apruebe el token. Las 7 ventas de antes salieron
+    `omitido` y no se recuperan (7 días).
+  - **Tarjeta Meta CAPI rehecha** (A-155): tres pasos (conectar en un diálogo, evento de prueba, encender), el
+    interruptor bloqueado hasta la prueba. **Cambio de servidor:** `configurarMetaCapi` solo cambia `encendido`, y
+    reconectar (`guardarIntegracion`) apaga el envío y borra `ultimaPruebaEn`; antes se podía cambiar de dataset y
+    seguir enviando con la prueba del anterior. Tests en `tests/integraciones.test.ts`; typecheck, lint, build y
+    recorrido en `dev:local` limpios; los tests los corre el CI.
+  - **Sigue:** pegar Confianza y Tactical; 282 (leer `fbclid` de `respuestas` a `submissions.fbclid` para el
+    `fbc`); 283 (Schedule y Atendido) tras mirar con Pauta si el pixel ya manda `Schedule`; Ley 1581 por formulario.
 - **2026-10-21 (noche): Daily Tech con Michael; 293 "Esperando corte" en main; reporte del alcance del Hub para Gerencia.**
   - **Daily Tech** (Wispr Flow, 6 pm): el CRM pasa a ser el "segundo cerebro" de Retia (pendientes del día por área);
     prioridad, que la venta vuelva a Meta (281 en main, falta la operación: seat y token por portafolio, evento de

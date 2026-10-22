@@ -58,12 +58,41 @@ describe("integraciones por programa", () => {
     expect(f).toHaveBeenCalledWith("https://graph.facebook.com/v26.0/123?fields=id,name", {
       headers: { Authorization: "Bearer token-capi" },
     });
-    await expect(configurarMetaCapi(db, actorId, programId, { datasetId: "123", encendido: true }))
+    await expect(configurarMetaCapi(db, actorId, programId, { encendido: true }))
       .rejects.toMatchObject({ status: 422 });
     await registrarPruebaMetaCapi(db, actorId, programId, new Date("2026-10-20T15:00:00Z"));
-    await configurarMetaCapi(db, actorId, programId, { datasetId: "123", encendido: true });
+    await configurarMetaCapi(db, actorId, programId, { encendido: true });
     const [fila] = await db.select().from(integraciones);
     expect(fila.config).toMatchObject({ datasetId: "123", dataset: "Dataset Retia", encendido: true });
+  });
+
+  it("reconectar Meta CAPI apaga el envío y borra la prueba anterior", async () => {
+    const f = vi.fn(async (url: string | URL | Request) => {
+      const id = String(url).includes("/456?") ? "456" : "123";
+      return Response.json({ id, name: `Dataset ${id}` });
+    }) as typeof globalThis.fetch;
+    await guardarIntegracion(db, actorId, programId, "meta_capi", "token-uno", f, { datasetId: "123" });
+    await registrarPruebaMetaCapi(db, actorId, programId, new Date("2026-10-20T15:00:00Z"));
+    await configurarMetaCapi(db, actorId, programId, { encendido: true });
+
+    await guardarIntegracion(db, actorId, programId, "meta_capi", "token-dos", f, { datasetId: "456" });
+    const [fila] = await db.select().from(integraciones);
+    expect(fila.config).toMatchObject({ datasetId: "456", dataset: "Dataset 456", encendido: false, ultimaPruebaEn: null });
+    await expect(configurarMetaCapi(db, actorId, programId, { encendido: true }))
+      .rejects.toMatchObject({ status: 422 });
+  });
+
+  it("encender Meta CAPI después de la prueba registra solo el cambio de encendido", async () => {
+    const f = vi.fn(async () => Response.json({ id: "123", name: "Dataset Retia" })) as typeof globalThis.fetch;
+    await guardarIntegracion(db, actorId, programId, "meta_capi", "token-capi", f, { datasetId: "123" });
+    await registrarPruebaMetaCapi(db, actorId, programId, new Date("2026-10-20T15:00:00Z"));
+    const antes = await db.select().from(changeLog);
+
+    await configurarMetaCapi(db, actorId, programId, { encendido: true });
+
+    const despues = await db.select().from(changeLog);
+    expect(despues).toHaveLength(antes.length + 1);
+    expect(despues.at(-1)).toMatchObject({ campo: "encendido", valorAnterior: "false", valorNuevo: "true" });
   });
 
   it("reemplazar el token de Calendly conserva la clave de firma", async () => {

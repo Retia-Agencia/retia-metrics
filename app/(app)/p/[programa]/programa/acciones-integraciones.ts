@@ -43,7 +43,7 @@ export async function guardarIntegracionAccion(
     const tipoLeido = esquemaTipo.safeParse(tipoCrudo);
     if (!tipoLeido.success) throw new ErrorDeApp("Integración inválida.", 400);
     const tipo = tipoLeido.data;
-    const config = tipo === "meta_capi" ? { datasetId: datasetId ?? "", encendido: false } : undefined;
+    const config = tipo === "meta_capi" ? { datasetId: datasetId ?? "" } : undefined;
     await guardarIntegracion(db, actorId, programId, tipo, valor, globalThis.fetch, config);
     revalidatePath("/p/[programa]/programa", "page");
     return { ok: true };
@@ -53,7 +53,7 @@ export async function guardarIntegracionAccion(
 }
 
 export async function configurarMetaCapiAccion(
-  programId: string, input: { datasetId: string; encendido: boolean },
+  programId: string, input: { encendido: boolean },
 ): Promise<ResultadoAccion> {
   try {
     const actorId = await actorGerente(programId);
