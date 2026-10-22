@@ -46,8 +46,9 @@ solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario q
   MEDIO) · 0-14 → VALOR MEDIO (BAJO VALOR). Mide poder económico, y baja un nivel con un descalificante.
   **Desde el ADR 0102 (22-oct):** además, "Sí, pero necesito facilidades de pago" baja un nivel y "Estoy interesado
   pero puede esperar" baja otro (se suman, piso BAJO VALOR). No son descalificantes: no esconden el Calendly ni
-  cambian `lead_quality`. **Vigente en los tres Typeform desde el 22-oct, 9:47 a. m.** (ticket 295); Form30x y los
-  forms de Dapta lo adoptan con el mismo ticket.
+  cambian `lead_quality`. **Vigente en los tres Typeform desde el 22-oct, 9:47 a. m.** (ticket 295); los forms de Dapta lo
+  adoptan con el mismo ticket. **Form30x (AI Second Brain Jurídico) no aplica** (excepción del ADR 0102: un solo score,
+  decide 30X).
 - **Cómo se arma en un formulario nuevo (el bloque estándar, ADR 0102).** En la lógica de la pregunta de inversión,
   **después** de restar el score por "no cuento con los recursos", y en este orden: `nivel_valor` (variable numérica,
   0 por defecto) = 3 si `hvm_points ≥ 30`, 2 si 15-29, 1 si < 15 → −1 si `score < 0` → −1 si inversión = "facilidades

@@ -28,8 +28,11 @@ asistió. Medido el 22-oct sobre los deals con cita resuelta de los tres program
    sigue siendo `High` si no tiene descalificantes. Solo cambia la etiqueta que ordena el trabajo.
 3. **El orden de cálculo:** nivel por puntos de valor (30-50 MUY ALTO, 15-29 ALTO, 0-14 VALOR MEDIO) → −1 si tiene uno o
    más descalificantes → −1 por cada respuesta de baja intención → piso BAJO VALOR.
-4. **Vale para todos los formularios**, igual que el resto del estándar: los Typeform, Dapta y Form30x. Un formulario
-   que no tenga alguna de las dos preguntas no baja por ella.
+4. **Vale para los formularios de Retia** (Typeform y Dapta). Un formulario que no tenga alguna de las dos preguntas no
+   baja por ella. **Excepción (Mani, 22-oct): AI Second Brain Jurídico (Form30x) no aplica.** Form30x calcula todo con un
+   solo `score` y reglas por franjas (`scoreTagRules`): restar por intención dejaría el score negativo y el lead en `Low`,
+   que cambia su etapa de entrada. Además, sus etiquetas van al HubSpot de 30X y la medición es de los programas de
+   Retia: cambiarlo lo decide 30X.
 5. **Los leads que ya entraron conservan su Lead Value.** No se recalcula hacia atrás (ADR 0004). Toda comparación por
    Lead Value se parte en la fecha en que cada formulario cambió (ticket 295 la registra por programa).
 

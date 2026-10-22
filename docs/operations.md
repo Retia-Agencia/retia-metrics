@@ -184,7 +184,7 @@ como S3). El form conserva sus descalificantes; solo se le dan puntos a lo que h
 
 | Pregunta | Hoy | Va |
 |---|---|---|
-| Ingreso mensual | las cuatro opciones en 0 | <1.000 → 0 · 1.000-3.000 → 10 · 3.000-10.000 → 20 · >10.000 → 30. **Sin −100**: el ingreso no descalifica |
+| Ingreso mensual | las cuatro opciones en 0 | <1.000 → 0 · 1.000-3.000 → 10 · 3.000-10.000 → 20 · >10.000 → 30. **Corregido el 22-oct, leído del form vivo:** menos de 1.000 → **−100** (descalifica, como en Tactical y Confianza) · 1.000-3.000 → 10 · 3.000-10.000 → 20 · más de 10.000 → 30 |
 | Situación | por cargo, sin puntos | Socio/CEO, Director/C-Level y Gerente Intermedio → 20 · Coordinador, Analista y Otro → 10 · Estudiante y Desempleado → 0 (el orden del form de 30X) |
 | Urgencia "No es prioridad" | −100 | igual |
 | Inversión "No cuento con los recursos" | −129 | **−100**, única corrección: con −129 las franjas de score de un descalificante se pisan (`−80` sería urgencia con 20 puntos o inversión con 49). Sigue en `Low` y el Calendly se esconde por la respuesta, no por el score |

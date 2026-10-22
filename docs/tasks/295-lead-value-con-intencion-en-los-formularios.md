@@ -21,7 +21,7 @@ Editar la lógica de `lead_value` en cada formulario vivo, sin tocar Lead Qualit
 | ComunicArte | Typeform | `nkMLdeh8` | ✅ 22-oct 9:47 a. m. |
 | Comunícate con Confianza | Typeform | `E5F4chVT` | ✅ 22-oct 9:47 a. m. |
 | Tactical Investor | Typeform | `GmPGBOf9` | ✅ 22-oct 9:47 a. m. · 🩸 sin `lead_value` ni `hvm_points` desde el 19-oct (0 de 82 envíos del 20 al 22-oct); se restauran copiando la lógica de Confianza (mismos ids) |
-| AI Second Brain Jurídico | Form30x | `cmulcaari04c001s6m0x1ats6` | pendiente |
+| AI Second Brain Jurídico | Form30x | `cmulcaari04c001s6m0x1ats6` | no aplica · excepción del ADR 0102 (Mani, 22-oct): Form30x califica con un solo `score`, y restar por intención volvería `Low` al lead; las etiquetas van al HubSpot de 30X, así que decide 30X |
 | Los cuatro de Dapta | Dapta (generador) | `docs/dapta/` | pendiente · sin envíos todavía |
 
 ## Cómo (propuesta del 22-oct, validada)
@@ -55,7 +55,7 @@ un parcial de ComunicArte, 9:55 a. m., ya con `variable:nivel_valor`): mirar `re
 
 ## Done cuando
 
-- Los cuatro vivos y el generador de Dapta aplican la regla; un envío de prueba por formulario sale con el nivel
+- Los tres Typeform y el generador de Dapta aplican la regla; un envío de prueba por formulario sale con el nivel
   esperado (incluido el caso de Joana: capacidad alta + facilidades + muy urgente → ALTO VALOR).
 - La fecha del cambio de cada programa está en esta tabla.
 - A los 30 días, la tabla de `pipeline-comercial.md` §5 se repite con los leads nuevos.
