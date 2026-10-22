@@ -31,7 +31,7 @@ Un bloque igual en los tres Typeform, en la lógica de la pregunta de inversión
 de pago" → −1 si "puede esperar" → `lead_value` = MUY ALTO / ALTO / VALOR MEDIO / BAJO (≤0). Probado con un intérprete
 de la lógica sobre las 216 combinaciones de cada form: 0 diferencias con el ADR 0102, `score` y `tag_lead_quality`
 idénticos, el resto del form idéntico. Cambian de nivel 90 combinaciones en ComunicArte y 96 en Confianza; en Tactical
-las 216 (vuelve a tener Lead Value). La calidad de Tactical (High/Medium al agendar) no se toca en este ticket.
+las 216 (vuelve a tener Lead Value). **Calidad de Tactical alineada el 22-oct, 4:43 p. m. (Mani):** pasa de High/Medium al agendar a la regla estándar de los demás (High con score ≥ 0 al responder la inversión, Low si no), copiada de Confianza. Con respaldo; simulada en 216 de 216. `Medium` deja de existir para los envíos nuevos.
 
 ## Aplicado el 22-oct (ok de Mani)
 

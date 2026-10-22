@@ -39,7 +39,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
     Todo recordadas por persona. Sin etapa nueva (confirma el 0070).
   - **🩸 Tactical sin Lead Value desde el 19-oct:** su Typeform perdió `lead_value` y `hvm_points` ese día (quién, sin
     fuente: la API no lo dice; el PUT nuestro del 20-oct solo agregó ocultos). 0 de 82 envíos del 20 al 22-oct lo traen.
-    Restaurado con el 295.
+    Restaurado con el 295. Su calidad pasó a High/Low estándar el mismo día (antes High/Medium al agendar).
   - **295 aplicado en los tres Typeform** (22-oct, 9:47 a. m., con respaldo en `~/Desktop/mani/work/retia/respaldos/typeform/`).
     Las hojas no se corren: las variables propias no crean columna en Sheets. Faltan Form30x y los forms de Dapta, y
     confirmar con el primer envío real de cada programa. Manual de los closers actualizado.

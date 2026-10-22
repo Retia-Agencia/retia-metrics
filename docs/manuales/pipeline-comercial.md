@@ -86,5 +86,5 @@ Los **pendientes** no son etapas: el deal se queda donde está.
 - La llamada calificada del Hub (MUY ALTO + ALTO) baja. Con los datos de hoy serían 102 de 144 citas en vez de 142.
 - Los leads de antes del 22-oct conservan su Lead Value.
 - Tactical llegó sin Lead Value del 19 al 22-oct (unos 82 envíos), porque su Typeform había perdido la lógica. Se
-  restauró con el cambio.
+  restauró con el cambio, y su calidad pasó a High/Low como en los demás (antes High/Medium al agendar).
 - A los 30 días se repite la medición con los leads nuevos.
