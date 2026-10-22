@@ -1,4 +1,4 @@
-import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
+import type { ColumnaDelTablero, EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { etapaTrasActividad } from "@/lib/deals/actividad-mueve";
 
 /**
@@ -276,6 +276,34 @@ export function respuestasPorDestino(
 export function respuestasHacia(etapa: EtapaDeal, pendiente: PendienteDeal | null, columna: EtapaDeal): Respuesta[] {
   if (columna === etapa) return [];
   return respuestasDe(etapa, pendiente).filter((r) => llevaA(r.accion, etapa, columna));
+}
+
+/** Si la respuesta deja el deal con Re-agenda: "Otra llamada" (PR2) o la llamada fallida (PR1). */
+function poneReagenda(accion: AccionDeRespuesta): boolean {
+  return (accion.tipo === "mover" && accion.pendiente === "reagenda")
+    || (accion.tipo === "llamada" && accion.uso === "fallida");
+}
+
+/**
+ * Las respuestas que llevan la tarjeta de la columna `desde` a la columna `hacia` del Kanban,
+ * contando la columna derivada Re-agenda (ADR 0103). Entrar a Re-agenda es PR1 o PR2; salir de
+ * ella a su propia etapa solo pasa con una cita nueva, que limpia el pendiente y deja el deal en
+ * Agendado (ADR 0070 punto 7): no hay "quitar el pendiente" sin un hecho.
+ */
+export function respuestasHaciaColumna(
+  etapa: EtapaDeal,
+  pendiente: PendienteDeal | null,
+  desde: ColumnaDelTablero,
+  hacia: ColumnaDelTablero,
+): Respuesta[] {
+  if (desde === hacia) return [];
+  if (hacia === "reagenda") return respuestasDe(etapa, pendiente).filter((r) => poneReagenda(r.accion));
+  if (hacia === etapa) {
+    return hacia === "agendado"
+      ? respuestasDe(etapa, pendiente).filter((r) => r.accion.tipo === "llamada" && r.accion.uso !== "fallida")
+      : [];
+  }
+  return respuestasHacia(etapa, pendiente, hacia);
 }
 
 /** Si la respuesta cambia la etapa del deal (va al grupo "Mover a" de Transición, ticket 176). */

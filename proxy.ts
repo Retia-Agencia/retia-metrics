@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth/config";
 import { COOKIE_PROGRAMA_PREFERIDO, slugParaRecordar } from "@/lib/programa-preferido";
+import { COOKIE_VISTA_DEL_TABLERO, vistaParaRecordar } from "@/lib/deals/vista-recordada";
 
 /**
  * Next 16 renombro `middleware.ts` a `proxy.ts`.
@@ -38,14 +39,20 @@ export default auth((req) => {
     const slug = esPrecarga ? null : slugParaRecordar(pathname, req.nextUrl.searchParams);
     const actual = req.cookies.get(COOKIE_PROGRAMA_PREFERIDO)?.value;
     const response = NextResponse.next();
+    const preferencia = {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      secure: process.env.NODE_ENV === "production",
+    } as const;
     if (slug && slug !== actual) {
-      response.cookies.set(COOKIE_PROGRAMA_PREFERIDO, slug, {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 365,
-        secure: process.env.NODE_ENV === "production",
-      });
+      response.cookies.set(COOKIE_PROGRAMA_PREFERIDO, slug, preferencia);
+    }
+    // La última vista del Kanban (ADR 0103), con la misma regla de la precarga.
+    const vista = esPrecarga ? null : vistaParaRecordar(pathname, req.nextUrl.searchParams);
+    if (vista && vista !== req.cookies.get(COOKIE_VISTA_DEL_TABLERO)?.value) {
+      response.cookies.set(COOKIE_VISTA_DEL_TABLERO, vista, preferencia);
     }
     return response;
   }

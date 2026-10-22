@@ -13,7 +13,17 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import {
+  COLUMNAS_DE_VISTA,
+  ETAPAS_VENDIDAS,
+  VISTA_PREDETERMINADA,
+  VISTAS_DEL_TABLERO,
+  columnaDelDeal,
+  type ColumnaDelTablero,
+  type EtapaDeal,
+  type PendienteDeal,
+  type VistaDelTablero,
+} from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -76,8 +86,10 @@ export async function buscarDealsDelPrograma(db: Db, programId: string, texto: s
  * - **Ninguna fecha se interpola en una plantilla `sql`**: se comparan `YYYY-MM-DD`
  *   como texto (fechas de negocio de Bogota) contra `hoyEnBogota()`.
  *
- * Las once columnas salen SIEMPRE, en el orden del recorrido (`ETAPAS_EN_ORDEN`), aunque esten
- * vacias: un tablero con una columna que desaparece porque no tiene tarjetas confunde.
+ * Las columnas de la vista salen SIEMPRE, en el orden del recorrido (`COLUMNAS_DE_VISTA`), aunque
+ * esten vacias: un tablero con una columna que desaparece porque no tiene tarjetas confunde.
+ * "Re-agenda" es una columna derivada, no una etapa (ADR 0103): cada deal cae en UNA columna
+ * (`columnaDelDeal`), asi que Re-agenda + Agendado + Atendido suman lo que antes sumaban las dos.
  */
 
 /** Los avisos de una tarjeta. Cada uno se pinta con su `<Badge variant>` en la UI. */
@@ -138,14 +150,14 @@ export interface TarjetaDeal {
 }
 
 /** Lo confirmado de una columna: solo existe en las etapas donde se abona; en el resto, `null`. */
-function confirmadoDeColumna(etapa: EtapaDeal, tarjetas: readonly TarjetaDeal[]): number | null {
-  if (!ETAPAS_VENDIDAS.includes(etapa)) return null;
+function confirmadoDeColumna(clave: ColumnaDelTablero, tarjetas: readonly TarjetaDeal[]): number | null {
+  if (!(ETAPAS_VENDIDAS as readonly ColumnaDelTablero[]).includes(clave)) return null;
   return redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.confirmadoUsd, 0));
 }
 
-/** Una columna del tablero: la etapa y sus tarjetas. */
+/** Una columna del tablero: una etapa, o la columna derivada Re-agenda (ADR 0103), y sus tarjetas. */
 export interface ColumnaKanban {
-  etapa: EtapaDeal;
+  clave: ColumnaDelTablero;
   tarjetas: TarjetaDeal[];
   potencialUsd: number;
   /** Solo en las etapas donde se abona (Pago Parcial y Pagado Completo); en el resto, `null`: no aplica. */
@@ -154,7 +166,7 @@ export interface ColumnaKanban {
 
 export interface TableroKanban {
   columnas: ColumnaKanban[];
-  /** El total de tarjetas visibles tras aplicar los filtros. */
+  /** El total de tarjetas visibles tras aplicar los filtros, en las columnas de la vista. */
   total: number;
 }
 
@@ -177,6 +189,8 @@ export interface FiltrosKanban {
   leadValue?: string | null;
   /** Fecha de creacion, de ultima actividad o de cierre en el periodo A del selector (ticket 141). */
   fecha?: FiltroDeFecha<CampoDeFechaDeDeal> | null;
+  /** Que columnas salen (ADR 0103). No filtra tarjetas ni cambia la cifra de una columna. */
+  vista?: VistaDelTablero;
   orden: OrdenKanban;
 }
 
@@ -187,6 +201,23 @@ const ordenSchema = z.object({
   sentido: z.enum(["desc", "asc"]),
 });
 const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
+
+const vistaSchema = z.enum(VISTAS_DEL_TABLERO);
+
+/**
+ * La vista del tablero (ADR 0103): la de la URL; sin ella, la ultima que uso la persona
+ * (`recordada`, de su cookie); y si ninguna es valida, "todo". Un valor raro nunca revienta.
+ */
+export function vistaDelTablero(
+  busqueda: Record<string, string | string[] | undefined>,
+  recordada: string | null = null,
+): VistaDelTablero {
+  const deLaUrl = vistaSchema.safeParse(busqueda.vista);
+  if (deLaUrl.success) return deLaUrl.data;
+  if (busqueda.vista !== undefined) return VISTA_PREDETERMINADA;
+  const deLaCookie = vistaSchema.safeParse(recordada);
+  return deLaCookie.success ? deLaCookie.data : VISTA_PREDETERMINADA;
+}
 
 /** Sobre que fecha filtra la lista de deals (ticket 141), como en HubSpot. */
 export const CAMPOS_DE_FECHA_DE_DEAL = ["creado", "actividad", "cierre", "llamada", "seguimiento"] as const;
@@ -297,8 +328,9 @@ export async function tableroKanban(
       ),
     );
 
+  const columnasDeLaVista = COLUMNAS_DE_VISTA[filtros.vista ?? VISTA_PREDETERMINADA];
   const columnasVacias = (): ColumnaKanban[] =>
-    ETAPAS_EN_ORDEN.map((etapa) => ({ etapa, tarjetas: [], potencialUsd: 0, confirmadoUsd: confirmadoDeColumna(etapa, []) }));
+    columnasDeLaVista.map((clave) => ({ clave, tarjetas: [], potencialUsd: 0, confirmadoUsd: confirmadoDeColumna(clave, []) }));
   const orden = filtros.orden ?? ORDEN_PREDETERMINADO;
   let ultimaActividad = new Map<string, Date>();
   if ((actividad || orden.campo === "actividad") && filas.length > 0) {
@@ -445,23 +477,22 @@ export async function tableroKanban(
   const filtrosVisibles = alcance.tipo === "dueno" ? { ...filtros, ownerUserId: null } : filtros;
   const filtradas = tarjetas.filter((t) => pasaFiltros(t, filtrosVisibles));
 
-  const porEtapa = new Map<EtapaDeal, TarjetaDeal[]>();
-  for (const etapa of ETAPAS_EN_ORDEN) porEtapa.set(etapa, []);
-  for (const t of filtradas) porEtapa.get(t.etapa)!.push(t);
-  for (const lista of porEtapa.values()) lista.sort((a, b) => compararTarjetas(a, b, orden));
+  // Cada deal va a UNA columna; las que la vista no muestra simplemente no salen.
+  const porColumna = new Map<ColumnaDelTablero, TarjetaDeal[]>();
+  for (const clave of columnasDeLaVista) porColumna.set(clave, []);
+  for (const t of filtradas) porColumna.get(columnaDelDeal(t.etapa, t.pendiente))?.push(t);
+  for (const lista of porColumna.values()) lista.sort((a, b) => compararTarjetas(a, b, orden));
 
-  return {
-    columnas: ETAPAS_EN_ORDEN.map((etapa) => {
-      const tarjetas = porEtapa.get(etapa)!;
-      return {
-        etapa,
-        tarjetas,
-        potencialUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.potencialUsd, 0)),
-        confirmadoUsd: confirmadoDeColumna(etapa, tarjetas),
-      };
-    }),
-    total: filtradas.length,
-  };
+  const columnas = columnasDeLaVista.map((clave) => {
+    const tarjetas = porColumna.get(clave)!;
+    return {
+      clave,
+      tarjetas,
+      potencialUsd: redondearUsd(tarjetas.reduce((total, tarjeta) => total + tarjeta.potencialUsd, 0)),
+      confirmadoUsd: confirmadoDeColumna(clave, tarjetas),
+    };
+  });
+  return { columnas, total: columnas.reduce((total, columna) => total + columna.tarjetas.length, 0) };
 }
 
 function compararTarjetas(

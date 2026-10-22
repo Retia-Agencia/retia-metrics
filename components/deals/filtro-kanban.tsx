@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
+import { Button } from "@/components/ui/button";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import type { OpcionCanal, OpcionCatalogo, OrdenKanban } from "@/lib/queries/kanban";
 
@@ -43,6 +45,30 @@ export interface FiltroKanbanProps {
   fecha: { campo: string; periodo: PeriodoResuelto } | null;
   /** Los campos de fecha que la lista sabe filtrar, con su etiqueta. */
   camposDeFecha: readonly { valor: string; etiqueta: string }[];
+  /** La vista vigente y las que hay (ADR 0103), del servidor: deciden columnas, no cifras. */
+  vista: string;
+  vistas: readonly { valor: string; etiqueta: string }[];
+}
+
+/** Las vistas del tablero como botones: la elegida va a la URL y el proxy la recuerda. */
+function SelectorDeVista({ vista, vistas }: { vista: string; vistas: FiltroKanbanProps["vistas"] }) {
+  const { poner } = useFiltrosUrl();
+  return (
+    <div className="flex gap-1" role="group" aria-label="Vista del tablero">
+      {vistas.map((v) => (
+        <Button
+          key={v.valor}
+          type="button"
+          size="sm"
+          variant={v.valor === vista ? "secondary" : "ghost"}
+          aria-pressed={v.valor === vista}
+          onClick={() => poner({ vista: v.valor })}
+        >
+          {v.etiqueta}
+        </Button>
+      ))}
+    </div>
+  );
 }
 
 export function FiltroKanban({
@@ -59,6 +85,8 @@ export function FiltroKanban({
   orden,
   fecha,
   camposDeFecha,
+  vista,
+  vistas,
 }: FiltroKanbanProps) {
   const filtros: FiltroDeclarado[] = [
     ...(mostrarDueno
@@ -124,6 +152,7 @@ export function FiltroKanban({
       compuestosPopover={<FiltroFechaLista campos={camposDeFecha} filtro={fecha} />}
       clavesCompuestas={CLAVES_DE_FECHA_LISTA}
       compuestoActivo={fecha != null}
+      acciones={<SelectorDeVista vista={vista} vistas={vistas} />}
       orden={
         <ControlDeOrden
           nombre="orden"

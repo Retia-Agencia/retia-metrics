@@ -32,6 +32,41 @@ export const NOMBRE_DE_PENDIENTE: Readonly<Record<PendienteDeal, string>> = {
   reagenda: "Re-agenda", seguimiento: "Seguimiento", proxima_cohorte: "Próxima Cohorte",
 };
 
+/**
+ * Las columnas del Kanban (ADR 0103): las etapas más "Re-agenda", una columna DERIVADA con los
+ * deals que tienen ese pendiente en Agendado o Atendido. No es una etapa: el deal no cambia de
+ * etapa por estar ahí, y el motor, el historial y el embudo no la conocen (ADR 0070).
+ */
+export const COLUMNA_REAGENDA = "reagenda" as const;
+export type ColumnaDelTablero = EtapaDeal | typeof COLUMNA_REAGENDA;
+const ETAPAS_CON_COLUMNA_REAGENDA: readonly EtapaDeal[] = ["agendado", "atendido"];
+export const COLUMNAS_EN_ORDEN: readonly ColumnaDelTablero[] = ETAPAS_EN_ORDEN.flatMap(
+  (etapa): ColumnaDelTablero[] => etapa === "agendado" ? [COLUMNA_REAGENDA, etapa] : [etapa],
+);
+export const NOMBRE_DE_COLUMNA: Readonly<Record<ColumnaDelTablero, string>> = {
+  ...NOMBRE_DE_ETAPA, [COLUMNA_REAGENDA]: NOMBRE_DE_PENDIENTE.reagenda,
+};
+/** En qué columna del Kanban va un deal: Re-agenda le gana a Agendado y a Atendido. */
+export function columnaDelDeal(etapa: EtapaDeal, pendiente: PendienteDeal | null): ColumnaDelTablero {
+  return pendiente === "reagenda" && ETAPAS_CON_COLUMNA_REAGENDA.includes(etapa) ? COLUMNA_REAGENDA : etapa;
+}
+
+/**
+ * Las vistas del Kanban (ADR 0103): qué columnas se muestran. No son permisos ni filtros: no
+ * esconden datos ni cambian las cifras de una columna. Una vista nueva es una fila más aquí.
+ */
+export const VISTAS_DEL_TABLERO = ["llamada", "setteo", "todo"] as const;
+export type VistaDelTablero = (typeof VISTAS_DEL_TABLERO)[number];
+export const VISTA_PREDETERMINADA: VistaDelTablero = "todo";
+export const NOMBRE_DE_VISTA: Readonly<Record<VistaDelTablero, string>> = {
+  llamada: "Llamada", setteo: "Setteo", todo: "Todo",
+};
+export const COLUMNAS_DE_VISTA: Readonly<Record<VistaDelTablero, readonly ColumnaDelTablero[]>> = {
+  llamada: COLUMNAS_EN_ORDEN.slice(COLUMNAS_EN_ORDEN.indexOf(COLUMNA_REAGENDA)),
+  setteo: ETAPAS_DE_SETTEO,
+  todo: COLUMNAS_EN_ORDEN,
+};
+
 export interface FlechaBase {
   readonly id: string;
   readonly quien: QuienMueve;

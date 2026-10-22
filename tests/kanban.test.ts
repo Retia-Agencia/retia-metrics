@@ -13,8 +13,8 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS, type EtapaDeal } from "@/lib/deals/etapas";
-import { opcionesDeTablero, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
+import { COLUMNAS_DE_VISTA, ETAPAS, ETAPAS_DE_SETTEO, type EtapaDeal } from "@/lib/deals/etapas";
+import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero } from "@/lib/queries/kanban";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -155,18 +155,19 @@ async function deal(o: OpcDeal): Promise<string> {
 }
 
 describe("tableroKanban", () => {
-  it("las once columnas salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
+  it("las once etapas y Re-agenda salen siempre, en el orden del recorrido, aunque esten vacias", async () => {
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    const orden = t.columnas.map((c) => c.etapa);
-    // Todas las etapas, cada una una vez: el orden de pantalla no pierde ninguna.
-    expect([...orden].sort()).toEqual([...ETAPAS].sort());
-    // Los pendientes no crean columnas; Cierre Perdido cierra el tablero.
+    const orden = t.columnas.map((c) => c.clave);
+    // Todas las etapas, cada una una vez, mas la columna derivada Re-agenda (ADR 0103).
+    expect([...orden].sort()).toEqual([...ETAPAS, "reagenda"].sort());
+    // Re-agenda va a la izquierda de Agendado; Cierre Perdido cierra el tablero.
+    expect(orden.indexOf("reagenda")).toBe(orden.indexOf("agendado") - 1);
     expect(orden.at(-1)).toBe("cierre_perdido");
     expect(t.total).toBe(0);
     expect(t.columnas.every((columna) => columna.potencialUsd === 0)).toBe(true);
     // Confirmado solo existe donde se abona; en el resto no aplica.
     for (const columna of t.columnas) {
-      expect(columna.confirmadoUsd).toBe(["ganado_parcial", "ganado_completo"].includes(columna.etapa) ? 0 : null);
+      expect(columna.confirmadoUsd).toBe(["ganado_parcial", "ganado_completo"].includes(columna.clave) ? 0 : null);
     }
   });
 
@@ -177,7 +178,7 @@ describe("tableroKanban", () => {
     const ahora = new Date("2026-10-21T12:00:00-05:00");
     const ids = async (campo: "actividad" | "creado", sentido: "asc" | "desc") => {
       const tablero = await tableroKanban(db, programId, { tipo: "todos" }, { orden: { campo, sentido } }, HOY, ahora);
-      return tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
+      return tablero.columnas.find((columna) => columna.clave === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
     };
 
     expect(await ids("actividad", "desc")).toEqual([a, c, b]);
@@ -198,7 +199,7 @@ describe("tableroKanban", () => {
       HOY,
       new Date("2026-10-21T12:00:00-05:00"),
     );
-    const ids = tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
+    const ids = tablero.columnas.find((columna) => columna.clave === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
     expect(ids).toEqual([uno, dos].sort());
   });
 
@@ -209,7 +210,7 @@ describe("tableroKanban", () => {
     const sinNombre = await deal({ etapa: "contactado", nombre: null });
     const ids = async (sentido: "asc" | "desc") => {
       const tablero = await tableroKanban(db, programId, { tipo: "todos" }, { orden: { campo: "nombre", sentido } }, HOY);
-      return tablero.columnas.find((columna) => columna.etapa === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
+      return tablero.columnas.find((columna) => columna.clave === "contactado")!.tarjetas.map((tarjeta) => tarjeta.dealId);
     };
 
     expect(await ids("asc")).toEqual([alvaro, alvaroSinAcento, beatriz, sinNombre]);
@@ -230,12 +231,12 @@ describe("tableroKanban", () => {
     await deal({ etapa: "ganado_completo", owner: owner2, valorVendido: null, abono: "200.20" });
 
     const completo = (await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY)).columnas
-      .find((columna) => columna.etapa === "ganado_completo")!;
+      .find((columna) => columna.clave === "ganado_completo")!;
     expect(completo.potencialUsd).toBe(1900.25);
     expect(completo.confirmadoUsd).toBe(300.3);
 
     const filtrado = (await tableroKanban(db, programId, { tipo: "todos" }, { ownerUserId: owner1 }, HOY)).columnas
-      .find((columna) => columna.etapa === "ganado_completo")!;
+      .find((columna) => columna.clave === "ganado_completo")!;
     expect(filtrado.potencialUsd).toBe(900.25);
     expect(filtrado.confirmadoUsd).toBe(100.1);
   });
@@ -245,7 +246,7 @@ describe("tableroKanban", () => {
     await deal({ etapa: "contactado", anulado: true });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     expect(t.total).toBe(1);
-    const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
+    const enContacto = t.columnas.find((c) => c.clave === "contactado")!;
     expect(enContacto.tarjetas).toHaveLength(1);
   });
 
@@ -256,8 +257,8 @@ describe("tableroKanban", () => {
 
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
     expect(t.total).toBe(2);
-    expect(t.columnas.find((c) => c.etapa === "registrado")!.tarjetas[0].avisos.faltanALaEtapa).toBe(0);
-    expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].avisos.faltanALaEtapa).toBe(1);
+    expect(t.columnas.find((c) => c.clave === "registrado")!.tarjetas[0].avisos.faltanALaEtapa).toBe(0);
+    expect(t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0].avisos.faltanALaEtapa).toBe(1);
   });
 
   it("no cuenta llamadas ni abonos anulados como propiedades de la etapa", async () => {
@@ -272,8 +273,8 @@ describe("tableroKanban", () => {
     });
 
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    expect(t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0].avisos.faltanALaEtapa).toBe(1);
-    expect(t.columnas.find((c) => c.etapa === "ganado_completo")!.tarjetas[0].avisos.faltanALaEtapa).toBe(2);
+    expect(t.columnas.find((c) => c.clave === "atendido")!.tarjetas[0].avisos.faltanALaEtapa).toBe(1);
+    expect(t.columnas.find((c) => c.clave === "ganado_completo")!.tarjetas[0].avisos.faltanALaEtapa).toBe(2);
   });
 
   it("agrupa por etapa y muestra el dueño", async () => {
@@ -281,8 +282,8 @@ describe("tableroKanban", () => {
     await deal({ etapa: "contactado", owner: owner2 });
     await deal({ etapa: "contactado", owner: owner1 });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    const enContacto = t.columnas.find((c) => c.etapa === "contactado")!;
-    const setteo = t.columnas.find((c) => c.etapa === "registrado")!;
+    const enContacto = t.columnas.find((c) => c.clave === "contactado")!;
+    const setteo = t.columnas.find((c) => c.clave === "registrado")!;
     expect(enContacto.tarjetas).toHaveLength(2);
     expect(setteo.tarjetas).toHaveLength(1);
     expect([owner1, owner2]).toContain(enContacto.tarjetas[0].ownerUserId);
@@ -292,7 +293,7 @@ describe("tableroKanban", () => {
   it("expone el número de envíos del lead en la tarjeta", async () => {
     await deal({ etapa: "registrado", envios: 3 });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    expect(t.columnas.find((c) => c.etapa === "registrado")!.tarjetas[0].envios).toBe(3);
+    expect(t.columnas.find((c) => c.clave === "registrado")!.tarjetas[0].envios).toBe(3);
   });
 
   it("filtra por dueño", async () => {
@@ -300,7 +301,7 @@ describe("tableroKanban", () => {
     await deal({ etapa: "contactado", owner: owner2 });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, { ownerUserId: owner2 }, HOY);
     expect(t.total).toBe(1);
-    expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].ownerUserId).toBe(owner2);
+    expect(t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0].ownerUserId).toBe(owner2);
   });
 
   it("el alcance de dueño ignora un owner ajeno forjado en la URL", async () => {
@@ -338,7 +339,7 @@ describe("tableroKanban", () => {
     await deal({ etapa: "contactado", entrada: HOY }); // 0 dias
     const t = await tableroKanban(db, programId, { tipo: "todos" }, { antiguedadMinima: 7 }, HOY);
     expect(t.total).toBe(1);
-    expect(t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0].diasEnEtapa).toBe(19);
+    expect(t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0].diasEnEtapa).toBe(19);
   });
 
   it("filtra por cohorte de origen", async () => {
@@ -363,14 +364,14 @@ describe("tableroKanban", () => {
   it("aviso: compromiso verbal con fecha limite pasada", async () => {
     await deal({ etapa: "compromiso_verbal", fechaLimitePago: "2026-10-01" });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "compromiso_verbal")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.clave === "compromiso_verbal")!.tarjetas[0];
     expect(tarjeta.avisos.compromisoVencido).toBe(true);
   });
 
   it("aviso: seguimiento con fecha de seguimiento pasada", async () => {
     await deal({ etapa: "atendido", pendiente: "seguimiento", fechaSeguimiento: "2026-10-01" });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "atendido")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.clave === "atendido")!.tarjetas[0];
     expect(tarjeta.pendiente).toBe("seguimiento");
     expect(tarjeta.avisos.seguimientoVencido).toBe(true);
   });
@@ -378,7 +379,7 @@ describe("tableroKanban", () => {
   it("aviso: cartera vencida (abonado, saldo > 0, fecha limite pasada) sale de carteraVencida", async () => {
     await deal({ etapa: "ganado_parcial", abono: "400", fechaLimitePago: "2026-10-01" });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "ganado_parcial")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.clave === "ganado_parcial")!.tarjetas[0];
     expect(tarjeta.avisos.carteraVencida).toBe(true);
     expect(tarjeta.saldo).toBe(600);
     expect(tarjeta.moneda).toBe("USD");
@@ -387,8 +388,73 @@ describe("tableroKanban", () => {
   it("aviso: lead unido por telefono (contacto sin confirmar)", async () => {
     await deal({ etapa: "contactado", contactoSinConfirmar: true });
     const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
-    const tarjeta = t.columnas.find((c) => c.etapa === "contactado")!.tarjetas[0];
+    const tarjeta = t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0];
     expect(tarjeta.avisos.leadUnidoPorTelefono).toBe(true);
+  });
+});
+
+describe("Re-agenda y vistas del tablero (ticket 296, ADR 0103)", () => {
+  const conteo = (t: Awaited<ReturnType<typeof tableroKanban>>, clave: string) =>
+    t.columnas.find((c) => c.clave === clave)?.tarjetas.length ?? 0;
+  const potencial = (t: Awaited<ReturnType<typeof tableroKanban>>, clave: string) =>
+    t.columnas.find((c) => c.clave === clave)?.potencialUsd ?? 0;
+
+  async function sembrar() {
+    return {
+      agendadoReagenda: await deal({ etapa: "agendado", pendiente: "reagenda", valorVendido: "100.00" }),
+      agendado: await deal({ etapa: "agendado", valorVendido: "200.00" }),
+      atendidoReagenda: await deal({ etapa: "atendido", pendiente: "reagenda", valorVendido: "400.00" }),
+      atendidoSeguimiento: await deal({ etapa: "atendido", pendiente: "seguimiento", valorVendido: "800.00" }),
+      registrado: await deal({ etapa: "registrado" }),
+    };
+  }
+
+  it("Re-agenda + Agendado + Atendido suman lo mismo que las dos etapas antes, y ningun deal sale dos veces", async () => {
+    const ids = await sembrar();
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, {}, HOY);
+    const enReagenda = t.columnas.find((c) => c.clave === "reagenda")!.tarjetas.map((x) => x.dealId);
+    expect(enReagenda.sort()).toEqual([ids.agendadoReagenda, ids.atendidoReagenda].sort());
+    expect(conteo(t, "agendado")).toBe(1);
+    expect(conteo(t, "atendido")).toBe(1);
+    // Antes: Agendado tenia 2 y Atendido 2 (4 deals, 1.500 USD).
+    expect(conteo(t, "reagenda") + conteo(t, "agendado") + conteo(t, "atendido")).toBe(4);
+    expect(potencial(t, "reagenda") + potencial(t, "agendado") + potencial(t, "atendido")).toBe(1500);
+    expect(potencial(t, "reagenda")).toBe(500);
+    // La etapa del deal no cambia por estar en Re-agenda.
+    const etapas = t.columnas.find((c) => c.clave === "reagenda")!.tarjetas.map((x) => x.etapa).sort();
+    expect(etapas).toEqual(["agendado", "atendido"]);
+    const todos = t.columnas.flatMap((c) => c.tarjetas.map((x) => x.dealId));
+    expect(new Set(todos).size).toBe(todos.length);
+    expect(t.total).toBe(5);
+  });
+
+  it("cada vista devuelve sus columnas, con las mismas cifras por columna", async () => {
+    await sembrar();
+    const todo = await tableroKanban(db, programId, { tipo: "todos" }, { vista: "todo" }, HOY);
+    const llamada = await tableroKanban(db, programId, { tipo: "todos" }, { vista: "llamada" }, HOY);
+    const setteo = await tableroKanban(db, programId, { tipo: "todos" }, { vista: "setteo" }, HOY);
+
+    expect(llamada.columnas.map((c) => c.clave)).toEqual([
+      "reagenda", "agendado", "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+    ]);
+    expect(setteo.columnas.map((c) => c.clave)).toEqual([...ETAPAS_DE_SETTEO]);
+    expect(todo.columnas.map((c) => c.clave)).toEqual([...COLUMNAS_DE_VISTA.todo]);
+    // Una vista no cambia la cifra de una columna: solo cuales salen.
+    for (const columna of llamada.columnas) {
+      expect(columna).toEqual(todo.columnas.find((c) => c.clave === columna.clave));
+    }
+    expect(llamada.total).toBe(4);
+    expect(setteo.total).toBe(1);
+  });
+
+  it("vistaDelTablero: la URL manda, luego la recordada, y lo invalido cae en todo", () => {
+    expect(vistaDelTablero({})).toBe("todo");
+    expect(vistaDelTablero({ vista: "llamada" })).toBe("llamada");
+    expect(vistaDelTablero({}, "setteo")).toBe("setteo");
+    expect(vistaDelTablero({ vista: "setteo" }, "llamada")).toBe("setteo");
+    expect(vistaDelTablero({ vista: "cualquiera" }, "llamada")).toBe("todo");
+    expect(vistaDelTablero({ vista: ["llamada", "setteo"] })).toBe("todo");
+    expect(vistaDelTablero({}, "rota")).toBe("todo");
   });
 });
 

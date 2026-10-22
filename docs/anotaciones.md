@@ -417,5 +417,5 @@ Análisis y propuestas en [`manuales/pipeline-comercial.md`](./manuales/pipeline
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
 | A-156 | Formularios → Lead Value | cambio | Joana salió MUY ALTO VALOR pidiendo facilidades de pago. Medido: urgencia e inversión no suman puntos, y "facilidades de pago" vende 7 % contra 21 % de "tengo capacidad"; "puede esperar" 8 % contra 19 % de "muy urgente". Además "ALTO VALOR" nombra dos perfiles. Decidido: opción A (cada respuesta baja un nivel), simulada el 22-oct. | 295 | decidida · ADR 0102 |
-| A-157 | Deals → Kanban | cambio | Las citas a re-agendar (pendiente Re-agenda, 65 hoy) se mezclan con las nuevas en Agendado. Pide verlas aparte. Decidido: columna derivada a la izquierda de Agendado, sin etapa nueva (ADR 0103). | 296 | decidida |
-| A-158 | Deals → Kanban | usabilidad | Un closer de llamada no usa las cinco columnas de setteo y tiene que desplazarse a la derecha cada vez. Decidido: vistas Llamada · Setteo · Todo, recordadas por persona (ADR 0103). | 296 | decidida |
+| A-157 | Deals → Kanban | cambio | Las citas a re-agendar (pendiente Re-agenda, 65 hoy) se mezclan con las nuevas en Agendado. Pide verlas aparte. Decidido: columna derivada a la izquierda de Agendado, sin etapa nueva (ADR 0103). | 296 | resuelta · 22-oct |
+| A-158 | Deals → Kanban | usabilidad | Un closer de llamada no usa las cinco columnas de setteo y tiene que desplazarse a la derecha cada vez. Decidido: vistas Llamada · Setteo · Todo, recordadas por persona (ADR 0103). | 296 | resuelta · 22-oct |

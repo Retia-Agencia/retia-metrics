@@ -20,6 +20,7 @@ import {
   queHace,
   respuestasDe,
   respuestasHacia,
+  respuestasHaciaColumna,
   respuestasPorDestino,
   RESPUESTAS_SIN_DUENO,
   type PreguntaDeEtapa,
@@ -357,5 +358,27 @@ describe("gruposSinDueno: lo que un closer ofrece sobre un deal sin dueño (tick
         }
       }
     }
+  });
+});
+
+describe("respuestasHaciaColumna: la columna Re-agenda del Kanban (ticket 296, ADR 0103)", () => {
+  const ids = (rs: Respuesta[]) => rs.map((r) => r.id);
+
+  it("entrar a Re-agenda sigue PR1 y PR2", () => {
+    expect(ids(respuestasHaciaColumna("agendado", null, "agendado", "reagenda"))).toEqual(["fallida"]);
+    expect(ids(respuestasHaciaColumna("atendido", null, "atendido", "reagenda"))).toEqual(["otra_llamada"]);
+    expect(respuestasHaciaColumna("calificado", null, "calificado", "reagenda")).toEqual([]);
+  });
+
+  it("salir a Agendado es la cita nueva; volver a Atendido sin un hecho no existe", () => {
+    expect(ids(respuestasHaciaColumna("agendado", "reagenda", "reagenda", "agendado"))).toEqual(["se_movio"]);
+    expect(ids(respuestasHaciaColumna("atendido", "reagenda", "reagenda", "agendado"))).toEqual(["agendo"]);
+    expect(respuestasHaciaColumna("atendido", "reagenda", "reagenda", "atendido")).toEqual([]);
+    expect(respuestasHaciaColumna("agendado", "reagenda", "reagenda", "reagenda")).toEqual([]);
+  });
+
+  it("las demas columnas siguen las mismas respuestas de siempre", () => {
+    expect(ids(respuestasHaciaColumna("agendado", "reagenda", "reagenda", "cierre_perdido"))).toEqual(["descartar"]);
+    expect(ids(respuestasHaciaColumna("agendado", null, "agendado", "atendido"))).toEqual(["termino"]);
   });
 });

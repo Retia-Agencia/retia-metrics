@@ -4,16 +4,18 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
+import { cookies } from "next/headers";
+import { NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
+import { COOKIE_VISTA_DEL_TABLERO } from "@/lib/deals/vista-recordada";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
-import { opcionesDeTablero, parsearFiltros, tableroKanban, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
+import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
 import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
 import { correccionSerializable } from "@/lib/deals/mapa-transiciones";
 import { destinosDeCorreccion } from "@/lib/deals/mover-etapa";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
-import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
+import { TONO_DE_COLUMNA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
 import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
@@ -58,7 +60,9 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
   const alcanceDeals = await alcanceDeDeals(session);
   const busqueda = await searchParams;
   const activa = await cohorteActiva(programa.id, db);
-  const filtros = parsearFiltros(busqueda, undefined, activa?.id ?? null);
+  // La vista decide columnas, no cifras (ADR 0103): sin `vista` en la URL, la última de la persona.
+  const vista = vistaDelTablero(busqueda, (await cookies()).get(COOKIE_VISTA_DEL_TABLERO)?.value ?? null);
+  const filtros = { ...parsearFiltros(busqueda, undefined, activa?.id ?? null), vista };
   const origen = origenDeLaPagina(`/p/${programa.slug}/deals`, busqueda);
   const [tablero, opciones] = await Promise.all([
     tableroKanban(db, programa.id, alcanceDeals, filtros),
@@ -105,6 +109,8 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
               orden={filtros.orden}
               fecha={filtros.fecha ?? null}
               camposDeFecha={CAMPOS_DE_FECHA}
+              vista={vista}
+              vistas={VISTAS_DEL_TABLERO.map((valor) => ({ valor, etiqueta: NOMBRE_DE_VISTA[valor] }))}
             />
           </div>
           <TableroKanban
@@ -113,8 +119,9 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             mapa={mapaDeTransiciones()}
             correcciones={correcciones}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
+            nombreDeColumna={NOMBRE_DE_COLUMNA}
             nombreDePendiente={NOMBRE_DE_PENDIENTE}
-            tonoDeEtapa={TONO_DE_ETAPA}
+            tonoDeColumna={TONO_DE_COLUMNA}
             programaSlug={programa.slug}
             cohortes={opciones.cohortes}
             cohortesDestino={opciones.cohortesDestino}

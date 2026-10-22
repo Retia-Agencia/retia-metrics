@@ -32,6 +32,8 @@ export interface TarjetaDealProps {
   tarjeta: TarjetaDeal;
   /** Los nombres de los pendientes, del servidor: `lib/deals/etapas.ts` no entra al bundle. */
   nombreDePendiente: Record<PendienteDeal, string>;
+  /** En la columna Re-agenda (ADR 0103): el nombre de la etapa en la que sigue el deal. */
+  vieneDe?: string | null;
   programaSlug: string;
   /** El origen de la lista, para que la ficha vuelva aqui (ticket 174). */
   origen: string;
@@ -50,6 +52,7 @@ export interface TarjetaDealProps {
 export function TarjetaDealCard({
   tarjeta,
   nombreDePendiente,
+  vieneDe = null,
   programaSlug,
   origen,
   arrastrando,
@@ -132,7 +135,9 @@ export function TarjetaDealCard({
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         {tarjeta.esNuevo ? <Badge>Nuevo</Badge> : null}
-        {tarjeta.pendiente ? (
+        {vieneDe ? (
+          <Badge variant={TONO_DE_PENDIENTE.reagenda}>Viene de {vieneDe}</Badge>
+        ) : tarjeta.pendiente ? (
           <Badge variant={TONO_DE_PENDIENTE[tarjeta.pendiente]}>{nombreDePendiente[tarjeta.pendiente]}</Badge>
         ) : null}
         {tarjeta.envios >= 2 ? <Badge variant="info">{tarjeta.envios} envíos</Badge> : null}

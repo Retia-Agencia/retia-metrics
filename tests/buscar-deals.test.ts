@@ -131,13 +131,13 @@ describe("columnasVisibles", () => {
     const tarjetaB = { dealId: "b", potencialUsd: 50.2, confirmadoUsd: 10.2 } as TarjetaDeal;
     const columnas: ColumnaKanban[] = [
       {
-        etapa: "ganado_parcial",
+        clave: "ganado_parcial",
         tarjetas: [tarjetaA, tarjetaB],
         potencialUsd: 150.35,
         confirmadoUsd: 30.3,
       },
       {
-        etapa: "contactado",
+        clave: "contactado",
         tarjetas: [tarjetaB],
         potencialUsd: 50.2,
         confirmadoUsd: null,

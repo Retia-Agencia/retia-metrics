@@ -3,7 +3,7 @@ id: 296
 etapa: deals
 serves: "Un closer de llamada abre el Kanban en sus columnas y ve las re-agendas aparte (ADR 0103; A-157, A-158)"
 depends: []
-status: ready
+status: done
 ---
 
 # 296 — Kanban: columna Re-agenda y vistas Llamada, Setteo y Todo

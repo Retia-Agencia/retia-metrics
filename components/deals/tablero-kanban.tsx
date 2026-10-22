@@ -6,12 +6,12 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
-import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
+import type { ColumnaDelTablero, EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { ColumnaKanban, OpcionCatalogo, TarjetaDeal } from "@/lib/queries/kanban";
 import type { CorreccionCliente, MapaTransiciones } from "./transiciones";
 import type { TonoEtapa } from "./etapa-tono";
 import { TarjetaDealCard } from "./tarjeta-deal";
-import { respuestasHacia } from "./pregunta-de-etapa";
+import { respuestasHaciaColumna } from "./pregunta-de-etapa";
 import { useResponder, type DealQueResponde } from "./responder-pregunta";
 import { columnasVisibles } from "./columnas-visibles";
 import { useBusquedaDeDeals } from "./busqueda-de-deals";
@@ -40,8 +40,10 @@ export interface TableroKanbanProps {
   /** A que etapa se corrige cada deal del tablero (solo los que se pueden corregir), calculado en el servidor. */
   correcciones: Record<string, CorreccionCliente>;
   nombreDeEtapa: Record<EtapaDeal, string>;
+  /** Las etapas más la columna derivada Re-agenda (ADR 0103). */
+  nombreDeColumna: Record<ColumnaDelTablero, string>;
   nombreDePendiente: Record<PendienteDeal, string>;
-  tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
+  tonoDeColumna: Record<ColumnaDelTablero, TonoEtapa>;
   programaSlug: string;
   cohortes: OpcionCatalogo[];
   cohortesDestino: OpcionCatalogo[];
@@ -74,8 +76,9 @@ export function TableroKanban({
   mapa,
   correcciones,
   nombreDeEtapa,
+  nombreDeColumna,
   nombreDePendiente,
-  tonoDeEtapa,
+  tonoDeColumna,
   programaSlug,
   cohortes,
   cohortesDestino,
@@ -92,8 +95,10 @@ export function TableroKanban({
   const columnasMostradas = useMemo(() => columnasVisibles(columnas, idsVisibles), [columnas, idsVisibles]);
   // La tarjeta que se está arrastrando (para el efecto "levantar") y la columna sobre la
   // que se está soltando (para el resaltado).
-  const [arrastrando, setArrastrando] = useState<TarjetaDeal | null>(null);
-  const [columnaHover, setColumnaHover] = useState<EtapaDeal | null>(null);
+  // La tarjeta guarda la columna de la que sale: Re-agenda no es una etapa (ADR 0103).
+  const [levantada, setLevantada] = useState<{ tarjeta: TarjetaDeal; desde: ColumnaDelTablero } | null>(null);
+  const arrastrando = levantada?.tarjeta ?? null;
+  const [columnaHover, setColumnaHover] = useState<ColumnaDelTablero | null>(null);
   const tableroRef = useRef<HTMLDivElement>(null);
   const velocidadRef = useRef(0);
   const animacionRef = useRef<number | null>(null);
@@ -157,23 +162,25 @@ export function TableroKanban({
     };
   }
 
-  function soltarEn(columna: EtapaDeal) {
+  function soltarEn(columna: ColumnaDelTablero) {
     detenerAutoScroll();
-    const tarjeta = arrastrando;
-    setArrastrando(null);
+    const origen = levantada;
+    setLevantada(null);
     setColumnaHover(null);
-    if (!tarjeta || tarjeta.etapa === columna) return;
-    const respuestas = respuestasHacia(tarjeta.etapa, tarjeta.pendiente, columna);
+    if (!origen || origen.desde === columna) return;
+    const { tarjeta, desde } = origen;
+    const respuestas = respuestasHaciaColumna(tarjeta.etapa, tarjeta.pendiente, desde, columna);
     const correccion = correcciones[tarjeta.dealId];
     if (respuestas.length === 0 && correccion?.a === columna) {
       corregir(dealDe(tarjeta), correccion);
       return;
     }
     if (respuestas.length === 0) {
-      toast.error(`Desde ${nombreDeEtapa[tarjeta.etapa]} no se pasa a ${nombreDeEtapa[columna]}.`);
+      toast.error(`Desde ${nombreDeColumna[desde]} no se pasa a ${nombreDeColumna[columna]}.`);
       return;
     }
-    abrirDestino(dealDe(tarjeta), columna, respuestas);
+    // Re-agenda deja el deal en su etapa: el destino del diálogo es esa etapa.
+    abrirDestino(dealDe(tarjeta), columna === "reagenda" ? tarjeta.etapa : columna, respuestas);
   }
 
   return (
@@ -194,27 +201,29 @@ export function TableroKanban({
       >
         {columnasMostradas.map((columna) => {
           const destinoPermitido =
-            arrastrando != null && respuestasHacia(arrastrando.etapa, arrastrando.pendiente, columna.etapa).length > 0;
+            levantada != null
+            && respuestasHaciaColumna(levantada.tarjeta.etapa, levantada.tarjeta.pendiente, levantada.desde, columna.clave).length > 0;
           // Corregir pinta en rojo solo donde no hay un camino normal hacia la misma etapa.
           const destinoCorreccion =
-            arrastrando != null && !destinoPermitido && correcciones[arrastrando.dealId]?.a === columna.etapa;
-          const destinoProhibido = arrastrando != null && arrastrando.etapa !== columna.etapa && !destinoPermitido && !destinoCorreccion;
+            levantada != null && !destinoPermitido && correcciones[levantada.tarjeta.dealId]?.a === columna.clave;
+          const destinoProhibido = levantada != null && levantada.desde !== columna.clave && !destinoPermitido && !destinoCorreccion;
+          const esReagenda = columna.clave === "reagenda";
           const tarjetas = columna.tarjetas;
 
           return (
             <section
-              key={columna.etapa}
+              key={columna.clave}
               onDragOver={(e) => {
                 if (arrastrando) {
                   e.preventDefault();
                   e.dataTransfer.dropEffect = destinoPermitido || destinoCorreccion ? "move" : "none";
-                  setColumnaHover(columna.etapa);
+                  setColumnaHover(columna.clave);
                 }
               }}
-              onDragLeave={() => setColumnaHover((c) => (c === columna.etapa ? null : c))}
+              onDragLeave={() => setColumnaHover((c) => (c === columna.clave ? null : c))}
               onDrop={(e) => {
                 e.preventDefault();
-                soltarEn(columna.etapa);
+                soltarEn(columna.clave);
               }}
               className={cn(
                 "flex min-h-0 w-[85vw] shrink-0 snap-start flex-col rounded-xl sm:w-72 bg-background/60 p-2 transition-colors duration-150 motion-reduce:transition-none",
@@ -225,24 +234,24 @@ export function TableroKanban({
                   permitido: destinoPermitido,
                   correccion: destinoCorreccion,
                   prohibido: destinoProhibido,
-                  enHover: columnaHover === columna.etapa,
+                  enHover: columnaHover === columna.clave,
                 }),
               )}
-              aria-label={nombreDeEtapa[columna.etapa]}
+              aria-label={nombreDeColumna[columna.clave]}
             >
               <div className="flex shrink-0 items-center justify-between px-1 py-1.5">
-                <Badge variant={tonoDeEtapa[columna.etapa]}>{nombreDeEtapa[columna.etapa]}</Badge>
+                <Badge variant={tonoDeColumna[columna.clave]}>{nombreDeColumna[columna.clave]}</Badge>
                 <span className="cifra text-xs text-muted-foreground">{tarjetas.length}</span>
               </div>
 
-              {destinoProhibido && columnaHover === columna.etapa ? (
+              {destinoProhibido && columnaHover === columna.clave ? (
                 <p className="px-1 pb-1 text-xs text-muted-foreground">Aquí no se puede soltar</p>
               ) : null}
 
               <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-1">
                 {tarjetas.length === 0 ? (
                   <p className="px-1 py-4 text-center text-xs text-muted-foreground">
-                    Sin deals en esta etapa.
+                    {esReagenda ? "Sin deals por re-agendar." : "Sin deals en esta etapa."}
                   </p>
                 ) : (
                   tarjetas.map((tarjeta) => (
@@ -250,14 +259,15 @@ export function TableroKanban({
                       key={tarjeta.dealId}
                       tarjeta={tarjeta}
                       nombreDePendiente={nombreDePendiente}
+                      vieneDe={esReagenda ? nombreDeEtapa[tarjeta.etapa] : null}
                       programaSlug={programaSlug}
                       origen={origen}
                       arrastrando={arrastrando?.dealId === tarjeta.dealId}
                       puedeMover={administra || tarjeta.ownerUserId === userId}
-                      onArrastrarInicio={() => setArrastrando(tarjeta)}
+                      onArrastrarInicio={() => setLevantada({ tarjeta, desde: columna.clave })}
                       onArrastrarFin={() => {
                         detenerAutoScroll();
-                        setArrastrando(null);
+                        setLevantada(null);
                         setColumnaHover(null);
                       }}
                       onElegirRespuesta={(r) => elegir(dealDe(tarjeta), r)}
