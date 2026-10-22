@@ -162,9 +162,13 @@ export function CohortesAdmin({
                   type="checkbox"
                   className="mt-1"
                   checked={seleccionados.includes(deal.dealId)}
-                  onChange={(e) => setSeleccionados((actual) => e.currentTarget.checked
-                    ? [...actual, deal.dealId]
-                    : actual.filter((id) => id !== deal.dealId))}
+                  onChange={(e) => {
+                    // Se lee antes: dentro del updater el evento ya no tiene currentTarget.
+                    const marcado = e.currentTarget.checked;
+                    setSeleccionados((actual) => marcado
+                      ? [...actual, deal.dealId]
+                      : actual.filter((id) => id !== deal.dealId));
+                  }}
                   aria-label={`Elegir ${deal.nombreLead ?? deal.emailLead}`}
                 />
                 <div className="min-w-0">

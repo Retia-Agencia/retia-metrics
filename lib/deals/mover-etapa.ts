@@ -674,6 +674,8 @@ export interface AltaHistorica {
   etapa: EtapaDeal;
   /** Pendiente con el que nació según el histórico. */
   pendiente?: PendienteDeal | null;
+  /** A qué corte iba, si nació en Esperando corte (293): la base lo exige con ese pendiente. */
+  cohorteDestinoTexto?: string | null;
   /** `sheets:<programa>:<pestaña>:<llave>`. La garantia contra la segunda corrida (punto 2). */
   huella: string;
   actorId: string;
@@ -786,6 +788,7 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
           programId: alta.programId,
           etapa: alta.etapa,
           pendiente: alta.pendiente ?? null,
+          cohorteDestinoTexto: alta.cohorteDestinoTexto ?? null,
           ownerUserId: alta.ownerUserId ?? null,
           cohortId: alta.cohortId ?? null,
           acuerdoPago: alta.acuerdoPago ?? null,

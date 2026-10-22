@@ -348,6 +348,7 @@ async function sembrarVolumen(
         programId: grupo.programa.id,
         etapa: destino.etapa === "cierre_perdido" ? "contactado" : destino.etapa,
         pendiente: destino.etapa === "cierre_perdido" ? null : destino.pendiente,
+        cohorteDestinoTexto: destino.pendiente === "proxima_cohorte" && destino.etapa !== "cierre_perdido" ? "2027" : null,
         huella: `seed-local:${grupo.programa.prefijo}:deal:${indice + 1}`,
         actorId,
         fechaEtapa: instanteDeBogota(DIAS_HABILES_SEPTIEMBRE[indiceFecha + 2], 10 + (indice % 7)),
