@@ -125,7 +125,8 @@ async function cargarUniverso(
 ): Promise<Universo> {
   const alcance: AlcanceDeals = { tipo: "dueno", userId };
   const tablero = await tableroKanban(db, programId, alcance, {}, hoy);
-  let tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
+  // Los de Próxima Cohorte no están en ninguna columna (ADR 0104), pero su chip los lista.
+  let tarjetas = [...tablero.columnas.flatMap((c) => c.tarjetas), ...tablero.enProximaCohorte];
 
   // Búsqueda (ticket o8-busqueda): el universo se ESTRECHA a las tarjetas cuyo lead casa
   // (`leadsQueCasan`), así que conteos y listas reflejan la búsqueda por igual. `null` (o

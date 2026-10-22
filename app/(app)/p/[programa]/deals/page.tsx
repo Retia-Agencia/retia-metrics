@@ -97,10 +97,10 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       <PantallaFija>
         <BusquedaDeDeals key={programa.id}>
           <div className="shrink-0">
-            {tablero.enProximaCohorte > 0 ? (
+            {tablero.enProximaCohorte.length > 0 ? (
               <div className="mb-3 flex justify-end">
                 <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/p/${programa.slug}/proxima-cohorte`} />}>
-                  <span className="cifra">{tablero.enProximaCohorte}</span> en Próxima cohorte
+                  <span className="cifra">{tablero.enProximaCohorte.length}</span> en Próxima cohorte
                 </Button>
               </div>
             ) : null}

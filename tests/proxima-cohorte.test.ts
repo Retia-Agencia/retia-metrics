@@ -217,6 +217,6 @@ describe("Próxima cohorte", () => {
     const tablero = await tableroKanban(db, programId, { tipo: "todos" }, { cohorteId: activaId });
     expect(tablero.columnas.flatMap((c) => c.tarjetas).map((t) => t.dealId)).toContain(visible.id);
     expect(tablero.columnas.flatMap((c) => c.tarjetas).map((t) => t.dealId)).not.toContain(esperando.id);
-    expect(tablero.enProximaCohorte).toBe(1);
+    expect(tablero.enProximaCohorte).toHaveLength(1);
   });
 });

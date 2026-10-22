@@ -20,15 +20,16 @@ export async function mudarDealsDeProximaCohorte(
   tx: Db,
   datos: { cohorte: typeof cohorts.$inferSelect; actorId: string; dealIds?: string[] },
 ): Promise<number> {
-  const condiciones = [
-    eq(deals.programId, datos.cohorte.programId),
-    eq(deals.pendiente, "proxima_cohorte"),
-    eq(deals.cohorteDestinoId, datos.cohorte.id),
-    vigente(deals),
-  ];
-  if (datos.dealIds) condiciones.push(inArray(deals.id, datos.dealIds));
+  // `vigente(deals)` va en la cadena, no en una variable: el guardian lee cadena por cadena.
   const filas = await tx.select({ deal: deals, email: leads.emailNormalizado })
-    .from(deals).innerJoin(leads, eq(leads.id, deals.leadId)).where(and(...condiciones));
+    .from(deals).innerJoin(leads, eq(leads.id, deals.leadId))
+    .where(and(
+      eq(deals.programId, datos.cohorte.programId),
+      eq(deals.pendiente, "proxima_cohorte"),
+      eq(deals.cohorteDestinoId, datos.cohorte.id),
+      datos.dealIds ? inArray(deals.id, datos.dealIds) : undefined,
+      vigente(deals),
+    ));
   for (const fila of filas) {
     await cambiarCohorteDelDeal(tx, {
       deal: fila.deal,

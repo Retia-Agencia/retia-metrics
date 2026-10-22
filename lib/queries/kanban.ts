@@ -168,7 +168,11 @@ export interface TableroKanban {
   columnas: ColumnaKanban[];
   /** El total de tarjetas visibles tras aplicar los filtros, en las columnas de la vista. */
   total: number;
-  enProximaCohorte: number;
+  /**
+   * Los deals con el pendiente Próxima Cohorte (ADR 0104): no van a ninguna columna, pero el
+   * tablero los devuelve aparte, sin el filtro de cohorte, para el contador y para Mi espacio.
+   */
+  enProximaCohorte: TarjetaDeal[];
 }
 
 export interface OrdenKanban {
@@ -353,7 +357,7 @@ export async function tableroKanban(
       return dia >= seguimiento.desde && dia <= seguimiento.hasta;
     });
   }
-  if (filas.length === 0) return { columnas: columnasVacias(), total: 0, enProximaCohorte: 0 };
+  if (filas.length === 0) return { columnas: columnasVacias(), total: 0, enProximaCohorte: [] };
 
   const dealIds = filas.map((f) => f.dealId);
   const leadIds = [...new Set(filas.map((f) => f.leadId))];
@@ -478,7 +482,7 @@ export async function tableroKanban(
   const filtrosVisibles = alcance.tipo === "dueno" ? { ...filtros, ownerUserId: null } : filtros;
   const enProximaCohorte = tarjetas.filter((t) =>
     t.pendiente === "proxima_cohorte" && pasaFiltros(t, { ...filtrosVisibles, cohorteId: null }),
-  ).length;
+  );
   const filtradas = tarjetas.filter((t) => t.pendiente !== "proxima_cohorte" && pasaFiltros(t, filtrosVisibles));
 
   // Cada deal va a UNA columna; las que la vista no muestra simplemente no salen.
