@@ -61,9 +61,11 @@ export const VISTA_PREDETERMINADA: VistaDelTablero = "todo";
 export const NOMBRE_DE_VISTA: Readonly<Record<VistaDelTablero, string>> = {
   llamada: "Llamada", setteo: "Setteo", todo: "Todo",
 };
+/** Lo que cierra un deal sin pasar por llamada: el setter negocia y cobra por chat (E5, E6). */
+const CIERRE_SIN_LLAMADA: readonly EtapaDeal[] = ["compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido"];
 export const COLUMNAS_DE_VISTA: Readonly<Record<VistaDelTablero, readonly ColumnaDelTablero[]>> = {
   llamada: COLUMNAS_EN_ORDEN.slice(COLUMNAS_EN_ORDEN.indexOf(COLUMNA_REAGENDA)),
-  setteo: ETAPAS_DE_SETTEO,
+  setteo: [...ETAPAS_DE_SETTEO, ...CIERRE_SIN_LLAMADA],
   todo: COLUMNAS_EN_ORDEN,
 };
 

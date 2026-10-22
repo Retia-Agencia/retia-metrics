@@ -1,6 +1,9 @@
 # 0103: El Kanban tiene una columna Re-agenda y tres vistas, sin etapas nuevas
 
 - **Estado:** aceptado, 22-oct-2026 (Mani). Se construye con el ticket 296.
+- **Enmendado el 22-oct (Mani):** Setteo suma Compromiso Verbal, Ganado Pago Parcial, Ganado Pagado Completo y
+  Cierre perdido, para que el setter cierre por chat (flechas E5 y E6) sin cambiar a la vista Llamada. Llamada no
+  cambia: el closer no ve las columnas de setteo.
 - **Confirma:** ADR 0070 (Re-agenda es un pendiente, no una etapa), ADR 0076 (setter es una función, no un rol), ADR
   0037 (el orden de las etapas no es un embudo ni una regla).
 - **Fuentes:** loom de Nicolás (22-oct), `docs/manuales/pipeline-comercial.md` §5, anotaciones A-157 y A-158.
@@ -28,7 +31,7 @@ Nicolás, closer de llamada:
    | Vista | Columnas |
    |---|---|
    | Llamada | Re-agenda, Agendado y todo lo que sigue hasta Cierre perdido |
-   | Setteo | Potencial, Registrado, En gestión, Contactado, Calificado |
+   | Setteo | Potencial, Registrado, En gestión, Contactado, Calificado, Compromiso Verbal, los dos Ganados y Cierre perdido |
    | Todo | todas |
 
 4. **La vista vive en la URL** como el resto de los filtros del Kanban, y **la app recuerda la última de cada persona**

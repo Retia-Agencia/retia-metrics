@@ -28,3 +28,8 @@ ADR 0103 (Mani, 22-oct), del loom de Nicolás. Anotaciones A-157 y A-158.
   `vista` inválido cae en `todo`.
 - Recorrido en `dev:local` con un closer: entra en Llamada, ve las re-agendas aparte, cambia de vista, recarga y
   conserva la suya. `npm run build` limpio (toca componentes cliente).
+
+## Enmienda (22-oct, Mani)
+
+Setteo suma Compromiso Verbal, los dos Ganados y Cierre perdido (ADR 0103 enmendado): el setter cierra por chat sin
+pasar a Llamada.

@@ -437,10 +437,13 @@ describe("Re-agenda y vistas del tablero (ticket 296, ADR 0103)", () => {
     expect(llamada.columnas.map((c) => c.clave)).toEqual([
       "reagenda", "agendado", "atendido", "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
     ]);
-    expect(setteo.columnas.map((c) => c.clave)).toEqual([...ETAPAS_DE_SETTEO]);
+    // El setter cierra por chat sin pasar por llamada: Compromiso, los dos Ganados y Cierre perdido.
+    expect(setteo.columnas.map((c) => c.clave)).toEqual([
+      ...ETAPAS_DE_SETTEO, "compromiso_verbal", "ganado_parcial", "ganado_completo", "cierre_perdido",
+    ]);
     expect(todo.columnas.map((c) => c.clave)).toEqual([...COLUMNAS_DE_VISTA.todo]);
     // Una vista no cambia la cifra de una columna: solo cuales salen.
-    for (const columna of llamada.columnas) {
+    for (const columna of [...llamada.columnas, ...setteo.columnas]) {
       expect(columna).toEqual(todo.columnas.find((c) => c.clave === columna.clave));
     }
     expect(llamada.total).toBe(4);
