@@ -126,6 +126,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0101](./0101-un-resultado-se-corrige-con-rastro-y-la-cita-se-resuelve-en-un-solo-lugar.md) | Un resultado de llamada se corrige (Show, No show, Cancelada) con motivo y rastro, y la etapa la mueve el motor; Resultado es la única puerta de una cita viva, el selector muestra el horario de Calendly y permite una hora fuera de Calendly (tickets 291 y 292) |
 | [0102](./0102-lead-value-mide-poder-economico-e-intencion.md) | Lead Value mide poder económico e intención: "facilidades de pago" y "puede esperar" bajan un nivel cada una, sin esconder el Calendly ni cambiar Lead Quality; no se recalcula hacia atrás (ticket 295); enmienda el estándar de puntaje |
 | [0103](./0103-el-kanban-tiene-columna-re-agenda-y-tres-vistas.md) | El Kanban tiene una columna Re-agenda derivada del pendiente, a la izquierda de Agendado, y tres vistas (Llamada, Setteo, Todo) recordadas por persona; sin etapas nuevas (ticket 296); confirma el 0070 |
+| [0104](./0104-proxima-cohorte-es-una-pantalla-del-programa.md) | Próxima cohorte es una pantalla del programa (cards, sin filtro de cohorte, vistas Sin y Con cohorte asignada); el deal cuenta en su origen y se muda en su misma etapa cuando su cohorte se activa. Enmienda el 231 y retira la bandeja del 293 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**

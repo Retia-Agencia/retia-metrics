@@ -225,6 +225,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 283 | [Schedule y Atendido vuelven a Meta](./283-schedule-y-atendido-vuelven-a-meta.md) | 281 | todo · 22-oct · el pixel de Calendly ya manda Schedule: no duplicar; Atendido queda como potencial, se decide con Pauta |
 | [ ] | 295 | [Lead Value con intención en los formularios](./295-lead-value-con-intencion-en-los-formularios.md) | · | en curso · 22-oct · ADR 0102; tres Typeform, Form30x y el generador de Dapta, cada escritura con ok de Mani |
 | [x] | 296 | [Kanban: columna Re-agenda y vistas Llamada, Setteo y Todo](./296-kanban-columna-re-agenda-y-vistas.md) | · | done · 22-oct · ADR 0103; Re-agenda derivada, vistas en la URL y recordadas por cookie |
+| [ ] | 297 | [La pantalla Próxima cohorte, y la mudanza al activar la cohorte](./297-pantalla-proxima-cohorte.md) | 293, 296 | ready · 22-oct · ADR 0104; enmienda el 231, retira la bandeja del 293, sin migración |
 | [ ] | 294 | [El mapa de eventos del CRM hacia Meta](./294-el-mapa-de-eventos-del-crm-hacia-meta.md) | 281 | idea · 22-oct · Calificado, Atendido, Perdido, Completo; se decide con Pauta |
 | [ ] | 284 | [La librería de anuncios](./284-la-libreria-de-anuncios.md) | 120, 262, 125 | todo · 19-oct · lista de Anderson |
 | [ ] | 285 | [Agendas por hora y día de la semana](./285-agendas-por-hora-y-dia-de-la-semana.md) | 262, 269 | todo · 19-oct · cierre de 0h y Hub › Pauta |

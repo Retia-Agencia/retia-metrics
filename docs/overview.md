@@ -401,9 +401,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   uno. *No es una etapa ni un Estado* (ADR 0070). Desde el 9-oct no se elige: sale de lo que se anota
   (próximo contacto → Seguimiento, quiere la próxima cohorte → Próxima Cohorte, no-show o reagenda →
   Re-agenda; ADR 0081). *En la operación le dicen "tag".*
-- **Esperando corte:** el deal de alguien que quiere entrar a una corte que todavía no existe ("2027"). Es el
-  pendiente Próxima Cohorte con un texto libre obligatorio; sigue contando en su corte de origen hasta que quien
-  administra lo pasa, desde Programa › Ventas, a la corte cuando se crea (ticket 293).
+- **Próxima cohorte (pantalla):** la pantalla del programa con los deals que esperan otra cohorte, vengan de la
+  cohorte que vengan, en cards. Dos vistas: **Sin cohorte asignada** (la cohorte todavía no existe y el closer dejó un
+  texto: hay que asignarles una) y **Con cohorte asignada** (esperan a que esa cohorte se active). El deal sigue
+  contando en su cohorte de origen y se muda solo, en su misma etapa, cuando la destino se activa (ADR 0104).
+  *Evitar: "corte", "Esperando corte".*
 - **Mover y Anotar:** los dos únicos gestos sobre un deal. **Mover** cambia la etapa, por el diálogo de la
   etapa destino (el mismo del arrastre). **Anotar** no la cambia: deja un comentario y, si aplica, el dato
   que pone un pendiente. Cada anotación queda en las Actividades del deal (ADR 0081). *Evitar: "registrar
