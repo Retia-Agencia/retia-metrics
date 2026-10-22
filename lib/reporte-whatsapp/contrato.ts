@@ -73,6 +73,7 @@ export const esquemaBloque = z.object({
 }).strict();
 
 const esquemaEnvio = z.object({
+  tipo: z.enum(["semaforo", "horas_agenda"]),
   hora: z.string(),
   destino: z.string().nullable(),
   texto: z.string(),

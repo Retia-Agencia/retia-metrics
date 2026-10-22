@@ -228,7 +228,8 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 297 | [La pantalla Próxima cohorte, y la mudanza al activar la cohorte](./297-pantalla-proxima-cohorte.md) | 293, 296 | en main · 22-oct · ADR 0104; Codex + central; recorrido en dev:local (closer anota, gerente asigna, cierra C1 y activa C2: muda en su etapa con nota); falta checkpoint |
 | [ ] | 294 | [El mapa de eventos del CRM hacia Meta](./294-el-mapa-de-eventos-del-crm-hacia-meta.md) | 281 | idea · 22-oct · Calificado, Atendido, Perdido, Completo; se decide con Pauta |
 | [ ] | 284 | [La librería de anuncios](./284-la-libreria-de-anuncios.md) | 120, 262, 125 | todo · 19-oct · lista de Anderson |
-| [ ] | 285 | [Agendas por hora y día de la semana](./285-agendas-por-hora-y-dia-de-la-semana.md) | 262, 269 | todo · 19-oct · cierre de 0h y Hub › Pauta |
+| [ ] | 285 | [Agendas por hora y día de la semana](./285-agendas-por-hora-y-dia-de-la-semana.md) | 262, 269 | todo · 19-oct · cierre de 0h y Hub › Pauta · 22-oct: la dimensión `hora` y el mensaje del día los hace el 298 |
+| [ ] | 298 | [Las horas de agenda, en un mensaje aparte del cierre](./298-horas-de-agenda-en-el-cierre.md) | 259, 267, 274 | en main · 22-oct · Codex + central; typecheck y lint limpios, tests sin correr en local (sin memoria); falta checkpoint · Michael; fuente CRM (`calls.createdAt`, 2 s de desfase medido), no Meta; Juanito no cambia |
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 

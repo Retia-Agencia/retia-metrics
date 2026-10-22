@@ -13,7 +13,7 @@ import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
-export type DimensionAgenda = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "dueno" | "cohorte" | "etapa";
+export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "dueno" | "cohorte" | "etapa";
 export type MedidaAgenda = "agendas";
 
 const dimensiones = {
@@ -35,6 +35,8 @@ export interface FilaAgenda {
   dia: string;
   semana: string;
   mes: string;
+  hora: string;
+  horaMinuto: string;
   area: string;
   canal: string | null;
   cuenta: string | null;
@@ -47,7 +49,7 @@ type ConsultaAgendaAgrupada<D extends DimensionAgenda> = ConsultaAgrupada<D, D |
   creadaHasta?: Date;
 };
 
-type ConsultaAgendaLista<D extends DimensionAgenda> = ConsultaDeLista<D, D> & {
+type ConsultaAgendaLista<D extends DimensionAgenda> = ConsultaDeLista<D, D | "horaMinuto"> & {
   creadaHasta?: Date;
 };
 
@@ -77,7 +79,8 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
   db: Db,
   opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {
-  const construir = () => db.select({ callId: calls.id, dealId: calls.dealId, ...dimensiones }).from(calls)
+  const horaMinuto = sql<string>`to_char(${calls.createdAt} AT TIME ZONE 'America/Bogota', 'HH24:MI')`;
+  const construir = () => db.select({ callId: calls.id, dealId: calls.dealId, ...dimensiones, horaMinuto }).from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId)).where(and(
       eq(calls.programId, opciones.programId),
@@ -87,7 +90,7 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
       vigente(calls),
     ));
   let consulta = construir().$dynamic();
-  const orden = expresionDeOrden(dimensiones, opciones.orden);
+  const orden = expresionDeOrden({ ...dimensiones, horaMinuto }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
   consulta = aplicarPagina(consulta, opciones.pagina);
   const [filas, total] = await Promise.all([consulta, totalDeConsulta(db, construir())]);

@@ -7,6 +7,7 @@ import {
   reportesWhatsapp,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import * as agenda from "@/lib/queries/hechos/agenda";
 import { esquemaRespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
 import * as semaforo from "@/lib/semaforo/semaforo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -174,6 +175,7 @@ describe("endpoint de maquina del semaforo", () => {
       generadoEn: "2026-10-13T11:00:00-05:00",
       sincronizacion: { estado: "ok", ultimaFoto: "2026-10-13T11:00:00-05:00" },
       envios: [{
+        tipo: "semaforo",
         hora: "11:00",
         destino: null,
         bloques: [{
@@ -193,6 +195,26 @@ describe("endpoint de maquina del semaforo", () => {
     expect(envio.texto).toMatch(/^🚦/);
     expect(envio.texto).toContain("CRM: https://crm.retia.test");
     expect(envio.texto).toMatch(/CRM = citas con UTM de pauta\.$/);
+    expect(respuesta.envios).toHaveLength(1);
+  });
+
+  it("a la hora de cierre agrega las horas de agenda despues del semaforo", async () => {
+    vi.setSystemTime(new Date("2026-10-13T18:00:00-05:00"));
+    await crearPrograma("cierre");
+
+    const respuesta = await cuerpo();
+    const envios = respuesta.envios as Array<{
+      tipo: string;
+      destino: string | null;
+      texto: string;
+      bloques: unknown[];
+    }>;
+
+    expect(envios.map((envio) => envio.tipo)).toEqual(["semaforo", "horas_agenda"]);
+    expect(envios[0]).toMatchObject({ destino: null });
+    expect(envios[1]).toMatchObject({ destino: null, bloques: [] });
+    expect(envios[1].texto).toContain("🕒 Horas de agenda · lunes 12-oct");
+    expect(envios[1].texto).toContain("*Programa cierre* · sin agendas");
   });
 
   it("a una hora sin envios no sincroniza ni llama a Meta", async () => {
@@ -231,6 +253,47 @@ describe("endpoint de maquina del semaforo", () => {
     expect(envio.texto).toContain("*Programa dos*\n");
     expect(envio.texto).toContain("*Programa uno*\n");
     expect(envio.texto.match(/━━━━━━━━━━/g)).toHaveLength(1);
+  });
+
+  it("en el cierre cada destino recibe sus propios programas en ambos envios", async () => {
+    vi.setSystemTime(new Date("2026-10-13T18:00:00-05:00"));
+    await crearPrograma("predeterminado");
+    await crearPrograma("grupo", { destino: "120363000000000001@g.us" });
+
+    const respuesta = await cuerpo();
+    const envios = respuesta.envios as Array<{
+      tipo: string;
+      destino: string | null;
+      texto: string;
+      bloques: Array<{ programa: string }>;
+    }>;
+
+    expect(envios.map(({ destino, tipo }) => [destino, tipo])).toEqual([
+      [null, "semaforo"],
+      [null, "horas_agenda"],
+      ["120363000000000001@g.us", "semaforo"],
+      ["120363000000000001@g.us", "horas_agenda"],
+    ]);
+    expect(envios[1].texto).toContain("*Programa predeterminado* · sin agendas");
+    expect(envios[1].texto).not.toContain("Programa grupo");
+    expect(envios[3].texto).toContain("*Programa grupo* · sin agendas");
+    expect(envios[3].texto).not.toContain("Programa predeterminado");
+  });
+
+  it("si fallan las horas de un programa conserva el semaforo y los demas programas", async () => {
+    vi.setSystemTime(new Date("2026-10-13T18:00:00-05:00"));
+    await crearPrograma("roto");
+    await crearPrograma("sano");
+    vi.spyOn(agenda, "listar").mockRejectedValueOnce(new Error("fallo de prueba"));
+
+    const respuesta = await cuerpo();
+    const envios = respuesta.envios as Array<{ tipo: string; texto: string }>;
+
+    expect(envios.map((envio) => envio.tipo)).toEqual(["semaforo", "horas_agenda"]);
+    expect(envios[0].texto).toContain("*Programa roto*");
+    expect(envios[0].texto).toContain("*Programa sano*");
+    expect(envios[1].texto).toContain("*Programa roto* · no se pudieron leer las agendas");
+    expect(envios[1].texto).toContain("*Programa sano* · sin agendas");
   });
 
   it("separa, ordena y declara los envíos por destino", async () => {
@@ -349,6 +412,7 @@ function exigirListaBlanca(valor: unknown): void {
 
 describe("lista blanca del contrato", () => {
   it("la respuesta real solo contiene llaves permitidas", async () => {
+    vi.setSystemTime(new Date("2026-10-13T18:00:00-05:00"));
     await crearPrograma("contrato");
     const respuesta = await cuerpo();
 

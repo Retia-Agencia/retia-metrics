@@ -113,7 +113,7 @@ beforeEach(async () => {
   ]);
 
   await db.insert(calls).values([
-    { dealId: filasDeal[0].id, programId, fechaAgenda: new Date("2026-09-17T10:00:00-05:00"), resultado: "show", createdAt: new Date("2026-09-10T10:00:00-05:00") },
+    { dealId: filasDeal[0].id, programId, fechaAgenda: new Date("2026-09-17T10:00:00-05:00"), resultado: "show", createdAt: new Date("2026-09-10T23:30:00-05:00") },
     { dealId: filasDeal[1].id, programId, fechaAgenda: new Date("2026-09-18T10:00:00-05:00"), resultado: "agendada", createdAt: new Date("2026-09-11T10:00:00-05:00") },
     { dealId: filasDeal[0].id, programId, fechaAgenda: new Date("2026-09-19T10:00:00-05:00"), resultado: "show", createdAt: new Date("2026-09-12T10:00:00-05:00"), anuladoEn: new Date(), anuladoPor: ownerId, motivoAnulacion: "error" },
     { dealId: dealAjeno.id, programId: otroProgramId, fechaAgenda: new Date("2026-09-17T10:00:00-05:00"), resultado: "show", createdAt: new Date("2026-09-10T10:00:00-05:00") },
@@ -153,6 +153,24 @@ describe("capa de hechos", () => {
     const listaAgendas = await agenda.listar(db, { programId, rango: RANGO, pagina: { limite: 10, offset: 0 } });
     expect(agendas.reduce((n, fila) => n + fila.agendas, 0)).toBe(listaAgendas.total);
     expect(listaAgendas.total).toBe(2);
+
+    const agendasPaidPorHora = await agenda.agrupar(db, {
+      programId,
+      rango: RANGO,
+      agruparPor: ["hora", "area"],
+      filtros: { area: ["paid"] },
+      orden: { campo: "hora", sentido: "asc" },
+    });
+    const listaPaid = await agenda.listar(db, {
+      programId,
+      rango: RANGO,
+      filtros: { area: ["paid"] },
+      pagina: { limite: 10, offset: 0 },
+      orden: { campo: "horaMinuto", sentido: "asc" },
+    });
+    expect(agendasPaidPorHora).toEqual([{ hora: "23", area: "paid", agendas: 1 }]);
+    expect(listaPaid.filas.map((fila) => fila.horaMinuto)).toEqual(["23:30"]);
+    expect(agendasPaidPorHora.reduce((n, fila) => n + fila.agendas, 0)).toBe(listaPaid.filas.length);
 
     const citas = await cita.agrupar(db, { programId, rango: RANGO, agruparPor: ["dia", "ocurrio", "canal"] });
     const listaCitas = await cita.listar(db, { programId, rango: RANGO, pagina: { numero: 1, tamano: 10 } });

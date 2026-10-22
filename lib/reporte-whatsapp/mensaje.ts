@@ -144,7 +144,7 @@ function conteoDeColores(bloques: Bloque[]): string {
     .join(" · ");
 }
 
-function fechaDeCierre(dia: string): string {
+export function fechaDeCierre(dia: string): string {
   const instante = instanteDeBogota(dia, "12:00");
   if (!instante) return dia;
   const partes = new Intl.DateTimeFormat("es-CO", {

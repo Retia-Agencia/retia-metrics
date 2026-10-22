@@ -7,6 +7,7 @@ export function dimensionesDeFecha(fecha: Fecha) {
     dia: sql<string>`(${fecha} AT TIME ZONE 'America/Bogota')::date`,
     semana: sql<string>`date_trunc('week', ${fecha} AT TIME ZONE 'America/Bogota')::date`,
     mes: sql<string>`date_trunc('month', ${fecha} AT TIME ZONE 'America/Bogota')::date`,
+    hora: sql<string>`to_char(${fecha} AT TIME ZONE 'America/Bogota', 'HH24')`,
   };
 }
 

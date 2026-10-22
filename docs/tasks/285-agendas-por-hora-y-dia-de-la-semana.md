@@ -22,6 +22,9 @@ formulario y no agendaba (César).
 
 ## Alcance
 
+> **22-oct:** la dimensión `hora` y el mensaje con las horas exactas del día cerrado los hace el 298. Lo de aquí que
+> va a WhatsApp (la línea de franjas de 28 días) va en ese mensaje de horas, no en el del semáforo.
+
 - Dos dimensiones nuevas en `dimensionesDeFecha` (`lib/queries/hechos/fechas.ts`): `hora` (0 a 23) y `dia_semana`
   (lunes a domingo), en Bogotá. Las usa el hecho agenda; quedan disponibles para los demás.
 - **CRM:** un mapa de calor hora × día por programa en Hub › Pauta, con el periodo elegible (28 días por defecto) y la

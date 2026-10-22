@@ -9,8 +9,10 @@ import { fechaDeInstanteEnBogota, isoEnBogota } from "@/lib/format";
 import { sincronizarDiaEnCurso } from "@/lib/pauta/dia-en-curso";
 import { saludDeCuentasMeta } from "@/lib/pauta/salud-cuentas";
 import { sincronizarPautaEnVentana } from "@/lib/pauta/sincronizar";
+import * as agenda from "@/lib/queries/hechos/agenda";
 import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { esquemaRespuestaSemaforo, type RespuestaSemaforo } from "@/lib/reporte-whatsapp/contrato";
+import { armarMensajeDeHorasDeAgenda } from "@/lib/reporte-whatsapp/horas-de-agenda";
 import { armarMensajeDeLaHora, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
 import { queTocaAhora } from "@/lib/reporte-whatsapp/que-toca";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
 
   let sincronizacion: RespuestaSemaforo["sincronizacion"] = null;
   let problemaCierre: string | null = null;
+  const diaCierre = diaCalendarioAnterior(fechaDeInstanteEnBogota(ahora));
   if (pendientes.length > 0) {
     let estado: NonNullable<RespuestaSemaforo["sincronizacion"]>["estado"] = "error";
     try {
@@ -71,13 +74,12 @@ export async function POST(request: Request) {
   }
 
   if (pendientes.some((pendiente) => pendiente.tipo === "cierre")) {
-    const dia = diaCalendarioAnterior(fechaDeInstanteEnBogota(ahora));
-    const aviso = `No se pudo releer el ${dia} en Meta; cifras del último cron.`;
+    const aviso = `No se pudo releer el ${diaCierre} en Meta; cifras del último cron.`;
     try {
       const resultado = await sincronizarPautaEnVentana(db, {
         tokens: await tokensMeta(db),
-        desde: dia,
-        hasta: dia,
+        desde: diaCierre,
+        hasta: diaCierre,
         disparadaPor: "endpoint",
         refrescarArbol: false,
         ahora,
@@ -139,6 +141,7 @@ export async function POST(request: Request) {
         }));
         return {
           destino: reporte.destino,
+          programId: pendiente.programId,
           bloque: {
             programa: reporte.programa,
             tipo: pendiente.tipo,
@@ -152,6 +155,7 @@ export async function POST(request: Request) {
       } catch {
         return {
           destino: reporte.destino,
+          programId: pendiente.programId,
           bloque: {
             programa: reporte.programa,
             tipo: pendiente.tipo,
@@ -166,10 +170,14 @@ export async function POST(request: Request) {
     }),
   );
   const hora = pendientes[0]?.hora;
-  const bloquesPorDestino = new Map<string | null, RespuestaSemaforo["envios"][number]["bloques"]>();
-  for (const { destino, bloque } of bloquesConDestino) {
+  type BloqueConPrograma = {
+    programId: string;
+    bloque: RespuestaSemaforo["envios"][number]["bloques"][number];
+  };
+  const bloquesPorDestino = new Map<string | null, BloqueConPrograma[]>();
+  for (const { destino, programId, bloque } of bloquesConDestino) {
     const bloques = bloquesPorDestino.get(destino) ?? [];
-    bloques.push(bloque);
+    bloques.push({ programId, bloque });
     bloquesPorDestino.set(destino, bloques);
   }
   const destinos = [...bloquesPorDestino.keys()].sort((a, b) => {
@@ -179,15 +187,49 @@ export async function POST(request: Request) {
   });
   const envios = hora === undefined
     ? []
-    : destinos.map((destino) => {
-        const bloques = bloquesPorDestino.get(destino)!;
-        return {
+    : (await Promise.all(destinos.map(async (destino) => {
+        const bloquesConPrograma = bloquesPorDestino.get(destino)!;
+        const bloques = bloquesConPrograma.map(({ bloque }) => bloque);
+        const envioSemaforo = {
+          tipo: "semaforo" as const,
           hora,
           destino,
           texto: armarMensajeDeLaHora(bloques, hora, sincronizacion, origen),
           bloques,
         };
-      });
+        const bloquesDeCierre = bloquesConPrograma.filter(({ bloque }) => bloque.tipo === "cierre");
+        if (bloquesDeCierre.length === 0) return [envioSemaforo];
+
+        const programas = await Promise.all(bloquesDeCierre.map(async ({ programId, bloque }) => {
+          try {
+            const horas: string[] = [];
+            let offset = 0;
+            let total = 0;
+            do {
+              const pagina = await agenda.listar(db, {
+                programId,
+                rango: { desde: diaCierre, hasta: diaCierre },
+                filtros: { area: ["paid"] },
+                orden: { campo: "horaMinuto", sentido: "asc" },
+                pagina: { limite: 200, offset },
+              });
+              horas.push(...pagina.filas.map((fila) => fila.horaMinuto));
+              offset += pagina.filas.length;
+              total = pagina.total;
+            } while (offset < total);
+            return { programa: bloque.programa, horas, error: false };
+          } catch {
+            return { programa: bloque.programa, horas: [], error: true };
+          }
+        }));
+        return [envioSemaforo, {
+          tipo: "horas_agenda" as const,
+          hora,
+          destino,
+          texto: armarMensajeDeHorasDeAgenda(diaCierre, programas),
+          bloques: [],
+        }];
+      }))).flat();
 
   const respuesta = esquemaRespuestaSemaforo.parse({
     generadoEn: isoEnBogota(ahora),
