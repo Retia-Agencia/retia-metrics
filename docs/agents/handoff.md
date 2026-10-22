@@ -42,6 +42,10 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
     (el CRM la descarta como centinela, no manda `fbc` falso). ComunicArte usa la misma plantilla sin ese parámetro.
     **Arreglo:** Pauta quita `&fbclid={{click_id}}` de los url_tags (el token del CRM es solo lectura). Pendiente
     antes de conectar CAPI en Tactical.
+  - **Events Manager de Power Talk (Mani, 22-oct):** el `Purchase` aún no se ve (rango hasta el 21-oct y hasta 30 min
+    de demora; revisar con rango que incluya el 22). Diagnostics: falta "advanced matching manual" del pixel, el
+    `TypeformSubmit` nativo sin precio (no es del CRM) y dominios de Lovable por confirmar. `Schedule` ya llega por el
+    pixel de Calendly: el 283 se reduce a Atendido (potencial), y el 294 recoge el mapa completo de eventos CRM→Meta.
   - Pendiente del frente: el primer Purchase real visible en Events Manager (Done del 281), forms de Dapta/Form30x
     con `fbclid`, 283 y 279.
 - **2026-10-22 (madrugada): Meta CAPI encendida en ComunicArte y la tarjeta de conexión rehecha (281).**

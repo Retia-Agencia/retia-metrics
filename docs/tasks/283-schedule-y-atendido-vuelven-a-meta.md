@@ -25,3 +25,11 @@ tienen más volumen y siguen siendo señales de calidad que el formulario no da.
 ## Done cuando
 
 Un deal que agenda y asiste deja un `Schedule` y un `Atendido` en Events Manager, sin duplicar el del navegador.
+
+## Enmienda 22-oct (Mani, Events Manager de Power Talk)
+
+- **Schedule ya llega por el navegador:** el dataset de Confianza recibe `invitee_meeting_scheduled` (pixel de Calendly,
+  calidad 8,8/10) e `invitee_select_day/time`. Mandar `Schedule` desde el servidor lo duplicaría salvo que se deduplique
+  con el mismo `event_id`, que el CRM no conoce. **Recomendación:** solo `Atendido`, que nadie más manda.
+- **Atendido queda como potencial de envío**, no comprometido: se decide con Pauta según si van a optimizar con él.
+- El mapa completo de eventos posibles vive en el 294.
