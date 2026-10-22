@@ -85,7 +85,7 @@
           {
             "label": "Estoy interesado pero puede esperar",
             "value": "Estoy interesado pero puede esperar",
-            "points": 0
+            "points": -1
           },
           {
             "label": "No es prioridad",
@@ -146,7 +146,7 @@
           {
             "label": "Sí, pero necesito facilidades de pago",
             "value": "Sí, pero necesito facilidades de pago",
-            "points": 0
+            "points": -1
           },
           {
             "label": "No, en este momento no cuento con los recursos",
@@ -164,7 +164,7 @@
         "hideWhen": {
           "field": "@score",
           "op": "lt",
-          "value": 0
+          "value": -10
         },
         "scheduler": {
           "provider": "calendly",
@@ -195,6 +195,12 @@
         "type": "text",
         "question": "campaign_id",
         "hidden": true
+      },
+      {
+        "key": "fbclid",
+        "type": "text",
+        "question": "fbclid",
+        "hidden": true
       }
     ],
     "scoring": {
@@ -207,14 +213,14 @@
       {
         "id": "agendado",
         "label": "Gracias ¡nos vemos en tu entrevista!",
-        "minScore": 0,
+        "minScore": -10,
         "message": "Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       },
       {
         "id": "en_revision",
         "label": "¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo",
-        "minScore": -300,
-        "maxScore": -1,
+        "minScore": -302,
+        "maxScore": -11,
         "message": "Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa."
       }
     ],

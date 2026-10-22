@@ -7,14 +7,16 @@ del ADR 0061. El CRM los recibe con el ticket 130.
 ## Cómo está armado
 
 Dapta no tiene variables libres como Typeform: tiene **un score** (puntos por opción) y **un outcome** (la
-etiqueta final). Por eso el score guarda los dos ejes del Typeform:
+etiqueta final). Por eso el score guarda los tres ejes del Typeform:
 
 - Cada respuesta que descalifica (ingreso bajo, "no es prioridad", "no cuento con los recursos") resta 100.
 - Ingreso y situación profesional suman los `hvm_points` del Typeform (10, 20, 30).
-- `score >= 0` quiere decir que la persona no tiene descalificantes, y entonces ve el Calendly (`hideWhen`
-  sobre `@score`). Si tiene alguno, `hvm = score mod 100`.
-- **Dos outcomes desde el 19-oct**, las dos pantallas finales del Typeform: score >= 0 → "Gracias ¡nos vemos en tu
-  entrevista!" y score < 0 → "¡Perfecto! Estamos analizando…", con su texto como `message` y sin redirect. El CRM saca
+- **Desde el 22-oct (ADR 0102):** "puede esperar" y "facilidades de pago" restan 1 cada una. Como los puntos de valor
+  van de 10 en 10, la intención queda en las unidades del score.
+- `score >= -10` quiere decir que la persona no tiene descalificantes (sin ninguno da -2 o más; con uno, -50 o menos),
+  y entonces ve el Calendly (`hideWhen` sobre `@score`, `lt -10`). El CRM separa los tres ejes del score.
+- **Dos outcomes desde el 19-oct**, las dos pantallas finales del Typeform: score >= -10 → "Gracias ¡nos vemos en tu
+  entrevista!" y score < -10 → "¡Perfecto! Estamos analizando…", con su texto como `message` y sin redirect. El CRM saca
   estado, `lead_value` y `lead_quality` del score (`calidadDesdeScore` en `lib/ingesta/adaptador-dapta.ts`), así que la
   etiqueta ya no tiene que cargarlos. Antes eran 12 outcomes (3 tramos de valor × 0 a 3 descalificantes) con etiqueta
   `<estado>|<lead_value>|<lead_quality>`; una etiqueta así se sigue leyendo como antes.
@@ -47,7 +49,7 @@ solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario q
   **Desde el ADR 0102 (22-oct):** además, "Sí, pero necesito facilidades de pago" baja un nivel y "Estoy interesado
   pero puede esperar" baja otro (se suman, piso BAJO VALOR). No son descalificantes: no esconden el Calendly ni
   cambian `lead_quality`. **Vigente en los tres Typeform desde el 22-oct, 9:47 a. m.** (ticket 295); los forms de Dapta lo
-  adoptan con el mismo ticket. **Form30x (AI Second Brain Jurídico) no aplica** (excepción del ADR 0102: un solo score,
+  adoptan desde el 22-oct, 6:50 p. m. (ticket 295). **Form30x (AI Second Brain Jurídico) no aplica** (excepción del ADR 0102: un solo score,
   decide 30X).
 - **Cómo se arma en un formulario nuevo (el bloque estándar, ADR 0102).** En la lógica de la pregunta de inversión,
   **después** de restar el score por "no cuento con los recursos", y en este orden: `nivel_valor` (variable numérica,
@@ -56,7 +58,8 @@ solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario q
   BAJO VALOR (≤ 0). La urgencia se pregunta antes que la inversión, así que su respuesta ya existe cuando corre el
   bloque. Un form nuevo copia el bloque de un Typeform vivo por la API y se prueba sobre todas las combinaciones de
   respuestas antes de publicarlo (el intérprete del 22-oct dio 216 de 216 en cada uno).
-- **Score de Dapta** = puntos de valor − 100 × descalificantes. En Typeform son las variables `hvm_points`,
+- **Score de Dapta** = puntos de valor − 1 por respuesta de baja intención − 100 × descalificantes (22-oct;
+  `tests/adaptador-dapta.test.ts` recorre las 216 combinaciones de cada form generado contra el estándar). En Typeform son las variables `hvm_points`,
   `lead_value` y `tag_lead_quality`, con la misma lógica (verificado: 216 combinaciones, cero diferencias).
 
 ## Programas
@@ -94,7 +97,8 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
 2. ~~Poner las dos URLs de gracias en los outcomes~~ (ya no: desde el 19-oct no hay redirect). Antes, sin redirect, la
    persona vería la etiqueta `estado|lead_value` como título de la pantalla final.
 3. **Anti-spam apagado:** con él prendido, Dapta no manda el parcial por webhook.
-4. No borrar los pasos ocultos `ad_id`, `adset_id` y `campaign_id`: se llenan desde la URL. `utm_id` ya no es paso
+4. No borrar los pasos ocultos `ad_id`, `adset_id`, `campaign_id` y `fbclid` (este desde el 22-oct en los cuatro, ADR
+   0099): se llenan desde la URL. Ningún envío real los ha traído todavía: verificar con el primero que llegue con ellos. `utm_id` ya no es paso
    (19-oct): Dapta lo captura solo, como las otras UTM.
 5. La destinación webhook de Dapta con URL y **secreto** de la fuente del CRM. El secreto se genera en
    la tab Programa, en Formularios (se muestra una vez) y se pega a mano: nunca pasa por un chat ni un script. La URL es

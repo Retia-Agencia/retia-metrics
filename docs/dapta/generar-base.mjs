@@ -1,11 +1,13 @@
 // Genera un form de Dapta por programa (<slug>.json) que replica la logica de los Typeform
 // (Tactical GmPGBOf9, ComunicArte nkMLdeh8, Comunícate con Confianza E5F4chVT) con los estados del ADR 0061.
 // Uso: node generar-base.mjs            -> todos los programas de PROGRAMAS
-// score = hvm_points + (-100 por cada respuesta descalificante). Un solo numero guarda los dos
-// ejes del Typeform: score >= 0 es "sin descalificar" y hvm = score mod 100.
+// score = hvm_points - 1 por cada respuesta de baja intencion - 100 por cada descalificante. Un solo
+// numero guarda los tres ejes del Typeform (ADR 0102): hvm va de 10 en 10, asi que la intencion queda en
+// las unidades. score >= -10 es "sin descalificar" (sin descalificantes da -2 o mas; con uno, -50 o menos).
 import fs from 'node:fs';
 
 const DESC = -100;
+const INTENCION = -1; // ADR 0102: baja Lead Value un nivel, no descalifica
 
 // Lo unico que cambia entre programas. `ingresos`: [valor, etiqueta, hvm, descalifica]
 const PROGRAMAS = {
@@ -93,7 +95,7 @@ const steps = [
   { key: 'urgencia', type: 'multiple_choice', required: true,
     question: p.urgencia, options: [
     opt('muy_urgente', 'Muy urgente', 0),
-    opt('puede_esperar', 'Estoy interesado pero puede esperar', 0),
+    opt('puede_esperar', 'Estoy interesado pero puede esperar', INTENCION),
     opt('no_prioridad', 'No es prioridad', DESC),
   ] },
   { key: 'situacion', type: 'multiple_choice', required: true,
@@ -108,31 +110,32 @@ const steps = [
   { key: 'inversion', type: 'multiple_choice', required: true,
     question: `¿Estás dispuesto y en la capacidad de invertir ${p.ticket} USD en ti?`, options: [
     opt('si_puedo', 'Sí, tengo la disposición y capacidad de invertir en este momento', 0),
-    opt('si_facilidades', 'Sí, pero necesito facilidades de pago', 0),
+    opt('si_facilidades', 'Sí, pero necesito facilidades de pago', INTENCION),
     opt('no_recursos', 'No, en este momento no cuento con los recursos', DESC),
   ] },
   // Solo lo ve quien no tiene ninguna respuesta descalificante (el Typeform saltaba al final).
   { key: 'agenda', type: 'scheduler', required: true, question: 'Agenda aquí tu entrevista',
     helper: p.agendaAyuda,
-    hideWhen: { field: '@score', op: 'lt', value: 0 },
+    hideWhen: { field: '@score', op: 'lt', value: -10 },
     scheduler: { provider: 'calendly', url: p.calendly ?? 'https://calendly.com/REEMPLAZAR', prefill: true,
       prefillMap: { name: 'nombre', email: 'email' },
       // El evento escogido, el mismo que guarda el editor con Calendly conectado en Integrations
       ...(p.evento ? { eventTypeUri: p.evento[0], eventTypeName: p.evento[1] } : {}) } },
   // Las seis UTM (utm_id incluido) las captura Dapta solo desde la URL (medido el 1-oct). ad_id, adset_id y
   // campaign_id no: van como pasos ocultos, los ocultos completos del ADR 0087. Un oculto no se le muestra a nadie.
-  ...['ad_id', 'adset_id', 'campaign_id'].map((key) => ({ key, type: 'text', question: key, hidden: true })),
+  // fbclid tambien (ADR 0099 punto 3, 22-oct): Meta lo agrega a cada clic y CAPI lo necesita.
+  ...['ad_id', 'adset_id', 'campaign_id', 'fbclid'].map((key) => ({ key, type: 'text', question: key, hidden: true })),
 ];
 
 const GRACIAS = 'Nuestro equipo revisará tu perfil, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
 const AGENDADO = 'Nuestro equipo revisará tu perfil, te entrevistará en el horario que escogiste, y en caso de ser seleccionado/a te invitaremos a reservar un cupo en esta edición del programa.';
 // Las dos pantallas finales del Typeform, tal cual (19-oct). La etiqueta del outcome es el titulo de la pantalla
 // y lo que manda el webhook: el CRM ya no la parte, saca estado, lead_value y lead_quality del score
-// (calidadDesdeScore). Por eso bastan dos: sin descalificantes (score >= 0, vio el Calendly) y con alguno.
+// (calidadDesdeScore). Por eso bastan dos: sin descalificantes (score >= -10, vio el Calendly) y con alguno.
 const outcomes = [
-  { id: 'agendado', label: 'Gracias ¡nos vemos en tu entrevista!', minScore: 0, message: AGENDADO },
+  { id: 'agendado', label: 'Gracias ¡nos vemos en tu entrevista!', minScore: -10, message: AGENDADO },
   { id: 'en_revision', label: '¡Perfecto! Estamos analizando tu aplicación, pronto nos comunicaremos contigo',
-    minScore: -300, maxScore: -1, message: GRACIAS }, // -300: los tres descalificantes posibles
+    minScore: -302, maxScore: -11, message: GRACIAS }, // -302: los tres descalificantes y las dos de baja intencion
 ];
 
 const config = {

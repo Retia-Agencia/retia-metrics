@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
@@ -20,20 +21,60 @@ describe("calidadDesdeScore", () => {
   it.each([
     [50, "con_calendly_sin_agenda", "MUY ALTO VALOR", "High"],
     [30, "con_calendly_sin_agenda", "MUY ALTO VALOR", "High"],
-    [29, "con_calendly_sin_agenda", "ALTO VALOR", "High"],
-    [15, "con_calendly_sin_agenda", "ALTO VALOR", "High"],
-    [14, "con_calendly_sin_agenda", "VALOR MEDIO", "High"],
-    [0, "con_calendly_sin_agenda", "VALOR MEDIO", "High"],
+    [29, "con_calendly_sin_agenda", "ALTO VALOR", "High"], // 30 con facilidades de pago
+    [28, "con_calendly_sin_agenda", "VALOR MEDIO", "High"], // 30 con las dos de baja intencion
+    [20, "con_calendly_sin_agenda", "ALTO VALOR", "High"],
+    [10, "con_calendly_sin_agenda", "VALOR MEDIO", "High"],
+    [9, "con_calendly_sin_agenda", "BAJO VALOR", "High"],
+    [-2, "con_calendly_sin_agenda", "BAJO VALOR", "High"], // 0 puntos y las dos: no descalifica
     [-50, "setteo_no_calificado", "ALTO VALOR", "Low"],
-    [-70, "setteo_no_calificado", "ALTO VALOR", "Low"],
-    [-71, "setteo_no_calificado", "VALOR MEDIO", "Low"],
-    [-85, "setteo_no_calificado", "VALOR MEDIO", "Low"],
-    [-86, "setteo_no_calificado", "BAJO VALOR", "Low"],
+    [-51, "setteo_no_calificado", "VALOR MEDIO", "Low"],
+    [-80, "setteo_no_calificado", "VALOR MEDIO", "Low"],
+    [-90, "setteo_no_calificado", "BAJO VALOR", "Low"],
     [-100, "setteo_no_calificado", "BAJO VALOR", "Low"],
     [-170, "setteo_no_calificado", "ALTO VALOR", "Low"],
     [-300, "setteo_no_calificado", "BAJO VALOR", "Low"],
   ] as const)("deriva los bordes para score %i", (score, estado, leadValue, leadQuality) => {
     expect(calidadDesdeScore(score)).toEqual({ estado, leadValue, leadQuality });
+  });
+
+  // El estandar escrito aparte del generador (docs/dapta/README.md y ADR 0102): si el form generado
+  // o el decodificador se apartan, alguna de las 216 combinaciones de algun programa lo dice.
+  const INGRESOS: Record<string, [number, boolean][]> = {
+    comunicarte: [[0, true], [10, true], [20, false], [30, false]],
+    tactical: [[0, true], [10, false], [20, false], [30, false]],
+    confianza: [[0, true], [10, false], [20, false], [30, false]],
+    memorable: [[0, true], [10, false], [20, false], [30, false]],
+  };
+  const SITUACION = [0, 0, 10, 20, 20, 10];
+  const NIVEL = ["BAJO VALOR", "VALOR MEDIO", "ALTO VALOR", "MUY ALTO VALOR"];
+
+  it.each(Object.keys(INGRESOS))("el form generado de %s y el decodificador dan el estandar en las 216 combinaciones", (slug) => {
+    const form = JSON.parse(readFileSync(`docs/dapta/${slug}.json`, "utf8"));
+    const paso = (key: string) => form.config.steps.find((s: { key: string }) => s.key === key);
+    const puntos = (key: string) => paso(key).options.map((o: { points: number }) => o.points);
+    const corte = paso("agenda").hideWhen;
+    expect(corte).toEqual({ field: "@score", op: "lt", value: -10 });
+    for (const [a, ing] of puntos("ingreso").entries())
+      for (const [b, urg] of puntos("urgencia").entries())
+        for (const [c, sit] of puntos("situacion").entries())
+          for (const [d, inv] of puntos("inversion").entries()) {
+            const score = ing + urg + sit + inv;
+            const [hvm, descIngreso] = INGRESOS[slug][a];
+            const desc = Number(descIngreso) + Number(b === 2) + Number(d === 2);
+            const valor = hvm + SITUACION[c];
+            const nivel = (valor >= 30 ? 3 : valor >= 15 ? 2 : 1) - Number(desc > 0) - Number(b === 1) - Number(d === 1);
+            expect(calidadDesdeScore(score), `${slug} ${[a, b, c, d]}`).toEqual({
+              estado: desc ? "setteo_no_calificado" : "con_calendly_sin_agenda",
+              leadValue: NIVEL[Math.max(nivel, 0)],
+              leadQuality: desc ? "Low" : "High",
+            });
+            expect(score < corte.value, "ve el Calendly solo sin descalificantes").toBe(desc > 0);
+            const outcome = form.config.outcomes.find(
+              (o: { minScore: number; maxScore?: number }) => score >= o.minScore && score <= (o.maxScore ?? Infinity),
+            );
+            expect(outcome.id).toBe(desc ? "en_revision" : "agendado");
+          }
   });
 });
 

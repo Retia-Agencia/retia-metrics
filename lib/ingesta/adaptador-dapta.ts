@@ -97,19 +97,26 @@ export function esEntregaDePrueba(payload: PayloadDapta): boolean {
   return payload.data.test === true || payload.submission.id === "test-submission";
 }
 
-/** Deriva la calificacion segun docs/dapta/README.md, "Estándar de puntaje". */
+const NIVELES_DE_VALOR = ["BAJO VALOR", "VALOR MEDIO", "ALTO VALOR", "MUY ALTO VALOR"] as const;
+
+/**
+ * Deriva la calificacion segun docs/dapta/README.md, "Estándar de puntaje" (ADR 0102).
+ * score = puntos de valor (de 10 en 10) - 1 por respuesta de baja intencion - 100 por descalificante,
+ * asi que la intencion se lee en las unidades y un score de antes del 0102 (multiplo de 10) da 0.
+ */
 export function calidadDesdeScore(score: number): {
   estado: string;
   leadValue: string;
   leadQuality: "High" | "Low";
 } {
-  const descalificado = score < 0;
-  const puntos = ((score % 100) + 100) % 100;
-  let leadValue: string;
+  const intencion = (10 - (((score % 10) + 10) % 10)) % 10;
+  const descalificado = score < -10;
+  const puntos = (((score + intencion) % 100) + 100) % 100;
 
-  if (puntos >= 30) leadValue = descalificado ? "ALTO VALOR" : "MUY ALTO VALOR";
-  else if (puntos >= 15) leadValue = descalificado ? "VALOR MEDIO" : "ALTO VALOR";
-  else leadValue = descalificado ? "BAJO VALOR" : "VALOR MEDIO";
+  let nivel = puntos >= 30 ? 3 : puntos >= 15 ? 2 : 1;
+  if (descalificado) nivel -= 1;
+  nivel -= intencion;
+  const leadValue = NIVELES_DE_VALOR[Math.max(nivel, 0)];
 
   return {
     estado: descalificado ? "setteo_no_calificado" : "con_calendly_sin_agenda",

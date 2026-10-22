@@ -22,7 +22,7 @@ Editar la lógica de `lead_value` en cada formulario vivo, sin tocar Lead Qualit
 | Comunícate con Confianza | Typeform | `E5F4chVT` | ✅ 22-oct 9:47 a. m. |
 | Tactical Investor | Typeform | `GmPGBOf9` | ✅ 22-oct 9:47 a. m. · 🩸 sin `lead_value` ni `hvm_points` desde el 19-oct (0 de 82 envíos del 20 al 22-oct); se restauran copiando la lógica de Confianza (mismos ids) |
 | AI Second Brain Jurídico | Form30x | `cmulcaari04c001s6m0x1ats6` | no aplica · excepción del ADR 0102 (Mani, 22-oct): Form30x califica con un solo `score`, y restar por intención volvería `Low` al lead; las etiquetas van al HubSpot de 30X, así que decide 30X |
-| Los cuatro de Dapta | Dapta (generador) | `docs/dapta/` | pendiente · sin envíos todavía |
+| Los cuatro de Dapta | Dapta (generador) | `docs/dapta/` | ✅ 22-oct 6:50 p. m. · −1 en el score por cada respuesta de baja intención, corte del Calendly en `< -10`, `calidadDesdeScore` lo decodifica (vigente al desplegar). Sin envíos reales todavía. Ese día se les agregó también el oculto `fbclid` y el pixel a Tactical |
 
 ## Cómo (propuesta del 22-oct, validada)
 
