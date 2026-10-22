@@ -3,7 +3,7 @@ id: 297
 etapa: deals
 serves: "Mani, 22-oct: los deals que esperan otra cohorte se procesan en un solo lugar y se mudan solos cuando su cohorte se activa (ADR 0104)"
 depends: [293, 296]
-status: ready
+status: en main
 ---
 
 # 297 — La pantalla Próxima cohorte, y la mudanza al activar la cohorte
@@ -48,17 +48,27 @@ CHECK `deals_esperando_corte_con_texto` sigue valiendo (con destino, el texto es
 
 ## Done cuando
 
-- [ ] Test: Anotar con cohorte futura pone el tag y `cohorte_destino_id`, no cambia `cohort_id` (enmienda los tests del
+- [x] Test: Anotar con cohorte futura pone el tag y `cohorte_destino_id`, no cambia `cohort_id` (enmienda los tests del
       231); sin cohorte, el camino del 293 sigue igual.
-- [ ] Test: la consulta trae deals con el tag de dos cohortes distintas (una cerrada), separa las dos vistas, excluye
+- [x] Test: la consulta trae deals con el tag de dos cohortes distintas (una cerrada), separa las dos vistas, excluye
       otro programa y anulados, y lee las dos formas de la nota.
-- [ ] Test: asignar en lote a una futura solo escribe el destino; a la activa, muda; deal ajeno o sin tag, rechazo sin
+- [x] Test: asignar en lote a una futura solo escribe el destino; a la activa, muda; deal ajeno o sin tag, rechazo sin
       escribir nada; un closer que no es dueño, 403.
-- [ ] Test: `activarCohorte` muda los deals con ese destino en la misma transacción, conserva la etapa, limpia tag y
+- [x] Test: `activarCohorte` muda los deals con ese destino en la misma transacción, conserva la etapa, limpia tag y
       texto, deja nota con origen, destino y etapa, y `change_log`; los de otro destino no se tocan.
-- [ ] Test: las métricas cuentan el deal en su cohorte de origen mientras espera y en la nueva después.
-- [ ] Test: el Kanban no trae los deals con el tag y devuelve su conteo.
-- [ ] `npm run build` y recorrido en `dev:local`: closer anota "2027" y "C4"; las cards salen en su vista; gerente asigna
+- [x] Test: las métricas cuentan el deal en su cohorte de origen mientras espera y en la nueva después.
+- [x] Test: el Kanban no trae los deals con el tag y devuelve su conteo.
+- [x] `npm run build` y recorrido en `dev:local`: closer anota "2027" y "C4"; las cards salen en su vista; gerente asigna
       en lote, cierra C3 y activa C4, y los asignados aparecen en el Kanban de C4 en su etapa con la nota. Clic en todo
       lo que se abre, consola limpia, celular incluido.
-- [ ] `docs/structure.md` §3 (pendientes y PC) y `docs/overview.md` §11 (vocabulario) actualizados.
+- [x] `docs/structure.md` §3 (pendientes y PC) y `docs/overview.md` §11 (vocabulario) actualizados.
+
+## Cierre (22-oct)
+
+En main en `243944a2`. Implementó Codex; la sesión central revisó e hizo el recorrido en `dev:local`.
+- El recorrido destapó el mismo bug del 293: marcar una card tumbaba la pantalla (`e.currentTarget` dentro del updater).
+- Los botones que son links necesitaban `nativeButton={false}` (aviso de Base UI en consola).
+- La ficha decía "Se retoma cuando se defina el inicio de ventas"; ahora dice que pasa a la cohorte en su misma etapa al activarse.
+- Activar una cohorte sigue exigiendo sus tres fechas (regla de antes): una cohorte "por definir" no se activa hasta llenarlas.
+- Abierto: "Asignar cohorte" también ofrece la cohorte activa en la que el deal ya está; elegirla quita el tag y lo deja ahí.
+- Falta el checkpoint verde con la suite completa.
