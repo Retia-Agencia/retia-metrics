@@ -27,6 +27,23 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-22 (mañana): pipeline comercial documentado; Lead Value con intención (ADR 0102); Kanban con Re-agenda y vistas (ADR 0103).**
+  - Del loom de Nicolás (Wispr Flow, 22-oct). Todo en `docs/manuales/pipeline-comercial.md` (vista del pipeline de
+    punta a punta con cifras de producción) y anotaciones A-156 a A-158.
+  - **Medido:** "facilidades de pago" vende 7 % contra 21 %; "puede esperar" 8 % contra 19 %; y ninguna de las dos
+    sumaba en Lead Value. Simulada la regla nueva: los niveles venden 23, 15, 6 y 0 %.
+  - **ADR 0102:** cada una baja Lead Value un nivel; sin recálculo hacia atrás. **Ticket 295 en curso:** editar los tres
+    Typeform, Form30x y el generador de Dapta, cada escritura con ok de Mani. Antes, avisar a Dani y Pauta: la llamada
+    calificada baja (102 de 144 citas en vez de 142).
+  - **ADR 0103 / ticket 296 (ready):** columna Re-agenda derivada a la izquierda de Agendado y vistas Llamada · Setteo ·
+    Todo recordadas por persona. Sin etapa nueva (confirma el 0070).
+  - **🩸 Tactical sin Lead Value desde el 19-oct:** su Typeform perdió `lead_value` y `hvm_points` ese día (quién, sin
+    fuente: la API no lo dice; el PUT nuestro del 20-oct solo agregó ocultos). 0 de 82 envíos del 20 al 22-oct lo traen.
+    Restaurado con el 295.
+  - **295 aplicado en los tres Typeform** (22-oct, 9:47 a. m., con respaldo en `~/Desktop/mani/work/retia/respaldos/typeform/`).
+    Las hojas no se corren: las variables propias no crean columna en Sheets. Faltan Form30x y los forms de Dapta, y
+    confirmar con el primer envío real de cada programa. Manual de los closers actualizado.
+
 - **2026-10-22 (madrugada): CAPI encendido en ComunicArte y Confianza; 282 en main; el fbclid de Tactical, roto en los anuncios.**
   - **CAPI:** Mani conectó Meta CAPI en ComunicArte (dataset `974573078957944`) y Confianza (`1068355778485503`) el
     21-oct a las 11:18 y 11:37 pm; los dos coinciden con el pixel del form. El cron `enviar-meta-capi` (pg_cron, cada

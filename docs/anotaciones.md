@@ -409,3 +409,13 @@ reconectar el conector. Las decisiones salen del grill de esa tarde (ADR 0081 y 
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
 | A-155 | Programa › Integraciones → Meta CAPI | usabilidad | Conectar no se entiende: el token va en un campo diminuto sin etiqueta, el ID del dataset se pide dos veces (al conectar y otra vez con "Guardar ID"), el interruptor deja intentar encender antes de la prueba y responde con un error, y no dice de dónde sale el código de prueba. Debe ser un flujo de tres pasos (conectar en un diálogo, prueba, encender) y el dataset solo cambia junto con el token. | 281 (ajuste) | hecho · 22-oct |
+
+## Loom · 22-oct · Nicolás (closer de llamada, ComunicArte y Tactical)
+
+Análisis y propuestas en [`manuales/pipeline-comercial.md`](./manuales/pipeline-comercial.md) §5.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-156 | Formularios → Lead Value | cambio | Joana salió MUY ALTO VALOR pidiendo facilidades de pago. Medido: urgencia e inversión no suman puntos, y "facilidades de pago" vende 7 % contra 21 % de "tengo capacidad"; "puede esperar" 8 % contra 19 % de "muy urgente". Además "ALTO VALOR" nombra dos perfiles. Decidido: opción A (cada respuesta baja un nivel), simulada el 22-oct. | 295 | decidida · ADR 0102 |
+| A-157 | Deals → Kanban | cambio | Las citas a re-agendar (pendiente Re-agenda, 65 hoy) se mezclan con las nuevas en Agendado. Pide verlas aparte. Decidido: columna derivada a la izquierda de Agendado, sin etapa nueva (ADR 0103). | 296 | decidida |
+| A-158 | Deals → Kanban | usabilidad | Un closer de llamada no usa las cinco columnas de setteo y tiene que desplazarse a la derecha cada vez. Decidido: vistas Llamada · Setteo · Todo, recordadas por persona (ADR 0103). | 296 | decidida |

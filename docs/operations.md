@@ -81,6 +81,7 @@ secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead
 conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar → **un envío real por
 camino** (descalificado, sin agenda, con agenda, con las seis UTM) revisado en la base antes de compartir el link.
 Antes de compartir un link de agenda, `npm run simular:cita -- --programa <slug> --host <correo> --lead <correo>` prueba el webhook firmado contra `dev:local`.
+**El puntaje de todo formulario nuevo sigue el estándar de `docs/dapta/README.md`**, incluido el bloque de Lead Value del ADR 0102 (22-oct). Las variables propias (`lead_value`, `hvm_points`, `nivel_valor`) **no crean columnas en la hoja conectada**: la integración de Typeform con Sheets solo escribe `Score` (medido el 22-oct: la hoja de ComunicArte no tiene columna para ninguna, con semanas de envíos). Una pregunta, un campo oculto o activar `score` sí las corren.
 **Un Typeform nuevo copiado de otro se compara contra el de referencia vivo** (lógica, variables y ocultos por la API, 5-oct): la copia de Comunícate con Confianza salió de una versión vieja sin `lead_value` ni `utm_id`. Y su "Send test request" se guarda sin ingerir desde `67114fd`; antes creaba un lead falso.
 **Los campos ocultos van completos desde el primer día** (ADR 0087, 14-oct): `utm_source`, `utm_medium`,
 `utm_campaign`, `utm_term`, `utm_content`, `utm_id`, `ad_id`, `adset_id` y `campaign_id`. El formulario bota todo

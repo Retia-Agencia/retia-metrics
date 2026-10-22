@@ -44,6 +44,17 @@ solo la tabla de ingresos (abajo, en `PROGRAMAS` del generador). Un formulario q
   de USD 1.000 (`docs/operations.md` §2.2).
 - **`lead_value`:** 30-50 puntos → MUY ALTO VALOR (con descalificantes, ALTO VALOR) · 15-29 → ALTO VALOR (VALOR
   MEDIO) · 0-14 → VALOR MEDIO (BAJO VALOR). Mide poder económico, y baja un nivel con un descalificante.
+  **Desde el ADR 0102 (22-oct):** además, "Sí, pero necesito facilidades de pago" baja un nivel y "Estoy interesado
+  pero puede esperar" baja otro (se suman, piso BAJO VALOR). No son descalificantes: no esconden el Calendly ni
+  cambian `lead_quality`. **Vigente en los tres Typeform desde el 22-oct, 9:47 a. m.** (ticket 295); Form30x y los
+  forms de Dapta lo adoptan con el mismo ticket.
+- **Cómo se arma en un formulario nuevo (el bloque estándar, ADR 0102).** En la lógica de la pregunta de inversión,
+  **después** de restar el score por "no cuento con los recursos", y en este orden: `nivel_valor` (variable numérica,
+  0 por defecto) = 3 si `hvm_points ≥ 30`, 2 si 15-29, 1 si < 15 → −1 si `score < 0` → −1 si inversión = "facilidades
+  de pago" → −1 si urgencia = "puede esperar" → `lead_value` = MUY ALTO VALOR (3), ALTO VALOR (2), VALOR MEDIO (1),
+  BAJO VALOR (≤ 0). La urgencia se pregunta antes que la inversión, así que su respuesta ya existe cuando corre el
+  bloque. Un form nuevo copia el bloque de un Typeform vivo por la API y se prueba sobre todas las combinaciones de
+  respuestas antes de publicarlo (el intérprete del 22-oct dio 216 de 216 en cada uno).
 - **Score de Dapta** = puntos de valor − 100 × descalificantes. En Typeform son las variables `hvm_points`,
   `lead_value` y `tag_lead_quality`, con la misma lógica (verificado: 216 combinaciones, cero diferencias).
 

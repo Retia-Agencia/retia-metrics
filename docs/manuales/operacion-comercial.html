@@ -216,6 +216,10 @@
   color:var(--bad);
   background:var(--badbg)
   }
+  .top{
+  color:var(--accent);
+  background:var(--soft)
+  }
   .warn{
   color:var(--warn);
   background:var(--warnbg)
@@ -710,7 +714,7 @@
       <h3>Lead Quality: ¿pasó el filtro?</h3>
       <p>Sin descarte queda High y ve la agenda obligatoria; con uno queda Low y no agenda. Antes de la agenda ya llega un parcial, aunque no termine.</p>
       <h3>Lead Value: ¿cuánto vale el lead?</h3>
-      <p>El Value suma puntos por ingreso y situación profesional, y considera si hubo descarte.</p>
+      <p>El Value suma puntos por ingreso y situación profesional, y después baja por descarte y por señales de poca intención de compra.</p>
       <div class="tabla">
         <table>
           <thead>
@@ -748,7 +752,42 @@
           </tbody>
         </table>
       </div>
-      <p>El máximo es 50. Sin descarte: 30 o más es Muy Alto, 15 a 29 es Alto y menos de 15 es Medio. Con descarte quedan en Alto, Medio y Bajo.</p>
+      <p>El máximo es 50. Los puntos dan el nivel de partida y cada <b>bajada</b> lo baja un nivel, hasta Bajo como mínimo.</p>
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Puntos</th>
+              <th>Sin bajadas</th>
+              <th>1 bajada</th>
+              <th>2 bajadas</th>
+              <th>3 bajadas</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><b>30 a 50</b></td><td><span class="pill top">Muy Alto</span></td><td><span class="pill info">Alto</span></td><td><span class="pill warn">Medio</span></td><td><span class="pill bad">Bajo</span></td></tr>
+            <tr><td><b>15 a 29</b></td><td><span class="pill info">Alto</span></td><td><span class="pill warn">Medio</span></td><td><span class="pill bad">Bajo</span></td><td><span class="pill bad">Bajo</span></td></tr>
+            <tr><td><b>0 a 14</b></td><td><span class="pill warn">Medio</span></td><td><span class="pill bad">Bajo</span></td><td><span class="pill bad">Bajo</span></td><td><span class="pill bad">Bajo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tabla">
+        <table>
+          <thead>
+            <tr>
+              <th>Cuenta como bajada</th>
+              <th>¿Puede agendar?</th>
+              <th>Por qué baja</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Una o más respuestas de descarte</td><td><span class="pill bad">No</span> queda Low</td><td>No tiene recursos, no es prioridad o gana menos del mínimo</td></tr>
+            <tr><td>"Sí, pero necesito facilidades de pago"</td><td><span class="pill ok">Sí</span> sigue High</td><td>Compró 7 de cada 100 citas; quien tenía capacidad, 21</td></tr>
+            <tr><td>"Estoy interesado pero puede esperar"</td><td><span class="pill ok">Sí</span> sigue High</td><td>Compró 8 de cada 100 citas; quien dijo "muy urgente", 19</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Ejemplo: 50 puntos, "facilidades de pago" y "muy urgente" es una bajada: queda <span class="pill info">Alto</span>. Con "facilidades de pago" y "puede esperar" son dos: queda <span class="pill warn">Medio</span>. Rige desde el 22 de octubre; los leads de antes conservan el Value con el que llegaron.</p>
       <p class="nota"><b>Quality decide dónde nace; Value ordena.</b> Trabaja el mayor primero. Si todo llega Low o sin calidad, avisa.</p>
     </section>
     <section id="areas">
@@ -1274,7 +1313,7 @@
         <dt>Lead Quality</dt>
         <dd>Lead Quality es High o Low y decide si nace en Calificado.</dd>
         <dt>Lead Value</dt>
-        <dd>Lead Value va de Muy Alto a Bajo y ordena tu cola.</dd>
+        <dd>Lead Value va de Muy Alto a Bajo y ordena tu cola. Sale de los puntos de ingreso y situación, y baja por descarte, por pedir facilidades de pago y por decir que puede esperar.</dd>
         <dt>Canal</dt>
         <dd>El canal indica de dónde vino el clic: fuente y medio.</dd>
         <dt>Área</dt>

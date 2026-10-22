@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0101)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0104)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -124,6 +124,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0099](./0099-la-traza-de-un-envio-pago-de-punta-a-punta.md) | La traza de un envío pago tiene cinco eslabones con dueño (plantilla única de Meta, landing que pasa todo, set estándar de campos ocultos, ingesta, deal); el CRM alarma cuando los envíos pagos llegan sin id del anuncio (290) y toda cifra por anuncio dice su cobertura. **Enmendado 21-oct:** la plantilla única es la de Confianza (`utm_id`; `adset_id` y `campaign_id` opcionales), Sin UTM nunca es orgánico, y los links orgánicos salen de un generador |
 | [0100](./0100-un-deal-tiene-una-sola-cita-activa.md) | Un deal tiene una sola cita futura activa: la reserva que llega reemplaza a la anterior (vieja `reagendada` y cancelada en Calendly, dueño = host de la nueva) por las cuatro puertas (formulario, webhook, suelta, CRM); enmienda el 0049 |
 | [0101](./0101-un-resultado-se-corrige-con-rastro-y-la-cita-se-resuelve-en-un-solo-lugar.md) | Un resultado de llamada se corrige (Show, No show, Cancelada) con motivo y rastro, y la etapa la mueve el motor; Resultado es la única puerta de una cita viva, el selector muestra el horario de Calendly y permite una hora fuera de Calendly (tickets 291 y 292) |
+| [0102](./0102-lead-value-mide-poder-economico-e-intencion.md) | Lead Value mide poder económico e intención: "facilidades de pago" y "puede esperar" bajan un nivel cada una, sin esconder el Calendly ni cambiar Lead Quality; no se recalcula hacia atrás (ticket 295); enmienda el estándar de puntaje |
+| [0103](./0103-el-kanban-tiene-columna-re-agenda-y-tres-vistas.md) | El Kanban tiene una columna Re-agenda derivada del pendiente, a la izquierda de Agendado, y tres vistas (Llamada, Setteo, Todo) recordadas por persona; sin etapas nuevas (ticket 296); confirma el 0070 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
