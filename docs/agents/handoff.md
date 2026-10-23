@@ -27,6 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-23: 299 Hoy fiel cerrado (falta checkpoint).** Hub › Hoy se arma para cualquier día con
+  `armarVistaDeHoy` (como estaba al cierre del día). Decisiones de Mani en `docs/metricas.md` §3.5: dos tarjetas
+  (Agendas creadas y Citas de hoy), % de show por deal con las reagendadas que no cuentan, Leads de hoy = registros sin
+  meta hasta el 253, caja igual, y la meta del día descuenta las ventas de hoy (regla: todo dinámico según el CRM).
+  Hallazgos: la tarjeta "Agendas" del 252 ya contaba citas por fecha de cita (la fila de §3.1 decía otra cosa, se
+  corrigió); la cohorte contaba ventas sin fecha de corte (arreglado). Comparado el 22-oct: registros = Typeform,
+  citas = Calendly; lo que no cuadra es que las closers no registran el resultado (22 de 24 citas de ComunicArte sin
+  resultado al día siguiente), así que el % de show de Hoy mide registro, no asistencia. Sigue: 253, 254, 257 y 300.
+
 - **2026-10-23: envíos falsos. Medición, grill, ADR 0105 y tickets 301 a 307.**
   - **El disparador:** el 22-oct entró a Tactical un troll con una amenaza contra un niño, al parecer dirigida a JP
     (nombre "No te da pena estafar con tu hijo presente", correo `tevoyamatar@`, tel 312 345 6789, y un segundo envío
