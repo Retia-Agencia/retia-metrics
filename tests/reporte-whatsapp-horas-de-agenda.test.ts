@@ -10,6 +10,7 @@ describe("mensaje de horas de agenda", () => {
         "13:10", "13:52", "14:03", "14:20", "14:41", "14:58", "15:30",
         "20:15", "22:02", "22:19", "22:40", "22:51", "23:30",
       ],
+      agendasMeta: 18,
       error: false,
     }, {
       programa: "Tactical Investor",
@@ -19,7 +20,7 @@ describe("mensaje de horas de agenda", () => {
 
     expect(texto).toBe(`🕒 Horas de agenda · martes 21-oct
 
-*Comunícate con Confianza* · 16 agendas
+*Comunícate con Confianza* · 16 agendas (Meta: 18)
 🌅 Mañana (6 a 12): 06:14 · 07:05 · 07:48
 ☀️ Tarde (12 a 18): 13:10 · 13:52 · 14:03 · 14:20 · 14:41 · 14:58 · 15:30
 🌙 Noche (18 a 24): 20:15 · 22:02 · 22:19 · 22:40 · 22:51 · 23:30
@@ -29,7 +30,7 @@ Hora pico: 14h y 22h (4 cada una)
 🌑 Madrugada (0 a 6): 00:12 · 01:30
 🌅 Mañana (6 a 12): 07:00
 
-ℹ️ Hora en que la persona agendó en Calendly (CRM), hora de Bogotá.`);
+ℹ️ Agendas del CRM con UTM de pauta, por la hora en que la persona agendó en Calendly (hora de Bogotá). Meta cuenta aparte las que se atribuye, por eso puede dar más.`);
   });
 
   it("una sola agenda no muestra pico", () => {

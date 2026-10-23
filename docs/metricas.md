@@ -164,7 +164,7 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 | Registros | envíos completos del rango (§1.1) | personas | sí | `hechos/envio.ts` | ✅ |
 | Dejó datos · Llegó al Calendly | embudo del formulario (ADR 0069, ticket 126) | personas | sí | `lib/queries/embudo-formulario.ts` | ✅ |
 | Agendas | llamadas vigentes creadas en el rango (§1.2) | agendas | sí | `hechos/agenda.ts` | ✅ |
-| Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora | horas | no | `armarMensajeDeHorasDeAgenda` | ✅ |
+| Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | ✅ |
 | Citas · Shows | citas del rango; las que ocurrieron (§1.3) | citas | sí | `hechos/cita.ts` | ✅ |
 | % de show | deals del grupo con al menos un show ÷ deals del grupo | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
 | % de cierre | deals con show que hoy están vendidos ÷ deals con show | % | no | ídem | ✅ |

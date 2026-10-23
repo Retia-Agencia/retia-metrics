@@ -217,7 +217,8 @@ export async function POST(request: Request) {
               offset += pagina.filas.length;
               total = pagina.total;
             } while (offset < total);
-            return { programa: bloque.programa, horas, error: false };
+            const agendasMeta = bloque.metricas.find((metrica) => metrica.metrica === "costo_por_agenda")?.agendasMeta ?? null;
+            return { programa: bloque.programa, horas, agendasMeta, error: false };
           } catch {
             return { programa: bloque.programa, horas: [], error: true };
           }

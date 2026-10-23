@@ -3,6 +3,7 @@ import { fechaDeCierre } from "@/lib/reporte-whatsapp/mensaje";
 interface ProgramaConHoras {
   programa: string;
   horas: string[];
+  agendasMeta?: number | null;
   error: boolean;
 }
 
@@ -33,11 +34,12 @@ function lineaDePico(horas: string[]): string | null {
   return `Hora pico: ${unirConY(picos)} (${detalle})`;
 }
 
-function bloqueDePrograma({ programa, horas, error }: ProgramaConHoras): string {
+function bloqueDePrograma({ programa, horas, agendasMeta, error }: ProgramaConHoras): string {
   if (error) return `*${programa}* · no se pudieron leer las agendas`;
-  if (horas.length === 0) return `*${programa}* · sin agendas`;
+  const meta = agendasMeta === undefined || agendasMeta === null ? "" : ` (Meta: ${agendasMeta})`;
+  if (horas.length === 0) return `*${programa}* · sin agendas${meta}`;
 
-  const lineas = [`*${programa}* · ${horas.length} ${horas.length === 1 ? "agenda" : "agendas"}`];
+  const lineas = [`*${programa}* · ${horas.length} ${horas.length === 1 ? "agenda" : "agendas"}${meta}`];
   for (const franja of FRANJAS) {
     const horasDeFranja = horas.filter((hora) => {
       const valor = Number(hora.slice(0, 2));
@@ -57,6 +59,6 @@ export function armarMensajeDeHorasDeAgenda(dia: string, programas: ProgramaConH
     "",
     bloques,
     "",
-    "ℹ️ Hora en que la persona agendó en Calendly (CRM), hora de Bogotá.",
+    "ℹ️ Agendas del CRM con UTM de pauta, por la hora en que la persona agendó en Calendly (hora de Bogotá). Meta cuenta aparte las que se atribuye, por eso puede dar más.",
   ].join("\n");
 }
