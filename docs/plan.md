@@ -183,6 +183,9 @@ etapa de entrada la decide el CRM con agenda y calidad (ADR 0004, 0005, 0035, 00
   traslado de leads desde Sheets (111), ficha del lead con el diff entre envíos (073, 091).
 - Falta: **117** anotar el primer parcial real de Typeform (no es código) · **126** parte B, el embudo por
   pregunta (migración) · buscador por texto en Leads para retirar `/personas` (A-11, al 075).
+- Falta (23-oct): **301 a 307**, los envíos falsos (ADR 0105): un deal cuyo envío no parece de una persona real
+  queda **Sospechoso** (reglas de teléfono y correo más Haiku), visible y contando, y se resuelve con "Es real" o
+  "Anular por envío falso", que anula en cascada sin borrar. Envíos y leads entran a la vigencia.
 - ✅ **A-41 cerrada (Mani, 2-oct): los parciales siguen abriendo deal en Potencial**, como en 30X; las etapas
   se manejan como están.
 - Frena: 🔴 **B2** las preguntas del formulario que no deciden nada.

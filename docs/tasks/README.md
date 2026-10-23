@@ -345,6 +345,22 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 | [x] | 208 | [Migrar el corte 3: agendados con Calendly y Estudiantes Noviembre](./208-migrar-el-corte-3.md) | 203 | done · 8-oct (noche) · aplicado con el ok de Mani: CA 91 agendados + 17 estudiantes, TI 89 + 9; TI C3 desde el 28-sep. Recorrido de Mani hecho |
 
+## 16 · Envíos falsos (ADR 0105, 23-oct)
+
+7 tickets, todos abiertos. Salen del troll del 22-oct en Tactical (una amenaza en el nombre del envío, con cita en el
+Calendly de un closer), de la medición del 23-oct (~5 personas falsas en 2.564 envíos de 90 días) y del grill de ese
+día. Cola de migraciones: 301 y después 304. El 303 no toca la base y arranca en paralelo con el 301.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 301 | [Vigencia de envíos](./301-vigencia-de-envios.md) (migración de `submissions` y `leads`) | — | todo |
+| [ ] | 302 | [Vigencia de leads](./302-vigencia-de-leads.md) | 301 | todo |
+| [ ] | 303 | [Las reglas deterministas de un envío falso](./303-reglas-de-envio-falso.md) | — | todo |
+| [ ] | 304 | [El veredicto de cada envío y la marca Sospechoso](./304-veredicto-y-marca-sospechoso.md) (migración) | 303 | todo |
+| [ ] | 305 | [El juez Haiku](./305-juez-haiku.md) | 304 | todo |
+| [ ] | 306 | [Aviso, pestaña Sospechosos en Inbox y "Es real"](./306-aviso-y-pestana-sospechosos.md) | 304 | todo |
+| [ ] | 307 | [Anular por envío falso, en cascada](./307-anular-por-envio-falso.md) | 302, 306 | todo |
+
 ## 15 · Ola O8 · Mover o anotar, y el hub del closer (9-oct)
 
 11 tickets, todos abiertos. Salen de la reunión del 9-oct con Michael, Andre y el equipo de Tactical

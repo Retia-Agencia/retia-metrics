@@ -27,6 +27,34 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-23: envíos falsos. Medición, grill, ADR 0105 y tickets 301 a 307.**
+  - **El disparador:** el 22-oct entró a Tactical un troll con una amenaza contra un niño, al parecer dirigida a JP
+    (nombre "No te da pena estafar con tu hijo presente", correo `tevoyamatar@`, tel 312 345 6789, y un segundo envío
+    con otro correo y el mismo teléfono). Lo vio Michael armando los push de Juanito. El dedup lo dejó en un lead
+    cuyo deal sigue en Agendado, pero su llamada está **cancelada**. **La cita viva es una llamada suelta** con el
+    segundo correo (`voy_por_tuhijo.estafadorhp@`), en el Inbox de Tactical. **No se anuló nada:** antes, JP o
+    Gerencia guardan la evidencia.
+  - **Medido (solo lectura, 90 días, 2.564 envíos):** ~5 personas falsas externas (el troll, `a@gmail.com`,
+    `carlos@gmail.com`, "John Doe" y `prueba@gmail.com`) más las pruebas internas de Mani (todo AI Second Brain
+    Jurídico, "PRUEBA CRM 1", "Manuel5 TEST"). Teléfono con 7+ dígitos seguidos: cero falsos positivos (con 6, Karen
+    García y Alexander Rosero salían marcados). La regex de palabras ofensivas no sirve ("trata" contiene "rata").
+    Varios correos en un lead no es señal. Un envío pesa en promedio 850 bytes de respuestas.
+  - **ADR 0105:** Sospechoso es una marca derivada del deal, visible y contando (no es etapa ni lo esconde). Marcan
+    las reglas y Haiku, en unión. Nada se anula solo. Lo resuelve `puedeTrabajarDeal`, y hay una pestaña en Inbox.
+    Anular por envío falso anula en cascada (deal, llamadas, envío y el lead si todos sus envíos son falsos) y cancela
+    la cita, **sin borrar**. Mani pidió borrar y se descartó: rompe el ADR 0026 y destruye la evidencia. El juicio
+    corre en `after()` fuera de `lib/ingesta/`, y **cada envío recoge los pendientes: sin cron** (Mani).
+    **Punto 7 (Mani lo vio a mitad de sesión):** una cita suelta de Calendly también se juzga; si no, la cita del
+    troll se habría escapado. Hay 9 sueltas vigentes en 90 días.
+  - **Haiku y no Jev (TypeSafe), por ahora:** Haiku ~USD 0,27 al mes, Jev ~0,03; el costo no decide. Jev promete
+    certeza calibrada, pero su fuerte es el inglés y su punto débil el contenido adversarial. Se compara después.
+  - **Vocabulario** (`docs/overview.md` §11): Sospechoso, Envío falso.
+  - **Tickets 301 a 307** (`docs/tasks/README.md` §16). Cola de migraciones: 301 (columnas de anulación en
+    `submissions` y `leads`) y después 304 (veredictos). El 303 es puro y arranca ya. Medido para el 301 y el 302: 44
+    lecturas de `submissions` en 28 archivos y 58 de `leads` en 37 tienen que decidir su vigencia.
+  - **Pendiente:** `ANTHROPIC_API_KEY` en Vercel para el 305 (la pone Mani). Código muerto visto y sin tocar:
+    `leads.motivo_descarte`, que nadie lee ni escribe. `scripts/tmp-299-medir.mjs` sin trackear es de otra sesión.
+
 - **2026-10-22 (mañana): pipeline comercial documentado; Lead Value con intención (ADR 0102); Kanban con Re-agenda y vistas (ADR 0103).**
   - Del loom de Nicolás (Wispr Flow, 22-oct). Todo en `docs/manuales/pipeline-comercial.md` (vista del pipeline de
     punta a punta con cifras de producción) y anotaciones A-156 a A-158.
@@ -4846,6 +4874,10 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > [`docs/operations.md`](../operations.md). El texto anterior: `git show da68cdf:docs/agents/handoff.md`.
 
 ### Now
+
+- 🕵️ **23-oct, envíos falsos** (ADR 0105, tickets 301 a 307, `docs/tasks/README.md` §16): solo diseño, nada
+  implementado. Listos para arrancar: **301** (migración, la primera de la cola) y **303** (puro, en paralelo).
+  Antes de anular al troll de Tactical (su cita es una suelta en el Inbox), JP o Gerencia guardan la evidencia.
 
 - 🚦 **15-oct, el semáforo de pauta por WhatsApp está encendido** (tickets 259 a 269, ADR 0089 con sus enmiendas):
   los tres programas a las 8, 11, 14 y 17 h y el cierre a las 20 h, un solo mensaje por hora al grupo "Alertas Paid

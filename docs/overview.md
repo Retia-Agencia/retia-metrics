@@ -436,6 +436,13 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Anular:** dejar un registro fuera de toda métrica sin borrarlo, con quién, cuándo y por qué. Se ve
   tachado en la ficha. *Evitar: "borrar", "cancelar".*
 - **Vigente:** lo contrario de anulado (un registro que cuenta). En recursos, la versión de hoy.
+- **Sospechoso:** un deal cuyo envío, o una llamada suelta cuya cita, trae señales de no ser de una persona real
+  (un teléfono en secuencia, por ejemplo). Sigue en su etapa, en la lista del closer y en las métricas, con un aviso y sus razones,
+  hasta que alguien diga que es real o lo anule por envío falso. También aparece en una pestaña del Inbox.
+  *No es una etapa ni lo esconde. Evitar: "cuarentena", "fishy".*
+- **Envío falso:** un envío que no hizo una persona real interesada (un troll, un relleno, una prueba). Se
+  **anula**, nunca se borra: con él salen de toda métrica su deal y sus llamadas, y su lead si todos sus envíos
+  son falsos, y la cita se cancela en Calendly. *Evitar: "borrar", "spam".*
 
 **El ciclo**
 

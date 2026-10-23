@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0104)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0106)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -127,6 +127,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0102](./0102-lead-value-mide-poder-economico-e-intencion.md) | Lead Value mide poder económico e intención: "facilidades de pago" y "puede esperar" bajan un nivel cada una, sin esconder el Calendly ni cambiar Lead Quality; no se recalcula hacia atrás (ticket 295); enmienda el estándar de puntaje |
 | [0103](./0103-el-kanban-tiene-columna-re-agenda-y-tres-vistas.md) | El Kanban tiene una columna Re-agenda derivada del pendiente, a la izquierda de Agendado, y tres vistas (Llamada, Setteo, Todo) recordadas por persona; sin etapas nuevas (ticket 296); confirma el 0070 |
 | [0104](./0104-proxima-cohorte-es-una-pantalla-del-programa.md) | Próxima cohorte es una pantalla del programa (cards, sin filtro de cohorte, vistas Sin y Con cohorte asignada); el deal cuenta en su origen y se muda en su misma etapa cuando su cohorte se activa. Enmienda el 231 y retira la bandeja del 293 |
+| [0105](./0105-un-envio-falso-se-marca-sospechoso-y-se-anula-en-cascada.md) | Un envío falso marca su deal como Sospechoso (reglas de teléfono y correo más Haiku, en unión), visible y contando; nada se anula solo; anular por envío falso anula en cascada deal, llamadas, envío y lead, y cancela la cita, sin borrar. Las llamadas sueltas de Calendly también se juzgan. Envíos y leads entran a la vigencia |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
