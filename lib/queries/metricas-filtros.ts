@@ -1,6 +1,6 @@
 import { and, asc, between, eq, gt, inArray, isNull, lte, notExists, notInArray, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
-import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { vigente } from "@/lib/queries/vigente";
@@ -304,6 +304,11 @@ export function fechaAnclaAgendaCreada() {
   return sql<string>`(${calls.createdAt} AT TIME ZONE 'America/Bogota')::date`;
 }
 
+/** El día (Bogotá) en que se completó un envío de formulario. */
+export function fechaAnclaEnvio() {
+  return sql<string>`(${submissions.fechaEnvio} AT TIME ZONE 'America/Bogota')::date`;
+}
+
 /**
  * Generar deals y agendas es del programa, no de un closer: un deal nace sin dueño. Como los
  * leads, con closer no se devuelve nada, jamas el programa entero. Exige el join de arriba.
@@ -320,6 +325,15 @@ export function filtroAgendasCreadas({ programId, rango, claveCloser }: Alcance)
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
+    claveCloser ? sql`false` : undefined,
+  );
+}
+
+export function filtroRegistros({ programId, rango, claveCloser }: Alcance) {
+  return and(
+    eq(sources.programId, programId),
+    eq(submissions.esParcial, false),
+    between(fechaAnclaEnvio(), rango.desde, rango.hasta),
     claveCloser ? sql`false` : undefined,
   );
 }

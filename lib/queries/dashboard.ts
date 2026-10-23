@@ -105,6 +105,7 @@ export interface CajaPorMoneda {
  */
 export interface EmbudoDelRango {
   agendas: number;
+  reagendadas: number;
   llamadasConShow: number;
   pctShow: number | null;
   cierres: number;
@@ -119,7 +120,7 @@ export interface EmbudoDelRango {
 export interface VistaDeCohorte {  cohorteId: string;
   codigo: string;
   meta: number;
-  /** Ventas de la cohorte completa. La meta se mide siempre contra este numero. */
+  /** Ventas de la cohorte completa hasta el día de la vista. La meta se mide contra este número. */
   vendidos: number;
   /**
    * Ventas de la cohorte hechas por el closer del alcance: su contribucion. `null`
@@ -396,6 +397,7 @@ export async function embudoDelRango(
   const [llamadas] = await db
     .select({
       agendas: sql<number>`count(*)::int`,
+      reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
       llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
     })
     .from(calls)
@@ -407,6 +409,7 @@ export async function embudoDelRango(
     );
 
   const agendas = llamadas?.agendas ?? 0;
+  const reagendadas = llamadas?.reagendadas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
   const [cierres, grupo] = await Promise.all([
     ventasDelRango({ programId, rango, claveCloser }, db),
@@ -416,6 +419,7 @@ export async function embudoDelRango(
 
   return {
     agendas,
+    reagendadas,
     llamadasConShow,
     pctShow: tasas.pctShow,
     cierres,
@@ -518,6 +522,7 @@ export async function embudoPorCloser(
         clave: claveCloserSql(users.id, calls.closerId),
         closerId: sql<string | null>`min(${etiquetaDeCloserSql(calls.closerId)})`,
         agendas: sql<number>`count(*)::int`,
+        reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
         llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
       })
       .from(calls)
@@ -581,6 +586,7 @@ export async function embudoPorCloser(
         clave,
         closerId,
         agendas: 0,
+        reagendadas: 0,
         llamadasConShow: 0,
         pctShow: null,
         cierres: 0,
@@ -598,6 +604,7 @@ export async function embudoPorCloser(
   for (const l of llamadasPorCloser) {
     const fila = asegurar(l.clave, l.closerId);
     fila.agendas = l.agendas;
+    fila.reagendadas = l.reagendadas;
     fila.llamadasConShow = l.llamadasConShow;
   }
   for (const c of cierresPorCloser) {
@@ -696,12 +703,14 @@ export function embudoPorCanal(hechos: FilaHechosDelEmbudo[]): FilaEmbudoPorCana
  */
 async function ventasDeCohorte(
   cohorteId: string,
+  hasta: string,
   db: Db,
   claveCloser?: string | null,
 ): Promise<number> {
   const deLaCohorte = and(
     eq(deals.cohortId, cohorteId),
     inArray(deals.etapa, [...ETAPAS_VENDIDAS]),
+    inArray(deals.id, vendidosEn(db, { desde: "2000-01-01", hasta })),
     eq(deals.cortesia, false),
   );
   const conteo = { n: sql<number>`count(*)::int` };
@@ -727,7 +736,7 @@ async function ventasDeCohorte(
  * Vista de la cohorte activa de un programa a fecha `hoy` ('YYYY-MM-DD', Bogota), o
  * `null` si el programa no tiene cohorte activa.
  *
- * `vendidos` es el conteo de deals VENDIDOS de TODA la cohorte, no del rango. Los dias
+ * `vendidos` es el conteo de deals VENDIDOS de TODA la cohorte hasta `hoy`, no del rango. Los dias
  * habiles de la ventana salen SIEMPRE de `fechaInicioVentas` y `fechaCierreVentas`
  * (ADR 0022), inclusive en ambos extremos, nunca de un calculo. Si la cohorte no
  * tiene `fechaInicioVentas` (cohortes cerradas viejas), `ventana` es `null`: no se
@@ -745,9 +754,9 @@ export async function vistaDeCohorteActiva(
   // `vendidos` es SIEMPRE el de la cohorte completa: toda la matematica de meta
   // (dinamica, lineal, esperado, cumplimiento) se mide contra la cohorte, nunca
   // contra un closer. Lo del closer va aparte, como contribucion.
-  const vendidos = await ventasDeCohorte(cohorte.id, db);
+  const vendidos = await ventasDeCohorte(cohorte.id, hoy, db);
   const vendidosDelCloser =
-    claveCloser == null ? null : await ventasDeCohorte(cohorte.id, db, claveCloser);
+    claveCloser == null ? null : await ventasDeCohorte(cohorte.id, hoy, db, claveCloser);
   const faltan = Math.max(meta - vendidos, 0);
 
   const base: VistaDeCohorte = {

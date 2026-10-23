@@ -163,7 +163,8 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 |---|---|---|---|---|---|
 | Registros | envíos completos del rango (§1.1) | personas | sí | `hechos/envio.ts` | ✅ |
 | Dejó datos · Llegó al Calendly | embudo del formulario (ADR 0069, ticket 126) | personas | sí | `lib/queries/embudo-formulario.ts` | ✅ |
-| Agendas | llamadas vigentes creadas en el rango (§1.2) | agendas | sí | `hechos/agenda.ts` | ✅ |
+| Agendas creadas | llamadas vigentes creadas en el rango (§1.2); la de Pauta y el costo por agenda | agendas | sí | `hechos/agenda.ts` | ✅ |
+| Citas (la tarjeta "Agendas" de Comercial, "Citas de hoy" en Hoy) | llamadas vigentes cuya **cita** cae en el rango (§1.3), con cualquier resultado; no es la de arriba (medido el 23-oct, 299) | citas | sí | `embudoDelRango` (`filtroLlamadas`) | ✅ |
 | Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | ✅ |
 | Citas · Shows | citas del rango; las que ocurrieron (§1.3) | citas | sí | `hechos/cita.ts` | ✅ |
 | % de show | deals del grupo con al menos un show ÷ deals del grupo | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
@@ -239,6 +240,52 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
 
 **Propuestas sin decidir (HQ-7 de `docs/hub.md`):** CAC en COP y en USD; los tres grupos del origen del cierre
 salen del deal sin pedirle un clic al closer.
+
+### 3.5 Hub › Hoy: el reporte diario (ticket 299)
+
+Hoy se arma con `armarVistaDeHoy` (`lib/queries/vista-hoy.ts`) para un día de Bogotá: hoy por defecto, o cualquier
+día pasado **como se veía al cierre de ese día** (ventas de la cohorte, del mes y de la semana hasta ese día; el
+instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo que Comercial y Dinero con el periodo
+"hoy": nada se recalcula aparte.
+
+**Decisiones de Mani (23-oct):**
+
+- **D1, agendas.** Dos tarjetas rotuladas: "Agendas creadas hoy" (§1.2, la de Pauta) y "Citas de hoy" (§1.3, la del
+  reporte: "Agendas reales" eran las citas que caían ese día).
+- **D2, % de show.** Por deal (ADR 0079), dicho en la tarjeta: "X de Y deals con cita ocurrida · N reagendadas (no
+  cuentan)". No hay una segunda fórmula por cita.
+- **D3, leads.** Registros del día (§1.1, envíos completos, igual a Typeform) sin meta hasta el 253: excepción
+  temporal al ADR 0086 punto 3, que el 253 cierra. Una persona que aplica dos veces son dos registros.
+- **D4, caja.** Por moneda, partida en ventas de hoy y ventas anteriores; los nombres están en la lista de la cifra.
+- **Meta del día.** Cupos que faltan de la cohorte ÷ días hábiles de venta que quedan, contando hoy, y **descuenta
+  las ventas de hoy**: toda cifra es dinámica según el CRM (regla de Mani). Por eso, a diferencia del reporte, la
+  meta del día baja cuando se vende.
+
+**Cada fila del reporte (15-sep y 9-sep) contra Hoy:**
+
+| Fila del reporte | En Hoy | Función | Fecha | Universo |
+|---|---|---|---|---|
+| Semana día X de 5 · mes día X de N hábiles · corte día X de N | Línea de contexto | `contextoDelDia` | el día | lunes a viernes; la cohorte, de su ventana de ventas |
+| Cupos del día: meta, real, cumplimiento | Cupos › Hoy | `horizontesDeCupos` (meta: `vistaDeCohorteActiva`) | venta (§1.4) | meta dinámica de la cohorte activa; real = ventas del día |
+| Leads del día: meta, real, cumplimiento | Leads de hoy, sin meta | `agrupar` de `hechos/envio.ts` | envío (§1.1) | registros completos del programa |
+| Agendas reales | Citas de hoy | `embudoDelRango.agendas` | cita (§1.3) | llamadas vigentes con cita ese día, cualquier resultado |
+| (no estaba) | Agendas creadas hoy | `agrupar` de `hechos/agenda.ts` | creación (§1.2) | llamadas vigentes creadas ese día |
+| Llamadas realizadas | Realizadas (show) | `embudoDelRango.llamadasConShow` | cita | citas del día con resultado que ocurrió |
+| Show | % de show por deal | `grupoDeCitas` | cita | deals con cita ya ocurrida; la reagendada no cuenta |
+| Ventas · % de cierre | Ventas de hoy · % de cierre | `ventasDelRango`, `grupoDeCitas` | venta | ADR 0079 |
+| Tabla por closer | Hoy por closer | `embudoPorCloser` | cita / venta | cada deal en quien tomó su último show |
+| Caja del día y de dónde viene | Caja de hoy | `cajaDelDiaPorOrigen` | abono (§1.5) | abonos vigentes por moneda |
+| Semana: meta, meta a la fecha, real | Cupos › Semana | `leerMetasDelMes` (compensación semanal, 146) | venta | ventas de la semana hasta el día |
+| El corte: meta, vendidos, faltan, cumplimiento lineal | Cupos › Cohorte | `vistaDeCohorteActiva` | venta | ventas de la cohorte hasta el día |
+| El mes: leads, cupos, cumplimiento lineal | Cupos › Mes y metas del mes | `leerMetasDelMes` | venta | ventas del mes hasta el día; los leads del mes, 253 |
+| Meta para llegar a la meta desde mañana; leads por día hábil | Lo que viene | · | · | 🟡 253 |
+| Cómo nació cada cupo (agenda del día, follow-up) | Lo que viene | · | · | 🟡 254 |
+| Planes de acción | Lo que viene | · | · | 🟡 257 |
+| Masivos, cola y respuestas de Kapso | fuera | · | · | H-9: no viven en el CRM |
+| El texto por closer ("9 agendas: 1 cierre, 2 no-show...") | la lista de cada cifra | · | · | fuera del 299 |
+
+**Lo que no viaja en el tiempo:** las banderas (llamadas pasadas sin resultado, atendidos sin valor, sin Grain) y la
+cartera son una foto de ahora; qué cohorte está activa también se lee de ahora.
 
 ## 4. Cuentas de Meta por programa (producción, 15-oct)
 

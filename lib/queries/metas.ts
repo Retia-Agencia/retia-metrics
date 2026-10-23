@@ -323,8 +323,9 @@ export async function leerMetasDelMes(
     ? { desde: minFecha(periodoMes.desde, semana.desde), hasta: maxFecha(periodoMes.hasta, semana.hasta) }
     : periodoMes;
   const { cohortes, ventas } = await leerCohortesYVentas(db, programId, rangoLectura);
-  const resultado = armarMetasDelMes({ cohortes, ventas, mes, hoy });
-  const idsDelMes = ventas
+  const ventasHastaHoy = ventas.filter((venta) => venta.dia <= hoy);
+  const resultado = armarMetasDelMes({ cohortes, ventas: ventasHastaHoy, mes, hoy });
+  const idsDelMes = ventasHastaHoy
     .filter((venta) => venta.dia >= resultado.periodoMes.desde && venta.dia <= resultado.periodoMes.hasta)
     .map((venta) => venta.dealId);
   const [contratado, cohorteActiva] = await Promise.all([

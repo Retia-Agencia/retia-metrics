@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, cohorts, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { hoyEnBogota } from "@/lib/format";
 import { cajaRecaudada, type VistaDeCohorte } from "@/lib/queries/dashboard";
 import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { cajaDelDiaPorOrigen, contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
+import { armarVistaDeHoy, cajaDelDiaPorOrigen, contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
+import { detalleDeCifra } from "@/lib/queries/vista-metrica";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -165,5 +167,181 @@ describe("la caja de hoy por origen (252)", () => {
   it("sin abonos hoy no hay filas, no hay ceros inventados", async () => {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacío", ticketUsd: "797" }).returning();
     expect(await cajaDelDiaPorOrigen({ programId: programa.id, hoy: HOY }, db)).toEqual([]);
+  });
+
+  it("hoy arma la misma vista, contexto, horizontes y caja que el camino anterior", async () => {
+    const dia = hoyEnBogota();
+    const [programa] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "equivalencia",
+      nombre: "Equivalencia",
+      ticketUsd: "797",
+    }).returning();
+    const anterior = await armarVistaDelDashboard({
+      programId: programa.id,
+      hoy: dia,
+      periodo: { preset: "hoy" },
+      preset: "hoy",
+      claveCloser: null,
+    }, db);
+    const resultado = await armarVistaDeHoy({ programId: programa.id, dia }, db);
+
+    expect(resultado.vista).toEqual(anterior);
+    expect(resultado.contexto).toEqual(contextoDelDia(dia, anterior.cohorte));
+    expect(resultado.horizontes).toEqual(horizontesDeCupos(anterior));
+    expect(resultado.caja).toEqual(await cajaDelDiaPorOrigen({ programId: programa.id, hoy: dia }, db));
+  });
+
+  it("arma un día pasado con ventas, metas y contexto como estaban al cierre", async () => {
+    const dia = "2026-10-14";
+    const [programa] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "dia-armado",
+      nombre: "Día armado",
+      ticketUsd: "797",
+    }).returning();
+    const [cohorteActiva] = await db.insert(cohorts).values({
+      programId: programa.id,
+      codigo: "C10",
+      metaCupos: 10,
+      precioUsd: "797",
+      fechaInicioClases: "2026-11-01",
+      fechaInicioVentas: "2026-10-12",
+      fechaCierreVentas: "2026-10-16",
+      estado: "activo",
+    }).returning();
+    let secuencia = 0;
+    const venta = async (vendidoEl: string) => {
+      secuencia += 1;
+      const [lead] = await db.insert(leads).values({
+        programId: programa.id,
+        emailNormalizado: `venta-${secuencia}@retia.co`,
+      }).returning();
+      const [deal] = await db.insert(deals).values({
+        programId: programa.id,
+        leadId: lead.id,
+        cohortId: cohorteActiva.id,
+        etapa: "ganado_parcial",
+      }).returning();
+      await db.insert(dealEtapaHistorial).values({
+        dealId: deal.id,
+        a: "ganado_parcial",
+        fecha: new Date(`${vendidoEl}T11:00:00-05:00`),
+      });
+    };
+    await venta("2026-10-13");
+    await venta(dia);
+    await venta("2026-10-15");
+
+    const resultado = await armarVistaDeHoy({ programId: programa.id, dia }, db);
+    expect(resultado.vista.cohorte?.vendidos).toBe(2);
+    expect(resultado.vista.cohorte?.ventana?.metaDinamica).toBeCloseTo(8 / 3);
+    expect(resultado.horizontes.find((h) => h.clave === "dia")?.real).toBe(1);
+    expect(resultado.horizontes.find((h) => h.clave === "semana")?.real).toBe(2);
+    expect(resultado.vista.metasDelMes.vendidos).toBe(2);
+    expect(resultado.contexto).toEqual({
+      semana: { dia: 3, total: 5 },
+      mes: { mes: "2026-10", dia: 10, total: 22 },
+      cohorte: { codigo: "C10", dia: 3, total: 5 },
+    });
+  });
+
+  it("cuenta solo las citas reagendadas vigentes del día", async () => {
+    const dia = "2026-10-14";
+    const [programa] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "reagendadas",
+      nombre: "Reagendadas",
+      ticketUsd: "797",
+    }).returning();
+    const [gerente] = await db.insert(users).values({ email: "anula@retia.co", rol: "gerente" }).returning();
+    await db.insert(calls).values([
+      { programId: programa.id, fechaAgenda: new Date(`${dia}T10:00:00-05:00`), resultado: "reagendada" },
+      {
+        programId: programa.id,
+        fechaAgenda: new Date(`${dia}T11:00:00-05:00`),
+        resultado: "reagendada",
+        anuladoEn: new Date(`${dia}T12:00:00-05:00`),
+        anuladoPor: gerente.id,
+        motivoAnulacion: "Corrección",
+      },
+      { programId: programa.id, fechaAgenda: new Date("2026-10-15T10:00:00-05:00"), resultado: "reagendada" },
+    ]);
+
+    const resultado = await armarVistaDeHoy({ programId: programa.id, dia }, db);
+    expect(resultado.vista.embudo.reagendadas).toBe(1);
+  });
+
+  it("agendasCreadas coincide con el resumen de la lista del mismo día", async () => {
+    const dia = "2026-10-14";
+    const [programa] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "agendas-creadas",
+      nombre: "Agendas creadas",
+      ticketUsd: "797",
+    }).returning();
+    await db.insert(calls).values([
+      {
+        programId: programa.id,
+        fechaAgenda: new Date("2026-10-20T10:00:00-05:00"),
+        createdAt: new Date(`${dia}T09:00:00-05:00`),
+      },
+      {
+        programId: programa.id,
+        fechaAgenda: new Date("2026-10-21T10:00:00-05:00"),
+        createdAt: new Date(`${dia}T15:00:00-05:00`),
+      },
+      {
+        programId: programa.id,
+        fechaAgenda: new Date("2026-10-20T10:00:00-05:00"),
+        createdAt: new Date("2026-10-13T15:00:00-05:00"),
+      },
+    ]);
+
+    const resultado = await armarVistaDeHoy({ programId: programa.id, dia }, db);
+    const detalle = await detalleDeCifra("agendas_creadas", {
+      programId: programa.id,
+      slug: programa.slug,
+      hoy: dia,
+      periodo: resultado.vista.periodo,
+      claveCloser: null,
+    }, db);
+    expect(resultado.agendasCreadas).toBe(2);
+    expect(resultado.agendasCreadas).toBe(detalle.resumen.subtotal.cantidad);
+  });
+
+  it("registros cuenta cada envío completo del día y coincide con su lista", async () => {
+    const dia = "2026-10-14";
+    const [programa, otroPrograma] = await db.insert(programs).values([
+      { ...PROGRAMA_DE_PRUEBA, slug: "registros", nombre: "Registros", ticketUsd: "797" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "registros-otro", nombre: "Registros otro", ticketUsd: "797" },
+    ]).returning();
+    const [fuente, fuenteAjena] = await db.insert(sources).values([
+      { programId: programa.id, nombre: "Typeform" },
+      { programId: otroPrograma.id, nombre: "Typeform otro" },
+    ]).returning();
+    const [persona, personaAjena] = await db.insert(leads).values([
+      { programId: programa.id, emailNormalizado: "repite@retia.co" },
+      { programId: otroPrograma.id, emailNormalizado: "repite@retia.co" },
+    ]).returning();
+    await db.insert(submissions).values([
+      { leadId: persona.id, sourceId: fuente.id, token: "completo-1", fechaEnvio: new Date(`${dia}T08:00:00-05:00`) },
+      { leadId: persona.id, sourceId: fuente.id, token: "completo-2", fechaEnvio: new Date(`${dia}T23:30:00-05:00`) },
+      { leadId: persona.id, sourceId: fuente.id, token: "parcial", esParcial: true, fechaEnvio: new Date(`${dia}T12:00:00-05:00`) },
+      { leadId: persona.id, sourceId: fuente.id, token: "otro-dia", fechaEnvio: new Date("2026-10-13T12:00:00-05:00") },
+      { leadId: personaAjena.id, sourceId: fuenteAjena.id, token: "otro-programa", fechaEnvio: new Date(`${dia}T12:00:00-05:00`) },
+    ]);
+
+    const resultado = await armarVistaDeHoy({ programId: programa.id, dia }, db);
+    const detalle = await detalleDeCifra("registros", {
+      programId: programa.id,
+      slug: programa.slug,
+      hoy: dia,
+      periodo: resultado.vista.periodo,
+      claveCloser: null,
+    }, db);
+
+    expect(resultado.registros).toBe(2);
+    expect(resultado.registros).toBe(detalle.resumen.subtotal.cantidad);
   });
 });

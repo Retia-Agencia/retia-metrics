@@ -3,18 +3,22 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { abonos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario, diaHabilDe } from "@/lib/dias-habiles";
+import { hoyEnBogota } from "@/lib/format";
 import { cajaRecaudada, type CajaPorMoneda, type VistaDeCohorte } from "@/lib/queries/dashboard";
+import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
+import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { filtroCaja, vendidosEn } from "@/lib/queries/metricas-filtros";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
-import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
 /**
  * La pestaña Hoy del Hub (ticket 252, ADR 0086 punto 3): el reporte diario de septiembre armado
  * con lo que el CRM ya calcula. Este módulo NO calcula ninguna métrica nueva: ordena las que trae
  * `armarVistaDelDashboard` con el periodo de hoy (las mismas de Comercial, Dinero y las metas) y
- * solo agrega dos cosas que el reporte pedía y no existían como cifra suelta: la línea de contexto
- * (en qué día hábil vamos) y la caja del día partida por el origen de cada abono.
+ * agrega cuatro cosas que el reporte pedía y no existían juntas: la línea de contexto (en qué día
+ * hábil vamos), la caja del día partida por el origen de cada abono, las agendas creadas y los
+ * registros de ese día.
  */
 
 /** "día X de N hábiles": X es el conteo de hábiles hasta hoy, inclusive (`diaHabilDe`). */
@@ -128,6 +132,37 @@ export interface CajaDelDiaPorOrigen {
   deVentasDeHoy: number;
   /** Abonos que completan una venta de otro día. */
   deVentasAnteriores: number;
+}
+
+/** Arma Hub › Hoy como estaba al cierre de `dia`; las banderas y la cartera siguen siendo de ahora. */
+export async function armarVistaDeHoy(
+  { programId, dia, ahora }: { programId: string; dia: string; ahora?: Date },
+  db: Db = dbDeLaApp,
+) {
+  const instante = ahora ?? (dia === hoyEnBogota()
+    ? new Date()
+    : new Date(`${dia}T23:59:59.999-05:00`));
+  const vista = await armarVistaDelDashboard({
+    programId,
+    hoy: dia,
+    periodo: { preset: "hoy" },
+    preset: "hoy",
+    claveCloser: null,
+    ahora: instante,
+  }, db);
+  const [caja, filasDeAgendas, filasDeEnvios] = await Promise.all([
+    cajaDelDiaPorOrigen({ programId, hoy: dia }, db),
+    agruparAgendas(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
+    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
+  ]);
+  return {
+    vista,
+    contexto: contextoDelDia(dia, vista.cohorte),
+    horizontes: horizontesDeCupos(vista),
+    caja,
+    agendasCreadas: filasDeAgendas.reduce((total, fila) => total + fila.agendas, 0),
+    registros: filasDeEnvios.reduce((total, fila) => total + fila.envios, 0),
+  };
 }
 
 /**

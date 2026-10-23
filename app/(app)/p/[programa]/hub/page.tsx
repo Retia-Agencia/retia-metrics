@@ -6,11 +6,11 @@ import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { OrigenPendiente } from "@/components/dashboard/origen-pendiente";
 import { Hoy } from "@/components/dashboard/hoy";
-import { cajaDelDiaPorOrigen, contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
+import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
-import { detallesDeOperacion, detallesDelDashboard, sinListas, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, sinListas, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -153,9 +153,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   // importar el periodo ni el closer de la URL, y por eso no muestra el selector. Es la misma
   // consulta que las demás pestañas con el periodo "hoy": no se recalcula nada.
   const esHoy = seccion === "hoy";
-  const vista = await armarVistaDelDashboard(esHoy
-    ? { programId: programa.id, hoy, periodo: { preset: "hoy" }, preset: "hoy", claveCloser: null }
-    : {
+  const vistaDeHoy = esHoy ? await armarVistaDeHoy({ programId: programa.id, dia: hoy }) : null;
+  const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard({
         programId: programa.id,
         hoy,
         periodo: parsearPeriodoUrl(busqueda),
@@ -176,6 +175,26 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const necesitaDetalles = seccion === "hoy" || seccion === "comercial" || seccion === "dinero";
   const detalles: DetallesDelDashboard | undefined = necesitaDetalles
     ? proyectar(await detallesDelDashboard({
+        programId: programa.id,
+        slug,
+        hoy,
+        periodo: vista.periodo,
+        claveCloser: vista.claveCloser,
+        origen,
+      }))
+    : undefined;
+  const detalleAgendasCreadas = esHoy
+    ? proyectar(await detalleDeCifra("agendas_creadas", {
+        programId: programa.id,
+        slug,
+        hoy,
+        periodo: vista.periodo,
+        claveCloser: vista.claveCloser,
+        origen,
+      }))
+    : undefined;
+  const detalleRegistros = esHoy
+    ? proyectar(await detalleDeCifra("registros", {
         programId: programa.id,
         slug,
         hoy,
@@ -271,9 +290,13 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
           ) : (
             <Hoy
               vista={vista}
-              contexto={contextoDelDia(hoy, vista.cohorte)}
-              horizontes={horizontesDeCupos(vista)}
-              caja={await cajaDelDiaPorOrigen({ programId: programa.id, hoy })}
+              contexto={vistaDeHoy!.contexto}
+              horizontes={vistaDeHoy!.horizontes}
+              caja={vistaDeHoy!.caja}
+              registros={vistaDeHoy!.registros}
+              detalleRegistros={detalleRegistros}
+              agendasCreadas={vistaDeHoy!.agendasCreadas}
+              detalleAgendasCreadas={detalleAgendasCreadas}
               detalles={detalles}
               detallesOperacion={veEquipo ? await detallesDeOperacion(
                 { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },

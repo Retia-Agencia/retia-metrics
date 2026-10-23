@@ -102,10 +102,16 @@ vi.mock("@/lib/queries/vista-todos", async (importOriginal) => ({
   armarVistaDeTodos,
 }));
 const detallesDelDashboard = vi.fn(async () => ({}));
+const detalleDeCifra = vi.fn(async () => ({
+  resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
+  desgloses: { porCloser: [], porEtapa: [], porAntiguedad: [] },
+  href: "/p/programa-a/hub/lista?metrica=agendas_creadas",
+}));
 const vistaDeLista = vi.fn();
 const detallesDeOperacion = vi.fn(async () => ({ comparativo: {}, embudo: {}, semanas: [], proximas: [] }));
 vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-metrica")>(),
+  detalleDeCifra,
   detallesDelDashboard,
   detallesDeOperacion,
   vistaDeLista,
@@ -122,11 +128,21 @@ vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
 // Las alertas por persistencia del Pulso (147), igual: sin base, ningún umbral.
 const alertasDelPrograma = vi.fn(async () => []);
 vi.mock("@/lib/queries/alertas", () => ({ alertasDelPrograma }));
-// La caja de Hoy por origen (252), igual: sin base, sin abonos. Lo demás de `vista-hoy` es puro.
-const cajaDelDiaPorOrigen = vi.fn(async () => []);
+// Hoy (299) delega la vista base al mock anterior y devuelve vacíos sus agregados propios.
+const armarVistaDeHoy = vi.fn(async ({ programId, dia }: { programId: string; dia: string }) => ({
+  vista: await armarVistaDelDashboard({ programId, hoy: dia, periodo: { preset: "hoy" }, preset: "hoy", claveCloser: null }),
+  contexto: {
+    semana: { dia: 1, total: 5 },
+    mes: { mes: dia.slice(0, 7), dia: 1, total: 22 },
+    cohorte: null,
+  },
+  horizontes: [],
+  caja: [],
+  agendasCreadas: 0,
+}));
 vi.mock("@/lib/queries/vista-hoy", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-hoy")>(),
-  cajaDelDiaPorOrigen,
+  armarVistaDeHoy,
 }));
 // La serie del embudo (089), igual: sin base, una serie vacia.
 const hechosDelEmbudo = vi.fn(async () => []);
@@ -287,6 +303,8 @@ beforeEach(() => {
   historialesDeRecursos.mockResolvedValue(new Map());
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
+  armarVistaDeHoy.mockClear();
+  detalleDeCifra.mockClear();
   armarVistaDeTodos.mockReset();
   armarVistaDeTodos.mockResolvedValue(VISTA_TODOS_VACIA);
   // Por defecto, un gerente rechazado de una pagina de closer aterriza en su primer
@@ -312,7 +330,16 @@ const VISTA_VACIA = {
   seleccion: { preset: "hoy", rango: { desde: "2026-09-15", hasta: "2026-09-15" } },
   claveCloser: null,
   closers: [],
-  embudo: { agendas: 0, llamadasConShow: 0, pctShow: null, cierres: 0, ventas: 0, pctCierre: null },
+  embudo: {
+    agendas: 0,
+    reagendadas: 0,
+    llamadasConShow: 0,
+    pctShow: null,
+    cierres: 0,
+    ventas: 0,
+    pctCierre: null,
+    grupo: { deals: 0, conShow: 0 },
+  },
   anterior: null,
   contratadoUsd: 0,
   sinValorVendido: 0,

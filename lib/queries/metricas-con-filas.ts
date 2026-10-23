@@ -3,16 +3,16 @@ import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
-import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, sources, submissions, users } from "@/lib/db/schema";
 import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
-  fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaLead, filtroAgendasCreadas,
+  fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas,
+  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, filtroRegistros,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -33,6 +33,7 @@ export type Metrica =
   | "leads"
   | "deals_creados"
   | "agendas_creadas"
+  | "registros"
   | "agendas_futuras"
   | "contratado"
   | "sin_resultado"
@@ -55,7 +56,7 @@ function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
 }
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
-export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas"];
+export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas", "registros"];
 /** Las métricas que son una foto de hoy: el periodo no las acota (la cartera y las banderas del 191). */
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
@@ -182,6 +183,13 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       return {
         id: calls.id,
         fecha: fechaAnclaAgendaCreada(),
+        columnaCloser: etiquetaDeCloserSql(),
+        claveCloser: claveCloserSql(users.id, users.closerId),
+      };
+    case "registros":
+      return {
+        id: submissions.id,
+        fecha: fechaAnclaEnvio(),
         columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
@@ -398,6 +406,14 @@ function consultaDe(
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(filtroAgendasCreadas(alcance), vigente(calls), vigente(deals)));
+    case "registros":
+      return db
+        .select(campos)
+        .from(submissions)
+        .innerJoin(sources, eq(sources.id, submissions.sourceId))
+        .leftJoin(deals, and(eq(deals.submissionOrigenId, submissions.id), vigente(deals)))
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(filtroRegistros(alcance), vigente(deals)));
     case "cartera":
       return db
         .select(campos)

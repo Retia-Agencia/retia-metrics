@@ -10,7 +10,7 @@ import type { Alerta } from "@/lib/queries/alertas";
 import { nombreDelMes } from "@/lib/queries/metas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { CajaDelDiaPorOrigen, ClaveDeHorizonte, ContextoDelDia, Horizonte } from "@/lib/queries/vista-hoy";
-import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 
 /**
  * Hub › Hoy (ticket 252, ADR 0086 punto 3): el reporte diario armado con lo que el CRM ya calcula,
@@ -78,8 +78,12 @@ function Cupos({ horizontes, detalles }: { horizontes: Horizonte[]; detalles?: D
 }
 
 /** 3. La operación del día: el embudo de hoy y, si la sesión ve al equipo, cada closer. */
-function OperacionDelDia({ vista, detalles, detallesOperacion, veEquipo }: {
+function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, detalleAgendasCreadas, detalles, detallesOperacion, veEquipo }: {
   vista: VistaDelDashboard;
+  registros: number;
+  detalleRegistros?: DetalleDeCifra;
+  agendasCreadas: number;
+  detalleAgendasCreadas?: DetalleDeCifra;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
   veEquipo: boolean;
@@ -87,13 +91,19 @@ function OperacionDelDia({ vista, detalles, detallesOperacion, veEquipo }: {
   const { embudo } = vista;
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Tarjeta titulo="Agendas de hoy" valor={
-          <CifraConLista titulo="Agendas de hoy" detalle={detalles?.agendas}>{num(embudo.agendas)}</CifraConLista>
-        } />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <Tarjeta titulo="Leads de hoy" valor={
+          <CifraConLista titulo="Leads de hoy" detalle={detalleRegistros}>{num(registros)}</CifraConLista>
+        } nota="Registros del día · sin meta hasta el 253" />
+        <Tarjeta titulo="Agendas creadas hoy" valor={
+          <CifraConLista titulo="Agendas creadas hoy" detalle={detalleAgendasCreadas}>{num(agendasCreadas)}</CifraConLista>
+        } nota="Llamadas agendadas hoy, para la cita que sea" />
+        <Tarjeta titulo="Citas de hoy" valor={
+          <CifraConLista titulo="Citas de hoy" detalle={detalles?.agendas}>{num(embudo.agendas)}</CifraConLista>
+        } nota="Por la fecha de la cita" />
         <Tarjeta titulo="Realizadas (show)" valor={
           <CifraConLista titulo="Llamadas realizadas hoy" detalle={detalles?.shows}>{num(embudo.llamadasConShow)}</CifraConLista>
-        } nota={`% de show ${tasa(embudo.pctShow)}`} />
+        } nota={`% de show ${tasa(embudo.pctShow)} por deal: ${num(embudo.grupo.conShow)} de ${num(embudo.grupo.deals)} deals con cita ocurrida${embudo.reagendadas > 0 ? ` · ${num(embudo.reagendadas)} reagendadas (no cuentan)` : ""}`} />
         <Tarjeta titulo="Ventas de hoy" valor={
           <CifraConLista titulo="Ventas de hoy" detalle={detalles?.cierres}>{num(embudo.cierres)}</CifraConLista>
         } nota={`% de cierre ${tasa(embudo.pctCierre)}`} />
@@ -194,6 +204,10 @@ export function Hoy({
   contexto,
   horizontes,
   caja,
+  registros,
+  detalleRegistros,
+  agendasCreadas,
+  detalleAgendasCreadas,
   detalles,
   detallesOperacion,
   alertas,
@@ -206,6 +220,10 @@ export function Hoy({
   contexto: ContextoDelDia;
   horizontes: Horizonte[];
   caja: CajaDelDiaPorOrigen[];
+  registros: number;
+  detalleRegistros?: DetalleDeCifra;
+  agendasCreadas: number;
+  detalleAgendasCreadas?: DetalleDeCifra;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
   alertas: Alerta[];
@@ -224,7 +242,16 @@ export function Hoy({
       <Cupos horizontes={horizontes} detalles={detalles} />
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">La operación de hoy</h3>
-        <OperacionDelDia vista={vista} detalles={detalles} detallesOperacion={detallesOperacion} veEquipo={veEquipo} />
+        <OperacionDelDia
+          vista={vista}
+          registros={registros}
+          detalleRegistros={detalleRegistros}
+          agendasCreadas={agendasCreadas}
+          detalleAgendasCreadas={detalleAgendasCreadas}
+          detalles={detalles}
+          detallesOperacion={detallesOperacion}
+          veEquipo={veEquipo}
+        />
       </section>
       <CajaDelDia caja={caja} detalles={detalles} />
       <section className="space-y-3">
