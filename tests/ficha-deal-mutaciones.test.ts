@@ -11,6 +11,7 @@ import {
   motivos,
   programs,
   users,
+  dealEtapaHistorial,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
@@ -309,6 +310,8 @@ describe("anularDeal", () => {
   it("el deal anulado deja de contar en el dashboard y en el Kanban (la cifra, antes y después)", async () => {
     // Un deal vendido de la cohorte activa (Completo) y uno abierto.
     const vendido = await nuevoDeal("ganado_completo");
+    // El movimiento de venta que `moverEtapa` siempre escribe: la cohorte cuenta ventas con día (299).
+    await db.insert(dealEtapaHistorial).values({ dealId: vendido, de: null, a: "ganado_completo", fecha: new Date("2026-09-10T10:00:00-05:00") });
     await nuevoDeal("atendido");
 
     const antes = await vistaDeCohorteActiva({ programId }, "2026-09-15", db);
