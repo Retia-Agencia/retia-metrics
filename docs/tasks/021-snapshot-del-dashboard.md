@@ -3,10 +3,13 @@ id: 021
 fase: F2
 serves: "spec §2 — snapshot descargable"
 depends: [005]
-status: todo
+status: reemplazado
 ---
 
 # 021 — Snapshot descargable del dashboard
+
+> **23-oct: REEMPLAZADO por el [300](./300-reporte-del-dia-imprimible-y-fotos.md)** (Mani): vista imprimible de
+> Hub › Hoy guardada como PDF desde el navegador, sin librería, y una foto del reporte por día. Lo de abajo es historia.
 
 > ⚠️ **21-sep: CONGELADO hasta la etapa 5 de [plan-crm-v2](../plan.md).** No por bloqueo,
 > por desperdicio: el dashboard que este PDF fotografiaria esta por ganar conversion etapa a etapa,

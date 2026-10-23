@@ -430,7 +430,7 @@ archivos de cada uno, es la ola **O10** de `plan-reparto.md` §4:
 |---|---|---|
 | 067 ROAS por cohorte y captura de pauta | reemplazado por 123 (ROAS, con el atajo de cohorte) y 120 (gasto) | la captura manual era para cuando no había API; no se midió pauta fuera de Meta |
 | 090 Rendimiento por área | reemplazado por 248 (por área), 123 (costos) y 258 + 257 (estados con acción) | su idea, "estados con acción, no una tabla", es exactamente F |
-| 021 Snapshot en PDF | sigue congelado | el resumen de las 18 h por Juanito (260) y la pestaña Hoy cubren el reporte de Michael; el PDF se decide después |
+| 021 Snapshot en PDF | reemplazado por el 300 (23-oct, Mani) | vista imprimible guardada como PDF desde el navegador y una foto del reporte por día; Juanito lo manda después |
 
 ---
 
