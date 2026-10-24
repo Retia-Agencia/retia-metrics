@@ -4939,6 +4939,12 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
+- 🧭 **24-oct, Hub › Origen y No agendaron en main** (tickets 311 y 313, sin recorrido visual): Origen tiene una sola
+  tarjeta por canal que se abre en sus pares (registros = hecho de envío, igual a Leads de Hoy); la tabla desplegable es
+  cliente (`components/dashboard/tabla-de-origen.tsx`) y recibe los enlaces calculados en el servidor, porque
+  `urlDeLista` vive en un módulo que carga la base. "No agendaron" es una cifra viva por persona bajo el embudo del
+  formulario (decisiones de Mani en el ticket 313). Falta: recorrido con clic en escritorio y 375 px, y el checkpoint.
+
 - 📅 **23-oct, dCal como reemplazo de Calendly** (ticket 308, `docs/tasks/README.md` §17): evaluado con docs y
   código; no se migra hasta el piloto. Fases 1 y 2 hechas; falta el reparto con el segundo host activo y el webhook.
 
