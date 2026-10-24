@@ -1,204 +1,184 @@
 "use client";
 
 import { useState } from "react";
-import { atajosDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
+import { useSearchParams } from "next/navigation";
+import {
+  atajosDePeriodo,
+  comparacionDeParametros,
+  descripcionDeComparacion,
+  parametrosDeComparacion,
+  type ComparacionDePeriodo,
+  type PeriodoResuelto,
+} from "@/lib/periodo";
 import { fecha } from "@/lib/format";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// `pagina` tambien se va: con otro periodo, la pagina vieja ya no existe.
-const claves = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "rango", "desde", "hasta"];
+const clavesPeriodo = ["periodo", "a_desde", "a_hasta", "rango", "desde", "hasta"];
+const clavesComparacion = ["comparar", "b_desde", "b_hasta"];
 const FECHA_COMPLETA = /^\d{4}-\d{2}-\d{2}$/;
-const claseInput =
-  "cifra w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none hover:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+const claseInput = "cifra w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none hover:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
+const opcionesDeComparacion: { value: ComparacionDePeriodo; label: string }[] = [
+  { value: "periodo_anterior", label: "Mismo punto del periodo anterior" },
+  { value: "cohorte_anterior", label: "Cohorte anterior al mismo día hábil" },
+  { value: "rango", label: "Un rango que elijo" },
+  { value: "no", label: "No comparar" },
+];
 
 interface SelectorPeriodoProps {
   periodo: PeriodoResuelto;
   cohorteDisponible: boolean;
   anteriorDisponible: boolean;
-  /** Solo el rango A, sin comparación: el de las listas (ticket 141). */
+  /** Solo el periodo, sin comparación: el de las listas (ticket 141). */
   soloA?: boolean;
   /** El agregado entre programas no tiene una ventana de cohorte común. */
   mostrarCohortes?: boolean;
-  /**
-   * `chip`: una sola línea de 32 px ("Periodo: Este mes") con el rango en el tooltip,
-   * para la barra de lista (ticket 202). El diálogo y la lógica quedan iguales; solo
-   * cambia el disparador. Por defecto es el bloque de dos líneas de antes.
-   */
   variante?: "bloque" | "chip";
 }
 
-/**
- * Un solo control para elegir A y B en dashboard y listas (ADR 0067). La selección
- * vive en la URL para poder compartirla y recargarla; el estado local solo abre
- * el diálogo. Cambiar el periodo conserva los demás filtros de la pantalla.
- *
- * Las fechas y el atajo visible vienen resueltos por el servidor, incluso cuando
- * hubo que caer a Hoy. El cliente nunca calcula hoy con la zona del navegador.
- */
-export function SelectorPeriodo({
-  periodo,
-  cohorteDisponible,
-  anteriorDisponible,
-  soloA = false,
-  mostrarCohortes = true,
-  variante = "bloque",
-}: SelectorPeriodoProps) {
-  const letras = soloA ? (["a"] as const) : (["a", "b"] as const);
-  // Una lista no tiene ventana de cohorte: sus atajos ni se ofrecen.
-  const atajos = Object.entries(atajosDePeriodo).filter(
-    ([valor]) => (mostrarCohortes && !soloA) || !valor.startsWith("cohorte"),
-  );
-  const [abierto, setAbierto] = useState(false);
+export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible, soloA = false, mostrarCohortes = true, variante = "bloque" }: SelectorPeriodoProps) {
+  const searchParams = useSearchParams();
+  const comparacionActual = comparacionDeParametros({
+    comparar: searchParams.get("comparar") ?? undefined,
+    b_desde: searchParams.get("b_desde") ?? undefined,
+    b_hasta: searchParams.get("b_hasta") ?? undefined,
+  });
+  const [dialogoPeriodo, setDialogoPeriodo] = useState(false);
+  const [dialogoComparacion, setDialogoComparacion] = useState(false);
+  const [comparacionEnEdicion, setComparacionEnEdicion] = useState<ComparacionDePeriodo>(comparacionActual);
   const { poner } = useFiltrosUrl();
-
-  // Un atajo cierra el dialogo; una fecha a mano lo deja abierto para seguir editando las otras.
-  function navegar(valores: Record<string, string>, cerrar = true) {
-    poner({ ...Object.fromEntries(claves.map((clave) => [clave, null])), ...valores });
-    if (cerrar) setAbierto(false);
-  }
-  const legible = (r: PeriodoResuelto["a"]) => r.desde === r.hasta
-    ? fecha(r.desde)
-    : `${fecha(r.desde)} a ${fecha(r.hasta)}`;
-
+  const atajos = Object.entries(atajosDePeriodo).filter(([valor]) => (mostrarCohortes && !soloA) || !valor.startsWith("cohorte"));
+  const legible = (r: PeriodoResuelto["a"]) => r.desde === r.hasta ? fecha(r.desde) : `${fecha(r.desde)} a ${fecha(r.hasta)}`;
   const nombrePreset = periodo.preset === "custom" ? "Personalizado" : atajosDePeriodo[periodo.preset];
-  const rangoTexto = soloA
-    ? legible(periodo.a)
-    : `A: ${legible(periodo.a)} · B: ${periodo.b ? legible(periodo.b) : "Sin comparación"}`;
+  const nombreComparacion = opcionesDeComparacion.find((opcion) => opcion.value === comparacionActual)?.label;
 
-  const disparador =
-    variante === "chip" ? (
-      <DialogTrigger
-        render={<Button type="button" variant="outline" size="sm" className="aria-expanded:border-ring" />}
-        title={rangoTexto}
-      >
-        <span className="text-muted-foreground">Periodo:</span>
-        <span className="font-medium">{nombrePreset}</span>
-      </DialogTrigger>
-    ) : (
-      <DialogTrigger
-        render={<Button variant="outline" className="h-auto whitespace-normal text-left" />}
-      >
-        <span>
-          <span className="font-medium">{nombrePreset}</span>
-          <span className="cifra block text-xs">{rangoTexto}</span>
-        </span>
-      </DialogTrigger>
-    );
+  function navegar(valores: Record<string, string | null>, limpiar: string[], cerrar?: () => void) {
+    poner({ ...Object.fromEntries(limpiar.map((clave) => [clave, null])), ...valores, pagina: null });
+    cerrar?.();
+  }
+
+  function cambiarComparacion(valor: ComparacionDePeriodo) {
+    setComparacionEnEdicion(valor);
+    if (valor === "rango") {
+      if (periodo.b) navegar(parametrosDeComparacion(valor, periodo.b), clavesComparacion);
+      return;
+    }
+    navegar(parametrosDeComparacion(valor), clavesComparacion, () => setDialogoComparacion(false));
+  }
 
   return (
-    <div className={variante === "chip" ? "contents" : "space-y-1"}>
-      <Dialog open={abierto} onOpenChange={setAbierto}>
-        {disparador}
+    <div className={variante === "chip" ? "contents" : "flex flex-wrap gap-2"}>
+      <Dialog open={dialogoPeriodo} onOpenChange={setDialogoPeriodo}>
+        <DialogTrigger
+          render={<Button type="button" variant="outline" size={variante === "chip" ? "sm" : "default"} className="h-auto whitespace-normal text-left aria-expanded:border-ring" />}
+          title={legible(periodo.a)}
+        >
+          <span><span className="text-muted-foreground">Periodo:</span>{" "}<span className="font-medium">{nombrePreset}</span>
+            {variante !== "chip" ? <span className="cifra block text-xs">{legible(periodo.a)}</span> : null}
+          </span>
+        </DialogTrigger>
         <DialogContent>
-          <DialogTitle>{soloA ? "Periodo" : "Periodo A contra B"}</DialogTitle>
-          <DialogDescription>
-            {soloA
-              ? "Elige un atajo o un rango. Los días son de Bogotá."
-              : "Elige un atajo o dos rangos. Por defecto B compara el mismo número de días hábiles."}
-          </DialogDescription>
+          <DialogTitle>Periodo</DialogTitle>
+          <DialogDescription>Elige un atajo o un rango. Los días son de Bogotá.</DialogDescription>
           <Select
             value={periodo.preset}
-            // Sin `items`, Base UI pinta el valor crudo (`hoy`) en el disparador.
-            items={[
-              ...atajos.map(([value, label]) => ({ value, label })),
-              { value: "custom", label: "Personalizado" },
-            ]}
+            items={[...atajos.map(([value, label]) => ({ value, label })), { value: "custom", label: "Personalizado" }]}
             onValueChange={(valor) => {
-              if (valor && valor !== "custom") navegar({ periodo: valor });
+              if (valor && valor !== "custom") navegar({ periodo: valor }, soloA ? [...clavesPeriodo, ...clavesComparacion] : clavesPeriodo, () => setDialogoPeriodo(false));
             }}
           >
-            <SelectTrigger aria-label="Atajo del periodo">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger aria-label="Atajo del periodo"><SelectValue /></SelectTrigger>
             <SelectContent>
               {atajos.map(([valor, etiqueta]) => (
-                <SelectItem
-                  key={valor}
-                  value={valor}
-                  disabled={
-                    (valor === "cohorte_actual" && !cohorteDisponible) ||
-                    (valor === "cohorte_anterior" && !anteriorDisponible)
-                  }
-                >
-                  {etiqueta}
-                </SelectItem>
+                <SelectItem key={valor} value={valor} disabled={(valor === "cohorte_actual" && !cohorteDisponible) || (valor === "cohorte_anterior" && !anteriorDisponible)}>{etiqueta}</SelectItem>
               ))}
               <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
-          {!soloA && mostrarCohortes && !cohorteDisponible && (
-            <p className="text-sm text-muted-foreground">Sin cohorte actual con ventana de venta.</p>
-          )}
-          {!soloA && mostrarCohortes && !anteriorDisponible && (
-            <p className="text-sm text-muted-foreground">Sin cohorte anterior con ventana de venta.</p>
-          )}
+          {!soloA && mostrarCohortes && !cohorteDisponible ? <p className="text-sm text-muted-foreground">Sin cohorte actual con ventana de venta.</p> : null}
+          {!soloA && mostrarCohortes && !anteriorDisponible ? <p className="text-sm text-muted-foreground">Sin cohorte anterior con ventana de venta.</p> : null}
           <form
-            key={JSON.stringify(periodo)}
-            className="space-y-4"
-            onInput={(e) => {
-              for (const letra of letras) {
-                const input = e.currentTarget.elements.namedItem(`${letra}_hasta`) as HTMLInputElement;
-                input.setCustomValidity("");
-              }
-            }}
+            key={`${periodo.a.desde}-${periodo.a.hasta}`}
+            className="grid grid-cols-2 gap-2"
+            onInput={(e) => (e.currentTarget.elements.namedItem("a_hasta") as HTMLInputElement).setCustomValidity("")}
             onChange={(e) => {
               const data = new FormData(e.currentTarget);
-              const valores = Object.fromEntries(
-                letras.flatMap((l) => [`${l}_desde`, `${l}_hasta`]).map((k) => [k, String(data.get(k))]),
-              );
-              if (Object.values(valores).some((valor) => !FECHA_COMPLETA.test(valor))) return;
-
-              const invertida = letras.find((l) => valores[`${l}_desde`] > valores[`${l}_hasta`]);
-              if (invertida) {
-                const input = e.currentTarget.elements.namedItem(`${invertida}_hasta`) as HTMLInputElement;
+              const desde = String(data.get("a_desde"));
+              const hasta = String(data.get("a_hasta"));
+              if (!FECHA_COMPLETA.test(desde) || !FECHA_COMPLETA.test(hasta)) return;
+              if (desde > hasta) {
+                const input = e.currentTarget.elements.namedItem("a_hasta") as HTMLInputElement;
                 input.setCustomValidity("El fin debe ser igual o posterior al inicio.");
                 input.reportValidity();
                 return;
               }
-
-              navegar({ periodo: "custom", ...valores }, false);
+              navegar({ periodo: "custom", a_desde: desde, a_hasta: hasta }, clavesPeriodo);
             }}
           >
-            {letras.map((letra) => (
-              <fieldset key={letra} className="grid grid-cols-2 gap-2">
-                <legend className="mb-1 text-sm font-medium">{soloA ? "Rango" : `Periodo ${letra.toUpperCase()}`}</legend>
-                {(["desde", "hasta"] as const).map((extremo) => (
-                  <label key={extremo} className="text-sm">
-                    {extremo === "desde" ? "Desde" : "Hasta"}
-                    <input
-                      className={claseInput}
-                      type="date"
-                      name={`${letra}_${extremo}`}
-                      aria-label={soloA ? extremo : `${letra.toUpperCase()} ${extremo}`}
-                      required
-                      defaultValue={periodo[letra]?.[extremo] ?? ""}
-                      onInput={(e) => e.currentTarget.setCustomValidity("")}
-                    />
-                  </label>
-                ))}
-              </fieldset>
-            ))}
+            <fieldset className="contents">
+              <legend className="col-span-2 text-sm font-medium">Rango</legend>
+              {(["desde", "hasta"] as const).map((extremo) => (
+                <label key={extremo} className="text-sm">{extremo === "desde" ? "Desde" : "Hasta"}
+                  <input className={claseInput} type="date" name={`a_${extremo}`} aria-label={extremo} required defaultValue={periodo.a[extremo]} />
+                </label>
+              ))}
+            </fieldset>
           </form>
         </DialogContent>
       </Dialog>
-      {variante !== "chip" && periodo.aviso && (
-        <p role="status" className="text-xs text-muted-foreground">{periodo.aviso}</p>
-      )}
+
+      {!soloA ? (
+        <Dialog open={dialogoComparacion} onOpenChange={(abierto) => { setDialogoComparacion(abierto); if (abierto) setComparacionEnEdicion(comparacionActual); }}>
+          <DialogTrigger
+            render={<Button type="button" variant="outline" size={variante === "chip" ? "sm" : "default"} className="h-auto whitespace-normal text-left aria-expanded:border-ring" />}
+            title={descripcionDeComparacion(periodo)}
+          >
+            <span><span className="text-muted-foreground">Comparar con:</span>{" "}<span className="font-medium">{nombreComparacion}</span>
+              {variante !== "chip" ? <span className="cifra block text-xs">{periodo.b ? legible(periodo.b) : "Sin comparación"}</span> : null}
+            </span>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogTitle>Comparar con</DialogTitle>
+            <DialogDescription>Elige la referencia para leer los cambios del periodo.</DialogDescription>
+            <Select value={comparacionEnEdicion} items={opcionesDeComparacion} onValueChange={(valor) => { if (valor) cambiarComparacion(valor as ComparacionDePeriodo); }}>
+              <SelectTrigger aria-label="Comparar con"><SelectValue /></SelectTrigger>
+              <SelectContent>{opcionesDeComparacion.map((opcion) => <SelectItem key={opcion.value} value={opcion.value}>{opcion.label}</SelectItem>)}</SelectContent>
+            </Select>
+            {comparacionEnEdicion === "rango" ? (
+              <form
+                key={`${periodo.b?.desde}-${periodo.b?.hasta}`}
+                className="grid grid-cols-2 gap-2"
+                onInput={(e) => (e.currentTarget.elements.namedItem("b_hasta") as HTMLInputElement).setCustomValidity("")}
+                onChange={(e) => {
+                  const data = new FormData(e.currentTarget);
+                  const desde = String(data.get("b_desde"));
+                  const hasta = String(data.get("b_hasta"));
+                  if (!FECHA_COMPLETA.test(desde) || !FECHA_COMPLETA.test(hasta)) return;
+                  if (desde > hasta) {
+                    const input = e.currentTarget.elements.namedItem("b_hasta") as HTMLInputElement;
+                    input.setCustomValidity("El fin debe ser igual o posterior al inicio.");
+                    input.reportValidity();
+                    return;
+                  }
+                  navegar(parametrosDeComparacion("rango", { desde, hasta }), clavesComparacion);
+                }}
+              >
+                <fieldset className="contents">
+                  <legend className="col-span-2 text-sm font-medium">Rango para comparar</legend>
+                  {(["desde", "hasta"] as const).map((extremo) => (
+                    <label key={extremo} className="text-sm">{extremo === "desde" ? "Desde" : "Hasta"}
+                      <input className={claseInput} type="date" name={`b_${extremo}`} aria-label={`Comparación ${extremo}`} required defaultValue={periodo.b?.[extremo] ?? ""} />
+                    </label>
+                  ))}
+                </fieldset>
+              </form>
+            ) : null}
+          </DialogContent>
+        </Dialog>
+      ) : null}
+      {variante !== "chip" && periodo.aviso ? <p role="status" className="w-full text-xs text-muted-foreground">{periodo.aviso}</p> : null}
     </div>
   );
 }

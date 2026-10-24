@@ -182,11 +182,11 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <Badge variant="secondary">{titulos[metrica]}</Badge>
           {subtitulo ? <Badge variant="secondary">{subtitulo}</Badge> : null}
           {sinPeriodo ? (
-            <Badge variant="secondary">A hoy, sin periodo</Badge>
+            <Badge variant="secondary">Foto de hoy, sin periodo</Badge>
           ) : (
             <>
-              <Badge variant="secondary">A: {fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>
-              {periodo.b ? <Badge variant="secondary">B: {fecha(periodo.b.desde)} a {fecha(periodo.b.hasta)}</Badge> : null}
+              <Badge variant="secondary">Periodo: {fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>
+              {periodo.b ? <Badge variant="secondary">Comparación: {fecha(periodo.b.desde)} a {fecha(periodo.b.hasta)}</Badge> : null}
             </>
           )}
           <Badge variant="secondary">{etiquetaCloser}</Badge>

@@ -64,7 +64,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">Todos los programas</Badge>
-          <Badge variant="secondary">{metrica === "cartera" || metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? `Foto de hoy: ${fecha(hoy)}` : `A: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
+          <Badge variant="secondary">{metrica === "cartera" || metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? `Foto de hoy: ${fecha(hoy)}` : `Periodo: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
         </div>
         {metrica === "cartera" ? <p className="text-sm text-muted-foreground">Deals en pago parcial vigentes. La cartera no depende del periodo A; abre un deal para ver su saldo y próxima fecha de pago.</p> : null}

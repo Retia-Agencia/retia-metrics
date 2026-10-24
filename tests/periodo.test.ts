@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parsearPeriodoUrl, resolverPeriodo, type AtajoDePeriodo } from "@/lib/periodo";
+import {
+  comparacionDeParametros,
+  descripcionDeComparacion,
+  parametrosDeComparacion,
+  parsearPeriodoUrl,
+  resolverPeriodo,
+  type AtajoDePeriodo,
+} from "@/lib/periodo";
 import { hoyEnBogota } from "@/lib/format";
 import { diasHabilesEntre } from "@/lib/dias-habiles";
 
@@ -65,5 +72,45 @@ describe("periodo A contra B", () => {
     const p = resolverPeriodo(parsearPeriodoUrl({ rango: "mes", desde: "2026-08-01", hasta: "2026-08-31" }), { hoy: "2026-10-01" });
     expect(p.preset).toBe("este_mes");
     expect(p.a.desde).toBe("2026-10-01");
+  });
+  it("cada opción de comparación conserva el contrato de rangos", () => {
+    const contexto = {
+      hoy: "2026-10-09",
+      anterior: { inicio: "2026-08-03", cierre: "2026-08-28" },
+    };
+    const base = { periodo: "este_mes" };
+    expect(resolverPeriodo(parsearPeriodoUrl(base), contexto).b).toEqual({ desde: "2026-09-01", hasta: "2026-09-09" });
+    expect(resolverPeriodo(parsearPeriodoUrl({ ...base, comparar: "cohorte" }), contexto).b).toEqual({ desde: "2026-08-03", hasta: "2026-08-11" });
+    expect(resolverPeriodo(parsearPeriodoUrl({ ...base, b_desde: "2026-07-01", b_hasta: "2026-07-09" }), contexto).b).toEqual({ desde: "2026-07-01", hasta: "2026-07-09" });
+    expect(resolverPeriodo(parsearPeriodoUrl({ ...base, comparar: "no" }), contexto)).toMatchObject({ b: null, aviso: undefined });
+  });
+  it("un rango explícito gana sobre comparar", () => {
+    const entrada = parsearPeriodoUrl({ periodo: "este_mes", comparar: "no", b_desde: "2026-07-01", b_hasta: "2026-07-09" });
+    expect(resolverPeriodo(entrada, { hoy: "2026-10-09" }).b).toEqual({ desde: "2026-07-01", hasta: "2026-07-09" });
+  });
+  it("cohorte sin ventana anterior conserva el aviso existente en palabras", () => {
+    const periodo = resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "cohorte" }), { hoy: "2026-10-09" });
+    expect(periodo.b).toBeNull();
+    expect(periodo.aviso).toBe("Sin cohorte anterior con ventana de venta. Elige un rango para comparar.");
+  });
+  it("una URL inválida de comparación usa la caída existente", () => {
+    expect(parsearPeriodoUrl({ periodo: "este_mes", comparar: "otra" })).toMatchObject({ preset: "hoy", aviso: "Periodo inválido: se muestra Hoy." });
+  });
+  it("deduce el control de comparación de URLs nuevas y antiguas", () => {
+    expect(comparacionDeParametros({})).toBe("periodo_anterior");
+    expect(comparacionDeParametros({ comparar: "cohorte" })).toBe("cohorte_anterior");
+    expect(comparacionDeParametros({ comparar: "no" })).toBe("no");
+    expect(comparacionDeParametros({ a_desde: "2026-10-01", b_desde: "2026-09-01", b_hasta: "2026-09-09" })).toBe("rango");
+  });
+  it("traduce cada opción a las mismas claves de URL", () => {
+    expect(parametrosDeComparacion("periodo_anterior")).toEqual({ comparar: null, b_desde: null, b_hasta: null });
+    expect(parametrosDeComparacion("cohorte_anterior")).toEqual({ comparar: "cohorte", b_desde: null, b_hasta: null });
+    expect(parametrosDeComparacion("no")).toEqual({ comparar: "no", b_desde: null, b_hasta: null });
+    expect(parametrosDeComparacion("rango", { desde: "2026-09-01", hasta: "2026-09-09" })).toEqual({ comparar: null, b_desde: "2026-09-01", b_hasta: "2026-09-09" });
+  });
+  it("describe la comparación en palabras", () => {
+    const periodo = resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes" }), { hoy: "2026-10-09" });
+    expect(descripcionDeComparacion(periodo)).toBe("contra 1 sep 2026 a 9 sep 2026");
+    expect(descripcionDeComparacion({ ...periodo, b: null })).toBe("sin comparación");
   });
 });

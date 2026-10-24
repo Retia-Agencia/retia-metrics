@@ -8,7 +8,7 @@ import type { OpcionDeCloser } from "@/lib/queries/dashboard";
 
 /**
  * Filtro del dashboard sobre la barra de lista (ticket 005, migrado por el ticket 202):
- * el periodo es el marco de comparación A vs B y el closer vive en el popover. No lleva
+ * el periodo es el marco de comparación y el closer vive en el popover. No lleva
  * conteo de resultados: un dashboard no es una lista de un solo total.
  *
  * Vive en la URL, no en estado del componente: así un dashboard filtrado se puede

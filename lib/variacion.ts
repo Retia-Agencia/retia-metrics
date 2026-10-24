@@ -40,6 +40,15 @@ export function textoDeVariacion(v: VariacionDeNumero, decimales = 0): string {
   return `${num(v.anterior, decimales)} → ${num(v.actual, decimales)} · ${cambio} · ${porcentaje}`;
 }
 
+/** Texto accesible completo: contexto de comparación y variación formateada. */
+export function tituloDeVariacion(
+  comparacion: string,
+  v: VariacionDeNumero,
+  decimales = 0,
+): string {
+  return `${comparacion}: ${textoDeVariacion(v, decimales)}`;
+}
+
 /**
  * Incluye el denominador porque un porcentaje solo no dice cuántas personas o
  * registros representa. Recibe cantidad y base, no un porcentaje ya calculado,

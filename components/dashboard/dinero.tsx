@@ -233,7 +233,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
             Acumulado desde {fecha(acumulado.a.desde)} hasta {fecha(acumulado.a.hasta)} contra el mes anterior al mismo día hábil.
             {acumulado.b ? ` Mes anterior: ${fecha(acumulado.b.desde)} a ${fecha(acumulado.b.hasta)}.` : " Aún no hay días hábiles comparables."}
             {" "}Los fines de semana sí conservan sus ventas y abonos. La línea anterior se corta si agota sus días hábiles.
-            {" "}Esta comparación mensual usa el mes anterior, independientemente del periodo B del selector.
+            {" "}Esta comparación mensual usa el mes anterior, independientemente de “Comparar con”.
           </p>
           <div className="grid min-w-0 gap-4 xl:grid-cols-2">
             {metricas.map((m) => {
@@ -256,7 +256,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
                           color: 1, punteada: true, valores: acumulado.puntos.map(() => meta),
                         }]),
                       ] }} />
-                    {final.anterior ? <p className="text-sm">{m.unidad}: <Variacion actual={m.valor(final.actual)} anterior={m.valor(final.anterior)} decimales={m.decimales} /></p> : null}
+                    {final.anterior ? <p className="text-sm">{m.unidad}: <Variacion actual={m.valor(final.actual)} anterior={m.valor(final.anterior)} decimales={m.decimales} comparacion="contra el mes anterior al mismo día hábil" /></p> : null}
                     {m.metrica === "caja" ? (
                       <p className="text-xs text-muted-foreground">El recaudo no tiene meta propia.</p>
                     ) : meta !== null ? (

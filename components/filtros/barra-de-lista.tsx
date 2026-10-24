@@ -54,7 +54,7 @@ export interface BarraDeListaProps {
   filtros: FiltroDeclarado[];
   /** El buscador, ya pintado (conserva su server action y debounce). Opcional. */
   buscador?: ReactNode;
-  /** El marco de la comparación, no un filtro. Solo lo usa el Dashboard para A vs B. */
+  /** El marco de la comparación, no un filtro. Solo lo usa el Dashboard. */
   marco?: ReactNode;
   /** Piezas compuestas que van DENTRO del popover (p. ej. un rango de fechas). */
   compuestosPopover?: ReactNode;

@@ -103,6 +103,7 @@ export function CajaConVariacion({
                   actual={actual.get(moneda) ?? 0}
                   anterior={anterior.get(moneda) ?? 0}
                   decimales={2}
+                  periodo={vista.periodo}
                 />
               </p>
             ))

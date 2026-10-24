@@ -8,6 +8,7 @@ import { Variacion } from "@/components/variacion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, num, usd } from "@/lib/format";
+import { descripcionDeComparacion, type PeriodoResuelto } from "@/lib/periodo";
 import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
 import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
@@ -17,9 +18,9 @@ import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 type Seccion = "hoy" | "comercial" | "dinero";
 const GRILLA = "grid gap-4 sm:grid-cols-2 xl:grid-cols-4";
 
-/** Sin periodo B no hay contra qué comparar: no se pinta nada. */
-function ContraB({ actual, anterior, decimales }: { actual: number; anterior: number | null; decimales?: number }) {
-  return anterior === null ? null : <p><Variacion actual={actual} anterior={anterior} decimales={decimales} /></p>;
+/** Sin periodo de comparación no hay contra qué comparar: no se pinta nada. */
+function ContraB({ actual, anterior, periodo, decimales }: { actual: number; anterior: number | null; periodo: PeriodoResuelto; decimales?: number }) {
+  return anterior === null ? null : <p><Variacion actual={actual} anterior={anterior} decimales={decimales} comparacion={descripcionDeComparacion(periodo)} /></p>;
 }
 
 function TablaPorPrograma({ titulo, cabeceras, vista, seccion, celdas }: {
@@ -55,7 +56,7 @@ function ContratadoYCaja({ vista }: { vista: VistaDeTodos }) {
     <Tarjeta titulo="Contratado" valor={
       <CifraConLista titulo="Contratado" detalle={vista.detalles.contratado}>{usd(vista.a.contratado.valor)}</CifraConLista>
     } nota={<>
-      <ContraB actual={vista.a.contratado.valor} anterior={vista.b?.contratado.valor ?? null} decimales={2} />
+      <ContraB actual={vista.a.contratado.valor} anterior={vista.b?.contratado.valor ?? null} periodo={vista.periodo} decimales={2} />
       {vista.sinValorVendido.valor > 0 ? <p>{num(vista.sinValorVendido.valor)} sin valor vendido</p> : null}
     </>} />
     {monedas.map((moneda) => {
@@ -74,7 +75,7 @@ function ContratadoYCaja({ vista }: { vista: VistaDeTodos }) {
       };
       return <Tarjeta key={moneda} titulo={`Caja recaudada · ${moneda}`} valor={
         <CifraConLista titulo={`Caja recaudada en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
-      } nota={<ContraB actual={actual} anterior={anterior} decimales={2} />} />;
+      } nota={<ContraB actual={actual} anterior={anterior} periodo={vista.periodo} decimales={2} />} />;
     })}
   </>;
 }
@@ -90,11 +91,11 @@ function Conteos({ vista, pulso = false }: { vista: VistaDeTodos; pulso?: boolea
   return campos.map(([titulo, campo, metrica]) => (
     <Tarjeta key={campo} titulo={titulo} valor={
       <CifraConLista titulo={titulo} detalle={vista.detalles[metrica]}>{num(vista.a[campo].valor)}</CifraConLista>
-    } nota={<ContraB actual={vista.a[campo].valor} anterior={vista.b?.[campo].valor ?? null} />} />
+    } nota={<ContraB actual={vista.a[campo].valor} anterior={vista.b?.[campo].valor ?? null} periodo={vista.periodo} />} />
   ));
 }
 
-/** Las banderas del Pulso (ticket 191): foto de hoy, sin B; el % va por programa en su Hub. */
+/** Las banderas del Pulso (ticket 191): foto de hoy, sin comparación; el % va por programa en su Hub. */
 function Banderas({ vista }: { vista: VistaDeTodos }) {
   const { banderas } = vista;
   const campos = [

@@ -43,8 +43,8 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
       <CardHeader>
         <CardTitle id="deals-contra-agendas">{TITULO}</CardTitle>
         <CardDescription>
-          Acumulado por día hábil. A: {rangoDe(periodo.a)}
-          {periodo.b ? ` · B: ${rangoDe(periodo.b)}` : " · sin B"}. Si los deals suben y las agendas no,
+          Acumulado por día hábil. Periodo: {rangoDe(periodo.a)}
+          {periodo.b ? ` · comparación: ${rangoDe(periodo.b)}` : " · sin comparación"}. Si los deals suben y las agendas no,
           los leads que entran no están agendando.
         </CardDescription>
         {nota ? <p role="status" className="text-xs text-muted-foreground">{nota}</p> : null}
@@ -55,9 +55,9 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
             <thead>
               <tr className="border-b text-left text-xs text-muted-foreground">
                 <th className="py-2 font-medium" />
-                <th className="py-2 text-right font-medium">A · hábil {num(a.puntos.length)}</th>
-                <th className="py-2 text-right font-medium">{b ? `B · hábil ${num(b.puntos.length)}` : "B · —"}</th>
-                <th className="py-2 text-right font-medium">B → A</th>
+                <th className="py-2 text-right font-medium">Periodo · hábil {num(a.puntos.length)}</th>
+                <th className="py-2 text-right font-medium">{b ? `Comparación · hábil ${num(b.puntos.length)}` : "Comparación · —"}</th>
+                <th className="py-2 text-right font-medium">Cambio</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -70,7 +70,7 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
                 </td>
                 <td className="cifra text-right">{finalB ? num(finalB.deals) : "—"}</td>
                 <td className="text-right">
-                  {finalB ? <Variacion actual={finalA?.deals ?? 0} anterior={finalB.deals} /> : "—"}
+                  {finalB ? <Variacion actual={finalA?.deals ?? 0} anterior={finalB.deals} periodo={periodo} /> : "—"}
                 </td>
               </tr>
               <tr>
@@ -82,7 +82,7 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
                 </td>
                 <td className="cifra text-right">{finalB ? num(finalB.agendas) : "—"}</td>
                 <td className="text-right">
-                  {finalB ? <Variacion actual={finalA?.agendas ?? 0} anterior={finalB.agendas} /> : "—"}
+                  {finalB ? <Variacion actual={finalA?.agendas ?? 0} anterior={finalB.agendas} periodo={periodo} /> : "—"}
                 </td>
               </tr>
               <tr>
@@ -105,12 +105,12 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
           datos={{
             dias: etiquetas,
             series: [
-              { clave: "Deals · A", color: 0, valores: valores(a.puntos, (p) => p.deals) },
-              { clave: "Agendas · A", color: 1, valores: valores(a.puntos, (p) => p.agendas) },
+              { clave: "Deals · periodo", color: 0, valores: valores(a.puntos, (p) => p.deals) },
+              { clave: "Agendas · periodo", color: 1, valores: valores(a.puntos, (p) => p.agendas) },
               ...(b
                 ? [
-                    { clave: "Deals · B", color: 0, punteada: true, valores: valores(b.puntos, (p) => p.deals) },
-                    { clave: "Agendas · B", color: 1, punteada: true, valores: valores(b.puntos, (p) => p.agendas) },
+                    { clave: "Deals · comparación", color: 0, punteada: true, valores: valores(b.puntos, (p) => p.deals) },
+                    { clave: "Agendas · comparación", color: 1, punteada: true, valores: valores(b.puntos, (p) => p.agendas) },
                   ]
                 : []),
             ],
@@ -124,8 +124,8 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
           datos={{
             dias: etiquetas,
             series: [
-              { clave: "A", color: 2, valores: valores(a.puntos, (p) => p.razon) },
-              ...(b ? [{ clave: "B", color: 2, punteada: true, valores: valores(b.puntos, (p) => p.razon) }] : []),
+              { clave: "Periodo", color: 2, valores: valores(a.puntos, (p) => p.razon) },
+              ...(b ? [{ clave: "Comparación", color: 2, punteada: true, valores: valores(b.puntos, (p) => p.razon) }] : []),
             ],
           }}
         />

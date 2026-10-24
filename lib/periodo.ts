@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { aUtc, esFecha, resolverRango, sumarDias } from "@/lib/rangos";
 import { diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
+import { fecha as formatearFecha } from "@/lib/format";
 import type { Rango } from "@/lib/queries/dashboard";
 
 export const atajosDePeriodo = {
@@ -16,6 +17,7 @@ export const atajosDePeriodo = {
 } as const;
 
 export type AtajoDePeriodo = keyof typeof atajosDePeriodo;
+export type ComparacionDePeriodo = "periodo_anterior" | "cohorte_anterior" | "rango" | "no";
 
 interface Ventana {
   inicio: string;
@@ -41,6 +43,7 @@ const esquema = z.object({
   a_hasta: fecha.optional(),
   b_desde: fecha.optional(),
   b_hasta: fecha.optional(),
+  comparar: z.enum(["no", "cohorte"]).optional(),
   rango: z.enum(["hoy", "semana", "mes", "cohorte", "custom"]).optional(),
   desde: fecha.optional(),
   hasta: fecha.optional(),
@@ -50,6 +53,7 @@ export interface EntradaDePeriodo {
   preset: AtajoDePeriodo | "custom";
   a?: Rango;
   b?: Rango;
+  comparar?: "no" | "cohorte";
   aviso?: string;
 }
 
@@ -58,6 +62,38 @@ export interface PeriodoResuelto {
   a: Rango;
   b: Rango | null;
   aviso?: string;
+}
+
+/** Traduce las claves compartibles de la URL al lenguaje del segundo control. */
+export function comparacionDeParametros(url: Record<string, unknown>): ComparacionDePeriodo {
+  if (url.b_desde !== undefined || url.b_hasta !== undefined) return "rango";
+  if (url.comparar === "no") return "no";
+  if (url.comparar === "cohorte") return "cohorte_anterior";
+  return "periodo_anterior";
+}
+
+/** Devuelve únicamente las claves que controla "Comparar con". */
+export function parametrosDeComparacion(
+  comparacion: ComparacionDePeriodo,
+  elegido?: Rango,
+): Record<"comparar" | "b_desde" | "b_hasta", string | null> {
+  return {
+    comparar: comparacion === "no" ? "no" : comparacion === "cohorte_anterior" ? "cohorte" : null,
+    b_desde: comparacion === "rango" ? elegido?.desde ?? null : null,
+    b_hasta: comparacion === "rango" ? elegido?.hasta ?? null : null,
+  };
+}
+
+/** Describe en palabras la base que acompaña a una variación. */
+export function descripcionDeComparacion(periodo: PeriodoResuelto): string {
+  if (!periodo.b) return "sin comparación";
+  if (periodo.preset === "cohorte_actual" || periodo.preset === "cohorte_anterior") {
+    return "contra la cohorte anterior al mismo día hábil";
+  }
+  const rango = periodo.b.desde === periodo.b.hasta
+    ? formatearFecha(periodo.b.desde)
+    : `${formatearFecha(periodo.b.desde)} a ${formatearFecha(periodo.b.hasta)}`;
+  return `contra ${rango}`;
 }
 
 /**
@@ -73,7 +109,7 @@ export function parsearPeriodoUrl(url: Record<string, unknown>): EntradaDePeriod
     preset: "hoy",
     aviso: "Periodo inválido: se muestra Hoy.",
   };
-  const moderno = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta"].some(
+  const moderno = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "comparar"].some(
     (clave) => url[clave] !== undefined,
   );
   const entrada = { ...url };
@@ -120,6 +156,7 @@ export function parsearPeriodoUrl(url: Record<string, unknown>): EntradaDePeriod
     preset: a ? "custom" : preset,
     a,
     b,
+    comparar: p.comparar,
   };
 }
 
@@ -267,16 +304,19 @@ export function resolverPeriodo(
     };
   }
 
-  const b = entrada.b ?? (previo ? mismoPuntoHabil(a, previo) : null);
+  if (entrada.comparar === "cohorte" && preset !== "cohorte_actual" && preset !== "cohorte_anterior") {
+    previo = anterior ? ventana(anterior) : null;
+  }
+  const b = entrada.b ?? (entrada.comparar === "no" ? null : previo ? mismoPuntoHabil(a, previo) : null);
   return {
     preset,
     a,
     b,
-    aviso: entrada.aviso ?? (b
+    aviso: entrada.aviso ?? (entrada.comparar === "no" || b
       ? undefined
       : previo
-        ? "Sin días hábiles comparables. Elige B manualmente."
-        : "Sin cohorte anterior con ventana de venta. Elige B manualmente."),
+        ? "Sin días hábiles comparables. Elige un rango para comparar."
+        : "Sin cohorte anterior con ventana de venta. Elige un rango para comparar."),
   };
 }
 

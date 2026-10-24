@@ -1,4 +1,4 @@
-import { parsearPeriodoUrl } from "@/lib/periodo";
+import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { monto, num, pct } from "@/lib/format";
 import {
   armarVistaDeMisMetricas,
@@ -15,13 +15,13 @@ import { textoDeVariacionDeTasa } from "@/lib/variacion";
 
 type Busqueda = Record<string, string | string[] | undefined>;
 
-function TarjetaNumero({ titulo, valor, anterior, detalle }: { titulo: string; valor: number; anterior?: number; detalle: DetalleDeCifra }) {
+function TarjetaNumero({ titulo, valor, anterior, detalle, periodo }: { titulo: string; valor: number; anterior?: number; detalle: DetalleDeCifra; periodo: PeriodoResuelto }) {
   return (
     <Card>
       <CardHeader className="pb-2"><CardTitle className="text-sm">{titulo}</CardTitle></CardHeader>
       <CardContent className="space-y-2">
         <CifraConLista titulo={titulo} detalle={detalle}><span className="cifra text-2xl font-semibold">{num(valor)}</span></CifraConLista>
-        {anterior !== undefined ? <p className="text-xs text-muted-foreground"><Variacion actual={valor} anterior={anterior} /></p> : null}
+        {anterior !== undefined ? <p className="text-xs text-muted-foreground"><Variacion actual={valor} anterior={anterior} periodo={periodo} /></p> : null}
       </CardContent>
     </Card>
   );
@@ -54,7 +54,7 @@ function TarjetasDinero({ vista }: { vista: VistaDeMisMetricas }) {
             <CifraConLista titulo={`Caja cobrada en ${c.moneda}`} detalle={vista.detalles.caja}>
               <span className="cifra text-2xl font-semibold">{monto(c.total, c.moneda)}</span>
             </CifraConLista>
-            {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.total} anterior={anterior.get(c.moneda) ?? 0} decimales={2} /></p> : null}
+            {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.total} anterior={anterior.get(c.moneda) ?? 0} decimales={2} periodo={vista.periodo} /></p> : null}
           </CardContent>
         </Card>
       ))}
@@ -64,7 +64,7 @@ function TarjetasDinero({ vista }: { vista: VistaDeMisMetricas }) {
           <CifraConLista titulo="Cierres que generan comisión" detalle={vista.detalles.cierres}>
             <span className="cifra text-2xl font-semibold">{monto(vista.a.comisionUsd, "USD")}</span>
           </CifraConLista>
-          {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={vista.a.comisionUsd} anterior={vista.b.comisionUsd} decimales={2} /></p> : null}
+          {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={vista.a.comisionUsd} anterior={vista.b.comisionUsd} decimales={2} periodo={vista.periodo} /></p> : null}
         </CardContent>
       </Card>
     </>
@@ -77,10 +77,10 @@ function BloqueDePrograma({ vista, conSelector = true }: { vista: VistaDeMisMetr
       {conSelector ? <SelectorPeriodo periodo={vista.periodo} cohorteDisponible={vista.cohorteDisponible} anteriorDisponible={vista.anteriorDisponible} /> : null}
       {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={`Métricas de ${vista.programa.nombre}`}>
-        <TarjetaNumero titulo="Agendas" valor={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} />
-        <TarjetaNumero titulo="Llamadas atendidas" valor={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} />
-        <TarjetaNumero titulo="No show" valor={vista.a.noShows} anterior={vista.b?.noShows} detalle={vista.detalles.noShows} />
-        <TarjetaNumero titulo="Cierres" valor={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} />
+        <TarjetaNumero titulo="Agendas" valor={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} periodo={vista.periodo} />
+        <TarjetaNumero titulo="Llamadas atendidas" valor={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} periodo={vista.periodo} />
+        <TarjetaNumero titulo="No show" valor={vista.a.noShows} anterior={vista.b?.noShows} detalle={vista.detalles.noShows} periodo={vista.periodo} />
+        <TarjetaNumero titulo="Cierres" valor={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} periodo={vista.periodo} />
         <TarjetaTasa vista={vista} />
         <TarjetasDinero vista={vista} />
       </section>
@@ -88,11 +88,11 @@ function BloqueDePrograma({ vista, conSelector = true }: { vista: VistaDeMisMetr
   );
 }
 
-function Total({ titulo, actual, anterior }: { titulo: string; actual: number; anterior?: number }) {
+function Total({ titulo, actual, anterior, periodo }: { titulo: string; actual: number; anterior?: number; periodo: PeriodoResuelto }) {
   return (
     <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{titulo}</CardTitle></CardHeader><CardContent className="space-y-2">
       <p className="cifra text-2xl font-semibold">{num(actual)}</p>
-      {anterior !== undefined ? <p className="text-xs text-muted-foreground"><Variacion actual={actual} anterior={anterior} /></p> : null}
+      {anterior !== undefined ? <p className="text-xs text-muted-foreground"><Variacion actual={actual} anterior={anterior} periodo={periodo} /></p> : null}
     </CardContent></Card>
   );
 }
@@ -127,14 +127,14 @@ export async function TabMetricas({
       />
       {todos.periodo.preset.startsWith("cohorte") ? <p className="text-sm text-muted-foreground">Cada programa usa la ventana de su propia cohorte.</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Totales entre programas">
-        <Total titulo="Agendas" actual={todos.a.agendas.valor} anterior={todos.b?.agendas.valor} />
-        <Total titulo="Llamadas atendidas" actual={todos.a.shows.valor} anterior={todos.b?.shows.valor} />
-        <Total titulo="No show" actual={todos.a.noShows.valor} anterior={todos.b?.noShows.valor} />
-        <Total titulo="Cierres" actual={todos.a.cierres.valor} anterior={todos.b?.cierres.valor} />
+        <Total titulo="Agendas" actual={todos.a.agendas.valor} anterior={todos.b?.agendas.valor} periodo={todos.periodo} />
+        <Total titulo="Llamadas atendidas" actual={todos.a.shows.valor} anterior={todos.b?.shows.valor} periodo={todos.periodo} />
+        <Total titulo="No show" actual={todos.a.noShows.valor} anterior={todos.b?.noShows.valor} periodo={todos.periodo} />
+        <Total titulo="Cierres" actual={todos.a.cierres.valor} anterior={todos.b?.cierres.valor} periodo={todos.periodo} />
         {(todos.a.caja.length > 0 ? todos.a.caja : [{ tipo: "dinero" as const, moneda: "USD", valor: 0 }]).map((c) => (
           <Card key={c.moneda}><CardHeader className="pb-2"><CardTitle className="text-sm">Caja cobrada</CardTitle></CardHeader><CardContent className="space-y-2">
             <p className="cifra text-2xl font-semibold">{monto(c.valor, c.moneda)}</p>
-            {todos.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.valor} anterior={cajasB.get(c.moneda) ?? 0} decimales={2} /></p> : null}
+            {todos.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.valor} anterior={cajasB.get(c.moneda) ?? 0} decimales={2} periodo={todos.periodo} /></p> : null}
           </CardContent></Card>
         ))}
       </section>

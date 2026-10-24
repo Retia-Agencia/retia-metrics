@@ -368,7 +368,7 @@ export function Operacion({
           <CardTitle className="text-base">Embudo comercial</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabla cabeceras={["Paso", "A", "B", "B → A", "% del paso"]}>
+          <Tabla cabeceras={["Paso", "Periodo", "Comparación", "Cambio", "% del paso"]}>
             {filas.map((fila) => (
               <tr key={fila.titulo}>
                 <td className="py-2">{fila.titulo}</td>
@@ -384,7 +384,7 @@ export function Operacion({
                   {fila.previo === undefined ? (
                     "—"
                   ) : (
-                    <Variacion actual={fila.actual} anterior={fila.previo} />
+                    <Variacion actual={fila.actual} anterior={fila.previo} periodo={vista.periodo} />
                   )}
                 </td>
                 <td className="py-2 text-right">{fila.paso}</td>
