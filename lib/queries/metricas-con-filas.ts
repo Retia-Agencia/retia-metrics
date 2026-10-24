@@ -12,7 +12,7 @@ import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/quer
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, filtroRegistros, llamadaYaDebiaOcurrir,
+  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -21,7 +21,7 @@ import {
   miembrosDeLaCifra,
   type MetricaDeEmbudo,
 } from "@/lib/queries/embudo-con-filas";
-import { listar as listarEnvios, type DimensionEnvio } from "@/lib/queries/hechos/envio";
+import { filtroDeEnvios } from "@/lib/queries/hechos/envio";
 
 export type Metrica =
   | "caja"
@@ -63,31 +63,6 @@ export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados"
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
 
-/** Lista paginada detrás de las cifras de Origen; comparte el contrato de filas del Hub. */
-export async function listaDeEnvios(
-  filtros: {
-    programId: string;
-    rango: Rango;
-    source?: string | null;
-    medium?: string | null;
-    categoria?: "sin_utm" | "macro";
-  },
-  pagina = 1,
-  db: Db = dbDeLaApp,
-) {
-  return listarEnvios<DimensionEnvio>(db, {
-    programId: filtros.programId,
-    rango: filtros.rango,
-    filtros: {
-      ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
-      ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
-      ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
-    },
-    orden: { campo: "dia", sentido: "desc" },
-    pagina: { numero: pagina, tamano: TAMANO_PAGINA },
-  });
-}
-
 export interface FiltrosDeMetrica {
   programId: string | readonly string[];
   rango: Rango;
@@ -104,6 +79,10 @@ export interface FiltrosDeMetrica {
   etapa?: string;
   /** Solo el embudo por etapas (ticket 188): el tramo de "sin dueño por antigüedad". */
   antiguedad?: string;
+  /** Solo registros: filtros de la misma dimensión que pinta Hub › Origen. */
+  source?: string | null;
+  medium?: string | null;
+  categoria?: "sin_utm" | "macro";
 }
 
 export interface FilaDeMetrica {
@@ -119,6 +98,7 @@ export interface FilaDeMetrica {
   moneda: string | null;
   monto: number | null;
   cantidad: number;
+  persona: { nombre: string | null; leadId: string } | null;
 }
 
 export interface SubtotalDeMetrica {
@@ -131,12 +111,32 @@ export interface ResumenDeMetrica {
   disponible: boolean;
   subtotal: SubtotalDeMetrica;
   /** Cruce de las tres dimensiones, agregado en SQL; nunca contiene filas de negocio. */
-  grupos: Pick<FilaDeMetrica, "closer" | "claveCloser" | "etapa" | "bucket" | "moneda" | "monto" | "cantidad">[];
+  grupos: Array<
+    Pick<FilaDeMetrica, "closer" | "claveCloser" | "etapa" | "bucket" | "moneda" | "monto" | "cantidad">
+    & { dealId?: null; persona?: null }
+  >;
 }
 
 export interface ListaDeMetrica extends ResumenDeMetrica {
   pagina: number;
   filas: FilaDeMetrica[];
+}
+
+/** Quita del resultado todo contexto comercial antes de enviarlo a quien solo ve el tablero. */
+export function proyectarParaTablero<T extends ListaDeMetrica>(lista: T, esAdmin: boolean): T {
+  if (esAdmin) return lista;
+  const ocultar = <F extends object>(fila: F) => ({
+    ...fila,
+    closer: null,
+    claveCloser: null,
+    dealId: null,
+    persona: null,
+  });
+  return {
+    ...lista,
+    filas: lista.filas.map(ocultar),
+    grupos: lista.grupos.map(ocultar),
+  } as T;
 }
 
 /**
@@ -240,6 +240,9 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
     else '>90' end`;
   // En el resumen las columnas de fila no existen: salen nulas con el tipo de la fila.
   const nulo = sql<string>`null::text`;
+  const persona = resumen
+    ? sql<FilaDeMetrica["persona"]>`null::jsonb`
+    : sql<FilaDeMetrica["persona"]>`case when ${leads.id} is null then null else jsonb_build_object('nombre', ${leads.nombre}, 'leadId', ${leads.id}) end`;
 
   let montoDeLaFila = sql<number | null>`null::float8`;
   if (esCaja) {
@@ -275,6 +278,7 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
         : nulo,
     monto: montoDeLaFila,
     cantidad: resumen ? sql<number>`count(*)::int` : sql<number>`1::int`,
+    persona,
   };
 }
 
@@ -297,6 +301,7 @@ function consultaDe(
         .select(campos)
         .from(abonos)
         .leftJoin(deals, and(eq(deals.id, abonos.dealId), eq(deals.programId, abonos.programId), vigente(deals)))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(
           users,
           or(
@@ -324,6 +329,7 @@ function consultaDe(
         .select(campos)
         .from(calls)
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, calls.closerUserId))
         .where(
           and(
@@ -344,6 +350,7 @@ function consultaDe(
         .select(campos)
         .from(calls)
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId)))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, calls.closerUserId))
         .where(
           and(
@@ -358,6 +365,7 @@ function consultaDe(
         .select(campos)
         .from(calls)
         .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, calls.closerUserId))
         .where(
           and(
@@ -395,6 +403,7 @@ function consultaDe(
       return db
         .select(campos)
         .from(deals)
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .innerJoin(
           dealEtapaHistorial,
@@ -412,6 +421,7 @@ function consultaDe(
       return db
         .select(campos)
         .from(deals)
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .innerJoin(
           dealEtapaHistorial,
@@ -426,6 +436,7 @@ function consultaDe(
         .select(campos)
         .from(deals)
         .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(filtroDealsCreados(alcance), vigente(deals)));
     case "agendas_creadas":
@@ -434,6 +445,7 @@ function consultaDe(
         .select(campos)
         .from(calls)
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(filtroAgendasCreadas(alcance), vigente(calls), vigente(deals)));
     case "registros":
@@ -441,13 +453,27 @@ function consultaDe(
         .select(campos)
         .from(submissions)
         .innerJoin(sources, eq(sources.id, submissions.sourceId))
-        .leftJoin(deals, and(eq(deals.submissionOrigenId, submissions.id), vigente(deals)))
+        .leftJoin(deals, and(eq(deals.submissionOrigenId, submissions.id), eq(deals.programId, sources.programId), vigente(deals)))
+        .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
-        .where(and(filtroRegistros(alcance), vigente(deals)));
+        .where(and(
+          filtroDeEnvios({
+            programId: alcance.programId,
+            rango: alcance.rango,
+            filtros: {
+              ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
+              ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
+              ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
+            },
+          }),
+          alcance.claveCloser ? sql`false` : undefined,
+          vigente(deals),
+        ));
     case "cartera":
       return db
         .select(campos)
         .from(deals)
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
           eq(deals.programId, alcance.programId),
@@ -461,6 +487,7 @@ function consultaDe(
       return db
         .select(campos)
         .from(deals)
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
           filtroAtendidos(alcance),
@@ -505,13 +532,15 @@ async function leerMetricaDeGrupo(
       : metrica === "grupo_sin_show" ? !m.conShow
       : m.conShow && m.vendido,
   );
-  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy)), pagina);
+  const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
+  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
 }
 
 /** Una fila de lista hecha de un deal que se decidió en memoria (grupo de citas o embudo). */
 function filaDeDeal(
   m: { dealId: string; fecha: string; closer: string | null; claveCloser: string; etapa: string | null },
   hoy: string,
+  personas: ReadonlyMap<string, FilaDeMetrica["persona"]> = new Map(),
 ): FilaDeMetrica {
   return {
     id: m.dealId,
@@ -524,7 +553,17 @@ function filaDeDeal(
     moneda: null,
     monto: null,
     cantidad: 1,
+    persona: personas.get(m.dealId) ?? null,
   };
+}
+
+async function personasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
+  if (dealIds.length === 0) return new Map<string, FilaDeMetrica["persona"]>();
+  const filas = await db.select({ dealId: deals.id, nombre: leads.nombre, leadId: leads.id })
+    .from(deals)
+    .innerJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
+    .where(and(eq(deals.programId, programId), inArray(deals.id, [...dealIds]), vigente(deals)));
+  return new Map(filas.map((fila) => [fila.dealId, { nombre: fila.nombre, leadId: fila.leadId }]));
 }
 
 /**
@@ -540,7 +579,8 @@ async function leerMetricaDeEmbudo(
 ): Promise<FilaDeMetrica[]> {
   const embudo = await leerEmbudoConMiembros(db, { programId: alcance.programId, rango: alcance.rango }, filtros.ahora);
   const miembros = miembrosDeLaCifra(embudo, metrica, filtros, filtros.claveCloser);
-  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy)), pagina);
+  const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
+  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
 }
 
 /**
@@ -556,7 +596,7 @@ function paginarOAgrupar(filas: FilaDeMetrica[], pagina: number | null): FilaDeM
     const clave = `${fila.claveCloser}\u0000${fila.etapa}\u0000${fila.bucket}`;
     const existente = grupos.get(clave);
     if (existente) existente.cantidad += 1;
-    else grupos.set(clave, { ...fila, id: "", dealId: null, fecha: "", antiguedad: 0 });
+    else grupos.set(clave, { ...fila, id: "", dealId: null, fecha: "", antiguedad: 0, persona: null });
   }
   return [...grupos.values()];
 }
@@ -600,7 +640,7 @@ async function leerMetrica(
     .offset((pagina - 1) * TAMANO_PAGINA);
 }
 
-function subtotal(grupos: ResumenDeMetrica["grupos"]): SubtotalDeMetrica {
+function subtotal(grupos: readonly Pick<FilaDeMetrica, "cantidad" | "moneda" | "monto">[]): SubtotalDeMetrica {
   const caja = new Map<string, number>();
   let cantidad = 0;
   for (const grupo of grupos) {
@@ -625,6 +665,7 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
       disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
       subtotal: subtotal(grupos),
       grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
+        dealId: null,
         closer,
         claveCloser,
         etapa,
@@ -632,6 +673,7 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
         moneda,
         monto,
         cantidad,
+        persona: null,
       })),
     };
   }));
@@ -667,6 +709,7 @@ export function resumenDeDeals(
     disponible: true,
     subtotal: subtotal(grupos),
     grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
+      dealId: null,
       closer,
       claveCloser,
       etapa,
@@ -674,6 +717,7 @@ export function resumenDeDeals(
       moneda,
       monto,
       cantidad,
+      persona: null,
     })),
   };
 }

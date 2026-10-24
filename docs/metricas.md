@@ -27,7 +27,8 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Tabla:** `submissions`, unida a `sources` (la fuente dice el programa).
 - **Cuenta:** envíos **completos** (`es_parcial = false`) de las fuentes del programa.
 - **Fecha:** `submissions.fecha_envio`, en Bogotá.
-- **Función:** `lib/queries/hechos/envio.ts` (`agrupar`, `listar`).
+- **Función:** `filtroDeEnvios` en `lib/queries/hechos/envio.ts` es el único predicado de registros/envíos;
+  tanto `agrupar` como `listar` y la lista de `registros` del Hub lo usan.
 - **Ojo:** un envío parcial y su completo son el mismo registro (ADR 0063); el parcial solo cuenta en el embudo
   del formulario.
 - **Verificar:** contar en el Typeform las respuestas completas del día (zona Bogotá) y comparar.

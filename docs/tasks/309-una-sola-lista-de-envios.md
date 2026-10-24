@@ -3,7 +3,7 @@ id: 309
 etapa: hub
 serves: "AGENTS.md: si dos lugares responden la misma pregunta, la respuesta vive en un módulo · C-2 (docs/hub.md §8)"
 depends: [248, 299]
-status: todo
+status: done
 ---
 
 # 309 — Una sola lista de envíos detrás de las cifras del Hub
@@ -46,10 +46,10 @@ Una sola métrica de lista de envíos, con un solo predicado, que sirva a Hoy y 
 
 ## Done cuando
 
-- [ ] `rg "filtroRegistros|listaDeEnvios"` deja un solo camino, y la página de listas no tiene una rama propia para envíos.
-- [ ] "Leads de hoy" (Hoy) y el total de envíos de Origen dan el mismo número que su lista, con test.
-- [ ] Un paid trafficker abre la lista de envíos de su programa; un closer que forja la URL recibe 404.
-- [ ] `docs/metricas.md` §1.1 nombra la única función.
+- [x] `rg "filtroRegistros|listaDeEnvios"` deja un solo camino, y la página de listas no tiene una rama propia para envíos.
+- [x] "Leads de hoy" (Hoy) y el total de envíos de Origen dan el mismo número que su lista, con test.
+- [x] Un paid trafficker abre la lista de envíos de su programa; un closer que forja la URL recibe 404.
+- [x] `docs/metricas.md` §1.1 nombra la única función.
 
 ## Enmienda 24-oct (Mani): la lista dice quién es la persona
 

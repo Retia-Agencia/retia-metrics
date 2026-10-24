@@ -8,7 +8,7 @@ import type { VistaOrigen } from "@/lib/queries/origen";
 import type { PeriodoResuelto } from "@/lib/periodo";
 
 function hrefDeEnvios(base: string, periodo: PeriodoResuelto, source?: string | null, medium?: string | null, categoria?: "sin_utm" | "macro") {
-  const q = new URLSearchParams({ metrica: "envios", periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta, sin_b: "1" });
+  const q = new URLSearchParams({ metrica: "registros", periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta, sin_b: "1" });
   if (source !== undefined) q.set("source", source ?? "__null__");
   if (medium !== undefined) q.set("medium", medium ?? "__null__");
   if (categoria) q.set("categoria", categoria);

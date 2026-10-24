@@ -107,6 +107,18 @@ const alcance = (programId: string, rango: { desde: string; hasta: string }) => 
   between(dimensiones.dia, rango.desde, rango.hasta),
 );
 
+export function filtroDeEnvios({
+  programId,
+  rango,
+  filtros,
+}: {
+  programId: string;
+  rango: { desde: string; hasta: string };
+  filtros?: Partial<Record<DimensionEnvio, readonly (string | null)[]>>;
+}) {
+  return and(alcance(programId, rango), condicionesDeFiltros(dimensiones, filtros));
+}
+
 export async function agrupar<D extends DimensionEnvio>(
   db: Db,
   opciones: ConsultaAgrupada<D, D | MedidaEnvio>,
@@ -116,7 +128,7 @@ export async function agrupar<D extends DimensionEnvio>(
     .select({ ...elegidas, envios: sql<number>`count(*)::int` })
     .from(submissions)
     .innerJoin(sources, eq(sources.id, submissions.sourceId))
-    .where(and(alcance(opciones.programId, opciones.rango), condicionesDeFiltros(dimensiones, opciones.filtros)))
+    .where(filtroDeEnvios(opciones))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre]))
     .$dynamic();
   const ordenables = { ...dimensiones, envios: sql<number>`count(*)::int` };
@@ -130,7 +142,7 @@ export async function listar<D extends DimensionEnvio = DimensionEnvio>(
   db: Db,
   opciones: ConsultaDeLista<D, D>,
 ): Promise<ListaPaginada<FilaEnvio>> {
-  const donde = and(alcance(opciones.programId, opciones.rango), condicionesDeFiltros(dimensiones, opciones.filtros));
+  const donde = filtroDeEnvios(opciones);
   const construir = () => db.select({ envioId: submissions.id, ...dimensiones }).from(submissions)
     .innerJoin(sources, eq(sources.id, submissions.sourceId)).where(donde);
   let consulta = construir().$dynamic();

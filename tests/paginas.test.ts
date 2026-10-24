@@ -740,7 +740,7 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     // La lista llega a `vistaDeLista` solo si la guarda dejó pasar: con un valor la página
     // renderiza en vez de caer en el `notFound()` de "sin datos", que confundiría con la guarda.
     vistaDeLista.mockResolvedValue({
-      lista: { filas: [], disponible: true, subtotal: { cantidad: 0, caja: [] } },
+      lista: { filas: [], grupos: [], disponible: true, subtotal: { cantidad: 0, caja: [] } },
       periodo: VISTA_VACIA.periodo,
       claveCloser: null,
     });
@@ -1424,9 +1424,9 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
   beforeEach(() => {
     vistaDeLista.mockReset();
     vistaDeLista.mockResolvedValue({
-      lista: { filas: [], disponible: true, subtotal: { cantidad: 0, caja: [] } },
+      lista: { filas: [], grupos: [], disponible: true, subtotal: { cantidad: 0, caja: [] } },
       periodo: VISTA_VACIA.periodo,
-      closerId: null,
+      claveCloser: null,
     });
   });
 
@@ -1455,6 +1455,22 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
     auth.mockResolvedValue(sesionPaidTrafficker);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
     await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("permite al paid trafficker abrir registros, sin concederle las demás listas", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    await expect(abrir({ metrica: "registros" })).resolves.toBeTruthy();
+    expect(vistaDeLista).toHaveBeenCalledWith(expect.objectContaining({ programId: "p-1", metrica: "registros" }));
+  });
+
+  it("rechaza a un closer y el filtro de closer forjado por pauta en registros", async () => {
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    auth.mockResolvedValue(sesionCloser);
+    await expect(abrir({ metrica: "registros" })).rejects.toBeInstanceOf(NoEncontrado);
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    await expect(abrir({ metrica: "registros", closer: "a".repeat(64) })).rejects.toBeInstanceOf(NoEncontrado);
     expect(vistaDeLista).not.toHaveBeenCalled();
   });
 
