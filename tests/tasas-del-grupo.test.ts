@@ -149,7 +149,7 @@ describe("ticket 187: el grupo de citas", () => {
       db,
     );
     const miEspacio = await armarVistaDeMisMetricas(
-      { programa: { id: programaA, slug: "a", nombre: "A" }, closerUserId: ana, hoy: HOY, periodo: { preset: "custom", a: S1 } },
+      { programa: { id: programaA, slug: "a", nombre: "A" }, closerUserId: ana, hoy: HOY, periodo: { preset: "custom", a: S1 }, origen: "/mi-espacio?tab=metricas" },
       db,
     );
     expect(deAna.pctCierre).toBe(0.5);

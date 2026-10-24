@@ -1605,6 +1605,38 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     }
   });
 
+  it("cada productor de listas recibe el origen exacto de Comercial", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const { urlDeLista } = await vi.importActual<typeof import("@/lib/queries/vista-metrica")>("@/lib/queries/vista-metrica");
+    const origen = `/p/${SLUG}/hub?seccion=comercial&rango=semana`;
+    detallesDelDashboard.mockResolvedValueOnce(({
+      cierres: {
+        ...detalleConLista(),
+        href: urlDeLista({
+          slug: SLUG,
+          metrica: "cierres",
+          periodo: { preset: "custom", a: { desde: "2026-10-20", hasta: "2026-10-24" }, b: null },
+          origen,
+        }),
+      },
+    } as never));
+
+    const comercial = await renderizar({ seccion: "comercial", rango: "semana" });
+    const props = buscar(comercial, "DashboardPrograma")?.props;
+    const hrefs = Object.values(props?.detalles as Record<string, { href: string }>).map((detalle) => detalle.href);
+    expect(hrefs).not.toHaveLength(0);
+    for (const href of hrefs.filter((href) => href.includes("/hub/lista"))) {
+      expect(href).toContain(`desde=${encodeURIComponent(origen)}`);
+    }
+    expect(props?.origen).toBe(origen);
+
+    const dinero = buscar(await renderizar({ seccion: "dinero", rango: "semana" }), "DashboardPrograma");
+    expect(dinero?.props.origen).toBe(`/p/${SLUG}/hub?seccion=dinero&rango=semana`);
+
+    const seccionOrigen = buscar(await renderizar({ seccion: "origen", rango: "semana" }), "SeccionOrigen");
+    expect(seccionOrigen?.props.origen).toBe(`/p/${SLUG}/hub?seccion=origen&rango=semana`);
+  });
+
   it("al gerente nada de eso le cambia (mordido en el otro sentido)", async () => {
     auth.mockResolvedValue(sesionGerente);
     const arbol = await renderizar({ seccion: "hoy" });

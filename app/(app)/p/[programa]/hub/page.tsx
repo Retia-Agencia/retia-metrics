@@ -252,7 +252,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
 
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen" ? (
-            <SeccionOrigen programId={programa.id} slug={programa.slug} rango={vista.seleccion.rango} periodo={vista.periodo} hoy={hoy} />
+            <SeccionOrigen programId={programa.id} slug={programa.slug} rango={vista.seleccion.rango} periodo={vista.periodo} hoy={hoy} origen={origen} />
           ) : seccion === "pauta" ? (
             <SeccionPauta
               programId={programa.id}
@@ -270,6 +270,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 vista.comparativo.map((fila) => fila.clave),
               ))}
               slug={slug}
+              origen={origen}
               veEquipo={veEquipo}
               dealsContraAgendas={
                 <DealsContraAgendas
@@ -279,6 +280,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                     hoy,
                     periodo: vista.periodo,
                     claveCloser: vista.claveCloser,
+                    origen,
                   }))}
                 />
               }
@@ -323,7 +325,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               configurar={configurar}
               // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
               // sin él (paid trafficker) las cifras salen como texto.
-              metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} conListas={veEquipo} configurar={configurar} />}
+              metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} origen={origen} conListas={veEquipo} configurar={configurar} />}
             />
           )}
         </div>
@@ -430,14 +432,15 @@ async function SeccionPauta({
 }
 
 /** Origen explica la clasificación y conserva juntos los cuatro bloques trasladados de Pauta. */
-async function SeccionOrigen({ programId, slug, rango, periodo, hoy }: {
+async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen }: {
   programId: string;
   slug: string;
   rango: { desde: string; hasta: string };
   periodo: PeriodoResuelto;
   hoy: string;
+  origen: string;
 }) {
-  const [origen, hechos, formulario, porCanal, porPregunta] = await Promise.all([
+  const [vistaOrigen, hechos, formulario, porCanal, porPregunta] = await Promise.all([
     origenDelPrograma(db, { programId, rango, hoy }),
     hechosDelEmbudo(db, { programId, rango }),
     embudoDelFormulario(db, { programId, rango }),
@@ -445,7 +448,7 @@ async function SeccionOrigen({ programId, slug, rango, periodo, hoy }: {
     embudoPorPregunta(db, programId),
   ]);
   return <section className="space-y-4">
-    <Origen vista={origen} base={`/p/${encodeURIComponent(slug)}/hub`} periodo={periodo} />
+    <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
     <OrigenPorCanal filas={embudoPorCanal(hechos)} />
     <RegistrosAgendasCanal vista={porCanal} />
     <EmbudoFormulario embudo={formulario} />
@@ -464,6 +467,7 @@ async function SeccionMetas({
   slug,
   hoy,
   busqueda,
+  origen,
   conListas,
   configurar,
 }: {
@@ -471,6 +475,7 @@ async function SeccionMetas({
   slug: string;
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
+  origen: string;
   conListas: boolean;
   configurar: { hrefBase: string; origen: string } | null;
 }) {
@@ -486,9 +491,9 @@ async function SeccionMetas({
     return `?${q.toString()}#metas`;
   };
   const periodoDe = (rango: { desde: string; hasta: string }): PeriodoResuelto => ({ preset: "custom", a: rango, b: null });
-  const hrefVentasMes = urlDeLista(slug, "cierres", periodoDe(metas.periodoMes));
+  const hrefVentasMes = urlDeLista({ slug, metrica: "cierres", periodo: periodoDe(metas.periodoMes), origen });
   const hrefVentasSemana = metas.compensacionSemanal
-    ? urlDeLista(slug, "cierres", periodoDe({ desde: metas.compensacionSemanal.desde, hasta: metas.compensacionSemanal.hasta }))
+    ? urlDeLista({ slug, metrica: "cierres", periodo: periodoDe({ desde: metas.compensacionSemanal.desde, hasta: metas.compensacionSemanal.hasta }), origen })
     : null;
 
   return (

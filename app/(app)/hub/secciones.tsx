@@ -49,7 +49,7 @@ function TablaPorPrograma({ titulo, cabeceras, vista, seccion, celdas }: {
   );
 }
 
-function ContratadoYCaja({ vista }: { vista: VistaDeTodos }) {
+function ContratadoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
   const monedas = [...new Set([...vista.a.caja, ...(vista.b?.caja ?? [])].map((c) => c.moneda))].sort();
   if (monedas.length === 0) monedas.push("USD");
   return <>
@@ -71,7 +71,7 @@ function ContratadoYCaja({ vista }: { vista: VistaDeTodos }) {
           subtotal: { cantidad: grupos.reduce((n, g) => n + g.cantidad, 0), caja: [{ moneda, total: actual }] },
         },
         desgloses: desglosesDelResumen(grupos, nombreDeEtapa),
-        href: urlDeListaTodos("caja", vista.periodo, moneda),
+        href: urlDeListaTodos({ metrica: "caja", periodo: vista.periodo, origen, moneda }),
       };
       return <Tarjeta key={moneda} titulo={`Caja recaudada · ${moneda}`} valor={
         <CifraConLista titulo={`Caja recaudada en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
@@ -170,14 +170,14 @@ function Cartera({ vista }: { vista: VistaDeTodos }) {
   </Card>;
 }
 
-function VentasPorCohorte({ vista }: { vista: VistaDeTodos }) {
+function VentasPorCohorte({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
   return <Card>
     <CardHeader><CardTitle>Ventas por programa y cohorte</CardTitle></CardHeader>
     <CardContent>
       {vista.programas.every((p) => p.dashboard.ventasPorCohorte.length === 0) ? <p>Sin ventas en el periodo.</p> : (
         <Tabla cabeceras={["Programa", "Cohorte", "Ventas", "Contratado"]}>
           {vista.programas.flatMap((fila) => fila.dashboard.ventasPorCohorte.map((cohorte) => {
-            const href = cohorte.cohorteId ? urlDeLista(fila.programa.slug, "contratado", vista.periodo, null, undefined, cohorte.cohorteId) : null;
+            const href = cohorte.cohorteId ? urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen, cohorteId: cohorte.cohorteId }) : null;
             return <tr key={`${fila.programa.id}:${cohorte.cohorteId}`}>
               <td className="py-2">{fila.programa.nombre}</td><td className="text-right">{cohorte.codigo ?? "Sin cohorte"}</td>
               <td className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Link href={href} />}>{num(cohorte.ventas)}</Button> : num(cohorte.ventas)}</td>
@@ -191,28 +191,28 @@ function VentasPorCohorte({ vista }: { vista: VistaDeTodos }) {
 }
 
 /** Solo servidor: las piezas compartidas se importan, nunca se modifican. */
-export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTodos; seccion: Seccion; hoy: string }) {
+export async function SeccionDeTodos({ vista, seccion, hoy, origen }: { vista: VistaDeTodos; seccion: Seccion; hoy: string; origen: string }) {
   if (seccion === "hoy") return <section id="hoy" className="space-y-4">
     <h2 className="text-xl font-semibold">Hoy</h2>
     <HoyPorPrograma vista={vista} hoy={hoy} />
-    <div className={GRILLA}><ContratadoYCaja vista={vista} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
+    <div className={GRILLA}><ContratadoYCaja vista={vista} origen={origen} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
     <MetasPorPrograma vista={vista} />
   </section>;
 
   if (seccion === "dinero") return <section id="dinero" className="space-y-4">
     <h2 className="text-xl font-semibold">Dinero</h2>
-    <div className={GRILLA}><ContratadoYCaja vista={vista} /></div>
+    <div className={GRILLA}><ContratadoYCaja vista={vista} origen={origen} /></div>
     <Cartera vista={vista} />
     <TablaPorPrograma titulo="Comisión y descuento por programa" vista={vista} seccion="dinero"
       cabeceras={["Comisión USD", "Sin comisión calculable", "Descuento promedio", "Descuento USD", "Ventas con descuento calculable"]}
       celdas={(fila) => <>
-        <td className="text-right"><Button variant="link" nativeButton={false} render={<Link href={urlDeLista(fila.programa.slug, "contratado", vista.periodo)} />}>{usd(fila.comision.valor)}</Button></td>
+        <td className="text-right"><Button variant="link" nativeButton={false} render={<Link href={urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen })} />}>{usd(fila.comision.valor)}</Button></td>
         <td className="text-right">{num(fila.dashboard.comision.ventasSinComision)}</td>
-        <td className="text-right"><Button variant="link" nativeButton={false} render={<Link href={urlDeLista(fila.programa.slug, "contratado", vista.periodo)} />}>{tasa(fila.descuento.valor)}</Button></td>
+        <td className="text-right"><Button variant="link" nativeButton={false} render={<Link href={urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen })} />}>{tasa(fila.descuento.valor)}</Button></td>
         <td className="text-right">{fila.dashboard.descuento.promedioUsd === null ? "—" : usd(fila.dashboard.descuento.promedioUsd)}</td>
         <td className="text-right">{num(fila.dashboard.descuento.ventas)}</td>
       </>} />
-    <VentasPorCohorte vista={vista} />
+    <VentasPorCohorte vista={vista} origen={origen} />
   </section>;
 
   return <section id="comercial" className="space-y-4">
@@ -226,7 +226,7 @@ export async function SeccionDeTodos({ vista, seccion, hoy }: { vista: VistaDeTo
         <td className="text-right">{tasa(fila.pctSinGrain.valor)}</td>
       </>} />
     {await Promise.all(vista.programas.map(async (fila) => {
-      const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null };
+      const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null, origen };
       const [detalles, dealsContraAgendas, detallesOperacion] = await Promise.all([
         detallesDelDashboard(entrada), vistaDealsContraAgendas(entrada),
         detallesDeOperacion(entrada, fila.dashboard.comparativo.map((c) => c.clave)),

@@ -171,7 +171,7 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
 
   it("la URL fija A y B, lleva código opaco y lo resuelve sin ensanchar filtros", async () => {
     const periodo = { preset: "custom" as const, a: rango, b: { desde: "2026-01-01", hasta: "2026-01-02" } };
-    const href = urlDeLista("prueba-a", "caja", periodo, claveHistorica("Ana"), "USD");
+    const href = urlDeLista({ slug: "prueba-a", metrica: "caja", periodo, origen: "/p/prueba-a/hub?seccion=dinero", claveCloser: claveHistorica("Ana"), moneda: "USD" });
     expect(href).not.toContain("Ana");
     const busqueda = Object.fromEntries(new URL(href, "https://example.test").searchParams);
     // El código opaco hashea la CLAVE (ticket 167); una clave histórica normaliza el
@@ -184,7 +184,7 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
   });
 
   it("ticket 188: la lista de un dashboard sin comparación no inventa un periodo B", async () => {
-    const sinB = urlDeLista("prueba-a", "caja", { preset: "custom", a: rango, b: null });
+    const sinB = urlDeLista({ slug: "prueba-a", metrica: "caja", periodo: { preset: "custom", a: rango, b: null }, origen: "/p/prueba-a/hub" });
     const busqueda = Object.fromEntries(new URL(sinB, "https://example.test").searchParams);
     const vista = await vistaDeLista({ programId: programaA, metrica: "caja", busqueda, hoy, pagina: 1 }, db);
     expect(vista?.periodo.b).toBeNull();
@@ -238,7 +238,7 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
 
     // El href de la cifra lleva el codigo opaco de la CLAVE (su users.id).
     const codigo = codigoDeCloser(closer.id);
-    const href = urlDeLista("drill-a", "caja", { preset: "custom", a: r, b: null }, closer.id);
+    const href = urlDeLista({ slug: "drill-a", metrica: "caja", periodo: { preset: "custom", a: r, b: null }, origen: "/p/drill-a/hub", claveCloser: closer.id });
     const busqueda = Object.fromEntries(new URL(href, "https://x.test").searchParams);
     expect(busqueda.closer).toBe(codigo);
     expect(href).not.toContain(closer.id);
@@ -322,7 +322,7 @@ describe("ticket 148: listas de contratado, sin resultado y cartera", () => {
     expect(lista.subtotal.caja[0]?.total).toBe((await contratadoDeDeals(base, ids)).usd);
     const [porCohorte] = await listaDeMetrica("contratado", { ...filtros, cohorteId: cohortes[0].id }, 1, base);
     expect(porCohorte.filas.map((fila) => fila.monto)).toEqual([80]);
-    const href = urlDeLista("m148", "contratado", { preset: "custom", a: r, b: null }, null, undefined, cohortes[0].id);
+    const href = urlDeLista({ slug: "m148", metrica: "contratado", periodo: { preset: "custom", a: r, b: null }, origen: "/p/m148/hub", cohorteId: cohortes[0].id });
     expect(new URL(href, "https://retia.test").searchParams.get("cohorte")).toBe(cohortes[0].id);
   });
 

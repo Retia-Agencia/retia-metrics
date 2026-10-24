@@ -87,7 +87,7 @@ describe("ticket 189: agendas por semana", () => {
   }
 
   it("cuenta cada cita en la semana que le toca y cada cifra cuadra con su lista", async () => {
-    const semanas = await detallesPorSemana({ programId: programaA, slug: "s189-a", hoy, periodo }, db, ahora);
+    const semanas = await detallesPorSemana({ programId: programaA, slug: "s189-a", hoy, periodo, origen: "/p/s189-a/hub?seccion=comercial" }, db, ahora);
     expect(semanas.map((s) => s.semana.desde)).toEqual(["2026-09-21", "2026-09-28", "2026-10-05"]);
     const cuenta = semanas.map((s) => ({
       creadas: s.creadas.resumen.subtotal.cantidad,
@@ -106,7 +106,7 @@ describe("ticket 189: agendas por semana", () => {
 
     // Las futuras, desde hoy y por la semana de la cita: la 3 esta semana y la 3b en noviembre;
     // la cancelada no, y no aparecen semanas vacías entre medio.
-    const proximas = await proximasPorSemana({ programId: programaA, slug: "s189-a", hoy }, db, ahora);
+    const proximas = await proximasPorSemana({ programId: programaA, slug: "s189-a", hoy, origen: "/p/s189-a/hub?seccion=comercial" }, db, ahora);
     expect(proximas.map((p) => [p.semana, p.futuras.resumen.subtotal.cantidad])).toEqual([
       [{ desde: "2026-10-07", hasta: "2026-10-11" }, 1],
       [{ desde: "2026-11-02", hasta: "2026-11-08" }, 1],

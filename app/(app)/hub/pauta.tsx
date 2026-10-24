@@ -36,13 +36,14 @@ export async function PautaPorPrograma({ programas, periodo, hoy }: {
 }
 
 /** En Todos, cada programa conserva su frontera y solo muestra magnitudes contables. */
-export async function OrigenPorPrograma({ programas, periodo, hoy }: {
+export async function OrigenPorPrograma({ programas, periodo, hoy, origen }: {
   programas: ProgramaVisible[];
   periodo: PeriodoResuelto;
   hoy: string;
+  origen: string;
 }) {
   return <section className="space-y-6">{await Promise.all(programas.map(async (programa) => {
     const vista = await origenDelPrograma(db, { programId: programa.id, rango: periodo.a, hoy });
-    return <div key={programa.id} className="space-y-4"><h2 className="text-xl font-semibold">{programa.nombre}</h2><Origen vista={vista} base={`/p/${encodeURIComponent(programa.slug)}/hub`} periodo={periodo} soloConteos /></div>;
+    return <div key={programa.id} className="space-y-4"><h2 className="text-xl font-semibold">{programa.nombre}</h2><Origen vista={vista} slug={programa.slug} periodo={periodo} origen={origen} soloConteos /></div>;
   }))}</section>;
 }

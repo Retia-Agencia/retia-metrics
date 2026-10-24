@@ -13,6 +13,7 @@ import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import { SeccionDeTodos } from "./secciones";
 import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
 import { RUTA_HUB_TODOS } from "@/lib/nav";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,8 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   const seccion = pestanaActiva(typeof busqueda.seccion === "string" ? busqueda.seccion : undefined, pestanas, "hoy");
   // Hoy (252) es siempre de hoy, sin importar el periodo de la URL; por eso no lleva selector.
   const esHoy = seccion === "hoy";
-  const vista = await armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda) });
+  const origen = origenDeLaPagina(RUTA_HUB_TODOS, busqueda);
+  const vista = await armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda), origen });
 
   return (
     <PageShell titulo="Todos los programas" descripcion="Sumas en la misma unidad; tasas y metas por programa" fija>
@@ -61,10 +63,10 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen"
-            ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
+            ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
             : seccion === "pauta"
             ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
-            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} />}
+            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} />}
         </div>
       </PantallaFija>
     </PageShell>

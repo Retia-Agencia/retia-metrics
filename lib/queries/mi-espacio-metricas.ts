@@ -95,6 +95,7 @@ export async function armarVistaDeMisMetricas(
     closerUserId: string;
     hoy: string;
     periodo: EntradaDePeriodo;
+    origen: string;
   },
   db: Db = dbDeLaApp,
 ): Promise<VistaDeMisMetricas> {
@@ -112,12 +113,12 @@ export async function armarVistaDeMisMetricas(
     comisionesPorCloser({ programId: programa.id, rango: periodo.a }, db),
     periodo.b ? cifrasDelPeriodo(programa.id, periodo.b, closerUserId, hoy, db) : null,
     Promise.all([
-      detalleDeCifra("agendas", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
-      detalleDeCifra("shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
-      detalleDeCifra("no_shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
-      detalleDeCifra("cierres", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
-      detalleDeCifra("caja", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
-      detalleDeCifra("grupo_vendidos", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId }, db),
+      detalleDeCifra("agendas", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
+      detalleDeCifra("shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
+      detalleDeCifra("no_shows", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
+      detalleDeCifra("cierres", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
+      detalleDeCifra("caja", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
+      detalleDeCifra("grupo_vendidos", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
     ]),
   ]);
   // Mi espacio nunca muestra el texto interno del closer (A-159/167). El código opaco
@@ -197,7 +198,7 @@ export interface VistaDeMisMetricasTodos {
 }
 
 export async function armarVistaDeMisMetricasTodos(
-  entrada: { programas: ProgramaDeMetricas[]; closerUserId: string; hoy: string; periodo: EntradaDePeriodo },
+  entrada: { programas: ProgramaDeMetricas[]; closerUserId: string; hoy: string; periodo: EntradaDePeriodo; origen: string },
   db: Db = dbDeLaApp,
 ): Promise<VistaDeMisMetricasTodos> {
   const vistas = await Promise.all(entrada.programas.map((programa) => armarVistaDeMisMetricas({ ...entrada, programa }, db)));

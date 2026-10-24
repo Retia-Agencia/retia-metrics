@@ -12,6 +12,7 @@ export interface EntradaDealsContraAgendas {
   /** El periodo del selector del dashboard (136). */
   periodo: PeriodoResuelto;
   claveCloser: string | null;
+  origen: string;
 }
 
 export type VistaDealsContraAgendas =

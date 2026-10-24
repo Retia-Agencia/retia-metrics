@@ -162,16 +162,18 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (!vista) notFound();
   const { periodo, claveCloser } = vista;
   const lista = proyectarParaTablero(vista.lista, esAdmin);
-  const enlace = urlDeLista(
+  const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
+  const enlace = urlDeLista({
     slug,
     metrica,
     periodo,
+    origen: desde ?? `/p/${slug}/hub`,
     claveCloser,
     moneda,
-    cohorte,
-    { etapa, antiguedad },
-    { source: sourceNormalizado, medium: mediumNormalizado, categoria },
-  );
+    cohorteId: cohorte,
+    subconjunto: { etapa, antiguedad },
+    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, categoria },
+  });
   // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
   // el periodo no los acota.
   const sinPeriodo = (METRICAS_FOTO_DE_HOY as readonly string[]).includes(metrica)
@@ -179,8 +181,6 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
-  const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
-  const conVuelta = (href: string) => (desde ? enlaceConVuelta(href, desde) : href);
   // La etiqueta visible del closer filtrado sale de los grupos (nunca la clave
   // interna, que puede ser un uuid o `historico:...`): todas las filas del filtro
   // comparten closer. Sin filtro, "Todos los closers".
@@ -243,9 +243,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           </CardContent>
         </Card>
         <nav aria-label="Paginación" className="flex items-center gap-3">
-          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={conVuelta(`${enlace}&pagina=${pagina - 1}`)} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
+          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlace}&pagina=${pagina - 1}`} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
           <span className="cifra">Página {num(pagina)}</span>
-          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Link href={conVuelta(`${enlace}&pagina=${pagina + 1}`)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
+          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlace}&pagina=${pagina + 1}`} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
       </div>
     </PageShell>

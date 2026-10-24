@@ -101,7 +101,7 @@ afterAll(async () => cerrar());
 
 describe("vista de todos los programas", () => {
   it("suma conteos y caja por moneda con el mismo universo de cada programa", async () => {
-    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
     const cajas = await Promise.all(programas.map((p) => cajaRecaudada({ programId: p.id, rango: RANGO }, db)));
     const usd = cajas.flat().filter((c) => c.moneda === "USD").reduce((n, c) => n + c.total, 0);
 
@@ -118,7 +118,7 @@ describe("vista de todos los programas", () => {
   });
 
   it("conserva tasas, metas y comisiones como filas por programa", async () => {
-    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
 
     expect(vista.programas).toHaveLength(2);
     expect(vista.programas.map((p) => p.pctShow)).toEqual([
@@ -136,7 +136,7 @@ describe("vista de todos los programas", () => {
     const [closer] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer", closerId: "Ana" }).returning();
     await db.insert(miembrosPrograma).values({ userId: closer.id, programId: programas[0].id, activo: true });
     const visibles = await programasVisibles(closer.id, "closer", db);
-    const vista = await armarVistaDeTodos({ programas: visibles, hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const vista = await armarVistaDeTodos({ programas: visibles, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
 
     expect(visibles.map((p) => p.slug)).toEqual(["programa-a"]);
     expect(vista.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
@@ -144,7 +144,7 @@ describe("vista de todos los programas", () => {
   });
 
   it("la suma de las secciones nuevas es la suma de los dashboards de cada programa (192)", async () => {
-    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
     const propios = await Promise.all(programas.map((p) => armarVistaDelDashboard({
       programId: p.id, hoy: HOY, preset: "custom", periodo: { preset: "custom", a: RANGO },
     }, db)));
@@ -165,7 +165,7 @@ describe("vista de todos los programas", () => {
   });
 
   it("un programa ajeno no suma nada aunque exista en la base (192)", async () => {
-    const soloA = await armarVistaDeTodos({ programas: [programas[0]], hoy: HOY, periodo: { preset: "hoy" } }, db);
+    const soloA = await armarVistaDeTodos({ programas: [programas[0]], hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
     const propioA = await armarVistaDelDashboard({
       programId: programas[0].id, hoy: HOY, preset: "custom", periodo: { preset: "custom", a: RANGO },
     }, db);

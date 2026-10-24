@@ -8,9 +8,9 @@ import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { parsearPeriodoUrl, resolverPeriodo } from "@/lib/periodo";
 import { listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
-import { queryDePeriodo } from "@/lib/queries/vista-todos";
+import { urlDeListaTodos } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
-import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
+import { enlaceConVuelta, origenDeLaPagina, origenValido } from "@/lib/navegacion/volver";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,20 +47,18 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
     pagina,
   );
   const programasPorId = new Map(programas.map((p) => [p.id, p]));
-  const q = new URLSearchParams(queryDePeriodo(periodo));
-  q.set("metrica", metrica);
-  if (moneda) q.set("moneda", moneda);
+  const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
+  const vuelta = origenValido(desde) ?? "/hub";
   const hrefPagina = (n: number) => {
-    const copia = new URLSearchParams(q);
-    copia.set("pagina", String(n));
-    return `/hub/lista?${copia}`;
+    const href = urlDeListaTodos({ metrica, periodo, origen: desde ?? "/hub", moneda });
+    return `${href}&pagina=${n}`;
   };
   const haySiguiente = secciones.some((s) => pagina * TAMANO_PAGINA < s.subtotal.cantidad);
   // El origen de ESTA lista para "Ver deal" (ticket 174).
   const origen = origenDeLaPagina("/hub/lista", busqueda);
 
   return (
-    <PageShell titulo={titulos[metrica]} descripcion="Todos los programas visibles">
+    <PageShell titulo={titulos[metrica]} descripcion="Todos los programas visibles" volver={{ desde, porDefecto: { href: "/hub", etiqueta: "Hub" } }}>
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">Todos los programas</Badge>
@@ -106,7 +104,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
           <span className="cifra">Página {num(pagina)}</span>
           {haySiguiente ? <Button variant="outline" nativeButton={false} render={<Link href={hrefPagina(pagina + 1)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
-        <Button variant="outline" nativeButton={false} render={<Link href={`/hub?${queryDePeriodo(periodo)}&seccion=${metrica === "cartera" || metrica === "contratado" || metrica === "caja" ? "dinero" : metrica === "sin_resultado" || metrica === "shows_sin_grain" || metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? "hoy" : "comercial"}`} />}>Volver al Hub</Button>
+        <Button variant="outline" nativeButton={false} render={<Link href={vuelta} />}>Volver al Hub</Button>
       </div>
     </PageShell>
   );

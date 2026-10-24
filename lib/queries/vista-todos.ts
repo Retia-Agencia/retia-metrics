@@ -21,6 +21,7 @@ import {
   type ResumenDeMetrica,
 } from "@/lib/queries/metricas-con-filas";
 import { nombreDeEtapa, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
+import { enlaceConVuelta } from "@/lib/navegacion/volver";
 
 const METRICAS = ["leads", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "contratado", "caja"] as const;
 type MetricaDeTodos = (typeof METRICAS)[number];
@@ -77,6 +78,7 @@ export interface EntradaDeVistaDeTodos {
   programas: ProgramaVisible[];
   hoy: string;
   periodo: EntradaDePeriodo;
+  origen: string;
   ahora?: Date;
 }
 
@@ -89,11 +91,16 @@ export function queryDePeriodo(periodo: PeriodoResuelto): string {
   return q.toString();
 }
 
-export function urlDeListaTodos(metrica: Metrica, periodo: PeriodoResuelto, moneda?: string): string {
+export function urlDeListaTodos({ metrica, periodo, origen, moneda }: {
+  metrica: Metrica;
+  periodo: PeriodoResuelto;
+  origen: string;
+  moneda?: string;
+}): string {
   const q = new URLSearchParams(queryDePeriodo(periodo));
   q.set("metrica", metrica);
   if (moneda) q.set("moneda", moneda);
-  return `/hub/lista?${q}`;
+  return enlaceConVuelta(`/hub/lista?${q}`, origen);
 }
 
 function totales(resumenes: Record<MetricaDeTodos, ResumenDeMetrica[]>): TotalesDePeriodo {
@@ -133,6 +140,7 @@ function detalle(
   metrica: MetricaDeTodos | MetricaFotoDeHoy,
   secciones: ResumenDeMetrica[],
   periodo: PeriodoResuelto,
+  origen: string,
 ): DetalleDeCifra {
   const resumen: ResumenDeMetrica = {
     programId: "todos",
@@ -148,13 +156,13 @@ function detalle(
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-    href: urlDeListaTodos(metrica, periodo),
+    href: urlDeListaTodos({ metrica, periodo, origen }),
     fotoDeHoy: (FOTOS_DE_HOY as readonly string[]).includes(metrica),
   };
 }
 
 export async function armarVistaDeTodos(
-  { programas, hoy, periodo: entrada, ahora = new Date() }: EntradaDeVistaDeTodos,
+  { programas, hoy, periodo: entrada, origen, ahora = new Date() }: EntradaDeVistaDeTodos,
   db: Db = dbDeLaApp,
 ): Promise<VistaDeTodos> {
   const periodo = resolverPeriodo(entrada, { hoy, actual: null });
@@ -192,8 +200,8 @@ export async function armarVistaDeTodos(
     a: totales(resumenesA),
     b: resumenesB ? totales(resumenesB) : null,
     detalles: {
-      ...Object.fromEntries(METRICAS.map((m) => [m, detalle(m, resumenesA[m], periodo)])) as Record<MetricaDeTodos, DetalleDeCifra>,
-      ...Object.fromEntries(FOTOS_DE_HOY.map((m, i) => [m, detalle(m, fotos[i], periodo)])) as Record<MetricaFotoDeHoy, DetalleDeCifra>,
+      ...Object.fromEntries(METRICAS.map((m) => [m, detalle(m, resumenesA[m], periodo, origen)])) as Record<MetricaDeTodos, DetalleDeCifra>,
+      ...Object.fromEntries(FOTOS_DE_HOY.map((m, i) => [m, detalle(m, fotos[i], periodo, origen)])) as Record<MetricaFotoDeHoy, DetalleDeCifra>,
     },
     cartera: {
       saldo: sumarUsd(filas.map((f) => dinero("USD", f.dashboard.cartera.saldoUsd))),

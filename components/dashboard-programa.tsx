@@ -38,7 +38,7 @@ export function DashboardPrograma({
   slug: string;
   dealsContraAgendas: ReactNode;
   seriesDinero?: SeriesDeDinero;
-  origen?: string;
+  origen: string;
   /**
    * Si la sesión ve el trabajo del equipo comercial (`veEquipoComercial`, ticket 102). Sin él
    * (paid trafficker) no se pintan el comparativo, la comisión, los abiertos por owner ni los

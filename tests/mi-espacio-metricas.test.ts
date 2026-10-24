@@ -61,7 +61,7 @@ describe("read model de Mis métricas", () => {
     const entrada = { programId: programa.id, hoy: HOY, preset: "hoy", claveCloser: closer.id };
     const [dashboard, miEspacio, comisiones] = await Promise.all([
       armarVistaDelDashboard(entrada, db),
-      armarVistaDeMisMetricas({ programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, closerUserId: closer.id, hoy: HOY, periodo: { preset: "hoy" } }, db),
+      armarVistaDeMisMetricas({ programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, closerUserId: closer.id, hoy: HOY, periodo: { preset: "hoy" }, origen: "/mi-espacio?tab=metricas" }, db),
       comisionesPorCloser({ programId: programa.id, rango: { desde: HOY, hasta: HOY } }, db),
     ]);
 
@@ -159,7 +159,7 @@ describe("ticket 167: el closer se identifica por users.id", () => {
     expect(caja).toEqual([{ moneda: "USD", total: 250 }]);
 
     const miEspacio = await armarVistaDeMisMetricas(
-      { programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, closerUserId: closer.id, hoy: HOY, periodo: { preset: "hoy" } },
+      { programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, closerUserId: closer.id, hoy: HOY, periodo: { preset: "hoy" }, origen: "/mi-espacio?tab=metricas" },
       db,
     );
     expect(miEspacio.a).toMatchObject({ agendas: 1, shows: 1, cierres: 1, caja: [{ moneda: "USD", total: 250 }] });
@@ -189,7 +189,7 @@ describe("ticket 167: el closer se identifica por users.id", () => {
     expect(caja).toEqual([{ moneda: "USD", total: 250 }]);
 
     const miEspacio = await armarVistaDeMisMetricas(
-      { programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, closerUserId: closer.id, hoy: HOY, periodo: { preset: "hoy" } },
+      { programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, closerUserId: closer.id, hoy: HOY, periodo: { preset: "hoy" }, origen: "/mi-espacio?tab=metricas" },
       db,
     );
     expect(miEspacio.a).toMatchObject({ agendas: 1, shows: 1, cierres: 1, caja: [{ moneda: "USD", total: 250 }] });

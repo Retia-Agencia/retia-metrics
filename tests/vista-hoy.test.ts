@@ -305,6 +305,7 @@ describe("la caja de hoy por origen (252)", () => {
       hoy: dia,
       periodo: resultado.vista.periodo,
       claveCloser: null,
+      origen: `/p/${programa.slug}/hub?seccion=hoy`,
     }, db);
     expect(resultado.agendasCreadas).toBe(2);
     expect(resultado.agendasCreadas).toBe(detalle.resumen.subtotal.cantidad);
@@ -339,6 +340,7 @@ describe("la caja de hoy por origen (252)", () => {
       hoy: dia,
       periodo: resultado.vista.periodo,
       claveCloser: null,
+      origen: `/p/${programa.slug}/hub?seccion=hoy`,
     }, db);
 
     expect(resultado.registros).toBe(2);

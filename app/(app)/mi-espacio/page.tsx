@@ -26,6 +26,7 @@ import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
 import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 
 export const dynamic = "force-dynamic";
 
@@ -207,7 +208,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, programas: visibles, userId, busqueda: query, perfil, calendly, enlaces })}
+          {Seccion({ seccion, programa, programas: visibles, userId, busqueda: query, perfil, calendly, enlaces, origen: origenDeLaPagina("/mi-espacio", query) })}
         </div>
       </div>
     </PageShell>
@@ -229,6 +230,7 @@ function Seccion({
   perfil,
   calendly,
   enlaces,
+  origen,
 }: {
   seccion: SeccionMiEspacio;
   programa: { id: string; slug: string } | null;
@@ -238,6 +240,7 @@ function Seccion({
   perfil: ReactElement;
   calendly: ReactElement | null;
   enlaces: EnlaceVista[];
+  origen: string;
 }): ReactElement | null {
   switch (seccion.id) {
     case "info":
@@ -269,7 +272,7 @@ function Seccion({
       const seleccionado = programa
         ? { ...programa, nombre: programas.find((p) => p.id === programa.id)?.nombre ?? programa.slug }
         : null;
-      return <TabMetricas programas={programas} programa={seleccionado} closerUserId={userId} hoy={hoyEnBogota()} busqueda={busqueda} />;
+      return <TabMetricas programas={programas} programa={seleccionado} closerUserId={userId} hoy={hoyEnBogota()} busqueda={busqueda} origen={origen} />;
     }
     case "canales":
       return <TabCanales />;

@@ -139,7 +139,7 @@ async function todasLasPaginas(detalle: DetalleDeCifra, programId = programaA) {
 describe("ticket 188: el embudo por etapas abre su lista", () => {
   it("cada cifra es su resumen y todas las páginas de su lista, sin anulados ni otro programa", async () => {
     const embudo = await embudoPorEtapas(db, { programId: programaA, rango }, ahora);
-    const detalles = await detallesDelEmbudo({ programId: programaA, slug: "e188-a", hoy, periodo }, db, ahora);
+    const detalles = await detallesDelEmbudo({ programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" }, db, ahora);
 
     const casos: [string, number, DetalleDeCifra][] = [
       ["entraron", embudo.conversion.todas.entraron, detalles.entraron],
@@ -169,7 +169,7 @@ describe("ticket 188: el embudo por etapas abre su lista", () => {
 
   it("la celda de abiertos por owner trae solo los deals de ese dueño", async () => {
     const embudo = await embudoPorEtapas(db, { programId: programaA, rango }, ahora);
-    const detalles = await detallesDelEmbudo({ programId: programaA, slug: "e188-a", hoy, periodo }, db, ahora);
+    const detalles = await detallesDelEmbudo({ programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" }, db, ahora);
     const deLucia = embudo.abiertos.find((a) => a.ownerUserId === lucia)!;
     const filas = await todasLasPaginas(detalles.abiertos[claveDeAbiertos(deLucia.etapa, lucia)]);
     expect(filas!.map((f) => f.dealId).sort()).toEqual([...deLucia.dealIds].sort());
@@ -191,7 +191,7 @@ describe("ticket 188: cada celda del comparativo abre la lista de ese closer", (
   it("agendas, shows, cierres, caja y los grupos de las tasas cuadran celda por celda", async () => {
     const comparativo = await embudoPorCloser({ programId: programaA, rango }, db, ahora);
     const detalles = await detallesDelComparativo(
-      { programId: programaA, slug: "e188-a", hoy, periodo },
+      { programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" },
       comparativo.map((f) => f.clave),
       db,
       ahora,
@@ -223,7 +223,7 @@ describe("ticket 188: cada celda del comparativo abre la lista de ese closer", (
   it("la agenda histórica sin FK de Ana se cuenta y se lista bajo su cuenta", async () => {
     const comparativo = await embudoPorCloser({ programId: programaA, rango }, db, ahora);
     const deAna = comparativo.find((f) => f.clave === ana)!;
-    const detalles = await detallesDelComparativo({ programId: programaA, slug: "e188-a", hoy, periodo }, [ana], db, ahora);
+    const detalles = await detallesDelComparativo({ programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" }, [ana], db, ahora);
     const filas = await todasLasPaginas(detalles[ana].agendas);
     expect(filas?.length).toBe(deAna.agendas);
     expect(filas?.some((f) => f.claveCloser.startsWith("historico:"))).toBe(true);

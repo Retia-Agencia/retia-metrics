@@ -77,16 +77,27 @@ const METRICAS_DEL_TABLERO = [
 ] as const;
 export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 
-export function urlDeLista(
-  slug: string,
-  metrica: Metrica,
-  periodo: PeriodoResuelto,
-  claveCloser?: string | null,
-  moneda?: string,
-  cohorteId?: string,
-  subconjunto?: SubconjuntoDelEmbudo,
-  filtrosDeOrigen?: { source?: string | null; medium?: string | null; categoria?: "sin_utm" | "macro" },
-): string {
+export function urlDeLista({
+  slug,
+  metrica,
+  periodo,
+  origen,
+  claveCloser,
+  moneda,
+  cohorteId,
+  subconjunto,
+  filtrosDeOrigen,
+}: {
+  slug: string;
+  metrica: Metrica;
+  periodo: PeriodoResuelto;
+  origen: string;
+  claveCloser?: string | null;
+  moneda?: string;
+  cohorteId?: string;
+  subconjunto?: SubconjuntoDelEmbudo;
+  filtrosDeOrigen?: { source?: string | null; medium?: string | null; categoria?: "sin_utm" | "macro" };
+}): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
   if (subconjunto?.etapa) q.set("etapa", subconjunto.etapa);
   if (subconjunto?.antiguedad) q.set("antiguedad", subconjunto.antiguedad);
@@ -104,7 +115,7 @@ export function urlDeLista(
   if (filtrosDeOrigen?.source !== undefined) q.set("source", filtrosDeOrigen.source ?? "__null__");
   if (filtrosDeOrigen?.medium !== undefined) q.set("medium", filtrosDeOrigen.medium ?? "__null__");
   if (filtrosDeOrigen?.categoria) q.set("categoria", filtrosDeOrigen.categoria);
-  return `/p/${encodeURIComponent(slug)}/hub/lista?${q}`;
+  return enlaceConVuelta(`/p/${encodeURIComponent(slug)}/hub/lista?${q}`, origen);
 }
 
 export interface EntradaDeDetalles {
@@ -119,7 +130,7 @@ export interface EntradaDeDetalles {
    * `?desde=` al href de cada lista para que su "Volver" regrese a la pestaña y el filtro
    * de donde salió. Solo por `enlaceConVuelta`; sin un origen válido el href queda igual.
    */
-  origen?: string;
+  origen: string;
   /** El instante que decide qué cita ya pasó (las futuras); por defecto, ahora. */
   ahora?: Date;
 }
@@ -128,11 +139,11 @@ export interface EntradaDeDetalles {
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
   const claveCloser = metrica === "cartera" ? null : entrada.claveCloser;
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
-  const href = urlDeLista(entrada.slug, metrica, entrada.periodo, claveCloser);
+  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-    href: entrada.origen ? enlaceConVuelta(href, entrada.origen) : href,
+    href,
     fotoDeHoy: METRICAS_FOTO_DE_HOY.includes(metrica),
   };
 }
@@ -195,11 +206,11 @@ function detalleDeDeals(
   claveCloser: string | null,
   subconjunto?: SubconjuntoDelEmbudo,
 ): DetalleDeCifra {
-  const href = urlDeLista(entrada.slug, metrica, entrada.periodo, claveCloser, undefined, undefined, subconjunto);
+  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, subconjunto });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
-    href: entrada.origen ? enlaceConVuelta(href, entrada.origen) : href,
+    href,
     fotoDeHoy: (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly Metrica[]).includes(metrica),
   };
 }

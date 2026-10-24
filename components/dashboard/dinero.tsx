@@ -7,7 +7,6 @@ import { SeriesLineales } from "@/components/series-lineales";
 import { Variacion } from "@/components/variacion";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 import type { Rango } from "@/lib/queries/dashboard";
-import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { CajaConVariacion, Tabla, Tarjeta } from "@/components/dashboard/piezas";
@@ -25,7 +24,7 @@ export function Dinero({
   detalles?: DetallesDelDashboard;
   slug: string;
   series?: SeriesDeDinero;
-  origen?: string;
+  origen: string;
   /** Sin equipo comercial (paid trafficker, ticket 102): sin comisión y sin enlaces a listas. */
   veEquipo?: boolean;
 }) {
@@ -85,14 +84,14 @@ export function Dinero({
               <Tabla cabeceras={["Cohorte", "Ventas", "Contratado"]}>
                 {vista.ventasPorCohorte.map((fila) => {
                   const href = veEquipo && fila.cohorteId
-                    ? urlDeLista(
+                    ? urlDeLista({
                         slug,
-                        "contratado",
-                        vista.periodo,
-                        vista.claveCloser,
-                        undefined,
-                        fila.cohorteId,
-                      )
+                        metrica: "contratado",
+                        periodo: vista.periodo,
+                        origen,
+                        claveCloser: vista.claveCloser,
+                        cohorteId: fila.cohorteId,
+                      })
                     : null;
                   return (
                     <tr key={fila.cohorteId ?? "sin-cohorte"}>
@@ -177,7 +176,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
   datos: SeriesDeDinero;
   slug: string;
   claveCloser: string | null;
-  origen?: string;
+  origen: string;
   conListas: boolean;
 }) {
   const { meses, acumulado } = datos;
@@ -199,8 +198,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
   ];
   const enlace = (metrica: "contratado" | "cierres" | "caja", rango: Rango, moneda?: string) => {
     if (!conListas || rango.desde > rango.hasta) return null;
-    const href = urlDeLista(slug, metrica, { preset: "custom", a: rango, b: null }, claveCloser, moneda);
-    return origen ? enlaceConVuelta(href, origen) : href;
+    return urlDeLista({ slug, metrica, periodo: { preset: "custom", a: rango, b: null }, origen, claveCloser, moneda });
   };
   const diaCorto = (dia: string) => `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
   return (

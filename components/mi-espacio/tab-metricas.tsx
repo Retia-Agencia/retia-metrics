@@ -103,20 +103,22 @@ export async function TabMetricas({
   closerUserId,
   hoy,
   busqueda,
+  origen,
 }: {
   programas: ProgramaDeMetricas[];
   programa: ProgramaDeMetricas | null;
   closerUserId: string;
   hoy: string;
   busqueda: Busqueda;
+  origen: string;
 }) {
   const periodo = parsearPeriodoUrl(busqueda);
   if (programa) {
-    const vista = await armarVistaDeMisMetricas({ programa, closerUserId, hoy, periodo });
+    const vista = await armarVistaDeMisMetricas({ programa, closerUserId, hoy, periodo, origen });
     return <BloqueDePrograma vista={vista} />;
   }
 
-  const todos = await armarVistaDeMisMetricasTodos({ programas, closerUserId, hoy, periodo });
+  const todos = await armarVistaDeMisMetricasTodos({ programas, closerUserId, hoy, periodo, origen });
   const cajasB = new Map(todos.b?.caja.map((c) => [c.moneda, c.valor]));
   return (
     <div className="space-y-6">

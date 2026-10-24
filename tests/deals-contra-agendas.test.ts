@@ -160,13 +160,13 @@ describe("138: deals creados contra agendas, contra la base", () => {
     const [resumen] = await resumenDeMetrica("deals_creados", { programId: programaA, rango: A, hoy: HOY, claveCloser: claveHistorica("Ana") }, db);
     expect(resumen).toMatchObject({ disponible: false, subtotal: { cantidad: 0 } });
     const periodo = resolverPeriodo({ preset: "este_mes" }, { hoy: HOY });
-    expect(await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, claveCloser: claveHistorica("Ana") }, db))
+    expect(await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, claveCloser: claveHistorica("Ana"), origen: "/p/prueba-a/hub?seccion=comercial" }, db))
       .toEqual({ disponible: false });
   });
 
   it("la vista arma A, B y el enlace de cada cifra a su lista con el periodo de la gráfica", async () => {
     const periodo = resolverPeriodo({ preset: "hoy" }, { hoy: HOY });
-    const vista = await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, claveCloser: null }, db);
+    const vista = await vistaDealsContraAgendas({ programId: programaA, slug: "prueba-a", hoy: HOY, periodo, claveCloser: null, origen: "/p/prueba-a/hub?seccion=comercial" }, db);
     if (!vista.disponible) throw new Error("debería estar disponible");
     expect(vista.a.puntos).toHaveLength(7);
     expect(vista.b!.puntos).toHaveLength(7);
