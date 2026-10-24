@@ -27,6 +27,20 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-24 (tarde): 309, 310 y 312 en main (`4fd5d3b8`), con Codex en paralelo.**
+  - **309:** `filtroDeEnvios` (`lib/queries/hechos/envio.ts`) es el único predicado de envío completo; lo usan
+    `agrupar`, `listar` y la métrica `registros`. Salieron `filtroRegistros`, `listaDeEnvios` y la métrica `envios`;
+    Origen abre `registros` con `source`/`medium`/`categoria`. Columna Persona en todas las listas del Hub, solo para
+    quien administra; el paid trafficker abre `registros` y `proyectarParaTablero` le anula persona, closer y deal
+    (la página tampoco pinta esas columnas).
+  - **310:** "Configurar" en Meta del mes, cada cohorte, cohortes sin ventana y Cupos vendidos, hacia
+    `programa?seccion=ventas#cohortes` o `#cohorte-<id>` (`enlaceConVueltaAFragmento`). Programa muestra "Volver"
+    cuando trae `desde`.
+  - **312:** `tasasDelEmbudo`: cada paso sobre el anterior y sobre Dejó datos. Abierto: "Llegó al Calendly" cuenta
+    parciales que agendaron o vienen High, así que su tasa sobre "Completó" puede pasar de 100% (no se tocó: fuera
+    de alcance).
+  - **Sin verificar:** recorrido visual a 375 px y build local (swap alto); la suite la decide el CI.
+
 - **2026-10-24: Hub, tres frentes en paralelo con Codex: 251 y 248 en main, el 299 ya estaba hecho.**
   - **251 (`67a004c2`):** Periodo y "Comparar con", sin A ni B. Dos llaves nuevas y opcionales en la URL,
     `comparar=no` y `comparar=cohorte`, decididas por la sesión cuando Codex se detuvo (no había cómo escribir "no
