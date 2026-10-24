@@ -346,6 +346,16 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 | [x] | 208 | [Migrar el corte 3: agendados con Calendly y Estudiantes Noviembre](./208-migrar-el-corte-3.md) | 203 | done · 8-oct (noche) · aplicado con el ok de Mani: CA 91 agendados + 17 estudiantes, TI 89 + 9; TI C3 desde el 28-sep. Recorrido de Mani hecho |
 
+## 17 · Agendamiento: piloto de dCal (23-oct)
+
+Dapta sacó dCal, un agendador gratis y open source. La evaluación del 23-oct (con los docs y el código, sin crear
+nada) está en el ticket: sirve para el round robin y la API, pero no reemplaza hoy el flujo del formulario. Mani
+pidió un piloto antes de decidir.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 308 | [Piloto de dCal](./308-piloto-dcal.md) | — | en curso · fases 1 y 2 hechas el 23-oct (API y team round robin); Meet verificado y caminos desde el formulario evaluados el 24-oct · falta: el reparto con Michael activo y el webhook |
+
 ## 16 · Envíos falsos (ADR 0105, 23-oct)
 
 7 tickets, todos abiertos. Salen del troll del 22-oct en Tactical (una amenaza en el nombre del envío, con cita en el

@@ -51,6 +51,27 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   citas = Calendly; lo que no cuadra es que las closers no registran el resultado (22 de 24 citas de ComunicArte sin
   resultado al día siguiente), así que el % de show de Hoy mide registro, no asistencia. Sigue: 253, 254, 257 y 300.
 
+- **2026-10-23: dCal (Dapta) evaluado como reemplazo de Calendly; piloto en el ticket 308.**
+  - **Hecho:** evaluación de solo lectura con los docs de dCal (https://docs.dapta.ai/dcal/dcal) y el código
+    (https://github.com/Dapta-Tech/dapta-calendars-slate). No se creó nada en dCal.
+  - **Veredicto:** sirve para el lado del CRM (round robin por team, reserva y reagenda por API, webhook firmado),
+    pero **no reemplaza hoy el flujo del formulario**. Dos huecos: no prellena ni se integra con Typeform ni con
+    dForms (el Scheduler de dForms es solo Calendly), así que el envío pierde el id de la cita (ADR 0057); y un
+    solo workspace para todos los programas, así que la frontera va por un mapa team→programa (molde del ADR 0098).
+    El detalle, con fuentes, está en el 308.
+  - **Decidido (Mani):** no migrar todavía; primero el piloto del 308, y la decisión sale como ADR nuevo.
+  - **Piloto, fase 1 hecha** con `DAPTA_CALENDARS_API_KEY` (en `~/.zshrc` de Mani): reservar, reintentar,
+    reagendar (v1 conserva el `uid`, v2 crea otro) y cancelar, sobre su evento personal; nada quedó activo.
+    Resultados en el 308.
+  - **Fase 2 hecha** sobre el team `piloto-retia` que creó Mani: reservar, leer y reagendar citas de team funciona
+    (`PATCH /v1` también en team); la cita trae `eventTypeId`, no el team, así que la frontera va por evento.
+  - **Pendiente y por qué:** el reparto no se midió (las 4 reservas cayeron en el mismo host: el segundo no estaba
+    libre) y falta un webhook de prueba. Las dos cosas las hace Mani en el dashboard de dCal.
+  - **23 y 24-oct:** Michael entró al workspace y al team. El Meet funciona con un calendario destino por host
+    (reserva real desde la página pública, ya cancelada), pero la API devuelve `meetingUrl: null`. Ninguna
+    integración nativa con Typeform ni dForms; la salida recomendada es una pantalla de agenda del CRM (tabla en
+    el 308). Siguiente: el webhook por un túnel temporal (cloudflared).
+
 - **2026-10-23: envíos falsos. Medición, grill, ADR 0105 y tickets 301 a 307.**
   - **El disparador:** el 22-oct entró a Tactical un troll con una amenaza contra un niño, al parecer dirigida a JP
     (nombre "No te da pena estafar con tu hijo presente", correo `tevoyamatar@`, tel 312 345 6789, y un segundo envío
@@ -4898,6 +4919,9 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 > [`docs/operations.md`](../operations.md). El texto anterior: `git show da68cdf:docs/agents/handoff.md`.
 
 ### Now
+
+- 📅 **23-oct, dCal como reemplazo de Calendly** (ticket 308, `docs/tasks/README.md` §17): evaluado con docs y
+  código; no se migra hasta el piloto. Fases 1 y 2 hechas; falta el reparto con el segundo host activo y el webhook.
 
 - 🕵️ **23-oct, envíos falsos** (ADR 0105, tickets 301 a 307, `docs/tasks/README.md` §16): solo diseño, nada
   implementado. Listos para arrancar: **301** (migración, la primera de la cola) y **303** (puro, en paralelo).
