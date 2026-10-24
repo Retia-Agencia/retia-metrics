@@ -11,11 +11,12 @@ import {
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
 import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
+import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import type { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
-export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "utm_source" | "utm_medium" | "tiene_envio" | "dueno" | "cohorte" | "etapa";
+export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "utm_source" | "utm_medium" | "categoria" | "tiene_envio" | "dueno" | "cohorte" | "etapa";
 export type MedidaAgenda = "agendas";
 
 const dimensiones = {
@@ -28,6 +29,7 @@ const dimensiones = {
   ),
   utm_source: submissions.utmSource,
   utm_medium: submissions.utmMedium,
+  categoria: categoriaUtmSql(),
   tiene_envio: sql<string>`case when ${submissions.id} is null then 'no' else 'si' end`,
   dueno: deals.ownerUserId,
   cohorte: deals.cohortId,

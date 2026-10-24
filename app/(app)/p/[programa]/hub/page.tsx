@@ -21,25 +21,22 @@ import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { fecha, num, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
-import { embudoPorCanal } from "@/lib/queries/dashboard";
 import { AREAS } from "@/lib/atribucion/canal";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { origenDelPrograma } from "@/lib/queries/origen";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
-import { registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type Pestana } from "@/components/layout/pestanas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
-import { DashboardPrograma, OrigenPorCanal } from "@/components/dashboard-programa";
+import { DashboardPrograma } from "@/components/dashboard-programa";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
 import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
-import { RegistrosAgendasCanal } from "@/components/registros-agendas-canal";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { Badge } from "@/components/ui/badge";
@@ -441,17 +438,13 @@ async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen, pue
   origen: string;
   puedeAbrirLista: boolean;
 }) {
-  const [vistaOrigen, hechos, formulario, porCanal, porPregunta] = await Promise.all([
+  const [vistaOrigen, formulario, porPregunta] = await Promise.all([
     origenDelPrograma(db, { programId, rango, hoy }),
-    hechosDelEmbudo(db, { programId, rango }),
     embudoDelFormulario(db, { programId, rango }),
-    registrosYAgendasPorCanal(db, programId, rango, hoy),
     embudoPorPregunta(db, programId),
   ]);
   return <section className="space-y-4">
     <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
-    <OrigenPorCanal filas={embudoPorCanal(hechos)} />
-    <RegistrosAgendasCanal vista={porCanal} />
     <EmbudoFormulario
       embudo={formulario}
       hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined}

@@ -158,12 +158,10 @@ Las cifras de Hub › Origen son:
 
 | Figura | Definición | Función |
 |---|---|---|
-| Envíos por par UTM | envíos completos del rango, agrupados en SQL por `utm_source` / `utm_medium` | `origenDelPrograma` |
-| Agendas por par UTM | llamadas vigentes creadas en el rango, atribuidas al envío que abrió su deal | `hechos/agenda.agrupar` |
+| Registros y agendas por canal y par UTM | envíos completos y llamadas vigentes creadas en el rango, atribuidas al envío que abrió su deal; los pares se agrupan bajo su área y canal | `origenDelPrograma` |
 | Sin UTM | envíos del rango cuya regla resulta `sin_utm`; siempre se muestra con conteo y porcentaje | `origenDelPrograma` |
-| Macros sin expandir | envíos del rango con al menos un UTM centinela `{{…}}`; siempre se muestra con conteo y porcentaje | `emparejarFilaDeEnvio` |
-| Nivel más común | nivel N3, N2, N1 o N0 que reúne más envíos dentro de cada par UTM | `emparejarFilaDeEnvio` |
-| Nuevo | el par se vio por primera vez entre hoy y los seis días anteriores | `hechos/envio.agruparTrazas` |
+| Macros sin expandir | envíos del rango con al menos un UTM centinela `{{…}}`; siempre se muestra con conteo y porcentaje | `origenDelPrograma` |
+| Nuevo | el par se vio por primera vez entre hoy y los seis días anteriores | `origenDelPrograma` |
 | Plantillas por cuenta | anuncios activos por cuenta con plantilla vieja, de Pauta, otra o sin id de anuncio | `origenDelPrograma` |
 | Traza Paid | distribución N3, N2 y N1 de los envíos Paid del rango | `origenDelPrograma` |
 

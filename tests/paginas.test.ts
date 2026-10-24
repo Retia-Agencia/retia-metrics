@@ -168,8 +168,6 @@ vi.mock("@/lib/queries/embudo-formulario", async (importOriginal) => ({
 // El embudo por pregunta (126 B) le pega a Typeform: sin base ni red, ningún formulario.
 const embudoPorPregunta = vi.fn(async () => []);
 vi.mock("@/lib/queries/embudo-por-pregunta", () => ({ embudoPorPregunta }));
-const registrosYAgendasPorCanal = vi.fn(async () => ({ filas: [], total: { registros: 0, agendas: 0 } }));
-vi.mock("@/lib/queries/registros-agendas-canal", () => ({ registrosYAgendasPorCanal }));
 // Deals creados contra agendas (138), igual: sin base, la gráfica no disponible.
 const vistaDealsContraAgendas = vi.fn(async () => ({ disponible: false }));
 vi.mock("@/lib/queries/vista-deals-contra-agendas", () => ({ vistaDealsContraAgendas }));
@@ -1498,11 +1496,11 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
     expect(vistaDeLista).toHaveBeenCalledWith(expect.objectContaining({ programId: "p-1", metrica: "no_agendaron" }));
   });
 
-  it("permite al paid trafficker abrir registros, sin concederle las demás listas", async () => {
+  it.each(["registros", "agendas_creadas"])("permite al paid trafficker abrir %s desde Origen", async (metrica) => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
-    await expect(abrir({ metrica: "registros" })).resolves.toBeTruthy();
-    expect(vistaDeLista).toHaveBeenCalledWith(expect.objectContaining({ programId: "p-1", metrica: "registros" }));
+    await expect(abrir({ metrica })).resolves.toBeTruthy();
+    expect(vistaDeLista).toHaveBeenCalledWith(expect.objectContaining({ programId: "p-1", metrica }));
   });
 
   it("rechaza a un closer y el filtro de closer forjado por pauta en registros", async () => {

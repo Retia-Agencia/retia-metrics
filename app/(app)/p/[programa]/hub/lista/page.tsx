@@ -68,7 +68,9 @@ const esquema = z.object({
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
   source: z.string().max(300).optional(),
   medium: z.string().max(300).optional(),
-  categoria: z.enum(["sin_utm", "macro"]).optional(),
+  categoria: z.enum(["con_utm", "sin_utm", "macro"]).optional(),
+  area: z.enum(["paid", "organico", "referidos", "sin_utm"]).optional(),
+  canal: z.string().max(300).optional(),
   orden: z.enum(["envio", "actividad"]).optional(),
 });
 
@@ -125,13 +127,14 @@ function tonoDeAntiguedad(bucket: string) {
 }
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {
-  // Las listas comerciales siguen reservadas a quien administra. `registros` es la excepción:
-  // abre con la capacidad del tablero para que Pauta audite Origen, y abajo se proyectan fuera
+  // Las listas comerciales siguen reservadas a quien administra. Las dos cifras de Origen
+  // abren con la capacidad del tablero para que Pauta las audite; abajo se proyectan fuera
   // persona, closer y deal antes de renderizar. Por capacidad, nunca `rol === "..."`.
   const busqueda = await searchParams;
   const validado = esquema.safeParse(busqueda);
   if (!validado.success) notFound();
-  const capacidad = validado.data.metrica === "registros"
+  const esListaDeOrigen = validado.data.metrica === "registros" || validado.data.metrica === "agendas_creadas";
+  const capacidad = esListaDeOrigen
     ? veTableroDelPrograma
     : validado.data.metrica === "no_agendaron"
       ? veEquipoComercial
@@ -143,11 +146,12 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const veEquipo = veEquipoComercial(rol);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, categoria, orden } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, categoria, area, canal, orden } = validado.data;
   const sourceNormalizado = source === "__null__" ? null : source;
   const mediumNormalizado = medium === "__null__" ? null : medium;
-  if (metrica !== "registros" && (source !== undefined || medium !== undefined || categoria !== undefined)) notFound();
-  if (metrica === "registros" && !esAdmin && closer !== undefined) notFound();
+  const canalNormalizado = canal === "__null__" ? null : canal;
+  if (!esListaDeOrigen && (source !== undefined || medium !== undefined || categoria !== undefined || area !== undefined || canal !== undefined)) notFound();
+  if (esListaDeOrigen && !esAdmin && closer !== undefined) notFound();
   if (metrica !== "no_agendaron" && orden !== undefined) notFound();
   if (moneda && metrica !== "caja") notFound();
   // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
@@ -168,6 +172,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     medium: mediumNormalizado,
     categoria,
     orden,
+    area,
+    canal: canalNormalizado,
     pagina,
   });
   if (!vista) notFound();
@@ -183,7 +189,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     moneda,
     cohorteId: cohorte,
     subconjunto: { etapa, antiguedad },
-    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, categoria },
+    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, categoria, area, canal: canalNormalizado },
   });
   // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
   // el periodo no los acota.

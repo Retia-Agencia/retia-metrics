@@ -15,11 +15,23 @@ export interface FilaOrigenUtm {
   agendas: number;
   area: Area;
   canal: string;
+  canalClave: string | null;
   cuenta: string | null;
   regla: string;
   nivel: Traza["nivel"];
   nuevo: boolean;
   macros: boolean;
+}
+
+export interface FilaOrigenCanal {
+  clave: string;
+  area: Area;
+  canal: string;
+  canalClave: string | null;
+  envios: number;
+  agendas: number;
+  categoria: "sin_utm" | "macro" | null;
+  pares: FilaOrigenUtm[];
 }
 
 export interface PlantillasDeCuenta {
@@ -32,16 +44,19 @@ export interface PlantillasDeCuenta {
 
 export interface VistaOrigen {
   filas: FilaOrigenUtm[];
+  canales: FilaOrigenCanal[];
   totalEnvios: number;
-  sinUtm: number;
-  macros: number;
   trazaPaid: Record<"N3" | "N2" | "N1", number>;
   plantillas: PlantillasDeCuenta[];
 }
 
 const clavePar = (source: string | null, medium: string | null) => JSON.stringify([source, medium]);
-const claveFila = (source: string | null, medium: string | null, regla: Traza["origen"]["regla"]) =>
-  JSON.stringify([source, medium, regla]);
+const claveFila = (
+  source: string | null,
+  medium: string | null,
+  regla: Traza["origen"]["regla"],
+  macros: boolean,
+) => JSON.stringify([source, medium, regla, macros]);
 
 export async function origenDelPrograma(
   db: Db,
@@ -76,17 +91,17 @@ export async function origenDelPrograma(
   }>();
   for (const grupo of agendas) {
     const traza = emparejarFilaDeEnvio(grupo, arbol);
-    const clave = claveFila(grupo.utmSource, grupo.utmMedium, traza.origen.regla);
+    const macros = traza.macros.length > 0;
+    const clave = claveFila(grupo.utmSource, grupo.utmMedium, traza.origen.regla, macros);
     const actual = agendasPorFila.get(clave) ?? {
       source: grupo.utmSource,
       medium: grupo.utmMedium,
       traza,
       agendas: 0,
-      macros: false,
+      macros,
       niveles: { N3: 0, N2: 0, N1: 0, N0: 0 },
     };
     actual.agendas += grupo.agendas;
-    actual.macros ||= traza.macros.length > 0;
     actual.niveles[traza.nivel] += grupo.agendas;
     agendasPorFila.set(clave, actual);
   }
@@ -98,7 +113,8 @@ export async function origenDelPrograma(
   for (const grupo of grupos) {
     const traza = emparejarFilaDeEnvio(grupo, arbol);
     const par = clavePar(grupo.utmSource, grupo.utmMedium);
-    const clave = claveFila(grupo.utmSource, grupo.utmMedium, traza.origen.regla);
+    const macros = traza.macros.length > 0;
+    const clave = claveFila(grupo.utmSource, grupo.utmMedium, traza.origen.regla, macros);
     const actual = porParYRegla.get(clave) ?? {
       source: grupo.utmSource,
       medium: grupo.utmMedium,
@@ -106,15 +122,15 @@ export async function origenDelPrograma(
       agendas: agendasPorFila.get(clave)?.agendas ?? 0,
       area: traza.origen.area,
       canal: traza.origen.canal?.nombre ?? "Sin UTM",
+      canalClave: traza.origen.canal?.clave ?? null,
       cuenta: traza.origen.canal?.cuenta ?? null,
       regla: textoDeRegla(traza.origen, { source: grupo.utmSource, medium: grupo.utmMedium }),
       nivel: traza.nivel,
       nuevo: nuevoPorPar.get(par) ?? false,
-      macros: false,
+      macros,
       niveles: { N3: 0, N2: 0, N1: 0, N0: 0 },
     };
     actual.envios += grupo.envios;
-    actual.macros ||= traza.macros.length > 0;
     actual.niveles[traza.nivel] += grupo.envios;
     porParYRegla.set(clave, actual);
   }
@@ -130,6 +146,7 @@ export async function origenDelPrograma(
       agendas: agenda.agendas,
       area: agenda.traza.origen.area,
       canal: agenda.traza.origen.canal?.nombre ?? "Sin UTM",
+      canalClave: agenda.traza.origen.canal?.clave ?? null,
       cuenta: agenda.traza.origen.canal?.cuenta ?? null,
       regla: textoDeRegla(agenda.traza.origen, { source: agenda.source, medium: agenda.medium }),
       nivel: agenda.traza.nivel,
@@ -147,6 +164,43 @@ export async function origenDelPrograma(
   const trazaPaid = { N3: 0, N2: 0, N1: 0 };
   for (const fila of filas) if (fila.area === "paid" && fila.nivel !== "N0") trazaPaid[fila.nivel] += fila.envios;
 
+  const porCanal = new Map<string, FilaOrigenCanal>();
+  const sumarCanal = (
+    clave: string,
+    area: Area,
+    canal: string,
+    canalClave: string | null,
+    categoria: FilaOrigenCanal["categoria"],
+    par: FilaOrigenUtm,
+  ) => {
+    const actual = porCanal.get(clave) ?? { clave, area, canal, canalClave, categoria, envios: 0, agendas: 0, pares: [] };
+    actual.envios += par.envios;
+    actual.agendas += par.agendas;
+    actual.pares.push(par);
+    porCanal.set(clave, actual);
+  };
+  for (const fila of filas) {
+    if (fila.macros) sumarCanal("macro", "sin_utm", "Macros sin expandir", null, "macro", fila);
+    else if (fila.area === "sin_utm") sumarCanal("sin_utm", "sin_utm", "Sin UTM", null, "sin_utm", fila);
+    else sumarCanal(`${fila.area}:${fila.canalClave}`, fila.area, fila.canal, fila.canalClave, null, fila);
+  }
+  for (const especial of [
+    { clave: "sin_utm", canal: "Sin UTM", categoria: "sin_utm" as const },
+    { clave: "macro", canal: "Macros sin expandir", categoria: "macro" as const },
+  ]) {
+    if (!porCanal.has(especial.clave)) porCanal.set(especial.clave, {
+      ...especial, area: "sin_utm", canalClave: null, envios: 0, agendas: 0, pares: [],
+    });
+  }
+  const canales = [...porCanal.values()].sort((a, b) => {
+    if (a.categoria !== null || b.categoria !== null) {
+      if (a.categoria === null) return -1;
+      if (b.categoria === null) return 1;
+      return a.categoria === "sin_utm" ? -1 : 1;
+    }
+    return b.envios - a.envios || a.canal.localeCompare(b.canal) || a.area.localeCompare(b.area);
+  });
+
   const plantillas = new Map<string, PlantillasDeCuenta>();
   for (const anuncio of anuncios) {
     const fila = plantillas.get(anuncio.cuenta) ?? { cuenta: anuncio.cuenta, vieja: 0, pauta: 0, otra: 0, sinId: 0 };
@@ -156,9 +210,8 @@ export async function origenDelPrograma(
   }
   return {
     filas,
+    canales,
     totalEnvios,
-    sinUtm: filas.filter((fila) => fila.area === "sin_utm").reduce((n, fila) => n + fila.envios, 0),
-    macros: filas.filter((fila) => fila.macros).reduce((n, fila) => n + fila.envios, 0),
     trazaPaid,
     plantillas: [...plantillas.values()].sort((a, b) => a.cuenta.localeCompare(b.cuenta)),
   };

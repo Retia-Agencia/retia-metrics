@@ -96,7 +96,7 @@ export function urlDeLista({
   moneda?: string;
   cohorteId?: string;
   subconjunto?: SubconjuntoDelEmbudo;
-  filtrosDeOrigen?: { source?: string | null; medium?: string | null; categoria?: "sin_utm" | "macro" };
+  filtrosDeOrigen?: { source?: string | null; medium?: string | null; categoria?: "con_utm" | "sin_utm" | "macro"; area?: string; canal?: string | null };
 }): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
   if (subconjunto?.etapa) q.set("etapa", subconjunto.etapa);
@@ -115,6 +115,8 @@ export function urlDeLista({
   if (filtrosDeOrigen?.source !== undefined) q.set("source", filtrosDeOrigen.source ?? "__null__");
   if (filtrosDeOrigen?.medium !== undefined) q.set("medium", filtrosDeOrigen.medium ?? "__null__");
   if (filtrosDeOrigen?.categoria) q.set("categoria", filtrosDeOrigen.categoria);
+  if (filtrosDeOrigen?.area) q.set("area", filtrosDeOrigen.area);
+  if (filtrosDeOrigen?.canal !== undefined) q.set("canal", filtrosDeOrigen.canal ?? "__null__");
   return enlaceConVuelta(`/p/${encodeURIComponent(slug)}/hub/lista?${q}`, origen);
 }
 
@@ -389,7 +391,9 @@ export interface EntradaDeLista {
   antiguedad?: string;
   source?: string | null;
   medium?: string | null;
-  categoria?: "sin_utm" | "macro";
+  categoria?: "con_utm" | "sin_utm" | "macro";
+  area?: string;
+  canal?: string | null;
   orden?: "envio" | "actividad";
   pagina: number;
   /** El instante que decide qué cita ya pasó y la antigüedad sin dueño; por defecto, ahora. */
@@ -398,7 +402,7 @@ export interface EntradaDeLista {
 
 /** Resuelve el mismo periodo del dashboard, sin cargar el resto de sus métricas. */
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
-  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, orden, pagina } = entrada;
+  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, area, canal, orden, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
   const cohorte = seleccion.preset.startsWith("cohorte") ? await cohorteActiva(programId, db) : null;
   const ventanas = cohorte ? await ventanasAnterioresDeCohorte(db, programId, cohorte.id) : {};
@@ -413,7 +417,7 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
   const periodo = entrada.busqueda.sin_b === "1" && !seleccion.b
     ? { ...resuelto, b: null, aviso: seleccion.aviso }
     : resuelto;
-  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, orden, ahora: entrada.ahora ?? new Date() };
+  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, area, canal, orden, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

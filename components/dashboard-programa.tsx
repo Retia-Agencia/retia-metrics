@@ -5,7 +5,6 @@ import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 
-export { OrigenPorCanal } from "@/components/dashboard/origen-por-canal";
 export { textoComisionPrograma } from "@/components/dashboard/operacion";
 
 /**

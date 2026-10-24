@@ -27,6 +27,9 @@ import {
   noAgendaronDelFormulario,
   type MetricaDeEmbudoFormulario,
 } from "@/lib/queries/embudo-formulario";
+import { condicionesDeFiltros } from "@/lib/queries/hechos/consultar";
+import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
+import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
 
 export type Metrica =
   | "caja"
@@ -85,10 +88,12 @@ export interface FiltrosDeMetrica {
   etapa?: string;
   /** Solo el embudo por etapas (ticket 188): el tramo de "sin dueño por antigüedad". */
   antiguedad?: string;
-  /** Solo registros: filtros de la misma dimensión que pinta Hub › Origen. */
+  /** Solo registros y agendas creadas: filtros de la misma dimensión que pinta Hub › Origen. */
   source?: string | null;
   medium?: string | null;
-  categoria?: "sin_utm" | "macro";
+  categoria?: "con_utm" | "sin_utm" | "macro";
+  area?: string;
+  canal?: string | null;
   /** Solo No agendaron: la fecha usada para ordenar la lista. */
   orden?: "envio" | "actividad";
 }
@@ -455,9 +460,26 @@ function consultaDe(
         .select(campos)
         .from(calls)
         .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+        .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
         .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
-        .where(and(filtroAgendasCreadas(alcance), vigente(calls), vigente(deals)));
+        .where(and(
+          filtroAgendasCreadas(alcance),
+          condicionesDeFiltros({
+            ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, calls.programId),
+            utm_source: submissions.utmSource,
+            utm_medium: submissions.utmMedium,
+            categoria: categoriaUtmSql(),
+          }, {
+            ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
+            ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
+            ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
+            ...(filtros.area ? { area: [filtros.area] } : {}),
+            ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
+          }),
+          vigente(calls),
+          vigente(deals),
+        ));
     case "registros":
       return db
         .select(campos)
@@ -474,6 +496,8 @@ function consultaDe(
               ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
               ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
               ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
+              ...(filtros.area ? { area: [filtros.area] } : {}),
+              ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
             },
           }),
           alcance.claveCloser ? sql`false` : undefined,
