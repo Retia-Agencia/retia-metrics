@@ -15,11 +15,12 @@ import {
  * El embudo por pregunta (Insights de Typeform) es la parte B.
  */
 
-const PASOS: { clave: keyof PasosDelFormulario; titulo: string }[] = [
+/** `deLosQue` nombra el paso anterior, para que el % diga sobre qué se calcula. */
+const PASOS: { clave: keyof PasosDelFormulario; titulo: string; deLosQue?: string }[] = [
   { clave: "dejoDatos", titulo: "Dejó datos" },
-  { clave: "completo", titulo: "Completó" },
-  { clave: "llegoCalendly", titulo: "Llegó al Calendly" },
-  { clave: "agendo", titulo: "Agendó" },
+  { clave: "completo", titulo: "Completó", deLosQue: "de los que dejaron datos" },
+  { clave: "llegoCalendly", titulo: "Llegó al Calendly", deLosQue: "de los que completaron" },
+  { clave: "agendo", titulo: "Agendó", deLosQue: "de los que llegaron al Calendly" },
 ];
 
 function porcentaje(tasa: number | null): string {
@@ -42,7 +43,7 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
         </CardTitle>
         <p className="text-xs text-muted-foreground">
           Por registro (un parcial y su completa cuentan una vez) y por el día de su primer envío. Llegó al Calendly: agendó,
-          o el formulario lo calificó High. No aplica el filtro de closer.
+          o el formulario lo calificó High. No aplica el filtro de closer. En la tabla, cada % es sobre la columna anterior.
         </p>
       </CardHeader>
       <CardContent className="space-y-5 text-sm">
@@ -55,10 +56,15 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
                 <p className="cifra text-lg font-semibold">{num(total[p.clave])}</p>
                 {tasas === null ? null : (
                   <>
-                    <p className="cifra text-xs">{porcentaje(tasas.sobreAnterior)} del paso anterior</p>
-                    <p className="cifra text-xs text-muted-foreground">
-                      {porcentaje(tasas.sobreDejoDatos)} de dejó datos
+                    <p className="text-xs">
+                      <span className="cifra">{porcentaje(tasas.sobreAnterior)}</span> {p.deLosQue}
                     </p>
+                    {/* En Completó el paso anterior ya es Dejó datos: el % del total sería el mismo. */}
+                    {p.clave === "completo" ? null : (
+                      <p className="text-xs text-muted-foreground">
+                        <span className="cifra">{porcentaje(tasas.sobreDejoDatos)}</span> del total
+                      </p>
+                    )}
                   </>
                 )}
               </div>
@@ -99,14 +105,7 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
                         <td key={p.clave} className="py-2 pl-3 text-right whitespace-nowrap">
                           <span className="cifra block">{num(f[p.clave])}</span>
                           {tasas === null ? null : (
-                            <>
-                              <span className="cifra block text-xs">
-                                {porcentaje(tasas.sobreAnterior)} del paso anterior
-                              </span>
-                              <span className="cifra block text-xs text-muted-foreground">
-                                {porcentaje(tasas.sobreDejoDatos)} de dejó datos
-                              </span>
-                            </>
+                            <span className="cifra block text-xs text-muted-foreground">{porcentaje(tasas.sobreAnterior)}</span>
                           )}
                         </td>
                       );

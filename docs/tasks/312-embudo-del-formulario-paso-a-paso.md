@@ -28,3 +28,9 @@ de los que llegaron al Calendly, ¿cuántos agendaron? (en ComunicArte el 24-oct
 - [x] Test sobre la función que calcula los porcentajes: paso anterior y base cero.
 - [x] En "todos los programas" la tasa no aparece sumada.
 - [x] Recorrido en escritorio y 375 px.
+
+## Enmienda 24-oct (Mani): más simple
+
+"Del paso anterior" y "de dejó datos" no se entendían. Cada total dice el paso por su nombre ("100% de los que
+llegaron al Calendly") y debajo "40% del total"; en Completó solo una, porque son la misma. La tabla por canal muestra
+solo el % sobre la columna anterior, y la descripción del embudo lo dice.

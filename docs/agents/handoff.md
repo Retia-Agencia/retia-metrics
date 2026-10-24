@@ -36,7 +36,9 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   - **310:** "Configurar" en Meta del mes, cada cohorte, cohortes sin ventana y Cupos vendidos, hacia
     `programa?seccion=ventas#cohortes` o `#cohorte-<id>` (`enlaceConVueltaAFragmento`). Programa muestra "Volver"
     cuando trae `desde`.
-  - **312:** `tasasDelEmbudo`: cada paso sobre el anterior y sobre Dejó datos. Abierto: "Llegó al Calendly" cuenta
+  - **312:** `tasasDelEmbudo`: cada paso sobre el anterior y sobre Dejó datos. Simplificado a pedido de Mani: el
+    total nombra el paso anterior ("de los que completaron") y debajo "del total"; la tabla, solo el % sobre la columna
+    anterior. Abierto: "Llegó al Calendly" cuenta
     parciales que agendaron o vienen High, así que su tasa sobre "Completó" puede pasar de 100% (no se tocó: fuera
     de alcance).
   - **Sin verificar:** recorrido visual a 375 px y build local (swap alto); la suite la decide el CI.
