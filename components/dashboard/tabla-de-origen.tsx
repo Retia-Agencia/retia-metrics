@@ -57,8 +57,8 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
             <th className="py-2 text-left font-medium">Área · canal / UTM</th>
             <th className="py-2 text-right font-medium">Registros</th>
             <th className="py-2 text-right font-medium">Agendas</th>
-            <th className="py-2 text-right font-medium">% agenda</th>
-            <th className="py-2 text-left font-medium">Regla</th>
+            <th className="py-2 pl-3 text-right font-medium">% agenda</th>
+            <th className="py-2 pl-4 text-left font-medium">Regla</th>
           </tr></thead>
           <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
         {canales.flatMap((fila) => {
@@ -85,7 +85,7 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
                 {especial && !soloConteos ? <span className="cifra text-muted-foreground"> · {pct(totalEnvios === 0 ? 0 : fila.envios / totalEnvios)}</span> : null}
               </td>
               <td className="text-right"><Cifra href={fila.enlaces.agendas}>{num(fila.agendas)}</Cifra></td>
-              <td className="cifra text-right text-muted-foreground">{tasa(fila.agendas, fila.envios)}</td>
+              <td className="cifra pl-3 text-right text-muted-foreground">{tasa(fila.agendas, fila.envios)}</td>
               <td />
             </tr>,
           ];
@@ -97,8 +97,8 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
                 </td>
                 <td className="text-right"><Cifra href={par.enlaces.registros}>{num(par.envios)}</Cifra></td>
                 <td className="text-right"><Cifra href={par.enlaces.agendas}>{num(par.agendas)}</Cifra></td>
-                <td className="cifra text-right text-muted-foreground">{tasa(par.agendas, par.envios)}</td>
-                <td className="text-muted-foreground">{par.regla}</td>
+                <td className="cifra pl-3 text-right text-muted-foreground">{tasa(par.agendas, par.envios)}</td>
+                <td className="pl-4 text-muted-foreground">{par.regla}</td>
               </tr>;
             }));
             if (fila.pares.length > MAX_PARES) filas.push(<tr key={`${fila.clave}:todos`}>
@@ -115,7 +115,7 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
           <td className="py-2">Total</td>
           <td className="cifra text-right">{num(totalEnvios)}</td>
           <td className="cifra text-right">{num(totalAgendas)}</td>
-          <td className="cifra text-right text-muted-foreground">{tasa(totalAgendas, totalEnvios)}</td>
+          <td className="cifra pl-3 text-right text-muted-foreground">{tasa(totalAgendas, totalEnvios)}</td>
           <td />
         </tr>
           </tbody>

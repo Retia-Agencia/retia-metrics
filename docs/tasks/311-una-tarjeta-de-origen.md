@@ -3,7 +3,7 @@ id: 311
 etapa: hub
 serves: "Mani, 24-oct (recorrido de Hub › Origen): 'origen del lead y cómo cuenta cada UTM es la misma vaina' · AGENTS.md: una pregunta, un módulo · C-2 (docs/hub.md §8)"
 depends: [248, 309]
-status: todo
+status: done
 ---
 
 # 311 — Hub › Origen: una sola tarjeta por canal, que se abre en sus UTM
@@ -39,8 +39,8 @@ es vocabulario interno: "eso no lo entiende nadie".
 
 ## Done cuando
 
-- [ ] Origen tiene una tarjeta de origen, no tres; la suma de registros por canal da el total de "Leads" de Hoy en el
+- [x] Origen tiene una tarjeta de origen, no tres; la suma de registros por canal da el total de "Leads" de Hoy en el
   mismo rango, con test.
-- [ ] La suma de los pares de un canal da la fila del canal, con test.
-- [ ] Un paid trafficker ve la tarjeta de sus programas; un closer que forja la ruta recibe 404.
-- [ ] Recorrido con clic en todo lo que se abre, escritorio y 375 px, consola limpia.
+- [x] La suma de los pares de un canal da la fila del canal, con test.
+- [x] Un paid trafficker ve la tarjeta de sus programas; un closer que forja la ruta recibe 404.
+- [x] Recorrido con clic en todo lo que se abre, escritorio y 375 px, consola limpia.

@@ -3,7 +3,7 @@ id: 313
 etapa: hub
 serves: "Mani, 24-oct: los que llegan a la agenda son los más probables de comprar; hay que poder contactarlos · ADR 0067 (toda cifra abre su lista)"
 depends: [309, 312]
-status: todo
+status: done
 ---
 
 # 313 — La lista de los que llegaron al Calendly y no agendaron
@@ -46,8 +46,8 @@ contactarlos. Dos cosas distintas, y solo una se puede listar:
 
 ## Done cuando
 
-- [ ] La cifra "No agendaron" es igual al total de su lista, con anuladas y otro programa en el test.
-- [ ] Un registro que agenda al día siguiente sale de la lista.
-- [ ] Un closer que forja la URL de otro programa recibe 404; un paid trafficker ve la cifra pero no abre la lista
+- [x] La cifra "No agendaron" es igual al total de su lista, con anuladas y otro programa en el test.
+- [x] Un registro que agenda al día siguiente sale de la lista.
+- [x] Un closer que forja la URL de otro programa recibe 404; un paid trafficker ve la cifra pero no abre la lista
   (trae closer y etapa, que son de `veEquipoComercial`).
-- [ ] Recorrido con clic en todo lo que se abre, escritorio y 375 px, consola limpia.
+- [x] Recorrido con clic en todo lo que se abre, escritorio y 375 px, consola limpia.

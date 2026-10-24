@@ -8,6 +8,7 @@ import { agendoElEnvio, esCalidadAlta } from "@/lib/ingesta/etapa-de-entrada";
 import { arbolDePauta } from "@/lib/pauta/arbol";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
 import { vigente } from "@/lib/queries/vigente";
+import { idsDelDealDeLaPersona } from "@/lib/queries/deal-de-la-persona";
 import { ETAPAS_EN_ORDEN, type EtapaDeal } from "@/lib/deals/etapas";
 import { etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { CLAVE_SIN_DUENO } from "@/lib/queries/embudo-con-filas";
@@ -157,18 +158,6 @@ function registrosEnElRango(envios: readonly EnvioLeido[], rango: AlcanceDeSerie
 }
 
 const DESDE_AGENDADO = ETAPAS_EN_ORDEN.indexOf("agendado");
-const ETAPAS_CERRADAS: readonly EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
-
-/** El deal que representa al lead, determinista: el abierto; si no hay, el más reciente; desempate por id. */
-function compararDeals(
-  a: { dealId: string; etapa: EtapaDeal; createdAt: Date },
-  b: { dealId: string; etapa: EtapaDeal; createdAt: Date },
-): number {
-  const cerradoA = ETAPAS_CERRADAS.includes(a.etapa) ? 1 : 0;
-  const cerradoB = ETAPAS_CERRADAS.includes(b.etapa) ? 1 : 0;
-  return cerradoA - cerradoB || b.createdAt.getTime() - a.createdAt.getTime() || a.dealId.localeCompare(b.dealId);
-}
-
 async function miembrosNoAgendaron(
   db: Db,
   programId: string,
@@ -193,7 +182,12 @@ async function miembrosNoAgendaron(
     .from(deals)
     .innerJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(eq(deals.programId, programId), inArray(deals.leadId, leadIds), vigente(deals)));
+    .where(and(
+      eq(deals.programId, programId),
+      inArray(deals.leadId, leadIds),
+      inArray(deals.id, idsDelDealDeLaPersona(db, programId)),
+      vigente(deals),
+    ));
   const dealIds = filas.map((fila) => fila.dealId);
   const [citas, ultimaActividad] = await Promise.all([
     dealIds.length === 0
@@ -203,11 +197,7 @@ async function miembrosNoAgendaron(
     ultimaActividadPorDeal(db, dealIds, filas.map((fila) => ({ dealId: fila.dealId, createdAt: fila.createdAt }))),
   ]);
   const conCita = new Set(citas.map((cita) => cita.dealId));
-  const dealDeLead = new Map<string, (typeof filas)[number]>();
-  for (const fila of filas) {
-    const actual = dealDeLead.get(fila.leadId);
-    if (!actual || compararDeals(fila, actual) < 0) dealDeLead.set(fila.leadId, fila);
-  }
+  const dealDeLead = new Map(filas.map((fila) => [fila.leadId, fila]));
   // Una fila por persona (Mani, 24-oct): la del registro más antiguo que llegó al Calendly.
   const primerRegistro = new Map<string, RegistroDelFormulario & { leadId: string }>();
   for (const registro of candidatos) {

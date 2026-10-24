@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { deals, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { agrupar } from "@/lib/queries/hechos/envio";
@@ -133,5 +134,20 @@ describe("ticket 309: una sola lista de envíos", () => {
     for (const fila of [...limitada.filas, ...limitada.grupos]) {
       expect(fila).toMatchObject({ persona: null, closer: null, claveCloser: null, dealId: null });
     }
+  });
+
+  it("muestra el deal de la persona aunque no haya nacido de ese envío, sin duplicar la fila", async () => {
+    const [persona] = await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "persona-1@retia.test"));
+    const [abierto] = await db.insert(deals).values({
+      programId, leadId: persona.id, etapa: "calificado", createdAt: new Date("2026-10-05T10:00:00-05:00"),
+    }).returning();
+    await db.insert(deals).values({
+      programId, leadId: persona.id, etapa: "cierre_perdido", createdAt: new Date("2026-10-20T10:00:00-05:00"),
+    });
+
+    const { lista, filas } = await todasLasFilas();
+    const delaPersona = filas.filter((fila) => fila.persona?.leadId === persona.id);
+    expect(delaPersona.map((fila) => [fila.dealId, fila.etapa])).toEqual([[abierto.id, "calificado"]]);
+    expect(filas).toHaveLength(lista.subtotal.cantidad);
   });
 });

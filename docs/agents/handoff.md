@@ -4939,11 +4939,13 @@ _Estado actual del trabajo. Lo mas reciente arriba._
 
 ### Now
 
-- 🧭 **24-oct, Hub › Origen y No agendaron en main** (tickets 311 y 313, sin recorrido visual): Origen tiene una sola
-  tarjeta por canal que se abre en sus pares (registros = hecho de envío, igual a Leads de Hoy); la tabla desplegable es
-  cliente (`components/dashboard/tabla-de-origen.tsx`) y recibe los enlaces calculados en el servidor, porque
-  `urlDeLista` vive en un módulo que carga la base. "No agendaron" es una cifra viva por persona bajo el embudo del
-  formulario (decisiones de Mani en el ticket 313). Falta: recorrido con clic en escritorio y 375 px, y el checkpoint.
+- 🧭 **24-oct, Hub › Origen y No agendaron cerrados** (311, 313): recorridos en local (escritorio, 375 px, closer con
+  y sin membresía, Pauta). En el recorrido salió que la lista de registros (309) colgaba el deal solo por
+  `submission_origen_id` y mostraba "Sin deal" a quien sí tenía uno (medido en producción, 30 días: 295 de 305 en
+  Comunícate con Confianza, 187 de 786 en ComunicArte, 202 de 683 en Tactical). Ahora "¿cuál es el deal de esta
+  persona?" vive en `lib/queries/deal-de-la-persona.ts` (abierto, si no el más reciente) y lo usan esa lista y No
+  agendaron. Deuda: la lista de `leads` en `metricas-con-filas.ts` responde lo mismo con otra regla (el más reciente,
+  sin preferir el abierto); casi siempre coinciden, pero son dos respuestas.
 
 - 📅 **23-oct, dCal como reemplazo de Calendly** (ticket 308, `docs/tasks/README.md` §17): evaluado con docs y
   código; no se migra hasta el piloto. Fases 1 y 2 hechas; falta el reparto con el segundo host activo y el webhook.

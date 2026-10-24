@@ -232,7 +232,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           {cohorte ? <Badge variant="secondary">Cohorte filtrada</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
-        <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} registros</p>
+        <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} {metrica === "no_agendaron" ? "personas" : "registros"}</p>
         {lista.subtotal.caja.map((c) => <p className="cifra" key={c.moneda}>{monto(c.total, c.moneda)}</p>)}
         <p className="text-sm text-muted-foreground">
           Más antiguos primero. Antigüedad en días calendario de Bogotá; fechas futuras: 0 días.

@@ -83,8 +83,8 @@ export function EmbudoFormulario({ embudo, hrefNoAgendaron }: { embudo: EmbudoDe
             <p className="cifra text-lg font-semibold">{num(noAgendaron)}</p>
           )}
           <p className="text-xs text-muted-foreground">
-            Llegaron al Calendly y hoy no tienen cita vigente ni están en Agendado o una etapa posterior. Puede ser menor que
-            Llegó al Calendly − Agendó porque cuenta citas que llegaron después del envío.
+            Llegaron al Calendly y hoy no tienen cita vigente ni están en Agendado o una etapa posterior. Es la foto de
+            hoy, no la del envío: no tiene por qué dar Llegó al Calendly − Agendó.
           </p>
         </div>
 

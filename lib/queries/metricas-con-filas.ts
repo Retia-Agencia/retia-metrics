@@ -22,6 +22,7 @@ import {
   type MetricaDeEmbudo,
 } from "@/lib/queries/embudo-con-filas";
 import { filtroDeEnvios } from "@/lib/queries/hechos/envio";
+import { idsDelDealDeLaPersona } from "@/lib/queries/deal-de-la-persona";
 import {
   esMetricaDeEmbudoFormulario,
   noAgendaronDelFormulario,
@@ -485,7 +486,14 @@ function consultaDe(
         .select(campos)
         .from(submissions)
         .innerJoin(sources, eq(sources.id, submissions.sourceId))
-        .leftJoin(deals, and(eq(deals.submissionOrigenId, submissions.id), eq(deals.programId, sources.programId), vigente(deals)))
+        // El deal de la persona, no el que nació de este envío: uno abierto a mano o desde otro
+        // envío también es suyo, y "Sin deal" mentiría (24-oct, medido: 295 de 305 en un programa).
+        .leftJoin(deals, and(
+          eq(deals.leadId, submissions.leadId),
+          eq(deals.programId, sources.programId),
+          inArray(deals.id, idsDelDealDeLaPersona(db, alcance.programId)),
+          vigente(deals),
+        ))
         .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
