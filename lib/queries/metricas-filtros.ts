@@ -379,7 +379,11 @@ export function llamadaPasadaSinResultado(ahora: Date) {
   );
 }
 
-/** La cita ya debía haber empezado al instante de corte compartido por cifra y lista. */
+/**
+ * La cita ya debía haber empezado al instante de corte compartido por cifra y lista. Es el
+ * `coalesce(fecha_agenda, fecha_llamada) <= ahora` escrito con operadores de drizzle sobre las
+ * columnas: un `Date` dentro de `sql` llega crudo a postgres-js y revienta solo en producción.
+ */
 export function llamadaYaDebiaOcurrir(ahora: Date) {
-  return lte(sql`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`, ahora);
+  return or(lte(calls.fechaAgenda, ahora), and(isNull(calls.fechaAgenda), lte(calls.fechaLlamada, ahora)));
 }
