@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabla } from "@/components/dashboard/piezas";
 import { NOMBRE_DE_AREA } from "@/lib/atribucion/canal";
 import { num, pct } from "@/lib/format";
 import type { FilaOrigenCanal, FilaOrigenUtm, VistaOrigen } from "@/lib/queries/origen";
 import { TablaDeOrigen } from "@/components/dashboard/tabla-de-origen";
+import { TablaDePlantillas } from "@/components/dashboard/tabla-de-plantillas";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import { urlDeLista } from "@/lib/queries/vista-metrica";
 
@@ -44,6 +44,13 @@ const PRECISION_PAID = [
   { nivel: "N1", titulo: "Solo que es pauta", detalle: "Llegó por pauta, pero sin datos para ubicar la campaña." },
 ] as const;
 
+const DESCRIPCIONES_DE_PLANTILLA = {
+  vieja: "facebook / cpc con ad_id: la de Retia antes del 29-sep. Se rastrea hasta el anuncio, pero content y term significan conjunto y anuncio.",
+  pauta: "paid_social con utm_id={{ad.id}}: la plantilla oficial (ADR 0099).",
+  otra: "Trae algún id pero no es ninguna de las dos; revisar.",
+  sinId: "El anuncio no tiene parámetros de URL o no trae ad_id ni utm_id: sus registros no se pueden atribuir al anuncio.",
+} as const;
+
 export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
   const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
   const enlaces = (filtros: FiltrosOrigen) => ({
@@ -70,10 +77,6 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
       </div>)}
     </CardContent></Card>
 
-    <Card><CardHeader><CardTitle className="text-base">Plantillas en uso por cuenta</CardTitle></CardHeader><CardContent>
-      {vista.plantillas.length === 0 ? <p className="text-sm text-muted-foreground">Sin anuncios activos guardados.</p> : <Tabla cabeceras={["Cuenta", "Vieja", "Pauta", "Otra", "Sin id de anuncio"]}>
-        {vista.plantillas.map((fila) => <tr key={fila.cuenta}><td className="py-2">{fila.cuenta}</td><td className="cifra text-right">{num(fila.vieja)}</td><td className="cifra text-right">{num(fila.pauta)}</td><td className="cifra text-right">{num(fila.otra)}</td><td className="cifra text-right">{num(fila.sinId)}</td></tr>)}
-      </Tabla>}
-    </CardContent></Card>
+    <TablaDePlantillas plantillas={vista.plantillas} descripciones={DESCRIPCIONES_DE_PLANTILLA} />
   </section>;
 }

@@ -203,3 +203,43 @@ describe("Hub Origen", () => {
     expect(pagina).toContain('redirect("/hub?seccion=origen")');
   });
 });
+
+describe("Plantillas por cuenta", () => {
+  it("cuenta solo anuncios activos del programa y conserva sus tags y jerarquía", async () => {
+    const cuenta = (await db.insert(cuentasPublicitarias).values({
+      idMeta: "cuenta-plantillas", programId, nombre: "Cuenta plantillas", moneda: "COP", zonaHoraria: "America/Bogota",
+    }).returning())[0];
+    const vieja = "utm_source=facebook&utm_medium=cpc&ad_id={{ad.id}}";
+    const pauta = "utm_medium=paid_social&utm_id={{ad.id}}";
+    await db.insert(pautaObjetos).values([
+      { cuentaId: cuenta.id, programId, idMeta: "camp-plantillas", nivel: "campana", nombre: "Campaña Uno", estado: "ACTIVE" },
+      { cuentaId: cuenta.id, programId, idMeta: "set-plantillas", nivel: "conjunto", padreIdMeta: "camp-plantillas", nombre: "Conjunto Uno", estado: "ACTIVE" },
+      { cuentaId: cuenta.id, programId, idMeta: "ad-vieja", nivel: "anuncio", padreIdMeta: "set-plantillas", nombre: "Anuncio Viejo", estado: "ACTIVE", urlTags: vieja },
+      { cuentaId: cuenta.id, programId, idMeta: "ad-pauta", nivel: "anuncio", padreIdMeta: "set-plantillas", nombre: "Anuncio Pauta", estado: "active", urlTags: pauta },
+      { cuentaId: cuenta.id, programId, idMeta: "ad-sin-id", nivel: "anuncio", padreIdMeta: "set-plantillas", nombre: "Anuncio Sin Id", estado: "ACTIVE", urlTags: null },
+      { cuentaId: cuenta.id, programId, idMeta: "ad-pausado", nivel: "anuncio", padreIdMeta: "set-plantillas", nombre: "Anuncio Pausado", estado: "PAUSED", urlTags: vieja },
+    ]);
+    const otroPrograma = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-origen", nombre: "Otro origen", ticketUsd: "1000" }).returning())[0];
+    const otraCuenta = (await db.insert(cuentasPublicitarias).values({
+      idMeta: "otra-cuenta", programId: otroPrograma.id, nombre: "Otra cuenta", moneda: "COP", zonaHoraria: "America/Bogota",
+    }).returning())[0];
+    await db.insert(pautaObjetos).values([
+      { cuentaId: otraCuenta.id, programId: otroPrograma.id, idMeta: "otra-campana", nivel: "campana", nombre: "Otra campaña", estado: "ACTIVE" },
+      { cuentaId: otraCuenta.id, programId: otroPrograma.id, idMeta: "otro-conjunto", nivel: "conjunto", padreIdMeta: "otra-campana", nombre: "Otro conjunto", estado: "ACTIVE" },
+      { cuentaId: otraCuenta.id, programId: otroPrograma.id, idMeta: "otro-anuncio", nivel: "anuncio", padreIdMeta: "otro-conjunto", nombre: "Anuncio ajeno", estado: "ACTIVE", urlTags: pauta },
+    ]);
+
+    const vista = await leerVista();
+
+    expect(vista.plantillas).toHaveLength(1);
+    expect(vista.plantillas[0]).toMatchObject({
+      cuenta: "Cuenta plantillas", vieja: 1, pauta: 1, otra: 0, sinId: 1,
+      tagsPorTipo: { vieja: [vieja], pauta: [pauta], otra: [], sinId: [] },
+    });
+    expect(vista.plantillas[0].anuncios).toEqual([
+      { idMeta: "ad-sin-id", nombre: "Anuncio Sin Id", campana: "Campaña Uno", conjunto: "Conjunto Uno", tipo: "sin_id", urlTags: null },
+      { idMeta: "ad-vieja", nombre: "Anuncio Viejo", campana: "Campaña Uno", conjunto: "Conjunto Uno", tipo: "vieja", urlTags: vieja },
+      { idMeta: "ad-pauta", nombre: "Anuncio Pauta", campana: "Campaña Uno", conjunto: "Conjunto Uno", tipo: "pauta", urlTags: pauta },
+    ]);
+  });
+});

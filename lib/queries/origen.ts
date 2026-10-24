@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { textoDeRegla, tipoDePlantilla, type Area } from "@/lib/atribucion/canal";
 import { emparejarFilaDeEnvio, type Traza } from "@/lib/atribucion/emparejar";
 import { cuentasPublicitarias, pautaObjetos } from "@/lib/db/schema";
@@ -40,6 +40,17 @@ export interface PlantillasDeCuenta {
   pauta: number;
   otra: number;
   sinId: number;
+  anuncios: AnuncioConPlantilla[];
+  tagsPorTipo: Record<"vieja" | "pauta" | "otra" | "sinId", string[]>;
+}
+
+export interface AnuncioConPlantilla {
+  idMeta: string;
+  nombre: string;
+  campana: string | null;
+  conjunto: string | null;
+  tipo: "vieja" | "pauta" | "otra" | "sin_id";
+  urlTags: string | null;
 }
 
 export interface VistaOrigen {
@@ -62,14 +73,16 @@ export async function origenDelPrograma(
   db: Db,
   args: { programId: string; rango: Rango; hoy: string },
 ): Promise<VistaOrigen> {
-  const [{ grupos, primeros }, agendas, arbol, anuncios] = await Promise.all([
+  const [{ grupos, primeros }, agendas, arbol, anuncios, objetosDePauta] = await Promise.all([
     agruparTrazas(db, args),
     agruparTrazasDeAgendas(db, args),
     arbolDePauta(db, args.programId),
     db.select({
       cuenta: cuentasPublicitarias.nombre,
-      tags: pautaObjetos.urlTags,
-      anuncios: sql<number>`count(*)::int`,
+      idMeta: pautaObjetos.idMeta,
+      nombre: pautaObjetos.nombre,
+      padreIdMeta: pautaObjetos.padreIdMeta,
+      urlTags: pautaObjetos.urlTags,
     }).from(pautaObjetos)
       .innerJoin(cuentasPublicitarias, eq(cuentasPublicitarias.id, pautaObjetos.cuentaId))
       .where(and(
@@ -77,8 +90,12 @@ export async function origenDelPrograma(
         eq(pautaObjetos.nivel, "anuncio"),
         inArray(pautaObjetos.estado, ["ACTIVE", "active"]),
         eq(cuentasPublicitarias.activo, true),
-      ))
-      .groupBy(cuentasPublicitarias.nombre, pautaObjetos.urlTags),
+      )),
+    db.select({
+      idMeta: pautaObjetos.idMeta,
+      nombre: pautaObjetos.nombre,
+      padreIdMeta: pautaObjetos.padreIdMeta,
+    }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId)),
   ]);
 
   const agendasPorFila = new Map<string, {
@@ -201,12 +218,36 @@ export async function origenDelPrograma(
     return b.envios - a.envios || a.canal.localeCompare(b.canal) || a.area.localeCompare(b.area);
   });
 
+  const objetosPorId = new Map(objetosDePauta.map((objeto) => [objeto.idMeta, objeto]));
+  const ordenDeTipo: Record<AnuncioConPlantilla["tipo"], number> = { sin_id: 0, otra: 1, vieja: 2, pauta: 3 };
   const plantillas = new Map<string, PlantillasDeCuenta>();
   for (const anuncio of anuncios) {
-    const fila = plantillas.get(anuncio.cuenta) ?? { cuenta: anuncio.cuenta, vieja: 0, pauta: 0, otra: 0, sinId: 0 };
-    const tipo = tipoDePlantilla(anuncio.tags);
-    fila[tipo === "sin_id" ? "sinId" : tipo] += anuncio.anuncios;
+    const fila = plantillas.get(anuncio.cuenta) ?? {
+      cuenta: anuncio.cuenta, vieja: 0, pauta: 0, otra: 0, sinId: 0, anuncios: [],
+      tagsPorTipo: { vieja: [], pauta: [], otra: [], sinId: [] },
+    };
+    const tipo = tipoDePlantilla(anuncio.urlTags);
+    const claveTipo = tipo === "sin_id" ? "sinId" : tipo;
+    const conjunto = anuncio.padreIdMeta ? objetosPorId.get(anuncio.padreIdMeta) : undefined;
+    const campana = conjunto?.padreIdMeta ? objetosPorId.get(conjunto.padreIdMeta) : undefined;
+    fila[claveTipo] += 1;
+    fila.anuncios.push({
+      idMeta: anuncio.idMeta,
+      nombre: anuncio.nombre,
+      campana: campana?.nombre ?? null,
+      conjunto: conjunto?.nombre ?? null,
+      tipo,
+      urlTags: anuncio.urlTags,
+    });
+    if (anuncio.urlTags && !fila.tagsPorTipo[claveTipo].includes(anuncio.urlTags)) fila.tagsPorTipo[claveTipo].push(anuncio.urlTags);
     plantillas.set(anuncio.cuenta, fila);
+  }
+  for (const fila of plantillas.values()) {
+    for (const tags of Object.values(fila.tagsPorTipo)) tags.sort((a, b) => a.localeCompare(b));
+    fila.anuncios.sort((a, b) => ordenDeTipo[a.tipo] - ordenDeTipo[b.tipo]
+      || (a.campana ?? "").localeCompare(b.campana ?? "")
+      || a.nombre.localeCompare(b.nombre)
+      || a.idMeta.localeCompare(b.idMeta));
   }
   return {
     filas,
