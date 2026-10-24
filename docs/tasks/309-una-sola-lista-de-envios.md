@@ -50,3 +50,18 @@ Una sola métrica de lista de envíos, con un solo predicado, que sirva a Hoy y 
 - [ ] "Leads de hoy" (Hoy) y el total de envíos de Origen dan el mismo número que su lista, con test.
 - [ ] Un paid trafficker abre la lista de envíos de su programa; un closer que forja la URL recibe 404.
 - [ ] `docs/metricas.md` §1.1 nombra la única función.
+
+## Enmienda 24-oct (Mani): la lista dice quién es la persona
+
+Recorriendo Hoy y Origen, Mani: el id del envío "no me sirve de nada"; las listas tienen que decir a qué registro se
+refieren. Decidido el 24-oct:
+
+- **Columna Persona** en la lista unificada: el nombre del lead del envío, enlazado a su deal (`/p/[programa]/deals/[id]`,
+  con `enlaceConVuelta`) o, sin deal, al lead. Sale del molde general (`camposDe` en `lib/queries/metricas-con-filas.ts`),
+  así que la ganan también las demás listas del Hub (Leads de hoy, Atendidos sin grain...). El id del envío sale de la
+  pantalla.
+- **Solo la ve quien administra** (`esAdministrador`: gerente y developer). Se proyecta en el servidor, como `sinListas`
+  del 102: para el paid trafficker la columna sale nula y no se pinta, y la lista sigue abriéndole las cifras de Origen
+  con la guarda `veTableroDelPrograma` de arriba. Esconderla en el cliente no vale: el nombre no puede viajar.
+- **Done cuando, además:** forjando la petición como paid trafficker, la respuesta no trae ningún nombre (test sobre la
+  función que proyecta, no sobre la pantalla); como gerente, cada fila con lead trae su nombre y su enlace.
