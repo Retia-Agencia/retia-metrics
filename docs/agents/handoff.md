@@ -38,6 +38,9 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
     solo entró el % de show por cita (Mani, 24-oct), al lado del por deal (`055f07fe`). **Antes de lanzar un ticket,
     `git fetch` y leer el tracker de `origin/main`, no el del checkout.**
   - **CI:** `055f07fe` cayó en un shard (tests de Ajustes que esperaban Canales); `20c89906` lo arregla.
+  - **Producción cayó en Hub › Hoy** (24-oct, mediodía): `llamadaYaDebiaOcurrir` metía un `Date` en `sql` (la regla 🩸
+    de AGENTS.md); PGlite lo acepta y ningún test lo vio. `c5301f4f` lo arregla con `lte`/`or` sobre las columnas,
+    probado contra la base real. **Al revisar código de Codex, `rg` por `Date` dentro de `sql` antes de empujar.**
   - **Deuda nueva, ticket 309:** las listas `registros` (Hoy) y `envios` (Origen) son dos predicados para la misma
     pregunta. Va en su propia sesión.
   - Falta para cerrar 248 y 251: recorrido visual (escritorio y 375 px) y `npm run test:humo`.
