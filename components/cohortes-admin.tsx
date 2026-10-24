@@ -147,7 +147,7 @@ export function CohortesAdmin({
           </li>
         ) : (
           ordenadas.map((c) => (
-            <li key={c.id} className={cn("px-3 py-3 text-sm", c.estado === "cerrado" && "opacity-50")}>
+            <li id={`cohorte-${c.id}`} key={c.id} className={cn("scroll-mt-4 px-3 py-3 text-sm", c.estado === "cerrado" && "opacity-50")}>
               {editando === c.id ? (
                 <FormularioCohorte
                   titulo={`Editar ${c.codigo}`}

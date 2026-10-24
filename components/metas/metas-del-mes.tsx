@@ -1,14 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, num, pct } from "@/lib/format";
+import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 import type { MetasDelMes } from "@/lib/queries/metas";
+
+export type ConfigurarMetas = { hrefBase: string; origen: string } | null;
 
 type Props = {
   metas: MetasDelMes;
   hrefVentasMes: string;
   hrefVentasSemana: string | null;
+  configurar: ConfigurarMetas;
   /**
    * Si la cifra abre su lista. Sin el equipo comercial (paid trafficker, ticket 102) la lista
    * no es suya: la cifra se pinta igual, pero como texto.
@@ -25,7 +30,20 @@ function porcentaje(valor: number | null): string {
   return valor === null ? "—" : pct(valor);
 }
 
-export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana, conListas = true }: Props) {
+function EnlaceConfigurar({ configurar, fragmento }: { configurar: Exclude<ConfigurarMetas, null>; fragmento: string }) {
+  return (
+    <Button
+      size="sm"
+      variant="link"
+      nativeButton={false}
+      render={<Link href={enlaceConVueltaAFragmento(configurar.hrefBase, configurar.origen, fragmento)} />}
+    >
+      Configurar
+    </Button>
+  );
+}
+
+export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana, configurar, conListas = true }: Props) {
   return (
     <div className="space-y-6">
       {metas.mesSinVentana ? (
@@ -34,7 +52,10 @@ export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana, conListas 
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card className="shadow-tarjeta">
-          <CardHeader><CardTitle>Meta del mes</CardTitle></CardHeader>
+          <CardHeader className="flex-row items-center justify-between gap-2">
+            <CardTitle>Meta del mes</CardTitle>
+            {configurar ? <EnlaceConfigurar configurar={configurar} fragmento="cohortes" /> : null}
+          </CardHeader>
           <CardContent className="space-y-1">
             <p className="cifra text-2xl font-semibold">{num(metas.metaCupos, 2)} cupos</p>
             <p className="cifra text-sm text-muted-foreground">{monto(metas.metaUsd, "USD")}</p>
@@ -120,7 +141,14 @@ export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana, conListas 
             <tbody className="divide-y">
               {metas.filas.map((fila) => (
                 <tr key={fila.cohorteId ?? "sin-cohorte"}>
-                  <td className="px-6 py-3 font-medium">{fila.codigo}</td>
+                  <td className="px-6 py-3 font-medium">
+                    {fila.codigo}
+                    {configurar && fila.cohorteId ? (
+                      <span className="block">
+                        <EnlaceConfigurar configurar={configurar} fragmento={`cohorte-${fila.cohorteId}`} />
+                      </span>
+                    ) : null}
+                  </td>
                   <td className="cifra px-6 py-3 text-right">
                     {num(fila.metaCupos, 2)}<span className="block text-xs text-muted-foreground">{monto(fila.metaUsd, "USD")}</span>
                   </td>
@@ -139,7 +167,14 @@ export function MetasDelMes({ metas, hrefVentasMes, hrefVentasSemana, conListas 
         <Card className="shadow-tarjeta">
           <CardHeader><CardTitle>Cohortes sin ventana de ventas</CardTitle></CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            {metas.cohortesSinVentana.map((cohorte) => <Badge key={cohorte.id} variant="neutro">{cohorte.codigo}</Badge>)}
+            {metas.cohortesSinVentana.map((cohorte) => configurar ? (
+              <Link
+                key={cohorte.id}
+                href={enlaceConVueltaAFragmento(configurar.hrefBase, configurar.origen, `cohorte-${cohorte.id}`)}
+              >
+                <Badge variant="neutro">{cohorte.codigo}</Badge>
+              </Link>
+            ) : <Badge key={cohorte.id} variant="neutro">{cohorte.codigo}</Badge>)}
           </CardContent>
         </Card>
       ) : null}

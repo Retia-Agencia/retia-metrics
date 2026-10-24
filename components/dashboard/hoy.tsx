@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Alertas } from "@/components/dashboard/alertas";
 import { Comparativo } from "@/components/dashboard/operacion";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, num } from "@/lib/format";
+import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
+import type { ConfigurarMetas } from "@/components/metas/metas-del-mes";
 import type { Alerta } from "@/lib/queries/alertas";
 import { nombreDelMes } from "@/lib/queries/metas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -43,11 +47,21 @@ const NOMBRE_DEL_HORIZONTE: Record<ClaveDeHorizonte, { titulo: string; meta: str
 };
 
 /** 2. Los cupos del día, la semana, la cohorte y el mes: meta, real y cumplimiento. */
-function Cupos({ horizontes, detalles }: { horizontes: Horizonte[]; detalles?: DetallesDelDashboard }) {
+function Cupos({ horizontes, detalles, configurar }: { horizontes: Horizonte[]; detalles?: DetallesDelDashboard; configurar: ConfigurarMetas }) {
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex-row items-center justify-between gap-2">
         <CardTitle className="text-base">Cupos vendidos</CardTitle>
+        {configurar ? (
+          <Button
+            size="sm"
+            variant="link"
+            nativeButton={false}
+            render={<Link href={enlaceConVueltaAFragmento(configurar.hrefBase, configurar.origen, "cohortes")} />}
+          >
+            Configurar
+          </Button>
+        ) : null}
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {horizontes.map((h) => {
@@ -225,6 +239,7 @@ export function Hoy({
   alertas,
   slug,
   veEquipo,
+  configurar,
   metas,
 }: {
   /** La vista armada con el periodo de HOY (no con el que venga en la URL). */
@@ -244,6 +259,7 @@ export function Hoy({
   slug: string;
   /** Sin equipo comercial (paid trafficker): sin el comparativo por closer ni la configuración de alertas. */
   veEquipo: boolean;
+  configurar: ConfigurarMetas;
   /** Las metas del mes con sus flechas (lo que era la página Metas); las arma la página. */
   metas: ReactNode;
 }) {
@@ -253,7 +269,7 @@ export function Hoy({
         <h2 className="text-xl font-semibold">Hoy</h2>
         <LineaDeContexto contexto={contexto} />
       </div>
-      <Cupos horizontes={horizontes} detalles={detalles} />
+      <Cupos horizontes={horizontes} detalles={detalles} configurar={configurar} />
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">La operación de hoy</h3>
         <OperacionDelDia

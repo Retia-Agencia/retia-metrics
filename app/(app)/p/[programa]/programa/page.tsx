@@ -296,6 +296,8 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     <PageShell
       titulo={programa.nombre}
       descripcion="Programa"
+      // Desde un atajo de Metas del Hub (ticket 310): "Volver" regresa al Hub con su periodo.
+      volver={uno(query.desde) ? { desde: uno(query.desde), porDefecto: { href: `/p/${programa.slug}/hub`, etiqueta: "Hub" } } : undefined}
       fija
       acciones={
         configura ? (
@@ -537,7 +539,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
 
           {seccion === "ventas" ? (
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
+              <Card id="cohortes" className="scroll-mt-4">
                 <CardHeader>
                   <CardTitle className="text-base">Cohortes</CardTitle>
                 </CardHeader>
@@ -591,7 +593,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 </CardContent>
               </Card>
 
-              <Card className="lg:col-span-2">
+              <Card id="alertas" className="scroll-mt-4 lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-base">Alertas por persistencia</CardTitle>
                 </CardHeader>
@@ -635,7 +637,7 @@ function ListaDeCohortes({ cohortes }: { cohortes: CohorteVista[] }) {
   return (
     <ul className="divide-y divide-border text-sm">
       {cohortes.map((c) => (
-        <li key={c.id} className="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <li id={`cohorte-${c.id}`} key={c.id} className="scroll-mt-4 grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="min-w-0 space-y-1">
             <p className="flex flex-wrap items-center gap-2">
               <span className="font-medium">{c.codigo}</span>

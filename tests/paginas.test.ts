@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 
 /**
  * B-10: los route handlers ya tenian cobertura de permisos, pero ninguna PAGINA la
@@ -1610,6 +1611,25 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     expect(buscar(arbol, "Hoy")?.props.veEquipo).toBe(true);
     expect(buscar(arbol, "Hoy")?.props.detallesOperacion).toBeDefined();
     expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props.filtraCloser).toBe(true);
+  });
+
+  it("solo un administrador recibe el atajo a Ventas, con el origen completo y el fragmento al final", async () => {
+    const busqueda = { seccion: "hoy", mes: "2026-10" };
+    auth.mockResolvedValue(sesionGerente);
+    const delGerente = buscar(await renderizar(busqueda), "Hoy")?.props.configurar as {
+      hrefBase: string;
+      origen: string;
+    };
+    expect(enlaceConVueltaAFragmento(delGerente.hrefBase, delGerente.origen, "cohortes")).toBe(
+      `/p/${SLUG}/programa?seccion=ventas&desde=${encodeURIComponent(`/p/${SLUG}/hub?seccion=hoy&mes=2026-10`)}#cohortes`,
+    );
+
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    expect(buscar(await renderizar(busqueda), "Hoy")?.props.configurar).toBeNull();
+
+    // El closer no puede abrir el Hub desde el 224; por tanto tampoco puede recibir el enlace.
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrPrograma(SLUG, busqueda)).toBe("notFound");
   });
 
   it("la lista detrás de una cifra lo rechaza aunque forje la URL, sin consultar filas", async () => {

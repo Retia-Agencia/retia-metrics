@@ -48,6 +48,11 @@ export function enlaceConVuelta(href: string, origen: string): string {
   return `${base}${separador}desde=${encodeURIComponent(valido)}`;
 }
 
+/** Agrega primero el origen y deja el fragmento al final, donde pertenece en una URL. */
+export function enlaceConVueltaAFragmento(href: string, origen: string, fragmento: string): string {
+  return `${enlaceConVuelta(href, origen)}#${fragmento}`;
+}
+
 /** Quita un parametro `desde` del href si lo trae, conservando el resto del query. */
 function quitarDesde(href: string): string {
   const posicion = href.indexOf("?");

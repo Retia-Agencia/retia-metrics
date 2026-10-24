@@ -11,7 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
 import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, sinListas, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
-import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
+import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
@@ -169,6 +169,9 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   // origen (path + query, con `seccion`) viaja como parámetro `desde` en el href de cada lista
   // (ticket 174, 197), SOLO por `enlaceConVuelta` dentro de `detalleDeCifra`.
   const origen = origenDeLaPagina(base, busqueda);
+  const configurar = esAdministrador(rol)
+    ? { hrefBase: `/p/${encodeURIComponent(programa.slug)}/programa?seccion=ventas`, origen }
+    : null;
 
   // Solo se calcula lo de la pestaña activa (ticket 197 §5): a esta escala el ahorro no
   // importa, pero cada bloque es una consulta que no vale la pena correr fuera de su
@@ -317,9 +320,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               alertas={await alertasDelPrograma(programa.id, hoy)}
               slug={slug}
               veEquipo={veEquipo}
+              configurar={configurar}
               // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
               // sin él (paid trafficker) las cifras salen como texto.
-              metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} conListas={veEquipo} />}
+              metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} conListas={veEquipo} configurar={configurar} />}
             />
           )}
         </div>
@@ -461,12 +465,14 @@ async function SeccionMetas({
   hoy,
   busqueda,
   conListas,
+  configurar,
 }: {
   programId: string;
   slug: string;
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
   conListas: boolean;
+  configurar: { hrefBase: string; origen: string } | null;
 }) {
   const mes = esquemaMes.catch(hoy.slice(0, 7)).parse(texto(busqueda.mes));
   const metas = await leerMetasDelMes(programId, mes, hoy);
@@ -494,7 +500,7 @@ async function SeccionMetas({
           <Link className={cn(buttonVariants({ variant: "ghost", size: "sm" }))} href={hrefMes(siguiente)}>{nombreDelMes(siguiente)} →</Link>
         </nav>
       </div>
-      <MetasDelMes metas={metas} hrefVentasMes={hrefVentasMes} hrefVentasSemana={hrefVentasSemana} conListas={conListas} />
+      <MetasDelMes metas={metas} hrefVentasMes={hrefVentasMes} hrefVentasSemana={hrefVentasSemana} conListas={conListas} configurar={configurar} />
     </section>
   );
 }

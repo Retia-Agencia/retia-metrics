@@ -3,7 +3,7 @@ id: 310
 etapa: hub
 serves: "Mani, 24-oct (recorrido del Hub): configurar lo que se lee sin tener que buscar dónde · ADR 0077 (cada dato en la pantalla de su objeto)"
 depends: []
-status: todo
+status: done
 ---
 
 # 310 — Desde cada meta del Hub, un atajo a donde se configura
