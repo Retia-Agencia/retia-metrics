@@ -4,7 +4,7 @@ import { desc } from "drizzle-orm";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
-import { OrigenPendiente } from "@/components/dashboard/origen-pendiente";
+import { Origen } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
 import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
 import { buttonVariants } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
 import { embudoPorCanal } from "@/lib/queries/dashboard";
 import { AREAS } from "@/lib/atribucion/canal";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
+import { origenDelPrograma } from "@/lib/queries/origen";
 import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
@@ -238,13 +239,12 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
 
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen" ? (
-            <OrigenPendiente hrefPauta={urlConSeccion(base, busqueda, "pauta")} />
+            <SeccionOrigen programId={programa.id} slug={programa.slug} rango={vista.seleccion.rango} periodo={vista.periodo} hoy={hoy} />
           ) : seccion === "pauta" ? (
             <SeccionPauta
               programId={programa.id}
               rango={vista.seleccion.rango}
               hoy={hoy}
-              claveCloser={vista.claveCloser}
               busqueda={busqueda}
             />
           ) : seccion === "comercial" ? (
@@ -326,13 +326,11 @@ async function SeccionPauta({
   programId,
   rango,
   hoy,
-  claveCloser,
   busqueda,
 }: {
   programId: string;
   rango: { desde: string; hasta: string };
   hoy: string;
-  claveCloser: string | null;
   busqueda: Record<string, string | string[] | undefined>;
 }) {
   const ahora = new Date();
@@ -362,17 +360,10 @@ async function SeccionPauta({
     medium: texto(busqueda.medium),
     campaign: texto(busqueda.campaign),
   });
-  // El Insights de Typeform (126 B) puede tardar hasta su timeout: va en paralelo, no en serie.
-  const porPreguntaPendiente = embudoPorPregunta(db, programId);
   const pauta = await pautaInterina(db, programId, rango, filtrosPauta, hoy);
   const area = esquemaFiltroArea.parse(texto(busqueda.area));
   const hechos = await hechosDelEmbudo(db, { programId, rango });
-  const embudoFormulario = await embudoDelFormulario(db, { programId, rango });
-  const porPregunta = await porPreguntaPendiente;
-  const porCanal = await registrosYAgendasPorCanal(db, programId, rango, hoy);
   const hechosFiltrados = area === undefined ? hechos : hechos.filter((fila) => fila.area === area);
-  // Con un closer en el filtro el bloque Origen por canal no se muestra (129).
-  const origenPorCanal = claveCloser ? null : embudoPorCanal(hechosFiltrados);
   const resumenSerie = hechosFiltrados.reduce(
     (total, fila) => ({
       envios: total.envios + fila.envios,
@@ -397,10 +388,6 @@ async function SeccionPauta({
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
       <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
-      <OrigenPorCanal filas={origenPorCanal} />
-      <RegistrosAgendasCanal vista={porCanal} />
-      <EmbudoFormulario embudo={embudoFormulario} />
-      <EmbudoPorPregunta embudos={porPregunta} />
       <Card aria-labelledby="resumen-serie">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -424,6 +411,30 @@ async function SeccionPauta({
       </Card>
     </section>
   );
+}
+
+/** Origen explica la clasificación y conserva juntos los cuatro bloques trasladados de Pauta. */
+async function SeccionOrigen({ programId, slug, rango, periodo, hoy }: {
+  programId: string;
+  slug: string;
+  rango: { desde: string; hasta: string };
+  periodo: PeriodoResuelto;
+  hoy: string;
+}) {
+  const [origen, hechos, formulario, porCanal, porPregunta] = await Promise.all([
+    origenDelPrograma(db, { programId, rango, hoy }),
+    hechosDelEmbudo(db, { programId, rango }),
+    embudoDelFormulario(db, { programId, rango }),
+    registrosYAgendasPorCanal(db, programId, rango, hoy),
+    embudoPorPregunta(db, programId),
+  ]);
+  return <section className="space-y-4">
+    <Origen vista={origen} base={`/p/${encodeURIComponent(slug)}/hub`} periodo={periodo} />
+    <OrigenPorCanal filas={embudoPorCanal(hechos)} />
+    <RegistrosAgendasCanal vista={porCanal} />
+    <EmbudoFormulario embudo={formulario} />
+    <EmbudoPorPregunta embudos={porPregunta} />
+  </section>;
 }
 
 const esquemaMes = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);

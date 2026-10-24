@@ -16,6 +16,24 @@ export const columnasIdMetaDelEnvio = {
   respuestas: submissions.respuestas,
 };
 
+/** Categoría operativa del UTM; encapsula también las columnas de significado contextual. */
+export function categoriaUtmSql() {
+  const columnas = [
+    submissions.utmSource,
+    submissions.utmMedium,
+    submissions.utmCampaign,
+    submissions.utmContent,
+    submissions.utmTerm,
+    submissions.utmId,
+  ];
+  const macro = sql.join(columnas.map((columna) => sql`${columna} like '%{{%'`), sql` or `);
+  return sql<string>`case
+    when ${macro} then 'macro'
+    when ${submissions.utmSource} is null and ${submissions.utmMedium} is null
+      and ${submissions.utmCampaign} is null then 'sin_utm'
+    else 'con_utm' end`;
+}
+
 /** Gemela SQL de `normalizarUtm`: blancos y macros sin expandir son ausencia. */
 function normalizarSql(columna: ColumnaTexto) {
   return sql<string | null>`case

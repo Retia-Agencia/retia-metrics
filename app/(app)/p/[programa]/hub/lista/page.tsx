@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador } from "@/lib/auth/roles";
+import { esAdministrador, veTableroDelPrograma } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
-import { METRICAS_FOTO_DE_HOY, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { listaDeEnvios, METRICAS_FOTO_DE_HOY, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { parsearPeriodoUrl, resolverPeriodo } from "@/lib/periodo";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   METRICAS_DE_EMBUDO_SIN_PERIODO,
@@ -56,6 +57,7 @@ const esquema = z.object({
     "etapa_tiempo",
     "etapa_abiertos",
     "etapa_sin_dueno",
+    "envios",
   ]),
   // Solo el embudo por etapas (ticket 188): el paso o la etapa, y el tramo de antigüedad.
   etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION])] as [string, ...string[]]).optional(),
@@ -64,6 +66,9 @@ const esquema = z.object({
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   cohorte: z.string().uuid().optional().catch(undefined),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
+  source: z.string().max(300).optional(),
+  medium: z.string().max(300).optional(),
+  categoria: z.enum(["sin_utm", "macro"]).optional(),
 });
 
 const titulos = {
@@ -93,6 +98,7 @@ const titulos = {
   etapa_tiempo: "Salieron de la etapa",
   etapa_abiertos: "Abiertos en la etapa",
   etapa_sin_dueno: "Abiertos sin dueño",
+  envios: "Envíos",
 };
 
 /** Qué subconjunto exige cada métrica del embudo: sin él, la lista no existe. */
@@ -124,15 +130,38 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   // VE las listas en el Dashboard (`veEquipoComercial` menos el closer). Por capacidad, nunca
   // `rol === "..."`. (El Dashboard y las Metas usan `veTableroDelPrograma`, que SÍ incluye al
   // paid trafficker; la lista no, para no concederle lo que el 102 le quitó.)
-  const session = await paginaConCapacidad(esAdministrador);
+  const busqueda = await searchParams;
+  const validado = esquema.safeParse(busqueda);
+  if (!validado.success) notFound();
+  const session = await paginaConCapacidad(validado.data.metrica === "envios" ? veTableroDelPrograma : esAdministrador);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const busqueda = await searchParams;
-  const validado = esquema.safeParse(busqueda);
-  if (!validado.success) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1 } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, categoria } = validado.data;
+  if (metrica === "envios") {
+    const periodo = resolverPeriodo(parsearPeriodoUrl(busqueda), {
+      hoy: hoyEnBogota(), actual: null, anterior: null, anteAnterior: null,
+    });
+    const lista = await listaDeEnvios({
+      programId: programa.id,
+      rango: periodo.a,
+      source: source === "__null__" ? null : source,
+      medium: medium === "__null__" ? null : medium,
+      categoria,
+    }, pagina);
+    const q = new URLSearchParams();
+    for (const [clave, valor] of Object.entries(busqueda)) if (typeof valor === "string" && clave !== "pagina") q.set(clave, valor);
+    const hrefPagina = (numero: number) => `/p/${encodeURIComponent(slug)}/hub/lista?${q}&pagina=${numero}`;
+    return <PageShell titulo="Envíos" descripcion={programa.nombre} volver={{ porDefecto: { href: `/p/${slug}/hub?seccion=origen`, etiqueta: "Origen" } }}>
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2"><Badge variant="secondary">{programa.nombre}</Badge><Badge variant="secondary">{fecha(periodo.a.desde)} a {fecha(periodo.a.hasta)}</Badge>{categoria ? <Badge variant="secondary">{categoria === "macro" ? "Macro sin expandir" : "Sin UTM"}</Badge> : null}</div>
+        <p className="cifra">{num(lista.total)} envíos</p>
+        <Card><CardContent className="overflow-x-auto pt-4">{lista.filas.length === 0 ? <p>No hay envíos para estos filtros.</p> : <table className="w-full text-sm"><thead><tr className="text-left"><th>Fecha</th><th>UTM source</th><th>UTM medium</th><th>Categoría</th><th>Envío</th></tr></thead><tbody className="divide-y">{lista.filas.map((fila) => <tr key={fila.envioId}><td className="py-3">{fecha(fila.dia)}</td><td>{fila.utm_source ?? "—"}</td><td>{fila.utm_medium ?? "—"}</td><td>{fila.categoria === "macro" ? "Macro" : fila.categoria === "sin_utm" ? "Sin UTM" : "Con UTM"}</td><td className="font-mono text-xs">{fila.envioId}</td></tr>)}</tbody></table>}</CardContent></Card>
+        <nav aria-label="Paginación" className="flex items-center gap-3">{pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={hrefPagina(pagina - 1)} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}<span className="cifra">Página {num(pagina)}</span>{pagina * TAMANO_PAGINA < lista.total ? <Button variant="outline" nativeButton={false} render={<Link href={hrefPagina(pagina + 1)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}</nav>
+      </div>
+    </PageShell>;
+  }
   if (moneda && metrica !== "caja") notFound();
   // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
   // o una lista del embudo sin su paso, no existe (nunca cae al embudo entero).

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Activity, FileWarning, ListChecks, Radio, Shapes, Users } from "lucide-react";
+import { Activity, FileWarning, ListChecks, Shapes, Users } from "lucide-react";
 import { paginaConPautaGlobal } from "@/lib/auth/page-guards";
-import { administraGlobal, manejaPautaGlobal, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { PageShell } from "@/components/page-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,13 +25,6 @@ const ENLACES = [
     titulo: "Usuarios",
     descripcion: "Quién puede entrar y con qué rol: se agregan, editan y desactivan sin CLI.",
     requisito: "administra",
-  },
-  {
-    href: "/ajustes/canales",
-    icono: Radio,
-    titulo: "Canales",
-    descripcion: "De qué canal y área viene cada envío.",
-    requisito: "pauta",
   },
   {
     href: "/ajustes/salud",
@@ -67,7 +60,7 @@ function puedeVer(
   requisito: (typeof ENLACES)[number]["requisito"],
   sujeto: { rol: Rol | null; alcanceLimitado: boolean },
 ): boolean {
-  return requisito === "pauta" ? manejaPautaGlobal(sujeto) : administraGlobal(sujeto);
+  return administraGlobal(sujeto);
 }
 
 export default async function AjustesPage() {

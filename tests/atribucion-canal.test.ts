@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolverCanal } from "@/lib/atribucion/canal";
+import { resolverCanal, textoDeRegla } from "@/lib/atribucion/canal";
 
 describe("resolver canal por regla (ticket 246)", () => {
   it.each([
@@ -60,5 +60,10 @@ describe("resolver canal por regla (ticket 246)", () => {
       clave: "facebook",
       nombre: "Facebook",
     });
+  });
+
+  it("explica la decisión sin volver a clasificar", () => {
+    const resultado = resolverCanal({ source: "facebook", medium: "CPC" });
+    expect(textoDeRegla(resultado, { source: "facebook", medium: "CPC" })).toBe("medio pago: cpc");
   });
 });

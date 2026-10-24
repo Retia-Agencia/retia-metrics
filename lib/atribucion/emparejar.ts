@@ -1,5 +1,5 @@
 import { normalizarUtm, resolverCanal, type ResultadoCanal } from "@/lib/atribucion/canal";
-import { esMacro, type CampoUtm, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { esMacro, utmsDelEnvio, type CampoUtm, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
 export interface ArbolDePauta {
   anuncios: readonly { id: string; conjuntoId: string; campanaId: string }[];
@@ -120,4 +120,12 @@ export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta): Traza {
         : "N1";
 
   return { origen, nivel, campana, conjunto, anuncio, contenido, macros, avisos };
+}
+
+/** Mantiene la lectura de content/term encapsulada dentro del límite de atribución. */
+export function emparejarFilaDeEnvio(
+  fila: Parameters<typeof utmsDelEnvio>[0],
+  arbol: ArbolDePauta,
+): Traza {
+  return emparejar(utmsDelEnvio(fila), arbol);
 }

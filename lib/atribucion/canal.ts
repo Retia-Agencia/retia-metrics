@@ -95,3 +95,28 @@ export function resolverCanal(
   if (source !== null || medium !== null) return { area: "organico", canal, regla: "con_utm" };
   return { area: "sin_utm", canal: null, regla: "sin_utm" };
 }
+
+/** Explica la misma decisión de `resolverCanal`; no vuelve a clasificar el envío. */
+export function textoDeRegla(
+  resultado: ResultadoCanal,
+  envio: { source: string | null; medium: string | null },
+): string {
+  switch (resultado.regla) {
+    case "id_en_arbol": return "id encontrado en el árbol de Meta";
+    case "medio_pago": return `medio pago: ${normalizarUtm(envio.medium) ?? "—"}`;
+    case "referido": return "medio referido";
+    case "con_utm": return "UTM presente: origen orgánico";
+    case "sin_utm": return "sin source ni medium";
+  }
+}
+
+/** Clasifica los `url_tags` de un anuncio sin sacar las llaves UTM de atribución. */
+export function tipoDePlantilla(tags: string | null): "vieja" | "pauta" | "otra" | "sin_id" {
+  const parametros = new URLSearchParams(tags ?? "");
+  const source = parametros.get("utm_source")?.trim().toLowerCase();
+  const medium = parametros.get("utm_medium")?.trim().toLowerCase();
+  if (source === "facebook" && medium === "cpc" && parametros.has("ad_id")) return "vieja";
+  if (medium === "paid_social" && parametros.has("utm_id")) return "pauta";
+  if (!parametros.has("ad_id") && !parametros.has("utm_id")) return "sin_id";
+  return "otra";
+}

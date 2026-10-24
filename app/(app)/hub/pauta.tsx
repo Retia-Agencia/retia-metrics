@@ -2,19 +2,12 @@ import Link from "next/link";
 import type { ProgramaVisible } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import type { PeriodoResuelto } from "@/lib/periodo";
-import { embudoPorCanal } from "@/lib/queries/dashboard";
-import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
-import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
-import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
-import { registrosYAgendasPorCanal } from "@/lib/queries/registros-agendas-canal";
 import { queryDePeriodo } from "@/lib/queries/vista-todos";
-import { OrigenPorCanal } from "@/components/dashboard/origen-por-canal";
-import { EmbudoFormulario } from "@/components/embudo-formulario";
-import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
 import { PautaInterina } from "@/components/pauta-interina";
-import { RegistrosAgendasCanal } from "@/components/registros-agendas-canal";
 import { Button } from "@/components/ui/button";
+import { origenDelPrograma } from "@/lib/queries/origen";
+import { Origen } from "@/components/dashboard/origen";
 
 /** Pauta contiene tasas y costos: los bloques conservan siempre su programa (ADR 0048). */
 export async function PautaPorPrograma({ programas, periodo, hoy }: {
@@ -25,13 +18,7 @@ export async function PautaPorPrograma({ programas, periodo, hoy }: {
   return <section id="pauta" className="space-y-6">
     <h2 className="text-xl font-semibold">Pauta y origen (interina)</h2>
     {await Promise.all(programas.map(async (programa) => {
-      const [pauta, hechos, formulario, porCanal, porPregunta] = await Promise.all([
-        pautaInterina(db, programa.id, periodo.a, {}, hoy),
-        hechosDelEmbudo(db, { programId: programa.id, rango: periodo.a }),
-        embudoDelFormulario(db, { programId: programa.id, rango: periodo.a }),
-        registrosYAgendasPorCanal(db, programa.id, periodo.a, hoy),
-        embudoPorPregunta(db, programa.id),
-      ]);
+      const pauta = await pautaInterina(db, programa.id, periodo.a, {}, hoy);
       const hrefCon = (filtros: FiltrosPauta) => {
         const q = new URLSearchParams(queryDePeriodo(periodo));
         q.set("seccion", "pauta");
@@ -43,11 +30,19 @@ export async function PautaPorPrograma({ programas, periodo, hoy }: {
           <Button variant="link" nativeButton={false} render={<Link href={hrefCon({})} />}>{programa.nombre}</Button>
         </h3>
         <PautaInterina vista={pauta} filtros={{}} hrefCon={hrefCon} />
-        <OrigenPorCanal filas={embudoPorCanal(hechos)} />
-        <RegistrosAgendasCanal vista={porCanal} />
-        <EmbudoFormulario embudo={formulario} />
-        <EmbudoPorPregunta embudos={porPregunta} />
       </div>;
     }))}
   </section>;
+}
+
+/** En Todos, cada programa conserva su frontera y solo muestra magnitudes contables. */
+export async function OrigenPorPrograma({ programas, periodo, hoy }: {
+  programas: ProgramaVisible[];
+  periodo: PeriodoResuelto;
+  hoy: string;
+}) {
+  return <section className="space-y-6">{await Promise.all(programas.map(async (programa) => {
+    const vista = await origenDelPrograma(db, { programId: programa.id, rango: periodo.a, hoy });
+    return <div key={programa.id} className="space-y-4"><h2 className="text-xl font-semibold">{programa.nombre}</h2><Origen vista={vista} base={`/p/${encodeURIComponent(programa.slug)}/hub`} periodo={periodo} soloConteos /></div>;
+  }))}</section>;
 }

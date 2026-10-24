@@ -12,8 +12,10 @@ import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/que
 import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import type { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
-export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "dueno" | "cohorte" | "etapa";
+export type DimensionAgenda = "dia" | "semana" | "mes" | "hora" | "area" | "canal" | "cuenta" | "utm_source" | "utm_medium" | "tiene_envio" | "dueno" | "cohorte" | "etapa";
 export type MedidaAgenda = "agendas";
 
 const dimensiones = {
@@ -24,6 +26,9 @@ const dimensiones = {
     submissions.utmMedium,
     calls.programId,
   ),
+  utm_source: submissions.utmSource,
+  utm_medium: submissions.utmMedium,
+  tiene_envio: sql<string>`case when ${submissions.id} is null then 'no' else 'si' end`,
   dueno: deals.ownerUserId,
   cohorte: deals.cohortId,
   etapa: deals.etapa,
@@ -52,6 +57,27 @@ type ConsultaAgendaAgrupada<D extends DimensionAgenda> = ConsultaAgrupada<D, D |
 type ConsultaAgendaLista<D extends DimensionAgenda> = ConsultaDeLista<D, D | "horaMinuto"> & {
   creadaHasta?: Date;
 };
+
+export type GrupoDeTrazaDeAgenda = Parameters<typeof utmsDelEnvio>[0] & { agendas: number };
+
+/** Agendas con envío de origen, agregadas en SQL por la tupla UTM que consume el emparejador. */
+export async function agruparTrazas(
+  db: Db,
+  opciones: { programId: string; rango: { desde: string; hasta: string } },
+): Promise<GrupoDeTrazaDeAgenda[]> {
+  return await db.select({
+    ...columnasUtmDelEnvio,
+    agendas: sql<number>`count(*)::int`,
+  }).from(calls)
+    .innerJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
+    .innerJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .where(and(
+      eq(calls.programId, opciones.programId),
+      between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
+      vigente(calls),
+    ))
+    .groupBy(...Object.values(columnasUtmDelEnvio));
+}
 
 export async function agrupar<D extends DimensionAgenda>(
   db: Db,

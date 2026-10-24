@@ -11,9 +11,8 @@ import { Pestanas, pestanaActiva, urlConSeccion } from "@/components/layout/pest
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import { SeccionDeTodos } from "./secciones";
-import { PautaPorPrograma } from "./pauta";
+import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
 import { RUTA_HUB_TODOS } from "@/lib/nav";
-import { OrigenPendiente } from "@/components/dashboard/origen-pendiente";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +61,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
         <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen"
-            ? <OrigenPendiente hrefPauta={urlConSeccion(RUTA_HUB_TODOS, busqueda, "pauta")} />
+            ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
             : seccion === "pauta"
             ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
             : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} />}

@@ -21,6 +21,7 @@ import {
   miembrosDeLaCifra,
   type MetricaDeEmbudo,
 } from "@/lib/queries/embudo-con-filas";
+import { listar as listarEnvios, type DimensionEnvio } from "@/lib/queries/hechos/envio";
 
 export type Metrica =
   | "caja"
@@ -60,6 +61,31 @@ export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados"
 /** Las métricas que son una foto de hoy: el periodo no las acota (la cartera y las banderas del 191). */
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
+
+/** Lista paginada detrás de las cifras de Origen; comparte el contrato de filas del Hub. */
+export async function listaDeEnvios(
+  filtros: {
+    programId: string;
+    rango: Rango;
+    source?: string | null;
+    medium?: string | null;
+    categoria?: "sin_utm" | "macro";
+  },
+  pagina = 1,
+  db: Db = dbDeLaApp,
+) {
+  return listarEnvios<DimensionEnvio>(db, {
+    programId: filtros.programId,
+    rango: filtros.rango,
+    filtros: {
+      ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
+      ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
+      ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
+    },
+    orden: { campo: "dia", sentido: "desc" },
+    pagina: { numero: pagina, tamano: TAMANO_PAGINA },
+  });
+}
 
 export interface FiltrosDeMetrica {
   programId: string | readonly string[];
