@@ -419,3 +419,9 @@ Análisis y propuestas en [`manuales/pipeline-comercial.md`](./manuales/pipeline
 | A-156 | Formularios → Lead Value | cambio | Joana salió MUY ALTO VALOR pidiendo facilidades de pago. Medido: urgencia e inversión no suman puntos, y "facilidades de pago" vende 7 % contra 21 % de "tengo capacidad"; "puede esperar" 8 % contra 19 % de "muy urgente". Además "ALTO VALOR" nombra dos perfiles. Decidido: opción A (cada respuesta baja un nivel), simulada el 22-oct. | 295 | decidida · ADR 0102 |
 | A-157 | Deals → Kanban | cambio | Las citas a re-agendar (pendiente Re-agenda, 65 hoy) se mezclan con las nuevas en Agendado. Pide verlas aparte. Decidido: columna derivada a la izquierda de Agendado, sin etapa nueva (ADR 0103). | 296 | resuelta · 22-oct |
 | A-158 | Deals → Kanban | usabilidad | Un closer de llamada no usa las cinco columnas de setteo y tiene que desplazarse a la derecha cada vez. Decidido: vistas Llamada · Setteo · Todo, recordadas por persona (ADR 0103). | 296 | resuelta · 22-oct |
+
+## Recorrido · 24-oct · Mani (gerente, Hub en producción)
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-159 | Hub → lista de una cifra → Volver | bug | Al abrir una cifra y volver, el Hub cae en Hoy y no en la pestaña, el periodo y el filtro desde donde se abrió. "Volver" (y el breadcrumb) siempre regresa a la página exacta de origen. Causas a revisar: (1) los enlaces de Origen (`hrefDeEnvios` en `components/dashboard/origen.tsx`) no llevan `desde`, así que caen en el `porDefecto` (`/p/<programa>/hub`, que abre Hoy); (2) el Hub usa `desde` también como inicio del rango (`busqueda.desde` en `hub/page.tsx`), el mismo nombre que el origen de `enlaceConVuelta`: los dos pueden pisarse. Done cuando: desde cada pestaña del Hub (Hoy, Comercial, Origen...) abrir una cifra y volver deja la misma pestaña, periodo y filtros, con un test por pestaña sobre el href generado. | sin ticket | abierta |
