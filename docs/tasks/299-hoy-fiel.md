@@ -128,3 +128,11 @@ disciplina de registro, no asistencia. Bug no hay; la cancelada sin llamada qued
 verificada.
 
 **Recorrido:** escritorio y 375 px en la base local (developer), clic en las cinco cifras de la operación y en la lista nueva de registros, sin desborde horizontal; `npm run test:humo` 8/8 en verde (23 min). Typecheck, lint y los tests del cambio en verde. Falta el checkpoint del CI.
+
+## Enmienda 24-oct: también el % de show por cita (Mani)
+
+Mani pidió las dos tasas en Hoy ("poner ambas métricas no cuesta nada"), así que D2 queda: **% por deal (ADR 0079) y
+% por cita al lado**. El por cita es otra pregunta (citas del día que ocurrieron ÷ citas del día que ya debían ocurrir
+al corte), con su función `showPorCitaDelRango` (`lib/queries/tasa-show-por-cita.ts`) y su lista `citas_debidas`, que
+cuadra con la cifra (`tests/show-por-cita.test.ts`). `055f07fe`. El ADR 0079 no cambia: ninguna otra tasa del CRM pasa
+a contar por cita. Fila nueva en `docs/metricas.md` §3.1.

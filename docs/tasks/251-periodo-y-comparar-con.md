@@ -3,7 +3,7 @@ id: 251
 etapa: hub
 serves: "ADR 0086 punto 4 · docs/hub.md H-2 (Mani: el A contra B no se entiende)"
 depends: [250]
-status: todo
+status: en main
 ---
 
 # 251 — Periodo y "Comparar con", sin A ni B en pantalla
@@ -32,3 +32,15 @@ se está comparando.
 - [ ] Una URL vieja con `a_desde`/`b_desde` abre el Hub con el "Comparar con" correcto marcado.
 - [ ] Nadie ve la letra "A" o "B" en el Hub ni en las listas (recorrido, escritorio y 375 px).
 - [ ] `npm run test:humo` en verde.
+
+## En main (24-oct)
+
+Codex + central, `67a004c2`. El selector se parte en Periodo y Comparar con; `Variacion` lleva en su título contra
+qué se compara. **Enmienda a "lib/periodo.ts no cambia de reglas":** "No comparar" y "Cohorte anterior al mismo día
+hábil" no tenían forma de escribirse en la URL, así que hay dos llaves nuevas y opcionales: `comparar=no` (sin rango
+de comparación y sin aviso) y `comparar=cohorte` (la ventana de la cohorte anterior, recortada con `mismoPuntoHabil`;
+con un periodo de cohorte coincide con el defecto). `b_desde`/`b_hasta` explícitos ganan. Sin la llave, todo es como
+antes. Tests en `tests/periodo.test.ts` (31). Typecheck, lint y build limpios; CI verde pendiente de `20c89906`.
+
+Falta: recorrido en escritorio y 375 px, `npm run test:humo`, y que el tooltip diga también "12 → 15" (hoy dice el
+cambio en número y %).

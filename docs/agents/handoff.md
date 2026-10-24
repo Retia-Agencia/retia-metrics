@@ -27,6 +27,21 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-24: Hub, tres frentes en paralelo con Codex: 251 y 248 en main, el 299 ya estaba hecho.**
+  - **251 (`67a004c2`):** Periodo y "Comparar con", sin A ni B. Dos llaves nuevas y opcionales en la URL,
+    `comparar=no` y `comparar=cohorte`, decididas por la sesión cuando Codex se detuvo (no había cómo escribir "no
+    comparar"); las URLs viejas no cambian.
+  - **248 (`5cb2c5f8`, `20c89906`):** Hub › Origen. La revisión cazó tres defectos que no lanzan error (el "nuevo" por
+    tupla, la regla decidida por el orden de la consulta, y agendas duplicadas o perdidas entre filas); tres fix-ups,
+    cada uno con test. `/ajustes/canales` redirige a Origen y el paid trafficker queda sin Ajustes.
+  - **299 duplicado:** el `main` local no tenía los commits del 23-oct, así que se lanzó otra vez. Se descartó; de él
+    solo entró el % de show por cita (Mani, 24-oct), al lado del por deal (`055f07fe`). **Antes de lanzar un ticket,
+    `git fetch` y leer el tracker de `origin/main`, no el del checkout.**
+  - **CI:** `055f07fe` cayó en un shard (tests de Ajustes que esperaban Canales); `20c89906` lo arregla.
+  - **Deuda nueva, ticket 309:** las listas `registros` (Hoy) y `envios` (Origen) son dos predicados para la misma
+    pregunta. Va en su propia sesión.
+  - Falta para cerrar 248 y 251: recorrido visual (escritorio y 375 px) y `npm run test:humo`.
+
 - **2026-10-23: 299 Hoy fiel cerrado (falta checkpoint).** Hub › Hoy se arma para cualquier día con
   `armarVistaDeHoy` (como estaba al cierre del día). Decisiones de Mani en `docs/metricas.md` §3.5: dos tarjetas
   (Agendas creadas y Citas de hoy), % de show por deal con las reagendadas que no cuentan, Leads de hoy = registros sin

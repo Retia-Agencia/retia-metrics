@@ -258,17 +258,18 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 148 | [Las secciones del dashboard](./148-las-secciones-del-dashboard.md) | 142, 095, 137 | done · `cp-20261004-4` · O5 · M1 · Pulso, Operación comercial, Dinero y Pauta interina; monta 146 y 065; el comparativo cuenta las llamadas de Calendly por `closer_user_id`. Lo que sigue: O6 (187 a 192) |
 | [-] | 158 | [El reporte del día del closer sale del CRM](./158-el-reporte-del-dia-del-closer.md) | 156, 157 | descartado · 4-oct (Mani): el reporte del día ya está en Mi espacio › Métricas con el periodo en "hoy"; medir objeciones era sobrediseño |
 | [x] | 246 | [La regla del área y el canal que se define solo](./246-la-regla-del-area-y-el-canal-que-se-define-solo.md) | — | done · 14-oct · Mani · CI verde `e020948` · implementó Codex; medido en producción: los 627 envíos de 14 días que el catálogo clasificaba conservan su área, 8 "sin clasificar" pasan a Orgánico |
-| [ ] | 248 | [Hub › Origen: cómo cuenta cada UTM](./248-la-vista-origen-como-cuenta-cada-utm.md) | 246, 250, 262 | todo · retira `/ajustes/canales` |
+| [ ] | 248 | [Hub › Origen: cómo cuenta cada UTM](./248-la-vista-origen-como-cuenta-cada-utm.md) | 246, 250, 262 | en main · 24-oct · Codex + central (`5cb2c5f8`, `20c89906`) · `/ajustes/canales` redirige a Origen y el paid trafficker queda sin Ajustes · falta recorrido visual y `test:humo` · deuda: 309 |
 | [x] | 250 | [El Dashboard y Metas pasan a ser el Hub](./250-el-dashboard-y-metas-pasan-a-ser-el-hub.md) | — | done · su archivo dice `done`; el tracker se puso al día el 23-oct · ADR 0086 |
-| [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | todo |
+| [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | en main · 24-oct · Codex + central (`67a004c2`) · llaves nuevas `comparar=no` y `comparar=cohorte` · falta recorrido visual y `test:humo`; el tooltip aún no dice "12 → 15" |
 | [x] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | done · 14-oct · Alejandro · `95aa3dde`; el tracker se puso al día el 23-oct · la enmienda del 19-oct (artefacto de Anderson) queda abierta como enmienda, no frena al 253 |
 | [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | todo |
 | [ ] | 254 | [El origen del cierre](./254-el-origen-del-cierre.md) | 252, 262 | todo |
 | [x] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | done · 14-oct · Mani · ECharts con una pieza propia (ADR 0091); rama del prototipo borrada |
 | [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | todo |
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
-| [x] | 299 | [Hoy fiel: las cifras del reporte diario, definidas y comprobadas](./299-hoy-fiel.md) | 252 | done · 23-oct · D1 a D4 decididas; comparado el 22-oct contra Typeform y Calendly; falta checkpoint |
+| [x] | 299 | [Hoy fiel: las cifras del reporte diario, definidas y comprobadas](./299-hoy-fiel.md) | 252 | done · 23-oct · D1 a D4 decididas; comparado el 22-oct contra Typeform y Calendly; falta checkpoint · 24-oct: % de show por cita al lado del por deal (`055f07fe`, Mani) |
 | [ ] | 300 | [El reporte del día: vista imprimible y una foto por día](./300-reporte-del-dia-imprimible-y-fotos.md) | 299 | todo · 23-oct · reemplaza al 021 · migración · Juanito lo manda después, en otro ticket |
+| [ ] | 309 | [Una sola lista de envíos detrás de las cifras del Hub](./309-una-sola-lista-de-envios.md) | 248, 299 | todo · 24-oct · `registros` (Hoy) y `envios` (Origen) son dos predicados para la misma pregunta |
 | [x] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | done · 14-oct · Mani · CI verde `803e6fc` · cinco hechos en `lib/queries/hechos/`; a 10x el volumen, un mes por día y área en 82,8 ms |
 | [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |

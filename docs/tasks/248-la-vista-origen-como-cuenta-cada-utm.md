@@ -3,7 +3,7 @@ id: 248
 etapa: hub
 serves: "ADR 0087 punto 6 · ADR 0086 punto 2 (pestaña Origen) · docs/hub.md H-3 (Mani: ver cómo el CRM tiene en cuenta cada UTM)"
 depends: [246, 250, 262]
-status: todo
+status: en main
 ---
 
 # 248 — Hub › Origen: cómo cuenta cada UTM
@@ -49,3 +49,24 @@ antes, esas dos secciones se dejan para después del 120 y la vista sale con lo 
 ## Enmienda 20-oct (ADR 0099)
 
 Hub › Origen muestra, por fuente, la alarma de la traza del 290 (envíos pagos sin id del anuncio y con id desconocido), leída de la misma función; no cuenta por su cuenta.
+
+## En main (24-oct)
+
+Codex + central, `5cb2c5f8` y `20c89906`. `origenDelPrograma` (`lib/queries/origen.ts`) arma una fila por
+`(utm_source, utm_medium, regla)`: la regla en palabras sale de `textoDeRegla` sobre el resultado de `resolverCanal`,
+nunca de un segundo clasificador. Tres defectos cazados en la revisión, cada uno con su test en `tests/origen.test.ts`:
+
+- **"nuevo" por tupla:** se calculaba por la tupla UTM completa (con el id del anuncio), así que `facebook / cpc` salía
+  nuevo con cada anuncio. Ahora es el primer día del **par**, en una consulta aparte.
+- **La regla la decidía el orden de la consulta:** un par con tuplas de reglas distintas tomaba la primera. Ahora cada
+  regla es su fila, con orden determinista (probado insertando al revés).
+- **Agendas duplicadas y perdidas:** cada fila del par repetía las agendas del par, y una agenda cuyo envío era anterior
+  al rango no tenía fila. Ahora se agrupan por tupla, se resuelven con la misma traza y una agenda sin envío en el rango
+  abre su fila con 0 envíos.
+
+`/ajustes/canales` redirige a Hub › Origen; la tabla `canales` y su código quedan (se borran en otro ticket). Era el
+único ajuste del paid trafficker, así que su entrada de Ajustes sale del menú. **Deuda:** la lista `envios` de esta
+pestaña y la lista `registros` del 299 son dos predicados para la misma pregunta: ticket 309.
+
+Falta: recorrido con clic en todo, escritorio y 375 px, y `npm run test:humo`; la prueba de que un closer que forja la
+ruta recibe 404 queda cubierta por la guarda de la página, sin test propio.
