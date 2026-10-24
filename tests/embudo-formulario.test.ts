@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { leads, programs, sources, submissions } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { calls, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { embudoDelFormulario, tasasDelEmbudo } from "@/lib/queries/embudo-formulario";
+import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -170,5 +172,79 @@ describe("embudoDelFormulario", () => {
       ["organico", 1],
       ["paid", 1],
     ]);
+  });
+
+  it("No agendaron comparte universo con su lista y sale al recibir una cita vigente", async () => {
+    const [closer] = await db.insert(users).values({ email: "closer@prueba.test", rol: "closer", closerId: "Ana" }).returning();
+    const nuevos = await db.insert(leads).values([
+      { programId, emailNormalizado: "b@c.co", nombre: "B" },
+      { programId, emailNormalizado: "c@c.co", nombre: "C" },
+    ]).returning();
+    await db.update(leads).set({ nombre: "A" }).where(eq(leads.id, leadId));
+    const [sinCita, yaAgendado, vigenteTrasAnulado] = await db.insert(deals).values([
+      { programId, leadId, ownerUserId: closer.id, etapa: "calificado" },
+      { programId, leadId: nuevos[0].id, ownerUserId: closer.id, etapa: "agendado" },
+      { programId, leadId: nuevos[1].id, ownerUserId: closer.id, etapa: "calificado" },
+    ]).returning();
+    await db.insert(deals).values({
+      programId,
+      leadId: nuevos[1].id,
+      ownerUserId: closer.id,
+      etapa: "agendado",
+      anuladoEn: new Date("2026-09-11T15:00:00Z"),
+      anuladoPor: closer.id,
+      motivoAnulacion: "Corrección",
+    });
+    await db.insert(submissions).values([
+      envio("sin-cita", "2026-09-10T15:00:00Z", { leadQuality: "High" }),
+      { ...envio("ya-agendado", "2026-09-10T16:00:00Z", { leadQuality: "High" }), leadId: nuevos[0].id },
+      { ...envio("anulado", "2026-09-10T17:00:00Z", { leadQuality: "High" }), leadId: nuevos[1].id },
+      { ...envio("otro-programa", "2026-09-10T18:00:00Z", { leadQuality: "High" }), leadId: otroLeadId, sourceId: otraFuenteId },
+    ]);
+
+    const antes = await embudoDelFormulario(db, { programId, rango: RANGO });
+    const [listaAntes] = await listaDeMetrica("no_agendaron", { programId, rango: RANGO, hoy: "2026-09-30" }, 1, db);
+    expect(antes.total).toEqual({ dejoDatos: 3, completo: 3, llegoCalendly: 3, agendo: 0 });
+    expect(antes.noAgendaron).toBe(2);
+    expect(listaAntes.subtotal.cantidad).toBe(antes.noAgendaron);
+    expect(new Set(listaAntes.filas.map((fila) => fila.dealId))).toEqual(new Set([sinCita.id, vigenteTrasAnulado.id]));
+    expect(listaAntes.filas.some((fila) => fila.dealId === yaAgendado.id)).toBe(false);
+
+    await db.insert(calls).values({
+      programId,
+      dealId: sinCita.id,
+      closerUserId: closer.id,
+      fechaAgenda: new Date("2026-09-11T15:00:00Z"),
+    });
+    const despues = await embudoDelFormulario(db, { programId, rango: RANGO });
+    const [listaDespues] = await listaDeMetrica("no_agendaron", { programId, rango: RANGO, hoy: "2026-09-30" }, 1, db);
+    expect(despues.total).toEqual(antes.total);
+    expect(despues.noAgendaron).toBe(1);
+    expect(listaDespues.subtotal.cantidad).toBe(despues.noAgendaron);
+    expect(listaDespues.filas.map((fila) => fila.dealId)).toEqual([vigenteTrasAnulado.id]);
+  });
+
+  it("No agendaron cuenta personas y muestra el deal abierto, en cualquier orden de inserción", async () => {
+    const [closer] = await db.insert(users).values({ email: "closer@prueba.test", rol: "closer", closerId: "Ana" }).returning();
+    const [soloPerdido] = await db.insert(leads).values({ programId, emailNormalizado: "p@c.co", nombre: "P" }).returning();
+    const [abierto] = await db.insert(deals).values([
+      { programId, leadId, ownerUserId: closer.id, etapa: "calificado", createdAt: new Date("2026-09-12T15:00:00Z") },
+    ]).returning();
+    await db.insert(deals).values([
+      { programId, leadId, ownerUserId: closer.id, etapa: "cierre_perdido", createdAt: new Date("2026-08-01T15:00:00Z") },
+      { programId, leadId: soloPerdido.id, ownerUserId: closer.id, etapa: "cierre_perdido" },
+    ]);
+    await db.insert(submissions).values([
+      envio("segundo", "2026-09-12T15:00:00Z", { leadQuality: "High" }),
+      envio("primero", "2026-09-10T15:00:00Z", { leadQuality: "High" }),
+      { ...envio("perdido", "2026-09-10T16:00:00Z", { leadQuality: "High" }), leadId: soloPerdido.id },
+    ]);
+
+    const embudo = await embudoDelFormulario(db, { programId, rango: RANGO });
+    const [lista] = await listaDeMetrica("no_agendaron", { programId, rango: RANGO, hoy: "2026-09-30" }, 1, db);
+    expect(embudo.total.llegoCalendly).toBe(3);
+    expect(embudo.noAgendaron).toBe(1);
+    expect(lista.subtotal.cantidad).toBe(1);
+    expect(lista.filas.map((fila) => [fila.dealId, fila.fecha])).toEqual([[abierto.id, "2026-09-10"]]);
   });
 });

@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 
+function textoDelArbol(nodo: unknown): string {
+  if (typeof nodo === "string" || typeof nodo === "number") return String(nodo);
+  if (Array.isArray(nodo)) return nodo.map(textoDelArbol).join(" ");
+  if (typeof nodo !== "object" || nodo === null) return "";
+  return textoDelArbol((nodo as { props?: { children?: unknown } }).props?.children);
+}
+
 /**
  * B-10: los route handlers ya tenian cobertura de permisos, pero ninguna PAGINA la
  * tenia, y `paginaConRol` es lo unico que protege las rutas de administracion.
@@ -152,8 +159,12 @@ const embudoDelFormulario = vi.fn(async () => ({
   filas: [],
   total: { dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 },
   sinCalidad: 0,
+  noAgendaron: 0,
 }));
-vi.mock("@/lib/queries/embudo-formulario", () => ({ embudoDelFormulario }));
+vi.mock("@/lib/queries/embudo-formulario", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/embudo-formulario")>(),
+  embudoDelFormulario,
+}));
 // El embudo por pregunta (126 B) le pega a Typeform: sin base ni red, ningún formulario.
 const embudoPorPregunta = vi.fn(async () => []);
 vi.mock("@/lib/queries/embudo-por-pregunta", () => ({ embudoPorPregunta }));
@@ -1457,6 +1468,34 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
     await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
     expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("No agendaron da 404 al closer fuera de su alcance y a Pauta", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    await expect(abrir({ metrica: "no_agendaron" })).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
+    await expect(abrir({ metrica: "no_agendaron" })).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("No agendaron muestra nombres al closer con membresía activa", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    vistaDeLista.mockResolvedValue({
+      lista: {
+        filas: [{ id: "registro", dealId: "deal-1", fecha: "2026-09-10", ultimaActividad: "2026-09-11", closer: "Andrea", claveCloser: "u-2", etapa: "calificado", antiguedad: 1, bucket: "0-7", moneda: null, monto: null, cantidad: 1, persona: { nombre: "Persona visible", leadId: "lead-1" } }],
+        grupos: [], disponible: true, subtotal: { cantidad: 1, caja: [] },
+      },
+      periodo: VISTA_VACIA.periodo,
+      claveCloser: null,
+    });
+    const pagina = await abrir({ metrica: "no_agendaron" });
+    expect(textoDelArbol(pagina)).toContain("Persona visible");
+    expect(vistaDeLista).toHaveBeenCalledWith(expect.objectContaining({ programId: "p-1", metrica: "no_agendaron" }));
   });
 
   it("permite al paid trafficker abrir registros, sin concederle las demás listas", async () => {

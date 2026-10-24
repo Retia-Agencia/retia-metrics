@@ -252,7 +252,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
 
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen" ? (
-            <SeccionOrigen programId={programa.id} slug={programa.slug} rango={vista.seleccion.rango} periodo={vista.periodo} hoy={hoy} origen={origen} />
+            <SeccionOrigen programId={programa.id} slug={programa.slug} rango={vista.seleccion.rango} periodo={vista.periodo} hoy={hoy} origen={origen} puedeAbrirLista={veEquipo} />
           ) : seccion === "pauta" ? (
             <SeccionPauta
               programId={programa.id}
@@ -432,13 +432,14 @@ async function SeccionPauta({
 }
 
 /** Origen explica la clasificación y conserva juntos los cuatro bloques trasladados de Pauta. */
-async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen }: {
+async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen, puedeAbrirLista }: {
   programId: string;
   slug: string;
   rango: { desde: string; hasta: string };
   periodo: PeriodoResuelto;
   hoy: string;
   origen: string;
+  puedeAbrirLista: boolean;
 }) {
   const [vistaOrigen, hechos, formulario, porCanal, porPregunta] = await Promise.all([
     origenDelPrograma(db, { programId, rango, hoy }),
@@ -451,7 +452,10 @@ async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen }: {
     <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
     <OrigenPorCanal filas={embudoPorCanal(hechos)} />
     <RegistrosAgendasCanal vista={porCanal} />
-    <EmbudoFormulario embudo={formulario} />
+    <EmbudoFormulario
+      embudo={formulario}
+      hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined}
+    />
     <EmbudoPorPregunta embudos={porPregunta} />
   </section>;
 }

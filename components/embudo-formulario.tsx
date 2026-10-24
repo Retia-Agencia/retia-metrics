@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
@@ -32,8 +33,8 @@ function Origen({ fila }: { fila: FilaEmbudoFormulario }) {
   return <>{fila.canal}</>;
 }
 
-export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
-  const { total, filas, sinCalidad } = embudo;
+export function EmbudoFormulario({ embudo, hrefNoAgendaron }: { embudo: EmbudoDelFormulario; hrefNoAgendaron?: string }) {
+  const { total, filas, sinCalidad, noAgendaron } = embudo;
   const tasasTotales = tasasDelEmbudo(total);
   return (
     <Card aria-labelledby="embudo-formulario">
@@ -70,6 +71,21 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
               </div>
             );
           })}
+        </div>
+
+        <div className="space-y-1 border-t pt-4">
+          <p className="text-xs text-muted-foreground">No agendaron</p>
+          {hrefNoAgendaron ? (
+            <Link className="cifra inline-block text-lg font-semibold underline underline-offset-4" href={hrefNoAgendaron}>
+              {num(noAgendaron)}
+            </Link>
+          ) : (
+            <p className="cifra text-lg font-semibold">{num(noAgendaron)}</p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Llegaron al Calendly y hoy no tienen cita vigente ni están en Agendado o una etapa posterior. Puede ser menor que
+            Llegó al Calendly − Agendó porque cuenta citas que llegaron después del envío.
+          </p>
         </div>
 
         {sinCalidad > 0 ? (

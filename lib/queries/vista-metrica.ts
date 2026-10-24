@@ -390,6 +390,7 @@ export interface EntradaDeLista {
   source?: string | null;
   medium?: string | null;
   categoria?: "sin_utm" | "macro";
+  orden?: "envio" | "actividad";
   pagina: number;
   /** El instante que decide qué cita ya pasó y la antigüedad sin dueño; por defecto, ahora. */
   ahora?: Date;
@@ -397,7 +398,7 @@ export interface EntradaDeLista {
 
 /** Resuelve el mismo periodo del dashboard, sin cargar el resto de sus métricas. */
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
-  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, pagina } = entrada;
+  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, orden, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
   const cohorte = seleccion.preset.startsWith("cohorte") ? await cohorteActiva(programId, db) : null;
   const ventanas = cohorte ? await ventanasAnterioresDeCohorte(db, programId, cohorte.id) : {};
@@ -412,7 +413,7 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
   const periodo = entrada.busqueda.sin_b === "1" && !seleccion.b
     ? { ...resuelto, b: null, aviso: seleccion.aviso }
     : resuelto;
-  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, ahora: entrada.ahora ?? new Date() };
+  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId, etapa, antiguedad, source, medium, categoria, orden, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

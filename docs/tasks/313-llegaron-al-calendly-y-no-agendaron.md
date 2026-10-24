@@ -30,8 +30,18 @@ contactarlos. Dos cosas distintas, y solo una se puede listar:
   Un test compara la cifra con el total de su lista.
 - **Dentro:** un registro que agendó después (deal en Agendado o más adelante) deja de estar en la lista: lo decide la
   cita, no la foto del día del envío. Se escribe en `docs/metricas.md`.
-- **Abierta (Mani):** si el closer ve esta lista con nombres. Son sus propios deals y ya los ve en Deals, y la lista
-  sirve justo para que alguien llame. Hasta decidirlo rige la regla del 309 (nombres solo para quien administra).
+- **Decidido (Mani, 24-oct):**
+  - **El closer ve la lista con nombres** en los programas donde tiene membresía activa: son sus propios deals y la
+    lista existe para que alguien llame. Excepción nombrada a la regla de nombres del 309, solo para esta lista.
+  - **La cifra es viva y va aparte del embudo:** "No agendaron" = llegó al Calendly y hoy no tiene cita vigente ni deal
+    en Agendado o más adelante. El paso "Agendó" del embudo no cambia (sigue siendo el hecho del envío), así que la
+    cifra puede ser menor que Llegó − Agendó; la pantalla lo dice en una línea.
+  - **Unidad: personas.** Una fila por lead, con la fecha de su registro más antiguo que llegó; la cifra cuenta
+    personas, no registros. El deal mostrado es el abierto o, si no hay, el más reciente. Cierre perdido sale de la
+    lista (el closer ya lo cerró).
+  - **Orden:** por fecha de envío y por fecha de la última actividad del deal (las dos ordenables; por defecto, envío
+    más antiguo primero). El CRM no tiene un hecho "contactado": no se inventa (A-160).
+- **Fuera:** trackear los contactos de los deals (A-160).
 - **Fuera:** avisar a los closers (Juanito, Inbox): si la lista sirve, va en otro ticket.
 
 ## Done cuando

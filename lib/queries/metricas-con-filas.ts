@@ -22,6 +22,11 @@ import {
   type MetricaDeEmbudo,
 } from "@/lib/queries/embudo-con-filas";
 import { filtroDeEnvios } from "@/lib/queries/hechos/envio";
+import {
+  esMetricaDeEmbudoFormulario,
+  noAgendaronDelFormulario,
+  type MetricaDeEmbudoFormulario,
+} from "@/lib/queries/embudo-formulario";
 
 export type Metrica =
   | "caja"
@@ -43,7 +48,8 @@ export type Metrica =
   | "atendidos_sin_valor"
   | "atendidos_sin_grain"
   | MetricaDeGrupo
-  | MetricaDeEmbudo;
+  | MetricaDeEmbudo
+  | MetricaDeEmbudoFormulario;
 
 /**
  * Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, con show vendidos hoy, y
@@ -51,7 +57,7 @@ export type Metrica =
  */
 export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
-type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo>;
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario>;
 
 function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
   return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
@@ -83,6 +89,8 @@ export interface FiltrosDeMetrica {
   source?: string | null;
   medium?: string | null;
   categoria?: "sin_utm" | "macro";
+  /** Solo No agendaron: la fecha usada para ordenar la lista. */
+  orden?: "envio" | "actividad";
 }
 
 export interface FilaDeMetrica {
@@ -99,6 +107,7 @@ export interface FilaDeMetrica {
   monto: number | null;
   cantidad: number;
   persona: { nombre: string | null; leadId: string } | null;
+  ultimaActividad?: string | null;
 }
 
 export interface SubtotalDeMetrica {
@@ -131,6 +140,7 @@ export function proyectarParaTablero<T extends ListaDeMetrica>(lista: T, esAdmin
     claveCloser: null,
     dealId: null,
     persona: null,
+    ultimaActividad: null,
   });
   return {
     ...lista,
@@ -554,7 +564,36 @@ function filaDeDeal(
     monto: null,
     cantidad: 1,
     persona: personas.get(m.dealId) ?? null,
+    ultimaActividad: null,
   };
+}
+
+async function leerMetricaNoAgendaron(
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  const miembros = await noAgendaronDelFormulario(db, { programId: alcance.programId, rango: alcance.rango });
+  const filas = miembros.map((miembro): FilaDeMetrica => ({
+    id: miembro.id,
+    dealId: miembro.dealId,
+    fecha: miembro.fecha,
+    closer: miembro.closer,
+    claveCloser: miembro.claveCloser,
+    etapa: miembro.etapa,
+    ...edadYBucket(miembro.fecha, filtros.hoy),
+    moneda: null,
+    monto: null,
+    cantidad: 1,
+    persona: { nombre: miembro.nombre, leadId: miembro.leadId },
+    ultimaActividad: miembro.ultimaActividad,
+  }));
+  filas.sort((a, b) => {
+    const campo = filtros.orden === "actividad" ? "ultimaActividad" : "fecha";
+    return (a[campo] ?? "").localeCompare(b[campo] ?? "") || a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id);
+  });
+  return paginarOAgrupar(filas, pagina);
 }
 
 async function personasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
@@ -614,6 +653,7 @@ async function leerMetrica(
 ): Promise<FilaDeMetrica[]> {
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
+  if (esMetricaDeEmbudoFormulario(metrica)) return leerMetricaNoAgendaron(alcance, filtros, pagina, db);
   const resumen = pagina === null;
   const fuente = fuenteDe(metrica);
   const campos = camposDe(metrica, fuente, filtros.hoy, resumen);
