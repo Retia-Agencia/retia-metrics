@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
+import { embudoDelFormulario, tasasDelEmbudo } from "@/lib/queries/embudo-formulario";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -58,6 +58,31 @@ const envio = (token: string, fecha: string, extra: Partial<typeof submissions.$
   esParcial: false,
   fechaEnvio: new Date(fecha),
   ...extra,
+});
+
+describe("tasasDelEmbudo", () => {
+  it("calcula cada paso sobre el anterior y sobre dejó datos", () => {
+    expect(tasasDelEmbudo({ dejoDatos: 10, completo: 8, llegoCalendly: 4, agendo: 4 })).toEqual({
+      completo: { sobreAnterior: 0.8, sobreDejoDatos: 0.8 },
+      llegoCalendly: { sobreAnterior: 0.5, sobreDejoDatos: 0.4 },
+      agendo: { sobreAnterior: 1, sobreDejoDatos: 0.4 },
+    });
+  });
+
+  it("devuelve null para la base anterior cero y conserva la tasa sobre dejó datos", () => {
+    expect(tasasDelEmbudo({ dejoDatos: 10, completo: 0, llegoCalendly: 2, agendo: 1 }).llegoCalendly).toEqual({
+      sobreAnterior: null,
+      sobreDejoDatos: 0.2,
+    });
+  });
+
+  it("devuelve todas las tasas en null cuando nadie dejó datos", () => {
+    expect(tasasDelEmbudo({ dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 })).toEqual({
+      completo: { sobreAnterior: null, sobreDejoDatos: null },
+      llegoCalendly: { sobreAnterior: null, sobreDejoDatos: null },
+      agendo: { sobreAnterior: null, sobreDejoDatos: null },
+    });
+  });
 });
 
 describe("embudoDelFormulario", () => {

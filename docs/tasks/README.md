@@ -272,7 +272,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 309 | [Una sola lista de envíos detrás de las cifras del Hub](./309-una-sola-lista-de-envios.md) | 248, 299 | todo · 24-oct · `registros` (Hoy) y `envios` (Origen) son dos predicados para la misma pregunta · enmendado 24-oct: columna Persona, solo para quien administra |
 | [ ] | 310 | [Desde cada meta del Hub, un atajo a donde se configura](./310-configurar-metas-desde-el-hub.md) | — | todo · 24-oct · Mani, recorrido del Hub |
 | [ ] | 311 | [Hub › Origen: una sola tarjeta por canal, que se abre en sus UTM](./311-una-tarjeta-de-origen.md) | 248, 309 | todo · 24-oct · funde tres tarjetas y tres consultas; sale la columna Traza |
-| [ ] | 312 | [Embudo del formulario: el % de cada paso sobre el anterior](./312-embudo-del-formulario-paso-a-paso.md) | — | todo · 24-oct · tasa nueva en `metricas.md` |
+| [x] | 312 | [Embudo del formulario: el % de cada paso sobre el anterior](./312-embudo-del-formulario-paso-a-paso.md) | — | done · 24-oct · tasa nueva en `metricas.md` |
 | [ ] | 313 | [La lista de los que llegaron al Calendly y no agendaron](./313-llegaron-al-calendly-y-no-agendaron.md) | 309, 312 | todo · 24-oct · abierta: si el closer la ve con nombres |
 | [x] | 262 | [La capa de hechos](./262-la-capa-de-hechos.md) | 246 | done · 14-oct · Mani · CI verde `803e6fc` · cinco hechos en `lib/queries/hechos/`; a 10x el volumen, un mes por día y área en 82,8 ms |
 | [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |

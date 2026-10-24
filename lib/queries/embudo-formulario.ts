@@ -40,6 +40,28 @@ export interface PasosDelFormulario {
   agendo: number;
 }
 
+type PasoDespuesDeDejarDatos = Exclude<keyof PasosDelFormulario, "dejoDatos">;
+
+export function tasasDelEmbudo(
+  pasos: PasosDelFormulario,
+): Record<PasoDespuesDeDejarDatos, { sobreAnterior: number | null; sobreDejoDatos: number | null }> {
+  const tasa = (parte: number, base: number) => (base === 0 ? null : parte / base);
+  return {
+    completo: {
+      sobreAnterior: tasa(pasos.completo, pasos.dejoDatos),
+      sobreDejoDatos: tasa(pasos.completo, pasos.dejoDatos),
+    },
+    llegoCalendly: {
+      sobreAnterior: tasa(pasos.llegoCalendly, pasos.completo),
+      sobreDejoDatos: tasa(pasos.llegoCalendly, pasos.dejoDatos),
+    },
+    agendo: {
+      sobreAnterior: tasa(pasos.agendo, pasos.llegoCalendly),
+      sobreDejoDatos: tasa(pasos.agendo, pasos.dejoDatos),
+    },
+  };
+}
+
 export interface FilaEmbudoFormulario extends PasosDelFormulario {
   origen: OrigenDelEmbudoFormulario;
   canalClave: string | null;

@@ -3,7 +3,7 @@ id: 312
 etapa: hub
 serves: "Mani, 24-oct: 'hay que mostrar la métrica del porcentaje de personas que llegaron a Calendly y agendaron'"
 depends: []
-status: todo
+status: done
 ---
 
 # 312 — Embudo del formulario: el % de cada paso sobre el anterior
@@ -25,6 +25,6 @@ de los que llegaron al Calendly, ¿cuántos agendaron? (en ComunicArte el 24-oct
 
 ## Done cuando
 
-- [ ] Test sobre la función que calcula los porcentajes: paso anterior y base cero.
-- [ ] En "todos los programas" la tasa no aparece sumada.
-- [ ] Recorrido en escritorio y 375 px.
+- [x] Test sobre la función que calcula los porcentajes: paso anterior y base cero.
+- [x] En "todos los programas" la tasa no aparece sumada.
+- [x] Recorrido en escritorio y 375 px.

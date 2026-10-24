@@ -1,13 +1,18 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
-import type { EmbudoDelFormulario, FilaEmbudoFormulario, PasosDelFormulario } from "@/lib/queries/embudo-formulario";
+import {
+  tasasDelEmbudo,
+  type EmbudoDelFormulario,
+  type FilaEmbudoFormulario,
+  type PasosDelFormulario,
+} from "@/lib/queries/embudo-formulario";
 
 /**
  * El embudo del formulario por canal (ticket 126, parte A). Pinta lo que calculó
- * `embudoDelFormulario`; no calcula métricas. Cada paso va con su número y su % sobre
- * "dejó datos" de la misma fila (ADR 0067). El embudo por pregunta (Insights de Typeform) es
- * la parte B.
+ * `embudoDelFormulario` y `tasasDelEmbudo`; no calcula métricas. Cada paso va con su número,
+ * su tasa sobre el paso anterior y su tasa sobre "dejó datos" de la misma fila (ADR 0067).
+ * El embudo por pregunta (Insights de Typeform) es la parte B.
  */
 
 const PASOS: { clave: keyof PasosDelFormulario; titulo: string }[] = [
@@ -17,8 +22,8 @@ const PASOS: { clave: keyof PasosDelFormulario; titulo: string }[] = [
   { clave: "agendo", titulo: "Agendó" },
 ];
 
-function porcentaje(parte: number, base: number): string {
-  return base === 0 ? "—" : pct(parte / base);
+function porcentaje(tasa: number | null): string {
+  return tasa === null ? "—" : pct(tasa);
 }
 
 function Origen({ fila }: { fila: FilaEmbudoFormulario }) {
@@ -28,6 +33,7 @@ function Origen({ fila }: { fila: FilaEmbudoFormulario }) {
 
 export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
   const { total, filas, sinCalidad } = embudo;
+  const tasasTotales = tasasDelEmbudo(total);
   return (
     <Card aria-labelledby="embudo-formulario">
       <CardHeader className="space-y-1">
@@ -41,15 +47,23 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
       </CardHeader>
       <CardContent className="space-y-5 text-sm">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {PASOS.map((p) => (
-            <div key={p.clave}>
-              <p className="text-xs text-muted-foreground">{p.titulo}</p>
-              <p className="cifra text-lg font-semibold">{num(total[p.clave])}</p>
-              {p.clave === "dejoDatos" ? null : (
-                <p className="cifra text-xs text-muted-foreground">{porcentaje(total[p.clave], total.dejoDatos)}</p>
-              )}
-            </div>
-          ))}
+          {PASOS.map((p) => {
+            const tasas = p.clave === "dejoDatos" ? null : tasasTotales[p.clave];
+            return (
+              <div key={p.clave}>
+                <p className="text-xs text-muted-foreground">{p.titulo}</p>
+                <p className="cifra text-lg font-semibold">{num(total[p.clave])}</p>
+                {tasas === null ? null : (
+                  <>
+                    <p className="cifra text-xs">{porcentaje(tasas.sobreAnterior)} del paso anterior</p>
+                    <p className="cifra text-xs text-muted-foreground">
+                      {porcentaje(tasas.sobreDejoDatos)} de dejó datos
+                    </p>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {sinCalidad > 0 ? (
@@ -72,21 +86,34 @@ export function EmbudoFormulario({ embudo }: { embudo: EmbudoDelFormulario }) {
               </tr>
             </thead>
             <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
-              {filas.map((f) => (
-                <tr key={f.origen === "canal" ? `${f.area}:${f.canalClave ?? ""}` : f.origen}>
-                  <td className="py-2 pr-3">
-                    <Origen fila={f} />
-                  </td>
-                  {PASOS.map((p) => (
-                    <td key={p.clave} className="cifra py-2 pl-3 text-right whitespace-nowrap">
-                      {num(f[p.clave])}
-                      {p.clave === "dejoDatos" ? null : (
-                        <span className="ml-1.5 text-xs text-muted-foreground">{porcentaje(f[p.clave], f.dejoDatos)}</span>
-                      )}
+              {filas.map((f) => {
+                const tasasDeFila = tasasDelEmbudo(f);
+                return (
+                  <tr key={f.origen === "canal" ? `${f.area}:${f.canalClave ?? ""}` : f.origen}>
+                    <td className="py-2 pr-3">
+                      <Origen fila={f} />
                     </td>
-                  ))}
-                </tr>
-              ))}
+                    {PASOS.map((p) => {
+                      const tasas = p.clave === "dejoDatos" ? null : tasasDeFila[p.clave];
+                      return (
+                        <td key={p.clave} className="py-2 pl-3 text-right whitespace-nowrap">
+                          <span className="cifra block">{num(f[p.clave])}</span>
+                          {tasas === null ? null : (
+                            <>
+                              <span className="cifra block text-xs">
+                                {porcentaje(tasas.sobreAnterior)} del paso anterior
+                              </span>
+                              <span className="cifra block text-xs text-muted-foreground">
+                                {porcentaje(tasas.sobreDejoDatos)} de dejó datos
+                              </span>
+                            </>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
