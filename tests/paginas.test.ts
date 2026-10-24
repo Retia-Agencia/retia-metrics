@@ -600,11 +600,11 @@ async function hrefsDeAjustes(): Promise<string[]> {
 }
 
 describe("índice de Ajustes por rol (ticket 173)", () => {
-  it("el administrador (gerente) ve las cinco secciones y las rarezas de migración, no Canales por pauta exclusiva", async () => {
+  it("el administrador (gerente) ve sus secciones y las rarezas de migración; Canales se retiró a Hub › Origen (248)", async () => {
     auth.mockResolvedValue(sesionGerente);
     const hrefs = await hrefsDeAjustes();
     expect(hrefs).toContain("/ajustes/usuarios");
-    expect(hrefs).toContain("/ajustes/canales");
+    expect(hrefs).not.toContain("/ajustes/canales");
     expect(hrefs).toContain("/ajustes/salud");
     expect(hrefs).toContain("/ajustes/catalogos");
     expect(hrefs).toContain("/ajustes/areas");
@@ -617,14 +617,14 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     auth.mockResolvedValue(sesionDeveloper);
     const hrefs = await hrefsDeAjustes();
     expect(hrefs).toContain("/ajustes/usuarios");
-    expect(hrefs).toContain("/ajustes/canales");
+    expect(hrefs).not.toContain("/ajustes/canales");
     expect(hrefs).toContain("/ajustes/areas");
   });
 
-  it("el paid trafficker sin límite solo ve los ajustes de pauta (ADR 0094: nunca administra lo global)", async () => {
+  it("el paid trafficker no tiene ajustes desde que Canales pasó a Hub › Origen (248; ADR 0094: nunca administra lo global)", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     const hrefs = await hrefsDeAjustes();
-    expect(hrefs).toEqual(["/ajustes/canales"]);
+    expect(hrefs).toEqual([]);
   });
 
   it("un closer ni siquiera entra al índice (ticket 224, ADR 0082): la raíz lo rebota", async () => {

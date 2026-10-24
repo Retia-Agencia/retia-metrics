@@ -409,14 +409,14 @@ describe("navegacion por rol", () => {
     expect(rutasDe("closer")).not.toContain("/nerd-stats");
   });
 
-  it("el paid trafficker ve Mi espacio, Hub, Programa y Ajustes: ni otras tabs, ni Recursos ni Mi día", () => {
+  it("el paid trafficker ve Mi espacio, Hub y Programa: ni Ajustes (Canales pasó a Hub › Origen, 248), ni Recursos ni Mi día", () => {
     const rutas = rutasDe("paid_trafficker");
-    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`, "/ajustes"]);
+    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
     expect(rutas).not.toContain("/mi-dia");
     expect(rutas).not.toContain("/recursos");
     expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
     // Sin programa visible no hay Dashboard.
-    expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio", "/ajustes"]);
+    expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio"]);
   });
 
   it("el paid trafficker aterriza en Mi espacio (ticket 179), ya no en Canales", () => {

@@ -1,5 +1,5 @@
 import type { Rol, SujetoDeCapacidad } from "@/lib/auth/roles";
-import { administraGlobal, esAccesoTotal, esAdministrador, manejaPauta, manejaPautaGlobal, marcaOnboarding, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
+import { administraGlobal, esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -129,10 +129,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
             { href: rutaDePrograma(programa, "programa"), etiqueta: "Programa", icono: "programa", roles: ["paid_trafficker"] } satisfies ItemNav,
           ]
         : []),
-      // Su Ajustes es Canales y Meta: la misma pregunta que la guarda del índice (ADR 0094 punto 4).
-      ...(manejaPautaGlobal({ rol, alcanceLimitado })
-        ? [{ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["paid_trafficker"] } satisfies ItemNav]
-        : []),
+      // Sin Ajustes: su único ajuste era Canales, que pasó a Hub › Origen (248).
     ];
   }
 
