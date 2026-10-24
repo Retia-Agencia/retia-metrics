@@ -37,6 +37,13 @@ function filtrosDelPar(fila: FilaOrigenCanal, par: FilaOrigenUtm): FiltrosOrigen
   return { source: par.source, medium: par.medium, ...(categoria ? { categoria } : {}) };
 }
 
+// Los niveles N3 a N1 de la traza (`emparejar`) son internos: la pantalla los dice en palabras.
+const PRECISION_PAID = [
+  { nivel: "N3", titulo: "Hasta el anuncio", detalle: "Se sabe el anuncio exacto que trajo el registro." },
+  { nivel: "N2", titulo: "Hasta la campaña o el conjunto", detalle: "Se sabe la campaña o el conjunto, pero no el anuncio." },
+  { nivel: "N1", titulo: "Solo que es pauta", detalle: "Llegó por pauta, pero sin datos para ubicar la campaña." },
+] as const;
+
 export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
   const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
   const enlaces = (filtros: FiltrosOrigen) => ({
@@ -52,8 +59,15 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
   return <section className="space-y-4">
     <TablaDeOrigen canales={canales} totalEnvios={vista.totalEnvios} soloConteos={soloConteos} />
 
-    <Card><CardHeader><CardTitle className="text-base">Traza de envíos Paid</CardTitle></CardHeader><CardContent className="grid gap-3 sm:grid-cols-3">
-      {(["N3", "N2", "N1"] as const).map((nivel) => <div key={nivel}><p>{nivel}</p><p className="cifra text-lg">{num(vista.trazaPaid[nivel])}{soloConteos ? null : <> · {pct(totalPaid === 0 ? 0 : vista.trazaPaid[nivel] / totalPaid)}</>}</p></div>)}
+    <Card><CardHeader className="space-y-1">
+      <CardTitle className="text-base">¿Hasta dónde sabemos de qué anuncio vino cada registro pagado?</CardTitle>
+      <p className="text-xs text-muted-foreground">Entre más registros identificados hasta el anuncio, más exacto es el costo por anuncio.</p>
+    </CardHeader><CardContent className="grid gap-4 sm:grid-cols-3">
+      {PRECISION_PAID.map(({ nivel, titulo, detalle }) => <div key={nivel} className="space-y-1">
+        <p className="text-sm font-medium">{titulo}</p>
+        <p className="cifra text-lg">{num(vista.trazaPaid[nivel])}{soloConteos ? null : <span className="text-muted-foreground"> · {pct(totalPaid === 0 ? 0 : vista.trazaPaid[nivel] / totalPaid)}</span>}</p>
+        <p className="text-xs text-muted-foreground">{detalle}</p>
+      </div>)}
     </CardContent></Card>
 
     <Card><CardHeader><CardTitle className="text-base">Plantillas en uso por cuenta</CardTitle></CardHeader><CardContent>

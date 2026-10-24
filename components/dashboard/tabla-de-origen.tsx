@@ -52,13 +52,14 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
     </CardHeader>
     <CardContent>
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        {/* Anchos fijos: abrir un canal no mueve las columnas. La regla va bajo su UTM, no en una columna. */}
+        <table className="w-full min-w-[32rem] table-fixed text-sm">
+          <colgroup><col /><col className="w-32" /><col className="w-28" /><col className="w-28" /></colgroup>
           <thead><tr className="border-b text-xs text-muted-foreground">
-            <th className="py-2 text-left font-medium">Área · canal / UTM</th>
+            <th className="py-2 pr-3 text-left font-medium">Área · canal / UTM</th>
             <th className="py-2 text-right font-medium">Registros</th>
             <th className="py-2 text-right font-medium">Agendas</th>
-            <th className="py-2 pl-3 text-right font-medium">% agenda</th>
-            <th className="py-2 pl-4 text-left font-medium">Regla</th>
+            <th className="py-2 text-right font-medium">% agenda</th>
           </tr></thead>
           <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
         {canales.flatMap((fila) => {
@@ -68,7 +69,7 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
           const especial = fila.categoria !== null;
           const filas = [
             <tr key={fila.clave}>
-              <td className="py-2 pr-3">
+              <td className="py-2.5 pr-3">
                 <button
                   type="button"
                   className="rounded-lg text-left font-medium transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-default disabled:hover:text-foreground"
@@ -85,24 +86,23 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
                 {especial && !soloConteos ? <span className="cifra text-muted-foreground"> · {pct(totalEnvios === 0 ? 0 : fila.envios / totalEnvios)}</span> : null}
               </td>
               <td className="text-right"><Cifra href={fila.enlaces.agendas}>{num(fila.agendas)}</Cifra></td>
-              <td className="cifra pl-3 text-right text-muted-foreground">{tasa(fila.agendas, fila.envios)}</td>
-              <td />
+              <td className="cifra text-right text-muted-foreground">{tasa(fila.agendas, fila.envios)}</td>
             </tr>,
           ];
           if (abierto) {
             filas.push(...pares.map((par) => {
               return <tr key={`${fila.clave}:${par.source ?? "∅"}:${par.medium ?? "∅"}:${par.regla}:${par.macros}`}>
-                <td className="py-2 pl-6 pr-3 text-muted-foreground">
-                  {par.source ?? "—"} / {par.medium ?? "—"} {par.nuevo ? <Badge variant="info">Nuevo</Badge> : null}
+                <td className="py-2 pl-6 pr-3">
+                  <p className="truncate">{par.source ?? "—"} / {par.medium ?? "—"} {par.nuevo ? <Badge variant="info">Nuevo</Badge> : null}</p>
+                  <p className="truncate text-xs text-muted-foreground">{par.regla}</p>
                 </td>
                 <td className="text-right"><Cifra href={par.enlaces.registros}>{num(par.envios)}</Cifra></td>
                 <td className="text-right"><Cifra href={par.enlaces.agendas}>{num(par.agendas)}</Cifra></td>
-                <td className="cifra pl-3 text-right text-muted-foreground">{tasa(par.agendas, par.envios)}</td>
-                <td className="pl-4 text-muted-foreground">{par.regla}</td>
+                <td className="cifra text-right text-muted-foreground">{tasa(par.agendas, par.envios)}</td>
               </tr>;
             }));
             if (fila.pares.length > MAX_PARES) filas.push(<tr key={`${fila.clave}:todos`}>
-              <td className="py-2 pl-6" colSpan={5}>
+              <td className="py-2 pl-6" colSpan={4}>
                 <Button type="button" variant="link" size="sm" onClick={() => alternar(fila.clave, completos, setCompletos)}>
                   {completo ? "Ver menos" : `Ver todos (${num(fila.pares.length)})`}
                 </Button>
@@ -112,11 +112,10 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
           return filas;
         })}
         <tr key="total" className="border-t font-medium">
-          <td className="py-2">Total</td>
+          <td className="py-2.5">Total</td>
           <td className="cifra text-right">{num(totalEnvios)}</td>
           <td className="cifra text-right">{num(totalAgendas)}</td>
-          <td className="cifra pl-3 text-right text-muted-foreground">{tasa(totalAgendas, totalEnvios)}</td>
-          <td />
+          <td className="cifra text-right text-muted-foreground">{tasa(totalAgendas, totalEnvios)}</td>
         </tr>
           </tbody>
         </table>
