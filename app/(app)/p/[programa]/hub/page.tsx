@@ -194,6 +194,16 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         origen,
       }))
     : undefined;
+  const detalleCitasDebidas = esHoy
+    ? proyectar(await detalleDeCifra("citas_debidas", {
+        programId: programa.id,
+        slug,
+        hoy,
+        periodo: vista.periodo,
+        claveCloser: vista.claveCloser,
+        origen,
+      }))
+    : undefined;
   const detalleRegistros = esHoy
     ? proyectar(await detalleDeCifra("registros", {
         programId: programa.id,
@@ -297,6 +307,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               detalleRegistros={detalleRegistros}
               agendasCreadas={vistaDeHoy!.agendasCreadas}
               detalleAgendasCreadas={detalleAgendasCreadas}
+              showPorCita={vistaDeHoy!.showPorCita}
+              detalleCitasDebidas={detalleCitasDebidas}
               detalles={detalles}
               detallesOperacion={veEquipo ? await detallesDeOperacion(
                 { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },

@@ -181,6 +181,7 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 | Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | ✅ |
 | Citas · Shows | citas del rango; las que ocurrieron (§1.3) | citas | sí | `hechos/cita.ts` | ✅ |
 | % de show | deals del grupo con al menos un show ÷ deals del grupo | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
+| % de show por cita | citas del día que ocurrieron ÷ citas del día que ya debían ocurrir al corte (§1.3); es otra pregunta que el % por deal y se muestra a su lado en Hub › Hoy, como lo contaba el reporte de Michael (Mani, 24-oct) | % | no | `showPorCitaDelRango` en `lib/queries/tasa-show-por-cita.ts` | ✅ |
 | % de cierre | deals con show que hoy están vendidos ÷ deals con show | % | no | ídem | ✅ |
 | Agenda → venta | deals con show vendidos hoy ÷ deals del grupo (= % show × % cierre) | % | no | ídem | ✅ |
 | Ventas | deals vendidos en el rango (§1.4) | ventas | sí | `ventasConDiaEn` | ✅ |

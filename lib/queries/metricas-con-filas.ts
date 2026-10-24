@@ -12,7 +12,7 @@ import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/quer
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, filtroRegistros,
+  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, filtroRegistros, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -26,6 +26,7 @@ import { listar as listarEnvios, type DimensionEnvio } from "@/lib/queries/hecho
 export type Metrica =
   | "caja"
   | "agendas"
+  | "citas_debidas"
   | "shows"
   | "no_shows"
   | "shows_sin_grain"
@@ -161,6 +162,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
         claveCloser: claveCloserSql(abonos.registradoPorUserId, abonos.closerId),
       };
     case "agendas":
+    case "citas_debidas":
     case "agendas_futuras":
     case "shows":
     case "no_shows":
@@ -314,6 +316,7 @@ function consultaDe(
           ),
         );
     case "agendas":
+    case "citas_debidas":
     case "shows":
     case "no_shows":
     case "shows_sin_grain":
@@ -325,6 +328,7 @@ function consultaDe(
         .where(
           and(
             filtroLlamadas(alcance, db),
+            metrica === "citas_debidas" ? llamadaYaDebiaOcurrir(filtros.ahora ?? new Date()) : undefined,
             metrica === "shows" ? llamadaOcurrio() : undefined,
             metrica === "no_shows" ? filtroNoShows(alcance, db) : undefined,
             metrica === "shows_sin_grain" ? atendidaSinGrain() : undefined,

@@ -11,6 +11,7 @@ import { nombreDelMes } from "@/lib/queries/metas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { CajaDelDiaPorOrigen, ClaveDeHorizonte, ContextoDelDia, Horizonte } from "@/lib/queries/vista-hoy";
 import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import type { ShowPorCita } from "@/lib/queries/tasa-show-por-cita";
 
 /**
  * Hub › Hoy (ticket 252, ADR 0086 punto 3): el reporte diario armado con lo que el CRM ya calcula,
@@ -78,12 +79,14 @@ function Cupos({ horizontes, detalles }: { horizontes: Horizonte[]; detalles?: D
 }
 
 /** 3. La operación del día: el embudo de hoy y, si la sesión ve al equipo, cada closer. */
-function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, detalleAgendasCreadas, detalles, detallesOperacion, veEquipo }: {
+function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, detalleAgendasCreadas, showPorCita, detalleCitasDebidas, detalles, detallesOperacion, veEquipo }: {
   vista: VistaDelDashboard;
   registros: number;
   detalleRegistros?: DetalleDeCifra;
   agendasCreadas: number;
   detalleAgendasCreadas?: DetalleDeCifra;
+  showPorCita: ShowPorCita;
+  detalleCitasDebidas?: DetalleDeCifra;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
   veEquipo: boolean;
@@ -103,7 +106,14 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
         } nota="Por la fecha de la cita" />
         <Tarjeta titulo="Realizadas (show)" valor={
           <CifraConLista titulo="Llamadas realizadas hoy" detalle={detalles?.shows}>{num(embudo.llamadasConShow)}</CifraConLista>
-        } nota={`% de show ${tasa(embudo.pctShow)} por deal: ${num(embudo.grupo.conShow)} de ${num(embudo.grupo.deals)} deals con cita ocurrida${embudo.reagendadas > 0 ? ` · ${num(embudo.reagendadas)} reagendadas (no cuentan)` : ""}`} />
+        } nota={<>
+          <span className="block">{`% de show ${tasa(embudo.pctShow)} por deal: ${num(embudo.grupo.conShow)} de ${num(embudo.grupo.deals)} deals con cita ocurrida${embudo.reagendadas > 0 ? ` · ${num(embudo.reagendadas)} reagendadas (no cuentan)` : ""}`}</span>
+          <span className="block">
+            {`% de show ${tasa(showPorCita.porcentaje)} por cita: ${num(showPorCita.realizadas)} de `}
+            <CifraConLista titulo="Citas de hoy que ya debían ocurrir" detalle={detalleCitasDebidas}>{num(showPorCita.citasQueYaDebianOcurrir)}</CifraConLista>
+            {" citas que ya debían ocurrir"}
+          </span>
+        </>} />
         <Tarjeta titulo="Ventas de hoy" valor={
           <CifraConLista titulo="Ventas de hoy" detalle={detalles?.cierres}>{num(embudo.cierres)}</CifraConLista>
         } nota={`% de cierre ${tasa(embudo.pctCierre)}`} />
@@ -208,6 +218,8 @@ export function Hoy({
   detalleRegistros,
   agendasCreadas,
   detalleAgendasCreadas,
+  showPorCita,
+  detalleCitasDebidas,
   detalles,
   detallesOperacion,
   alertas,
@@ -224,6 +236,8 @@ export function Hoy({
   detalleRegistros?: DetalleDeCifra;
   agendasCreadas: number;
   detalleAgendasCreadas?: DetalleDeCifra;
+  showPorCita: ShowPorCita;
+  detalleCitasDebidas?: DetalleDeCifra;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
   alertas: Alerta[];
@@ -248,6 +262,8 @@ export function Hoy({
           detalleRegistros={detalleRegistros}
           agendasCreadas={agendasCreadas}
           detalleAgendasCreadas={detalleAgendasCreadas}
+          showPorCita={showPorCita}
+          detalleCitasDebidas={detalleCitasDebidas}
           detalles={detalles}
           detallesOperacion={detallesOperacion}
           veEquipo={veEquipo}

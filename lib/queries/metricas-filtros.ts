@@ -378,3 +378,8 @@ export function llamadaPasadaSinResultado(ahora: Date) {
     notInArray(deals.etapa, [...ETAPAS_CERRADAS]),
   );
 }
+
+/** La cita ya debía haber empezado al instante de corte compartido por cifra y lista. */
+export function llamadaYaDebiaOcurrir(ahora: Date) {
+  return lte(sql`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`, ahora);
+}

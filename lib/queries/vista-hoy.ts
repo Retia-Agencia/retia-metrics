@@ -9,6 +9,7 @@ import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { filtroCaja, vendidosEn } from "@/lib/queries/metricas-filtros";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
+import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
 import { vigente } from "@/lib/queries/vigente";
 import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
@@ -150,10 +151,11 @@ export async function armarVistaDeHoy(
     claveCloser: null,
     ahora: instante,
   }, db);
-  const [caja, filasDeAgendas, filasDeEnvios] = await Promise.all([
+  const [caja, filasDeAgendas, filasDeEnvios, showPorCita] = await Promise.all([
     cajaDelDiaPorOrigen({ programId, hoy: dia }, db),
     agruparAgendas(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
     agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
+    showPorCitaDelRango({ programId, rango: { desde: dia, hasta: dia }, claveCloser: null }, instante, db),
   ]);
   return {
     vista,
@@ -162,6 +164,7 @@ export async function armarVistaDeHoy(
     caja,
     agendasCreadas: filasDeAgendas.reduce((total, fila) => total + fila.agendas, 0),
     registros: filasDeEnvios.reduce((total, fila) => total + fila.envios, 0),
+    showPorCita,
   };
 }
 
