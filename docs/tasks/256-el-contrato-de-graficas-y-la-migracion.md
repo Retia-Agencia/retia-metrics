@@ -3,7 +3,7 @@ id: 256
 etapa: hub
 serves: "docs/hub.md O5 · el ADR que sale del 255 · ADR 0067"
 depends: [255, 250]
-status: todo
+status: en main
 ---
 
 # 256 — El contrato de gráficas y la migración de las que existen

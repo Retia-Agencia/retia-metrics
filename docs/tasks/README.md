@@ -262,10 +262,10 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 250 | [El Dashboard y Metas pasan a ser el Hub](./250-el-dashboard-y-metas-pasan-a-ser-el-hub.md) | — | done · su archivo dice `done`; el tracker se puso al día el 23-oct · ADR 0086 |
 | [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | en main · 24-oct · Codex + central (`67a004c2`) · llaves nuevas `comparar=no` y `comparar=cohorte` · falta recorrido visual y `test:humo`; el tooltip aún no dice "12 → 15" |
 | [x] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | done · 14-oct · Alejandro · `95aa3dde`; el tracker se puso al día el 23-oct · la enmienda del 19-oct (artefacto de Anderson) queda abierta como enmienda, no frena al 253 |
-| [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | todo |
+| [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | en main · 24-oct · Codex + central (`b37955f3`, `4be9cae5`) · typecheck, lint, build y test del ticket limpios; recorrido en dev:local sin datos de ventas, las cifras con datos solo las cubre el test |
 | [ ] | 254 | [El origen del cierre](./254-el-origen-del-cierre.md) | 252, 262 | todo |
 | [x] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | done · 14-oct · Mani · ECharts con una pieza propia (ADR 0091); rama del prototipo borrada |
-| [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | todo |
+| [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | en main · 24-oct · Codex + central (`901c6c19`) · `echarts` 6.1.0 exacto; recorrido en dev:local en oscuro, claro y 375 px; falta `test:humo` y comparar las cifras migradas contra producción |
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
 | [x] | 299 | [Hoy fiel: las cifras del reporte diario, definidas y comprobadas](./299-hoy-fiel.md) | 252 | done · 23-oct · D1 a D4 decididas; comparado el 22-oct contra Typeform y Calendly; falta checkpoint · 24-oct: % de show por cita al lado del por deal (`055f07fe`, Mani) |
 | [ ] | 300 | [El reporte del día: vista imprimible y una foto por día](./300-reporte-del-dia-imprimible-y-fotos.md) | 299 | todo · 23-oct · reemplaza al 021 · migración · Juanito lo manda después, en otro ticket |

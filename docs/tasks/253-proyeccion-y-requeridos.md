@@ -3,7 +3,7 @@ id: 253
 etapa: hub
 serves: "docs/hub.md H-10, §5.2 (ritmo, proyección, ventas, agendas y leads requeridos) · el reporte del 9 y del 15-sep"
 depends: [252, 262]
-status: todo
+status: en main
 ---
 
 # 253 — La proyección y lo que hace falta por día
