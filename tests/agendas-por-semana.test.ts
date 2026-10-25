@@ -71,7 +71,7 @@ describe("ticket 189: agendas por semana", () => {
     const cortesia = await nuevoDeal(programaA, 10);
     await db.update(deals).set({ cortesia: true }).where(eq(deals.id, cortesia));
     await cita(programaA, cortesia, "2026-10-06T09:00:00", "2026-10-22T10:00:00", "agendada");
-    // 4) Pasada y sin resultado (7-oct temprano): ocurrió y cuenta como no-show hasta que se registre (ADR 0079).
+    // 4) Pasada y sin resultado (7-oct temprano): queda pendiente, fuera del show y del no-show (ADR 0079, 24-oct).
     await cita(programaA, await nuevoDeal(programaA, 4), "2026-10-05T09:00:00", "2026-10-07T08:00:00", "agendada");
     // 5) Anulados (la cita y su deal) y otro programa: no cuentan en ninguna cifra.
     await cita(programaA, await nuevoDeal(programaA, 5, true), "2026-09-29T09:00:00", "2026-09-30T11:00:00", "no_show", true);
@@ -94,14 +94,15 @@ describe("ticket 189: agendas por semana", () => {
       ocurridas: s.ocurridas.resumen.subtotal.cantidad,
       shows: s.shows.resumen.subtotal.cantidad,
       noShows: s.noShows.resumen.subtotal.cantidad,
+      pendientes: s.pendientes.resumen.subtotal.cantidad,
       pctNoShow: s.pctNoShow,
     }));
     expect(cuenta).toEqual([
       // La cita 1 se creó aquí, pero ocurre en octubre.
-      { creadas: 1, ocurridas: 0, shows: 0, noShows: 0, pctNoShow: null },
-      { creadas: 1, ocurridas: 1, shows: 0, noShows: 1, pctNoShow: 1 },
-      // Ocurridas: la 1 (show) y la 4 (sin resultado = no-show). La 3 es futura y no entra al no-show.
-      { creadas: 6, ocurridas: 2, shows: 1, noShows: 1, pctNoShow: 0.5 },
+      { creadas: 1, ocurridas: 0, shows: 0, noShows: 0, pendientes: 0, pctNoShow: null },
+      { creadas: 1, ocurridas: 1, shows: 0, noShows: 1, pendientes: 0, pctNoShow: 1 },
+      // Ocurrida con resultado: solo la 1 (show). La 4 pasó sin resultado: pendiente, no no-show. La 3 es futura.
+      { creadas: 6, ocurridas: 1, shows: 1, noShows: 0, pendientes: 1, pctNoShow: 0 },
     ]);
 
     // Las futuras, desde hoy y por la semana de la cita: la 3 esta semana y la 3b en noviembre;
@@ -114,7 +115,7 @@ describe("ticket 189: agendas por semana", () => {
     for (const p of proximas) expect((await filasDe(p.futuras)).filas.length).toBe(1);
 
     for (const s of semanas) {
-      for (const detalle of [s.creadas, s.ocurridas, s.shows, s.noShows]) {
+      for (const detalle of [s.creadas, s.ocurridas, s.shows, s.noShows, s.pendientes]) {
         const lista = await filasDe(detalle);
         expect(lista.subtotal.cantidad).toBe(detalle.resumen.subtotal.cantidad);
         expect(lista.filas.length).toBe(detalle.resumen.subtotal.cantidad);
