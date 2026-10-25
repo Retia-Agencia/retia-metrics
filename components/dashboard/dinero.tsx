@@ -3,7 +3,7 @@ import { CifraConLista } from "@/components/cifra-con-lista";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
-import { SeriesLineales } from "@/components/series-lineales";
+import { Grafica } from "@/components/graficas/grafica";
 import { Variacion } from "@/components/variacion";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -213,12 +213,17 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
         {metricas.map((m) => (
           <Card key={`${m.metrica}-${m.unidad}`} className="min-w-0">
             <CardContent className="pt-6">
-              <SeriesLineales titulo={`${m.titulo} por mes`} unidad={m.unidad}
-                etiquetas={meses.map((mes) => mes.mes)} formato={(valor) => num(valor, m.decimales)} mostrarTabla
+              <Grafica titulo={`${m.titulo} por mes`} unidad={m.unidad}
+                frescura={`Datos hasta ${fecha(ultimo.rango.hasta)}.`}
+                etiquetas={meses.map((mes) => mes.mes)} formato={(valor) => num(valor, m.decimales)}
+                comparacion={m.metrica === "caja" ? undefined : {
+                  texto: "contra la meta del mes",
+                  pares: [{ actual: m.titulo, referencia: "Meta del mes · programa" }],
+                }}
+                meta={m.metrica === "caja" ? undefined : { etiqueta: "Meta del mes · programa", valores: meses.map(m.meta) }}
                 datos={{ dias: meses.map((mes) => `${mes.mes}-01`), series: [
                   { clave: m.titulo, valores: meses.map((mes) => mes.rango.desde <= mes.rango.hasta ? m.valor(mes) : null),
                     enlaces: meses.map((mes) => enlace(m.metrica, mes.rango, m.moneda)) },
-                  ...(m.metrica === "caja" ? [] : [{ clave: "Meta del mes · programa", valores: meses.map(m.meta), punteada: true }]),
                 ] }} />
             </CardContent>
           </Card>
@@ -240,19 +245,21 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
               return (
                 <Card key={`${m.metrica}-${m.unidad}`} className="min-w-0">
                   <CardContent className="space-y-3 pt-6">
-                    <SeriesLineales titulo={`${m.titulo} acumulado`} unidad={m.unidad}
-                      formato={(valor) => num(valor, m.decimales)} mostrarTabla
+                    <Grafica titulo={`${m.titulo} acumulado`} unidad={m.unidad}
+                      frescura={`Datos hasta ${fecha(acumulado.a.hasta)}.`}
+                      formato={(valor) => num(valor, m.decimales)}
                       etiquetas={acumulado.puntos.map((p) => `${diaCorto(p.dia)} / ${p.diaAnterior ? diaCorto(p.diaAnterior) : "—"}`)}
+                      comparacion={acumulado.b ? {
+                        texto: "contra el mes anterior al mismo día hábil",
+                        pares: [{ actual: ultimo.mes, referencia: `${meses[meses.length - 2].mes} · mismo hábil` }],
+                      } : undefined}
+                      meta={meta === null ? undefined : { etiqueta: "Meta del mes · programa", valores: acumulado.puntos.map(() => meta), color: 1 }}
                       datos={{ dias: acumulado.puntos.map((p) => p.dia), series: [
                         { clave: ultimo.mes, valores: acumulado.puntos.map((p) => m.valor(p.actual)),
                           enlaces: acumulado.puntos.map((p) => enlace(m.metrica, { desde: acumulado.a.desde, hasta: p.dia }, m.moneda)) },
                         { clave: `${meses[meses.length - 2].mes} · mismo hábil`, color: 0, punteada: true,
                           valores: acumulado.puntos.map((p) => p.anterior ? m.valor(p.anterior) : null),
                           enlaces: acumulado.puntos.map((p) => acumulado.b && p.diaAnterior ? enlace(m.metrica, { desde: acumulado.b.desde, hasta: p.diaAnterior }, m.moneda) : null) },
-                        ...(meta === null ? [] : [{
-                          clave: "Meta del mes · programa",
-                          color: 1, punteada: true, valores: acumulado.puntos.map(() => meta),
-                        }]),
                       ] }} />
                     {final.anterior ? <p className="text-sm">{m.unidad}: <Variacion actual={m.valor(final.actual)} anterior={m.valor(final.anterior)} decimales={m.decimales} comparacion="contra el mes anterior al mismo día hábil" /></p> : null}
                     {m.metrica === "caja" ? (

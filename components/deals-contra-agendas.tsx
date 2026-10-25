@@ -1,8 +1,9 @@
 import { CifraConLista } from "@/components/cifra-con-lista";
-import { SeriesLineales } from "@/components/series-lineales";
+import { Grafica } from "@/components/graficas/grafica";
 import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct } from "@/lib/format";
+import { descripcionDeComparacion } from "@/lib/periodo";
 import type { PuntoHabil } from "@/lib/queries/deals-contra-agendas";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { porcentajeConBase, textoDeVariacionDeTasa } from "@/lib/variacion";
@@ -98,10 +99,19 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
             </tbody>
           </table>
         </div>
-        <SeriesLineales
+        <Grafica
           titulo="Acumulado"
           unidad="registros"
+          frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
           etiquetas={etiquetas}
+          formato={(v) => num(v)}
+          comparacion={b ? {
+            texto: descripcionDeComparacion(periodo),
+            pares: [
+              { actual: "Deals · periodo", referencia: "Deals · comparación" },
+              { actual: "Agendas · periodo", referencia: "Agendas · comparación" },
+            ],
+          } : undefined}
           datos={{
             dias: etiquetas,
             series: [
@@ -116,11 +126,16 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
             ],
           }}
         />
-        <SeriesLineales
+        <Grafica
           titulo="Agendas por deal"
           unidad="% acumulado"
+          frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
           etiquetas={etiquetas}
           formato={(v) => pct(v, 0)}
+          comparacion={b ? {
+            texto: descripcionDeComparacion(periodo),
+            pares: [{ actual: "Periodo", referencia: "Comparación" }],
+          } : undefined}
           datos={{
             dias: etiquetas,
             series: [

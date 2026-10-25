@@ -335,7 +335,7 @@ pantallas en `components/`: la columna dice cuáles son de cada componente.
 | 6 · Students | `deals/estudiante.ts` | `estudiantes.ts`, `cohortes.ts` | `app/(app)/p/[programa]/students/` |
 | 7 · Origen y atribución | `atribucion/` (`canal.ts`, `emparejar.ts`, `link-de-captacion.ts`, `utm-del-envio.ts`), `deals/rellenar-origen.ts` | `origen-declarado.ts`, `registros-agendas-canal.ts`, `pauta-interina.ts` | `admin/canales-admin.tsx`, `admin/areas-admin.tsx`, `pauta-interina.tsx`, `registros-agendas-canal.tsx` |
 | 8 · Pauta | ❌ `lib/pauta/` (119, 120) | ❌ | ❌ tab Campañas (125) |
-| 9 · Métricas y metas | `periodo.ts`, `variacion.ts`, `series-alineadas.ts`, `dias-habiles.ts`, `rangos.ts` | `dashboard.ts`, `vista-*.ts`, `metricas-*.ts`, `serie.ts`, `hechos-embudo.ts`, `agregado-programas.ts`, `deals-contra-agendas.ts`, `ventanas-de-cohortes.ts` | `dashboard-programa.tsx`, `cifra-con-lista.tsx`, `selector-periodo.tsx`, `series-lineales.tsx`, `deals-contra-agendas.tsx`, `variacion.tsx` |
+| 9 · Métricas y metas | `periodo.ts`, `variacion.ts`, `series-alineadas.ts`, `dias-habiles.ts`, `rangos.ts` | `dashboard.ts`, `vista-*.ts`, `metricas-*.ts`, `serie.ts`, `hechos-embudo.ts`, `agregado-programas.ts`, `deals-contra-agendas.ts`, `ventanas-de-cohortes.ts` | `dashboard-programa.tsx`, `cifra-con-lista.tsx`, `selector-periodo.tsx`, `graficas/`, `deals-contra-agendas.tsx`, `variacion.tsx` |
 | 10 · Configuración | `catalogo/` (el molde y una entidad por archivo: programas, cohortes, usuarios, fuentes, motivos, plataformas, enlaces de pago, recursos, áreas, canales) | `programas.ts`, `ficha-programa.ts`, `fuentes.ts`, `recursos.ts` | `admin/`, `programas-admin.tsx`, `cohortes-admin.tsx`, `usuarios-admin.tsx`, `catalogos-admin.tsx`, `resources/` |
 | 11 · Plataforma | `auth/` (roles, guardas, alcance, vista, revalidación), `db/`, `errors.ts`, `errors-zod.ts`, `format.ts`, `closers/identidad.ts` | `vigente.ts`, `nerd-stats.ts`, `bitacora.ts` | `app-sidebar.tsx`, `program-switcher.tsx`, `user-menu.tsx`, `ui/` |
 | 12 · Migración | `migracion/` (extractores, `importar.ts`, `deshacer.ts`), `sheets/` (lectura una vez) | `conciliacion-sheets.ts` | `app/(app)/ajustes/migracion/` |
@@ -673,10 +673,15 @@ paginación e ids porque pertenecen al programa anterior.
   `num`/`pct`, menos tipográfico y `—` con base cero. `porcentajeConBase(cantidad, base)` escribe
   `50% de 12`; con base cero escribe `—`. El signo no decide un tono de éxito o peligro.
 - `pivotarSerie` (`lib/series-alineadas.ts`) exige programa, rechaza filas ajenas, suma por día y valor
-  de dimensión y rellena huecos con cero. `SeriesLineales` usa SVG, ejes lineales con cero visible,
-  tokens `chart-1` a `chart-5`, trazos para series adicionales y tabla accesible. No está montado aún.
+  de dimensión y rellena huecos con cero.
 - Tests: `periodo.test.ts`, `variacion.test.ts`, `series-alineadas.test.ts`, `vista-dashboard.test.ts`
   y el borde de página en `paginas.test.ts`.
+
+**Contrato de gráficas (ADR 0091):** toda gráfica usa `components/graficas/`, nunca ECharts directo. Línea expresa
+tendencia y barra compara categorías; una torta no representa más de tres partes. Los ejes numéricos son lineales e
+incluyen cero; la meta es una línea. El tooltip dice el día, el valor, contra qué se compara —con el vocabulario de
+“Comparar con”— y el cambio en número y porcentaje. Toda gráfica muestra la frescura del dato y ofrece siempre una
+tabla alternativa. El envoltorio usa SVG y resuelve exclusivamente los tokens de Tinta, también al cambiar de tema.
 
 **Paleta:**
 
