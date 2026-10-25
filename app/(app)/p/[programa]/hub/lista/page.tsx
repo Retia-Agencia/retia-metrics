@@ -39,6 +39,7 @@ const esquema = z.object({
     "cortesias",
     "leads",
     "deals_creados",
+    "deals_que_agendaron",
     "agendas_creadas",
     "registros",
     "citas_debidas",
@@ -76,7 +77,7 @@ const esquema = z.object({
 });
 
 const titulos = {
-  caja: "Caja recaudada",
+  caja: "Recaudado",
   agendas: "Agendas",
   shows: "Shows",
   no_shows: "No show",
@@ -85,13 +86,14 @@ const titulos = {
   cortesias: "Cortesías",
   leads: "Leads",
   deals_creados: "Deals creados",
+  deals_que_agendaron: "Deals que agendaron",
   agendas_creadas: "Agendas creadas",
   registros: "Registros",
   citas_debidas: "Citas que ya debían ocurrir",
   agendas_futuras: "Agendas futuras",
-  contratado: "Contratado",
+  contratado: "Vendido",
   sin_resultado: "Llamadas pasadas sin resultado",
-  cartera: "Cartera",
+  cartera: "Por cobrar",
   atendidos_sin_valor: "Atendidos sin valor vendido",
   atendidos_sin_grain: "Atendidos sin Grain",
   grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",

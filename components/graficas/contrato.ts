@@ -33,7 +33,8 @@ export interface ModeloDeGrafica {
   unidad: string;
   dias: string[];
   etiquetas: string[];
-  series: Array<SerieDeGrafica & { textos: Array<string | null>; esMeta?: boolean }>;
+  series: Array<SerieDeGrafica & { textos: Array<string | null> }>;
+  meta?: { etiqueta: string; textos: Array<string | null> };
   comparacion?: ComparacionDeGrafica & {
     cambios: Record<string, Array<{ numero: string; porcentaje: string } | null>>;
   };
@@ -49,10 +50,7 @@ const signo = (valor: number) => valor > 0 ? "+" : valor < 0 ? "−" : "";
 
 /** Convierte datos de negocio y su formateador en el modelo serializable del cliente. */
 export function crearModeloGrafica(entrada: EntradaDeGrafica): ModeloDeGrafica {
-  const series = [
-    ...entrada.series,
-    ...(entrada.meta ? [{ ...entrada.meta, clave: entrada.meta.etiqueta, punteada: true, esMeta: true }] : []),
-  ].map((serie) => ({
+  const series = entrada.series.map((serie) => ({
     ...serie,
     textos: serie.valores.map((valor) => valor === null ? null : entrada.escribir(valor)),
   }));
@@ -80,6 +78,10 @@ export function crearModeloGrafica(entrada: EntradaDeGrafica): ModeloDeGrafica {
     dias: entrada.dias,
     etiquetas: entrada.etiquetas,
     series,
+    meta: entrada.meta ? {
+      etiqueta: entrada.meta.etiqueta,
+      textos: entrada.meta.valores.map((valor) => valor === null ? null : entrada.escribir(valor)),
+    } : undefined,
     comparacion: entrada.comparacion ? { ...entrada.comparacion, cambios } : undefined,
   };
 }
@@ -88,11 +90,11 @@ export function filasDeTabla(modelo: ModeloDeGrafica): FilaDeTabla[] {
   return modelo.dias.map((dia, i) => ({
     dia,
     etiqueta: modelo.etiquetas[i],
-    celdas: modelo.series.map((serie) => ({
+    celdas: [...modelo.series.map((serie) => ({
       clave: serie.clave,
       texto: serie.textos[i] ?? "—",
       enlace: serie.enlaces?.[i] ?? null,
-    })),
+    })), ...(modelo.meta ? [{ clave: modelo.meta.etiqueta, texto: modelo.meta.textos[i] ?? "—", enlace: null }] : [])],
   }));
 }
 
@@ -132,14 +134,10 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
           lineas.push(`${escapar(parametro.seriesName)}: ${escapar(serie?.textos[indice] ?? String(parametro.value))} ${escapar(modelo.unidad)}`);
         }
         for (const par of modelo.comparacion?.pares ?? []) {
-          const actual = porClave.get(par.actual);
-          const referencia = porClave.get(par.referencia);
           const cambio = modelo.comparacion?.cambios[par.actual]?.[indice];
-          if (!actual?.textos[indice] || !referencia?.textos[indice] || !cambio) continue;
-          lineas.push(`${escapar(modelo.comparacion!.texto)}: ${escapar(referencia.textos[indice]!)} → ${escapar(actual.textos[indice]!)} ${escapar(modelo.unidad)}`);
-          lineas.push(`Cambio: ${escapar(cambio.numero)} ${escapar(modelo.unidad)} · ${escapar(cambio.porcentaje)}`);
+          if (!cambio) continue;
+          lineas.push(`${escapar(par.actual)}: ${escapar(cambio.numero)} · ${escapar(cambio.porcentaje)}`);
         }
-        if (!modelo.comparacion) lineas.push("Sin comparación");
         return lineas.join("<br>");
       },
     },
@@ -153,10 +151,10 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
     },
     series: modelo.series.map((serie, i) => ({
       name: serie.clave,
-      type: serie.esMeta ? "line" : modelo.tipo === "barra" ? "bar" : "line",
+      type: modelo.tipo === "barra" ? "bar" : "line",
       data: serie.valores,
       connectNulls: false,
-      showSymbol: !serie.esMeta,
+      showSymbol: true,
       symbolSize: 6,
       itemStyle: { color: colores.series[(serie.color ?? i) % colores.series.length] },
       lineStyle: { type: serie.punteada ? "dashed" : "solid" },

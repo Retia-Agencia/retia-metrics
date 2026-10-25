@@ -20,7 +20,7 @@ const bogota = (dia: string, hora = "12:00") => new Date(`${dia}T${hora}:00-05:0
 describe("138: acumular por día hábil (puro)", () => {
   it("lo que nace un fin de semana entra en el hábil siguiente, y lo que cae después del último hábil, en el último", () => {
     const puntos = acumularPorHabil({ desde: "2026-10-03", hasta: "2026-10-11" }, [
-      { dia: "2026-10-03", deals: 2, agendas: 1 }, // sábado, antes del primer hábil
+      { dia: "2026-10-03", deals: 2, agendas: 1, agendaron: 1 }, // sábado, antes del primer hábil
       { dia: "2026-10-07", deals: 1, agendas: 0 },
       { dia: "2026-10-11", deals: 0, agendas: 3 }, // domingo, después del último hábil
       { dia: "2026-10-12", deals: 9, agendas: 9 }, // fuera del rango
@@ -29,11 +29,12 @@ describe("138: acumular por día hábil (puro)", () => {
     expect(puntos.map((p) => [p.habil, p.deals, p.agendas])).toEqual([
       [1, 2, 1], [2, 2, 1], [3, 3, 1], [4, 3, 1], [5, 3, 4],
     ]);
-    expect(puntos.at(-1)!.razon).toBe(4 / 3);
+    expect(puntos.map((p) => p.agendaron)).toEqual([1, 1, 1, 1, 1]);
+    expect(puntos.at(-1)!.pctAgendaron).toBe(1 / 3);
   });
 
-  it("sin deals no hay razón, y un rango sin hábiles no tiene puntos", () => {
-    expect(acumularPorHabil({ desde: "2026-10-05", hasta: "2026-10-05" }, [{ dia: "2026-10-05", deals: 0, agendas: 2 }])[0].razon)
+  it("sin deals no hay tasa, y un rango sin hábiles no tiene puntos", () => {
+    expect(acumularPorHabil({ desde: "2026-10-05", hasta: "2026-10-05" }, [{ dia: "2026-10-05", deals: 0, agendas: 2 }])[0].pctAgendaron)
       .toBeNull();
     expect(acumularPorHabil({ desde: "2026-10-03", hasta: "2026-10-04" }, [{ dia: "2026-10-03", deals: 1, agendas: 1 }]))
       .toEqual([]);
@@ -115,6 +116,8 @@ describe("138: deals creados contra agendas, contra la base", () => {
       },
       { programId: programaA, dealId: ids.deSeptiembre, origen: "calendly", createdAt: bogota("2026-09-03") },
       { programId: programaB, dealId: ids.otroPrograma, origen: "calendly", createdAt: bogota("2026-10-02") },
+      // Agendó después del rango A: no cuenta como deal que agendó en A.
+      { programId: programaA, dealId: ids.nocheDel9, origen: "calendly", createdAt: bogota("2026-10-12") },
     ]);
   }, 60_000);
 
@@ -129,19 +132,31 @@ describe("138: deals creados contra agendas, contra la base", () => {
     expect(b.puntos.map((p) => [p.deals, p.agendas])).toEqual([
       [0, 0], [1, 0], [1, 1], [1, 1], [1, 1], [1, 1], [1, 1],
     ]);
-    expect(b.puntos[0].razon).toBeNull();
-    expect(a.puntos.at(-1)!.razon).toBe(2 / 3);
+    expect(b.puntos[0].pctAgendaron).toBeNull();
   });
 
-  it("la razón es de cada programa: la de B no se mezcla con la de A", async () => {
+  it("agendaron: cuenta el día de la primera agenda vigente, sin la anulada ni la posterior al rango", async () => {
+    const a = await serieDealsContraAgendas(db, { programId: programaA, rango: A });
+    const b = await serieDealsContraAgendas(db, { programId: programaA, rango: B });
+    // conEnvio agendó el 1-oct; sabado solo tiene una agenda anulada; nocheDel9 agendó el 12, fuera de A.
+    expect(a.puntos.map((p) => p.agendaron)).toEqual([1, 1, 1, 1, 1, 1, 1]);
+    expect(a.puntos.at(-1)!.pctAgendaron).toBe(1 / 3);
+    // deSeptiembre nace el 2 y agenda el 3: entra en el hábil 3.
+    expect(b.puntos.map((p) => p.agendaron)).toEqual([0, 0, 1, 1, 1, 1, 1]);
+    expect(b.puntos[1].pctAgendaron).toBe(0);
+    expect(b.puntos.at(-1)!.pctAgendaron).toBe(1);
+  });
+
+  it("la tasa es de cada programa: la de B no se mezcla con la de A", async () => {
     const otro = await serieDealsContraAgendas(db, { programId: programaB, rango: A });
     expect(otro.programId).toBe(programaB);
-    expect(otro.puntos.at(-1)).toMatchObject({ deals: 1, agendas: 1, razon: 1 });
+    expect(otro.puntos.at(-1)).toMatchObject({ deals: 1, agendas: 1, agendaron: 1, pctAgendaron: 1 });
   });
 
   it.each([
     ["deals_creados", "deals"],
     ["agendas_creadas", "agendas"],
+    ["deals_que_agendaron", "agendaron"],
   ] as const)("%s: el último punto cuadra con el resumen y con todas las filas de la lista", async (metrica, campo) => {
     const serie = await serieDealsContraAgendas(db, { programId: programaA, rango: A });
     const [resumen] = await resumenDeMetrica(metrica, { programId: programaA, rango: A, hoy: HOY }, db);
@@ -151,6 +166,8 @@ describe("138: deals creados contra agendas, contra la base", () => {
     if (metrica === "deals_creados") {
       expect(new Set(lista.filas.map((f) => f.id))).toEqual(new Set([ids.conEnvio, ids.sabado, ids.nocheDel9]));
       expect(lista.filas.find((f) => f.id === ids.conEnvio)!.fecha).toBe("2026-10-01");
+    } else if (metrica === "deals_que_agendaron") {
+      expect(lista.filas.map((f) => f.id)).toEqual([ids.conEnvio]);
     } else {
       expect(lista.filas.some((f) => f.dealId === null)).toBe(true);
     }

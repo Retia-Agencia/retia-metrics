@@ -8,6 +8,7 @@ import {
   fechaAnclaDealCreado,
   filtroAgendasCreadas,
   filtroDealsCreados,
+  filtroDealsQueAgendaron,
 } from "@/lib/queries/metricas-filtros";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
 import { vigente } from "@/lib/queries/vigente";
@@ -24,6 +25,8 @@ export interface ConteoDelDia {
   dia: string;
   deals: number;
   agendas: number;
+  /** Deals del rango que ese día pasaron a tener su primera agenda (o nacieron ya agendados). */
+  agendaron?: number;
 }
 
 export interface PuntoHabil {
@@ -33,8 +36,10 @@ export interface PuntoHabil {
   dia: string;
   deals: number;
   agendas: number;
-  /** Agendas por deal. Sin deals no hay razón: `null`, nunca 0 ni infinito. */
-  razon: number | null;
+  /** Deals creados que ya tienen al menos una agenda (A-167). */
+  agendaron: number;
+  /** Qué parte de los deals creados agendó. Sin deals no hay tasa: `null`, nunca 0 ni infinito. */
+  pctAgendaron: number | null;
 }
 
 export interface SerieDealsContraAgendas {
@@ -43,9 +48,9 @@ export interface SerieDealsContraAgendas {
   puntos: PuntoHabil[];
 }
 
-/** La razón de UN programa. Se calcula aquí y en ninguna otra parte: jamás se suma entre programas. */
-export function razonAgendasPorDeal(agendas: number, deals: number): number | null {
-  return deals === 0 ? null : agendas / deals;
+/** La tasa de UN programa. Se calcula aquí y en ninguna otra parte: jamás se suma entre programas. */
+export function pctDealsQueAgendaron(agendaron: number, deals: number): number | null {
+  return deals === 0 ? null : agendaron / deals;
 }
 
 /**
@@ -60,7 +65,7 @@ export function acumularPorHabil(rango: Rango, conteos: ConteoDelDia[]): PuntoHa
 
   const puntos: PuntoHabil[] = [];
   for (let dia = rango.desde; dia <= rango.hasta; dia = sumarDias(dia, 1)) {
-    if (esDiaHabil(dia)) puntos.push({ habil: puntos.length + 1, dia, deals: 0, agendas: 0, razon: null });
+    if (esDiaHabil(dia)) puntos.push({ habil: puntos.length + 1, dia, deals: 0, agendas: 0, agendaron: 0, pctAgendaron: null });
   }
 
   for (const conteo of conteos) {
@@ -69,14 +74,17 @@ export function acumularPorHabil(rango: Rango, conteos: ConteoDelDia[]): PuntoHa
     const indice = Math.min(esDiaHabil(conteo.dia) ? habilesHastaElDia : habilesHastaElDia + 1, total) - 1;
     puntos[indice].deals += conteo.deals;
     puntos[indice].agendas += conteo.agendas;
+    puntos[indice].agendaron += conteo.agendaron ?? 0;
   }
 
   let deals = 0;
   let agendas = 0;
+  let agendaron = 0;
   for (const punto of puntos) {
     deals += punto.deals;
     agendas += punto.agendas;
-    Object.assign(punto, { deals, agendas, razon: razonAgendasPorDeal(agendas, deals) });
+    agendaron += punto.agendaron;
+    Object.assign(punto, { deals, agendas, agendaron, pctAgendaron: pctDealsQueAgendaron(agendaron, deals) });
   }
   return puntos;
 }
@@ -91,7 +99,7 @@ export async function serieDealsContraAgendas(
   { programId, rango }: AlcanceDeSerie,
 ): Promise<SerieDealsContraAgendas> {
   const alcance = { programId, rango };
-  const [porDiaDeDeal, porDiaDeAgenda] = await Promise.all([
+  const [porDiaDeDeal, porDiaDeAgenda, primerasAgendas] = await Promise.all([
     db
       .select({ dia: fechaAnclaDealCreado(), n: sql<number>`count(*)::int` })
       .from(deals)
@@ -103,11 +111,26 @@ export async function serieDealsContraAgendas(
       .from(calls)
       .where(and(filtroAgendasCreadas(alcance), vigente(calls)))
       .groupBy(fechaAnclaAgendaCreada()),
+    // Cada deal que agendó, con el día de su primera agenda. Los mismos filtros que la lista
+    // `deals_que_agendaron`, para que el último punto cuadre con ella.
+    db
+      .select({
+        dia: fechaAnclaDealCreado(),
+        primeraAgenda: sql<string>`min(${fechaAnclaAgendaCreada()})`,
+      })
+      .from(deals)
+      .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+      .innerJoin(calls, and(eq(calls.dealId, deals.id), eq(calls.programId, deals.programId), vigente(calls)))
+      .where(and(filtroDealsQueAgendaron(alcance, db), vigente(deals)))
+      .groupBy(deals.id, fechaAnclaDealCreado()),
   ]);
 
   const conteos = [
     ...porDiaDeDeal.map((f) => ({ dia: f.dia, deals: f.n, agendas: 0 })),
     ...porDiaDeAgenda.map((f) => ({ dia: f.dia, deals: 0, agendas: f.n })),
+    // Un deal "agendó" el día en que tiene las dos cosas: existir y una agenda. Una agenda
+    // posterior al rango ya quedó fuera por el filtro.
+    ...primerasAgendas.map((f) => ({ dia: f.primeraAgenda > f.dia ? f.primeraAgenda : f.dia, deals: 0, agendas: 0, agendaron: 1 })),
   ];
   return { programId, rango, puntos: acumularPorHabil(rango, conteos) };
 }

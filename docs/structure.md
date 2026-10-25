@@ -657,7 +657,10 @@ paginación e ids porque pertenecen al programa anterior.
 - URL: `?periodo=hoy|ayer|manana|esta_semana|semana_pasada|este_mes|mes_pasado|cohorte_actual|cohorte_anterior`.
   Para rangos libres: `?periodo=custom&a_desde=YYYY-MM-DD&a_hasta=YYYY-MM-DD&b_desde=YYYY-MM-DD&b_hasta=YYYY-MM-DD`.
   A explícito prevalece sobre el atajo y se etiqueta Personalizado. B explícito puede acompañar un atajo.
-  Sin B, se calcula el anterior por hábiles. Se mantienen `?rango=hoy|semana|mes|cohorte|custom&desde&hasta`.
+  **Desde el ADR 0106 sin parámetros no hay comparación**: se pide con `?comparar=anterior,cohorte,AAAA-MM-DD_AAAA-MM-DD`
+  (hasta tres, cada una quitable; `comparar=no` y `b_desde`/`b_hasta` siguen abriendo). `periodo.b` es la primera y
+  `periodo.comparaciones` la lista. El Hub de un programa sin parámetros abre en la cohorte en curso, o en Este mes
+  con aviso si no tiene ventana. Se mantienen `?rango=hoy|semana|mes|cohorte|custom&desde&hasta`.
   Parámetros repetidos, fechas imposibles, pares incompletos o invertidos caen a Hoy con aviso visible.
   El control conserva los otros filtros y sustituye las claves de periodo antiguas al navegar.
 - Semana actual y mes actual llegan hasta hoy; semana pasada va de lunes a domingo y mes pasado es
@@ -679,8 +682,8 @@ paginación e ids porque pertenecen al programa anterior.
 
 **Contrato de gráficas (ADR 0091):** toda gráfica usa `components/graficas/`, nunca ECharts directo. Línea expresa
 tendencia y barra compara categorías; una torta no representa más de tres partes. Los ejes numéricos son lineales e
-incluyen cero; la meta es una línea. El tooltip dice el día, el valor, contra qué se compara —con el vocabulario de
-“Comparar con”— y el cambio en número y porcentaje. Toda gráfica muestra la frescura del dato y ofrece siempre una
+incluyen cero. La meta no se dibuja (ADR 0106): va como número al lado del título y como columna de la tabla. El
+tooltip es corto: el día, el valor de cada serie y, solo si hay comparación, el cambio en una línea (`+3 · +12%`). Toda gráfica muestra la frescura del dato y ofrece siempre una
 tabla alternativa. El envoltorio usa SVG y resuelve exclusivamente los tokens de Tinta, también al cambiar de tema.
 
 **Paleta:**

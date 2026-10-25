@@ -71,3 +71,26 @@ export function textoDeVariacionDeTasa(actual: number | null, anterior: number |
     : `${conSigno(Math.round(actual * 100) - Math.round(anterior * 100), (n) => num(n, 0))} pp`;
   return `${tasa(anterior)} → ${tasa(actual)} · ${cambio}`;
 }
+
+/**
+ * El cambio de una cantidad dicho en palabras (A-167), para quien no lee flechas ni signos:
+ * "12 más (+30%)", "5 menos (−10%)", "Igual". Sin base no hay porcentaje: "3 más (antes 0)".
+ */
+export function cambioEnPalabras(actual: number, anterior: number, decimales = 0): string {
+  const v = variacion(actual, anterior);
+  if (v.delta === 0) return "Igual";
+  const cuanto = `${num(Math.abs(v.delta), decimales)} ${v.delta > 0 ? "más" : "menos"}`;
+  return v.deltaPct === null ? `${cuanto} (antes 0)` : `${cuanto} (${conSigno(v.deltaPct, (n) => pct(n, 0))})`;
+}
+
+/**
+ * El cambio de una tasa dicho en palabras, en puntos: "7 puntos más", "1 punto menos", "Igual".
+ * Los puntos salen de las tasas ya redondeadas, como en `textoDeVariacionDeTasa`. Sin base: "—".
+ */
+export function cambioDeTasaEnPalabras(actual: number | null, anterior: number | null): string {
+  if (actual === null || anterior === null) return "—";
+  const puntos = Math.round(actual * 100) - Math.round(anterior * 100);
+  if (puntos === 0) return "Igual";
+  const n = Math.abs(puntos);
+  return `${num(n, 0)} ${n === 1 ? "punto" : "puntos"} ${puntos > 0 ? "más" : "menos"}`;
+}

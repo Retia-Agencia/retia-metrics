@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
-import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, usd } from "@/lib/format";
 import { REGLA_TIEMPO_EN_ETAPA } from "@/lib/queries/embudo-etapas";
@@ -12,7 +11,7 @@ import {
   type DetallesDeOperacion,
   type DetallesDelDashboard,
 } from "@/lib/queries/vista-metrica";
-import { porcentajeConBase } from "@/lib/variacion";
+import { cambioEnPalabras, porcentajeConBase } from "@/lib/variacion";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 
 export function textoComisionPrograma(comisionPorcentaje: string | null): string {
@@ -51,7 +50,7 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
               "% show",
               "Cierres",
               "% cierre",
-              "Caja",
+              "Recaudado",
               "Comisión",
             ]}
           >
@@ -79,7 +78,7 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
                   <Celda titulo={`Grupo con show de ${quien} (base del % de cierre)`} detalle={celdas?.grupo_shows}>{tasa(fila.pctCierre)}</Celda>
                 </td>
                 <td className="py-2 text-right">
-                  <Celda titulo={`Caja de ${quien}`} detalle={celdas?.caja}><Caja caja={fila.caja} /></Celda>
+                  <Celda titulo={`Recaudado por ${quien}`} detalle={celdas?.caja}><Caja caja={fila.caja} /></Celda>
                 </td>
                 <td className="py-2 text-right">
                   {fila.comisionUsd === 0 && fila.ventasSinComision > 0 ? (
@@ -98,15 +97,12 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
             })}
           </Tabla>
         )}
-        <p className="pt-3 text-xs text-muted-foreground">
-          El comparativo nunca se filtra por closer (ADR 0023).
-        </p>
-        <p className="pt-1 text-xs text-muted-foreground">
+        <p className="pt-1 text-sm text-muted-foreground">
           Agendas y shows van por quien tomó la llamada; cierres, caja y comisión por el
           dueño del deal y quien cobró. El % de show y el % de cierre van sobre el grupo de citas:
           cada deal cuenta en el closer de su último show o, sin show, de su última cita.
         </p>
-        <p className="pt-1 text-xs text-muted-foreground">
+        <p className="pt-1 text-sm text-muted-foreground">
           {textoComisionPrograma(vista.comisionPorcentaje)}
         </p>
       </CardContent>
@@ -151,7 +147,7 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
             );
           })}
         </Tabla>
-        <p className="pt-3 text-xs text-muted-foreground">
+        <p className="pt-3 text-sm text-muted-foreground">
           Semanas de lunes a domingo en Bogotá, recortadas al rango; del programa entero, sin filtro de closer.
           Creadas, por el día en que se agendó la cita; ocurridas, show, no-show y pendientes, por deal y por el
           día de la cita ya pasada (cada semana es su grupo, así que no suman el rango).
@@ -176,7 +172,7 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
                 );
               })}
             </Tabla>
-            <p className="pt-2 text-xs text-muted-foreground">
+            <p className="pt-2 text-sm text-muted-foreground">
               Citas que siguen agendadas y aún no llegan: son agenda, no resultado, y no entran al no-show.
               No dependen del periodo elegido.
             </p>
@@ -201,13 +197,12 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
           <CardTitle className="text-base">Conversión por etapa</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabla cabeceras={["Paso", "Deals", "% desde anterior", "% desde entrada"]}>
+          <Tabla cabeceras={["Paso", "Deals", "% que pasó al siguiente paso"]}>
             <tr>
               <td className="py-2">Entraron</td>
               <td className="py-2 text-right">
                 <Celda titulo="Entraron al embudo" detalle={detalles?.entraron}>{num(conversion.entraron)}</Celda>
               </td>
-              <td className="py-2 text-right">—</td>
               <td className="py-2 text-right">—</td>
             </tr>
             {conversion.pasos.map((paso, indice) => {
@@ -230,9 +225,6 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
                   <td className="py-2 text-right">
                     {porcentajeConBase(paso.llegaron, base)}
                   </td>
-                  <td className="py-2 text-right">
-                    {porcentajeConBase(paso.llegaron, conversion.entraron)}
-                  </td>
                 </tr>
               );
             })}
@@ -245,7 +237,7 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
           <CardTitle className="text-base">Tiempo en etapa</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Tabla cabeceras={["Etapa", "Deals", "Promedio días", "Varios tramos"]}>
+          <Tabla cabeceras={["Etapa", "Deals", "Promedio días"]}>
             {vista.embudoEtapas.tiempoEnEtapa.map((fila) => (
               <tr key={fila.etapa}>
                 <td className="py-2">{nombreDeEtapa(fila.etapa)}</td>
@@ -257,11 +249,10 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
                 <td className="py-2 text-right">
                   {fila.promedioDias === null ? "—" : num(fila.promedioDias, 1)}
                 </td>
-                <td className="py-2 text-right">{num(fila.dealsConVariosTramos)}</td>
               </tr>
             ))}
           </Tabla>
-          <p className="text-xs text-muted-foreground">{REGLA_TIEMPO_EN_ETAPA}</p>
+          <p className="text-sm text-muted-foreground">{REGLA_TIEMPO_EN_ETAPA}</p>
         </CardContent>
       </Card>
 
@@ -299,18 +290,22 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
             <CardTitle className="text-base">Sin dueño por antigüedad</CardTitle>
           </CardHeader>
           <CardContent>
-            <Tabla cabeceras={["Días", "Deals"]}>
-              {vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => (
-                <tr key={fila.bucket}>
-                  <td className="py-2">{fila.bucket}</td>
-                  <td className="text-right">
-                    <Celda titulo={`Sin dueño, ${fila.bucket} días`} detalle={detalles?.sinDueno[fila.bucket]}>
-                      {num(fila.deals)}
-                    </Celda>
-                  </td>
-                </tr>
-              ))}
-            </Tabla>
+            {vista.embudoEtapas.sinDuenoPorAntiguedad.every((fila) => fila.deals === 0) ? (
+              <p className="text-sm text-muted-foreground">Todos los deals abiertos tienen dueño.</p>
+            ) : (
+              <Tabla cabeceras={["Días", "Deals"]}>
+                {vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => (
+                  <tr key={fila.bucket}>
+                    <td className="py-2">{fila.bucket}</td>
+                    <td className="text-right">
+                      <Celda titulo={`Sin dueño, ${fila.bucket} días`} detalle={detalles?.sinDueno[fila.bucket]}>
+                        {num(fila.deals)}
+                      </Celda>
+                    </td>
+                  </tr>
+                ))}
+              </Tabla>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -385,14 +380,14 @@ export function Operacion({
                   {fila.previo === undefined ? (
                     "—"
                   ) : (
-                    <Variacion actual={fila.actual} anterior={fila.previo} periodo={vista.periodo} />
+                    cambioEnPalabras(fila.actual, fila.previo)
                   )}
                 </td>
                 <td className="py-2 text-right">{fila.paso}</td>
               </tr>
             ))}
           </Tabla>
-          <p className="pt-3 text-xs text-muted-foreground">
+          <p className="pt-3 text-sm text-muted-foreground">
             Agendas, shows y cierres son cantidades del periodo. El % del paso va sobre el mismo grupo:{" "}
             <CifraConLista titulo="Deals con cita ocurrida" detalle={detalles?.grupo_citas}>
               {num(grupo.deals)}
@@ -414,7 +409,7 @@ export function Operacion({
             </p>
           ) : null}
           {vista.embudo.madurando ? (
-            <p className="pt-1 text-xs text-muted-foreground">
+            <p className="pt-1 text-sm text-muted-foreground">
               Aún madurando: el rango terminó hace menos de 30 días y su gente todavía puede comprar.
             </p>
           ) : null}

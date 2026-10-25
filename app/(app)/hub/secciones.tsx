@@ -53,8 +53,8 @@ function ContratadoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: strin
   const monedas = [...new Set([...vista.a.caja, ...(vista.b?.caja ?? [])].map((c) => c.moneda))].sort();
   if (monedas.length === 0) monedas.push("USD");
   return <>
-    <Tarjeta titulo="Contratado" valor={
-      <CifraConLista titulo="Contratado" detalle={vista.detalles.contratado}>{usd(vista.a.contratado.valor)}</CifraConLista>
+    <Tarjeta titulo="Vendido" valor={
+      <CifraConLista titulo="Vendido" detalle={vista.detalles.contratado}>{usd(vista.a.contratado.valor)}</CifraConLista>
     } nota={<>
       <ContraB actual={vista.a.contratado.valor} anterior={vista.b?.contratado.valor ?? null} periodo={vista.periodo} decimales={2} />
       {vista.sinValorVendido.valor > 0 ? <p>{num(vista.sinValorVendido.valor)} sin valor vendido</p> : null}
@@ -73,8 +73,8 @@ function ContratadoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: strin
         desgloses: desglosesDelResumen(grupos, nombreDeEtapa),
         href: urlDeListaTodos({ metrica: "caja", periodo: vista.periodo, origen, moneda }),
       };
-      return <Tarjeta key={moneda} titulo={`Caja recaudada · ${moneda}`} valor={
-        <CifraConLista titulo={`Caja recaudada en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
+      return <Tarjeta key={moneda} titulo={`Recaudado · ${moneda}`} valor={
+        <CifraConLista titulo={`Recaudado en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
       } nota={<ContraB actual={actual} anterior={anterior} periodo={vista.periodo} decimales={2} />} />;
     })}
   </>;
@@ -159,7 +159,7 @@ function MetasPorPrograma({ vista }: { vista: VistaDeTodos }) {
 
 function Cartera({ vista }: { vista: VistaDeTodos }) {
   return <Card>
-    <CardHeader><CardTitle>Cartera pendiente · foto de hoy</CardTitle></CardHeader>
+    <CardHeader><CardTitle>Por cobrar · foto de hoy</CardTitle></CardHeader>
     <CardContent className="space-y-2">
       <Button variant="link" className="cifra h-auto p-0 text-2xl" nativeButton={false}
         render={<Link href={vista.detalles.cartera.href} />}>{usd(vista.cartera.saldo.valor)}</Button>
@@ -175,7 +175,7 @@ function VentasPorCohorte({ vista, origen }: { vista: VistaDeTodos; origen: stri
     <CardHeader><CardTitle>Ventas por programa y cohorte</CardTitle></CardHeader>
     <CardContent>
       {vista.programas.every((p) => p.dashboard.ventasPorCohorte.length === 0) ? <p>Sin ventas en el periodo.</p> : (
-        <Tabla cabeceras={["Programa", "Cohorte", "Ventas", "Contratado"]}>
+        <Tabla cabeceras={["Programa", "Cohorte", "Ventas", "Vendido"]}>
           {vista.programas.flatMap((fila) => fila.dashboard.ventasPorCohorte.map((cohorte) => {
             const href = cohorte.cohorteId ? urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen, cohorteId: cohorte.cohorteId }) : null;
             return <tr key={`${fila.programa.id}:${cohorte.cohorteId}`}>
