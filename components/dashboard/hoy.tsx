@@ -113,7 +113,7 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Tarjeta titulo="Leads de hoy" valor={
           <CifraConLista titulo="Leads de hoy" detalle={detalleRegistros}>{num(registros)}</CifraConLista>
-        } nota="Registros del día · sin meta hasta el 253" />
+        } nota="Registros del día · los que hacen falta por día están en Proyección" />
         <Tarjeta titulo="Agendas creadas hoy" valor={
           <CifraConLista titulo="Agendas creadas hoy" detalle={detalleAgendasCreadas}>{num(agendasCreadas)}</CifraConLista>
         } nota="Llamadas agendadas hoy, para la cita que sea" />

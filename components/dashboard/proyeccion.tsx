@@ -50,7 +50,7 @@ export function Proyeccion({ datos }: { datos: ProyeccionDeCohorte }) {
                 <div className="rounded-lg border p-3" key={tramo.desde}>
                   <p className="text-xs text-muted-foreground">{tramo.tipo === "resto_semana" ? "Resto de esta semana" : tramo.tipo === "final" ? "Días sueltos del final" : `Semana del ${fechaCorta(tramo.desde)}`}</p>
                   <p className="cifra text-lg font-semibold">{num(tramo.ventas, 1)} ventas</p>
-                  <p className="text-xs text-muted-foreground">{num(tramo.diasHabiles)} días hábiles · {fechaCorta(tramo.desde)}–{fechaCorta(tramo.hasta)}</p>
+                  <p className="text-xs text-muted-foreground">{num(tramo.diasHabiles)} {tramo.diasHabiles === 1 ? "día hábil" : "días hábiles"} · {fechaCorta(tramo.desde)}–{fechaCorta(tramo.hasta)}</p>
                 </div>
               ))}
             </div>
