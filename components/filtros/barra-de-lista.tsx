@@ -70,6 +70,8 @@ export interface BarraDeListaProps {
   resumen?: ReactNode;
   /** Un aviso (p. ej. el del periodo que cayó a Hoy). Va al final de la línea de estado. */
   aviso?: ReactNode;
+  /** Alineación de las dos filas de controles. */
+  alineacion?: "inicio" | "fin";
 }
 
 export function BarraDeLista({
@@ -85,6 +87,7 @@ export function BarraDeLista({
   acciones,
   resumen,
   aviso,
+  alineacion = "inicio",
 }: BarraDeListaProps) {
   const { busqueda, poner, pendiente } = useFiltrosUrl();
   const [ordenPendiente, setOrdenPendiente] = useState(false);
@@ -106,7 +109,7 @@ export function BarraDeLista({
         className="space-y-2 transition-opacity data-[pendiente=true]:opacity-60"
         data-pendiente={hayNavegacionPendiente}
       >
-      <div className="flex flex-wrap items-center gap-2">
+      <div className={`flex flex-wrap items-center gap-2 ${alineacion === "fin" ? "justify-end" : ""}`}>
         {marco}
 
         {buscador ? <div className="min-w-48 flex-1 basis-56">{buscador}</div> : null}
@@ -157,7 +160,7 @@ export function BarraDeLista({
         {acciones ? <div className="ml-auto">{acciones}</div> : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground ${alineacion === "fin" ? "justify-end" : ""}`}>
         {total !== undefined ? (
           <span>
             <span className="cifra font-semibold text-foreground">{num(total)}</span>{" "}

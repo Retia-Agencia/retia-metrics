@@ -30,8 +30,8 @@ it("construye líneas, meta, cero y las filas de la tabla sin cambiar los valore
   expect(opcion.series.map((serie) => [serie.name, serie.type, serie.data])).toEqual([
     ["Octubre", "line", [12, 15]],
     ["Septiembre", "line", [10, 12]],
-    ["Meta del mes", "line", [20, 20]],
   ]);
+  expect(modelo.meta).toEqual({ etiqueta: "Meta del mes", textos: ["20 cupos", "20 cupos"] });
   expect(opcion.yAxis.min({ min: 12 })).toBe(0);
   expect(filasDeTabla(modelo)[1]).toEqual({
     dia: "2026-10-02",
@@ -44,7 +44,7 @@ it("construye líneas, meta, cero y las filas de la tabla sin cambiar los valore
   });
 });
 
-it("el tooltip nombra la comparación y muestra el cambio en número y porcentaje", () => {
+it("el tooltip muestra una línea corta por comparación y omite texto cuando no hay comparación", () => {
   const modelo = crearModeloGrafica({
     unidad: "cupos",
     dias: ["2026-10-02"], etiquetas: ["Hábil 2"],
@@ -58,6 +58,12 @@ it("el tooltip nombra la comparación y muestra el cambio en número y porcentaj
     { seriesName: "Septiembre", dataIndex: 0, value: 12 },
   ]);
   expect(texto).toContain("Hábil 2");
-  expect(texto).toContain("contra el mismo punto de septiembre: 12 → 15");
-  expect(texto).toContain("Cambio: +3 cupos · +25%");
+  expect(texto).toContain("Octubre: +3 · +25%");
+  expect(texto).not.toContain("→");
+  expect(texto).not.toContain("Sin comparación");
+  const sinComparacion = crearOpcionGrafica(crearModeloGrafica({
+    unidad: "cupos", dias: ["2026-10-02"], etiquetas: ["Hábil 2"],
+    series: [{ clave: "Octubre", valores: [15] }], escribir: String,
+  }), colores).tooltip.formatter({ seriesName: "Octubre", dataIndex: 0, value: 15 });
+  expect(sinComparacion).not.toContain("Sin comparación");
 });

@@ -1,7 +1,7 @@
 import type { ProgramaVisible } from "@/lib/auth/alcance";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
-import { resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
+import { comparacionesDe, resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import {
   conteo,
@@ -176,7 +176,7 @@ export async function armarVistaDeTodos(
       // A/B se resuelven arriba: las ventanas de cada cohorte no cambian el rango común.
       const dashboard = await armarVistaDelDashboard({
         programId: programa.id, hoy, ahora, preset: "custom",
-        periodo: { preset: "custom", a: periodo.a, b: periodo.b ?? undefined },
+        periodo: { preset: "custom", a: periodo.a, comparaciones: comparacionesDe(periodo).map(({ rango }) => ({ tipo: "rango", rango })) },
       }, db);
       const { embudo, sinGrain, cohorte } = dashboard;
       return {

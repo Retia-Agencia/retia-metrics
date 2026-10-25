@@ -431,3 +431,6 @@ Análisis y propuestas en [`manuales/pipeline-comercial.md`](./manuales/pipeline
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
 | A-160 | Hub › No agendaron (313) · Deals | cambio | Sería bueno trackear los contactos de los deals (quién llamó o escribió y cuándo). Hoy el CRM no tiene ese hecho, así que la lista del 313 ordena por fecha de envío y de última actividad, no por "sin contactar". | sin ticket | abierta |
+| A-164 | Hub › periodo y comparación | cambio | La comparación no va por defecto. Por defecto, solo el periodo actual (la cohorte en curso) con un rango de fechas fácil de ajustar; "Agregar comparación" suma una o más, cada una quitable. Decidido 24-oct: opción N. | ADR 0106 | hecha |
+| A-165 | Hub › Comercial y Dinero › barra | usabilidad | Periodo, "Comparar con" y filtros van en una sola fila, a la derecha; hoy apilados dejan espacio muerto. | ADR 0106 | hecha |
+| A-166 | Hub › gráficas | usabilidad | El tooltip es enorme y con demasiado texto. Corto: fecha, valor y, solo si hay comparación, el cambio. La meta no va dentro de la gráfica: va como número al lado. | ADR 0106 | hecha |

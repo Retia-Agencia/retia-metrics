@@ -128,6 +128,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0103](./0103-el-kanban-tiene-columna-re-agenda-y-tres-vistas.md) | El Kanban tiene una columna Re-agenda derivada del pendiente, a la izquierda de Agendado, y tres vistas (Llamada, Setteo, Todo) recordadas por persona; sin etapas nuevas (ticket 296); confirma el 0070 |
 | [0104](./0104-proxima-cohorte-es-una-pantalla-del-programa.md) | Próxima cohorte es una pantalla del programa (cards, sin filtro de cohorte, vistas Sin y Con cohorte asignada); el deal cuenta en su origen y se muda en su misma etapa cuando su cohorte se activa. Enmienda el 231 y retira la bandeja del 293 |
 | [0105](./0105-un-envio-falso-se-marca-sospechoso-y-se-anula-en-cascada.md) | Un envío falso marca su deal como Sospechoso (reglas de teléfono y correo más Haiku, en unión), visible y contando; nada se anula solo; anular por envío falso anula en cascada deal, llamadas, envío y lead, y cancela la cita, sin borrar. Las llamadas sueltas de Calendly también se juzgan. Envíos y leads entran a la vigencia |
+| [0106](./0106-la-comparacion-es-opcional-y-pueden-ser-varias.md) | La comparación es opcional (el Hub abre en la cohorte en curso, sin B) y pueden ser hasta tres en `?comparar=`; `periodo.b` es la primera. La gráfica no dibuja la meta y su tooltip es corto. Enmienda el 0067 y el 0091 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
 
 **Plataforma**
