@@ -115,6 +115,12 @@ async function cifra(metrica: MetricaDelTablero, programId: string, claveCloser?
 }
 
 describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo mismo", () => {
+  it("grupo_pendientes lista tantas filas como anuncia la tasa", async () => {
+    const embudo = await embudoDelRango({ programId: programaA, rango }, db, new Date("2026-10-03T12:00:00-05:00"));
+    const [lista] = await listaDeMetrica("grupo_pendientes", { programId: programaA, rango, hoy, ahora: new Date("2026-10-03T12:00:00-05:00") }, 1, db);
+    expect(lista.filas).toHaveLength(embudo.grupo.pendientes);
+    expect(lista.subtotal.cantidad).toBe(embudo.grupo.pendientes);
+  });
   it.each(metricas)("%s conserva programa, fecha y vigencia", async (metrica) => {
     const filas = await todas(metrica, programaA);
     const [resumen] = await resumenDeMetrica(metrica, { programId: programaA, rango, hoy }, db);

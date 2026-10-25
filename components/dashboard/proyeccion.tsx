@@ -34,17 +34,18 @@ function nombreDelTramo(tramo: TramoSemanal): string {
   return `Semana del ${rangoLegible(tramo.desde, tramo.hasta)}`;
 }
 
-/** De dónde sale la conversión agenda → venta, en una frase. */
-export function origenDeConversion(conversion: ConversionElegida): string {
-  const muestra = conversion.muestra
-    ? `${num(conversion.muestra.vendidos)} de ${plural(conversion.muestra.personas, "persona", "personas")} con cita compraron`
-    : "";
-  if (conversion.origen === "objetivo_cohorte") return "según el objetivo de la cohorte";
-  if (conversion.origen === "cohorte_anterior") return `medido en ${conversion.cohorteCodigo}: ${muestra}`;
-  if (conversion.origen === "cohorte_en_curso") {
-    return `medido en ${conversion.cohorteCodigo}: ${muestra}${conversion.madurando ? "; puede subir, hay citas recientes sin decidir" : ""}`;
-  }
-  return "";
+const notaPendientes = (conversion: ConversionElegida) => conversion.muestra?.pendientes
+  ? `; ${plural(conversion.muestra.pendientes, "cita sin resultado no cuenta", "citas sin resultado no cuentan")}`
+  : "";
+
+function origenDelCierre(conversion: ConversionElegida): string {
+  const m = conversion.muestra!;
+  return `medido en ${conversion.cohorteCodigo}: ${num(m.vendidos)} de ${plural(m.shows, "show compró", "shows compraron")}${conversion.madurando ? "; puede subir" : ""}`;
+}
+
+function origenDelShow(conversion: ConversionElegida): string {
+  const m = conversion.muestra!;
+  return `${num(m.shows)} de ${plural(m.personas, "persona con cita con resultado", "personas con cita con resultado")}${notaPendientes(conversion)}`;
 }
 
 function Paso({ dato, unidad, explicacion }: { dato: ValorDeProyeccion; unidad: string; explicacion: string | null }) {
@@ -128,9 +129,21 @@ export function Proyeccion({ datos, ventanas = [] }: { datos: ProyeccionDeCohort
               />
               <Flecha />
               <Paso
+                dato={datos.showsRequeridosDia}
+                unidad="shows"
+                explicacion={conversion.pctCierre !== null
+                  ? `${pct(conversion.pctCierre)} de los shows termina en venta (${origenDelCierre(conversion)})`
+                  : conversion.objetivoAgendaAVenta !== null && conversion.pctShow !== null
+                    ? `${pct(conversion.pctShow)} de las agendas llega al show (${origenDelShow(conversion)})`
+                    : null}
+              />
+              <Flecha />
+              <Paso
                 dato={datos.agendasRequeridasDia}
                 unidad="agendas"
-                explicacion={conversion.valor === null ? null : `${pct(conversion.valor)} de las agendas termina en venta (${origenDeConversion(conversion)})`}
+                explicacion={conversion.objetivoAgendaAVenta !== null
+                  ? `${pct(conversion.objetivoAgendaAVenta)} de las agendas termina en venta (según el objetivo de la cohorte)`
+                  : conversion.pctShow === null ? null : `${pct(conversion.pctShow)} de las agendas llega al show (${origenDelShow(conversion)})`}
               />
               <Flecha />
               <Paso

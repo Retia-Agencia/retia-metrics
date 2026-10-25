@@ -85,5 +85,8 @@ conflicto al unir.
 5. Recorrido en `dev:local` (claro, oscuro, 375 px, clic en 5 · 10 · 20): sin errores de consola ni scroll horizontal.
 6. A-161 a A-163 marcadas resueltas, pendiente el checkpoint.
 
-**Decisión abierta:** ¿la cadena de la tarjeta usa agenda → venta (3,5%, y pide 79 agendas por día) o pasa por el
-show (agendas → shows → ventas)? Hoy es fiel al ADR 0079; cambiarlo es una enmienda, no un arreglo.
+**Decidido el 24-oct (Mani), ADR 0079 enmendado:** una cita pasada que sigue en `agendada` queda fuera del grupo
+como pendiente de resultado, visible con su lista en Hoy, Comercial y Mi espacio, y la Proyección va
+ventas → shows → agendas → leads. Tactical C3 medido después (solo lectura): 70 personas con cita con resultado,
+32 shows, 10 vendidas, 218 pendientes; 46% de show y 31% de cierre, así que **8,8 shows, 19,3 agendas y 48 leads
+por día** (antes 79 agendas). Los 218 pendientes son registro de los closers, no conversión.

@@ -126,7 +126,7 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
         <CardTitle className="text-base">Agendas por semana</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabla cabeceras={["Semana", "Creadas", "Ocurridas", "Show", "No-show", "% no-show"]}>
+        <Tabla cabeceras={["Semana", "Creadas", "Ocurridas", "Show", "No-show", "Pendientes", "% no-show"]}>
           {semanas.map((s) => {
             const nombre = s.semana.desde === s.semana.hasta
               ? fecha(s.semana.desde)
@@ -145,6 +145,7 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
                 {cifra("Deals con cita ocurrida", s.ocurridas)}
                 {cifra("Deals con show", s.shows)}
                 {cifra("Deals sin show", s.noShows)}
+                {cifra("Citas pasadas sin resultado", s.pendientes)}
                 <td className="py-2 text-right">{tasa(s.pctNoShow)}</td>
               </tr>
             );
@@ -152,8 +153,8 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
         </Tabla>
         <p className="pt-3 text-xs text-muted-foreground">
           Semanas de lunes a domingo en Bogotá, recortadas al rango; del programa entero, sin filtro de closer.
-          Creadas, por el día en que se agendó la cita; ocurridas, show y no-show, por deal y por el día de la
-          cita ya pasada (cada semana es su grupo, así que no suman el rango).
+          Creadas, por el día en que se agendó la cita; ocurridas, show, no-show y pendientes, por deal y por el
+          día de la cita ya pasada (cada semana es su grupo, así que no suman el rango).
         </p>
         {proximas.length > 0 ? (
           <div className="pt-4">
@@ -406,6 +407,12 @@ export function Operacion({
             </CifraConLista>{" "}
             de ellos vendidos hoy. Agenda → venta: {tasa(vista.embudo.agendaAVenta)}.
           </p>
+          {vista.embudo.pendientesDeResultado > 0 ? (
+            <p className="pt-1 text-xs text-muted-foreground">
+              <CifraConLista titulo="Citas pasadas sin resultado" detalle={detalles?.grupo_pendientes}>{num(vista.embudo.pendientesDeResultado)}</CifraConLista>
+              {vista.embudo.pendientesDeResultado === 1 ? " cita ya pasó sin resultado registrado" : " citas ya pasaron sin resultado registrado"}: no cuentan en el % de show ni en el % de cierre hasta que el closer lo registre.
+            </p>
+          ) : null}
           {vista.embudo.madurando ? (
             <p className="pt-1 text-xs text-muted-foreground">
               Aún madurando: el rango terminó hace menos de 30 días y su gente todavía puede comprar.

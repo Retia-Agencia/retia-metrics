@@ -29,6 +29,7 @@ export interface CifrasDePeriodo {
   noShows: number;
   cierres: number;
   pctCierre: number | null;
+  pendientesDeResultado: number;
   /** El rango termina hace menos de 30 días: el % de cierre todavía puede subir (ADR 0079). */
   madurando: boolean;
   caja: CajaPorMoneda[];
@@ -42,6 +43,7 @@ export interface DetallesDeMisMetricas {
   cierres: DetalleDeCifra;
   /** La lista del % de cierre: los deals de su grupo con show que hoy están vendidos (ADR 0079). */
   grupoVendidos: DetalleDeCifra;
+  grupoPendientes: DetalleDeCifra;
   caja: DetalleDeCifra;
 }
 
@@ -82,6 +84,7 @@ async function cifrasDelPeriodo(
     noShows: noShows.subtotal.cantidad,
     cierres: embudo.cierres,
     pctCierre: embudo.pctCierre,
+    pendientesDeResultado: embudo.pendientesDeResultado,
     madurando: embudo.madurando,
     caja,
     comisionUsd: comisionDelCloser(comisiones, closerUserId),
@@ -119,6 +122,7 @@ export async function armarVistaDeMisMetricas(
       detalleDeCifra("cierres", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
       detalleDeCifra("caja", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
       detalleDeCifra("grupo_vendidos", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
+      detalleDeCifra("grupo_pendientes", { programId: programa.id, slug: programa.slug, hoy, periodo, claveCloser: closerUserId, origen: entrada.origen }, db),
     ]),
   ]);
   // Mi espacio nunca muestra el texto interno del closer (A-159/167). El código opaco
@@ -139,6 +143,7 @@ export async function armarVistaDeMisMetricas(
       noShows: noShowsA[0].subtotal.cantidad,
       cierres: dashboard.embudo.cierres,
       pctCierre: dashboard.embudo.pctCierre,
+      pendientesDeResultado: dashboard.embudo.pendientesDeResultado,
       madurando: dashboard.embudo.madurando,
       caja: dashboard.caja,
       comisionUsd: comisionDelCloser(comisionesA, closerUserId),
@@ -151,6 +156,7 @@ export async function armarVistaDeMisMetricas(
       cierres: personal(detalles[3]),
       caja: personal(detalles[4]),
       grupoVendidos: personal(detalles[5]),
+      grupoPendientes: personal(detalles[6]),
     },
   };
 }

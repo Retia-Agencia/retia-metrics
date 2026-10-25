@@ -74,6 +74,7 @@ const METRICAS_DEL_TABLERO = [
   "grupo_citas",
   "grupo_shows",
   "grupo_vendidos",
+  "grupo_pendientes",
 ] as const;
 export type DetallesDelDashboard = Record<(typeof METRICAS_DEL_TABLERO)[number], DetalleDeCifra>;
 
@@ -272,6 +273,7 @@ export interface SemanaDeAgendas {
   ocurridas: DetalleDeCifra;
   shows: DetalleDeCifra;
   noShows: DetalleDeCifra;
+  pendientes: DetalleDeCifra;
   /** No-show ÷ ocurridas, sobre las mismas personas; `null` sin ocurridas. */
   pctNoShow: number | null;
 }
@@ -332,12 +334,14 @@ export async function detallesPorSemana(
   const grupos = await gruposPorSemana(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora });
   return Promise.all(grupos.map(async ({ semana, grupo }) => {
     const deLaSemana = { ...entrada, periodo: { preset: "custom" as const, a: semana, b: null }, claveCloser: null };
-    const delGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_sin_show") => detalleDeDeals(
+    const delGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_sin_show" | "grupo_pendientes") => detalleDeDeals(
       deLaSemana,
       metrica,
       resumenDeDeals(
         entrada.programId,
-        grupo.miembros.filter((m) => (metrica === "grupo_citas" ? true : metrica === "grupo_shows" ? m.conShow : !m.conShow)),
+        metrica === "grupo_pendientes"
+          ? grupo.pendientes
+          : grupo.miembros.filter((m) => (metrica === "grupo_citas" ? true : metrica === "grupo_shows" ? m.conShow : !m.conShow)),
         entrada.hoy,
       ),
       null,
@@ -351,6 +355,7 @@ export async function detallesPorSemana(
       ocurridas,
       shows: delGrupo("grupo_shows"),
       noShows,
+      pendientes: delGrupo("grupo_pendientes"),
       pctNoShow: tasa(noShows.resumen.subtotal.cantidad, ocurridas.resumen.subtotal.cantidad),
     };
   }));

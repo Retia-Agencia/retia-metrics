@@ -181,10 +181,10 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 | Citas (la tarjeta "Agendas" de Comercial, "Citas de hoy" en Hoy) | llamadas vigentes cuya **cita** cae en el rango (§1.3), con cualquier resultado; no es la de arriba (medido el 23-oct, 299) | citas | sí | `embudoDelRango` (`filtroLlamadas`) | ✅ |
 | Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | ✅ |
 | Citas · Shows | citas del rango; las que ocurrieron (§1.3) | citas | sí | `hechos/cita.ts` | ✅ |
-| % de show | deals del grupo con al menos un show ÷ deals del grupo | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
+| % de show | deals del grupo con al menos un show ÷ deals del grupo. Una cita pasada que sigue `agendada` queda pendiente de resultado, visible aparte con su lista, y no entra al grupo ni a la tasa | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
 | % de show por cita | citas del día que ocurrieron ÷ citas del día que ya debían ocurrir al corte (§1.3); es otra pregunta que el % por deal y se muestra a su lado en Hub › Hoy, como lo contaba el reporte de Michael (Mani, 24-oct) | % | no | `showPorCitaDelRango` en `lib/queries/tasa-show-por-cita.ts` | ✅ |
-| % de cierre | deals con show que hoy están vendidos ÷ deals con show | % | no | ídem | ✅ |
-| Agenda → venta | deals con show vendidos hoy ÷ deals del grupo (= % show × % cierre) | % | no | ídem | ✅ |
+| % de cierre | deals con show que hoy están vendidos ÷ deals con show; los pendientes de resultado quedan fuera del grupo y visibles aparte | % | no | ídem | ✅ |
+| Agenda → venta | deals con show vendidos hoy ÷ deals del grupo (= % show × % cierre); los pendientes de resultado quedan fuera del grupo y visibles aparte | % | no | ídem | ✅ |
 | Ventas | deals vendidos en el rango (§1.4) | ventas | sí | `ventasConDiaEn` | ✅ |
 | Contratado | Σ `deals.valor_vendido_usd` de las ventas del rango (lo escribe el closer); un deal sin valor se cuenta aparte, no se inventa | USD | sí | `contratadoDeDeals` en `lib/queries/saldo.ts` | ✅ |
 | Recaudado | Σ abonos vigentes por su fecha (§1.5) | USD | sí | `hechos/abono.ts` | ✅ |
@@ -248,7 +248,8 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
 | Ritmo | ventas por día hábil de los últimos 5, 10 o 20 días hábiles (`?ritmo=`, 10 por defecto), recortados al inicio de ventas de la cohorte (`calcularProyeccion`) | ventas/día | ✅ 253 |
 | Proyección | vendidos + ritmo × días hábiles que quedan de la cohorte (`calcularProyeccion`) | cupos | ✅ 253 |
 | Ventas requeridas por día | faltan ÷ días hábiles que quedan (`calcularProyeccion`) | cupos/día | ✅ 253 |
-| Agendas requeridas por día | ventas requeridas ÷ conversión agenda → venta (`calcularProyeccion`). La conversión sale, en orden, del objetivo de la cohorte, de la cohorte anterior o de la cohorte en curso; las dos medidas son la del ADR 0079 (`grupoDeCitas`) sobre el rango de ventas de esa cohorte y solo valen con 20 personas con cita o más y alguna venta (`elegirConversion`) | agendas/día | ✅ 253 |
+| Shows requeridos por día | ventas requeridas ÷ % de cierre (`calcularProyeccion`); el % de cierre exige al menos 20 shows y una venta | shows/día | ✅ 253 |
+| Agendas requeridas por día | shows requeridos ÷ % de show (`calcularProyeccion`). Las dos tasas salen de un solo grupo, en orden de la cohorte anterior o la cohorte en curso; el % de show exige 20 personas con cita con resultado. Los pendientes quedan fuera y se nombran en la razón. Con objetivo declarado agenda → venta, este manda sobre las agendas y los shows salen de agendas × % de show medido | agendas/día | ✅ 253 |
 | Leads requeridos por día | agendas requeridas ÷ (agendas ÷ registros) de la misma ventana (`calcularProyeccion`) | leads/día | ✅ 253 |
 | Origen del cierre | por venta: agenda del día, seguimiento o sin llamada | ventas | 🟡 254 |
 | Cierre del ciclo | rojos con una acción registrada ÷ rojos, y horas hasta la acción | % | 🟡 261 |
@@ -268,7 +269,8 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 - **D1, agendas.** Dos tarjetas rotuladas: "Agendas creadas hoy" (§1.2, la de Pauta) y "Citas de hoy" (§1.3, la del
   reporte: "Agendas reales" eran las citas que caían ese día).
 - **D2, % de show.** Por deal (ADR 0079), dicho en la tarjeta: "X de Y deals con cita ocurrida · N reagendadas (no
-  cuentan)". No hay una segunda fórmula por cita.
+  cuentan)". Las citas pasadas que siguen `agendada` se muestran como pendientes con su lista y no entran a la
+  tasa hasta registrar el resultado. No hay una segunda fórmula por cita.
 - **D3, leads.** Registros del día (§1.1, envíos completos, igual a Typeform) sin meta hasta el 253: excepción
   temporal al ADR 0086 punto 3, que el 253 cierra. Una persona que aplica dos veces son dos registros.
 - **D4, caja.** Por moneda, partida en ventas de hoy y ventas anteriores; los nombres están en la lista de la cifra.
@@ -286,7 +288,7 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 | Agendas reales | Citas de hoy | `embudoDelRango.agendas` | cita (§1.3) | llamadas vigentes con cita ese día, cualquier resultado |
 | (no estaba) | Agendas creadas hoy | `agrupar` de `hechos/agenda.ts` | creación (§1.2) | llamadas vigentes creadas ese día |
 | Llamadas realizadas | Realizadas (show) | `embudoDelRango.llamadasConShow` | cita | citas del día con resultado que ocurrió |
-| Show | % de show por deal | `grupoDeCitas` | cita | deals con cita ya ocurrida; la reagendada no cuenta |
+| Show | % de show por deal | `grupoDeCitas` | cita | deals con cita ya ocurrida y resultado; la reagendada y la pendiente de resultado no cuentan |
 | Ventas · % de cierre | Ventas de hoy · % de cierre | `ventasDelRango`, `grupoDeCitas` | venta | ADR 0079 |
 | Tabla por closer | Hoy por closer | `embudoPorCloser` | cita / venta | cada deal en quien tomó su último show |
 | Caja del día y de dónde viene | Caja de hoy | `cajaDelDiaPorOrigen` | abono (§1.5) | abonos vigentes por moneda |

@@ -30,59 +30,101 @@ export const MUESTRA_MINIMA_CONVERSION = 20;
 export type OrigenConversion = "objetivo_cohorte" | "cohorte_anterior" | "cohorte_en_curso" | "sin_conversion";
 
 export interface ConversionElegida {
-  valor: number | null;
+  pctShow: number | null;
+  pctCierre: number | null;
+  /** Solo existe cuando manda el objetivo declarado agenda → venta. */
+  objetivoAgendaAVenta: number | null;
   origen: OrigenConversion;
-  /** La cohorte de la que se midió (anterior o en curso); nulo con objetivo o sin conversión. */
+  /** La cohorte de la que se midió (anterior o en curso); nulo cuando no hubo medición. */
   cohorteCodigo: string | null;
-  /** Personas con cita y, de ellas, las que compraron (ADR 0079); nulo con objetivo. */
-  muestra: { personas: number; vendidos: number } | null;
+  /** Denominadores y numeradores del único grupo medido (ADR 0079). */
+  muestra: { personas: number; shows: number; vendidos: number; pendientes: number } | null;
   /** La medición de la cohorte en curso todavía puede subir: hay citas recientes sin decidir. */
   madurando: boolean;
-  /** Por qué no hay conversión, en palabras de gerencia. */
-  razon: string | null;
+  razonShow: string | null;
+  razonCierre: string | null;
 }
 
 interface MedicionDeCohorte {
   codigo: string;
-  tasas: Pick<TasasDelGrupo, "deals" | "vendidos" | "agendaAVenta">;
+  tasas: Pick<TasasDelGrupo, "deals" | "conShow" | "vendidos" | "pctShow" | "pctCierre">;
+  pendientes: number;
 }
 
-/** ¿Esta medición alcanza para usarse? Al menos la muestra mínima de personas y alguna venta. */
+/** ¿Esta medición tiene las dos muestras para encadenar ventas → shows → agendas? */
 export const alcanzaMuestra = (m: MedicionDeCohorte | null): boolean =>
-  !!m && m.tasas.deals >= MUESTRA_MINIMA_CONVERSION && (m.tasas.agendaAVenta ?? 0) > 0;
+  !!m && m.tasas.deals >= MUESTRA_MINIMA_CONVERSION
+    && m.tasas.conShow >= MUESTRA_MINIMA_CONVERSION && m.tasas.vendidos >= 1;
 
 /**
- * Qué conversión agenda → venta usa la proyección, en este orden: el objetivo declarado de la
- * cohorte, la medida en la cohorte anterior y la medida en la cohorte en curso. Las dos medidas son
- * la del ADR 0079 (personas con cita que compraron ÷ personas con cita) y solo valen con al menos
- * `MUESTRA_MINIMA_CONVERSION` personas y alguna venta.
+ * Elige las dos tasas de UN mismo grupo. El objetivo declarado sigue mandando sobre las agendas;
+ * en ese caso una medición suficiente aporta solo el % de show para hacer visible el paso intermedio.
  */
 export function elegirConversion(args: {
   objetivo: number | null;
   anterior: MedicionDeCohorte | null;
   enCurso: (MedicionDeCohorte & { madurando: boolean }) | null;
 }): ConversionElegida {
-  if (args.objetivo !== null && args.objetivo > 0) {
-    return { valor: args.objetivo, origen: "objetivo_cohorte", cohorteCodigo: null, muestra: null, madurando: false, razon: null };
-  }
+  const muestraDe = (m: MedicionDeCohorte) => ({
+    personas: m.tasas.deals,
+    shows: m.tasas.conShow,
+    vendidos: m.tasas.vendidos,
+    pendientes: m.pendientes,
+  });
+  const razonDeShow = (m: MedicionDeCohorte | null) => !m
+    ? "Todavía no sabemos qué porcentaje de las agendas llega al show. Se calcula cuando haya citas con resultado."
+    : m.tasas.deals < MUESTRA_MINIMA_CONVERSION
+      ? m.pendientes > 0
+        ? `En ${m.codigo} hay ${m.pendientes} ${m.pendientes === 1 ? "cita pasada sin resultado" : "citas pasadas sin resultado"}: cuando se ${m.pendientes === 1 ? "registre" : "registren"} se puede medir el % de show.`
+        : `En ${m.codigo} van ${m.tasas.deals} ${m.tasas.deals === 1 ? "persona" : "personas"} con cita con resultado y hacen falta ${MUESTRA_MINIMA_CONVERSION} para medir el % de show.`
+      : null;
+  const razonDeCierre = (m: MedicionDeCohorte | null) => !m
+    ? "Todavía no sabemos qué porcentaje de los shows termina en venta. Se calcula cuando haya shows."
+    : m.tasas.conShow < MUESTRA_MINIMA_CONVERSION
+      ? `En ${m.codigo} van ${m.tasas.conShow} shows y hacen falta ${MUESTRA_MINIMA_CONVERSION} para medir el % de cierre.`
+      : m.tasas.vendidos < 1
+        ? `Ninguno de los ${m.tasas.conShow} shows de ${m.codigo} ha comprado todavía, así que no hay con qué medir el % de cierre.`
+        : null;
   const medida = (m: MedicionDeCohorte, origen: OrigenConversion, madurando: boolean): ConversionElegida => ({
-    valor: m.tasas.agendaAVenta,
+    pctShow: m.tasas.pctShow,
+    pctCierre: m.tasas.pctCierre,
+    objetivoAgendaAVenta: null,
     origen,
     cohorteCodigo: m.codigo,
-    muestra: { personas: m.tasas.deals, vendidos: m.tasas.vendidos },
+    muestra: muestraDe(m),
     madurando,
-    razon: null,
+    razonShow: null,
+    razonCierre: null,
   });
+  if (args.objetivo !== null && args.objetivo > 0) {
+    const medidaShow = [args.anterior, args.enCurso].find((m) => !!m && m.tasas.deals >= MUESTRA_MINIMA_CONVERSION) ?? null;
+    return {
+      pctShow: medidaShow?.tasas.pctShow ?? null,
+      pctCierre: null,
+      objetivoAgendaAVenta: args.objetivo,
+      origen: "objetivo_cohorte",
+      cohorteCodigo: medidaShow?.codigo ?? null,
+      muestra: medidaShow ? muestraDe(medidaShow) : null,
+      madurando: medidaShow === args.enCurso ? args.enCurso?.madurando ?? false : false,
+      razonShow: medidaShow ? null : razonDeShow(args.enCurso ?? args.anterior),
+      razonCierre: null,
+    };
+  }
   if (args.anterior && alcanzaMuestra(args.anterior)) return medida(args.anterior, "cohorte_anterior", false);
   if (args.enCurso && alcanzaMuestra(args.enCurso)) return medida(args.enCurso, "cohorte_en_curso", args.enCurso.madurando);
 
   const enCurso = args.enCurso;
-  const razon = !enCurso
-    ? "Todavía no sabemos cuántas agendas terminan en venta. Se calcula solo cuando haya citas."
-    : enCurso.tasas.deals < MUESTRA_MINIMA_CONVERSION
-      ? `Todavía no sabemos cuántas agendas terminan en venta: en ${enCurso.codigo} van ${enCurso.tasas.deals} ${enCurso.tasas.deals === 1 ? "persona" : "personas"} con cita y hacen falta ${MUESTRA_MINIMA_CONVERSION} para medirlo. Se completa solo a medida que pasen las citas.`
-      : `Ninguna de las ${enCurso.tasas.deals} personas con cita de ${enCurso.codigo} ha comprado todavía, así que no hay con qué calcular las agendas. Revisa en Comercial el cierre de esas llamadas.`;
-  return { valor: null, origen: "sin_conversion", cohorteCodigo: null, muestra: enCurso ? { personas: enCurso.tasas.deals, vendidos: enCurso.tasas.vendidos } : null, madurando: false, razon };
+  return {
+    pctShow: null,
+    pctCierre: null,
+    objetivoAgendaAVenta: null,
+    origen: "sin_conversion",
+    cohorteCodigo: enCurso?.codigo ?? null,
+    muestra: enCurso ? muestraDe(enCurso) : null,
+    madurando: false,
+    razonShow: razonDeShow(enCurso),
+    razonCierre: razonDeCierre(enCurso),
+  };
 }
 
 export interface ValorDeProyeccion {
@@ -106,6 +148,7 @@ export interface ProyeccionDeCohorte {
   ritmo: ValorDeProyeccion;
   proyeccion: ValorDeProyeccion;
   ventasRequeridasDia: ValorDeProyeccion;
+  showsRequeridosDia: ValorDeProyeccion;
   agendasRequeridasDia: ValorDeProyeccion;
   leadsRequeridosDia: ValorDeProyeccion;
   repartoSemanal: TramoSemanal[];
@@ -234,6 +277,7 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
       ritmo: valor,
       proyeccion: valor,
       ventasRequeridasDia: valor,
+      showsRequeridosDia: valor,
       agendasRequeridasDia: valor,
       leadsRequeridosDia: valor,
       repartoSemanal: [],
@@ -256,15 +300,32 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
     : diasHabilesRestantes > 0
       ? disponible(faltan / diasHabilesRestantes)
       : noDisponible("La venta de esta cohorte ya cerró: no quedan días hábiles para repartir lo que falta.");
+  const objetivo = datos.conversion.objetivoAgendaAVenta;
   const agendasRequeridasDia = ventasRequeridasDia.valor === null
     ? noDisponible(ventasRequeridasDia.razon!)
     : ventasRequeridasDia.valor === 0
       ? disponible(0)
-      : datos.conversion.valor !== null && datos.conversion.valor > 0
-        ? disponible(ventasRequeridasDia.valor / datos.conversion.valor)
-        : noDisponible(datos.conversion.razon ?? "Todavía no sabemos cuántas agendas terminan en venta.");
+      : objetivo !== null && objetivo > 0
+        ? disponible(ventasRequeridasDia.valor / objetivo)
+        : datos.conversion.pctCierre !== null && datos.conversion.pctCierre > 0
+          && datos.conversion.pctShow !== null && datos.conversion.pctShow > 0
+          ? disponible((ventasRequeridasDia.valor / datos.conversion.pctCierre) / datos.conversion.pctShow)
+          : noDisponible(datos.conversion.pctShow === null
+            ? datos.conversion.razonShow ?? "Todavía no sabemos qué porcentaje de las agendas llega al show."
+            : datos.conversion.razonCierre ?? "Todavía no sabemos qué porcentaje de los shows termina en venta.");
+  const showsRequeridosDia = ventasRequeridasDia.valor === null
+    ? noDisponible(ventasRequeridasDia.razon!)
+    : ventasRequeridasDia.valor === 0
+      ? disponible(0)
+      : objetivo !== null
+        ? datos.conversion.pctShow !== null
+          ? disponible(agendasRequeridasDia.valor! * datos.conversion.pctShow)
+          : noDisponible(datos.conversion.razonShow ?? "Todavía no sabemos qué porcentaje de las agendas llega al show.")
+        : datos.conversion.pctCierre !== null && datos.conversion.pctCierre > 0
+          ? disponible(ventasRequeridasDia.valor / datos.conversion.pctCierre)
+          : noDisponible(datos.conversion.razonCierre ?? "Todavía no sabemos qué porcentaje de los shows termina en venta.");
   const leadsRequeridosDia = agendasRequeridasDia.valor === null
-    ? noDisponible(datos.conversion.valor === null && ventasRequeridasDia.valor !== null
+    ? noDisponible(ventasRequeridasDia.valor !== null
       ? "Sale de las agendas por día, que todavía no se pueden calcular."
       : agendasRequeridasDia.razon!)
     : agendasRequeridasDia.valor === 0
@@ -283,6 +344,7 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
     ritmo,
     proyeccion,
     ventasRequeridasDia,
+    showsRequeridosDia,
     agendasRequeridasDia,
     leadsRequeridosDia,
     repartoSemanal: repartirFaltantePorSemana({
@@ -363,8 +425,7 @@ export async function leerProyeccion(
     agruparEnvios(db, { programId, rango: rangoVentana, agruparPor: [] }),
   ]);
 
-  // Las medidas solo se leen si hacen falta: con objetivo no se usa ninguna.
-  const anterior = objetivo ? null : cohorteAnterior(cohortes, cohorte.id);
+  const anterior = cohorteAnterior(cohortes, cohorte.id);
   const medir = async (c: { codigo: string; fechaInicioVentas: string | null; fechaCierreVentas: string | null }) => {
     if (!c.fechaInicioVentas || !c.fechaCierreVentas) return null;
     const grupo = await grupoDeCitas(db, {
@@ -372,10 +433,11 @@ export async function leerProyeccion(
       rango: { desde: c.fechaInicioVentas, hasta: menor(c.fechaCierreVentas, hoy) },
       ahora,
     });
-    return { codigo: c.codigo, tasas: grupo.tasas, madurando: grupo.madurando };
+    return { codigo: c.codigo, tasas: grupo.tasas, pendientes: grupo.pendientes.length, madurando: grupo.madurando };
   };
   const medidaAnterior = anterior ? await medir(anterior) : null;
-  const necesitaEnCurso = !objetivo && !alcanzaMuestra(medidaAnterior);
+  const necesitaEnCurso = !alcanzaMuestra(medidaAnterior)
+    || (!!objetivo && (medidaAnterior?.tasas.deals ?? 0) < MUESTRA_MINIMA_CONVERSION);
   const medidaEnCurso = necesitaEnCurso ? await medir(cohorte) : null;
 
   return calcularProyeccion({

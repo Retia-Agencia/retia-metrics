@@ -111,6 +111,7 @@ export interface EmbudoDelRango {
   cierres: number;
   pctCierre: number | null;
   agendaAVenta: number | null;
+  pendientesDeResultado: number;
   /** El grupo detrás de las tasas: deals con cita ocurrida, con show y con show vendidos hoy. */
   grupo: TasasDelGrupo;
   /** El rango termina hace menos de 30 días: las tasas todavía pueden subir. */
@@ -425,6 +426,7 @@ export async function embudoDelRango(
     cierres,
     pctCierre: tasas.pctCierre,
     agendaAVenta: tasas.agendaAVenta,
+    pendientesDeResultado: tasas.pendientes,
     grupo: tasas,
     madurando: grupo.madurando,
   };
@@ -592,6 +594,7 @@ export async function embudoPorCloser(
         cierres: 0,
         pctCierre: null,
         agendaAVenta: null,
+        pendientesDeResultado: 0,
         grupo: tasasDelAlcance(grupo, clave),
         madurando: grupo.madurando,
         caja: [],
@@ -623,6 +626,7 @@ export async function embudoPorCloser(
     fila.pctShow = fila.grupo.pctShow;
     fila.pctCierre = fila.grupo.pctCierre;
     fila.agendaAVenta = fila.grupo.agendaAVenta;
+    fila.pendientesDeResultado = fila.grupo.pendientes;
   }
 
   return [...porClave.values()];

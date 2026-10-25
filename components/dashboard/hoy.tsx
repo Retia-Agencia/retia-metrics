@@ -134,6 +134,12 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
           <CifraConLista titulo="Ventas de hoy" detalle={detalles?.cierres}>{num(embudo.cierres)}</CifraConLista>
         } nota={`% de cierre ${tasa(embudo.pctCierre)}`} />
       </div>
+      {embudo.pendientesDeResultado > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          <CifraConLista titulo="Citas pasadas sin resultado" detalle={detalles?.grupo_pendientes}>{num(embudo.pendientesDeResultado)}</CifraConLista>
+          {embudo.pendientesDeResultado === 1 ? " cita ya pasó sin resultado registrado" : " citas ya pasaron sin resultado registrado"}: no cuentan en el % de show ni en el % de cierre hasta que el closer lo registre.
+        </p>
+      ) : null}
       {embudo.madurando ? (
         <p className="text-xs text-muted-foreground">
           El % de show y el % de cierre van sobre las citas de hoy: todavía pueden subir en los próximos días.

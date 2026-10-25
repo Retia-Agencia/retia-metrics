@@ -16,7 +16,19 @@ import {
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
-const porObjetivo = elegirConversion({ objetivo: 0.25, anterior: null, enCurso: null });
+const medida = (codigo: string, deals: number, vendidos: number, shows = deals, pendientes = 0) => ({
+  codigo,
+  pendientes,
+  tasas: {
+    deals,
+    conShow: shows,
+    vendidos,
+    pctShow: deals === 0 ? null : shows / deals,
+    pctCierre: shows === 0 ? null : vendidos / shows,
+  },
+});
+
+const porObjetivo = elegirConversion({ objetivo: 0.25, anterior: medida("C3", 70, 10, 32), enCurso: null });
 
 const cohorte: DatosParaProyeccion = {
   hoy: "2026-10-21",
@@ -31,11 +43,6 @@ const cohorte: DatosParaProyeccion = {
   ventanaHasta: "2026-10-21",
   conversion: porObjetivo,
 };
-
-const medida = (codigo: string, deals: number, vendidos: number) => ({
-  codigo,
-  tasas: { deals, vendidos, agendaAVenta: deals === 0 ? null : vendidos / deals },
-});
 
 const pintar = (datos: DatosParaProyeccion, ventanas = [] as Parameters<typeof Proyeccion>[0]["ventanas"]) =>
   renderToStaticMarkup(createElement(Proyeccion, { datos: calcularProyeccion(datos), ventanas }));
@@ -52,15 +59,30 @@ describe("proyección", () => {
     expect(resultado.ritmo.valor).toBe(ritmo);
     expect(resultado.proyeccion.valor).toBe(10 + ritmo * diasQueQuedan);
     expect(resultado.ventasRequeridasDia.valor).toBe(ventasDia);
+    expect(resultado.showsRequeridosDia.valor).toBeCloseTo((ventasDia / 0.25) * (32 / 70));
     expect(resultado.agendasRequeridasDia.valor).toBe(ventasDia / 0.25);
     expect(resultado.leadsRequeridosDia.valor).toBe((ventasDia / 0.25) / (20 / 100));
     expect(resultado.supuestos.agendasPorRegistro).toBe(0.2);
   });
 
+  it("encadena ventas, shows y agendas con las dos tasas de un solo grupo", () => {
+    const conversion = elegirConversion({ objetivo: null, anterior: medida("C3", 70, 10, 32), enCurso: null });
+    const resultado = calcularProyeccion({
+      ...cohorte,
+      cohorte: { ...cohorte.cohorte!, fechaCierreVentas: "2026-11-02" },
+      vendidos: 8,
+      conversion,
+    });
+    expect(resultado.ventasRequeridasDia.valor).toBe(2.75);
+    expect(resultado.showsRequeridosDia.valor).toBeCloseTo(8.8);
+    expect(resultado.agendasRequeridasDia.valor).toBeCloseTo(19.25);
+    expect(conversion.pctShow! * conversion.pctCierre!).toBeCloseTo(10 / 70);
+  });
+
   it("con la meta cumplida pide cero y no reparte nada", () => {
     const resultado = calcularProyeccion({ ...cohorte, vendidos: 30, conversion: elegirConversion({ objetivo: null, anterior: null, enCurso: null }) });
     expect(resultado.faltan).toBe(0);
-    expect([resultado.ventasRequeridasDia.valor, resultado.agendasRequeridasDia.valor, resultado.leadsRequeridosDia.valor]).toEqual([0, 0, 0]);
+    expect([resultado.ventasRequeridasDia.valor, resultado.showsRequeridosDia.valor, resultado.agendasRequeridasDia.valor, resultado.leadsRequeridosDia.valor]).toEqual([0, 0, 0, 0]);
     expect(resultado.repartoSemanal).toEqual([]);
     expect(pintar({ ...cohorte, vendidos: 30 })).toContain("Ya se vendieron los 30 cupos de C4.");
   });
@@ -93,34 +115,41 @@ describe("la conversión agenda → venta", () => {
   it("prefiere el objetivo, luego la cohorte anterior y luego la cohorte en curso", () => {
     const anterior = medida("C2", 40, 10);
     const enCurso = { ...medida("C3", 30, 3), madurando: true };
-    expect(elegirConversion({ objetivo: 0.3, anterior, enCurso })).toMatchObject({ valor: 0.3, origen: "objetivo_cohorte" });
-    expect(elegirConversion({ objetivo: null, anterior, enCurso })).toMatchObject({ valor: 10 / 40, origen: "cohorte_anterior", cohorteCodigo: "C2" });
+    expect(elegirConversion({ objetivo: 0.3, anterior, enCurso })).toMatchObject({ objetivoAgendaAVenta: 0.3, pctShow: 1, origen: "objetivo_cohorte" });
+    expect(elegirConversion({ objetivo: null, anterior, enCurso })).toMatchObject({ pctShow: 1, pctCierre: 10 / 40, origen: "cohorte_anterior", cohorteCodigo: "C2" });
     expect(elegirConversion({ objetivo: null, anterior: null, enCurso })).toMatchObject({
-      valor: 3 / 30,
+      pctShow: 1,
+      pctCierre: 3 / 30,
       origen: "cohorte_en_curso",
       cohorteCodigo: "C3",
-      muestra: { personas: 30, vendidos: 3 },
+      muestra: { personas: 30, shows: 30, vendidos: 3, pendientes: 0 },
       madurando: true,
     });
   });
 
   it("no usa una medición con menos de la muestra mínima ni sin ventas", () => {
     const corta = elegirConversion({ objetivo: null, anterior: medida("C2", MUESTRA_MINIMA_CONVERSION - 1, 5), enCurso: { ...medida("C3", MUESTRA_MINIMA_CONVERSION - 1, 5), madurando: true } });
-    expect(corta.valor).toBeNull();
-    expect(corta.razon).toBe(`Todavía no sabemos cuántas agendas terminan en venta: en C3 van ${MUESTRA_MINIMA_CONVERSION - 1} personas con cita y hacen falta ${MUESTRA_MINIMA_CONVERSION} para medirlo. Se completa solo a medida que pasen las citas.`);
+    expect(corta.pctShow).toBeNull();
+    expect(corta.razonShow).toContain(`van ${MUESTRA_MINIMA_CONVERSION - 1} personas`);
 
     const justa = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C3", MUESTRA_MINIMA_CONVERSION, 4), madurando: false } });
-    expect(justa.valor).toBe(4 / MUESTRA_MINIMA_CONVERSION);
+    expect(justa.pctCierre).toBe(4 / MUESTRA_MINIMA_CONVERSION);
 
     const sinVentas = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C3", 25, 0), madurando: false } });
-    expect(sinVentas.valor).toBeNull();
-    expect(sinVentas.razon).toContain("Ninguna de las 25 personas con cita de C3 ha comprado todavía");
+    expect(sinVentas.pctCierre).toBeNull();
+    expect(sinVentas.razonCierre).toContain("Ninguno de los 25 shows de C3 ha comprado todavía");
+  });
+
+  it("nombra los pendientes cuando dejan corta la muestra", () => {
+    const conversion = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C3", 10, 1, 5, 221), madurando: true } });
+    expect(conversion.razonShow).toContain("En C3 hay 221 citas pasadas sin resultado");
+    expect(calcularProyeccion({ ...cohorte, conversion }).agendasRequeridasDia.razon).toContain("cuando se registren se puede medir");
   });
 
   it("dice en pantalla de dónde salió la conversión", () => {
     const pantalla = pintar({ ...cohorte, conversion: elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C4", 40, 10), madurando: true } }) });
-    expect(pantalla).toContain("25,0% de las agendas termina en venta");
-    expect(pantalla).toContain("medido en C4: 10 de 40 personas con cita compraron; puede subir");
+    expect(pantalla).toContain("25,0% de los shows termina en venta");
+    expect(pantalla).toContain("medido en C4: 10 de 40 shows compraron; puede subir");
     expect(pintar(cohorte)).toContain("según el objetivo de la cohorte");
   });
 });
@@ -139,6 +168,8 @@ describe("la tarjeta se lee como una cadena", () => {
     expect(pantalla).toContain("Ritmo: 5 ventas en 10 días hábiles (8 al 21 oct)");
     expect(pantalla).toContain("Para llegar a 30 faltan 20 ventas");
     expect(pantalla).toContain("20 ventas ÷ 10 días hábiles hasta el cierre (4 nov)");
+    expect(pantalla).toContain("shows");
+    expect(pantalla).toMatch(/ventas[\s\S]*→[\s\S]*shows[\s\S]*→[\s\S]*agendas[\s\S]*→[\s\S]*leads/);
     expect(pantalla).toContain("20,0% de los leads agenda (20 agendas de 100 leads, 8 al 21 oct)");
     expect(pantalla).toContain("meta declarada: 35 leads por día");
     expect(pantalla).toContain('href="/p/x/hub?ritmo=20"');
@@ -152,10 +183,11 @@ describe("la tarjeta se lee como una cadena", () => {
     const pantalla = pintar(datos);
 
     expect(resultado.ritmo.valor).toBeNull();
+    expect(resultado.showsRequeridosDia.valor).toBeNull();
     expect(resultado.agendasRequeridasDia.valor).toBeNull();
     expect(resultado.leadsRequeridosDia.valor).toBeNull();
     expect(pantalla).toContain("No hubo ventas en los últimos 10 días hábiles, así que no hay ritmo con qué proyectar. Prueba con una ventana más larga.");
-    expect(pantalla).toContain("en C4 van 3 personas con cita y hacen falta 20");
+    expect(pantalla).toContain("En C4 van 3 shows y hacen falta 20");
     expect(pantalla).toContain("Sale de las agendas por día, que todavía no se pueden calcular.");
     for (const jerga of ["Infinity", "NaN", "mayor que cero", "ventana de ritmo", "→ venta"]) expect(pantalla).not.toContain(jerga);
   });
@@ -216,8 +248,9 @@ describe("leerProyeccion contra la base", () => {
     expect(resultado.supuestos.conversion).toMatchObject({
       origen: "cohorte_en_curso",
       cohorteCodigo: "C3",
-      valor: 5 / MUESTRA_MINIMA_CONVERSION,
-      muestra: { personas: MUESTRA_MINIMA_CONVERSION, vendidos: 5 },
+      pctShow: 1,
+      pctCierre: 5 / MUESTRA_MINIMA_CONVERSION,
+      muestra: { personas: MUESTRA_MINIMA_CONVERSION, shows: MUESTRA_MINIMA_CONVERSION, vendidos: 5, pendientes: 0 },
       madurando: true,
     });
     // La venta empezó el 1-oct: la ventana de 20 hábiles se recorta a 15 (1 al 21 oct).
@@ -233,7 +266,7 @@ describe("leerProyeccion contra la base", () => {
   it("con menos de la muestra mínima no inventa la conversión", async () => {
     const programId = await sembrar(MUESTRA_MINIMA_CONVERSION - 1, 5);
     const resultado = await leerProyeccion({ programId, hoy: "2026-10-21", ahora: new Date("2026-10-21T18:00:00-05:00") }, db);
-    expect(resultado.supuestos.conversion.valor).toBeNull();
+    expect(resultado.supuestos.conversion.pctShow).toBeNull();
     expect(resultado.agendasRequeridasDia.razon).toContain(`van ${MUESTRA_MINIMA_CONVERSION - 1} personas con cita`);
   });
 });

@@ -15,8 +15,9 @@ import type { Rango } from "@/lib/queries/dashboard";
  *
  * El grupo es la cohorte de citas del rango: los deals vigentes del programa, sin cortesías, con al
  * menos una cita YA OCURRIDA cuya fecha cae en el rango. "Ocurrida" es que su hora ya pasó; entran
- * el show, el no-show, la cancelada y la que sigue sin resultado (cuenta como no-show hasta que se
- * registre). La reagendada no entra: la representa su cita nueva (decidido el 5-oct).
+ * el show, el no-show y la cancelada. Una cita pasada que sigue agendada queda pendiente de
+ * resultado y fuera del grupo hasta que se registre. La reagendada no entra: la representa su cita
+ * nueva (decidido el 5-oct; enmienda del 24-oct).
  *
  * Se cuenta por deal, no por llamada, y la cadena entera sale del grupo:
  *  - % de show     = deals con al menos un show ÷ deals del grupo;
@@ -68,6 +69,7 @@ export interface TasasDelGrupo {
   conShow: number;
   /** Deals con show que hoy están vendidos. */
   vendidos: number;
+  pendientes: number;
   pctShow: number | null;
   pctCierre: number | null;
   agendaAVenta: number | null;
@@ -75,6 +77,7 @@ export interface TasasDelGrupo {
 
 export interface GrupoDeCitas {
   miembros: MiembroDelGrupo[];
+  pendientes: MiembroDelGrupo[];
   tasas: TasasDelGrupo;
   /** Las mismas tasas por clave de closer; cada deal cuenta en un solo closer. */
   porCloser: Map<string, TasasDelGrupo & { closer: string | null }>;
@@ -93,6 +96,7 @@ function tasasDe(miembros: readonly MiembroDelGrupo[]): TasasDelGrupo {
     deals: miembros.length,
     conShow,
     vendidos,
+    pendientes: 0,
     pctShow: dividir(conShow, miembros.length),
     pctCierre: dividir(vendidos, conShow),
     agendaAVenta: dividir(vendidos, miembros.length),
@@ -135,20 +139,31 @@ export function calcularTasasDelGrupo(args: {
     porDeal.set(cita.dealId, lista);
   }
 
-  const miembros: MiembroDelGrupo[] = [...porDeal.values()].map((citasDelDeal) => {
-    const shows = citasDelDeal.filter((c) => esShow(c.resultado));
-    const atribuye = (shows.length > 0 ? shows : citasDelDeal).at(-1)!;
+  const miembro = (atribuye: CitaParaTasas, conShow: boolean): MiembroDelGrupo => ({
+    dealId: atribuye.dealId,
+    callId: atribuye.callId,
+    fecha: diaDeCalendario(atribuye.instante),
+    claveCloser: atribuye.claveCloser,
+    closer: atribuye.closer,
+    etapa: atribuye.etapa,
+    conShow,
+    vendido: conShow && ETAPAS_VENDIDAS.includes(atribuye.etapa),
+  });
+  const ordenar = (a: MiembroDelGrupo, b: MiembroDelGrupo) =>
+    a.fecha.localeCompare(b.fecha) || a.dealId.localeCompare(b.dealId);
+  const pendientes: MiembroDelGrupo[] = [...porDeal.values()]
+    .filter((citasDelDeal) => citasDelDeal.every((c) => c.resultado === "agendada"))
+    .map((citasDelDeal) => miembro(citasDelDeal.at(-1)!, false))
+    .sort(ordenar);
+  const miembros: MiembroDelGrupo[] = [...porDeal.values()].flatMap((citasDelDeal) => {
+    const conResultado = citasDelDeal.filter((c) => c.resultado !== "agendada");
+    if (conResultado.length === 0) return [];
+    const shows = conResultado.filter((c) => esShow(c.resultado));
+    const atribuye = (shows.length > 0 ? shows : conResultado).at(-1)!;
     return {
-      dealId: atribuye.dealId,
-      callId: atribuye.callId,
-      fecha: diaDeCalendario(atribuye.instante),
-      claveCloser: atribuye.claveCloser,
-      closer: atribuye.closer,
-      etapa: atribuye.etapa,
-      conShow: shows.length > 0,
-      vendido: ETAPAS_VENDIDAS.includes(atribuye.etapa),
+      ...miembro(atribuye, shows.length > 0),
     };
-  }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.dealId.localeCompare(b.dealId));
+  }).sort(ordenar);
 
   const agrupados = new Map<string, MiembroDelGrupo[]>();
   for (const miembro of miembros) {
@@ -156,11 +171,25 @@ export function calcularTasasDelGrupo(args: {
     lista.push(miembro);
     agrupados.set(miembro.claveCloser, lista);
   }
-  const porCloser = new Map(
-    [...agrupados].map(([clave, lista]) => [clave, { ...tasasDe(lista), closer: lista[0]!.closer }]),
-  );
+  for (const pendiente of pendientes) {
+    if (!agrupados.has(pendiente.claveCloser)) agrupados.set(pendiente.claveCloser, []);
+  }
+  const porCloser = new Map([...agrupados].map(([clave, lista]) => {
+    const pendientesDelCloser = pendientes.filter((m) => m.claveCloser === clave);
+    return [clave, {
+      ...tasasDe(lista),
+      pendientes: pendientesDelCloser.length,
+      closer: lista.length > 0 ? lista[0]!.closer : pendientesDelCloser[0]!.closer,
+    }];
+  }));
 
-  return { miembros, tasas: tasasDe(miembros), porCloser, madurando: rangoMadurando(args.rango, args.hoy) };
+  return {
+    miembros,
+    pendientes,
+    tasas: { ...tasasDe(miembros), pendientes: pendientes.length },
+    porCloser,
+    madurando: rangoMadurando(args.rango, args.hoy),
+  };
 }
 
 /** Los miembros de un closer, o todos si no hay clave. Es el filtro que usan la cifra y su lista. */
@@ -168,9 +197,16 @@ export function miembrosDe(grupo: GrupoDeCitas, claveCloser: string | null | und
   return claveCloser ? grupo.miembros.filter((m) => m.claveCloser === claveCloser) : grupo.miembros;
 }
 
+/** Los pendientes de un closer, o todos si no hay clave. */
+export function pendientesDe(grupo: GrupoDeCitas, claveCloser: string | null | undefined): MiembroDelGrupo[] {
+  return claveCloser ? grupo.pendientes.filter((m) => m.claveCloser === claveCloser) : grupo.pendientes;
+}
+
 /** Las tasas del programa o, con clave, las del closer (ceros si no tiene grupo). */
 export function tasasDelAlcance(grupo: GrupoDeCitas, claveCloser: string | null | undefined): TasasDelGrupo {
-  return claveCloser ? tasasDe(miembrosDe(grupo, claveCloser)) : grupo.tasas;
+  return claveCloser
+    ? { ...tasasDe(miembrosDe(grupo, claveCloser)), pendientes: pendientesDe(grupo, claveCloser).length }
+    : grupo.tasas;
 }
 
 /**

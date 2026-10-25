@@ -36,6 +36,12 @@ function TarjetaTasa({ vista }: { vista: VistaDeMisMetricas }) {
           <span className="cifra text-2xl font-semibold">{vista.a.pctCierre === null ? "—" : pct(vista.a.pctCierre)}</span>
         </CifraConLista>
         {vista.b ? <p className="cifra text-xs text-muted-foreground">{textoDeVariacionDeTasa(vista.a.pctCierre, vista.b.pctCierre)}</p> : null}
+        {vista.a.pendientesDeResultado > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            <CifraConLista titulo="Citas pasadas sin resultado" detalle={vista.detalles.grupoPendientes}>{num(vista.a.pendientesDeResultado)}</CifraConLista>
+            {vista.a.pendientesDeResultado === 1 ? " cita ya pasó sin resultado registrado" : " citas ya pasaron sin resultado registrado"}: no cuentan en el % de show ni en el % de cierre hasta que el closer lo registre.
+          </p>
+        ) : null}
         {vista.a.madurando ? <p className="text-xs text-muted-foreground">Aún madurando: el rango terminó hace menos de 30 días.</p> : null}
       </CardContent>
     </Card>

@@ -14,7 +14,7 @@ import {
   closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
-import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
+import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import {
   esMetricaDeEmbudo,
   leerEmbudoConMiembros,
@@ -59,7 +59,7 @@ export type Metrica =
  * Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, con show vendidos hoy, y
  * sin show (el no-show por semana del ticket 189, la otra mitad del grupo).
  */
-export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show"] as const;
+export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
 type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario>;
 
@@ -568,10 +568,14 @@ async function leerMetricaDeGrupo(
     rango: alcance.rango,
     ahora: filtros.ahora ?? new Date(),
   });
-  const miembros = miembrosDe(grupo, filtros.claveCloser).filter((m) =>
+  const base = metrica === "grupo_pendientes"
+    ? pendientesDe(grupo, filtros.claveCloser)
+    : miembrosDe(grupo, filtros.claveCloser);
+  const miembros = base.filter((m) =>
     metrica === "grupo_citas" ? true
       : metrica === "grupo_shows" ? m.conShow
       : metrica === "grupo_sin_show" ? !m.conShow
+      : metrica === "grupo_pendientes" ? true
       : m.conShow && m.vendido,
   );
   const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));

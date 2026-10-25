@@ -5,7 +5,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { embudoDelRango, embudoPorCloser } from "@/lib/queries/dashboard";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { armarVistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
-import { calcularTasasDelGrupo, rangoMadurando, type CitaParaTasas } from "@/lib/queries/tasas-del-grupo";
+import { calcularTasasDelGrupo, pendientesDe, rangoMadurando, type CitaParaTasas } from "@/lib/queries/tasas-del-grupo";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -195,6 +195,26 @@ describe("ticket 187: la cuenta pura", () => {
     expect(grupo.tasas).toMatchObject({ deals: 1, conShow: 1 });
     expect(grupo.miembros[0]).toMatchObject({ callId: "c2", claveCloser: "u1" });
     expect([...grupo.porCloser.keys()]).toEqual(["u1"]);
+  });
+
+  it("separa pendientes e ignora la agendada cuando el deal sí tiene resultado", () => {
+    const grupo = calcularTasasDelGrupo({
+      citas: [
+        base({ callId: "p1", dealId: "pendiente", resultado: "agendada", claveCloser: "u2", closer: "Beto" }),
+        base({ callId: "a1", dealId: "con-show", resultado: "agendada", claveCloser: "u2", closer: "Beto" }),
+        base({ callId: "s1", dealId: "con-show", resultado: "show", claveCloser: "u1", closer: "Ana", instante: new Date("2026-09-23T15:00:00Z"), etapa: "ganado_completo" }),
+      ],
+      rango: S1,
+      hoy: HOY,
+      ahora: AHORA,
+    });
+    expect(grupo.miembros).toHaveLength(1);
+    expect(grupo.miembros[0]).toMatchObject({ dealId: "con-show", callId: "s1", conShow: true });
+    expect(grupo.pendientes).toHaveLength(1);
+    expect(grupo.tasas).toMatchObject({ deals: 1, conShow: 1, vendidos: 1, pendientes: 1 });
+    expect(pendientesDe(grupo, "u2")).toHaveLength(1);
+    expect(grupo.porCloser.get("u2")).toMatchObject({ deals: 0, pendientes: 1 });
+    expect(grupo.tasas.pctShow! * grupo.tasas.pctCierre!).toBeCloseTo(grupo.tasas.agendaAVenta!);
   });
 
   it("aún madurando cuando el rango terminó hace menos de 30 días", () => {
