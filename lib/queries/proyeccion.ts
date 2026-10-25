@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, objetivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre } from "@/lib/dias-habiles";
+import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
@@ -294,7 +294,8 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
 }
 
 function inicioDeVentana(hoy: string, diasHabiles: number): string {
-  let fecha = hoy;
+  // Un fin de semana no es el primer día de la ventana: se cuenta desde el último hábil.
+  let fecha = esDiaHabil(hoy) ? hoy : diaHabilAnterior(hoy);
   for (let i = 1; i < diasHabiles; i++) fecha = diaHabilAnterior(fecha);
   return fecha;
 }

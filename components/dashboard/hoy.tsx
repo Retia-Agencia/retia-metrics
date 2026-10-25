@@ -149,11 +149,11 @@ function CajaDelDia({ caja, detalles }: { caja: CajaDelDiaPorOrigen[]; detalles?
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Caja de hoy</CardTitle>
+        <CardTitle className="text-base">Recaudado hoy</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
         <div className="cifra text-2xl font-semibold">
-          <CifraConLista titulo="Caja de hoy" detalle={detalles?.caja}>
+          <CifraConLista titulo="Recaudado hoy" detalle={detalles?.caja}>
             <Caja caja={caja.length === 0 ? [{ moneda: "USD", total: 0 }] : caja} />
           </CifraConLista>
         </div>

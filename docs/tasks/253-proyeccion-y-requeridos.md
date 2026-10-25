@@ -70,16 +70,20 @@ y el cableado mínimo de `?ritmo=`: `lib/queries/vista-hoy.ts` (pasa `ventanaRit
 los tres enlaces con `urlConSeccion`). La sesión del periodo y la barra del Hub también toca `page.tsx`: revisar
 conflicto al unir.
 
-### Para retomar
+### Cerrado el 24-oct (noche)
 
-1. Typecheck limpio. `npm test -- tests/proyeccion.test.ts`: 13 de 14 pasan. Falla
-   *"dice ritmo, cierre y lo que hace falta"* en el regex `/cerramos C4 en.*>20<.* de 30 cupos/`: casi seguro React
-   mete `<!-- -->` entre textos; ajustar el test a lo que de verdad pinta, no la tarjeta.
-2. Correr `tests/paginas.test.ts` y `tests/show-por-cita.test.ts` (tocan `armarVistaDeHoy` y la página).
-3. Lint y `npm run build` (la tarjeta no es cliente, pero `hoy.tsx` y la página cambiaron). El worktree ya tiene
-   `npm ci` hecho (le faltaba `echarts`).
-4. Medir Tactical C3 en producción **solo leyendo**: cuántas personas con cita tiene el grupo desde el inicio de
-   ventas y cuántas vendidas, para saber si la tarjeta ya muestra agendas y leads o sigue en "—" con la razón de la
-   muestra. Mani contó el 24-oct 29 shows y 3 cerradas desde el 28-sep: con eso pasaría la muestra (≈10%).
-5. Recorrido en `npm run dev:local`: claro, oscuro y 375 px, clic en 5 · 10 · 20, captura.
-6. Commit en la rama y cerrar A-161 a A-163 en `docs/anotaciones.md`; `docs/metricas.md` §3.4 ya está al día.
+1. El test que fallaba tenía mal la cuenta, no era React: 10 vendidas + 0,5/día × 10 días = **15**, no 20 (el
+   test de la fórmula ya decía 15). `proyeccion`, `paginas` y `show-por-cita`: 162 en verde.
+2. **Bug encontrado en el recorrido:** un sábado o domingo, `inicioDeVentana` contaba el día de hoy como día 1 y
+   "los últimos 10" quedaban en 9 hábiles. Ahora arranca desde el último hábil; test nuevo con hoy = sábado 24-oct.
+3. Typecheck, lint y `npm run build` limpios.
+4. **Tactical C3 en producción (solo lectura, 24-oct):** la conversión sale de la cohorte en curso con 288 personas
+   con cita y 10 vendidas = **3,5%**, madurando. Con 33 ventas faltantes en 12 hábiles (2,75/día) eso pide
+   **79 agendas y 199 leads por día**, contra ~18 agendas por día que entran hoy. El número es fiel al ADR 0079
+   (agenda → venta cuenta toda cita ocurrida, con o sin show); los 29 shows y 3 cierres que contó Mani son el
+   **% de cierre** (sobre shows), otra tasa. Decisión abierta para Mani: ver abajo.
+5. Recorrido en `dev:local` (claro, oscuro, 375 px, clic en 5 · 10 · 20): sin errores de consola ni scroll horizontal.
+6. A-161 a A-163 marcadas resueltas, pendiente el checkpoint.
+
+**Decisión abierta:** ¿la cadena de la tarjeta usa agenda → venta (3,5%, y pide 79 agendas por día) o pasa por el
+show (agendas → shows → ventas)? Hoy es fiel al ADR 0079; cambiarlo es una enmienda, no un arreglo.

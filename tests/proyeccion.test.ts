@@ -135,7 +135,7 @@ describe("la tarjeta se lee como una cadena", () => {
     expect(pantalla).toContain(">Proyección<");
     expect(pantalla).not.toContain("requeridos");
     expect(pantalla).toContain("0,5 ventas por día");
-    expect(pantalla).toMatch(/cerramos C4 en.*>20<.* de 30 cupos/);
+    expect(pantalla).toMatch(/cerramos C4 en.*>15<.* de 30 cupos/);
     expect(pantalla).toContain("Ritmo: 5 ventas en 10 días hábiles (8 al 21 oct)");
     expect(pantalla).toContain("Para llegar a 30 faltan 20 ventas");
     expect(pantalla).toContain("20 ventas ÷ 10 días hábiles hasta el cierre (4 nov)");
@@ -222,6 +222,12 @@ describe("leerProyeccion contra la base", () => {
     });
     // La venta empezó el 1-oct: la ventana de 20 hábiles se recorta a 15 (1 al 21 oct).
     expect(resultado.supuestos).toMatchObject({ ventanaDesde: "2026-10-01", ventanaRecortada: true, diasHabilesVentana: 15 });
+  });
+
+  it("un sábado, los últimos 10 días hábiles siguen siendo 10", async () => {
+    const programId = await sembrar(MUESTRA_MINIMA_CONVERSION, 5);
+    const resultado = await leerProyeccion({ programId, hoy: "2026-10-24", ahora: new Date("2026-10-24T18:00:00-05:00") }, db);
+    expect(resultado.supuestos).toMatchObject({ ventanaDesde: "2026-10-12", ventanaHasta: "2026-10-24", diasHabilesVentana: 10 });
   });
 
   it("con menos de la muestra mínima no inventa la conversión", async () => {
