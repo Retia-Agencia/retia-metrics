@@ -124,7 +124,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     {
       id: "dinero",
       etiqueta: "Dinero",
-      descripcion: "Lo contratado, lo cobrado y lo que falta por cobrar.",
+      descripcion: "Lo vendido, lo recaudado y lo que falta por cobrar.",
       href: urlConSeccion(base, busqueda, "dinero"),
     },
     {

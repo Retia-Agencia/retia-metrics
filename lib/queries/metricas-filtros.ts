@@ -329,6 +329,28 @@ export function filtroAgendasCreadas({ programId, rango, claveCloser }: Alcance)
   );
 }
 
+/**
+ * Los deals creados del rango que ya agendaron (A-167): con al menos una llamada vigente
+ * agendada a más tardar el último día del rango. Así el último punto de la curva de Deals contra
+ * agendas cuadra con esta lista también en un periodo pasado. Exige el join de `filtroDealsCreados`.
+ */
+export function filtroDealsQueAgendaron(alcance: Alcance, db: Db) {
+  return and(
+    filtroDealsCreados(alcance),
+    inArray(
+      deals.id,
+      db
+        .select({ id: calls.dealId })
+        .from(calls)
+        .where(and(
+          eq(calls.programId, alcance.programId),
+          lte(fechaAnclaAgendaCreada(), alcance.rango.hasta),
+          vigente(calls),
+        )),
+    ),
+  );
+}
+
 /** El movimiento que da fecha a la venta, sin correlación ni duplicar sus etapas. */
 export function primerosMovimientosDeVenta(db: Db) {
   return db

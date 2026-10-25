@@ -27,7 +27,7 @@ const esquema = z.object({
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = { caja: "Caja recaudada", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Contratado", cartera: "Cartera pendiente", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain" };
+const titulos = { caja: "Recaudado", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", cartera: "Por cobrar", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain" };
 
 export default async function ListaDeTodosPage({ searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");

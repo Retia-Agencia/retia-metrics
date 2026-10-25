@@ -1,5 +1,5 @@
-import { expect, it } from "vitest";
-import { porcentajeConBase, textoDeVariacion, textoDeVariacionDeTasa, variacion } from "@/lib/variacion";
+import { describe, expect, it } from "vitest";
+import { cambioDeTasaEnPalabras, cambioEnPalabras, porcentajeConBase, textoDeVariacion, textoDeVariacionDeTasa, variacion } from "@/lib/variacion";
 
 it("cambio absoluto y relativo con menos tipográfico", () => {
   expect(variacion(4, 358)).toEqual({ actual: 4, anterior: 358, delta: -354, deltaPct: -354 / 358 });
@@ -26,4 +26,20 @@ it("una tasa contra otra cambia en puntos porcentuales, y sin base dice raya", (
 it("los puntos de una tasa salen de las tasas ya redondeadas", () => {
   expect(textoDeVariacionDeTasa(0.452, 0.449)).toBe("45% → 45% · 0 pp");
   expect(textoDeVariacionDeTasa(0.454, 0.446)).toBe("45% → 45% · 0 pp");
+});
+
+describe("el cambio en palabras (A-167)", () => {
+  it("dice cuántos más o menos y el porcentaje, sin flechas", () => {
+    expect(cambioEnPalabras(52, 40)).toBe("12 más (+30%)");
+    expect(cambioEnPalabras(45, 50)).toBe("5 menos (−10%)");
+    expect(cambioEnPalabras(7, 7)).toBe("Igual");
+    expect(cambioEnPalabras(3, 0)).toBe("3 más (antes 0)");
+  });
+
+  it("dice una tasa en puntos, con singular y sin base", () => {
+    expect(cambioDeTasaEnPalabras(0.52, 0.45)).toBe("7 puntos más");
+    expect(cambioDeTasaEnPalabras(0.44, 0.45)).toBe("1 punto menos");
+    expect(cambioDeTasaEnPalabras(0.451, 0.449)).toBe("Igual");
+    expect(cambioDeTasaEnPalabras(null, 0.4)).toBe("—");
+  });
 });
