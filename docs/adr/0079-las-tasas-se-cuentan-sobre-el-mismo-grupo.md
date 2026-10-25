@@ -1,6 +1,8 @@
 # 0079: Las tasas del embudo comercial se cuentan sobre el mismo grupo de personas
 
-- **Estado:** aceptado, 4-oct-2026 (Mani). Se construye en el ticket 187.
+- **Estado:** aceptado, 4-oct-2026 (Mani). Se construye en el ticket 187. **Enmendado el 24-oct-2026 (Mani):** una
+  cita ocurrida sin resultado queda fuera del grupo hasta que lo tenga (puntos 1 y 8), y la Proyección del 253
+  usa la cadena con el show (punto 9).
 - **Enmienda:** `overview.md` §7 (% de show y % de cierre), que no decía de quiénes se contaba cada lado.
 - **Confirma:** la regla dura de `AGENTS.md` (toda tasa se calcula sobre personas, nunca sobre filas) y el ADR 0067
   (toda cifra abre la lista que la produjo).
@@ -18,7 +20,9 @@ muestra"*, y el % de cierre de un closer es *"sobre las llamadas que hizo show"*
 ## Decisión
 
 1. **El grupo es la cohorte de citas del rango.** Son los deals del programa (vigentes) con al menos una cita
-   ya ocurrida cuya fecha cae en el rango. Una cita futura es agenda, no resultado, y no entra.
+   ya ocurrida **y con resultado** (show, cerrada, no show o cancelada) cuya fecha cae en el rango. Una cita futura
+   es agenda, no resultado, y no entra. Una cita ocurrida que sigue en `agendada` tampoco: nadie registró qué pasó,
+   y contarla como no show es inventar un resultado (enmienda del 24-oct, punto 8).
 2. **Se cuenta por deal (persona), no por llamada.** Un deal que no llegó, re-agendó y luego sí llegó cuenta una
    vez, como show.
 3. **La cadena, toda sobre ese grupo:**
@@ -36,9 +40,25 @@ muestra"*, y el % de cierre de un closer es *"sobre las llamadas que hizo show"*
    (de venta y de abono). Esas son cantidades del periodo, no tasas.
 7. **Una sola definición.** El grupo y la cadena viven en un módulo de `lib/queries/`, y lo importan el dashboard,
    el comparativo entre closers, Mi espacio y la lista de cada cifra.
+8. **Las citas sin resultado se cuentan aparte, a la vista (24-oct).** Un deal cuyas citas ocurridas del rango
+   siguen todas en `agendada` es **pendiente de resultado**: no entra al grupo ni a ninguna tasa, y toda pantalla que
+   muestra % de show, % de cierre o agenda → venta dice al lado cuántos hay, con su lista (ADR 0067). Si el deal
+   tiene alguna cita con resultado, esa decide y las `agendada` se ignoran. Por closer, el pendiente es de quien
+   tiene la cita. Cuando se registra el resultado, el deal entra solo al grupo, como entra una venta tardía (punto 5).
+9. **La Proyección (253) va por el show.** Ventas por día ÷ % de cierre = shows por día; shows ÷ % de show =
+   agendas por día; agendas ÷ agendas por registro = leads por día. Las dos tasas salen del **mismo** grupo (la
+   cohorte anterior si alcanza la muestra, si no la cohorte en curso), así que su producto sigue siendo agenda →
+   venta y la cifra de agendas no cambia por pasar por el show: lo que gana es que se vea en qué paso se pierde.
+   Cada tasa pide al menos 20 en su denominador (personas del grupo para el % de show, shows para el % de cierre) y
+   el % de cierre alguna venta. Un objetivo declarado de agenda → venta, si existe, sigue mandando sobre las
+   agendas; los shows salen entonces de agendas × % de show medido, o "—" con su razón.
 
 ## Consecuencias
 
 - Ninguna tasa de la cadena puede pasar de 100%, y la del closer se explica con su propia lista.
 - El número de una semana pasada puede subir días después. Es lo esperado y la pantalla lo anuncia.
 - `overview.md` §7 y `analytics.md` §6 se corrigen para decir esta definición.
+- **Por la enmienda del 24-oct**, las tasas suben cuando hay citas sin registrar (en Tactical C3, el 24-oct, 221 de
+  288 deals estaban en `agendada` con la cita ya pasada y el % de show daba 11%). El hueco ya no se esconde dentro de
+  la tasa: aparece como un conteo de pendientes, que es un problema de registro de los closers y no de conversión.
+  `docs/metricas.md` se actualiza en el mismo commit.
