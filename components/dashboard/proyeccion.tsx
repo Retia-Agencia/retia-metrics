@@ -1,59 +1,161 @@
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num } from "@/lib/format";
-import type { ProyeccionDeCohorte, ValorDeProyeccion } from "@/lib/queries/proyeccion";
+import { fecha, num, pct } from "@/lib/format";
+import type {
+  ConversionElegida,
+  ProyeccionDeCohorte,
+  TramoSemanal,
+  ValorDeProyeccion,
+  VentanaRitmo,
+} from "@/lib/queries/proyeccion";
 
-function Valor({ dato, sufijo = "" }: { dato: ValorDeProyeccion; sufijo?: string }) {
-  return dato.valor === null ? (
-    <><span className="cifra text-2xl font-semibold">—</span><p className="text-xs text-muted-foreground">{dato.razon}</p></>
-  ) : (
-    <span className="cifra text-2xl font-semibold">{num(dato.valor, 1)}{sufijo}</span>
+/** Un enlace por ventana de ritmo; los arma la página con la URL actual (`?ritmo=`). */
+export interface EnlaceDeVentana {
+  dias: VentanaRitmo;
+  href: string;
+}
+
+/** "27 oct", sin año: la tarjeta siempre habla de la cohorte en curso. */
+const dia = (iso: string) => fecha(iso).replace(/ \d{4}$/, "");
+
+/** "27 al 31 oct", "30 oct al 4 nov" o "4 nov". */
+export function rangoLegible(desde: string, hasta: string): string {
+  if (desde === hasta) return dia(desde);
+  const mismoMes = desde.slice(0, 7) === hasta.slice(0, 7);
+  return `${mismoMes ? String(Number(desde.slice(8))) : dia(desde)} al ${dia(hasta)}`;
+}
+
+const plural = (n: number, uno: string, varios: string) => `${num(n)} ${n === 1 ? uno : varios}`;
+
+function nombreDelTramo(tramo: TramoSemanal): string {
+  if (tramo.tipo === "resto_semana") return `Lo que queda de esta semana · ${rangoLegible(tramo.desde, tramo.hasta)}`;
+  if (tramo.tipo === "final") return `Última semana, hasta el cierre · ${rangoLegible(tramo.desde, tramo.hasta)}`;
+  return `Semana del ${rangoLegible(tramo.desde, tramo.hasta)}`;
+}
+
+/** De dónde sale la conversión agenda → venta, en una frase. */
+export function origenDeConversion(conversion: ConversionElegida): string {
+  const muestra = conversion.muestra
+    ? `${num(conversion.muestra.vendidos)} de ${plural(conversion.muestra.personas, "persona", "personas")} con cita compraron`
+    : "";
+  if (conversion.origen === "objetivo_cohorte") return "según el objetivo de la cohorte";
+  if (conversion.origen === "cohorte_anterior") return `medido en ${conversion.cohorteCodigo}: ${muestra}`;
+  if (conversion.origen === "cohorte_en_curso") {
+    return `medido en ${conversion.cohorteCodigo}: ${muestra}${conversion.madurando ? "; puede subir, hay citas recientes sin decidir" : ""}`;
+  }
+  return "";
+}
+
+function Paso({ dato, unidad, explicacion }: { dato: ValorDeProyeccion; unidad: string; explicacion: string | null }) {
+  return (
+    <div className="min-w-0 flex-1 space-y-1">
+      <p>
+        <span className="cifra text-2xl font-semibold">{dato.valor === null ? "—" : num(dato.valor, 1)}</span>{" "}
+        <span className="text-sm text-muted-foreground">{unidad}</span>
+      </p>
+      <p className="text-xs text-muted-foreground">{dato.valor === null ? dato.razon : explicacion}</p>
+    </div>
   );
 }
 
-const fechaCorta = (fecha: string) => fecha.split("-").reverse().slice(0, 2).join("/");
+const Flecha = () => (
+  <span aria-hidden className="hidden pt-1 text-xl text-muted-foreground sm:block">→</span>
+);
 
-export function Proyeccion({ datos }: { datos: ProyeccionDeCohorte }) {
-  const origen = datos.supuestos.origenConversion === "objetivo_cohorte"
-    ? "objetivo declarado de la cohorte"
-    : datos.supuestos.origenConversion === "cohorte_anterior"
-      ? `cohorte anterior completa (${datos.supuestos.cohorteAnteriorCodigo})`
-      : "sin objetivo ni cohorte anterior con conversión";
+export function Proyeccion({ datos, ventanas = [] }: { datos: ProyeccionDeCohorte; ventanas?: EnlaceDeVentana[] }) {
+  const { supuestos, cohorte } = datos;
+  if (!cohorte) {
+    return (
+      <Card>
+        <CardHeader><CardTitle className="text-base">Proyección</CardTitle></CardHeader>
+        <CardContent><p className="text-sm text-muted-foreground">{datos.ritmo.razon}</p></CardContent>
+      </Card>
+    );
+  }
+  const conversion = supuestos.conversion;
+  const rangoVentana = rangoLegible(supuestos.ventanaDesde, supuestos.ventanaHasta);
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Proyección y requeridos</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          <div><p className="text-xs text-muted-foreground">Ritmo</p><Valor dato={datos.ritmo} sufijo=" ventas/día" /></div>
-          <div>
-            <p className="text-xs text-muted-foreground">Proyección de cierre</p>
-            <Valor dato={datos.proyeccion} sufijo=" cupos" />
-            {datos.cohorte ? <p className="text-xs text-muted-foreground">de {num(datos.cohorte.metaCupos)} cupos de meta</p> : null}
-          </div>
-          <div><p className="text-xs text-muted-foreground">Ventas requeridas/día</p><Valor dato={datos.ventasRequeridasDia} /></div>
-          <div><p className="text-xs text-muted-foreground">Agendas requeridas/día</p><Valor dato={datos.agendasRequeridasDia} /></div>
-          <div>
-            <p className="text-xs text-muted-foreground">Leads contra su meta</p>
-            <Valor dato={datos.leadsRequeridosDia} />
-            {datos.cohorte?.metaLeadsDia != null ? <p className="text-xs text-muted-foreground">Meta declarada: {num(datos.cohorte.metaLeadsDia)} leads/día</p> : null}
+      <CardHeader><CardTitle className="text-base">Proyección</CardTitle></CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          {datos.ritmo.valor === null ? (
+            <p className="text-sm">
+              <span className="cifra font-semibold">—</span> {datos.ritmo.razon}
+            </p>
+          ) : (
+            <p className="text-base">
+              Llevamos <span className="cifra font-semibold">{num(datos.ritmo.valor, 1)} ventas por día</span>
+              {" → "}a este ritmo cerramos {cohorte.codigo} en{" "}
+              <span className="cifra font-semibold">{num(datos.proyeccion.valor!)}</span> de {plural(cohorte.metaCupos, "cupo", "cupos")}.
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+            <span>
+              Ritmo: {plural(supuestos.ventasVentana, "venta", "ventas")} en {plural(supuestos.diasHabilesVentana, "día hábil", "días hábiles")} ({rangoVentana}
+              {supuestos.ventanaRecortada ? ", desde que empezó la venta" : ""}). Contar los últimos
+            </span>
+            {ventanas.map((v) => (
+              <Button
+                key={v.dias}
+                size="xs"
+                variant={v.dias === supuestos.ventanaDiasHabiles ? "secondary" : "ghost"}
+                nativeButton={false}
+                aria-current={v.dias === supuestos.ventanaDiasHabiles ? "true" : undefined}
+                render={<Link href={v.href} scroll={false} />}
+              >
+                {v.dias}
+              </Button>
+            ))}
+            <span>días hábiles.</span>
           </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Ventana: últimos {num(datos.supuestos.ventanaDiasHabiles)} días hábiles ({fechaCorta(datos.supuestos.ventanaDesde)}–{fechaCorta(datos.supuestos.ventanaHasta)}). Conversión agenda → venta: {datos.supuestos.conversionAgendaVenta === null ? "—" : `${num(datos.supuestos.conversionAgendaVenta * 100, 1)} %`} ({origen}).
-        </p>
-        {datos.repartoSemanal.length > 0 ? (
-          <div>
-            <p className="mb-2 text-sm font-medium">Lo que falta, desde mañana</p>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {datos.repartoSemanal.map((tramo) => (
-                <div className="rounded-lg border p-3" key={tramo.desde}>
-                  <p className="text-xs text-muted-foreground">{tramo.tipo === "resto_semana" ? "Resto de esta semana" : tramo.tipo === "final" ? "Días sueltos del final" : `Semana del ${fechaCorta(tramo.desde)}`}</p>
-                  <p className="cifra text-lg font-semibold">{num(tramo.ventas, 1)} ventas</p>
-                  <p className="text-xs text-muted-foreground">{num(tramo.diasHabiles)} {tramo.diasHabiles === 1 ? "día hábil" : "días hábiles"} · {fechaCorta(tramo.desde)}–{fechaCorta(tramo.hasta)}</p>
-                </div>
-              ))}
+
+        {datos.faltan === 0 ? (
+          <p className="text-sm">Ya se vendieron los {num(cohorte.metaCupos)} cupos de {cohorte.codigo}.</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">
+              Para llegar a {num(cohorte.metaCupos)} faltan {plural(datos.faltan, "venta", "ventas")}, y hacen falta por día hábil:
+            </p>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-3">
+              <Paso
+                dato={datos.ventasRequeridasDia}
+                unidad="ventas"
+                explicacion={`${plural(datos.faltan, "venta", "ventas")} ÷ ${plural(datos.diasHabilesRestantes, "día hábil", "días hábiles")} hasta el cierre (${dia(cohorte.fechaCierreVentas)})`}
+              />
+              <Flecha />
+              <Paso
+                dato={datos.agendasRequeridasDia}
+                unidad="agendas"
+                explicacion={conversion.valor === null ? null : `${pct(conversion.valor)} de las agendas termina en venta (${origenDeConversion(conversion)})`}
+              />
+              <Flecha />
+              <Paso
+                dato={datos.leadsRequeridosDia}
+                unidad="leads"
+                explicacion={supuestos.agendasPorRegistro === null ? null : `${pct(supuestos.agendasPorRegistro)} de los leads agenda (${plural(supuestos.agendasVentana, "agenda", "agendas")} de ${plural(supuestos.registrosVentana, "lead", "leads")}, ${rangoVentana})${cohorte.metaLeadsDia != null ? ` · meta declarada: ${num(cohorte.metaLeadsDia)} leads por día` : ""}`}
+              />
             </div>
+          </div>
+        )}
+
+        {datos.repartoSemanal.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Cómo repartir las {plural(datos.faltan, "venta", "ventas")} que faltan</p>
+            <ul className="divide-y rounded-lg border">
+              {datos.repartoSemanal.map((tramo) => (
+                <li className="flex items-baseline justify-between gap-3 px-3 py-2 text-sm" key={tramo.desde}>
+                  <span className="min-w-0">
+                    {nombreDelTramo(tramo)}
+                    <span className="block text-xs text-muted-foreground">{plural(tramo.diasHabiles, "día hábil", "días hábiles")}</span>
+                  </span>
+                  <span className="cifra shrink-0 font-semibold">{num(tramo.ventas, 1)} ventas</span>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
       </CardContent>

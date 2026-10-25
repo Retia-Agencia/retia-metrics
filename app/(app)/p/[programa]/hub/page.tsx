@@ -43,6 +43,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 import { pautaSincronizaciones } from "@/lib/db/schema";
+import { OPCIONES_VENTANA_RITMO, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
 import { tokensMeta } from "@/lib/integraciones";
 import {
   debeSincronizarDesdeElHub,
@@ -151,7 +152,9 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   // importar el periodo ni el closer de la URL, y por eso no muestra el selector. Es la misma
   // consulta que las demás pestañas con el periodo "hoy": no se recalcula nada.
   const esHoy = seccion === "hoy";
-  const vistaDeHoy = esHoy ? await armarVistaDeHoy({ programId: programa.id, dia: hoy }) : null;
+  // La ventana del ritmo de la Proyección sale de `?ritmo=`, validada: un valor raro vuelve a 10.
+  const ventanaRitmo = ventanaRitmoDeUrl(busqueda.ritmo);
+  const vistaDeHoy = esHoy ? await armarVistaDeHoy({ programId: programa.id, dia: hoy, ventanaRitmo }) : null;
   const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard({
         programId: programa.id,
         hoy,
@@ -305,6 +308,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               contexto={vistaDeHoy!.contexto}
               horizontes={vistaDeHoy!.horizontes}
               proyeccion={vistaDeHoy!.proyeccion}
+              ventanasRitmo={OPCIONES_VENTANA_RITMO.map((dias) => ({
+                dias,
+                href: urlConSeccion(base, busqueda, String(dias), { parametro: "ritmo" }),
+              }))}
               caja={vistaDeHoy!.caja}
               registros={vistaDeHoy!.registros}
               detalleRegistros={detalleRegistros}

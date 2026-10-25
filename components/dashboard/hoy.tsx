@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Alertas } from "@/components/dashboard/alertas";
 import { Comparativo } from "@/components/dashboard/operacion";
-import { Proyeccion } from "@/components/dashboard/proyeccion";
+import { Proyeccion, type EnlaceDeVentana } from "@/components/dashboard/proyeccion";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -229,6 +229,7 @@ export function Hoy({
   contexto,
   horizontes,
   proyeccion,
+  ventanasRitmo,
   caja,
   registros,
   detalleRegistros,
@@ -249,6 +250,8 @@ export function Hoy({
   contexto: ContextoDelDia;
   horizontes: Horizonte[];
   proyeccion: ProyeccionDeCohorte;
+  /** Los enlaces para cambiar la ventana del ritmo (`?ritmo=`); los arma la página. */
+  ventanasRitmo?: EnlaceDeVentana[];
   caja: CajaDelDiaPorOrigen[];
   registros: number;
   detalleRegistros?: DetalleDeCifra;
@@ -273,7 +276,7 @@ export function Hoy({
         <LineaDeContexto contexto={contexto} />
       </div>
       <Cupos horizontes={horizontes} detalles={detalles} configurar={configurar} />
-      <Proyeccion datos={proyeccion} />
+      <Proyeccion datos={proyeccion} ventanas={ventanasRitmo} />
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">La operación de hoy</h3>
         <OperacionDelDia

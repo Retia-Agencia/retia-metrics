@@ -431,3 +431,17 @@ Análisis y propuestas en [`manuales/pipeline-comercial.md`](./manuales/pipeline
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
 | A-160 | Hub › No agendaron (313) · Deals | cambio | Sería bueno trackear los contactos de los deals (quién llamó o escribió y cuándo). Hoy el CRM no tiene ese hecho, así que la lista del 313 ordena por fecha de envío y de última actividad, no por "sin contactar". | sin ticket | abierta |
+
+
+## Recorrido · 24-oct · Mani (developer, Hub › Hoy, Comercial y Dinero, Tactical Investor)
+
+Principio del recorrido: el Hub es para que gerencia decida. Nada de vocabulario del backend en la pantalla, poco peso
+visual, y toda cifra verificada contra la base. Medido el 24-oct en Tactical (C3): desde el 28-sep, 29 shows, 3
+cerradas, 18 abonos por USD 18.425 y 17 ventas por USD 25.350; semana del 19-oct, 10 shows y USD 4.950. El Hub mostró 0
+en Show, No show, Caja y Comisión.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-161 | Hub › Hoy › Proyección | aclaración | "Proyección y requeridos" pasa a "Proyección". "Ritmo" no se entiende: es lo que llevamos (ventas/día de los últimos 10 hábiles). La tarjeta tiene que leerse como una cadena: llevamos X/día, hace falta Y/día, entonces Z agendas y W leads por día. | 253 (seguimiento) | en curso: rama `claude/proyeccion-legible-40b767` |
+| A-162 | Hub › Hoy › Proyección | bug | "No hay una conversión agenda → venta mayor que cero" es texto del backend. Tactical no tiene objetivo ni cohorte anterior con conversión, y eso deja en "—" agendas y leads requeridos. Decir en palabras qué falta y cómo se arregla, o medir la conversión de la cohorte en curso. | 253 (seguimiento) | en curso: rama `claude/proyeccion-legible-40b767` |
+| A-163 | Hub › Hoy › Proyección | cambio | La ventana de 10 días hábiles está fija en el código y la pantalla no dice qué es. Ajustable, y explicada. "Lo que falta, desde mañana" se lee como reparto del faltante por semana: decirlo así. | 253 (seguimiento) | en curso: rama `claude/proyeccion-legible-40b767` |

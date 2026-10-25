@@ -10,7 +10,7 @@ import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { filtroCaja, vendidosEn } from "@/lib/queries/metricas-filtros";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
-import { leerProyeccion } from "@/lib/queries/proyeccion";
+import { leerProyeccion, type VentanaRitmo } from "@/lib/queries/proyeccion";
 import { vigente } from "@/lib/queries/vigente";
 import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
@@ -138,7 +138,7 @@ export interface CajaDelDiaPorOrigen {
 
 /** Arma Hub › Hoy como estaba al cierre de `dia`; las banderas y la cartera siguen siendo de ahora. */
 export async function armarVistaDeHoy(
-  { programId, dia, ahora }: { programId: string; dia: string; ahora?: Date },
+  { programId, dia, ahora, ventanaRitmo }: { programId: string; dia: string; ahora?: Date; ventanaRitmo?: VentanaRitmo },
   db: Db = dbDeLaApp,
 ) {
   const instante = ahora ?? (dia === hoyEnBogota()
@@ -157,7 +157,7 @@ export async function armarVistaDeHoy(
     agruparAgendas(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
     agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
     showPorCitaDelRango({ programId, rango: { desde: dia, hasta: dia }, claveCloser: null }, instante, db),
-    leerProyeccion({ programId, hoy: dia }, db),
+    leerProyeccion({ programId, hoy: dia, ahora: instante, ventanaDiasHabiles: ventanaRitmo }, db),
   ]);
   return {
     vista,
