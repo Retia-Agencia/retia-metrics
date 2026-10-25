@@ -216,10 +216,6 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
               <Grafica titulo={`${m.titulo} por mes`} unidad={m.unidad}
                 frescura={`Datos hasta ${fecha(ultimo.rango.hasta)}.`}
                 etiquetas={meses.map((mes) => mes.mes)} formato={(valor) => num(valor, m.decimales)}
-                comparacion={m.metrica === "caja" ? undefined : {
-                  texto: "contra la meta del mes",
-                  pares: [{ actual: m.titulo, referencia: "Meta del mes · programa" }],
-                }}
                 meta={m.metrica === "caja" ? undefined : { etiqueta: "Meta del mes · programa", valores: meses.map(m.meta) }}
                 datos={{ dias: meses.map((mes) => `${mes.mes}-01`), series: [
                   { clave: m.titulo, valores: meses.map((mes) => mes.rango.desde <= mes.rango.hasta ? m.valor(mes) : null),

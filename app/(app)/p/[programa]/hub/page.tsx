@@ -155,7 +155,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard({
         programId: programa.id,
         hoy,
-        periodo: parsearPeriodoUrl(busqueda),
+        periodo: parsearPeriodoUrl(busqueda, { porDefecto: "cohorte_actual" }),
         preset: texto(busqueda.rango) ?? "hoy",
         desde: texto(busqueda.desde),
         hasta: texto(busqueda.hasta),
@@ -233,19 +233,21 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       fija
     >
       <PantallaFija>
-        {esHoy ? null : (
-          <div className="shrink-0">
-            <FiltroDashboard
-              periodo={vista.periodo}
-              anteriorDisponible={vista.anteriorDisponible}
-              claveCloser={vista.claveCloser}
-              closers={veEquipo ? vista.closers : []}
-              filtraCloser={veEquipo}
-              cohorteDisponible={vista.cohorte?.ventana != null}
-            />
-          </div>
-        )}
-        <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
+        <div className="flex flex-wrap items-center gap-2">
+          <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
+          {esHoy ? null : (
+            <div className="ml-auto shrink-0">
+              <FiltroDashboard
+                periodo={vista.periodo}
+                anteriorDisponible={vista.anteriorDisponible}
+                claveCloser={vista.claveCloser}
+                closers={veEquipo ? vista.closers : []}
+                filtraCloser={veEquipo}
+                cohorteDisponible={vista.cohorte?.ventana != null}
+              />
+            </div>
+          )}
+        </div>
 
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen" ? (

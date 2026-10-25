@@ -89,6 +89,8 @@ const esquema = z.object({
 export interface EntradaDePeriodo {
   preset: AtajoDePeriodo | "custom";
   a?: Rango;
+  /** El atajo salió del valor por defecto de la pantalla (ADR 0106, A-168). */
+  predeterminado?: true;
   /**
    * La lista de lo que se compara; si viene, manda sola. La URL siempre la trae (vacía = sin
    * comparación, ADR 0106). Sin ella rige la forma vieja, la que usan los llamadores de código
@@ -220,6 +222,9 @@ export function parsearPeriodoUrl(url: Record<string, unknown>, opciones: Opcion
   const preset = moderno
     ? (p.periodo ?? (p.a_desde !== undefined || p.a_hasta !== undefined ? "custom" : porDefecto))
     : p.rango ? antiguo[p.rango] : porDefecto;
+  const predeterminado = moderno
+    ? p.periodo === undefined && p.a_desde === undefined && p.a_hasta === undefined
+    : p.rango === undefined;
   const desde = moderno ? p.a_desde : preset === "custom" ? p.desde : undefined;
   const hasta = moderno ? p.a_hasta : preset === "custom" ? p.hasta : undefined;
 
@@ -249,6 +254,7 @@ export function parsearPeriodoUrl(url: Record<string, unknown>, opciones: Opcion
     a,
     comparaciones,
     b,
+    predeterminado: predeterminado ? true : undefined,
   };
 }
 
@@ -356,9 +362,12 @@ export function resolverPeriodo(
   } else if (preset === "cohorte_actual" || preset === "cohorte_anterior") {
     const elegida = preset === "cohorte_actual" ? actual : anterior;
     if (!elegida || elegida.inicio > hoy) {
+      const reemplazo = entrada.predeterminado ? "este_mes" : "hoy";
       return {
-        ...resolverPeriodo({ ...entrada, preset: "hoy", a: undefined, aviso: undefined }, contexto),
-        aviso: "Sin ventana de venta disponible para esa cohorte: se muestra Hoy.",
+        ...resolverPeriodo({ ...entrada, preset: reemplazo, a: undefined, aviso: undefined, predeterminado: undefined }, contexto),
+        aviso: entrada.predeterminado
+          ? "Sin cohorte en curso: se muestra Este mes."
+          : "Sin ventana de venta disponible para esa cohorte: se muestra Hoy.",
       };
     }
     a = resolverRango({ preset: "cohorte", hoy, ventana: elegida }).rango;

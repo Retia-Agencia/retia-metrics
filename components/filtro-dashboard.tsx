@@ -53,6 +53,7 @@ export function FiltroDashboard({
   return (
     <BarraDeLista
       filtros={filtros}
+      alineacion="fin"
       marco={
         <SelectorPeriodo
           periodo={periodo}

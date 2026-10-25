@@ -32,12 +32,16 @@ export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, form
     escribir: formato,
   });
   const filas = filasDeTabla(modelo);
+  const ultimaMeta = [...(modelo.meta?.textos ?? [])].reverse().find((texto) => texto !== null);
   const tieneDatos = modelo.series.some((serie) => serie.valores.some((valor) => valor !== null));
   if (!datos.dias.length || !tieneDatos) return <p className="text-sm text-muted-foreground">Sin datos para {titulo}.</p>;
 
   return (
     <figure className="space-y-2">
-      <figcaption className="text-sm font-medium">{titulo} · {unidad}</figcaption>
+      <figcaption className="text-sm font-medium">
+        {titulo} · {unidad}
+        {modelo.meta && ultimaMeta ? <> · {modelo.meta.etiqueta}: <span className="cifra">{ultimaMeta}</span> {unidad}</> : null}
+      </figcaption>
       <p className="text-xs text-muted-foreground">{frescura}</p>
       <GraficaDinamica modelo={modelo} titulo={`${titulo}, ${unidad}. Ejes lineales con cero visible.`} />
       <details className="text-sm">
@@ -47,7 +51,7 @@ export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, form
         <div className="overflow-x-auto">
           <table className="w-full cifra text-xs">
             <caption>{titulo}, {unidad}</caption>
-            <thead><tr><th>{etiquetas ? "Punto" : "Día"}</th>{modelo.series.map((serie) => <th key={serie.clave}>{serie.clave}</th>)}</tr></thead>
+            <thead><tr><th>{etiquetas ? "Punto" : "Día"}</th>{modelo.series.map((serie) => <th key={serie.clave}>{serie.clave}</th>)}{modelo.meta ? <th>{modelo.meta.etiqueta}</th> : null}</tr></thead>
             <tbody>{filas.map((fila) => (
               <tr key={fila.dia}>
                 <th>{fila.etiqueta}</th>

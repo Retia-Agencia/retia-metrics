@@ -16,8 +16,11 @@ Las gráficas, además, tienen un tooltip de párrafos y una línea punteada de 
 ## Decisión
 
 1. **Por defecto no hay comparación.** Sin parámetros, el Hub de un programa abre en **la cohorte en curso**
-   (si no tiene ventana de venta cae a Hoy con el aviso de siempre). "Todos los programas" no tiene una cohorte
-   común y conserva Hoy. Esto vale para todo lo que usa `lib/periodo.ts`: una regla, un lugar.
+   (enmendado el 24-oct, A-168: si no tiene ventana de venta cae a **Este mes** con aviso, porque Hoy en un
+   programa sin cohorte pintaba la pantalla en ceros; un `?periodo=cohorte_actual` explícito sin ventana sigue
+   cayendo a Hoy). "Todos los programas" no tiene una cohorte común y conserva Hoy. La regla vive en
+   `lib/periodo.ts` (`parsearPeriodoUrl(url, { porDefecto })` marca `predeterminado`, y `resolverPeriodo` decide la
+   caída); quien pide la cohorte por defecto es solo el Hub de un programa: las listas reciben el periodo explícito.
 2. **Comparar es agregar.** "Comparar con" agrega una comparación, y luego "Agregar comparación" suma otra, hasta
    **tres**; cada una se quita con su ×. Tres es el tope porque cada comparación es otra corrida completa de las
    consultas del periodo y una cuarta columna de cambios ya no se lee en 375 px. Las clases son las de antes:
