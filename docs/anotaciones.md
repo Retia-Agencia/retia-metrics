@@ -431,3 +431,17 @@ Análisis y propuestas en [`manuales/pipeline-comercial.md`](./manuales/pipeline
 | Id | Pantalla | Tipo | Anotación | Destino | Estado |
 |---|---|---|---|---|---|
 | A-160 | Hub › No agendaron (313) · Deals | cambio | Sería bueno trackear los contactos de los deals (quién llamó o escribió y cuándo). Hoy el CRM no tiene ese hecho, así que la lista del 313 ordena por fecha de envío y de última actividad, no por "sin contactar". | sin ticket | abierta |
+
+## Recorrido · 24-oct · Mani (developer, Hub › Hoy, Comercial y Dinero, Tactical Investor)
+
+Principio del recorrido: el Hub es para que gerencia decida. Nada de vocabulario del backend en la pantalla, poco peso
+visual, y toda cifra verificada contra la base. Medido el 24-oct en Tactical (C3): desde el 28-sep, 29 shows, 3
+cerradas, 18 abonos por USD 18.425 y 17 ventas por USD 25.350; semana del 19-oct, 10 shows y USD 4.950. El Hub mostró 0
+en Show, No show, Caja y Comisión.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-167 | Hub › Comercial › Deals contra agendas | bug | El eje dice "Hábil 17": solo fechas reales. "Agendas por deal 49 % de 702" no se entiende; decidido: pasa a "% de deals que agendaron" (personas). La notación del cambio ("117,0 % de 1") se reescribe en palabras. | rama claude/comercial-dinero-cableado | decidida |
+| A-168 | Hub › Comercial › Embudo y agendas | bug | Agendas, Show, Cierres y No shows salen vacíos o en 0 con 10 shows en la semana. Verificar cableado contra la base. | ADR 0106 (rama comparacion-opcional) | decidida |
+| A-169 | Hub › Comercial › etapas | cambio | Conversión por etapa: queda una sola tasa ("% que pasó al siguiente paso"); se quitan "% desde entrada" y "Varios tramos". Tiempo en etapa, Potencial/Registrado en gestión, Sin dueño por antigüedad y Closers ("nadie registró actividad") se verifican contra la base. | rama claude/comercial-dinero-cableado | decidida |
+| A-170 | Hub › Dinero | cambio | "Contratado" pasa a **Vendido** (lo que el closer cerró), Caja a **Recaudado** (lo que entró) y Cartera a **Por cobrar** (vendido menos recaudado). Caja, comisión y descuento en 0 con USD 4.950 recaudados en la semana: verificar cableado. "Ventas por cohorte" dice "sin ventas en el periodo" con 17 ventas en C3. | rama claude/comercial-dinero-cableado | decidida |

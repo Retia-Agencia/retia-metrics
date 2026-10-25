@@ -33,9 +33,9 @@ export function Dinero({
       <h2 className="text-xl font-semibold">Dinero</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Tarjeta
-          titulo="Contratado"
+          titulo="Vendido"
           valor={
-            <CifraConLista titulo="Contratado" detalle={detalles?.contratado}>
+            <CifraConLista titulo="Vendido" detalle={detalles?.contratado}>
               {usd(vista.contratadoUsd)}
             </CifraConLista>
           }
@@ -81,7 +81,7 @@ export function Dinero({
             {vista.ventasPorCohorte.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin ventas en el periodo.</p>
             ) : (
-              <Tabla cabeceras={["Cohorte", "Ventas", "Contratado"]}>
+              <Tabla cabeceras={["Cohorte", "Ventas", "Vendido"]}>
                 {vista.ventasPorCohorte.map((fila) => {
                   const href = veEquipo && fila.cohorteId
                     ? urlDeLista({
@@ -134,11 +134,11 @@ export function Dinero({
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Cartera</CardTitle>
+            <CardTitle className="text-base">Por cobrar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <p className="cifra break-words text-2xl font-semibold">
-              <CifraConLista titulo="Cartera" detalle={detalles?.cartera}>
+              <CifraConLista titulo="Por cobrar" detalle={detalles?.cartera}>
                 {num(vista.cartera.deals)} deals · {usd(vista.cartera.saldoUsd)}
               </CifraConLista>
             </p>
@@ -153,7 +153,7 @@ export function Dinero({
                 sin saldo calculable
               </p>
             ) : null}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               A hoy, no depende del periodo. Es del programa entero.
             </p>
           </CardContent>
@@ -161,7 +161,7 @@ export function Dinero({
       </div>
 
       {vista.claveCloser !== null ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Filtrado por{" "}
           {vista.closers.find((closer) => closer.id === vista.claveCloser)?.label
             ?? "este closer"}. Los leads y la cartera son del programa entero: no se parten
@@ -184,13 +184,13 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
   const monedas = [...new Set(meses.flatMap((mes) => mes.caja.map((caja) => caja.moneda)))];
   type Valores = SeriesDeDinero["meses"][number];
   const metricas = [
-    { titulo: "Contratado", unidad: "USD", metrica: "contratado" as const,
+    { titulo: "Vendido", unidad: "USD", metrica: "contratado" as const,
       valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.contratadoUsd,
       meta: (fila: Valores) => fila.metaUsd, decimales: 2, moneda: undefined },
     { titulo: "Cupos vendidos", unidad: "cupos", metrica: "cierres" as const,
       valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.cupos,
       meta: (fila: Valores) => fila.metaCupos, decimales: 1, moneda: undefined },
-    ...monedas.map((moneda) => ({ titulo: "Recaudo", unidad: moneda, metrica: "caja" as const,
+    ...monedas.map((moneda) => ({ titulo: "Recaudado", unidad: moneda, metrica: "caja" as const,
       valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.caja.find((caja) => caja.moneda === moneda)?.total ?? 0,
       // No existe una meta de recaudo: la caja se grafica sin meta.
       meta: (): number | null => null,
@@ -206,8 +206,8 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
       <div className="space-y-1 text-sm text-muted-foreground">
         <p>Últimos seis meses hasta {ultimo.mes}. Cada mes va desde el día 1; el último corta en {fecha(ultimo.rango.hasta)}. La caja usa la fecha del abono.</p>
         <p>La meta es del programa entero. Sin ventana de venta, la meta aparece como —.</p>
-        {claveCloser ? <p>Contratado, cupos y caja muestran la contribución del closer seleccionado; la meta no se reparte.</p> : null}
-        {meses.some((mes) => mes.sinValorVendido > 0) ? <p>Hay cupos sin valor vendido: cuentan como cupos, pero no aportan un monto a contratado.</p> : null}
+        {claveCloser ? <p>Vendido, cupos y recaudado muestran la contribución del closer seleccionado; la meta no se reparte.</p> : null}
+        {meses.some((mes) => mes.sinValorVendido > 0) ? <p>Hay cupos sin valor vendido: cuentan como cupos, pero no suman al vendido.</p> : null}
       </div>
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
         {metricas.map((m) => (
@@ -263,7 +263,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
                       ] }} />
                     {final.anterior ? <p className="text-sm">{m.unidad}: <Variacion actual={m.valor(final.actual)} anterior={m.valor(final.anterior)} decimales={m.decimales} comparacion="contra el mes anterior al mismo día hábil" /></p> : null}
                     {m.metrica === "caja" ? (
-                      <p className="text-xs text-muted-foreground">El recaudo no tiene meta propia.</p>
+                      <p className="text-sm text-muted-foreground">Lo recaudado no tiene meta propia.</p>
                     ) : meta !== null ? (
                       <p className="text-sm">Faltan para la meta: <span className="cifra">{num(Math.max(0, meta - m.valor(final.actual)), m.decimales)} {m.unidad} · {meta > 0 ? pct(Math.max(0, meta - m.valor(final.actual)) / meta) : "—"}</span></p>
                     ) : null}

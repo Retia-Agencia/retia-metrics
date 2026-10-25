@@ -56,11 +56,6 @@ export interface EntradaDeVista {
   /** Lo que venga en la URL; si no sirve, `resolverRango` cae a hoy. */
   preset: string;
   periodo?: EntradaDePeriodo;
-  /**
-   * Sin `periodo` (la URL no trae ninguno): "cohorte" es la cohorte actual si tiene ventana de
-   * venta, y si no este mes (A-168). Sin él se cae a `preset`, que por defecto es Hoy.
-   */
-  periodoPorDefecto?: "cohorte";
   desde?: string;
   hasta?: string;
   /** La clave de identidad del closer (ticket 167): un `users.id` uuid, o `null`. */
@@ -122,11 +117,7 @@ export async function armarVistaDelDashboard(
   const ventanas = cohorte
     ? await ventanasAnterioresDeCohorte(db, programId, cohorte.cohorteId)
     : { anterior: null, anteAnterior: null };
-  const entradaDePeriodo: EntradaDePeriodo = entrada.periodo
-    ?? (entrada.periodoPorDefecto === "cohorte"
-      ? { preset: cohorte?.ventana ? "cohorte_actual" : "este_mes" }
-      : parsearPeriodoUrl({ rango: preset, desde, hasta }));
-  const periodo = resolverPeriodo(entradaDePeriodo, {
+  const periodo = resolverPeriodo(entrada.periodo ?? parsearPeriodoUrl({ rango: preset, desde, hasta }), {
     hoy, actual: cohorte?.ventana, ...ventanas,
   });
   // La proyección antigua se conserva para consumidores del dashboard.
