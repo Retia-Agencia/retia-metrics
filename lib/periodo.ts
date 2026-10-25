@@ -17,7 +17,17 @@ export const atajosDePeriodo = {
 } as const;
 
 export type AtajoDePeriodo = keyof typeof atajosDePeriodo;
-export type ComparacionDePeriodo = "periodo_anterior" | "cohorte_anterior" | "rango" | "no";
+/**
+ * Lo que se pide comparar (ADR 0106): el mismo punto del periodo anterior, la cohorte anterior o
+ * un rango elegido. Es lo que vive en la URL; el rango real lo decide `resolverPeriodo`.
+ */
+export type PedidoDeComparacion =
+  | { tipo: "anterior" }
+  | { tipo: "cohorte" }
+  | { tipo: "rango"; rango: Rango };
+
+/** Tope de comparaciones a la vez: cada una es otra corrida de consultas (ADR 0106). */
+export const MAXIMO_DE_COMPARACIONES = 3;
 
 interface Ventana {
   inicio: string;
@@ -37,13 +47,40 @@ const rango = z.object({
   hasta: fecha,
 }).refine((r) => r.desde <= r.hasta);
 
+const RANGO_EN_URL = /^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/;
+
+/** Un elemento de `?comparar=`: `anterior`, `cohorte` o `AAAA-MM-DD_AAAA-MM-DD`. */
+const pedidoEnUrl = z.string().transform((texto, ctx): PedidoDeComparacion => {
+  if (texto === "anterior" || texto === "cohorte") return { tipo: texto };
+  const partes = RANGO_EN_URL.exec(texto);
+  const par = partes ? rango.safeParse({ desde: partes[1], hasta: partes[2] }) : null;
+  if (par?.success) return { tipo: "rango", rango: par.data };
+  ctx.addIssue({ code: "custom", message: "Comparación inválida" });
+  return z.NEVER;
+});
+
+/** `comparar=no` es la forma vieja de "ninguna"; el resto es la lista nueva separada por comas. */
+const listaDeComparar = z.string().transform((texto, ctx) => {
+  if (texto === "no") return [];
+  const lista: PedidoDeComparacion[] = [];
+  for (const parte of texto.split(",")) {
+    const pedido = pedidoEnUrl.safeParse(parte);
+    if (!pedido.success) {
+      ctx.addIssue({ code: "custom", message: "Comparación inválida" });
+      return z.NEVER;
+    }
+    lista.push(pedido.data);
+  }
+  return lista;
+});
+
 const esquema = z.object({
   periodo: z.enum([...Object.keys(atajosDePeriodo) as AtajoDePeriodo[], "custom"]).optional(),
   a_desde: fecha.optional(),
   a_hasta: fecha.optional(),
   b_desde: fecha.optional(),
   b_hasta: fecha.optional(),
-  comparar: z.enum(["no", "cohorte"]).optional(),
+  comparar: listaDeComparar.optional(),
   rango: z.enum(["hoy", "semana", "mes", "cohorte", "custom"]).optional(),
   desde: fecha.optional(),
   hasta: fecha.optional(),
@@ -52,48 +89,95 @@ const esquema = z.object({
 export interface EntradaDePeriodo {
   preset: AtajoDePeriodo | "custom";
   a?: Rango;
+  /**
+   * La lista de lo que se compara; si viene, manda sola. La URL siempre la trae (vacía = sin
+   * comparación, ADR 0106). Sin ella rige la forma vieja, la que usan los llamadores de código
+   * que arman su propio periodo (la gráfica de deals contra agendas, las series de dinero):
+   * `b` explícito, `comparar` o, sin nada, el mismo punto del periodo anterior.
+   * ponytail: cuando esas pantallas pasen a N comparaciones, que pidan `comparaciones` explícito
+   * y este respaldo se borra.
+   */
+  comparaciones?: PedidoDeComparacion[];
   b?: Rango;
   comparar?: "no" | "cohorte";
   aviso?: string;
 }
 
+/** Una comparación ya resuelta a fechas. Las que no se pudieron resolver no están: lo dice el aviso. */
+export interface ComparacionResuelta {
+  pedido: PedidoDeComparacion;
+  rango: Rango;
+}
+
 export interface PeriodoResuelto {
   preset: EntradaDePeriodo["preset"];
   a: Rango;
+  /** La primera comparación o null: lo que leen las pantallas de un solo B (ADR 0106). */
   b: Rango | null;
+  /** Todas las comparaciones resueltas, en el orden pedido. Ausente equivale a `[b]` o `[]`. */
+  comparaciones?: ComparacionResuelta[];
   aviso?: string;
 }
 
-/** Traduce las claves compartibles de la URL al lenguaje del segundo control. */
-export function comparacionDeParametros(url: Record<string, unknown>): ComparacionDePeriodo {
-  if (url.b_desde !== undefined || url.b_hasta !== undefined) return "rango";
-  if (url.comparar === "no") return "no";
-  if (url.comparar === "cohorte") return "cohorte_anterior";
-  return "periodo_anterior";
+/** Las comparaciones de un periodo, también de uno armado a mano con solo `b`. */
+export function comparacionesDe(periodo: PeriodoResuelto): ComparacionResuelta[] {
+  if (periodo.comparaciones) return periodo.comparaciones;
+  return periodo.b ? [{ pedido: { tipo: "rango", rango: periodo.b }, rango: periodo.b }] : [];
 }
 
-/** Devuelve únicamente las claves que controla "Comparar con". */
-export function parametrosDeComparacion(
-  comparacion: ComparacionDePeriodo,
-  elegido?: Rango,
+/** La identidad de un pedido: dos iguales en la URL son uno solo. */
+export function claveDePedido(pedido: PedidoDeComparacion): string {
+  return pedido.tipo === "rango" ? `${pedido.rango.desde}_${pedido.rango.hasta}` : pedido.tipo;
+}
+
+function sinRepetidos(pedidos: PedidoDeComparacion[]): PedidoDeComparacion[] {
+  const vistos = new Set<string>();
+  return pedidos.filter((pedido) => {
+    const clave = claveDePedido(pedido);
+    if (vistos.has(clave)) return false;
+    vistos.add(clave);
+    return true;
+  });
+}
+
+/** El valor de `?comparar=` para una lista de pedidos; vacía es null, que es "sin comparación". */
+export function parametrosDeComparaciones(
+  pedidos: PedidoDeComparacion[],
 ): Record<"comparar" | "b_desde" | "b_hasta", string | null> {
+  const lista = sinRepetidos(pedidos).slice(0, MAXIMO_DE_COMPARACIONES);
   return {
-    comparar: comparacion === "no" ? "no" : comparacion === "cohorte_anterior" ? "cohorte" : null,
-    b_desde: comparacion === "rango" ? elegido?.desde ?? null : null,
-    b_hasta: comparacion === "rango" ? elegido?.hasta ?? null : null,
+    comparar: lista.length ? lista.map(claveDePedido).join(",") : null,
+    // Las claves viejas se limpian siempre: una vez editada, la URL queda en la forma nueva.
+    b_desde: null,
+    b_hasta: null,
   };
 }
 
-/** Describe en palabras la base que acompaña a una variación. */
+const legibleRango = (r: Rango) => r.desde === r.hasta
+  ? formatearFecha(r.desde)
+  : `${formatearFecha(r.desde)} a ${formatearFecha(r.hasta)}`;
+
+/** El nombre corto de un pedido, el del chip: "Cohorte anterior", "1 sep 2026 a 9 sep 2026". */
+export function nombreDePedido(pedido: PedidoDeComparacion, preset: EntradaDePeriodo["preset"]): string {
+  if (pedido.tipo === "rango") return legibleRango(pedido.rango);
+  if (pedido.tipo === "cohorte" || preset === "cohorte_actual" || preset === "cohorte_anterior") return "Cohorte anterior";
+  return "Periodo anterior";
+}
+
+/** Describe en palabras la base que acompaña a una variación: la de la primera comparación. */
 export function descripcionDeComparacion(periodo: PeriodoResuelto): string {
-  if (!periodo.b) return "sin comparación";
-  if (periodo.preset === "cohorte_actual" || periodo.preset === "cohorte_anterior") {
-    return "contra la cohorte anterior al mismo día hábil";
+  const [primera] = comparacionesDe(periodo);
+  if (!primera) return "sin comparación";
+  if (primera.pedido.tipo !== "rango") {
+    const nombre = nombreDePedido(primera.pedido, periodo.preset).toLowerCase();
+    return `contra ${nombre === "cohorte anterior" ? "la" : "el"} ${nombre} al mismo día hábil`;
   }
-  const rango = periodo.b.desde === periodo.b.hasta
-    ? formatearFecha(periodo.b.desde)
-    : `${formatearFecha(periodo.b.desde)} a ${formatearFecha(periodo.b.hasta)}`;
-  return `contra ${rango}`;
+  return `contra ${legibleRango(primera.rango)}`;
+}
+
+interface OpcionesDeUrl {
+  /** El atajo cuando la URL no dice ninguno. El Hub de un programa abre en la cohorte (ADR 0106). */
+  porDefecto?: AtajoDePeriodo;
 }
 
 /**
@@ -103,12 +187,15 @@ export function descripcionDeComparacion(periodo: PeriodoResuelto): string {
  *
  * Las claves nuevas prevalecen sobre las antiguas. En enlaces viejos, desde/hasta
  * solo cuentan con custom, igual que en resolverRango, para conservar su significado.
+ * Las comparaciones salen de `comparar` y, en URLs viejas, de `b_desde`/`b_hasta`, que va primero.
  */
-export function parsearPeriodoUrl(url: Record<string, unknown>): EntradaDePeriodo {
+export function parsearPeriodoUrl(url: Record<string, unknown>, opciones: OpcionesDeUrl = {}): EntradaDePeriodo {
   const invalido: EntradaDePeriodo = {
     preset: "hoy",
+    comparaciones: [],
     aviso: "Periodo inválido: se muestra Hoy.",
   };
+  const porDefecto = opciones.porDefecto ?? "hoy";
   const moderno = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta", "comparar"].some(
     (clave) => url[clave] !== undefined,
   );
@@ -131,8 +218,8 @@ export function parsearPeriodoUrl(url: Record<string, unknown>): EntradaDePeriod
     custom: "custom",
   } as const;
   const preset = moderno
-    ? (p.periodo ?? (p.a_desde !== undefined || p.a_hasta !== undefined ? "custom" : "hoy"))
-    : antiguo[p.rango ?? "hoy"];
+    ? (p.periodo ?? (p.a_desde !== undefined || p.a_hasta !== undefined ? "custom" : porDefecto))
+    : p.rango ? antiguo[p.rango] : porDefecto;
   const desde = moderno ? p.a_desde : preset === "custom" ? p.desde : undefined;
   const hasta = moderno ? p.a_hasta : preset === "custom" ? p.hasta : undefined;
 
@@ -152,11 +239,16 @@ export function parsearPeriodoUrl(url: Record<string, unknown>): EntradaDePeriod
     if (!par.success) return invalido;
     b = par.data;
   }
+  const comparaciones = sinRepetidos([
+    ...(b ? [{ tipo: "rango" as const, rango: b }] : []),
+    ...(p.comparar ?? []),
+  ]);
+  if (comparaciones.length > MAXIMO_DE_COMPARACIONES) return invalido;
   return {
     preset: a ? "custom" : preset,
     a,
+    comparaciones,
     b,
-    comparar: p.comparar,
   };
 }
 
@@ -229,9 +321,9 @@ export function mismoPuntoHabil(a: Rango, anterior: Rango): Rango | null {
  * Resuelve A y B sin reloj ni base para que servidor y tests usen la misma regla.
  * Hoy ya viene calculado en Bogotá; las ventanas pertenecen al mismo programa.
  *
- * B explícito se respeta. Si falta, se compara por hábiles contra el periodo previo.
- * Sin ventana de cohorte no se inventan fechas: A cae a Hoy con aviso o B queda
- * ausente, y el selector puede explicar por qué no hay comparación.
+ * Solo se compara lo que se pidió (ADR 0106): un rango se respeta tal cual; "anterior" y
+ * "cohorte" se cortan por hábiles contra su periodo previo. Sin ventana de cohorte no se
+ * inventan fechas: A cae a Hoy con aviso o esa comparación falta y el aviso dice por qué.
  */
 export function resolverPeriodo(
   entrada: EntradaDePeriodo,
@@ -249,25 +341,23 @@ export function resolverPeriodo(
   if (preset === "custom" && entrada.a) {
     a = entrada.a;
     // Rango libre: retroceder tantos hábiles como A desde el día anterior.
-    if (!entrada.b) {
-      const n = diasHabilesEntre(a.desde, a.hasta);
-      const hasta = sumarDias(a.desde, -1);
-      previo = {
-        desde: diaQueCompletaHabiles({
-          ancla: hasta,
-          cantidad: n,
-          direccion: "atras",
-          // Solo se excluyen fines de semana: esta cota contiene n hábiles.
-          limiteEnDias: Math.ceil(n / 5) * 7 + 7,
-        }),
-        hasta,
-      };
-    }
+    const n = diasHabilesEntre(a.desde, a.hasta);
+    const hasta = sumarDias(a.desde, -1);
+    previo = {
+      desde: diaQueCompletaHabiles({
+        ancla: hasta,
+        cantidad: n,
+        direccion: "atras",
+        // Solo se excluyen fines de semana: esta cota contiene n hábiles.
+        limiteEnDias: Math.ceil(n / 5) * 7 + 7,
+      }),
+      hasta,
+    };
   } else if (preset === "cohorte_actual" || preset === "cohorte_anterior") {
     const elegida = preset === "cohorte_actual" ? actual : anterior;
     if (!elegida || elegida.inicio > hoy) {
       return {
-        ...resolverPeriodo({ preset: "hoy" }, contexto),
+        ...resolverPeriodo({ ...entrada, preset: "hoy", a: undefined, aviso: undefined }, contexto),
         aviso: "Sin ventana de venta disponible para esa cohorte: se muestra Hoy.",
       };
     }
@@ -304,19 +394,33 @@ export function resolverPeriodo(
     };
   }
 
-  if (entrada.comparar === "cohorte" && preset !== "cohorte_actual" && preset !== "cohorte_anterior") {
-    previo = anterior ? ventana(anterior) : null;
+  const pedidos: PedidoDeComparacion[] = entrada.comparaciones ?? (
+    entrada.b ? [{ tipo: "rango", rango: entrada.b }]
+      : entrada.comparar === "no" ? []
+      : [{ tipo: entrada.comparar === "cohorte" ? "cohorte" : "anterior" }]
+  );
+  const esCohorte = preset === "cohorte_actual" || preset === "cohorte_anterior";
+  const avisos: string[] = [];
+  const comparaciones: ComparacionResuelta[] = [];
+  for (const pedido of pedidos) {
+    if (pedido.tipo === "rango") {
+      comparaciones.push({ pedido, rango: pedido.rango });
+      continue;
+    }
+    // En un atajo de cohorte, el periodo anterior ES la cohorte anterior.
+    const base = pedido.tipo === "cohorte" && !esCohorte ? (anterior ? ventana(anterior) : null) : previo;
+    const resuelto = base ? mismoPuntoHabil(a, base) : null;
+    if (resuelto) comparaciones.push({ pedido, rango: resuelto });
+    else avisos.push(base
+      ? "Sin días hábiles comparables. Elige un rango para comparar."
+      : "Sin cohorte anterior con ventana de venta. Elige un rango para comparar.");
   }
-  const b = entrada.b ?? (entrada.comparar === "no" ? null : previo ? mismoPuntoHabil(a, previo) : null);
   return {
     preset,
     a,
-    b,
-    aviso: entrada.aviso ?? (entrada.comparar === "no" || b
-      ? undefined
-      : previo
-        ? "Sin días hábiles comparables. Elige un rango para comparar."
-        : "Sin cohorte anterior con ventana de venta. Elige un rango para comparar."),
+    b: comparaciones[0]?.rango ?? null,
+    comparaciones,
+    aviso: entrada.aviso ?? ([...new Set(avisos)].join(" ") || undefined),
   };
 }
 
@@ -343,10 +447,10 @@ export function filtroDeFechaDeLaUrl<C extends string>(
   const campo = url.fecha;
   if (typeof campo !== "string" || !(campos as readonly string[]).includes(campo)) return null;
   const entrada = parsearPeriodoUrl(url);
-  const periodo = resolverPeriodo({ ...entrada, b: undefined }, { hoy });
+  const periodo = resolverPeriodo({ ...entrada, comparaciones: [] }, { hoy });
   const cayoAHoy = periodo.preset !== entrada.preset;
   return {
     campo: campo as C,
-    periodo: { ...periodo, b: null, aviso: entrada.aviso ?? (cayoAHoy ? periodo.aviso : undefined) },
+    periodo: { ...periodo, b: null, comparaciones: [], aviso: entrada.aviso ?? (cayoAHoy ? periodo.aviso : undefined) },
   };
 }
