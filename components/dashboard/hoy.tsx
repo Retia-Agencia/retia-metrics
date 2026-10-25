@@ -3,6 +3,7 @@ import Link from "next/link";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Alertas } from "@/components/dashboard/alertas";
 import { Comparativo } from "@/components/dashboard/operacion";
+import { Proyeccion } from "@/components/dashboard/proyeccion";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { CajaDelDiaPorOrigen, ClaveDeHorizonte, ContextoDelDia, Horizonte } from "@/lib/queries/vista-hoy";
 import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { ShowPorCita } from "@/lib/queries/tasa-show-por-cita";
+import type { ProyeccionDeCohorte } from "@/lib/queries/proyeccion";
 
 /**
  * Hub › Hoy (ticket 252, ADR 0086 punto 3): el reporte diario armado con lo que el CRM ya calcula,
@@ -111,7 +113,7 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Tarjeta titulo="Leads de hoy" valor={
           <CifraConLista titulo="Leads de hoy" detalle={detalleRegistros}>{num(registros)}</CifraConLista>
-        } nota="Registros del día · sin meta hasta el 253" />
+        } nota="Registros del día · los que hacen falta por día están en Proyección" />
         <Tarjeta titulo="Agendas creadas hoy" valor={
           <CifraConLista titulo="Agendas creadas hoy" detalle={detalleAgendasCreadas}>{num(agendasCreadas)}</CifraConLista>
         } nota="Llamadas agendadas hoy, para la cita que sea" />
@@ -199,7 +201,6 @@ function Banderas({ vista, detalles }: { vista: VistaDelDashboard; detalles?: De
 /** 6. Lo que el reporte diario pide y el CRM todavía no calcula: se dice, no se muestra un cero. */
 function LoQueViene() {
   const piezas = [
-    ["Proyección y lo que hace falta por día", "A este ritmo, ¿en cuántos cupos cierra la cohorte? Y cuántas ventas, agendas y leads hacen falta cada día."],
     ["Cómo nació cada venta", "Si salió de la agenda del día, de un seguimiento o sin llamada."],
     ["Acciones abiertas", "Los planes de acción con su dueño y su estado."],
   ];
@@ -210,7 +211,7 @@ function LoQueViene() {
         <Badge variant="neutro">Se está construyendo</Badge>
       </CardHeader>
       <CardContent>
-        <ul className="grid gap-3 text-sm sm:grid-cols-3">
+        <ul className="grid gap-3 text-sm sm:grid-cols-2">
           {piezas.map(([titulo, texto]) => (
             <li key={titulo}>
               <p className="font-medium">{titulo}</p>
@@ -227,6 +228,7 @@ export function Hoy({
   vista,
   contexto,
   horizontes,
+  proyeccion,
   caja,
   registros,
   detalleRegistros,
@@ -246,6 +248,7 @@ export function Hoy({
   vista: VistaDelDashboard;
   contexto: ContextoDelDia;
   horizontes: Horizonte[];
+  proyeccion: ProyeccionDeCohorte;
   caja: CajaDelDiaPorOrigen[];
   registros: number;
   detalleRegistros?: DetalleDeCifra;
@@ -270,6 +273,7 @@ export function Hoy({
         <LineaDeContexto contexto={contexto} />
       </div>
       <Cupos horizontes={horizontes} detalles={detalles} configurar={configurar} />
+      <Proyeccion datos={proyeccion} />
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">La operación de hoy</h3>
         <OperacionDelDia

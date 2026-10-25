@@ -304,6 +304,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               vista={vista}
               contexto={vistaDeHoy!.contexto}
               horizontes={vistaDeHoy!.horizontes}
+              proyeccion={vistaDeHoy!.proyeccion}
               caja={vistaDeHoy!.caja}
               registros={vistaDeHoy!.registros}
               detalleRegistros={detalleRegistros}
