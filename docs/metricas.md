@@ -245,11 +245,11 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
 
 | Métrica | Fórmula | Unidad | Estado |
 |---|---|---|---|
-| Ritmo | ventas por día hábil en la ventana de ritmo (PQ3 abierta: cuál ventana) | ventas/día | 🟡 253 |
-| Proyección | vendidos + ritmo × días hábiles que quedan de la cohorte | cupos | 🟡 253 |
-| Ventas requeridas por día | faltan ÷ días hábiles que quedan (la meta dinámica, 020) | cupos/día | 🟡 253 |
-| Agendas requeridas por día | ventas requeridas ÷ conversión agenda → venta (PQ3) | agendas/día | 🟡 253 |
-| Leads requeridos por día | agendas requeridas ÷ (agendas ÷ registros) de la misma ventana | leads/día | 🟡 253 |
+| Ritmo | ventas por día hábil en la ventana de ritmo (`calcularProyeccion`) | ventas/día | ✅ 253 |
+| Proyección | vendidos + ritmo × días hábiles que quedan de la cohorte (`calcularProyeccion`) | cupos | ✅ 253 |
+| Ventas requeridas por día | faltan ÷ días hábiles que quedan (`calcularProyeccion`) | cupos/día | ✅ 253 |
+| Agendas requeridas por día | ventas requeridas ÷ conversión agenda → venta (`calcularProyeccion`) | agendas/día | ✅ 253 |
+| Leads requeridos por día | agendas requeridas ÷ (agendas ÷ registros) de la misma ventana (`calcularProyeccion`) | leads/día | ✅ 253 |
 | Origen del cierre | por venta: agenda del día, seguimiento o sin llamada | ventas | 🟡 254 |
 | Cierre del ciclo | rojos con una acción registrada ÷ rojos, y horas hasta la acción | % | 🟡 261 |
 
