@@ -189,10 +189,10 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
     const vista = await vistaDeLista({ programId: programaA, metrica: "caja", busqueda, hoy, pagina: 1 }, db);
     expect(vista?.periodo.b).toBeNull();
     expect(vista?.periodo.aviso).toBeUndefined();
-    // Sin la marca, el mismo rango libre sí recibe su B por hábiles: la marca es la que decide.
-    const conB = { ...busqueda };
-    delete conB.sin_b;
-    expect((await vistaDeLista({ programId: programaA, metrica: "caja", busqueda: conB, hoy, pagina: 1 }, db))?.periodo.b).not.toBeNull();
+    // Desde el ADR 0106 una URL sin `comparar` no compara: sin la marca tampoco aparece un B.
+    const sinMarca = { ...busqueda };
+    delete sinMarca.sin_b;
+    expect((await vistaDeLista({ programId: programaA, metrica: "caja", busqueda: sinMarca, hoy, pagina: 1 }, db))?.periodo.b).toBeNull();
   });
 
   it.each(metricas)("%s: cada desglose del resumen (closer, etapa, antigüedad) suma el subtotal", async (metrica) => {
