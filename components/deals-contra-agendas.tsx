@@ -1,19 +1,22 @@
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Grafica } from "@/components/graficas/grafica";
-import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct } from "@/lib/format";
 import { descripcionDeComparacion } from "@/lib/periodo";
 import type { PuntoHabil } from "@/lib/queries/deals-contra-agendas";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
-import { porcentajeConBase, textoDeVariacionDeTasa } from "@/lib/variacion";
+import { cambioDeTasaEnPalabras, cambioEnPalabras } from "@/lib/variacion";
 
 const TITULO = "Deals creados contra agendas";
 
+/** "19 oct": el año ya lo dice el periodo. */
+const diaCorto = (dia: string) => fecha(dia).replace(/ \d{4}$/, "");
+
 /**
- * La gráfica del ticket 138: acumulado por día hábil de deals creados y agendas creadas, A
- * contra B, y la razón agendas por deal aparte (una tasa no comparte eje con un conteo). Solo
- * pinta lo que calculó `vistaDealsContraAgendas`.
+ * La gráfica del ticket 138: acumulado de deals creados y agendas creadas, A contra B al mismo día
+ * hábil, y aparte qué parte de los deals agendó (A-167: una tasa no comparte eje con un conteo).
+ * El eje lleva las fechas del periodo; la comparación se corta en el mismo hábil. Solo pinta lo
+ * que calculó `vistaDealsContraAgendas`.
  */
 export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }) {
   if (!vista.disponible) {
@@ -22,7 +25,7 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
         <CardHeader>
           <CardTitle id="deals-contra-agendas">{TITULO}</CardTitle>
           <CardDescription>
-            Generar deals y agendas es del programa, no de un closer: quita el filtro de closer para verla.
+            Es del programa, no de un closer: quita el filtro de closer para verla.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -31,33 +34,44 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
 
   const { periodo, nota, a, b, detalles } = vista;
   const finalA = a.puntos.at(-1);
-  const finalB = b?.puntos.at(-1);
-  const largo = Math.max(a.puntos.length, b?.puntos.length ?? 0);
-  const posiciones = Array.from({ length: largo }, (_, i) => i);
+  // B se lee al mismo día hábil que A (ADR 0067): más allá sería comparar contra un futuro.
+  const puntosB = b?.puntos.slice(0, a.puntos.length) ?? [];
+  const finalB = puntosB.at(-1);
+  const dias = a.puntos.map((p) => p.dia);
+  const etiquetas = dias.map(diaCorto);
   const valores = (puntos: PuntoHabil[], campo: (p: PuntoHabil) => number | null) =>
-    posiciones.map((i) => (puntos[i] ? campo(puntos[i]) : null));
-  const etiquetas = posiciones.map((i) => `Hábil ${i + 1}`);
+    a.puntos.map((_, i) => (puntos[i] ? campo(puntos[i]) : null));
   const rangoDe = (r: { desde: string; hasta: string }) => `${fecha(r.desde)} a ${fecha(r.hasta)}`;
+  const deals = finalA?.deals ?? 0;
+  const agendaron = finalA?.agendaron ?? 0;
 
   return (
     <Card aria-labelledby="deals-contra-agendas">
       <CardHeader>
         <CardTitle id="deals-contra-agendas">{TITULO}</CardTitle>
         <CardDescription>
-          Acumulado por día hábil. Periodo: {rangoDe(periodo.a)}
-          {periodo.b ? ` · comparación: ${rangoDe(periodo.b)}` : " · sin comparación"}. Si los deals suben y las agendas no,
-          los leads que entran no están agendando.
+          {rangoDe(periodo.a)}
+          {periodo.b ? `, contra ${rangoDe(periodo.b)}` : ""}. Si los deals suben y las agendas no, los leads que
+          entran no están agendando.
         </CardDescription>
-        {nota ? <p role="status" className="text-xs text-muted-foreground">{nota}</p> : null}
+        {nota ? <p role="status" className="text-sm text-muted-foreground">{nota}</p> : null}
       </CardHeader>
       <CardContent className="space-y-6">
+        <p className="text-base">
+          <span className="cifra text-2xl font-semibold">{finalA?.pctAgendaron == null ? "—" : pct(finalA.pctAgendaron, 0)}</span>{" "}
+          de{" "}
+          <CifraConLista titulo="Deals creados" detalle={detalles.deals_creados}>{num(deals)}</CifraConLista>{" "}
+          deals agendó (
+          <CifraConLista titulo="Deals que agendaron" detalle={detalles.deals_que_agendaron}>{num(agendaron)}</CifraConLista>
+          {" "}con al menos una agenda).
+        </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left text-xs text-muted-foreground">
+              <tr className="border-b text-left text-muted-foreground">
                 <th className="py-2 font-medium" />
-                <th className="py-2 text-right font-medium">Periodo · hábil {num(a.puntos.length)}</th>
-                <th className="py-2 text-right font-medium">{b ? `Comparación · hábil ${num(b.puntos.length)}` : "Comparación · —"}</th>
+                <th className="py-2 text-right font-medium">Periodo</th>
+                <th className="py-2 text-right font-medium">Comparación</th>
                 <th className="py-2 text-right font-medium">Cambio</th>
               </tr>
             </thead>
@@ -65,14 +79,10 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
               <tr>
                 <td className="py-2">Deals creados</td>
                 <td className="cifra text-right">
-                  <CifraConLista titulo="Deals creados" detalle={detalles.deals_creados}>
-                    {num(finalA?.deals ?? 0)}
-                  </CifraConLista>
+                  <CifraConLista titulo="Deals creados" detalle={detalles.deals_creados}>{num(deals)}</CifraConLista>
                 </td>
                 <td className="cifra text-right">{finalB ? num(finalB.deals) : "—"}</td>
-                <td className="text-right">
-                  {finalB ? <Variacion actual={finalA?.deals ?? 0} anterior={finalB.deals} periodo={periodo} /> : "—"}
-                </td>
+                <td className="text-right">{finalB ? cambioEnPalabras(deals, finalB.deals) : "—"}</td>
               </tr>
               <tr>
                 <td className="py-2">Agendas creadas</td>
@@ -82,19 +92,13 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
                   </CifraConLista>
                 </td>
                 <td className="cifra text-right">{finalB ? num(finalB.agendas) : "—"}</td>
-                <td className="text-right">
-                  {finalB ? <Variacion actual={finalA?.agendas ?? 0} anterior={finalB.agendas} periodo={periodo} /> : "—"}
-                </td>
+                <td className="text-right">{finalB ? cambioEnPalabras(finalA?.agendas ?? 0, finalB.agendas) : "—"}</td>
               </tr>
               <tr>
-                <td className="py-2">Agendas por deal</td>
-                <td className="cifra text-right">{porcentajeConBase(finalA?.agendas ?? 0, finalA?.deals ?? 0)}</td>
-                <td className="cifra text-right">
-                  {finalB ? porcentajeConBase(finalB.agendas, finalB.deals) : "—"}
-                </td>
-                <td className="cifra text-right">
-                  {finalB ? textoDeVariacionDeTasa(finalA?.razon ?? null, finalB.razon) : "—"}
-                </td>
+                <td className="py-2">% de deals que agendaron</td>
+                <td className="cifra text-right">{finalA?.pctAgendaron == null ? "—" : pct(finalA.pctAgendaron, 0)}</td>
+                <td className="cifra text-right">{finalB?.pctAgendaron == null ? "—" : pct(finalB.pctAgendaron, 0)}</td>
+                <td className="text-right">{finalB ? cambioDeTasaEnPalabras(finalA?.pctAgendaron ?? null, finalB.pctAgendaron) : "—"}</td>
               </tr>
             </tbody>
           </table>
@@ -113,21 +117,21 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
             ],
           } : undefined}
           datos={{
-            dias: etiquetas,
+            dias,
             series: [
               { clave: "Deals · periodo", color: 0, valores: valores(a.puntos, (p) => p.deals) },
               { clave: "Agendas · periodo", color: 1, valores: valores(a.puntos, (p) => p.agendas) },
               ...(b
                 ? [
-                    { clave: "Deals · comparación", color: 0, punteada: true, valores: valores(b.puntos, (p) => p.deals) },
-                    { clave: "Agendas · comparación", color: 1, punteada: true, valores: valores(b.puntos, (p) => p.agendas) },
+                    { clave: "Deals · comparación", color: 0, punteada: true, valores: valores(puntosB, (p) => p.deals) },
+                    { clave: "Agendas · comparación", color: 1, punteada: true, valores: valores(puntosB, (p) => p.agendas) },
                   ]
                 : []),
             ],
           }}
         />
         <Grafica
-          titulo="Agendas por deal"
+          titulo="% de deals que agendaron"
           unidad="% acumulado"
           frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
           etiquetas={etiquetas}
@@ -137,10 +141,10 @@ export function DealsContraAgendas({ vista }: { vista: VistaDealsContraAgendas }
             pares: [{ actual: "Periodo", referencia: "Comparación" }],
           } : undefined}
           datos={{
-            dias: etiquetas,
+            dias,
             series: [
-              { clave: "Periodo", color: 2, valores: valores(a.puntos, (p) => p.razon) },
-              ...(b ? [{ clave: "Comparación", color: 2, punteada: true, valores: valores(b.puntos, (p) => p.razon) }] : []),
+              { clave: "Periodo", color: 2, valores: valores(a.puntos, (p) => p.pctAgendaron) },
+              ...(b ? [{ clave: "Comparación", color: 2, punteada: true, valores: valores(puntosB, (p) => p.pctAgendaron) }] : []),
             ],
           }}
         />

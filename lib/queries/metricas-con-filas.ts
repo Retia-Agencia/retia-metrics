@@ -11,7 +11,7 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
-  closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsQueAgendaron, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe } from "@/lib/queries/tasas-del-grupo";
@@ -43,6 +43,7 @@ export type Metrica =
   | "cortesias"
   | "leads"
   | "deals_creados"
+  | "deals_que_agendaron"
   | "agendas_creadas"
   | "registros"
   | "agendas_futuras"
@@ -68,7 +69,7 @@ function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
 }
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
-export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "agendas_creadas", "registros"];
+export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "deals_que_agendaron", "agendas_creadas", "registros"];
 /** Las métricas que son una foto de hoy: el periodo no las acota (la cartera y las banderas del 191). */
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
@@ -217,6 +218,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       };
     // Ticket 138: el closer es solo contexto (el dueño del deal); estas métricas no se filtran por él.
     case "deals_creados":
+    case "deals_que_agendaron":
       return {
         id: deals.id,
         fecha: fechaAnclaDealCreado(),
@@ -455,6 +457,14 @@ function consultaDe(
         .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(filtroDealsCreados(alcance), vigente(deals)));
+    case "deals_que_agendaron":
+      return db
+        .select(campos)
+        .from(deals)
+        .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(filtroDealsQueAgendaron(alcance, db), vigente(deals)));
     case "agendas_creadas":
       // Una llamada suelta (sin deal) también es una agenda: el join solo aporta contexto.
       return db

@@ -25,7 +25,7 @@ export type VistaDealsContraAgendas =
       nota?: string;
       a: SerieDealsContraAgendas;
       b: SerieDealsContraAgendas | null;
-      detalles: { deals_creados: DetalleDeCifra; agendas_creadas: DetalleDeCifra };
+      detalles: { deals_creados: DetalleDeCifra; deals_que_agendaron: DetalleDeCifra; agendas_creadas: DetalleDeCifra };
     };
 
 const hayCurva = (p: PeriodoResuelto) => diasHabilesEntre(p.a.desde, p.a.hasta) > 1;
@@ -60,10 +60,11 @@ export async function vistaDealsContraAgendas(
 
   const { periodo, nota } = periodoDeLaGrafica(entrada.periodo, entrada.hoy);
   const detallesDe = { ...entrada, periodo };
-  const [a, b, dealsCreados, agendasCreadas] = await Promise.all([
+  const [a, b, dealsCreados, dealsQueAgendaron, agendasCreadas] = await Promise.all([
     serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.a }),
     periodo.b ? serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.b }) : null,
     detalleDeCifra("deals_creados", detallesDe, db),
+    detalleDeCifra("deals_que_agendaron", detallesDe, db),
     detalleDeCifra("agendas_creadas", detallesDe, db),
   ]);
   return {
@@ -72,6 +73,6 @@ export async function vistaDealsContraAgendas(
     nota,
     a,
     b,
-    detalles: { deals_creados: dealsCreados, agendas_creadas: agendasCreadas },
+    detalles: { deals_creados: dealsCreados, deals_que_agendaron: dealsQueAgendaron, agendas_creadas: agendasCreadas },
   };
 }

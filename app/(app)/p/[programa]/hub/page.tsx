@@ -72,6 +72,13 @@ const esquemaFiltroArea = z.enum(AREAS).optional().catch(undefined);
 // que no es uuid se ignora (no filtra), igual que el filtro de area.
 const esquemaFiltroCloser = z.string().uuid().optional().catch(undefined);
 
+/** Las claves con que la URL elige un periodo; sin ninguna, cada pestaña usa su periodo por defecto. */
+const CLAVES_DE_PERIODO = ["periodo", "rango", "desde", "hasta", "a_desde", "a_hasta", "b_desde", "b_hasta", "comparar"];
+
+function hayPeriodoEnLaUrl(busqueda: Record<string, string | string[] | undefined>): boolean {
+  return CLAVES_DE_PERIODO.some((clave) => busqueda[clave] !== undefined);
+}
+
 /** Un parametro de la URL solo sirve si vino una vez y como texto. */
 function texto(valor: string | string[] | undefined): string | undefined {
   return typeof valor === "string" && valor !== "" ? valor : undefined;
@@ -124,7 +131,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     {
       id: "dinero",
       etiqueta: "Dinero",
-      descripcion: "Lo contratado, lo cobrado y lo que falta por cobrar.",
+      descripcion: "Lo vendido, lo recaudado y lo que falta por cobrar.",
       href: urlConSeccion(base, busqueda, "dinero"),
     },
     {
@@ -155,7 +162,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard({
         programId: programa.id,
         hoy,
-        periodo: parsearPeriodoUrl(busqueda),
+        periodo: hayPeriodoEnLaUrl(busqueda) ? parsearPeriodoUrl(busqueda) : undefined,
+        // Comercial y Dinero son de gerencia: sin periodo en la URL (llegando desde Hoy) muestran
+        // la cohorte actual, no el día de hoy, que un fin de semana sale todo en cero (A-168).
+        periodoPorDefecto: seccion === "comercial" || seccion === "dinero" ? "cohorte" : undefined,
         preset: texto(busqueda.rango) ?? "hoy",
         desde: texto(busqueda.desde),
         hasta: texto(busqueda.hasta),
