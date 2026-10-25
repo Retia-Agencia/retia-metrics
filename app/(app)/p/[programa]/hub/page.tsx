@@ -236,7 +236,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         <div className="flex flex-wrap items-center gap-2">
           <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
           {esHoy ? null : (
-            <div className="ml-auto shrink-0">
+            <div className="ml-auto min-w-0 max-w-full">
               <FiltroDashboard
                 periodo={vista.periodo}
                 anteriorDisponible={vista.anteriorDisponible}
