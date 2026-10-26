@@ -46,6 +46,10 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    **`docs/metricas.md`** (15-oct) es **el diccionario de métricas, la única tabla de definiciones**: de qué tabla
    sale cada cifra, qué cuenta y qué no, con qué fecha y moneda, en qué función vive y cómo verificarla. Una métrica
    nueva o un cambio de fórmula lo actualiza en el mismo commit.
+   **`docs/media/`** (26-oct, **subproyecto de prioridad alta**) es la centralización de la operación de media en el
+   CRM y el cockpit (`../pipeline-creacion-contenido`): el crudo de la sesión "Creación Media Ops Machine" (20-oct), la
+   extracción con los 18 pedidos, la propuesta, el roadmap y las decisiones abiertas, y el deck para gerencia. Empieza
+   por su `README.md`. Todavía no es plan aprobado: léelo antes de tocar roles, UTM de stories, Grain o el Hub.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que
