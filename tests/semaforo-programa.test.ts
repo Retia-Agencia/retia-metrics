@@ -172,6 +172,9 @@ describe("semáforo del programa", () => {
     expect(resultado).toMatchObject({ gasto: 100000, gastoTotal: 1000000, agendasMeta: 2, costo: 50000 });
     expect(resultado.campanas[0]).toMatchObject({ proposito: null, gasto: 100000 });
     expect(resultado.lanzamiento).toMatchObject({ gasto: 900000, campanas: [{ codigo: "8830", proposito: "lanzamiento" }] });
+    // Exacto, no toMatchObject: una llave de más (el `id` interno) tumbó el semáforo del 27-oct.
+    expect(Object.keys(resultado.lanzamiento.campanas[0]).sort())
+      .toEqual(Object.keys(resultado.campanas[0]).sort());
   });
 
   it("desglosa el día por campaña con la misma conversión y los mismos totales", async () => {

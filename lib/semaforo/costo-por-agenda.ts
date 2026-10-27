@@ -209,9 +209,14 @@ function completar(
       .sort((a, b) => b.gasto - a.gasto),
     lanzamiento: {
       gasto: lanzamientoLeido.gasto,
+      // Campo por campo, como las de agenda: el `id` interno no sale (el contrato del semáforo es estricto).
       campanas: lanzamientoLeido.campanas.map((campana) => ({
-        ...campana,
+        codigo: campana.codigo,
+        nombre: campana.nombre,
+        gasto: campana.gasto,
+        agendasMeta: campana.agendasMeta,
         costo: null,
+        proposito: campana.proposito,
       })).filter((campana) => campana.gasto > 0).sort((a, b) => b.gasto - a.gasto),
     },
     gastoTotal,
