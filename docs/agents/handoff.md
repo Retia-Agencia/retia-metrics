@@ -36,9 +36,11 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
     las campañas sin clasificar con gasto ese día y pide responder citando "4521 A, 8830 L"; cada línea lleva su
     `#código` (final del `id_meta`, único entre todas las campañas) para corregir igual que se clasifica.
   - **WhatsApp:** `POST /api/semaforo/clasificar` (`lib/pauta/proposito.ts`), mismo secreto que el semáforo; Juanito
-    reenvía la respuesta citada tal cual (rama `semaforo-clasificar-campanas` en su repo, §18.DH de su handoff).
-  - **No verificado en local:** la suite y los tests con PGlite (la máquina sin memoria); los corre el CI de este
-    push. Pendiente de Pauta: qué evento cuenta como registro para el costo por registro del lanzamiento.
+    reenvía la respuesta citada tal cual (PR #52 de Juanito, desplegado en `0f6587c` el 26-oct, §18.DH de su handoff).
+  - **Verificado:** CI verde en `504fabde` (el primer push salió rojo por dos expectativas: el pie había perdido
+    "CRM = citas con UTM de pauta" y el desglose de una sola campaña va con nombre completo); Vercel listo y
+    `/api/semaforo/clasificar` responde 401 sin secreto. Juanito reconectó sin QR. Pendiente de Pauta: qué evento
+    cuenta como registro para el costo por registro del lanzamiento.
   - **Primer mensaje tras el despliegue:** las ~10 campañas con gasto salen en 🆕; hay que clasificarlas una vez.
 
 - **2026-10-24 (noche): 253 y 256 en main (`fbdb7a9c`, `9d69951b`, docs `ad6cd1f4`), sin empujar, esperando el CI.** Codex en paralelo, cada uno en su worktree (`.claude/worktrees/t253` y `t256`, ramas `codex/t253` y `codex/t256`, siguen vivos hasta el CI verde).
