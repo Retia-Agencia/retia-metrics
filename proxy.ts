@@ -24,6 +24,8 @@ export default auth((req) => {
     pathname.startsWith("/api/cron/") ||
     // Juanito consulta que reportes enviar y se autentica en el handler con su secreto.
     pathname === "/api/semaforo/envios" ||
+    // Y le reenvia la clasificacion de campañas del grupo (ticket 314), con el mismo secreto.
+    pathname === "/api/semaforo/clasificar" ||
     // El webhook de formularios (ADR 0055): no tiene sesion, se autentica con la firma
     // HMAC en el propio handler. Nunca redirige a /login, o cada envio se perderia.
     pathname.startsWith("/api/webhooks/formularios/") ||
