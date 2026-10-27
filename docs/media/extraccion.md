@@ -332,6 +332,10 @@ El piloto de la fase 2 sigue la regla de la sesión (*"que funcione la ruedita"*
 
 Cada una cambia lo que se construye. Recomendación entre paréntesis.
 
+> **26-oct (F4, daily con Michael, y respuestas de Mani):** quedaron cerradas D1 a D12, D14 y D15; D13 queda para
+> cuando concierna. **Lo cerrado cambia la arquitectura de §6.2**: todo se centraliza en el CRM y el cockpit se migra
+> (ya no sirve a 30X ni EstadoX). La visión vigente está en [`propuesta.md`](./propuesta.md).
+
 | # | Pregunta | Por qué importa |
 |---|---|---|
 | D1 | ¿"Centralizar" significa **una sola app**, o **un solo lugar donde ver y operar** aunque sean dos herramientas conectadas? (Recomiendo lo segundo, §6.2) | Define la arquitectura entera |
