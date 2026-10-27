@@ -3,7 +3,7 @@ id: 314
 etapa: hub
 serves: "Alejo (Alertas Paid Media, 26-oct): separar lanzamiento de pauta de agenda en el semáforo · Mani, 26-oct: las campañas nuevas se clasifican desde WhatsApp · enmienda HQ-4"
 depends: [258, 267]
-status: todo
+status: doing
 ---
 
 # 314 — Campañas de agenda y de lanzamiento en el semáforo

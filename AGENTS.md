@@ -249,7 +249,10 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **Nada de la app es publico.** Sin sesion no se ve ni una cifra. Excepciones: `/api/health`, que no
   expone ningun dato del negocio, y **`POST /api/semaforo/envios`** (ADR 0089, ticket 259): la llama Juanito con
   `x-semaforo-secreto` (comparado en tiempo constante; sin el, 401 sin cuerpo y nada se mueve) y devuelve el
-  semaforo ya calculado, sin un solo nombre, correo, telefono ni id de lead.
+  semaforo ya calculado, sin un solo nombre, correo, telefono ni id de lead. Con el mismo secreto,
+  **`POST /api/semaforo/clasificar`** (ticket 314): Juanito le reenvia la respuesta del grupo ("4521 A, 8830 L") y
+  el CRM marca esas campañas como agenda o lanzamiento, solo en los programas que reportan a ese grupo, con rastro
+  en `change_log` (origen `whatsapp`).
 - **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
   opacos, nunca correos.
 - **Secretos solo en `.env.local` y en Vercel.** Nunca en el repo, nunca abiertos en un editor

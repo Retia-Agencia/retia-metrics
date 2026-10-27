@@ -27,6 +27,20 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-26 (noche): 314 en producción, campañas de agenda y de lanzamiento en el semáforo.** Pedido de Alejo en
+  Alertas Paid Media ("mejor aparte"): el lanzamiento busca registros y le inflaba el costo por agenda a Comunicarte
+  y Tactical. Meta no las distingue (las 10 activas son `OUTCOME_LEADS`), así que la clasificación es un dato por
+  campaña, `pauta_objetos.proposito` (migración 0102, aplicada a producción el 26-oct; nulo = sin clasificar, cuenta
+  como agenda). Enmienda HQ-4.
+  - **Mensaje:** el costo y el color salen solo de agenda; 🚀 Lanzamiento con su gasto y el total del programa; 🆕 lista
+    las campañas sin clasificar con gasto ese día y pide responder citando "4521 A, 8830 L"; cada línea lleva su
+    `#código` (final del `id_meta`, único entre todas las campañas) para corregir igual que se clasifica.
+  - **WhatsApp:** `POST /api/semaforo/clasificar` (`lib/pauta/proposito.ts`), mismo secreto que el semáforo; Juanito
+    reenvía la respuesta citada tal cual (rama `semaforo-clasificar-campanas` en su repo, §18.DH de su handoff).
+  - **No verificado en local:** la suite y los tests con PGlite (la máquina sin memoria); los corre el CI de este
+    push. Pendiente de Pauta: qué evento cuenta como registro para el costo por registro del lanzamiento.
+  - **Primer mensaje tras el despliegue:** las ~10 campañas con gasto salen en 🆕; hay que clasificarlas una vez.
+
 - **2026-10-24 (noche): 253 y 256 en main (`fbdb7a9c`, `9d69951b`, docs `ad6cd1f4`), sin empujar, esperando el CI.** Codex en paralelo, cada uno en su worktree (`.claude/worktrees/t253` y `t256`, ramas `codex/t253` y `codex/t256`, siguen vivos hasta el CI verde).
   - **253:** `lib/queries/proyeccion.ts` (`calcularProyeccion` puro, `leerProyeccion` sobre la capa de hechos) y `components/dashboard/proyeccion.tsx`, montado en Hoy con `proyeccion` en `vista-hoy.ts`. Ventana por defecto: 10 días hábiles recortada al inicio de la cohorte; conversión: objetivo `conversion_agenda_venta` de la cohorte (sin área) o, sin él, la de la cohorte cerrada anterior. Sin ventas o sin conversión: "—" con la razón. **PQ3 (HQ-5) sigue abierta:** la ventana y la conversión son parámetros con valor por defecto escrito en la pantalla; al decidirse se cambia el valor, no el código. El reparto semanal es uniforme por día hábil. Corregido en la revisión: la nota "sin meta hasta el 253" de Leads de hoy y el plural de "día hábil".
   - **256:** `echarts` 6.1.0 exacto (ADR 0091), `components/graficas/` (`contrato.ts` puro, `lienzo-grafica.tsx` cliente, `grafica.tsx`, `grafica-dinamica.tsx`), `SeriesLineales` borrado, Dinero y Deals contra agendas migrados. Contrato en `docs/structure.md` §9 y fila "Cómo se dibuja una gráfica" en AGENTS.md. Guardián `tests/graficas-guardian.test.ts`.
