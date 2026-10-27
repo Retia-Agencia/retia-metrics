@@ -264,6 +264,6 @@ export function armarMensajeDeLaHora(
   if (bloques.some((bloque) => bloque.tipo === "dia")) {
     lineas.push("ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.");
   }
-  lineas.push("ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel). El lanzamiento va aparte y no entra al costo.");
+  lineas.push("ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel); el lanzamiento va aparte. CRM = citas con UTM de pauta.");
   return lineas.join("\n");
 }

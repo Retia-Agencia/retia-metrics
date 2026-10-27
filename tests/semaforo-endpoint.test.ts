@@ -194,7 +194,7 @@ describe("endpoint de maquina del semaforo", () => {
     }>;
     expect(envio.texto).toMatch(/^🚦/);
     expect(envio.texto).toContain("CRM: https://crm.retia.test");
-    expect(envio.texto).toMatch(/El lanzamiento va aparte y no entra al costo\.$/);
+    expect(envio.texto).toMatch(/CRM = citas con UTM de pauta\.$/);
     expect(respuesta.envios).toHaveLength(1);
   });
 

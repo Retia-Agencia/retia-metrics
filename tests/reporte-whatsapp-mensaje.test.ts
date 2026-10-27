@@ -102,7 +102,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       "",
       "CRM: https://crm.test",
       "ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.",
-      "ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel). El lanzamiento va aparte y no entra al costo.",
+      "ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel); el lanzamiento va aparte. CRM = citas con UTM de pauta.",
     ].join("\n"));
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
@@ -337,6 +337,7 @@ describe("nombres cortos de campaña", () => {
       cuentasMeta: [],
       error: null,
     }], "11:00", null, ORIGEN);
-    expect(mensaje).toContain("• #1234 Única: $609.860 COP · 2 ag · $304.930 COP c/u");
+    // Con una sola campaña ninguna pieza distingue, así que va el nombre completo.
+    expect(mensaje).toContain("• #1234 AS | CBO | Única: $609.860 COP · 2 ag · $304.930 COP c/u");
   });
 });
