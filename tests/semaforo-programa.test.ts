@@ -157,6 +157,23 @@ async function gastoCerrado(programId: string, dia: string, monto: number, agend
 }
 
 describe("semáforo del programa", () => {
+  it("separa lanzamiento y deja sin clasificar dentro del costo de agenda", async () => {
+    const p = await crearPrograma("propositos");
+    const [lanzamiento] = await db.insert(pautaObjetos).values({
+      cuentaId: p.cuentaId, programId: p.programId, idMeta: "campana-lanzamiento-8830",
+      nivel: "campana", padreIdMeta: null, nombre: "Registro lanzamiento", estado: "ACTIVE",
+      proposito: "lanzamiento",
+    }).returning();
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 100000, agendasMeta: 2 });
+    await foto({ programId: p.programId, campanaId: lanzamiento.id, dia: "2026-10-16", hora: "11:00", gasto: 900000, agendasMeta: 0 });
+    const resultado = await costoPorAgenda(db, {
+      programId: p.programId, dia: "2026-10-16", hasta: new Date("2026-10-16T11:05:00-05:00"),
+    });
+    expect(resultado).toMatchObject({ gasto: 100000, gastoTotal: 1000000, agendasMeta: 2, costo: 50000 });
+    expect(resultado.campanas[0]).toMatchObject({ proposito: null, gasto: 100000 });
+    expect(resultado.lanzamiento).toMatchObject({ gasto: 900000, campanas: [{ codigo: "8830", proposito: "lanzamiento" }] });
+  });
+
   it("desglosa el día por campaña con la misma conversión y los mismos totales", async () => {
     const p = await crearPrograma("campanas-dia");
     const [campanaUsd] = await db.insert(pautaObjetos).values({

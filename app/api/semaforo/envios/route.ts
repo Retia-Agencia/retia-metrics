@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { desc } from "drizzle-orm";
 import { reportesActivos } from "@/lib/catalogo/reportes-whatsapp";
 import { tokensMeta } from "@/lib/integraciones";
@@ -16,18 +15,9 @@ import { armarMensajeDeHorasDeAgenda } from "@/lib/reporte-whatsapp/horas-de-age
 import { armarMensajeDeLaHora, enlaceAlHub } from "@/lib/reporte-whatsapp/mensaje";
 import { queTocaAhora } from "@/lib/reporte-whatsapp/que-toca";
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
+import { secretoDeSemaforoValido } from "@/lib/semaforo/secreto";
 
 export const runtime = "nodejs";
-
-function hash(valor: string): Buffer {
-  return createHash("sha256").update(valor).digest();
-}
-
-function secretoValido(request: Request): boolean {
-  const esperado = process.env.SEMAFORO_SECRETO;
-  const recibido = request.headers.get("x-semaforo-secreto");
-  return Boolean(esperado && recibido && timingSafeEqual(hash(esperado), hash(recibido)));
-}
 
 function horaTexto(hora: number): string {
   return `${String(hora).padStart(2, "0")}:00`;
@@ -42,7 +32,7 @@ async function ultimaFoto(): Promise<Date | null> {
 }
 
 export async function POST(request: Request) {
-  if (!secretoValido(request)) return new Response(null, { status: 401 });
+  if (!secretoDeSemaforoValido(request)) return new Response(null, { status: 401 });
 
   const ahora = new Date();
   const reportes = await reportesActivos(db);

@@ -123,7 +123,9 @@ export default async function BitacoraPage({ searchParams }: Props) {
                         </td>
                         <td className="py-2 pr-4">{e.quien ?? <span className="text-muted-foreground">sistema</span>}</td>
                         <td className="py-2">
-                          <Badge variant="neutro">{e.tipo === "movimiento" ? "motor" : e.origen}</Badge>
+                          <Badge variant="neutro">
+                            {e.tipo === "movimiento" ? "motor" : e.origen === "whatsapp" ? "WhatsApp" : e.origen}
+                          </Badge>
                         </td>
                       </tr>
                     ))}

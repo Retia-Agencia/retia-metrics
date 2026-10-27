@@ -81,9 +81,23 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   const costo = metrica.costo === null && metrica.agendasMeta === 0 && metrica.gasto > 0
     ? "sin agendas"
     : dinero(metrica.costo);
-  const lineas = [
+  const lineas: string[] = [];
+  const nuevas = metrica.campanas.filter(
+    (campana) => campana.codigo !== null && campana.proposito === null && campana.gasto > 0,
+  );
+  if (nuevas.length > 0) {
+    lineas.push("🆕 Campañas nuevas: ¿agenda o lanzamiento?");
+    for (const campana of nuevas) {
+      lineas.push(`#${campana.codigo} ${campana.nombre} · ${dinero(campana.gasto)}`);
+    }
+    lineas.push("👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:");
+    lineas.push(nuevas.length === 1
+      ? `${nuevas[0].codigo} A`
+      : `${nuevas[0].codigo} A, ${nuevas[1].codigo} L`);
+  }
+  lineas.push(
     `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${costo}${frenteALaMeta(metrica.porcentajeDelUmbral)}`,
-  ];
+  );
 
   if (metrica.umbral) {
     lineas.push(
@@ -91,10 +105,11 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     );
   }
   lineas.push(
-    `Gasto ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
+    `Gasto de agenda ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
   );
-  // Con una sola campaña el desglose repetiría el total.
-  const campanas = metrica.campanas.length > 1 ? metrica.campanas : [];
+  const campanas = metrica.campanas.some((campana) => campana.codigo !== null)
+    ? metrica.campanas
+    : [];
   const nombresCortos = nombresCortosDeCampanas(campanas.map((campana) => campana.nombre));
   for (const [indice, campana] of campanas.entries()) {
     const costoCampana = campana.agendasMeta === null
@@ -103,7 +118,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
         ? "sin agendas"
         : `${dinero(campana.costo)} c/u`;
     lineas.push(
-      `• ${nombresCortos[indice]}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
+      `• ${campana.codigo ? `#${campana.codigo} ` : ""}${nombresCortos[indice]}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
     );
   }
   const etiqueta = tipo === "cierre" ? "Día anterior" : "Ayer a esta hora";
@@ -115,6 +130,13 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   lineas.push(metrica.comparacion
     ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
     : `${etiqueta}: sin foto`);
+  if (metrica.lanzamiento.campanas.length > 0) {
+    lineas.push(`🚀 Lanzamiento: ${dinero(metrica.lanzamiento.gasto)}`);
+    for (const campana of metrica.lanzamiento.campanas) {
+      lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${dinero(campana.gasto)}`);
+    }
+    lineas.push(`Gasto total del programa: ${dinero(metrica.gastoTotal)}`);
+  }
   if (metrica.racha) {
     const { color, dias } = metrica.racha;
     lineas.push(`Días cerrados: ${EMOJI[color]} ${num(dias)} ${dias === 1 ? "" : "seguidos "}en ${NOMBRE_DEL_COLOR[color]}`);
@@ -242,6 +264,6 @@ export function armarMensajeDeLaHora(
   if (bloques.some((bloque) => bloque.tipo === "dia")) {
     lineas.push("ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.");
   }
-  lineas.push("ℹ️ Costo = gasto ÷ agendas Meta (pixel). CRM = citas con UTM de pauta.");
+  lineas.push("ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel). El lanzamiento va aparte y no entra al costo.");
   return lineas.join("\n");
 }

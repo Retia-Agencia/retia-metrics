@@ -29,10 +29,12 @@ const METRICA: MetricaSemaforo = {
   ],
   racha: { color: "peligro", dias: 3 },
   campanas: [
-    { nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000 },
-    { nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null },
-    { nombre: "Prospección amplia", gasto: 109860, agendasMeta: null, costo: null },
+    { codigo: "1001", nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000, proposito: "agenda" },
+    { codigo: "1002", nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null, proposito: "agenda" },
+    { codigo: "1003", nombre: "Prospección amplia", gasto: 109860, agendasMeta: null, costo: null, proposito: "agenda" },
   ],
+  lanzamiento: { gasto: 0, campanas: [] },
+  gastoTotal: 609860,
   notas: [{ tipo: "problema", texto: "Creativo agotado" }],
 };
 
@@ -48,6 +50,39 @@ function bloque() {
 }
 
 describe("mensaje del reporte por WhatsApp", () => {
+  it("muestra nuevas, lanzamiento y total solo cuando corresponden", () => {
+    const mensaje = armarMensajeDeLaHora([{
+      ...bloque(),
+      metricas: [{
+        ...METRICA,
+        campanas: [
+          { ...METRICA.campanas[0], proposito: null },
+          { ...METRICA.campanas[1], proposito: null },
+        ],
+        lanzamiento: {
+          gasto: 322697,
+          campanas: [{ codigo: "5102", nombre: "Registro Lanzamiento", gasto: 322697, agendasMeta: 0, costo: null, proposito: "lanzamiento" }],
+        },
+        gastoTotal: 932557,
+      }],
+    }], "09:00", null, ORIGEN);
+    expect(mensaje).toContain([
+      "🆕 Campañas nuevas: ¿agenda o lanzamiento?",
+      "#1001 Ventas abiertas · $300.000 COP",
+      "#1002 Retargeting · $200.000 COP",
+      "👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:",
+      "1001 A, 1002 L",
+    ].join("\n"));
+    expect(mensaje).toContain("🚀 Lanzamiento: $322.697 COP\n• #5102 Registro Lanzamiento: $322.697 COP");
+    expect(mensaje).toContain("Gasto total del programa: $932.557 COP");
+    const mensajeConUnaNueva = armarMensajeDeLaHora([{
+      ...bloque(),
+      metricas: [{ ...METRICA, campanas: [{ ...METRICA.campanas[0], proposito: null }] }],
+    }], "09:00", null, ORIGEN);
+    expect(mensajeConUnaNueva).toContain("por ejemplo:\n1001 A\n");
+    expect(armarMensajeDeLaHora([bloque()], "09:00", null, ORIGEN)).not.toContain("🚀 Lanzamiento");
+  });
+
   it("compacta umbral, gasto, ayer, rojo y problema en un bloque", () => {
     const mensaje = armarMensajeDeLaHora([bloque()], "09:00", null, ORIGEN);
 
@@ -57,17 +92,17 @@ describe("mensaje del reporte por WhatsApp", () => {
       "*Alpha*",
       "🔴 Costo por agenda: $304.930 COP · 53% más caro que la meta",
       "Meta $200.000 COP · aceptable $250.000 COP",
-      "Gasto $609.860 COP · agendas Meta 2 · CRM 4",
-      "• Ventas abiertas: $300.000 COP · 2 ag · $150.000 COP c/u",
-      "• Retargeting: $200.000 COP · 0 ag · sin agendas",
-      "• Prospección amplia: $109.860 COP · — ag · sin dato",
+      "Gasto de agenda $609.860 COP · agendas Meta 2 · CRM 4",
+      "• #1001 Ventas abiertas: $300.000 COP · 2 ag · $150.000 COP c/u",
+      "• #1002 Retargeting: $200.000 COP · 0 ag · sin agendas",
+      "• #1003 Prospección amplia: $109.860 COP · — ag · sin dato",
       "Ayer a esta hora: costo $100.000 COP · gasto $300.000 COP · agendas Meta 3 · CRM 2",
       "Días cerrados: 🔴 3 seguidos en rojo",
       "⚠️ Creativo agotado",
       "",
       "CRM: https://crm.test",
       "ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.",
-      "ℹ️ Costo = gasto ÷ agendas Meta (pixel). CRM = citas con UTM de pauta.",
+      "ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel). El lanzamiento va aparte y no entra al costo.",
     ].join("\n"));
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
@@ -143,7 +178,7 @@ describe("mensaje del reporte por WhatsApp", () => {
     const mensaje = armarMensajeDeLaHora([{ ...bloque(), metricas: [metrica] }], "11:00", null, ORIGEN);
 
     expect(mensaje).toContain("🔴 Costo por agenda: sin agendas\n");
-    expect(mensaje).toContain("Gasto $63.902 COP · agendas Meta 0 · CRM 0");
+    expect(mensaje).toContain("Gasto de agenda $63.902 COP · agendas Meta 0 · CRM 0");
   });
 
   it("explica cuando falta cargar el umbral", () => {
@@ -254,7 +289,7 @@ describe("mensaje del reporte por WhatsApp", () => {
     }], "09:00", null, ORIGEN);
 
     expect(mensaje).toContain("*Alpha*\n⚠️ No se pudo calcular el semáforo de este programa.");
-    expect(mensaje).not.toContain("Costo por agenda");
+    expect(mensaje).not.toContain("🔴 Costo por agenda:");
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
 });
@@ -290,18 +325,18 @@ describe("nombres cortos de campaña", () => {
     ])).toEqual(["AS | Mismo", "AS | Mismo", "Una campaña con un nombre larguísimo si…"]);
   });
 
-  it("con una sola campaña no hay desglose", () => {
+  it("con una sola campaña con codigo muestra el desglose para poder corregirla", () => {
     const mensaje = armarMensajeDeLaHora([{
       programa: "Tactical",
       tipo: "dia",
       enlaceHub: "https://crm.test/p/tactical/hub?seccion=pauta",
       metricas: [{
         ...METRICA,
-        campanas: [{ nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930 }],
+        campanas: [{ codigo: "1234", nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930, proposito: "agenda" }],
       }],
       cuentasMeta: [],
       error: null,
     }], "11:00", null, ORIGEN);
-    expect(mensaje).not.toContain("•");
+    expect(mensaje).toContain("• #1234 Única: $609.860 COP · 2 ag · $304.930 COP c/u");
   });
 });

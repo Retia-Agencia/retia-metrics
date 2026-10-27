@@ -98,6 +98,16 @@ describe("sincronización de pauta", () => {
     expect(anuncio).toMatchObject({ formato: "video", urlTags: "utm_id={{ad.id}}" });
   });
 
+  it("conserva el proposito de una campana al actualizar el arbol", async () => {
+    const args = { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual" as const };
+    await sincronizarPauta(db, { ...args, f: fetchMeta() });
+    const [campana] = await db.select().from(pautaObjetos).where(eq(pautaObjetos.nivel, "campana"));
+    await db.update(pautaObjetos).set({ proposito: "lanzamiento" }).where(eq(pautaObjetos.id, campana.id));
+    await sincronizarPauta(db, { ...args, f: fetchMeta() });
+    const [actualizada] = await db.select().from(pautaObjetos).where(eq(pautaObjetos.id, campana.id));
+    expect(actualizada.proposito).toBe("lanzamiento");
+  });
+
   it("vuelve a pedir el creativo de un anuncio cuyo updated_time avanzó", async () => {
     await sincronizarPauta(db, {
       tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(),

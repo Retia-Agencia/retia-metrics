@@ -216,14 +216,14 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
 1. **Gasto:**
    - Hoy: la última foto de cada campaña hasta el momento del cálculo (§1.7).
    - Un día cerrado: `gasto_pauta` de ese día (§1.6), el de Meta más el manual de área Paid.
-   - Entra **todo** el gasto de **todas** las cuentas mapeadas al programa: todas sus campañas, también las de
-     registro o interacción. Así lo pidió Pauta el 15-oct (HQ-4: "todas las campañas"), y cada mensaje lo
-     recuerda con la nota "El gasto incluye todas las campañas del programa".
+   - Entra el gasto de campañas clasificadas como **agenda** y el de las campañas todavía sin clasificar. El gasto
+     manual de área Paid, que no tiene campaña, también cuenta como agenda. Las campañas de **lanzamiento** se
+     muestran aparte y no entran al costo; agenda + lanzamiento forman el gasto total del programa (314, 26-oct).
    - Lo que viene en USD se pasa a COP con la TRM del día.
 2. **Agendas:** el semáforo usa las agendas que reporta Meta (pixel). Muestra al lado las agendas del CRM (§1.2)
    creadas ese día, hasta el momento del cálculo, de área **Paid** (§2), para detectar diferencias. El Hub conserva
    como denominador las agendas del CRM (ADR 0088, enmienda del 16-oct).
-3. **Costo del semáforo = gasto ÷ agendas según Meta.** Con gasto y 0 agendas de Meta queda rojo; si Meta no
+3. **Costo del semáforo = gasto de agenda ÷ agendas según Meta de esas campañas.** Con gasto y 0 agendas de Meta queda rojo; si Meta no
    reporta el dato, queda sin dato.
 4. **Umbral:** el objetivo "Costo por agenda" (área Total) de la **cohorte activa** del programa, que se carga en
    Programa › Ventas › Objetivos de la cohorte: `meta` y `aceptable` en COP. Lo pueden editar quien administra y

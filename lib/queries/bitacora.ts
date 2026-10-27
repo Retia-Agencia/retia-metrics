@@ -1,7 +1,7 @@
 import { and, between, desc, eq, inArray, isNull, ne, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, dealEtapaHistorial, deals, programs, users } from "@/lib/db/schema";
+import { changeLog, dealEtapaHistorial, deals, origenCambioEnum, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "./vigente";
 
@@ -72,7 +72,12 @@ interface Comun {
 }
 
 export type EntradaBitacora =
-  | (Comun & { tipo: "cambio"; tabla: string; campo: string; origen: "sync" | "app" | "upload" })
+  | (Comun & {
+      tipo: "cambio";
+      tabla: string;
+      campo: string;
+      origen: (typeof origenCambioEnum.enumValues)[number];
+    })
   | (Comun & {
       tipo: "movimiento";
       de: string | null;

@@ -35,11 +35,25 @@ export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
     dias: z.number(),
   }).strict().nullable(),
   campanas: z.array(z.object({
+    codigo: z.string().nullable(),
     nombre: z.string(),
     gasto: z.number(),
     agendasMeta: z.number().nullable(),
     costo: z.number().nullable(),
+    proposito: z.enum(["agenda", "lanzamiento"]).nullable(),
   }).strict()),
+  lanzamiento: z.object({
+    gasto: z.number(),
+    campanas: z.array(z.object({
+      codigo: z.string().nullable(),
+      nombre: z.string(),
+      gasto: z.number(),
+      agendasMeta: z.number().nullable(),
+      costo: z.number().nullable(),
+      proposito: z.enum(["agenda", "lanzamiento"]).nullable(),
+    }).strict()),
+  }).strict(),
+  gastoTotal: z.number(),
   notas: z.array(z.object({
     tipo: z.enum(["problema", "info"]),
     texto: z.string(),

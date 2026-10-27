@@ -157,6 +157,9 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
 export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta", "form30x"]);
 export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
 export const nivelPautaEnum = pgEnum("nivel_pauta", ["campana", "conjunto", "anuncio"]);
+
+/** Para qué es una campaña (ticket 314): nulo = sin clasificar, y cuenta como agenda. */
+export const propositoCampanaEnum = pgEnum("proposito_campana", ["agenda", "lanzamiento"]);
 export const origenGastoEnum = pgEnum("origen_gasto", ["meta_api", "manual"]);
 export const estadoSincronizacionPautaEnum = pgEnum("estado_sincronizacion_pauta", [
   "corriendo",
@@ -170,7 +173,7 @@ export const estadoSincronizacionPautaEnum = pgEnum("estado_sincronizacion_pauta
  * encabezado renombrado apagara el intake del programa en silencio.
  */
 export const estadoFuenteEnum = pgEnum("estado_fuente", ["activa", "rota"]);
-export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload"]);
+export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload", "whatsapp"]);
 
 // ─────────────────────────────────────────────────────────── usuarios
 
@@ -1920,6 +1923,7 @@ export const pautaObjetos = pgTable(
     nombre: text("nombre").notNull(),
     estado: text("estado").notNull(),
     objetivo: text("objetivo"),
+    proposito: propositoCampanaEnum("proposito"),
     formato: text("formato"),
     urlTags: text("url_tags"),
     actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull().defaultNow(),
@@ -1932,6 +1936,10 @@ export const pautaObjetos = pgTable(
     check(
       "pauta_objetos_objetivo_campana_chk",
       sql`${t.objetivo} is null or ${t.nivel} = 'campana'`,
+    ),
+    check(
+      "pauta_objetos_proposito_campana_chk",
+      sql`${t.proposito} is null or ${t.nivel} = 'campana'`,
     ),
     check(
       "pauta_objetos_formato_anuncio_chk",

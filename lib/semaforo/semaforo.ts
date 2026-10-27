@@ -58,6 +58,8 @@ export interface MetricaSemaforo {
   /** El color del último día cerrado y cuántos días cerrados seguidos lo repiten; null sin dato. */
   racha: RachaSemaforo | null;
   campanas: CampanaSemaforo[];
+  lanzamiento: { gasto: number; campanas: CampanaSemaforo[] };
+  gastoTotal: number;
   notas: NotaSemaforo[];
 }
 
@@ -288,6 +290,8 @@ export async function semaforoDelPrograma(
     trayectoria,
     racha,
     campanas: datos.campanas,
+    lanzamiento: datos.lanzamiento,
+    gastoTotal: datos.gastoTotal,
     notas,
   };
 }

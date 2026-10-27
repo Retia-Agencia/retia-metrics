@@ -194,7 +194,7 @@ describe("endpoint de maquina del semaforo", () => {
     }>;
     expect(envio.texto).toMatch(/^🚦/);
     expect(envio.texto).toContain("CRM: https://crm.retia.test");
-    expect(envio.texto).toMatch(/CRM = citas con UTM de pauta\.$/);
+    expect(envio.texto).toMatch(/El lanzamiento va aparte y no entra al costo\.$/);
     expect(respuesta.envios).toHaveLength(1);
   });
 
@@ -395,6 +395,7 @@ const LLAVES_PERMITIDAS = new Set([
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendasCrm", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "comparacion", "dia", "etiqueta",
   "trayectoria", "racha", "dias", "agendasMeta", "campanas", "nombre", "notas", "texto", "destino",
+  "codigo", "proposito", "lanzamiento", "gastoTotal",
   "trazaRota", "fuente", "pagos", "pagosSinId", "pagosSinFbclid", "sinId", "fbclidRoto",
 ]);
 

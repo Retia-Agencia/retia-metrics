@@ -5,6 +5,7 @@ import { diaHabilAnterior } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import * as agenda from "@/lib/queries/hechos/agenda";
 import { tasaDelDia } from "@/lib/trm/consultar";
+import { codigoCortoDeCampana, idsDeCampanas, type PropositoCampana } from "@/lib/pauta/proposito";
 
 export interface NotaSemaforo {
   tipo: "problema" | "info";
@@ -12,10 +13,12 @@ export interface NotaSemaforo {
 }
 
 export interface CampanaSemaforo {
+  codigo: string | null;
   nombre: string;
   gasto: number;
   agendasMeta: number | null;
   costo: number | null;
+  proposito: PropositoCampana | null;
 }
 
 export interface CostoPorAgenda {
@@ -24,6 +27,8 @@ export interface CostoPorAgenda {
   agendasCrm: number;
   costo: number | null;
   campanas: CampanaSemaforo[];
+  lanzamiento: { gasto: number; campanas: CampanaSemaforo[] };
+  gastoTotal: number;
   notas: NotaSemaforo[];
 }
 
@@ -33,29 +38,44 @@ type FilaDeGasto = {
   moneda: string;
   agendasMeta: number | null;
   campanaId: string | null;
+  campanaIdMeta: string | null;
   campanaNombre: string | null;
+  proposito: PropositoCampana | null;
 };
 
-const NOTA_HQ4 = "El gasto incluye todas las campañas del programa ";
-
-async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
+async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly string[]): Promise<{
   gasto: number;
+  gastoTotal: number;
   agendasMeta: number | null;
   campanas: Array<{
     id: string;
     nombre: string;
     gasto: number;
     agendasMeta: number | null;
+    codigo: string | null;
+    proposito: PropositoCampana | null;
   }>;
+  lanzamiento: { gasto: number; campanas: Array<{
+    id: string;
+    nombre: string;
+    gasto: number;
+    agendasMeta: number | null;
+    codigo: string | null;
+    proposito: PropositoCampana | null;
+  }> };
   notas: NotaSemaforo[];
 }> {
   let gasto = 0;
+  let gastoTotal = 0;
+  let gastoLanzamiento = 0;
   let agendasMeta = 0;
   let tieneAgendasMeta = false;
   const sinTrm = new Map<string, number>();
   const tasas = new Map<string, number | null>();
   const campanas = new Map<string, {
+    idMeta: string;
     nombre: string;
+    proposito: PropositoCampana | null;
     gasto: number;
     agendasMeta: number;
     tieneAgendasMeta: boolean;
@@ -63,16 +83,19 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
 
   for (const fila of filas) {
     const monto = Number(fila.monto);
+    const esLanzamiento = fila.proposito === "lanzamiento";
     const claveCampana = fila.campanaId ?? "sin-campana";
     const campana = campanas.get(claveCampana) ?? {
+      idMeta: fila.campanaIdMeta ?? "",
       nombre: fila.campanaNombre ?? "Sin campaña",
+      proposito: fila.campanaId ? fila.proposito : "agenda",
       gasto: 0,
       agendasMeta: 0,
       tieneAgendasMeta: false,
     };
+    let montoCop = 0;
     if (fila.moneda === "COP") {
-      gasto += monto;
-      campana.gasto += monto;
+      montoCop = monto;
     } else {
       if (!tasas.has(fila.dia)) {
         tasas.set(fila.dia, (await tasaDelDia(db, fila.dia))?.pesosPorDolar ?? null);
@@ -81,35 +104,47 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[]): Promise<{
       if (tasa === null || tasa === undefined) {
         sinTrm.set(fila.dia, (sinTrm.get(fila.dia) ?? 0) + 1);
       } else {
-        gasto += monto * tasa;
-        campana.gasto += monto * tasa;
+        montoCop = monto * tasa;
       }
     }
-    if (fila.agendasMeta !== null) {
+    gastoTotal += montoCop;
+    if (esLanzamiento) gastoLanzamiento += montoCop;
+    else gasto += montoCop;
+    campana.gasto += montoCop;
+    if (!esLanzamiento && fila.agendasMeta !== null) {
       agendasMeta += fila.agendasMeta;
       tieneAgendasMeta = true;
+    }
+    if (fila.agendasMeta !== null) {
       campana.agendasMeta += fila.agendasMeta;
       campana.tieneAgendasMeta = true;
     }
     campanas.set(claveCampana, campana);
   }
 
-  const notas: NotaSemaforo[] = [{ tipo: "info", texto: NOTA_HQ4 }];
+  const notas: NotaSemaforo[] = [];
   for (const [dia, cantidad] of sinTrm) {
     notas.push({
       tipo: "problema",
       texto: `Sin TRM del ${dia}: ${cantidad} filas en USD no se sumaron.`,
     });
   }
+  const todas = [...campanas].map(([id, campana]) => ({
+    id,
+    nombre: campana.nombre,
+    gasto: campana.gasto,
+    agendasMeta: campana.tieneAgendasMeta ? campana.agendasMeta : null,
+    codigo: campana.idMeta ? codigoCortoDeCampana(campana.idMeta, idsCampanas) : null,
+    proposito: campana.proposito,
+  }));
   return {
-    gasto,
+    gasto, gastoTotal,
     agendasMeta: tieneAgendasMeta ? agendasMeta : null,
-    campanas: [...campanas].map(([id, campana]) => ({
-      id,
-      nombre: campana.nombre,
-      gasto: campana.gasto,
-      agendasMeta: campana.tieneAgendasMeta ? campana.agendasMeta : null,
-    })),
+    campanas: todas.filter((campana) => campana.proposito !== "lanzamiento"),
+    lanzamiento: {
+      gasto: gastoLanzamiento,
+      campanas: todas.filter((campana) => campana.proposito === "lanzamiento"),
+    },
     notas,
   };
 }
@@ -149,6 +184,8 @@ function completar(
   notas: NotaSemaforo[],
   mideAgendasMeta: boolean,
   campanasLeidas: Awaited<ReturnType<typeof sumarEnCop>>["campanas"],
+  lanzamientoLeido: Awaited<ReturnType<typeof sumarEnCop>>["lanzamiento"],
+  gastoTotal: number,
 ): CostoPorAgenda {
   const agendasMeta = agendasMetaLeidas === null && mideAgendasMeta ? 0 : agendasMetaLeidas;
   return {
@@ -160,14 +197,24 @@ function completar(
       .map((campana) => {
         const agendas = campana.agendasMeta === null && mideAgendasMeta ? 0 : campana.agendasMeta;
         return {
+          codigo: campana.codigo,
           nombre: campana.nombre,
           gasto: campana.gasto,
           agendasMeta: agendas,
           costo: agendas !== null && agendas > 0 ? campana.gasto / agendas : null,
+          proposito: campana.proposito,
         };
       })
       .filter((campana) => campana.gasto > 0)
       .sort((a, b) => b.gasto - a.gasto),
+    lanzamiento: {
+      gasto: lanzamientoLeido.gasto,
+      campanas: lanzamientoLeido.campanas.map((campana) => ({
+        ...campana,
+        costo: null,
+      })).filter((campana) => campana.gasto > 0).sort((a, b) => b.gasto - a.gasto),
+    },
+    gastoTotal,
     notas,
   };
 }
@@ -182,15 +229,17 @@ async function costoDesdeFotos(
     moneda: fotosPauta.moneda,
     agendasMeta: fotosPauta.agendasMeta,
     campanaId: fotosPauta.campanaId,
+    campanaIdMeta: pautaObjetos.idMeta,
     campanaNombre: pautaObjetos.nombre,
+    proposito: pautaObjetos.proposito,
   }).from(fotosPauta).where(and(
     eq(fotosPauta.programId, args.programId),
     eq(fotosPauta.fecha, args.dia),
     lte(fotosPauta.tomadaEn, args.hasta),
   )).innerJoin(pautaObjetos, eq(fotosPauta.campanaId, pautaObjetos.id))
     .orderBy(asc(fotosPauta.campanaId), desc(fotosPauta.tomadaEn));
-  const [suma, agendasCrm, mide] = await Promise.all([
-    sumarEnCop(db, fotos),
+  const [idsCampanas, agendasCrm, mide] = await Promise.all([
+    idsDeCampanas(db),
     contarAgendas(db, {
       programId: args.programId,
       desde: args.dia,
@@ -199,7 +248,8 @@ async function costoDesdeFotos(
     }),
     programaMideAgendasMeta(db, args.programId),
   ]);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas);
+  const suma = await sumarEnCop(db, fotos, idsCampanas);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal);
 }
 
 export async function costoPorAgenda(
@@ -245,6 +295,7 @@ export async function costoPorAgendaDeVentana(
     nivel: pautaObjetos.nivel,
     padreIdMeta: pautaObjetos.padreIdMeta,
     nombre: pautaObjetos.nombre,
+    proposito: pautaObjetos.proposito,
   }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId));
   const objetosPorId = new Map(objetos.map((objeto) => [objeto.id, objeto]));
   const objetosPorIdMeta = new Map(objetos.map((objeto) => [objeto.idMeta, objeto]));
@@ -259,11 +310,13 @@ export async function costoPorAgendaDeVentana(
     return {
       ...fila,
       campanaId: campana?.nivel === "campana" ? campana.id : null,
+      campanaIdMeta: campana?.nivel === "campana" ? campana.idMeta : null,
       campanaNombre: campana?.nivel === "campana" ? campana.nombre : null,
+      proposito: campana?.nivel === "campana" ? campana.proposito : null,
     };
   });
-  const [suma, agendasCrm, mide] = await Promise.all([
-    sumarEnCop(db, filasConCampana),
+  const [idsCampanas, agendasCrm, mide] = await Promise.all([
+    idsDeCampanas(db),
     contarAgendas(db, {
       programId: args.programId,
       desde: args.desde,
@@ -271,7 +324,8 @@ export async function costoPorAgendaDeVentana(
     }),
     programaMideAgendasMeta(db, args.programId),
   ]);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas);
+  const suma = await sumarEnCop(db, filasConCampana, idsCampanas);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal);
 }
 
 /**
