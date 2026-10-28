@@ -380,6 +380,9 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 333 | [Los estados de la pieza con su significado](./333-estados-y-tipos-de-pieza.md) | 316 | bloqueado · preguntas 2 y 3 a media |
 | [ ] | 334 | [Plantilla de recurrencias, tareas, avisos, calendario y desviaciones](./334-plantilla-tareas-avisos-calendario.md) | 333 | bloqueado · preguntas 1 a 3 a media |
 | [ ] | 335 | [Origen × escalón en el Hub](./335-origen-por-escalon.md) | 318, 320 | bloqueado · un mes de piezas con link |
+| [ ] | 336 | [Scoping: el manejo de media en el CRM, con Metricool de referente](./336-scoping-manejo-de-media-tipo-metricool.md) | — | todo · levantamiento, no construcción; prioridad baja; alimenta 333 y 334 |
+| [ ] | 337 | [Subir formatos al banco](./337-formatos-al-banco.md) | 321, 324 | todo · faltante de la verificación de crudos (28-oct) |
+| [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
 
 ## 17 · Agendamiento: piloto de dCal (23-oct)
 

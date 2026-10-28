@@ -14,4 +14,5 @@ describa su pipeline completo: nada de este alcance se inventa (propuesta §4.1)
 ## Alcance (a confirmar)
 
 - Plantilla relativa al calendario en días hábiles, con responsable y dos fechas cuando haga falta; tareas que genera;
-  avisos por la vista y por WhatsApp; calendario día, semana y mes; registro de desviaciones con quién y por qué.
+  avisos por la vista y por WhatsApp (entre ellos, el día en que toca cambiar la palabra o el botón de ManyChat,
+  faltante 3 de la verificación del 28-oct; espera la pregunta 11 de la propuesta); calendario día, semana y mes; registro de desviaciones con quién y por qué.

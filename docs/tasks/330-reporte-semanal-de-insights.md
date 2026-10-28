@@ -11,7 +11,7 @@ status: todo
 ## Alcance
 
 - Media › Insights: por programa y semana, los dolores, deseos y objeciones más repetidos, **ponderados por escalón**
-  con `escaleraDeDeals` (el peso por escalón es un dato del programa; sin valor, sin ponderar y se dice). Cada insight
+  con `escaleraDeDeals` (el peso por escalón es un dato del programa que fija gerencia, pregunta 10 de la propuesta; sin valor, sin ponderar y se dice). Cada insight
   abre su lista: para media, citas y escalón; para gerencia y developer, también la llamada.
 - Cobertura a la vista: llamadas atendidas sin Grain y sin transcript en la semana.
 

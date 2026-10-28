@@ -12,6 +12,8 @@ status: todo
 
 - Portar colecciones por creador y guiones limpios. Una colección de un creador con programa no se ve fuera de ese
   programa.
+- El guion limpio sale siempre en español, venga en el idioma que venga el referente (faltante 4 de la verificación
+  del 28-oct).
 - Las propuestas del agente del cruce (332) se mostrarán en este banco: dejar el lugar, no la lógica.
 
 ## Done cuando

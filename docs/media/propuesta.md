@@ -292,5 +292,10 @@ No son tickets: es la secuencia que tiene sentido, y por qué. El plan de implem
 | 6 | El corte de "pagó rápido" en días | Gerencia | La escalera |
 | 7 | ¿Se quieren datos de Instagram (vistas de historias) en el CRM? | Gerencia | §3.6, punto 6 |
 | 8 | Presupuesto de IA y del agente de referentes | Gerencia, cuando concierna | Pasos 3 y 6 |
+| 9 | ¿Las clases también son fuente de ángulos, además de las llamadas? ¿Se graban y dónde? | Gerencia y media | Una segunda fuente de insights (hoy el plan solo lee llamadas) |
+| 10 | ¿Cuánto pesa cada escalón al resumir los insights? | Gerencia | El reporte semanal (ticket 330) |
+| 11 | ¿Cómo está montado ManyChat, quién cambia la palabra o el botón y cómo se mide el lead que entra por "comenta la palabra"? | Coordinación de media | Que esos leads no lleguen sin pieza; el aviso del ticket 334 |
+| 12 | ¿Se quiere un tablero por lanzamiento que junte orgánico y pauta? | Gerencia | Después del paso 5 |
+| 13 | ¿Los formatos y crudos se suben solo por la plataforma o también por WhatsApp? | Coordinación de media | Tickets 337 y 338 |
 
 **Siguiente paso:** una sesión de plan con grill sobre este documento, que lo vuelva ADRs y tickets.

@@ -123,13 +123,13 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ### 🌊 Ola O11 · media entra al CRM · abierta el 28-oct
 
-Sale del grill del plan de media (ADR 0107 a 0112, tickets 315 a 335). Mismo molde que la O10: carriles por archivos,
+Sale del grill del plan de media (ADR 0107 a 0112, tickets 315 a 338; el 336 es un levantamiento sin código). Mismo molde que la O10: carriles por archivos,
 no por personas. Convive con lo que quede abierto de la O10.
 
 | Carril | Tickets, en orden (los de una misma línea, en paralelo) | Archivos del carril | Migración |
 |---|---|---|---|
 | **M · medir** | 315 → 316 → 317 → 318 · 319 → 320 | `lib/auth/roles.ts`, `lib/auth/alcance.ts`, `lib/catalogo/creadores.ts`, `lib/media/piezas.ts` (nuevo), `lib/atribucion/*`, `lib/queries/escalera.ts` (nuevo), la tarjeta del Hub | 315, 316, 319 |
-| **C · el cockpit** | 321 → 326 · 322 → 323 → 324 → 325 → 327 | `app/(app)/media/*` y `components/media/*` (nuevos), `lib/media/motor.ts` (nuevo), `app/api/media/*` (nuevo), el script de traslado, **n8n** (323) | 322 |
+| **C · el cockpit** | 321 → 326 · 322 → 323 → 324 → 325 → 327 · 337 (tras 324) · 338 | `app/(app)/media/*` y `components/media/*` (nuevos), `lib/media/motor.ts` (nuevo), `app/api/media/*` (nuevo), el script de traslado, **n8n** (323) | 322 |
 | **G · Grain e insights** | 328 → 329 → 330 → 331 · 332 | `lib/grain/*` y `lib/insights/*` (nuevos), el cron, `lib/reporte-whatsapp/*` (331), **el repo de Juanito** (331) | 328, 329 |
 
 **Cola de migraciones:** 315 → 316 → 319 → 322 → 328 → 329. La genera y aplica la sesión principal, con el ok de
