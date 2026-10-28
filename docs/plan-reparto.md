@@ -121,6 +121,31 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O11 · media entra al CRM · abierta el 28-oct
+
+Sale del grill del plan de media (ADR 0107 a 0112, tickets 315 a 335). Mismo molde que la O10: carriles por archivos,
+no por personas. Convive con lo que quede abierto de la O10.
+
+| Carril | Tickets, en orden (los de una misma línea, en paralelo) | Archivos del carril | Migración |
+|---|---|---|---|
+| **M · medir** | 315 → 316 → 317 → 318 · 319 → 320 | `lib/auth/roles.ts`, `lib/auth/alcance.ts`, `lib/catalogo/creadores.ts`, `lib/media/piezas.ts` (nuevo), `lib/atribucion/*`, `lib/queries/escalera.ts` (nuevo), la tarjeta del Hub | 315, 316, 319 |
+| **C · el cockpit** | 321 → 326 · 322 → 323 → 324 → 325 → 327 | `app/(app)/media/*` y `components/media/*` (nuevos), `lib/media/motor.ts` (nuevo), `app/api/media/*` (nuevo), el script de traslado, **n8n** (323) | 322 |
+| **G · Grain e insights** | 328 → 329 → 330 → 331 · 332 | `lib/grain/*` y `lib/insights/*` (nuevos), el cron, `lib/reporte-whatsapp/*` (331), **el repo de Juanito** (331) | 328, 329 |
+
+**Cola de migraciones:** 315 → 316 → 319 → 322 → 328 → 329. La genera y aplica la sesión principal, con el ok de
+Mani y leyendo el SQL. El 315 va primero porque cambia un `pgEnum` que todos los demás leen.
+
+**Choques a vigilar:**
+- **`lib/atribucion/*` sigue siendo del carril A de la O10:** el 317 y el 318 se coordinan con quien esté ahí.
+- **Las pestañas de `/media` son del carril C:** el 330 (carril G) entrega su componente en `components/media/insights/`
+  y lo monta con una línea.
+- **El 319 escribe en `lib/queries/`** (capa de hechos, carril A de la O10): archivo nuevo, sin editar los demás.
+- **El 330 y el 332 esperan al 319 y al 325** de otros carriles: son los puntos de costura.
+
+**Listos hoy, sin esperar a nadie:** 315 (primero en la cola), 319 (sin turno de migración hasta que pase el 316) y
+328. **Prueba de costura de la ola:** un envío real con el link de una pieza (317) aparece en su pieza (318) y su deal
+cae en el escalón correcto (319), con test.
+
 ### 🌊 Ola O10 · el Hub · abierta el 14-oct
 
 Sale del audit del Hub (`docs/hub.md`, ADR 0086 a 0090). **Dos carriles, A y B, que no son de nadie**: cada persona

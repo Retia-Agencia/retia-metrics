@@ -351,6 +351,36 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 | [x] | 208 | [Migrar el corte 3: agendados con Calendly y Estudiantes Noviembre](./208-migrar-el-corte-3.md) | 203 | done · 8-oct (noche) · aplicado con el ok de Mani: CA 91 agendados + 17 estudiantes, TI 89 + 9; TI C3 desde el 28-sep. Recorrido de Mani hecho |
 
+## 18 · Media (ADR 0107 a 0112, 28-oct)
+
+Sale del grill del 28-oct sobre [`docs/media/propuesta.md`](../media/propuesta.md). Ejecutables los pasos 1 a 3 de la
+visión (medir, media entra al CRM, la fuente); los pasos 4 y 5 quedan bloqueados por las preguntas a media (§7 de la
+propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-reparto.md) §4, Ola O11.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 315 | [El rol `media` y la pregunta `trabajaContenido`](./315-rol-de-media.md) | — | todo · migración |
+| [ ] | 316 | [El catálogo de creadores y la pieza mínima](./316-creadores-y-pieza-minima.md) | 315 | todo · migración |
+| [ ] | 317 | [El link de cada pieza y el link fijo del creador](./317-link-de-pieza.md) | 316 | todo |
+| [ ] | 318 | [El emparejador reconoce la pieza](./318-emparejar-pieza.md) | 317 | todo |
+| [ ] | 319 | [La escalera de conversión](./319-escalera-de-conversion.md) | — | todo · migración · medición en producción antes de mostrar |
+| [ ] | 320 | [Las ventas por escalón en el Hub](./320-escalera-en-el-hub.md) | 319 | todo |
+| [ ] | 321 | [La vista de media](./321-vista-de-media.md) | 315 | todo |
+| [ ] | 322 | [El esquema del cockpit en el CRM y el traslado único](./322-esquema-y-traslado-del-cockpit.md) | 316 | todo · migración · traslado con ok de Mani |
+| [ ] | 323 | [La fachada del CRM para n8n y el repunte de los workflows](./323-fachada-para-n8n.md) | 322 | todo · edita n8n con ok de Mani |
+| [ ] | 324 | [Banco I: referentes, candidatos y calificación](./324-referentes-y-calificacion.md) | 321, 323 | todo |
+| [ ] | 325 | [Banco II: colecciones y guiones limpios](./325-colecciones-y-guiones.md) | 324 | todo |
+| [ ] | 326 | [La parrilla del día](./326-parrilla-del-dia.md) | 317, 321 | todo |
+| [ ] | 327 | [Apagar el cockpit](./327-apagar-el-cockpit.md) | 324, 325 | todo · lo hace Mani |
+| [ ] | 328 | [El transcript desde el link de Grain](./328-transcript-desde-grain.md) | — | todo · migración |
+| [ ] | 329 | [Los insights de cada llamada](./329-insights-por-llamada.md) | 328 | todo · migración · tope de IA lo confirma Mani |
+| [ ] | 330 | [El reporte semanal de insights](./330-reporte-semanal-de-insights.md) | 319, 321, 329 | todo |
+| [ ] | 331 | [El aviso semanal de insights por WhatsApp](./331-aviso-semanal-por-whatsapp.md) | 330 | todo · toca el repo de Juanito |
+| [ ] | 332 | [El agente del cruce: propuestas en el banco](./332-agente-del-cruce.md) | 325, 330 | todo |
+| [ ] | 333 | [Los estados de la pieza con su significado](./333-estados-y-tipos-de-pieza.md) | 316 | bloqueado · preguntas 2 y 3 a media |
+| [ ] | 334 | [Plantilla de recurrencias, tareas, avisos, calendario y desviaciones](./334-plantilla-tareas-avisos-calendario.md) | 333 | bloqueado · preguntas 1 a 3 a media |
+| [ ] | 335 | [Origen × escalón en el Hub](./335-origen-por-escalon.md) | 318, 320 | bloqueado · un mes de piezas con link |
+
 ## 17 · Agendamiento: piloto de dCal (23-oct)
 
 Dapta sacó dCal, un agendador gratis y open source. La evaluación del 23-oct (con los docs y el código, sin crear

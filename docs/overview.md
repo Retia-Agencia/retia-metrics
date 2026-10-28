@@ -529,12 +529,27 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   referidos (no entre closers, ADR 0023).
 - **Calidad de la traza:** hasta qué nivel se sabe el origen de una venta (anuncio, campaña, canal o nada).
 
+**Media (ADR 0107 a 0112)**
+
+- **Creador:** la persona o cuenta para la que media produce contenido. Puede pertenecer a un programa o no: sin
+  programa tiene pipeline pero no ventas. Es el "cliente" del cockpit viejo. *No es un usuario ni un rol.*
+- **Pieza:** una unidad de contenido planeada o publicada (una historia, un reel, un carrusel), de un creador, con su
+  link. Une el contenido con los leads que trae.
+- **Pieza permanente:** la pieza sin fecha que es el link fijo de un creador, para lo que publica por su cuenta.
+- **Escalera de conversión:** la jerarquía de qué tan rápido y qué tan lejos llegó un deal: pagó en la llamada, pagó
+  rápido, pagó después, atendió y no compró, agendó y no se presentó, no agendó. Cada peldaño es un **escalón**.
+- **Insight:** lo que se aprende de una llamada (un dolor, un deseo, una objeción, el nivel de conciencia, lo que el
+  lead dice que vio), con su cita. *Media ve el insight, nunca el transcript.*
+- **Banco:** las ideas sin fecha de media: referentes calificados, colecciones, formatos y las propuestas del cruce.
+- **Cruce:** juntar los insights de un programa con los formatos del banco y un CTA para proponer contenido. Produce
+  **propuestas**, nunca piezas.
+
 **El equipo y el acceso**
 
 - **Closer:** vende y trabaja leads. **Setter:** función, no rol: una persona con cuenta de closer que
   contacta a quien no agendó y entrega el deal por la cita (ADR 0076). **Gerente:** además administra.
   **Paid Trafficker:** campañas, links y gasto (102). **Customer Success:** solo el onboarding de Students
-  (145). **Developer:** acceso total, la única excepción a la disjunción de roles. **El Sistema:** el
+  (145). **Media:** el pipeline de contenido y los insights, nunca lo comercial (ADR 0107). **Developer:** acceso total, la única excepción a la disjunción de roles. **El Sistema:** el
   webhook, Calendly y el motor cuando mueven algo sin una persona.
 - **Membresía:** a qué programas pertenece un usuario; define qué programas ve un closer.
 - **Vista ("ver como"):** con qué rol se proyecta una pantalla del developer. Solo estrecha, nunca

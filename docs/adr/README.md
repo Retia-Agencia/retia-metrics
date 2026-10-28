@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0106)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0113)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -130,6 +130,17 @@ comentarios; esta tabla es la que los resuelve.
 | [0105](./0105-un-envio-falso-se-marca-sospechoso-y-se-anula-en-cascada.md) | Un envío falso marca su deal como Sospechoso (reglas de teléfono y correo más Haiku, en unión), visible y contando; nada se anula solo; anular por envío falso anula en cascada deal, llamadas, envío y lead, y cancela la cita, sin borrar. Las llamadas sueltas de Calendly también se juzgan. Envíos y leads entran a la vigencia |
 | [0106](./0106-la-comparacion-es-opcional-y-pueden-ser-varias.md) | La comparación es opcional (el Hub abre en la cohorte en curso, sin B) y pueden ser hasta tres en `?comparar=`; `periodo.b` es la primera. La gráfica no dibuja la meta y su tooltip es corto. Enmienda el 0067 y el 0091 |
 | [0033](./0033-estructura-por-dominio-y-extracciones-incrementales.md) | Estructura por dominio y extracciones incrementales |
+
+**Media (28-oct, `docs/media/`)**
+
+| # | Decisión |
+|---|---|
+| [0107](./0107-media-es-un-rol-y-trabajar-contenido-su-pregunta.md) | Media es un rol (`media`) y `trabajaContenido` su pregunta; alcance por programa con el molde del 0094; en v1 solo entra la coordinación |
+| [0108](./0108-el-link-de-una-pieza-de-contenido.md) | El link de una pieza: `utm_medium=contenido` y el código opaco de la pieza en `utm_content`, que lee solo el emparejador; el área sigue siendo Orgánico. Enmienda el 0051 y el 0087 |
+| [0109](./0109-la-escalera-de-conversion-es-una-funcion.md) | La escalera de conversión: seis escalones por deal, derivados al leer en `escaleraDeDeals`; el corte de "pagó rápido" es un dato del programa |
+| [0110](./0110-el-creador-y-la-pieza-de-contenido.md) | El creador (programa opcional) y la pieza son datos; el link fijo es una pieza permanente; los estados de media se anclan a cuatro significados del código |
+| [0111](./0111-el-cockpit-se-migra-por-estrangulamiento.md) | El cockpit se migra al CRM por estrangulamiento: datos y pantallas al CRM, el motor sigue en n8n detrás de una fachada |
+| [0112](./0112-insights-de-llamadas-desde-grain.md) | Los insights salen del link público de Grain (al pegar y por cron), una extracción guardada por llamada; media ve citas sin identidad; el agente del cruce deja propuestas en el banco |
 
 **Plataforma**
 

@@ -2,8 +2,9 @@
 
 > **Prioridad alta (Mani, 26-oct-2026).** Retia quiere centralizar toda su operación: el CRM hoy es solo
 > comercial y debe integrar también media, pauta y creación de contenido. Este subproyecto nace de la
-> sesión "Creación Media Ops Machine" (20-oct-2026) y todavía **no es un plan aprobado**: las decisiones
-> abiertas están en [`extraccion.md`](./extraccion.md) §8 y se cierran con gerencia antes de abrir tickets.
+> sesión "Creación Media Ops Machine" (20-oct-2026). **El plan se aprobó el 28-oct** (grill con Mani): ADR 0107 a
+> 0112 y tickets 315 a 335 (`docs/tasks/README.md` §18, Ola O11 en `docs/plan-reparto.md` §4). Lo que falta lo
+> responde media: `propuesta.md` §7.
 
 ## La idea en una línea
 
