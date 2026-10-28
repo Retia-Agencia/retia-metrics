@@ -83,6 +83,25 @@ describe("proposito de campanas desde WhatsApp", () => {
     expect(codigoCortoDeCampana("1234521", ["1234521", "9934521"]).length).toBeGreaterThan(4);
   });
 
+  it("solo acepta mensajes cuyo texto entero sea una clasificacion", () => {
+    expect(parsearClasificacionDeCampanas("@159459485712556 qué pasó con el 250 a las 2?")).toBeNull();
+    expect(parsearClasificacionDeCampanas("el 9375 a qué se debe?")).toBeNull();
+    expect(parsearClasificacionDeCampanas("gracias")).toBeNull();
+    expect(parsearClasificacionDeCampanas("9375 A, 77610516 L")).toEqual({
+      asignaciones: [
+        { codigo: "9375", proposito: "agenda" },
+        { codigo: "77610516", proposito: "lanzamiento" },
+      ],
+      sinProposito: [],
+      ambiguos: [],
+    });
+    expect(parsearClasificacionDeCampanas("#9375 agenda")).toEqual({
+      asignaciones: [{ codigo: "9375", proposito: "agenda" }],
+      sinProposito: [],
+      ambiguos: [],
+    });
+  });
+
   it("separa trozos sin marca y con dos marcas distintas", () => {
     expect(parsearClasificacionDeCampanas("1111 2222, A 3333 L; #4444")).toEqual({
       asignaciones: [],
@@ -106,6 +125,17 @@ describe("proposito de campanas desde WhatsApp", () => {
     const respuesta = await POST(request(entrada("agenda 4521"), null));
     expect(respuesta.status).toBe(401);
     expect(await respuesta.text()).toBe("");
+  });
+
+  it("ignora un comentario sin escribir en pauta ni en la bitacora", async () => {
+    const campana = await crearCampana("comentario", "12345678909375", null);
+    const respuesta = await POST(request(entrada("el 9375 a qué se debe?")));
+
+    expect(respuesta.status).toBe(200);
+    expect(await respuesta.json()).toEqual({ texto: null });
+    expect((await db.select().from(pautaObjetos).where(eq(pautaObjetos.id, campana.id)))[0]?.proposito)
+      .toBeNull();
+    expect(await db.select().from(changeLog)).toHaveLength(0);
   });
 
   it("respeta el destino, registra whatsapp y no duplica un cambio real", async () => {

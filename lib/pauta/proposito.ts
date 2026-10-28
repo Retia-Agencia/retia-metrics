@@ -32,14 +32,24 @@ export function codigoCortoDeCampana(idMeta: string, idsDeTodasLasCampanas: read
   return idMeta;
 }
 
-export function parsearClasificacionDeCampanas(texto: string): ParseoDePropositos {
+export function parsearClasificacionDeCampanas(texto: string): ParseoDePropositos | null {
   const asignaciones = new Map<string, PropositoCampana>();
   const sinProposito: string[] = [];
   const ambiguos: string[][] = [];
-  for (const trozo of texto.toLocaleLowerCase("es-CO").split(/[,;·\n]+/)) {
-    const codigos = (trozo.match(/#?\d+/g) ?? []).map((codigo) => codigo.replace(/^#/, ""));
+  let tieneCodigos = false;
+  const trozos = texto.toLocaleLowerCase("es-CO").split(/[,;·\n]+/)
+    .map((trozo) => trozo.trim())
+    .filter(Boolean);
+  for (const trozo of trozos) {
+    const codigos: string[] = [];
+    const marcas: string[] = [];
+    for (const token of trozo.split(/\s+/)) {
+      if (/^#?\d{4,}$/.test(token)) codigos.push(token.replace(/^#/, ""));
+      else if (/^(?:a|l|agenda|lanzamiento|lanz)$/.test(token)) marcas.push(token);
+      else return null;
+    }
     if (codigos.length === 0) continue;
-    const marcas = trozo.match(/\b(?:agenda|lanzamiento|lanz|a|l)\b/g) ?? [];
+    tieneCodigos = true;
     const propositos = new Set<PropositoCampana>(marcas.map((marca) =>
       marca === "agenda" || marca === "a" ? "agenda" : "lanzamiento"
     ));
@@ -51,6 +61,7 @@ export function parsearClasificacionDeCampanas(texto: string): ParseoDeProposito
     const [proposito] = propositos;
     for (const codigo of codigos) asignaciones.set(codigo, proposito);
   }
+  if (!tieneCodigos) return null;
   return {
     asignaciones: [...asignaciones].map(([codigo, valor]) => ({ codigo, proposito: valor })),
     sinProposito,
@@ -69,8 +80,9 @@ export async function clasificarCampanas(
     destino: string | null;
     autor: { nombre: string | null; telefono: string | null };
   },
-): Promise<string> {
+): Promise<string | null> {
   const parseo = parsearClasificacionDeCampanas(args.texto);
+  if (parseo === null) return null;
   if (parseo.asignaciones.length === 0) {
     const avisos = parseo.sinProposito.map((codigo) => `⚠️ ${codigo} necesita agenda o lanzamiento`);
     avisos.push(...parseo.ambiguos.map((codigos) => `⚠️ ${codigos.join(" ")}: pon solo A o L`));
