@@ -42,10 +42,10 @@ const insights = {
   data: [
     { ad_id: "ad-1", spend: "10.25", date_start: "2026-10-14", conversions: [
       { action_type: "offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled", value: "2" },
-    ] },
+    ], actions: [{ action_type: "offsite_conversion.fb_pixel_complete_registration", value: "4" }] },
     { ad_id: "ad-2", spend: "2.25", date_start: "2026-10-14", conversions: [
       { action_type: "offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled", value: "1" },
-    ] },
+    ], actions: [{ action_type: "offsite_conversion.fb_pixel_complete_registration", value: "3" }] },
     { ad_id: "ad-3", spend: "7.00", date_start: "2026-10-14", conversions: [] },
     { ad_id: "ad-huerfano", spend: "4.00", date_start: "2026-10-14", conversions: [] },
   ],
@@ -154,10 +154,10 @@ describe("fotos de pauta del día en curso", () => {
     const fotos = await db.select().from(fotosPauta).orderBy(asc(fotosPauta.gasto));
 
     expect(resultado).toEqual({ estado: "ok", fotos: 2, omitidas: 1 });
-    expect(fotos.map(({ gasto, agendasMeta, moneda }) => ({ gasto, agendasMeta, moneda })))
+    expect(fotos.map(({ gasto, agendasMeta, registrosMeta, moneda }) => ({ gasto, agendasMeta, registrosMeta, moneda })))
       .toEqual([
-        { gasto: "7.00", agendasMeta: null, moneda: "COP" },
-        { gasto: "12.50", agendasMeta: 3, moneda: "COP" },
+        { gasto: "7.00", agendasMeta: null, registrosMeta: null, moneda: "COP" },
+        { gasto: "12.50", agendasMeta: 3, registrosMeta: 7, moneda: "COP" },
       ]);
   });
 
@@ -231,7 +231,7 @@ describe("fotos de pauta del día en curso", () => {
     const foto = await gastoAEstaHora(db, {
       campanaId: campana.id, fecha: "2026-10-13", hora: "11:00",
     });
-    expect(foto).toMatchObject({ gasto: "18.00", agendasMeta: 2 });
+    expect(foto).toMatchObject({ gasto: "18.00", agendasMeta: 2, registrosMeta: null });
     expect(await gastoAEstaHora(db, {
       campanaId: campana.id, fecha: "2026-10-12", hora: "11:00",
     })).toBeNull();

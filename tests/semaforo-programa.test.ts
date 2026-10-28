@@ -131,6 +131,7 @@ async function foto(args: {
   hora: string;
   gasto: number;
   agendasMeta?: number | null;
+  registrosMeta?: number | null;
   tomadaEn?: Date;
 }): Promise<void> {
   await db.insert(fotosPauta).values({
@@ -141,6 +142,7 @@ async function foto(args: {
     gasto: String(args.gasto),
     moneda: "COP",
     agendasMeta: args.agendasMeta === undefined ? 1 : args.agendasMeta,
+    registrosMeta: args.registrosMeta ?? null,
   });
 }
 
@@ -164,17 +166,42 @@ describe("semáforo del programa", () => {
       nivel: "campana", padreIdMeta: null, nombre: "Registro lanzamiento", estado: "ACTIVE",
       proposito: "lanzamiento",
     }).returning();
-    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 100000, agendasMeta: 2 });
-    await foto({ programId: p.programId, campanaId: lanzamiento.id, dia: "2026-10-16", hora: "11:00", gasto: 900000, agendasMeta: 0 });
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 100000, agendasMeta: 2, registrosMeta: 99 });
+    await foto({ programId: p.programId, campanaId: lanzamiento.id, dia: "2026-10-16", hora: "11:00", gasto: 900000, agendasMeta: 0, registrosMeta: 6 });
     const resultado = await costoPorAgenda(db, {
       programId: p.programId, dia: "2026-10-16", hasta: new Date("2026-10-16T11:05:00-05:00"),
     });
     expect(resultado).toMatchObject({ gasto: 100000, gastoTotal: 1000000, agendasMeta: 2, costo: 50000 });
     expect(resultado.campanas[0]).toMatchObject({ proposito: null, gasto: 100000 });
-    expect(resultado.lanzamiento).toMatchObject({ gasto: 900000, campanas: [{ codigo: "8830", proposito: "lanzamiento" }] });
+    expect(resultado.lanzamiento).toMatchObject({
+      gasto: 900000,
+      registrosMeta: 6,
+      costoPorRegistro: 150000,
+      campanas: [{ codigo: "8830", proposito: "lanzamiento", registrosMeta: 6, costoPorRegistro: 150000 }],
+    });
     // Exacto, no toMatchObject: una llave de más (el `id` interno) tumbó el semáforo del 27-oct.
     expect(Object.keys(resultado.lanzamiento.campanas[0]).sort())
       .toEqual(Object.keys(resultado.campanas[0]).sort());
+  });
+
+  it("distingue registros de lanzamiento ausentes de cero registros", async () => {
+    const p = await crearPrograma("registros-lanzamiento");
+    const [lanzamiento] = await db.insert(pautaObjetos).values({
+      cuentaId: p.cuentaId, programId: p.programId, idMeta: "campana-lanzamiento-4521",
+      nivel: "campana", padreIdMeta: null, nombre: "Lanzamiento", estado: "ACTIVE",
+      proposito: "lanzamiento",
+    }).returning();
+    await foto({ programId: p.programId, campanaId: lanzamiento.id, dia: "2026-10-16", hora: "10:00", gasto: 400000, registrosMeta: null });
+    const sinDato = await costoPorAgenda(db, {
+      programId: p.programId, dia: "2026-10-16", hasta: new Date("2026-10-16T10:05:00-05:00"),
+    });
+    expect(sinDato.lanzamiento).toMatchObject({ registrosMeta: null, costoPorRegistro: null });
+
+    await foto({ programId: p.programId, campanaId: lanzamiento.id, dia: "2026-10-16", hora: "11:00", gasto: 500000, registrosMeta: 0 });
+    const cero = await costoPorAgenda(db, {
+      programId: p.programId, dia: "2026-10-16", hasta: new Date("2026-10-16T11:05:00-05:00"),
+    });
+    expect(cero.lanzamiento).toMatchObject({ gasto: 500000, registrosMeta: 0, costoPorRegistro: null });
   });
 
   it("desglosa el día por campaña con la misma conversión y los mismos totales", async () => {

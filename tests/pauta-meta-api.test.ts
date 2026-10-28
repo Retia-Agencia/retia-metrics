@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { anunciosQueNecesitanCreativo, creativosDeAnuncios } from "@/lib/pauta/meta-api";
+import {
+  anunciosQueNecesitanCreativo,
+  creativosDeAnuncios,
+  insightsPorAnuncioYDia,
+} from "@/lib/pauta/meta-api";
 
 const TOKEN = "token-de-prueba";
 describe("creativos de Meta", () => {
@@ -57,5 +61,26 @@ describe("creativos de Meta", () => {
     expect((await creativosDeAnuncios("123", ["ad-1"], TOKEN, f)).get("ad-1")?.formato)
       .toBe("imagen");
     expect(limites).toEqual([50, 25]);
+  });
+});
+
+describe("insights de Meta", () => {
+  it("lee complete_registration de actions y conserva null cuando no viene", async () => {
+    const f = vi.fn(async (entrada: string | URL | Request) => {
+      const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
+      expect(url.searchParams.get("fields")).toContain("actions");
+      return Response.json({ data: [
+        { ad_id: "ad-1", spend: "10", date_start: "2026-10-14", actions: [
+          { action_type: "offsite_conversion.fb_pixel_complete_registration", value: "7" },
+        ] },
+        { ad_id: "ad-2", spend: "20", date_start: "2026-10-14", actions: [] },
+      ] });
+    }) as typeof globalThis.fetch;
+
+    expect(await insightsPorAnuncioYDia("123", "2026-10-14", "2026-10-14", TOKEN, f))
+      .toEqual([
+        { adId: "ad-1", monto: "10", fecha: "2026-10-14", agendas: null, registros: 7 },
+        { adId: "ad-2", monto: "20", fecha: "2026-10-14", agendas: null, registros: null },
+      ]);
   });
 });

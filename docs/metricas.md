@@ -202,6 +202,7 @@ cuenta por deal, no por llamada (ADR 0079). Por closer, cada deal va a quien tom
 |---|---|---|---|---|---|
 | Gasto | Σ gasto de las cuentas del programa (§1.6 y §1.7), convertido a COP con la TRM del día (§1.8) | COP | sí | `sumarEnCop` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
 | Costo por agenda | semáforo: gasto ÷ agendas según Meta; Hub: gasto ÷ agendas **del CRM** de área Paid (§3.3) | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` | ✅ |
+| CPL de lanzamiento | semáforo: gasto de campañas de lanzamiento ÷ registros según Meta (`complete_registration`) | COP | no | `costoPorAgenda` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
 | Agendas según Meta | §1.9 | agendas | sí | ídem | ✅ |
 | Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 | 🟡 |
 | CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 | 🟡 |

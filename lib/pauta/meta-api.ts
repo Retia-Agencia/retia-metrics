@@ -343,9 +343,12 @@ export interface InsightDeAnuncioMeta {
   monto: string;
   fecha: string;
   agendas: number | null;
+  registros: number | null;
 }
 
-/** Gasto y agendas reportados por Meta, con grano anuncio × día. */
+const ACCION_REGISTRO_COMPLETO = "offsite_conversion.fb_pixel_complete_registration";
+
+/** Gasto y conversiones reportados por Meta, con grano anuncio × día. */
 export async function insightsPorAnuncioYDia(
   idMeta: string,
   desde: string,
@@ -357,7 +360,7 @@ export async function insightsPorAnuncioYDia(
   url.searchParams.set("level", "ad");
   url.searchParams.set("time_increment", "1");
   url.searchParams.set("time_range", JSON.stringify({ since: desde, until: hasta }));
-  url.searchParams.set("fields", "ad_id,spend,date_start,conversions");
+  url.searchParams.set("fields", "ad_id,spend,date_start,conversions,actions");
   url.searchParams.set("limit", "500");
   const filas = await consultarPaginas<Record<string, unknown>>(url, token, f);
   return filas.map((fila) => {
@@ -375,6 +378,19 @@ export async function insightsPorAnuncioYDia(
     const valor = conversion && typeof conversion === "object"
       ? Number((conversion as { value?: unknown }).value)
       : Number.NaN;
-    return { adId, monto, fecha, agendas: Number.isFinite(valor) ? valor : null };
+    const accionRegistro = Array.isArray(fila.actions)
+      ? fila.actions.find((accion) => accion && typeof accion === "object" &&
+        (accion as { action_type?: unknown }).action_type === ACCION_REGISTRO_COMPLETO)
+      : undefined;
+    const registros = accionRegistro && typeof accionRegistro === "object"
+      ? Number((accionRegistro as { value?: unknown }).value)
+      : Number.NaN;
+    return {
+      adId,
+      monto,
+      fecha,
+      agendas: Number.isFinite(valor) ? valor : null,
+      registros: Number.isFinite(registros) ? registros : null,
+    };
   });
 }

@@ -1964,6 +1964,8 @@ export const gastoPauta = pgTable(
     monto: numeric("monto", { precision: 14, scale: 2 }).notNull(),
     moneda: text("moneda").notNull(),
     agendasMeta: integer("agendas_meta"),
+    /** Registros según el pixel de Meta (`complete_registration`): el denominador del CPL de lanzamiento. */
+    registrosMeta: integer("registros_meta"),
     origen: origenGastoEnum("origen").notNull(),
     pautaObjetoId: uuid("pauta_objeto_id").references(() => pautaObjetos.id, {
       onDelete: "restrict",
@@ -2061,6 +2063,8 @@ export const fotosPauta = pgTable(
     gasto: numeric("gasto", { precision: 14, scale: 2 }).notNull(),
     moneda: text("moneda").notNull(),
     agendasMeta: integer("agendas_meta"),
+    /** Registros según el pixel de Meta (`complete_registration`): el denominador del CPL de lanzamiento. */
+    registrosMeta: integer("registros_meta"),
   },
   (t) => [
     uniqueIndex("fotos_pauta_campana_tomada_idx").on(t.campanaId, t.tomadaEn),

@@ -131,9 +131,19 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
     : `${etiqueta}: sin foto`);
   if (metrica.lanzamiento.campanas.length > 0) {
-    lineas.push(`🚀 Lanzamiento: ${dinero(metrica.lanzamiento.gasto)}`);
+    const resumenRegistros = metrica.lanzamiento.registrosMeta === null
+      ? "registros Meta —"
+      : metrica.lanzamiento.registrosMeta === 0
+        ? "0 registros Meta · sin registros"
+        : `${num(metrica.lanzamiento.registrosMeta)} registros Meta · CPL ${dinero(metrica.lanzamiento.costoPorRegistro)}`;
+    lineas.push(`🚀 Lanzamiento: ${dinero(metrica.lanzamiento.gasto)} · ${resumenRegistros}`);
     for (const campana of metrica.lanzamiento.campanas) {
-      lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${dinero(campana.gasto)}`);
+      const registrosCampana = campana.registrosMeta === null
+        ? "— reg"
+        : campana.registrosMeta === 0
+          ? "0 reg · sin registros"
+          : `${num(campana.registrosMeta)} reg · ${dinero(campana.costoPorRegistro)} c/u`;
+      lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${dinero(campana.gasto)} · ${registrosCampana}`);
     }
     lineas.push(`Gasto total del programa: ${dinero(metrica.gastoTotal)}`);
   }
@@ -264,6 +274,6 @@ export function armarMensajeDeLaHora(
   if (bloques.some((bloque) => bloque.tipo === "dia")) {
     lineas.push("ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.");
   }
-  lineas.push("ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel); el lanzamiento va aparte. CRM = citas con UTM de pauta.");
+  lineas.push("ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel); el lanzamiento va aparte. CPL de lanzamiento = gasto de lanzamiento ÷ registros Meta (pixel). CRM = citas con UTM de pauta.");
   return lineas.join("\n");
 }

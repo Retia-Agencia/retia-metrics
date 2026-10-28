@@ -29,11 +29,11 @@ const METRICA: MetricaSemaforo = {
   ],
   racha: { color: "peligro", dias: 3 },
   campanas: [
-    { codigo: "1001", nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000, proposito: "agenda" },
-    { codigo: "1002", nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null, proposito: "agenda" },
-    { codigo: "1003", nombre: "Prospección amplia", gasto: 109860, agendasMeta: null, costo: null, proposito: "agenda" },
+    { codigo: "1001", nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
+    { codigo: "1002", nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
+    { codigo: "1003", nombre: "Prospección amplia", gasto: 109860, agendasMeta: null, costo: null, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
   ],
-  lanzamiento: { gasto: 0, campanas: [] },
+  lanzamiento: { gasto: 0, registrosMeta: null, costoPorRegistro: null, campanas: [] },
   gastoTotal: 609860,
   notas: [{ tipo: "problema", texto: "Creativo agotado" }],
 };
@@ -61,7 +61,9 @@ describe("mensaje del reporte por WhatsApp", () => {
         ],
         lanzamiento: {
           gasto: 322697,
-          campanas: [{ codigo: "5102", nombre: "Registro Lanzamiento", gasto: 322697, agendasMeta: 0, costo: null, proposito: "lanzamiento" }],
+          registrosMeta: 7,
+          costoPorRegistro: 46099.57142857143,
+          campanas: [{ codigo: "5102", nombre: "Registro Lanzamiento", gasto: 322697, agendasMeta: 0, costo: null, registrosMeta: 7, costoPorRegistro: 46099.57142857143, proposito: "lanzamiento" }],
         },
         gastoTotal: 932557,
       }],
@@ -73,7 +75,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       "👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:",
       "1001 A, 1002 L",
     ].join("\n"));
-    expect(mensaje).toContain("🚀 Lanzamiento: $322.697 COP\n• #5102 Registro Lanzamiento: $322.697 COP");
+    expect(mensaje).toContain("🚀 Lanzamiento: $322.697 COP · 7 registros Meta · CPL $46.100 COP\n• #5102 Registro Lanzamiento: $322.697 COP · 7 reg · $46.100 COP c/u");
     expect(mensaje).toContain("Gasto total del programa: $932.557 COP");
     const mensajeConUnaNueva = armarMensajeDeLaHora([{
       ...bloque(),
@@ -81,6 +83,43 @@ describe("mensaje del reporte por WhatsApp", () => {
     }], "09:00", null, ORIGEN);
     expect(mensajeConUnaNueva).toContain("por ejemplo:\n1001 A\n");
     expect(armarMensajeDeLaHora([bloque()], "09:00", null, ORIGEN)).not.toContain("🚀 Lanzamiento");
+  });
+
+  it("distingue lanzamiento sin dato de lanzamiento con cero registros", () => {
+    const campana = {
+      codigo: "5102",
+      nombre: "Registro Lanzamiento",
+      gasto: 322697,
+      agendasMeta: null,
+      costo: null,
+      registrosMeta: null,
+      costoPorRegistro: null,
+      proposito: "lanzamiento" as const,
+    };
+    const sinDato = armarMensajeDeLaHora([{
+      ...bloque(),
+      metricas: [{
+        ...METRICA,
+        lanzamiento: { gasto: 322697, registrosMeta: null, costoPorRegistro: null, campanas: [campana] },
+      }],
+    }], "09:00", null, ORIGEN);
+    expect(sinDato).toContain("🚀 Lanzamiento: $322.697 COP · registros Meta —");
+    expect(sinDato).toContain("• #5102 Registro Lanzamiento: $322.697 COP · — reg");
+
+    const conCero = armarMensajeDeLaHora([{
+      ...bloque(),
+      metricas: [{
+        ...METRICA,
+        lanzamiento: {
+          gasto: 322697,
+          registrosMeta: 0,
+          costoPorRegistro: null,
+          campanas: [{ ...campana, registrosMeta: 0 }],
+        },
+      }],
+    }], "09:00", null, ORIGEN);
+    expect(conCero).toContain("🚀 Lanzamiento: $322.697 COP · 0 registros Meta · sin registros");
+    expect(conCero).toContain("• #5102 Registro Lanzamiento: $322.697 COP · 0 reg · sin registros");
   });
 
   it("compacta umbral, gasto, ayer, rojo y problema en un bloque", () => {
@@ -102,7 +141,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       "",
       "CRM: https://crm.test",
       "ℹ️ Las agendas de hoy pueden seguir subiendo: Meta las cuenta el día en que la persona vio el anuncio, aunque agende después.",
-      "ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel); el lanzamiento va aparte. CRM = citas con UTM de pauta.",
+      "ℹ️ Costo por agenda = gasto de campañas de agenda ÷ agendas Meta (pixel); el lanzamiento va aparte. CPL de lanzamiento = gasto de lanzamiento ÷ registros Meta (pixel). CRM = citas con UTM de pauta.",
     ].join("\n"));
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
@@ -332,7 +371,7 @@ describe("nombres cortos de campaña", () => {
       enlaceHub: "https://crm.test/p/tactical/hub?seccion=pauta",
       metricas: [{
         ...METRICA,
-        campanas: [{ codigo: "1234", nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930, proposito: "agenda" }],
+        campanas: [{ codigo: "1234", nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" }],
       }],
       cuentasMeta: [],
       error: null,

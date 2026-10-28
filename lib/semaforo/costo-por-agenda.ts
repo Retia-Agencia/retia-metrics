@@ -18,6 +18,8 @@ export interface CampanaSemaforo {
   gasto: number;
   agendasMeta: number | null;
   costo: number | null;
+  registrosMeta: number | null;
+  costoPorRegistro: number | null;
   proposito: PropositoCampana | null;
 }
 
@@ -27,7 +29,12 @@ export interface CostoPorAgenda {
   agendasCrm: number;
   costo: number | null;
   campanas: CampanaSemaforo[];
-  lanzamiento: { gasto: number; campanas: CampanaSemaforo[] };
+  lanzamiento: {
+    gasto: number;
+    registrosMeta: number | null;
+    costoPorRegistro: number | null;
+    campanas: CampanaSemaforo[];
+  };
   gastoTotal: number;
   notas: NotaSemaforo[];
 }
@@ -37,6 +44,7 @@ type FilaDeGasto = {
   monto: string;
   moneda: string;
   agendasMeta: number | null;
+  registrosMeta: number | null;
   campanaId: string | null;
   campanaIdMeta: string | null;
   campanaNombre: string | null;
@@ -52,14 +60,16 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     nombre: string;
     gasto: number;
     agendasMeta: number | null;
+    registrosMeta: number | null;
     codigo: string | null;
     proposito: PropositoCampana | null;
   }>;
-  lanzamiento: { gasto: number; campanas: Array<{
+  lanzamiento: { gasto: number; registrosMeta: number | null; campanas: Array<{
     id: string;
     nombre: string;
     gasto: number;
     agendasMeta: number | null;
+    registrosMeta: number | null;
     codigo: string | null;
     proposito: PropositoCampana | null;
   }> };
@@ -70,6 +80,8 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   let gastoLanzamiento = 0;
   let agendasMeta = 0;
   let tieneAgendasMeta = false;
+  let registrosMetaLanzamiento = 0;
+  let tieneRegistrosMetaLanzamiento = false;
   const sinTrm = new Map<string, number>();
   const tasas = new Map<string, number | null>();
   const campanas = new Map<string, {
@@ -79,6 +91,8 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     gasto: number;
     agendasMeta: number;
     tieneAgendasMeta: boolean;
+    registrosMeta: number;
+    tieneRegistrosMeta: boolean;
   }>();
 
   for (const fila of filas) {
@@ -92,6 +106,8 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
       gasto: 0,
       agendasMeta: 0,
       tieneAgendasMeta: false,
+      registrosMeta: 0,
+      tieneRegistrosMeta: false,
     };
     let montoCop = 0;
     if (fila.moneda === "COP") {
@@ -119,6 +135,14 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
       campana.agendasMeta += fila.agendasMeta;
       campana.tieneAgendasMeta = true;
     }
+    if (fila.registrosMeta !== null) {
+      campana.registrosMeta += fila.registrosMeta;
+      campana.tieneRegistrosMeta = true;
+      if (esLanzamiento) {
+        registrosMetaLanzamiento += fila.registrosMeta;
+        tieneRegistrosMetaLanzamiento = true;
+      }
+    }
     campanas.set(claveCampana, campana);
   }
 
@@ -134,6 +158,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     nombre: campana.nombre,
     gasto: campana.gasto,
     agendasMeta: campana.tieneAgendasMeta ? campana.agendasMeta : null,
+    registrosMeta: campana.tieneRegistrosMeta ? campana.registrosMeta : null,
     codigo: campana.idMeta ? codigoCortoDeCampana(campana.idMeta, idsCampanas) : null,
     proposito: campana.proposito,
   }));
@@ -143,6 +168,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     campanas: todas.filter((campana) => campana.proposito !== "lanzamiento"),
     lanzamiento: {
       gasto: gastoLanzamiento,
+      registrosMeta: tieneRegistrosMetaLanzamiento ? registrosMetaLanzamiento : null,
       campanas: todas.filter((campana) => campana.proposito === "lanzamiento"),
     },
     notas,
@@ -202,6 +228,10 @@ function completar(
           gasto: campana.gasto,
           agendasMeta: agendas,
           costo: agendas !== null && agendas > 0 ? campana.gasto / agendas : null,
+          registrosMeta: campana.registrosMeta,
+          costoPorRegistro: campana.registrosMeta !== null && campana.registrosMeta > 0
+            ? campana.gasto / campana.registrosMeta
+            : null,
           proposito: campana.proposito,
         };
       })
@@ -209,6 +239,10 @@ function completar(
       .sort((a, b) => b.gasto - a.gasto),
     lanzamiento: {
       gasto: lanzamientoLeido.gasto,
+      registrosMeta: lanzamientoLeido.registrosMeta,
+      costoPorRegistro: lanzamientoLeido.registrosMeta !== null && lanzamientoLeido.registrosMeta > 0
+        ? lanzamientoLeido.gasto / lanzamientoLeido.registrosMeta
+        : null,
       // Campo por campo, como las de agenda: el `id` interno no sale (el contrato del semáforo es estricto).
       campanas: lanzamientoLeido.campanas.map((campana) => ({
         codigo: campana.codigo,
@@ -216,6 +250,10 @@ function completar(
         gasto: campana.gasto,
         agendasMeta: campana.agendasMeta,
         costo: null,
+        registrosMeta: campana.registrosMeta,
+        costoPorRegistro: campana.registrosMeta !== null && campana.registrosMeta > 0
+          ? campana.gasto / campana.registrosMeta
+          : null,
         proposito: campana.proposito,
       })).filter((campana) => campana.gasto > 0).sort((a, b) => b.gasto - a.gasto),
     },
@@ -233,6 +271,7 @@ async function costoDesdeFotos(
     monto: fotosPauta.gasto,
     moneda: fotosPauta.moneda,
     agendasMeta: fotosPauta.agendasMeta,
+    registrosMeta: fotosPauta.registrosMeta,
     campanaId: fotosPauta.campanaId,
     campanaIdMeta: pautaObjetos.idMeta,
     campanaNombre: pautaObjetos.nombre,
@@ -284,6 +323,7 @@ export async function costoPorAgendaDeVentana(
     monto: gastoPauta.monto,
     moneda: gastoPauta.moneda,
     agendasMeta: gastoPauta.agendasMeta,
+    registrosMeta: gastoPauta.registrosMeta,
     pautaObjetoId: gastoPauta.pautaObjetoId,
   }).from(gastoPauta).where(and(
     eq(gastoPauta.programId, args.programId),

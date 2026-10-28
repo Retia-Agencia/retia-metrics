@@ -11,7 +11,7 @@ function datos(gasto: number, agendasMeta: number | null, agendasCrm = 0): Costo
     agendasCrm,
     costo: agendasMeta !== null && agendasMeta > 0 ? gasto / agendasMeta : null,
     campanas: [],
-    lanzamiento: { gasto: 0, campanas: [] },
+    lanzamiento: { gasto: 0, registrosMeta: null, costoPorRegistro: null, campanas: [] },
     gastoTotal: gasto,
     notas: [],
   };

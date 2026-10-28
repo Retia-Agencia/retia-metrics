@@ -395,7 +395,7 @@ const LLAVES_PERMITIDAS = new Set([
   "horaCierre", "metrica", "color", "motivo", "moneda", "gasto", "agendasCrm", "costo",
   "umbral", "meta", "aceptable", "porcentajeDelUmbral", "comparacion", "dia", "etiqueta",
   "trayectoria", "racha", "dias", "agendasMeta", "campanas", "nombre", "notas", "texto", "destino",
-  "codigo", "proposito", "lanzamiento", "gastoTotal",
+  "codigo", "proposito", "lanzamiento", "gastoTotal", "registrosMeta", "costoPorRegistro",
   "trazaRota", "fuente", "pagos", "pagosSinId", "pagosSinFbclid", "sinId", "fbclidRoto",
 ]);
 

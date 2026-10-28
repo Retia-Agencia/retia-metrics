@@ -83,7 +83,7 @@ describe("sincronización de pauta", () => {
     await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(ajustados) });
     const gastos = await db.select().from(gastoPauta);
     expect(gastos).toHaveLength(1);
-    expect(gastos[0]).toMatchObject({ monto: "135.25", agendasMeta: 4, programId });
+    expect(gastos[0]).toMatchObject({ monto: "135.25", agendasMeta: 4, registrosMeta: 8, programId });
   });
 
   it("una segunda corrida sin cambios conserva el formato y no vuelve a pedir el creativo", async () => {
@@ -222,6 +222,6 @@ describe("sincronización de pauta", () => {
     await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f: fetchMeta(vacios) });
     const gastos = await db.select().from(gastoPauta);
     expect(gastos).toHaveLength(1);
-    expect(gastos[0]).toMatchObject({ monto: "0.00", agendasMeta: null, programId });
+    expect(gastos[0]).toMatchObject({ monto: "0.00", agendasMeta: null, registrosMeta: null, programId });
   });
 });

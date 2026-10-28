@@ -1,6 +1,6 @@
 {
   "data": [
-    { "ad_id": "ad-1", "spend": "120.50", "date_start": "2026-10-14", "conversions": [{ "action_type": "offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled", "value": "3" }] },
+    { "ad_id": "ad-1", "spend": "120.50", "date_start": "2026-10-14", "conversions": [{ "action_type": "offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled", "value": "3" }], "actions": [{ "action_type": "offsite_conversion.fb_pixel_complete_registration", "value": "5" }] },
     { "ad_id": "ad-externo", "spend": "999.00", "date_start": "2026-10-14", "conversions": [] }
   ]
 }

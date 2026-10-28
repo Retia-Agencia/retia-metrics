@@ -11,6 +11,7 @@ export const esquemaGastoPauta = z.object({
   monto: z.string().regex(/^\d+(\.\d{1,2})?$/),
   moneda: z.string().regex(/^[A-Za-z]{3}$/).transform((moneda) => moneda.toUpperCase()),
   agendasMeta: z.number().int().min(0).nullable().optional(),
+  registrosMeta: z.number().int().min(0).nullable().optional(),
   origen: z.enum(["meta_api", "manual"]),
   pautaObjetoId: z.string().uuid().nullable().optional(),
   area: z.enum(["paid", "organico", "referidos"]).nullable().optional(),
@@ -45,6 +46,7 @@ export async function registrarGasto(db: Db, entradas: EntradaGastoPauta[]): Pro
       set: {
         monto: sql`excluded.monto`,
         agendasMeta: sql`excluded.agendas_meta`,
+        registrosMeta: sql`excluded.registros_meta`,
         moneda: sql`excluded.moneda`,
         actualizadoEn: sql`now()`,
       },

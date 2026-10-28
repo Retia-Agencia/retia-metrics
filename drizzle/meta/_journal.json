@@ -722,6 +722,13 @@
       "when": 1793065278637,
       "tag": "0102_campanas-agenda-lanzamiento",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1793228344996,
+      "tag": "0103_registros-meta",
+      "breakpoints": true
     }
   ]
 }

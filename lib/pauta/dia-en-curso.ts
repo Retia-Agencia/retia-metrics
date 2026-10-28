@@ -34,6 +34,8 @@ type AcumuladoCampana = {
   moneda: string;
   agendasMeta: number;
   tieneAgendas: boolean;
+  registrosMeta: number;
+  tieneRegistros: boolean;
 };
 
 function centavos(monto: string): number {
@@ -87,6 +89,7 @@ export async function sincronizarDiaEnCurso(
           monto: gastoPauta.monto,
           moneda: gastoPauta.moneda,
           agendasMeta: gastoPauta.agendasMeta,
+          registrosMeta: gastoPauta.registrosMeta,
         }).from(gastoPauta).where(and(
           eq(gastoPauta.fecha, hoy),
           eq(gastoPauta.origen, "meta_api"),
@@ -123,11 +126,17 @@ export async function sincronizarDiaEnCurso(
           moneda: gasto.moneda,
           agendasMeta: 0,
           tieneAgendas: false,
+          registrosMeta: 0,
+          tieneRegistros: false,
         };
         acumulado.gastoCentavos += centavos(gasto.monto);
         if (gasto.agendasMeta !== null) {
           acumulado.agendasMeta += gasto.agendasMeta;
           acumulado.tieneAgendas = true;
+        }
+        if (gasto.registrosMeta !== null) {
+          acumulado.registrosMeta += gasto.registrosMeta;
+          acumulado.tieneRegistros = true;
         }
         acumulados.set(campana.id, acumulado);
       }
@@ -140,6 +149,7 @@ export async function sincronizarDiaEnCurso(
         gasto: (acumulado.gastoCentavos / 100).toFixed(2),
         moneda: acumulado.moneda,
         agendasMeta: acumulado.tieneAgendas ? acumulado.agendasMeta : null,
+        registrosMeta: acumulado.tieneRegistros ? acumulado.registrosMeta : null,
       }));
       for (let i = 0; i < fotos.length; i += LOTE) {
         await transaccion.insert(fotosPauta).values(fotos.slice(i, i + LOTE));
@@ -159,13 +169,14 @@ export async function sincronizarDiaEnCurso(
 export async function gastoAEstaHora(
   db: Db,
   args: { campanaId: string; fecha: string; hora: `${number}${number}:${number}${number}` },
-): Promise<{ gasto: string; moneda: string; agendasMeta: number | null; tomadaEn: Date } | null> {
+): Promise<{ gasto: string; moneda: string; agendasMeta: number | null; registrosMeta: number | null; tomadaEn: Date } | null> {
   const instante = instanteDeBogota(args.fecha, args.hora);
   if (!instante) return null;
   const [foto] = await db.select({
     gasto: fotosPauta.gasto,
     moneda: fotosPauta.moneda,
     agendasMeta: fotosPauta.agendasMeta,
+    registrosMeta: fotosPauta.registrosMeta,
     tomadaEn: fotosPauta.tomadaEn,
   }).from(fotosPauta).where(and(
     eq(fotosPauta.campanaId, args.campanaId),
