@@ -86,7 +86,8 @@ Gasto total del programa: $896.923 COP
 - **CRM:** `POST /api/semaforo/clasificar`, mismo secreto que `/api/semaforo/envios` (`x-semaforo-secreto`, tiempo
   constante, 401 sin cuerpo). Cuerpo validado con zod:
   `{ texto: string, destino: string | null, autor: { nombre: string | null, telefono: string | null } }`.
-  Devuelve `{ texto }`, la respuesta que Juanito manda tal cual. **El parseo vive en el CRM**, igual que el texto del
+  Devuelve `{ texto }`, la respuesta que Juanito manda tal cual, o `{ texto: null }` si el mensaje no es una
+  clasificación (enmienda del 28-oct). **El parseo vive en el CRM**, igual que el texto del
   semáforo (267): Juanito no interpreta nada.
 - **Frontera de programa:** un código solo se busca en los programas cuyo reporte de WhatsApp va a ese `destino`
   (nulo = el grupo por defecto). Desde el grupo de SBJ no se puede clasificar una campaña de Retia.
@@ -94,6 +95,13 @@ Gasto total del programa: $896.923 COP
   números que los siguen. Separadores libres: comas, espacios, saltos de línea, `#`.
   `agenda 4521 7731, lanzamiento 8830` · `a 4521 l 8830`. Un número antes de cualquier palabra, o un código que no
   existe o es ambiguo, se reporta sin abortar los demás.
+  **Enmienda del 28-oct (formato estricto):** cada palabra del mensaje tiene que ser un código de 4 o más dígitos
+  (`#` opcional) o una marca (`a`, `l`, `agenda`, `lanzamiento`, `lanz`). Si sobra cualquier otra cosa (una palabra,
+  una mención `@id`, un número corto), el mensaje **no es una clasificación**: el endpoint responde `{ texto: null }`
+  sin tocar la base y Juanito no contesta. 🩸 El 28-oct un comentario de Daniel que citaba el semáforo y mencionaba a
+  César pasó como clasificación (la mención es un número largo y la preposición "a" coincidía con la marca) y Juanito
+  respondió "No encontré 250 / No encontré 159459485712556"; con un código real, "el 9375 a qué se debe?" habría
+  marcado la campaña como agenda sin error.
 - **Respuesta:** `✅ Posts IG Rosario → Agenda · Invite · Collab → Lanzamiento. Cuenta desde el próximo semáforo.`
   más una línea `⚠️ No encontré 9999` si aplica. Si no reconoce nada, explica el formato en una línea.
 - **Rastro:** cada cambio va a `change_log` en la misma transacción, con el valor viejo y el nuevo
@@ -102,7 +110,9 @@ Gasto total del programa: $896.923 COP
 - **Juanito** (repo `30X/repos/Juanito`, otro ticket allá): en un grupo de semáforo (`RETIA_SEMAFORO_GRUPO` o un
   `destino` de la última configuración), si el mensaje **cita** un texto que contiene `🆕 Campañas nuevas` o un
   código `#NNNN`, manda el texto al endpoint con el destino y el autor y responde citando con el `texto` que vuelve.
-  Si el CRM no responde: "No pude guardar la clasificación, inténtalo en un rato".
+  Desde el 28-oct Juanito ya no filtra el texto: reenvía toda respuesta que cite el semáforo, contesta solo si vuelve
+  un `texto` y calla con `null`. Si el CRM no responde, lo loguea y no contesta (ya no puede saber si era una
+  clasificación).
 
 ## Fuera
 

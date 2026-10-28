@@ -252,7 +252,8 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   semaforo ya calculado, sin un solo nombre, correo, telefono ni id de lead. Con el mismo secreto,
   **`POST /api/semaforo/clasificar`** (ticket 314): Juanito le reenvia la respuesta del grupo ("4521 A, 8830 L") y
   el CRM marca esas campañas como agenda o lanzamiento, solo en los programas que reportan a ese grupo, con rastro
-  en `change_log` (origen `whatsapp`).
+  en `change_log` (origen `whatsapp`). Solo con el formato exacto (codigos y A/L, nada mas); cualquier otro texto
+  responde `{ texto: null }` y Juanito calla (28-oct).
 - **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
   opacos, nunca correos.
 - **Secretos solo en `.env.local` y en Vercel.** Nunca en el repo, nunca abiertos en un editor

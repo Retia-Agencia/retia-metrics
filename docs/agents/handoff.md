@@ -27,6 +27,17 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-28: 314, clasificar por WhatsApp solo con el formato exacto.** En Alertas Paid Media, Daniel citó el
+  semáforo de las 14:00 mencionando a César y Juanito respondió "No encontré 250 / No encontré 159459485712556". Causa:
+  los dos filtros eran laxos. Juanito pedía un número de 4+ dígitos (la mención `@159459485712556` lo es) y
+  `\b[al]\b` (la preposición "a"); el parser del CRM sacaba todo número y toda "a" suelta. Sin código real no escribió
+  nada, pero "el 9375 a qué se debe?" habría marcado la 9375 como agenda sin error. **Decisión:** la regla vive solo en
+  el CRM (`parsearClasificacionDeCampanas`, `lib/pauta/proposito.ts`): cada palabra es un código o una marca, si no
+  devuelve `null` y el endpoint responde `{ texto: null }` sin tocar la base. Juanito (§18.DJ, rama
+  `fix/clasificar-formato-estricto`) ya no filtra: reenvía toda respuesta que cite el semáforo y calla con `null` o si el
+  CRM falla (ya no dice "No pude guardar"). Despliegue en ese orden: CRM primero (el Juanito viejo con el CRM nuevo solo
+  arriesga un "No pude guardar" a un comentario; al revés, el CRM viejo le explicaría el formato a cada comentario).
+  Tests: `tests/proposito-campanas.test.ts` 8/8, Juanito `test/semaforo-retia.test.js` 16/16. Falta el checkpoint.
 - **2026-10-26 (noche): 314 en producción, campañas de agenda y de lanzamiento en el semáforo.** Pedido de Alejo en
   Alertas Paid Media ("mejor aparte"): el lanzamiento busca registros y le inflaba el costo por agenda a Comunicarte
   y Tactical. Meta no las distingue (las 10 activas son `OUTCOME_LEADS`), así que la clasificación es un dato por
