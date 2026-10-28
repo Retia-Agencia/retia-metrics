@@ -37,7 +37,8 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   `fix/clasificar-formato-estricto`) ya no filtra: reenvía toda respuesta que cite el semáforo y calla con `null` o si el
   CRM falla (ya no dice "No pude guardar"). Despliegue en ese orden: CRM primero (el Juanito viejo con el CRM nuevo solo
   arriesga un "No pude guardar" a un comentario; al revés, el CRM viejo le explicaría el formato a cada comentario).
-  Tests: `tests/proposito-campanas.test.ts` 8/8, Juanito `test/semaforo-retia.test.js` 16/16. Falta el checkpoint.
+  Tests: `tests/proposito-campanas.test.ts` 8/8, Juanito `test/semaforo-retia.test.js` 16/16. **Desplegado el 28-oct:**
+  CRM `103b43e6` (Vercel Ready), Juanito PR #55 → `56db266`, `deploy.yml` `alcance: todo` verde. Falta el checkpoint.
 - **2026-10-26 (noche): 314 en producción, campañas de agenda y de lanzamiento en el semáforo.** Pedido de Alejo en
   Alertas Paid Media ("mejor aparte"): el lanzamiento busca registros y le inflaba el costo por agenda a Comunicarte
   y Tactical. Meta no las distingue (las 10 activas son `OUTCOME_LEADS`), así que la clasificación es un dato por
