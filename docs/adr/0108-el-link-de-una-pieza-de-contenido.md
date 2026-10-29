@@ -21,7 +21,7 @@ sin error.
 
    | Parámetro | Valor |
    |---|---|
-   | `utm_source` | la red de la pieza (`instagram`, `tiktok`...), dato de la pieza |
+   | `utm_source` | la red de la pieza (`instagram`, `tiktok`...); en un link fijo sin red, la constante `creador` |
    | `utm_medium` | `contenido`, **constante del código** (`UTM_MEDIUM_CONTENIDO`, junto a `UTM_MEDIUM_REFERIDO`), porque el emparejador decide con ella |
    | `utm_campaign` | legible: `<tipo>_<creador>_<aaaammdd>` (o `<tipo>_<creador>` en una pieza permanente), armado con los slugs de los catálogos |
    | `utm_content` | el **código opaco de la pieza**; lo lee solo el emparejador, solo con `utm_medium=contenido` |

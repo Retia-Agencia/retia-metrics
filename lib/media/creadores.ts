@@ -10,7 +10,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { trabajaContenido } from "@/lib/auth/roles";
 import { sanearUtm } from "@/lib/atribucion/sanear-utm";
 import { vigente } from "@/lib/queries/vigente";
-import { crearPieza, exigirAccesoAlCreador, type ActorDeMedia } from "./piezas";
+import { crearLinkFijoDeCreador, exigirAccesoAlCreador, type ActorDeMedia } from "./piezas";
 
 /**
  * Crear y editar creadores con la reja de media (ticket 316, ADR 0107 y 0110). El molde de
@@ -87,9 +87,9 @@ export async function editarCreador(actor: ActorDeMedia, id: string, entrada: En
         );
         // Sin programa nuevo no hay link: el creador queda con su pipeline y sin permanente.
         if (datos.programId) {
-          await crearPieza(
+          await crearLinkFijoDeCreador(
             actor,
-            { creadorId: id, nombre: vieja.nombre, tipoId: vieja.tipoId, red: vieja.red as never, cta: vieja.cta, permanente: true },
+            { creadorId: id, tipoId: vieja.tipoId, red: vieja.red as never },
             tx,
           );
         }

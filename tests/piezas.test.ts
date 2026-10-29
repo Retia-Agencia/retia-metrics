@@ -8,6 +8,7 @@ import { origenDelPrograma } from "@/lib/queries/origen";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import {
   crearPieza,
+  crearLinkFijoDeCreador,
   descartarPieza,
   editarPieza,
   generarCodigoDePieza,
@@ -17,7 +18,7 @@ import {
   type ActorDeMedia,
 } from "@/lib/media/piezas";
 import { campanaDePieza, linkDePieza, linkFijoDelCreador } from "@/lib/atribucion/link-de-pieza";
-import { resolverCanal, UTM_MEDIUM_CONTENIDO } from "@/lib/atribucion/canal";
+import { resolverCanal, UTM_MEDIUM_CONTENIDO, UTM_SOURCE_CREADOR } from "@/lib/atribucion/canal";
 import { emparejar, ARBOL_VACIO, type PiezasDelPrograma } from "@/lib/atribucion/emparejar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -115,20 +116,25 @@ describe("316: crear y editar piezas", () => {
     expect(q.nombre).toBe("Otro nombre");
   });
 
-  it("CHECK: o fecha o permanente, ni ambas ni ninguna (400 desde el esquema, y la base lo rechaza igual)", async () => {
-    await expect(crearPieza(media, entrada({ fechaPublicacion: null, permanente: false }))).rejects.toMatchObject({ status: 400 });
+  it("una pieza normal sin fecha o con permanente=true se rechaza", async () => {
+    await expect(crearPieza(media, entrada({ fechaPublicacion: undefined }))).rejects.toMatchObject({ status: 400 });
     await expect(crearPieza(media, entrada({ permanente: true }))).rejects.toMatchObject({ status: 400 });
     await expect(
       db.insert(piezas).values({ nombre: "Reel", creadorId: creadorConPrograma, tipoId, red: "instagram", codigo: "zzzzzzzz", permanente: true, fechaPublicacion: "2026-10-30" }),
     ).rejects.toThrow();
   });
 
-  it("una permanente activa por creador y red: la segunda es 409, otra red o descartar la primera si pasan", async () => {
-    const p1 = await crearPieza(media, entrada({ fechaPublicacion: null, permanente: true }));
-    await expect(crearPieza(media, entrada({ fechaPublicacion: null, permanente: true }))).rejects.toMatchObject({ status: 409 });
-    await crearPieza(media, entrada({ fechaPublicacion: null, permanente: true, red: "tiktok" }));
-    await descartarPieza(media, p1, "duplicada");
-    await expect(crearPieza(media, entrada({ fechaPublicacion: null, permanente: true }))).resolves.toBeTruthy();
+  it("acepta un link fijo por red y uno sin red; la segunda de cada uno es 409", async () => {
+    const conRed = { creadorId: creadorConPrograma, tipoId, red: "instagram" as const };
+    const sinRed = { creadorId: creadorConPrograma, tipoId, red: null };
+    const conRedId = await crearLinkFijoDeCreador(media, conRed);
+    await expect(crearLinkFijoDeCreador(media, conRed)).rejects.toMatchObject({ status: 409 });
+    const sinRedId = await crearLinkFijoDeCreador(media, sinRed);
+    await expect(crearLinkFijoDeCreador(media, sinRed)).rejects.toMatchObject({ status: 409 });
+    const fijos = await db.select().from(piezas).where(eq(piezas.creadorId, creadorConPrograma));
+    expect(fijos.find((p) => p.id === conRedId)?.nombre).toBe("Link fijo de Ana · instagram");
+    expect(fijos.find((p) => p.id === sinRedId)?.nombre).toBe("Link fijo de Ana · sin red");
+    await expect(editarPieza(media, conRedId, entrada())).rejects.toMatchObject({ status: 422 });
   });
 
   it("marcar publicada es idempotente y editar no cambia creador ni programa", async () => {
@@ -218,11 +224,26 @@ describe("317: el link de la pieza", () => {
     expect(traza.avisos).toEqual([]);
   });
 
-  it("el link fijo del creador sale de su pieza permanente; sin ella, 404", async () => {
-    await expect(linkFijoDelCreador(db, creadorConPrograma, "instagram")).rejects.toMatchObject({ status: 404 });
-    await crearPieza(media, entrada({ fechaPublicacion: null, permanente: true }));
-    const link = await linkFijoDelCreador(db, creadorConPrograma, "instagram");
+  it("el link fijo sin red usa source=creador y su codigo resuelve a la pieza", async () => {
+    await expect(linkFijoDelCreador(db, creadorConPrograma, null)).rejects.toMatchObject({ status: 404 });
+    const id = await crearLinkFijoDeCreador(media, { creadorId: creadorConPrograma, tipoId, red: null });
+    const link = await linkFijoDelCreador(db, creadorConPrograma, null);
+    const url = new URL(link);
+    expect(url.searchParams.get("utm_source")).toBe(UTM_SOURCE_CREADOR);
+    expect(url.searchParams.get("utm_medium")).toBe(UTM_MEDIUM_CONTENIDO);
     expect(new URL(link).searchParams.get("utm_campaign")).toBe("reel_ana");
+    const [p] = await db.select().from(piezas).where(eq(piezas.id, id));
+    const q = (llave: string) => url.searchParams.get(llave);
+    const utms = {
+      fbclid: null, source: q("utm_source"), medium: q("utm_medium"), campaign: q("utm_campaign"),
+      content: q("utm_content"), term: q("utm_term"), id: q("utm_id"), idsMeta: { adId: null, adsetId: null, campaignId: null },
+    };
+    const traza = emparejar(utms, ARBOL_VACIO, {
+      programId: programA,
+      piezas: [{ id: p.id, codigo: p.codigo, creadorId: p.creadorId, programId: p.programId, anulada: false }],
+    });
+    expect(traza.pieza).toEqual({ piezaId: p.id, creadorId: p.creadorId });
+    expect(traza.avisos).toEqual([]);
   });
 
   it("pieza de un creador sin programa: sin link y con el porque (422)", async () => {
@@ -294,7 +315,7 @@ describe("316: crear y editar creadores con la reja de media", () => {
   });
 
   it("al asignarle programa a un creador sin programa, su permanente se relevo en la misma operacion y con rastro", async () => {
-    const vieja = await crearPieza(media, entrada({ creadorId: creadorSinPrograma, fechaPublicacion: null, permanente: true }));
+    const vieja = await crearLinkFijoDeCreador(media, { creadorId: creadorSinPrograma, tipoId, red: "instagram" });
     const [v0] = await db.select().from(piezas).where(eq(piezas.id, vieja));
     expect(v0.programId).toBeNull();
     await expect(linkFijoDelCreador(db, creadorSinPrograma, "instagram")).rejects.toMatchObject({ status: 422 });
@@ -317,7 +338,7 @@ describe("316: crear y editar creadores con la reja de media", () => {
   });
 
   it("al cambiar de programa la permanente se muda; al quedar sin programa se descarta y no se recrea", async () => {
-    await crearPieza(media, entrada({ fechaPublicacion: null, permanente: true }));
+    await crearLinkFijoDeCreador(media, { creadorId: creadorConPrograma, tipoId, red: "instagram" });
     await editarCreador(media, creadorConPrograma, { nombre: "Ana", slug: "ana", programId: programB });
     let vivas = (await db.select().from(piezas).where(eq(piezas.creadorId, creadorConPrograma))).filter((p) => p.permanente && !p.anuladoEn);
     expect(vivas).toHaveLength(1);
@@ -328,7 +349,7 @@ describe("316: crear y editar creadores con la reja de media", () => {
   });
 
   it("editar sin cambiar de programa no toca las piezas", async () => {
-    const id = await crearPieza(media, entrada({ fechaPublicacion: null, permanente: true }));
+    const id = await crearLinkFijoDeCreador(media, { creadorId: creadorConPrograma, tipoId, red: "instagram" });
     await editarCreador(media, creadorConPrograma, { nombre: "Ana Maria", slug: "ana", programId: programA });
     const [p] = await db.select().from(piezas).where(eq(piezas.id, id));
     expect(p.anuladoEn).toBeNull();

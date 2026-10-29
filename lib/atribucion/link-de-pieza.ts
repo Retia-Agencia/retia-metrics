@@ -1,9 +1,9 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { creadores, piezas, tiposPieza } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
-import { UTM_MEDIUM_CONTENIDO } from "./canal";
+import { UTM_MEDIUM_CONTENIDO, UTM_SOURCE_CREADOR } from "./canal";
 import { campanaDePieza } from "./campana-de-pieza";
 import { destinoDeCaptacion, generarLink } from "./link-de-captacion";
 
@@ -18,7 +18,7 @@ export const SIN_PROGRAMA_SIN_LINK =
  * organico y el closer (`generarLink`), sobre la fuente principal del programa de la pieza.
  * Derivado, nunca guardado (ADR 0024): cambiar la fuente cambia todos los links sin migrar.
  *
- *  - `utm_source` = la red de la pieza · `utm_medium` = `contenido` (constante del codigo)
+ *  - `utm_source` = la red de la pieza, o `creador` en un link fijo sin red
  *  - `utm_campaign` = `<tipo>_<creador>_<aaaammdd>` (o `<tipo>_<creador>` si es permanente)
  *  - `utm_content` = el codigo opaco de la pieza; solo lo lee el emparejador, con ese medio.
  */
@@ -44,7 +44,7 @@ export async function linkDePieza(db: Db, piezaId: string): Promise<string> {
   if (!fila.programId) throw new ErrorDeApp(SIN_PROGRAMA_SIN_LINK, 422);
   const destino = await destinoDeCaptacion(db, fila.programId);
   return generarLink(destino.url, {
-    source: fila.red,
+    source: fila.red ?? UTM_SOURCE_CREADOR,
     medium: UTM_MEDIUM_CONTENIDO,
     campaign: campanaDePieza({ tipo: fila.tipo, creadorSlug: fila.slug, fechaPublicacion: fila.fecha, permanente: fila.permanente }),
     content: fila.codigo,
@@ -52,11 +52,16 @@ export async function linkDePieza(db: Db, piezaId: string): Promise<string> {
 }
 
 /** El link fijo del creador: el de su pieza permanente viva en esa red. */
-export async function linkFijoDelCreador(db: Db, creadorId: string, red: string): Promise<string> {
+export async function linkFijoDelCreador(db: Db, creadorId: string, red: string | null): Promise<string> {
   const [fija] = await db
     .select({ id: piezas.id })
     .from(piezas)
-    .where(and(eq(piezas.creadorId, creadorId), eq(piezas.red, red), eq(piezas.permanente, true), vigente(piezas)));
-  if (!fija) throw new ErrorDeApp("Este creador no tiene pieza permanente en esa red.", 404);
+    .where(and(
+      eq(piezas.creadorId, creadorId),
+      red === null ? isNull(piezas.red) : eq(piezas.red, red),
+      eq(piezas.permanente, true),
+      vigente(piezas),
+    ));
+  if (!fija) throw new ErrorDeApp(`Este creador no tiene link fijo ${red ?? "sin red"}.`, 404);
   return linkDePieza(db, fija.id);
 }

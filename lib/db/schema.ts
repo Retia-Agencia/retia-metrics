@@ -1717,8 +1717,11 @@ export const piezas = pgTable(
     tipoId: uuid("tipo_id").notNull().references(() => tiposPieza.id, { onDelete: "restrict" }),
     /** El nombre que le pone media para reconocerla ("Reel de la objeción del precio"). Solo se muestra: no viaja en el UTM. */
     nombre: text("nombre").notNull(),
-    /** La red (`instagram`, `tiktok`...): viaja como `utm_source`. Lista cerrada en `lib/media/redes.ts`. */
-    red: text("red").notNull(),
+    /**
+     * La red (`instagram`, `tiktok`...): viaja como `utm_source`. Lista cerrada en `lib/media/redes.ts`.
+     * Nula SOLO en la permanente "sin red" del creador (un link para cualquier red, que media elige).
+     */
+    red: text("red"),
     cta: text("cta"),
     fechaPublicacion: date("fecha_publicacion"),
     permanente: boolean("permanente").notNull().default(false),
@@ -1732,13 +1735,14 @@ export const piezas = pgTable(
   },
   (t) => [
     uniqueIndex("piezas_codigo_idx").on(t.codigo),
-    // Una permanente activa por creador y red (ADR 0110 punto 4).
+    // Una permanente activa por creador y red, y una "sin red" (red nula) por creador (ADR 0110 punto 4, enmendado).
     uniqueIndex("piezas_permanente_idx")
-      .on(t.creadorId, t.red)
+      .on(t.creadorId, sql`coalesce(${t.red}, '')`)
       .where(sql`${t.permanente} AND ${t.anuladoEn} IS NULL`),
     index("piezas_programa_idx").on(t.programId),
     index("piezas_creador_idx").on(t.creadorId),
     check("piezas_fecha_o_permanente", sql`(${t.fechaPublicacion} IS NOT NULL) <> ${t.permanente}`),
+    check("piezas_red_o_permanente", sql`${t.red} IS NOT NULL OR ${t.permanente}`),
   ],
 );
 

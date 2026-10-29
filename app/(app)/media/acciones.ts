@@ -10,12 +10,14 @@ import { ErrorDeApp } from "@/lib/errors";
 import { crearCreador, crearTipoDePieza, editarCreador, type EntradaNuevoCreador } from "@/lib/media/creadores";
 import {
   crearPieza,
+  crearLinkFijoDeCreador,
   descartarPieza,
   editarPieza,
   linkDeLaPieza,
   marcarPublicada,
   type ActorDeMedia,
   type EdicionPieza,
+  type EntradaLinkFijo,
   type EntradaPieza,
 } from "@/lib/media/piezas";
 import { desglosarLink } from "@/lib/atribucion/parametros-de-contenido";
@@ -85,6 +87,9 @@ export async function crearPiezaAccion(entrada: EntradaPieza): Promise<Resultado
   } catch (error) {
     return aResultado(error);
   }
+}
+export async function crearLinkFijoAccion(entrada: EntradaLinkFijo): Promise<ResultadoAccion> {
+  return ejecutar((a) => crearLinkFijoDeCreador(a, entrada, db));
 }
 export async function editarPiezaAccion(id: string, entrada: EdicionPieza): Promise<ResultadoAccion> {
   return ejecutar((a) => editarPieza(a, id, entrada, db));

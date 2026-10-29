@@ -11,7 +11,7 @@ import { UTM_MEDIUM_CONTENIDO } from "@/lib/atribucion/canal";
 import { desglosarLink } from "@/lib/atribucion/parametros-de-contenido";
 import { linkDePieza } from "@/lib/atribucion/link-de-pieza";
 import { hoyEnBogota } from "@/lib/format";
-import { creadoresVisibles, veCreadoresSinPrograma } from "@/lib/media/piezas";
+import { creadoresVisibles, linksFijosVisibles, veCreadoresSinPrograma } from "@/lib/media/piezas";
 import { REDES_DE_CONTENIDO } from "@/lib/media/redes";
 import { ORDENES_DE_PIEZAS, filtroDePiezasDesdeUrl, hayFiltroActivo, piezasDeMedia } from "@/lib/media/lista-de-piezas";
 import { ESTADOS_DE_PIEZA, estadoDePieza } from "@/lib/media/estado-de-pieza";
@@ -29,7 +29,8 @@ import {
   pestanaValida,
 } from "@/components/media/pestanas-de-media";
 import { PanelDeMedia } from "@/components/media/panel-de-media";
-import type { PiezaVista } from "@/components/media/tipos";
+import { PanelDeCreadores } from "@/components/media/panel-de-creadores";
+import type { CreadorConLinksVista, OpcionesDeMedia, PiezaVista } from "@/components/media/tipos";
 import { InfoUtmDeMedia } from "@/components/media/info-utm";
 
 /**
@@ -66,6 +67,17 @@ export default async function MediaPage({
     .orderBy(asc(tiposPieza.nombre));
   const nombreDeTipo = new Map(tipos.map((t) => [t.id, t.nombre]));
   const tiposActivos = tipos.filter((t) => t.activo).map(({ id, nombre }) => ({ id, nombre }));
+  const linksFijos = (await linksFijosVisibles(actor)).filter((p) => lista.some((c) => c.id === p.creadorId));
+
+  async function resolverLink(piezaId: string): Promise<PiezaVista["link"]> {
+    try {
+      const url = await linkDePieza(db, piezaId);
+      return { ok: true, url, desglose: desglosarLink(url, REDES_DE_CONTENIDO) };
+    } catch (e) {
+      if (!(e instanceof ErrorDeApp)) throw e;
+      return { ok: false, motivo: e.message };
+    }
+  }
 
   // Filtros, orden y pagina se resuelven en la base; el link se arma solo de las 15 que se muestran.
   const filtro = filtroDePiezasDesdeUrl(pedido);
@@ -81,14 +93,7 @@ export default async function MediaPage({
   const creadorDe = new Map(lista.map((c) => [c.id, c]));
   const vistas: PiezaVista[] = await Promise.all(
     filas.map(async (p) => {
-      let link: PiezaVista["link"];
-      try {
-        const url = await linkDePieza(db, p.id);
-        link = { ok: true, url, desglose: desglosarLink(url, REDES_DE_CONTENIDO) };
-      } catch (e) {
-        if (!(e instanceof ErrorDeApp)) throw e;
-        link = { ok: false, motivo: e.message };
-      }
+      const link = await resolverLink(p.id);
       const estado = estadoDePieza(p, hoy);
       const creador = creadorDe.get(p.creadorId);
       return {
@@ -106,6 +111,30 @@ export default async function MediaPage({
       };
     }),
   );
+
+  const creadoresConLinks: CreadorConLinksVista[] = await Promise.all(lista.map(async (creador) => ({
+    id: creador.id,
+    nombre: creador.nombre,
+    programa: creador.programId ? (nombreDePrograma.get(creador.programId) ?? "otro programa") : null,
+    activo: creador.activo,
+    links: await Promise.all(
+      linksFijos
+        .filter((p) => p.creadorId === creador.id)
+        .map(async (p) => ({ id: p.id, red: p.red, link: await resolverLink(p.id) })),
+    ),
+  })));
+
+  const opciones: OpcionesDeMedia = {
+    redes: REDES_DE_CONTENIDO,
+    tipos: tiposActivos,
+    programas: visibles.map((p) => ({ id: p.id, nombre: p.nombre })),
+    creadores: lista
+      .filter((c) => c.activo)
+      .map((c) => ({ id: c.id, nombre: c.nombre, slug: c.slug, programa: c.programId ? (nombreDePrograma.get(c.programId) ?? "otro programa") : null })),
+    conSinPrograma,
+    programaInicial: programa && programa !== SIN_PROGRAMA ? programa : "",
+    medioDeContenido: UTM_MEDIUM_CONTENIDO,
+  };
 
   const filtros: FiltroDeclarado[] = [
     { tipo: "select", nombre: "estado", etiqueta: "Estado", opciones: ESTADOS_DE_PIEZA.map((e) => ({ value: e, label: ESTADOS[e].texto })) },
@@ -146,17 +175,7 @@ export default async function MediaPage({
                   orden={<ControlDeOrden nombre="orden" valor={filtro.orden} opciones={ORDENES_DE_PIEZAS.map((o) => ({ value: o.value, label: o.label }))} />}
                 />
               }
-              opciones={{
-                redes: REDES_DE_CONTENIDO,
-                tipos: tiposActivos,
-                programas: visibles.map((p) => ({ id: p.id, nombre: p.nombre })),
-                creadores: lista
-                  .filter((c) => c.activo)
-                  .map((c) => ({ id: c.id, nombre: c.nombre, slug: c.slug, programa: c.programId ? (nombreDePrograma.get(c.programId) ?? "otro programa") : null })),
-                conSinPrograma,
-                programaInicial: programa && programa !== SIN_PROGRAMA ? programa : "",
-                medioDeContenido: UTM_MEDIUM_CONTENIDO,
-              }}
+              opciones={opciones}
             />
             {paginas > 1 ? (
               <nav aria-label="Páginas" className="flex items-center justify-between text-sm text-muted-foreground">
@@ -168,6 +187,8 @@ export default async function MediaPage({
               </nav>
             ) : null}
           </>
+        ) : tab === "links" ? (
+          <PanelDeCreadores creadores={creadoresConLinks} opciones={opciones} />
         ) : tab === "info" ? (
           <InfoUtmDeMedia medio={UTM_MEDIUM_CONTENIDO} redes={REDES_DE_CONTENIDO} />
         ) : (

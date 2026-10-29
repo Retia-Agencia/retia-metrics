@@ -14,6 +14,11 @@ export const PESTANAS_DE_MEDIA = [
     vacia: null,
   },
   {
+    id: "links",
+    etiqueta: "Creadores",
+    vacia: null,
+  },
+  {
     id: "hoy",
     etiqueta: "Hoy",
     vacia: "Aquí verás qué publicar hoy y qué te falta por subir. Llega con el ticket 326: todavía no hay un pipeline de media que mostrar.",

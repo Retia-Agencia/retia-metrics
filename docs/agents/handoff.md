@@ -27,6 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-29: link fijo del creador, solo desde Creadores (media, medir).** Las piezas normales llevan siempre fecha
+  y red; `permanente` ya no se pide en el formulario ni en la edición (`lib/media/piezas.ts`). El link fijo se crea
+  solo desde la pestaña nueva **Creadores** de `/media` (`crearLinkFijoDeCreador`): una permanente por creador y red
+  más una **sin red** que media elige (`utm_source=creador`, `UTM_SOURCE_CREADOR` en `lib/atribucion/canal.ts`).
+  Pide migración **0111** (`piezas.red` nullable, índice único con `coalesce(red,'')`, CHECK red-o-permanente):
+  **escrita y revisada, NO aplicada a producción**; la aplica la sesión principal con ok de Mani antes de desplegar,
+  y el código nuevo no corre sin ella. ADR 0108 punto 2 y 0110 punto 4 enmendados. Verificado: typecheck, lint,
+  build y 71 tests (piezas, lista, link, emparejador, extensión). Sin recorrido visual de la pestaña todavía.
+
 - **2026-10-28: 145, el rol Customer Success listo para operar.** A-114 (Onboarding junto al nombre, para todos
   los roles: en 375 px el CS ve la acción sin desplazar) y A-115 (el nombre va morado solo si abre la ficha) en
   `app/(app)/p/[programa]/students/page.tsx`. Recorrido en `dev:local`: alta de un CS por Ajustes › Usuarios,

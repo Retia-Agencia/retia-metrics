@@ -20,8 +20,8 @@ cumplimiento. Y algunos clientes del cockpit no tienen programa en el CRM: solo 
 3. **La pieza** (`piezas`) lleva programa (el de su creador, o nulo), creador, tipo, red, CTA, fecha de publicación
    **o** la marca de permanente, su código opaco y su `publicada_en`. El programa sigue siendo frontera: una pieza no
    cambia de programa.
-4. **El link fijo del creador es una pieza permanente** del tipo que media use para su contenido propio: un creador
-   con programa tiene a lo sumo una permanente activa por red (índice único parcial).
+4. **El link fijo del creador es una pieza permanente** del tipo que media use para su contenido propio: se gestiona
+   desde Creadores y hay a lo sumo una activa por red más una activa sin red; las piezas normales siempre llevan fecha.
 5. **Tipos y estados son filas que media edita; cada estado se ancla a un significado del código**, un tipo de pocos
    valores: `por_hacer`, `en_curso`, `publicada`, `descartada`. El código decide solo con el significado (avisos,
    cumplimiento "de 30, 25"); el nombre, el orden y cuántos estados hay por significado son de media. Es el molde de

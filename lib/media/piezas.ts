@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { programasDelAlcance } from "@/lib/auth/alcance";
 import { esAccesoTotal, tieneAlcanceConfigurable, trabajaContenido, type Rol } from "@/lib/auth/roles";
@@ -51,11 +51,8 @@ export const esquemaPieza = z
     tipoId: z.string().uuid(),
     red: z.enum(REDES_DE_CONTENIDO),
     cta: z.string().trim().max(200, "Máximo 200 caracteres.").nullish(),
-    fechaPublicacion: fechaIso.nullish(),
-    permanente: z.boolean().default(false),
-  })
-  .refine((p) => Boolean(p.fechaPublicacion) !== p.permanente, {
-    message: "La pieza lleva fecha de publicación o es permanente, no ambas ni ninguna.",
+    fechaPublicacion: fechaIso,
+    permanente: z.boolean().refine((valor) => !valor, "Los links fijos se agregan desde Creadores.").default(false),
   });
 export type EntradaPieza = z.input<typeof esquemaPieza>;
 
@@ -66,13 +63,17 @@ export const esquemaEdicionPieza = z
     tipoId: z.string().uuid(),
     red: z.enum(REDES_DE_CONTENIDO),
     cta: z.string().trim().max(200, "Máximo 200 caracteres.").nullish(),
-    fechaPublicacion: fechaIso.nullish(),
-    permanente: z.boolean().default(false),
-  })
-  .refine((p) => Boolean(p.fechaPublicacion) !== p.permanente, {
-    message: "La pieza lleva fecha de publicación o es permanente, no ambas ni ninguna.",
+    fechaPublicacion: fechaIso,
+    permanente: z.boolean().refine((valor) => !valor, "Los links fijos se editan desde Creadores.").default(false),
   });
 export type EdicionPieza = z.input<typeof esquemaEdicionPieza>;
+
+const esquemaLinkFijo = z.object({
+  creadorId: z.string().uuid(),
+  tipoId: z.string().uuid(),
+  red: z.enum(REDES_DE_CONTENIDO).nullable(),
+});
+export type EntradaLinkFijo = z.input<typeof esquemaLinkFijo>;
 
 /** ZodError -> 400, igual que el resto de los modulos (`lib/errors-zod.ts`). */
 function validar<T>(esquema: z.ZodType<T>, entrada: unknown): T {
@@ -120,19 +121,27 @@ async function piezaAccesible(db: Db, actor: ActorDeMedia, id: string) {
   return pieza;
 }
 
-function etiquetaDePieza(nombre: string, creadorSlug: string, red: string): string {
-  return `${nombre} · ${creadorSlug} · ${red}`;
+function etiquetaDePieza(nombre: string, creadorSlug: string, red: string | null): string {
+  return `${nombre} · ${creadorSlug} · ${red ?? "sin red"}`;
 }
 
-/** Crea una pieza. El programa sale del creador; el codigo, del servidor. Devuelve el id. */
-export async function crearPieza(actor: ActorDeMedia, entrada: EntradaPieza, db: Db = dbDeLaApp): Promise<string> {
-  const datos = validar(esquemaPieza, entrada);
-  const creador = await leerCreador(db, datos.creadorId);
+async function creadorYTipoActivos(db: Db, actor: ActorDeMedia, creadorId: string, tipoId: string) {
+  const creador = await leerCreador(db, creadorId);
   if (!creador.activo) throw new ErrorDeApp("El creador está desactivado.", 422);
   await exigirAccesoAlCreador(db, actor, creador);
-  const [tipo] = await db.select({ activo: tiposPieza.activo }).from(tiposPieza).where(eq(tiposPieza.id, datos.tipoId));
+  const [tipo] = await db.select({ activo: tiposPieza.activo }).from(tiposPieza).where(eq(tiposPieza.id, tipoId));
   if (!tipo) throw new ErrorDeApp("No existe el tipo de pieza.", 404);
   if (!tipo.activo) throw new ErrorDeApp("El tipo de pieza está desactivado.", 422);
+  return creador;
+}
+
+async function crearPiezaConRastro(
+  db: Db,
+  actor: ActorDeMedia,
+  creador: Awaited<ReturnType<typeof leerCreador>>,
+  datos: { nombre: string; tipoId: string; red: string | null; cta: string | null; fechaPublicacion: string | null; permanente: boolean },
+): Promise<string> {
+  const conflicto = "Ese creador ya tiene ese link fijo.";
 
   // El codigo es aleatorio: una colision (rarisima) se reintenta; el indice unico decide.
   for (let intento = 0; intento < 5; intento++) {
@@ -152,7 +161,7 @@ export async function crearPieza(actor: ActorDeMedia, entrada: EntradaPieza, db:
           tipoId: datos.tipoId,
           red: datos.red,
           cta: datos.cta || null,
-          fechaPublicacion: datos.fechaPublicacion ?? null,
+          fechaPublicacion: datos.fechaPublicacion,
           permanente: datos.permanente,
           codigo: generarCodigoDePieza(),
           creadaPor: actor.id,
@@ -160,12 +169,19 @@ export async function crearPieza(actor: ActorDeMedia, entrada: EntradaPieza, db:
       );
     } catch (error) {
       if (!esViolacionUnica(error)) throw error;
-      const [existe] = await db
-        .select({ id: piezas.id })
-        .from(piezas)
-        .where(and(eq(piezas.creadorId, creador.id), eq(piezas.red, datos.red), eq(piezas.permanente, true), vigente(piezas)));
+      const [existe] = datos.permanente
+        ? await db
+            .select({ id: piezas.id })
+            .from(piezas)
+            .where(and(
+              eq(piezas.creadorId, creador.id),
+              datos.red === null ? isNull(piezas.red) : eq(piezas.red, datos.red),
+              eq(piezas.permanente, true),
+              vigente(piezas),
+            ))
+        : [];
       if (datos.permanente && existe) {
-        throw new ErrorDeApp("Ese creador ya tiene su pieza permanente en esa red.", 409);
+        throw new ErrorDeApp(conflicto, 409);
       }
       // Si no fue la permanente, fue el codigo: reintenta con otro.
     }
@@ -173,35 +189,61 @@ export async function crearPieza(actor: ActorDeMedia, entrada: EntradaPieza, db:
   throw new ErrorDeApp("No se pudo generar un código único para la pieza.", 500);
 }
 
+/** Crea una pieza normal. Siempre lleva fecha; los links fijos tienen su propia puerta. */
+export async function crearPieza(actor: ActorDeMedia, entrada: EntradaPieza, db: Db = dbDeLaApp): Promise<string> {
+  const datos = validar(esquemaPieza, entrada);
+  const creador = await creadorYTipoActivos(db, actor, datos.creadorId, datos.tipoId);
+  return crearPiezaConRastro(db, actor, creador, {
+    ...datos,
+    cta: datos.cta || null,
+    permanente: false,
+  });
+}
+
+/** Crea el link fijo de un creador, por red o sin red, con el mismo codigo y rastro de toda pieza. */
+export async function crearLinkFijoDeCreador(
+  actor: ActorDeMedia,
+  entrada: EntradaLinkFijo,
+  db: Db = dbDeLaApp,
+): Promise<string> {
+  const datos = validar(esquemaLinkFijo, entrada);
+  const creador = await creadorYTipoActivos(db, actor, datos.creadorId, datos.tipoId);
+  const nombre = `Link fijo de ${creador.nombre} · ${datos.red ?? "sin red"}`;
+  return crearPiezaConRastro(db, actor, creador, {
+    nombre,
+    tipoId: datos.tipoId,
+    red: datos.red,
+    cta: null,
+    fechaPublicacion: null,
+    permanente: true,
+  });
+}
+
 /** Edita los campos de una pieza viva. Una pieza descartada no se edita. */
 export async function editarPieza(actor: ActorDeMedia, id: string, entrada: EdicionPieza, db: Db = dbDeLaApp): Promise<boolean> {
   const datos = validar(esquemaEdicionPieza, entrada);
   const pieza = await piezaAccesible(db, actor, id);
   if (pieza.anuladoEn) throw new ErrorDeApp("La pieza está descartada y no se edita.", 422);
+  if (pieza.permanente) throw new ErrorDeApp("Un link fijo se gestiona desde Creadores.", 422);
   const [creador] = await db.select({ slug: creadores.slug }).from(creadores).where(eq(creadores.id, pieza.creadorId));
-  try {
-    return await editarConRastro(
-      {
-        db,
-        tabla: piezas,
-        nombreTabla: "piezas",
-        actorId: actor.id,
-        etiqueta: etiquetaDePieza(datos.nombre, creador?.slug ?? "?", datos.red),
-      },
-      id,
-      {
-        nombre: datos.nombre,
-        tipoId: datos.tipoId,
-        red: datos.red,
-        cta: datos.cta || null,
-        fechaPublicacion: datos.fechaPublicacion ?? null,
-        permanente: datos.permanente,
-      },
-    );
-  } catch (error) {
-    if (esViolacionUnica(error)) throw new ErrorDeApp("Ese creador ya tiene su pieza permanente en esa red.", 409);
-    throw error;
-  }
+  return editarConRastro(
+    {
+      db,
+      tabla: piezas,
+      nombreTabla: "piezas",
+      actorId: actor.id,
+      etiqueta: etiquetaDePieza(datos.nombre, creador?.slug ?? "?", datos.red),
+    },
+    id,
+    {
+      nombre: datos.nombre,
+      tipoId: datos.tipoId,
+      red: datos.red,
+      cta: datos.cta || null,
+      fechaPublicacion: datos.fechaPublicacion,
+      permanente: false,
+    },
+  );
 }
 
 /** "Ya publiqué": marca el instante (idempotente: la segunda vez no cambia ni escribe nada). */
@@ -261,6 +303,20 @@ export async function creadoresVisibles(actor: ActorDeMedia, db: Db = dbDeLaApp)
   const alcance = await programasDelAlcance(actor.id, db);
   if (alcance.size === 0) return todos;
   return todos.filter((c) => c.programId !== null && alcance.has(c.programId));
+}
+
+/** Links fijos vivos de los creadores visibles para el actor. */
+export async function linksFijosVisibles(actor: ActorDeMedia, db: Db = dbDeLaApp) {
+  const visibles = await creadoresVisibles(actor, db);
+  if (visibles.length === 0) return [];
+  return db
+    .select()
+    .from(piezas)
+    .where(and(
+      inArray(piezas.creadorId, visibles.map((c) => c.id)),
+      eq(piezas.permanente, true),
+      vigente(piezas),
+    ));
 }
 
 /** ¿Ve este actor a los creadores sin programa? Solo quien no tiene el alcance limitado (ADR 0107 punto 3). */

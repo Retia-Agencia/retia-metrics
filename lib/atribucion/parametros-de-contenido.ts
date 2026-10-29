@@ -1,4 +1,4 @@
-import { UTM_MEDIUM_CONTENIDO } from "./canal";
+import { UTM_MEDIUM_CONTENIDO, UTM_SOURCE_CREADOR } from "./canal";
 
 /**
  * Los parametros del link de una pieza (ADR 0108) escritos como DATO para mostrarse: nombre
@@ -15,9 +15,9 @@ export interface ParametroDeContenido {
 
 export function parametrosDeContenido(redes: readonly string[]): ParametroDeContenido[] {
   return [
-    { llave: "utm_source", nombre: "Red", sale: "La red donde se publica la pieza.", ejemplo: redes.slice(0, 3).join(", ") },
+    { llave: "utm_source", nombre: "Red", sale: `La red donde se publica la pieza; en un link fijo sin red es ${UTM_SOURCE_CREADOR}.`, ejemplo: `${redes.slice(0, 3).join(", ")} o ${UTM_SOURCE_CREADOR}` },
     { llave: "utm_medium", nombre: "Medio", sale: "Siempre el mismo: marca que es contenido de media. Nadie lo escribe.", ejemplo: UTM_MEDIUM_CONTENIDO },
-    { llave: "utm_campaign", nombre: "Campaña", sale: "Tipo de pieza, creador y fecha, en ese orden. Las siempre visibles no llevan fecha.", ejemplo: "reel_milena_20261030" },
+    { llave: "utm_campaign", nombre: "Campaña", sale: "Tipo de pieza, creador y fecha, en ese orden. Los links fijos no llevan fecha.", ejemplo: "reel_milena_20261030" },
     { llave: "utm_content", nombre: "Código de la pieza", sale: "El código único de la pieza. Es lo que permite saber exactamente cuál fue.", ejemplo: "k7p2x9 (lo genera el CRM)" },
   ];
 }

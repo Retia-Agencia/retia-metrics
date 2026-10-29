@@ -60,7 +60,7 @@ export function PanelDeMedia({ piezas, opciones, barra, filtrado }: { piezas: Pi
                 >
                   <span className="min-w-0">
                     <span className="block font-medium">{p.nombre}</span>
-                    <span className="block truncate text-xs text-muted-foreground">{p.tipo} · {p.red}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{p.tipo} · {p.red ?? "Sin red"}</span>
                   </span>
                   <span className="order-3 text-xs text-muted-foreground sm:order-none sm:text-sm sm:text-foreground">{p.creador}</span>
                   <span className="order-4 text-xs text-muted-foreground sm:order-none sm:text-sm sm:text-foreground">{p.permanente ? "Sin fecha" : fechaLegible(p.fecha)}</span>

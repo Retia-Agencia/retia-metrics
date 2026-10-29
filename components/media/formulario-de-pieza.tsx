@@ -23,7 +23,6 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
     tipoId: "",
     red: opciones.redes[0] ?? "",
     fecha: "",
-    permanente: false,
     cta: "",
   };
   const [f, setF] = useState(vacio);
@@ -31,8 +30,8 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
   const elCreador = opciones.creadores.find((c) => c.id === f.creadorId);
   const elTipo = opciones.tipos.find((t) => t.id === f.tipoId);
   const campana =
-    elCreador && elTipo && (f.permanente || f.fecha)
-      ? sanearUtm(campanaDePieza({ tipo: elTipo.nombre, creadorSlug: elCreador.slug, fechaPublicacion: f.permanente ? null : f.fecha, permanente: f.permanente }))
+    elCreador && elTipo && f.fecha
+      ? sanearUtm(campanaDePieza({ tipo: elTipo.nombre, creadorSlug: elCreador.slug, fechaPublicacion: f.fecha, permanente: false }))
       : null;
 
   if (creada) {
@@ -67,8 +66,8 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
               tipoId: f.tipoId,
               red: f.red as never,
               cta: f.cta || null,
-              permanente: f.permanente,
-              fechaPublicacion: f.permanente ? null : f.fecha || null,
+              permanente: false,
+              fechaPublicacion: f.fecha,
             }),
             "Pieza creada",
             (r) => setCreada({ titulo: `${f.nombre} · ${elCreador?.nombre ?? ""}`, link: r.link, desglose: r.desglose, sinLink: r.sinLink }),
@@ -92,23 +91,14 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
             </select>
           </Etiqueta>
           <Etiqueta texto="Red">
-            <select className={campoSelect} value={f.red} onChange={(e) => setF({ ...f, red: e.target.value })}>
+            <select className={campoSelect} value={f.red} onChange={(e) => setF({ ...f, red: e.target.value })} required>
               {opciones.redes.map((r) => <option key={r} value={r}>{r}</option>)}
             </select>
           </Etiqueta>
         </div>
-        <fieldset className="space-y-2">
-          <legend className="text-xs font-medium text-muted-foreground">¿Cuándo se publica?</legend>
-          <div className="grid grid-cols-2 gap-2">
-            <Button type="button" size="sm" variant={f.permanente ? "outline" : "default"} onClick={() => setF({ ...f, permanente: false })}>Un día concreto</Button>
-            <Button type="button" size="sm" variant={f.permanente ? "default" : "outline"} onClick={() => setF({ ...f, permanente: true, fecha: "" })}>Siempre visible</Button>
-          </div>
-          {f.permanente ? (
-            <p className="text-xs text-muted-foreground">Para el link fijo del creador (bio, perfil, destacadas). Solo una por creador y red.</p>
-          ) : (
-            <Input type="date" aria-label="Fecha de publicación" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} required />
-          )}
-        </fieldset>
+        <Etiqueta texto="Fecha de publicación">
+          <Input type="date" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} required />
+        </Etiqueta>
         <Etiqueta texto="Llamado a la acción (opcional)" ayuda="Lo que le pides a la audiencia, p. ej. “agenda tu llamada”. Es una nota para el equipo; no viaja en el UTM.">
           <Input value={f.cta} onChange={(e) => setF({ ...f, cta: e.target.value })} />
         </Etiqueta>

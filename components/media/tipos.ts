@@ -11,7 +11,7 @@ export interface PiezaVista {
   creador: string;
   programa: string | null;
   tipo: string;
-  red: string;
+  red: string | null;
   cta: string | null;
   fecha: string | null;
   permanente: boolean;
@@ -38,4 +38,16 @@ export interface OpcionesDeMedia {
   programaInicial: string;
   /** `utm_medium` de todo link de contenido: constante del codigo, solo se muestra. */
   medioDeContenido: string;
+}
+
+export interface CreadorConLinksVista {
+  id: string;
+  nombre: string;
+  programa: string | null;
+  activo: boolean;
+  links: {
+    id: string;
+    red: string | null;
+    link: PiezaVista["link"];
+  }[];
 }
