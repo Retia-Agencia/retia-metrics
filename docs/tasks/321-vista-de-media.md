@@ -3,7 +3,7 @@ id: 321
 etapa: media
 serves: "ADR 0107 · propuesta.md §6 paso 2 (media entra al CRM)"
 depends: [315]
-status: todo
+status: done
 ---
 
 # 321 — La vista de media

@@ -381,14 +381,14 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 318 | [El emparejador reconoce la pieza](./318-emparejar-pieza.md) | 317 | done |
 | [x] | 319 | [La escalera de conversión](./319-escalera-de-conversion.md) | — | done |
 | [x] | 320 | [Las ventas por escalón en el Hub](./320-escalera-en-el-hub.md) | 319 | done |
-| [ ] | 321 | [La vista de media](./321-vista-de-media.md) | 315 | todo |
-| [ ] | 322 | [El esquema del cockpit en el CRM y el traslado único](./322-esquema-y-traslado-del-cockpit.md) | 316 | todo · migración · traslado con ok de Mani |
+| [x] | 321 | [La vista de media](./321-vista-de-media.md) | 315 | done |
+| [ ] | 322 | [El esquema del cockpit en el CRM y el traslado único](./322-esquema-y-traslado-del-cockpit.md) | 316 | en curso · código y migración 0108 en main y aplicada; falta el traslado real (ok de Mani) |
 | [ ] | 323 | [La fachada del CRM para n8n y el repunte de los workflows](./323-fachada-para-n8n.md) | 322 | todo · edita n8n con ok de Mani |
 | [ ] | 324 | [Banco I: referentes, candidatos y calificación](./324-referentes-y-calificacion.md) | 321, 323 | todo |
 | [ ] | 325 | [Banco II: colecciones y guiones limpios](./325-colecciones-y-guiones.md) | 324 | todo |
 | [ ] | 326 | [La parrilla del día](./326-parrilla-del-dia.md) | 317, 321 | todo |
 | [ ] | 327 | [Apagar el cockpit](./327-apagar-el-cockpit.md) | 324, 325 | todo · lo hace Mani |
-| [ ] | 328 | [El transcript desde el link de Grain](./328-transcript-desde-grain.md) | — | todo · migración |
+| [ ] | 328 | [El transcript desde el link de Grain](./328-transcript-desde-grain.md) | — | en curso · código y migración 0109 (transcripciones_llamada) aplicada; falta la prueba contra un link real de Grain |
 | [ ] | 329 | [Los insights de cada llamada](./329-insights-por-llamada.md) | 328 | todo · migración · tope de IA lo confirma Mani |
 | [ ] | 330 | [El reporte semanal de insights](./330-reporte-semanal-de-insights.md) | 319, 321, 329 | todo |
 | [ ] | 331 | [El aviso semanal de insights por WhatsApp](./331-aviso-semanal-por-whatsapp.md) | 330 | todo · toca el repo de Juanito |
