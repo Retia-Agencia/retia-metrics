@@ -403,7 +403,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
 | [ ] | 348 | [El MCP del CRM](./348-mcp-del-crm.md) | — | por grill · acordado en la daily del 28-oct (MCP, luego Juanito, luego IA) · puerta nueva: pide ADR |
 | [x] | 349 | [Hub › Pauta: no shows por origen, cifras que abren sus personas y periodo visible](./349-pauta-no-shows-y-listas-por-origen.md) | 093, 251, 262 | done · 29-oct · build limpio y revisado en pantalla (base local) |
-| [ ] | 350 | [ROAS por anuncio y campaña, y el registro de llamadas exportable](./350-roas-y-llamadas-por-anuncio-y-campana.md) | 123, 247, 349 | todo · 29-oct · grill cerrado; abierta: si el paid trafficker ve las personas |
+| [x] | 350 | [ROAS por anuncio y campaña, y el registro de llamadas exportable](./350-roas-y-llamadas-por-anuncio-y-campana.md) | 123, 247, 349 | done · 29-oct · Codex + revisión; build y recorrido como paid trafficker (base local, sin árbol de Meta); falta checkpoint |
 
 ## 17 · Agendamiento: piloto de dCal (23-oct)
 

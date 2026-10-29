@@ -27,6 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-29 (tarde): 350 hecho, ROAS por campaña › conjunto › anuncio en Hub › Pauta.** Codex implementó en
+  `.claude/worktrees/350` (rama `350-roas`), una ronda de arreglos tras la revisión: los deals que nacen de un PARCIAL
+  se perdían del ROAS (ahora un parcial se pliega en su completo y uno solo suma citas y ventas, no registros), filas
+  vacías de campañas viejas, tabla plana (`roas_campana` abre conjuntos y anuncios) y "Cuándo" en ventas vía
+  `ubicacionesDeEscalera` (la usa también `cargarEscalera`). Lista `pauta_meta` (nivel, id, paso), CSV
+  `hub/pauta-citas.csv` sin persona, y el paid trafficker ve nombre y etapa (`veLeadsDePauta`, enmienda ADR 0052).
+  Antes, mismo día: tabla de origen con % no show sin "n de m", ventas con etiqueta y Sin UTM al final (`7d21a110`).
+  **Pendiente:** checkpoint verde; recorrido con árbol y gasto reales de Meta (la base local no los tiene, todo cae en
+  "Sin anuncio" / "sin pauta"); quitar el worktree (`rm node_modules`, `git worktree remove`).
 - **2026-10-29: Pauta con no shows por origen, listas por campaña y resultado, periodo visible (349 hecho) y grill del 350.**
   Sesión de Mani sobre lo que pidió Paid Ads Trafficker (mucho no show, ROAS ≈ 0,2). **Hecho y en main** (`6d24f2e6`; build verde y recorrido como gerente el mismo día, claro y oscuro. El recorrido
   cazó que la lista de Sin UTM contaba también las agendas sin envío de origen, 6 no shows contra 5 de la tabla: arreglado
