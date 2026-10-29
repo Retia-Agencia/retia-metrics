@@ -75,9 +75,13 @@ const esquema = z.object({
   categoria: z.enum(["con_utm", "sin_utm", "macro", "pieza_desconocida"]).optional(),
   area: z.enum(["paid", "organico", "referidos", "sin_utm"]).optional(),
   canal: z.string().max(300).optional(),
+  campaign: z.string().max(300).optional(),
+  resultado: z.enum(["show", "no_show"]).optional(),
   orden: z.enum(["envio", "actividad"]).optional(),
   // Solo la escalera de conversion (ADR 0109): el escalon y la calidad de la cifra.
-  escalon: z.enum(ESCALONES).optional(),
+  // Los dos grupos son de Pauta: "ventas" (los cuatro escalones que pagaron) y "despues" (pago rapido o tarde).
+  escalon: z.enum([...ESCALONES, "ventas", "despues"]).optional(),
+  pago: z.enum(["completo", "parcial"]).optional(),
   calidad: z.string().max(100).optional(),
 });
 
@@ -156,11 +160,16 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const veEquipo = veEquipoComercial(rol);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, categoria, area, canal, orden, escalon, calidad } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago } = validado.data;
   const sourceNormalizado = source === "__null__" ? null : source;
   const mediumNormalizado = medium === "__null__" ? null : medium;
   const canalNormalizado = canal === "__null__" ? null : canal;
-  if (!esListaDeOrigen && (source !== undefined || medium !== undefined || categoria !== undefined || area !== undefined || canal !== undefined)) notFound();
+  const campaignNormalizado = campaign === "__null__" ? null : campaign;
+  if (resultado !== undefined && metrica !== "agendas_creadas") notFound();
+  // Pauta reparte las ventas por canal y campana: la escalera acepta esos cuatro filtros de origen y ninguno mas.
+  if (metrica === "escalera" && (area !== undefined || canal !== undefined)) notFound();
+  if (pago !== undefined && metrica !== "escalera") notFound();
+  if (!esListaDeOrigen && metrica !== "escalera" && (source !== undefined || medium !== undefined || campaign !== undefined || categoria !== undefined || area !== undefined || canal !== undefined)) notFound();
   if (esListaDeOrigen && !esAdmin && closer !== undefined) notFound();
   if (metrica !== "no_agendaron" && orden !== undefined) notFound();
   // El escalon y la calidad son de la escalera: en otra lista no existen (nunca se ignoran en silencio).
@@ -182,12 +191,15 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     antiguedad,
     source: sourceNormalizado,
     medium: mediumNormalizado,
+    campaign: campaignNormalizado,
+    resultado,
     categoria,
     orden,
     area,
     canal: canalNormalizado,
     escalon,
     calidad,
+    pago,
     pagina,
   });
   if (!vista) notFound();
@@ -203,14 +215,14 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     moneda,
     cohorteId: cohorte,
     subconjunto: { etapa, antiguedad },
-    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, categoria, area, canal: canalNormalizado },
-    escalera: { escalon, calidad },
+    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, area, canal: canalNormalizado },
+    escalera: { escalon, calidad, pago },
   });
   // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
   // el periodo no los acota.
   const sinPeriodo = (METRICAS_FOTO_DE_HOY as readonly string[]).includes(metrica)
     || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
-  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? NOMBRE_DE_ESCALON[escalon] : null;
+  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? (escalon === "ventas" ? "Ventas" : escalon === "despues" ? "Pagaron después" : NOMBRE_DE_ESCALON[escalon]) : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
   const enlaceDePagina = orden ? `${enlace}&orden=${orden}` : enlace;
@@ -246,6 +258,13 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
           {cohorte ? <Badge variant="secondary">Cohorte filtrada</Badge> : null}
           {calidad ? <Badge variant="secondary">Calidad: {calidad}</Badge> : null}
+          {resultado ? <Badge variant="secondary">{resultado === "no_show" ? "Solo no shows" : "Solo shows"}</Badge> : null}
+          {pago ? <Badge variant="secondary">{pago === "completo" ? "Pago completo" : "Pago parcial"}</Badge> : null}
+          {sourceNormalizado !== undefined || mediumNormalizado !== undefined ? (
+            <Badge variant="secondary">Origen: {sourceNormalizado ?? "—"} / {mediumNormalizado ?? "—"}</Badge>
+          ) : null}
+          {campaignNormalizado !== undefined ? <Badge variant="secondary">Campaña: {campaignNormalizado ?? "—"}</Badge> : null}
+          {categoria ? <Badge variant="secondary">{categoria === "sin_utm" ? "Sin UTM" : categoria === "macro" ? "Macro sin expandir" : categoria === "con_utm" ? "Con UTM" : "Pieza desconocida"}</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} {metrica === "no_agendaron" ? "personas" : "registros"}</p>

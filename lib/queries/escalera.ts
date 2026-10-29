@@ -1,4 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
+import { columnasUtmDelEnvio, type utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { abonos, calls, deals, programs, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { etiquetaDeCloser, normalizarCloserId, parsearClaveCloser } from "@/lib/closers/identidad";
@@ -115,6 +116,9 @@ export function escalonDeDeal(hechos: HechosDeEscalera, corte: number | null): U
 
 export const SIN_CALIDAD = "Sin calidad";
 
+/** Los UTM crudos del envio que abrio el deal (`utmsDelEnvio` los interpreta); nulo si el deal no tiene envio de origen. */
+export type EnvioDeOrigen = Parameters<typeof utmsDelEnvio>[0];
+
 export interface DealEnLaEscalera extends UbicacionEnLaEscalera {
   dealId: string;
   /** El día de la venta (escalones 1 a 4) o el de creación del deal (5 a 7), de Bogotá. */
@@ -128,6 +132,8 @@ export interface DealEnLaEscalera extends UbicacionEnLaEscalera {
   cohorteId: string | null;
   /** La calidad del envío que abrió el deal, tal como llegó; `SIN_CALIDAD` si no la trae. */
   calidad: string;
+  /** El origen del deal: lo que Pauta reparte por canal y campana. */
+  envio: EnvioDeOrigen | null;
 }
 
 export interface EscaleraCargada {
@@ -167,6 +173,8 @@ export async function cargarEscalera(
       ownerNombre: users.nombre,
       ownerEmail: users.email,
       calidad: submissions.leadQuality,
+      envioId: submissions.id,
+      envio: columnasUtmDelEnvio,
       creado: dimensionesDeFecha(deals.createdAt).dia,
     }).from(deals)
       .leftJoin(users, eq(users.id, deals.ownerUserId))
@@ -225,6 +233,7 @@ export async function cargarEscalera(
       ownerCloserId: deal.ownerCloserId,
       cohorteId: deal.cohorteId,
       calidad: deal.calidad && deal.calidad.trim() !== "" ? deal.calidad : SIN_CALIDAD,
+      envio: deal.envioId === null ? null : deal.envio,
     });
   }
   // Más antiguos primero, como toda lista.
@@ -237,6 +246,10 @@ export type DimensionDeEscalera = "closer" | "calidad" | "cohorte";
 
 export interface FiltrosDeEscalera {
   escalon?: Escalon;
+  /** Varios escalones a la vez (Pauta: "ventas" son los cuatro que pagaron). Si viene, manda sobre `escalon`. */
+  escalones?: readonly Escalon[];
+  /** Solo ventas: pago completo (`ganado_completo`) o parcial (`ganado_parcial`). */
+  pago?: "completo" | "parcial";
   claveCloser?: string | null;
   calidad?: string;
   cohorteId?: string;
@@ -261,7 +274,9 @@ export function filtrarEscalera(cargada: EscaleraCargada, filtros: FiltrosDeEsca
     delCloser(deal, filtros.claveCloser)
     && (!filtros.calidad || deal.calidad === filtros.calidad)
     && (!filtros.cohorteId || deal.cohorteId === filtros.cohorteId)
-    && (!filtros.escalon || deal.escalon === filtros.escalon));
+    && (!filtros.escalon || deal.escalon === filtros.escalon)
+    && (!filtros.escalones || filtros.escalones.includes(deal.escalon))
+    && (!filtros.pago || deal.etapa === (filtros.pago === "completo" ? "ganado_completo" : "ganado_parcial")));
 }
 
 export interface LineaDeEscalon {

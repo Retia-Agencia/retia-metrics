@@ -83,6 +83,24 @@ describe("Hub Origen", () => {
     expect(agendas.subtotal.cantidad).toBe(canal.agendas);
   });
 
+  it("las listas de Pauta filtran por campaña y por resultado de la cita, y cuadran con sus cifras", async () => {
+    const a = await crearEnvio("ig", "paid_social", "2026-10-10");
+    const b = await crearEnvio("ig", "paid_social", "2026-10-11");
+    await db.update(submissions).set({ utmCampaign: "c1" }).where(eq(submissions.id, a.id));
+    await db.update(submissions).set({ utmCampaign: "c2" }).where(eq(submissions.id, b.id));
+    await agendar(a, "2026-10-12T10:00:00-05:00");
+    await agendar(b, "2026-10-12T11:00:00-05:00");
+    await db.update(calls).set({ resultado: "no_show" });
+    const base = { programId, rango: { desde: "2026-10-01", hasta: "2026-10-24" }, hoy: "2026-10-24" };
+    const cantidad = async (metrica: "registros" | "agendas_creadas", extra: Parameters<typeof listaDeMetrica>[1] extends infer T ? Partial<T> : never) =>
+      (await listaDeMetrica(metrica, { ...base, ...extra }, 1, db))[0].subtotal.cantidad;
+    expect(await cantidad("registros", { campaign: "c1" })).toBe(1);
+    expect(await cantidad("agendas_creadas", { campaign: "c2" })).toBe(1);
+    expect(await cantidad("agendas_creadas", { resultado: "no_show" })).toBe(2);
+    expect(await cantidad("agendas_creadas", { resultado: "show" })).toBe(0);
+    expect(await cantidad("agendas_creadas", { campaign: "c1", resultado: "no_show" })).toBe(1);
+  });
+
   it("no marca nuevo un par visto antes de la ventana de siete días", async () => {
     await crearEnvio("instagram rosario", "storiesfijadas", "2026-09-01");
     await crearEnvio("instagram rosario", "storiesfijadas", "2026-10-22");

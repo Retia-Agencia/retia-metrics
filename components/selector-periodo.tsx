@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { CalendarDays, Plus, X } from "lucide-react";
 import {
   atajosDePeriodo,
   claveDePedido,
@@ -68,12 +68,14 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
     <div className={variante === "chip" ? "contents" : "flex flex-wrap gap-2"}>
       <Dialog open={dialogoPeriodo} onOpenChange={setDialogoPeriodo}>
         <DialogTrigger
-          render={<Button type="button" variant="outline" size={variante === "chip" ? "sm" : "default"} className="h-auto whitespace-normal text-left aria-expanded:border-ring" />}
-          title={legible(periodo.a)}
+          render={<Button type="button" variant="outline" size={variante === "chip" ? "sm" : "default"} className="h-auto whitespace-normal border-marca-texto/40 text-left aria-expanded:border-ring" />}
+          title="Cambiar el periodo: las cifras de esta pantalla se calculan sobre estas fechas"
         >
+          <CalendarDays aria-hidden className="size-4 shrink-0 text-marca-texto" />
           <span><span className="text-muted-foreground">Periodo:</span>{" "}<span className="font-medium">{nombrePreset}</span>
             {variante !== "chip" ? <span className="cifra block text-xs">{legible(periodo.a)}</span> : null}
           </span>
+          {variante === "chip" ? <span className="cifra hidden text-xs text-muted-foreground sm:inline">· {legible(periodo.a)}</span> : null}
         </DialogTrigger>
         <DialogContent>
           <DialogTitle>Periodo</DialogTitle>

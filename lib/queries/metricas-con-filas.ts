@@ -2,6 +2,7 @@ import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
+import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import type { Db } from "@/lib/db/tipos";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
 import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
@@ -31,7 +32,9 @@ import {
 import { condicionesDeFiltros } from "@/lib/queries/hechos/consultar";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { categoriaUtmSql, piezaDesconocidaSql } from "@/lib/atribucion/canal-sql";
-import { cargarEscalera, esEscalon, filtrarEscalera } from "@/lib/queries/escalera";
+import { cargarEscalera, ESCALONES_QUE_PAGARON, esEscalon, filtrarEscalera, type Escalon, type EnvioDeOrigen } from "@/lib/queries/escalera";
+import { categoriaDe } from "@/lib/queries/pauta-interina";
+import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
 export type Metrica =
   | "caja"
@@ -98,10 +101,16 @@ export interface FiltrosDeMetrica {
   categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida";
   area?: string;
   canal?: string | null;
+  /** Solo registros y agendas creadas: el `utm_campaign` crudo (Pauta profundiza canal, campaña y contenido). */
+  campaign?: string | null;
+  /** Solo agendas creadas: lo que paso con la cita. `show` es cualquier resultado que ocurrio. */
+  resultado?: "show" | "no_show";
   /** Solo No agendaron: la fecha usada para ordenar la lista. */
   orden?: "envio" | "actividad";
   /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
   escalon?: string;
+  /** Solo la escalera: ventas de pago completo o parcial. Con los filtros de origen de arriba, reparte las ventas por canal y campaña. */
+  pago?: "completo" | "parcial";
   calidad?: string;
 }
 
@@ -489,14 +498,18 @@ function consultaDe(
             ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, calls.programId),
             utm_source: submissions.utmSource,
             utm_medium: submissions.utmMedium,
+            campana: submissions.utmCampaign,
             categoria: categoriaUtmSql(),
           }, {
             ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
             ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
+            ...(filtros.campaign !== undefined ? { campana: [filtros.campaign] } : {}),
             ...(filtros.categoria && filtros.categoria !== "pieza_desconocida" ? { categoria: [filtros.categoria] } : {}),
             ...(filtros.area ? { area: [filtros.area] } : {}),
             ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
           }),
+          filtros.resultado === "no_show" ? eq(calls.resultado, "no_show") : undefined,
+          filtros.resultado === "show" ? inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]) : undefined,
           vigente(calls),
           vigente(deals),
         ));
@@ -522,6 +535,7 @@ function consultaDe(
             filtros: {
               ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
               ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
+              ...(filtros.campaign !== undefined ? { campana: [filtros.campaign] } : {}),
               ...(filtros.categoria && filtros.categoria !== "pieza_desconocida" ? { categoria: [filtros.categoria] } : {}),
               ...(filtros.area ? { area: [filtros.area] } : {}),
               ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
@@ -663,6 +677,22 @@ async function leerMetricaNoAgendaron(
   return paginarOAgrupar(filas, pagina);
 }
 
+function hayFiltroDeOrigen(f: FiltrosDeMetrica): boolean {
+  return f.source !== undefined || f.medium !== undefined || f.campaign !== undefined || f.categoria !== undefined;
+}
+
+/** El origen de un deal contra los filtros de Pauta, con la MISMA regla de categoria que pinta la tabla (`categoriaDe`). */
+function coincideConOrigen(envio: EnvioDeOrigen | null, f: FiltrosDeMetrica): boolean {
+  // Un deal sin envio de origen no tiene UTM que filtrar: solo cabe si no se pidio ninguno.
+  if (envio === null) return false;
+  const u = utmsDelEnvio(envio);
+  const d = { source: u.source, medium: u.medium, campaign: u.campaign, content: u.content, term: u.term };
+  return (f.source === undefined || d.source === f.source)
+    && (f.medium === undefined || d.medium === f.medium)
+    && (f.campaign === undefined || d.campaign === f.campaign)
+    && (f.categoria === undefined || categoriaDe(d) === f.categoria);
+}
+
 /**
  * La lista de la escalera de conversión (ticket 320, ADR 0109): los deals de la cifra, del MISMO
  * cálculo que la pinta (`cargarEscalera`). Sin escalón son todos los del universo del periodo.
@@ -675,14 +705,19 @@ async function leerMetricaDeEscalera(
   db: Db,
 ): Promise<FilaDeMetrica[]> {
   const escalon = filtros.escalon;
-  if (escalon !== undefined && !esEscalon(escalon)) return [];
+  // Pauta pide grupos de escalones: "ventas" son los cuatro que pagaron y "despues" los que pagaron rapido o tarde.
+  const grupo = escalon === "ventas" ? ESCALONES_QUE_PAGARON : escalon === "despues" ? (["pago_rapido", "pago_despues"] as const) : undefined;
+  if (escalon !== undefined && grupo === undefined && !esEscalon(escalon)) return [];
   const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango }, filtros.ahora);
+  const delOrigen = hayFiltroDeOrigen(filtros);
   const miembros = filtrarEscalera(cargada, {
-    escalon,
+    escalon: grupo ? undefined : (escalon as Escalon | undefined),
+    escalones: grupo,
+    pago: filtros.pago,
     claveCloser: filtros.claveCloser,
     calidad: filtros.calidad,
     cohorteId: filtros.cohorteId,
-  });
+  }).filter((deal) => !delOrigen || coincideConOrigen(deal.envio, filtros));
   const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
   return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
 }

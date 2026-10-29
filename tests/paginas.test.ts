@@ -129,7 +129,7 @@ vi.mock("@/lib/queries/series-dinero", () => ({ leerSeriesDeDinero }));
 // La vista interina de Pauta (093) tambien lee la base: aqui solo importa que la pagina pase.
 const pautaInterina = vi.fn(async () => ({
   filas: [],
-  resumen: { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0 },
+  resumen: { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0, shows: 0, noShows: 0, ventas: 0 },
   sinUtmHoy: [],
 }));
 vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));

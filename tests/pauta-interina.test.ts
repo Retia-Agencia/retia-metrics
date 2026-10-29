@@ -76,7 +76,7 @@ async function envio(o: OpcEnvio = {}) {
   return { leadId: l.id, envioId: e.id, programa: o.programa === "q" ? otroProgramId : programId };
 }
 
-async function agenda(o: { deal: { leadId: string; envioId: string | null; programa: string } | null; creada?: string; anulada?: boolean }) {
+async function agenda(o: { deal: { leadId: string; envioId: string | null; programa: string } | null; creada?: string; anulada?: boolean; resultado?: "agendada" | "show" | "no_show" | "cancelada" }) {
   let dealId: string | null = null;
   if (o.deal) {
     const [d] = await db
@@ -89,6 +89,7 @@ async function agenda(o: { deal: { leadId: string; envioId: string | null; progr
     programId: o.deal?.programa ?? programId,
     dealId,
     createdAt: new Date(o.creada ?? "2026-09-11T10:00:00-05:00"),
+    ...(o.resultado ? { resultado: o.resultado } : {}),
     ...(o.anulada ? { anuladoEn: new Date(), anuladoPor: usuario, motivoAnulacion: "error de tecleo" } : {}),
   });
 }
@@ -157,6 +158,26 @@ describe("agendas", () => {
     expect(v.resumen.agendasSinEnvioDeOrigen).toBe(2);
     expect(suma(v.filas, "agendas", (f) => f.source === "instagram" && f.campaign === "c1")).toBe(1);
     expect(suma(v.filas, "agendas", (f) => f.categoria === "sin_envio_origen")).toBe(2);
+  });
+
+  it("show y no show salen del resultado de la cita y se reparten por el origen; lo pendiente no entra", async () => {
+    const ig = () => envio({ utm: ["instagram", "stories", "c1"] });
+    await agenda({ deal: await ig(), resultado: "no_show" });
+    await agenda({ deal: await ig(), resultado: "no_show" });
+    await agenda({ deal: await ig(), resultado: "show" });
+    await agenda({ deal: await ig(), resultado: "agendada" });
+    await agenda({ deal: await envio({ utm: ["facebook", "cpc", "c2"] }), resultado: "show" });
+    await agenda({ deal: null, resultado: "no_show" });
+
+    const v = await pautaInterina(db, programId, RANGO, {}, HOY);
+    const de = (pred: (f: FilaPauta) => boolean, campo: "shows" | "noShows") => v.filas.filter(pred).reduce((n, f) => n + f[campo], 0);
+    expect(de((f) => f.source === "instagram", "noShows")).toBe(2);
+    expect(de((f) => f.source === "instagram", "shows")).toBe(1);
+    expect(de((f) => f.source === "facebook", "noShows")).toBe(0);
+    expect(de((f) => f.categoria === "sin_envio_origen", "noShows")).toBe(1);
+    expect(v.resumen.noShows).toBe(3);
+    expect(v.resumen.shows).toBe(2);
+    expect(v.resumen.agendas).toBe(6);
   });
 
   it("las agendas del otro programa no aparecen", async () => {

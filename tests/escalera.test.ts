@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { abonos, calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { pautaInterina } from "@/lib/queries/pauta-interina";
 import type { Db } from "@/lib/db/tipos";
 import {
   agruparEscalera,
@@ -353,5 +354,51 @@ describe("320: todos los programas, lado a lado y sin mezclar (ADR 0048)", () =>
     const [fila] = await escaleraPorPrograma({ programas: [{ id: programId, slug: "p", nombre: "P" }] as never, hoy: "2026-10-31", periodo, origen: "/hub", conListas: false }, db);
     expect(fila.vista.principal.celdas.pago_en_llamada.deals).toBe(1);
     expect(Object.values(fila.vista.principal.celdas).every((c) => c.detalle === null)).toBe(true);
+  });
+});
+
+describe("349: las ventas de Pauta por origen salen de la escalera y abren su lista", () => {
+  async function conOrigen(dealId: string, source: string, medium: string, campaign: string) {
+    const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
+    const [fuente] = await db.insert(sources).values({ programId, nombre: `F${n++}` }).returning();
+    const [envio] = await db.insert(submissions).values({
+      leadId: deal.leadId, sourceId: fuente.id, token: `t${n}`, esParcial: false, fechaEnvio: new Date("2026-10-01T10:00:00-05:00"),
+      utmSource: source, utmMedium: medium, utmCampaign: campaign,
+    }).returning();
+    await db.update(deals).set({ submissionOrigenId: envio.id }).where(eq(deals.id, dealId));
+  }
+
+  it("reparte ventas, cuándo pagaron y completo o parcial por origen, y cada cifra cuadra con su lista", async () => {
+    const enLlamada = await sembrar({ etapaVendida: true, abonos: [{ fecha: "2026-10-05" }], citas: [{ dia: "2026-10-05", resultado: "cerrada" }] });
+    const despues = await sembrar({ etapaVendida: true, ventaEl: "2026-10-12", abonos: [{ fecha: "2026-10-12" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
+    const otroCanal = await sembrar({ etapaVendida: true, ventaEl: "2026-10-09", abonos: [{ fecha: "2026-10-09" }] });
+    await sembrar({ etapaVendida: true, ventaEl: "2026-10-09", abonos: [{ fecha: "2026-10-09" }] });
+    const cortesia = await sembrar({ etapaVendida: true, cortesia: true, abonos: [{ fecha: "2026-10-09" }] });
+    await conOrigen(enLlamada, "ig", "paid_social", "c1");
+    await conOrigen(despues, "ig", "paid_social", "c1");
+    await conOrigen(otroCanal, "linkedin", "francisco", "c9");
+    await conOrigen(cortesia, "ig", "paid_social", "c1");
+    await db.update(deals).set({ etapa: "ganado_completo" }).where(eq(deals.id, enLlamada));
+
+    const v = await pautaInterina(db, programId, rango, {}, "2026-10-31");
+    const suma = (pred: (f: (typeof v.filas)[number]) => boolean, campo: "ventas" | "ventasEnLlamada" | "ventasDespues" | "ventasCompletas" | "ventasParciales") =>
+      v.filas.filter(pred).reduce((total, f) => total + f[campo], 0);
+    const ig = (f: (typeof v.filas)[number]) => f.source === "ig";
+    expect(v.resumen.ventas).toBe(4);
+    expect(suma(ig, "ventas")).toBe(2);
+    expect(suma(ig, "ventasEnLlamada")).toBe(1);
+    expect(suma(ig, "ventasDespues")).toBe(1);
+    expect(suma(ig, "ventasCompletas")).toBe(1);
+    expect(suma(ig, "ventasParciales")).toBe(1);
+    expect(suma((f) => f.categoria === "sin_envio_origen", "ventas")).toBe(1);
+
+    const base = { programId, rango, hoy: "2026-10-31" };
+    const lista = async (extra: object) => (await listaDeMetrica("escalera", { ...base, ...extra }, 1, db))[0].subtotal.cantidad;
+    expect(await lista({ escalon: "ventas" })).toBe(v.resumen.ventas);
+    expect(await lista({ escalon: "ventas", source: "ig", medium: "paid_social", categoria: "con_utm" })).toBe(2);
+    expect(await lista({ escalon: "pago_en_llamada", source: "ig", medium: "paid_social" })).toBe(1);
+    expect(await lista({ escalon: "despues", source: "ig", medium: "paid_social" })).toBe(1);
+    expect(await lista({ escalon: "ventas", source: "ig", pago: "completo" })).toBe(1);
+    expect(await lista({ escalon: "ventas", campaign: "c1", pago: "parcial" })).toBe(1);
   });
 });

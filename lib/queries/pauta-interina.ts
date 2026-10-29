@@ -2,7 +2,9 @@ import { and, between, eq, sql } from "drizzle-orm";
 import { columnasUtmDelEnvio, esMacro, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
+import { cargarEscalera, ESCALONES_QUE_PAGARON } from "@/lib/queries/escalera";
 import type { Rango } from "@/lib/queries/dashboard";
 import { fechaAnclaAgendaCreada } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -18,6 +20,14 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
  * - **Agenda** = una llamada vigente creada en el rango (`calls.created_at`), atribuida a los
  *   UTM del envio de origen de SU deal (ADR 0060). Una llamada sin deal, o de un deal sin envio
  *   de origen, va a la categoria "sin envio de origen": nunca se adivina de donde vino.
+ * - **Show / no show** = el resultado de esas mismas agendas. Show es cualquier resultado que
+ *   ocurrio (`RESULTADOS_QUE_OCURRIERON`); no show es el resultado `no_show`; el resto (agendada,
+ *   cancelada...) no se ha resuelto y no entra a la tasa. La tasa de no show es no shows entre
+ *   (shows + no shows): cuantas citas que ya se resolvieron se cayeron.
+ * - **Venta** = un deal vendido EN el periodo (fecha de la venta, la misma del Hub y de la escalera, ADR 0109),
+ *   atribuido al envio que abrio ese deal. `enLlamada` es el escalon 1, `despues` los escalones 2 y 3 (pago
+ *   rapido o tarde) y `sinLlamada` el 4; `completas` y `parciales` salen de la etapa (Completo o Abonado).
+ *   Las cortesias no son ventas. Una venta sin envio de origen va a "sin envio de origen".
  * - **Sin UTM** = sin `utm_source`, `utm_medium` ni `utm_campaign`: un hecho del envio, no un
  *   error (ADR 0045). **Macro** = algun valor trae `{{...}}` sin expandir: un centinela, no un
  *   dato, y se cuenta aparte.
@@ -44,6 +54,20 @@ export interface FilaPauta extends DimensionesUtm {
   categoria: CategoriaOrigen;
   registros: number;
   agendas: number;
+  /** De esas agendas, las que ocurrieron. */
+  shows: number;
+  /** De esas agendas, las que el closer marco no show. */
+  noShows: number;
+  /** Deals vendidos en el periodo con el origen de esta fila. */
+  ventas: number;
+  /** De esas ventas, las del escalon 1: pagaron en la llamada. */
+  ventasEnLlamada: number;
+  /** Escalones 2 y 3: pagaron despues de la llamada, rapido o tarde. */
+  ventasDespues: number;
+  /** Escalon 4: pagaron sin una llamada registrada. */
+  ventasSinLlamada: number;
+  ventasCompletas: number;
+  ventasParciales: number;
 }
 
 export interface FiltrosPauta {
@@ -71,6 +95,9 @@ export interface VistaPautaInterina {
     macro: number;
     agendas: number;
     agendasSinEnvioDeOrigen: number;
+    shows: number;
+    noShows: number;
+    ventas: number;
   };
   /** Los registros SIN UTM de HOY (DP-17: contador visible, sin umbral), con su lista, mire el rango que mire. */
   sinUtmHoy: EnvioSinUtm[];
@@ -86,6 +113,13 @@ export function categoriaDe(d: DimensionesUtm): Exclude<CategoriaOrigen, "sin_en
   if (d.source === null && d.medium === null && d.campaign === null) return "sin_utm";
   return "con_utm";
 }
+
+const ocurrio = (resultado: string) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
+
+const FILA_EN_CERO = {
+  registros: 0, agendas: 0, shows: 0, noShows: 0,
+  ventas: 0, ventasEnLlamada: 0, ventasDespues: 0, ventasSinLlamada: 0, ventasCompletas: 0, ventasParciales: 0,
+};
 
 const DIMENSIONES_VACIAS: DimensionesUtm = { source: null, medium: null, campaign: null, content: null, term: null };
 
@@ -140,6 +174,7 @@ export async function pautaInterina(
   const agendas = await db
     .select({
       createdAt: calls.createdAt,
+      resultado: calls.resultado,
       origenId: submissions.id,
       ...columnasUtmDelEnvio,
     })
@@ -155,12 +190,27 @@ export async function pautaInterina(
     );
 
   const serie = new Map<string, FilaPauta>();
-  const resumen = { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0 };
-  const sumar = (dia: string, categoria: CategoriaOrigen, d: DimensionesUtm, campo: "registros" | "agendas") => {
+  const resumen = { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0, shows: 0, noShows: 0, ventas: 0 };
+  const sumar = (
+    dia: string,
+    categoria: CategoriaOrigen,
+    d: DimensionesUtm,
+    campo: "registros" | "agendas" | "ventas",
+    extra?: { resultado?: string; escalon?: string; etapa?: string },
+  ) => {
     if (!pasaFiltros(d, filtros)) return;
     const llave = JSON.stringify([dia, categoria, d.source, d.medium, d.campaign, d.content, d.term]);
-    const fila = serie.get(llave) ?? { dia, categoria, ...d, registros: 0, agendas: 0 };
+    const fila = serie.get(llave) ?? { dia, categoria, ...d, ...FILA_EN_CERO };
     fila[campo]++;
+    if (extra?.resultado !== undefined && ocurrio(extra.resultado)) fila.shows++;
+    if (extra?.resultado === "no_show") fila.noShows++;
+    if (campo === "ventas") {
+      if (extra?.escalon === "pago_en_llamada") fila.ventasEnLlamada++;
+      else if (extra?.escalon === "pago_rapido" || extra?.escalon === "pago_despues") fila.ventasDespues++;
+      else fila.ventasSinLlamada++;
+      if (extra?.etapa === "ganado_completo") fila.ventasCompletas++;
+      else fila.ventasParciales++;
+    }
     serie.set(llave, fila);
   };
 
@@ -178,13 +228,30 @@ export async function pautaInterina(
   for (const a of agendas) {
     const dia = fechaDeInstanteEnBogota(a.createdAt);
     resumen.agendas++;
+    if (ocurrio(a.resultado)) resumen.shows++;
+    if (a.resultado === "no_show") resumen.noShows++;
     if (a.origenId === null) {
       resumen.agendasSinEnvioDeOrigen++;
-      sumar(dia, "sin_envio_origen", DIMENSIONES_VACIAS, "agendas");
+      sumar(dia, "sin_envio_origen", DIMENSIONES_VACIAS, "agendas", { resultado: a.resultado });
       continue;
     }
     const d = dimensionesDe(a);
-    sumar(dia, categoriaDe(d), d, "agendas");
+    sumar(dia, categoriaDe(d), d, "agendas", { resultado: a.resultado });
+  }
+
+  // Las ventas del periodo salen de la escalera (UNA definicion de venta y de escalon, ADR 0109): los
+  // escalones 1 a 4 son exactamente los deals vendidos en el rango, sin cortesias ni anulados.
+  const escalera = await cargarEscalera(db, { programId, rango });
+  for (const deal of escalera.deals) {
+    if (!ESCALONES_QUE_PAGARON.includes(deal.escalon)) continue;
+    resumen.ventas++;
+    const extra = { escalon: deal.escalon, etapa: deal.etapa };
+    if (deal.envio === null) {
+      sumar(deal.fecha, "sin_envio_origen", DIMENSIONES_VACIAS, "ventas", extra);
+      continue;
+    }
+    const d = dimensionesDe(deal.envio);
+    sumar(deal.fecha, categoriaDe(d), d, "ventas", extra);
   }
 
   // "Hoy llegaron N sin UTM" (DP-17) es de HOY, mire el rango que mire la pantalla.

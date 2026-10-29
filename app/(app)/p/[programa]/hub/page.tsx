@@ -36,7 +36,7 @@ import { DashboardPrograma } from "@/components/dashboard-programa";
 import { Escalera } from "@/components/dashboard/escalera";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
-import { PautaInterina } from "@/components/pauta-interina";
+import { PautaInterina, type EnlaceDeLista } from "@/components/pauta-interina";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
 import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
@@ -263,6 +263,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               rango={vista.seleccion.rango}
               hoy={hoy}
               busqueda={busqueda}
+              enlaceLista={veEquipo ? (metrica, { escalon, pago, ...filtrosDeOrigen }) => metrica === "escalera"
+                // La lista de ventas es de quien administra (Gerencia y developer): al closer no se le ofrece un enlace que da 404.
+                ? (esAdministrador(rol) ? urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen, escalera: { escalon, pago } }) : null)
+                : urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen }) : undefined}
             />
           ) : seccion === "comercial" ? (
             <div className="space-y-4">
@@ -368,11 +372,13 @@ async function SeccionPauta({
   rango,
   hoy,
   busqueda,
+  enlaceLista,
 }: {
   programId: string;
   rango: { desde: string; hasta: string };
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
+  enlaceLista?: EnlaceDeLista;
 }) {
   const ahora = new Date();
   const [ultimaSincronizacion] = await db
@@ -428,7 +434,7 @@ async function SeccionPauta({
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
-      <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} />
+      <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} enlaceLista={enlaceLista} />
       <Card aria-labelledby="resumen-serie">
         <CardHeader>
           <div className="flex items-center gap-2">
