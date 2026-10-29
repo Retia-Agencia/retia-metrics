@@ -400,7 +400,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 337 | [Subir formatos al banco](./337-formatos-al-banco.md) | 321, 324 | todo · faltante de la verificación de crudos (28-oct) |
 | [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
 | [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | todo · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
-| [ ] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done en rama · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
+| [x] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
 
 ## 17 · Agendamiento: piloto de dCal (23-oct)
 
