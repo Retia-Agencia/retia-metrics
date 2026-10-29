@@ -59,6 +59,4 @@ LinkedIn (ADR 0111 punto 3).
 Hecho: tablas en `lib/db/schema.ts`, extractor (solo `GET`), importador, deshacer, `tests/traslado-cockpit.test.ts`. Medido con la
 extracción real contra PGlite: los 16 conteos cuadran con el cockpit, la segunda corrida no duplica y el deshacer deja todo en cero.
 
-Falta, y es de la sesión principal: **generar y aplicar la migración** (el SQL borrador está en
-`tests/fixtures/cockpit-0108-borrador.sql`; ver el aviso dentro del test), y el traslado real (`npm run cockpit:importar -- --aplicar`),
-que pide el ok de Mani.
+Migración **0108_cockpit-contenido** generada y leída (16 `CREATE TABLE`, sin `DROP`, con el RLS a mano), **sin aplicar**. Falta aplicarla y correr el traslado real (`npm run cockpit:importar -- --aplicar`), que piden el ok de Mani.

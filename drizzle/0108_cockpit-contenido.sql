@@ -22,7 +22,7 @@ CREATE TABLE "calificaciones" (
 	"calificada_en" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "candidatos" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creador_id" uuid,
@@ -56,7 +56,7 @@ CREATE TABLE "candidatos" (
 	"corrida_externa" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "colecciones" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creador_id" uuid,
@@ -65,7 +65,7 @@ CREATE TABLE "colecciones" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "colecciones_videos" (
 	"coleccion_id" uuid NOT NULL,
 	"red" text NOT NULL,
@@ -74,7 +74,7 @@ CREATE TABLE "colecciones_videos" (
 	"agregado_en" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "colecciones_videos_pk" UNIQUE("coleccion_id","red","external_id")
 );
-
+--> statement-breakpoint
 CREATE TABLE "descartes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tematica_id" uuid,
@@ -90,7 +90,7 @@ CREATE TABLE "descartes" (
 	"origen" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "guiones_limpios" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"red" text NOT NULL,
@@ -101,7 +101,7 @@ CREATE TABLE "guiones_limpios" (
 	"criterios_hash" text,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "referentes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"handle" text NOT NULL,
@@ -111,7 +111,7 @@ CREATE TABLE "referentes" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "referentes_sugeridos" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"handle" text NOT NULL,
@@ -125,25 +125,25 @@ CREATE TABLE "referentes_sugeridos" (
 	"estado" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "referentes_sugeridos_tematicas" (
 	"sugerido_id" uuid NOT NULL,
 	"tematica_id" uuid NOT NULL,
 	CONSTRAINT "referentes_sugeridos_tematicas_pk" UNIQUE("sugerido_id","tematica_id")
 );
-
+--> statement-breakpoint
 CREATE TABLE "referentes_tematicas" (
 	"referente_id" uuid NOT NULL,
 	"tematica_id" uuid NOT NULL,
 	CONSTRAINT "referentes_tematicas_pk" UNIQUE("referente_id","tematica_id")
 );
-
+--> statement-breakpoint
 CREATE TABLE "tandas" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"titulo" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "tematicas" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"creador_id" uuid NOT NULL,
@@ -159,7 +159,7 @@ CREATE TABLE "tematicas" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "transcripciones" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"red" text NOT NULL,
@@ -177,7 +177,7 @@ CREATE TABLE "transcripciones" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"procesada_en" timestamp with time zone
 );
-
+--> statement-breakpoint
 CREATE TABLE "traslado_cockpit" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"tabla" text NOT NULL,
@@ -185,7 +185,7 @@ CREATE TABLE "traslado_cockpit" (
 	"ref_cockpit" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "videos_grabados" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"red" text NOT NULL,
@@ -193,7 +193,7 @@ CREATE TABLE "videos_grabados" (
 	"url" text NOT NULL,
 	"grabado_en" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE TABLE "videos_referentes" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"red" text NOT NULL,
@@ -208,42 +208,42 @@ CREATE TABLE "videos_referentes" (
 	"fuente" text NOT NULL,
 	"traido_en" timestamp with time zone DEFAULT now() NOT NULL
 );
-
-ALTER TABLE "calificaciones" ADD CONSTRAINT "calificaciones_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "calificaciones" ADD CONSTRAINT "calificaciones_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "candidatos" ADD CONSTRAINT "candidatos_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "candidatos" ADD CONSTRAINT "candidatos_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "colecciones" ADD CONSTRAINT "colecciones_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "colecciones_videos" ADD CONSTRAINT "colecciones_videos_coleccion_id_colecciones_id_fk" FOREIGN KEY ("coleccion_id") REFERENCES "public"."colecciones"("id") ON DELETE cascade ON UPDATE no action;
-ALTER TABLE "descartes" ADD CONSTRAINT "descartes_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "guiones_limpios" ADD CONSTRAINT "guiones_limpios_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE set null ON UPDATE no action;
-ALTER TABLE "referentes_sugeridos_tematicas" ADD CONSTRAINT "referentes_sugeridos_tematicas_sugerido_id_referentes_sugeridos_id_fk" FOREIGN KEY ("sugerido_id") REFERENCES "public"."referentes_sugeridos"("id") ON DELETE cascade ON UPDATE no action;
-ALTER TABLE "referentes_sugeridos_tematicas" ADD CONSTRAINT "referentes_sugeridos_tematicas_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE cascade ON UPDATE no action;
-ALTER TABLE "referentes_tematicas" ADD CONSTRAINT "referentes_tematicas_referente_id_referentes_id_fk" FOREIGN KEY ("referente_id") REFERENCES "public"."referentes"("id") ON DELETE cascade ON UPDATE no action;
-ALTER TABLE "referentes_tematicas" ADD CONSTRAINT "referentes_tematicas_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE cascade ON UPDATE no action;
-ALTER TABLE "tematicas" ADD CONSTRAINT "tematicas_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;
-ALTER TABLE "transcripciones" ADD CONSTRAINT "transcripciones_tanda_id_tandas_id_fk" FOREIGN KEY ("tanda_id") REFERENCES "public"."tandas"("id") ON DELETE set null ON UPDATE no action;
-CREATE INDEX "calificaciones_creador_idx" ON "calificaciones" USING btree ("creador_id");
-CREATE INDEX "calificaciones_tematica_idx" ON "calificaciones" USING btree ("tematica_id");
-CREATE INDEX "calificaciones_resultado_idx" ON "calificaciones" USING btree ("resultado");
-CREATE UNIQUE INDEX "candidatos_external_id_idx" ON "candidatos" USING btree ("external_id");
-CREATE INDEX "candidatos_creador_idx" ON "candidatos" USING btree ("creador_id");
-CREATE INDEX "candidatos_tematica_idx" ON "candidatos" USING btree ("tematica_id");
-CREATE UNIQUE INDEX "colecciones_nombre_idx" ON "colecciones" USING btree (lower("nombre"));
-CREATE INDEX "descartes_tematica_idx" ON "descartes" USING btree ("tematica_id");
-CREATE UNIQUE INDEX "guiones_limpios_video_idx" ON "guiones_limpios" USING btree ("red","external_id");
-CREATE INDEX "guiones_limpios_creador_idx" ON "guiones_limpios" USING btree ("creador_id");
-CREATE UNIQUE INDEX "referentes_red_handle_idx" ON "referentes" USING btree ("red",lower("handle"));
-CREATE INDEX "referentes_sugeridos_estado_idx" ON "referentes_sugeridos" USING btree ("estado");
-CREATE INDEX "referentes_tematicas_tematica_idx" ON "referentes_tematicas" USING btree ("tematica_id");
-CREATE UNIQUE INDEX "tematicas_creador_nombre_idx" ON "tematicas" USING btree ("creador_id",lower("nombre"));
-CREATE INDEX "tematicas_creador_idx" ON "tematicas" USING btree ("creador_id");
-CREATE UNIQUE INDEX "transcripciones_video_idx" ON "transcripciones" USING btree ("red","external_id");
-CREATE INDEX "transcripciones_tanda_idx" ON "transcripciones" USING btree ("tanda_id");
-CREATE UNIQUE INDEX "traslado_cockpit_ref_idx" ON "traslado_cockpit" USING btree ("tabla","ref_cockpit");
-CREATE INDEX "traslado_cockpit_fila_idx" ON "traslado_cockpit" USING btree ("tabla","fila_id");
-CREATE UNIQUE INDEX "videos_grabados_video_idx" ON "videos_grabados" USING btree ("red","external_id");
-CREATE UNIQUE INDEX "videos_referentes_video_idx" ON "videos_referentes" USING btree ("red","external_id");
+--> statement-breakpoint
+ALTER TABLE "calificaciones" ADD CONSTRAINT "calificaciones_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "calificaciones" ADD CONSTRAINT "calificaciones_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "candidatos" ADD CONSTRAINT "candidatos_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "candidatos" ADD CONSTRAINT "candidatos_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "colecciones" ADD CONSTRAINT "colecciones_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "colecciones_videos" ADD CONSTRAINT "colecciones_videos_coleccion_id_colecciones_id_fk" FOREIGN KEY ("coleccion_id") REFERENCES "public"."colecciones"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "descartes" ADD CONSTRAINT "descartes_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "guiones_limpios" ADD CONSTRAINT "guiones_limpios_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "referentes_sugeridos_tematicas" ADD CONSTRAINT "referentes_sugeridos_tematicas_sugerido_id_referentes_sugeridos_id_fk" FOREIGN KEY ("sugerido_id") REFERENCES "public"."referentes_sugeridos"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "referentes_sugeridos_tematicas" ADD CONSTRAINT "referentes_sugeridos_tematicas_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "referentes_tematicas" ADD CONSTRAINT "referentes_tematicas_referente_id_referentes_id_fk" FOREIGN KEY ("referente_id") REFERENCES "public"."referentes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "referentes_tematicas" ADD CONSTRAINT "referentes_tematicas_tematica_id_tematicas_id_fk" FOREIGN KEY ("tematica_id") REFERENCES "public"."tematicas"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tematicas" ADD CONSTRAINT "tematicas_creador_id_creadores_id_fk" FOREIGN KEY ("creador_id") REFERENCES "public"."creadores"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "transcripciones" ADD CONSTRAINT "transcripciones_tanda_id_tandas_id_fk" FOREIGN KEY ("tanda_id") REFERENCES "public"."tandas"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "calificaciones_creador_idx" ON "calificaciones" USING btree ("creador_id");--> statement-breakpoint
+CREATE INDEX "calificaciones_tematica_idx" ON "calificaciones" USING btree ("tematica_id");--> statement-breakpoint
+CREATE INDEX "calificaciones_resultado_idx" ON "calificaciones" USING btree ("resultado");--> statement-breakpoint
+CREATE UNIQUE INDEX "candidatos_external_id_idx" ON "candidatos" USING btree ("external_id");--> statement-breakpoint
+CREATE INDEX "candidatos_creador_idx" ON "candidatos" USING btree ("creador_id");--> statement-breakpoint
+CREATE INDEX "candidatos_tematica_idx" ON "candidatos" USING btree ("tematica_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "colecciones_nombre_idx" ON "colecciones" USING btree (lower("nombre"));--> statement-breakpoint
+CREATE INDEX "descartes_tematica_idx" ON "descartes" USING btree ("tematica_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "guiones_limpios_video_idx" ON "guiones_limpios" USING btree ("red","external_id");--> statement-breakpoint
+CREATE INDEX "guiones_limpios_creador_idx" ON "guiones_limpios" USING btree ("creador_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "referentes_red_handle_idx" ON "referentes" USING btree ("red",lower("handle"));--> statement-breakpoint
+CREATE INDEX "referentes_sugeridos_estado_idx" ON "referentes_sugeridos" USING btree ("estado");--> statement-breakpoint
+CREATE INDEX "referentes_tematicas_tematica_idx" ON "referentes_tematicas" USING btree ("tematica_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "tematicas_creador_nombre_idx" ON "tematicas" USING btree ("creador_id",lower("nombre"));--> statement-breakpoint
+CREATE INDEX "tematicas_creador_idx" ON "tematicas" USING btree ("creador_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "transcripciones_video_idx" ON "transcripciones" USING btree ("red","external_id");--> statement-breakpoint
+CREATE INDEX "transcripciones_tanda_idx" ON "transcripciones" USING btree ("tanda_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "traslado_cockpit_ref_idx" ON "traslado_cockpit" USING btree ("tabla","ref_cockpit");--> statement-breakpoint
+CREATE INDEX "traslado_cockpit_fila_idx" ON "traslado_cockpit" USING btree ("tabla","fila_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "videos_grabados_video_idx" ON "videos_grabados" USING btree ("red","external_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "videos_referentes_video_idx" ON "videos_referentes" USING btree ("red","external_id");--> statement-breakpoint
 ALTER TABLE "calificaciones" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "candidatos" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "colecciones" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -259,4 +259,4 @@ ALTER TABLE "tematicas" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "transcripciones" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "traslado_cockpit" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "videos_grabados" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
-ALTER TABLE "videos_referentes" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "videos_referentes" ENABLE ROW LEVEL SECURITY;

@@ -34,10 +34,6 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 /**
  * Ticket 322 (ADR 0111): el traslado unico del cockpit. Lo que un bug aqui hace no es fallar:
  * es perder o duplicar calificaciones, o colgarlas del creador equivocado, sin ningun error.
- *
- * Mientras la migracion del esquema no exista en `drizzle/`, el DDL sale del borrador en
- * `tests/fixtures/cockpit-0108-borrador.sql`; en cuanto la migracion real lo trae, el borrador
- * sobra y se borra (el test lo detecta solo).
  */
 
 const NUEVAS = [
@@ -55,10 +51,6 @@ let actorId: string;
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
   cliente = (db as Db & { $client: PGlite }).$client;
-  const existe = await cliente.query("select to_regclass('public.traslado_cockpit') as t");
-  if (!(existe.rows[0] as { t: string | null }).t) {
-    await cliente.exec(readFileSync("tests/fixtures/cockpit-0108-borrador.sql", "utf8"));
-  }
 });
 afterAll(async () => {
   await cerrar();
