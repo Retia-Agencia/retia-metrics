@@ -22,3 +22,41 @@ status: todo
 
 - El traslado contra la base local cuadra en conteos con el cockpit, tabla por tabla, y se deshace limpio.
 - El SQL de la migración se leyó antes de aplicarla (AGENTS.md).
+
+## Inventario y mapa (solo lectura del cockpit, 29-oct-2026)
+
+Cockpit: base Supabase propia (ref `zdeqabvcdqhbcnwivwwk`), un solo tenant con datos de Retia (`client_id = retia`, instancia
+`reels`). Los tenants `estadox` y `30x` y la instancia `linkedin` no tienen filas de contenido que migrar.
+
+**Dos hallazgos que cambian la lectura del ADR 0111:** (1) el "cliente" del cockpit es la empresa (`retia`), no la persona; el
+**creador** del CRM sale de las **voces** (6: Rosario, María José, Milena, Juan Pablo Vieira, Francisco, Nicolás), que son quienes
+aparecen en cámara. (2) El "proyecto" del cockpit es una **temática** (28, cada una atada a una voz), no un cliente. Los referentes
+cuelgan del creador **por sus temáticas** (246 vínculos, todos los referentes tienen al menos una).
+
+| Cockpit | Filas | CRM | Notas |
+|---|---:|---|---|
+| `voces` | 6 | `creadores` (por el molde, sin programa) | Slug desde el nombre; si ya existe, se reutiliza |
+| `proyectos` | 28 | `tematicas` | `voz_id` → `creador_id`; `plataformas` → `redes`; `n` → `meta_entrega`; `criterios_aprendidos` es el aprendizaje |
+| `referentes` + `referentes_proyectos` | 95 + 246 | `referentes` + `referentes_tematicas` | Salud (tasa del gate, de aprobación) se **deriva** al leer de las corridas y lo calificado; no se guarda |
+| `referentes_propuestos` + puente | 14 + 28 | `referentes_sugeridos` + `referentes_sugeridos_tematicas` | |
+| `candidatos` | 8 | `candidatos` | `run_id` → `corrida_externa` (texto); `agente_id` (agentes: 0 filas) no se traslada |
+| `outputs` tipo `guion_reel` | 867 | `calificaciones` | `estado` → `resultado` (`aprobado`/`descartado`); creador y temática salen de `metadata.voz` y `metadata.proyecto` |
+| `descartes` | 154 | `descartes` | |
+| `tandas` | 89 | `tandas` | `creada_por` no se traslada (sus usuarios no existen en el CRM) |
+| `transcripciones` | 1.847 | `transcripciones` | `script` → `guion` |
+| `guiones_limpios` | 927 | `guiones_limpios` | `voz_id` → `creador_id` |
+| `colecciones` + `colecciones_videos` | 19 + 1.104 | `colecciones` + `colecciones_videos` | El cockpit no ataba una colección a nadie: `creador_id` nace nulo (se asigna en el 325) |
+| `videos_meta` | 513 | `videos_referentes` | |
+| `grabados` | 652 | `videos_grabados` | |
+
+**No se traslada, a propósito:** `pool_crudo` (35.871 filas) y `processed_items` (3.165), que son memoria del motor de n8n y las
+escribe la fachada del 323; `runs` (285), `eventos`, `tarifas`, `ajustes`, `etiquetas_rendimiento`, `agentes*`, `virlo_corridas`
+(todas del motor o vacías); los `outputs` de tipo `transcripcion_a_pedido` (duplican `transcripciones`); lo multi-tenant y
+LinkedIn (ADR 0111 punto 3).
+
+## Estado de la construcción (29-oct)
+
+Hecho: tablas en `lib/db/schema.ts`, extractor (solo `GET`), importador, deshacer, `tests/traslado-cockpit.test.ts`. Medido con la
+extracción real contra PGlite: los 16 conteos cuadran con el cockpit, la segunda corrida no duplica y el deshacer deja todo en cero.
+
+Migración **0108_cockpit-contenido** generada y leída (16 `CREATE TABLE`, sin `DROP`, con el RLS a mano), **sin aplicar**. Falta aplicarla y correr el traslado real (`npm run cockpit:importar -- --aplicar`), que piden el ok de Mani.
