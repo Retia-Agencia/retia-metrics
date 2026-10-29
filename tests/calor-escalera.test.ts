@@ -1,11 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import {
-  MINIMO_DE_DEALS_PARA_CALOR,
-  tonoDePorcentaje,
-  tonosDeFila,
-} from "@/lib/queries/calor-escalera";
+import { intensidadesDeFila } from "@/lib/queries/calor-escalera";
 import { ESCALONES, type Escalon } from "@/lib/queries/escalera";
 import type { FilaDeEscalera } from "@/lib/queries/vista-escalera";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
@@ -28,50 +24,28 @@ function fila(
 }
 
 describe("calor de la escalera", () => {
-  it.each([
-    [0, 0],
-    [4.9, 0],
-    [5, 1],
-    [19.9, 1],
-    [20, 2],
-    [49.9, 2],
-    [50, 3],
-    [100, 3],
-  ] as const)("asigna a %s el tono %s", (porcentaje, tono) => {
-    expect(tonoDePorcentaje(porcentaje)).toBe(tono);
+  it("la intensidad es el porcentaje de la celda sobre su propia fila, de 0 a 1", () => {
+    const i = intensidadesDeFila(fila(40, { pago_en_llamada: 80, pago_rapido: 20 }));
+    expect(i.pago_en_llamada).toBeCloseTo(0.8);
+    expect(i.pago_rapido).toBeCloseTo(0.2);
+    expect(i.pago_despues).toBe(0);
   });
 
-  it("normaliza cada fila por sus propios porcentajes", () => {
-    const deCuarenta = tonosDeFila(fila(40, { pago_en_llamada: 80, pago_rapido: 20 }));
-    const deCincuentaYSeis = tonosDeFila(fila(56, {
-      pago_en_llamada: 4.9,
-      pago_rapido: 5,
-      pago_despues: 19.9,
-      pago_sin_llamada: 50,
-    }));
-
-    expect(deCuarenta.pago_en_llamada).toBe(3);
-    expect(deCuarenta.pago_rapido).toBe(2);
-    expect(deCincuentaYSeis).toMatchObject({
-      pago_en_llamada: 0,
-      pago_rapido: 1,
-      pago_despues: 1,
-      pago_sin_llamada: 3,
-    });
+  it("no depende del tamaño de la fila: 4 deals y 515 con el mismo porcentaje dan lo mismo", () => {
+    expect(intensidadesDeFila(fila(4, { pago_en_llamada: 50 })).pago_en_llamada)
+      .toBe(intensidadesDeFila(fila(515, { pago_en_llamada: 50 })).pago_en_llamada);
   });
 
-  it("deja sin tono una fila con menos del mínimo", () => {
-    expect(Object.values(tonosDeFila(fila(MINIMO_DE_DEALS_PARA_CALOR - 1, { pago_en_llamada: 100 }))))
+  it("deja sin calor la fila sin dueño aunque tenga 515 deals", () => {
+    expect(Object.values(intensidadesDeFila(fila(515, { pago_en_llamada: 100 }, true))))
       .toEqual(ESCALONES.map(() => null));
   });
 
-  it("deja sin tono la fila sin dueño aunque tenga 515 deals", () => {
-    expect(Object.values(tonosDeFila(fila(515, { pago_en_llamada: 100 }, true))))
-      .toEqual(ESCALONES.map(() => null));
-  });
-
-  it("conserva sin tono un porcentaje nulo", () => {
-    expect(tonosDeFila(fila(40, { pago_en_llamada: null })).pago_en_llamada).toBeNull();
+  it("deja sin calor un porcentaje nulo y acota lo que se salga de 0 a 100", () => {
+    const i = intensidadesDeFila(fila(40, { pago_en_llamada: null, pago_rapido: 120, pago_despues: -3 }));
+    expect(i.pago_en_llamada).toBeNull();
+    expect(i.pago_rapido).toBe(1);
+    expect(i.pago_despues).toBe(0);
   });
 });
 

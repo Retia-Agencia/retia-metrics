@@ -225,7 +225,7 @@ un escalón, y el escalón se calcula al leer, nunca se guarda.
 - **Días medianos:** mediana de los días hábiles de la cita al primer abono, solo en los escalones 2 y 3.
 - **Porcentaje:** sobre todos los deals del universo filtrado; base cero se muestra `—`. Es una distribución por
   programa: **nunca se suma entre programas** (ADR 0048).
-- **Tono de calor:** es solo presentación, se normaliza por cada fila sobre sus propios deals y no cambia ninguna cifra.
+- **Calor:** presentación, continuo: la intensidad es el porcentaje de la celda sobre su propia fila; sin color «Sin closer». No cambia ninguna cifra.
 - **Dimensiones** (lista blanca): closer (el dueño del deal), calidad (`submissions.lead_quality` del envío que abrió
   el deal, tal como llegó; sin dato, «Sin calidad») y cohorte. El comparativo por closer no se acota (ADR 0023).
 - **Lista:** `hub/lista?metrica=escalera&escalon=…&calidad=…&closer=…`, del mismo cálculo que la cifra. La fecha de

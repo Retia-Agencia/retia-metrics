@@ -26,25 +26,20 @@ no aplica, pero el color sí sale de Tinta. Si en la revisión se prefiere EChar
 
 ## Alcance
 
-- `lib/queries/` (puro, sin base): `tonoDeCalor(celdas, modo)` devuelve un tono discreto (0 a 3: casi nada, bajo, medio,
-  alto) por celda. Vive en un módulo y lo importan la tarjeta del 320 y, después, el 335; nadie repite el corte.
-- **Se normaliza por fila**: el porcentaje del closer (o de la calidad) sobre sus propios deals, no sobre toda la tabla.
-  Sin eso, «Sin closer» (515 deals, 100 % en «Dejó datos») y la columna «Dejó datos y sin cita ocurrida» (91 % del
+- `lib/queries/calor-escalera.ts` (puro, sin base): `intensidadesDeFila(fila)` devuelve 0 a 1 por celda, el porcentaje de la
+  celda sobre los deals de SU fila. **Continuo: ni cortes ni mínimos escritos en el código** (Mani, 29-oct). La tarjeta del
+  320 y, después, el 335 lo importan.
+- **Se normaliza por fila**: sin eso, «Sin closer» (515 deals, 100 % en «Dejó datos») y la columna «Dejó datos» (91 % del
   total) se comen todo el color y no se puede comparar a Nicolás con Juan José.
-- **Filas con pocos deals no se pintan** (`MINIMO_DE_DEALS_PARA_CALOR` = 10, constante de presentación con `ponytail:`;
-  si gerencia la quiere editable pasa a una columna de Programa): 4 deals al 100 % se verían igual de «caliente» que 515.
-  Se muestra el número sin tono y la leyenda lo dice.
-- **«Sin closer» sale del calor**: es un cubo de deals sin dueño, no una persona a comparar; va aparte, sin tono.
+- **«Sin closer» sale del calor** (`esSinDueno` en la fila): es un cubo de deals sin dueño, no una persona a comparar.
 - La fila de total por escalón (arriba) conserva su forma: es una distribución, no una matriz.
-- Un solo acento morado de Tinta con cuatro pasos de lightness (diferenciables sin depender del tono, `docs/structure.md`
-  §9); si Tinta no tiene la escala, se agrega ahí primero. Texto con contraste 4.5:1 sobre cada paso.
+- Un solo acento morado de Tinta (`color-mix` sobre `var(--primary)`, hasta 40 % en la celda del 100 %); texto en foreground.
 - Leyenda corta bajo la tabla: qué significa el tono y que es por fila.
 - `docs/metricas.md` §3.1: una línea sobre el tono (no cambia ninguna cifra).
 
 ## Done cuando
 
-- Test de `tonoDeCalor`: normaliza por fila, fila con pocos deals sin tono, cero deals sin tono, mismos pasos con el
-  mismo orden de entrada en otro orden.
+- Test de `intensidadesDeFila`: normaliza por fila, no depende del tamaño de la fila, sin dueño y nulo sin calor.
 - Ninguna cifra cambia: `tests/escalera.test.ts` sigue en verde sin tocar sus esperados.
 - Recorrido local con gerente y closer, escritorio y 375 px (la tabla ya scrollea horizontal), y la celda con tono
   sigue abriendo su lista.
@@ -53,6 +48,4 @@ no aplica, pero el color sí sale de Tinta. Si en la revisión se prefiere EChar
 ## Avance (29-oct)
 
 Hecho en la rama `calor-escalera-347`: `lib/queries/calor-escalera.ts`, `esSinDueno` en `FilaDeEscalera`, tonos en
-`TablaPorDimension`, `tests/calor-escalera.test.ts`. Typecheck, lint y `tests/escalera.test.ts` en verde. **Falta:** verlo en
-pantalla (contraste de `bg-primary/40` en claro y oscuro, clic de la celda) y que la leyenda de «Por calidad» no nombre
-«Sin closer».
+`TablaPorDimension`, `tests/calor-escalera.test.ts`. Typecheck, lint y `tests/escalera.test.ts` en verde. Visto en pantalla (29-oct, `dev:local`, gerente, claro y oscuro): legible, el clic de la celda abre su lista y la leyenda solo nombra «Sin closer» si hay esa fila. No se probó a 375 px ni con closer (el closer no ve el Hub, ADR 0082).
