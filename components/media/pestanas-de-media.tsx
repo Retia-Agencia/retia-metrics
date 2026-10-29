@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export const PESTANAS_DE_MEDIA = [
   {
     id: "creadores",
-    etiqueta: "Creadores y piezas",
+    etiqueta: "Piezas",
     vacia: null,
   },
   {
@@ -28,6 +28,11 @@ export const PESTANAS_DE_MEDIA = [
     etiqueta: "Insights",
     vacia: "Aquí verás qué contenido trae leads y ventas. Llega con el ticket 330, cuando la escalera de conversión se cruce con cada pieza.",
   },
+  {
+    id: "info",
+    etiqueta: "Info UTM",
+    vacia: null,
+  },
 ] as const;
 export type PestanaDeMedia = (typeof PESTANAS_DE_MEDIA)[number]["id"];
 
@@ -38,10 +43,11 @@ export function pestanaValida(valor: string | undefined): PestanaDeMedia {
 /** El selector de programa: `programa` es un id o "ninguno"; vacio = todos los del alcance. */
 export const SIN_PROGRAMA = "ninguno";
 
-function href(tab: PestanaDeMedia, programa: string | undefined) {
+export function hrefDeMedia(tab: PestanaDeMedia, programa: string | undefined, pagina?: number) {
   const q = new URLSearchParams();
   if (tab !== "creadores") q.set("tab", tab);
   if (programa) q.set("programa", programa);
+  if (pagina && pagina > 1) q.set("pagina", String(pagina));
   const s = q.toString();
   return s ? `/media?${s}` : "/media";
 }
@@ -70,7 +76,7 @@ export function PestanasDeMedia({
         {PESTANAS_DE_MEDIA.map((p) => (
           <Link
             key={p.id}
-            href={href(p.id, programa)}
+            href={hrefDeMedia(p.id, programa)}
             aria-current={p.id === tab ? "page" : undefined}
             className={cn(
               "shrink-0 border-b-2 px-3 py-2 text-sm font-medium",
@@ -85,7 +91,7 @@ export function PestanasDeMedia({
         {opciones.map((o) => (
           <Link
             key={o.valor ?? "todos"}
-            href={href(tab, o.valor)}
+            href={hrefDeMedia(tab, o.valor)}
             aria-current={o.valor === programa ? "true" : undefined}
             className={cn(
               pildora,

@@ -18,6 +18,8 @@ import {
   type EdicionPieza,
   type EntradaPieza,
 } from "@/lib/media/piezas";
+import { desglosarLink } from "@/lib/atribucion/parametros-de-contenido";
+import { REDES_DE_CONTENIDO } from "@/lib/media/redes";
 import type { EntradaCreador } from "@/lib/catalogo/creadores";
 
 /**
@@ -32,7 +34,7 @@ import type { EntradaCreador } from "@/lib/catalogo/creadores";
  * `link` y `sinLink` solo los llena crear una pieza: el link con su UTM, armado por el servidor
  * (`linkDeLaPieza`, nunca a mano), o el porque no hay (creador sin programa, sin fuente principal).
  */
-export type ResultadoAccion = { ok: true; link?: string; sinLink?: string } | { ok: false; error: string };
+export type ResultadoAccion = { ok: true; link?: string; desglose?: { nombre: string; valor: string }[]; sinLink?: string } | { ok: false; error: string };
 
 function aResultado(error: unknown): ResultadoAccion {
   if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
@@ -74,7 +76,8 @@ export async function crearPiezaAccion(entrada: EntradaPieza): Promise<Resultado
     revalidatePath("/media");
     // La pieza ya existe: si el link no se puede armar (422), se dice por que y no se deshace nada.
     try {
-      return { ok: true, link: await linkDeLaPieza(actor, id, db) };
+      const link = await linkDeLaPieza(actor, id, db);
+      return { ok: true, link, desglose: desglosarLink(link, REDES_DE_CONTENIDO) };
     } catch (error) {
       if (error instanceof ErrorDeApp) return { ok: true, sinLink: error.message };
       throw error;

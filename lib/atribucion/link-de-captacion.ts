@@ -2,6 +2,9 @@ import { and, asc, eq } from "drizzle-orm";
 import { sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
+import { sanearUtm } from "./sanear-utm";
+
+export { sanearUtm };
 
 /**
  * EL generador de links de captacion (ticket 092, ADR 0051, ADR 0068). Uno solo para el
@@ -21,21 +24,6 @@ export interface UtmsDelLink {
   campaign: string;
   content?: string | null;
   term?: string | null;
-}
-
-/**
- * La forma de un valor libre (campana, content, term): minusculas, sin tildes, `snake_case`,
- * sin espacios (ADR 0051). Lo que no es letra o digito pasa a `_`, y los `_` de los bordes
- * se quitan. `source` y `medium` NO pasan por aqui: son los del Canal, y el emparejador los
- * compara contra ese catalogo; reescribirlos (un punto en `l.instagram.com`) romperia el par.
- */
-export function sanearUtm(valor: string): string {
-  return valor
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
 }
 
 /**

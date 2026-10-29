@@ -4,7 +4,14 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { UTM_MEDIUM_CONTENIDO } from "./canal";
+import { campanaDePieza } from "./campana-de-pieza";
 import { destinoDeCaptacion, generarLink } from "./link-de-captacion";
+
+export { campanaDePieza };
+
+/** Sin programa no hay link: el creador no tiene embudo (ADR 0110 punto 2). */
+export const SIN_PROGRAMA_SIN_LINK =
+  "Este creador no tiene programa: su contenido se planea pero no tiene link ni mide ventas. Asígnale un programa para generarlo.";
 
 /**
  * El link de una pieza de contenido (ticket 317, ADR 0108). Sale del MISMO generador que el
@@ -15,20 +22,6 @@ import { destinoDeCaptacion, generarLink } from "./link-de-captacion";
  *  - `utm_campaign` = `<tipo>_<creador>_<aaaammdd>` (o `<tipo>_<creador>` si es permanente)
  *  - `utm_content` = el codigo opaco de la pieza; solo lo lee el emparejador, con ese medio.
  */
-export function campanaDePieza(p: {
-  tipo: string;
-  creadorSlug: string;
-  fechaPublicacion: string | null;
-  permanente: boolean;
-}): string {
-  const fecha = !p.permanente && p.fechaPublicacion ? p.fechaPublicacion.replaceAll("-", "") : null;
-  return [p.tipo, p.creadorSlug, fecha].filter((x): x is string => Boolean(x)).join("_");
-}
-
-/** Sin programa no hay link: el creador no tiene embudo (ADR 0110 punto 2). */
-export const SIN_PROGRAMA_SIN_LINK =
-  "Este creador no tiene programa: su contenido se planea pero no tiene link ni mide ventas. Asígnale un programa para generarlo.";
-
 export async function linkDePieza(db: Db, piezaId: string): Promise<string> {
   const [fila] = await db
     .select({
