@@ -12,6 +12,7 @@ import {
   crearPieza,
   descartarPieza,
   editarPieza,
+  linkDeLaPieza,
   marcarPublicada,
   type ActorDeMedia,
   type EdicionPieza,
@@ -27,7 +28,11 @@ import type { EntradaCreador } from "@/lib/catalogo/creadores";
  * (ADR 0028), nunca del input; el programa de una pieza sale de su creador, nunca del input.
  */
 
-export type ResultadoAccion = { ok: true } | { ok: false; error: string };
+/**
+ * `link` y `sinLink` solo los llena crear una pieza: el link con su UTM, armado por el servidor
+ * (`linkDeLaPieza`, nunca a mano), o el porque no hay (creador sin programa, sin fuente principal).
+ */
+export type ResultadoAccion = { ok: true; link?: string; sinLink?: string } | { ok: false; error: string };
 
 function aResultado(error: unknown): ResultadoAccion {
   if (error instanceof ErrorDeApp) return { ok: false, error: error.message };
@@ -62,7 +67,21 @@ export async function crearTipoDePiezaAccion(nombre: string): Promise<ResultadoA
   return ejecutar((a) => crearTipoDePieza(a, nombre, db));
 }
 export async function crearPiezaAccion(entrada: EntradaPieza): Promise<ResultadoAccion> {
-  return ejecutar((a) => crearPieza(a, entrada, db));
+  try {
+    const session = await requireRole("media", "gerente");
+    const actor = await actorDe(session);
+    const id = await crearPieza(actor, entrada, db);
+    revalidatePath("/media");
+    // La pieza ya existe: si el link no se puede armar (422), se dice por que y no se deshace nada.
+    try {
+      return { ok: true, link: await linkDeLaPieza(actor, id, db) };
+    } catch (error) {
+      if (error instanceof ErrorDeApp) return { ok: true, sinLink: error.message };
+      throw error;
+    }
+  } catch (error) {
+    return aResultado(error);
+  }
 }
 export async function editarPiezaAccion(id: string, entrada: EdicionPieza): Promise<ResultadoAccion> {
   return ejecutar((a) => editarPieza(a, id, entrada, db));

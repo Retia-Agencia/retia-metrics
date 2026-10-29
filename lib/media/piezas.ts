@@ -258,3 +258,9 @@ export async function creadoresVisibles(actor: ActorDeMedia, db: Db = dbDeLaApp)
   if (alcance.size === 0) return todos;
   return todos.filter((c) => c.programId !== null && alcance.has(c.programId));
 }
+
+/** ¿Ve este actor a los creadores sin programa? Solo quien no tiene el alcance limitado (ADR 0107 punto 3). */
+export async function veCreadoresSinPrograma(actor: ActorDeMedia, db: Db = dbDeLaApp): Promise<boolean> {
+  if (esAccesoTotal(actor.rol) || !tieneAlcanceConfigurable(actor.rol)) return true;
+  return (await programasDelAlcance(actor.id, db)).size === 0;
+}

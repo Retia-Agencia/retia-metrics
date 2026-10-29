@@ -819,7 +819,9 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     const probar = async (sesion: unknown) => {
       auth.mockResolvedValue(sesion);
       try {
-        await ((await import(/* @vite-ignore */ ruta)) as { default: () => Promise<unknown> }).default();
+        await ((await import(/* @vite-ignore */ ruta)) as {
+          default: (p: { searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
+        }).default({ searchParams: Promise.resolve({}) });
         return "paso-la-guarda";
       } catch (e) {
         if (e instanceof NoEncontrado) return "notFound";

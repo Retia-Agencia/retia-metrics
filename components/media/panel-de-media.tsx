@@ -43,6 +43,10 @@ export interface OpcionesDeMedia {
   redes: readonly string[];
   tipos: { id: string; nombre: string }[];
   programas: { id: string; nombre: string }[];
+  /** Solo quien no tiene el alcance limitado puede crear un creador sin programa. */
+  conSinPrograma: boolean;
+  /** El programa elegido en el selector: prellena el del creador nuevo. */
+  programaInicial: string;
 }
 
 const campo = "h-9 rounded-md border bg-background px-2 text-sm";
@@ -50,15 +54,16 @@ const campo = "h-9 rounded-md border bg-background px-2 text-sm";
 export function PanelDeMedia({ creadores, opciones }: { creadores: CreadorVista[]; opciones: OpcionesDeMedia }) {
   const router = useRouter();
   const [pendiente, empezar] = useTransition();
-  const [creador, setCreador] = useState({ nombre: "", slug: "", programId: "" });
+  const [creador, setCreador] = useState({ nombre: "", slug: "", programId: opciones.programaInicial });
+  const [creado, setCreado] = useState<{ pieza: string; link?: string; sinLink?: string } | null>(null);
   const [tipo, setTipo] = useState("");
 
-  function correr(accion: () => Promise<ResultadoAccion>, ok: string, despues?: () => void) {
+  function correr(accion: () => Promise<ResultadoAccion>, ok: string, despues?: (r: ResultadoAccion & { ok: true }) => void) {
     empezar(async () => {
       const r = await accion();
       if (r.ok) {
         toast.success(ok);
-        despues?.();
+        despues?.(r);
         router.refresh();
       } else toast.error(r.error);
     });
@@ -76,20 +81,20 @@ export function PanelDeMedia({ creadores, opciones }: { creadores: CreadorVista[
         <CardHeader><CardTitle className="text-base">Nuevo creador</CardTitle></CardHeader>
         <CardContent>
           <form
-            className="flex flex-wrap items-end gap-2"
+            className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end"
             onSubmit={(e) => {
               e.preventDefault();
               correr(
                 () => crearCreadorAccion({ nombre: creador.nombre, slug: creador.slug, programId: creador.programId || null }),
                 "Creador creado",
-                () => setCreador({ nombre: "", slug: "", programId: "" }),
+                () => setCreador({ nombre: "", slug: "", programId: opciones.programaInicial }),
               );
             }}
           >
-            <Input className="w-44" placeholder="Nombre" value={creador.nombre} onChange={(e) => setCreador({ ...creador, nombre: e.target.value })} required />
-            <Input className="w-36" placeholder="slug-corto" value={creador.slug} onChange={(e) => setCreador({ ...creador, slug: e.target.value })} required />
-            <select className={campo} aria-label="Programa" value={creador.programId} onChange={(e) => setCreador({ ...creador, programId: e.target.value })}>
-              <option value="">Sin programa</option>
+            <Input className="sm:w-44" placeholder="Nombre" value={creador.nombre} onChange={(e) => setCreador({ ...creador, nombre: e.target.value })} required />
+            <Input className="sm:w-36" placeholder="slug-corto" value={creador.slug} onChange={(e) => setCreador({ ...creador, slug: e.target.value })} required />
+            <select className={campo} aria-label="Programa" required={!opciones.conSinPrograma} value={creador.programId} onChange={(e) => setCreador({ ...creador, programId: e.target.value })}>
+              {opciones.conSinPrograma ? <option value="">Sin programa</option> : <option value="" disabled>Elige un programa</option>}
               {opciones.programas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
             <Button type="submit" disabled={pendiente}>Crear</Button>
@@ -113,6 +118,23 @@ export function PanelDeMedia({ creadores, opciones }: { creadores: CreadorVista[
           </form>
         </CardContent>
       </Card>
+
+      {creado ? (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Pieza creada: {creado.pieza}</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {creado.link ? (
+              <>
+                <p className="break-all rounded-md border bg-muted/40 p-2 font-mono text-xs">{creado.link}</p>
+                <Button type="button" size="sm" variant="outline" onClick={() => copiar(creado.link as string)}>Copiar link</Button>
+              </>
+            ) : (
+              <p className="text-muted-foreground">{creado.sinLink}</p>
+            )}
+            <Button type="button" size="sm" variant="ghost" onClick={() => setCreado(null)}>Cerrar</Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {creadores.length === 0 ? (
         <p className="max-w-prose text-sm text-muted-foreground">Aún no hay creadores en tu alcance.</p>
@@ -156,7 +178,7 @@ export function PanelDeMedia({ creadores, opciones }: { creadores: CreadorVista[
                 ))}
               </ul>
             )}
-            {c.activo ? <FormularioDePieza creadorId={c.id} opciones={opciones} pendiente={pendiente} correr={correr} /> : null}
+            {c.activo ? <FormularioDePieza creadorId={c.id} nombreDelCreador={c.nombre} opciones={opciones} pendiente={pendiente} correr={correr} alCrear={(pieza, r) => setCreado({ pieza, link: r.link, sinLink: r.sinLink })} /> : null}
           </CardContent>
         </Card>
       ))}
@@ -166,19 +188,23 @@ export function PanelDeMedia({ creadores, opciones }: { creadores: CreadorVista[
 
 function FormularioDePieza({
   creadorId,
+  nombreDelCreador,
   opciones,
   pendiente,
   correr,
+  alCrear,
 }: {
   creadorId: string;
+  nombreDelCreador: string;
   opciones: OpcionesDeMedia;
   pendiente: boolean;
-  correr: (accion: () => Promise<ResultadoAccion>, ok: string, despues?: () => void) => void;
+  correr: (accion: () => Promise<ResultadoAccion>, ok: string, despues?: (r: ResultadoAccion & { ok: true }) => void) => void;
+  alCrear: (pieza: string, r: ResultadoAccion & { ok: true }) => void;
 }) {
   const [f, setF] = useState({ tipoId: "", red: opciones.redes[0] ?? "", fecha: "", permanente: false, cta: "" });
   return (
     <form
-      className="flex flex-wrap items-end gap-2"
+      className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end"
       onSubmit={(e) => {
         e.preventDefault();
         correr(
@@ -191,7 +217,10 @@ function FormularioDePieza({
             fechaPublicacion: f.permanente ? null : f.fecha || null,
           }),
           "Pieza creada",
-          () => setF({ ...f, fecha: "", cta: "" }),
+          (r) => {
+            alCrear(`${nombreDelCreador} · ${f.red}`, r);
+            setF({ ...f, fecha: "", cta: "" });
+          },
         );
       }}
     >
@@ -205,8 +234,8 @@ function FormularioDePieza({
       <label className="flex items-center gap-1 text-sm">
         <input type="checkbox" checked={f.permanente} onChange={(e) => setF({ ...f, permanente: e.target.checked })} /> Permanente
       </label>
-      {f.permanente ? null : <Input className="w-40" type="date" aria-label="Fecha de publicación" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} required />}
-      <Input className="w-48" placeholder="CTA (opcional)" value={f.cta} onChange={(e) => setF({ ...f, cta: e.target.value })} />
+      {f.permanente ? null : <Input className="sm:w-40" type="date" aria-label="Fecha de publicación" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} required />}
+      <Input className="sm:w-48" placeholder="CTA (opcional)" value={f.cta} onChange={(e) => setF({ ...f, cta: e.target.value })} />
       <Button type="submit" size="sm" disabled={pendiente}>Agregar pieza</Button>
     </form>
   );

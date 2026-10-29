@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, creadores, piezas, programs, usuariosProgramasAlcance, users } from "@/lib/db/schema";
+import { changeLog, creadores, piezas, programs, sources, tiposPieza, usuariosProgramasAlcance, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -80,7 +80,10 @@ describe("las acciones de media", () => {
     const [creador] = await db.select().from(creadores);
     const [tipo] = await db.select({ id: (await import("@/lib/db/schema")).tiposPieza.id }).from((await import("@/lib/db/schema")).tiposPieza);
     const forjado = { creadorId: creador.id, tipoId: tipo.id, red: "instagram", fechaPublicacion: "2026-10-30", programId: programB, creadaPor: ids.closer } as never;
-    expect(await a.crearPiezaAccion(forjado)).toEqual({ ok: true });
+    const r = await a.crearPiezaAccion(forjado);
+    expect(r.ok).toBe(true);
+    // El programa de prueba no tiene fuente principal: la pieza se crea y el porque del link vuelve en el resultado.
+    expect(r.ok && r.link === undefined && typeof r.sinLink === "string").toBe(true);
     const [pieza] = await db.select().from(piezas);
     expect(pieza.programId).toBe(programA);
     expect(pieza.creadaPor).toBe(ids.media);
@@ -99,6 +102,37 @@ describe("las acciones de media", () => {
     expect(r.ok).toBe(false);
     expect((await a.crearCreadorAccion({ nombre: "S", slug: "s" })).ok).toBe(false);
     expect(await db.select().from(piezas).where(eq(piezas.creadorId, creador.id))).toEqual([]);
+  });
+
+  it("al crear una pieza vuelve su link con el UTM del builder; un creador sin programa no tiene link (porque claro)", async () => {
+    const a = await acciones();
+    auth.mockResolvedValue(sesion("media", ids.media));
+    await db.insert(sources).values({
+      programId: programA,
+      nombre: "Form",
+      tipo: "google_sheet",
+      principal: true,
+      urlPublica: "https://form.example.com/f",
+    } as never);
+    await a.crearCreadorAccion({ nombre: "Ana", slug: "ana", programId: programA });
+    await a.crearCreadorAccion({ nombre: "Sol", slug: "sol" });
+    await a.crearTipoDePiezaAccion("Reel");
+    const [{ id: tipoId }] = await db.select({ id: tiposPieza.id }).from(tiposPieza);
+    const todos = await db.select().from(creadores);
+    const ana = todos.find((c) => c.slug === "ana")!;
+    const sol = todos.find((c) => c.slug === "sol")!;
+
+    const conLink = await a.crearPiezaAccion({ creadorId: ana.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
+    expect(conLink.ok && conLink.link).toBeTruthy();
+    const url = new URL((conLink as { link: string }).link);
+    const [pieza] = await db.select().from(piezas).where(eq(piezas.creadorId, ana.id));
+    expect(url.searchParams.get("utm_source")).toBe("instagram");
+    expect(url.searchParams.get("utm_medium")).toBe("contenido");
+    expect(url.searchParams.get("utm_content")).toBe(pieza.codigo);
+
+    const sinLink = await a.crearPiezaAccion({ creadorId: sol.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
+    expect(sinLink.ok && sinLink.link).toBeFalsy();
+    expect(sinLink.ok && sinLink.sinLink).toMatch(/no tiene programa/);
   });
 
   it("sin sesion no hay accion", async () => {
