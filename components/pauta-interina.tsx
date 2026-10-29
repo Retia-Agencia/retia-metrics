@@ -106,8 +106,14 @@ function agrupar(filas: FilaPauta[], filtros: FiltrosPauta, hrefCon: (f: Filtros
     g.ventas.parciales += f.ventasParciales;
     grupos.set(clave, g);
   }
-  return [...grupos.values()].sort((a, b) => b.registros - a.registros || b.agendas - a.agendas);
+  // Los orígenes con UTM primero, por registros; al final lo que no tiene origen legible, Sin UTM de último.
+  const rango = (g: Grupo) => ORDEN_ESPECIAL.indexOf(g.clave as (typeof ORDEN_ESPECIAL)[number]);
+  return [...grupos.values()].sort((a, b) =>
+    rango(a) - rango(b) || b.registros - a.registros || b.agendas - a.agendas);
 }
+
+/** Las filas sin origen legible, en el orden en que van al final de la tabla (-1 = con UTM, arriba). */
+const ORDEN_ESPECIAL = ["macro", "sin_envio_origen", "sin_utm"] as const;
 
 function filtrosDeUrl(f: FiltrosPauta): FiltrosDeLista {
   return {
@@ -129,18 +135,11 @@ function Cifra({ valor: n, href }: { valor: number; href: string | null }) {
   );
 }
 
-/** La tasa de no show y, debajo, de cuantas citas sale: una tasa de 2 citas no es lo mismo que de 80. */
+/** La tasa de no show sobre shows + no shows; las dos cifras ya están en sus columnas. */
 function TasaNoShow({ noShows, shows }: { noShows: number; shows: number }) {
   const resueltas = noShows + shows;
   if (resueltas === 0) return <span className="text-muted-foreground">—</span>;
-  return (
-    <span className="block">
-      <span className="font-medium">{pct(noShows / resueltas)}</span>
-      <span className="block text-xs text-muted-foreground">
-        {num(noShows)} de {num(resueltas)} citas
-      </span>
-    </span>
-  );
+  return <span className="font-medium">{pct(noShows / resueltas)}</span>;
 }
 
 /** La venta, con cuando pagaron y cuanto: la linea de "en llamada / despues" y la de "completas / parciales". */
@@ -149,7 +148,7 @@ function VentasDelRenglon({ ventas, de, filtros }: {
   de: (metrica: "escalera", f: FiltrosDeLista | null) => string | null;
   filtros: FiltrosDeLista | null;
 }) {
-  if (ventas.total === 0) return <span className="text-muted-foreground">0</span>;
+  if (ventas.total === 0) return <span className="text-muted-foreground">0 ventas</span>;
   const con = (extra: Partial<FiltrosDeLista>) => (filtros ? de("escalera", { ...filtros, ...extra }) : null);
   const partes = (items: Array<[number, string, string | null]>) =>
     items.filter(([n]) => n > 0).map(([n, texto, href], i) => (
@@ -161,8 +160,11 @@ function VentasDelRenglon({ ventas, de, filtros }: {
   const v = ventas;
   return (
     <span className="block">
-      <span className="font-medium"><Cifra valor={v.total} href={con({ escalon: "ventas" })} /></span>
+      <span className="block font-medium">
+        <Cifra valor={v.total} href={con({ escalon: "ventas" })} /> {v.total === 1 ? "venta" : "ventas"}
+      </span>
       <span className="block text-xs text-muted-foreground">
+        <span>Cuándo: </span>
         {partes([
           [v.enLlamada, "en llamada", con({ escalon: "pago_en_llamada" })],
           [v.despues, "después", con({ escalon: "despues" })],
@@ -170,6 +172,7 @@ function VentasDelRenglon({ ventas, de, filtros }: {
         ])}
       </span>
       <span className="block text-xs text-muted-foreground">
+        <span>Pago: </span>
         {partes([
           [v.completas, v.completas === 1 ? "completa" : "completas", con({ escalon: "ventas", pago: "completo" })],
           [v.parciales, v.parciales === 1 ? "parcial" : "parciales", con({ escalon: "ventas", pago: "parcial" })],
@@ -304,13 +307,13 @@ export function PautaInterina({
                 <th className="py-2 font-medium">
                   {filtros.campaign !== undefined ? "Contenido" : filtrando ? "Campaña" : "Canal (source / medium)"}
                 </th>
-                <th className="py-2 text-right font-medium">Registros</th>
-                <th className="py-2 text-right font-medium">%</th>
-                <th className="py-2 text-right font-medium">Agendas</th>
-                <th className="py-2 text-right font-medium">Shows</th>
-                <th className="py-2 text-right font-medium">No shows</th>
-                <th className="py-2 text-right font-medium" title="De las citas ya resueltas (show o no show), cuántas se cayeron">% no show</th>
-                <th className="py-2 text-right font-medium" title="Ventas cerradas en el periodo con el origen de esta fila, cuándo pagaron y si fue completo o parcial">Ventas</th>
+                <th className="py-2 pl-3 text-right font-medium">Registros</th>
+                <th className="py-2 pl-3 text-right font-medium">%</th>
+                <th className="py-2 pl-3 text-right font-medium">Agendas</th>
+                <th className="py-2 pl-3 text-right font-medium">Shows</th>
+                <th className="py-2 pl-3 text-right font-medium">No shows</th>
+                <th className="py-2 pl-3 text-right font-medium" title="No shows sobre shows + no shows. Las agendas pendientes o canceladas no entran">% no show</th>
+                <th className="py-2 pl-3 text-right font-medium" title="Ventas cerradas en el periodo con el origen de esta fila, cuándo pagaron y si fue completo o parcial">Ventas</th>
               </tr>
             </thead>
             <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
@@ -328,25 +331,25 @@ export function PautaInterina({
                       g.etiqueta
                     )}
                   </td>
-                  <td className="cifra py-2 text-right">
+                  <td className="cifra py-2 pl-3 text-right">
                     <Cifra valor={g.registros} href={de("registros", g.filtrosLista)} />
                   </td>
-                  <td className="cifra py-2 text-right text-muted-foreground">
+                  <td className="cifra py-2 pl-3 text-right text-muted-foreground">
                     {totalRegistros === 0 ? "—" : pct(g.registros / totalRegistros)}
                   </td>
-                  <td className="cifra py-2 text-right">
+                  <td className="cifra py-2 pl-3 text-right">
                     <Cifra valor={g.agendas} href={de("agendas_creadas", g.filtrosLista)} />
                   </td>
-                  <td className="cifra py-2 text-right">
+                  <td className="cifra py-2 pl-3 text-right">
                     <Cifra valor={g.shows} href={de("agendas_creadas", g.filtrosLista && { ...g.filtrosLista, resultado: "show" })} />
                   </td>
-                  <td className="cifra py-2 text-right">
+                  <td className="cifra py-2 pl-3 text-right">
                     <Cifra valor={g.noShows} href={de("agendas_creadas", g.filtrosLista && { ...g.filtrosLista, resultado: "no_show" })} />
                   </td>
-                  <td className="cifra py-2 text-right">
+                  <td className="cifra py-2 pl-3 text-right">
                     <TasaNoShow noShows={g.noShows} shows={g.shows} />
                   </td>
-                  <td className="cifra py-2 text-right">
+                  <td className="cifra py-2 pl-3 text-right">
                     <VentasDelRenglon ventas={g.ventas} de={de} filtros={g.filtrosLista} />
                   </td>
                 </tr>
