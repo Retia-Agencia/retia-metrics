@@ -13,6 +13,11 @@ con `utm_medium=contenido`; la fecha la pone quien coordina.
 
 ## Alcance
 
+> **Calidad junto al volumen (Michael, 28-oct, F5):** cada origen muestra su conteo **y** la forma de su escalera (qué
+> porción cae en cada escalón). Muchos leads abajo llenan agenda sin vender; pocos que pagan en la llamada valen más de
+> lo que su volumen dice. Los rótulos alto, medio, bajo y casi nada, si gerencia los quiere, son datos del programa
+> (pregunta 15 de la propuesta); el calor continuo del 347 basta mientras tanto.
+
 - Hub › Origen gana la escalera por canal, campaña, anuncio y pieza (agregable por tipo, creador y nivel de
   conciencia, nunca solo por pieza: propuesta §3.6 punto 2). Cada cifra abre su lista.
 - **El color de cada historia contra la mejor** (faltante 5 de la verificación del 28-oct; F4: no hay meta de leads

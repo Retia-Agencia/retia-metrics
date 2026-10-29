@@ -7,8 +7,11 @@ status: todo
 ---
 # 336 — Scoping: el manejo de media dentro del CRM, con Metricool de referente
 
-**No es la prioridad:** es un levantamiento, no construcción. Alimenta a los tickets 333 y 334 (estados, plantilla,
-tareas, avisos, calendario), que siguen bloqueados por las preguntas a media.
+**Ruta crítica del paso 4 (29-oct, tras el daily del 28-oct):** es un levantamiento, no construcción, pero es lo que
+desbloquea a los tickets 333 y 334 (estados, plantilla, tareas, avisos, calendario), bloqueados por las preguntas a
+media. Michael confirmó que el "mes real" de Majo y Dani es el insumo más valioso (F5). **Guion del levantamiento:**
+la tabla de hojas de [`docs/media/mapa-mece.md`](../media/mapa-mece.md) §2 y los insumos M-a a M-j de su §4: cada celda
+⬜ o 🟡 es una pregunta. Se hace sobre lo que ya dijeron F1 a F3, para no repetirles lo que ya contaron.
 
 ## Por qué
 

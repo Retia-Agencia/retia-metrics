@@ -55,6 +55,14 @@ Para media eso significa dos cosas, que son los dos componentes:
 | Calificación de referentes | Fuego / producción dispendiosa / no sirve | F4 |
 | Piloto | Un creador primero (acordado: Milena), pero diseñado para todos desde el día uno | R |
 | Referente de producto para el componente 2 | Metricool | F4 |
+| Corte de "pagó rápido" y rótulos del calor (alto, medio, bajo) | Los define gerencia y son **datos del programa**, nunca código (el corte ya es `programs.corte_pago_rapido_dias`, ADR 0109) | F5 |
+| Calidad, no solo volumen | Cada origen se muestra con su volumen **y** la forma de su escalera: pocos leads que pagan en la llamada valen más que muchos que llenan agenda | F5 |
+| Creadores y el CRM | No entran: reciben su link fijo por WhatsApp una vez. Los closers pegan siempre el link de Grain | F5 |
+| Qué se extrae de cada llamada | Lo define media (lista exacta), no un prompt libre; se guarda por programa en un banco que cada link alimenta | F5 |
+| Las clases como fuente de ángulos | Sí: Michael las pasa como MD y entran al banco de insumos como "clase de programa X". Sin escalón | F5 |
+| Cómo se le da vida al CRM | En orden: **MCP del CRM**, después **Juanito ampliado**, después IA interna. La IA dentro del CRM sale cara (API contra suscripción) | F5 |
+| Tablero por lanzamiento | Útil, no es prioridad | F5 |
+| Primer hito con fecha | Empezar a medir (generador de links y escalera): sábado 31-oct. El paso 2 se habla el lunes 2-nov. La parrilla completa no se promete | F5 |
 
 ---
 
@@ -277,6 +285,10 @@ No son tickets: es la secuencia que tiene sentido, y por qué. El plan de implem
 | 4. El pipeline | Pieza con estados, plantilla de recurrencias, tareas, avisos y calendario, con el piloto | Necesita el pipeline completo descrito por media |
 | 5. El loop | El cruce y la cobertura; origen × escalón en el Hub | Necesita 1, 3 y 4 |
 | 6. Todos | Todos los creadores y tipos de contenido; agente de stories de referentes | Cuando el piloto mostró que gira |
+| Paralelo: darle vida al CRM | **MCP del CRM**, después Juanito ampliado (avisos 340 a 346), después IA interna | Orden acordado el 28-oct (F5). El MCP deja que cada quien consulte el CRM desde su Claude sin pagar API; no bloquea ni depende de los pasos 1 a 6. Pide grill y ADR |
+
+**Fechas (F5):** paso 1 el sábado 31-oct; el lunes 2-nov se habla del paso 2; no se promete fecha de la parrilla completa.
+Las prioridades en orden están en [`mapa-mece.md`](./mapa-mece.md) §7.
 
 ---
 
@@ -292,10 +304,17 @@ No son tickets: es la secuencia que tiene sentido, y por qué. El plan de implem
 | 6 | El corte de "pagó rápido" en días | Gerencia | La escalera |
 | 7 | ¿Se quieren datos de Instagram (vistas de historias) en el CRM? | Gerencia | §3.6, punto 6 |
 | 8 | Presupuesto de IA y del agente de referentes | Gerencia, cuando concierna | Pasos 3 y 6 |
-| 9 | ¿Las clases también son fuente de ángulos, además de las llamadas? ¿Se graban y dónde? | Gerencia y media | Una segunda fuente de insights (hoy el plan solo lee llamadas) |
-| 10 | ¿Cuánto pesa cada escalón al resumir los insights? | Gerencia | El reporte semanal (ticket 330) |
-| 11 | ¿Cómo está montado ManyChat, quién cambia la palabra o el botón y cómo se mide el lead que entra por "comenta la palabra"? | Coordinación de media | Que esos leads no lleguen sin pieza; el aviso del ticket 334 |
-| 12 | ¿Se quiere un tablero por lanzamiento que junte orgánico y pauta? | Gerencia | Después del paso 5 |
+| 9 | ~~¿Las clases también son fuente de ángulos?~~ **Respondida (F5):** sí, Michael las pasa como MD; entran por el banco de insumos (338) como segunda fuente del 329 | Michael | Pasarlas |
+| 10 | ¿Cuánto pesa cada escalón al resumir los insights? **(F5: Michael la piensa y responde)** | Gerencia | El reporte semanal (ticket 330) |
+| 11 | ¿Cómo está montado ManyChat, quién cambia la palabra o el botón y cómo se mide el lead que entra por "comenta la palabra"? **(F5: Michael la lleva con Majo)** | Coordinación de media | Que esos leads no lleguen sin pieza; el aviso del ticket 334 |
+| 12 | ~~¿Se quiere un tablero por lanzamiento?~~ **Respondida (F5):** útil, no es prioridad; después del paso 5 | Gerencia | Después del paso 5 |
+| 14 | ¿Quién es el dueño de las reglas del calendario si Michael sale? **(F4: Michael la responde)** | Gerencia | 334 |
+| 15 | ¿Cuántos días hábiles es "pagó rápido", por programa? Y, si se quieren rótulos del calor, qué es alto, medio, bajo y casi nada **(F5: es de gerencia)** | Gerencia | Los valores de 319, 320 y 335 |
+| 16 | ¿Quién presenta el método a los creadores (sentada con Milena y Rosario)? **(F5: sin respuesta)** | Gerencia | La adopción del piloto |
+| 17 | Cuántos reels salen de una sesión de grabación y cuántos scripts por creador | Coordinación de media | La plantilla (334) y la cantidad de las hojas de reels |
+
+> **Qué se pide a quién y dónde entra en el plan, hoja por hoja:** [`mapa-mece.md`](./mapa-mece.md) §2 y §4. El 7 de arriba
+> queda en "no por ahora" (F5; el transcript es ambiguo, confirmar).
 | 13 | ¿Los formatos y crudos se suben solo por la plataforma o también por WhatsApp? | Coordinación de media | Tickets 337 y 338 |
 
 **Siguiente paso:** una sesión de plan con grill sobre este documento, que lo vuelva ADRs y tickets.

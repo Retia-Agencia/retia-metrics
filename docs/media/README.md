@@ -17,6 +17,7 @@ conecta: lo que vende en las llamadas alimenta las historias, y cada historia se
 | Capa | Archivo | Para qué |
 |---|---|---|
 | **Visión (vigente)** | [`propuesta.md`](./propuesta.md) | El norte: los dos componentes, la escalera de conversión, el pipeline de media, cómo cabe en el CRM, la crítica y lo que falta saber. No es el plan de implementación (sale en otra sesión con grill). **Manda sobre la extracción donde chocan**. Publicada: [Media en el CRM: la visión](https://claude.ai/artifact/25FBDYzAhL345FbBQVsUL3) |
+| **Mapa MECE y prioridades** | [`mapa-mece.md`](./mapa-mece.md) | (29-oct) El árbol hoja por hoja con lo que falta (cantidad y duración), lo cerrado en el daily del 28-oct, los insumos que se piden a gerencia y a media y dónde entran en el plan, las consideraciones por ticket y el orden de prioridades |
 | Resumen para gerencia | [`gerencia/deck/`](./gerencia/deck/) | El deck de 13 slides (fuente de la página publicada), con la narración y las referencias en las notas del presentador de cada slide |
 | Extracción | [`extraccion.md`](./extraccion.md) | Todo lo que se dijo y lo que se pidió, depurado: dolores, árbol, procesos y reglas, los 18 pedidos a Manu (M1 a M18), lo que ya existe, la propuesta, las 16 capacidades, el roadmap, las 15 decisiones y las referencias (§9) |
 | Crudo | [`crudo/`](./crudo/) | Las tres grabaciones de la sesión: F1 y F2 de Wispr, F3 de Grain |
@@ -35,6 +36,7 @@ conecta: lo que vende en las llamadas alimenta las historias, y cada historia se
 | F2 | [`crudo/2026-10-20-story-production-wispr.md`](./crudo/2026-10-20-story-production-wispr.md) | ✅ Completo: notas, resumen y transcript (sin marcas de tiempo; se corta en el break) |
 | F3 | [`crudo/2026-10-20-calendario-reels-grain.md`](./crudo/2026-10-20-calendario-reels-grain.md) | ✅ Completo, copia exacta del export (el export mismo termina a mitad de frase) |
 | F4 | [`crudo/2026-10-26-daily-tech-wispr.md`](./crudo/2026-10-26-daily-tech-wispr.md) | 🟡 Resumen de Wispr; el transcript completo está en el link del original |
+| F5 | [`crudo/2026-10-28-daily-tech-2-transcript.md`](./crudo/2026-10-28-daily-tech-2-transcript.md) | ✅ Transcript completo de la revisión de la propuesta con Michael (28-oct), pegado por Mani |
 
 ## Cómo se trabaja este subproyecto
 

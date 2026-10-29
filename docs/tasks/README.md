@@ -391,16 +391,17 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 328 | [El transcript desde el link de Grain](./328-transcript-desde-grain.md) | — | en curso · código y migración 0109 (transcripciones_llamada) aplicada; falta la prueba contra un link real de Grain |
 | [ ] | 329 | [Los insights de cada llamada](./329-insights-por-llamada.md) | 328 | todo · migración · tope de IA lo confirma Mani |
 | [ ] | 330 | [El reporte semanal de insights](./330-reporte-semanal-de-insights.md) | 319, 321, 329 | todo |
-| [ ] | 331 | [El aviso semanal de insights por WhatsApp](./331-aviso-semanal-por-whatsapp.md) | 330 | todo · toca el repo de Juanito |
+| [ ] | 331 | [El aviso semanal de insights por WhatsApp](./331-aviso-semanal-por-whatsapp.md) | 330, 340 | todo · toca el repo de Juanito · reconciliar con el contrato de avisos (ADR 0114) |
 | [ ] | 332 | [El agente del cruce: propuestas en el banco](./332-agente-del-cruce.md) | 325, 330 | todo |
 | [ ] | 333 | [Los estados de la pieza con su significado](./333-estados-y-tipos-de-pieza.md) | 316 | bloqueado · preguntas 2 y 3 a media |
 | [ ] | 334 | [Plantilla de recurrencias, tareas, avisos, calendario y desviaciones](./334-plantilla-tareas-avisos-calendario.md) | 333 | bloqueado · preguntas 1 a 3 a media |
 | [ ] | 335 | [Origen × escalón en el Hub](./335-origen-por-escalon.md) | 318, 320 | bloqueado · un mes de piezas con link |
-| [ ] | 336 | [Scoping: el manejo de media en el CRM, con Metricool de referente](./336-scoping-manejo-de-media-tipo-metricool.md) | — | todo · levantamiento, no construcción; prioridad baja; alimenta 333 y 334 |
+| [ ] | 336 | [Scoping: el manejo de media en el CRM, con Metricool de referente](./336-scoping-manejo-de-media-tipo-metricool.md) | — | todo · levantamiento, no construcción; **ruta crítica del paso 4** (29-oct); guion en `docs/media/mapa-mece.md`; desbloquea 333 y 334 |
 | [ ] | 337 | [Subir formatos al banco](./337-formatos-al-banco.md) | 321, 324 | todo · faltante de la verificación de crudos (28-oct) |
 | [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
 | [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | todo · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
 | [x] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
+| [ ] | 348 | [El MCP del CRM](./348-mcp-del-crm.md) | — | por grill · acordado en la daily del 28-oct (MCP, luego Juanito, luego IA) · puerta nueva: pide ADR |
 
 ## 17 · Agendamiento: piloto de dCal (23-oct)
 
