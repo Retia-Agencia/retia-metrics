@@ -3,6 +3,7 @@ import { programasActivos } from "@/lib/queries/programas";
 import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
 import { conciliarProgramaConHoja } from "@/lib/queries/conciliacion-sheets";
 import { HORAS_SIN_CALIDAD, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
+import { saludDeGrain } from "@/lib/grain/transcripciones";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
@@ -90,7 +91,7 @@ export default async function SaludPage({
   const preferido = await programaPreferidoDeCookie();
   const programa = programas.find((p) => p.slug === slugPedido) ?? elegirPrograma(programas, preferido)!;
 
-  const [paginaEntregas, paginaHuerfanas, salud, conciliacion, calendlyPrograma] = await Promise.all([
+  const [paginaEntregas, paginaHuerfanas, salud, conciliacion, calendlyPrograma, grain] = await Promise.all([
     entregasDePrograma(programa.id),
     entregasHuerfanas(),
     saludDeFuentes(),
@@ -100,6 +101,7 @@ export default async function SaludPage({
       .from(programs)
       .where(eq(programs.id, programa.id))
       .then((filas) => filas[0] ?? { orgCompartida: false, eventType: null }),
+    saludDeGrain(db, programa.id),
   ]);
   // Org compartida sin round robin (ADR 0098): en ese estado solo entran los eventos
   // personales de los closers. El aviso vive en la tarjeta de Calendly.
@@ -124,6 +126,30 @@ export default async function SaludPage({
       fija
     >
       <PantallaFija>
+        {/* La alarma de las lecturas de Grain (ADR 0112, ticket 328). */}
+        {grain.marcada ? (
+          <Card className="shrink-0">
+            <CardHeader>
+              <CardTitle className="text-base">Lecturas de Grain fallidas</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              <p className="text-tono-alerta">
+                {num(grain.fallidas)} {grain.fallidas === 1 ? "llamada" : "llamadas"} con link de Grain sin transcript
+                {grain.agotadas > 0 ? ` (${num(grain.agotadas)} sin más reintentos)` : ""}.
+              </p>
+              {grain.lista.map((f) => (
+                <div key={f.callId} className="flex flex-wrap items-center gap-2">
+                  <Badge variant={f.agotada ? "peligro" : "alerta"}>{f.codigo}</Badge>
+                  <span className="text-muted-foreground">
+                    {f.intentos} {f.intentos === 1 ? "intento" : "intentos"}
+                    {f.ultimoIntentoEn ? ` · último ${haceCuanto(f.ultimoIntentoEn)}` : ""}
+                  </span>
+                  <span className="font-mono text-xs text-muted-foreground">{f.callId}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
         {/* El aviso de salud de la fuente (ticket 107). */}
         <Card className="shrink-0">
           <CardHeader>

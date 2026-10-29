@@ -28,6 +28,7 @@ import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
 import { anularDeal } from "@/lib/deals/anular-deal";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
+import { programarLecturaDeGrain, programarLecturaDeGrainDelDeal } from "@/lib/grain/despues";
 import { agregarLlamada, completarAgendada, corregirResultado, esquemaCorregirResultado, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS, type DatosCorregirResultado } from "@/lib/deals/llamadas";
 import { eventoParaAgendar, horarioDelEvento, horasDisponibles, reservarCita, type CitaReservada, type HorarioDeEvento } from "@/lib/calendly/escritura";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
@@ -234,6 +235,7 @@ export async function moverConHechoAccion(
       ? { tipo: "agendado" as const, fechaAgenda: hecho.fecha, ...(hecho.link ? { linkCalendly: hecho.link } : {}) }
       : hecho;
     const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho: hechoDelDominio }, { cita });
+    if (hechoDelDominio?.tipo === "atendido" && hechoDelDominio.linkGrain) programarLecturaDeGrainDelDeal(datos.dealId);
     return { etapa, resumen: resumenDelCambio(cambio) };
   });
 }
@@ -652,6 +654,7 @@ export async function pegarGrainAccion(entrada: EntradaPegarGrain): Promise<Resu
     const { callId, linkGrain } = esquemaGrain.parse(entrada);
     await exigirLlamadaVisible(ctx, callId);
     const r = await pegarGrain(db, actor, { callId, linkGrain });
+    programarLecturaDeGrain(callId);
     return { etapa: r.etapa, movioAAtendido: r.movioAAtendido };
   });
 }

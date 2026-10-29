@@ -1285,6 +1285,48 @@ export const calls = pgTable(
   ],
 );
 
+// ─────────────────────────────────────────────────────────── transcripciones de Grain
+
+/**
+ * El transcript de una llamada, leido de la pagina publica de su link de Grain (ADR 0112,
+ * ticket 328). UNA fila por llamada. Es dato sensible (palabras de un lead): ninguna
+ * proyeccion de media la lee, y solo `lib/grain/` y `lib/insights/` la tocan.
+ *
+ * `crudo` es el objeto `transcript.data` tal como lo sirvio Grain (palabras con tiempos,
+ * hablantes y rangos), en texto: se guarda como llego (ADR 0004) y el parser lo interpreta
+ * al leer, asi que un arreglo del parser no obliga a releer Grain. Nulo mientras no haya
+ * una lectura buena. `error` lleva el codigo tipado de la ultima lectura fallida
+ * (`lib/grain/errores.ts`); una lectura buena lo deja nulo. `link_leido` es el link con el
+ * que se leyo: si la closer cambia `calls.link_grain`, la fila ya no corresponde y se relee.
+ * Se escribe sin `change_log` a proposito (como `submissions` y `sobres_crudos`): es lectura
+ * automatica de una fuente externa, no una edicion de alguien, y el crudo pesa cientos de KB.
+ */
+export const transcripciones = pgTable(
+  "transcripciones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    callId: uuid("call_id").notNull().references(() => calls.id, { onDelete: "restrict" }),
+    linkLeido: text("link_leido").notNull(),
+    crudo: text("crudo"),
+    leidoEn: timestamp("leido_en", { withTimezone: true }),
+    error: text("error"),
+    /** Lecturas fallidas seguidas con este link; vuelve a 0 con una lectura buena. */
+    intentos: integer("intentos").notNull().default(0),
+    ultimoIntentoEn: timestamp("ultimo_intento_en", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("transcripciones_llamada_idx").on(t.callId),
+    // Una fila es una lectura buena (crudo + leido_en) o un fallo (error), nunca las dos ni ninguna.
+    check(
+      "transcripciones_estado_chk",
+      sql`(${t.crudo} IS NOT NULL AND ${t.leidoEn} IS NOT NULL AND ${t.error} IS NULL)
+          OR (${t.crudo} IS NULL AND ${t.leidoEn} IS NULL AND ${t.error} IS NOT NULL)`,
+    ),
+    index("transcripciones_fallidas_idx").on(t.callId).where(sql`${t.error} is not null`),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── novedades de Calendly
 
 /**
