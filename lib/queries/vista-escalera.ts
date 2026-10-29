@@ -42,6 +42,8 @@ export interface FilaDeEscalera {
   /** Clave de la dimensión (closer, calidad); vacía en la fila principal. */
   clave: string;
   etiqueta: string;
+  /** Solo la fila de closer que reúne deals cuyo `closer` es nulo. */
+  esSinDueno: boolean;
   total: number;
   celdas: Record<Escalon, CeldaDeEscalera>;
 }
@@ -82,6 +84,7 @@ function fila(
   entrada: EntradaDeVistaDeEscalera,
   clave: string,
   etiqueta: string,
+  esSinDueno: boolean,
   enlace: { claveCloser: string | null; calidad?: string },
 ): FilaDeEscalera {
   const resumen = resumirEscalera(conjunto, cargada.corteDias);
@@ -114,7 +117,7 @@ function fila(
       detalle,
     } satisfies CeldaDeEscalera];
   })) as Record<Escalon, CeldaDeEscalera>;
-  return { clave, etiqueta, total: resumen.total, celdas };
+  return { clave, etiqueta, esSinDueno, total: resumen.total, celdas };
 }
 
 /** Arma la tarjeta: carga la escalera del periodo A (y la del B si hay comparación) una vez cada una. */
@@ -132,6 +135,7 @@ export async function vistaDeEscalera(entrada: EntradaDeVistaDeEscalera, db: Db 
     entrada,
     "",
     "Todos",
+    false,
     { claveCloser: entrada.claveCloser },
   );
   const abrir = (dimension: DimensionDeEscalera, filtros: { claveCloser?: string | null }) =>
@@ -140,14 +144,16 @@ export async function vistaDeEscalera(entrada: EntradaDeVistaDeEscalera, db: Db 
         ...filtros,
         ...(dimension === "closer" ? { claveCloser: grupo.clave } : { calidad: grupo.clave }),
       });
+      const conjunto = enGrupo(cargada);
       return fila(
         cargada,
         anterior,
-        enGrupo(cargada),
+        conjunto,
         anterior ? enGrupo(anterior) : [],
         entrada,
         grupo.clave,
         grupo.etiqueta,
+        dimension === "closer" && conjunto.length > 0 && conjunto.every((deal) => deal.closer === null),
         dimension === "closer"
           ? { claveCloser: grupo.clave }
           : { claveCloser: entrada.claveCloser, calidad: grupo.clave },

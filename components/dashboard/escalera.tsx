@@ -5,6 +5,7 @@ import { CifraConLista } from "@/components/cifra-con-lista";
 import { Variacion } from "@/components/variacion";
 import { num, pct } from "@/lib/format";
 import type { PeriodoResuelto } from "@/lib/periodo";
+import { MINIMO_DE_DEALS_PARA_CALOR, tonosDeFila, type TonoDeCalor } from "@/lib/queries/calor-escalera";
 import { ESCALONES, NOMBRE_DE_ESCALON, type Escalon } from "@/lib/queries/escalera";
 import type { CeldaDeEscalera, FilaDeEscalera, VistaDeEscalera } from "@/lib/queries/vista-escalera";
 
@@ -26,6 +27,13 @@ function Cifra({ celda, titulo }: { celda: CeldaDeEscalera; titulo: string }) {
   );
 }
 
+const CLASE_DE_TONO: Record<TonoDeCalor, string> = {
+  0: "",
+  1: "bg-primary/10",
+  2: "bg-primary/25",
+  3: "bg-primary/40",
+};
+
 function TablaPorDimension({ titulo, filas, visibles }: { titulo: string; filas: FilaDeEscalera[]; visibles: readonly Escalon[] }) {
   if (filas.length === 0) return null;
   return (
@@ -41,23 +49,32 @@ function TablaPorDimension({ titulo, filas, visibles }: { titulo: string; filas:
             </tr>
           </thead>
           <tbody className="divide-y">
-            {filas.map((fila) => (
-              <tr key={fila.clave}>
-                <td className="py-1.5 pr-3">{fila.etiqueta}</td>
-                {visibles.map((escalon) => (
-                  <td key={escalon} className="px-2 py-1.5 text-right">
-                    <Cifra celda={fila.celdas[escalon]} titulo={`${NOMBRE_DE_ESCALON[escalon]} · ${fila.etiqueta}`} />
-                    <span className="cifra block text-xs text-muted-foreground">
-                      {fila.celdas[escalon].porcentaje.valor === null ? "—" : pct(fila.celdas[escalon].porcentaje.valor / 100, 0)}
-                    </span>
-                  </td>
-                ))}
-                <td className="cifra pl-2 py-1.5 text-right">{num(fila.total)}</td>
-              </tr>
-            ))}
+            {filas.map((fila) => {
+              const tonos = tonosDeFila(fila);
+              return (
+                <tr key={fila.clave}>
+                  <td className="py-1.5 pr-3">{fila.etiqueta}</td>
+                  {visibles.map((escalon) => {
+                    const tono = tonos[escalon];
+                    return (
+                      <td key={escalon} className={`px-2 py-1.5 text-right ${tono === null ? "" : CLASE_DE_TONO[tono]}`}>
+                        <Cifra celda={fila.celdas[escalon]} titulo={`${NOMBRE_DE_ESCALON[escalon]} · ${fila.etiqueta}`} />
+                        <span className={`cifra block text-xs ${tono === 3 ? "text-foreground" : "text-muted-foreground"}`}>
+                          {fila.celdas[escalon].porcentaje.valor === null ? "—" : pct(fila.celdas[escalon].porcentaje.valor / 100, 0)}
+                        </span>
+                      </td>
+                    );
+                  })}
+                  <td className="cifra pl-2 py-1.5 text-right">{num(fila.total)}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+      <p className="text-xs text-muted-foreground">
+        El color es el porcentaje de cada fila sobre sus propios deals. Sin color: «Sin closer» y filas con menos de {num(MINIMO_DE_DEALS_PARA_CALOR)} deals.
+      </p>
     </section>
   );
 }
