@@ -10,8 +10,8 @@ import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
  * TODA escritura del CRM deja rastro, y el rastro se escribe desde el dia uno
  * (ADR 0042, decision D6 del plan v2).
  *
- * Cubre las cuatro tablas OPERATIVAS —`deals`, `calls`, `abonos` y
- * `deal_actividades`—, no solo el catalogo, que es lo que `lib/catalogo/molde.ts`
+ * Cubre las tablas OPERATIVAS —`deals`, `calls`, `abonos`,
+ * `deal_actividades` y, desde el ticket 316, `piezas`—, no solo el catalogo, que es lo que `lib/catalogo/molde.ts`
  * ya cubria. Es el mismo molde con otra forma: aqui no hay columna `activo`, asi
  * que no hay desactivar ni borrar; una fila operativa se ANULA (ADR 0026).
  *
@@ -49,8 +49,8 @@ import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
  * divergencia que el invariante 1 del plan prohibe.
  */
 
-/** Las cuatro tablas operativas, por su nombre en la base. Es lo que vigila el guardian. */
-export const TABLAS_CON_RASTRO = ["deals", "calls", "abonos", "deal_actividades"] as const;
+/** Las tablas operativas, por su nombre en la base. Es lo que vigila el guardian. */
+export const TABLAS_CON_RASTRO = ["deals", "calls", "abonos", "deal_actividades", "piezas"] as const;
 
 export type TablaConRastro = (typeof TABLAS_CON_RASTRO)[number];
 

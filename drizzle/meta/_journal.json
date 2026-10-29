@@ -736,6 +736,20 @@
       "when": 1793232374572,
       "tag": "0104_abono-concepto-y-nota",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1793247998329,
+      "tag": "0105_rol-media-y-corte-escalera",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1793249005306,
+      "tag": "0106_creadores-y-piezas",
+      "breakpoints": true
     }
   ]
 }

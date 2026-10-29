@@ -1,5 +1,5 @@
 import type { Rol, SujetoDeCapacidad } from "@/lib/auth/roles";
-import { administraGlobal, esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
+import { administraGlobal, esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaContenido, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -144,6 +144,12 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
       : [];
   }
 
+  // Media (ADR 0107): mientras no exista su vista completa (321), solo su pagina minima. Por
+  // capacidad —`trabajaContenido` sin administrar, trabajar leads ni manejar pauta—, no por el literal.
+  if (trabajaContenido(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
+    return [{ href: "/media", etiqueta: "Media", icono: "recursos", roles: ["media"] }];
+  }
+
   const items: ItemNav[] = [];
 
   // Mi espacio: todo lo del usuario en una ruta (perfil + sus secciones por rol, ticket
@@ -237,6 +243,9 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   // eso se decide en el servidor (ticket 023).
   items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
 
+  // Media (ADR 0107): gerente y developer tambien trabajan el contenido. Por capacidad.
+  if (trabajaContenido(rol)) items.push({ href: "/media", etiqueta: "Media", icono: "recursos", roles: ["gerente"] });
+
   // Ajustes: solo quien ADMINISTRA la app (gerente y developer, `esAdministrador`). El closer
   // dejo de verlo (ticket 224, ADR 0082): ya no administra plataformas de pago desde aqui y la
   // ficha del Programa, donde lo hacia, es ahora de administradores. El paid trafficker lo ve
@@ -282,5 +291,7 @@ export function rutaInicial(sujeto: SujetoDeCapacidad, primerPrograma: string | 
   if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
     return primerPrograma ? rutaDePrograma(primerPrograma, "students") : "/mi-espacio";
   }
+  // Media aterriza en su pagina (ADR 0107): ni el Hub ni Ajustes le abren.
+  if (trabajaContenido(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) return "/media";
   return primerPrograma ? rutaDePrograma(primerPrograma, "hub") : "/ajustes";
 }

@@ -1,4 +1,4 @@
-import { normalizarUtm, resolverCanal, type ResultadoCanal } from "@/lib/atribucion/canal";
+import { normalizarUtm, resolverCanal, UTM_MEDIUM_CONTENIDO, type ResultadoCanal } from "@/lib/atribucion/canal";
 import { esMacro, utmsDelEnvio, type CampoUtm, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 
 export interface ArbolDePauta {
@@ -8,6 +8,16 @@ export interface ArbolDePauta {
 }
 
 export const ARBOL_VACIO: ArbolDePauta = { anuncios: [], conjuntos: [], campanas: [] };
+
+/**
+ * Las piezas de contenido como DATO, igual que el arbol de Meta (ADR 0108 punto 4). Solo las usa
+ * el medio `contenido`. El programa del envio viaja con ellas: una pieza de otro programa no
+ * empareja (ADR 0043). Sin este argumento el emparejador no resuelve piezas ni avisa.
+ */
+export interface PiezasDelPrograma {
+  programId: string;
+  piezas: readonly { id: string; codigo: string; creadorId: string; programId: string | null; anulada: boolean }[];
+}
 
 type Campana = { tipo: "meta"; campanaId: string } | { tipo: "texto"; texto: string };
 type Anuncio = { anuncioId: string; conjuntoId: string; campanaId: string };
@@ -19,7 +29,8 @@ type Hallazgo =
 type Contenido =
   | { formato: "plantilla_pauta"; anuncioNombre: string | null; placement: string | null }
   | { formato: "meta_historico"; conjunto: string | null; anuncio: string | null }
-  | { formato: "closer"; codigoCloser: string | null };
+  | { formato: "closer"; codigoCloser: string | null }
+  | { formato: "pieza"; codigo: string | null };
 
 export interface Traza {
   origen: ResultadoCanal;
@@ -29,7 +40,9 @@ export interface Traza {
   anuncio: Anuncio | null;
   contenido: Contenido | null;
   macros: CampoUtm[];
-  avisos: ("anuncio_desconocido" | "campana_ambigua")[];
+  /** La pieza de contenido a la que resolvio el codigo de `utm_content` (solo con `utm_medium=contenido`). */
+  pieza: { piezaId: string; creadorId: string } | null;
+  avisos: ("anuncio_desconocido" | "campana_ambigua" | "pieza_desconocida")[];
 }
 
 const CAMPOS_UTM: readonly CampoUtm[] = ["source", "medium", "campaign", "content", "term", "id"];
@@ -41,7 +54,7 @@ function valorAtribuible(valor: string | null): string | null {
 }
 
 /** Empareja un envio de forma pura, estable y sin depender de catalogos. */
-export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta): Traza {
+export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta, piezas?: PiezasDelPrograma): Traza {
   const macros = CAMPOS_UTM.filter((campo) => esMacro(utms[campo]));
   const origenPorMedio = resolverCanal(utms);
   const medium = normalizarUtm(utms.medium);
@@ -109,6 +122,21 @@ export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta): Traza {
     contenido = { formato: "meta_historico", conjunto: content, anuncio: term };
   } else if (medium === "referido") {
     contenido = { formato: "closer", codigoCloser: content };
+  } else if (medium === UTM_MEDIUM_CONTENIDO) {
+    contenido = { formato: "pieza", codigo: content };
+  }
+
+  // La pieza se deriva al leer (ADR 0108): codigo -> pieza viva del MISMO programa. Un codigo
+  // que no existe, una pieza descartada o de otro programa es un aviso, nunca una asignacion.
+  let pieza: Traza["pieza"] = null;
+  if (medium === UTM_MEDIUM_CONTENIDO && piezas !== undefined) {
+    const codigo = content?.toLowerCase() ?? null;
+    const hallada = codigo === null ? undefined : piezas.piezas.find((p) => p.codigo.toLowerCase() === codigo);
+    if (hallada && !hallada.anulada && hallada.programId === piezas.programId) {
+      pieza = { piezaId: hallada.id, creadorId: hallada.creadorId };
+    } else {
+      avisos.push("pieza_desconocida");
+    }
   }
 
   const nivel = origen.regla === "sin_utm"
@@ -119,13 +147,14 @@ export function emparejar(utms: UtmsDelEnvio, arbol: ArbolDePauta): Traza {
         ? "N2"
         : "N1";
 
-  return { origen, nivel, campana, conjunto, anuncio, contenido, macros, avisos };
+  return { origen, nivel, campana, conjunto, anuncio, contenido, macros, pieza, avisos };
 }
 
 /** Mantiene la lectura de content/term encapsulada dentro del límite de atribución. */
 export function emparejarFilaDeEnvio(
   fila: Parameters<typeof utmsDelEnvio>[0],
   arbol: ArbolDePauta,
+  piezas?: PiezasDelPrograma,
 ): Traza {
-  return emparejar(utmsDelEnvio(fila), arbol);
+  return emparejar(utmsDelEnvio(fila), arbol, piezas);
 }

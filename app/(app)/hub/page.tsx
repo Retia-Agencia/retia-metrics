@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
+import { esAdministrador } from "@/lib/auth/roles";
 import { parsearPeriodoUrl } from "@/lib/periodo";
 import { hoyEnBogota } from "@/lib/format";
 import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
@@ -66,7 +67,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
             ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
             : seccion === "pauta"
             ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
-            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} />}
+            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} />}
         </div>
       </PantallaFija>
     </PageShell>

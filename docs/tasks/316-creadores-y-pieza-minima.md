@@ -3,7 +3,7 @@ id: 316
 etapa: media
 serves: "ADR 0110 · propuesta.md §4.4 (la pieza une los dos componentes)"
 depends: [315]
-status: todo
+status: done
 ---
 
 # 316 — El catálogo de creadores y la pieza mínima

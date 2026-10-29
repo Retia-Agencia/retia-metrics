@@ -33,7 +33,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 const RAIZ = fileURLToPath(new URL("../", import.meta.url));
 
 /** Los nombres de drizzle de las cuatro tablas operativas. */
-const TABLAS_VIGILADAS = ["deals", "calls", "abonos", "dealActividades"] as const;
+const TABLAS_VIGILADAS = ["deals", "calls", "abonos", "dealActividades", "piezas"] as const;
 
 /** El unico modulo autorizado a escribirlas. */
 const MODULO_AUTORIZADO = path.join("lib", "crm", "rastro.ts");

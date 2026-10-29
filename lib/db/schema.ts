@@ -33,6 +33,7 @@ export const rolEnum = pgEnum("rol", [
   "developer",
   "paid_trafficker",
   "customer_success",
+  "media",
 ]);
 
 /**
@@ -298,6 +299,8 @@ export const programs = pgTable(
     nombre: text("nombre").notNull(),
     /** Solo prellena el precio al crear una cohorte; ninguna métrica lee este valor. */
     ticketUsd: numeric("ticket_usd", { precision: 10, scale: 2 }).notNull(),
+    /** Corte de la escalera de conversion (ticket 319, ADR 0109): dias habiles de la cita al primer abono. Nulo = sin corte. */
+    cortePagoRapidoDias: integer("corte_pago_rapido_dias"),
     /** Pagina de venta del programa. Editable desde la tab Programa (ticket 014). */
     webUrl: text("web_url"),
     /** Calendly del programa, para cruzar agendamientos. Editable desde la tab Programa (ticket 014). */
@@ -354,6 +357,7 @@ export const programs = pgTable(
       .on(t.calendlyEventType)
       .where(sql`${t.calendlyEventType} IS NOT NULL`),
     check("programs_dias_sin_actividad_positivo", sql`${t.diasSinActividad} > 0`),
+    check("programs_corte_pago_rapido_positivo", sql`${t.cortePagoRapidoDias} IS NULL OR ${t.cortePagoRapidoDias} > 0`),
     check(
       "programs_comision_porcentaje_rango",
       sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
@@ -1618,6 +1622,82 @@ export const motivos = pgTable(
 );
 
 /**
+ * Tipos de pieza de contenido (ticket 316, ADR 0110): catalogo editable por media. Sin
+ * significado todavia; el codigo no decide con su valor, solo la agrupa y arma `utm_campaign`.
+ */
+export const tiposPieza = pgTable(
+  "tipos_pieza",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("tipos_pieza_nombre_idx").on(sql`lower(${t.nombre})`)],
+);
+
+/**
+ * El creador (ticket 316, ADR 0110): catalogo de quien publica contenido. `program_id` es
+ * OPCIONAL: un creador sin programa tiene pipeline pero no link, escalera ni insights.
+ * `cuentas` = `{ "<red>": "<handle>" }`, solo informativo.
+ */
+export const creadores = pgTable(
+  "creadores",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    nombre: text("nombre").notNull(),
+    slug: text("slug").notNull(),
+    cuentas: jsonb("cuentas").notNull().default({}),
+    programId: uuid("program_id").references(() => programs.id, { onDelete: "restrict" }),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("creadores_slug_idx").on(sql`lower(${t.slug})`),
+    index("creadores_programa_idx").on(t.programId),
+  ],
+);
+
+/**
+ * La pieza de contenido (ticket 316, ADR 0110): lo que se publica y vuelve con sus leads.
+ * `program_id` es el del creador (o nulo) y NO cambia. O trae `fecha_publicacion` o es
+ * `permanente` (el link fijo del creador, una por creador y red). `codigo` es opaco y
+ * lo genera el servidor: viaja en `utm_content` (ADR 0108). `publicada_en` es el unico
+ * estado por ahora. Se anula, no se borra (ADR 0026): con leads se descarta.
+ */
+export const piezas = pgTable(
+  "piezas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").references(() => programs.id, { onDelete: "restrict" }),
+    creadorId: uuid("creador_id").notNull().references(() => creadores.id, { onDelete: "restrict" }),
+    tipoId: uuid("tipo_id").notNull().references(() => tiposPieza.id, { onDelete: "restrict" }),
+    /** La red (`instagram`, `tiktok`...): viaja como `utm_source`. Lista cerrada en `lib/media/redes.ts`. */
+    red: text("red").notNull(),
+    cta: text("cta"),
+    fechaPublicacion: date("fecha_publicacion"),
+    permanente: boolean("permanente").notNull().default(false),
+    codigo: text("codigo").notNull(),
+    publicadaEn: timestamp("publicada_en", { withTimezone: true }),
+    creadaPor: uuid("creada_por").references(() => users.id, { onDelete: "restrict" }),
+    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
+    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
+    motivoAnulacion: text("motivo_anulacion"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("piezas_codigo_idx").on(t.codigo),
+    // Una permanente activa por creador y red (ADR 0110 punto 4).
+    uniqueIndex("piezas_permanente_idx")
+      .on(t.creadorId, t.red)
+      .where(sql`${t.permanente} AND ${t.anuladoEn} IS NULL`),
+    index("piezas_programa_idx").on(t.programId),
+    index("piezas_creador_idx").on(t.creadorId),
+    check("piezas_fecha_o_permanente", sql`(${t.fechaPublicacion} IS NOT NULL) <> ${t.permanente}`),
+  ],
+);
+
+/**
  * Areas de Retia (ticket 083, ADR 0043): agrupan leads por origen. Area NO es rol.
  * El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en leads ni deals.
  */
@@ -2224,3 +2304,7 @@ export type Objetivo = typeof objetivos.$inferSelect;
 export type NuevoObjetivo = typeof objetivos.$inferInsert;
 export type FotoPauta = typeof fotosPauta.$inferSelect;
 export type NuevaFotoPauta = typeof fotosPauta.$inferInsert;
+
+export type Creador = typeof creadores.$inferSelect;
+export type TipoPieza = typeof tiposPieza.$inferSelect;
+export type Pieza = typeof piezas.$inferSelect;

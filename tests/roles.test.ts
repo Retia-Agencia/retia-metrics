@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -578,5 +578,62 @@ describe("el Hub reemplaza al Dashboard y a Metas (ticket 250, ADR 0086)", () =>
     expect(queryHaciaElHub({ seccion: "operacion" })).toBe("?seccion=comercial");
     expect(queryHaciaElHub({ seccion: "pauta", source: ["meta", "google"] })).toBe("?seccion=pauta&source=meta&source=google");
     expect(queryHaciaElHub({ mes: "2026-09", vacio: undefined }, "hoy")).toBe("?mes=2026-09&seccion=hoy");
+  });
+});
+
+describe("media y trabajaContenido (ADR 0107, ticket 315)", () => {
+  const TODOS: Rol[] = ["gerente", "closer", "developer", "paid_trafficker", "customer_success", "media"];
+
+  it("trabajaContenido la cumplen media, gerente y developer; nadie más", () => {
+    for (const rol of TODOS) {
+      expect(trabajaContenido(rol)).toBe(rol === "media" || rol === "gerente" || rol === "developer");
+    }
+    expect(trabajaContenido(null)).toBe(false);
+    expect(trabajaContenido(undefined)).toBe(false);
+  });
+
+  it("media no cumple ninguna otra pregunta", () => {
+    expect(esRolValido("media")).toBe(true);
+    expect(etiquetaDeRol("media")).toBe("Media");
+    expect(trabajaLeads(sujeto("media"))).toBe(false);
+    expect(puedeSerMiembro(sujeto("media"))).toBe(false);
+    expect(esAdministrador("media")).toBe(false);
+    expect(administraGlobal({ rol: "media", alcanceLimitado: false })).toBe(false);
+    expect(administraGlobal({ rol: "media", alcanceLimitado: true })).toBe(false);
+    expect(manejaPauta("media")).toBe(false);
+    expect(manejaPautaGlobal({ rol: "media", alcanceLimitado: false })).toBe(false);
+    expect(veEquipoComercial("media")).toBe(false);
+    expect(veTableroDelPrograma("media")).toBe(false);
+    expect(configuraPrograma("media")).toBe(false);
+    expect(leePrograma("media")).toBe(false);
+    expect(editaObjetivo("media", true)).toBe(false);
+    expect(marcaOnboarding("media")).toBe(false);
+    expect(veDetalleTecnico("media")).toBe(false);
+  });
+
+  it("media admite alcance configurable (ADR 0094) y solo entra donde se le permite", () => {
+    expect(tieneAlcanceConfigurable("media")).toBe(true);
+    expect(tieneAlcanceConfigurable("closer")).toBe(false);
+    expect(puedeAcceder("media", ["gerente", "closer"])).toBe(false);
+    expect(puedeAcceder("media", ["media"])).toBe(true);
+    expect(puedeAcceder("developer", ["media"])).toBe(true);
+  });
+
+  it("media no puede sumar la capacidad de closer, ni siquiera por configuracion", () => {
+    expect(puedeConfigurarOperaComoCloser("media")).toBe(false);
+    expect(puedeConfigurarOperaComoCloser("gerente")).toBe(true);
+    expect(trabajaLeads({ rol: "media", operaComoCloser: true })).toBe(false); // aunque el dato llegue en true
+  });
+
+  it("media aterriza en /media y su menu es solo esa pagina; gerente y developer no cambian", () => {
+    expect(rutaInicial(sujeto("media"), "programa-a")).toBe("/media");
+    expect(rutaInicial(sujeto("media"), null)).toBe("/media");
+    expect(navParaRol(sujeto("media"), "programa-a").map((i) => i.href)).toEqual(["/media"]);
+    expect(rutaInicial(sujeto("gerente"), "programa-a")).toBe("/p/programa-a/hub");
+    // Quien trabaja contenido sin ser solo media (gerente, developer) tambien la tiene en su menu.
+    expect(navParaRol(sujeto("gerente"), "programa-a").map((i) => i.href)).toContain("/media");
+    expect(navParaRol(sujeto("developer"), "programa-a").map((i) => i.href)).toContain("/media");
+    expect(navParaRol(sujeto("closer"), "programa-a").map((i) => i.href)).not.toContain("/media");
+    expect(navParaRol(sujeto("paid_trafficker"), "programa-a").map((i) => i.href)).not.toContain("/media");
   });
 });

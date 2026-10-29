@@ -10,7 +10,7 @@ import { urlDeLista } from "@/lib/queries/vista-metrica";
 type FiltrosOrigen = {
   source?: string | null;
   medium?: string | null;
-  categoria?: "con_utm" | "sin_utm" | "macro";
+  categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida";
   area?: string;
   canal?: string | null;
 };
@@ -65,6 +65,23 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
   }));
   return <section className="space-y-4">
     <TablaDeOrigen canales={canales} totalEnvios={vista.totalEnvios} soloConteos={soloConteos} />
+
+    <Card><CardHeader className="space-y-1">
+      <CardTitle className="text-base">Contenido con código que no reconocemos</CardTitle>
+      <p className="text-xs text-muted-foreground">Registros que llegaron por un link de contenido, pero su código no es de ninguna pieza viva de este programa (descartada, de otro programa o mal copiado).</p>
+    </CardHeader><CardContent className="space-y-2">
+      {vista.piezasDesconocidas.envios === 0
+        ? <p className="text-sm text-muted-foreground">Ninguno en este periodo.</p>
+        : <>
+            <p className="cifra text-lg"><a className="underline underline-offset-2" href={hrefDeLista(slug, periodo, origen, "registros", { categoria: "pieza_desconocida" })}>{num(vista.piezasDesconocidas.envios)}</a></p>
+            <ul className="space-y-1 text-sm">
+              {vista.piezasDesconocidas.lista.map((fila) => <li key={fila.codigo ?? "sin-codigo"} className="flex gap-2">
+                <span className="font-mono">{fila.codigo ?? "sin código"}</span>
+                <span className="cifra text-muted-foreground">{num(fila.envios)}</span>
+              </li>)}
+            </ul>
+          </>}
+    </CardContent></Card>
 
     <Card><CardHeader className="space-y-1">
       <CardTitle className="text-base">¿Hasta dónde sabemos de qué anuncio vino cada registro pagado?</CardTitle>

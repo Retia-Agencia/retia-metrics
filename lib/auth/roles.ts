@@ -11,6 +11,7 @@ export const ROLES = [
   "developer",
   "paid_trafficker",
   "customer_success",
+  "media",
 ] as const;
 export type Rol = (typeof ROLES)[number];
 
@@ -28,6 +29,7 @@ export const ETIQUETA_ROL: Record<Rol, string> = {
   developer: "Desarrollo",
   paid_trafficker: "Paid Trafficker",
   customer_success: "Customer Success",
+  media: "Media",
 };
 
 /** La etiqueta de un rol para la interfaz y los mensajes de permiso. */
@@ -78,7 +80,7 @@ export function esAdministrador(rol: Rol | undefined | null): boolean {
 
 /** Quien puede quedar limitado por filas de alcance (ADR 0094). */
 export function tieneAlcanceConfigurable(rol: Rol | undefined | null): boolean {
-  return rol === "gerente" || rol === "paid_trafficker";
+  return rol === "gerente" || rol === "paid_trafficker" || rol === "media";
 }
 
 /**
@@ -138,12 +140,16 @@ export interface SujetoDeCapacidad {
 /** Ticket 236 / ADR 0084: la capacidad puede ampliarse por usuario sin cambiar su rol. */
 export function trabajaLeads(sujeto: SujetoDeCapacidad): boolean {
   const { rol, operaComoCloser } = sujeto;
-  return rol === "closer" || esAccesoTotal(rol) || (rol != null && operaComoCloser);
+  // Media nunca (ADR 0107 punto 4): aunque el dato `operaComoCloser` llegue en true, no trabaja leads.
+  return rol === "closer" || esAccesoTotal(rol) || (rol != null && rol !== "media" && operaComoCloser);
 }
 
-/** La capacidad solo se configura donde agrega algo: fuera de closer y developer (ADR 0084). */
+/**
+ * La capacidad solo se configura donde agrega algo: fuera de closer y developer (ADR 0084).
+ * Media tampoco: no cumple `trabajaLeads` en ningun caso (ADR 0107 punto 4).
+ */
 export function puedeConfigurarOperaComoCloser(rol: Rol | null | undefined): boolean {
-  return rol != null && !trabajaLeads({ rol, operaComoCloser: false });
+  return rol != null && rol !== "media" && !trabajaLeads({ rol, operaComoCloser: false });
 }
 
 /**
@@ -258,6 +264,16 @@ export function marcaOnboarding(rol: Rol | undefined | null): boolean {
  */
 export function puedeSerMiembro(sujeto: SujetoDeCapacidad): boolean {
   return trabajaLeads(sujeto) || sujeto.rol === "customer_success";
+}
+
+/**
+ * Quien trabaja el contenido: la vista de media, el banco, las piezas y los insights (ADR 0107).
+ * La cumplen media, el gerente y el developer (por `esAccesoTotal`, nunca escrito a mano). Es
+ * una pregunta propia: media NO cumple `trabajaLeads`, `manejaPauta`, `veEquipoComercial` ni
+ * `esAdministrador`. Nunca `rol === "media"` fuera de aqui.
+ */
+export function trabajaContenido(rol: Rol | undefined | null): boolean {
+  return rol === "media" || rol === "gerente" || esAccesoTotal(rol);
 }
 
 export function esRolValido(valor: unknown): valor is Rol {

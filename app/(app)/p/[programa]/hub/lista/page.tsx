@@ -13,6 +13,7 @@ import {
   esMetricaDeEmbudo,
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
+import { ESCALONES, NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
 import { ETAPAS_EN_ORDEN } from "@/lib/deals/etapas";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
@@ -60,6 +61,7 @@ const esquema = z.object({
     "etapa_abiertos",
     "etapa_sin_dueno",
     "no_agendaron",
+    "escalera",
   ]),
   // Solo el embudo por etapas (ticket 188): el paso o la etapa, y el tramo de antigüedad.
   etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION])] as [string, ...string[]]).optional(),
@@ -70,10 +72,13 @@ const esquema = z.object({
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
   source: z.string().max(300).optional(),
   medium: z.string().max(300).optional(),
-  categoria: z.enum(["con_utm", "sin_utm", "macro"]).optional(),
+  categoria: z.enum(["con_utm", "sin_utm", "macro", "pieza_desconocida"]).optional(),
   area: z.enum(["paid", "organico", "referidos", "sin_utm"]).optional(),
   canal: z.string().max(300).optional(),
   orden: z.enum(["envio", "actividad"]).optional(),
+  // Solo la escalera de conversion (ADR 0109): el escalon y la calidad de la cifra.
+  escalon: z.enum(ESCALONES).optional(),
+  calidad: z.string().max(100).optional(),
 });
 
 const titulos = {
@@ -107,6 +112,7 @@ const titulos = {
   etapa_abiertos: "Abiertos en la etapa",
   etapa_sin_dueno: "Abiertos sin dueño",
   no_agendaron: "No agendaron",
+  escalera: "Ventas por escalón",
 };
 
 /** Qué subconjunto exige cada métrica del embudo: sin él, la lista no existe. */
@@ -150,13 +156,15 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const veEquipo = veEquipoComercial(rol);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, categoria, area, canal, orden } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, categoria, area, canal, orden, escalon, calidad } = validado.data;
   const sourceNormalizado = source === "__null__" ? null : source;
   const mediumNormalizado = medium === "__null__" ? null : medium;
   const canalNormalizado = canal === "__null__" ? null : canal;
   if (!esListaDeOrigen && (source !== undefined || medium !== undefined || categoria !== undefined || area !== undefined || canal !== undefined)) notFound();
   if (esListaDeOrigen && !esAdmin && closer !== undefined) notFound();
   if (metrica !== "no_agendaron" && orden !== undefined) notFound();
+  // El escalon y la calidad son de la escalera: en otra lista no existen (nunca se ignoran en silencio).
+  if (metrica !== "escalera" && (escalon !== undefined || calidad !== undefined)) notFound();
   if (moneda && metrica !== "caja") notFound();
   // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
   // o una lista del embudo sin su paso, no existe (nunca cae al embudo entero).
@@ -178,6 +186,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     orden,
     area,
     canal: canalNormalizado,
+    escalon,
+    calidad,
     pagina,
   });
   if (!vista) notFound();
@@ -194,12 +204,13 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     cohorteId: cohorte,
     subconjunto: { etapa, antiguedad },
     filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, categoria, area, canal: canalNormalizado },
+    escalera: { escalon, calidad },
   });
   // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
   // el periodo no los acota.
   const sinPeriodo = (METRICAS_FOTO_DE_HOY as readonly string[]).includes(metrica)
     || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
-  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : null;
+  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? NOMBRE_DE_ESCALON[escalon] : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
   const enlaceDePagina = orden ? `${enlace}&orden=${orden}` : enlace;
@@ -234,6 +245,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <Badge variant="secondary">{etiquetaCloser}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
           {cohorte ? <Badge variant="secondary">Cohorte filtrada</Badge> : null}
+          {calidad ? <Badge variant="secondary">Calidad: {calidad}</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} {metrica === "no_agendaron" ? "personas" : "registros"}</p>
@@ -241,6 +253,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
         <p className="text-sm text-muted-foreground">
           Más antiguos primero. Antigüedad en días calendario de Bogotá; fechas futuras: 0 días.
           {esMetricaDeEmbudo(metrica) ? " En el embudo por etapas, la fecha es la entrada del deal al embudo." : null}
+          {metrica === "escalera" ? " En la escalera, la fecha es la de la venta (escalones 1 a 4) o la de creación del deal (5 a 7)." : null}
         </p>
         <Card>
           <CardContent className="overflow-x-auto pt-4">

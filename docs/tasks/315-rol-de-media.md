@@ -3,7 +3,7 @@ id: 315
 etapa: media
 serves: "ADR 0107 · docs/media/propuesta.md §2 (media tiene su propia vista)"
 depends: []
-status: todo
+status: done
 ---
 
 # 315 — El rol `media` y la pregunta `trabajaContenido`

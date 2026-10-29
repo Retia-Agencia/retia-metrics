@@ -2,6 +2,8 @@ import Link from "next/link";
 import { cloneElement, type ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Operacion } from "@/components/dashboard/operacion";
+import { Escalera } from "@/components/dashboard/escalera";
+import { escaleraPorPrograma } from "@/lib/queries/escalera-todos";
 import { Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { Variacion } from "@/components/variacion";
@@ -191,7 +193,7 @@ function VentasPorCohorte({ vista, origen }: { vista: VistaDeTodos; origen: stri
 }
 
 /** Solo servidor: las piezas compartidas se importan, nunca se modifican. */
-export async function SeccionDeTodos({ vista, seccion, hoy, origen }: { vista: VistaDeTodos; seccion: Seccion; hoy: string; origen: string }) {
+export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }: { vista: VistaDeTodos; seccion: Seccion; hoy: string; origen: string; conListas: boolean }) {
   if (seccion === "hoy") return <section id="hoy" className="space-y-4">
     <h2 className="text-xl font-semibold">Hoy</h2>
     <HoyPorPrograma vista={vista} hoy={hoy} />
@@ -225,6 +227,12 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen }: { vista: V
         <td className="text-right">{tasa(fila.pctCierre.valor)}</td>
         <td className="text-right">{tasa(fila.pctSinGrain.valor)}</td>
       </>} />
+    {/* La escalera es una distribución: una tarjeta por programa, lado a lado, sin total ni % combinado (ADR 0048). */}
+    <div className="grid gap-4 lg:grid-cols-2">
+      {(await escaleraPorPrograma({ programas: vista.programas.map((f) => f.programa), hoy, periodo: vista.periodo, origen, conListas })).map(({ programa, vista: escalera }) => (
+        <Escalera key={programa.id} vista={escalera} periodo={vista.periodo} programa={programa.nombre} />
+      ))}
+    </div>
     {await Promise.all(vista.programas.map(async (fila) => {
       const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null, origen };
       const [detalles, dealsContraAgendas, detallesOperacion] = await Promise.all([

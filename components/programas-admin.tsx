@@ -20,6 +20,8 @@ export interface ProgramaVista {
   webUrl: string | null;
   calendlyUrl: string | null;
   diasSinActividad: number;
+  /** Corte de la escalera de conversion, en dias habiles; nulo = sin definir. */
+  cortePagoRapidoDias: number | null;
   activo: boolean;
 }
 
@@ -31,6 +33,7 @@ export interface Borrador {
   webUrl: string;
   calendlyUrl: string;
   diasSinActividad: string;
+  cortePagoRapidoDias: string;
 }
 
 export function aBorrador(p: ProgramaVista): Borrador {
@@ -42,6 +45,7 @@ export function aBorrador(p: ProgramaVista): Borrador {
     webUrl: p.webUrl ?? "",
     calendlyUrl: p.calendlyUrl ?? "",
     diasSinActividad: String(p.diasSinActividad),
+    cortePagoRapidoDias: p.cortePagoRapidoDias == null ? "" : String(p.cortePagoRapidoDias),
   };
 }
 
@@ -55,6 +59,7 @@ export function aEntrada(b: Borrador) {
     webUrl: b.webUrl,
     calendlyUrl: b.calendlyUrl,
     diasSinActividad: b.diasSinActividad || undefined,
+    cortePagoRapidoDias: b.cortePagoRapidoDias,
   };
 }
 
@@ -134,6 +139,20 @@ export function FormularioPrograma({
           required
           className={claseInput}
           aria-label="Días sin actividad"
+        />
+      </label>
+
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">Pago rápido: hasta N días hábiles tras la cita</span>
+        <input
+          type="number"
+          min="1"
+          step="1"
+          value={borrador.cortePagoRapidoDias}
+          onChange={(e) => setBorrador({ ...borrador, cortePagoRapidoDias: e.target.value })}
+          placeholder="Sin definir"
+          className={claseInput}
+          aria-label="Corte de pago rápido en días hábiles"
         />
       </label>
 

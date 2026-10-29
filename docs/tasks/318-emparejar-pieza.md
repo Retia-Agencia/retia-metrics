@@ -3,7 +3,7 @@ id: 318
 etapa: media
 serves: "ADR 0108 puntos 4 y 5 · propuesta.md §3.6 punto 7 (avisar UTM de contenido sin pieza)"
 depends: [317]
-status: todo
+status: done
 ---
 
 # 318 — El emparejador reconoce la pieza

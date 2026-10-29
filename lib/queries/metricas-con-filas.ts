@@ -3,7 +3,7 @@ import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
-import { abonos, calls, deals, dealEtapaHistorial, leads, sources, submissions, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
 import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
@@ -30,7 +30,8 @@ import {
 } from "@/lib/queries/embudo-formulario";
 import { condicionesDeFiltros } from "@/lib/queries/hechos/consultar";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
-import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
+import { categoriaUtmSql, piezaDesconocidaSql } from "@/lib/atribucion/canal-sql";
+import { cargarEscalera, esEscalon, filtrarEscalera } from "@/lib/queries/escalera";
 
 export type Metrica =
   | "caja"
@@ -54,7 +55,8 @@ export type Metrica =
   | "atendidos_sin_grain"
   | MetricaDeGrupo
   | MetricaDeEmbudo
-  | MetricaDeEmbudoFormulario;
+  | MetricaDeEmbudoFormulario
+  | "escalera";
 
 /**
  * Las listas de las tasas (ADR 0079): deals del grupo de citas, con show, con show vendidos hoy, y
@@ -62,7 +64,7 @@ export type Metrica =
  */
 export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
-type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario>;
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | "escalera">;
 
 function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
   return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
@@ -93,11 +95,14 @@ export interface FiltrosDeMetrica {
   /** Solo registros y agendas creadas: filtros de la misma dimensión que pinta Hub › Origen. */
   source?: string | null;
   medium?: string | null;
-  categoria?: "con_utm" | "sin_utm" | "macro";
+  categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida";
   area?: string;
   canal?: string | null;
   /** Solo No agendaron: la fecha usada para ordenar la lista. */
   orden?: "envio" | "actividad";
+  /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
+  escalon?: string;
+  calidad?: string;
 }
 
 export interface FilaDeMetrica {
@@ -488,7 +493,7 @@ function consultaDe(
           }, {
             ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
             ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
-            ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
+            ...(filtros.categoria && filtros.categoria !== "pieza_desconocida" ? { categoria: [filtros.categoria] } : {}),
             ...(filtros.area ? { area: [filtros.area] } : {}),
             ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
           }),
@@ -517,11 +522,19 @@ function consultaDe(
             filtros: {
               ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
               ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
-              ...(filtros.categoria ? { categoria: [filtros.categoria] } : {}),
+              ...(filtros.categoria && filtros.categoria !== "pieza_desconocida" ? { categoria: [filtros.categoria] } : {}),
               ...(filtros.area ? { area: [filtros.area] } : {}),
               ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
             },
           }),
+          // Envios de contenido con codigo desconocido (ADR 0108): la lista detras de esa cifra.
+          filtros.categoria === "pieza_desconocida"
+            ? piezaDesconocidaSql(
+                db.select({ codigo: sql<string>`lower(${piezas.codigo})` })
+                  .from(piezas)
+                  .where(and(eq(piezas.programId, alcance.programId), vigente(piezas))),
+              )
+            : undefined,
           alcance.claveCloser ? sql`false` : undefined,
           vigente(deals),
         ));
@@ -650,6 +663,30 @@ async function leerMetricaNoAgendaron(
   return paginarOAgrupar(filas, pagina);
 }
 
+/**
+ * La lista de la escalera de conversión (ticket 320, ADR 0109): los deals de la cifra, del MISMO
+ * cálculo que la pinta (`cargarEscalera`). Sin escalón son todos los del universo del periodo.
+ * Un escalón que no existe da una lista vacía, nunca la escalera entera.
+ */
+async function leerMetricaDeEscalera(
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  const escalon = filtros.escalon;
+  if (escalon !== undefined && !esEscalon(escalon)) return [];
+  const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango }, filtros.ahora);
+  const miembros = filtrarEscalera(cargada, {
+    escalon,
+    claveCloser: filtros.claveCloser,
+    calidad: filtros.calidad,
+    cohorteId: filtros.cohorteId,
+  });
+  const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
+  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
+}
+
 async function personasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
   if (dealIds.length === 0) return new Map<string, FilaDeMetrica["persona"]>();
   const filas = await db.select({ dealId: deals.id, nombre: leads.nombre, leadId: leads.id })
@@ -708,6 +745,7 @@ async function leerMetrica(
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudoFormulario(metrica)) return leerMetricaNoAgendaron(alcance, filtros, pagina, db);
+  if (metrica === "escalera") return leerMetricaDeEscalera(alcance, filtros, pagina, db);
   const resumen = pagina === null;
   const fuente = fuenteDe(metrica);
   const campos = camposDe(metrica, fuente, filtros.hoy, resumen);

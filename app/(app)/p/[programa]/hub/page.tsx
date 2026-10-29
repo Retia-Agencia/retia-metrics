@@ -33,6 +33,8 @@ import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantall
 import { Pestanas, pestanaActiva, urlConSeccion, type Pestana } from "@/components/layout/pestanas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { DashboardPrograma } from "@/components/dashboard-programa";
+import { Escalera } from "@/components/dashboard/escalera";
+import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina } from "@/components/pauta-interina";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
@@ -263,6 +265,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               busqueda={busqueda}
             />
           ) : seccion === "comercial" ? (
+            <div className="space-y-4">
             <DashboardPrograma
               seccion="operacion"
               vista={vista}
@@ -287,6 +290,19 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 />
               }
             />
+            <Escalera
+              periodo={vista.periodo}
+              vista={await vistaDeEscalera({
+                programId: programa.id,
+                slug,
+                hoy,
+                periodo: vista.periodo,
+                claveCloser: vista.claveCloser,
+                origen,
+                conEquipo: veEquipo,
+              })}
+            />
+            </div>
           ) : seccion === "dinero" ? (
             <DashboardPrograma
               seccion="dinero"

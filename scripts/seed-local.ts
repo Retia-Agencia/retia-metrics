@@ -719,6 +719,13 @@ export async function sembrarLocal(): Promise<void> {
     programas: [prog1.id, prog2.id],
   });
 
+  // Media (ADR 0107): coordinacion de contenido, sin filas de alcance = ve todos los programas.
+  await crearUsuario(db, actorId, {
+    email: "media@retia.local",
+    nombre: "Media Local",
+    rol: "media",
+  });
+
   // 10. Leads vía ingerirEntradas
   console.log("[seed:local] Ingiriendo leads por la puerta oficial (ingerirEntradas)...");
   const entradasProg1: EntradaEnvio[] = [

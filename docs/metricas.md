@@ -187,6 +187,7 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 | % de cierre | deals con show que hoy están vendidos ÷ deals con show; los pendientes de resultado quedan fuera del grupo y visibles aparte | % | no | ídem | ✅ |
 | Agenda → venta | deals con show vendidos hoy ÷ deals del grupo (= % show × % cierre); los pendientes de resultado quedan fuera del grupo y visibles aparte | % | no | ídem | ✅ |
 | Ventas | deals vendidos en el rango (§1.4) | ventas | sí | `ventasConDiaEn` | ✅ |
+| Ventas por escalón | la escalera de conversión, abajo (ADR 0109): deals del periodo en siete escalones, con número, % y días hábiles medianos | deals | no: distribución por programa | `lib/queries/escalera.ts` | ✅ |
 | Vendido | Σ `deals.valor_vendido_usd` de las ventas del rango (lo escribe el closer); un deal sin valor se cuenta aparte, no se inventa | USD | sí | `contratadoDeDeals` en `lib/queries/saldo.ts` | ✅ |
 | Recaudado | Σ abonos vigentes por su fecha (§1.5) | USD | sí | `hechos/abono.ts` | ✅ |
 | Saldo de un deal | contratado − abonado; negativo es sobrepago, no deuda | USD | · | `saldosDeDeals`, `saldoLegible` | ✅ |
@@ -195,6 +196,43 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 **El grupo de citas** (para las tres tasas): los deals vigentes, sin cortesía, con al menos una cita **ya
 ocurrida** en el rango (show, no-show, cancelada o sin resultado; la reagendada no, la representa la nueva). Se
 cuenta por deal, no por llamada (ADR 0079). Por closer, cada deal va a quien tomó su último show.
+
+**La escalera de conversión** (ADR 0109, tickets 319 y 320): en qué escalón paga, o se queda, cada deal. La
+decide `escalonDeDeal` (pura) y la carga `cargarEscalera`, ambas en `lib/queries/escalera.ts`; nadie más calcula
+un escalón, y el escalón se calcula al leer, nunca se guarda.
+
+| Escalón | Regla (en este orden) |
+|---|---|
+| 1 · Pagó en la llamada | primer abono vigente de ticket el **mismo día (Bogotá)** de la última cita atendida que no es posterior a él |
+| 2 · Pagó rápido | primer abono hasta `programs.corte_pago_rapido_dias` días hábiles **después** de esa cita (sábado y domingo no cuentan; el mismo día es 0) |
+| 3 · Pagó después | primer abono más tarde que el corte. **Sin corte** (nulo) los escalones 2 y 3 se juntan aquí y la tarjeta lo dice |
+| 4 · Pagó sin llamada registrada | venta sin una cita atendida anterior o igual al primer abono (enmienda del ADR 0109, 28-oct): ventas migradas de las hojas o creadas a mano. Sin días medianos; si se carga la llamada, el deal sube solo. Una venta **sin abono vigente de ticket** (sin fecha de pago) cae aquí también, **aunque tenga llamadas atendidas** |
+| 5 · Atendió y no compró | alguna cita atendida (`RESULTADOS_QUE_OCURRIERON`), sin venta |
+| 6 · Agendó y no se presentó | alguna cita **vencida sin atender** (hora pasada, resultado no show o cancelada), ninguna atendida, sin venta. Las citas **pendientes** (futura, agendada sin resultado, reagendada) no cuentan: no han sucedido (enmienda del ADR 0109, 28-oct) |
+| 7 · Dejó datos y sin cita ocurrida | ninguna cita atendida ni vencida, sin venta: incluye al deal que solo tiene citas pendientes, que sube solo cuando la cita sucede |
+
+- **Universo de un periodo:** los deals **vendidos** en él (`ventasConDiaEn`, la misma definición de venta del Hub:
+  los escalones 1 a 4 suman exactamente las ventas del periodo, comprobado por test contra la lista `cierres`) más
+  los deals **creados** en él (día de Bogotá de `deals.created_at`) que **nunca** se han vendido (5 a 7). Un deal
+  creado en el periodo y vendido después sale de 5-7 y entra a 1-4 en el periodo de su venta. Las cortesías y los
+  deals anulados no cuentan. Se cuenta por **deal**, no por persona (un lead retomado cuenta cada intento).
+- **Fecha de la cita:** `coalesce(fecha_agenda, fecha_llamada)` en Bogotá, la misma de `fechaAnclaCall`. Atendida =
+  resultado en show, compromiso de pago, cerrada o perdida; las citas anuladas no cuentan.
+- **Primer abono:** `min(abonos.fecha)` de los abonos **vigentes de concepto ticket**; un abono adicional (ADR 0113)
+  no es el pago del programa.
+- **Todos los programas:** una tarjeta por programa, lado a lado, sin total ni % combinado (ADR 0048): `escaleraPorPrograma`
+  devuelve filas por programa y el % es una `Tasa` que las sumas de `agregado-programas.ts` no aceptan.
+- **Días medianos:** mediana de los días hábiles de la cita al primer abono, solo en los escalones 2 y 3.
+- **Porcentaje:** sobre todos los deals del universo filtrado; base cero se muestra `—`. Es una distribución por
+  programa: **nunca se suma entre programas** (ADR 0048).
+- **Dimensiones** (lista blanca): closer (el dueño del deal), calidad (`submissions.lead_quality` del envío que abrió
+  el deal, tal como llegó; sin dato, «Sin calidad») y cohorte. El comparativo por closer no se acota (ADR 0023).
+- **Lista:** `hub/lista?metrica=escalera&escalon=…&calidad=…&closer=…`, del mismo cálculo que la cifra. La fecha de
+  la fila es la de la venta (1 a 4) o la de creación del deal (5 a 7).
+- **Corte:** `programs.corte_pago_rapido_dias`, editable en Programa › por quien administra (rastro en
+  `change_log`, campo `cortePagoRapidoDias`). Nulo no se inventa.
+- **Verificar:** la suma de los escalones 1 a 4 contra Ventas del mismo periodo; abrir la lista de una celda y
+  contar sus filas contra la cifra (`tests/escalera.test.ts`).
 
 ### 3.2 Pauta
 

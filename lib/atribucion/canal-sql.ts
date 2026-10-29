@@ -1,4 +1,4 @@
-import { sql, type SQL } from "drizzle-orm";
+import { notInArray, sql, type SQL, type SQLWrapper } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { MEDIOS_PAGOS } from "@/lib/atribucion/canal";
 import { submissions } from "@/lib/db/schema";
@@ -32,6 +32,18 @@ export function categoriaUtmSql() {
     when ${submissions.utmSource} is null and ${submissions.utmMedium} is null
       and ${submissions.utmCampaign} is null then 'sin_utm'
     else 'con_utm' end`;
+}
+
+/**
+ * Gemela SQL del aviso `pieza_desconocida` del emparejador (ADR 0108): el envio es de medio
+ * `contenido` y su `utm_content` no esta entre los codigos de las piezas vivas del programa
+ * (`codigosVivos`: subconsulta ya acotada a ese programa y sin las descartadas). Un codigo
+ * ausente tambien es desconocido. `utm_content` cae a `respuestas` como en `utmsDelEnvio`.
+ */
+export function piezaDesconocidaSql(codigosVivos: SQLWrapper) {
+  const medio = normalizarSql(submissions.utmMedium);
+  const contenido = normalizarSql(sql<string>`coalesce(${submissions.utmContent}, ${submissions.respuestas}->>'utm_content')`);
+  return sql<boolean>`(${medio} = 'contenido' and (${contenido} is null or ${notInArray(contenido, codigosVivos as never)}))`;
 }
 
 /** Gemela SQL de `normalizarUtm`: blancos y macros sin expandir son ausencia. */

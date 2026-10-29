@@ -3,7 +3,7 @@ id: 317
 etapa: media
 serves: "ADR 0108 · propuesta.md §6 paso 1 (empezar a medir)"
 depends: [316]
-status: todo
+status: done
 ---
 
 # 317 — El link de cada pieza y el link fijo del creador

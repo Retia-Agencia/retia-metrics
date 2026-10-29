@@ -26,6 +26,7 @@ const TODOS_LOS_ROLES = [
   { rol: "gerente", correo: "gerente@retia.local" },
   { rol: "closer", correo: "carlos.closer@retia.local" },
   { rol: "paid_trafficker", correo: "pauta@retia.local" },
+  { rol: "media", correo: "media@retia.local" },
 ] as const;
 
 const ROLES_ELEGIDOS = process.env.HUMO_ROLES?.split(",").map((r) => r.trim()).filter(Boolean);
@@ -39,6 +40,7 @@ const RUTAS_GLOBALES = [
   "/",
   "/mi-espacio",
   "/mi-dia",
+  "/media",
   // El Hub de todos y cada pestaña suya; `/dashboard` queda para probar que la ruta vieja redirige (ticket 250).
   "/hub",
   "/hub?seccion=comercial",
@@ -221,10 +223,12 @@ for (const { rol, correo } of ROLES) {
 
     sumidero.accion = "descubrir programas";
     const slugs = await descubrirProgramas(page);
-    expect(slugs.length, `${rol} no ve ningún programa`).toBeGreaterThan(0);
+    // media solo tiene /media (ADR 0107): su menú no lleva a ningún programa.
+    const soloMedia = rol === "media";
+    if (!soloMedia) expect(slugs.length, `${rol} no ve ningún programa`).toBeGreaterThan(0);
 
-    const rutas = [...RUTAS_GLOBALES];
-    for (const slug of slugs) {
+    const rutas = soloMedia ? ["/media"] : [...RUTAS_GLOBALES];
+    for (const slug of soloMedia ? [] : slugs) {
       for (const tab of TABS_DE_PROGRAMA) rutas.push(`/p/${slug}${tab}`);
       for (const tab of ["deals", "leads"] as const) {
         sumidero.accion = `buscar ficha de ${tab}`;
@@ -267,6 +271,6 @@ for (const { rol, correo } of ROLES) {
       for (const h of hallazgos) console.log(`  ${h.ruta} · ${h.accion} · ${h.error}`);
     }
     expect(hallazgos, "errores de consola o de página durante el recorrido").toEqual([]);
-    expect(probadas, `${rol} probó muy pocas pantallas: ¿se perdió la sesión o cambiaron las rutas?`).toBeGreaterThanOrEqual(MINIMO_DE_PANTALLAS);
+    expect(probadas, `${rol} probó muy pocas pantallas: ¿se perdió la sesión o cambiaron las rutas?`).toBeGreaterThanOrEqual(soloMedia ? 1 : MINIMO_DE_PANTALLAS);
   });
 }

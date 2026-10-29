@@ -131,6 +131,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     webUrl: null,
     calendlyUrl: programa.calendlyUrl,
     diasSinActividad: programa.diasSinActividad,
+    cortePagoRapidoDias: programa.cortePagoRapidoDias,
     activo: programa.activo,
   };
 
@@ -370,6 +371,14 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                 <Kpi etiqueta="Estancado tras">
                   <p className="cifra text-2xl font-semibold">{num(programa.diasSinActividad)}</p>
                   <p className="text-xs text-muted-foreground">días hábiles sin actividad</p>
+                </Kpi>
+                <Kpi etiqueta="Pago rápido">
+                  {programa.cortePagoRapidoDias == null ? (
+                    <Badge variant="alerta">Sin definir</Badge>
+                  ) : (
+                    <p className="cifra text-2xl font-semibold">{num(programa.cortePagoRapidoDias)}</p>
+                  )}
+                  <p className="text-xs text-muted-foreground">días hábiles tras la cita (escalera de conversión)</p>
                 </Kpi>
               </div>
 

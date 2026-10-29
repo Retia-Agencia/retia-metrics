@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { cohorts, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
+import { changeLog, cohorts, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -208,6 +208,30 @@ describe("acciones de programas — el gerente administra", () => {
     const { esquemaPrograma } = await import("@/lib/catalogo/programas");
     expect(esquemaPrograma.parse({ ...programaValido, diasSinActividad: "9" }).diasSinActividad).toBe(9);
     expect(() => esquemaPrograma.parse({ ...programaValido, diasSinActividad: 0 })).toThrow();
+  });
+
+  it("el corte de la escalera (319) se edita por quien administra, con rastro; vacio lo borra y cero se rechaza", async () => {
+    const { editarProgramaAccion } = await acciones();
+    auth.mockResolvedValue({ user: { ...sesionGerente.user, id: gerenteId } });
+    const [actual] = await db.select().from(programs).where(eq(programs.id, programId));
+    const entrada = { nombre: actual.nombre, slug: actual.slug, ticketUsd: String(actual.ticketUsd), webUrl: "", calendlyUrl: "" };
+    const filasDelCorte = () => db.select().from(changeLog).where(eq(changeLog.campo, "cortePagoRapidoDias"));
+
+    expect(await editarProgramaAccion(programId, { ...entrada, cortePagoRapidoDias: "3" })).toEqual({ ok: true });
+    expect((await db.select().from(programs).where(eq(programs.id, programId)))[0].cortePagoRapidoDias).toBe(3);
+    expect(await filasDelCorte()).toMatchObject([{ valorAnterior: null, valorNuevo: "3", userId: gerenteId, tabla: "programs" }]);
+
+    // Reenviar el mismo valor no escribe rastro; omitir el campo no lo toca.
+    await editarProgramaAccion(programId, { ...entrada, cortePagoRapidoDias: "3" });
+    await editarProgramaAccion(programId, entrada);
+    expect(await filasDelCorte()).toHaveLength(1);
+    expect((await db.select().from(programs).where(eq(programs.id, programId)))[0].cortePagoRapidoDias).toBe(3);
+
+    expect(await editarProgramaAccion(programId, { ...entrada, cortePagoRapidoDias: "" })).toEqual({ ok: true });
+    expect((await db.select().from(programs).where(eq(programs.id, programId)))[0].cortePagoRapidoDias).toBeNull();
+    expect(await filasDelCorte()).toHaveLength(2);
+
+    expect((await editarProgramaAccion(programId, { ...entrada, cortePagoRapidoDias: "0" })).ok).toBe(false);
   });
 
   it("activar una segunda cohorte en el mismo programa devuelve ok:false con mensaje claro", async () => {

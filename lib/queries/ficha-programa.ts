@@ -50,6 +50,8 @@ export interface DatosDelPrograma {
   tieneTokenCalendly: boolean;
   webhookCalendlyConectado: boolean;
   diasSinActividad: number;
+  /** Corte de la escalera de conversion (ADR 0109), en dias habiles; nulo = sin definir. */
+  cortePagoRapidoDias: number | null;
 }
 
 export interface FuenteDeLaFicha {
@@ -167,6 +169,7 @@ export async function fichaDelPrograma(
       tieneTokenCalendly: programa.tieneTokenCalendly,
       webhookCalendlyConectado: programa.webhookCalendlyConectado,
       diasSinActividad: Number(programa.diasSinActividad),
+      cortePagoRapidoDias: programa.cortePagoRapidoDias == null ? null : Number(programa.cortePagoRapidoDias),
     },
     cohortes: cohortes
       .map(aCohorteVista)

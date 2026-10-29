@@ -78,6 +78,15 @@ export const esquemaPrograma = z.object({
     .int("Los días sin actividad deben ser un entero.")
     .min(1, "Los días sin actividad deben ser al menos 1.")
     .optional(),
+  // Corte de la escalera de conversion (ticket 319, ADR 0109): dias habiles de la cita al primer
+  // abono que cuentan como "pago rapido". Vacio o nulo = el programa no lo definio.
+  cortePagoRapidoDias: z
+    .union([
+      z.literal("").transform(() => null),
+      z.null(),
+      z.coerce.number().int("El corte debe ser un entero.").min(1, "El corte debe ser al menos 1 día hábil."),
+    ])
+    .optional(),
 });
 
 /** Entrada validada de un programa (lo que el llamador escribe). */

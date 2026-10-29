@@ -133,6 +133,12 @@ const pautaInterina = vi.fn(async () => ({
   sinUtmHoy: [],
 }));
 vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
+// La tarjeta de la escalera (320) también lee la base: aquí solo importa con qué acceso se arma.
+const vistaDeEscalera = vi.fn(async () => ({
+  corteDias: null, sinCorte: true, hayComparacion: false, porCloser: [], porCalidad: [],
+  principal: { clave: "", etiqueta: "Todos", total: 0, celdas: {} },
+}));
+vi.mock("@/lib/queries/vista-escalera", () => ({ vistaDeEscalera }));
 // Las alertas por persistencia del Pulso (147), igual: sin base, ningún umbral.
 const alertasDelPrograma = vi.fn(async () => []);
 vi.mock("@/lib/queries/alertas", () => ({ alertasDelPrograma }));
@@ -276,6 +282,7 @@ const sesionCloser = { user: { id: "u-2", email: "closer@retia.co", rol: "closer
 const sesionDeveloper = { user: { id: "u-3", email: "dev@retia.co", rol: "developer", closerId: null } };
 const sesionPaidTrafficker = { user: { id: "u-4", email: "pauta@retia.co", rol: "paid_trafficker", closerId: null } };
 const sesionGerenteLimitado = { user: { ...sesionGerente.user, alcanceLimitado: true } };
+const sesionMedia = { user: { id: "u-6", email: "media@retia.co", rol: "media", closerId: null } };
 const sesionCustomerSuccess = { user: { id: "u-5", email: "cs@retia.co", rol: "customer_success", closerId: null } };
 
 beforeEach(() => {
@@ -786,6 +793,45 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     for (const [, ruta] of RUTAS) {
       expect(await correr(ruta)).toBe("paso-la-guarda");
     }
+  });
+
+  it("media recibe 404 en Leads, Deals, Calls, Inbox, Students, Hub, Programa y Ajustes, aunque fuerce la URL (ADR 0107)", async () => {
+    auth.mockResolvedValue(sesionMedia);
+    const rutas = [
+      "@/app/(app)/p/[programa]/leads/page",
+      "@/app/(app)/p/[programa]/deals/page",
+      "@/app/(app)/p/[programa]/calls/page",
+      "@/app/(app)/p/[programa]/inbox/page",
+      "@/app/(app)/p/[programa]/students/page",
+      "@/app/(app)/p/[programa]/hub/page",
+      "@/app/(app)/p/[programa]/hub/lista/page",
+      "@/app/(app)/p/[programa]/programa/page",
+      "@/app/(app)/ajustes/page",
+      "@/app/(app)/ajustes/usuarios/page",
+    ];
+    for (const ruta of rutas) {
+      expect(await correr(ruta), ruta).toBe("notFound");
+    }
+  });
+
+  it("/media: pasa media, gerente y developer; un closer o un paid trafficker reciben 404", async () => {
+    const ruta = "@/app/(app)/media/page";
+    const probar = async (sesion: unknown) => {
+      auth.mockResolvedValue(sesion);
+      try {
+        await ((await import(/* @vite-ignore */ ruta)) as { default: () => Promise<unknown> }).default();
+        return "paso-la-guarda";
+      } catch (e) {
+        if (e instanceof NoEncontrado) return "notFound";
+        if (e instanceof Redireccion) return "redireccion";
+        return "paso-la-guarda"; // fallo posterior a la guarda (sin base)
+      }
+    };
+    expect(await probar(sesionMedia)).toBe("paso-la-guarda");
+    expect(await probar(sesionGerente)).toBe("paso-la-guarda");
+    expect(await probar(sesionDeveloper)).toBe("paso-la-guarda");
+    expect(await probar(sesionCloser)).not.toBe("paso-la-guarda");
+    expect(await probar(sesionPaidTrafficker)).not.toBe("paso-la-guarda");
   });
 
   it("el paid trafficker ve el Hub y la ficha del Programa, pero NO la lista", async () => {
@@ -1600,6 +1646,11 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     // Hoy no lleva selector (252); en las demás pestañas, el filtro de closer no es suyo.
     expect(buscar(arbol, "FiltroDashboard")).toBeNull();
     expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props).toMatchObject({ filtraCloser: false, closers: [] });
+    // La escalera (320) se arma sin closers ni listas para quien no ve el equipo, y con ellos para el gerente.
+    expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: false }));
+    auth.mockResolvedValue(sesionGerente);
+    await renderizar({ seccion: "comercial" });
+    expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: true }));
   });
 
   /** Un detalle de cifra con lista, desglose por closer y enlace: lo que `sinListas` tiene que vaciar. */

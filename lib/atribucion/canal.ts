@@ -13,6 +13,8 @@ export const NOMBRE_DE_AREA: Record<Area, string> = {
 export const MEDIOS_PAGOS = ["cpc", "paid_social", "paid"] as const;
 export const UTM_SOURCE_CLOSER = "closer";
 export const UTM_MEDIUM_REFERIDO = "referido";
+/** El medio del link de una pieza de contenido (ADR 0108): el emparejador decide con el. */
+export const UTM_MEDIUM_CONTENIDO = "contenido";
 
 export interface Canal {
   clave: string;

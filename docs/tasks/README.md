@@ -375,12 +375,12 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 315 | [El rol `media` y la pregunta `trabajaContenido`](./315-rol-de-media.md) | — | todo · migración |
-| [ ] | 316 | [El catálogo de creadores y la pieza mínima](./316-creadores-y-pieza-minima.md) | 315 | todo · migración |
-| [ ] | 317 | [El link de cada pieza y el link fijo del creador](./317-link-de-pieza.md) | 316 | todo |
-| [ ] | 318 | [El emparejador reconoce la pieza](./318-emparejar-pieza.md) | 317 | todo |
-| [ ] | 319 | [La escalera de conversión](./319-escalera-de-conversion.md) | — | todo · migración · medición en producción antes de mostrar |
-| [ ] | 320 | [Las ventas por escalón en el Hub](./320-escalera-en-el-hub.md) | 319 | todo |
+| [x] | 315 | [El rol `media` y la pregunta `trabajaContenido`](./315-rol-de-media.md) | — | done |
+| [x] | 316 | [El catálogo de creadores y la pieza mínima](./316-creadores-y-pieza-minima.md) | 315 | done |
+| [x] | 317 | [El link de cada pieza y el link fijo del creador](./317-link-de-pieza.md) | 316 | done |
+| [x] | 318 | [El emparejador reconoce la pieza](./318-emparejar-pieza.md) | 317 | done |
+| [x] | 319 | [La escalera de conversión](./319-escalera-de-conversion.md) | — | done |
+| [x] | 320 | [Las ventas por escalón en el Hub](./320-escalera-en-el-hub.md) | 319 | done |
 | [ ] | 321 | [La vista de media](./321-vista-de-media.md) | 315 | todo |
 | [ ] | 322 | [El esquema del cockpit en el CRM y el traslado único](./322-esquema-y-traslado-del-cockpit.md) | 316 | todo · migración · traslado con ok de Mani |
 | [ ] | 323 | [La fachada del CRM para n8n y el repunte de los workflows](./323-fachada-para-n8n.md) | 322 | todo · edita n8n con ok de Mani |

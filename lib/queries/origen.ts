@@ -1,8 +1,9 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { textoDeRegla, tipoDePlantilla, type Area } from "@/lib/atribucion/canal";
 import { emparejarFilaDeEnvio, type Traza } from "@/lib/atribucion/emparejar";
-import { cuentasPublicitarias, pautaObjetos } from "@/lib/db/schema";
+import { cuentasPublicitarias, pautaObjetos, piezas } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { arbolDePauta } from "@/lib/pauta/arbol";
 import { agruparTrazas as agruparTrazasDeAgendas } from "@/lib/queries/hechos/agenda";
 import { agruparTrazas } from "@/lib/queries/hechos/envio";
@@ -53,7 +54,15 @@ export interface AnuncioConPlantilla {
   urlTags: string | null;
 }
 
+/** Un codigo de `utm_content` con medio `contenido` que no resolvio a una pieza viva del programa (ADR 0108). */
+export interface PiezaDesconocida {
+  codigo: string | null;
+  envios: number;
+}
+
 export interface VistaOrigen {
+  /** Envios de contenido con codigo desconocido, anulado o de otro programa: se cuentan aparte. */
+  piezasDesconocidas: { envios: number; lista: PiezaDesconocida[] };
   filas: FilaOrigenUtm[];
   canales: FilaOrigenCanal[];
   totalEnvios: number;
@@ -73,7 +82,7 @@ export async function origenDelPrograma(
   db: Db,
   args: { programId: string; rango: Rango; hoy: string },
 ): Promise<VistaOrigen> {
-  const [{ grupos, primeros }, agendas, arbol, anuncios, objetosDePauta] = await Promise.all([
+  const [{ grupos, primeros }, agendas, arbol, anuncios, objetosDePauta, piezasDelPrograma] = await Promise.all([
     agruparTrazas(db, args),
     agruparTrazasDeAgendas(db, args),
     arbolDePauta(db, args.programId),
@@ -96,7 +105,24 @@ export async function origenDelPrograma(
       nombre: pautaObjetos.nombre,
       padreIdMeta: pautaObjetos.padreIdMeta,
     }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId)),
+    // Solo las piezas de ESTE programa (frontera, ADR 0043): el codigo de una pieza de otro
+    // programa no se reconoce y cae en `pieza_desconocida`, igual que uno que no existe.
+    // Se leen TAMBIEN las anuladas (incluyendoAnulados): esto no es una metrica, es el dato del
+    // emparejador, que decide por la marca `anulada` y no por si la fila existe. Una pieza
+    // descartada tiene que reconocerse para avisar `pieza_desconocida`, no desaparecer.
+    db.select({
+      id: piezas.id,
+      codigo: piezas.codigo,
+      creadorId: piezas.creadorId,
+      programId: piezas.programId,
+      anuladoEn: piezas.anuladoEn,
+    }).from(piezas).where(and(eq(piezas.programId, args.programId), incluyendoAnulados(piezas))),
   ]);
+  const piezasParaEmparejar = {
+    programId: args.programId,
+    piezas: piezasDelPrograma.map((p) => ({ ...p, anulada: p.anuladoEn !== null })),
+  };
+  const desconocidas = new Map<string | null, number>();
 
   const agendasPorFila = new Map<string, {
     source: string | null;
@@ -128,7 +154,11 @@ export async function origenDelPrograma(
   ]));
   const porParYRegla = new Map<string, FilaOrigenUtm & { niveles: Record<Traza["nivel"], number> }>();
   for (const grupo of grupos) {
-    const traza = emparejarFilaDeEnvio(grupo, arbol);
+    const traza = emparejarFilaDeEnvio(grupo, arbol, piezasParaEmparejar);
+    if (traza.avisos.includes("pieza_desconocida")) {
+      const codigo = traza.contenido?.formato === "pieza" ? traza.contenido.codigo?.toLowerCase() ?? null : null;
+      desconocidas.set(codigo, (desconocidas.get(codigo) ?? 0) + grupo.envios);
+    }
     const par = clavePar(grupo.utmSource, grupo.utmMedium);
     const macros = traza.macros.length > 0;
     const clave = claveFila(grupo.utmSource, grupo.utmMedium, traza.origen.regla, macros);
@@ -249,7 +279,11 @@ export async function origenDelPrograma(
       || a.nombre.localeCompare(b.nombre)
       || a.idMeta.localeCompare(b.idMeta));
   }
+  const lista = [...desconocidas.entries()]
+    .map(([codigo, envios]) => ({ codigo, envios }))
+    .sort((a, b) => b.envios - a.envios || (a.codigo ?? "").localeCompare(b.codigo ?? ""));
   return {
+    piezasDesconocidas: { envios: lista.reduce((t, f) => t + f.envios, 0), lista },
     filas,
     canales,
     totalEnvios,
