@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: () => {} }),
+  usePathname: () => "/p/x/hub",
+  useSearchParams: () => new URLSearchParams(),
+}));
 import { PautaRoas } from "@/components/pauta-roas";
 import { abonos, calls, cuentasPublicitarias, deals, dealEtapaHistorial, gastoPauta, leads, pautaObjetos, programs, sources, submissions, tasasCambio, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";

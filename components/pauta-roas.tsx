@@ -122,9 +122,9 @@ export function PautaRoas({ vista, enlace, hrefCsv }: {
     <table className="w-full table-fixed text-xs"><Cabecera />
     <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
       <Fila fila={vista.total} enlace={enlace} />
-      {vista.campanas.map((campana) => <FilaDeCampana key={campana.id} nombre={campana.nombre} detalle={detalleDe(campana)}>
+      {vista.campanas.map((campana) => <FilaDeCampana key={campana.id} id={campana.id!} nombre={campana.nombre} detalle={detalleDe(campana)}>
         <Celdas fila={campana} enlace={enlace}
-          nombre={<button type="button" className={`${claseEnlace} break-words text-left`}>▸ {campana.nombre}</button>} />
+          nombre={<button type="button" className="rounded-lg break-words text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">▸ {campana.nombre}</button>} />
       </FilaDeCampana>)}
       {(vista.sinAnuncio.registros > 0 || vista.sinAnuncio.agendas > 0 || vista.sinAnuncio.ventas > 0) ? <>
         <Fila fila={vista.sinAnuncio} enlace={enlace} />
