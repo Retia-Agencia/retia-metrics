@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { columnasUtmDelEnvio, type utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { abonos, calls, deals, programs, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -144,11 +144,61 @@ export interface EscaleraCargada {
 
 const RANGO_TOTAL: Rango = { desde: "1900-01-01", hasta: "2999-12-31" };
 
-function ventasDelPrograma(db: Db, programId: string) {
+export function ventasDelPrograma(db: Db, programId: string) {
   const ventas = ventasConDiaEn(db, RANGO_TOTAL).as("ventas_de_la_escalera");
   return db.select({ dealId: ventas.dealId, dia: ventas.dia }).from(ventas)
     .innerJoin(deals, and(eq(deals.id, ventas.dealId), vigente(deals)))
     .where(and(eq(deals.programId, programId), incluyendoAnulados(ventas)));
+}
+
+/**
+ * Carga los hechos mínimos y aplica `escalonDeDeal` para un lote ya clasificado como vendido/no vendido.
+ * Es la única puerta para que otras métricas reutilicen el mismo primer abono, citas y corte de la escalera.
+ */
+export async function ubicacionesDeEscalera(
+  db: Db,
+  args: { programId: string; dealIds: readonly string[]; vendidos: ReadonlySet<string> },
+  ahora: Date = new Date(),
+): Promise<{ corteDias: number | null; porDeal: Map<string, UbicacionEnLaEscalera> }> {
+  if (args.dealIds.length === 0) {
+    const [programa] = await db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, args.programId));
+    return { corteDias: programa?.corte ?? null, porDeal: new Map() };
+  }
+  const [[programa], filasAbonos, filasCitas] = await Promise.all([
+    db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, args.programId)),
+    db.select({ dealId: abonos.dealId, primero: sql<string>`min(${abonos.fecha})` }).from(abonos)
+      .where(and(eq(abonos.programId, args.programId), inArray(abonos.dealId, [...args.dealIds]),
+        eq(abonos.concepto, "ticket"), vigente(abonos)))
+      .groupBy(abonos.dealId),
+    db.select({
+      dealId: calls.dealId,
+      dia: fechaAnclaCall(),
+      instante: sql<Date>`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`,
+      fallida: sql<boolean>`${calls.resultado} in (${sql.raw(RESULTADOS_FALLIDOS.map((r) => `'${r}'`).join(", "))})`,
+      atendida: sql<boolean>`${calls.resultado} in (${sql.raw(RESULTADOS_QUE_OCURRIERON.map((r) => `'${r}'`).join(", "))})`,
+    }).from(calls).where(and(eq(calls.programId, args.programId), inArray(calls.dealId, [...args.dealIds]), vigente(calls))),
+  ]);
+  const primerAbono = new Map(filasAbonos.map((fila) => [fila.dealId, diaDeCalendario(fila.primero)]));
+  const citasPorDeal = new Map<string, { atendidas: string[]; vencida: boolean }>();
+  for (const cita of filasCitas) {
+    if (cita.dealId === null) continue;
+    const acumulado = citasPorDeal.get(cita.dealId) ?? { atendidas: [], vencida: false };
+    if (cita.atendida) acumulado.atendidas.push(diaDeCalendario(cita.dia));
+    else if (cita.fallida && new Date(cita.instante).getTime() <= ahora.getTime()) acumulado.vencida = true;
+    citasPorDeal.set(cita.dealId, acumulado);
+  }
+  const corteDias = programa?.corte ?? null;
+  const porDeal = new Map<string, UbicacionEnLaEscalera>();
+  for (const dealId of args.dealIds) {
+    const citas = citasPorDeal.get(dealId);
+    porDeal.set(dealId, escalonDeDeal({
+      vendido: args.vendidos.has(dealId),
+      primerAbono: primerAbono.get(dealId) ?? null,
+      citasAtendidas: citas?.atendidas ?? [],
+      citaVencidaSinAtender: citas?.vencida ?? false,
+    }, corteDias));
+  }
+  return { corteDias, porDeal };
 }
 
 /** Carga la escalera de un programa en un periodo: el escalón de cada deal de su universo. */
@@ -158,8 +208,7 @@ export async function cargarEscalera(
   ahora: Date = new Date(),
 ): Promise<EscaleraCargada> {
   const { programId, rango } = alcance;
-  const [[programa], dias, filasDeals, filasAbonos, filasCitas] = await Promise.all([
-    db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, programId)),
+  const [dias, filasDeals] = await Promise.all([
     // La venta de un deal y su día vienen de la UNICA definición de venta; se pide de siempre y
     // se reparte en memoria: un deal vendido ayer no es "sin vender" aunque se creara este mes.
     // `ventasConDiaEn` no filtra por programa: se une a `deals` (vigente, INLINE) y se acota aquí.
@@ -180,46 +229,26 @@ export async function cargarEscalera(
       .leftJoin(users, eq(users.id, deals.ownerUserId))
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
       .where(and(eq(deals.programId, programId), eq(deals.cortesia, false), vigente(deals))),
-    db.select({ dealId: abonos.dealId, primero: sql<string>`min(${abonos.fecha})` }).from(abonos)
-      .where(and(eq(abonos.programId, programId), eq(abonos.concepto, "ticket"), vigente(abonos)))
-      .groupBy(abonos.dealId),
-    db.select({
-      dealId: calls.dealId,
-      dia: fechaAnclaCall(),
-      instante: sql<Date>`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`,
-      fallida: sql<boolean>`${calls.resultado} in (${sql.raw(RESULTADOS_FALLIDOS.map((r) => `'${r}'`).join(", "))})`,
-      atendida: sql<boolean>`${calls.resultado} in (${sql.raw(RESULTADOS_QUE_OCURRIERON.map((r) => `'${r}'`).join(", "))})`,
-    }).from(calls).where(and(eq(calls.programId, programId), vigente(calls))),
   ]);
 
   const diaDeVenta = new Map(dias.map((fila) => [fila.dealId, diaDeCalendario(fila.dia)]));
-  const primerAbono = new Map(filasAbonos.map((fila) => [fila.dealId, diaDeCalendario(fila.primero)]));
-  const citasPorDeal = new Map<string, { atendidas: string[]; vencida: boolean }>();
-  for (const cita of filasCitas) {
-    if (cita.dealId === null) continue;
-    const acumulado = citasPorDeal.get(cita.dealId) ?? { atendidas: [], vencida: false };
-    if (cita.atendida) acumulado.atendidas.push(diaDeCalendario(cita.dia));
-    else if (cita.fallida && new Date(cita.instante).getTime() <= ahora.getTime()) acumulado.vencida = true;
-    citasPorDeal.set(cita.dealId, acumulado);
-  }
-
-  const corteDias = programa?.corte ?? null;
   const enRango = (dia: string) => dia >= rango.desde && dia <= rango.hasta;
+  const incluidos = filasDeals.filter((deal) => {
+    const venta = diaDeVenta.get(deal.id);
+    const creado = diaDeCalendario(deal.creado);
+    return (venta !== undefined && enRango(venta)) || (venta === undefined && enRango(creado));
+  });
+  const vendidosEnPeriodo = new Set(incluidos.filter((deal) => diaDeVenta.has(deal.id)).map((deal) => deal.id));
+  const ubicaciones = await ubicacionesDeEscalera(db, {
+    programId, dealIds: incluidos.map((deal) => deal.id), vendidos: vendidosEnPeriodo,
+  }, ahora);
   const resultado: DealEnLaEscalera[] = [];
-  for (const deal of filasDeals) {
+  for (const deal of incluidos) {
     const venta = diaDeVenta.get(deal.id);
     const creado = diaDeCalendario(deal.creado);
     // Vendidos en el periodo (1 a 4) o creados en el periodo sin vender nunca (5 a 7).
     const vendidoEnElPeriodo = venta !== undefined && enRango(venta);
-    const sinVenderEnElPeriodo = venta === undefined && enRango(creado);
-    if (!vendidoEnElPeriodo && !sinVenderEnElPeriodo) continue;
-    const citas = citasPorDeal.get(deal.id);
-    const ubicacion = escalonDeDeal({
-      vendido: vendidoEnElPeriodo,
-      primerAbono: primerAbono.get(deal.id) ?? null,
-      citasAtendidas: citas?.atendidas ?? [],
-      citaVencidaSinAtender: citas?.vencida ?? false,
-    }, corteDias);
+    const ubicacion = ubicaciones.porDeal.get(deal.id)!;
     resultado.push({
       ...ubicacion,
       dealId: deal.id,
@@ -238,7 +267,7 @@ export async function cargarEscalera(
   }
   // Más antiguos primero, como toda lista.
   resultado.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.dealId.localeCompare(b.dealId));
-  return { corteDias, deals: resultado };
+  return { corteDias: ubicaciones.corteDias, deals: resultado };
 }
 
 /** Las dimensiones por las que se abre la escalera (lista blanca, contrato C-2). */

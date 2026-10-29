@@ -35,6 +35,8 @@ import { categoriaUtmSql, piezaDesconocidaSql } from "@/lib/atribucion/canal-sql
 import { cargarEscalera, ESCALONES_QUE_PAGARON, esEscalon, filtrarEscalera, type Escalon, type EnvioDeOrigen } from "@/lib/queries/escalera";
 import { categoriaDe } from "@/lib/queries/pauta-interina";
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { cargarRoasDePauta, filtrarEnviosDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
+import { fechaDeInstanteEnBogota } from "@/lib/format";
 
 export type Metrica =
   | "caja"
@@ -59,6 +61,7 @@ export type Metrica =
   | MetricaDeGrupo
   | MetricaDeEmbudo
   | MetricaDeEmbudoFormulario
+  | "pauta_meta"
   | "escalera";
 
 /**
@@ -67,7 +70,7 @@ export type Metrica =
  */
 export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
-type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | "escalera">;
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | "escalera" | "pauta_meta">;
 
 function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
   return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
@@ -112,6 +115,9 @@ export interface FiltrosDeMetrica {
   /** Solo la escalera: ventas de pago completo o parcial. Con los filtros de origen de arriba, reparte las ventas por canal y campaña. */
   pago?: "completo" | "parcial";
   calidad?: string;
+  nivel?: NivelPauta;
+  idMeta?: string;
+  paso?: PasoPauta;
 }
 
 export interface FilaDeMetrica {
@@ -170,6 +176,14 @@ export function proyectarParaTablero<T extends ListaDeMetrica>(lista: T, esAdmin
     filas: lista.filas.map(ocultar),
     grupos: lista.grupos.map(ocultar),
   } as T;
+}
+
+/** Pauta conserva nombre y etapa; el contexto comercial solo sale para quien ve el equipo. */
+export function proyectarParaPauta<T extends ListaDeMetrica>(lista: T, veEquipo: boolean): T {
+  if (veEquipo) return lista;
+  const ocultar = <F extends object>(fila: F) => ({ ...fila, closer: null, claveCloser: null,
+    dealId: null, monto: null, ultimaActividad: null });
+  return { ...lista, filas: lista.filas.map(ocultar), grupos: lista.grupos.map(ocultar) } as T;
 }
 
 /**
@@ -780,6 +794,7 @@ async function leerMetrica(
   pagina: number | null,
   db: Db,
 ): Promise<FilaDeMetrica[]> {
+  if (metrica === "pauta_meta") return leerMetricaDePauta(alcance, filtros, pagina, db);
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudoFormulario(metrica)) return leerMetricaNoAgendaron(alcance, filtros, pagina, db);
@@ -808,6 +823,36 @@ async function leerMetrica(
     .orderBy(asc(fuente.fecha), asc(fuente.id))
     .limit(TAMANO_PAGINA)
     .offset((pagina - 1) * TAMANO_PAGINA);
+}
+
+async function leerMetricaDePauta(
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  if (!filtros.nivel || !filtros.paso) return [];
+  const vista = await cargarRoasDePauta(db, alcance.programId, alcance.rango, filtros.hoy);
+  const envios = filtrarEnviosDePauta(vista.envios, filtros.nivel, filtros.idMeta);
+  const filas: FilaDeMetrica[] = [];
+  const base = (e: (typeof envios)[number], id: string, fecha: string, dealId: string | null, etapa: string | null): FilaDeMetrica => {
+    const antiguedad = Math.max(0, Math.round((Date.parse(`${filtros.hoy}T12:00:00-05:00`) - Date.parse(`${fecha}T12:00:00-05:00`)) / 86_400_000));
+    return { id, dealId, fecha, closer: null, claveCloser: "", etapa, antiguedad,
+      bucket: antiguedad <= 7 ? "0-7" : antiguedad <= 30 ? "8-30" : antiguedad <= 90 ? "31-90" : ">90",
+      moneda: null, monto: null, concepto: null, nota: null, cantidad: 1,
+      persona: { nombre: e.nombre, leadId: e.leadId }, ultimaActividad: null };
+  };
+  for (const e of envios) {
+    if (filtros.paso === "registro" && e.cuentaComoRegistro) filas.push(base(e, e.envioId, e.diaEnvio, e.dealId, e.etapa));
+    else if (filtros.paso === "venta" && e.venta) filas.push(base(e, e.venta.dealId, e.venta.dia, e.venta.dealId, e.venta.etapa));
+    else if (filtros.paso !== "venta") for (const c of e.citas) {
+      const cabe = filtros.paso === "agenda" || (filtros.paso === "show" && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(c.resultado))
+        || (filtros.paso === "no_show" && c.resultado === "no_show");
+      if (cabe) filas.push(base(e, c.id, fechaDeInstanteEnBogota(c.fecha), c.dealId, c.etapa));
+    }
+  }
+  filas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id));
+  return paginarOAgrupar(filas, pagina);
 }
 
 function subtotal(grupos: readonly Pick<FilaDeMetrica, "cantidad" | "moneda" | "monto">[]): SubtotalDeMetrica {

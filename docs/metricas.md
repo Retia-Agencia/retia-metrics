@@ -246,7 +246,7 @@ un escalón, y el escalón se calcula al leer, nunca se guarda.
 | Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 | 🟡 |
 | CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 | 🟡 |
 | Costo por venta (CAC) | gasto de Paid ÷ ventas de Paid | COP | no | 123 | 🟡 |
-| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan a la fecha de REGISTRO del envío que abrió el deal** (no a la de la venta) y el gasto es el del mismo periodo; por eso crece con los días y cada fila dice cuánto lleva madurando (350) | razón | no | 123, 350 | 🟡 |
+| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan a la fecha de REGISTRO del envío que abrió el deal** (no a la de la venta) y el gasto es el del mismo periodo; por eso crece con los días y cada fila dice cuánto lleva madurando (350) | razón | no | `lib/queries/roas-de-pauta.ts` · 123, 350 | 🟢 |
 | Nivel de la traza | el id más profundo del envío que resuelve en el árbol: anuncio (N3), conjunto o campaña (N2), solo área (N1), sin UTM (N0) | % | no | 247 | ✅ |
 
 ### 3.3 El costo por agenda, paso a paso

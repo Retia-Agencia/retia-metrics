@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
+import { esAdministrador, veEquipoComercial, veLeadsDePauta, veTableroDelPrograma } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
-import { METRICAS_FOTO_DE_HOY, proyectarParaTablero, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { METRICAS_FOTO_DE_HOY, proyectarParaPauta, proyectarParaTablero, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   METRICAS_DE_EMBUDO_SIN_PERIODO,
@@ -62,6 +62,7 @@ const esquema = z.object({
     "etapa_sin_dueno",
     "no_agendaron",
     "escalera",
+    "pauta_meta",
   ]),
   // Solo el embudo por etapas (ticket 188): el paso o la etapa, y el tramo de antigüedad.
   etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION])] as [string, ...string[]]).optional(),
@@ -83,6 +84,9 @@ const esquema = z.object({
   escalon: z.enum([...ESCALONES, "ventas", "despues"]).optional(),
   pago: z.enum(["completo", "parcial"]).optional(),
   calidad: z.string().max(100).optional(),
+  nivel: z.enum(["campana", "conjunto", "anuncio", "sin_anuncio", "total"]).optional(),
+  id: z.string().max(100).optional(),
+  paso: z.enum(["registro", "agenda", "show", "no_show", "venta"]).optional(),
 });
 
 const titulos = {
@@ -117,6 +121,7 @@ const titulos = {
   etapa_sin_dueno: "Abiertos sin dueño",
   no_agendaron: "No agendaron",
   escalera: "Ventas por escalón",
+  pauta_meta: "Pauta por anuncio",
 };
 
 /** Qué subconjunto exige cada métrica del embudo: sin él, la lista no existe. */
@@ -141,14 +146,17 @@ function tonoDeAntiguedad(bucket: string) {
 }
 
 export default async function ListaDeCifraPage({ params, searchParams }: Props) {
-  // Las listas comerciales siguen reservadas a quien administra. Las dos cifras de Origen
-  // abren con la capacidad del tablero para que Pauta las audite; abajo se proyectan fuera
-  // persona, closer y deal antes de renderizar. Por capacidad, nunca `rol === "..."`.
+  // Las listas comerciales siguen reservadas a quien administra. Las cifras de Pauta y Origen
+  // abren con la capacidad del tablero; su proyección conserva lead y etapa, pero no el contexto
+  // comercial para quien no ve el equipo. Por capacidad, nunca `rol === "..."`.
   const busqueda = await searchParams;
   const validado = esquema.safeParse(busqueda);
   if (!validado.success) notFound();
-  const esListaDeOrigen = validado.data.metrica === "registros" || validado.data.metrica === "agendas_creadas";
-  const capacidad = esListaDeOrigen
+  const tieneOrigen = validado.data.source !== undefined || validado.data.medium !== undefined || validado.data.campaign !== undefined || validado.data.categoria !== undefined;
+  const esListaDePauta = validado.data.metrica === "pauta_meta";
+  const esListaDeOrigen = validado.data.metrica === "registros" || validado.data.metrica === "agendas_creadas"
+    || (validado.data.metrica === "escalera" && tieneOrigen);
+  const capacidad = esListaDePauta || esListaDeOrigen
     ? veTableroDelPrograma
     : validado.data.metrica === "no_agendaron"
       ? veEquipoComercial
@@ -158,9 +166,10 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const rol = await rolDeVista(session);
   const esAdmin = esAdministrador(rol);
   const veEquipo = veEquipoComercial(rol);
+  const veLeads = veLeadsDePauta(rol);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago, nivel, id, paso } = validado.data;
   const sourceNormalizado = source === "__null__" ? null : source;
   const mediumNormalizado = medium === "__null__" ? null : medium;
   const canalNormalizado = canal === "__null__" ? null : canal;
@@ -171,7 +180,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (pago !== undefined && metrica !== "escalera") notFound();
   if (!esListaDeOrigen && metrica !== "escalera" && (source !== undefined || medium !== undefined || campaign !== undefined || categoria !== undefined || area !== undefined || canal !== undefined)) notFound();
   if (esListaDeOrigen && !esAdmin && closer !== undefined) notFound();
+  if (esListaDePauta && closer !== undefined) notFound();
   if (metrica !== "no_agendaron" && orden !== undefined) notFound();
+  if (metrica === "pauta_meta" ? (!nivel || !paso || ((nivel === "sin_anuncio" || nivel === "total") ? id !== undefined : id === undefined)) : (nivel !== undefined || id !== undefined || paso !== undefined)) notFound();
   // El escalon y la calidad son de la escalera: en otra lista no existen (nunca se ignoran en silencio).
   if (metrica !== "escalera" && (escalon !== undefined || calidad !== undefined)) notFound();
   if (moneda && metrica !== "caja") notFound();
@@ -200,11 +211,16 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     escalon,
     calidad,
     pago,
+    nivel,
+    idMeta: id,
+    paso,
     pagina,
   });
   if (!vista) notFound();
   const { periodo, claveCloser } = vista;
-  const lista = proyectarParaTablero(vista.lista, metrica === "no_agendaron" ? veEquipo : esAdmin);
+  const lista = esListaDePauta || esListaDeOrigen
+    ? proyectarParaPauta(vista.lista, veEquipo)
+    : proyectarParaTablero(vista.lista, metrica === "no_agendaron" ? veEquipo : esAdmin);
   const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
   const enlace = urlDeLista({
     slug,
@@ -217,6 +233,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     subconjunto: { etapa, antiguedad },
     filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, area, canal: canalNormalizado },
     escalera: { escalon, calidad, pago },
+    pauta: nivel && paso ? { nivel, id, paso } : undefined,
   });
   // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
   // el periodo no los acota.
@@ -278,11 +295,11 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <CardContent className="overflow-x-auto pt-4">
             {lista.filas.length === 0 ? <p>No hay filas en esta página para los filtros elegidos.</p> : (
               <table className="w-full text-sm">
-                <thead><tr className="text-left">{veEquipo ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : <th>Monto</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
+                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : <th>Monto</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
                 <tbody className="divide-y">
                   {lista.filas.map((fila) => (
                     <tr key={fila.id}>
-                      {veEquipo ? <td className="py-3">{fila.persona ? <Link className="underline underline-offset-2" href={enlaceConVuelta(fila.dealId ? `/p/${encodeURIComponent(slug)}/deals/${fila.dealId}` : `/p/${encodeURIComponent(slug)}/leads/${fila.persona.leadId}`, origen)}>{fila.persona.nombre ?? "Sin nombre"}</Link> : "Sin nombre"}</td> : null}
+                      {(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <td className="py-3">{fila.persona ? (veEquipo ? <Link className="underline underline-offset-2" href={enlaceConVuelta(fila.dealId ? `/p/${encodeURIComponent(slug)}/deals/${fila.dealId}` : `/p/${encodeURIComponent(slug)}/leads/${fila.persona.leadId}`, origen)}>{fila.persona.nombre ?? "Sin nombre"}</Link> : fila.persona.nombre ?? "Sin nombre") : "Sin nombre"}</td> : null}
                       {/* Sin acceso al equipo (`registros` para Pauta), closer y deal llegan proyectados a nulo: no se pintan. */}
                       {veEquipo ? <td>{fila.closer || "Sin closer"}</td> : null}
                       <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>

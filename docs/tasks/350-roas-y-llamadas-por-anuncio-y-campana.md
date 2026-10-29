@@ -3,7 +3,7 @@ id: 350
 etapa: pauta
 serves: "Paid Ads Trafficker (29-oct): ROAS atribuido a su origen y el registro de llamadas por anuncio y campaña · 123, 125, 288"
 depends: [123, 247, 349]
-status: todo
+status: done
 ---
 
 # 350 — ROAS por anuncio y campaña, y el registro de llamadas exportable

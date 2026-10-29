@@ -37,6 +37,8 @@ import { Escalera } from "@/components/dashboard/escalera";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina, type EnlaceDeLista } from "@/components/pauta-interina";
+import { PautaRoas } from "@/components/pauta-roas";
+import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
 import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
@@ -260,12 +262,14 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
           ) : seccion === "pauta" ? (
             <SeccionPauta
               programId={programa.id}
+              slug={programa.slug}
               rango={vista.seleccion.rango}
+              periodo={vista.periodo}
+              origen={origen}
               hoy={hoy}
               busqueda={busqueda}
-              enlaceLista={veEquipo ? (metrica, { escalon, pago, ...filtrosDeOrigen }) => metrica === "escalera"
-                // La lista de ventas es de quien administra (Gerencia y developer): al closer no se le ofrece un enlace que da 404.
-                ? (esAdministrador(rol) ? urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen, escalera: { escalon, pago } }) : null)
+              enlaceLista={veTableroDelPrograma(rol) ? (metrica, { escalon, pago, ...filtrosDeOrigen }) => metrica === "escalera"
+                ? urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen, escalera: { escalon, pago } })
                 : urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen }) : undefined}
             />
           ) : seccion === "comercial" ? (
@@ -369,13 +373,19 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
  */
 async function SeccionPauta({
   programId,
+  slug,
   rango,
+  periodo,
+  origen,
   hoy,
   busqueda,
   enlaceLista,
 }: {
   programId: string;
+  slug: string;
   rango: { desde: string; hasta: string };
+  periodo: PeriodoResuelto;
+  origen: string;
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
   enlaceLista?: EnlaceDeLista;
@@ -407,7 +417,10 @@ async function SeccionPauta({
     medium: texto(busqueda.medium),
     campaign: texto(busqueda.campaign),
   });
-  const pauta = await pautaInterina(db, programId, rango, filtrosPauta, hoy);
+  const [pauta, roas] = await Promise.all([
+    pautaInterina(db, programId, rango, filtrosPauta, hoy),
+    cargarRoasDePauta(db, programId, rango, hoy),
+  ]);
   const area = esquemaFiltroArea.parse(texto(busqueda.area));
   const hechos = await hechosDelEmbudo(db, { programId, rango });
   const hechosFiltrados = area === undefined ? hechos : hechos.filter((fila) => fila.area === area);
@@ -430,11 +443,27 @@ async function SeccionPauta({
     const query = q.toString();
     return query ? `?${query}` : "?";
   };
+  const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
+    slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
+  });
+  const campanaRoas = texto(busqueda.roas_campana);
+  const hrefCampanaRoas = (id: string) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(busqueda)) {
+      if (typeof v === "string" && k !== "roas_campana") q.set(k, v);
+    }
+    if (campanaRoas !== id) q.set("roas_campana", id);
+    const query = q.toString();
+    return query ? `?${query}` : "?";
+  };
+  const csv = new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" });
 
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
       <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} enlaceLista={enlaceLista} />
+      <PautaRoas vista={roas} enlace={enlaceRoas} hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`}
+        campanaAbierta={campanaRoas} hrefCampana={hrefCampanaRoas} />
       <Card aria-labelledby="resumen-serie">
         <CardHeader>
           <div className="flex items-center gap-2">

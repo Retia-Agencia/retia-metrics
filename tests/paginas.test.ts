@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderToStaticMarkup } from "react-dom/server";
 import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
+import { COLUMNAS_CSV_CITAS_PAUTA } from "@/lib/pauta/csv-citas";
 
 function textoDelArbol(nodo: unknown): string {
   if (typeof nodo === "string" || typeof nodo === "number") return String(nodo);
@@ -38,6 +40,7 @@ function ponerVista(v: string | undefined) {
   cookieDeVista = v;
 }
 vi.mock("next/headers", () => ({
+  headers: async () => ({ get: () => null }),
   cookies: async () => ({
     get: (nombre: string) =>
       nombre === "vista" && cookieDeVista !== undefined
@@ -133,6 +136,23 @@ const pautaInterina = vi.fn(async () => ({
   sinUtmHoy: [],
 }));
 vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
+const VISTA_ROAS_VACIA = {
+  envios: [],
+  total: { nivel: "total", id: null, nombre: "Total Paid", padreId: null, registros: 0, agendas: 0, shows: 0,
+    noShows: 0, ventas: 0, ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0, ventasDespues: 0,
+    ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0, desdeDias: null, hastaDias: null, madurando: false },
+  campanas: [], conjuntos: [], anuncios: [],
+  sinAnuncio: { nivel: "sin_anuncio", id: null, nombre: "Sin anuncio", padreId: null, registros: 0, agendas: 0,
+    shows: 0, noShows: 0, ventas: 0, ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0,
+    ventasDespues: 0, ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0,
+    desdeDias: null, hastaDias: null, madurando: false },
+  ventanaCierreDias: null, sinHistorial: true, trmEtiqueta: null, diasSinTrm: [],
+};
+const cargarRoasDePauta = vi.fn(async () => VISTA_ROAS_VACIA);
+vi.mock("@/lib/queries/roas-de-pauta", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/roas-de-pauta")>(),
+  cargarRoasDePauta,
+}));
 // La tarjeta de la escalera (320) también lee la base: aquí solo importa con qué acceso se arma.
 const vistaDeEscalera = vi.fn(async () => ({
   corteDias: null, sinCorte: true, hayComparacion: false, porCloser: [], porCalidad: [],
@@ -320,6 +340,8 @@ beforeEach(() => {
   historialesDeRecursos.mockResolvedValue(new Map());
   armarVistaDelDashboard.mockReset();
   armarVistaDelDashboard.mockResolvedValue(VISTA_VACIA);
+  cargarRoasDePauta.mockClear();
+  cargarRoasDePauta.mockResolvedValue(VISTA_ROAS_VACIA);
   armarVistaDeHoy.mockClear();
   detalleDeCifra.mockClear();
   armarVistaDeTodos.mockReset();
@@ -836,11 +858,11 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     expect(await probar(sesionPaidTrafficker)).not.toBe("paso-la-guarda");
   });
 
-  it("el paid trafficker ve el Hub y la ficha del Programa, pero NO la lista", async () => {
+  it("el paid trafficker ve el Hub y la ficha del Programa, pero no una lista comercial genérica", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     // Hub: ve el tablero (`veTableroDelPrograma`).
     expect(await correr("@/app/(app)/p/[programa]/hub/page")).toBe("paso-la-guarda");
-    // Lista: nunca fue suya (ticket 102); la guarda es `esAdministrador`.
+    // Una lista comercial sin origen sigue siendo de quien administra.
     expect(await correr("@/app/(app)/p/[programa]/hub/lista/page")).toBe("notFound");
     // Ficha del Programa: General y Ventas son de lectura, salvo los objetivos de pauta.
     expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("paso-la-guarda");
@@ -1509,10 +1531,39 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
     expect(vistaDeLista).not.toHaveBeenCalled();
   });
 
-  it("CIERRA la lista con 404 a un paid trafficker (nunca fue suya, ticket 102)", async () => {
+  it("CIERRA una lista comercial genérica con 404 a un paid trafficker", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
     await expect(abrir()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(vistaDeLista).not.toHaveBeenCalled();
+  });
+
+  it("Pauta ve el nombre y etapa en pauta_meta como texto plano, sin Closer ni Deal", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    vistaDeLista.mockResolvedValue({
+      lista: {
+        filas: [{ id: "envio-1", dealId: "deal-1", fecha: "2026-10-01", closer: "Andrea", claveCloser: "u-2",
+          etapa: "agendado", antiguedad: 1, bucket: "0-7", moneda: "USD", monto: 500, concepto: null, nota: null,
+          cantidad: 1, persona: { nombre: "Lead de Pauta", leadId: "lead-1" }, ultimaActividad: "2026-10-02" }],
+        grupos: [], disponible: true, subtotal: { cantidad: 1, caja: [] }, pagina: 1, programId: "p-1",
+      },
+      periodo: VISTA_VACIA.periodo,
+      claveCloser: null,
+    });
+    const html = renderToStaticMarkup(await abrir({ metrica: "pauta_meta", nivel: "total", paso: "registro" }));
+    expect(html).toContain("Lead de Pauta");
+    expect(html).not.toMatch(/<a[^>]*>Lead de Pauta<\/a>/);
+    expect(html).not.toContain(">Closer<");
+    expect(html).not.toContain(">Deal<");
+    expect(html).not.toContain("Andrea");
+    expect(html).not.toContain("USD 500");
+  });
+
+  it("Pauta no abre la escalera sin filtros de origen", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    await expect(abrir({ metrica: "escalera" })).rejects.toBeInstanceOf(NoEncontrado);
     expect(vistaDeLista).not.toHaveBeenCalled();
   });
 
@@ -1579,6 +1630,31 @@ describe("la lista de una cifra respeta la frontera del dashboard (137)", () => 
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", nombre: "Programa A" });
     vistaDeLista.mockResolvedValue(null);
     await expect(abrir({ metrica: "caja", closer: "a".repeat(64) })).rejects.toBeInstanceOf(NoEncontrado);
+  });
+});
+
+describe("CSV anonimizado de citas de Pauta (350)", () => {
+  async function pedir(sesion: typeof sesionGerente | typeof sesionPaidTrafficker | typeof sesionCloser) {
+    auth.mockResolvedValue(sesion);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    const { GET } = await import("@/app/(app)/p/[programa]/hub/pauta-citas.csv/route");
+    return GET(new Request("https://crm.test/p/programa-a/hub/pauta-citas.csv?a_desde=2026-10-01&a_hasta=2026-10-31"), {
+      params: Promise.resolve({ programa: "programa-a" }),
+    });
+  }
+
+  it.each([
+    ["paid trafficker", sesionPaidTrafficker],
+    ["gerente", sesionGerente],
+  ])("responde 200 a %s con la cabecera anónima", async (_nombre, sesion) => {
+    const respuesta = await pedir(sesion);
+    expect(respuesta.status).toBe(200);
+    const cabecera = (await respuesta.text()).replace(/^\uFEFF/, "").split("\r\n")[0];
+    expect(cabecera).toBe(COLUMNAS_CSV_CITAS_PAUTA.join(","));
+  });
+
+  it("responde 403 a un closer", async () => {
+    expect((await pedir(sesionCloser)).status).toBe(403);
   });
 });
 

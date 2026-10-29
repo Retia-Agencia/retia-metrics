@@ -206,6 +206,11 @@ export function veTableroDelPrograma(rol: Rol | undefined | null): boolean {
   return esAdministrador(rol) || manejaPauta(rol);
 }
 
+/** Quien puede identificar el lead detrás de una cifra de Pauta (ticket 350). */
+export function veLeadsDePauta(rol: Rol | undefined | null): boolean {
+  return veTableroDelPrograma(rol);
+}
+
 /**
  * Quien CONFIGURA un programa: la ficha del programa (`/p/<programa>/programa`), con cohortes,
  * destinos, Calendly, fuentes, comision y equipo (ticket 224, ADR 0082). Es exactamente quien

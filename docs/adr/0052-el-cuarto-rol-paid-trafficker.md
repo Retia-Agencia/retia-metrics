@@ -62,3 +62,10 @@ programas (gasto, registros, agendas, CPL, costo por agenda), sin caja ni compar
   el servidor: el desglose por closer no viaja al navegador). La lista de una cifra, "todos los programas", Metas y las
   tabs de deals, leads y llamadas lo redirigen por su guarda. Sigue viendo contratado, caja, metas y la pestaña Pauta.
 
+## Enmienda 2026-10-29 (ticket 350; Mani)
+
+Detrás de cada cifra de Pauta, el paid trafficker puede ver el **lead: nombre y etapa**. La capacidad vive en
+`veLeadsDePauta` y coincide con `veTableroDelPrograma`. La proyección anula closer, clave de closer, deal, monto y
+última actividad salvo para quien también cumple `veEquipoComercial`; en ese caso conserva la vista comercial y sus
+enlaces. Deals, llamadas y abonos sueltos siguen fuera de su alcance, y una escalera sin filtro de origen continúa
+reservada a quien administra.
