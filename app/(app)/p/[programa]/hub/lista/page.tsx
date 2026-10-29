@@ -256,7 +256,10 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
                       <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>
                       <td className="py-3">{fecha(fila.fecha)}</td>
                       <td><Badge variant={tonoDeAntiguedad(fila.bucket)} className="cifra">{num(fila.antiguedad)}</Badge></td>
-                      <td className="cifra">{metrica === "no_agendaron" ? (fila.ultimaActividad ? fecha(fila.ultimaActividad) : "—") : fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</td>
+                      <td>
+                        <span className="cifra">{metrica === "no_agendaron" ? (fila.ultimaActividad ? fecha(fila.ultimaActividad) : "—") : fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</span>
+                        {fila.concepto === "adicional" ? <span className="block text-xs">Adicional{fila.nota ? `: ${fila.nota}` : ""}</span> : null}
+                      </td>
                       {veEquipo ? <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td> : null}
                     </tr>
                   ))}

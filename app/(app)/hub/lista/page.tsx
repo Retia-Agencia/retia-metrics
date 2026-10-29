@@ -88,7 +88,10 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
                           <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>
                           <td>{fecha(fila.fecha)}</td>
                           <td className="cifra">{num(fila.antiguedad)}</td>
-                          <td className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</td>
+                          <td>
+                            <span className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</span>
+                            {fila.concepto === "adicional" ? <span className="block text-xs">Adicional{fila.nota ? `: ${fila.nota}` : ""}</span> : null}
+                          </td>
                           <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
                         </tr>
                       ))}

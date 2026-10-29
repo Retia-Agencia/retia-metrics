@@ -395,7 +395,7 @@ export type EntradaAbono = z.input<typeof esquemaAbonoAccion>;
 
 export async function registrarAbonoAccion(
   entrada: EntradaAbono,
-): Promise<ResultadoFicha<{ etapa: EtapaDeal; movioElDeal: boolean; saldo: number; cohorteAsignada: string | null }>> {
+): Promise<ResultadoFicha<{ etapa: EtapaDeal; movioElDeal: boolean; saldo: number | null; cohorteAsignada: string | null }>> {
   return correr(async (ctx) => {
     const { actor } = ctx;
     const datos = esquemaAbonoAccion.parse(entrada);
@@ -405,6 +405,23 @@ export async function registrarAbonoAccion(
       : undefined;
     const r = await registrarAbono(db, actor, { ...datos, archivo });
     return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo, cohorteAsignada: r.cohorteAsignada };
+  });
+}
+
+const esquemaAbonoAdicionalAccion = esquemaAbonoAccion
+  .pick({ dealId: true, fecha: true, monto: true, plataformaId: true })
+  .extend({ nota: z.string().max(500, "La nota puede tener máximo 500 caracteres.").optional() });
+export type EntradaAbonoAdicional = z.input<typeof esquemaAbonoAdicionalAccion>;
+
+export async function registrarAbonoAdicionalAccion(
+  entrada: EntradaAbonoAdicional,
+): Promise<ResultadoFicha<{ etapa: EtapaDeal; movioElDeal: boolean; saldo: number | null }>> {
+  return correr(async (ctx) => {
+    const { actor } = ctx;
+    const datos = esquemaAbonoAdicionalAccion.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    const r = await registrarAbono(db, actor, { ...datos, concepto: "adicional" });
+    return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo };
   });
 }
 

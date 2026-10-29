@@ -1,4 +1,4 @@
-import { and, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { abonos, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -13,7 +13,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
  * deal: hoy lo lee el motor de etapas (ticket 045); el 060 le suma la reja del abono.
  *
  * - **Precio:** el valor vendido del deal, escrito por el closer.
- * - **Abonado:** la suma de sus abonos VIGENTES (ADR 0026).
+ * - **Abonado:** la suma de sus abonos de ticket VIGENTES (ADR 0026).
  * - **Saldo:** precio menos abonado. Negativo es un sobrepago, no una deuda
  *   (`saldoLegible` en `lib/format.ts` decide como se escribe).
  *
@@ -96,7 +96,7 @@ export async function saldosDeDeals(db: Db, dealIds: readonly string[]): Promise
       cuantos: sql<number>`count(*)::int`,
     })
     .from(abonos)
-    .where(and(inArray(abonos.dealId, [...dealIds]), vigente(abonos)))
+    .where(and(inArray(abonos.dealId, [...dealIds]), eq(abonos.concepto, "ticket"), vigente(abonos)))
     .groupBy(abonos.dealId, abonos.moneda);
 
   for (const p of precios) {

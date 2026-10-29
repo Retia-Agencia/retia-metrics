@@ -66,10 +66,10 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 ### 1.5 Abono (caja recaudada)
 
 - **Tabla:** `abonos`.
-- **Cuenta:** abonos vigentes del programa.
+- **Cuenta:** abonos vigentes del programa, tanto del ticket como adicionales vendidos aparte.
 - **Fecha:** `abonos.fecha` (la fecha del pago, no la del registro).
 - **Moneda:** USD.
-- **Función:** `lib/queries/hechos/abono.ts`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`.
+- **Función:** `lib/queries/hechos/abono.ts`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`, cuentan solo abonos de ticket.
 - **Ojo:** caja y ventas son métricas separadas: un abono no es una venta ni al revés (ADR 0013).
 
 ### 1.6 Gasto de pauta (días cerrados)

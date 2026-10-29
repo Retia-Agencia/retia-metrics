@@ -129,6 +129,22 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
     expect(caja).toEqual([{ moneda: "USD", total: 750 }]);
   });
 
+  it("un abono adicional cuenta en caja", async () => {
+    const dealId = await sembrarDeal(programaA);
+    await db.insert(abonos).values({
+      dealId,
+      programId: programaA,
+      fecha: "2026-09-15",
+      monto: "250.00",
+      moneda: "USD",
+      concepto: "adicional",
+      nota: "Mentoría 1:1",
+    });
+
+    expect(await cajaRecaudada({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db))
+      .toEqual([{ moneda: "USD", total: 250 }]);
+  });
+
   it("la caja se agrupa por moneda y nunca mezcla dos monedas en un solo numero", async () => {
     const ventaUsd = { id: await sembrarDeal(programaA) };
     const ventaCop = { id: await sembrarDeal(programaA) };

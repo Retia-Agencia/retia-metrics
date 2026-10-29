@@ -18,6 +18,7 @@ import {
   editarAcuerdoAccion,
   marcarOnboardedAccion,
   pegarComprobanteAccion,
+  registrarAbonoAdicionalAccion,
   pedirSubidaComprobanteAccion,
   confirmarComprobanteAccion,
   editarDealAccion,
@@ -40,6 +41,7 @@ import { SubirArchivo } from "@/components/archivos/subir-archivo";
  */
 
 type Dialogo =
+  | { tipo: "adicional" }
   | { tipo: "anular"; abono: FichaDeAbono }
   | { tipo: "plataforma"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
@@ -51,6 +53,7 @@ export function FichaPago({
   opciones,
   puedeTrabajar,
   puedeRegistrar,
+  hoy,
   nombreDeEtapa,
 }: {
   ficha: FichaDeDeal;
@@ -61,6 +64,8 @@ export function FichaPago({
   puedeTrabajar: boolean;
   /** Ademas trabaja leads (un gerente administra pero no registra plata, ADR 0003). */
   puedeRegistrar: boolean;
+  /** Día de negocio calculado por el servidor en Bogotá. */
+  hoy: string;
   /** Calculado en el servidor: esta etapa admite una flecha de pago. */
   aceptaAbono: boolean;
 }) {
@@ -119,6 +124,11 @@ export function FichaPago({
         </dl>
         {s.sinSaldoPorque === "moneda_distinta" ? (
           <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el valor vendido: el saldo no se calcula ni se convierte.</p>
+        ) : null}
+        {puedeRegistrar && !anulado ? (
+          <Button variant="secondary" onClick={() => setDialogo({ tipo: "adicional" })}>
+            Registrar abono adicional
+          </Button>
         ) : null}
 
         <section className="space-y-2">
@@ -220,6 +230,7 @@ export function FichaPago({
               <li key={a.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={anulada ? "cifra line-through" : "cifra font-medium"}>{monto(Number(a.monto), a.moneda)}</span>
+                  {a.concepto === "adicional" ? <Badge variant="info">Adicional</Badge> : null}
                   <span className="text-xs text-muted-foreground">{fecha(a.fecha)}</span>
                   {a.plataformaNombre ? <span className="text-xs text-muted-foreground">· {a.plataformaNombre}</span> : null}
                   {a.comprobanteUrl ? (
@@ -258,6 +269,7 @@ export function FichaPago({
                     <Badge variant="neutro">Anulado</Badge> {a.anuladoPorNombre ?? ""} · {a.motivoAnulacion}
                   </p>
                 ) : null}
+                {a.concepto === "adicional" && a.nota ? <p className="whitespace-pre-wrap text-xs text-muted-foreground">{a.nota}</p> : null}
               </li>
             );
           })}
@@ -265,11 +277,71 @@ export function FichaPago({
       )}
 
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "adicional" ? <DialogoAbonoAdicional ficha={ficha} opciones={opciones} hoy={hoy} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "descuento" ? <DialogoDescuento ficha={ficha} onCerrar={cerrar} /> : null}
     </Card>
+  );
+}
+
+function DialogoAbonoAdicional({
+  ficha,
+  opciones,
+  hoy,
+  onCerrar,
+}: {
+  ficha: FichaDeDeal;
+  opciones: OpcionesDeFicha;
+  hoy: string;
+  onCerrar: () => void;
+}) {
+  const { pendiente, correr } = useAccion();
+  const [dia, setDia] = useState(hoy);
+  const [valor, setValor] = useState("");
+  const [plataformaId, setPlataformaId] = useState<string | null>(null);
+  const [nota, setNota] = useState("");
+  return (
+    <DialogoForm
+      titulo="Registrar abono adicional"
+      descripcion="Registra dinero vendido aparte del programa. Cuenta en caja y no cambia el ticket, el saldo ni la etapa."
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      deshabilitarConfirmar={dia === "" || valor === ""}
+      confirmar={{
+        texto: "Registrar abono adicional",
+        enCurso: "Registrando…",
+        onClick: () => correr(
+          () => registrarAbonoAdicionalAccion({
+            dealId: ficha.dealId,
+            fecha: dia,
+            monto: valor,
+            plataformaId: plataformaId ?? undefined,
+            nota,
+          }),
+          { exito: "Abono adicional registrado.", alExito: onCerrar },
+        ),
+      }}
+    >
+      <Campo etiqueta="Fecha">
+        <Input type="date" value={dia} onChange={(e) => setDia(e.currentTarget.value)} />
+      </Campo>
+      <Campo etiqueta="Monto (USD)">
+        <Input type="number" min="0.01" max="99999999.99" step="0.01" value={valor} onChange={(e) => setValor(e.currentTarget.value)} />
+      </Campo>
+      <Campo etiqueta="Plataforma de pago (opcional)">
+        <ControlPlataforma
+          dealId={ficha.dealId}
+          plataformasIniciales={opciones.plataformas}
+          value={plataformaId}
+          onValueChange={setPlataformaId}
+        />
+      </Campo>
+      <Campo etiqueta="Nota (opcional)" ayuda="Qué se vendió, por ejemplo: mentoría 1:1">
+        <textarea className={claseTextarea} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={500} />
+      </Campo>
+    </DialogoForm>
   );
 }
 

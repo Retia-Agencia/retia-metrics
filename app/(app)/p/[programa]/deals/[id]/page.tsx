@@ -27,6 +27,7 @@ import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
 import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { marcarDealVisto } from "@/lib/deals/cambiar-dueno";
+import { hoyEnBogota } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -164,6 +165,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
               puedeTrabajar={puedeTrabajar}
               puedeRegistrar={puedeRegistrar}
               aceptaAbono={aceptaAbono(ficha.etapa)}
+              hoy={hoyEnBogota()}
               nombreDeEtapa={NOMBRE_DE_ETAPA}
             />
           </div>

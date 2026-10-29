@@ -34,7 +34,7 @@ export async function marcarCortesia(
       const [pagos] = await tx
         .select({ n: sql<number>`count(*)::int` })
         .from(abonos)
-        .where(and(eq(abonos.dealId, deal.id), vigente(abonos)));
+        .where(and(eq(abonos.dealId, deal.id), eq(abonos.concepto, "ticket"), vigente(abonos)));
       if ((pagos?.n ?? 0) > 0) {
         throw new ErrorDeApp("El deal ya tiene abonos: una cortesía no lleva pagos.", 409);
       }

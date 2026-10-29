@@ -64,8 +64,8 @@ export interface AbonoRegistrado {
   etapa: EtapaDeal;
   /** `true` si el abono movio el deal a una etapa ganada. */
   movioElDeal: boolean;
-  /** Lo que queda por pagar; nunca `null` aqui porque se rechaza antes un deal sin precio. */
-  saldo: number;
+  /** Lo que queda por pagar; puede ser `null` en un adicional sobre un deal sin precio. */
+  saldo: number | null;
   /**
    * La cohorte que quedo asignada al deal en ESTE abono (la activa del programa, spec §4), o
    * `null` si no se asignó nada porque ya tenía una.
@@ -155,7 +155,7 @@ export async function registrarAbono(
       if (deal.anuladoEn) {
         throw new ErrorDeApp("El deal está anulado: no cuenta en ninguna métrica y no recibe abonos.", 409);
       }
-      if (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido") {
+      if (entrada.concepto === "ticket" && (deal.etapa === "ganado_completo" || deal.etapa === "cierre_perdido")) {
         throw new ErrorDeApp("El deal está cerrado: no recibe abonos nuevos.", 409);
       }
       if (!puedeTrabajarDeal(actor, deal)) {
@@ -167,7 +167,7 @@ export async function registrarAbono(
       let cohorteAsignada: string | null = null;
       // El primer abono congela el ticket completo. El helper también asigna la cohorte
       // activa si falta; sin cohorte no se puede aceptar dinero contra un total inventado.
-      if (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0) {
+      if (entrada.concepto === "ticket" && (deal.valorVendidoUsd == null || Number(deal.valorVendidoUsd) === 0)) {
         const congelado = await congelarValorVendido(tx, {
           deal,
           descuentoUsd: 0,
@@ -182,13 +182,13 @@ export async function registrarAbono(
       // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
       // cambie entre esta lectura y la escritura.
       const antes = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
-      if (antes?.moneda != null && antes.moneda !== entrada.moneda) {
+      if (entrada.concepto === "ticket" && antes?.moneda != null && antes.moneda !== entrada.moneda) {
         throw new ErrorDeApp(
           `El valor vendido del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
           422,
         );
       }
-      if (!antes || antes.saldo === null) {
+      if (entrada.concepto === "ticket" && (!antes || antes.saldo === null)) {
         throw new ErrorDeApp(
           antes?.sinSaldoPorque === "moneda_distinta"
             ? "El deal tiene abonos en otra moneda: no se puede calcular el saldo."
@@ -197,9 +197,9 @@ export async function registrarAbono(
         );
       }
       const monto = Number(entrada.monto);
-      if (monto > antes.saldo) {
+      if (entrada.concepto === "ticket" && monto > antes!.saldo!) {
         throw new ErrorDeApp(
-          `El abono (${usd(monto)}) supera el saldo del deal (${usd(antes.saldo)}). Un sobrepago no se registra.`,
+          `El abono (${usd(monto)}) supera el saldo del deal (${usd(antes!.saldo!)}). Un sobrepago no se registra.`,
           422,
         );
       }
@@ -218,6 +218,8 @@ export async function registrarAbono(
           fecha: entrada.fecha,
           monto: entrada.monto,
           moneda: entrada.moneda,
+          concepto: entrada.concepto,
+          nota: entrada.nota ?? null,
           plataformaId: entrada.plataformaId ?? null,
           comprobanteUrl: entrada.comprobanteUrl ?? null,
           comprobanteArchivoId: archivo?.archivoId ?? null,
@@ -230,6 +232,15 @@ export async function registrarAbono(
 
       // El movimiento lo decide el saldo que dejo el abono, leido de nuevo del modulo.
       const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
+      if (entrada.concepto === "adicional") {
+        return {
+          abonoId,
+          etapa: deal.etapa,
+          movioElDeal: false,
+          saldo: despues?.saldo ?? null,
+          cohorteAsignada: null,
+        };
+      }
       if (!despues || despues.saldo === null) {
         throw new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409);
       }
@@ -444,7 +455,7 @@ export async function anularAbono(
       // ya abrió OTRO deal, anular este abono lo devolvería a Ganado Pago Parcial (A2) y los
       // dos quedarian abiertos: la base lo rechaza con un error crudo. Se ataja antes, con el
       // mensaje que dice que hacer, y no se escribe nada (`deals_uno_abierto_por_lead_y_programa_idx`).
-      if (deal.etapa === "ganado_completo" && !deal.anuladoEn) {
+      if (abono.concepto === "ticket" && deal.etapa === "ganado_completo" && !deal.anuladoEn) {
         const [otroAbierto] = await tx
           .select({ id: deals.id })
           .from(deals)
@@ -473,7 +484,9 @@ export async function anularAbono(
       );
 
       // Un deal anulado o perdido no se mueve por dinero: la anulacion queda escrita y ya.
-      if (deal.anuladoEn || deal.etapa === "cierre_perdido") return { etapa: deal.etapa, movioElDeal: false };
+      if (abono.concepto === "adicional" || deal.anuladoEn || deal.etapa === "cierre_perdido") {
+        return { etapa: deal.etapa, movioElDeal: false };
+      }
       let etapa: EtapaDeal = deal.etapa;
       const saldo = (await saldosDeDeals(tx, [deal.id])).get(deal.id)!;
       const sistema = { tipo: "sistema" } as const;

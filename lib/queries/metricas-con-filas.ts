@@ -112,6 +112,8 @@ export interface FilaDeMetrica {
   bucket: string;
   moneda: string | null;
   monto: number | null;
+  concepto: string | null;
+  nota: string | null;
   cantidad: number;
   persona: { nombre: string | null; leadId: string } | null;
   ultimaActividad?: string | null;
@@ -295,6 +297,8 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
         ? resumen ? sql<string>`min('USD'::text)` : sql<string>`'USD'::text`
         : nulo,
     monto: montoDeLaFila,
+    concepto: esCaja && !resumen ? sql<string>`${abonos.concepto}::text` : nulo,
+    nota: esCaja && !resumen ? sql<string | null>`${abonos.nota}` : nulo,
     cantidad: resumen ? sql<number>`count(*)::int` : sql<number>`1::int`,
     persona,
   };
@@ -608,6 +612,8 @@ function filaDeDeal(
     ...edadYBucket(m.fecha, hoy),
     moneda: null,
     monto: null,
+    concepto: null,
+    nota: null,
     cantidad: 1,
     persona: personas.get(m.dealId) ?? null,
     ultimaActividad: null,
@@ -631,6 +637,8 @@ async function leerMetricaNoAgendaron(
     ...edadYBucket(miembro.fecha, filtros.hoy),
     moneda: null,
     monto: null,
+    concepto: null,
+    nota: null,
     cantidad: 1,
     persona: { nombre: miembro.nombre, leadId: miembro.leadId },
     ultimaActividad: miembro.ultimaActividad,

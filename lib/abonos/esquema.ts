@@ -27,6 +27,13 @@ export const esquemaAbono = z.object({
     .regex(/^\d+(\.\d{1,2})?$/, "El monto debe ser un número (por ejemplo 750 o 750.00).")
     .refine((v) => Number(v) > 0, "El monto debe ser mayor que cero."),
   moneda: z.literal("USD").default("USD"),
+  concepto: z.enum(["ticket", "adicional"]).default("ticket"),
+  nota: z
+    .string()
+    .trim()
+    .max(500, "La nota puede tener máximo 500 caracteres.")
+    .transform((v) => v || null)
+    .optional(),
   plataformaId: z.string().uuid("Plataforma inválida.").optional(),
   comprobanteUrl: z.string().url("El comprobante debe ser una URL válida.").optional(),
 });
