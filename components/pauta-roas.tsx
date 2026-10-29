@@ -22,10 +22,10 @@ function CeldaVentas({ fila, enlace }: { fila: RenglonRoas; enlace: Enlace }) {
     <Link href={enlace(fila.nivel, fila.id ?? undefined, "venta")} className={claseEnlace}>
       {num(fila.ventas)} {fila.ventas === 1 ? "venta" : "ventas"}
     </Link></span>
-    <span className="block whitespace-nowrap text-xs text-muted-foreground">Cuándo: {partes([
+    <span className="block text-xs text-muted-foreground">Cuándo: {partes([
       [fila.ventasEnLlamada, "en llamada"], [fila.ventasDespues, "después"], [fila.ventasSinLlamada, "sin llamada"],
     ])}</span>
-    <span className="block whitespace-nowrap text-xs text-muted-foreground">Pago: {partes([
+    <span className="block text-xs text-muted-foreground">Pago: {partes([
       [fila.ventasCompletas, fila.ventasCompletas === 1 ? "completa" : "completas"],
       [fila.ventasParciales, fila.ventasParciales === 1 ? "parcial" : "parciales"],
     ])}</span></span>;
@@ -42,7 +42,7 @@ function Fila({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.shows} href={enlace(fila.nivel, fila.id ?? undefined, "show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.noShows} href={enlace(fila.nivel, fila.id ?? undefined, "no_show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top">{resueltas === 0 ? "—" : pct(fila.noShows / resueltas)}</td>
-    <td className="cifra min-w-44 py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
+    <td className="cifra py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === 0 ? "sin pauta" : num(fila.contratadoUsd / fila.gastoUsd, 2)}</td>
@@ -99,7 +99,7 @@ export function PautaRoas({ vista, enlace, hrefCsv, campanaAbierta, hrefCampana 
     <table className="w-full table-fixed text-xs"><thead><tr className="border-b text-left text-xs text-muted-foreground">
       <th className="w-[19%] py-2 font-medium">Campaña › conjunto › anuncio</th>
       {["Registros", "Agendas", "Shows", "No shows", "% no show", "Ventas", "Contratado USD", "Gasto USD", "ROAS"].map((titulo) =>
-        <th key={titulo} className="break-words py-2 pl-1 text-right font-medium">{titulo}</th>)}
+        <th key={titulo} className={`break-words py-2 pl-1 text-right font-medium${titulo === "Ventas" ? " w-[17%] pl-3" : ""}`}>{titulo}</th>)}
     </tr></thead><tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
       <Fila fila={vista.total} enlace={enlace} />
       {vista.campanas.flatMap((campana) => {
