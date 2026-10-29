@@ -252,7 +252,8 @@ marca; con el 145, Customer Success. **Pantallas:** Students.
 
 - ✅ Students por cohorte con saldo y cartera (099), cohorte al primer abono y cambio de cohorte (063).
 - Falta: **145** el rol Customer Success y los cuatro pasos (WhatsApp interno, grupo, correo, Circle).
-- Frena: ⛔ **QM-5** ¿pasos fijos o filas por programa? (recomendación: filas).
+- ✅ **QM-5 cerrada (Mani, 28-oct): filas por programa que edita el CS de ese programa**, casillas con quién y
+  cuándo y un botón "Marcar todo". Es la segunda parte del 145; el diseño está en el ticket.
 
 ### 4.7 Origen y atribución
 
@@ -420,7 +421,6 @@ sigue en `git show 951b62a:docs/plan.md` §7.
 | S1 | 🚨 **Supabase Pro: pagar o no.** El plan gratis no trae respaldos y la única base es producción. El 203 hizo un `pg_dump` manual antes del reinicio; falta decidir el respaldo continuo | 11, 12 | operación diaria | cuanto antes |
 | QM-3 · GC-17 | La próxima fecha de pago al lado de la fecha límite (recomendación: al lado), y cómo pactan los abonos los closers | 5 | 144 | NC3 |
 | QM-4 | La API de Grain: después de v1 o nunca | 4 | · | después del corte |
-| QM-5 | Los cuatro pasos del onboarding: fijos o filas por programa (recomendación: filas) | 6 | 145 | NC3 |
 | QM-9 | Deal Insights con IA en la ficha (recomendación: después de v1) | 2 | · | después de v1 |
 | R2 | El rastro por triggers en la base (recomendación: sí) | 11 | · | después del corte |
 | P3 | El costo del proceso: `AGENTS.md` y el handoff pesan mucho en cada sesión (recomendación: solo reglas y estado actual) | 11 | · | cuando se quiera |

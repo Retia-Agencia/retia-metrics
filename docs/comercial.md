@@ -340,9 +340,8 @@ Mani las contestó en la sesión del 1-oct, en nombre del equipo comercial. Lo q
   **al lado**. La fecha límite es la promesa del Compromiso Verbal y mide la cartera vencida; la próxima
   fecha es la del siguiente cobro y ordena la lista (GC-14). Se cruza con lo que digan los closers (GC-17).
 - **QM-4:** ¿la integración con la API de Grain entra después de v1 o no entra? (GC-21).
-- **QM-5:** los cuatro pasos del onboarding, ¿fijos en el código o filas por programa? Recomendación:
-  **filas por programa** (ADR 0012: el código no decide nada según cuál paso es; solo cuenta si están
-  todos) (GC-43).
+- **QM-5:** ✅ **Mani, 28-oct: filas por programa**, y las edita el Customer Success de ese programa. Cada
+  paso se marca con quién y cuándo, y un botón "Marcar todo" completa los que faltan (GC-43). Diseño en el 145.
 - **QM-6:** la meta del mes repartida **pareja por día hábil** (§5).
 - **QM-7:** las ventas de una cohorte durante la ventana de la siguiente (§5, R-7).
 - **QM-8:** ✅ en parte (Mani, 30-sep): **el norte comercial es la prioridad.** Sigue abierto qué hace el

@@ -481,7 +481,7 @@ cada ticket o en `plan.md` §7.
 | Cómo se registran las objeciones (con Michael) | 158: el reporte del día sale del CRM y Michael deja de armarlo por WhatsApp | semana 1 | catálogo editable al responder "¿Cómo terminó?" |
 | A-05: el hub del closer | la cola ordenada por Lead Value, días en etapa y próximo paso (075) | semana 1 | el Inbox ampliado con "lo mío" |
 | QM-3 · GC-17: la próxima fecha de pago, hablando con 2 o 3 closers | 144: cartera por fecha | semana 2 | al lado de la fecha límite |
-| QM-5: los pasos del onboarding | 145: rol Customer Success | semana 2 | filas por programa |
+| QM-5: los pasos del onboarding | 145: rol Customer Success | semana 2 | ✅ filas por programa, las edita el CS (28-oct) |
 | QM-6 · QM-7: la meta del mes | 146: página de Metas | semana 2 | pareja por día hábil |
 | QM-11: métricas con umbral | 147: alertas por persistencia | semana 2 | solo las del semáforo de la meta |
 

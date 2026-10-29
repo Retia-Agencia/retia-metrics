@@ -167,9 +167,9 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                 <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
                   <tr className="border-b">
                     <th className="px-2 py-1.5 font-medium">Nombre</th>
+                    <th className="px-2 py-1.5 font-medium">Onboarding</th>
                     <th className="px-2 py-1.5 font-medium">Etapa</th>
                     {!cohorte ? <th className="px-2 py-1.5 font-medium">Cohorte</th> : null}
-                    <th className="px-2 py-1.5 font-medium">Onboarding</th>
                     <th className="px-2 py-1.5 font-medium">Closer</th>
                     <th className="px-2 py-1.5 font-medium">Saldo</th>
                     <th className="px-2 py-1.5 font-medium">Vencimiento</th>
@@ -186,22 +186,13 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                   return (
                     <tr key={f.dealId} className={abreFicha ? "cursor-pointer border-b hover:bg-muted/50" : "border-b hover:bg-muted/50"}>
                       <td>
-                        <CeldaDeal abreFicha={abreFicha} href={href} extra="font-medium text-marca-texto" title={f.email} enfocable>
+                        <CeldaDeal abreFicha={abreFicha} href={href} extra={abreFicha ? "font-medium text-marca-texto" : "font-medium"} title={f.email} enfocable>
                           {f.nombre ?? f.email}
                         </CeldaDeal>
                       </td>
-                      <td>
-                        <CeldaDeal abreFicha={abreFicha} href={href}>
-                          <Badge variant={TONO_DE_ETAPA[f.etapa]}>{NOMBRE_DE_ETAPA[f.etapa]}</Badge>
-                        </CeldaDeal>
-                      </td>
-                      {!cohorte ? (
-                        <td>
-                          <CeldaDeal abreFicha={abreFicha} href={href}>{f.codigoCohorte ?? "Sin cohorte"}</CeldaDeal>
-                        </td>
-                      ) : null}
                       {/* Onboarding: el toggle es la ÚNICA acción del customer success (ticket
-                          145). La página proyecta por fila el mismo permiso del servidor. No va
+                          145), junto al nombre para que en celular no quede fuera de la pantalla
+                          (A-114). La página proyecta por fila el mismo permiso del servidor. No va
                           dentro del Link: tiene sus propios botones. */}
                       <td className="px-2 py-1.5">
                         <OnboardingCelda
@@ -214,6 +205,16 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                           )}
                         />
                       </td>
+                      <td>
+                        <CeldaDeal abreFicha={abreFicha} href={href}>
+                          <Badge variant={TONO_DE_ETAPA[f.etapa]}>{NOMBRE_DE_ETAPA[f.etapa]}</Badge>
+                        </CeldaDeal>
+                      </td>
+                      {!cohorte ? (
+                        <td>
+                          <CeldaDeal abreFicha={abreFicha} href={href}>{f.codigoCohorte ?? "Sin cohorte"}</CeldaDeal>
+                        </td>
+                      ) : null}
                       <td>
                         <CeldaDeal abreFicha={abreFicha} href={href}>{f.ownerNombre ?? (f.ownerUserId ? "Closer sin nombre" : "Sin dueño")}</CeldaDeal>
                       </td>

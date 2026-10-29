@@ -27,6 +27,16 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-28: 145, el rol Customer Success listo para operar.** A-114 (Onboarding junto al nombre, para todos
+  los roles: en 375 px el CS ve la acción sin desplazar) y A-115 (el nombre va morado solo si abre la ficha) en
+  `app/(app)/p/[programa]/students/page.tsx`. Recorrido en `dev:local`: alta de un CS por Ajustes › Usuarios,
+  membresía por Programa › Equipo (sin selector de Calendly), aterriza en Students, marca onboarding; Leads, la
+  ficha del deal y Tactical le quedan cerrados. Forjada `marcarOnboardedAccion` con un deal de Tactical: "No existe
+  el deal" y la base sin moverse. **QM-5 cerrada por Mani:** pasos del onboarding como filas por programa que edita
+  el CS, casillas con quién y cuándo y "Marcar todo"; es la segunda parte del 145 (pide migración, la aplica la
+  sesión principal). Mani creó en producción a Juanjo Gaitan (Comunicarte) y a Dani Rincón (Tactical Investor) como
+  Customer Success, con membresía activa; verificado en la base (lectura). El nombre de Dani quedó como `Dans2006`.
+
 - **2026-10-28: 314, clasificar por WhatsApp solo con el formato exacto.** En Alertas Paid Media, Daniel citó el
   semáforo de las 14:00 mencionando a César y Juanito respondió "No encontré 250 / No encontré 159459485712556". Causa:
   los dos filtros eran laxos. Juanito pedía un número de 4+ dígitos (la mención `@159459485712556` lo es) y

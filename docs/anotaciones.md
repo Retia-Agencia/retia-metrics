@@ -348,8 +348,8 @@ deal de otro programa: rechazada y la base sin moverse.
 |---|---|---|---|---|---|
 | A-112 | Programa → Equipo | bug | A un Customer Success le salía el selector de cuenta de Calendly. | 145 | arreglado el 9-oct |
 | A-113 | Ajustes → Usuarios | cambio | El selector de rol mostraba el valor crudo (`customer_success`, `paid_trafficker`) en vez de la etiqueta. | 145 | arreglado el 9-oct |
-| A-114 | Students (celular) | usabilidad | En 390 px la columna Onboarding queda fuera de la pantalla: el CS, cuya única acción es esa, tiene que desplazar la tabla. Proponer tarjetas en celular o la columna Onboarding junto al nombre. | — | abierta |
-| A-115 | Students (CS) | usabilidad | Para el CS los nombres siguen en morado aunque ya no son enlaces: parecen clicables. | — | abierta |
+| A-114 | Students (celular) | usabilidad | En 390 px la columna Onboarding queda fuera de la pantalla: el CS, cuya única acción es esa, tiene que desplazar la tabla. Proponer tarjetas en celular o la columna Onboarding junto al nombre. | 145 | arreglado el 28-oct: la columna va junto al nombre, para todos los roles |
+| A-115 | Students (CS) | usabilidad | Para el CS los nombres siguen en morado aunque ya no son enlaces: parecen clicables. | 145 | arreglado el 28-oct: morado solo cuando el nombre abre la ficha |
 | A-116 | Inbox → Por settear | usabilidad | "Asignarme todos" toma N deals de una, sin confirmar. Proponer "Vas a tomar N deals" antes. | 210 | abierta |
 | A-117 | Leads (tabla) | usabilidad | El botón "Mostrar respuestas del formulario" se desplaza con la tabla cuando hay columnas de más. | 209 | abierta |
 
