@@ -852,7 +852,28 @@ async function leerMetricaDePauta(
     }
   }
   filas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id));
+  await ponerCloserEnPauta(filas, filtros.paso, db);
   return paginarOAgrupar(filas, pagina);
+}
+
+/**
+ * El closer de cada fila de Pauta: el de la llamada en agenda, show y no show (id = la llamada) y el
+ * dueño del deal en registro y venta. Es la misma etiqueta y clave de identidad que usan las demás listas.
+ */
+async function ponerCloserEnPauta(filas: FilaDeMetrica[], paso: PasoPauta, db: Db): Promise<void> {
+  const porLlamada = paso === "agenda" || paso === "show" || paso === "no_show";
+  const llaves = [...new Set(filas.map((f) => (porLlamada ? f.id : f.dealId)).filter((id): id is string => id !== null))];
+  if (llaves.length === 0) return;
+  const lecturas = porLlamada
+    ? await db.select({ llave: calls.id, closer: etiquetaDeCloserSql(calls.closerId), clave: claveCloserSql(calls.closerUserId, calls.closerId) })
+      .from(calls).leftJoin(users, eq(users.id, calls.closerUserId)).where(and(inArray(calls.id, llaves), vigente(calls)))
+    : await db.select({ llave: deals.id, closer: etiquetaDeCloserSql(), clave: claveCloserSql(users.id, users.closerId) })
+      .from(deals).leftJoin(users, eq(users.id, deals.ownerUserId)).where(and(inArray(deals.id, llaves), vigente(deals)));
+  const porLlave = new Map(lecturas.map((l) => [l.llave, l]));
+  for (const fila of filas) {
+    const lectura = porLlave.get((porLlamada ? fila.id : fila.dealId) ?? "");
+    if (lectura) { fila.closer = lectura.closer; fila.claveCloser = lectura.clave; }
+  }
 }
 
 function subtotal(grupos: readonly Pick<FilaDeMetrica, "cantidad" | "moneda" | "monto">[]): SubtotalDeMetrica {
