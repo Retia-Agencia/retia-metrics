@@ -22,10 +22,10 @@ function CeldaVentas({ fila, enlace }: { fila: RenglonRoas; enlace: Enlace }) {
     <Link href={enlace(fila.nivel, fila.id ?? undefined, "venta")} className={claseEnlace}>
       {num(fila.ventas)} {fila.ventas === 1 ? "venta" : "ventas"}
     </Link></span>
-    <span className="block text-xs text-muted-foreground">Cuándo: {partes([
+    <span className="block whitespace-nowrap text-xs text-muted-foreground">Cuándo: {partes([
       [fila.ventasEnLlamada, "en llamada"], [fila.ventasDespues, "después"], [fila.ventasSinLlamada, "sin llamada"],
     ])}</span>
-    <span className="block text-xs text-muted-foreground">Pago: {partes([
+    <span className="block whitespace-nowrap text-xs text-muted-foreground">Pago: {partes([
       [fila.ventasCompletas, fila.ventasCompletas === 1 ? "completa" : "completas"],
       [fila.ventasParciales, fila.ventasParciales === 1 ? "parcial" : "parciales"],
     ])}</span></span>;
@@ -43,7 +43,7 @@ function Fila({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.noShows} href={enlace(fila.nivel, fila.id ?? undefined, "no_show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top">{resueltas === 0 ? "—" : pct(fila.noShows / resueltas)}</td>
     <td className="cifra py-2 pl-1 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
-    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}{fila.sinValorVendido > 0 ? <span className="block text-xs text-muted-foreground">{num(fila.sinValorVendido)} sin valor vendido</span> : null}</td>
+    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}{fila.sinValorVendido > 0 ? <span className="block whitespace-nowrap text-xs text-muted-foreground">{num(fila.sinValorVendido)} sin valor vendido</span> : null}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === 0 ? "sin pauta" : num(fila.contratadoUsd / fila.gastoUsd, 2)}</td>
   </tr>;
@@ -71,9 +71,9 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
       {vista.diasSinTrm.length > 0 ? <p className="text-muted-foreground">Días sin TRM: {vista.diasSinTrm.map(fecha).join(", ")}.</p> : null}
     </section>
     <section className="space-y-1"><h3 className="font-medium">Cobertura de UTM</h3><ul className="space-y-1 text-muted-foreground">
-      <li>Anuncio: <span className="cifra">{num(cobertura.anuncio)}</span>. La atribución está completa.</li>
-      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. El link envía el id de campaña en vez de <code>utm_id={"{{ad.id}}"}</code>.</li>
-      <li>Nada: <span className="cifra">{num(cobertura.sinCampana)}</span>. La landing no pasa los parámetros al formulario.</li>
+      <li>Con anuncio: <span className="cifra">{num(cobertura.anuncio)}</span>. Se miden hasta el anuncio.</li>
+      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre. Para llegar al anuncio, el link tiene que llevar <code>utm_id={"{{ad.id}}"}</code> y la landing pasarlo al formulario.</li>
+      <li>Sin campaña de Meta: <span className="cifra">{num(cobertura.sinCampana)}</span>. No traen id ni un nombre de campaña que exista en Meta: no se pueden atribuir y van en su propia fila.</li>
     </ul></section>
     <section className="space-y-1"><h3 className="font-medium">Citas sin marcar</h3><p className="text-muted-foreground">
       <span className="cifra">{num(vista.citasSinMarcar)}</span>: el closer no marcó show o no show.
