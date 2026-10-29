@@ -18,13 +18,11 @@ import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
-import { fecha, num, hoyEnBogota } from "@/lib/format";
+import { fecha, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
-import { AREAS } from "@/lib/atribucion/canal";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { origenDelPrograma } from "@/lib/queries/origen";
-import { hechosDelEmbudo } from "@/lib/queries/hechos-embudo";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
 import { db } from "@/lib/db";
@@ -43,8 +41,6 @@ import { EmbudoFormulario } from "@/components/embudo-formulario";
 import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 import { pautaSincronizaciones } from "@/lib/db/schema";
 import { OPCIONES_VENTANA_RITMO, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
@@ -70,8 +66,6 @@ const esquemaFiltrosPauta = z.object({
   medium: z.string().trim().min(1).max(200).optional().catch(undefined),
   campaign: z.string().trim().min(1).max(300).optional().catch(undefined),
 });
-
-const esquemaFiltroArea = z.enum(AREAS).optional().catch(undefined);
 
 // El filtro de closer de la URL es un `users.id` (ticket 167, Decision 5): un valor
 // que no es uuid se ignora (no filtra), igual que el filtro de area.
@@ -421,18 +415,6 @@ async function SeccionPauta({
     pautaInterina(db, programId, rango, filtrosPauta, hoy),
     cargarRoasDePauta(db, programId, rango, hoy),
   ]);
-  const area = esquemaFiltroArea.parse(texto(busqueda.area));
-  const hechos = await hechosDelEmbudo(db, { programId, rango });
-  const hechosFiltrados = area === undefined ? hechos : hechos.filter((fila) => fila.area === area);
-  const resumenSerie = hechosFiltrados.reduce(
-    (total, fila) => ({
-      envios: total.envios + fila.envios,
-      agendas: total.agendas + fila.agendas,
-      shows: total.shows + fila.shows,
-      ventas: total.ventas + fila.ventas,
-    }),
-    { envios: 0, agendas: 0, shows: 0, ventas: 0 },
-  );
   // El link de profundizar conserva el rango y el closer, y reemplaza solo los filtros de UTM.
   const hrefConFiltros = (f: FiltrosPauta) => {
     const q = new URLSearchParams();
@@ -464,27 +446,6 @@ async function SeccionPauta({
       <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} enlaceLista={enlaceLista} />
       <PautaRoas vista={roas} enlace={enlaceRoas} hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`}
         campanaAbierta={campanaRoas} hrefCampana={hrefCampanaRoas} />
-      <Card aria-labelledby="resumen-serie">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <CardTitle id="resumen-serie">Serie del embudo</CardTitle>
-            {area !== undefined ? <Badge variant="info">Área filtrada</Badge> : null}
-          </div>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Object.entries({
-            Envíos: resumenSerie.envios,
-            Agendas: resumenSerie.agendas,
-            Shows: resumenSerie.shows,
-            Ventas: resumenSerie.ventas,
-          }).map(([etiqueta, valor]) => (
-            <div key={etiqueta}>
-              <p className="text-sm text-muted-foreground">{etiqueta}</p>
-              <p className="cifra text-lg font-semibold">{num(valor)}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
     </section>
   );
 }

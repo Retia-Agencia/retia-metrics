@@ -132,7 +132,7 @@ vi.mock("@/lib/queries/series-dinero", () => ({ leerSeriesDeDinero }));
 // La vista interina de Pauta (093) tambien lee la base: aqui solo importa que la pagina pase.
 const pautaInterina = vi.fn(async () => ({
   filas: [],
-  resumen: { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0, shows: 0, noShows: 0, ventas: 0 },
+  resumen: { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0, shows: 0, noShows: 0, citasSinMarcar: 0, ventas: 0 },
   sinUtmHoy: [],
 }));
 vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
@@ -140,13 +140,14 @@ const VISTA_ROAS_VACIA = {
   envios: [],
   total: { nivel: "total", id: null, nombre: "Total Paid", padreId: null, registros: 0, agendas: 0, shows: 0,
     noShows: 0, ventas: 0, ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0, ventasDespues: 0,
-    ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0, desdeDias: null, hastaDias: null, madurando: false },
-  campanas: [], conjuntos: [], anuncios: [],
-  sinAnuncio: { nivel: "sin_anuncio", id: null, nombre: "Sin anuncio", padreId: null, registros: 0, agendas: 0,
+    ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0, desdeDias: null, hastaDias: null },
+  campanas: [], conjuntos: [], anuncios: [], anunciosSinIdentificar: [],
+  sinAnuncio: { nivel: "sin_anuncio", id: null, nombre: "Sin campaña de Meta", padreId: null, registros: 0, agendas: 0,
     shows: 0, noShows: 0, ventas: 0, ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0,
     ventasDespues: 0, ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0,
-    desdeDias: null, hastaDias: null, madurando: false },
-  ventanaCierreDias: null, sinHistorial: true, trmEtiqueta: null, diasSinTrm: [],
+    desdeDias: null, hastaDias: null },
+  cobertura: { anuncio: 0, soloCampanaOConjunto: 0, sinCampana: 0 }, citasSinMarcar: 0,
+  ventanaCierreDias: null, ventasParaMadurez: 0, trmEtiqueta: null, diasSinTrm: [],
 };
 const cargarRoasDePauta = vi.fn(async () => VISTA_ROAS_VACIA);
 vi.mock("@/lib/queries/roas-de-pauta", async (importOriginal) => ({

@@ -1,4 +1,5 @@
 import { and, between, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
+import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { calls, deals, gastoPauta, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
@@ -13,7 +14,7 @@ import { contratadoDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { tasasDelRango } from "@/lib/trm/consultar";
 
-export type NivelPauta = "campana" | "conjunto" | "anuncio" | "sin_anuncio" | "total";
+export type NivelPauta = "campana" | "conjunto" | "anuncio" | "anuncio_sin_identificar" | "sin_anuncio" | "total";
 export type PasoPauta = "registro" | "agenda" | "show" | "no_show" | "venta";
 
 export interface CitaDePauta {
@@ -64,7 +65,6 @@ export interface RenglonRoas {
   gastoUsd: number;
   desdeDias: number | null;
   hastaDias: number | null;
-  madurando: boolean;
 }
 
 export interface VistaRoasDePauta {
@@ -73,14 +73,27 @@ export interface VistaRoasDePauta {
   campanas: RenglonRoas[];
   conjuntos: RenglonRoas[];
   anuncios: RenglonRoas[];
+  anunciosSinIdentificar: RenglonRoas[];
   sinAnuncio: RenglonRoas;
+  cobertura: { anuncio: number; soloCampanaOConjunto: number; sinCampana: number };
+  citasSinMarcar: number;
   ventanaCierreDias: number | null;
-  sinHistorial: boolean;
+  ventasParaMadurez: number;
   trmEtiqueta: string | null;
   diasSinTrm: string[];
 }
 
 const ocurrio = (resultado: string) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
+
+/** El día de negocio de un envío: el parcial no trae `fechaEnvio`, así que usa su creación. */
+export function diaDelEnvio(envio: { fechaEnvio: Date | null; createdAt: Date }): string {
+  return fechaDeInstanteEnBogota(envio.fechaEnvio ?? envio.createdAt);
+}
+
+const diaDelEnvioSql = (envio: { fechaEnvio: PgColumn; createdAt: PgColumn }) =>
+  sql<string>`(coalesce(${envio.fechaEnvio}, ${envio.createdAt}) AT TIME ZONE 'America/Bogota')::date`;
+
+const enRango = (dia: string, rango: Rango) => dia >= rango.desde && dia <= rango.hasta;
 
 function diasEntre(desde: string, hasta: string): number {
   const partes = (v: string) => v.split("-").map(Number) as [number, number, number];
@@ -93,7 +106,7 @@ function renglonBase(nivel: NivelPauta, id: string | null, nombre: string, padre
   return { nivel, id, nombre, padreId, registros: 0, agendas: 0, shows: 0, noShows: 0, ventas: 0,
     ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0, ventasDespues: 0, ventasSinLlamada: 0,
     contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0,
-    desdeDias: null, hastaDias: null, madurando: false };
+    desdeDias: null, hastaDias: null };
 }
 
 function sumarEnvio(r: RenglonRoas, e: FilaPorEnvioPauta, hoy: string) {
@@ -117,18 +130,36 @@ function sumarEnvio(r: RenglonRoas, e: FilaPorEnvioPauta, hoy: string) {
 }
 
 /** Carga el universo U una sola vez; la tarjeta agrega estas filas y la lista las filtra sin otra definición. */
-export async function cargarRoasDePauta(db: Db, programId: string, rango: Rango, hoy: string): Promise<VistaRoasDePauta> {
-  const [arbol, objetos, enviosCrudos, ventasPrograma, tasas, gastos] = await Promise.all([
+export async function cargarRoasDePauta(
+  db: Db,
+  programId: string,
+  rango: Rango,
+  hoy: string,
+  ahora: Date = new Date(),
+): Promise<VistaRoasDePauta> {
+  const parcial = alias(submissions, "submission_parcial_roas");
+  const completo = alias(submissions, "submission_completo_roas");
+  const seleccionarEnvio = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
+    esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: leads.nombre,
+    fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
+  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, tasas, gastos] = await Promise.all([
     arbolDePauta(db, programId),
     db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
       padreIdMeta: pautaObjetos.padreIdMeta }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId)),
-    db.select({ id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
-      esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: leads.nombre,
-      fechaEnvio: submissions.fechaEnvio, ...columnasUtmDelEnvio })
+    db.select(seleccionarEnvio)
       .from(submissions).innerJoin(sources, eq(sources.id, submissions.sourceId))
       .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
       .where(and(eq(sources.programId, programId),
-        between(sql<string>`(${submissions.fechaEnvio} AT TIME ZONE 'America/Bogota')::date`, rango.desde, rango.hasta))),
+        between(diaDelEnvioSql(submissions), rango.desde, rango.hasta))),
+    db.select({ parcialId: parcial.id, completoId: completo.id })
+      .from(parcial)
+      .innerJoin(completo, and(eq(completo.sourceId, parcial.sourceId), eq(completo.token, parcial.token),
+        eq(completo.esParcial, false)))
+      .innerJoin(sources, eq(sources.id, parcial.sourceId))
+      .where(and(eq(sources.programId, programId), eq(parcial.esParcial, true), or(
+        between(diaDelEnvioSql(parcial), rango.desde, rango.hasta),
+        between(diaDelEnvioSql(completo), rango.desde, rango.hasta),
+      ))),
     ventasDelPrograma(db, programId),
     tasasDelRango(db, rango.desde, rango.hasta),
     db.select({ fecha: gastoPauta.fecha, monto: gastoPauta.monto, moneda: gastoPauta.moneda,
@@ -137,30 +168,43 @@ export async function cargarRoasDePauta(db: Db, programId: string, rango: Rango,
       .where(and(eq(gastoPauta.programId, programId), between(gastoPauta.fecha, rango.desde, rango.hasta),
         or(eq(gastoPauta.area, "paid"), isNotNull(gastoPauta.pautaObjetoId)))),
   ]);
+  const idsCargados = new Set(enviosEnRango.map((e) => e.id));
+  const idsExtra = [...new Set(parejas.flatMap((p) => [p.parcialId, p.completoId]))]
+    .filter((id) => !idsCargados.has(id));
+  const enviosExtra = idsExtra.length === 0 ? [] : await db.select(seleccionarEnvio)
+    .from(submissions).innerJoin(sources, eq(sources.id, submissions.sourceId))
+    .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
+    .where(and(eq(sources.programId, programId), inArray(submissions.id, idsExtra)));
+  const enviosCrudos = [...enviosEnRango, ...enviosExtra];
+  const envioPorId = new Map(enviosCrudos.map((e) => [e.id, e]));
+  const completoPorParcial = new Map(parejas.map((p) => [p.parcialId, p.completoId]));
   const nombres = new Map(objetos.map((o) => [o.idMeta, o.nombre]));
   const pagados = enviosCrudos.flatMap((e) => {
-    if (e.fechaEnvio === null) return [];
-    const traza = emparejar(utmsDelEnvio(e), arbol);
+    const completoId = e.esParcial ? completoPorParcial.get(e.id) : undefined;
+    const base = completoId ? envioPorId.get(completoId) : e;
+    if (!base || !enRango(diaDelEnvio(base), rango)) return [];
+    const traza = emparejar(utmsDelEnvio(base), arbol);
     if (traza.origen.area !== "paid") return [];
-    return [{ envio: e, traza }];
+    return [{ envio: e, base, traza }];
   });
-  const completosPorHuella = new Map(pagados.filter((e) => !e.envio.esParcial)
-    .map((e) => [`${e.envio.sourceId}\u0000${e.envio.token}`, e]));
   const canonicos = new Map<string, FilaPorEnvioPauta>();
   const filaPorEnvioId = new Map<string, FilaPorEnvioPauta>();
-  for (const { envio: e, traza } of pagados) {
-    const completo = e.esParcial ? completosPorHuella.get(`${e.sourceId}\u0000${e.token}`) : undefined;
-    const base = completo ?? { envio: e, traza };
-    const idCanonico = base.envio.id;
+  for (const { envio: e, base, traza } of pagados) {
+    const idCanonico = base.id;
     let fila = canonicos.get(idCanonico);
     if (!fila) {
-      const anuncio = base.traza.anuncio;
-      fila = { envioId: idCanonico, leadId: base.envio.leadId!, nombre: base.envio.nombre,
-        fechaEnvio: base.envio.fechaEnvio!, diaEnvio: fechaDeInstanteEnBogota(base.envio.fechaEnvio!),
-        cuentaComoRegistro: !base.envio.esParcial, canal: base.traza.origen.canal?.nombre ?? "Paid", dealId: null, etapa: null,
-        campanaId: anuncio?.campanaId ?? null, campanaNombre: anuncio ? nombres.get(anuncio.campanaId) ?? anuncio.campanaId : null,
-        conjuntoId: anuncio?.conjuntoId ?? null, conjuntoNombre: anuncio ? nombres.get(anuncio.conjuntoId) ?? anuncio.conjuntoId : null,
-        anuncioId: anuncio?.anuncioId ?? null, anuncioNombre: anuncio ? nombres.get(anuncio.anuncioId) ?? anuncio.anuncioId : null,
+      const anuncio = traza.anuncio;
+      const conjunto = traza.conjunto;
+      const campanaId = traza.campana?.tipo === "meta" ? traza.campana.campanaId : null;
+      const instante = base.fechaEnvio ?? base.createdAt;
+      fila = { envioId: idCanonico, leadId: base.leadId!, nombre: base.nombre,
+        fechaEnvio: instante, diaEnvio: diaDelEnvio(base),
+        cuentaComoRegistro: !base.esParcial, canal: traza.origen.canal?.nombre ?? "Paid", dealId: null, etapa: null,
+        campanaId, campanaNombre: campanaId ? nombres.get(campanaId) ?? campanaId : null,
+        conjuntoId: conjunto?.conjuntoId ?? null,
+        conjuntoNombre: conjunto ? nombres.get(conjunto.conjuntoId) ?? conjunto.conjuntoId : null,
+        anuncioId: anuncio?.anuncioId ?? null,
+        anuncioNombre: anuncio ? nombres.get(anuncio.anuncioId) ?? anuncio.anuncioId : null,
         citas: [], venta: null };
       canonicos.set(idCanonico, fila);
     }
@@ -185,6 +229,10 @@ export async function cargarRoasDePauta(db: Db, programId: string, rango: Rango,
     id: cita.id, fecha: cita.fechaAgenda ?? cita.fechaLlamada ?? cita.createdAt, resultado: cita.resultado,
     dealId: cita.dealId!, etapa: dealPorId.get(cita.dealId!)!.etapa,
   });
+  const citasSinMarcar = citas.filter((cita) => {
+    const instante = cita.fechaAgenda ?? cita.fechaLlamada;
+    return cita.resultado === "agendada" && instante !== null && instante.getTime() < ahora.getTime();
+  }).length;
   const diaVenta = new Map(ventasPrograma.map((v) => [v.dealId, diaDeCalendario(v.dia)]));
   const vendidos = dealsDelUniverso.filter((d) => diaVenta.has(d.id));
   const ubicaciones = await ubicacionesDeEscalera(db, {
@@ -200,33 +248,44 @@ export async function cargarRoasDePauta(db: Db, programId: string, rango: Rango,
       dia: diaVenta.get(deal.id)!, contratadoUsd: valor == null ? 0 : Number(valor), sinValorVendido: valor == null,
       escalon: ubicaciones.porDeal.get(deal.id)!.escalon };
   }
-  const todosVendidos = ventasPrograma.length;
   const origenesHistoricos = ventasPrograma.length === 0 ? [] : await db.select({
-    dealId: deals.id, fechaEnvio: submissions.fechaEnvio,
+    dealId: deals.id, envioId: submissions.id, fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt,
   }).from(deals).leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .where(and(eq(deals.programId, programId), inArray(deals.id, ventasPrograma.map((v) => v.dealId)), vigente(deals)));
-  const fechaOrigen = new Map(origenesHistoricos.map((f) => [f.dealId, f.fechaEnvio]));
+  const fechaOrigen = new Map(origenesHistoricos.map((f) => [f.dealId, f]));
   const diasCierre = ventasPrograma.flatMap((v) => {
     const origen = fechaOrigen.get(v.dealId);
-    return origen ? [diasEntre(fechaDeInstanteEnBogota(origen), diaDeCalendario(v.dia))] : [];
+    return origen?.envioId && origen.createdAt
+      ? [diasEntre(diaDelEnvio({ fechaEnvio: origen.fechaEnvio, createdAt: origen.createdAt }), diaDeCalendario(v.dia))]
+      : [];
   });
-  const ventanaCierreDias = todosVendidos >= 5 ? medianaDe(diasCierre) : null;
+  const ventanaCierreDias = diasCierre.length >= 5 ? medianaDe(diasCierre) : null;
   const total = renglonBase("total", null, "Total Paid", null);
-  const sinAnuncio = renglonBase("sin_anuncio", null, "Sin anuncio", null);
+  const sinAnuncio = renglonBase("sin_anuncio", null, "Sin campaña de Meta", null);
   const campanas = new Map(objetos.filter((o) => o.nivel === "campana")
     .map((o) => [o.idMeta, renglonBase("campana", o.idMeta, o.nombre, null)]));
   const conjuntos = new Map(objetos.filter((o) => o.nivel === "conjunto")
     .map((o) => [o.idMeta, renglonBase("conjunto", o.idMeta, o.nombre, o.padreIdMeta)]));
   const anuncios = new Map(objetos.filter((o) => o.nivel === "anuncio")
     .map((o) => [o.idMeta, renglonBase("anuncio", o.idMeta, o.nombre, o.padreIdMeta)]));
+  const anunciosSinIdentificar = new Map<string, RenglonRoas>();
   for (const e of universo) {
     sumarEnvio(total, e, hoy);
-    if (!e.anuncioId) { sumarEnvio(sinAnuncio, e, hoy); continue; }
+    if (!e.campanaId) { sumarEnvio(sinAnuncio, e, hoy); continue; }
     const c = campanas.get(e.campanaId!) ?? renglonBase("campana", e.campanaId, e.campanaNombre!, null);
-    const s = conjuntos.get(e.conjuntoId!) ?? renglonBase("conjunto", e.conjuntoId, e.conjuntoNombre!, e.campanaId);
-    const a = anuncios.get(e.anuncioId) ?? renglonBase("anuncio", e.anuncioId, e.anuncioNombre!, e.conjuntoId);
-    sumarEnvio(c, e, hoy); sumarEnvio(s, e, hoy); sumarEnvio(a, e, hoy);
-    campanas.set(e.campanaId!, c); conjuntos.set(e.conjuntoId!, s); anuncios.set(e.anuncioId, a);
+    sumarEnvio(c, e, hoy); campanas.set(e.campanaId, c);
+    if (e.conjuntoId) {
+      const s = conjuntos.get(e.conjuntoId) ?? renglonBase("conjunto", e.conjuntoId, e.conjuntoNombre!, e.campanaId);
+      sumarEnvio(s, e, hoy); conjuntos.set(e.conjuntoId, s);
+    }
+    if (e.anuncioId) {
+      const a = anuncios.get(e.anuncioId) ?? renglonBase("anuncio", e.anuncioId, e.anuncioNombre!, e.conjuntoId);
+      sumarEnvio(a, e, hoy); anuncios.set(e.anuncioId, a);
+    } else {
+      const residual = anunciosSinIdentificar.get(e.campanaId)
+        ?? renglonBase("anuncio_sin_identificar", e.campanaId, "Anuncio sin identificar", e.campanaId);
+      sumarEnvio(residual, e, hoy); anunciosSinIdentificar.set(e.campanaId, residual);
+    }
   }
   total.contratadoUsd = contratado.usd;
   total.sinValorVendido = contratado.sinValorVendido;
@@ -240,18 +299,25 @@ export async function cargarRoasDePauta(db: Db, programId: string, rango: Rango,
     if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s.gastoUsd += usd;
       const c = campanas.get(arbolAnuncio.campanaId); if (c) c.gastoUsd += usd; }
   }
-  const filas = [total, sinAnuncio, ...campanas.values(), ...conjuntos.values(), ...anuncios.values()];
-  for (const r of filas) r.madurando = ventanaCierreDias !== null && r.desdeDias !== null && r.desdeDias < ventanaCierreDias;
   const diasSinTrm = [...new Set(gastos.filter((g) => g.moneda === "COP" && !tasas.porDia.has(g.fecha)).map((g) => g.fecha))].sort();
   const visible = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0 || r.gastoUsd > 0;
+  const registros = universo.filter((e) => e.cuentaComoRegistro);
+  const cobertura = {
+    anuncio: registros.filter((e) => e.anuncioId !== null).length,
+    soloCampanaOConjunto: registros.filter((e) => e.campanaId !== null && e.anuncioId === null).length,
+    sinCampana: registros.filter((e) => e.campanaId === null).length,
+  };
   return { envios: universo, total, campanas: [...campanas.values()].filter(visible),
     conjuntos: [...conjuntos.values()].filter(visible), anuncios: [...anuncios.values()].filter(visible),
-    sinAnuncio, ventanaCierreDias, sinHistorial: todosVendidos < 5, trmEtiqueta: tasas.etiqueta, diasSinTrm };
+    anunciosSinIdentificar: [...anunciosSinIdentificar.values()].filter(visible), sinAnuncio, cobertura, citasSinMarcar,
+    ventanaCierreDias, ventasParaMadurez: diasCierre.length,
+    trmEtiqueta: tasas.etiqueta, diasSinTrm };
 }
 
 export function filtrarEnviosDePauta(envios: readonly FilaPorEnvioPauta[], nivel: NivelPauta, id?: string) {
   if (nivel === "total") return [...envios];
-  if (nivel === "sin_anuncio") return envios.filter((e) => e.anuncioId === null);
+  if (nivel === "sin_anuncio") return envios.filter((e) => e.campanaId === null);
   if (!id) return [];
+  if (nivel === "anuncio_sin_identificar") return envios.filter((e) => e.campanaId === id && e.anuncioId === null);
   return envios.filter((e) => nivel === "campana" ? e.campanaId === id : nivel === "conjunto" ? e.conjuntoId === id : e.anuncioId === id);
 }

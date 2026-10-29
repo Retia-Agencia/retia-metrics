@@ -76,7 +76,8 @@ async function envio(o: OpcEnvio = {}) {
   return { leadId: l.id, envioId: e.id, programa: o.programa === "q" ? otroProgramId : programId };
 }
 
-async function agenda(o: { deal: { leadId: string; envioId: string | null; programa: string } | null; creada?: string; anulada?: boolean; resultado?: "agendada" | "show" | "no_show" | "cancelada" }) {
+async function agenda(o: { deal: { leadId: string; envioId: string | null; programa: string } | null; creada?: string;
+  fechaAgenda?: string; fechaLlamada?: string; anulada?: boolean; resultado?: "agendada" | "show" | "no_show" | "cancelada" }) {
   let dealId: string | null = null;
   if (o.deal) {
     const [d] = await db
@@ -89,6 +90,8 @@ async function agenda(o: { deal: { leadId: string; envioId: string | null; progr
     programId: o.deal?.programa ?? programId,
     dealId,
     createdAt: new Date(o.creada ?? "2026-09-11T10:00:00-05:00"),
+    fechaAgenda: o.fechaAgenda ? new Date(o.fechaAgenda) : null,
+    fechaLlamada: o.fechaLlamada ? new Date(o.fechaLlamada) : null,
     ...(o.resultado ? { resultado: o.resultado } : {}),
     ...(o.anulada ? { anuladoEn: new Date(), anuladoPor: usuario, motivoAnulacion: "error de tecleo" } : {}),
   });
@@ -185,6 +188,16 @@ describe("agendas", () => {
     await agenda({ deal: ajeno });
     const v = await pautaInterina(db, programId, RANGO, {}, HOY);
     expect(v.resumen.agendas).toBe(0);
+  });
+
+  it("cuenta las citas agendadas cuyo instante ya pasó y siguen sin resultado", async () => {
+    await agenda({ deal: await envio(), resultado: "agendada", fechaAgenda: "2026-09-20T09:00:00-05:00" });
+    await agenda({ deal: await envio(), resultado: "agendada", fechaLlamada: "2026-09-21T09:00:00-05:00" });
+    await agenda({ deal: await envio(), resultado: "agendada", fechaAgenda: "2026-09-30T09:00:00-05:00" });
+    await agenda({ deal: await envio(), resultado: "show", fechaAgenda: "2026-09-20T09:00:00-05:00" });
+
+    const v = await pautaInterina(db, programId, RANGO, {}, HOY, new Date("2026-09-29T12:00:00-05:00"));
+    expect(v.resumen.citasSinMarcar).toBe(2);
   });
 });
 

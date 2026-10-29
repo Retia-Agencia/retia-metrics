@@ -50,6 +50,17 @@ Grill del 29-oct con Mani: las decisiones de abajo están cerradas; absorbe la p
 
 - Atribuir caja por abono (queda en Dinero). Repartir ventas sin anuncio. Cualquier dato personal en el CSV.
 
+## Arreglo 29-oct (producción)
+
+En producción los parciales siempre tienen `fecha_envio` nulo y la mayoría de los deals cuelga de ellos; su día es
+`created_at`. El universo pliega parcial y completo por `(source_id, token)`, conserva las citas y ventas del parcial y
+usa el completo para área y atribución. Un parcial solo dentro del rango aporta citas y ventas, pero no un registro.
+
+ComunicArte y Tactical envían con frecuencia el id de campaña en `utm_id`, y Confianza tiene muchos registros que solo
+traen el nombre de campaña. La atribución usa anuncio → conjunto → campaña de Meta; lo resuelto sin anuncio queda en la
+campaña como “Anuncio sin identificar” y solo lo que no resuelve campaña va a “Sin campaña de Meta”. Las dos tarjetas de
+Pauta llevan la explicación de fuentes, fórmulas, madurez, TRM, cobertura y citas pasadas todavía sin marcar en “Cómo se calcula”.
+
 ## Done cuando
 
 - [ ] El ROAS de un caso armado a mano (un deal pago con `utm_id` válido, TRM de dos días distintos) da lo mismo en la

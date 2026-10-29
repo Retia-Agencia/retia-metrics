@@ -97,6 +97,7 @@ export interface VistaPautaInterina {
     agendasSinEnvioDeOrigen: number;
     shows: number;
     noShows: number;
+    citasSinMarcar: number;
     ventas: number;
   };
   /** Los registros SIN UTM de HOY (DP-17: contador visible, sin umbral), con su lista, mire el rango que mire. */
@@ -164,6 +165,7 @@ export async function pautaInterina(
   rango: Rango,
   filtros: FiltrosPauta = {},
   hoy: string,
+  ahora: Date = new Date(),
 ): Promise<VistaPautaInterina> {
   const envios = await enviosCompletos(db, programId, rango);
 
@@ -174,6 +176,8 @@ export async function pautaInterina(
   const agendas = await db
     .select({
       createdAt: calls.createdAt,
+      fechaAgenda: calls.fechaAgenda,
+      fechaLlamada: calls.fechaLlamada,
       resultado: calls.resultado,
       origenId: submissions.id,
       ...columnasUtmDelEnvio,
@@ -190,7 +194,8 @@ export async function pautaInterina(
     );
 
   const serie = new Map<string, FilaPauta>();
-  const resumen = { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0, shows: 0, noShows: 0, ventas: 0 };
+  const resumen = { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0,
+    shows: 0, noShows: 0, citasSinMarcar: 0, ventas: 0 };
   const sumar = (
     dia: string,
     categoria: CategoriaOrigen,
@@ -228,6 +233,8 @@ export async function pautaInterina(
   for (const a of agendas) {
     const dia = fechaDeInstanteEnBogota(a.createdAt);
     resumen.agendas++;
+    const instante = a.fechaAgenda ?? a.fechaLlamada;
+    if (a.resultado === "agendada" && instante !== null && instante.getTime() < ahora.getTime()) resumen.citasSinMarcar++;
     if (ocurrio(a.resultado)) resumen.shows++;
     if (a.resultado === "no_show") resumen.noShows++;
     if (a.origenId === null) {

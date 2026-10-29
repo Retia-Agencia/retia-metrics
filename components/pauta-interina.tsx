@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota, num, pct, truncarId } from "@/lib/format";
@@ -208,7 +209,6 @@ export function PautaInterina({
   const { resumen, sinUtmHoy } = vista;
   const grupos = agrupar(vista.filas, filtros, hrefCon);
   const filtrando = filtros.source !== undefined || filtros.medium !== undefined || filtros.campaign !== undefined;
-  const totalRegistros = grupos.reduce((s, g) => s + g.registros, 0);
   const de = (metrica: "registros" | "agendas_creadas" | "escalera", f: FiltrosDeLista | null) =>
     enlaceLista && f ? enlaceLista(metrica, f) : null;
   // Los totales de arriba son los del periodo SIN los filtros de UTM (`pautaInterina`): sus listas tambien.
@@ -216,13 +216,25 @@ export function PautaInterina({
 
   return (
     <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-base">De dónde llegan los registros y las agendas</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          Cada fila es un origen (el canal de los UTM). Toca el nombre para ver sus campañas y toca un número para ver
-          exactamente quiénes son las personas que cuenta. Un registro es un formulario completo; una agenda, una cita
-          creada en el periodo, con el origen del formulario que abrió su deal. No aplica el filtro de closer.
-        </p>
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="space-y-1"><CardTitle className="text-base">De dónde llegan los registros y las agendas</CardTitle>
+            <p className="text-xs text-muted-foreground">Cada fila es un origen. Toca un nombre para profundizar o una cifra para ver sus personas.</p>
+          </div>
+          <ComoSeCalcula>
+            <section className="space-y-1"><h3 className="font-medium">De dónde sale</h3><p className="text-muted-foreground">
+              Los registros vienen de los formularios con sus UTM. Agendas son citas creadas en el periodo, con el origen
+              del formulario que abrió su deal. Shows y no shows son el resultado que marca el closer. Ventas son deals
+              que pasaron a Ganado en el periodo.
+            </p></section>
+            <section className="space-y-1"><h3 className="font-medium">Fórmulas</h3><p className="text-muted-foreground">
+              % no show = no shows ÷ (shows + no shows). Pendientes y canceladas no entran.
+            </p></section>
+            <section className="space-y-1"><h3 className="font-medium">Qué la deja incompleta</h3><p className="text-muted-foreground">
+              <span className="cifra">{num(resumen.sinUtm)}</span> registros sin UTM. <span className="cifra">{num(resumen.citasSinMarcar)}</span> citas pasadas sin marcar.
+            </p></section>
+          </ComoSeCalcula>
+        </div>
       </CardHeader>
       <CardContent className="space-y-5 text-sm">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
@@ -235,7 +247,7 @@ export function PautaInterina({
           <Kpi
             titulo="Shows"
             valor={<Cifra valor={resumen.shows} href={de("agendas_creadas", { resultado: "show" })} />}
-            nota="la cita ocurrió"
+            nota={resumen.citasSinMarcar > 0 ? `${num(resumen.citasSinMarcar)} citas pasadas sin marcar` : "la cita ocurrió"}
           />
           <Kpi
             titulo="No shows"
@@ -308,7 +320,6 @@ export function PautaInterina({
                   {filtros.campaign !== undefined ? "Contenido" : filtrando ? "Campaña" : "Canal (source / medium)"}
                 </th>
                 <th className="py-2 pl-3 text-right font-medium">Registros</th>
-                <th className="py-2 pl-3 text-right font-medium">%</th>
                 <th className="py-2 pl-3 text-right font-medium">Agendas</th>
                 <th className="py-2 pl-3 text-right font-medium">Shows</th>
                 <th className="py-2 pl-3 text-right font-medium">No shows</th>
@@ -333,9 +344,6 @@ export function PautaInterina({
                   </td>
                   <td className="cifra py-2 pl-3 text-right">
                     <Cifra valor={g.registros} href={de("registros", g.filtrosLista)} />
-                  </td>
-                  <td className="cifra py-2 pl-3 text-right text-muted-foreground">
-                    {totalRegistros === 0 ? "—" : pct(g.registros / totalRegistros)}
                   </td>
                   <td className="cifra py-2 pl-3 text-right">
                     <Cifra valor={g.agendas} href={de("agendas_creadas", g.filtrosLista)} />

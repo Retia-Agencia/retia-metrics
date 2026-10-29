@@ -53,13 +53,17 @@ beforeEach(async () => {
 });
 afterAll(async () => cerrar());
 
-async function envio(opts: { dia?: string; anuncio?: boolean; programa?: "otro"; parcial?: boolean; token?: string } = {}) {
+async function envio(opts: { dia?: string; anuncio?: boolean; programa?: "otro"; parcial?: boolean; token?: string;
+  fechaEnvioNull?: boolean; createdAt?: string; campanaId?: boolean; campanaNombre?: boolean } = {}) {
   const programa = opts.programa ? otroProgramId : programId;
   const fuente = opts.programa ? sourceOtro : sourceId;
   const lead = (await db.insert(leads).values({ programId: programa, emailNormalizado: `roas-${++secuencia}@test.co`, nombre: `Lead ${secuencia}` }).returning())[0];
   const fila = (await db.insert(submissions).values({ leadId: lead.id, sourceId: fuente, token: opts.token ?? crypto.randomUUID(),
-    esParcial: opts.parcial ?? false, fechaEnvio: new Date(`${opts.dia ?? "2026-10-02"}T10:00:00-05:00`),
-    utmSource: "facebook", utmMedium: "cpc", utmId: opts.anuncio === false ? null : "ad1" }).returning())[0];
+    esParcial: opts.parcial ?? false,
+    fechaEnvio: opts.fechaEnvioNull ? null : new Date(`${opts.dia ?? "2026-10-02"}T10:00:00-05:00`),
+    createdAt: new Date(opts.createdAt ?? `${opts.dia ?? "2026-10-02"}T10:00:00-05:00`),
+    utmSource: "facebook", utmMedium: "cpc", utmCampaign: opts.campanaNombre ? "Campaña 1" : null,
+    utmId: opts.campanaId ? "camp1" : opts.anuncio === false ? null : "ad1" }).returning())[0];
   return { leadId: lead.id, envioId: fila.id, programa };
 }
 
@@ -74,7 +78,8 @@ async function vender(e: Awaited<ReturnType<typeof envio>>, valor: string, diaVe
 async function escenario() {
   const conAnuncio = await envio({ token: "mismo-token" });
   const parcial = (await db.insert(submissions).values({ leadId: conAnuncio.leadId, sourceId, token: "mismo-token", esParcial: true,
-    fechaEnvio: new Date("2026-10-02T09:00:00-05:00"), utmSource: "facebook", utmMedium: "cpc", utmId: "ad1" }).returning())[0];
+    fechaEnvio: null, createdAt: new Date("2026-10-02T09:00:00-05:00"),
+    utmSource: "facebook", utmMedium: "cpc", utmId: "ad1" }).returning())[0];
   const venta = await vender({ ...conAnuncio, envioId: parcial.id }, "300", "2026-10-05");
   await db.insert(calls).values([
     { programId, dealId: venta.id, resultado: "show", fechaAgenda: new Date("2026-10-06T10:00:00-05:00"), createdAt: new Date("2026-10-06T09:00:00-05:00") },
@@ -102,12 +107,12 @@ describe("ROAS de Pauta", () => {
     expect(vista.total).toMatchObject({ registros: 3, ventas: 2, contratadoUsd: 400, gastoUsd: 150 });
     expect(vista.sinAnuncio).toMatchObject({ ventas: 1, contratadoUsd: 100 });
     expect(vista.campanas.some((fila) => fila.id === "camp-vacia")).toBe(false);
-    expect(vista.sinHistorial).toBe(true);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
       vista, enlace: () => "/lista", hrefCsv: "/citas.csv", hrefCampana: () => "/campana",
     }));
-    expect(html).toContain("1 de 2 ventas sin anuncio");
-    expect(html).toContain("sin historial para estimar");
+    expect(html).toContain("1 de 2 ventas sin campaña de Meta");
+    expect(html).toContain("Cómo se calcula");
+    expect(html).not.toContain("Aún madurando");
     expect(html).toContain("Cuándo: ");
     expect(html).toContain("1 en llamada");
     expect(html).toContain("1 sin llamada");
@@ -121,10 +126,12 @@ describe("ROAS de Pauta", () => {
   it("conserva ventas y citas de parciales, plegando por huella sin inflar registros", async () => {
     const completo = await envio({ token: "plegado" });
     const parcial = (await db.insert(submissions).values({ leadId: completo.leadId, sourceId, token: "plegado", esParcial: true,
-      fechaEnvio: new Date("2026-10-01T09:00:00-05:00"), utmSource: "facebook", utmMedium: "cpc", utmId: "ad1" }).returning())[0];
+      fechaEnvio: null, createdAt: new Date("2026-10-01T09:00:00-05:00"),
+      utmSource: "facebook", utmMedium: "cpc", utmId: "ad1" }).returning())[0];
     const plegado = await vender({ ...completo, envioId: parcial.id }, "200", "2026-10-03");
     await db.insert(calls).values({ programId, dealId: plegado.id, resultado: "show" });
-    const parcialSolo = await envio({ parcial: true, token: "solo-parcial" });
+    const parcialSolo = await envio({ parcial: true, token: "solo-parcial", fechaEnvioNull: true,
+      createdAt: "2026-10-02T08:00:00-05:00" });
     await vender(parcialSolo, "150", "2026-10-04");
 
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
@@ -134,12 +141,33 @@ describe("ROAS de Pauta", () => {
     expect(vista.envios.some((fila) => !fila.cuentaComoRegistro && fila.venta?.contratadoUsd === 150)).toBe(true);
   });
 
-  it("marca aún madurando con la mediana histórica y la lista cuadra por paso", async () => {
+  it("atribuye por campaña id o nombre exacto y separa el anuncio sin identificar", async () => {
+    await envio({ campanaId: true });
+    await envio({ anuncio: false, campanaNombre: true });
+    const sinMeta = await envio({ anuncio: false });
+    const deal = await vender(sinMeta, "100", "2026-10-03");
+    await db.insert(calls).values([
+      { programId, dealId: deal.id, resultado: "agendada", fechaAgenda: new Date("2026-10-03T08:00:00-05:00") },
+      { programId, dealId: deal.id, resultado: "agendada", fechaAgenda: new Date("2026-10-04T08:00:00-05:00") },
+    ]);
+
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY, new Date("2026-10-03T12:00:00-05:00"));
+    expect(vista.campanas.find((fila) => fila.id === "camp1")).toMatchObject({ registros: 2 });
+    expect(vista.anunciosSinIdentificar.find((fila) => fila.padreId === "camp1")).toMatchObject({ registros: 2 });
+    expect(vista.cobertura).toEqual({ anuncio: 0, soloCampanaOConjunto: 2, sinCampana: 1 });
+    expect(vista.citasSinMarcar).toBe(1);
+    const html = renderToStaticMarkup(createElement(PautaRoas, {
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", campanaAbierta: "camp1", hrefCampana: () => "/campana",
+    }));
+    expect(html).toContain("Anuncio sin identificar");
+  });
+
+  it("calcula la madurez histórica para el detalle y la lista cuadra por paso", async () => {
     await escenario();
     for (let i = 0; i < 3; i++) await vender(await envio({ dia: `2026-09-0${i + 1}` }), "50", `2026-09-1${i + 1}`);
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
-    expect(vista.sinHistorial).toBe(false);
-    expect(vista.total.madurando).toBe(true);
+    expect(vista.ventanaCierreDias).not.toBeNull();
+    expect(vista.total.desdeDias).toBeLessThan(vista.ventanaCierreDias!);
     const esperado = { registro: vista.total.registros, agenda: vista.total.agendas, show: vista.total.shows,
       no_show: vista.total.noShows, venta: vista.total.ventas } as const;
     for (const paso of Object.keys(esperado) as Array<keyof typeof esperado>) {

@@ -246,8 +246,11 @@ un escalón, y el escalón se calcula al leer, nunca se guarda.
 | Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 | 🟡 |
 | CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 | 🟡 |
 | Costo por venta (CAC) | gasto de Paid ÷ ventas de Paid | COP | no | 123 | 🟡 |
-| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan a la fecha de REGISTRO del envío que abrió el deal** (no a la de la venta) y el gasto es el del mismo periodo; por eso crece con los días y cada fila dice cuánto lleva madurando (350) | razón | no | `lib/queries/roas-de-pauta.ts` · 123, 350 | 🟢 |
+| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan al día del envío que abrió el deal**: `fecha_envio` si existe y, en un parcial, `created_at`; no a la fecha de venta. El parcial se pliega en su completo por `(source_id, token)`. La atribución toma anuncio, si no conjunto, si no campaña de Meta; solo lo que no resuelve campaña queda en “Sin campaña de Meta” | razón | no | `diaDelEnvio` y `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` · 123, 350 | 🟢 |
 | Nivel de la traza | el id más profundo del envío que resuelve en el árbol: anuncio (N3), conjunto o campaña (N2), solo área (N1), sin UTM (N0) | % | no | 247 | ✅ |
+
+El gasto sigue naciendo en anuncio y se acumula hacia conjunto y campaña. Si un registro solo resuelve conjunto o
+campaña, cuenta en esos niveles y aparece como “Anuncio sin identificar”; nunca se reparte entre anuncios.
 
 ### 3.3 El costo por agenda, paso a paso
 

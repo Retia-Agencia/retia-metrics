@@ -84,7 +84,7 @@ const esquema = z.object({
   escalon: z.enum([...ESCALONES, "ventas", "despues"]).optional(),
   pago: z.enum(["completo", "parcial"]).optional(),
   calidad: z.string().max(100).optional(),
-  nivel: z.enum(["campana", "conjunto", "anuncio", "sin_anuncio", "total"]).optional(),
+  nivel: z.enum(["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "total"]).optional(),
   id: z.string().max(100).optional(),
   paso: z.enum(["registro", "agenda", "show", "no_show", "venta"]).optional(),
 });

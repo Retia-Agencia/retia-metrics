@@ -11,8 +11,8 @@ const celda = (valor: unknown) => {
 /** CSV deliberadamente anónimo: el tipo no acepta ninguna columna de persona o deal. */
 export function csvDeCitasPauta(vista: VistaRoasDePauta): string {
   const filas = vista.envios.flatMap((envio) => envio.citas.map((cita) => [
-    fechaHoraEnBogota(cita.fecha), cita.resultado, envio.campanaNombre ?? "Sin anuncio",
-    envio.conjuntoNombre ?? "Sin anuncio", envio.anuncioNombre ?? "Sin anuncio", envio.canal,
+    fechaHoraEnBogota(cita.fecha), cita.resultado, envio.campanaNombre ?? "Sin campaña de Meta",
+    envio.conjuntoNombre ?? "Sin conjunto identificado", envio.anuncioNombre ?? "Anuncio sin identificar", envio.canal,
   ]));
   return `\uFEFF${[COLUMNAS_CSV_CITAS_PAUTA, ...filas].map((fila) => fila.map(celda).join(",")).join("\r\n")}\r\n`;
 }
