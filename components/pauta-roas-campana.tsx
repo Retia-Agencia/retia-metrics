@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { ReactNode } from "react";
+import { startTransition, useOptimistic, type ReactNode } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const PARAMETRO = "roas_campana";
@@ -16,14 +16,18 @@ export function FilaDeCampana({ id, nombre, detalle, children }: { id: string; n
   const router = useRouter();
   const pathname = usePathname();
   const busqueda = useSearchParams();
-  const abierto = busqueda.get(PARAMETRO) === id;
+  const [abierto, fijarAbierto] = useOptimistic(busqueda.get(PARAMETRO) === id);
 
   const fijar = (abrir: boolean) => {
     const q = new URLSearchParams(busqueda.toString());
     if (abrir) q.set(PARAMETRO, id);
     else q.delete(PARAMETRO);
     const query = q.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // El diálogo cambia al instante (optimista); la URL se actualiza detrás, sin bloquear.
+    startTransition(() => {
+      fijarAbierto(abrir);
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    });
   };
 
   return <>
