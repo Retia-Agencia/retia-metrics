@@ -7,6 +7,7 @@ import {
   timestamp,
   uuid,
   integer,
+  bigint,
   numeric,
   date,
   jsonb,
@@ -1697,6 +1698,328 @@ export const piezas = pgTable(
   ],
 );
 
+/* ───────── El cockpit de contenido en el CRM (ticket 322, ADR 0111) ─────────
+ * Tablas con el vocabulario del CRM (el cockpit las llama distinto; el mapa vive en
+ * `docs/tasks/322-esquema-y-traslado-del-cockpit.md`). Sin tenencia: la frontera es el programa
+ * del creador (ADR 0110), y un creador puede no tener programa. Un video se identifica por
+ * `(red, external_id)`, la misma llave que usa el motor de n8n.
+ */
+
+/**
+ * La tematica (el "proyecto" del cockpit): un tema que se vigila para un creador, con los
+ * criterios con los que el gate de relevancia decide y los que aprende de las calificaciones
+ * (`criterios_aprendidos`, el aprendizaje de lo calificado).
+ */
+export const tematicas = pgTable(
+  "tematicas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creadorId: uuid("creador_id").notNull().references(() => creadores.id, { onDelete: "restrict" }),
+    nombre: text("nombre").notNull(),
+    descripcion: text("descripcion"),
+    criteriosRelevancia: text("criterios_relevancia").notNull(),
+    criteriosAprendidos: text("criterios_aprendidos"),
+    advertenciaCriterios: text("advertencia_criterios"),
+    /** Redes en las que se busca (lista cerrada en `lib/media/redes.ts`). */
+    redes: text("redes").array().notNull().default(sql`'{}'::text[]`),
+    /** Cuantos candidatos por entrega pide la tematica (`n` del cockpit). */
+    metaEntrega: integer("meta_entrega"),
+    perfilLimpieza: text("perfil_limpieza"),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("tematicas_creador_nombre_idx").on(t.creadorId, sql`lower(${t.nombre})`),
+    index("tematicas_creador_idx").on(t.creadorId),
+  ],
+);
+
+/** La cuenta que se vigila. La salud (tasa del gate, de aprobacion) se DERIVA al leer: no se guarda. */
+export const referentes = pgTable(
+  "referentes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    handle: text("handle").notNull(),
+    red: text("red").notNull(),
+    notas: text("notas"),
+    activo: boolean("activo").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("referentes_red_handle_idx").on(t.red, sql`lower(${t.handle})`)],
+);
+
+export const referentesTematicas = pgTable(
+  "referentes_tematicas",
+  {
+    referenteId: uuid("referente_id").notNull().references(() => referentes.id, { onDelete: "cascade" }),
+    tematicaId: uuid("tematica_id").notNull().references(() => tematicas.id, { onDelete: "cascade" }),
+  },
+  (t) => [unique("referentes_tematicas_pk").on(t.referenteId, t.tematicaId), index("referentes_tematicas_tematica_idx").on(t.tematicaId)],
+);
+
+/** Cuentas que el descubrimiento propone y una persona acepta o descarta. */
+export const referentesSugeridos = pgTable(
+  "referentes_sugeridos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    handle: text("handle").notNull(),
+    red: text("red"),
+    afinidad: numeric("afinidad"),
+    razon: text("razon"),
+    seguidores: bigint("seguidores", { mode: "number" }),
+    bio: text("bio"),
+    url: text("url"),
+    semillas: text("semillas"),
+    estado: text("estado").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("referentes_sugeridos_estado_idx").on(t.estado)],
+);
+
+export const referentesSugeridosTematicas = pgTable(
+  "referentes_sugeridos_tematicas",
+  {
+    sugeridoId: uuid("sugerido_id").notNull().references(() => referentesSugeridos.id, { onDelete: "cascade" }),
+    tematicaId: uuid("tematica_id").notNull().references(() => tematicas.id, { onDelete: "cascade" }),
+  },
+  (t) => [unique("referentes_sugeridos_tematicas_pk").on(t.sugeridoId, t.tematicaId)],
+);
+
+/**
+ * El video que el motor entrega para calificar. Vive poco: al calificarse pasa a
+ * `calificaciones`. `calificacion` y `estado` se guardan como llegan (el equipo los pone).
+ */
+export const candidatos = pgTable(
+  "candidatos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creadorId: uuid("creador_id").references(() => creadores.id, { onDelete: "restrict" }),
+    tematicaId: uuid("tematica_id").references(() => tematicas.id, { onDelete: "restrict" }),
+    externalId: text("external_id"),
+    titulo: text("titulo").notNull(),
+    guion: text("guion"),
+    idioma: text("idioma"),
+    miniaturaUrl: text("miniatura_url"),
+    referente: text("referente"),
+    urlReferente: text("url_referente"),
+    vistas: bigint("vistas", { mode: "number" }),
+    meGusta: bigint("me_gusta", { mode: "number" }),
+    seguidores: bigint("seguidores", { mode: "number" }),
+    engagement: numeric("engagement"),
+    heatScore: numeric("heat_score"),
+    prescoreMetrico: numeric("prescore_metrico"),
+    relevanciaScore: numeric("relevancia_score"),
+    relevanciaRazon: text("relevancia_razon"),
+    viralPorTamano: boolean("viral_por_tamano").notNull().default(false),
+    calificacion: text("calificacion"),
+    estado: text("estado").notNull(),
+    calificadoEn: timestamp("calificado_en", { withTimezone: true }),
+    notasEquipo: text("notas_equipo"),
+    huellaGuion: text("huella_guion"),
+    duracionSeg: numeric("duracion_seg"),
+    coberturaSeg: numeric("cobertura_seg"),
+    origen: text("origen").notNull(),
+    fuenteTranscript: text("fuente_transcript"),
+    publicadoEn: timestamp("publicado_en", { withTimezone: true }),
+    /** La corrida de n8n que lo trajo (texto: las corridas no se migran, ADR 0111 punto 3). */
+    corridaExterna: text("corrida_externa"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("candidatos_external_id_idx").on(t.externalId),
+    index("candidatos_creador_idx").on(t.creadorId),
+    index("candidatos_tematica_idx").on(t.tematicaId),
+  ],
+);
+
+/**
+ * Lo calificado (el historico `outputs` de tipo `guion_reel` del cockpit): una fila por pieza
+ * que el equipo aprobo o descarto. Es el corpus del que aprenden los criterios de la tematica.
+ * `resultado` es `aprobado` | `descartado`.
+ */
+export const calificaciones = pgTable(
+  "calificaciones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creadorId: uuid("creador_id").references(() => creadores.id, { onDelete: "restrict" }),
+    tematicaId: uuid("tematica_id").references(() => tematicas.id, { onDelete: "restrict" }),
+    externalId: text("external_id"),
+    titulo: text("titulo").notNull(),
+    guion: text("guion").notNull(),
+    resultado: text("resultado").notNull(),
+    calificacion: text("calificacion"),
+    referente: text("referente"),
+    urlReferente: text("url_referente"),
+    idioma: text("idioma"),
+    vistas: bigint("vistas", { mode: "number" }),
+    meGusta: bigint("me_gusta", { mode: "number" }),
+    seguidores: bigint("seguidores", { mode: "number" }),
+    engagement: numeric("engagement"),
+    heatScore: numeric("heat_score"),
+    relevanciaScore: numeric("relevancia_score"),
+    relevanciaRazon: text("relevancia_razon"),
+    viralPorTamano: boolean("viral_por_tamano"),
+    notasEquipo: text("notas_equipo"),
+    calificadaEn: timestamp("calificada_en", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("calificaciones_creador_idx").on(t.creadorId),
+    index("calificaciones_tematica_idx").on(t.tematicaId),
+    index("calificaciones_resultado_idx").on(t.resultado),
+  ],
+);
+
+/** Lo que el gate de relevancia dejo afuera, expuesto para auditar falsos negativos. */
+export const descartes = pgTable(
+  "descartes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tematicaId: uuid("tematica_id").references(() => tematicas.id, { onDelete: "restrict" }),
+    externalId: text("external_id"),
+    titulo: text("titulo").notNull(),
+    guion: text("guion"),
+    referente: text("referente"),
+    urlReferente: text("url_referente"),
+    relevanciaScore: numeric("relevancia_score"),
+    relevanciaRazon: text("relevancia_razon"),
+    miniaturaUrl: text("miniatura_url"),
+    veredicto: text("veredicto"),
+    origen: text("origen").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("descartes_tematica_idx").on(t.tematicaId)],
+);
+
+/** Un lote de transcripciones pedidas juntas. `creada_por` del cockpit no se traslada: sus usuarios no existen en el CRM. */
+export const tandas = pgTable("tandas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  titulo: text("titulo"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** La transcripcion literal de un video de un referente (el guion crudo, ADR-009 del cockpit). */
+export const transcripciones = pgTable(
+  "transcripciones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    red: text("red").notNull(),
+    externalId: text("external_id").notNull(),
+    url: text("url").notNull(),
+    estado: text("estado").notNull(),
+    guion: text("guion"),
+    idioma: text("idioma"),
+    error: text("error"),
+    origen: text("origen").notNull(),
+    modo: text("modo"),
+    coberturaSeg: numeric("cobertura_seg"),
+    duracionSeg: numeric("duracion_seg"),
+    tandaId: uuid("tanda_id").references(() => tandas.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    procesadaEn: timestamp("procesada_en", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("transcripciones_video_idx").on(t.red, t.externalId), index("transcripciones_tanda_idx").on(t.tandaId)],
+);
+
+/** El guion pulido de un video, al lado del crudo y nunca encima. Una fila por video. */
+export const guionesLimpios = pgTable(
+  "guiones_limpios",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    red: text("red").notNull(),
+    externalId: text("external_id").notNull(),
+    creadorId: uuid("creador_id").references(() => creadores.id, { onDelete: "set null" }),
+    texto: text("texto").notNull(),
+    modelo: text("modelo").notNull(),
+    /** Huella de los criterios con que se limpio: avisa que quedo viejo, no re-limpia solo. */
+    criteriosHash: text("criterios_hash"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("guiones_limpios_video_idx").on(t.red, t.externalId), index("guiones_limpios_creador_idx").on(t.creadorId)],
+);
+
+/**
+ * La coleccion de videos que se arma para un creador. El cockpit no la ataba a nadie
+ * (`creador_id` nace nulo en el traslado; se asigna en 325), asi que no se inventa.
+ */
+export const colecciones = pgTable(
+  "colecciones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    creadorId: uuid("creador_id").references(() => creadores.id, { onDelete: "restrict" }),
+    nombre: text("nombre").notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("colecciones_nombre_idx").on(sql`lower(${t.nombre})`)],
+);
+
+export const coleccionesVideos = pgTable(
+  "colecciones_videos",
+  {
+    coleccionId: uuid("coleccion_id").notNull().references(() => colecciones.id, { onDelete: "cascade" }),
+    red: text("red").notNull(),
+    externalId: text("external_id").notNull(),
+    url: text("url").notNull(),
+    agregadoEn: timestamp("agregado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("colecciones_videos_pk").on(t.coleccionId, t.red, t.externalId)],
+);
+
+/** Lo que se sabe de un video para mostrarlo en una coleccion (el `videos_meta` del cockpit). */
+export const videosReferentes = pgTable(
+  "videos_referentes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    red: text("red").notNull(),
+    externalId: text("external_id").notNull(),
+    titulo: text("titulo"),
+    referente: text("referente"),
+    miniaturaUrl: text("miniatura_url"),
+    vistas: bigint("vistas", { mode: "number" }),
+    meGusta: bigint("me_gusta", { mode: "number" }),
+    seguidores: bigint("seguidores", { mode: "number" }),
+    duracionSeg: numeric("duracion_seg"),
+    fuente: text("fuente").notNull(),
+    traidoEn: timestamp("traido_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("videos_referentes_video_idx").on(t.red, t.externalId)],
+);
+
+/** Los videos que el equipo ya grabo (para no volver a proponerlos). */
+export const videosGrabados = pgTable(
+  "videos_grabados",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    red: text("red").notNull(),
+    externalId: text("external_id").notNull(),
+    url: text("url").notNull(),
+    grabadoEn: timestamp("grabado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("videos_grabados_video_idx").on(t.red, t.externalId)],
+);
+
+/**
+ * La huella del traslado unico del cockpit (ticket 322, molde de `migracion:deshacer`): una
+ * fila por fila trasladada, con su id en el cockpit. Es lo que reconoce el deshacer y lo que
+ * hace idempotente una segunda corrida. Lo que alguien cree despues en el CRM no esta aqui.
+ */
+export const trasladoCockpit = pgTable(
+  "traslado_cockpit",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tabla: text("tabla").notNull(),
+    filaId: uuid("fila_id").notNull(),
+    /** El id de la fila en el cockpit, o su llave natural (`red:external_id`) si no tenia id. */
+    refCockpit: text("ref_cockpit").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("traslado_cockpit_ref_idx").on(t.tabla, t.refCockpit), index("traslado_cockpit_fila_idx").on(t.tabla, t.filaId)],
+);
+
 /**
  * Areas de Retia (ticket 083, ADR 0043): agrupan leads por origen. Area NO es rol.
  * El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en leads ni deals.
@@ -2308,3 +2631,7 @@ export type NuevaFotoPauta = typeof fotosPauta.$inferInsert;
 export type Creador = typeof creadores.$inferSelect;
 export type TipoPieza = typeof tiposPieza.$inferSelect;
 export type Pieza = typeof piezas.$inferSelect;
+export type Tematica = typeof tematicas.$inferSelect;
+export type Referente = typeof referentes.$inferSelect;
+export type Candidato = typeof candidatos.$inferSelect;
+export type Calificacion = typeof calificaciones.$inferSelect;
