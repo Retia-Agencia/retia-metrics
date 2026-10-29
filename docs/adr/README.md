@@ -3,7 +3,7 @@
 Cada archivo `NNNN-slug.md` es **una** decisión difícil de revertir: el contexto, lo que se decidió y
 por qué. Se escribe un ADR solo si se cumplen las tres: es difícil de revertir, sorprendería a quien
 llegue después, y hubo alternativas reales. `/grill-with-docs` y `/improve-codebase` los proponen en
-el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0113)**; los números retirados
+el momento justo. Un ADR nuevo toma el **siguiente número libre (hoy 0115)**; los números retirados
 no se reutilizan, porque el código los cita.
 
 **27-sep-2026: la carpeta se depuró.** Quedan solo los ADR que describen lo que está confirmado para
@@ -142,6 +142,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0111](./0111-el-cockpit-se-migra-por-estrangulamiento.md) | El cockpit se migra al CRM por estrangulamiento: datos y pantallas al CRM, el motor sigue en n8n detrás de una fachada |
 | [0112](./0112-insights-de-llamadas-desde-grain.md) | Los insights salen del link público de Grain (al pegar y por cron), una extracción guardada por llamada; media ve citas sin identidad; el agente del cruce deja propuestas en el banco |
 | [0113](./0113-el-abono-adicional.md) | Lo vendido aparte del programa (1:1) entra como abono adicional del deal: suma a la caja, no toca saldo, etapa, ventas, meta ni comisión; nota opcional; cierra la D3 del 0037 |
+| [0114](./0114-el-crm-decide-los-avisos-y-juanito-los-entrega.md) | El CRM decide los avisos al equipo y Juanito los entrega: aviso post-llamada y resumen de la mañana al closer, pulso del día al grupo de ventas, la confirmación la dice el closer y la reenvía Juanito; sin datos del lead; banner del Hub como único latido |
 
 **Plataforma**
 

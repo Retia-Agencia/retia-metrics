@@ -351,6 +351,22 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 127 | [Deshacer la migración de un programa por su huella](./127-deshacer-la-migracion-por-huella.md) | 078 | done · 30-sep · Alejo (`87625fe`) · `npm run migracion:deshacer -- --programa <slug> [--aplicar]`: la reversa nivel 3 del corte (`operations.md` §12.3), probada en PGlite y en la base local; se niega sin borrar si alguien trabajó encima |
 | [x] | 208 | [Migrar el corte 3: agendados con Calendly y Estudiantes Noviembre](./208-migrar-el-corte-3.md) | 203 | done · 8-oct (noche) · aplicado con el ok de Mani: CA 91 agendados + 17 estudiantes, TI 89 + 9; TI C3 desde el 28-sep. Recorrido de Mani hecho |
 
+## 19 · Avisos por WhatsApp (ADR 0114, 28-oct)
+
+Sale del grill del 28-oct sobre llevar el CRM a resultados y decisiones con Juanito, con la lectura de los cuatro
+grupos de ventas de Retia. El CRM decide, Juanito entrega. Orden: 340 y 343 (las dos llevan migración, en la cola),
+después 341, 342, 344 y 345, y 346 en el repo de Juanito.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 340 | [El contrato de avisos: "¿qué mando ahora?"](./340-contrato-de-avisos.md) | — | todo · migración |
+| [ ] | 341 | [El aviso al closer cuando su llamada queda sin resultado](./341-aviso-post-llamada.md) | 340 | todo |
+| [ ] | 342 | [El resumen de la mañana del closer](./342-resumen-de-la-manana-del-closer.md) | 340, 341 | todo |
+| [ ] | 343 | [La confirmación de la llamada llega desde Juanito](./343-confirmacion-desde-juanito.md) | — | todo · migración |
+| [ ] | 344 | [El pulso del día en el grupo de ventas](./344-pulso-del-dia.md) | 340, 343 | todo |
+| [ ] | 345 | [El banner del Hub cuando Juanito no consulta](./345-banner-de-juanito.md) | 340 | todo |
+| [ ] | 346 | [Juanito entrega los avisos y reenvía las confirmaciones](./346-juanito-entrega-los-avisos.md) | 340, 343 | todo · toca el repo de Juanito con ok de Mani |
+
 ## 18 · Media (ADR 0107 a 0112, 28-oct)
 
 Sale del grill del 28-oct sobre [`docs/media/propuesta.md`](../media/propuesta.md). Ejecutables los pasos 1 a 3 de la

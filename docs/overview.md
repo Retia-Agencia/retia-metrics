@@ -560,3 +560,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Grain:** la grabación de la llamada; pegar su link es la prueba de que ocurrió.
 - **Juanito:** la automatización que manda los recordatorios de las llamadas. **Kapso:** la plataforma
   de WhatsApp para contactar y enviar masivos. Ninguno vive dentro del CRM.
+- **Aviso:** un mensaje que el CRM decide mandarle a alguien del equipo (un closer o el grupo de ventas) y que Juanito
+  entrega por WhatsApp. Cuenta y enlaza, nunca lista, y nunca lleva datos del lead (ADR 0114). *No confundir con
+  Notificaciones, que es la pestaña de Mi espacio.*
+- **Pulso del día:** el aviso al grupo de ventas de un programa que responde "¿cómo vamos hoy?": agenda del día,
+  confirmadas, ventas contra la meta del día y lo que quedó sin resultado.
+- **Confirmación (de una llamada):** lo que el closer dice que respondió el lead antes de la llamada: confirmada, no
+  confirmada o cancelada según el closer. Es un dato de la llamada, no su resultado: "cancelada según el closer" no
+  cancela la llamada.
