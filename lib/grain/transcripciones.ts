@@ -1,5 +1,5 @@
 import { and, count, eq, isNotNull, isNull, ne, notInArray, or, sql } from "drizzle-orm";
-import { calls, transcripciones } from "@/lib/db/schema";
+import { calls, transcripcionesLlamada } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
 import { ERRORES_DEFINITIVOS, ErrorDeGrain, esCodigoDeErrorGrain, type CodigoDeErrorGrain } from "./errores";
@@ -41,7 +41,7 @@ export async function leerYGuardarTranscript(
   // error de lectura: nadie lo puede arreglar reintentando, y contarlo ensuciaria la alarma.
   if (!linkDeGrainValido(link)) return { estado: "no_es_grain" };
 
-  const [previa] = await db.select().from(transcripciones).where(eq(transcripciones.callId, callId));
+  const [previa] = await db.select().from(transcripcionesLlamada).where(eq(transcripcionesLlamada.callId, callId));
   if (previa && previa.linkLeido === link && previa.crudo !== null) return { estado: "ya_leida" };
   const intentosPrevios = previa && previa.linkLeido === link ? previa.intentos : 0;
 
@@ -56,9 +56,9 @@ export async function leerYGuardarTranscript(
       ultimoIntentoEn: ahora,
     };
     await db
-      .insert(transcripciones)
+      .insert(transcripcionesLlamada)
       .values({ callId, ...valores })
-      .onConflictDoUpdate({ target: transcripciones.callId, set: valores });
+      .onConflictDoUpdate({ target: transcripcionesLlamada.callId, set: valores });
     return { estado: "leida", palabras: crudo.results.length };
   } catch (error) {
     // Cualquier cosa que no sea un ErrorDeGrain es un bug nuestro, no de Grain: no se esconde.
@@ -72,9 +72,9 @@ export async function leerYGuardarTranscript(
       ultimoIntentoEn: ahora,
     };
     await db
-      .insert(transcripciones)
+      .insert(transcripcionesLlamada)
       .values({ callId, ...valores })
-      .onConflictDoUpdate({ target: transcripciones.callId, set: valores });
+      .onConflictDoUpdate({ target: transcripcionesLlamada.callId, set: valores });
     return { estado: "fallida", codigo: error.codigo, intentos: valores.intentos };
   }
 }
@@ -84,24 +84,24 @@ export async function llamadasPorLeer(db: Db, limite: number = LOTE_DEL_CRON): P
   const filas = await db
     .select({ id: calls.id })
     .from(calls)
-    .leftJoin(transcripciones, eq(transcripciones.callId, calls.id))
+    .leftJoin(transcripcionesLlamada, eq(transcripcionesLlamada.callId, calls.id))
     .where(
       and(
         vigente(calls),
         isNotNull(calls.linkGrain),
         sql`${calls.linkGrain} ~* '^[[:space:]]*https://(www[.])?grain[.]com/(note|share/recording)/'`,
         or(
-          isNull(transcripciones.id),
-          ne(transcripciones.linkLeido, sql`trim(${calls.linkGrain})`),
+          isNull(transcripcionesLlamada.id),
+          ne(transcripcionesLlamada.linkLeido, sql`trim(${calls.linkGrain})`),
           and(
-            isNotNull(transcripciones.error),
-            sql`${transcripciones.intentos} < ${MAX_INTENTOS_GRAIN}`,
-            notInArray(transcripciones.error, [...ERRORES_DEFINITIVOS]),
+            isNotNull(transcripcionesLlamada.error),
+            sql`${transcripcionesLlamada.intentos} < ${MAX_INTENTOS_GRAIN}`,
+            notInArray(transcripcionesLlamada.error, [...ERRORES_DEFINITIVOS]),
           ),
         ),
       ),
     )
-    .orderBy(sql`${transcripciones.ultimoIntentoEn} asc nulls first`, calls.createdAt)
+    .orderBy(sql`${transcripcionesLlamada.ultimoIntentoEn} asc nulls first`, calls.createdAt)
     .limit(limite);
   return filas.map((f) => f.id);
 }
@@ -144,7 +144,7 @@ export interface SaludDeGrain {
 }
 
 /**
- * La alarma de las lecturas fallidas (ADR 0112 punto 2): se calcula de `transcripciones`,
+ * La alarma de las lecturas fallidas (ADR 0112 punto 2): se calcula de `transcripcionesLlamada`,
  * nada se guarda (ADR 0024). Una fila vive en la alarma mientras su error siga y su link sea el
  * actual de la llamada: pegar otro link, o una lectura buena, la apaga sola. El programa es
  * frontera: la lista es de un programa.
@@ -154,22 +154,22 @@ export async function saludDeGrain(db: Db, programId: string, limite = 50): Prom
     db
       .select({
         fallidas: count(),
-        agotadas: sql<number>`count(*) filter (where ${transcripciones.intentos} >= ${MAX_INTENTOS_GRAIN})::int`,
+        agotadas: sql<number>`count(*) filter (where ${transcripcionesLlamada.intentos} >= ${MAX_INTENTOS_GRAIN})::int`,
       })
       .from(calls)
-      .innerJoin(transcripciones, eq(transcripciones.callId, calls.id))
-      .where(and(vigente(calls), eq(calls.programId, programId), isNotNull(transcripciones.error), eq(transcripciones.linkLeido, sql`trim(${calls.linkGrain})`))),
+      .innerJoin(transcripcionesLlamada, eq(transcripcionesLlamada.callId, calls.id))
+      .where(and(vigente(calls), eq(calls.programId, programId), isNotNull(transcripcionesLlamada.error), eq(transcripcionesLlamada.linkLeido, sql`trim(${calls.linkGrain})`))),
     db
       .select({
         callId: calls.id,
-        error: transcripciones.error,
-        intentos: transcripciones.intentos,
-        ultimoIntentoEn: transcripciones.ultimoIntentoEn,
+        error: transcripcionesLlamada.error,
+        intentos: transcripcionesLlamada.intentos,
+        ultimoIntentoEn: transcripcionesLlamada.ultimoIntentoEn,
       })
       .from(calls)
-      .innerJoin(transcripciones, eq(transcripciones.callId, calls.id))
-      .where(and(vigente(calls), eq(calls.programId, programId), isNotNull(transcripciones.error), eq(transcripciones.linkLeido, sql`trim(${calls.linkGrain})`)))
-      .orderBy(sql`${transcripciones.ultimoIntentoEn} desc nulls last`)
+      .innerJoin(transcripcionesLlamada, eq(transcripcionesLlamada.callId, calls.id))
+      .where(and(vigente(calls), eq(calls.programId, programId), isNotNull(transcripcionesLlamada.error), eq(transcripcionesLlamada.linkLeido, sql`trim(${calls.linkGrain})`)))
+      .orderBy(sql`${transcripcionesLlamada.ultimoIntentoEn} desc nulls last`)
       .limit(limite),
   ]);
   const fallidas = total?.fallidas ?? 0;

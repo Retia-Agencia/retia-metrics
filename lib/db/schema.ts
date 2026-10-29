@@ -1301,8 +1301,8 @@ export const calls = pgTable(
  * Se escribe sin `change_log` a proposito (como `submissions` y `sobres_crudos`): es lectura
  * automatica de una fuente externa, no una edicion de alguien, y el crudo pesa cientos de KB.
  */
-export const transcripciones = pgTable(
-  "transcripciones",
+export const transcripcionesLlamada = pgTable(
+  "transcripciones_llamada",
   {
     id: uuid("id").primaryKey().defaultRandom(),
     callId: uuid("call_id").notNull().references(() => calls.id, { onDelete: "restrict" }),
@@ -1319,11 +1319,11 @@ export const transcripciones = pgTable(
     uniqueIndex("transcripciones_llamada_idx").on(t.callId),
     // Una fila es una lectura buena (crudo + leido_en) o un fallo (error), nunca las dos ni ninguna.
     check(
-      "transcripciones_estado_chk",
+      "transcripciones_llamada_estado_chk",
       sql`(${t.crudo} IS NOT NULL AND ${t.leidoEn} IS NOT NULL AND ${t.error} IS NULL)
           OR (${t.crudo} IS NULL AND ${t.leidoEn} IS NULL AND ${t.error} IS NOT NULL)`,
     ),
-    index("transcripciones_fallidas_idx").on(t.callId).where(sql`${t.error} is not null`),
+    index("transcripciones_llamada_fallidas_idx").on(t.callId).where(sql`${t.error} is not null`),
   ],
 );
 

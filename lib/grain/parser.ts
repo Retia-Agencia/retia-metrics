@@ -10,7 +10,7 @@ import { ErrorDeGrain } from "./errores";
 /** Una palabra: [inicio ms, texto, fin ms]. */
 export type PalabraDeGrain = [number, string, number];
 
-/** `transcript.data` tal como lo sirve Grain. Es lo que se guarda en `transcripciones.crudo`. */
+/** `transcript.data` tal como lo sirve Grain. Es lo que se guarda en `transcripcionesLlamada.crudo`. */
 export interface TranscriptCrudo {
   results: PalabraDeGrain[];
   speakers: { id: string; name: string }[];

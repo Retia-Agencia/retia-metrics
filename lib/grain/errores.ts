@@ -1,6 +1,6 @@
 /**
  * Por que una lectura de Grain falla (ADR 0112, ticket 328). Son codigos y no texto libre:
- * se guardan en `transcripciones.error`, la alarma los cuenta y la cron decide con ellos.
+ * se guardan en `transcripcionesLlamada.error`, la alarma los cuenta y la cron decide con ellos.
  * Grain no tiene API documentada, asi que `formato_cambio` es el que avisa que su pagina
  * cambio y hay que tocar el parser.
  */

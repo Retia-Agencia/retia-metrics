@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { calls, programs, transcripciones, users } from "@/lib/db/schema";
+import { calls, programs, transcripcionesLlamada, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   correrLecturasPendientes,
@@ -36,7 +36,7 @@ async function llamada(linkGrain: string | null, extra: Partial<typeof calls.$in
   const [c] = await db.insert(calls).values({ programId, resultado: "show", origen: "sheets", linkGrain, ...extra }).returning();
   return c.id;
 }
-const fila = async (callId: string) => (await db.select().from(transcripciones).where(eq(transcripciones.callId, callId)))[0];
+const fila = async (callId: string) => (await db.select().from(transcripcionesLlamada).where(eq(transcripcionesLlamada.callId, callId)))[0];
 
 describe("leerYGuardarTranscript", () => {
   it("guarda el crudo y es idempotente: la segunda vez no vuelve a Grain", async () => {
@@ -70,7 +70,7 @@ describe("leerYGuardarTranscript", () => {
     expect(await leerYGuardarTranscript(db, await llamada(null), { fetcher })).toEqual({ estado: "sin_link" });
     expect(await leerYGuardarTranscript(db, await llamada("https://fathom.video/share/x"), { fetcher })).toEqual({ estado: "no_es_grain" });
     expect(fetcher).not.toHaveBeenCalled();
-    expect(await db.select().from(transcripciones)).toHaveLength(0);
+    expect(await db.select().from(transcripcionesLlamada)).toHaveLength(0);
   });
 });
 
@@ -85,7 +85,7 @@ describe("el cron", () => {
     await leerYGuardarTranscript(db, definitiva, { fetcher: http(404) });
     const agotada = await llamada(LINK + "4");
     await leerYGuardarTranscript(db, agotada, { fetcher: http(503) });
-    await db.update(transcripciones).set({ intentos: MAX_INTENTOS_GRAIN }).where(eq(transcripciones.callId, agotada));
+    await db.update(transcripcionesLlamada).set({ intentos: MAX_INTENTOS_GRAIN }).where(eq(transcripcionesLlamada.callId, agotada));
     const [u] = await db.insert(users).values({ email: "g@retia.co", nombre: "G", rol: "gerente" }).returning();
     await llamada(LINK + "5", { anuladoEn: new Date(), anuladoPor: u.id, motivoAnulacion: "error" });
 
