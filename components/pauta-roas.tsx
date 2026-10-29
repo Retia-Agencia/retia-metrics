@@ -42,8 +42,8 @@ function Fila({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.shows} href={enlace(fila.nivel, fila.id ?? undefined, "show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.noShows} href={enlace(fila.nivel, fila.id ?? undefined, "no_show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top">{resueltas === 0 ? "—" : pct(fila.noShows / resueltas)}</td>
-    <td className="cifra py-2 pl-1 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
-    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}{fila.sinValorVendido > 0 ? <span className="block whitespace-nowrap text-xs text-muted-foreground">{num(fila.sinValorVendido)} sin valor vendido</span> : null}</td>
+    <td className="cifra min-w-44 py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
+    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === 0 ? "sin pauta" : num(fila.contratadoUsd / fila.gastoUsd, 2)}</td>
   </tr>;
@@ -75,6 +75,8 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
       <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre. Para llegar al anuncio, el link tiene que llevar <code>utm_id={"{{ad.id}}"}</code> y la landing pasarlo al formulario.</li>
       <li>Sin campaña de Meta: <span className="cifra">{num(cobertura.sinCampana)}</span>. No traen id ni un nombre de campaña que exista en Meta: no se pueden atribuir y van en su propia fila.</li>
     </ul></section>
+    {vista.total.sinValorVendido > 0 ? <section className="space-y-1"><h3 className="font-medium">Ventas sin valor vendido</h3><p className="text-muted-foreground">
+      <span className="cifra">{num(vista.total.sinValorVendido)}</span>: el closer no escribió el valor vendido; cuentan como venta pero suman 0 al contratado.</p></section> : null}
     <section className="space-y-1"><h3 className="font-medium">Citas sin marcar</h3><p className="text-muted-foreground">
       <span className="cifra">{num(vista.citasSinMarcar)}</span>: el closer no marcó show o no show.
     </p></section>
