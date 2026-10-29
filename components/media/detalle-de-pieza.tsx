@@ -16,7 +16,7 @@ export function DetalleDePieza({ pieza, onCerrar }: { pieza: PiezaVista; onCerra
   const publicada = pieza.estado === "publicada";
 
   return (
-    <DialogoDeMedia titulo={`${pieza.tipo} · ${pieza.red}`} descripcion={`${pieza.creador} · ${pieza.programa ?? "sin programa"}`} onCerrar={onCerrar}>
+    <DialogoDeMedia titulo={pieza.nombre} descripcion={`${pieza.creador} · ${pieza.tipo} · ${pieza.red} · ${pieza.programa ?? "sin programa"}`} onCerrar={onCerrar}>
       <dl className="grid grid-cols-2 gap-3 text-sm">
         <div>
           <dt className="text-xs text-muted-foreground">Estado</dt>

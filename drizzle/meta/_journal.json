@@ -771,6 +771,13 @@
       "when": 1793284817811,
       "tag": "0109_transcripciones-de-llamada",
       "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1793287327432,
+      "tag": "0110_nombre-de-pieza",
+      "breakpoints": true
     }
   ]
 }

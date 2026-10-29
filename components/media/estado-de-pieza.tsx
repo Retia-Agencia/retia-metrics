@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import type { EstadoDePieza } from "./tipos";
 
-const ESTADOS: Record<EstadoDePieza, { texto: string; variante: "info" | "alerta" | "exito" | "neutro" }> = {
+export const ESTADOS: Record<EstadoDePieza, { texto: string; variante: "info" | "alerta" | "exito" | "neutro" }> = {
   programada: { texto: "Programada", variante: "info" },
   atrasada: { texto: "Atrasada", variante: "alerta" },
   publicada: { texto: "Publicada", variante: "exito" },

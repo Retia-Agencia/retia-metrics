@@ -85,6 +85,7 @@ beforeEach(async () => {
 }, 60_000);
 
 const entrada = (o: Partial<Parameters<typeof crearPieza>[1]> = {}) => ({
+  nombre: "Reel de prueba",
   creadorId: creadorConPrograma,
   tipoId,
   red: "instagram" as const,
@@ -104,11 +105,21 @@ describe("316: crear y editar piezas", () => {
     expect(log.every((l) => l.userId === media.id && l.origen === "app")).toBe(true);
   });
 
+  it("la pieza lleva el nombre que le pone media: obligatorio al crear y editable", async () => {
+    await expect(crearPieza(media, entrada({ nombre: "   " }))).rejects.toMatchObject({ status: 400 });
+    const id = await crearPieza(media, entrada({ nombre: "  Reel objeción del precio " }));
+    const [p] = await db.select().from(piezas).where(eq(piezas.id, id));
+    expect(p.nombre).toBe("Reel objeción del precio");
+    expect(await editarPieza(media, id, { nombre: "Otro nombre", tipoId, red: "instagram", fechaPublicacion: "2026-10-30" })).toBe(true);
+    const [q] = await db.select().from(piezas).where(eq(piezas.id, id));
+    expect(q.nombre).toBe("Otro nombre");
+  });
+
   it("CHECK: o fecha o permanente, ni ambas ni ninguna (400 desde el esquema, y la base lo rechaza igual)", async () => {
     await expect(crearPieza(media, entrada({ fechaPublicacion: null, permanente: false }))).rejects.toMatchObject({ status: 400 });
     await expect(crearPieza(media, entrada({ permanente: true }))).rejects.toMatchObject({ status: 400 });
     await expect(
-      db.insert(piezas).values({ creadorId: creadorConPrograma, tipoId, red: "instagram", codigo: "zzzzzzzz", permanente: true, fechaPublicacion: "2026-10-30" }),
+      db.insert(piezas).values({ nombre: "Reel", creadorId: creadorConPrograma, tipoId, red: "instagram", codigo: "zzzzzzzz", permanente: true, fechaPublicacion: "2026-10-30" }),
     ).rejects.toThrow();
   });
 
@@ -124,8 +135,8 @@ describe("316: crear y editar piezas", () => {
     const id = await crearPieza(media, entrada());
     expect(await marcarPublicada(media, id)).toBe(true);
     expect(await marcarPublicada(media, id)).toBe(false);
-    expect(await editarPieza(media, id, { tipoId, red: "tiktok", fechaPublicacion: "2026-10-31" })).toBe(true);
-    expect(await editarPieza(media, id, { tipoId, red: "tiktok", fechaPublicacion: "2026-10-31" })).toBe(false);
+    expect(await editarPieza(media, id, { nombre: "Reel de prueba", tipoId, red: "tiktok", fechaPublicacion: "2026-10-31" })).toBe(true);
+    expect(await editarPieza(media, id, { nombre: "Reel de prueba", tipoId, red: "tiktok", fechaPublicacion: "2026-10-31" })).toBe(false);
     const [p] = await db.select().from(piezas).where(eq(piezas.id, id));
     expect(p.programId).toBe(programA);
     expect(p.creadorId).toBe(creadorConPrograma);
@@ -141,7 +152,7 @@ describe("316: crear y editar piezas", () => {
     expect(p.anuladoPor).toBe(media.id);
     expect(p.motivoAnulacion).toBe("mala toma");
     expect(await piezasDelCreador(media, creadorConPrograma)).toEqual([]);
-    await expect(editarPieza(media, id, { tipoId, red: "instagram", fechaPublicacion: "2026-10-30" })).rejects.toMatchObject({ status: 422 });
+    await expect(editarPieza(media, id, { nombre: "Reel de prueba", tipoId, red: "instagram", fechaPublicacion: "2026-10-30" })).rejects.toMatchObject({ status: 422 });
   });
 
   it("frontera: quien no trabaja contenido, o tiene el programa fuera de alcance, recibe 403", async () => {

@@ -18,6 +18,7 @@ import type { OpcionesDeMedia } from "./tipos";
 export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDeMedia; onCerrar: () => void }) {
   const { pendiente, correr } = useAccionDeMedia();
   const vacio = {
+    nombre: "",
     creadorId: opciones.creadores.length === 1 ? opciones.creadores[0].id : "",
     tipoId: "",
     red: opciones.redes[0] ?? "",
@@ -46,7 +47,7 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
           <p className="text-sm text-muted-foreground">{creada.sinLink}</p>
         )}
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => { setCreada(null); setF({ ...vacio, creadorId: f.creadorId }); }}>Agregar otra</Button>
+          <Button type="button" variant="ghost" onClick={() => { setCreada(null); setF({ ...vacio, creadorId: f.creadorId, tipoId: f.tipoId, red: f.red }); }}>Agregar otra</Button>
           <Button type="button" onClick={onCerrar}>Listo</Button>
         </DialogFooter>
       </DialogoDeMedia>
@@ -61,6 +62,7 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
           e.preventDefault();
           correr(
             () => crearPiezaAccion({
+              nombre: f.nombre,
               creadorId: f.creadorId,
               tipoId: f.tipoId,
               red: f.red as never,
@@ -69,10 +71,13 @@ export function FormularioDePieza({ opciones, onCerrar }: { opciones: OpcionesDe
               fechaPublicacion: f.permanente ? null : f.fecha || null,
             }),
             "Pieza creada",
-            (r) => setCreada({ titulo: `${elCreador?.nombre ?? ""} · ${elTipo?.nombre ?? ""} · ${f.red}`, link: r.link, desglose: r.desglose, sinLink: r.sinLink }),
+            (r) => setCreada({ titulo: `${f.nombre} · ${elCreador?.nombre ?? ""}`, link: r.link, desglose: r.desglose, sinLink: r.sinLink }),
           );
         }}
       >
+        <Etiqueta texto="Nombre de la pieza" ayuda="Cómo la reconoce el equipo, p. ej. “Reel objeción del precio”. Solo se ve en el CRM.">
+          <Input value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} maxLength={80} required />
+        </Etiqueta>
         <Etiqueta texto="Creador">
           <select className={campoSelect} value={f.creadorId} onChange={(e) => setF({ ...f, creadorId: e.target.value })} required>
             <option value="">Elige un creador…</option>

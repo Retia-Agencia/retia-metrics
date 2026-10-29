@@ -7,7 +7,7 @@ import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
-import { crearCreador, crearTipoDePieza, editarCreador } from "@/lib/media/creadores";
+import { crearCreador, crearTipoDePieza, editarCreador, type EntradaNuevoCreador } from "@/lib/media/creadores";
 import {
   crearPieza,
   descartarPieza,
@@ -59,7 +59,7 @@ async function ejecutar(fn: (actor: ActorDeMedia) => Promise<unknown>): Promise<
   }
 }
 
-export async function crearCreadorAccion(entrada: EntradaCreador): Promise<ResultadoAccion> {
+export async function crearCreadorAccion(entrada: EntradaNuevoCreador): Promise<ResultadoAccion> {
   return ejecutar((a) => crearCreador(a, entrada, db));
 }
 export async function editarCreadorAccion(id: string, entrada: EntradaCreador): Promise<ResultadoAccion> {

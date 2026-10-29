@@ -46,6 +46,7 @@ const fechaIso = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser AAAA
 /** Un solo esquema para el alta; la edicion reusa los mismos campos editables. */
 export const esquemaPieza = z
   .object({
+    nombre: z.string().trim().min(1, "La pieza necesita un nombre.").max(80, "Máximo 80 caracteres."),
     creadorId: z.string().uuid(),
     tipoId: z.string().uuid(),
     red: z.enum(REDES_DE_CONTENIDO),
@@ -61,6 +62,7 @@ export type EntradaPieza = z.input<typeof esquemaPieza>;
 /** Lo que una edicion puede tocar: nunca el creador ni el programa (la pieza no se muda). */
 export const esquemaEdicionPieza = z
   .object({
+    nombre: z.string().trim().min(1, "La pieza necesita un nombre.").max(80, "Máximo 80 caracteres."),
     tipoId: z.string().uuid(),
     red: z.enum(REDES_DE_CONTENIDO),
     cta: z.string().trim().max(200, "Máximo 200 caracteres.").nullish(),
@@ -118,8 +120,8 @@ async function piezaAccesible(db: Db, actor: ActorDeMedia, id: string) {
   return pieza;
 }
 
-function etiquetaDePieza(creadorSlug: string, red: string, fecha: string | null | undefined, permanente: boolean): string {
-  return `${creadorSlug} · ${red} · ${permanente ? "permanente" : fecha ?? "sin fecha"}`;
+function etiquetaDePieza(nombre: string, creadorSlug: string, red: string): string {
+  return `${nombre} · ${creadorSlug} · ${red}`;
 }
 
 /** Crea una pieza. El programa sale del creador; el codigo, del servidor. Devuelve el id. */
@@ -141,11 +143,12 @@ export async function crearPieza(actor: ActorDeMedia, entrada: EntradaPieza, db:
           tabla: piezas,
           nombreTabla: "piezas",
           actorId: actor.id,
-          etiqueta: etiquetaDePieza(creador.slug, datos.red, datos.fechaPublicacion, datos.permanente),
+          etiqueta: etiquetaDePieza(datos.nombre, creador.slug, datos.red),
         },
         {
           programId: creador.programId,
           creadorId: creador.id,
+          nombre: datos.nombre,
           tipoId: datos.tipoId,
           red: datos.red,
           cta: datos.cta || null,
@@ -183,10 +186,11 @@ export async function editarPieza(actor: ActorDeMedia, id: string, entrada: Edic
         tabla: piezas,
         nombreTabla: "piezas",
         actorId: actor.id,
-        etiqueta: etiquetaDePieza(creador?.slug ?? "?", datos.red, datos.fechaPublicacion, datos.permanente),
+        etiqueta: etiquetaDePieza(datos.nombre, creador?.slug ?? "?", datos.red),
       },
       id,
       {
+        nombre: datos.nombre,
         tipoId: datos.tipoId,
         red: datos.red,
         cta: datos.cta || null,

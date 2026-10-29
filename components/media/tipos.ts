@@ -2,10 +2,12 @@
  * Lo que el servidor le entrega a la pagina de media (tickets 316, 317 y 321). Todo llega
  * calculado: el link ya armado y el estado ya decidido; ninguna regla vive en el cliente.
  */
-export type EstadoDePieza = "programada" | "atrasada" | "publicada" | "fija";
+import type { EstadoDePieza } from "@/lib/media/estado-de-pieza";
+export type { EstadoDePieza };
 
 export interface PiezaVista {
   id: string;
+  nombre: string;
   creador: string;
   programa: string | null;
   tipo: string;

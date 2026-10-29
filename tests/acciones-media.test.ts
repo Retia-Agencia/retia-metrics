@@ -72,6 +72,17 @@ describe("las acciones de media", () => {
     expect(await db.select().from(changeLog)).toEqual([]);
   });
 
+  it("el slug del creador sale del nombre solo, y un nombre repetido recibe un numero", async () => {
+    const a = await acciones();
+    auth.mockResolvedValue(sesion("media", ids.media));
+    expect(await a.crearCreadorAccion({ nombre: "Milena Morales", programId: programA })).toEqual({ ok: true });
+    expect(await a.crearCreadorAccion({ nombre: "Milena  Morales", programId: programA })).toEqual({ ok: true });
+    expect(await a.crearCreadorAccion({ nombre: "Ñandú Álvarez", programId: programA })).toEqual({ ok: true });
+    const slugs = (await db.select({ slug: creadores.slug }).from(creadores)).map((c) => c.slug).sort();
+    expect(slugs).toEqual(["milena-morales", "milena-morales-2", "nandu-alvarez"]);
+    expect((await a.crearCreadorAccion({ nombre: "!!!", programId: programA })).ok).toBe(false);
+  });
+
   it("media crea creador, tipo y pieza; el programa sale del creador aunque el input traiga otro", async () => {
     const a = await acciones();
     auth.mockResolvedValue(sesion("media", ids.media));
@@ -79,7 +90,7 @@ describe("las acciones de media", () => {
     expect(await a.crearTipoDePiezaAccion("Reel")).toEqual({ ok: true });
     const [creador] = await db.select().from(creadores);
     const [tipo] = await db.select({ id: (await import("@/lib/db/schema")).tiposPieza.id }).from((await import("@/lib/db/schema")).tiposPieza);
-    const forjado = { creadorId: creador.id, tipoId: tipo.id, red: "instagram", fechaPublicacion: "2026-10-30", programId: programB, creadaPor: ids.closer } as never;
+    const forjado = { nombre: "Forjada", creadorId: creador.id, tipoId: tipo.id, red: "instagram", fechaPublicacion: "2026-10-30", programId: programB, creadaPor: ids.closer } as never;
     const r = await a.crearPiezaAccion(forjado);
     expect(r.ok).toBe(true);
     // El programa de prueba no tiene fuente principal: la pieza se crea y el porque del link vuelve en el resultado.
@@ -98,7 +109,7 @@ describe("las acciones de media", () => {
     const [{ id: tipoId }] = await db.select({ id: (await import("@/lib/db/schema")).tiposPieza.id }).from((await import("@/lib/db/schema")).tiposPieza);
 
     auth.mockResolvedValue(sesion("media", ids.acotado));
-    const r = await a.crearPiezaAccion({ creadorId: creador.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
+    const r = await a.crearPiezaAccion({ nombre: "Reel de prueba", creadorId: creador.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
     expect(r.ok).toBe(false);
     expect((await a.crearCreadorAccion({ nombre: "S", slug: "s" })).ok).toBe(false);
     expect(await db.select().from(piezas).where(eq(piezas.creadorId, creador.id))).toEqual([]);
@@ -122,7 +133,7 @@ describe("las acciones de media", () => {
     const ana = todos.find((c) => c.slug === "ana")!;
     const sol = todos.find((c) => c.slug === "sol")!;
 
-    const conLink = await a.crearPiezaAccion({ creadorId: ana.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
+    const conLink = await a.crearPiezaAccion({ nombre: "Reel de prueba", creadorId: ana.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
     expect(conLink.ok && conLink.link).toBeTruthy();
     const url = new URL((conLink as { link: string }).link);
     const [pieza] = await db.select().from(piezas).where(eq(piezas.creadorId, ana.id));
@@ -130,7 +141,7 @@ describe("las acciones de media", () => {
     expect(url.searchParams.get("utm_medium")).toBe("contenido");
     expect(url.searchParams.get("utm_content")).toBe(pieza.codigo);
 
-    const sinLink = await a.crearPiezaAccion({ creadorId: sol.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
+    const sinLink = await a.crearPiezaAccion({ nombre: "Reel de prueba", creadorId: sol.id, tipoId, red: "instagram", fechaPublicacion: "2026-10-30" });
     expect(sinLink.ok && sinLink.link).toBeFalsy();
     expect(sinLink.ok && sinLink.sinLink).toMatch(/no tiene programa/);
   });

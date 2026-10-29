@@ -10,6 +10,7 @@ import { BadgeDeEstado, fechaLegible } from "./estado-de-pieza";
 import { DialogoDeMedia, Etiqueta, campoSelect, useAccionDeMedia } from "./dialogo-de-media";
 import { FormularioDePieza } from "./formulario-de-pieza";
 import type { OpcionesDeMedia, PiezaVista } from "./tipos";
+import type { ReactNode } from "react";
 
 /**
  * La pagina de media (tickets 316, 317 y 321): una tabla de piezas del programa elegido y tres
@@ -18,7 +19,7 @@ import type { OpcionesDeMedia, PiezaVista } from "./tipos";
  */
 type Abierto = null | { tipo: "creador" } | { tipo: "tipos" } | { tipo: "pieza" } | { tipo: "detalle"; id: string };
 
-export function PanelDeMedia({ piezas, total, opciones }: { piezas: PiezaVista[]; total: number; opciones: OpcionesDeMedia }) {
+export function PanelDeMedia({ piezas, opciones, barra, filtrado }: { piezas: PiezaVista[]; opciones: OpcionesDeMedia; barra: ReactNode; filtrado: boolean }) {
   const [abierto, setAbierto] = useState<Abierto>(null);
   const cerrar = () => setAbierto(null);
   const detalle = abierto?.tipo === "detalle" ? piezas.find((p) => p.id === abierto.id) : undefined;
@@ -26,8 +27,7 @@ export function PanelDeMedia({ piezas, total, opciones }: { piezas: PiezaVista[]
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">{total === 0 ? "Sin piezas" : `${total} ${total === 1 ? "pieza" : "piezas"}`}</p>
+      <div className="flex flex-wrap items-center justify-end gap-2">
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="outline" onClick={() => setAbierto({ tipo: "tipos" })}>Tipos de pieza</Button>
           <Button type="button" variant="outline" onClick={() => setAbierto({ tipo: "creador" })}>Nuevo creador</Button>
@@ -35,9 +35,13 @@ export function PanelDeMedia({ piezas, total, opciones }: { piezas: PiezaVista[]
         </div>
       </div>
 
+      {barra}
+
       {piezas.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
-          {faltaAlgo
+          {filtrado
+            ? "Ninguna pieza coincide con los filtros. Quítalos con “Quitar todo”."
+            : faltaAlgo
             ? `Aún no hay piezas. Para crear la primera hace falta ${faltaAlgo}: usa los botones de arriba.`
             : "Aún no hay piezas en este programa. Usa “Agregar pieza” para crear la primera."}
         </p>
@@ -55,8 +59,8 @@ export function PanelDeMedia({ piezas, total, opciones }: { piezas: PiezaVista[]
                   className="grid w-full grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-none sm:grid-cols-[1.4fr_1fr_1fr_7rem]"
                 >
                   <span className="min-w-0">
-                    <span className="block font-medium">{p.tipo} · {p.red}</span>
-                    {p.cta ? <span className="block truncate text-xs text-muted-foreground">{p.cta}</span> : null}
+                    <span className="block font-medium">{p.nombre}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{p.tipo} · {p.red}</span>
                   </span>
                   <span className="order-3 text-xs text-muted-foreground sm:order-none sm:text-sm sm:text-foreground">{p.creador}</span>
                   <span className="order-4 text-xs text-muted-foreground sm:order-none sm:text-sm sm:text-foreground">{p.permanente ? "Sin fecha" : fechaLegible(p.fecha)}</span>
@@ -78,21 +82,18 @@ export function PanelDeMedia({ piezas, total, opciones }: { piezas: PiezaVista[]
 
 function FormularioDeCreador({ opciones, onCerrar }: { opciones: OpcionesDeMedia; onCerrar: () => void }) {
   const { pendiente, correr } = useAccionDeMedia();
-  const [c, setC] = useState({ nombre: "", slug: "", programId: opciones.programaInicial });
+  const [c, setC] = useState({ nombre: "", programId: opciones.programaInicial });
   return (
     <DialogoDeMedia titulo="Nuevo creador" descripcion="La persona que publica contenido. Su programa decide a qué formulario llegan sus links." onCerrar={onCerrar}>
       <form
         className="space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          correr(() => crearCreadorAccion({ nombre: c.nombre, slug: c.slug, programId: c.programId || null }), "Creador creado", onCerrar);
+          correr(() => crearCreadorAccion({ nombre: c.nombre, programId: c.programId || null }), "Creador creado", onCerrar);
         }}
       >
         <Etiqueta texto="Nombre">
           <Input value={c.nombre} onChange={(e) => setC({ ...c, nombre: e.target.value })} required />
-        </Etiqueta>
-        <Etiqueta texto="Slug" ayuda="Su nombre corto dentro del UTM de campaña (ej. milena).">
-          <Input placeholder="milena" value={c.slug} onChange={(e) => setC({ ...c, slug: e.target.value })} required />
         </Etiqueta>
         <Etiqueta texto="Programa" ayuda="Sin programa el creador se planea, pero sus piezas no tienen link ni miden ventas.">
           <select className={campoSelect} required={!opciones.conSinPrograma} value={c.programId} onChange={(e) => setC({ ...c, programId: e.target.value })}>

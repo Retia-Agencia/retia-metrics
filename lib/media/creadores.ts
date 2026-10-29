@@ -8,6 +8,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { trabajaContenido } from "@/lib/auth/roles";
+import { sanearUtm } from "@/lib/atribucion/sanear-utm";
 import { vigente } from "@/lib/queries/vigente";
 import { crearPieza, exigirAccesoAlCreador, type ActorDeMedia } from "./piezas";
 
@@ -34,9 +35,26 @@ function exigirQueTrabajaContenido(actor: ActorDeMedia): void {
   if (!trabajaContenido(actor.rol)) throw new ErrorDeApp("No tienes permiso para gestionar contenido.", 403);
 }
 
-export async function crearCreador(actor: ActorDeMedia, entrada: EntradaCreador, db: Db = dbDeLaApp) {
+/**
+ * El slug es plomeria del UTM, no una decision de media: sale del nombre (minusculas, sin tildes,
+ * con guiones) y, si ya existe, se le suma un numero. Una entrada con slug explicito se respeta.
+ */
+export async function slugDisponible(db: Db, nombre: string): Promise<string> {
+  const base = sanearUtm(nombre).replaceAll("_", "-").slice(0, 36);
+  if (base === "") throw new ErrorDeApp("El nombre necesita al menos una letra o un número.", 400);
+  const filas = await db.select({ slug: creadores.slug }).from(creadores);
+  const usados = new Set(filas.map((f) => f.slug.toLowerCase()));
+  let slug = base;
+  for (let n = 2; usados.has(slug); n++) slug = `${base}-${n}`;
+  return slug;
+}
+
+export type EntradaNuevoCreador = Omit<EntradaCreador, "slug"> & { slug?: string };
+
+export async function crearCreador(actor: ActorDeMedia, entrada: EntradaNuevoCreador, db: Db = dbDeLaApp) {
   exigirQueTrabajaContenido(actor);
-  const datos = await normalizando(async () => esquemaCreador.parse(entrada));
+  const slug = entrada.slug?.trim() || (await slugDisponible(db, entrada.nombre));
+  const datos = await normalizando(async () => esquemaCreador.parse({ ...entrada, slug }));
   if (datos.programId) await exigirProgramaEnAlcance(db, actor, datos.programId, MENSAJE_FUERA_DE_ALCANCE);
   else await exigirAccesoAlCreador(db, actor, { programId: null });
   return normalizando(() => catalogoDeCreadores(db).crear(actor.id, datos));
@@ -71,7 +89,7 @@ export async function editarCreador(actor: ActorDeMedia, id: string, entrada: En
         if (datos.programId) {
           await crearPieza(
             actor,
-            { creadorId: id, tipoId: vieja.tipoId, red: vieja.red as never, cta: vieja.cta, permanente: true },
+            { creadorId: id, nombre: vieja.nombre, tipoId: vieja.tipoId, red: vieja.red as never, cta: vieja.cta, permanente: true },
             tx,
           );
         }

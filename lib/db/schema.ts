@@ -1715,6 +1715,8 @@ export const piezas = pgTable(
     programId: uuid("program_id").references(() => programs.id, { onDelete: "restrict" }),
     creadorId: uuid("creador_id").notNull().references(() => creadores.id, { onDelete: "restrict" }),
     tipoId: uuid("tipo_id").notNull().references(() => tiposPieza.id, { onDelete: "restrict" }),
+    /** El nombre que le pone media para reconocerla ("Reel de la objeción del precio"). Solo se muestra: no viaja en el UTM. */
+    nombre: text("nombre").notNull(),
     /** La red (`instagram`, `tiktok`...): viaja como `utm_source`. Lista cerrada en `lib/media/redes.ts`. */
     red: text("red").notNull(),
     cta: text("cta"),
