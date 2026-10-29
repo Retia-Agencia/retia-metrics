@@ -729,6 +729,13 @@
       "when": 1793228344996,
       "tag": "0103_registros-meta",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1793232374572,
+      "tag": "0104_abono-concepto-y-nota",
+      "breakpoints": true
     }
   ]
 }

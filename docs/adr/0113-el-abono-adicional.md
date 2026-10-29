@@ -30,8 +30,8 @@ descuento: no era un pago del programa, era otra cosa vendida a la misma persona
    ninguna métrica la lee. Si un día hay que agrupar lo adicional por producto, ese día nace el catálogo (ADR 0077) y
    la nota se queda como lo que es.
 5. **Lo demás no cambia:** mismo rastro (`crearConRastro`), misma anulación, misma frontera de programa (sale del
-   deal, nunca del input), misma regla de moneda: sin conversión. El adicional se puede registrar en cualquier moneda
-   de las que acepta el formulario, porque no se compara contra el saldo.
+   deal, nunca del input), misma regla de moneda: sin conversión, y la moneda la sigue restringiendo el esquema
+   del abono (hoy solo USD). El adicional no se compara contra la moneda del saldo.
 6. **El saldo lo sigue respondiendo un solo lugar** (`saldosDeDeals`, `lib/queries/saldo.ts`), que ahora suma solo
    los abonos de concepto `ticket`. La reja y la pantalla del closer leen esa misma cifra.
 

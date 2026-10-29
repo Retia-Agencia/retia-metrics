@@ -82,6 +82,7 @@ export const pendienteDealEnum = pgEnum("pendiente_deal", ["reagenda", "seguimie
 
 export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
 export const estadoArchivoEnum = pgEnum("estado_archivo", ["pendiente", "listo"]);
+export const conceptoAbonoEnum = pgEnum("concepto_abono", ["ticket", "adicional"]);
 
 /**
  * Que clase de actividad quedo registrada sobre un deal (ADR 0037, ADR 0071). Es tipo
@@ -1388,6 +1389,13 @@ export const abonos = pgTable(
     /** Texto historico para el corte de datos; no identifica abonos nuevos. */
     closerId: text("closer_id"),
     origen: text("origen").notNull().default("app"),
+    /**
+     * `ticket` paga el valor vendido del deal; `adicional` es lo vendido aparte (un 1:1):
+     * suma a la caja y nada mas, ni saldo ni etapa ni ventas (ADR 0113).
+     */
+    concepto: conceptoAbonoEnum("concepto").notNull().default("ticket"),
+    /** Texto libre del closer; ninguna metrica lo lee (ADR 0113 punto 4). */
+    nota: text("nota"),
     /** Anulacion (ADR 0026). Ver la nota completa en `calls`. */
     anuladoEn: timestamp("anulado_en", { withTimezone: true }),
     anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
