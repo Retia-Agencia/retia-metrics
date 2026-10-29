@@ -323,6 +323,8 @@ export interface UsuarioConProgramas extends FilaCatalogo {
   calendlyEmail: string | null;
   programas: string[];
   programasQueVe: string[];
+  /** Cuando entro el usuario (fecha de creacion de la fila). */
+  creadoEn: Date;
 }
 
 /** Lista todos los usuarios (activos e inactivos) con sus programas activos. */
@@ -354,6 +356,7 @@ export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProg
     calendlyEmail: u.calendlyEmail,
     programas: activasPorUsuario.get(u.id) ?? [],
     programasQueVe: alcancePorUsuario.get(u.id) ?? [],
+    creadoEn: u.createdAt,
   }));
 }
 

@@ -3,13 +3,10 @@ import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { UsuariosAdmin, type UsuarioVista } from "@/components/usuarios-admin";
-import { CalendlyMembresias } from "@/components/calendly-membresias";
-import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
-import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
-import { esAccesoTotal, trabajaLeads } from "@/lib/auth/roles";
+import { listarUsuarios } from "@/lib/catalogo/usuarios";
+import { esAccesoTotal } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programasActivos } from "@/lib/queries/programas";
-import { asignarCalendlyDeMembresiaAccion } from "./acciones";
 
 export const dynamic = "force-dynamic";
 
@@ -25,17 +22,7 @@ export default async function UsuariosPage() {
   const session = await paginaConAdministracionGlobal();
   const puedeEditarAlcance = esAccesoTotal(await rolDeVista(session));
 
-  const [usuarios, programas, todasLasMembresias] = await Promise.all([
-    listarUsuarios(db),
-    programasActivos(),
-    membresiasConCalendly(db),
-  ]);
-
-  // La cuenta de Calendly es de quien trabaja leads (ticket 096). Las cuentas de cada
-  // programa se leen de Calendly con su token, que nunca sale del servidor.
-  const trabajan = new Set(usuarios.filter((u) => trabajaLeads(u)).map((u) => u.id));
-  const membresias = todasLasMembresias.filter((m) => trabajan.has(m.userId));
-  const cuentas = await cuentasPorPrograma(db, [...new Set(membresias.map((m) => m.programId))]);
+  const [usuarios, programas] = await Promise.all([listarUsuarios(db), programasActivos()]);
 
   const vista: UsuarioVista[] = usuarios.map((u) => ({
     id: u.id,
@@ -46,13 +33,15 @@ export default async function UsuariosPage() {
     closerId: u.closerId,
     calendlyEmail: u.calendlyEmail,
     activo: u.activo,
+    programas: u.programas,
     programasQueVe: u.programasQueVe,
+    creadoEn: u.creadoEn.toISOString(),
   }));
 
   return (
     <PageShell
       titulo="Usuarios"
-      descripcion="Quién puede entrar y con qué rol. Las membresías se administran en la tab Programa."
+      descripcion="Quién puede entrar y con qué rol. Las membresías y las cuentas de Calendly se administran en la tab Programa."
       volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
       fija
     >
@@ -62,16 +51,7 @@ export default async function UsuariosPage() {
           usuarioActualId={session.user.id}
           programas={programas}
           puedeEditarAlcance={puedeEditarAlcance}
-        >
-          {membresias.length > 0 ? (
-            <CalendlyMembresias
-              membresias={membresias}
-              programas={programas}
-              cuentas={cuentas}
-              accion={asignarCalendlyDeMembresiaAccion}
-            />
-          ) : null}
-        </UsuariosAdmin>
+        />
       </PantallaFija>
     </PageShell>
   );
