@@ -101,6 +101,21 @@ describe("Hub Origen", () => {
     expect(await cantidad("agendas_creadas", { campaign: "c1", resultado: "no_show" })).toBe(1);
   });
 
+  it("una agenda sin envío de origen no cae en la lista de Sin UTM (la tabla la pone en su propia fila)", async () => {
+    const sinUtm = await crearEnvio(null, null, "2026-10-10");
+    await agendar(sinUtm, "2026-10-12T10:00:00-05:00");
+    const lead = (await db.insert(leads).values({ programId, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning())[0];
+    const manual = (await db.insert(deals).values({ leadId: lead.id, programId, etapa: "agendado" }).returning())[0];
+    await db.insert(calls).values({ programId, dealId: manual.id, createdAt: new Date("2026-10-12T11:00:00-05:00") });
+    await db.insert(calls).values({ programId, createdAt: new Date("2026-10-12T12:00:00-05:00") });
+    await db.update(calls).set({ resultado: "no_show" });
+    const base = { programId, rango: { desde: "2026-10-01", hasta: "2026-10-24" }, hoy: "2026-10-24" };
+    const [lista] = await listaDeMetrica("agendas_creadas", { ...base, categoria: "sin_utm", resultado: "no_show" }, 1, db);
+    expect(lista.subtotal.cantidad).toBe(1);
+    const [todas] = await listaDeMetrica("agendas_creadas", { ...base, resultado: "no_show" }, 1, db);
+    expect(todas.subtotal.cantidad).toBe(3);
+  });
+
   it("no marca nuevo un par visto antes de la ventana de siete días", async () => {
     await crearEnvio("instagram rosario", "storiesfijadas", "2026-09-01");
     await crearEnvio("instagram rosario", "storiesfijadas", "2026-10-22");

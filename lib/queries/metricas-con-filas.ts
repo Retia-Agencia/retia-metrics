@@ -1,5 +1,5 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
@@ -508,6 +508,9 @@ function consultaDe(
             ...(filtros.area ? { area: [filtros.area] } : {}),
             ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
           }),
+          // Sin envío de origen, las columnas UTM llegan nulas y la regla diría "sin_utm"; la tabla de
+          // Pauta la pone en su propia fila, así que una categoría pedida exige el envío.
+          filtros.categoria ? isNotNull(submissions.id) : undefined,
           filtros.resultado === "no_show" ? eq(calls.resultado, "no_show") : undefined,
           filtros.resultado === "show" ? inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]) : undefined,
           vigente(calls),

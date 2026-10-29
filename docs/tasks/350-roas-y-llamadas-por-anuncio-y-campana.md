@@ -36,12 +36,15 @@ Grill del 29-oct con Mani: las decisiones de abajo están cerradas; absorbe la p
    sin nombre, correo, teléfono ni closer. Respeta DP-12 (el paid trafficker no ve llamadas sueltas); quién es la persona
    lo sigue diciendo la lista del Hub para quien tiene permiso. Mismo universo que la tabla.
 
-## Decisión abierta (Mani, 29-oct)
+## Decidido (Mani, 29-oct): el paid trafficker ve el lead, nada más
 
-- **¿El paid trafficker ve las personas detrás de cada cifra?** Mani lo prefiere ("que puedan ver las personas, o al
-  menos Gerencia"). Hoy NO: DP-12 y el ADR 0052 le niegan llamadas, deals y abonos sueltos, y las listas de origen piden
-  `veTableroDelPrograma`. Abrirlo es enmendar esas dos decisiones (leads, no llamadas ni dinero, podría ser el
-  alcance mínimo) y se decide al arrancar el ticket. Mientras tanto, para él, el CSV anonimizado.
+- Detrás de cada cifra de Pauta (registros, agendas, shows, no shows, ventas) el paid trafficker ve **el lead: nombre y
+  etapa**. **Sin closer, sin deal y sin monto.** Enmienda DP-12 y el ADR 0052 solo en eso: deals, llamadas y abonos
+  sueltos siguen cerrados. Consecuencia aceptada: en la lista de no shows, nombre más cifra dicen el resultado de la cita
+  de esa persona; es justo lo que Pauta pidió. Gerencia, closer y developer siguen viendo lo de hoy (`veEquipoComercial`).
+- Construirlo es parte del 350: una pregunta nueva en `lib/auth/roles.ts` (no un `rol ===` en la página), la proyección
+  de `hub/lista` que le deje la persona y le anule closer, deal y monto, la enmienda escrita en el ADR 0052 y en DP-12, y
+  el test que lo muerda forjando la petición como paid trafficker. El CSV anonimizado sigue igual.
 
 ## Fuera
 

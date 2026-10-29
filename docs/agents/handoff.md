@@ -28,16 +28,17 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 ## Memory
 
 - **2026-10-29: Pauta con no shows por origen, listas por campaña y resultado, periodo visible (349 hecho) y grill del 350.**
-  Sesión de Mani sobre lo que pidió Paid Ads Trafficker (mucho no show, ROAS ≈ 0,2). **Hecho, sin commit** (typecheck, lint y
-  los tests de `pauta-interina`, `paginas`, `origen`, `metricas-con-filas`, `volver-de-listas` y `vigencia-centralizada`
-  pasan; falta `npm run build` porque se tocó `components/selector-periodo.tsx` y un recorrido visual): `pautaInterina`
+  Sesión de Mani sobre lo que pidió Paid Ads Trafficker (mucho no show, ROAS ≈ 0,2). **Hecho y en main** (`6d24f2e6`; build verde y recorrido como gerente el mismo día, claro y oscuro. El recorrido
+  cazó que la lista de Sin UTM contaba también las agendas sin envío de origen, 6 no shows contra 5 de la tabla: arreglado
+  en `metricas-con-filas` con test en `tests/origen.test.ts`): `pautaInterina`
   suma shows y no shows por origen; `components/pauta-interina.tsx` tiene las columnas Shows, No shows y % no show ("n de m
   citas") y cada cifra abre su lista; `hub/lista` ganó los filtros `campaign` (registros y agendas creadas) y `resultado`
   (`show`|`no_show`, solo agendas creadas), vía `urlDeLista`; el chip de `SelectorPeriodo` lleva ícono, borde de marca y el
   rango. **Ventas (Michael, mismo día):** columna Ventas en la tabla de origen con "en llamada · después · sin llamada" y "completas · parciales" (escalera ADR 0109, ventas cerradas en el periodo; la lista `escalera` acepta ahora filtros de origen, `ventas`/`despues` y `pago`). Los links de Pauta solo salen con `veEquipo` (los de ventas, con `esAdministrador`). **Pendiente: el 350, grill cerrado, sin construir** (decisiones en
   el ticket): ROAS = contratado, anclado a la fecha de registro, total de Paid con todas las ventas y filas solo con anuncio
-  y cobertura visible, tarjeta nueva en Pauta, marca "aún madurando" por fila, CSV anonimizado. **Abierta:** si el paid
-  trafficker ve las personas (enmienda de DP-12 y ADR 0052). `docs/metricas.md` ROAS actualizado. **Arrancar el 350:**
+  y cobertura visible, tarjeta nueva en Pauta, marca "aún madurando" por fila, CSV anonimizado. **Decidido (Mani):** el paid
+  trafficker ve el lead detrás de cada cifra (nombre y etapa), sin closer, deal ni monto; se construye con el 350
+  (enmienda de DP-12, ya escrita, y del ADR 0052, por escribir). `docs/metricas.md` ROAS actualizado. **Arrancar el 350:**
   `docs/tasks/350-…md`, `lib/queries/hechos/*`, `lib/queries/origen.ts`, `lib/pauta/arbol.ts`, `components/pauta-interina.tsx`.
 
 - **2026-10-29: link fijo del creador, solo desde Creadores (media, medir).** Las piezas normales llevan siempre fecha
