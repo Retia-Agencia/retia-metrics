@@ -428,24 +428,13 @@ async function SeccionPauta({
   const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
     slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
   });
-  const campanaRoas = texto(busqueda.roas_campana);
-  const hrefCampanaRoas = (id: string) => {
-    const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(busqueda)) {
-      if (typeof v === "string" && k !== "roas_campana") q.set(k, v);
-    }
-    if (campanaRoas !== id) q.set("roas_campana", id);
-    const query = q.toString();
-    return query ? `?${query}` : "?";
-  };
   const csv = new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" });
 
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
       <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} enlaceLista={enlaceLista} />
-      <PautaRoas vista={roas} enlace={enlaceRoas} hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`}
-        campanaAbierta={campanaRoas} hrefCampana={hrefCampanaRoas} />
+      <PautaRoas vista={roas} enlace={enlaceRoas} hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`} />
     </section>
   );
 }

@@ -108,7 +108,7 @@ describe("ROAS de Pauta", () => {
     expect(vista.sinAnuncio).toMatchObject({ ventas: 1, contratadoUsd: 100 });
     expect(vista.campanas.some((fila) => fila.id === "camp-vacia")).toBe(false);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", hrefCampana: () => "/campana",
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv",
     }));
     expect(html).toContain("1 de 2 ventas sin campaña de Meta");
     expect(html).toContain("Cómo se calcula");
@@ -157,9 +157,11 @@ describe("ROAS de Pauta", () => {
     expect(vista.cobertura).toEqual({ anuncio: 0, soloCampanaOConjunto: 2, sinCampana: 1 });
     expect(vista.citasSinMarcar).toBe(1);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", campanaAbierta: "camp1", hrefCampana: () => "/campana",
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv",
     }));
-    expect(html).toContain("Anuncio sin identificar");
+    // El detalle de la campaña vive en un diálogo cerrado: la fila es un botón y no despliega nada en la tabla.
+    expect(html).toContain("<button");
+    expect(html).not.toContain("Anuncio sin identificar");
   });
 
   it("calcula la madurez histórica para el detalle y la lista cuadra por paso", async () => {

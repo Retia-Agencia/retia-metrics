@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
+import { FilaDeCampana } from "@/components/pauta-roas-campana";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
 import type { NivelPauta, PasoPauta, RenglonRoas, VistaRoasDePauta } from "@/lib/queries/roas-de-pauta";
@@ -31,11 +32,11 @@ function CeldaVentas({ fila, enlace }: { fila: RenglonRoas; enlace: Enlace }) {
     ])}</span></span>;
 }
 
-function Fila({ fila, enlace, nombre, sangria = "" }: {
+function Celdas({ fila, enlace, nombre, sangria = "" }: {
   fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string;
 }) {
   const resueltas = fila.shows + fila.noShows;
-  return <tr>
+  return <>
     <td className={`break-words py-2 pr-2 align-top ${sangria}`}>{nombre ?? fila.nombre}</td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.registros} href={enlace(fila.nivel, fila.id ?? undefined, "registro")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.agendas} href={enlace(fila.nivel, fila.id ?? undefined, "agenda")} /></td>
@@ -47,7 +48,19 @@ function Fila({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === 0 ? "sin pauta" : num(fila.contratadoUsd / fila.gastoUsd, 2)}</td>
-  </tr>;
+  </>;
+}
+
+function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string }) {
+  return <tr><Celdas {...props} /></tr>;
+}
+
+function Cabecera() {
+  return <thead><tr className="border-b text-left text-xs text-muted-foreground">
+    <th className="w-[19%] py-2 font-medium">Campaña › conjunto › anuncio</th>
+    {["Registros", "Agendas", "Shows", "No shows", "% no show", "Ventas", "Contratado USD", "Gasto USD", "ROAS"].map((titulo) =>
+      <th key={titulo} className={`break-words py-2 pl-1 text-right font-medium${titulo === "Ventas" ? " w-[17%] pl-3" : ""}`}>{titulo}{titulo === "% no show" ? <span className="block text-xs font-normal">de llamadas con resultado</span> : null}</th>)}
+  </tr></thead>;
 }
 
 function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
@@ -84,41 +97,35 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
   </ComoSeCalcula>;
 }
 
-export function PautaRoas({ vista, enlace, hrefCsv, campanaAbierta, hrefCampana }: {
+export function PautaRoas({ vista, enlace, hrefCsv }: {
   vista: VistaRoasDePauta;
   enlace: Enlace;
   hrefCsv: string;
-  campanaAbierta?: string;
-  hrefCampana: (id: string) => string;
 }) {
   const conjuntos = (campana: string) => vista.conjuntos.filter((f) => f.padreId === campana);
   const anuncios = (conjunto: string) => vista.anuncios.filter((f) => f.padreId === conjunto);
+  const detalleDe = (campana: RenglonRoas) => {
+    const filas: ReactNode[] = [<Fila key={campana.id} fila={campana} enlace={enlace} />];
+    for (const conjunto of conjuntos(campana.id!)) {
+      filas.push(<Fila key={conjunto.id} fila={conjunto} enlace={enlace} sangria="pl-3" />);
+      for (const anuncio of anuncios(conjunto.id!)) filas.push(<Fila key={anuncio.id} fila={anuncio} enlace={enlace} sangria="pl-6" />);
+    }
+    const residual = vista.anunciosSinIdentificar.find((fila) => fila.padreId === campana.id);
+    if (residual) filas.push(<Fila key={`residual-${campana.id}`} fila={residual} enlace={enlace} sangria="pl-6" />);
+    return <table className="w-full min-w-[56rem] table-fixed text-xs"><Cabecera />
+      <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">{filas}</tbody></table>;
+  };
   return <Card aria-labelledby="roas-pauta"><CardHeader><div className="flex flex-wrap items-start justify-between gap-2">
-    <div><CardTitle id="roas-pauta">ROAS por anuncio y campaña</CardTitle><p className="text-sm text-muted-foreground">Anclado a la fecha de registro.</p></div>
+    <div><CardTitle id="roas-pauta">ROAS por anuncio y campaña</CardTitle><p className="text-sm text-muted-foreground">Anclado a la fecha de registro. Toca una campaña para ver sus conjuntos y anuncios.</p></div>
     <div className="flex flex-wrap items-center gap-2"><InformacionRoas vista={vista} /><Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link></div>
   </div></CardHeader><CardContent className="space-y-3">
-    <table className="w-full table-fixed text-xs"><thead><tr className="border-b text-left text-xs text-muted-foreground">
-      <th className="w-[19%] py-2 font-medium">Campaña › conjunto › anuncio</th>
-      {["Registros", "Agendas", "Shows", "No shows", "% no show", "Ventas", "Contratado USD", "Gasto USD", "ROAS"].map((titulo) =>
-        <th key={titulo} className={`break-words py-2 pl-1 text-right font-medium${titulo === "Ventas" ? " w-[17%] pl-3" : ""}`}>{titulo}{titulo === "% no show" ? <span className="block text-xs font-normal">de llamadas con resultado</span> : null}</th>)}
-    </tr></thead><tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
+    <table className="w-full table-fixed text-xs"><Cabecera />
+    <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
       <Fila fila={vista.total} enlace={enlace} />
-      {vista.campanas.flatMap((campana) => {
-        const abierta = campana.id === campanaAbierta;
-        const filas: ReactNode[] = [<Fila key={campana.id} fila={campana} enlace={enlace}
-          nombre={<Link href={hrefCampana(campana.id!)} className={`${claseEnlace} break-words`}>{abierta ? "▾" : "▸"} {campana.nombre}</Link>} />];
-        if (abierta) {
-          for (const conjunto of conjuntos(campana.id!)) {
-            filas.push(<Fila key={conjunto.id} fila={conjunto} enlace={enlace} sangria="pl-3" />);
-            for (const anuncio of anuncios(conjunto.id!)) filas.push(
-              <Fila key={anuncio.id} fila={anuncio} enlace={enlace} sangria="pl-6" />,
-            );
-          }
-          const residual = vista.anunciosSinIdentificar.find((fila) => fila.padreId === campana.id);
-          if (residual) filas.push(<Fila key={`residual-${campana.id}`} fila={residual} enlace={enlace} sangria="pl-6" />);
-        }
-        return filas;
-      })}
+      {vista.campanas.map((campana) => <FilaDeCampana key={campana.id} nombre={campana.nombre} detalle={detalleDe(campana)}>
+        <Celdas fila={campana} enlace={enlace}
+          nombre={<button type="button" className={`${claseEnlace} break-words text-left`}>▸ {campana.nombre}</button>} />
+      </FilaDeCampana>)}
       {(vista.sinAnuncio.registros > 0 || vista.sinAnuncio.agendas > 0 || vista.sinAnuncio.ventas > 0) ? <>
         <Fila fila={vista.sinAnuncio} enlace={enlace} />
         {vista.sinAnuncio.ventas > 0 ? <tr><td colSpan={10} className="py-2 text-xs text-muted-foreground">{num(vista.sinAnuncio.ventas)} de {num(vista.total.ventas)} ventas sin campaña de Meta</td></tr> : null}

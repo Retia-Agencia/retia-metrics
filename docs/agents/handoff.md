@@ -27,6 +27,10 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-29 (noche): la tabla del ROAS abre un pop up por campaña.** Antes `roas_campana` desplegaba conjuntos y anuncios
+  dentro de la tabla; ahora la fila de la campaña (`FilaDeCampana`, `components/pauta-roas-campana.tsx`) abre un diálogo con su
+  detalle y la URL ya no lleva `roas_campana`. Typecheck, lint y build verdes; tests no corridos en local (swap alto).
+  **Pendiente:** mirarlo en `dev:local` (ancho del diálogo, Esc, foco) y el checkpoint.
 - **2026-10-29 (tarde): 350 hecho, ROAS por campaña › conjunto › anuncio en Hub › Pauta.** Codex implementó en
   `.claude/worktrees/350` (rama `350-roas`), una ronda de arreglos tras la revisión: los deals que nacen de un PARCIAL
   se perdían del ROAS (ahora un parcial se pliega en su completo y uno solo suma citas y ventas, no registros), filas
