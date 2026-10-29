@@ -140,7 +140,8 @@ function Cifra({ valor: n, href }: { valor: number; href: string | null }) {
 function TasaNoShow({ noShows, shows }: { noShows: number; shows: number }) {
   const resueltas = noShows + shows;
   if (resueltas === 0) return <span className="text-muted-foreground">—</span>;
-  return <span className="font-medium">{pct(noShows / resueltas)}</span>;
+  return <span className="block"><span className="block font-medium">{pct(noShows / resueltas)}</span>
+    <span className="block text-xs text-muted-foreground">{num(noShows)} de {num(resueltas)} con resultado</span></span>;
 }
 
 /** La venta, con cuando pagaron y cuanto: la linea de "en llamada / despues" y la de "completas / parciales". */
@@ -323,7 +324,7 @@ export function PautaInterina({
                 <th className="py-2 pl-3 text-right font-medium">Agendas</th>
                 <th className="py-2 pl-3 text-right font-medium">Shows</th>
                 <th className="py-2 pl-3 text-right font-medium">No shows</th>
-                <th className="py-2 pl-3 text-right font-medium" title="No shows sobre shows + no shows. Las agendas pendientes o canceladas no entran">% no show</th>
+                <th className="py-2 pl-3 text-right font-medium" title="No shows sobre shows + no shows. Las agendas pendientes o canceladas no entran">% no show<span className="block text-xs font-normal">de llamadas con resultado</span></th>
                 <th className="py-2 pl-3 text-right font-medium" title="Ventas cerradas en el periodo con el origen de esta fila, cuándo pagaron y si fue completo o parcial">Ventas</th>
               </tr>
             </thead>
