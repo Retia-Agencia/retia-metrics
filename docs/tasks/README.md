@@ -383,6 +383,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 336 | [Scoping: el manejo de media en el CRM, con Metricool de referente](./336-scoping-manejo-de-media-tipo-metricool.md) | — | todo · levantamiento, no construcción; prioridad baja; alimenta 333 y 334 |
 | [ ] | 337 | [Subir formatos al banco](./337-formatos-al-banco.md) | 321, 324 | todo · faltante de la verificación de crudos (28-oct) |
 | [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
+| [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | todo · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
 
 ## 17 · Agendamiento: piloto de dCal (23-oct)
 

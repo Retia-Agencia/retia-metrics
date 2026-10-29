@@ -141,6 +141,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0110](./0110-el-creador-y-la-pieza-de-contenido.md) | El creador (programa opcional) y la pieza son datos; el link fijo es una pieza permanente; los estados de media se anclan a cuatro significados del código |
 | [0111](./0111-el-cockpit-se-migra-por-estrangulamiento.md) | El cockpit se migra al CRM por estrangulamiento: datos y pantallas al CRM, el motor sigue en n8n detrás de una fachada |
 | [0112](./0112-insights-de-llamadas-desde-grain.md) | Los insights salen del link público de Grain (al pegar y por cron), una extracción guardada por llamada; media ve citas sin identidad; el agente del cruce deja propuestas en el banco |
+| [0113](./0113-el-abono-adicional.md) | Lo vendido aparte del programa (1:1) entra como abono adicional del deal: suma a la caja, no toca saldo, etapa, ventas, meta ni comisión; nota opcional; cierra la D3 del 0037 |
 
 **Plataforma**
 

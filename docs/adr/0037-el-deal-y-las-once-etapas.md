@@ -88,7 +88,8 @@ cuando falla, mueve la cosa equivocada sin avisar. Si dos hechos están relacion
 ## Abierto
 
 - **D3:** hoy Abonado ocupa el cupo del lead y bloquea un segundo deal (upsell, mentoría) en el mismo
-  programa. Depende de si venden una segunda cosa a la misma persona (`docs/plan.md` §7).
+  programa. Depende de si venden una segunda cosa a la misma persona (`docs/plan.md` §7). **Cerrada el 28-oct
+  por el ADR 0113:** lo vendido aparte es un abono adicional del mismo deal, no un segundo deal.
 
 ## Descartado
 
