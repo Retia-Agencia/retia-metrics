@@ -112,6 +112,8 @@ export const PREGUNTA_DE_ETAPA: Readonly<Record<EtapaDeal, PreguntaDeEtapa>> = {
     respuestas: [
       { id: "termino", etiqueta: "Terminó", accion: { tipo: "mover", a: "atendido", pendiente: null } },
       { id: "se_movio", etiqueta: "Se movió", accion: { tipo: "llamada", uso: "reprogramar" } },
+      // Con la cita ya fallida (Re-agenda) no hay cita que mover: se agenda una nueva (E7 limpia el pendiente).
+      { id: "agendar_nueva", etiqueta: "Agendar nueva cita", accion: { tipo: "llamada", uso: "agendar" }, soloConPendiente: true },
       { id: "fallida", etiqueta: "No asistió o canceló", accion: { tipo: "llamada", uso: "fallida" } },
       proximaCohorte("agendado", true),
       descartar(),
@@ -177,7 +179,8 @@ export function llevaA(accion: AccionDeRespuesta, etapa: EtapaDeal, columna: Eta
     case "actividad":
       return columna === "en_gestion" || columna === "contactado";
     case "llamada":
-      return accion.uso === "agendar" && columna === "agendado";
+      // Agendar sobre un deal que ya está en Agendado (cita nueva tras una fallida) no cambia de columna.
+      return accion.uso === "agendar" && columna === "agendado" && etapa !== "agendado";
   }
 }
 
@@ -299,8 +302,9 @@ export function respuestasHaciaColumna(
   if (desde === hacia) return [];
   if (hacia === "reagenda") return respuestasDe(etapa, pendiente).filter((r) => poneReagenda(r.accion));
   if (hacia === etapa) {
+    // Salir de Re-agenda hacia su etapa es una cita nueva: la anterior ya fracasó, no hay cuál mover.
     return hacia === "agendado"
-      ? respuestasDe(etapa, pendiente).filter((r) => r.accion.tipo === "llamada" && r.accion.uso !== "fallida")
+      ? respuestasDe(etapa, pendiente).filter((r) => r.accion.tipo === "llamada" && r.accion.uso === "agendar")
       : [];
   }
   return respuestasHacia(etapa, pendiente, hacia);
@@ -319,8 +323,9 @@ export function cambiaLaEtapa(etapa: EtapaDeal, accion: AccionDeRespuesta): bool
       // Una actividad mueve con la regla del motor (`etapaTrasActividad`), no con las columnas.
       return etapaTrasActividad(etapa, accion.actividad) !== etapa;
     case "llamada":
-      // "Agendó" mueve a Agendado; reprogramar y fallida dejan la MISMA etapa con un pendiente.
-      return accion.uso === "agendar";
+      // "Agendó" mueve a Agendado (salvo desde Agendado, donde limpia el pendiente); reprogramar y
+      // fallida dejan la MISMA etapa con un pendiente.
+      return accion.uso === "agendar" && etapa !== "agendado";
   }
 }
 

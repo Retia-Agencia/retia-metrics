@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,7 +8,7 @@ import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { OpcionCatalogo } from "@/lib/queries/kanban";
 import { DialogoMover, type DatosDialogo, type MovimientoDelDialogo } from "./dialogo-mover";
 import { moverConHechoAccion, proximaCohorteAccion, registrarActividadAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { accionDeFicha, enlaceDeAccion } from "./ficha/accion-pedida";
+import { DialogoFallida, DialogoReagendar } from "./ficha/acciones-de-llamada";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
 import type { CorreccionCliente, FlechaCliente, MapaTransiciones } from "./transiciones";
@@ -23,7 +22,7 @@ import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificacio
  * - una flecha (`mover`, `retroceder`) abre `DialogoMover`, que pide sus datos y muestra lo
  *   que el deal tiene y le falta, y confirma con `moverDeal`;
  * - una actividad abre su pop-up aquí;
- * - una llamada o un abono abren su formulario de siempre en la ficha (`?accion=…`).
+ * - "No asistió o canceló" y "Se movió" abren el diálogo de resultado de la cita aquí mismo.
  */
 export interface DealQueResponde {
   dealId: string;
@@ -102,13 +101,15 @@ export function useResponder(
   corregir: (deal: DealQueResponde, correccion: CorreccionCliente) => void;
   dialogo: ReactNode;
 } {
-  const router = useRouter();
   const [abierta, setAbierta] = useState<{ deal: DealQueResponde; respuesta: Respuesta; flecha: FlechaCliente } | null>(null);
   const [destinoAbierto, setDestinoAbierto] = useState<{
     deal: DealQueResponde;
     destino: ClaveDestino;
     respuestas: readonly Respuesta[];
   } | null>(null);
+  // "No asistió o canceló" y "Se movió" actúan sobre la cita agendada del deal: abren el mismo
+  // diálogo que el botón Resultado de la llamada, aquí mismo y sin pasar por la ficha.
+  const [citaAbierta, setCitaAbierta] = useState<{ deal: DealQueResponde; uso: "fallida" | "reprogramar" } | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [correccionAbierta, setCorreccionAbierta] = useState<{ deal: DealQueResponde; correccion: CorreccionCliente } | null>(null);
   // El pop-up de actividad guarda los tipos que se pueden elegir y el que esta elegido: con
@@ -145,10 +146,12 @@ export function useResponder(
       registrar(deal, r.accion.actividad);
       return;
     }
-    const esHechoDelMovimiento = r.accion.tipo === "abono" || (r.accion.tipo === "llamada" && r.accion.uso === "agendar");
-    const formulario = esHechoDelMovimiento ? null : accionDeFicha(r.accion);
-    if (formulario) {
-      router.push(enlaceDeAccion(deal.rutaDeLaFicha, formulario));
+    if (r.accion.tipo === "llamada" && r.accion.uso !== "agendar") {
+      if (!deal.llamada) {
+        toast.error("Este deal no tiene una cita agendada sobre la que marcar el resultado.");
+        return;
+      }
+      setCitaAbierta({ deal, uso: r.accion.uso });
       return;
     }
     const flecha = flechaDe(mapa, deal, r);
@@ -358,6 +361,21 @@ export function useResponder(
         enviando={enviando}
         onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, movimiento.pendiente, false, movimiento.hecho)}
       />
+    );
+  }
+  if (citaAbierta?.deal.llamada) {
+    const { deal, uso } = citaAbierta;
+    const cerrar = () => setCitaAbierta(null);
+    dialogo = uso === "fallida" ? (
+      <DialogoFallida
+        callId={deal.llamada!.id}
+        resultado="no_show"
+        motivos={opciones.motivos.map((m) => ({ ...m, pideTexto: m.pideTexto ?? false }))}
+        onCerrar={cerrar}
+        onCambio={alTerminar}
+      />
+    ) : (
+      <DialogoReagendar callId={deal.llamada!.id} dealId={deal.dealId} onCerrar={cerrar} onCambio={alTerminar} />
     );
   }
   if (correccionAbierta) {

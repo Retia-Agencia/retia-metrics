@@ -260,7 +260,7 @@ function DialogoResultado({
   );
 }
 
-function DialogoFallida({
+export function DialogoFallida({
   callId,
   resultado: resultadoInicial,
   motivos,
@@ -333,7 +333,7 @@ function DialogoFallida({
   );
 }
 
-function DialogoReagendar({ callId, dealId, onCerrar, onCambio }: { callId: string; dealId: string; onCerrar: () => void; onCambio?: () => void }) {
+export function DialogoReagendar({ callId, dealId, onCerrar, onCambio }: { callId: string; dealId: string; onCerrar: () => void; onCambio?: () => void }) {
   const { pendiente, correr } = useAccion();
   const [fecha, setFecha] = useState<HoraElegida | null>(null);
   const [notas, setNotas] = useState("");

@@ -371,7 +371,7 @@ describe("respuestasHaciaColumna: la columna Re-agenda del Kanban (ticket 296, A
   });
 
   it("salir a Agendado es la cita nueva; volver a Atendido sin un hecho no existe", () => {
-    expect(ids(respuestasHaciaColumna("agendado", "reagenda", "reagenda", "agendado"))).toEqual(["se_movio"]);
+    expect(ids(respuestasHaciaColumna("agendado", "reagenda", "reagenda", "agendado"))).toEqual(["agendar_nueva"]);
     expect(ids(respuestasHaciaColumna("atendido", "reagenda", "reagenda", "agendado"))).toEqual(["agendo"]);
     expect(respuestasHaciaColumna("atendido", "reagenda", "reagenda", "atendido")).toEqual([]);
     expect(respuestasHaciaColumna("agendado", "reagenda", "reagenda", "reagenda")).toEqual([]);
