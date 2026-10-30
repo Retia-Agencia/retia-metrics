@@ -292,6 +292,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 361 | [Retiro de lo muerto, y el guardián del diccionario](./361-retiro-de-lo-muerto.md) | — | todo · 30-oct · auditoría · ADR 0115 N7 |
 | [ ] | 362 | [Documentos sin contradicciones, y el tracker que no miente](./362-documentos-sin-contradicciones.md) | — | todo · 30-oct · auditoría · ADR 0115 N8, N9 |
 | [ ] | 363 | [Llamadas sueltas: emparejar por el uuid de la cita, sin importar el orden ni el correo](./363-llamadas-sueltas-sugerencias-y-rematch.md) | — | todo · 30-oct · Inbox · ADR 0049 |
+| [ ] | 364 | [El link de la llamada a un clic, y el aviso cuando la cita es manual](./364-link-de-la-llamada-y-aviso-de-cita-manual.md) | — | todo · 30-oct · Kanban · A-137 |
 | [x] | 289 | [El webhook de Calendly filtra por tipo de evento](./289-el-webhook-de-calendly-filtra-por-evento.md) | 280, 278 | done · 20-oct · checkpoint `cp-20261020-1` · en main · 19-oct · ADR 0098, 0098 aplicada, SBJ configurado, 25 sueltas anuladas · falta checkpoint verde |
 | [x] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | done · 20-oct · Codex + central · CI verde `3ba6988b` · medido en producción: marca Tactical (63 de 63 pagos sin id) y Confianza (82 de 82), no ComunicArte (0 de 50) |
 | [x] | 291 | [Corregir el resultado de una llamada](./291-corregir-el-resultado-de-una-llamada.md) (ADR 0101) | 177 | done · 21-oct · en main · Codex + central · CI verde `2c2b2abe` (el primero cayó: E14 rompía pegar Grain sobre Atendido) |
