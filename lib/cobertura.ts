@@ -7,8 +7,8 @@ export interface RazonConCobertura {
 
 export type EstadoDeCobertura = "completa" | "parcial" | "no_calculable";
 
-// ponytail: valor por defecto que propone el 351, pendiente de que Mani lo confirme; el umbral por programa (contrato
-// C-1) llega con el 353 como columna del programa.
+// ponytail: valor por defecto del 351, confirmado por Mani el 30-oct; el umbral por programa (contrato C-1) llega con
+// el 353 como columna del programa.
 export const UMBRAL_COBERTURA_POR_DEFECTO = 0.8;
 
 export function estadoDeCobertura(

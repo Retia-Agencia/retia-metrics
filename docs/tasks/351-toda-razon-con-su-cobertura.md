@@ -64,15 +64,18 @@ La captura del resultado de la llamada (341) y la reja de la comisión (356): aq
 
 ## Avance (30-oct, ola 1, mitad de pauta)
 
-Hecho: `RazonConCobertura` y `estadoDeCobertura` (`lib/cobertura.ts`, umbral por defecto 0,8 **propuesto, falta que Mani
-lo confirme**), `coberturaDeGasto` (`lib/pauta/cobertura-de-gasto.ts`), un solo convertidor (`lib/pauta/convertir-gasto.ts`;
+Hecho: `RazonConCobertura` y `estadoDeCobertura` (`lib/cobertura.ts`, umbral por defecto 0,8, **confirmado por
+Mani el 30-oct**), `coberturaDeGasto` (`lib/pauta/cobertura-de-gasto.ts`), un solo convertidor (`lib/pauta/convertir-gasto.ts`;
 se borró `convertir` de `roas-de-pauta.ts` y el semáforo usa el mismo), ROAS por renglón y costo por agenda de ventana con
 cobertura, y `<CifraDeRazon>` para pintarla. El día en curso: el semáforo lo lee de las fotos; el ROAS no las lee y lo
 dice (si hoy no tiene gasto cargado, la venta de hoy cae en `faltan`). Los días interiores sin fila cuentan como cubiertos
 (una campaña pausada gasta 0).
 
-Backfill: `scripts/rellenar-gasto-de-pauta.ts --desde 2026-10-01 --hasta 2026-10-07` (ensayo por defecto; `--aplicar`
-escribe en producción por `sincronizarPautaEnVentana` y luego `leerTrm`). **No se corrió: pide el ok de Mani (DA-8).**
+Backfill (punto 6): `scripts/rellenar-gasto-de-pauta.ts --desde 2026-10-01 --hasta 2026-10-07 --aplicar`, **corrido el
+30-oct con el ok de Mani** contra `hfqmiyiuyqapdsbywrag`: 349 filas de gasto, 0 omitidas, y 21 publicaciones de TRM
+(1 al 31-oct, ningún día de gasto sin TRM). Ahora el gasto empieza el 1-oct en ComunicArte y Tactical, y el 6-oct en
+Comunícate con Confianza (Meta no devolvió gasto antes). Con eso el ROAS de octubre vuelve a calcularse entero; la
+cobertura sigue protegiendo cualquier otro hueco.
 
 Queda para el 353: el % de show, % de cierre, agenda → venta y la proyección con el tipo; la columna del umbral por
 programa (migración, la aplica la sesión principal); la tarjeta del semáforo, el mensaje de WhatsApp y las tarjetas de Hoy
