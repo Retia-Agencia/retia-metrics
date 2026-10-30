@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const seleccionar = vi.fn(() => ({ from: () => ({ where: vi.fn().mockResolvedValue([{ id: "programa-1" }, { id: "programa-2" }]) }) }));
+const seleccionar = vi.hoisted(() => vi.fn(() => ({ from: () => ({ where: vi.fn().mockResolvedValue([{ id: "programa-1" }, { id: "programa-2" }]) }) })));
 vi.mock("@/lib/db", () => ({ db: { select: seleccionar } }));
 vi.mock("@/lib/calendly/reconciliar", () => ({
   reconciliarCalendly: vi.fn().mockResolvedValue({ sueltas: 1, colgadas: 1, dealsReparados: 0, dudas: 0, sinLlamada: 0 }),

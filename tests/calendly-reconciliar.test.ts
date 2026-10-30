@@ -31,7 +31,7 @@ async function escenario(args: { correo?: string; uuid?: string; etapa?: "regist
   await db.insert(submissions).values({
     sourceId,
     leadId: lead.id,
-    token: `token-${uuid}`,
+    token: `token-${uuid}-${correo}`,
     respuestas: { agenda: `https://calendly.com/d/abc/entrevista/invitees/${uuid}` },
   });
   if (args.llamada !== false) {

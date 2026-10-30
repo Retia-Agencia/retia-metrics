@@ -5,7 +5,7 @@ import { tokenCalendly } from "@/lib/integraciones";
 import { vigente } from "@/lib/queries/vigente";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { resolverCitaDeEnvio } from "./resolver-cita";
-import { uuidDeHuella } from "./huella";
+import { huellaDeCita, uuidDeHuella } from "./huella";
 import { sueltaPorAsignar } from "./suelta";
 import {
   candidatosPorCorreo,
@@ -197,7 +197,7 @@ export async function reconciliarCalendly(
       .from(calls)
       .where(and(
         eq(calls.programId, programId),
-        eq(calls.huellaFila, `calendly:${uuid}`),
+        eq(calls.huellaFila, huellaDeCita(uuid)),
         eq(calls.resultado, "agendada"),
         vigente(calls),
       ));

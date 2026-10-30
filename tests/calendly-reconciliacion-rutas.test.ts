@@ -207,7 +207,7 @@ describe("matriz 363 por las rutas reales", () => {
     await enviarCalendly(evento);
     await enviarCalendly(evento);
     expect(await db.select().from(calls)).toHaveLength(1);
-    expect((await db.select().from(changeLog)).filter((c) => c.tabla === "calls" && c.campo === "dealId")).toHaveLength(rastrosAntes);
+    expect((await db.select().from(changeLog)).filter((c) => c.tabla === "calls" && c.campo === "dealId")).toHaveLength(rastrosAntes + 1);
   });
 
   it("dos entregas simultáneas: I3 converge a una llamada colgada y Agendado", async () => {
