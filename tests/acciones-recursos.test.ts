@@ -152,6 +152,7 @@ const recursoEn = (programId: string | null) => ({
 const enlaceEn = (programId: string) => ({
   programId,
   plataformaId: plataforma,
+  nombre: "Pago completo",
   monto: "797.00",
   moneda: "USD" as const,
   url: "https://paypal.com/pago",

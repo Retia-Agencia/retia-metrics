@@ -1429,6 +1429,8 @@ export const abonos = pgTable(
     monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
     moneda: text("moneda").notNull().default("USD"),
     plataformaId: uuid("plataforma_id").references(() => plataformasPago.id, { onDelete: "restrict" }),
+    /** El link de pago con el que se cobro; la plataforma se deriva de el al escribir. Nulo en abonos viejos. */
+    enlacePagoId: uuid("enlace_pago_id").references((): AnyPgColumn => enlacesPago.id, { onDelete: "restrict" }),
     comprobanteUrl: text("comprobante_url"),
     comprobanteArchivoId: uuid("comprobante_archivo_id").references(() => archivos.id, { onDelete: "restrict" }),
     /** Identidad de quien registro el abono. Nula solo para la historia pendiente de relleno. */
@@ -2222,7 +2224,8 @@ export const recursos = pgTable(
  * (restriccion dura de AGENTS.md): los links se generan a mano segun la TRM del
  * momento, asi que el monto es el que cobra ese link y nada mas.
  *
- * `vigente` y `activo` significan lo mismo que en `recursos`.
+ * `vigente` y `activo` significan lo mismo que en `recursos`. `nombre` es como lo ve el
+ * closer al elegirlo en un abono: el abono apunta al link (`abonos.enlace_pago_id`).
  */
 export const enlacesPago = pgTable(
   "enlaces_pago",
@@ -2234,6 +2237,7 @@ export const enlacesPago = pgTable(
     plataformaId: uuid("plataforma_id")
       .notNull()
       .references(() => plataformasPago.id, { onDelete: "restrict" }),
+    nombre: text("nombre").notNull(),
     monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
     moneda: text("moneda").notNull().default("USD"),
     url: text("url").notNull(),

@@ -16,11 +16,10 @@ import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDea
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
+import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarEnlaceDeAbono } from "@/lib/deals/abonos";
 import { almacenDeArchivos, confirmarArchivo, pedirSubida, verificarArchivo } from "@/lib/archivos";
 import { MAX_BYTES, TIPOS_PERMITIDOS } from "@/lib/archivos/reglas";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
-import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { registrarActividad } from "@/lib/deals/actividades";
 import { anotar, esquemaAnotar, type DatosAnotar, type AnotacionHecha } from "@/lib/deals/anotar";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
@@ -36,6 +35,8 @@ import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals
 import { marcarCortesia } from "@/lib/deals/cortesia";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
+import { crearEnlacePago, esquemaEnlacePago } from "@/lib/catalogo/enlaces-pago";
+import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 
 /**
  * Server actions de la ficha del deal (ticket 074). Mismo patron que `../acciones.ts`:
@@ -183,7 +184,8 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
     tipo: z.literal("abono"),
     fecha: dia,
     monto: z.string(),
-    plataformaId: textoOpcional(id("Plataforma inválida.")),
+    moneda: z.literal("USD"),
+    enlacePagoId: textoOpcional(id("Enlace de pago inválido.")),
     comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
     archivoId: textoOpcional(id("Archivo inválido.")),
   }),
@@ -224,7 +226,7 @@ export async function moverConHechoAccion(
       : datos.hecho?.tipo === "agendado"
         ? { tipo: "agendado" as const, ...resolverHoraElegida(datos.hecho.horaElegida) }
         : datos.hecho?.tipo === "abono"
-          ? { ...datos.hecho, moneda: "USD" as const, archivo }
+          ? { ...datos.hecho, archivo }
           : undefined;
     // El resumen se arma en el servidor; al cliente solo le llegan los textos, nunca el `cambio`.
     if (hecho?.tipo === "agendado") await exigirSinCitaAgendada(datos.dealId);
@@ -389,7 +391,8 @@ const esquemaAbonoAccion = z.object({
   dealId: id("Deal inválido."),
   fecha: dia,
   monto: z.string(),
-  plataformaId: textoOpcional(id("Plataforma inválida.")),
+  moneda: z.literal("USD").default("USD"),
+  enlacePagoId: textoOpcional(id("Enlace de pago inválido.")),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
   archivoId: textoOpcional(id("Archivo inválido.")),
 });
@@ -411,7 +414,7 @@ export async function registrarAbonoAccion(
 }
 
 const esquemaAbonoAdicionalAccion = esquemaAbonoAccion
-  .pick({ dealId: true, fecha: true, monto: true, plataformaId: true })
+  .pick({ dealId: true, fecha: true, monto: true, moneda: true, enlacePagoId: true })
   .extend({ nota: z.string().max(500, "La nota puede tener máximo 500 caracteres.").optional() });
 export type EntradaAbonoAdicional = z.input<typeof esquemaAbonoAdicionalAccion>;
 
@@ -426,11 +429,6 @@ export async function registrarAbonoAdicionalAccion(
     return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo };
   });
 }
-
-const esquemaCrearPlataformaParaAbono = z.object({
-  dealId: id("Deal inválido."),
-  nombre: z.string().trim().min(2, "Escribe al menos 2 caracteres."),
-});
 
 const esquemaPedirSubidaParaAbono = z.object({
   dealId: id("Deal inválido."),
@@ -458,45 +456,47 @@ export async function pedirSubidaParaAbonoAccion(
     });
   });
 }
-export type EntradaCrearPlataformaParaAbono = z.input<typeof esquemaCrearPlataformaParaAbono>;
+const esquemaCambiarEnlaceDeAbonoAccion = z.object({
+  abonoId: id("Abono inválido."),
+  enlacePagoId: id("Enlace de pago inválido.").nullable(),
+});
+export type EntradaCambiarEnlaceDeAbono = z.input<typeof esquemaCambiarEnlaceDeAbonoAccion>;
 
-export async function crearPlataformaParaAbonoAccion(
-  entrada: EntradaCrearPlataformaParaAbono,
-): Promise<ResultadoFicha<{ plataforma: { id: string; nombre: string } }>> {
+export async function cambiarEnlaceDeAbonoAccion(
+  entrada: EntradaCambiarEnlaceDeAbono,
+): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
-    const datos = esquemaCrearPlataformaParaAbono.parse(entrada);
-    const [deal] = await db
-      .select({ programId: deals.programId, ownerUserId: deals.ownerUserId })
-      .from(deals)
-      .where(and(eq(deals.id, datos.dealId), incluyendoAnulados(deals)));
-    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-    if (!trabajaLeads(ctx.actor) || !puedeTrabajarDeal(ctx.actor, deal)) {
-      throw new ErrorDeApp("Solo el dueño del deal puede crear una plataforma para sus abonos.", 403);
-    }
-    const plataforma = await crearOVincularPlataforma(
-      db,
-      { id: ctx.actor.userId, rol: ctx.actor.rol },
-      datos.nombre,
-      deal.programId,
-    );
-    return { plataforma: { id: plataforma.id, nombre: String(plataforma.nombre) } };
+    const datos = esquemaCambiarEnlaceDeAbonoAccion.parse(entrada);
+    await exigirAbonoVisible(ctx, datos.abonoId);
+    await cambiarEnlaceDeAbono(db, ctx.actor, datos);
+    return {};
   });
 }
 
-const esquemaCambiarPlataformaDeAbonoAccion = z.object({
-  abonoId: id("Abono inválido."),
-  plataformaId: id("Plataforma inválida.").nullable(),
-});
-export type EntradaCambiarPlataformaDeAbono = z.input<typeof esquemaCambiarPlataformaDeAbonoAccion>;
+const esquemaCrearEnlaceParaAbono = esquemaEnlacePago
+  .omit({ programId: true })
+  .extend({ dealId: id("Deal inválido.") });
+export type EntradaCrearEnlaceParaAbono = z.input<typeof esquemaCrearEnlaceParaAbono>;
 
-export async function cambiarPlataformaDeAbonoAccion(
-  entrada: EntradaCambiarPlataformaDeAbono,
-): Promise<ResultadoFicha> {
+/** Crea el link en el programa DEL deal; el cliente no puede elegir otro programa. */
+export async function crearEnlaceParaAbonoAccion(
+  entrada: EntradaCrearEnlaceParaAbono,
+): Promise<ResultadoFicha<{ enlace: EnlaceDeLaPantalla }>> {
   return correr(async (ctx) => {
-    const datos = esquemaCambiarPlataformaDeAbonoAccion.parse(entrada);
-    await exigirAbonoVisible(ctx, datos.abonoId);
-    await cambiarPlataformaDeAbono(db, ctx.actor, datos);
-    return {};
+    const datos = esquemaCrearEnlaceParaAbono.parse(entrada);
+    const [deal] = await db
+      .select({ programId: deals.programId })
+      .from(deals)
+      .where(and(eq(deals.id, datos.dealId), incluyendoAnulados(deals)));
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    const creado = await crearEnlacePago(
+      db,
+      { id: ctx.actor.userId, rol: ctx.actor.rol },
+      { ...datos, programId: deal.programId },
+    );
+    const enlace = (await enlacesDePagoVigentes({ programId: deal.programId }, db)).find((e) => e.id === creado.id);
+    if (!enlace) throw new ErrorDeApp("El link se creó pero no se pudo volver a leer.", 500);
+    return { enlace };
   });
 }
 

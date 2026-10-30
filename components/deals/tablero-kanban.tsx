@@ -49,6 +49,7 @@ export interface TableroKanbanProps {
   cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
   plataformas: OpcionCatalogo[];
+  enlacesDePago: import("@/lib/queries/recursos").EnlaceDeLaPantalla[];
   /** Inicio de clases por cohorte y el de la activa: prellenan la fecha limite de Compromiso Verbal. */
   inicioDeClases: Record<string, string>;
   inicioDeLaCohorteActiva: string | null;
@@ -84,6 +85,7 @@ export function TableroKanban({
   cohortesDestino,
   motivos,
   plataformas,
+  enlacesDePago,
   inicioDeClases,
   inicioDeLaCohorteActiva,
   userId,
@@ -104,7 +106,7 @@ export function TableroKanban({
   const animacionRef = useRef<number | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-  const { elegir, abrirDestino, corregir, dialogo } = useResponder(mapa, { cohortes, cohortesDestino, motivos, plataformas }, nombreDeEtapa, () => router.refresh());
+  const { elegir, abrirDestino, corregir, dialogo } = useResponder(mapa, { cohortes, cohortesDestino, motivos, plataformas, enlacesDePago }, nombreDeEtapa, () => router.refresh());
 
   const detenerAutoScroll = useCallback(() => {
     velocidadRef.current = 0;

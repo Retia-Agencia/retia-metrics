@@ -6,7 +6,19 @@ depends: []
 status: done
 ---
 
-# 212 — El closer crea la plataforma de pago al registrar el abono, y la corrige después
+# 212 — El closer elige el link de pago al registrar el abono
+
+## Enmienda (30-oct)
+
+El flujo operativo ya no crea ni elige plataformas desde el abono. El closer elige un
+link vigente del programa, lo copia para enviarlo al lead y el servidor guarda
+`enlace_pago_id` y deriva `plataforma_id` del link. “Sin enlace” sigue permitido y
+los abonos históricos sin link conservan su plataforma. Las plataformas y sus links se
+gestionan únicamente en Programa > Plataformas de pago; Recursos sigue en solo lectura.
+
+El selector es de dos pasos: plataforma y luego link. Un link fija monto y moneda, y el
+servidor rechaza cualquier discrepancia. “Sin link de pago” permite escribir el monto y
+asociarlo después; desde el mismo selector se puede crear un link en el programa del deal.
 
 ## Por qué existe
 

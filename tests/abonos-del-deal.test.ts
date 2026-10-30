@@ -7,6 +7,7 @@ import {
   dealActividades,
   dealEtapaHistorial,
   deals,
+  enlacesPago,
   leads,
   plataformasPago,
   programs,
@@ -14,7 +15,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { anularAbono, cambiarPlataformaDeAbono, pegarComprobante, registrarAbono } from "@/lib/deals/abonos";
+import { anularAbono, cambiarEnlaceDeAbono, pegarComprobante, registrarAbono } from "@/lib/deals/abonos";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { ErrorDeApp } from "@/lib/errors";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -374,6 +375,66 @@ describe("registrarAbono: las rejas", () => {
     expect(await abonosDe(dealId)).toHaveLength(0);
   });
 
+  it("guarda el enlace y deriva su plataforma", async () => {
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Wompi link" }).returning();
+    const [enlace] = await db.insert(enlacesPago).values({
+      programId,
+      plataformaId: plataforma.id,
+      nombre: "Pago completo",
+      monto: "300",
+      moneda: "USD",
+      url: "https://pago.test/completo",
+    }).returning();
+    const dealId = await nuevoDeal("atendido");
+
+    await registrarAbono(db, comoCloser(), abono(dealId, "300", { enlacePagoId: enlace.id }));
+
+    expect((await abonosDe(dealId))[0]).toMatchObject({ enlacePagoId: enlace.id, plataformaId: plataforma.id });
+  });
+
+  it("rechaza con 400 un monto distinto al del link", async () => {
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Monto fijo" }).returning();
+    const [enlace] = await db.insert(enlacesPago).values({
+      programId, plataformaId: plataforma.id, nombre: "Pago 300", monto: "300", moneda: "USD", url: "https://pago.test/300",
+    }).returning();
+    const dealId = await nuevoDeal("atendido");
+
+    expect((await capturar(registrarAbono(db, comoCloser(), abono(dealId, "299", { enlacePagoId: enlace.id })))).status).toBe(400);
+    expect(await abonosDe(dealId)).toHaveLength(0);
+  });
+
+  it("rechaza con 400 una moneda distinta a la del link", async () => {
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Moneda fija" }).returning();
+    const [enlace] = await db.insert(enlacesPago).values({
+      programId, plataformaId: plataforma.id, nombre: "Pago COP", monto: "300", moneda: "COP", url: "https://pago.test/cop",
+    }).returning();
+    const dealId = await nuevoDeal("atendido");
+
+    expect((await capturar(registrarAbono(db, comoCloser(), abono(dealId, "300", { enlacePagoId: enlace.id })))).status).toBe(400);
+    expect(await abonosDe(dealId)).toHaveLength(0);
+  });
+
+  it("rechaza con 400 un enlace inactivo o de otro programa", async () => {
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Links inválidos" }).returning();
+    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro", nombre: "Otro", ticketUsd: "1000" }).returning();
+    const enlaces = await db.insert(enlacesPago).values([
+      { programId, plataformaId: plataforma.id, nombre: "Inactivo", monto: "10", moneda: "USD", url: "https://pago.test/inactivo", activo: false },
+      { programId: otro.id, plataformaId: plataforma.id, nombre: "Ajeno", monto: "10", moneda: "USD", url: "https://pago.test/ajeno" },
+    ]).returning();
+
+    for (const enlace of enlaces) {
+      const dealId = await nuevoDeal("atendido");
+      expect((await capturar(registrarAbono(db, comoCloser(), abono(dealId, "10", { enlacePagoId: enlace.id })))).status).toBe(400);
+      expect(await abonosDe(dealId)).toHaveLength(0);
+    }
+  });
+
+  it("un abono sin enlace sigue siendo válido", async () => {
+    const dealId = await nuevoDeal("atendido");
+    await registrarAbono(db, comoCloser(), abono(dealId, "10"));
+    expect((await abonosDe(dealId))[0]).toMatchObject({ enlacePagoId: null, plataformaId: null });
+  });
+
   it("dos abonos simultaneos que saldan el deal: solo uno entra", async () => {
     const dealId = await nuevoDeal("atendido");
     const resultados = await Promise.allSettled([
@@ -385,35 +446,43 @@ describe("registrarAbono: las rejas", () => {
   });
 });
 
-describe("cambiarPlataformaDeAbono (ticket 212)", () => {
-  async function plataforma(nombre: string) {
+describe("cambiarEnlaceDeAbono", () => {
+  async function enlace(nombre: string) {
     const [fila] = await db.insert(plataformasPago).values({ nombre }).returning();
-    return fila.id;
+    const [link] = await db.insert(enlacesPago).values({
+      programId,
+      plataformaId: fila.id,
+      nombre,
+      monto: "300",
+      moneda: "USD",
+      url: `https://pago.test/${nombre.toLowerCase()}`,
+    }).returning();
+    return link;
   }
 
-  it("cambia solo la plataforma y deja exactamente una fila de rastro", async () => {
+  it("cambia el enlace, deriva la plataforma y deja rastro", async () => {
     const dealId = await nuevoDeal("atendido");
     const registrada = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    const plataformaId = await plataforma("Wompi");
+    const link = await enlace("Wompi");
 
-    await cambiarPlataformaDeAbono(db, comoCloser(), { abonoId: registrada.abonoId, plataformaId });
+    await cambiarEnlaceDeAbono(db, comoCloser(), { abonoId: registrada.abonoId, enlacePagoId: link.id });
 
     const [fila] = await abonosDe(dealId);
-    expect(fila).toMatchObject({ plataformaId, monto: "300.00", fecha: "2026-09-28" });
+    expect(fila).toMatchObject({ enlacePagoId: link.id, plataformaId: link.plataformaId, monto: "300.00", fecha: "2026-09-28" });
     const cambios = (await db.select().from(changeLog).where(eq(changeLog.registroId, registrada.abonoId)))
-      .filter((c) => c.campo === "plataformaId");
+      .filter((c) => c.campo === "enlacePagoId");
     expect(cambios).toHaveLength(1);
-    expect(cambios[0]).toMatchObject({ valorAnterior: null, valorNuevo: plataformaId, userId: closer });
+    expect(cambios[0]).toMatchObject({ valorAnterior: null, valorNuevo: link.id, userId: closer });
   });
 
   it("un abono anulado responde 409 y no se modifica", async () => {
     const dealId = await nuevoDeal("atendido");
     const registrada = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
     await anularAbono(db, comoCloser(), { abonoId: registrada.abonoId, motivo: "Duplicado" });
-    const plataformaId = await plataforma("Bold");
+    const link = await enlace("Bold");
 
     const error = await capturar(
-      cambiarPlataformaDeAbono(db, comoCloser(), { abonoId: registrada.abonoId, plataformaId }),
+      cambiarEnlaceDeAbono(db, comoCloser(), { abonoId: registrada.abonoId, enlacePagoId: link.id }),
     );
 
     expect(error.status).toBe(409);
@@ -423,23 +492,23 @@ describe("cambiarPlataformaDeAbono (ticket 212)", () => {
   it("un closer que no es dueño recibe 403; el developer sí puede cambiarla", async () => {
     const dealId = await nuevoDeal("atendido");
     const registrada = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    const plataformaId = await plataforma("PayU");
+    const link = await enlace("PayU");
 
     const error = await capturar(
-      cambiarPlataformaDeAbono(
+      cambiarEnlaceDeAbono(
         db,
         { userId: otroCloser, rol: "closer", operaComoCloser: false },
-        { abonoId: registrada.abonoId, plataformaId },
+        { abonoId: registrada.abonoId, enlacePagoId: link.id },
       ),
     );
     expect(error.status).toBe(403);
 
-    await cambiarPlataformaDeAbono(
+    await cambiarEnlaceDeAbono(
       db,
       { userId: developer, rol: "developer", operaComoCloser: false },
-      { abonoId: registrada.abonoId, plataformaId },
+      { abonoId: registrada.abonoId, enlacePagoId: link.id },
     );
-    expect((await abonosDe(dealId))[0].plataformaId).toBe(plataformaId);
+    expect((await abonosDe(dealId))[0]).toMatchObject({ enlacePagoId: link.id, plataformaId: link.plataformaId });
   });
 });
 

@@ -148,6 +148,7 @@ describe("enlacesDePagoVigentes — con programa, plataforma, monto y moneda", (
     await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
+      nombre: "Pago completo",
       monto: "797.00",
       moneda: "USD",
       url: "https://paypal.com/uno",
@@ -155,6 +156,7 @@ describe("enlacesDePagoVigentes — con programa, plataforma, monto y moneda", (
     await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
+      nombre: "Pago parcial",
       monto: "500.00",
       moneda: "USD",
       url: "https://paypal.com/dos",
@@ -267,6 +269,7 @@ describe("alcance por programIds (ticket 171, ADR 0048)", () => {
     await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
+      nombre: "Pago A",
       monto: "797.00",
       moneda: "USD",
       url: "https://paypal.com/a",
@@ -274,6 +277,7 @@ describe("alcance por programIds (ticket 171, ADR 0048)", () => {
     await crearEnlacePago(db, actor, {
       programId: programaB,
       plataformaId: plataforma,
+      nombre: "Pago B",
       monto: "1500.00",
       moneda: "USD",
       url: "https://paypal.com/b",
@@ -287,6 +291,7 @@ describe("alcance por programIds (ticket 171, ADR 0048)", () => {
     await crearEnlacePago(db, actor, {
       programId: programaA,
       plataformaId: plataforma,
+      nombre: "Pago A",
       monto: "797.00",
       moneda: "USD",
       url: "https://paypal.com/a",

@@ -5095,3 +5095,11 @@ _Estado actual del trabajo. Lo mas reciente arriba._
   la pantalla final (respuesta de Dapta al `id` del outcome). Memorable espera su Calendly. Ver `docs/dapta/README.md`.
 - Vigilar que los leads reales sigan entrando por webhook: `/ajustes/salud` (110). Los pares sin canal:
   `/ajustes/canales` (101).
+
+- **2026-10-30 — Links de pago por abono:** el registro y la corrección de abonos eligen
+  un link vigente del mismo programa, guardan `enlace_pago_id` y derivan la plataforma.
+  Programa administra nombre, monto, moneda y URL; Recursos los muestra en solo lectura.
+  Se preservaron sin tocar el esquema y la migración 0112 que ya estaban en el árbol.
+  Verificación de cierre: typecheck, lint, 181 tests del cambio y `npm run build` limpios; migración 0112 aplicada a producción (30-oct). Falta la prueba visual con `dev:local` (Docker apagado).
+  Ajuste posterior: selector plataforma → link, monto bloqueado y validado contra el link,
+  creación inline con el permiso por membresía y asociación posterior para abonos sin link.

@@ -69,6 +69,7 @@ async function logDe(registroId: string) {
 const enlaceValido = (over: Partial<Record<string, unknown>> = {}) => ({
   programId: programaA,
   plataformaId: plataformaPaypal,
+  nombre: "Pago completo",
   monto: "797.00",
   moneda: "USD" as const,
   url: "https://paypal.com/checkout/797",
@@ -80,8 +81,15 @@ const enlaceValido = (over: Partial<Record<string, unknown>> = {}) => ({
 describe("esquema de enlace de pago", () => {
   it("acepta un enlace valido con https y monto de dos decimales", () => {
     const datos = esquemaEnlacePago.parse(enlaceValido());
+    expect(datos.nombre).toBe("Pago completo");
     expect(datos.monto).toBe("797.00");
     expect(datos.moneda).toBe("USD");
+  });
+
+  it("recorta el nombre y exige entre 1 y 80 caracteres", () => {
+    expect(esquemaEnlacePago.parse(enlaceValido({ nombre: "  Pago parcial  " })).nombre).toBe("Pago parcial");
+    expect(esquemaEnlacePago.safeParse(enlaceValido({ nombre: "   " })).success).toBe(false);
+    expect(esquemaEnlacePago.safeParse(enlaceValido({ nombre: "x".repeat(81) })).success).toBe(false);
   });
 
   it("rechaza una URL http://", () => {
@@ -121,6 +129,14 @@ describe("crear enlace de pago", () => {
     );
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
+  });
+
+  it("un closer sin membresia recibe 403", async () => {
+    const [closer] = await db.insert(users).values({ email: "closer-sin-programa@retiagrowth.com", rol: "closer", closerId: "Sin programa" }).returning();
+    const error = await crearEnlacePago(db, { id: closer.id, rol: "closer" }, enlaceValido()).catch((e) => e);
+    expect(error).toBeInstanceOf(ErrorDeApp);
+    expect((error as ErrorDeApp).status).toBe(403);
+    expect(await db.select().from(enlacesPago)).toHaveLength(0);
   });
 });
 

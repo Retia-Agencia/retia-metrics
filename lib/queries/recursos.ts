@@ -115,6 +115,7 @@ export async function recursosVigentes(
 /** Un enlace de pago vigente como lo muestra la pantalla, con los nombres resueltos. */
 export interface EnlaceDeLaPantalla {
   id: string;
+  nombre: string;
   url: string;
   monto: string;
   moneda: string;
@@ -147,6 +148,7 @@ export async function enlacesDePagoVigentes(
   return db
     .select({
       id: enlacesPago.id,
+      nombre: enlacesPago.nombre,
       url: enlacesPago.url,
       monto: enlacesPago.monto,
       moneda: enlacesPago.moneda,
@@ -159,7 +161,7 @@ export async function enlacesDePagoVigentes(
     .leftJoin(programs, eq(programs.id, enlacesPago.programId))
     .leftJoin(plataformasPago, eq(plataformasPago.id, enlacesPago.plataformaId))
     .where(and(...condiciones))
-    .orderBy(asc(enlacesPago.monto));
+    .orderBy(asc(enlacesPago.nombre));
 }
 
 /** Una version anterior de un recurso, como la muestra el historial desplegable. */

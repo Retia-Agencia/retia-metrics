@@ -13,6 +13,7 @@ export interface RecursoUI {
 
 export interface EnlaceUI {
   id: string;
+  nombre: string;
   url: string;
   monto: string;
   moneda: string;

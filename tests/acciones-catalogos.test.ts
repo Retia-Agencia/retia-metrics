@@ -232,6 +232,7 @@ describe("operaciones de catalogos — borrar solo lo que nunca se uso (ticket 0
     await db.insert(enlacesPago).values({
       programId: programa.id,
       plataformaId: creada.id,
+      nombre: "Pago completo",
       monto: "797.00",
       moneda: "USD",
       url: "https://wise.com/pago",

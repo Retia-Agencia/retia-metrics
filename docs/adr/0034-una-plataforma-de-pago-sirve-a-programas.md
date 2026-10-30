@@ -106,3 +106,12 @@ un humano mirando, no una migracion adivinando a partir de cinco filas.
 - **Abierto:** si un closer puede crear una plataforma, puede asociarla a un programa donde no
   vende? No. Se aplica `exigirAccesoAlPrograma` igual que en productos y recursos (ADR 0016): un
   closer solo asocia programas donde tiene membresia activa.
+
+## Enmienda (30-oct): el abono apunta al link, no a la plataforma
+
+El closer ya no elige una plataforma al abonar: elige un **link de pago** del programa (`enlaces_pago`, ahora con
+`nombre`), y el servidor guarda `abonos.enlace_pago_id` y deriva `plataforma_id` del link, así que las métricas por
+plataforma no cambian. Un link fija monto y moneda (el servidor rechaza una discrepancia); un abono sin link es válido
+y queda marcado "Sin link de pago" hasta asociarlo. Plataformas y links se gestionan en Programa > Plataformas de pago
+y se pueden crear al abonar con el mismo permiso de siempre (administradores y closers con membresía activa en el
+programa). Recursos se queda como vista de lectura. Migración 0112.

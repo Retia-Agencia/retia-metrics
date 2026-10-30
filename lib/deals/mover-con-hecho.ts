@@ -175,6 +175,7 @@ export async function moverConHecho(
         fecha: entrada.hecho.fecha,
         monto: entrada.hecho.monto,
         moneda: entrada.hecho.moneda,
+        enlacePagoId: entrada.hecho.enlacePagoId,
         plataformaId: entrada.hecho.plataformaId,
         comprobanteUrl: entrada.hecho.comprobanteUrl,
         archivo: entrada.hecho.archivo,

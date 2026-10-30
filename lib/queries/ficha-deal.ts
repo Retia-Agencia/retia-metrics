@@ -25,7 +25,6 @@ import { fecha, fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { duenosPosibles } from "@/lib/deals/duenos";
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
-import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
@@ -34,6 +33,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { inboxDelPrograma, type MotivoAtencion } from "@/lib/queries/inbox";
 import { columnasUtmDelEnvio, utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
+import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { linkDeAgenda } from "@/lib/calendly/link-de-agenda";
 import { telefonosEnComun } from "@/lib/queries/leads";
 
@@ -79,6 +79,8 @@ export interface FichaDeAbono {
   nota: string | null;
   plataformaId: string | null;
   plataformaNombre: string | null;
+  enlacePagoId: string | null;
+  enlacePagoNombre: string | null;
   comprobanteUrl: string | null;
   comprobanteArchivoId: string | null;
   closerId: string | null;
@@ -695,6 +697,8 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
       nota: a.nota,
       plataformaId: a.plataformaId,
       plataformaNombre: plataformasFilas.find((p) => p.id === a.plataformaId)?.nombre ?? null,
+      enlacePagoId: a.enlacePagoId,
+      enlacePagoNombre: enlacesDePago.find((e) => e.id === a.enlacePagoId)?.nombre ?? null,
       comprobanteUrl: a.comprobanteUrl,
       comprobanteArchivoId: a.comprobanteArchivoId,
       closerId: a.closerId,
@@ -743,6 +747,7 @@ export interface OpcionesDeFicha {
   cohortesDestino: { id: string; nombre: string }[];
   motivos: { id: string; nombre: string; tipo: string; pideTexto: boolean }[];
   plataformas: { id: string; nombre: string }[];
+  enlacesDePago: EnlaceDeLaPantalla[];
   /** Closers con membresia activa en el programa, mas el dueño actual: para reasignar. */
   owners: { id: string; nombre: string }[];
 }
@@ -765,7 +770,8 @@ export async function opcionesDeFicha(
     ? await cohortesVendiendo(db, programId, hoyEnBogota())
     : cohortesFilas;
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));
-  const plataformasFilas = await plataformasDelPrograma(db, programId);
+  const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));
+  const enlacesDePago = await enlacesDePagoVigentes({ programId }, db);
 
   const owners = new Map((await duenosPosibles(db, programId)).map((d) => [d.id, d.nombre] as const));
   // El dueño actual se muestra aunque ya no sea dueño posible (se fue del programa): la
@@ -782,7 +788,8 @@ export async function opcionesDeFicha(
       .map((c) => ({ id: c.id, nombre: c.codigo }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
     motivos: motivosFilas.map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo, pideTexto: m.pideTexto })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
-    plataformas: plataformasFilas.map((p) => ({ id: p.id, nombre: String(p.nombre) })),
+    plataformas,
+    enlacesDePago,
     owners: [...owners].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
   };
 }

@@ -92,6 +92,7 @@ export interface DialogoMoverProps {
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
   motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
   plataformas: { id: string; nombre: string }[];
+  enlacesDePago: import("@/lib/queries/recursos").EnlaceDeLaPantalla[];
   saldo: number | null;
   moneda: string | null;
   llamada: {
@@ -165,6 +166,7 @@ export function DialogoMover({
   cohortes,
   motivos,
   plataformas,
+  enlacesDePago,
   saldo,
   moneda,
   llamada,
@@ -186,7 +188,7 @@ export function DialogoMover({
       ? { llamada: { dia: hoy, hora: "", linkGrain: "" } }
       : {}),
     ...(movimiento.hecho === "agendado" ? { horaElegida: null } : {}),
-    ...(movimiento.hecho === "abono" ? { abono: datosInicialesDeAbono() } : {}),
+    ...(movimiento.hecho === "abono" ? { abono: datosInicialesDeAbono(moneda ?? "USD") } : {}),
   });
   const [datos, setDatos] = useState<DatosDialogo>(inicial);
   // El texto del descuento vive aparte del numero: un input controlado por un numero no se
@@ -356,7 +358,7 @@ export function DialogoMover({
               <p className="text-sm text-muted-foreground">
                 {saldo != null ? `Saldo actual: ${monto(saldo, moneda ?? "USD")}. ` : ""}La etapa la decide lo que quede por pagar.
               </p>
-              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
+              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} enlacesDePago={enlacesDePago} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
             </section>
           ) : null}
 

@@ -152,6 +152,7 @@ export default async function RecursosPage({ searchParams }: Props) {
         recursos={conHistorial}
         enlaces={enlaces.map((e) => ({
           id: e.id,
+          nombre: e.nombre,
           url: e.url,
           monto: e.monto,
           moneda: e.moneda,

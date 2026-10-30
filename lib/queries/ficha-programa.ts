@@ -78,6 +78,7 @@ export interface MiembroDeLaFicha {
 
 export interface CheckoutDeLaFicha {
   id: string;
+  nombre: string;
   url: string;
   monto: string;
   moneda: string;
@@ -182,6 +183,7 @@ export async function fichaDelPrograma(
       ),
     checkouts: enlaces.map((e) => ({
       id: e.id,
+      nombre: e.nombre,
       url: e.url,
       monto: String(e.monto),
       moneda: e.moneda,

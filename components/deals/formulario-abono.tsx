@@ -1,137 +1,223 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { crearPlataformaParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { hoyEnBogota } from "@/lib/format";
+import { hoyEnBogota, monto as formatoMonto } from "@/lib/format";
+import type { EnlaceDeLaPantalla } from "@/lib/queries/recursos";
+import { crearEnlaceParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput } from "./ficha/campos";
 
 export interface DatosFormularioAbono {
   fecha: string;
   monto: string;
-  plataformaId: string | null;
+  moneda: "USD";
+  enlacePagoId: string | null;
   comprobanteUrl: string;
   archivoId: string | null;
 }
 
-export function datosInicialesDeAbono(): DatosFormularioAbono {
-  return { fecha: hoyEnBogota(), monto: "", plataformaId: null, comprobanteUrl: "", archivoId: null };
+export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAbono {
+  return { fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", enlacePagoId: null, comprobanteUrl: "", archivoId: null };
 }
 
-export function FormularioAbono({
-  dealId,
-  moneda,
-  plataformas,
-  datos,
-  onChange,
-}: {
+type Plataforma = { id: string; nombre: string };
+
+export function FormularioAbono({ dealId, moneda, plataformas, enlacesDePago, datos, onChange }: {
   dealId: string;
   moneda: string;
-  plataformas: { id: string; nombre: string }[];
+  plataformas: Plataforma[];
+  enlacesDePago: EnlaceDeLaPantalla[];
   datos: DatosFormularioAbono;
   onChange: (datos: DatosFormularioAbono) => void;
 }) {
   const cambiar = (cambio: Partial<DatosFormularioAbono>) => onChange({ ...datos, ...cambio });
-  return (
-    <>
-      <div className="grid grid-cols-2 gap-3">
-        <Campo etiqueta="Fecha del pago">
-          <input type="date" className={claseInput} value={datos.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
-        </Campo>
-        <Campo etiqueta={`Monto (${moneda})`}>
-          <input className={`${claseInput} cifra`} inputMode="decimal" value={datos.monto} onChange={(e) => cambiar({ monto: e.target.value })} placeholder="750.00" />
-        </Campo>
-      </div>
-      <Campo etiqueta="Plataforma de pago (opcional)">
-        <ControlPlataforma
-          dealId={dealId}
-          plataformasIniciales={plataformas}
-          value={datos.plataformaId}
-          onValueChange={(plataformaId) => cambiar({ plataformaId })}
+  const tieneLink = datos.enlacePagoId != null;
+  return <>
+    <div className="grid grid-cols-2 gap-3">
+      <Campo etiqueta="Fecha del pago">
+        <input type="date" className={claseInput} value={datos.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
+      </Campo>
+      <Campo etiqueta={`Monto (${datos.moneda || moneda})`}>
+        <input
+          className={`${claseInput} cifra`}
+          inputMode="decimal"
+          value={datos.monto}
+          readOnly={tieneLink}
+          onChange={(e) => cambiar({ monto: e.target.value })}
+          placeholder="750.00"
         />
       </Campo>
-      <Campo etiqueta="Comprobante (link o archivo)" ayuda="Si no lo tienes ahora, lo agregas después.">
-        <div className="space-y-3">
-          <input type="url" className={claseInput} value={datos.comprobanteUrl} onChange={(e) => cambiar({ comprobanteUrl: e.target.value })} placeholder="https://…" />
-          {datos.archivoId ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Archivo listo</span>
-              <Button type="button" size="xs" variant="ghost" onClick={() => cambiar({ archivoId: null })}>Quitar</Button>
-            </div>
-          ) : (
-            <SubirArchivo
-              pedirSubida={(meta) => pedirSubidaParaAbonoAccion({ dealId, ...meta })}
-              alSubir={(archivoId) => cambiar({ archivoId })}
-            />
-          )}
-        </div>
-      </Campo>
-    </>
-  );
+    </div>
+    <Campo etiqueta="Link de pago (opcional)">
+      <ControlEnlacePago
+        dealId={dealId}
+        plataformas={plataformas}
+        enlaces={enlacesDePago}
+        value={datos.enlacePagoId}
+        monto={datos.monto}
+        moneda={datos.moneda || moneda}
+        onValueChange={(enlacePagoId, enlace) => cambiar({
+          enlacePagoId,
+          ...(enlace ? { monto: enlace.monto, moneda: enlace.moneda as "USD" } : {}),
+        })}
+      />
+    </Campo>
+    <Campo etiqueta="Comprobante (link o archivo)" ayuda="Si no lo tienes ahora, lo agregas después.">
+      <div className="space-y-3">
+        <input type="url" className={claseInput} value={datos.comprobanteUrl} onChange={(e) => cambiar({ comprobanteUrl: e.target.value })} placeholder="https://…" />
+        {datos.archivoId ? <div className="flex items-center gap-2">
+          <span className="text-sm">Archivo listo</span>
+          <Button type="button" size="xs" variant="ghost" onClick={() => cambiar({ archivoId: null })}>Quitar</Button>
+        </div> : <SubirArchivo pedirSubida={(meta) => pedirSubidaParaAbonoAccion({ dealId, ...meta })} alSubir={(archivoId) => cambiar({ archivoId })} />}
+      </div>
+    </Campo>
+  </>;
 }
 
-export function ControlPlataforma({
-  dealId,
-  plataformasIniciales,
-  value,
-  onValueChange,
-}: {
+export function ControlEnlacePago({ dealId, plataformas, enlaces: enlacesIniciales, value, monto, moneda, restringirAMonto = false, onValueChange }: {
   dealId: string;
-  plataformasIniciales: { id: string; nombre: string }[];
+  plataformas: Plataforma[];
+  enlaces: EnlaceDeLaPantalla[];
   value: string | null;
-  onValueChange: (value: string | null) => void;
+  monto: string;
+  moneda: string;
+  restringirAMonto?: boolean;
+  onValueChange: (value: string | null, enlace?: EnlaceDeLaPantalla) => void;
 }) {
-  const [abierto, setAbierto] = useState(false);
-  const [texto, setTexto] = useState("");
-  const [plataformas, setPlataformas] = useState(plataformasIniciales);
+  const [enlacesCreados, setEnlacesCreados] = useState<EnlaceDeLaPantalla[]>([]);
+  const enlaces = useMemo(() => [...enlacesIniciales, ...enlacesCreados], [enlacesCreados, enlacesIniciales]);
+  const elegido = enlaces.find((e) => e.id === value);
+  const [plataformaId, setPlataformaId] = useState<string | null>(
+    elegido?.plataformaId ?? (plataformas.length === 1 ? plataformas[0].id : null),
+  );
+  const autoSeleccionada = useRef<string | null>(value ? elegido?.plataformaId ?? null : null);
+  const [creando, setCreando] = useState(false);
+  const [pendiente, iniciar] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [creando, iniciarCreacion] = useTransition();
-  const buscado = texto.trim();
-  const clave = buscado.toLocaleLowerCase("es");
-  const filtradas = plataformas.filter((p) => p.nombre.toLocaleLowerCase("es").includes(clave));
-  const coincidenciaExacta = plataformas.some((p) => p.nombre.trim().toLocaleLowerCase("es") === clave);
-  const seleccionada = plataformas.find((p) => p.id === value);
+  const [nombreNuevo, setNombreNuevo] = useState("");
+  const [montoNuevo, setMontoNuevo] = useState(monto);
+  const [monedaNueva, setMonedaNueva] = useState(moneda);
+  const [urlNueva, setUrlNueva] = useState("");
 
-  function elegir(id: string | null) {
-    onValueChange(id);
+  const enlacesDePlataforma = useMemo(
+    () => enlaces.filter((e) =>
+      e.plataformaId === plataformaId &&
+      (!restringirAMonto || (Number(e.monto) === Number(monto) && e.moneda === moneda))),
+    [enlaces, moneda, monto, plataformaId, restringirAMonto],
+  );
+
+  useEffect(() => {
+    if (plataformaId && autoSeleccionada.current !== plataformaId && value == null && enlacesDePlataforma.length === 1) {
+      autoSeleccionada.current = plataformaId;
+      onValueChange(enlacesDePlataforma[0].id, enlacesDePlataforma[0]);
+    }
+  }, [enlacesDePlataforma, onValueChange, plataformaId, value]);
+
+  const hayLinkParaMonto = plataformaId == null || monto.trim() === "" || enlaces.some(
+    (e) => e.plataformaId === plataformaId && Number(e.monto) === Number(monto) && e.moneda === moneda,
+  );
+
+  function elegirPlataforma(id: string) {
+    setPlataformaId(id);
+    autoSeleccionada.current = id;
+    setCreando(false);
     setError(null);
-    setTexto("");
-    setAbierto(false);
+    const disponibles = enlaces.filter((e) => e.plataformaId === id && (!restringirAMonto || (Number(e.monto) === Number(monto) && e.moneda === moneda)));
+    if (disponibles.length === 1) onValueChange(disponibles[0].id, disponibles[0]);
+    else if (elegido?.plataformaId !== id) onValueChange(null);
+  }
+
+  async function copiar() {
+    if (!elegido) return;
+    try {
+      await navigator.clipboard.writeText(elegido.url);
+      toast.success("Link copiado");
+    } catch {
+      toast.error("No se pudo copiar el link");
+    }
   }
 
   function crear() {
-    if (buscado.length < 2 || coincidenciaExacta) return;
-    setError(null);
-    iniciarCreacion(async () => {
-      const resultado = await crearPlataformaParaAbonoAccion({ dealId, nombre: buscado });
+    if (!plataformaId) return;
+    iniciar(async () => {
+      setError(null);
+      const resultado = await crearEnlaceParaAbonoAccion({
+        dealId,
+        plataformaId,
+        nombre: nombreNuevo,
+        monto: montoNuevo,
+        moneda: monedaNueva as "USD",
+        url: urlNueva,
+      });
       if (!resultado.ok) return setError(resultado.error);
-      setPlataformas((actuales) => actuales.some((p) => p.id === resultado.plataforma.id)
-        ? actuales
-        : [...actuales, resultado.plataforma].sort((a, b) => a.nombre.localeCompare(b.nombre, "es")));
-      elegir(resultado.plataforma.id);
+      setEnlacesCreados((actuales) => [...actuales, resultado.enlace]);
+      onValueChange(resultado.enlace.id, resultado.enlace);
+      setCreando(false);
+      setNombreNuevo("");
+      setUrlNueva("");
     });
   }
 
-  return (
-    <Popover open={abierto} onOpenChange={setAbierto}>
-      <PopoverTrigger render={<Button type="button" variant="outline" className="w-full justify-between font-normal" />}>
-        <span className={seleccionada ? "truncate" : "truncate text-muted-foreground"}>{seleccionada?.nombre ?? "Sin plataforma"}</span>
-        <span aria-hidden>⌄</span>
-      </PopoverTrigger>
-      <PopoverContent className="w-(--anchor-width) p-2" aria-label="Elegir plataforma de pago">
-        <div className="space-y-2">
-          <Input autoFocus value={texto} onChange={(e) => { setTexto(e.target.value); setError(null); }} placeholder="Buscar o crear plataforma" aria-label="Nombre de la plataforma" />
-          <div className="max-h-48 space-y-1 overflow-y-auto">
-            <Button type="button" size="sm" variant={value == null ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => elegir(null)}>Sin plataforma</Button>
-            {filtradas.map((p) => <Button key={p.id} type="button" size="sm" variant={value === p.id ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => elegir(p.id)}>{p.nombre}</Button>)}
-            {buscado.length >= 2 && !coincidenciaExacta ? <Button type="button" size="sm" variant="ghost" className="w-full justify-start" disabled={creando} onClick={crear}>{creando ? "Creando…" : `Crear «${buscado}»`}</Button> : null}
-          </div>
-          {error ? <p className="text-xs text-tono-peligro">{error}</p> : null}
+  return <div className="space-y-3">
+    <div className="flex flex-wrap gap-2" aria-label="Plataforma de pago">
+      {plataformas.map((plataforma) => (
+        <Button
+          key={plataforma.id}
+          type="button"
+          size="sm"
+          variant={plataformaId === plataforma.id ? "secondary" : "outline"}
+          onClick={() => elegirPlataforma(plataforma.id)}
+        >
+          {plataforma.nombre}
+        </Button>
+      ))}
+    </div>
+    {plataformaId ? <div className="space-y-2">
+      <Button type="button" size="sm" variant={value == null ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => {
+        autoSeleccionada.current = plataformaId;
+        onValueChange(null);
+      }}>
+        Sin link de pago
+      </Button>
+      {enlacesDePlataforma.map((enlace) => (
+        <div key={enlace.id} className="flex min-w-0 items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={value === enlace.id ? "secondary" : "ghost"}
+            className="min-w-0 flex-1 justify-between gap-3"
+            onClick={() => onValueChange(enlace.id, enlace)}
+          >
+            <span className="truncate">{enlace.nombre}</span>
+            <span className="cifra shrink-0">{formatoMonto(Number(enlace.monto), enlace.moneda)}</span>
+          </Button>
+          {value === enlace.id ? <Button type="button" size="sm" variant="outline" onClick={copiar}>Copiar</Button> : null}
         </div>
-      </PopoverContent>
-    </Popover>
-  );
+      ))}
+      {!hayLinkParaMonto && value == null ? <p className="text-sm text-muted-foreground">
+        No hay link de pago para este monto. Puedes guardar el abono sin link y asociarlo después.
+      </p> : null}
+      {!creando ? <Button type="button" size="sm" variant="outline" onClick={() => {
+        setMontoNuevo(monto);
+        setMonedaNueva(moneda);
+        setCreando(true);
+      }}>Crear link nuevo</Button> : <div className="space-y-2 rounded-lg bg-muted/50 p-3">
+        <input className={claseInput} value={nombreNuevo} onChange={(e) => setNombreNuevo(e.target.value)} maxLength={80} placeholder="Nombre del link" aria-label="Nombre del link" />
+        <div className="grid grid-cols-2 gap-2">
+          <input className={`${claseInput} cifra`} value={montoNuevo} readOnly={restringirAMonto} onChange={(e) => setMontoNuevo(e.target.value)} inputMode="decimal" placeholder="Valor" aria-label="Valor del link" />
+          <input className={claseInput} value={monedaNueva} readOnly aria-label="Moneda del link" />
+        </div>
+        <input className={claseInput} value={urlNueva} onChange={(e) => setUrlNueva(e.target.value)} type="url" placeholder="https://…" aria-label="URL del link" />
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" disabled={pendiente || !nombreNuevo.trim() || !montoNuevo.trim() || !urlNueva.trim()} onClick={crear}>
+            {pendiente ? "Creando…" : "Crear y elegir"}
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setCreando(false)}>Cancelar</Button>
+        </div>
+        {error ? <p className="text-sm text-tono-peligro">{error}</p> : null}
+      </div>}
+    </div> : <p className="text-sm text-muted-foreground">Elige una plataforma para ver sus links.</p>}
+  </div>;
 }

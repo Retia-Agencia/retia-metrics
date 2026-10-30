@@ -30,6 +30,7 @@ type Plataforma = { id: string; nombre: string };
 /** Un enlace de pago vigente de este programa, agrupado bajo su plataforma. */
 export type EnlaceDePlataforma = {
   id: string;
+  nombre: string;
   url: string;
   monto: string;
   moneda: string;
@@ -361,6 +362,7 @@ function EnlaceItem({
           <span className="cifra font-medium">
             {formatoMonto(Number(enlace.monto), enlace.moneda)}
           </span>
+          <span className="block font-medium">{enlace.nombre}</span>
           <a
             href={enlace.url}
             target="_blank"
@@ -442,6 +444,7 @@ function FormularioEnlace({
     entrada: {
       programId: string;
       plataformaId: string;
+      nombre: string;
       monto: string;
       moneda: (typeof MONEDAS)[number];
       url: string;
@@ -450,11 +453,13 @@ function FormularioEnlace({
   ) => void;
   onCancelar: () => void;
 }) {
+  const [nombre, setNombre] = useState("");
   const [montoValor, setMontoValor] = useState("");
   const [moneda, setMoneda] = useState<(typeof MONEDAS)[number]>("USD");
   const [url, setUrl] = useState("");
 
   function reset() {
+    setNombre("");
     setMontoValor("");
     setMoneda("USD");
     setUrl("");
@@ -466,11 +471,23 @@ function FormularioEnlace({
       onSubmit={(e) => {
         e.preventDefault();
         onCrear(
-          { programId, plataformaId, monto: montoValor.trim(), moneda, url: url.trim() },
+          { programId, plataformaId, nombre: nombre.trim(), monto: montoValor.trim(), moneda, url: url.trim() },
           reset,
         );
       }}
     >
+      <label className="block space-y-1 text-sm">
+        <span className="text-muted-foreground">Nombre</span>
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          required
+          minLength={1}
+          maxLength={80}
+          className={cn(claseInput, "sm:w-44")}
+          aria-label="Nombre del link"
+        />
+      </label>
       <label className="block space-y-1 text-sm">
         <span className="text-muted-foreground">Monto</span>
         <input
@@ -510,7 +527,7 @@ function FormularioEnlace({
         />
       </label>
       <div className="flex items-center gap-1">
-        <Button type="submit" size="sm" disabled={pendiente || !montoValor.trim() || !url.trim()}>
+        <Button type="submit" size="sm" disabled={pendiente || !nombre.trim() || !montoValor.trim() || !url.trim()}>
           <Check className="size-4" />
           Agregar
         </Button>

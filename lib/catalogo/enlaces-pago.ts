@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { enlacesPago } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -42,6 +42,7 @@ const esquemaId = z.string().uuid("El identificador no es válido.");
 export const esquemaEnlacePago = z.object({
   programId: z.string().uuid("Programa inválido."),
   plataformaId: z.string().uuid("Plataforma inválida."),
+  nombre: z.string().trim().min(1, "El nombre es obligatorio.").max(80, "El nombre puede tener máximo 80 caracteres."),
   monto: z
     .string()
     .trim()
@@ -60,6 +61,7 @@ export type EnlacePagoValidado = z.output<typeof esquemaEnlacePago>;
 export interface EnlacePagoVista extends FilaCatalogo {
   programId: string;
   plataformaId: string;
+  nombre: string;
   monto: string;
   moneda: string;
   url: string;
@@ -71,6 +73,7 @@ export interface EnlacePagoVista extends FilaCatalogo {
 type CamposEnlacePago = {
   programId: string;
   plataformaId: string;
+  nombre: string;
   monto: string;
   moneda: string;
   url: string;
@@ -92,11 +95,36 @@ function moldeEnlaces(db: Db) {
       tabla: enlacesPago,
       nombreTabla: "enlaces_pago",
       esquema: esquemaEnlacePago as unknown as z.ZodType<CamposEnlacePago>,
-      etiqueta: (fila) => `${fila.monto} ${fila.moneda}`,
+      etiqueta: (fila) => `${fila.nombre} · ${fila.monto} ${fila.moneda}`,
       nombreEntidad: "un enlace de pago",
     },
     db,
   );
+}
+
+/**
+ * Resuelve un enlace elegible para cobrar dentro de UN programa. La escritura del
+ * abono usa esta fila para derivar la plataforma; el cliente nunca decide ese par.
+ */
+export async function exigirEnlaceDePagoVigente(
+  db: Db,
+  enlacePagoId: string,
+  programId: string,
+): Promise<{ id: string; plataformaId: string; monto: string; moneda: string }> {
+  const [enlace] = await db
+    .select({ id: enlacesPago.id, plataformaId: enlacesPago.plataformaId, monto: enlacesPago.monto, moneda: enlacesPago.moneda })
+    .from(enlacesPago)
+    .where(and(
+      eq(enlacesPago.id, idValido(enlacePagoId)),
+      eq(enlacesPago.programId, programId),
+      eq(enlacesPago.activo, true),
+      eq(enlacesPago.vigente, true),
+    ))
+    .limit(1);
+  if (!enlace) {
+    throw new ErrorDeApp("El enlace de pago no está disponible para este programa.", 400);
+  }
+  return enlace;
 }
 
 /** Quien realiza la operacion: su id (para `change_log`) y su rol de vista (ADR 0028). */
@@ -184,7 +212,7 @@ export async function reemplazarEnlacePago(
       tabla: enlacesPago,
       nombreTabla: "enlaces_pago",
       nombreEntidad: "un enlace de pago",
-      etiqueta: (f: FilaVersionada) => `${f.monto} ${f.moneda}`,
+      etiqueta: (f: FilaVersionada) => `${String(f.nombre)} · ${f.monto} ${f.moneda}`,
       userId: actor.id,
       id: objetivoId,
       nuevaUrl: url,

@@ -55,6 +55,7 @@ export interface AbonoHistorico {
   monto: string;
   /** Nula si la plataforma de la hoja no esta en el catalogo: es rareza (punto 7). */
   plataformaId?: string | null;
+  enlacePagoId?: string | null;
   /** El nombre como lo escribio la hoja. */
   closer?: string | null;
 }
@@ -97,6 +98,7 @@ export async function registrarAbonosHistoricos(db: Db, lista: readonly AbonoHis
             monto: abono.monto,
             moneda: "USD",
             plataformaId: abono.plataformaId ?? null,
+            enlacePagoId: abono.enlacePagoId ?? null,
             closerId: abono.closer ?? null,
             origen: "sheets",
             huellaMigracion: abono.huella,

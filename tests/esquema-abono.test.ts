@@ -24,6 +24,12 @@ describe("esquema del abono", () => {
     expect(r.monto).toBe("750");
   });
 
+  it("acepta un enlace de pago opcional y rechaza un id inválido", () => {
+    const enlacePagoId = "33333333-3333-4333-8333-333333333333";
+    expect(esquemaAbono.parse({ ...base, enlacePagoId }).enlacePagoId).toBe(enlacePagoId);
+    expect(() => esquemaAbono.parse({ ...base, enlacePagoId: "no-es-uuid" })).toThrow();
+  });
+
   it("usa USD por defecto si no se pasa moneda", () => {
     const r = esquemaAbono.parse(base);
     expect(r.moneda).toBe("USD");

@@ -474,6 +474,7 @@ function EnlaceItem({ enlace }: { enlace: EnlaceUI }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <span className="flex flex-wrap items-center gap-2">
+            <span className="font-medium">{enlace.nombre}</span>
             {/* La moneda SIEMPRE al lado del monto, con `monto()` (AGENTS.md). */}
             <span className="cifra font-medium">
               {formatoMonto(Number(enlace.monto), enlace.moneda)}

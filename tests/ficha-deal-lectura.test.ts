@@ -264,9 +264,9 @@ describe("fichaDeDeal", () => {
     const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Pasarela vigente" }).returning();
     const [otraPlataforma] = await db.insert(plataformasPago).values({ nombre: "Pasarela de otro programa" }).returning();
     await db.insert(enlacesPago).values([
-      { programId, plataformaId: plataforma.id, url: "https://pago.test/vigente", monto: "100", moneda: "USD", vigente: true, activo: true },
-      { programId, plataformaId: plataforma.id, url: "https://pago.test/viejo", monto: "200", moneda: "USD", vigente: false, activo: true },
-      { programId: otroPrograma, plataformaId: otraPlataforma.id, url: "https://pago.test/otro", monto: "300", moneda: "USD", vigente: true, activo: true },
+      { programId, plataformaId: plataforma.id, nombre: "Vigente", url: "https://pago.test/vigente", monto: "100", moneda: "USD", vigente: true, activo: true },
+      { programId, plataformaId: plataforma.id, nombre: "Viejo", url: "https://pago.test/viejo", monto: "200", moneda: "USD", vigente: false, activo: true },
+      { programId: otroPrograma, plataformaId: otraPlataforma.id, nombre: "Otro", url: "https://pago.test/otro", monto: "300", moneda: "USD", vigente: true, activo: true },
     ]);
 
     expect((await fichaDeDeal(db, programId, dealId))!.enlacesDePago.map((e) => e.url)).toEqual(["https://pago.test/vigente"]);

@@ -136,6 +136,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             cohortesDestino={opciones.cohortesDestino}
             motivos={opciones.motivos}
             plataformas={opciones.plataformas}
+            enlacesDePago={opciones.enlacesDePago}
             inicioDeClases={opciones.inicioDeClases}
             inicioDeLaCohorteActiva={opciones.inicioDeLaCohorteActiva}
             userId={session.user.id}

@@ -133,8 +133,8 @@ beforeEach(async () => {
 
   const [paypal] = await db.insert(plataformasPago).values({ nombre: "Pasarela de prueba" }).returning();
   await db.insert(enlacesPago).values([
-    { programId: programaA, plataformaId: paypal.id, monto: "797.00", moneda: "USD", url: "https://paypal.me/a" },
-    { programId: programaB, plataformaId: paypal.id, monto: "1500.00", moneda: "USD", url: "https://paypal.me/b" },
+    { programId: programaA, plataformaId: paypal.id, nombre: "Pago A", monto: "797.00", moneda: "USD", url: "https://paypal.me/a" },
+    { programId: programaB, plataformaId: paypal.id, nombre: "Pago B", monto: "1500.00", moneda: "USD", url: "https://paypal.me/b" },
   ]);
 });
 

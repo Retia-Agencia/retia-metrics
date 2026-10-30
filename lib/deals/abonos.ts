@@ -9,6 +9,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
+import { exigirEnlaceDePagoVigente } from "@/lib/catalogo/enlaces-pago";
 import { mismoCloser } from "@/lib/closers/identidad";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -85,11 +86,11 @@ export const esquemaAdjuntarComprobante = z.object({
 });
 export type DatosAdjuntarComprobante = z.input<typeof esquemaAdjuntarComprobante>;
 
-export const esquemaCambiarPlataformaDeAbono = z.object({
+export const esquemaCambiarEnlaceDeAbono = z.object({
   abonoId: z.string().uuid("El abono no es válido."),
-  plataformaId: z.string().uuid("La plataforma no es válida.").nullable(),
+  enlacePagoId: z.string().uuid("El enlace de pago no es válido.").nullable(),
 });
-export type DatosCambiarPlataformaDeAbono = z.input<typeof esquemaCambiarPlataformaDeAbono>;
+export type DatosCambiarEnlaceDeAbono = z.input<typeof esquemaCambiarEnlaceDeAbono>;
 
 type FilaDeal = typeof deals.$inferSelect;
 
@@ -176,7 +177,18 @@ export async function registrarAbono(
         });
         if (deal.cohortId == null) cohorteAsignada = congelado.cohortId;
       }
-      await exigirPlataformaActiva(entrada.plataformaId, tx);
+      const enlace = entrada.enlacePagoId
+        ? await exigirEnlaceDePagoVigente(tx, entrada.enlacePagoId, deal.programId)
+        : null;
+      if (enlace && Number(enlace.monto) !== Number(entrada.monto)) {
+        throw new ErrorDeApp("El monto del abono no coincide con el link de pago.", 400);
+      }
+      if (enlace && enlace.moneda !== entrada.moneda) {
+        throw new ErrorDeApp("La moneda del abono no coincide con el link de pago.", 400);
+      }
+      // `plataformaId` queda aceptado para importadores/histórico; el flujo operativo
+      // manda el enlace y la plataforma se deriva siempre de esa fila.
+      if (!enlace) await exigirPlataformaActiva(entrada.plataformaId, tx);
 
       // La reja del sobrepago: el abono no puede pasar de lo que queda. Es la MISMA cifra
       // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
@@ -220,7 +232,8 @@ export async function registrarAbono(
           moneda: entrada.moneda,
           concepto: entrada.concepto,
           nota: entrada.nota ?? null,
-          plataformaId: entrada.plataformaId ?? null,
+          plataformaId: enlace?.plataformaId ?? entrada.plataformaId ?? null,
+          enlacePagoId: enlace?.id ?? null,
           comprobanteUrl: entrada.comprobanteUrl ?? null,
           comprobanteArchivoId: archivo?.archivoId ?? null,
           registradoPorUserId: actor.userId,
@@ -345,20 +358,20 @@ export async function adjuntarComprobante(
 }
 
 /** Corrige solo la plataforma; monto y fecha se corrigen anulando el abono (ADR 0026). */
-export async function cambiarPlataformaDeAbono(
+export async function cambiarEnlaceDeAbono(
   db: Db,
   actor: ActorDeAbono,
-  datos: DatosCambiarPlataformaDeAbono,
+  datos: DatosCambiarEnlaceDeAbono,
 ): Promise<void> {
   return normalizando(async () => {
-    const entrada = esquemaCambiarPlataformaDeAbono.parse(datos);
+    const entrada = esquemaCambiarEnlaceDeAbono.parse(datos);
     if (!trabajaLeads(actor)) {
-      throw new ErrorDeApp("Solo un closer cambia la plataforma de un abono.", 403);
+      throw new ErrorDeApp("Solo un closer cambia el enlace de un abono.", 403);
     }
 
     await (db as unknown as Transaccion).transaction(async (tx) => {
       const [abono] = await tx
-        .select({ dealId: abonos.dealId, anuladoEn: abonos.anuladoEn })
+        .select({ dealId: abonos.dealId, monto: abonos.monto, moneda: abonos.moneda, anuladoEn: abonos.anuladoEn })
         .from(abonos)
         .where(and(eq(abonos.id, entrada.abonoId), incluyendoAnulados(abonos)));
       if (!abono) throw new ErrorDeApp("No existe el abono.", 404);
@@ -367,14 +380,19 @@ export async function cambiarPlataformaDeAbono(
       const { deal, emailLead } = await dealBloqueado(tx, abono.dealId);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado.", 409);
       if (!puedeTrabajarDeal(actor, deal)) {
-        throw new ErrorDeApp("Solo el dueño del deal puede cambiar la plataforma del abono.", 403);
+        throw new ErrorDeApp("Solo el dueño del deal puede cambiar el enlace del abono.", 403);
       }
 
-      await exigirPlataformaActiva(entrada.plataformaId ?? undefined, tx);
+      const enlace = entrada.enlacePagoId
+        ? await exigirEnlaceDePagoVigente(tx, entrada.enlacePagoId, deal.programId)
+        : null;
+      if (enlace && (Number(enlace.monto) !== Number(abono.monto) || enlace.moneda !== abono.moneda)) {
+        throw new ErrorDeApp("El link de pago no corresponde al monto y la moneda del abono.", 400);
+      }
       await editarConRastro(
         { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
         entrada.abonoId,
-        { plataformaId: entrada.plataformaId },
+        { enlacePagoId: enlace?.id ?? null, plataformaId: enlace?.plataformaId ?? null },
       );
     });
   });

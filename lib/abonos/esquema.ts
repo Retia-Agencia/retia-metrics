@@ -35,6 +35,7 @@ export const esquemaAbono = z.object({
     .transform((v) => v || null)
     .optional(),
   plataformaId: z.string().uuid("Plataforma inválida.").optional(),
+  enlacePagoId: z.string().uuid("Enlace de pago inválido.").optional(),
   comprobanteUrl: z.string().url("El comprobante debe ser una URL válida.").optional(),
 });
 

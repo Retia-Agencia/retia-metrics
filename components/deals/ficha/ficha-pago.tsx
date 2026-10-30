@@ -13,7 +13,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
-  cambiarPlataformaDeAbonoAccion,
+  cambiarEnlaceDeAbonoAccion,
   desmarcarOnboardedAccion,
   editarAcuerdoAccion,
   marcarOnboardedAccion,
@@ -26,7 +26,7 @@ import {
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
 import { cn } from "@/lib/utils";
-import { ControlPlataforma } from "../formulario-abono";
+import { ControlEnlacePago } from "../formulario-abono";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
 
 /**
@@ -43,7 +43,7 @@ import { SubirArchivo } from "@/components/archivos/subir-archivo";
 type Dialogo =
   | { tipo: "adicional" }
   | { tipo: "anular"; abono: FichaDeAbono }
-  | { tipo: "plataforma"; abono: FichaDeAbono }
+  | { tipo: "enlace"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
   | { tipo: "acuerdo" }
   | { tipo: "descuento" };
@@ -140,7 +140,7 @@ export function FichaPago({
               {ficha.enlacesDePago.map((enlace) => (
                 <li key={enlace.id} className="flex min-w-0 flex-wrap items-center gap-2 py-2">
                   <span className="min-w-0 flex-1 break-words text-sm">
-                    {enlace.plataformaNombre ?? "Sin plataforma"} · <span className="cifra">{monto(Number(enlace.monto), enlace.moneda)}</span>
+                    {enlace.nombre} · {enlace.plataformaNombre ?? "Sin plataforma"} · <span className="cifra">{monto(Number(enlace.monto), enlace.moneda)}</span>
                   </span>
                   <AccionesEnlacePago url={enlace.url} />
                 </li>
@@ -232,7 +232,8 @@ export function FichaPago({
                   <span className={anulada ? "cifra line-through" : "cifra font-medium"}>{monto(Number(a.monto), a.moneda)}</span>
                   {a.concepto === "adicional" ? <Badge variant="info">Adicional</Badge> : null}
                   <span className="text-xs text-muted-foreground">{fecha(a.fecha)}</span>
-                  {a.plataformaNombre ? <span className="text-xs text-muted-foreground">· {a.plataformaNombre}</span> : null}
+                  {a.enlacePagoNombre ? <span className="text-xs text-muted-foreground">· {a.enlacePagoNombre}</span> : a.plataformaNombre ? <span className="text-xs text-muted-foreground">· {a.plataformaNombre}</span> : null}
+                  {!a.enlacePagoId ? <Badge variant="alerta">Sin link de pago</Badge> : null}
                   {a.comprobanteUrl ? (
                     <a className="text-xs text-marca-texto underline-offset-2 hover:underline" href={a.comprobanteUrl} target="_blank" rel="noreferrer">
                       Comprobante
@@ -254,8 +255,8 @@ export function FichaPago({
                     </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
-                    <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "plataforma", abono: a })}>
-                      Cambiar plataforma
+                    <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "enlace", abono: a })}>
+                      {a.enlacePagoId ? "Cambiar enlace" : "Asociar link"}
                     </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
@@ -278,7 +279,7 @@ export function FichaPago({
 
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "adicional" ? <DialogoAbonoAdicional ficha={ficha} opciones={opciones} hoy={hoy} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "enlace" ? <DialogoCambiarEnlace ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "descuento" ? <DialogoDescuento ficha={ficha} onCerrar={cerrar} /> : null}
@@ -300,7 +301,7 @@ function DialogoAbonoAdicional({
   const { pendiente, correr } = useAccion();
   const [dia, setDia] = useState(hoy);
   const [valor, setValor] = useState("");
-  const [plataformaId, setPlataformaId] = useState<string | null>(null);
+  const [enlacePagoId, setEnlacePagoId] = useState<string | null>(null);
   const [nota, setNota] = useState("");
   return (
     <DialogoForm
@@ -317,7 +318,8 @@ function DialogoAbonoAdicional({
             dealId: ficha.dealId,
             fecha: dia,
             monto: valor,
-            plataformaId: plataformaId ?? undefined,
+            moneda: "USD",
+            enlacePagoId: enlacePagoId ?? undefined,
             nota,
           }),
           { exito: "Abono adicional registrado.", alExito: onCerrar },
@@ -328,14 +330,20 @@ function DialogoAbonoAdicional({
         <Input type="date" value={dia} onChange={(e) => setDia(e.currentTarget.value)} />
       </Campo>
       <Campo etiqueta="Monto (USD)">
-        <Input type="number" min="0.01" max="99999999.99" step="0.01" value={valor} onChange={(e) => setValor(e.currentTarget.value)} />
+        <Input type="number" min="0.01" max="99999999.99" step="0.01" value={valor} readOnly={enlacePagoId != null} onChange={(e) => setValor(e.currentTarget.value)} />
       </Campo>
-      <Campo etiqueta="Plataforma de pago (opcional)">
-        <ControlPlataforma
+      <Campo etiqueta="Link de pago (opcional)">
+        <ControlEnlacePago
           dealId={ficha.dealId}
-          plataformasIniciales={opciones.plataformas}
-          value={plataformaId}
-          onValueChange={setPlataformaId}
+          plataformas={opciones.plataformas}
+          enlaces={opciones.enlacesDePago}
+          value={enlacePagoId}
+          monto={valor}
+          moneda="USD"
+          onValueChange={(id, enlace) => {
+            setEnlacePagoId(id);
+            if (enlace) setValor(enlace.monto);
+          }}
         />
       </Campo>
       <Campo etiqueta="Nota (opcional)" ayuda="Qué se vendió, por ejemplo: mentoría 1:1">
@@ -412,7 +420,7 @@ function AccionesEnlacePago({ url }: { url: string }) {
   );
 }
 
-function DialogoCambiarPlataforma({
+function DialogoCambiarEnlace({
   ficha,
   abono,
   opciones,
@@ -424,34 +432,32 @@ function DialogoCambiarPlataforma({
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [plataformaId, setPlataformaId] = useState<string | null>(abono.plataformaId);
-  // La plataforma actual puede no estar vinculada al programa (un abono migrado): se ofrece
-  // igual, para que el control diga cuál tiene y no "Sin plataforma".
-  const actual =
-    abono.plataformaId && abono.plataformaNombre && !opciones.plataformas.some((p) => p.id === abono.plataformaId)
-      ? [{ id: abono.plataformaId, nombre: abono.plataformaNombre }]
-      : [];
+  const [enlacePagoId, setEnlacePagoId] = useState<string | null>(abono.enlacePagoId);
   return (
     <DialogoForm
-      titulo="Cambiar plataforma"
+      titulo="Cambiar enlace"
       descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}. El monto y la fecha no cambian.`}
       pendiente={pendiente}
       onCerrar={onCerrar}
       confirmar={{
-        texto: "Guardar plataforma",
+        texto: "Guardar enlace",
         enCurso: "Guardando…",
         onClick: () => correr(
-          () => cambiarPlataformaDeAbonoAccion({ abonoId: abono.id, plataformaId }),
-          { exito: "Plataforma actualizada.", alExito: onCerrar },
+          () => cambiarEnlaceDeAbonoAccion({ abonoId: abono.id, enlacePagoId }),
+          { exito: "Enlace actualizado.", alExito: onCerrar },
         ),
       }}
     >
-      <Campo etiqueta="Plataforma de pago (opcional)">
-        <ControlPlataforma
+      <Campo etiqueta="Link de pago (opcional)">
+        <ControlEnlacePago
           dealId={ficha.dealId}
-          plataformasIniciales={[...actual, ...opciones.plataformas]}
-          value={plataformaId}
-          onValueChange={setPlataformaId}
+          plataformas={opciones.plataformas}
+          enlaces={opciones.enlacesDePago}
+          value={enlacePagoId}
+          monto={abono.monto}
+          moneda={abono.moneda}
+          restringirAMonto
+          onValueChange={setEnlacePagoId}
         />
       </Campo>
     </DialogoForm>

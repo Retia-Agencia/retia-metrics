@@ -7,6 +7,7 @@ describe("helpers de componentes por dominio", () => {
     const enlaces = [
       {
         id: "1",
+        nombre: "Uno",
         url: "https://uno",
         monto: "10",
         moneda: "USD",
@@ -16,6 +17,7 @@ describe("helpers de componentes por dominio", () => {
       },
       {
         id: "2",
+        nombre: "Dos",
         url: "https://dos",
         monto: "20",
         moneda: "USD",
@@ -25,6 +27,7 @@ describe("helpers de componentes por dominio", () => {
       },
       {
         id: "3",
+        nombre: "Tres",
         url: "https://tres",
         monto: "30",
         moneda: "USD",

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { calls, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { calls, dealActividades, dealEtapaHistorial, deals, enlacesPago, leads, miembrosPrograma, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -88,6 +88,35 @@ async function deal(dealId: string) {
 
 const acciones = () => import("@/app/(app)/p/[programa]/deals/[id]/acciones");
 const accionesMover = () => import("@/app/(app)/p/[programa]/deals/acciones");
+
+describe("crear link desde el flujo de abono", () => {
+  it("un closer con membresia lo crea en el programa del deal", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Wompi acción" }).returning();
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).crearEnlaceParaAbonoAccion({
+      dealId, plataformaId: plataforma.id, nombre: "Pago completo", monto: "1000", moneda: "USD", url: "https://pago.test/completo",
+    });
+
+    expect(r).toMatchObject({ ok: true, enlace: { nombre: "Pago completo", programId: programaA } });
+    expect(await db.select().from(enlacesPago).where(eq(enlacesPago.programId, programaA))).toHaveLength(1);
+  });
+
+  it("un closer sin membresia recibe 403 y no crea el link", async () => {
+    const dealId = await nuevoDeal(programaB, closerB);
+    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Wompi ajena" }).returning();
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).crearEnlaceParaAbonoAccion({
+      dealId, plataformaId: plataforma.id, nombre: "No permitido", monto: "1500", moneda: "USD", url: "https://pago.test/ajeno",
+    });
+
+    expect(r).toMatchObject({ ok: false });
+    expect((r as { error: string }).error).toMatch(/No puedes gestionar enlaces de pago/);
+    expect(await db.select().from(enlacesPago)).toHaveLength(0);
+  });
+});
 
 describe("anular el deal, forjando la peticion", () => {
   it("un closer NO anula el deal de otro: el mensaje lo dice y la base no se mueve", async () => {

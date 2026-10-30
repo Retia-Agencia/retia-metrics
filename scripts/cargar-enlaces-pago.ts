@@ -26,6 +26,7 @@ import { actorConRolDelScript } from "./actor";
  *     {
  *       "programa": "comunicarte",       // slug del programa
  *       "plataforma": "PayPal",          // nombre de la plataforma de pago
+ *       "nombre": "Pago completo",
  *       "monto": "797.00",
  *       "moneda": "USD",
  *       "url": "https://..."
@@ -46,6 +47,7 @@ import { actorConRolDelScript } from "./actor";
 const esquemaFilaCruda = z.object({
   programa: z.string().min(1, "Falta el slug del programa."),
   plataforma: z.string().min(1, "Falta el nombre de la plataforma."),
+  nombre: z.string().trim().min(1).max(80),
   monto: z.string(),
   moneda: z.string().optional(),
   url: z.string(),
@@ -84,6 +86,7 @@ async function idPorNombrePlataforma(nombre: string): Promise<string> {
 async function yaExiste(datos: {
   programId: string;
   plataformaId: string;
+  nombre: string;
   monto: string;
   moneda: string;
   url: string;
@@ -95,6 +98,7 @@ async function yaExiste(datos: {
       and(
         eq(enlacesPago.programId, datos.programId),
         eq(enlacesPago.plataformaId, datos.plataformaId),
+        eq(enlacesPago.nombre, datos.nombre),
         eq(enlacesPago.monto, datos.monto),
         eq(enlacesPago.moneda, datos.moneda),
         eq(enlacesPago.url, datos.url),
@@ -137,6 +141,7 @@ async function main() {
       datos = esquemaEnlacePago.parse({
         programId,
         plataformaId,
+        nombre: fila.nombre,
         monto: fila.monto,
         moneda: fila.moneda ?? "USD",
         url: fila.url,
@@ -148,7 +153,7 @@ async function main() {
       throw e;
     }
 
-    if (await yaExiste({ programId, plataformaId, monto: datos.monto, moneda: datos.moneda, url: datos.url })) {
+    if (await yaExiste({ programId, plataformaId, nombre: datos.nombre, monto: datos.monto, moneda: datos.moneda, url: datos.url })) {
       console.log(`  = ${fila.programa} / ${fila.plataforma} / ${datos.monto} ${datos.moneda} (ya existe)`);
       saltados += 1;
       continue;
@@ -159,6 +164,7 @@ async function main() {
     await crearEnlacePago(db, actor, {
       programId,
       plataformaId,
+      nombre: datos.nombre,
       monto: datos.monto,
       moneda: datos.moneda,
       url: datos.url,

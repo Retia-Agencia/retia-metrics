@@ -577,6 +577,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                     disponibles={plataformasDisponibles}
                     enlaces={checkouts.map((c) => ({
                       id: c.id,
+                      nombre: c.nombre,
                       url: c.url,
                       monto: c.monto,
                       moneda: c.moneda,

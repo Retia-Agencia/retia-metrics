@@ -42,6 +42,7 @@ import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa"
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 import { redondearUsd } from "@/lib/dinero";
+import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 
 /**
@@ -603,6 +604,7 @@ export interface OpcionesDeTablero {
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
   motivos: { id: string; nombre: string; tipo: string; pideTexto: boolean }[];
   plataformas: OpcionCatalogo[];
+  enlacesDePago: EnlaceDeLaPantalla[];
 }
 
 /**
@@ -674,9 +676,10 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   );
   if (activa?.fechaInicioClases) inicioDeClases[activa.id] = activa.fechaInicioClases;
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
+  const enlacesDePago = await enlacesDePagoVigentes({ programId }, db);
   const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 
-  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas };
+  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas, enlacesDePago };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros, ausentes. */
