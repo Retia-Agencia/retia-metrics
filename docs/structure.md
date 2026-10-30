@@ -522,7 +522,7 @@ Products se retiró con el 134 (el precio es de la cohorte). Personas salió con
 | Mi espacio | Pendientes, Mis deals, Mis llamadas, Mis students y su Calendly | Por decidir: sin dueño, por settear, sueltas, hosts sin cuenta, Webhook Health | Canales: pares sin clasificar y envíos por canal | · | según su vista; en `todo`, un mensaje |
 | Inbox | lo suyo + sin dueño de sus programas | todo el programa | · | · | todo |
 | Hub de un programa | · (la ruta responde 404; ticket 224, ADR 0082) | todos | sus programas, menos el trabajo del equipo comercial (`veEquipoComercial`, ADR 0052) | · | todo |
-| Hub "todos los programas" | sus programas (`paginaConRol("gerente", "closer")`) | todos | · | · | todo |
+| Hub "todos los programas" | · (404; ADR 0082, enmienda del 30-oct) | todos | · | · | todo |
 | Leads, Calls | sus programas | todos | · | · | todo |
 | Deals | **solo sus deals** (ADR 0075) | todos | · | · | todo |
 | Students | sus programas | todos | · | solo esta tab, marca el onboarding (145) | todo |

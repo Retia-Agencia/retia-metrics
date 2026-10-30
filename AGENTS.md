@@ -263,7 +263,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   pago; el resto de la configuracion es de quien administra. El filtro del dashboard sale
   de la URL y nunca de la sesion (ADR 0023): un closer sin filtro ve el programa completo, y el
   comparativo entre closers no se puede acotar ni queriendo, porque el tipo de la consulta no lo
-  admite.
+  admite. **Retirada para el closer por el ADR 0082 (224, 9-oct; enmienda del 30-oct):** el closer ya no abre el Hub,
+  ni el de un programa ni el de "todos"; las rutas le responden 404. La regla "todos ven todo" queda para quien abre el
+  Hub (gerente, developer y, sin el trabajo del equipo comercial, el paid trafficker).
 - **Nada de la app es publico.** Sin sesion no se ve ni una cifra. Excepciones: `/api/health`, que no
   expone ningun dato del negocio, y **`POST /api/semaforo/envios`** (ADR 0089, ticket 259): la llama Juanito con
   `x-semaforo-secreto` (comparado en tiempo constante; sin el, 401 sin cuerpo y nada se mueve) y devuelve el

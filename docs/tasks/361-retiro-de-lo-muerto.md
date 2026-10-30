@@ -26,7 +26,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - **K-12 / G-14:** las rutas viejas de Dashboard y Metas siguen con guardas distintas a las del Hub; se borran el 14-nov
   (`docs/operations.md`).
 - **Del 362 (30-oct):** `/ajustes/canales` redirige a `/hub?seccion=origen`, que es el Hub de "todos los programas" y
-  se guarda con `paginaConRol("gerente", "closer")`: un paid trafficker con el enlace viejo no pasa, aunque el 248
+  solo abre quien administra (ADR 0082, enmienda del 30-oct): un paid trafficker con el enlace viejo recibe 404, aunque el 248
   dice que la pestaña Origen es suya. Y `tests/ingesta-estado.test.ts:44` todavía dice que `estados_llegada` sigue en
   el esquema.
 

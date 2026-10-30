@@ -35,3 +35,12 @@ La ficha deja de ser solo de quien la configura. El paid trafficker la **lee** (
 el equipo) porque ahí viven las piezas de su semáforo, y **escribe** la meta y el aceptable de las métricas de pauta
 (costo por agenda, por lead, por venta y ROAS), nunca los cupos ni lo comercial. Dos preguntas nuevas en
 `lib/auth/roles.ts`: `leePrograma` y `editaObjetivo`. El closer sigue sin abrir Programa. Se construye en el 266.
+
+## Enmienda 30-oct (Mani, decisión HUB-1): tampoco el Hub de "todos los programas"
+
+El punto 1 le quitó al closer el Dashboard, pero al pasar al Hub (ADR 0086) la vista de "todos los programas" (`/hub`,
+`/hub/lista` y sus rutas viejas `/dashboard` y `/dashboard/lista`) siguió guardada con `paginaConRol("gerente",
+"closer")`, y el selector de programa le ofrecía "Todos los programas". Desde el 30-oct esas cuatro rutas usan
+`paginaConCapacidad(esAdministrador)` y le responden 404, como el Hub de un programa; el selector solo ofrece "Todos"
+a quien administra. El paid trafficker sigue sin entrar ahí (ahora 404 en vez de redirigir). Tests en
+`tests/paginas.test.ts`.

@@ -63,7 +63,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0022](./0022-ventana-de-venta-de-la-cohorte-es-dato-por-cohorte.md) | La ventana de venta es dato de cada cohorte |
 | [0080](./0080-la-cohorte-del-deal-la-elige-su-dueno.md) | La cohorte del deal la elige su dueño entre las que venden hoy; en el solape se pueden elegir dos |
 | [0081](./0081-mover-o-anotar.md) | Sobre un deal hay dos gestos, Mover y Anotar; Mover pide adentro lo que la etapa destino necesita y los pendientes salen de lo anotado |
-| [0082](./0082-el-closer-ve-solo-lo-que-usa.md) | El closer abre solo lo que usa: sin Ajustes, Programa, Dashboard ni Metas, cerrados en el servidor |
+| [0082](./0082-el-closer-ve-solo-lo-que-usa.md) | El closer abre solo lo que usa: sin Ajustes, Programa, Hub (de un programa ni de "todos", **enmienda del 30-oct**) ni Metas, cerrados en el servidor |
 | [0023](./0023-metricas-por-closer-sin-meta-individual.md) | Las métricas por closer salen de las mismas consultas, y la meta no se reparte |
 
 **El dinero y los catálogos**

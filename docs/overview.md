@@ -138,7 +138,7 @@ y deals según su origen (ADR 0043).
 1. ✅ Trabaja la cola de **En gestión** desde el Inbox: reclama, contacta y registra cada intento.
 2. 🟡 Manda el **link de agenda** y marca "Ya se lo mandé". La cita por Calendly entrega el deal a quien da
    la llamada; el setter queda con su crédito (`setter_user_id`). Si a 1 día hábil no hay cita, alerta.
-3. Ve las métricas como cualquier closer: no el Hub de un programa (ADR 0082), sí el de "todos los programas".
+3. Como cualquier closer, no abre el Hub (ADR 0082).
 
 **Closer** (ve solo los programas de su membresía, ADR 0048, y en Deals solo los suyos, ADR 0075):
 
@@ -158,7 +158,7 @@ y deals según su origen (ADR 0043).
 5. ✅ Marca el onboarding de sus estudiantes (una sola marca hasta el 145).
 6. ✅ Encuentra brochures y links de pago en **Recursos**, en un clic, y crea los de sus programas.
 7. ✅ Desde el 224 (ADR 0082, "el closer abre solo lo que usa") el **Hub** de un programa no es suyo: la ruta le
-   responde 404 y su trabajo lo ve en **Mi espacio**; entra al Hub de "todos los programas", con las sumas de los suyos.
+   responde 404 y su trabajo lo ve en **Mi espacio**. Tampoco el de "todos los programas" (enmienda del 30-oct).
 8. 🟡 Asigna su propia cuenta de Calendly por programa desde **Perfil** (ADR 0074).
 9. ⛔ Tiene **su link de captación** por programa, para que el lead que trae cuente como suyo (086).
 10. ⛔ Su **reporte del día** sale del CRM en vez de escribirlo en WhatsApp (158).

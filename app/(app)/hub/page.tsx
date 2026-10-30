@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador } from "@/lib/auth/roles";
@@ -23,7 +23,8 @@ interface Props {
 }
 
 export default async function HubDeTodosPage({ searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  // El closer no ve el Hub de todos los programas, como no ve el de uno (ADR 0082; decisión HUB-1, 30-oct).
+  const session = await paginaConCapacidad(esAdministrador);
   const rol = await rolDeVista(session);
   // Ningún parámetro de la URL decide qué programas entran a las sumas (ADR 0048).
   const programas = await programasVisibles(session.user.id, rol);
