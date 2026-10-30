@@ -19,6 +19,7 @@ import { ORIGEN_DE_SUELTA_ASIGNABLE, sueltaPorAsignar } from "@/lib/calendly/sue
 import { puedeColgarSuelta } from "@/lib/calendly/suelta";
 import { closerHost, type CloserDelPrograma } from "@/lib/calendly/emparejar-llamada";
 import { closersConCalendly } from "@/lib/calendly/colgar-llamada";
+import { HORAS_PARA_ALERTAR_CITA_SUELTA } from "@/lib/calendly/reconciliar";
 import type { Rol } from "@/lib/auth/roles";
 import { normalizarTelefono } from "@/lib/ingesta/envio";
 import { linkEnviadoSinCita } from "@/lib/deals/handoff";
@@ -102,6 +103,9 @@ export interface FilaLlamada {
   ownerNombre: string | null;
   puedeColgar?: boolean;
   sugerencias?: SugerenciaDeSuelta[];
+  posibles?: number;
+  horasSuelta?: number;
+  sueltaVieja?: boolean;
 }
 
 export interface FilaLlamadaSinCloser {
@@ -391,6 +395,7 @@ export async function llamadasSueltasDelPrograma(
       emailLead: calls.emailLead,
       host: calls.calendlyHostEmail,
       raw: calls.raw,
+      creadaEn: calls.createdAt,
     })
     .from(calls)
     .where(and(eq(calls.programId, programId), sueltaPorAsignar(), vigente(calls)));
@@ -423,7 +428,10 @@ export async function llamadasSueltasDelPrograma(
     telefonosPorLead.set(telefono.leadId, delLead);
   }
   filas.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
-  return filas.map((f) => ({
+  return filas.map((f) => {
+    const sugeridas = sugerenciasDeSuelta(f.raw, abiertos, telefonosPorLead);
+    const horasSuelta = Math.max(0, Math.floor((Date.now() - f.creadaEn.getTime()) / 3_600_000));
+    return {
     callId: f.callId,
     dealId: null,
     leadNombre: null,
@@ -434,8 +442,12 @@ export async function llamadasSueltasDelPrograma(
     puedeColgar: actor
       ? puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser, hostUserId: closerHost(f.host, closers as CloserDelPrograma[]) })
       : false,
-    sugerencias: sugerenciasDeSuelta(f.raw, abiertos, telefonosPorLead),
-  }));
+    sugerencias: sugeridas.sugerencias,
+    posibles: sugeridas.posibles,
+    horasSuelta,
+    sueltaVieja: horasSuelta >= HORAS_PARA_ALERTAR_CITA_SUELTA,
+  };
+  });
 }
 
 function nombreComparable(valor: unknown): string | null {
@@ -448,18 +460,27 @@ function sugerenciasDeSuelta(
   raw: unknown,
   abiertos: readonly { dealId: string; leadId: string; leadNombre: string | null; leadEmail: string }[],
   telefonosPorLead: ReadonlyMap<string, ReadonlySet<string>>,
-): SugerenciaDeSuelta[] {
-  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return [];
+): { sugerencias: SugerenciaDeSuelta[]; posibles: number } {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return { sugerencias: [], posibles: 0 };
   const datos = raw as Record<string, unknown>;
   const nombre = nombreComparable(datos.nombre);
   const telefono = normalizarTelefono(datos.telefono);
-  if (!nombre && !telefono) return [];
-  return abiertos
-    .filter((d) =>
-      (nombre !== null && nombreComparable(d.leadNombre) === nombre)
-      || (telefono !== null && telefonosPorLead.get(d.leadId)?.has(telefono) === true),
-    )
-    .map(({ dealId, leadNombre, leadEmail }) => ({ dealId, leadNombre, leadEmail }));
+  if (!nombre && !telefono) return { sugerencias: [], posibles: 0 };
+  const porNombre = nombre === null
+    ? []
+    : abiertos.filter((d) => nombreComparable(d.leadNombre) === nombre);
+  const nombreCompleto = (nombre?.split(" ").length ?? 0) >= 2;
+  const porTelefono = telefono === null
+    ? []
+    : abiertos.filter((d) => telefonosPorLead.get(d.leadId)?.has(telefono) === true);
+  const candidatas = new Map<string, typeof abiertos[number]>();
+  if (nombreCompleto || porNombre.length === 1) for (const d of porNombre) candidatas.set(d.dealId, d);
+  for (const d of porTelefono) candidatas.set(d.dealId, d);
+  const ambiguas = !nombreCompleto && porNombre.length > 1 ? porNombre.length : 0;
+  return {
+    sugerencias: [...candidatas.values()].map(({ dealId, leadNombre, leadEmail }) => ({ dealId, leadNombre, leadEmail })),
+    posibles: Math.max(ambiguas, candidatas.size),
+  };
 }
 
 // ───────────────────────────────────────────── sección 4: lo mío que necesita atención

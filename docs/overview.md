@@ -127,7 +127,8 @@ y deals según su origen (ADR 0043).
    Potencial (parcial, venga con la calidad que venga), Registrado (completo sin calidad alta), Calificado (completo con Lead Quality High) o Agendado
    (agendó) (ADR 0069). Si la persona vuelve a llenar el formulario con un envío mejor, sube el deal (ADR
    0073).
-2. ✅ Cuelga cada cita de Calendly de su deal y lo mueve a Agendado; si tiene duda, deja la llamada suelta
+2. ✅ Cuelga cada cita de Calendly de su deal por el UUID compartido con el link del formulario y lo mueve a
+   Agendado; sin UUID usa solo un correo confirmado y, si tiene duda, deja la llamada suelta con alarma
    (ADR 0049). Mueve reagendas, cancelaciones y no-shows.
 3. ✅ Mueve a Atendido cuando se pega el Grain, y a las dos etapas de ganado cuando se registra o anula un
    abono.
@@ -426,8 +427,10 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Cita:** una reserva real en el Calendly del programa, con su hora, su host y su Meet. Toda llamada que agenda
   el CRM es una cita (ADR 0096): agendar, reagendar o cancelar en el CRM lo hace también en Calendly. *Reagendar es
   reservar una cita nueva y retirar la vieja, no moverla.*
-- **Llamada suelta:** una llamada de Calendly que no se pudo colgar de un deal sin duda; espera en el
-  Inbox.
+- **Llamada suelta:** una llamada de Calendly que no se pudo colgar de un deal sin duda. El CRM reintenta por
+  UUID y luego por correo confirmado al recibir formulario, webhook y en el cron diario; mientras tanto espera
+  en el Inbox, que avisa cuando lleva más de 24 horas. Nombre y teléfono solo sugieren opciones a una persona:
+  nunca la asignan automáticamente.
 - **Student:** un deal en Ganado Pago Parcial o Ganado Pagado Completo, en la cohorte de su deal, desde el
   primer pago (GC-41). Es una vista, no una tabla.
 - **Deal histórico:** un deal que vino de las pestañas de gestión de la hoja (migración de E7). Nace en la

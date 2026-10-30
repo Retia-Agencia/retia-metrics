@@ -178,6 +178,12 @@ export default async function SaludPage({
                         · {num(s.sinCalidad)} {s.sinCalidad === 1 ? "envío" : "envíos"} completos sin calidad en {HORAS_SIN_CALIDAD} h
                       </span>
                     ) : null}
+                    {s.llamadasSueltasViejas > 0 ? (
+                      <span className="text-destructive"> · {num(s.llamadasSueltasViejas)} citas llevan más de un día sin deal</span>
+                    ) : null}
+                    {s.dealsConCitaSinLlamada > 0 ? (
+                      <span className="text-destructive"> · {num(s.dealsConCitaSinLlamada)} deals traen cita pero no tienen llamada</span>
+                    ) : null}
                     {s.trazaRota ? (
                       <span className="text-tono-alerta">
                         · {num(s.pagosSinId)} de {num(s.pagos)} envíos pagos sin anuncio ({HORAS_SIN_CALIDAD} h)

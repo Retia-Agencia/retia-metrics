@@ -102,7 +102,12 @@ export async function citaYaGuardada(
   const [fila] = await db
     .select({ inicio: calls.fechaAgenda, correoHost: calls.calendlyHostEmail })
     .from(calls)
-    .where(and(eq(calls.programId, programId), eq(calls.huellaFila, huellaDeCita(uuidInvitado)), vigente(calls)));
+    .where(and(
+      eq(calls.programId, programId),
+      eq(calls.huellaFila, huellaDeCita(uuidInvitado)),
+      eq(calls.resultado, "agendada"),
+      vigente(calls),
+    ));
   if (!fila?.inicio) return null;
   return { estado: "vigente", inicio: fila.inicio, uuidInvitado, correoHost: fila.correoHost };
 }

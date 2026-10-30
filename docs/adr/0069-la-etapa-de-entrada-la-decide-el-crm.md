@@ -11,6 +11,10 @@
   sin calidad → Registrado. Si ese parcial termina con High, la subida del ADR 0073 (S2) lo lleva a Calificado. Los
   7 deals de Comunícate con Confianza que un parcial High había dejado en Calificado sin trabajar se devolvieron a
   Potencial con nota del sistema. La pestaña "No agendaron" del Inbox (118) busca ahora Potencial con parcial High.
+- **Enmendado el 30-oct-2026 por el ticket 363:** el link `/invitees/<uuid>` del envío y la huella
+  `calendly:<uuid>` son la prueba durable de que formulario y Calendly hablan de la misma cita. El barrido
+  reconcilia ambos órdenes y solo lleva a Agendado una llamada que siga agendada; una cita cancelada antes de
+  llegar el formulario no convierte el deal en Agendado.
 - **Relacionadas:** ADR 0061 (la tabla de Estados de llegada, ticket 117), ADR 0064 (varios formularios),
   `docs/comercial.md` (la operación de 30X, la misma para todos los programas; GC-27: ningún lead se descarta).
 

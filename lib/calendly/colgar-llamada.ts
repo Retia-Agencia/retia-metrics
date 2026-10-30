@@ -132,7 +132,7 @@ export async function closersConCalendly(db: Db, programId: string): Promise<Clo
  * Los leads del programa que tienen ese correo, con los correos que lo prueban y sus deals
  * abiertos y vigentes. El correo que es la llave del lead cuenta como confirmado.
  */
-async function candidatosPorCorreo(db: Db, programId: string, correo: string): Promise<LeadCandidato[]> {
+export async function candidatosPorCorreo(db: Db, programId: string, correo: string): Promise<LeadCandidato[]> {
   const contactos = await db
     .select({ leadId: leadContactos.leadId, valor: leadContactos.valor, confirmado: leadContactos.confirmado })
     .from(leadContactos)
@@ -274,7 +274,7 @@ export async function registrarLlamadaDeCalendly(
  * escribir en Calendly otro correo que en el formulario (9-oct, una cita quedó suelta así).
  * Si el uuid aparece en envíos de más de un deal abierto, hay duda y no decide nada.
  */
-async function dealDelEnvioConLaCita(
+export async function dealDelEnvioConLaCita(
   db: Db,
   programId: string,
   uuidInvitado: string,
@@ -541,7 +541,7 @@ interface DealParaSuelta {
   cohortId: string | null;
 }
 
-async function colgarSueltaEnDeal(
+export async function colgarSueltaEnDeal(
   tx: Db,
   llamada: LlamadaSueltaLeida,
   deal: DealParaSuelta,

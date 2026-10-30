@@ -54,7 +54,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0072](./0072-una-pregunta-por-etapa-mueve-el-deal.md) | Una pregunta por etapa mueve el deal, también al arrastrar el Kanban (muestra lo que tiene y le falta); solo alertas, nada automatizado en v1; Lead Value ordena la cola |
 | [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |
-| [0049](./0049-calendly-cuelga-llamadas-de-deals.md) | Calendly cuelga cada llamada de su deal; si hay duda, la llamada queda suelta |
+| [0049](./0049-calendly-cuelga-llamadas-de-deals.md) | Calendly reconcilia cada cita por UUID del invitado y, sin UUID, por correo confirmado; ingesta, webhook y cron reintentan; si hay duda queda suelta y alarma |
 | [0026](./0026-anular-registros-y-borrar-del-catalogo.md) | Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó |
 | [0038](./0038-anular-no-es-cierre-perdido.md) | Anular no es Cierre Perdido |
 | [0042](./0042-todo-movimiento-del-crm-deja-rastro.md) | Todo movimiento del CRM deja rastro, desde el primer día |

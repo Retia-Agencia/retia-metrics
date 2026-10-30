@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/grain",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/calendly",
+      "schedule": "0 13 * * *"
     }
   ]
 }

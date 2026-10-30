@@ -27,6 +27,14 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-30: ticket 363 implementado en `t363`, pendiente de ejecución de tests/build en el checkout principal.**
+  Un barrido único (`lib/calendly/reconciliar.ts`) reconcilia por UUID y luego correo confirmado desde ingesta,
+  webhook y cron; repara deals bajos por el motor, deja rastro y expone alarmas. La matriz nueva invoca las dos
+  rutas firmadas y cubre órdenes, simultaneidad, parcial/completo, reintento, reagenda, cancelada, duda, frontera e
+  I1–I4. El caso cancelada encontró un bug real: `vigente(calls)` no implica cita activa; ingesta y barrido ahora
+  exigen también `resultado = agendada`. N8 reescribió ADR 0049, la precisión en 0069, índice y glosario. Typecheck,
+  lint y `git diff --check` limpios. El runner no inició: `spawnSync ps EPERM`; no se intentó rodeo ni build.
+
 - **2026-10-29 (noche): la tabla del ROAS abre un pop up por campaña.** Antes `roas_campana` desplegaba conjuntos y anuncios
   dentro de la tabla; ahora la fila de la campaña (`FilaDeCampana`, `components/pauta-roas-campana.tsx`) abre un diálogo con su
   detalle y la URL ya no lleva `roas_campana`. Typecheck, lint y build verdes; tests no corridos en local (swap alto).

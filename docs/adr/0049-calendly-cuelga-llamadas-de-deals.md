@@ -1,8 +1,9 @@
-# 0049 — Calendly cuelga cada llamada de su deal, y si hay duda la llamada queda suelta
+# 0049 — Calendly reconcilia cada cita por UUID; si hay duda la llamada queda suelta
 
 **Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (confirmado por los closers el 24-sep; el apéndice de Seguimiento pasó al ADR 0037) · **Estado:** aceptado (Mani); la forma técnica (webhook o consulta periódica)
 queda abierta · **Implementación:** ticket 096 · **Enmienda:** la spec del 16-sep (Calendly quedaba fuera),
-ADR 0037 (dueño por reclamo), ticket 057 ("una Call no puede existir sin deal")
+ADR 0037 (dueño por reclamo), ticket 057 ("una Call no puede existir sin deal") · **Enmendado:** 2026-10-30,
+ticket 363 (UUID del invitado, barrido idempotente y alarma)
 
 ## El problema
 
@@ -22,18 +23,23 @@ La agenda no es una entrada aparte: es parte del mismo envío. Calendly no crea 
 **2. La sincronización con Calendly, por programa, tiene un solo objetivo: colgar cada llamada de su
 deal sin trabajo manual**, con su fecha real, su host, y sus movimientos y cancelaciones.
 
-**3. No es forzosa. Si hay duda, la llamada queda suelta.** Se cuelga sola **solo** si el correo del
-invitado pertenece a **un solo lead del programa con un solo deal abierto**. En cualquier otro caso
+**3. No es forzosa. Si hay duda, la llamada queda suelta.** La primera llave es el **UUID del invitado**:
+la huella `calendly:<uuid>` de la llamada casa con el link `/invitees/<uuid>` guardado por el envío del
+mismo programa. Si aparece en envíos de un solo deal abierto, se cuelga sin depender del correo; si aparece
+en más de uno, queda suelta y la duda se avisa. Solo cuando ningún envío trae ese UUID se usa el correo
+**confirmado** del invitado, que debe pertenecer a **un solo lead del programa con un solo deal abierto**. En cualquier otro caso
 (el correo no aparece, casa con un lead sin deal abierto, o con más de uno) la llamada queda **suelta**
 en el Inbox y el closer la asigna a un deal a mano, o crea el deal.
 
 - La razón: **una asignación equivocada es peor que una pendiente**, porque se ve igual que una
   correcta y no lanza ningún error. Es la regla del emparejador de UTM (ADR 0045): un empate es un
   error visible, no una elección silenciosa.
-- El emparejamiento automático usa **solo el correo**. El teléfono no empareja: en este repo el
+- Fuera de la llave exacta del UUID, el emparejamiento automático usa **solo el correo confirmado**. El teléfono no empareja: en este repo el
   teléfono une y marca, nunca decide solo (ADR 0035).
-- Si la llamada llega antes que el envío (carrera de segundos), queda suelta y se reintenta el
-  emparejamiento cuando llega el envío. 🟡 Propuesta, se valida al construir.
+- El orden no importa. Un único barrido idempotente reconcilia al final de la ingesta, después de cada webhook
+  de Calendly y en un cron diario. Primero prueba UUID y luego correo confirmado; cada asignación deja rastro.
+  Una cita cancelada no se reconcilia como vigente. Las llamadas que superan 24 horas sueltas y los deals cuyo
+  envío trae una cita pero siguen sin llamada son alarmas visibles.
 
 **4. Efecto sobre la etapa, siempre por `moverEtapa()`:** deal en 1, 2, 3, 9 u 11 → pasa a Agendado; deal
 en 4 → se queda, ahora con la fecha real; deal en 5, 6 o 7 → es una segunda llamada y la etapa **no**
@@ -72,4 +78,3 @@ Calendly y no se pudo colgar sin duda, visible en el Inbox hasta que alguien la 
 | Emparejar siempre al lead más parecido | Una asignación equivocada no se distingue de una buena |
 | Emparejar también por teléfono | 37 teléfonos de Tactical tienen más de un correo (ADR 0035) |
 | Que todo Agendado nazca sin dueño y se reclame | Calendly ya repartió por Round Robin; reclamar lo ya asignado es trabajo sin valor |
-

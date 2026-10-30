@@ -8,6 +8,7 @@ import { HEADER_FIRMA_CALENDLY, leerEventoDeCalendly, verificarFirmaCalendly } f
 import { aplicarEventoDeCalendly } from "@/lib/calendly/eventos-de-cita";
 import { claveFirmaCalendly } from "@/lib/integraciones";
 import { cancelarCitasReemplazadas } from "@/lib/calendly/una-cita-activa";
+import { reconciliarCalendly } from "@/lib/calendly/reconciliar";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -71,6 +72,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ program
     const efecto = await aplicarEventoDeCalendly(db, programa.id, lectura.evento);
     if (efecto.tipo === "registrada" || efecto.tipo === "reagendada") {
       await cancelarCitasReemplazadas(db, efecto.citasACancelar);
+    }
+    if (efecto.tipo !== "otro_programa") {
+      // Aparte del evento: si el barrido falla, el evento ya se aplico y no debe marcarse como fallido.
+      try {
+        await reconciliarCalendly(db, programa.id, { reparar: false });
+      } catch (e) {
+        console.error(`[calendly] el barrido de reconciliacion fallo (programa ${programa.id})`, e);
+      }
     }
     if (efecto.tipo === "desconocida") {
       console.warn(`[calendly] evento sobre una cita que el CRM no conoce (programa ${programa.id})`);

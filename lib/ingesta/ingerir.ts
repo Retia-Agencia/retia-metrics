@@ -10,6 +10,7 @@ import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, hechosDeEntradaDelEnvio, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
 import type { CitaACancelar } from "@/lib/calendly/una-cita-activa";
+import { reconciliarCalendly } from "@/lib/calendly/reconciliar";
 import {
   resolverIdentidad,
   type ContactoConocido,
@@ -185,7 +186,8 @@ export async function ingerirEntradas(
     notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: e.puntaje, versionPuntaje: null });
   }
 
-  return (db as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> }).transaction(
+  const leadsTocados = new Set<string>();
+  const escrito = await (db as { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> }).transaction(
     async (tx) => {
       // 2. Lo que el programa ya sabe de estas personas.
       const conocidos = await contactosConocidos(tx, programId, envios);
@@ -344,6 +346,7 @@ export async function ingerirEntradas(
           identidad.asignaciones.map((a) => resolverLead(a.lead)).filter((id): id is string => id !== null),
         ),
       ];
+      for (const leadId of tocados) leadsTocados.add(leadId);
       const { actualizados, cambios } = await recalcularResumen(tx, tocados, creados, opciones.syncRunId ?? null);
       resultado.leadsNuevos = creados.size;
       resultado.leadsActualizados = actualizados;
@@ -397,6 +400,15 @@ export async function ingerirEntradas(
       return resultado;
     },
   );
+  if (leadsTocados.size > 0) {
+    // La transaccion ya confirmo: un fallo del barrido no puede volver fallida la ingesta (el cron lo reintenta).
+    try {
+      await reconciliarCalendly(db, programId, { leadIds: [...leadsTocados] });
+    } catch (e) {
+      console.error(`[ingesta] el barrido de reconciliacion de Calendly fallo (programa ${programId})`, e);
+    }
+  }
+  return escrito;
 }
 
 /**

@@ -6,6 +6,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { arbolDePauta } from "@/lib/pauta/arbol";
+import { alarmasCalendly } from "@/lib/calendly/reconciliar";
 
 /**
  * La salud de una fuente de leads (ticket 107): ¿sigue recibiendo envios?
@@ -126,6 +127,8 @@ export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
   nombre: string;
   programId: string;
   programaNombre: string;
+  llamadasSueltasViejas: number;
+  dealsConCitaSinLlamada: number;
 }
 
 /**
@@ -180,6 +183,9 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
   const programas = [...new Set(fuentes.map((fuente) => fuente.programId))];
   const arboles = new Map(await Promise.all(programas.map(async (programId) =>
     [programId, await arbolDePauta(db, programId)] as const
+  )));
+  const alarmas = new Map(await Promise.all(programas.map(async (programId) =>
+    [programId, await alarmasCalendly(db, programId, ahora)] as const
   )));
   const programaPorFuente = new Map(fuentes.map((fuente) => [fuente.sourceId, fuente.programId]));
   const trazaDe = new Map<string, Omit<DatosDeTraza, "trazaRota" | "fbclidRoto">>();
@@ -245,6 +251,8 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       pagosSinFbclid: 0,
       pagosIdDesconocido: 0,
     };
-    return { ...fuente, ...datos, ...saludDeFuente({ ...datos, ...traza }, ahora) };
+    const alarma = alarmas.get(f.programId) ?? { llamadasSueltasViejas: 0, dealsConCitaSinLlamada: 0 };
+    const salud = saludDeFuente({ ...datos, ...traza }, ahora);
+    return { ...fuente, ...datos, ...salud, marcada: salud.marcada || alarma.llamadasSueltasViejas > 0 || alarma.dealsConCitaSinLlamada > 0, ...alarma };
   });
 }

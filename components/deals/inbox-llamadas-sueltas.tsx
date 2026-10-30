@@ -92,6 +92,9 @@ function FilaSuelta({
         <p className="cifra text-xs text-muted-foreground">
           {fila.fechaAgenda ? `Cita ${fechaHoraEnBogota(fila.fechaAgenda)}` : "Sin fecha de cita"}
         </p>
+        {fila.sueltaVieja ? (
+          <p className="cifra text-xs text-destructive">Sigue suelta hace {fila.horasSuelta} horas</p>
+        ) : null}
         {fila.linkCalendly ? (
           <a
             className="text-xs text-marca-texto underline-offset-2 hover:underline"
@@ -109,9 +112,12 @@ function FilaSuelta({
           <>
           {fila.sugerencias?.map((deal) => (
             <Button key={deal.dealId} size="sm" variant="secondary" disabled={asignando !== null} onClick={() => void colgar(deal.dealId)}>
-              {asignando === deal.dealId ? "Colgando…" : `Colgar aquí · ${deal.leadNombre ?? deal.leadEmail}`}
+              {asignando === deal.dealId ? "Colgando…" : `Colgar aquí · ${deal.leadNombre ?? "Sin nombre"} · ${deal.leadEmail}`}
             </Button>
           ))}
+          {(fila.posibles ?? 0) > (fila.sugerencias?.length ?? 0) ? (
+            <span className="cifra text-xs text-muted-foreground">{fila.posibles} posibles</span>
+          ) : null}
           <Button size="sm" variant="default" onClick={() => setAbierto(true)}>
             Asignar a un deal
           </Button>
