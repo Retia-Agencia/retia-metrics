@@ -33,6 +33,7 @@
     "dev:local": "tsx scripts/dev-local.ts",
     "simular:cita": "tsx scripts/simular-cita.ts",
     "rellenar:closer-llamadas": "tsx scripts/rellenar-closer-de-llamadas.ts",
+    "rellenar:comision-ventas": "tsx scripts/rellenar-comision-de-ventas.ts",
     "seed:local": "tsx scripts/seed-local.ts",
     "trasladar": "tsx scripts/trasladar-desde-sheets.ts",
     "migracion:extraer": "tsx scripts/migrar-gestion.ts extraer",

@@ -216,6 +216,7 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 | Ventas | deals vendidos en el rango (§1.4) | ventas | sí | `ventasConDiaEn` | ✅ |
 | Ventas por escalón | la escalera de conversión, abajo (ADR 0109): deals del periodo en siete escalones, con número, % y días hábiles medianos | deals | no: distribución por programa | `lib/queries/escalera.ts` | ✅ |
 | Vendido | Σ `deals.valor_vendido_usd` de las ventas del rango (lo escribe el closer); un deal sin valor se cuenta aparte, no se inventa | USD | sí | `contratadoDeDeals` en `lib/queries/saldo.ts` | ✅ |
+| Comisión | Σ valor vendido × el % congelado en el deal al entrar a Abonado o Completo; sin % del programa no se puede entrar a venta (ADR 0115 N6, ticket 356). Por closer va al dueño del deal; las ventas sin dueño salen en la fila «Sin closer» | USD | no | `comisionDeDeal` y `comisionesPorCloser` en `lib/queries/comision.ts` | ✅ |
 | Recaudado | Σ abonos vigentes por su fecha (§1.5) | USD | sí | `hechos/abono.ts` | ✅ |
 | Saldo de un deal | contratado − abonado; negativo es sobrepago, no deuda | USD | · | `saldosDeDeals`, `saldoLegible` | ✅ |
 | Meta del mes, de la semana y de la cohorte | cupos de la cohorte repartidos por días hábiles (020, 146) | cupos | no | `lib/queries/metas.ts` | ✅ |
@@ -223,6 +224,8 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 **El grupo de citas** (para las tres tasas): los deals vigentes, sin cortesía, con al menos una cita **ya
 ocurrida** en el rango (show, no-show, cancelada o sin resultado; la reagendada no, la representa la nueva). Se
 cuenta por deal, no por llamada (ADR 0079). Por closer, cada deal va a quien tomó su último show.
+
+**A quién se acredita cada cifra por closer** (356): citas, shows y no show a quien tomó la llamada; cierres y comisión al dueño del deal; caja a quien registró el abono. Lo que no tiene closer sale en la fila «Sin closer».
 
 **La escalera de conversión** (ADR 0109, tickets 319 y 320): en qué escalón paga, o se queda, cada deal. La
 decide `escalonDeDeal` (pura) y la carga `cargarEscalera`, ambas en `lib/queries/escalera.ts`; nadie más calcula

@@ -8,6 +8,7 @@ import { hoyEnBogota } from "@/lib/format";
 import {
   abonos,
   changeLog,
+  dealEtapaHistorial,
   deals,
   leads,
   programs,
@@ -80,7 +81,14 @@ async function vender(porcentaje: string | null, valor = "1000") {
   await db
     .insert(abonos)
     .values({ dealId, programId, fecha: HOY, monto: "500", comprobanteUrl: "https://drive.google.com/abono" });
-  await moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema });
+  if (porcentaje === null) {
+    // Fixture historico: estas ventas existen antes de la reja del ticket 356. Una
+    // venta nueva sin porcentaje ya no puede llegar a esta etapa por el motor.
+    await db.update(deals).set({ etapa: "ganado_parcial" }).where(eq(deals.id, dealId));
+    await db.insert(dealEtapaHistorial).values({ dealId, a: "ganado_parcial" });
+  } else {
+    await moverEtapa(db, { dealId, a: "ganado_parcial", actor: sistema });
+  }
   const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
   return deal;
 }
