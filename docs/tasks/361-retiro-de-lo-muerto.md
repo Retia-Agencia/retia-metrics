@@ -25,13 +25,19 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - **R-13:** dos sistemas de color para cupos (`colorDeCupos` muerto) y las alertas con su umbral propio sin documentar.
 - **K-12 / G-14:** las rutas viejas de Dashboard y Metas siguen con guardas distintas a las del Hub; se borran el 14-nov
   (`docs/operations.md`).
+- **Del 362 (30-oct):** `/ajustes/canales` redirige a `/hub?seccion=origen`, que es el Hub de "todos los programas" y
+  solo abre quien administra (ADR 0082, enmienda del 30-oct): un paid trafficker con el enlace viejo recibe 404, aunque el 248
+  dice que la pestaña Origen es suya. Y `tests/ingesta-estado.test.ts:44` todavía dice que `estados_llegada` sigue en
+  el esquema.
 
 ## Alcance
 
 1. Un commit de retiro por grupo, sin mezclar con otros cambios. Antes de borrar cada pieza, grep de llamadores.
 2. `/ajustes/areas` y las tablas `areas`/`canales`: si nadie las lee, migración que las quite (primero el código sin
    ellas, luego la migración, con `lock_timeout`).
-3. Las rutas viejas se borran el 14-nov; hasta entonces, la misma guarda que `hub/lista`.
+3. Las rutas viejas se borran el 14-nov; hasta entonces, la misma guarda que `hub/lista`. `/ajustes/canales`, hasta
+   borrarse, redirige al Hub › Origen del primer programa visible (`/p/<programa>/hub?seccion=origen`), donde sí entra
+   el paid trafficker.
 4. Guardián del diccionario (N7): recorre `docs/metricas.md`, extrae cada función citada en backticks y falla si no
    existe o si no tiene un llamador fuera de `tests/`.
 
@@ -39,5 +45,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 - [ ] Guardián del diccionario en verde y mordido (una función inventada en el doc lo hace fallar).
 - [ ] Grep limpio de cada pieza borrada; typecheck, lint y `npm run build`.
-- [ ] Ningún comentario de `lib/` nombra `estados_llegada`.
+- [ ] Ningún comentario de `lib/` ni de `tests/` dice que `estados_llegada` existe (los guardianes que la nombran para
+      vigilar que nadie la lea se quedan).
+- [ ] Un paid trafficker que abre `/ajustes/canales` llega a Hub › Origen de su programa (forjado con su sesión).
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.

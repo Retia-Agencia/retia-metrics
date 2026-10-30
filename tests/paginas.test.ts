@@ -528,8 +528,16 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     expect(await correrTodos()).toBe("login");
   });
 
-  it("un closer solo entrega a la vista sus programas visibles", async () => {
+  it("un closer recibe 404, como en el Hub de un programa (ADR 0082, HUB-1)", async () => {
     auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+
+    expect(await correrTodos()).toBe("notFound");
+    expect(armarVistaDeTodos).not.toHaveBeenCalled();
+  });
+
+  it("el gerente solo entrega a la vista sus programas visibles", async () => {
+    auth.mockResolvedValue(sesionGerente);
     const suyo = { id: "p-1", slug: "programa-a", nombre: "Programa A" };
     programasVisibles.mockResolvedValue([suyo]);
 
@@ -537,8 +545,8 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
   });
 
-  it("un programa sin membresía nunca llega al constructor", async () => {
-    auth.mockResolvedValue(sesionCloser);
+  it("un programa fuera del alcance nunca llega al constructor", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
 
     await correrTodos();
@@ -546,8 +554,15 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     expect(entrada.programas.map((p: { slug: string }) => p.slug)).not.toContain("programa-ajeno");
   });
 
-  it("sin programas visibles responde 404", async () => {
+  it("su lista también responde 404 a un closer (HUB-1)", async () => {
     auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+    const { default: lista } = await import("@/app/(app)/hub/lista/page");
+    await expect(lista({ searchParams: Promise.resolve({ metrica: "caja" }) })).rejects.toBeInstanceOf(NoEncontrado);
+  });
+
+  it("sin programas visibles responde 404", async () => {
+    auth.mockResolvedValue(sesionGerente);
     programasVisibles.mockResolvedValue([]);
     expect(await correrTodos()).toBe("notFound");
   });
@@ -950,6 +965,14 @@ describe("las rutas viejas del Dashboard y de Metas redirigen al Hub (ticket 250
       `/p/${SLUG}/hub/lista?metrica=cierres&pagina=2`,
     );
   });
+
+  it.each(["@/app/(app)/dashboard/page", "@/app/(app)/dashboard/lista/page"])(
+    "%s responde 404 a un closer, como el Hub de todos (HUB-1)",
+    async (ruta) => {
+      auth.mockResolvedValue(sesionCloser);
+      expect(await destino(ruta)).toBe("notFound");
+    },
+  );
 
   it("el Dashboard de todos los programas y su lista abren el Hub de todos", async () => {
     auth.mockResolvedValue(sesionGerente);
@@ -1843,10 +1866,10 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     expect(vistaDeLista).not.toHaveBeenCalled();
   });
 
-  it("'todos los programas' no es suyo: lo redirige sin armar la vista", async () => {
+  it("'todos los programas' no es suyo: 404 sin armar la vista (la misma guarda que el Hub, HUB-1)", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     armarVistaDeTodos.mockClear();
-    expect(await correrTodos()).toBe("midia");
+    expect(await correrTodos()).toBe("notFound");
     expect(armarVistaDeTodos).not.toHaveBeenCalled();
   });
 

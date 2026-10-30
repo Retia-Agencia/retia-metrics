@@ -2,7 +2,8 @@ import { PLANTILLA_LEAD_BASE } from "../../scripts/plantilla-lead-base";
 
 /**
  * Lo minimo para que un programa de prueba este ACTIVO: desde la migracion 0031 un
- * programa nace inactivo. La fuente principal y la integración de Calendly las exige
+ * programa nace inactivo. Desde el ticket 356 un programa sin porcentaje de comision
+ * no puede vender. La fuente principal y la integración de Calendly las exige
  * `reactivarPrograma`, no la base, así que un insert directo no las necesita.
  *
  * Trae tambien la plantilla de lead (ticket 117): el webhook ya no tiene defecto en el
@@ -14,5 +15,6 @@ import { PLANTILLA_LEAD_BASE } from "../../scripts/plantilla-lead-base";
  */
 export const PROGRAMA_DE_PRUEBA = {
   activo: true,
+  comisionPorcentaje: "10.00",
   plantillaLead: PLANTILLA_LEAD_BASE,
 } as const;

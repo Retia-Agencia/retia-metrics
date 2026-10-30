@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({
@@ -111,6 +112,7 @@ describe("ROAS de Pauta", () => {
     expect(campana).toMatchObject({ registros: 2, ventas: 1, contratadoUsd: 300, gastoUsd: 150, agendas: 2, shows: 1, noShows: 1 });
     expect(campana.contratadoUsd / campana.gastoUsd).toBe(2);
     expect(vista.total).toMatchObject({ registros: 3, ventas: 2, contratadoUsd: 400, gastoUsd: 150 });
+    expect(vista.total.roas.valor).toBe(vista.total.contratadoUsd / vista.total.gastoUsd);
     expect(vista.sinAnuncio).toMatchObject({ ventas: 1, contratadoUsd: 100 });
     expect(vista.campanas.some((fila) => fila.id === "camp-vacia")).toBe(false);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
@@ -127,6 +129,17 @@ describe("ROAS de Pauta", () => {
     const permitidas = new Set(["fecha_hora_bogota", "resultado", "campana", "conjunto", "anuncio", "canal"]);
     expect(COLUMNAS_CSV_CITAS_PAUTA.every((columna) => permitidas.has(columna))).toBe(true);
     expect(csvDeCitasPauta(vista).trim().split("\r\n")).toHaveLength(vista.total.agendas + 1);
+  });
+
+  it("no calcula el ROAS cuando una venta queda antes del primer día de gasto", async () => {
+    await db.delete(gastoPauta).where(eq(gastoPauta.fecha, "2026-10-01"));
+    await vender(await envio({ dia: "2026-10-01" }), "100", "2026-10-03");
+
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+
+    expect(vista.total.roas.valor).toBeNull();
+    expect(vista.total.roas.faltan).toBe(1);
+    expect(vista.total.roas.motivo).toContain("desde");
   });
 
   it("conserva ventas y citas de parciales, plegando por huella sin inflar registros", async () => {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { CifraDeRazon } from "@/components/cifra-de-razon";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { FilaDeCampana } from "@/components/pauta-roas-campana";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,7 +48,7 @@ function Celdas({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}</td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
-    <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === 0 ? "sin pauta" : num(fila.contratadoUsd / fila.gastoUsd, 2)}</td>
+    <td className="cifra py-2 pl-1 text-right align-top"><CifraDeRazon razon={fila.roas} formato={(n) => num(n, 2)} /></td>
   </>;
 }
 
@@ -65,6 +66,9 @@ function Cabecera() {
 
 function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
   const { cobertura } = vista;
+  const mostrarCoberturaGasto = vista.coberturaGasto.primerDia === null
+    || vista.coberturaGasto.primerDia > vista.rango.desde
+    || vista.coberturaGasto.diasSinFila.length > 0;
   const madurez = vista.ventanaCierreDias === null
     ? "Todavía no hay 5 ventas para estimarlo."
     : vista.total.desdeDias === null || vista.total.hastaDias === null
@@ -84,6 +88,11 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
       <p className="text-muted-foreground">{vista.trmEtiqueta ?? "No hay una TRM aplicada en este periodo."}</p>
       {vista.diasSinTrm.length > 0 ? <p className="text-muted-foreground">Días sin TRM: {vista.diasSinTrm.map(fecha).join(", ")}.</p> : null}
     </section>
+    {mostrarCoberturaGasto ? <section className="space-y-1"><h3 className="font-medium">Cobertura del gasto</h3>
+      <p className="text-muted-foreground">{vista.coberturaGasto.primerDia === null || vista.coberturaGasto.ultimoDia === null
+        ? "No hay gasto de Meta cargado."
+        : `Hay gasto de Meta desde el ${fecha(vista.coberturaGasto.primerDia)} hasta el ${fecha(vista.coberturaGasto.ultimoDia)}.`}</p>
+    </section> : null}
     <section className="space-y-1"><h3 className="font-medium">Cobertura de UTM</h3><ul className="space-y-1 text-muted-foreground">
       <li>Con anuncio: <span className="cifra">{num(cobertura.anuncio)}</span>. Se miden hasta el anuncio.</li>
       <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre. Para llegar al anuncio, el link tiene que llevar <code>utm_id={"{{ad.id}}"}</code> y la landing pasarlo al formulario.</li>

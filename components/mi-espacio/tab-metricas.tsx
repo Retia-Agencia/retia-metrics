@@ -12,6 +12,7 @@ import { SelectorPeriodo } from "@/components/selector-periodo";
 import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { textoDeVariacionDeTasa } from "@/lib/variacion";
+import { ComoSeCalcula } from "@/components/como-se-calcula";
 
 type Busqueda = Record<string, string | string[] | undefined>;
 
@@ -90,6 +91,15 @@ function BloqueDePrograma({ vista, conSelector = true }: { vista: VistaDeMisMetr
         <TarjetaTasa vista={vista} />
         <TarjetasDinero vista={vista} />
       </section>
+      <ComoSeCalcula>
+        <p><strong>Agendas:</strong> las llamadas que tomaste.</p>
+        <p><strong>Llamadas atendidas:</strong> las llamadas que tomaste.</p>
+        <p><strong>No show:</strong> las llamadas que tomaste.</p>
+        <p><strong>Cierres:</strong> los deals de los que eres dueño hoy.</p>
+        <p><strong>Comisión:</strong> los deals de los que eres dueño hoy.</p>
+        <p><strong>Caja cobrada:</strong> los abonos que registraste.</p>
+        <p><strong>% de cierre:</strong> va sobre el grupo de citas; cada deal cuenta contigo si tomaste su último show o, sin show, su última cita.</p>
+      </ComoSeCalcula>
     </div>
   );
 }

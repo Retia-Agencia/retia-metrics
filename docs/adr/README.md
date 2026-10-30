@@ -63,7 +63,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0022](./0022-ventana-de-venta-de-la-cohorte-es-dato-por-cohorte.md) | La ventana de venta es dato de cada cohorte |
 | [0080](./0080-la-cohorte-del-deal-la-elige-su-dueno.md) | La cohorte del deal la elige su dueño entre las que venden hoy; en el solape se pueden elegir dos |
 | [0081](./0081-mover-o-anotar.md) | Sobre un deal hay dos gestos, Mover y Anotar; Mover pide adentro lo que la etapa destino necesita y los pendientes salen de lo anotado |
-| [0082](./0082-el-closer-ve-solo-lo-que-usa.md) | El closer abre solo lo que usa: sin Ajustes, Programa, Dashboard ni Metas, cerrados en el servidor |
+| [0082](./0082-el-closer-ve-solo-lo-que-usa.md) | El closer abre solo lo que usa: sin Ajustes, Programa, Hub (de un programa ni de "todos", **enmienda del 30-oct**) ni Metas, cerrados en el servidor |
 | [0023](./0023-metricas-por-closer-sin-meta-individual.md) | Las métricas por closer salen de las mismas consultas, y la meta no se reparte |
 
 **El dinero y los catálogos**
@@ -90,7 +90,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0062](./0062-el-anuncio-es-la-llave-de-la-pauta.md) | El anuncio es la llave de la pauta: UTM de Meta con macros, gasto por su API y origen declarado aparte (enmienda 0045, 0051 y 0052) |
 | [0063](./0063-las-metricas-y-los-objetivos-de-pauta.md) | Las métricas y los objetivos de Pauta: registro por token, calificada por `lead_value`, ROAS sobre contratado, metas por área (**el punto 3 lo enmienda el 0088**) |
 | [0087](./0087-el-area-sale-de-una-regla-y-el-detalle-del-arbol-de-meta.md) | El área sale de una regla, el detalle de pauta del árbol de Meta y los canales se definen solos; cualquier id de Meta resuelve; una conexión y N cuentas por programa (enmienda 0045, 0051, 0062 y 0077) |
-| [0088](./0088-el-costo-por-agenda-usa-las-agendas-del-crm-y-la-trm-del-dia.md) | El costo por agenda usa las agendas del CRM; las de Meta van al lado como control; el dinero se cruza con la TRM de cada día, siempre a la vista (cierra A12) |
+| [0088](./0088-el-costo-por-agenda-usa-las-agendas-del-crm-y-la-trm-del-dia.md) | El costo por agenda: el semáforo divide por las agendas de Meta (**enmienda del 16-oct**) y el Hub por las del CRM (sin construir, 249); la diferencia es un control; el dinero se cruza con la TRM de cada día, siempre a la vista (cierra A12) |
 
 **Roles y acceso**
 
@@ -137,7 +137,7 @@ comentarios; esta tabla es la que los resuelve.
 |---|---|
 | [0107](./0107-media-es-un-rol-y-trabajar-contenido-su-pregunta.md) | Media es un rol (`media`) y `trabajaContenido` su pregunta; alcance por programa con el molde del 0094; en v1 solo entra la coordinación |
 | [0108](./0108-el-link-de-una-pieza-de-contenido.md) | El link de una pieza: `utm_medium=contenido` y el código opaco de la pieza en `utm_content`, que lee solo el emparejador; el área sigue siendo Orgánico. Enmienda el 0051 y el 0087 |
-| [0109](./0109-la-escalera-de-conversion-es-una-funcion.md) | La escalera de conversión: seis escalones por deal, derivados al leer en `escaleraDeDeals`; el corte de "pagó rápido" es un dato del programa |
+| [0109](./0109-la-escalera-de-conversion-es-una-funcion.md) | La escalera de conversión: siete escalones por deal (cuatro que pagaron y tres sin venta; «Pagó sin llamada registrada» entró con la enmienda del 28-oct), derivados al leer en `escalonDeDeal`; el corte de "pagó rápido" es un dato del programa |
 | [0110](./0110-el-creador-y-la-pieza-de-contenido.md) | El creador (programa opcional) y la pieza son datos; el link fijo es una pieza permanente; los estados de media se anclan a cuatro significados del código |
 | [0111](./0111-el-cockpit-se-migra-por-estrangulamiento.md) | El cockpit se migra al CRM por estrangulamiento: datos y pantallas al CRM, el motor sigue en n8n detrás de una fachada |
 | [0112](./0112-insights-de-llamadas-desde-grain.md) | Los insights salen del link público de Grain (al pegar y por cron), una extracción guardada por llamada; media ve citas sin identidad; el agente del cruce deja propuestas en el banco |

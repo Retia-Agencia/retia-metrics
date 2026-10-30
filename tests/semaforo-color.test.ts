@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CostoPorAgenda } from "@/lib/semaforo/costo-por-agenda";
+import { razon } from "@/lib/cobertura";
 import { colorDelCosto, porcentajeDelUmbral } from "@/lib/semaforo/color";
 
 const umbral = { meta: 70, aceptable: 93 };
@@ -10,6 +11,7 @@ function datos(gasto: number, agendasMeta: number | null, agendasCrm = 0): Costo
     agendasMeta,
     agendasCrm,
     costo: agendasMeta !== null && agendasMeta > 0 ? gasto / agendasMeta : null,
+    costoCobertura: razon(gasto, agendasMeta ?? 0, { base: 1, faltan: 0, motivo: null, calculable: true }),
     campanas: [],
     lanzamiento: { gasto: 0, registrosMeta: null, costoPorRegistro: null, campanas: [] },
     gastoTotal: gasto,

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConCapacidad } from "@/lib/auth/page-guards";
+import { esAdministrador } from "@/lib/auth/roles";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
@@ -30,7 +31,8 @@ const esquema = z.object({
 const titulos = { caja: "Recaudado", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", cartera: "Por cobrar", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain" };
 
 export default async function ListaDeTodosPage({ searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  // El closer no ve el Hub de todos los programas, como no ve el de uno (ADR 0082; decisión HUB-1, 30-oct).
+  const session = await paginaConCapacidad(esAdministrador);
   const rol = await rolDeVista(session);
   const programas = await programasVisibles(session.user.id, rol);
   if (programas.length === 0) notFound();
