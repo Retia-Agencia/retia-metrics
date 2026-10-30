@@ -61,8 +61,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
     `todo`).
   - `done` con casillas vacías en su "Done cuando": el 350 y 81 tickets cerrados antes de la N9 (lista congelada
     `CERRADOS_ANTES_DE_N9_SIN_CASILLAS` en el test). Mani decide si se marcan con su evidencia o se reabren.
-- Fuera de alcance, para otro ticket: comentarios de código que todavía hablan de `estados_llegada`
-  (`lib/ingesta/adaptador-typeform.ts`, `estado.ts`, `calificacion.ts`, `tests/ingesta-estado.test.ts:44`); `/hub`
-  ("todos") se guarda con `paginaConRol("gerente", "closer")`, así que el paid trafficker que entra por la vieja
-  `/ajustes/canales` (redirect a `/hub?seccion=origen`) no pasa la guarda; y el closer sí ve "todos" aunque el Hub
-  de un programa le responde 404 (ADR 0082). Ninguno se midió en el navegador.
+- Fuera de alcance, ya con dueño: los comentarios de `estados_llegada` (`lib/ingesta/` y
+  `tests/ingesta-estado.test.ts:44`) y la redirección de `/ajustes/canales` que deja afuera al paid trafficker van al
+  **361**; si el closer ve el Hub de "todos" aunque el de un programa le responde 404 (ADR 0082) es la decisión
+  **HUB-1** de `plan.md` §7. Ninguno se midió en el navegador.
