@@ -1,10 +1,14 @@
 import { and, asc, desc, eq, gte, isNotNull, lte, or } from "drizzle-orm";
+import { razon, type RazonConCobertura } from "@/lib/cobertura";
 import { fotosPauta, gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaHabilAnterior } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
+import { coberturaDeGasto, diaCubierto, motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
+import { convertirGasto } from "@/lib/pauta/convertir-gasto";
 import * as agenda from "@/lib/queries/hechos/agenda";
-import { tasaDelDia } from "@/lib/trm/consultar";
+import { sumarDias } from "@/lib/rangos";
+import { tasasDelRango } from "@/lib/trm/consultar";
 import { codigoCortoDeCampana, idsDeCampanas, type PropositoCampana } from "@/lib/pauta/proposito";
 
 export interface NotaSemaforo {
@@ -28,6 +32,7 @@ export interface CostoPorAgenda {
   agendasMeta: number | null;
   agendasCrm: number;
   costo: number | null;
+  costoCobertura: RazonConCobertura;
   campanas: CampanaSemaforo[];
   lanzamiento: {
     gasto: number;
@@ -83,7 +88,12 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   let registrosMetaLanzamiento = 0;
   let tieneRegistrosMetaLanzamiento = false;
   const sinTrm = new Map<string, number>();
-  const tasas = new Map<string, number | null>();
+  const desde = filas.reduce<string | null>((menor, fila) => menor === null || fila.dia < menor ? fila.dia : menor, null);
+  const hasta = filas.reduce<string | null>((mayor, fila) => mayor === null || fila.dia > mayor ? fila.dia : mayor, null);
+  const tasas = desde === null || hasta === null
+    ? { porDia: new Map<string, number>() }
+    : await tasasDelRango(db, desde, hasta);
+  const convertidos = convertirGasto(filas, tasas.porDia, "COP");
   const campanas = new Map<string, {
     idMeta: string;
     nombre: string;
@@ -95,8 +105,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     tieneRegistrosMeta: boolean;
   }>();
 
-  for (const fila of filas) {
-    const monto = Number(fila.monto);
+  for (const [i, fila] of filas.entries()) {
     const esLanzamiento = fila.proposito === "lanzamiento";
     const claveCampana = fila.campanaId ?? "sin-campana";
     const campana = campanas.get(claveCampana) ?? {
@@ -109,20 +118,9 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
       registrosMeta: 0,
       tieneRegistrosMeta: false,
     };
-    let montoCop = 0;
-    if (fila.moneda === "COP") {
-      montoCop = monto;
-    } else {
-      if (!tasas.has(fila.dia)) {
-        tasas.set(fila.dia, (await tasaDelDia(db, fila.dia))?.pesosPorDolar ?? null);
-      }
-      const tasa = tasas.get(fila.dia);
-      if (tasa === null || tasa === undefined) {
-        sinTrm.set(fila.dia, (sinTrm.get(fila.dia) ?? 0) + 1);
-      } else {
-        montoCop = monto * tasa;
-      }
-    }
+    const convertido = convertidos.montos[i];
+    const montoCop = convertido ?? 0;
+    if (convertido === null) sinTrm.set(fila.dia, (sinTrm.get(fila.dia) ?? 0) + 1);
     gastoTotal += montoCop;
     if (esLanzamiento) gastoLanzamiento += montoCop;
     else gasto += montoCop;
@@ -212,13 +210,16 @@ function completar(
   campanasLeidas: Awaited<ReturnType<typeof sumarEnCop>>["campanas"],
   lanzamientoLeido: Awaited<ReturnType<typeof sumarEnCop>>["lanzamiento"],
   gastoTotal: number,
+  cobertura: { base: number; faltan: number; motivo: string | null; calculable: boolean },
 ): CostoPorAgenda {
   const agendasMeta = agendasMetaLeidas === null && mideAgendasMeta ? 0 : agendasMetaLeidas;
+  const costoCobertura = razon(gasto, agendasMeta ?? 0, cobertura);
   return {
     gasto,
     agendasMeta,
     agendasCrm,
-    costo: agendasMeta !== null && agendasMeta > 0 ? gasto / agendasMeta : null,
+    costo: costoCobertura.valor,
+    costoCobertura,
     campanas: campanasLeidas
       .map((campana) => {
         const agendas = campana.agendasMeta === null && mideAgendasMeta ? 0 : campana.agendasMeta;
@@ -293,7 +294,8 @@ async function costoDesdeFotos(
     programaMideAgendasMeta(db, args.programId),
   ]);
   const suma = await sumarEnCop(db, fotos, idsCampanas);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal);
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal,
+    { base: 1, faltan: 0, motivo: null, calculable: true });
 }
 
 export async function costoPorAgenda(
@@ -360,7 +362,7 @@ export async function costoPorAgendaDeVentana(
       proposito: campana?.nivel === "campana" ? campana.proposito : null,
     };
   });
-  const [idsCampanas, agendasCrm, mide] = await Promise.all([
+  const [idsCampanas, agendasCrm, mide, coberturaGasto] = await Promise.all([
     idsDeCampanas(db),
     contarAgendas(db, {
       programId: args.programId,
@@ -368,9 +370,17 @@ export async function costoPorAgendaDeVentana(
       hasta: args.hasta,
     }),
     programaMideAgendasMeta(db, args.programId),
+    coberturaDeGasto(db, args.programId, { desde: args.desde, hasta: args.hasta }),
   ]);
   const suma = await sumarEnCop(db, filasConCampana, idsCampanas);
-  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal);
+  let base = 0;
+  let faltan = 0;
+  for (let dia = args.desde; dia <= args.hasta; dia = sumarDias(dia, 1)) {
+    if (diaCubierto(dia, coberturaGasto)) base++;
+    else faltan++;
+  }
+  return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal,
+    { base, faltan, motivo: faltan > 0 ? motivoDeGasto(coberturaGasto) : null, calculable: faltan === 0 });
 }
 
 /**
