@@ -56,8 +56,12 @@ La captura del resultado de la llamada (341) y la reja de la comisión (356): aq
   `RenglonRoas.roas` es `RazonConCobertura`. El costo por agenda expone `costoCobertura`, pero `costo` sigue como
   `number | null` porque el contrato de WhatsApp es estricto: la tarjeta del semáforo y el mensaje lo pasan al tipo
   junto con las tarjetas de Hoy y Comercial (353).
-- [ ] Recorrido de Hub › Pauta y Hoy con octubre: el ROAS dice desde cuándo hay gasto.
-  Pendiente: el recorrido con `dev:local` sale del checkout principal tras el build (en el worktree Turbopack falla).
+- [x] Recorrido de Hub › Pauta y Hoy con octubre: el ROAS dice desde cuándo hay gasto.
+  Evidencia (30-oct, `dev:local` desde el worktree, que tiene `node_modules` copiado; base local con gasto pago sembrado
+  solo del 15 al 30-sep, porque producción ya quedó cubierta con el backfill): con el periodo 1 al 30-sep, Total Paid
+  muestra ROAS "— · Gasto de Meta desde el 15 sep 2026" y "Cómo se calcula" dice "Hay gasto de Meta desde el 15 sep 2026
+  hasta el 30 sep 2026"; con el 15 al 30-sep vuelve a número. Hoy y Programa › Ventas cargan; consola sin errores.
+  Nota: a 800 px de ancho el motivo se parte en cuatro líneas dentro de la columna del ROAS (la tabla es `table-fixed`).
 - [x] Regla N8 (ADR 0115): para esta mitad, `docs/metricas.md` (Conceptos, Gasto, Costo por agenda, ROAS) y
   `docs/overview.md` §11 (ROAS y Cobertura de una razón); ningún ADR cambia. El 353 repite la casilla para el % de show.
   Texto original: la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
