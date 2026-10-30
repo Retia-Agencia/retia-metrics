@@ -3,8 +3,11 @@
 > **Complemento de [`plan.md`](./plan.md), no reemplazo**, con el mismo molde que
 > [`analytics.md`](./analytics.md). Mapea, punto por punto, la reunión del **30-sep-2026** con **Daniel
 > Tovar** (Dani) y **Michael Castellanos** sobre el norte del CRM: qué se dijo, qué hay hoy en `main`, qué
-> cambia, en qué ADR o ticket cae y qué falta preguntar. **Lo que pidió Gerencia es la fuente de verdad**
-> (Mani, 30-sep): si choca con un ADR o un ticket vigente, el ADR o el ticket se reabre, no la reunión.
+> cambia, en qué ADR o ticket cae y qué falta preguntar. ~~**Lo que pidió Gerencia es la fuente de verdad**
+> (Mani, 30-sep): si choca con un ADR o un ticket vigente, el ADR o el ticket se reabre, no la reunión.~~
+> **Enmendado el 30-oct (ADR 0115, N8):** sobre qué hace hoy el código manda el código; sobre qué debería hacer, ADR
+> vigente > ticket > este documento. Lo que pidió Gerencia y sigue vigente ya entró a un ADR o a un ticket; si algo
+> de aquí falta, se abre un ADR, no se lee este documento como norma. Ejemplo: GC-44 y GC-45 los supera el ADR 0086.
 >
 > 🎯 **PRIORIDAD (Mani, 30-sep): esto se ataca antes que cualquier otro frente del CRM.** Los pasos de §8
 > son el trabajo que sigue; el tracker los lleva arriba de todo (`tasks/README.md`, "Norte comercial").
@@ -145,8 +148,8 @@ la reunión dentro de cada bloque.
 
 | ID | Lo que se dijo | Hoy | Qué cambia | Dónde | Estado |
 |---|---|---|---|---|---|
-| GC-44 | Dos metas distintas en las gráficas: **la del mes y la de la cohorte**; *"nuestros cierres contables y financieros son a fin de mes, no cada 6 semanas"* | Meta de la cohorte y meta dinámica (020, 027) | La meta del mes, derivada (§5) | R-8 | 🆕 |
-| GC-45 | **Una sola página de Metas / cumplimiento**: avance, deuda, las dos compensaciones, número y % | Panel de cumplimiento por área (124, sin construir) | La página de metas comerciales; el reparto por área de Pauta queda adentro como un corte más | 124 · nuevo | 🆕 |
+| GC-44 | Dos metas distintas en las gráficas: **la del mes y la de la cohorte**; *"nuestros cierres contables y financieros son a fin de mes, no cada 6 semanas"* | Meta de la cohorte y meta dinámica (020, 027) | La meta del mes, derivada (§5) | R-8 | 🆕 **Superado por el ADR 0086 (14-oct):** las dos metas (mes y cohorte) viven en Hub › Hoy, no en una página aparte |
+| GC-45 | **Una sola página de Metas / cumplimiento**: avance, deuda, las dos compensaciones, número y % | Panel de cumplimiento por área (124, sin construir) | La página de metas comerciales; el reparto por área de Pauta queda adentro como un corte más | 124 · nuevo | 🆕 **Superado por el ADR 0086 (14-oct):** la página Metas ya no existe (redirige al Hub) y su cumplimiento vive en Hub › Hoy |
 
 ### H. Plataforma, formularios y lo que sigue
 

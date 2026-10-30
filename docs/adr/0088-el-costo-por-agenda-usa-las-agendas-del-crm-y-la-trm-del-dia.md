@@ -1,7 +1,11 @@
-# 0088: El costo por agenda usa las agendas del CRM, Meta va al lado como control, y el dinero se cruza con la TRM de cada día
+# 0088: El costo por agenda divide por las agendas de Meta en el semáforo y por las del CRM en el Hub (sin construir), y el dinero se cruza con la TRM de cada día
 
 - **Estado:** aceptado, 14-oct-2026 (Mani, audit del Hub, `docs/hub.md` H-4 y H-5). Se construye en los tickets
   120, 123, 244 y 249. **Cierra la decisión A12** de `plan.md` §7.
+- **Enmendado el 16-oct-2026** (abajo): en el semáforo, el único costo por agenda que existe hoy, el denominador son
+  las agendas según Meta (`lib/semaforo/costo-por-agenda.ts`); el punto 1 queda para el Hub, que todavía no tiene costo
+  por agenda (ticket 249). El título se reescribió el 30-oct (ADR 0115, N8); el nombre del archivo conserva el original
+  para no romper los enlaces.
 - **Enmienda:** ADR 0063 punto 3 (la TRM de la cohorte, que la migración 0057 ya había quitado, pasa a ser la TRM
   de cada día), ADR 0062 punto 3 (además del gasto se guardan las agendas según Meta, por anuncio y día).
 - **Confirma:** la regla dura "nunca convertir moneda en silencio" (se convierte, y la tasa va a la vista), ADR
@@ -21,6 +25,7 @@
 
 1. **El costo por agenda oficial divide el gasto de Paid entre las agendas del CRM de Paid** (por el envío que abrió
    el deal). Lo mismo por campaña, conjunto y anuncio.
+   *Enmendado el 16-oct: vale para el Hub (sin construir, 249); el semáforo divide por las agendas de Meta.*
 2. **Las agendas según Meta se guardan por anuncio y día** junto al gasto, y se muestran al lado ("según Meta"),
    **nunca** en el costo oficial. La diferencia por campaña y semana cerrada es un **control**: menos de 10% es
    normal, de 10% a 40% se revisa, más de 40% es rojo (el runbook del vault). Una semana se compara cuando lleva
@@ -38,8 +43,8 @@
 - El costo por agenda de un día reciente puede bajar cuando Calendly cuelga una llamada suelta: el Hub dice cuándo
   una cifra sigue "madurando", como las tasas del ADR 0079.
 - El ROAS de un mes pasado no se mueve aunque el dólar se mueva hoy.
-- El semáforo durante el día puede mirar las agendas según Meta como señal temprana, pero su color sale del costo
-  oficial (ADR 0089).
+- ~~El semáforo durante el día puede mirar las agendas según Meta como señal temprana, pero su color sale del costo
+  oficial (ADR 0089).~~ Enmendado el 16-oct: el color del semáforo sale de gasto ÷ agendas según Meta.
 
 ## Alternativas descartadas
 

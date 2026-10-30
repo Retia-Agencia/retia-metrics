@@ -5,7 +5,7 @@
 - **Enmienda:** la restricción de `AGENTS.md` "nada de la app es público; única excepción `/api/health`": se
   agrega **una segunda excepción nombrada**, el endpoint de máquina del semáforo. El handoff de Meta del 13-oct
   (el semáforo como job aparte en Vercel con el token en variables).
-- **Confirma:** ADR 0024 (una cifra, una definición), ADR 0088 (el costo por agenda usa las agendas del CRM), ADR
+- **Confirma:** ADR 0024 (una cifra, una definición), ADR 0088 (el costo por agenda; desde su enmienda del 16-oct, en el semáforo divide por las agendas de Meta), ADR
   0062 punto 4 (el token de Meta vive en la base), la regla de secretos (el secreto compartido vive en Vercel y en
   el `.env` de Juanito, nunca en el repo).
 

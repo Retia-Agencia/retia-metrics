@@ -7,7 +7,8 @@
 > lecturas). Mandan sobre él los ADR **0086 a 0090** (nacen de esta sesión) y los tickets; el estado de cada
 > ticket vive solo en [`tasks/README.md`](./tasks/README.md) y las decisiones abiertas en `plan.md` §7 (lista
 > única, letra E). Si algo aquí contradice un ADR o un ticket, gana el ADR o el ticket y este documento se
-> corrige.
+> corrige (la jerarquía es la del ADR 0115, N8: sobre qué hace hoy el código manda el código; sobre qué debería
+> hacer, ADR vigente > ticket > documento de reunión).
 >
 > **El diccionario de métricas es [`docs/metricas.md`](./metricas.md) (desde el 15-oct; del 14 al 15-oct fue §5):
 > la única tabla de definiciones.** Reemplaza a `analytics.md` §6, que queda como historia de la reunión con Pauta.
@@ -195,7 +196,7 @@ Mani, en la sesión del audit. Cada una baja a su ADR; aquí va el resumen para 
 | H-1 | **El Hub reemplaza al Dashboard y a Metas.** La tab se llama Hub y su primera pestaña, **Hoy**, es el reporte diario | 0086 |
 | H-2 | **Periodo + "Comparar con", sin A ni B en pantalla.** "Comparar con": mismo punto del periodo anterior (por defecto), cohorte anterior al mismo día hábil, un rango que elijo, o no comparar. La regla del mismo día hábil del ADR 0067 no cambia | 0086 |
 | H-3 | **El área sale de una regla y el detalle de pauta del árbol de Meta; los canales se definen solos.** Sin catálogo que mantener, con una vista que muestra cada UTM y cómo cuenta. Se captura el `ad_id` que ya mandan los anuncios | 0087 |
-| H-4 | **Las agendas del CRM mandan el costo por agenda.** Las de Meta van al lado ("según Meta") y la diferencia es un control | 0088 |
+| H-4 | ~~**Las agendas del CRM mandan el costo por agenda.**~~ **Enmendada el 16-oct (ADR 0088):** el semáforo divide por las agendas de Meta y muestra las del CRM al lado; el costo por agenda del Hub, con las del CRM, sigue sin construir (249). La diferencia es un control. Definición en `metricas.md` §3.2 | 0088 |
 | H-5 | **La TRM oficial de cada día del gasto, guardada, y la tasa usada siempre a la vista.** Cierra A12 | 0088 |
 | H-6 | **El CRM calcula el semáforo y Juanito lo manda.** Juanito además es el reloj de la sincronización durante el día (Vercel Hobby solo deja un cron diario). Un endpoint de máquina, con secreto y sin datos personales | 0089 |
 | H-7 | **Los planes de acción viven en el CRM.** Objeto Acción; un rojo del semáforo no se cierra sin una | 0090 |

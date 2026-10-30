@@ -138,7 +138,7 @@ y deals según su origen (ADR 0043).
 1. ✅ Trabaja la cola de **En gestión** desde el Inbox: reclama, contacta y registra cada intento.
 2. 🟡 Manda el **link de agenda** y marca "Ya se lo mandé". La cita por Calendly entrega el deal a quien da
    la llamada; el setter queda con su crédito (`setter_user_id`). Si a 1 día hábil no hay cita, alerta.
-3. Ve el dashboard de sus programas como cualquier closer.
+3. Ve las métricas como cualquier closer: no el Hub de un programa (ADR 0082), sí el de "todos los programas".
 
 **Closer** (ve solo los programas de su membresía, ADR 0048, y en Deals solo los suyos, ADR 0075):
 
@@ -157,7 +157,8 @@ y deals según su origen (ADR 0043).
    Pagado Completo.
 5. ✅ Marca el onboarding de sus estudiantes (una sola marca hasta el 145).
 6. ✅ Encuentra brochures y links de pago en **Recursos**, en un clic, y crea los de sus programas.
-7. ✅ Ve el **Dashboard** de sus programas completo, incluido el comparativo entre closers y su comisión.
+7. ✅ Desde el 224 (ADR 0082, "el closer abre solo lo que usa") el **Hub** de un programa no es suyo: la ruta le
+   responde 404 y su trabajo lo ve en **Mi espacio**; entra al Hub de "todos los programas", con las sumas de los suyos.
 8. 🟡 Asigna su propia cuenta de Calendly por programa desde **Perfil** (ADR 0074).
 9. ⛔ Tiene **su link de captación** por programa, para que el lead que trae cuente como suyo (086).
 10. ⛔ Su **reporte del día** sale del CRM en vez de escribirlo en WhatsApp (158).
@@ -165,17 +166,17 @@ y deals según su origen (ADR 0043).
 Deja de hacer: mandar el comprobante al grupo, llenar el registro a mano, escribir Sí/No, buscar links en
 WhatsApp, calcular su comisión.
 
-**Gerente:** ✅ abre el **Dashboard** de un programa o de "todos los programas" (ahí solo aparece lo que se
-puede sumar), con cada cifra abriendo su lista y el periodo A contra B; ✅ ve todos los deals del programa,
+**Gerente:** ✅ abre el **Hub** de un programa o de "todos los programas" (ahí solo aparece lo que se
+puede sumar), con cada cifra abriendo su lista y la comparación con otro periodo cuando la pide (ADR 0106); ✅ ve todos los deals del programa,
 reasigna dueños, revisa la cartera vencida y anula lo que no debió existir; ✅ administra programas,
-cohortes, usuarios, membresías, catálogos, fuentes y canales, y conecta el Calendly del programa; ⛔ ve la
-meta del mes y la página de Metas (146) y el dashboard comercial por secciones (148); ⛔ ve el origen de
-cada venta hasta el anuncio y los costos por etapa cuando entre la pauta (8 · Pauta).
+cohortes, usuarios, membresías, catálogos, fuentes y canales, y conecta el Calendly del programa; ✅ ve la
+meta del mes y la de la cohorte en Hub › Hoy (la página de Metas se fundió en el Hub, ADR 0086); ✅ ve en Hub ›
+Origen y Pauta de dónde vino cada envío y el ROAS por campaña, conjunto y anuncio; 🟡 los costos por etapa (123).
 
 **Paid Trafficker** ⛔ (ADR 0052 enmendado, Mani 29-sep): arma sus UTM de Meta con macros y el CRM las
 recibe; el gasto de sus anuncios entra solo por la API de Meta (ADR 0062). Genera en el builder los links de
-orgánico. Ve el Dashboard de sus programas (atribución por área, costos por etapa, ROAS, cumplimiento de la
-cohorte) y la tab Campañas, **menos el comparativo entre closers y la comisión**; no ve deals, llamadas ni
+orgánico. Ve el Hub de sus programas (Hoy, Pauta con el ROAS, Origen) y la tab Programa, **menos el trabajo del equipo
+comercial** (`veEquipoComercial`: comparativo entre closers y comisión); no ve deals, llamadas ni
 abonos sueltos.
 
 **Customer Success** ⛔ (GC-42, GC-43; ticket 145): solo ve Students y marca los cuatro pasos del onboarding
@@ -270,10 +271,10 @@ Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manu
 | Contribución | las ventas de la cohorte de un closer. **No existe meta individual** (ADR 0023) |
 | Conversión etapa a etapa y tiempo en etapa | cuenta deals distintos, no entradas |
 | Registros vs agendas por canal | la métrica de Media: TikTok puede traer muchos registros y pocas agendas |
-| CPL, costo por agenda, por llamada, por llamada calificada, por show y por venta (CAC) | gasto del área Pauta ÷ el conteo de Pauta, por área, campaña, conjunto y anuncio; sin gasto, "sin pauta" en vez de $0. Umbrales de Pauta (29-sep, en COP): costo por agenda meta 60.000, aceptable 80.000 (antes: estándar de Daniel Tovar, USD 20 y alerta en USD 100) |
+| CPL, costo por agenda, por llamada, por llamada calificada, por show y por venta (CAC) | el costo por agenda del semáforo divide por las agendas de Meta (ADR 0088, enmienda del 16-oct); el resto, y el del Hub (249), gasto del área Pauta ÷ el conteo de Pauta, por área, campaña, conjunto y anuncio; sin gasto, "sin pauta" en vez de $0. Umbrales de Pauta (29-sep, en COP): costo por agenda meta 60.000, aceptable 80.000 (antes: estándar de Daniel Tovar, USD 20 y alerta en USD 100) |
 | ROAS y ad profit | sobre ventas **contratadas** (valor vendido de los deals vendidos) frente al gasto de Meta (ADR 0063), con la TRM oficial de cada día del gasto, siempre a la vista (ADR 0088) |
 | Llamada calificada | llamada que ocurrió de un lead cuyo `lead_value` del formulario está en el conjunto calificado del programa (por defecto MUY ALTO y ALTO VALOR) |
-| Calidad de la traza | % de ventas por nivel de origen: anuncio, campaña, canal o sin UTM |
+| Calidad de la traza | % de **envíos** Paid por nivel de origen: anuncio, conjunto o campaña, solo área (no hay traza por venta) |
 | Cumplimiento por área | la meta de la cohorte repartida en cupos por área (paid, orgánico, referidos): vendidas, faltan, requeridas por día, ritmo y proyección, con semáforo |
 | Leads por área | Gerencial, Comercial, Pauta, Media, derivados del canal |
 | Comisión | por venta del closer: valor vendido × el % del programa congelado al vender (USD), calculada; nunca se guarda el monto (ADR 0065, 1-oct; antes monto fijo, 062) |
@@ -282,11 +283,11 @@ Lo que pidió cada área (Alejo, 21-sep): **Comercial**, close rate, show rate y
 etapa; **Pauta**, todo por UTM, por fecha, canal e inversión; **Media**, registros contra agendas por
 canal; **Gerencial**, rendimiento de las áreas, % de cierre por closer y leads por área. Gerencia pidió
 además números y tablas antes que estética, y un reporte de un botón. Los umbrales de éxito llegan
-cuando haya datos. Criterio para el dashboard: el número que no soporta una decisión, no va.
+cuando haya datos. Criterio para el Hub: el número que no soporta una decisión, no va.
 
-Todo se compara contra el periodo anterior y contra la cohorte anterior en el mismo día hábil. Un registro
-es un envío contado una vez aunque llegue parcial y completo. El detalle de cada fórmula:
-[`analytics.md`](./analytics.md) §6.
+La comparación con el periodo anterior o la cohorte anterior, en el mismo día hábil, se pide (ADR 0106). Un registro
+es un envío contado una vez aunque llegue parcial y completo. El detalle de cada fórmula, solo en
+[`metricas.md`](./metricas.md).
 
 Dos cubetas de origen huérfano, siempre visibles y nunca juntas: **sin UTM** (llegó sin origen:
 irrecuperable; el 21-sep era el 15% de los leads, 26% en Tactical) y **sin clasificar** (trae UTM pero
@@ -296,8 +297,8 @@ no casa con ningún canal o campaña: se arregla con una fila y repara hacia atr
 
 **Entra en v1:** leads por formulario y alta manual; deals con once etapas y Kanban; llamadas colgadas
 del deal, con Calendly; abonos con comprobante (link o foto); acuerdo de pago como nota con fecha
-límite; Students por cohorte con onboarding; recursos y links de pago; Inbox; Dashboard por
-programa y agregado de lo sumable; atribución por canal, campaña, anuncio y área, con el gasto de Meta por su API; costos por etapa y
+límite; Students por cohorte con onboarding; recursos y links de pago; Inbox; Hub por
+programa y agregado de lo sumable (antes Dashboard, ADR 0086); atribución por canal, campaña, anuncio y área, con el gasto de Meta por su API; costos por etapa y
 cumplimiento de la cohorte por área; builder de links para orgánico y closers; roles
 closer (que también hace de setter), gerente, paid trafficker, customer success y developer; Nerd Stats con bitácora; snapshot del dashboard en PDF (lo toman todos los roles y recibe el mismo
 objeto que pintó la pantalla, 19-sep);
@@ -516,10 +517,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
 - **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*
 - **ROAS y ad profit:** contratado frente al gasto, con la TRM de cada día (ADR 0088).
-- **Costo por agenda (CPI):** el gasto de Paid entre las agendas **del CRM** de Paid. **CPL** es lo mismo por registro y
-  **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
-- **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Van al lado como control,
-  nunca en el costo oficial (ADR 0088).
+- **Costo por agenda (CPI):** el gasto de pauta entre las agendas. En el **semáforo**, las agendas según Meta (ADR 0088,
+  enmienda del 16-oct); en el **Hub**, las del CRM de Paid, todavía sin construir (249). **CPL** es lo mismo por registro
+  y **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
+- **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Son el denominador del costo
+  por agenda del semáforo; contra las del CRM, la diferencia es un control (ADR 0088, 249).
 - **TRM del día:** la tasa oficial COP/USD de una fecha, guardada; toda cifra convertida dice la que usó.
 - **Origen del cierre:** de qué trabajo salió una venta: agenda del día, seguimiento o sin llamada (254).
 - **Semáforo:** el color del costo por agenda de un programa o campaña contra su umbral, de día contra ayer a la misma
@@ -528,7 +530,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Objetivo:** la meta y el nivel aceptable de una métrica en una cohorte, total o por área; dice si va en
   ruta o atrasado. **Reparto por área:** la meta de cupos de la cohorte dividida entre paid, orgánico y
   referidos (no entre closers, ADR 0023).
-- **Calidad de la traza:** hasta qué nivel se sabe el origen de una venta (anuncio, campaña, canal o nada).
+- **Calidad de la traza:** hasta qué nivel se sabe el origen de un **envío**: anuncio (N3), conjunto o campaña (N2), solo
+  área (N1) o sin UTM (N0). Se mide sobre los envíos, no sobre las ventas.
 
 **Media (ADR 0107 a 0112)**
 
@@ -537,8 +540,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Pieza:** una unidad de contenido planeada o publicada (una historia, un reel, un carrusel), de un creador, con su
   link. Une el contenido con los leads que trae.
 - **Pieza permanente:** la pieza sin fecha que es el link fijo de un creador, para lo que publica por su cuenta.
-- **Escalera de conversión:** la jerarquía de qué tan rápido y qué tan lejos llegó un deal: pagó en la llamada, pagó
-  rápido, pagó después, atendió y no compró, agendó y no se presentó, no agendó. Cada peldaño es un **escalón**.
+- **Escalera de conversión:** la jerarquía de qué tan rápido y qué tan lejos llegó un deal, en siete escalones: pagó en la llamada,
+  pagó rápido, pagó después, pagó sin llamada registrada, atendió y no compró, agendó y no se presentó, dejó datos y sin
+  cita ocurrida (ADR 0109 y sus enmiendas). Cada peldaño es un **escalón**.
 - **Insight:** lo que se aprende de una llamada (un dolor, un deseo, una objeción, el nivel de conciencia, lo que el
   lead dice que vio), con su cita. *Media ve el insight, nunca el transcript.*
 - **Banco:** las ideas sin fecha de media: referentes calificados, colecciones, formatos y las propuestas del cruce.

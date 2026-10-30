@@ -117,7 +117,7 @@ flowchart TD
 | El lead vuelve a aplicar con su deal cerrado | deal nuevo; la ficha muestra los anteriores | ADR 0037 |
 | Lead que ya existía antes del corte | no abre deal por la ingesta: entra con la migración, con su estado de gestión | ADR 0037 |
 
-**La etapa en que nace el deal la decide el CRM** con tres hechos del envío (ADR 0069, 2-oct; reemplaza al 0061): agendó → Agendado; parcial sin agenda → Potencial, venga con la calidad que venga (16-oct); completo High → Calificado; completo con otra calidad o sin ella → Registrado (`lib/ingesta/etapa-de-entrada.ts`). Ningún envío se queda sin deal (GC-27). La variable `estado` del formulario se guarda como llegó y ya no enruta. La pantalla de Estados de llegada se retiró (117, fase 2) y la tabla `estados_llegada` espera su migración sin que nadie la lea. Un formulario que deja de mandar `lead_quality` lo marca la salud de la fuente ("sin calidad"). "Agendó" es el hecho que pone el adaptador: la pregunta de agenda del mapeo trae un link de Calendly (ticket 106).
+**La etapa en que nace el deal la decide el CRM** con tres hechos del envío (ADR 0069, 2-oct; reemplaza al 0061): agendó → Agendado; parcial sin agenda → Potencial, venga con la calidad que venga (16-oct); completo High → Calificado; completo con otra calidad o sin ella → Registrado (`lib/ingesta/etapa-de-entrada.ts`). Ningún envío se queda sin deal (GC-27). La variable `estado` del formulario se guarda como llegó y ya no enruta. La pantalla de Estados de llegada se retiró (117, fase 2) y la tabla `estados_llegada` la borró la migración 0059. Un formulario que deja de mandar `lead_quality` lo marca la salud de la fuente ("sin calidad"). "Agendó" es el hecho que pone el adaptador: la pregunta de agenda del mapeo trae un link de Calendly (ticket 106).
 
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 
@@ -497,14 +497,14 @@ UTM** y **sin clasificar**, se muestran siempre con su conteo y su porcentaje.
 ## 8. Pantallas, roles y quién ve qué
 
 Tabs a la izquierda, un selector de programa arriba (ADR 0050). Las tabs de programa viven en
-`/p/<programa>/<tab>`. Puesto al día el 3-oct contra `app/` (ola O3, ADR 0077); el componente de cada pantalla es el de
+`/p/<programa>/<tab>`. Puesto al día el 3-oct contra `app/` (ola O3, ADR 0077) y el 30-oct con el Hub (ADR 0086, ticket 362); el componente de cada pantalla es el de
 [`plan.md`](./plan.md) §4.
 
 | Pantalla | Ruta | Componente | Qué es | Estado |
 |---|---|---|---|---|
 | **Mi espacio** | `/mi-espacio` | 3, 10 | el perfil y lo de la persona según su rol (179): closer, sus pendientes, deals, llamadas y students; gerente, lo que tiene por decidir; paid trafficker, sus canales. `/mi-dia` y `/perfil` redirigen aquí hasta después del 10-oct | ✅ |
 | **Inbox** | `/p/<programa>/inbox` | 3 | lo sin dueño (Setteo ordenado), llamadas sueltas, "se perdió en el Calendly" y lo que necesita atención | ✅ |
-| **Dashboard** | `/p/<programa>/dashboard` y `/dashboard` ("todos") | 9 | un programa o "todos los programas" (solo lo sumable), cada cifra abre su lista (`.../dashboard/lista`) | ✅ · secciones en el 148 |
+| **Hub** | `/p/<programa>/hub` y `/hub` ("todos") | 8, 9 | reemplazó al Dashboard y a Metas (ADR 0086): cinco pestañas por `?seccion=` (Hoy, Comercial, Dinero, Pauta, Origen; `SECCIONES_DEL_HUB` en `lib/nav.ts`); un programa o "todos los programas" (solo lo sumable), cada cifra abre su lista (`.../hub/lista`). Las rutas viejas `dashboard`, `metas` y `/ajustes/canales` redirigen aquí | ✅ |
 | **Leads** | `/p/<programa>/leads` y `/leads/<id>` | 1 | la base de personas del programa, con o sin deal, y su ficha | ✅ · falta buscador por texto |
 | **Deals** | `/p/<programa>/deals` y `/deals/<id>` | 2 | Kanban por etapas y la ficha del deal | ✅ · vista tabla pendiente |
 | **Calls** | `/p/<programa>/calls` | 4 | llamadas de hoy y próximas, sin resultado, sueltas | ✅ |
@@ -512,7 +512,7 @@ Tabs a la izquierda, un selector de programa arriba (ADR 0050). Las tabs de prog
 | **Programa** | `/p/<programa>/programa` | 10 | todo lo del programa (ADR 0077): crear y editar el programa, cohortes, destinos, Calendly, fuentes, plataformas, comisión, equipo | ✅ |
 | **Campañas** | (sin ruta) | 8 | el árbol de Meta con su embudo y el builder de orgánico y closers (125) | ❌ |
 | **Recursos** | `/recursos` (`/documentos` redirige) | 10 | brochures y links de pago | ✅ |
-| **Ajustes** | `/ajustes/*` | 1, 7, 12 | solo lo que no es de ningún objeto (ADR 0077): usuarios y roles, Canales, Webhook Health (`/salud`), Motivos (`/catalogos`), Áreas, migración | ✅ |
+| **Ajustes** | `/ajustes/*` | 1, 7, 12 | solo lo que no es de ningún objeto (ADR 0077): usuarios y roles, Webhook Health (`/salud`), Motivos (`/catalogos`), Áreas, migración. Canales pasó a Hub › Origen (248) | ✅ |
 | **Nerd Stats** | `/nerd-stats` y `/nerd-stats/bitacora` | 11 | salud del sistema y bitácora (solo developer) | ✅ |
 
 Products se retiró con el 134 (el precio es de la cohorte). Personas salió con el 170; Urgencias, `/programas/<slug>`, `/documentos` y Orígenes con el 175.
@@ -521,14 +521,15 @@ Products se retiró con el 134 (el precio es de la cohorte). Personas salió con
 |---|---|---|---|---|---|
 | Mi espacio | Pendientes, Mis deals, Mis llamadas, Mis students y su Calendly | Por decidir: sin dueño, por settear, sueltas, hosts sin cuenta, Webhook Health | Canales: pares sin clasificar y envíos por canal | · | según su vista; en `todo`, un mensaje |
 | Inbox | lo suyo + sin dueño de sus programas | todo el programa | · | · | todo |
-| Dashboard | sus programas, completos | todos | ⛔ sus programas, menos el comparativo entre closers y la comisión (ADR 0052, resto del 102) | · | todo |
+| Hub de un programa | · (la ruta responde 404; ticket 224, ADR 0082) | todos | sus programas, menos el trabajo del equipo comercial (`veEquipoComercial`, ADR 0052) | · | todo |
+| Hub "todos los programas" | sus programas (`paginaConRol("gerente", "closer")`) | todos | · | · | todo |
 | Leads, Calls | sus programas | todos | · | · | todo |
 | Deals | **solo sus deals** (ADR 0075) | todos | · | · | todo |
 | Students | sus programas | todos | · | solo esta tab, marca el onboarding (145) | todo |
 | Campañas | "Mi link" (086) | todo | árbol, embudo, links de orgánico, conexión con Meta | · | todo |
 | Programa | lectura de los suyos | edita | · | · | todo |
 | Recursos | lee y crea en sus programas | edita | · | · | todo |
-| Ajustes | catálogos permitidos | todo | solo Canales (`manejaPauta`) | · | todo |
+| Ajustes | catálogos permitidos | todo | · (Canales pasó a Hub › Origen) | · | todo |
 | Nerd Stats | · | · | · | · | solo él |
 
 Esconder una tab no es seguridad: cada ruta y cada server action valida en el servidor, y se prueba
@@ -539,7 +540,21 @@ donde se cierra una llamada en un clic ("¿Cómo terminó?"). La del Lead muestr
 que cambió entre uno y otro, sus contactos, sus deals abiertos y cerrados, y un aviso si el correo está
 en otro programa. Cada tarjeta lleva a su lista ya filtrada.
 
-**El Dashboard** (qué va, 🟡 el layout):
+**El Hub** (ADR 0086; reemplazó al Dashboard y a Metas). Qué hay en cada pestaña; cada cifra se define en
+[`metricas.md`](./metricas.md), no aquí:
+
+| Pestaña | Qué tiene | ¿Se suma en "todos los programas"? |
+|---|---|---|
+| Hoy | el reporte diario: cupos del día, la semana, el mes y la cohorte con meta y cumplimiento; ritmo y proyección; registros, agendas creadas, citas, % de show por deal y por cita, caja | los conteos y la caja sí; metas y tasas por programa |
+| Comercial | embudo del periodo, comparativo entre closers (solo `veEquipoComercial`), deals contra agendas y la escalera de conversión | los conteos sí |
+| Dinero | lo contratado, lo cobrado por moneda y la cartera | sí (por moneda) |
+| Pauta | gasto, ROAS por campaña, conjunto y anuncio, y llamadas por anuncio | el gasto sí; lo demás por programa |
+| Origen | de dónde vino cada envío: área y canal por la regla (ADR 0087), sin UTM, macros, traza Paid, plantillas por cuenta | los conteos sí |
+
+La tabla que sigue es el plan del Dashboard de septiembre y queda como historia; lo que falta de ella vive en sus
+tickets (123, 124, 249, 254):
+
+**El Dashboard, plan de septiembre (historia):**
 
 | Pedido | Sección | ¿Se suma en "todos los programas"? |
 |---|---|---|
@@ -634,13 +649,14 @@ paginación e ids porque pertenecen al programa anterior.
 
 - Cada métrica clicable tiene UNA definición de su universo en `lib/queries/metricas-filtros.ts`
   (`filtroCaja`, `filtroLlamadas`, `filtroCierres`, `filtroLeads`), que usan a la vez la cifra del
-  dashboard (`dashboard.ts`), el resumen y la lista (`metricas-con-filas.ts`): no pueden discrepar.
+  Hub (`dashboard.ts`), el resumen y la lista (`metricas-con-filas.ts`): no pueden discrepar.
   Hoy son caja (abonos, por moneda), agendas y shows (llamadas), cierres (los deals de `vendidosEn`) y
   leads. `vigente()` va escrito en cada cadena, no en el filtro, porque el guardián lee cadena por cadena.
 - Paso 1, el **resumen**: agregado en Postgres (`GROUP BY`), sin traer filas; se parte en tres desgloses
   (`desglosesDelResumen`): por closer (agrupado por `claveDeCloser`, ADR 0030), por etapa y por antigüedad
   (0-7, 8-30, 31-90, >90 días desde la fecha de la fila hasta hoy en Bogotá; lo futuro cuenta 0).
-- Paso 2, la **lista**: `/p/[programa]/dashboard/lista?metrica=caja|agendas|shows|cierres|leads&periodo=custom&a_desde…&b_hasta[&closer=<sha256>][&moneda=USD][&pagina=N]`,
+- Paso 2, la **lista**: `/p/[programa]/hub/lista?metrica=caja|agendas|shows|cierres|leads&periodo=custom&a_desde…&b_hasta[&closer=<sha256>][&moneda=USD][&pagina=N]`
+  (la vieja `dashboard/lista` redirige; el enlace lo arma solo `urlDeLista`),
   paginada en el servidor (50 por página, más antiguas primero), con el total arriba y los filtros como
   chips. El closer viaja como código opaco (sha256 de su forma normalizada); un código desconocido da 404,
   nunca ensancha al programa entero. Un abono, una llamada o un lead sin deal sale sin enlace, no se descarta.
@@ -653,7 +669,7 @@ paginación e ids porque pertenecen al programa anterior.
 
 - `lib/periodo.ts` valida con zod (`parsearPeriodoUrl`) y resuelve (`resolverPeriodo`). El servidor
   entrega `hoyEnBogota()`; el navegador nunca calcula hoy. `SelectorPeriodo` es el único control,
-  reutilizable en dashboard y listas; el dashboard consulta A y muestra B, sin cablear aún KPI (095).
+  reutilizable en el Hub y las listas; el Hub consulta A y, si se pide comparar, B.
 - URL: `?periodo=hoy|ayer|manana|esta_semana|semana_pasada|este_mes|mes_pasado|cohorte_actual|cohorte_anterior`.
   Para rangos libres: `?periodo=custom&a_desde=YYYY-MM-DD&a_hasta=YYYY-MM-DD&b_desde=YYYY-MM-DD&b_hasta=YYYY-MM-DD`.
   A explícito prevalece sobre el atajo y se etiqueta Personalizado. B explícito puede acompañar un atajo.

@@ -306,7 +306,9 @@ ritmo, la proyección, el estado "se perdió en el Calendly" y los comparativos.
 ## 6. Las fórmulas (una definición por métrica)
 
 > ⚠️ **14-oct: esta tabla queda como historia.** La única tabla de definiciones es `docs/metricas.md` (desde el 15-oct; antes `hub.md` §5; el diccionario de
-> métricas). A12 se cerró con el ADR 0088 (TRM de cada día) y el costo por agenda usa las agendas del CRM.
+> métricas). A12 se cerró con el ADR 0088 (TRM de cada día). El costo por agenda del semáforo divide por las agendas de Meta
+> (enmienda del 16-oct del 0088); el del Hub, con las del CRM, sigue sin construir (249). **Ninguna fórmula de esta
+> sección rige** (ADR 0115, N8): para la traza, el ROAS o el costo por agenda, lee `docs/metricas.md`.
 
 > ⚠️ 1-oct: la TRM de la cohorte se quitó del esquema (migración 0057). De dónde sale la tasa del ROAS y del ad
 > profit es la decisión A12 de `plan.md` §7, antes de E7.

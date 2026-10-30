@@ -2,8 +2,9 @@
 
 > **El diccionario de métricas del CRM, y el único** (desde el 15-oct; antes vivía en `docs/hub.md` §5). Para
 > cada métrica y cada dato: de qué tabla sale, qué cuenta y qué no, con qué fecha, en qué moneda, en qué función
-> vive y cómo comprobarla contra la fuente. Si el código y este documento discrepan, **manda el código** y este
-> documento se corrige en el mismo cambio. Una métrica nueva entra aquí antes de llegar a una pantalla.
+> vive y cómo comprobarla contra la fuente. Sobre **qué hace hoy** una métrica, si el código y este documento
+> discrepan, **manda el código** y este documento se corrige en el mismo cambio; sobre **qué debería hacer**, manda el
+> ADR vigente, luego el ticket y al final el documento de reunión (ADR 0115, N8). Una métrica nueva entra aquí antes de llegar a una pantalla.
 
 ## 0. Reglas que valen para todas
 
@@ -190,11 +191,12 @@ Las cifras de Hub › Origen son:
 | Macros sin expandir | envíos del rango con al menos un UTM centinela `{{…}}`; siempre se muestra con conteo y porcentaje | `origenDelPrograma` |
 | Nuevo | el par se vio por primera vez entre hoy y los seis días anteriores | `origenDelPrograma` |
 | Plantillas por cuenta | anuncios activos por cuenta con plantilla vieja, de Pauta, otra o sin id de anuncio | `origenDelPrograma` |
-| Traza Paid | distribución N3, N2 y N1 de los envíos Paid del rango | `origenDelPrograma` |
+| Traza Paid | distribución N3, N2 y N1 de los envíos Paid del rango (el universo son envíos, no ventas) | `origenDelPrograma` |
 
 ## 3. Métricas
 
-Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ticket).
+Leyenda de estado, solo dos valores: ✅ en producción y con su ticket cerrado · 🟡 definida, sin construir o con su
+ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del semáforo, no un estado.
 
 ### 3.1 Embudo y ventas
 
@@ -204,10 +206,10 @@ Leyenda de estado: ✅ en producción · 🟡 definida, sin construir (con su ti
 | Dejó datos · Llegó al Calendly | embudo del formulario (ADR 0069, ticket 126) | personas | sí | `lib/queries/embudo-formulario.ts` | ✅ |
 | Agendó sobre llegó al Calendly | registros que agendaron ÷ registros que llegaron al Calendly; cada paso del embudo muestra su tasa sobre el paso anterior, nombrado ("de los que llegaron al Calendly"), y debajo la del total (Dejó datos); en la tabla por canal, solo la del paso anterior; base cero se muestra `—` (ADR 0067) | registros (`fuente`, `token`), por el día de Bogotá de su primer envío, sin filtro de closer | no: por programa, nunca en "todos" (ADR 0048) | `tasasDelEmbudo` sobre `embudoDelFormulario` | ✅ |
 | No agendaron | **personas** (lead) con un registro (`fuente`, `token`) cuyo primer envío cae en el rango y que llegó al Calendly (agendó o calidad High); una fila por persona, con la fecha de su registro más antiguo. El deal que la representa es el de la persona: el abierto o, si no hay, el más reciente, desempate por id (`idsDelDealDeLaPersona`, `lib/queries/deal-de-la-persona.ts`; la misma regla cuelga el deal en la lista de registros). Sale si **hoy** ese deal tiene `calls` vigente o está en Agendado o una etapa posterior, Cierre perdido incluido (decidido por Mani, 24-oct); una cita posterior al envío la saca. Se verifica comparando `embudoDelFormulario.noAgendaron` con el total de la lista `no_agendaron`, incluyendo otro programa y un deal anulado, y agregando una cita vigente al día siguiente | personas, por programa | no | `llegoAlCalendly` y `noAgendaronDelFormulario` en `lib/queries/embudo-formulario.ts`; lista en `metricas-con-filas.ts` | ✅ |
-| Agendas creadas | llamadas vigentes creadas en el rango (§1.2); la de Pauta y el costo por agenda | agendas | sí | `hechos/agenda.ts` | ✅ |
+| Agendas creadas | llamadas vigentes creadas en el rango (§1.2); la de Pauta y el denominador del costo por agenda del Hub (249) | agendas | sí | `hechos/agenda.ts` | ✅ |
 | Deals que agendaron | deals creados del rango (misma fecha que Deals creados) con al menos una llamada vigente del mismo programa creada hasta el último día del rango; la gráfica muestra el % sobre los deals creados, acumulado por día hábil | deals | sí (el % no) | `filtroDealsQueAgendaron` en `lib/queries/metricas-filtros.ts`, serie en `lib/queries/deals-contra-agendas.ts` | ✅ |
 | Citas (la tarjeta "Agendas" de Comercial, "Citas de hoy" en Hoy) | llamadas vigentes cuya **cita** cae en el rango (§1.3), con cualquier resultado; no es la de arriba (medido el 23-oct, 299) | citas | sí | `embudoDelRango` (`filtroLlamadas`) | ✅ |
-| Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | ✅ |
+| Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | 🟡 298 (en main, sin checkpoint) |
 | Citas · Shows | citas del rango; las que ocurrieron (§1.3) | citas | sí | `hechos/cita.ts` | ✅ |
 | % de show | deals del grupo con al menos un show ÷ deals del grupo. Una cita pasada que sigue `agendada` queda pendiente de resultado, visible aparte con su lista, y no entra al grupo ni a la tasa | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
 | % de show por cita | citas del día que ocurrieron ÷ citas del día que ya debían ocurrir al corte (§1.3); es otra pregunta que el % por deal y se muestra a su lado en Hub › Hoy, como lo contaba el reporte de Michael (Mani, 24-oct) | % | no | `showPorCitaDelRango` en `lib/queries/tasa-show-por-cita.ts` | ✅ |
@@ -267,14 +269,15 @@ un escalón, y el escalón se calcula al leer, nunca se guarda.
 | Métrica | Fórmula | Unidad | ¿Se suma? | Función | Estado |
 |---|---|---|---|---|---|
 | Gasto | Σ gasto de las cuentas del programa (§1.6 y §1.7), convertido a COP con la TRM del día (§1.8) | COP | sí | `sumarEnCop` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
-| Costo por agenda | semáforo: gasto ÷ agendas según Meta; Hub: gasto ÷ agendas **del CRM** de área Paid (§3.3) | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` | ✅ |
+| Costo por agenda del semáforo | gasto de agenda ÷ agendas **según Meta** de esas campañas (§3.3; ADR 0088, enmienda del 16-oct). Lo ven el reporte por WhatsApp y Programa › General | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
+| Costo por agenda del Hub | gasto de Paid ÷ agendas **del CRM** de área Paid (§1.2, §2; ADR 0088 punto 1). Hoy el Hub no lo muestra | COP | no | · | 🟡 249 |
 | CPL de lanzamiento | semáforo: gasto de campañas de lanzamiento ÷ registros según Meta (`complete_registration`) | COP | no | `costoPorAgenda` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
 | Agendas según Meta | §1.9 | agendas | sí | ídem | ✅ |
 | Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 | 🟡 |
 | CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 | 🟡 |
 | Costo por venta (CAC) | gasto de Paid ÷ ventas de Paid | COP | no | 123 | 🟡 |
-| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan al día del envío que abrió el deal**: `fecha_envio` si existe y, en un parcial, `created_at`; no a la fecha de venta. El parcial se pliega en su completo por `(source_id, token)`. La atribución toma anuncio, si no conjunto, si no campaña de Meta; solo lo que no resuelve campaña queda en “Sin campaña de Meta” | razón | no | `diaDelEnvio` y `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` · 123, 350 | 🟢 |
-| Nivel de la traza | el id más profundo del envío que resuelve en el árbol: anuncio (N3), conjunto o campaña (N2), solo área (N1), sin UTM (N0) | % | no | 247 | ✅ |
+| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan al día del envío que abrió el deal**: `fecha_envio` si existe y, en un parcial, `created_at`; no a la fecha de venta. El parcial se pliega en su completo por `(source_id, token)`. La atribución toma anuncio, si no conjunto, si no campaña de Meta; solo lo que no resuelve campaña queda en “Sin campaña de Meta” | razón | no | `diaDelEnvio` y `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` · 123, 350 | ✅ |
+| Nivel de la traza | **por envío, no por venta**: el id más profundo del envío que resuelve en el árbol: anuncio (N3), conjunto o campaña (N2), solo área (N1), sin UTM (N0). La distribución es sobre los envíos Paid del rango (§2, Traza Paid). Una traza por venta no existe | % | no | `emparejar` en `lib/atribucion/emparejar.ts`, `origenDelPrograma` · 247 | ✅ |
 
 El gasto sigue naciendo en anuncio y se acumula hacia conjunto y campaña. Si un registro solo resuelve conjunto o
 campaña, cuenta en esos niveles y aparece como “Anuncio sin identificar”; nunca se reparte entre anuncios.
@@ -291,8 +294,8 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
      muestran aparte y no entran al costo; agenda + lanzamiento forman el gasto total del programa (314, 26-oct).
    - Lo que viene en USD se pasa a COP con la TRM del día.
 2. **Agendas:** el semáforo usa las agendas que reporta Meta (pixel). Muestra al lado las agendas del CRM (§1.2)
-   creadas ese día, hasta el momento del cálculo, de área **Paid** (§2), para detectar diferencias. El Hub conserva
-   como denominador las agendas del CRM (ADR 0088, enmienda del 16-oct).
+   creadas ese día, hasta el momento del cálculo, de área **Paid** (§2), para detectar diferencias. El costo por agenda
+   del Hub, sin construir (249), usará como denominador las agendas del CRM (ADR 0088 punto 1 y enmienda del 16-oct).
 3. **Costo del semáforo = gasto de agenda ÷ agendas según Meta de esas campañas.** Con gasto y 0 agendas de Meta queda rojo; si Meta no
    reporta el dato, queda sin dato.
 4. **Umbral:** el objetivo "Costo por agenda" (área Total) de la **cohorte activa** del programa, que se carga en
@@ -341,7 +344,8 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
   reporte: "Agendas reales" eran las citas que caían ese día).
 - **D2, % de show.** Por deal (ADR 0079), dicho en la tarjeta: "X de Y deals con cita ocurrida · N reagendadas (no
   cuentan)". Las citas pasadas que siguen `agendada` se muestran como pendientes con su lista y no entran a la
-  tasa hasta registrar el resultado. No hay una segunda fórmula por cita.
+  tasa hasta registrar el resultado. ~~No hay una segunda fórmula por cita.~~ **Enmendada el 24-oct (Mani, 299):** al
+  lado del % por deal, Hub › Hoy muestra el % de show por cita (§3.1, `showPorCitaDelRango`), que es otra pregunta.
 - **D3, leads.** Registros del día (§1.1, envíos completos, igual a Typeform) sin meta hasta el 253: excepción
   temporal al ADR 0086 punto 3, que el 253 cierra. Una persona que aplica dos veces son dos registros.
 - **D4, caja.** Por moneda, partida en ventas de hoy y ventas anteriores; los nombres están en la lista de la cifra.
