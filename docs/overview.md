@@ -465,7 +465,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   obligatorio para que el deal sea venta. *No confundir con el ticket base ni con lo abonado.*
 - **Descuento:** ticket base de la cohorte menos el valor vendido, en número y %.
 - **Comisión:** un porcentaje del valor vendido; el porcentaje es el del programa el día de la venta y no
-  cambia después.
+  cambia después; se exige al vender: un programa sin % no puede registrar una venta (356).
 - **Abono:** un pago recibido, con fecha, monto, moneda, plataforma y comprobante.
 - **Saldo:** valor vendido menos lo abonado. Es nulo, no cero, cuando no hay valor vendido.
 - **Sobrepago:** un abono que dejaría el saldo negativo; se rechaza salvo confirmación explícita.

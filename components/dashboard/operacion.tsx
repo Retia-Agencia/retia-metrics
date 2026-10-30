@@ -13,6 +13,7 @@ import {
 } from "@/lib/queries/vista-metrica";
 import { cambioEnPalabras, porcentajeConBase } from "@/lib/variacion";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
+import { ComoSeCalcula } from "@/components/como-se-calcula";
 
 export function textoComisionPrograma(comisionPorcentaje: string | null): string {
   return comisionPorcentaje != null
@@ -56,11 +57,11 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
           >
             {vista.comparativo.map((fila) => {
               const celdas = detalles?.[fila.clave];
-              const quien = fila.closerId ?? "sin closer";
+              const quien = fila.closerId ?? "Sin closer";
               return (
               <tr key={fila.clave}>
                 <td className="py-2">
-                  {fila.closerId ?? <span className="text-muted-foreground">sin closer</span>}
+                  {fila.closerId ?? <span className="text-muted-foreground">Sin closer</span>}
                 </td>
                 <td className="py-2 text-right">
                   <Celda titulo={`Agendas de ${quien}`} detalle={celdas?.agendas}>{num(fila.agendas)}</Celda>
@@ -97,11 +98,15 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
             })}
           </Tabla>
         )}
-        <p className="pt-1 text-sm text-muted-foreground">
-          Agendas y shows van por quien tomó la llamada; cierres, caja y comisión por el
-          dueño del deal y quien cobró. El % de show y el % de cierre van sobre el grupo de citas:
-          cada deal cuenta en el closer de su último show o, sin show, de su última cita.
-        </p>
+        <ComoSeCalcula>
+          <p><strong>Agendas:</strong> quien tomó la llamada.</p>
+          <p><strong>Show:</strong> quien tomó la llamada.</p>
+          <p><strong>% show y % cierre:</strong> van sobre el grupo de citas; cada deal cuenta en el closer de su último show o, sin show, de su última cita.</p>
+          <p><strong>Cierres:</strong> el dueño actual del deal.</p>
+          <p><strong>Comisión:</strong> el dueño actual del deal.</p>
+          <p><strong>Recaudado:</strong> quien registró el abono.</p>
+          <p><strong>Sin closer:</strong> ventas, citas o abonos que no tienen closer; no entran en la comisión de nadie.</p>
+        </ComoSeCalcula>
         <p className="pt-1 text-sm text-muted-foreground">
           {textoComisionPrograma(vista.comisionPorcentaje)}
         </p>

@@ -330,6 +330,13 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
         .from(programs)
         .where(eq(programs.id, deal.programId));
       comisionPorcentaje = programa?.comisionPorcentaje ?? null;
+      if (comisionPorcentaje === null) {
+        throw new MovimientoRechazado(
+          "Este programa no tiene % de comisión. Cárgalo en la pestaña Programa, en «Comisión del closer», y vuelve a intentarlo.",
+          [],
+          422,
+        );
+      }
     }
 
     const saleDeProximaCohorte = pendienteDe === "proxima_cohorte" && pendienteA !== "proxima_cohorte";

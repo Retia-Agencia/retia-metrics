@@ -77,6 +77,23 @@ describe("el closer elegido acota la vista, menos el comparativo", () => {
     // El comparativo es lo que garantiza "todos ven todo": nunca se acota.
     expect(vista.comparativo.map((c) => c.closerId).sort()).toEqual(["Ana", "Beto"]);
   });
+
+  it("muestra las ventas sin dueño en una fila sin closer", async () => {
+    const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "sin-closer@retia.co" }).returning();
+    const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, etapa: "ganado_parcial" }).returning();
+    await db.insert(dealEtapaHistorial).values({
+      dealId: deal.id,
+      a: "ganado_parcial",
+      fecha: new Date("2026-09-15T10:00:00-05:00"),
+    });
+
+    const vista = await armarVistaDelDashboard(
+      { programId: programaA, hoy: HOY, preset: "hoy" },
+      db,
+    );
+
+    expect(vista.comparativo).toContainEqual(expect.objectContaining({ closerId: null, cierres: 1 }));
+  });
 });
 
 describe("el preset que sale es el que de verdad se uso", () => {
