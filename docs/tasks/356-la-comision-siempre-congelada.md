@@ -35,7 +35,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 ## Done cuando
 
 - [x] Test: mover a Abonado en un programa sin % se rechaza y la base no se mueve. (`tests/mover-etapa.test.ts`, "no vende si el programa no tiene porcentaje de comisión")
-- [ ] Tras el backfill (con ok), `count(*) where comision_porcentaje is null` en ventas vigentes = 0. Script listo: `npm run rellenar:comision-ventas` (ensayo) y `-- --aplicar`; probado en `tests/rellenar-comision.test.ts`. Ensayo de solo lectura en producción (30-oct): rellenaría 16 ventas de ComunicArte al 10,04 % y 9 de Tactical al 6,67 %; Comunícate con Confianza ya está completo. **Espera el ok de Mani (DA-9).**
+- [x] Tras el backfill (con ok), `count(*) where comision_porcentaje is null` en ventas vigentes = 0. Script listo: `npm run rellenar:comision-ventas` (ensayo) y `-- --aplicar`; probado en `tests/rellenar-comision.test.ts`. Ensayo de solo lectura en producción (30-oct): rellenaría 16 ventas de ComunicArte al 10,04 % y 9 de Tactical al 6,67 %; Comunícate con Confianza ya está completo. Aplicado el 30-oct con el ok de Mani (DA-9): 25 ventas rellenas, 25 filas en `change_log`, y el conteo quedó en 0.
 - [x] La fila "Sin closer" aparece cuando hay ventas sin dueño. (`tests/vista-dashboard.test.ts`, "muestra las ventas sin dueño en una fila sin closer")
 - [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
 
