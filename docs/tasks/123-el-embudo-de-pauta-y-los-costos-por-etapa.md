@@ -2,7 +2,7 @@
 id: 123
 etapa: E7
 serves: "ADR 0063 · docs/analytics.md PT-09, PT-22, PT-25, PT-27 a PT-32, PT-51"
-depends: [085, 089, 115, 120, 244, 247, 262]
+depends: [085, 089, 115, 120, 244, 247, 262, 351]
 status: todo
 ---
 
@@ -80,3 +80,9 @@ sin rehacerlos. "Creativo" es el anuncio de Meta (`utm_id`, ADR 0062). El 244 y 
 ## Enmienda 20-oct (ADR 0099)
 
 Toda cifra por anuncio muestra su cobertura: cuántas agendas, citas o ventas quedaron sin anuncio ("12 de 40 sin anuncio"), nunca un total que cuadra a la fuerza (ADR 0099 punto 6). La cobertura sale de la misma función del 290.
+
+## Enmienda 30-oct (auditoría de métricas)
+
+El gasto de Meta en la base empieza el 8-oct (C-01): todo CPL, CAC o costo por etapa que construya este ticket devuelve
+cobertura con el tipo del 351 y no se pinta sobre días sin gasto. El convertidor de gasto es el único del 351, no uno
+nuevo. Depende además de 351. Auditoría: `docs/auditoria-metricas-2026-10-30.md`.

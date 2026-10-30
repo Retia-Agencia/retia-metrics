@@ -233,7 +233,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 
-41 tickets, 10 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+53 tickets, 22 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -279,6 +279,18 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
+| [ ] | 351 | [Toda razón con su cobertura, y el gasto que falta](./351-toda-razon-con-su-cobertura.md) | — | todo · 30-oct · auditoría de métricas (C-01 ROAS con gasto desde el 8-oct) · ADR 0115 N3 · backfill con ok de Mani |
+| [ ] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | todo · 30-oct · auditoría · espera DA-1, DA-2, DA-5 de Mani |
+| [ ] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | todo · 30-oct · auditoría · espera DA-3 (Mani) y DA-4 (con Pauta) |
+| [ ] | 354 | [Cada hecho con su día, y registro, lead y "sin UTM" una vez](./354-anclas-de-fecha-registros-y-sin-utm.md) | — | todo · 30-oct · auditoría (C-04 parciales sin fecha) |
+| [ ] | 355 | [Pauta: un cargador y una tabla](./355-pauta-un-cargador-y-una-tabla.md) | 351, 352, 353, 354 | todo · 30-oct · auditoría · borra `pauta-interina` |
+| [ ] | 356 | [La comisión siempre congelada](./356-la-comision-siempre-congelada.md) | — | todo · 30-oct · auditoría (C-09: 25 ventas sin %) · backfill con ok de Mani |
+| [ ] | 357 | [Un vocabulario de métricas, y un guardián](./357-un-vocabulario-de-metricas.md) | — | todo · 30-oct · auditoría · ADR 0115 N4 |
+| [ ] | 358 | [Formato único, insignias únicas y la regla del vacío](./358-formato-unico-y-estados-vacios.md) | 357 | todo · 30-oct · auditoría · espera DA-7 (Gerencia) |
+| [ ] | 359 | [La pantalla sin jerga, y podada](./359-la-pantalla-sin-jerga-y-podada.md) | 357 | todo · 30-oct · auditoría · espera DA-6 (Mani) |
+| [ ] | 360 | [Filtros: un nombre por parámetro y un componente de fecha](./360-filtros-un-nombre-y-un-componente.md) | — | todo · 30-oct · auditoría |
+| [ ] | 361 | [Retiro de lo muerto, y el guardián del diccionario](./361-retiro-de-lo-muerto.md) | — | todo · 30-oct · auditoría · ADR 0115 N7 |
+| [ ] | 362 | [Documentos sin contradicciones, y el tracker que no miente](./362-documentos-sin-contradicciones.md) | — | todo · 30-oct · auditoría · ADR 0115 N8, N9 |
 | [x] | 289 | [El webhook de Calendly filtra por tipo de evento](./289-el-webhook-de-calendly-filtra-por-evento.md) | 280, 278 | done · 20-oct · checkpoint `cp-20261020-1` · en main · 19-oct · ADR 0098, 0098 aplicada, SBJ configurado, 25 sueltas anuladas · falta checkpoint verde |
 | [x] | 290 | [La alarma de la traza de pauta](./290-la-alarma-de-la-traza-de-pauta.md) (ADR 0099) | 247 | done · 20-oct · Codex + central · CI verde `3ba6988b` · medido en producción: marca Tactical (63 de 63 pagos sin id) y Confianza (82 de 82), no ComunicArte (0 de 50) |
 | [x] | 291 | [Corregir el resultado de una llamada](./291-corregir-el-resultado-de-una-llamada.md) (ADR 0101) | 177 | done · 21-oct · en main · Codex + central · CI verde `2c2b2abe` (el primero cayó: E14 rompía pegar Grain sobre Atendido) |

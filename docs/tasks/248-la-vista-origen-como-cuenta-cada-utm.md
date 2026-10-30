@@ -70,3 +70,9 @@ pestaña y la lista `registros` del 299 son dos predicados para la misma pregunt
 
 Falta: recorrido con clic en todo, escritorio y 375 px, y `npm run test:humo`; la prueba de que un closer que forja la
 ruta recibe 404 queda cubierta por la guarda de la página, sin test propio.
+
+## Enmienda 30-oct (auditoría de métricas)
+
+Lo que queda de Origen lo cierran otros tickets, para no mezclarlo aquí: la jerga visible (`ad_id`, `utm_id={{ad.id}}`,
+"ADR 0099", U-01) y las tres tarjetas de diagnóstico (U-02) van al 359; `/ajustes/areas`, `canales-admin.tsx` y las
+tablas `areas`/`canales` (R-10) van al 361; las tres definiciones de "Sin UTM" (C-14) van al 354.

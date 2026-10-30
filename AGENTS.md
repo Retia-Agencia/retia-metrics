@@ -147,6 +147,21 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   cae en Organico **sin error**; por eso Hub › Origen (248) muestra cada par con la regla que lo decidio y marca
   los nuevos. **"Sin UTM" no es un estado de error**: es un hecho del lead, tan valido como `facebook / cpc`, y se
   muestra siempre con su conteo y su porcentaje.
+- **Norte de las métricas (ADR 0115, aceptado el 30-oct; auditoría en `docs/auditoria-metricas-2026-10-30.md`).**
+  El 30-oct el CRM mostraba un ROAS ×2,2 del real, un % de show sobre una de cada cinco citas y una comisión corta en un
+  40 %, con la suite en verde: cada pregunta tenía varias respuestas y ninguna pantalla distinguía una cifra a medias.
+  Nueve reglas, cada una con su guardián: **(N1)** un concepto, un módulo (venta, show, cita sin resultado, agenda,
+  registro, lead, "sin UTM", ancla de fecha, gasto convertido, calendario: una función SQL y su gemela TS, en el módulo
+  de la tabla "Conceptos" de `docs/metricas.md` §0; nadie reescribe el predicado); **(N2)** paridad probada con el caso
+  que las haría divergir; **(N3)** toda razón devuelve su cobertura y la pantalla dice "parcial" o "—", nunca una razón
+  con medio dato (gasto desde el 8-oct contra ventas desde el 1-oct); **(N4)** un nombre por concepto, de un solo
+  vocabulario; **(N5)** ningún texto visible con `utm_*`, ADR, ids, "macro" o "periodo A/B", y formato solo por
+  `lib/format.ts` con la regla del vacío (— no se puede calcular, 0 es cero, "Sin datos" aún no hay periodo); **(N6)** lo
+  que una métrica necesita se exige al escribir, no se parcha al leer; **(N7)** reemplazar es borrar, y cada función que
+  cita el diccionario tiene un llamador fuera de `tests/`; **(N8)** sobre qué hace el código manda el código, sobre qué
+  debería hacer manda ADR vigente > ticket > documento de reunión, y una enmienda reescribe título, índice, diccionario y
+  vocabulario en el mismo commit; **(N9)** un ticket es `done` solo con sus casillas marcadas y el tracker igual al
+  `status:` del archivo.
 - **Caja recaudada y ventas cerradas son dos metricas separadas.** Los montos de la columna
   Precio son adelantos parciales, no precios finales. Nunca inferir una de la otra. La caja es
   la suma de `abonos` por fecha del abono; las ventas son el conteo de **deals en Abonado o

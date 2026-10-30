@@ -24,3 +24,11 @@ Sheet (Push 5), que ya no cuenta.
 
 - Test de la regla: antes de los 15 min no hay aviso, después hay uno, con resultado registrado no hay ninguno, una
   llamada anulada no cuenta y una llamada de otro programa no se mezcla.
+
+## Enmienda 30-oct (auditoría de métricas): prioridad alta
+
+Medido el 30-oct: entre el 79 y el 81 % de las citas pasadas de ComunicArte y Tactical siguen en `agendada` sin
+resultado (255 y 290 llamadas). El % de show, el % de cierre, agenda → venta, la escalera y la proyección se calculan
+sobre el 19 a 21 % restante (C-02, C-05). Este aviso es el arreglo de raíz (ADR 0115 N6: lo que la métrica necesita se
+exige al escribir); el 351 solo hace visible la cobertura mientras tanto. Sumar al "Done cuando": medir el % de citas
+pasadas con resultado antes y dos semanas después de encenderlo.

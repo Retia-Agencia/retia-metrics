@@ -16,6 +16,33 @@
 | Días hábiles | Lunes a viernes; los festivos cuentan como hábiles (regla de Retia) | `lib/dias-habiles.ts` |
 | Moneda a la vista | Ventas y caja en USD, pauta en COP; nada se convierte en silencio | `lib/format.ts` |
 | Una sola definición | Si dos pantallas muestran la misma cifra, la cifra vive en un módulo y las dos lo importan (ADR 0024) | revisión, y los tests comparativos de cada módulo |
+| Toda razón con su cobertura | Una tasa, un costo o un ROAS dice sobre qué base se midió y qué falta; con medio dato la pantalla dice "parcial" o "—" (ADR 0115 N3) | el tipo de la razón (ticket 351) |
+| Un nombre por concepto | El rótulo de cada métrica sale de un solo vocabulario, el de `overview.md` §11 (ADR 0115 N4) | guardián de rótulos (ticket 357) |
+
+Las nueve reglas completas están en el ADR 0115.
+
+### Conceptos: dónde vive cada uno (ADR 0115 N1)
+
+Cada concepto tiene **una** función, y quien lo necesite la importa. La columna "Hoy" es lo que la auditoría del 30-oct
+encontró; "Canónico" es a donde converge, y lo decide el ticket de la última columna. Mientras una fila tenga más de un
+lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
+
+| Concepto | Hoy (auditoría 30-oct) | Canónico | Ticket |
+|---|---|---|---|
+| Venta (conteo y día) | `ventasConDiaEn`/`vendidosEn` (por evento); `ventasDeCohorte`, `alertas.ts`, `tasas-del-grupo.ts` (por estado actual) | `vendidosEn` en `lib/queries/metricas-filtros.ts`, según DA-1 | 352 |
+| Vendidos de la cohorte | `ventasDeCohorte` (sin límite inferior) y `agruparVentas` de la proyección (desde el inicio de ventas) | una función, según DA-2 | 352 |
+| Meta de hoy y cumplimiento | `metaDinamica`, `proyeccion.ts`, tres copias del cumplimiento lineal | `lib/dias-habiles.ts` | 352 |
+| Show / ocurrió | `RESULTADOS_QUE_OCURRIERON` y 8 envolturas | `ocurrio`/`ocurrioSql` en un solo módulo | 353 |
+| % de show y % de no show | por deal, por cita, de Pauta, del comparativo semanal | `showPorDeal` y `showPorCita`, y el no show como complemento nombrado | 353 |
+| Cita sin resultado | cuatro predicados | `citaVencidaSinResultado` en `metricas-filtros.ts` | 353 |
+| Agenda | cita creada, contando reagendas | según DA-4 | 353 |
+| Día de cada hecho (anclas) | ~19 `AT TIME ZONE` sueltos; cuatro expresiones del día del envío | `lib/queries/hechos/fechas.ts` | 354 |
+| Registro y lead | `filtroDeEnvios` (registros) y `leadsDelRango` (personas) con el mismo nombre en pantalla | `hechos/envio.ts` para registros; "Leads" solo para personas | 354 |
+| Sin UTM | `resolverCanal`/`areaSql`, `categoriaUtmSql`, `categoriaDe` | `resolverCanal` y su gemela SQL | 354 |
+| Calendario (semana, sumar días, hábiles) | `rangos.ts`, `dias-habiles.ts` y copias en `proyeccion.ts`, `vista-hoy.ts`, `metas.ts` | `lib/dias-habiles.ts` | 354 |
+| Gasto convertido a USD o COP | `sumarEnCop` (semáforo) y `convertir` (ROAS, devuelve 0 en silencio) | un módulo en `lib/pauta/` | 351 |
+| Embudo de Pauta por campaña y por UTM | `pauta-interina.ts` y `roas-de-pauta.ts`, con dos anclas de venta | un cargador | 355 |
+| Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts`, `metricas-con-filas.ts`; `hechos/abono.ts` sin llamadores | `filtroCaja` | 361 |
 
 ## 1. Los hechos: lo que se cuenta
 

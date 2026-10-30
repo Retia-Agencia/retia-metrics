@@ -69,3 +69,11 @@ Pauta llevan la explicación de fuentes, fórmulas, madurez, TRM, cobertura y ci
 - [ ] El CSV no trae ninguna columna de persona (test que recorre la cabecera) y cuadra con el conteo de la tabla.
 - [ ] La cobertura se muestra siempre que haya ventas sin anuncio.
 - [ ] Recorrido con clic en todo lo que se abre, claro y oscuro; `npm run build` (hay un componente cliente).
+
+## Enmienda 30-oct (auditoría de métricas)
+
+- Este ticket está `done` con sus cinco casillas de "Done cuando" vacías (K-05). Por la regla N9 del ADR 0115 vuelve a
+  `en main` cuando Mani lo confirme, hasta marcar cada casilla con su evidencia (el CSV y el ROAS con TRM de dos días ya
+  tienen test: `tests/paginas.test.ts`, `tests/roas-de-pauta.test.ts`).
+- El ROAS de octubre está inflado porque el gasto empieza el 8-oct (C-01): lo arregla el 351.
+- Pauta pinta este ROAS y la tabla interina con dos anclas de venta (R-01, U-03): las une el 355.

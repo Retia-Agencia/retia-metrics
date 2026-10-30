@@ -136,3 +136,9 @@ Mani pidió las dos tasas en Hoy ("poner ambas métricas no cuesta nada"), así 
 al corte), con su función `showPorCitaDelRango` (`lib/queries/tasa-show-por-cita.ts`) y su lista `citas_debidas`, que
 cuadra con la cifra (`tests/show-por-cita.test.ts`). `055f07fe`. El ADR 0079 no cambia: ninguna otra tasa del CRM pasa
 a contar por cita. Fila nueva en `docs/metricas.md` §3.1.
+
+## Enmienda 30-oct (auditoría de métricas)
+
+La decisión D2 de `metricas.md` §3.5 ("no hay una segunda fórmula por cita") quedó desfasada por el % por cita del 24-oct
+(K-02): el 362 la reescribe. Cuál de los dos es "el" % de show de Hoy es la DA-3 del 353, y las dos fórmulas pasan a
+llamarse `showPorDeal` y `showPorCita` (ADR 0115 N1).

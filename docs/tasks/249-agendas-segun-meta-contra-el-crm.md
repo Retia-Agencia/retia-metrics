@@ -29,3 +29,10 @@ y en %, y por qué puede ser, para que nadie decida pausar o subir una campaña 
 - [ ] La semana del 9 al 13-oct en CA reproduce lo medido a mano el 14-oct (51 contra 35) o explica por qué cambió
   (nota de cierre).
 - [ ] Cada cifra abre su lista: las citas del CRM y, del lado de Meta, la fila de insights.
+
+## Enmienda 30-oct (auditoría de métricas)
+
+El costo por agenda del semáforo divide por las agendas de Meta desde la enmienda del 16-oct al ADR 0088; el de este
+ticket, con las agendas del CRM, es **otra métrica** y lleva otro nombre en `metricas.md` y en pantalla ("Costo por
+agenda CRM"), para que Pauta no vea dos cifras con el mismo nombre (K-01). La unidad de agenda (cita creada o deal que
+agendó) sale de la DA-4 del 353. El 362 corrige los documentos.
