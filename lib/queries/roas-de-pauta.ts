@@ -2,12 +2,15 @@ import { and, between, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { razon, type RazonConCobertura } from "@/lib/cobertura";
 import { calls, deals, gastoPauta, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { arbolDePauta } from "@/lib/pauta/arbol";
+import { coberturaDeGasto, diaCubierto, motivoDeGasto, type CoberturaDeGasto } from "@/lib/pauta/cobertura-de-gasto";
+import { convertirGasto } from "@/lib/pauta/convertir-gasto";
 import type { Rango } from "@/lib/queries/dashboard";
 import { medianaDe, ubicacionesDeEscalera, ventasDelPrograma, type Escalon } from "@/lib/queries/escalera";
 import { contratadoDeDeals } from "@/lib/queries/saldo";
@@ -63,6 +66,7 @@ export interface RenglonRoas {
   contratadoUsd: number;
   sinValorVendido: number;
   gastoUsd: number;
+  roas: RazonConCobertura;
   desdeDias: number | null;
   hastaDias: number | null;
 }
@@ -81,6 +85,8 @@ export interface VistaRoasDePauta {
   ventasParaMadurez: number;
   trmEtiqueta: string | null;
   diasSinTrm: string[];
+  coberturaGasto: CoberturaDeGasto;
+  rango: Rango;
 }
 
 const ocurrio = (resultado: string) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
@@ -105,7 +111,7 @@ function diasEntre(desde: string, hasta: string): number {
 function renglonBase(nivel: NivelPauta, id: string | null, nombre: string, padreId: string | null): RenglonRoas {
   return { nivel, id, nombre, padreId, registros: 0, agendas: 0, shows: 0, noShows: 0, ventas: 0,
     ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0, ventasDespues: 0, ventasSinLlamada: 0,
-    contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0,
+    contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0, roas: { valor: null, base: 0, faltan: 0, motivo: null },
     desdeDias: null, hastaDias: null };
 }
 
@@ -129,6 +135,18 @@ function sumarEnvio(r: RenglonRoas, e: FilaPorEnvioPauta, hoy: string) {
   }
 }
 
+function calcularRoas(r: RenglonRoas, envios: readonly FilaPorEnvioPauta[], cobertura: CoberturaDeGasto) {
+  const ventas = envios.filter((envio) => envio.venta !== null);
+  const base = ventas.filter((envio) => diaCubierto(envio.diaEnvio, cobertura)).length;
+  const faltan = ventas.length - base;
+  r.roas = razon(r.contratadoUsd, r.gastoUsd, {
+    base,
+    faltan,
+    calculable: faltan === 0,
+    motivo: faltan > 0 ? motivoDeGasto(cobertura) : r.gastoUsd === 0 ? "Sin pauta" : null,
+  });
+}
+
 /** Carga el universo U una sola vez; la tarjeta agrega estas filas y la lista las filtra sin otra definición. */
 export async function cargarRoasDePauta(
   db: Db,
@@ -142,7 +160,7 @@ export async function cargarRoasDePauta(
   const seleccionarEnvio = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
     esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: leads.nombre,
     fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
-  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, tasas, gastos] = await Promise.all([
+  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, tasas, gastos, coberturaGasto] = await Promise.all([
     arbolDePauta(db, programId),
     db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
       padreIdMeta: pautaObjetos.padreIdMeta }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId)),
@@ -167,6 +185,7 @@ export async function cargarRoasDePauta(
       .from(gastoPauta).leftJoin(pautaObjetos, eq(pautaObjetos.id, gastoPauta.pautaObjetoId))
       .where(and(eq(gastoPauta.programId, programId), between(gastoPauta.fecha, rango.desde, rango.hasta),
         or(eq(gastoPauta.area, "paid"), isNotNull(gastoPauta.pautaObjetoId)))),
+    coberturaDeGasto(db, programId, rango),
   ]);
   const idsCargados = new Set(enviosEnRango.map((e) => e.id));
   const idsExtra = [...new Set(parejas.flatMap((p) => [p.parcialId, p.completoId]))]
@@ -289,9 +308,9 @@ export async function cargarRoasDePauta(
   }
   total.contratadoUsd = contratado.usd;
   total.sinValorVendido = contratado.sinValorVendido;
-  const convertir = (monto: number, moneda: string, dia: string) => moneda === "USD" ? monto : moneda === "COP" ? (tasas.porDia.get(dia) ? monto / tasas.porDia.get(dia)! : 0) : 0;
-  for (const g of gastos) {
-    const usd = convertir(Number(g.monto), g.moneda, g.fecha);
+  const convertidos = convertirGasto(gastos.map((g) => ({ dia: g.fecha, monto: g.monto, moneda: g.moneda })), tasas.porDia, "USD");
+  for (const [i, g] of gastos.entries()) {
+    const usd = convertidos.montos[i] ?? 0;
     total.gastoUsd += usd;
     if (!g.idMeta) continue;
     const a = anuncios.get(g.idMeta); if (a) a.gastoUsd += usd;
@@ -299,7 +318,15 @@ export async function cargarRoasDePauta(
     if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s.gastoUsd += usd;
       const c = campanas.get(arbolAnuncio.campanaId); if (c) c.gastoUsd += usd; }
   }
-  const diasSinTrm = [...new Set(gastos.filter((g) => g.moneda === "COP" && !tasas.porDia.has(g.fecha)).map((g) => g.fecha))].sort();
+  const para = (predicado: (envio: FilaPorEnvioPauta) => boolean) => universo.filter(predicado);
+  calcularRoas(total, universo, coberturaGasto);
+  calcularRoas(sinAnuncio, para((e) => e.campanaId === null), coberturaGasto);
+  for (const fila of campanas.values()) calcularRoas(fila, para((e) => e.campanaId === fila.id), coberturaGasto);
+  for (const fila of conjuntos.values()) calcularRoas(fila, para((e) => e.conjuntoId === fila.id), coberturaGasto);
+  for (const fila of anuncios.values()) calcularRoas(fila, para((e) => e.anuncioId === fila.id), coberturaGasto);
+  for (const fila of anunciosSinIdentificar.values()) {
+    calcularRoas(fila, para((e) => e.campanaId === fila.id && e.anuncioId === null), coberturaGasto);
+  }
   const visible = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0 || r.gastoUsd > 0;
   const registros = universo.filter((e) => e.cuentaComoRegistro);
   const cobertura = {
@@ -311,7 +338,7 @@ export async function cargarRoasDePauta(
     conjuntos: [...conjuntos.values()].filter(visible), anuncios: [...anuncios.values()].filter(visible),
     anunciosSinIdentificar: [...anunciosSinIdentificar.values()].filter(visible), sinAnuncio, cobertura, citasSinMarcar,
     ventanaCierreDias, ventasParaMadurez: diasCierre.length,
-    trmEtiqueta: tasas.etiqueta, diasSinTrm };
+    trmEtiqueta: tasas.etiqueta, diasSinTrm: convertidos.diasSinTrm, coberturaGasto, rango };
 }
 
 export function filtrarEnviosDePauta(envios: readonly FilaPorEnvioPauta[], nivel: NivelPauta, id?: string) {

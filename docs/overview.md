@@ -515,7 +515,10 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Agenda:** una llamada agendada, contada el día en que se agendó.
 - **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
 - **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*
-- **ROAS y ad profit:** contratado frente al gasto, con la TRM de cada día (ADR 0088).
+- **ROAS y ad profit:** contratado frente al gasto, con la TRM de cada día (ADR 0088). Si hay ventas de días sin gasto
+  cargado, el ROAS no se calcula ("—" y desde cuándo hay gasto).
+- **Cobertura de una razón:** sobre qué base se midió una tasa, un costo o un ROAS y cuánto falta (ADR 0115 N3). Completa,
+  parcial ("parcial · N de M") o no calculable ("—" con el motivo); nunca un número a medias.
 - **Costo por agenda (CPI):** el gasto de Paid entre las agendas **del CRM** de Paid. **CPL** es lo mismo por registro y
   **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
 - **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Van al lado como control,

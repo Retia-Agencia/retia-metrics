@@ -40,7 +40,7 @@ lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
 | Registro y lead | `filtroDeEnvios` (registros) y `leadsDelRango` (personas) con el mismo nombre en pantalla | `hechos/envio.ts` para registros; "Leads" solo para personas | 354 |
 | Sin UTM | `resolverCanal`/`areaSql`, `categoriaUtmSql`, `categoriaDe` | `resolverCanal` y su gemela SQL | 354 |
 | Calendario (semana, sumar días, hábiles) | `rangos.ts`, `dias-habiles.ts` y copias en `proyeccion.ts`, `vista-hoy.ts`, `metas.ts` | `lib/dias-habiles.ts` | 354 |
-| Gasto convertido a USD o COP | `sumarEnCop` (semáforo) y `convertir` (ROAS, devuelve 0 en silencio) | un módulo en `lib/pauta/` | 351 |
+| Gasto convertido a USD o COP | ~~`sumarEnCop` (semáforo) y `convertir` (ROAS, devuelve 0 en silencio)~~ hecho: un solo convertidor | `convertirMonto`/`convertirGasto` en `lib/pauta/convertir-gasto.ts` | 351 ✅ |
 | Embudo de Pauta por campaña y por UTM | `pauta-interina.ts` y `roas-de-pauta.ts`, con dos anclas de venta | un cargador | 355 |
 | Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts`, `metricas-con-filas.ts`; `hechos/abono.ts` sin llamadores | `filtroCaja` | 361 |
 
@@ -266,14 +266,14 @@ un escalón, y el escalón se calcula al leer, nunca se guarda.
 
 | Métrica | Fórmula | Unidad | ¿Se suma? | Función | Estado |
 |---|---|---|---|---|---|
-| Gasto | Σ gasto de las cuentas del programa (§1.6 y §1.7), convertido a COP con la TRM del día (§1.8) | COP | sí | `sumarEnCop` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
-| Costo por agenda | semáforo: gasto ÷ agendas según Meta; Hub: gasto ÷ agendas **del CRM** de área Paid (§3.3) | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` | ✅ |
+| Gasto | Σ gasto de las cuentas del programa (§1.6 y §1.7), convertido con la TRM del día (§1.8) por **un solo convertidor**: semáforo a COP, ROAS a USD. Un día sin TRM no suma y se avisa; una moneda que no es COP ni USD es error, nunca 0. Su cobertura (primer y último día con gasto en `gasto_pauta`, días sin fila) la da `coberturaDeGasto`; el día en curso sale de las fotos solo en el semáforo, en el ROAS se dice | COP o USD | sí | `convertirGasto` en `lib/pauta/convertir-gasto.ts`; `coberturaDeGasto` en `lib/pauta/cobertura-de-gasto.ts` | ✅ |
+| Costo por agenda | semáforo: gasto ÷ agendas según Meta; Hub: gasto ÷ agendas **del CRM** de área Paid (§3.3). **Con cobertura (ADR 0115 N3):** devuelve `costoCobertura` (`RazonConCobertura`); en una ventana, los días fuera del gasto cargado van en `faltan` y el costo es `null` con el motivo ("Gasto de Meta desde el …"). El día en curso, desde las fotos, cuenta como cubierto | COP | no | `costoPorAgenda`, `costoPorAgendaDeVentana` · 351 | ✅ |
 | CPL de lanzamiento | semáforo: gasto de campañas de lanzamiento ÷ registros según Meta (`complete_registration`) | COP | no | `costoPorAgenda` en `lib/semaforo/costo-por-agenda.ts` | ✅ |
 | Agendas según Meta | §1.9 | agendas | sí | ídem | ✅ |
 | Diferencia Meta contra CRM | (según Meta − CRM) ÷ CRM, por campaña y semana cerrada | % | no | 249 | 🟡 |
 | CPL | gasto de Paid ÷ registros de Paid | COP | no | 123 | 🟡 |
 | Costo por venta (CAC) | gasto de Paid ÷ ventas de Paid | COP | no | 123 | 🟡 |
-| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan al día del envío que abrió el deal**: `fecha_envio` si existe y, en un parcial, `created_at`; no a la fecha de venta. El parcial se pliega en su completo por `(source_id, token)`. La atribución toma anuncio, si no conjunto, si no campaña de Meta; solo lo que no resuelve campaña queda en “Sin campaña de Meta” | razón | no | `diaDelEnvio` y `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` · 123, 350 | 🟢 |
+| ROAS | contratado de las ventas de Paid (USD) ÷ gasto en USD (cada día con su TRM). **Las ventas se anclan al día del envío que abrió el deal**: `fecha_envio` si existe y, en un parcial, `created_at`; no a la fecha de venta. **Con cobertura (ADR 0115 N3, 351):** cada renglón devuelve `roas: RazonConCobertura`; base = ventas cuyo día de registro tiene gasto cargado, faltan = las que caen fuera, y con alguna fuera el ROAS es `null` (“—”) con el motivo (“Gasto de Meta desde el 8 oct”), nunca un número a medias. El parcial se pliega en su completo por `(source_id, token)`. La atribución toma anuncio, si no conjunto, si no campaña de Meta; solo lo que no resuelve campaña queda en “Sin campaña de Meta” | razón | no | `diaDelEnvio` y `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` · 123, 350 | 🟢 |
 | Nivel de la traza | el id más profundo del envío que resuelve en el árbol: anuncio (N3), conjunto o campaña (N2), solo área (N1), sin UTM (N0) | % | no | 247 | ✅ |
 
 El gasto sigue naciendo en anuncio y se acumula hacia conjunto y campaña. Si un registro solo resuelve conjunto o
