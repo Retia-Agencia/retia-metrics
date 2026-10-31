@@ -3,7 +3,7 @@ id: 365
 etapa: crm
 serves: "Michael Castellanos, Daily Tech del 31-oct · A-172 · A-105 (la pieza de búsqueda y filtros) · ticket 'que toda lista sepa volver' (`enlaceConVuelta`)"
 depends: []
-status: todo
+status: done
 ---
 
 # 365 — La búsqueda de una lista sobrevive al abrir una ficha y volver
@@ -54,9 +54,10 @@ página, pestaña/sección, vista y scroll.
 
 ## Done cuando
 
-- [ ] Buscar en Leads y en Deals, abrir una ficha y volver deja búsqueda, filtros, orden, página y scroll como estaban.
-- [ ] Lo mismo en Calls, Students, Inbox, Media y Hub (pestañas y listas), con varios saltos seguidos.
-- [ ] Tests: "volver" conserva `q` y demás parámetros; sin búsqueda no agrega nada a la URL; guardián de que ninguna
+- [x] Buscar en Leads y en Deals, abrir una ficha y volver deja búsqueda, filtros, orden, página y scroll como estaban.
+- [x] Lo mismo en Calls, Students, Inbox, Media y Hub (pestañas y listas), con varios saltos seguidos.
+- [x] Tests: "volver" conserva `q` y demás parámetros; sin búsqueda no agrega nada a la URL; guardián de que ninguna
       pantalla mantiene un buscador de lista en `useState`.
-- [ ] ADR de la excepción de `?q=` escrito, AGENTS.md y comentario de `lib/queries/leads.ts` reescritos.
-- [ ] `npm run build`, typecheck y lint limpios; recorrido en navegador con `dev:local`.
+- [x] ADR de la excepción de `?q=` escrito, AGENTS.md y comentario de `lib/queries/leads.ts` reescritos.
+- [x] `npm run build`, typecheck y lint limpios (31-oct, worktree limpio).
+- [ ] Recorrido en navegador con `dev:local` (pendiente: Docker apagado el 31-oct; lo hace Mani a mano: búsqueda + filtros + orden + página en Leads/Deals/Calls/Students, abrir ficha, Volver y Atrás varios saltos, scroll del Kanban).

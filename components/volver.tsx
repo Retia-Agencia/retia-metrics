@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { accionDeVolver, destinoDeVolver } from "@/lib/navegacion/volver";
 
 /**
@@ -19,7 +18,6 @@ export function Volver({
   desde?: string;
   porDefecto: { href: string; etiqueta: string };
 }) {
-  const router = useRouter();
   const destino = destinoDeVolver(desde, porDefecto);
 
   function urlAnterior(): string | null {
@@ -43,10 +41,11 @@ export function Volver({
       href={destino.href}
       onClick={(event) => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-        event.preventDefault();
         const accion = accionDeVolver(urlAnterior(), window.location.origin, destino.href);
-        if (accion.tipo === "atras") router.back();
-        else router.push(accion.href);
+        // Sin entrada previa de la app, el Link navega solo a su href (destino de respaldo).
+        if (accion.tipo !== "atras") return;
+        event.preventDefault();
+        window.history.back();
       }}
       className="inline-block text-sm text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
