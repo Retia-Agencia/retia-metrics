@@ -169,4 +169,26 @@ describe("proposito de campanas desde WhatsApp", () => {
     expect((await db.select().from(pautaObjetos).where(eq(pautaObjetos.id, segunda.id)))[0]?.proposito)
       .toBe("lanzamiento");
   });
+
+  it("detecta sufijos ambiguos y acepta un sufijo mas largo que identifica una campaña", async () => {
+    const primera = await crearCampana("sufijo-uno", "12345678904521", null);
+    const segunda = await crearCampana("sufijo-dos", "99999999904521", null);
+    const codigos = [primera.idMeta, segunda.idMeta];
+    const codigoPrimera = codigoCortoDeCampana(primera.idMeta, codigos);
+    const codigoSegunda = codigoCortoDeCampana(segunda.idMeta, codigos);
+
+    const ambigua = await POST(request(entrada("4521 A")));
+    expect(await ambigua.json()).toEqual({
+      texto: `⚠️ El código 4521 coincide con 2 campañas, usa: #${codigoPrimera}, #${codigoSegunda}`,
+    });
+
+    const unica = await POST(request(entrada("8904521 L")));
+    expect(await unica.json()).toEqual({
+      texto: "✅ Campana sufijo-uno → Lanzamiento. Cuenta desde el próximo semáforo.",
+    });
+    expect((await db.select().from(pautaObjetos).where(eq(pautaObjetos.id, primera.id)))[0]?.proposito)
+      .toBe("lanzamiento");
+    expect((await db.select().from(pautaObjetos).where(eq(pautaObjetos.id, segunda.id)))[0]?.proposito)
+      .toBeNull();
+  });
 });

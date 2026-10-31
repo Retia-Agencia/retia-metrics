@@ -178,7 +178,7 @@ describe("fotos de pauta del día en curso", () => {
       tokens: new Map([[programId, TOKEN]]), ahora: AHORA, disparadaPor: "hub", f: fetchMeta(),
     });
 
-    expect(await db.select().from(fotosPauta)).toHaveLength(1);
+    expect(await db.select().from(fotosPauta)).toHaveLength(2);
   });
 
   it("devuelve corriendo cuando otra corrida conserva el candado", async () => {
@@ -193,7 +193,7 @@ describe("fotos de pauta del día en curso", () => {
     expect(f).not.toHaveBeenCalled();
   });
 
-  it("no vuelve a leer un árbol de menos de veinticuatro horas", async () => {
+  it("refresca el árbol aunque tenga menos de veinticuatro horas", async () => {
     await sembrarArbol(new Date(AHORA.getTime() - 23 * 60 * 60_000));
     const f = fetchMeta();
 
@@ -202,7 +202,7 @@ describe("fotos de pauta del día en curso", () => {
     });
 
     const bordes = f.mock.calls.map(([entrada]) => new URL(String(entrada)).pathname.split("/").at(-1));
-    expect(bordes).toEqual(["insights"]);
+    expect(bordes).toEqual(expect.arrayContaining(["campaigns", "adsets", "ads", "insights"]));
   });
 
   it("vuelve a leer un árbol de más de veinticuatro horas", async () => {

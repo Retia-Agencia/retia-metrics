@@ -55,6 +55,17 @@ describe("diagnostico de una cuenta de Meta", () => {
       detalle: "llegó al tope de gasto",
     });
   });
+
+  it("avisa cuando queda menos del diez por ciento del tope", () => {
+    expect(diagnosticoDeCuenta(estado(1, 0, 93, 100))).toEqual({
+      estado: "problema",
+      detalle: "cerca del tope de gasto (queda 7% del tope)",
+    });
+    expect(diagnosticoDeCuenta(estado(1, 0, 89, 100))).toEqual({
+      estado: "al_dia",
+      detalle: null,
+    });
+  });
 });
 
 describe("salud de cuentas de Meta", () => {

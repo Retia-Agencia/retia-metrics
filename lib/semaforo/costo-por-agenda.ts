@@ -19,6 +19,7 @@ export interface NotaSemaforo {
 export interface CampanaSemaforo {
   codigo: string | null;
   nombre: string;
+  activa: boolean;
   gasto: number;
   agendasMeta: number | null;
   costo: number | null;
@@ -53,6 +54,7 @@ type FilaDeGasto = {
   campanaId: string | null;
   campanaIdMeta: string | null;
   campanaNombre: string | null;
+  campanaEstado: string | null;
   proposito: PropositoCampana | null;
 };
 
@@ -63,6 +65,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   campanas: Array<{
     id: string;
     nombre: string;
+    activa: boolean;
     gasto: number;
     agendasMeta: number | null;
     registrosMeta: number | null;
@@ -72,6 +75,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   lanzamiento: { gasto: number; registrosMeta: number | null; campanas: Array<{
     id: string;
     nombre: string;
+    activa: boolean;
     gasto: number;
     agendasMeta: number | null;
     registrosMeta: number | null;
@@ -97,6 +101,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   const campanas = new Map<string, {
     idMeta: string;
     nombre: string;
+    activa: boolean;
     proposito: PropositoCampana | null;
     gasto: number;
     agendasMeta: number;
@@ -111,6 +116,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     const campana = campanas.get(claveCampana) ?? {
       idMeta: fila.campanaIdMeta ?? "",
       nombre: fila.campanaNombre ?? "Sin campaña",
+      activa: fila.campanaId === null || fila.campanaEstado === "ACTIVE",
       proposito: fila.campanaId ? fila.proposito : "agenda",
       gasto: 0,
       agendasMeta: 0,
@@ -154,6 +160,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   const todas = [...campanas].map(([id, campana]) => ({
     id,
     nombre: campana.nombre,
+    activa: campana.activa,
     gasto: campana.gasto,
     agendasMeta: campana.tieneAgendasMeta ? campana.agendasMeta : null,
     registrosMeta: campana.tieneRegistrosMeta ? campana.registrosMeta : null,
@@ -226,6 +233,7 @@ function completar(
         return {
           codigo: campana.codigo,
           nombre: campana.nombre,
+          activa: campana.activa,
           gasto: campana.gasto,
           agendasMeta: agendas,
           costo: agendas !== null && agendas > 0 ? campana.gasto / agendas : null,
@@ -248,6 +256,7 @@ function completar(
       campanas: lanzamientoLeido.campanas.map((campana) => ({
         codigo: campana.codigo,
         nombre: campana.nombre,
+        activa: campana.activa,
         gasto: campana.gasto,
         agendasMeta: campana.agendasMeta,
         costo: null,
@@ -276,6 +285,7 @@ async function costoDesdeFotos(
     campanaId: fotosPauta.campanaId,
     campanaIdMeta: pautaObjetos.idMeta,
     campanaNombre: pautaObjetos.nombre,
+    campanaEstado: pautaObjetos.estado,
     proposito: pautaObjetos.proposito,
   }).from(fotosPauta).where(and(
     eq(fotosPauta.programId, args.programId),
@@ -342,6 +352,7 @@ export async function costoPorAgendaDeVentana(
     nivel: pautaObjetos.nivel,
     padreIdMeta: pautaObjetos.padreIdMeta,
     nombre: pautaObjetos.nombre,
+    estado: pautaObjetos.estado,
     proposito: pautaObjetos.proposito,
   }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId));
   const objetosPorId = new Map(objetos.map((objeto) => [objeto.id, objeto]));
@@ -359,6 +370,7 @@ export async function costoPorAgendaDeVentana(
       campanaId: campana?.nivel === "campana" ? campana.id : null,
       campanaIdMeta: campana?.nivel === "campana" ? campana.idMeta : null,
       campanaNombre: campana?.nivel === "campana" ? campana.nombre : null,
+      campanaEstado: campana?.nivel === "campana" ? campana.estado : null,
       proposito: campana?.nivel === "campana" ? campana.proposito : null,
     };
   });

@@ -2,7 +2,13 @@ import { colorDeObjetivo, type ColorDeObjetivo } from "@/lib/objetivos/semaforo"
 import type { CostoPorAgenda } from "./costo-por-agenda";
 
 export type ColorSemaforo = ColorDeObjetivo | "sin_dato";
-export type MotivoSemaforo = "sin_cohorte" | "sin_umbral" | "sin_pauta" | "sin_agendas_meta" | null;
+export type MotivoSemaforo =
+  | "sin_cohorte"
+  | "sin_umbral"
+  | "sin_pauta"
+  | "sin_agendas_meta"
+  | "meta_sin_contar"
+  | null;
 
 export interface UmbralCostoPorAgenda {
   meta: number;
@@ -18,11 +24,15 @@ export function colorDelCosto(args: {
   datos: CostoPorAgenda;
   tieneCohorte: boolean;
   umbral: UmbralCostoPorAgenda | null;
+  enCurso?: boolean;
 }): ResultadoColor {
   if (!args.tieneCohorte) return { color: "sin_dato", motivo: "sin_cohorte" };
   if (!args.umbral) return { color: "sin_dato", motivo: "sin_umbral" };
   if (args.datos.gasto === 0) return { color: "sin_dato", motivo: "sin_pauta" };
   if (args.datos.agendasMeta === null) return { color: "sin_dato", motivo: "sin_agendas_meta" };
+  if (args.enCurso && args.datos.agendasMeta === 0 && args.datos.agendasCrm > 0) {
+    return { color: "sin_dato", motivo: "meta_sin_contar" };
+  }
   if (args.datos.agendasMeta === 0) return { color: "peligro", motivo: null };
   return {
     color: colorDeObjetivo({

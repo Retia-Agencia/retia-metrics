@@ -249,7 +249,7 @@ export async function semaforoDelPrograma(
         })
         : Promise.resolve(null),
   ]);
-  const resultado = colorDelCosto({ datos, tieneCohorte, umbral });
+  const resultado = colorDelCosto({ datos, tieneCohorte, umbral, enCurso: args.tipo === "dia" });
   const ahoraTrayectoria = args.tipo === "cierre"
     ? instanteDeBogota(dia, "23:59")
     : args.ahora;

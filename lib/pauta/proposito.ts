@@ -108,24 +108,21 @@ export async function clasificarCampanas(
         ? isNull(reportesWhatsapp.destino)
         : eq(reportesWhatsapp.destino, args.destino),
     ));
-    const porCodigo = new Map<string, typeof campanas>();
-    for (const campana of campanas) {
-      const codigo = codigoCortoDeCampana(campana.idMeta, idsGlobales);
-      porCodigo.set(codigo, [...(porCodigo.get(codigo) ?? []), campana]);
-    }
-
     const exitos: string[] = [];
     const avisos = parseo.sinProposito.map((codigo) => `⚠️ ${codigo} necesita agenda o lanzamiento`);
     avisos.push(...parseo.ambiguos.map((codigos) => `⚠️ ${codigos.join(" ")}: pon solo A o L`));
     const autor = args.autor.nombre?.trim() || args.autor.telefono?.trim() || "Autor desconocido";
     for (const asignacion of parseo.asignaciones) {
-      const coincidencias = porCodigo.get(asignacion.codigo) ?? [];
+      const coincidencias = campanas.filter((campana) => campana.idMeta.endsWith(asignacion.codigo));
       if (coincidencias.length === 0) {
         avisos.push(`⚠️ No encontré ${asignacion.codigo}`);
         continue;
       }
       if (coincidencias.length > 1) {
-        avisos.push(`⚠️ El código ${asignacion.codigo} es ambiguo`);
+        const codigos = coincidencias.map(
+          (campana) => `#${codigoCortoDeCampana(campana.idMeta, idsGlobales)}`,
+        );
+        avisos.push(`⚠️ El código ${asignacion.codigo} coincide con ${coincidencias.length} campañas, usa: ${codigos.join(", ")}`);
         continue;
       }
       const [campana] = coincidencias;

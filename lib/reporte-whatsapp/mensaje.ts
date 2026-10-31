@@ -22,6 +22,7 @@ const MOTIVO = {
   sin_umbral: "Falta cargar la meta en el CRM",
   sin_pauta: "No hay gasto de pauta hoy",
   sin_agendas_meta: "Meta no reporta agendas de este programa",
+  meta_sin_contar: "Meta aún no cuenta las agendas del CRM (las cuenta con retraso)",
 } as const;
 
 const LARGO_MAXIMO_CAMPANA = 40;
@@ -78,9 +79,11 @@ function frenteALaMeta(porcentajeDelUmbral: number | null): string {
 }
 
 function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
-  const costo = metrica.costo === null && metrica.agendasMeta === 0 && metrica.gasto > 0
-    ? "sin agendas"
-    : dinero(metrica.costo);
+  const costo = metrica.motivo === "meta_sin_contar"
+    ? "esperando a Meta"
+    : metrica.costo === null && metrica.agendasMeta === 0 && metrica.gasto > 0
+      ? "sin agendas"
+      : dinero(metrica.costo);
   const lineas: string[] = [];
   const nuevas = metrica.campanas.filter(
     (campana) => campana.codigo !== null && campana.proposito === null && campana.gasto > 0,
@@ -107,8 +110,9 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   lineas.push(
     `Gasto de agenda ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
   );
-  const campanas = metrica.campanas.some((campana) => campana.codigo !== null)
-    ? metrica.campanas
+  const campanasActivas = metrica.campanas.filter((campana) => campana.activa);
+  const campanas = campanasActivas.some((campana) => campana.codigo !== null)
+    ? campanasActivas
     : [];
   const nombresCortos = nombresCortosDeCampanas(campanas.map((campana) => campana.nombre));
   for (const [indice, campana] of campanas.entries()) {
@@ -120,6 +124,12 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     lineas.push(
       `• ${campana.codigo ? `#${campana.codigo} ` : ""}${nombresCortos[indice]}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
     );
+  }
+  const pausadas = metrica.campanas.filter((campana) => !campana.activa && campana.gasto > 0);
+  if (pausadas.length > 0) {
+    const gastoPausado = pausadas.reduce((total, campana) => total + campana.gasto, 0);
+    const agendasPausadas = pausadas.reduce((total, campana) => total + (campana.agendasMeta ?? 0), 0);
+    lineas.push(`• Pausadas con gasto: ${dinero(gastoPausado)} · ${num(agendasPausadas)} ag`);
   }
   const etiqueta = tipo === "cierre" ? "Día anterior" : "Ayer a esta hora";
   const costoComparacion = metrica.comparacion?.costo === null
@@ -137,13 +147,24 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
         ? "0 registros Meta · sin registros"
         : `${num(metrica.lanzamiento.registrosMeta)} registros Meta · CPL ${dinero(metrica.lanzamiento.costoPorRegistro)}`;
     lineas.push(`🚀 Lanzamiento: ${dinero(metrica.lanzamiento.gasto)} · ${resumenRegistros}`);
-    for (const campana of metrica.lanzamiento.campanas) {
+    for (const campana of metrica.lanzamiento.campanas.filter((campana) => campana.activa)) {
       const registrosCampana = campana.registrosMeta === null
         ? "— reg"
         : campana.registrosMeta === 0
           ? "0 reg · sin registros"
           : `${num(campana.registrosMeta)} reg · ${dinero(campana.costoPorRegistro)} c/u`;
       lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${dinero(campana.gasto)} · ${registrosCampana}`);
+    }
+    const pausadasLanzamiento = metrica.lanzamiento.campanas.filter(
+      (campana) => !campana.activa && campana.gasto > 0,
+    );
+    if (pausadasLanzamiento.length > 0) {
+      const gastoPausado = pausadasLanzamiento.reduce((total, campana) => total + campana.gasto, 0);
+      const registrosPausados = pausadasLanzamiento.reduce(
+        (total, campana) => total + (campana.registrosMeta ?? 0),
+        0,
+      );
+      lineas.push(`• Pausadas con gasto: ${dinero(gastoPausado)} · ${num(registrosPausados)} reg`);
     }
     lineas.push(`Gasto total del programa: ${dinero(metrica.gastoTotal)}`);
   }

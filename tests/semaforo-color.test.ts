@@ -38,6 +38,18 @@ describe("color del costo por agenda", () => {
     });
   });
 
+  it("espera a Meta durante el día solo cuando el CRM ya tiene agendas", () => {
+    expect(colorDelCosto({
+      datos: datos(1, 0, 1), tieneCohorte: true, umbral, enCurso: true,
+    })).toEqual({ color: "sin_dato", motivo: "meta_sin_contar" });
+    expect(colorDelCosto({ datos: datos(1, 0, 1), tieneCohorte: true, umbral })).toEqual({
+      color: "peligro", motivo: null,
+    });
+    expect(colorDelCosto({
+      datos: datos(1, 0, 0), tieneCohorte: true, umbral, enCurso: true,
+    })).toEqual({ color: "peligro", motivo: null });
+  });
+
   it("cubre ambos lados de meta y aceptable", () => {
     expect(colorDelCosto({ datos: datos(69, 1), tieneCohorte: true, umbral }).color).toBe("exito");
     expect(colorDelCosto({ datos: datos(70, 1), tieneCohorte: true, umbral }).color).toBe("exito");

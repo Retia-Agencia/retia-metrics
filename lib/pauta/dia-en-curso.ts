@@ -66,7 +66,7 @@ export async function sincronizarDiaEnCurso(
         desde: hoy,
         hasta: hoy,
         disparadaPor: args.disparadaPor,
-        refrescarArbol: false,
+        refrescarArbol: true,
         ahora: args.ahora,
         f: args.f,
       });

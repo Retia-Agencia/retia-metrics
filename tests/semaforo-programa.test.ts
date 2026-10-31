@@ -163,7 +163,7 @@ describe("semáforo del programa", () => {
     const p = await crearPrograma("propositos");
     const [lanzamiento] = await db.insert(pautaObjetos).values({
       cuentaId: p.cuentaId, programId: p.programId, idMeta: "campana-lanzamiento-8830",
-      nivel: "campana", padreIdMeta: null, nombre: "Registro lanzamiento", estado: "ACTIVE",
+      nivel: "campana", padreIdMeta: null, nombre: "Registro lanzamiento", estado: "PAUSED",
       proposito: "lanzamiento",
     }).returning();
     await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 100000, agendasMeta: 2, registrosMeta: 99 });
@@ -172,12 +172,12 @@ describe("semáforo del programa", () => {
       programId: p.programId, dia: "2026-10-16", hasta: new Date("2026-10-16T11:05:00-05:00"),
     });
     expect(resultado).toMatchObject({ gasto: 100000, gastoTotal: 1000000, agendasMeta: 2, costo: 50000 });
-    expect(resultado.campanas[0]).toMatchObject({ proposito: null, gasto: 100000 });
+    expect(resultado.campanas[0]).toMatchObject({ proposito: null, activa: true, gasto: 100000 });
     expect(resultado.lanzamiento).toMatchObject({
       gasto: 900000,
       registrosMeta: 6,
       costoPorRegistro: 150000,
-      campanas: [{ codigo: "8830", proposito: "lanzamiento", registrosMeta: 6, costoPorRegistro: 150000 }],
+      campanas: [{ codigo: "8830", activa: false, proposito: "lanzamiento", registrosMeta: 6, costoPorRegistro: 150000 }],
     });
     // Exacto, no toMatchObject: una llave de más (el `id` interno) tumbó el semáforo del 27-oct.
     expect(Object.keys(resultado.lanzamiento.campanas[0]).sort())
@@ -438,6 +438,34 @@ describe("semáforo del programa", () => {
     });
 
     expect(dia).toMatchObject({ color: "peligro", motivo: null, agendasMeta: 0, costo: null, gasto: 63902 });
+  });
+
+  it("durante el día espera a Meta si el CRM ya tiene agendas", async () => {
+    const p = await crearPrograma("meta-retrasada");
+    await db.insert(gastoPauta).values({
+      programId: p.programId,
+      fecha: "2026-10-14",
+      monto: "60000",
+      moneda: "COP",
+      origen: "meta_api",
+      pautaObjetoId: p.campanaId,
+      agendasMeta: 1,
+    });
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 63902, agendasMeta: null });
+    await crearAgenda({ ...p, creadaEn: new Date("2026-10-16T10:30:00-05:00") });
+
+    const dia = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-16T11:05:00-05:00"), tipo: "dia",
+    });
+
+    expect(dia).toMatchObject({
+      color: "sin_dato",
+      motivo: "meta_sin_contar",
+      agendasMeta: 0,
+      agendasCrm: 1,
+      costo: null,
+      gasto: 63902,
+    });
   });
 
   it("sin agendas de Meta nunca, el programa sigue sin dato porque no las mide", async () => {

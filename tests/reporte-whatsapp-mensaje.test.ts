@@ -29,9 +29,9 @@ const METRICA: MetricaSemaforo = {
   ],
   racha: { color: "peligro", dias: 3 },
   campanas: [
-    { codigo: "1001", nombre: "Ventas abiertas", gasto: 300000, agendasMeta: 2, costo: 150000, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
-    { codigo: "1002", nombre: "Retargeting", gasto: 200000, agendasMeta: 0, costo: null, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
-    { codigo: "1003", nombre: "Prospección amplia", gasto: 109860, agendasMeta: null, costo: null, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
+    { codigo: "1001", nombre: "Ventas abiertas", activa: true, gasto: 300000, agendasMeta: 2, costo: 150000, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
+    { codigo: "1002", nombre: "Retargeting", activa: true, gasto: 200000, agendasMeta: 0, costo: null, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
+    { codigo: "1003", nombre: "Prospección amplia", activa: true, gasto: 109860, agendasMeta: null, costo: null, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" },
   ],
   lanzamiento: { gasto: 0, registrosMeta: null, costoPorRegistro: null, campanas: [] },
   gastoTotal: 609860,
@@ -57,13 +57,13 @@ describe("mensaje del reporte por WhatsApp", () => {
         ...METRICA,
         campanas: [
           { ...METRICA.campanas[0], proposito: null },
-          { ...METRICA.campanas[1], proposito: null },
+          { ...METRICA.campanas[1], activa: false, proposito: null },
         ],
         lanzamiento: {
           gasto: 322697,
           registrosMeta: 7,
           costoPorRegistro: 46099.57142857143,
-          campanas: [{ codigo: "5102", nombre: "Registro Lanzamiento", gasto: 322697, agendasMeta: 0, costo: null, registrosMeta: 7, costoPorRegistro: 46099.57142857143, proposito: "lanzamiento" }],
+          campanas: [{ codigo: "5102", nombre: "Registro Lanzamiento", activa: true, gasto: 322697, agendasMeta: 0, costo: null, registrosMeta: 7, costoPorRegistro: 46099.57142857143, proposito: "lanzamiento" }],
         },
         gastoTotal: 932557,
       }],
@@ -76,6 +76,9 @@ describe("mensaje del reporte por WhatsApp", () => {
       "1001 A, 1002 L",
     ].join("\n"));
     expect(mensaje).toContain("🚀 Lanzamiento: $322.697 COP · 7 registros Meta · CPL $46.100 COP\n• #5102 Registro Lanzamiento: $322.697 COP · 7 reg · $46.100 COP c/u");
+    expect(mensaje).toContain("• #1001 Ventas abiertas: $300.000 COP · 2 ag · $150.000 COP c/u");
+    expect(mensaje).not.toContain("• #1002 Retargeting:");
+    expect(mensaje).toContain("• Pausadas con gasto: $200.000 COP · 0 ag");
     expect(mensaje).toContain("Gasto total del programa: $932.557 COP");
     const mensajeConUnaNueva = armarMensajeDeLaHora([{
       ...bloque(),
@@ -89,6 +92,7 @@ describe("mensaje del reporte por WhatsApp", () => {
     const campana = {
       codigo: "5102",
       nombre: "Registro Lanzamiento",
+      activa: true,
       gasto: 322697,
       agendasMeta: null,
       costo: null,
@@ -218,6 +222,23 @@ describe("mensaje del reporte por WhatsApp", () => {
 
     expect(mensaje).toContain("🔴 Costo por agenda: sin agendas\n");
     expect(mensaje).toContain("Gasto de agenda $63.902 COP · agendas Meta 0 · CRM 0");
+  });
+
+  it("explica cuando Meta aún no cuenta las agendas del CRM", () => {
+    const metrica: MetricaSemaforo = {
+      ...METRICA,
+      color: "sin_dato",
+      motivo: "meta_sin_contar",
+      gasto: 63902,
+      agendasMeta: 0,
+      agendasCrm: 1,
+      costo: null,
+      porcentajeDelUmbral: null,
+    };
+    const mensaje = armarMensajeDeLaHora([{ ...bloque(), metricas: [metrica] }], "11:00", null, ORIGEN);
+
+    expect(mensaje).toContain("⚪ Costo por agenda: esperando a Meta\n");
+    expect(mensaje).toContain("Meta aún no cuenta las agendas del CRM (las cuenta con retraso)");
   });
 
   it("explica cuando falta cargar el umbral", () => {
@@ -371,7 +392,7 @@ describe("nombres cortos de campaña", () => {
       enlaceHub: "https://crm.test/p/tactical/hub?seccion=pauta",
       metricas: [{
         ...METRICA,
-        campanas: [{ codigo: "1234", nombre: "AS | CBO | Única", gasto: 609860, agendasMeta: 2, costo: 304930, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" }],
+        campanas: [{ codigo: "1234", nombre: "AS | CBO | Única", activa: true, gasto: 609860, agendasMeta: 2, costo: 304930, registrosMeta: null, costoPorRegistro: null, proposito: "agenda" }],
       }],
       cuentasMeta: [],
       error: null,

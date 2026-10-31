@@ -22,12 +22,24 @@ const DETALLE_POR_ESTADO = new Map<number, string>([
   [101, "cerrada"],
 ]);
 
+// ponytail: porcentaje del tope; ignora el ritmo de gasto. Evolución: días de margen según el gasto diario reciente.
+export const UMBRAL_CERCA_DEL_TOPE = 0.1;
+
 export function diagnosticoDeCuenta(
   estado: EstadoDeCuentaMeta,
 ): Omit<CuentaMetaSalud, "nombre"> {
   if (estado.accountStatus === 1) {
     if (estado.spendCap > 0 && estado.amountSpent >= estado.spendCap) {
       return { estado: "problema", detalle: "llegó al tope de gasto" };
+    }
+    if (estado.spendCap > 0) {
+      const restante = estado.spendCap - estado.amountSpent;
+      if (restante / estado.spendCap < UMBRAL_CERCA_DEL_TOPE) {
+        return {
+          estado: "problema",
+          detalle: `cerca del tope de gasto (queda ${Math.round(restante / estado.spendCap * 100)}% del tope)`,
+        };
+      }
     }
     return { estado: "al_dia", detalle: null };
   }

@@ -12,7 +12,7 @@ const esquemaPunto = z.object({
 export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
   metrica: z.literal("costo_por_agenda"),
   color: z.enum(["exito", "alerta", "peligro", "sin_dato"]),
-  motivo: z.enum(["sin_cohorte", "sin_umbral", "sin_pauta", "sin_agendas_meta"]).nullable(),
+  motivo: z.enum(["sin_cohorte", "sin_umbral", "sin_pauta", "sin_agendas_meta", "meta_sin_contar"]).nullable(),
   moneda: z.literal("COP"),
   dia: z.string(),
   gasto: z.number(),
@@ -37,6 +37,7 @@ export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
   campanas: z.array(z.object({
     codigo: z.string().nullable(),
     nombre: z.string(),
+    activa: z.boolean(),
     gasto: z.number(),
     agendasMeta: z.number().nullable(),
     costo: z.number().nullable(),
@@ -51,6 +52,7 @@ export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
     campanas: z.array(z.object({
       codigo: z.string().nullable(),
       nombre: z.string(),
+      activa: z.boolean(),
       gasto: z.number(),
       agendasMeta: z.number().nullable(),
       costo: z.number().nullable(),
