@@ -73,4 +73,8 @@ Con closer, gerente y media; cada caso con la URL y el texto restaurados:
 - Media carga con `q`; no tiene fichas con Volver.
 - Nota: `pagina` es base 0 en la URL (`pagina=1` es la página 2); es de antes y no cambió.
 - Un closer ve 404 en la ficha de un deal ajeno aunque Students lo liste: regla de acceso previa, no del 365.
+- Paid trafficker: Hub (pestañas con Atrás), Mi espacio y Programa (`?seccion=`) sin errores. No ve resúmenes con lista (sin equipo comercial, por diseño).
+- Developer: las 17 rutas del menú cargan con 200; Leads y Deals con `?q=` → ficha → Volver quedan iguales; Hub de todos los
+  programas, Recursos (`?seccion=`, pop-up) y Ajustes sin errores.
+- Sin probar: `customer_success`, porque la base local no tiene ese usuario sembrado; usa las mismas piezas.
 
