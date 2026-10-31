@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Eye, UserCircle } from "lucide-react";
+import { Check, LogOut, Eye, UserCircle, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -22,11 +22,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cambiarVista, verComoCloser } from "@/app/(app)/acciones-vista";
+import { cambiarVista, verComoUsuario } from "@/app/(app)/acciones-vista";
 import type { Vista } from "@/lib/auth/vista";
-import type { CloserActivo } from "@/lib/catalogo/usuarios";
+import type { UsuarioSuplantable } from "@/lib/catalogo/usuarios";
 
-import { ETIQUETA_ROL, type Rol } from "@/lib/auth/roles";
+import { ETIQUETA_ROL, ROLES, type Rol } from "@/lib/auth/roles";
 
 /** Como se nombra cada VISTA del "ver como" (ticket 028). */
 const ETIQUETA_VISTA: Record<Vista, string> = {
@@ -35,6 +35,7 @@ const ETIQUETA_VISTA: Record<Vista, string> = {
   closer: "Como closer",
   paid_trafficker: "Como paid trafficker",
   customer_success: "Como Customer Success",
+  media: "Como Media",
 };
 
 type Props = {
@@ -56,11 +57,13 @@ type Props = {
    */
   vistas: readonly Vista[];
   /**
-   * Los closers activos que el developer puede suplantar ("Ver como closer →", ticket
+   * Las personas activas que el developer puede suplantar ("Ver como persona →", ticket
    * 172). Se cargan en el servidor (layout) y entran por props: este componente es
    * cliente y NUNCA importa `lib/db` (solo el `type`).
    */
-  closers: readonly CloserActivo[];
+  personas: readonly UsuarioSuplantable[];
+  /** La persona que se está viendo ahora (para marcarla), o `null`. */
+  suplantadoId: string | null;
 };
 
 export function UserMenu({
@@ -71,7 +74,8 @@ export function UserMenu({
   puedeCambiarVista,
   vista,
   vistas,
-  closers,
+  personas,
+  suplantadoId,
 }: Props) {
   const router = useRouter();
   const [pendiente, iniciar] = useTransition();
@@ -96,10 +100,17 @@ export function UserMenu({
     });
   }
 
-  /** Suplanta a un closer de verdad: escribe la cookie y refresca (ticket 172). */
-  function elegirCloser(userId: string) {
+  /** Las personas agrupadas por rol, en el orden de `ROLES`; los roles sin nadie no salen. */
+  const porRol = ROLES.map((r) => ({
+    rol: r,
+    gente: personas.filter((p) => p.rol === r),
+  })).filter((g) => g.gente.length > 0);
+
+  /** Suplanta a una persona de verdad: escribe la cookie y refresca (ticket 172). */
+  function elegirPersona(userId: string) {
+    if (userId === suplantadoId) return;
     iniciar(async () => {
-      await verComoCloser(userId);
+      await verComoUsuario(userId);
       router.refresh();
     });
   }
@@ -169,29 +180,38 @@ export function UserMenu({
               ))}
             </DropdownMenuRadioGroup>
             {/*
-             * "Ver como closer →" (ticket 172): suplanta a un closer de VERDAD, con sus
-             * membresías, deals y Calendly, en SOLO LECTURA. Es otra cosa que la vista
-             * `closer` del radio (que solo estrecha el rol del developer): aquí cambia la
-             * identidad con la que se leen los datos. Solo aparece si hay closers.
+             * "Ver como persona →" (ticket 172, ampliado a todos los roles): suplanta a
+             * alguien de VERDAD, con sus membresías, deals y alcance, en SOLO LECTURA. Es
+             * otra cosa que el radio (que solo estrecha el rol del developer): aquí cambia
+             * la identidad con la que se leen los datos. La lista sale de `users`, así que
+             * una persona o un rol nuevo aparece sin tocar este archivo.
              */}
-            {closers.length > 0 ? (
+            {porRol.length > 0 ? (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
-                  <Eye className="size-3.5" />
-                  Ver como closer
+                  <Users className="size-3.5" />
+                  Ver como persona
                 </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="max-h-72 w-56 overflow-y-auto">
-                  {closers.map((c) => (
-                    <DropdownMenuItem
-                      key={c.id}
-                      onClick={() => elegirCloser(c.id)}
-                      disabled={pendiente}
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate">{c.nombre}</span>
-                        <span className="block truncate text-xs text-muted-foreground">{c.email}</span>
-                      </span>
-                    </DropdownMenuItem>
+                <DropdownMenuSubContent className="max-h-80 w-64 overflow-y-auto">
+                  {porRol.map((g) => (
+                    <DropdownMenuGroup key={g.rol}>
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">
+                        {ETIQUETA_ROL[g.rol]}
+                      </DropdownMenuLabel>
+                      {g.gente.map((p) => (
+                        <DropdownMenuItem
+                          key={p.id}
+                          onClick={() => elegirPersona(p.id)}
+                          disabled={pendiente}
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{p.nombre}</span>
+                            <span className="block truncate text-xs text-muted-foreground">{p.email}</span>
+                          </span>
+                          {p.id === suplantadoId ? <Check className="size-4 shrink-0" /> : null}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuGroup>
                   ))}
                 </DropdownMenuSubContent>
               </DropdownMenuSub>

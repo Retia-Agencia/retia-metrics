@@ -6,13 +6,13 @@ import { requireSesionReal } from "@/lib/auth/guards";
 import { administraGlobal, esAccesoTotal } from "@/lib/auth/roles";
 import { VISTAS, rolDeVista, vistaActual } from "@/lib/auth/vista";
 import { programasInactivosParaAdministrar, programasVisibles } from "@/lib/auth/alcance";
-import { closersActivos } from "@/lib/catalogo/usuarios";
+import { usuariosSuplantables } from "@/lib/catalogo/usuarios";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   // La sesión EFECTIVA (ya suplantada si el developer está "viendo como"): con ella se
   // proyecta la nav y el alcance de los programas. La sesión REAL decide quién ve el
-  // selector de vista y carga los closers que puede suplantar.
+  // selector de vista y carga las personas que puede suplantar.
   const session = await paginaConSesion();
   const real = await requireSesionReal();
 
@@ -29,9 +29,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const puedeCrear = administraGlobal({ rol: rolVista, alcanceLimitado: session.user.alcanceLimitado });
   const puedeCambiarVista = esAccesoTotal(real.user.rol);
   const vista = await vistaActual();
-  // Los closers que el developer puede suplantar (ticket 172). Solo se cargan si de
+  // Las personas que el developer puede suplantar (ticket 172). Solo se cargan si de
   // verdad puede cambiar de vista; para los demás, lista vacía.
-  const closers = puedeCambiarVista ? await closersActivos() : [];
+  const personas = puedeCambiarVista ? await usuariosSuplantables() : [];
   const preferido = await programaPreferidoDeCookie();
 
   return (
@@ -50,7 +50,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         puedeCambiarVista={puedeCambiarVista}
         vista={vista}
         vistas={VISTAS}
-        closers={closers}
+        personas={personas}
+        suplantadoId={session.user.suplantadoPor ? session.user.id : null}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         {session.user.suplantadoPor ? (

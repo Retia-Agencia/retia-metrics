@@ -1,5 +1,5 @@
 import type { Session } from "next-auth";
-import { esAccesoTotal, esRolValido, type Rol } from "./roles";
+import { esAccesoTotal, esRolValido, tieneAlcanceConfigurable, type Rol } from "./roles";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -32,21 +32,22 @@ export const COOKIE_VISTA = "vista";
  * estrechan a lo que ve ese rol. Es el valor de la COOKIE, no un rol: `todo` no es un
  * rol de la base.
  *
- * La cookie admite ADEMAS un cuarto valor que NO es del selector: `closer:<users.id>`,
- * la **suplantación** de un closer de verdad (ticket 172, enmienda al ADR 0028). No
- * entra en `VISTAS` porque no es una opción fija del radio —se arma con el id del closer
- * elegido— y porque proyectar `closer` a secas y suplantar a un closer concreto son dos
- * cosas distintas: la primera solo estrecha el rol, la segunda cambia TAMBIÉN la
- * identidad (id, closerId, membresías) con la que se leen los datos.
+ * La cookie admite ADEMAS un valor que NO es del selector: `usuario:<users.id>`, la
+ * **suplantación** de una persona de verdad, de cualquier rol menos el de acceso total
+ * (ticket 172, enmienda al ADR 0028; ampliada del closer a todos los roles el 31-oct). No
+ * entra en `VISTAS` porque no es una opción fija del radio —se arma con el id de la
+ * persona elegida— y porque proyectar un rol a secas y suplantar a alguien concreto son
+ * dos cosas distintas: la primera solo estrecha el rol, la segunda cambia TAMBIÉN la
+ * identidad (id, closerId, membresías, alcance) con la que se leen los datos.
  */
-export const VISTAS = ["todo", "gerente", "closer", "paid_trafficker", "customer_success"] as const;
+export const VISTAS = ["todo", "gerente", "closer", "paid_trafficker", "customer_success", "media"] as const;
 export type Vista = (typeof VISTAS)[number];
 
 /**
- * El prefijo de la cookie cuando el developer suplanta a un closer de verdad: el valor
- * es `closer:<users.id>` (ticket 172). Un solo literal, aca.
+ * El prefijo de la cookie cuando el developer suplanta a una persona de verdad: el valor
+ * es `usuario:<users.id>`. Un solo literal, aca.
  */
-export const PREFIJO_SUPLANTACION = "closer:";
+export const PREFIJO_SUPLANTACION = "usuario:";
 
 /** La vista por defecto: la mas ancha. Sin cookie, un developer ve todo. */
 export const VISTA_POR_DEFECTO: Vista = "todo";
@@ -72,6 +73,7 @@ export function esVistaValida(valor: unknown): valor is Vista {
  *   - `closer` → `closer`: guarda y proyeccion de closer.
  *   - `paid_trafficker` → `paid_trafficker`: Mi espacio con Canales y Ajustes (179).
  *   - `customer_success` → `customer_success`: solo los Students de sus programas (145).
+ *   - `media` → `media`: la vista de contenido (ADR 0107).
  *
  * El literal `"developer"` NO se escribe en ningun `requireRole` ni `paginaConRol`
  * (ADR 0025): la excepcion sigue viviendo en `esAccesoTotal`. Aca se decide con
@@ -85,6 +87,7 @@ export function proyectarRol(rol: Rol | null, vista: Vista): Rol | null {
   if (vista === "closer") return "closer";
   if (vista === "paid_trafficker") return "paid_trafficker";
   if (vista === "customer_success") return "customer_success";
+  if (vista === "media") return "media";
   return rol; // vista `todo`: el developer se proyecta como si mismo.
 }
 
@@ -104,19 +107,19 @@ export async function rolDeVista(session: Session): Promise<Rol | null> {
   const { cookies } = await import("next/headers");
   const store = await cookies();
   const cruda = store.get(COOKIE_VISTA)?.value;
-  // Suplantando a un closer de verdad, el rol de vista es `closer`. Se pregunta a
+  // Suplantando a alguien de verdad, el rol de vista es el SUYO. Se pregunta a
   // `sesionEfectiva`, que valida el id contra `users`: una cookie vieja (id inexistente,
-  // inactivo o que no es closer) vuelve a `todo` y no proyecta como closer.
+  // inactivo o con acceso total) vuelve a `todo` y no proyecta como nadie.
   if (cruda?.startsWith(PREFIJO_SUPLANTACION)) {
     const efectiva = await sesionEfectiva(session);
-    if (efectiva.user.suplantadoPor) return "closer";
+    if (efectiva.user.suplantadoPor) return efectiva.user.rol;
     return proyectarRol(rol, VISTA_POR_DEFECTO);
   }
   const vista = esVistaValida(cruda) ? cruda : VISTA_POR_DEFECTO;
   return proyectarRol(rol, vista);
 }
 
-/** El id del closer suplantado en el valor de la cookie, o `null` si no suplanta. */
+/** El id de la persona suplantada en el valor de la cookie, o `null` si no suplanta. */
 export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
   if (!cruda || !cruda.startsWith(PREFIJO_SUPLANTACION)) return null;
   const id = cruda.slice(PREFIJO_SUPLANTACION.length).trim();
@@ -127,14 +130,14 @@ export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
  * La SESIÓN EFECTIVA: la que las guardas devuelven y con la que TODA lectura proyecta
  * (ticket 172, enmienda al ADR 0028).
  *
- * Si el rol REAL es acceso total (el developer) y la cookie dice `closer:<id>`, se
- * valida ese id contra `users` EN CADA LECTURA —tiene que existir, estar activo y ser
- * rol `closer`— y se devuelve una sesion cuyo `user.id`, `user.rol` y `user.closerId`
- * son los del closer suplantado, con `user.suplantadoPor` apuntando al developer real.
- * Así toda consulta existente (alcance, deals, llamadas, students) proyecta con ese
- * usuario sin tocar una línea más.
+ * Si el rol REAL es acceso total (el developer) y la cookie dice `usuario:<id>`, se
+ * valida ese id contra `users` EN CADA LECTURA —tiene que existir, estar activo y no ser
+ * de acceso total— y se devuelve una sesion cuyo `user.id`, `user.rol`, `user.closerId`,
+ * `operaComoCloser` y `alcanceLimitado` son los de esa persona, con `user.suplantadoPor`
+ * apuntando al developer real. Así toda consulta existente (alcance, deals, llamadas,
+ * students) proyecta con ese usuario sin tocar una línea más.
  *
- * Si la cookie es inválida (id inexistente, inactivo o que no es closer) se vuelve a la
+ * Si la cookie es inválida (id inexistente, inactivo o con acceso total) se vuelve a la
  * sesión real: la vista solo ESTRECHA y nunca otorga, y un dato viejo en la cookie no
  * puede dejar al developer atrapado. Un rol que NO es acceso total ignora la cookie
  * entero (un closer real con `closer:<id>` puesto a mano sigue siendo él mismo).
@@ -165,13 +168,18 @@ export async function sesionEfectiva(
     .where(eq(users.id, id))
     .limit(1);
 
-  // Inexistente, inactivo o no-closer: la suplantacion no aplica (vuelve a `todo`). El
-  // rol se saca a una variable local para preguntar por el valor sin escribir
-  // `.rol === "closer"` (lo prohibe el guardian de `rol-de-vista-centralizado`): aqui NO
-  // es proyeccion de pantalla, es validar que el suplantado sea de verdad un closer.
-  if (!suplantado) return session;
+  // Inexistente, inactivo, de rol desconocido o de acceso total: la suplantacion no
+  // aplica (vuelve a `todo`). Suplantar a otro developer no estrecha nada.
+  if (!suplantado || !suplantado.activo) return session;
   const rolSuplantado = suplantado.rol;
-  if (!suplantado.activo || rolSuplantado !== "closer") return session;
+  if (!esRolValido(rolSuplantado) || esAccesoTotal(rolSuplantado)) return session;
+
+  // El alcance limitado se decide con las filas de ESA persona, igual que al iniciar su
+  // sesion (`revalidarToken`): un gerente con filas ve solo esos programas.
+  const { programasDelAlcance } = await import("@/lib/auth/alcance");
+  const alcanceLimitado = tieneAlcanceConfigurable(rolSuplantado)
+    ? (await programasDelAlcance(suplantado.id, db)).size > 0
+    : false;
 
   return {
     ...session,
@@ -183,9 +191,10 @@ export async function sesionEfectiva(
       name: suplantado.nombre ?? suplantado.email,
       email: suplantado.email,
       image: null,
-      rol: "closer",
-      operaComoCloser: session.user.operaComoCloser,
+      rol: rolSuplantado,
+      operaComoCloser: suplantado.operaComoCloser,
       closerId: suplantado.closerId,
+      alcanceLimitado,
       suplantadoPor: {
         id: session.user.id,
         nombre: session.user.name ?? session.user.email ?? "Desarrollo",

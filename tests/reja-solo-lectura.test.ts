@@ -79,7 +79,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
   });
 
   it("una ESCRITURA (cabecera next-action) bajo suplantación lanza 403 con el mensaje de solo lectura", async () => {
-    cookieVista = `closer:${closerId}`;
+    cookieVista = `usuario:${closerId}`;
     nextAction = "accion-forjada"; // Next marca así una server action.
     const { requireSession } = await import("@/lib/auth/guards");
     await expect(requireSession()).rejects.toMatchObject({
@@ -89,7 +89,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
   });
 
   it("una LECTURA (sin next-action) bajo suplantación pasa con la sesión del closer", async () => {
-    cookieVista = `closer:${closerId}`;
+    cookieVista = `usuario:${closerId}`;
     nextAction = undefined;
     const { requireSession } = await import("@/lib/auth/guards");
     const session = await requireSession();
@@ -99,7 +99,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
   });
 
   it("bajo suplantación con next-action: la guarda de LECTURA pasa y la de ESCRITURA (requireRole) da 403", async () => {
-    cookieVista = `closer:${closerId}`;
+    cookieVista = `usuario:${closerId}`;
     nextAction = "accion-forjada"; // una server action forjada, como la que arma moverDeal
     const { requireRole, requireRoleDeLectura } = await import("@/lib/auth/guards");
 
@@ -125,7 +125,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
   });
 
   it("requireSesionReal ignora la suplantación: devuelve al developer real (así 'Salir' funciona)", async () => {
-    cookieVista = `closer:${closerId}`;
+    cookieVista = `usuario:${closerId}`;
     nextAction = "accion-forjada";
     const { requireSesionReal } = await import("@/lib/auth/guards");
     const session = await requireSesionReal();
@@ -135,7 +135,7 @@ describe("reja de solo lectura al suplantar (ticket 172)", () => {
   });
 
   it("cambiarVista('todo') funciona aunque la vista esté suplantando (sale de la vista)", async () => {
-    cookieVista = `closer:${closerId}`;
+    cookieVista = `usuario:${closerId}`;
     nextAction = "accion-forjada";
     const { cambiarVista } = await import("@/app/(app)/acciones-vista");
     // No lanza: usa el rol REAL (developer) y escribe la cookie.

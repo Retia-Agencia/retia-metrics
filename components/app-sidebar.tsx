@@ -7,7 +7,7 @@ import { Activity, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquar
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
-import type { CloserActivo } from "@/lib/catalogo/usuarios";
+import type { UsuarioSuplantable } from "@/lib/catalogo/usuarios";
 import { cn } from "@/lib/utils";
 import { Marca } from "@/components/marca";
 import { NumeroSinVer } from "@/components/mi-espacio/numero-sin-ver";
@@ -49,8 +49,10 @@ type Props = {
   vista: Vista;
   /** Las vistas del radio: llegan por props porque `lib/auth/vista` carga la base. */
   vistas: readonly Vista[];
-  /** Los closers activos que el developer puede suplantar (ticket 172). */
-  closers: readonly CloserActivo[];
+  /** Las personas activas que el developer puede suplantar (ticket 172). */
+  personas: readonly UsuarioSuplantable[];
+  /** El id de la persona que se está viendo ahora, o `null`. */
+  suplantadoId: string | null;
 };
 
 /**
@@ -80,7 +82,8 @@ export function AppSidebar({
   puedeCambiarVista,
   vista,
   vistas,
-  closers,
+  personas,
+  suplantadoId,
 }: Props) {
   const pathname = usePathname();
   const [abiertoEn, setAbiertoEn] = useState<string | null>(null);
@@ -229,7 +232,8 @@ export function AppSidebar({
             puedeCambiarVista={puedeCambiarVista}
             vista={vista}
             vistas={vistas}
-            closers={closers}
+            personas={personas}
+            suplantadoId={suplantadoId}
           />
         </div>
       </aside>

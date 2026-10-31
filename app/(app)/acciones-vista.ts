@@ -24,7 +24,7 @@ import {
  * al leerla, así que escribirla no tendría efecto.
  *
  * La cookie no es `httpOnly` a proposito: no guarda ningun secreto (solo `todo`,
- * `gerente`, `closer` o `closer:<id>`) y no otorga privilegio por si sola —estrechar
+ * `gerente`, `closer` o `usuario:<id>`) y no otorga privilegio por si sola —estrechar
  * nunca ensancha, y suplantar se re-valida contra `users` en CADA lectura—. El cliente
  * llama `router.refresh()` despues, porque la vista cambia lo que TODA pantalla proyecta
  * y `revalidatePath` no refresca la pantalla actual (AGENTS.md).
@@ -50,16 +50,16 @@ export async function cambiarVista(vista: Vista): Promise<void> {
 }
 
 /**
- * Suplanta a un closer de verdad ("ver como Nicolás", ticket 172): escribe la cookie
- * `closer:<users.id>`. No se valida el closer aquí —se re-valida contra `users` en CADA
+ * Suplanta a una persona de verdad ("ver como Nicolás", ticket 172, ampliado a todos los
+ * roles): escribe la cookie `usuario:<users.id>`. No se valida la persona aquí —se re-valida contra `users` en CADA
  * lectura, en `sesionEfectiva`—: un id inválido simplemente no suplanta y la vista
  * vuelve a `todo`. El id es opaco y no es un secreto; la reja de datos vive en la
  * lectura, no en la escritura de la cookie.
  */
-export async function verComoCloser(userId: string): Promise<void> {
+export async function verComoUsuario(userId: string): Promise<void> {
   await exigirDeveloper();
   const id = userId.trim();
-  if (id.length === 0) throw new AuthorizationError("Falta el closer a suplantar.");
+  if (id.length === 0) throw new AuthorizationError("Falta la persona a suplantar.");
   const store = await cookies();
   store.set(COOKIE_VISTA, `${PREFIJO_SUPLANTACION}${id}`, {
     path: "/",

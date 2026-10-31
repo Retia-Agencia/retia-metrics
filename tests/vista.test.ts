@@ -119,8 +119,8 @@ describe("sesionEfectiva: ver como un closer de verdad (ticket 172)", () => {
     return sesionEfectiva(session, db);
   }
 
-  it("un developer con cookie closer:<id> válida suplanta: id, rol y closerId del closer + suplantadoPor", async () => {
-    cookieVista = `closer:${closerId}`;
+  it("un developer con cookie usuario:<id> válida suplanta: id, rol y closerId del closer + suplantadoPor", async () => {
+    cookieVista = `usuario:${closerId}`;
     const res = await efectiva(sesionDe(developerId, "developer", "Dev Real"));
     expect(res.user.id).toBe(closerId);
     expect(res.user.rol).toBe("closer");
@@ -136,21 +136,43 @@ describe("sesionEfectiva: ver como un closer de verdad (ticket 172)", () => {
   });
 
   it("un closer inactivo no se puede suplantar", async () => {
-    cookieVista = `closer:${closerInactivoId}`;
+    cookieVista = `usuario:${closerInactivoId}`;
     const res = await efectiva(sesionDe(developerId, "developer", "Dev Real"));
     expect(res.user.id).toBe(developerId);
     expect(res.user.suplantadoPor).toBeUndefined();
   });
 
-  it("no se puede suplantar a quien no es closer (un gerente)", async () => {
-    cookieVista = `closer:${otroGerenteId}`;
+  it("se puede suplantar a un gerente: toma su rol y queda de solo lectura", async () => {
+    cookieVista = `usuario:${otroGerenteId}`;
+    const res = await efectiva(sesionDe(developerId, "developer", "Dev Real"));
+    expect(res.user.id).toBe(otroGerenteId);
+    expect(res.user.rol).toBe("gerente");
+    expect(res.user.suplantadoPor?.id).toBe(developerId);
+  });
+
+  it("no se puede suplantar a otro developer (acceso total)", async () => {
+    const [otroDev] = await db
+      .insert(users)
+      .values({ email: "dev2@retiagrowth.com", rol: "developer", nombre: "Otro Dev" })
+      .returning();
+    cookieVista = `usuario:${otroDev.id}`;
     const res = await efectiva(sesionDe(developerId, "developer", "Dev Real"));
     expect(res.user.id).toBe(developerId);
     expect(res.user.suplantadoPor).toBeUndefined();
   });
 
-  it("un CLOSER real con la cookie closer:<id> puesta a mano NO suplanta (la vista solo estrecha)", async () => {
-    cookieVista = `closer:${closerId}`;
+  it("usuariosSuplantables lista activos de todos los roles menos acceso total", async () => {
+    const { usuariosSuplantables } = await import("@/lib/catalogo/usuarios");
+    const lista = await usuariosSuplantables(db);
+    const ids = lista.map((u) => u.id);
+    expect(ids).toContain(closerId);
+    expect(ids).toContain(otroGerenteId);
+    expect(ids).not.toContain(developerId);
+    expect(ids).not.toContain(closerInactivoId);
+  });
+
+  it("un CLOSER real con la cookie usuario:<id> puesta a mano NO suplanta (la vista solo estrecha)", async () => {
+    cookieVista = `usuario:${closerId}`;
     const real = sesionDe(otroGerenteId, "closer", "Un Closer"); // rol closer, no acceso total
     const res = await efectiva(real);
     expect(res.user.id).toBe(otroGerenteId);

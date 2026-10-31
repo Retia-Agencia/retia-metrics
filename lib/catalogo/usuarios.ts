@@ -374,27 +374,30 @@ export async function usuarioPorId(
   return todos.find((u) => u.id === objetivoId) ?? null;
 }
 
-/** Un closer de la lista "ver como" del developer (ticket 172). */
-export interface CloserActivo {
+/** Una persona de la lista "ver como" del developer. */
+export interface UsuarioSuplantable {
   id: string;
   nombre: string;
   email: string;
+  rol: Rol;
 }
 
 /**
- * Los closers ACTIVOS, ordenados por nombre. Es la lista que el developer ve en "Ver
- * como closer →" (ticket 172): solo cuentas con rol `closer` y `activo = true`, que son
- * las únicas que `sesionEfectiva` acepta suplantar. Se lee en el servidor
- * (`app/(app)/layout.tsx`) y entra al menú por props; el componente cliente nunca
- * importa `lib/db`.
+ * Las personas ACTIVAS que el developer puede suplantar ("Ver como persona", ticket 172,
+ * ampliado a todos los roles el 31-oct): toda cuenta activa que no sea de acceso total,
+ * ordenada por rol y nombre. Es la misma regla que valida `sesionEfectiva`, y como se lee
+ * de `users` en cada carga del layout, una persona nueva o un rol nuevo aparece solo.
+ * Entra al menú por props; el componente cliente nunca importa `lib/db`.
  */
-export async function closersActivos(db: Db = dbDeLaApp): Promise<CloserActivo[]> {
+export async function usuariosSuplantables(db: Db = dbDeLaApp): Promise<UsuarioSuplantable[]> {
   const filas = await db
-    .select({ id: users.id, nombre: users.nombre, email: users.email })
+    .select({ id: users.id, nombre: users.nombre, email: users.email, rol: users.rol })
     .from(users)
-    .where(and(eq(users.rol, "closer"), eq(users.activo, true)))
-    .orderBy(asc(users.nombre));
-  return filas.map((f) => ({ id: f.id, nombre: f.nombre ?? f.email, email: f.email }));
+    .where(eq(users.activo, true))
+    .orderBy(asc(users.nombre), asc(users.email));
+  return filas
+    .filter((f) => !esAccesoTotal(f.rol))
+    .map((f) => ({ id: f.id, nombre: f.nombre ?? f.email, email: f.email, rol: f.rol }));
 }
 
 /** Crea un usuario y sus membresias. La entrada se valida con el esquema compartido. */
