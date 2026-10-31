@@ -27,6 +27,25 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-10-31: Daily Tech con Michael Castellanos (transcript de Wispr) y lo que dejó anotado.** Solo documentación, sin código.
+  **Anotado en el repo:** A-172 y ticket 365 (la búsqueda de Leads se borra al abrir una ficha y volver); decisiones
+  PUSH-1 y MEDIA-GRAIN-1 en `docs/plan.md` §7; incidente de UTM en `docs/operations.md` §9.
+  **Pendientes de Mani (no son código):** (1) escribir en el **grupo de Paid** (no por privado) a César y Anderson: usar
+  la plantilla de UTM en todos los anuncios; hoy hay anuncios con la vieja, la nueva y mezclas; por privado se les
+  olvida y por Michael se pierden 2 días. (2) Revisar los botones de postular de las landings de Confianza,
+  ComunicArte y Tactical: están perdiendo campos UTM (los botones tienen que pasar todos los UTM del estado de sesión);
+  quien mueve las landings es Ander; Francisco/BSL se omite mientras le sigan haciendo cambios. (3) Juanito: leer el PDF
+  de pushes de 30X (usa Baileys, igual que Juanito), medir riesgo de baneo y casos borde, y avisar a Michael antes del
+  lunes 3-nov (PUSH-1). (4) Grain a media: el transcript ya se extrae por lead nuevo (sin probar); falta definir con la
+  review de Mahu y Dani cómo entra a media como insumo (MEDIA-GRAIN-1). (5) MCP del CRM (MCP-1): sin avance, se retoma
+  el fin de semana. (6) Seguimiento: el lunes 3-nov media debe empezar a crear las piezas en el CRM y usar el UTM
+  que genera, en vez de publicar sin pasar por él. (7) Cockpit: el traslado al CRM sigue en curso.
+  **Ya hecho antes de la reunión (para no repetirlo):** Juanito con el brochure nuevo; dos números distintos
+  (formulario vs Calendly) ahora se mandan con el del formulario y el segundo como "también aparece", comparando contra
+  la API de Typeform en los tres programas; el número de Calendly sin +57 también se resuelve; el último push a closers
+  dice "llenen el CRM", ya no el Sheets; la escalera de deals; los cambios de pauta del Hub; el link fijo de creador.
+  **Sin acción:** el Typeform de Vieira se volvió a pagar el 29-oct y nunca se pasó a Adapta; Michael dice que no es un
+  costo de retirada, así que no se hace nada.
 - **2026-10-31: auditoría del semáforo de Confianza en Alertas Paid Media y cuatro arreglos.** Mani sospechaba que Confianza no traía bien los datos. Medido contra Meta en vivo (solo lectura): `gasto_pauta` coincide con los insights de la cuenta al peso y a la agenda, el píxel "Power Talk" dispara `invitee_meeting_scheduled`; **no hay bug de ingesta**. Lo que confundía: (1) la cuenta llegó al tope de gasto el 30-oct hacia las 14:00 (el gasto se frenó; hoy el tope se levantó), y el aviso solo salía con el tope ya alcanzado; (2) Pauta duplicó la campaña "Advtg" como "v2" (otro `id_meta`, no hereda `proposito`), así que el 🆕 pedía clasificar otra; la respuesta de Mani `200417 A` sí funcionó, sobre la vieja (`change_log` 31-oct 07:28 UTC); (3) el rezago de Meta (cuenta la agenda el día en que vieron el anuncio) pintaba 🔴 "sin agendas" a las 11:00 y 14:00 con la cita ya en el CRM; (4) el sync por hora usaba `refrescarArbol: false`, así que un anuncio creado después del refresco diario quedaba fuera del semáforo hasta el día siguiente.
   **Arreglos:** `diagnosticoDeCuenta` avisa "cerca del tope de gasto (queda N% del tope)" con menos del 10 % (`UMBRAL_CERCA_DEL_TOPE`, con `ponytail:`: ignora el ritmo; evolución = días de margen); `colorDelCosto` recibe `enCurso` y, con Meta en 0 y CRM > 0 durante el día, devuelve gris con motivo `meta_sin_contar` ("esperando a Meta"; el cierre sigue pudiendo ser rojo y la racha no cambia); `CampanaSemaforo.activa` (estado `ACTIVE` del árbol): el mensaje lista solo las activas y suma el resto en "Pausadas con gasto", los totales no cambian y el 🆕 sigue listando toda campaña sin clasificar con gasto (sin clasificar cuenta como agenda); `clasificarCampanas` casa el código por sufijo del `id_meta` (`endsWith`) y, si coincide con varias, responde "usa: #…"; `sincronizarDiaEnCurso` pasa `refrescarArbol: true` (una consulta más a Meta por cuenta y corrida; el árbol no pisa `proposito`). Contrato del endpoint: llave nueva `activa` en ambas listas de campañas (Juanito no valida llaves de campañas, solo `envios`, `configuracion` y `texto`; no requiere cambio ni despliegue).
   **Datos:** con ok de Mani, la campaña v2 de Confianza (`…920417`) quedó `agenda` en producción, con `change_log` (origen `app`, "Mani desde Claude Code"). **Verificado:** typecheck, lint y 74 tests (semáforo, color, endpoint, mensaje, propósito, sincronización del día, salud de cuentas). Pendiente: checkpoint de CI. Pauta debería saber que duplicar una campaña la deja sin clasificar hasta que alguien responda el código.
