@@ -61,3 +61,16 @@ página, pestaña/sección, vista y scroll.
 - [x] ADR de la excepción de `?q=` escrito, AGENTS.md y comentario de `lib/queries/leads.ts` reescritos.
 - [x] `npm run build`, typecheck y lint limpios (31-oct, worktree limpio).
 - [x] Recorrido en navegador con `dev:local` (31-oct): búsqueda en Leads y Deals, cadena deal → lead → Volver ×2, Atrás con orden y página, "Quitar todo" limpia `q`, scroll del Kanban restaurado. Encontró un 500 que ningún test veía: `CLAVES_DE_FECHA_LISTA` (módulo cliente) no se puede expandir en una página de servidor; ahora la barra agrega `q` sola.
+
+## Verificado a mano (31-oct, `dev:local`, build y worktree limpios)
+
+Con closer, gerente y media; cada caso con la URL y el texto restaurados:
+
+- Leads y Deals: `?q=`, cadena deal → lead → Volver ×2, Atrás con orden y página, "Quitar todo" limpia `q`, scroll del Kanban.
+- Calls: búsqueda + pop-up de la llamada → "Ir al deal" → Volver. Students (gerente), Inbox (`?seccion=`), Mi espacio
+  (`?tab=&chip=`) y Hub (pestaña + resumen → lista → Volver).
+- Cambio de programa + Atrás vuelve a la lista con su búsqueda. Entrada directa en pestaña nueva: Volver cae al `desde`.
+- Media carga con `q`; no tiene fichas con Volver.
+- Nota: `pagina` es base 0 en la URL (`pagina=1` es la página 2); es de antes y no cambió.
+- Un closer ve 404 en la ficha de un deal ajeno aunque Students lo liste: regla de acceso previa, no del 365.
+
