@@ -15,10 +15,11 @@ import { hoyEnBogota } from "@/lib/format";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { vigente } from "@/lib/queries/vigente";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
-import { ORIGEN_DE_SUELTA_ASIGNABLE, sueltaPorAsignar } from "@/lib/calendly/suelta";
+import { explicarSuelta, ORIGEN_DE_SUELTA_ASIGNABLE, sueltaPorAsignar, type ExplicacionDeSuelta } from "@/lib/calendly/suelta";
 import { puedeColgarSuelta } from "@/lib/calendly/suelta";
-import { closerHost, type CloserDelPrograma } from "@/lib/calendly/emparejar-llamada";
-import { closersConCalendly } from "@/lib/calendly/colgar-llamada";
+import { normalizarEmail } from "@/lib/sheets/mapeo";
+import { closerHost, emparejarLlamada, type CloserDelPrograma } from "@/lib/calendly/emparejar-llamada";
+import { candidatosPorCorreo, closersConCalendly } from "@/lib/calendly/colgar-llamada";
 import { HORAS_PARA_ALERTAR_CITA_SUELTA } from "@/lib/calendly/reconciliar";
 import type { Rol } from "@/lib/auth/roles";
 import { normalizarTelefono } from "@/lib/ingesta/envio";
@@ -106,6 +107,8 @@ export interface FilaLlamada {
   posibles?: number;
   horasSuelta?: number;
   sueltaVieja?: boolean;
+  /** Solo en las sueltas: por qué no se colgó sola, si parece real y qué botón toca. */
+  explicacion?: ExplicacionDeSuelta;
 }
 
 export interface FilaLlamadaSinCloser {
@@ -395,6 +398,7 @@ export async function llamadasSueltasDelPrograma(
       emailLead: calls.emailLead,
       host: calls.calendlyHostEmail,
       raw: calls.raw,
+      resultado: calls.resultado,
       creadaEn: calls.createdAt,
     })
     .from(calls)
@@ -428,8 +432,18 @@ export async function llamadasSueltasDelPrograma(
     telefonosPorLead.set(telefono.leadId, delLead);
   }
   filas.sort((a, b) => (a.fechaAgenda?.getTime() ?? 0) - (b.fechaAgenda?.getTime() ?? 0));
-  return filas.map((f) => {
+  // El motivo lo da el MISMO emparejador del webhook, con los datos de hoy (no se guarda: envejecería).
+  const motivos = await Promise.all(
+    filas.map(async (f) => {
+      const correo = normalizarEmail(f.emailLead);
+      const candidatos = correo ? await candidatosPorCorreo(db, programId, correo) : [];
+      const r = emparejarLlamada({ correoInvitado: f.emailLead, correoHost: f.host }, candidatos, closers);
+      return r.tipo === "suelta" ? r.motivo : null;
+    }),
+  );
+  return filas.map((f, i) => {
     const sugeridas = sugerenciasDeSuelta(f.raw, abiertos, telefonosPorLead);
+    const nombreInvitado = typeof (f.raw as { nombre?: unknown } | null)?.nombre === "string" ? ((f.raw as { nombre: string }).nombre.trim() || null) : null;
     const horasSuelta = Math.max(0, Math.floor((Date.now() - f.creadaEn.getTime()) / 3_600_000));
     return {
     callId: f.callId,
@@ -446,6 +460,13 @@ export async function llamadasSueltasDelPrograma(
     posibles: sugeridas.posibles,
     horasSuelta,
     sueltaVieja: horasSuelta >= HORAS_PARA_ALERTAR_CITA_SUELTA,
+    explicacion: explicarSuelta({
+      motivo: motivos[i],
+      correoInvitado: f.emailLead,
+      nombreInvitado,
+      cancelada: f.resultado === "cancelada",
+      sugerencias: sugeridas.posibles,
+    }),
   };
   });
 }

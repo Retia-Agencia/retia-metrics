@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import {
   asignarLlamadaSueltaAccion,
   buscarDealsAbiertosAccion,
   crearDealDesdeSueltaAccion,
+  descartarLlamadaSueltaAccion,
 } from "@/app/(app)/p/[programa]/inbox/acciones";
 import { Campo, claseInput, DialogoForm, Vacio } from "@/components/deals/ficha/campos";
 
@@ -57,6 +59,8 @@ export function InboxLlamadasSueltas({
   );
 }
 
+const ETIQUETA_DE_VEREDICTO = { real: "Cita real", prueba: "Parece prueba", cancelada: "Cancelada" } as const;
+
 function FilaSuelta({
   fila,
   programId,
@@ -69,6 +73,7 @@ function FilaSuelta({
   const { programa: programaSlug } = useParams<{ programa: string }>();
   const [abierto, setAbierto] = useState(false);
   const [creando, setCreando] = useState(false);
+  const [descartando, setDescartando] = useState(false);
   const [verDetalle, setVerDetalle] = useState(false);
   const [asignando, setAsignando] = useState<string | null>(null);
   const router = useRouter();
@@ -92,6 +97,14 @@ function FilaSuelta({
         <p className="cifra text-xs text-muted-foreground">
           {fila.fechaAgenda ? `Cita ${fechaHoraEnBogota(fila.fechaAgenda)}` : "Sin fecha de cita"}
         </p>
+        {fila.explicacion ? (
+          <p className="max-w-prose text-xs text-muted-foreground">
+            <Badge variant={fila.explicacion.veredicto === "real" ? "alerta" : "neutro"} className="mr-1.5">
+              {ETIQUETA_DE_VEREDICTO[fila.explicacion.veredicto]}
+            </Badge>
+            {fila.explicacion.causa}
+          </p>
+        ) : null}
         {fila.sueltaVieja ? (
           <p className="cifra text-xs text-destructive">Sigue suelta hace {fila.horasSuelta} horas</p>
         ) : null}
@@ -107,22 +120,25 @@ function FilaSuelta({
         ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="outline" onClick={() => setVerDetalle(true)}>Ver detalle</Button>
+        <Button size="sm" variant="outline" onClick={() => setVerDetalle(true)}>Ver por qué está suelta</Button>
         {fila.puedeColgar ? (
           <>
           {fila.sugerencias?.map((deal) => (
             <Button key={deal.dealId} size="sm" variant="secondary" disabled={asignando !== null} onClick={() => void colgar(deal.dealId)}>
-              {asignando === deal.dealId ? "Colgando…" : `Colgar aquí · ${deal.leadNombre ?? "Sin nombre"} · ${deal.leadEmail}`}
+              {asignando === deal.dealId ? "Colgando…" : `Es ella o él: colgar en ${deal.leadNombre ?? "Sin nombre"} · ${deal.leadEmail}`}
             </Button>
           ))}
           {(fila.posibles ?? 0) > (fila.sugerencias?.length ?? 0) ? (
             <span className="cifra text-xs text-muted-foreground">{fila.posibles} posibles</span>
           ) : null}
           <Button size="sm" variant="default" onClick={() => setAbierto(true)}>
-            Asignar a un deal
+            Buscar otro deal
           </Button>
           <Button size="sm" variant="default" onClick={() => setCreando(true)} disabled={!fila.leadEmail}>
-            Crear deal
+            Crear deal nuevo
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setDescartando(true)}>
+            Descartar
           </Button>
           </>
         ) : null}
@@ -141,10 +157,48 @@ function FilaSuelta({
           }}
         />
       ) : null}
+      {descartando ? (
+        <DialogoDescartar callId={fila.callId} correo={fila.leadEmail} onCerrar={() => setDescartando(false)} />
+      ) : null}
       {verDetalle ? (
-        <DetalleDeLlamada programaSlug={programaSlug} callId={fila.callId} conIrAlDeal origen={origen} onCerrar={() => setVerDetalle(false)} />
+        <DetalleDeLlamada programaSlug={programaSlug} callId={fila.callId} explicacionDeSuelta={fila.explicacion} conIrAlDeal origen={origen} onCerrar={() => setVerDetalle(false)} />
       ) : null}
     </li>
+  );
+}
+
+function DialogoDescartar({ callId, correo, onCerrar }: { callId: string; correo: string | null; onCerrar: () => void }) {
+  const router = useRouter();
+  const [motivo, setMotivo] = useState("");
+  const [pendiente, setPendiente] = useState(false);
+
+  async function descartar() {
+    setPendiente(true);
+    try {
+      const r = await descartarLlamadaSueltaAccion({ callId, motivo });
+      if (r.ok) {
+        toast.success("Llamada descartada.");
+        onCerrar();
+        router.refresh();
+      } else toast.error(r.error, { duration: 6000 });
+    } finally {
+      setPendiente(false);
+    }
+  }
+
+  return (
+    <DialogoForm
+      titulo="Descartar la llamada"
+      descripcion={`Solo para citas de prueba, duplicadas o que no van a ocurrir. Una persona real (${correo ?? "sin correo"}) no se descarta: se cuelga de su deal o se le crea uno. Queda anulada con tu nombre y el motivo, y no cuenta en ninguna métrica.`}
+      pendiente={pendiente}
+      onCerrar={onCerrar}
+      deshabilitarConfirmar={motivo.trim().length < 5}
+      confirmar={{ texto: "Descartar", enCurso: "Descartando…", onClick: descartar }}
+    >
+      <Campo etiqueta="Motivo">
+        <input className={claseInput} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ej.: cita de prueba" />
+      </Campo>
+    </DialogoForm>
   );
 }
 

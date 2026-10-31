@@ -611,6 +611,47 @@ export async function asignarLlamadaSuelta(
   });
 }
 
+export const esquemaDescartarSuelta = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  motivo: z.string().trim().min(5, "Cuenta en al menos 5 letras por qué se descarta la llamada."),
+});
+
+export type DatosDescartarSuelta = z.input<typeof esquemaDescartarSuelta>;
+
+/**
+ * Descarta una suelta (prueba, duplicada, cita que no va a ocurrir): la ANULA con quien,
+ * cuando y por que (ADR 0026), nunca la borra. Anulada no cuenta en ninguna metrica y su
+ * huella sigue ocupada, asi que el webhook no la vuelve a crear. Misma reja que colgarla:
+ * quien la hospeda en Calendly o quien administra.
+ */
+export async function descartarLlamadaSuelta(
+  db: Db,
+  actor: ActorDeAsignacion,
+  datos: DatosDescartarSuelta,
+): Promise<void> {
+  return normalizando(async () => {
+    const { callId, motivo } = esquemaDescartarSuelta.parse(datos);
+    await enTransaccion(db, async (tx) => {
+      const [llamada] = await tx
+        .select({ id: calls.id, programId: calls.programId, emailLead: calls.emailLead, host: calls.calendlyHostEmail })
+        .from(calls)
+        .where(and(eq(calls.id, callId), sueltaPorAsignar(), vigente(calls)));
+      if (!llamada || !(await programaEnAlcance(actor.userId, actor.rol, llamada.programId, tx))) {
+        throw new ErrorDeApp("No existe esa llamada suelta.", 404);
+      }
+      const host = closerHost(llamada.host, await closersConCalendly(tx, llamada.programId));
+      if (!puedeColgarSuelta({ actorUserId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser, hostUserId: host })) {
+        throw new ErrorDeApp("Esta llamada la hospeda otra closer: la descarta ella o quien administra.", 403);
+      }
+      await editarConRastro(
+        { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id },
+        llamada.id,
+        { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
+      );
+    });
+  });
+}
+
 /** Crea el lead/deal de una suelta y la cuelga, todo dentro de la misma transacción. */
 export async function crearDealDesdeSuelta(
   db: Db,

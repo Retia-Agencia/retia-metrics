@@ -16,7 +16,7 @@ import { instanteDeBogota } from "@/lib/format";
 import { reclamarDeal, reclamarDealsPorSettear } from "@/lib/deals/reclamar";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { completarAgendada } from "@/lib/deals/llamadas";
-import { asignarLlamadaSuelta, crearDealDesdeSuelta } from "@/lib/calendly/colgar-llamada";
+import { asignarLlamadaSuelta, crearDealDesdeSuelta, descartarLlamadaSuelta, esquemaDescartarSuelta } from "@/lib/calendly/colgar-llamada";
 import { buscarDealsAbiertos, type DealAbiertoBuscado } from "@/lib/queries/inbox";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 
@@ -209,6 +209,17 @@ export async function asignarLlamadaSueltaAccion(
     // deal; aquí solo se le pasa el actor (id + rol de vista) de la sesión, nunca del input.
     const r = await asignarLlamadaSuelta(db, ctx.actor, { callId, dealId });
     return { movioAAgendado: r.movioAAgendado };
+  });
+}
+
+export type EntradaDescartarSuelta = z.input<typeof esquemaDescartarSuelta>;
+
+/** Descarta (anula con motivo) una llamada suelta. El actor sale de la sesión; la reja vive en `descartarLlamadaSuelta`. */
+export async function descartarLlamadaSueltaAccion(entrada: EntradaDescartarSuelta): Promise<ResultadoInbox> {
+  return correr(async (ctx) => {
+    const datos = esquemaDescartarSuelta.parse(entrada);
+    await descartarLlamadaSuelta(db, ctx.actor, datos);
+    return {};
   });
 }
 

@@ -21,6 +21,7 @@ import {
 } from "@/lib/deals/estado-de-llamada";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
+import type { ExplicacionDeSuelta } from "@/lib/calendly/suelta";
 import type { DetalleDeLlamada as Detalle } from "@/lib/queries/detalle-llamada";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { AccionesDeLlamada } from "@/components/deals/ficha/acciones-de-llamada";
@@ -35,6 +36,7 @@ export function DetalleDeLlamada({
   puedeReagendar = true,
   motivosReagenda = [],
   origen,
+  explicacionDeSuelta,
 }: {
   programaSlug: string;
   callId: string;
@@ -48,6 +50,8 @@ export function DetalleDeLlamada({
   motivosReagenda?: OpcionesDeFicha["motivos"];
   /** El origen de la pantalla, para que "Ir al deal" vuelva aqui (ticket 174). */
   origen?: string;
+  /** Si viene de la lista de sueltas: por qué no tiene deal y qué hacer (se muestra arriba). */
+  explicacionDeSuelta?: ExplicacionDeSuelta;
 }) {
   const [detalle, setDetalle] = useState<Detalle | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +84,7 @@ export function DetalleDeLlamada({
 
         {!detalle && !error ? <p className="text-sm text-muted-foreground">Cargando detalle…</p> : null}
         {error ? <p className="text-sm text-tono-peligro">{error}</p> : null}
-        {detalle ? <Contenido detalle={detalle} esActiva={esActiva} /> : null}
+        {detalle ? <Contenido detalle={detalle} esActiva={esActiva} explicacionDeSuelta={explicacionDeSuelta} /> : null}
 
         {puedeActuar ? (
           <div className="border-t pt-4">
@@ -111,7 +115,7 @@ export function DetalleDeLlamada({
   );
 }
 
-function Contenido({ detalle, esActiva }: { detalle: Detalle; esActiva: boolean }) {
+function Contenido({ detalle, esActiva, explicacionDeSuelta }: { detalle: Detalle; esActiva: boolean; explicacionDeSuelta?: ExplicacionDeSuelta }) {
   const correoLead = detalle.lead?.email ?? detalle.emailLead;
   const historialLegible = detalle.historial.flatMap((cambio) => {
     const legible = cambioLegible(cambio, detalle.nombresDelHistorial);
@@ -119,6 +123,19 @@ function Contenido({ detalle, esActiva }: { detalle: Detalle; esActiva: boolean 
   });
   return (
     <div className="min-w-0 space-y-4 text-sm">
+      {!detalle.dealId && explicacionDeSuelta ? (
+        <div className="space-y-1.5 rounded-lg bg-muted p-3">
+          <p className="font-medium">
+            {explicacionDeSuelta.veredicto === "real"
+              ? "Es una cita real y no tiene deal"
+              : explicacionDeSuelta.veredicto === "prueba"
+                ? "Parece una cita de prueba"
+                : "La cita se canceló"}
+          </p>
+          <p><span className="font-medium">Por qué:</span> {explicacionDeSuelta.causa}</p>
+          <p><span className="font-medium">Qué hacer:</span> {explicacionDeSuelta.queHacer}</p>
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <Badge variant={TONO_DE_RESULTADO[detalle.resultado]}>
           {ETIQUETA_DE_RESULTADO[detalle.resultado]}
@@ -169,7 +186,7 @@ function Contenido({ detalle, esActiva }: { detalle: Detalle; esActiva: boolean 
         </Seccion>
       ) : null}
 
-      {!detalle.dealId ? (
+      {!detalle.dealId && !explicacionDeSuelta ? (
         <p className="rounded-lg bg-muted p-3 text-muted-foreground">
           Llamada suelta: se asigna desde la lista de sueltas.
         </p>
