@@ -150,7 +150,7 @@ export function FiltroKanban({
       buscador={buscador}
       filtros={filtros}
       compuestosPopover={<FiltroFechaLista campos={camposDeFecha} filtro={fecha} />}
-      clavesCompuestas={[...CLAVES_DE_FECHA_LISTA, "q"]}
+      clavesCompuestas={CLAVES_DE_FECHA_LISTA}
       compuestoActivo={fecha != null}
       acciones={<SelectorDeVista vista={vista} vistas={vistas} />}
       orden={

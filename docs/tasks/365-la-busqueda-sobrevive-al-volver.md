@@ -60,4 +60,4 @@ página, pestaña/sección, vista y scroll.
       pantalla mantiene un buscador de lista en `useState`.
 - [x] ADR de la excepción de `?q=` escrito, AGENTS.md y comentario de `lib/queries/leads.ts` reescritos.
 - [x] `npm run build`, typecheck y lint limpios (31-oct, worktree limpio).
-- [ ] Recorrido en navegador con `dev:local` (pendiente: Docker apagado el 31-oct; lo hace Mani a mano: búsqueda + filtros + orden + página en Leads/Deals/Calls/Students, abrir ficha, Volver y Atrás varios saltos, scroll del Kanban).
+- [x] Recorrido en navegador con `dev:local` (31-oct): búsqueda en Leads y Deals, cadena deal → lead → Volver ×2, Atrás con orden y página, "Quitar todo" limpia `q`, scroll del Kanban restaurado. Encontró un 500 que ningún test veía: `CLAVES_DE_FECHA_LISTA` (módulo cliente) no se puede expandir en una página de servidor; ahora la barra agrega `q` sola.

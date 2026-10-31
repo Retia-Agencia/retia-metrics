@@ -81,7 +81,7 @@ export function BarraDeLista({
   buscador,
   marco,
   compuestosPopover,
-  clavesCompuestas = [],
+  clavesCompuestas: clavesDeLasPiezas = [],
   compuestoActivo = false,
   orden,
   acciones,
@@ -89,6 +89,8 @@ export function BarraDeLista({
   aviso,
   alineacion = "inicio",
 }: BarraDeListaProps) {
+  // El buscador escribe `?q=` (ADR 0116): "Quitar todo" también lo limpia, sin que cada pantalla lo declare.
+  const clavesCompuestas = buscador ? [...clavesDeLasPiezas, "q"] : clavesDeLasPiezas;
   const { busqueda, poner, pendiente } = useFiltrosUrl();
   const [ordenPendiente, setOrdenPendiente] = useState(false);
   const leer = (nombre: string) => busqueda.get(nombre);

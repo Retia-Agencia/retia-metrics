@@ -217,7 +217,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             filtros={filtrosLeads}
             buscador={<BuscadorUrl />}
             compuestosPopover={<FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />}
-            clavesCompuestas={[...CLAVES_DE_FECHA_LISTA, "q"]}
+            clavesCompuestas={CLAVES_DE_FECHA_LISTA}
             compuestoActivo={filtroDeFecha != null}
             orden={
               <ControlDeOrden
