@@ -46,31 +46,6 @@ import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/re
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 
 /**
- * Busca deals vigentes por los datos de su lead, siempre dentro de UN programa.
- *
- * Reutiliza `leadsQueCasan` (la única respuesta a "¿quién casa con este texto?", AGENTS.md):
- * resuelve los leads del programa que casan y queda con sus deals vigentes. Un texto corto
- * (bajo `MINIMO_TEXTO_BUSQUEDA`) devuelve `[]`, igual que antes.
- */
-export async function buscarDealsDelPrograma(db: Db, programId: string, texto: string): Promise<string[]> {
-  const leadsCasan = await leadsQueCasan(db, programId, texto);
-  if (leadsCasan === null || leadsCasan.size === 0) return [];
-
-  const filas = await db
-    .selectDistinct({ dealId: deals.id })
-    .from(deals)
-    .where(
-      and(
-        eq(deals.programId, programId),
-        vigente(deals),
-        inArray(deals.leadId, [...leadsCasan]),
-      ),
-    );
-
-  return filas.map((fila) => fila.dealId);
-}
-
-/**
  * Los deals de un programa agrupados por etapa, para el Kanban (ticket 069).
  *
  * - **El programa es frontera** (ADR 0043): la funcion recibe UN programId y jamas
@@ -183,6 +158,8 @@ export interface OrdenKanban {
 
 /** Los filtros del tablero salen de la URL, nunca de la sesion (ADR 0023). */
 export interface FiltrosKanban {
+  /** Texto de búsqueda de la lista; menos de dos caracteres no filtran. */
+  q?: string;
   /** Dueno del deal (`owner_user_id`). */
   ownerUserId?: string | null;
   /** Cohorte de origen del deal (`cohort_id`). */
@@ -263,6 +240,7 @@ export function parsearFiltros(
   const orden = ordenSchema.safeParse({ campo: texto(busqueda.orden), sentido: texto(busqueda.sentido) });
   const cohorte = texto(busqueda.cohorte);
   return {
+    q: texto(busqueda.q),
     ownerUserId: texto(busqueda.owner) ?? null,
     cohorteId: cohorte === "todas" ? null : cohorte ?? cohorteActivaId,
     canal: texto(busqueda.canal) ?? null,
@@ -333,6 +311,9 @@ export async function tableroKanban(
         conLlamadaEnRango ? (conLlamadaEnRango.length > 0 ? inArray(deals.id, conLlamadaEnRango) : sql`false`) : undefined,
       ),
     );
+
+  const leadsCasan = await leadsQueCasan(db, programId, filtros.q ?? "");
+  if (leadsCasan !== null) filas = filas.filter((fila) => leadsCasan.has(fila.leadId));
 
   const columnasDeLaVista = COLUMNAS_DE_VISTA[filtros.vista ?? VISTA_PREDETERMINADA];
   const columnasVacias = (): ColumnaKanban[] =>

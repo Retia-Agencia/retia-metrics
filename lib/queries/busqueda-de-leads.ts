@@ -15,13 +15,13 @@ export const MINIMO_TEXTO_BUSQUEDA = 2;
  * - **El programa es frontera** (ADR 0043): recibe UN `programId` y jamás cruza a otro; el
  *   `leadContactos.programId` denormalizado deja hacerlo en el mismo `where`.
  * - **Una sola respuesta a "¿quién casa con este texto?"** (AGENTS.md): la usan la búsqueda
- *   de Deals (`buscarDealsDelPrograma`), Calls, Students y las Notificaciones de Mi espacio,
+ *   de Deals, Calls, Students y las Notificaciones de Mi espacio,
  *   para que todas las pantallas filtren igual.
  * - Devuelve `null` cuando el texto es más corto que `MINIMO_TEXTO_BUSQUEDA`: eso significa
  *   "no hay búsqueda, no filtres", distinto de un `Set` vacío ("nadie casa").
  *
  * El escape de `like` (`\`, `%`, `_`) y el emparejamiento por dígitos del teléfono (solo con
- * 4 o más dígitos) son los mismos que traía `buscarDealsDelPrograma`.
+ * 4 o más dígitos) son los de siempre.
  */
 export async function leadsQueCasan(
   db: Db,

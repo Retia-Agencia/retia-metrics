@@ -274,8 +274,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   el CRM marca esas campañas como agenda o lanzamiento, solo en los programas que reportan a ese grupo, con rastro
   en `change_log` (origen `whatsapp`). Solo con el formato exacto (codigos y A/L, nada mas); cualquier otro texto
   responde `{ texto: null }` y Juanito calla (28-oct).
-- **Ningun dato personal en URLs ni en query strings.** Los identificadores en rutas son ids
-  opacos, nunca correos.
+- **Los identificadores en rutas son ids opacos, nunca datos personales.** La UNICA informacion personal
+  permitida en un query string es el texto libre `q` del buscador de una lista (ADR 0116); correos,
+  telefonos y nombres nunca identifican una ruta.
 - **Secretos solo en `.env.local` y en Vercel.** Nunca en el repo, nunca abiertos en un editor
   (ver la seccion de incidentes en `docs/agents/handoff.md`). **Excepcion nombrada (ticket 105, ADR
   0055):** el secreto HMAC de cada fuente webhook vive en `sources.secreto_webhook`, porque es una fila

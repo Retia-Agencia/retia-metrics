@@ -21,8 +21,7 @@ import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
-import { BusquedaDeDeals } from "@/components/deals/busqueda-de-deals";
-import { BuscadorDeDeals } from "@/components/deals/buscador-de-deals";
+import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -95,7 +94,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       }
     >
       <PantallaFija>
-        <BusquedaDeDeals key={programa.id}>
+        <>
           <div className="shrink-0">
             {tablero.enProximaCohorte.length > 0 ? (
               <div className="mb-3 flex justify-end">
@@ -106,7 +105,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             ) : null}
             <FiltroKanban
               total={tablero.total}
-              buscador={<BuscadorDeDeals programaSlug={programa.slug} idsDelTablero={tarjetas.map((t) => t.dealId)} />}
+              buscador={<BuscadorUrl placeholder="Buscar por nombre, correo o teléfono" />}
               mostrarDueno={alcanceDeals.tipo === "todos"}
               cohorteActivaId={activa?.id ?? null}
               antiguedadMinima={filtros.antiguedadMinima ?? null}
@@ -143,7 +142,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             administra={esAdministrador(rol)}
             origen={origen}
           />
-        </BusquedaDeDeals>
+        </>
       </PantallaFija>
     </PageShell>
   );

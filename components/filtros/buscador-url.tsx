@@ -8,8 +8,7 @@ import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 /**
  * Un buscador que escribe `?q=` en la URL con ~300 ms de debounce (ticket o8-busqueda).
  *
- * A diferencia del `BuscadorDeDeals` —que llama una server action y pinta un contador—, este
- * solo mueve la URL: la página de servidor lee `q`, filtra con `leadsQueCasan` y vuelve a
+ * Solo mueve la URL: la página de servidor lee `q`, filtra con `leadsQueCasan` y vuelve a
  * renderizar. Va en el slot `buscador` de `BarraDeLista`. Al cambiar el texto resetea
  * `pagina` (la lista empieza desde el principio) y, al borrarlo, quita `q` de la URL.
  *

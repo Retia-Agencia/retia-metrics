@@ -3,6 +3,7 @@ import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { vigente } from "@/lib/queries/vigente";
+import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import type { Rango } from "@/lib/queries/dashboard";
 
 /**
@@ -21,11 +22,13 @@ import type { Rango } from "@/lib/queries/dashboard";
  *   no tiene, y usa su alta. No es el ancla del dashboard (`fechaAnclaLead`), que solo cuenta
  *   los del formulario: aquí la pregunta es "¿cuándo entró a la base?".
  *
- * La búsqueda por texto vive en `buscarLeads`: nunca viaja en la URL porque puede contener
- * datos personales (AGENTS.md).
+ * La búsqueda de esta lista viaja en `?q=`: es la única excepción de dato personal permitida
+ * en un query string (ADR 0116), y se resuelve con `leadsQueCasan`.
  */
 
 export interface FiltroLeads {
+  /** Texto de búsqueda de la lista; menos de dos caracteres no filtran. */
+  q?: string;
   deal?: "con" | "sin" | null;
   /** High, Mid o Low (sin importar mayúsculas), o "sin_calidad". */
   calidad?: CalidadDeLead | null;
@@ -128,6 +131,10 @@ export async function leadsDelPrograma(
   const fechaDeActividad = leads.fechaUltimaAplicacion;
   const fechaDeCreacion = sql<Date>`coalesce(${leads.fechaPrimeraAplicacion}, ${leads.createdAt})`;
   const condiciones: (SQL | undefined)[] = [eq(leads.programId, programId)];
+  const leadsCasan = await leadsQueCasan(db, programId, filtro.q ?? "");
+  if (leadsCasan !== null) {
+    condiciones.push(leadsCasan.size > 0 ? inArray(leads.id, [...leadsCasan]) : sql`false`);
+  }
   if (filtro.deal === "con") condiciones.push(inArray(leads.id, conDeal(db)));
   if (filtro.deal === "sin") condiciones.push(notInArray(leads.id, conDeal(db)));
   if (filtro.calidad === "sin_calidad") {

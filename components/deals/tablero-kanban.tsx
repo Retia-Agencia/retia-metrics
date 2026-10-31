@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +13,6 @@ import type { TonoEtapa } from "./etapa-tono";
 import { TarjetaDealCard } from "./tarjeta-deal";
 import { respuestasHaciaColumna } from "./pregunta-de-etapa";
 import { useResponder, type DealQueResponde } from "./responder-pregunta";
-import { columnasVisibles } from "./columnas-visibles";
-import { useBusquedaDeDeals } from "./busqueda-de-deals";
 
 /**
  * El tablero Kanban (ticket 069): columnas por etapa y tarjetas de deal, con arrastre
@@ -93,8 +91,6 @@ export function TableroKanban({
   origen,
 }: TableroKanbanProps) {
   const router = useRouter();
-  const { idsVisibles } = useBusquedaDeDeals();
-  const columnasMostradas = useMemo(() => columnasVisibles(columnas, idsVisibles), [columnas, idsVisibles]);
   // La tarjeta que se está arrastrando (para el efecto "levantar") y la columna sobre la
   // que se está soltando (para el resaltado).
   // La tarjeta guarda la columna de la que sale: Re-agenda no es una etapa (ADR 0103).
@@ -201,7 +197,7 @@ export function TableroKanban({
         onDrop={detenerAutoScroll}
         className="flex min-h-0 flex-1 snap-x snap-mandatory gap-3 overflow-x-auto pb-4 sm:snap-none"
       >
-        {columnasMostradas.map((columna) => {
+        {columnas.map((columna) => {
           const destinoPermitido =
             levantada != null
             && respuestasHaciaColumna(levantada.tarjeta.etapa, levantada.tarjeta.pendiente, levantada.desde, columna.clave).length > 0;

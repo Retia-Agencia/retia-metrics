@@ -144,6 +144,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0113](./0113-el-abono-adicional.md) | Lo vendido aparte del programa (1:1) entra como abono adicional del deal: suma a la caja, no toca saldo, etapa, ventas, meta ni comisión; nota opcional; cierra la D3 del 0037 |
 | [0114](./0114-el-crm-decide-los-avisos-y-juanito-los-entrega.md) | El CRM decide los avisos al equipo y Juanito los entrega: aviso post-llamada y resumen de la mañana al closer, pulso del día al grupo de ventas, la confirmación la dice el closer y la reenvía Juanito; sin datos del lead; banner del Hub como único latido |
 | [0115](./0115-reglas-de-norte-de-las-metricas.md) | Las nueve reglas de norte de las métricas: un concepto un módulo, paridad probada, toda razón con su cobertura, un nombre por concepto, la pantalla sin jerga y con formato único, la escritura exige lo que la métrica necesita, reemplazar es borrar, una jerarquía con las enmiendas arriba, terminado con evidencia (tickets 351 a 362) |
+| [0116](./0116-la-busqueda-por-texto-viaja-en-la-url.md) | La búsqueda libre de las listas viaja en `?q=` como única excepción de dato personal en query strings; Volver usa el historial de la app y cae al destino validado cuando no lo hay (ticket 365) |
 
 **Plataforma**
 

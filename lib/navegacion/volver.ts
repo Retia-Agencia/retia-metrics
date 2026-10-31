@@ -129,6 +129,29 @@ export function destinoDeVolver(
   return { href: valido, etiqueta: etiquetaDeOrigen(valido) };
 }
 
+export type AccionDeVolver =
+  | { tipo: "atras" }
+  | { tipo: "destino"; href: string };
+
+/**
+ * Decide si "Volver" puede consumir una entrada real del historial o debe usar su enlace.
+ * `urlAnterior` sale del historial del navegador; una entrada externa o ausente nunca se abre.
+ */
+export function accionDeVolver(
+  urlAnterior: string | null,
+  origenActual: string,
+  hrefDeFallback: string,
+): AccionDeVolver {
+  if (urlAnterior) {
+    try {
+      if (new URL(urlAnterior).origin === origenActual) return { tipo: "atras" };
+    } catch {
+      // Una entrada que no es URL absoluta no demuestra que sea de esta app.
+    }
+  }
+  return { tipo: "destino", href: hrefDeFallback };
+}
+
 /**
  * El origen de la pagina actual (path + query) desde su `searchParams`, para pasarlo por
  * props a los enlaces de lista. Un arreglo repite el parametro; `undefined` se omite.

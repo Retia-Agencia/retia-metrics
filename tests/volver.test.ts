@@ -2,12 +2,27 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  accionDeVolver,
   destinoDeVolver,
   enlaceConVuelta,
   etiquetaDeOrigen,
   origenDeLaPagina,
   origenValido,
 } from "@/lib/navegacion/volver";
+
+describe("accionDeVolver", () => {
+  it("retrocede cuando la entrada anterior pertenece a esta app", () => {
+    expect(accionDeVolver("https://crm.retia.test/p/x/leads?q=ana", "https://crm.retia.test", "/p/x/leads"))
+      .toEqual({ tipo: "atras" });
+  });
+
+  it("usa el fallback sin entrada anterior o cuando viene de otro origen", () => {
+    expect(accionDeVolver(null, "https://crm.retia.test", "/p/x/leads"))
+      .toEqual({ tipo: "destino", href: "/p/x/leads" });
+    expect(accionDeVolver("https://externo.test/", "https://crm.retia.test", "/p/x/leads"))
+      .toEqual({ tipo: "destino", href: "/p/x/leads" });
+  });
+});
 
 describe("origenValido", () => {
   it("acepta una ruta interna con query y pagina", () => {

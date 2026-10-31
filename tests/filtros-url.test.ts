@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { hayFiltrosActivos, siguienteQuery } from "@/components/filtros/query";
 import {
@@ -41,6 +43,28 @@ describe("filtros en la URL", () => {
   it("detecta solo filtros con valor", () => {
     expect(hayFiltrosActivos("closer=&pagina=2&resultado=venta", ["closer", "resultado"])).toBe(true);
     expect(hayFiltrosActivos(new URLSearchParams("closer=&pagina=2"), ["closer", "resultado"])).toBe(false);
+  });
+});
+
+describe("guardian: las listas no montan buscadores en memoria", () => {
+  it("todo buscador pasado directamente por una page usa BuscadorUrl", () => {
+    const raiz = join(__dirname, "..", "app");
+    const culpables: string[] = [];
+    const recorrer = (directorio: string) => {
+      for (const nombre of readdirSync(directorio)) {
+        const ruta = join(directorio, nombre);
+        if (statSync(ruta).isDirectory()) recorrer(ruta);
+        else if (nombre === "page.tsx") {
+          const codigo = readFileSync(ruta, "utf8");
+          const buscadores = codigo.matchAll(/buscador=\{<([A-Z][A-Za-z0-9]*)\b/g);
+          for (const coincidencia of buscadores) {
+            if (coincidencia[1] !== "BuscadorUrl") culpables.push(`${ruta}:${coincidencia[1]}`);
+          }
+        }
+      }
+    };
+    recorrer(raiz);
+    expect(culpables, "Los buscadores de listas deben guardar q en la URL con BuscadorUrl").toEqual([]);
   });
 });
 

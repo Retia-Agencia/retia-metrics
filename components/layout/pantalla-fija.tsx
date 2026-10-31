@@ -1,8 +1,13 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { MarcoDeScrollRestaurable } from "@/components/layout/marco-de-scroll-restaurable";
 
 export function PantallaFija({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("flex min-h-0 flex-1 flex-col gap-4", className)}>{children}</div>;
+  return (
+    <MarcoDeScrollRestaurable className={cn("flex min-h-0 flex-1 flex-col gap-4", className)}>
+      {children}
+    </MarcoDeScrollRestaurable>
+  );
 }
 
 /**

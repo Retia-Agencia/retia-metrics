@@ -78,6 +78,12 @@ describe("leadsDelPrograma", () => {
     expect(r.filas.map((f) => f.email)).not.toContain("ajeno@c.co");
   });
 
+  it("q filtra la lista con la búsqueda centralizada de leads", async () => {
+    const resultado = await leadsDelPrograma(db, programId, { q: "parcial@c.co" });
+    expect(resultado.total).toBe(1);
+    expect(resultado.filas.map((fila) => fila.email)).toEqual(["parcial@c.co"]);
+  });
+
   it("con y sin deal: un deal anulado no cuenta como deal", async () => {
     expect(await correos({ deal: "con" })).toEqual(["con-deal@c.co"]);
     expect(await correos({ deal: "sin" })).toEqual(["anulado@c.co", "parcial@c.co", "setteo@c.co", "sin-estado@c.co"]);

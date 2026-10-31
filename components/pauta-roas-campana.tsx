@@ -26,7 +26,7 @@ export function FilaDeCampana({ id, nombre, detalle, children }: { id: string; n
     // El diálogo cambia al instante (optimista); la URL se actualiza detrás, sin bloquear.
     startTransition(() => {
       fijarAbierto(abrir);
-      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+      router.push(query ? `${pathname}?${query}` : pathname, { scroll: false });
     });
   };
 

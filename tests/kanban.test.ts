@@ -241,6 +241,16 @@ describe("tableroKanban", () => {
     expect(filtrado.confirmadoUsd).toBe(100.1);
   });
 
+  it("q filtra el tablero por el lead (nombre) y menos de dos caracteres no filtran", async () => {
+    const buscado = await deal({ etapa: "contactado", nombre: "Daniel Prueba" });
+    await deal({ etapa: "contactado", nombre: "Otra Persona" });
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { q: "Daniel" }, HOY);
+    const ids = t.columnas.flatMap((c) => c.tarjetas.map((x) => x.dealId));
+    expect(ids).toEqual([buscado]);
+    const sinFiltro = await tableroKanban(db, programId, { tipo: "todos" }, { q: "D" }, HOY);
+    expect(sinFiltro.total).toBe(2);
+  });
+
   it("un deal ANULADO no aparece en ninguna columna", async () => {
     await deal({ etapa: "contactado" });
     await deal({ etapa: "contactado", anulado: true });

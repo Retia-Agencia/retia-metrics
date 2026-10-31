@@ -24,6 +24,7 @@ import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
+import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
@@ -31,7 +32,6 @@ import { Pestanas } from "@/components/layout/pestanas";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Card, CardContent } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
-import { BuscadorDeLeads } from "@/components/leads/buscador-de-leads";
 import { ListaLeads, type FilaLeadVista } from "@/components/leads/lista-leads";
 
 export const dynamic = "force-dynamic";
@@ -69,8 +69,8 @@ const ordenSchema = z.object({
  * es una oportunidad. Filtros por hecho (deal, calidad, abandonó el formulario, posible duplicado,
  * fechas) y la lista de posibles duplicados con confirmar o separar.
  *
- * Los filtros y la vista viajan en la URL; el texto de búsqueda no, porque puede contener datos
- * personales (AGENTS.md). El alcance es el de Deals (ADR 0048).
+ * Los filtros, la vista y la búsqueda viajan en la URL. `q` es la única excepción de dato
+ * personal permitida en un query string (ADR 0116). El alcance es el de Deals (ADR 0048).
  */
 export default async function LeadsDelProgramaPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer");
@@ -90,6 +90,7 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const vista = uno(q.vista) === "tabla" ? "tabla" : "tarjetas";
   const seccion = uno(q.seccion) === "duplicados" ? "duplicados" : "leads";
   const filtro: FiltroLeads = {
+    q: uno(q.q) ?? "",
     deal: deal === "con" || deal === "sin" ? deal : null,
     calidad,
     abandono: uno(q.abandono) === "1",
@@ -214,9 +215,9 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
             total={total}
             sustantivo={{ singular: "lead", plural: "leads" }}
             filtros={filtrosLeads}
-            buscador={<BuscadorDeLeads programaSlug={programa.slug} origen={origen} />}
+            buscador={<BuscadorUrl />}
             compuestosPopover={<FiltroFechaLista campos={CAMPOS} filtro={filtroDeFecha} />}
-            clavesCompuestas={CLAVES_DE_FECHA_LISTA}
+            clavesCompuestas={[...CLAVES_DE_FECHA_LISTA, "q"]}
             compuestoActivo={filtroDeFecha != null}
             orden={
               <ControlDeOrden
