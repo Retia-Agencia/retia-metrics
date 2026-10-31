@@ -11,6 +11,7 @@ describe("una sola moneda para vender y cobrar", () => {
   const enlace = {
     programId: "22222222-2222-4222-8222-222222222222",
     plataformaId: "33333333-3333-4333-8333-333333333333",
+    nombre: "Link de prueba",
     monto: "797.00",
     url: "https://paypal.com/x",
   };
