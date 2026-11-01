@@ -185,6 +185,8 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
     fecha: dia,
     monto: z.string(),
     moneda: z.literal("USD"),
+    concepto: z.enum(["ticket", "adicional"]),
+    nota: z.string().trim().max(500, "La nota puede tener máximo 500 caracteres.").optional(),
     enlacePagoId: textoOpcional(id("Enlace de pago inválido.")),
     comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
     archivoId: textoOpcional(id("Archivo inválido.")),
@@ -392,6 +394,8 @@ const esquemaAbonoAccion = z.object({
   fecha: dia,
   monto: z.string(),
   moneda: z.literal("USD").default("USD"),
+  concepto: z.enum(["ticket", "adicional"]),
+  nota: z.string().trim().max(500, "La nota puede tener máximo 500 caracteres.").optional(),
   enlacePagoId: textoOpcional(id("Enlace de pago inválido.")),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
   archivoId: textoOpcional(id("Archivo inválido.")),
@@ -410,23 +414,6 @@ export async function registrarAbonoAccion(
       : undefined;
     const r = await registrarAbono(db, actor, { ...datos, archivo });
     return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo, cohorteAsignada: r.cohorteAsignada };
-  });
-}
-
-const esquemaAbonoAdicionalAccion = esquemaAbonoAccion
-  .pick({ dealId: true, fecha: true, monto: true, moneda: true, enlacePagoId: true })
-  .extend({ nota: z.string().max(500, "La nota puede tener máximo 500 caracteres.").optional() });
-export type EntradaAbonoAdicional = z.input<typeof esquemaAbonoAdicionalAccion>;
-
-export async function registrarAbonoAdicionalAccion(
-  entrada: EntradaAbonoAdicional,
-): Promise<ResultadoFicha<{ etapa: EtapaDeal; movioElDeal: boolean; saldo: number | null }>> {
-  return correr(async (ctx) => {
-    const { actor } = ctx;
-    const datos = esquemaAbonoAdicionalAccion.parse(entrada);
-    await exigirDealVisible(ctx, datos.dealId);
-    const r = await registrarAbono(db, actor, { ...datos, concepto: "adicional" });
-    return { etapa: r.etapa, movioElDeal: r.movioElDeal, saldo: r.saldo };
   });
 }
 

@@ -18,7 +18,7 @@ import {
   editarAcuerdoAccion,
   marcarOnboardedAccion,
   pegarComprobanteAccion,
-  registrarAbonoAdicionalAccion,
+  registrarAbonoAccion,
   pedirSubidaComprobanteAccion,
   confirmarComprobanteAccion,
   editarDealAccion,
@@ -26,7 +26,7 @@ import {
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
 import { cn } from "@/lib/utils";
-import { ControlEnlacePago } from "../formulario-abono";
+import { ControlEnlacePago, FormularioAbono, datosInicialesDeAbono } from "../formulario-abono";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
 
 /**
@@ -41,7 +41,7 @@ import { SubirArchivo } from "@/components/archivos/subir-archivo";
  */
 
 type Dialogo =
-  | { tipo: "adicional" }
+  | { tipo: "abono" }
   | { tipo: "anular"; abono: FichaDeAbono }
   | { tipo: "enlace"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
@@ -55,6 +55,7 @@ export function FichaPago({
   puedeRegistrar,
   hoy,
   nombreDeEtapa,
+  aceptaAbono,
 }: {
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
@@ -126,8 +127,8 @@ export function FichaPago({
           <p className="text-xs text-tono-alerta">Hay abonos en otra moneda que el valor vendido: el saldo no se calcula ni se convierte.</p>
         ) : null}
         {puedeRegistrar && !anulado ? (
-          <Button variant="secondary" onClick={() => setDialogo({ tipo: "adicional" })}>
-            Registrar abono adicional
+          <Button variant="secondary" onClick={() => setDialogo({ tipo: "abono" })}>
+            Registrar abono
           </Button>
         ) : null}
 
@@ -278,7 +279,7 @@ export function FichaPago({
       )}
 
       {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "adicional" ? <DialogoAbonoAdicional ficha={ficha} opciones={opciones} hoy={hoy} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "abono" ? <DialogoRegistrarAbono ficha={ficha} opciones={opciones} hoy={hoy} ticketDeshabilitado={cerrado || !aceptaAbono} motivoTicketDeshabilitado={cerrado ? "El deal ya está cerrado." : `Desde ${nombreDeEtapa[ficha.etapa]} aún no se cobra el programa: mueve el deal a una etapa donde el lead ya hable de pagar.`} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "enlace" ? <DialogoCambiarEnlace ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
@@ -287,68 +288,67 @@ export function FichaPago({
   );
 }
 
-function DialogoAbonoAdicional({
+function DialogoRegistrarAbono({
   ficha,
   opciones,
   hoy,
+  ticketDeshabilitado,
+  motivoTicketDeshabilitado,
   onCerrar,
 }: {
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
   hoy: string;
+  ticketDeshabilitado: boolean;
+  motivoTicketDeshabilitado: string;
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [dia, setDia] = useState(hoy);
-  const [valor, setValor] = useState("");
-  const [enlacePagoId, setEnlacePagoId] = useState<string | null>(null);
-  const [nota, setNota] = useState("");
+  const [datos, setDatos] = useState(() => ({ ...datosInicialesDeAbono("USD"), fecha: hoy }));
+  const completo = Boolean(
+    datos.concepto && datos.fecha && datos.monto.trim()
+    && (datos.concepto !== "adicional" || datos.nota.trim()),
+  );
   return (
     <DialogoForm
-      titulo="Registrar abono adicional"
-      descripcion="Registra dinero vendido aparte del programa. Cuenta en caja y no cambia el ticket, el saldo ni la etapa."
+      titulo="Registrar abono"
+      descripcion="Elige si el pago corresponde al programa o a un servicio adicional."
       pendiente={pendiente}
       onCerrar={onCerrar}
-      deshabilitarConfirmar={dia === "" || valor === ""}
+      deshabilitarConfirmar={!completo}
       confirmar={{
-        texto: "Registrar abono adicional",
+        texto: "Registrar abono",
         enCurso: "Registrando…",
-        onClick: () => correr(
-          () => registrarAbonoAdicionalAccion({
-            dealId: ficha.dealId,
-            fecha: dia,
-            monto: valor,
-            moneda: "USD",
-            enlacePagoId: enlacePagoId ?? undefined,
-            nota,
-          }),
-          { exito: "Abono adicional registrado.", alExito: onCerrar },
-        ),
+        onClick: () => {
+          const concepto = datos.concepto;
+          if (!concepto) return;
+          correr(
+            () => registrarAbonoAccion({
+              dealId: ficha.dealId,
+              fecha: datos.fecha,
+              monto: datos.monto.trim(),
+              moneda: datos.moneda,
+              concepto,
+              nota: concepto === "adicional" ? datos.nota : undefined,
+              enlacePagoId: datos.enlacePagoId ?? undefined,
+              comprobanteUrl: datos.comprobanteUrl,
+              archivoId: datos.archivoId ?? undefined,
+            }),
+            { exito: concepto === "adicional" ? "Abono adicional registrado." : "Abono registrado.", alExito: onCerrar },
+          );
+        },
       }}
     >
-      <Campo etiqueta="Fecha">
-        <Input type="date" value={dia} onChange={(e) => setDia(e.currentTarget.value)} />
-      </Campo>
-      <Campo etiqueta="Monto (USD)">
-        <Input type="number" min="0.01" max="99999999.99" step="0.01" value={valor} readOnly={enlacePagoId != null} onChange={(e) => setValor(e.currentTarget.value)} />
-      </Campo>
-      <Campo etiqueta="Link de pago (opcional)">
-        <ControlEnlacePago
-          dealId={ficha.dealId}
-          plataformas={opciones.plataformas}
-          enlaces={opciones.enlacesDePago}
-          value={enlacePagoId}
-          monto={valor}
-          moneda="USD"
-          onValueChange={(id, enlace) => {
-            setEnlacePagoId(id);
-            if (enlace) setValor(enlace.monto);
-          }}
-        />
-      </Campo>
-      <Campo etiqueta="Nota (opcional)" ayuda="Qué se vendió, por ejemplo: mentoría 1:1">
-        <textarea className={claseTextarea} value={nota} onChange={(e) => setNota(e.target.value)} maxLength={500} />
-      </Campo>
+      <FormularioAbono
+        dealId={ficha.dealId}
+        moneda="USD"
+        plataformas={opciones.plataformas}
+        enlacesDePago={opciones.enlacesDePago}
+        datos={datos}
+        onChange={setDatos}
+        ticketDeshabilitado={ticketDeshabilitado}
+        motivoTicketDeshabilitado={motivoTicketDeshabilitado}
+      />
     </DialogoForm>
   );
 }

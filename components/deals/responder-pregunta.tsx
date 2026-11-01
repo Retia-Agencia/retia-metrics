@@ -187,8 +187,8 @@ export function useResponder(
         : { tipo: "atendido" as const, dia: datos.llamada.dia, hora: datos.llamada.hora, linkGrain: datos.llamada.linkGrain }
       : tipoDeHecho === "agendado" && datos.horaElegida
         ? { tipo: "agendado" as const, horaElegida: datos.horaElegida }
-        : tipoDeHecho === "abono" && datos.abono
-          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, enlacePagoId: datos.abono.enlacePagoId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
+        : tipoDeHecho === "abono" && datos.abono?.concepto
+          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, concepto: datos.abono.concepto, nota: datos.abono.concepto === "adicional" ? datos.abono.nota : undefined, enlacePagoId: datos.abono.enlacePagoId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
           : undefined;
     const r = pendiente === "proxima_cohorte" && !correccion
       ? await proximaCohorteAccion({
@@ -204,7 +204,7 @@ export function useResponder(
           comentarioMotivo: datos.comentarioMotivo,
           comentario: datos.comentario,
           hecho,
-          datos: {
+          datos: datos.abono?.concepto === "adicional" ? undefined : {
             descuentoUsd: datos.descuentoUsd,
             fechaLimitePago: datos.fechaLimitePago,
             cohorteDestinoId: datos.cohorteDestinoId,
@@ -215,6 +215,8 @@ export function useResponder(
     if (r.ok) {
       if (correccion) {
         toast.success("Corrección guardada.", { duration: Infinity, closeButton: true });
+      } else if (datos.abono?.concepto === "adicional") {
+        toast.success("Abono adicional registrado.", { duration: Infinity, closeButton: true });
       } else {
         toast.success(r.resumen[0], {
           description: r.resumen.slice(1).join(" ") || undefined,

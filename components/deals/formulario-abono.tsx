@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { hoyEnBogota, monto as formatoMonto } from "@/lib/format";
 import type { EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 import { crearEnlaceParaAbonoAccion, pedirSubidaParaAbonoAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
-import { Campo, claseInput } from "./ficha/campos";
+import { Campo, claseInput, claseTextarea } from "./ficha/campos";
 
 export interface DatosFormularioAbono {
+  concepto: "ticket" | "adicional" | null;
+  nota: string;
   fecha: string;
   monto: string;
   moneda: "USD";
@@ -19,22 +21,79 @@ export interface DatosFormularioAbono {
 }
 
 export function datosInicialesDeAbono(moneda: string = "USD"): DatosFormularioAbono {
-  return { fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", enlacePagoId: null, comprobanteUrl: "", archivoId: null };
+  return { concepto: null, nota: "", fecha: hoyEnBogota(), monto: "", moneda: moneda as "USD", enlacePagoId: null, comprobanteUrl: "", archivoId: null };
 }
 
 type Plataforma = { id: string; nombre: string };
 
-export function FormularioAbono({ dealId, moneda, plataformas, enlacesDePago, datos, onChange }: {
+export function FormularioAbono({ dealId, moneda, plataformas, enlacesDePago, datos, onChange, ticketDeshabilitado = false, motivoTicketDeshabilitado = "El deal ya está cerrado." }: {
   dealId: string;
   moneda: string;
   plataformas: Plataforma[];
   enlacesDePago: EnlaceDeLaPantalla[];
   datos: DatosFormularioAbono;
   onChange: (datos: DatosFormularioAbono) => void;
+  ticketDeshabilitado?: boolean;
+  motivoTicketDeshabilitado?: string;
 }) {
   const cambiar = (cambio: Partial<DatosFormularioAbono>) => onChange({ ...datos, ...cambio });
   const tieneLink = datos.enlacePagoId != null;
   return <>
+    <fieldset className="space-y-2">
+      <legend className="text-sm font-medium">¿Qué está pagando?</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className={`rounded-lg border p-4 ${ticketDeshabilitado ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${datos.concepto === "ticket" ? "border-ring bg-muted/50 ring-2 ring-ring/30" : "border-border"}`}>
+          <span className="flex items-start gap-3">
+            <input
+              type="radio"
+              name={`concepto-abono-${dealId}`}
+              value="ticket"
+              checked={datos.concepto === "ticket"}
+              disabled={ticketDeshabilitado}
+              required
+              onChange={() => cambiar({ concepto: "ticket", nota: "" })}
+              className="mt-1"
+            />
+            <span>
+              <span className="block text-sm font-medium">Programa (ticket)</span>
+              <span className="mt-1 block text-sm text-muted-foreground">Cuenta contra el saldo del programa y mueve la etapa del deal.</span>
+              {ticketDeshabilitado ? <span className="mt-2 block text-xs text-tono-alerta">{motivoTicketDeshabilitado}</span> : null}
+            </span>
+          </span>
+        </label>
+        <label className={`cursor-pointer rounded-lg border p-4 ${datos.concepto === "adicional" ? "border-ring bg-muted/50 ring-2 ring-ring/30" : "border-border"}`}>
+          <span className="flex items-start gap-3">
+            <input
+              type="radio"
+              name={`concepto-abono-${dealId}`}
+              value="adicional"
+              checked={datos.concepto === "adicional"}
+              required
+              onChange={() => cambiar({ concepto: "adicional" })}
+              className="mt-1"
+            />
+            <span>
+              <span className="block text-sm font-medium">Servicio adicional</span>
+              <span className="mt-1 block text-sm text-muted-foreground">Es aparte del programa (por ejemplo, un one-to-one). Cuenta en caja, no cambia el saldo ni la etapa.</span>
+            </span>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+    {datos.concepto ? <>
+    {datos.concepto === "adicional" ? (
+      <Campo etiqueta="¿Qué se vendió?" ayuda="Obligatorio. Máximo 500 caracteres.">
+        <textarea
+          className={claseTextarea}
+          value={datos.nota}
+          required
+          maxLength={500}
+          rows={3}
+          onChange={(e) => cambiar({ nota: e.target.value })}
+          placeholder="Por ejemplo, mentoría one-to-one"
+        />
+      </Campo>
+    ) : null}
     <div className="grid grid-cols-2 gap-3">
       <Campo etiqueta="Fecha del pago">
         <input type="date" className={claseInput} value={datos.fecha} onChange={(e) => cambiar({ fecha: e.target.value })} />
@@ -73,6 +132,7 @@ export function FormularioAbono({ dealId, moneda, plataformas, enlacesDePago, da
         </div> : <SubirArchivo pedirSubida={(meta) => pedirSubidaParaAbonoAccion({ dealId, ...meta })} alSubir={(archivoId) => cambiar({ archivoId })} />}
       </div>
     </Campo>
+    </> : null}
   </>;
 }
 

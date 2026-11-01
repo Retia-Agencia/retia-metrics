@@ -205,7 +205,7 @@ describe("abono adicional", () => {
   it("acepta un monto mayor al saldo sin congelar valor vendido ni mover la etapa", async () => {
     const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
 
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "1500", { concepto: "adicional" }));
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "1500", { concepto: "adicional", nota: "Mentoría" }));
 
     expect(r).toMatchObject({ etapa: "atendido", movioElDeal: false, saldo: null, cohorteAsignada: null });
     expect(await etapaDe(dealId)).toBe("atendido");
@@ -217,7 +217,7 @@ describe("abono adicional", () => {
   it("acepta un adicional sobre un deal Ganado Pagado Completo", async () => {
     const dealId = await nuevoDeal("ganado_completo");
 
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional" }));
+    const r = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" }));
 
     expect(r).toMatchObject({ etapa: "ganado_completo", movioElDeal: false, saldo: 1000 });
     expect(await abonosDe(dealId)).toHaveLength(1);
@@ -226,7 +226,7 @@ describe("abono adicional", () => {
   it("rechaza un adicional sobre un deal anulado", async () => {
     const dealId = await nuevoDeal("atendido", { anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "error" });
 
-    expect((await capturar(registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional" })))).status).toBe(409);
+    expect((await capturar(registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })))).status).toBe(409);
     expect(await abonosDe(dealId)).toHaveLength(0);
   });
 
@@ -234,24 +234,24 @@ describe("abono adicional", () => {
     const dealId = await nuevoDeal("atendido");
     const actor = { userId: otroCloser, rol: "closer" as const, operaComoCloser: false };
 
-    expect((await capturar(registrarAbono(db, actor, abono(dealId, "250", { concepto: "adicional" })))).status).toBe(403);
+    expect((await capturar(registrarAbono(db, actor, abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })))).status).toBe(403);
     expect(await abonosDe(dealId)).toHaveLength(0);
   });
 
-  it("guarda la nota recortada y convierte una nota vacía en null", async () => {
+  it("guarda la nota recortada y rechaza una nota vacía", async () => {
     const dealId = await nuevoDeal("atendido");
     await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "  Mentoría 1:1  " }));
-    await registrarAbono(db, comoCloser(), abono(dealId, "100", { concepto: "adicional", nota: "   " }));
+    const error = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "100", { concepto: "adicional", nota: "   " })));
 
-    expect(await abonosDe(dealId)).toEqual(expect.arrayContaining([
+    expect(error).toMatchObject({ status: 422, message: "Escribe qué se vendió." });
+    expect(await abonosDe(dealId)).toEqual([
       expect.objectContaining({ monto: "250.00", nota: "Mentoría 1:1" }),
-      expect.objectContaining({ monto: "100.00", nota: null }),
-    ]));
+    ]);
   });
 
   it("anular un adicional no mueve la etapa", async () => {
     const dealId = await nuevoDeal("ganado_completo");
-    const adicional = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional" }));
+    const adicional = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" }));
 
     const r = await anularAbono(db, comoCloser(), { abonoId: adicional.abonoId, motivo: "No correspondía" });
 

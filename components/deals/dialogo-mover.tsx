@@ -200,13 +200,19 @@ export function DialogoMover({
   // El ensayo del motor se repite cuando cambian los datos, con una pausa corta para no
   // mandar uno por tecla. Una respuesta vieja que llega tarde se descarta.
   const { dealId, a, pendiente } = movimiento;
+  const conceptoAbono = datos.abono?.concepto ?? null;
+  const esAbonoAdicional = movimiento.hecho === "abono" && conceptoAbono === "adicional";
+  const esAbonoTicket = movimiento.hecho === "abono" && conceptoAbono === "ticket";
   const montoAbono = Number(datos.abono?.monto);
   const destinoDelAbono: EtapaDeal = saldo != null && Number.isFinite(montoAbono) && montoAbono === saldo
     ? "ganado_completo"
     : "ganado_parcial";
-  const destinoSolicitado = movimiento.hecho === "abono" ? destinoDelAbono : a;
+  const destinoSolicitado = esAbonoTicket ? destinoDelAbono : a;
   useEffect(() => {
     if (!abierto) return;
+    if (movimiento.hecho === "abono" && !esAbonoTicket) {
+      return;
+    }
     let vigente = true;
     const espera = setTimeout(async () => {
       const r = await revisarMovimientoAccion({
@@ -234,7 +240,7 @@ export function DialogoMover({
       vigente = false;
       clearTimeout(espera);
     };
-  }, [abierto, dealId, destinoSolicitado, pendiente, movimiento.correccion, datos]);
+  }, [abierto, dealId, destinoSolicitado, pendiente, movimiento.correccion, movimiento.hecho, esAbonoTicket, datos]);
 
   const destino: EtapaDeal | null = destinoSolicitado === "retroceso" ? (revision?.destinoRetro ?? null) : destinoSolicitado;
   // Se confirma solo con la revision de los datos que hay AHORA: un campo recien cambiado
@@ -248,7 +254,7 @@ export function DialogoMover({
       ? ["llamada_sucedio"]
       : movimiento.hecho === "agendado"
         ? ["llamada_con_fecha"]
-        : movimiento.hecho === "abono"
+        : esAbonoTicket
           // Sin descuento tecleado, el abono congela el ticket completo (`registrarAbono`).
           ? ["abono", "saldo_pendiente", "saldo_en_cero", "valor_vendido"]
           : [],
@@ -270,15 +276,22 @@ export function DialogoMover({
       : movimiento.hecho === "agendado"
         ? horaElegidaCompleta(datos.horaElegida ?? null)
       : true;
-  const abonoCompleto = movimiento.hecho !== "abono" || Boolean(datos.abono?.fecha && datos.abono.monto.trim());
+  const abonoCompleto = movimiento.hecho !== "abono" || Boolean(
+    datos.abono?.concepto
+    && datos.abono.fecha
+    && datos.abono.monto.trim()
+    && (datos.abono.concepto !== "adicional" || datos.abono.nota.trim()),
+  );
   const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
   const comentarioMotivoCompleto = flecha.tipoDeMotivo !== "reagenda" || !motivoElegido?.pideTexto || Boolean(datos.comentarioMotivo?.trim());
   const bloqueoVigente = movimiento.hecho ? null : revision?.bloqueo;
   const llamadaAunNoPuedeAtenderse = movimiento.hecho === "atendido" && llamada && !llamada.puedeMarcarAtendida;
-  const listo = vigente && bloqueoVigente == null
-    && revision.requisitos.every((q) => q.cumple || requisitosQueEscribeElHecho.has(q.codigo))
-    && destino != null && llamadaCompleta && !llamadaAunNoPuedeAtenderse
-    && abonoCompleto && comentarioMotivoCompleto && comentarioCompleto;
+  const listo = esAbonoAdicional
+    ? destino != null && abonoCompleto
+    : vigente && bloqueoVigente == null
+      && Boolean(revision?.requisitos.every((q) => q.cumple || requisitosQueEscribeElHecho.has(q.codigo)))
+      && destino != null && llamadaCompleta && !llamadaAunNoPuedeAtenderse
+      && abonoCompleto && comentarioMotivoCompleto && comentarioCompleto;
 
   const motivosDeLaFlecha = flecha.tipoDeMotivo
     ? motivos.filter((m) => m.tipo === flecha.tipoDeMotivo)
@@ -356,7 +369,11 @@ export function DialogoMover({
           {movimiento.hecho === "abono" && datos.abono ? (
             <section className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                {saldo != null ? `Saldo actual: ${monto(saldo, moneda ?? "USD")}. ` : ""}La etapa la decide lo que quede por pagar.
+                {esAbonoTicket
+                  ? <>{saldo != null ? `Saldo actual: ${monto(saldo, moneda ?? "USD")}. ` : ""}La etapa la decide lo que quede por pagar.</>
+                  : esAbonoAdicional
+                    ? "No cambia la etapa del deal."
+                    : "Elige qué está pagando para continuar."}
               </p>
               <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} enlacesDePago={enlacesDePago} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
             </section>
@@ -375,7 +392,7 @@ export function DialogoMover({
             </Campo>
           ) : null}
 
-          {campos.map((campo) => (
+          {(movimiento.hecho === "abono" && !esAbonoTicket ? [] : campos).map((campo) => (
             <div key={campo} className="space-y-1">
               <label className="block text-xs font-medium text-muted-foreground">{ETIQUETA[campo]}</label>
 
@@ -500,7 +517,7 @@ export function DialogoMover({
           {!movimiento.hecho ? <ListaDeRequisitos revision={revision} error={errorDeRevision} cubiertos={cubiertos} /> : null}
           {/* Con un hecho la lista no se muestra, pero un dato rechazado (un descuento mayor que
               el ticket) sí: sin esto el botón quedaba apagado sin decir por qué. */}
-          {movimiento.hecho && errorDeRevision ? <p className="text-sm text-tono-peligro">{errorDeRevision}</p> : null}
+          {movimiento.hecho && !esAbonoAdicional && errorDeRevision ? <p className="text-sm text-tono-peligro">{errorDeRevision}</p> : null}
           {!movimiento.hecho && revision?.requisitos.some((q) => !q.cumple && !cubiertos.has(q.codigo) && DONDE[q.codigo]) ? (
             <Link href={rutaDeLaFicha} className="inline-block text-sm text-marca-texto underline-offset-2 hover:underline">
               Abrir la ficha del deal

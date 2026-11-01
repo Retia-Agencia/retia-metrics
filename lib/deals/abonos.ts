@@ -145,6 +145,10 @@ export async function registrarAbono(
     const entrada = esquemaRegistrarAbono.parse(datos);
     const archivo = datos.archivo;
 
+    if (entrada.concepto === "adicional" && !entrada.nota?.trim()) {
+      throw new ErrorDeApp("Escribe qué se vendió.", 422);
+    }
+
     // Registrar plata es trabajar el lead, igual que una llamada (ADR 0003, ADR 0025).
     if (!trabajaLeads(actor)) {
       throw new ErrorDeApp("Solo un closer registra abonos de un deal.", 403);
