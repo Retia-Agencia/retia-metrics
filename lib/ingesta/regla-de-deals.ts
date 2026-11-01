@@ -435,7 +435,6 @@ async function aplicarReglaDeDealSinAdoptar(
       etapa: accion.etapa,
       actor: { tipo: "sistema" },
       ownerUserId: host ?? setter,
-      setterUserId: setter,
       submissionOrigenId: envioDeOrigen,
     });
     // Con cita vigente el deal nace en Agendado y necesita su llamada (quita la

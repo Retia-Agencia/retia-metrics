@@ -134,8 +134,8 @@ describe("registrarLlamadaDeCalendly: colgada", () => {
     expect(await db.select().from(dealActividades)).toHaveLength(0);
   });
 
-  it("si el deal era de otra closer, pasa a la host y queda la nota que avisa", async () => {
-    await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
+  it("con handoff, pasa a la host y acredita al dueño anterior como setter", async () => {
+    await db.update(deals).set({ ownerUserId: andrea, handoffEn: new Date() }).where(eq(deals.id, dealId));
     const r = await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: HOST_MARU }));
     expect(r).toMatchObject({ tipo: "colgada", duenoAnterior: andrea });
     expect((await deal()).ownerUserId).toBe(maru);
@@ -145,11 +145,23 @@ describe("registrarLlamadaDeCalendly: colgada", () => {
     expect(notas[0]).toMatchObject({ tipo: "nota", userId: null });
   });
 
-  it("un re-agendamiento no pisa el crédito del setter", async () => {
+  it("con actividad del dueño anterior, pasa a la host y lo acredita como setter", async () => {
+    await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
+    await db.insert(dealActividades).values({ dealId, tipo: "contacto", canal: "whatsapp", userId: andrea });
+    await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: HOST_MARU }));
+    expect(await deal()).toMatchObject({ ownerUserId: maru, setterUserId: andrea });
+  });
+
+  it("sin evidencia pasa a la host pero no acredita setter", async () => {
     await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
     await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: HOST_MARU }));
-    await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: "andrea@calendly.co" }));
-    expect(await deal()).toMatchObject({ ownerUserId: andrea, setterUserId: andrea });
+    expect(await deal()).toMatchObject({ ownerUserId: maru, setterUserId: null });
+  });
+
+  it("no pisa un setter existente al cambiar de host", async () => {
+    await db.update(deals).set({ ownerUserId: andrea, setterUserId: maru }).where(eq(deals.id, dealId));
+    await registrarLlamadaDeCalendly(db, programId, cita({ correoHost: HOST_MARU }));
+    expect(await deal()).toMatchObject({ ownerUserId: maru, setterUserId: maru });
   });
 
   it("el código válido cuelga el deal aunque el correo sea distinto y guarda el raw", async () => {

@@ -1,6 +1,6 @@
-# 0076 — El setter entrega el deal al closer por la cita: cuatro caminos de una llamada, cada uno con su llave
+# 0076 — El setter entrega el deal al closer por la cita y recibe crédito solo con evidencia
 
-- **Estado:** aceptado · 2-oct-2026 (Mani). Se construye en el [157](../tasks/157-handoff-del-setter-al-closer.md).
+- **Estado:** aceptado · 2-oct-2026 (Mani); enmendado · 1-nov-2026 (Mani). Se construye en el [157](../tasks/157-handoff-del-setter-al-closer.md).
 - **Enmienda:** ADR 0049 (cómo se cuelga una llamada: se agrega la llave del deal antes del correo, y una suelta
   solo la cuelga su host o quien administra).
 - **Confirma:** ADR 0049 punto 6 (una suelta nunca se asigna sola), ADR 0037 (un lead tiene a lo sumo un deal
@@ -27,9 +27,11 @@ deal queda huérfano sin que nadie lo vea, y cualquier closer podría quedarse c
    sin llamada vigente en el deal. Sale en rojo en la ficha, la tarjeta y "Lo mío que necesita atención" del setter.
    Le dice que el lead no ha agendado: o se enfrió y hay que empujarlo, o agendó por otra puerta y su llamada está
    suelta. Desaparece sola cuando la cita entra (el deal ya no es del setter).
-3. **El crédito del setter es un campo.** Cuando una cita pasa el deal de un dueño a otro, el dueño anterior queda
-   en `deals.setter_user_id` (FK a `users`), una sola vez: un re-agendamiento no lo pisa. Un deal que llegó agendado
-   desde el formulario no tiene setter. "Agendas y ventas por setter" es un `group by`.
+3. **El crédito del setter exige evidencia.** Cuando una cita pasa el deal de un dueño a otro durante setteo, el
+   dueño anterior queda en `deals.setter_user_id` (FK a `users`) solo si dejó huella: marcó el link como enviado
+   (`deals.handoff_en`) o registró una actividad propia en el deal. Se escribe una sola vez y un re-agendamiento no
+   lo pisa. Ser dueño por defecto no da crédito: un deal que llega agendado sin esa huella no tiene setter. "Agendas
+   y ventas por setter" es un `group by`.
 4. **Una llamada entra por uno de cuatro caminos, y cada uno tiene su llave:**
 
    | Cómo agenda el lead | Llave | Si no casa |
@@ -53,7 +55,7 @@ deal queda huérfano sin que nadie lo vea, y cualquier closer podría quedarse c
 ## Consecuencias
 
 - Una migración: `deals.setter_user_id` y `deals.handoff_en`. Va a la cola de migraciones (`plan-reparto.md`).
-- `darDealAlHost` escribe el setter; el webhook, la regla del 052 y la suelta asignada a mano lo llaman, así que no
-  hay código aparte por camino.
+- `darDealAlHost` escribe el setter solo después de comprobar la evidencia centralizada; el webhook, la regla del
+  052 y la suelta asignada a mano lo llaman, así que no hay código aparte por camino.
 - Cada camino tiene su prueba, y la del punto 5 se muerde forjando la petición: un closer que no es el host intenta
   colgar una suelta y recibe 403 con la base quieta.

@@ -122,7 +122,8 @@ flowchart TD
 ### 2.2 Cómo se cuelga cada llamada de su deal (Calendly)
 
 Cada llamada entra por uno de cuatro caminos. Si ninguna llave basta, queda suelta. El host de
-Calendly se queda con el deal y el dueño anterior conserva el crédito de setter (ADR 0076).
+Calendly se queda con el deal; el dueño anterior conserva el crédito de setter solo si dejó la marca
+de link enviado o una actividad propia durante setteo (ADR 0076).
 
 ```mermaid
 flowchart TD

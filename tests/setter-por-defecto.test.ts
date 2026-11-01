@@ -80,7 +80,7 @@ beforeEach(async () => {
 afterAll(async () => cerrar());
 
 describe("setter por defecto al abrir deals del sistema", () => {
-  it("un envío sin agenda nace con owner y setter_user_id del setter por defecto", async () => {
+  it("un envío sin agenda nace con owner por defecto pero sin crédito de setter", async () => {
     const setter = await usuario("setter@retia.test");
     await db.insert(miembrosPrograma).values({
       userId: setter.id,
@@ -95,7 +95,7 @@ describe("setter por defecto al abrir deals del sistema", () => {
     expect(await dealDe("sin-agenda@lead.test")).toMatchObject({
       etapa: "calificado",
       ownerUserId: setter.id,
-      setterUserId: setter.id,
+      setterUserId: null,
     });
   });
 

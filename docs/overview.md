@@ -138,7 +138,8 @@ y deals según su origen (ADR 0043).
 
 1. ✅ Trabaja la cola de **En gestión** desde el Inbox: reclama, contacta y registra cada intento.
 2. 🟡 Manda el **link de agenda** y marca "Ya se lo mandé". La cita por Calendly entrega el deal a quien da
-   la llamada; el setter queda con su crédito (`setter_user_id`). Si a 1 día hábil no hay cita, alerta.
+   la llamada; quien dejó la marca o una actividad propia queda con el crédito de setter (`setter_user_id`). Ser
+   dueño por defecto sin esa huella no da crédito. Si a 1 día hábil no hay cita, alerta.
 3. Como cualquier closer, no abre el Hub (ADR 0082).
 
 **Closer** (ve solo los programas de su membresía, ADR 0048, y en Deals solo los suyos, ADR 0075):

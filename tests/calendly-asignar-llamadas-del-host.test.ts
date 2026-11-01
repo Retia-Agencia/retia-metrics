@@ -154,7 +154,7 @@ describe("asignarLlamadasDelHost", () => {
 
   it("una cita a futuro sobre un deal abierto pasa el deal a la host y deja al dueño anterior como setter", async () => {
     const dealId = await nuevoLeadConDeal("ana@correo.co");
-    await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
+    await db.update(deals).set({ ownerUserId: andrea, handoffEn: new Date() }).where(eq(deals.id, dealId));
     const [c] = await db
       .insert(calls)
       .values({
