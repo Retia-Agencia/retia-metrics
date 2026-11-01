@@ -27,6 +27,19 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-01: un solo formulario de abono, con el tipo elegido primero (enmienda del ADR 0113).** Michael reportó
+  que no podía registrar un one-to-one de USD 1.437 desde "Pagó ahora": el pop-up solo registraba ticket y la reja del
+  saldo lo rechazaba; el adicional vivía en otro botón de Facturación. **Hecho:** `FormularioAbono` pide primero
+  "¿Qué está pagando?" (Programa o Servicio adicional, sin valor por defecto) y lo usan el pop-up de Transición y
+  Facturación › "Registrar abono"; el adicional exige la nota "¿Qué se vendió?" y no mueve la etapa (desde el pop-up el
+  deal se queda donde estaba); la tarjeta de ticket sale deshabilitada, con motivo, en etapas sin flecha a Ganado o con
+  el deal cerrado. Se borró `registrarAbonoAdicionalAccion`. **Decidido:** nota obligatoria (era opcional en el ADR
+  0113, ahora enmendado). **Verificado:** typecheck, lint y 80 tests del cambio (los que reportó Codex; no se re-corrieron
+  por swap lleno); recorrido en pantalla con la base local (adicional de 1.437 sobre saldo de 797 desde la ficha y desde
+  el pop-up, deal sin moverse; tarjeta de ticket deshabilitada en Potencial). **Pendiente:** el checkpoint del CI
+  valida la suite completa. Se corrigió el comentario de `components/deals/tablero-kanban.tsx` (el arrastre a Ganado
+  abre este pop-up, no la ficha). Sin migración.
+
 - **2026-10-31: Daily Tech con Michael Castellanos (transcript de Wispr) y lo que dejó anotado.** Solo documentación, sin código.
   **Anotado en el repo:** A-172 y ticket 365 (la búsqueda de Leads se borra al abrir una ficha y volver); decisiones
   PUSH-1 y MEDIA-GRAIN-1 en `docs/plan.md` §7; incidente de UTM en `docs/operations.md` §9.

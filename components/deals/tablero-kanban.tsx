@@ -22,8 +22,8 @@ import { useResponder, type DealQueResponde } from "./responder-pregunta";
  * - **Soltar abre la pregunta de la etapa** (ADR 0072 punto 2): con la respuesta que lleva
  *   a esa columna ya elegida (o a escoger, si hay varias), su dialogo pide los datos y
  *   muestra lo que el deal tiene y le falta. Si ninguna respuesta lleva ahí, la tarjeta no
- *   se mueve y se dice por qué. Soltar en una columna de ganado abre el abono en la ficha:
- *   a ganado solo se entra con plata (ADR 0037).
+ *   se mueve y se dice por qué. Soltar en una columna de ganado abre el pop-up del abono
+ *   (el mismo formulario de la ficha, con el tipo a elegir): a ganado solo se entra con plata (ADR 0037).
  * - **Todo movimiento pasa por la server action `moverDeal`**, que llama `moverEtapa()`:
  *   la reja de verdad está en el servidor. El cliente solo decide el resaltado del
  *   arrastre con la tabla de preguntas (`pregunta-de-etapa.ts`, datos planos).
