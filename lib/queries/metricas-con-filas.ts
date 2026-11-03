@@ -315,7 +315,7 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
     id: resumen ? nulo : sql<string>`${fuente.id}::text`,
     dealId: resumen ? nulo : sql<string | null>`${deals.id}::text`,
     fecha: resumen ? nulo : sql<string>`${fuente.fecha}::text`,
-    citaEn: resumen || !esLlamada ? sql<Date | null>`null::timestamptz` : sql<Date | null>`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`,
+    citaEn: resumen || !esLlamada ? sql<Date | null>`null::timestamptz` : sql<Date | null>`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`.mapWith(calls.fechaAgenda),
     resultado: resumen || !esLlamada ? nulo : sql<string | null>`${calls.resultado}::text`,
     closer: resumen
       ? sql<string | null>`min(${fuente.columnaCloser})`
