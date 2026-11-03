@@ -23,4 +23,4 @@ export const DESCRIPCION_DE_DESTINO: Record<DestinoConDescripcion, string> = {
   cierre_perdido: "No va a comprar. Te pide el motivo.",
 };
 
-export const DESCRIPCION_DE_CORREGIR = "Devuelve el deal a donde estaba si lo moviste por error.";
+export const DESCRIPCION_DE_CORREGIR = "Ponlo en la etapa correcta si te equivocaste.";

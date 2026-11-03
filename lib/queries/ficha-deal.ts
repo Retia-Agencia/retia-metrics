@@ -19,7 +19,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { destinosDeCorreccion, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
 import type { ActorDeDeal } from "@/lib/deals/permiso";
-import { eventosDeshacibles, idDelGrupo } from "@/lib/deshacer/deshacer";
+import { eventosDeshacibles, idDelGrupo, type EventoDeshacible } from "@/lib/deshacer/deshacer";
 import { leerHechos } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan, queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
@@ -156,6 +156,11 @@ const ETIQUETA_CAMPO: Readonly<Record<string, string>> = {
   canal: "Canal", proximoContacto: "Próximo contacto", proximo_contacto: "Próximo contacto",
   pendientePuesto: "Pendiente", pendiente_puesto: "Pendiente", valorVendidoUsd: "Valor vendido (USD)",
   valor_vendido_usd: "Valor vendido (USD)", cortesia: "Cortesía",
+};
+
+/** El objeto que se anula al deshacer su alta, por tabla de la bitácora. */
+const OBJETO_DESHACIBLE: Readonly<Record<string, string>> = {
+  deals: "Deal", calls: "Llamada", abonos: "Abono", deal_actividades: "Actividad",
 };
 
 const CAMPOS_USUARIO = new Set(["ownerUserId", "owner_user_id", "setterUserId", "setter_user_id"]);
@@ -606,17 +611,35 @@ export async function fichaDeDeal(
     return valor;
   };
 
+  // Lo que ve quien deshace: nunca ids ni nombres de columna (ADR 0115, N5). Un alta se dice en
+  // una línea; una edición, solo con los campos que tienen nombre para una persona.
+  const cambiosLegibles = (evento: EventoDeshacible) => {
+    if (evento.esCreacion) {
+      return [{ etiqueta: OBJETO_DESHACIBLE[evento.tabla] ?? "Registro", ahora: "Registrado", quedaria: "Anulado: deja de contar en las cifras" }];
+    }
+    // Corregir una etapa parte de donde está el deal HOY, no de donde lo dejó ese movimiento.
+    if (evento.tabla === "deal_etapa_historial") {
+      return [{ etiqueta: "Etapa", ahora: NOMBRE_DE_ETAPA[deal.etapa], quedaria: valorLegible("etapa", evento.resumen[0]?.quedaria ?? null) }];
+    }
+    const legibles = evento.resumen.flatMap((cambio) => {
+      if (evento.tabla === "calls" && (cambio.campo === "dealId" || cambio.campo === "deal_id")) {
+        return [{ etiqueta: "Llamada", ahora: "En este deal", quedaria: cambio.quedaria === null ? "Vuelve a las llamadas sin asignar" : "Otro deal" }];
+      }
+      const etiqueta = ETIQUETA_CAMPO[cambio.campo];
+      return etiqueta
+        ? [{ etiqueta, ahora: valorLegible(cambio.campo, cambio.ahora), quedaria: valorLegible(cambio.campo, cambio.quedaria) }]
+        : [];
+    });
+    return legibles.length > 0 ? legibles : [{ etiqueta: "Cambio", ahora: null, quedaria: "Vuelve al valor anterior" }];
+  };
+
   const datosDeDeshacer = (id: string) => {
     const evento = deshacerPorId.get(id);
     if (!evento) return { deshacer: null, deshecho: null };
     return {
       deshacer: {
         puede: evento.puedeDeshacer,
-        cambios: evento.resumen.map((cambio) => ({
-          etiqueta: ETIQUETA_CAMPO[cambio.campo] ?? cambio.campo,
-          ahora: valorLegible(cambio.campo, cambio.ahora),
-          quedaria: valorLegible(cambio.campo, cambio.quedaria),
-        })),
+        cambios: cambiosLegibles(evento),
       },
       deshecho: evento.deshecho ? {
         porNombre: nombreDe(evento.deshecho.userId),

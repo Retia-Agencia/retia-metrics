@@ -260,6 +260,9 @@ export interface EventoDeshacible {
   id: string;
   puedeDeshacer: boolean;
   resumen: { campo: string; ahora: string | null; quedaria: string | null }[];
+  /** Es el alta del registro: deshacerla lo anula. La pantalla lo dice en una línea, sin campos. */
+  esCreacion: boolean;
+  tabla: string;
   deshecho: { userId: string; fecha: Date; motivo: string | null } | null;
 }
 
@@ -303,6 +306,8 @@ export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: str
         && grupo.every((fila) => fila.reversionId == null) && !cortesiaRestringida
         && puedeDeshacer(actor, { autorId: primera.userId, ownerUserId: deal.ownerUserId, campo: primera.campo }),
       resumen: grupo.map((fila) => ({ campo: fila.campo, ahora: fila.valorNuevo, quedaria: fila.valorAnterior })),
+      esCreacion: clasificacion.tipo === "creacion",
+      tabla: primera.tabla,
       deshecho: reversion ? { userId: reversion.userId, fecha: reversion.fecha, motivo: reversion.motivo } : null,
     });
   }
@@ -318,6 +323,8 @@ export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: str
       puedeDeshacer: historia.userId != null && historia.reversionId == null && reversion == null && tipoMotivo !== "correccion"
         && puedeDeshacer(actor, { autorId: historia.userId, ownerUserId: deal.ownerUserId }),
       resumen: [{ campo: "etapa", ahora: historia.a, quedaria: historia.de }],
+      esCreacion: false,
+      tabla: "deal_etapa_historial",
       deshecho: reversion ? { userId: reversion.userId, fecha: reversion.fecha, motivo: reversion.motivo } : null,
     })),
   ];
