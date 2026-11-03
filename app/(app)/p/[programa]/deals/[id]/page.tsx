@@ -5,8 +5,7 @@ import { esAdministrador, esRolValido, trabajaLeads, veDetalleTecnico } from "@/
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { correccionSerializable, mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
-import { etapaDeCorreccion } from "@/lib/deals/mover-etapa";
+import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeDecidirDuplicado, puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
 import { alertasDelDeal, fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
@@ -55,7 +54,8 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa || !ES_UUID.test(id) || !esRolValido(rol)) notFound();
 
-  const ficha = await fichaDeDeal(db, programa.id, id, veDetalleTecnico(rol));
+  const actor = { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
+  const ficha = await fichaDeDeal(db, programa.id, id, veDetalleTecnico(rol), actor);
   if (!ficha) notFound();
   const alcanceDeals = await alcanceDeDeals(session);
   if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();
@@ -70,7 +70,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
       etiqueta: ficha.lead.nombre ?? ficha.lead.email,
     });
   }
-  const [opciones, alertas, correccion] = await Promise.all([
+  const [opciones, alertas] = await Promise.all([
     opcionesDeFicha(
       db,
       programa.id,
@@ -80,10 +80,8 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
       ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null,
     ),
     alertasDelDeal(db, programa.id, ficha.dealId),
-    etapaDeCorreccion(db, ficha.dealId),
   ]);
 
-  const actor = { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
   // Sobre un deal anulado nadie escribe: se ve, marcado, y ya.
   const puedeTrabajar = !ficha.anulado && puedeTrabajarDeal(actor, { ownerUserId: ficha.owner?.id ?? null });
   // Un deal SIN dueño lo puede tomar un closer desde la ficha (ticket 229, A-138): el servidor
@@ -130,7 +128,6 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
             ficha={ficha}
             opciones={opciones}
             mapa={mapaDeTransiciones()}
-            correccion={correccionSerializable(ficha.etapa, correccion)}
             ordenDeEtapas={ETAPAS_EN_ORDEN}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
             tonoDeEtapa={TONO_DE_ETAPA}
@@ -146,7 +143,13 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
             <FichaLead ficha={ficha} rutaDelLead={enlaceConVuelta(`/p/${programa.slug}/leads/${ficha.lead.id}`, origenDeEstaFicha)} />
             <FichaOrigen ficha={ficha} />
             <FichaPerfil perfil={ficha.perfil} />
-            <FichaHistorial log={ficha.log} nombreDeEtapa={NOMBRE_DE_ETAPA} tonoDeEtapa={TONO_DE_ETAPA} />
+            <FichaHistorial
+              dealId={ficha.dealId}
+              log={ficha.log}
+              destinosDeCorreccion={ficha.destinosDeCorreccion}
+              nombreDeEtapa={NOMBRE_DE_ETAPA}
+              tonoDeEtapa={TONO_DE_ETAPA}
+            />
           </div>
           <div className="space-y-4">
             <FichaLlamadas

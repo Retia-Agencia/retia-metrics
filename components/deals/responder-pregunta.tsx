@@ -11,7 +11,7 @@ import { moverConHechoAccion, proximaCohorteAccion, registrarActividadAccion } f
 import { DialogoFallida, DialogoReagendar } from "./ficha/acciones-de-llamada";
 import { Campo, claseInput, claseTextarea, DialogoForm } from "./ficha/campos";
 import { PREGUNTA_DE_ETAPA, type ClaveDestino, type Respuesta, type TipoDeActividad } from "./pregunta-de-etapa";
-import type { CorreccionCliente, FlechaCliente, MapaTransiciones } from "./transiciones";
+import type { FlechaCliente, MapaTransiciones } from "./transiciones";
 import { avisarCambioDeNotificaciones } from "@/lib/mi-espacio/aviso-notificaciones";
 
 /**
@@ -99,7 +99,6 @@ export function useResponder(
   registrar: (deal: DealQueResponde, tipo: TipoDeActividad) => void;
   registrarActividad: (deal: DealQueResponde, tipos: readonly TipoDeActividad[]) => void;
   abrirDestino: (deal: DealQueResponde, destino: ClaveDestino, respuestas: readonly Respuesta[]) => void;
-  corregir: (deal: DealQueResponde, correccion: CorreccionCliente) => void;
   dialogo: ReactNode;
 } {
   const [abierta, setAbierta] = useState<{ deal: DealQueResponde; respuesta: Respuesta; flecha: FlechaCliente } | null>(null);
@@ -112,7 +111,6 @@ export function useResponder(
   // diálogo que el botón Resultado de la llamada, aquí mismo y sin pasar por la ficha.
   const [citaAbierta, setCitaAbierta] = useState<{ deal: DealQueResponde; uso: "fallida" | "reprogramar" } | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [correccionAbierta, setCorreccionAbierta] = useState<{ deal: DealQueResponde; correccion: CorreccionCliente } | null>(null);
   // El pop-up de actividad guarda los tipos que se pueden elegir y el que esta elegido: con
   // un solo tipo no hay selector; con varios ("Registrar actividad"), se escoge dentro.
   const [actividadAbierta, setActividadAbierta] = useState<{
@@ -168,16 +166,11 @@ export function useResponder(
     else if (respuestas.length > 1) setDestinoAbierto({ deal, destino, respuestas });
   }
 
-  function corregir(deal: DealQueResponde, correccion: CorreccionCliente) {
-    setCorreccionAbierta({ deal, correccion });
-  }
-
   async function confirmar(
     deal: DealQueResponde,
     datos: DatosDialogo,
     destino: EtapaDeal,
     pendiente: PendienteDeal | null,
-    correccion = false,
     tipoDeHecho?: MovimientoDelDialogo["hecho"],
   ) {
     setEnviando(true);
@@ -190,7 +183,7 @@ export function useResponder(
         : tipoDeHecho === "abono" && datos.abono?.concepto
           ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, concepto: datos.abono.concepto, nota: datos.abono.concepto === "adicional" ? datos.abono.nota : undefined, enlacePagoId: datos.abono.enlacePagoId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
           : undefined;
-    const r = pendiente === "proxima_cohorte" && !correccion
+    const r = pendiente === "proxima_cohorte"
       ? await proximaCohorteAccion({
           dealId: deal.dealId,
           cohortId: datos.cohorteDestinoId ?? "",
@@ -199,7 +192,6 @@ export function useResponder(
           dealId: deal.dealId,
           a: destino,
           pendiente,
-          correccion,
           motivoId: datos.motivoId ?? null,
           comentarioMotivo: datos.comentarioMotivo,
           comentario: datos.comentario,
@@ -213,9 +205,7 @@ export function useResponder(
         });
     setEnviando(false);
     if (r.ok) {
-      if (correccion) {
-        toast.success("Corrección guardada.", { duration: Infinity, closeButton: true });
-      } else if (datos.abono?.concepto === "adicional") {
+      if (datos.abono?.concepto === "adicional") {
         toast.success("Abono adicional registrado.", { duration: Infinity, closeButton: true });
       } else {
         toast.success(r.resumen[0], {
@@ -225,7 +215,6 @@ export function useResponder(
         });
       }
       setAbierta(null);
-      setCorreccionAbierta(null);
       avisarCambioDeNotificaciones();
       alTerminar();
     } else {
@@ -363,7 +352,7 @@ export function useResponder(
         llamada={deal.llamada}
         fechaLimiteSugerida={deal.fechaLimiteSugerida ?? null}
         enviando={enviando}
-        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, movimiento.pendiente, false, movimiento.hecho)}
+        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, movimiento.pendiente, movimiento.hecho)}
       />
     );
   }
@@ -382,38 +371,7 @@ export function useResponder(
       <DialogoReagendar callId={deal.llamada!.id} dealId={deal.dealId} onCerrar={cerrar} onCambio={alTerminar} />
     );
   }
-  if (correccionAbierta) {
-    const { deal, correccion } = correccionAbierta;
-    const movimiento: MovimientoDelDialogo = {
-      dealId: deal.dealId,
-      a: correccion.a,
-      pendiente: correccion.pendiente,
-      correccion: true,
-      de: deal.etapa,
-    };
-    dialogo = (
-      <DialogoMover
-        abierto
-        onAbrir={(v) => !v && setCorreccionAbierta(null)}
-        flecha={correccion.flecha}
-        titulo="Corregir último movimiento"
-        rutaDeLaFicha={deal.rutaDeLaFicha}
-        nombreLead={deal.nombreLead}
-        movimiento={movimiento}
-        nombreDeEtapa={nombreDeEtapa}
-        cohortes={opciones.cohortesDestino}
-        motivos={opciones.motivos}
-        plataformas={opciones.plataformas}
-        enlacesDePago={opciones.enlacesDePago}
-        saldo={deal.saldo}
-        moneda={deal.moneda}
-        llamada={deal.llamada}
-        enviando={enviando}
-        onConfirmar={(datos, destino) => void confirmar(deal, datos, destino, correccion.pendiente, true, movimiento.hecho)}
-      />
-    );
-  }
-  return { elegir, registrar, registrarActividad, abrirDestino, corregir, dialogo };
+  return { elegir, registrar, registrarActividad, abrirDestino, dialogo };
 }
 
 /** Los botones de las respuestas, en el orden de la tabla. */

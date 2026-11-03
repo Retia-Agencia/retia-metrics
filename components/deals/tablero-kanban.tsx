@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
 import type { ColumnaDelTablero, EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import type { ColumnaKanban, OpcionCatalogo, TarjetaDeal } from "@/lib/queries/kanban";
-import type { CorreccionCliente, MapaTransiciones } from "./transiciones";
+import type { MapaTransiciones } from "./transiciones";
 import type { TonoEtapa } from "./etapa-tono";
 import { TarjetaDealCard } from "./tarjeta-deal";
 import { respuestasHaciaColumna } from "./pregunta-de-etapa";
 import { useResponder, type DealQueResponde } from "./responder-pregunta";
+import { DialogoDeshacer } from "./ficha/dialogo-deshacer";
 
 /**
  * El tablero Kanban (ticket 069): columnas por etapa y tarjetas de deal, con arrastre
@@ -35,8 +36,7 @@ export interface TableroKanbanProps {
   columnas: ColumnaKanban[];
   total: number;
   mapa: MapaTransiciones;
-  /** A que etapa se corrige cada deal del tablero (solo los que se pueden corregir), calculado en el servidor. */
-  correcciones: Record<string, CorreccionCliente>;
+  destinosDeCorreccion: Record<string, { etapa: EtapaDeal; nombre: string }[]>;
   nombreDeEtapa: Record<EtapaDeal, string>;
   /** Las etapas más la columna derivada Re-agenda (ADR 0103). */
   nombreDeColumna: Record<ColumnaDelTablero, string>;
@@ -59,10 +59,8 @@ export interface TableroKanbanProps {
   origen: string;
 }
 
-function claseDeDestino({ permitido, correccion, prohibido, enHover }: { permitido: boolean; correccion: boolean; prohibido: boolean; enHover: boolean }) {
+function claseDeDestino({ permitido, prohibido, enHover }: { permitido: boolean; prohibido: boolean; enHover: boolean }) {
   return cn(
-    correccion && "ring-1 ring-tono-peligro/40",
-    correccion && enHover && "bg-tono-peligro/10 ring-2 ring-tono-peligro",
     permitido && "ring-1 ring-primary/40",
     permitido && enHover && "bg-primary/10 ring-2 ring-primary",
     prohibido && "opacity-40",
@@ -73,7 +71,7 @@ function claseDeDestino({ permitido, correccion, prohibido, enHover }: { permiti
 export function TableroKanban({
   columnas,
   mapa,
-  correcciones,
+  destinosDeCorreccion,
   nombreDeEtapa,
   nombreDeColumna,
   nombreDePendiente,
@@ -97,12 +95,13 @@ export function TableroKanban({
   const [levantada, setLevantada] = useState<{ tarjeta: TarjetaDeal; desde: ColumnaDelTablero } | null>(null);
   const arrastrando = levantada?.tarjeta ?? null;
   const [columnaHover, setColumnaHover] = useState<ColumnaDelTablero | null>(null);
+  const [corrigiendo, setCorrigiendo] = useState<TarjetaDeal | null>(null);
   const tableroRef = useRef<HTMLDivElement>(null);
   const velocidadRef = useRef(0);
   const animacionRef = useRef<number | null>(null);
   // El servidor ya escribió: se refresca la pantalla actual (router.refresh), NO
   // revalidatePath, que no refresca la ruta que acaba de escribir (AGENTS.md).
-  const { elegir, abrirDestino, corregir, dialogo } = useResponder(mapa, { cohortes, cohortesDestino, motivos, plataformas, enlacesDePago }, nombreDeEtapa, () => router.refresh());
+  const { elegir, abrirDestino, dialogo } = useResponder(mapa, { cohortes, cohortesDestino, motivos, plataformas, enlacesDePago }, nombreDeEtapa, () => router.refresh());
 
   const detenerAutoScroll = useCallback(() => {
     velocidadRef.current = 0;
@@ -168,11 +167,6 @@ export function TableroKanban({
     if (!origen || origen.desde === columna) return;
     const { tarjeta, desde } = origen;
     const respuestas = respuestasHaciaColumna(tarjeta.etapa, tarjeta.pendiente, desde, columna);
-    const correccion = correcciones[tarjeta.dealId];
-    if (respuestas.length === 0 && correccion?.a === columna) {
-      corregir(dealDe(tarjeta), correccion);
-      return;
-    }
     if (respuestas.length === 0) {
       toast.error(`Desde ${nombreDeColumna[desde]} no se pasa a ${nombreDeColumna[columna]}.`);
       return;
@@ -201,10 +195,7 @@ export function TableroKanban({
           const destinoPermitido =
             levantada != null
             && respuestasHaciaColumna(levantada.tarjeta.etapa, levantada.tarjeta.pendiente, levantada.desde, columna.clave).length > 0;
-          // Corregir pinta en rojo solo donde no hay un camino normal hacia la misma etapa.
-          const destinoCorreccion =
-            levantada != null && !destinoPermitido && correcciones[levantada.tarjeta.dealId]?.a === columna.clave;
-          const destinoProhibido = levantada != null && levantada.desde !== columna.clave && !destinoPermitido && !destinoCorreccion;
+          const destinoProhibido = levantada != null && levantada.desde !== columna.clave && !destinoPermitido;
           const esReagenda = columna.clave === "reagenda";
           const tarjetas = columna.tarjetas;
 
@@ -214,7 +205,7 @@ export function TableroKanban({
               onDragOver={(e) => {
                 if (arrastrando) {
                   e.preventDefault();
-                  e.dataTransfer.dropEffect = destinoPermitido || destinoCorreccion ? "move" : "none";
+                  e.dataTransfer.dropEffect = destinoPermitido ? "move" : "none";
                   setColumnaHover(columna.clave);
                 }
               }}
@@ -230,7 +221,6 @@ export function TableroKanban({
                 // y la que tiene el cursor encima se destaca.
                 claseDeDestino({
                   permitido: destinoPermitido,
-                  correccion: destinoCorreccion,
                   prohibido: destinoProhibido,
                   enHover: columnaHover === columna.clave,
                 }),
@@ -269,6 +259,7 @@ export function TableroKanban({
                         setColumnaHover(null);
                       }}
                       onElegirRespuesta={(r) => elegir(dealDe(tarjeta), r)}
+                      onCorregir={destinosDeCorreccion[tarjeta.dealId]?.length ? () => setCorrigiendo(tarjeta) : undefined}
                     />
                   ))
                 )}
@@ -291,6 +282,21 @@ export function TableroKanban({
       </div>
 
       {dialogo}
+      {corrigiendo && destinosDeCorreccion[corrigiendo.dealId]?.length ? (
+        <DialogoDeshacer
+          abierto
+          onAbrir={(abierto) => !abierto && setCorrigiendo(null)}
+          dealId={corrigiendo.dealId}
+          evento={{ tipo: "etapa", id: null, a: destinosDeCorreccion[corrigiendo.dealId][0].etapa }}
+          cambios={[{
+            etiqueta: "Etapa",
+            ahora: nombreDeEtapa[corrigiendo.etapa],
+            quedaria: destinosDeCorreccion[corrigiendo.dealId][0].nombre,
+          }]}
+          destinos={destinosDeCorreccion[corrigiendo.dealId]}
+          titulo="Corregir etapa"
+        />
+      ) : null}
     </div>
   );
 }

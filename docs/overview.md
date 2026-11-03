@@ -414,6 +414,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   etapa destino (el mismo del arrastre). **Anotar** no la cambia: deja un comentario y, si aplica, el dato
   que pone un pendiente. Cada anotación queda en las Actividades del deal (ADR 0081). *Evitar: "registrar
   actividad", "dejar en espera", "intento".*
+- **Deshacer:** devolver un evento humano del log a su estado anterior. Antes de confirmar muestra qué valor hay y
+  cuál quedará; el motivo es opcional y el log conserva quién lo hizo y cuándo. Un deshacer no se deshace.
+- **Corregir etapa:** cambiar la etapa a cualquiera de los destinos permitidos sin inventar un resultado de negocio.
+  No entra a Ganado ni a Cierre perdido, y no sale de una etapa ganada; esos cambios se hacen sobre el abono, la
+  cortesía o el cierre que los causó.
 - **Compromiso Verbal:** la persona confirmó que va a pagar y dijo en qué fecha. Sin fecha prometida no es
   Compromiso Verbal: es Seguimiento (reunión del 9-oct).
 - **Notificaciones:** la pestaña de Mi espacio donde el closer ve lo que le toca, por tipo (Hoy, Re-agenda,

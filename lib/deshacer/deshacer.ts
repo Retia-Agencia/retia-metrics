@@ -119,6 +119,23 @@ async function gruposDelRegistro(tx: Db, evento: FilaCambio): Promise<FilaCambio
   return agrupar(filas);
 }
 
+/** El grupo humano que creó un registro, para que los botones viejos también dejen reversión. */
+export async function eventoDeCreacion(
+  db: Db,
+  tabla: TablaDeshacible,
+  registroId: string,
+): Promise<string | null> {
+  const filas = await db.select().from(changeLog).where(and(
+    eq(changeLog.tabla, tabla),
+    eq(changeLog.registroId, registroId),
+  )).orderBy(changeLog.detectadoEn);
+  const grupo = agrupar(filas).find((candidato) =>
+    candidato[0]?.userId != null
+    && candidato.every((fila) => fila.valorAnterior === null && fila.reversionId == null),
+  );
+  return grupo ? idDelGrupo(grupo) : null;
+}
+
 async function insertarReversion(
   tx: Db,
   valores: typeof reversiones.$inferInsert,
@@ -298,7 +315,7 @@ export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: str
     ...cambios,
     ...etapas.map(({ historia, reversion, tipoMotivo }) => ({
       id: historia.id,
-      puedeDeshacer: historia.userId != null && historia.reversionId == null && tipoMotivo !== "correccion"
+      puedeDeshacer: historia.userId != null && historia.reversionId == null && reversion == null && tipoMotivo !== "correccion"
         && puedeDeshacer(actor, { autorId: historia.userId, ownerUserId: deal.ownerUserId }),
       resumen: [{ campo: "etapa", ahora: historia.a, quedaria: historia.de }],
       deshecho: reversion ? { userId: reversion.userId, fecha: reversion.fecha, motivo: reversion.motivo } : null,

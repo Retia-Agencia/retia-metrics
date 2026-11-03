@@ -2,6 +2,7 @@ import { z } from "zod";
 import { calls, dealEtapaHistorial, deals, motivos as tablaMotivos, tipoMotivoEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moldeDeCatalogo } from "./molde";
+import { ErrorDeApp } from "@/lib/errors";
 
 /**
  * Motivos de perdida de una llamada (ADR 0012, ADR 0015), sobre el molde de
@@ -30,7 +31,7 @@ export function motivos(db?: Db) {
   // El molde se parametriza con la ENTRADA (`z.input`), donde `tipo` es opcional por su
   // default: asi el catalogo generico —que solo escribe `nombre`— sigue creando motivos
   // (de `perdida`) sin pasar `tipo`, y el tipo encaja con `EntradaCatalogo`.
-  return moldeDeCatalogo<EntradaMotivo>(
+  const catalogo = moldeDeCatalogo<EntradaMotivo>(
     {
       tabla: tablaMotivos,
       nombreTabla: "motivos",
@@ -47,4 +48,13 @@ export function motivos(db?: Db) {
     },
     db,
   );
+  return {
+    ...catalogo,
+    crear: async (userId: string, input: EntradaMotivo) => {
+      if (input.tipo === "correccion") {
+        throw new ErrorDeApp("Los motivos de corrección ya no se crean; escribe el motivo al deshacer.", 400);
+      }
+      return catalogo.crear(userId, input);
+    },
+  };
 }

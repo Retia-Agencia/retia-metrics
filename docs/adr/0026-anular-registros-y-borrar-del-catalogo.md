@@ -3,6 +3,8 @@
 **Fecha:** 2026-09-18 · **Reescrito:** 2026-09-27 (la anulación pasa al modelo del deal, ADR 0037 y
 0038) · **Estado:** aceptado
 
+**Enmendado por el ADR 0117.**
+
 ## El problema
 
 En el recorrido del 18-sep apareció que no había forma de deshacer nada: ni un solo `.delete(` en la

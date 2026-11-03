@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,15 +8,12 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { AlertasDelDeal, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { BotonDeEtapa } from "../boton-de-etapa";
 import { gruposDeTransicion, gruposSinDueno, type ClaveDestino } from "../pregunta-de-etapa";
-import {
-  DESCRIPCION_DE_CORREGIR,
-  DESCRIPCION_DE_DESTINO,
-  type DestinoConDescripcion,
-} from "../descripcion-de-destino";
+import { DESCRIPCION_DE_CORREGIR, DESCRIPCION_DE_DESTINO, type DestinoConDescripcion } from "../descripcion-de-destino";
 import { useResponder, type DealQueResponde } from "../responder-pregunta";
 import { DialogoAnotar } from "../dialogo-anotar";
-import type { CorreccionCliente, MapaTransiciones } from "../transiciones";
+import type { MapaTransiciones } from "../transiciones";
 import type { TonoEtapa } from "../etapa-tono";
+import { DialogoDeshacer } from "./dialogo-deshacer";
 
 /** El destino de un botón siempre tiene descripción (nunca es una etapa de pago cruda). */
 function tieneDescripcion(destino: ClaveDestino): destino is DestinoConDescripcion {
@@ -26,7 +24,6 @@ export function FichaTransicion({
   ficha,
   opciones,
   mapa,
-  correccion,
   ordenDeEtapas,
   nombreDeEtapa,
   tonoDeEtapa,
@@ -38,7 +35,6 @@ export function FichaTransicion({
   ficha: FichaDeDeal;
   opciones: OpcionesDeFicha;
   mapa: MapaTransiciones;
-  correccion: CorreccionCliente | null;
   ordenDeEtapas: readonly EtapaDeal[];
   nombreDeEtapa: Record<EtapaDeal, string>;
   tonoDeEtapa: Record<EtapaDeal, TonoEtapa>;
@@ -55,7 +51,8 @@ export function FichaTransicion({
   alertas: AlertasDelDeal | null;
 }) {
   const router = useRouter();
-  const { abrirDestino, corregir, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
+  const [corrigiendo, setCorrigiendo] = useState(false);
+  const { abrirDestino, dialogo } = useResponder(mapa, opciones, nombreDeEtapa, () => router.refresh());
   const deal: DealQueResponde = {
     dealId: ficha.dealId,
     etapa: ficha.etapa,
@@ -131,10 +128,10 @@ export function FichaTransicion({
                   );
                 })}
                 {/* Corregir pide dueño (es administrar o del propio dueño): nunca sin dueño. */}
-                {puedeTrabajar && correccion ? (
+                {puedeTrabajar && ficha.destinosDeCorreccion.length > 0 ? (
                   <div className="space-y-1">
-                    <Button type="button" className="w-full" variant="destructive" onClick={() => corregir(deal, correccion)}>
-                      Corregir
+                    <Button type="button" className="w-full" variant="destructive" onClick={() => setCorrigiendo(true)}>
+                      Corregir etapa
                     </Button>
                     <p className="text-xs text-muted-foreground">{DESCRIPCION_DE_CORREGIR}</p>
                   </div>
@@ -165,6 +162,17 @@ export function FichaTransicion({
         ) : null}
       </CardContent>
       {dialogo}
+      {corrigiendo ? (
+        <DialogoDeshacer
+          abierto
+          onAbrir={setCorrigiendo}
+          dealId={ficha.dealId}
+          evento={{ tipo: "etapa", id: null, a: ficha.destinosDeCorreccion[0].etapa }}
+          cambios={[{ etiqueta: "Etapa", ahora: nombreDeEtapa[ficha.etapa], quedaria: ficha.destinosDeCorreccion[0].nombre }]}
+          destinos={ficha.destinosDeCorreccion}
+          titulo="Corregir etapa"
+        />
+      ) : null}
     </Card>
   );
 }

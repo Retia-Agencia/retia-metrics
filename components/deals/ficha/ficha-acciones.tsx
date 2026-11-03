@@ -17,6 +17,7 @@ import type { FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { anularDealAccion, cambiarCohorteAccion, editarDealAccion, marcarCortesiaAccion, type EntradaEditarDeal } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseTextarea, DialogoForm } from "./campos";
 import { useAccion } from "./uso-accion";
+import { DialogoDeshacer } from "./dialogo-deshacer";
 
 /**
  * Las acciones del encabezado de la ficha (ticket 074): editar, anular y **cambiar cohorte**
@@ -67,6 +68,9 @@ export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: Fi
   const avisoSolapamiento = !esEstudiante && !cerrado && codigosVendiendo.length >= 2
     ? `Hoy venden ${codigosVendiendo.length === 2 ? "dos" : codigosVendiendo.length} cohortes (${listaCohortesVendiendo}): confirma en cuál queda este deal.`
     : null;
+  const creacion = ficha.log.find((evento) =>
+    evento.tipo === "cambio" && evento.tabla === "deals" && evento.accion === "creado" && evento.deshacer?.puede,
+  );
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -93,7 +97,15 @@ export function FichaAcciones({ ficha, opciones, puedeTrabajar, administra }: Fi
         <DialogoEditar ficha={ficha} opciones={opciones} administra={administra} onCerrar={() => setEditando(false)} />
       ) : null}
       {cambiandoCohorte ? <DialogoCohorte ficha={ficha} opciones={opciones} onCerrar={() => setCambiandoCohorte(false)} /> : null}
-      {anulando ? <DialogoAnular ficha={ficha} onCerrar={() => setAnulando(false)} /> : null}
+      {anulando && creacion?.deshacer ? (
+        <DialogoDeshacer
+          abierto
+          onAbrir={setAnulando}
+          dealId={ficha.dealId}
+          evento={{ tipo: "cambio", changeLogId: creacion.id }}
+          cambios={creacion.deshacer.cambios}
+        />
+      ) : anulando ? <DialogoAnular ficha={ficha} onCerrar={() => setAnulando(false)} /> : null}
       {marcandoCortesia ? <DialogoCortesia ficha={ficha} onCerrar={() => setMarcandoCortesia(false)} /> : null}
     </div>
   );
@@ -330,7 +342,7 @@ function DialogoAnular({ ficha, onCerrar }: { ficha: FichaDeDeal; onCerrar: () =
               (el dinero no desaparece en silencio) y luego el deal.
             </p>
           ) : (
-            <Campo etiqueta="¿Por qué se anula?" ayuda="Obligatorio. Queda escrito con tu nombre.">
+            <Campo etiqueta="Motivo (opcional)" ayuda="Queda escrito con tu nombre.">
               <textarea
                 className={claseTextarea}
                 value={motivo}
@@ -348,7 +360,7 @@ function DialogoAnular({ ficha, onCerrar }: { ficha: FichaDeDeal; onCerrar: () =
           <Button
             type="button"
             variant="destructive"
-            disabled={pendiente || bloqueado || motivo.trim().length < 5}
+            disabled={pendiente || bloqueado}
             onClick={() =>
               correr(() => anularDealAccion({ dealId: ficha.dealId, motivo }), {
                 exito: "Deal anulado: ya no cuenta en ninguna métrica.",

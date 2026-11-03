@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarActividad } from "@/lib/deals/actividades";
-import { etapaDeCorreccion } from "@/lib/deals/mover-etapa";
+import { destinosDeCorreccion } from "@/lib/deals/etapas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -76,10 +76,10 @@ describe("registrarActividad", () => {
     expect(await db.select().from(changeLog).where(eq(changeLog.registroId, d.id))).toEqual(expect.arrayContaining([expect.objectContaining({ campo: "ownerUserId", userId: closer })]));
   });
 
-  it("el movimiento que dispara una actividad lo firma quien la registró, y se puede corregir (ADR 0078)", async () => {
+  it("el movimiento que dispara una actividad lo firma quien la registró y la etapa admite corrección libre", async () => {
     const d = await nuevo("en_gestion");
     await registrarActividad(db, actor(), { dealId: d.id, tipo: "contacto", canal: "WhatsApp", nota: "Respondió" });
-    expect(await etapaDeCorreccion(db, d.id)).toEqual({ a: "en_gestion", pendiente: null });
+    expect(destinosDeCorreccion("contactado")).toContain("en_gestion");
   });
 
   it("rechaza registrar una actividad intento", async () => {

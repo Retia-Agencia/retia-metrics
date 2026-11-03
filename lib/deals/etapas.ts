@@ -97,7 +97,7 @@ export const FLECHA_CORRECCION: FlechaCorreccion = {
   id: "CORR",
   quien: "closer",
   exigeMotivo: false,
-  tipoDeMotivo: "correccion",
+  tipoDeMotivo: null,
   soloConPendiente: false,
 };
 

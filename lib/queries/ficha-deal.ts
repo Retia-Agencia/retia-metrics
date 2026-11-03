@@ -17,7 +17,9 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import { destinosDeCorreccion, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, siguientesDe, transicion, type EtapaDeal, type PendienteDeal } from "@/lib/deals/etapas";
+import type { ActorDeDeal } from "@/lib/deals/permiso";
+import { eventosDeshacibles, idDelGrupo } from "@/lib/deshacer/deshacer";
 import { leerHechos } from "@/lib/deals/mover-etapa";
 import { propiedadesQueLeFaltan, queLeFalta, type RequisitoFaltante } from "@/lib/deals/requisitos";
 import { fechaLimiteMaxima } from "@/lib/deals/pago";
@@ -87,6 +89,7 @@ export interface FichaDeAbono {
   anuladoEn: Date | null;
   motivoAnulacion: string | null;
   anuladoPorNombre: string | null;
+  eventoCreacion: { id: string; cambios: { etiqueta: string; ahora: string | null; quedaria: string | null }[] } | null;
 }
 
 export interface FichaDeActividad {
@@ -99,6 +102,9 @@ export interface FichaDeActividad {
   pendientePuesto: PendienteDeal | null;
   /** `null` = la escribio el sistema. */
   autorNombre: string | null;
+  anuladoEn: Date | null;
+  motivoAnulacion: string | null;
+  anuladoPorNombre: string | null;
 }
 
 export interface FichaDeMovimiento {
@@ -115,6 +121,9 @@ interface FichaDeEventoBase {
   id: string;
   fecha: Date;
   porNombre: string | null;
+  deshacer: { puede: boolean; cambios: { etiqueta: string; ahora: string | null; quedaria: string | null }[] } | null;
+  deshecho: { porNombre: string | null; fecha: Date; motivo: string | null } | null;
+  esDeshacer: boolean;
 }
 
 export type FichaDeEvento =
@@ -248,6 +257,7 @@ export interface FichaDeDeal {
   actividades: FichaDeActividad[];
   historial: FichaDeMovimiento[];
   log: FichaDeEvento[];
+  destinosDeCorreccion: { etapa: EtapaDeal; nombre: string }[];
   enlacesDePago: EnlaceDeLaPantalla[];
 }
 
@@ -412,7 +422,13 @@ function fechaDeLlamada(c: { fechaAgenda: Date | null; fechaLlamada: Date | null
 }
 
 /** La ficha de un deal de ESTE programa, o `null` si no existe o es de otro. */
-export async function fichaDeDeal(db: Db, programId: string, dealId: string, detalleTecnico = true): Promise<FichaDeDeal | null> {
+export async function fichaDeDeal(
+  db: Db,
+  programId: string,
+  dealId: string,
+  detalleTecnico = true,
+  actor?: ActorDeDeal,
+): Promise<FichaDeDeal | null> {
   // El deal + su lead: joins directos. `incluyendoAnulados`: la ficha de un deal anulado se
   // abre (dice que esta anulado); es una fila por su id, no una metrica.
   const [fila] = await db
@@ -475,6 +491,8 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
         : and(eq(changeLog.tabla, "deals"), eq(changeLog.registroId, deal.id)),
     )
     .orderBy(desc(changeLog.detectadoEn));
+  const eventosConDeshacer = actor ? await eventosDeshacibles(db, actor, deal.id) : [];
+  const deshacerPorId = new Map(eventosConDeshacer.map((evento) => [evento.id, evento]));
   const enlacesDePago = await enlacesDePagoVigentes({ programId: deal.programId }, db);
 
   // Nombres de personas: una sola consulta con todos los ids que aparecen.
@@ -488,8 +506,10 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
   llamadasFilas.forEach((c) => (sumar(c.closerUserId), sumar(c.anuladoPor)));
   abonosFilas.forEach((a) => sumar(a.anuladoPor));
   actividadesFilas.forEach((a) => sumar(a.userId));
+  actividadesFilas.forEach((a) => sumar(a.anuladoPor));
   historialFilas.forEach((h) => sumar(h.userId));
   cambiosFilas.forEach((c) => sumar(c.userId));
+  eventosConDeshacer.forEach((evento) => sumar(evento.deshecho?.userId));
   cambiosFilas.forEach((c) => {
     if (!CAMPOS_USUARIO.has(c.campo)) return;
     if (c.valorAnterior && UUID_DE_BITACORA.test(c.valorAnterior)) sumar(c.valorAnterior);
@@ -526,6 +546,9 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
         accion: cambio.valorAnterior === null ? "creado" : "editado",
         campos: [campo],
         porNombre: nombreDe(cambio.userId),
+        deshacer: null,
+        deshecho: null,
+        esDeshacer: cambio.reversionId != null,
       });
     }
   }
@@ -544,6 +567,14 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
         ? "creado"
         : "editado";
     });
+  }
+
+  for (const [claveDeGrupo, evento] of cambiosAgrupados) {
+    const filas = cambiosFilas.filter((fila) =>
+      [fila.tabla, fila.registroId, fila.detectadoEn.toISOString(), fila.userId ?? ""].join("\u0000") === claveDeGrupo,
+    );
+    evento.id = idDelGrupo(filas);
+    evento.esDeshacer = filas.some((fila) => fila.reversionId != null);
   }
 
   const idsDeCohortes = [
@@ -575,9 +606,33 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
     return valor;
   };
 
+  const datosDeDeshacer = (id: string) => {
+    const evento = deshacerPorId.get(id);
+    if (!evento) return { deshacer: null, deshecho: null };
+    return {
+      deshacer: {
+        puede: evento.puedeDeshacer,
+        cambios: evento.resumen.map((cambio) => ({
+          etiqueta: ETIQUETA_CAMPO[cambio.campo] ?? cambio.campo,
+          ahora: valorLegible(cambio.campo, cambio.ahora),
+          quedaria: valorLegible(cambio.campo, cambio.quedaria),
+        })),
+      },
+      deshecho: evento.deshecho ? {
+        porNombre: nombreDe(evento.deshecho.userId),
+        fecha: evento.deshecho.fecha,
+        motivo: evento.deshecho.motivo,
+      } : null,
+    };
+  };
+
+  const cambiosConDeshacer = [...cambiosAgrupados.values()].map((evento) => ({
+    ...evento,
+    ...datosDeDeshacer(evento.id),
+  }));
   const cambiosParaVista = detalleTecnico
-    ? [...cambiosAgrupados.values()]
-    : [...cambiosAgrupados.values()].flatMap((evento) => {
+    ? cambiosConDeshacer
+    : cambiosConDeshacer.flatMap((evento) => {
         const campos = evento.campos.flatMap((campo) => {
           const etiqueta = ETIQUETA_CAMPO[campo.campo];
           return etiqueta
@@ -705,6 +760,11 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
       anuladoEn: a.anuladoEn,
       motivoAnulacion: a.motivoAnulacion,
       anuladoPorNombre: nombreDe(a.anuladoPor),
+      eventoCreacion: (() => {
+        const evento = cambiosPorRegistro.get(`abonos\u0000${a.id}`)?.find((grupo) => grupo.accion === "creado");
+        const datos = evento ? datosDeDeshacer(evento.id).deshacer : null;
+        return evento && datos?.puede ? { id: evento.id, cambios: datos.cambios } : null;
+      })(),
     })),
     actividades: actividadesFilas.map((a) => ({
       id: a.id,
@@ -715,6 +775,9 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
       proximoContacto: a.proximoContacto,
       pendientePuesto: a.pendientePuesto,
       autorNombre: nombreDe(a.userId),
+      anuladoEn: a.anuladoEn,
+      motivoAnulacion: a.motivoAnulacion,
+      anuladoPorNombre: nombreDe(a.anuladoPor),
     })),
     historial: historialFilas.map((h) => ({
       id: h.id,
@@ -733,9 +796,12 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
         a: h.a,
         porNombre: nombreDe(h.userId),
         motivoNombre: nombreDeMotivo(h.motivoId),
+        ...datosDeDeshacer(h.id),
+        esDeshacer: h.reversionId != null,
       })),
       ...cambiosParaVista,
     ].sort((a, b) => b.fecha.getTime() - a.fecha.getTime()),
+    destinosDeCorreccion: destinosDeCorreccion(deal.etapa).map((etapa) => ({ etapa, nombre: NOMBRE_DE_ETAPA[etapa] })),
     enlacesDePago,
   };
 }

@@ -1111,38 +1111,6 @@ export async function etapaAntesDeCompromiso(tx: Db, dealId: string): Promise<Et
   return fila?.de ?? null;
 }
 
-/** Destino de corregir el último movimiento humano, o `null` cuando no se ofrece. */
-export async function etapaDeCorreccion(
-  tx: Db,
-  dealId: string,
-): Promise<{ a: EtapaDeal; pendiente: PendienteDeal | null } | null> {
-  const [deal] = await tx
-    .select({ etapa: deals.etapa, anuladoEn: deals.anuladoEn })
-    .from(deals)
-    .where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
-  if (!deal || deal.anuladoEn) return null;
-
-  const [a] = destinosDeCorreccionPuros(deal.etapa);
-  return a ? { a, pendiente: null } : null;
-}
-
-/** El tablero pregunta por todas sus tarjetas de una vez: una consulta, la misma regla. */
-export async function destinosDeCorreccionDelTablero(
-  db: Db,
-  tarjetas: readonly { dealId: string; etapa: EtapaDeal }[],
-): Promise<Record<string, { a: EtapaDeal; pendiente: PendienteDeal | null }>> {
-  if (tarjetas.length === 0) return {};
-  const destinos: Record<string, { a: EtapaDeal; pendiente: PendienteDeal | null }> = {};
-  for (const { dealId, etapa } of tarjetas) {
-    const [a] = destinosDeCorreccionPuros(etapa);
-    if (a) destinos[dealId] = { a, pendiente: null };
-  }
-  return destinos;
-}
-
-/** Compatibilidad temporal de los llamadores del tablero; la regla vive pura en `etapas.ts`. */
-export const destinosDeCorreccion = destinosDeCorreccionDelTablero;
-
 /** Un requisito de la flecha y si el deal ya lo cumple. */
 export interface RequisitoRevisado {
   codigo: CodigoRequisito;

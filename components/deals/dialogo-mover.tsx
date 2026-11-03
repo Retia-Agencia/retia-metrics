@@ -71,9 +71,6 @@ export interface MovimientoDelDialogo {
   /** `retroceso`: el destino lo dice el historial (RETRO), no quien llama. */
   a: EtapaDeal | "retroceso";
   pendiente: PendienteDeal | null;
-  correccion?: boolean;
-  /** Etapa que se deshace; solo se muestra en el modo corrección. */
-  de?: EtapaDeal;
   hecho?: "atendido" | "agendado" | "abono";
 }
 
@@ -219,7 +216,6 @@ export function DialogoMover({
         dealId,
         a: destinoSolicitado,
         pendiente,
-        correccion: movimiento.correccion,
         motivoId: datos.motivoId ?? null,
         datos: {
           descuentoUsd: datos.descuentoUsd,
@@ -240,7 +236,7 @@ export function DialogoMover({
       vigente = false;
       clearTimeout(espera);
     };
-  }, [abierto, dealId, destinoSolicitado, pendiente, movimiento.correccion, movimiento.hecho, esAbonoTicket, datos]);
+  }, [abierto, dealId, destinoSolicitado, pendiente, movimiento.hecho, esAbonoTicket, datos]);
 
   const destino: EtapaDeal | null = destinoSolicitado === "retroceso" ? (revision?.destinoRetro ?? null) : destinoSolicitado;
   // Se confirma solo con la revision de los datos que hay AHORA: un campo recien cambiado
@@ -313,7 +309,7 @@ export function DialogoMover({
         <DialogHeader>
           <DialogTitle>{titulo}</DialogTitle>
           <DialogDescription>
-            {nombreLead}. {movimiento.correccion ? "Elige el motivo de la corrección." : "Completa lo que pide este paso."}
+            {nombreLead}. Completa lo que pide este paso.
           </DialogDescription>
         </DialogHeader>
 
@@ -506,12 +502,6 @@ export function DialogoMover({
             <p className="text-sm">
               Vuelve a <strong>{nombreDeEtapa[revision.destinoRetro]}</strong>, la etapa en la que estaba antes del
               compromiso, con próximo contacto.
-            </p>
-          ) : null}
-          {movimiento.correccion && movimiento.de ? (
-            <p className="text-sm">
-              Destino: <strong>{nombreDeEtapa[a as EtapaDeal]}</strong>. Se deshace el movimiento de
-              {" "}<strong>{nombreDeEtapa[movimiento.de]}</strong> a <strong>{nombreDeEtapa[a as EtapaDeal]}</strong>.
             </p>
           ) : null}
           {!movimiento.hecho ? <ListaDeRequisitos revision={revision} error={errorDeRevision} cubiertos={cubiertos} /> : null}

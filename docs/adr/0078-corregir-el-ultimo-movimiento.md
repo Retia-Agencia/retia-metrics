@@ -3,6 +3,8 @@
 - **Estado:** aceptado, 3-oct-2026 (Mani). Se construye en el ticket 182.
 - **Confirma:** ADR 0037 (un solo motor), ADR 0038 (anular no es perder) y ADR 0075 (un solo pop-up).
 
+**Enmendado por el ADR 0117.**
+
 ## Contexto
 
 Un clic equivocado podía dejar un deal en una etapa incorrecta. Cierre perdido significa un resultado real del

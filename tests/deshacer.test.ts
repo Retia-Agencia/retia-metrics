@@ -12,6 +12,7 @@ import { REGISTRO } from "@/lib/deshacer/registro";
 import { leerHechos } from "@/lib/deals/mover-etapa";
 import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { ventasConDiaEn } from "@/lib/queries/dashboard";
+import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -104,6 +105,37 @@ describe("deshacer cambios", () => {
     await deshacerEvento(db, actor(autor), { dealId, evento: { tipo: "cambio", changeLogId: cambio!.id } });
     expect((await db.select({ owner: deals.ownerUserId, novedad: deals.ownerNovedadEn }).from(deals).where(eq(deals.id, dealId)))[0])
       .toEqual({ owner: autor, novedad: null });
+  });
+
+  it("la ficha proyecta deshacer, deshecho y las filas escritas al deshacer", async () => {
+    const dealId = await deal();
+    await editarConRastro(
+      { db, tabla: deals, nombreTabla: "deals", actorId: autor, etiqueta: "Lead" },
+      dealId,
+      { acuerdoPago: "Base" },
+    );
+    await editarConRastro(
+      { db, tabla: deals, nombreTabla: "deals", actorId: autor, etiqueta: "Lead" },
+      dealId,
+      { acuerdoPago: "Primero" },
+    );
+    const changeLogId = await eventoEditado("deals", dealId, "acuerdoPago");
+    const antes = (await fichaDeDeal(db, programId, dealId, false, actor(autor)))!.log.find((fila) => fila.id === changeLogId);
+    expect(antes).toMatchObject({ deshacer: { puede: true }, deshecho: null, esDeshacer: false });
+
+    await deshacerEvento(db, actor(autor), {
+      dealId,
+      evento: { tipo: "cambio", changeLogId },
+      motivo: "Dato equivocado",
+    });
+
+    const log = (await fichaDeDeal(db, programId, dealId, false, actor(autor)))!.log;
+    expect(log.find((fila) => fila.id === changeLogId)).toMatchObject({
+      deshacer: { puede: false },
+      deshecho: { porNombre: "autor@retia.co", motivo: "Dato equivocado" },
+      esDeshacer: false,
+    });
+    expect(log).toEqual(expect.arrayContaining([expect.objectContaining({ esDeshacer: true })]));
   });
 
   it("corregir etapa sin fila rechaza al closer ajeno sin mover la base", async () => {

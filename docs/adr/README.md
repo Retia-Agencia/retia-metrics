@@ -46,7 +46,8 @@ comentarios; esta tabla es la que los resuelve.
 | [0075](./0075-la-ficha-se-opera-por-etapa-destino.md) | El deal se mueve con botones de etapa destino (ficha y Kanban, un solo pop-up), las alertas son su recuadro, el comprobante no bloquea (alerta roja) y el closer ve solo sus deals |
 | [0076](./0076-el-setter-entrega-el-deal-al-closer-por-la-cita.md) | El setter entrega el deal al closer por la cita y recibe crédito solo con evidencia: link enviado o actividad propia; cuatro caminos de una llamada con su llave, y una suelta solo la cuelga su host |
 | [0077](./0077-cada-dato-vive-en-la-pantalla-de-su-objeto.md) | Cada dato vive en la pantalla de su objeto (Programa, Perfil, Deal, Lead) y lo que no se usa se quita; la llamada siempre tiene closer; los canales los crea quien `manejaPauta`; tres franjas en la ficha |
-| [0078](./0078-corregir-el-ultimo-movimiento.md) | Corregir deshace el último movimiento humano, restaura su pendiente y exige motivo de corrección |
+| [0078](./0078-corregir-el-ultimo-movimiento.md) | Corregir deshace el último movimiento humano, restaura su pendiente y exige motivo de corrección (**enmendado por el 0117**) |
+| [0117](./0117-deshacer-con-motivo-opcional.md) | Deshacer desde el log restaura cualquier evento humano deshacible, en cualquier momento y con motivo opcional; Corregir etapa elige un destino permitido |
 | [0079](./0079-las-tasas-se-cuentan-sobre-el-mismo-grupo.md) | Las tasas del embudo (show, cierre, agenda → venta) se cuentan por deal sobre la cohorte de citas del rango; por closer, sobre sus shows |
 | [0083](./0083-el-humo-de-la-ui.md) | Las pantallas se prueban con un humo de Playwright que abre todo con cada rol, no con tests de componente |
 | [0084](./0084-un-gerente-puede-operar-como-closer.md) | Un gerente puede operar como closer: capacidad `opera_como_closer`, no un segundo rol (enmienda el 0003) |
@@ -55,7 +56,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0066](./0066-atendido-sin-grain-es-una-alarma.md) | Atendido sin Grain se acepta, cuenta como show y prende una alarma derivada |
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |
 | [0049](./0049-calendly-cuelga-llamadas-de-deals.md) | Calendly reconcilia cada cita por UUID del invitado y, sin UUID, por correo confirmado; ingesta, webhook y cron reintentan; si hay duda queda suelta y alarma |
-| [0026](./0026-anular-registros-y-borrar-del-catalogo.md) | Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó |
+| [0026](./0026-anular-registros-y-borrar-del-catalogo.md) | Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó (**enmendado por el 0117**) |
 | [0038](./0038-anular-no-es-cierre-perdido.md) | Anular no es Cierre Perdido |
 | [0042](./0042-todo-movimiento-del-crm-deja-rastro.md) | Todo movimiento del CRM deja rastro, desde el primer día |
 | [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella |

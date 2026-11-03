@@ -5,15 +5,13 @@ import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { cookies } from "next/headers";
-import { NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
+import { destinosDeCorreccion, NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
 import { COOKIE_VISTA_DEL_TABLERO } from "@/lib/deals/vista-recordada";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
 import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
-import { correccionSerializable } from "@/lib/deals/mapa-transiciones";
-import { destinosDeCorreccionDelTablero } from "@/lib/deals/mover-etapa";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_COLUMNA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
@@ -70,13 +68,10 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
     opcionesDeTablero(db, programa.id),
   ]);
   const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
-  const destinos = await destinosDeCorreccionDelTablero(db, tarjetas);
-  const correcciones = Object.fromEntries(
-    tarjetas.flatMap((t) => {
-      const correccion = correccionSerializable(t.etapa, destinos[t.dealId] ?? null);
-      return correccion ? [[t.dealId, correccion] as const] : [];
-    }),
-  );
+  const destinosDeCorreccionPorDeal = Object.fromEntries(tarjetas.map((tarjeta) => [
+    tarjeta.dealId,
+    destinosDeCorreccion(tarjeta.etapa).map((etapa) => ({ etapa, nombre: NOMBRE_DE_ETAPA[etapa] })),
+  ]));
 
   return (
     <PageShell
@@ -125,7 +120,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             columnas={tablero.columnas}
             total={tablero.total}
             mapa={mapaDeTransiciones()}
-            correcciones={correcciones}
+            destinosDeCorreccion={destinosDeCorreccionPorDeal}
             nombreDeEtapa={NOMBRE_DE_ETAPA}
             nombreDeColumna={NOMBRE_DE_COLUMNA}
             nombreDePendiente={NOMBRE_DE_PENDIENTE}

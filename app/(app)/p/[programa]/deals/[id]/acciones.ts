@@ -37,7 +37,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 import { crearEnlacePago, esquemaEnlacePago } from "@/lib/catalogo/enlaces-pago";
 import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
-import { deshacerEvento, esquemaDeshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
+import { deshacerEvento, esquemaDeshacerEvento, eventoDeCreacion, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
 
 /**
  * Server actions de la ficha del deal (ticket 074). Mismo patron que `../acciones.ts`:
@@ -202,7 +202,6 @@ const esquemaMoverConHechoAccion = z.object({
   comentarioMotivo: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
   // El comentario de "Lo estoy trabajando" (ticket 228): se guarda como nota antes de mover.
   comentario: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
-  correccion: z.boolean().optional(),
   datos: esquemaDatosMovimiento,
   hecho: esquemaHecho.optional(),
 });
@@ -216,14 +215,6 @@ export async function moverConHechoAccion(
   return correr(async (ctx) => {
     const datos = esquemaMoverConHechoAccion.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
-    if (datos.correccion) {
-      await deshacerEvento(db, ctx.actor, {
-        dealId: datos.dealId,
-        evento: { tipo: "etapa", id: null, a: datos.a },
-        motivo: datos.comentarioMotivo,
-      });
-      return { etapa: datos.a, resumen: [] };
-    }
     const archivo = datos.hecho?.tipo === "abono" && datos.hecho.archivoId
       ? await verificarArchivo(db, almacenDeArchivos(), { archivoId: datos.hecho.archivoId, actorId: ctx.actor.userId })
       : undefined;
@@ -285,7 +276,7 @@ export async function editarDealAccion(entrada: EntradaEditarDeal): Promise<Resu
   });
 }
 
-const esquemaAnular = z.object({ dealId: id("Deal inválido."), motivo: z.string() });
+const esquemaAnular = z.object({ dealId: id("Deal inválido."), motivo: z.string().max(500).optional() });
 export type EntradaAnularDeal = z.input<typeof esquemaAnular>;
 
 export async function anularDealAccion(entrada: EntradaAnularDeal): Promise<ResultadoFicha> {
@@ -293,7 +284,12 @@ export async function anularDealAccion(entrada: EntradaAnularDeal): Promise<Resu
     const { actor } = ctx;
     const { dealId, motivo } = esquemaAnular.parse(entrada);
     await exigirDealVisible(ctx, dealId);
-    await anularDeal(db, actor, { dealId, motivo });
+    const evento = await eventoDeCreacion(db, "deals", dealId);
+    if (evento) {
+      await deshacerEvento(db, actor, { dealId, evento: { tipo: "cambio", changeLogId: evento }, motivo });
+    } else {
+      await anularDeal(db, actor, { dealId, motivo });
+    }
     return {};
   });
 }
@@ -570,7 +566,7 @@ export async function confirmarComprobanteAccion(
   });
 }
 
-const esquemaAnularAbonoAccion = z.object({ abonoId: id("Abono inválido."), motivo: z.string() });
+const esquemaAnularAbonoAccion = z.object({ abonoId: id("Abono inválido."), motivo: z.string().max(500).optional() });
 export type EntradaAnularAbono = z.input<typeof esquemaAnularAbonoAccion>;
 
 export async function anularAbonoAccion(entrada: EntradaAnularAbono): Promise<ResultadoFicha<{ etapa: string; movioElDeal: boolean }>> {
@@ -578,8 +574,22 @@ export async function anularAbonoAccion(entrada: EntradaAnularAbono): Promise<Re
     const { actor } = ctx;
     const { abonoId, motivo } = esquemaAnularAbonoAccion.parse(entrada);
     await exigirAbonoVisible(ctx, abonoId);
-    const r = await anularAbono(db, actor, { abonoId, motivo });
-    return { etapa: r.etapa, movioElDeal: r.movioElDeal };
+    const [antes] = await db.select({ dealId: abonos.dealId, etapa: deals.etapa })
+      .from(abonos).innerJoin(deals, eq(deals.id, abonos.dealId))
+      .where(and(eq(abonos.id, abonoId), incluyendoAnulados(abonos), incluyendoAnulados(deals)));
+    if (!antes) throw new ErrorDeApp("No existe el abono.", 404);
+    const evento = await eventoDeCreacion(db, "abonos", abonoId);
+    if (!evento) {
+      const r = await anularAbono(db, actor, { abonoId, motivo });
+      return { etapa: r.etapa, movioElDeal: r.movioElDeal };
+    }
+    await deshacerEvento(db, actor, {
+      dealId: antes.dealId,
+      evento: { tipo: "cambio", changeLogId: evento },
+      motivo,
+    });
+    const [despues] = await db.select({ etapa: deals.etapa }).from(deals).where(and(eq(deals.id, antes.dealId), vigente(deals)));
+    return { etapa: despues.etapa, movioElDeal: despues.etapa !== antes.etapa };
   });
 }
 

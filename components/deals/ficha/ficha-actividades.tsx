@@ -41,9 +41,10 @@ export function FichaActividades({
       ) : (
         <ul className="divide-y">
           {actividades.map((a) => (
-            <li key={a.id} className="space-y-1 px-4 py-3 text-sm">
+            <li key={a.id} className={a.anuladoEn ? "space-y-1 px-4 py-3 text-sm line-through opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={a.tipo === "contacto" ? "info" : "neutro"}>{ETIQUETA_DE_TIPO[a.tipo]}</Badge>
+                {a.anuladoEn ? <Badge variant="neutro">Anulada</Badge> : null}
                 {a.canal ? <span className="text-xs text-muted-foreground">{a.canal}</span> : null}
                 <span className="ml-auto text-xs text-muted-foreground">
                   {a.autorNombre ?? "Sistema"} · {fechaHoraEnBogota(a.fecha)}
@@ -54,6 +55,12 @@ export function FichaActividades({
                 <p className="text-xs text-muted-foreground">
                   {ETIQUETA_DE_PENDIENTE[a.pendientePuesto]}
                   {a.proximoContacto ? ` · ${fecha(a.proximoContacto)}` : ""}
+                </p>
+              ) : null}
+              {a.anuladoEn ? (
+                <p className="text-xs text-muted-foreground">
+                  Anulada por {a.anuladoPorNombre ?? "Sistema"} · {fechaHoraEnBogota(a.anuladoEn)}
+                  {a.motivoAnulacion ? ` · ${a.motivoAnulacion}` : null}
                 </p>
               ) : null}
             </li>

@@ -47,6 +47,7 @@ export interface TarjetaDealProps {
   onArrastrarInicio: () => void;
   onArrastrarFin: () => void;
   onElegirRespuesta: (r: Respuesta) => void;
+  onCorregir?: () => void;
 }
 
 export function TarjetaDealCard({
@@ -60,6 +61,7 @@ export function TarjetaDealCard({
   onArrastrarInicio,
   onArrastrarFin,
   onElegirRespuesta,
+  onCorregir,
 }: TarjetaDealProps) {
   const respuestas = respuestasDe(tarjeta.etapa, tarjeta.pendiente);
 
@@ -102,7 +104,7 @@ export function TarjetaDealCard({
           </div>
         </div>
 
-        {puedeMover && respuestas.length > 0 ? (
+        {puedeMover && (respuestas.length > 0 || onCorregir) ? (
           <DropdownMenu>
             <DropdownMenuTrigger
               aria-label="Siguiente paso"
@@ -122,6 +124,9 @@ export function TarjetaDealCard({
                     {r.etiqueta}
                   </DropdownMenuItem>
                 ))}
+                {onCorregir ? (
+                  <DropdownMenuItem onClick={onCorregir}>Corregir etapa</DropdownMenuItem>
+                ) : null}
                 {respuestas.some((r) => r.id === "termino") && tarjeta.llamada?.mensajeNoPuedeMarcarAtendida ? (
                   <p className="max-w-64 px-1.5 py-1 text-xs text-muted-foreground">
                     {tarjeta.llamada.mensajeNoPuedeMarcarAtendida}

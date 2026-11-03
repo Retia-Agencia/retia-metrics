@@ -28,6 +28,7 @@ import { useAccion } from "./uso-accion";
 import { cn } from "@/lib/utils";
 import { ControlEnlacePago, FormularioAbono, datosInicialesDeAbono } from "../formulario-abono";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
+import { DialogoDeshacer } from "./dialogo-deshacer";
 
 /**
  * El dinero y el pago del deal (ticket 074): precio, abonado y saldo, el acuerdo de pago,
@@ -278,7 +279,17 @@ export function FichaPago({
         </ul>
       )}
 
-      {dialogo?.tipo === "anular" ? <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "anular" && dialogo.abono.eventoCreacion ? (
+        <DialogoDeshacer
+          abierto
+          onAbrir={(abierto) => !abierto && cerrar()}
+          dealId={ficha.dealId}
+          evento={{ tipo: "cambio", changeLogId: dialogo.abono.eventoCreacion.id }}
+          cambios={dialogo.abono.eventoCreacion.cambios}
+        />
+      ) : dialogo?.tipo === "anular" ? (
+        <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} />
+      ) : null}
       {dialogo?.tipo === "abono" ? <DialogoRegistrarAbono ficha={ficha} opciones={opciones} hoy={hoy} ticketDeshabilitado={cerrado || !aceptaAbono} motivoTicketDeshabilitado={cerrado ? "El deal ya está cerrado." : `Desde ${nombreDeEtapa[ficha.etapa]} aún no se cobra el programa: mueve el deal a una etapa donde el lead ya hable de pagar.`} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "enlace" ? <DialogoCambiarEnlace ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
@@ -546,7 +557,6 @@ function DialogoAnularAbono({
       pendiente={pendiente}
       peligro
       onCerrar={onCerrar}
-      deshabilitarConfirmar={motivo.trim() === ""}
       confirmar={{
         texto: "Anular abono",
         enCurso: "Anulando…",
@@ -557,8 +567,8 @@ function DialogoAnularAbono({
           }),
       }}
     >
-      <Campo etiqueta="¿Por qué se anula?" ayuda="Obligatorio.">
-        <textarea className={claseTextarea} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
+      <Campo etiqueta="Motivo (opcional)">
+        <textarea className={claseTextarea} value={motivo} maxLength={500} onChange={(e) => setMotivo(e.target.value)} />
       </Campo>
     </DialogoForm>
   );
