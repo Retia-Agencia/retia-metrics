@@ -3,7 +3,7 @@ id: 367
 etapa: hub
 serves: "ADR 0086 punto 3 (Hub › Hoy), ADR 0115 N1, N3 y N5; Mani, 3-nov"
 depends: []
-status: todo
+status: en main
 ---
 
 # 367 — Hoy sirve para seguir el día: citas vivas, canceladas aparte y la agenda por hora
