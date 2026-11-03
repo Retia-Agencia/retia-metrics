@@ -3,7 +3,7 @@ id: 368
 etapa: crm
 serves: "ADR 0117 (deshacer), enmienda ADR 0026 y 0078; Michael Castellanos vía Mani, 3-nov"
 depends: []
-status: en rama
+status: en main
 ---
 
 # 368 — Deshacer desde el log del deal, en cualquier momento, con motivo opcional

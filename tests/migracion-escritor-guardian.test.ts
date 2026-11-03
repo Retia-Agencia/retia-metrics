@@ -23,6 +23,8 @@ const AUTORIZADOS = new Set([
   path.join("lib", "deals", "historico.ts"),
   // Donde se DEFINE la columna (`huellaMigracion: text(...)`), no donde se escribe.
   path.join("lib", "db", "schema.ts"),
+  // El registro de deshacer (ADR 0117) CLASIFICA la columna como "no se deshace"; nunca la escribe.
+  path.join("lib", "deshacer", "registro.ts"),
 ]);
 const IMPORTADOR = path.join("lib", "migracion") + path.sep;
 
