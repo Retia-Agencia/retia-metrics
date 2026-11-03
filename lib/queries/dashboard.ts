@@ -10,6 +10,7 @@ import {
   filtroLeads,
   filtroLlamadas,
   citaNoCancelada,
+  citaPorVenir,
   citaVencidaSinResultado,
   llamadaOcurrio,
   porClaveDeDeal,
@@ -409,12 +410,12 @@ export async function embudoDelRango(
     .select({
       agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
       canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
-      porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) > ${ahora})::int`,
+      porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})::int`,
       sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora)})::int`,
       show: sql<number>`count(*) filter (where ${eq(calls.resultado, "show")})::int`,
       noShow: sql<number>`count(*) filter (where ${eq(calls.resultado, "no_show")})::int`,
       otro: sql<number>`count(*) filter (where ${citaNoCancelada()} and not (
-        (${eq(calls.resultado, "agendada")} and coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) > ${ahora})
+        (${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})
         or coalesce(${citaVencidaSinResultado(ahora)}, false)
         or ${inArray(calls.resultado, ["show", "no_show", "reagendada"])}
       ))::int`,

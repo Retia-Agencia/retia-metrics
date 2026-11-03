@@ -406,3 +406,8 @@ export function citaVencidaSinResultado(ahora: Date) {
 export function llamadaYaDebiaOcurrir(ahora: Date) {
   return or(lte(calls.fechaAgenda, ahora), and(isNull(calls.fechaAgenda), lte(calls.fechaLlamada, ahora)));
 }
+
+/** El complemento: la cita todavía no llega al corte. Operadores de drizzle, nunca un `Date` dentro de `sql`. */
+export function citaPorVenir(ahora: Date) {
+  return or(gt(calls.fechaAgenda, ahora), and(isNull(calls.fechaAgenda), gt(calls.fechaLlamada, ahora)));
+}
