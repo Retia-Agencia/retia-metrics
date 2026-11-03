@@ -19,6 +19,24 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 > checkpoint verde.
 
 
+## 20 · Entrega del Hub a Gerencia (weekly con Daniel Tovar, 3-nov) · PRIORIDAD ÚNICA DEL HUB
+
+Plan, trazabilidad cita por cita y decisiones en [`docs/hub.md`](../hub.md) §0. Fase 1 en este orden (352 → 374 y 368 → 369, 371 y 372 → 370 → 373); nada más del componente 9 se toca hasta su
+checkpoint verde. El 352 conserva su fila en el §9 (fase 1, paso 1, decisiones cerradas el 3-nov); 353, 354 y 356 pasan
+a fase 2.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 374 | [El Hub habla un solo idioma](./374-el-hub-habla-un-solo-idioma.md) | — | todo · fase 1, paso 2 · reemplaza al 357 |
+| [ ] | 368 | [Los filtros del Hub: periodo, cohorte y closer, separados](./368-filtros-del-hub-periodo-cohorte-y-closer.md) | 352 | todo · fase 1, paso 2 · absorbe al 251 |
+| [ ] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 368, 352, 374 | todo · fase 1, paso 3 |
+| [ ] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | todo · fase 1, paso 3 · absorbe al 253 |
+| [ ] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 368 | todo · fase 1, paso 3 |
+| [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 368, 369 | todo · fase 1, paso 4 · absorbe al 256 |
+| [ ] | 373 | [El reporte en PDF con los filtros](./373-reporte-en-pdf-con-los-filtros.md) | 368 a 372 | todo · fase 1, paso 5 · reemplaza la parte imprimible del 300 |
+| [ ] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 368 | todo · **fase 2** · migración |
+| [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 368, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |
+
 ## 1 · Entrada y lead
 
 31 tickets, 2 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
@@ -233,7 +251,7 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 
 ## 9 · Métricas: el Hub (antes dashboard y metas)
 
-53 tickets, 22 abiertos. Un ticket que aparecía en dos épocas conserva sus dos filas.
+53 tickets, 18 abiertos (3-nov; la entrega a Gerencia está en el §20). Un ticket que aparecía en dos épocas conserva sus dos filas.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
@@ -260,15 +278,15 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [x] | 246 | [La regla del área y el canal que se define solo](./246-la-regla-del-area-y-el-canal-que-se-define-solo.md) | — | done · 14-oct · Mani · CI verde `e020948` · implementó Codex; medido en producción: los 627 envíos de 14 días que el catálogo clasificaba conservan su área, 8 "sin clasificar" pasan a Orgánico |
 | [ ] | 248 | [Hub › Origen: cómo cuenta cada UTM](./248-la-vista-origen-como-cuenta-cada-utm.md) | 246, 250, 262 | en main · 24-oct · Codex + central (`5cb2c5f8`, `20c89906`) · `/ajustes/canales` redirige a Origen y el paid trafficker queda sin Ajustes · falta recorrido visual y `test:humo` · deuda: 309 |
 | [x] | 250 | [El Dashboard y Metas pasan a ser el Hub](./250-el-dashboard-y-metas-pasan-a-ser-el-hub.md) | — | done · su archivo dice `done`; el tracker se puso al día el 23-oct · ADR 0086 |
-| [ ] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | en main · 24-oct · Codex + central (`67a004c2`) · llaves nuevas `comparar=no` y `comparar=cohorte` · falta recorrido visual y `test:humo`; el tooltip aún no dice "12 → 15" |
+| [x] | 251 | [Periodo y "Comparar con", sin A ni B](./251-periodo-y-comparar-con.md) | 250 | reemplazado · 3-nov · por el 368 (weekly con Daniel Tovar): el código queda; lo que faltaba pasa al 368 |
 | [x] | 252 | [Hub › Hoy: el reporte diario sale del CRM](./252-la-pestana-hoy.md) | 250 | done · 14-oct · Alejandro · `95aa3dde`; el tracker se puso al día el 23-oct · la enmienda del 19-oct (artefacto de Anderson) queda abierta como enmienda, no frena al 253 |
-| [ ] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | en main · 24-oct · Codex + central (`b37955f3`, `4be9cae5`) · typecheck, lint, build y test del ticket limpios; recorrido en dev:local sin datos de ventas, las cifras con datos solo las cubre el test |
+| [x] | 253 | [La proyección y lo que hace falta por día](./253-proyeccion-y-requeridos.md) | 252, 262 | reemplazado · 3-nov · por el 371: las fórmulas quedan; se muestran en "¿Vamos a llegar?" |
 | [ ] | 254 | [El origen del cierre](./254-el-origen-del-cierre.md) | 252, 262 | todo |
 | [x] | 255 | [Elegir la librería de gráficas](./255-elegir-la-libreria-de-graficas.md) | — | done · 14-oct · Mani · ECharts con una pieza propia (ADR 0091); rama del prototipo borrada |
-| [ ] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | en main · 24-oct · Codex + central (`901c6c19`) · `echarts` 6.1.0 exacto; recorrido en dev:local en oscuro, claro y 375 px; falta `test:humo` y comparar las cifras migradas contra producción |
+| [x] | 256 | [El contrato de gráficas y la migración](./256-el-contrato-de-graficas-y-la-migracion.md) | 255, 250 | reemplazado · 3-nov · por el 370: el contrato queda; lo que faltaba pasa al 370 |
 | [ ] | 257 | [Las acciones](./257-las-acciones.md) | 252 | todo · migración (ADR 0090) |
 | [x] | 299 | [Hoy fiel: las cifras del reporte diario, definidas y comprobadas](./299-hoy-fiel.md) | 252 | done · 23-oct · D1 a D4 decididas; comparado el 22-oct contra Typeform y Calendly; falta checkpoint · 24-oct: % de show por cita al lado del por deal (`055f07fe`, Mani) |
-| [ ] | 300 | [El reporte del día: vista imprimible y una foto por día](./300-reporte-del-dia-imprimible-y-fotos.md) | 299 | todo · 23-oct · reemplaza al 021 · migración · Juanito lo manda después, en otro ticket |
+| [ ] | 300 | [El reporte del día: vista imprimible y una foto por día](./300-reporte-del-dia-imprimible-y-fotos.md) | 299 | todo · 23-oct · reemplaza al 021 · migración · Juanito lo manda después, en otro ticket · **enmendado 3-nov: la vista imprimible pasa al 373; queda la foto del día, fase 2** |
 | [x] | 309 | [Una sola lista de envíos detrás de las cifras del Hub](./309-una-sola-lista-de-envios.md) | 248, 299 | done · 24-oct · `filtroDeEnvios` alimenta Hoy y Origen; Persona viaja solo para quien administra |
 | [x] | 310 | [Desde cada meta del Hub, un atajo a donde se configura](./310-configurar-metas-desde-el-hub.md) | — | done · 24-oct · enlaces desde el Hub a Programa › Ventas, solo para administradores |
 | [x] | 311 | [Hub › Origen: una sola tarjeta por canal, que se abre en sus UTM](./311-una-tarjeta-de-origen.md) | 248, 309 | done · 24-oct · Codex + central · una tarjeta por canal con sus pares; los pares con macros van en su fila y las listas filtran `con_utm` para cuadrar · recorrido local 24-oct (escritorio, 375 px, closer y Pauta) |
@@ -280,15 +298,15 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 | [ ] | 351 | [Toda razón con su cobertura, y el gasto que falta](./351-toda-razon-con-su-cobertura.md) | — | todo · 30-oct · auditoría de métricas (C-01 ROAS con gasto desde el 8-oct) · ADR 0115 N3 · backfill con ok de Mani |
-| [ ] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | todo · 30-oct · auditoría · espera DA-1, DA-2, DA-5 de Mani |
+| [ ] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | todo · 30-oct · auditoría · **fase 1, paso 1 de la entrega (§20)** · DA-1, DA-2, DA-5 decididas por Mani el 3-nov |
 | [ ] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | todo · 30-oct · auditoría · espera DA-3 (Mani) y DA-4 (con Pauta) |
 | [ ] | 354 | [Cada hecho con su día, y registro, lead y "sin UTM" una vez](./354-anclas-de-fecha-registros-y-sin-utm.md) | — | todo · 30-oct · auditoría (C-04 parciales sin fecha) |
 | [ ] | 355 | [Pauta: un cargador y una tabla](./355-pauta-un-cargador-y-una-tabla.md) | 351, 352, 353, 354 | todo · 30-oct · auditoría · borra `pauta-interina` |
 | [ ] | 356 | [La comisión siempre congelada](./356-la-comision-siempre-congelada.md) | — | todo · 30-oct · auditoría (C-09: 25 ventas sin %) · backfill con ok de Mani |
-| [ ] | 357 | [Un vocabulario de métricas, y un guardián](./357-un-vocabulario-de-metricas.md) | — | todo · 30-oct · auditoría · ADR 0115 N4 |
-| [ ] | 358 | [Formato único, insignias únicas y la regla del vacío](./358-formato-unico-y-estados-vacios.md) | 357 | todo · 30-oct · auditoría · espera DA-7 (Gerencia) |
-| [ ] | 359 | [La pantalla sin jerga, y podada](./359-la-pantalla-sin-jerga-y-podada.md) | 357 | todo · 30-oct · auditoría · espera DA-6 (Mani) |
-| [ ] | 360 | [Filtros: un nombre por parámetro y un componente de fecha](./360-filtros-un-nombre-y-un-componente.md) | — | todo · 30-oct · auditoría |
+| [x] | 357 | [Un vocabulario de métricas, y un guardián](./357-un-vocabulario-de-metricas.md) | — | reemplazado · 3-nov · por el 374, con la parte del Hub del 358 y del 359 |
+| [ ] | 358 | [Formato único, insignias únicas y la regla del vacío](./358-formato-unico-y-estados-vacios.md) | 357 | todo · 30-oct · auditoría · espera DA-7 (Gerencia) · **enmendado 3-nov: la parte del Hub la hace el 374; fase 2** |
+| [ ] | 359 | [La pantalla sin jerga, y podada](./359-la-pantalla-sin-jerga-y-podada.md) | 357 | todo · 30-oct · auditoría · espera DA-6 (Mani) · **enmendado 3-nov: Hub → 374, Comercial → 372; fase 2** |
+| [ ] | 360 | [Filtros: un nombre por parámetro y un componente de fecha](./360-filtros-un-nombre-y-un-componente.md) | — | todo · 30-oct · auditoría · **enmendado 3-nov: filtros del Hub → 368; quedan las listas, fase 2** |
 | [ ] | 361 | [Retiro de lo muerto, y el guardián del diccionario](./361-retiro-de-lo-muerto.md) | — | todo · 30-oct · auditoría · ADR 0115 N7 |
 | [ ] | 362 | [Documentos sin contradicciones, y el tracker que no miente](./362-documentos-sin-contradicciones.md) | — | todo · 30-oct · auditoría · ADR 0115 N8, N9 |
 | [ ] | 363 | [Llamadas sueltas: emparejar por el uuid de la cita, sin importar el orden ni el correo](./363-llamadas-sueltas-sugerencias-y-rematch.md) | — | todo · 30-oct · Inbox · ADR 0049 |

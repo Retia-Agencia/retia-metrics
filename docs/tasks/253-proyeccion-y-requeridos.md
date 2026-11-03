@@ -3,10 +3,12 @@ id: 253
 etapa: hub
 serves: "docs/hub.md H-10, §5.2 (ritmo, proyección, ventas, agendas y leads requeridos) · el reporte del 9 y del 15-sep"
 depends: [252, 262]
-status: en main
+status: reemplazado
 ---
 
 # 253 — La proyección y lo que hace falta por día
+
+> **Reemplazado el 3-nov por el [371](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md)** (weekly con Daniel Tovar). Las fórmulas de este ticket están en `main` y se quedan; la proyección y los requeridos se muestran ahora en el bloque fijo "¿Vamos a llegar?", y el recorrido con ventas que faltaba es del 371.
 
 ## Objetivo
 

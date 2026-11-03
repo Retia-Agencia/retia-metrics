@@ -8,6 +8,8 @@ status: todo
 
 # 359 — La pantalla sin jerga, y podada
 
+> **Enmendado el 3-nov (fase 2):** los puntos 1, 2 y 7 en el Hub los hace el [374](./374-el-hub-habla-un-solo-idioma.md) y el punto 3 (Comercial) el [372](./372-comercial-con-su-periodo-y-parciales-aparte.md). Aquí quedan 4, 5, 6 y el guardián fuera del Hub.
+
 Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026-10-30.md). Reglas: ADR 0115.
 
 ## Por qué

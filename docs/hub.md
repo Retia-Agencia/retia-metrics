@@ -18,6 +18,88 @@ medido que cambia el plan.
 
 ---
 
+## 0. La entrega a Gerencia (weekly con Daniel Tovar, 3-nov): vigente, manda sobre el orden de §6
+
+**Por qué existe esta sección.** En la weekly del 3-nov Daniel Tovar dijo que el Hub tiene la data pero "todavía no es
+útil por los filtros que tiene", que él no lo usa porque "no está tal cual lo que yo necesito ver", y pidió cerrar una
+cosa antes de abrir otra: *"Entrega algo, entrégalo bien hecho, terminadísimo, que se sienta el entregable final y que
+en verdad está rodando. (...) Vamos a acabar primero comercial."* Mani se comprometió a la semana siguiente. Desde hoy
+el trabajo del Hub es **esta entrega y nada más**: los tickets abiertos del componente 9 que no están en la fase 1
+quedan detrás, sin tocarse, hasta que la fase 1 esté en producción con su checkpoint verde.
+
+**El norte, en palabras de Dani:** *"Hay una meta por cumplir que es tanto por cupos como por plata, tanto por mes como
+por cohorte."* Cuatro combinaciones, siempre visibles (371). Y el CRM como **fuente única de verdad**: el reporte que
+Gerencia recibe sale del Hub, en PDF, con los filtros escritos (373).
+
+### Lo que pidió, y dónde quedó (trazabilidad)
+
+| # | Lo que pidió Daniel Tovar | Qué hay hoy (medido en el código, 3-nov) | Ticket |
+|---|---|---|---|
+| G-1 | Periodo y cohorte (SKU) como filtros separados: *"o es el periodo o es el SKU, o son ambas cosas pero separadas"* | "Cohorte actual" es un atajo del periodo (`lib/periodo.ts:15`) | 368 |
+| G-2 | Ver cuándo empezó a venderse la cohorte y la primera venta del SKU, debajo del filtro | no existe | 368 |
+| G-3 | Nunca "monto": siempre tres columnas, **Vendido, Recaudado, Por cobrar**, y en Vendido los tres comparados | Vendido y Recaudado en tarjetas separadas, recaudado por fecha de abono; listas con "Monto" | 369, 374 |
+| G-4 | Las gráficas siguen los filtros (el histórico de la cohorte) | series fijas de 6 meses (`series-dinero.ts`) | 370 |
+| G-5 | "Cupos vendidos acumulado" se entiende: rótulos, eje, tooltip | eje `dd/mm / dd/mm`, comparación propia | 370 |
+| G-6 | Toda gráfica en **cupos y en plata**; ver por día y no solo acumulado (Mani, con el sí de Dani) | sin unidad ni paso | 370 |
+| G-7 | Un bloque fijo, abajo, que no tocan los filtros: lo que llevamos contra la meta, **mes y cohorte × cupos y USD** | piezas sueltas en Hoy y Metas | 371 |
+| G-8 | Cada cifra de Comercial dice su periodo (*"agendas en qué periodo de tiempo?"*) | sigue el periodo pero no lo dice | 372 |
+| G-9 | Deals de un formulario completo y de un parcial, separados | mezclados (ADR 0069) | 372 |
+| G-10 | Reporte en PDF con los filtros que se pongan: la fuente única de verdad | 300 pedía solo Hoy y una foto diaria | 373 |
+| G-11 | *"Sé más específico"*: un nombre por cifra | varios nombres por cifra (auditoría 30-oct, G-01 a G-13) | 374 |
+| G-12 | ROAS que avisa las citas pendientes del gasto del rango y un ROAS proyectado por closer | el ROAS ya ancla al día del envío (`metricas.md`); falta lo pendiente y lo proyectado | 375 (fase 2) |
+| G-13 | Productos y SKUs: qué compró cada persona; SKUs solo los crean admins; los closers asignan | el 1:1 es un abono adicional sin SKU (ADR 0113) | 376 (fase 2) |
+| G-14 | *"Tener certeza de que la data esté bien"* | auditoría del 30-oct: venta, show, anclas y comisión con varias respuestas | 352 (fase 1); 353, 354, 356 (fase 2) |
+
+Ya cumplido y verificado en la reunión: los closers no ven el Hub ni la pauta (ADR 0082, 224).
+
+### Fase 1: el Hub comercial, terminado (objetivo: la semana del 9-nov)
+
+Ocho tickets, en este orden (recortado el 3-nov a pedido de Mani: sin sobrediseño, solo lo que pide el norte). Los de
+un mismo paso no comparten archivos y van en paralelo. Implementa Codex, revisa y migra la sesión principal.
+
+| Paso | Tickets | Qué deja |
+|---|---|---|
+| 1 | **352** (venta y cohorte, una definición) | la cifra de venta es una sola: la base de "¿vamos a llegar?" |
+| 2 | **374** (un idioma) · **368** (filtros) | los nombres de Dani y los filtros separados |
+| 3 | **369** (tres columnas) · **371** (¿vamos a llegar?) · **372** (Comercial) | el dinero, el norte y Comercial |
+| 4 | **370** (gráficas) | toda gráfica sigue los filtros, en cupos o USD, por paso o acumulada |
+| 5 | **373** (PDF) | el reporte diario sale del Hub |
+| 6 | recorrido completo, `test:humo`, checkpoint verde, y sentarse con Daniel Tovar a usarlo | la entrega |
+
+Todas las decisiones de la fase 1 están cerradas (Mani, 3-nov): DA-1, DA-2, DA-5 (en el 352) y DH-1 a DH-4 (abajo).
+**Salen de la fase 1 al recortar**: 353 y 354 (el 372 usa las funciones de show y agenda que ya usa Hoy y toma del 354
+solo el día del deal) y 356 (la comisión no la pidió Dani). Quedan en fase 2.
+
+**Se juntaron o recortaron para entregar antes** (3-nov): 251 → 368; 253 → 371; 256 → 370; 357 → 374; la parte del Hub
+de 358, 359 y 360 → 374, 372 y 368 (su resto queda en fase 2); el 300 pierde la vista imprimible (→ 373) y se queda con
+la foto del día, sin fecha.
+
+### Fase 2 (después de la entrega, sin fecha)
+
+375 (ROAS pendiente y proyectado), 376 (productos y SKUs), 353, 354 y 356 (auditoría), 351 y 355 (cobertura y cargador de pauta), 358, 359 y 360
+(su resto fuera del Hub), 361 y 362 (retiro y documentos), 300 (foto del día). **Pausados hasta entonces** (no se
+borran, no se tocan): 254, 257, 261, 286, 288 y la pauta 123, 124, 125, 249, 284, 285.
+
+### Fuera del Hub (de la misma reunión, en otros frentes)
+
+Transcripciones de Grain descargables en PDF por tipo de cierre, programa y cohorte (frente de media, 328 a 330); la
+parrilla de media conectada al flujo de edición (frente 18); las sesiones de 30 minutos con Andrea, Maru y Dani (las
+closers) y con César para unificar la plantilla de UTM antes del viernes 7-nov: son tareas de Mani, no tickets.
+
+### Decisiones de la entrega (cerradas por Mani el 3-nov)
+
+| # | Qué | Decidido | Ticket |
+|---|---|---|---|
+| DA-1 | ¿Una venta que pasa a Cierre Perdido sigue contando? | No: deja de ser venta y cuenta como pérdida | 352 |
+| DA-2 | ¿Las ventas anteriores al inicio de ventas cuentan para la cohorte? | Sí | 352 |
+| DA-5 | ¿El cumplimiento del día contra la meta de apertura del día? | Sí | 352 |
+| DH-1 | ¿Con qué filtros abre Comercial o Dinero? | Cohorte activa + Desde el inicio | 368 |
+| DH-2 | ¿El Recaudado de las tres columnas? | Lo abonado a esas ventas, a hoy; la plata que entró por fecha sigue aparte como "Entró a caja" | 369 |
+| DH-3 | ¿"En plata" en agendas y shows? | No: son conteos; lo dice el subtítulo | 370 |
+| DH-4 | ¿SKUs como líneas del deal o varios deals por lead? | Líneas del deal (ADR nuevo antes de construir) | 376 |
+
+---
+
 ## 1. El norte
 
 **El Hub contesta cada día, por programa y sin armar nada a mano: ¿vamos a llegar a la meta, dónde se traba la

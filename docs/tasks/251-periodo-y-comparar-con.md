@@ -3,10 +3,12 @@ id: 251
 etapa: hub
 serves: "ADR 0086 punto 4 · docs/hub.md H-2 (Mani: el A contra B no se entiende)"
 depends: [250]
-status: en main
+status: reemplazado
 ---
 
 # 251 — Periodo y "Comparar con", sin A ni B en pantalla
+
+> **Reemplazado el 3-nov por el [368](./368-filtros-del-hub-periodo-cohorte-y-closer.md)** (weekly con Daniel Tovar). El código de este ticket está en `main` y se queda; lo que faltaba (el tooltip "12 → 15", recorrido y `test:humo`) pasó al 368, punto 8, junto con la separación de Cohorte y Periodo.
 
 ## Objetivo
 

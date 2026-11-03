@@ -8,6 +8,8 @@ status: todo
 
 # 360 — Filtros: un nombre por parámetro y un componente de fecha
 
+> **Enmendado el 3-nov (fase 2):** los filtros del Hub (cohorte, periodo, closer con el parámetro `closer`) los hace el [368](./368-filtros-del-hub-periodo-cohorte-y-closer.md). Aquí quedan las cinco listas operativas.
+
 Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026-10-30.md). Reglas: ADR 0115.
 
 ## Por qué

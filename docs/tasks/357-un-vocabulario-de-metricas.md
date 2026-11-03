@@ -3,10 +3,12 @@ id: 357
 etapa: hub
 serves: "ADR 0115 N4 · auditoría 30-oct G-02 a G-09, K-08, U-05, U-07, U-08, U-09, U-15, U-17, U-21"
 depends: []
-status: todo
+status: reemplazado
 ---
 
 # 357 — Un vocabulario de métricas, y un guardián
+
+> **Reemplazado el 3-nov por el [374](./374-el-hub-habla-un-solo-idioma.md)** (weekly con Daniel Tovar), que hace este vocabulario junto con la parte del Hub del 358 y del 359. El alcance de abajo queda como historia.
 
 Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026-10-30.md). Reglas: ADR 0115.
 

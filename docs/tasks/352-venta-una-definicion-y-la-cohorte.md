@@ -24,18 +24,19 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - **C-17 / C-18:** `MUESTRA_MINIMA_CONVERSION = 20` y `DIAS_PARA_MADURAR = 30` en código; "leads requeridos por día"
   divide agendas de la cohorte entre registros del programa entero.
 
-## Decisiones abiertas (frenan el ticket hasta que Mani decida)
+## Decisiones (cerradas por Mani el 3-nov)
 
-- **DA-1:** ¿una venta que luego pasa a Cierre Perdido sigue contando? Propuesta: **sí, por evento**, porque es lo que ya
-  dicen `metricas.md` §1.4 y el ADR 0038, y lo que usan Ventas, Mes, escalera y ROAS. "Vendidos que siguen vendidos"
-  sería otra métrica con otro nombre.
-- **DA-2:** ¿las ventas anteriores al inicio de ventas cuentan para la cohorte? Decide Gerencia. Mientras tanto, Cupos y
-  Proyección usan la misma función para no diferir.
-- **DA-5:** el cumplimiento del día se mide contra la meta de apertura del día. Propuesta: sí.
+- **DA-1: una venta que pasa a Cierre Perdido deja de ser venta y cuenta como pérdida.** Mani: "si se perdió cuenta
+  como pérdida, ya está". Venta = deal **hoy** en Abonado o Completo; su día sigue siendo el primero en que entró a
+  una etapa vendida. Consecuencia aceptada: si una venta de octubre se pierde en noviembre, octubre baja en uno (la
+  cifra del mes pasado se recalcula, como toda cifra del CRM). En la práctica solo pasa con una devolución (242).
+- **DA-2: las ventas anteriores al inicio de ventas SÍ cuentan para la cohorte.** Cupos y Proyección usan la regla de
+  Cupos (sin límite inferior).
+- **DA-5: el cumplimiento del día se mide contra la meta de apertura del día.** Sí.
 
 ## Alcance
 
-1. Una función de venta (SQL y TS gemelas) según DA-1, y que `ventasDeCohorte`, `alertas.ts`, `tasas-del-grupo.ts`,
+1. Una función de venta (SQL y TS gemelas) según DA-1 (etapa actual vendida, día del primer ingreso), y que `ventasDeCohorte`, `alertas.ts`, `tasas-del-grupo.ts`,
    `estudiantes.ts` y `ficha-deal.ts` la importen. Se actualiza el comentario de `dashboard.ts:694-701`.
 2. Una función `ventasDeLaCohorte(cohorte, hasta)` según DA-2, usada por Cupos, meta de hoy y Proyección.
 3. La meta de hoy y el esperado lineal en `lib/dias-habiles.ts`, con el borde explícito; `proyeccion.ts`, `dashboard.ts`,
@@ -47,9 +48,9 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Done cuando
 
-- [ ] Test de paridad: un deal Abonado → Cierre Perdido da el mismo conteo en Mes, Cohorte, alertas, % de cierre y
-  escalera.
-- [ ] Test: con una venta anterior al inicio de ventas, Cupos y Proyección dan la misma cifra.
+- [ ] Test de paridad: un deal Abonado → Cierre Perdido deja de contar como venta (y cuenta como perdido) en Mes,
+  Cohorte, alertas, % de cierre, escalera y ROAS, todos a la vez.
+- [ ] Test: una venta anterior al inicio de ventas cuenta para la cohorte, igual en Cupos y en Proyección.
 - [ ] Test: vender 4 con meta de apertura 2 da cumplimiento 200 %, no 333 %.
 - [ ] Test: el último día hábil, meta de hoy y ventas requeridas por día dan lo mismo.
 - [ ] Guardián del predicado de venta mordido en los dos sentidos.

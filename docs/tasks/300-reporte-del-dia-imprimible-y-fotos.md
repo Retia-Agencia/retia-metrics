@@ -8,6 +8,8 @@ status: todo
 
 # 300 — El reporte del día: vista imprimible y una foto por día
 
+> **Enmendado el 3-nov (fase 2):** el punto 1 (vista imprimible) lo reemplaza el [373](./373-reporte-en-pdf-con-los-filtros.md), que imprime cualquier pestaña del Hub con sus filtros, como pidió Daniel Tovar. Aquí queda solo la foto del día (punto 2 en adelante), sin fecha: nadie la pidió en la weekly del 3-nov.
+
 ## Por qué
 
 El reporte de Michael se mandaba como PDF por WhatsApp. Hub › Hoy ya tiene la estructura (252) y el 299 la deja fiel,

@@ -164,11 +164,11 @@ Ningún ticket las asume: cada uno lleva su valor por defecto propuesto y el arg
 
 | # | Decisión | Propuesta y por qué | Ticket |
 |---|---|---|---|
-| DA-1 | ¿Una venta que después pasa a Cierre Perdido sigue contando como venta? | **Sí (por evento).** Es lo que ya dice `metricas.md` §1.4 y el ADR 0038, y lo que usan Ventas, Mes, escalera y ROAS; "vendidos que siguen vendidos" sería otra métrica con otro nombre | 352 |
-| DA-2 | ¿Las ventas anteriores a `fecha_inicio_ventas` cuentan para la cohorte? | Decide Gerencia; hoy hay 5 en CA C3. Sin decisión, Cupos y Proyección usan la misma regla (la de Cupos, que no las descarta) para que al menos no difieran | 352 |
+| DA-1 | ¿Una venta que después pasa a Cierre Perdido sigue contando como venta? | **Decidido 3-nov (Mani): no; deja de ser venta y cuenta como pérdida (etapa actual).** Antes: **Sí (por evento).** Es lo que ya dice `metricas.md` §1.4 y el ADR 0038, y lo que usan Ventas, Mes, escalera y ROAS; "vendidos que siguen vendidos" sería otra métrica con otro nombre | 352 |
+| DA-2 | ¿Las ventas anteriores a `fecha_inicio_ventas` cuentan para la cohorte? | **Decidido 3-nov (Mani): sí cuentan.** Antes: Decide Gerencia; hoy hay 5 en CA C3. Sin decisión, Cupos y Proyección usan la misma regla (la de Cupos, que no las descarta) para que al menos no difieran | 352 |
 | DA-3 | ¿Cuál es "el" % de show de Hoy: por deal o por cita? | **Por deal** como cifra (es la del ADR 0079 y la de las tasas), por cita dentro de "Cómo se calcula" | 353 |
 | DA-4 | ¿La unidad de agenda es la cita creada o el deal que agendó (las reagendas)? | Se decide con Pauta; afecta costo por agenda y horas | 353 |
-| DA-5 | ¿El cumplimiento de "Cupos del día" se mide contra la meta de apertura del día? | **Sí**: el cociente de hoy no puede dividir por una meta que ya descontó lo de hoy | 352 |
+| DA-5 | ¿El cumplimiento de "Cupos del día" se mide contra la meta de apertura del día? | **Decidido 3-nov (Mani): sí.** Antes: **Sí**: el cociente de hoy no puede dividir por una meta que ya descontó lo de hoy | 352 |
 | DA-6 | Menú: ¿Calls → Llamadas, Students → Estudiantes, Deals e Inbox? | Mínimo Calls y Students (no son vocabulario del negocio); Lead y Deal los decide Mani | 359 |
 | DA-7 | Calidad High/Mid/Low: ¿se traduce? | Viene así del formulario; decide Gerencia | 358 |
 | DA-8 | Backfill del gasto de Meta del 1 al 7-oct (escribe en la base) | Pide el ok de Mani; sin él, el ROAS de esos días sale "sin gasto" | 351 |

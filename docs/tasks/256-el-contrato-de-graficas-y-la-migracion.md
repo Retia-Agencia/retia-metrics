@@ -3,10 +3,12 @@ id: 256
 etapa: hub
 serves: "docs/hub.md O5 · el ADR que sale del 255 · ADR 0067"
 depends: [255, 250]
-status: en main
+status: reemplazado
 ---
 
 # 256 — El contrato de gráficas y la migración de las que existen
+
+> **Reemplazado el 3-nov por el [370](./370-graficas-que-siguen-los-filtros.md)** (weekly con Daniel Tovar). El contrato y la migración a ECharts están en `main` y se quedan; lo que faltaba (`test:humo` y comparar cifras contra producción) pasó al 370, punto 6, junto con unidad, paso y forma.
 
 ## Objetivo
 

@@ -8,6 +8,8 @@ status: todo
 
 # 358 — Formato único, insignias únicas y la regla del vacío
 
+> **Enmendado el 3-nov (fase 2):** la parte del Hub (formato y regla del vacío en el Hub y sus listas) la hace el [374](./374-el-hub-habla-un-solo-idioma.md). Aquí queda el resto: WhatsApp, Mi espacio, listas operativas, insignias de calidad (DA-7).
+
 Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026-10-30.md). Reglas: ADR 0115.
 
 ## Por qué

@@ -88,13 +88,15 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 ### 1.4 Venta
 
 - **Tabla:** `deal_etapa_historial` unida a `deals`.
-- **Cuenta:** deals vigentes, **sin cortesía**, que entraron a **Abonado o Completo**. Un deal es una venta
-  una sola vez.
+- **Cuenta:** deals vigentes, **sin cortesía**, que están **hoy** en **Abonado o Completo** (DA-1, Mani, 3-nov). Un
+  deal es una venta una sola vez.
 - **Fecha:** el **primer** día en que entró a una etapa vendida (Bogotá). La reversa de una venta (anular el
   abono que la vendió, ticket 200) la saca.
 - **Función:** `ventasConDiaEn` en `lib/queries/metricas-filtros.ts` (la única definición) y
   `lib/queries/hechos/venta.ts`.
-- **Ojo:** un deal en Cierre Perdido después de Abonado sigue siendo una venta que se perdió (ADR 0038).
+- **Ojo:** un deal que pasa de Abonado a Cierre Perdido **deja de ser venta y cuenta como perdido** (DA-1, Mani,
+  3-nov; en la práctica solo con una devolución, 242). El código todavía cuenta por evento hasta el 352.
+- **Cohorte:** las ventas anteriores a `fecha_inicio_ventas` cuentan para su cohorte (DA-2, Mani, 3-nov).
 
 ### 1.5 Abono (caja recaudada)
 
