@@ -96,10 +96,20 @@ export const FLECHA_CORRECCION: FlechaCorreccion = {
   tipo: "etapa",
   id: "CORR",
   quien: "closer",
-  exigeMotivo: true,
+  exigeMotivo: false,
   tipoDeMotivo: "correccion",
   soloConPendiente: false,
 };
+
+/** Destinos libres de una corrección manual o de un deshacer. */
+export function destinosDeCorreccion(etapaActual: EtapaDeal): EtapaDeal[] {
+  if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(etapaActual) || etapaActual === "cierre_perdido") return [];
+  return ETAPAS.filter((etapa) =>
+    etapa !== etapaActual
+    && etapa !== "ganado_parcial"
+    && etapa !== "ganado_completo"
+    && etapa !== "cierre_perdido");
+}
 
 type FilaEtapa = readonly [string, EtapaDeal | readonly EtapaDeal[], EtapaDeal | readonly EtapaDeal[], QuienMueve,
   { motivo?: TipoMotivo; soloConPendiente?: boolean }?];

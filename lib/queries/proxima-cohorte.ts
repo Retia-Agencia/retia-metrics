@@ -58,6 +58,7 @@ export async function dealsDeProximaCohorte(
     .from(dealActividades)
     .where(and(
       inArray(dealActividades.dealId, ids),
+      vigente(dealActividades),
       isNull(dealActividades.userId),
       or(
         sql`${dealActividades.nota} like 'Esperando corte: %'`,

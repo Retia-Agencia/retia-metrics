@@ -43,7 +43,7 @@ const RAIZ = fileURLToPath(new URL("../", import.meta.url));
  * escribir la anulacion, es OLVIDAR una consulta, porque una cifra inflada se ve
  * perfectamente creible y no lanza ningun error.
  */
-const TABLAS_ANULABLES = ["calls", "deals", "abonos", "piezas"] as const;
+const TABLAS_ANULABLES = ["calls", "deals", "abonos", "dealActividades", "piezas"] as const;
 
 /** El unico modulo autorizado a saber como se escribe "esta vigente". */
 const MODULO_DEL_PREDICADO = path.join("lib", "queries", "vigente.ts");

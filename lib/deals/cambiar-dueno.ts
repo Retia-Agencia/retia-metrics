@@ -31,11 +31,12 @@ export async function cambiarDuenoDeal(
     /** El creador manual ya está mirando el Deal y nace visto. */
     esNovedad?: boolean;
     cambiosAdicionales?: Record<string, unknown>;
+    reversionId?: string;
   },
 ): Promise<boolean> {
   if (entrada.ownerActual === entrada.ownerNuevo) return false;
   return editarConRastro(
-    { db, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta },
+    { db, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, reversionId: entrada.reversionId },
     entrada.dealId,
     {
       ...camposDeDueno(entrada.ownerNuevo, { esNovedad: entrada.esNovedad ?? true }),

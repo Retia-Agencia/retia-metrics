@@ -16,6 +16,7 @@ import { moverEtapa, MovimientoRechazado, revisarMovimiento, type RevisionDeMovi
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
 import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import { crearDealAMano, DealYaAbierto, type EntradaDealAMano } from "@/lib/deals/crear-a-mano";
+import { deshacerEvento } from "@/lib/deshacer/deshacer";
 import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
 
 /**
@@ -52,6 +53,7 @@ const esquemaMover = z.object({
   a: z.enum(etapaDealEnum.enumValues),
   pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
   motivoId: z.string().uuid().nullable().optional(),
+  comentarioMotivo: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
   correccion: z.boolean().optional(),
   datos: esquemaDatos,
 });
@@ -85,8 +87,16 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
     if (!(await programaEnAlcance(actor.userId, actor.rol, deal.programId, db))) {
       throw new ErrorDeApp("No puedes mover un deal de otro programa.", 403);
     }
-    await normalizando(() =>
-      moverEtapa(db, {
+    await normalizando(async () => {
+      if (mov.correccion) {
+        await deshacerEvento(db, actor, {
+          dealId: mov.dealId,
+          evento: { tipo: "etapa", id: null, a: mov.a },
+          motivo: mov.comentarioMotivo,
+        });
+        return;
+      }
+      await moverEtapa(db, {
         dealId: mov.dealId,
         a: mov.a,
         pendiente: mov.pendiente,
@@ -94,8 +104,8 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
         motivoId: mov.motivoId ?? null,
         correccion: mov.correccion,
         datos: mov.datos,
-      }),
-    );
+      });
+    });
     return { ok: true };
   } catch (error) {
     return aResultado(error);

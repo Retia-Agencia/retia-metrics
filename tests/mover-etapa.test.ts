@@ -15,7 +15,8 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
-import { destinosDeCorreccion, etapaDeCorreccion, MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
+import { MovimientoRechazado, abrirDeal, moverEtapa, revisarMovimiento, type Actor } from "@/lib/deals/mover-etapa";
+import { destinosDeCorreccion as destinosDeCorreccionPuros } from "@/lib/deals/etapas";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { embudoDelRango } from "@/lib/queries/dashboard";
@@ -461,10 +462,10 @@ describe("corregir el último movimiento", () => {
       detectadoEn: new Date("2026-10-03T15:00:00-05:00"),
     });
 
-    expect(await etapaDeCorreccion(db, dealId)).toEqual({ a: "contactado", pendiente: "proxima_cohorte" });
     await moverEtapa(db, {
       dealId,
       a: "contactado",
+      pendiente: "proxima_cohorte",
       correccion: true,
       actor: comoCloser(),
       motivoId: motivoCorreccion,
@@ -479,10 +480,10 @@ describe("corregir el último movimiento", () => {
       expect.objectContaining({ campo: "etapa", valorAnterior: "calificado", valorNuevo: "contactado", userId: closer }),
       expect.objectContaining({ campo: "cohorteDestinoTexto", valorAnterior: null, valorNuevo: "2027", userId: closer }),
     ]));
-    expect(await etapaDeCorreccion(db, dealId)).toBeNull();
+    expect(destinosDeCorreccionPuros("contactado")).toContain("calificado");
   });
 
-  it("rechaza con 409 si el rastro legado no dice a qué corte iba", async () => {
+  it("una corrección libre no recupera el pendiente si el destino no lo pide", async () => {
     const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
     await db.insert(dealEtapaHistorial).values({
       dealId,
@@ -493,34 +494,25 @@ describe("corregir el último movimiento", () => {
       userId: closer,
     });
 
-    await expect(moverEtapa(db, {
+    await moverEtapa(db, {
       dealId,
       a: "contactado",
       correccion: true,
       actor: comoCloser(),
       motivoId: motivoCorreccion,
-    })).rejects.toMatchObject({
-      status: 409,
-      message: "No se puede restaurar Próxima cohorte: falta a qué cohorte iba.",
     });
-    expect(await etapaDe(dealId)).toBe("calificado");
+    expect(await etapaDe(dealId)).toBe("contactado");
   });
 
-  it("el tablero calcula el destino de varias tarjetas con la misma regla", async () => {
-    const humano = await nuevoDeal("calificado", { ownerUserId: closer });
-    await db.insert(dealEtapaHistorial).values({ dealId: humano, de: "contactado", a: "calificado", userId: closer });
-    const sinHistorial = "00000000-0000-4000-8000-000000000000";
-
-    expect(await destinosDeCorreccion(db, [
-      { dealId: humano, etapa: "calificado" },
-      { dealId: sinHistorial, etapa: "calificado" },
-    ])).toEqual({ [humano]: { a: "contactado", pendiente: null } });
-    // Una etapa que ya no es la del último movimiento no se corrige.
-    expect(await destinosDeCorreccion(db, [{ dealId: humano, etapa: "agendado" }])).toEqual({});
-    expect(await destinosDeCorreccion(db, [])).toEqual({});
+  it("la corrección ofrece todos los destinos libres y ninguno desde etapas cerradas", () => {
+    expect(destinosDeCorreccionPuros("calificado")).toEqual([
+      "potencial", "registrado", "en_gestion", "contactado", "agendado", "atendido", "compromiso_verbal",
+    ]);
+    expect(destinosDeCorreccionPuros("ganado_completo")).toEqual([]);
+    expect(destinosDeCorreccionPuros("cierre_perdido")).toEqual([]);
   });
 
-  it("no se ofrece si el último movimiento fue del sistema", async () => {
+  it("la corrección manual no depende del autor del último movimiento", async () => {
     const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
     await db.insert(dealEtapaHistorial).values({
       dealId,
@@ -529,33 +521,22 @@ describe("corregir el último movimiento", () => {
       userId: null,
     });
 
-    expect(await etapaDeCorreccion(db, dealId)).toBeNull();
-    const e = await rechazo(moverEtapa(db, {
+    await moverEtapa(db, {
       dealId,
       a: "registrado",
       correccion: true,
       actor: comoCloser(),
       motivoId: motivoCorreccion,
-    }));
-    expect(e.status).toBe(409);
-    expect(await etapaDe(dealId)).toBe("calificado");
+    });
+    expect(await etapaDe(dealId)).toBe("registrado");
   });
 
-  it("exige un motivo activo de corrección", async () => {
+  it("la corrección no exige motivo", async () => {
     const dealId = await nuevoDeal("calificado", { ownerUserId: closer });
     await db.insert(dealEtapaHistorial).values({ dealId, de: "contactado", a: "calificado", userId: closer });
 
-    let e = await rechazo(moverEtapa(db, { dealId, a: "contactado", correccion: true, actor: comoCloser() }));
-    expect(e.faltantes.map((f) => f.codigo)).toEqual(["motivo"]);
-    e = await rechazo(moverEtapa(db, {
-      dealId,
-      a: "contactado",
-      correccion: true,
-      actor: comoCloser(),
-      motivoId: motivoActivo,
-    }));
-    expect(e.faltantes.map((f) => f.codigo)).toEqual(["motivo"]);
-    expect(await etapaDe(dealId)).toBe("calificado");
+    await moverEtapa(db, { dealId, a: "contactado", correccion: true, actor: comoCloser() });
+    expect(await etapaDe(dealId)).toBe("contactado");
   });
 
   it("un closer que no es dueño recibe 403 y la base no cambia", async () => {

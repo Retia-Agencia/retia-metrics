@@ -41,13 +41,13 @@ import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
  */
 export const esquemaAnularDeal = z.object({
   dealId: z.string().uuid("El deal no es válido."),
-  motivo: z.string().trim().min(5, "Cuenta en al menos 5 letras por qué se anula el deal."),
+  motivo: z.string().trim().optional().transform((valor) => valor || null),
 });
 export type DatosAnularDeal = z.input<typeof esquemaAnularDeal>;
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularDeal): Promise<void> {
+export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularDeal, contexto?: { reversionId?: string; permisoValidado?: true }): Promise<void> {
   return normalizando(async () => {
     const { dealId, motivo } = esquemaAnularDeal.parse(datos);
 
@@ -55,7 +55,7 @@ export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularD
       const { deal, emailLead } = await dealBloqueadoConLead(tx, dealId);
 
       if (deal.anuladoEn) throw new ErrorDeApp("El deal ya está anulado.", 409);
-      if (!puedeTrabajarDeal(actor, deal)) {
+      if (!contexto?.permisoValidado && !puedeTrabajarDeal(actor, deal)) {
         throw new ErrorDeApp(
           deal.ownerUserId == null
             ? "Este deal no tiene dueño: lo anula un administrador."
@@ -74,7 +74,7 @@ export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularD
       }
 
       await editarConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead },
+        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
         deal.id,
         { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
       );
@@ -85,9 +85,9 @@ export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularD
         .where(and(eq(calls.dealId, deal.id), vigente(calls)));
       for (const llamada of llamadas) {
         await editarConRastro(
-          { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: emailLead },
+          { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
           llamada.id,
-          { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: `Se anuló su deal: ${motivo}` },
+          { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo ? `Se anuló su deal: ${motivo}` : null },
         );
       }
     });

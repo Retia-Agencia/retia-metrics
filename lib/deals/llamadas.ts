@@ -58,6 +58,31 @@ export interface ActorDeLlamada {
   operaComoCloser: boolean;
 }
 
+/** Anula una llamada nativa del CRM. Las de Calendly se devuelven a sueltas al deshacer su asignación. */
+export async function anularLlamada(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: { callId: string; motivo?: string | null },
+  contexto?: { reversionId?: string; permisoValidado?: true },
+): Promise<void> {
+  return normalizando(async () => (db as unknown as Transaccion).transaction(async (tx) => {
+    const [llamada] = await tx.select().from(calls)
+      .where(and(eq(calls.id, datos.callId), incluyendoAnulados(calls)));
+    if (!llamada) throw new ErrorDeApp("No existe la llamada.", 404);
+    if (llamada.origen !== "crm" || llamada.dealId == null) throw new ErrorDeApp("Esta llamada no se anula por este camino.", 409);
+    const [deal] = await tx.select().from(deals)
+      .where(and(eq(deals.id, llamada.dealId), incluyendoAnulados(deals)));
+    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
+    if (!contexto?.permisoValidado && !puedeTrabajarDeal(actor, deal)) throw new ErrorDeApp("No puedes anular esta llamada.", 403);
+    if (llamada.anuladoEn) throw new ErrorDeApp("La llamada ya está anulada.", 409);
+    await editarConRastro(
+      { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId: contexto?.reversionId },
+      llamada.id,
+      { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: datos.motivo?.trim() || null },
+    );
+  }));
+}
+
 /** `unaCitaMueveAAgendado` es la única regla para el efecto de una cita nueva. */
 
 type Transaccion = {
@@ -337,7 +362,7 @@ export const esquemaMarcarShow = z.object({
 
 export type DatosMarcarShow = z.input<typeof esquemaMarcarShow>;
 
-const RESULTADOS_CORREGIBLES = ["show", "no_show", "cancelada"] as const;
+export const RESULTADOS_CORREGIBLES = ["show", "no_show", "cancelada"] as const;
 
 export const esquemaCorregirResultado = z.object({
   callId: z.string().uuid("La llamada no es válida."),
@@ -355,6 +380,7 @@ export async function corregirResultado(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosCorregirResultado,
+  contexto?: { reversionId?: string },
 ): Promise<{ etapa: EtapaDeal }> {
   return normalizando(async () => {
     const { callId, resultado, motivo, motivoReagendaId } = esquemaCorregirResultado.parse(datos);
@@ -381,6 +407,7 @@ export async function corregirResultado(
           nombreTabla: "calls",
           actorId: actor.userId,
           etiqueta: call.emailLead ?? call.id,
+          reversionId: contexto?.reversionId,
         },
         call.id,
         {
@@ -397,6 +424,7 @@ export async function corregirResultado(
         deal.id,
         actor.userId,
         `Corrigió el resultado de la llamada${call.fechaAgenda ? ` del ${fechaHoraEnBogota(call.fechaAgenda)}` : ""}: ${ETIQUETA_DE_RESULTADO[antes]} → ${ETIQUETA_DE_RESULTADO[resultado]}. Motivo: ${motivo}`,
+        contexto?.reversionId,
       );
 
       if (antes === "show" && resultado !== "show" && deal.etapa === "atendido") {
@@ -406,6 +434,7 @@ export async function corregirResultado(
           pendiente: "reagenda",
           actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
           ...(motivoReagendaId !== undefined ? { motivoId: motivoReagendaId } : {}),
+          reversionId: contexto?.reversionId,
         });
         return { etapa: hecho.a };
       }
@@ -416,6 +445,7 @@ export async function corregirResultado(
           dealId: deal.id,
           a: "atendido",
           actor: { tipo: "sistema" },
+          reversionId: contexto?.reversionId,
         });
         return { etapa: hecho.a };
       }

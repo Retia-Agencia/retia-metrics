@@ -617,7 +617,7 @@ export async function asignarLlamadaSuelta(
 
 export const esquemaDescartarSuelta = z.object({
   callId: z.string().uuid("La llamada no es válida."),
-  motivo: z.string().trim().min(5, "Cuenta en al menos 5 letras por qué se descarta la llamada."),
+  motivo: z.string().trim().nullable().optional().transform((valor) => valor || null),
 });
 
 export type DatosDescartarSuelta = z.input<typeof esquemaDescartarSuelta>;

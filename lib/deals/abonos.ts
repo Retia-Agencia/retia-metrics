@@ -1,21 +1,20 @@
 import { and, eq, ne, notInArray } from "drizzle-orm";
 import { z } from "zod";
-import { abonos, archivos, cohorts, deals, leads, users } from "@/lib/db/schema";
+import { abonos, archivos, deals, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { dejarNotaDelActor } from "@/lib/deals/nota-del-sistema";
 import { usd } from "@/lib/format";
 import { normalizando } from "@/lib/errors-zod";
-import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { exigirEnlaceDePagoVigente } from "@/lib/catalogo/enlaces-pago";
-import { mismoCloser } from "@/lib/closers/identidad";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
-import { puedeTrabajarDeal } from "./permiso";
+import { puedeDeshacer, puedeTrabajarDeal } from "./permiso";
 import { aceptaAbono, NOMBRE_DE_ETAPA, transicion, type EtapaDeal } from "./etapas";
 import { congelarValorVendido } from "./valor-vendido";
 import { marcarListo, type ArchivoVerificado } from "@/lib/archivos";
@@ -404,7 +403,7 @@ export async function cambiarEnlaceDeAbono(
 
 export const esquemaAnularAbono = z.object({
   abonoId: z.string().uuid("El abono no es válido."),
-  motivo: z.string().trim().min(1, "El motivo es obligatorio."),
+  motivo: z.string().trim().optional().transform((valor) => valor || null),
 });
 export type DatosAnularAbono = z.input<typeof esquemaAnularAbono>;
 
@@ -429,6 +428,7 @@ export async function anularAbono(
   db: Db,
   actor: ActorDeAbono,
   datos: DatosAnularAbono,
+  contexto?: { reversionId?: string },
 ): Promise<AbonoAnulado> {
   return normalizando(async () => {
     const { abonoId, motivo } = esquemaAnularAbono.parse(datos);
@@ -454,23 +454,8 @@ export async function anularAbono(
       if (!abono) throw new ErrorDeApp("No existe el abono.", 404);
       if (abono.anuladoEn) throw new ErrorDeApp("El abono ya está anulado.", 409);
 
-      if (!esAdministrador(actor.rol)) {
-        if (!trabajaLeads(actor)) throw new ErrorDeApp("No puedes anular este abono.", 403);
-        // Quién cobró es la FK (167). El texto solo decide en un abono histórico sin FK, y nunca
-        // con los dos lados vacíos: dos closers sin `closer_id` no son el mismo closer.
-        const miCloser = abono.registradoPorUserId == null ? await closerDeLaCuenta(tx, actor.userId) : null;
-        const esSuyo = abono.registradoPorUserId != null
-          ? abono.registradoPorUserId === actor.userId
-          : miCloser != null && mismoCloser(abono.closerId, miCloser);
-        if (!esSuyo) {
-          throw new ErrorDeApp("Solo puedes anular los abonos que registraste tú.", 403);
-        }
-        if (deal.cohortId != null) {
-          const [c] = await tx.select({ estado: cohorts.estado }).from(cohorts).where(eq(cohorts.id, deal.cohortId));
-          if (c && c.estado !== "activo") {
-            throw new ErrorDeApp("La cohorte ya no está activa: pídele a un administrador que anule el abono.", 403);
-          }
-        }
+      if (!puedeDeshacer(actor, { autorId: abono.registradoPorUserId ?? "", ownerUserId: deal.ownerUserId })) {
+        throw new ErrorDeApp("No puedes anular este abono.", 403);
       }
 
       // Ganado Pago Parcial ocupa el cupo. Si el deal está completamente pagado y el lead
@@ -500,7 +485,7 @@ export async function anularAbono(
       }
 
       await editarConRastro(
-        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
         abono.id,
         { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
       );

@@ -252,13 +252,11 @@ describe("anularDeal", () => {
     expect(filas.every((f) => f.userId === closer)).toBe(true);
   });
 
-  it("sin motivo no se anula (o con uno que no dice nada)", async () => {
+  it("el motivo es opcional y el texto en blanco queda nulo", async () => {
     const dealId = await nuevoDeal("atendido");
-    expect((await capturar(anularDeal(db, comoCloser(), { dealId, motivo: "" }))).status).toBe(400);
-    expect((await capturar(anularDeal(db, comoCloser(), { dealId, motivo: "   " }))).status).toBe(400);
-    expect((await capturar(anularDeal(db, comoCloser(), { dealId, motivo: "no" }))).status).toBe(400);
-    expect((await deal(dealId)).anuladoEn).toBeNull();
-    expect(await rastro(dealId)).toHaveLength(0);
+    await anularDeal(db, comoCloser(), { dealId, motivo: "   " });
+    expect((await deal(dealId)).anuladoEn).toBeInstanceOf(Date);
+    expect((await deal(dealId)).motivoAnulacion).toBeNull();
   });
 
   it("un closer NO anula el deal de otro ni uno sin dueño", async () => {

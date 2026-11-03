@@ -374,7 +374,7 @@ export async function tableroKanban(
   const actividades = await db
     .select({ dealId: dealActividades.dealId, tipo: dealActividades.tipo, canal: dealActividades.canal })
     .from(dealActividades)
-    .where(inArray(dealActividades.dealId, dealIds));
+    .where(and(inArray(dealActividades.dealId, dealIds), vigente(dealActividades)));
   const conCitaVigente = new Set(llamadas.flatMap((c) => c.dealId && c.resultado === "agendada" ? [c.dealId] : []));
   const llamadasPorDeal = new Map<string, typeof llamadas>();
   for (const llamada of llamadas) {

@@ -625,24 +625,22 @@ describe("anularAbono: la etapa se recalcula", () => {
     expect((await saldosDeDeals(db, [dealId])).get(dealId)).toMatchObject({ abonado: 200, saldo: 800 });
   });
 
-  it("el motivo es obligatorio y un abono anulado no se anula dos veces", async () => {
+  it("el motivo es opcional, el blanco queda nulo y un abono no se anula dos veces", async () => {
     const dealId = await nuevoDeal("atendido");
     const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "  " }))).status).toBe(400);
-    await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Error" });
+    await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "  " });
+    expect((await db.select({ motivo: abonos.motivoAnulacion }).from(abonos).where(eq(abonos.id, a.abonoId)))[0].motivo).toBeNull();
     expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "Otra vez" }))).status).toBe(409);
   });
 
-  it("un closer solo anula lo que registró él, y mientras la cohorte esté activa; el administrador siempre", async () => {
+  it("un closer ajeno no anula; el autor puede aun con la cohorte cerrada", async () => {
     const dealId = await nuevoDeal("atendido");
     const a = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
 
     expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
 
     await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
-    expect((await capturar(anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
-
-    const r = await anularAbono(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "Corrección del gerente" });
+    const r = await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "x" });
     expect(r.etapa).toBe("atendido");
   });
 

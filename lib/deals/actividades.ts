@@ -3,7 +3,9 @@ import { dealActividades } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { crearConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { and, eq } from "drizzle-orm";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { trabajaLeads } from "@/lib/auth/roles";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
@@ -89,6 +91,31 @@ export async function registrarActividad(db: Db, actor: ActorDeDeal, datos: Dato
         etapa = hecho.a;
       }
       return actividadId;
+    });
+  });
+}
+
+/** Anula una actividad mal registrada; desde ese instante deja de contar como gestión o contacto. */
+export async function anularActividad(
+  db: Db,
+  actor: ActorDeDeal,
+  datos: { actividadId: string; motivo?: string | null },
+  contexto?: { reversionId?: string; permisoValidado?: true },
+): Promise<void> {
+  return normalizando(async () => {
+    const motivo = datos.motivo?.trim() || null;
+    return (db as unknown as Transaccion).transaction(async (tx) => {
+      const [actividad] = await tx.select().from(dealActividades)
+        .where(and(eq(dealActividades.id, datos.actividadId), incluyendoAnulados(dealActividades)));
+      if (!actividad) throw new ErrorDeApp("No existe la actividad.", 404);
+      const { deal, emailLead } = await dealBloqueadoConLead(tx, actividad.dealId);
+      if (actividad.anuladoEn) throw new ErrorDeApp("La actividad ya está anulada.", 409);
+      if (!contexto?.permisoValidado && !puedeTrabajarDeal(actor, deal)) throw new ErrorDeApp("No puedes anular esta actividad.", 403);
+      await editarConRastro(
+        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
+        actividad.id,
+        { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
+      );
     });
   });
 }

@@ -37,6 +37,7 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 import { crearEnlacePago, esquemaEnlacePago } from "@/lib/catalogo/enlaces-pago";
 import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
+import { deshacerEvento, esquemaDeshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
 
 /**
  * Server actions de la ficha del deal (ticket 074). Mismo patron que `../acciones.ts`:
@@ -215,6 +216,14 @@ export async function moverConHechoAccion(
   return correr(async (ctx) => {
     const datos = esquemaMoverConHechoAccion.parse(entrada);
     await exigirDealVisible(ctx, datos.dealId);
+    if (datos.correccion) {
+      await deshacerEvento(db, ctx.actor, {
+        dealId: datos.dealId,
+        evento: { tipo: "etapa", id: null, a: datos.a },
+        motivo: datos.comentarioMotivo,
+      });
+      return { etapa: datos.a, resumen: [] };
+    }
     const archivo = datos.hecho?.tipo === "abono" && datos.hecho.archivoId
       ? await verificarArchivo(db, almacenDeArchivos(), { archivoId: datos.hecho.archivoId, actorId: ctx.actor.userId })
       : undefined;
@@ -241,6 +250,16 @@ export async function moverConHechoAccion(
     const { etapa, cambio } = await moverConHecho(db, ctx.actor, { ...datos, hecho: hechoDelDominio }, { cita });
     if (hechoDelDominio?.tipo === "atendido" && hechoDelDominio.linkGrain) programarLecturaDeGrainDelDeal(datos.dealId);
     return { etapa, resumen: resumenDelCambio(cambio) };
+  });
+}
+
+/** Deshace una fila del log o corrige la etapa; actor y alcance salen de la sesión. */
+export async function deshacerEventoAccion(entrada: EntradaDeshacerEvento): Promise<ResultadoFicha> {
+  return correr(async (ctx) => {
+    const datos = esquemaDeshacerEvento.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
+    await deshacerEvento(db, ctx.actor, datos);
+    return {};
   });
 }
 

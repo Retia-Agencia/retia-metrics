@@ -154,7 +154,12 @@ export interface CohorteCambiada {
  * - Si la fecha límite de pago del deal pasa del inicio de clases de la cohorte nueva, se baja a
  *   ese inicio: el inicio de clases es SIEMPRE el tope (ticket 061). Queda en el rastro y en la nota.
  */
-export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: DatosCambiarCohorte): Promise<CohorteCambiada> {
+export async function cambiarCohorte(
+  db: Db,
+  actor: ActorDeEstudiante,
+  datos: DatosCambiarCohorte,
+  contexto?: { reversionId?: string },
+): Promise<CohorteCambiada> {
   return normalizando(async () => {
     const { dealId, cohortId, motivo } = esquemaCambiarCohorte.parse(datos);
     return (db as unknown as Transaccion).transaction(async (tx) => {
@@ -184,6 +189,7 @@ export async function cambiarCohorte(db: Db, actor: ActorDeEstudiante, datos: Da
         etiqueta: emailLead,
         limpiarProximaCohorte: estabaEsperandoCorte,
         nota: (origen, codigoDestino) => `Cambio de cohorte: ${origen} → ${codigoDestino}. ${motivo}`,
+        reversionId: contexto?.reversionId,
       });
     });
   });

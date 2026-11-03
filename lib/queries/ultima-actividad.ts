@@ -36,7 +36,7 @@ export async function ultimaActividadPorDeal(
     db
       .select({ dealId: dealActividades.dealId, fecha: dealActividades.fecha })
       .from(dealActividades)
-      .where(inArray(dealActividades.dealId, dealIds)),
+      .where(and(inArray(dealActividades.dealId, dealIds), vigente(dealActividades))),
     db
       .select({ dealId: calls.dealId, createdAt: calls.createdAt, fechaAgenda: calls.fechaAgenda })
       .from(calls)

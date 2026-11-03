@@ -17,7 +17,7 @@ export async function tieneEvidenciaDeSetter(db: Db, dealId: string, userId: str
   const [actividad] = await db
     .select({ id: dealActividades.id })
     .from(dealActividades)
-    .where(and(eq(dealActividades.dealId, dealId), eq(dealActividades.userId, userId)))
+    .where(and(eq(dealActividades.dealId, dealId), eq(dealActividades.userId, userId), vigente(dealActividades)))
     .limit(1);
   return actividad !== undefined;
 }

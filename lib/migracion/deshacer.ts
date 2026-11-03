@@ -93,7 +93,7 @@ export async function deshacerMigracion(db: Db, op: { programId: string; actorId
     ? await db
         .select({ id: dealActividades.id, dealId: dealActividades.dealId, userId: dealActividades.userId })
         .from(dealActividades)
-        .where(inArray(dealActividades.dealId, dealIds))
+        .where(and(inArray(dealActividades.dealId, dealIds), incluyendoAnulados(dealActividades)))
     : [];
 
   // ── ¿alguien trabajo encima?
@@ -143,7 +143,7 @@ export async function deshacerMigracion(db: Db, op: { programId: string; actorId
     db.delete(calls).where(inArray(calls.id, l)).returning(),
   );
   const nActividades = await borrar(dealIds, (l) =>
-    db.delete(dealActividades).where(inArray(dealActividades.dealId, l)).returning(),
+    db.delete(dealActividades).where(and(inArray(dealActividades.dealId, l), incluyendoAnulados(dealActividades))).returning(),
   );
   const nHistorial = await borrar(dealIds, (l) =>
     db.delete(dealEtapaHistorial).where(inArray(dealEtapaHistorial.dealId, l)).returning(),

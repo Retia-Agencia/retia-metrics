@@ -31,6 +31,7 @@ export async function cambiarCohorteDelDeal(
     userIdDeNota?: string | null;
     /** Conserva literalmente la nota del llamador, sin anexar el ajuste del plazo. */
     notaExacta?: boolean;
+    reversionId?: string;
   },
 ): Promise<CambioDeCohorteEscrito> {
   let origenCodigo = "sin cohorte";
@@ -60,12 +61,13 @@ export async function cambiarCohorteDelDeal(
       nombreTabla: "deals",
       actorId: datos.actorId,
       etiqueta: datos.etiqueta,
+      reversionId: datos.reversionId,
     },
     datos.deal.id,
     cambios,
   );
   if (datos.limpiarProximaCohorte) {
-    await limpiarPendientePorCambioDeCohorte(tx, datos.deal, datos.actorId, datos.etiqueta);
+    await limpiarPendientePorCambioDeCohorte(tx, datos.deal, datos.actorId, datos.etiqueta, datos.reversionId);
   }
   await crearConRastro(
     {
@@ -74,6 +76,7 @@ export async function cambiarCohorteDelDeal(
       nombreTabla: "deal_actividades",
       actorId: datos.actorId,
       etiqueta: datos.etiqueta,
+      reversionId: datos.reversionId,
     },
     {
       dealId: datos.deal.id,

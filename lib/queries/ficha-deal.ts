@@ -453,7 +453,7 @@ export async function fichaDeDeal(db: Db, programId: string, dealId: string, det
   const actividadesFilas = await db
     .select()
     .from(dealActividades)
-    .where(eq(dealActividades.dealId, deal.id))
+    .where(and(eq(dealActividades.dealId, deal.id), incluyendoAnulados(dealActividades)))
     .orderBy(desc(dealActividades.fecha));
   const historialFilas = await db
     .select()

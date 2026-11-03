@@ -21,6 +21,18 @@ export function puedeTrabajarDeal(actor: ActorDeDeal, deal: { ownerUserId: strin
   return trabajaLeads(actor) && deal.ownerUserId != null && deal.ownerUserId === actor.userId;
 }
 
+/** Quién puede deshacer un hecho humano de un deal (ADR 0117). */
+export function puedeDeshacer(
+  actor: ActorDeDeal,
+  evento: { autorId: string; ownerUserId: string | null; campo?: string; puedeMarcarOnboarding?: boolean },
+): boolean {
+  if (evento.campo === "onboardedAt") {
+    return puedeMarcarOnboarding(actor, evento, evento.puedeMarcarOnboarding ?? false);
+  }
+  if (esAdministrador(actor.rol) || actor.userId === evento.autorId) return true;
+  return trabajaLeads(actor) && evento.ownerUserId === actor.userId;
+}
+
 /**
  * "¿Este actor puede MARCAR o DESMARCAR el onboarding de este estudiante?" (ticket 145):
  * UNA sola respuesta, separada de `puedeTrabajarDeal` porque el customer success SOLO

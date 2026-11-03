@@ -62,7 +62,7 @@ export type TablaConRastro = (typeof TABLAS_CON_RASTRO)[number];
  */
 const aTexto = textoDeBitacora;
 
-interface Contexto {
+export interface Contexto {
   db: Db;
   /** La tabla de drizzle sobre la que se escribe. */
   tabla: PgTable;
@@ -81,6 +81,8 @@ interface Contexto {
    * historial. Que no aparezca en otro archivo lo vigila `tests/motor-etapas-guardian.test.ts`.
    */
   desdeElMotor?: true;
+  /** La operación de deshacer que causó esta escritura. */
+  reversionId?: string;
 }
 
 /** La etapa y el pendiente de un deal solo los escribe el motor. */
@@ -120,7 +122,7 @@ export async function crearConRastro(
     // Una expresión SQL describe cómo escribir, no qué quedó escrito. La bitácora guarda
     // siempre el valor materializado que devolvió la misma escritura.
     const bitacora = aRegistrar.map(([campo, valor]) =>
-      filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, is(valor, SQL) ? fila[campo] : valor),
+      filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, is(valor, SQL) ? fila[campo] : valor, ctx.reversionId),
     );
     if (bitacora.length > 0) await tx.insert(changeLog).values(bitacora);
   });
@@ -135,6 +137,7 @@ function filaDeBitacora(
   etiqueta: string,
   campo: string,
   valor: unknown,
+  reversionId?: string,
 ) {
   return {
     tabla: nombreTabla,
@@ -145,6 +148,7 @@ function filaDeBitacora(
     valorNuevo: aTexto(valor),
     origen: "app" as const,
     userId: actorId,
+    reversionId: reversionId ?? null,
   };
 }
 
@@ -192,7 +196,7 @@ export async function crearVariosConRastro(
       escritos.has(ids[i])
         ? Object.entries(a.valores)
             .filter(([campo, valor]) => campo !== "id" && valor !== null && valor !== undefined)
-            .map(([campo, valor]) => filaDeBitacora(ctx.nombreTabla, ctx.actorId, ids[i], a.etiqueta, campo, valor))
+            .map(([campo, valor]) => filaDeBitacora(ctx.nombreTabla, ctx.actorId, ids[i], a.etiqueta, campo, valor, ctx.reversionId))
         : [],
     );
     for (let i = 0; i < bitacora.length; i += FILAS_POR_LOTE) {
@@ -266,6 +270,7 @@ export async function editarConRastro(
         valorNuevo: aTexto(is(valor, SQL) ? fila[campo] : valor),
         origen: "app" as const,
         userId: actorId,
+        reversionId: ctx.reversionId ?? null,
       })),
     );
   });

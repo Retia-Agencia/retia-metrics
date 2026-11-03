@@ -139,12 +139,13 @@ describe("descartarLlamadaSueltaAccion", () => {
     expect(rastro.some((f) => f.campo === "motivoAnulacion")).toBe(true);
   });
 
-  it("sin motivo de 5 letras se rechaza y la llamada sigue suelta", async () => {
+  it("el motivo es opcional y el blanco queda nulo", async () => {
     auth.mockResolvedValue(sesionCloserA);
     const { descartarLlamadaSueltaAccion } = await acciones();
-    const r = await descartarLlamadaSueltaAccion({ callId: callSuelta, motivo: "no" });
-    expect(r.ok).toBe(false);
-    expect((await llamada(callSuelta)).anuladoEn).toBeNull();
+    const r = await descartarLlamadaSueltaAccion({ callId: callSuelta, motivo: "   " });
+    expect(r.ok).toBe(true);
+    expect((await llamada(callSuelta)).anuladoEn).toBeInstanceOf(Date);
+    expect((await llamada(callSuelta)).motivoAnulacion).toBeNull();
   });
 
   it("un closer de OTRO programa recibe 404 y la llamada no se toca", async () => {

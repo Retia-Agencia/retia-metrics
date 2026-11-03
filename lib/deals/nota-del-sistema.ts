@@ -7,9 +7,10 @@ async function dejarNota(
   dealId: string,
   texto: string,
   actorId: string | null,
+  reversionId?: string,
 ): Promise<void> {
   await crearConRastro(
-    { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId, etiqueta: dealId },
+    { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId, etiqueta: dealId, reversionId },
     { dealId, tipo: "nota", userId: actorId, nota: texto },
   );
 }
@@ -25,6 +26,7 @@ export async function dejarNotaDelActor(
   dealId: string,
   actorId: string,
   texto: string,
+  reversionId?: string,
 ): Promise<void> {
-  await dejarNota(tx, dealId, texto, actorId);
+  await dejarNota(tx, dealId, texto, actorId, reversionId);
 }

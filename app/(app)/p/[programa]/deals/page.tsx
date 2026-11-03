@@ -13,7 +13,7 @@ import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
 import { correccionSerializable } from "@/lib/deals/mapa-transiciones";
-import { destinosDeCorreccion } from "@/lib/deals/mover-etapa";
+import { destinosDeCorreccionDelTablero } from "@/lib/deals/mover-etapa";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_COLUMNA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
@@ -70,7 +70,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
     opcionesDeTablero(db, programa.id),
   ]);
   const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
-  const destinos = await destinosDeCorreccion(db, tarjetas);
+  const destinos = await destinosDeCorreccionDelTablero(db, tarjetas);
   const correcciones = Object.fromEntries(
     tarjetas.flatMap((t) => {
       const correccion = correccionSerializable(t.etapa, destinos[t.dealId] ?? null);
