@@ -53,13 +53,46 @@ async function cargarPlantilla(): Promise<File | Blob> {
 }
 
 /**
+ * PGlite acepta un `Date` crudo como parámetro y postgres-js, el driver de producción, lo
+ * rechaza con `ERR_INVALID_ARG_TYPE`. Un `Date` solo llega crudo cuando va interpolado en una
+ * plantilla `sql` (los operadores de drizzle lo pasan por el mapeo de la columna), así que
+ * aquí se rechaza igual que en producción. 🩸 El 3-nov tumbó Hub › Hoy con la suite en verde.
+ */
+function rechazarFechaCruda(params: unknown[] | undefined): void {
+  if (params?.some((valor) => valor instanceof Date)) {
+    throw new TypeError(
+      "Un Date crudo llegó al driver: postgres-js lo rechaza en producción. Usa gte/lt/eq de drizzle en vez de interpolarlo en `sql` (AGENTS.md).",
+    );
+  }
+}
+
+function comoPostgresJs(cliente: PGlite): PGlite {
+  const consultar = cliente.query.bind(cliente);
+  cliente.query = ((texto: string, params?: unknown[], opciones?: never) => {
+    rechazarFechaCruda(params);
+    return consultar(texto, params, opciones);
+  }) as PGlite["query"];
+  const enTransaccion = cliente.transaction.bind(cliente);
+  cliente.transaction = ((callback: Parameters<PGlite["transaction"]>[0]) =>
+    enTransaccion((tx) => {
+      const consultarEnTx = tx.query.bind(tx);
+      tx.query = ((texto: string, params?: unknown[], opciones?: never) => {
+        rechazarFechaCruda(params);
+        return consultarEnTx(texto, params, opciones);
+      }) as typeof tx.query;
+      return callback(tx);
+    })) as PGlite["transaction"];
+  return cliente;
+}
+
+/**
  * Crea una base PGlite en memoria con todas las migraciones aplicadas y devuelve el
  * cliente drizzle. Cada llamada es una base independiente: arranca de una copia del
  * volcado, y lo que escriba un test no llega a la plantilla ni a otra base.
  */
 export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
   plantilla ??= cargarPlantilla();
-  const cliente = new PGlite({ loadDataDir: await plantilla });
+  const cliente = comoPostgresJs(new PGlite({ loadDataDir: await plantilla }));
   const db = drizzle(cliente, { schema });
   return {
     db: db as Db,
