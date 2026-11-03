@@ -427,7 +427,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   alarma que se calcula y se apaga sola al pegar el Grain (ADR 0066).
 - **Cita:** una reserva real en el Calendly del programa, con su hora, su host y su Meet. Toda llamada que agenda
   el CRM es una cita (ADR 0096): agendar, reagendar o cancelar en el CRM lo hace también en Calendly. *Reagendar es
-  reservar una cita nueva y retirar la vieja, no moverla.*
+  reservar una cita nueva y retirar la vieja, no moverla.* En las métricas **Cita/Citas** se cuentan las vigentes
+  no canceladas; las canceladas se muestran aparte. El grupo de citas usado por las tasas de show y cierre conserva
+  su definición: una cancelada ocurrida sigue siendo una cita no atendida para esa pregunta.
 - **Llamada suelta:** una llamada de Calendly que no se pudo colgar de un deal sin duda. El CRM reintenta por
   UUID y luego por correo confirmado al recibir formulario, webhook y en el cron diario; mientras tanto espera
   en el Inbox, que avisa cuando lleva más de 24 horas. Nombre y teléfono solo sugieren opciones a una persona:

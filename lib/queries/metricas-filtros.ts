@@ -1,4 +1,4 @@
-import { and, asc, between, eq, gt, inArray, isNull, lte, notExists, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, between, eq, gt, inArray, isNull, lte, ne, notExists, notInArray, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -228,6 +228,11 @@ export function llamadaOcurrio() {
   return inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]);
 }
 
+/** Una cita viva: las canceladas se informan aparte y nunca inflan la cifra de Citas. */
+export function citaNoCancelada() {
+  return ne(calls.resultado, "cancelada");
+}
+
 
 /** Una definición del universo por métrica; la vigencia queda visible en cada lector. */
 export function filtroCaja({ programId, rango, claveCloser }: Alcance, db: Db) {
@@ -384,13 +389,14 @@ export const ETAPAS_CERRADAS: readonly EtapaDeal[] = ["ganado_completo", "cierre
  * Una cita ya vencida cuyo resultado sigue pendiente. El reloj entra como parámetro.
  * El llamador debe haber unido `deals`.
  */
-export function llamadaPasadaSinResultado(ahora: Date) {
+export function citaVencidaSinResultado(ahora: Date) {
   return and(
     eq(calls.resultado, "agendada"),
     lte(calls.fechaAgenda, ahora),
     notInArray(deals.etapa, [...ETAPAS_CERRADAS]),
   );
 }
+
 
 /**
  * La cita ya debía haber empezado al instante de corte compartido por cifra y lista. Es el

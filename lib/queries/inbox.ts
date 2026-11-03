@@ -29,7 +29,7 @@ import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 import {
   ETAPAS_CERRADAS,
-  llamadaPasadaSinResultado,
+  citaVencidaSinResultado,
 } from "@/lib/queries/metricas-filtros";
 
 /**
@@ -310,7 +310,7 @@ async function seccionLlamadasDeHoy(
     .where(
       and(
         eq(calls.programId, programId),
-        llamadaPasadaSinResultado(ahora),
+        citaVencidaSinResultado(ahora),
         vigente(calls),
         vigente(deals),
         alcanceDeDeal(alcance),

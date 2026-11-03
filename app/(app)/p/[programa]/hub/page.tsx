@@ -44,6 +44,7 @@ import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agenda
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 import { pautaSincronizaciones } from "@/lib/db/schema";
 import { OPCIONES_VENTANA_RITMO, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
+import { sumarDias } from "@/lib/rangos";
 import { tokensMeta } from "@/lib/integraciones";
 import {
   debeSincronizarDesdeElHub,
@@ -215,6 +216,16 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         origen,
       }))
     : undefined;
+  const detalleManana = esHoy
+    ? proyectar(await detalleDeCifra("agendas", {
+        programId: programa.id,
+        slug,
+        hoy,
+        periodo: { preset: "custom", a: { desde: sumarDias(hoy, 1), hasta: sumarDias(hoy, 1) }, b: null },
+        claveCloser: null,
+        origen,
+      }))
+    : undefined;
 
   const { desde, hasta } = vista.seleccion.rango;
   // Un solo dia se escribe una sola vez: "15 sep 2026", no "15 sep 2026 a 15 sep 2026".
@@ -351,6 +362,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
               // sin él (paid trafficker) las cifras salen como texto.
               metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} origen={origen} conListas={veEquipo} configurar={configurar} />}
+              agendaDeHoy={vistaDeHoy!.agendaDeHoy}
+              citasDeManana={vistaDeHoy!.citasDeManana}
+              corte={vistaDeHoy!.corte}
+              detalleManana={detalleManana}
             />
           )}
         </div>

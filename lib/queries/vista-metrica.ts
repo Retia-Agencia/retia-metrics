@@ -62,6 +62,7 @@ export function nombreDeEtapa(etapa: string): string {
 const METRICAS_DEL_TABLERO = [
   "caja",
   "agendas",
+  "canceladas",
   "shows",
   "shows_sin_grain",
   "cierres",

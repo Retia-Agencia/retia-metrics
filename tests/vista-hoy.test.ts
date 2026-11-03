@@ -6,6 +6,9 @@ import { cajaRecaudada, type VistaDeCohorte } from "@/lib/queries/dashboard";
 import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { armarVistaDeHoy, cajaDelDiaPorOrigen, contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 import { detalleDeCifra } from "@/lib/queries/vista-metrica";
+import { embudoDelRango } from "@/lib/queries/dashboard";
+import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { grupoDeCitas } from "@/lib/queries/tasas-del-grupo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -345,5 +348,58 @@ describe("la caja de hoy por origen (252)", () => {
 
     expect(resultado.registros).toBe(2);
     expect(resultado.registros).toBe(detalle.resumen.subtotal.cantidad);
+  });
+});
+
+describe("367: citas vivas y canceladas aparte", () => {
+  const DIA = "2026-11-03";
+  const AHORA = new Date(`${DIA}T12:00:00-05:00`);
+  let db: Db;
+  let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
+
+  beforeAll(async () => ({ db, cerrar, vaciar } = await crearBaseReutilizable()));
+  beforeEach(async () => vaciar());
+  afterAll(async () => cerrar());
+
+  it("la cifra, todas las filas y el desglose conservan vigencia y programa", async () => {
+    const [programa, otro] = await db.insert(programs).values([
+      { ...PROGRAMA_DE_PRUEBA, slug: "citas-vivas", nombre: "Citas vivas", ticketUsd: "797" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "citas-ajenas", nombre: "Citas ajenas", ticketUsd: "1500" },
+    ]).returning();
+    const [gerente] = await db.insert(users).values({ email: "gerente-citas@retia.co", rol: "gerente" }).returning();
+    const [leadCancelado] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "cancelado@retia.co" }).returning();
+    const [dealCancelado] = await db.insert(deals).values({ programId: programa.id, leadId: leadCancelado.id, etapa: "agendado" }).returning();
+    const base = { programId: programa.id, closerId: "Ana" };
+    await db.insert(calls).values([
+      { ...base, fechaAgenda: new Date(`${DIA}T09:00:00-05:00`), resultado: "agendada" },
+      { ...base, fechaAgenda: new Date(`${DIA}T15:00:00-05:00`), resultado: "agendada" },
+      { ...base, fechaAgenda: new Date(`${DIA}T10:00:00-05:00`), resultado: "show" },
+      { ...base, fechaAgenda: new Date(`${DIA}T10:30:00-05:00`), resultado: "no_show" },
+      { ...base, fechaAgenda: new Date(`${DIA}T11:00:00-05:00`), resultado: "reagendada" },
+      { ...base, dealId: dealCancelado.id, fechaAgenda: new Date(`${DIA}T11:30:00-05:00`), resultado: "cancelada" },
+      { ...base, fechaAgenda: new Date(`${DIA}T08:00:00-05:00`), resultado: "cancelada", anuladoEn: AHORA, anuladoPor: gerente.id, motivoAnulacion: "Corrección" },
+      { programId: otro.id, fechaAgenda: new Date(`${DIA}T11:30:00-05:00`), resultado: "cancelada" },
+    ]);
+    const alcance = { programId: programa.id, rango: { desde: DIA, hasta: DIA }, claveCloser: null };
+    const embudo = await embudoDelRango(alcance, db, AHORA);
+    const [agendas, canceladas, resumenAgendas, resumenCanceladas] = await Promise.all([
+      listaDeMetrica("agendas", { ...alcance, hoy: DIA, ahora: AHORA }, 1, db).then(([x]) => x),
+      listaDeMetrica("canceladas", { ...alcance, hoy: DIA, ahora: AHORA }, 1, db).then(([x]) => x),
+      resumenDeMetrica("agendas", { ...alcance, hoy: DIA, ahora: AHORA }, db).then(([x]) => x),
+      resumenDeMetrica("canceladas", { ...alcance, hoy: DIA, ahora: AHORA }, db).then(([x]) => x),
+    ]);
+
+    expect(embudo.agendas).toBe(5);
+    expect(embudo.canceladas).toBe(1);
+    expect(agendas.filas).toHaveLength(embudo.agendas);
+    expect(canceladas.filas).toHaveLength(embudo.canceladas);
+    expect(resumenAgendas.subtotal.cantidad).toBe(agendas.filas.length);
+    expect(resumenCanceladas.subtotal.cantidad).toBe(canceladas.filas.length);
+    expect(Object.values(embudo.estadosDeCitas).reduce((total, cantidad) => total + cantidad, 0)).toBe(embudo.agendas);
+
+    const grupo = await grupoDeCitas(db, { programId: programa.id, rango: alcance.rango, ahora: new Date(`${DIA}T23:00:00-05:00`) });
+    expect(grupo.tasas.deals).toBe(1);
+    expect(grupo.tasas.conShow).toBe(0);
   });
 });

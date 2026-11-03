@@ -8,7 +8,7 @@ import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { monto, num } from "@/lib/format";
+import { horaEnBogota, monto, num } from "@/lib/format";
 import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 import type { ConfigurarMetas } from "@/components/metas/metas-del-mes";
 import type { Alerta } from "@/lib/queries/alertas";
@@ -18,6 +18,8 @@ import type { CajaDelDiaPorOrigen, ClaveDeHorizonte, ContextoDelDia, Horizonte }
 import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { ShowPorCita } from "@/lib/queries/tasa-show-por-cita";
 import type { ProyeccionDeCohorte } from "@/lib/queries/proyeccion";
+import type { FilaDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 
 /**
  * Hub › Hoy (ticket 252, ADR 0086 punto 3): el reporte diario armado con lo que el CRM ya calcula,
@@ -110,6 +112,7 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
   const { embudo } = vista;
   return (
     <div className="space-y-4">
+      <h3 className="text-lg font-semibold">¿Cómo vamos hoy?</h3>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Tarjeta titulo="Leads de hoy" valor={
           <CifraConLista titulo="Leads de hoy" detalle={detalleRegistros}>{num(registros)}</CifraConLista>
@@ -119,7 +122,15 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
         } nota="Llamadas agendadas hoy, para la cita que sea" />
         <Tarjeta titulo="Citas de hoy" valor={
           <CifraConLista titulo="Citas de hoy" detalle={detalles?.agendas}>{num(embudo.agendas)}</CifraConLista>
-        } nota="Por la fecha de la cita" />
+        } nota={<div className="flex flex-wrap gap-1" title="Las canceladas se muestran aparte y no suman en Citas">
+          <Badge variant="info"><CifraConLista titulo="Citas por venir" detalle={detalles?.agendas}>{num(embudo.estadosDeCitas.porVenir)}</CifraConLista> por venir</Badge>
+          <Badge variant={embudo.estadosDeCitas.sinResultado > 0 ? "peligro" : "neutro"}><CifraConLista titulo="Citas sin resultado" detalle={detalles?.sin_resultado}>{num(embudo.estadosDeCitas.sinResultado)}</CifraConLista> sin resultado</Badge>
+          <Badge variant="exito"><CifraConLista titulo="Shows" detalle={detalles?.shows}>{num(embudo.estadosDeCitas.show)}</CifraConLista> show</Badge>
+          <Badge variant="alerta"><CifraConLista titulo="No shows" detalle={detalles?.agendas}>{num(embudo.estadosDeCitas.noShow)}</CifraConLista> no show</Badge>
+          <Badge variant="info"><CifraConLista titulo="Reagendadas" detalle={detalles?.agendas}>{num(embudo.estadosDeCitas.reagendadas)}</CifraConLista> reagendadas</Badge>
+          {embudo.estadosDeCitas.otro > 0 ? <Badge variant="neutro"><CifraConLista titulo="Otros estados" detalle={detalles?.agendas}>{num(embudo.estadosDeCitas.otro)}</CifraConLista> otro</Badge> : null}
+          <Badge variant="neutro"><CifraConLista titulo="Canceladas" detalle={detalles?.canceladas}>{num(embudo.canceladas)}</CifraConLista> canceladas aparte</Badge>
+        </div>} />
         <Tarjeta titulo="Realizadas (show)" valor={
           <CifraConLista titulo="Llamadas realizadas hoy" detalle={detalles?.shows}>{num(embudo.llamadasConShow)}</CifraConLista>
         } nota={<>
@@ -147,6 +158,34 @@ function OperacionDelDia({ vista, registros, detalleRegistros, agendasCreadas, d
       ) : null}
       {veEquipo ? <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} titulo="Hoy por closer" /> : null}
     </div>
+  );
+}
+
+function Agenda({ titulo, filas, corte, veEquipo }: { titulo: string; filas: FilaDeMetrica[]; corte: Date; veEquipo: boolean }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle className="text-base">{titulo}</CardTitle></CardHeader>
+      <CardContent>
+        {filas.length === 0 ? <p className="text-sm text-muted-foreground">Sin citas.</p> : (
+          <ul className="divide-y text-sm">
+            {filas.map((fila) => {
+              const cancelada = fila.resultado === "cancelada";
+              const vencida = fila.resultado === "agendada" && fila.citaEn != null && fila.citaEn <= corte;
+              const resultado = fila.resultado as keyof typeof ETIQUETA_DE_RESULTADO;
+              return (
+                <li key={fila.id} className={`flex flex-wrap items-center gap-2 py-2 ${cancelada ? "text-muted-foreground" : ""}`}>
+                  <span className="cifra w-14 font-medium">{fila.citaEn ? horaEnBogota(fila.citaEn) : "—"}</span>
+                  {veEquipo ? <span className="min-w-0 flex-1 truncate">{fila.closer ?? "Sin closer"}</span> : <span className="flex-1" />}
+                  <Badge variant={vencida ? "peligro" : (TONO_DE_RESULTADO[resultado] ?? "neutro")}>
+                    {vencida ? "Sin resultado" : (ETIQUETA_DE_RESULTADO[resultado] ?? "Otro")}
+                  </Badge>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -184,6 +223,12 @@ function CajaDelDia({ caja, detalles }: { caja: CajaDelDiaPorOrigen[]; detalles?
 
 /** 5. Las banderas rojas (lo que era el Pulso) y las alertas por persistencia. */
 function Banderas({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDelDashboard }) {
+  const banderas = [
+    ["Shows sin Grain", vista.sinGrain.sinGrain, detalles?.shows_sin_grain, `${tasa(vista.sinGrain.pct)} de ${num(vista.sinGrain.shows)} shows de hoy`],
+    ["Llamadas pasadas sin resultado", vista.sinResultado, detalles?.sin_resultado],
+    ["Atendidos sin valor vendido", vista.banderas.sinValor.cantidad, detalles?.atendidos_sin_valor, `${tasa(vista.banderas.sinValor.pct)} de ${num(vista.banderas.atendidos)} atendidos · a hoy`],
+    ["Atendidos sin Grain", vista.banderas.sinGrain.cantidad, detalles?.atendidos_sin_grain, `${tasa(vista.banderas.sinGrain.pct)} de ${num(vista.banderas.atendidos)} atendidos · a hoy`],
+  ] as const;
   const bandera = (titulo: string, cantidad: number, detalle: DetallesDelDashboard[keyof DetallesDelDashboard] | undefined, nota?: string) => (
     <Tarjeta titulo={titulo} nota={nota} valor={
       <span className={cantidad > 0 ? "text-tono-peligro" : undefined}>
@@ -192,41 +237,15 @@ function Banderas({ vista, detalles }: { vista: VistaDelDashboard; detalles?: De
     } />
   );
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      {bandera("Shows sin Grain", vista.sinGrain.sinGrain, detalles?.shows_sin_grain,
-        `${tasa(vista.sinGrain.pct)} de ${num(vista.sinGrain.shows)} shows de hoy`)}
-      {bandera("Llamadas pasadas sin resultado", vista.sinResultado, detalles?.sin_resultado)}
-      {bandera("Atendidos sin valor vendido", vista.banderas.sinValor.cantidad, detalles?.atendidos_sin_valor,
-        `${tasa(vista.banderas.sinValor.pct)} de ${num(vista.banderas.atendidos)} atendidos · a hoy`)}
-      {bandera("Atendidos sin Grain", vista.banderas.sinGrain.cantidad, detalles?.atendidos_sin_grain,
-        `${tasa(vista.banderas.sinGrain.pct)} de ${num(vista.banderas.atendidos)} atendidos · a hoy`)}
+    <div className="space-y-2">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {banderas.filter(([, cantidad]) => cantidad > 0).map(([titulo, cantidad, detalle, nota]) =>
+          <div key={titulo}>{bandera(titulo, cantidad, detalle, nota)}</div>)}
+      </div>
+      {banderas.some(([, cantidad]) => cantidad === 0) ? (
+        <p className="text-sm text-muted-foreground">Sin pendientes: {banderas.filter(([, cantidad]) => cantidad === 0).map(([titulo]) => titulo.toLocaleLowerCase("es")).join(", ")}.</p>
+      ) : null}
     </div>
-  );
-}
-
-/** 6. Lo que el reporte diario pide y el CRM todavía no calcula: se dice, no se muestra un cero. */
-function LoQueViene() {
-  const piezas = [
-    ["Cómo nació cada venta", "Si salió de la agenda del día, de un seguimiento o sin llamada."],
-    ["Acciones abiertas", "Los planes de acción con su dueño y su estado."],
-  ];
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle className="text-base">Lo que viene</CardTitle>
-        <Badge variant="neutro">Se está construyendo</Badge>
-      </CardHeader>
-      <CardContent>
-        <ul className="grid gap-3 text-sm sm:grid-cols-2">
-          {piezas.map(([titulo, texto]) => (
-            <li key={titulo}>
-              <p className="font-medium">{titulo}</p>
-              <p className="text-muted-foreground">{texto}</p>
-            </li>
-          ))}
-        </ul>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -250,6 +269,10 @@ export function Hoy({
   veEquipo,
   configurar,
   metas,
+  agendaDeHoy,
+  citasDeManana,
+  corte,
+  detalleManana,
 }: {
   /** La vista armada con el periodo de HOY (no con el que venga en la URL). */
   vista: VistaDelDashboard;
@@ -274,6 +297,10 @@ export function Hoy({
   configurar: ConfigurarMetas;
   /** Las metas del mes con sus flechas (lo que era la página Metas); las arma la página. */
   metas: ReactNode;
+  agendaDeHoy: FilaDeMetrica[];
+  citasDeManana: FilaDeMetrica[];
+  corte: Date;
+  detalleManana?: DetalleDeCifra;
 }) {
   return (
     <section id="hoy" className="scroll-mt-4 space-y-6">
@@ -281,11 +308,7 @@ export function Hoy({
         <h2 className="text-xl font-semibold">Hoy</h2>
         <LineaDeContexto contexto={contexto} />
       </div>
-      <Cupos horizontes={horizontes} detalles={detalles} configurar={configurar} />
-      <Proyeccion datos={proyeccion} ventanas={ventanasRitmo} />
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">La operación de hoy</h3>
-        <OperacionDelDia
+      <OperacionDelDia
           vista={vista}
           registros={registros}
           detalleRegistros={detalleRegistros}
@@ -296,15 +319,23 @@ export function Hoy({
           detalles={detalles}
           detallesOperacion={detallesOperacion}
           veEquipo={veEquipo}
-        />
+      />
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold">La agenda de hoy</h3>
+        <Agenda titulo="Por hora" filas={agendaDeHoy} corte={corte} veEquipo={veEquipo} />
       </section>
-      <CajaDelDia caja={caja} detalles={detalles} />
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold">Mañana</h3>
+        <Tarjeta titulo="Citas vivas" valor={<CifraConLista titulo="Citas de mañana" detalle={detalleManana}>{num(citasDeManana.length)}</CifraConLista>} nota="Por la fecha de la cita" />
+      </section>
       <section className="space-y-3">
         <h3 className="text-lg font-semibold">Lo que pide atención</h3>
         <Banderas vista={vista} detalles={detalles} />
         <Alertas alertas={alertas} slug={slug} configurable={veEquipo} />
       </section>
-      <LoQueViene />
+      <Cupos horizontes={horizontes} detalles={detalles} configurar={configurar} />
+      <Proyeccion datos={proyeccion} ventanas={ventanasRitmo} />
+      <CajaDelDia caja={caja} detalles={detalles} />
       {metas}
     </section>
   );

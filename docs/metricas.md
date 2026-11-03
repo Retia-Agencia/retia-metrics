@@ -76,9 +76,14 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 ### 1.3 Cita, llamada y show
 
 - **Tabla:** `calls`.
+- **Cita:** llamada vigente cuya cita cae en el rango y cuyo resultado no es `cancelada`. Las canceladas se cuentan
+  aparte; no inflan "Citas". Esta exclusión vive en `citaNoCancelada` y la comparten la cifra y su lista.
+- **Cancelada:** llamada vigente cuya cita cae en el rango y cuyo resultado es `cancelada`.
 - **Fecha:** el día de la cita, `coalesce(fecha_agenda, fecha_llamada)` en Bogotá (`fechaAnclaCall`).
 - **Show:** el resultado está en `show`, `compromiso_pago`, `cerrada` o `perdida` (`RESULTADOS_QUE_OCURRIERON`).
 - **Función:** `lib/queries/hechos/cita.ts`, `llamadaOcurrio` en `lib/queries/metricas-filtros.ts`.
+- **Ojo:** el grupo de citas que alimenta las tasas de show y cierre no cambia: una cancelada ocurrida sigue dentro
+  de ese grupo como cita no atendida. "Citas" y el grupo de tasas responden preguntas distintas.
 
 ### 1.4 Venta
 
@@ -208,7 +213,8 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | No agendaron | **personas** (lead) con un registro (`fuente`, `token`) cuyo primer envío cae en el rango y que llegó al Calendly (agendó o calidad High); una fila por persona, con la fecha de su registro más antiguo. El deal que la representa es el de la persona: el abierto o, si no hay, el más reciente, desempate por id (`idsDelDealDeLaPersona`, `lib/queries/deal-de-la-persona.ts`; la misma regla cuelga el deal en la lista de registros). Sale si **hoy** ese deal tiene `calls` vigente o está en Agendado o una etapa posterior, Cierre perdido incluido (decidido por Mani, 24-oct); una cita posterior al envío la saca. Se verifica comparando `embudoDelFormulario.noAgendaron` con el total de la lista `no_agendaron`, incluyendo otro programa y un deal anulado, y agregando una cita vigente al día siguiente | personas, por programa | no | `llegoAlCalendly` y `noAgendaronDelFormulario` en `lib/queries/embudo-formulario.ts`; lista en `metricas-con-filas.ts` | ✅ |
 | Agendas creadas | llamadas vigentes creadas en el rango (§1.2); la de Pauta y el denominador del costo por agenda del Hub (249) | agendas | sí | `hechos/agenda.ts` | ✅ |
 | Deals que agendaron | deals creados del rango (misma fecha que Deals creados) con al menos una llamada vigente del mismo programa creada hasta el último día del rango; la gráfica muestra el % sobre los deals creados, acumulado por día hábil | deals | sí (el % no) | `filtroDealsQueAgendaron` en `lib/queries/metricas-filtros.ts`, serie en `lib/queries/deals-contra-agendas.ts` | ✅ |
-| Citas (la tarjeta "Agendas" de Comercial, "Citas de hoy" en Hoy) | llamadas vigentes cuya **cita** cae en el rango (§1.3), con cualquier resultado; no es la de arriba (medido el 23-oct, 299) | citas | sí | `embudoDelRango` (`filtroLlamadas`) | ✅ |
+| Citas (la tarjeta "Agendas" de Comercial, "Citas de hoy" en Hoy) | llamadas vigentes cuya **cita** cae en el rango (§1.3), salvo las canceladas; no es la de arriba | citas | sí | `embudoDelRango` (`filtroLlamadas` + `citaNoCancelada`) | ✅ |
+| Canceladas | llamadas vigentes cuya cita cae en el rango y tienen resultado cancelada; se muestran aparte y no suman en Citas | citas canceladas | sí | `embudoDelRango`, lista `canceladas` | ✅ |
 | Horas de agenda | hora de `calls.createdAt` en Bogotá; solo agendas de pauta y vigentes; una reagenda conserva la primera hora; el encabezado de cada programa muestra al lado las agendas de Meta del mismo día | horas | no | `armarMensajeDeHorasDeAgenda` | 🟡 298 (en main, sin checkpoint) |
 | Citas · Shows | citas del rango; las que ocurrieron (§1.3) | citas | sí | `hechos/cita.ts` | ✅ |
 | % de show | deals del grupo con al menos un show ÷ deals del grupo. Una cita pasada que sigue `agendada` queda pendiente de resultado, visible aparte con su lista, y no entra al grupo ni a la tasa | % | no | `lib/queries/tasas-del-grupo.ts` | ✅ |
@@ -344,7 +350,7 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 **Decisiones de Mani (23-oct):**
 
 - **D1, agendas.** Dos tarjetas rotuladas: "Agendas creadas hoy" (§1.2, la de Pauta) y "Citas de hoy" (§1.3, la del
-  reporte: "Agendas reales" eran las citas que caían ese día).
+  reporte: "Agendas reales" eran las citas vivas que caían ese día). Las canceladas aparecen aparte.
 - **D2, % de show.** Por deal (ADR 0079), dicho en la tarjeta: "X de Y deals con cita ocurrida · N reagendadas (no
   cuentan)". Las citas pasadas que siguen `agendada` se muestran como pendientes con su lista y no entran a la
   tasa hasta registrar el resultado. ~~No hay una segunda fórmula por cita.~~ **Enmendada el 24-oct (Mani, 299):** al
@@ -363,7 +369,7 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 | Semana día X de 5 · mes día X de N hábiles · corte día X de N | Línea de contexto | `contextoDelDia` | el día | lunes a viernes; la cohorte, de su ventana de ventas |
 | Cupos del día: meta, real, cumplimiento | Cupos › Hoy | `horizontesDeCupos` (meta: `vistaDeCohorteActiva`) | venta (§1.4) | meta dinámica de la cohorte activa; real = ventas del día |
 | Leads del día: meta, real, cumplimiento | Leads de hoy, sin meta | `agrupar` de `hechos/envio.ts` | envío (§1.1) | registros completos del programa |
-| Agendas reales | Citas de hoy | `embudoDelRango.agendas` | cita (§1.3) | llamadas vigentes con cita ese día, cualquier resultado |
+| Agendas reales | Citas de hoy + Canceladas aparte | `embudoDelRango.agendas`, `canceladas` | cita (§1.3) | llamadas vigentes con cita ese día; Citas excluye canceladas |
 | (no estaba) | Agendas creadas hoy | `agrupar` de `hechos/agenda.ts` | creación (§1.2) | llamadas vigentes creadas ese día |
 | Llamadas realizadas | Realizadas (show) | `embudoDelRango.llamadasConShow` | cita | citas del día con resultado que ocurrió |
 | Show | % de show por deal | `grupoDeCitas` | cita | deals con cita ya ocurrida y resultado; la reagendada y la pendiente de resultado no cuentan |
@@ -373,9 +379,9 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 | Semana: meta, meta a la fecha, real | Cupos › Semana | `leerMetasDelMes` (compensación semanal, 146) | venta | ventas de la semana hasta el día |
 | El corte: meta, vendidos, faltan, cumplimiento lineal | Cupos › Cohorte | `vistaDeCohorteActiva` | venta | ventas de la cohorte hasta el día |
 | El mes: leads, cupos, cumplimiento lineal | Cupos › Mes y metas del mes | `leerMetasDelMes` | venta | ventas del mes hasta el día; los leads del mes, 253 |
-| Meta para llegar a la meta desde mañana; leads por día hábil | Lo que viene | · | · | 🟡 253 |
-| Cómo nació cada cupo (agenda del día, follow-up) | Lo que viene | · | · | 🟡 254 |
-| Planes de acción | Lo que viene | · | · | 🟡 257 |
+| Meta para llegar a la meta desde mañana; leads por día hábil | Proyección | `leerProyeccion` | día hábil | construido en 253 |
+| Cómo nació cada cupo (agenda del día, follow-up) | fuera de Hoy hasta tener una métrica | · | · | 🟡 254 |
+| Planes de acción | fuera de Hoy hasta tener datos | · | · | 🟡 257 |
 | Masivos, cola y respuestas de Kapso | fuera | · | · | H-9: no viven en el CRM |
 | El texto por closer ("9 agendas: 1 cierre, 2 no-show...") | la lista de cada cifra | · | · | fuera del 299 |
 

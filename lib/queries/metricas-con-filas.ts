@@ -12,8 +12,8 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
-  closerDeAbono, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsQueAgendaron, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, llamadaPasadaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
+  closerDeAbono, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsQueAgendaron, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -41,6 +41,7 @@ import { fechaDeInstanteEnBogota } from "@/lib/format";
 export type Metrica =
   | "caja"
   | "agendas"
+  | "canceladas"
   | "citas_debidas"
   | "shows"
   | "no_shows"
@@ -124,6 +125,10 @@ export interface FilaDeMetrica {
   id: string;
   dealId: string | null;
   fecha: string;
+  /** Instante de la cita, solo para las filas que salen de calls. */
+  citaEn?: Date | null;
+  /** Estado crudo de la cita; la UI lo traduce con el vocabulario del dominio. */
+  resultado?: string | null;
   closer: string | null;
   /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
   claveCloser: string;
@@ -209,6 +214,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
         claveCloser: claveCloserSql(abonos.registradoPorUserId, abonos.closerId),
       };
     case "agendas":
+    case "canceladas":
     case "citas_debidas":
     case "agendas_futuras":
     case "shows":
@@ -279,6 +285,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
 function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, resumen: boolean) {
   const esCaja = metrica === "caja";
   const esContratado = metrica === "contratado";
+  const esLlamada = ["agendas", "canceladas", "citas_debidas", "agendas_futuras", "shows", "no_shows", "shows_sin_grain", "sin_resultado", "agendas_creadas"].includes(metrica);
   // Las agendas futuras tienen edad cero; no se inventa un quinto bucket negativo.
   const edad = sql<number>`greatest(0, ${hoy}::date - (${fuente.fecha})::date)`;
   const bucket = sql<string>`case
@@ -308,6 +315,8 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
     id: resumen ? nulo : sql<string>`${fuente.id}::text`,
     dealId: resumen ? nulo : sql<string | null>`${deals.id}::text`,
     fecha: resumen ? nulo : sql<string>`${fuente.fecha}::text`,
+    citaEn: resumen || !esLlamada ? sql<Date | null>`null::timestamptz` : sql<Date | null>`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`,
+    resultado: resumen || !esLlamada ? nulo : sql<string | null>`${calls.resultado}::text`,
     closer: resumen
       ? sql<string | null>`min(${fuente.columnaCloser})`
       : sql<string | null>`${fuente.columnaCloser}`,
@@ -371,6 +380,7 @@ function consultaDe(
           ),
         );
     case "agendas":
+    case "canceladas":
     case "citas_debidas":
     case "shows":
     case "no_shows":
@@ -384,6 +394,8 @@ function consultaDe(
         .where(
           and(
             filtroLlamadas(alcance, db),
+            metrica === "agendas" ? citaNoCancelada() : undefined,
+            metrica === "canceladas" ? eq(calls.resultado, "cancelada") : undefined,
             metrica === "citas_debidas" ? llamadaYaDebiaOcurrir(filtros.ahora ?? new Date()) : undefined,
             metrica === "shows" ? llamadaOcurrio() : undefined,
             metrica === "no_shows" ? filtroNoShows(alcance, db) : undefined,
@@ -420,7 +432,7 @@ function consultaDe(
         .where(
           and(
             filtroLlamadas(alcance, db),
-            llamadaPasadaSinResultado(filtros.ahora ?? new Date()),
+            citaVencidaSinResultado(filtros.ahora ?? new Date()),
             vigente(calls),
             vigente(deals),
           ),

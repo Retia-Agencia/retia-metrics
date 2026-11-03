@@ -9,8 +9,9 @@ import {
   filtroCortesias,
   filtroLeads,
   filtroLlamadas,
+  citaNoCancelada,
+  citaVencidaSinResultado,
   llamadaOcurrio,
-  llamadaPasadaSinResultado,
   porClaveDeDeal,
   vendidosEn,
 } from "@/lib/queries/metricas-filtros";
@@ -105,6 +106,15 @@ export interface CajaPorMoneda {
  */
 export interface EmbudoDelRango {
   agendas: number;
+  canceladas: number;
+  estadosDeCitas: {
+    porVenir: number;
+    sinResultado: number;
+    show: number;
+    noShow: number;
+    reagendadas: number;
+    otro: number;
+  };
   reagendadas: number;
   llamadasConShow: number;
   pctShow: number | null;
@@ -309,7 +319,7 @@ export async function sinResultadoDelRango(
     .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
     .where(and(
       filtroLlamadas(alcance, db),
-      llamadaPasadaSinResultado(ahora),
+      citaVencidaSinResultado(ahora),
       vigente(calls),
       vigente(deals),
     ));
@@ -397,11 +407,22 @@ export async function embudoDelRango(
 ): Promise<EmbudoDelRango> {
   const [llamadas] = await db
     .select({
-      agendas: sql<number>`count(*)::int`,
+      agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
+      canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
+      porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) > ${ahora})::int`,
+      sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora)})::int`,
+      show: sql<number>`count(*) filter (where ${eq(calls.resultado, "show")})::int`,
+      noShow: sql<number>`count(*) filter (where ${eq(calls.resultado, "no_show")})::int`,
+      otro: sql<number>`count(*) filter (where ${citaNoCancelada()} and not (
+        (${eq(calls.resultado, "agendada")} and coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) > ${ahora})
+        or coalesce(${citaVencidaSinResultado(ahora)}, false)
+        or ${inArray(calls.resultado, ["show", "no_show", "reagendada"])}
+      ))::int`,
       reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
       llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
     })
     .from(calls)
+    .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
     .where(
       and(
         filtroLlamadas({ programId, rango, claveCloser }, db),
@@ -410,6 +431,7 @@ export async function embudoDelRango(
     );
 
   const agendas = llamadas?.agendas ?? 0;
+  const canceladas = llamadas?.canceladas ?? 0;
   const reagendadas = llamadas?.reagendadas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
   const [cierres, grupo] = await Promise.all([
@@ -420,6 +442,15 @@ export async function embudoDelRango(
 
   return {
     agendas,
+    canceladas,
+    estadosDeCitas: {
+      porVenir: llamadas?.porVenir ?? 0,
+      sinResultado: llamadas?.sinResultado ?? 0,
+      show: llamadas?.show ?? 0,
+      noShow: llamadas?.noShow ?? 0,
+      reagendadas,
+      otro: llamadas?.otro ?? 0,
+    },
     reagendadas,
     llamadasConShow,
     pctShow: tasas.pctShow,
@@ -523,7 +554,8 @@ export async function embudoPorCloser(
       .select({
         clave: claveCloserSql(users.id, calls.closerId),
         closerId: sql<string | null>`min(${etiquetaDeCloserSql(calls.closerId)})`,
-        agendas: sql<number>`count(*)::int`,
+        agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
+        canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
         reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
         llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
       })
@@ -588,6 +620,8 @@ export async function embudoPorCloser(
         clave,
         closerId,
         agendas: 0,
+        canceladas: 0,
+        estadosDeCitas: { porVenir: 0, sinResultado: 0, show: 0, noShow: 0, reagendadas: 0, otro: 0 },
         reagendadas: 0,
         llamadasConShow: 0,
         pctShow: null,
@@ -607,6 +641,7 @@ export async function embudoPorCloser(
   for (const l of llamadasPorCloser) {
     const fila = asegurar(l.clave, l.closerId);
     fila.agendas = l.agendas;
+    fila.canceladas = l.canceladas;
     fila.reagendadas = l.reagendadas;
     fila.llamadasConShow = l.llamadasConShow;
   }

@@ -4,6 +4,8 @@ import { abonos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario, diaHabilDe } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
+import { sumarDias } from "@/lib/rangos";
+import { listaDeMetrica, TAMANO_PAGINA, type FilaDeMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { cajaRecaudada, type CajaPorMoneda, type VistaDeCohorte } from "@/lib/queries/dashboard";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
@@ -41,11 +43,6 @@ function fechaUtc(anio: number, mes: number, dia: number): string {
   const d = new Date(Date.UTC(anio, mes - 1, dia));
   const dos = (n: number) => String(n).padStart(2, "0");
   return `${d.getUTCFullYear()}-${dos(d.getUTCMonth() + 1)}-${dos(d.getUTCDate())}`;
-}
-
-function sumarDias(fecha: string, dias: number): string {
-  const [anio, mes, dia] = fecha.split("-").map(Number);
-  return fechaUtc(anio, mes, dia + dias);
 }
 
 function ultimoDiaDelMes(mes: string): string {
@@ -152,13 +149,34 @@ export async function armarVistaDeHoy(
     claveCloser: null,
     ahora: instante,
   }, db);
-  const [caja, filasDeAgendas, filasDeEnvios, showPorCita, proyeccion] = await Promise.all([
+  const rangoDeHoy = { desde: dia, hasta: dia };
+  const manana = sumarDias(dia, 1);
+  const cargarFilas = async (metrica: Metrica, rango: { desde: string; hasta: string }) => {
+    const filas: FilaDeMetrica[] = [];
+    let pagina = 1;
+    let total = 0;
+    do {
+      const [seccion] = await listaDeMetrica(metrica, { programId, rango, hoy: dia, ahora: instante }, pagina, db);
+      total = seccion.subtotal.cantidad;
+      filas.push(...seccion.filas);
+      pagina += 1;
+      if (seccion.filas.length < TAMANO_PAGINA) break;
+    } while (filas.length < total);
+    return filas;
+  };
+  const [caja, filasDeAgendas, filasDeEnvios, showPorCita, proyeccion, citasDeHoy, canceladasDeHoy, citasDeManana] = await Promise.all([
     cajaDelDiaPorOrigen({ programId, hoy: dia }, db),
     agruparAgendas(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
     agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
     showPorCitaDelRango({ programId, rango: { desde: dia, hasta: dia }, claveCloser: null }, instante, db),
     leerProyeccion({ programId, hoy: dia, ahora: instante, ventanaDiasHabiles: ventanaRitmo }, db),
+    cargarFilas("agendas", rangoDeHoy),
+    cargarFilas("canceladas", rangoDeHoy),
+    cargarFilas("agendas", { desde: manana, hasta: manana }),
   ]);
+  const porHora = (a: FilaDeMetrica, b: FilaDeMetrica) =>
+    (a.citaEn?.getTime() ?? Number.MAX_SAFE_INTEGER) - (b.citaEn?.getTime() ?? Number.MAX_SAFE_INTEGER)
+      || a.id.localeCompare(b.id);
   return {
     vista,
     contexto: contextoDelDia(dia, vista.cohorte),
@@ -168,6 +186,9 @@ export async function armarVistaDeHoy(
     registros: filasDeEnvios.reduce((total, fila) => total + fila.envios, 0),
     showPorCita,
     proyeccion,
+    agendaDeHoy: [...citasDeHoy.sort(porHora), ...canceladasDeHoy.sort(porHora)],
+    citasDeManana: citasDeManana.sort(porHora),
+    corte: instante,
   };
 }
 
