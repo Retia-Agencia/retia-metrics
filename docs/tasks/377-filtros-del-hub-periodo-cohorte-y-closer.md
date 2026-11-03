@@ -1,12 +1,12 @@
 ---
-id: 368
+id: 377
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-1, G-2) · ADR 0067, 0106 · absorbe lo que le faltaba al 251 y la parte del Hub del 360"
 depends: [352]
 status: todo
 ---
 
-# 368 — Los filtros del Hub: periodo, cohorte y closer, cada uno por su lado
+# 377 — Los filtros del Hub: periodo, cohorte y closer, cada uno por su lado
 
 Entrega del Hub a Gerencia, fase 1 (`docs/hub.md` §0). Sin este ticket ninguna gráfica del Hub sirve: todo lo demás
 lee estos filtros.

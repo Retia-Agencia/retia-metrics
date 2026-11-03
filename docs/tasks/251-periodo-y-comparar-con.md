@@ -8,7 +8,7 @@ status: reemplazado
 
 # 251 — Periodo y "Comparar con", sin A ni B en pantalla
 
-> **Reemplazado el 3-nov por el [368](./368-filtros-del-hub-periodo-cohorte-y-closer.md)** (weekly con Daniel Tovar). El código de este ticket está en `main` y se queda; lo que faltaba (el tooltip "12 → 15", recorrido y `test:humo`) pasó al 368, punto 8, junto con la separación de Cohorte y Periodo.
+> **Reemplazado el 3-nov por el [377](./377-filtros-del-hub-periodo-cohorte-y-closer.md)** (weekly con Daniel Tovar). El código de este ticket está en `main` y se queda; lo que faltaba (el tooltip "12 → 15", recorrido y `test:humo`) pasó al 377, punto 8, junto con la separación de Cohorte y Periodo.
 
 ## Objetivo
 

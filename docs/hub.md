@@ -35,8 +35,8 @@ Gerencia recibe sale del Hub, en PDF, con los filtros escritos (373).
 
 | # | Lo que pidió Daniel Tovar | Qué hay hoy (medido en el código, 3-nov) | Ticket |
 |---|---|---|---|
-| G-1 | Periodo y cohorte (SKU) como filtros separados: *"o es el periodo o es el SKU, o son ambas cosas pero separadas"* | "Cohorte actual" es un atajo del periodo (`lib/periodo.ts:15`) | 368 |
-| G-2 | Ver cuándo empezó a venderse la cohorte y la primera venta del SKU, debajo del filtro | no existe | 368 |
+| G-1 | Periodo y cohorte (SKU) como filtros separados: *"o es el periodo o es el SKU, o son ambas cosas pero separadas"* | "Cohorte actual" es un atajo del periodo (`lib/periodo.ts:15`) | 377 |
+| G-2 | Ver cuándo empezó a venderse la cohorte y la primera venta del SKU, debajo del filtro | no existe | 377 |
 | G-3 | Nunca "monto": siempre tres columnas, **Vendido, Recaudado, Por cobrar**, y en Vendido los tres comparados | Vendido y Recaudado en tarjetas separadas, recaudado por fecha de abono; listas con "Monto" | 369, 374 |
 | G-4 | Las gráficas siguen los filtros (el histórico de la cohorte) | series fijas de 6 meses (`series-dinero.ts`) | 370 |
 | G-5 | "Cupos vendidos acumulado" se entiende: rótulos, eje, tooltip | eje `dd/mm / dd/mm`, comparación propia | 370 |
@@ -60,7 +60,7 @@ un mismo paso no comparten archivos y van en paralelo. Implementa Codex, revisa 
 | Paso | Tickets | Qué deja |
 |---|---|---|
 | 1 | **352** (venta y cohorte, una definición) | la cifra de venta es una sola: la base de "¿vamos a llegar?" |
-| 2 | **374** (un idioma) · **368** (filtros) | los nombres de Dani y los filtros separados |
+| 2 | **374** (un idioma) · **377** (filtros) | los nombres de Dani y los filtros separados |
 | 3 | **369** (tres columnas) · **371** (¿vamos a llegar?) · **372** (Comercial) | el dinero, el norte y Comercial |
 | 4 | **370** (gráficas) | toda gráfica sigue los filtros, en cupos o USD, por paso o acumulada |
 | 5 | **373** (PDF) | el reporte diario sale del Hub |
@@ -70,8 +70,8 @@ Todas las decisiones de la fase 1 están cerradas (Mani, 3-nov): DA-1, DA-2, DA-
 **Salen de la fase 1 al recortar**: 353 y 354 (el 372 usa las funciones de show y agenda que ya usa Hoy y toma del 354
 solo el día del deal) y 356 (la comisión no la pidió Dani). Quedan en fase 2.
 
-**Se juntaron o recortaron para entregar antes** (3-nov): 251 → 368; 253 → 371; 256 → 370; 357 → 374; la parte del Hub
-de 358, 359 y 360 → 374, 372 y 368 (su resto queda en fase 2); el 300 pierde la vista imprimible (→ 373) y se queda con
+**Se juntaron o recortaron para entregar antes** (3-nov): 251 → 377; 253 → 371; 256 → 370; 357 → 374; la parte del Hub
+de 358, 359 y 360 → 374, 372 y 377 (su resto queda en fase 2); el 300 pierde la vista imprimible (→ 373) y se queda con
 la foto del día, sin fecha.
 
 ### Fase 2 (después de la entrega, sin fecha)
@@ -93,7 +93,7 @@ closers) y con César para unificar la plantilla de UTM antes del viernes 7-nov:
 | DA-1 | ¿Una venta que pasa a Cierre Perdido sigue contando? | No: deja de ser venta y cuenta como pérdida | 352 |
 | DA-2 | ¿Las ventas anteriores al inicio de ventas cuentan para la cohorte? | Sí | 352 |
 | DA-5 | ¿El cumplimiento del día contra la meta de apertura del día? | Sí | 352 |
-| DH-1 | ¿Con qué filtros abre Comercial o Dinero? | Cohorte activa + Desde el inicio | 368 |
+| DH-1 | ¿Con qué filtros abre Comercial o Dinero? | Cohorte activa + Desde el inicio | 377 |
 | DH-2 | ¿El Recaudado de las tres columnas? | Lo abonado a esas ventas, a hoy; la plata que entró por fecha sigue aparte como "Entró a caja" | 369 |
 | DH-3 | ¿"En plata" en agendas y shows? | No: son conteos; lo dice el subtítulo | 370 |
 | DH-4 | ¿SKUs como líneas del deal o varios deals por lead? | Líneas del deal (ADR nuevo antes de construir) | 376 |

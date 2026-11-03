@@ -2,7 +2,7 @@
 id: 372
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-8, G-9) · ADR 0069 · absorbe la parte de Comercial del 359 (punto 3)"
-depends: [368]
+depends: [377]
 status: todo
 ---
 
@@ -27,7 +27,7 @@ casi nunca agenda, así que la tasa baja sin que nada haya empeorado.
 ## Alcance
 
 1. **Cada tarjeta y cada gráfica de Comercial lleva su contexto en el subtítulo**, armado por un solo componente desde
-   los filtros del 368: "C3 · 1-oct a hoy · todos los closers". Ninguna cifra sin su periodo.
+   los filtros del 377: "C3 · 1-oct a hoy · todos los closers". Ninguna cifra sin su periodo.
 2. **"Deals creados" se parte en dos, con el total arriba:** "desde un formulario completo" y "desde un parcial". El
    hecho que decide es el envío que abrió el deal (`submissions.es_parcial`). El día del deal es UNO, el del envío que lo
    abrió (`coalesce(fecha_envio, created_at)`, la regla del ROAS): se toma esa parte del 354 aquí, el resto del 354 es

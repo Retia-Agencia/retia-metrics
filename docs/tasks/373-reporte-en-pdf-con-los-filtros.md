@@ -2,7 +2,7 @@
 id: 373
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-10: el CRM como fuente única de verdad) · reemplaza la parte imprimible del 300"
-depends: [368, 369, 370, 371, 372]
+depends: [377, 369, 370, 371, 372]
 status: todo
 ---
 

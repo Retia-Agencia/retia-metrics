@@ -2,7 +2,7 @@
 id: 376
 etapa: deals
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-13) · enmienda el ADR 0113 (abono adicional) · ADR 0012, 0037"
-depends: [368, 369]
+depends: [377, 369]
 status: todo
 ---
 
@@ -59,7 +59,7 @@ cronológica (SKU, fecha, valor vendido, recaudado, por cobrar, closer).
 2. Catálogo de productos y SKUs en Programa › Ventas (solo administradores), con el nombre armado.
 3. Agregar una línea desde la ficha del deal (closer dueño), con su abono.
 4. Ficha del lead: "Compras" con todas las líneas de todos sus deals.
-5. Hub: filtro **Producto** al lado de Cohorte (368); Vendido, Recaudado y Por cobrar por SKU (369); "Aparte del programa"
+5. Hub: filtro **Producto** al lado de Cohorte (377); Vendido, Recaudado y Por cobrar por SKU (369); "Aparte del programa"
    desaparece porque el 1:1 ya es la venta de su SKU. Cupos de la meta = líneas del producto de la meta (decide Gerencia:
    ¿un 1:1 ocupa cupo? propuesta: no, la meta es del programa virtual).
 6. Las preguntas abiertas del ADR 0113 (¿el 1:1 paga comisión?, ¿cuenta para la meta?) se cierran aquí.

@@ -2,7 +2,7 @@
 id: 370
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-4, G-5, G-6) · ADR 0091, 0106 · absorbe lo que le faltaba al 256"
-depends: [368, 369]
+depends: [377, 369]
 status: todo
 ---
 
@@ -34,7 +34,7 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
 
 ## Alcance
 
-1. **Toda gráfica del Hub sigue los cuatro filtros del 368.** El eje X es el periodo elegido: con C3 y Desde el
+1. **Toda gráfica del Hub sigue los cuatro filtros del 377.** El eje X es el periodo elegido: con C3 y Desde el
    inicio, del día de la primera venta de C3 a hoy. Se borran las series fijas de seis meses (`leerSeriesDeDinero` con
    su `Array.from({ length: 6 })`) y su texto "Últimos seis meses".
 2. **Tres interruptores por gráfica, encima de ella, con el valor elegido a la vista:**
@@ -52,7 +52,7 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
    - Leyenda con nombres de negocio: "C3", "C2 al mismo día de venta", "Octubre", "Septiembre al mismo día hábil".
    - Tooltip de una línea por serie: "4 nov · 12 cupos · C2 al mismo día: 9 (+3, +33 %)".
    - La meta como número junto al título (ADR 0106), en la unidad elegida (cupos o USD = cupos × precio).
-4. **La comparación es la de "Comparar con"** (368), no una propia de cada gráfica. Se borra el texto "Esta comparación
+4. **La comparación es la de "Comparar con"** (377), no una propia de cada gráfica. Se borra el texto "Esta comparación
    mensual usa el mes anterior, independientemente de “Comparar con”" porque deja de ser cierto.
 5. **Una serie por gráfica es la lista**: cada punto abre la lista de su tramo con los filtros puestos.
 6. **Lo que faltaba del 256:** `test:humo` en verde y comparar las cifras migradas contra producción (una gráfica de

@@ -2,7 +2,7 @@
 id: 369
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-3) · ADR 0013, 0024, 0113 · AGENTS.md: caja y ventas son dos métricas"
-depends: [368, 352, 374]
+depends: [377, 352, 374]
 status: todo
 ---
 
@@ -29,7 +29,7 @@ columna "Monto". Ninguna pantalla responde "de lo que vendimos en C3, cuánto ya
 ## Las tres cifras (una definición cada una, en `docs/metricas.md` §2)
 
 Las tres se calculan sobre **el mismo conjunto de ventas**: las ventas (función del 352) que dejan pasar los filtros
-del 368 (cohorte, periodo por fecha de venta, closer).
+del 377 (cohorte, periodo por fecha de venta, closer).
 
 | Nombre visible | Qué es | Función |
 |---|---|---|
@@ -66,7 +66,7 @@ lista. Cuando entre el 376 pasa a ser la venta de su propio SKU.
 
 - [ ] Test: dos ventas (USD 1.500 pagada entera; USD 1.500 con un abono de 500) dan Vendido 3.000, Recaudado 2.000,
   Por cobrar 1.000; un abono anulado no cuenta; un abono adicional no cambia ninguna de las tres y sí "Entró a caja".
-- [ ] Test: las tres cifras siguen los filtros del 368 (cohorte, periodo, closer) y su lista suma lo mismo, página por
+- [ ] Test: las tres cifras siguen los filtros del 377 (cohorte, periodo, closer) y su lista suma lo mismo, página por
   página.
 - [ ] Test de paridad: Por cobrar con "Todas" + "Desde el inicio" = la cartera que calculaba `carteraDelPrograma`
   antes de borrarla.

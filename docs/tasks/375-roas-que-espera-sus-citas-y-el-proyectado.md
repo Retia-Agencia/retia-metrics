@@ -2,7 +2,7 @@
 id: 375
 etapa: pauta
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-12, 'la cereza del pastel') · ADR 0115 N3 · metricas.md ROAS"
-depends: [351, 353, 355, 368]
+depends: [351, 353, 355, 377]
 status: todo
 ---
 
@@ -47,7 +47,7 @@ cuenta lo que todavía no pasó.
 4. **Se confirma después**: cada proyección se guarda con su fecha y, cuando la última cita pendiente tiene resultado,
    la pantalla muestra "Proyectado el 6-nov: 2,4× · Real: 2,1×". (Migración: una tabla de proyecciones; la aplica la
    sesión principal con el ok de Mani.)
-5. Vive en Hub › Pauta, con los filtros del 368.
+5. Vive en Hub › Pauta, con los filtros del 377.
 
 ## Done cuando
 
