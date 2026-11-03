@@ -94,6 +94,8 @@ export const conceptoAbonoEnum = pgEnum("concepto_abono", ["ticket", "adicional"
  * no permite quitarlo del enum sin reescribirlo.
  */
 export const tipoActividadEnum = pgEnum("tipo_actividad", ["contacto", "nota", "intento"]);
+/** Que clase de fila del log se deshizo (ADR 0117): un movimiento de etapa o un grupo de `change_log`. */
+export const tipoEventoReversionEnum = pgEnum("tipo_evento_reversion", ["etapa", "cambio"]);
 
 /**
  * A que lista pertenece un motivo (Mani, 27-sep, ticket 103). Es TIPO y no catalogo
@@ -1057,14 +1059,14 @@ export const deals = pgTable(
     index("deals_programa_etapa_idx").on(t.programId, t.etapa),
     index("deals_owner_idx").on(t.ownerUserId),
     index("deals_cohorte_idx").on(t.cohortId),
-    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
-    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
-    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    // Quien y cuando van juntos, y la garantia vive en la base y no solo en zod (ADR 0005).
+    // El motivo es opcional desde el ADR 0117 (Mani, 3-nov), pero nunca texto en blanco:
+    // vacio se guarda nulo, no un motivo inventado.
     check(
       "deals_anulacion_completa",
       sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
           OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
-              AND length(trim(${t.motivoAnulacion})) > 0)`,
+              AND (${t.motivoAnulacion} IS NULL OR length(trim(${t.motivoAnulacion})) > 0))`,
     ),
     // Esperando corte (ticket 293): el texto solo vive con el pendiente Proxima Cohorte,
     // y un deal en espera sin cohorte destino lleva texto. Sin la primera mitad, salir del
@@ -1111,6 +1113,8 @@ export const dealEtapaHistorial = pgTable(
     userId: uuid("user_id").references(() => users.id, { onDelete: "restrict" }),
     /** Obligatorio para un retroceso y para el Cierre Perdido; lo exige el motor. */
     motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
+    /** La reversion que escribio este movimiento (ADR 0117). Con valor, la fila no se deshace. */
+    reversionId: uuid("reversion_id").references((): AnyPgColumn => reversiones.id, { onDelete: "restrict" }),
     fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("deal_etapa_historial_deal_idx").on(t.dealId, t.fecha)],
@@ -1142,10 +1146,24 @@ export const dealActividades = pgTable(
     nota: text("nota"),
     proximoContacto: date("proximo_contacto"),
     pendientePuesto: pendienteDealEnum("pendiente_puesto"),
+    /**
+     * Una nota o un contacto mal puesto se ANULA (ADR 0117, enmienda al ADR 0026): un contacto
+     * habilita En Contacto y cuenta como gestion, asi que lo anulado sale de toda lectura por
+     * `vigente(dealActividades)`, igual que `calls`, `deals` y `abonos`.
+     */
+    anuladoEn: timestamp("anulado_en", { withTimezone: true }),
+    anuladoPor: uuid("anulado_por").references(() => users.id, { onDelete: "restrict" }),
+    motivoAnulacion: text("motivo_anulacion"),
   },
   (t) => [
     index("deal_actividades_deal_idx").on(t.dealId, t.fecha),
     check("deal_actividades_contacto_con_usuario", sql`${t.tipo} <> 'contacto' OR ${t.userId} IS NOT NULL`),
+    check(
+      "deal_actividades_anulacion_completa",
+      sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
+          OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
+              AND (${t.motivoAnulacion} IS NULL OR length(trim(${t.motivoAnulacion})) > 0))`,
+    ),
   ],
 );
 
@@ -1265,9 +1283,9 @@ export const calls = pgTable(
     index("calls_deal_idx").on(t.dealId),
     index("calls_closer_user_idx").on(t.closerUserId),
     uniqueIndex("calls_huella_idx").on(t.programId, t.huellaFila),
-    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
-    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
-    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    // Quien y cuando van juntos, y la garantia vive en la base y no solo en zod (ADR 0005).
+    // El motivo es opcional desde el ADR 0117 (Mani, 3-nov), pero nunca texto en blanco:
+    // vacio se guarda nulo, no un motivo inventado.
     // Una llamada NATIVA del CRM siempre cuelga de un deal (ticket 057): la garantia vive en la
     // base y no solo en `agregarLlamada` (ADR 0005). Lo que viene de fuera puede no tenerlo: la
     // SUELTA de Calendly (ADR 0049 punto 6, hasta que un closer la asigna) y la historia de la hoja
@@ -1280,7 +1298,7 @@ export const calls = pgTable(
       "calls_anulacion_completa",
       sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
           OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
-              AND length(trim(${t.motivoAnulacion})) > 0)`,
+              AND (${t.motivoAnulacion} IS NULL OR length(trim(${t.motivoAnulacion})) > 0))`,
     ),
   ],
 );
@@ -1462,14 +1480,14 @@ export const abonos = pgTable(
     uniqueIndex("abonos_comprobante_archivo_idx")
       .on(t.comprobanteArchivoId)
       .where(sql`${t.comprobanteArchivoId} is not null`),
-    // Sin motivo no hay anulacion (ADR 0026 punto 6), y la garantia vive en la base
-    // y no solo en zod (ADR 0005): los tres campos van juntos o no va ninguno. Una
-    // fila anulada sin quien ni por que es justo el estado que el ADR descarta.
+    // Quien y cuando van juntos, y la garantia vive en la base y no solo en zod (ADR 0005).
+    // El motivo es opcional desde el ADR 0117 (Mani, 3-nov), pero nunca texto en blanco:
+    // vacio se guarda nulo, no un motivo inventado.
     check(
       "abonos_anulacion_completa",
       sql`(${t.anuladoEn} IS NULL AND ${t.anuladoPor} IS NULL AND ${t.motivoAnulacion} IS NULL)
           OR (${t.anuladoEn} IS NOT NULL AND ${t.anuladoPor} IS NOT NULL
-              AND length(trim(${t.motivoAnulacion})) > 0)`,
+              AND (${t.motivoAnulacion} IS NULL OR length(trim(${t.motivoAnulacion})) > 0))`,
     ),
   ],
 );
@@ -1586,8 +1604,42 @@ export const changeLog = pgTable(
      */
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
     syncRunId: uuid("sync_run_id").references(() => syncRuns.id, { onDelete: "set null" }),
+    /** La reversion que escribio esta fila (ADR 0117). Con valor, la fila no se deshace. */
+    reversionId: uuid("reversion_id").references((): AnyPgColumn => reversiones.id, { onDelete: "restrict" }),
   },
-  (t) => [index("change_log_detectado_idx").on(t.detectadoEn)],
+  (t) => [
+    index("change_log_detectado_idx").on(t.detectadoEn),
+    index("change_log_registro_idx").on(t.registroId),
+  ],
+);
+
+/**
+ * Cada "Deshacer" del log de un deal (ADR 0117): quien, cuando, que evento y el motivo, que
+ * es OPCIONAL y texto libre (Mani, 3-nov). Las filas que escribe el deshacer en `change_log` y
+ * `deal_etapa_historial` llevan este id, y por eso no se deshacen a su vez.
+ *
+ * `eventoId` es el id de la fila de `deal_etapa_historial` (tipo `etapa`) o el de la PRIMERA
+ * fila de `change_log` del grupo (tipo `cambio`). Nulo solo en una correccion de etapa pedida
+ * desde la ficha sin escoger fila. El indice unico parcial garantiza que un evento se deshace
+ * una sola vez (ADR 0005): la reja vive en la base, no en el codigo.
+ */
+export const reversiones = pgTable(
+  "reversiones",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id").notNull().references(() => deals.id, { onDelete: "restrict" }),
+    eventoTipo: tipoEventoReversionEnum("evento_tipo").notNull(),
+    eventoId: uuid("evento_id"),
+    motivo: text("motivo"),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("reversiones_deal_idx").on(t.dealId, t.fecha),
+    uniqueIndex("reversiones_evento_idx").on(t.eventoTipo, t.eventoId).where(sql`${t.eventoId} IS NOT NULL`),
+    check("reversiones_motivo_no_vacio", sql`${t.motivo} IS NULL OR length(trim(${t.motivo})) > 0`),
+    check("reversiones_cambio_con_evento", sql`${t.eventoTipo} <> 'cambio' OR ${t.eventoId} IS NOT NULL`),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────── catalogos
