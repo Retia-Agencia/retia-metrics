@@ -5,11 +5,13 @@ import { esRolValido, veSoloLoBasicoDelLead } from "@/lib/auth/roles";
 import { idsDeProgramasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { fichaDeLead, fichaSinDetalleDeCitas } from "@/lib/queries/ficha-lead";
+import { abonosDelLead } from "@/lib/queries/abonos-del-lead";
 import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { PageShell } from "@/components/page-shell";
 import {
   AvisoOtrosProgramas,
+  FichaLeadAbonos,
   FichaLeadCabecera,
   FichaLeadContactos,
   FichaLeadDeals,
@@ -51,9 +53,10 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
 
   // El aviso de otros programas (091): la funcion da el hecho; que se ve de cada programa lo
   // decide el alcance de ESTA sesion (ADR 0048). De un programa que no ve, solo que existe.
-  const [otros, visibles] = await Promise.all([
+  const [otros, visibles, abonos] = await Promise.all([
     otrosProgramasDelCorreo(db, ficha.email, programa.id),
     idsDeProgramasVisibles(session.user.id, rol),
+    abonosDelLead(db, programa.id, ficha.id),
   ]);
   const otrosVisibles = otros.filter((o) => visibles.has(o.programId));
 
@@ -79,6 +82,7 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
           <FichaLeadEnvios ficha={ficha} />
           <div className="space-y-4">
             <FichaLeadDeals ficha={ficha} slug={programa.slug} origen={origenDeEstaFicha} abreFicha={!basico} />
+            {abonos.length > 0 ? <FichaLeadAbonos abonos={abonos} slug={programa.slug} /> : null}
             <FichaLeadContactos ficha={ficha} />
           </div>
         </div>

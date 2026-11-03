@@ -16,7 +16,7 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-
 
 export async function GET(request: Request, { params }: { params: Promise<{ programa: string; id: string }> }) {
   try {
-    const session = await requireRole("gerente", "closer");
+    const session = await requireRole("gerente", "closer", "customer_success");
     const { programa: slug, id } = await params;
     const rol = await rolDeVista(session);
     const programa = esRolValido(rol) ? await programaVisiblePorSlug(session.user.id, rol, slug, db) : null;

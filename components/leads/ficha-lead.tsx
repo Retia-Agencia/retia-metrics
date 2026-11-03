@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, num } from "@/lib/format";
+import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, monto, num } from "@/lib/format";
+import type { AbonoDelLead } from "@/lib/queries/abonos-del-lead";
 import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import type { DealDeLaFicha, EnvioDeLaFicha, FichaDeLead, ValorDeCampo } from "@/lib/queries/ficha-lead";
 import type { LeadEnOtroPrograma } from "@/lib/queries/otros-programas-del-correo";
@@ -192,6 +193,48 @@ export function FichaLeadDeals({ ficha, slug, origen, abreFicha }: { ficha: Fich
           </>
         )}
       </CardContent>
+    </Card>
+  );
+}
+
+/** Los abonos del lead con su comprobante: lo que el customer success revisa de un student. */
+export function FichaLeadAbonos({ abonos, slug }: { abonos: AbonoDelLead[]; slug: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">
+          Abonos · <span className="cifra">{num(abonos.length)}</span>
+        </CardTitle>
+      </CardHeader>
+      {abonos.length === 0 ? (
+        <Vacio>Aún no hay abonos.</Vacio>
+      ) : (
+        <ul className="divide-y border-t">
+          {abonos.map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
+              <span className="cifra font-medium">{monto(Number(a.monto), a.moneda)}</span>
+              {a.concepto === "adicional" ? <Badge variant="info">Adicional</Badge> : null}
+              <span className="text-xs text-muted-foreground">{fecha(a.fecha)}</span>
+              {a.comprobanteArchivoId ? (
+                <a
+                  className="text-xs text-marca-texto underline-offset-2 hover:underline"
+                  href={`/p/${slug}/archivos/${a.comprobanteArchivoId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ver comprobante
+                </a>
+              ) : a.comprobanteUrl ? (
+                <a className="text-xs text-marca-texto underline-offset-2 hover:underline" href={a.comprobanteUrl} target="_blank" rel="noreferrer">
+                  Ver comprobante
+                </a>
+              ) : (
+                <Badge variant="alerta">Sin comprobante</Badge>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
