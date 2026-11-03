@@ -1,8 +1,8 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
-import { cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { calls, cohorts, deals, leadContactos, leads, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { resolverCanal } from "@/lib/atribucion/canal";
 
@@ -86,6 +86,7 @@ export interface DealDeLaFicha {
   /** El envio que lo abrio, por su numero en la ficha. */
   envioNumero: number | null;
   creadoEn: Date;
+  llamadas: number;
   anulado: { en: Date; motivo: string } | null;
 }
 
@@ -115,6 +116,27 @@ export interface FichaDeLead {
   contactos: ContactoDeLaFicha[];
   /** Abiertos primero; dentro de cada grupo, el mas reciente arriba. */
   deals: DealDeLaFicha[];
+}
+
+/** Oculta enlaces guardados como respuestas antes de entregar la ficha a una vista básica. */
+export function fichaSinDetalleDeCitas(ficha: FichaDeLead): FichaDeLead {
+  const ocultarEnlace = (valor: ValorDeCampo): ValorDeCampo =>
+    valor.tipo === "valor" && /^https?:\/\//i.test(valor.texto.trim())
+      ? { tipo: "valor", texto: "Enlace oculto" }
+      : valor;
+
+  return {
+    ...ficha,
+    envios: ficha.envios.map((envio) => ({
+      ...envio,
+      campos: envio.campos.map((campo) => ({ ...campo, valor: ocultarEnlace(campo.valor) })),
+      cambios: envio.cambios?.map((cambio) => ({
+        ...cambio,
+        antes: ocultarEnlace(cambio.antes),
+        despues: ocultarEnlace(cambio.despues),
+      })) ?? null,
+    })),
+  };
 }
 
 const ETAPAS_CERRADAS: readonly EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
@@ -272,6 +294,16 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     .from(deals)
     .where(and(eq(deals.leadId, lead.id), eq(deals.programId, programId), incluyendoAnulados(deals)));
 
+  const idsDeDeals = dealsFilas.map((d) => d.id);
+  const llamadasFilas = idsDeDeals.length > 0
+    ? await db
+        .select({ dealId: calls.dealId, llamadas: count() })
+        .from(calls)
+        .where(and(inArray(calls.dealId, idsDeDeals), vigente(calls)))
+        .groupBy(calls.dealId)
+    : [];
+  const llamadasPorDeal = new Map(llamadasFilas.map((fila) => [fila.dealId, fila.llamadas]));
+
   const idsDeOwners = [...new Set(dealsFilas.map((d) => d.ownerUserId).filter((x): x is string => x !== null))];
   const owners =
     idsDeOwners.length > 0
@@ -326,6 +358,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
         cohorteCodigo: cohortes.find((c) => c.id === d.cohortId)?.codigo ?? null,
         envioNumero: d.submissionOrigenId ? (numeroDe.get(d.submissionOrigenId) ?? null) : null,
         creadoEn: d.createdAt,
+        llamadas: llamadasPorDeal.get(d.id) ?? 0,
         anulado: d.anuladoEn ? { en: d.anuladoEn, motivo: d.motivoAnulacion ?? "" } : null,
       };
     })

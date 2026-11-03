@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veSoloLoBasicoDelLead, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -189,6 +189,15 @@ describe("marcaOnboarding (ticket 145)", () => {
 
   it("el rol customer_success es válido (está en ROLES)", () => {
     expect(esRolValido("customer_success")).toBe(true);
+  });
+});
+
+describe("veSoloLoBasicoDelLead", () => {
+  it("solo la cumple customer_success", () => {
+    expect(veSoloLoBasicoDelLead(sujeto("customer_success"))).toBe(true);
+    for (const rol of ["gerente", "closer", "developer", "paid_trafficker", "media"] as const) {
+      expect(veSoloLoBasicoDelLead(sujeto(rol))).toBe(false);
+    }
   });
 });
 

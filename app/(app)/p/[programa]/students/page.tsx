@@ -44,11 +44,9 @@ function uno(value: string | string[] | undefined): string | undefined {
  * donde ya viven esas acciones con su reja (dueño o administrador). El alcance es el de Deals
  * (ADR 0048): un programa fuera del alcance de la sesión es 404.
  *
- * El customer success (ticket 145) entra aquí —y SOLO aquí— con las mismas columnas que ve un
- * closer, en los programas donde tiene membresía activa. Su única acción es marcar/desmarcar el
- * onboarding desde la celda (`OnboardingCelda`), que el servidor concede por `marcaOnboarding`;
- * las demás acciones de la ficha del deal le siguen cerradas, y para él las celdas no enlazan a
- * la ficha (que rechaza su rol): van como texto plano.
+ * El customer success (ticket 145) entra aquí con las mismas columnas que ve un closer, en los
+ * programas donde tiene membresía activa. Puede marcar/desmarcar el onboarding desde la celda
+ * (`OnboardingCelda`) y abrir desde el nombre la vista básica del lead; no abre la ficha del deal.
  */
 export default async function StudentsDelProgramaPage({ params, searchParams }: Props) {
   const session = await paginaConRol("gerente", "closer", "customer_success");
@@ -183,10 +181,11 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                     f.saldo?.sinSaldoPorque,
                   );
                   const href = enlaceConVuelta(`/p/${programa.slug}/deals/${f.dealId}`, origen);
+                  const hrefLead = enlaceConVuelta(`/p/${programa.slug}/leads/${f.leadId}`, origen);
                   return (
                     <tr key={f.dealId} className={abreFicha ? "cursor-pointer border-b hover:bg-muted/50" : "border-b hover:bg-muted/50"}>
                       <td>
-                        <CeldaDeal abreFicha={abreFicha} href={href} extra={abreFicha ? "font-medium text-marca-texto" : "font-medium"} title={f.email} enfocable>
+                        <CeldaDeal abreFicha={abreFicha} href={href} hrefBasico={hrefLead} extra="font-medium text-marca-texto" title={f.email} enfocable>
                           {f.nombre ?? f.email}
                         </CeldaDeal>
                       </td>
@@ -283,14 +282,14 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
 }
 
 /**
- * Una celda de la fila de un estudiante: abre la ficha del deal con un `Link` cuando el rol la
- * ve (`abreFicha`), o pinta el mismo contenido como texto plano cuando no (el customer success,
- * a quien la ficha rechaza). Un enlace a una pantalla que redirige al usuario fuera sería una
- * trampa; por eso la decisión del rol se toma una vez, en el servidor, y la celda sólo la aplica.
+ * Una celda de la fila de un estudiante: abre la ficha del deal cuando el rol la ve. Para quien
+ * no la abre, la celda del nombre puede recibir `hrefBasico` hacia la vista básica del lead; las
+ * demás quedan como texto plano. La decisión de capacidad se toma una vez en el servidor.
  */
 function CeldaDeal({
   abreFicha,
   href,
+  hrefBasico,
   children,
   extra = "",
   title,
@@ -300,14 +299,16 @@ function CeldaDeal({
   /** La celda del nombre es el enlace que recibe el foco del teclado; las demás no (una parada por fila). */
   enfocable?: boolean;
   href: string;
+  hrefBasico?: string;
   children: ReactNode;
   extra?: string;
   title?: string;
 }) {
   const clase = `block px-2 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${extra}`.trim();
-  if (abreFicha) {
+  const destino = abreFicha ? href : hrefBasico;
+  if (destino) {
     return (
-      <Link href={href} tabIndex={enfocable ? undefined : -1} className={clase} title={title}>
+      <Link href={destino} tabIndex={enfocable ? undefined : -1} className={clase} title={title}>
         {children}
       </Link>
     );

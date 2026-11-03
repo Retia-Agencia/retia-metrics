@@ -1,13 +1,15 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { cohorts, deals, leadContactos, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, leadContactos, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   camposDelEnvio,
   diferenciasEntreEnvios,
   fichaDeLead,
+  fichaSinDetalleDeCitas,
   ordenarEnvios,
   type CampoDelEnvio,
   type EnvioParaComparar,
+  type FichaDeLead,
   unirParcialesConSuCompleto,
 } from "@/lib/queries/ficha-lead";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -42,6 +44,34 @@ function campo(campos: CampoDelEnvio[], nombre: string) {
 }
 
 describe("camposDelEnvio y diferenciasEntreEnvios (puras)", () => {
+  it("oculta enlaces en campos y cambios, y conserva los textos normales", () => {
+    const ficha = {
+      envios: [{
+        campos: [
+          { campo: "Agenda", valor: { tipo: "valor", texto: "  HTTPS://calendly.com/reunion  " } },
+          { campo: "Respuesta", valor: { tipo: "valor", texto: "Quiero hablar mañana" } },
+        ],
+        cambios: [{
+          campo: "Agenda",
+          antes: { tipo: "valor", texto: "http://calendly.com/anterior" },
+          despues: { tipo: "valor", texto: "https://calendly.com/nueva" },
+        }],
+      }],
+    } as unknown as FichaDeLead;
+
+    const protegida = fichaSinDetalleDeCitas(ficha);
+
+    expect(protegida.envios[0]!.campos).toEqual([
+      { campo: "Agenda", valor: { tipo: "valor", texto: "Enlace oculto" } },
+      { campo: "Respuesta", valor: { tipo: "valor", texto: "Quiero hablar mañana" } },
+    ]);
+    expect(protegida.envios[0]!.cambios).toEqual([{
+      campo: "Agenda",
+      antes: { tipo: "valor", texto: "Enlace oculto" },
+      despues: { tipo: "valor", texto: "Enlace oculto" },
+    }]);
+  });
+
   it("un campo promovido sin valor es vacio; una respuesta que no viene no aparece", () => {
     const campos = camposDelEnvio({ ...vacio(), nombre: "Ana", respuestas: { "¿Cuánto ganas?": "1000", Ciudad: "" } });
     expect(campo(campos, "Nombre")).toEqual({ tipo: "valor", texto: "Ana" });
@@ -100,6 +130,7 @@ describe("fichaDeLead (PGlite)", () => {
   let otroPrograma: string;
   let leadId: string;
   let envios: string[];
+  let dealIds: string[];
   let closer: string;
 
   beforeAll(async () => {
@@ -151,14 +182,15 @@ describe("fichaDeLead (PGlite)", () => {
     ]);
 
     // Un deal cerrado (perdido), uno anulado y uno abierto: reaplicar abre deal nuevo (ADR 0037).
-    await db.insert(deals).values([
+    const dealsCreados = await db.insert(deals).values([
       { leadId, programId, etapa: "cierre_perdido", submissionOrigenId: e2.id, cohortId: c.id, ownerUserId: closer, createdAt: new Date("2026-07-02T00:00:00Z") },
       {
         leadId, programId, etapa: "registrado", createdAt: new Date("2026-08-01T00:00:00Z"),
         anuladoEn: new Date("2026-08-02T00:00:00Z"), anuladoPor: closer, motivoAnulacion: "lead equivocado",
       },
       { leadId, programId, etapa: "agendado", submissionOrigenId: e3.id, ownerUserId: closer, createdAt: new Date("2026-09-30T00:00:00Z") },
-    ]);
+    ]).returning();
+    dealIds = dealsCreados.map((d) => d.id);
   }, 60_000);
 
   afterAll(async () => {
@@ -195,6 +227,23 @@ describe("fichaDeLead (PGlite)", () => {
     expect(f.deals[0]).toMatchObject({ cerrado: false, anulado: null, envioNumero: 3, ownerNombre: "Maru" });
     expect(f.deals[1]).toMatchObject({ cerrado: true, anulado: null, envioNumero: 2, cohorteCodigo: "C1" });
     expect(f.deals[2]!.anulado).toMatchObject({ motivo: "lead equivocado" });
+  });
+
+  it("cuenta solo las llamadas vigentes de cada deal", async () => {
+    await db.insert(calls).values([
+      { programId, dealId: dealIds[2] },
+      {
+        programId,
+        dealId: dealIds[2],
+        anuladoEn: new Date("2026-10-01T12:00:00Z"),
+        anuladoPor: closer,
+        motivoAnulacion: "duplicada",
+      },
+    ]);
+
+    const f = (await fichaDeLead(db, programId, leadId))!;
+    expect(f.deals.find((d) => d.id === dealIds[2])!.llamadas).toBe(1);
+    expect(f.deals.find((d) => d.id === dealIds[0])!.llamadas).toBe(0);
   });
 
   it("cada contacto dice de que envio llego, y la marca de unido por telefono", async () => {

@@ -258,6 +258,16 @@ export function marcaOnboarding(rol: Rol | undefined | null): boolean {
 }
 
 /**
+ * Quien ve únicamente los datos básicos de la ficha del lead: persona, contactos, envíos y
+ * cuántas llamadas tuvo cada deal, sin abrir el deal ni el detalle de sus citas. Es la rama de
+ * customer success expresada por capacidades: marca onboarding, pero no administra, no trabaja
+ * leads ni maneja pauta. Así el literal del rol sigue encerrado en este módulo (ADR 0025).
+ */
+export function veSoloLoBasicoDelLead(sujeto: SujetoDeCapacidad): boolean {
+  return marcaOnboarding(sujeto.rol) && !esAdministrador(sujeto.rol) && !trabajaLeads(sujeto) && !manejaPauta(sujeto.rol);
+}
+
+/**
  * Quién puede ser MIEMBRO de un programa (`miembros_programa`): quien trabaja leads (closer y
  * developer) y el customer success (ticket 145), que ve los Students de los programas donde
  * tiene membresía. Es una pregunta de CONFIGURACIÓN —quién admite una membresía en

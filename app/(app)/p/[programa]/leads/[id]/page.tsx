@@ -1,10 +1,10 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esRolValido } from "@/lib/auth/roles";
+import { esRolValido, veSoloLoBasicoDelLead } from "@/lib/auth/roles";
 import { idsDeProgramasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { fichaDeLead } from "@/lib/queries/ficha-lead";
+import { fichaDeLead, fichaSinDetalleDeCitas } from "@/lib/queries/ficha-lead";
 import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { PageShell } from "@/components/page-shell";
@@ -33,7 +33,7 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * URL lleva el id opaco del lead, nunca su correo (AGENTS.md). Solo lectura (ADR 0004).
  */
 export default async function FichaDelLeadPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  const session = await paginaConRol("gerente", "closer", "customer_success");
 
   const { programa: slug, id } = await params;
   const { desde } = (await searchParams) ?? {};
@@ -43,8 +43,11 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
   // revienta en Postgres, y un 500 diria que algo existe.
   if (!programa || !ES_UUID.test(id) || !esRolValido(rol)) notFound();
 
-  const ficha = await fichaDeLead(db, programa.id, id);
-  if (!ficha) notFound();
+  const basico = veSoloLoBasicoDelLead({ rol, operaComoCloser: session.user.operaComoCloser });
+
+  const fichaCompleta = await fichaDeLead(db, programa.id, id);
+  if (!fichaCompleta) notFound();
+  const ficha = basico ? fichaSinDetalleDeCitas(fichaCompleta) : fichaCompleta;
 
   // El aviso de otros programas (091): la funcion da el hecho; que se ve de cada programa lo
   // decide el alcance de ESTA sesion (ADR 0048). De un programa que no ve, solo que existe.
@@ -61,7 +64,12 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
     <PageShell
       titulo={ficha.nombre ?? ficha.email}
       descripcion={`${programa.nombre} · Lead`}
-      volver={{ desde, porDefecto: { href: `/p/${programa.slug}/leads`, etiqueta: "Leads" } }}
+      volver={{
+        desde,
+        porDefecto: basico
+          ? { href: `/p/${programa.slug}/students`, etiqueta: "Students" }
+          : { href: `/p/${programa.slug}/leads`, etiqueta: "Leads" },
+      }}
     >
       <div className="space-y-4">
         <AvisoOtrosProgramas visibles={otrosVisibles} ocultos={otros.length - otrosVisibles.length} />
@@ -70,7 +78,7 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:items-start">
           <FichaLeadEnvios ficha={ficha} />
           <div className="space-y-4">
-            <FichaLeadDeals ficha={ficha} slug={programa.slug} origen={origenDeEstaFicha} />
+            <FichaLeadDeals ficha={ficha} slug={programa.slug} origen={origenDeEstaFicha} abreFicha={!basico} />
             <FichaLeadContactos ficha={ficha} />
           </div>
         </div>

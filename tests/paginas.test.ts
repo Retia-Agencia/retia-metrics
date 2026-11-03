@@ -88,7 +88,10 @@ vi.mock("@/lib/auth/alcance", () => ({
 // base en los tests se mockean las queries para que las guardas y el 404 sean lo unico
 // bajo prueba.
 const fichaDeLead = vi.fn();
-vi.mock("@/lib/queries/ficha-lead", () => ({ fichaDeLead }));
+vi.mock("@/lib/queries/ficha-lead", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/queries/ficha-lead")>()),
+  fichaDeLead,
+}));
 const otrosProgramasDelCorreo = vi.fn();
 vi.mock("@/lib/queries/otros-programas-del-correo", () => ({ otrosProgramasDelCorreo }));
 
@@ -1452,12 +1455,38 @@ describe("la ficha del lead /p/[programa]/leads/[id] (ticket 073)", () => {
     expect(fichaDeLead).not.toHaveBeenCalled();
   });
 
-  it.each([sesionGerente, sesionCloser, sesionDeveloper])("cada rol abre la ficha de su programa", async (sesion) => {
+  it.each([sesionGerente, sesionCloser, sesionDeveloper, sesionCustomerSuccess])("cada rol abre la ficha de su programa", async (sesion) => {
     auth.mockResolvedValue(sesion);
     programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
     await expect(abrir()).resolves.toBeTruthy();
     // La consulta recibe el programa de la URL ya validado: un lead de otro programa sale null.
     expect(fichaDeLead).toHaveBeenCalledWith(expect.anything(), "p-1", ID);
+  });
+
+  it("para customer success oculta los enlaces crudos de los envíos", async () => {
+    auth.mockResolvedValue(sesionCustomerSuccess);
+    programaVisiblePorSlug.mockResolvedValue({ id: "p-1", slug: "programa-a", nombre: "Programa A" });
+    fichaDeLead.mockResolvedValue({
+      ...FICHA_VACIA,
+      envios: [{
+        id: "envio-1",
+        numero: 1,
+        esParcial: false,
+        empezoComoParcial: null,
+        fecha: new Date("2026-09-01T12:00:00Z"),
+        fechaEsDeLlegada: false,
+        posicionEnHoja: null,
+        calificacion: null,
+        fuente: "Typeform",
+        canal: "Sin UTM",
+        campos: [{ campo: "Agenda aquí tu entrevista", valor: { tipo: "valor", texto: "https://calendly.com/reunion/invitees/abc" } }],
+        cambios: null,
+      }],
+    });
+
+    const html = renderToStaticMarkup(await abrir());
+    expect(html).not.toContain("https://calendly.com/reunion/invitees/abc");
+    expect(html).toContain("Enlace oculto");
   });
 
   it("un lead de otro programa o inexistente es 404", async () => {

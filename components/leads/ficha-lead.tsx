@@ -103,14 +103,10 @@ export function FichaLeadContactos({ ficha }: { ficha: FichaDeLead }) {
   );
 }
 
-function FilaDeal({ deal, slug, origen }: { deal: DealDeLaFicha; slug: string; origen: string }) {
+function FilaDeal({ deal, slug, origen, abreFicha }: { deal: DealDeLaFicha; slug: string; origen: string; abreFicha: boolean }) {
   const anulado = deal.anulado !== null;
-  return (
-    <li className="py-1 first:pt-0 last:pb-0">
-      <Link
-        href={enlaceConVuelta(`/p/${slug}/deals/${deal.id}`, origen)}
-        className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-transparent p-3 text-sm outline-none transition-colors duration-150 hover:border-border hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
+  const contenido = (
+    <>
         <div className="min-w-0 space-y-1">
           <p className={anulado ? "font-medium text-muted-foreground line-through" : "font-medium text-marca-texto"}>
             {deal.cohorteCodigo ?? "Sin cohorte"} · {deal.ownerNombre ?? "Sin dueño"}
@@ -118,6 +114,9 @@ function FilaDeal({ deal, slug, origen }: { deal: DealDeLaFicha; slug: string; o
           <p className="text-xs text-muted-foreground">
             Abierto el {dia(deal.creadoEn)}
             {deal.envioNumero ? ` · desde el envío #${deal.envioNumero}` : ""}
+            {deal.llamadas === 0 ? " · Sin llamadas" : (
+              <> · <span className="cifra">{num(deal.llamadas)}</span> {deal.llamadas === 1 ? "llamada" : "llamadas"}</>
+            )}
           </p>
           {deal.anulado ? (
             <p className="text-xs text-muted-foreground">
@@ -134,12 +133,26 @@ function FilaDeal({ deal, slug, origen }: { deal: DealDeLaFicha; slug: string; o
             <Badge variant={TONO_DE_PENDIENTE[deal.pendiente]}>{NOMBRE_DE_PENDIENTE[deal.pendiente]}</Badge>
           ) : null}
         </div>
-      </Link>
+    </>
+  );
+  const clase = "flex flex-wrap items-start justify-between gap-2 rounded-lg border border-transparent p-3 text-sm";
+  return (
+    <li className="py-1 first:pt-0 last:pb-0">
+      {abreFicha ? (
+        <Link
+          href={enlaceConVuelta(`/p/${slug}/deals/${deal.id}`, origen)}
+          className={`${clase} outline-none transition-colors duration-150 hover:border-border hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50`}
+        >
+          {contenido}
+        </Link>
+      ) : (
+        <div className={clase}>{contenido}</div>
+      )}
     </li>
   );
 }
 
-export function FichaLeadDeals({ ficha, slug, origen }: { ficha: FichaDeLead; slug: string; origen: string }) {
+export function FichaLeadDeals({ ficha, slug, origen, abreFicha }: { ficha: FichaDeLead; slug: string; origen: string; abreFicha: boolean }) {
   const abiertos = ficha.deals.filter((d) => !d.anulado && !d.cerrado);
   const otros = ficha.deals.filter((d) => d.anulado || d.cerrado);
   return (
@@ -161,7 +174,7 @@ export function FichaLeadDeals({ ficha, slug, origen }: { ficha: FichaDeLead; sl
               ) : (
                 <ul className="divide-y divide-border">
                   {abiertos.map((d) => (
-                    <FilaDeal key={d.id} deal={d} slug={slug} origen={origen} />
+                    <FilaDeal key={d.id} deal={d} slug={slug} origen={origen} abreFicha={abreFicha} />
                   ))}
                 </ul>
               )}
@@ -171,7 +184,7 @@ export function FichaLeadDeals({ ficha, slug, origen }: { ficha: FichaDeLead; sl
                 <h3 className="text-xs font-medium text-muted-foreground">Cerrados y anulados</h3>
                 <ul className="divide-y divide-border">
                   {otros.map((d) => (
-                    <FilaDeal key={d.id} deal={d} slug={slug} origen={origen} />
+                    <FilaDeal key={d.id} deal={d} slug={slug} origen={origen} abreFicha={abreFicha} />
                   ))}
                 </ul>
               </section>
