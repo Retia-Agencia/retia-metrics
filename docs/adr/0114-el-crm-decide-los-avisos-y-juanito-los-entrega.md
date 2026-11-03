@@ -1,7 +1,8 @@
 # 0114: El CRM decide los avisos al equipo y Juanito los entrega
 
 - **Estado:** aceptado · 28-oct-2026 (Mani, grill sobre llevar el CRM a resultados y decisiones con Juanito). Se
-  construye en los tickets 340 a 346.
+  construye en los tickets 340 a 346. **Enmendado el 3-nov-2026** (Mani, PUSH-1): el punto 7 ya no prohíbe cancelar;
+  el CRM cancela en Calendly a quien no confirmó, solo en los casos seguros (punto 10, ticket 366).
 - **Amplía:** ADR 0089 (el semáforo): el mismo molde de máquina, secreto y "¿qué mando ahora?" pasa de un reporte de
   pauta a avisos para closers y para el grupo de ventas de cada programa.
 - **Enmienda:** `plan.md` §7 E y `overview.md` §8: "la confirmación de la llamada no llega al CRM (fuera de v1)". Ahora
@@ -46,10 +47,23 @@ en su propia SQLite) y le pregunta quiénes le confirmaron (18.CN, desde el 13-o
 7. **La confirmación la dice el closer y la reenvía Juanito.** Juanito sigue haciendo la pregunta y entendiendo la
    respuesta ("1 3", "el 2 canceló"); al CRM le manda el resultado interpretado por la huella `calendly:<uuid>`, que
    los dos ya usan. El CRM la escribe con rastro y origen whatsapp, idempotente. **"Cancelada según el closer" solo se
-   anota**: no cancela la llamada (eso es de Calendly o de la reagenda en el CRM) y no mueve ninguna etapa.
+   anota**: no cancela la llamada (eso es de Calendly o de la reagenda en el CRM) y no mueve ninguna etapa. Lo que sí
+   se cancela es otra cosa: la cita de quien **no confirmó**, por el punto 10.
 8. **Cada aviso queda con su estado (servido, entregado, vencido) y la última consulta de Juanito queda guardada.** El
    Hub muestra un banner cuando Juanito no consulta en horario hábil.
 9. **Se enciende y se apaga por programa**, como el reporte del semáforo (265).
+10. **Enmienda del 3-nov (PUSH-1): el CRM cancela en Calendly la cita de quien no confirmó, solo en los casos
+    seguros.** Es el corte del protocolo de confirmación de 30X (Instructivo del Confirmador v3.3): una agenda que no
+    se confirma se libera la víspera para que entre otra. Los casos seguros son todos a la vez: el closer la marcó
+    `no_confirmada` en el corte; la llamada está vigente, sin resultado y es de Calendly (huella `calendly:<uuid>`); la
+    cita **no es hoy** en Bogotá y se agendó con **24 h o más** de anticipación. Fuera de eso no se cancela: a quien
+    agendó para hoy o para mañana se le insiste y le llega el link. El modo es un dato del programa (ADR 0012):
+    apagado, **aprobar** (Juanito le pregunta al closer "¿cancelo a estas N?" y el CRM cancela solo con el sí) o
+    automático; nace apagado y se recomienda aprobar las primeras semanas. Cancela el CRM, no Juanito, con el token de
+    Calendly del programa (ADR 0057); Calendly le avisa al lead y su webhook marca la llamada, como cualquier otra
+    cancelación. El CRM vuelve a comprobar los casos seguros al cancelar, no confía en lo que pidió Juanito, y cada
+    cancelación deja rastro con origen `whatsapp`. El "liberé el espacio" con el link para reagendar se lo manda el
+    closer al lead: Juanito nunca le escribe al lead (riesgo de baneo).
 
 ## Consecuencias
 
@@ -75,4 +89,6 @@ en su propia SQLite) y le pregunta quiénes le confirmaron (18.CN, desde el 13-o
 | Un aviso por cada pendiente, repetido | a un closer atrasado le llega una sábana; la fatiga mata el canal |
 | Juanito suma su propio conteo de confirmadas al pulso | dos fuentes en un mismo mensaje, y el CRM sigue sin poder medir el show rate por confirmación |
 | El CRM cancela la llamada cuando el closer dice "canceló" | un error de dedo mueve datos reales sin pantalla y deja a Calendly desincronizado |
+| (3-nov) Cancelar sin modo aprobar ni casos seguros, como el PDF desde el computador de cada closer | el error de dedo sigue ahí; el modo aprobar lo cubre al principio y los casos seguros los vuelve a comprobar el CRM, que cancela en Calendly y no lo deja desincronizado |
+| (3-nov) Que Juanito mande los toques directo al lead desde el número del closer (Baileys, como el PDF) | si WhatsApp banea el número cae el canal entero; con el link al closer el riesgo queda igual que hoy |
 | Pulso por DM a cada gerente o en un grupo aparte | las preguntas se hacen en el grupo de ventas, y los closers no verían el marcador |

@@ -380,7 +380,8 @@ después 341, 342, 344 y 345, y 346 en el repo de Juanito.
 | [ ] | 343 | [La confirmación de la llamada llega desde Juanito](./343-confirmacion-desde-juanito.md) | — | todo · migración |
 | [ ] | 344 | [El pulso del día en el grupo de ventas](./344-pulso-del-dia.md) | 340, 343 | todo |
 | [ ] | 345 | [El banner del Hub cuando Juanito no consulta](./345-banner-de-juanito.md) | 340 | todo |
-| [ ] | 346 | [Juanito entrega los avisos y reenvía las confirmaciones](./346-juanito-entrega-los-avisos.md) | 340, 343 | todo · toca el repo de Juanito con ok de Mani |
+| [ ] | 346 | [Juanito entrega los avisos y reenvía las confirmaciones](./346-juanito-entrega-los-avisos.md) | 340, 343 | todo · toca el repo de Juanito con ok de Mani · desde el 3-nov lleva el playbook de confirmación a Retia (PUSH-1) |
+| [ ] | 366 | [El CRM cancela en Calendly a quien no confirmó, en los casos seguros](./366-cancelar-a-quien-no-confirmo.md) | 343 | todo · migración · ADR 0114 punto 10 (PUSH-1, 3-nov) |
 
 ## 18 · Media (ADR 0107 a 0112, 28-oct)
 

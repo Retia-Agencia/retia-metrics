@@ -579,3 +579,5 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Confirmación (de una llamada):** lo que el closer dice que respondió el lead antes de la llamada: confirmada, no
   confirmada o cancelada según el closer. Es un dato de la llamada, no su resultado: "cancelada según el closer" no
   cancela la llamada.
+- **Corte (de la confirmación):** la víspera, la cita de quien no confirmó se libera para que entre otra. La cancela el
+  CRM en Calendly, solo en los casos seguros y, al principio, con el sí del closer (ADR 0114 punto 10).

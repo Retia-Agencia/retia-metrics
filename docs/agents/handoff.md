@@ -27,6 +27,12 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-03: PUSH-1 decidido, solo documentación.** Se leyó el PDF de 30X (Instructivo del Confirmador v3.3) y el
+  playbook que Juanito ya corre en 30X (§18.CU). Decisiones de Mani en `docs/plan.md` §7 PUSH-1: el playbook de Juanito
+  (link al closer, nunca al lead), sin venta cruzada, la confirmación entra al CRM (343) antes de prender nada en Retia,
+  y cancelar a quien no confirmó en casos seguros con modo aprobar (enmienda del ADR 0114, punto 10; ticket nuevo 366).
+  El lado de Juanito quedó en el 346, con el cruce de correos medido contra producción: **Jerónimo no está en el
+  directorio de Juanito**. Orden: 343, luego 366 y 346, y la prueba con un closer.
 - **2026-11-01: un solo formulario de abono, con el tipo elegido primero (enmienda del ADR 0113).** Michael reportó
   que no podía registrar un one-to-one de USD 1.437 desde "Pagó ahora": el pop-up solo registraba ticket y la reja del
   saldo lo rechazaba; el adicional vivía en otro botón de Facturación. **Hecho:** `FormularioAbono` pide primero

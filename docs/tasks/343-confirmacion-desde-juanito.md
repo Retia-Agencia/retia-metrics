@@ -11,6 +11,8 @@ status: todo
 ## Por qué
 
 "¿Cuántas confirmadas?" es la pregunta número uno de los grupos de ventas, y hoy el dato vive solo en Juanito.
+**Desde el 3-nov (PUSH-1) es la primera pieza del playbook de confirmación en Retia:** nada se prende en Retia hasta
+que la respuesta al corte entre aquí, y el 366 (cancelar a quien no confirmó) lee lo que este ticket escribe.
 
 ## Alcance
 
