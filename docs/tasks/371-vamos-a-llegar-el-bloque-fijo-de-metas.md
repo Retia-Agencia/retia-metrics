@@ -43,7 +43,8 @@ las alertas del 147. Ninguna muestra las cuatro combinaciones juntas, y ninguna 
 
 ## Alcance
 
-1. **Un componente, `<VamosALlegar>`, al pie de TODAS las pestañas del Hub** (Hoy, Comercial, Dinero, Pauta, Origen) y
+1. **Un componente, `<VamosALlegar>`, al pie de las pestañas del Hub** (Comercial, Dinero, Pauta, Origen; en Hoy va en el
+   lugar de las secciones 4 y 5 del reporte diario, 373) y
    de la vista "todos los programas" (una matriz por programa, lado a lado, nunca sumada: es una meta, ADR 0048).
    Título: "¿Vamos a llegar?". Subtítulo fijo: "Mes de noviembre y cohorte C3 · no cambia con los filtros".
 2. **No lee los filtros**: recibe solo programa y hoy. El tipo de sus props no admite periodo, cohorte ni closer, para

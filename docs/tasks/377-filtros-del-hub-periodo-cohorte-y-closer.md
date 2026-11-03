@@ -63,8 +63,8 @@ lado, sin tocar este: los dos componen y el URL que se guardó hoy sigue sirvien
    Desde el inicio; `cohorte_anterior`, a la anterior. Con test.
 6. **Las listas detrás de cada cifra** (`urlDeLista`) reciben `cohorte` igual que hoy reciben `closer`: la cifra y su
    lista cuadran con el filtro puesto (contrato "Que toda cifra abra su lista").
-7. **Pestaña Hoy:** el Periodo no aplica (es hoy); la Cohorte sí (por defecto la activa). El control de Periodo se
-   esconde en Hoy y dice por qué con un texto corto.
+7. **Pestaña Hoy:** ninguno de estos filtros aplica. Hoy es el reporte diario (373), del día elegido y de la cohorte
+   activa, con su propio selector de día. La barra de filtros no se dibuja en Hoy.
 8. **Lo que faltaba del 251:** el tooltip de la variación dice "contra el mismo punto de septiembre: 12 → 15, +3,
    +25 %"; recorrido visual y `test:humo`.
 

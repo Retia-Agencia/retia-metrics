@@ -3,10 +3,12 @@ id: 254
 etapa: hub
 serves: "docs/hub.md H-10, §5.2 (origen del cierre) · los reportes del 1 y 3-sep (\"tres de los cinco salieron de follow-up\")"
 depends: [252, 262]
-status: todo
+status: reemplazado
 ---
 
 # 254 — El origen del cierre: agenda del día, seguimiento o sin llamada
+
+> **Reemplazado el 3-nov por el [373](./373-hoy-es-el-reporte-diario.md)**: el origen de cada venta del día (agenda del día, seguimiento o sin llamada) va en la sección 1 del reporte diario de Hoy. El reparto en Comercial por closer y periodo no lo pidió nadie en la weekly del 3-nov y no se hace.
 
 ## Objetivo
 

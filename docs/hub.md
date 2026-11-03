@@ -28,8 +28,8 @@ el trabajo del Hub es **esta entrega y nada más**: los tickets abiertos del com
 quedan detrás, sin tocarse, hasta que la fase 1 esté en producción con su checkpoint verde.
 
 **El norte, en palabras de Dani:** *"Hay una meta por cumplir que es tanto por cupos como por plata, tanto por mes como
-por cohorte."* Cuatro combinaciones, siempre visibles (371). Y el CRM como **fuente única de verdad**: el reporte que
-Gerencia recibe sale del Hub, en PDF, con los filtros escritos (373).
+por cohorte."* Cuatro combinaciones, siempre visibles (371). Y el CRM como **fuente única de verdad**: el reporte
+diario que Michael le manda a Dani sale de Hub › Hoy, con su misma plantilla, y se descarga en PDF (373).
 
 ### Lo que pidió, y dónde quedó (trazabilidad)
 
@@ -44,7 +44,7 @@ Gerencia recibe sale del Hub, en PDF, con los filtros escritos (373).
 | G-7 | Un bloque fijo, abajo, que no tocan los filtros: lo que llevamos contra la meta, **mes y cohorte × cupos y USD** | piezas sueltas en Hoy y Metas | 371 |
 | G-8 | Cada cifra de Comercial dice su periodo (*"agendas en qué periodo de tiempo?"*) | sigue el periodo pero no lo dice | 372 |
 | G-9 | Deals de un formulario completo y de un parcial, separados | mezclados (ADR 0069) | 372 |
-| G-10 | Reporte en PDF con los filtros que se pongan: la fuente única de verdad | 300 pedía solo Hoy y una foto diaria | 373 |
+| G-10 | El reporte diario en PDF, la fuente única de verdad. Mani, 3-nov: es **la plantilla que Michael le manda a Dani** (`work/retia/reportes diarios/`, la v5 del 15-sep) y vive en **Hub › Hoy** | Hoy tiene las cifras (252, 299, 367) pero no el orden ni la forma del reporte; no se descarga | 373 |
 | G-11 | *"Sé más específico"*: un nombre por cifra | varios nombres por cifra (auditoría 30-oct, G-01 a G-13) | 374 |
 | G-12 | ROAS que avisa las citas pendientes del gasto del rango y un ROAS proyectado por closer | el ROAS ya ancla al día del envío (`metricas.md`); falta lo pendiente y lo proyectado | 375 (fase 2) |
 | G-13 | Productos y SKUs: qué compró cada persona; SKUs solo los crean admins; los closers asignan | el 1:1 es un abono adicional sin SKU (ADR 0113) | 376 (fase 2) |
@@ -62,9 +62,8 @@ un mismo paso no comparten archivos y van en paralelo. Implementa Codex, revisa 
 | 1 | **352** (venta y cohorte, una definición) | la cifra de venta es una sola: la base de "¿vamos a llegar?" |
 | 2 | **374** (un idioma) · **377** (filtros) | los nombres de Dani y los filtros separados |
 | 3 | **369** (tres columnas) · **371** (¿vamos a llegar?) · **372** (Comercial) | el dinero, el norte y Comercial |
-| 4 | **370** (gráficas) | toda gráfica sigue los filtros, en cupos o USD, por paso o acumulada |
-| 5 | **373** (PDF) | el reporte diario sale del Hub |
-| 6 | recorrido completo, `test:humo`, checkpoint verde, y sentarse con Daniel Tovar a usarlo | la entrega |
+| 4 | **370** (gráficas) · **373** (Hoy es el reporte diario) | toda gráfica sigue los filtros; Hoy es la plantilla de Michael y se descarga en PDF |
+| 5 | recorrido completo, `test:humo`, checkpoint verde, y sentarse con Daniel Tovar a usarlo | la entrega |
 
 Todas las decisiones de la fase 1 están cerradas (Mani, 3-nov): DA-1, DA-2, DA-5 (en el 352) y DH-1 a DH-4 (abajo).
 **Salen de la fase 1 al recortar**: 353 y 354 (el 372 usa las funciones de show y agenda que ya usa Hoy y toma del 354
@@ -77,8 +76,8 @@ la foto del día, sin fecha.
 ### Fase 2 (después de la entrega, sin fecha)
 
 375 (ROAS pendiente y proyectado), 376 (productos y SKUs), 353, 354 y 356 (auditoría), 351 y 355 (cobertura y cargador de pauta), 358, 359 y 360
-(su resto fuera del Hub), 361 y 362 (retiro y documentos), 300 (foto del día). **Pausados hasta entonces** (no se
-borran, no se tocan): 254, 257, 261, 286, 288 y la pauta 123, 124, 125, 249, 284, 285.
+(su resto fuera del Hub), 361 y 362 (retiro y documentos), 300 (foto del día), 257 (planes de acción: la sección 6 del reporte diario). **Pausados hasta entonces** (no se
+borran, no se tocan): 261, 286, 288 y la pauta 123, 124, 125, 249, 284, 285.
 
 ### Fuera del Hub (de la misma reunión, en otros frentes)
 
