@@ -382,7 +382,7 @@ después 341, 342, 344 y 345, y 346 en el repo de Juanito.
 | [ ] | 345 | [El banner del Hub cuando Juanito no consulta](./345-banner-de-juanito.md) | 340 | todo |
 | [ ] | 346 | [Juanito entrega los avisos y reenvía las confirmaciones](./346-juanito-entrega-los-avisos.md) | 340, 343 | todo · toca el repo de Juanito con ok de Mani · desde el 3-nov lleva el playbook de confirmación a Retia (PUSH-1) |
 | [ ] | 366 | [El CRM cancela en Calendly a quien no confirmó, en los casos seguros](./366-cancelar-a-quien-no-confirmo.md) | 343 | todo · migración · ADR 0114 punto 10 (PUSH-1, 3-nov) |
-| [ ] | 367 | [Hoy sirve para seguir el día](./367-hoy-para-seguir-el-dia.md) | — | todo · 3-nov · implementado; falta el checkpoint verde y el recorrido en dev:local |
+| [ ] | 367 | [Hoy sirve para seguir el día](./367-hoy-para-seguir-el-dia.md) | — | en main · 3-nov · Codex + central (`329aa29b`, `53c8acd5`, `2c6528dc`) · recorrido en dev:local, escritorio y 375 px, con una cita cancelada: sale de Citas y aparece aparte; destapó un `Date` dentro de `sql` que tumbaba el Hub en producción, arreglado; falta checkpoint |
 
 ## 18 · Media (ADR 0107 a 0112, 28-oct)
 

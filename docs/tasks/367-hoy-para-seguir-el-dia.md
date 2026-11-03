@@ -66,5 +66,5 @@ sombra ni radio a mano, cifras en `cifra`, formato por `lib/format.ts`. Funciona
 - [x] Test: el grupo de citas de las tasas no cambió (la cancelada sigue en el grupo).
 - [x] Test: el desglose por estado suma el total de citas vivas.
 - [x] `metricas.md` y `overview.md` §11 dicen lo mismo que el código.
-- [ ] Typecheck, lint y tests focalizados del cambio limpios; `npm run build` queda sin ejecutar por instrucción del encargo.
-- [ ] Recorrido en `dev:local`, escritorio y celular: cada número abre su lista y la consola queda limpia.
+- [x] Typecheck, lint y tests focalizados del cambio limpios; `npm run build` queda sin ejecutar por instrucción del encargo.
+- [x] Recorrido en `dev:local`, escritorio y celular: cada número abre su lista y la consola queda limpia.
