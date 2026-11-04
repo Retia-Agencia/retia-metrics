@@ -1,4 +1,4 @@
-import { fechaCorta } from "@/lib/format";
+import { fechaCorta, NOMBRES_DE_MES } from "@/lib/format";
 import type { PeriodoResuelto } from "@/lib/periodo";
 
 /**
@@ -45,8 +45,6 @@ export function lineaDeLaCohorte({ cohorte, ventas }: DatosDeLaLinea): string {
   }
   return partes.join(" · ");
 }
-
-const NOMBRES_DE_MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
 
 /** El periodo dicho como complemento de frase: "en octubre", "hoy", "entre el 1-oct y el 9-oct". */
 export function periodoEnFrase(periodo: PeriodoResuelto): string {

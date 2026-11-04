@@ -75,14 +75,14 @@ lado, sin tocar este: los dos componen y el URL que se guardó hoy sigue sirvien
 
 ## Done cuando
 
-- [ ] Test: con cohorte C2 y periodo Este mes, Vendido cuenta solo ventas de deals de C2 con fecha de venta en el mes;
+- [x] Test: con cohorte C2 y periodo Este mes, Vendido cuenta solo ventas de deals de C2 con fecha de venta en el mes;
   la misma venta con cohorte C3 no cuenta. Cifra y lista dan lo mismo en todas sus páginas.
-- [ ] Test: "Todas" + "Desde el inicio" da el total histórico del programa y no cruza programas.
-- [ ] Test: la línea de la cohorte muestra la primera venta real aunque sea anterior al inicio de ventas.
-- [ ] Test: un enlace viejo con `preset=cohorte_actual` abre con la cohorte activa y Desde el inicio.
-- [ ] Test: un `cohorte=<id>` de otro programa se ignora (el programa es frontera).
+- [x] Test: "Todas" + "Desde el inicio" da el total histórico del programa y no cruza programas.
+- [x] Test: la línea de la cohorte muestra la primera venta real aunque sea anterior al inicio de ventas.
+- [x] Test: un enlace viejo con `preset=cohorte_actual` abre con la cohorte activa y Desde el inicio.
+- [x] Test: un `cohorte=<id>` de otro programa se ignora (el programa es frontera).
 - [ ] Recorrido en `dev:local`, escritorio y 375 px: cada combinación de los cuatro filtros en Comercial y Dinero, clic
   en cada cifra hasta su lista; consola limpia. `npm run test:humo` en verde.
-- [ ] El 251 queda `reemplazado` por este ticket en su archivo y en el tracker.
-- [ ] Regla N8 (ADR 0115): `docs/metricas.md` §0 (la regla de los filtros), `overview.md` §11 (Cohorte, SKU) y el
+- [x] El 251 queda `reemplazado` por este ticket en su archivo y en el tracker.
+- [x] Regla N8 (ADR 0115): `docs/metricas.md` §0 (la regla de los filtros), `overview.md` §11 (Cohorte, SKU) y el
   contrato de periodo de `docs/structure.md` §9 reescritos en el mismo commit.

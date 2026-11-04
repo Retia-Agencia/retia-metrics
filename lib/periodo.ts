@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { aUtc, esFecha, resolverRango, sumarDias } from "@/lib/rangos";
 import { diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
-import { fecha as formatearFecha } from "@/lib/format";
+import { fecha as formatearFecha, NOMBRES_DE_MES } from "@/lib/format";
 import type { Rango } from "@/lib/queries/dashboard";
 
 export const atajosDePeriodo = {
@@ -187,7 +187,13 @@ export function descripcionDeComparacion(periodo: PeriodoResuelto): string {
   if (!primera) return "sin comparación";
   if (primera.pedido.tipo !== "rango") {
     const nombre = nombreDePedido(primera.pedido, periodo.preset).toLowerCase();
-    return `contra ${nombre === "cohorte anterior" ? "la" : "el"} ${nombre} al mismo día hábil`;
+    // El periodo anterior de un mes se dice con el mes: "contra el mismo punto de septiembre" (377, A-167).
+    const mesDeB = primera.rango.desde.slice(0, 7) === primera.rango.hasta.slice(0, 7) ? primera.rango.desde : null;
+    if (nombre === "periodo anterior" && (periodo.preset === "este_mes" || periodo.preset === "mes_pasado") && mesDeB) {
+      return `contra el mismo punto de ${NOMBRES_DE_MES[Number(mesDeB.slice(5, 7)) - 1]}`;
+    }
+    if (nombre === "periodo anterior") return "contra el mismo punto del periodo anterior";
+    return `contra la ${nombre} al mismo día hábil`;
   }
   return `contra ${legibleRango(primera.rango)}`;
 }

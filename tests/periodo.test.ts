@@ -177,7 +177,7 @@ describe("periodo A contra B", () => {
     const rango = resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "2026-09-01_2026-09-09" }), contexto);
     expect(descripcionDeComparacion(rango)).toBe("contra 1 sep 2026 a 9 sep 2026");
     expect(descripcionDeComparacion(resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "cohorte" }), contexto))).toBe("contra la cohorte anterior al mismo día hábil");
-    expect(descripcionDeComparacion(resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "anterior" }), contexto))).toBe("contra el periodo anterior al mismo día hábil");
+    expect(descripcionDeComparacion(resolverPeriodo(parsearPeriodoUrl({ periodo: "este_mes", comparar: "anterior" }), contexto))).toBe("contra el mismo punto de septiembre");
     expect(descripcionDeComparacion({ ...rango, b: null, comparaciones: undefined })).toBe("sin comparación");
   });
 });

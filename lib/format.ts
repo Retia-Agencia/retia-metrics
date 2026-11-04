@@ -94,6 +94,9 @@ export function saldoLegible(
 }
 
 /** Los meses como los escribe el negocio: tres letras, sin punto. */
+/** Los doce meses en minúscula y completos: "septiembre". Para frases, no para fechas. */
+export const NOMBRES_DE_MES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"] as const;
+
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 
 /**
