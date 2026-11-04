@@ -29,6 +29,7 @@ import { rolDeVista, sesionEfectiva } from "./vista";
 export const ACCIONES_DE_SOLO_LECTURA = [
   "revisarMovimientoAccion",
   "buscarDealsAbiertosAccion",
+  "detalleDePuntoAccion",
 ] as const;
 
 /**

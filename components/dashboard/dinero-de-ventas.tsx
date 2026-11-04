@@ -28,7 +28,7 @@ export function TarjetaVendido({ dinero, anterior, periodo, detalle, sinValorVen
   ] as const;
   const fraccion = dinero.vendido > 0 ? Math.min(1, dinero.recaudado / dinero.vendido) : null;
   return (
-    <Card className="sm:col-span-2 xl:col-span-2">
+    <Card className="lg:col-span-2">
       <CardHeader className="pb-2">
         <CardTitle className="text-xs font-medium tracking-normal text-muted-foreground">
           {nombreCorto("vendido")} · {nombreCorto("recaudado")} · {nombreCorto("por_cobrar")}

@@ -95,7 +95,7 @@ export function CajaConVariacion({
       }
       nota={
         <>
-          <p>Suma de abonos por su fecha, por moneda.</p>
+          <p>Todo abono que entró en el periodo, aunque sea de ventas anteriores.</p>
           {vista.anterior ? (
             monedas.map((moneda) => (
               <p key={moneda}>
@@ -107,9 +107,7 @@ export function CajaConVariacion({
                 />
               </p>
             ))
-          ) : (
-            <p>—</p>
-          )}
+          ) : null}
         </>
       }
     />

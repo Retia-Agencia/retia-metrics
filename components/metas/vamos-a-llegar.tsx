@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num, pct, usd } from "@/lib/format";
+import { fecha, num, usd } from "@/lib/format";
+import { fraseDeAvance } from "@/lib/metas/frase-de-avance";
 import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
 import { urlDeLista } from "@/lib/queries/vista-metrica";
@@ -15,25 +16,17 @@ import {
   type VamosALlegar as DatosVamosALlegar,
 } from "@/lib/queries/vamos-a-llegar";
 
-/**
- * Las props NO admiten periodo, cohorte ni closer: el bloque no se puede filtrar ni queriendo
- * (el molde del comparativo del ADR 0023). Solo el programa y el dia de hoy.
- */
 export interface PropsVamosALlegar {
   programa: { id: string; slug: string; nombre: string };
   hoy: string;
-  /** Ruta de la pantalla, para que la lista que abre cada cifra sepa volver. */
   origen: string;
-  /** Si la sesion ve las listas del equipo comercial; si no, las cifras salen como texto. */
   conListas: boolean;
-  /** Donde se configura la meta (Programa › Ventas), solo para quien administra. */
   configurar: { hrefBase: string; origen: string } | null;
-  /** En "todos los programas" cada matriz lleva el nombre de su programa. */
   conNombre?: boolean;
 }
 
-const TONO: Record<TonoDeMeta, "exito" | "alerta" | "peligro" | "neutro"> = {
-  ok: "exito", atencion: "alerta", peligro: "peligro", neutro: "neutro",
+const TONO_DE_BARRA: Record<TonoDeMeta, string> = {
+  ok: "bg-tono-exito", atencion: "bg-tono-alerta", peligro: "bg-tono-peligro", neutro: "bg-primary",
 };
 
 function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
@@ -43,64 +36,66 @@ function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   </div>;
 }
 
-function Celda({ celda, unidad, href, conProyeccion }: {
-  celda: CeldaDeMeta;
-  unidad: "cupos" | "usd";
-  href: string | null;
-  conProyeccion: boolean;
-}) {
-  const f = (v: number) => (unidad === "usd" ? usd(v) : num(v, 2));
-  const llevamos = href
-    ? <Link className="cifra text-2xl font-semibold underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" href={href}>{unidad === "usd" ? usd(celda.llevamos) : num(celda.llevamos)}</Link>
-    : <span className="cifra text-2xl font-semibold">{unidad === "usd" ? usd(celda.llevamos) : num(celda.llevamos)}</span>;
-  if (celda.meta === null) {
-    return <div className="space-y-1">
-      {llevamos}
-      <p className="text-sm text-muted-foreground">Sin meta: configúrala en Programa › Ventas</p>
-    </div>;
-  }
-  return <div className="space-y-2">
-    <div className="flex flex-wrap items-baseline gap-2">
-      {llevamos}
-      <span className="cifra text-sm text-muted-foreground">de {f(celda.meta)}</span>
-      <Badge variant={TONO[celda.tono]}>{celda.pct === null ? "—" : pct(celda.pct)}</Badge>
-    </div>
-    <dl className="space-y-1">
-      <Dato rotulo={nombreCorto("faltan")}>{celda.faltan === null ? "—" : f(celda.faltan)}</Dato>
-      <Dato rotulo={nombreCorto("esperado_a_hoy")}>{celda.esperado === null ? "—" : f(celda.esperado)}</Dato>
-      <Dato rotulo={nombreCorto("por_dia_habil")}>{celda.porDiaHabil === null ? "—" : f(celda.porDiaHabil)}</Dato>
-      {conProyeccion ? <Dato rotulo={nombreCorto("proyeccion")}>{celda.proyeccion === null ? "—" : f(celda.proyeccion)}</Dato> : null}
-    </dl>
+function BarraDeAvance({ celda }: { celda: CeldaDeMeta }) {
+  const meta = celda.meta ?? 1;
+  const avance = Math.min(Math.max(celda.llevamos / meta, 0), 1) * 100;
+  const esperado = celda.esperado === null ? null : Math.min(Math.max(celda.esperado / meta, 0), 1) * 100;
+  return <div
+    className="relative h-2 overflow-hidden rounded-full bg-muted"
+    role="progressbar"
+    aria-valuenow={Math.round(celda.llevamos)}
+    aria-valuemax={Math.round(celda.meta ?? Math.max(celda.llevamos, 1))}
+  >
+    <div className={`h-full ${TONO_DE_BARRA[celda.tono]}`} style={{ width: `${avance}%` }} />
+    {esperado === null ? null : <div className="absolute inset-y-0 w-px bg-foreground" style={{ left: `${esperado}%` }} />}
   </div>;
 }
 
-function Fila({ titulo, cuadrante, hrefs, conProyeccion, aviso }: {
-  titulo: string;
-  cuadrante: CuadranteDeMeta;
-  hrefs: string | null;
+function DetalleDeCelda({ celda, unidad, conProyeccion }: {
+  celda: CeldaDeMeta;
+  unidad: "cupos" | "usd";
   conProyeccion: boolean;
-  aviso: ReactNode;
 }) {
-  return <section aria-label={titulo} className="space-y-2">
-    <h3 className="text-sm font-medium">{titulo}</h3>
-    <div className="grid gap-4 sm:grid-cols-2">
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Cupos</p>
-        <Celda celda={cuadrante.cupos} unidad="cupos" href={hrefs} conProyeccion={conProyeccion} />
-      </div>
-      <div className="space-y-1">
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{nombreCorto("vendido")} (USD)</p>
-        <Celda celda={cuadrante.usd} unidad="usd" href={hrefs} conProyeccion={conProyeccion} />
-        {cuadrante.ventasSinValorVendido > 0
-          ? <Badge variant="alerta">{num(cuadrante.ventasSinValorVendido)} sin valor vendido: el total está incompleto</Badge>
-          : null}
-      </div>
-    </div>
-    {aviso}
+  const f = (valor: number) => unidad === "usd" ? usd(valor) : num(valor);
+  return <section className="space-y-1">
+    <h4 className="text-xs font-medium text-muted-foreground">{unidad === "usd" ? `${nombreCorto("vendido")} (USD)` : "Cupos"}</h4>
+    <Dato rotulo="Llevamos">{f(celda.llevamos)}{celda.meta === null ? "" : ` de ${f(celda.meta)}`}</Dato>
+    <Dato rotulo={nombreCorto("faltan")}>{celda.faltan === null ? "—" : f(celda.faltan)}</Dato>
+    <Dato rotulo={nombreCorto("esperado_a_hoy")}>{celda.esperado === null ? "—" : f(celda.esperado)}</Dato>
+    <Dato rotulo={nombreCorto("por_dia_habil")}>{celda.porDiaHabil === null ? "—" : f(celda.porDiaHabil)}</Dato>
+    {conProyeccion ? <Dato rotulo={nombreCorto("proyeccion")}>{celda.proyeccion === null ? "—" : f(celda.proyeccion)}</Dato> : null}
   </section>;
 }
 
-/** Lo puro de la pantalla: recibe los datos ya calculados. Separado para poder probarlo sin base. */
+function Fila({ titulo, cierre, cuadrante, href, conProyeccion, aviso }: {
+  titulo: string;
+  cierre: string | null;
+  cuadrante: CuadranteDeMeta;
+  href: string | null;
+  conProyeccion: boolean;
+  aviso: ReactNode;
+}) {
+  const frase = fraseDeAvance(cuadrante.cupos, { cierre });
+  return <section aria-label={titulo} className="space-y-3">
+    <h3 className="text-sm font-medium">{titulo}</h3>
+    <BarraDeAvance celda={cuadrante.cupos} />
+    <div>
+      {href ? <Link className="font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring" href={href}>{frase}</Link> : <p className="font-medium">{frase}</p>}
+    </div>
+    {aviso}
+    {cuadrante.ventasSinValorVendido > 0
+      ? <Badge variant="alerta">{num(cuadrante.ventasSinValorVendido)} sin valor vendido: el total está incompleto</Badge>
+      : null}
+    <details className="text-sm">
+      <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">Ver detalle</summary>
+      <div className="grid gap-4 pt-2 sm:grid-cols-2">
+        <DetalleDeCelda celda={cuadrante.cupos} unidad="cupos" conProyeccion={conProyeccion} />
+        <DetalleDeCelda celda={cuadrante.usd} unidad="usd" conProyeccion={conProyeccion} />
+      </div>
+    </details>
+  </section>;
+}
+
 export function VamosALlegarVista({ datos, props }: { datos: DatosVamosALlegar; props: PropsVamosALlegar }) {
   const { programa, hoy, origen, conListas, configurar, conNombre } = props;
   const periodo = (desde: string) => ({ preset: "custom" as const, a: { desde, hasta: hoy }, b: null });
@@ -112,40 +107,26 @@ export function VamosALlegarVista({ datos, props }: { datos: DatosVamosALlegar; 
     ? <Button size="sm" variant="link" nativeButton={false} render={<Link href={enlaceConVueltaAFragmento(configurar.hrefBase, configurar.origen, "cohortes")} />}>Configurar</Button>
     : null;
   const mesNombre = datos.mes.nombre.split(" ")[0];
-  return <Card className="shadow-tarjeta" data-testid="vamos-a-llegar">
+  return <Card data-testid="vamos-a-llegar">
     <CardHeader className="space-y-1">
       <CardTitle>¿Vamos a llegar?{conNombre ? ` · ${programa.nombre}` : ""}</CardTitle>
-      <p className="text-sm text-muted-foreground">
-        Mes de {mesNombre}{datos.cohorte ? ` y cohorte ${datos.cohorte.codigo}` : ""} · no cambia con los filtros
-      </p>
+      <p className="text-sm text-muted-foreground">Mes de {mesNombre}{datos.cohorte ? ` y cohorte ${datos.cohorte.codigo}` : ""} · no cambia con los filtros</p>
     </CardHeader>
     <CardContent className="space-y-6">
-      <Fila
-        titulo={`Mes de ${datos.mes.nombre}`}
-        cuadrante={datos.mes.cuadrante}
-        hrefs={hrefMes}
-        conProyeccion={false}
-        aviso={datos.mes.sinMeta ? configurarLink : null}
-      />
-      {datos.cohorte ? (
-        <Fila
-          titulo={`Cohorte ${datos.cohorte.codigo}`}
-          cuadrante={datos.cohorte.cuadrante}
-          hrefs={hrefCohorte}
-          conProyeccion
-          aviso={<>
-            {datos.cohorte.cuadrante.cupos.proyeccion === null && datos.cohorte.razonProyeccion
-              ? <p className="text-xs text-muted-foreground">{datos.cohorte.razonProyeccion}</p> : null}
-            {datos.cohorte.sinMeta ? configurarLink : null}
-          </>}
-        />
-      ) : (
-        <section aria-label="Cohorte" className="space-y-1">
-          <h3 className="text-sm font-medium">Cohorte</h3>
-          <p className="text-sm text-muted-foreground">Sin cohorte activa</p>
-          {configurarLink}
-        </section>
-      )}
+      <Fila titulo={`Mes de ${mesNombre}`} cierre={datos.mes.cierre} cuadrante={datos.mes.cuadrante} href={hrefMes} conProyeccion={false} aviso={datos.mes.sinMeta ? configurarLink : null} />
+      {datos.cohorte ? <Fila
+        titulo={`Cohorte ${datos.cohorte.codigo}${datos.cohorte.cierre ? ` · cierra ${fecha(datos.cohorte.cierre)}` : ""}`}
+        cierre={datos.cohorte.cierre}
+        cuadrante={datos.cohorte.cuadrante}
+        href={hrefCohorte}
+        conProyeccion
+        aviso={<>{datos.cohorte.cuadrante.cupos.proyeccion === null && datos.cohorte.razonProyeccion
+          ? <p className="text-xs text-muted-foreground">{datos.cohorte.razonProyeccion}</p> : null}{datos.cohorte.sinMeta ? configurarLink : null}</>}
+      /> : <section aria-label="Cohorte" className="space-y-1">
+        <h3 className="text-sm font-medium">Cohorte</h3>
+        <p className="text-sm text-muted-foreground">Sin cohorte activa</p>
+        {configurarLink}
+      </section>}
     </CardContent>
   </Card>;
 }

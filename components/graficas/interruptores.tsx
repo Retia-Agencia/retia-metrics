@@ -15,7 +15,7 @@ const OPCIONES: Record<Grupo, readonly string[]> = { unidad: UNIDADES, paso: PAS
 const NOMBRE_DEL_GRUPO: Record<Grupo, string> = { unidad: "Unidad", paso: "Paso", forma: "Forma" };
 
 /**
- * Los tres interruptores de una gráfica (ticket 370), encima de ella y con el valor elegido a la vista.
+ * Los interruptores de una gráfica (ticket 370), encima de ella y con el valor elegido a la vista.
  * Son enlaces: el estado vive en la URL (`?g_<clave>=plata,semana,acum`), así que un enlace guardado y el
  * PDF del reporte muestran lo mismo. `sinUnidad` esconde la unidad en gráficas que no tienen plata (DH-3).
  */
@@ -45,7 +45,7 @@ export function InterruptoresDeGrafica({
                 variant={activa ? "default" : "outline"}
                 nativeButton={false}
                 aria-current={activa ? "true" : undefined}
-                render={<Link scroll={false} href={hrefConConfigDeGrafica(origen, clave, { ...config, [grupo]: valor })} />}
+                render={<Link scroll={false} href={hrefConConfigDeGrafica(origen, clave, { ...config, [grupo]: valor }, { sinUnidad })} />}
               >
                 {(ROTULOS[grupo] as Record<string, string>)[valor]}
               </Button>

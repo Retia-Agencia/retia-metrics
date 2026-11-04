@@ -68,3 +68,16 @@ it("el tooltip muestra una línea corta por comparación y omite texto cuando no
   }), colores).tooltip.formatter({ seriesName: "Octubre", dataIndex: 0, value: 15 });
   expect(sinComparacion).not.toContain("Sin comparación");
 });
+
+it("el tooltip pinta los extras del punto después de su valor", () => {
+  const modelo = crearModeloGrafica({
+    unidad: "cupos", dias: ["2026-11-04"], etiquetas: ["4 nov"],
+    series: [{
+      clave: "Noviembre", valores: [2],
+      extras: [[{ etiqueta: "Vendido", texto: "USD 1.500,00" }, { etiqueta: "Entró a caja", texto: "COP 20.000" }]],
+    }],
+    escribir: String,
+  });
+  const texto = crearOpcionGrafica(modelo, colores).tooltip.formatter({ seriesName: "Noviembre", dataIndex: 0, value: 2 });
+  expect(texto).toContain("Noviembre: 2 cupos<br>Vendido: USD 1.500,00<br>Entró a caja: COP 20.000");
+});

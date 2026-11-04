@@ -1,4 +1,5 @@
 import { GraficaDinamica } from "@/components/graficas/grafica-dinamica";
+import { GraficaConResumen } from "@/components/graficas/resumen-de-punto";
 import {
   crearModeloGrafica,
   filasDeTabla,
@@ -17,10 +18,11 @@ interface GraficaProps {
   formato: (valor: number) => string;
   comparacion?: ComparacionDeGrafica;
   meta?: MetaDeGrafica;
+  punto?: { slug: string; origen: string; titulos: string[] };
 }
 
 /** Contrato único de gráficas del CRM (ADR 0091). */
-export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, formato, comparacion, meta }: GraficaProps) {
+export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, formato, comparacion, meta, punto }: GraficaProps) {
   const modelo = crearModeloGrafica({
     tipo,
     unidad,
@@ -43,7 +45,9 @@ export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, form
         {modelo.meta && ultimaMeta ? <> · {modelo.meta.etiqueta}: <span className="cifra">{ultimaMeta}</span> {unidad}</> : null}
       </figcaption>
       <p className="text-xs text-muted-foreground">{frescura}</p>
-      <GraficaDinamica modelo={modelo} titulo={`${titulo}, ${unidad}. Ejes lineales con cero visible.`} />
+      {punto
+        ? <GraficaConResumen modelo={modelo} titulo={titulo} slug={punto.slug} origen={punto.origen} titulos={punto.titulos} />
+        : <GraficaDinamica modelo={modelo} titulo={`${titulo}, ${unidad}. Ejes lineales con cero visible.`} />}
       <details className="text-sm">
         <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
           Ver cifras de {titulo}

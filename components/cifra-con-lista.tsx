@@ -30,8 +30,6 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
   if (!detalle?.resumen.disponible || detalle.resumen.subtotal.cantidad === 0) {
     return <>{children}</>;
   }
-  const { resumen, desgloses, href } = detalle;
-
   return (
     <Dialog>
       <DialogTrigger
@@ -41,10 +39,25 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
         {children}
       </DialogTrigger>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
-        <DialogTitle>{titulo}</DialogTitle>
+        <ResumenDeCifra titulo={titulo} detalle={detalle} />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Contenido compartido por las cifras y los puntos de las gráficas. */
+export function ResumenDeCifra({ titulo, detalle, descripcionCantidad }: {
+  titulo: string;
+  detalle: DetalleDeCifra;
+  /** Texto después de la cantidad; las cifras normales conservan el wording histórico. */
+  descripcionCantidad?: string;
+}) {
+  const { resumen, desgloses, href } = detalle;
+  return <>
+    <DialogTitle>{titulo}</DialogTitle>
         <DialogDescription>
           <span className="cifra">{num(resumen.subtotal.cantidad)}</span>{" "}
-          {detalle.fotoDeHoy ? "registros a hoy; el periodo no los acota." : "registros del periodo elegido."}
+          {descripcionCantidad ?? (detalle.fotoDeHoy ? "registros a hoy; el periodo no los acota." : "registros del periodo elegido.")}
         </DialogDescription>
         {resumen.dinero ? (
           // Lista de ventas (369): las tres cifras de las MISMAS ventas, en vez de una sola suma.
@@ -75,9 +88,7 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
         <Button nativeButton={false} render={<Link href={href} />}>
           Ver la lista completa
         </Button>
-      </DialogContent>
-    </Dialog>
-  );
+  </>;
 }
 
 /** Una tabla corta del resumen. Cada línea lleva su cantidad y su parte del total. */

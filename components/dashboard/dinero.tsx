@@ -1,14 +1,12 @@
-import { DatoOVacio } from "@/components/dato-o-vacio";
 import Link from "next/link";
-import { CifraConLista } from "@/components/cifra-con-lista";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num, pct, usd } from "@/lib/format";
+import { num, usd } from "@/lib/format";
 import { GraficasDeDinero } from "@/components/dashboard/graficas-de-dinero";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
-import { CajaConVariacion, Tabla, Tarjeta } from "@/components/dashboard/piezas";
+import { CajaConVariacion, Tabla } from "@/components/dashboard/piezas";
 import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
 
@@ -35,37 +33,15 @@ export function Dinero({
   return (
     <section id="dinero" className="scroll-mt-4 space-y-4">
       <h2 className="text-xl font-semibold">Dinero</h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-3">
         <TarjetaVendido dinero={vista.dinero} anterior={vista.anterior?.dinero ?? null} periodo={vista.periodo}
           detalle={detalles?.contratado} sinValorVendido={vista.sinValorVendido} />
         <CajaConVariacion vista={vista} detalles={detalles} />
-        {veEquipo ? <Tarjeta
-          titulo="Comisión del periodo"
-          valor={
-            <CifraConLista titulo="Ventas de la comisión" detalle={detalles?.contratado}>
-              {usd(vista.comision.totalUsd)}
-            </CifraConLista>
-          }
-          nota={vista.comision.ventasSinComision > 0
-            ? `${num(vista.comision.ventasSinComision)} sin % o sin valor`
-            : undefined}
-        /> : null}
-        <Tarjeta
-          titulo="Descuento promedio"
-          valor={
-            <CifraConLista titulo="Ventas del descuento" detalle={detalles?.contratado}>
-              <DatoOVacio valor={vista.descuento.promedioPct} motivo="Ninguna venta del periodo tiene ticket y valor vendido">{pct}</DatoOVacio>
-            </CifraConLista>
-          }
-          nota={vista.descuento.promedioUsd === null
-            ? undefined
-            : `${usd(vista.descuento.promedioUsd)} · de ${num(vista.descuento.ventas)} ${vista.descuento.ventas === 1 ? "venta" : "ventas"}`}
-        />
       </div>
 
       {series ? <GraficasDeDinero datos={series} vista={vista} slug={slug} origen={origen} hoy={hoy} conListas={veEquipo} /> : null}
 
-      <div className="grid gap-4">
+      {vista.filtroDeCohorte.cohorteId === null ? <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Ventas por cohorte</CardTitle>
@@ -127,14 +103,13 @@ export function Dinero({
           </CardContent>
         </Card>
 
-      </div>
+      </div> : null}
 
       {vista.claveCloser !== null ? (
         <p className="text-sm text-muted-foreground">
           Filtrado por{" "}
           {vista.closers.find((closer) => closer.id === vista.claveCloser)?.label
-            ?? "este closer"}. Los leads son del programa entero: no se parten
-          por closer.
+            ?? "este closer"}: la meta es del programa entero.
         </p>
       ) : null}
     </section>

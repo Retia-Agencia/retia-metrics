@@ -23,7 +23,11 @@ function coloresDeTinta(elemento: HTMLElement) {
   };
 }
 
-export default function LienzoGrafica({ modelo, titulo }: { modelo: ModeloDeGrafica; titulo: string }) {
+export default function LienzoGrafica({ modelo, titulo, onPunto }: {
+  modelo: ModeloDeGrafica;
+  titulo: string;
+  onPunto?: (serieIndex: number, puntoIndex: number) => void;
+}) {
   const contenedor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +39,13 @@ export default function LienzoGrafica({ modelo, titulo }: { modelo: ModeloDeGraf
       echartsCore.registerTheme(nombreTema, { color: colores.series, textStyle: { color: colores.texto }, backgroundColor: "transparent" });
       const instancia = echartsCore.init(elemento, nombreTema, { renderer: "svg" });
       instancia.setOption(crearOpcionGrafica(modelo, colores), true);
+      if (onPunto) {
+        instancia.on("click", (evento: { seriesIndex?: number; dataIndex?: number }) => {
+          if (evento.seriesIndex !== undefined && evento.dataIndex !== undefined) {
+            onPunto(evento.seriesIndex, evento.dataIndex);
+          }
+        });
+      }
       return instancia;
     };
     let grafica = montar();
@@ -51,7 +62,7 @@ export default function LienzoGrafica({ modelo, titulo }: { modelo: ModeloDeGraf
       redimension.disconnect();
       grafica.dispose();
     };
-  }, [modelo]);
+  }, [modelo, onPunto]);
 
   return <div ref={contenedor} className="h-72 w-full" role="img" aria-label={titulo} />;
 }

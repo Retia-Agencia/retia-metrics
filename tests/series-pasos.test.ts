@@ -86,6 +86,15 @@ it("los tres interruptores viajan en la URL y un valor raro cae al predeterminad
   expect(configDeGraficaEnOrigen(href, "ventas", base)).toEqual({ unidad: "plata", paso: "semana", forma: "acum" });
 });
 
+it("Dinero usa una sola clave con paso y forma, e ignora una unidad vieja", () => {
+  const base = { unidad: "cupos", paso: "dia", forma: "acum" } as const;
+  const origen = hrefConConfigDeGrafica("/p/x/hub?seccion=dinero", "dinero", { unidad: "cupos", paso: "semana", forma: "paso" }, { sinUnidad: true });
+  expect(origen).toBe("/p/x/hub?seccion=dinero&g_dinero=semana%2Cpaso");
+  expect(configDeGraficaEnOrigen(origen, "dinero", base, { unidadFija: "cupos" })).toEqual({ unidad: "cupos", paso: "semana", forma: "paso" });
+  expect(configDeGraficaEnOrigen("/p/x/hub?g_dinero=plata,mes,acum", "dinero", base, { unidadFija: "cupos" }))
+    .toEqual({ unidad: "cupos", paso: "mes", forma: "acum" });
+});
+
 it("guardián: ninguna serie del Hub escribe un número de meses ni compara por su cuenta", async () => {
   const { readFileSync } = await import("node:fs");
   const archivos = [

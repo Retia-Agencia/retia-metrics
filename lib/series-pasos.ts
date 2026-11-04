@@ -3,7 +3,7 @@ import { aUtc, lunesDe, semanasDelRango, sumarDias } from "@/lib/rangos";
 import type { Rango } from "@/lib/queries/dashboard";
 
 /**
- * Los tres interruptores de toda gráfica del Hub (ticket 370): la unidad, el paso del eje X y la forma.
+ * Los interruptores de toda gráfica del Hub (ticket 370): la unidad opcional, el paso del eje X y la forma.
  * Todo es puro y sin reloj: el que llama entrega `hoy` (Bogotá) y el rango ya resuelto por los filtros
  * del 377. El eje X de una gráfica es el periodo elegido; nada escribe un número de meses aquí.
  */
@@ -60,8 +60,10 @@ export function leerConfigDeGrafica(
 
 export const claveEnUrl = (clave: string) => `g_${clave}`;
 
-export function escribirConfigDeGrafica(config: ConfigDeGrafica): string {
-  return [config.unidad, config.paso, config.forma].join(",");
+export function escribirConfigDeGrafica(config: ConfigDeGrafica, opciones?: { sinUnidad?: boolean }): string {
+  return opciones?.sinUnidad
+    ? [config.paso, config.forma].join(",")
+    : [config.unidad, config.paso, config.forma].join(",");
 }
 
 export interface Tramo extends Rango {
@@ -176,15 +178,26 @@ const partirOrigen = (origen: string): [string, URLSearchParams] => {
 };
 
 /** La configuración de una gráfica leída de la URL de la pantalla (su `origen`, ruta con query). */
-export function configDeGraficaEnOrigen(origen: string, clave: string, predeterminada: ConfigDeGrafica): ConfigDeGrafica {
+export function configDeGraficaEnOrigen(
+  origen: string,
+  clave: string,
+  predeterminada: ConfigDeGrafica,
+  opciones?: { unidadFija?: Unidad },
+): ConfigDeGrafica {
   const [, query] = partirOrigen(origen);
-  return leerConfigDeGrafica(query.get(claveEnUrl(clave)) ?? undefined, predeterminada);
+  const leida = leerConfigDeGrafica(query.get(claveEnUrl(clave)) ?? undefined, predeterminada);
+  return opciones?.unidadFija ? { ...leida, unidad: opciones.unidadFija } : leida;
 }
 
 /** El enlace que cambia UN interruptor de UNA gráfica y deja todo lo demás de la URL como está. */
-export function hrefConConfigDeGrafica(origen: string, clave: string, config: ConfigDeGrafica): string {
+export function hrefConConfigDeGrafica(
+  origen: string,
+  clave: string,
+  config: ConfigDeGrafica,
+  opciones?: { sinUnidad?: boolean },
+): string {
   const [ruta, query] = partirOrigen(origen);
-  query.set(claveEnUrl(clave), escribirConfigDeGrafica(config));
+  query.set(claveEnUrl(clave), escribirConfigDeGrafica(config, opciones));
   return `${ruta}?${query.toString()}`;
 }
 

@@ -4,6 +4,16 @@ export interface SerieDeGrafica {
   punteada?: boolean;
   color?: number;
   enlaces?: Array<string | null>;
+  extras?: Array<Array<{ etiqueta: string; texto: string }>>;
+  resumenes?: Array<ResumenDePunto | null>;
+}
+
+export interface ResumenDePunto {
+  metrica: "cierres" | "caja";
+  desde: string;
+  hasta: string;
+  cohorteId: string | null;
+  claveCloser: string | null;
 }
 
 export interface ComparacionDeGrafica {
@@ -153,6 +163,9 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
           const cambio = cambiosPorReferencia.get(parametro.seriesName);
           const delta = cambio ? ` (${escapar(cambio.numero)}, ${escapar(cambio.porcentaje)})` : "";
           lineas.push(`${escapar(parametro.seriesName)}: ${escapar(serie?.textos[indice] ?? String(parametro.value))} ${escapar(modelo.unidad)}${delta}`);
+          for (const extra of serie?.extras?.[indice] ?? []) {
+            lineas.push(`${escapar(extra.etiqueta)}: ${escapar(extra.texto)}`);
+          }
         }
         return lineas.join("<br>");
       },
@@ -179,6 +192,7 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
         name: serie.clave,
         type: modelo.tipo === "barra" ? "bar" : "line",
         data: serie.valores,
+        cursor: serie.resumenes?.some(Boolean) ? "pointer" : "default",
         connectNulls: false,
         showSymbol: true,
         symbolSize: comparacion ? 4 : 6,

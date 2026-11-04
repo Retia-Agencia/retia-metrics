@@ -51,9 +51,9 @@ export interface CuadranteDeMeta {
 
 export interface VamosALlegar {
   hoy: string;
-  mes: { clave: string; nombre: string; sinMeta: boolean; cuadrante: CuadranteDeMeta };
+  mes: { clave: string; nombre: string; cierre: string; sinMeta: boolean; cuadrante: CuadranteDeMeta };
   cohorte:
-    | { id: string; codigo: string; desdeLista: string; sinMeta: boolean; razonProyeccion: string | null; cuadrante: CuadranteDeMeta }
+    | { id: string; codigo: string; cierre: string | null; desdeLista: string; sinMeta: boolean; razonProyeccion: string | null; cuadrante: CuadranteDeMeta }
     | null;
 }
 
@@ -151,6 +151,7 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
   const mes: VamosALlegar["mes"] = {
     clave: mesClave,
     nombre: nombreDelMes(mesClave),
+    cierre: finDeMes,
     sinMeta: mesSinMeta,
     cuadrante: {
       cupos: celdaDeMeta({
@@ -190,6 +191,7 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
     cohorte: {
       id: activa.id,
       codigo: activa.codigo,
+      cierre: activa.fechaCierreVentas,
       // La lista de la cohorte parte del dia mas viejo que cuenta: el inicio de ventas o una venta anterior (DA-2).
       desdeLista: [...(activa.fechaInicioVentas ? [activa.fechaInicioVentas] : []), ...ventasCohorte.map((v) => v.dia)].sort()[0] ?? hoy,
       sinMeta: sinMetaCohorte,

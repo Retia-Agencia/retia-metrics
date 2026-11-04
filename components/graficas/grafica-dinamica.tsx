@@ -8,6 +8,10 @@ const LienzoGrafica = dynamic(() => import("@/components/graficas/lienzo-grafica
   loading: () => <div className="h-72 rounded-xl bg-muted" aria-label="Cargando gráfica" />,
 });
 
-export function GraficaDinamica(props: { modelo: ModeloDeGrafica; titulo: string }) {
+export function GraficaDinamica(props: {
+  modelo: ModeloDeGrafica;
+  titulo: string;
+  onPunto?: (serieIndex: number, puntoIndex: number) => void;
+}) {
   return <LienzoGrafica {...props} />;
 }
