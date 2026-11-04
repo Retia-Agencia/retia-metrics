@@ -68,5 +68,5 @@ export function DashboardPrograma({
       />
     );
   }
-  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} veEquipo={veEquipo} />;
+  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} hoy={hoy} veEquipo={veEquipo} />;
 }

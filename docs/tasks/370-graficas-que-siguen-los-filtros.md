@@ -44,7 +44,7 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
    - **Paso: Día · Semana · Mes.** Por defecto según el largo: hasta 31 días, día; hasta 26 semanas, semana; más, mes.
      Semana de lunes a domingo, en Bogotá; un tramo incompleto se marca "en curso".
    - **Forma: Por paso · Acumulado.** Por defecto: Por paso en actividad, Acumulado en ventas (es como se lee una meta).
-   Los tres viajan en la URL por gráfica (`?g_<clave>=usd,semana,acum`) para que el PDF (373) y un enlace guardado
+   Los tres viajan en la URL por gráfica (`?g_<clave>=plata,semana,acum`; la unidad se llama `plata` porque en Caja no es USD sino cada moneda) para que el PDF (373) y un enlace guardado
    muestren lo mismo.
 3. **Rótulos que se leen sin explicación** (contrato de `docs/structure.md` §9):
    - Eje X: fechas del periodo actual en formato corto (`4 nov`), nunca dos fechas por punto.

@@ -354,6 +354,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               dealsContraAgendas={
                 <DealsContraAgendas
                   vista={vistaComercial!.dealsContraAgendas}
+                  origen={origen}
+                  hoy={hoy}
                   contexto={contextoDeCifra({
                     cohorte: elegida?.codigo ?? null,
                     rango: vista.seleccion.rango,
@@ -397,9 +399,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               veEquipo={veEquipo}
               seriesDinero={await leerSeriesDeDinero({
                 programId: programa.id,
-                rango: vista.periodo.a,
+                // El eje es el periodo elegido y A y B cada uno con su cohorte (370): sin meses fijos.
+                a: { rango: vista.periodo.a, cohorteId },
+                b: vista.periodo.b ? { rango: vista.periodo.b, cohorteId: cohorteIdDeB } : null,
                 claveCloser: vista.claveCloser,
-                cohorteId,
                 hoy,
               })}
             />

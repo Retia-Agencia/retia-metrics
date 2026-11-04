@@ -67,7 +67,7 @@ export function crearModeloGrafica(entrada: EntradaDeGrafica): ModeloDeGrafica {
       const delta = a - b;
       return {
         numero: `${signo(delta)}${entrada.escribir(Math.abs(delta))}`,
-        porcentaje: b === 0 ? "—" : `${signo(delta)}${Math.round(Math.abs(delta / b) * 100)}%`,
+        porcentaje: b === 0 ? "—" : `${signo(delta)}${Math.round(Math.abs(delta / b) * 100)} %`,
       };
     });
   }
@@ -108,6 +108,18 @@ interface ColoresDeGrafica {
 
 interface ParametroTooltip { seriesName?: string; dataIndex?: number; value?: number | null }
 
+/** Con más puntos que esto el valor sobre cada punto estorba: queda el tooltip y la tabla. */
+const ETIQUETAS_HASTA = 12;
+
+/** 4000 se lee "4K" y 2500000 "2,5M" en el eje; el valor exacto va en el tooltip y en la tabla. */
+function abreviar(valor: number): string {
+  const abs = Math.abs(valor);
+  const corto = (n: number, sufijo: string) => `${String(Math.round(n * 10) / 10).replace(".", ",")}${sufijo}`;
+  if (abs >= 1_000_000) return corto(valor / 1_000_000, "M");
+  if (abs >= 10_000) return corto(valor / 1_000, "K");
+  return String(valor);
+}
+
 const escapar = (texto: string) => texto.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 /** Único constructor de opciones ECharts: ejes lineales, cero visible y tooltip comparable. */
@@ -117,7 +129,7 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
     animation: false,
     aria: { enabled: true, decal: { show: true } },
     color: colores.series,
-    grid: { left: 12, right: 16, top: 36, bottom: 16, containLabel: true },
+    grid: { left: 12, right: 16, top: 56, bottom: 16, containLabel: true },
     legend: { top: 0, textStyle: { color: colores.texto } },
     tooltip: {
       trigger: "axis",
@@ -128,15 +140,19 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
         const lista = Array.isArray(parametros) ? parametros : [parametros];
         const indice = lista[0]?.dataIndex ?? 0;
         const lineas = [`<strong>${escapar(modelo.etiquetas[indice] ?? modelo.dias[indice] ?? "")}</strong>`];
+        // Una línea por serie. La comparación se dice en la línea de la referencia: "C2 al mismo día: 9 cupos (+3, +33 %)",
+        // el cambio de la serie actual contra ella, sin una línea aparte que haya que descifrar.
+        const cambiosPorReferencia = new Map<string, { numero: string; porcentaje: string }>();
+        for (const par of modelo.comparacion?.pares ?? []) {
+          const cambio = modelo.comparacion?.cambios[par.actual]?.[indice];
+          if (cambio) cambiosPorReferencia.set(par.referencia, cambio);
+        }
         for (const parametro of lista) {
           if (parametro.value === null || parametro.value === undefined || !parametro.seriesName) continue;
           const serie = porClave.get(parametro.seriesName);
-          lineas.push(`${escapar(parametro.seriesName)}: ${escapar(serie?.textos[indice] ?? String(parametro.value))} ${escapar(modelo.unidad)}`);
-        }
-        for (const par of modelo.comparacion?.pares ?? []) {
-          const cambio = modelo.comparacion?.cambios[par.actual]?.[indice];
-          if (!cambio) continue;
-          lineas.push(`${escapar(par.actual)}: ${escapar(cambio.numero)} · ${escapar(cambio.porcentaje)}`);
+          const cambio = cambiosPorReferencia.get(parametro.seriesName);
+          const delta = cambio ? ` (${escapar(cambio.numero)}, ${escapar(cambio.porcentaje)})` : "";
+          lineas.push(`${escapar(parametro.seriesName)}: ${escapar(serie?.textos[indice] ?? String(parametro.value))} ${escapar(modelo.unidad)}${delta}`);
         }
         return lineas.join("<br>");
       },
@@ -144,20 +160,38 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
     xAxis: { type: "category", data: modelo.etiquetas, axisLabel: { color: colores.textoSecundario }, axisLine: { lineStyle: { color: colores.divisor } } },
     yAxis: {
       type: "value",
+      name: modelo.unidad,
+      nameTextStyle: { color: colores.textoSecundario, align: "left" },
       min: (extremo: { min: number }) => Math.min(0, extremo.min),
       max: (extremo: { max: number }) => Math.max(0, extremo.max),
-      axisLabel: { color: colores.textoSecundario },
-      splitLine: { lineStyle: { color: colores.divisor } },
+      axisLabel: { color: colores.textoSecundario, formatter: abreviar },
+      splitLine: { lineStyle: { color: colores.divisor, opacity: 0.5 } },
     },
-    series: modelo.series.map((serie, i) => ({
-      name: serie.clave,
-      type: modelo.tipo === "barra" ? "bar" : "line",
-      data: serie.valores,
-      connectNulls: false,
-      showSymbol: true,
-      symbolSize: 6,
-      itemStyle: { color: colores.series[(serie.color ?? i) % colores.series.length] },
-      lineStyle: { type: serie.punteada ? "dashed" : "solid" },
-    })),
+    series: modelo.series.map((serie, i) => {
+      // Claridad antes que adorno (criterio de HubSpot, 4-nov): UNA línea fuerte para lo que se mira y la
+      // comparación en gris, sin segundo color; el valor escrito sobre cada punto cuando son pocos (si son
+      // muchos, el tooltip y la tabla los dicen) y un relleno suave bajo la línea. Una serie con `color`
+      // explícito conserva su color: así se distinguen dos pares en una misma gráfica.
+      const comparacion = serie.punteada === true && serie.color === undefined;
+      const color = comparacion ? colores.textoSecundario : colores.series[(serie.color ?? i) % colores.series.length];
+      const conEtiquetas = !comparacion && modelo.dias.length <= ETIQUETAS_HASTA;
+      return {
+        name: serie.clave,
+        type: modelo.tipo === "barra" ? "bar" : "line",
+        data: serie.valores,
+        connectNulls: false,
+        showSymbol: true,
+        symbolSize: comparacion ? 4 : 6,
+        itemStyle: { color },
+        lineStyle: { type: serie.punteada ? "dashed" : "solid", color, width: comparacion ? 1.5 : 2.5 },
+        areaStyle: modelo.tipo === "linea" && !comparacion ? { color, opacity: 0.08 } : undefined,
+        label: {
+          show: conEtiquetas,
+          position: "top",
+          color: colores.texto,
+          formatter: (parametro: ParametroTooltip) => serie.textos[parametro.dataIndex ?? 0] ?? "",
+        },
+      };
+    }),
   };
 }
