@@ -175,14 +175,14 @@ en el CRM, así que el reporte diario ya puede salir de aquí.
 
 | Del reporte diario | En el CRM | Dónde | Queda en |
 |---|---|---|---|
-| Contexto: "semana día 2 de 5, mes día 11 de 22, cohorte día 20 de 30" | 🟡 se calcula en Metas, sin una línea que lo diga | Metas | 252 |
+| Contexto: "semana día 2 de 5, mes día 11 de 22, cohorte día 20 de 30" | ✅ encabezado del reporte | Hoy | 373 |
 | Cupos del día contra la meta dinámica (faltan ÷ hábiles que quedan) | ✅ meta dinámica (020) | Pulso, Metas | 252 |
 | Leads del día contra su meta | ❌ `cohorts.meta_leads_dia` está vacía en las 8 cohortes y no se deriva | · | 253 |
 | Leads de pauta del día | ✅ por área | Pauta | 248, 252 |
-| Caja del día | ✅ recaudo por fecha del abono | Dinero | 252 |
+| Caja del día | ✅ por fecha del abono, con la venta de origen de cada abono (373) | Hoy | 373 |
 | Agendas, realizadas, show, ventas y % de cierre, por programa y por closer | ✅ (ADR 0079) | Operación | 252 |
 | El resultado de cada agenda (no-show, reprogramada, motivo) | ✅ en la lista de cada cifra | Operación | · |
-| Cómo nació cada cierre: agenda del día, follow-up o cola | ❌ | · | 254 |
+| Cómo nació cada cierre: agenda del día, follow-up o cola | ✅ `comoNacioLaVenta` (373) | Hoy | 373 (reemplazó al 254) |
 | Autoagendamiento por el formulario | ✅ embudo del formulario | Pauta | · |
 | Objeciones | ✅ motivos de pérdida | Operación | · |
 | Semana: meta, meta a la fecha, real, cumplimiento | ✅ compensación semanal (146) | Metas | 252 |
@@ -192,8 +192,8 @@ en el CRM, así que el reporte diario ya puede salir de aquí.
 | "A este ritmo cierra en 27" (proyección) | ❌ | · | 253 |
 | Agendas diarias que hacen falta, con la tasa agenda → venta | ❌ | · | 253 |
 | Mes: leads, cupos, cumplimiento contra la meta lineal | ✅ (146) | Metas | 252 |
-| Planes de acción con estado y evidencia | ❌ | · | 257 |
-| Masivos (Kapso) y cola de descartados | ❌ | · | fuera por ahora (H-9) |
+| Planes de acción con estado y evidencia | ❌ no se dibuja | · | 257 (fase 2) |
+| Masivos (Kapso) y cola de descartados | ❌ no se dibuja | · | fuera por ahora (H-9, fase 2) |
 
 ### 2.4 Meta 🩸
 

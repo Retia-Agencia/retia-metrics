@@ -256,3 +256,49 @@
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
+
+/*
+ * El reporte diario en papel / PDF (373): carta, solo el reporte (id `reporte-diario`), sin menú ni
+ * controles, tablas que no se parten. Todo lo que no contiene al reporte ni está dentro se oculta;
+ * sus ancestros pierden alturas y scroll para que el navegador pagine el contenido entero.
+ */
+@page {
+  size: letter;
+  margin: 14mm 12mm 16mm;
+}
+
+@media print {
+  body *:not(:has(#reporte-diario)):not(#reporte-diario):not(#reporte-diario *) {
+    display: none !important;
+  }
+  html,
+  body,
+  body *:has(#reporte-diario) {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  #reporte-diario {
+    font-size: 11px;
+    /* El pie fijo ocupa el final de cada página: el contenido no debe llegar a él. */
+    padding-bottom: 6mm !important;
+  }
+  #reporte-diario [data-slot="card"],
+  #reporte-diario table,
+  #reporte-diario tr,
+  #reporte-diario .no-partir {
+    break-inside: avoid;
+  }
+  #reporte-diario h3,
+  #reporte-diario h4 {
+    break-after: avoid;
+  }
+  #reporte-diario thead {
+    display: table-header-group;
+  }
+}

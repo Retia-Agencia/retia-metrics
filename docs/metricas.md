@@ -393,6 +393,21 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 | Semana: meta, meta a la fecha, real | Cupos › Semana | `leerMetasDelMes` (compensación semanal, 146) | venta | ventas de la semana hasta el día |
 | El corte: meta, vendidos, faltan, cumplimiento lineal | Cupos › Cohorte | `vistaDeCohorteActiva` | venta | ventas de la cohorte hasta el día |
 | El mes: leads, cupos, cumplimiento lineal | Cupos › Mes y metas del mes | `leerMetasDelMes` | venta | ventas del mes hasta el día; los leads del mes, 253 |
+
+**Hoy como el reporte diario (373, plantilla v5 del 15-sep; `lib/queries/reporte-diario.ts`).** Hoy se ordena con los
+números de sección de la plantilla (1 El día, 3 La semana, 4 y 5 El corte y el mes; la 2, masivos, y la 6, planes de
+acción, no se dibujan: fase 2) y se descarga en PDF con la hoja de impresión del navegador. `?fecha=` elige el día de
+Bogotá (hoy por defecto; una fecha futura o mal escrita se rechaza y se muestra hoy). Cada sección dice su fuente al
+pie. No agrega ninguna cifra a la tabla de arriba, salvo estas:
+
+| Cifra | Cuenta | Función |
+|---|---|---|
+| Cómo nació la venta | por cada venta del día: **agenda del día** si el deal tuvo una llamada que ocurrió (show, compromiso de pago, cerrada o perdida) el mismo día de Bogotá de la venta; **seguimiento** si su último show fue un día anterior; **sin llamada** si ninguno hasta ese día. Un show posterior a la venta no la explica | `comoNacioLaVenta` |
+| Desglose de la caja del día | cada abono vigente de la caja con su venta de origen: venta nueva del día, saldo de una venta anterior (con el día y el closer de esa venta: no suma un cupo nuevo) o abono adicional (1:1). Las partes suman la misma caja de Dinero | `desgloseDeCaja` |
+| Qué pasó con cada agenda | las citas del día por closer y resultado: cierre, show sin cierre, compromiso de pago, no-show, reagendada, perdida (con su motivo) y pendiente; las canceladas aparte | `resultadosPorCloser` |
+| Leads del día de pauta | registros del día en el área Paid (`resolverCanal`); el total es "Leads del día" | `agruparEnvios` por área |
+| Semana: leads y show | registros de lunes al día del reporte; la meta de leads de la semana es la meta diaria de la cohorte × hábiles; la meta a la fecha es lineal | `armarReporteDiario` |
+| Total de todos los programas | solo conteos y caja por moneda; el tipo no tiene un campo de tasa (ADR 0048) | `totalDeConteos` |
 | Meta para llegar a la meta desde mañana; leads por día hábil | Proyección | `leerProyeccion` | día hábil | construido en 253 |
 | Cómo nació cada cupo (agenda del día, follow-up) | fuera de Hoy hasta tener una métrica | · | · | 🟡 254 |
 | Planes de acción | fuera de Hoy hasta tener datos | · | · | 🟡 257 |

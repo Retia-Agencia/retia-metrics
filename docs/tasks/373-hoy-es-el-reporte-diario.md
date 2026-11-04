@@ -3,7 +3,7 @@ id: 373
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-10: el CRM como fuente única de verdad) · ADR 0086 (Hoy es el reporte diario) · objetivo O1 de docs/hub.md · reemplaza el punto 1 del 300 y al 254"
 depends: [352, 369, 371]
-status: todo
+status: en revision
 ---
 
 # 373 — Hub › Hoy es el reporte diario de Michael, y se descarga en PDF
@@ -91,17 +91,31 @@ reporte trae los hechos con su lista, y la lectura es de quien lo manda.
 
 ## Done cuando
 
-- [ ] Test: una venta con show el mismo día es "agenda del día"; con show un día antes, "seguimiento"; sin show, "sin
+- [x] Test: una venta con show el mismo día es "agenda del día"; con show un día antes, "seguimiento"; sin show, "sin
   llamada".
-- [ ] Test: un abono de saldo de una venta de otro día entra a caja del día y no suma un cupo; se rotula con la fecha y
+- [x] Test: un abono de saldo de una venta de otro día entra a caja del día y no suma un cupo; se rotula con la fecha y
   el closer de esa venta.
-- [ ] Test: en "todos", la fila Total solo lleva conteos.
-- [ ] Test: `?fecha=` de ayer da las cifras de ayer; una fecha futura se rechaza.
-- [ ] Comparado a mano contra un día real: el reporte del CRM de un día de la semana del 3-nov, sección por sección,
+- [x] Test: en "todos", la fila Total solo lleva conteos (`totalDeConteos`: el tipo no tiene campo de tasa).
+- [x] Test: `?fecha=` de ayer da las cifras de ayer; una fecha futura se rechaza.
+- [x] ~~Comparado a mano contra un día real~~ **Reemplazado (Mani, 4-nov):** no se cotejó contra Michael; se verificó que las consultas sean coherentes con el esquema. Sus fuentes están en `lib/queries/reporte-diario.ts` (todo sobre `calls`, `deals`, `abonos` y `leads` con `vigente`, o sobre las funciones que ya usan Comercial y Dinero), el desglose de caja suma la misma caja de Dinero, y el reporte corre contra Postgres 17 real (`dev:local`) sin errores. Original: el reporte del CRM de un día de la semana del 3-nov, sección por sección,
   contra lo que Michael mandó ese día; cada diferencia explicada en el ticket.
-- [ ] Imprimir a PDF desde Chrome el Hoy de un programa y de "todos" en `dev:local`: carta, nada cortado, pie correcto;
+- [x] Imprimir a PDF desde Chrome el Hoy de un programa y de "todos" en `dev:local`: carta, nada cortado, pie correcto;
   los PDF se adjuntan al ticket.
 - [ ] `npm run test:humo` en verde.
 - [ ] El 254 queda `reemplazado` por este ticket.
 - [ ] Regla N8: `docs/hub.md` §2.3 (columna "Queda en") y §0, y `docs/metricas.md` (cómo nació la venta) en el mismo
   commit.
+
+## Cómo quedó (4-nov)
+
+- **Datos:** `lib/queries/reporte-diario.ts` (`armarReporteDiario`, `comoNacioLaVenta`, `desgloseDeCaja`,
+  `resultadosPorCloser`, `totalDeConteos`, `resolverDiaDelReporte`); no calcula una cifra de Comercial ni de Dinero.
+- **Pantalla:** `components/dashboard/reporte-diario.tsx` (secciones 1, 3 y 4 y 5, una columna por programa) y
+  `descargar-reporte.tsx` (botón y pie de impresión). `hoy.tsx` conserva solo «Para seguir el día». La hoja de
+  impresión vive en `app/globals.css` (`@media print`). Sin dependencias nuevas.
+- **Fuente por sección:** cada sección del reporte dice al pie de dónde sale (decisión de Mani, 4-nov).
+- **Alcance del PDF:** solo Hoy (Mani, 4-nov); el PDF de Comercial y Dinero con filtros, aparte.
+- **Se borró de Hoy (N7):** Cupos, la tarjeta de operación del día, Caja de hoy, Proyección y el selector del ritmo
+  (`?ritmo=` sigue válido por URL, sin control). Las metas del mes quedan bajo «Para seguir el día».
+- **Falta:** `npm run test:humo` (no corrido; unos 6 a 12 min por proyecto); los PDF de `373-pdfs/` salen de la base
+  local de pruebas, no de producción. Fase 2: masivos (sección 2) y planes de acción (sección 6).

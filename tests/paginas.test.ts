@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { hoyEnBogota } from "@/lib/format";
+import { sumarDias } from "@/lib/rangos";
 import { renderToStaticMarkup } from "react-dom/server";
 import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 import { COLUMNAS_CSV_CITAS_PAUTA } from "@/lib/pauta/csv-citas";
@@ -184,6 +186,15 @@ vi.mock("@/lib/queries/vista-hoy", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-hoy")>(),
   armarVistaDeHoy,
 }));
+// El reporte diario (373) arma el día con el mock anterior y devuelve vacíos sus agregados propios.
+const armarReporteDiario = vi.fn(async (entrada: { programId: string; dia: string }) => ({
+  ...(await armarVistaDeHoy(entrada)),
+  ventas: [], detalleDeCaja: [], resultados: [], leadsDePauta: 0, leadsDeLaSemana: 0,
+}));
+vi.mock("@/lib/queries/reporte-diario", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/reporte-diario")>(),
+  armarReporteDiario,
+}));
 // La serie del embudo (089), igual: sin base, una serie vacia.
 const hechosDelEmbudo = vi.fn(async () => []);
 vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
@@ -349,6 +360,7 @@ beforeEach(() => {
   cargarRoasDePauta.mockClear();
   cargarRoasDePauta.mockResolvedValue(VISTA_ROAS_VACIA);
   armarVistaDeHoy.mockClear();
+  armarReporteDiario.mockClear();
   detalleDeCifra.mockClear();
   armarVistaDeTodos.mockReset();
   armarVistaDeTodos.mockResolvedValue(VISTA_TODOS_VACIA);
@@ -1109,6 +1121,16 @@ describe("el dashboard no depende del rol dentro del alcance (ADR 0048, ticket 0
       expect(armarVistaDelDashboard.mock.calls.at(-1)![0]).toMatchObject({ periodo: { preset: "hoy" }, claveCloser: null });
     }
   });
+
+  it("Hoy (373) arma el día de ?fecha=; una fecha futura se rechaza y se muestra hoy", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    const hoy = hoyEnBogota();
+    const ayer = sumarDias(hoy, -1);
+    expect(await correrPrograma(SLUG, { seccion: "hoy", fecha: ayer })).toBe("paso");
+    expect(armarReporteDiario.mock.calls.at(-1)![0]).toMatchObject({ dia: ayer });
+    expect(await correrPrograma(SLUG, { seccion: "hoy", fecha: sumarDias(hoy, 1) })).toBe("paso");
+    expect(armarReporteDiario.mock.calls.at(-1)![0]).toMatchObject({ dia: hoy });
+  });
 });
 
 /**
@@ -1868,14 +1890,16 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     auth.mockResolvedValue(sesionGerente);
     const arbol = await renderizar({ seccion: "hoy" });
     expect(buscar(arbol, "Hoy")?.props.veEquipo).toBe(true);
-    expect(buscar(arbol, "Hoy")?.props.detallesOperacion).toBeDefined();
+    expect((buscar(arbol, "Hoy")?.props.programas as Array<{ detallesOperacion?: unknown }>)[0].detallesOperacion).toBeDefined();
     expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props.filtraCloser).toBe(true);
   });
 
   it("solo un administrador recibe el atajo a Ventas, con el origen completo y el fragmento al final", async () => {
     const busqueda = { seccion: "hoy", mes: "2026-10" };
     auth.mockResolvedValue(sesionGerente);
-    const delGerente = buscar(await renderizar(busqueda), "Hoy")?.props.configurar as {
+    // El atajo vive en el bloque «¿Vamos a llegar?» que Hoy trae en las secciones 4 y 5 (373).
+    const configurarDe = async () => (buscar(await renderizar(busqueda), "Hoy")?.props.vamosALlegar as { props: { configurar: unknown } }).props.configurar;
+    const delGerente = await configurarDe() as {
       hrefBase: string;
       origen: string;
     };
@@ -1884,7 +1908,7 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     );
 
     auth.mockResolvedValue(sesionPaidTrafficker);
-    expect(buscar(await renderizar(busqueda), "Hoy")?.props.configurar).toBeNull();
+    expect(await configurarDe()).toBeNull();
 
     // El closer no puede abrir el Hub desde el 224; por tanto tampoco puede recibir el enlace.
     auth.mockResolvedValue(sesionCloser);
