@@ -44,19 +44,25 @@ export interface ContratadoDeDeals {
   sinValorVendido: number;
 }
 
-/** Valor contratado de ventas ya elegidas por id, sin convertir ni inventar montos. */
-export async function contratadoDeDeals(db: Db, dealIds: readonly string[]): Promise<ContratadoDeDeals> {
-  if (dealIds.length === 0) return { usd: 0, sinValorVendido: 0 };
+/** El valor vendido de cada deal elegido por id (`null` si no lo tiene): una sola lectura, sin convertir. */
+export async function valoresVendidosDeDeals(db: Db, dealIds: readonly string[]): Promise<Map<string, number | null>> {
+  if (dealIds.length === 0) return new Map();
 
   const filas = await db
-    .select({ valorVendidoUsd: deals.valorVendidoUsd })
+    .select({ id: deals.id, valorVendidoUsd: deals.valorVendidoUsd })
     .from(deals)
     .where(and(inArray(deals.id, [...dealIds]), vigente(deals)));
 
-  return filas.reduce<ContratadoDeDeals>(
-    (total, fila) => ({
-      usd: total.usd + (fila.valorVendidoUsd == null ? 0 : Number(fila.valorVendidoUsd)),
-      sinValorVendido: total.sinValorVendido + (fila.valorVendidoUsd == null ? 1 : 0),
+  return new Map(filas.map((fila) => [fila.id, fila.valorVendidoUsd == null ? null : Number(fila.valorVendidoUsd)]));
+}
+
+/** Valor contratado de ventas ya elegidas por id, sin convertir ni inventar montos. */
+export async function contratadoDeDeals(db: Db, dealIds: readonly string[]): Promise<ContratadoDeDeals> {
+  const valores = await valoresVendidosDeDeals(db, dealIds);
+  return [...valores.values()].reduce<ContratadoDeDeals>(
+    (total, valor) => ({
+      usd: total.usd + (valor ?? 0),
+      sinValorVendido: total.sinValorVendido + (valor === null ? 1 : 0),
     }),
     { usd: 0, sinValorVendido: 0 },
   );

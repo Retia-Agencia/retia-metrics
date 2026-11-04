@@ -2,8 +2,17 @@ import { CifraConLista } from "@/components/cifra-con-lista";
 import { Grafica } from "@/components/graficas/grafica";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct } from "@/lib/format";
+import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
 import { descripcionDeComparacion } from "@/lib/periodo";
-import type { PuntoHabil } from "@/lib/queries/deals-contra-agendas";
+import { pctDealsQueAgendaron, type PuntoHabil } from "@/lib/queries/deals-contra-agendas";
+import {
+  configDeGraficaEnOrigen,
+  etiquetaDeTramo,
+  indicesDeTramos,
+  pasoPorDefecto,
+  tramosDe,
+  valoresDeAcumulado,
+} from "@/lib/series-pasos";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { cambioDeTasaEnPalabras, cambioEnPalabras } from "@/lib/variacion";
 import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
@@ -11,16 +20,19 @@ import { nombreLargo } from "@/lib/vocabulario-metricas";
 
 const TITULO = "Deals creados contra agendas";
 
-/** "19 oct": el año ya lo dice el periodo. */
-const diaCorto = (dia: string) => fecha(dia).replace(/ \d{4}$/, "");
-
 /**
  * La gráfica del ticket 138: acumulado de deals creados y agendas creadas, A contra B al mismo día
  * hábil, y aparte qué parte de los deals agendó (A-167: una tasa no comparte eje con un conteo).
  * El eje lleva las fechas del periodo; la comparación se corta en el mismo hábil. Solo pinta lo
  * que calculó `vistaDealsContraAgendas`.
  */
-export function DealsContraAgendas({ vista, contexto }: { vista: VistaDealsContraAgendas; contexto?: string }) {
+export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
+  vista: VistaDealsContraAgendas;
+  contexto?: string;
+  /** Con la URL de la pantalla se ofrecen Paso y Forma (370); sin ella (vista de todos) queda el acumulado por hábil. */
+  origen?: string;
+  hoy?: string;
+}) {
   if (!vista.disponible) {
     return (
       <Card aria-labelledby="deals-contra-agendas">
@@ -39,10 +51,26 @@ export function DealsContraAgendas({ vista, contexto }: { vista: VistaDealsContr
   // B se lee al mismo día hábil que A (ADR 0067): más allá sería comparar contra un futuro.
   const puntosB = b?.puntos.slice(0, a.puntos.length) ?? [];
   const finalB = puntosB.at(-1);
-  const dias = a.puntos.map((p) => p.dia);
-  const etiquetas = dias.map(diaCorto);
-  const valores = (puntos: PuntoHabil[], campo: (p: PuntoHabil) => number | null) =>
-    a.puntos.map((_, i) => (puntos[i] ? campo(puntos[i]) : null));
+  // Paso y Forma (370). Por defecto, por paso: la actividad se lee como "cuántos entraron en cada tramo".
+  const config = origen
+    ? configDeGraficaEnOrigen(origen, "deals-agendas", { unidad: "cupos", paso: pasoPorDefecto(periodo.a), forma: "paso" })
+    : { unidad: "cupos" as const, paso: "dia" as const, forma: "acum" as const };
+  const diasDePuntos = a.puntos.map((p) => p.dia);
+  const todosLosTramos = tramosDe(periodo.a, config.paso, hoy ?? periodo.a.hasta);
+  const todosLosIndices = indicesDeTramos(diasDePuntos, todosLosTramos);
+  // Un fin de semana no tiene punto propio (entra al hábil siguiente): por día solo van los tramos con punto nuevo.
+  const tramos = todosLosTramos.filter((_, k) => config.paso !== "dia" || todosLosIndices[k] !== (todosLosIndices[k - 1] ?? -2));
+  const indices = indicesDeTramos(diasDePuntos, tramos);
+  const dias = tramos.map((tramo) => tramo.desde);
+  const etiquetas = tramos.map(etiquetaDeTramo);
+  const valoresDe = (puntos: PuntoHabil[], campo: (p: PuntoHabil) => number) =>
+    valoresDeAcumulado(a.puntos.map((_, i) => (puntos[i] ? campo(puntos[i]) : null)), indices, config.forma);
+  const tasaDe = (puntos: PuntoHabil[]) => {
+    const deals = valoresDe(puntos, (p) => p.deals);
+    const agendaron = valoresDe(puntos, (p) => p.agendaron);
+    return deals.map((d, i) => (d === null || agendaron[i] === null ? null : pctDealsQueAgendaron(agendaron[i]!, d)));
+  };
+  const forma = config.forma === "acum" ? "acumulado" : `por ${config.paso === "dia" ? "día hábil" : config.paso}`;
   const rangoDe = (r: { desde: string; hasta: string }) => `${fecha(r.desde)} a ${fecha(r.hasta)}`;
   const deals = finalA?.deals ?? 0;
   // Cada mitad con sus propios deals: la tasa de una no se mezcla con la de la otra (N2, ticket 372).
@@ -127,10 +155,11 @@ export function DealsContraAgendas({ vista, contexto }: { vista: VistaDealsContr
             </tbody>
           </table>
         </div>
+        {origen ? <InterruptoresDeGrafica origen={origen} clave="deals-agendas" config={config} sinUnidad /> : null}
         <Grafica
-          titulo="Acumulado"
+          titulo={`Deals y agendas ${forma}`}
           unidad="registros"
-          frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
+          frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}. Son conteos de personas y citas, no plata.`}
           etiquetas={etiquetas}
           formato={(v) => num(v)}
           comparacion={b ? {
@@ -143,20 +172,20 @@ export function DealsContraAgendas({ vista, contexto }: { vista: VistaDealsContr
           datos={{
             dias,
             series: [
-              { clave: "Deals · periodo", color: 0, valores: valores(a.puntos, (p) => p.deals) },
-              { clave: "Agendas · periodo", color: 1, valores: valores(a.puntos, (p) => p.agendas) },
+              { clave: "Deals · periodo", color: 0, valores: valoresDe(a.puntos, (p) => p.deals) },
+              { clave: "Agendas · periodo", color: 1, valores: valoresDe(a.puntos, (p) => p.agendas) },
               ...(b
                 ? [
-                    { clave: "Deals · comparación", color: 0, punteada: true, valores: valores(puntosB, (p) => p.deals) },
-                    { clave: "Agendas · comparación", color: 1, punteada: true, valores: valores(puntosB, (p) => p.agendas) },
+                    { clave: "Deals · comparación", color: 0, punteada: true, valores: valoresDe(puntosB, (p) => p.deals) },
+                    { clave: "Agendas · comparación", color: 1, punteada: true, valores: valoresDe(puntosB, (p) => p.agendas) },
                   ]
                 : []),
             ],
           }}
         />
         <Grafica
-          titulo="% que agendaron, completos y parciales"
-          unidad="% acumulado"
+          titulo={`% que agendaron, completos y parciales, ${forma}`}
+          unidad={config.forma === "acum" ? "% acumulado" : "% del tramo"}
           frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
           etiquetas={etiquetas}
           formato={(v) => pct(v, 0)}
@@ -170,12 +199,12 @@ export function DealsContraAgendas({ vista, contexto }: { vista: VistaDealsContr
           datos={{
             dias,
             series: [
-              { clave: "Formulario completo · periodo", color: 2, valores: valores(completo.puntosA, (p) => p.pctAgendaron) },
-              { clave: "Parcial · periodo", color: 3, valores: valores(parcial.puntosA, (p) => p.pctAgendaron) },
+              { clave: "Formulario completo · periodo", color: 2, valores: tasaDe(completo.puntosA) },
+              { clave: "Parcial · periodo", color: 3, valores: tasaDe(parcial.puntosA) },
               ...(b
                 ? [
-                    { clave: "Formulario completo · comparación", color: 2, punteada: true, valores: valores(completo.puntosB, (p) => p.pctAgendaron) },
-                    { clave: "Parcial · comparación", color: 3, punteada: true, valores: valores(parcial.puntosB, (p) => p.pctAgendaron) },
+                    { clave: "Formulario completo · comparación", color: 2, punteada: true, valores: tasaDe(completo.puntosB) },
+                    { clave: "Parcial · comparación", color: 3, punteada: true, valores: tasaDe(parcial.puntosB) },
                   ]
                 : []),
             ],

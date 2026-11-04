@@ -44,7 +44,7 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
    - **Paso: Día · Semana · Mes.** Por defecto según el largo: hasta 31 días, día; hasta 26 semanas, semana; más, mes.
      Semana de lunes a domingo, en Bogotá; un tramo incompleto se marca "en curso".
    - **Forma: Por paso · Acumulado.** Por defecto: Por paso en actividad, Acumulado en ventas (es como se lee una meta).
-   Los tres viajan en la URL por gráfica (`?g_<clave>=usd,semana,acum`) para que el PDF (373) y un enlace guardado
+   Los tres viajan en la URL por gráfica (`?g_<clave>=plata,semana,acum`; la unidad se llama `plata` porque en Caja no es USD sino cada moneda) para que el PDF (373) y un enlace guardado
    muestren lo mismo.
 3. **Rótulos que se leen sin explicación** (contrato de `docs/structure.md` §9):
    - Eje X: fechas del periodo actual en formato corto (`4 nov`), nunca dos fechas por punto.
@@ -64,13 +64,17 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
 
 ## Done cuando
 
-- [ ] Test (constructor puro `crearOpcionGrafica`): con C3 y Desde el inicio el primer punto es la primera venta de C3;
+- [x] Test (constructor puro `crearOpcionGrafica`): con C3 y Desde el inicio el primer punto es la primera venta de C3;
   con 40 días el paso por defecto es semana; las etiquetas del eje son una fecha por punto.
-- [ ] Test: Unidad USD suma Vendido del tramo y cuadra con la lista del punto; Cupos cuenta ventas.
-- [ ] Test: Acumulado del último punto = total de la cifra del periodo.
-- [ ] Guardián: ninguna serie del Hub con un número de meses escrito en el código.
+- [x] Test: Unidad USD suma Vendido del tramo y cuadra con la lista del punto; Cupos cuenta ventas.
+- [x] Test: Acumulado del último punto = total de la cifra del periodo.
+- [x] Guardián: ninguna serie del Hub con un número de meses escrito en el código.
 - [ ] Recorrido en `dev:local` en claro, oscuro y 375 px con los tres interruptores en cada gráfica; consola limpia;
   `npm run test:humo` en verde.
-- [ ] El 256 queda `reemplazado` por este ticket en su archivo y en el tracker.
-- [ ] Regla N8: el contrato de gráficas de `docs/structure.md` §9 y `AGENTS.md` (fila "Como se dibuja una grafica") en
+- [x] El 256 queda `reemplazado` por este ticket en su archivo y en el tracker.
+- [x] Regla N8: el contrato de gráficas de `docs/structure.md` §9 y `AGENTS.md` (fila "Como se dibuja una grafica") en
   el mismo commit.
+
+## Estado (4-nov, sesión del 370)
+
+Hecho y verificado: todo salvo dos casillas. **Falta:** `npm run test:humo` en verde y comparar una gráfica de cada pestaña contra producción (la máquina estaba sin aire, swap de 8,7 GB, y el humo tarda 6 a 12 min por proyecto); el recorrido de `dev:local` se hizo en claro (escritorio) y oscuro (375 px) con los interruptores de Ventas, Caja y Deals contra agendas, consola limpia. Los puntos de «Cupos con caja» no abren lista todavía (no existe la lista de deals con abono). El ticket sigue en `todo` hasta cerrar esas casillas (N9).

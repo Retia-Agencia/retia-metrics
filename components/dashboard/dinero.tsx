@@ -3,11 +3,9 @@ import Link from "next/link";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fecha, num, pct, usd } from "@/lib/format";
-import { Grafica } from "@/components/graficas/grafica";
-import { Variacion } from "@/components/variacion";
+import { num, pct, usd } from "@/lib/format";
+import { GraficasDeDinero } from "@/components/dashboard/graficas-de-dinero";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
-import type { Rango } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { CajaConVariacion, Tabla, Tarjeta } from "@/components/dashboard/piezas";
@@ -21,6 +19,7 @@ export function Dinero({
   slug,
   series,
   origen,
+  hoy,
   veEquipo = true,
 }: {
   vista: VistaDelDashboard;
@@ -28,6 +27,8 @@ export function Dinero({
   slug: string;
   series?: SeriesDeDinero;
   origen: string;
+  /** Hoy en Bogotá: el eje de las gráficas no pasa de aquí. */
+  hoy: string;
   /** Sin equipo comercial (paid trafficker, ticket 102): sin comisión y sin enlaces a listas. */
   veEquipo?: boolean;
 }) {
@@ -62,7 +63,7 @@ export function Dinero({
         />
       </div>
 
-      {series ? <GraficasDeDinero datos={series} slug={slug} claveCloser={vista.claveCloser} origen={origen} conListas={veEquipo} /> : null}
+      {series ? <GraficasDeDinero datos={series} vista={vista} slug={slug} origen={origen} hoy={hoy} conListas={veEquipo} /> : null}
 
       <div className="grid gap-4">
         <Card>
@@ -137,107 +138,5 @@ export function Dinero({
         </p>
       ) : null}
     </section>
-  );
-}
-
-function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
-  datos: SeriesDeDinero;
-  slug: string;
-  claveCloser: string | null;
-  origen: string;
-  conListas: boolean;
-}) {
-  const { meses, acumulado } = datos;
-  const ultimo = meses[meses.length - 1];
-  const monedas = [...new Set(meses.flatMap((mes) => mes.caja.map((caja) => caja.moneda)))];
-  type Valores = SeriesDeDinero["meses"][number];
-  const metricas = [
-    { titulo: "Vendido", unidad: "USD", metrica: "contratado" as const,
-      valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.contratadoUsd,
-      meta: (fila: Valores) => fila.metaUsd, decimales: 2, moneda: undefined },
-    { titulo: "Cupos vendidos", unidad: "cupos", metrica: "cierres" as const,
-      valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.cupos,
-      meta: (fila: Valores) => fila.metaCupos, decimales: 1, moneda: undefined },
-    ...monedas.map((moneda) => ({ titulo: "Entró a caja", unidad: moneda, metrica: "caja" as const,
-      valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.caja.find((caja) => caja.moneda === moneda)?.total ?? 0,
-      // No existe una meta de recaudo: la caja se grafica sin meta.
-      meta: (): number | null => null,
-      decimales: moneda === "COP" ? 0 : 2, moneda })),
-  ];
-  const enlace = (metrica: "contratado" | "cierres" | "caja", rango: Rango, moneda?: string) => {
-    if (!conListas || rango.desde > rango.hasta) return null;
-    return urlDeLista({ slug, metrica, periodo: { preset: "custom", a: rango, b: null }, origen, claveCloser, moneda });
-  };
-  const diaCorto = (dia: string) => `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1 text-sm text-muted-foreground">
-        <p>Últimos seis meses hasta {ultimo.mes}. Cada mes va desde el día 1; el último corta en {fecha(ultimo.rango.hasta)}. Lo que entró a caja usa la fecha del abono.</p>
-        <p>La meta es del programa entero. Sin ventana de venta, la meta aparece como —.</p>
-        {claveCloser ? <p>Vendido, cupos y lo que entró a caja muestran la contribución del closer seleccionado; la meta no se reparte.</p> : null}
-        {meses.some((mes) => mes.sinValorVendido > 0) ? <p>Hay cupos sin valor vendido: cuentan como cupos, pero no suman al vendido.</p> : null}
-      </div>
-      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-        {metricas.map((m) => (
-          <Card key={`${m.metrica}-${m.unidad}`} className="min-w-0">
-            <CardContent className="pt-6">
-              <Grafica titulo={`${m.titulo} por mes`} unidad={m.unidad}
-                frescura={`Datos hasta ${fecha(ultimo.rango.hasta)}.`}
-                etiquetas={meses.map((mes) => mes.mes)} formato={(valor) => num(valor, m.decimales)}
-                meta={m.metrica === "caja" ? undefined : { etiqueta: "Meta del mes · programa", valores: meses.map(m.meta) }}
-                datos={{ dias: meses.map((mes) => `${mes.mes}-01`), series: [
-                  { clave: m.titulo, valores: meses.map((mes) => mes.rango.desde <= mes.rango.hasta ? m.valor(mes) : null),
-                    enlaces: meses.map((mes) => enlace(m.metrica, mes.rango, m.moneda)) },
-                ] }} />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      {monedas.length === 0 ? <p className="text-sm text-muted-foreground">Sin abonos vigentes en estos meses para el filtro elegido.</p> : null}
-      {acumulado ? (
-        <>
-          <p className="text-sm text-muted-foreground">
-            Acumulado desde {fecha(acumulado.a.desde)} hasta {fecha(acumulado.a.hasta)} contra el mes anterior al mismo día hábil.
-            {acumulado.b ? ` Mes anterior: ${fecha(acumulado.b.desde)} a ${fecha(acumulado.b.hasta)}.` : " Aún no hay días hábiles comparables."}
-            {" "}Los fines de semana sí conservan sus ventas y abonos. La línea anterior se corta si agota sus días hábiles.
-            {" "}Esta comparación mensual usa el mes anterior, independientemente de “Comparar con”.
-          </p>
-          <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-            {metricas.map((m) => {
-              const final = acumulado.puntos[acumulado.puntos.length - 1];
-              const meta = m.meta(ultimo);
-              return (
-                <Card key={`${m.metrica}-${m.unidad}`} className="min-w-0">
-                  <CardContent className="space-y-3 pt-6">
-                    <Grafica titulo={`${m.titulo} acumulado`} unidad={m.unidad}
-                      frescura={`Datos hasta ${fecha(acumulado.a.hasta)}.`}
-                      formato={(valor) => num(valor, m.decimales)}
-                      etiquetas={acumulado.puntos.map((p) => `${diaCorto(p.dia)} / ${p.diaAnterior ? diaCorto(p.diaAnterior) : "—"}`)}
-                      comparacion={acumulado.b ? {
-                        texto: "contra el mes anterior al mismo día hábil",
-                        pares: [{ actual: ultimo.mes, referencia: `${meses[meses.length - 2].mes} · mismo hábil` }],
-                      } : undefined}
-                      meta={meta === null ? undefined : { etiqueta: "Meta del mes · programa", valores: acumulado.puntos.map(() => meta), color: 1 }}
-                      datos={{ dias: acumulado.puntos.map((p) => p.dia), series: [
-                        { clave: ultimo.mes, valores: acumulado.puntos.map((p) => m.valor(p.actual)),
-                          enlaces: acumulado.puntos.map((p) => enlace(m.metrica, { desde: acumulado.a.desde, hasta: p.dia }, m.moneda)) },
-                        { clave: `${meses[meses.length - 2].mes} · mismo hábil`, color: 0, punteada: true,
-                          valores: acumulado.puntos.map((p) => p.anterior ? m.valor(p.anterior) : null),
-                          enlaces: acumulado.puntos.map((p) => acumulado.b && p.diaAnterior ? enlace(m.metrica, { desde: acumulado.b.desde, hasta: p.diaAnterior }, m.moneda) : null) },
-                      ] }} />
-                    {final.anterior ? <p className="text-sm">{m.unidad}: <Variacion actual={m.valor(final.actual)} anterior={m.valor(final.anterior)} decimales={m.decimales} comparacion="contra el mes anterior al mismo día hábil" /></p> : null}
-                    {m.metrica === "caja" ? (
-                      <p className="text-sm text-muted-foreground">Lo que entró a caja no tiene meta propia.</p>
-                    ) : meta !== null ? (
-                      <p className="text-sm">Faltan para la meta: <span className="cifra">{num(Math.max(0, meta - m.valor(final.actual)), m.decimales)} {m.unidad} · {meta > 0 ? pct(Math.max(0, meta - m.valor(final.actual)) / meta) : "—"}</span></p>
-                    ) : null}
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </>
-      ) : <p className="text-sm text-muted-foreground">El mes elegido aún no empieza: no hay acumulado a hoy.</p>}
-    </div>
   );
 }

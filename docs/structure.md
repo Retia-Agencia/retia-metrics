@@ -710,8 +710,10 @@ paginación e ids porque pertenecen al programa anterior.
 **Contrato de gráficas (ADR 0091):** toda gráfica usa `components/graficas/`, nunca ECharts directo. Línea expresa
 tendencia y barra compara categorías; una torta no representa más de tres partes. Los ejes numéricos son lineales e
 incluyen cero. La meta no se dibuja (ADR 0106): va como número al lado del título y como columna de la tabla. El
-tooltip es corto: el día, el valor de cada serie y, solo si hay comparación, el cambio en una línea (`+3 · +12%`). Toda gráfica muestra la frescura del dato y ofrece siempre una
+tooltip es corto: el día, una línea por serie y, solo si hay comparación, el cambio en la línea de la referencia (`C2 al mismo día: 9 cupos (+3, +33 %)`). El eje X lleva una fecha corta por punto (`4 nov`, nunca dos fechas) y el eje Y su unidad. Toda gráfica muestra la frescura del dato y ofrece siempre una
 tabla alternativa. El envoltorio usa SVG y resuelve exclusivamente los tokens de Tinta, también al cambiar de tema.
+
+**Los tres interruptores y el eje (ticket 370, 4-nov):** toda gráfica de métricas sigue los filtros del Hub (cohorte, periodo, closer, comparar con): el eje X es el periodo elegido y no existe una ventana fija de meses. Encima de cada gráfica van **Unidad** (Cupos · Plata, solo donde hay plata: la actividad —envíos, agendas, shows— es de personas o citas y lo dice), **Paso** (Día · Semana · Mes; por defecto día hasta 31 días, semana hasta 26 semanas, mes después; semana de lunes a domingo; el tramo que aún corre dice «en curso») y **Forma** (Por paso · Acumulado; por defecto acumulado en ventas y por paso en actividad). Viajan en la URL por gráfica, `?g_<clave>=plata,semana,acum`, para que un enlace y el PDF muestren lo mismo. La lógica es pura y vive en `lib/series-pasos.ts`; los interruptores son enlaces (`components/graficas/interruptores.tsx`). **Claridad visual (criterio de HubSpot):** una sola línea fuerte para el periodo y la comparación en gris, el valor escrito sobre cada punto cuando son 8 o menos (si no, solo el último), relleno suave bajo la línea, rejilla tenue y ejes abreviados (`4K`); un color distinto solo cuando dos pares comparten gráfica.
 
 **Paleta:**
 

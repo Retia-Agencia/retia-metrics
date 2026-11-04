@@ -58,7 +58,8 @@ it("el tooltip muestra una línea corta por comparación y omite texto cuando no
     { seriesName: "Septiembre", dataIndex: 0, value: 12 },
   ]);
   expect(texto).toContain("Hábil 2");
-  expect(texto).toContain("Octubre: +3 · +25%");
+  expect(texto).toContain("Septiembre: 12 cupos (+3, +25 %)");
+  expect(opcion.yAxis.name).toBe("cupos");
   expect(texto).not.toContain("→");
   expect(texto).not.toContain("Sin comparación");
   const sinComparacion = crearOpcionGrafica(crearModeloGrafica({

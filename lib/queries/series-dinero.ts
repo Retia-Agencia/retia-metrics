@@ -1,153 +1,146 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, min } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, deals, users } from "@/lib/db/schema";
+import { abonos, cohorts, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diasHabilesEntre } from "@/lib/dias-habiles";
-import { mismoPuntoHabil } from "@/lib/periodo";
-import { sumarDias } from "@/lib/rangos";
-import { pivotarSerie } from "@/lib/series-alineadas";
-import { ventasConDiaEn, type Alcance, type Rango } from "@/lib/queries/dashboard";
+import { nombreDeMes } from "@/lib/series-pasos";
+import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
 import { filtroCaja, porClaveDeDeal, porCohorteDeDeal } from "@/lib/queries/metricas-filtros";
-import { leerMetasDelMes, moverMes } from "@/lib/queries/metas";
-import { contratadoDeDeals, sumaDeAbonos } from "@/lib/queries/saldo";
+import { leerMetasDelMes } from "@/lib/queries/metas";
+import { sumaDeAbonos, valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 
-interface ValoresDeDinero {
-  contratadoUsd: number;
-  cupos: number;
-  caja: { moneda: string; total: number }[];
+/** Lo que pasó cada día de una ventana: el insumo de toda gráfica de Dinero (ticket 370). */
+export interface VentanaDeDinero {
+  rango: Rango;
+  /** Ventas (deals en Abonado o Completo) por el día de la venta. */
+  cuposPorDia: Map<string, number>;
+  /** Vendido (369): el valor vendido de esas ventas. Un cupo sin valor cuenta como cupo y no suma plata. */
+  usdPorDia: Map<string, number>;
+  sinValorVendido: number;
+  /**
+   * Cupos con caja: cada deal con al menos un abono vigente en la ventana cuenta UNA vez, el día de su
+   * primer abono de la ventana. Un cupo es un cupo: un segundo abono del mismo deal no suma otro.
+   */
+  cuposConAbonoPorDia: Map<string, number>;
+  /** Lo que entró a caja por moneda y día de abono. Nunca se convierte. */
+  cajaPorMoneda: Map<string, Map<string, number>>;
 }
 
-export interface MesDeDinero extends ValoresDeDinero {
-  mes: string;
-  rango: Rango;
-  metaUsd: number | null;
-  metaCupos: number | null;
-  sinValorVendido: number;
+export interface MetaDeSerie {
+  etiqueta: string;
+  cupos: number | null;
+  /** Cupos × precio de la cohorte, la regla de `metas.ts`. */
+  usd: number | null;
 }
 
 export interface SeriesDeDinero {
   programId: string;
-  meses: MesDeDinero[];
-  acumulado: {
-    a: Rango;
-    b: Rango | null;
-    puntos: {
-      dia: string;
-      diaAnterior: string | null;
-      actual: ValoresDeDinero;
-      anterior: ValoresDeDinero | null;
-    }[];
-  } | null;
+  a: VentanaDeDinero;
+  b: VentanaDeDinero | null;
+  monedas: string[];
+  meta: MetaDeSerie;
 }
 
-const finDeMes = (mes: string) => sumarDias(`${moverMes(mes, 1)}-01`, -1);
+interface VentanaPedida {
+  rango: Rango;
+  cohorteId: string | null;
+}
 
-/**
- * Seis meses hasta el mes del extremo final de A. El último llega solo hasta ese
- * extremo o hasta hoy (Bogotá, entregado por la página). La comparación mensual
- * tiene su propio B: el mes anterior al mismo hábil, no el B libre del selector.
- * La meta siempre es del programa entero, incluso al filtrar una contribución.
- */
-export async function leerSeriesDeDinero(
-  entrada: Alcance & { hoy: string },
-  db: Db = dbDeLaApp,
-): Promise<SeriesDeDinero> {
-  const mesFinal = entrada.rango.hasta.slice(0, 7);
-  const meses = Array.from({ length: 6 }, (_, i) => moverMes(mesFinal, i - 5));
-  const corte = entrada.rango.hasta < entrada.hoy ? entrada.rango.hasta : entrada.hoy;
-  const rango = { desde: `${meses[0]}-01`, hasta: corte };
-  const alcance = { ...entrada, rango };
-  const [vendidas, caja, metas] = await Promise.all([
+const sumarEn = (mapa: Map<string, number>, clave: string, valor: number) =>
+  mapa.set(clave, (mapa.get(clave) ?? 0) + valor);
+
+async function leerVentana(
+  db: Db,
+  entrada: { programId: string; claveCloser: string | null },
+  { rango, cohorteId }: VentanaPedida,
+): Promise<VentanaDeDinero> {
+  const alcance = { programId: entrada.programId, rango, claveCloser: entrada.claveCloser, cohorteId };
+  const [vendidas, caja, primerosAbonos] = await Promise.all([
     ventasConDiaEn(db, rango),
     db.select({ dia: abonos.fecha, moneda: abonos.moneda, total: sumaDeAbonos() })
       .from(abonos)
       .where(and(filtroCaja(alcance, db), vigente(abonos)))
       .groupBy(abonos.fecha, abonos.moneda),
-    Promise.all(meses.map((mes) => leerMetasDelMes(entrada.programId, mes, entrada.hoy, db))),
+    db.select({ dealId: abonos.dealId, dia: min(abonos.fecha) })
+      .from(abonos)
+      .where(and(filtroCaja(alcance, db), vigente(abonos)))
+      .groupBy(abonos.dealId),
   ]);
+  // Las ventas se filtran en SQL por programa, closer y cohorte; la lista de ids solo viaja una vez.
   const elegidas = vendidas.length === 0 ? [] : await db.select({ id: deals.id })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(and(inArray(deals.id, vendidas.map((venta) => venta.dealId)),
-      eq(deals.programId, entrada.programId), porClaveDeDeal(entrada.claveCloser), porCohorteDeDeal(entrada.cohorteId), vigente(deals)));
+      eq(deals.programId, entrada.programId), porClaveDeDeal(entrada.claveCloser), porCohorteDeDeal(cohorteId), vigente(deals)));
   const idsElegidos = new Set(elegidas.map((deal) => deal.id));
   const ventas = vendidas.filter((venta) => idsElegidos.has(venta.dealId));
+  const valores = await valoresVendidosDeDeals(db, ventas.map((venta) => venta.dealId));
 
-  // Lotes de ids por mes para la historia y por día SOLO para los dos meses de
-  // la comparación. Nunca una consulta por deal ni una copia de su valor vendido.
-  const inicioDiario = `${meses[4]}-01`;
-  const grupos = new Map<string, string[]>();
+  const cuposPorDia = new Map<string, number>();
+  const usdPorDia = new Map<string, number>();
+  let sinValorVendido = 0;
   for (const venta of ventas) {
-    const clave = venta.dia < inicioDiario ? venta.dia.slice(0, 7) : venta.dia;
-    const ids = grupos.get(clave) ?? [];
-    ids.push(venta.dealId);
-    grupos.set(clave, ids);
+    sumarEn(cuposPorDia, venta.dia, 1);
+    const valor = valores.get(venta.dealId);
+    if (valor === undefined) continue;
+    if (valor === null) sinValorVendido += 1;
+    else sumarEn(usdPorDia, venta.dia, valor);
   }
-  const importes = new Map(await Promise.all([...grupos].map(async ([clave, ids]) =>
-    [clave, await contratadoDeDeals(db, ids)] as const)));
-  const filas = [...grupos].map(([dia, ids]) => ({
-    programId: entrada.programId,
-    dia,
-    cupos: ids.length,
-    contratadoUsd: importes.get(dia)!.usd,
-    sinValorVendido: importes.get(dia)!.sinValorVendido,
-  }));
-  const monedas = [...new Set(caja.map((fila) => fila.moneda))].sort();
-  const mensuales = meses.map<MesDeDinero>((mes, i) => {
-    const suyas = filas.filter((fila) => fila.dia.startsWith(mes));
-    return {
-      mes,
-      rango: { desde: `${mes}-01`, hasta: finDeMes(mes) < corte ? finDeMes(mes) : corte },
-      contratadoUsd: suyas.reduce((n, fila) => n + fila.contratadoUsd, 0),
-      cupos: suyas.reduce((n, fila) => n + fila.cupos, 0),
-      sinValorVendido: suyas.reduce((n, fila) => n + fila.sinValorVendido, 0),
-      caja: monedas.map((moneda) => ({
-        moneda,
-        total: caja.filter((fila) => fila.dia.startsWith(mes) && fila.moneda === moneda)
-          .reduce((n, fila) => n + Number(fila.total), 0),
-      })),
-      metaUsd: metas[i].mesSinVentana ? null : metas[i].metaUsd,
-      metaCupos: metas[i].mesSinVentana ? null : metas[i].metaCupos,
-    };
-  });
-  const a = mensuales[5].rango;
-  if (a.hasta < a.desde) return { programId: entrada.programId, meses: mensuales, acumulado: null };
-  const anterior = { desde: inicioDiario, hasta: finDeMes(meses[4]) };
-  const b = mismoPuntoHabil(a, anterior);
+  const cuposConAbonoPorDia = new Map<string, number>();
+  for (const fila of primerosAbonos) if (fila.dia) sumarEn(cuposConAbonoPorDia, fila.dia, 1);
+  const cajaPorMoneda = new Map<string, Map<string, number>>();
+  for (const fila of caja) {
+    const dias = cajaPorMoneda.get(fila.moneda) ?? new Map<string, number>();
+    sumarEn(dias, fila.dia, Number(fila.total));
+    cajaPorMoneda.set(fila.moneda, dias);
+  }
+  return { rango, cuposPorDia, usdPorDia, sinValorVendido, cuposConAbonoPorDia, cajaPorMoneda };
+}
 
-  const acumulados = (ventana: Rango) => {
-    const alcanceDiario = { programId: entrada.programId, rango: ventana };
-    const cupos = pivotarSerie(filas, alcanceDiario, () => "cupos", (fila) => fila.cupos);
-    const contratado = pivotarSerie(filas, alcanceDiario, () => "contratado", (fila) => fila.contratadoUsd);
-    const recaudo = pivotarSerie(caja.map((fila) => ({ ...fila, programId: entrada.programId })),
-      alcanceDiario, (fila) => fila.moneda, (fila) => Number(fila.total));
-    let totalCupos = 0;
-    let totalUsd = 0;
-    const porMoneda = new Map(monedas.map((moneda) => [moneda, 0]));
-    return new Map(cupos.dias.map((dia, i) => {
-      totalCupos += cupos.series[0]?.valores[i] ?? 0;
-      totalUsd += contratado.series[0]?.valores[i] ?? 0;
-      for (const serie of recaudo.series) {
-        porMoneda.set(serie.clave, porMoneda.get(serie.clave)! + serie.valores[i]);
-      }
-      return [dia, {
-        cupos: totalCupos,
-        contratadoUsd: totalUsd,
-        caja: [...porMoneda].map(([moneda, total]) => ({ moneda, total })),
-      }];
-    }));
-  };
-  const valoresA = acumulados(a);
-  const valoresB = b ? acumulados(b) : new Map<string, ValoresDeDinero>();
-  const habilesB = diasHabilesEntre(anterior.desde, anterior.hasta);
-  const puntos = [...valoresA].map(([dia, actual]) => {
-    // Si B tiene menos hábiles, no prolongar su último punto como si hubiera datos.
-    const comparable = diasHabilesEntre(a.desde, dia) <= habilesB
-      ? mismoPuntoHabil({ desde: a.desde, hasta: dia }, anterior)
-      : null;
-    const diaAnterior = comparable?.hasta ?? null;
-    return { dia, diaAnterior, actual, anterior: diaAnterior ? valoresB.get(diaAnterior) ?? null : null };
-  });
-  return { programId: entrada.programId, meses: mensuales, acumulado: { a, b, puntos } };
+/**
+ * La meta que acompaña al título (ADR 0106): la de la cohorte cuando hay una elegida, la del mes del
+ * extremo final del periodo cuando no. Siempre del programa entero, nunca repartida entre closers.
+ */
+async function leerMeta(
+  db: Db,
+  { programId, cohorteId, hasta, hoy }: { programId: string; cohorteId: string | null; hasta: string; hoy: string },
+): Promise<MetaDeSerie> {
+  if (cohorteId) {
+    const [cohorte] = await db.select({ codigo: cohorts.codigo, metaCupos: cohorts.metaCupos, precioUsd: cohorts.precioUsd })
+      .from(cohorts)
+      .where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId)));
+    if (!cohorte) return { etiqueta: "Meta", cupos: null, usd: null };
+    return { etiqueta: `Meta de ${cohorte.codigo}`, cupos: cohorte.metaCupos, usd: cohorte.metaCupos * Number(cohorte.precioUsd) };
+  }
+  const mes = (hasta < hoy ? hasta : hoy).slice(0, 7);
+  const metas = await leerMetasDelMes(programId, mes, hoy, db);
+  const etiqueta = `Meta de ${nombreDeMes(`${mes}-01`).toLowerCase()} · programa`;
+  return metas.mesSinVentana
+    ? { etiqueta, cupos: null, usd: null }
+    : { etiqueta, cupos: metas.metaCupos, usd: metas.metaUsd };
+}
+
+/**
+ * Lo que pasó cada día en el periodo elegido (A) y, si se pidió, en su comparación (B), cada uno con su
+ * propia cohorte (C3 contra C2 al mismo día de venta). El eje X, el paso y la forma los decide quien pinta
+ * con `lib/series-pasos.ts`: aquí no hay ningún número de meses.
+ */
+export async function leerSeriesDeDinero(
+  entrada: {
+    programId: string;
+    a: VentanaPedida;
+    b: VentanaPedida | null;
+    claveCloser: string | null;
+    hoy: string;
+  },
+  db: Db = dbDeLaApp,
+): Promise<SeriesDeDinero> {
+  const base = { programId: entrada.programId, claveCloser: entrada.claveCloser };
+  const [a, b, meta] = await Promise.all([
+    leerVentana(db, base, entrada.a),
+    entrada.b ? leerVentana(db, base, entrada.b) : Promise.resolve(null),
+    leerMeta(db, { programId: entrada.programId, cohorteId: entrada.a.cohorteId, hasta: entrada.a.rango.hasta, hoy: entrada.hoy }),
+  ]);
+  const monedas = [...new Set([a, b].flatMap((ventana) => ventana ? [...ventana.cajaPorMoneda.keys()] : []))].sort();
+  return { programId: entrada.programId, a, b, monedas, meta };
 }

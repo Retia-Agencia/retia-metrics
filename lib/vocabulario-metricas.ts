@@ -8,7 +8,7 @@
 export type ClaveDeMetrica =
   | "registros" | "leads" | "deals_desde_completo" | "deals_desde_parcial"
   | "agendadas" | "citas" | "shows" | "no_asistio" | "llamadas_sin_resultado"
-  | "ventas" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja"
+  | "ventas" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja" | "cupos_con_caja"
   | "comision" | "meta" | "esperado_a_hoy" | "faltan" | "por_dia_habil" | "proyeccion";
 
 export type EntradaDeVocabulario = { corto: string; largo: string; definicion: string };
@@ -27,6 +27,7 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   vendido: { corto: "Vendido", largo: "Valor vendido", definicion: "Suma del valor vendido que el closer escribió en cada venta." },
   recaudado: { corto: "Recaudado", largo: "Recaudado de lo vendido", definicion: "Lo abonado, a hoy, a las ventas elegidas, sin importar cuándo se abonó." },
   por_cobrar: { corto: "Por cobrar", largo: "Por cobrar de lo vendido", definicion: "Lo vendido menos lo recaudado en las ventas elegidas; un sobrepago no resta deuda a otra venta." },
+  cupos_con_caja: { corto: "Cupos con caja", largo: "Cupos con al menos un abono", definicion: "Ventas con al menos un abono vigente en el periodo; cada una cuenta una vez, el día de su primer abono del periodo, aunque abone varias veces." },
   entro_a_caja: { corto: "Entró a caja", largo: "Entró a caja", definicion: "Abonos vigentes con fecha en el periodo, de cualquier venta, por moneda y sin convertir." },
   comision: { corto: "Comisión", largo: "Comisión del closer", definicion: "Porcentaje pactado sobre lo vendido." },
   meta: { corto: "Meta", largo: "Meta de la cohorte", definicion: "Cupos que se quieren vender en la cohorte." },
