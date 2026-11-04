@@ -12,11 +12,18 @@ export const atajosDePeriodo = {
   semana_pasada: "Semana pasada",
   este_mes: "Este mes",
   mes_pasado: "Mes pasado",
-  cohorte_actual: "Cohorte actual",
-  cohorte_anterior: "Cohorte anterior",
+  desde_el_inicio: "Desde el inicio",
 } as const;
 
 export type AtajoDePeriodo = keyof typeof atajosDePeriodo;
+
+/**
+ * Los atajos que ya no existen en el periodo (377, G-1): "Cohorte actual" y "Cohorte anterior" eran la
+ * ventana de una cohorte disfrazada de periodo. Un enlace guardado con ellos sigue sirviendo: se lee como
+ * "Desde el inicio" + la cohorte que decía (`cohorteVieja`), y quien arma la vista la traduce al filtro.
+ */
+const ATAJOS_VIEJOS_DE_COHORTE = { cohorte_actual: "actual", cohorte_anterior: "anterior" } as const;
+export type CohorteVieja = (typeof ATAJOS_VIEJOS_DE_COHORTE)[keyof typeof ATAJOS_VIEJOS_DE_COHORTE];
 /**
  * Lo que se pide comparar (ADR 0106): el mismo punto del periodo anterior, la cohorte anterior o
  * un rango elegido. Es lo que vive en la URL; el rango real lo decide `resolverPeriodo`.
@@ -36,9 +43,10 @@ interface Ventana {
 
 interface ContextoDePeriodo {
   hoy: string;
-  actual?: Ventana | null;
+  /** El día en que empieza "Desde el inicio" (377): la cohorte elegida o, con "Todas", el programa. */
+  inicio?: string | null;
+  /** La ventana de venta de la cohorte anterior a la elegida: la base de la comparación por cohorte. */
   anterior?: Ventana | null;
-  anteAnterior?: Ventana | null;
 }
 
 const fecha = z.string().refine(esFecha);
@@ -75,7 +83,7 @@ const listaDeComparar = z.string().transform((texto, ctx) => {
 });
 
 const esquema = z.object({
-  periodo: z.enum([...Object.keys(atajosDePeriodo) as AtajoDePeriodo[], "custom"]).optional(),
+  periodo: z.enum([...Object.keys(atajosDePeriodo) as AtajoDePeriodo[], ...Object.keys(ATAJOS_VIEJOS_DE_COHORTE) as (keyof typeof ATAJOS_VIEJOS_DE_COHORTE)[], "custom"]).optional(),
   a_desde: fecha.optional(),
   a_hasta: fecha.optional(),
   b_desde: fecha.optional(),
@@ -88,6 +96,8 @@ const esquema = z.object({
 
 export interface EntradaDePeriodo {
   preset: AtajoDePeriodo | "custom";
+  /** Vino de un enlace viejo con "Cohorte actual/anterior": la cohorte que ese enlace pedía (377). */
+  cohorteVieja?: CohorteVieja;
   a?: Rango;
   /** El atajo salió del valor por defecto de la pantalla (ADR 0106, A-168). */
   predeterminado?: true;
@@ -109,6 +119,11 @@ export interface EntradaDePeriodo {
 export interface ComparacionResuelta {
   pedido: PedidoDeComparacion;
   rango: Rango;
+  /**
+   * La base es la cohorte anterior (377): sus cifras son las de ESA cohorte, no las de la elegida
+   * sobre otras fechas. Quien arma la vista consulta B con la cohorte anterior.
+   */
+  conCohorteAnterior?: true;
 }
 
 export interface PeriodoResuelto {
@@ -162,7 +177,7 @@ const legibleRango = (r: Rango) => r.desde === r.hasta
 /** El nombre corto de un pedido, el del chip: "Cohorte anterior", "1 sep 2026 a 9 sep 2026". */
 export function nombreDePedido(pedido: PedidoDeComparacion, preset: EntradaDePeriodo["preset"]): string {
   if (pedido.tipo === "rango") return legibleRango(pedido.rango);
-  if (pedido.tipo === "cohorte" || preset === "cohorte_actual" || preset === "cohorte_anterior") return "Cohorte anterior";
+  if (pedido.tipo === "cohorte" || preset === "desde_el_inicio") return "Cohorte anterior";
   return "Periodo anterior";
 }
 
@@ -178,7 +193,7 @@ export function descripcionDeComparacion(periodo: PeriodoResuelto): string {
 }
 
 interface OpcionesDeUrl {
-  /** El atajo cuando la URL no dice ninguno. El Hub de un programa abre en la cohorte (ADR 0106). */
+  /** El atajo cuando la URL no dice ninguno. El Hub de un programa abre Desde el inicio (DH-1, ADR 0106). */
   porDefecto?: AtajoDePeriodo;
 }
 
@@ -219,9 +234,13 @@ export function parsearPeriodoUrl(url: Record<string, unknown>, opciones: Opcion
     cohorte: "cohorte_actual",
     custom: "custom",
   } as const;
-  const preset = moderno
+  const pedido = moderno
     ? (p.periodo ?? (p.a_desde !== undefined || p.a_hasta !== undefined ? "custom" : porDefecto))
     : p.rango ? antiguo[p.rango] : porDefecto;
+  const cohorteVieja = pedido in ATAJOS_VIEJOS_DE_COHORTE
+    ? ATAJOS_VIEJOS_DE_COHORTE[pedido as keyof typeof ATAJOS_VIEJOS_DE_COHORTE]
+    : undefined;
+  const preset = cohorteVieja ? "desde_el_inicio" : (pedido as AtajoDePeriodo | "custom");
   const predeterminado = moderno
     ? p.periodo === undefined && p.a_desde === undefined && p.a_hasta === undefined
     : p.rango === undefined;
@@ -251,6 +270,7 @@ export function parsearPeriodoUrl(url: Record<string, unknown>, opciones: Opcion
   if (comparaciones.length > MAXIMO_DE_COMPARACIONES) return invalido;
   return {
     preset: a ? "custom" : preset,
+    cohorteVieja: a ? undefined : cohorteVieja,
     a,
     comparaciones,
     b,
@@ -335,7 +355,7 @@ export function resolverPeriodo(
   entrada: EntradaDePeriodo,
   contexto: ContextoDePeriodo,
 ): PeriodoResuelto {
-  const { hoy, actual, anterior, anteAnterior } = contexto;
+  const { hoy, inicio, anterior } = contexto;
   const { preset } = entrada;
   let a: Rango;
   let previo: Rango | null = null;
@@ -359,20 +379,18 @@ export function resolverPeriodo(
       }),
       hasta,
     };
-  } else if (preset === "cohorte_actual" || preset === "cohorte_anterior") {
-    const elegida = preset === "cohorte_actual" ? actual : anterior;
-    if (!elegida || elegida.inicio > hoy) {
+  } else if (preset === "desde_el_inicio") {
+    if (!inicio || inicio > hoy) {
       const reemplazo = entrada.predeterminado ? "este_mes" : "hoy";
       return {
         ...resolverPeriodo({ ...entrada, preset: reemplazo, a: undefined, aviso: undefined, predeterminado: undefined }, contexto),
         aviso: entrada.predeterminado
-          ? "Sin cohorte en curso: se muestra Este mes."
-          : "Sin ventana de venta disponible para esa cohorte: se muestra Hoy.",
+          ? "Aún no hay actividad desde la cual contar: se muestra Este mes."
+          : "Aún no hay actividad desde la cual contar: se muestra Hoy.",
       };
     }
-    a = resolverRango({ preset: "cohorte", hoy, ventana: elegida }).rango;
-    const previa = preset === "cohorte_actual" ? anterior : anteAnterior;
-    previo = previa ? ventana(previa) : null;
+    a = { desde: inicio, hasta: hoy };
+    previo = anterior ? ventana(anterior) : null;
   } else if (preset === "este_mes" || preset === "mes_pasado") {
     a = preset === "este_mes"
       ? resolverRango({ preset: "mes", hoy }).rango
@@ -408,7 +426,7 @@ export function resolverPeriodo(
       : entrada.comparar === "no" ? []
       : [{ tipo: entrada.comparar === "cohorte" ? "cohorte" : "anterior" }]
   );
-  const esCohorte = preset === "cohorte_actual" || preset === "cohorte_anterior";
+  const esCohorte = preset === "desde_el_inicio";
   const avisos: string[] = [];
   const comparaciones: ComparacionResuelta[] = [];
   for (const pedido of pedidos) {
@@ -419,7 +437,8 @@ export function resolverPeriodo(
     // En un atajo de cohorte, el periodo anterior ES la cohorte anterior.
     const base = pedido.tipo === "cohorte" && !esCohorte ? (anterior ? ventana(anterior) : null) : previo;
     const resuelto = base ? mismoPuntoHabil(a, base) : null;
-    if (resuelto) comparaciones.push({ pedido, rango: resuelto });
+    const deLaCohorteAnterior = pedido.tipo === "cohorte" || esCohorte;
+    if (resuelto) comparaciones.push({ pedido, rango: resuelto, ...(deLaCohorteAnterior ? { conCohorteAnterior: true as const } : {}) });
     else avisos.push(base
       ? "Sin días hábiles comparables. Elige un rango para comparar."
       : "Sin cohorte anterior con ventana de venta. Elige un rango para comparar.");

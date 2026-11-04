@@ -52,7 +52,7 @@ function diasEntre(a: string, b: string): number {
   return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / MS_POR_DIA);
 }
 
-export async function carteraVencida(db: Db, programId: string, hoy: string = hoyEnBogota()): Promise<CarteraVencida> {
+export async function carteraVencida(db: Db, programId: string, hoy: string = hoyEnBogota(), cohorteId?: string | null): Promise<CarteraVencida> {
   const filas = await db
     .select({
       dealId: deals.id,
@@ -67,7 +67,7 @@ export async function carteraVencida(db: Db, programId: string, hoy: string = ho
     .from(deals)
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
-    .where(and(eq(deals.programId, programId), eq(deals.etapa, "ganado_parcial"), vigente(deals)));
+    .where(and(eq(deals.programId, programId), eq(deals.etapa, "ganado_parcial"), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals)));
   if (filas.length === 0) return { vencidos: [], sinFechaDeReferencia: 0 };
 
   const inicioDeLaActiva = (await cohorteActiva(programId, db))?.fechaInicioClases ?? null;

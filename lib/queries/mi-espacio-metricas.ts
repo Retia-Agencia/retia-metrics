@@ -51,7 +51,6 @@ export interface VistaDeMisMetricas {
   programa: ProgramaDeMetricas;
   periodo: PeriodoResuelto;
   anteriorDisponible: boolean;
-  cohorteDisponible: boolean;
   a: CifrasDePeriodo;
   b: CifrasDePeriodo | null;
   detalles: DetallesDeMisMetricas;
@@ -136,7 +135,6 @@ export async function armarVistaDeMisMetricas(
     programa,
     periodo,
     anteriorDisponible: dashboard.anteriorDisponible,
-    cohorteDisponible: dashboard.cohorte?.ventana != null,
     a: {
       agendas: dashboard.embudo.agendas,
       shows: dashboard.embudo.llamadasConShow,

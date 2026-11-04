@@ -29,7 +29,7 @@ export interface ComisionDeCloser {
 
 /** Suma exactamente los deals que forman la columna `cierres` del comparativo. */
 export async function comisionesPorCloser(
-  { programId, rango }: { programId: string; rango: Rango },
+  { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
   db: Db = dbDeLaApp,
 ): Promise<ComisionDeCloser[]> {
   const filas = await db
@@ -43,7 +43,7 @@ export async function comisionesPorCloser(
     })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(filtroCierres({ programId, rango }, db), vigente(deals)));
+    .where(and(filtroCierres({ programId, rango, cohorteId }, db), vigente(deals)));
 
   const porCloser = new Map<string, ComisionDeCloser>();
   for (const fila of filas) {

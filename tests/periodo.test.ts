@@ -45,15 +45,17 @@ describe("periodo A contra B", () => {
   it("mes pasado completo, aunque febrero sea bisiesto", () => {
     expect(resolver("mes_pasado", "2024-03-01").a).toEqual({ desde: "2024-02-01", hasta: "2024-02-29" });
   });
-  it("sin anterior no inventa cohorte ni comparación", () => {
-    const contexto = { hoy: "2026-10-09", actual: { inicio: "2026-10-01", cierre: "2026-10-30" } };
-    expect(resolverPeriodo({ preset: "cohorte_actual", comparaciones: anterior }, contexto).b).toBeNull();
-    expect(resolverPeriodo({ preset: "cohorte_anterior" }, contexto).preset).toBe("hoy");
+  it("sin cohorte anterior no inventa comparación; sin inicio no inventa periodo", () => {
+    const contexto = { hoy: "2026-10-09", inicio: "2026-10-01" };
+    expect(resolverPeriodo({ preset: "desde_el_inicio", comparaciones: anterior }, contexto).b).toBeNull();
+    expect(resolverPeriodo({ preset: "desde_el_inicio" }, { hoy: "2026-10-09" }).preset).toBe("hoy");
   });
-  it("la cohorte usa ventana de venta, topa al cierre y compara hábiles", () => {
-    const contexto = { hoy: "2026-10-09", actual: { inicio: "2026-10-01", cierre: "2026-10-08" }, anterior: { inicio: "2026-08-03", cierre: "2026-08-28" } };
-    expect(resolverPeriodo({ preset: "cohorte_actual", comparaciones: anterior }, contexto)).toMatchObject({ a: { desde: "2026-10-01", hasta: "2026-10-08" }, b: { desde: "2026-08-03", hasta: "2026-08-10" } });
-    expect(resolverPeriodo({ preset: "cohorte_anterior" }, contexto).a).toEqual({ desde: "2026-08-03", hasta: "2026-08-28" });
+  it("Desde el inicio va del primer hecho a hoy y compara contra la cohorte anterior al mismo hábil", () => {
+    const contexto = { hoy: "2026-10-09", inicio: "2026-10-01", anterior: { inicio: "2026-08-03", cierre: "2026-08-28" } };
+    expect(resolverPeriodo({ preset: "desde_el_inicio", comparaciones: anterior }, contexto)).toMatchObject({ a: { desde: "2026-10-01", hasta: "2026-10-09" }, b: { desde: "2026-08-03", hasta: "2026-08-11" } });
+  });
+  it("Desde el inicio no se corta en el cierre de ventas: llega a hoy (G-1)", () => {
+    expect(resolverPeriodo({ preset: "desde_el_inicio" }, { hoy: "2026-12-15", inicio: "2026-10-01" }).a).toEqual({ desde: "2026-10-01", hasta: "2026-12-15" });
   });
   it("rangos explícitos mandan sobre el atajo; conserva B elegido", () => {
     const entrada = parsearPeriodoUrl({ periodo: "este_mes", a_desde: "2026-09-01", a_hasta: "2026-09-04", b_desde: "2025-01-01", b_hasta: "2025-02-01" });
@@ -62,7 +64,7 @@ describe("periodo A contra B", () => {
   it.each([{ periodo: "no" }, { periodo: ["hoy", "ayer"] }, { a_desde: "2026-02-30", a_hasta: "2026-03-01" }, { a_desde: "2026-10-01" }, { b_desde: "2026-10-01" }, { a_desde: "2026-10-02", a_hasta: "2026-10-01" }])("URL inválida resuelve y anuncia Hoy: %j", (url) => {
     expect(parsearPeriodoUrl(url)).toMatchObject({ preset: "hoy", aviso: expect.any(String) });
   });
-  it.each([["hoy", "hoy"], ["semana", "esta_semana"], ["mes", "este_mes"], ["cohorte", "cohorte_actual"]])("compatibilidad URL %s", (rango, preset) => {
+  it.each([["hoy", "hoy"], ["semana", "esta_semana"], ["mes", "este_mes"], ["cohorte", "desde_el_inicio"]])("compatibilidad URL %s", (rango, preset) => {
     expect(parsearPeriodoUrl({ rango }).preset).toBe(preset);
   });
   it("URL vieja custom: sin comparar no hay B; el anterior pedido cuenta el festivo como hábil", () => {
@@ -102,29 +104,36 @@ describe("periodo A contra B", () => {
   });
   it("por defecto no compara y el atajo por defecto lo decide quien llama", () => {
     expect(parsearPeriodoUrl({})).toMatchObject({ preset: "hoy", comparaciones: [] });
-    expect(parsearPeriodoUrl({}, { porDefecto: "cohorte_actual" })).toMatchObject({ preset: "cohorte_actual", comparaciones: [] });
-    expect(parsearPeriodoUrl({ seccion: "comercial" }, { porDefecto: "cohorte_actual" }).preset).toBe("cohorte_actual");
-    expect(parsearPeriodoUrl({ comparar: "cohorte" }, { porDefecto: "cohorte_actual" }).preset).toBe("cohorte_actual");
-    expect(parsearPeriodoUrl({ periodo: "hoy" }, { porDefecto: "cohorte_actual" }).preset).toBe("hoy");
-    expect(parsearPeriodoUrl({ rango: "mes" }, { porDefecto: "cohorte_actual" }).preset).toBe("este_mes");
+    expect(parsearPeriodoUrl({}, { porDefecto: "desde_el_inicio" })).toMatchObject({ preset: "desde_el_inicio", comparaciones: [] });
+    expect(parsearPeriodoUrl({ seccion: "comercial" }, { porDefecto: "desde_el_inicio" }).preset).toBe("desde_el_inicio");
+    expect(parsearPeriodoUrl({ comparar: "cohorte" }, { porDefecto: "desde_el_inicio" }).preset).toBe("desde_el_inicio");
+    expect(parsearPeriodoUrl({ periodo: "hoy" }, { porDefecto: "desde_el_inicio" }).preset).toBe("hoy");
+    expect(parsearPeriodoUrl({ rango: "mes" }, { porDefecto: "desde_el_inicio" }).preset).toBe("este_mes");
   });
-  it("la cohorte predeterminada sin ventana cae al mes, pero la explícita cae a Hoy", () => {
+  it("Desde el inicio predeterminado sin actividad cae al mes, pero el explícito cae a Hoy", () => {
     const contexto = { hoy: "2026-10-09" };
-    expect(resolverPeriodo(parsearPeriodoUrl({}, { porDefecto: "cohorte_actual" }), contexto)).toMatchObject({
+    expect(resolverPeriodo(parsearPeriodoUrl({}, { porDefecto: "desde_el_inicio" }), contexto)).toMatchObject({
       preset: "este_mes",
-      aviso: "Sin cohorte en curso: se muestra Este mes.",
+      aviso: "Aún no hay actividad desde la cual contar: se muestra Este mes.",
     });
-    expect(resolverPeriodo(parsearPeriodoUrl({ periodo: "cohorte_actual" }, { porDefecto: "cohorte_actual" }), contexto)).toMatchObject({
+    expect(resolverPeriodo(parsearPeriodoUrl({ periodo: "desde_el_inicio" }, { porDefecto: "desde_el_inicio" }), contexto)).toMatchObject({
       preset: "hoy",
-      aviso: "Sin ventana de venta disponible para esa cohorte: se muestra Hoy.",
+      aviso: "Aún no hay actividad desde la cual contar: se muestra Hoy.",
     });
   });
-  it("la cohorte predeterminada usa su ventana cuando existe", () => {
-    const periodo = resolverPeriodo(parsearPeriodoUrl({}, { porDefecto: "cohorte_actual" }), {
-      hoy: "2026-10-09",
-      actual: { inicio: "2026-10-01", cierre: "2026-10-30" },
-    });
-    expect(periodo).toMatchObject({ preset: "cohorte_actual", a: { desde: "2026-10-01", hasta: "2026-10-09" } });
+  it("el predeterminado usa el inicio cuando existe", () => {
+    const periodo = resolverPeriodo(parsearPeriodoUrl({}, { porDefecto: "desde_el_inicio" }), { hoy: "2026-10-09", inicio: "2026-10-01" });
+    expect(periodo).toMatchObject({ preset: "desde_el_inicio", a: { desde: "2026-10-01", hasta: "2026-10-09" } });
+  });
+  it.each([
+    [{ periodo: "cohorte_actual" }, "actual"],
+    [{ periodo: "cohorte_anterior" }, "anterior"],
+    [{ rango: "cohorte" }, "actual"],
+  ])("enlace viejo %j sigue sirviendo: Desde el inicio + la cohorte que pedía (377)", (url, cohorteVieja) => {
+    expect(parsearPeriodoUrl(url)).toMatchObject({ preset: "desde_el_inicio", cohorteVieja });
+  });
+  it("un rango explícito gana sobre un atajo viejo de cohorte", () => {
+    expect(parsearPeriodoUrl({ periodo: "cohorte_actual", a_desde: "2026-10-01", a_hasta: "2026-10-05" })).toMatchObject({ preset: "custom", cohorteVieja: undefined });
   });
   it("en código, sin comparaciones pedidas, rige la forma vieja: el periodo anterior", () => {
     expect(resolverPeriodo({ preset: "este_mes" }, { hoy: "2026-10-09" }).b).toEqual({ desde: "2026-09-01", hasta: "2026-09-09" });

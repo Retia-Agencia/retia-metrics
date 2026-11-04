@@ -18,6 +18,7 @@
 | Moneda a la vista | Ventas y caja en USD, pauta en COP; nada se convierte en silencio | `lib/format.ts` |
 | Una sola definición | Si dos pantallas muestran la misma cifra, la cifra vive en un módulo y las dos lo importan (ADR 0024) | revisión, y los tests comparativos de cada módulo |
 | Toda razón con su cobertura | Una tasa, un costo o un ROAS dice sobre qué base se midió y qué falta; con medio dato la pantalla dice "parcial" o "—" (ADR 0115 N3) | el tipo de la razón (ticket 351) |
+| Periodo y cohorte son dos filtros | El **Periodo** filtra cada hecho por SU ancla de fecha (envío, agenda, cita, venta, abono); la **Cohorte** filtra por la cohorte del deal (`deals.cohort_id`) en todos los hechos; los dos se cruzan con Y. "Todas" + "Desde el inicio" es la historia del programa, y un id de otro programa se ignora. Un cruce vacío se dice ("C3 no tuvo actividad en octubre"), no se pinta en ceros (ADR 0115 N5, ticket 377) | `filtroCaja`, `filtroLlamadas`, `filtroCierres`, `filtroLeads` y hermanos en `lib/queries/metricas-filtros.ts` (UN `cohorteId` en el `Alcance`); `cohorteDelHub` en `lib/queries/cohorte-del-hub.ts`; `tests/filtros-del-hub.test.ts` |
 | Un nombre por concepto | El rótulo de cada métrica sale de un solo vocabulario, el de `overview.md` §11 (ADR 0115 N4) | guardián de rótulos (ticket 357) |
 
 Las nueve reglas completas están en el ADR 0115.

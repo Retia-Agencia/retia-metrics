@@ -43,3 +43,26 @@ export async function ventasDeLaCohorte(
         .where(and(eq(deals.cohortId, cohorteId), porClaveDeDeal(claveCloser), incluyendoAnulados(vendidas)));
   return filas.map(({ dealId, dia }) => ({ dealId, dia: diaDeCalendario(dia) }));
 }
+
+/**
+ * Las ventas de UNA cohorte o, con `cohorteId = null` ("Todas"), de todo el programa hasta `hasta`, con
+ * su día (377). Es la misma definición de venta de arriba y el mismo corte sin límite inferior (DA-2); el
+ * programa es frontera: nunca mezcla el de otra cohorte con otro programa. Alimenta la línea de texto
+ * bajo el filtro Cohorte del Hub (primera y última venta reales) y el arranque de "Desde el inicio".
+ */
+export async function ventasDelFiltro(
+  db: Db,
+  programId: string,
+  cohorteId: string | null,
+  hasta: string,
+): Promise<VentaDeLaCohorte[]> {
+  const vendidas = ventasConDiaEn(db, { desde: DESDE_SIEMPRE, hasta }).as("ventas_del_filtro");
+  const filas = await db.select({ dealId: vendidas.dealId, dia: vendidas.dia }).from(vendidas)
+    .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
+    .where(and(
+      eq(deals.programId, programId),
+      cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
+      incluyendoAnulados(vendidas),
+    ));
+  return filas.map(({ dealId, dia }) => ({ dealId, dia: diaDeCalendario(dia) }));
+}

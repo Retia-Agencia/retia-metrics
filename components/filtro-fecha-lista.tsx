@@ -83,7 +83,6 @@ export function FiltroFechaLista({ campos, filtro }: FiltroFechaListaProps) {
         <SelectorPeriodo
           periodo={filtro.periodo}
           soloA
-          cohorteDisponible={false}
           anteriorDisponible={false}
           variante="chip"
         />

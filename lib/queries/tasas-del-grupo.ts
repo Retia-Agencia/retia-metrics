@@ -224,7 +224,7 @@ export function tasasDelAlcance(grupo: GrupoDeCitas, claveCloser: string | null 
  */
 export async function leerCitasDelGrupo(
   db: Db,
-  { programId, rango }: { programId: string; rango: Rango },
+  { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
 ): Promise<CitaParaTasas[]> {
   const filas = await db
     .select({
@@ -242,6 +242,7 @@ export async function leerCitasDelGrupo(
       eq(deals.id, calls.dealId),
       eq(deals.programId, calls.programId),
       eq(deals.cortesia, false),
+      cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
       vigente(deals),
     ))
     .leftJoin(
@@ -279,10 +280,10 @@ export async function leerCitasDelGrupo(
 /** Lectura y cuenta juntas, para quien solo quiere el grupo del rango. */
 export async function grupoDeCitas(
   db: Db,
-  { programId, rango, ahora }: { programId: string; rango: Rango; ahora: Date },
+  { programId, rango, ahora, cohorteId }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null },
 ): Promise<GrupoDeCitas> {
   const [citas, diasParaMadurar] = await Promise.all([
-    leerCitasDelGrupo(db, { programId, rango }),
+    leerCitasDelGrupo(db, { programId, rango, cohorteId }),
     diasParaMadurarDe(db, programId),
   ]);
   return calcularTasasDelGrupo({ citas, rango, hoy: diaDeCalendario(ahora), ahora, diasParaMadurar });
@@ -296,10 +297,10 @@ export async function grupoDeCitas(
  */
 export async function gruposPorSemana(
   db: Db,
-  { programId, rango, ahora }: { programId: string; rango: Rango; ahora: Date },
+  { programId, rango, ahora, cohorteId }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null },
 ): Promise<{ semana: Rango; grupo: GrupoDeCitas }[]> {
   const [citas, diasParaMadurar] = await Promise.all([
-    leerCitasDelGrupo(db, { programId, rango }),
+    leerCitasDelGrupo(db, { programId, rango, cohorteId }),
     diasParaMadurarDe(db, programId),
   ]);
   const hoy = diaDeCalendario(ahora);

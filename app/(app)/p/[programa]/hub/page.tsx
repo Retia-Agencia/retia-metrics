@@ -20,6 +20,8 @@ import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { fecha, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
+import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
 import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { origenDelPrograma } from "@/lib/queries/origen";
@@ -157,12 +159,30 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard({
         programId: programa.id,
         hoy,
-        periodo: parsearPeriodoUrl(busqueda, { porDefecto: "cohorte_actual" }),
+        periodo: parsearPeriodoUrl(busqueda, { porDefecto: "desde_el_inicio" }),
+        // El filtro de cohorte es del Hub y va a la consulta (377); Hoy no lo usa (viene de `armarVistaDeHoy`).
+        filtroDeCohorte: { parametro: cohorteDeLaUrl(busqueda.cohorte) },
         preset: texto(busqueda.rango) ?? "hoy",
         desde: texto(busqueda.desde),
         hasta: texto(busqueda.hasta),
         claveCloser: veEquipo ? esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null : null,
       });
+
+  // La cohorte que filtra las cifras de esta pestaña; Hoy es del día entero y no la usa (373).
+  const cohorteId = esHoy ? null : vista.filtroDeCohorte.cohorteId;
+  const cohorteIdDeB = esHoy ? null : vista.filtroDeCohorte.cohorteIdDeB;
+  const { elegida, opciones, ventas } = vista.filtroDeCohorte;
+  const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero";
+  const lineaDeCohorte = conFiltroDeCohorte
+    ? lineaDeLaCohorte({
+        cohorte: elegida ? { codigo: elegida.codigo, metaCupos: elegida.metaCupos, inicioVentas: elegida.inicioVentas, cierreVentas: elegida.cierreVentas } : null,
+        ventas,
+      })
+    : undefined;
+  // Cohorte y periodo que no se tocan se dicen; no se pinta una pantalla de ceros (N5).
+  const sinActividad = conFiltroDeCohorte && elegida !== null
+    && vista.embudo.agendas === 0 && vista.embudo.cierres === 0 && vista.caja.length === 0
+    && (vista.leads.leads ?? 0) === 0 && vista.cortesias === 0;
 
   // Cada cifra abre su lista y su "Volver" regresa a ESTA pestaña con ESTE filtro: el
   // origen (path + query, con `seccion`) viaja como parámetro `desde` en el href de cada lista
@@ -183,6 +203,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         hoy,
         periodo: vista.periodo,
         claveCloser: vista.claveCloser,
+        cohorteId,
         origen,
       }))
     : undefined;
@@ -193,6 +214,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         hoy,
         periodo: vista.periodo,
         claveCloser: vista.claveCloser,
+        cohorteId,
         origen,
       }))
     : undefined;
@@ -203,6 +225,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         hoy,
         periodo: vista.periodo,
         claveCloser: vista.claveCloser,
+        cohorteId,
         origen,
       }))
     : undefined;
@@ -213,6 +236,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         hoy,
         periodo: vista.periodo,
         claveCloser: vista.claveCloser,
+        cohorteId,
         origen,
       }))
     : undefined;
@@ -238,9 +262,11 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       // un programa nuevo creado desde Ajustes describe su propia cohorte sin tocar
       // codigo (ADR 0012).
       descripcion={
-        vista.cohorte
-          ? `Cohorte ${vista.cohorte.codigo} · ${rangoLegible}`
-          : `Sin cohorte activa · ${rangoLegible}`
+        conFiltroDeCohorte
+          ? `${elegida ? `Cohorte ${elegida.codigo}` : "Todas las cohortes"} · ${rangoLegible}`
+          : vista.cohorte
+            ? `Cohorte ${vista.cohorte.codigo} · ${rangoLegible}`
+            : `Sin cohorte activa · ${rangoLegible}`
       }
       fija
     >
@@ -255,7 +281,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 claveCloser={vista.claveCloser}
                 closers={veEquipo ? vista.closers : []}
                 filtraCloser={veEquipo}
-                cohorteDisponible={vista.cohorte?.ventana != null}
+                cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
+                lineaDeCohorte={lineaDeCohorte}
               />
             </div>
           )}
@@ -277,6 +304,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 ? urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen, escalera: { escalon, pago } })
                 : urlDeLista({ slug: programa.slug, metrica, periodo: { ...vista.periodo, b: null }, origen, filtrosDeOrigen }) : undefined}
             />
+          ) : sinActividad ? (
+            <p role="status" className="rounded-lg border border-border p-6 text-sm text-muted-foreground">
+              {fraseSinActividad(elegida?.codigo ?? null, vista.periodo)}
+            </p>
           ) : seccion === "comercial" ? (
             <div className="space-y-4">
             <DashboardPrograma
@@ -284,7 +315,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               vista={vista}
               detalles={detalles}
               detallesOperacion={proyectar(await detallesDeOperacion(
-                { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },
+                { programId: programa.id, slug, hoy, periodo: vista.periodo, cohorteId, origen },
                 vista.comparativo.map((fila) => fila.clave),
               ))}
               slug={slug}
@@ -298,6 +329,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                     hoy,
                     periodo: vista.periodo,
                     claveCloser: vista.claveCloser,
+                    cohorteId,
+                    cohorteIdDeB,
                     origen,
                   }))}
                 />
@@ -311,6 +344,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 hoy,
                 periodo: vista.periodo,
                 claveCloser: vista.claveCloser,
+                cohorteId,
+                cohorteIdDeB,
                 origen,
                 conEquipo: veEquipo,
               })}
@@ -330,6 +365,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 programId: programa.id,
                 rango: vista.periodo.a,
                 claveCloser: vista.claveCloser,
+                cohorteId,
                 hoy,
               })}
             />
@@ -352,7 +388,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               detalleCitasDebidas={detalleCitasDebidas}
               detalles={detalles}
               detallesOperacion={veEquipo ? await detallesDeOperacion(
-                { programId: programa.id, slug, hoy, periodo: vista.periodo, origen },
+                { programId: programa.id, slug, hoy, periodo: vista.periodo, cohorteId, origen },
                 vista.comparativo.map((fila) => fila.clave),
               ) : undefined}
               alertas={await alertasDelPrograma(programa.id, hoy)}

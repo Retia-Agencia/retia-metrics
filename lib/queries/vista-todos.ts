@@ -165,7 +165,7 @@ export async function armarVistaDeTodos(
   { programas, hoy, periodo: entrada, origen, ahora = new Date() }: EntradaDeVistaDeTodos,
   db: Db = dbDeLaApp,
 ): Promise<VistaDeTodos> {
-  const periodo = resolverPeriodo(entrada, { hoy, actual: null });
+  const periodo = resolverPeriodo(entrada, { hoy });
   const ids = programas.map((p) => p.id);
   const [resumenesA, resumenesB, fotos, filas] = await Promise.all([
     resumenesDelPeriodo(ids, periodo.a, hoy, ahora, db),

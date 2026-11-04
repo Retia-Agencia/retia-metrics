@@ -4,8 +4,8 @@ import type { Db } from "@/lib/db/tipos";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { eq } from "drizzle-orm";
 import { type SeleccionDeRango } from "@/lib/rangos";
-import { parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
-import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
+import { comparacionesDe, parsearPeriodoUrl, resolverPeriodo, type EntradaDePeriodo, type PeriodoResuelto } from "@/lib/periodo";
+import { cohorteDelHub, contextoDelFiltro, type OpcionDeCohorte } from "@/lib/queries/cohorte-del-hub";
 import {
   cajaRecaudada,
   carteraDelPrograma,
@@ -41,9 +41,12 @@ import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embud
  *  - **El closer elegido acota todo menos el comparativo.** El comparativo entre
  *    closers es un comparativo completo (ADR 0023), asi que nunca se
  *    filtra; su tipo ni siquiera lo admite.
- *  - **La cohorte se pregunta ANTES de resolver el rango**, porque el preset
- *    "cohorte" sale de la ventana de venta de la cohorte activa (ADR 0022) y esa
- *    ventana se mide contra hoy, no contra el rango elegido.
+ *  - **La cohorte se pregunta ANTES de resolver el rango**, porque "Desde el inicio"
+ *    arranca en lo primero que pasó en la cohorte elegida (377) y la comparación por
+ *    cohorte sale de la ventana de venta de la anterior a ella (ADR 0022).
+ *  - **El filtro de cohorte es de la consulta** (377, G-1): con `filtroDeCohorte` los
+ *    hechos se acotan por `deals.cohort_id` en SQL; sin él (Hoy, Mi espacio) la cohorte
+ *    solo decide las fechas y no filtra nada.
  *
  * No recibe rol ni sesion a proposito: no hay forma de que un gerente y un closer
  * vean numeros distintos.
@@ -60,13 +63,35 @@ export interface EntradaDeVista {
   hasta?: string;
   /** La clave de identidad del closer (ticket 167): un `users.id` uuid, o `null`. */
   claveCloser?: string | null;
+  /**
+   * Presente = el Hub filtra por cohorte (377): `parametro` es el `?cohorte=` de la URL (`todas`, un id
+   * o nada = la activa). Ausente = sin filtro de cohorte.
+   */
+  filtroDeCohorte?: { parametro?: string };
   ahora?: Date;
+}
+
+/** El filtro de cohorte tal como quedó resuelto: lo que la barra y la línea de texto necesitan. */
+export interface FiltroDeCohorteResuelto {
+  /** Lo que filtró las consultas: la cohorte elegida, o `null` con "Todas" o sin filtro. */
+  cohorteId: string | null;
+  /** La elegida (aunque no se aplique como filtro): sus fechas rigen "Desde el inicio". */
+  elegida: { id: string; codigo: string; metaCupos: number; inicioVentas: string | null; cierreVentas: string | null } | null;
+  opciones: OpcionDeCohorte[];
+  /**
+   * La cohorte con que se consulta B: la anterior cuando se compara contra "Cohorte anterior" (C3 contra C2
+   * al mismo día hábil de su venta), la misma del filtro en cualquier otra comparación.
+   */
+  cohorteIdDeB: string | null;
+  /** Las ventas reales de la elegida (o del programa con "Todas"), con su día. */
+  ventas: { dealId: string; dia: string }[];
 }
 
 export interface VistaDelDashboard {
   seleccion: SeleccionDeRango;
   periodo: PeriodoResuelto;
   anteriorDisponible: boolean;
+  filtroDeCohorte: FiltroDeCohorteResuelto;
   /** El closer al que se acoto la vista (su `users.id`), o null si se mira todo. */
   claveCloser: string | null;
   /** Los closers CON CUENTA que puede elegir el selector (valor = `users.id`). */
@@ -114,21 +139,36 @@ export async function armarVistaDelDashboard(
   const claveCloser = entrada.claveCloser ?? null;
 
   const cohorte = await vistaDeCohorteActiva({ programId, claveCloser }, hoy, db);
-  const ventanas = cohorte
-    ? await ventanasAnterioresDeCohorte(db, programId, cohorte.cohorteId)
-    : { anterior: null, anteAnterior: null };
-  const periodo = resolverPeriodo(entrada.periodo ?? parsearPeriodoUrl({ rango: preset, desde, hasta }), {
-    hoy, actual: cohorte?.ventana, ...ventanas,
-  });
+  const pedido = entrada.periodo ?? parsearPeriodoUrl({ rango: preset, desde, hasta });
+  const delHub = await cohorteDelHub(db, programId, { parametro: entrada.filtroDeCohorte?.parametro, cohorteVieja: pedido.cohorteVieja });
+  const contexto = await contextoDelFiltro(db, programId, delHub.cohorte, hoy);
+  const periodo = resolverPeriodo(pedido, { hoy, inicio: contexto.inicio, anterior: contexto.anterior });
+  const cohorteId = entrada.filtroDeCohorte ? delHub.cohorte?.id ?? null : null;
+  const cohorteIdDeB = comparacionesDe(periodo)[0]?.conCohorteAnterior ? contexto.anterior?.id ?? null : cohorteId;
+  const filtroDeCohorte: FiltroDeCohorteResuelto = {
+    cohorteId,
+    cohorteIdDeB,
+    elegida: delHub.cohorte
+      ? {
+          id: delHub.cohorte.id,
+          codigo: delHub.cohorte.codigo,
+          metaCupos: delHub.cohorte.metaCupos,
+          inicioVentas: delHub.cohorte.fechaInicioVentas,
+          cierreVentas: delHub.cohorte.fechaCierreVentas,
+        }
+      : null,
+    opciones: delHub.opciones,
+    ventas: contexto.ventas,
+  };
   // La proyección antigua se conserva para consumidores del dashboard.
-  const equivalentes = { hoy: "hoy", esta_semana: "semana", este_mes: "mes", cohorte_actual: "cohorte" } as const;
+  const equivalentes = { hoy: "hoy", esta_semana: "semana", este_mes: "mes" } as const;
   const seleccion: SeleccionDeRango = {
     preset: equivalentes[periodo.preset as keyof typeof equivalentes] ?? "custom",
     rango: periodo.a,
   };
   const rango = periodo.a;
 
-  const alcance = { programId, rango, claveCloser };
+  const alcance = { programId, rango, claveCloser, cohorteId };
   const ahora = entrada.ahora ?? new Date();
 
   const [
@@ -157,22 +197,22 @@ export async function armarVistaDelDashboard(
     contratadoDelRango(alcance, db),
     ventasDelRangoConValor(alcance, db),
     ventasPorCohorte(alcance, db),
-    carteraDelPrograma(programId, hoy, db),
+    carteraDelPrograma(programId, hoy, db, cohorteId),
     sinResultadoDelRango(alcance, ahora, db),
-    banderasDelPulso({ programId, claveCloser }, db),
+    banderasDelPulso({ programId, claveCloser, cohorteId }, db),
     contarCortesias(alcance, db),
     leadsDelRango(alcance, db),
     leerMetasDelMes(programId, hoy.slice(0, 7), hoy, db),
-    embudoPorEtapas(db, { programId, rango }, ahora),
-    embudoPorCloser({ programId, rango }, db, ahora),
-    comisionesPorCloser({ programId, rango }, db),
+    embudoPorEtapas(db, { programId, rango, cohorteId }, ahora),
+    embudoPorCloser({ programId, rango, cohorteId }, db, ahora),
+    comisionesPorCloser({ programId, rango, cohorteId }, db),
     closersConCuenta({ programId, rango }, db),
     db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
     periodo.b
       ? Promise.all([
-          embudoDelRango({ programId, rango: periodo.b, claveCloser }, db, ahora),
-          cajaRecaudada({ programId, rango: periodo.b, claveCloser }, db),
-          contratadoDelRango({ programId, rango: periodo.b, claveCloser }, db),
+          embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db, ahora),
+          cajaRecaudada({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
+          contratadoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
         ]).then(([embudoAnterior, cajaAnterior, contratadoAnterior]) => ({
           embudo: embudoAnterior,
           caja: cajaAnterior,
@@ -202,7 +242,8 @@ export async function armarVistaDelDashboard(
   return {
     seleccion,
     periodo,
-    anteriorDisponible: ventanas.anterior !== null,
+    anteriorDisponible: contexto.anterior !== null,
+    filtroDeCohorte,
     claveCloser,
     closers,
     embudo,

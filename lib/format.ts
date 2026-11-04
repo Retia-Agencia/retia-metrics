@@ -195,6 +195,19 @@ export function horaEnBogota(instante: Date | string): string | null {
   }).format(fecha);
 }
 
+/**
+ * "3-oct": un día de calendario en corto. Lleva el año solo cuando no es el de hoy (Bogotá), para que
+ * "primera venta: 12-may-2025" no se confunda con mayo de este año.
+ */
+export function fechaCorta(iso: string): string {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!partes) return iso;
+  const [, anio, mes, dia] = partes;
+  const nombre = MESES[Number(mes) - 1];
+  if (!nombre) return iso;
+  return `${Number(dia)}-${nombre}${anio === hoyEnBogota().slice(0, 4) ? "" : `-${anio}`}`;
+}
+
 export function fecha(iso: string): string {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!partes) return iso;
