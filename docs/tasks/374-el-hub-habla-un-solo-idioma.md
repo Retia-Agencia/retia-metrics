@@ -3,7 +3,7 @@ id: 374
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-3, G-11: 'sé más específico') · ADR 0115 N4, N5 · reemplaza al 357 y absorbe la parte del Hub del 358 y del 359"
 depends: []
-status: todo
+status: done
 ---
 
 # 374 — El Hub habla un solo idioma: un vocabulario, un formato y la regla del vacío
@@ -44,8 +44,8 @@ A"). Eran tres tickets (357, 358, 359) que tocaban los mismos archivos del Hub: 
 
 ## Done cuando
 
-- [ ] El guardián, mordido en los dos sentidos.
-- [ ] Recorrido de las cinco pestañas del Hub y "todos": ningún "Monto", "Contratado", "periodo A/B" ni `utm_` visible.
-- [ ] El 357 queda `reemplazado` por este ticket; el 358 y el 359 enmendados a su resto, en su archivo y en el tracker.
-- [ ] Regla N8: `overview.md` §11 reconciliado con el vocabulario y `docs/structure.md` §9 con la regla del vacío, en el
+- [x] El guardián, mordido en los dos sentidos.
+- [x] Recorrido de las cinco pestañas del Hub y "todos": ningún "Monto", "Contratado", "periodo A/B" ni `utm_` visible.
+- [x] El 357 queda `reemplazado` por este ticket; el 358 y el 359 enmendados a su resto, en su archivo y en el tracker.
+- [x] Regla N8: `overview.md` §11 reconciliado con el vocabulario y `docs/structure.md` §9 con la regla del vacío, en el
   mismo commit.

@@ -15,7 +15,7 @@ import type { CategoriaOrigen, FilaPauta, FiltrosPauta, VistaPautaInterina } fro
 
 const ETIQUETA: Record<Exclude<CategoriaOrigen, "con_utm">, string> = {
   sin_utm: "Sin UTM",
-  macro: "Macro sin expandir",
+  macro: "Plantilla sin completar",
   sin_envio_origen: "Sin envío de origen",
 };
 
@@ -89,8 +89,8 @@ function agrupar(filas: FilaPauta[], filtros: FiltrosPauta, hrefCon: (f: Filtros
       clave = JSON.stringify([f.content, f.term]);
       etiqueta = (
         <span className="space-y-0.5">
-          <span className="block">utm_content: {valor(f.content)}</span>
-          <span className="block text-muted-foreground">utm_term: {valor(f.term)}</span>
+          <span className="block">Contenido: {valor(f.content)}</span>
+          <span className="block text-muted-foreground">Término: {valor(f.term)}</span>
         </span>
       );
     }
@@ -208,6 +208,7 @@ export function PautaInterina({
   enlaceLista?: EnlaceDeLista;
 }) {
   const { resumen, sinUtmHoy } = vista;
+  const sinCompletar = resumen.macro > 0 ? [" · ", num(resumen.macro), " con plantilla sin completar"].join("") : "";
   const grupos = agrupar(vista.filas, filtros, hrefCon);
   const filtrando = filtros.source !== undefined || filtros.medium !== undefined || filtros.campaign !== undefined;
   const de = (metrica: "registros" | "agendas_creadas" | "escalera", f: FiltrosDeLista | null) =>
@@ -266,7 +267,7 @@ export function PautaInterina({
             nota={
               resumen.registros === 0
                 ? "—"
-                : `${pct(resumen.sinUtm / resumen.registros)} de los registros${resumen.macro > 0 ? ` · ${num(resumen.macro)} con macro sin expandir` : ""}`
+                : `${pct(resumen.sinUtm / resumen.registros)} de los registros${sinCompletar}`
             }
           />
         </div>

@@ -739,8 +739,9 @@ cada etapa están en la tabla de §3.
 3. Estados en `<Badge variant>`, nunca un color suelto.
 4. Números con `cifra` y el formato de `lib/format.ts`.
 5. Estado vacío escrito (qué falta y cómo llenarlo), nunca una tarjeta en blanco.
-6. Revisarla en claro **y** en oscuro, y abrir todo lo que se abre: cargar una pantalla no es probarla.
-7. **Crear es un botón que abre un diálogo** (Mani, 15-oct, A-154): la pantalla muestra lo que ya existe y el
+6. La regla del vacío (ADR 0115 N5, ticket 374), en `components/dato-o-vacio.tsx`: "—" es que no se puede calcular (su motivo va en el tooltip), "0" es cero y "Sin datos" es que aún no hay periodo medido. Ninguna pantalla del Hub decide eso a mano; el rótulo de cada cifra sale de `lib/vocabulario-metricas.ts` y el guardián `tests/hub-vocabulario-guardian.test.ts` falla con jerga visible.
+7. Revisarla en claro **y** en oscuro, y abrir todo lo que se abre: cargar una pantalla no es probarla.
+8. **Crear es un botón que abre un diálogo** (Mani, 15-oct, A-154): la pantalla muestra lo que ya existe y el
    formulario de alta vive en un `<Dialog>`, nunca abierto debajo de la lista. Editar puede usar el mismo diálogo. Un
    campo de configuración se lee como frase con huecos ("Avísame si llevo menos del [80] % ...") antes que como
    etiquetas sueltas, y un valor de ejemplo nunca se confunde con uno guardado.

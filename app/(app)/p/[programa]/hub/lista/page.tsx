@@ -18,6 +18,7 @@ import { ETAPAS_EN_ORDEN } from "@/lib/deals/etapas";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
+import { rotuloDeImporte } from "@/lib/vocabulario-metricas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -281,7 +282,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
             <Badge variant="secondary">Origen: {sourceNormalizado ?? "—"} / {mediumNormalizado ?? "—"}</Badge>
           ) : null}
           {campaignNormalizado !== undefined ? <Badge variant="secondary">Campaña: {campaignNormalizado ?? "—"}</Badge> : null}
-          {categoria ? <Badge variant="secondary">{categoria === "sin_utm" ? "Sin UTM" : categoria === "macro" ? "Macro sin expandir" : categoria === "con_utm" ? "Con UTM" : "Pieza desconocida"}</Badge> : null}
+          {categoria ? <Badge variant="secondary">{categoria === "sin_utm" ? "Sin UTM" : categoria === "macro" ? "Plantilla sin completar" : categoria === "con_utm" ? "Con UTM" : "Pieza desconocida"}</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} {metrica === "no_agendaron" ? "personas" : "registros"}</p>
@@ -295,7 +296,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <CardContent className="overflow-x-auto pt-4">
             {lista.filas.length === 0 ? <p>No hay filas en esta página para los filtros elegidos.</p> : (
               <table className="w-full text-sm">
-                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : <th>Monto</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
+                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : <th>{rotuloDeImporte(metrica)}</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
                 <tbody className="divide-y">
                   {lista.filas.map((fila) => (
                     <tr key={fila.id}>

@@ -8,7 +8,7 @@ import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fechaHoraEnBogota, haceCuanto, num } from "@/lib/format";
+import { fechaHoraEnBogota, haceCuanto, hoyEnBogota, num } from "@/lib/format";
 import {
   EntregasWebhook,
   SelectorYRefresco,
@@ -21,6 +21,8 @@ import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { programs } from "@/lib/db/schema";
 import { Suspense } from "react";
+import { origenDelPrograma } from "@/lib/queries/origen";
+import { TablaDePlantillas } from "@/components/dashboard/tabla-de-plantillas";
 
 export const dynamic = "force-dynamic";
 
@@ -240,6 +242,11 @@ export default async function SaludPage({
             <TarjetaCalendly programId={programa.id} faltaRoundRobinCompartida={faltaRoundRobinCompartida} />
           </Suspense>
 
+          {/* Las plantillas de URL de los anuncios activos: salieron del Hub (374), son de quien configura la pauta. */}
+          <Suspense fallback={null}>
+            <TarjetaPlantillas programId={programa.id} />
+          </Suspense>
+
           {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
           <EntregasWebhook
             entregas={entregasVista}
@@ -402,4 +409,18 @@ function ConciliacionLista({
       )}
     </div>
   );
+}
+
+const DESCRIPCIONES_DE_PLANTILLA = {
+  vieja: "facebook / cpc con ad_id: la de Retia antes del 29-sep. Se rastrea hasta el anuncio, pero content y term significan conjunto y anuncio.",
+  pauta: "paid_social con utm_id={{ad.id}}: la plantilla oficial (ADR 0099).",
+  otra: "Trae algún id pero no es ninguna de las dos; revisar.",
+  sinId: "El anuncio no tiene parámetros de URL o no trae ad_id ni utm_id: sus registros no se pueden atribuir al anuncio.",
+} as const;
+
+async function TarjetaPlantillas({ programId }: { programId: string }) {
+  const hoy = hoyEnBogota();
+  // Las plantillas son de los anuncios activos: el rango no las toca.
+  const vista = await origenDelPrograma(db, { programId, rango: { desde: hoy, hasta: hoy }, hoy });
+  return <TablaDePlantillas plantillas={vista.plantillas} descripciones={DESCRIPCIONES_DE_PLANTILLA} />;
 }

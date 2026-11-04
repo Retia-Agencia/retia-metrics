@@ -51,7 +51,7 @@ function TablaPorPrograma({ titulo, cabeceras, vista, seccion, celdas }: {
   );
 }
 
-function ContratadoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
+function VendidoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
   const monedas = [...new Set([...vista.a.caja, ...(vista.b?.caja ?? [])].map((c) => c.moneda))].sort();
   if (monedas.length === 0) monedas.push("USD");
   return <>
@@ -166,7 +166,7 @@ function Cartera({ vista }: { vista: VistaDeTodos }) {
       <Button variant="link" className="cifra h-auto p-0 text-2xl" nativeButton={false}
         render={<Link href={vista.detalles.cartera.href} />}>{usd(vista.cartera.saldo.valor)}</Button>
       <p className="text-sm"><span className="cifra">{num(vista.cartera.deals.valor)}</span> deals · <span className="cifra">{num(vista.cartera.vencidos.valor)}</span> vencidos</p>
-      <p className="text-sm text-muted-foreground">No depende del periodo A ni se compara con B.</p>
+      <p className="text-sm text-muted-foreground">No depende del periodo elegido ni se compara con otro.</p>
       <p className="text-sm text-muted-foreground"><span className="cifra">{num(vista.cartera.sinSaldoCalculable.valor)}</span> sin saldo calculable · <span className="cifra">{num(vista.cartera.sinFechaDeReferencia.valor)}</span> sin fecha de referencia.</p>
     </CardContent>
   </Card>;
@@ -197,13 +197,13 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
   if (seccion === "hoy") return <section id="hoy" className="space-y-4">
     <h2 className="text-xl font-semibold">Hoy</h2>
     <HoyPorPrograma vista={vista} hoy={hoy} />
-    <div className={GRILLA}><ContratadoYCaja vista={vista} origen={origen} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
+    <div className={GRILLA}><VendidoYCaja vista={vista} origen={origen} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
     <MetasPorPrograma vista={vista} />
   </section>;
 
   if (seccion === "dinero") return <section id="dinero" className="space-y-4">
     <h2 className="text-xl font-semibold">Dinero</h2>
-    <div className={GRILLA}><ContratadoYCaja vista={vista} origen={origen} /></div>
+    <div className={GRILLA}><VendidoYCaja vista={vista} origen={origen} /></div>
     <Cartera vista={vista} />
     <TablaPorPrograma titulo="Comisión y descuento por programa" vista={vista} seccion="dinero"
       cabeceras={["Comisión USD", "Sin comisión calculable", "Descuento promedio", "Descuento USD", "Ventas con descuento calculable"]}

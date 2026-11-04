@@ -59,7 +59,7 @@ function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sa
 function Cabecera() {
   return <thead><tr className="border-b text-left text-xs text-muted-foreground">
     <th className="w-[19%] py-2 font-medium">Campaña › conjunto › anuncio</th>
-    {["Registros", "Agendas", "Shows", "No shows", "% no show", "Ventas", "Contratado USD", "Gasto USD", "ROAS"].map((titulo) =>
+    {["Registros", "Agendas", "Shows", "No shows", "% no show", "Ventas", "Vendido USD", "Gasto USD", "ROAS"].map((titulo) =>
       <th key={titulo} className={`break-words py-2 pl-1 text-right font-medium${titulo === "Ventas" ? " w-[17%] pl-3" : ""}`}>{titulo}{titulo === "% no show" ? <span className="block text-xs font-normal">de llamadas con resultado</span> : null}</th>)}
   </tr></thead>;
 }
@@ -76,7 +76,7 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
       : `Los registros tienen entre ${num(vista.total.desdeDias)} y ${num(vista.total.hastaDias)} días; aquí una venta tarda en mediana ${num(vista.ventanaCierreDias)} días desde el registro (sobre ${num(vista.ventasParaMadurez)} ventas).`;
   return <ComoSeCalcula>
     <section className="space-y-1"><h3 className="font-medium">De dónde sale</h3><p className="text-muted-foreground">
-      Registros pagos del periodo; sus agendas, shows y ventas cuentan aunque ocurran después. Contratado es el valor
+      Registros pagos del periodo; sus agendas, shows y ventas cuentan aunque ocurran después. Vendido es el valor
       vendido que escribe el closer. El gasto es lo que reporta Meta por anuncio, en COP convertido a USD con la TRM de cada día.
     </p></section>
     <section className="space-y-1"><h3 className="font-medium">Fórmula</h3><p className="text-muted-foreground">ROAS = contratado ÷ gasto.</p></section>
@@ -93,9 +93,9 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
         ? "No hay gasto de Meta cargado."
         : `Hay gasto de Meta desde el ${fecha(vista.coberturaGasto.primerDia)} hasta el ${fecha(vista.coberturaGasto.ultimoDia)}.`}</p>
     </section> : null}
-    <section className="space-y-1"><h3 className="font-medium">Cobertura de UTM</h3><ul className="space-y-1 text-muted-foreground">
+    <section className="space-y-1"><h3 className="font-medium">Cobertura del origen</h3><ul className="space-y-1 text-muted-foreground">
       <li>Con anuncio: <span className="cifra">{num(cobertura.anuncio)}</span>. Se miden hasta el anuncio.</li>
-      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre. Para llegar al anuncio, el link tiene que llevar <code>utm_id={"{{ad.id}}"}</code> y la landing pasarlo al formulario.</li>
+      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre. Para llegar al anuncio, el link tiene que llevar el id del anuncio y la landing pasarlo al formulario.</li>
       <li>Sin campaña de Meta: <span className="cifra">{num(cobertura.sinCampana)}</span>. No traen id ni un nombre de campaña que exista en Meta: no se pueden atribuir y van en su propia fila.</li>
     </ul></section>
     {vista.total.sinValorVendido > 0 ? <section className="space-y-1"><h3 className="font-medium">Ventas sin valor vendido</h3><p className="text-muted-foreground">

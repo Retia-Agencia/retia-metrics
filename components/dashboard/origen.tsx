@@ -3,7 +3,6 @@ import { NOMBRE_DE_AREA } from "@/lib/atribucion/canal";
 import { num, pct } from "@/lib/format";
 import type { FilaOrigenCanal, FilaOrigenUtm, VistaOrigen } from "@/lib/queries/origen";
 import { TablaDeOrigen } from "@/components/dashboard/tabla-de-origen";
-import { TablaDePlantillas } from "@/components/dashboard/tabla-de-plantillas";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import { urlDeLista } from "@/lib/queries/vista-metrica";
 
@@ -44,13 +43,6 @@ const PRECISION_PAID = [
   { nivel: "N1", titulo: "Solo que es pauta", detalle: "Llegó por pauta, pero sin datos para ubicar la campaña." },
 ] as const;
 
-const DESCRIPCIONES_DE_PLANTILLA = {
-  vieja: "facebook / cpc con ad_id: la de Retia antes del 29-sep. Se rastrea hasta el anuncio, pero content y term significan conjunto y anuncio.",
-  pauta: "paid_social con utm_id={{ad.id}}: la plantilla oficial (ADR 0099).",
-  otra: "Trae algún id pero no es ninguna de las dos; revisar.",
-  sinId: "El anuncio no tiene parámetros de URL o no trae ad_id ni utm_id: sus registros no se pueden atribuir al anuncio.",
-} as const;
-
 export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
   const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
   const enlaces = (filtros: FiltrosOrigen) => ({
@@ -84,7 +76,7 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
     </CardContent></Card>
 
     <Card><CardHeader className="space-y-1">
-      <CardTitle className="text-base">¿Hasta dónde sabemos de qué anuncio vino cada registro pagado?</CardTitle>
+      <CardTitle className="text-base">Calidad del rastreo: ¿de qué anuncio vino cada registro pagado?</CardTitle>
       <p className="text-xs text-muted-foreground">Entre más registros identificados hasta el anuncio, más exacto es el costo por anuncio.</p>
     </CardHeader><CardContent className="grid gap-4 sm:grid-cols-3">
       {PRECISION_PAID.map(({ nivel, titulo, detalle }) => <div key={nivel} className="space-y-1">
@@ -94,6 +86,5 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
       </div>)}
     </CardContent></Card>
 
-    <TablaDePlantillas plantillas={vista.plantillas} descripciones={DESCRIPCIONES_DE_PLANTILLA} />
   </section>;
 }

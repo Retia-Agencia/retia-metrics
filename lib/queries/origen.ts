@@ -227,13 +227,13 @@ export async function origenDelPrograma(
     porCanal.set(clave, actual);
   };
   for (const fila of filas) {
-    if (fila.macros) sumarCanal("macro", "sin_utm", "Macros sin expandir", null, "macro", fila);
+    if (fila.macros) sumarCanal("macro", "sin_utm", "Plantilla sin completar", null, "macro", fila);
     else if (fila.area === "sin_utm") sumarCanal("sin_utm", "sin_utm", "Sin UTM", null, "sin_utm", fila);
     else sumarCanal(`${fila.area}:${fila.canalClave}`, fila.area, fila.canal, fila.canalClave, null, fila);
   }
   for (const especial of [
     { clave: "sin_utm", canal: "Sin UTM", categoria: "sin_utm" as const },
-    { clave: "macro", canal: "Macros sin expandir", categoria: "macro" as const },
+    { clave: "macro", canal: "Plantilla sin completar", categoria: "macro" as const },
   ]) {
     if (!porCanal.has(especial.clave)) porCanal.set(especial.clave, {
       ...especial, area: "sin_utm", canalClave: null, envios: 0, agendas: 0, pares: [],
