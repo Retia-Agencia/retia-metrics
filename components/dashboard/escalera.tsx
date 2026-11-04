@@ -1,3 +1,4 @@
+import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
 import { useId } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +80,7 @@ function TablaPorDimension({ titulo, filas, visibles }: { titulo: string; filas:
   );
 }
 
-export function Escalera({ vista, periodo, programa }: { vista: VistaDeEscalera; periodo: PeriodoResuelto; programa?: string }) {
+export function Escalera({ vista, periodo, programa, contexto }: { vista: VistaDeEscalera; periodo: PeriodoResuelto; programa?: string; contexto?: string }) {
   // Un id por tarjeta: en todos los programas hay una por programa en la misma página.
   const idDelTitulo = useId();
   const visibles = escalonesVisibles(vista.sinCorte);
@@ -91,6 +92,7 @@ export function Escalera({ vista, periodo, programa }: { vista: VistaDeEscalera;
           <CardTitle id={idDelTitulo} className="text-base">Ventas por escalón{programa ? ` · ${programa}` : ""}</CardTitle>
           {vista.sinCorte ? <Badge variant="alerta">Sin corte de pago rápido</Badge> : null}
         </div>
+        {contexto ? <ContextoDeCifra texto={contexto} /> : null}
         <p className="text-xs text-muted-foreground">
           En qué escalón paga, o se queda, cada deal. Las ventas del periodo se reparten en los cuatro primeros escalones; los deals
           creados en el periodo y sin vender, en los otros tres. «Pagó sin llamada registrada» son ventas sin una llamada atendida antes del pago (traspasos de las hojas o deals creados a mano): no hay contra qué medirlas.

@@ -8,7 +8,10 @@ import {
   fechaAnclaDealCreado,
   filtroAgendasCreadas,
   filtroDealsCreados,
+  filtroDealsDesde,
+  filtroDealsDesdeQueAgendaron,
   filtroDealsQueAgendaron,
+  type OrigenDeDeal,
 } from "@/lib/queries/metricas-filtros";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
 import { vigente } from "@/lib/queries/vigente";
@@ -97,14 +100,22 @@ export function acumularPorHabil(rango: Rango, conteos: ConteoDelDia[]): PuntoHa
 export async function serieDealsContraAgendas(
   db: Db,
   { programId, rango, cohorteId }: AlcanceDeSerie,
+  /**
+   * Una mitad del universo (ticket 372): solo los deals nacidos de un formulario completo, o de un
+   * parcial. Con `origen` los deals y los que agendaron salen de la misma mitad; las agendas
+   * creadas no se parten (una agenda no tiene formulario), así que esa columna no se lee.
+   */
+  origen?: OrigenDeDeal,
 ): Promise<SerieDealsContraAgendas> {
   const alcance = { programId, rango, cohorteId };
+  const dealsCreados = origen ? filtroDealsDesde(origen, alcance) : filtroDealsCreados(alcance);
+  const dealsQueAgendaron = origen ? filtroDealsDesdeQueAgendaron(origen, alcance, db) : filtroDealsQueAgendaron(alcance, db);
   const [porDiaDeDeal, porDiaDeAgenda, primerasAgendas] = await Promise.all([
     db
       .select({ dia: fechaAnclaDealCreado(), n: sql<number>`count(*)::int` })
       .from(deals)
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(and(filtroDealsCreados(alcance), vigente(deals)))
+      .where(and(dealsCreados, vigente(deals)))
       .groupBy(fechaAnclaDealCreado()),
     db
       .select({ dia: fechaAnclaAgendaCreada(), n: sql<number>`count(*)::int` })
@@ -121,7 +132,7 @@ export async function serieDealsContraAgendas(
       .from(deals)
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
       .innerJoin(calls, and(eq(calls.dealId, deals.id), eq(calls.programId, deals.programId), vigente(calls)))
-      .where(and(filtroDealsQueAgendaron(alcance, db), vigente(deals)))
+      .where(and(dealsQueAgendaron, vigente(deals)))
       .groupBy(deals.id, fechaAnclaDealCreado()),
   ]);
 

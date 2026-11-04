@@ -18,7 +18,7 @@ import { ETAPAS_EN_ORDEN } from "@/lib/deals/etapas";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
-import { rotuloDeImporte } from "@/lib/vocabulario-metricas";
+import { nombreLargo, rotuloDeImporte } from "@/lib/vocabulario-metricas";
 import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/dashboard/dinero-de-ventas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,10 @@ const esquema = z.object({
     "leads",
     "deals_creados",
     "deals_que_agendaron",
+    "deals_desde_completo",
+    "deals_desde_parcial",
+    "completos_que_agendaron",
+    "parciales_que_agendaron",
     "agendas_creadas",
     "registros",
     "citas_debidas",
@@ -101,6 +105,10 @@ const titulos = {
   leads: "Leads",
   deals_creados: "Deals creados",
   deals_que_agendaron: "Deals que agendaron",
+  deals_desde_completo: nombreLargo("deals_desde_completo"),
+  deals_desde_parcial: nombreLargo("deals_desde_parcial"),
+  completos_que_agendaron: "Deals de un formulario completo que agendaron",
+  parciales_que_agendaron: "Deals de un parcial que agendaron",
   agendas_creadas: "Agendas creadas",
   registros: "Registros",
   citas_debidas: "Citas que ya debían ocurrir",

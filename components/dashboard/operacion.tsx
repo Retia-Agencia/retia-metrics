@@ -12,6 +12,10 @@ import {
   type DetallesDelDashboard,
 } from "@/lib/queries/vista-metrica";
 import { cambioEnPalabras, porcentajeConBase } from "@/lib/variacion";
+import { contextoDeCifra } from "@/lib/contexto-de-cifra";
+import { nombreCorto } from "@/lib/vocabulario-metricas";
+import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
+import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
 
@@ -27,15 +31,18 @@ function Celda({ titulo, detalle, children }: { titulo: string; detalle?: Detall
 }
 
 /** El comparativo entre closers (ADR 0023). Lo usan Comercial y, con el rango de hoy, la pestaña Hoy (252). */
-export function Comparativo({ vista, detalles, titulo = "Closers" }: {
+export function Comparativo({ vista, detalles, titulo = "Closers", contexto }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDeOperacion["comparativo"];
   titulo?: string;
+  /** El periodo, la cohorte y el closer de la tarjeta (ticket 372); la pestaña Hoy no lo pasa. */
+  contexto?: string;
 }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{titulo}</CardTitle>
+        {contexto ? <ContextoDeCifra texto={contexto} /> : null}
       </CardHeader>
       <CardContent>
         {vista.comparativo.length === 0 ? (
@@ -119,12 +126,13 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
  * Las agendas por semana (ticket 189): creadas, ocurridas con su show y su no-show sobre las mismas
  * personas (ADR 0079), y las futuras aparte, porque una cita que viene es agenda y no resultado.
  */
-function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "semanas" | "proximas">) {
+function AgendasPorSemana({ semanas, proximas, contexto }: Pick<DetallesDeOperacion, "semanas" | "proximas"> & { contexto: string }) {
   if (semanas.length === 0 && proximas.length === 0) return null;
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">Agendas por semana</CardTitle>
+        <ContextoDeCifra texto={contexto} />
       </CardHeader>
       <CardContent>
         <Tabla cabeceras={["Semana", "Creadas", "Ocurridas", "Show", "No-show", "Pendientes", "% no-show"]}>
@@ -188,10 +196,11 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
   );
 }
 
-function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
+function EmbudoPorEtapas({ vista, detalles, veEquipo, contexto }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDeOperacion["embudo"];
   veEquipo: boolean;
+  contexto: string;
 }) {
   const conversion = vista.embudoEtapas.conversion.todas;
 
@@ -200,6 +209,7 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Conversión por etapa</CardTitle>
+          <ContextoDeCifra texto={contexto} />
         </CardHeader>
         <CardContent>
           <Tabla cabeceras={["Paso", "Deals", "% que pasó al siguiente paso"]}>
@@ -240,6 +250,7 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Tiempo en etapa</CardTitle>
+          <ContextoDeCifra texto={contexto} />
         </CardHeader>
         <CardContent className="space-y-3">
           <Tabla cabeceras={["Etapa", "Deals", "Promedio días"]}>
@@ -265,6 +276,7 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
         {veEquipo ? <Card>
           <CardHeader>
             <CardTitle className="text-base">Abiertos por etapa y owner</CardTitle>
+            <ContextoDeCifra texto="Foto de hoy" />
           </CardHeader>
           <CardContent>
             {vista.embudoEtapas.abiertos.length === 0 ? (
@@ -293,6 +305,7 @@ function EmbudoPorEtapas({ vista, detalles, veEquipo }: {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Sin dueño por antigüedad</CardTitle>
+            <ContextoDeCifra texto="Foto de hoy" />
           </CardHeader>
           <CardContent>
             {vista.embudoEtapas.sinDuenoPorAntiguedad.every((fila) => fila.deals === 0) ? (
@@ -324,6 +337,9 @@ export function Operacion({
   detalles,
   detallesOperacion,
   dealsContraAgendas,
+  dealsContraAgendasVista,
+  detalleRegistros,
+  hoy,
   veEquipo = true,
 }: {
   vista: VistaDelDashboard;
@@ -333,19 +349,62 @@ export function Operacion({
   /** El comparativo y el embudo por etapas, celda por celda (ticket 188). */
   detallesOperacion?: DetallesDeOperacion;
   dealsContraAgendas: ReactNode;
+  /** Los deals partidos por el envío que los abrió (372): alimentan las dos primeras filas del embudo. */
+  dealsContraAgendasVista?: VistaDealsContraAgendas;
+  /** Los registros del periodo (el primer paso del embudo). */
+  detalleRegistros?: DetalleDeCifra;
+  /** El día de hoy en Bogotá: el contexto dice "hoy" cuando el periodo termina hoy. */
+  hoy: string;
 }) {
   const anterior = vista.anterior?.embudo;
   const grupo = vista.embudo.grupo;
-  const filas = [
+  const closerElegido = vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null;
+  const contexto = contextoDeCifra({
+    cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
+    rango: vista.seleccion.rango,
+    hoy,
+    closer: closerElegido,
+  });
+  // El comparativo entre closers (ADR 0023) y las agendas por semana son del programa entero, sin filtro de closer.
+  const contextoDelPrograma = contextoDeCifra({
+    cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
+    rango: vista.seleccion.rango,
+    hoy,
+    closer: null,
+  });
+
+  // Los dos primeros pasos nacen del formulario y no se atribuyen a un closer: con closer, "—" (N3).
+  const conVista = dealsContraAgendasVista?.disponible ? dealsContraAgendasVista : null;
+  const finalA = conVista?.a.puntos.at(-1);
+  const finalB = conVista?.b?.puntos.slice(0, conVista.a.puntos.length).at(-1);
+  const completoA = conVista?.porOrigen.completo.a.puntos.at(-1);
+  const registros = detalleRegistros?.resumen.disponible ? detalleRegistros.resumen.subtotal.cantidad : null;
+
+  const filas: {
+    titulo: string;
+    actual: number | null;
+    previo: number | null | undefined;
+    paso: string;
+    detalle?: DetalleDeCifra;
+  }[] = [
+    { titulo: nombreCorto("registros"), actual: registros, previo: undefined, paso: "—", detalle: detalleRegistros },
     {
-      titulo: "Agendas",
+      titulo: "Deals creados",
+      actual: conVista ? (finalA?.deals ?? 0) : null,
+      previo: conVista ? (finalB?.deals ?? undefined) : undefined,
+      paso: "—",
+      detalle: conVista?.detalles.deals_creados,
+    },
+    {
+      titulo: nombreCorto("agendadas"),
       actual: vista.embudo.agendas,
       previo: anterior?.agendas,
-      paso: "—",
+      // Solo los que llenaron el formulario completo: un parcial casi nunca agenda (ADR 0069).
+      paso: completoA ? tasa(completoA.pctAgendaron) : "—",
       detalle: detalles?.agendas,
     },
     {
-      titulo: "Shows",
+      titulo: nombreCorto("shows"),
       actual: vista.embudo.llamadasConShow,
       previo: anterior?.llamadasConShow,
       // Las tasas del paso salen del grupo de citas (ADR 0079), no de dividir estas cantidades.
@@ -353,7 +412,7 @@ export function Operacion({
       detalle: detalles?.shows,
     },
     {
-      titulo: "Cierres",
+      titulo: nombreCorto("ventas"),
       actual: vista.embudo.cierres,
       previo: anterior?.cierres,
       paso: porcentajeConBase(grupo.vendidos, grupo.conShow),
@@ -367,6 +426,7 @@ export function Operacion({
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Embudo comercial</CardTitle>
+          <ContextoDeCifra texto={contexto} />
         </CardHeader>
         <CardContent>
           <Tabla cabeceras={["Paso", "Periodo", "Comparación", "Cambio", "% del paso"]}>
@@ -374,26 +434,25 @@ export function Operacion({
               <tr key={fila.titulo}>
                 <td className="py-2">{fila.titulo}</td>
                 <td className="py-2 text-right">
-                  <CifraConLista titulo={fila.titulo} detalle={fila.detalle}>
-                    {num(fila.actual)}
-                  </CifraConLista>
-                </td>
-                <td className="py-2 text-right">
-                  {fila.previo === undefined ? "—" : num(fila.previo)}
-                </td>
-                <td className="py-2 text-right">
-                  {fila.previo === undefined ? (
-                    "—"
-                  ) : (
-                    cambioEnPalabras(fila.actual, fila.previo)
+                  {fila.actual === null ? "—" : (
+                    <CifraConLista titulo={fila.titulo} detalle={fila.detalle}>
+                      {num(fila.actual)}
+                    </CifraConLista>
                   )}
+                </td>
+                <td className="py-2 text-right">
+                  {fila.previo == null ? "—" : num(fila.previo)}
+                </td>
+                <td className="py-2 text-right">
+                  {fila.previo == null || fila.actual === null ? "—" : cambioEnPalabras(fila.actual, fila.previo)}
                 </td>
                 <td className="py-2 text-right">{fila.paso}</td>
               </tr>
             ))}
           </Tabla>
           <p className="pt-3 text-sm text-muted-foreground">
-            Agendas, shows y cierres son cantidades del periodo. El % del paso va sobre el mismo grupo:{" "}
+            Agendadas es el % de los deals de un formulario completo que agendaron: un parcial casi nunca agenda y
+            tiene su tasa aparte, más abajo. Shows y ventas van sobre el mismo grupo:{" "}
             <CifraConLista titulo="Deals con cita ocurrida" detalle={detalles?.grupo_citas}>
               {num(grupo.deals)}
             </CifraConLista>{" "}
@@ -421,59 +480,71 @@ export function Operacion({
         </CardContent>
       </Card>
 
-      {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} /> : null}
+      {veEquipo ? <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} titulo="Por closer" contexto={contextoDelPrograma} /> : null}
+      {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} contexto={contextoDelPrograma} /> : null}
       {dealsContraAgendas}
-      {veEquipo ? <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} /> : null}
-      <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} />
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Motivos de pérdida</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {vista.embudoEtapas.motivosDePerdida.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Ningún deal perdido con motivo en este rango.
-              </p>
-            ) : (
-              <Tabla cabeceras={["Motivo", "Deals", "Ticket estimado"]}>
-                {vista.embudoEtapas.motivosDePerdida.map((motivo) => (
-                  <tr key={motivo.motivo}>
-                    <td className="py-2">{motivo.motivo}</td>
-                    <td className="py-2 text-right">{num(motivo.deals)}</td>
-                    <td className="py-2 text-right">
-                      {usd(motivo.ticketPerdidoUsd)}
-                      {motivo.dealsSinTicket > 0 ? (
-                        <span className="block text-xs text-muted-foreground">
-                          {num(motivo.dealsSinTicket)} sin ticket
-                        </span>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </Tabla>
-            )}
-          </CardContent>
-        </Card>
-        <Tarjeta
-          titulo="Leads"
-          valor={
-            vista.leads.leads === null ? (
-              "—"
-            ) : (
-              <CifraConLista titulo="Leads" detalle={detalles?.leads}>
-                {num(vista.leads.leads)}
-              </CifraConLista>
-            )
-          }
-          nota={
-            vista.leads.metaDelRango === null
-              ? `${num(vista.leads.diasHabiles)} días hábiles · sin meta de leads en la cohorte`
-              : `meta ${num(vista.leads.metaDelRango)} · ${tasa(vista.leads.cumplimiento)}`
-          }
-        />
-      </div>
+      <details className="group rounded-lg border border-border">
+        <summary className="cursor-pointer select-none px-4 py-3 text-base font-semibold">
+          Diagnóstico
+          <span className="block text-xs font-normal text-muted-foreground">
+            Tiempo en etapa, deals abiertos, motivos de pérdida y leads.
+          </span>
+        </summary>
+        <div className="space-y-4 p-4 pt-0">
+          <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} contexto={contexto} />
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Motivos de pérdida</CardTitle>
+                <ContextoDeCifra texto={contexto} />
+              </CardHeader>
+              <CardContent>
+                {vista.embudoEtapas.motivosDePerdida.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Ningún deal perdido con motivo en este rango.
+                  </p>
+                ) : (
+                  <Tabla cabeceras={["Motivo", "Deals", "Ticket estimado"]}>
+                    {vista.embudoEtapas.motivosDePerdida.map((motivo) => (
+                      <tr key={motivo.motivo}>
+                        <td className="py-2">{motivo.motivo}</td>
+                        <td className="py-2 text-right">{num(motivo.deals)}</td>
+                        <td className="py-2 text-right">
+                          {usd(motivo.ticketPerdidoUsd)}
+                          {motivo.dealsSinTicket > 0 ? (
+                            <span className="block text-xs text-muted-foreground">
+                              {num(motivo.dealsSinTicket)} sin ticket
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </Tabla>
+                )}
+              </CardContent>
+            </Card>
+            <Tarjeta
+              titulo={`Leads · ${contexto}`}
+              valor={
+                vista.leads.leads === null ? (
+                  "—"
+                ) : (
+                  <CifraConLista titulo="Leads" detalle={detalles?.leads}>
+                    {num(vista.leads.leads)}
+                  </CifraConLista>
+                )
+              }
+              nota={
+                vista.leads.metaDelRango === null
+                  ? `${num(vista.leads.diasHabiles)} días hábiles · sin meta de leads en la cohorte`
+                  : `meta ${num(vista.leads.metaDelRango)} · ${tasa(vista.leads.cumplimiento)}`
+              }
+            />
+          </div>
+        </div>
+      </details>
     </section>
   );
 }

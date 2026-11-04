@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, num, usd } from "@/lib/format";
 import { descripcionDeComparacion, type PeriodoResuelto } from "@/lib/periodo";
 import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
-import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
+import { contextoDeCifra } from "@/lib/contexto-de-cifra";
+import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
@@ -192,17 +193,21 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
     {/* La escalera es una distribución: una tarjeta por programa, lado a lado, sin total ni % combinado (ADR 0048). */}
     <div className="grid gap-4 lg:grid-cols-2">
       {(await escaleraPorPrograma({ programas: vista.programas.map((f) => f.programa), hoy, periodo: vista.periodo, origen, conListas })).map(({ programa, vista: escalera }) => (
-        <Escalera key={programa.id} vista={escalera} periodo={vista.periodo} programa={programa.nombre} />
+        <Escalera key={programa.id} vista={escalera} periodo={vista.periodo} programa={programa.nombre} contexto={contextoDeCifra({ cohorte: null, rango: vista.periodo.a, hoy, closer: null })} />
       ))}
     </div>
     {await Promise.all(vista.programas.map(async (fila) => {
       const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null, origen };
-      const [detalles, dealsContraAgendas, detallesOperacion] = await Promise.all([
+      const [detalles, dealsContraAgendas, detallesOperacion, detalleRegistros] = await Promise.all([
         detallesDelDashboard(entrada), vistaDealsContraAgendas(entrada),
         detallesDeOperacion(entrada, fila.dashboard.comparativo.map((c) => c.clave)),
+        detalleDeCifra("registros", { ...entrada, cohorteId: null }),
       ]);
       // La sección compartida tiene un ancla fija; aquí hay una instancia por programa.
-      const operacion = Operacion({ vista: fila.dashboard, detalles, detallesOperacion, dealsContraAgendas: <DealsContraAgendas vista={dealsContraAgendas} /> });
+      const operacion = Operacion({
+        vista: fila.dashboard, detalles, detallesOperacion, hoy, dealsContraAgendasVista: dealsContraAgendas, detalleRegistros,
+        dealsContraAgendas: <DealsContraAgendas vista={dealsContraAgendas} contexto={contextoDeCifra({ cohorte: null, rango: vista.periodo.a, hoy, closer: null })} />,
+      });
       return <div key={fila.programa.id} className="space-y-3">
         <h3 className="text-lg font-semibold">{fila.programa.nombre}</h3>
         {cloneElement(operacion, { id: `operacion-${fila.programa.id}` })}

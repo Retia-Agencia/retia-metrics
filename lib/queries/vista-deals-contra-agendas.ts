@@ -3,6 +3,7 @@ import type { Db } from "@/lib/db/tipos";
 import { diasHabilesEntre } from "@/lib/dias-habiles";
 import { resolverPeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { serieDealsContraAgendas, type SerieDealsContraAgendas } from "@/lib/queries/deals-contra-agendas";
+import type { OrigenDeDeal } from "@/lib/queries/metricas-filtros";
 import { detalleDeCifra, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
 
 export interface EntradaDealsContraAgendas {
@@ -29,8 +30,25 @@ export type VistaDealsContraAgendas =
       nota?: string;
       a: SerieDealsContraAgendas;
       b: SerieDealsContraAgendas | null;
-      detalles: { deals_creados: DetalleDeCifra; deals_que_agendaron: DetalleDeCifra; agendas_creadas: DetalleDeCifra };
+      /** Los deals partidos por el envío que los abrió (ticket 372): cada mitad con su propia tasa (N2). */
+      porOrigen: Record<OrigenDeDeal, { a: SerieDealsContraAgendas; b: SerieDealsContraAgendas | null }>;
+      detalles: {
+        deals_creados: DetalleDeCifra;
+        deals_que_agendaron: DetalleDeCifra;
+        agendas_creadas: DetalleDeCifra;
+        deals_desde_completo: DetalleDeCifra;
+        deals_desde_parcial: DetalleDeCifra;
+        completos_que_agendaron: DetalleDeCifra;
+        parciales_que_agendaron: DetalleDeCifra;
+      };
     };
+
+const METRICAS_DE_LA_VISTA = [
+  "deals_creados", "deals_que_agendaron", "agendas_creadas",
+  "deals_desde_completo", "deals_desde_parcial", "completos_que_agendaron", "parciales_que_agendaron",
+] as const;
+
+type VistaDealsContraAgendasDisponible = Extract<VistaDealsContraAgendas, { disponible: true }>;
 
 const hayCurva = (p: PeriodoResuelto) => diasHabilesEntre(p.a.desde, p.a.hasta) > 1;
 
@@ -64,19 +82,26 @@ export async function vistaDealsContraAgendas(
 
   const { periodo, nota } = periodoDeLaGrafica(entrada.periodo, entrada.hoy);
   const detallesDe = { ...entrada, periodo };
-  const [a, b, dealsCreados, dealsQueAgendaron, agendasCreadas] = await Promise.all([
-    serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.a, cohorteId: entrada.cohorteId }),
-    periodo.b ? serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.b, cohorteId: entrada.cohorteIdDeB === undefined ? entrada.cohorteId : entrada.cohorteIdDeB }) : null,
-    detalleDeCifra("deals_creados", detallesDe, db),
-    detalleDeCifra("deals_que_agendaron", detallesDe, db),
-    detalleDeCifra("agendas_creadas", detallesDe, db),
+  const cohorteDeB = entrada.cohorteIdDeB === undefined ? entrada.cohorteId : entrada.cohorteIdDeB;
+  const serie = (rango: typeof periodo.a, cohorteId: string | null | undefined, origen?: OrigenDeDeal) =>
+    serieDealsContraAgendas(db, { programId: entrada.programId, rango, cohorteId }, origen);
+  const parDe = async (origen?: OrigenDeDeal) => ({
+    a: await serie(periodo.a, entrada.cohorteId, origen),
+    b: periodo.b ? await serie(periodo.b, cohorteDeB, origen) : null,
+  });
+  const [total, completo, parcial, ...detalles] = await Promise.all([
+    parDe(),
+    parDe("completo"),
+    parDe("parcial"),
+    ...METRICAS_DE_LA_VISTA.map((metrica) => detalleDeCifra(metrica, detallesDe, db)),
   ]);
   return {
     disponible: true,
     periodo,
     nota,
-    a,
-    b,
-    detalles: { deals_creados: dealsCreados, deals_que_agendaron: dealsQueAgendaron, agendas_creadas: agendasCreadas },
+    a: total.a,
+    b: total.b,
+    porOrigen: { completo, parcial },
+    detalles: Object.fromEntries(METRICAS_DE_LA_VISTA.map((m, i) => [m, detalles[i]])) as VistaDealsContraAgendasDisponible["detalles"],
   };
 }

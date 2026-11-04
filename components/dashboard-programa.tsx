@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { Dinero } from "@/components/dashboard/dinero";
 import { Operacion } from "@/components/dashboard/operacion";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
+import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 
 export { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -29,6 +30,9 @@ export function DashboardPrograma({
   seriesDinero,
   origen,
   veEquipo = true,
+  hoy,
+  dealsContraAgendasVista,
+  detalleRegistros,
 }: {
   seccion: "operacion" | "dinero";
   vista: VistaDelDashboard;
@@ -44,6 +48,11 @@ export function DashboardPrograma({
    * enlaces a Metas, Programa o una lista.
    */
   veEquipo?: boolean;
+  /** El día de hoy en Bogotá: Comercial dice "hoy" en el contexto de cada cifra (ticket 372). */
+  hoy: string;
+  /** Los deals partidos por origen y los registros: las dos primeras filas del embudo (372). */
+  dealsContraAgendasVista?: VistaDealsContraAgendas;
+  detalleRegistros?: DetalleDeCifra;
 }) {
   if (seccion === "operacion") {
     return (
@@ -53,6 +62,9 @@ export function DashboardPrograma({
         detallesOperacion={detallesOperacion}
         dealsContraAgendas={dealsContraAgendas}
         veEquipo={veEquipo}
+        hoy={hoy}
+        dealsContraAgendasVista={dealsContraAgendasVista}
+        detalleRegistros={detalleRegistros}
       />
     );
   }
