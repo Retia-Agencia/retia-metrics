@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { textoComisionPrograma } from "@/components/dashboard-programa";
+import { textoComisionPrograma } from "@/components/dashboard/operacion";
 import { editarPrograma } from "@/lib/catalogo/programas";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { esViolacionCheck } from "@/lib/db/errores";

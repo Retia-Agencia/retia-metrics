@@ -3,7 +3,7 @@ id: 379
 etapa: hub
 serves: "Recorrido de Mani por Hub › Comercial (4-nov) · weekly con Daniel Tovar (3-nov) · contrato de entendimiento (docs/structure.md §9) · ADR 0067 · ADR 0109 · ADR 0115 (N3, N5)"
 depends: [372]
-status: review
+status: en main
 ---
 
 # 379 — Hub › Comercial se entiende a la primera

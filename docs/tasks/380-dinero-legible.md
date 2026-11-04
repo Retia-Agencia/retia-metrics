@@ -3,7 +3,7 @@ id: 380
 etapa: hub
 serves: "Recorrido de Mani por Hub › Dinero (4-nov) · ADR 0115 (N3, N4, N5) · ADR 0067 (toda cifra abre su lista) · ADR 0091 (contrato de gráficas) · ADR 0077 · docs/structure.md §9 (Tinta)"
 depends: [369, 370, 371]
-status: en revisión
+status: en main
 ---
 
 # 380 — Hub › Dinero legible: menos cifras, gráficas lado a lado que abren su lista, y "¿Vamos a llegar?" en una frase
