@@ -392,6 +392,22 @@ export function filtroDealsQueAgendaron(alcance: Alcance, db: Db) {
   );
 }
 
+/**
+ * De qué envío nació un deal (ADR 0069, ticket 372): del formulario completo o de un parcial. El
+ * hecho que decide es `submissions.es_parcial` del envío que lo abrió (`submission_origen_id`). Un
+ * deal abierto a mano no tiene envío y no es ninguna de las dos mitades. Exige el join de arriba.
+ */
+export type OrigenDeDeal = "completo" | "parcial";
+
+export function filtroDealsDesde(origen: OrigenDeDeal, alcance: Alcance) {
+  return and(filtroDealsCreados(alcance), eq(submissions.esParcial, origen === "parcial"));
+}
+
+/** Los deals de una mitad que ya agendaron: el mismo universo que `filtroDealsDesde`, no el total (N2). */
+export function filtroDealsDesdeQueAgendaron(origen: OrigenDeDeal, alcance: Alcance, db: Db) {
+  return and(filtroDealsQueAgendaron(alcance, db), eq(submissions.esParcial, origen === "parcial"));
+}
+
 /** El movimiento que da fecha a la venta, sin correlación ni duplicar sus etapas. */
 export function primerosMovimientosDeVenta(db: Db) {
   return db

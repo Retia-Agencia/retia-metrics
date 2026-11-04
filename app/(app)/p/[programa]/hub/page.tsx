@@ -19,6 +19,7 @@ import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
+import { contextoDeCifra } from "@/lib/contexto-de-cifra";
 import { fecha, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
@@ -252,6 +253,31 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       }))
     : undefined;
 
+  // Comercial (372): los deals partidos por origen y los registros, una vez, para la tabla y el embudo.
+  const vistaComercial = seccion === "comercial" && !sinActividad
+    ? {
+        dealsContraAgendas: proyectar(await vistaDealsContraAgendas({
+          programId: programa.id,
+          slug,
+          hoy,
+          periodo: vista.periodo,
+          claveCloser: vista.claveCloser,
+          cohorteId,
+          cohorteIdDeB,
+          origen,
+        })),
+        detalleRegistros: proyectar(await detalleDeCifra("registros", {
+          programId: programa.id,
+          slug,
+          hoy,
+          periodo: vista.periodo,
+          claveCloser: vista.claveCloser,
+          cohorteId,
+          origen,
+        })),
+      }
+    : null;
+
   const { desde, hasta } = vista.seleccion.rango;
   // Un solo dia se escribe una sola vez: "15 sep 2026", no "15 sep 2026 a 15 sep 2026".
   const rangoLegible = desde === hasta ? fecha(desde) : `${fecha(desde)} a ${fecha(hasta)}`;
@@ -322,22 +348,28 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               slug={slug}
               origen={origen}
               veEquipo={veEquipo}
+              hoy={hoy}
+              dealsContraAgendasVista={vistaComercial!.dealsContraAgendas}
+              detalleRegistros={vistaComercial!.detalleRegistros}
               dealsContraAgendas={
                 <DealsContraAgendas
-                  vista={proyectar(await vistaDealsContraAgendas({
-                    programId: programa.id,
-                    slug,
+                  vista={vistaComercial!.dealsContraAgendas}
+                  contexto={contextoDeCifra({
+                    cohorte: elegida?.codigo ?? null,
+                    rango: vista.seleccion.rango,
                     hoy,
-                    periodo: vista.periodo,
-                    claveCloser: vista.claveCloser,
-                    cohorteId,
-                    cohorteIdDeB,
-                    origen,
-                  }))}
+                    closer: null,
+                  })}
                 />
               }
             />
             <Escalera
+              contexto={contextoDeCifra({
+                cohorte: elegida?.codigo ?? null,
+                rango: vista.seleccion.rango,
+                hoy,
+                closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null,
+              })}
               periodo={vista.periodo}
               vista={await vistaDeEscalera({
                 programId: programa.id,
@@ -358,6 +390,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               vista={vista}
               detalles={detalles}
               slug={slug}
+              hoy={hoy}
               // El embudo contra agendas es de Comercial; fuera de esa pestaña no se arma.
               dealsContraAgendas={null}
               origen={origen}
