@@ -233,6 +233,8 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Recaudado | Σ abonos vigentes por su fecha (§1.5) | USD | sí | `hechos/abono.ts` | ✅ |
 | Saldo de un deal | contratado − abonado; negativo es sobrepago, no deuda | USD | · | `saldosDeDeals`, `saldoLegible` | ✅ |
 | Meta del mes, de la semana y de la cohorte | cupos de la cohorte repartidos por días hábiles (020, 146) | cupos | no | `lib/queries/metas.ts` | ✅ |
+| Meta en USD del mes y de la cohorte | meta de cupos × precio de la cohorte (la del mes, por cohorte y sumada; la de la cohorte, entera) (371) | USD | no | `armarMetasDelMes` (mes), `armarVamosALlegar` (cohorte) | ✅ |
+| "¿Vamos a llegar?": llevamos, meta, %, faltan, esperado a hoy, por día hábil que queda y proyección, de mes y cohorte × cupos y USD | llevamos = venta (§1.4) del mes o de la cohorte, en cupos o en Vendido (`contratadoDeDeals`); esperado = `esperadoLineal`; por día hábil = `metaDeHoy` (meta de apertura, 352); proyección = `leerProyeccion`, y la de USD valora los cupos que faltan al precio de la cohorte. No lee ningún filtro y la meta no se reparte por closer (ADR 0023) | cupos y USD | no | `lib/queries/vamos-a-llegar.ts` (`leerVamosALlegar`) | ✅ |
 
 **El grupo de citas** (para las tres tasas): los deals vigentes, sin cortesía, con al menos una cita **ya
 ocurrida** en el rango (show, no-show, cancelada o sin resultado; la reagendada no, la representa la nueva). Se

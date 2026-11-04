@@ -11,6 +11,7 @@ import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantall
 import { Pestanas, pestanaActiva, urlConSeccion } from "@/components/layout/pestanas";
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
+import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
 import { SeccionDeTodos } from "./secciones";
 import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
 import { RUTA_HUB_TODOS } from "@/lib/nav";
@@ -69,6 +70,12 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
             : seccion === "pauta"
             ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
             : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} />}
+          {/* El norte (371): una matriz por programa, lado a lado y nunca sumada (ADR 0048); no lee el periodo. */}
+          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+            {programas.map((programa) => (
+              <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} configurar={null} />
+            ))}
+          </div>
         </div>
       </PantallaFija>
     </PageShell>
