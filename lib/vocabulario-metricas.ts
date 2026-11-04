@@ -9,6 +9,7 @@ export type ClaveDeMetrica =
   | "registros" | "leads" | "deals_desde_completo" | "deals_desde_parcial"
   | "agendadas" | "citas" | "shows" | "no_asistio" | "llamadas_sin_resultado"
   | "ventas" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja" | "cupos_con_caja"
+  | "nacio_agenda_del_dia" | "nacio_seguimiento" | "nacio_sin_llamada"
   | "comision" | "meta" | "esperado_a_hoy" | "faltan" | "por_dia_habil" | "proyeccion";
 
 export type EntradaDeVocabulario = { corto: string; largo: string; definicion: string };
@@ -29,6 +30,9 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   por_cobrar: { corto: "Por cobrar", largo: "Por cobrar de lo vendido", definicion: "Lo vendido menos lo recaudado en las ventas elegidas; un sobrepago no resta deuda a otra venta." },
   cupos_con_caja: { corto: "Cupos con caja", largo: "Cupos con al menos un abono", definicion: "Ventas con al menos un abono vigente en el periodo; cada una cuenta una vez, el día de su primer abono del periodo, aunque abone varias veces." },
   entro_a_caja: { corto: "Entró a caja", largo: "Entró a caja", definicion: "Abonos vigentes con fecha en el periodo, de cualquier venta, por moneda y sin convertir." },
+  nacio_agenda_del_dia: { corto: "Agenda del día", largo: "Venta nacida de una agenda del día", definicion: "La persona tuvo su llamada el mismo día en que entró a venta." },
+  nacio_seguimiento: { corto: "Seguimiento", largo: "Venta nacida de un seguimiento", definicion: "Su última llamada fue un día anterior a la venta." },
+  nacio_sin_llamada: { corto: "Sin llamada", largo: "Venta sin llamada realizada", definicion: "Ninguna llamada realizada hasta el día de la venta." },
   comision: { corto: "Comisión", largo: "Comisión del closer", definicion: "Porcentaje pactado sobre lo vendido." },
   meta: { corto: "Meta", largo: "Meta de la cohorte", definicion: "Cupos que se quieren vender en la cohorte." },
   esperado_a_hoy: { corto: "Esperado a hoy", largo: "Esperado a hoy", definicion: "Ventas que la meta pedía haber cerrado a esta fecha." },

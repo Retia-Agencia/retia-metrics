@@ -13,6 +13,9 @@ import { SelectorPeriodo } from "@/components/selector-periodo";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
 import { SeccionDeTodos } from "./secciones";
+import { ReporteDiarioVista, SelectorDeDia, type ProgramaDelReporte } from "@/components/dashboard/reporte-diario";
+import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
+import { veEquipoComercial } from "@/lib/auth/roles";
 import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
 import { RUTA_HUB_TODOS } from "@/lib/nav";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -44,6 +47,15 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   const esHoy = seccion === "hoy";
   const origen = origenDeLaPagina(RUTA_HUB_TODOS, busqueda);
   const vista = await armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda), origen });
+  // Hoy es el reporte diario (373): una columna por programa visible, del día de `?fecha=` (futuro = se rechaza y se avisa).
+  const diaPedido = resolverDiaDelReporte(typeof busqueda.fecha === "string" ? busqueda.fecha : undefined, hoy);
+  const diaDelReporte = diaPedido ?? hoy;
+  const reportes: ProgramaDelReporte[] = esHoy
+    ? await Promise.all(programas.map(async (programa) => ({
+        programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre },
+        reporte: await armarReporteDiario({ programId: programa.id, dia: diaDelReporte }),
+      })))
+    : [];
 
   return (
     <PageShell titulo="Todos los programas" descripcion="Sumas en la misma unidad; tasas y metas por programa" fija>
@@ -68,13 +80,29 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
             ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
             : seccion === "pauta"
             ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
+            : esHoy
+            ? <>
+                {diaPedido === null ? <p role="alert" className="mb-3 rounded-md border border-tono-peligro/40 px-3 py-2 text-sm text-tono-peligro">Esa fecha no es válida (no puede ser futura): se muestra hoy.</p> : null}
+                <ReporteDiarioVista
+                  programas={reportes}
+                  dia={diaDelReporte}
+                  hoy={hoy}
+                  veEquipo={veEquipoComercial(rol)}
+                  selector={<SelectorDeDia dia={diaDelReporte} hoy={hoy} base={{ path: RUTA_HUB_TODOS, params: {} }} />}
+                  vamosALlegar={<div className={`grid gap-4 ${programas.length > 1 ? "xl:grid-cols-2 print:grid-cols-2" : ""}`}>
+                    {programas.map((programa) => (
+                      <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={esAdministrador(rol)} configurar={null} />
+                    ))}
+                  </div>}
+                />
+              </>
             : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} />}
           {/* El norte (371): una matriz por programa, lado a lado y nunca sumada (ADR 0048); no lee el periodo. */}
-          <div className="mt-6 grid gap-4 xl:grid-cols-2">
+          {esHoy ? null : <div className="mt-6 grid gap-4 xl:grid-cols-2">
             {programas.map((programa) => (
               <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} configurar={null} />
             ))}
-          </div>
+          </div>}
         </div>
       </PantallaFija>
     </PageShell>

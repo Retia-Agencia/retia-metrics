@@ -7,7 +7,8 @@ import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { Origen } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
-import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
+import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
+import { SelectorDeDia } from "@/components/dashboard/reporte-diario";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
@@ -47,7 +48,7 @@ import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 import { pautaSincronizaciones } from "@/lib/db/schema";
-import { OPCIONES_VENTANA_RITMO, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
+import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
 import { sumarDias } from "@/lib/rangos";
 import { tokensMeta } from "@/lib/integraciones";
 import {
@@ -157,7 +158,12 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const esHoy = seccion === "hoy";
   // La ventana del ritmo de la Proyección sale de `?ritmo=`, validada: un valor raro vuelve a 10.
   const ventanaRitmo = ventanaRitmoDeUrl(busqueda.ritmo);
-  const vistaDeHoy = esHoy ? await armarVistaDeHoy({ programId: programa.id, dia: hoy, ventanaRitmo }) : null;
+  // El día del reporte sale de `?fecha=` (373); una fecha futura o mal escrita se rechaza y se avisa.
+  const diaPedido = resolverDiaDelReporte(texto(busqueda.fecha), hoy);
+  const fechaRechazada = esHoy && diaPedido === null;
+  const diaDelReporte = diaPedido ?? hoy;
+  const hoyDeLaPestana = esHoy ? diaDelReporte : hoy;
+  const vistaDeHoy = esHoy ? await armarReporteDiario({ programId: programa.id, dia: diaDelReporte, ventanaRitmo }) : null;
   const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard({
         programId: programa.id,
         hoy,
@@ -202,40 +208,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     ? proyectar(await detallesDelDashboard({
         programId: programa.id,
         slug,
-        hoy,
-        periodo: vista.periodo,
-        claveCloser: vista.claveCloser,
-        cohorteId,
-        origen,
-      }))
-    : undefined;
-  const detalleAgendasCreadas = esHoy
-    ? proyectar(await detalleDeCifra("agendas_creadas", {
-        programId: programa.id,
-        slug,
-        hoy,
-        periodo: vista.periodo,
-        claveCloser: vista.claveCloser,
-        cohorteId,
-        origen,
-      }))
-    : undefined;
-  const detalleCitasDebidas = esHoy
-    ? proyectar(await detalleDeCifra("citas_debidas", {
-        programId: programa.id,
-        slug,
-        hoy,
-        periodo: vista.periodo,
-        claveCloser: vista.claveCloser,
-        cohorteId,
-        origen,
-      }))
-    : undefined;
-  const detalleRegistros = esHoy
-    ? proyectar(await detalleDeCifra("registros", {
-        programId: programa.id,
-        slug,
-        hoy,
+        hoy: hoyDeLaPestana,
         periodo: vista.periodo,
         claveCloser: vista.claveCloser,
         cohorteId,
@@ -407,44 +380,46 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               })}
             />
           ) : (
-            <Hoy
-              vista={vista}
-              contexto={vistaDeHoy!.contexto}
-              horizontes={vistaDeHoy!.horizontes}
-              proyeccion={vistaDeHoy!.proyeccion}
-              ventanasRitmo={OPCIONES_VENTANA_RITMO.map((dias) => ({
-                dias,
-                href: urlConSeccion(base, busqueda, String(dias), { parametro: "ritmo" }),
-              }))}
-              caja={vistaDeHoy!.caja}
-              registros={vistaDeHoy!.registros}
-              detalleRegistros={detalleRegistros}
-              agendasCreadas={vistaDeHoy!.agendasCreadas}
-              detalleAgendasCreadas={detalleAgendasCreadas}
-              showPorCita={vistaDeHoy!.showPorCita}
-              detalleCitasDebidas={detalleCitasDebidas}
-              detalles={detalles}
-              detallesOperacion={veEquipo ? await detallesDeOperacion(
-                { programId: programa.id, slug, hoy, periodo: vista.periodo, cohorteId, origen },
-                vista.comparativo.map((fila) => fila.clave),
-              ) : undefined}
-              alertas={await alertasDelPrograma(programa.id, hoy)}
-              slug={slug}
-              veEquipo={veEquipo}
-              configurar={configurar}
-              // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
-              // sin él (paid trafficker) las cifras salen como texto.
-              metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} origen={origen} conListas={veEquipo} configurar={configurar} />}
-              agendaDeHoy={vistaDeHoy!.agendaDeHoy}
-              citasDeManana={vistaDeHoy!.citasDeManana}
-              corte={vistaDeHoy!.corte}
-              detalleManana={detalleManana}
-            />
+            <>
+              {fechaRechazada ? (
+                <p role="alert" className="mb-3 rounded-md border border-tono-peligro/40 px-3 py-2 text-sm text-tono-peligro">
+                  Esa fecha no es válida (no puede ser futura): se muestra hoy.
+                </p>
+              ) : null}
+              <Hoy
+                programas={[{
+                  programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre },
+                  reporte: vistaDeHoy!,
+                  detalles,
+                  detallesOperacion: veEquipo ? await detallesDeOperacion(
+                    { programId: programa.id, slug, hoy: hoyDeLaPestana, periodo: vista.periodo, cohorteId, origen },
+                    vista.comparativo.map((fila) => fila.clave),
+                  ) : undefined,
+                }]}
+                dia={diaDelReporte}
+                hoy={hoy}
+                selector={<SelectorDeDia dia={diaDelReporte} hoy={hoy} base={{ path: base, params: {} }} />}
+                vamosALlegar={<VamosALlegar programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={veEquipo} configurar={configurar} />}
+                vista={vista}
+                detalles={detalles}
+                alertas={await alertasDelPrograma(programa.id, hoy)}
+                slug={slug}
+                veEquipo={veEquipo}
+                // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
+                // sin él (paid trafficker) las cifras salen como texto.
+                metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} origen={origen} conListas={veEquipo} configurar={configurar} />}
+                agendaDeHoy={vistaDeHoy!.agendaDeHoy}
+                citasDeManana={vistaDeHoy!.citasDeManana}
+                corte={vistaDeHoy!.corte}
+                detalleManana={detalleManana}
+              />
+            </>
           )}
           {/* El norte (371): al pie de TODAS las pestañas y sin leer los filtros: solo programa y hoy. */}
-          <div className="mt-6">
+          {/* En Hoy va dentro del reporte (secciones 4 y 5): no se repite abajo. */}
+          {esHoy ? null : <div className="mt-6">
             <VamosALlegar programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={veEquipo} configurar={configurar} />
-          </div>
+          </div>}
         </div>
       </PantallaFija>
     </PageShell>
