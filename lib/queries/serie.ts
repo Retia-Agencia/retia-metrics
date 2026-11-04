@@ -7,6 +7,8 @@ export type Serie<D, M> = Array<{ programId: string } & D & M>;
 export interface AlcanceDeSerie {
   programId: string;
   rango: Rango;
+  /** El filtro de cohorte del Hub (377); ausente = todas. */
+  cohorteId?: string | null;
 }
 
 const MS_POR_DIA = 86_400_000;

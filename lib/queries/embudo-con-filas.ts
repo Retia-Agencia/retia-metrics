@@ -67,7 +67,7 @@ export interface EmbudoConMiembros {
 /** Carga el embudo UNA vez y deja a mano cómo se lee cada uno de sus deals. */
 export async function leerEmbudoConMiembros(
   db: Db,
-  alcance: { programId: string; rango: Rango },
+  alcance: { programId: string; rango: Rango; cohorteId?: string | null },
   ahora: Date = new Date(),
 ): Promise<EmbudoConMiembros> {
   const entrada = await cargarEntradaDelEmbudo(db, alcance, ahora);

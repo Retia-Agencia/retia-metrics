@@ -12,6 +12,10 @@ export interface EntradaDealsContraAgendas {
   /** El periodo del selector del dashboard (136). */
   periodo: PeriodoResuelto;
   claveCloser: string | null;
+  /** El filtro de cohorte del Hub (377); `null` = todas. */
+  cohorteId?: string | null;
+  /** La cohorte con que se consulta B (la anterior si se compara contra ella). */
+  cohorteIdDeB?: string | null;
   origen: string;
 }
 
@@ -61,8 +65,8 @@ export async function vistaDealsContraAgendas(
   const { periodo, nota } = periodoDeLaGrafica(entrada.periodo, entrada.hoy);
   const detallesDe = { ...entrada, periodo };
   const [a, b, dealsCreados, dealsQueAgendaron, agendasCreadas] = await Promise.all([
-    serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.a }),
-    periodo.b ? serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.b }) : null,
+    serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.a, cohorteId: entrada.cohorteId }),
+    periodo.b ? serieDealsContraAgendas(db, { programId: entrada.programId, rango: periodo.b, cohorteId: entrada.cohorteIdDeB === undefined ? entrada.cohorteId : entrada.cohorteIdDeB }) : null,
     detalleDeCifra("deals_creados", detallesDe, db),
     detalleDeCifra("deals_que_agendaron", detallesDe, db),
     detalleDeCifra("agendas_creadas", detallesDe, db),

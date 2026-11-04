@@ -195,11 +195,11 @@ export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
  * correlacionadas, AGENTS.md): a esta escala es gratis y la regla se lee. No es una venta: para
  * eso esta `vendidosEn`.
  */
-export async function cerradosEn(db: Db, programId: string, rango: Rango): Promise<string[]> {
+export async function cerradosEn(db: Db, programId: string, rango: Rango, cohorteId?: string | null): Promise<string[]> {
   const historial = await db
     .select({ dealId: dealEtapaHistorial.dealId, a: dealEtapaHistorial.a, fecha: dealEtapaHistorial.fecha })
     .from(dealEtapaHistorial)
-    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.programId, programId), vigente(deals)))
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.programId, programId), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals)))
     .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id));
 
   // Recorrido en orden: una entrada abierta borra el cierre; la primera cerrada despues lo fija.
@@ -242,20 +242,39 @@ export function citaNoCancelada() {
 }
 
 
+/**
+ * El filtro de COHORTE del Hub (377): un hecho pertenece a la cohorte de su deal (`deals.cohort_id`), sea
+ * un abono, una llamada o el deal mismo. Sin cohorte (`null`/ausente, "Todas") no filtra. Es la UNICA
+ * respuesta a "¿este hecho es de la cohorte C?": cifra, resumen y lista la importan de aquí. Un hecho sin
+ * deal (una llamada suelta) no es de ninguna cohorte, así que con una cohorte elegida no cuenta.
+ */
+export function dealsDeLaCohorte(db: Db, programId: string, cohorteId: string) {
+  return db
+    .select({ id: deals.id })
+    .from(deals)
+    .where(and(eq(deals.programId, programId), eq(deals.cohortId, cohorteId), vigente(deals)));
+}
+
+export function porCohorteDeDeal(cohorteId: string | null | undefined) {
+  return cohorteId ? eq(deals.cohortId, cohorteId) : undefined;
+}
+
 /** Una definición del universo por métrica; la vigencia queda visible en cada lector. */
-export function filtroCaja({ programId, rango, claveCloser }: Alcance, db: Db) {
+export function filtroCaja({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
   return and(
     eq(abonos.programId, programId),
     between(abonos.fecha, rango.desde, rango.hasta),
     porClaveConFk(abonos.registradoPorUserId, abonos.closerId, claveCloser, db),
+    cohorteId ? inArray(abonos.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
   );
 }
 
-export function filtroLlamadas({ programId, rango, claveCloser }: Alcance, db: Db) {
+export function filtroLlamadas({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaCall(), rango.desde, rango.hasta),
     porClaveConFk(calls.closerUserId, calls.closerId, claveCloser, db),
+    cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
   );
 }
 
@@ -264,6 +283,7 @@ export function filtroCierres(alcance: Alcance, db: Db) {
     eq(deals.programId, alcance.programId),
     inArray(deals.id, vendidosEn(db, alcance.rango)),
     porClaveDeDeal(alcance.claveCloser),
+    porCohorteDeDeal(alcance.cohorteId),
   );
 }
 
@@ -282,6 +302,7 @@ export function filtroCortesias(alcance: Alcance, db: Db) {
     eq(deals.programId, alcance.programId),
     inArray(deals.id, cortesiasEn(db, alcance.rango)),
     porClaveDeDeal(alcance.claveCloser),
+    porCohorteDeDeal(alcance.cohorteId),
   );
 }
 
@@ -289,13 +310,18 @@ export function fechaAnclaLead() {
   return sql<string>`(${leads.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
 }
 
-export function filtroLeads({ programId, rango, claveCloser }: Alcance) {
+export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcance, db?: Db) {
   return and(
     eq(leads.programId, programId),
     eq(leads.entrada, "formulario"),
     between(fechaAnclaLead(), rango.desde, rango.hasta),
     // No hay atribución por closer de esta métrica: jamás devolver el programa entero.
     claveCloser ? sql`false` : undefined,
+    // Un lead es de la cohorte si tiene un deal vigente en ella.
+    cohorteId && db
+      ? inArray(leads.id, db.select({ id: deals.leadId }).from(deals).where(and(
+          eq(deals.programId, programId), eq(deals.cohortId, cohorteId), vigente(deals))))
+      : undefined,
   );
 }
 
@@ -326,19 +352,21 @@ export function fechaAnclaEnvio() {
  * Generar deals y agendas es del programa, no de un closer: un deal nace sin dueño. Como los
  * leads, con closer no se devuelve nada, jamas el programa entero. Exige el join de arriba.
  */
-export function filtroDealsCreados({ programId, rango, claveCloser }: Alcance) {
+export function filtroDealsCreados({ programId, rango, claveCloser, cohorteId }: Alcance) {
   return and(
     eq(deals.programId, programId),
     between(fechaAnclaDealCreado(), rango.desde, rango.hasta),
     claveCloser ? sql`false` : undefined,
+    porCohorteDeDeal(cohorteId),
   );
 }
 
-export function filtroAgendasCreadas({ programId, rango, claveCloser }: Alcance) {
+export function filtroAgendasCreadas({ programId, rango, claveCloser, cohorteId }: Alcance, db?: Db) {
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
     claveCloser ? sql`false` : undefined,
+    cohorteId && db ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
   );
 }
 

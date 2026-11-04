@@ -125,7 +125,8 @@ describe("el preset que sale es el que de verdad se uso", () => {
       db,
     );
 
-    expect(vista.seleccion.preset).toBe("cohorte");
+    // El enlace viejo `rango=cohorte` es "Desde el inicio" de la cohorte activa (377): ya no es un atajo propio.
+    expect(vista.periodo.preset).toBe("desde_el_inicio");
     expect(vista.seleccion.rango).toEqual({ desde: "2026-08-14", hasta: HOY });
     expect(vista.cohorte!.codigo).toBe("C2");
   });
@@ -161,13 +162,13 @@ it("la anterior es del mismo programa y A nuevo alimenta las consultas existente
     { ...base, programId: programaA, codigo: "C1", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },
     { ...base, programId: otro.id, codigo: "AJENA", fechaInicioClases: "2026-09-20", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-19" },
   ]);
-  const vista = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "cohorte_actual" } }, db);
+  const vista = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "desde_el_inicio" } }, db);
   expect(vista.periodo.b).toEqual({ desde: "2026-08-03", hasta: "2026-08-17" });
   expect(vista.anterior).not.toBeNull();
   expect(vista.seleccion.rango).toEqual(vista.periodo.a);
   expect(vista.embudo.agendas).toBe(2);
-  const previa = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "cohorte_anterior" } }, db);
-  expect(previa.seleccion.rango).toEqual({ desde: "2026-08-03", hasta: "2026-08-31" });
+  const previa = await armarVistaDelDashboard({ programId: programaA, hoy: HOY, preset: "hoy", periodo: { preset: "desde_el_inicio", cohorteVieja: "anterior" }, filtroDeCohorte: {} }, db);
+  expect(previa.seleccion.rango).toEqual({ desde: "2026-08-03", hasta: HOY });
   expect(previa.embudo.agendas).toBe(0);
   expect(previa.periodo.b).toBeNull();
   expect(previa.anterior).toBeNull();
@@ -215,7 +216,7 @@ it("arma contratado, comisión, descuento, ventas por cohorte y cartera", async 
     programId: programaA,
     hoy: HOY,
     preset: "hoy",
-    periodo: { preset: "cohorte_actual" },
+    periodo: { preset: "desde_el_inicio" },
     ahora: new Date("2026-09-15T12:00:00-05:00"),
   }, db);
 

@@ -54,7 +54,6 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
             marco={
               <SelectorPeriodo
                 periodo={vista.periodo}
-                cohorteDisponible={false}
                 anteriorDisponible={false}
                 mostrarCohortes={false}
                 variante="chip"

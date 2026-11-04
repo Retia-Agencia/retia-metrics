@@ -13,7 +13,7 @@ import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/quer
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsQueAgendaron, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
+  primerosMovimientosDeVenta, porCohorteDeDeal, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -89,8 +89,8 @@ export interface FiltrosDeMetrica {
   /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
   claveCloser?: string | null;
   moneda?: string;
-  /** Solo acota ventas; nunca cambia el universo de las demás métricas. */
-  cohorteId?: string;
+  /** El filtro de cohorte del Hub (377): acota por `deals.cohort_id` el universo de toda métrica con deal. */
+  cohorteId?: string | null;
   /** Instante compartido con el Inbox para decidir qué cita ya pasó. */
   ahora?: Date;
   /** Fecha de calendario que entrega hoyEnBogota(), nunca el reloj del navegador. */
@@ -458,7 +458,7 @@ function consultaDe(
           ),
         )
         .leftJoin(users, eq(users.id, deals.ownerUserId))
-        .where(and(filtroLeads(alcance), vigente(deals)));
+        .where(and(filtroLeads(alcance, db), vigente(deals)));
     }
     case "cierres":
     case "contratado":
@@ -476,7 +476,6 @@ function consultaDe(
         )
         .where(and(
           filtroCierres(alcance, db),
-          filtros.cohorteId ? eq(deals.cohortId, filtros.cohorteId) : undefined,
           vigente(deals),
         ));
     case "cortesias":
@@ -519,7 +518,7 @@ function consultaDe(
         .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
-          filtroAgendasCreadas(alcance),
+          filtroAgendasCreadas(alcance, db),
           condicionesDeFiltros({
             ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, calls.programId),
             utm_source: submissions.utmSource,
@@ -591,6 +590,7 @@ function consultaDe(
           eq(deals.programId, alcance.programId),
           eq(deals.cortesia, false),
           eq(deals.etapa, "ganado_parcial"),
+          porCohorteDeDeal(alcance.cohorteId),
           vigente(deals),
         ));
     case "atendidos_sin_valor":
@@ -637,6 +637,7 @@ async function leerMetricaDeGrupo(
     programId: alcance.programId,
     rango: alcance.rango,
     ahora: filtros.ahora ?? new Date(),
+    cohorteId: alcance.cohorteId,
   });
   const base = metrica === "grupo_pendientes"
     ? pendientesDe(grupo, filtros.claveCloser)
@@ -737,7 +738,7 @@ async function leerMetricaDeEscalera(
   // Pauta pide grupos de escalones: "ventas" son los cuatro que pagaron y "despues" los que pagaron rapido o tarde.
   const grupo = escalon === "ventas" ? ESCALONES_QUE_PAGARON : escalon === "despues" ? (["pago_rapido", "pago_despues"] as const) : undefined;
   if (escalon !== undefined && grupo === undefined && !esEscalon(escalon)) return [];
-  const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango }, filtros.ahora);
+  const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango, cohorteId: alcance.cohorteId }, filtros.ahora);
   const delOrigen = hayFiltroDeOrigen(filtros);
   const miembros = filtrarEscalera(cargada, {
     escalon: grupo ? undefined : (escalon as Escalon | undefined),
@@ -745,7 +746,7 @@ async function leerMetricaDeEscalera(
     pago: filtros.pago,
     claveCloser: filtros.claveCloser,
     calidad: filtros.calidad,
-    cohorteId: filtros.cohorteId,
+    cohorteId: filtros.cohorteId ?? undefined,
   }).filter((deal) => !delOrigen || coincideConOrigen(deal.envio, filtros));
   const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
   return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
@@ -771,7 +772,7 @@ async function leerMetricaDeEmbudo(
   pagina: number | null,
   db: Db,
 ): Promise<FilaDeMetrica[]> {
-  const embudo = await leerEmbudoConMiembros(db, { programId: alcance.programId, rango: alcance.rango }, filtros.ahora);
+  const embudo = await leerEmbudoConMiembros(db, { programId: alcance.programId, rango: alcance.rango, cohorteId: alcance.cohorteId }, filtros.ahora);
   const miembros = miembrosDeLaCifra(embudo, metrica, filtros, filtros.claveCloser);
   const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
   return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);

@@ -81,7 +81,7 @@ function TarjetasDinero({ vista }: { vista: VistaDeMisMetricas }) {
 function BloqueDePrograma({ vista, conSelector = true }: { vista: VistaDeMisMetricas; conSelector?: boolean }) {
   return (
     <div className="space-y-4">
-      {conSelector ? <SelectorPeriodo periodo={vista.periodo} cohorteDisponible={vista.cohorteDisponible} anteriorDisponible={vista.anteriorDisponible} /> : null}
+      {conSelector ? <SelectorPeriodo periodo={vista.periodo} anteriorDisponible={vista.anteriorDisponible} /> : null}
       {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={`Métricas de ${vista.programa.nombre}`}>
         <TarjetaNumero titulo="Agendas" valor={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} periodo={vista.periodo} />
@@ -140,10 +140,9 @@ export async function TabMetricas({
     <div className="space-y-6">
       <SelectorPeriodo
         periodo={todos.periodo}
-        cohorteDisponible={todos.programas.every((p) => p.vista.cohorteDisponible)}
         anteriorDisponible={todos.programas.every((p) => p.vista.anteriorDisponible)}
       />
-      {todos.periodo.preset.startsWith("cohorte") ? <p className="text-sm text-muted-foreground">Cada programa usa la ventana de su propia cohorte.</p> : null}
+      {todos.periodo.preset === "desde_el_inicio" ? <p className="text-sm text-muted-foreground">Cada programa cuenta desde el inicio de su cohorte activa.</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Totales entre programas">
         <Total titulo="Agendas" actual={todos.a.agendas.valor} anterior={todos.b?.agendas.valor} periodo={todos.periodo} />
         <Total titulo="Llamadas atendidas" actual={todos.a.shows.valor} anterior={todos.b?.shows.valor} periodo={todos.periodo} />

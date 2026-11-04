@@ -204,10 +204,10 @@ export async function ubicacionesDeEscalera(
 /** Carga la escalera de un programa en un periodo: el escalón de cada deal de su universo. */
 export async function cargarEscalera(
   db: Db,
-  alcance: { programId: string; rango: Rango },
+  alcance: { programId: string; rango: Rango; cohorteId?: string | null },
   ahora: Date = new Date(),
 ): Promise<EscaleraCargada> {
-  const { programId, rango } = alcance;
+  const { programId, rango, cohorteId } = alcance;
   const [dias, filasDeals] = await Promise.all([
     // La venta de un deal y su día vienen de la UNICA definición de venta; se pide de siempre y
     // se reparte en memoria: un deal vendido ayer no es "sin vender" aunque se creara este mes.
@@ -228,7 +228,7 @@ export async function cargarEscalera(
     }).from(deals)
       .leftJoin(users, eq(users.id, deals.ownerUserId))
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(and(eq(deals.programId, programId), eq(deals.cortesia, false), vigente(deals))),
+      .where(and(eq(deals.programId, programId), eq(deals.cortesia, false), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))),
   ]);
 
   const diaDeVenta = new Map(dias.map((fila) => [fila.dealId, diaDeCalendario(fila.dia)]));

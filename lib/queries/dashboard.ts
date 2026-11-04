@@ -12,7 +12,9 @@ import {
   citaPorVenir,
   citaVencidaSinResultado,
   llamadaOcurrio,
+  dealsDeLaCohorte,
   porClaveDeDeal,
+  porCohorteDeDeal,
   vendidosEn,
 } from "@/lib/queries/metricas-filtros";
 export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
@@ -89,6 +91,11 @@ export interface Rango {
 export interface AlcanceDePrograma {
   programId: string;
   claveCloser?: string | null;
+  /**
+   * La cohorte del filtro del Hub (377): solo los hechos de los deals de esa cohorte. Ausente o `null`
+   * = "Todas". Se filtra en SQL por `deals.cohort_id` (`metricas-filtros.ts`), nunca en memoria.
+   */
+  cohorteId?: string | null;
 }
 
 export interface Alcance extends AlcanceDePrograma {
@@ -188,10 +195,10 @@ export function tasa(numerador: number, denominador: number): number | null {
  * oportunidad y no el texto histórico de una llamada.
  */
 async function ventasDelRango(
-  { programId, rango, claveCloser }: Alcance,
+  { programId, rango, claveCloser, cohorteId }: Alcance,
   db: Db,
 ): Promise<number> {
-  const condiciones = filtroCierres({ programId, rango, claveCloser }, db);
+  const condiciones = filtroCierres({ programId, rango, claveCloser, cohorteId }, db);
   const [fila] = await db
     .select({ ventas: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
@@ -201,19 +208,19 @@ async function ventasDelRango(
 }
 
 export async function contarCortesias(
-  { programId, rango, claveCloser }: Alcance,
+  { programId, rango, claveCloser, cohorteId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<number> {
   const [fila] = await db
     .select({ cortesias: sql<number>`count(distinct ${deals.id})::int` })
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(filtroCortesias({ programId, rango, claveCloser }, db), vigente(deals)));
+    .where(and(filtroCortesias({ programId, rango, claveCloser, cohorteId }, db), vigente(deals)));
   return fila?.cortesias ?? 0;
 }
 
 async function ventasPorCloser(
-  { programId, rango }: Omit<Alcance, "claveCloser">,
+  { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
   db: Db,
 ): Promise<{ clave: string; closerId: string | null; cierres: number }[]> {
   return db
@@ -228,6 +235,7 @@ async function ventasPorCloser(
       and(
         eq(deals.programId, programId),
         inArray(deals.id, vendidosEn(db, rango)),
+        porCohorteDeDeal(cohorteId),
         vigente(deals),
       ),
     )
@@ -332,6 +340,7 @@ export async function carteraDelPrograma(
   programId: string,
   hoy: string,
   db: Db = dbDeLaApp,
+  cohorteId?: string | null,
 ): Promise<{
   deals: number;
   saldoUsd: number;
@@ -346,6 +355,7 @@ export async function carteraDelPrograma(
       eq(deals.programId, programId),
       eq(deals.cortesia, false),
       eq(deals.etapa, "ganado_parcial"),
+      porCohorteDeDeal(cohorteId),
       vigente(deals),
     ));
   const saldos = await saldosDeDeals(db, filas.map((fila) => fila.id));
@@ -357,7 +367,7 @@ export async function carteraDelPrograma(
     const saldo = saldos.get(fila.id);
     return !saldo || saldo.saldo === null || saldo.moneda !== "USD";
   }).length;
-  const vencida = await carteraVencida(db, programId, hoy);
+  const vencida = await carteraVencida(db, programId, hoy, cohorteId);
   return {
     deals: filas.length,
     saldoUsd: Math.round(saldoUsd * 100) / 100,
@@ -373,7 +383,7 @@ export async function carteraDelPrograma(
  * devuelve una fila por moneda presente en el rango.
  */
 export async function cajaRecaudada(
-  { programId, rango, claveCloser }: Alcance,
+  { programId, rango, claveCloser, cohorteId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<CajaPorMoneda[]> {
   return db
@@ -384,7 +394,7 @@ export async function cajaRecaudada(
     .from(abonos)
     .where(
       and(
-        filtroCaja({ programId, rango, claveCloser }, db),
+        filtroCaja({ programId, rango, claveCloser, cohorteId }, db),
         vigente(abonos),
       ),
     )
@@ -402,7 +412,7 @@ export async function cajaRecaudada(
  * son las de su parte del grupo, la misma que muestra su fila del comparativo.
  */
 export async function embudoDelRango(
-  { programId, rango, claveCloser }: Alcance,
+  { programId, rango, claveCloser, cohorteId }: Alcance,
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<EmbudoDelRango> {
@@ -426,7 +436,7 @@ export async function embudoDelRango(
     .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
     .where(
       and(
-        filtroLlamadas({ programId, rango, claveCloser }, db),
+        filtroLlamadas({ programId, rango, claveCloser, cohorteId }, db),
         vigente(calls),
       ),
     );
@@ -436,8 +446,8 @@ export async function embudoDelRango(
   const reagendadas = llamadas?.reagendadas ?? 0;
   const llamadasConShow = llamadas?.llamadasConShow ?? 0;
   const [cierres, grupo] = await Promise.all([
-    ventasDelRango({ programId, rango, claveCloser }, db),
-    grupoDeCitas(db, { programId, rango, ahora }),
+    ventasDelRango({ programId, rango, claveCloser, cohorteId }, db),
+    grupoDeCitas(db, { programId, rango, ahora, cohorteId }),
   ]);
   const tasas = tasasDelAlcance(grupo, claveCloser);
 
@@ -466,7 +476,7 @@ export async function embudoDelRango(
 
 /** Deals que cerraron como perdidos en el rango, agrupados por su motivo. */
 export async function dealsPerdidosPorMotivo(
-  { programId, rango, claveCloser }: Alcance,
+  { programId, rango, claveCloser, cohorteId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<{ motivo: string; deals: number }[]> {
   const idsCerrados = await cerradosEn(db, programId, rango);
@@ -487,6 +497,7 @@ export async function dealsPerdidosPorMotivo(
         eq(deals.programId, programId),
         inArray(deals.id, idsCerrados),
         porClaveDeDeal(claveCloser),
+        porCohorteDeDeal(cohorteId),
       ),
     )
     .groupBy(motivos.nombre)
@@ -544,7 +555,7 @@ export async function closersConCuenta(
  * lo dejaría en una fila y rompería el comparativo (ADR 0023). El tipo lo impide.
  */
 export async function embudoPorCloser(
-  { programId, rango }: Omit<Alcance, "claveCloser">,
+  { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
@@ -575,6 +586,7 @@ export async function embudoPorCloser(
         and(
           eq(calls.programId, programId),
           between(ancla, rango.desde, rango.hasta),
+          cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
           vigente(calls),
         ),
       )
@@ -601,12 +613,13 @@ export async function embudoPorCloser(
         and(
           eq(abonos.programId, programId),
           between(abonos.fecha, rango.desde, rango.hasta),
+          cohorteId ? inArray(abonos.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
           vigente(abonos),
         ),
       )
       .groupBy(claveCloserSql(users.id, abonos.closerId), abonos.moneda),
-    ventasPorCloser({ programId, rango }, db),
-    grupoDeCitas(db, { programId, rango, ahora }),
+    ventasPorCloser({ programId, rango, cohorteId }, db),
+    grupoDeCitas(db, { programId, rango, ahora, cohorteId }),
   ]);
 
   const porClave = new Map<
@@ -807,7 +820,7 @@ export async function vistaDeCohorteActiva(
  * nunca divide por cero (null si no hay meta o es 0).
  */
 export async function leadsDelRango(
-  { programId, rango, claveCloser }: Alcance,
+  { programId, rango, claveCloser, cohorteId }: Alcance,
   db: Db = dbDeLaApp,
 ): Promise<LeadsDelRango> {
   // Filtrado por closer no hay a que preguntarle: la atribucion vivia en
@@ -818,7 +831,7 @@ export async function leadsDelRango(
         .select({ n: sql<number>`count(*)::int` })
         .from(leads)
         .where(
-          filtroLeads({ programId, rango, claveCloser }),
+          filtroLeads({ programId, rango, claveCloser, cohorteId }, db),
         );
   const conteoLeads = claveCloser ? null : (fila?.n ?? 0);
 

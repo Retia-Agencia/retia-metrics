@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { etapasQueExigen } from "@/lib/deals/requisitos";
 import { tasa } from "@/lib/queries/dashboard";
-import { porClaveDeDeal } from "@/lib/queries/metricas-filtros";
+import { porClaveDeDeal, porCohorteDeDeal } from "@/lib/queries/metricas-filtros";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { vigente } from "@/lib/queries/vigente";
 
@@ -26,12 +26,13 @@ export const ETAPAS_ATENDIDAS: readonly EtapaDeal[] = [
  * llevan valor vendido, `requisitos.ts`). El closer es el dueño del deal; con una clave histórica
  * exige el join de `users` por `deals.ownerUserId`. La vigencia la pone cada lector en su cadena.
  */
-export function filtroAtendidos({ programId, claveCloser }: { programId: string; claveCloser?: string | null }) {
+export function filtroAtendidos({ programId, claveCloser, cohorteId }: { programId: string; claveCloser?: string | null; cohorteId?: string | null }) {
   return and(
     eq(deals.programId, programId),
     inArray(deals.etapa, [...ETAPAS_ATENDIDAS]),
     eq(deals.cortesia, false),
     porClaveDeDeal(claveCloser),
+    porCohorteDeDeal(cohorteId),
   );
 }
 
@@ -73,7 +74,7 @@ export interface BanderasDelPulso {
 }
 
 export async function banderasDelPulso(
-  alcance: { programId: string; claveCloser?: string | null },
+  alcance: { programId: string; claveCloser?: string | null; cohorteId?: string | null },
   db: Db = dbDeLaApp,
 ): Promise<BanderasDelPulso> {
   const [fila] = await db

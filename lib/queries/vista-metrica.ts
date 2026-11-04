@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { parsearPeriodoUrl, resolverPeriodo, type PeriodoResuelto } from "@/lib/periodo";
-import { cohorteActiva } from "@/lib/queries/cohortes";
-import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
+import { cohorteDelHub, contextoDelFiltro } from "@/lib/queries/cohorte-del-hub";
 import {
   desglosesDelResumen,
   listaDeMetrica,
@@ -99,7 +98,7 @@ export function urlDeLista({
   origen: string;
   claveCloser?: string | null;
   moneda?: string;
-  cohorteId?: string;
+  cohorteId?: string | null;
   subconjunto?: SubconjuntoDelEmbudo;
   filtrosDeOrigen?: { source?: string | null; medium?: string | null; campaign?: string | null; resultado?: "show" | "no_show"; categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida"; area?: string; canal?: string | null };
   /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
@@ -145,6 +144,8 @@ export interface EntradaDeDetalles {
   periodo: PeriodoResuelto;
   /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
   claveCloser: string | null;
+  /** El filtro de cohorte del Hub (377): `null` o ausente = todas. Acota la cifra y viaja a su lista. */
+  cohorteId?: string | null;
   /**
    * El origen de la pantalla que arma estos detalles (ticket 174, 197): se pega como
    * `?desde=` al href de cada lista para que su "Volver" regrese a la pestaña y el filtro
@@ -159,7 +160,7 @@ export interface EntradaDeDetalles {
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
   const claveCloser = metrica === "cartera" ? null : entrada.claveCloser;
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
-  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser });
+  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
@@ -226,7 +227,7 @@ function detalleDeDeals(
   claveCloser: string | null,
   subconjunto?: SubconjuntoDelEmbudo,
 ): DetalleDeCifra {
-  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, subconjunto });
+  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId, subconjunto });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
@@ -258,7 +259,7 @@ export async function detallesDelEmbudo(
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<DetallesDelEmbudo> {
-  const embudo = await leerEmbudoConMiembros(db, { programId: entrada.programId, rango: entrada.periodo.a }, ahora);
+  const embudo = await leerEmbudoConMiembros(db, { programId: entrada.programId, rango: entrada.periodo.a, cohorteId: entrada.cohorteId }, ahora);
   const detalle = (metrica: MetricaDeEmbudo, subconjunto: SubconjuntoDelEmbudo, claveCloser: string | null = null) =>
     detalleDeDeals(
       entrada,
@@ -314,7 +315,7 @@ export async function proximasPorSemana(
   ahora = entrada.ahora ?? ahora;
   const fechas = await fechasDeMetrica(
     "agendas_futuras",
-    { programId: entrada.programId, hoy: entrada.hoy, rango: { desde: entrada.hoy, hasta: HASTA_SIEMPRE }, ahora },
+    { programId: entrada.programId, hoy: entrada.hoy, rango: { desde: entrada.hoy, hasta: HASTA_SIEMPRE }, cohorteId: entrada.cohorteId, ahora },
     db,
   );
   if (fechas.length === 0) return [];
@@ -348,7 +349,7 @@ export async function detallesPorSemana(
   ahora: Date = new Date(),
 ): Promise<SemanaDeAgendas[]> {
   ahora = entrada.ahora ?? ahora;
-  const grupos = await gruposPorSemana(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora });
+  const grupos = await gruposPorSemana(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora, cohorteId: entrada.cohorteId });
   return Promise.all(grupos.map(async ({ semana, grupo }) => {
     const deLaSemana = { ...entrada, periodo: { preset: "custom" as const, a: semana, b: null }, claveCloser: null };
     const delGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_sin_show" | "grupo_pendientes") => detalleDeDeals(
@@ -407,7 +408,7 @@ export interface EntradaDeLista {
   hoy: string;
   codigoCloser?: string;
   moneda?: string;
-  cohorteId?: string;
+  cohorteId?: string | null;
   /** Solo el embudo por etapas (ticket 188). */
   etapa?: string;
   antiguedad?: string;
@@ -435,20 +436,18 @@ export interface EntradaDeLista {
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
   const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
-  const cohorte = seleccion.preset.startsWith("cohorte") ? await cohorteActiva(programId, db) : null;
-  const ventanas = cohorte ? await ventanasAnterioresDeCohorte(db, programId, cohorte.id) : {};
-  const resuelto = resolverPeriodo(seleccion, {
-    hoy,
-    actual: cohorte?.fechaInicioVentas && cohorte.fechaCierreVentas
-      ? { inicio: cohorte.fechaInicioVentas, cierre: cohorte.fechaCierreVentas }
-      : null,
-    ...ventanas,
-  });
+  // Un id de cohorte que no es de este programa se ignora: la lista no se filtra (el programa es frontera).
+  const delHub = await cohorteDelHub(db, programId, { parametro: cohorteId ?? undefined, cohorteVieja: seleccion.cohorteVieja });
+  const cohorteAplicada = cohorteId && delHub.cohorte?.id === cohorteId ? cohorteId : null;
+  const contexto = seleccion.preset === "desde_el_inicio" || seleccion.comparaciones?.length
+    ? await contextoDelFiltro(db, programId, delHub.cohorte, hoy)
+    : { inicio: null, anterior: null };
+  const resuelto = resolverPeriodo(seleccion, { hoy, inicio: contexto.inicio, anterior: contexto.anterior });
   // `sin_b=1`: el origen no comparaba. Se calla también el aviso de "elige B", que aquí no aplica.
   const periodo = entrada.busqueda.sin_b === "1" && !seleccion.b
     ? { ...resuelto, b: null, aviso: seleccion.aviso }
     : resuelto;
-  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
+  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

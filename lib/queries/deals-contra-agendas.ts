@@ -96,9 +96,9 @@ export function acumularPorHabil(rango: Rango, conteos: ConteoDelDia[]): PuntoHa
  */
 export async function serieDealsContraAgendas(
   db: Db,
-  { programId, rango }: AlcanceDeSerie,
+  { programId, rango, cohorteId }: AlcanceDeSerie,
 ): Promise<SerieDealsContraAgendas> {
-  const alcance = { programId, rango };
+  const alcance = { programId, rango, cohorteId };
   const [porDiaDeDeal, porDiaDeAgenda, primerasAgendas] = await Promise.all([
     db
       .select({ dia: fechaAnclaDealCreado(), n: sql<number>`count(*)::int` })
@@ -109,7 +109,7 @@ export async function serieDealsContraAgendas(
     db
       .select({ dia: fechaAnclaAgendaCreada(), n: sql<number>`count(*)::int` })
       .from(calls)
-      .where(and(filtroAgendasCreadas(alcance), vigente(calls)))
+      .where(and(filtroAgendasCreadas(alcance, db), vigente(calls)))
       .groupBy(fechaAnclaAgendaCreada()),
     // Cada deal que agendó, con el día de su primera agenda. Los mismos filtros que la lista
     // `deals_que_agendaron`, para que el último punto cuadre con ella.

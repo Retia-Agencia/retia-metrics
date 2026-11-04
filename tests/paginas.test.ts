@@ -372,6 +372,7 @@ beforeEach(() => {
 const VISTA_VACIA = {
   periodo: { preset: "hoy", a: { desde: "2026-09-15", hasta: "2026-09-15" }, b: { desde: "2026-09-14", hasta: "2026-09-14" } },
   anteriorDisponible: false,
+  filtroDeCohorte: { cohorteId: null, cohorteIdDeB: null, elegida: null, opciones: [], ventas: [] },
   seleccion: { preset: "hoy", rango: { desde: "2026-09-15", hasta: "2026-09-15" } },
   claveCloser: null,
   closers: [],

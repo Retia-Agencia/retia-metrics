@@ -7,7 +7,7 @@ import { mismoPuntoHabil } from "@/lib/periodo";
 import { sumarDias } from "@/lib/rangos";
 import { pivotarSerie } from "@/lib/series-alineadas";
 import { ventasConDiaEn, type Alcance, type Rango } from "@/lib/queries/dashboard";
-import { filtroCaja, porClaveDeDeal } from "@/lib/queries/metricas-filtros";
+import { filtroCaja, porClaveDeDeal, porCohorteDeDeal } from "@/lib/queries/metricas-filtros";
 import { leerMetasDelMes, moverMes } from "@/lib/queries/metas";
 import { contratadoDeDeals, sumaDeAbonos } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
@@ -70,7 +70,7 @@ export async function leerSeriesDeDinero(
     .from(deals)
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(and(inArray(deals.id, vendidas.map((venta) => venta.dealId)),
-      eq(deals.programId, entrada.programId), porClaveDeDeal(entrada.claveCloser), vigente(deals)));
+      eq(deals.programId, entrada.programId), porClaveDeDeal(entrada.claveCloser), porCohorteDeDeal(entrada.cohorteId), vigente(deals)));
   const idsElegidos = new Set(elegidas.map((deal) => deal.id));
   const ventas = vendidas.filter((venta) => idsElegidos.has(venta.dealId));
 

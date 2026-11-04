@@ -674,23 +674,30 @@ paginación e ids porque pertenecen al programa anterior.
 - `lib/periodo.ts` valida con zod (`parsearPeriodoUrl`) y resuelve (`resolverPeriodo`). El servidor
   entrega `hoyEnBogota()`; el navegador nunca calcula hoy. `SelectorPeriodo` es el único control,
   reutilizable en el Hub y las listas; el Hub consulta A y, si se pide comparar, B.
-- URL: `?periodo=hoy|ayer|manana|esta_semana|semana_pasada|este_mes|mes_pasado|cohorte_actual|cohorte_anterior`.
+- URL: `?periodo=hoy|ayer|manana|esta_semana|semana_pasada|este_mes|mes_pasado|desde_el_inicio`. **La cohorte NO es un
+  atajo del periodo (377, G-1):** vive en `?cohorte=<id>|todas` y el Hub abre en la activa. "Desde el inicio" va del
+  primer hecho de la cohorte elegida (lo más temprano entre su inicio de ventas y su primera venta real) o, con
+  "Todas", del programa, hasta **hoy**. Los enlaces viejos `periodo=cohorte_actual|cohorte_anterior` y `rango=cohorte`
+  siguen sirviendo: se leen como Desde el inicio + esa cohorte (`cohorteVieja`).
   Para rangos libres: `?periodo=custom&a_desde=YYYY-MM-DD&a_hasta=YYYY-MM-DD&b_desde=YYYY-MM-DD&b_hasta=YYYY-MM-DD`.
   A explícito prevalece sobre el atajo y se etiqueta Personalizado. B explícito puede acompañar un atajo.
   **Desde el ADR 0106 sin parámetros no hay comparación**: se pide con `?comparar=anterior,cohorte,AAAA-MM-DD_AAAA-MM-DD`
   (hasta tres, cada una quitable; `comparar=no` y `b_desde`/`b_hasta` siguen abriendo). `periodo.b` es la primera y
-  `periodo.comparaciones` la lista. El Hub de un programa sin parámetros abre en la cohorte en curso, o en Este mes
-  con aviso si no tiene ventana. Se mantienen `?rango=hoy|semana|mes|cohorte|custom&desde&hasta`.
+  `periodo.comparaciones` la lista. El Hub de un programa sin parámetros abre en la cohorte activa y Desde el inicio
+  (DH-1), o en Este mes con aviso si aún no hay actividad. La barra del Hub (`FiltroDashboard`) tiene cuatro
+  controles en este orden, cada uno con su etiqueta: Cohorte · Periodo · Closer · Comparar con; Hoy no la dibuja,
+  y Pauta y Origen no llevan Cohorte (el gasto y el UTM no son de una cohorte). Se mantienen `?rango=hoy|semana|mes|cohorte|custom&desde&hasta`.
   Parámetros repetidos, fechas imposibles, pares incompletos o invertidos caen a Hoy con aviso visible.
   El control conserva los otros filtros y sustituye las claves de periodo antiguas al navegar.
 - Semana actual y mes actual llegan hasta hoy; semana pasada va de lunes a domingo y mes pasado es
   completo. B corta al mismo número de hábiles de A (`diasHabilesEntre`), con tope al cierre anterior.
   Un día compara con el hábil anterior; A sin hábiles deja B nulo, anunciado, editable manualmente.
   Un rango libre sin B toma los hábiles inmediatamente anteriores. Los festivos cuentan como hábiles.
-- Cohortes: A usa su ventana de venta hasta hoy o su cierre. Las anteriores se ordenan por inicio de
-  clases (desempate por id), siempre del mismo programa; no se salta una cohorte sin ventana conocida.
-  Cohorte anterior compara con la previa a ella. Sin ventana elegible A cae a Hoy con aviso; sin
-  anterior B es nulo, nunca una ventana inventada.
+- Cohortes: las anteriores se ordenan por inicio de clases (desempate por id), siempre del mismo programa; no se
+  salta una cohorte sin ventana conocida. "Cohorte anterior" compara con la previa a la ELEGIDA, al mismo día hábil
+  de su venta. Sin actividad desde la cual contar, A cae a Hoy con aviso; sin anterior B es nulo, nunca una
+  ventana inventada. Bajo el filtro Cohorte va una línea con sus fechas de venta y la primera y la última venta
+  reales (`lib/hub/linea-de-cohorte.ts`); la lista detrás de cada cifra recibe `cohorte` (`urlDeLista`).
 - `lib/variacion.ts`: `{ actual, anterior, delta, deltaPct }`; `deltaPct` es una fracción y vale `null`
   con base cero. Base negativa usa su magnitud. `Variacion` pinta `358 → 4 · −354 · −99%`, con `cifra`,
   `num`/`pct`, menos tipográfico y `—` con base cero. `porcentajeConBase(cantidad, base)` escribe

@@ -327,10 +327,10 @@ function calcularTiempos(
 /** Carga las filas del programa y delega todas las reglas al nucleo puro. */
 export async function embudoPorEtapas(
   db: Db,
-  { programId, rango }: { programId: string; rango: Rango },
+  { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
   ahora: Date = new Date(),
 ): Promise<ResultadoEmbudoEtapas> {
-  return calcularEmbudoEtapas(await cargarEntradaDelEmbudo(db, { programId, rango }, ahora));
+  return calcularEmbudoEtapas(await cargarEntradaDelEmbudo(db, { programId, rango, cohorteId }, ahora));
 }
 
 /**
@@ -339,7 +339,7 @@ export async function embudoPorEtapas(
  */
 export async function cargarEntradaDelEmbudo(
   db: Db,
-  { programId, rango }: { programId: string; rango: Rango },
+  { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
   ahora: Date = new Date(),
 ): Promise<EntradaCalculoEmbudo> {
   const [filasDeal, filasHistorial, idsCerrados] = await Promise.all([
@@ -359,7 +359,7 @@ export async function cargarEntradaDelEmbudo(
       .leftJoin(users, eq(users.id, deals.ownerUserId))
       .leftJoin(cohorts, eq(cohorts.id, deals.cohortId))
       .leftJoin(motivos, eq(motivos.id, deals.motivoId))
-      .where(and(eq(deals.programId, programId), vigente(deals))),
+      .where(and(eq(deals.programId, programId), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))),
     db.select({
       id: dealEtapaHistorial.id,
       dealId: dealEtapaHistorial.dealId,
@@ -371,10 +371,11 @@ export async function cargarEntradaDelEmbudo(
       .innerJoin(deals, and(
         eq(deals.id, dealEtapaHistorial.dealId),
         eq(deals.programId, programId),
+        cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
         vigente(deals),
       ))
       .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id)),
-    cerradosEn(db, programId, rango),
+    cerradosEn(db, programId, rango, cohorteId),
   ]);
 
   return {

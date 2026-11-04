@@ -27,8 +27,12 @@ const claseInput = "cifra w-full rounded-lg border border-border bg-background p
 
 interface SelectorPeriodoProps {
   periodo: PeriodoResuelto;
-  cohorteDisponible: boolean;
   anteriorDisponible: boolean;
+  /**
+   * Qué parte pinta: el Hub las separa en dos controles con otro entre medio (377), el resto de
+   * pantallas pinta las dos juntas.
+   */
+  partes?: "ambas" | "periodo" | "comparacion";
   /** Solo el periodo, sin comparación: el de las listas (ticket 141). */
   soloA?: boolean;
   /** El agregado entre programas no tiene una ventana de cohorte común. */
@@ -36,7 +40,7 @@ interface SelectorPeriodoProps {
   variante?: "bloque" | "chip";
 }
 
-export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible, soloA = false, mostrarCohortes = true, variante = "bloque" }: SelectorPeriodoProps) {
+export function SelectorPeriodo({ periodo, anteriorDisponible, partes = "ambas", soloA = false, mostrarCohortes = true, variante = "bloque" }: SelectorPeriodoProps) {
   const searchParams = useSearchParams();
   // Lo pedido sale de la URL con el mismo parser del servidor; lo resuelto, del periodo.
   const pedidos = parsearPeriodoUrl(Object.fromEntries(searchParams.entries())).comparaciones ?? [];
@@ -44,10 +48,11 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
   const [dialogoPeriodo, setDialogoPeriodo] = useState(false);
   const [dialogoComparacion, setDialogoComparacion] = useState(false);
   const { poner } = useFiltrosUrl();
-  const atajos = Object.entries(atajosDePeriodo).filter(([valor]) => (mostrarCohortes && !soloA) || !valor.startsWith("cohorte"));
+  // "Desde el inicio" cuenta desde la cohorte del filtro: sin cohortes a la vista (todos los programas, listas) no existe.
+  const atajos = Object.entries(atajosDePeriodo).filter(([valor]) => (mostrarCohortes && !soloA) || valor !== "desde_el_inicio");
   const legible = (r: PeriodoResuelto["a"]) => r.desde === r.hasta ? fecha(r.desde) : `${fecha(r.desde)} a ${fecha(r.hasta)}`;
   const nombrePreset = periodo.preset === "custom" ? "Personalizado" : atajosDePeriodo[periodo.preset];
-  const esCohorte = periodo.preset === "cohorte_actual" || periodo.preset === "cohorte_anterior";
+  const esCohorte = periodo.preset === "desde_el_inicio";
   const yaPedido = (clave: string) => pedidos.some((p) => claveDePedido(p) === clave);
   // En un atajo de cohorte el periodo anterior ES la cohorte anterior: una sola opción.
   const opcionesFijas: { pedido: PedidoDeComparacion; etiqueta: string; deshabilitada: boolean }[] = [
@@ -66,7 +71,7 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
 
   return (
     <div className={variante === "chip" ? "contents" : "flex flex-wrap gap-2"}>
-      <Dialog open={dialogoPeriodo} onOpenChange={setDialogoPeriodo}>
+      {partes !== "comparacion" ? <Dialog open={dialogoPeriodo} onOpenChange={setDialogoPeriodo}>
         <DialogTrigger
           render={<Button type="button" variant="outline" size={variante === "chip" ? "sm" : "default"} className="h-auto whitespace-normal border-marca-texto/40 text-left aria-expanded:border-ring" />}
           title="Cambiar el periodo: las cifras de esta pantalla se calculan sobre estas fechas"
@@ -90,13 +95,11 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
             <SelectTrigger aria-label="Atajo del periodo"><SelectValue /></SelectTrigger>
             <SelectContent>
               {atajos.map(([valor, etiqueta]) => (
-                <SelectItem key={valor} value={valor} disabled={(valor === "cohorte_actual" && !cohorteDisponible) || (valor === "cohorte_anterior" && !anteriorDisponible)}>{etiqueta}</SelectItem>
+                <SelectItem key={valor} value={valor}>{etiqueta}</SelectItem>
               ))}
               <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
-          {!soloA && mostrarCohortes && !cohorteDisponible ? <p className="text-sm text-muted-foreground">Sin cohorte actual con ventana de venta.</p> : null}
-          {!soloA && mostrarCohortes && !anteriorDisponible ? <p className="text-sm text-muted-foreground">Sin cohorte anterior con ventana de venta.</p> : null}
           <form
             key={`${periodo.a.desde}-${periodo.a.hasta}`}
             className="grid grid-cols-2 gap-2"
@@ -125,9 +128,9 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
             </fieldset>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog> : null}
 
-      {!soloA ? pedidos.map((pedido, i) => {
+      {!soloA && partes !== "periodo" ? pedidos.map((pedido, i) => {
         const clave = claveDePedido(pedido);
         const rango = resueltas.get(clave);
         const nombre = nombreDePedido(pedido, periodo.preset);
@@ -144,7 +147,7 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
         );
       }) : null}
 
-      {!soloA && pedidos.length < MAXIMO_DE_COMPARACIONES ? (
+      {!soloA && partes !== "periodo" && pedidos.length < MAXIMO_DE_COMPARACIONES ? (
         <Dialog open={dialogoComparacion} onOpenChange={setDialogoComparacion}>
           <DialogTrigger
             render={<Button type="button" variant="outline" size={variante === "chip" ? "sm" : "default"} className="aria-expanded:border-ring" />}
@@ -194,7 +197,7 @@ export function SelectorPeriodo({ periodo, cohorteDisponible, anteriorDisponible
           </DialogContent>
         </Dialog>
       ) : null}
-      {variante !== "chip" && periodo.aviso ? <p role="status" className="w-full text-xs text-muted-foreground">{periodo.aviso}</p> : null}
+      {variante !== "chip" && partes !== "comparacion" && periodo.aviso ? <p role="status" className="w-full text-xs text-muted-foreground">{periodo.aviso}</p> : null}
     </div>
   );
 }

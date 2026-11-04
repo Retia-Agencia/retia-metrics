@@ -33,6 +33,7 @@ export async function ventanasAnterioresDeCohorte(
   const inicioActual = actual.inicio;
   const filas = await db
     .select({
+      id: cohorts.id,
       inicio: cohorts.fechaInicioVentas,
       cierre: cohorts.fechaCierreVentas,
     })
@@ -43,6 +44,7 @@ export async function ventanasAnterioresDeCohorte(
 
   const ventana = (fila: typeof filas[number] | undefined) => fila?.inicio && fila.cierre
     ? {
+        id: fila.id,
         inicio: fila.inicio,
         cierre: fila.cierre,
       }

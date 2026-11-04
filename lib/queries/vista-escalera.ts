@@ -67,6 +67,10 @@ export interface EntradaDeVistaDeEscalera {
   periodo: PeriodoResuelto;
   /** El filtro de closer del Hub; acota la fila principal y la de calidad. */
   claveCloser: string | null;
+  /** El filtro de cohorte del Hub (377); `null` = todas. */
+  cohorteId?: string | null;
+  /** La cohorte con que se consulta B (la anterior si se compara contra ella). */
+  cohorteIdDeB?: string | null;
   origen: string;
   /** Quien ve el trabajo del equipo (`veEquipoComercial`): sin él no hay closers ni listas. */
   conEquipo: boolean;
@@ -104,6 +108,7 @@ function fila(
               periodo: entrada.periodo,
               origen: entrada.origen,
               claveCloser: enlace.claveCloser,
+              cohorteId: entrada.cohorteId ?? undefined,
               escalera: { escalon, calidad: enlace.calidad },
             }),
           };
@@ -123,8 +128,8 @@ function fila(
 /** Arma la tarjeta: carga la escalera del periodo A (y la del B si hay comparación) una vez cada una. */
 export async function vistaDeEscalera(entrada: EntradaDeVistaDeEscalera, db: Db = dbDeLaApp): Promise<VistaDeEscalera> {
   const [cargada, anterior] = await Promise.all([
-    cargarEscalera(db, { programId: entrada.programId, rango: entrada.periodo.a }, entrada.ahora),
-    entrada.periodo.b ? cargarEscalera(db, { programId: entrada.programId, rango: entrada.periodo.b }, entrada.ahora) : Promise.resolve(null),
+    cargarEscalera(db, { programId: entrada.programId, rango: entrada.periodo.a, cohorteId: entrada.cohorteId }, entrada.ahora),
+    entrada.periodo.b ? cargarEscalera(db, { programId: entrada.programId, rango: entrada.periodo.b, cohorteId: entrada.cohorteIdDeB === undefined ? entrada.cohorteId : entrada.cohorteIdDeB }, entrada.ahora) : Promise.resolve(null),
   ]);
   const delFiltro = { claveCloser: entrada.claveCloser };
   const principal = fila(

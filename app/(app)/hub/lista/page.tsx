@@ -43,7 +43,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
   const { metrica, moneda, pagina = 1 } = validado.data;
   if (moneda && metrica !== "caja") notFound();
   const hoy = hoyEnBogota();
-  const periodo = resolverPeriodo(parsearPeriodoUrl(busqueda), { hoy, actual: null });
+  const periodo = resolverPeriodo(parsearPeriodoUrl(busqueda), { hoy });
   const secciones = await listaDeMetrica(
     metrica,
     { programId: programas.map((p) => p.id), rango: periodo.a, hoy, moneda },
