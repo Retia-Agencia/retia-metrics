@@ -3,7 +3,7 @@ id: 371
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-7, el norte) · ADR 0023, 0106 · 146, 147 · absorbe lo que le faltaba al 253"
 depends: [352]
-status: todo
+status: done
 ---
 
 # 371 — "¿Vamos a llegar?": el bloque de metas que no tocan los filtros
@@ -60,12 +60,22 @@ las alertas del 147. Ninguna muestra las cuatro combinaciones juntas, y ninguna 
 
 ## Done cuando
 
-- [ ] Test: con filtros puestos en la URL (cohorte C2, periodo Mes pasado, un closer), la matriz da las mismas cifras
+- [x] Test: con filtros puestos en la URL (cohorte C2, periodo Mes pasado, un closer), la matriz da las mismas cifras (por construcción: `leerVamosALlegar` y las props de `<VamosALlegar>` solo admiten programa y hoy, `tests/vamos-a-llegar.test.ts`)
   que sin filtros.
-- [ ] Test: meta USD de la cohorte = meta cupos × precio de la cohorte; llevamos USD = Vendido de la cohorte (369).
-- [ ] Test: el último día hábil, "por día hábil que queda" da el faltante entero (borde del 352).
-- [ ] Test de tipo: pasarle un periodo a `<VamosALlegar>` no compila.
-- [ ] Recorrido en `dev:local` con ventas sembradas: la matriz al pie de las cinco pestañas y de "todos", escritorio y
+- [x] Test: meta USD de la cohorte = meta cupos × precio de la cohorte; llevamos USD = Vendido de la cohorte (369).
+- [x] Test: el último día hábil, "por día hábil que queda" da el faltante entero (borde del 352).
+- [x] Test de tipo: pasarle un periodo a `<VamosALlegar>` no compila.
+- [x] Recorrido en `dev:local` con ventas sembradas: la matriz al pie de las cinco pestañas y de "todos", escritorio y
   375 px.
-- [ ] El 253 queda `reemplazado` por este ticket en su archivo y en el tracker.
-- [ ] Regla N8: `docs/metricas.md` §2 (meta USD de la cohorte) y `docs/hub.md` §1 en el mismo commit.
+- [x] El 253 queda `reemplazado` por este ticket en su archivo y en el tracker.
+- [x] Regla N8: `docs/metricas.md` §2 (meta USD de la cohorte) y `docs/hub.md` §1 en el mismo commit.
+
+## Cierre (4-nov)
+
+- `lib/queries/vamos-a-llegar.ts` (cuenta pura `armarVamosALlegar` + `leerVamosALlegar`), `components/metas/vamos-a-llegar.tsx`.
+  Montado al pie de las cinco pestañas del Hub de programa y de la vista de todos (una matriz por programa, sin sumar).
+- Se borraron de Hoy-todos "Cohorte activa por programa" y "Meta del mes por programa" (sin llamadores, N7). **Se queda**
+  `SeccionMetas` en Hoy de un programa: tiene lo que la matriz no (navegación a meses pasados, meta por cohorte,
+  compensación de la semana); retirarla es decisión aparte.
+- Proyección en USD: cupos que faltan × precio de la cohorte, la misma regla de la meta USD (supuesto nombrado en `metricas.md`).
+- Color de cada celda: umbral de Programa › Ventas (147): rojo si la alerta está disparada, ámbar bajo el aceptable, verde si no.

@@ -135,30 +135,6 @@ function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
     }} />;
 }
 
-function MetasPorPrograma({ vista }: { vista: VistaDeTodos }) {
-  return <>
-    <TablaPorPrograma titulo="Cohorte activa por programa" vista={vista} seccion="hoy"
-      cabeceras={["Cohorte", "Meta cupos", "Vendidos", "Faltan", "Meta dinámica", "Cumplimiento"]}
-      celdas={(fila) => <>
-        <td className="text-right">{fila.dashboard.cohorte?.codigo ?? "Sin cohorte activa"}</td>
-        <td className="text-right">{fila.metaCupos ? num(fila.metaCupos.valor) : "—"}</td>
-        <td className="text-right">{fila.vendidos ? num(fila.vendidos.valor) : "—"}</td>
-        <td className="text-right">{fila.dashboard.cohorte ? num(fila.dashboard.cohorte.faltan) : "—"}</td>
-        <td className="text-right">{fila.metaDinamica ? num(fila.metaDinamica.valor) : "—"}</td>
-        <td className="text-right">{tasa(fila.dashboard.cohorte?.ventana?.cumplimiento ?? null)}</td>
-      </>} />
-    <TablaPorPrograma titulo="Meta del mes por programa" vista={vista} seccion="hoy"
-      cabeceras={["Meta cupos", "Meta USD", "Vendidos", "Avance", "Deuda cupos"]}
-      celdas={({ dashboard: { metasDelMes: meta } }) => <>
-        <td className="text-right">{meta.mesSinVentana ? "—" : num(meta.metaCupos)}</td>
-        <td className="text-right">{meta.mesSinVentana ? "—" : usd(meta.metaUsd)}</td>
-        <td className="text-right">{num(meta.vendidos)}</td>
-        <td className="text-right">{tasa(meta.avancePct)}</td>
-        <td className="text-right">{meta.mesSinVentana ? "—" : num(meta.deuda)}</td>
-      </>} />
-  </>;
-}
-
 function Cartera({ vista }: { vista: VistaDeTodos }) {
   return <Card>
     <CardHeader><CardTitle>Por cobrar · foto de hoy</CardTitle></CardHeader>
@@ -198,7 +174,6 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
     <h2 className="text-xl font-semibold">Hoy</h2>
     <HoyPorPrograma vista={vista} hoy={hoy} />
     <div className={GRILLA}><VendidoYCaja vista={vista} origen={origen} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
-    <MetasPorPrograma vista={vista} />
   </section>;
 
   if (seccion === "dinero") return <section id="dinero" className="space-y-4">

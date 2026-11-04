@@ -2,6 +2,7 @@ import Link from "next/link";
 import { after } from "next/server";
 import { desc } from "drizzle-orm";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
+import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
 import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { Origen } from "@/components/dashboard/origen";
@@ -368,6 +369,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               detalleManana={detalleManana}
             />
           )}
+          {/* El norte (371): al pie de TODAS las pestañas y sin leer los filtros: solo programa y hoy. */}
+          <div className="mt-6">
+            <VamosALlegar programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={veEquipo} configurar={configurar} />
+          </div>
         </div>
       </PantallaFija>
     </PageShell>

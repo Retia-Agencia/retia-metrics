@@ -30,7 +30,7 @@ a fase 2.
 | [x] | 374 | [El Hub habla un solo idioma](./374-el-hub-habla-un-solo-idioma.md) | — | done · 3-nov · reemplaza al 357 |
 | [ ] | 377 | [Los filtros del Hub: periodo, cohorte y closer, separados](./377-filtros-del-hub-periodo-cohorte-y-closer.md) | 352 | todo · fase 1, paso 2 · absorbe al 251 |
 | [ ] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 377, 352, 374 | todo · fase 1, paso 3 |
-| [ ] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | todo · fase 1, paso 3 · absorbe al 253 |
+| [x] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | done · 4-nov · fase 1, paso 3 · absorbe al 253 |
 | [ ] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 377 | todo · fase 1, paso 3 |
 | [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | todo · fase 1, paso 4 · absorbe al 256 |
 | [ ] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | todo · fase 1, paso 4 · la plantilla del 15-sep v5 · absorbe al 254 y la parte imprimible del 300 |

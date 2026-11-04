@@ -112,6 +112,11 @@ seguidos. **Detectar no es actuar**, así que el Hub cierra el ciclo con las acc
 **El foco de esta versión** (Mani, 14-oct): la operación comercial y el gasto de pauta, o sea todo lo que es
 entrada y proceso del lead. Los masivos de Kapso y la cola de descartados van después (H-9).
 
+**El norte, siempre a la vista (371, 4-nov):** al pie de las cinco pestañas del Hub de cada programa y de la vista de
+todos (una matriz por programa, nunca sumada) va "¿Vamos a llegar?": lo que llevamos contra la meta del mes y de la
+cohorte activa, en cupos y en USD, con lo esperado a hoy, lo que toca por día hábil y la proyección. No cambia con los
+filtros: su tipo de entrada solo admite programa y hoy. Definición en `docs/metricas.md` §3.
+
 ### Los objetivos, cada uno verificable
 
 | # | Objetivo | Se verifica cuando |
