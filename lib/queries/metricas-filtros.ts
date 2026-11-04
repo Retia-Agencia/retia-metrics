@@ -159,13 +159,21 @@ export const esMovimientoDeVenta = (db: Db) => and(
       )),
   ),
 );
+/**
+ * El predicado de venta sobre el deal (352, DA-1, Mani 3-nov): su etapa ACTUAL es Abonado o Completo.
+ * Un deal que pasa a Cierre Perdido deja de ser venta y cuenta como perdido, en toda metrica a la vez.
+ * Es la gemela SQL de `esEtapaVendida` (`lib/deals/etapas.ts`) y la UNICA lista de etapas con que se
+ * cuenta una venta (guardian: `tests/venta-una-definicion.test.ts`).
+ */
+export const etapaVendida = () => inArray(deals.etapa, [...ETAPAS_VENDIDAS]);
+
 const vendidoEnElRango = (rango: Rango) => between(diaDeVenta(), rango.desde, rango.hasta);
 
 export function vendidosEn(db: Db, rango: Rango) {
   return db
     .select({ dealId: dealEtapaHistorial.dealId })
     .from(dealEtapaHistorial)
-    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), etapaVendida(), vigente(deals)))
     .where(esMovimientoDeVenta(db))
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
@@ -218,7 +226,7 @@ export function ventasConDiaEn(db: Db, rango: Rango) {
   return db
     .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta().as("dia") })
     .from(dealEtapaHistorial)
-    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), vigente(deals)))
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), etapaVendida(), vigente(deals)))
     .where(esMovimientoDeVenta(db))
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));

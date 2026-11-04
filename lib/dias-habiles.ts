@@ -112,21 +112,42 @@ export function diaHabilDe(
 }
 
 /**
- * Cupos que faltan por vender por cada dia habil que le queda a la cohorte:
- * max(meta - vendidos, 0) / diasHabilesRestantes.
+ * La META DE HOY, medida a la APERTURA del dia (352, DA-5): lo que faltaba al abrir hoy, repartido entre
+ * los dias habiles que quedan CONTANDO hoy.
  *
- * Con `diasHabilesRestantes = 0` no se divide por cero: se devuelve el faltante
- * completo si es > 0 (hay que cerrarlo todo hoy), o 0 si la meta ya se cumplio.
- * No se redondea aca: dar formato es tarea de lib/format.ts.
+ *   max(meta - vendidosAntesDeHoy, 0) / diasHabilesEntre(hoy, cierre)
+ *
+ * El borde es explicito y es UNO para todas las pantallas: hoy cuenta como dia restante y las ventas de hoy
+ * NO se descuentan (si se descontaran, la meta bajaria a medida que se vende y el cumplimiento del dia
+ * subiria sin tope: 4 vendidas contra una meta de 2 daban 333 %). El ultimo dia habil da el faltante
+ * entero; pasado el cierre ya no quedan dias y devuelve el faltante entero tambien (no divide por cero).
+ * Un sabado o domingo reparte entre los habiles que siguen. No redondea: eso es de lib/format.ts.
  */
-export function metaDinamica(args: {
+export function metaDeHoy(args: {
   meta: number;
-  vendidos: number;
-  diasHabilesRestantes: number;
+  vendidosAntesDeHoy: number;
+  hoy: FechaCalendario;
+  cierre: FechaCalendario;
 }): number {
-  const faltantes = Math.max(args.meta - args.vendidos, 0);
-  if (args.diasHabilesRestantes <= 0) return faltantes;
-  return faltantes / args.diasHabilesRestantes;
+  const faltantes = Math.max(args.meta - args.vendidosAntesDeHoy, 0);
+  const dias = diasHabilesEntre(args.hoy, args.cierre);
+  return dias <= 0 ? faltantes : faltantes / dias;
+}
+
+/**
+ * Lo esperado por el ritmo lineal AL CIERRE de `hasta` (inclusive): meta repartida uniforme entre los habiles
+ * de la ventana [inicio, cierre], por los habiles transcurridos de inicio a `hasta`. Antes del inicio es 0;
+ * despues del cierre es la meta entera. Es la unica cuenta del esperado lineal (352, R-09): el cumplimiento
+ * de la cohorte, de las alertas y del mes la importan.
+ */
+export function esperadoLineal(args: {
+  meta: number;
+  inicio: FechaCalendario;
+  cierre: FechaCalendario;
+  hasta: FechaCalendario;
+}): number {
+  const { dia, total } = diaHabilDe(args.hasta, args.inicio, args.cierre);
+  return metaLineal({ meta: args.meta, diasHabilesTotales: total }) * dia;
 }
 
 /**

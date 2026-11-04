@@ -21,6 +21,15 @@ export const ETAPAS_DE_SETTEO: readonly EtapaDeal[] = [
 ];
 export const ETAPAS_VENDIDAS: readonly EtapaDeal[] = ["ganado_parcial", "ganado_completo"];
 
+/**
+ * Gemela en memoria del predicado de venta (352, DA-1): un deal es venta HOY si su etapa actual es
+ * Abonado o Completo. La gemela SQL es `etapaVendida()` en `lib/queries/metricas-filtros.ts`; quien
+ * cuente ventas pregunta aqui o alla, nunca con su propia lista de etapas.
+ */
+export function esEtapaVendida(etapa: EtapaDeal | string): boolean {
+  return (ETAPAS_VENDIDAS as readonly string[]).includes(etapa);
+}
+
 export const NOMBRE_DE_ETAPA: Readonly<Record<EtapaDeal, string>> = {
   potencial: "Potencial", registrado: "Registrado", en_gestion: "En gestión",
   contactado: "Contactado", calificado: "Calificado", agendado: "Agendado",

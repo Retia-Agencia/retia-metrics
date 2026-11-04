@@ -1,9 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { cohorts, objetivos } from "@/lib/db/schema";
+import { cohorts, objetivos, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
+import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil, metaDeHoy } from "@/lib/dias-habiles";
+import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
@@ -24,6 +25,7 @@ export function ventanaRitmoDeUrl(valor: unknown): VentanaRitmo {
 /**
  * Con menos personas con cita que esto, una conversión medida no se usa: con 20, una venta de más
  * o de menos mueve la tasa 5 puntos, y con menos el requerido de agendas salta de un día a otro.
+ * Es el valor POR DEFECTO de `programs.muestra_minima_conversion` (352, C-17): cada programa lleva el suyo.
  */
 export const MUESTRA_MINIMA_CONVERSION = 20;
 
@@ -52,9 +54,9 @@ interface MedicionDeCohorte {
 }
 
 /** ¿Esta medición tiene las dos muestras para encadenar ventas → shows → agendas? */
-export const alcanzaMuestra = (m: MedicionDeCohorte | null): boolean =>
-  !!m && m.tasas.deals >= MUESTRA_MINIMA_CONVERSION
-    && m.tasas.conShow >= MUESTRA_MINIMA_CONVERSION && m.tasas.vendidos >= 1;
+export const alcanzaMuestra = (m: MedicionDeCohorte | null, muestraMinima: number = MUESTRA_MINIMA_CONVERSION): boolean =>
+  !!m && m.tasas.deals >= muestraMinima
+    && m.tasas.conShow >= muestraMinima && m.tasas.vendidos >= 1;
 
 /**
  * Elige las dos tasas de UN mismo grupo. El objetivo declarado sigue mandando sobre las agendas;
@@ -64,7 +66,10 @@ export function elegirConversion(args: {
   objetivo: number | null;
   anterior: MedicionDeCohorte | null;
   enCurso: (MedicionDeCohorte & { madurando: boolean }) | null;
+  /** `programs.muestra_minima_conversion`; por defecto 20. */
+  muestraMinima?: number;
 }): ConversionElegida {
+  const muestraMinima = args.muestraMinima ?? MUESTRA_MINIMA_CONVERSION;
   const muestraDe = (m: MedicionDeCohorte) => ({
     personas: m.tasas.deals,
     shows: m.tasas.conShow,
@@ -73,15 +78,15 @@ export function elegirConversion(args: {
   });
   const razonDeShow = (m: MedicionDeCohorte | null) => !m
     ? "Todavía no sabemos qué porcentaje de las agendas llega al show. Se calcula cuando haya citas con resultado."
-    : m.tasas.deals < MUESTRA_MINIMA_CONVERSION
+    : m.tasas.deals < muestraMinima
       ? m.pendientes > 0
         ? `En ${m.codigo} hay ${m.pendientes} ${m.pendientes === 1 ? "cita pasada sin resultado" : "citas pasadas sin resultado"}: cuando se ${m.pendientes === 1 ? "registre" : "registren"} se puede medir el % de show.`
-        : `En ${m.codigo} van ${m.tasas.deals} ${m.tasas.deals === 1 ? "persona" : "personas"} con cita con resultado y hacen falta ${MUESTRA_MINIMA_CONVERSION} para medir el % de show.`
+        : `En ${m.codigo} van ${m.tasas.deals} ${m.tasas.deals === 1 ? "persona" : "personas"} con cita con resultado y hacen falta ${muestraMinima} para medir el % de show.`
       : null;
   const razonDeCierre = (m: MedicionDeCohorte | null) => !m
     ? "Todavía no sabemos qué porcentaje de los shows termina en venta. Se calcula cuando haya shows."
-    : m.tasas.conShow < MUESTRA_MINIMA_CONVERSION
-      ? `En ${m.codigo} van ${m.tasas.conShow} shows y hacen falta ${MUESTRA_MINIMA_CONVERSION} para medir el % de cierre.`
+    : m.tasas.conShow < muestraMinima
+      ? `En ${m.codigo} van ${m.tasas.conShow} shows y hacen falta ${muestraMinima} para medir el % de cierre.`
       : m.tasas.vendidos < 1
         ? `Ninguno de los ${m.tasas.conShow} shows de ${m.codigo} ha comprado todavía, así que no hay con qué medir el % de cierre.`
         : null;
@@ -97,7 +102,7 @@ export function elegirConversion(args: {
     razonCierre: null,
   });
   if (args.objetivo !== null && args.objetivo > 0) {
-    const medidaShow = [args.anterior, args.enCurso].find((m) => !!m && m.tasas.deals >= MUESTRA_MINIMA_CONVERSION) ?? null;
+    const medidaShow = [args.anterior, args.enCurso].find((m) => !!m && m.tasas.deals >= muestraMinima) ?? null;
     return {
       pctShow: medidaShow?.tasas.pctShow ?? null,
       pctCierre: null,
@@ -110,8 +115,8 @@ export function elegirConversion(args: {
       razonCierre: null,
     };
   }
-  if (args.anterior && alcanzaMuestra(args.anterior)) return medida(args.anterior, "cohorte_anterior", false);
-  if (args.enCurso && alcanzaMuestra(args.enCurso)) return medida(args.enCurso, "cohorte_en_curso", args.enCurso.madurando);
+  if (args.anterior && alcanzaMuestra(args.anterior, muestraMinima)) return medida(args.anterior, "cohorte_anterior", false);
+  if (args.enCurso && alcanzaMuestra(args.enCurso, muestraMinima)) return medida(args.enCurso, "cohorte_en_curso", args.enCurso.madurando);
 
   const enCurso = args.enCurso;
   return {
@@ -179,6 +184,8 @@ export interface DatosParaProyeccion {
     fechaCierreVentas: string;
   } | null;
   vendidos: number;
+  /** Las ventas de la cohorte hasta ayer: con ellas se mide lo que faltaba al abrir hoy (352, DA-5). */
+  vendidosAntesDeHoy: number;
   ventasVentana: number;
   agendasVentana: number;
   registrosVentana: number;
@@ -295,10 +302,18 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
   const proyeccion = ritmo.valor === null
     ? noDisponible(ritmo.razon!)
     : disponible(datos.vendidos + ritmo.valor * diasHabilesRestantes);
-  const ventasRequeridasDia = faltan === 0
+  // La MISMA meta de hoy que Cupos (352): lo que faltaba al abrir hoy entre los habiles que quedan contando hoy.
+  const habilesDesdeHoy = diasHabilesEntre(datos.hoy, datos.cohorte.fechaCierreVentas);
+  const faltabanAlAbrir = Math.max(datos.cohorte.metaCupos - datos.vendidosAntesDeHoy, 0);
+  const ventasRequeridasDia = faltabanAlAbrir === 0
     ? disponible(0)
-    : diasHabilesRestantes > 0
-      ? disponible(faltan / diasHabilesRestantes)
+    : habilesDesdeHoy > 0
+      ? disponible(metaDeHoy({
+        meta: datos.cohorte.metaCupos,
+        vendidosAntesDeHoy: datos.vendidosAntesDeHoy,
+        hoy: datos.hoy,
+        cierre: datos.cohorte.fechaCierreVentas,
+      }))
       : noDisponible("La venta de esta cohorte ya cerró: no quedan días hábiles para repartir lo que falta.");
   const objetivo = datos.conversion.objetivoAgendaAVenta;
   const agendasRequeridasDia = ventasRequeridasDia.valor === null
@@ -380,6 +395,8 @@ export async function leerProyeccion(
   db: Db = dbDeLaApp,
 ): Promise<ProyeccionDeCohorte> {
   const ventanaInicial = inicioDeVentana(hoy, ventanaDiasHabiles);
+  const [programa] = await db.select({ muestraMinima: programs.muestraMinimaConversion }).from(programs).where(eq(programs.id, programId));
+  const muestraMinima = programa?.muestraMinima ?? MUESTRA_MINIMA_CONVERSION;
   const cohortes = await db.select({
     id: cohorts.id,
     codigo: cohorts.codigo,
@@ -396,6 +413,7 @@ export async function leerProyeccion(
       hoy,
       cohorte: null,
       vendidos: 0,
+      vendidosAntesDeHoy: 0,
       ventasVentana: 0,
       agendasVentana: 0,
       registrosVentana: 0,
@@ -411,17 +429,17 @@ export async function leerProyeccion(
   const ventanaDesde = ventanaRecortada ? cohorte.fechaInicioVentas : ventanaInicial;
   const ventanaHasta = menor(cohorte.fechaCierreVentas, hoy);
   const rangoVentana = { desde: ventanaDesde, hasta: ventanaHasta };
-  const rangoCohorte = { desde: cohorte.fechaInicioVentas, hasta: ventanaHasta };
   const [objetivo] = await db.select({ meta: objetivos.meta }).from(objetivos).where(and(
     eq(objetivos.cohortId, cohorte.id),
     eq(objetivos.metrica, "conversion_agenda_venta"),
     isNull(objetivos.area),
     eq(objetivos.activo, true),
   )).limit(1);
-  const [ventas, ventasVentana, agendasVentana, registrosVentana] = await Promise.all([
-    agruparVentas(db, { programId, rango: rangoCohorte, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
+  const [ventasDeLaCohorteHoy, ventasVentana, agendasVentana, registrosVentana] = await Promise.all([
+    ventasDeLaCohorte(db, cohorte.id, hoy),
     agruparVentas(db, { programId, rango: rangoVentana, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
-    agruparAgendas(db, { programId, rango: rangoVentana, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
+    // Mismo universo que los registros (C-18): el programa entero, no solo la cohorte.
+    agruparAgendas(db, { programId, rango: rangoVentana, agruparPor: [] }),
     agruparEnvios(db, { programId, rango: rangoVentana, agruparPor: [] }),
   ]);
 
@@ -436,8 +454,8 @@ export async function leerProyeccion(
     return { codigo: c.codigo, tasas: grupo.tasas, pendientes: grupo.pendientes.length, madurando: grupo.madurando };
   };
   const medidaAnterior = anterior ? await medir(anterior) : null;
-  const necesitaEnCurso = !alcanzaMuestra(medidaAnterior)
-    || (!!objetivo && (medidaAnterior?.tasas.deals ?? 0) < MUESTRA_MINIMA_CONVERSION);
+  const necesitaEnCurso = !alcanzaMuestra(medidaAnterior, muestraMinima)
+    || (!!objetivo && (medidaAnterior?.tasas.deals ?? 0) < muestraMinima);
   const medidaEnCurso = necesitaEnCurso ? await medir(cohorte) : null;
 
   return calcularProyeccion({
@@ -448,7 +466,8 @@ export async function leerProyeccion(
       metaLeadsDia: cohorte.metaLeadsDia,
       fechaCierreVentas: cohorte.fechaCierreVentas,
     },
-    vendidos: total(ventas, "ventas"),
+    vendidos: ventasDeLaCohorteHoy.length,
+    vendidosAntesDeHoy: ventasDeLaCohorteHoy.filter((venta) => venta.dia < hoy).length,
     ventasVentana: total(ventasVentana, "ventas"),
     agendasVentana: total(agendasVentana, "agendas"),
     registrosVentana: total(registrosVentana, "envios"),
@@ -461,6 +480,7 @@ export async function leerProyeccion(
       objetivo: objetivo ? Number(objetivo.meta) / 100 : null,
       anterior: medidaAnterior,
       enCurso: medidaEnCurso,
+      muestraMinima,
     }),
   });
 }

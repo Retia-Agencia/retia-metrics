@@ -238,7 +238,7 @@ describe("la caja de hoy por origen (252)", () => {
 
     const resultado = await armarVistaDeHoy({ programId: programa.id, dia }, db);
     expect(resultado.vista.cohorte?.vendidos).toBe(2);
-    expect(resultado.vista.cohorte?.ventana?.metaDinamica).toBeCloseTo(8 / 3);
+    expect(resultado.vista.cohorte?.ventana?.metaDinamica).toBeCloseTo(9 / 3); // meta de apertura del 14: faltaban 9 (la del 14 no se descuenta), 3 habiles (352)
     expect(resultado.horizontes.find((h) => h.clave === "dia")?.real).toBe(1);
     expect(resultado.horizontes.find((h) => h.clave === "semana")?.real).toBe(2);
     expect(resultado.vista.metasDelMes.vendidos).toBe(2);

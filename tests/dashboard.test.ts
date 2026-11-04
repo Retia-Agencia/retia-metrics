@@ -268,7 +268,7 @@ describe("% de show y % de cierre", () => {
       fechaAgenda: fecha,
       resultado: "show",
     });
-    const dealId = await sembrarDeal(programaA);
+    const dealId = await sembrarDeal(programaA, { etapa: "ganado_completo" });
     await db.insert(dealEtapaHistorial).values([
       { dealId, de: null, a: "ganado_parcial", fecha, userId: null },
       { dealId, de: "ganado_parcial", a: "ganado_completo", fecha: new Date("2026-09-15T15:00:00Z"), userId: null },

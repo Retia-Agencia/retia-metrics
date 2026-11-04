@@ -30,9 +30,9 @@ lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
 
 | Concepto | Hoy (auditoría 30-oct) | Canónico | Ticket |
 |---|---|---|---|
-| Venta (conteo y día) | `ventasConDiaEn`/`vendidosEn` (por evento); `ventasDeCohorte`, `alertas.ts`, `tasas-del-grupo.ts` (por estado actual) | `vendidosEn` en `lib/queries/metricas-filtros.ts`, según DA-1 | 352 |
-| Vendidos de la cohorte | `ventasDeCohorte` (sin límite inferior) y `agruparVentas` de la proyección (desde el inicio de ventas) | una función, según DA-2 | 352 |
-| Meta de hoy y cumplimiento | `metaDinamica`, `proyeccion.ts`, tres copias del cumplimiento lineal | `lib/dias-habiles.ts` | 352 |
+| Venta (conteo y día) | ✅ una sola: `etapaVendida()` (SQL) y `esEtapaVendida` (memoria) con `ventasConDiaEn`/`vendidosEn` en `lib/queries/metricas-filtros.ts` (DA-1) | guardián: `tests/venta-una-definicion.test.ts` | 352 ✅ |
+| Vendidos de la cohorte | ✅ `ventasDeLaCohorte` en `lib/queries/ventas-de-la-cohorte.ts`, sin límite inferior (DA-2); la usan Cupos, meta de hoy, Proyección y alertas | — | 352 ✅ |
+| Meta de hoy y cumplimiento | ✅ `metaDeHoy` y `esperadoLineal` en `lib/dias-habiles.ts`; las importan `dashboard.ts`, `proyeccion.ts`, `metas.ts` y `alertas.ts` | — | 352 ✅ |
 | Show / ocurrió | `RESULTADOS_QUE_OCURRIERON` y 8 envolturas | `ocurrio`/`ocurrioSql` en un solo módulo | 353 |
 | % de show y % de no show | por deal, por cita, de Pauta, del comparativo semanal | `showPorDeal` y `showPorCita`, y el no show como complemento nombrado | 353 |
 | Cita sin resultado | cuatro predicados | `citaVencidaSinResultado` en `metricas-filtros.ts` | 353 |
@@ -89,14 +89,17 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 
 - **Tabla:** `deal_etapa_historial` unida a `deals`.
 - **Cuenta:** deals vigentes, **sin cortesía**, que están **hoy** en **Abonado o Completo** (DA-1, Mani, 3-nov). Un
-  deal es una venta una sola vez.
+  deal es una venta una sola vez. La etapa actual la pregunta `etapaVendida()` (SQL) o `esEtapaVendida` (memoria):
+  nadie más escribe esa lista (guardián).
 - **Fecha:** el **primer** día en que entró a una etapa vendida (Bogotá). La reversa de una venta (anular el
   abono que la vendió, ticket 200) la saca.
 - **Función:** `ventasConDiaEn` en `lib/queries/metricas-filtros.ts` (la única definición) y
-  `lib/queries/hechos/venta.ts`.
+  `lib/queries/hechos/venta.ts`; la de la cohorte entera, `ventasDeLaCohorte`.
 - **Ojo:** un deal que pasa de Abonado a Cierre Perdido **deja de ser venta y cuenta como perdido** (DA-1, Mani,
-  3-nov; en la práctica solo con una devolución, 242). El código todavía cuenta por evento hasta el 352.
-- **Cohorte:** las ventas anteriores a `fecha_inicio_ventas` cuentan para su cohorte (DA-2, Mani, 3-nov).
+  3-nov; en la práctica solo con una devolución, 242). Así lo cuentan Mes, Cohorte, alertas, % de cierre, escalera y
+  ROAS, a la vez (352). Si una venta de octubre se pierde en noviembre, octubre baja en uno.
+- **Cohorte:** las ventas anteriores a `fecha_inicio_ventas` cuentan para su cohorte (DA-2, Mani, 3-nov), igual en
+  Cupos y en Proyección (`ventasDeLaCohorte`, hasta hoy).
 
 ### 1.5 Abono (caja recaudada)
 
@@ -335,7 +338,7 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
 | Ventas requeridas por día | faltan ÷ días hábiles que quedan (`calcularProyeccion`) | cupos/día | ✅ 253 |
 | Shows requeridos por día | ventas requeridas ÷ % de cierre (`calcularProyeccion`); el % de cierre exige al menos 20 shows y una venta | shows/día | ✅ 253 |
 | Agendas requeridas por día | shows requeridos ÷ % de show (`calcularProyeccion`). Las dos tasas salen de un solo grupo, en orden de la cohorte anterior o la cohorte en curso; el % de show exige 20 personas con cita con resultado. Los pendientes quedan fuera y se nombran en la razón. Con objetivo declarado agenda → venta, este manda sobre las agendas y los shows salen de agendas × % de show medido | agendas/día | ✅ 253 |
-| Leads requeridos por día | agendas requeridas ÷ (agendas ÷ registros) de la misma ventana (`calcularProyeccion`) | leads/día | ✅ 253 |
+| Leads requeridos por día | agendas requeridas ÷ (agendas ÷ registros) de la misma ventana, ambos del programa entero (`calcularProyeccion`, C-18) | leads/día | ✅ 253 |
 | Origen del cierre | por venta: agenda del día, seguimiento o sin llamada | ventas | 🟡 254 |
 | Cierre del ciclo | rojos con una acción registrada ÷ rojos, y horas hasta la acción | % | 🟡 261 |
 
@@ -360,9 +363,11 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 - **D3, leads.** Registros del día (§1.1, envíos completos, igual a Typeform) sin meta hasta el 253: excepción
   temporal al ADR 0086 punto 3, que el 253 cierra. Una persona que aplica dos veces son dos registros.
 - **D4, caja.** Por moneda, partida en ventas de hoy y ventas anteriores; los nombres están en la lista de la cifra.
-- **Meta del día.** Cupos que faltan de la cohorte ÷ días hábiles de venta que quedan, contando hoy, y **descuenta
-  las ventas de hoy**: toda cifra es dinámica según el CRM (regla de Mani). Por eso, a diferencia del reporte, la
-  meta del día baja cuando se vende.
+- **Meta del día.** Lo que faltaba **al abrir hoy** (meta menos lo vendido hasta ayer) ÷ días hábiles de venta que
+  quedan contando hoy (`metaDeHoy`). **No descuenta las ventas de hoy** (DA-5, Mani, 3-nov, que reemplaza la regla
+  anterior): si las descontara, vender 4 contra una meta de 2 daba un cumplimiento de 333 %. El último día hábil
+  da el faltante entero, y es la misma cifra que "ventas requeridas por día" de la Proyección. La meta de hoy de
+  la semana (`porDia`) usa el mismo borde. La proyección a futuro (ritmo y reparto semanal) sigue contando desde mañana.
 
 **Cada fila del reporte (15-sep y 9-sep) contra Hoy:**
 

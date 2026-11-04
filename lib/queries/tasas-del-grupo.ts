@@ -1,8 +1,8 @@
 import { and, between, eq, isNull, ne, or } from "drizzle-orm";
-import { calls, deals, users } from "@/lib/db/schema";
+import { calls, deals, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
-import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
+import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { semanasDelRango } from "@/lib/rangos";
@@ -34,7 +34,14 @@ import type { Rango } from "@/lib/queries/dashboard";
  * importan el dashboard, el comparativo, Mi espacio y la lista de cada tasa: una sola definición.
  */
 
+/** El valor por defecto de `programs.dias_para_madurar` (352, C-17): cada programa lleva el suyo. */
 export const DIAS_PARA_MADURAR = 30;
+
+/** Los dias de madurez del programa; sin fila (programa inexistente) cae al valor por defecto. */
+export async function diasParaMadurarDe(db: Db, programId: string): Promise<number> {
+  const [fila] = await db.select({ dias: programs.diasParaMadurar }).from(programs).where(eq(programs.id, programId));
+  return fila?.dias ?? DIAS_PARA_MADURAR;
+}
 
 /** El resultado que saca una cita del grupo: se movió, y la representa su cita nueva. */
 const RESULTADOS_FUERA_DEL_GRUPO = ["reagendada"] as const;
@@ -112,9 +119,9 @@ export function esShow(resultado: string): boolean {
   return (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
 }
 
-/** ¿El rango termina hace menos de 30 días? Las dos fechas son días de Bogotá. */
-export function rangoMadurando(rango: Rango, hoy: string): boolean {
-  return numeroDeDia(hoy) - numeroDeDia(rango.hasta) < DIAS_PARA_MADURAR;
+/** ¿El rango termina hace menos de los días de madurez del programa (30 por defecto)? Las dos fechas son días de Bogotá. */
+export function rangoMadurando(rango: Rango, hoy: string, diasParaMadurar: number = DIAS_PARA_MADURAR): boolean {
+  return numeroDeDia(hoy) - numeroDeDia(rango.hasta) < diasParaMadurar;
 }
 
 /**
@@ -126,6 +133,8 @@ export function calcularTasasDelGrupo(args: {
   rango: Rango;
   hoy: string;
   ahora: Date;
+  /** `programs.dias_para_madurar`; por defecto 30. */
+  diasParaMadurar?: number;
 }): GrupoDeCitas {
   const ocurridas = args.citas
     .filter((c) => !(RESULTADOS_FUERA_DEL_GRUPO as readonly string[]).includes(c.resultado))
@@ -147,7 +156,7 @@ export function calcularTasasDelGrupo(args: {
     closer: atribuye.closer,
     etapa: atribuye.etapa,
     conShow,
-    vendido: conShow && ETAPAS_VENDIDAS.includes(atribuye.etapa),
+    vendido: conShow && esEtapaVendida(atribuye.etapa),
   });
   const ordenar = (a: MiembroDelGrupo, b: MiembroDelGrupo) =>
     a.fecha.localeCompare(b.fecha) || a.dealId.localeCompare(b.dealId);
@@ -188,7 +197,7 @@ export function calcularTasasDelGrupo(args: {
     pendientes,
     tasas: { ...tasasDe(miembros), pendientes: pendientes.length },
     porCloser,
-    madurando: rangoMadurando(args.rango, args.hoy),
+    madurando: rangoMadurando(args.rango, args.hoy, args.diasParaMadurar),
   };
 }
 
@@ -272,8 +281,11 @@ export async function grupoDeCitas(
   db: Db,
   { programId, rango, ahora }: { programId: string; rango: Rango; ahora: Date },
 ): Promise<GrupoDeCitas> {
-  const citas = await leerCitasDelGrupo(db, { programId, rango });
-  return calcularTasasDelGrupo({ citas, rango, hoy: diaDeCalendario(ahora), ahora });
+  const [citas, diasParaMadurar] = await Promise.all([
+    leerCitasDelGrupo(db, { programId, rango }),
+    diasParaMadurarDe(db, programId),
+  ]);
+  return calcularTasasDelGrupo({ citas, rango, hoy: diaDeCalendario(ahora), ahora, diasParaMadurar });
 }
 
 /**
@@ -286,7 +298,10 @@ export async function gruposPorSemana(
   db: Db,
   { programId, rango, ahora }: { programId: string; rango: Rango; ahora: Date },
 ): Promise<{ semana: Rango; grupo: GrupoDeCitas }[]> {
-  const citas = await leerCitasDelGrupo(db, { programId, rango });
+  const [citas, diasParaMadurar] = await Promise.all([
+    leerCitasDelGrupo(db, { programId, rango }),
+    diasParaMadurarDe(db, programId),
+  ]);
   const hoy = diaDeCalendario(ahora);
   return semanasDelRango(rango).map((semana) => ({
     semana,
@@ -298,6 +313,7 @@ export async function gruposPorSemana(
       rango: semana,
       hoy,
       ahora,
+      diasParaMadurar,
     }),
   }));
 }

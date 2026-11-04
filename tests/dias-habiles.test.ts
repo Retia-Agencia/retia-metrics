@@ -5,7 +5,8 @@ import {
   esDiaHabil,
   diasHabilesEntre,
   diaHabilDe,
-  metaDinamica,
+  esperadoLineal,
+  metaDeHoy,
   metaLineal,
 } from "@/lib/dias-habiles";
 
@@ -93,24 +94,33 @@ describe("diaHabilDe", () => {
   });
 });
 
-describe("metaDinamica", () => {
-  it("cupos por dia habil = faltantes / dias restantes (caso del reporte: 28 en 10 = 2,8)", () => {
-    expect(metaDinamica({ meta: 30, vendidos: 2, diasHabilesRestantes: 10 })).toBe(2.8);
+describe("metaDeHoy", () => {
+  // 2026-10-21 es miercoles; del 21-oct al 4-nov hay 11 habiles contando hoy.
+  const base = { hoy: "2026-10-21", cierre: "2026-11-04" };
+
+  it("lo que faltaba al abrir hoy entre los habiles que quedan CONTANDO hoy", () => {
+    expect(metaDeHoy({ ...base, meta: 30, vendidosAntesDeHoy: 8 })).toBeCloseTo(22 / 11, 10);
   });
 
-  it("no redondea: deja el decimal crudo (formatear es tarea de lib/format)", () => {
-    // 28 faltantes / 9 dias = 3.111...
-    expect(metaDinamica({ meta: 30, vendidos: 2, diasHabilesRestantes: 9 })).toBeCloseTo(28 / 9, 10);
+  it("con la meta cumplida antes de hoy pide 0", () => {
+    expect(metaDeHoy({ ...base, meta: 30, vendidosAntesDeHoy: 42 })).toBe(0);
   });
 
-  it("con vendidos >= meta no hay nada por vender: 0", () => {
-    expect(metaDinamica({ meta: 30, vendidos: 30, diasHabilesRestantes: 5 })).toBe(0);
-    expect(metaDinamica({ meta: 30, vendidos: 42, diasHabilesRestantes: 5 })).toBe(0);
+  it("el ultimo dia habil da el faltante entero, y lo mismo pasado el cierre (no divide por cero)", () => {
+    expect(metaDeHoy({ meta: 30, vendidosAntesDeHoy: 28, hoy: "2026-11-04", cierre: "2026-11-04" })).toBe(2);
+    expect(metaDeHoy({ meta: 30, vendidosAntesDeHoy: 28, hoy: "2026-11-05", cierre: "2026-11-04" })).toBe(2);
   });
+});
 
-  it("con 0 dias restantes NO divide por cero: devuelve los faltantes, o 0 si ya se cumplio", () => {
-    expect(metaDinamica({ meta: 30, vendidos: 2, diasHabilesRestantes: 0 })).toBe(28);
-    expect(metaDinamica({ meta: 30, vendidos: 30, diasHabilesRestantes: 0 })).toBe(0);
+describe("esperadoLineal", () => {
+  const v = { meta: 30, inicio: "2026-10-05", cierre: "2026-11-13" }; // 30 habiles: 1 por dia
+  it("ritmo lineal por los habiles transcurridos, contando el dia de `hasta`", () => {
+    expect(esperadoLineal({ ...v, hasta: "2026-10-05" })).toBe(1);
+    expect(esperadoLineal({ ...v, hasta: "2026-10-09" })).toBe(5);
+  });
+  it("antes del inicio es 0 y despues del cierre es la meta entera", () => {
+    expect(esperadoLineal({ ...v, hasta: "2026-10-01" })).toBe(0);
+    expect(esperadoLineal({ ...v, hasta: "2026-12-01" })).toBe(30);
   });
 });
 

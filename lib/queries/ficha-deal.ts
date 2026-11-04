@@ -30,7 +30,7 @@ import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
-import { ETAPAS_VENDIDAS } from "@/lib/queries/metricas-filtros";
+import { esEtapaVendida } from "@/lib/deals/etapas";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { inboxDelPrograma, type MotivoAtencion } from "@/lib/queries/inbox";
 import { columnasUtmDelEnvio, utmsDelEnvio, type UtmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -729,7 +729,7 @@ export async function fichaDeDeal(
         }
       : null,
     descuento: descuentoDeDeal(cohorte?.precioUsd, valorVendidoUsd),
-    vendido: saldo.abonosVigentes > 0 || (ETAPAS_VENDIDAS as readonly string[]).includes(deal.etapa),
+    vendido: saldo.abonosVigentes > 0 || esEtapaVendida(deal.etapa),
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
     cohortesVendiendoHoy,
     cohorteDestino: cohorteDestino
