@@ -6,7 +6,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, veEquipoComercial, veLeadsDePauta, veTableroDelPrograma } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
-import { METRICAS_FOTO_DE_HOY, proyectarParaPauta, proyectarParaTablero, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarParaPauta, proyectarParaTablero, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   METRICAS_DE_EMBUDO_SIN_PERIODO,
@@ -19,6 +19,7 @@ import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { rotuloDeImporte } from "@/lib/vocabulario-metricas";
+import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/dashboard/dinero-de-ventas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,7 +49,6 @@ const esquema = z.object({
     "agendas_futuras",
     "contratado",
     "sin_resultado",
-    "cartera",
     "atendidos_sin_valor",
     "atendidos_sin_grain",
     "grupo_citas",
@@ -91,7 +91,7 @@ const esquema = z.object({
 });
 
 const titulos = {
-  caja: "Recaudado",
+  caja: "Entró a caja",
   agendas: "Agendas",
   shows: "Shows",
   no_shows: "No show",
@@ -107,7 +107,6 @@ const titulos = {
   agendas_futuras: "Agendas futuras",
   contratado: "Vendido",
   sin_resultado: "Llamadas pasadas sin resultado",
-  cartera: "Por cobrar",
   atendidos_sin_valor: "Atendidos sin valor vendido",
   atendidos_sin_grain: "Atendidos sin Grain",
   grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",
@@ -219,6 +218,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   });
   if (!vista) notFound();
   const { periodo, claveCloser } = vista;
+  const conVentas = esListaDeVentas(metrica, { escalon, pago });
   const lista = esListaDePauta || esListaDeOrigen
     ? proyectarParaPauta(vista.lista, veEquipo)
     : proyectarParaTablero(vista.lista, metrica === "no_agendaron" ? veEquipo : esAdmin);
@@ -236,7 +236,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     escalera: { escalon, calidad, pago },
     pauta: nivel && paso ? { nivel, id, paso } : undefined,
   });
-  // La cartera, las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
+  // Las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:
   // el periodo no los acota.
   const sinPeriodo = (METRICAS_FOTO_DE_HOY as readonly string[]).includes(metrica)
     || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
@@ -286,7 +286,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} {metrica === "no_agendaron" ? "personas" : "registros"}</p>
-        {lista.subtotal.caja.map((c) => <p className="cifra" key={c.moneda}>{monto(c.total, c.moneda)}</p>)}
+        {conVentas ? null : lista.subtotal.caja.map((c) => <p className="cifra" key={c.moneda}>{monto(c.total, c.moneda)}</p>)}
+        {conVentas ? <p className="text-sm text-muted-foreground">Vendido, Recaudado y Por cobrar de estas ventas. Lo recaudado es a hoy, sin importar cuándo se abonó.</p> : null}
         <p className="text-sm text-muted-foreground">
           Más antiguos primero. Antigüedad en días calendario de Bogotá; fechas futuras: 0 días.
           {esMetricaDeEmbudo(metrica) ? " En el embudo por etapas, la fecha es la entrada del deal al embudo." : null}
@@ -296,7 +297,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <CardContent className="overflow-x-auto pt-4">
             {lista.filas.length === 0 ? <p>No hay filas en esta página para los filtros elegidos.</p> : (
               <table className="w-full text-sm">
-                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : <th>{rotuloDeImporte(metrica)}</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
+                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : conVentas ? <CabecerasDeVentas /> : <th>{rotuloDeImporte(metrica)}</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
                 <tbody className="divide-y">
                   {lista.filas.map((fila) => (
                     <tr key={fila.id}>
@@ -306,14 +307,15 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
                       <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>
                       <td className="py-3">{fecha(fila.fecha)}</td>
                       <td><Badge variant={tonoDeAntiguedad(fila.bucket)} className="cifra">{num(fila.antiguedad)}</Badge></td>
-                      <td>
+                      {conVentas ? <CeldasDeVentas fila={fila} /> : <td>
                         <span className="cifra">{metrica === "no_agendaron" ? (fila.ultimaActividad ? fecha(fila.ultimaActividad) : "—") : fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</span>
                         {fila.concepto === "adicional" ? <span className="block text-xs">Adicional{fila.nota ? `: ${fila.nota}` : ""}</span> : null}
-                      </td>
+                      </td>}
                       {veEquipo ? <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td> : null}
                     </tr>
                   ))}
                 </tbody>
+                {conVentas ? <PieDeVentas dinero={lista.dinero} columnasAntes={[veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen)), veEquipo, true, true, true].filter(Boolean).length} columnasDespues={veEquipo ? 1 : 0} /> : null}
               </table>
             )}
           </CardContent>

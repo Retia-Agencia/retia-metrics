@@ -87,9 +87,9 @@ export function CajaConVariacion({
 
   return (
     <Tarjeta
-      titulo="Recaudado"
+      titulo="Entró a caja"
       valor={
-        <CifraConLista titulo="Recaudado" detalle={detalles?.caja}>
+        <CifraConLista titulo="Entró a caja" detalle={detalles?.caja}>
           <Caja caja={vista.caja} />
         </CifraConLista>
       }

@@ -417,9 +417,10 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Deshacer:** devolver un evento humano del log a su estado anterior. Antes de confirmar muestra qué valor hay y
   cuál quedará; el motivo es opcional y el log conserva quién lo hizo y cuándo. Un deshacer no se deshace.
 - **Vendido, Recaudado, Por cobrar, Entró a caja:** los cuatro nombres del dinero, uno por pregunta (ticket 374).
-  **Vendido** es el valor que el closer escribió en las ventas; **Recaudado** son los abonos vigentes del periodo, por la
-  fecha del abono; **Por cobrar** es el saldo de hoy de los deals con pago parcial; **Entró a caja** es lo ya recibido,
-  por moneda y sin convertir. *Evitar: "Monto", "Contratado".* El vocabulario completo del Hub vive en
+  **Vendido**, **Recaudado** y **Por cobrar** son tres cifras del MISMO conjunto de ventas (las que dejan pasar cohorte,
+  periodo y closer) y van siempre juntas, en ese orden (369): Vendido es el valor que el closer escribió; Recaudado, lo
+  abonado a esas ventas a hoy; Por cobrar, lo que falta (Vendido − Recaudado, venta por venta). **Entró a caja** es otra
+  pregunta: los abonos con fecha en el periodo, de cualquier venta, por moneda y sin convertir. *Evitar: "Monto", "Contratado".* El vocabulario completo del Hub vive en
   `lib/vocabulario-metricas.ts`.
 - **Corregir etapa:** cambiar la etapa a cualquiera de los destinos permitidos sin inventar un resultado de negocio.
   No entra a Ganado ni a Cierre perdido, y no sale de una etapa ganada; esos cambios se hacen sobre el abono, la

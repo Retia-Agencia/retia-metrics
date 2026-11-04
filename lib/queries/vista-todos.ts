@@ -22,11 +22,12 @@ import {
 } from "@/lib/queries/metricas-con-filas";
 import { nombreDeEtapa, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
+import { sumarDineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 
 const METRICAS = ["leads", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "contratado", "caja"] as const;
 type MetricaDeTodos = (typeof METRICAS)[number];
 /** Las que son foto de hoy: no pertenecen a A ni se comparan con B. */
-const FOTOS_DE_HOY = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"] as const;
+const FOTOS_DE_HOY = ["atendidos_sin_valor", "atendidos_sin_grain"] as const;
 type MetricaFotoDeHoy = (typeof FOTOS_DE_HOY)[number];
 
 interface TotalesDePeriodo {
@@ -38,6 +39,8 @@ interface TotalesDePeriodo {
   sinResultado: Conteo;
   cierres: Conteo;
   contratado: Dinero<"USD">;
+  /** Vendido, Recaudado y Por cobrar de las mismas ventas (369): las tres en USD, sumables entre programas. */
+  dinero: DineroDeVentas;
   caja: Dinero[];
 }
 
@@ -60,14 +63,6 @@ export interface VistaDeTodos {
   a: TotalesDePeriodo;
   b: TotalesDePeriodo | null;
   detalles: Record<MetricaDeTodos | MetricaFotoDeHoy, DetalleDeCifra>;
-  /** Foto de hoy; no pertenece a A ni se compara con B. */
-  cartera: {
-    saldo: Dinero<"USD">;
-    deals: Conteo;
-    vencidos: Conteo;
-    sinFechaDeReferencia: Conteo;
-    sinSaldoCalculable: Conteo;
-  };
   sinValorVendido: Conteo;
   /** Las banderas del Pulso (ticket 191), foto de hoy: los conteos se suman; el % va por programa. */
   banderas: { atendidos: Conteo; sinValor: Conteo; sinGrain: Conteo };
@@ -103,7 +98,7 @@ export function urlDeListaTodos({ metrica, periodo, origen, moneda }: {
   return enlaceConVuelta(`/hub/lista?${q}`, origen);
 }
 
-function totales(resumenes: Record<MetricaDeTodos, ResumenDeMetrica[]>): TotalesDePeriodo {
+function totales(resumenes: Record<MetricaDeTodos, ResumenDeMetrica[]>, delDinero: DineroDeVentas): TotalesDePeriodo {
   const total = (metrica: Exclude<MetricaDeTodos, "caja" | "contratado">) =>
     sumarConteos(resumenes[metrica].map((r) => conteo(r.subtotal.cantidad)));
   return {
@@ -114,6 +109,7 @@ function totales(resumenes: Record<MetricaDeTodos, ResumenDeMetrica[]>): Totales
     sinResultado: total("sin_resultado"),
     cierres: total("cierres"),
     contratado: sumarUsd(resumenes.contratado.map((r) => dinero("USD", r.subtotal.caja.find((c) => c.moneda === "USD")?.total ?? 0))),
+    dinero: delDinero,
     caja: sumarDinero(
       resumenes.caja.map((r) => r.subtotal.caja.map((c) => dinero(c.moneda, c.total))),
     ),
@@ -152,6 +148,7 @@ function detalle(
       ).map((c) => ({ moneda: c.moneda, total: c.valor })),
     },
     grupos: secciones.flatMap((s) => s.grupos),
+    ...(secciones.every((s) => s.dinero) ? { dinero: sumarDineroDeVentas(secciones.map((s) => s.dinero!)) } : {}),
   };
   return {
     resumen,
@@ -197,18 +194,13 @@ export async function armarVistaDeTodos(
 
   return {
     periodo,
-    a: totales(resumenesA),
-    b: resumenesB ? totales(resumenesB) : null,
+    a: totales(resumenesA, sumarDineroDeVentas(filas.map((f) => f.dashboard.dinero))),
+    b: resumenesB && filas.every((f) => f.dashboard.anterior)
+      ? totales(resumenesB, sumarDineroDeVentas(filas.map((f) => f.dashboard.anterior!.dinero)))
+      : null,
     detalles: {
       ...Object.fromEntries(METRICAS.map((m) => [m, detalle(m, resumenesA[m], periodo, origen)])) as Record<MetricaDeTodos, DetalleDeCifra>,
       ...Object.fromEntries(FOTOS_DE_HOY.map((m, i) => [m, detalle(m, fotos[i], periodo, origen)])) as Record<MetricaFotoDeHoy, DetalleDeCifra>,
-    },
-    cartera: {
-      saldo: sumarUsd(filas.map((f) => dinero("USD", f.dashboard.cartera.saldoUsd))),
-      deals: sumarConteos(filas.map((f) => conteo(f.dashboard.cartera.deals))),
-      vencidos: sumarConteos(filas.map((f) => conteo(f.dashboard.cartera.vencidos))),
-      sinFechaDeReferencia: sumarConteos(filas.map((f) => conteo(f.dashboard.cartera.sinFechaDeReferencia))),
-      sinSaldoCalculable: sumarConteos(filas.map((f) => conteo(f.dashboard.cartera.sinSaldoCalculable))),
     },
     sinValorVendido: sumarConteos(filas.map((f) => conteo(f.dashboard.sinValorVendido))),
     banderas: {

@@ -229,9 +229,11 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Agenda → venta | deals con show vendidos hoy ÷ deals del grupo (= % show × % cierre); los pendientes de resultado quedan fuera del grupo y visibles aparte | % | no | ídem | ✅ |
 | Ventas | deals vendidos en el rango (§1.4) | ventas | sí | `ventasConDiaEn` | ✅ |
 | Ventas por escalón | la escalera de conversión, abajo (ADR 0109): deals del periodo en siete escalones, con número, % y días hábiles medianos | deals | no: distribución por programa | `lib/queries/escalera.ts` | ✅ |
-| Vendido | Σ `deals.valor_vendido_usd` de las ventas del rango (lo escribe el closer); un deal sin valor se cuenta aparte, no se inventa | USD | sí | `contratadoDeDeals` en `lib/queries/saldo.ts` | ✅ |
+| Vendido | Σ `deals.valor_vendido_usd` de las ventas que dejan pasar los filtros del Hub (cohorte, periodo por fecha de venta, closer); lo escribe el closer. Una venta sin valor, o con abonos en otra moneda, queda fuera de las tres cifras del dinero y se cuenta aparte, no se inventa. Va siempre junto a Recaudado y Por cobrar, sobre el MISMO conjunto de ventas (369) | USD | sí | `dineroDeVentas` en `lib/queries/dinero-de-ventas.ts` (`contratadoDeDeals` en `saldo.ts` para la cifra suelta) | ✅ |
+| Recaudado | Σ abonos de ticket vigentes **de esas mismas ventas, a hoy**, sin importar cuándo se abonaron (369, DH-2). Un abono adicional no entra (ADR 0113) | USD | sí | `dineroDeVentas` (sobre `saldosDeDeals`) | ✅ |
+| Por cobrar | Vendido − Recaudado, venta por venta, de esas mismas ventas; un saldo negativo es un sobrepago, que se muestra aparte (`sobrepago`) y no resta deuda a otra venta. Es lo que antes era la cartera: con cohorte «Todas» y «Desde el inicio» da la cartera de hoy. Invariante probado: Vendido = Recaudado + Por cobrar − sobrepago, al centavo | USD | sí | `dineroDeVentas`, `dineroDeSaldos` | ✅ |
 | Comisión | Σ valor vendido × el % congelado en el deal al entrar a Abonado o Completo; sin % del programa no se puede entrar a venta (ADR 0115 N6, ticket 356). Por closer va al dueño del deal; las ventas sin dueño salen en la fila «Sin closer» | USD | no | `comisionDeDeal` y `comisionesPorCloser` en `lib/queries/comision.ts` | ✅ |
-| Recaudado | Σ abonos vigentes por su fecha (§1.5) | USD | sí | `hechos/abono.ts` | ✅ |
+| Entró a caja | Σ abonos vigentes con fecha en el periodo (§1.5), de cualquier venta y también los adicionales, por moneda y sin convertir. Contesta «¿cuánta plata entró esta semana?»; no se infiere de las ventas ni al revés (ADR 0013). Su lista rotula la columna «Abono» | USD · COP | sí | `hechos/abono.ts`, `cajaRecaudada` | ✅ |
 | Saldo de un deal | contratado − abonado; negativo es sobrepago, no deuda | USD | · | `saldosDeDeals`, `saldoLegible` | ✅ |
 | Meta del mes, de la semana y de la cohorte | cupos de la cohorte repartidos por días hábiles (020, 146) | cupos | no | `lib/queries/metas.ts` | ✅ |
 | Meta en USD del mes y de la cohorte | meta de cupos × precio de la cohorte (la del mes, por cohorte y sumada; la de la cohorte, entera) (371) | USD | no | `armarMetasDelMes` (mes), `armarVamosALlegar` (cohorte) | ✅ |
@@ -395,8 +397,8 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 | Masivos, cola y respuestas de Kapso | fuera | · | · | H-9: no viven en el CRM |
 | El texto por closer ("9 agendas: 1 cierre, 2 no-show...") | la lista de cada cifra | · | · | fuera del 299 |
 
-**Lo que no viaja en el tiempo:** las banderas (llamadas pasadas sin resultado, atendidos sin valor, sin Grain) y la
-cartera son una foto de ahora; qué cohorte está activa también se lee de ahora.
+**Lo que no viaja en el tiempo:** las banderas (llamadas pasadas sin resultado, atendidos sin valor, sin Grain)
+son una foto de ahora (la cartera ya no existe aparte: es Por cobrar, que sigue los filtros); qué cohorte está activa también se lee de ahora.
 
 ## 4. Cuentas de Meta por programa (producción, 15-oct)
 

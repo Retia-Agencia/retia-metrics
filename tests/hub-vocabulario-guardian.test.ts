@@ -59,6 +59,6 @@ describe("el Hub habla un solo idioma (374)", () => {
 
   it("el vocabulario no usa palabras prohibidas y el importe nunca es Monto", () => {
     for (const e of Object.values(VOCABULARIO)) expect(jergaEn(`"${e.corto} ${e.largo} ${e.definicion}"`)).toEqual([]);
-    for (const m of ["caja", "cartera", "contratado", "cierres"]) expect(rotuloDeImporte(m)).not.toBe("Monto");
+    for (const m of ["caja", "contratado", "cierres"]) expect(rotuloDeImporte(m)).not.toBe("Monto");
   });
 });

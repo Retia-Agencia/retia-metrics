@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { monto, num, pct } from "@/lib/format";
+import { nombreCorto } from "@/lib/vocabulario-metricas";
 import type { LineaDeDesglose } from "@/lib/queries/metricas-con-filas";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 
@@ -45,7 +46,17 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
           <span className="cifra">{num(resumen.subtotal.cantidad)}</span>{" "}
           {detalle.fotoDeHoy ? "registros a hoy; el periodo no los acota." : "registros del periodo elegido."}
         </DialogDescription>
-        {resumen.subtotal.caja.map((c) => (
+        {resumen.dinero ? (
+          // Lista de ventas (369): las tres cifras de las MISMAS ventas, en vez de una sola suma.
+          <dl className="grid grid-cols-3 gap-2 text-sm">
+            {([["vendido", resumen.dinero.vendido], ["recaudado", resumen.dinero.recaudado], ["por_cobrar", resumen.dinero.porCobrar]] as const).map(([clave, valor]) => (
+              <div key={clave}>
+                <dt className="text-xs text-muted-foreground">{nombreCorto(clave)}</dt>
+                <dd className="cifra">{monto(valor, "USD")}</dd>
+              </div>
+            ))}
+          </dl>
+        ) : resumen.subtotal.caja.map((c) => (
           <p className="cifra text-lg" key={c.moneda}>
             {monto(c.total, c.moneda)}
           </p>

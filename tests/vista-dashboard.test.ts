@@ -174,7 +174,7 @@ it("la anterior es del mismo programa y A nuevo alimenta las consultas existente
   expect(previa.anterior).toBeNull();
 });
 
-it("arma contratado, comisión, descuento, ventas por cohorte y cartera", async () => {
+it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras del dinero", async () => {
   const [closer] = await db.insert(users).values({ email: "dinero@retia.co", rol: "closer", closerId: "Dinero" }).returning();
   const [cohorte] = await db.insert(cohorts).values({
     programId: programaA,
@@ -224,11 +224,8 @@ it("arma contratado, comisión, descuento, ventas por cohorte y cartera", async 
   expect(vista.contratadoUsd).toBe(80);
   expect(vista.comision).toEqual({ totalUsd: 8, ventasSinComision: 0 });
   expect(vista.descuento).toEqual({ promedioPct: 0.2, promedioUsd: 20, ventas: 1 });
-  expect(vista.ventasPorCohorte).toEqual([{ cohorteId: cohorte.id, codigo: "DIN", ventas: 1, contratadoUsd: 80 }]);
-  expect(vista.cartera).toMatchObject({
-    deals: 2,
-    saldoUsd: 50,
-    vencidos: 1,
-    sinSaldoCalculable: 1,
-  });
+  // La venta sin valor vendido no entra a ninguna de las tres y se cuenta aparte (369).
+  const dinero = { vendido: 80, recaudado: 30, porCobrar: 50, sobrepago: 0, ventas: 1, sinSaldoCalculable: 0 };
+  expect(vista.ventasPorCohorte).toEqual([{ cohorteId: cohorte.id, codigo: "DIN", ventas: 1, contratadoUsd: 80, dinero }]);
+  expect(vista.dinero).toEqual(dinero);
 });

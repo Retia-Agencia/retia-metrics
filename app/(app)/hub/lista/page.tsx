@@ -7,12 +7,13 @@ import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { parsearPeriodoUrl, resolverPeriodo } from "@/lib/periodo";
-import { listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { esListaDeVentas, listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import { urlDeListaTodos } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina, origenValido } from "@/lib/navegacion/volver";
 import { rotuloDeImporte } from "@/lib/vocabulario-metricas";
+import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/dashboard/dinero-de-ventas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,12 +25,12 @@ interface Props {
 }
 
 const esquema = z.object({
-  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "leads", "contratado", "cartera", "atendidos_sin_valor", "atendidos_sin_grain"]),
+  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "leads", "contratado", "atendidos_sin_valor", "atendidos_sin_grain"]),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = { caja: "Recaudado", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", cartera: "Por cobrar", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain" };
+const titulos = { caja: "Entró a caja", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain" };
 
 export default async function ListaDeTodosPage({ searchParams }: Props) {
   // El closer no ve el Hub de todos los programas, como no ve el de uno (ADR 0082; decisión HUB-1, 30-oct).
@@ -42,6 +43,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
   if (!validado.success) notFound();
   const { metrica, moneda, pagina = 1 } = validado.data;
   if (moneda && metrica !== "caja") notFound();
+  const conVentas = esListaDeVentas(metrica);
   const hoy = hoyEnBogota();
   const periodo = resolverPeriodo(parsearPeriodoUrl(busqueda), { hoy });
   const secciones = await listaDeMetrica(
@@ -65,10 +67,9 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">Todos los programas</Badge>
-          <Badge variant="secondary">{metrica === "cartera" || metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? `Foto de hoy: ${fecha(hoy)}` : `Periodo: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
+          <Badge variant="secondary">{metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? `Foto de hoy: ${fecha(hoy)}` : `Periodo: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
         </div>
-        {metrica === "cartera" ? <p className="text-sm text-muted-foreground">Deals en pago parcial vigentes. La cartera no depende del periodo elegido; abre un deal para ver su saldo y próxima fecha de pago.</p> : null}
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         {secciones.map((seccion) => {
           const programa = programasPorId.get(seccion.programId);
@@ -78,12 +79,12 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
               <CardHeader>
                 <CardTitle>{programa.nombre}</CardTitle>
                 <p className="cifra">{num(seccion.subtotal.cantidad)} registros</p>
-                {seccion.subtotal.caja.map((c) => <p className="cifra" key={c.moneda}>{monto(c.total, c.moneda)}</p>)}
+                {conVentas ? null : seccion.subtotal.caja.map((c) => <p className="cifra" key={c.moneda}>{monto(c.total, c.moneda)}</p>)}
               </CardHeader>
               <CardContent className="overflow-x-auto">
                 {seccion.filas.length === 0 ? <p>No hay filas en esta página para este programa.</p> : (
                   <table className="w-full text-sm">
-                    <thead><tr className="text-left"><th>Closer</th><th>Etapa</th><th>Fecha</th><th>Días</th><th>{rotuloDeImporte(metrica)}</th><th>Deal</th></tr></thead>
+                    <thead><tr className="text-left"><th>Closer</th><th>Etapa</th><th>Fecha</th><th>Días</th>{conVentas ? <CabecerasDeVentas /> : <th>{rotuloDeImporte(metrica)}</th>}<th>Deal</th></tr></thead>
                     <tbody className="divide-y">
                       {seccion.filas.map((fila) => (
                         <tr key={fila.id}>
@@ -91,14 +92,15 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
                           <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>
                           <td>{fecha(fila.fecha)}</td>
                           <td className="cifra">{num(fila.antiguedad)}</td>
-                          <td>
+                          {conVentas ? <CeldasDeVentas fila={fila} /> : <td>
                             <span className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</span>
                             {fila.concepto === "adicional" ? <span className="block text-xs">Adicional{fila.nota ? `: ${fila.nota}` : ""}</span> : null}
-                          </td>
+                          </td>}
                           <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
                         </tr>
                       ))}
                     </tbody>
+                    {conVentas ? <PieDeVentas dinero={seccion.dinero} columnasAntes={4} columnasDespues={1} /> : null}
                   </table>
                 )}
               </CardContent>

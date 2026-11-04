@@ -37,8 +37,7 @@ import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
 import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
 import { nombreDeCanal, type Area } from "@/lib/atribucion/canal";
-import { saldosDeDeals } from "@/lib/queries/saldo";
-import { carteraVencida } from "@/lib/queries/cartera";
+import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 
 /**
@@ -278,11 +277,22 @@ export async function contratadoDelRango(
   return contratadoDeDeals(db, ventas.map((venta) => venta.dealId));
 }
 
+/**
+ * Vendido, Recaudado y Por cobrar de las ventas del rango (369): las tres sobre el MISMO conjunto de
+ * ventas, el que dejan pasar el periodo, la cohorte y el closer. Lo recaudado es a hoy, no por fecha.
+ */
+export async function dineroDelRango(alcance: Alcance, db: Db = dbDeLaApp): Promise<DineroDeVentas> {
+  const ventas = await ventasDelRangoConValor(alcance, db);
+  return dineroDeVentas(db, ventas.map((venta) => venta.dealId));
+}
+
 export interface VentasDeCohorte {
   cohorteId: string | null;
   codigo: string | null;
   ventas: number;
   contratadoUsd: number;
+  /** Las tres cifras de esa cohorte (369): lo recaudado es a hoy, lo que falta es el saldo de esas ventas. */
+  dinero: DineroDeVentas;
 }
 
 /** Ventas del rango por cohorte, incluidas las que aún no iniciaron clases. */
@@ -313,6 +323,7 @@ export async function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Pr
     codigo: grupo[0]!.codigo,
     ventas: grupo.length,
     contratadoUsd: (await contratadoDeDeals(db, grupo.map((venta) => venta.dealId))).usd,
+    dinero: await dineroDeVentas(db, grupo.map((venta) => venta.dealId)),
   })));
 }
 
@@ -333,48 +344,6 @@ export async function sinResultadoDelRango(
       vigente(deals),
     ));
   return fila?.total ?? 0;
-}
-
-/** Foto de la cartera abierta del programa; no depende del rango elegido. */
-export async function carteraDelPrograma(
-  programId: string,
-  hoy: string,
-  db: Db = dbDeLaApp,
-  cohorteId?: string | null,
-): Promise<{
-  deals: number;
-  saldoUsd: number;
-  vencidos: number;
-  sinFechaDeReferencia: number;
-  sinSaldoCalculable: number;
-}> {
-  const filas = await db
-    .select({ id: deals.id })
-    .from(deals)
-    .where(and(
-      eq(deals.programId, programId),
-      eq(deals.cortesia, false),
-      eq(deals.etapa, "ganado_parcial"),
-      porCohorteDeDeal(cohorteId),
-      vigente(deals),
-    ));
-  const saldos = await saldosDeDeals(db, filas.map((fila) => fila.id));
-  const saldoUsd = [...saldos.values()].reduce(
-    (total, saldo) => total + (saldo.moneda === "USD" && saldo.saldo !== null ? saldo.saldo : 0),
-    0,
-  );
-  const sinSaldoCalculable = filas.filter((fila) => {
-    const saldo = saldos.get(fila.id);
-    return !saldo || saldo.saldo === null || saldo.moneda !== "USD";
-  }).length;
-  const vencida = await carteraVencida(db, programId, hoy, cohorteId);
-  return {
-    deals: filas.length,
-    saldoUsd: Math.round(saldoUsd * 100) / 100,
-    vencidos: vencida.vencidos.length,
-    sinFechaDeReferencia: vencida.sinFechaDeReferencia,
-    sinSaldoCalculable,
-  };
 }
 
 /**

@@ -51,7 +51,7 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
               "% show",
               "Cierres",
               "% cierre",
-              "Recaudado",
+              "Entró a caja",
               "Comisión",
             ]}
           >
@@ -79,7 +79,7 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
                   <Celda titulo={`Grupo con show de ${quien} (base del % de cierre)`} detalle={celdas?.grupo_shows}>{tasa(fila.pctCierre)}</Celda>
                 </td>
                 <td className="py-2 text-right">
-                  <Celda titulo={`Recaudado por ${quien}`} detalle={celdas?.caja}><Caja caja={fila.caja} /></Celda>
+                  <Celda titulo={`Entró a caja por ${quien}`} detalle={celdas?.caja}><Caja caja={fila.caja} /></Celda>
                 </td>
                 <td className="py-2 text-right">
                   {fila.comisionUsd === 0 && fila.ventasSinComision > 0 ? (
@@ -104,7 +104,7 @@ export function Comparativo({ vista, detalles, titulo = "Closers" }: {
           <p><strong>% show y % cierre:</strong> van sobre el grupo de citas; cada deal cuenta en el closer de su último show o, sin show, de su última cita.</p>
           <p><strong>Cierres:</strong> el dueño actual del deal.</p>
           <p><strong>Comisión:</strong> el dueño actual del deal.</p>
-          <p><strong>Recaudado:</strong> quien registró el abono.</p>
+          <p><strong>Entró a caja:</strong> quien registró el abono.</p>
           <p><strong>Sin closer:</strong> ventas, citas o abonos que no tienen closer; no entran en la comisión de nadie.</p>
         </ComoSeCalcula>
         <p className="pt-1 text-sm text-muted-foreground">

@@ -1,11 +1,12 @@
-import { sumaDeAbonos } from "@/lib/queries/saldo";
+import { saldosDeDeals, sumaDeAbonos } from "@/lib/queries/saldo";
+import { dineroDeUnaVenta, dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import type { Db } from "@/lib/db/tipos";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
-import type { Alcance, CajaPorMoneda, Rango } from "@/lib/queries/dashboard";
+import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
@@ -13,7 +14,7 @@ import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/quer
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsQueAgendaron, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, porCohorteDeDeal, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
+  primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -56,7 +57,6 @@ export type Metrica =
   | "agendas_futuras"
   | "contratado"
   | "sin_resultado"
-  | "cartera"
   | "atendidos_sin_valor"
   | "atendidos_sin_grain"
   | MetricaDeGrupo
@@ -79,8 +79,8 @@ function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
 
 /** Las métricas que no se atribuyen a un closer: con closer no hay cifra ("—"), nunca el programa entero. */
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = ["leads", "deals_creados", "deals_que_agendaron", "agendas_creadas", "registros"];
-/** Las métricas que son una foto de hoy: el periodo no las acota (la cartera y las banderas del 191). */
-export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["cartera", "atendidos_sin_valor", "atendidos_sin_grain"];
+/** Las métricas que son una foto de hoy: el periodo no las acota (las banderas del 191). */
+export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
 
 export interface FiltrosDeMetrica {
@@ -137,6 +137,10 @@ export interface FilaDeMetrica {
   bucket: string;
   moneda: string | null;
   monto: number | null;
+  /** Solo en listas de ventas (369): lo abonado a esa venta, a hoy. `null` si no tiene saldo calculable. */
+  recaudado?: number | null;
+  /** Solo en listas de ventas (369): lo que falta de esa venta (un sobrepago no resta). */
+  porCobrar?: number | null;
   concepto: string | null;
   nota: string | null;
   cantidad: number;
@@ -153,6 +157,8 @@ export interface ResumenDeMetrica {
   programId: string;
   disponible: boolean;
   subtotal: SubtotalDeMetrica;
+  /** Solo en listas de ventas (369): Vendido, Recaudado y Por cobrar de TODAS las ventas de la lista. */
+  dinero?: DineroDeVentas;
   /** Cruce de las tres dimensiones, agregado en SQL; nunca contiene filas de negocio. */
   grupos: Array<
     Pick<FilaDeMetrica, "closer" | "claveCloser" | "etapa" | "bucket" | "moneda" | "monto" | "cantidad">
@@ -187,8 +193,8 @@ export function proyectarParaTablero<T extends ListaDeMetrica>(lista: T, esAdmin
 export function proyectarParaPauta<T extends ListaDeMetrica>(lista: T, veEquipo: boolean): T {
   if (veEquipo) return lista;
   const ocultar = <F extends object>(fila: F) => ({ ...fila, closer: null, claveCloser: null,
-    dealId: null, monto: null, ultimaActividad: null });
-  return { ...lista, filas: lista.filas.map(ocultar), grupos: lista.grupos.map(ocultar) } as T;
+    dealId: null, monto: null, recaudado: null, porCobrar: null, ultimaActividad: null });
+  return { ...lista, dinero: undefined, filas: lista.filas.map(ocultar), grupos: lista.grupos.map(ocultar) } as T;
 }
 
 /**
@@ -243,7 +249,6 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
         columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
-    case "cartera":
     case "atendidos_sin_valor":
     case "atendidos_sin_grain":
       return {
@@ -580,19 +585,6 @@ function consultaDe(
           alcance.claveCloser ? sql`false` : undefined,
           vigente(deals),
         ));
-    case "cartera":
-      return db
-        .select(campos)
-        .from(deals)
-        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
-        .leftJoin(users, eq(users.id, deals.ownerUserId))
-        .where(and(
-          eq(deals.programId, alcance.programId),
-          eq(deals.cortesia, false),
-          eq(deals.etapa, "ganado_parcial"),
-          porCohorteDeDeal(alcance.cohorteId),
-          vigente(deals),
-        ));
     case "atendidos_sin_valor":
     case "atendidos_sin_grain":
       // Las banderas del Pulso (ticket 191): foto de hoy, con el mismo universo que su cifra.
@@ -734,13 +726,20 @@ async function leerMetricaDeEscalera(
   pagina: number | null,
   db: Db,
 ): Promise<FilaDeMetrica[]> {
+  const miembros = await miembrosDeLaEscalera(alcance, filtros, db);
+  const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
+  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
+}
+
+/** Los deals de la cifra de la escalera, sin paginar: los comparten la lista y el total de dinero (369). */
+async function miembrosDeLaEscalera(alcance: Alcance, filtros: FiltrosDeMetrica, db: Db) {
   const escalon = filtros.escalon;
   // Pauta pide grupos de escalones: "ventas" son los cuatro que pagaron y "despues" los que pagaron rapido o tarde.
   const grupo = escalon === "ventas" ? ESCALONES_QUE_PAGARON : escalon === "despues" ? (["pago_rapido", "pago_despues"] as const) : undefined;
   if (escalon !== undefined && grupo === undefined && !esEscalon(escalon)) return [];
   const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango, cohorteId: alcance.cohorteId }, filtros.ahora);
   const delOrigen = hayFiltroDeOrigen(filtros);
-  const miembros = filtrarEscalera(cargada, {
+  return filtrarEscalera(cargada, {
     escalon: grupo ? undefined : (escalon as Escalon | undefined),
     escalones: grupo,
     pago: filtros.pago,
@@ -748,8 +747,6 @@ async function leerMetricaDeEscalera(
     calidad: filtros.calidad,
     cohorteId: filtros.cohorteId ?? undefined,
   }).filter((deal) => !delOrigen || coincideConOrigen(deal.envio, filtros));
-  const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, miembros.map((m) => m.dealId));
-  return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
 }
 
 async function personasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
@@ -904,15 +901,35 @@ function subtotal(grupos: readonly Pick<FilaDeMetrica, "cantidad" | "moneda" | "
   };
 }
 
+/**
+ * ¿La lista es de ventas? (369): Vendido, Cupos y los escalones que pagaron. Toda lista de ventas lleva las tres
+ * columnas (Vendido · Recaudado · Por cobrar) y su total al pie; las demás conservan su columna de siempre.
+ */
+export function esListaDeVentas(metrica: Metrica, filtros: Pick<FiltrosDeMetrica, "escalon" | "pago"> = {}): boolean {
+  if (metrica === "contratado" || metrica === "cierres") return true;
+  if (metrica !== "escalera") return false;
+  return filtros.pago !== undefined || filtros.escalon === "ventas" || (ESCALONES_QUE_PAGARON as readonly string[]).includes(filtros.escalon ?? "");
+}
+
+/** Los deals de una lista de ventas, sin paginar: el MISMO universo que la cifra y que la lista. */
+async function dealsDeLaListaDeVentas(metrica: Metrica, alcance: Alcance, filtros: FiltrosDeMetrica, db: Db): Promise<string[]> {
+  if (metrica === "escalera") return (await miembrosDeLaEscalera(alcance, filtros, db)).map((m) => m.dealId);
+  return (await ventasDelRangoConValor(alcance, db)).map((venta) => venta.dealId);
+}
+
 /** Una sección por programa: no existe una salida que mezcle sus filas. */
 export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetrica, db: Db = dbDeLaApp): Promise<ResumenDeMetrica[]> {
   const programas = typeof filtros.programId === "string" ? [filtros.programId] : [...new Set(filtros.programId)];
   return Promise.all(programas.map(async (programId) => {
     const grupos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
+    const dinero = esListaDeVentas(metrica, filtros)
+      ? await dineroDeVentas(db, await dealsDeLaListaDeVentas(metrica, { ...filtros, programId }, filtros, db))
+      : undefined;
     return {
       programId,
       disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
       subtotal: subtotal(grupos),
+      ...(dinero ? { dinero } : {}),
       grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
         dealId: null,
         closer,
@@ -983,8 +1000,30 @@ export async function listaDeMetrica(
   return Promise.all(secciones.map(async (seccion) => ({
     ...seccion,
     pagina,
-    filas: await leerMetrica(metrica, { ...filtros, programId: seccion.programId }, filtros, pagina, db),
+    filas: await conDineroPorVenta(
+      metrica,
+      filtros,
+      await leerMetrica(metrica, { ...filtros, programId: seccion.programId }, filtros, pagina, db),
+      db,
+    ),
   })));
+}
+
+/** Pone Recaudado y Por cobrar en cada fila de una lista de ventas, con el saldo de `saldosDeDeals` (ADR 0024). */
+async function conDineroPorVenta(metrica: Metrica, filtros: FiltrosDeMetrica, filas: FilaDeMetrica[], db: Db): Promise<FilaDeMetrica[]> {
+  if (!esListaDeVentas(metrica, filtros)) return filas;
+  const ids = filas.flatMap((fila) => (fila.dealId ? [fila.dealId] : []));
+  const saldos = await saldosDeDeals(db, ids);
+  return filas.map((fila) => {
+    const dinero = fila.dealId ? dineroDeUnaVenta(saldos.get(fila.dealId)) : null;
+    return {
+      ...fila,
+      monto: dinero?.vendido ?? null,
+      moneda: dinero ? "USD" : fila.moneda,
+      recaudado: dinero?.recaudado ?? null,
+      porCobrar: dinero?.porCobrar ?? null,
+    };
+  });
 }
 
 /** Una línea de un desglose del resumen: la etiqueta, cuántos y, en caja, cuánto por moneda. */
