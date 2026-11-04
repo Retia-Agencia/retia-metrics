@@ -108,8 +108,8 @@ interface ColoresDeGrafica {
 
 interface ParametroTooltip { seriesName?: string; dataIndex?: number; value?: number | null }
 
-/** Con más puntos que esto el valor sobre cada punto estorba: queda el tooltip y la tabla. */
-const ETIQUETAS_HASTA = 12;
+/** Con más puntos que esto solo el último lleva su valor escrito: el resto estorba y vive en el tooltip y la tabla. */
+const ETIQUETAS_HASTA = 8;
 
 /** 4000 se lee "4K" y 2500000 "2,5M" en el eje; el valor exacto va en el tooltip y en la tabla. */
 function abreviar(valor: number): string {
@@ -117,7 +117,7 @@ function abreviar(valor: number): string {
   const corto = (n: number, sufijo: string) => `${String(Math.round(n * 10) / 10).replace(".", ",")}${sufijo}`;
   if (abs >= 1_000_000) return corto(valor / 1_000_000, "M");
   if (abs >= 10_000) return corto(valor / 1_000, "K");
-  return String(valor);
+  return String(Math.round(valor * 100) / 100).replace(".", ",");
 }
 
 const escapar = (texto: string) => texto.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -163,7 +163,6 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
       name: modelo.unidad,
       nameTextStyle: { color: colores.textoSecundario, align: "left" },
       min: (extremo: { min: number }) => Math.min(0, extremo.min),
-      max: (extremo: { max: number }) => Math.max(0, extremo.max),
       axisLabel: { color: colores.textoSecundario, formatter: abreviar },
       splitLine: { lineStyle: { color: colores.divisor, opacity: 0.5 } },
     },
@@ -174,7 +173,8 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
       // explícito conserva su color: así se distinguen dos pares en una misma gráfica.
       const comparacion = serie.punteada === true && serie.color === undefined;
       const color = comparacion ? colores.textoSecundario : colores.series[(serie.color ?? i) % colores.series.length];
-      const conEtiquetas = !comparacion && modelo.dias.length <= ETIQUETAS_HASTA;
+      const ultimo = serie.valores.reduce<number>((u, valor, indice) => (valor === null ? u : indice), -1);
+      const escribeTodas = modelo.dias.length <= ETIQUETAS_HASTA;
       return {
         name: serie.clave,
         type: modelo.tipo === "barra" ? "bar" : "line",
@@ -185,11 +185,14 @@ export function crearOpcionGrafica(modelo: ModeloDeGrafica, colores: ColoresDeGr
         itemStyle: { color },
         lineStyle: { type: serie.punteada ? "dashed" : "solid", color, width: comparacion ? 1.5 : 2.5 },
         areaStyle: modelo.tipo === "linea" && !comparacion ? { color, opacity: 0.08 } : undefined,
+        // En una pantalla angosta los valores largos se pisan: ECharts oculta los que se traslapan.
+        labelLayout: { hideOverlap: true },
         label: {
-          show: conEtiquetas,
+          show: !comparacion,
           position: "top",
           color: colores.texto,
-          formatter: (parametro: ParametroTooltip) => serie.textos[parametro.dataIndex ?? 0] ?? "",
+          formatter: (parametro: ParametroTooltip) =>
+            escribeTodas || parametro.dataIndex === ultimo ? (serie.textos[parametro.dataIndex ?? 0] ?? "") : "",
         },
       };
     }),
