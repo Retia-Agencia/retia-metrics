@@ -12,6 +12,7 @@ import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import { urlDeListaTodos } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina, origenValido } from "@/lib/navegacion/volver";
+import { rotuloDeImporte } from "@/lib/vocabulario-metricas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +68,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
           <Badge variant="secondary">{metrica === "cartera" || metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? `Foto de hoy: ${fecha(hoy)}` : `Periodo: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
         </div>
-        {metrica === "cartera" ? <p className="text-sm text-muted-foreground">Deals en pago parcial vigentes. La cartera no depende del periodo A; abre un deal para ver su saldo y próxima fecha de pago.</p> : null}
+        {metrica === "cartera" ? <p className="text-sm text-muted-foreground">Deals en pago parcial vigentes. La cartera no depende del periodo elegido; abre un deal para ver su saldo y próxima fecha de pago.</p> : null}
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         {secciones.map((seccion) => {
           const programa = programasPorId.get(seccion.programId);
@@ -82,7 +83,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
               <CardContent className="overflow-x-auto">
                 {seccion.filas.length === 0 ? <p>No hay filas en esta página para este programa.</p> : (
                   <table className="w-full text-sm">
-                    <thead><tr className="text-left"><th>Closer</th><th>Etapa</th><th>Fecha</th><th>Días</th><th>Monto</th><th>Deal</th></tr></thead>
+                    <thead><tr className="text-left"><th>Closer</th><th>Etapa</th><th>Fecha</th><th>Días</th><th>{rotuloDeImporte(metrica)}</th><th>Deal</th></tr></thead>
                     <tbody className="divide-y">
                       {seccion.filas.map((fila) => (
                         <tr key={fila.id}>
