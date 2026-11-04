@@ -32,8 +32,8 @@ a fase 2.
 | [x] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 377, 352, 374 | done · fase 1, paso 3 |
 | [x] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | done · 4-nov · fase 1, paso 3 · absorbe al 253 |
 | [x] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 377 | done · 4-nov · fase 1, paso 3 |
-| [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | en revision · 4-nov · fase 1, paso 4 · absorbe al 256 |
-| [ ] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | en revision · 4-nov · fase 1, paso 4 · la plantilla del 15-sep v5 · absorbe al 254 y la parte imprimible del 300 |
+| [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | en main · 4-nov · falta checkpoint verde · fase 1, paso 4 · absorbe al 256 |
+| [ ] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | en main · 4-nov · falta checkpoint verde · fase 1, paso 4 · la plantilla del 15-sep v5 · absorbe al 254 y la parte imprimible del 300 |
 | [ ] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | todo · **fase 2** · migración |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |
 

@@ -3,7 +3,7 @@ id: 373
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-10: el CRM como fuente única de verdad) · ADR 0086 (Hoy es el reporte diario) · objetivo O1 de docs/hub.md · reemplaza el punto 1 del 300 y al 254"
 depends: [352, 369, 371]
-status: en revision
+status: en main
 ---
 
 # 373 — Hub › Hoy es el reporte diario de Michael, y se descarga en PDF
