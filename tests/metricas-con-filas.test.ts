@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { cajaRecaudada, carteraDelPrograma, embudoDelRango, leadsDelRango, sinResultadoDelRango } from "@/lib/queries/dashboard";
+import { cajaRecaudada, embudoDelRango, leadsDelRango, sinResultadoDelRango } from "@/lib/queries/dashboard";
 import { desglosesDelResumen, listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA, type Metrica, type FilaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { codigoDeCloser, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { claveHistorica } from "@/lib/closers/identidad";
@@ -274,7 +274,7 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
   });
 });
 
-describe("ticket 148: listas de contratado, sin resultado y cartera", () => {
+describe("ticket 148: listas de contratado y sin resultado", () => {
   let base: Db;
   let cerrarBase: () => Promise<void>;
   let prog: string;
@@ -332,7 +332,7 @@ describe("ticket 148: listas de contratado, sin resultado y cartera", () => {
     expect(new URL(href, "https://retia.test").searchParams.get("cohorte")).toBe(cohortes[0].id);
   });
 
-  it("sin_resultado y cartera cuentan exactamente las filas de sus listas", async () => {
+  it("sin_resultado cuenta exactamente las filas de su lista", async () => {
     const abierto = await deal(prog);
     const cerrado = await deal(prog, { etapa: "ganado_completo" });
     const pasado = new Date("2026-10-04T10:00:00-05:00");
@@ -354,9 +354,5 @@ describe("ticket 148: listas de contratado, sin resultado y cartera", () => {
     expect(sinResultado.subtotal.cantidad).toBe(1);
     expect(sinResultado.filas).toHaveLength(1);
     expect(await sinResultadoDelRango({ programId: prog, rango: r }, ahora, base)).toBe(sinResultado.filas.length);
-    const [cartera] = await listaDeMetrica("cartera", filtros, 1, base);
-    expect(cartera.subtotal.cantidad).toBe(cartera.filas.length);
-    expect(cartera.filas).toHaveLength(2);
-    expect((await carteraDelPrograma(prog, "2026-10-04", base)).deals).toBe(cartera.filas.length);
   });
 });

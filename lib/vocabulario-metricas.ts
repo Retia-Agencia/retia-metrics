@@ -3,7 +3,7 @@
  * Cada métrica tiene clave, nombre corto (tarjetas, columnas), nombre largo (títulos, listas) y una línea
  * de definición (tooltip). Las pantallas del Hub y sus listas toman el rótulo de aquí, nunca de un literal.
  * Alineado con `docs/overview.md` §11 y `docs/metricas.md`. "Monto" y "Contratado" no existen: se dice
- * Vendido, Recaudado, Por cobrar o Entró a caja, según la pregunta.
+ * Vendido, Recaudado, Por cobrar o Entró a caja, según la pregunta (369: las tres primeras sobre las mismas ventas).
  */
 export type ClaveDeMetrica =
   | "registros" | "leads" | "deals_desde_completo" | "deals_desde_parcial"
@@ -25,9 +25,9 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   llamadas_sin_resultado: { corto: "Sin resultado", largo: "Llamadas sin resultado", definicion: "Citas que ya ocurrieron y el closer no marcó como atendidas ni como no asistidas." },
   ventas: { corto: "Ventas", largo: "Ventas (cupos)", definicion: "Deals en Abonado o Completo; cada uno es un cupo." },
   vendido: { corto: "Vendido", largo: "Valor vendido", definicion: "Suma del valor vendido que el closer escribió en cada venta." },
-  recaudado: { corto: "Recaudado", largo: "Recaudado en el periodo", definicion: "Suma de los abonos vigentes, por la fecha del abono." },
-  por_cobrar: { corto: "Por cobrar", largo: "Por cobrar (saldo de hoy)", definicion: "Lo que falta pagar de los deals con pago parcial vigentes." },
-  entro_a_caja: { corto: "Entró a caja", largo: "Entró a caja", definicion: "Dinero que ya se recibió, por moneda y sin convertir." },
+  recaudado: { corto: "Recaudado", largo: "Recaudado de lo vendido", definicion: "Lo abonado, a hoy, a las ventas elegidas, sin importar cuándo se abonó." },
+  por_cobrar: { corto: "Por cobrar", largo: "Por cobrar de lo vendido", definicion: "Lo vendido menos lo recaudado en las ventas elegidas; un sobrepago no resta deuda a otra venta." },
+  entro_a_caja: { corto: "Entró a caja", largo: "Entró a caja", definicion: "Abonos vigentes con fecha en el periodo, de cualquier venta, por moneda y sin convertir." },
   comision: { corto: "Comisión", largo: "Comisión del closer", definicion: "Porcentaje pactado sobre lo vendido." },
   meta: { corto: "Meta", largo: "Meta de la cohorte", definicion: "Cupos que se quieren vender en la cohorte." },
   esperado_a_hoy: { corto: "Esperado a hoy", largo: "Esperado a hoy", definicion: "Ventas que la meta pedía haber cerrado a esta fecha." },
@@ -42,8 +42,7 @@ export function definicion(clave: ClaveDeMetrica): string { return VOCABULARIO[c
 
 /** El rótulo de la columna de dinero de una lista, según la métrica que la abrió: nunca "Monto". */
 export function rotuloDeImporte(metrica: string): string {
-  if (metrica === "caja") return nombreCorto("recaudado");
-  if (metrica === "cartera") return nombreCorto("por_cobrar");
+  if (metrica === "caja") return "Abono";
   return nombreCorto("vendido");
 }
 

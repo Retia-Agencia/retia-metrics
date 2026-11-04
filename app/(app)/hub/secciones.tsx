@@ -5,6 +5,7 @@ import { Operacion } from "@/components/dashboard/operacion";
 import { Escalera } from "@/components/dashboard/escalera";
 import { escaleraPorPrograma } from "@/lib/queries/escalera-todos";
 import { Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
+import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { Variacion } from "@/components/variacion";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
 import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
+import { nombreCorto } from "@/lib/vocabulario-metricas";
 import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 
 type Seccion = "hoy" | "comercial" | "dinero";
@@ -51,16 +53,13 @@ function TablaPorPrograma({ titulo, cabeceras, vista, seccion, celdas }: {
   );
 }
 
+/** Vendido · Recaudado · Por cobrar (369) y, aparte, lo que entró a caja en el periodo por moneda. */
 function VendidoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
   const monedas = [...new Set([...vista.a.caja, ...(vista.b?.caja ?? [])].map((c) => c.moneda))].sort();
   if (monedas.length === 0) monedas.push("USD");
   return <>
-    <Tarjeta titulo="Vendido" valor={
-      <CifraConLista titulo="Vendido" detalle={vista.detalles.contratado}>{usd(vista.a.contratado.valor)}</CifraConLista>
-    } nota={<>
-      <ContraB actual={vista.a.contratado.valor} anterior={vista.b?.contratado.valor ?? null} periodo={vista.periodo} decimales={2} />
-      {vista.sinValorVendido.valor > 0 ? <p>{num(vista.sinValorVendido.valor)} sin valor vendido</p> : null}
-    </>} />
+    <TarjetaVendido dinero={vista.a.dinero} anterior={vista.b?.dinero ?? null} periodo={vista.periodo}
+      detalle={vista.detalles.contratado} sinValorVendido={vista.sinValorVendido.valor} />
     {monedas.map((moneda) => {
       const actual = vista.a.caja.find((c) => c.moneda === moneda)?.valor ?? 0;
       const anterior = vista.b ? vista.b.caja.find((c) => c.moneda === moneda)?.valor ?? 0 : null;
@@ -75,8 +74,8 @@ function VendidoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }
         desgloses: desglosesDelResumen(grupos, nombreDeEtapa),
         href: urlDeListaTodos({ metrica: "caja", periodo: vista.periodo, origen, moneda }),
       };
-      return <Tarjeta key={moneda} titulo={`Recaudado · ${moneda}`} valor={
-        <CifraConLista titulo={`Recaudado en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
+      return <Tarjeta key={moneda} titulo={`Entró a caja · ${moneda}`} valor={
+        <CifraConLista titulo={`Entró a caja en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
       } nota={<ContraB actual={actual} anterior={anterior} periodo={vista.periodo} decimales={2} />} />;
     })}
   </>;
@@ -135,31 +134,20 @@ function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
     }} />;
 }
 
-function Cartera({ vista }: { vista: VistaDeTodos }) {
-  return <Card>
-    <CardHeader><CardTitle>Por cobrar · foto de hoy</CardTitle></CardHeader>
-    <CardContent className="space-y-2">
-      <Button variant="link" className="cifra h-auto p-0 text-2xl" nativeButton={false}
-        render={<Link href={vista.detalles.cartera.href} />}>{usd(vista.cartera.saldo.valor)}</Button>
-      <p className="text-sm"><span className="cifra">{num(vista.cartera.deals.valor)}</span> deals · <span className="cifra">{num(vista.cartera.vencidos.valor)}</span> vencidos</p>
-      <p className="text-sm text-muted-foreground">No depende del periodo elegido ni se compara con otro.</p>
-      <p className="text-sm text-muted-foreground"><span className="cifra">{num(vista.cartera.sinSaldoCalculable.valor)}</span> sin saldo calculable · <span className="cifra">{num(vista.cartera.sinFechaDeReferencia.valor)}</span> sin fecha de referencia.</p>
-    </CardContent>
-  </Card>;
-}
-
 function VentasPorCohorte({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
   return <Card>
     <CardHeader><CardTitle>Ventas por programa y cohorte</CardTitle></CardHeader>
     <CardContent>
       {vista.programas.every((p) => p.dashboard.ventasPorCohorte.length === 0) ? <p>Sin ventas en el periodo.</p> : (
-        <Tabla cabeceras={["Programa", "Cohorte", "Ventas", "Vendido"]}>
+        <Tabla cabeceras={["Programa", "Cohorte", "Ventas", nombreCorto("vendido"), nombreCorto("recaudado"), nombreCorto("por_cobrar")]}>
           {vista.programas.flatMap((fila) => fila.dashboard.ventasPorCohorte.map((cohorte) => {
             const href = cohorte.cohorteId ? urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen, cohorteId: cohorte.cohorteId }) : null;
             return <tr key={`${fila.programa.id}:${cohorte.cohorteId}`}>
               <td className="py-2">{fila.programa.nombre}</td><td className="text-right">{cohorte.codigo ?? "Sin cohorte"}</td>
               <td className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Link href={href} />}>{num(cohorte.ventas)}</Button> : num(cohorte.ventas)}</td>
-              <td className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Link href={href} />}>{usd(cohorte.contratadoUsd)}</Button> : usd(cohorte.contratadoUsd)}</td>
+              {[cohorte.dinero.vendido, cohorte.dinero.recaudado, cohorte.dinero.porCobrar].map((valor, i) => (
+                <td key={i} className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Link href={href} />}>{usd(valor)}</Button> : usd(valor)}</td>
+              ))}
             </tr>;
           }))}
         </Tabla>
@@ -179,7 +167,6 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
   if (seccion === "dinero") return <section id="dinero" className="space-y-4">
     <h2 className="text-xl font-semibold">Dinero</h2>
     <div className={GRILLA}><VendidoYCaja vista={vista} origen={origen} /></div>
-    <Cartera vista={vista} />
     <TablaPorPrograma titulo="Comisión y descuento por programa" vista={vista} seccion="dinero"
       cabeceras={["Comisión USD", "Sin comisión calculable", "Descuento promedio", "Descuento USD", "Ventas con descuento calculable"]}
       celdas={(fila) => <>

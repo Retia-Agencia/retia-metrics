@@ -154,9 +154,11 @@ describe("vista de todos los programas", () => {
     expect(vista.a.contratado.valor).toBe(2297);
     expect(vista.a.cierres.valor).toBe(suma((v) => v.embudo.cierres));
     expect(vista.a.shows.valor).toBe(suma((v) => v.embudo.llamadasConShow));
-    expect(vista.cartera.saldo.valor).toBe(suma((v) => v.cartera.saldoUsd));
-    expect(vista.cartera.deals.valor).toBe(suma((v) => v.cartera.deals));
-    expect(vista.cartera.deals.valor).toBe(2);
+    // Las tres cifras del dinero se suman en USD entre programas y conservan el invariante (369).
+    expect(vista.a.dinero.vendido).toBe(suma((v) => v.dinero.vendido));
+    expect(vista.a.dinero.recaudado).toBe(suma((v) => v.dinero.recaudado));
+    expect(vista.a.dinero.porCobrar).toBe(suma((v) => v.dinero.porCobrar));
+    expect(vista.a.dinero.vendido).toBeCloseTo(vista.a.dinero.recaudado + vista.a.dinero.porCobrar - vista.a.dinero.sobrepago, 2);
     expect(vista.sinValorVendido.valor).toBe(suma((v) => v.sinValorVendido));
     // Tasas, comisión y descuento siguen por programa, iguales a los del dashboard propio.
     expect(vista.programas.map((p) => p.pctCierre.valor)).toEqual(propios.map((v) => v.embudo.pctCierre));
@@ -172,7 +174,7 @@ describe("vista de todos los programas", () => {
 
     expect(soloA.a.contratado.valor).toBe(propioA.contratadoUsd);
     expect(soloA.a.contratado.valor).toBe(797);
-    expect(soloA.cartera.deals.valor).toBe(1);
+    expect(soloA.a.dinero).toEqual(propioA.dinero);
     expect(soloA.programas.map((p) => p.programa.slug)).toEqual(["programa-a"]);
   });
 });

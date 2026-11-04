@@ -35,7 +35,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   const pestanas = [
     { id: "hoy", etiqueta: "Hoy", descripcion: "El día de cada programa: cupos, operación, caja y lo que pide atención." },
     { id: "comercial", etiqueta: "Comercial", descripcion: "Actividad total y embudo de cada programa." },
-    { id: "dinero", etiqueta: "Dinero", descripcion: "Lo contratado, lo cobrado por moneda y la cartera de hoy." },
+    { id: "dinero", etiqueta: "Dinero", descripcion: "Lo vendido, lo recaudado y lo que falta por cobrar de esas ventas; lo que entró a caja, por moneda." },
     { id: "pauta", etiqueta: "Pauta", descripcion: "Origen y rendimiento de los canales dentro de cada programa." },
     { id: "origen", etiqueta: "Origen", descripcion: "De dónde vino cada lead y cómo cuenta cada UTM." },
   ].map((pestana) => ({ ...pestana, href: urlConSeccion(RUTA_HUB_TODOS, busqueda, pestana.id) }));

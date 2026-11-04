@@ -11,8 +11,10 @@ import type { Rango } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { CajaConVariacion, Tabla, Tarjeta } from "@/components/dashboard/piezas";
+import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
+import { nombreCorto } from "@/lib/vocabulario-metricas";
 
-/** Responde: ¿cuánto entró, cuánto falta y de qué cohorte? */
+/** Responde: ¿cuánto vendimos, cuánto ya se recaudó, cuánto falta y de qué cohorte? */
 export function Dinero({
   vista,
   detalles,
@@ -33,17 +35,8 @@ export function Dinero({
     <section id="dinero" className="scroll-mt-4 space-y-4">
       <h2 className="text-xl font-semibold">Dinero</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Tarjeta
-          titulo="Vendido"
-          valor={
-            <CifraConLista titulo="Vendido" detalle={detalles?.contratado}>
-              {usd(vista.contratadoUsd)}
-            </CifraConLista>
-          }
-          nota={vista.sinValorVendido > 0
-            ? `${num(vista.sinValorVendido)} sin valor vendido`
-            : undefined}
-        />
+        <TarjetaVendido dinero={vista.dinero} anterior={vista.anterior?.dinero ?? null} periodo={vista.periodo}
+          detalle={detalles?.contratado} sinValorVendido={vista.sinValorVendido} />
         <CajaConVariacion vista={vista} detalles={detalles} />
         {veEquipo ? <Tarjeta
           titulo="Comisión del periodo"
@@ -71,7 +64,7 @@ export function Dinero({
 
       {series ? <GraficasDeDinero datos={series} slug={slug} claveCloser={vista.claveCloser} origen={origen} conListas={veEquipo} /> : null}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Ventas por cohorte</CardTitle>
@@ -80,7 +73,7 @@ export function Dinero({
             {vista.ventasPorCohorte.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin ventas en el periodo.</p>
             ) : (
-              <Tabla cabeceras={["Cohorte", "Ventas", "Vendido"]}>
+              <Tabla cabeceras={["Cohorte", "Ventas", nombreCorto("vendido"), nombreCorto("recaudado"), nombreCorto("por_cobrar")]}>
                 {vista.ventasPorCohorte.map((fila) => {
                   const href = veEquipo && fila.cohorteId
                     ? urlDeLista({
@@ -109,20 +102,22 @@ export function Dinero({
                           num(fila.ventas)
                         )}
                       </td>
-                      <td className="py-2 text-right">
-                        {href ? (
-                          <Button
-                            variant="link"
-                            className="cifra h-auto p-0"
-                            nativeButton={false}
-                            render={<Link href={href} />}
-                          >
-                            {usd(fila.contratadoUsd)}
-                          </Button>
-                        ) : (
-                          usd(fila.contratadoUsd)
-                        )}
-                      </td>
+                      {[fila.dinero.vendido, fila.dinero.recaudado, fila.dinero.porCobrar].map((valor, i) => (
+                        <td key={i} className="py-2 text-right">
+                          {href ? (
+                            <Button
+                              variant="link"
+                              className="cifra h-auto p-0"
+                              nativeButton={false}
+                              render={<Link href={href} />}
+                            >
+                              {usd(valor)}
+                            </Button>
+                          ) : (
+                            usd(valor)
+                          )}
+                        </td>
+                      ))}
                     </tr>
                   );
                 })}
@@ -131,39 +126,13 @@ export function Dinero({
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Por cobrar</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <p className="cifra break-words text-2xl font-semibold">
-              <CifraConLista titulo="Por cobrar" detalle={detalles?.cartera}>
-                {num(vista.cartera.deals)} deals · {usd(vista.cartera.saldoUsd)}
-              </CifraConLista>
-            </p>
-            <p className="text-sm">
-              <span className="cifra">{num(vista.cartera.vencidos)}</span> vencidos ·{" "}
-              <span className="cifra">{num(vista.cartera.sinFechaDeReferencia)}</span>{" "}
-              sin fecha de referencia
-            </p>
-            {vista.cartera.sinSaldoCalculable > 0 ? (
-              <p className="text-sm text-muted-foreground">
-                <span className="cifra">{num(vista.cartera.sinSaldoCalculable)}</span>{" "}
-                sin saldo calculable
-              </p>
-            ) : null}
-            <p className="text-sm text-muted-foreground">
-              A hoy, no depende del periodo. Es del programa entero.
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {vista.claveCloser !== null ? (
         <p className="text-sm text-muted-foreground">
           Filtrado por{" "}
           {vista.closers.find((closer) => closer.id === vista.claveCloser)?.label
-            ?? "este closer"}. Los leads y la cartera son del programa entero: no se parten
+            ?? "este closer"}. Los leads son del programa entero: no se parten
           por closer.
         </p>
       ) : null}
@@ -189,7 +158,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
     { titulo: "Cupos vendidos", unidad: "cupos", metrica: "cierres" as const,
       valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.cupos,
       meta: (fila: Valores) => fila.metaCupos, decimales: 1, moneda: undefined },
-    ...monedas.map((moneda) => ({ titulo: "Recaudado", unidad: moneda, metrica: "caja" as const,
+    ...monedas.map((moneda) => ({ titulo: "Entró a caja", unidad: moneda, metrica: "caja" as const,
       valor: (fila: Pick<Valores, "contratadoUsd" | "cupos" | "caja">) => fila.caja.find((caja) => caja.moneda === moneda)?.total ?? 0,
       // No existe una meta de recaudo: la caja se grafica sin meta.
       meta: (): number | null => null,
@@ -203,9 +172,9 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
   return (
     <div className="space-y-4">
       <div className="space-y-1 text-sm text-muted-foreground">
-        <p>Últimos seis meses hasta {ultimo.mes}. Cada mes va desde el día 1; el último corta en {fecha(ultimo.rango.hasta)}. La caja usa la fecha del abono.</p>
+        <p>Últimos seis meses hasta {ultimo.mes}. Cada mes va desde el día 1; el último corta en {fecha(ultimo.rango.hasta)}. Lo que entró a caja usa la fecha del abono.</p>
         <p>La meta es del programa entero. Sin ventana de venta, la meta aparece como —.</p>
-        {claveCloser ? <p>Vendido, cupos y recaudado muestran la contribución del closer seleccionado; la meta no se reparte.</p> : null}
+        {claveCloser ? <p>Vendido, cupos y lo que entró a caja muestran la contribución del closer seleccionado; la meta no se reparte.</p> : null}
         {meses.some((mes) => mes.sinValorVendido > 0) ? <p>Hay cupos sin valor vendido: cuentan como cupos, pero no suman al vendido.</p> : null}
       </div>
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
@@ -258,7 +227,7 @@ function GraficasDeDinero({ datos, slug, claveCloser, origen, conListas }: {
                       ] }} />
                     {final.anterior ? <p className="text-sm">{m.unidad}: <Variacion actual={m.valor(final.actual)} anterior={m.valor(final.anterior)} decimales={m.decimales} comparacion="contra el mes anterior al mismo día hábil" /></p> : null}
                     {m.metrica === "caja" ? (
-                      <p className="text-sm text-muted-foreground">Lo recaudado no tiene meta propia.</p>
+                      <p className="text-sm text-muted-foreground">Lo que entró a caja no tiene meta propia.</p>
                     ) : meta !== null ? (
                       <p className="text-sm">Faltan para la meta: <span className="cifra">{num(Math.max(0, meta - m.valor(final.actual)), m.decimales)} {m.unidad} · {meta > 0 ? pct(Math.max(0, meta - m.valor(final.actual)) / meta) : "—"}</span></p>
                     ) : null}

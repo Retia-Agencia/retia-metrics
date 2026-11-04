@@ -3,7 +3,7 @@ id: 369
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-3) · ADR 0013, 0024, 0113 · AGENTS.md: caja y ventas son dos métricas"
 depends: [377, 352, 374]
-status: todo
+status: done
 ---
 
 # 369 — El dinero en tres columnas: Vendido, Recaudado y Por cobrar
@@ -64,13 +64,25 @@ lista. Cuando entre el 376 pasa a ser la venta de su propio SKU.
 
 ## Done cuando
 
-- [ ] Test: dos ventas (USD 1.500 pagada entera; USD 1.500 con un abono de 500) dan Vendido 3.000, Recaudado 2.000,
+- [x] Test: dos ventas (USD 1.500 pagada entera; USD 1.500 con un abono de 500) dan Vendido 3.000, Recaudado 2.000,
   Por cobrar 1.000; un abono anulado no cuenta; un abono adicional no cambia ninguna de las tres y sí "Entró a caja".
-- [ ] Test: las tres cifras siguen los filtros del 377 (cohorte, periodo, closer) y su lista suma lo mismo, página por
+- [x] Test: las tres cifras siguen los filtros del 377 (cohorte, periodo, closer) y su lista suma lo mismo, página por
   página.
-- [ ] Test de paridad: Por cobrar con "Todas" + "Desde el inicio" = la cartera que calculaba `carteraDelPrograma`
+- [x] Test de paridad: Por cobrar con "Todas" + "Desde el inicio" = la cartera que calculaba `carteraDelPrograma`
   antes de borrarla.
-- [ ] Guardián: ninguna cadena visible "Monto" en `components/dashboard/`, `app/(app)/hub/` ni en las listas del Hub.
-- [ ] Recorrido en `dev:local` con ventas sembradas, escritorio y 375 px.
-- [ ] Regla N8: `docs/metricas.md` §2 (Vendido, Recaudado, Por cobrar, Entró a caja) y `overview.md` §11 en el mismo
+- [x] Guardián: ninguna cadena visible "Monto" en `components/dashboard/`, `app/(app)/hub/` ni en las listas del Hub.
+- [x] Recorrido en `dev:local` con ventas sembradas, escritorio y 375 px.
+- [x] Regla N8: `docs/metricas.md` §2 (Vendido, Recaudado, Por cobrar, Entró a caja) y `overview.md` §11 en el mismo
   commit.
+
+## Notas de la entrega (3-nov)
+
+- Módulo único: `lib/queries/dinero-de-ventas.ts` (`dineroDeVentas`, `dineroDeSaldos`, `sumarDineroDeVentas`) sobre
+  `saldosDeDeals`. Una venta sin saldo calculable (sin valor vendido o con abonos en otra moneda) queda fuera de las tres
+  cifras y se cuenta aparte, para que el invariante se sostenga.
+- `carteraDelPrograma`, la métrica `cartera` y la tarjeta de cartera se borraron (N7). Lo que se pierde de esa tarjeta
+  en el Hub es el conteo de «vencidos» y «sin fecha de referencia»; la cartera vencida sigue viva en Students, Kanban e
+  Inbox (`carteraVencida`).
+- Tests: `tests/dinero-de-ventas.test.ts`. El guardián de «Monto» ya existía (`tests/hub-vocabulario-guardian.test.ts`,
+  374) y cubre `components/dashboard/` y `app/(app)/hub/`.
+- «Recaudado» como nombre de la caja por fecha pasó a «Entró a caja» en tarjetas, gráficas y comparativo por closer.

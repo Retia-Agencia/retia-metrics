@@ -48,7 +48,7 @@ export interface DetalleDeCifra {
   /** El resumen partido por closer, etapa y antigüedad (ADR 0067 punto 5), ya legible. */
   desgloses: DesglosesDelResumen;
   href: string;
-  /** Una foto de hoy que el periodo no acota (la cartera, las banderas del 191, los abiertos del embudo). */
+  /** Una foto de hoy que el periodo no acota (las banderas del 191, los abiertos del embudo). */
   fotoDeHoy?: boolean;
 }
 
@@ -69,7 +69,6 @@ const METRICAS_DEL_TABLERO = [
   "leads",
   "contratado",
   "sin_resultado",
-  "cartera",
   "atendidos_sin_valor",
   "atendidos_sin_grain",
   "grupo_citas",
@@ -158,7 +157,7 @@ export interface EntradaDeDetalles {
 
 /** El resumen de UNA cifra del periodo A y el enlace a su lista. Solo agregados SQL. */
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
-  const claveCloser = metrica === "cartera" ? null : entrada.claveCloser;
+  const claveCloser = entrada.claveCloser;
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
   const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId });
   return {

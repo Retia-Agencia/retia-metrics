@@ -8,9 +8,9 @@ import { comparacionesDe, parsearPeriodoUrl, resolverPeriodo, type EntradaDePeri
 import { cohorteDelHub, contextoDelFiltro, type OpcionDeCohorte } from "@/lib/queries/cohorte-del-hub";
 import {
   cajaRecaudada,
-  carteraDelPrograma,
   closersConCuenta,
   contratadoDelRango,
+  dineroDelRango,
   contarCortesias,
   embudoDelRango,
   embudoPorCloser,
@@ -29,6 +29,7 @@ import { comisionDeDeal, comisionesPorCloser } from "@/lib/queries/comision";
 import { showsSinGrain } from "@/lib/queries/sin-grain";
 import { banderasDelPulso, type BanderasDelPulso } from "@/lib/queries/banderas-del-pulso";
 import { descuentoDeDeal } from "@/lib/queries/saldo";
+import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { leerMetasDelMes, type MetasDelMes } from "@/lib/queries/metas";
 import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embudo-etapas";
 
@@ -97,21 +98,16 @@ export interface VistaDelDashboard {
   /** Los closers CON CUENTA que puede elegir el selector (valor = `users.id`). */
   closers: OpcionDeCloser[];
   embudo: EmbudoDelRango;
-  anterior: { embudo: EmbudoDelRango; caja: CajaPorMoneda[]; contratadoUsd: number } | null;
+  anterior: { embudo: EmbudoDelRango; caja: CajaPorMoneda[]; contratadoUsd: number; dinero: DineroDeVentas } | null;
   contratadoUsd: number;
+  /** Vendido, Recaudado y Por cobrar de las MISMAS ventas del periodo y los filtros (369). */
+  dinero: DineroDeVentas;
   sinValorVendido: number;
   sinGrain: Awaited<ReturnType<typeof showsSinGrain>>;
   caja: CajaPorMoneda[];
   comision: { totalUsd: number; ventasSinComision: number };
   descuento: { promedioPct: number | null; promedioUsd: number | null; ventas: number };
-  ventasPorCohorte: { cohorteId: string | null; codigo: string | null; ventas: number; contratadoUsd: number }[];
-  cartera: {
-    deals: number;
-    saldoUsd: number;
-    vencidos: number;
-    sinFechaDeReferencia: number;
-    sinSaldoCalculable: number;
-  };
+  ventasPorCohorte: { cohorteId: string | null; codigo: string | null; ventas: number; contratadoUsd: number; dinero: DineroDeVentas }[];
   sinResultado: number;
   /** Atendidos sin valor y sin Grain (ticket 191): foto de hoy, acotada por el dueño del deal. */
   banderas: BanderasDelPulso;
@@ -178,7 +174,6 @@ export async function armarVistaDelDashboard(
     contratado,
     ventasConValor,
     porCohorte,
-    cartera,
     sinResultado,
     banderas,
     cortesias,
@@ -197,7 +192,6 @@ export async function armarVistaDelDashboard(
     contratadoDelRango(alcance, db),
     ventasDelRangoConValor(alcance, db),
     ventasPorCohorte(alcance, db),
-    carteraDelPrograma(programId, hoy, db, cohorteId),
     sinResultadoDelRango(alcance, ahora, db),
     banderasDelPulso({ programId, claveCloser, cohorteId }, db),
     contarCortesias(alcance, db),
@@ -213,13 +207,16 @@ export async function armarVistaDelDashboard(
           embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db, ahora),
           cajaRecaudada({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
           contratadoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
-        ]).then(([embudoAnterior, cajaAnterior, contratadoAnterior]) => ({
+          dineroDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
+        ]).then(([embudoAnterior, cajaAnterior, contratadoAnterior, dineroAnterior]) => ({
           embudo: embudoAnterior,
           caja: cajaAnterior,
           contratadoUsd: contratadoAnterior.usd,
+          dinero: dineroAnterior,
         }))
       : Promise.resolve(null),
   ]);
+  const dinero = await dineroDeVentas(db, ventasConValor.map((venta) => venta.dealId));
   const comisionPorClave = new Map(comisiones.map((c) => [c.userId ?? claveHistorica(c.closerId ?? ""), c]));
   const comparativo = porCloser.map((c) => ({
     ...c,
@@ -249,6 +246,7 @@ export async function armarVistaDelDashboard(
     embudo,
     anterior,
     contratadoUsd: contratado.usd,
+    dinero,
     sinValorVendido: contratado.sinValorVendido,
     sinGrain,
     caja,
@@ -262,7 +260,6 @@ export async function armarVistaDelDashboard(
       ventas: descuentos.length,
     },
     ventasPorCohorte: porCohorte,
-    cartera,
     sinResultado,
     banderas,
     cortesias,
