@@ -1,4 +1,5 @@
-import { and, eq, ilike, or, sql } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
+import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { leadContactos, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 
@@ -20,8 +21,8 @@ export const MINIMO_TEXTO_BUSQUEDA = 2;
  * - Devuelve `null` cuando el texto es más corto que `MINIMO_TEXTO_BUSQUEDA`: eso significa
  *   "no hay búsqueda, no filtres", distinto de un `Set` vacío ("nadie casa").
  *
- * El escape de `like` (`\`, `%`, `_`) y el emparejamiento por dígitos del teléfono (solo con
- * 4 o más dígitos) son los de siempre.
+ * El texto casa sin importar tildes (`casaSinTildes`); el teléfono, por dígitos y solo con
+ * 4 o más.
  */
 export async function leadsQueCasan(
   db: Db,
@@ -31,7 +32,6 @@ export async function leadsQueCasan(
   const termino = texto.trim();
   if (termino.length < MINIMO_TEXTO_BUSQUEDA) return null;
 
-  const patron = `%${termino.replace(/[\\%_]/g, (caracter) => `\\${caracter}`)}%`;
   const digitos = termino.replace(/[^0-9]/g, "");
   const patronTelefono = `%${digitos}%`;
   const coincidenciaTelefono =
@@ -56,9 +56,9 @@ export async function leadsQueCasan(
       and(
         eq(leads.programId, programId),
         or(
-          ilike(leads.nombre, patron),
-          ilike(leads.emailNormalizado, patron),
-          and(eq(leadContactos.tipo, "correo"), ilike(leadContactos.valor, patron)),
+          casaSinTildes(leads.nombre, termino),
+          casaSinTildes(leads.emailNormalizado, termino),
+          and(eq(leadContactos.tipo, "correo"), casaSinTildes(leadContactos.valor, termino)),
           coincidenciaTelefono,
         ),
       ),

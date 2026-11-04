@@ -25,6 +25,5 @@ export interface EnlaceUI {
 
 export interface ProgramaOpcion {
   id: string;
-  slug: string;
   nombre: string;
 }

@@ -17,7 +17,7 @@ import {
 } from "@/lib/catalogo/recursos";
 
 /**
- * Server actions de la pantalla `/recursos` (ticket 023, ADR 0017; enmiendas del
+ * Server actions de la pantalla de recursos del programa (ticket 023, ADR 0017; enmiendas del
  * 19-sep y del ticket 171).
  *
  * Administrar recursos lo pueden hacer gerente Y closer. La barrera de rol es de
@@ -38,6 +38,9 @@ import {
  * (ticket 022): estas acciones no escriben nada nuevo, solo envuelven. El resultado
  * es serializable y nunca se lanza al cliente.
  */
+
+/** El patron de la ruta dinamica: un path concreto no invalidaria nada (AGENTS.md). */
+const RUTA_RECURSOS = "/p/[programa]/recursos";
 
 export type ResultadoAccion = { ok: true } | { ok: false; error: string };
 
@@ -60,7 +63,7 @@ export async function crearRecursoAccion(input: EntradaRecurso): Promise<Resulta
   try {
     const session = await requireRole("gerente", "closer");
     await crearRecurso(db, await actorDe(session), input);
-    revalidatePath("/recursos");
+    revalidatePath(RUTA_RECURSOS, "page");
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -74,7 +77,7 @@ export async function reemplazarRecursoAccion(
   try {
     const session = await requireRole("gerente", "closer");
     await reemplazarRecurso(db, await actorDe(session), id, nuevaUrl);
-    revalidatePath("/recursos");
+    revalidatePath(RUTA_RECURSOS, "page");
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -85,7 +88,7 @@ export async function desactivarRecursoAccion(id: string): Promise<ResultadoAcci
   try {
     const session = await requireRole("gerente", "closer");
     await desactivarRecurso(db, await actorDe(session), id);
-    revalidatePath("/recursos");
+    revalidatePath(RUTA_RECURSOS, "page");
     return { ok: true };
   } catch (error) {
     return aResultado(error);
@@ -113,7 +116,7 @@ export async function borrarRecursoAccion(id: string): Promise<ResultadoBorradoA
   try {
     const session = await requireRole("gerente", "closer");
     const res = await borrarRecursoSiNoSeUso(db, await actorDe(session), id);
-    revalidatePath("/recursos");
+    revalidatePath(RUTA_RECURSOS, "page");
     return res.borrado
       ? { ok: true, borrado: true }
       : { ok: true, borrado: false, referencias: res.referencias };

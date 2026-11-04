@@ -1,7 +1,5 @@
 import type { EnlaceUI } from "./types";
 
-export const GLOBAL = "__global__";
-
 /** Agrupa los enlaces por programa. */
 export function agruparEnlaces(enlaces: EnlaceUI[]) {
   const porPrograma = new Map<string, EnlaceUI[]>();

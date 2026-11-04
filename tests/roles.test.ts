@@ -300,7 +300,7 @@ describe("navegacion por rol", () => {
     expect(rutas).toContain("/mi-espacio");
     expect(rutas).toContain("/p/programa-a/leads");
     expect(rutas).toContain("/p/programa-a/deals");
-    expect(rutas).toContain("/recursos");
+    expect(rutas).toContain("/p/programa-a/recursos");
   });
 
   it("gerente y developer ven Ajustes; el closer no (ticket 224, ADR 0082)", () => {
@@ -370,9 +370,9 @@ describe("navegacion por rol", () => {
     }
   });
 
-  it("ambos roles ven /recursos y ya no /documentos (ticket 023)", () => {
+  it("ambos roles ven la tab Recursos y ya no /documentos (ticket 023)", () => {
     for (const rol of ["gerente", "closer"] as const) {
-      expect(rutasDe(rol)).toContain("/recursos");
+      expect(rutasDe(rol)).toContain("/p/programa-a/recursos");
       expect(rutasDe(rol)).not.toContain("/documentos");
     }
   });
@@ -395,7 +395,7 @@ describe("navegacion por rol", () => {
     expect(rutas).toContain("/mi-espacio");
     expect(rutas).toContain("/p/programa-a/hub");
     expect(rutas).not.toContain("/productos");
-    expect(rutas).toContain("/recursos");
+    expect(rutas).toContain("/p/programa-a/recursos");
     expect(rutas).toContain("/ajustes");
   });
 
@@ -422,7 +422,7 @@ describe("navegacion por rol", () => {
     const rutas = rutasDe("paid_trafficker");
     expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
     expect(rutas).not.toContain("/mi-dia");
-    expect(rutas).not.toContain("/recursos");
+    expect(rutas).not.toContain(`/p/${PROGRAMA}/recursos`);
     expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
     // Sin programa visible no hay Dashboard.
     expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio"]);
@@ -438,7 +438,7 @@ describe("navegacion por rol", () => {
     expect(rutas).toEqual([`/p/${PROGRAMA}/students`]);
     expect(rutas).not.toContain("/mi-espacio");
     expect(rutas).not.toContain("/ajustes");
-    expect(rutas).not.toContain("/recursos");
+    expect(rutas).not.toContain(`/p/${PROGRAMA}/recursos`);
     expect(rutas).not.toContain(`/p/${PROGRAMA}/hub`);
     expect(rutas).not.toContain(`/p/${PROGRAMA}/deals`);
     // Sin programa visible no tiene ninguna tab.

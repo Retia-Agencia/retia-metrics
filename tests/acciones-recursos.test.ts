@@ -132,7 +132,7 @@ afterAll(async () => {
 });
 
 async function acciones() {
-  return import("@/app/(app)/recursos/acciones");
+  return import("@/app/(app)/p/[programa]/recursos/acciones");
 }
 
 /**

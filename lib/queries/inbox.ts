@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
+import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import {
   calls,
   deals,
@@ -753,8 +754,8 @@ export async function buscarDealsAbiertos(
       notInArray(deals.etapa, [...CERRADAS]),
     ));
 
-  const q = texto.trim().toLowerCase();
-  const casan = q === "" ? filas : filas.filter((f) => (f.leadNombre ?? "").toLowerCase().includes(q) || f.leadEmail.toLowerCase().includes(q));
+  const q = sinTildes(texto.trim());
+  const casan = q === "" ? filas : filas.filter((f) => sinTildes(f.leadNombre ?? "").includes(q) || sinTildes(f.leadEmail).includes(q));
   return casan
     .sort((a, b) => (a.leadNombre ?? a.leadEmail).localeCompare(b.leadNombre ?? b.leadEmail, "es"))
     .slice(0, limite)

@@ -49,7 +49,6 @@ const RUTAS_GLOBALES = [
   "/hub?seccion=origen",
   "/dashboard",
   "/perfil",
-  "/recursos",
   "/nerd-stats",
   "/nerd-stats/bitacora",
   "/ajustes",
@@ -63,7 +62,7 @@ const RUTAS_GLOBALES = [
 
 // Las pestañas del Hub van una por una; `/dashboard` y `/metas` prueban las redirecciones viejas (ticket 250).
 const TABS_DE_PROGRAMA = [
-  "", "/inbox", "/deals", "/leads", "/calls", "/students", "/programa",
+  "", "/inbox", "/deals", "/leads", "/calls", "/students", "/recursos", "/programa",
   "/hub", "/hub?seccion=comercial", "/hub?seccion=dinero", "/hub?seccion=pauta", "/hub?seccion=origen",
   "/dashboard", "/metas",
 ];

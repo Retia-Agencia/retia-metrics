@@ -1,4 +1,5 @@
-import { and, asc, count, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, or, sql, type SQL } from "drizzle-orm";
+import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { creadores, piezas, tiposPieza } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
@@ -75,11 +76,6 @@ function ordenSql(orden: OrdenDePiezas): SQL[] {
   }
 }
 
-/** Escapa `%`, `_` y `\` para que el texto buscado se lea literal dentro de un ILIKE. */
-function comoLiteral(texto: string): string {
-  return texto.replace(/[\\%_]/g, (c) => `\\${c}`);
-}
-
 export async function piezasDeMedia(
   db: Db,
   creadorIds: string[],
@@ -88,14 +84,13 @@ export async function piezasDeMedia(
   pagina: number,
 ) {
   if (creadorIds.length === 0) return { filas: [], total: 0, paginas: 1, pagina: 1 };
-  const patron = filtro.q ? `%${comoLiteral(filtro.q)}%` : null;
   // El predicado de vigencia va en CADA cadena, no izado: el guardian del ADR 0026 lee cadena por cadena.
   const condiciones = [
     inArray(piezas.creadorId, filtro.creadorId && creadorIds.includes(filtro.creadorId) ? [filtro.creadorId] : creadorIds),
     filtro.estado ? condicionDeEstado(filtro.estado, hoy) : undefined,
     filtro.tipoId ? eq(piezas.tipoId, filtro.tipoId) : undefined,
     filtro.red ? eq(piezas.red, filtro.red) : undefined,
-    patron ? or(ilike(piezas.nombre, patron), ilike(creadores.nombre, patron), ilike(tiposPieza.nombre, patron)) : undefined,
+    filtro.q ? or(casaSinTildes(piezas.nombre, filtro.q), casaSinTildes(creadores.nombre, filtro.q), casaSinTildes(tiposPieza.nombre, filtro.q)) : undefined,
   ];
   const [{ n: total }] = await db
     .select({ n: count() })

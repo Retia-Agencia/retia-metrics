@@ -60,7 +60,7 @@ async function actorDe(session: Session): Promise<ActorConAcceso> {
 /** Las rutas cuyo cache depende de los vinculos y enlaces de este programa. */
 function revalidarTodo() {
   revalidatePath("/p/[programa]/programa", "page");
-  revalidatePath("/recursos");
+  revalidatePath("/p/[programa]/recursos", "page");
 }
 
 // ───────────────────────────────────────────────────────────── plataformas

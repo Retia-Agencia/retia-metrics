@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { etiquetaDeRol, puedeConfigurarOperaComoCloser, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import { cn } from "@/lib/utils";
 import { fecha, fechaDeInstanteEnBogota } from "@/lib/format";
 import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
@@ -143,12 +144,12 @@ export function UsuariosAdmin({
   }
 
   const filtrados = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
+    const q = sinTildes(busqueda.trim());
     return usuarios
       .filter((u) => {
         if (estado !== "todos" && u.activo !== (estado === "activos")) return false;
         if (rol !== "todos" && u.rol !== rol) return false;
-        if (q && !`${u.nombre ?? ""} ${u.email}`.toLowerCase().includes(q)) return false;
+        if (q && !sinTildes(`${u.nombre ?? ""} ${u.email}`).includes(q)) return false;
         const { ids } = programasDe(u, programas);
         if (programa === "sin_programa") return ids.length === 0;
         if (programa !== "todos") return ids.includes(programa);

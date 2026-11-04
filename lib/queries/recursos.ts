@@ -1,4 +1,5 @@
-import { and, asc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
   enlacesPago,
@@ -55,13 +56,8 @@ export interface RecursoDeLaPantalla {
   programaNombre: string | null;
 }
 
-/** Cuantas caracteres exige la busqueda antes de aplicar el ILIKE. */
+/** Cuantos caracteres exige la busqueda antes de filtrar. */
 const MINIMO_TEXTO = 1;
-
-/** Escapa los comodines de LIKE para que un `%` o `_` no se lea como patron. */
-function patronDe(texto: string): string {
-  return `%${texto.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
-}
 
 /**
  * Recursos VIGENTES y activos, con el nombre de su programa ya
@@ -93,7 +89,7 @@ export async function recursosVigentes(
 
   const termino = filtro.q?.trim() ?? "";
   if (termino.length >= MINIMO_TEXTO) {
-    condiciones.push(ilike(recursos.titulo, patronDe(termino)));
+    condiciones.push(casaSinTildes(recursos.titulo, termino));
   }
 
   return db

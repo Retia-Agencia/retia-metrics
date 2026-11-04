@@ -1,8 +1,9 @@
-import { and, asc, between, count, desc, eq, ilike, inArray, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, between, count, desc, eq, inArray, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { vigente } from "@/lib/queries/vigente";
+import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import type { Rango } from "@/lib/queries/dashboard";
 
@@ -83,7 +84,6 @@ export async function buscarLeads(db: Db, programId: string, texto: string): Pro
   const termino = texto.trim();
   if (termino.length < MINIMO_TEXTO) return [];
 
-  const patron = `%${termino.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   return db
     .select({
       id: leads.id,
@@ -94,7 +94,7 @@ export async function buscarLeads(db: Db, programId: string, texto: string): Pro
     .from(leads)
     .where(and(
       eq(leads.programId, programId),
-      or(ilike(leads.nombre, patron), ilike(leads.emailNormalizado, patron), ilike(leads.telefono, patron)),
+      or(casaSinTildes(leads.nombre, termino), casaSinTildes(leads.emailNormalizado, termino), casaSinTildes(leads.telefono, termino)),
     ))
     .orderBy(asc(leads.nombre), asc(leads.emailNormalizado))
     .limit(MAXIMO_FILAS);

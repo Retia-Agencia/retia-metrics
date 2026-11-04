@@ -87,6 +87,8 @@ vi.mock("@/lib/auth/alcance", () => ({
 // La ficha del lead (ticket 073) lee la base; sin
 // base en los tests se mockean las queries para que las guardas y el 404 sean lo unico
 // bajo prueba.
+vi.mock("@/lib/queries/abonos-del-lead", () => ({ abonosDelLead: async () => [] }));
+
 const fichaDeLead = vi.fn();
 vi.mock("@/lib/queries/ficha-lead", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/queries/ficha-lead")>()),
@@ -1146,8 +1148,14 @@ describe("redirecciones al programa como segmento (ticket 097)", () => {
   });
 });
 
-describe("pagina de recursos /recursos (ticket 023)", () => {
-  const RUTA = "@/app/(app)/recursos/page";
+describe("pagina de recursos /p/[programa]/recursos (ticket 023)", () => {
+  const RUTA = "@/app/(app)/p/[programa]/recursos/page";
+  const PROGRAMA = { id: "p-1", slug: "comunicarte", nombre: "Comunicarte" };
+  const params = Promise.resolve({ programa: PROGRAMA.slug });
+
+  beforeEach(() => {
+    programaVisiblePorSlug.mockResolvedValue(PROGRAMA);
+  });
 
   /** La pagina de recursos recibe `searchParams` (filtro por URL, ADR 0023). */
   async function correrRecursos(
@@ -1155,11 +1163,12 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
   ): Promise<string | null> {
     const modulo = (await import(/* @vite-ignore */ RUTA)) as {
       default: (props: {
+        params: Promise<{ programa: string }>;
         searchParams: Promise<Record<string, string | string[] | undefined>>;
       }) => Promise<unknown>;
     };
     try {
-      await modulo.default({ searchParams: Promise.resolve(busqueda) });
+      await modulo.default({ params, searchParams: Promise.resolve(busqueda) });
       return null;
     } catch (e) {
       if (e instanceof Redireccion) return e.destino;
@@ -1178,10 +1187,11 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
   ): Promise<boolean | undefined> {
     const modulo = (await import(/* @vite-ignore */ RUTA)) as {
       default: (props: {
+        params: Promise<{ programa: string }>;
         searchParams: Promise<Record<string, string | string[] | undefined>>;
       }) => Promise<{ props: { children: { props: { esAdmin: boolean } } } }>;
     };
-    const elemento = await modulo.default({ searchParams: Promise.resolve(busqueda) });
+    const elemento = await modulo.default({ params, searchParams: Promise.resolve(busqueda) });
     return elemento.props.children.props.esAdmin;
   }
 
@@ -1200,22 +1210,25 @@ describe("pagina de recursos /recursos (ticket 023)", () => {
     expect(await correrRecursos()).toBe("/login");
   });
 
-  it("el filtro de la URL (programa y titulo) llega a la consulta", async () => {
+  it("el programa de la ruta y el titulo de la URL llegan a las consultas", async () => {
     auth.mockResolvedValue(sesionGerente);
-    // El selector y la resolucion del slug salen del ALCANCE (ADR 0048, ticket 171),
-    // no de `programasActivos`.
-    programasVisibles.mockResolvedValue([
-      { id: "p-1", slug: "comunicarte", nombre: "Comunicarte" },
-    ]);
-    expect(await correrRecursos({ programa: "comunicarte", q: "brochure" })).toBeNull();
-    expect(recursosVigentes).toHaveBeenCalled();
-    // El slug se resolvio al uuid del programa y ambos filtros llegaron a la consulta;
-    // el alcance (`programIds`) acota a lo que ve la sesion.
-    expect(recursosVigentes.mock.calls.at(-1)![0]).toMatchObject({
-      programId: "p-1",
-      q: "brochure",
-      programIds: ["p-1"],
-    });
+    expect(await correrRecursos({ q: "brochure" })).toBeNull();
+    expect(recursosVigentes.mock.calls.at(-1)![0]).toEqual({ programId: "p-1", q: "brochure" });
+    expect(enlacesDePagoVigentes.mock.calls.at(-1)![0]).toEqual({ programId: "p-1" });
+  });
+
+  it("un programa fuera del alcance de la sesion es 404", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    await expect(correrRecursos()).rejects.toBeInstanceOf(NoEncontrado);
+    expect(recursosVigentes).not.toHaveBeenCalled();
+  });
+
+  it("la URL vieja /recursos abre la tab del programa recordado", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programasVisibles.mockResolvedValue([PROGRAMA]);
+    const { default: pagina } = await import("@/app/(app)/recursos/page");
+    await expect(pagina()).rejects.toMatchObject({ destino: "/p/comunicarte/recursos" });
   });
 
   /**

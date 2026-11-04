@@ -189,7 +189,7 @@ export async function asociarProgramaAccion(
     // El selector de plataformas de estas dos pantallas cambia con el vinculo, asi que
     // su cache de ruta queda vieja. La pantalla actual la refresca `router.refresh()`;
     // `revalidatePath` es para LAS OTRAS.
-    revalidatePath("/recursos");
+    revalidatePath("/p/[programa]/recursos", "page");
     revalidatePath("/mi-dia");
     revalidatePath("/p/[programa]/programa", "page");
     revalidatePath("/p/[programa]/deals/[id]", "page");
@@ -209,7 +209,7 @@ export async function desasociarProgramaAccion(
     const actor = await actorDe(session);
     await desasociarPrograma(db, actor, plataformaId, programId);
     revalidatePath("/ajustes/catalogos");
-    revalidatePath("/recursos");
+    revalidatePath("/p/[programa]/recursos", "page");
     revalidatePath("/mi-dia");
     revalidatePath("/p/[programa]/programa", "page");
     revalidatePath("/p/[programa]/deals/[id]", "page");

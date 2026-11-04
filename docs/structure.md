@@ -515,7 +515,7 @@ Tabs a la izquierda, un selector de programa arriba (ADR 0050). Las tabs de prog
 | **Students** | `/p/<programa>/students` | 6 | estudiantes por cohorte: saldo, fecha límite, cartera vencida, onboarding | ✅ |
 | **Programa** | `/p/<programa>/programa` | 10 | todo lo del programa (ADR 0077): crear y editar el programa, cohortes, destinos, Calendly, fuentes, plataformas, comisión, equipo | ✅ |
 | **Campañas** | (sin ruta) | 8 | el árbol de Meta con su embudo y el builder de orgánico y closers (125) | ❌ |
-| **Recursos** | `/recursos` (`/documentos` redirige) | 10 | brochures y links de pago | ✅ |
+| **Recursos** | `/p/<programa>/recursos` (`/recursos` y `/documentos` redirigen) | 10 | brochures y links de pago del programa elegido, más los globales | ✅ |
 | **Ajustes** | `/ajustes/*` | 1, 7, 12 | solo lo que no es de ningún objeto (ADR 0077): usuarios y roles, Webhook Health (`/salud`), Motivos (`/catalogos`), Áreas, migración. Canales pasó a Hub › Origen (248) | ✅ |
 | **Nerd Stats** | `/nerd-stats` y `/nerd-stats/bitacora` | 11 | salud del sistema y bitácora (solo developer) | ✅ |
 

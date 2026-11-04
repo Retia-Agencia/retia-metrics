@@ -16,7 +16,7 @@ export type ItemNav = {
  * Solo entran las tabs que ya tienen pantalla (Alejo, 28-sep): cada ticket que construye
  * una (Leads 072, Deals 069, Calls 098, Students 099...) la agrega aqui y en la nav.
  */
-export const TABS_DE_PROGRAMA = ["hub", "leads", "deals", "inbox", "calls", "students", "programa"] as const;
+export const TABS_DE_PROGRAMA = ["hub", "leads", "deals", "inbox", "calls", "students", "recursos", "programa"] as const;
 export type TabDePrograma = (typeof TABS_DE_PROGRAMA)[number];
 
 /** La tab con la que se entra a un programa cuando no se viene de otra. */
@@ -238,10 +238,12 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   // Personas: la puerta al historial de un lead. Busca en todos los programas visibles;
   // pasa a ser la tab Leads, de un programa, con el ticket 072.
 
-  // Recursos: ambos roles leen (brochures y links de pago vigentes). Solo quien
-  // ADMINISTRA ve los controles de edicion (`esAdministrador`, ADR 0025 punto 5), y
-  // eso se decide en el servidor (ticket 023).
-  items.push({ href: "/recursos", etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
+  // Recursos: ambos roles leen (brochures y links de pago vigentes) del programa elegido.
+  // Solo quien ADMINISTRA ve los controles de edicion (`esAdministrador`, ADR 0025 punto 5),
+  // y eso se decide en el servidor (ticket 023).
+  if (programa) {
+    items.push({ href: rutaDePrograma(programa, "recursos"), etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
+  }
 
   // Media (ADR 0107): gerente y developer tambien trabajan el contenido. Por capacidad.
   if (trabajaContenido(rol)) items.push({ href: "/media", etiqueta: "Media", icono: "recursos", roles: ["gerente"] });

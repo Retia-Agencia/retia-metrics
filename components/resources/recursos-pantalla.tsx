@@ -14,10 +14,9 @@ import {
   desactivarRecursoAccion,
   reemplazarRecursoAccion,
   type ResultadoAccion,
-} from "@/app/(app)/recursos/acciones";
-import { agruparEnlaces, GLOBAL } from "@/components/resources/helpers";
+} from "@/app/(app)/p/[programa]/recursos/acciones";
+import { agruparEnlaces } from "@/components/resources/helpers";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
-import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import type {
   EnlaceUI,
@@ -44,18 +43,18 @@ export type {
  * scroll horizontal): nada de tablas de ancho fijo, todo son tarjetas y listas que
  * envuelven, y las URLs largas cortan con `break-all` en vez de estirar el layout.
  *
- * El filtro (programa + titulo) vive en la URL (ADR 0023): un dashboard de recursos
- * filtrado se puede compartir y recargar. El titulo de un brochure no es un dato
- * personal, asi que —a diferencia de `/mi-dia`— si conviene que viaje en la URL. El
- * programa viaja como SLUG (id opaco, nunca un dato personal).
+ * El programa es el de la ruta: el selector del menu ya lo eligio, asi que ni la lista
+ * ni el formulario lo vuelven a pedir. La busqueda por titulo vive en la URL (ADR 0023).
+ * El titulo de un brochure no es un dato personal, asi que —a diferencia de `/mi-dia`—
+ * si conviene que viaje en la URL.
  *
- * `esAdmin` + `programasEditables` deciden quien ve los controles de edicion de los
+ * `esAdmin` + `editaPrograma` deciden quien ve los controles de edicion de los
  * recursos, pero NO son la barrera de seguridad: cada server action vuelve a exigir el
  * rol y el acceso por programa en el servidor (ADR 0003). Un administrador (gerente o
  * developer) edita todo, incluido lo global; un closer solo los recursos de los
  * programas donde tiene membresia activa, y NUNCA un recurso global.
  *
- * PANTALLA FIJA (ticket 195, A-99, regla de §9): el filtro, el buscador y las pestañas
+ * PANTALLA FIJA (ticket 195, A-99, regla de §9): el buscador y las pestañas
  * quedan fijos arriba (`shrink-0`); solo la lista de la pestaña activa tiene scroll
  * propio desde `md`. Por debajo de `md` vuelve el scroll de página (los closers lo usan
  * en el teléfono). Las dos listas —recursos y links de pago— son dos pestañas: la activa
@@ -66,14 +65,14 @@ export type {
 interface Props {
   /** Administra todo: cualquier programa y los recursos globales (gerente/developer). */
   esAdmin: boolean;
-  /** Programas (uuids) que un closer puede editar. Vacio para quien no edita nada. */
-  programasEditables: string[];
+  /** ¿Puede editar los recursos de este programa? Un closer, solo con membresia activa. */
+  editaPrograma: boolean;
   q: string | null;
   /** La pestaña activa, decidida en el servidor desde `?seccion=`. */
   seccion: string;
   /** La barra de pestañas, renderizada en el servidor (`Pestanas` no toca `lib/db`). */
   pestanas: ReactNode;
-  programas: ProgramaOpcion[];
+  programa: ProgramaOpcion;
   recursos: RecursoUI[];
   enlaces: EnlaceUI[];
 }
@@ -83,11 +82,11 @@ const claseInput =
 
 export function RecursosPantalla({
   esAdmin,
-  programasEditables,
+  editaPrograma,
   q,
   seccion,
   pestanas,
-  programas,
+  programa,
   recursos,
   enlaces,
 }: Props) {
@@ -96,19 +95,14 @@ export function RecursosPantalla({
   const busqueda = useSearchParams();
   const [pendiente, startTransition] = useTransition();
 
-  // ¿Puede el usuario CREAR algo? Un admin siempre; un closer si tiene algun programa
-  // editable. Los programas que puede elegir al crear: todos si es admin, solo los
-  // suyos si es closer. Un closer NUNCA ve la opcion "Global" (asimetria de Mani).
-  const editables = new Set(programasEditables);
-  const puedeCrear = esAdmin || programasEditables.length > 0;
-  const programasParaCrear = esAdmin
-    ? programas
-    : programas.filter((p) => editables.has(p.id));
+  // ¿Puede el usuario CREAR algo? Un admin siempre; un closer si edita este programa. Un
+  // closer NUNCA ve la opcion de crear un global (asimetria de Mani).
+  const puedeCrear = esAdmin || editaPrograma;
 
   /** ¿Puede el usuario editar/desactivar/reemplazar este recurso? */
   function puedeEditarRecurso(r: RecursoUI): boolean {
     if (esAdmin) return true;
-    return r.programId !== null && editables.has(r.programId);
+    return r.programId !== null && editaPrograma;
   }
 
   function navegar(cambios: Record<string, string | null>) {
@@ -167,16 +161,8 @@ export function RecursosPantalla({
 
   const enlacesAgrupados = useMemo(() => agruparEnlaces(enlaces), [enlaces]);
 
-  // El filtro de programa (ticket 202): a la vista, declarado como dato. El buscador por
-  // título conserva su lógica (`navegar({ q })`) y solo aparece en la pestaña recursos.
-  // El total de la línea de estado es el de la pestaña activa.
-  const filtroPrograma: FiltroDeclarado = {
-    tipo: "select",
-    nombre: "programa",
-    etiqueta: "Programa",
-    todos: "Todos los programas",
-    opciones: programas.map((p) => ({ value: p.slug, label: p.nombre })),
-  };
+  // El buscador por título (`navegar({ q })`) solo aparece en la pestaña recursos. El
+  // total de la línea de estado es el de la pestaña activa.
   const buscador =
     seccion === "recursos" ? (
       <input
@@ -194,9 +180,8 @@ export function RecursosPantalla({
 
   return (
     <PantallaFija>
-      {/* Barra de lista: filtro de programa (a la vista) y buscador (solo recursos).
-          Vive en la URL (ADR 0023) y conserva la sección activa, porque `navegar` y la
-          barra parten de la query actual. */}
+      {/* Barra de lista: buscador (solo recursos). Vive en la URL (ADR 0023) y conserva la
+          sección activa, porque `navegar` parte de la query actual. */}
       <div className="shrink-0">
         <BarraDeLista
           total={seccion === "recursos" ? recursos.length : enlaces.length}
@@ -205,7 +190,7 @@ export function RecursosPantalla({
               ? { singular: "recurso", plural: "recursos" }
               : { singular: "link de pago", plural: "links de pago" }
           }
-          filtros={[filtroPrograma]}
+          filtros={[]}
           buscador={buscador}
         />
       </div>
@@ -220,7 +205,7 @@ export function RecursosPantalla({
           <section className="space-y-3">
             {puedeCrear ? (
               <CrearRecurso
-                programas={programasParaCrear}
+                programa={programa}
                 permitirGlobal={esAdmin}
                 pendiente={pendiente}
                 onCrear={(entrada, reset) =>
@@ -500,12 +485,12 @@ function EnlaceItem({ enlace }: { enlace: EnlaceUI }) {
 
 /** Formulario en linea para crear un recurso (gerente, developer o closer). */
 function CrearRecurso({
-  programas,
+  programa,
   permitirGlobal,
   pendiente,
   onCrear,
 }: {
-  programas: ProgramaOpcion[];
+  programa: ProgramaOpcion;
   /** Solo un administrador puede crear un recurso global; un closer, no (asimetria). */
   permitirGlobal: boolean;
   pendiente: boolean;
@@ -517,26 +502,19 @@ function CrearRecurso({
   const [abierto, setAbierto] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [url, setUrl] = useState("");
-  // GLOBAL = recurso global (sin programa). El resto es el uuid del programa. Un
-  // closer no puede crear globales, asi que arranca en su primer programa.
-  const programIdInicial = permitirGlobal ? GLOBAL : (programas[0]?.id ?? "");
-  const [programId, setProgramId] = useState<string>(programIdInicial);
+  // El recurso es del programa elegido; solo quien administra lo puede hacer global.
+  const [global, setGlobal] = useState(false);
 
   function reset() {
     setTitulo("");
     setUrl("");
-    setProgramId(programIdInicial);
+    setGlobal(false);
     setAbierto(false);
   }
 
   if (!abierto) {
     return (
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => setAbierto(true)}
-        disabled={!permitirGlobal && programas.length === 0}
-      >
+      <Button size="sm" variant="outline" onClick={() => setAbierto(true)}>
         Nuevo recurso
       </Button>
     );
@@ -549,7 +527,7 @@ function CrearRecurso({
         e.preventDefault();
         onCrear(
           {
-            programId: programId === GLOBAL ? null : programId,
+            programId: global ? null : programa.id,
             titulo: titulo.trim(),
             url: url.trim(),
           },
@@ -580,23 +558,13 @@ function CrearRecurso({
           aria-label="URL del recurso"
         />
       </label>
-      <label className="block space-y-1 text-sm">
-        <span className="text-muted-foreground">Programa</span>
-        <select
-          value={programId}
-          onChange={(e) => setProgramId(e.target.value)}
-          className={cn(claseInput, "sm:w-44")}
-          aria-label="Programa"
-        >
-          {/* Solo un administrador puede crear un recurso global (asimetria de Mani). */}
-          {permitirGlobal ? <option value={GLOBAL}>Global (todos)</option> : null}
-          {programas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* Solo un administrador puede crear un recurso global (asimetria de Mani). */}
+      {permitirGlobal ? (
+        <label className="flex h-9 items-center gap-2 text-sm">
+          <input type="checkbox" checked={global} onChange={(e) => setGlobal(e.target.checked)} />
+          Para todos los programas
+        </label>
+      ) : null}
       <div className="flex items-center gap-1">
         <Button type="submit" size="sm" disabled={pendiente || !titulo.trim() || !url.trim()}>
           Crear
