@@ -1,3 +1,4 @@
+import { DatoOVacio } from "@/components/dato-o-vacio";
 import Link from "next/link";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Button } from "@/components/ui/button";
@@ -59,13 +60,11 @@ export function Dinero({
           titulo="Descuento promedio"
           valor={
             <CifraConLista titulo="Ventas del descuento" detalle={detalles?.contratado}>
-              {vista.descuento.promedioPct === null
-                ? "—"
-                : pct(vista.descuento.promedioPct)}
+              <DatoOVacio valor={vista.descuento.promedioPct} motivo="Ninguna venta del periodo tiene ticket y valor vendido">{pct}</DatoOVacio>
             </CifraConLista>
           }
           nota={vista.descuento.promedioUsd === null
-            ? "Sin ventas con ticket y valor"
+            ? undefined
             : `${usd(vista.descuento.promedioUsd)} · de ${num(vista.descuento.ventas)} ${vista.descuento.ventas === 1 ? "venta" : "ventas"}`}
         />
       </div>

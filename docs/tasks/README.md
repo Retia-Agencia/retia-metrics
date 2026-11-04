@@ -27,7 +27,7 @@ a fase 2.
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 374 | [El Hub habla un solo idioma](./374-el-hub-habla-un-solo-idioma.md) | — | todo · fase 1, paso 2 · reemplaza al 357 |
+| [x] | 374 | [El Hub habla un solo idioma](./374-el-hub-habla-un-solo-idioma.md) | — | done · 3-nov · reemplaza al 357 |
 | [ ] | 377 | [Los filtros del Hub: periodo, cohorte y closer, separados](./377-filtros-del-hub-periodo-cohorte-y-closer.md) | 352 | todo · fase 1, paso 2 · absorbe al 251 |
 | [ ] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 377, 352, 374 | todo · fase 1, paso 3 |
 | [ ] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | todo · fase 1, paso 3 · absorbe al 253 |

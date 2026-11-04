@@ -43,7 +43,7 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
         <DialogTitle>{titulo}</DialogTitle>
         <DialogDescription>
           <span className="cifra">{num(resumen.subtotal.cantidad)}</span>{" "}
-          {detalle.fotoDeHoy ? "registros a hoy; el periodo no los acota." : "registros del periodo A."}
+          {detalle.fotoDeHoy ? "registros a hoy; el periodo no los acota." : "registros del periodo elegido."}
         </DialogDescription>
         {resumen.subtotal.caja.map((c) => (
           <p className="cifra text-lg" key={c.moneda}>

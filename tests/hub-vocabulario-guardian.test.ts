@@ -8,9 +8,10 @@ import { JERGA_PROHIBIDA_EN_EL_HUB, VOCABULARIO, rotuloDeImporte } from "@/lib/v
  * de JSX o un literal que no es un código de una sola palabra en minúsculas (`"macro"`, `"con_utm"` son
  * valores del código, no pantalla). Mordido en los dos sentidos abajo.
  */
-const CARPETAS = ["app/(app)/hub", "app/(app)/p/[programa]/hub", "components/dashboard"];
+const CARPETAS = ["components/cifra-con-lista.tsx", "components/selector-periodo.tsx", "components/variacion.tsx", "components/pauta-roas.tsx", "components/pauta-interina.tsx", "app/(app)/hub", "app/(app)/p/[programa]/hub", "components/dashboard"];
 
 function archivos(dir: string): string[] {
+  if (statSync(dir).isFile()) return [dir];
   return readdirSync(dir).flatMap((nombre) => {
     const ruta = join(dir, nombre);
     if (statSync(ruta).isDirectory()) return archivos(ruta);
@@ -21,7 +22,7 @@ function archivos(dir: string): string[] {
 export function cadenasVisibles(fuente: string): string[] {
   const sinComentarios = fuente.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
   const literales = [...sinComentarios.matchAll(/"([^"\n]*)"|'([^'\n]*)'|`([^`]*)`/g)].map((m) => (m[1] ?? m[2] ?? m[3] ?? "").replace(/\$\{[^}]*\}/g, ""));
-  const jsx = [...sinComentarios.matchAll(/>([^<>{}]*[A-Za-zÁ-ú][^<>{}]*)</g)].map((m) => m[1]);
+  const jsx = [...sinComentarios.matchAll(/[>}]([^<>{};"]*[A-Za-zÁ-ú][^<>{};"]*)(?=[<{])/g)].map((m) => m[1]);
   return [...literales, ...jsx].filter((t) => !/^[a-z0-9_\-:./]+$/.test(t));
 }
 
@@ -46,6 +47,7 @@ describe("el Hub habla un solo idioma (374)", () => {
     expect(jergaEn(`<th>Monto</th>`)).not.toEqual([]);
     expect(jergaEn(`const t = "Total contratado: Contratado";`)).not.toEqual([]);
     expect(jergaEn(`<p>No depende del periodo A</p>`)).not.toEqual([]);
+    expect(jergaEn('<code>utm_id={"{{ad.id}}"}</code>')).not.toEqual([]);
     expect(jergaEn(`const d = "paid_social con utm_id={{ad.id}}";`)).not.toEqual([]);
     expect(jergaEn(`const e = "Macro sin expandir";`)).not.toEqual([]);
   });
