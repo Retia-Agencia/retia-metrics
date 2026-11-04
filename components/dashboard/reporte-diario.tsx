@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Comparativo } from "@/components/dashboard/operacion";
+import { EmbudoDeBarras } from "@/components/graficas/barras";
 import { DescargarReporte, PieDeImpresion } from "@/components/dashboard/descargar-reporte";
 import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { rangoLegible } from "@/components/dashboard/proyeccion";
@@ -70,23 +71,19 @@ function Avance({ real, meta }: { real: number; meta: number | null }) {
   return <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`${cumpl(real, meta)} de la meta`}><div className="h-full rounded-full bg-primary" style={{ width: `${ancho}%` }} /></div>;
 }
 
-/** ponytail: se reemplaza por el embudo compartido de components/graficas/barras.tsx cuando entre el 379. */
-function EmbudoDelDia({ reporte }: { reporte: ReporteDiario }) {
+/** El embudo del día con la pieza compartida (379). Entre Leads y Agendas no hay %: no comparten la fecha. */
+function EmbudoDelDia({ reporte, detalles }: { reporte: ReporteDiario; detalles?: DetallesDelDashboard }) {
   const e = reporte.vista.embudo;
-  const pasos = [
-    { nombre: "Leads", valor: reporte.registros, conversion: null },
-    { nombre: "Agendas", valor: e.agendas, conversion: null },
-    { nombre: "Realizadas", valor: e.llamadasConShow, conversion: reporte.showPorCita.porcentaje },
-    { nombre: "Ventas", valor: e.cierres, conversion: e.pctCierre },
-  ];
-  return <div className="no-partir overflow-x-auto rounded-xl bg-card p-4 shadow-tarjeta">
-    <div className="flex min-w-[42rem] items-center justify-between gap-3 text-center">
-      {pasos.map(({ nombre, valor, conversion }, indice) => <div key={nombre} className="contents">
-        {indice > 0 ? <div className="cifra text-xs text-muted-foreground">→{conversion === null ? "" : ` ${tasa(conversion)} →`}</div> : null}
-        <div className="min-w-28 rounded-lg bg-muted px-4 py-3"><p className="text-xs text-muted-foreground">{nombre}</p><p className="cifra text-2xl font-semibold">{num(valor)}</p></div>
-      </div>)}
+  return (
+    <div className="no-partir rounded-xl bg-card p-4 shadow-tarjeta">
+      <EmbudoDeBarras pasos={[
+        { clave: "leads", etiqueta: "Leads", cantidad: reporte.registros },
+        { clave: "agendas", etiqueta: "Agendas", cantidad: e.agendas, detalle: detalles?.agendas },
+        { clave: "realizadas", etiqueta: "Realizadas", cantidad: e.llamadasConShow, detalle: detalles?.shows, pctDelPaso: reporte.showPorCita.porcentaje, etiquetaDelPct: "de show" },
+        { clave: "ventas", etiqueta: "Ventas", cantidad: e.cierres, detalle: detalles?.cierres, pctDelPaso: e.pctCierre, etiquetaDelPct: "de cierre" },
+      ]} />
     </div>
-  </div>;
+  );
 }
 
 function ResumenVisual({ programas }: { programas: ProgramaDelReporte[] }) {
@@ -100,7 +97,7 @@ function ResumenVisual({ programas }: { programas: ProgramaDelReporte[] }) {
         <Tarjeta titulo="Caja del día" valor={<CifraConLista titulo="Entró a caja del día" detalle={detalles?.caja}><Caja caja={reporte.caja.length ? reporte.caja : [{ moneda: "USD", total: 0 }]} /></CifraConLista>} nota="Abonos por su fecha y moneda" />
         <Tarjeta titulo="% show" valor={tasa(reporte.showPorCita.porcentaje)} nota={`${num(reporte.showPorCita.realizadas)} de ${num(reporte.showPorCita.citasQueYaDebianOcurrir)} citas`} />
       </div>
-      <EmbudoDelDia reporte={reporte} />
+      <EmbudoDelDia reporte={reporte} detalles={detalles} />
     </div>;
   }}</Lado>;
 }
