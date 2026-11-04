@@ -483,8 +483,10 @@ export function filtroDeFechaDeLaUrl<C extends string>(
   const entrada = parsearPeriodoUrl(url);
   const periodo = resolverPeriodo({ ...entrada, comparaciones: [] }, { hoy });
   const cayoAHoy = periodo.preset !== entrada.preset;
+  const atajoDeCohorte = url.periodo === "cohorte_actual" || url.periodo === "cohorte_anterior" || url.rango === "cohorte";
+  const avisoDeCohorte = atajoDeCohorte && cayoAHoy ? "Una lista no tiene cohorte: se muestra Hoy." : undefined;
   return {
     campo: campo as C,
-    periodo: { ...periodo, b: null, comparaciones: [], aviso: entrada.aviso ?? (cayoAHoy ? periodo.aviso : undefined) },
+    periodo: { ...periodo, b: null, comparaciones: [], aviso: entrada.aviso ?? avisoDeCohorte ?? (cayoAHoy ? periodo.aviso : undefined) },
   };
 }
