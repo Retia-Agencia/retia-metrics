@@ -86,3 +86,9 @@ lado, sin tocar este: los dos componen y el URL que se guardó hoy sigue sirvien
 - [x] El 251 queda `reemplazado` por este ticket en su archivo y en el tracker.
 - [x] Regla N8 (ADR 0115): `docs/metricas.md` §0 (la regla de los filtros), `overview.md` §11 (Cohorte, SKU) y el
   contrato de periodo de `docs/structure.md` §9 reescritos en el mismo commit.
+
+## Notas de la entrega (4-nov)
+
+- **Deuda previa, no del 377:** `test:humo` falla con closer, paid_trafficker y media por dos errores de consola en `/login · descubrir programas` (un 404 de recurso y la advertencia «script tag while rendering React component»). Reproducido idéntico en un worktree limpio de `main` (`a24320cb`), solo con el rol media. Con gerente y developer el humo pasa en escritorio y celular.
+- Recorrido a 375 px hecho en Comercial y Dinero con cohorte (todas y una) × periodo × comparar: sin desborde ni errores.
+- Pendiente de Mani: las decisiones de «Desde el inicio» (arranca en lo más temprano entre el inicio de ventas y la primera venta; termina en hoy) y las casillas del recorrido y del humo, que quedan sin marcar mientras el humo no esté en verde.
