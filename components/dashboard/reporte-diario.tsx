@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
+import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Comparativo } from "@/components/dashboard/operacion";
 import { DescargarReporte, PieDeImpresion } from "@/components/dashboard/descargar-reporte";
-import { Caja, Tabla, tasa } from "@/components/dashboard/piezas";
+import { Caja, Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { rangoLegible } from "@/components/dashboard/proyeccion";
-import { Button } from "@/components/ui/button";
 import { fecha, fechaHoraEnBogota, monto, num, usd } from "@/lib/format";
 import { nombreDelMes } from "@/lib/queries/metas";
 import { ETIQUETA_DE_NACIMIENTO, totalDeConteos, type NacimientoDeVenta, type ReporteDiario } from "@/lib/queries/reporte-diario";
 import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
-import { sumarDias } from "@/lib/rangos";
+import { metaDeLeads } from "@/lib/queries/proyeccion";
 
 /**
  * Hub › Hoy como el reporte diario de Michael (373, plantilla v5 del 15-sep), con los números de sección
@@ -55,13 +55,74 @@ function Seccion({ numero, titulo, fuente, children }: { numero: number | string
     <section className="space-y-3">
       <h3 className="border-b pb-1 text-lg font-semibold">{numero}. {titulo}</h3>
       {children}
-      <p className="no-partir text-[11px] leading-snug text-muted-foreground"><strong>Fuente:</strong> {fuente}</p>
+      <div className="print:hidden"><ComoSeCalcula><p>{fuente}</p></ComoSeCalcula></div>
+      <p className="no-partir hidden text-[11px] leading-snug text-muted-foreground print:block"><strong>Fuente:</strong> {fuente}</p>
     </section>
   );
 }
 
 const cumpl = (real: number, meta: number | null) => (meta && meta > 0 ? tasa(real / meta) : "—");
 const metaTexto = (meta: number | null, decimales = 1) => (meta === null ? "—" : num(meta, decimales));
+
+function Avance({ real, meta }: { real: number; meta: number | null }) {
+  if (meta === null || meta <= 0) return null;
+  const ancho = Math.min(100, Math.max(0, (real / meta) * 100));
+  return <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`${cumpl(real, meta)} de la meta`}><div className="h-full rounded-full bg-primary" style={{ width: `${ancho}%` }} /></div>;
+}
+
+/** ponytail: se reemplaza por el embudo compartido de components/graficas/barras.tsx cuando entre el 379. */
+function EmbudoDelDia({ reporte }: { reporte: ReporteDiario }) {
+  const e = reporte.vista.embudo;
+  const pasos = [
+    { nombre: "Leads", valor: reporte.registros, conversion: null },
+    { nombre: "Agendas", valor: e.agendas, conversion: null },
+    { nombre: "Realizadas", valor: e.llamadasConShow, conversion: reporte.showPorCita.porcentaje },
+    { nombre: "Ventas", valor: e.cierres, conversion: e.pctCierre },
+  ];
+  return <div className="no-partir overflow-x-auto rounded-xl bg-card p-4 shadow-tarjeta">
+    <div className="flex min-w-[42rem] items-center justify-between gap-3 text-center">
+      {pasos.map(({ nombre, valor, conversion }, indice) => <div key={nombre} className="contents">
+        {indice > 0 ? <div className="cifra text-xs text-muted-foreground">→{conversion === null ? "" : ` ${tasa(conversion)} →`}</div> : null}
+        <div className="min-w-28 rounded-lg bg-muted px-4 py-3"><p className="text-xs text-muted-foreground">{nombre}</p><p className="cifra text-2xl font-semibold">{num(valor)}</p></div>
+      </div>)}
+    </div>
+  </div>;
+}
+
+function ResumenVisual({ programas }: { programas: ProgramaDelReporte[] }) {
+  return <Lado programas={programas}>{({ reporte, detalles }) => {
+    const dia = reporte.horizontes.find((h) => h.clave === "dia")!;
+    const metaLeads = metaDeLeads(reporte.proyeccion.cohorte);
+    return <div className="space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Tarjeta titulo="Cupos del día" valor={<CifraConLista titulo="Ventas del día" detalle={detalles?.cierres}>{num(dia.real)}</CifraConLista>} nota={<><span>Meta: {metaTexto(dia.meta)}</span><Avance real={dia.real} meta={dia.meta} /></>} />
+        <Tarjeta titulo="Leads del día" valor={num(reporte.registros)} nota={<><span>Meta: {metaTexto(metaLeads, 0)}</span><Avance real={reporte.registros} meta={metaLeads} /></>} />
+        <Tarjeta titulo="Caja del día" valor={<CifraConLista titulo="Entró a caja del día" detalle={detalles?.caja}><Caja caja={reporte.caja.length ? reporte.caja : [{ moneda: "USD", total: 0 }]} /></CifraConLista>} nota="Abonos por su fecha y moneda" />
+        <Tarjeta titulo="% show" valor={tasa(reporte.showPorCita.porcentaje)} nota={`${num(reporte.showPorCita.realizadas)} de ${num(reporte.showPorCita.citasQueYaDebianOcurrir)} citas`} />
+      </div>
+      <EmbudoDelDia reporte={reporte} />
+    </div>;
+  }}</Lado>;
+}
+
+function NecesariosParaLlegar({ reporte }: { reporte: ReporteDiario }) {
+  const p = reporte.proyeccion;
+  const c = p.supuestos.conversion;
+  const origen = c.origen === "objetivo_cohorte" ? "objetivo declarado" : c.origen === "cohorte_anterior" ? "cohorte anterior" : c.origen === "cohorte_en_curso" ? "cohorte en curso" : "sin medición suficiente";
+  return <div className="no-partir rounded-lg bg-muted p-3 text-sm">
+    <div className="flex flex-wrap items-baseline justify-between gap-2"><strong>Necesarios para llegar</strong><span className="cifra text-lg font-semibold">{metaTexto(p.leadsRequeridosDia.valor, 0)} leads por día</span></div>
+    {p.leadsRequeridosDia.valor === null ? <p className="mt-1 text-muted-foreground">{p.leadsRequeridosDia.razon}</p> : null}
+    <details className="mt-2 text-xs text-muted-foreground">
+      <summary className="cursor-pointer font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring print:list-none">Ver cadena de cálculo</summary>
+      <div className="mt-2 space-y-1 print:block">
+        <p><span className="cifra">{metaTexto(p.ventasRequeridasDia.valor)}</span> ventas por día.</p>
+        {c.objetivoAgendaAVenta !== null ? <p>÷ <span className="cifra">{tasa(c.objetivoAgendaAVenta)}</span> objetivo agenda → venta ({origen}).</p> : <><p>÷ <span className="cifra">{tasa(c.pctCierre)}</span> cierre.</p><p>÷ <span className="cifra">{tasa(c.pctShow)}</span> show.</p></>}
+        <p>÷ <span className="cifra">{tasa(p.supuestos.agendasPorRegistro)}</span> agenda por lead ({num(p.supuestos.agendasVentana)} agendas de {num(p.supuestos.registrosVentana)} leads; ventana de {num(p.supuestos.diasHabilesVentana)} días hábiles).</p>
+        <p>Origen de la conversión: {origen}{c.cohorteCodigo ? ` · ${c.cohorteCodigo}` : ""}{c.muestra ? ` · muestra: ${num(c.muestra.personas)} personas, ${num(c.muestra.shows)} shows, ${num(c.muestra.vendidos)} ventas, ${num(c.muestra.pendientes)} pendientes` : ""}{c.madurando ? " · todavía madurando" : ""}.</p>
+      </div>
+    </details>
+  </div>;
+}
 
 /** "martes, 3 de noviembre de 2026": el día de calendario escrito sin pasar por ninguna zona. */
 export function fechaEnPalabras(dia: string): string {
@@ -115,10 +176,11 @@ function ElDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEqu
       + "Caja: abonos vigentes por su fecha, por moneda, sin convertir. Citas: por la fecha de la cita; las canceladas van aparte. "
       + "Cómo nació: agenda del día si hubo llamada realizada ese día, seguimiento si fue antes, sin llamada si nunca la hubo."
     }>
+      <ResumenVisual programas={programas} />
       <Lado programas={programas}>{({ reporte, detalles }) => {
         const dia = reporte.horizontes.find((h) => h.clave === "dia")!;
-        const metaLeads = reporte.proyeccion.leadsRequeridosDia;
-        return (
+        const metaLeads = metaDeLeads(reporte.proyeccion.cohorte);
+        return (<div className="space-y-3">
           <Tabla cabeceras={["Indicador", "Meta", "Real", "Cumplimiento"]}>
             <tr>
               <td className="py-2">Cupos</td>
@@ -128,12 +190,13 @@ function ElDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEqu
             </tr>
             <tr>
               <td className="py-2">Leads</td>
-              <td className="py-2 text-right">{metaTexto(metaLeads.valor)}</td>
+              <td className="py-2 text-right">{metaTexto(metaLeads, 0)}</td>
               <td className="py-2 text-right">{num(reporte.registros)}</td>
-              <td className="py-2 text-right">{cumpl(reporte.registros, metaLeads.valor)}</td>
+              <td className="py-2 text-right">{cumpl(reporte.registros, metaLeads)}</td>
             </tr>
           </Tabla>
-        );
+          <NecesariosParaLlegar reporte={reporte} />
+        </div>);
       }}</Lado>
 
       {programas.length > 1 ? <TotalDelDia programas={programas} /> : null}
@@ -185,7 +248,9 @@ function ElDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEqu
               </Tabla>
             )}
             {veEquipo ? (
-              <ul className="space-y-1 text-xs text-muted-foreground">
+              <details className="text-xs text-muted-foreground">
+                <summary className="cursor-pointer font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring print:list-none">Detalle de caja</summary>
+              <ul className="space-y-1 text-xs text-muted-foreground print:block">
                 {reporte.detalleDeCaja.map((a) => (
                   <li key={a.id}>
                     {a.persona ?? "Sin nombre"} · {monto(a.monto, a.moneda)} ·{" "}
@@ -195,6 +260,7 @@ function ElDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEqu
                   </li>
                 ))}
               </ul>
+              </details>
             ) : null}
           </div>
         )}</Lado>
@@ -219,15 +285,16 @@ function ElDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEqu
                 % de show: {num(reporte.showPorCita.realizadas)} de {num(reporte.showPorCita.citasQueYaDebianOcurrir)} citas que ya debían ocurrir.
                 {e.canceladas > 0 ? ` ${num(e.canceladas)} canceladas aparte.` : ""}
               </p>
-              {veEquipo ? <Comparativo vista={reporte.vista} detalles={detallesOperacion?.comparativo} titulo="Por closer" /> : null}
+              {veEquipo ? <details><summary className="cursor-pointer text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring print:hidden">Por closer</summary><div className="mt-2 print:block print:[&_button]:hidden"><Comparativo vista={reporte.vista} detalles={detallesOperacion?.comparativo} titulo="Por closer" /></div></details> : null}
             </div>
           );
         }}</Lado>
       </div>
 
       {veEquipo ? (
-        <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Qué pasó con cada agenda</h4>
+        <details className="space-y-2">
+          <summary className="cursor-pointer text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring print:list-none">Qué pasó con cada agenda</summary>
+          <div className="mt-2 print:block">
           <Lado programas={programas}>{({ reporte }) => (
             reporte.resultados.length === 0 ? <p className="text-sm text-muted-foreground">Sin agendas ese día.</p> : (
               <ul className="space-y-1 text-sm">
@@ -247,7 +314,8 @@ function ElDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEqu
               </ul>
             )
           )}</Lado>
-        </div>
+          </div>
+        </details>
       ) : null}
 
       <div className="no-partir space-y-2">
@@ -273,7 +341,7 @@ function LaSemana({ programas }: { programas: ProgramaDelReporte[] }) {
         const semana = reporte.horizontes.find((h) => h.clave === "semana")!;
         const { dia, total } = reporte.contexto.semana;
         const aLaFecha = semana.meta === null || total === 0 ? null : (semana.meta * dia) / total;
-        const metaLeads = reporte.proyeccion.cohorte?.metaLeadsDia ?? null;
+        const metaLeads = metaDeLeads(reporte.proyeccion.cohorte);
         const p = reporte.proyeccion;
         return (
           <div className="space-y-3">
@@ -298,17 +366,16 @@ function LaSemana({ programas }: { programas: ProgramaDelReporte[] }) {
             </p>
             {p.cohorte ? (
               <div className="space-y-1 text-sm">
-                <h5 className="font-medium">Meta para llegar a {num(p.cohorte.metaCupos)} desde mañana</h5>
+                <h5 className="font-medium">Reparto para llegar a {num(p.cohorte.metaCupos)} desde mañana</h5>
                 <p className="text-muted-foreground">
                   Faltan {num(p.faltan)} cupos en {num(p.diasHabilesRestantes)} días hábiles
-                  {p.ventasRequeridasDia.valor === null ? "" : `: ${num(p.ventasRequeridasDia.valor, 1)} por día`}
-                  {p.leadsRequeridosDia.valor === null ? "" : ` y ${num(p.leadsRequeridosDia.valor, 0)} leads por día hábil`}.
+                  {p.ventasRequeridasDia.valor === null ? "" : `: ${num(p.ventasRequeridasDia.valor, 1)} ventas por día`}.
                 </p>
-                <ul className="text-muted-foreground">
+                <details><summary className="cursor-pointer font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring print:list-none">Reparto semanal</summary><ul className="mt-1 text-muted-foreground print:block">
                   {p.repartoSemanal.map((t) => (
                     <li key={t.desde}>{t.tipo === "resto_semana" ? "Resto de esta semana" : t.tipo === "final" ? "Días sueltos del final" : "Semana"} ({rangoLegible(t.desde, t.hasta)}): {num(t.ventas, 1)} cupos</li>
                   ))}
-                </ul>
+                </ul></details>
               </div>
             ) : <p className="text-sm text-muted-foreground">Sin cohorte con ventana de ventas.</p>}
           </div>
@@ -318,7 +385,7 @@ function LaSemana({ programas }: { programas: ProgramaDelReporte[] }) {
   );
 }
 
-export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, vamosALlegar }: {
+export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, vamosALlegar, configuracion }: {
   programas: ProgramaDelReporte[];
   dia: string;
   hoy: string;
@@ -327,13 +394,14 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
   selector: ReactNode;
   /** El bloque "¿Vamos a llegar?" (371): ocupa el lugar de las secciones 4 y 5. */
   vamosALlegar: ReactNode;
+  configuracion?: ReactNode;
 }) {
   void hoy;
   return (
     <section id="hoy" className="scroll-mt-4 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
         {selector}
-        <DescargarReporte />
+        <div className="flex items-center gap-2">{configuracion}<DescargarReporte /></div>
       </div>
       <div id="reporte-diario" className="space-y-6">
         <PieDeImpresion generado={fechaHoraEnBogota(new Date())} />
@@ -345,29 +413,5 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
     }><div className="no-partir">{vamosALlegar}</div></Seccion>
       </div>
     </section>
-  );
-}
-
-/** Hoy · Ayer · una fecha: el único control de la pestaña. Un formulario GET: funciona sin JavaScript. */
-export function SelectorDeDia({ dia, hoy, base }: { dia: string; hoy: string; base: { path: string; params: Record<string, string> } }) {
-  const href = (fechaElegida: string | null) => {
-    const q = new URLSearchParams(base.params);
-    q.set("seccion", "hoy");
-    if (fechaElegida) q.set("fecha", fechaElegida);
-    return `${base.path}?${q.toString()}`;
-  };
-  const ayer = sumarDias(hoy, -1);
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant={dia === hoy ? "default" : "outline"} nativeButton={false} render={<a href={href(null)} />}>Hoy</Button>
-      <Button size="sm" variant={dia === ayer ? "default" : "outline"} nativeButton={false} render={<a href={href(ayer)} />}>Ayer</Button>
-      <form method="get" action={base.path} className="flex items-center gap-2">
-        {Object.entries(base.params).filter(([k]) => k !== "fecha" && k !== "seccion").map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
-        <input type="hidden" name="seccion" value="hoy" />
-        <label className="sr-only" htmlFor="fecha-del-reporte">Fecha del reporte</label>
-        <input id="fecha-del-reporte" type="date" name="fecha" defaultValue={dia} max={hoy} className="h-8 rounded-md border bg-background px-2 text-sm" />
-        <Button size="sm" type="submit" variant="outline">Ver</Button>
-      </form>
-    </div>
   );
 }

@@ -1,12 +1,33 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 
 /**
  * "Descargar PDF" del reporte diario (373): `window.print()` del navegador, sin librería (ADR 0006).
  */
 export function DescargarReporte() {
+  const abiertosParaImprimir = useRef<HTMLDetailsElement[]>([]);
+
+  useEffect(() => {
+    const abrirDetalles = () => {
+      // Acumula: un segundo `beforeprint` sin su `afterprint` no debe olvidar los que abrió el primero.
+      const cerrados = Array.from(document.querySelectorAll<HTMLDetailsElement>("#reporte-diario details:not([open])"));
+      for (const detalle of cerrados) detalle.open = true;
+      abiertosParaImprimir.current.push(...cerrados);
+    };
+    const restaurarDetalles = () => {
+      for (const detalle of abiertosParaImprimir.current) detalle.open = false;
+      abiertosParaImprimir.current = [];
+    };
+    window.addEventListener("beforeprint", abrirDetalles);
+    window.addEventListener("afterprint", restaurarDetalles);
+    return () => {
+      window.removeEventListener("beforeprint", abrirDetalles);
+      window.removeEventListener("afterprint", restaurarDetalles);
+    };
+  }, []);
+
   return (
     <Button type="button" variant="outline" size="sm" className="print:hidden" onClick={() => window.print()}>
       Descargar PDF

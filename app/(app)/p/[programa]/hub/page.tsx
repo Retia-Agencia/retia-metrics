@@ -8,7 +8,8 @@ import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { Origen } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
 import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
-import { SelectorDeDia } from "@/components/dashboard/reporte-diario";
+import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
+import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
@@ -48,6 +49,7 @@ import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
 import { pautaSincronizaciones } from "@/lib/db/schema";
+import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
 import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
 import { sumarDias } from "@/lib/rangos";
 import { tokensMeta } from "@/lib/integraciones";
@@ -198,6 +200,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const origen = origenDeLaPagina(base, busqueda);
   const configurar = esAdministrador(rol)
     ? { hrefBase: `/p/${encodeURIComponent(programa.slug)}/programa?seccion=ventas`, origen }
+    : null;
+  const configuracionDeHoy = esHoy && configurar ? await leerConfiguracionDeHoy(programa.id) : null;
+  const datosConfiguracionHoy = configuracionDeHoy
+    ? { ...configuracionDeHoy, slug: programa.slug, ritmo: ventanaRitmo }
     : null;
 
   // Solo se calcula lo de la pestaña activa (ticket 197 §5): a esta escala el ahorro no
@@ -412,6 +418,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 citasDeManana={vistaDeHoy!.citasDeManana}
                 corte={vistaDeHoy!.corte}
                 detalleManana={detalleManana}
+                configuracion={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} /> : undefined}
               />
             </>
           )}

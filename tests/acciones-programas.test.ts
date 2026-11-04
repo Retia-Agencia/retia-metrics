@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, cohorts, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
+import { changeLog, cohorts, miembrosPrograma, objetivos, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -208,6 +208,48 @@ describe("acciones de programas — el gerente administra", () => {
     const { esquemaPrograma } = await import("@/lib/catalogo/programas");
     expect(esquemaPrograma.parse({ ...programaValido, diasSinActividad: "9" }).diasSinActividad).toBe(9);
     expect(() => esquemaPrograma.parse({ ...programaValido, diasSinActividad: 0 })).toThrow();
+  });
+
+  it("la muestra mínima de conversión se valida, persiste y deja rastro", async () => {
+    const { esquemaPrograma } = await import("@/lib/catalogo/programas");
+    const { editarProgramaAccion } = await acciones();
+    expect(esquemaPrograma.parse({ ...programaValido, muestraMinimaConversion: "25" }).muestraMinimaConversion).toBe(25);
+    expect(() => esquemaPrograma.parse({ ...programaValido, muestraMinimaConversion: 0 })).toThrow();
+
+    const [actual] = await db.select().from(programs).where(eq(programs.id, programId));
+    const entrada = {
+      nombre: actual.nombre,
+      slug: actual.slug,
+      ticketUsd: String(actual.ticketUsd),
+      webUrl: actual.webUrl,
+      calendlyUrl: actual.calendlyUrl,
+      muestraMinimaConversion: 25,
+    };
+    expect(await editarProgramaAccion(programId, entrada)).toEqual({ ok: true });
+    expect((await db.select().from(programs).where(eq(programs.id, programId)))[0].muestraMinimaConversion).toBe(25);
+    expect(await db.select().from(changeLog).where(eq(changeLog.campo, "muestraMinimaConversion"))).toMatchObject([
+      { tabla: "programs", registroId: programId, valorAnterior: "20", valorNuevo: "25", userId: gerenteId },
+    ]);
+  });
+
+  it("el objetivo agenda a venta usa la acción existente y una petición sin administración no lo mueve", async () => {
+    const { crearCohorteAccion } = await acciones();
+    expect(await crearCohorteAccion("programa-a", { ...cohorteValida, programId })).toEqual({ ok: true });
+    const [cohorte] = await db.select().from(cohorts).where(eq(cohorts.programId, programId));
+    const { guardarObjetivoAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-objetivos");
+    expect(await guardarObjetivoAccion({
+      cohortId: cohorte.id, area: null, metrica: "conversion_agenda_venta", meta: "25", aceptable: null,
+    })).toEqual({ ok: true });
+    const [creado] = await db.select().from(objetivos).where(eq(objetivos.cohortId, cohorte.id));
+    expect(Number(creado.meta)).toBe(25);
+    expect((await db.select().from(changeLog).where(eq(changeLog.registroId, creado.id))).length).toBeGreaterThan(0);
+
+    auth.mockResolvedValue(sesionCloser);
+    const rechazado = await guardarObjetivoAccion({
+      id: creado.id, cohortId: cohorte.id, area: null, metrica: "conversion_agenda_venta", meta: "40", aceptable: null,
+    });
+    expect(rechazado.ok).toBe(false);
+    expect(Number((await db.select().from(objetivos).where(eq(objetivos.id, creado.id)))[0].meta)).toBe(25);
   });
 
   it("el corte de la escalera (319) se edita por quien administra, con rastro; vacio lo borra y cero se rechaza", async () => {

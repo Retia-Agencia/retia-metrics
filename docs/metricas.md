@@ -408,9 +408,9 @@ pie. No agrega ninguna cifra a la tabla de arriba, salvo estas:
 | Desglose de la caja del día | cada abono vigente de la caja con su venta de origen: venta nueva del día, saldo de una venta anterior (con el día y el closer de esa venta: no suma un cupo nuevo) o abono adicional (1:1). Las partes suman la misma caja de Dinero | `desgloseDeCaja` |
 | Qué pasó con cada agenda | las citas del día por closer y resultado: cierre, show sin cierre, compromiso de pago, no-show, reagendada, perdida (con su motivo) y pendiente; las canceladas aparte | `resultadosPorCloser` |
 | Leads del día de pauta | registros del día en el área Paid (`resolverCanal`); el total es "Leads del día" | `agruparEnvios` por área |
-| Semana: leads y show | registros de lunes al día del reporte; la meta de leads de la semana es la meta diaria de la cohorte × hábiles; la meta a la fecha es lineal | `armarReporteDiario` |
+| Día y semana: meta de leads y show | la **meta de leads** es siempre `cohorts.meta_leads_dia`, decidida por `metaDeLeads`; en la semana se multiplica por los hábiles. No se sustituye por el requerido calculado | `metaDeLeads`, `armarReporteDiario` |
 | Total de todos los programas | solo conteos y caja por moneda; el tipo no tiene un campo de tasa (ADR 0048) | `totalDeConteos` |
-| Meta para llegar a la meta desde mañana; leads por día hábil | Proyección | `leerProyeccion` | día hábil | construido en 253 |
+| Necesarios para llegar; leads por día hábil | lo requerido para cumplir la meta de cupos: ventas por día ÷ conversión agenda→venta declarada, o ÷ cierre ÷ show, y luego ÷ agenda por lead. Muestra origen, cohorte, muestra, maduración y pendientes; no es una meta declarada | `leerProyeccion` | día hábil | 253, aclarado en 378 |
 | Cómo nació cada cupo (agenda del día, follow-up) | fuera de Hoy hasta tener una métrica | · | · | 🟡 254 |
 | Planes de acción | fuera de Hoy hasta tener datos | · | · | 🟡 257 |
 | Masivos, cola y respuestas de Kapso | fuera | · | · | H-9: no viven en el CRM |

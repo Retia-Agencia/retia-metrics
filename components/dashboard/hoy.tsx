@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Alertas } from "@/components/dashboard/alertas";
 import { ReporteDiarioVista, type ProgramaDelReporte } from "@/components/dashboard/reporte-diario";
@@ -18,7 +19,7 @@ import { ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-
  * Este componente no calcula ninguna cifra.
  */
 
-function Agenda({ titulo, filas, corte, veEquipo }: { titulo: string; filas: FilaDeMetrica[]; corte: Date; veEquipo: boolean }) {
+function Agenda({ titulo, filas, corte, veEquipo, slug }: { titulo: string; filas: FilaDeMetrica[]; corte: Date; veEquipo: boolean; slug: string }) {
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">{titulo}</CardTitle></CardHeader>
@@ -29,15 +30,15 @@ function Agenda({ titulo, filas, corte, veEquipo }: { titulo: string; filas: Fil
               const cancelada = fila.resultado === "cancelada";
               const vencida = fila.resultado === "agendada" && fila.citaEn != null && fila.citaEn <= corte;
               const resultado = fila.resultado as keyof typeof ETIQUETA_DE_RESULTADO;
-              return (
-                <li key={fila.id} className={`flex flex-wrap items-center gap-2 py-2 ${cancelada ? "text-muted-foreground" : ""}`}>
+              const contenido = <>
                   <span className="cifra w-14 font-medium">{fila.citaEn ? horaEnBogota(fila.citaEn) : "—"}</span>
-                  {veEquipo ? <span className="min-w-0 flex-1 truncate">{fila.closer ?? "Sin closer"}</span> : <span className="flex-1" />}
+                  {veEquipo ? <span className="min-w-0 flex-1 truncate">{fila.persona?.nombre ?? "Sin nombre"} <span className="text-muted-foreground">· {fila.closer ?? "Sin closer"}</span></span> : <span className="flex-1" />}
                   <Badge variant={vencida ? "peligro" : (TONO_DE_RESULTADO[resultado] ?? "neutro")}>
                     {vencida ? "Sin resultado" : (ETIQUETA_DE_RESULTADO[resultado] ?? "Otro")}
                   </Badge>
-                </li>
-              );
+                </>;
+              const clase = `flex flex-wrap items-center gap-2 py-2 outline-none transition-colors duration-150 ${cancelada ? "text-muted-foreground" : ""}`;
+              return <li key={fila.id}>{fila.dealId ? <Link className={`${clase} hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring`} href={`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`}>{contenido}</Link> : <div className={clase}>{contenido}</div>}</li>;
             })}
           </ul>
         )}
@@ -90,6 +91,7 @@ export function Hoy({
   citasDeManana,
   corte,
   detalleManana,
+  configuracion,
 }: {
   programas: ProgramaDelReporte[];
   dia: string;
@@ -109,18 +111,19 @@ export function Hoy({
   citasDeManana: FilaDeMetrica[];
   corte: Date;
   detalleManana?: DetalleDeCifra;
+  configuracion?: ReactNode;
 }) {
   // Lo que sirve para seguir el día vive de hoy hacia adelante: en un día pasado no se dibuja (373).
   const esHoy = dia === hoy;
   return (
     <div className="space-y-6">
-      <ReporteDiarioVista programas={programas} dia={dia} hoy={hoy} veEquipo={veEquipo} selector={selector} vamosALlegar={vamosALlegar} />
+      <ReporteDiarioVista programas={programas} dia={dia} hoy={hoy} veEquipo={veEquipo} selector={selector} vamosALlegar={vamosALlegar} configuracion={configuracion} />
       {esHoy ? (
         <section className="space-y-6 border-t pt-6 print:hidden">
           <h2 className="text-xl font-semibold">Para seguir el día</h2>
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">La agenda de hoy</h3>
-            <Agenda titulo="Por hora" filas={agendaDeHoy} corte={corte} veEquipo={veEquipo} />
+            <Agenda titulo="Por hora" filas={agendaDeHoy} corte={corte} veEquipo={veEquipo} slug={slug} />
           </section>
           <section className="space-y-3">
             <h3 className="text-lg font-semibold">Mañana</h3>

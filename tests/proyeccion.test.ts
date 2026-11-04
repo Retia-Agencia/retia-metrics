@@ -9,6 +9,7 @@ import {
   calcularProyeccion,
   elegirConversion,
   leerProyeccion,
+  metaDeLeads,
   repartirFaltantePorSemana,
   ventanaRitmoDeUrl,
   type DatosParaProyeccion,
@@ -49,6 +50,11 @@ const pintar = (datos: DatosParaProyeccion, ventanas = [] as Parameters<typeof P
   renderToStaticMarkup(createElement(Proyeccion, { datos: calcularProyeccion(datos), ventanas }));
 
 describe("proyección", () => {
+  it("separa la meta de leads declarada del requerido calculado", () => {
+    expect(metaDeLeads(null)).toBeNull();
+    expect(metaDeLeads({ metaLeadsDia: null })).toBeNull();
+    expect(metaDeLeads({ metaLeadsDia: 35 })).toBe(35);
+  });
   it("cuadra cada cifra con un cálculo independiente", () => {
     const resultado = calcularProyeccion(cohorte);
     // Del 22-oct al 4-nov hay 10 días hábiles (dos semanas sin fin de semana).

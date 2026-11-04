@@ -137,6 +137,13 @@ export interface ValorDeProyeccion {
   razon: string | null;
 }
 
+/** La meta declarada por la cohorte; nunca se sustituye por el requerido calculado. */
+export function metaDeLeads(
+  cohorte: Pick<NonNullable<ProyeccionDeCohorte["cohorte"]>, "metaLeadsDia"> | null,
+): number | null {
+  return cohorte?.metaLeadsDia ?? null;
+}
+
 export interface TramoSemanal {
   tipo: "resto_semana" | "semana" | "final";
   desde: string;

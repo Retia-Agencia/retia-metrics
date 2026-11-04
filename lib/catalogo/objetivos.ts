@@ -210,7 +210,7 @@ async function normalizarEscritura<T>(fn: () => Promise<T>): Promise<T> {
 
 async function crearEnTransaccion(db: Db, actor: ActorObjetivos, input: EntradaObjetivo) {
   const datos = esquemaObjetivo.parse(input);
-  if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
+  if (!METRICAS_OFRECIDAS.includes(datos.metrica) && datos.metrica !== "conversion_agenda_venta") {
     throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
   }
   await validarReparto(db, datos);
@@ -236,7 +236,7 @@ export async function editarObjetivo(db: Db, actor: ActorObjetivos, id: string, 
       exigirEdicion(actor, datos.metrica);
       await exigirProgramaEnAlcance(tx, actor, await programaDeCohorte(tx, actual.cohortId), "No puedes cambiar objetivos de este programa.");
       await exigirProgramaEnAlcance(tx, actor, await programaDeCohorte(tx, datos.cohortId), "No puedes cambiar objetivos de este programa.");
-      if (!METRICAS_OFRECIDAS.includes(datos.metrica)) {
+      if (!METRICAS_OFRECIDAS.includes(datos.metrica) && datos.metrica !== "conversion_agenda_venta") {
         throw new ErrorDeApp("Esa métrica todavía no tiene quien la lea.", 400);
       }
       await validarReparto(tx, datos, { excluirId: id, incluir: actual.activo });
