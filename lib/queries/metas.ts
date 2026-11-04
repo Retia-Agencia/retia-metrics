@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaDeCalendario, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
+import { diaDeCalendario, diasHabilesEntre, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
 import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { contratadoDeDeals } from "@/lib/queries/saldo";
@@ -235,13 +235,15 @@ export function armarMetasDelMes(args: {
     }, 0);
     const ventasSemana = args.ventas.filter((venta) => venta.dia >= semana.desde && venta.dia <= semana.hasta).length;
     const diasHabilesRestantes = diasHabilesEntre(hoy, semana.hasta);
+    const ventasAntesDeHoy = args.ventas.filter((venta) => venta.dia >= semana.desde && venta.dia < hoy).length;
     compensacionSemanal = {
       ...semana,
       meta: metaSemana,
       vendidos: ventasSemana,
       faltan: Math.max(metaSemana - ventasSemana, 0),
       diasHabilesRestantes,
-      porDia: metaDinamica({ meta: metaSemana, vendidos: ventasSemana, diasHabilesRestantes }),
+      // Meta de apertura de hoy, con el mismo borde que la del dia (352, DA-5).
+      porDia: metaDeHoy({ meta: metaSemana, vendidosAntesDeHoy: ventasAntesDeHoy, hoy, cierre: semana.hasta }),
     };
   }
 

@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { cohorts, deals, dealEtapaHistorial, motivos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
+import { ETAPAS_EN_ORDEN, esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { cerradosEn, esReversaDeVenta } from "@/lib/queries/metricas-filtros";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
@@ -249,7 +249,8 @@ function lecturaConversion(
 /**
  * La etapa mas lejana a la que llego el deal. Una entrada a Abonado o Completo que una reversa
  * posterior deshizo (anular su abono, ticket 200) no cuenta, y una cortesia no pasa de
- * Compromiso Verbal: los pasos vendidos dicen lo mismo que `vendidosEn`.
+ * Compromiso Verbal: los pasos vendidos dicen lo mismo que `vendidosEn`
+ * (352: tampoco cuenta una venta que hoy esta en Cierre Perdido).
  */
 function etapaMasLejana(deal: DealParaEmbudo, historial: readonly HistorialParaEmbudo[]): number {
   const ultimaReversa = historial.reduce(
@@ -261,7 +262,9 @@ function etapaMasLejana(deal: DealParaEmbudo, historial: readonly HistorialParaE
     ...historial
       // Misma regla que el SQL de `esMovimientoDeVenta`: solo una reversa ESTRICTAMENTE posterior
       // deshace la venta, asi que en un empate de instante la venta se conserva en los dos lados.
-      .filter((fila) => !ETAPAS_VENDIDAS.includes(fila.a) || fila.fecha.getTime() >= ultimaReversa)
+      // Y un deal que hoy esta en Cierre Perdido ya no es venta (352, DA-1): sus entradas a una etapa
+      // vendida no cuentan, igual que en `etapaVendida()` del SQL.
+      .filter((fila) => !esEtapaVendida(fila.a) || (deal.etapa !== "cierre_perdido" && fila.fecha.getTime() >= ultimaReversa))
       .map((fila) => fila.a),
   ];
   const maximo = alcanzadas.reduce((max, etapa) => Math.max(max, posicion(etapa)), -1);

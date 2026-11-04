@@ -14,7 +14,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 /**
  * Ticket 200: una venta que se revierte al anular su abono (A1) no cuenta en ninguna métrica,
  * y si el deal vuelve a pagar, el día de la venta es el del pago nuevo. Abonado → Cierre
- * Perdido sigue siendo una venta (ADR 0038), y una cortesía nunca lo es (ADR 0071).
+ * Perdido deja de ser venta (352, DA-1; anular no es perder, ADR 0038), y una cortesía nunca lo es (ADR 0071).
  */
 
 let db: Db;
@@ -128,14 +128,14 @@ describe("ticket 200: la venta revertida no cuenta", () => {
     expect(primero.fecha.getTime()).toBeGreaterThan(new Date("2026-08-11").getTime());
   });
 
-  it("Abonado que termina en Cierre Perdido sigue siendo una venta (ADR 0038)", async () => {
+  it("Abonado que termina en Cierre Perdido deja de ser venta y cuenta como perdido (352, DA-1)", async () => {
     const dealId = await nuevoDeal("atendido");
     await registrarAbono(db, comoCloser(), abono(dealId, "300"));
     await db.insert(dealEtapaHistorial).values({ dealId, de: "ganado_parcial", a: "cierre_perdido", userId: closer });
     await db.update(deals).set({ etapa: "cierre_perdido" }).where(eq(deals.id, dealId));
 
-    expect(await vendidos()).toEqual([dealId]);
-    expect(await pasoVendido()).toEqual([dealId]);
+    expect(await vendidos()).toEqual([]);
+    expect(await pasoVendido()).toEqual([]);
   });
 
   it("Completo que vuelve a Abonado (A2) sigue vendido", async () => {
@@ -150,7 +150,8 @@ describe("ticket 200: la venta revertida no cuenta", () => {
   });
 
   it("en un empate de instante entre la venta y su reversa, el SQL y el embudo dicen lo mismo", async () => {
-    const dealId = await nuevoDeal("atendido");
+    // El deal esta vendido HOY (352, DA-1): el empate decide si la reversa lo deshizo, no la etapa.
+    const dealId = await nuevoDeal("ganado_parcial");
     const mismo = new Date("2026-09-02T15:00:00-05:00");
     await db.insert(dealEtapaHistorial).values([
       { dealId, de: null, a: "atendido", fecha: new Date("2026-09-01T15:00:00-05:00") },

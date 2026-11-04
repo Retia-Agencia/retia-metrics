@@ -2,7 +2,7 @@ import { and, between, eq, isNull, ne, or } from "drizzle-orm";
 import { calls, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
-import { ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
+import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { semanasDelRango } from "@/lib/rangos";
@@ -147,7 +147,7 @@ export function calcularTasasDelGrupo(args: {
     closer: atribuye.closer,
     etapa: atribuye.etapa,
     conShow,
-    vendido: conShow && ETAPAS_VENDIDAS.includes(atribuye.etapa),
+    vendido: conShow && esEtapaVendida(atribuye.etapa),
   });
   const ordenar = (a: MiembroDelGrupo, b: MiembroDelGrupo) =>
     a.fecha.localeCompare(b.fecha) || a.dealId.localeCompare(b.dealId);

@@ -2,7 +2,6 @@ import { contratadoDeDeals, sumaDeAbonos, type ContratadoDeDeals } from "@/lib/q
 import {
   closerDeAbono,
   cerradosEn,
-  ETAPAS_VENDIDAS,
   fechaAnclaCall,
   filtroCaja,
   filtroCierres,
@@ -29,7 +28,8 @@ import {
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaHabilDe, diasHabilesEntre, metaDinamica, metaLineal } from "@/lib/dias-habiles";
+import { diaHabilDe, diasHabilesEntre, esperadoLineal, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
+import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
@@ -726,53 +726,6 @@ export function embudoPorCanal(hechos: FilaHechosDelEmbudo[]): FilaEmbudoPorCana
 }
 
 /**
- * Los vendidos de una cohorte entera (no del rango).
- *
- * 🎯 Esta es la UNICA metrica de venta que sobrevive al ticket 038, y sobrevive
- * porque tiene definicion honesta HOY: **una venta es un deal en Abonado o
- * Completo** (ADR 0037), y esta pregunta es de la cohorte completa, asi que no
- * necesita la fecha del movimiento —que es lo que tumba al embudo del rango y al
- * comparativo—. Contar deals a secas seria la trampa que el ticket 038 nombra: una
- * cifra inflada que no lanza ningun error.
- *
- * Con `claveCloser` cuenta solo los de ese closer, que es su CONTRIBUCION a la
- * cohorte; la meta sigue siendo la de la cohorte y no se reparte (ADR 0023). El
- * dueno de un deal es una FK a `users`, asi que una clave de cuenta se resuelve por
- * `deals.ownerUserId` y una historica cae al texto de `users.closerId` con
- * `igualCloser` (ADR 0030, ticket 167): la respuesta vive en `porClaveDeDeal`.
- */
-async function ventasDeCohorte(
-  cohorteId: string,
-  hasta: string,
-  db: Db,
-  claveCloser?: string | null,
-): Promise<number> {
-  const deLaCohorte = and(
-    eq(deals.cohortId, cohorteId),
-    inArray(deals.etapa, [...ETAPAS_VENDIDAS]),
-    inArray(deals.id, vendidosEn(db, { desde: "2000-01-01", hasta })),
-    eq(deals.cortesia, false),
-  );
-  const conteo = { n: sql<number>`count(*)::int` };
-
-  // `vigente(deals)` va DENTRO de cada cadena y no izado a `deLaCohorte`, aunque
-  // repetirlo se vea redundante: el guardian de `tests/vigencia-centralizada.test.ts`
-  // lee cadena por cadena, y una condicion escondida en una variable le pasa por
-  // debajo. Quien lee la consulta tiene que ver la decision ahi mismo.
-  const [fila] =
-    claveCloser == null
-      // Sin closer no hace falta el join: `deals` solo, que incluye los Unclaimed.
-      ? await db.select(conteo).from(deals).where(and(deLaCohorte, vigente(deals)))
-      : await db
-          .select(conteo)
-          .from(deals)
-          .innerJoin(users, eq(users.id, deals.ownerUserId))
-          .where(and(deLaCohorte, vigente(deals), porClaveDeDeal(claveCloser)));
-
-  return fila?.n ?? 0;
-}
-
-/**
  * Vista de la cohorte activa de un programa a fecha `hoy` ('YYYY-MM-DD', Bogota), o
  * `null` si el programa no tiene cohorte activa.
  *
@@ -794,9 +747,12 @@ export async function vistaDeCohorteActiva(
   // `vendidos` es SIEMPRE el de la cohorte completa: toda la matematica de meta
   // (dinamica, lineal, esperado, cumplimiento) se mide contra la cohorte, nunca
   // contra un closer. Lo del closer va aparte, como contribucion.
-  const vendidos = await ventasDeCohorte(cohorte.id, hoy, db);
+  // Una sola definicion de venta y de cohorte (352): `ventasDeLaCohorte`, sin limite inferior (DA-2).
+  const ventasDeLaCohorteHoy = await ventasDeLaCohorte(db, cohorte.id, hoy);
+  const vendidos = ventasDeLaCohorteHoy.length;
   const vendidosDelCloser =
-    claveCloser == null ? null : await ventasDeCohorte(cohorte.id, hoy, db, claveCloser);
+    claveCloser == null ? null : (await ventasDeLaCohorte(db, cohorte.id, hoy, claveCloser)).length;
+  const vendidosAntesDeHoy = ventasDeLaCohorteHoy.filter((venta) => venta.dia < hoy).length;
   const faltan = Math.max(meta - vendidos, 0);
 
   const base: VistaDeCohorte = {
@@ -816,9 +772,10 @@ export async function vistaDeCohorteActiva(
   const { dia, total } = diaHabilDe(hoy, inicio, cierre);
   // Si hoy ya paso el cierre, `diasHabilesEntre(hoy, cierre)` da 0 por definicion.
   const habilesRestantes = diasHabilesEntre(hoy, cierre);
-  const metaDin = metaDinamica({ meta, vendidos, diasHabilesRestantes: habilesRestantes });
+  // Meta de APERTURA del dia (DA-5): no descuenta lo vendido hoy, asi el cumplimiento del dia tiene tope.
+  const metaDin = metaDeHoy({ meta, vendidosAntesDeHoy, hoy, cierre });
   const metaLin = metaLineal({ meta, diasHabilesTotales: total });
-  const esperado = metaLin * dia;
+  const esperado = esperadoLineal({ meta, inicio, cierre, hasta: hoy });
 
   return {
     ...base,

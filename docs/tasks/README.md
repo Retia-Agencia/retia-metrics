@@ -298,7 +298,7 @@ a fase 2.
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 | [ ] | 351 | [Toda razón con su cobertura, y el gasto que falta](./351-toda-razon-con-su-cobertura.md) | — | todo · 30-oct · auditoría de métricas (C-01 ROAS con gasto desde el 8-oct) · ADR 0115 N3 · backfill con ok de Mani |
-| [ ] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | todo · 30-oct · auditoría · **fase 1, paso 1 de la entrega (§20)** · DA-1, DA-2, DA-5 decididas por Mani el 3-nov |
+| [x] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | done · 3-nov · DA-1, DA-2, DA-5. Queda fuera, por pedir migración: alcance 4 (muestra mínima y días de madurez como datos del programa, C-17) |
 | [ ] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | todo · 30-oct · auditoría · espera DA-3 (Mani) y DA-4 (con Pauta) |
 | [ ] | 354 | [Cada hecho con su día, y registro, lead y "sin UTM" una vez](./354-anclas-de-fecha-registros-y-sin-utm.md) | — | todo · 30-oct · auditoría (C-04 parciales sin fecha) |
 | [ ] | 355 | [Pauta: un cargador y una tabla](./355-pauta-un-cargador-y-una-tabla.md) | 351, 352, 353, 354 | todo · 30-oct · auditoría · borra `pauta-interina` |

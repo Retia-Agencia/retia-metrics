@@ -269,7 +269,7 @@ Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manu
 | % de cierre | de esos deals con show, cuántos están vendidos hoy; por closer, sobre los shows que tomó: cada deal va al closer de su último show o, sin show, al de su última cita (ADR 0079). Mismo grupo arriba y abajo: nunca pasa de 100% |
 | Agenda → venta | de los deals con cita en el rango, cuántos tuvieron show y están vendidos hoy = % de show × % de cierre (ADR 0079) |
 | Caja recaudada | suma de abonos cuya fecha cae en el rango |
-| Meta de cupos y meta dinámica | de la cohorte; la dinámica es lo que falta ÷ días hábiles que quedan, cada día |
+| Meta de cupos y meta dinámica | de la cohorte; la dinámica ("meta de hoy") es lo que faltaba al abrir hoy ÷ días hábiles que quedan contando hoy; no descuenta lo que se vende hoy (352, DA-5) |
 | Contribución | las ventas de la cohorte de un closer. **No existe meta individual** (ADR 0023) |
 | Conversión etapa a etapa y tiempo en etapa | cuenta deals distintos, no entradas |
 | Registros vs agendas por canal | la métrica de Media: TikTok puede traer muchos registros y pocas agendas |
@@ -464,6 +464,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Ventana de venta:** los dos días entre los que una cohorte vende, inclusive. Los declara el
   negocio; no se deducen.
 - **Día hábil, meta de cupos, meta dinámica, contribución:** ver §7.
+- **Venta:** un deal vigente, sin cortesía, que hoy está en Abonado o Completo. Si pasa a Cierre Perdido deja de ser
+  venta y cuenta como pérdida (352, DA-1). *No confundir con la caja, que son los abonos.*
 - **Periodo A contra B:** los dos rangos que compara toda cifra. Por defecto, B es el mismo punto del
   periodo anterior contado en días hábiles (el día hábil 7 de octubre contra el día hábil 7 de
   septiembre), nunca el periodo anterior entero (ADR 0067).

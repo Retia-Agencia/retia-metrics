@@ -3,7 +3,7 @@ id: 352
 etapa: hub
 serves: "ADR 0115 N1, N2 · auditoría 30-oct C-07, C-08, C-12, C-17, C-18, R-03, R-09"
 depends: []
-status: todo
+status: done
 ---
 
 # 352 — La venta tiene una definición, y la cohorte una cuenta
@@ -46,12 +46,16 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 5. "Leads requeridos por día" con numerador y denominador del mismo universo.
 6. Guardián (N1): fuera del módulo, nadie escribe `inArray(deals.etapa, ETAPAS_VENDIDAS)` para contar ventas.
 
+> **Queda pendiente (3-nov):** el punto 4 del alcance (muestra mínima y días de madurez como datos del programa)
+> necesita columnas nuevas en `programs`, o sea una migración que genera la sesión principal. Las constantes siguen
+> con nombre en código (`MUESTRA_MINIMA_CONVERSION`, `DIAS_PARA_MADURAR`).
+
 ## Done cuando
 
-- [ ] Test de paridad: un deal Abonado → Cierre Perdido deja de contar como venta (y cuenta como perdido) en Mes,
+- [x] Test de paridad: un deal Abonado → Cierre Perdido deja de contar como venta (y cuenta como perdido) en Mes,
   Cohorte, alertas, % de cierre, escalera y ROAS, todos a la vez.
-- [ ] Test: una venta anterior al inicio de ventas cuenta para la cohorte, igual en Cupos y en Proyección.
-- [ ] Test: vender 4 con meta de apertura 2 da cumplimiento 200 %, no 333 %.
-- [ ] Test: el último día hábil, meta de hoy y ventas requeridas por día dan lo mismo.
-- [ ] Guardián del predicado de venta mordido en los dos sentidos.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Test: una venta anterior al inicio de ventas cuenta para la cohorte, igual en Cupos y en Proyección.
+- [x] Test: vender 4 con meta de apertura 2 da cumplimiento 200 %, no 333 %.
+- [x] Test: el último día hábil, meta de hoy y ventas requeridas por día dan lo mismo.
+- [x] Guardián del predicado de venta mordido en los dos sentidos.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.

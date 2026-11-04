@@ -3,7 +3,8 @@ import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, objetivos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
+import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil, metaDeHoy } from "@/lib/dias-habiles";
+import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
@@ -179,6 +180,8 @@ export interface DatosParaProyeccion {
     fechaCierreVentas: string;
   } | null;
   vendidos: number;
+  /** Las ventas de la cohorte hasta ayer: con ellas se mide lo que faltaba al abrir hoy (352, DA-5). */
+  vendidosAntesDeHoy: number;
   ventasVentana: number;
   agendasVentana: number;
   registrosVentana: number;
@@ -295,10 +298,18 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
   const proyeccion = ritmo.valor === null
     ? noDisponible(ritmo.razon!)
     : disponible(datos.vendidos + ritmo.valor * diasHabilesRestantes);
-  const ventasRequeridasDia = faltan === 0
+  // La MISMA meta de hoy que Cupos (352): lo que faltaba al abrir hoy entre los habiles que quedan contando hoy.
+  const habilesDesdeHoy = diasHabilesEntre(datos.hoy, datos.cohorte.fechaCierreVentas);
+  const faltabanAlAbrir = Math.max(datos.cohorte.metaCupos - datos.vendidosAntesDeHoy, 0);
+  const ventasRequeridasDia = faltabanAlAbrir === 0
     ? disponible(0)
-    : diasHabilesRestantes > 0
-      ? disponible(faltan / diasHabilesRestantes)
+    : habilesDesdeHoy > 0
+      ? disponible(metaDeHoy({
+        meta: datos.cohorte.metaCupos,
+        vendidosAntesDeHoy: datos.vendidosAntesDeHoy,
+        hoy: datos.hoy,
+        cierre: datos.cohorte.fechaCierreVentas,
+      }))
       : noDisponible("La venta de esta cohorte ya cerró: no quedan días hábiles para repartir lo que falta.");
   const objetivo = datos.conversion.objetivoAgendaAVenta;
   const agendasRequeridasDia = ventasRequeridasDia.valor === null
@@ -396,6 +407,7 @@ export async function leerProyeccion(
       hoy,
       cohorte: null,
       vendidos: 0,
+      vendidosAntesDeHoy: 0,
       ventasVentana: 0,
       agendasVentana: 0,
       registrosVentana: 0,
@@ -411,17 +423,17 @@ export async function leerProyeccion(
   const ventanaDesde = ventanaRecortada ? cohorte.fechaInicioVentas : ventanaInicial;
   const ventanaHasta = menor(cohorte.fechaCierreVentas, hoy);
   const rangoVentana = { desde: ventanaDesde, hasta: ventanaHasta };
-  const rangoCohorte = { desde: cohorte.fechaInicioVentas, hasta: ventanaHasta };
   const [objetivo] = await db.select({ meta: objetivos.meta }).from(objetivos).where(and(
     eq(objetivos.cohortId, cohorte.id),
     eq(objetivos.metrica, "conversion_agenda_venta"),
     isNull(objetivos.area),
     eq(objetivos.activo, true),
   )).limit(1);
-  const [ventas, ventasVentana, agendasVentana, registrosVentana] = await Promise.all([
-    agruparVentas(db, { programId, rango: rangoCohorte, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
+  const [ventasDeLaCohorteHoy, ventasVentana, agendasVentana, registrosVentana] = await Promise.all([
+    ventasDeLaCohorte(db, cohorte.id, hoy),
     agruparVentas(db, { programId, rango: rangoVentana, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
-    agruparAgendas(db, { programId, rango: rangoVentana, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
+    // Mismo universo que los registros (C-18): el programa entero, no solo la cohorte.
+    agruparAgendas(db, { programId, rango: rangoVentana, agruparPor: [] }),
     agruparEnvios(db, { programId, rango: rangoVentana, agruparPor: [] }),
   ]);
 
@@ -448,7 +460,8 @@ export async function leerProyeccion(
       metaLeadsDia: cohorte.metaLeadsDia,
       fechaCierreVentas: cohorte.fechaCierreVentas,
     },
-    vendidos: total(ventas, "ventas"),
+    vendidos: ventasDeLaCohorteHoy.length,
+    vendidosAntesDeHoy: ventasDeLaCohorteHoy.filter((venta) => venta.dia < hoy).length,
     ventasVentana: total(ventasVentana, "ventas"),
     agendasVentana: total(agendasVentana, "agendas"),
     registrosVentana: total(registrosVentana, "envios"),

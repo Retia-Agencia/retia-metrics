@@ -1,9 +1,9 @@
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { deals, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { vigente } from "@/lib/queries/vigente";
-import { ETAPAS_VENDIDAS } from "./etapas";
+import { etapaVendida } from "@/lib/queries/metricas-filtros";
 
 export interface ResumenDeComisionPorPrograma {
   programa: string;
@@ -34,7 +34,7 @@ export async function rellenarComisionDeVentas(
       .where(
         and(
           vigente(deals),
-          inArray(deals.etapa, ETAPAS_VENDIDAS),
+          etapaVendida(),
           isNull(deals.comisionPorcentaje),
         ),
       );

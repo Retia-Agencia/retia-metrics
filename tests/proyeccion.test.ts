@@ -34,6 +34,7 @@ const cohorte: DatosParaProyeccion = {
   hoy: "2026-10-21",
   cohorte: { codigo: "C4", metaCupos: 30, metaLeadsDia: 35, fechaCierreVentas: "2026-11-04" },
   vendidos: 10,
+  vendidosAntesDeHoy: 10,
   ventasVentana: 5,
   agendasVentana: 20,
   registrosVentana: 100,
@@ -53,7 +54,8 @@ describe("proyección", () => {
     // Del 22-oct al 4-nov hay 10 días hábiles (dos semanas sin fin de semana).
     const diasQueQuedan = 10;
     const ritmo = 5 / 10;
-    const ventasDia = (30 - 10) / diasQueQuedan;
+    // La meta de hoy cuenta hoy: del 21-oct al 4-nov son 11 habiles (352).
+    const ventasDia = (30 - 10) / (diasQueQuedan + 1);
 
     expect(resultado.diasHabilesRestantes).toBe(diasQueQuedan);
     expect(resultado.ritmo.valor).toBe(ritmo);
@@ -71,20 +73,22 @@ describe("proyección", () => {
       ...cohorte,
       cohorte: { ...cohorte.cohorte!, fechaCierreVentas: "2026-11-02" },
       vendidos: 8,
+      vendidosAntesDeHoy: 8,
       conversion,
     });
-    expect(resultado.ventasRequeridasDia.valor).toBe(2.75);
-    expect(resultado.showsRequeridosDia.valor).toBeCloseTo(8.8);
-    expect(resultado.agendasRequeridasDia.valor).toBeCloseTo(19.25);
+    // 22 faltan al abrir hoy entre 9 habiles (21-oct al 2-nov, contando hoy).
+    expect(resultado.ventasRequeridasDia.valor).toBeCloseTo(22 / 9);
+    expect(resultado.showsRequeridosDia.valor).toBeCloseTo((22 / 9) / (10 / 32));
+    expect(resultado.agendasRequeridasDia.valor).toBeCloseTo((22 / 9) / (10 / 32) / (32 / 70));
     expect(conversion.pctShow! * conversion.pctCierre!).toBeCloseTo(10 / 70);
   });
 
   it("con la meta cumplida pide cero y no reparte nada", () => {
-    const resultado = calcularProyeccion({ ...cohorte, vendidos: 30, conversion: elegirConversion({ objetivo: null, anterior: null, enCurso: null }) });
+    const resultado = calcularProyeccion({ ...cohorte, vendidos: 30, vendidosAntesDeHoy: 30, conversion: elegirConversion({ objetivo: null, anterior: null, enCurso: null }) });
     expect(resultado.faltan).toBe(0);
     expect([resultado.ventasRequeridasDia.valor, resultado.showsRequeridosDia.valor, resultado.agendasRequeridasDia.valor, resultado.leadsRequeridosDia.valor]).toEqual([0, 0, 0, 0]);
     expect(resultado.repartoSemanal).toEqual([]);
-    expect(pintar({ ...cohorte, vendidos: 30 })).toContain("Ya se vendieron los 30 cupos de C4.");
+    expect(pintar({ ...cohorte, vendidos: 30, vendidosAntesDeHoy: 30 })).toContain("Ya se vendieron los 30 cupos de C4.");
   });
 
   it("reparte el faltante por semana con fechas reales y sin perder ventas", () => {
