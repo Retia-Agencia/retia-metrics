@@ -42,6 +42,25 @@ export const ESCALONES = [
 ] as const;
 export type Escalon = (typeof ESCALONES)[number];
 
+export const GRUPOS_DE_CIERRE = {
+  cerro_en_la_llamada: ["pago_en_llamada"],
+  cerro_con_seguimiento: ["pago_rapido", "pago_despues"],
+  no_cerro: ["atendio_no_compro"],
+  ventas_sin_llamada: ["pago_sin_llamada"],
+  no_llegaron_a_la_llamada: ["agendo_no_se_presento", "dejo_datos"],
+} as const satisfies Record<string, readonly Escalon[]>;
+export type GrupoDeCierre = keyof typeof GRUPOS_DE_CIERRE;
+
+export function esGrupoDeCierre(valor: string | undefined): valor is GrupoDeCierre {
+  return valor !== undefined && valor in GRUPOS_DE_CIERRE;
+}
+
+/** Agrupación de lectura de gerencia; no cambia el escalón que decide la fórmula. */
+export function grupoDeCierre(escalon: Escalon): GrupoDeCierre {
+  return (Object.entries(GRUPOS_DE_CIERRE) as [GrupoDeCierre, readonly Escalon[]][])
+    .find(([, escalones]) => escalones.includes(escalon))![0];
+}
+
 export const NOMBRE_DE_ESCALON: Record<Escalon, string> = {
   pago_en_llamada: "Pagó en la llamada",
   pago_rapido: "Pagó rápido",

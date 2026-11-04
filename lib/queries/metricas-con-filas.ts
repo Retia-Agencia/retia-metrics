@@ -33,7 +33,7 @@ import {
 import { condicionesDeFiltros } from "@/lib/queries/hechos/consultar";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { categoriaUtmSql, piezaDesconocidaSql } from "@/lib/atribucion/canal-sql";
-import { cargarEscalera, ESCALONES_QUE_PAGARON, esEscalon, filtrarEscalera, type Escalon, type EnvioDeOrigen } from "@/lib/queries/escalera";
+import { cargarEscalera, ESCALONES_QUE_PAGARON, GRUPOS_DE_CIERRE, esEscalon, esGrupoDeCierre, filtrarEscalera, type Escalon, type EnvioDeOrigen } from "@/lib/queries/escalera";
 import { categoriaDe } from "@/lib/queries/pauta-interina";
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { cargarRoasDePauta, filtrarEnviosDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
@@ -120,6 +120,7 @@ export interface FiltrosDeMetrica {
   orden?: "envio" | "actividad";
   /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
   escalon?: string;
+  grupo?: string;
   /** Solo la escalera: ventas de pago completo o parcial. Con los filtros de origen de arriba, reparte las ventas por canal y campaña. */
   pago?: "completo" | "parcial";
   calidad?: string;
@@ -761,8 +762,11 @@ async function leerMetricaDeEscalera(
 /** Los deals de la cifra de la escalera, sin paginar: los comparten la lista y el total de dinero (369). */
 async function miembrosDeLaEscalera(alcance: Alcance, filtros: FiltrosDeMetrica, db: Db) {
   const escalon = filtros.escalon;
+  if (filtros.grupo !== undefined && !esGrupoDeCierre(filtros.grupo)) return [];
   // Pauta pide grupos de escalones: "ventas" son los cuatro que pagaron y "despues" los que pagaron rapido o tarde.
-  const grupo = escalon === "ventas" ? ESCALONES_QUE_PAGARON : escalon === "despues" ? (["pago_rapido", "pago_despues"] as const) : undefined;
+  const grupo = filtros.grupo && esGrupoDeCierre(filtros.grupo)
+    ? GRUPOS_DE_CIERRE[filtros.grupo]
+    : escalon === "ventas" ? ESCALONES_QUE_PAGARON : escalon === "despues" ? (["pago_rapido", "pago_despues"] as const) : undefined;
   if (escalon !== undefined && grupo === undefined && !esEscalon(escalon)) return [];
   const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango, cohorteId: alcance.cohorteId }, filtros.ahora);
   const delOrigen = hayFiltroDeOrigen(filtros);
@@ -932,10 +936,15 @@ function subtotal(grupos: readonly Pick<FilaDeMetrica, "cantidad" | "moneda" | "
  * ¿La lista es de ventas? (369): Vendido, Cupos y los escalones que pagaron. Toda lista de ventas lleva las tres
  * columnas (Vendido · Recaudado · Por cobrar) y su total al pie; las demás conservan su columna de siempre.
  */
-export function esListaDeVentas(metrica: Metrica, filtros: Pick<FiltrosDeMetrica, "escalon" | "pago"> = {}): boolean {
+export function esListaDeVentas(metrica: Metrica, filtros: Pick<FiltrosDeMetrica, "escalon" | "grupo" | "pago"> = {}): boolean {
   if (metrica === "contratado" || metrica === "cierres") return true;
   if (metrica !== "escalera") return false;
-  return filtros.pago !== undefined || filtros.escalon === "ventas" || (ESCALONES_QUE_PAGARON as readonly string[]).includes(filtros.escalon ?? "");
+  return filtros.pago !== undefined
+    || filtros.escalon === "ventas"
+    || (ESCALONES_QUE_PAGARON as readonly string[]).includes(filtros.escalon ?? "")
+    || filtros.grupo === "cerro_en_la_llamada"
+    || filtros.grupo === "cerro_con_seguimiento"
+    || filtros.grupo === "ventas_sin_llamada";
 }
 
 /** Los deals de una lista de ventas, sin paginar: el MISMO universo que la cifra y que la lista. */

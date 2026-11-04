@@ -4,13 +4,16 @@ import type { Db } from "@/lib/db/tipos";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import {
   ESCALONES,
+  GRUPOS_DE_CIERRE,
   agruparEscalera,
   cargarEscalera,
   filtrarEscalera,
+  medianaDe,
   resumirEscalera,
   type DealEnLaEscalera,
   type DimensionDeEscalera,
   type Escalon,
+  type GrupoDeCierre,
   type EscaleraCargada,
   type LineaDeEscalon,
 } from "@/lib/queries/escalera";
@@ -46,6 +49,7 @@ export interface FilaDeEscalera {
   esSinDueno: boolean;
   total: number;
   celdas: Record<Escalon, CeldaDeEscalera>;
+  grupos: Record<GrupoDeCierre, CeldaDeEscalera>;
 }
 
 export interface VistaDeEscalera {
@@ -122,7 +126,37 @@ function fila(
       detalle,
     } satisfies CeldaDeEscalera];
   })) as Record<Escalon, CeldaDeEscalera>;
-  return { clave, etiqueta, esSinDueno, total: resumen.total, celdas };
+  const grupos = Object.fromEntries((Object.entries(GRUPOS_DE_CIERRE) as [GrupoDeCierre, readonly Escalon[]][]).map(([grupo, escalones]) => {
+    const miembros = conjunto.filter((deal) => escalones.includes(deal.escalon));
+    const anteriores = conjuntoAnterior.filter((deal) => escalones.includes(deal.escalon));
+    const dias = miembros.flatMap((deal) => deal.diasCitaAPago === null ? [] : [deal.diasCitaAPago]);
+    const detalle: DetalleDeCifra | null = entrada.conEquipo && miembros.length > 0
+      ? (() => {
+          const resumenDeLista = resumenDeDeals(entrada.programId, miembros, entrada.hoy);
+          return {
+            resumen: resumenDeLista,
+            desgloses: desglosesDelResumen(resumenDeLista.grupos, nombreDeEtapa),
+            href: urlDeLista({
+              slug: entrada.slug,
+              metrica: "escalera",
+              periodo: entrada.periodo,
+              origen: entrada.origen,
+              claveCloser: enlace.claveCloser,
+              cohorteId: entrada.cohorteId ?? undefined,
+              escalera: { grupo, calidad: enlace.calidad },
+            }),
+          };
+        })()
+      : null;
+    return [grupo, {
+      deals: miembros.length,
+      porcentaje: tasa(conjunto.length === 0 ? null : (miembros.length / conjunto.length) * 100),
+      diasMedianos: medianaDe(dias),
+      anterior: anterior ? anteriores.length : null,
+      detalle,
+    } satisfies CeldaDeEscalera];
+  })) as Record<GrupoDeCierre, CeldaDeEscalera>;
+  return { clave, etiqueta, esSinDueno, total: resumen.total, celdas, grupos };
 }
 
 /** Arma la tarjeta: carga la escalera del periodo A (y la del B si hay comparación) una vez cada una. */

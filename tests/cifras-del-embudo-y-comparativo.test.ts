@@ -144,6 +144,11 @@ describe("ticket 188: el embudo por etapas abre su lista", () => {
     const casos: [string, number, DetalleDeCifra][] = [
       ["entraron", embudo.conversion.todas.entraron, detalles.entraron],
       ...embudo.conversion.todas.pasos.map((p) => [`paso ${p.paso}`, p.llegaron, detalles.pasos[p.paso]] as [string, number, DetalleDeCifra]),
+      ...embudo.conversion.todas.pasos.flatMap((p) => [
+        [`siguen ${p.paso}`, p.siguenAqui, detalles.siguen[p.paso]],
+        [`perdidos ${p.paso}`, p.perdidosAqui, detalles.perdidos[p.paso]],
+        [`otros ${p.paso}`, p.otros, detalles.otros[p.paso]],
+      ] as [string, number, DetalleDeCifra][]).filter(([, cifra]) => cifra > 0),
       ...embudo.tiempoEnEtapa.map((t) => [`tiempo ${t.etapa}`, t.deals, detalles.tiempo[t.etapa]] as [string, number, DetalleDeCifra]),
       ...embudo.abiertos.map((a) => [`abiertos ${a.etapa}/${a.ownerNombre}`, a.deals, detalles.abiertos[claveDeAbiertos(a.etapa, a.ownerUserId)]] as [string, number, DetalleDeCifra]),
       ...embudo.sinDuenoPorAntiguedad.map((s) => [`sin dueño ${s.bucket}`, s.deals, detalles.sinDueno[s.bucket]] as [string, number, DetalleDeCifra]),

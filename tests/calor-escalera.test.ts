@@ -20,7 +20,7 @@ function fila(
     anterior: null,
     detalle: null,
   }])) as FilaDeEscalera["celdas"];
-  return { clave: "fila", etiqueta: "Fila", esSinDueno, total, celdas };
+  return { clave: "fila", etiqueta: "Fila", esSinDueno, total, celdas, grupos: {} as FilaDeEscalera["grupos"] };
 }
 
 describe("calor de la escalera", () => {

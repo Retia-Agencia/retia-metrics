@@ -1,24 +1,28 @@
-import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
+import Link from "next/link";
 import { useId } from "react";
+import {
+  BarraApilada100,
+  LeyendaDeBarras,
+  type TonoDeBarra,
+} from "@/components/graficas/barras";
+import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CifraConLista } from "@/components/cifra-con-lista";
+import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { Variacion } from "@/components/variacion";
 import { num, pct } from "@/lib/format";
 import type { PeriodoResuelto } from "@/lib/periodo";
-import { intensidadesDeFila } from "@/lib/queries/calor-escalera";
-import { ESCALONES, NOMBRE_DE_ESCALON, type Escalon } from "@/lib/queries/escalera";
+import { ESCALONES, NOMBRE_DE_ESCALON, type Escalon, type GrupoDeCierre } from "@/lib/queries/escalera";
 import type { CeldaDeEscalera, FilaDeEscalera, VistaDeEscalera } from "@/lib/queries/vista-escalera";
 
-/**
- * "Ventas por escalón" (ticket 320, ADR 0109): en qué escalón paga, o se queda, cada deal del
- * periodo. Una distribución por programa; nunca se suma entre programas. Cada cifra abre su lista.
- */
+const PRINCIPALES = [
+  ["cerro_en_la_llamada", "Cerró en la llamada", "exito"],
+  ["cerro_con_seguimiento", "Cerró con seguimiento", "info"],
+  ["no_cerro", "No cerró", "peligro"],
+] as const satisfies readonly (readonly [GrupoDeCierre, string, TonoDeBarra])[];
 
-/** Con corte nulo "pagó rápido" no existe: su fila se esconde y su descripción lo dice. */
-function escalonesVisibles(sinCorte: boolean): readonly Escalon[] {
-  return sinCorte ? ESCALONES.filter((escalon) => escalon !== "pago_rapido") : ESCALONES;
-}
+const LEYENDA_PRINCIPAL = PRINCIPALES.map(([, etiqueta, tono]) => ({ etiqueta, tono }));
 
 function Cifra({ celda, titulo }: { celda: CeldaDeEscalera; titulo: string }) {
   return (
@@ -28,118 +32,218 @@ function Cifra({ celda, titulo }: { celda: CeldaDeEscalera; titulo: string }) {
   );
 }
 
-/** Opacidad del acento de Tinta en la celda más caliente posible (100 % de su fila); el resto escala lineal. */
-const OPACIDAD_MAXIMA_DEL_CALOR = 40;
-
-function fondoDeCalor(intensidad: number | null) {
-  if (intensidad === null || intensidad === 0) return undefined;
-  return { backgroundColor: `color-mix(in srgb, var(--primary) ${(intensidad * OPACIDAD_MAXIMA_DEL_CALOR).toFixed(1)}%, transparent)` };
-}
-
-function TablaPorDimension({ titulo, filas, visibles }: { titulo: string; filas: FilaDeEscalera[]; visibles: readonly Escalon[] }) {
+function TablaPorCalidad({ filas, visibles }: { filas: FilaDeEscalera[]; visibles: readonly Escalon[] }) {
   if (filas.length === 0) return null;
   return (
-    <section className="space-y-2">
-      <h3 className="text-sm font-medium">{titulo}</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[40rem] text-sm">
-          <thead>
-            <tr className="text-left text-muted-foreground">
-              <th className="py-1.5 pr-3 font-normal">{titulo.replace("Por ", "").replace(/^./, (c) => c.toUpperCase())}</th>
-              {visibles.map((escalon) => <th key={escalon} className="px-2 py-1.5 text-right font-normal">{NOMBRE_DE_ESCALON[escalon]}</th>)}
-              <th className="pl-2 py-1.5 text-right font-normal">Deals</th>
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <caption className="pb-2 text-left font-medium">Por calidad</caption>
+        <thead>
+          <tr className="text-left text-muted-foreground">
+            <th>Calidad</th>
+            {visibles.map((e) => (
+              <th key={e} className="text-right">
+                {NOMBRE_DE_ESCALON[e]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {filas.map((fila) => (
+            <tr key={fila.clave}>
+              <td className="py-2">{fila.etiqueta}</td>
+              {visibles.map((e) => (
+                <td key={e} className="text-right">
+                  <Cifra celda={fila.celdas[e]} titulo={`${NOMBRE_DE_ESCALON[e]} · ${fila.etiqueta}`} />
+                </td>
+              ))}
             </tr>
-          </thead>
-          <tbody className="divide-y">
-            {filas.map((fila) => {
-              const intensidades = intensidadesDeFila(fila);
-              return (
-                <tr key={fila.clave}>
-                  <td className="py-1.5 pr-3">{fila.etiqueta}</td>
-                  {visibles.map((escalon) => {
-                                        return (
-                      <td key={escalon} className="px-2 py-1.5 text-right" style={fondoDeCalor(intensidades[escalon])}>
-                        <Cifra celda={fila.celdas[escalon]} titulo={`${NOMBRE_DE_ESCALON[escalon]} · ${fila.etiqueta}`} />
-                        <span className="cifra block text-xs text-foreground/70">
-                          {fila.celdas[escalon].porcentaje.valor === null ? "—" : pct(fila.celdas[escalon].porcentaje.valor / 100, 0)}
-                        </span>
-                      </td>
-                    );
-                  })}
-                  <td className="cifra pl-2 py-1.5 text-right">{num(fila.total)}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        El color es el porcentaje de cada fila sobre sus propios deals.{filas.some((fila) => fila.esSinDueno) ? " «Sin closer» no lleva color: no es una persona con quien comparar." : ""}
-      </p>
-    </section>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-export function Escalera({ vista, periodo, programa, contexto }: { vista: VistaDeEscalera; periodo: PeriodoResuelto; programa?: string; contexto?: string }) {
-  // Un id por tarjeta: en todos los programas hay una por programa en la misma página.
+function SieteEscalones({
+  vista,
+  periodo,
+  visibles,
+}: {
+  vista: VistaDeEscalera;
+  periodo: PeriodoResuelto;
+  visibles: readonly Escalon[];
+}) {
+  return (
+    <div className="space-y-4">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-muted-foreground">
+            <th>Escalón</th>
+            <th className="text-right">Deals</th>
+            <th className="text-right">%</th>
+            <th className="text-right">Días hábiles medianos</th>
+            {vista.hayComparacion ? <th className="text-right">Cambio</th> : null}
+          </tr>
+        </thead>
+        <tbody className="divide-y">
+          {visibles.map((escalon) => {
+            const celda = vista.principal.celdas[escalon];
+            return (
+              <tr key={escalon}>
+                <td className="py-2">{NOMBRE_DE_ESCALON[escalon]}</td>
+                <td className="text-right">
+                  <Cifra celda={celda} titulo={NOMBRE_DE_ESCALON[escalon]} />
+                </td>
+                <td className="cifra text-right">
+                  {celda.porcentaje.valor === null ? "—" : pct(celda.porcentaje.valor / 100)}
+                </td>
+                <td className="cifra text-right">
+                  {celda.diasMedianos === null ? "—" : num(celda.diasMedianos, celda.diasMedianos % 1 === 0 ? 0 : 1)}
+                </td>
+                {vista.hayComparacion ? (
+                  <td className="text-right">
+                    {celda.anterior === null ? null : (
+                      <Variacion actual={celda.deals} anterior={celda.anterior} periodo={periodo} />
+                    )}
+                  </td>
+                ) : null}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <TablaPorCalidad filas={vista.porCalidad} visibles={visibles} />
+    </div>
+  );
+}
+
+export function Escalera({
+  vista,
+  periodo,
+  programa,
+  contexto,
+}: {
+  vista: VistaDeEscalera;
+  periodo: PeriodoResuelto;
+  programa?: string;
+  contexto?: string;
+}) {
   const idDelTitulo = useId();
-  const visibles = escalonesVisibles(vista.sinCorte);
-  const { principal } = vista;
+  const visibles = vista.sinCorte ? ESCALONES.filter((escalon) => escalon !== "pago_rapido") : ESCALONES;
+  const atendidas = PRINCIPALES.reduce((total, [grupo]) => total + vista.principal.grupos[grupo].deals, 0);
+  const segmentos = PRINCIPALES.map(([clave, etiqueta, tono]) => ({
+    clave,
+    etiqueta,
+    tono,
+    cantidad: vista.principal.grupos[clave].deals,
+    detalle: vista.principal.grupos[clave].detalle ?? undefined,
+  }));
+  const filasPorCloser = [...vista.porCloser]
+    .filter((fila) => {
+      const total = PRINCIPALES.reduce((suma, [grupo]) => suma + fila.grupos[grupo].deals, 0);
+      return fila.etiqueta !== "Sin closer" || total > 0;
+    })
+    .sort((a, b) => {
+      const baseA = PRINCIPALES.reduce((suma, [grupo]) => suma + a.grupos[grupo].deals, 0);
+      const baseB = PRINCIPALES.reduce((suma, [grupo]) => suma + b.grupos[grupo].deals, 0);
+      return (
+        (baseB ? b.grupos.cerro_en_la_llamada.deals / baseB : 0) -
+        (baseA ? a.grupos.cerro_en_la_llamada.deals / baseA : 0)
+      );
+    });
   return (
     <Card aria-labelledby={idDelTitulo}>
-      <CardHeader className="space-y-1">
+      <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <CardTitle id={idDelTitulo} className="text-base">Ventas por escalón{programa ? ` · ${programa}` : ""}</CardTitle>
+          <CardTitle id={idDelTitulo} className="text-base">
+            ¿Cómo cierra cada llamada?{programa ? ` · ${programa}` : ""}
+          </CardTitle>
           {vista.sinCorte ? <Badge variant="alerta">Sin corte de pago rápido</Badge> : null}
         </div>
         {contexto ? <ContextoDeCifra texto={contexto} /> : null}
-        <p className="text-xs text-muted-foreground">
-          En qué escalón paga, o se queda, cada deal. Las ventas del periodo se reparten en los cuatro primeros escalones; los deals
-          creados en el periodo y sin vender, en los otros tres. «Pagó sin llamada registrada» son ventas sin una llamada atendida antes del pago (traspasos de las hojas o deals creados a mano): no hay contra qué medirlas.
-          {vista.sinCorte
-            ? " Este programa no definió el corte de pago rápido (Programa): los pagos posteriores a la llamada van juntos en «Pagó después»."
-            : ` «Pagó rápido» es hasta ${num(vista.corteDias ?? 0)} días hábiles después de la llamada.`}
-        </p>
       </CardHeader>
       <CardContent className="space-y-5">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[28rem] text-sm">
-            <thead>
-              <tr className="text-left text-muted-foreground">
-                <th className="py-1.5 pr-3 font-normal">Escalón</th>
-                <th className="px-2 py-1.5 text-right font-normal">Deals</th>
-                <th className="px-2 py-1.5 text-right font-normal">%</th>
-                <th className="px-2 py-1.5 text-right font-normal">Días hábiles medianos</th>
-                {vista.hayComparacion ? <th className="pl-2 py-1.5 text-right font-normal">Cambio</th> : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {visibles.map((escalon) => {
-                const celda = principal.celdas[escalon];
-                return (
-                  <tr key={escalon}>
-                    <td className="py-1.5 pr-3">{NOMBRE_DE_ESCALON[escalon]}</td>
-                    <td className="px-2 py-1.5 text-right"><Cifra celda={celda} titulo={NOMBRE_DE_ESCALON[escalon]} /></td>
-                    <td className="cifra px-2 py-1.5 text-right">{celda.porcentaje.valor === null ? "—" : pct(celda.porcentaje.valor / 100)}</td>
-                    <td className="cifra px-2 py-1.5 text-right">{celda.diasMedianos === null ? "—" : num(celda.diasMedianos, celda.diasMedianos % 1 === 0 ? 0 : 1)}</td>
-                    {vista.hayComparacion && celda.anterior !== null ? (
-                      <td className="px-2 py-1.5 text-right"><Variacion actual={celda.deals} anterior={celda.anterior} periodo={periodo} /></td>
-                    ) : null}
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t">
-                <td className="py-1.5 pr-3 font-medium">Total</td>
-                <td className="cifra px-2 py-1.5 text-right font-medium">{num(principal.total)}</td>
-                <td colSpan={vista.hayComparacion ? 3 : 2} />
-              </tr>
-            </tfoot>
-          </table>
+        <LeyendaDeBarras items={LEYENDA_PRINCIPAL} />
+        <BarraApilada100 segmentos={segmentos} />
+        <div className="grid gap-3 sm:grid-cols-3">
+          {PRINCIPALES.map(([grupo, etiqueta]) => {
+            const celda = vista.principal.grupos[grupo];
+            return (
+              <div key={grupo} className="rounded-lg border p-3">
+                <p className="text-xs text-muted-foreground">{etiqueta}</p>
+                <p className="text-2xl font-semibold">
+                  <Cifra celda={celda} titulo={etiqueta} />
+                </p>
+                <p className="cifra text-xs text-muted-foreground">
+                  {atendidas === 0 ? "—" : pct(celda.deals / atendidas, 0)}
+                  {grupo === "cerro_con_seguimiento" && celda.diasMedianos !== null
+                    ? ` · mediana ${num(celda.diasMedianos, 1)} días hábiles`
+                    : ""}
+                </p>
+              </div>
+            );
+          })}
         </div>
-        <TablaPorDimension titulo="Por closer" filas={vista.porCloser} visibles={visibles} />
-        <TablaPorDimension titulo="Por calidad" filas={vista.porCalidad} visibles={visibles} />
+        <p className="text-sm text-muted-foreground">
+          Ventas sin llamada registrada:{" "}
+          <Cifra celda={vista.principal.grupos.ventas_sin_llamada} titulo="Ventas sin llamada registrada" /> · No
+          llegaron a la llamada:{" "}
+          <Cifra celda={vista.principal.grupos.no_llegaron_a_la_llamada} titulo="No llegaron a la llamada" />
+        </p>
+        {filasPorCloser.length > 0 ? (
+          <section className="space-y-3">
+            <h3 className="text-sm font-medium">Por closer</h3>
+            <LeyendaDeBarras items={LEYENDA_PRINCIPAL} />
+            {filasPorCloser.map((fila) => (
+              <div key={fila.clave} className="grid gap-2 sm:grid-cols-[10rem_1fr]">
+                <span className="text-sm">{fila.etiqueta}</span>
+                <BarraApilada100
+                  segmentos={PRINCIPALES.map(([clave, etiqueta, tono]) => ({
+                    clave,
+                    etiqueta,
+                    tono,
+                    cantidad: fila.grupos[clave].deals,
+                    detalle: fila.grupos[clave].detalle ?? undefined,
+                  }))}
+                />
+              </div>
+            ))}
+          </section>
+        ) : null}
+        <ComoSeCalcula>
+          <p>
+            El universo reúne las ventas del periodo y los deals creados en él que no vendieron. Las ventas usan la
+            fecha de venta; los demás, la fecha de creación.
+          </p>
+          <p>
+            “Mismo día” usa el día de Bogotá. El corte de pago rápido del programa es{" "}
+            {vista.corteDias === null ? "no configurado" : `${num(vista.corteDias)} días hábiles`} y se edita en
+            Programa.
+          </p>
+          <ul className="space-y-1">
+            {PRINCIPALES.map(([grupo, etiqueta]) => {
+              const href = vista.principal.grupos[grupo].detalle?.href;
+              return (
+                <li key={grupo}>
+                  {href ? (
+                    <Link className="underline underline-offset-2" href={href}>
+                      Ver {etiqueta.toLocaleLowerCase("es")}
+                    </Link>
+                  ) : (
+                    etiqueta
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </ComoSeCalcula>
+        <details className="rounded-lg border">
+          <summary className="cursor-pointer px-3 py-2 text-sm font-medium">Ver los siete escalones</summary>
+          <div className="p-3">
+            <SieteEscalones vista={vista} periodo={periodo} visibles={visibles} />
+          </div>
+        </details>
       </CardContent>
     </Card>
   );

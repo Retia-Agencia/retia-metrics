@@ -21,6 +21,9 @@ import {
 export const METRICAS_DE_EMBUDO = [
   "etapa_entraron",
   "etapa_paso",
+  "etapa_siguen",
+  "etapa_perdidos",
+  "etapa_otros",
   "etapa_tiempo",
   "etapa_abiertos",
   "etapa_sin_dueno",
@@ -108,6 +111,18 @@ export function idsDeLaCifra(
     case "etapa_paso":
       return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
         ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.dealIds
+        : [];
+    case "etapa_siguen":
+      return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
+        ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.siguenAquiDealIds
+        : [];
+    case "etapa_perdidos":
+      return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
+        ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.perdidosAquiDealIds
+        : [];
+    case "etapa_otros":
+      return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
+        ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.otrosDealIds
         : [];
     case "etapa_tiempo":
       return esEtapa(etapa) ? (resultado.tiempoEnEtapa.find((fila) => fila.etapa === etapa)?.dealIds ?? []) : [];

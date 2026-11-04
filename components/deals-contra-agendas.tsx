@@ -26,10 +26,15 @@ const TITULO = "Deals creados contra agendas";
  * El eje lleva las fechas del periodo; la comparación se corta en el mismo hábil. Solo pinta lo
  * que calculó `vistaDealsContraAgendas`.
  */
-export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
+export function DealsContraAgendas({
+  vista,
+  contexto,
+  origen,
+  hoy,
+}: {
   vista: VistaDealsContraAgendas;
   contexto?: string;
-  /** Con la URL de la pantalla se ofrecen Paso y Forma (370); sin ella (vista de todos) queda el acumulado por hábil. */
+  /** Con URL se ofrecen Paso y Forma (370); sin ella, la vista de todos queda acumulada por hábil. */
   origen?: string;
   hoy?: string;
 }) {
@@ -48,18 +53,25 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
 
   const { periodo, nota, a, b, detalles, porOrigen } = vista;
   const finalA = a.puntos.at(-1);
+  const hayComparacion = b != null;
   // B se lee al mismo día hábil que A (ADR 0067): más allá sería comparar contra un futuro.
   const puntosB = b?.puntos.slice(0, a.puntos.length) ?? [];
   const finalB = puntosB.at(-1);
   // Paso y Forma (370). Por defecto, por paso: la actividad se lee como "cuántos entraron en cada tramo".
   const config = origen
-    ? configDeGraficaEnOrigen(origen, "deals-agendas", { unidad: "cupos", paso: pasoPorDefecto(periodo.a), forma: "paso" })
+    ? configDeGraficaEnOrigen(origen, "deals-agendas", {
+        unidad: "cupos",
+        paso: pasoPorDefecto(periodo.a),
+        forma: "paso",
+      })
     : { unidad: "cupos" as const, paso: "dia" as const, forma: "acum" as const };
   const diasDePuntos = a.puntos.map((p) => p.dia);
   const todosLosTramos = tramosDe(periodo.a, config.paso, hoy ?? periodo.a.hasta);
   const todosLosIndices = indicesDeTramos(diasDePuntos, todosLosTramos);
   // Un fin de semana no tiene punto propio (entra al hábil siguiente): por día solo van los tramos con punto nuevo.
-  const tramos = todosLosTramos.filter((_, k) => config.paso !== "dia" || todosLosIndices[k] !== (todosLosIndices[k - 1] ?? -2));
+  const tramos = todosLosTramos.filter(
+    (_, k) => config.paso !== "dia" || todosLosIndices[k] !== (todosLosIndices[k - 1] ?? -2),
+  );
   const indices = indicesDeTramos(diasDePuntos, tramos);
   const dias = tramos.map((tramo) => tramo.desde);
   const etiquetas = tramos.map(etiquetaDeTramo);
@@ -85,22 +97,42 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
     Math.max(0, (total ?? 0) - (c ?? 0) - (p ?? 0));
   const aManoA = aMano(finalA?.deals, completo.a?.deals, parcial.a?.deals);
   const aManoB = finalB ? aMano(finalB.deals, completo.b?.deals, parcial.b?.deals) : null;
-  const filaDeals = (rotulo: string, detalle: typeof detalles.deals_creados | undefined, ahora: number, antes: number | null, titulo: string) => (
+  const filaDeals = (
+    rotulo: string,
+    detalle: typeof detalles.deals_creados | undefined,
+    ahora: number,
+    antes: number | null,
+    titulo: string,
+  ) => (
     <tr>
       <td className="py-2">{rotulo}</td>
       <td className="cifra text-right">
-        <CifraConLista titulo={titulo} detalle={detalle}>{num(ahora)}</CifraConLista>
+        <CifraConLista titulo={titulo} detalle={detalle}>
+          {num(ahora)}
+        </CifraConLista>
       </td>
-      <td className="cifra text-right">{antes === null ? "—" : num(antes)}</td>
-      <td className="text-right">{antes === null ? "—" : cambioEnPalabras(ahora, antes)}</td>
+      {hayComparacion ? (
+        <>
+          <td className="cifra text-right">{antes === null ? "—" : num(antes)}</td>
+          <td className="text-right">{antes === null ? "—" : cambioEnPalabras(ahora, antes)}</td>
+        </>
+      ) : null}
     </tr>
   );
-  const filaTasa = (rotulo: string, ahora: number | null | undefined, antes: number | null | undefined, hayB: boolean) => (
+  const filaTasa = (
+    rotulo: string,
+    ahora: number | null | undefined,
+    antes: number | null | undefined,
+  ) => (
     <tr>
       <td className="py-2">{rotulo}</td>
       <td className="cifra text-right">{ahora == null ? "—" : pct(ahora, 0)}</td>
-      <td className="cifra text-right">{antes == null ? "—" : pct(antes, 0)}</td>
-      <td className="text-right">{hayB ? cambioDeTasaEnPalabras(ahora ?? null, antes ?? null) : "—"}</td>
+      {hayComparacion ? (
+        <>
+          <td className="cifra text-right">{antes == null ? "—" : pct(antes, 0)}</td>
+          <td className="text-right">{cambioDeTasaEnPalabras(ahora ?? null, antes ?? null)}</td>
+        </>
+      ) : null}
     </tr>
   );
 
@@ -118,12 +150,24 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
       </CardHeader>
       <CardContent className="space-y-6">
         <p className="text-base">
-          <span className="cifra text-2xl font-semibold">{completo.a?.pctAgendaron == null ? "—" : pct(completo.a.pctAgendaron, 0)}</span>{" "}
+          <span className="cifra text-2xl font-semibold">
+            {completo.a?.pctAgendaron == null ? "—" : pct(completo.a.pctAgendaron, 0)}
+          </span>{" "}
           de{" "}
-          <CifraConLista titulo={nombreLargo("deals_desde_completo")} detalle={detalles.deals_desde_completo}>{num(completo.a?.deals ?? 0)}</CifraConLista>{" "}
+          <CifraConLista
+            titulo={nombreLargo("deals_desde_completo")}
+            detalle={detalles.deals_desde_completo}
+          >
+            {num(completo.a?.deals ?? 0)}
+          </CifraConLista>{" "}
           deals de los que llenaron el formulario completo agendó (
-          <CifraConLista titulo="Deals de un formulario completo que agendaron" detalle={detalles.completos_que_agendaron}>{num(completo.a?.agendaron ?? 0)}</CifraConLista>
-          {" "}con al menos una agenda). Un parcial casi nunca agenda: va aparte.
+          <CifraConLista
+            titulo="Deals de un formulario completo que agendaron"
+            detalle={detalles.completos_que_agendaron}
+          >
+            {num(completo.a?.agendaron ?? 0)}
+          </CifraConLista>{" "}
+          con al menos una agenda). Un parcial casi nunca agenda: va aparte.
         </p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -131,15 +175,45 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
               <tr className="border-b text-left text-muted-foreground">
                 <th className="py-2 font-medium" />
                 <th className="py-2 text-right font-medium">Periodo</th>
-                <th className="py-2 text-right font-medium">Comparación</th>
-                <th className="py-2 text-right font-medium">Cambio</th>
+                {hayComparacion ? (
+                  <>
+                    <th className="py-2 text-right font-medium">Comparación</th>
+                    <th className="py-2 text-right font-medium">Cambio</th>
+                  </>
+                ) : null}
               </tr>
             </thead>
             <tbody className="divide-y">
-              {filaDeals("Deals creados", detalles.deals_creados, deals, finalB ? finalB.deals : null, "Deals creados")}
-              {filaDeals("· desde un formulario completo", detalles.deals_desde_completo, completo.a?.deals ?? 0, finalB ? (completo.b?.deals ?? 0) : null, nombreLargo("deals_desde_completo"))}
-              {filaDeals("· desde un parcial", detalles.deals_desde_parcial, parcial.a?.deals ?? 0, finalB ? (parcial.b?.deals ?? 0) : null, nombreLargo("deals_desde_parcial"))}
-              {aManoA > 0 || (aManoB ?? 0) > 0 ? filaDeals("· abiertos a mano, sin formulario", undefined, aManoA, aManoB, "Deals abiertos a mano") : null}
+              {filaDeals(
+                "Deals creados",
+                detalles.deals_creados,
+                deals,
+                finalB ? finalB.deals : null,
+                "Deals creados",
+              )}
+              {filaDeals(
+                "· desde un formulario completo",
+                detalles.deals_desde_completo,
+                completo.a?.deals ?? 0,
+                finalB ? (completo.b?.deals ?? 0) : null,
+                nombreLargo("deals_desde_completo"),
+              )}
+              {filaDeals(
+                "· desde un parcial",
+                detalles.deals_desde_parcial,
+                parcial.a?.deals ?? 0,
+                finalB ? (parcial.b?.deals ?? 0) : null,
+                nombreLargo("deals_desde_parcial"),
+              )}
+              {aManoA > 0 || (aManoB ?? 0) > 0
+                ? filaDeals(
+                    "· abiertos a mano, sin formulario",
+                    undefined,
+                    aManoA,
+                    aManoB,
+                    "Deals abiertos a mano",
+                  )
+                : null}
               <tr>
                 <td className="py-2">Agendas creadas</td>
                 <td className="cifra text-right">
@@ -147,28 +221,51 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
                     {num(finalA?.agendas ?? 0)}
                   </CifraConLista>
                 </td>
-                <td className="cifra text-right">{finalB ? num(finalB.agendas) : "—"}</td>
-                <td className="text-right">{finalB ? cambioEnPalabras(finalA?.agendas ?? 0, finalB.agendas) : "—"}</td>
+                {hayComparacion ? (
+                  <>
+                    <td className="cifra text-right">{finalB ? num(finalB.agendas) : "—"}</td>
+                    <td className="text-right">
+                      {finalB ? cambioEnPalabras(finalA?.agendas ?? 0, finalB.agendas) : "—"}
+                    </td>
+                  </>
+                ) : null}
               </tr>
-              {filaTasa("% que agendaron, de los que llenaron el formulario completo", completo.a?.pctAgendaron, completo.b?.pctAgendaron, !!finalB)}
-              {filaTasa("% que agendaron, de los parciales", parcial.a?.pctAgendaron, parcial.b?.pctAgendaron, !!finalB)}
+              {filaTasa(
+                "% que agendaron, de los que llenaron el formulario completo",
+                completo.a?.pctAgendaron,
+                completo.b?.pctAgendaron,
+              )}
+              {filaTasa(
+                "% que agendaron, de los parciales",
+                parcial.a?.pctAgendaron,
+                parcial.b?.pctAgendaron,
+              )}
             </tbody>
           </table>
         </div>
-        {origen ? <InterruptoresDeGrafica origen={origen} clave="deals-agendas" config={config} sinUnidad /> : null}
+        {origen ? (
+          <InterruptoresDeGrafica origen={origen} clave="deals-agendas" config={config} sinUnidad />
+        ) : null}
         <Grafica
           titulo={`Deals y agendas ${forma}`}
           unidad="registros"
-          frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}. Son conteos de personas y citas, no plata.`}
+          frescura={
+            `Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}. ` +
+            "Son conteos de personas y citas, no plata."
+          }
           etiquetas={etiquetas}
           formato={(v) => num(v)}
-          comparacion={b ? {
-            texto: descripcionDeComparacion(periodo),
-            pares: [
-              { actual: "Deals · periodo", referencia: "Deals · comparación" },
-              { actual: "Agendas · periodo", referencia: "Agendas · comparación" },
-            ],
-          } : undefined}
+          comparacion={
+            b
+              ? {
+                  texto: descripcionDeComparacion(periodo),
+                  pares: [
+                    { actual: "Deals · periodo", referencia: "Deals · comparación" },
+                    { actual: "Agendas · periodo", referencia: "Agendas · comparación" },
+                  ],
+                }
+              : undefined
+          }
           datos={{
             dias,
             series: [
@@ -176,8 +273,18 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
               { clave: "Agendas · periodo", color: 1, valores: valoresDe(a.puntos, (p) => p.agendas) },
               ...(b
                 ? [
-                    { clave: "Deals · comparación", color: 0, punteada: true, valores: valoresDe(puntosB, (p) => p.deals) },
-                    { clave: "Agendas · comparación", color: 1, punteada: true, valores: valoresDe(puntosB, (p) => p.agendas) },
+                    {
+                      clave: "Deals · comparación",
+                      color: 0,
+                      punteada: true,
+                      valores: valoresDe(puntosB, (p) => p.deals),
+                    },
+                    {
+                      clave: "Agendas · comparación",
+                      color: 1,
+                      punteada: true,
+                      valores: valoresDe(puntosB, (p) => p.agendas),
+                    },
                   ]
                 : []),
             ],
@@ -189,13 +296,20 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
           frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
           etiquetas={etiquetas}
           formato={(v) => pct(v, 0)}
-          comparacion={b ? {
-            texto: descripcionDeComparacion(periodo),
-            pares: [
-              { actual: "Formulario completo · periodo", referencia: "Formulario completo · comparación" },
-              { actual: "Parcial · periodo", referencia: "Parcial · comparación" },
-            ],
-          } : undefined}
+          comparacion={
+            b
+              ? {
+                  texto: descripcionDeComparacion(periodo),
+                  pares: [
+                    {
+                      actual: "Formulario completo · periodo",
+                      referencia: "Formulario completo · comparación",
+                    },
+                    { actual: "Parcial · periodo", referencia: "Parcial · comparación" },
+                  ],
+                }
+              : undefined
+          }
           datos={{
             dias,
             series: [
@@ -203,7 +317,12 @@ export function DealsContraAgendas({ vista, contexto, origen, hoy }: {
               { clave: "Parcial · periodo", color: 3, valores: tasaDe(parcial.puntosA) },
               ...(b
                 ? [
-                    { clave: "Formulario completo · comparación", color: 2, punteada: true, valores: tasaDe(completo.puntosB) },
+                    {
+                      clave: "Formulario completo · comparación",
+                      color: 2,
+                      punteada: true,
+                      valores: tasaDe(completo.puntosB),
+                    },
                     { clave: "Parcial · comparación", color: 3, punteada: true, valores: tasaDe(parcial.puntosB) },
                   ]
                 : []),

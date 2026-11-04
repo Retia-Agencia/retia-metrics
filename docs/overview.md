@@ -539,6 +539,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Acción:** lo que se decidió hacer, con dueño, estado y la cifra que lo justifica; vive en el programa (ADR 0090).
 - **Hecho:** una cosa que se cuenta (envío, agenda, cita, venta, abono, gasto), con sus dimensiones; toda métrica es una
   agregación sobre un hecho (`docs/hub.md` §8, C-2).
+- **Cerró en la llamada:** el primer pago fue el mismo día de Bogotá que una llamada atendida.
+- **Cerró con seguimiento:** el primer pago llegó después de una llamada atendida, dentro o después del corte de pago rápido del programa.
+- **No cerró:** tuvo una llamada atendida y no compró; corresponde al escalón `atendio_no_compro` de la escalera.
 
 **Las métricas de Pauta**
 

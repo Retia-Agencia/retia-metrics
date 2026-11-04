@@ -343,26 +343,28 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                   })}
                 />
               }
-            />
-            <Escalera
-              contexto={contextoDeCifra({
-                cohorte: elegida?.codigo ?? null,
-                rango: vista.seleccion.rango,
-                hoy,
-                closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null,
-              })}
-              periodo={vista.periodo}
-              vista={await vistaDeEscalera({
-                programId: programa.id,
-                slug,
-                hoy,
-                periodo: vista.periodo,
-                claveCloser: vista.claveCloser,
-                cohorteId,
-                cohorteIdDeB,
-                origen,
-                conEquipo: veEquipo,
-              })}
+              escalera={
+                <Escalera
+                  contexto={contextoDeCifra({
+                    cohorte: elegida?.codigo ?? null,
+                    rango: vista.seleccion.rango,
+                    hoy,
+                    closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null,
+                  })}
+                  periodo={vista.periodo}
+                  vista={await vistaDeEscalera({
+                    programId: programa.id,
+                    slug,
+                    hoy,
+                    periodo: vista.periodo,
+                    claveCloser: vista.claveCloser,
+                    cohorteId,
+                    cohorteIdDeB,
+                    origen,
+                    conEquipo: veEquipo,
+                  })}
+                />
+              }
             />
             </div>
           ) : seccion === "dinero" ? (

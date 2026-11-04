@@ -13,7 +13,7 @@ import {
   esMetricaDeEmbudo,
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
-import { ESCALONES, NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
+import { ESCALONES, GRUPOS_DE_CIERRE, NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
 import { ETAPAS_EN_ORDEN } from "@/lib/deals/etapas";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
@@ -62,6 +62,9 @@ const esquema = z.object({
     "grupo_pendientes",
     "etapa_entraron",
     "etapa_paso",
+    "etapa_siguen",
+    "etapa_perdidos",
+    "etapa_otros",
     "etapa_tiempo",
     "etapa_abiertos",
     "etapa_sin_dueno",
@@ -87,6 +90,7 @@ const esquema = z.object({
   // Solo la escalera de conversion (ADR 0109): el escalon y la calidad de la cifra.
   // Los dos grupos son de Pauta: "ventas" (los cuatro escalones que pagaron) y "despues" (pago rapido o tarde).
   escalon: z.enum([...ESCALONES, "ventas", "despues"]).optional(),
+  grupo: z.enum(Object.keys(GRUPOS_DE_CIERRE) as [keyof typeof GRUPOS_DE_CIERRE, ...(keyof typeof GRUPOS_DE_CIERRE)[]]).optional(),
   pago: z.enum(["completo", "parcial"]).optional(),
   calidad: z.string().max(100).optional(),
   nivel: z.enum(["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "total"]).optional(),
@@ -124,6 +128,9 @@ const titulos = {
   grupo_pendientes: "Citas pasadas sin resultado",
   etapa_entraron: "Entraron al embudo",
   etapa_paso: "Llegaron al paso",
+  etapa_siguen: "Siguen aquí",
+  etapa_perdidos: "Se perdieron aquí",
+  etapa_otros: "Tomaron otro camino",
   etapa_tiempo: "Salieron de la etapa",
   etapa_abiertos: "Abiertos en la etapa",
   etapa_sin_dueno: "Abiertos sin dueño",
@@ -136,6 +143,9 @@ const titulos = {
 const SUBCONJUNTO_DEL_EMBUDO = {
   etapa_entraron: null,
   etapa_paso: "etapa",
+  etapa_siguen: "etapa",
+  etapa_perdidos: "etapa",
+  etapa_otros: "etapa",
   etapa_tiempo: "etapa",
   etapa_abiertos: "etapa",
   etapa_sin_dueno: "antiguedad",
@@ -177,7 +187,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const veLeads = veLeadsDePauta(rol);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, calidad, pago, nivel, id, paso } = validado.data;
+  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
   const sourceNormalizado = source === "__null__" ? null : source;
   const mediumNormalizado = medium === "__null__" ? null : medium;
   const canalNormalizado = canal === "__null__" ? null : canal;
@@ -192,7 +202,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (metrica !== "no_agendaron" && orden !== undefined) notFound();
   if (metrica === "pauta_meta" ? (!nivel || !paso || ((nivel === "sin_anuncio" || nivel === "total") ? id !== undefined : id === undefined)) : (nivel !== undefined || id !== undefined || paso !== undefined)) notFound();
   // El escalon y la calidad son de la escalera: en otra lista no existen (nunca se ignoran en silencio).
-  if (metrica !== "escalera" && (escalon !== undefined || calidad !== undefined)) notFound();
+  if (metrica !== "escalera" && (escalon !== undefined || grupo !== undefined || calidad !== undefined)) notFound();
+  if (escalon !== undefined && grupo !== undefined) notFound();
   if (moneda && metrica !== "caja") notFound();
   // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
   // o una lista del embudo sin su paso, no existe (nunca cae al embudo entero).
@@ -217,6 +228,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     area,
     canal: canalNormalizado,
     escalon,
+    grupo,
     calidad,
     pago,
     nivel,
@@ -226,7 +238,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   });
   if (!vista) notFound();
   const { periodo, claveCloser } = vista;
-  const conVentas = esListaDeVentas(metrica, { escalon, pago });
+  const conVentas = esListaDeVentas(metrica, { escalon, grupo, pago });
   const lista = esListaDePauta || esListaDeOrigen
     ? proyectarParaPauta(vista.lista, veEquipo)
     : proyectarParaTablero(vista.lista, metrica === "no_agendaron" ? veEquipo : esAdmin);
@@ -241,7 +253,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     cohorteId: cohorte,
     subconjunto: { etapa, antiguedad },
     filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, area, canal: canalNormalizado },
-    escalera: { escalon, calidad, pago },
+    escalera: { escalon, grupo, calidad, pago },
     pauta: nivel && paso ? { nivel, id, paso } : undefined,
   });
   // Las banderas del Pulso (191) y los abiertos del embudo son una foto de hoy:

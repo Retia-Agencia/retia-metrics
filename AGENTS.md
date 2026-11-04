@@ -290,6 +290,14 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   en `sources.typeform_token`; lo escribe solo `guardarTokenTypeform` y lo lee solo `embudoPorPregunta`
   (`tests/typeform-insights.test.ts`).
 
+**Interfaz**
+
+- **UI/UX es prioridad, al nivel de la integridad de los datos (Mani, 4-nov).** Una pantalla se juzga por si se
+  entiende a la primera y sirve para decidir: jerarquía de tres pesos, visual antes que tabla, nada vacío a la vista,
+  poco texto (lo demás en "Cómo se calcula"), nada redundante, lo principal nunca plegado y toda cifra abre su lista.
+  El contrato completo, con sus nueve puntos, vive en `docs/structure.md` §9 ("Contrato de entendimiento") y se lee
+  antes de tocar una pantalla. Lo que pidió gerencia en el weekly (`docs/hub.md` §0) decide qué va arriba.
+
 **Arquitectura**
 
 - **Cada dato vive en la pantalla de su objeto, y lo que no se usa se quita (ADR 0077, Mani, 3-oct).** Los objetos

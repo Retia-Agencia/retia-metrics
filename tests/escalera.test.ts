@@ -8,6 +8,8 @@ import {
   cargarEscalera,
   escaleraDeDeals,
   filtrarEscalera,
+  GRUPOS_DE_CIERRE,
+  grupoDeCierre,
   resumirEscalera,
 } from "@/lib/queries/escalera";
 import { listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
@@ -259,6 +261,18 @@ describe("320: la tarjeta y su lista cuentan lo mismo", () => {
       expect(vistas).toBe(celda.deals);
     }
     expect(vista.principal.total).toBe(TAMANO_PAGINA + 3 + 5);
+  });
+
+  it("los grupos suman sus escalones y cada lista da la misma cifra", async () => {
+    await sembrarVarios();
+    const vista = await vistaDeEscalera(entrada(), db);
+    for (const [grupo, escalones] of Object.entries(GRUPOS_DE_CIERRE)) {
+      expect(escalones.every((escalon) => grupoDeCierre(escalon) === grupo)).toBe(true);
+      const esperada = escalones.reduce((suma, escalon) => suma + vista.principal.celdas[escalon].deals, 0);
+      expect(vista.principal.grupos[grupo as keyof typeof GRUPOS_DE_CIERRE].deals).toBe(esperada);
+      const [lista] = await listaDeMetrica("escalera", { programId, rango, hoy: "2026-10-31", grupo }, 1, db);
+      expect(lista.subtotal.cantidad).toBe(esperada);
+    }
   });
 
   it("por closer: la celda abre la lista de ese closer y las filas suman el total del programa", async () => {

@@ -59,6 +59,14 @@ export interface PasoDeConversion {
   dealIds: string[];
   tasaDesdeAnterior: number | null;
   tasaDesdeEntrada: number | null;
+  pasaron: number;
+  pasaronDealIds: string[];
+  siguenAqui: number;
+  siguenAquiDealIds: string[];
+  perdidosAqui: number;
+  perdidosAquiDealIds: string[];
+  otros: number;
+  otrosDealIds: string[];
 }
 
 export interface LecturaDeConversion {
@@ -230,15 +238,35 @@ function lecturaConversion(
   historial: ReadonlyMap<string, readonly HistorialParaEmbudo[]>,
 ): LecturaDeConversion {
   let denominadorAnterior = cohorte.length;
-  const pasos = PASOS_DE_CONVERSION.map((paso) => {
+  const llegadosPorPaso = PASOS_DE_CONVERSION.map((paso) => {
     const objetivo: EtapaDeal = paso === "vendido" ? "ganado_parcial" : paso;
-    const llegaron = cohorte.filter((deal) => etapaMasLejana(deal, historial.get(deal.id) ?? []) >= posicion(objetivo));
+    return cohorte.filter((deal) => etapaMasLejana(deal, historial.get(deal.id) ?? []) >= posicion(objetivo));
+  });
+  const pasos = PASOS_DE_CONVERSION.map((paso, indice) => {
+    const objetivo: EtapaDeal = paso === "vendido" ? "ganado_parcial" : paso;
+    const llegaron = llegadosPorPaso[indice]!;
+    const pasaron = llegadosPorPaso[indice + 1] ?? [];
+    const pasaronIds = new Set(pasaron.map((deal) => deal.id));
+    const restantes = llegaron.filter((deal) => !pasaronIds.has(deal.id));
+    const siguenAqui = restantes.filter((deal) => deal.etapa === objetivo && ETAPAS_ABIERTAS.includes(deal.etapa));
+    const perdidosAqui = restantes.filter((deal) => deal.etapa === "cierre_perdido"
+      && (historial.get(deal.id) ?? []).findLast((fila) => fila.a === "cierre_perdido")?.de === objetivo);
+    const clasificados = new Set([...siguenAqui, ...perdidosAqui].map((deal) => deal.id));
+    const otros = restantes.filter((deal) => !clasificados.has(deal.id));
     const fila = {
       paso,
       llegaron: llegaron.length,
       dealIds: ids(llegaron),
       tasaDesdeAnterior: tasa(llegaron.length, denominadorAnterior),
       tasaDesdeEntrada: tasa(llegaron.length, cohorte.length),
+      pasaron: pasaron.length,
+      pasaronDealIds: ids(pasaron),
+      siguenAqui: siguenAqui.length,
+      siguenAquiDealIds: ids(siguenAqui),
+      perdidosAqui: perdidosAqui.length,
+      perdidosAquiDealIds: ids(perdidosAqui),
+      otros: otros.length,
+      otrosDealIds: ids(otros),
     };
     denominadorAnterior = llegaron.length;
     return fila;

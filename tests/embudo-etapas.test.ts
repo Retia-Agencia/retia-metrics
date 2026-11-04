@@ -133,6 +133,24 @@ describe("calcularEmbudoEtapas", () => {
     expect(lectura.pasos.every((paso) => paso.tasaDesdeAnterior === null && paso.tasaDesdeEntrada === null)).toBe(true);
   });
 
+  it("separa quienes avanzan, siguen y se pierden, y conserva la suma de cada paso", () => {
+    const filas = [deal("avanza", "atendido"), deal("sigue", "agendado"), deal("pierde", "cierre_perdido")];
+    const historial = [
+      movimiento("01", "avanza", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("02", "avanza", "agendado", "atendido", "2026-09-03T12:00:00Z"),
+      movimiento("03", "sigue", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("04", "pierde", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("05", "pierde", "agendado", "cierre_perdido", "2026-09-03T12:00:00Z"),
+    ];
+    const pasos = calcular(filas, historial).conversion.todas.pasos;
+    const agendado = pasos.find((paso) => paso.paso === "agendado")!;
+    expect(agendado).toMatchObject({ pasaron: 1, siguenAqui: 1, perdidosAqui: 1, otros: 0 });
+    expect(agendado.pasaronDealIds).toEqual(["avanza"]);
+    expect(agendado.siguenAquiDealIds).toEqual(["sigue"]);
+    expect(agendado.perdidosAquiDealIds).toEqual(["pierde"]);
+    for (const paso of pasos) expect(paso.pasaron + paso.siguenAqui + paso.perdidosAqui + paso.otros).toBe(paso.llegaron);
+  });
+
   it("produce siempre los cuatro buckets en los limites 7/8, 30/31 y 90/91", () => {
     const enDias = (dias: number) => new Date(ahora.getTime() - dias * 86_400_000);
     const resultado = calcular([

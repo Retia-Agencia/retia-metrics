@@ -755,6 +755,35 @@ cada etapa están en la tabla de §3.
    campo de configuración se lee como frase con huecos ("Avísame si llevo menos del [80] % ...") antes que como
    etiquetas sueltas, y un valor de ejemplo nunca se confunde con uno guardado.
 
+**Contrato de entendimiento (Mani, 4-nov; obligatorio en toda pantalla, primero en el Hub).** La prioridad de una
+pantalla es que se entienda a la primera y sirva para decidir; lo que no cumple eso es deuda aunque la cifra esté bien.
+Nació del recorrido por Hub › Comercial, Hoy y Dinero del 4-nov ("satura, todo pesa igual, todo es tabla y texto").
+
+1. **Una pregunta por bloque, escrita como título.** "¿Dónde se pierden los deals?", no "Conversión por etapa". Lo
+   que no responde una pregunta de gerencia (el weekly manda, `docs/hub.md` §0) baja de nivel o se quita (ADR 0077).
+2. **Jerarquía de tres pesos.** Arriba, 3 o 4 cifras clave grandes (la respuesta); en medio, el visual que explica
+   la respuesta; abajo, el detalle en tabla. Una sola cifra fuerte por bloque; lo demás en `muted-foreground`.
+3. **Visual antes que tabla.** Un flujo es un embudo de barras con lo que se perdió entre pasos; una distribución
+   es una barra apilada al 100 %; un ranking son barras horizontales; una tasa lleva su barra junto al número. Barras
+   simples con tokens de Tinta en `components/graficas/barras.tsx`; series en el tiempo por `components/graficas/`
+   (ADR 0091). Toda pieza visual trae su tabla alternativa accesible.
+4. **Nada vacío a la vista.** Una fila, columna o tarjeta que con los filtros elegidos no se puede calcular **no se
+   dibuja**: el bloque dice en una línea por qué ("Con un closer elegido, el embudo empieza en Agendadas: registros y
+   deals nacen del formulario"). Las columnas de comparación existen solo si hay comparación. El "—" de la regla del
+   vacío (punto 6) queda para la celda suelta, nunca para una fila o columna entera.
+5. **Poco texto y al grano.** Bajo el título, una línea de contexto (`ContextoDeCifra`) y nada más. Fórmulas,
+   universos, fechas y excepciones van en **"Cómo se calcula"** (`components/como-se-calcula.tsx`), que además enlaza la
+   lista que sustenta la cifra. Ningún párrafo explicativo suelto en la pantalla.
+6. **Nada redundante.** Una cifra aparece una vez por pantalla; si otro bloque la necesita, la referencia. Si dos
+   pestañas la muestran, una es la dueña y la otra enlaza.
+7. **Lo principal no se esconde.** Nada que responda una pregunta del weekly va en un plegable o un dropdown; los
+   plegables son solo para detalle de auditoría y se abren en el PDF (`print:`).
+8. **Trazabilidad: toda cifra abre su lista** (ADR 0067, `CifraConLista`), y toda lista abre el deal. Un número que
+   no se puede abrir no se muestra; el segmento de una barra se abre igual que su número.
+9. **Revisión.** Antes de empujar una pantalla: `quick_review` de Rams sobre los componentes tocados, recorrido en
+   claro, oscuro y 375 px, y `npm run test:humo`. Las piezas compartidas (barras, embudo, Cómo se calcula) tienen un
+   solo dueño y se reutilizan: una segunda versión de la misma pieza en otra pestaña es el olor.
+
 **Criterios de uso** (de los closers, 24-sep): el cierre de una llamada cuesta pegar el Grain y un clic;
 nada que decida se teclea; utilidad sobre estética. 🔴 Uso desde el celular: no se alcanzó a preguntar.
 

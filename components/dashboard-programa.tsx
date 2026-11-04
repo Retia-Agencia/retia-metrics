@@ -27,6 +27,7 @@ export function DashboardPrograma({
   detallesOperacion,
   slug,
   dealsContraAgendas,
+  escalera,
   seriesDinero,
   origen,
   veEquipo = true,
@@ -40,6 +41,7 @@ export function DashboardPrograma({
   detallesOperacion?: DetallesDeOperacion;
   slug: string;
   dealsContraAgendas: ReactNode;
+  escalera?: ReactNode;
   seriesDinero?: SeriesDeDinero;
   origen: string;
   /**
@@ -61,6 +63,7 @@ export function DashboardPrograma({
         detalles={detalles}
         detallesOperacion={detallesOperacion}
         dealsContraAgendas={dealsContraAgendas}
+        escalera={escalera}
         veEquipo={veEquipo}
         hoy={hoy}
         dealsContraAgendasVista={dealsContraAgendasVista}
