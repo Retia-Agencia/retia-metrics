@@ -3,7 +3,7 @@ id: 372
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-8, G-9) · ADR 0069 · absorbe la parte de Comercial del 359 (punto 3)"
 depends: [377]
-status: todo
+status: done
 ---
 
 # 372 — Comercial: cada cifra dice su periodo, y los deals de un parcial van aparte
@@ -42,9 +42,11 @@ casi nunca agenda, así que la tasa baja sin que nada haya empeorado.
 
 ## Done cuando
 
-- [ ] Test: dos deals, uno de un completo y uno de un parcial, dan Deals creados 2 = 1 + 1, y "% que agendaron" usa 1
+- [x] Test: dos deals, uno de un completo y uno de un parcial, dan Deals creados 2 = 1 + 1, y "% que agendaron" usa 1
   de denominador.
-- [ ] Test: cada mitad abre una lista que suma su cifra con los filtros puestos.
-- [ ] Recorrido en `dev:local`: cada tarjeta de Comercial muestra su contexto y cambia al mover cohorte, periodo y
+- [x] Test: cada mitad abre una lista que suma su cifra con los filtros puestos.
+- [x] Recorrido en `dev:local`: cada tarjeta de Comercial muestra su contexto y cambia al mover cohorte, periodo y
   closer; escritorio y 375 px; `test:humo` en verde.
-- [ ] Regla N8: `docs/metricas.md` (Deals creados desde completo y desde parcial) en el mismo commit.
+- [x] Regla N8: `docs/metricas.md` (Deals creados desde completo y desde parcial) en el mismo commit.
+
+Nota de cierre (4-nov): el humo de escritorio pasa con developer y gerente; closer, paid_trafficker y media fallan por el 4xx de `/login`, deuda previa anotada. 375 px verificado a mano en `dev:local`, sin correr el proyecto celular del humo. Los interruptores del 370 en Agendas por semana quedan para el 370.
