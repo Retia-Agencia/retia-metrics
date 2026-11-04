@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState, useTransition } from "react";
-import { detalleDePuntoAccion } from "@/app/(app)/p/[programa]/hub/acciones-graficas";
+import type { EntradaDetalleDePunto } from "@/app/(app)/p/[programa]/hub/acciones-graficas";
 import { ResumenDeCifra } from "@/components/cifra-con-lista";
 import type { ModeloDeGrafica } from "@/components/graficas/contrato";
 import { GraficaDinamica } from "@/components/graficas/grafica-dinamica";
@@ -9,12 +9,19 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { num } from "@/lib/format";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 
-export function GraficaConResumen({ modelo, titulo, slug, origen, titulos }: {
+/**
+ * Quién trae el resumen de un punto. Lo pasa la página (en `app/`) como prop: ningún componente
+ * importa la server action, así el árbol de componentes no arrastra la autenticación (ni a los tests).
+ */
+export type CargarResumenDePunto = (entrada: EntradaDetalleDePunto) => Promise<DetalleDeCifra>;
+
+export function GraficaConResumen({ modelo, titulo, slug, origen, titulos, cargar }: {
   modelo: ModeloDeGrafica;
   titulo: string;
   slug: string;
   origen: string;
   titulos: string[];
+  cargar: CargarResumenDePunto;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [detalle, setDetalle] = useState<DetalleDeCifra | null>(null);
@@ -36,12 +43,12 @@ export function GraficaConResumen({ modelo, titulo, slug, origen, titulos }: {
     setAbierto(true);
     iniciar(async () => {
       try {
-        setDetalle(await detalleDePuntoAccion({ slug, origen, ...resumen }));
+        setDetalle(await cargar({ slug, origen, ...resumen }));
       } catch {
         setError(true);
       }
     });
-  }, [modelo, origen, slug, titulo, titulos]);
+  }, [cargar, modelo, origen, slug, titulo, titulos]);
 
   const tituloDelDialogo = seleccion?.titulo ?? titulo;
 

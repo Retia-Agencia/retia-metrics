@@ -1,5 +1,5 @@
 import { GraficaDinamica } from "@/components/graficas/grafica-dinamica";
-import { GraficaConResumen } from "@/components/graficas/resumen-de-punto";
+import { GraficaConResumen, type CargarResumenDePunto } from "@/components/graficas/resumen-de-punto";
 import {
   crearModeloGrafica,
   filasDeTabla,
@@ -18,7 +18,7 @@ interface GraficaProps {
   formato: (valor: number) => string;
   comparacion?: ComparacionDeGrafica;
   meta?: MetaDeGrafica;
-  punto?: { slug: string; origen: string; titulos: string[] };
+  punto?: { slug: string; origen: string; titulos: string[]; cargar: CargarResumenDePunto };
 }
 
 /** Contrato único de gráficas del CRM (ADR 0091). */
@@ -46,7 +46,7 @@ export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, form
       </figcaption>
       <p className="text-xs text-muted-foreground">{frescura}</p>
       {punto
-        ? <GraficaConResumen modelo={modelo} titulo={titulo} slug={punto.slug} origen={punto.origen} titulos={punto.titulos} />
+        ? <GraficaConResumen modelo={modelo} titulo={titulo} slug={punto.slug} origen={punto.origen} titulos={punto.titulos} cargar={punto.cargar} />
         : <GraficaDinamica modelo={modelo} titulo={`${titulo}, ${unidad}. Ejes lineales con cero visible.`} />}
       <details className="text-sm">
         <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">

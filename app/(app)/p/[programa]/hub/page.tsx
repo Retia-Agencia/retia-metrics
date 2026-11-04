@@ -37,6 +37,7 @@ import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantall
 import { Pestanas, pestanaActiva, urlConSeccion, type Pestana } from "@/components/layout/pestanas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { DashboardPrograma } from "@/components/dashboard-programa";
+import { detalleDePuntoAccion } from "./acciones-graficas";
 import { Escalera } from "@/components/dashboard/escalera";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
@@ -370,6 +371,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
           ) : seccion === "dinero" ? (
             <DashboardPrograma
               seccion="dinero"
+              cargarResumenDePunto={detalleDePuntoAccion}
               vista={vista}
               detalles={detalles}
               slug={slug}

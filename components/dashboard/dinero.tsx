@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, usd } from "@/lib/format";
+import type { CargarResumenDePunto } from "@/components/graficas/resumen-de-punto";
 import { GraficasDeDinero } from "@/components/dashboard/graficas-de-dinero";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -19,6 +20,7 @@ export function Dinero({
   origen,
   hoy,
   veEquipo = true,
+  cargarResumenDePunto,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
@@ -29,6 +31,8 @@ export function Dinero({
   hoy: string;
   /** Sin equipo comercial (paid trafficker, ticket 102): sin comisión y sin enlaces a listas. */
   veEquipo?: boolean;
+  /** La server action que abre el resumen de un punto; la pasa la página. */
+  cargarResumenDePunto?: CargarResumenDePunto;
 }) {
   return (
     <section id="dinero" className="scroll-mt-4 space-y-4">
@@ -39,7 +43,7 @@ export function Dinero({
         <CajaConVariacion vista={vista} detalles={detalles} />
       </div>
 
-      {series ? <GraficasDeDinero datos={series} vista={vista} slug={slug} origen={origen} hoy={hoy} conListas={veEquipo} /> : null}
+      {series ? <GraficasDeDinero datos={series} vista={vista} slug={slug} origen={origen} hoy={hoy} conListas={veEquipo} cargarResumenDePunto={cargarResumenDePunto} /> : null}
 
       {vista.filtroDeCohorte.cohorteId === null ? <div className="grid gap-4">
         <Card>

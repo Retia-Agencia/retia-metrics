@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { CargarResumenDePunto } from "@/components/graficas/resumen-de-punto";
 import { Dinero } from "@/components/dashboard/dinero";
 import { Operacion } from "@/components/dashboard/operacion";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -29,6 +30,7 @@ export function DashboardPrograma({
   dealsContraAgendas,
   escalera,
   seriesDinero,
+  cargarResumenDePunto,
   origen,
   veEquipo = true,
   hoy,
@@ -43,6 +45,8 @@ export function DashboardPrograma({
   dealsContraAgendas: ReactNode;
   escalera?: ReactNode;
   seriesDinero?: SeriesDeDinero;
+  /** La server action del resumen de un punto de Dinero (380); la pasa la página. */
+  cargarResumenDePunto?: CargarResumenDePunto;
   origen: string;
   /**
    * Si la sesión ve el trabajo del equipo comercial (`veEquipoComercial`, ticket 102). Sin él
@@ -71,5 +75,5 @@ export function DashboardPrograma({
       />
     );
   }
-  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} hoy={hoy} veEquipo={veEquipo} />;
+  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} hoy={hoy} veEquipo={veEquipo} cargarResumenDePunto={cargarResumenDePunto} />;
 }

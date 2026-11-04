@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import type { CargarResumenDePunto } from "@/components/graficas/resumen-de-punto";
 import { Grafica } from "@/components/graficas/grafica";
 import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
 import { fecha, monto, num, usd } from "@/lib/format";
@@ -58,13 +59,15 @@ function frescuraDe(tramos: Tramo[], config: ConfigDeGrafica, hasta: string): st
 }
 
 /** Las dos lecturas de Dinero comparten paso y forma; la moneda vive siempre en el tooltip. */
-export function GraficasDeDinero({ datos, vista, slug, origen, hoy, conListas }: {
+export function GraficasDeDinero({ datos, vista, slug, origen, hoy, conListas, cargarResumenDePunto }: {
   datos: SeriesDeDinero;
   vista: VistaDelDashboard;
   slug: string;
   origen: string;
   hoy: string;
   conListas: boolean;
+  /** La server action del resumen, pasada por la página; sin ella los puntos no abren nada. */
+  cargarResumenDePunto?: CargarResumenDePunto;
 }) {
   const { a, b, meta, monedas } = datos;
   const { nombreA, nombreB } = nombresDeLeyenda(vista, datos);
@@ -152,7 +155,7 @@ export function GraficasDeDinero({ datos, vista, slug, origen, hoy, conListas }:
           ? { etiqueta: meta.etiqueta, valores: tramos.map(() => meta.cupos), color: 1 }
           : undefined}
         datos={{ dias: tramos.map((tramo) => tramo.desde), series }}
-        punto={conListas ? { slug, origen, titulos: tramos.map((tramo) => `${titulo} · ${sufijoDePunto(tramo)}`) } : undefined}
+        punto={conListas && cargarResumenDePunto ? { slug, origen, titulos: tramos.map((tramo) => `${titulo} · ${sufijoDePunto(tramo)}`), cargar: cargarResumenDePunto } : undefined}
       />
     </CardContent>
   </Card>;
