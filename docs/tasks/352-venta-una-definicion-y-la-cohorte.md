@@ -46,9 +46,9 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 5. "Leads requeridos por día" con numerador y denominador del mismo universo.
 6. Guardián (N1): fuera del módulo, nadie escribe `inArray(deals.etapa, ETAPAS_VENDIDAS)` para contar ventas.
 
-> **Queda pendiente (3-nov):** el punto 4 del alcance (muestra mínima y días de madurez como datos del programa)
-> necesita columnas nuevas en `programs`, o sea una migración que genera la sesión principal. Las constantes siguen
-> con nombre en código (`MUESTRA_MINIMA_CONVERSION`, `DIAS_PARA_MADURAR`).
+> **Punto 4 (3-nov):** `programs.muestra_minima_conversion` (por defecto 20) y `programs.dias_para_madurar` (por defecto 30)
+> reemplazan a las constantes, que quedan como el valor por defecto. Sin pantalla para editarlos todavía: se cambian por la base.
+> Requiere la migración de las dos columnas antes de que los tests con base pasen.
 
 ## Done cuando
 

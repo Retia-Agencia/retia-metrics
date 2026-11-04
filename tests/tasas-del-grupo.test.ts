@@ -220,5 +220,7 @@ describe("ticket 187: la cuenta pura", () => {
   it("aún madurando cuando el rango terminó hace menos de 30 días", () => {
     expect(rangoMadurando({ desde: "2026-09-01", hasta: "2026-09-30" }, "2026-10-02")).toBe(true);
     expect(rangoMadurando({ desde: "2026-08-01", hasta: "2026-08-31" }, "2026-10-02")).toBe(false);
+    // Los dias de madurez son del programa (352, C-17): con 45, el rango de agosto aun madura.
+    expect(rangoMadurando({ desde: "2026-08-01", hasta: "2026-08-31" }, "2026-10-02", 45)).toBe(true);
   });
 });

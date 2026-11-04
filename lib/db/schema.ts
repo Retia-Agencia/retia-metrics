@@ -320,6 +320,13 @@ export const programs = pgTable(
      * cuentan el round robin y los eventos personales de sus miembros activos.
      */
     calendlyOrgCompartida: boolean("calendly_org_compartida").notNull().default(false),
+    /**
+     * Con menos personas con cita que esto, una conversion medida no se usa en la Proyeccion (352, C-17).
+     * Dato del programa, no constante del codigo (ADR 0012). Por defecto 20.
+     */
+    muestraMinimaConversion: integer("muestra_minima_conversion").notNull().default(20),
+    /** Dias que tarda en madurar una cohorte de citas: antes de eso su % de cierre todavia puede subir (352, C-17). Por defecto 30. */
+    diasParaMadurar: integer("dias_para_madurar").notNull().default(30),
     /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
     recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
     /**

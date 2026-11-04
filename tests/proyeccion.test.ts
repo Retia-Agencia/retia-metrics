@@ -115,6 +115,17 @@ describe("proyección", () => {
   });
 });
 
+describe("la muestra mínima es del programa (352, C-17)", () => {
+  it("con una muestra mínima de 10, una medición de 12 alcanza; con la de 20 por defecto, no", () => {
+    const corta = medida("C2", 12, 3);
+    expect(elegirConversion({ objetivo: null, anterior: corta, enCurso: null }).origen).toBe("sin_conversion");
+    const propia = elegirConversion({ objetivo: null, anterior: corta, enCurso: null, muestraMinima: 10 });
+    expect(propia.origen).toBe("cohorte_anterior");
+    expect(elegirConversion({ objetivo: 0.25, anterior: medida("C2", 12, 3), enCurso: null, muestraMinima: 15 }).razonShow)
+      .toContain("hacen falta 15");
+  });
+});
+
 describe("la conversión agenda → venta", () => {
   it("prefiere el objetivo, luego la cohorte anterior y luego la cohorte en curso", () => {
     const anterior = medida("C2", 40, 10);
