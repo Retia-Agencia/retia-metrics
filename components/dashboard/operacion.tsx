@@ -153,7 +153,7 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
           <td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}>{tasa(fila.pctShow)}</Celda></td>
           <td className="cifra text-right"><Celda titulo="Grupo con show" detalle={c?.grupo_shows}>{tasa(fila.pctCierre)}</Celda></td>
           <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
-          <td className="min-w-48">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
+          <td className="w-56 min-w-44 px-4 text-right">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
           <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
           <td className="cifra whitespace-nowrap text-right"><Celda titulo="Ventas del closer" detalle={c?.cierres}>{d && d.ventas > 0 ? `${usd(d.vendido)} · ${usd(d.recaudado)} · ${usd(d.porCobrar)}` : "—"}</Celda></td>
         </tr>;

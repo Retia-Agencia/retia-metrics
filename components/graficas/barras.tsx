@@ -128,12 +128,14 @@ export interface SegmentoDeBarra {
   detalle?: DetalleDeCifra;
 }
 
-export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] }) {
+/** `compacta`: para una celda de tabla (barra más baja y "—" sin casos, sin texto que se desborde). */
+export function BarraApilada100({ segmentos, compacta = false }: { segmentos: SegmentoDeBarra[]; compacta?: boolean }) {
+  const alto = compacta ? "h-6" : "h-9";
   const total = segmentos.reduce((suma, segmento) => suma + segmento.cantidad, 0);
   return (
-    <div className="space-y-2">
-      {total === 0 ? <p className="text-sm text-muted-foreground">Sin casos.</p> : <div
-        className="flex h-9 w-full overflow-hidden rounded-md bg-muted"
+    <div className={compacta ? "" : "space-y-2"}>
+      {total === 0 ? (compacta ? <span className="text-muted-foreground">—</span> : <p className="text-sm text-muted-foreground">Sin casos.</p>) : <div
+        className={`flex ${alto} w-full overflow-hidden rounded-md bg-muted`}
         role="group"
         aria-label="Distribución al cien por ciento"
       >
@@ -147,7 +149,7 @@ export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] })
             return (
               <span
                 key={segmento.clave}
-                className={`h-9 text-primary-foreground [&>button]:h-full [&>button]:w-full ${
+                className={`${alto} min-w-0 text-primary-foreground [&>button]:h-full [&>button]:w-full ${
                   CLASE_POR_TONO[segmento.tono]
                 }`}
                 style={{ width: `${total === 0 ? 0 : (segmento.cantidad / total) * 100}%` }}
@@ -156,7 +158,7 @@ export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] })
                 aria-label={descripcion}
               >
                 <Abrible titulo={segmento.etiqueta} detalle={segmento.detalle}>
-                  <span className="cifra flex h-9 w-full items-center justify-center px-2 text-xs">
+                  <span className={`cifra flex ${alto} w-full items-center justify-center overflow-hidden px-1 text-xs`}>
                     {num(segmento.cantidad)}
                   </span>
                 </Abrible>

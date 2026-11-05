@@ -18,6 +18,13 @@ vi.mock("@/lib/auth/alcance", () => ({ programaVisiblePorSlug }));
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("next/navigation", () => ({ notFound }));
 vi.mock("@/lib/queries/ficha-deal", () => ({ fichaDeDeal, opcionesDeFicha, alertasDelDeal }));
+vi.mock("@/lib/queries/escalera", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/escalera")>(),
+  cargarHechosDeEscaleraDeDeal: vi.fn(async () => ({
+    hechos: { vendido: false, primerAbono: null, citasAtendidas: [], citaVencidaSinAtender: false },
+    corteDias: null,
+  })),
+}));
 vi.mock("@/components/page-shell", () => ({ PageShell: () => null }));
 vi.mock("@/components/deals/ficha/ficha-acciones", () => ({ FichaAcciones: () => null }));
 vi.mock("@/components/deals/ficha/ficha-transicion", () => ({ FichaTransicion: () => null }));

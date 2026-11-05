@@ -11,7 +11,7 @@ import {
   ventasConDiaEn,
   type OrigenDeDeal,
 } from "@/lib/queries/metricas-filtros";
-import { vigente } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 export type OrigenEmbudoComercial = OrigenDeDeal | "manual";
 export type PasoEmbudoComercial = "creados" | "agendaron" | "tuvieron_show" | "compraron";
@@ -97,7 +97,8 @@ export async function cargarEmbudoComercial(
       llamadaOcurrio(),
       vigente(calls),
     )),
-    db.select({ dealId: ventasDelRango.dealId }).from(ventasDelRango),
+    // `ventasConDiaEn` ya excluye lo anulado por dentro; aquí se declara para el guardián.
+    db.select({ dealId: ventasDelRango.dealId }).from(ventasDelRango).where(incluyendoAnulados(ventasDelRango)),
   ]);
 
   const idsCompletos = new Set(completos.map((fila) => fila.dealId));

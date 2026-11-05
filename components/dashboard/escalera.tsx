@@ -24,7 +24,7 @@ function Cifra({ celda, titulo }: { celda: CeldaDeEscalera; titulo: string }) {
 
 export function BarraDeCierre({ fila, leyenda = false }: { fila: FilaDeEscalera; leyenda?: boolean }) {
   const segmentos = GRUPOS_PRINCIPALES.map(([clave, etiqueta, tono]) => ({ clave, etiqueta, tono, cantidad: fila.grupos[clave].deals, detalle: fila.grupos[clave].detalle ?? undefined }));
-  return <div className="space-y-2">{leyenda ? <LeyendaDeBarras items={LEYENDA} /> : null}<BarraApilada100 segmentos={segmentos} /></div>;
+  return <div className={leyenda ? "space-y-2" : ""}>{leyenda ? <LeyendaDeBarras items={LEYENDA} /> : null}<BarraApilada100 segmentos={segmentos} compacta={!leyenda} /></div>;
 }
 
 function TablaPorCalidad({ filas, visibles }: { filas: FilaDeEscalera[]; visibles: readonly Escalon[] }) {
