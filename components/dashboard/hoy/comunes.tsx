@@ -8,9 +8,9 @@ import { num } from "@/lib/format";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
 
-/** Un programa por columna, lado a lado: ninguna tasa se suma entre programas (ADR 0048). */
+/** Un programa por columna, lado a lado; en papel, uno debajo del otro y a lo ancho de la hoja. Ninguna tasa se suma entre programas (ADR 0048). */
 const columnas = (n: number) =>
-  n <= 1 ? "grid-cols-1" : n === 2 ? "grid-cols-1 lg:grid-cols-2 print:grid-cols-2" : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 print:grid-cols-3";
+  n <= 1 ? "grid-cols-1" : n === 2 ? "grid-cols-1 lg:grid-cols-2 print:grid-cols-1" : "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 print:grid-cols-1";
 
 export function Lado({ programas, children }: {
   programas: ProgramaDelReporte[];
@@ -20,7 +20,7 @@ export function Lado({ programas, children }: {
     <div className={`grid gap-4 ${columnas(programas.length)}`}>
       {programas.map((p) => (
         <div key={p.programa.id} className="min-w-0 space-y-3">
-          {programas.length > 1 ? <h4 className="text-sm font-semibold">{p.programa.nombre}</h4> : null}
+          {programas.length > 1 ? <h4 className="border-l-4 border-primary pl-2 text-sm font-semibold print:border-foreground">{p.programa.nombre}</h4> : null}
           {children(p)}
         </div>
       ))}

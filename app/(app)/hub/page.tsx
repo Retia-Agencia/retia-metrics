@@ -90,7 +90,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
                   hoy={hoy}
                   veEquipo={veEquipoComercial(rol)}
                   selector={<SelectorDeDia dia={diaDelReporte} hoy={hoy} base={{ path: RUTA_HUB_TODOS, params: {} }} />}
-                  vamosALlegar={<div className={`grid gap-4 ${programas.length > 1 ? "xl:grid-cols-2 print:grid-cols-2" : ""}`}>
+                  vamosALlegar={<div className={`grid gap-4 ${programas.length > 1 ? "xl:grid-cols-2 print:grid-cols-1" : ""}`}>
                     {programas.map((programa) => (
                       <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={esAdministrador(rol)} configurar={null} />
                     ))}

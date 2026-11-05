@@ -116,6 +116,7 @@ Todo lo de la lista de Mani para Hoy, con estas decisiones sobre las de arriba:
 
 ### Con datos reales (4-nov, tercera vuelta)
 
+- **PDF rediseñado (4-nov, tercera pasada):** hoja A4 blanca sin sombras, encabezado con filete, tarjetas con borde fino, color de barras impreso (`print-color-adjust`), saltos de página con sentido (cifras y embudo · dinero y citas · semana · objetivos) y la fuente pegada a su bloque. Con varios programas, uno debajo del otro a lo ancho de la hoja. Verificado con `page.pdf` de Playwright en A4, página por página: un programa con ventas (4 págs), día vacío (4) y todos los programas (7). No verificado: impresión desde el diálogo real del navegador ni `npm run build` (había un `next dev` ajeno en la carpeta).
 - **El 0,0 % de asistencia era dato, no solo consulta.** En ComunicArte (4-nov) las 11 citas siguen `agendada`: los
   closers no marcaron resultado, mientras hay 2 ventas y USD 1.594 de caja. Un bug real sí había: el denominador
   contaba las **canceladas** (12 en vez de 11) y la lista tampoco las excluía. Ahora cifra y lista usan `citaDebida`.

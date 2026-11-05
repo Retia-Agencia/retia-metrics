@@ -33,12 +33,13 @@ export function fechaEnPalabras(dia: string): string {
 
 function Encabezado({ programas, dia }: { programas: ProgramaDelReporte[]; dia: string }) {
   return (
-    <div className="space-y-1">
+    <header className="encabezado-reporte space-y-1">
+      <p className="hidden text-[11px] font-semibold uppercase tracking-widest text-muted-foreground print:block">Retia · Reporte diario</p>
       <h2 className="text-xl font-semibold">
         {programas.length === 1 ? `Reporte diario · ${programas[0].programa.nombre}` : "Reporte Diario Retia"}
       </h2>
       <p className="text-sm text-muted-foreground first-letter:uppercase">{fechaEnPalabras(dia)}</p>
-      <ul className="text-sm text-muted-foreground">
+      <ul className="space-y-0.5 pt-1 text-sm text-muted-foreground">
         {programas.map(({ programa, reporte }) => {
           const { contexto } = reporte;
           const objetivo = reporte.horizontes.find((h) => h.clave === "dia")?.meta ?? null;
@@ -51,7 +52,7 @@ function Encabezado({ programas, dia }: { programas: ProgramaDelReporte[]; dia: 
           return <li key={programa.id}>{programas.length > 1 ? <strong>{programa.nombre}: </strong> : null}{partes.join(" · ")}</li>;
         })}
       </ul>
-    </div>
+    </header>
   );
 }
 
@@ -74,7 +75,7 @@ const FUENTES = {
   dinero: "Vendido, recaudado y por cobrar: de las ventas de hoy, con los abonos a hoy. Cómo nació: agenda del día si hubo llamada realizada ese día, seguimiento si fue antes, sin llamada si nunca la hubo.",
   citas: "Citas con fecha de hoy y lo que pasó con cada una, por closer.",
   pendientes: "Pendientes de ahora; no van en el PDF.",
-  semana: "CRM de Retia. Semana de lunes a viernes hasta el día del reporte. Objetivo de la semana: la compensación semanal de los objetivos del mes; esperado a hoy: repartido por igual entre sus días hábiles. El objetivo de leads sale de la cohorte activa; el reparto usa el ritmo de los últimos días hábiles de venta.",
+  semana: "CRM de Retia. Semana de lunes a viernes hasta el día del reporte. Objetivo de la semana: compensación semanal de los objetivos del mes; esperado a hoy: repartido por igual entre sus días hábiles.",
   objetivos: "CRM de Retia. Lo vendido de la cohorte activa y del mes contra su objetivo, en cupos y en USD; no depende de ningún filtro y el objetivo no se reparte entre closers.",
 } as const;
 

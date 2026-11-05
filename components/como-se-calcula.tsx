@@ -14,7 +14,7 @@ import {
 export function ComoSeCalcula({ children }: { children: ReactNode }) {
   return (
     <Dialog>
-      <DialogTrigger render={<Button type="button" variant="link" size="sm" />}>
+      <DialogTrigger render={<Button type="button" variant="link" size="sm" className="print:hidden" />}>
         Cómo se calcula
       </DialogTrigger>
       <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto">

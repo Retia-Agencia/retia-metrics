@@ -293,8 +293,64 @@
     padding: 0 !important;
     margin: 0 !important;
   }
+  /* Hoja limpia: fondo blanco, tinta casi negra, sin sombras; los colores de las barras sí se imprimen. */
+  html,
+  body {
+    background: #fff !important;
+  }
   #reporte-diario {
-    font-size: 11px;
+    font-size: 10px;
+    line-height: 1.3;
+    color: #111;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  #reporte-diario > * + * {
+    margin-top: 10px !important;
+  }
+  #reporte-diario [data-slot="card"] {
+    box-shadow: none !important;
+    border: 1px solid #d4d4d8;
+    border-radius: 6px;
+    background: #fff;
+    --card-spacing: 8px;
+    gap: 6px;
+  }
+  #reporte-diario .bg-muted {
+    background: #f4f4f5 !important;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+  }
+  #reporte-diario .encabezado-reporte {
+    padding-bottom: 10px;
+    border-bottom: 2px solid #111;
+  }
+  #reporte-diario .encabezado-reporte h2 {
+    font-size: 22px;
+    line-height: 1.15;
+  }
+  #reporte-diario section > .bloque-titulo {
+    padding-bottom: 3px;
+    border-bottom: 1px solid #d4d4d8;
+  }
+  #reporte-diario section > .bloque-titulo h3 {
+    font-size: 15px;
+  }
+  #reporte-diario .text-2xl {
+    font-size: 20px;
+  }
+  #reporte-diario .text-muted-foreground {
+    color: #52525b;
+  }
+  /* La fuente de un bloque nunca queda sola en otra hoja. */
+  #reporte-diario section > p.no-partir {
+    break-before: avoid;
+  }
+  /* Saltos con sentido: 1) cifras y embudo, 2) dinero y citas, 3) semana y objetivos. */
+  #reporte-diario #dinero,
+  #reporte-diario #semana {
+    break-before: page;
   }
   #reporte-diario [data-slot="card"],
   #reporte-diario table,
