@@ -1,4 +1,4 @@
-import { and, asc, between, eq, gt, inArray, isNull, lte, ne, notExists, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, between, eq, gt, inArray, isNotNull, isNull, lte, ne, notExists, notInArray, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -393,19 +393,42 @@ export function filtroDealsQueAgendaron(alcance: Alcance, db: Db) {
 }
 
 /**
- * De qué envío nació un deal (ADR 0069, ticket 372): del formulario completo o de un parcial. El
- * hecho que decide es `submissions.es_parcial` del envío que lo abrió (`submission_origen_id`). Un
- * deal abierto a mano no tiene envío y no es ninguna de las dos mitades. Exige el join de arriba.
+ * Si la persona terminó el formulario hasta el cierre del rango (381, D1). La clasificación es
+ * por lead y programa, no por el primer envío que abrió el deal: un parcial seguido de un envío
+ * completo es completo. Sin `submission_origen_id` el deal es manual y no pertenece a ninguna
+ * mitad. El subquery no está correlacionado: así Drizzle no pierde la calificación de columnas.
  */
 export type OrigenDeDeal = "completo" | "parcial";
 
+function leadsConFormularioCompleto(alcance: Alcance) {
+  return sql`(
+    select "submissions"."lead_id"
+    from "submissions"
+    inner join "sources" on "sources"."id" = "submissions"."source_id"
+    where "sources"."program_id" = ${alcance.programId}
+      and "submissions"."lead_id" is not null
+      and "submissions"."es_parcial" = false
+      and (coalesce("submissions"."fecha_envio", "submissions"."created_at") at time zone 'America/Bogota')::date <= ${alcance.rango.hasta}
+  )`;
+}
+
 export function filtroDealsDesde(origen: OrigenDeDeal, alcance: Alcance) {
-  return and(filtroDealsCreados(alcance), eq(submissions.esParcial, origen === "parcial"));
+  const completos = inArray(deals.leadId, leadsConFormularioCompleto(alcance));
+  return and(
+    filtroDealsCreados(alcance),
+    isNotNull(deals.submissionOrigenId),
+    origen === "completo" ? completos : notInArray(deals.leadId, leadsConFormularioCompleto(alcance)),
+  );
 }
 
 /** Los deals de una mitad que ya agendaron: el mismo universo que `filtroDealsDesde`, no el total (N2). */
 export function filtroDealsDesdeQueAgendaron(origen: OrigenDeDeal, alcance: Alcance, db: Db) {
-  return and(filtroDealsQueAgendaron(alcance, db), eq(submissions.esParcial, origen === "parcial"));
+  const completos = inArray(deals.leadId, leadsConFormularioCompleto(alcance));
+  return and(
+    filtroDealsQueAgendaron(alcance, db),
+    isNotNull(deals.submissionOrigenId),
+    origen === "completo" ? completos : notInArray(deals.leadId, leadsConFormularioCompleto(alcance)),
+  );
 }
 
 /** El movimiento que da fecha a la venta, sin correlación ni duplicar sus etapas. */

@@ -2,7 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { cohorts, deals, dealEtapaHistorial, motivos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ETAPAS_EN_ORDEN, esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
-import { diaDeCalendario } from "@/lib/dias-habiles";
+import { diaDeCalendario, diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
 import { cerradosEn, esReversaDeVenta } from "@/lib/queries/metricas-filtros";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
 import { vigente } from "@/lib/queries/vigente";
@@ -75,6 +75,27 @@ export interface LecturaDeConversion {
   pasos: PasoDeConversion[];
 }
 
+export type CaminoDelEmbudo = "setter" | "llamada";
+export type EtapaDelCamino = "en_gestion" | "contactado" | "calificado" | "agendado" | "atendido" | "compromiso_verbal" | "ganado";
+
+export interface PasoDeCamino {
+  camino: CaminoDelEmbudo;
+  etapa: EtapaDelCamino;
+  llegaron: number;
+  dealIds: string[];
+  pasaron: number;
+  pasaronDealIds: string[];
+  siguenAqui: number;
+  siguenAquiDealIds: string[];
+  perdidosAqui: number;
+  perdidosAquiDealIds: string[];
+}
+
+export interface LecturaPorCamino {
+  camino: CaminoDelEmbudo;
+  pasos: PasoDeCamino[];
+}
+
 export interface ConversionPorPuerta {
   puerta: EtapaDeal;
   deals: number;
@@ -90,6 +111,8 @@ export interface ConversionEmbudo {
   todas: LecturaDeConversion;
   sinNoCalificados: LecturaDeConversion;
   porPuerta: ConversionPorPuerta[];
+  /** Lectura exhaustiva en los dos recorridos comerciales (381, D3.5). */
+  porCamino: LecturaPorCamino[];
 }
 
 export interface TiempoEnEtapa {
@@ -97,6 +120,7 @@ export interface TiempoEnEtapa {
   deals: number;
   dealIds: string[];
   promedioDias: number | null;
+  medianaDiasHabiles: number | null;
   dealsConVariosTramos: number;
 }
 
@@ -225,12 +249,58 @@ export function calcularEmbudoEtapas({
       todas: lecturaConversion(cohorte, historialPorDeal),
       sinNoCalificados: lecturaConversion(sinNoCalificados, historialPorDeal),
       porPuerta,
+      porCamino: lecturasPorCamino(cohorte, historialPorDeal),
     },
     tiempoEnEtapa: calcularTiempos(filasDeal, historialPorDeal, rango),
     abiertos,
     sinDuenoPorAntiguedad,
     motivosDePerdida,
   };
+}
+
+const ETAPAS_POR_CAMINO: Readonly<Record<CaminoDelEmbudo, readonly EtapaDelCamino[]>> = {
+  setter: ["en_gestion", "contactado", "calificado"],
+  llamada: ["agendado", "atendido", "compromiso_verbal", "ganado"],
+};
+
+function lecturasPorCamino(
+  cohorte: readonly DealParaEmbudo[],
+  historial: ReadonlyMap<string, readonly HistorialParaEmbudo[]>,
+): LecturaPorCamino[] {
+  return (["setter", "llamada"] as const).map((camino) => {
+    const etapas = ETAPAS_POR_CAMINO[camino];
+    const llegados = etapas.map((etapa) => {
+      const objetivo: EtapaDeal = etapa === "ganado" ? "ganado_parcial" : etapa;
+      return cohorte.filter((deal) => etapaMasLejana(deal, historial.get(deal.id) ?? []) >= posicion(objetivo));
+    });
+    return {
+      camino,
+      pasos: etapas.map((etapa, indice) => {
+        const llegaron = llegados[indice]!;
+        const pasaron = llegados[indice + 1] ?? [];
+        const pasaronIds = new Set(pasaron.map((deal) => deal.id));
+        const restantes = llegaron.filter((deal) => !pasaronIds.has(deal.id));
+        const objetivo: EtapaDeal = etapa === "ganado" ? "ganado_parcial" : etapa;
+        const siguenAqui = etapa === "ganado"
+          ? restantes.filter((deal) => esEtapaVendida(deal.etapa))
+          : restantes.filter((deal) => deal.etapa === objetivo && ETAPAS_ABIERTAS.includes(deal.etapa));
+        const siguenIds = new Set(siguenAqui.map((deal) => deal.id));
+        const perdidosAqui = restantes.filter((deal) => !siguenIds.has(deal.id));
+        return {
+          camino,
+          etapa,
+          llegaron: llegaron.length,
+          dealIds: ids(llegaron),
+          pasaron: pasaron.length,
+          pasaronDealIds: ids(pasaron),
+          siguenAqui: siguenAqui.length,
+          siguenAquiDealIds: ids(siguenAqui),
+          perdidosAqui: perdidosAqui.length,
+          perdidosAquiDealIds: ids(perdidosAqui),
+        };
+      }),
+    };
+  });
 }
 
 function lecturaConversion(
@@ -304,18 +374,19 @@ function calcularTiempos(
   historial: ReadonlyMap<string, readonly HistorialParaEmbudo[]>,
   rango: Rango,
 ): TiempoEnEtapa[] {
-  const acumulados = new Map<EtapaDeal, { dealId: string; ms: number; tramos: number }[]>();
+  const acumulados = new Map<EtapaDeal, { dealId: string; ms: number; diasHabiles: number; tramos: number }[]>();
   for (const deal of filasDeal) {
     const filas = historial.get(deal.id) ?? [];
     if (filas.length === 0) continue;
 
-    const porEtapa = new Map<EtapaDeal, { ms: number; tramos: number; ultimaSalida: Date | null; abierto: boolean }>();
+    const porEtapa = new Map<EtapaDeal, { ms: number; diasHabiles: number; tramos: number; ultimaSalida: Date | null; abierto: boolean }>();
     let etapaAbierta = filas[0]!.a;
     let inicio = filas[0]!.fecha;
     for (const fila of filas.slice(1)) {
       if (fila.a === etapaAbierta) continue;
-      const valor = porEtapa.get(etapaAbierta) ?? { ms: 0, tramos: 0, ultimaSalida: null, abierto: false };
+      const valor = porEtapa.get(etapaAbierta) ?? { ms: 0, diasHabiles: 0, tramos: 0, ultimaSalida: null, abierto: false };
       valor.ms += fila.fecha.getTime() - inicio.getTime();
+      valor.diasHabiles += Math.max(0, diasHabilesEntre(inicio, fila.fecha) - (esDiaHabil(inicio) ? 1 : 0));
       valor.tramos += 1;
       valor.ultimaSalida = fila.fecha;
       porEtapa.set(etapaAbierta, valor);
@@ -323,7 +394,7 @@ function calcularTiempos(
       inicio = fila.fecha;
     }
     if (deal.etapa === etapaAbierta) {
-      const valor = porEtapa.get(etapaAbierta) ?? { ms: 0, tramos: 0, ultimaSalida: null, abierto: false };
+      const valor = porEtapa.get(etapaAbierta) ?? { ms: 0, diasHabiles: 0, tramos: 0, ultimaSalida: null, abierto: false };
       valor.abierto = true;
       porEtapa.set(etapaAbierta, valor);
     }
@@ -333,7 +404,7 @@ function calcularTiempos(
       const diaSalida = diaDeCalendario(valor.ultimaSalida);
       if (diaSalida < rango.desde || diaSalida > rango.hasta) continue;
       const grupo = acumulados.get(etapa) ?? [];
-      grupo.push({ dealId: deal.id, ms: valor.ms, tramos: valor.tramos });
+      grupo.push({ dealId: deal.id, ms: valor.ms, diasHabiles: valor.diasHabiles, tramos: valor.tramos });
       acumulados.set(etapa, grupo);
     }
   }
@@ -347,9 +418,18 @@ function calcularTiempos(
       promedioDias: grupo.length === 0
         ? null
         : grupo.reduce((total, fila) => total + fila.ms, 0) / grupo.length / MS_POR_DIA,
+      medianaDiasHabiles: grupo.length < 5 ? null : mediana(grupo.map((fila) => fila.diasHabiles)),
       dealsConVariosTramos: grupo.filter((fila) => fila.tramos > 1).length,
     };
   });
+}
+
+function mediana(valores: readonly number[]): number {
+  const ordenados = [...valores].sort((a, b) => a - b);
+  const medio = Math.floor(ordenados.length / 2);
+  return ordenados.length % 2 === 0
+    ? (ordenados[medio - 1]! + ordenados[medio]!) / 2
+    : ordenados[medio]!;
 }
 
 /** Carga las filas del programa y delega todas las reglas al nucleo puro. */

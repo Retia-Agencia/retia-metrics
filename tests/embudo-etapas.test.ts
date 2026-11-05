@@ -151,6 +151,41 @@ describe("calcularEmbudoEtapas", () => {
     for (const paso of pasos) expect(paso.pasaron + paso.siguenAqui + paso.perdidosAqui + paso.otros).toBe(paso.llegaron);
   });
 
+  it("separa setter y llamada sin dejar deals fuera de pasaron, siguen o perdidos", () => {
+    const filas = [deal("avanza", "atendido"), deal("sigue", "agendado"), deal("pierde", "cierre_perdido")];
+    const historial = [
+      movimiento("01", "avanza", null, "en_gestion", "2026-09-01T12:00:00Z"),
+      movimiento("02", "avanza", "en_gestion", "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("03", "avanza", "agendado", "atendido", "2026-09-03T12:00:00Z"),
+      movimiento("04", "sigue", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("05", "pierde", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("06", "pierde", "agendado", "cierre_perdido", "2026-09-03T12:00:00Z"),
+    ];
+    const caminos = calcular(filas, historial).conversion.porCamino;
+    expect(caminos.map((camino) => camino.camino)).toEqual(["setter", "llamada"]);
+    for (const camino of caminos) {
+      for (const paso of camino.pasos) {
+        expect(paso.pasaron + paso.siguenAqui + paso.perdidosAqui).toBe(paso.llegaron);
+      }
+    }
+  });
+
+  it("solo publica la mediana de días hábiles con cinco deals o más", () => {
+    const filas = Array.from({ length: 6 }, (_, indice) => deal(`d${indice}`, "agendado"));
+    const historial = filas.flatMap((fila, indice) => [
+      movimiento(`e${indice}`, fila.id, null, "calificado", "2026-09-07T12:00:00Z"),
+      movimiento(`s${indice}`, fila.id, "calificado", "agendado", `2026-09-${String(8 + indice).padStart(2, "0")}T12:00:00Z`),
+    ]);
+    const tiempos = calcular(filas, historial).tiempoEnEtapa;
+    expect(tiempos.find((fila) => fila.etapa === "calificado")).toMatchObject({
+      deals: 6,
+      medianaDiasHabiles: 3.5,
+    });
+    expect(tiempos.find((fila) => fila.etapa === "agendado")!.medianaDiasHabiles).toBeNull();
+    expect(calcular(filas.slice(0, 4), historial.filter((fila) => !["d4", "d5"].includes(fila.dealId)))
+      .tiempoEnEtapa.find((fila) => fila.etapa === "calificado")!.medianaDiasHabiles).toBeNull();
+  });
+
   it("produce siempre los cuatro buckets en los limites 7/8, 30/31 y 90/91", () => {
     const enDias = (dias: number) => new Date(ahora.getTime() - dias * 86_400_000);
     const resultado = calcular([

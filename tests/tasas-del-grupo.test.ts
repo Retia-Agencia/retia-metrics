@@ -5,7 +5,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { embudoDelRango, embudoPorCloser } from "@/lib/queries/dashboard";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { armarVistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
-import { calcularTasasDelGrupo, pendientesDe, rangoMadurando, type CitaParaTasas } from "@/lib/queries/tasas-del-grupo";
+import { calcularTasasDelGrupo, pendientesDe, rangoMadurando, UMBRAL_SIN_MARCAR, type CitaParaTasas } from "@/lib/queries/tasas-del-grupo";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -215,6 +215,30 @@ describe("ticket 187: la cuenta pura", () => {
     expect(pendientesDe(grupo, "u2")).toHaveLength(1);
     expect(grupo.porCloser.get("u2")).toMatchObject({ deals: 0, pendientes: 1 });
     expect(grupo.tasas.pctShow! * grupo.tasas.pctCierre!).toBeCloseTo(grupo.tasas.agendaAVenta!);
+  });
+
+  it("informa cobertura parcial con dos deals marcados y uno sin marcar, también por closer", () => {
+    const grupo = calcularTasasDelGrupo({
+      citas: [
+        base({ callId: "s1", dealId: "show", resultado: "show" }),
+        base({ callId: "n1", dealId: "no-show", resultado: "no_show" }),
+        base({ callId: "p1", dealId: "pendiente", resultado: "agendada" }),
+      ],
+      rango: S1,
+      hoy: HOY,
+      ahora: AHORA,
+    });
+    expect(UMBRAL_SIN_MARCAR).toBe(0.1);
+    expect(grupo.tasas).toMatchObject({
+      deals: 2,
+      conShow: 1,
+      sinMarcar: 1,
+      pendientes: 1,
+      cobertura: 2 / 3,
+      parcial: true,
+      pctShow: 1 / 2,
+    });
+    expect(grupo.porCloser.get("u1")).toMatchObject({ sinMarcar: 1, cobertura: 2 / 3, parcial: true });
   });
 
   it("aún madurando cuando el rango terminó hace menos de 30 días", () => {

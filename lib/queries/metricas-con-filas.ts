@@ -38,6 +38,13 @@ import { categoriaDe } from "@/lib/queries/pauta-interina";
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { cargarRoasDePauta, filtrarEnviosDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
+import {
+  cargarEmbudoComercial,
+  esMetricaDelEmbudoComercial,
+  type MetricaDelEmbudoComercial,
+  type OrigenEmbudoComercial,
+  type PasoEmbudoComercial,
+} from "@/lib/queries/embudo-comercial";
 
 export type Metrica =
   | "caja"
@@ -67,6 +74,7 @@ export type Metrica =
   | MetricaDeGrupo
   | MetricaDeEmbudo
   | MetricaDeEmbudoFormulario
+  | MetricaDelEmbudoComercial
   | "pauta_meta"
   | "escalera";
 
@@ -76,7 +84,7 @@ export type Metrica =
  */
 export const METRICAS_DE_GRUPO = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"] as const;
 export type MetricaDeGrupo = (typeof METRICAS_DE_GRUPO)[number];
-type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | "escalera" | "pauta_meta">;
+type MetricaSql = Exclude<Metrica, MetricaDeGrupo | MetricaDeEmbudo | MetricaDeEmbudoFormulario | MetricaDelEmbudoComercial | "escalera" | "pauta_meta">;
 
 function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
   return (METRICAS_DE_GRUPO as readonly string[]).includes(metrica);
@@ -86,6 +94,7 @@ function esMetricaDeGrupo(metrica: Metrica): metrica is MetricaDeGrupo {
 export const METRICAS_SIN_CLOSER: readonly Metrica[] = [
   "leads", "deals_creados", "deals_que_agendaron", "deals_desde_completo", "deals_desde_parcial",
   "completos_que_agendaron", "parciales_que_agendaron", "agendas_creadas", "registros",
+  "embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron",
 ];
 /** Las métricas que son una foto de hoy: el periodo no las acota (las banderas del 191). */
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["atendidos_sin_valor", "atendidos_sin_grain"];
@@ -99,6 +108,8 @@ export interface FiltrosDeMetrica {
   moneda?: string;
   /** El filtro de cohorte del Hub (377): acota por `deals.cohort_id` el universo de toda métrica con deal. */
   cohorteId?: string | null;
+  /** Mitad opcional del embudo comercial; manual es el deal sin envío de origen. */
+  origenDeal?: OrigenEmbudoComercial;
   /** Instante compartido con el Inbox para decidir qué cita ya pasó. */
   ahora?: Date;
   /** Fecha de calendario que entrega hoyEnBogota(), nunca el reloj del navegador. */
@@ -810,6 +821,41 @@ async function leerMetricaDeEmbudo(
   return paginarOAgrupar(miembros.map((m) => filaDeDeal(m, filtros.hoy, personas)), pagina);
 }
 
+const PASO_POR_METRICA_COMERCIAL: Readonly<Record<MetricaDelEmbudoComercial, PasoEmbudoComercial>> = {
+  embudo_comercial_creados: "creados",
+  embudo_comercial_agendaron: "agendaron",
+  embudo_comercial_shows: "tuvieron_show",
+  embudo_comercial_compraron: "compraron",
+};
+
+async function leerMetricaDelEmbudoComercial(
+  metrica: MetricaDelEmbudoComercial,
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
+  const pasos = await cargarEmbudoComercial(db, alcance, filtros.origenDeal);
+  const ids = pasos.find((paso) => paso.paso === PASO_POR_METRICA_COMERCIAL[metrica])!.dealIds;
+  if (ids.length === 0) return [];
+  const filas = await db.select({
+    dealId: deals.id,
+    fecha: fechaAnclaDealCreado(),
+    closer: etiquetaDeCloserSql(),
+    claveCloser: claveCloserSql(users.id, users.closerId),
+    etapa: deals.etapa,
+  })
+    .from(deals)
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(eq(deals.programId, alcance.programId), inArray(deals.id, ids), vigente(deals)));
+  const personas = pagina === null ? new Map() : await personasDeDeals(db, alcance.programId, ids);
+  const miembros = filas
+    .map((fila) => filaDeDeal(fila, filtros.hoy, personas))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.id.localeCompare(b.id));
+  return paginarOAgrupar(miembros, pagina);
+}
+
 /**
  * Una página de filas ya ordenadas, o (`pagina === null`) el resumen agrupado por closer, etapa
  * y antigüedad, igual que el `GROUP BY` de las métricas SQL.
@@ -842,6 +888,7 @@ async function leerMetrica(
   if (metrica === "pauta_meta") return leerMetricaDePauta(alcance, filtros, pagina, db);
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
+  if (esMetricaDelEmbudoComercial(metrica)) return leerMetricaDelEmbudoComercial(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudoFormulario(metrica)) return leerMetricaNoAgendaron(alcance, filtros, pagina, db);
   if (metrica === "escalera") return leerMetricaDeEscalera(alcance, filtros, pagina, db);
   const resumen = pagina === null;

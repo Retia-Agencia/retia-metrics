@@ -395,9 +395,10 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   todavía (tabla `sobres_crudos`, ticket 106).
 - **Deal:** la oportunidad de venderle un programa a un lead. Tiene dueño, etapa, valor vendido y cohorte.
   Como máximo uno abierto por lead y programa.
-- **Deal desde un formulario completo / desde un parcial:** la mitad la decide el envío que abrió el deal
-  (`es_parcial`, ADR 0069). Un parcial casi nunca agenda, así que su tasa va aparte; un deal abierto a mano no
-  es de ninguna de las dos (ticket 372).
+- **Formulario completo:** la persona terminó el formulario.
+- **Deal desde un formulario completo / desde un parcial:** es completo si el lead tiene al menos un envío
+  completo del programa hasta el corte; es parcial si solo tiene envíos parciales. El orden en que llegaron no
+  cambia la clasificación. Un deal abierto a mano no es de ninguna de las dos (ticket 381).
 - **Abono adicional:** dinero vendido aparte del programa sobre un deal; suma a caja, pero no cambia su ticket, saldo ni etapa. Se registra en el mismo formulario que el abono del ticket, eligiendo primero "Servicio adicional", y pide anotar qué se vendió.
 - **Etapa:** en cuál de los once pasos está un deal (los del HubSpot de 30X). La escribe el CRM, siempre por
   el motor. *No confundir con el Pendiente ni con la Lead Quality del envío.*

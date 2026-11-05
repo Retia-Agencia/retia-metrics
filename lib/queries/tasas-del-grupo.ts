@@ -36,6 +36,7 @@ import type { Rango } from "@/lib/queries/dashboard";
 
 /** El valor por defecto de `programs.dias_para_madurar` (352, C-17): cada programa lleva el suyo. */
 export const DIAS_PARA_MADURAR = 30;
+export const UMBRAL_SIN_MARCAR = 0.1;
 
 /** Los dias de madurez del programa; sin fila (programa inexistente) cae al valor por defecto. */
 export async function diasParaMadurarDe(db: Db, programId: string): Promise<number> {
@@ -77,6 +78,10 @@ export interface TasasDelGrupo {
   /** Deals con show que hoy están vendidos. */
   vendidos: number;
   pendientes: number;
+  /** Citas pasadas que siguen sin resultado; nunca cuentan como no-show. */
+  sinMarcar: number;
+  cobertura: number | null;
+  parcial: boolean;
   pctShow: number | null;
   pctCierre: number | null;
   agendaAVenta: number | null;
@@ -96,14 +101,18 @@ function dividir(numerador: number, denominador: number): number | null {
   return denominador === 0 ? null : numerador / denominador;
 }
 
-function tasasDe(miembros: readonly MiembroDelGrupo[]): TasasDelGrupo {
+function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelGrupo {
   const conShow = miembros.filter((m) => m.conShow).length;
   const vendidos = miembros.filter((m) => m.conShow && m.vendido).length;
+  const universo = miembros.length + sinMarcar;
   return {
     deals: miembros.length,
     conShow,
     vendidos,
-    pendientes: 0,
+    pendientes: sinMarcar,
+    sinMarcar,
+    cobertura: dividir(miembros.length, universo),
+    parcial: dividir(sinMarcar, universo) !== null && sinMarcar / universo > UMBRAL_SIN_MARCAR,
     pctShow: dividir(conShow, miembros.length),
     pctCierre: dividir(vendidos, conShow),
     agendaAVenta: dividir(vendidos, miembros.length),
@@ -186,8 +195,7 @@ export function calcularTasasDelGrupo(args: {
   const porCloser = new Map([...agrupados].map(([clave, lista]) => {
     const pendientesDelCloser = pendientes.filter((m) => m.claveCloser === clave);
     return [clave, {
-      ...tasasDe(lista),
-      pendientes: pendientesDelCloser.length,
+      ...tasasDe(lista, pendientesDelCloser.length),
       closer: lista.length > 0 ? lista[0]!.closer : pendientesDelCloser[0]!.closer,
     }];
   }));
@@ -195,7 +203,7 @@ export function calcularTasasDelGrupo(args: {
   return {
     miembros,
     pendientes,
-    tasas: { ...tasasDe(miembros), pendientes: pendientes.length },
+    tasas: tasasDe(miembros, pendientes.length),
     porCloser,
     madurando: rangoMadurando(args.rango, args.hoy, args.diasParaMadurar),
   };
@@ -214,7 +222,7 @@ export function pendientesDe(grupo: GrupoDeCitas, claveCloser: string | null | u
 /** Las tasas del programa o, con clave, las del closer (ceros si no tiene grupo). */
 export function tasasDelAlcance(grupo: GrupoDeCitas, claveCloser: string | null | undefined): TasasDelGrupo {
   return claveCloser
-    ? { ...tasasDe(miembrosDe(grupo, claveCloser)), pendientes: pendientesDe(grupo, claveCloser).length }
+    ? tasasDe(miembrosDe(grupo, claveCloser), pendientesDe(grupo, claveCloser).length)
     : grupo.tasas;
 }
 
