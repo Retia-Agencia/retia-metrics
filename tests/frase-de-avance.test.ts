@@ -28,7 +28,7 @@ it("dice que ya llegó", () => {
 });
 
 it("dice sin meta", () => {
-  expect(fraseDeAvance(celda({ meta: null }), { cierre: "2026-11-20" })).toBe("Sin meta.");
+  expect(fraseDeAvance(celda({ meta: null }), { cierre: "2026-11-20" })).toBe("Sin objetivo.");
 });
 
 it("sin cierre conserva el ritmo y omite hasta cuándo", () => {

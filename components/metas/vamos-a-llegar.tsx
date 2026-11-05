@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BarraDeAvance } from "@/components/hub/barra-de-avance";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,19 +37,10 @@ function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
   </div>;
 }
 
-function BarraDeAvance({ celda }: { celda: CeldaDeMeta }) {
-  const meta = celda.meta ?? 1;
-  const avance = Math.min(Math.max(celda.llevamos / meta, 0), 1) * 100;
-  const esperado = celda.esperado === null ? null : Math.min(Math.max(celda.esperado / meta, 0), 1) * 100;
-  return <div
-    className="relative h-2 overflow-hidden rounded-full bg-muted"
-    role="progressbar"
-    aria-valuenow={Math.round(celda.llevamos)}
-    aria-valuemax={Math.round(celda.meta ?? Math.max(celda.llevamos, 1))}
-  >
-    <div className={`h-full ${TONO_DE_BARRA[celda.tono]}`} style={{ width: `${avance}%` }} />
-    {esperado === null ? null : <div className="absolute inset-y-0 w-px bg-foreground" style={{ left: `${esperado}%` }} />}
-  </div>;
+function BarraDeLaCelda({ celda }: { celda: CeldaDeMeta }) {
+  // Sin objetivo no hay a qué medir la barra: no se dibuja.
+  if (celda.meta === null) return null;
+  return <BarraDeAvance llevamos={celda.llevamos} objetivo={celda.meta} esperado={celda.esperado} tono={TONO_DE_BARRA[celda.tono]} />;
 }
 
 function DetalleDeCelda({ celda, unidad, conProyeccion }: {
@@ -78,7 +70,7 @@ function Fila({ titulo, cierre, cuadrante, href, conProyeccion, aviso }: {
   const frase = fraseDeAvance(cuadrante.cupos, { cierre });
   return <section aria-label={titulo} className="space-y-3">
     <h3 className="text-sm font-medium">{titulo}</h3>
-    <BarraDeAvance celda={cuadrante.cupos} />
+    <BarraDeLaCelda celda={cuadrante.cupos} />
     <div>
       {href ? <Link className="font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring" href={href}>{frase}</Link> : <p className="font-medium">{frase}</p>}
     </div>
@@ -86,13 +78,10 @@ function Fila({ titulo, cierre, cuadrante, href, conProyeccion, aviso }: {
     {cuadrante.ventasSinValorVendido > 0
       ? <Badge variant="alerta">{num(cuadrante.ventasSinValorVendido)} sin valor vendido: el total está incompleto</Badge>
       : null}
-    <details className="text-sm">
-      <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">Ver detalle</summary>
-      <div className="grid gap-4 pt-2 sm:grid-cols-2">
-        <DetalleDeCelda celda={cuadrante.cupos} unidad="cupos" conProyeccion={conProyeccion} />
-        <DetalleDeCelda celda={cuadrante.usd} unidad="usd" conProyeccion={conProyeccion} />
-      </div>
-    </details>
+    <div className="grid gap-4 rounded-lg bg-muted p-3 text-sm sm:grid-cols-2">
+      <DetalleDeCelda celda={cuadrante.cupos} unidad="cupos" conProyeccion={conProyeccion} />
+      <DetalleDeCelda celda={cuadrante.usd} unidad="usd" conProyeccion={conProyeccion} />
+    </div>
   </section>;
 }
 
@@ -110,7 +99,7 @@ export function VamosALlegarVista({ datos, props }: { datos: DatosVamosALlegar; 
   return <Card data-testid="vamos-a-llegar">
     <CardHeader className="space-y-1">
       <CardTitle>¿Vamos a llegar?{conNombre ? ` · ${programa.nombre}` : ""}</CardTitle>
-      <p className="text-sm text-muted-foreground">Mes de {mesNombre}{datos.cohorte ? ` y cohorte ${datos.cohorte.codigo}` : ""} · no cambia con los filtros</p>
+      <p className="text-sm text-muted-foreground">Mes de {mesNombre}{datos.cohorte ? ` y cohorte ${datos.cohorte.codigo}` : ""} · no cambia con los filtros ni con la fecha</p>
     </CardHeader>
     <CardContent className="space-y-6">
       <Fila titulo={`Mes de ${mesNombre}`} cierre={datos.mes.cierre} cuadrante={datos.mes.cuadrante} href={hrefMes} conProyeccion={false} aviso={datos.mes.sinMeta ? configurarLink : null} />

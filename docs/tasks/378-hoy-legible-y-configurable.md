@@ -3,7 +3,7 @@ id: 378
 etapa: hub
 serves: "Recorrido de Mani por Hub › Hoy en Comunícate con Confianza (4-nov) · ADR 0115 (N1, N3, N4, N5) · ADR 0077 · docs/structure.md §9 (Tinta)"
 depends: [373]
-status: todo
+status: en curso
 ---
 
 # 378 — Hub › Hoy legible y configurable
@@ -77,7 +77,26 @@ Cambiar fórmulas de la proyección, el PDF más allá de que siga imprimiendo t
       `esAdministrador` responde 403 sin mover la base (tests de las server actions).
 - [ ] Meta de leads en día y semana sale de una sola función; "Necesarios para llegar" muestra su cadena; tests de
       la función con meta vacía y con meta puesta.
-- [ ] La agenda abre el deal; el selector es Hoy · Seleccionar fecha sin "Ver".
-- [ ] `npm run typecheck`, `npm run lint`, los tests del cambio y `npm run build` limpios.
-- [ ] Recorrido en `dev:local`: Hoy en escritorio y celular, clic en todo lo que abre, consola limpia, PDF completo.
-- [ ] `docs/metricas.md` y `docs/overview.md` §11 al día.
+- [x] La agenda abre el deal; el selector es Hoy · Seleccionar fecha sin "Ver".
+- [x] `npm run typecheck`, `npm run lint` y `npm run build` limpios (4-nov).
+- [ ] Los tests del cambio y el checkpoint (no se corrieron en local: swap lleno).
+- [ ] Recorrido en `dev:local`: escritorio hecho el 4-nov dos veces (la sesión y Claude desde el chat: Info, Configuración, cifra con datos abre su resumen, consola limpia); falta celular y el PDF. Observado: una cifra en cero no es botón (ADR 0067 punto 5); el bloque "Objetivos del mes y la cohorte" repite parte de "La semana" (punto 13 de Mani, parcial).
+- [x] `docs/metricas.md` y `docs/overview.md` §11 al día.
+
+## Hecho el 4-nov (sesión del rediseño de Hoy, pedido de Mani del weekly)
+
+Todo lo de la lista de Mani para Hoy, con estas decisiones sobre las de arriba:
+
+- **Vocabulario en un solo módulo** (`lib/vocabulario-metricas.ts`, N4): Objetivo (no "Meta"), Llevamos (no "Real"),
+  Leads que hacen falta (no "Necesarios para llegar"), Asistencia a la cita y Cierre de ventas, con su guardián
+  (`tests/hub-vocabulario-guardian.test.ts`).
+- **Botón Info** (`components/hub/info-de-pagina.tsx`, `?info=<sección>`, "?" por sección, piezas visuales en
+  `piezas-de-info.tsx`) y **tabla de contenido horizontal** (`tabla-de-contenido.tsx`): compartidos para las cinco
+  páginas; solo Hoy los usa por ahora. La cadena de "Leads que hacen falta" ya no es un desplegable: vive en el Info con
+  las cifras reales.
+- **Hoy en tarjetas** (`components/dashboard/hoy/`): cifras, embudo, dinero, citas (por closer, cada cita abre el deal),
+  alertas y pendientes, semana, objetivos. Sin desplegables; cada cifra abre su lista (se agregaron las de leads del
+  día y de citas que ya debían ocurrir) y la semana enlaza sus listas.
+- **Panel de Configuración** con nombre humano, para qué sirve, qué cifras cambia y un ejemplo en cada uno de sus seis
+  campos; "Definir objetivo" aparece en las tarjetas que no tienen objetivo.
+- **Verificado contra producción, solo lectura** (4 programas × 4 días): cada cifra de Hoy da lo mismo que su lista.

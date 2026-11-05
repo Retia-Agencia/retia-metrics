@@ -3,7 +3,7 @@ import type { CeldaDeMeta } from "@/lib/queries/vamos-a-llegar";
 
 /** Traduce una celda de cupos a la frase que se puede leer de corrido. */
 export function fraseDeAvance(celda: CeldaDeMeta, { cierre }: { cierre: string | null }): string {
-  if (celda.meta === null) return "Sin meta.";
+  if (celda.meta === null) return "Sin objetivo.";
   const llevamos = Math.round(celda.llevamos);
   const meta = Math.round(celda.meta);
   if (celda.llevamos >= celda.meta) return `Ya llegaste: ${num(llevamos)} de ${num(meta)} cupos.`;

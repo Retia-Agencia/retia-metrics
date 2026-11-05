@@ -14,19 +14,18 @@ export function Alertas({
   alertas,
   slug,
   configurable = true,
+  sinTarjeta = false,
 }: {
   alertas: Alerta[];
   slug: string;
   /** Sin él (paid trafficker, ticket 102) no se ofrece el enlace a Programa. */
   configurable?: boolean;
+  /** Dentro de otra tarjeta (Hoy › Alertas y pendientes): el contenido va sin marco propio. */
+  sinTarjeta?: boolean;
 }) {
   const configurar = `/p/${encodeURIComponent(slug)}/programa?seccion=ventas`;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Alertas por persistencia</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+  const cuerpo = (
+    <>
         {alertas.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             Sin umbrales activos en este programa.
@@ -73,7 +72,15 @@ export function Alertas({
           Cumplimiento al cierre de cada día hábil ya terminado: lo vendido hasta ese día contra lo esperado hasta
           ese día. Hoy no cuenta todavía. Un día sin ventana de venta corta la racha.
         </p>
-      </CardContent>
+    </>
+  );
+  if (sinTarjeta) return <div className="space-y-4 border-t pt-3"><h4 className="text-sm font-medium">Alertas por persistencia</h4>{cuerpo}</div>;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Alertas por persistencia</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">{cuerpo}</CardContent>
     </Card>
   );
 }

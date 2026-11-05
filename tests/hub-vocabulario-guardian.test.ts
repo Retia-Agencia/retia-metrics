@@ -8,7 +8,7 @@ import { JERGA_PROHIBIDA_EN_EL_HUB, VOCABULARIO, rotuloDeImporte } from "@/lib/v
  * de JSX o un literal que no es un código de una sola palabra en minúsculas (`"macro"`, `"con_utm"` son
  * valores del código, no pantalla). Mordido en los dos sentidos abajo.
  */
-const CARPETAS = ["components/cifra-con-lista.tsx", "components/selector-periodo.tsx", "components/variacion.tsx", "components/pauta-roas.tsx", "components/pauta-interina.tsx", "app/(app)/hub", "app/(app)/p/[programa]/hub", "components/dashboard"];
+const CARPETAS = ["components/cifra-con-lista.tsx", "components/selector-periodo.tsx", "components/variacion.tsx", "components/pauta-roas.tsx", "components/pauta-interina.tsx", "app/(app)/hub", "app/(app)/p/[programa]/hub", "components/dashboard", "components/metas", "components/hub"];
 
 function archivos(dir: string): string[] {
   if (statSync(dir).isFile()) return [dir];
@@ -55,6 +55,13 @@ describe("el Hub habla un solo idioma (374)", () => {
   it("no marca la solución: códigos internos, comentarios y el vocabulario", () => {
     expect(jergaEn(`const c = "macro"; const k = "con_utm"; // Monto, utm_ y macro en un comentario`)).toEqual([]);
     expect(jergaEn(`<th>{rotuloDeImporte(metrica)}</th><p>Vendido y Recaudado</p>`)).toEqual([]);
+  });
+
+  it("Meta sola no se dice: es Objetivo (378)", () => {
+    expect(jergaEn(`<h3>Meta del mes</h3>`)).not.toEqual([]);
+    expect(jergaEn(`<p>Necesarios para llegar</p>`)).not.toEqual([]);
+    expect(jergaEn(`<h3>Objetivo del mes</h3><p>Leads que hacen falta</p>`)).toEqual([]);
+    expect(VOCABULARIO.meta.corto).toBe("Objetivo");
   });
 
   it("el vocabulario no usa palabras prohibidas y el importe nunca es Monto", () => {

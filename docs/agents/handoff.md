@@ -27,6 +27,21 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-04: Weekly con Daniel y Hub › Hoy rediseñado (ticket 378).** Prioridades del weekly: atacar el Hub página
+  por página y dejarlo pulido; éxito = datos reales, consultas estandarizadas y sin huecos, y trazabilidad (toda cifra
+  abre su pop-up o lista). El plan quedó en `lo-que-toca-hacer.md` (raíz) y la transcripción en
+  `docs/reportes/weekly-2026-11-04-transcripcion.md`. **Hecho en Hoy:** vocabulario en un solo módulo
+  (`lib/vocabulario-metricas.ts`: Objetivo con apellido, Llevamos, Leads que hacen falta, Asistencia a la cita, Cierre
+  de ventas; "Meta" queda solo para Meta Ads); botón Info con anclas y tabla de contenido horizontal
+  (`components/hub/`, compartidos para las cinco páginas, solo Hoy los usa); Hoy en tarjetas sin desplegables
+  (`components/dashboard/hoy/`); panel de Configuración con los seis campos explicados (nombre, para qué, qué cifras
+  cambia, ejemplo, de dónde sale el valor); cifras de leads y de citas debidas abren lista. **Verificado:** typecheck,
+  lint, build, 205 tests de 7 archivos (reporte de la sesión hub-hoy) y cifras contra producción en solo lectura;
+  recorrido visual en `dev:local` el 4-nov (Info, Configuración, cifra con datos abre su resumen, consola limpia).
+  **Pendiente:** celular, PDF de Hoy, checkpoint verde, el punto 13 de Mani queda parcial ("Objetivos del mes y la
+  cohorte" repite parte de "La semana"), y las otras cuatro páginas (Comercial, Dinero, Pauta, Origen) con el mismo
+  ciclo. **Ojo:** una cifra sin filas no se pinta clicable (ADR 0067 punto 5), así que en un día en cero "Cupos
+  vendidos" y "Leads de hoy" no son botones; si Mani quiere que lo sean aun en cero hay que enmendar ese punto.
 - **2026-11-03: PUSH-1 decidido, solo documentación.** Se leyó el PDF de 30X (Instructivo del Confirmador v3.3) y el
   playbook que Juanito ya corre en 30X (§18.CU). Decisiones de Mani en `docs/plan.md` §7 PUSH-1: el playbook de Juanito
   (link al closer, nunca al lead), sin venta cruzada, la confirmación entra al CRM (343) antes de prender nada en Retia,

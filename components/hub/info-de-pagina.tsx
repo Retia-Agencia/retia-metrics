@@ -1,0 +1,103 @@
+"use client";
+
+import { useCallback, useEffect, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { CircleHelpIcon, InfoIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+
+/**
+ * El botón "Info" de cada página del Hub (Mani, 4-nov): arriba a la derecha, abre un panel con UNA tarjeta
+ * visual por sección y cómo se calcula lo que hay en ella. El estado vive en la URL (`?info=<sección>`),
+ * así que un enlace abre el panel en su apartado y el "?" de cada sección es solo otro enlace al mismo lugar.
+ * Lo usan las cinco páginas del Hub; cada una pasa sus propias secciones.
+ */
+export interface SeccionDeInfo {
+  id: string;
+  titulo: string;
+  contenido: ReactNode;
+}
+
+const PARAMETRO = "info";
+
+function useInfoEnLaUrl() {
+  const router = useRouter();
+  const ruta = usePathname();
+  const parametros = useSearchParams();
+  const actual = parametros.get(PARAMETRO);
+  const cambiar = useCallback((valor: string | null) => {
+    const q = new URLSearchParams(parametros.toString());
+    if (valor === null) q.delete(PARAMETRO);
+    else q.set(PARAMETRO, valor);
+    const texto = q.toString();
+    router.replace(texto ? `${ruta}?${texto}` : ruta, { scroll: false });
+  }, [parametros, router, ruta]);
+  return { actual, cambiar };
+}
+
+export function InfoDePagina({ titulo, secciones }: { titulo: string; secciones: SeccionDeInfo[] }) {
+  const { actual, cambiar } = useInfoEnLaUrl();
+  const abierto = actual !== null;
+
+  useEffect(() => {
+    if (!abierto) return;
+    // El panel se pinta en un portal: se espera un cuadro para que la sección exista.
+    const temporizador = window.setTimeout(() => {
+      document.getElementById(`info-${actual}`)?.scrollIntoView({ block: "start" });
+    }, 60);
+    return () => window.clearTimeout(temporizador);
+  }, [abierto, actual]);
+
+  return (
+    <>
+      <Button type="button" size="sm" variant="outline" className="print:hidden" onClick={() => cambiar(secciones[0]?.id ?? "")}>
+        <InfoIcon className="size-4" aria-hidden="true" /> Info
+      </Button>
+      <Dialog open={abierto} onOpenChange={(abrir) => { if (!abrir) cambiar(null); }}>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl gap-0 overflow-y-auto p-0">
+          <div className="sticky top-0 z-10 space-y-2 border-b bg-card p-4 pr-12">
+            <DialogTitle>{titulo}</DialogTitle>
+            <DialogDescription className="sr-only">Qué hay en esta página y cómo se calcula cada cifra.</DialogDescription>
+            <nav aria-label="Secciones de la ayuda" className="flex flex-wrap gap-1.5">
+              {secciones.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => cambiar(s.id)}
+                  aria-current={actual === s.id ? "true" : undefined}
+                  className={`rounded-full px-2.5 py-1 text-xs outline-none transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-ring ${actual === s.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"}`}
+                >
+                  {s.titulo}
+                </button>
+              ))}
+            </nav>
+          </div>
+          <div className="space-y-4 p-4">
+            {secciones.map((s) => (
+              <section key={s.id} id={`info-${s.id}`} className="scroll-mt-40 space-y-3 rounded-xl border p-4">
+                <h3 className="text-sm font-semibold">{s.titulo}</h3>
+                {s.contenido}
+              </section>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+/** El "?" de una sección: abre el Info directo en su apartado. No se imprime. */
+export function AyudaDeSeccion({ seccion, etiqueta }: { seccion: string; etiqueta: string }) {
+  const { cambiar } = useInfoEnLaUrl();
+  return (
+    <button
+      type="button"
+      onClick={() => cambiar(seccion)}
+      aria-label={`Cómo se calcula: ${etiqueta}`}
+      title={`Cómo se calcula: ${etiqueta}`}
+      className="inline-grid size-5 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring print:hidden"
+    >
+      <CircleHelpIcon className="size-4" aria-hidden="true" />
+    </button>
+  );
+}

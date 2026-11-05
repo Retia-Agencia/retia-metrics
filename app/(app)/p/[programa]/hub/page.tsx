@@ -7,7 +7,7 @@ import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
 import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { Origen } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
-import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
+import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
 import { buttonVariants } from "@/components/ui/button";
@@ -120,7 +120,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     {
       id: "hoy",
       etiqueta: "Hoy",
-      descripcion: "¿Vamos a llegar? Meta del mes, ventas, caja y lo que pide atención.",
+      descripcion: "¿Vamos a llegar? Objetivo del mes, ventas, caja y lo que pide atención.",
       href: urlConSeccion(base, busqueda, "hoy"),
     },
     {
@@ -204,7 +204,25 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     : null;
   const configuracionDeHoy = esHoy && configurar ? await leerConfiguracionDeHoy(programa.id) : null;
   const datosConfiguracionHoy = configuracionDeHoy
-    ? { ...configuracionDeHoy, slug: programa.slug, ritmo: ventanaRitmo }
+    ? {
+        ...configuracionDeHoy,
+        slug: programa.slug,
+        ritmo: ventanaRitmo,
+        // Los números vivos para los ejemplos del panel: salen de la misma proyección que pinta Hoy.
+        vivo: {
+          faltan: vistaDeHoy!.proyeccion.faltan,
+          diasHabilesRestantes: vistaDeHoy!.proyeccion.diasHabilesRestantes,
+          ventasPorDia: vistaDeHoy!.proyeccion.ventasRequeridasDia.valor,
+          leadsPorDia: vistaDeHoy!.proyeccion.leadsRequeridosDia.valor,
+          pctCierre: vistaDeHoy!.proyeccion.supuestos.conversion.pctCierre,
+          pctShow: vistaDeHoy!.proyeccion.supuestos.conversion.pctShow,
+          objetivoAgendaAVenta: vistaDeHoy!.proyeccion.supuestos.conversion.objetivoAgendaAVenta,
+          citasPorLead: vistaDeHoy!.proyeccion.supuestos.agendasPorRegistro,
+          origenDeLaTasa: vistaDeHoy!.proyeccion.supuestos.conversion.origen === "cohorte_anterior" ? "cohorte anterior" : vistaDeHoy!.proyeccion.supuestos.conversion.origen === "cohorte_en_curso" ? "cohorte en curso" : "sin medición suficiente",
+          personasConCita: vistaDeHoy!.proyeccion.supuestos.conversion.muestra?.personas ?? null,
+          asistentes: vistaDeHoy!.proyeccion.supuestos.conversion.muestra?.shows ?? null,
+        },
+      }
     : null;
 
   // Solo se calcula lo de la pestaña activa (ticket 197 §5): a esta escala el ahorro no
@@ -231,6 +249,24 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         claveCloser: null,
         origen,
       }))
+    : undefined;
+  // Las listas de las cifras de Hoy que no están en el tablero (378): los leads del día y las citas que ya
+  // debían ocurrir (el denominador de la asistencia), y los enlaces de lo que llevamos en la semana.
+  const periodoDelDia = { preset: "custom" as const, a: { desde: diaDelReporte, hasta: diaDelReporte }, b: null };
+  const semanaDelReporte = rangoDeLaSemanaDelReporte(diaDelReporte);
+  const periodoDeLaSemana = { preset: "custom" as const, a: semanaDelReporte, b: null };
+  const listasDeHoy = esHoy
+    ? {
+        detalleRegistros: proyectar(await detalleDeCifra("registros", { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen })),
+        detalleCitasDebidas: proyectar(await detalleDeCifra("citas_debidas", { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen })),
+        enlacesDeLaSemana: veEquipo
+          ? {
+              cupos: urlDeLista({ slug, metrica: "cierres", periodo: periodoDeLaSemana, origen }),
+              leads: urlDeLista({ slug, metrica: "registros", periodo: periodoDeLaSemana, origen }),
+              asistencia: urlDeLista({ slug, metrica: "citas_debidas", periodo: periodoDeLaSemana, origen }),
+            }
+          : undefined,
+      }
     : undefined;
 
   // Comercial (372): los deals partidos por origen y los registros, una vez, para la tabla y el embudo.
@@ -405,6 +441,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                     { programId: programa.id, slug, hoy: hoyDeLaPestana, periodo: vista.periodo, cohorteId, origen },
                     vista.comparativo.map((fila) => fila.clave),
                   ) : undefined,
+                  ...listasDeHoy,
                 }]}
                 dia={diaDelReporte}
                 hoy={hoy}
@@ -418,11 +455,9 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
                 // sin él (paid trafficker) las cifras salen como texto.
                 metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} origen={origen} conListas={veEquipo} configurar={configurar} />}
-                agendaDeHoy={vistaDeHoy!.agendaDeHoy}
-                citasDeManana={vistaDeHoy!.citasDeManana}
-                corte={vistaDeHoy!.corte}
                 detalleManana={detalleManana}
                 configuracion={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} /> : undefined}
+                definirObjetivo={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} enlace /> : undefined}
               />
             </>
           )}
@@ -585,7 +620,7 @@ async function SeccionMetas({
   return (
     <section id="metas" className="scroll-mt-4 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">Metas de {nombreDelMes(mes)}</h2>
+        <h2 className="text-xl font-semibold">Objetivos de {nombreDelMes(mes)}</h2>
         <nav aria-label="Cambiar mes" className="flex items-center gap-2">
           <Link className={cn(buttonVariants({ variant: "ghost", size: "sm" }))} href={hrefMes(anterior)}>← {nombreDelMes(anterior)}</Link>
           <Link className={cn(buttonVariants({ variant: "ghost", size: "sm" }))} href={hrefMes(siguiente)}>{nombreDelMes(siguiente)} →</Link>

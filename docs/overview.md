@@ -425,11 +425,18 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   abonado a esas ventas a hoy; Por cobrar, lo que falta (Vendido − Recaudado, venta por venta). **Entró a caja** es otra
   pregunta: los abonos con fecha en el periodo, de cualquier venta, por moneda y sin convertir. *Evitar: "Monto", "Contratado".* El vocabulario completo del Hub vive en
   `lib/vocabulario-metricas.ts`.
-- **Meta de leads:** cuántos leads por día hábil declara el negocio en la cohorte (`meta_leads_dia`). Si no está
-  configurada se muestra **—**. Es la misma en El día y La semana; *no confundir con Necesarios para llegar*.
-- **Necesarios para llegar:** cuántos leads por día calcula la proyección para alcanzar la meta de cupos con los días
-  y conversiones disponibles. Siempre muestra la cadena y el origen de sus supuestos. Es un requerido calculado, no
-  una meta.
+- **Objetivo:** lo que la empresa quiere lograr. Siempre con su apellido: **Objetivo del día, de la semana, del mes, de la
+  cohorte** (cupos) y **Objetivo de leads** por día. *"Meta" sola no se dice en pantalla (378, 4-nov): se confundía con
+  la plataforma de pauta y con el objetivo; Meta queda solo para Meta Ads.*
+- **Objetivo de leads:** cuántos leads por día hábil declara el negocio en la cohorte (`meta_leads_dia`). Si no está
+  configurado se muestra **—** y la tarjeta ofrece definirlo. Es el mismo en El día y La semana (`metaDeLeads`); *no
+  confundir con Leads que hacen falta*.
+- **Leads que hacen falta:** cuántos leads por día calcula la proyección para alcanzar el objetivo de cupos con los
+  días y conversiones disponibles. Su cadena (cupos que faltan ÷ días hábiles ÷ cierre ÷ asistencia ÷ citas por lead)
+  y el origen de cada tasa viven en el Info de Hoy. Es un requerido calculado, no un objetivo. *Antes: "Necesarios para llegar".*
+- **Llevamos:** lo acumulado desde que empezó el periodo hasta hoy; llena la barra de avance. *Antes: "Real".*
+- **Asistencia a la cita (show):** citas realizadas ÷ citas que ya debían ocurrir; siempre con su cuenta a la vista
+  ("18 de 39"). **Cierre de ventas:** asistentes que compraron ÷ asistentes.
 - **Corregir etapa:** cambiar la etapa a cualquiera de los destinos permitidos sin inventar un resultado de negocio.
   No entra a Ganado ni a Cierre perdido, y no sale de una etapa ganada; esos cambios se hacen sobre el abono, la
   cortesía o el cierre que los causó.

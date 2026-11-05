@@ -373,7 +373,7 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 - **D3, leads.** Registros del día (§1.1, envíos completos, igual a Typeform) sin meta hasta el 253: excepción
   temporal al ADR 0086 punto 3, que el 253 cierra. Una persona que aplica dos veces son dos registros.
 - **D4, caja.** Por moneda, partida en ventas de hoy y ventas anteriores; los nombres están en la lista de la cifra.
-- **Meta del día.** Lo que faltaba **al abrir hoy** (meta menos lo vendido hasta ayer) ÷ días hábiles de venta que
+- **Objetivo del día** (antes "Meta del día"). Lo que faltaba **al abrir hoy** (meta menos lo vendido hasta ayer) ÷ días hábiles de venta que
   quedan contando hoy (`metaDeHoy`). **No descuenta las ventas de hoy** (DA-5, Mani, 3-nov, que reemplaza la regla
   anterior): si las descontara, vender 4 contra una meta de 2 daba un cumplimiento de 333 %. El último día hábil
   da el faltante entero, y es la misma cifra que "ventas requeridas por día" de la Proyección. La meta de hoy de
@@ -384,7 +384,7 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
 | Fila del reporte | En Hoy | Función | Fecha | Universo |
 |---|---|---|---|---|
 | Semana día X de 5 · mes día X de N hábiles · corte día X de N | Línea de contexto | `contextoDelDia` | el día | lunes a viernes; la cohorte, de su ventana de ventas |
-| Cupos del día: meta, real, cumplimiento | Cupos › Hoy | `horizontesDeCupos` (meta: `vistaDeCohorteActiva`) | venta (§1.4) | meta dinámica de la cohorte activa; real = ventas del día |
+| Cupos del día: objetivo, llevamos, avance | Cupos › Hoy | `horizontesDeCupos` (meta: `vistaDeCohorteActiva`) | venta (§1.4) | meta dinámica de la cohorte activa; real = ventas del día |
 | Leads del día: meta, real, cumplimiento | Leads de hoy, sin meta | `agrupar` de `hechos/envio.ts` | envío (§1.1) | registros completos del programa |
 | Agendas reales | Citas de hoy + Canceladas aparte | `embudoDelRango.agendas`, `canceladas` | cita (§1.3) | llamadas vigentes con cita ese día; Citas excluye canceladas |
 | (no estaba) | Agendas creadas hoy | `agrupar` de `hechos/agenda.ts` | creación (§1.2) | llamadas vigentes creadas ese día |

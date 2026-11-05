@@ -186,6 +186,12 @@ export async function desgloseDeCaja({ programId, dia }: { programId: string; di
   }).sort((a, b) => a.moneda.localeCompare(b.moneda) || (a.persona ?? "").localeCompare(b.persona ?? "", "es"));
 }
 
+/** La semana (lunes a viernes) del día del reporte, hasta ese día: la misma de la línea de contexto y de sus listas. */
+export function rangoDeLaSemanaDelReporte(dia: string): { desde: string; hasta: string } {
+  const diaDeLaSemana = new Date(`${dia}T00:00:00Z`).getUTCDay();
+  return { desde: sumarDias(dia, diaDeLaSemana === 0 ? -6 : 1 - diaDeLaSemana), hasta: dia };
+}
+
 /**
  * Un día entero del reporte para UN programa. `dia` es de Bogotá; un día futuro lo rechaza el llamador
  * (`resolverDiaDelReporte`), aquí se asume válido.
@@ -195,10 +201,7 @@ export async function armarReporteDiario(
   db: Db = dbDeLaApp,
 ) {
   const base = await armarVistaDeHoy({ programId, dia, ventanaRitmo }, db);
-  // La semana (lunes a viernes) del día del reporte, hasta ese día: la misma que la línea de contexto.
-  const diaDeLaSemana = new Date(`${dia}T00:00:00Z`).getUTCDay();
-  const lunes = sumarDias(dia, diaDeLaSemana === 0 ? -6 : 1 - diaDeLaSemana);
-  const rangoDeLaSemana = { desde: lunes, hasta: dia };
+  const rangoDeLaSemana = rangoDeLaSemanaDelReporte(dia);
   const [filasDeVentas, caja, motivosPorLlamada, enviosPorArea, enviosDeLaSemana, showDeLaSemana] = await Promise.all([
     todasLasFilas("cierres", programId, dia, base.corte, db),
     desgloseDeCaja({ programId, dia }, db),
