@@ -1,10 +1,9 @@
-import { CifraConLista } from "@/components/cifra-con-lista";
 import { Grafica } from "@/components/graficas/grafica";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { fecha, num, pct } from "@/lib/format";
+import { fecha, num } from "@/lib/format";
 import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
 import { descripcionDeComparacion } from "@/lib/periodo";
-import { pctDealsQueAgendaron, type PuntoHabil } from "@/lib/queries/deals-contra-agendas";
+import type { PuntoHabil } from "@/lib/queries/deals-contra-agendas";
 import {
   configDeGraficaEnOrigen,
   etiquetaDeTramo,
@@ -14,11 +13,9 @@ import {
   valoresDeAcumulado,
 } from "@/lib/series-pasos";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
-import { cambioDeTasaEnPalabras, cambioEnPalabras } from "@/lib/variacion";
-import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
-import { nombreLargo } from "@/lib/vocabulario-metricas";
+import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 
-const TITULO = "Deals creados contra agendas";
+const TITULO = "¿Generamos deals que agendan?";
 
 /**
  * La gráfica del ticket 138: acumulado de deals creados y agendas creadas, A contra B al mismo día
@@ -28,12 +25,10 @@ const TITULO = "Deals creados contra agendas";
  */
 export function DealsContraAgendas({
   vista,
-  contexto,
   origen,
   hoy,
 }: {
   vista: VistaDealsContraAgendas;
-  contexto?: string;
   /** Con URL se ofrecen Paso y Forma (370); sin ella, la vista de todos queda acumulada por hábil. */
   origen?: string;
   hoy?: string;
@@ -42,21 +37,16 @@ export function DealsContraAgendas({
     return (
       <Card aria-labelledby="deals-contra-agendas">
         <CardHeader>
-          <CardTitle id="deals-contra-agendas">{TITULO}</CardTitle>
-          <CardDescription>
-            Es del programa, no de un closer: quita el filtro de closer para verla.
-          </CardDescription>
+          <CardTitle id="deals-contra-agendas" className="flex items-center gap-1.5">{TITULO}<EnlaceAInfo seccion="deals-agendas" etiqueta={TITULO} /></CardTitle>
+          <CardDescription>Disponible solo sin filtro de closer.</CardDescription>
         </CardHeader>
       </Card>
     );
   }
 
-  const { periodo, nota, a, b, detalles, porOrigen } = vista;
-  const finalA = a.puntos.at(-1);
-  const hayComparacion = b != null;
+  const { periodo, nota, a, b } = vista;
   // B se lee al mismo día hábil que A (ADR 0067): más allá sería comparar contra un futuro.
   const puntosB = b?.puntos.slice(0, a.puntos.length) ?? [];
-  const finalB = puntosB.at(-1);
   // Paso y Forma (370). Por defecto, por paso: la actividad se lee como "cuántos entraron en cada tramo".
   const config = origen
     ? configDeGraficaEnOrigen(origen, "deals-agendas", {
@@ -77,172 +67,17 @@ export function DealsContraAgendas({
   const etiquetas = tramos.map(etiquetaDeTramo);
   const valoresDe = (puntos: PuntoHabil[], campo: (p: PuntoHabil) => number) =>
     valoresDeAcumulado(a.puntos.map((_, i) => (puntos[i] ? campo(puntos[i]) : null)), indices, config.forma);
-  const tasaDe = (puntos: PuntoHabil[]) => {
-    const deals = valoresDe(puntos, (p) => p.deals);
-    const agendaron = valoresDe(puntos, (p) => p.agendaron);
-    return deals.map((d, i) => (d === null || agendaron[i] === null ? null : pctDealsQueAgendaron(agendaron[i]!, d)));
-  };
   const forma = config.forma === "acum" ? "acumulado" : `por ${config.paso === "dia" ? "día hábil" : config.paso}`;
-  const rangoDe = (r: { desde: string; hasta: string }) => `${fecha(r.desde)} a ${fecha(r.hasta)}`;
-  const deals = finalA?.deals ?? 0;
-  // Cada mitad con sus propios deals: la tasa de una no se mezcla con la de la otra (N2, ticket 372).
-  const mitad = (origen: "completo" | "parcial") => {
-    const puntosA = porOrigen[origen].a.puntos;
-    const puntosDeB = porOrigen[origen].b?.puntos.slice(0, a.puntos.length) ?? [];
-    return { puntosA, puntosB: puntosDeB, a: puntosA.at(-1), b: puntosDeB.at(-1) };
-  };
-  const completo = mitad("completo");
-  const parcial = mitad("parcial");
-  const aMano = (total: number | undefined, c: number | undefined, p: number | undefined) =>
-    Math.max(0, (total ?? 0) - (c ?? 0) - (p ?? 0));
-  const aManoA = aMano(finalA?.deals, completo.a?.deals, parcial.a?.deals);
-  const aManoB = finalB ? aMano(finalB.deals, completo.b?.deals, parcial.b?.deals) : null;
-  const filaDeals = (
-    rotulo: string,
-    detalle: typeof detalles.deals_creados | undefined,
-    ahora: number,
-    antes: number | null,
-    titulo: string,
-  ) => (
-    <tr>
-      <td className="py-2">{rotulo}</td>
-      <td className="cifra text-right">
-        <CifraConLista titulo={titulo} detalle={detalle}>
-          {num(ahora)}
-        </CifraConLista>
-      </td>
-      {hayComparacion ? (
-        <>
-          <td className="cifra text-right">{antes === null ? "—" : num(antes)}</td>
-          <td className="text-right">{antes === null ? "—" : cambioEnPalabras(ahora, antes)}</td>
-        </>
-      ) : null}
-    </tr>
-  );
-  const filaTasa = (
-    rotulo: string,
-    ahora: number | null | undefined,
-    antes: number | null | undefined,
-  ) => (
-    <tr>
-      <td className="py-2">{rotulo}</td>
-      <td className="cifra text-right">{ahora == null ? "—" : pct(ahora, 0)}</td>
-      {hayComparacion ? (
-        <>
-          <td className="cifra text-right">{antes == null ? "—" : pct(antes, 0)}</td>
-          <td className="text-right">{cambioDeTasaEnPalabras(ahora ?? null, antes ?? null)}</td>
-        </>
-      ) : null}
-    </tr>
-  );
 
   return (
     <Card aria-labelledby="deals-contra-agendas">
       <CardHeader>
-        <CardTitle id="deals-contra-agendas">{TITULO}</CardTitle>
-        <CardDescription>
-          {rangoDe(periodo.a)}
-          {periodo.b ? `, contra ${rangoDe(periodo.b)}` : ""}. Si los deals suben y las agendas no, los leads que
-          entran no están agendando.
-        </CardDescription>
-        {contexto ? <ContextoDeCifra texto={contexto} /> : null}
+        <CardTitle id="deals-contra-agendas" className="flex items-center gap-1.5 text-base">
+          {TITULO}<EnlaceAInfo seccion="deals-agendas" etiqueta={TITULO} />
+        </CardTitle>
         {nota ? <p role="status" className="text-sm text-muted-foreground">{nota}</p> : null}
       </CardHeader>
-      <CardContent className="space-y-6">
-        <p className="text-base">
-          <span className="cifra text-2xl font-semibold">
-            {completo.a?.pctAgendaron == null ? "—" : pct(completo.a.pctAgendaron, 0)}
-          </span>{" "}
-          de{" "}
-          <CifraConLista
-            titulo={nombreLargo("deals_desde_completo")}
-            detalle={detalles.deals_desde_completo}
-          >
-            {num(completo.a?.deals ?? 0)}
-          </CifraConLista>{" "}
-          deals de los que llenaron el formulario completo agendó (
-          <CifraConLista
-            titulo="Deals de un formulario completo que agendaron"
-            detalle={detalles.completos_que_agendaron}
-          >
-            {num(completo.a?.agendaron ?? 0)}
-          </CifraConLista>{" "}
-          con al menos una agenda). Un parcial casi nunca agenda: va aparte.
-        </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-muted-foreground">
-                <th className="py-2 font-medium" />
-                <th className="py-2 text-right font-medium">Periodo</th>
-                {hayComparacion ? (
-                  <>
-                    <th className="py-2 text-right font-medium">Comparación</th>
-                    <th className="py-2 text-right font-medium">Cambio</th>
-                  </>
-                ) : null}
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {filaDeals(
-                "Deals creados",
-                detalles.deals_creados,
-                deals,
-                finalB ? finalB.deals : null,
-                "Deals creados",
-              )}
-              {filaDeals(
-                "· desde un formulario completo",
-                detalles.deals_desde_completo,
-                completo.a?.deals ?? 0,
-                finalB ? (completo.b?.deals ?? 0) : null,
-                nombreLargo("deals_desde_completo"),
-              )}
-              {filaDeals(
-                "· desde un parcial",
-                detalles.deals_desde_parcial,
-                parcial.a?.deals ?? 0,
-                finalB ? (parcial.b?.deals ?? 0) : null,
-                nombreLargo("deals_desde_parcial"),
-              )}
-              {aManoA > 0 || (aManoB ?? 0) > 0
-                ? filaDeals(
-                    "· abiertos a mano, sin formulario",
-                    undefined,
-                    aManoA,
-                    aManoB,
-                    "Deals abiertos a mano",
-                  )
-                : null}
-              <tr>
-                <td className="py-2">Agendas creadas</td>
-                <td className="cifra text-right">
-                  <CifraConLista titulo="Agendas creadas" detalle={detalles.agendas_creadas}>
-                    {num(finalA?.agendas ?? 0)}
-                  </CifraConLista>
-                </td>
-                {hayComparacion ? (
-                  <>
-                    <td className="cifra text-right">{finalB ? num(finalB.agendas) : "—"}</td>
-                    <td className="text-right">
-                      {finalB ? cambioEnPalabras(finalA?.agendas ?? 0, finalB.agendas) : "—"}
-                    </td>
-                  </>
-                ) : null}
-              </tr>
-              {filaTasa(
-                "% que agendaron, de los que llenaron el formulario completo",
-                completo.a?.pctAgendaron,
-                completo.b?.pctAgendaron,
-              )}
-              {filaTasa(
-                "% que agendaron, de los parciales",
-                parcial.a?.pctAgendaron,
-                parcial.b?.pctAgendaron,
-              )}
-            </tbody>
-          </table>
-        </div>
+      <CardContent className="space-y-4">
         {origen ? (
           <InterruptoresDeGrafica origen={origen} clave="deals-agendas" config={config} sinUnidad />
         ) : null}
@@ -289,45 +124,7 @@ export function DealsContraAgendas({
                 : []),
             ],
           }}
-        />
-        <Grafica
-          titulo={`% que agendaron, completos y parciales, ${forma}`}
-          unidad={config.forma === "acum" ? "% acumulado" : "% del tramo"}
-          frescura={`Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}.`}
-          etiquetas={etiquetas}
-          formato={(v) => pct(v, 0)}
-          comparacion={
-            b
-              ? {
-                  texto: descripcionDeComparacion(periodo),
-                  pares: [
-                    {
-                      actual: "Formulario completo · periodo",
-                      referencia: "Formulario completo · comparación",
-                    },
-                    { actual: "Parcial · periodo", referencia: "Parcial · comparación" },
-                  ],
-                }
-              : undefined
-          }
-          datos={{
-            dias,
-            series: [
-              { clave: "Formulario completo · periodo", color: 2, valores: tasaDe(completo.puntosA) },
-              { clave: "Parcial · periodo", color: 3, valores: tasaDe(parcial.puntosA) },
-              ...(b
-                ? [
-                    {
-                      clave: "Formulario completo · comparación",
-                      color: 2,
-                      punteada: true,
-                      valores: tasaDe(completo.puntosB),
-                    },
-                    { clave: "Parcial · comparación", color: 3, punteada: true, valores: tasaDe(parcial.puntosB) },
-                  ]
-                : []),
-            ],
-          }}
+          tablaSoloLectores
         />
       </CardContent>
     </Card>

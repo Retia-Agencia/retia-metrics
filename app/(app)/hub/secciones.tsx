@@ -14,7 +14,7 @@ import { monto, num, usd } from "@/lib/format";
 import { descripcionDeComparacion, type PeriodoResuelto } from "@/lib/periodo";
 import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
-import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
+import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
@@ -198,15 +198,14 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
     </div>
     {await Promise.all(vista.programas.map(async (fila) => {
       const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null, origen };
-      const [detalles, dealsContraAgendas, detallesOperacion, detalleRegistros] = await Promise.all([
+      const [detalles, dealsContraAgendas, detallesOperacion] = await Promise.all([
         detallesDelDashboard(entrada), vistaDealsContraAgendas(entrada),
         detallesDeOperacion(entrada, fila.dashboard.comparativo.map((c) => c.clave)),
-        detalleDeCifra("registros", { ...entrada, cohorteId: null }),
       ]);
       // La sección compartida tiene un ancla fija; aquí hay una instancia por programa.
       const operacion = Operacion({
-        vista: fila.dashboard, detalles, detallesOperacion, hoy, dealsContraAgendasVista: dealsContraAgendas, detalleRegistros,
-        dealsContraAgendas: <DealsContraAgendas vista={dealsContraAgendas} contexto={contextoDeCifra({ cohorte: null, rango: vista.periodo.a, hoy, closer: null })} />,
+        vista: fila.dashboard, detalles, detallesOperacion, hoy, dealsContraAgendasVista: dealsContraAgendas,
+        dealsContraAgendas: <DealsContraAgendas vista={dealsContraAgendas} />,
       });
       return <div key={fila.programa.id} className="space-y-3">
         <h3 className="text-lg font-semibold">{fila.programa.nombre}</h3>

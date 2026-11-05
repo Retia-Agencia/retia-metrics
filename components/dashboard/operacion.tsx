@@ -1,21 +1,21 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
-import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
-import {
-  BarraApilada100,
-  BarrasHorizontales,
-  EmbudoDeBarras,
-  LeyendaDeBarras,
-} from "@/components/graficas/barras";
+import { BarraDeCierre, DetalleDeEscalera, Escalera } from "@/components/dashboard/escalera";
+import { BarraApilada100, EmbudoDeBarras, LeyendaDeBarras } from "@/components/graficas/barras";
+import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Variacion } from "@/components/variacion";
 import { fecha, num, pct, usd } from "@/lib/format";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
-import { REGLA_TIEMPO_EN_ETAPA } from "@/lib/queries/embudo-etapas";
+import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import type { OrigenEmbudoComercial, PasoDelEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import type { EtapaDelCamino } from "@/lib/queries/embudo-etapas";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
+import type { VistaDeEscalera } from "@/lib/queries/vista-escalera";
 import {
   claveDeAbiertos,
   nombreDeEtapa,
@@ -23,20 +23,38 @@ import {
   type DetallesDeOperacion,
   type DetallesDelDashboard,
 } from "@/lib/queries/vista-metrica";
-import { nombreCorto } from "@/lib/vocabulario-metricas";
-import { Caja, Tabla, tasa } from "@/components/dashboard/piezas";
+import { Caja, Tabla } from "@/components/dashboard/piezas";
 
-const LEYENDA_DE_AGENDAS = [
-  { etiqueta: "Show", tono: "exito" },
-  { etiqueta: "No-show", tono: "peligro" },
-  { etiqueta: "Pendientes", tono: "alerta" },
-] as const;
+const formatearTasa = (valor: number | null) => valor === null ? "—" : pct(valor);
+
+const ETIQUETA_DEL_PASO: Record<PasoDelEmbudoComercial["paso"], string> = {
+  creados: "Deals creados",
+  agendaron: "Agendaron",
+  tuvieron_show: "Tuvieron show",
+  compraron: "Compraron",
+};
+
+const ETIQUETA_DE_ETAPA: Record<EtapaDelCamino, string> = {
+  en_gestion: "En gestión",
+  contactado: "Contactado",
+  calificado: "Calificado",
+  agendado: "Agendado",
+  atendido: "Atendido",
+  compromiso_verbal: "Compromiso",
+  ganado: "Ganado",
+};
 
 const LEYENDA_DE_ETAPAS = [
   { etiqueta: "Pasaron", tono: "exito" },
   { etiqueta: "Siguen aquí", tono: "alerta" },
   { etiqueta: "Se perdieron aquí", tono: "peligro" },
-  { etiqueta: "Otro camino", tono: "info" },
+] as const;
+
+const LEYENDA_DE_AGENDAS = [
+  { etiqueta: "Show", tono: "exito" },
+  { etiqueta: "No-show", tono: "peligro" },
+  { etiqueta: "Sin marcar", tono: "alerta" },
+  { etiqueta: "Futuras", tono: "info" },
 ] as const;
 
 export function textoComisionPrograma(comisionPorcentaje: string | null): string {
@@ -45,595 +63,170 @@ export function textoComisionPrograma(comisionPorcentaje: string | null): string
     : "Comisión: sin porcentaje cargado.";
 }
 
-function Celda({ titulo, detalle, children }: { titulo: string; detalle?: DetalleDeCifra; children: ReactNode }) {
-  return (
-    <CifraConLista titulo={titulo} detalle={detalle}>
-      {children}
-    </CifraConLista>
-  );
+/** Comparativo compacto que Hoy conserva; Comercial reúne estas cifras en su tabla de closers. */
+export function Comparativo({ vista, detalles, titulo = "¿Cómo va cada closer?" }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"]; titulo?: string; contexto?: string }) {
+  return <Card><CardHeader><CardTitle className="text-base">{titulo}</CardTitle></CardHeader><CardContent>
+    {vista.comparativo.length === 0 ? <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p> : <div className="overflow-x-auto"><Tabla cabeceras={["Closer", "Agendas", "% show", "Cierres", "% cierre", "Entró a caja"]}>
+      {vista.comparativo.map((fila) => {
+        const c = detalles?.[fila.clave];
+        return <tr key={fila.clave}><td className="py-2">{fila.closerId ?? "Sin closer"}</td><td className="cifra text-right"><Celda titulo="Agendas" detalle={c?.agendas}>{num(fila.agendas)}</Celda></td><td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}>{formatearTasa(fila.pctShow)}</Celda></td><td className="cifra text-right"><Celda titulo="Cierres" detalle={c?.cierres}>{num(fila.cierres)}</Celda></td><td className="cifra text-right"><Celda titulo="Grupo con show" detalle={c?.grupo_shows}>{formatearTasa(fila.pctCierre)}</Celda></td><td className="cifra text-right"><Celda titulo="Entró a caja" detalle={c?.caja}><Caja caja={fila.caja} /></Celda></td></tr>;
+      })}
+    </Tabla></div>}
+  </CardContent></Card>;
 }
 
-export function Comparativo({
-  vista,
-  detalles,
-  titulo = "¿Cómo va cada closer?",
-  contexto,
-}: {
-  vista: VistaDelDashboard;
-  detalles?: DetallesDeOperacion["comparativo"];
-  titulo?: string;
-  contexto?: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{titulo}</CardTitle>
-        {contexto ? <ContextoDeCifra texto={contexto} /> : null}
-      </CardHeader>
-      <CardContent>
-        {vista.comparativo.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p>
-        ) : (
-          <div className="overflow-x-auto [&_table]:min-w-[44rem] [&_td]:px-3 [&_th]:px-3">
-            <Tabla
-              cabeceras={[
-                "Closer",
-                "Agendas",
-                "Show",
-                "% show",
-                "Cierres",
-                "% cierre",
-                "Entró a caja",
-                "Comisión",
-              ]}
-            >
-              {vista.comparativo.map((fila) => {
-                const c = detalles?.[fila.clave];
-                const quien = fila.closerId ?? "Sin closer";
-                const motivoSinComision = `${num(fila.ventasSinComision)} sin porcentaje o sin valor vendido`;
-                return (
-                  <tr key={fila.clave}>
-                    <td className="py-2">
-                      {fila.closerId ?? <span className="text-muted-foreground">Sin closer</span>}
-                    </td>
-                    <td className="text-right">
-                      <Celda titulo={`Agendas de ${quien}`} detalle={c?.agendas}>
-                        {num(fila.agendas)}
-                      </Celda>
-                    </td>
-                    <td className="text-right">
-                      <Celda titulo={`Shows de ${quien}`} detalle={c?.shows}>
-                        {num(fila.llamadasConShow)}
-                      </Celda>
-                    </td>
-                    <td className="text-right">
-                      <Celda titulo={`Grupo de citas de ${quien}`} detalle={c?.grupo_citas}>
-                        {tasa(fila.pctShow)}
-                      </Celda>
-                      {fila.grupo.pendientes > 0 ? (
-                        <span className="block text-xs text-tono-alerta">
-                          <Celda titulo={`Citas sin resultado marcado de ${quien}`} detalle={c?.grupo_pendientes}>
-                            {num(fila.grupo.pendientes)} sin resultado
-                          </Celda>
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="text-right">
-                      <Celda titulo={`Cierres de ${quien}`} detalle={c?.cierres}>
-                        {num(fila.cierres)}
-                      </Celda>
-                    </td>
-                    <td className="text-right">
-                      <Celda titulo={`Grupo con show de ${quien}`} detalle={c?.grupo_shows}>
-                        {tasa(fila.pctCierre)}
-                      </Celda>
-                    </td>
-                    <td className="text-right">
-                      <Celda titulo={`Entró a caja por ${quien}`} detalle={c?.caja}>
-                        <Caja caja={fila.caja} />
-                      </Celda>
-                    </td>
-                    <td
-                      className="text-right"
-                      title={fila.ventasSinComision > 0 ? motivoSinComision : undefined}
-                    >
-                      {fila.comisionUsd === 0 && fila.ventasSinComision > 0 ? "—" : usd(fila.comisionUsd)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </Tabla>
-          </div>
-        )}
-        <ComoSeCalcula>
-          <p>
-            Agendas y show se atribuyen a quien tomó la llamada. Los porcentajes usan el grupo de citas; cada deal
-            cuenta en el closer de su último show o, sin show, de su última cita.
-          </p>
-          <p>
-            Cierres y comisión usan el dueño actual del deal. Entró a caja usa quien registró el abono. Sin closer
-            reúne lo que no tiene closer.
-          </p>
-          <p>{textoComisionPrograma(vista.comisionPorcentaje)}</p>
-        </ComoSeCalcula>
-      </CardContent>
-    </Card>
-  );
+function Titulo({ id, children }: { id: string; children: string }) {
+  return <CardTitle className="flex items-center gap-1.5 text-base">{children}<EnlaceAInfo seccion={id} etiqueta={children} /></CardTitle>;
 }
 
-function AgendasPorSemana({
-  semanas,
-  proximas,
-  contexto,
-}: Pick<DetallesDeOperacion, "semanas" | "proximas"> & { contexto: string }) {
-  const semanasConDatos = semanas.filter(
-    (semana) =>
-      semana.shows.resumen.subtotal.cantidad +
-        semana.noShows.resumen.subtotal.cantidad +
-        semana.pendientes.resumen.subtotal.cantidad >
-      0,
-  );
-  if (semanasConDatos.length === 0 && proximas.length === 0) return null;
-  const nombreSemana = (s: { desde: string; hasta: string }) =>
-    s.desde === s.hasta ? fecha(s.desde) : `${fecha(s.desde)} a ${fecha(s.hasta)}`;
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">¿Qué pasó con las agendas de cada semana?</CardTitle>
-        <ContextoDeCifra texto={contexto} />
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {semanasConDatos.length > 0 ? <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} /> : null}
-        {semanasConDatos.map((s) => (
-          <div key={s.semana.desde} className="flex items-center gap-3">
-            <span className="w-36 shrink-0 text-sm">{nombreSemana(s.semana)}</span>
-            <div className="min-w-0 flex-1">
-              <BarraApilada100
-                segmentos={[
-                  {
-                    clave: "show",
-                    etiqueta: "Show",
-                    cantidad: s.shows.resumen.subtotal.cantidad,
-                    detalle: s.shows,
-                    tono: "exito",
-                  },
-                  {
-                    clave: "no_show",
-                    etiqueta: "No-show",
-                    cantidad: s.noShows.resumen.subtotal.cantidad,
-                    detalle: s.noShows,
-                    tono: "peligro",
-                  },
-                  {
-                    clave: "pendientes",
-                    etiqueta: "Pendientes",
-                    cantidad: s.pendientes.resumen.subtotal.cantidad,
-                    detalle: s.pendientes,
-                    tono: "alerta",
-                  },
-                ]}
-              />
-            </div>
-          </div>
-        ))}
-        {proximas.length > 0 ? (
-          <p className="text-sm text-muted-foreground">
-            Próximas agendas:{" "}
-            {proximas.map((p, i) => (
-              <span key={p.semana.desde}>
-                {i > 0 ? " · " : ""}
-                <Celda titulo={`Agendas futuras · ${nombreSemana(p.semana)}`} detalle={p.futuras}>
-                  {num(p.futuras.resumen.subtotal.cantidad)}
-                </Celda>{" "}
-                <span className="text-xs">({nombreSemana(p.semana)})</span>
-              </span>
-            ))}
-          </p>
-        ) : null}
-        <ComoSeCalcula>
-          <p>
-            Semanas de lunes a domingo en Bogotá, recortadas al rango; del programa entero, sin filtro de closer. Show,
-            no-show y pendientes usan el día de la cita ya pasada.
-          </p>
-          <p>
-            Las próximas siguen agendadas y aún no llegan: son agenda, no resultado, y no dependen del periodo
-            elegido.
-          </p>
-        </ComoSeCalcula>
-      </CardContent>
-    </Card>
-  );
+function Celda({ titulo, detalle, children }: { titulo: string; detalle?: DetalleDeCifra | null; children: ReactNode }) {
+  return <CifraConLista titulo={titulo} detalle={detalle ?? undefined}>{children}</CifraConLista>;
 }
 
-function EmbudoPorEtapas({
-  vista,
-  detalles,
-  contexto,
-}: {
-  vista: VistaDelDashboard;
-  detalles?: DetallesDeOperacion["embudo"];
-  contexto: string;
-}) {
-  const conversion = vista.embudoEtapas.conversion.todas;
-  const pasosConDatos = conversion.pasos.filter((paso) => paso.llegaron > 0);
-  const tiemposConDatos = vista.embudoEtapas.tiempoEnEtapa.filter(
-    (fila): fila is typeof fila & { promedioDias: number } => fila.promedioDias !== null,
-  );
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">¿En qué etapa se quedan y cuánto tardan?</CardTitle>
-        <ContextoDeCifra texto={contexto} />
-      </CardHeader>
-      <CardContent className="space-y-5">
-        {pasosConDatos.length > 0 ? <LeyendaDeBarras items={LEYENDA_DE_ETAPAS} /> : null}
-        {pasosConDatos.map((paso) => {
-          const indice = conversion.pasos.indexOf(paso);
-          const siguiente = conversion.pasos[indice + 1];
-          return (
-            <div key={paso.paso} className="space-y-2">
-              <p className="text-sm font-medium">
-                {paso.paso === "vendido" ? "Vendido" : nombreDeEtapa(paso.paso)} ·{" "}
-                <span className="cifra">{num(paso.llegaron)}</span> llegaron
-              </p>
-              <BarraApilada100
-                segmentos={[
-                  {
-                    clave: "pasaron",
-                    etiqueta: "Pasaron",
-                    cantidad: paso.pasaron,
-                    detalle: siguiente ? detalles?.pasos[siguiente.paso] : undefined,
-                    tono: "exito",
-                  },
-                  {
-                    clave: "siguen",
-                    etiqueta: "Siguen aquí",
-                    cantidad: paso.siguenAqui,
-                    detalle: detalles?.siguen[paso.paso],
-                    tono: "alerta",
-                  },
-                  {
-                    clave: "perdidos",
-                    etiqueta: "Se perdieron aquí",
-                    cantidad: paso.perdidosAqui,
-                    detalle: detalles?.perdidos[paso.paso],
-                    tono: "peligro",
-                  },
-                  ...(paso.otros > 0
-                    ? [
-                        {
-                          clave: "otros",
-                          etiqueta: "Otro camino",
-                          cantidad: paso.otros,
-                          detalle: detalles?.otros[paso.paso],
-                          tono: "info" as const,
-                        },
-                      ]
-                    : []),
-                ]}
-              />
-            </div>
-          );
-        })}
-        <BarrasHorizontales
-          filas={tiemposConDatos.map((fila) => ({
-            clave: fila.etapa,
-            etiqueta: nombreDeEtapa(fila.etapa),
-            valor: fila.promedioDias,
-            texto: `${num(fila.promedioDias, 1)} días`,
-            detalle: detalles?.tiempo[fila.etapa],
-          }))}
-        />
-        <ComoSeCalcula>
-          <p>
-            Pasaron son quienes llegaron al paso siguiente; siguen aquí son los abiertos cuya etapa actual es esta; se
-            perdieron aquí llegaron a Cierre perdido desde esta etapa. “Otro camino” se muestra cuando esas tres
-            salidas no explican a todos, por ejemplo por un salto.
-          </p>
-          <p>{REGLA_TIEMPO_EN_ETAPA}</p>
-        </ComoSeCalcula>
-      </CardContent>
-    </Card>
-  );
+function Kpi({ titulo, valor, base, detalle, parcial = false }: { titulo: string; valor: string; base: string; detalle?: DetalleDeCifra; parcial?: boolean }) {
+  return <Card><CardContent className="space-y-1 pt-4">
+    <div className="flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{titulo}</p>{parcial ? <Badge variant="alerta">parcial</Badge> : null}</div>
+    <p className="cifra text-2xl font-semibold"><Celda titulo={titulo} detalle={detalle}>{valor}</Celda></p>
+    <p className="cifra text-xs text-muted-foreground">{base}</p>
+  </CardContent></Card>;
 }
 
-function DetalleAuditoria({
-  vista,
-  detalles,
-  veEquipo,
-  contexto,
-}: {
-  vista: VistaDelDashboard;
-  detalles?: DetallesDeOperacion["embudo"];
-  veEquipo: boolean;
-  contexto: string;
-}) {
-  return (
-    <details className="rounded-lg border">
-      <summary className="cursor-pointer px-4 py-3 text-base font-semibold">Detalle</summary>
-      <div className="space-y-4 p-4 pt-0">
-        <div className="grid gap-4 lg:grid-cols-2">
-          {veEquipo ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Abiertos por etapa y owner</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Tabla cabeceras={["Etapa", "Owner", "Deals"]}>
-                  {vista.embudoEtapas.abiertos.map((fila) => (
-                    <tr key={`${fila.etapa}:${fila.ownerUserId ?? "sin"}`}>
-                      <td>{nombreDeEtapa(fila.etapa)}</td>
-                      <td>{fila.ownerNombre ?? "Sin dueño"}</td>
-                      <td className="text-right">
-                        <Celda
-                          titulo={`Abiertos en ${nombreDeEtapa(fila.etapa)}`}
-                          detalle={detalles?.abiertos[claveDeAbiertos(fila.etapa, fila.ownerUserId)]}
-                        >
-                          {num(fila.deals)}
-                        </Celda>
-                      </td>
-                    </tr>
-                  ))}
-                </Tabla>
-              </CardContent>
-            </Card>
-          ) : null}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Sin dueño por antigüedad</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Tabla cabeceras={["Días", "Deals"]}>
-                {vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => (
-                  <tr key={fila.bucket}>
-                    <td>{fila.bucket}</td>
-                    <td className="text-right">
-                      <Celda titulo={`Sin dueño, ${fila.bucket} días`} detalle={detalles?.sinDueno[fila.bucket]}>
-                        {num(fila.deals)}
-                      </Celda>
-                    </td>
-                  </tr>
-                ))}
-              </Tabla>
-            </CardContent>
-          </Card>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Motivos de pérdida</CardTitle>
-            <ContextoDeCifra texto={contexto} />
-          </CardHeader>
-          <CardContent>
-            {vista.embudoEtapas.motivosDePerdida.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Ningún deal perdido con motivo en este rango.</p>
-            ) : (
-              <Tabla cabeceras={["Motivo", "Deals", "Ticket estimado"]}>
-                {vista.embudoEtapas.motivosDePerdida.map((m) => (
-                  <tr key={m.motivo}>
-                    <td>{m.motivo}</td>
-                    <td className="text-right">{num(m.deals)}</td>
-                    <td className="text-right">{usd(m.ticketPerdidoUsd)}</td>
-                  </tr>
-                ))}
-              </Tabla>
-            )}
-          </CardContent>
-        </Card>
+function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "semanas" | "proximas">) {
+  const filas = new Map<string, { desde: string; hasta: string; shows?: DetalleDeCifra; noShows?: DetalleDeCifra; pendientes?: DetalleDeCifra; futuras?: DetalleDeCifra }>();
+  for (const s of semanas) filas.set(s.semana.desde, { ...s.semana, shows: s.shows, noShows: s.noShows, pendientes: s.pendientes });
+  for (const p of proximas) filas.set(p.semana.desde, { ...(filas.get(p.semana.desde) ?? p.semana), futuras: p.futuras });
+  if (filas.size === 0) return null;
+  const cantidad = (d?: DetalleDeCifra) => d?.resumen.subtotal.cantidad ?? 0;
+  const titulo = "Agendas por semana";
+  return <Card><CardHeader><Titulo id="agendas-semana">{titulo}</Titulo></CardHeader><CardContent className="space-y-4">
+    <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} />
+    {[...filas.values()].map((s) => <div key={s.desde} className="space-y-1.5">
+      <p className="text-sm font-medium">{fecha(s.desde)} a {fecha(s.hasta)}</p>
+      <BarraApilada100 segmentos={[
+        { clave: "show", etiqueta: "Show", cantidad: cantidad(s.shows), detalle: s.shows, tono: "exito" },
+        { clave: "no_show", etiqueta: "No-show", cantidad: cantidad(s.noShows), detalle: s.noShows, tono: "peligro" },
+        { clave: "sin_marcar", etiqueta: "Sin marcar", cantidad: cantidad(s.pendientes), detalle: s.pendientes, tono: "alerta" },
+        { clave: "futuras", etiqueta: "Futuras", cantidad: cantidad(s.futuras), detalle: s.futuras, tono: "info" },
+      ]} />
+    </div>)}
+  </CardContent></Card>;
+}
+
+function Caminos({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"] }) {
+  const titulo = "¿Dónde se quedan y cuánto tardan?";
+  const tiempo = new Map(vista.embudoEtapas.tiempoEnEtapa.map((fila) => [fila.etapa, fila.medianaDiasHabiles]));
+  const detalle = (grupo: "pasos" | "siguen" | "perdidos", etapa: EtapaDelCamino) => detalles?.[grupo][etapa];
+  return <Card><CardHeader><Titulo id="etapas">{titulo}</Titulo></CardHeader><CardContent className="space-y-6">
+    <LeyendaDeBarras items={LEYENDA_DE_ETAPAS} />
+    {vista.embudoEtapas.conversion.porCamino.map((camino) => <section key={camino.camino} className="space-y-3">
+      <h3 className="font-medium">{camino.camino === "setter" ? "Camino del setter" : "Camino de la llamada"}</h3>
+      {camino.pasos.map((paso, indice) => {
+        const mediana = tiempo.get(paso.etapa === "ganado" ? "ganado_parcial" : paso.etapa) ?? null;
+        const siguiente = camino.pasos[indice + 1]?.etapa;
+        return <div key={paso.etapa} className="space-y-1.5">
+          <div className="flex items-baseline justify-between gap-3"><p className="text-sm">{ETIQUETA_DE_ETAPA[paso.etapa]}</p><p className="cifra text-xs text-muted-foreground">{mediana === null ? "—" : `${num(mediana, mediana % 1 === 0 ? 0 : 1)} días hábiles`}</p></div>
+          <BarraApilada100 segmentos={[
+            { clave: "pasaron", etiqueta: "Pasaron", cantidad: paso.pasaron, detalle: siguiente ? detalle("pasos", siguiente) : undefined, tono: "exito" },
+            { clave: "siguen", etiqueta: "Siguen aquí", cantidad: paso.siguenAqui, detalle: detalle("siguen", paso.etapa), tono: "alerta" },
+            { clave: "perdidos", etiqueta: "Se perdieron aquí", cantidad: paso.perdidosAqui, detalle: detalle("perdidos", paso.etapa), tono: "peligro" },
+          ]} />
+        </div>;
+      })}
+    </section>)}
+  </CardContent></Card>;
+}
+
+function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"]; escalera: VistaDeEscalera; dinero: Record<string, DineroDeVentas> }) {
+  const titulo = "Closers";
+  if (vista.comparativo.length === 0) return null;
+  return <Card><CardHeader><Titulo id="closers">{titulo}</Titulo></CardHeader><CardContent className="overflow-x-auto">
+    <Tabla cabeceras={["Closer", "Agendas", "% show", "% cierre", "Agenda → venta", "Cómo cerró", "Sin marcar", "Vendido · Recaudado · Por cobrar"]}>
+      {vista.comparativo.map((fila) => {
+        const c = detalles?.[fila.clave];
+        const e = escalera.porCloser.find((x) => x.clave === fila.clave);
+        const d = dinero[fila.clave];
+        const base = fila.grupo.deals + fila.grupo.sinMarcar;
+        const tasa = (valor: number | null) => valor === null ? "—" : formatearTasa(valor);
+        return <tr key={fila.clave}>
+          <td className="py-2">{fila.closerId ?? "Sin closer"}</td>
+          <td className="cifra text-right"><Celda titulo="Agendas" detalle={c?.agendas}>{fila.agendas ? num(fila.agendas) : "—"}</Celda></td>
+          <td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}>{tasa(fila.pctShow)}</Celda></td>
+          <td className="cifra text-right"><Celda titulo="Grupo con show" detalle={c?.grupo_shows}>{tasa(fila.pctCierre)}</Celda></td>
+          <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
+          <td className="min-w-48">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
+          <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <span className="block text-xs text-tono-alerta">parcial · {num(fila.grupo.deals)} de {num(base)}</span> : null}</td>
+          <td className="cifra whitespace-nowrap text-right"><Celda titulo="Ventas del closer" detalle={c?.cierres}>{d && d.ventas > 0 ? `${usd(d.vendido)} · ${usd(d.recaudado)} · ${usd(d.porCobrar)}` : "—"}</Celda></td>
+        </tr>;
+      })}
+    </Tabla>
+  </CardContent></Card>;
+}
+
+function DetalleAuditoria({ vista, detalles, veEquipo, escalera }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"]; veEquipo: boolean; escalera?: VistaDeEscalera }) {
+  return <details className="auditoria-comercial rounded-lg border">
+    <summary className="cursor-pointer px-4 py-3 text-base font-semibold">Detalle de auditoría</summary>
+    <div className="space-y-4 p-4 pt-0">
+      <div className="grid gap-4 lg:grid-cols-2">
+        {veEquipo ? <Card><CardHeader><CardTitle className="text-base">Abiertos por owner</CardTitle></CardHeader><CardContent><Tabla cabeceras={["Etapa", "Owner", "Deals"]}>{vista.embudoEtapas.abiertos.map((fila) => <tr key={`${fila.etapa}:${fila.ownerUserId ?? "sin"}`}><td>{nombreDeEtapa(fila.etapa)}</td><td>{fila.ownerNombre ?? "Sin dueño"}</td><td className="cifra text-right"><Celda titulo="Deals abiertos" detalle={detalles?.abiertos[claveDeAbiertos(fila.etapa, fila.ownerUserId)]}>{num(fila.deals)}</Celda></td></tr>)}</Tabla></CardContent></Card> : null}
+        <Card><CardHeader><CardTitle className="text-base">Sin dueño</CardTitle></CardHeader><CardContent><Tabla cabeceras={["Días", "Deals"]}>{vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => <tr key={fila.bucket}><td>{fila.bucket}</td><td className="cifra text-right"><Celda titulo="Deals sin dueño" detalle={detalles?.sinDueno[fila.bucket]}>{num(fila.deals)}</Celda></td></tr>)}</Tabla></CardContent></Card>
       </div>
-    </details>
-  );
+      <Card><CardHeader><CardTitle className="text-base">Motivos de pérdida</CardTitle></CardHeader><CardContent>{vista.embudoEtapas.motivosDePerdida.length === 0 ? <p className="text-sm text-muted-foreground">Sin motivos en este periodo.</p> : <Tabla cabeceras={["Motivo", "Deals", "Ticket estimado"]}>{vista.embudoEtapas.motivosDePerdida.map((m) => <tr key={m.motivo}><td>{m.motivo}</td><td className="cifra text-right">{num(m.deals)}</td><td className="cifra text-right">{usd(m.ticketPerdidoUsd)}</td></tr>)}</Tabla>}</CardContent></Card>
+      {escalera ? <Card><CardHeader><CardTitle className="text-base">Siete escalones</CardTitle></CardHeader><CardContent><DetalleDeEscalera vista={escalera} periodo={vista.periodo} /></CardContent></Card> : null}
+    </div>
+  </details>;
 }
 
-function Kpi({
-  titulo,
-  valor,
-  base,
-  detalle,
-  anterior,
-  periodo,
-}: {
-  titulo: string;
-  valor: string;
-  base: string;
+export interface PasoComercialConDetalle extends PasoDelEmbudoComercial {
   detalle?: DetalleDeCifra;
-  anterior?: { actual: number; previo: number };
-  periodo: VistaDelDashboard["periodo"];
-}) {
-  return (
-    <Card>
-      <CardContent className="pt-4">
-        <p className="text-xs text-muted-foreground">{titulo}</p>
-        <p className="text-2xl font-semibold">
-          <Celda titulo={titulo} detalle={detalle}>
-            {valor}
-          </Celda>
-        </p>
-        <p className="text-xs text-muted-foreground">{base}</p>
-        {anterior ? (
-          <p className="text-xs">
-            Variación: <Variacion actual={anterior.actual} anterior={anterior.previo} periodo={periodo} />
-          </p>
-        ) : null}
-      </CardContent>
-    </Card>
-  );
+  detallePerdidos?: DetalleDeCifra;
 }
 
 export function Operacion({
-  vista,
-  detalles,
-  detallesOperacion,
-  dealsContraAgendas,
-  escalera,
-  dealsContraAgendasVista,
-  detalleRegistros,
-  hoy,
-  veEquipo = true,
+  vista, detalles, detallesOperacion, dealsContraAgendas, vistaEscalera,
+  embudoComercial, origenEmbudo = "completo", enlacesDeOrigen, dineroPorCloser = {}, dealsContraAgendasVista,
+  hoy, veEquipo = true,
 }: {
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
-  veEquipo?: boolean;
   detallesOperacion?: DetallesDeOperacion;
   dealsContraAgendas: ReactNode;
-  escalera?: ReactNode;
+  vistaEscalera?: VistaDeEscalera;
+  embudoComercial?: PasoComercialConDetalle[];
+  origenEmbudo?: "todos" | OrigenEmbudoComercial;
+  enlacesDeOrigen?: Record<"todos" | "completo" | "parcial", string>;
+  dineroPorCloser?: Record<string, DineroDeVentas>;
   dealsContraAgendasVista?: VistaDealsContraAgendas;
-  detalleRegistros?: DetalleDeCifra;
   hoy: string;
+  veEquipo?: boolean;
 }) {
-  const anterior = vista.anterior?.embudo;
   const grupo = vista.embudo.grupo;
-  const closerElegido = vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null;
-  const contexto = contextoDeCifra({
-    cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
-    rango: vista.seleccion.rango,
-    hoy,
-    closer: closerElegido,
-  });
-  const contextoPrograma = contextoDeCifra({
-    cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
-    rango: vista.seleccion.rango,
-    hoy,
-    closer: null,
-  });
-  const conVista = dealsContraAgendasVista?.disponible ? dealsContraAgendasVista : null;
-  const finalA = conVista?.a.puntos.at(-1);
-  const completoA = conVista?.porOrigen.completo.a.puntos.at(-1);
-  const registros = detalleRegistros?.resumen.disponible ? detalleRegistros.resumen.subtotal.cantidad : null;
-  const pasos = [
-    ...(!vista.claveCloser && registros !== null
-      ? [{ clave: "registros", etiqueta: nombreCorto("registros"), cantidad: registros, detalle: detalleRegistros }]
-      : []),
-    ...(!vista.claveCloser && conVista
-      ? [
-          {
-            clave: "deals",
-            etiqueta: "Deals creados",
-            cantidad: finalA?.deals ?? 0,
-            detalle: conVista.detalles.deals_creados,
-          },
-        ]
-      : []),
-    {
-      clave: "agendas",
-      etiqueta: nombreCorto("agendadas"),
-      cantidad: vista.embudo.agendas,
-      detalle: detalles?.agendas,
-      pctDelPaso: completoA?.pctAgendaron == null ? null : completoA.pctAgendaron,
-      etiquetaDelPct: "de los deals completos agendó",
-    },
-    {
-      clave: "shows",
-      etiqueta: nombreCorto("shows"),
-      cantidad: vista.embudo.llamadasConShow,
-      detalle: detalles?.shows,
-      pctDelPaso: grupo.deals === 0 ? null : grupo.conShow / grupo.deals,
-      perdidos: { cantidad: grupo.deals - grupo.conShow, detalle: detalles?.grupo_sin_show },
-    },
-    {
-      clave: "ventas",
-      etiqueta: nombreCorto("ventas"),
-      cantidad: vista.embudo.cierres,
-      detalle: detalles?.cierres,
-      pctDelPaso: grupo.conShow === 0 ? null : grupo.vendidos / grupo.conShow,
-    },
-  ];
-  return (
-    <section id="operacion" className="scroll-mt-4 space-y-4">
-      <h2 className="text-xl font-semibold">Operación comercial</h2>
+  const completo = dealsContraAgendasVista?.disponible ? dealsContraAgendasVista.porOrigen.completo.a.puntos.at(-1) : undefined;
+  const contexto = contextoDeCifra({ cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null, rango: vista.seleccion.rango, hoy, closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null });
+  const totalCitas = grupo.deals + grupo.sinMarcar;
+  const baseTasa = grupo.parcial ? `sobre ${num(grupo.deals)} de ${num(totalCitas)} citas` : `${num(grupo.conShow)} de ${num(grupo.deals)}`;
+  const ventasSinLlamada = vistaEscalera?.principal.grupos.ventas_sin_llamada;
+  const opciones = [{ clave: "todos", etiqueta: "Todos" }, { clave: "completo", etiqueta: "Formulario completo" }, { clave: "parcial", etiqueta: "Parcial" }] as const;
+  return <section id="operacion" className="scroll-mt-4 space-y-4">
+    <div><h2 className="text-xl font-semibold">Comercial</h2><ContextoDeCifra texto={contexto} /></div>
+    <Card><CardHeader><Titulo id="cifras">Cifras clave</Titulo></CardHeader><CardContent className="space-y-3">
+      {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi
-          titulo={nombreCorto("agendadas")}
-          valor={num(vista.embudo.agendas)}
-          base={`${
-            completoA?.pctAgendaron == null ? "—" : pct(completoA.pctAgendaron)
-          } de los deals completos agendó`}
-          detalle={detalles?.agendas}
-          anterior={anterior ? { actual: vista.embudo.agendas, previo: anterior.agendas } : undefined}
-          periodo={vista.periodo}
-        />
-        <Kpi
-          titulo="% show"
-          valor={tasa(vista.embudo.pctShow)}
-          base={`${num(grupo.conShow)} de ${num(grupo.deals)}`}
-          detalle={detalles?.grupo_citas}
-          anterior={
-            anterior && vista.embudo.pctShow !== null && anterior.pctShow !== null
-              ? { actual: vista.embudo.pctShow * 100, previo: anterior.pctShow * 100 }
-              : undefined
-          }
-          periodo={vista.periodo}
-        />
-        <Kpi
-          titulo="% cierre"
-          valor={tasa(vista.embudo.pctCierre)}
-          base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`}
-          detalle={detalles?.grupo_shows}
-          anterior={
-            anterior && vista.embudo.pctCierre !== null && anterior.pctCierre !== null
-              ? { actual: vista.embudo.pctCierre * 100, previo: anterior.pctCierre * 100 }
-              : undefined
-          }
-          periodo={vista.periodo}
-        />
-        <Kpi
-          titulo="Agenda → venta"
-          valor={tasa(vista.embudo.agendaAVenta)}
-          base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`}
-          detalle={detalles?.grupo_citas}
-          anterior={
-            anterior && vista.embudo.agendaAVenta !== null && anterior.agendaAVenta !== null
-              ? { actual: vista.embudo.agendaAVenta * 100, previo: anterior.agendaAVenta * 100 }
-              : undefined
-          }
-          periodo={vista.periodo}
-        />
+        <Kpi titulo="Agendadas" valor={num(vista.embudo.agendas)} base={`${num(completo?.agendaron ?? 0)} de ${num(completo?.deals ?? 0)}`} detalle={detalles?.agendas} />
+        <Kpi titulo="% show" valor={formatearTasa(vista.embudo.pctShow)} base={baseTasa} detalle={detalles?.grupo_citas} parcial={grupo.parcial} />
+        <Kpi titulo="% cierre" valor={formatearTasa(vista.embudo.pctCierre)} base={grupo.parcial ? baseTasa : `${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} />
+        <Kpi titulo="Agenda → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">¿Dónde se pierden los deals?</CardTitle>
-          <ContextoDeCifra texto={contexto} />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {vista.claveCloser ? (
-            <p className="text-sm text-muted-foreground">
-              Con un closer elegido, el embudo empieza en Agendadas: registros y deals nacen del formulario.
-            </p>
-          ) : null}
-          <EmbudoDeBarras pasos={pasos} />
-          <div className="flex flex-wrap gap-2">
-            {vista.embudo.pendientesDeResultado > 0 ? (
-              <Badge variant="alerta">
-                <Celda titulo="Citas pasadas sin resultado" detalle={detalles?.grupo_pendientes}>
-                  {num(vista.embudo.pendientesDeResultado)}
-                </Celda>{" "}
-                sin resultado
-              </Badge>
-            ) : null}
-            {vista.embudo.madurando ? <Badge variant="info">Aún madurando</Badge> : null}
-          </div>
-          <ComoSeCalcula>
-            <p>
-              Agendadas mide los deals de un formulario completo que agendaron; los parciales tienen su tasa aparte.
-              Shows y ventas usan el mismo grupo de citas ocurridas.
-            </p>
-            <p>Las citas pasadas sin resultado quedan fuera de las tasas hasta que el closer registre qué pasó.</p>
-          </ComoSeCalcula>
-        </CardContent>
-      </Card>
-      {escalera}
-      {dealsContraAgendas}
-      {veEquipo ? (
-        <Comparativo vista={vista} detalles={detallesOperacion?.comparativo} contexto={contextoPrograma} />
-      ) : null}
-      <EmbudoPorEtapas vista={vista} detalles={detallesOperacion?.embudo} contexto={contexto} />
-      {detallesOperacion ? (
-        <AgendasPorSemana
-          semanas={detallesOperacion.semanas}
-          proximas={detallesOperacion.proximas}
-          contexto={contextoPrograma}
-        />
-      ) : null}
-      <DetalleAuditoria vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} contexto={contexto} />
-    </section>
-  );
+    </CardContent></Card>
+    {embudoComercial ? <Card><CardHeader><Titulo id="embudo">¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">
+      {enlacesDeOrigen ? <div className="flex flex-wrap gap-1" role="group" aria-label="Origen del deal">{opciones.map((opcion) => <Button key={opcion.clave} size="sm" variant={origenEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Link scroll={false} href={enlacesDeOrigen[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
+      <EmbudoDeBarras pasos={embudoComercial.map((paso, indice) => ({ clave: paso.paso, etiqueta: ETIQUETA_DEL_PASO[paso.paso], cantidad: paso.cantidad, detalle: paso.detalle, pctDelPaso: paso.pctDelPaso, perdidos: indice === 0 ? undefined : { cantidad: paso.perdidos, detalle: paso.detallePerdidos } }))} />
+      {ventasSinLlamada && ventasSinLlamada.deals > 0 ? <p className="text-sm text-muted-foreground"><Celda titulo="Ventas sin llamada registrada" detalle={ventasSinLlamada.detalle}>{num(ventasSinLlamada.deals)}</Celda> ventas sin llamada registrada</p> : null}
+    </CardContent></Card> : null}
+    {vistaEscalera ? <Escalera vista={vistaEscalera} /> : null}
+    {dealsContraAgendas}
+    <Caminos vista={vista} detalles={detallesOperacion?.embudo} />
+    {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} /> : null}
+    {veEquipo && vistaEscalera ? <Closers vista={vista} detalles={detallesOperacion?.comparativo} escalera={vistaEscalera} dinero={dineroPorCloser} /> : null}
+    <DetalleAuditoria vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} escalera={vistaEscalera} />
+  </section>;
 }

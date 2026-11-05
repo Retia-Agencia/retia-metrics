@@ -4,7 +4,11 @@ import { Dinero } from "@/components/dashboard/dinero";
 import { Operacion } from "@/components/dashboard/operacion";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { VistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
-import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import type { VistaDeEscalera } from "@/lib/queries/vista-escalera";
+import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import type { OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import type { PasoComercialConDetalle } from "@/components/dashboard/operacion";
+import type { DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 
 export { textoComisionPrograma } from "@/components/dashboard/operacion";
@@ -28,14 +32,17 @@ export function DashboardPrograma({
   detallesOperacion,
   slug,
   dealsContraAgendas,
-  escalera,
   seriesDinero,
   cargarResumenDePunto,
   origen,
   veEquipo = true,
   hoy,
   dealsContraAgendasVista,
-  detalleRegistros,
+  embudoComercial,
+  origenEmbudo,
+  enlacesDeOrigen,
+  vistaEscalera,
+  dineroPorCloser,
 }: {
   seccion: "operacion" | "dinero";
   vista: VistaDelDashboard;
@@ -43,7 +50,6 @@ export function DashboardPrograma({
   detallesOperacion?: DetallesDeOperacion;
   slug: string;
   dealsContraAgendas: ReactNode;
-  escalera?: ReactNode;
   seriesDinero?: SeriesDeDinero;
   /** La server action del resumen de un punto de Dinero (380); la pasa la página. */
   cargarResumenDePunto?: CargarResumenDePunto;
@@ -58,7 +64,11 @@ export function DashboardPrograma({
   hoy: string;
   /** Los deals partidos por origen y los registros: las dos primeras filas del embudo (372). */
   dealsContraAgendasVista?: VistaDealsContraAgendas;
-  detalleRegistros?: DetalleDeCifra;
+  embudoComercial?: PasoComercialConDetalle[];
+  origenEmbudo?: "todos" | OrigenEmbudoComercial;
+  enlacesDeOrigen?: Record<"todos" | "completo" | "parcial", string>;
+  vistaEscalera?: VistaDeEscalera;
+  dineroPorCloser?: Record<string, DineroDeVentas>;
 }) {
   if (seccion === "operacion") {
     return (
@@ -67,11 +77,14 @@ export function DashboardPrograma({
         detalles={detalles}
         detallesOperacion={detallesOperacion}
         dealsContraAgendas={dealsContraAgendas}
-        escalera={escalera}
         veEquipo={veEquipo}
         hoy={hoy}
         dealsContraAgendasVista={dealsContraAgendasVista}
-        detalleRegistros={detalleRegistros}
+        embudoComercial={embudoComercial}
+        origenEmbudo={origenEmbudo}
+        enlacesDeOrigen={enlacesDeOrigen}
+        vistaEscalera={vistaEscalera}
+        dineroPorCloser={dineroPorCloser}
       />
     );
   }

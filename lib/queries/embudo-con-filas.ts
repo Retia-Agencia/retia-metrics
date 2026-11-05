@@ -105,21 +105,24 @@ export function idsDeLaCifra(
   metrica: MetricaDeEmbudo,
   { etapa, antiguedad }: SubconjuntoDelEmbudo,
 ): string[] {
+  const pasoDelCamino = resultado.conversion.porCamino
+    .flatMap((camino) => camino.pasos)
+    .find((paso) => paso.etapa === etapa);
   switch (metrica) {
     case "etapa_entraron":
       return resultado.conversion.todas.dealIds;
     case "etapa_paso":
-      return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
+      return pasoDelCamino?.dealIds ?? ((PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
         ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.dealIds
-        : [];
+        : []);
     case "etapa_siguen":
-      return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
+      return pasoDelCamino?.siguenAquiDealIds ?? ((PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
         ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.siguenAquiDealIds
-        : [];
+        : []);
     case "etapa_perdidos":
-      return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
+      return pasoDelCamino?.perdidosAquiDealIds ?? ((PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
         ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.perdidosAquiDealIds
-        : [];
+        : []);
     case "etapa_otros":
       return (PASOS_DE_CONVERSION as readonly string[]).includes(etapa ?? "")
         ? resultado.conversion.todas.pasos.find((paso) => paso.paso === etapa)!.otrosDealIds

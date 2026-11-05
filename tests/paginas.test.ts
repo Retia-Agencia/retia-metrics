@@ -114,6 +114,14 @@ vi.mock("@/lib/queries/recursos", () => ({
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
 const armarVistaDelDashboard = vi.fn();
 vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard }));
+vi.mock("@/lib/queries/dashboard", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/dashboard")>(),
+  dineroDelRango: vi.fn(async () => ({ vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0 })),
+}));
+vi.mock("@/lib/queries/embudo-comercial", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/embudo-comercial")>(),
+  cargarEmbudoComercial: vi.fn(async () => []),
+}));
 const armarVistaDeTodos = vi.fn();
 vi.mock("@/lib/queries/vista-todos", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-todos")>(),
@@ -178,9 +186,10 @@ const armarVistaDeHoy = vi.fn(async ({ programId, dia }: { programId: string; di
     mes: { mes: dia.slice(0, 7), dia: 1, total: 22 },
     cohorte: null,
   },
-  horizontes: [],
+  horizontes: [{ clave: "semana", meta: null }],
   caja: [],
   agendasCreadas: 0,
+  showPorCita: { realizadas: 0, citasQueYaDebianOcurrir: 0, porcentaje: null },
 }));
 vi.mock("@/lib/queries/vista-hoy", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-hoy")>(),

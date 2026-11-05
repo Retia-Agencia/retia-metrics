@@ -16,7 +16,6 @@ import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
-import { contextoDeCifra } from "@/lib/contexto-de-cifra";
 import { fecha, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
@@ -33,7 +32,6 @@ import { Pestanas, pestanaActiva, urlConSeccion, type Pestana } from "@/componen
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { detalleDePuntoAccion } from "./acciones-graficas";
-import { Escalera } from "@/components/dashboard/escalera";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
 import { PautaInterina, type EnlaceDeLista } from "@/components/pauta-interina";
@@ -51,6 +49,9 @@ import { sumarDias } from "@/lib/rangos";
 import { tokensMeta } from "@/lib/integraciones";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
+import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
+import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import { dineroDelRango } from "@/lib/queries/dashboard";
 import {
   debeSincronizarDesdeElHub,
   sincronizarDiaEnCurso,
@@ -268,10 +269,16 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       }
     : undefined;
 
-  // Comercial (372): los deals partidos por origen y los registros, una vez, para la tabla y el embudo.
+  // Comercial (381): un solo embudo de deals, filtrable por el origen del formulario.
   const vistaComercial = seccion === "comercial" && !sinActividad
-    ? {
-        dealsContraAgendas: proyectar(await vistaDealsContraAgendas({
+    ? await (async () => {
+        const origenPedido = texto(busqueda.origen);
+        const origenEmbudo = origenPedido === "completo" || origenPedido === "parcial" ? origenPedido : "todos";
+        const filtroDeOrigen: OrigenEmbudoComercial | undefined = origenEmbudo === "todos" ? undefined : origenEmbudo;
+        const entrada = { programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, origen };
+        const metricas = ["embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron"] as const;
+        const [dealsContraAgendas, pasos, detallesEmbudo, escalera, dineroPorCloser] = await Promise.all([
+          vistaDealsContraAgendas({
           programId: programa.id,
           slug,
           hoy,
@@ -280,17 +287,27 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
           cohorteId,
           cohorteIdDeB,
           origen,
-        })),
-        detalleRegistros: proyectar(await detalleDeCifra("registros", {
-          programId: programa.id,
-          slug,
-          hoy,
-          periodo: vista.periodo,
-          claveCloser: vista.claveCloser,
-          cohorteId,
-          origen,
-        })),
-      }
+          }),
+          cargarEmbudoComercial(db, { programId: programa.id, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId }, filtroDeOrigen),
+          Promise.all(metricas.map((metrica) => detalleDeCifra(metrica, { ...entrada, origenDeal: filtroDeOrigen }))),
+          vistaDeEscalera({ programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, cohorteIdDeB, origen, conEquipo: veEquipo }),
+          Promise.all((veEquipo ? vista.comparativo : []).map(async (fila) => [fila.clave, await dineroDelRango({ programId: programa.id, rango: vista.periodo.a, claveCloser: fila.clave, cohorteId })] as const)),
+        ]);
+        const enlacesDeOrigen = Object.fromEntries((["todos", "completo", "parcial"] as const).map((valor) => {
+          const url = new URL(origen, "http://retia.local");
+          if (valor === "todos") url.searchParams.delete("origen");
+          else url.searchParams.set("origen", valor);
+          return [valor, `${url.pathname}${url.search}`];
+        })) as Record<"todos" | "completo" | "parcial", string>;
+        return {
+          dealsContraAgendas: proyectar(dealsContraAgendas),
+          embudo: proyectar(pasos.map((paso, indice) => ({ ...paso, detalle: detallesEmbudo[indice], detallePerdidos: indice > 0 ? detallesEmbudo[indice - 1] : undefined }))),
+          origenEmbudo: origenEmbudo as "todos" | "completo" | "parcial",
+          enlacesDeOrigen,
+          escalera: proyectar(escalera),
+          dineroPorCloser: Object.fromEntries(dineroPorCloser),
+        };
+      })()
     : null;
 
   const { desde, hasta } = vista.seleccion.rango;
@@ -298,7 +315,10 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const rangoLegible = desde === hasta ? fecha(desde) : `${fecha(desde)} a ${fecha(hasta)}`;
   const seccionesDeInfo = esHoy
     ? seccionesDeInfoDeHoy([{ programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, reporte: vistaDeHoy! }])
-    : [];
+    : seccion === "comercial" ? seccionesDeInfoDeComercial() : [];
+  const tituloDelInfo = seccion === "comercial"
+    ? "Comercial: qué hay y cómo se calcula"
+    : "Hoy: qué hay y cómo se calcula";
 
   return (
     <PageShell
@@ -320,7 +340,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
           <div className="min-w-0 flex-1 overflow-hidden">
             <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
           </div>
-          <InfoDePagina titulo="Hoy: qué hay y cómo se calcula" secciones={seccionesDeInfo} />
+          <InfoDePagina titulo={tituloDelInfo} secciones={seccionesDeInfo} />
         </div>
         {esHoy ? null : (
           <div className="min-w-0 max-w-full">
@@ -371,40 +391,16 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               veEquipo={veEquipo}
               hoy={hoy}
               dealsContraAgendasVista={vistaComercial!.dealsContraAgendas}
-              detalleRegistros={vistaComercial!.detalleRegistros}
+              embudoComercial={vistaComercial!.embudo}
+              origenEmbudo={vistaComercial!.origenEmbudo}
+              enlacesDeOrigen={vistaComercial!.enlacesDeOrigen}
+              vistaEscalera={vistaComercial!.escalera}
+              dineroPorCloser={vistaComercial!.dineroPorCloser}
               dealsContraAgendas={
                 <DealsContraAgendas
                   vista={vistaComercial!.dealsContraAgendas}
                   origen={origen}
                   hoy={hoy}
-                  contexto={contextoDeCifra({
-                    cohorte: elegida?.codigo ?? null,
-                    rango: vista.seleccion.rango,
-                    hoy,
-                    closer: null,
-                  })}
-                />
-              }
-              escalera={
-                <Escalera
-                  contexto={contextoDeCifra({
-                    cohorte: elegida?.codigo ?? null,
-                    rango: vista.seleccion.rango,
-                    hoy,
-                    closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null,
-                  })}
-                  periodo={vista.periodo}
-                  vista={await vistaDeEscalera({
-                    programId: programa.id,
-                    slug,
-                    hoy,
-                    periodo: vista.periodo,
-                    claveCloser: vista.claveCloser,
-                    cohorteId,
-                    cohorteIdDeB,
-                    origen,
-                    conEquipo: veEquipo,
-                  })}
                 />
               }
             />

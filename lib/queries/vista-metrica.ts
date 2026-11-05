@@ -32,6 +32,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { NivelPauta, PasoPauta } from "@/lib/queries/roas-de-pauta";
+import type { OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 
 /**
  * Codigo opaco estable de una CLAVE de closer (ticket 167): el sha256 de la
@@ -91,6 +92,7 @@ export function urlDeLista({
   filtrosDeOrigen,
   escalera,
   pauta,
+  origenDeal,
 }: {
   slug: string;
   metrica: Metrica;
@@ -104,6 +106,7 @@ export function urlDeLista({
   /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
   escalera?: { escalon?: string; grupo?: string; calidad?: string; pago?: "completo" | "parcial" };
   pauta?: { nivel: NivelPauta; id?: string; paso: PasoPauta };
+  origenDeal?: OrigenEmbudoComercial;
 }): string {
   const q = new URLSearchParams({ metrica, periodo: "custom", a_desde: periodo.a.desde, a_hasta: periodo.a.hasta });
   if (subconjunto?.etapa) q.set("etapa", subconjunto.etapa);
@@ -128,6 +131,7 @@ export function urlDeLista({
   if (claveCloser) q.set("closer", codigoDeCloser(claveCloser));
   if (moneda) q.set("moneda", moneda);
   if (cohorteId) q.set("cohorte", cohorteId);
+  if (origenDeal) q.set("origen", origenDeal);
   if (filtrosDeOrigen?.source !== undefined) q.set("source", filtrosDeOrigen.source ?? "__null__");
   if (filtrosDeOrigen?.medium !== undefined) q.set("medium", filtrosDeOrigen.medium ?? "__null__");
   if (filtrosDeOrigen?.campaign !== undefined) q.set("campaign", filtrosDeOrigen.campaign ?? "__null__");
@@ -147,6 +151,7 @@ export interface EntradaDeDetalles {
   claveCloser: string | null;
   /** El filtro de cohorte del Hub (377): `null` o ausente = todas. Acota la cifra y viaja a su lista. */
   cohorteId?: string | null;
+  origenDeal?: OrigenEmbudoComercial;
   /**
    * El origen de la pantalla que arma estos detalles (ticket 174, 197): se pega como
    * `?desde=` al href de cada lista para que su "Volver" regrese a la pestaña y el filtro
@@ -161,7 +166,7 @@ export interface EntradaDeDetalles {
 export async function detalleDeCifra(metrica: Metrica, entrada: EntradaDeDetalles, db: Db = dbDeLaApp): Promise<DetalleDeCifra> {
   const claveCloser = entrada.claveCloser;
   const [resumen] = await resumenDeMetrica(metrica, { ...entrada, rango: entrada.periodo.a, claveCloser }, db);
-  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId });
+  const href = urlDeLista({ slug: entrada.slug, metrica, periodo: entrada.periodo, origen: entrada.origen, claveCloser, cohorteId: entrada.cohorteId, origenDeal: entrada.origenDeal });
   return {
     resumen,
     desgloses: desglosesDelResumen(resumen.grupos, nombreDeEtapa),
@@ -275,11 +280,13 @@ export async function detallesDelEmbudo(
       subconjunto,
     );
   const { resultado } = embudo;
+  const etapasDeLosCaminos = resultado.conversion.porCamino.flatMap((camino) => camino.pasos.map((paso) => paso.etapa));
+  const etapasConDetalle = [...new Set<string>([...PASOS_DE_CONVERSION, ...etapasDeLosCaminos])];
   return {
     entraron: detalle("etapa_entraron", {}),
-    pasos: Object.fromEntries(PASOS_DE_CONVERSION.map((paso) => [paso, detalle("etapa_paso", { etapa: paso })])),
-    siguen: Object.fromEntries(PASOS_DE_CONVERSION.map((paso) => [paso, detalle("etapa_siguen", { etapa: paso })])),
-    perdidos: Object.fromEntries(PASOS_DE_CONVERSION.map((paso) => [paso, detalle("etapa_perdidos", { etapa: paso })])),
+    pasos: Object.fromEntries(etapasConDetalle.map((paso) => [paso, detalle("etapa_paso", { etapa: paso })])),
+    siguen: Object.fromEntries(etapasConDetalle.map((paso) => [paso, detalle("etapa_siguen", { etapa: paso })])),
+    perdidos: Object.fromEntries(etapasConDetalle.map((paso) => [paso, detalle("etapa_perdidos", { etapa: paso })])),
     otros: Object.fromEntries(PASOS_DE_CONVERSION.map((paso) => [paso, detalle("etapa_otros", { etapa: paso })])),
     tiempo: Object.fromEntries(resultado.tiempoEnEtapa.map((fila) => [fila.etapa, detalle("etapa_tiempo", { etapa: fila.etapa })])),
     abiertos: Object.fromEntries(resultado.abiertos.map((fila) => [
@@ -418,6 +425,7 @@ export interface EntradaDeLista {
   codigoCloser?: string;
   moneda?: string;
   cohorteId?: string | null;
+  origenDeal?: OrigenEmbudoComercial;
   /** Solo el embudo por etapas (ticket 188). */
   etapa?: string;
   antiguedad?: string;
@@ -444,7 +452,7 @@ export interface EntradaDeLista {
 
 /** Resuelve el mismo periodo del dashboard, sin cargar el resto de sus métricas. */
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
-  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
+  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
   // Un id de cohorte que no es de este programa se ignora: la lista no se filtra (el programa es frontera).
   const delHub = await cohorteDelHub(db, programId, { parametro: cohorteId ?? undefined, cohorteVieja: seleccion.cohorteVieja });
@@ -457,7 +465,7 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
   const periodo = entrada.busqueda.sin_b === "1" && !seleccion.b
     ? { ...resuelto, b: null, aviso: seleccion.aviso }
     : resuelto;
-  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
+  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

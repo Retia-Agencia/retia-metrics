@@ -19,10 +19,12 @@ interface GraficaProps {
   comparacion?: ComparacionDeGrafica;
   meta?: MetaDeGrafica;
   punto?: { slug: string; origen: string; titulos: string[]; cargar: CargarResumenDePunto };
+  /** Conserva la tabla accesible sin mostrar el plegable de auditoría. */
+  tablaSoloLectores?: boolean;
 }
 
 /** Contrato único de gráficas del CRM (ADR 0091). */
-export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, formato, comparacion, meta, punto }: GraficaProps) {
+export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, formato, comparacion, meta, punto, tablaSoloLectores = false }: GraficaProps) {
   const modelo = crearModeloGrafica({
     tipo,
     unidad,
@@ -48,7 +50,7 @@ export function Grafica({ tipo, datos, titulo, unidad, frescura, etiquetas, form
       {punto
         ? <GraficaConResumen modelo={modelo} titulo={titulo} slug={punto.slug} origen={punto.origen} titulos={punto.titulos} cargar={punto.cargar} />
         : <GraficaDinamica modelo={modelo} titulo={`${titulo}, ${unidad}. Ejes lineales con cero visible.`} />}
-      <details className="text-sm">
+      <details className={tablaSoloLectores ? "sr-only" : "text-sm"}>
         <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">
           Ver cifras de {titulo}
         </summary>

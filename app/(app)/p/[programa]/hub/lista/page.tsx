@@ -61,6 +61,10 @@ const esquema = z.object({
     "grupo_vendidos",
     "grupo_sin_show",
     "grupo_pendientes",
+    "embudo_comercial_creados",
+    "embudo_comercial_agendaron",
+    "embudo_comercial_shows",
+    "embudo_comercial_compraron",
     "etapa_entraron",
     "etapa_paso",
     "etapa_siguen",
@@ -74,10 +78,11 @@ const esquema = z.object({
     "pauta_meta",
   ]),
   // Solo el embudo por etapas (ticket 188): el paso o la etapa, y el tramo de antigüedad.
-  etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION])] as [string, ...string[]]).optional(),
+  etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION, "ganado"])] as [string, ...string[]]).optional(),
   antiguedad: z.enum(BUCKETS_DE_ANTIGUEDAD as [string, ...string[]]).optional(),
   closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
+  origen: z.enum(["completo", "parcial", "manual"]).optional(),
   cohorte: z.string().uuid().optional().catch(undefined),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
   source: z.string().max(300).optional(),
@@ -128,6 +133,10 @@ const titulos = {
   grupo_vendidos: "Deals del grupo con show y vendidos hoy",
   grupo_sin_show: "Deals del grupo sin show",
   grupo_pendientes: "Citas pasadas sin resultado",
+  embudo_comercial_creados: "Deals creados",
+  embudo_comercial_agendaron: "Deals que agendaron",
+  embudo_comercial_shows: "Deals que tuvieron show",
+  embudo_comercial_compraron: "Deals que compraron",
   etapa_entraron: "Entraron al embudo",
   etapa_paso: "Llegaron al paso",
   etapa_siguen: "Siguen aquí",
@@ -189,7 +198,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const veLeads = veLeadsDePauta(rol);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
-  const { metrica, closer, moneda, cohorte, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
+  const { metrica, closer, moneda, cohorte, origen: origenDeal, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
   const sourceNormalizado = source === "__null__" ? null : source;
   const mediumNormalizado = medium === "__null__" ? null : medium;
   const canalNormalizado = canal === "__null__" ? null : canal;
@@ -207,6 +216,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (metrica !== "escalera" && (escalon !== undefined || grupo !== undefined || calidad !== undefined)) notFound();
   if (escalon !== undefined && grupo !== undefined) notFound();
   if (moneda && metrica !== "caja") notFound();
+  if (origenDeal && !metrica.startsWith("embudo_comercial_")) notFound();
   // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
   // o una lista del embudo sin su paso, no existe (nunca cae al embudo entero).
   const pide = esMetricaDeEmbudo(metrica) ? SUBCONJUNTO_DEL_EMBUDO[metrica] : null;
@@ -219,6 +229,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     codigoCloser: closer,
     moneda,
     cohorteId: cohorte,
+    origenDeal,
     etapa,
     antiguedad,
     source: sourceNormalizado,
@@ -253,6 +264,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     claveCloser,
     moneda,
     cohorteId: cohorte,
+    origenDeal,
     subconjunto: { etapa, antiguedad },
     filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, area, canal: canalNormalizado },
     escalera: { escalon, grupo, calidad, pago },
