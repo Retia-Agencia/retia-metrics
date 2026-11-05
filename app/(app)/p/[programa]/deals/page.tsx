@@ -5,7 +5,7 @@ import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { cookies } from "next/headers";
-import { destinosDeCorreccion, NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
+import { destinosDeCorreccion, ETAPAS_EN_ORDEN, NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
 import { COOKIE_VISTA_DEL_TABLERO } from "@/lib/deals/vista-recordada";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
@@ -15,6 +15,7 @@ import { FiltroKanban } from "@/components/deals/filtro-kanban";
 import { TableroKanban } from "@/components/deals/tablero-kanban";
 import { TONO_DE_COLUMNA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
+import { DescargarDeals } from "@/components/deals/descargar-deals";
 import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 import { cohorteActiva } from "@/lib/queries/cohortes";
@@ -79,13 +80,19 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
       descripcion="Deals · tablero"
       fija
       acciones={
-        <NuevoDeal
-          programId={programa.id}
-          programaSlug={programa.slug}
-          nombreEtapaDeEntrada={NOMBRE_DE_ETAPA[ETAPA_DE_ENTRADA]}
-          puedeCrearLead={trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser })}
-          origen={origen}
-        />
+        <div className="flex items-center gap-2">
+          <DescargarDeals
+            programaSlug={programa.slug}
+            etapas={ETAPAS_EN_ORDEN.map((valor) => ({ valor, nombre: NOMBRE_DE_ETAPA[valor] }))}
+          />
+          <NuevoDeal
+            programId={programa.id}
+            programaSlug={programa.slug}
+            nombreEtapaDeEntrada={NOMBRE_DE_ETAPA[ETAPA_DE_ENTRADA]}
+            puedeCrearLead={trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser })}
+            origen={origen}
+          />
+        </div>
       }
     >
       <PantallaFija>
