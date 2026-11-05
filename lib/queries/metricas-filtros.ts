@@ -459,6 +459,24 @@ export function llamadaYaDebiaOcurrir(ahora: Date) {
   return or(lte(calls.fechaAgenda, ahora), and(isNull(calls.fechaAgenda), lte(calls.fechaLlamada, ahora)));
 }
 
+/**
+ * La cita que cuenta en el denominador del show (353, 378): ya debía ocurrir y NO está cancelada. Las
+ * canceladas se informan aparte y nunca entran a una tasa; la cifra de Hoy y su lista importan esta MISMA
+ * función. Antes la cifra las contaba y la lista de Citas del día no.
+ */
+export function citaDebida(ahora: Date) {
+  return and(citaNoCancelada(), llamadaYaDebiaOcurrir(ahora));
+}
+
+/**
+ * Una cita debida a la que el closer todavía no le marcó resultado (sigue "agendada" aunque su hora ya pasó).
+ * Es la parte del denominador que NO se puede juzgar: no es un no show, es un dato que falta. No excluye los
+ * negocios cerrados: una venta con la llamada sin marcar es justo lo que hay que ver.
+ */
+export function citaDebidaSinMarcar(ahora: Date) {
+  return and(citaDebida(ahora), eq(calls.resultado, "agendada"));
+}
+
 /** El complemento: la cita todavía no llega al corte. Operadores de drizzle, nunca un `Date` dentro de `sql`. */
 export function citaPorVenir(ahora: Date) {
   return or(gt(calls.fechaAgenda, ahora), and(isNull(calls.fechaAgenda), gt(calls.fechaLlamada, ahora)));

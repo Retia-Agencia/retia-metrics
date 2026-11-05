@@ -113,3 +113,14 @@ Todo lo de la lista de Mani para Hoy, con estas decisiones sobre las de arriba:
 - **PDF:** márgenes de página fijos, el pie (fecha y URL) en el margen de abajo de cada página por `@page` (Chrome),
   citas y dinero se parten entre filas y no por la mitad de una, y cada título viaja con su bloque.
   Limitación: Firefox y Safari no dibujan el pie en el margen.
+
+### Con datos reales (4-nov, tercera vuelta)
+
+- **El 0,0 % de asistencia era dato, no solo consulta.** En ComunicArte (4-nov) las 11 citas siguen `agendada`: los
+  closers no marcaron resultado, mientras hay 2 ventas y USD 1.594 de caja. Un bug real sí había: el denominador
+  contaba las **canceladas** (12 en vez de 11) y la lista tampoco las excluía. Ahora cifra y lista usan `citaDebida`.
+- **N3:** la asistencia dice "Parcial: N sin resultado marcado" (con su lista, `citas_sin_marcar`) y es — si no hay
+  ningún resultado. En el comparativo, cada closer muestra cuántas citas suyas siguen sin resultado, con su lista.
+- **Barras:** se quitaron las mini barras del comparativo y la marca blanca con el texto flotante de "esperado a hoy"
+  (ahora una frase: "Deberías ir en 2,0 a hoy; vas en 0"). Una barra sin relleno no se pinta, tampoco en el embudo.
+- Verificado contra producción, solo lectura: cifra y lista coinciden en debidas y sin marcar (4 programas × 3 días).

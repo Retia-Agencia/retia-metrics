@@ -69,7 +69,9 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
           )}
           <div className="flex items-center gap-3">
             <span className="w-28 shrink-0 text-sm">{paso.etiqueta}</span>
-            <div className="h-8 flex-1 rounded-md bg-muted">
+            {paso.cantidad === 0 ? (
+              <span className="cifra flex-1 text-sm text-muted-foreground">0</span>
+            ) : <div className="h-8 flex-1 rounded-md bg-muted">
               <span
                 className={
                   "flex h-8 items-center justify-end rounded-md px-2 text-sm text-primary-foreground " +
@@ -81,7 +83,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
                   <span className="cifra">{num(paso.cantidad)}</span>
                 </Abrible>
               </span>
-            </div>
+            </div>}
           </div>
           {paso.perdidos && paso.perdidos.cantidad > 0 ? (
             <p className="pl-32 text-xs text-muted-foreground">
@@ -130,7 +132,7 @@ export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] })
   const total = segmentos.reduce((suma, segmento) => suma + segmento.cantidad, 0);
   return (
     <div className="space-y-2">
-      <div
+      {total === 0 ? <p className="text-sm text-muted-foreground">Sin casos.</p> : <div
         className="flex h-9 w-full overflow-hidden rounded-md bg-muted"
         role="group"
         aria-label="Distribución al cien por ciento"
@@ -161,7 +163,7 @@ export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] })
               </span>
             );
           })}
-      </div>
+      </div>}
       <div className="sr-only"><table>
         <caption>Distribución</caption>
         <thead>
@@ -196,12 +198,12 @@ export function BarrasHorizontales({
       {filas.map((fila) => (
         <div key={fila.clave} className="grid grid-cols-[minmax(7rem,1fr)_2fr_auto] items-center gap-2 text-sm">
           <span>{fila.etiqueta}</span>
-          <div className="h-3 rounded-full bg-muted">
+          {fila.valor <= 0 ? <span aria-hidden="true" /> : <div className="h-3 rounded-full bg-muted">
             <span
               className="block h-3 rounded-full bg-primary"
               style={{ width: `${Math.max(0, (fila.valor / maximo) * 100)}%` }}
             />
-          </div>
+          </div>}
           <Abrible titulo={fila.etiqueta} detalle={fila.detalle}>
             <span className="cifra">{fila.texto}</span>
           </Abrible>

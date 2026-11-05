@@ -83,6 +83,9 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
           ]}
           resultado={{ nombre: nombreLargo("cierre_de_ventas"), valor: tasa(e.pctCierre) }}
         /> : null}
+        {uno && uno.showPorCita.sinMarcar > 0
+          ? <Frase>Parcial: {num(uno.showPorCita.sinMarcar)} de las {num(uno.showPorCita.citasQueYaDebianOcurrir)} citas siguen sin resultado marcado por el closer. No son no shows: son datos que faltan. Si ninguna tiene resultado, la asistencia se ve como —.</Frase>
+          : <Frase>Si faltan resultados por marcar, la asistencia se ve como parcial y dice cuántas citas faltan.</Frase>}
         <Frase>Los leads y las citas son hechos del mismo día, no necesariamente de las mismas personas.</Frase>
       </>,
     },
@@ -143,7 +146,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
         <BarraDeEjemplo etiqueta="Ejemplo: cómo se llena la barra" parte={30} total={50} textoParte="llevamos 30 de un objetivo de 50" />
         <Palabras items={[
           { palabra: nombreCorto("llevamos"), significa: "Lo vendido desde que empezó el periodo. Es lo que llena la barra." },
-          { palabra: "Raya de la barra", significa: "Lo esperado a hoy: dónde debería ir la barra si se vendiera parejo." },
+          { palabra: "Deberías ir en", significa: "Lo esperado a hoy: lo que habría que llevar si se vendiera parejo cada día." },
           { palabra: nombreCorto("faltan"), significa: definicion("faltan") },
           { palabra: nombreCorto("por_dia_habil"), significa: definicion("por_dia_habil") },
           { palabra: nombreCorto("proyeccion"), significa: definicion("proyeccion") },

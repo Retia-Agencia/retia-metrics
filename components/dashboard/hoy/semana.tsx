@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { tasa } from "@/components/dashboard/piezas";
 import { rangoLegible } from "@/components/dashboard/proyeccion";
-import { CifraConEnlace, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
+import { CifraConEnlace, CuentaDeAsistencia, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
 import { BarraDeAvance } from "@/components/hub/barra-de-avance";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
 import { num } from "@/lib/format";
@@ -12,7 +12,7 @@ import { nombreCorto } from "@/lib/vocabulario-metricas";
 function Fila({ titulo, llevamos, objetivo, nota }: {
   titulo: string;
   llevamos: ReactNode;
-  objetivo: { valor: number; llevamos: number; esperado: number } | null;
+  objetivo: { valor: number; llevamos: number } | null;
   nota: ReactNode;
 }) {
   return (
@@ -21,7 +21,7 @@ function Fila({ titulo, llevamos, objetivo, nota }: {
         <h4 className="text-sm font-medium">{titulo}</h4>
         <p className="text-sm"><span className="text-muted-foreground">{nombreCorto("llevamos")}: </span><span className="cifra text-lg font-semibold">{llevamos}</span></p>
       </div>
-      {objetivo ? <BarraDeAvance llevamos={objetivo.llevamos} objetivo={objetivo.valor} esperado={objetivo.esperado} /> : null}
+      {objetivo ? <BarraDeAvance llevamos={objetivo.llevamos} objetivo={objetivo.valor} /> : null}
       <p className="text-xs text-muted-foreground">{nota}</p>
     </section>
   );
@@ -29,7 +29,7 @@ function Fila({ titulo, llevamos, objetivo, nota }: {
 
 /**
  * La semana (378): lo que llevamos contra el objetivo de la semana y contra lo esperado a hoy. Cada barra
- * dice su objetivo y su raya de "esperado a hoy" con la cifra; y el reparto para llegar a la cohorte
+ * dice su objetivo y una frase dice dónde deberías ir hoy; y el reparto para llegar a la cohorte
  * ya no es un desplegable.
  */
 export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }) {
@@ -49,24 +49,24 @@ export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }
             <Fila
               titulo="Cupos vendidos"
               llevamos={<CifraConEnlace href={enlacesDeLaSemana?.cupos}>{num(semana.real)}</CifraConEnlace>}
-              objetivo={semana.meta === null || esperadoCupos === null ? null : { valor: semana.meta, llevamos: semana.real, esperado: esperadoCupos }}
+              objetivo={semana.meta === null ? null : { valor: semana.meta, llevamos: semana.real }}
               nota={semana.meta === null
                 ? "Sin objetivo de la semana: el mes no tiene ventana de ventas."
-                : `Objetivo de la semana: ${num(semana.meta, 1)} · esperado a hoy: ${num(esperadoCupos ?? 0, 1)} · avance frente a lo esperado: ${cumplimiento(semana.real, esperadoCupos)}`}
+                : `Objetivo de la semana: ${num(semana.meta, 1)}. Deberías ir en ${num(esperadoCupos ?? 0, 1)} a hoy; vas en ${num(semana.real)} (${cumplimiento(semana.real, esperadoCupos)} de lo esperado).`}
             />
             <Fila
               titulo="Leads"
               llevamos={leads === null ? "—" : <CifraConEnlace href={enlacesDeLaSemana?.leads}>{num(leads)}</CifraConEnlace>}
-              objetivo={objetivoDeLeads === null || leads === null ? null : { valor: objetivoDeLeads * total, llevamos: leads, esperado: objetivoDeLeads * dia }}
+              objetivo={objetivoDeLeads === null || leads === null ? null : { valor: objetivoDeLeads * total, llevamos: leads }}
               nota={objetivoDeLeads === null
                 ? "Sin objetivo de leads por día: se define en Configuración."
-                : `Objetivo de la semana: ${num(objetivoDeLeads * total, 0)} (${num(objetivoDeLeads, 0)} por día) · esperado a hoy: ${num(objetivoDeLeads * dia, 0)}`}
+                : `Objetivo de la semana: ${num(objetivoDeLeads * total, 0)} (${num(objetivoDeLeads, 0)} por día). Deberías ir en ${num(objetivoDeLeads * dia, 0)} a hoy; vas en ${num(leads ?? 0)}.`}
             />
             <Fila
               titulo={`${nombreCorto("asistencia")} a la cita`}
               llevamos={<CifraConEnlace href={enlacesDeLaSemana?.asistencia}>{tasa(asistencia.porcentaje)}</CifraConEnlace>}
               objetivo={null}
-              nota={`${num(asistencia.realizadas)} realizadas de ${num(asistencia.citasQueYaDebianOcurrir)} citas que ya debían ocurrir`}
+              nota={<CuentaDeAsistencia realizadas={asistencia.realizadas} debidas={asistencia.citasQueYaDebianOcurrir} sinMarcar={asistencia.sinMarcar} href={enlacesDeLaSemana?.sinMarcar} />}
             />
             {p.cohorte ? (
               <div className="space-y-2 border-t pt-3">

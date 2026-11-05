@@ -25,7 +25,7 @@ import {
   type SubconjuntoDelEmbudo,
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
-import { grupoDeCitas, gruposPorSemana, miembrosDe } from "@/lib/queries/tasas-del-grupo";
+import { grupoDeCitas, gruposPorSemana, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
 import { lunesDe, sumarDias } from "@/lib/rangos";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -184,7 +184,7 @@ export async function detallesDelDashboard(entrada: EntradaDeDetalles, db: Db = 
  * grupo del ADR 0079 sobre el que se calculan: el % de show su grupo de citas, el % de cierre
  * los del grupo con show.
  */
-export const CELDAS_DEL_COMPARATIVO = ["agendas", "shows", "grupo_citas", "cierres", "grupo_shows", "caja"] as const;
+export const CELDAS_DEL_COMPARATIVO = ["agendas", "shows", "grupo_citas", "cierres", "grupo_shows", "caja", "grupo_pendientes"] as const;
 export type CeldaDelComparativo = (typeof CELDAS_DEL_COMPARATIVO)[number];
 /** Por la clave de cada fila del comparativo (`users.id` o `historico:<texto>`). */
 export type DetallesDelComparativo = Record<string, Record<CeldaDelComparativo, DetalleDeCifra>>;
@@ -203,15 +203,17 @@ export async function detallesDelComparativo(
   // El grupo de citas se carga UNA vez y se acota por closer en memoria, con la misma regla que su
   // lista (`miembrosDe`); las otras cuatro celdas son agregados SQL por clave.
   const grupo = await grupoDeCitas(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora });
-  const deGrupo = (metrica: "grupo_citas" | "grupo_shows", clave: string): DetalleDeCifra => {
-    const miembros = miembrosDe(grupo, clave).filter((m) => metrica === "grupo_citas" || m.conShow);
+  const deGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_pendientes", clave: string): DetalleDeCifra => {
+    const miembros = metrica === "grupo_pendientes"
+      ? pendientesDe(grupo, clave)
+      : miembrosDe(grupo, clave).filter((m) => metrica === "grupo_citas" || m.conShow);
     return detalleDeDeals(entrada, metrica, resumenDeDeals(entrada.programId, miembros, entrada.hoy), clave);
   };
   const filas = await Promise.all(claves.map(async (clave) => {
     const celdas = await Promise.all(CELDAS_DEL_COMPARATIVO.map(async (metrica) =>
       [
         metrica,
-        metrica === "grupo_citas" || metrica === "grupo_shows"
+        metrica === "grupo_citas" || metrica === "grupo_shows" || metrica === "grupo_pendientes"
           ? deGrupo(metrica, clave)
           : await detalleDeCifra(metrica, { ...entrada, claveCloser: clave }, db),
       ] as const));

@@ -11,6 +11,8 @@ export interface ProgramaDelReporte {
   detalleRegistros?: DetalleDeCifra;
   /** Las citas que ya debían ocurrir: la lista que sustenta la asistencia (el denominador). */
   detalleCitasDebidas?: DetalleDeCifra;
+  /** De esas citas, las que el closer todavía no marcó: la cobertura de la asistencia (ADR 0115 N3). */
+  detalleCitasSinMarcar?: DetalleDeCifra;
   /** Las listas de lo que llevamos en la semana, ya armadas por la página con `urlDeLista`. */
-  enlacesDeLaSemana?: { cupos: string; leads: string; asistencia: string };
+  enlacesDeLaSemana?: { cupos: string; leads: string; asistencia: string; sinMarcar: string };
 }

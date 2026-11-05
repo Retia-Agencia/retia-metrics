@@ -254,11 +254,13 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     ? {
         detalleRegistros: proyectar(await detalleDeCifra("registros", { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen })),
         detalleCitasDebidas: proyectar(await detalleDeCifra("citas_debidas", { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen })),
+        detalleCitasSinMarcar: proyectar(await detalleDeCifra("citas_sin_marcar", { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen })),
         enlacesDeLaSemana: veEquipo
           ? {
               cupos: urlDeLista({ slug, metrica: "cierres", periodo: periodoDeLaSemana, origen }),
               leads: urlDeLista({ slug, metrica: "registros", periodo: periodoDeLaSemana, origen }),
               asistencia: urlDeLista({ slug, metrica: "citas_debidas", periodo: periodoDeLaSemana, origen }),
+              sinMarcar: urlDeLista({ slug, metrica: "citas_sin_marcar", periodo: periodoDeLaSemana, origen }),
             }
           : undefined,
       }

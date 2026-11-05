@@ -3,7 +3,9 @@ import Link from "next/link";
 import { AyudaDeSeccion } from "@/components/hub/info-de-pagina";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { tasa } from "@/components/dashboard/piezas";
+import { CifraConLista } from "@/components/cifra-con-lista";
 import { num } from "@/lib/format";
+import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
 
 /** Un programa por columna, lado a lado: ninguna tasa se suma entre programas (ADR 0048). */
@@ -79,3 +81,28 @@ export function CifraConEnlace({ href, children }: { href?: string; children: Re
 
 export const cumplimiento = (llevamos: number, objetivo: number | null) => (objetivo && objetivo > 0 ? tasa(llevamos / objetivo) : "—");
 export const numeroOGuion = (valor: number | null, decimales = 1) => (valor === null ? "—" : num(valor, decimales));
+
+/**
+ * La cuenta de la asistencia, con su cobertura (ADR 0115 N3): "6 de 12 citas" y, si el closer no marcó todas,
+ * cuántas siguen sin resultado, con su lista. Una cita sin marcar no es un no show: es un dato que falta.
+ */
+export function CuentaDeAsistencia({ realizadas, debidas, sinMarcar, detalle, href }: {
+  realizadas: number;
+  debidas: number;
+  sinMarcar: number;
+  detalle?: DetalleDeCifra;
+  href?: string;
+}) {
+  return (
+    <>
+      {num(realizadas)} de {num(debidas)} citas que ya debían ocurrir
+      {sinMarcar > 0 ? (
+        <span className="mt-0.5 block text-tono-alerta">
+          Parcial:{" "}
+          {detalle ? <CifraConLista titulo="Citas sin resultado marcado" detalle={detalle}>{num(sinMarcar)}</CifraConLista> : <CifraConEnlace href={href}>{num(sinMarcar)}</CifraConEnlace>}{" "}
+          sin resultado marcado por el closer
+        </span>
+      ) : null}
+    </>
+  );
+}

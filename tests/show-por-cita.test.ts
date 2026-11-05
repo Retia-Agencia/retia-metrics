@@ -52,4 +52,41 @@ describe("% de show por cita en Hub › Hoy", () => {
     const { showPorCita } = await armarVistaDeHoy({ programId: programa.id, dia, ahora }, db);
     expect(showPorCita).toMatchObject({ citasDelDia: 2, citasQueYaDebianOcurrir: 1, realizadas: 1, porcentaje: 1 });
   });
+  it("una cancelada no entra al denominador y una cita sin marcar es un dato que falta (378, ADR 0115 N3)", async () => {
+    const dia = "2026-10-14";
+    const ahora = new Date(`${dia}T23:59:59.999-05:00`);
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
+    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "mezcla@retia.co" }).returning();
+    const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
+    await db.insert(calls).values([
+      { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T09:00:00-05:00`), resultado: "show" },
+      { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T10:00:00-05:00`), resultado: "agendada" },
+      { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T11:00:00-05:00`), resultado: "cancelada" },
+    ]);
+
+    const { showPorCita } = await armarVistaDeHoy({ programId: programa.id, dia, ahora }, db);
+    // La cancelada queda fuera de TODO; la sin marcar sigue en el denominador pero se cuenta aparte.
+    expect(showPorCita).toMatchObject({ citasDelDia: 2, citasQueYaDebianOcurrir: 2, realizadas: 1, sinMarcar: 1, porcentaje: 0.5 });
+
+    // La cifra y su lista dan lo mismo: el caso que las hacía divergir era la cancelada.
+    const filtros = { programId: programa.id, rango: { desde: dia, hasta: dia }, hoy: dia, ahora };
+    const total = async (metrica: "citas_debidas" | "citas_sin_marcar") =>
+      (await listaDeMetrica(metrica, filtros, 1, db))[0]!.filas.length;
+    expect(await total("citas_debidas")).toBe(showPorCita.citasQueYaDebianOcurrir);
+    expect(await total("citas_sin_marcar")).toBe(showPorCita.sinMarcar);
+  });
+
+  it("si ninguna cita debida tiene resultado, el porcentaje no es 0,0 %: es null", async () => {
+    const dia = "2026-10-14";
+    const ahora = new Date(`${dia}T23:59:59.999-05:00`);
+    const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
+    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "sin-marcar@retia.co" }).returning();
+    const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
+    await db.insert(calls).values([
+      { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T09:00:00-05:00`), resultado: "agendada" },
+      { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T10:00:00-05:00`), resultado: "agendada" },
+    ]);
+    const { showPorCita } = await armarVistaDeHoy({ programId: programa.id, dia, ahora }, db);
+    expect(showPorCita).toMatchObject({ citasQueYaDebianOcurrir: 2, realizadas: 0, sinMarcar: 2, porcentaje: null });
+  });
 });

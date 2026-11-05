@@ -40,7 +40,7 @@ function Dato({ rotulo, children }: { rotulo: string; children: ReactNode }) {
 function BarraDeLaCelda({ celda }: { celda: CeldaDeMeta }) {
   // Sin objetivo no hay a qué medir la barra: no se dibuja.
   if (celda.meta === null) return null;
-  return <BarraDeAvance llevamos={celda.llevamos} objetivo={celda.meta} esperado={celda.esperado} tono={TONO_DE_BARRA[celda.tono]} />;
+  return <BarraDeAvance llevamos={celda.llevamos} objetivo={celda.meta} tono={TONO_DE_BARRA[celda.tono]} />;
 }
 
 function DetalleDeCelda({ celda, unidad, conProyeccion }: {

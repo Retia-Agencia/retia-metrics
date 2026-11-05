@@ -53,17 +53,6 @@ function Celda({ titulo, detalle, children }: { titulo: string; detalle?: Detall
   );
 }
 
-function BarraDeTasa({ valor }: { valor: number | null }) {
-  return (
-    <span className="mt-1 block h-1.5 w-20 rounded-full bg-muted">
-      <span
-        className="block h-1.5 rounded-full bg-primary"
-        style={{ width: `${Math.max(0, Math.min(100, (valor ?? 0) * 100))}%` }}
-      />
-    </span>
-  );
-}
-
 export function Comparativo({
   vista,
   detalles,
@@ -120,8 +109,14 @@ export function Comparativo({
                     <td className="text-right">
                       <Celda titulo={`Grupo de citas de ${quien}`} detalle={c?.grupo_citas}>
                         {tasa(fila.pctShow)}
-                        <BarraDeTasa valor={fila.pctShow} />
                       </Celda>
+                      {fila.grupo.pendientes > 0 ? (
+                        <span className="block text-xs text-tono-alerta">
+                          <Celda titulo={`Citas sin resultado marcado de ${quien}`} detalle={c?.grupo_pendientes}>
+                            {num(fila.grupo.pendientes)} sin resultado
+                          </Celda>
+                        </span>
+                      ) : null}
                     </td>
                     <td className="text-right">
                       <Celda titulo={`Cierres de ${quien}`} detalle={c?.cierres}>
@@ -131,7 +126,6 @@ export function Comparativo({
                     <td className="text-right">
                       <Celda titulo={`Grupo con show de ${quien}`} detalle={c?.grupo_shows}>
                         {tasa(fila.pctCierre)}
-                        <BarraDeTasa valor={fila.pctCierre} />
                       </Celda>
                     </td>
                     <td className="text-right">

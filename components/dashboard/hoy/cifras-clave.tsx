@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Caja, tasa } from "@/components/dashboard/piezas";
 import { AyudaDeSeccion } from "@/components/hub/info-de-pagina";
-import { Ficha, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
+import { CuentaDeAsistencia, Ficha, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
 import { BarraDeAvance } from "@/components/hub/barra-de-avance";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
 import { num } from "@/lib/format";
@@ -19,7 +19,7 @@ function SinObjetivo({ texto, definir }: { texto: string; definir?: ReactNode })
 
 export function CifrasClave({ programas, definirObjetivo }: { programas: ProgramaDelReporte[]; definirObjetivo?: ReactNode }) {
   return (
-    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros, detalleCitasDebidas }) => {
+    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros, detalleCitasDebidas, detalleCitasSinMarcar }) => {
       const dia = reporte.horizontes.find((h) => h.clave === "dia")!;
       const objetivoDeLeads = metaDeLeads(reporte.proyeccion.cohorte);
       const hacenFalta = reporte.proyeccion.leadsRequeridosDia.valor;
@@ -69,7 +69,7 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
             ayuda="embudo"
             valor={<CifraConLista titulo="Citas que ya debían ocurrir" detalle={detalleCitasDebidas}>{tasa(asistencia.porcentaje)}</CifraConLista>}
           >
-            <p className="text-xs text-muted-foreground">{num(asistencia.realizadas)} de {num(asistencia.citasQueYaDebianOcurrir)} citas que ya debían ocurrir</p>
+            <p className="text-xs text-muted-foreground"><CuentaDeAsistencia realizadas={asistencia.realizadas} debidas={asistencia.citasQueYaDebianOcurrir} sinMarcar={asistencia.sinMarcar} detalle={detalleCitasSinMarcar} /></p>
           </Ficha>
         </div>
       );

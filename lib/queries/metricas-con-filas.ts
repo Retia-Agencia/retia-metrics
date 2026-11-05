@@ -13,8 +13,8 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
-  closerDeAbono, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas, llamadaYaDebiaOcurrir,
+  closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
 } from "@/lib/queries/metricas-filtros";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import {
@@ -44,6 +44,7 @@ export type Metrica =
   | "agendas"
   | "canceladas"
   | "citas_debidas"
+  | "citas_sin_marcar"
   | "shows"
   | "no_shows"
   | "shows_sin_grain"
@@ -230,6 +231,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
     case "agendas":
     case "canceladas":
     case "citas_debidas":
+    case "citas_sin_marcar":
     case "agendas_futuras":
     case "shows":
     case "no_shows":
@@ -302,7 +304,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
 function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, resumen: boolean) {
   const esCaja = metrica === "caja";
   const esContratado = metrica === "contratado";
-  const esLlamada = ["agendas", "canceladas", "citas_debidas", "agendas_futuras", "shows", "no_shows", "shows_sin_grain", "sin_resultado", "agendas_creadas"].includes(metrica);
+  const esLlamada = ["agendas", "canceladas", "citas_debidas", "citas_sin_marcar", "agendas_futuras", "shows", "no_shows", "shows_sin_grain", "sin_resultado", "agendas_creadas"].includes(metrica);
   // Las agendas futuras tienen edad cero; no se inventa un quinto bucket negativo.
   const edad = sql<number>`greatest(0, ${hoy}::date - (${fuente.fecha})::date)`;
   const bucket = sql<string>`case
@@ -399,6 +401,7 @@ function consultaDe(
     case "agendas":
     case "canceladas":
     case "citas_debidas":
+    case "citas_sin_marcar":
     case "shows":
     case "no_shows":
     case "shows_sin_grain":
@@ -412,8 +415,9 @@ function consultaDe(
           and(
             filtroLlamadas(alcance, db),
             metrica === "agendas" ? citaNoCancelada() : undefined,
+            metrica === "citas_debidas" ? citaDebida(filtros.ahora ?? new Date()) : undefined,
+            metrica === "citas_sin_marcar" ? citaDebidaSinMarcar(filtros.ahora ?? new Date()) : undefined,
             metrica === "canceladas" ? eq(calls.resultado, "cancelada") : undefined,
-            metrica === "citas_debidas" ? llamadaYaDebiaOcurrir(filtros.ahora ?? new Date()) : undefined,
             metrica === "shows" ? llamadaOcurrio() : undefined,
             metrica === "no_shows" ? filtroNoShows(alcance, db) : undefined,
             metrica === "shows_sin_grain" ? atendidaSinGrain() : undefined,
