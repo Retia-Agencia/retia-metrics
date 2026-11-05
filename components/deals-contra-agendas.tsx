@@ -83,7 +83,7 @@ export function DealsContraAgendas({
         ) : null}
         <Grafica
           titulo={`Deals y agendas ${forma}`}
-          unidad="registros"
+          unidad="deals y agendas"
           frescura={
             `Datos hasta ${fecha(a.puntos.at(-1)?.dia ?? periodo.a.hasta)}. ` +
             "Son conteos de personas y citas, no plata."

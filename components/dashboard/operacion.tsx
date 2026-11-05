@@ -83,11 +83,11 @@ function Celda({ titulo, detalle, children }: { titulo: string; detalle?: Detall
   return <CifraConLista titulo={titulo} detalle={detalle ?? undefined}>{children}</CifraConLista>;
 }
 
-function Kpi({ titulo, valor, base, detalle, parcial = false }: { titulo: string; valor: string; base: string; detalle?: DetalleDeCifra; parcial?: boolean }) {
+function Kpi({ titulo, valor, base, detalle, parcial = false, cobertura }: { titulo: string; valor: string; base?: string; detalle?: DetalleDeCifra; parcial?: boolean; cobertura?: string }) {
   return <Card><CardContent className="space-y-1 pt-4">
-    <div className="flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{titulo}</p>{parcial ? <Badge variant="alerta">parcial</Badge> : null}</div>
+    <div className="flex items-center justify-between gap-2"><p className="text-xs text-muted-foreground">{titulo}</p>{parcial ? <Badge variant="alerta" title={cobertura} aria-label={cobertura}>parcial</Badge> : null}</div>
     <p className="cifra text-2xl font-semibold"><Celda titulo={titulo} detalle={detalle}>{valor}</Celda></p>
-    <p className="cifra text-xs text-muted-foreground">{base}</p>
+    {base ? <p className="cifra text-xs text-muted-foreground">{base}</p> : null}
   </CardContent></Card>;
 }
 
@@ -95,12 +95,12 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
   const filas = new Map<string, { desde: string; hasta: string; shows?: DetalleDeCifra; noShows?: DetalleDeCifra; pendientes?: DetalleDeCifra; futuras?: DetalleDeCifra }>();
   for (const s of semanas) filas.set(s.semana.desde, { ...s.semana, shows: s.shows, noShows: s.noShows, pendientes: s.pendientes });
   for (const p of proximas) filas.set(p.semana.desde, { ...(filas.get(p.semana.desde) ?? p.semana), futuras: p.futuras });
-  if (filas.size === 0) return null;
   const cantidad = (d?: DetalleDeCifra) => d?.resumen.subtotal.cantidad ?? 0;
+  const conCasos = [...filas.values()].filter((s) => cantidad(s.shows) + cantidad(s.noShows) + cantidad(s.pendientes) + cantidad(s.futuras) > 0);
   const titulo = "Agendas por semana";
   return <Card><CardHeader><Titulo id="agendas-semana">{titulo}</Titulo></CardHeader><CardContent className="space-y-4">
-    <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} />
-    {[...filas.values()].map((s) => <div key={s.desde} className="space-y-1.5">
+    {conCasos.length === 0 ? <p className="text-sm text-muted-foreground">Sin agendas en el periodo.</p> : <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} />}
+    {conCasos.map((s) => <div key={s.desde} className="space-y-1.5">
       <p className="text-sm font-medium">{fecha(s.desde)} a {fecha(s.hasta)}</p>
       <BarraApilada100 segmentos={[
         { clave: "show", etiqueta: "Show", cantidad: cantidad(s.shows), detalle: s.shows, tono: "exito" },
@@ -154,7 +154,7 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
           <td className="cifra text-right"><Celda titulo="Grupo con show" detalle={c?.grupo_shows}>{tasa(fila.pctCierre)}</Celda></td>
           <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
           <td className="min-w-48">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
-          <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <span className="block text-xs text-tono-alerta">parcial · {num(fila.grupo.deals)} de {num(base)}</span> : null}</td>
+          <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
           <td className="cifra whitespace-nowrap text-right"><Celda titulo="Ventas del closer" detalle={c?.cierres}>{d && d.ventas > 0 ? `${usd(d.vendido)} · ${usd(d.recaudado)} · ${usd(d.porCobrar)}` : "—"}</Celda></td>
         </tr>;
       })}
@@ -183,7 +183,7 @@ export interface PasoComercialConDetalle extends PasoDelEmbudoComercial {
 
 export function Operacion({
   vista, detalles, detallesOperacion, dealsContraAgendas, vistaEscalera,
-  embudoComercial, origenEmbudo = "completo", enlacesDeOrigen, dineroPorCloser = {}, dealsContraAgendasVista,
+  embudoComercial, origenEmbudo = "completo", enlacesDeOrigen, dineroPorCloser = {},
   hoy, veEquipo = true,
 }: {
   vista: VistaDelDashboard;
@@ -200,10 +200,9 @@ export function Operacion({
   veEquipo?: boolean;
 }) {
   const grupo = vista.embudo.grupo;
-  const completo = dealsContraAgendasVista?.disponible ? dealsContraAgendasVista.porOrigen.completo.a.puntos.at(-1) : undefined;
   const contexto = contextoDeCifra({ cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null, rango: vista.seleccion.rango, hoy, closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null });
   const totalCitas = grupo.deals + grupo.sinMarcar;
-  const baseTasa = grupo.parcial ? `sobre ${num(grupo.deals)} de ${num(totalCitas)} citas` : `${num(grupo.conShow)} de ${num(grupo.deals)}`;
+  const cobertura = `Calculado sobre ${num(grupo.deals)} de ${num(totalCitas)} citas: ${num(grupo.sinMarcar)} sin marcar`;
   const ventasSinLlamada = vistaEscalera?.principal.grupos.ventas_sin_llamada;
   const opciones = [{ clave: "todos", etiqueta: "Todos" }, { clave: "completo", etiqueta: "Formulario completo" }, { clave: "parcial", etiqueta: "Parcial" }] as const;
   return <section id="operacion" className="scroll-mt-4 space-y-4">
@@ -211,9 +210,9 @@ export function Operacion({
     <Card><CardHeader><Titulo id="cifras">Cifras clave</Titulo></CardHeader><CardContent className="space-y-3">
       {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi titulo="Agendadas" valor={num(vista.embudo.agendas)} base={`${num(completo?.agendaron ?? 0)} de ${num(completo?.deals ?? 0)}`} detalle={detalles?.agendas} />
-        <Kpi titulo="% show" valor={formatearTasa(vista.embudo.pctShow)} base={baseTasa} detalle={detalles?.grupo_citas} parcial={grupo.parcial} />
-        <Kpi titulo="% cierre" valor={formatearTasa(vista.embudo.pctCierre)} base={grupo.parcial ? baseTasa : `${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} />
+        <Kpi titulo="Agendadas" valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
+        <Kpi titulo="% show" valor={formatearTasa(vista.embudo.pctShow)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo="% cierre" valor={formatearTasa(vista.embudo.pctCierre)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
         <Kpi titulo="Agenda → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
       </div>
     </CardContent></Card>

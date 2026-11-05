@@ -62,7 +62,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
     <div className="space-y-3">
       {pasos.map((paso, indice) => (
         <div key={paso.clave} className="space-y-1">
-          {paso.pctDelPaso === undefined ? null : (
+          {indice === 0 || paso.pctDelPaso === undefined ? null : (
             <p className="text-center text-xs text-muted-foreground">
               {paso.pctDelPaso === null ? "—" : pct(paso.pctDelPaso)} {paso.etiquetaDelPct ?? "del paso anterior"}
             </p>

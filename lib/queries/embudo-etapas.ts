@@ -271,21 +271,25 @@ function lecturasPorCamino(
     const etapas = ETAPAS_POR_CAMINO[camino];
     const llegados = etapas.map((etapa) => {
       const objetivo: EtapaDeal = etapa === "ganado" ? "ganado_parcial" : etapa;
-      return cohorte.filter((deal) => etapaMasLejana(deal, historial.get(deal.id) ?? []) >= posicion(objetivo));
+      return cohorte.filter((deal) => camino === "setter"
+        ? alcanzoEtapaSetter(deal, historial.get(deal.id) ?? [], etapa)
+        : etapaMasLejana(deal, historial.get(deal.id) ?? []) >= posicion(objetivo));
     });
     return {
       camino,
       pasos: etapas.map((etapa, indice) => {
         const llegaron = llegados[indice]!;
-        const pasaron = llegados[indice + 1] ?? [];
+        const objetivo: EtapaDeal = etapa === "ganado" ? "ganado_parcial" : etapa;
+        const pasaron = etapa === "ganado"
+          ? []
+          : llegaron.filter((deal) => etapaMasLejana(deal, historial.get(deal.id) ?? []) > posicion(objetivo));
         const pasaronIds = new Set(pasaron.map((deal) => deal.id));
         const restantes = llegaron.filter((deal) => !pasaronIds.has(deal.id));
-        const objetivo: EtapaDeal = etapa === "ganado" ? "ganado_parcial" : etapa;
-        const siguenAqui = etapa === "ganado"
-          ? restantes.filter((deal) => esEtapaVendida(deal.etapa))
-          : restantes.filter((deal) => deal.etapa === objetivo && ETAPAS_ABIERTAS.includes(deal.etapa));
-        const siguenIds = new Set(siguenAqui.map((deal) => deal.id));
-        const perdidosAqui = restantes.filter((deal) => !siguenIds.has(deal.id));
+        // Lo que llegó y no pasó: perdido si hoy está en Cierre Perdido; si no, sigue en el camino,
+        // aunque haya vuelto a una etapa anterior (un deal abierto no es una pérdida).
+        const perdidosAqui = restantes.filter((deal) => deal.etapa === "cierre_perdido");
+        const perdidosIds = new Set(perdidosAqui.map((deal) => deal.id));
+        const siguenAqui = restantes.filter((deal) => !perdidosIds.has(deal.id));
         return {
           camino,
           etapa,
@@ -301,6 +305,20 @@ function lecturasPorCamino(
       }),
     };
   });
+}
+
+function alcanzoEtapaSetter(
+  deal: DealParaEmbudo,
+  historial: readonly HistorialParaEmbudo[],
+  objetivo: EtapaDelCamino,
+): boolean {
+  const etapasSetter = ETAPAS_POR_CAMINO.setter;
+  const indiceObjetivo = etapasSetter.indexOf(objetivo);
+  return [deal.etapa, ...historial.flatMap((fila) => fila.de === null ? [fila.a] : [fila.de, fila.a])]
+    .some((etapa) => {
+      const indice = etapasSetter.indexOf(etapa as EtapaDelCamino);
+      return indice >= indiceObjetivo;
+    });
 }
 
 function lecturaConversion(

@@ -170,6 +170,49 @@ describe("calcularEmbudoEtapas", () => {
     }
   });
 
+  it("acredita el avance desde Calificado y no inventa etapas de setter al entrar por Agendado", () => {
+    const filas = [deal("recorre-setter", "agendado"), deal("entra-agendado", "agendado")];
+    const historial = [
+      movimiento("01", "recorre-setter", null, "registrado", "2026-09-01T12:00:00Z"),
+      movimiento("02", "recorre-setter", "registrado", "en_gestion", "2026-09-02T12:00:00Z"),
+      movimiento("03", "recorre-setter", "en_gestion", "contactado", "2026-09-03T12:00:00Z"),
+      movimiento("04", "recorre-setter", "contactado", "calificado", "2026-09-04T12:00:00Z"),
+      movimiento("05", "recorre-setter", "calificado", "agendado", "2026-09-05T12:00:00Z"),
+      movimiento("06", "entra-agendado", null, "agendado", "2026-09-02T12:00:00Z"),
+    ];
+
+    const caminos = calcular(filas, historial).conversion.porCamino;
+    const setter = caminos.find((camino) => camino.camino === "setter")!;
+    const calificado = setter.pasos.find((paso) => paso.etapa === "calificado")!;
+    expect(calificado).toMatchObject({
+      llegaron: 1,
+      dealIds: ["recorre-setter"],
+      pasaron: 1,
+      pasaronDealIds: ["recorre-setter"],
+      siguenAqui: 0,
+      perdidosAqui: 0,
+    });
+    expect(setter.pasos.every((paso) => !paso.dealIds.includes("entra-agendado"))).toBe(true);
+    for (const camino of caminos) {
+      for (const paso of camino.pasos) {
+        expect(paso.pasaron + paso.siguenAqui + paso.perdidosAqui).toBe(paso.llegaron);
+      }
+    }
+  });
+
+  it("un deal que vuelve a una etapa anterior sigue en el camino: no es pérdida ni rompe la suma", () => {
+    const filas = [deal("vuelve", "en_gestion")];
+    const historial = [
+      movimiento("01", "vuelve", null, "en_gestion", "2026-09-01T12:00:00Z"),
+      movimiento("02", "vuelve", "en_gestion", "contactado", "2026-09-02T12:00:00Z"),
+      movimiento("03", "vuelve", "contactado", "calificado", "2026-09-03T12:00:00Z"),
+      movimiento("04", "vuelve", "calificado", "en_gestion", "2026-09-04T12:00:00Z"),
+    ];
+    const setter = calcular(filas, historial).conversion.porCamino.find((camino) => camino.camino === "setter")!;
+    const calificado = setter.pasos.find((paso) => paso.etapa === "calificado")!;
+    expect(calificado).toMatchObject({ llegaron: 1, pasaron: 0, siguenAqui: 1, perdidosAqui: 0 });
+  });
+
   it("solo publica la mediana de días hábiles con cinco deals o más", () => {
     const filas = Array.from({ length: 6 }, (_, indice) => deal(`d${indice}`, "agendado"));
     const historial = filas.flatMap((fila, indice) => [
