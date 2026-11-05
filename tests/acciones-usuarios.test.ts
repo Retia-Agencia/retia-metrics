@@ -39,9 +39,13 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let gerenteId: string;
 let programaAId: string;
+let programaBId: string;
 
 const sesionGerente = {
-  user: { id: "", email: "gerente@retiagrowth.com", rol: "gerente", closerId: null },
+  user: { id: "", email: "gerente@retiagrowth.com", rol: "gerente", closerId: null, alcanceLimitado: false },
+};
+const sesionGerenteLimitado = {
+  user: { ...sesionGerente.user, alcanceLimitado: true },
 };
 const sesionCloser = {
   user: { id: "u-2", email: "closer@retiagrowth.com", rol: "closer", closerId: "andrea" },
@@ -66,11 +70,16 @@ beforeEach(async () => {
     .returning();
   gerenteId = g.id;
   sesionGerente.user.id = gerenteId;
-  const [p] = await db
+  sesionGerenteLimitado.user.id = gerenteId;
+  const programasInsertados = await db
     .insert(programs)
-    .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" })
+    .values([
+      { ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "1000" },
+      { ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1000" },
+    ])
     .returning();
-  programaAId = p.id;
+  programaAId = programasInsertados.find((programa) => programa.slug === "programa-a")!.id;
+  programaBId = programasInsertados.find((programa) => programa.slug === "programa-b")!.id;
   const [developer] = await db
     .insert(users)
     .values({ email: sesionDeveloper.user.email, rol: "developer" })
@@ -191,20 +200,98 @@ describe("acciones de usuarios — el gerente administra", () => {
   });
 });
 
-describe("alcance visible de un usuario (ADR 0094)", () => {
-  it("la función de catálogo rechaza a un gerente sin cambiar filas", async () => {
-    await expect(
-      guardarAlcanceDeUsuario(
-        db,
-        { id: gerenteId, rol: "gerente" },
-        gerenteId,
-        [programaAId],
-      ),
-    ).rejects.toMatchObject({ status: 403 });
-    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
+describe("acciones de usuarios — gerente limitado", () => {
+  beforeEach(async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId: programaAId });
+    auth.mockResolvedValue(sesionGerenteLimitado);
   });
 
-  it("solo el developer lo guarda y deja change_log", async () => {
+  it("crea un closer dentro de su alcance", async () => {
+    const { crearUsuarioAccion } = await acciones();
+    expect((await crearUsuarioAccion({
+      email: "local@retiagrowth.com",
+      rol: "closer",
+      closerId: "Local",
+      programas: [programaAId],
+    })).ok).toBe(true);
+    const [creado] = await db.select().from(users).where(eq(users.email, "local@retiagrowth.com"));
+    expect((await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.userId, creado.id)))
+      .map((fila) => fila.programId)).toEqual([programaAId]);
+  });
+
+  it("rechaza altas forjadas y no deja filas", async () => {
+    const { crearUsuarioAccion } = await acciones();
+    const entradas = [
+      { email: "dev-nuevo@retia.co", rol: "developer" as const, programas: [] },
+      { email: "fuera@retia.co", rol: "closer" as const, programas: [programaBId] },
+      { email: "gerente-vacio@retia.co", rol: "gerente" as const, programas: [] },
+      { email: "gerente-fuera@retia.co", rol: "gerente" as const, programas: [programaBId] },
+      { email: "pauta-vacia@retia.co", rol: "paid_trafficker" as const, programas: [] },
+      { email: "pauta-fuera@retia.co", rol: "paid_trafficker" as const, programas: [programaBId] },
+    ];
+    for (const entrada of entradas) {
+      expect((await crearUsuarioAccion(entrada)).ok).toBe(false);
+    }
+    expect(await db.select().from(users)).toHaveLength(3);
+    expect(await db.select().from(miembrosPrograma)).toHaveLength(0);
+  });
+
+  it("no asciende usuarios ni toca a quien tiene programas ajenos", async () => {
+    const [local, ajeno, gerenteLocal] = await db.insert(users).values([
+      { email: "local-existente@retia.co", rol: "closer" },
+      { email: "ajeno@retia.co", rol: "closer" },
+      { email: "gerente-local@retia.co", rol: "gerente", nombre: "Sin cambios" },
+    ]).returning();
+    await db.insert(miembrosPrograma).values([
+      { userId: local.id, programId: programaAId },
+      { userId: ajeno.id, programId: programaBId },
+    ]);
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerenteLocal.id, programId: programaAId });
+    const { editarUsuarioAccion, desactivarUsuarioAccion } = await acciones();
+    for (const rol of ["gerente", "paid_trafficker", "developer"] as const) {
+      expect((await editarUsuarioAccion(local.id, {
+        email: local.email,
+        rol,
+        programas: [programaAId],
+      })).ok).toBe(false);
+    }
+    expect((await editarUsuarioAccion(ajeno.id, {
+      email: ajeno.email,
+      nombre: "Cambio forjado",
+      rol: "closer",
+      programas: [programaBId],
+    })).ok).toBe(false);
+    expect((await desactivarUsuarioAccion(ajeno.id)).ok).toBe(false);
+    expect((await editarUsuarioAccion(gerenteLocal.id, {
+      email: gerenteLocal.email,
+      nombre: "No debe quedar",
+      rol: "gerente",
+    }, [programaBId])).ok).toBe(false);
+    const filas = await db.select().from(users);
+    expect(filas.find((fila) => fila.id === local.id)?.rol).toBe("closer");
+    expect(filas.find((fila) => fila.id === ajeno.id)).toMatchObject({ nombre: null, activo: true });
+    expect(filas.find((fila) => fila.id === gerenteLocal.id)?.nombre).toBe("Sin cambios");
+  });
+
+  it("un correo existente fuera del alcance conserva el error de duplicado y no cambia nada", async () => {
+    const [ajeno] = await db.insert(users).values({ email: "duplicado@retia.co", rol: "closer" }).returning();
+    await db.insert(miembrosPrograma).values({ userId: ajeno.id, programId: programaBId });
+    const { crearUsuarioAccion } = await acciones();
+    const antes = await db.select().from(miembrosPrograma);
+    const resultado = await crearUsuarioAccion({
+      email: ajeno.email,
+      rol: "closer",
+      programas: [programaAId],
+    });
+    expect(resultado).toMatchObject({ ok: false });
+    if (!resultado.ok) expect(resultado.error).toContain("Ya existe");
+    expect(await db.select().from(users)).toHaveLength(4);
+    expect(await db.select().from(miembrosPrograma)).toEqual(antes);
+  });
+});
+
+describe("alcance visible de un usuario (ADR 0094)", () => {
+  it("el gerente global y el developer fijan y quitan alcance con change_log", async () => {
     const [objetivo] = await db
       .insert(users)
       .values({ email: "gerente-sbj@estadox.co", rol: "gerente" })
@@ -213,8 +300,9 @@ describe("alcance visible de un usuario (ADR 0094)", () => {
     const { editarUsuarioAccion } = await acciones();
 
     auth.mockResolvedValue(sesionGerente);
-    expect((await editarUsuarioAccion(objetivo.id, entrada, [programaAId])).ok).toBe(false);
-    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
+    expect((await editarUsuarioAccion(objetivo.id, entrada, [programaAId])).ok).toBe(true);
+    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(1);
+    expect((await editarUsuarioAccion(objetivo.id, entrada, null)).ok).toBe(true);
 
     auth.mockResolvedValue(sesionDeveloper);
     expect((await editarUsuarioAccion(objetivo.id, entrada, [programaAId])).ok).toBe(true);
@@ -223,5 +311,18 @@ describe("alcance visible de un usuario (ADR 0094)", () => {
 
     expect((await editarUsuarioAccion(objetivo.id, entrada, null)).ok).toBe(true);
     expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
+  });
+
+  it("el developer nunca queda limitado por sus propias filas", async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: sesionDeveloper.user.id, programId: programaAId });
+    const [objetivo] = await db.insert(users).values({ email: "pauta-global@retia.co", rol: "paid_trafficker" }).returning();
+    await expect(guardarAlcanceDeUsuario(
+      db,
+      { id: sesionDeveloper.user.id, rol: "developer" },
+      objetivo.id,
+      [programaBId],
+    )).resolves.toBeUndefined();
+    expect((await db.select().from(usuariosProgramasAlcance).where(eq(usuariosProgramasAlcance.userId, objetivo.id))))
+      .toEqual([expect.objectContaining({ programId: programaBId })]);
   });
 });

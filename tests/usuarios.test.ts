@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
-import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -38,6 +38,8 @@ let vaciar: () => Promise<void>;
 let gerenteId: string;
 let programaAId: string;
 let programaBId: string;
+
+const actorGerente = () => ({ id: gerenteId, rol: "gerente" as const });
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -80,7 +82,7 @@ const closerValido = {
   nombre: "Andrea",
   rol: "closer" as const,
   closerId: "Andrea",
-  calendlyEmail: "andrea@calendly.com",
+  calendlyEmail: "",
   programas: [] as string[],
 };
 
@@ -129,7 +131,7 @@ describe("esquema de usuario", () => {
 
 describe("crear usuario", () => {
   it("un gerente crea un closer con closerId y un programa; membresia activa y change_log", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       programas: [programaAId],
     });
@@ -158,7 +160,7 @@ describe("crear usuario", () => {
   });
 
   it("un gerente crea otro gerente sin closerId ni programas", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       email: "mani@retiagrowth.com",
       nombre: "Mani",
       rol: "gerente",
@@ -170,7 +172,7 @@ describe("crear usuario", () => {
   });
 
   it("un closer sin closerId se crea: la identidad es users.id (167)", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       email: "sin-codigo@retiagrowth.com",
       closerId: "",
@@ -182,15 +184,28 @@ describe("crear usuario", () => {
   });
 
   it("un closer puede nacer sin membresias", async () => {
-    const creado = await crearUsuario(db, gerenteId, closerValido);
+    const creado = await crearUsuario(db, actorGerente(), closerValido);
     expect(await membresiasDe(creado.id)).toHaveLength(0);
+  });
+
+  it("revierte el usuario si falla la escritura de alcance", async () => {
+    const inexistente = "00000000-0000-4000-8000-000000000099";
+    await expect(crearUsuario(db, actorGerente(), {
+      email: "atomico@retiagrowth.com",
+      rol: "gerente",
+      programas: [inexistente],
+    })).rejects.toMatchObject({ status: 404 });
+    expect(await db.select().from(users).where(eq(users.email, "atomico@retiagrowth.com"))).toHaveLength(0);
+    expect(await db.select().from(usuariosProgramasAlcance)).toHaveLength(0);
+    expect((await db.select().from(changeLog)).some((fila) => fila.etiqueta === "atomico@retiagrowth.com"))
+      .toBe(false);
   });
 });
 
 describe("editar usuario", () => {
   it("sin programas conserva las membresias actuales", async () => {
-    const creado = await crearUsuario(db, gerenteId, { ...closerValido, programas: [programaAId] });
-    await editarUsuario(db, gerenteId, creado.id, {
+    const creado = await crearUsuario(db, actorGerente(), { ...closerValido, programas: [programaAId] });
+    await editarUsuario(db, actorGerente(), creado.id, {
       email: closerValido.email,
       nombre: "Andrea editada",
       rol: "closer",
@@ -202,13 +217,13 @@ describe("editar usuario", () => {
   });
 
   it("sincroniza membresias: agrega la nueva, desactiva la removida, nunca borra", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       programas: [programaAId],
     });
 
     // Cambia de programa A a programa B.
-    await editarUsuario(db, gerenteId, creado.id, {
+    await editarUsuario(db, actorGerente(), creado.id, {
       ...closerValido,
       programas: [programaBId],
     });
@@ -223,12 +238,12 @@ describe("editar usuario", () => {
   });
 
   it("reactiva una membresia existente en vez de duplicarla", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       programas: [programaAId],
     });
-    await editarUsuario(db, gerenteId, creado.id, { ...closerValido, programas: [programaBId] });
-    await editarUsuario(db, gerenteId, creado.id, { ...closerValido, programas: [programaAId] });
+    await editarUsuario(db, actorGerente(), creado.id, { ...closerValido, programas: [programaBId] });
+    await editarUsuario(db, actorGerente(), creado.id, { ...closerValido, programas: [programaAId] });
 
     const membresias = await membresiasDe(creado.id);
     // Sigue habiendo solo dos filas (A y B); A vuelve a activa.
@@ -238,14 +253,14 @@ describe("editar usuario", () => {
   });
 
   it("un cambio de rol queda en change_log", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       email: "sube@retiagrowth.com",
       nombre: "Sube",
       rol: "gerente",
       closerId: "",
       programas: [],
     });
-    await editarUsuario(db, gerenteId, creado.id, {
+    await editarUsuario(db, actorGerente(), creado.id, {
       email: "sube@retiagrowth.com",
       nombre: "Sube",
       rol: "closer",
@@ -258,7 +273,7 @@ describe("editar usuario", () => {
   });
 
   it("activar Opera como closer queda en change_log", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       email: "opera@retiagrowth.com",
       nombre: "Opera",
       rol: "gerente",
@@ -267,7 +282,7 @@ describe("editar usuario", () => {
       programas: [],
     });
 
-    await editarUsuario(db, gerenteId, creado.id, {
+    await editarUsuario(db, actorGerente(), creado.id, {
       email: creado.email,
       nombre: creado.nombre ?? "",
       rol: creado.rol,
@@ -287,7 +302,7 @@ describe("editar usuario", () => {
   });
 
   it("un id que no es uuid es un 400", async () => {
-    const error = await editarUsuario(db, gerenteId, "no-es-uuid", {
+    const error = await editarUsuario(db, actorGerente(), "no-es-uuid", {
       ...closerValido,
       programas: [programaAId],
     }).catch((e) => e);
@@ -298,7 +313,7 @@ describe("editar usuario", () => {
 
 describe("membresias desde la ficha del programa", () => {
   it("agrega y quita con change_log, sin borrar la fila", async () => {
-    const creado = await crearUsuario(db, gerenteId, closerValido);
+    const creado = await crearUsuario(db, actorGerente(), closerValido);
     await agregarMembresia(db, gerenteId, creado.id, programaAId);
     let membresias = await membresiasDe(creado.id);
     expect(membresias).toHaveLength(1);
@@ -313,7 +328,7 @@ describe("membresias desde la ficha del programa", () => {
   });
 
   it("acepta un programa inactivo", async () => {
-    const creado = await crearUsuario(db, gerenteId, closerValido);
+    const creado = await crearUsuario(db, actorGerente(), closerValido);
     await db.update(programs).set({ activo: false }).where(eq(programs.id, programaBId));
     await expect(agregarMembresia(db, gerenteId, creado.id, programaBId)).resolves.toBeUndefined();
   });
@@ -322,7 +337,7 @@ describe("membresias desde la ficha del programa", () => {
     await expect(agregarMembresia(db, gerenteId, gerenteId, programaAId)).rejects.toMatchObject({
       status: 400,
     });
-    const creado = await crearUsuario(db, gerenteId, closerValido);
+    const creado = await crearUsuario(db, actorGerente(), closerValido);
     await db.update(users).set({ activo: false }).where(eq(users.id, creado.id));
     await expect(agregarMembresia(db, gerenteId, creado.id, programaAId)).rejects.toMatchObject({
       status: 400,
@@ -343,7 +358,7 @@ describe("membresias desde la ficha del programa", () => {
 
 describe("proteccion del ultimo administrador", () => {
   it("un gerente no puede quitarse a si mismo el rol de gerente", async () => {
-    const error = await editarUsuario(db, gerenteId, gerenteId, {
+    const error = await editarUsuario(db, actorGerente(), gerenteId, {
       email: "gerente@retiagrowth.com",
       nombre: "Gerencia",
       rol: "closer",
@@ -358,7 +373,7 @@ describe("proteccion del ultimo administrador", () => {
   });
 
   it("un gerente no puede desactivarse a si mismo", async () => {
-    const error = await desactivarUsuario(db, gerenteId, gerenteId).catch((e) => e);
+    const error = await desactivarUsuario(db, actorGerente(), gerenteId).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
     const [u] = await db.select().from(users).where(eq(users.id, gerenteId));
@@ -368,7 +383,7 @@ describe("proteccion del ultimo administrador", () => {
   it("un gerente SI puede pasarse a si mismo a developer (ADR 0025)", async () => {
     // No es una degradacion: developer tambien administra, asi que no se pierde
     // administracion y la salvaguarda no tiene por que bloquearlo.
-    const editado = await editarUsuario(db, gerenteId, gerenteId, {
+    const editado = await editarUsuario(db, actorGerente(), gerenteId, {
       email: "gerente@retiagrowth.com",
       nombre: "Gerencia",
       rol: "developer",
@@ -379,14 +394,14 @@ describe("proteccion del ultimo administrador", () => {
   });
 
   it("un developer no puede bajarse a si mismo a closer (ADR 0025)", async () => {
-    await editarUsuario(db, gerenteId, gerenteId, {
+    await editarUsuario(db, actorGerente(), gerenteId, {
       email: "gerente@retiagrowth.com",
       nombre: "Gerencia",
       rol: "developer",
       closerId: "",
       programas: [programaAId],
     });
-    const error = await editarUsuario(db, gerenteId, gerenteId, {
+    const error = await editarUsuario(db, actorGerente(), gerenteId, {
       email: "gerente@retiagrowth.com",
       nombre: "Gerencia",
       rol: "closer",
@@ -400,14 +415,14 @@ describe("proteccion del ultimo administrador", () => {
   });
 
   it("un developer tampoco puede desactivarse a si mismo (ADR 0025)", async () => {
-    await editarUsuario(db, gerenteId, gerenteId, {
+    await editarUsuario(db, actorGerente(), gerenteId, {
       email: "gerente@retiagrowth.com",
       nombre: "Gerencia",
       rol: "developer",
       closerId: "",
       programas: [programaAId],
     });
-    const error = await desactivarUsuario(db, gerenteId, gerenteId).catch((e) => e);
+    const error = await desactivarUsuario(db, actorGerente(), gerenteId).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
     const [u] = await db.select().from(users).where(eq(users.id, gerenteId));
@@ -415,14 +430,14 @@ describe("proteccion del ultimo administrador", () => {
   });
 
   it("un gerente si puede degradar a OTRO gerente si no es el mismo", async () => {
-    const otro = await crearUsuario(db, gerenteId, {
+    const otro = await crearUsuario(db, actorGerente(), {
       email: "otro@retiagrowth.com",
       nombre: "Otro",
       rol: "gerente",
       closerId: "",
       programas: [],
     });
-    const editado = await editarUsuario(db, gerenteId, otro.id, {
+    const editado = await editarUsuario(db, actorGerente(), otro.id, {
       email: "otro@retiagrowth.com",
       nombre: "Otro",
       rol: "closer",
@@ -435,11 +450,11 @@ describe("proteccion del ultimo administrador", () => {
 
 describe("desactivar y reactivar", () => {
   it("desactivar no borra la fila, la marca inactiva y registra el cambio", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       programas: [programaAId],
     });
-    const desactivado = await desactivarUsuario(db, gerenteId, creado.id);
+    const desactivado = await desactivarUsuario(db, actorGerente(), creado.id);
     expect(desactivado.activo).toBe(false);
 
     // La fila sigue existiendo.
@@ -451,19 +466,19 @@ describe("desactivar y reactivar", () => {
   });
 
   it("reactivar vuelve a activar al usuario", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       programas: [programaAId],
     });
-    await desactivarUsuario(db, gerenteId, creado.id);
-    const reactivado = await reactivarUsuario(db, gerenteId, creado.id);
+    await desactivarUsuario(db, actorGerente(), creado.id);
+    const reactivado = await reactivarUsuario(db, actorGerente(), creado.id);
     expect(reactivado.activo).toBe(true);
   });
 });
 
 describe("listar usuarios", () => {
   it("devuelve activos e inactivos con sus programas", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, actorGerente(), {
       ...closerValido,
       programas: [programaAId, programaBId],
     });

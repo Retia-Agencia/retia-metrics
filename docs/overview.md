@@ -171,7 +171,8 @@ WhatsApp, calcular su comisión.
 **Gerente:** ✅ abre el **Hub** de un programa o de "todos los programas" (ahí solo aparece lo que se
 puede sumar), con cada cifra abriendo su lista y la comparación con otro periodo cuando la pide (ADR 0106); ✅ ve todos los deals del programa,
 reasigna dueños, revisa la cartera vencida y anula lo que no debió existir; ✅ administra programas,
-cohortes, usuarios, membresías, catálogos, fuentes y canales, y conecta el Calendly del programa; ✅ ve la
+cohortes, usuarios, membresías, catálogos, fuentes y canales, y conecta el Calendly del programa. Si tiene
+alcance limitado, da de alta y gestiona usuarios solo dentro de esos programas; ✅ ve la
 meta del mes y la de la cohorte en Hub › Hoy (la página de Metas se fundió en el Hub, ADR 0086); ✅ ve en Hub ›
 Origen y Pauta de dónde vino cada envío y el ROAS por campaña, conjunto y anuncio; 🟡 los costos por etapa (123).
 

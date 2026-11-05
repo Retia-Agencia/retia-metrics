@@ -75,7 +75,7 @@ describe("editarCloserIdPropio", () => {
   });
 
   it("no toca rol, email ni membresias: solo cambia closer_id", async () => {
-    const creado = await crearUsuario(db, gerenteId, {
+    const creado = await crearUsuario(db, { id: gerenteId, rol: "gerente" }, {
       email: "andrea@retiagrowth.com",
       nombre: "Andrea",
       rol: "closer",

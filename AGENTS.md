@@ -223,7 +223,8 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   pregunta, `administraGlobal`** (ADR 0094), distingue esa capacidad dentro de un programa de
   administrar lo transversal: el developer siempre la cumple; gerente y paid trafficker solo
   cuando no tienen filas en `usuarios_programas_alcance`. Con filas ven únicamente esos programas
-  y no entran a Ajustes. Y hay una
+  y no entran al resto de Ajustes. **`administraUsuarios`** la cumplen developer y todo gerente, y el
+  catálogo limita cada escritura a sus programas (ADR 0118). Y hay una
   TERCERA, `trabajaLeads`: quien tiene `closer_id`, membresias, puede ser responsable de una
   persona y registrar. La cumplen el closer y el developer, **no el gerente** (ADR 0003). **Y una
   CUARTA, `manejaPauta`** (ADR 0052, construida el 3-oct con el 173), para el rol `paid_trafficker`,

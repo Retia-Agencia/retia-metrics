@@ -1,12 +1,12 @@
-import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
+import { paginaConAdministracionDeUsuarios } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { UsuariosAdmin, type UsuarioVista } from "@/components/usuarios-admin";
 import { listarUsuarios } from "@/lib/catalogo/usuarios";
-import { esAccesoTotal } from "@/lib/auth/roles";
+import { administraGlobal, esAccesoTotal, esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
-import { programasActivos } from "@/lib/queries/programas";
+import { programasVisibles } from "@/lib/auth/alcance";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +19,19 @@ export const dynamic = "force-dynamic";
  * mutaciones viven en `./acciones.ts`.
  */
 export default async function UsuariosPage() {
-  const session = await paginaConAdministracionGlobal();
-  const puedeEditarAlcance = esAccesoTotal(await rolDeVista(session));
+  const session = await paginaConAdministracionDeUsuarios();
+  const rol = await rolDeVista(session);
+  if (!esRolValido(rol)) return null;
+  const actor = { id: session.user.id, rol };
+  const puedeEditarAlcance = administraGlobal({
+    rol,
+    alcanceLimitado: session.user.alcanceLimitado,
+  });
 
-  const [usuarios, programas] = await Promise.all([listarUsuarios(db), programasActivos()]);
+  const [usuarios, programas] = await Promise.all([
+    listarUsuarios(db, actor),
+    programasVisibles(session.user.id, rol, db),
+  ]);
 
   const vista: UsuarioVista[] = usuarios.map((u) => ({
     id: u.id,
@@ -51,6 +60,8 @@ export default async function UsuariosPage() {
           usuarioActualId={session.user.id}
           programas={programas}
           puedeEditarAlcance={puedeEditarAlcance}
+          alcanceLimitado={!puedeEditarAlcance}
+          puedeCrearDeveloper={esAccesoTotal(rol)}
         />
       </PantallaFija>
     </PageShell>

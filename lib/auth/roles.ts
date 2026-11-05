@@ -78,6 +78,11 @@ export function esAdministrador(rol: Rol | undefined | null): boolean {
   return rol === "gerente" || rol === "developer";
 }
 
+/** Quien administra usuarios, incluso cuando su gestión está limitada por programa. */
+export function administraUsuarios(rol: Rol | undefined | null): boolean {
+  return esAccesoTotal(rol) || esAdministrador(rol);
+}
+
 /** Quien puede quedar limitado por filas de alcance (ADR 0094). */
 export function tieneAlcanceConfigurable(rol: Rol | undefined | null): boolean {
   return rol === "gerente" || rol === "paid_trafficker" || rol === "media";

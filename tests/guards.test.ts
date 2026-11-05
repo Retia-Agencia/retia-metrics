@@ -84,6 +84,15 @@ describe("GET /api/admin/ping — endpoint solo de gerente", () => {
   });
 });
 
+describe("administración de usuarios", () => {
+  it("deja pasar a un gerente limitado sin abrir la administración global", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    const { requireAdministracionDeUsuarios, requireAdministracionGlobal } = await import("@/lib/auth/guards");
+    await expect(requireAdministracionDeUsuarios()).resolves.toMatchObject({ user: { rol: "gerente" } });
+    await expect(requireAdministracionGlobal()).rejects.toMatchObject({ status: 403 });
+  });
+});
+
 /**
  * No hay ninguna ruta HTTP exclusiva de closer hoy, asi que la barrera de rol se
  * prueba directo sobre `requireRole("closer")`: un gerente no pasa (disjuncion,

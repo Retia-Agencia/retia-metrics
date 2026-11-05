@@ -680,14 +680,14 @@ export async function sembrarLocal(): Promise<void> {
 
   // 9. Usuarios locales con sus membresías
   console.log("[seed:local] Creando usuarios locales con sus membresías...");
-  const gerente = await crearUsuario(db, actorId, {
+  const gerente = await crearUsuario(db, actor, {
     email: "gerente@retia.local",
     nombre: "Gerente Local",
     rol: "gerente",
     programas: [],
   });
 
-  const closer1 = await crearUsuario(db, actorId, {
+  const closer1 = await crearUsuario(db, actor, {
     email: "carlos.closer@retia.local",
     nombre: "Carlos Closer",
     rol: "closer",
@@ -695,7 +695,7 @@ export async function sembrarLocal(): Promise<void> {
     programas: [prog1.id, prog2.id],
   });
 
-  const closer2 = await crearUsuario(db, actorId, {
+  const closer2 = await crearUsuario(db, actor, {
     email: "maria.closer@retia.local",
     nombre: "María Closer",
     rol: "closer",
@@ -703,7 +703,7 @@ export async function sembrarLocal(): Promise<void> {
     programas: [prog1.id, prog2.id],
   });
 
-  const closerMani = await crearUsuario(db, actorId, {
+  const closerMani = await crearUsuario(db, actor, {
     email: "mani.closer@retia.local",
     nombre: "Mani Closer",
     rol: "closer",
@@ -712,7 +712,7 @@ export async function sembrarLocal(): Promise<void> {
   });
 
   // El paid trafficker (ADR 0052): el humo de la UI (ADR 0083) entra con él.
-  const paidTrafficker = await crearUsuario(db, actorId, {
+  const paidTrafficker = await crearUsuario(db, actor, {
     email: "pauta@retia.local",
     nombre: "Pauta Local",
     rol: "paid_trafficker",
@@ -720,7 +720,7 @@ export async function sembrarLocal(): Promise<void> {
   });
 
   // Media (ADR 0107): coordinacion de contenido, sin filas de alcance = ve todos los programas.
-  await crearUsuario(db, actorId, {
+  await crearUsuario(db, actor, {
     email: "media@retia.local",
     nombre: "Media Local",
     rol: "media",

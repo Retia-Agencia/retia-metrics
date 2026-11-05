@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import type { Session } from "next-auth";
-import { requireAdministracionGlobal, requireRole } from "@/lib/auth/guards";
+import { requireAdministracionDeUsuarios, requireAdministracionGlobal, requireRole } from "@/lib/auth/guards";
 import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -185,7 +185,15 @@ export async function agregarAlProgramaAccion(input: {
   programId: string;
 }): Promise<ResultadoAccion> {
   try {
-    const session = await requireAdministracionGlobal();
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await exigirAccesoAlPrograma(
+      db,
+      { id: session.user.id, rol },
+      input.programId,
+      "No puedes administrar este programa.",
+    );
     await agregarMembresia(db, session.user.id, input.userId, input.programId);
     revalidarNav();
     return { ok: true };

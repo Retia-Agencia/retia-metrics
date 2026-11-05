@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { etiquetaDeRol, puedeConfigurarOperaComoCloser, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, etiquetaDeRol, puedeConfigurarOperaComoCloser, puedeSerMiembro, ROLES, tieneAlcanceConfigurable, type Rol } from "@/lib/auth/roles";
 import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import { cn } from "@/lib/utils";
 import { fecha, fechaDeInstanteEnBogota } from "@/lib/format";
@@ -111,11 +111,15 @@ export function UsuariosAdmin({
   usuarioActualId,
   programas,
   puedeEditarAlcance,
+  alcanceLimitado,
+  puedeCrearDeveloper,
 }: {
   usuarios: UsuarioVista[];
   usuarioActualId: string;
   programas: ProgramaParaAlcance[];
   puedeEditarAlcance: boolean;
+  alcanceLimitado: boolean;
+  puedeCrearDeveloper: boolean;
 }) {
   const router = useRouter();
   const [pendiente, startTransition] = useTransition();
@@ -235,7 +239,9 @@ export function UsuariosAdmin({
                 inicial={BORRADOR_VACIO}
                 pendiente={pendiente}
                 programas={programas}
-                puedeEditarAlcance={false}
+                puedeEditarAlcance={puedeEditarAlcance}
+                alcanceLimitado={alcanceLimitado}
+                puedeCrearDeveloper={puedeCrearDeveloper}
                 onCancelar={() => setCreando(false)}
                 onGuardar={(borrador) =>
                   correr(() => crearUsuarioAccion(aEntrada(borrador, true)), "Usuario creado", () =>
@@ -257,6 +263,8 @@ export function UsuariosAdmin({
                 pendiente={pendiente}
                 programas={programas}
                 puedeEditarAlcance={puedeEditarAlcance}
+                alcanceLimitado={alcanceLimitado}
+                puedeCrearDeveloper={puedeCrearDeveloper}
                 emailBloqueado
                 onCancelar={() => setEditando(null)}
                 onGuardar={(borrador) =>
@@ -264,7 +272,7 @@ export function UsuariosAdmin({
                     () => editarUsuarioAccion(
                       usuarioEditado.id,
                       aEntrada(borrador, false),
-                      puedeEditarAlcance && tieneAlcanceConfigurable(borrador.rol)
+                      tieneAlcanceConfigurable(borrador.rol)
                         ? borrador.alcance === "todos" ? null : borrador.programasQueVe
                         : undefined,
                     ),
@@ -418,9 +426,12 @@ function ProgramasDelUsuario({
 
 /** Convierte el borrador del formulario a la entrada que espera la server action. */
 function aEntrada(b: Borrador, alCrear: boolean) {
+  const programas = tieneAlcanceConfigurable(b.rol)
+    ? b.alcance === "todos" ? [] : b.programasQueVe
+    : b.membresias;
   return {
-    // Las membresias solo se mandan al crear; editar las deja intactas (tab Programa).
-    ...(alCrear && trabajaLeads(b) ? { programas: b.membresias } : {}),
+    // El rol decide si el selector crea membresías o alcance.
+    ...(alCrear ? { programas } : {}),
     email: b.email,
     nombre: b.nombre,
     rol: b.rol,
@@ -436,6 +447,8 @@ function FormularioUsuario({
   pendiente,
   programas,
   puedeEditarAlcance,
+  alcanceLimitado,
+  puedeCrearDeveloper,
   emailBloqueado,
   onCancelar,
   onGuardar,
@@ -445,15 +458,21 @@ function FormularioUsuario({
   pendiente: boolean;
   programas: ProgramaParaAlcance[];
   puedeEditarAlcance: boolean;
+  alcanceLimitado: boolean;
+  puedeCrearDeveloper: boolean;
   emailBloqueado?: boolean;
   onCancelar: () => void;
   onGuardar: (borrador: Borrador) => void;
 }) {
-  const [borrador, setBorrador] = useState<Borrador>(inicial);
+  const [borrador, setBorrador] = useState<Borrador>(() => alcanceLimitado
+    ? { ...inicial, alcance: "solo" }
+    : inicial);
   // El closer_id ya no se captura: el borrador lo conserva tal cual para que editar
   // otro campo no lo borre de la fila.
-  const muestraAlcance = Boolean(emailBloqueado && puedeEditarAlcance && tieneAlcanceConfigurable(borrador.rol));
-  const alcanceInvalido = muestraAlcance && borrador.alcance === "solo" && borrador.programasQueVe.length === 0;
+  const muestraAlcance = tieneAlcanceConfigurable(borrador.rol);
+  const alcanceInvalido = muestraAlcance
+    && (alcanceLimitado || borrador.alcance === "solo")
+    && borrador.programasQueVe.length === 0;
 
   const claseInput =
     "h-8 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
@@ -505,7 +524,7 @@ function FormularioUsuario({
               aria-label="Rol"
             >
               {/* Las opciones salen de ROLES: sumar un rol no vuelve a tocar esta pantalla. */}
-              {ROLES.map((r) => (
+              {ROLES.filter((r) => puedeCrearDeveloper || !esAccesoTotal(r)).map((r) => (
                 <option key={r} value={r}>
                   {etiquetaDeRol(r)}
                 </option>
@@ -531,7 +550,7 @@ function FormularioUsuario({
             </label>
           ) : null}
 
-          {!emailBloqueado && trabajaLeads(borrador) ? (
+          {!emailBloqueado && puedeSerMiembro(borrador) ? (
             <fieldset className="space-y-2 rounded-lg border border-border p-3 sm:col-span-2">
               <legend className="px-1 text-sm text-muted-foreground">Programas donde trabaja</legend>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -560,16 +579,17 @@ function FormularioUsuario({
           {muestraAlcance ? (
             <fieldset className="space-y-2 rounded-lg border border-border p-3 sm:col-span-2">
               <legend className="px-1 text-sm text-muted-foreground">Programas que ve</legend>
-              <div className="flex flex-wrap gap-4 text-sm">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={`alcance-${borrador.email}`}
-                    checked={borrador.alcance === "todos"}
-                    onChange={() => setBorrador({ ...borrador, alcance: "todos" })}
-                  />
-                  Todos
-                </label>
+              {puedeEditarAlcance ? (
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name={`alcance-${borrador.email}`}
+                      checked={borrador.alcance === "todos"}
+                      onChange={() => setBorrador({ ...borrador, alcance: "todos" })}
+                    />
+                    Todos
+                  </label>
                 <label className="flex items-center gap-2">
                   <input
                     type="radio"
@@ -579,8 +599,9 @@ function FormularioUsuario({
                   />
                   Solo estos
                 </label>
-              </div>
-              {borrador.alcance === "solo" ? (
+                </div>
+              ) : null}
+              {alcanceLimitado || borrador.alcance === "solo" ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {programas.map((programa) => (
                     <label key={programa.id} className="flex items-center gap-2 text-sm">

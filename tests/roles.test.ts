@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { administraGlobal, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veSoloLoBasicoDelLead, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, administraUsuarios, editaObjetivo, esAdministrador, etiquetaDeRol, leePrograma, manejaPauta, manejaPautaGlobal, marcaOnboarding, puedeAcceder, esRolValido, puedeSerMiembro, puedeTocarMembresia, trabajaLeads, trabajaContenido, puedeConfigurarOperaComoCloser, tieneAlcanceConfigurable, veDetalleTecnico, veEquipoComercial, veSoloLoBasicoDelLead, veTableroDelPrograma, configuraPrograma, type Rol } from "@/lib/auth/roles";
 import { VALOR_PROGRAMA_TODOS, navParaRol, programaDeRuta, queryHaciaElHub, rutaAlCambiarDePrograma, rutaInicial } from "@/lib/nav";
 import { authConfig } from "@/lib/auth/config";
 
@@ -16,6 +16,15 @@ describe("administraGlobal (ADR 0094, ticket 273)", () => {
     expect(administraGlobal({ rol: "gerente", alcanceLimitado: true })).toBe(false);
     expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: false })).toBe(false);
     expect(administraGlobal({ rol: "paid_trafficker", alcanceLimitado: true })).toBe(false);
+  });
+});
+
+describe("administraUsuarios", () => {
+  it("la cumplen gerente y developer, sin depender del alcance", () => {
+    expect(administraUsuarios("gerente")).toBe(true);
+    expect(administraUsuarios("developer")).toBe(true);
+    expect(administraUsuarios("closer")).toBe(false);
+    expect(administraUsuarios("paid_trafficker")).toBe(false);
   });
 });
 

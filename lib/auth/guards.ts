@@ -5,6 +5,7 @@ import { auth } from "./index";
 import {
   AuthenticationError,
   administraGlobal,
+  administraUsuarios,
   manejaPautaGlobal,
   AuthorizationError,
   etiquetaDeRol,
@@ -128,6 +129,16 @@ export async function requireAdministracionGlobal(): Promise<Session> {
   const rol = await rolDeVista(session);
   if (!administraGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
     throw new AuthorizationError("No tienes permiso para administrar la configuración global.");
+  }
+  return session;
+}
+
+/** Guarda de servidor para administrar usuarios dentro del alcance del actor. */
+export async function requireAdministracionDeUsuarios(): Promise<Session> {
+  const session = await requireSession();
+  const rol = await rolDeVista(session);
+  if (!administraUsuarios(rol)) {
+    throw new AuthorizationError("No tienes permiso para administrar usuarios.");
   }
   return session;
 }

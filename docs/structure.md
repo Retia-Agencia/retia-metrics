@@ -357,7 +357,7 @@ violaciones en el MVP):
 - **Alcance no es membresía (ADR 0094):** `usuarios_programas_alcance` limita a un gerente o paid
   trafficker a programas concretos sin volverlo dueño, setter ni closer. Cero filas significa todos;
   una o más filas, solo esos programas. El developer siempre ve todos. Quien está limitado administra
-  dentro de esos programas, pero no ve Ajustes ni crea o modifica configuración global; las rutas de
+  usuarios dentro de esos programas, pero no ve el resto de Ajustes ni crea o modifica configuración global; las rutas de
   un programa ajeno responden 404.
 - **Leer, decidir y escribir van en la misma transacción** (por ejemplo, validar el saldo y registrar
   el abono), o dos peticiones simultáneas aprueban lo mismo.
@@ -516,7 +516,7 @@ Tabs a la izquierda, un selector de programa arriba (ADR 0050). Las tabs de prog
 | **Programa** | `/p/<programa>/programa` | 10 | todo lo del programa (ADR 0077): crear y editar el programa, cohortes, destinos, Calendly, fuentes, plataformas, comisión, equipo | ✅ |
 | **Campañas** | (sin ruta) | 8 | el árbol de Meta con su embudo y el builder de orgánico y closers (125) | ❌ |
 | **Recursos** | `/p/<programa>/recursos` (`/recursos` y `/documentos` redirigen) | 10 | brochures y links de pago del programa elegido, más los globales | ✅ |
-| **Ajustes** | `/ajustes/*` | 1, 7, 12 | solo lo que no es de ningún objeto (ADR 0077): usuarios y roles, Webhook Health (`/salud`), Motivos (`/catalogos`), Áreas, migración. Canales pasó a Hub › Origen (248) | ✅ |
+| **Ajustes** | `/ajustes/*` | 1, 7, 12 | solo lo que no es de ningún objeto (ADR 0077): usuarios y roles —`/ajustes/usuarios` abre a todo gerente dentro de su alcance—, Webhook Health (`/salud`), Motivos (`/catalogos`), Áreas, migración. Canales pasó a Hub › Origen (248) | ✅ |
 | **Nerd Stats** | `/nerd-stats` y `/nerd-stats/bitacora` | 11 | salud del sistema y bitácora (solo developer) | ✅ |
 
 Products se retiró con el 134 (el precio es de la cohorte). Personas salió con el 170; Urgencias, `/programas/<slug>`, `/documentos` y Orígenes con el 175.
@@ -533,7 +533,7 @@ Products se retiró con el 134 (el precio es de la cohorte). Personas salió con
 | Campañas | "Mi link" (086) | todo | árbol, embudo, links de orgánico, conexión con Meta | · | todo |
 | Programa | lectura de los suyos | edita | · | · | todo |
 | Recursos | lee y crea en sus programas | edita | · | · | todo |
-| Ajustes | catálogos permitidos | todo | · (Canales pasó a Hub › Origen) | · | todo |
+| Ajustes | catálogos permitidos | usuarios de su alcance; el gerente global ve todo | · (Canales pasó a Hub › Origen) | · | todo |
 | Nerd Stats | · | · | · | · | solo él |
 
 Esconder una tab no es seguridad: cada ruta y cada server action valida en el servidor, y se prueba

@@ -301,7 +301,7 @@ describe("desactivar la membresía del setter", () => {
       rol: "closer" as const,
     };
 
-    await editarUsuario(db, admin.id, setter.id, { ...datos, programas: [] });
+    await editarUsuario(db, { id: admin.id, rol: admin.rol }, setter.id, { ...datos, programas: [] });
     expect((await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresia.id)))[0]).toMatchObject({
       activo: false,
       setterPorDefecto: false,
@@ -313,7 +313,7 @@ describe("desactivar la membresía del setter", () => {
       )),
     ).toHaveLength(1);
 
-    await editarUsuario(db, admin.id, setter.id, { ...datos, programas: [programId] });
+    await editarUsuario(db, { id: admin.id, rol: admin.rol }, setter.id, { ...datos, programas: [programId] });
     expect((await db.select().from(miembrosPrograma).where(eq(miembrosPrograma.id, membresia.id)))[0]).toMatchObject({
       activo: true,
       setterPorDefecto: false,

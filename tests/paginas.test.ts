@@ -485,7 +485,6 @@ const PAGINAS_DE_AJUSTES = [
 
 const TODAS_LAS_PAGINAS_DE_AJUSTES = [
   "@/app/(app)/ajustes/page",
-  "@/app/(app)/ajustes/usuarios/page",
   "@/app/(app)/ajustes/canales/page",
   "@/app/(app)/ajustes/salud/page",
   "@/app/(app)/ajustes/catalogos/page",
@@ -634,6 +633,14 @@ describe("Ajustes completo respeta administraGlobal (ADR 0094)", () => {
     await expect(modulo.default({ searchParams: Promise.resolve({}) })).rejects.toMatchObject({
       destino: "/p/programa-a/hub",
     });
+  });
+});
+
+describe("usuarios tiene su propia guarda", () => {
+  it("un gerente limitado pasa la guarda de la página de usuarios", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    const { paginaConAdministracionDeUsuarios } = await import("@/lib/auth/page-guards");
+    await expect(paginaConAdministracionDeUsuarios()).resolves.toMatchObject({ user: { rol: "gerente" } });
   });
 });
 

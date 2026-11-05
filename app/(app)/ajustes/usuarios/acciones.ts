@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
-import { requireAdministracionGlobal, requireRole } from "@/lib/auth/guards";
+import { requireAdministracionDeUsuarios } from "@/lib/auth/guards";
 import { programaEnAlcance } from "@/lib/auth/alcance";
-import { esAccesoTotal, esRolValido } from "@/lib/auth/roles";
+import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
+import type { Db } from "@/lib/db/tipos";
 import { miembrosPrograma } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -46,8 +47,10 @@ function aResultado(error: unknown): ResultadoAccion {
 
 export async function crearUsuarioAccion(input: EntradaUsuario): Promise<ResultadoAccion> {
   try {
-    const session = await requireAdministracionGlobal();
-    await crearUsuario(db, session.user.id, input);
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await crearUsuario(db, { id: session.user.id, rol }, input);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -61,15 +64,17 @@ export async function editarUsuarioAccion(
   programasQueVe?: readonly string[] | null,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireAdministracionGlobal();
-    const rol = programasQueVe !== undefined ? await rolDeVista(session) : null;
-    if (programasQueVe !== undefined && !esAccesoTotal(rol)) {
-      throw new ErrorDeApp("No autorizado.", 403);
-    }
-    await editarUsuario(db, session.user.id, id, input);
-    if (programasQueVe !== undefined) {
-      await guardarAlcanceDeUsuario(db, { id: session.user.id, rol }, id, programasQueVe);
-    }
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    const actor = { id: session.user.id, rol };
+    await (db as unknown as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> })
+      .transaction(async (tx) => {
+        await editarUsuario(tx, actor, id, input);
+        if (programasQueVe !== undefined) {
+          await guardarAlcanceDeUsuario(tx, actor, id, programasQueVe);
+        }
+      });
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -79,8 +84,10 @@ export async function editarUsuarioAccion(
 
 export async function desactivarUsuarioAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireAdministracionGlobal();
-    await desactivarUsuario(db, session.user.id, id);
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await desactivarUsuario(db, { id: session.user.id, rol }, id);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -90,8 +97,10 @@ export async function desactivarUsuarioAccion(id: string): Promise<ResultadoAcci
 
 export async function reactivarUsuarioAccion(id: string): Promise<ResultadoAccion> {
   try {
-    const session = await requireAdministracionGlobal();
-    await reactivarUsuario(db, session.user.id, id);
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await reactivarUsuario(db, { id: session.user.id, rol }, id);
     revalidar();
     return { ok: true };
   } catch (error) {
@@ -108,7 +117,7 @@ export async function asignarCalendlyDeMembresiaAccion(
   input: EntradaCalendlyDeMembresia,
 ): Promise<ResultadoAccion> {
   try {
-    const session = await requireRole("gerente");
+    const session = await requireAdministracionDeUsuarios();
     const rol = await rolDeVista(session);
     if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
     const [membresia] = await db

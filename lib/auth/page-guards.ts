@@ -1,7 +1,7 @@
 import { redirect, notFound } from "next/navigation";
 import type { Session } from "next-auth";
 import { auth } from "./index";
-import { administraGlobal, manejaPautaGlobal, puedeAcceder, type Rol } from "./roles";
+import { administraGlobal, administraUsuarios, manejaPautaGlobal, puedeAcceder, type Rol } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
 import { rutaInicial } from "@/lib/nav";
 import { programasVisibles } from "@/lib/auth/alcance";
@@ -68,6 +68,16 @@ export async function paginaConAdministracionGlobal(): Promise<Session> {
   const session = await paginaConSesion();
   const rol = await rolDeVista(session);
   if (!administraGlobal({ rol, alcanceLimitado: session.user.alcanceLimitado })) {
+    redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
+  }
+  return session;
+}
+
+/** Pantalla de usuarios: todo gerente administra únicamente dentro de su alcance. */
+export async function paginaConAdministracionDeUsuarios(): Promise<Session> {
+  const session = await paginaConSesion();
+  const rol = await rolDeVista(session);
+  if (!administraUsuarios(rol)) {
     redirect(await destinoInicial(session.user.id, rol, session.user.operaComoCloser));
   }
   return session;

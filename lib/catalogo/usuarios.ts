@@ -11,7 +11,8 @@ import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { eventosDelUsuario, tokenDeCalendlyDelPrograma } from "@/lib/calendly/escritura";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { AuthorizationError, esAccesoTotal, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { administraGlobal, administraUsuarios, AuthorizationError, esAccesoTotal, esAdministrador, puedeSerMiembro, puedeTocarMembresia, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { idsDeProgramasVisibles } from "@/lib/auth/alcance";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { tokenCalendly } from "@/lib/integraciones";
 
@@ -137,6 +138,66 @@ type CamposUsuario = {
   closerId: string | null;
   calendlyEmail: string | null;
 };
+
+export interface ActorDeUsuarios {
+  id: string;
+  rol: Rol | null;
+}
+
+interface ContextoDeActor {
+  global: boolean;
+  programas: Set<string>;
+}
+
+async function contextoDeActor(db: Db, actor: ActorDeUsuarios): Promise<ContextoDeActor> {
+  if (!administraUsuarios(actor.rol)) throw new AuthorizationError("No autorizado.");
+  const alcanceExplicito = await db
+    .select({ programId: usuariosProgramasAlcance.programId })
+    .from(usuariosProgramasAlcance)
+    .where(eq(usuariosProgramasAlcance.userId, actor.id));
+  return {
+    global: administraGlobal({ rol: actor.rol, alcanceLimitado: alcanceExplicito.length > 0 }),
+    programas: await idsDeProgramasVisibles(actor.id, actor.rol, db),
+  };
+}
+
+function exigirProgramasDentroDelAlcance(
+  contexto: ContextoDeActor,
+  programasElegidos: readonly string[],
+  requiereAlguno = false,
+): void {
+  if (contexto.global) return;
+  if ((requiereAlguno && programasElegidos.length === 0)
+    || programasElegidos.some((programId) => !contexto.programas.has(programId))) {
+    throw new AuthorizationError("No puedes administrar usuarios fuera de tu alcance.");
+  }
+}
+
+async function programasDelObjetivo(db: Db, userId: string): Promise<Set<string>> {
+  const [membresias, alcances] = await Promise.all([
+    db.select({ programId: miembrosPrograma.programId }).from(miembrosPrograma)
+      .where(and(eq(miembrosPrograma.userId, userId), eq(miembrosPrograma.activo, true))),
+    db.select({ programId: usuariosProgramasAlcance.programId }).from(usuariosProgramasAlcance)
+      .where(eq(usuariosProgramasAlcance.userId, userId)),
+  ]);
+  return new Set([...membresias, ...alcances].map((fila) => fila.programId));
+}
+
+async function exigirObjetivoDentroDelAlcance(
+  db: Db,
+  contexto: ContextoDeActor,
+  objetivoId: string,
+) {
+  const [objetivo] = await db.select().from(users).where(eq(users.id, objetivoId)).limit(1);
+  if (!objetivo) throw new ErrorDeApp("No existe el usuario.", 404);
+  if (contexto.global) return objetivo;
+  const programas = await programasDelObjetivo(db, objetivoId);
+  if (esAccesoTotal(objetivo.rol) || programas.size === 0
+    || [...programas].some((programId) => !contexto.programas.has(programId))) {
+    throw new AuthorizationError("No puedes administrar este usuario.");
+  }
+  return objetivo;
+}
 
 /** Molde sobre `users` para la fila del usuario. Recibe la base por inyeccion. */
 function moldeUsuarios(db: Db) {
@@ -328,7 +389,10 @@ export interface UsuarioConProgramas extends FilaCatalogo {
 }
 
 /** Lista todos los usuarios (activos e inactivos) con sus programas activos. */
-export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProgramas[]> {
+export async function listarUsuarios(
+  db: Db = dbDeLaApp,
+  actor?: ActorDeUsuarios,
+): Promise<UsuarioConProgramas[]> {
   const filas = await db.select().from(users);
   const membresias = await db.select().from(miembrosPrograma);
   const alcances = await db.select().from(usuariosProgramasAlcance);
@@ -345,7 +409,7 @@ export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProg
     lista.push(alcance.programId);
     alcancePorUsuario.set(alcance.userId, lista);
   }
-  return filas.map((u) => ({
+  const resultado = filas.map((u) => ({
     id: u.id,
     activo: u.activo,
     email: u.email,
@@ -358,6 +422,14 @@ export async function listarUsuarios(db: Db = dbDeLaApp): Promise<UsuarioConProg
     programasQueVe: alcancePorUsuario.get(u.id) ?? [],
     creadoEn: u.createdAt,
   }));
+  if (!actor) return resultado;
+  const contexto = await contextoDeActor(db, actor);
+  if (contexto.global) return resultado;
+  return resultado.filter((usuario) => {
+    if (esAccesoTotal(usuario.rol)) return false;
+    const programas = new Set([...usuario.programas, ...usuario.programasQueVe]);
+    return programas.size > 0 && [...programas].every((programId) => contexto.programas.has(programId));
+  });
 }
 
 /**
@@ -403,36 +475,71 @@ export async function usuariosSuplantables(db: Db = dbDeLaApp): Promise<UsuarioS
 /** Crea un usuario y sus membresias. La entrada se valida con el esquema compartido. */
 export async function crearUsuario(
   db: Db,
-  actorId: string,
+  actor: ActorDeUsuarios,
   input: EntradaUsuario,
 ): Promise<UsuarioConProgramas> {
   return normalizando(async () => {
     const datos = esquemaUsuario.parse(input);
+    const [duplicado] = await db.select({ id: users.id }).from(users).where(eq(users.email, datos.email)).limit(1);
+    if (duplicado) throw new ErrorDeApp("Ya existe un usuario con ese nombre.", 409);
+    const contexto = await contextoDeActor(db, actor);
+    if (esAccesoTotal(datos.rol) && !esAccesoTotal(actor.rol)) {
+      throw new AuthorizationError("No puedes crear un usuario developer.");
+    }
     const { campos, programas } = separar(datos);
-    const fila = await moldeUsuarios(db).crear(actorId, campos);
-    if (programas) await sincronizarMembresias(db, actorId, fila.id, campos.email, programas);
-    return {
-      ...(fila as UsuarioConProgramas),
-      programas: await programasDe(db, fila.id),
-      programasQueVe: [],
-    };
+    const elegidos = programas ?? [];
+    exigirProgramasDentroDelAlcance(contexto, elegidos, tieneAlcanceConfigurable(campos.rol));
+    return (db as { transaction: (fn: (tx: Db) => Promise<UsuarioConProgramas>) => Promise<UsuarioConProgramas> })
+      .transaction(async (tx) => {
+        const fila = await moldeUsuarios(tx).crear(actor.id, campos);
+        if (tieneAlcanceConfigurable(campos.rol)) {
+          await guardarAlcanceDeUsuario(tx, actor, fila.id, elegidos.length === 0 ? null : elegidos);
+        } else if (programas) {
+          await sincronizarMembresias(tx, actor.id, fila.id, campos.email, elegidos);
+          if (campos.calendlyEmail && trabajaLeads({ rol: campos.rol, operaComoCloser: campos.operaComoCloser })) {
+            const membresias = await tx.select({ id: miembrosPrograma.id }).from(miembrosPrograma)
+              .where(and(eq(miembrosPrograma.userId, fila.id), eq(miembrosPrograma.activo, true)));
+            for (const membresia of membresias) {
+              await asignarCalendlyDeMembresia(tx, actor.id, {
+                membresiaId: membresia.id,
+                calendlyEmail: campos.calendlyEmail,
+              });
+            }
+          }
+        }
+        const usuario = (await listarUsuarios(tx)).find((item) => item.id === fila.id);
+        if (!usuario) throw new ErrorDeApp("No existe el usuario.", 404);
+        return usuario;
+      });
   });
 }
 
 /** Edita un usuario y sincroniza sus membresias. Valida id (uuid) y entrada. */
 export async function editarUsuario(
   db: Db,
-  actorId: string,
+  actor: ActorDeUsuarios,
   id: string,
   input: EntradaUsuario,
 ): Promise<UsuarioConProgramas> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
     const datos = esquemaUsuario.parse(input);
-    await protegerAdministrador(db, actorId, objetivoId, { rolNuevo: datos.rol });
+    const contexto = await contextoDeActor(db, actor);
+    const objetivo = await exigirObjetivoDentroDelAlcance(db, contexto, objetivoId);
+    if (objetivo.rol !== datos.rol
+      && (tieneAlcanceConfigurable(datos.rol) || esAccesoTotal(datos.rol))
+      && !contexto.global) {
+      throw new AuthorizationError("No puedes asignar ese rol.");
+    }
+    await protegerAdministrador(db, actor.id, objetivoId, { rolNuevo: datos.rol });
     const { campos, programas } = separar(datos);
-    const fila = await moldeUsuarios(db).editar(actorId, objetivoId, campos);
-    if (programas) await sincronizarMembresias(db, actorId, objetivoId, campos.email, programas);
+    if (programas && !tieneAlcanceConfigurable(campos.rol)) {
+      exigirProgramasDentroDelAlcance(contexto, programas);
+    }
+    const fila = await moldeUsuarios(db).editar(actor.id, objetivoId, campos);
+    if (programas && !tieneAlcanceConfigurable(campos.rol)) {
+      await sincronizarMembresias(db, actor.id, objetivoId, campos.email, programas);
+    }
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, objetivoId),
@@ -452,7 +559,7 @@ export async function guardarAlcanceDeUsuario(
   id: string,
   programasElegidos: readonly string[] | null,
 ): Promise<void> {
-  if (!esAccesoTotal(actor.rol)) throw new AuthorizationError("No autorizado.");
+  const contexto = await contextoDeActor(db, actor);
   const objetivoId = idValido(id);
   const [objetivo] = await db.select().from(users).where(eq(users.id, objetivoId)).limit(1);
   if (!objetivo) throw new ErrorDeApp("No existe el usuario.", 404);
@@ -463,6 +570,10 @@ export async function guardarAlcanceDeUsuario(
   const elegidos = programasElegidos === null
     ? []
     : [...new Set(programasElegidos.map((programId) => esquemaId.parse(programId)))];
+  if (!contexto.global && (programasElegidos === null || elegidos.length === 0)) {
+    throw new AuthorizationError("No puedes dejar este usuario sin límite de programas.");
+  }
+  exigirProgramasDentroDelAlcance(contexto, elegidos, !contexto.global);
   if (programasElegidos !== null && elegidos.length === 0) {
     throw new ErrorDeApp("Elige al menos un programa o selecciona Todos.", 400);
   }
@@ -594,13 +705,15 @@ export async function editarCloserIdPropio(
 /** Desactiva un usuario (no lo borra). Valida id (uuid). No puede desactivarse a si mismo. */
 export async function desactivarUsuario(
   db: Db,
-  actorId: string,
+  actor: ActorDeUsuarios,
   id: string,
 ): Promise<UsuarioConProgramas> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
-    await protegerAdministrador(db, actorId, objetivoId, { desactivando: true });
-    const fila = await moldeUsuarios(db).desactivar(actorId, objetivoId);
+    const contexto = await contextoDeActor(db, actor);
+    await exigirObjetivoDentroDelAlcance(db, contexto, objetivoId);
+    await protegerAdministrador(db, actor.id, objetivoId, { desactivando: true });
+    const fila = await moldeUsuarios(db).desactivar(actor.id, objetivoId);
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, objetivoId),
@@ -611,12 +724,14 @@ export async function desactivarUsuario(
 /** Reactiva un usuario desactivado. Valida id (uuid). */
 export async function reactivarUsuario(
   db: Db,
-  actorId: string,
+  actor: ActorDeUsuarios,
   id: string,
 ): Promise<UsuarioConProgramas> {
   return normalizando(async () => {
     const objetivoId = idValido(id);
-    const fila = await moldeUsuarios(db).reactivar(actorId, objetivoId);
+    const contexto = await contextoDeActor(db, actor);
+    await exigirObjetivoDentroDelAlcance(db, contexto, objetivoId);
+    const fila = await moldeUsuarios(db).reactivar(actor.id, objetivoId);
     return {
       ...(fila as UsuarioConProgramas),
       programas: await programasDe(db, objetivoId),
