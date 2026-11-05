@@ -140,7 +140,7 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
   const titulo = "Closers";
   if (vista.comparativo.length === 0) return null;
   return <Card><CardHeader><Titulo id="closers">{titulo}</Titulo></CardHeader><CardContent className="overflow-x-auto">
-    <Tabla cabeceras={["Closer", "Agendas", "% show", "% cierre", "Agenda → venta", "Cómo cerró", "Sin marcar", "Vendido · Recaudado · Por cobrar"]}>
+    <Tabla cabeceras={["Closer", "Agendas", "% show", "% cierre", "Agenda → venta", "Cómo cerró", "Sin marcar", "Vendido", "Recaudado", "Por cobrar"]}>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
         const e = escalera.porCloser.find((x) => x.clave === fila.clave);
@@ -155,7 +155,11 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
           <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
           <td className="w-56 min-w-44 px-4 text-right">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
           <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
-          <td className="cifra whitespace-nowrap text-right"><Celda titulo="Ventas del closer" detalle={c?.cierres}>{d && d.ventas > 0 ? `${usd(d.vendido)} · ${usd(d.recaudado)} · ${usd(d.porCobrar)}` : "—"}</Celda></td>
+          {([["Vendido", d?.vendido], ["Recaudado", d?.recaudado], ["Por cobrar", d?.porCobrar]] as const).map(([nombre, valor]) => (
+            <td key={nombre} className="cifra whitespace-nowrap pl-4 text-right">
+              <Celda titulo={`${nombre} del closer`} detalle={c?.cierres}>{d && d.ventas > 0 && valor !== undefined ? usd(valor) : "—"}</Celda>
+            </td>
+          ))}
         </tr>;
       })}
     </Tabla>
