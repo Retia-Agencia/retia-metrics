@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, type ReactNode } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { CircleHelpIcon, InfoIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -19,19 +18,40 @@ export interface SeccionDeInfo {
 }
 
 const PARAMETRO = "info";
+const EVENTO = "info-de-pagina";
+
+/**
+ * El estado del Info vive en la URL para que el enlace se comparta, pero se escribe con
+ * `history.replaceState` y NO con `router.replace`: éste vuelve a pedirle al servidor la página entera de
+ * Hoy (todas las consultas del reporte) en cada gesto. Un evento propio avisa a todos los que lo leen (el
+ * botón, el panel y cada "?"), y `useSyncExternalStore` los mantiene al día sin pasar por la red.
+ */
+const leerDeLaUrl = () => new URLSearchParams(window.location.search).get(PARAMETRO);
+const suscribir = (avisar: () => void) => {
+  window.addEventListener(EVENTO, avisar);
+  window.addEventListener("popstate", avisar);
+  return () => {
+    window.removeEventListener(EVENTO, avisar);
+    window.removeEventListener("popstate", avisar);
+  };
+};
+
+function escribirEnLaUrl(valor: string | null) {
+  const url = new URL(window.location.href);
+  if (valor === null) url.searchParams.delete(PARAMETRO);
+  else url.searchParams.set(PARAMETRO, valor);
+  window.history.replaceState(window.history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  window.dispatchEvent(new Event(EVENTO));
+}
+
+/** Abre el Info en un apartado desde cualquier cliente (el panel de Configuración, por ejemplo). Sin red. */
+export function abrirInfo(seccion: string) {
+  escribirEnLaUrl(seccion);
+}
 
 function useInfoEnLaUrl() {
-  const router = useRouter();
-  const ruta = usePathname();
-  const parametros = useSearchParams();
-  const actual = parametros.get(PARAMETRO);
-  const cambiar = useCallback((valor: string | null) => {
-    const q = new URLSearchParams(parametros.toString());
-    if (valor === null) q.delete(PARAMETRO);
-    else q.set(PARAMETRO, valor);
-    const texto = q.toString();
-    router.replace(texto ? `${ruta}?${texto}` : ruta, { scroll: false });
-  }, [parametros, router, ruta]);
+  const actual = useSyncExternalStore(suscribir, leerDeLaUrl, () => null);
+  const cambiar = useCallback((valor: string | null) => escribirEnLaUrl(valor), []);
   return { actual, cambiar };
 }
 

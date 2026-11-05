@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { editarCohorteAccion, editarProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import { guardarObjetivoAccion, quitarObjetivoAccion } from "@/app/(app)/p/[programa]/programa/acciones-objetivos";
+import { abrirInfo } from "@/components/hub/info-de-pagina";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { DatosConfiguracionHoy } from "@/lib/queries/configuracion-de-hoy";
@@ -83,13 +84,10 @@ export function ConfiguracionHoy({ datos, enlace = false }: { datos: DatosDelPan
   const v = datos.vivo;
   const codigo = datos.cohorte?.codigo ?? "la cohorte";
 
-  /** Cierra el panel y abre el Info de Hoy en su apartado (`?info=`). */
+  /** Cierra el panel y abre el Info de Hoy en su apartado (`?info=`), sin pedirle nada al servidor. */
   const verEnInfo = (seccion: string) => {
     setAbierto(false);
-    const q = new URLSearchParams(window.location.search);
-    q.set("seccion", "hoy");
-    q.set("info", seccion);
-    router.replace(`${window.location.pathname}?${q.toString()}`, { scroll: false });
+    abrirInfo(seccion);
   };
 
   const guardar = () => iniciar(async () => {

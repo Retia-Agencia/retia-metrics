@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { programaDeRuta } from "@/lib/nav";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,12 @@ export function NumeroSinVer({ programaDeRespaldo }: { programaDeRespaldo: strin
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [total, setTotal] = useState(0);
+  // Abrir o cerrar un panel de ayuda (`?info=`) no cambia lo que ve el closer: no vuelve a pedir el número.
+  const filtros = useMemo(() => {
+    const q = new URLSearchParams(searchParams.toString());
+    q.delete("info");
+    return q.toString();
+  }, [searchParams]);
 
   const slug = programaDeRuta(pathname) ?? programaDeRespaldo;
 
@@ -50,7 +56,7 @@ export function NumeroSinVer({ programaDeRespaldo }: { programaDeRespaldo: strin
     return () => {
       activo = false;
     };
-  }, [pedir, pathname, searchParams]);
+  }, [pedir, pathname, filtros]);
 
   // Al volver a la pestaña y cuando una acción avisa que algo cambió.
   useEffect(() => {
