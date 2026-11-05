@@ -50,7 +50,7 @@ export default async function UsuariosPage() {
   return (
     <PageShell
       titulo="Usuarios"
-      descripcion="Quién puede entrar y con qué rol. Las membresías y las cuentas de Calendly se administran en la tab Programa."
+      descripcion="Quién puede entrar, con qué rol y en qué programas. La cuenta de Calendly de cada closer se vincula en la tab Programa."
       volver={{ porDefecto: { href: "/ajustes", etiqueta: "Ajustes" } }}
       fija
     >

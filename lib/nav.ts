@@ -1,5 +1,5 @@
 import type { Rol, SujetoDeCapacidad } from "@/lib/auth/roles";
-import { administraGlobal, esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaContenido, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
+import { administraGlobal, administraUsuarios, esAccesoTotal, esAdministrador, manejaPauta, marcaOnboarding, trabajaContenido, trabajaLeads, veTableroDelPrograma, leePrograma } from "@/lib/auth/roles";
 
 export type ItemNav = {
   href: string;
@@ -255,6 +255,10 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   // conserva su propia guarda, que es donde vive la seguridad.
   if (administraGlobal({ rol, alcanceLimitado })) {
     items.push({ href: "/ajustes", etiqueta: "Ajustes", icono: "ajustes", roles: ["gerente"] });
+  } else if (administraUsuarios(rol)) {
+    // Gerente con alcance limitado (ADR 0118): el indice de Ajustes es global y le rebota,
+    // pero Usuarios es suyo, dentro de su alcance. Va directo a esa pantalla.
+    items.push({ href: "/ajustes/usuarios", etiqueta: "Usuarios", icono: "ajustes", roles: ["gerente"] });
   }
 
   // Nerd Stats: SOLO el developer. Es la unica ruta exclusiva suya (ticket 025), y
