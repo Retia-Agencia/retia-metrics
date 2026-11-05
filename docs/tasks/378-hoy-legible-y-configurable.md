@@ -100,3 +100,16 @@ Todo lo de la lista de Mani para Hoy, con estas decisiones sobre las de arriba:
 - **Panel de Configuración** con nombre humano, para qué sirve, qué cifras cambia y un ejemplo en cada uno de sus seis
   campos; "Definir objetivo" aparece en las tarjetas que no tienen objetivo.
 - **Verificado contra producción, solo lectura** (4 programas × 4 días): cada cifra de Hoy da lo mismo que su lista.
+
+### Cierre del 4-nov (segunda vuelta)
+
+- **Objetivos sin repetir:** el bloque final es solo ¿Vamos a llegar? (mes y cohorte, con barras con números). Se
+  borró "Objetivos de noviembre" (`components/metas/metas-del-mes.tsx` y `SeccionMetas`): repetía el mes, la
+  semana y la cohorte. La semana vive solo en La semana (su reparto ya no repite "faltan X en Y días"). Se pierde la
+  navegación a otros meses desde Hoy; el redirect de `/metas` sigue llegando a Hoy.
+- **Celular:** las tablas solo para lectores de pantalla de las barras (`components/graficas/barras.tsx`) ensanchaban
+  toda la página a 484 px y los diálogos se salían; ahora van dentro de un contenedor `sr-only`. La tabla de contenido se
+  desplaza de lado.
+- **PDF:** márgenes de página fijos, el pie (fecha y URL) en el margen de abajo de cada página por `@page` (Chrome),
+  citas y dinero se parten entre filas y no por la mitad de una, y cada título viaja con su bloque.
+  Limitación: Firefox y Safari no dibujan el pie en el margen.

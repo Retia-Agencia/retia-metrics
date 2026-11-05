@@ -17,7 +17,7 @@ export function Lado({ programas, children }: {
   return (
     <div className={`grid gap-4 ${columnas(programas.length)}`}>
       {programas.map((p) => (
-        <div key={p.programa.id} className="no-partir min-w-0 space-y-3">
+        <div key={p.programa.id} className="min-w-0 space-y-3">
           {programas.length > 1 ? <h4 className="text-sm font-semibold">{p.programa.nombre}</h4> : null}
           {children(p)}
         </div>
@@ -37,7 +37,7 @@ export function Bloque({ id, titulo, pregunta, fuente, children }: {
 }) {
   return (
     <section id={id} className="scroll-mt-4 space-y-3">
-      <div>
+      <div className="bloque-titulo">
         <h3 className="flex items-center gap-1.5 text-lg font-semibold">{titulo}<AyudaDeSeccion seccion={id} etiqueta={titulo} /></h3>
         {pregunta ? <p className="text-sm text-muted-foreground">{pregunta}</p> : null}
       </div>

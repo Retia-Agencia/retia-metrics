@@ -7,7 +7,7 @@ import type { DetalleDeCifra, DetallesDelDashboard } from "@/lib/queries/vista-m
 
 /**
  * Hub › Hoy (ticket 252, 373, 378, ADR 0086): el reporte diario en tarjetas (`ReporteDiarioVista`). Lo que
- * sirve para seguir el día (alertas, pendientes, mañana y las metas del mes) entra como bloque solo cuando
+ * sirve para seguir el día (alertas, pendientes y mañana) entra como bloque solo cuando
  * el día es hoy y no va al PDF. Este componente no calcula ninguna cifra.
  */
 export function Hoy({
@@ -21,7 +21,6 @@ export function Hoy({
   alertas,
   slug,
   veEquipo,
-  metas,
   detalleManana,
   configuracion,
   definirObjetivo,
@@ -38,8 +37,6 @@ export function Hoy({
   slug: string;
   /** Sin equipo comercial (paid trafficker): sin las tablas por closer ni los nombres. */
   veEquipo: boolean;
-  /** Las metas del mes con sus flechas (lo que era la página Metas); las arma la página. */
-  metas: ReactNode;
   detalleManana?: DetalleDeCifra;
   configuracion?: ReactNode;
   definirObjetivo?: ReactNode;
@@ -58,7 +55,6 @@ export function Hoy({
       configuracion={configuracion}
       definirObjetivo={definirObjetivo}
       pendientes={esHoy ? <Pendientes vista={vista} detalles={detalles} citasDeManana={reporte.citasDeManana.length} detalleManana={detalleManana} alertas={alertas} slug={slug} veEquipo={veEquipo} /> : undefined}
-      metas={esHoy ? metas : undefined}
     />
   );
 }

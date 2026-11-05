@@ -1,17 +1,12 @@
-import Link from "next/link";
 import { after } from "next/server";
 import { desc } from "drizzle-orm";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
-import { leerMetasDelMes, moverMes, nombreDelMes } from "@/lib/queries/metas";
-import { MetasDelMes } from "@/components/metas/metas-del-mes";
 import { Origen } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
 import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
 import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, sinListas, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
@@ -452,9 +447,6 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                 alertas={await alertasDelPrograma(programa.id, hoy)}
                 slug={slug}
                 veEquipo={veEquipo}
-                // Lo que era la página Metas (ADR 0086 punto 1). Sus listas son del equipo comercial:
-                // sin él (paid trafficker) las cifras salen como texto.
-                metas={<SeccionMetas programId={programa.id} slug={slug} hoy={hoy} busqueda={busqueda} origen={origen} conListas={veEquipo} configurar={configurar} />}
                 detalleManana={detalleManana}
                 configuracion={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} /> : undefined}
                 definirObjetivo={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} enlace /> : undefined}
@@ -577,56 +569,3 @@ async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen, pue
   </section>;
 }
 
-const esquemaMes = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/);
-
-/**
- * Las metas del mes, que eran la página Metas (ticket 146) y desde el 250 viven en Hoy. El mes
- * sale de `?mes=` y se mueve con sus flechas sin soltar el resto de la URL (periodo, closer).
- */
-async function SeccionMetas({
-  programId,
-  slug,
-  hoy,
-  busqueda,
-  origen,
-  conListas,
-  configurar,
-}: {
-  programId: string;
-  slug: string;
-  hoy: string;
-  busqueda: Record<string, string | string[] | undefined>;
-  origen: string;
-  conListas: boolean;
-  configurar: { hrefBase: string; origen: string } | null;
-}) {
-  const mes = esquemaMes.catch(hoy.slice(0, 7)).parse(texto(busqueda.mes));
-  const metas = await leerMetasDelMes(programId, mes, hoy);
-  const anterior = moverMes(mes, -1);
-  const siguiente = moverMes(mes, 1);
-  const hrefMes = (otro: string) => {
-    const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(busqueda)) if (typeof v === "string") q.set(k, v);
-    q.set("seccion", "hoy");
-    q.set("mes", otro);
-    return `?${q.toString()}#metas`;
-  };
-  const periodoDe = (rango: { desde: string; hasta: string }): PeriodoResuelto => ({ preset: "custom", a: rango, b: null });
-  const hrefVentasMes = urlDeLista({ slug, metrica: "cierres", periodo: periodoDe(metas.periodoMes), origen });
-  const hrefVentasSemana = metas.compensacionSemanal
-    ? urlDeLista({ slug, metrica: "cierres", periodo: periodoDe({ desde: metas.compensacionSemanal.desde, hasta: metas.compensacionSemanal.hasta }), origen })
-    : null;
-
-  return (
-    <section id="metas" className="scroll-mt-4 space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-xl font-semibold">Objetivos de {nombreDelMes(mes)}</h2>
-        <nav aria-label="Cambiar mes" className="flex items-center gap-2">
-          <Link className={cn(buttonVariants({ variant: "ghost", size: "sm" }))} href={hrefMes(anterior)}>← {nombreDelMes(anterior)}</Link>
-          <Link className={cn(buttonVariants({ variant: "ghost", size: "sm" }))} href={hrefMes(siguiente)}>{nombreDelMes(siguiente)} →</Link>
-        </nav>
-      </div>
-      <MetasDelMes metas={metas} hrefVentasMes={hrefVentasMes} hrefVentasSemana={hrefVentasSemana} conListas={conListas} configurar={configurar} />
-    </section>
-  );
-}

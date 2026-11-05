@@ -70,11 +70,7 @@ export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }
             />
             {p.cohorte ? (
               <div className="space-y-2 border-t pt-3">
-                <h4 className="text-sm font-medium">Para llegar a {num(p.cohorte.metaCupos)} cupos desde mañana</h4>
-                <p className="text-sm">
-                  Faltan <span className="cifra font-semibold">{num(p.faltan)}</span> cupos en <span className="cifra font-semibold">{num(p.diasHabilesRestantes)}</span> días hábiles
-                  {p.ventasRequeridasDia.valor === null ? "" : <>: <span className="cifra font-semibold">{num(p.ventasRequeridasDia.valor, 1)}</span> ventas por día</>}.
-                </p>
+                <h4 className="text-sm font-medium">Cupos por semana para llegar a {num(p.cohorte.metaCupos)} desde mañana</h4>
                 <ul className="divide-y text-sm">
                   {p.repartoSemanal.map((t) => (
                     <li key={t.desde} className="flex items-baseline justify-between gap-2 py-1.5">

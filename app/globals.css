@@ -268,6 +268,16 @@
 }
 
 @media print {
+  /* Márgenes fijos: el pie de cada página vive en el margen de abajo y no pisa el contenido. */
+  @page {
+    size: A4;
+    margin: 10mm 10mm 16mm 10mm;
+    @bottom-left {
+      content: var(--pie-impresion, "");
+      font-size: 8pt;
+      color: #666;
+    }
+  }
   body *:not(:has(#reporte-diario)):not(#reporte-diario):not(#reporte-diario *) {
     display: none !important;
   }
@@ -285,8 +295,6 @@
   }
   #reporte-diario {
     font-size: 11px;
-    /* El pie fijo ocupa el final de cada página: el contenido no debe llegar a él. */
-    padding-bottom: 6mm !important;
   }
   #reporte-diario [data-slot="card"],
   #reporte-diario table,
@@ -294,9 +302,20 @@
   #reporte-diario .no-partir {
     break-inside: avoid;
   }
+  /* Una tarjeta larga (citas, dinero) se parte entre filas, nunca por la mitad de una fila. */
+  #reporte-diario [data-slot="card"].partible {
+    break-inside: auto;
+  }
+  #reporte-diario li {
+    break-inside: avoid;
+  }
   #reporte-diario h3,
-  #reporte-diario h4 {
+  #reporte-diario h4,
+  #reporte-diario .bloque-titulo {
     break-after: avoid;
+  }
+  #reporte-diario .no-partir-con-lo-que-sigue {
+    break-inside: avoid;
   }
   #reporte-diario thead {
     display: table-header-group;

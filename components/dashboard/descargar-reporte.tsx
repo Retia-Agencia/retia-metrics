@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -35,17 +35,22 @@ export function DescargarReporte() {
   );
 }
 
-const sinSuscripcion = () => () => {};
-
 /**
- * El pie que sale en CADA página impresa (`position: fixed` se repite al imprimir): cuándo se sacaron los
- * datos y la URL que produjo el reporte, para que cualquiera vea las mismas cifras. En pantalla no se ve.
+ * El pie de CADA página impresa: cuándo se sacaron los datos y la URL que produjo el reporte, para que
+ * cualquiera vea las mismas cifras. Va en el margen de la página (`@page`, ver `globals.css`) y no como un
+ * elemento fijo, que se encimaba con el contenido; el texto llega por una variable CSS que se pone solo
+ * mientras se imprime. En pantalla no se ve.
  */
 export function PieDeImpresion({ generado }: { generado: string }) {
-  const url = useSyncExternalStore(sinSuscripcion, () => window.location.href, () => "");
-  return (
-    <p className="fixed inset-x-0 bottom-0 hidden border-t bg-background px-2 py-1 text-[10px] text-muted-foreground print:block">
-      Datos del CRM al {generado} (Bogotá) · {url}
-    </p>
-  );
+  useEffect(() => {
+    const poner = () => document.documentElement.style.setProperty("--pie-impresion", JSON.stringify(`Datos del CRM al ${generado} (Bogotá) · ${window.location.href}`));
+    const quitar = () => document.documentElement.style.removeProperty("--pie-impresion");
+    window.addEventListener("beforeprint", poner);
+    window.addEventListener("afterprint", quitar);
+    return () => {
+      window.removeEventListener("beforeprint", poner);
+      window.removeEventListener("afterprint", quitar);
+    };
+  }, [generado]);
+  return null;
 }

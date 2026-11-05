@@ -88,7 +88,7 @@ export function CitasDelDia({ programas, veEquipo }: { programas: ProgramaDelRep
       const e = reporte.vista.embudo;
       return (
         <div className="space-y-4">
-          <Card className="no-partir">
+          <Card className="partible">
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Conteo titulo={nombreCorto("citas_del_dia")} cantidad={e.agendas} detalle={detalles?.agendas} />

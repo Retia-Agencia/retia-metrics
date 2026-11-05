@@ -78,7 +78,7 @@ const FUENTES = {
   objetivos: "CRM de Retia. Lo vendido de la cohorte activa y del mes contra su objetivo, en cupos y en USD; no depende de ningún filtro y el objetivo no se reparte entre closers.",
 } as const;
 
-export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, vamosALlegar, configuracion, definirObjetivo, pendientes, metas }: {
+export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, vamosALlegar, configuracion, definirObjetivo, pendientes }: {
   programas: ProgramaDelReporte[];
   dia: string;
   hoy: string;
@@ -92,8 +92,6 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
   definirObjetivo?: ReactNode;
   /** Alertas y pendientes: solo existen para hoy y no van al PDF. */
   pendientes?: ReactNode;
-  /** Las metas del mes con su semana; solo para hoy y no van al PDF. */
-  metas?: ReactNode;
 }) {
   void hoy;
   const contenido = [
@@ -148,10 +146,7 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
         </Bloque>
 
         <Bloque id="objetivos" titulo="Objetivos del mes y la cohorte" fuente={FUENTES.objetivos}>
-          <div className="no-partir space-y-4">
-            {vamosALlegar}
-            {metas ? <div className="print:hidden">{metas}</div> : null}
-          </div>
+          <div className="no-partir">{vamosALlegar}</div>
         </Bloque>
       </div>
     </section>

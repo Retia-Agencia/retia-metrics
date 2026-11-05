@@ -93,7 +93,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
           ) : null}
         </div>
       ))}
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>Embudo comercial</caption>
         <thead>
           <tr>
@@ -113,7 +113,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
@@ -162,7 +162,7 @@ export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] })
             );
           })}
       </div>
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>Distribución</caption>
         <thead>
           <tr>
@@ -180,7 +180,7 @@ export function BarraApilada100({ segmentos }: { segmentos: SegmentoDeBarra[] })
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }
@@ -207,7 +207,7 @@ export function BarrasHorizontales({
           </Abrible>
         </div>
       ))}
-      <table className="sr-only">
+      <div className="sr-only"><table>
         <caption>Barras horizontales</caption>
         <thead>
           <tr>
@@ -223,7 +223,7 @@ export function BarrasHorizontales({
             </tr>
           ))}
         </tbody>
-      </table>
+      </table></div>
     </div>
   );
 }

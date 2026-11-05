@@ -33,7 +33,7 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
         <CifraConLista titulo="Cupos vendidos hoy" detalle={detalles?.cierres}>{usd(valor)}</CifraConLista>
       );
       return (
-        <Card className="no-partir">
+        <Card className="partible">
           <CardContent className="space-y-4">
             {ventas.length === 0 ? <p className="text-sm text-muted-foreground">Hoy no hay cupos vendidos.</p> : <>
               <div className="grid gap-3 sm:grid-cols-3">
