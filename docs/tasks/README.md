@@ -36,7 +36,7 @@ a fase 2.
 | [ ] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | en main · 4-nov · falta checkpoint verde · fase 1, paso 4 · la plantilla del 15-sep v5 · absorbe al 254 y la parte imprimible del 300 |
 | [ ] | 378 | [Hub › Hoy legible y configurable](./378-hoy-legible-y-configurable.md) | 373 | en curso · 4-nov · rediseño hecho; falta celular, PDF y checkpoint |
 | [ ] | 379 | [Hub › Comercial se entiende a la primera](./379-comercial-se-entiende-a-la-primera.md) | 372 | en main · 4-nov · falta checkpoint verde · contrato de entendimiento |
-| [ ] | 381 | [Hub › Comercial: datos confiables, una sección por pregunta y el Info único](./381-comercial-datos-confiables-y-por-secciones.md) | 379 | en main · 5-nov · falta checkpoint verde, test:humo y medir D1 en producción |
+| [ ] | 381 | [Hub › Comercial: datos confiables, una sección por pregunta y el Info único](./381-comercial-datos-confiables-y-por-secciones.md) | 379 | en main · 5-nov · CI verde (ba8ffe5c); D1 medido; falta test:humo |
 | [ ] | 380 | [Hub › Dinero legible](./380-dinero-legible.md) | 369, 370, 371 | en main · 4-nov · falta checkpoint verde |
 | [ ] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | todo · **fase 2** · migración |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |

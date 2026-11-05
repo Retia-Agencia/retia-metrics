@@ -119,8 +119,8 @@ Hoy y Dinero salvo mover su Info a la fila de pestañas.
 
 ## Done cuando
 
-- [ ] D1: un lead con parcial y luego completo cuenta como completo (test); en Comunícate con Confianza los deals
-      completos del último mes pasan de 10 a ~480 (medido contra producción después del deploy).
+- [x] D1: un lead con parcial y luego completo cuenta como completo (test); en Comunícate con Confianza los deals
+      completos del último mes pasan de 10 a ~480. Medido el 5-nov: 10 → 482 (128 agendaron); Comunicarte 501 → 977, Tactical 396 → 836.
 - [ ] Cada % del embudo es el cociente de las dos barras que une (test sobre la función que arma los pasos).
 - [ ] D2: con más del 10 % de citas sin marcar el % show y el % cierre dicen "parcial" y su base; la alarma está en
       la primera fila y abre la lista.
