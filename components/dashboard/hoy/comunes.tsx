@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { AyudaDeSeccion } from "@/components/hub/info-de-pagina";
+import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { tasa } from "@/components/dashboard/piezas";
 import { CifraConLista } from "@/components/cifra-con-lista";
@@ -40,7 +40,7 @@ export function Bloque({ id, titulo, pregunta, fuente, children }: {
   return (
     <section id={id} className="scroll-mt-4 space-y-3">
       <div className="bloque-titulo">
-        <h3 className="flex items-center gap-1.5 text-lg font-semibold">{titulo}<AyudaDeSeccion seccion={id} etiqueta={titulo} /></h3>
+        <h3 className="flex items-center gap-1.5 text-lg font-semibold">{titulo}<EnlaceAInfo seccion={id} etiqueta={titulo} /></h3>
         {pregunta ? <p className="text-sm text-muted-foreground">{pregunta}</p> : null}
       </div>
       {children}
@@ -62,7 +62,7 @@ export function Ficha({ titulo, ayuda, valor, children }: {
       <CardHeader className="pb-0">
         <CardTitle className="flex items-center justify-between gap-1 text-xs font-medium tracking-normal text-muted-foreground">
           <span>{titulo}</span>
-          {ayuda ? <AyudaDeSeccion seccion={ayuda} etiqueta={titulo} /> : null}
+          {ayuda ? <EnlaceAInfo seccion={ayuda} etiqueta={titulo} /> : null}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">

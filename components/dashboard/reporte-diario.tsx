@@ -5,10 +5,8 @@ import { CifrasClave } from "@/components/dashboard/hoy/cifras-clave";
 import { CitasDelDia } from "@/components/dashboard/hoy/citas";
 import { DineroDelDia } from "@/components/dashboard/hoy/dinero";
 import { EmbudoDelDia } from "@/components/dashboard/hoy/embudo";
-import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import { SemanaEnCurso } from "@/components/dashboard/hoy/semana";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
-import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { TablaDeContenido } from "@/components/hub/tabla-de-contenido";
 import { fechaHoraEnBogota, monto, num } from "@/lib/format";
 import { nombreDelMes } from "@/lib/queries/metas";
@@ -111,7 +109,6 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
         <div className="flex items-center gap-2">
           {configuracion}
           <DescargarReporte />
-          <InfoDePagina titulo="Hoy: qué hay y cómo se calcula" secciones={seccionesDeInfoDeHoy(programas)} />
         </div>
       </div>
       <TablaDeContenido secciones={contenido} />

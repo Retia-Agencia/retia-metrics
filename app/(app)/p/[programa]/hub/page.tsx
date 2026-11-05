@@ -49,6 +49,8 @@ import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
 import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
 import { sumarDias } from "@/lib/rangos";
 import { tokensMeta } from "@/lib/integraciones";
+import { InfoDePagina } from "@/components/hub/info-de-pagina";
+import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import {
   debeSincronizarDesdeElHub,
   sincronizarDiaEnCurso,
@@ -294,6 +296,9 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const { desde, hasta } = vista.seleccion.rango;
   // Un solo dia se escribe una sola vez: "15 sep 2026", no "15 sep 2026 a 15 sep 2026".
   const rangoLegible = desde === hasta ? fecha(desde) : `${fecha(desde)} a ${fecha(hasta)}`;
+  const seccionesDeInfo = esHoy
+    ? seccionesDeInfoDeHoy([{ programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, reporte: vistaDeHoy! }])
+    : [];
 
   return (
     <PageShell
@@ -311,22 +316,25 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       fija
     >
       <PantallaFija>
-        <div className="flex flex-wrap items-center gap-2">
-          <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
-          {esHoy ? null : (
-            <div className="ml-auto min-w-0 max-w-full">
-              <FiltroDashboard
-                periodo={vista.periodo}
-                anteriorDisponible={vista.anteriorDisponible}
-                claveCloser={vista.claveCloser}
-                closers={veEquipo ? vista.closers : []}
-                filtraCloser={veEquipo}
-                cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
-                lineaDeCohorte={lineaDeCohorte}
-              />
-            </div>
-          )}
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
+          </div>
+          <InfoDePagina titulo="Hoy: qué hay y cómo se calcula" secciones={seccionesDeInfo} />
         </div>
+        {esHoy ? null : (
+          <div className="min-w-0 max-w-full">
+            <FiltroDashboard
+              periodo={vista.periodo}
+              anteriorDisponible={vista.anteriorDisponible}
+              claveCloser={vista.claveCloser}
+              closers={veEquipo ? vista.closers : []}
+              filtraCloser={veEquipo}
+              cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
+              lineaDeCohorte={lineaDeCohorte}
+            />
+          </div>
+        )}
 
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen" ? (
@@ -570,4 +578,3 @@ async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen, pue
     <EmbudoPorPregunta embudos={porPregunta} />
   </section>;
 }
-

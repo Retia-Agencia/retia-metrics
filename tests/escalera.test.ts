@@ -5,7 +5,9 @@ import { pautaInterina } from "@/lib/queries/pauta-interina";
 import type { Db } from "@/lib/db/tipos";
 import {
   agruparEscalera,
+  cargarHechosDeEscaleraDeDeal,
   cargarEscalera,
+  escalonDeDeal,
   escaleraDeDeals,
   filtrarEscalera,
   GRUPOS_DE_CIERRE,
@@ -107,6 +109,23 @@ async function porEscalon(corte?: number | null) {
 }
 
 describe("cargarEscalera: los siete escalones contra la base", () => {
+  it("el loader de un deal coincide con cargarEscalera", async () => {
+    const id = await sembrar({
+      etapaVendida: true,
+      ventaEl: "2026-10-08",
+      abonos: [{ fecha: "2026-10-08" }],
+      citas: [{ dia: "2026-10-05", resultado: "show" }],
+    });
+    const individual = await cargarHechosDeEscaleraDeDeal(db, { programId, dealId: id });
+    const cargada = await cargarEscalera(db, { programId, rango });
+    const desdeLaEscalera = cargada.deals.find((deal) => deal.dealId === id)!;
+
+    expect(individual.corteDias).toBe(cargada.corteDias);
+    expect(escalonDeDeal(individual.hechos, individual.corteDias)).toEqual(
+      { escalon: desdeLaEscalera.escalon, diasCitaAPago: desdeLaEscalera.diasCitaAPago },
+    );
+  });
+
   it("cada deal cae en su escalón, en los dos sentidos", async () => {
     const enLlamada = await sembrar({ etapaVendida: true, abonos: [{ fecha: "2026-10-05" }], citas: [{ dia: "2026-10-05", resultado: "cerrada" }] });
     const rapido = await sembrar({ etapaVendida: true, ventaEl: "2026-10-07", abonos: [{ fecha: "2026-10-07" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });

@@ -163,22 +163,26 @@ export interface EscaleraCargada {
 
 const RANGO_TOTAL: Rango = { desde: "1900-01-01", hasta: "2999-12-31" };
 
-export function ventasDelPrograma(db: Db, programId: string) {
+export function ventasDelPrograma(db: Db, programId: string, dealIds?: readonly string[]) {
   const ventas = ventasConDiaEn(db, RANGO_TOTAL).as("ventas_de_la_escalera");
   return db.select({ dealId: ventas.dealId, dia: ventas.dia }).from(ventas)
     .innerJoin(deals, and(eq(deals.id, ventas.dealId), vigente(deals)))
-    .where(and(eq(deals.programId, programId), incluyendoAnulados(ventas)));
+    .where(and(
+      eq(deals.programId, programId),
+      dealIds ? inArray(deals.id, [...dealIds]) : undefined,
+      incluyendoAnulados(ventas),
+    ));
 }
 
 /**
- * Carga los hechos mínimos y aplica `escalonDeDeal` para un lote ya clasificado como vendido/no vendido.
- * Es la única puerta para que otras métricas reutilicen el mismo primer abono, citas y corte de la escalera.
+ * Carga los hechos mínimos de un lote ya clasificado como vendido/no vendido. Es la única puerta
+ * para que la ficha y las métricas reutilicen el mismo primer abono, citas y corte de la escalera.
  */
-export async function ubicacionesDeEscalera(
+async function cargarHechosDeEscalera(
   db: Db,
   args: { programId: string; dealIds: readonly string[]; vendidos: ReadonlySet<string> },
   ahora: Date = new Date(),
-): Promise<{ corteDias: number | null; porDeal: Map<string, UbicacionEnLaEscalera> }> {
+): Promise<{ corteDias: number | null; porDeal: Map<string, HechosDeEscalera> }> {
   if (args.dealIds.length === 0) {
     const [programa] = await db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, args.programId));
     return { corteDias: programa?.corte ?? null, porDeal: new Map() };
@@ -207,17 +211,48 @@ export async function ubicacionesDeEscalera(
     citasPorDeal.set(cita.dealId, acumulado);
   }
   const corteDias = programa?.corte ?? null;
-  const porDeal = new Map<string, UbicacionEnLaEscalera>();
+  const porDeal = new Map<string, HechosDeEscalera>();
   for (const dealId of args.dealIds) {
     const citas = citasPorDeal.get(dealId);
-    porDeal.set(dealId, escalonDeDeal({
+    porDeal.set(dealId, {
       vendido: args.vendidos.has(dealId),
       primerAbono: primerAbono.get(dealId) ?? null,
       citasAtendidas: citas?.atendidas ?? [],
       citaVencidaSinAtender: citas?.vencida ?? false,
-    }, corteDias));
+    });
   }
   return { corteDias, porDeal };
+}
+
+/** Carga los hechos y el corte con los que la escalera clasifica un solo deal. */
+export async function cargarHechosDeEscaleraDeDeal(
+  db: Db,
+  args: { programId: string; dealId: string },
+  ahora: Date = new Date(),
+): Promise<{ hechos: HechosDeEscalera; corteDias: number | null }> {
+  const ventas = await ventasDelPrograma(db, args.programId, [args.dealId]);
+  const cargados = await cargarHechosDeEscalera(db, {
+    programId: args.programId,
+    dealIds: [args.dealId],
+    vendidos: new Set(ventas.map((venta) => venta.dealId)),
+  }, ahora);
+  return { hechos: cargados.porDeal.get(args.dealId)!, corteDias: cargados.corteDias };
+}
+
+/** Aplica `escalonDeDeal` a los hechos compartidos de un lote. */
+export async function ubicacionesDeEscalera(
+  db: Db,
+  args: { programId: string; dealIds: readonly string[]; vendidos: ReadonlySet<string> },
+  ahora: Date = new Date(),
+): Promise<{ corteDias: number | null; porDeal: Map<string, UbicacionEnLaEscalera> }> {
+  const cargados = await cargarHechosDeEscalera(db, args, ahora);
+  return {
+    corteDias: cargados.corteDias,
+    porDeal: new Map([...cargados.porDeal].map(([dealId, hechos]) => [
+      dealId,
+      escalonDeDeal(hechos, cargados.corteDias),
+    ])),
+  };
 }
 
 /** Carga la escalera de un programa en un periodo: el escalón de cada deal de su universo. */

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { CircleHelpIcon, InfoIcon } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -68,10 +69,20 @@ export function InfoDePagina({ titulo, secciones }: { titulo: string; secciones:
     return () => window.clearTimeout(temporizador);
   }, [abierto, actual]);
 
+  if (secciones.length === 0) return null;
+
   return (
     <>
-      <Button type="button" size="sm" variant="outline" className="print:hidden" onClick={() => cambiar(secciones[0]?.id ?? "")}>
-        <InfoIcon className="size-4" aria-hidden="true" /> Info
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="shrink-0 px-2 sm:px-3 print:hidden"
+        aria-label="Cómo se calcula"
+        onClick={() => cambiar(secciones[0]!.id)}
+      >
+        <InfoIcon className="size-4" aria-hidden="true" />
+        <span className="hidden sm:inline">Info</span>
       </Button>
       <Dialog open={abierto} onOpenChange={(abrir) => { if (!abrir) cambiar(null); }}>
         <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl gap-0 overflow-y-auto p-0">
@@ -107,17 +118,28 @@ export function InfoDePagina({ titulo, secciones }: { titulo: string; secciones:
 }
 
 /** El "?" de una sección: abre el Info directo en su apartado. No se imprime. */
-export function AyudaDeSeccion({ seccion, etiqueta }: { seccion: string; etiqueta: string }) {
+export function EnlaceAInfo({ seccion, etiqueta, href }: { seccion: string; etiqueta: string; href?: string }) {
   const { cambiar } = useInfoEnLaUrl();
+  const props = {
+    "aria-label": `Cómo se calcula: ${etiqueta}`,
+    title: `Cómo se calcula: ${etiqueta}`,
+    className: "inline-grid size-5 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring print:hidden",
+  };
+  if (href) {
+    return (
+      <Link href={href} {...props}>
+        <CircleHelpIcon className="size-4" aria-hidden="true" />
+      </Link>
+    );
+  }
   return (
     <button
       type="button"
       onClick={() => cambiar(seccion)}
-      aria-label={`Cómo se calcula: ${etiqueta}`}
-      title={`Cómo se calcula: ${etiqueta}`}
-      className="inline-grid size-5 place-items-center rounded-full text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring print:hidden"
+      {...props}
     >
       <CircleHelpIcon className="size-4" aria-hidden="true" />
     </button>
   );
 }
+

@@ -20,6 +20,8 @@ import { veEquipoComercial } from "@/lib/auth/roles";
 import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
 import { RUTA_HUB_TODOS } from "@/lib/nav";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
+import { InfoDePagina } from "@/components/hub/info-de-pagina";
+import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 
 export const dynamic = "force-dynamic";
 
@@ -75,7 +77,15 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
             aviso={vista.periodo.aviso ? vista.periodo.aviso : undefined}
           />
         </div>}
-        <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <Pestanas grupos={[{ pestanas }]} activa={seccion} etiqueta="Sección del Hub" />
+          </div>
+          <InfoDePagina
+            titulo="Hoy: qué hay y cómo se calcula"
+            secciones={esHoy ? seccionesDeInfoDeHoy(reportes) : []}
+          />
+        </div>
         <div className={clasesDeZonaConScroll()}>
           {seccion === "origen"
             ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
