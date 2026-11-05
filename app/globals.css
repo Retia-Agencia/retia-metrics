@@ -293,10 +293,55 @@
     padding: 0 !important;
     margin: 0 !important;
   }
+  /* El papel siempre es claro: con el tema oscuro puesto, los tokens del reporte vuelven a sus valores del
+     tema claro, para que todo hijo herede tinta oscura (no un parche por clase). */
+  #reporte-diario,
+  #reporte-diario * {
+    color-scheme: light;
+  }
+  #reporte-diario {
+    --background: #ffffff;
+    --foreground: #0a0a0a;
+    --card: #ffffff;
+    --card-foreground: #0a0a0a;
+    --popover: #ffffff;
+    --popover-foreground: #0a0a0a;
+    --primary: #820ad1;
+    --primary-foreground: #ffffff;
+    --secondary: #f3e8fc;
+    --secondary-foreground: #6a08ab;
+    --muted: #f0f0f0;
+    --muted-foreground: #52525b;
+    --accent: #f3e8fc;
+    --accent-foreground: #5c0794;
+    --destructive: #c2412d;
+    --border: #e5e5e5;
+    --input: #d4d4d4;
+    --ring: #820ad1;
+    --marca: #820ad1;
+    --marca-texto: #820ad1;
+    --marca-suave: #f3e8fc;
+    --tono-neutro: #525252;
+    --tono-neutro-suave: #f0f0f0;
+    --tono-info: #2f5bd3;
+    --tono-info-suave: #eef4ff;
+    --tono-alerta: #9a6400;
+    --tono-alerta-suave: #fff5e0;
+    --tono-exito: #0f7a57;
+    --tono-exito-suave: #e6f8f1;
+    --tono-peligro: #b4382a;
+    --tono-peligro-suave: #fdeeeb;
+    --chart-1: #820ad1;
+    --chart-2: #2f5bd3;
+    --chart-3: #e0a100;
+    --chart-4: #0a0a0a;
+    --chart-5: #a3a3a3;
+  }
   /* Hoja limpia: fondo blanco, tinta casi negra, sin sombras; los colores de las barras sí se imprimen. */
   html,
   body {
     background: #fff !important;
+    color-scheme: light !important;
   }
   #reporte-diario {
     font-size: 10px;
