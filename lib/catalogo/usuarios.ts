@@ -531,6 +531,11 @@ export async function editarUsuario(
       && !contexto.global) {
       throw new AuthorizationError("No puedes asignar ese rol.");
     }
+    // El correo es la llave de entrada (la autenticacion busca la cuenta por el): cambiarselo a
+    // alguien es quedarse con su cuenta. Solo un administrador global lo cambia.
+    if (!contexto.global && datos.email !== objetivo.email.trim().toLowerCase()) {
+      throw new AuthorizationError("No puedes cambiar el correo de este usuario.");
+    }
     await protegerAdministrador(db, actor.id, objetivoId, { rolNuevo: datos.rol });
     const { campos, programas } = separar(datos);
     if (programas && !tieneAlcanceConfigurable(campos.rol)) {
@@ -609,6 +614,20 @@ export async function guardarAlcanceDeUsuario(
       userId: actor.id,
     }),
   ]);
+}
+
+/**
+ * Un actor limitado solo toca a quien ya esta del todo dentro de su alcance (ADR 0118). La usa
+ * "Agregar existente" del Equipo: sin esto, agregar a un closer de otro programa a MI programa
+ * lo expone en mi equipo aunque sea de alguien ajeno.
+ */
+export async function exigirUsuarioDentroDelAlcance(
+  db: Db,
+  actor: ActorDeUsuarios,
+  userId: string,
+): Promise<void> {
+  const contexto = await contextoDeActor(db, actor);
+  await exigirObjetivoDentroDelAlcance(db, contexto, idValido(userId));
 }
 
 /** Agrega o reactiva una membresia usando el mismo camino auditado del editor. */

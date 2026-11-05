@@ -10,6 +10,7 @@ import {
   desactivarUsuario,
   editarUsuario,
   esquemaUsuario,
+  exigirUsuarioDentroDelAlcance,
   listarUsuarios,
   parsearEntradaUsuario,
   quitarMembresia,
@@ -353,6 +354,25 @@ describe("membresias desde la ficha del programa", () => {
     const membresias = await membresiasDe(cs.id);
     expect(membresias).toHaveLength(1);
     expect(membresias[0].activo).toBe(true);
+  });
+});
+
+describe("agregar un usuario existente desde el equipo (alcance, ADR 0118)", () => {
+  it("un gerente limitado no puede tomar a quien tiene un programa ajeno, y si a quien esta dentro", async () => {
+    const [limitado, ajeno, propio] = await db.insert(users).values([
+      { email: "limitado@retia.co", rol: "gerente" },
+      { email: "ajeno@retia.co", rol: "closer" },
+      { email: "propio@retia.co", rol: "closer" },
+    ]).returning();
+    await db.insert(usuariosProgramasAlcance).values({ userId: limitado.id, programId: programaAId });
+    await db.insert(miembrosPrograma).values([
+      { userId: ajeno.id, programId: programaBId },
+      { userId: propio.id, programId: programaAId },
+    ]);
+    const actor = { id: limitado.id, rol: "gerente" as const };
+    await expect(exigirUsuarioDentroDelAlcance(db, actor, ajeno.id)).rejects.toThrow();
+    await expect(exigirUsuarioDentroDelAlcance(db, actor, propio.id)).resolves.toBeUndefined();
+    await expect(exigirUsuarioDentroDelAlcance(db, actorGerente(), ajeno.id)).resolves.toBeUndefined();
   });
 });
 

@@ -18,7 +18,7 @@ import {
   type EntradaPrograma,
 } from "@/lib/catalogo/programas";
 import { conectarCalendly } from "@/lib/calendly/suscripcion";
-import { agregarMembresia, quitarMembresia } from "@/lib/catalogo/usuarios";
+import { agregarMembresia, exigirUsuarioDentroDelAlcance, quitarMembresia } from "@/lib/catalogo/usuarios";
 import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import { fichaDelPrograma, faltaParaActivar } from "@/lib/queries/ficha-programa";
 import {
@@ -194,6 +194,7 @@ export async function agregarAlProgramaAccion(input: {
       input.programId,
       "No puedes administrar este programa.",
     );
+    await exigirUsuarioDentroDelAlcance(db, { id: session.user.id, rol }, input.userId);
     await agregarMembresia(db, session.user.id, input.userId, input.programId);
     revalidarNav();
     return { ok: true };

@@ -236,6 +236,19 @@ describe("acciones de usuarios — gerente limitado", () => {
     expect(await db.select().from(miembrosPrograma)).toHaveLength(0);
   });
 
+  it("no cambia el correo de un usuario de su alcance (secuestro de cuenta)", async () => {
+    const [local] = await db.insert(users).values({ email: "local-correo@retia.co", rol: "closer" }).returning();
+    await db.insert(miembrosPrograma).values({ userId: local.id, programId: programaAId });
+    const { editarUsuarioAccion } = await acciones();
+    expect((await editarUsuarioAccion(local.id, {
+      email: "atacante@gmail.com",
+      rol: "closer",
+      programas: [programaAId],
+    })).ok).toBe(false);
+    const [despues] = await db.select().from(users).where(eq(users.id, local.id));
+    expect(despues.email).toBe("local-correo@retia.co");
+  });
+
   it("no asciende usuarios ni toca a quien tiene programas ajenos", async () => {
     const [local, ajeno, gerenteLocal] = await db.insert(users).values([
       { email: "local-existente@retia.co", rol: "closer" },
