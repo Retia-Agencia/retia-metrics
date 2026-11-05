@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Caja, tasa } from "@/components/dashboard/piezas";
-import { AyudaDeSeccion } from "@/components/hub/info-de-pagina";
+import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 import { CuentaDeAsistencia, Ficha, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
 import { BarraDeAvance } from "@/components/hub/barra-de-avance";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
@@ -52,7 +52,7 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
               </>}
             <p className="flex items-center gap-1 border-t pt-2 text-xs text-muted-foreground">
               <span>{nombreCorto("leads_que_hacen_falta")}: <span className="cifra font-medium text-foreground">{hacenFalta === null ? "—" : `${num(hacenFalta, 0)} por día`}</span></span>
-              <AyudaDeSeccion seccion="leads-que-hacen-falta" etiqueta={nombreCorto("leads_que_hacen_falta")} />
+              <EnlaceAInfo seccion="leads-que-hacen-falta" etiqueta={nombreCorto("leads_que_hacen_falta")} />
             </p>
           </Ficha>
 

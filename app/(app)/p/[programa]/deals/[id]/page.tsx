@@ -23,10 +23,17 @@ import { FichaOrigen } from "@/components/deals/ficha/ficha-origen";
 import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
 import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
+import { FichaCierre } from "@/components/deals/ficha/ficha-cierre";
 import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { marcarDealVisto } from "@/lib/deals/cambiar-dueno";
 import { hoyEnBogota } from "@/lib/format";
+import {
+  cargarHechosDeEscaleraDeDeal,
+  escalonDeDeal,
+  grupoDeCierre,
+  NOMBRE_DE_ESCALON,
+} from "@/lib/queries/escalera";
 
 export const dynamic = "force-dynamic";
 
@@ -70,7 +77,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
       etiqueta: ficha.lead.nombre ?? ficha.lead.email,
     });
   }
-  const [opciones, alertas] = await Promise.all([
+  const [opciones, alertas, hechosDeEscalera] = await Promise.all([
     opcionesDeFicha(
       db,
       programa.id,
@@ -80,7 +87,14 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
       ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null,
     ),
     alertasDelDeal(db, programa.id, ficha.dealId),
+    cargarHechosDeEscaleraDeDeal(db, { programId: programa.id, dealId: ficha.dealId }),
   ]);
+  const sinCierreQueMostrar = !hechosDeEscalera.hechos.vendido
+    && hechosDeEscalera.hechos.citasAtendidas.length === 0
+    && !hechosDeEscalera.hechos.citaVencidaSinAtender;
+  const ubicacionDeCierre = sinCierreQueMostrar
+    ? null
+    : escalonDeDeal(hechosDeEscalera.hechos, hechosDeEscalera.corteDias);
 
   // Sobre un deal anulado nadie escribe: se ve, marcado, y ya.
   const puedeTrabajar = !ficha.anulado && puedeTrabajarDeal(actor, { ownerUserId: ficha.owner?.id ?? null });
@@ -142,6 +156,14 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
           <div className="space-y-4">
             <FichaLead ficha={ficha} rutaDelLead={enlaceConVuelta(`/p/${programa.slug}/leads/${ficha.lead.id}`, origenDeEstaFicha)} />
             <FichaOrigen ficha={ficha} />
+            {ubicacionDeCierre ? (
+              <FichaCierre
+                grupo={grupoDeCierre(ubicacionDeCierre.escalon)}
+                dias={ubicacionDeCierre.diasCitaAPago}
+                nombreDelEscalon={NOMBRE_DE_ESCALON[ubicacionDeCierre.escalon]}
+                hrefInfo={`/p/${encodeURIComponent(programa.slug)}/hub?seccion=comercial&info=escalera`}
+              />
+            ) : null}
             <FichaPerfil perfil={ficha.perfil} />
             <FichaHistorial
               dealId={ficha.dealId}
