@@ -3,7 +3,7 @@ id: 382
 etapa: ajustes
 serves: "Mani, 5-nov: el gerente siempre puede crear usuarios, y el alta es una sola pestaña · ADR 0118 (enmienda el 0094) · ADR 0077 · ADR 0025"
 depends: []
-status: todo
+status: en main
 ---
 
 # 382 — Un solo alta de usuarios, abierta a todo gerente
