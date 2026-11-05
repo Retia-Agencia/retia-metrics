@@ -601,6 +601,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   (145). **Media:** el pipeline de contenido y los insights, nunca lo comercial (ADR 0107). **Developer:** acceso total, la única excepción a la disjunción de roles. **El Sistema:** el
   webhook, Calendly y el motor cuando mueven algo sin una persona.
 - **Membresía:** a qué programas pertenece un usuario; define qué programas ve un closer.
+- **Alcance:** qué programas ve un gerente o un paid trafficker; vacío es todos. No hace a nadie dueño ni setter (ADR 0094, ADR 0118).
 - **Vista ("ver como"):** con qué rol se proyecta una pantalla del developer. Solo estrecha, nunca
   ensancha.
 - **Setteo:** contactar a quien no agendó, para convertirlo en agenda. Lo hace el setter desde la cola de En

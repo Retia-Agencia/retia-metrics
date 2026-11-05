@@ -1,6 +1,6 @@
 # 0094: Un gerente o un paid trafficker puede quedar limitado a sus programas
 
-- **Estado:** aceptado, 16-oct-2026 (Mani). Se construye en el 273.
+- **Estado:** aceptado, 16-oct-2026 (Mani). Se construye en el 273. **Enmendado por el 0118** (5-nov): un gerente limitado crea y gestiona usuarios dentro de su alcance, y el alcance también lo fija el gerente global.
 - **Enmienda:** ADR 0048 punto 1 (quien administra y el paid trafficker veían todos los programas activos, sin
   excepción) y ADR 0052 punto 2 (el paid trafficker ve todos).
 - **Confirma:** ADR 0025 (el developer es el dueño y no se le restringe nada), ADR 0028 (la vista solo estrecha), ADR

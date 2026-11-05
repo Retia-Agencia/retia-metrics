@@ -38,6 +38,7 @@ a fase 2.
 | [ ] | 379 | [Hub › Comercial se entiende a la primera](./379-comercial-se-entiende-a-la-primera.md) | 372 | en main · 4-nov · falta checkpoint verde · contrato de entendimiento |
 | [ ] | 381 | [Hub › Comercial: datos confiables, una sección por pregunta y el Info único](./381-comercial-datos-confiables-y-por-secciones.md) | 379 | en main · 5-nov · CI verde (ba8ffe5c); D1 medido; falta test:humo |
 | [ ] | 380 | [Hub › Dinero legible](./380-dinero-legible.md) | 369, 370, 371 | en main · 4-nov · falta checkpoint verde |
+| [ ] | 382 | [Un solo alta de usuarios, abierta a todo gerente](./382-alta-unica-de-usuarios.md) | — | todo · 5-nov · ADR 0118 · sin migración |
 | [ ] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | todo · **fase 2** · migración |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |
 
