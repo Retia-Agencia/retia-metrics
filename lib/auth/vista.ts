@@ -4,6 +4,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
+import { memoizadaPorSolicitud } from "./solicitud";
 
 /**
  * "Ver como": con que rol se proyecta y se guarda una pantalla (ticket 028, enmienda
@@ -98,7 +99,7 @@ export function proyectarRol(rol: Rol | null, vista: Vista): Rol | null {
  * Se lee la cookie aca dentro (un solo punto de lectura). La escribe la server action
  * `cambiarVista` en `acciones.ts`.
  */
-export async function rolDeVista(session: Session): Promise<Rol | null> {
+async function leerRolDeVista(session: Session): Promise<Rol | null> {
   const rol = esRolValido(session.user.rol) ? session.user.rol : null;
   // Un no-developer ignora la cookie entero: no hace falta ni leerla. Una sesion ya
   // SUPLANTADA llega aqui con rol `closer` (no es acceso total), asi que cae por este
@@ -118,6 +119,12 @@ export async function rolDeVista(session: Session): Promise<Rol | null> {
   const vista = esVistaValida(cruda) ? cruda : VISTA_POR_DEFECTO;
   return proyectarRol(rol, vista);
 }
+
+/**
+ * Una vez por request (`solicitud.ts`): el layout y la guarda de la pagina preguntan lo
+ * mismo con el MISMO objeto de sesion. Una server action lee directo, sin memoria.
+ */
+export const rolDeVista = memoizadaPorSolicitud(leerRolDeVista);
 
 /** El id de la persona suplantada en el valor de la cookie, o `null` si no suplanta. */
 export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
@@ -142,10 +149,7 @@ export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
  * puede dejar al developer atrapado. Un rol que NO es acceso total ignora la cookie
  * entero (un closer real con `closer:<id>` puesto a mano sigue siendo él mismo).
  */
-export async function sesionEfectiva(
-  session: Session,
-  db: Db = dbDeLaApp,
-): Promise<Session> {
+async function leerSesionEfectiva(session: Session, db: Db): Promise<Session> {
   const rol = esRolValido(session.user.rol) ? session.user.rol : null;
   if (!esAccesoTotal(rol)) return session;
 
@@ -201,6 +205,18 @@ export async function sesionEfectiva(
       },
     },
   };
+}
+
+const sesionEfectivaDelRequest = memoizadaPorSolicitud((session: Session) =>
+  leerSesionEfectiva(session, dbDeLaApp),
+);
+
+/**
+ * Con la base de la app, una vez por request y por objeto de sesion (`solicitud.ts`);
+ * con una base inyectada (tests), siempre directo.
+ */
+export function sesionEfectiva(session: Session, db?: Db): Promise<Session> {
+  return db ? leerSesionEfectiva(session, db) : sesionEfectivaDelRequest(session);
 }
 
 /**

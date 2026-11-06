@@ -1,6 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import type { Session } from "next-auth";
-import { auth } from "./index";
+import { sesionDelRequest } from "./sesion";
 import { administraGlobal, administraUsuarios, manejaPautaGlobal, puedeAcceder, type Rol } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
 import { rutaInicial } from "@/lib/nav";
@@ -39,7 +39,7 @@ export async function destinoInicial(
 }
 
 export async function paginaConSesion(): Promise<Session> {
-  const session = await auth();
+  const session = await sesionDelRequest();
   if (!session?.user?.id) redirect("/login");
   // La sesión EFECTIVA: si un developer suplanta a un closer ("ver como", ticket 172),
   // esta sesión ya trae el id, el rol y el closerId del suplantado, así que TODA lectura
