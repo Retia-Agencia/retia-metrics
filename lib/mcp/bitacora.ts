@@ -1,0 +1,37 @@
+import { and, asc, eq, gte } from "drizzle-orm";
+import { mcpLlamadas } from "@/lib/db/schema";
+import type { Db } from "@/lib/db/tipos";
+
+export const TOPE_POR_MINUTO = 300;
+
+export interface EntradaDeLlamada {
+  tokenId: string;
+  userId: string;
+  userIdVista: string | null;
+  herramienta: string;
+  programId: string | null;
+  resultado: "ok" | "error" | "denegado" | "tope";
+  codigoError: string | null;
+  duracionMs: number;
+  cliente: string | null;
+}
+
+export async function registrarLlamada(db: Db, entrada: EntradaDeLlamada): Promise<void> {
+  await db.insert(mcpLlamadas).values(entrada);
+}
+
+export async function segundosDeEspera(
+  db: Db,
+  tokenId: string,
+  ahora: Date,
+): Promise<number | null> {
+  const desde = new Date(ahora.getTime() - 60_000);
+  const filas = await db
+    .select({ creadoEn: mcpLlamadas.creadoEn })
+    .from(mcpLlamadas)
+    .where(and(eq(mcpLlamadas.tokenId, tokenId), gte(mcpLlamadas.creadoEn, desde)))
+    .orderBy(asc(mcpLlamadas.creadoEn))
+    .limit(TOPE_POR_MINUTO);
+  if (filas.length < TOPE_POR_MINUTO) return null;
+  return Math.max(1, Math.ceil((filas[0].creadoEn.getTime() + 60_000 - ahora.getTime()) / 1000));
+}

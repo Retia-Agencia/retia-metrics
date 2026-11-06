@@ -20,6 +20,10 @@ export default auth((req) => {
     pathname === "/login" ||
     pathname.startsWith("/api/auth/") ||
     pathname === "/api/health" ||
+    // El MCP no usa la cookie de Auth.js: valida su bearer token en el handler.
+    pathname === "/api/mcp" ||
+    // Metadata pública RFC 9728 para que el cliente descubra cómo autenticarse.
+    pathname.startsWith("/.well-known/oauth-protected-resource") ||
     // Los cron no tienen sesion: cada handler exige su propio secreto de Vercel.
     pathname.startsWith("/api/cron/") ||
     // Juanito consulta que reportes enviar y se autentica en el handler con su secreto.
