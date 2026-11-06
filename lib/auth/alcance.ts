@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { miembrosPrograma, programs, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { memoizadaPorSolicitud } from "./solicitud";
 import { esAccesoTotal, esAdministrador, tieneAlcanceConfigurable, type Rol } from "./roles";
 
 /**
@@ -63,10 +64,18 @@ export async function programasDelAlcance(
  * Es la fuente única del selector de programa (ticket 097), de la guarda de toda
  * ruta con programa y de las consultas de lectura que se limitan al alcance.
  */
-export async function programasVisibles(
+export function programasVisibles(
   userId: string,
   rol: Rol | null,
-  db: Db = dbDeLaApp,
+  db?: Db,
+): Promise<ProgramaVisible[]> {
+  return db ? leerProgramasVisibles(userId, rol, db) : visiblesDelRequest(userId, rol);
+}
+
+async function leerProgramasVisibles(
+  userId: string,
+  rol: Rol | null,
+  db: Db,
 ): Promise<ProgramaVisible[]> {
   const columnas = { id: programs.id, slug: programs.slug, nombre: programs.nombre };
 
@@ -109,6 +118,25 @@ export async function programasVisibles(
 }
 
 /**
+ * Con la base de la app, una vez por request (`solicitud.ts`; el layout, la guarda y la
+ * pagina preguntan lo mismo) y sin memoria dentro de una server action, que puede haber
+ * cambiado membresias o alcance. Con una base inyectada (tests), siempre directo.
+ * Los argumentos son primitivos: el rol de vista ya viene proyectado.
+ */
+const visiblesDelRequest = memoizadaPorSolicitud(async (userId: string, rol: Rol | null) =>
+  congelar(await leerProgramasVisibles(userId, rol, dbDeLaApp)),
+);
+
+/**
+ * El arreglo memoizado lo comparten todos los llamadores del request: congelado, mutarlo
+ * (`sort`, `push`) lanza en vez de alterar en silencio lo que ven los demas.
+ */
+function congelar<T extends object>(filas: T[]): T[] {
+  for (const fila of filas) Object.freeze(fila);
+  return Object.freeze(filas) as T[];
+}
+
+/**
  * Los IDs de los programas que ve esta sesión, como `Set` para filtrar en memoria.
  *
  * A esta escala (~2 programas, ADR 0043) traer los ids y decidir en memoria es
@@ -118,7 +146,7 @@ export async function programasVisibles(
 export async function idsDeProgramasVisibles(
   userId: string,
   rol: Rol | null,
-  db: Db = dbDeLaApp,
+  db?: Db,
 ): Promise<Set<string>> {
   const visibles = await programasVisibles(userId, rol, db);
   return new Set(visibles.map((p) => p.id));
@@ -138,7 +166,7 @@ export async function programaVisiblePorSlug(
   userId: string,
   rol: Rol | null,
   slug: string,
-  db: Db = dbDeLaApp,
+  db?: Db,
 ): Promise<ProgramaVisible | null> {
   const visibles = await programasVisibles(userId, rol, db);
   return visibles.find((p) => p.slug === slug) ?? null;
@@ -152,9 +180,11 @@ export async function programaDeLaFichaPorSlug(
   userId: string,
   rol: Rol | null,
   slug: string,
-  db: Db = dbDeLaApp,
+  dbInyectada?: Db,
 ): Promise<ProgramaDeLaFicha | null> {
-  const visible = await programaVisiblePorSlug(userId, rol, slug, db);
+  // Sin base inyectada, la lectura de visibles se comparte con el layout (una vez por request).
+  const db = dbInyectada ?? dbDeLaApp;
+  const visible = await programaVisiblePorSlug(userId, rol, slug, dbInyectada);
   if (visible) return { ...visible, activo: true };
   if (!esAdministrador(rol)) return null;
 
@@ -170,10 +200,22 @@ export async function programaDeLaFichaPorSlug(
 }
 
 /** Programas inactivos que un administrador puede terminar de configurar. */
-export async function programasInactivosParaAdministrar(
+export function programasInactivosParaAdministrar(
   userId: string,
   rol: Rol | null,
-  db: Db = dbDeLaApp,
+  db?: Db,
+): Promise<{ slug: string; nombre: string }[]> {
+  return db ? leerInactivos(userId, rol, db) : inactivosDelRequest(userId, rol);
+}
+
+const inactivosDelRequest = memoizadaPorSolicitud(async (userId: string, rol: Rol | null) =>
+  congelar(await leerInactivos(userId, rol, dbDeLaApp)),
+);
+
+async function leerInactivos(
+  userId: string,
+  rol: Rol | null,
+  db: Db,
 ): Promise<{ slug: string; nombre: string }[]> {
   if (!esAdministrador(rol)) return [];
   const filas = await db
@@ -198,7 +240,7 @@ export async function programaEnAlcance(
   userId: string,
   rol: Rol | null,
   programId: string,
-  db: Db = dbDeLaApp,
+  db?: Db,
 ): Promise<boolean> {
   const ids = await idsDeProgramasVisibles(userId, rol, db);
   return ids.has(programId);
