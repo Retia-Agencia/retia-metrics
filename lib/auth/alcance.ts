@@ -123,9 +123,18 @@ async function leerProgramasVisibles(
  * cambiado membresias o alcance. Con una base inyectada (tests), siempre directo.
  * Los argumentos son primitivos: el rol de vista ya viene proyectado.
  */
-const visiblesDelRequest = memoizadaPorSolicitud((userId: string, rol: Rol | null) =>
-  leerProgramasVisibles(userId, rol, dbDeLaApp),
+const visiblesDelRequest = memoizadaPorSolicitud(async (userId: string, rol: Rol | null) =>
+  congelar(await leerProgramasVisibles(userId, rol, dbDeLaApp)),
 );
+
+/**
+ * El arreglo memoizado lo comparten todos los llamadores del request: congelado, mutarlo
+ * (`sort`, `push`) lanza en vez de alterar en silencio lo que ven los demas.
+ */
+function congelar<T extends object>(filas: T[]): T[] {
+  for (const fila of filas) Object.freeze(fila);
+  return Object.freeze(filas) as T[];
+}
 
 /**
  * Los IDs de los programas que ve esta sesión, como `Set` para filtrar en memoria.
@@ -171,9 +180,11 @@ export async function programaDeLaFichaPorSlug(
   userId: string,
   rol: Rol | null,
   slug: string,
-  db: Db = dbDeLaApp,
+  dbInyectada?: Db,
 ): Promise<ProgramaDeLaFicha | null> {
-  const visible = await programaVisiblePorSlug(userId, rol, slug, db);
+  // Sin base inyectada, la lectura de visibles se comparte con el layout (una vez por request).
+  const db = dbInyectada ?? dbDeLaApp;
+  const visible = await programaVisiblePorSlug(userId, rol, slug, dbInyectada);
   if (visible) return { ...visible, activo: true };
   if (!esAdministrador(rol)) return null;
 
@@ -197,8 +208,8 @@ export function programasInactivosParaAdministrar(
   return db ? leerInactivos(userId, rol, db) : inactivosDelRequest(userId, rol);
 }
 
-const inactivosDelRequest = memoizadaPorSolicitud((userId: string, rol: Rol | null) =>
-  leerInactivos(userId, rol, dbDeLaApp),
+const inactivosDelRequest = memoizadaPorSolicitud(async (userId: string, rol: Rol | null) =>
+  congelar(await leerInactivos(userId, rol, dbDeLaApp)),
 );
 
 async function leerInactivos(

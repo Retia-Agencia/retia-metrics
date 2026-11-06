@@ -156,4 +156,18 @@ describe("identidad por request", () => {
     esAccion = true;
     expect(await rolDeVista(s)).toBe("gerente"); // accion: directo
   });
+
+  it("el arreglo compartido de programas esta congelado: mutarlo lanza", async () => {
+    const { programasVisibles } = await import("@/lib/auth/alcance");
+    const visibles = await programasVisibles(gerenteId, "gerente");
+    expect(() => visibles.push({ id: "x", slug: "x", nombre: "X" })).toThrow();
+  });
+
+  it("la ficha del programa reutiliza la lectura de visibles del request", async () => {
+    const { programasVisibles, programaDeLaFichaPorSlug } = await import("@/lib/auth/alcance");
+    await programasVisibles(gerenteId, "gerente");
+    consultas = 0;
+    expect((await programaDeLaFichaPorSlug(gerenteId, "gerente", "p"))?.id).toBe(programaId);
+    expect(consultas).toBe(0);
+  });
 });
