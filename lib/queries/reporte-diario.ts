@@ -12,6 +12,7 @@ import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
 import { fechaAnclaCall, filtroCaja, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
+import type { ContextoDeVista } from "@/lib/queries/vista-dashboard";
 import type { VentanaRitmo } from "@/lib/queries/proyeccion";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
@@ -197,10 +198,10 @@ export function rangoDeLaSemanaDelReporte(dia: string): { desde: string; hasta: 
  * (`resolverDiaDelReporte`), aquí se asume válido.
  */
 export async function armarReporteDiario(
-  { programId, dia, ventanaRitmo }: { programId: string; dia: string; ventanaRitmo?: VentanaRitmo },
+  { programId, dia, ventanaRitmo, contexto }: { programId: string; dia: string; ventanaRitmo?: VentanaRitmo; contexto?: ContextoDeVista | Promise<ContextoDeVista> },
   db: Db = dbDeLaApp,
 ) {
-  const base = await armarVistaDeHoy({ programId, dia, ventanaRitmo }, db);
+  const base = await armarVistaDeHoy({ programId, dia, ventanaRitmo, contexto }, db);
   const rangoDeLaSemana = rangoDeLaSemanaDelReporte(dia);
   const [filasDeVentas, caja, motivosPorLlamada, enviosPorArea, enviosDeLaSemana, showDeLaSemana] = await Promise.all([
     todasLasFilas("cierres", programId, dia, base.corte, db),

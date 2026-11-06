@@ -14,7 +14,7 @@ import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
 import { leerProyeccion, type VentanaRitmo } from "@/lib/queries/proyeccion";
 import { vigente } from "@/lib/queries/vigente";
-import { armarVistaDelDashboard, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { armarVistaDelDashboard, type ContextoDeVista, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 
 /**
  * La pestaña Hoy del Hub (ticket 252, ADR 0086 punto 3): el reporte diario de septiembre armado
@@ -135,7 +135,14 @@ export interface CajaDelDiaPorOrigen {
 
 /** Arma Hub › Hoy como estaba al cierre de `dia`; las banderas y la cartera siguen siendo de ahora. */
 export async function armarVistaDeHoy(
-  { programId, dia, ahora, ventanaRitmo }: { programId: string; dia: string; ahora?: Date; ventanaRitmo?: VentanaRitmo },
+  { programId, dia, ahora, ventanaRitmo, contexto }: {
+    programId: string;
+    dia: string;
+    ahora?: Date;
+    ventanaRitmo?: VentanaRitmo;
+    /** El contexto de la vista de ESE día, si quien llama ya lo resolvió (la cabecera del Hub): no se repite. */
+    contexto?: ContextoDeVista | Promise<ContextoDeVista>;
+  },
   db: Db = dbDeLaApp,
 ) {
   const instante = ahora ?? (dia === hoyEnBogota()
@@ -148,7 +155,7 @@ export async function armarVistaDeHoy(
     preset: "hoy",
     claveCloser: null,
     ahora: instante,
-  }, db);
+  }, db, contexto);
   const rangoDeHoy = { desde: dia, hasta: dia };
   const manana = sumarDias(dia, 1);
   const cargarFilas = async (metrica: Metrica, rango: { desde: string; hasta: string }) => {

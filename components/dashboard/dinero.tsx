@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, usd } from "@/lib/format";
@@ -9,7 +10,12 @@ import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { CajaConVariacion, Tabla } from "@/components/dashboard/piezas";
 import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
+import { EsqueletoDeGraficas } from "@/components/hub/esqueleto-del-hub";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
+
+async function GraficasDeDineroPendientes({ series, ...resto }: { series: Promise<SeriesDeDinero> } & Omit<React.ComponentProps<typeof GraficasDeDinero>, "datos">) {
+  return <GraficasDeDinero datos={await series} {...resto} />;
+}
 
 /** Responde: ¿cuánto vendimos, cuánto ya se recaudó, cuánto falta y de qué cohorte? */
 export function Dinero({
@@ -25,7 +31,8 @@ export function Dinero({
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   slug: string;
-  series?: SeriesDeDinero;
+  /** Una promesa: las gráficas llegan por streaming y no frenan las cifras de arriba. */
+  series?: Promise<SeriesDeDinero>;
   origen: string;
   /** Hoy en Bogotá: el eje de las gráficas no pasa de aquí. */
   hoy: string;
@@ -43,7 +50,11 @@ export function Dinero({
         <CajaConVariacion vista={vista} detalles={detalles} />
       </div>
 
-      {series ? <GraficasDeDinero datos={series} vista={vista} slug={slug} origen={origen} hoy={hoy} conListas={veEquipo} cargarResumenDePunto={cargarResumenDePunto} /> : null}
+      {series ? (
+        <Suspense fallback={<EsqueletoDeGraficas />}>
+          <GraficasDeDineroPendientes series={series} vista={vista} slug={slug} origen={origen} hoy={hoy} conListas={veEquipo} cargarResumenDePunto={cargarResumenDePunto} />
+        </Suspense>
+      ) : null}
 
       {vista.filtroDeCohorte.cohorteId === null ? <div className="grid gap-4">
         <Card>

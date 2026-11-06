@@ -50,7 +50,7 @@ export function DashboardPrograma({
   detallesOperacion?: DetallesDeOperacion;
   slug: string;
   dealsContraAgendas: ReactNode;
-  seriesDinero?: SeriesDeDinero;
+  seriesDinero?: Promise<SeriesDeDinero>;
   /** La server action del resumen de un punto de Dinero (380); la pasa la página. */
   cargarResumenDePunto?: CargarResumenDePunto;
   origen: string;

@@ -49,16 +49,19 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   // Hoy (252) es siempre de hoy, sin importar el periodo de la URL; por eso no lleva selector.
   const esHoy = seccion === "hoy";
   const origen = origenDeLaPagina(RUTA_HUB_TODOS, busqueda);
-  const vista = await armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda), origen });
   // Hoy es el reporte diario (373): una columna por programa visible, del día de `?fecha=` (futuro = se rechaza y se avisa).
   const diaPedido = resolverDiaDelReporte(typeof busqueda.fecha === "string" ? busqueda.fecha : undefined, hoy);
   const diaDelReporte = diaPedido ?? hoy;
-  const reportes: ProgramaDelReporte[] = esHoy
-    ? await Promise.all(programas.map(async (programa) => ({
-        programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre },
-        reporte: await armarReporteDiario({ programId: programa.id, dia: diaDelReporte }),
-      })))
-    : [];
+  // La vista de todos y los reportes de Hoy son independientes: arrancan juntos, no uno detrás del otro.
+  const [vista, reportes] = await Promise.all([
+    armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda), origen }),
+    esHoy
+      ? Promise.all(programas.map(async (programa): Promise<ProgramaDelReporte> => ({
+          programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre },
+          reporte: await armarReporteDiario({ programId: programa.id, dia: diaDelReporte }),
+        })))
+      : Promise.resolve([] as ProgramaDelReporte[]),
+  ]);
 
   return (
     <PageShell titulo="Todos los programas" descripcion="Sumas en la misma unidad; tasas y metas por programa" fija>
