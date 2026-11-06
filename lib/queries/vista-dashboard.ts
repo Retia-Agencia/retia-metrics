@@ -197,10 +197,10 @@ export async function resolverContextoDeVista(entrada: EntradaDeVista, db: Db = 
 export async function armarVistaDelDashboard(
   entrada: EntradaDeVista,
   db: Db = dbDeLaApp,
-  contextoPrevio?: ContextoDeVista,
+  contextoPrevio?: ContextoDeVista | Promise<ContextoDeVista>,
 ): Promise<VistaDelDashboard> {
   const { programId, hoy } = entrada;
-  const contextoDeVista = contextoPrevio ?? await resolverContextoDeVista(entrada, db);
+  const contextoDeVista = await (contextoPrevio ?? resolverContextoDeVista(entrada, db));
   const { seleccion, periodo, filtroDeCohorte, claveCloser, cohorte, cohorteIdDeB } = contextoDeVista;
   const { cohorteId } = filtroDeCohorte;
   const rango = periodo.a;

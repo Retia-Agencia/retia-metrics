@@ -22,6 +22,11 @@ export function EsqueletoDelHub() {
   );
 }
 
+/** Las gráficas de Dinero mientras llegan: el hueco ya tiene su altura, así que nada salta. */
+export function EsqueletoDeGraficas() {
+  return <div role="status" aria-busy="true" className="h-72 animate-pulse rounded-lg border border-border bg-muted/40 motion-reduce:animate-none"><span className="sr-only">Cargando las gráficas…</span></div>;
+}
+
 /** El pie "¿Vamos a llegar?" mientras llega. */
 export function EsqueletoDelNorte() {
   return <div aria-hidden className="h-24 animate-pulse rounded-lg border border-border bg-muted/40 motion-reduce:animate-none" />;

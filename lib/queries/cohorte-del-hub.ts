@@ -86,16 +86,23 @@ export async function contextoDelFiltro(
   cohorte: typeof cohorts.$inferSelect | null,
   hoy: string,
 ): Promise<ContextoDelFiltro> {
-  const ventas = await ventasDelFiltro(db, programId, cohorte?.id ?? null, hoy);
+  // Las consultas son independientes entre sí: arrancan juntas (un viaje a la base, no tres en serie).
+  const [ventas, anterior, deLaVidaDelPrograma] = await Promise.all([
+    ventasDelFiltro(db, programId, cohorte?.id ?? null, hoy),
+    cohorte ? ventanasAnterioresDeCohorte(db, programId, cohorte.id).then((v) => v.anterior) : Promise.resolve(null),
+    cohorte
+      ? Promise.resolve(null)
+      : Promise.all([
+          db.select({ inicio: min(cohorts.fechaInicioVentas) }).from(cohorts).where(eq(cohorts.programId, programId)),
+          db.select({ primero: sql<Date | null>`min(${leads.fechaPrimeraAplicacion})` }).from(leads).where(and(eq(leads.programId, programId), eq(leads.entrada, "formulario"))),
+        ]),
+  ]);
   const primeraVenta = ventas.map((v) => v.dia).sort()[0] ?? null;
   const candidatas: (string | null)[] = [primeraVenta];
-  let anterior: ContextoDelFiltro["anterior"] = null;
   if (cohorte) {
     candidatas.push(cohorte.fechaInicioVentas);
-    anterior = (await ventanasAnterioresDeCohorte(db, programId, cohorte.id)).anterior;
-  } else {
-    const [fila] = await db.select({ inicio: min(cohorts.fechaInicioVentas) }).from(cohorts).where(eq(cohorts.programId, programId));
-    const [envio] = await db.select({ primero: sql<Date | null>`min(${leads.fechaPrimeraAplicacion})` }).from(leads).where(and(eq(leads.programId, programId), eq(leads.entrada, "formulario")));
+  } else if (deLaVidaDelPrograma) {
+    const [[fila], [envio]] = deLaVidaDelPrograma;
     candidatas.push(fila?.inicio ?? null, envio?.primero ? diaDeCalendario(envio.primero) : null);
   }
   const inicio = candidatas.filter((d): d is string => d !== null).sort()[0] ?? null;

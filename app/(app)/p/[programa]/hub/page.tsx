@@ -167,11 +167,9 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const hoyDeLaPestana = esHoy ? diaDelReporte : hoy;
 
   // Streaming: la cabecera (pestañas, periodo, cohorte) sale con lo BARATO (`resolverContextoDeVista`) y
-  // cada cuerpo llega después dentro de su <Suspense>. La promesa del reporte de Hoy arranca ya, a la par del
-  // contexto, y se espera en el cuerpo y en el panel de información; el `catch` vacío solo evita el aviso de
-  // "rechazo sin manejar" si el contexto falla primero: quien la espera sigue viendo el error.
-  const reporteDeHoy = esHoy ? armarReporteDiario({ programId: programa.id, dia: diaDelReporte, ventanaRitmo }) : null;
-  reporteDeHoy?.catch(() => undefined);
+  // cada cuerpo llega después dentro de su <Suspense>. El reporte de Hoy arranca ya con la MISMA promesa de
+  // contexto (no se resuelve dos veces) y se espera en el cuerpo y en el panel de información; los `catch` vacíos
+  // solo evitan el aviso de "rechazo sin manejar" si algo falla antes: quien espera la promesa sigue viendo el error.
   // Hoy usa la misma entrada que `armarVistaDeHoy`: el día del reporte como "hoy", periodo "hoy", programa entero.
   const entradaDeVista: EntradaDeVista = esHoy
     ? { programId: programa.id, hoy: diaDelReporte, periodo: { preset: "hoy" }, preset: "hoy", claveCloser: null }
@@ -186,7 +184,12 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         hasta: texto(busqueda.hasta),
         claveCloser: veEquipo ? esquemaFiltroCloser.parse(texto(busqueda.closer)) ?? null : null,
       };
-  const contexto = await resolverContextoDeVista(entradaDeVista);
+  // Una sola resolución del contexto: la cabecera la espera y el reporte de Hoy la reutiliza.
+  const contextoPendiente = resolverContextoDeVista(entradaDeVista);
+  contextoPendiente.catch(() => undefined);
+  const reporteDeHoy = esHoy ? armarReporteDiario({ programId: programa.id, dia: diaDelReporte, ventanaRitmo, contexto: contextoPendiente }) : null;
+  reporteDeHoy?.catch(() => undefined);
+  const contexto = await contextoPendiente;
   const closersDelFiltro = !esHoy && veEquipo ? await contexto.closers() : [];
 
   const { elegida, opciones, ventas } = contexto.filtroDeCohorte;
@@ -347,6 +350,20 @@ async function CuerpoDelHub({
     );
   }
 
+  // Las gráficas de Dinero solo necesitan el periodo y la cohorte del contexto: arrancan YA, a la par de las
+  // cifras, y llegan por su cuenta. Si la pestaña resulta vacía nadie las espera: el `catch` evita el aviso.
+  const seriesDeDinero = seccion === "dinero"
+    ? leerSeriesDeDinero({
+        programId: programa.id,
+        // El eje es el periodo elegido y A y B cada uno con su cohorte (370): sin meses fijos.
+        a: { rango: contexto.periodo.a, cohorteId: contexto.filtroDeCohorte.cohorteId },
+        b: contexto.periodo.b ? { rango: contexto.periodo.b, cohorteId: contexto.filtroDeCohorte.cohorteIdDeB } : null,
+        claveCloser: contexto.claveCloser,
+        hoy,
+      })
+    : undefined;
+  seriesDeDinero?.catch(() => undefined);
+
   const vistaDeHoy = reporteDeHoy ? await reporteDeHoy : null;
   const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard(entradaDeVista, undefined, contexto);
 
@@ -379,7 +396,6 @@ async function CuerpoDelHub({
     detalleCitasSinMarcar,
     detallesOperacionCrudos,
     vistaComercial,
-    seriesDinero,
     alertas,
     configuracionCruda,
   ] = await Promise.all([
@@ -407,16 +423,6 @@ async function CuerpoDelHub({
     seccion === "comercial" && !sinActividad
       ? cargarVistaComercial({ programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, proyectar })
       : null,
-    seccion === "dinero" && !sinActividad
-      ? leerSeriesDeDinero({
-          programId: programa.id,
-          // El eje es el periodo elegido y A y B cada uno con su cohorte (370): sin meses fijos.
-          a: { rango: vista.periodo.a, cohorteId },
-          b: vista.periodo.b ? { rango: vista.periodo.b, cohorteId: cohorteIdDeB } : null,
-          claveCloser: vista.claveCloser,
-          hoy,
-        })
-      : undefined,
     esHoy ? alertasDelPrograma(programa.id, hoy) : undefined,
     configuracionDeHoy,
   ]);
@@ -508,7 +514,7 @@ async function CuerpoDelHub({
         dealsContraAgendas={null}
         origen={origen}
         veEquipo={veEquipo}
-        seriesDinero={seriesDinero!}
+        seriesDinero={seriesDeDinero}
       />
     );
   }
