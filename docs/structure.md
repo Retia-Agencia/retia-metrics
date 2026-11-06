@@ -755,6 +755,8 @@ cada etapa están en la tabla de §3.
    campo de configuración se lee como frase con huecos ("Avísame si llevo menos del [80] % ...") antes que como
    etiquetas sueltas, y un valor de ejemplo nunca se confunde con uno guardado.
 
+**Estado de carga (6-nov).** Toda pantalla responde al clic al instante: cada `page.tsx` tiene un `loading.tsx` en su carpeta o en un ancestro (lo vigila `tests/loading-guardian.test.ts`), y todos llaman a `EsqueletoDePantalla` (`components/layout/esqueleto-de-pantalla.tsx`) con la variante `lista`, `tablero` o `ficha`. Un `loading.tsx` tambien es lo que hace que Next precargue una ruta dinamica hasta ese limite. Un cambio de filtro u orden no lo muestra: la transicion mantiene la lista vieja hasta que llega la nueva.
+
 **Contrato de entendimiento (Mani, 4-nov; obligatorio en toda pantalla, primero en el Hub).** La prioridad de una
 pantalla es que se entienda a la primera y sirva para decidir; lo que no cumple eso es deuda aunque la cifra esté bien.
 Nació del recorrido por Hub › Comercial, Hoy y Dinero del 4-nov ("satura, todo pesa igual, todo es tabla y texto").
