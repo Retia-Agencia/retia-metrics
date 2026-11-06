@@ -442,7 +442,9 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
 | [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | todo · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
 | [x] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
-| [ ] | 348 | [El MCP del CRM](./348-mcp-del-crm.md) | — | por grill · acordado en la daily del 28-oct (MCP, luego Juanito, luego IA) · puerta nueva: pide ADR |
+| [ ] | 348 | [El MCP del CRM, fase 1: solo lectura, solo developers](./348-mcp-del-crm.md) | — | todo · ADR 0119 (grill del 6-nov) · lleva migración (tokens y bitácora) |
+| [ ] | 383 | [El MCP del CRM, fase 2: OAuth propio y todos los roles](./383-mcp-oauth-para-todos.md) | 348 | todo · ADR 0119 · incluye la prueba en ChatGPT (fase 3) |
+| [ ] | 384 | [El MCP del CRM: escrituras con vista previa](./384-mcp-escrituras.md) | 348 | todo · ADR 0119 punto 8 · lleva migración (origen `mcp`) |
 | [x] | 349 | [Hub › Pauta: no shows por origen, cifras que abren sus personas y periodo visible](./349-pauta-no-shows-y-listas-por-origen.md) | 093, 251, 262 | done · 29-oct · build limpio y revisado en pantalla (base local) |
 | [x] | 350 | [ROAS por anuncio y campaña, y el registro de llamadas exportable](./350-roas-y-llamadas-por-anuncio-y-campana.md) | 123, 247, 349 | done · 29-oct · Codex + revisión; build y recorrido como paid trafficker (base local, sin árbol de Meta); falta checkpoint |
 

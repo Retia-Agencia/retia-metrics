@@ -608,6 +608,12 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Setteo:** contactar a quien no agendó, para convertirlo en agenda. Lo hace el setter desde la cola de En
   gestión.
 - **Grain:** la grabación de la llamada; pegar su link es la prueba de que ocurrió.
+- **MCP del CRM:** la puerta por la que cada persona usa el CRM desde su propia IA (Claude, ChatGPT), como ella
+  misma y con lo mismo que ve en la app. Una **herramienta** es una acción del MCP (consultar, buscar, mover).
+- **Token del MCP:** la credencial de una persona para el MCP; dice quién es y si puede escribir o solo leer.
+  Se revoca, no se comparte.
+- **Vista previa de una escritura:** lo que el MCP muestra antes de cambiar algo (qué, de qué a qué). Nada se
+  escribe sin que la persona la vea y diga que sí.
 - **Juanito:** la automatización que manda los recordatorios de las llamadas. **Kapso:** la plataforma
   de WhatsApp para contactar y enviar masivos. Ninguno vive dentro del CRM.
 - **Aviso:** un mensaje que el CRM decide mandarle a alguien del equipo (un closer o el grupo de ventas) y que Juanito

@@ -275,6 +275,9 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   el CRM marca esas campañas como agenda o lanzamiento, solo en los programas que reportan a ese grupo, con rastro
   en `change_log` (origen `whatsapp`). Solo con el formato exacto (codigos y A/L, nada mas); cualquier otro texto
   responde `{ texto: null }` y Juanito calla (28-oct).
+  **El MCP del CRM** (ADR 0119, tickets 348, 383 y 384; por construir): `/api/mcp` y sus endpoints de OAuth.
+  Sin token, 401 sin cuerpo; con token, la persona dueña del token con su rol y su alcance, revalidados en cada
+  llamada, y nada que la app no le muestre.
 - **Los identificadores en rutas son ids opacos, nunca datos personales.** La UNICA informacion personal
   permitida en un query string es el texto libre `q` del buscador de una lista (ADR 0116); correos,
   telefonos y nombres nunca identifican una ruta.

@@ -147,6 +147,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0115](./0115-reglas-de-norte-de-las-metricas.md) | Las nueve reglas de norte de las métricas: un concepto un módulo, paridad probada, toda razón con su cobertura, un nombre por concepto, la pantalla sin jerga y con formato único, la escritura exige lo que la métrica necesita, reemplazar es borrar, una jerarquía con las enmiendas arriba, terminado con evidencia (tickets 351 a 362) |
 | [0116](./0116-la-busqueda-por-texto-viaja-en-la-url.md) | La búsqueda libre de las listas viaja en `?q=` como única excepción de dato personal en query strings; Volver usa el historial de la app y cae al destino validado cuando no lo hay (ticket 365) |
 | [0118](./0118-un-solo-alta-de-usuarios-y-todo-gerente-puede-crear.md) | Un solo alta de usuarios en `/ajustes/usuarios`, abierta a todo gerente dentro de su alcance; un selector de programas cuyo efecto lo decide el rol; el alcance lo fija el gerente global o el developer (**enmienda el 0094**) |
+| [0119](./0119-el-mcp-del-crm.md) | El MCP del CRM: un servidor dentro de la app, cada persona como ella misma (rol ∩ scope del token), herramientas como adaptadores sobre `lib/`, una tabla de tokens para token personal (fase 1) y OAuth propio con CIMD (fase 2), toda escritura con vista previa y confirmación en el chat, topes blandos y bitácora de llamadas |
 
 **Plataforma**
 
