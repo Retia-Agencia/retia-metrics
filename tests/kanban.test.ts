@@ -403,6 +403,49 @@ describe("tableroKanban", () => {
   });
 });
 
+describe("tableroKanban: lecturas en paralelo (paridad)", () => {
+  const ahora = new Date("2026-10-21T12:00:00-05:00");
+  const dia = (desde: string, hasta: string) => ({
+    campo: "actividad" as const,
+    periodo: { preset: "custom" as const, a: { desde, hasta }, b: null },
+  });
+  const ids = (t: Awaited<ReturnType<typeof tableroKanban>>) => t.columnas.flatMap((c) => c.tarjetas.map((x) => x.dealId));
+
+  it("combina q, orden por actividad, saldo, cartera y anulados sin perder ni mezclar datos entre deals", async () => {
+    const venta = await deal({ etapa: "ganado_parcial", nombre: "Ana Venta", abono: "400", fechaLimitePago: "2026-10-01", entrada: "2026-10-12" });
+    const sinAbono = await deal({ etapa: "contactado", nombre: "Ana Libre", entrada: "2026-10-18" });
+    await deal({ etapa: "contactado", nombre: "Ana Anulada", anulado: true });
+    await deal({ etapa: "contactado", nombre: "Otro Nombre" });
+
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { q: "Ana", orden: { campo: "actividad", sentido: "desc" } }, HOY, ahora);
+    expect(ids(t).sort()).toEqual([venta, sinAbono].sort());
+    const tv = t.columnas.find((c) => c.clave === "ganado_parcial")!.tarjetas[0];
+    expect(tv).toMatchObject({ dealId: venta, saldo: 600, confirmadoUsd: 400, potencialUsd: 1000 });
+    expect(tv.avisos.carteraVencida).toBe(true);
+    const tl = t.columnas.find((c) => c.clave === "contactado")!.tarjetas[0];
+    expect(tl).toMatchObject({ dealId: sinAbono, saldo: 1000, confirmadoUsd: 0 });
+    expect(tl.avisos.carteraVencida).toBe(false);
+    expect(tl.avisos.abonoSinComprobante).toBe(false);
+    expect(tv.avisos.abonoSinComprobante).toBe(true);
+  });
+
+  it("el filtro por actividad se resuelve antes que el resto y deja fuera lo que no cae en el rango", async () => {
+    const reciente = await deal({ etapa: "contactado", entrada: "2026-10-19", creado: "2026-10-19T12:00:00-05:00" });
+    await deal({ etapa: "contactado", entrada: "2026-09-02", creado: "2026-09-02T12:00:00-05:00" });
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { fecha: dia("2026-10-19", "2026-10-20") }, HOY, ahora);
+    expect(ids(t)).toEqual([reciente]);
+    expect(t.total).toBe(1);
+  });
+
+  it("un filtro que deja el tablero vacio devuelve las columnas vacias sin error", async () => {
+    await deal({ etapa: "ganado_parcial", abono: "400", fechaLimitePago: "2026-10-01" });
+    const t = await tableroKanban(db, programId, { tipo: "todos" }, { q: "nadie se llama asi", fecha: dia("2026-01-01", "2026-01-02") }, HOY, ahora);
+    expect(t.total).toBe(0);
+    expect(t.enProximaCohorte).toEqual([]);
+    expect(t.columnas.length).toBeGreaterThan(0);
+  });
+});
+
 describe("Re-agenda y vistas del tablero (ticket 296, ADR 0103)", () => {
   const conteo = (t: Awaited<ReturnType<typeof tableroKanban>>, clave: string) =>
     t.columnas.find((c) => c.clave === clave)?.tarjetas.length ?? 0;
