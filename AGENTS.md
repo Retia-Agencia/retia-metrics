@@ -588,6 +588,7 @@ The agent should run these to get fast signal on whether code works. Keep them c
   error). Tampoco sirve `127.0.0.1`: Next dev responde 403 a sus propios recursos, la página no hidrata y los
   diálogos no abren. Entra por un subdominio de `localhost` (`app095.localhost:3095`), que tiene sus propias
   cookies; uno distinto por rol (`closer095.localhost`) para tener dos sesiones a la vez.
+- **`experimental.staleTimes.dynamic = 15` (next.config.ts):** volver a una pestaña vista dentro de 15 s sale del caché de cliente; las escrituras propias (server action con `revalidatePath` o `router.refresh()`) lo purgan entero, pero un cambio externo (otro closer, webhook) se ve hasta 15 s tarde. No subirlo sin repetir la prueba A→B→A tras mutar.
 - **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
   abstraccion especulativa (ADR 0006).
 - **Dentro de una plantilla `sql` de drizzle, las columnas salen SIN calificar.**

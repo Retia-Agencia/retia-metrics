@@ -15,6 +15,14 @@ const cabecerasDeSeguridad = [
 ];
 
 const nextConfig: NextConfig = {
+  // Caché de cliente para páginas dinámicas (todas lo son): sin esto, volver a una pestaña ya vista
+  // la pide entera al servidor (0 s desde Next 15). Con 15 s, A→B→A dentro de esa ventana es instantáneo.
+  // RIESGO de frescura: solo para cambios EXTERNOS a la sesión (otro closer, webhook, Calendly, cron),
+  // que se ven hasta 15 s tarde al volver a una pestaña cacheada. Las escrituras propias NO quedan
+  // viejas: toda server action con revalidatePath y todo router.refresh() purgan el caché de cliente
+  // entero (probado en dev:local el 6-nov). Atrás/adelante del navegador ya reutilizaba caché sin esto.
+  // No subir de 30 s ni tocar `static` sin repetir esa prueba. Doc: next/docs staleTimes.md (experimental).
+  experimental: { staleTimes: { dynamic: 15 } },
   // Incluye el manual HTML en el despliegue de la ruta autenticada.
   outputFileTracingIncludes: { "/manual": ["./docs/manuales/operacion-comercial.html"] },
   async headers() {
