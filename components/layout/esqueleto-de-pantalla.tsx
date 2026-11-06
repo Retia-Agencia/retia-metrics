@@ -70,8 +70,10 @@ function Ficha() {
 export function EsqueletoDePantalla({ variante = "lista" }: { variante?: VarianteDeEsqueleto }) {
   return (
     <div role="status" aria-busy="true" aria-label="Cargando" className="flex flex-1 flex-col">
-      <header className="flex items-center border-b bg-card px-4 py-4 md:px-6 lg:px-8">
-        <Bloque className="h-6 w-48" />
+      {/* Misma altura que la barra de PageShell con descripción (81 px), para que no salte al llegar el título real. */}
+      <header className="flex flex-col gap-1 border-b bg-card px-4 py-4 md:px-6 lg:px-8">
+        <Bloque className="h-7 w-48" />
+        <Bloque className="h-4 w-72 max-w-full" />
       </header>
       <main className="flex-1 p-4 md:p-6 lg:p-8">
         {variante === "tablero" ? <Tablero /> : variante === "ficha" ? <Ficha /> : <Lista />}
