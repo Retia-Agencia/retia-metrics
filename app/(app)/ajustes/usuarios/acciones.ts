@@ -13,6 +13,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import {
   asignarCalendlyDeMembresia,
   crearUsuario,
+  gestionarCalendlyExtra,
   desactivarUsuario,
   editarUsuario,
   reactivarUsuario,
@@ -128,6 +129,29 @@ export async function asignarCalendlyDeMembresiaAccion(
       throw new ErrorDeApp("No existe esa membresía activa.", 404);
     }
     await asignarCalendlyDeMembresia(db, session.user.id, input);
+    revalidar();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+/** Agrega o quita una cuenta de Calendly adicional de una membresia (mismas reglas que la principal). */
+export async function gestionarCalendlyExtraAccion(
+  input: { membresiaId: string; calendlyEmail: string; accion: "agregar" | "quitar" },
+): Promise<ResultadoAccion> {
+  try {
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    const [membresia] = await db
+      .select({ programId: miembrosPrograma.programId })
+      .from(miembrosPrograma)
+      .where(eq(miembrosPrograma.id, input.membresiaId));
+    if (!membresia || !(await programaEnAlcance(session.user.id, rol, membresia.programId, db))) {
+      throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    }
+    await gestionarCalendlyExtra(db, session.user.id, input);
     revalidar();
     return { ok: true };
   } catch (error) {

@@ -1,5 +1,5 @@
 import { and, inArray, isNotNull } from "drizzle-orm";
-import { miembrosPrograma } from "@/lib/db/schema";
+import { miembrosPrograma, miembrosProgramaCalendlyExtra } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { BASE, coleccionCompleta, ErrorDeCalendly, organizacionDelToken, type FetchLike } from "./cita";
 import { tokensCalendly } from "@/lib/integraciones";
@@ -82,8 +82,16 @@ export async function cuentasPorPrograma(
     })
     .from(miembrosPrograma)
     .where(and(inArray(miembrosPrograma.programId, [...programIds]), isNotNull(miembrosPrograma.calendlyEmail)));
+  const adicionales = await db
+    .select({
+      programId: miembrosProgramaCalendlyExtra.programId,
+      membresiaId: miembrosProgramaCalendlyExtra.membresiaId,
+      correo: miembrosProgramaCalendlyExtra.email,
+    })
+    .from(miembrosProgramaCalendlyExtra)
+    .where(inArray(miembrosProgramaCalendlyExtra.programId, [...programIds]));
   const membresiaPorCuenta = new Map(
-    ocupadas.map((m) => [`${m.programId}:${m.correo!.toLowerCase()}`, m.membresiaId]),
+    [...ocupadas, ...adicionales].map((m) => [`${m.programId}:${m.correo!.toLowerCase()}`, m.membresiaId]),
   );
 
   const pares = await Promise.all(

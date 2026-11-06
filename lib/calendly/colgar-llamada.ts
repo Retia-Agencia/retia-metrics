@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
-import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, sources, submissions, users } from "@/lib/db/schema";
+import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, miembrosProgramaCalendlyExtra, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -124,9 +124,19 @@ export async function closersConCalendly(db: Db, programId: string): Promise<Clo
         isNotNull(miembrosPrograma.calendlyEmail),
       ),
     );
-  return filas
-    .filter((f) => trabajaLeads(f))
-    .map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! }));
+  const validas = filas.filter((f) => trabajaLeads(f));
+  // Cuentas adicionales (Mani, 6-nov): una persona con mas de un correo aparece una vez por correo.
+  const adicionales = await db
+    .select({ userId: miembrosPrograma.userId, correoCalendly: miembrosProgramaCalendlyExtra.email })
+    .from(miembrosProgramaCalendlyExtra)
+    .innerJoin(miembrosPrograma, eq(miembrosPrograma.id, miembrosProgramaCalendlyExtra.membresiaId))
+    .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+    .where(and(eq(miembrosPrograma.activo, true), eq(users.activo, true), eq(miembrosProgramaCalendlyExtra.programId, programId)));
+  const deLaLista = new Set(validas.map((f) => f.userId));
+  return [
+    ...validas.map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! })),
+    ...adicionales.filter((f) => deLaLista.has(f.userId)).map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly })),
+  ];
 }
 
 /**

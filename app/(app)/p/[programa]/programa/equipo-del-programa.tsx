@@ -8,7 +8,7 @@ import {
   marcarSetterPorDefectoAccion,
   quitarDelProgramaAccion,
 } from "@/app/(app)/p/[programa]/programa/acciones-programa";
-import { asignarCalendlyDeMembresiaAccion } from "@/app/(app)/ajustes/usuarios/acciones";
+import { asignarCalendlyDeMembresiaAccion, gestionarCalendlyExtraAccion } from "@/app/(app)/ajustes/usuarios/acciones";
 import { FilaMembresia, SetterPorDefecto } from "@/components/calendly-membresias";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +98,7 @@ export function EquipoDelPrograma({
                 membresia={membresia}
                 cuentas={listaCuentas?.ok ? listaCuentas.cuentas : null}
                 accion={asignarCalendlyDeMembresiaAccion}
+                accionExtra={gestionarCalendlyExtraAccion}
                 extra={
                   <Button size="sm" variant="ghost" disabled={pendiente} onClick={() => setAQuitar(membresia)}>
                     Quitar

@@ -1,7 +1,7 @@
-import { and, asc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, miembrosProgramaCalendlyExtra, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { esViolacionUnica } from "@/lib/db/errores";
@@ -785,6 +785,129 @@ export const esquemaCalendlyDeMembresia = z.object({
 export type EntradaCalendlyDeMembresia = z.input<typeof esquemaCalendlyDeMembresia>;
 
 /**
+ * Comprueba que una cuenta de Calendly se pueda vincular a una membresia: ninguna OTRA membresia del
+ * programa la tiene (ni como principal ni como adicional) y es una cuenta de la organizacion de
+ * Calendly del programa, leida con su token (el servidor no confia en el cliente).
+ */
+async function validarCuentaDeCalendly(
+  db: Db,
+  programId: string,
+  membresiaId: string,
+  correo: string,
+  opciones: { fetch?: FetchLike },
+): Promise<void> {
+  const [principal] = await db
+    .select({ id: miembrosPrograma.id })
+    .from(miembrosPrograma)
+    .where(and(eq(miembrosPrograma.programId, programId), eq(sql`lower(${miembrosPrograma.calendlyEmail})`, correo)));
+  const [adicional] = await db
+    .select({ id: miembrosProgramaCalendlyExtra.membresiaId })
+    .from(miembrosProgramaCalendlyExtra)
+    .where(and(
+      eq(miembrosProgramaCalendlyExtra.programId, programId),
+      eq(sql`lower(${miembrosProgramaCalendlyExtra.email})`, correo),
+    ));
+  if ((principal && principal.id !== membresiaId) || (adicional && adicional.id !== membresiaId)) {
+    throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
+  }
+  const token = await tokenCalendly(db, programId);
+  if (!token) {
+    throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo antes de vincular cuentas.", 409);
+  }
+  let cuentas;
+  try {
+    cuentas = await cuentasDeCalendly({ token, fetch: opciones.fetch });
+  } catch (e) {
+    if (e instanceof ErrorDeCalendly) throw new ErrorDeApp(e.message, 502);
+    throw e;
+  }
+  if (!cuentas.some((c) => c.correo === correo)) {
+    throw new ErrorDeApp("Esa cuenta no está en la organización de Calendly del programa.", 422);
+  }
+}
+
+/**
+ * Agrega o quita una cuenta de Calendly ADICIONAL de una membresia (Mani, 6-nov): quien toma
+ * llamadas con mas de un correo en el mismo programa. Mismas reglas que la principal (dueño o
+ * administrador, cuenta de la organizacion, sin choque) y misma consecuencia: las citas que esa
+ * host ya hospedaba se le atribuyen. No toca el evento personal, que sigue siendo de la principal.
+ */
+export async function gestionarCalendlyExtra(
+  db: Db,
+  actorId: string,
+  input: { membresiaId: string; calendlyEmail: string; accion: "agregar" | "quitar" },
+  opciones: { fetch?: FetchLike } = {},
+): Promise<void> {
+  return normalizando(async () => {
+    const { membresiaId } = esquemaCalendlyDeMembresia.pick({ membresiaId: true }).parse(input);
+    const correo = esquemaCalendlyDeMembresia.shape.calendlyEmail.unwrap().parse(input.calendlyEmail);
+    const [m] = await db
+      .select({
+        userId: miembrosPrograma.userId,
+        activo: miembrosPrograma.activo,
+        programId: miembrosPrograma.programId,
+        principal: miembrosPrograma.calendlyEmail,
+        email: users.email,
+        rol: users.rol,
+        operaComoCloser: users.operaComoCloser,
+      })
+      .from(miembrosPrograma)
+      .innerJoin(users, eq(users.id, miembrosPrograma.userId))
+      .where(eq(miembrosPrograma.id, membresiaId));
+    if (!m || !m.activo) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    if (!trabajaLeads(m)) {
+      throw new ErrorDeApp("Solo quien trabaja leads puede tener cuenta de Calendly en un programa.", 422);
+    }
+    const [actor] = await db.select().from(users).where(eq(users.id, actorId));
+    if (!actor || !actor.activo || !puedeTocarMembresia(actor.rol, actorId, m.userId)) {
+      throw new AuthorizationError("Solo puedes cambiar tu propia cuenta de Calendly.");
+    }
+    const agregando = input.accion === "agregar";
+    if (agregando) {
+      if (m.principal?.toLowerCase() === correo) {
+        throw new ErrorDeApp("Esa ya es la cuenta principal.", 422);
+      }
+      await validarCuentaDeCalendly(db, m.programId, membresiaId, correo, opciones);
+    }
+    try {
+      await db.transaction(async (tx) => {
+        const existentes = await tx
+          .select({ id: miembrosProgramaCalendlyExtra.id })
+          .from(miembrosProgramaCalendlyExtra)
+          .where(and(
+            eq(miembrosProgramaCalendlyExtra.membresiaId, membresiaId),
+            eq(sql`lower(${miembrosProgramaCalendlyExtra.email})`, correo),
+          ));
+        if (agregando === (existentes.length > 0)) return;
+        if (agregando) {
+          await tx.insert(miembrosProgramaCalendlyExtra).values({ membresiaId, programId: m.programId, email: correo });
+        } else {
+          await tx.delete(miembrosProgramaCalendlyExtra).where(eq(miembrosProgramaCalendlyExtra.id, existentes[0]!.id));
+        }
+        await tx.insert(changeLog).values({
+          tabla: "miembros_programa",
+          registroId: membresiaId,
+          etiqueta: m.email,
+          campo: "calendlyEmailAdicional",
+          valorAnterior: agregando ? null : correo,
+          valorNuevo: agregando ? correo : null,
+          origen: "app" as const,
+          userId: actorId,
+        });
+        if (agregando) {
+          await asignarLlamadasDelHost(tx, { programId: m.programId, correo, userId: m.userId, actorId });
+        }
+      });
+    } catch (e) {
+      if (esViolacionUnica(e)) {
+        throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
+      }
+      throw e;
+    }
+  });
+}
+
+/**
  * Vincula una membresia (closer × programa) con SU cuenta de Calendly en ese programa
  * (ticket 096, ADR 0049). La cuenta decide de quien es un deal (la closer host se lo
  * queda), asi que:
@@ -833,32 +956,7 @@ export async function asignarCalendlyDeMembresia(
     if (m.actual === calendlyEmail) return;
 
     if (calendlyEmail !== null) {
-      const [ocupada] = await db
-        .select({ id: miembrosPrograma.id })
-        .from(miembrosPrograma)
-        .where(
-          and(
-            eq(miembrosPrograma.programId, m.programId),
-            eq(sql`lower(${miembrosPrograma.calendlyEmail})`, calendlyEmail),
-          ),
-        );
-      if (ocupada && ocupada.id !== membresiaId) {
-        throw new ErrorDeApp("Esa cuenta de Calendly ya la tiene otra persona del programa.", 409);
-      }
-      const token = await tokenCalendly(db, m.programId);
-      if (!token) {
-        throw new ErrorDeApp("El programa no tiene token de Calendly: cárgalo antes de vincular cuentas.", 409);
-      }
-      let cuentas;
-      try {
-        cuentas = await cuentasDeCalendly({ token, fetch: opciones.fetch });
-      } catch (e) {
-        if (e instanceof ErrorDeCalendly) throw new ErrorDeApp(e.message, 502);
-        throw e;
-      }
-      if (!cuentas.some((c) => c.correo === calendlyEmail)) {
-        throw new ErrorDeApp("Esa cuenta no está en la organización de Calendly del programa.", 422);
-      }
+      await validarCuentaDeCalendly(db, m.programId, membresiaId, calendlyEmail, opciones);
     }
 
     try {
@@ -1030,6 +1128,8 @@ export interface MembresiaConCalendly {
   emailUsuario: string;
   programId: string;
   calendlyEmail: string | null;
+  /** Cuentas de Calendly adicionales (mas de un correo en el mismo programa). */
+  calendlyExtras: string[];
   calendlyEventType: string | null;
   rol: Rol;
   operaComoCloser: boolean;
@@ -1082,6 +1182,11 @@ async function consultarMembresiasConCalendly(
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(and(...condiciones));
+  const extras = filas.length === 0 ? [] : await db
+    .select({ membresiaId: miembrosProgramaCalendlyExtra.membresiaId, email: miembrosProgramaCalendlyExtra.email })
+    .from(miembrosProgramaCalendlyExtra)
+    .where(inArray(miembrosProgramaCalendlyExtra.membresiaId, filas.map((f) => f.id)));
+  const extrasDe = (id: string) => extras.filter((e) => e.membresiaId === id).map((e) => e.email).sort();
   return filas
     .map((f) => ({
       id: f.id,
@@ -1090,6 +1195,7 @@ async function consultarMembresiasConCalendly(
       emailUsuario: f.email,
       programId: f.programId,
       calendlyEmail: f.calendlyEmail,
+      calendlyExtras: extrasDe(f.id),
       calendlyEventType: f.calendlyEventType,
       rol: f.rol,
       operaComoCloser: f.operaComoCloser,

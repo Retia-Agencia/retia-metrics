@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { changeLog, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, miembrosProgramaCalendlyExtra, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cuentasDeCalendly, cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { ErrorDeCalendly } from "@/lib/calendly/cita";
-import { asignarCalendlyDeMembresia } from "@/lib/catalogo/usuarios";
+import { asignarCalendlyDeMembresia, gestionarCalendlyExtra } from "@/lib/catalogo/usuarios";
+import { closersConCalendly } from "@/lib/calendly/colgar-llamada";
+import { closerHost } from "@/lib/calendly/emparejar-llamada";
 import { AuthorizationError } from "@/lib/auth/roles";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -231,5 +233,40 @@ describe("vincular la cuenta de una membresia", () => {
       ok: true,
       cuentas: expect.arrayContaining([{ correo: "maru@calendly.co", nombre: "Maru", membresiaId: null }]),
     });
+  });
+
+  it("una persona toma llamadas con mas de un correo: el host adicional es suya", async () => {
+    const fetch = calendly([...ORGANIZACION, { email: "maru2@calendly.co" }]);
+    await asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch });
+    await gestionarCalendlyExtra(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru2@calendly.co", accion: "agregar" }, { fetch });
+
+    const closers = await closersConCalendly(db, programId);
+    expect(closerHost("maru@calendly.co", closers)).toBe(maru);
+    expect(closerHost("maru2@calendly.co", closers)).toBe(maru);
+    const rastros = await db.select().from(changeLog)
+      .where(and(eq(changeLog.registroId, membresiaMaru), eq(changeLog.campo, "calendlyEmailAdicional")));
+    expect(rastros).toHaveLength(1);
+
+    await gestionarCalendlyExtra(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru2@calendly.co", accion: "quitar" }, { fetch });
+    expect(await db.select().from(miembrosProgramaCalendlyExtra)).toHaveLength(0);
+    expect(closerHost("maru2@calendly.co", await closersConCalendly(db, programId))).toBeNull();
+  });
+
+  it("una cuenta adicional no puede ser de otra persona: ni su principal ni su adicional", async () => {
+    const fetch = calendly(ORGANIZACION);
+    await asignarCalendlyDeMembresia(db, andrea, { membresiaId: membresiaAndrea, calendlyEmail: "andrea@calendly.co" }, { fetch });
+    await expect(
+      gestionarCalendlyExtra(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "andrea@calendly.co", accion: "agregar" }, { fetch }),
+    ).rejects.toMatchObject({ status: 409 });
+    await gestionarCalendlyExtra(db, andrea, { membresiaId: membresiaAndrea, calendlyEmail: "maru@calendly.co", accion: "agregar" }, { fetch });
+    await expect(
+      asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch }),
+    ).rejects.toMatchObject({ status: 409 });
+  });
+
+  it("otra closer no agrega cuentas a una membresia ajena", async () => {
+    await expect(
+      gestionarCalendlyExtra(db, andrea, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co", accion: "agregar" }, { fetch: calendly(ORGANIZACION) }),
+    ).rejects.toBeInstanceOf(AuthorizationError);
   });
 });

@@ -142,12 +142,17 @@ export function FilaMembresia({
   membresia,
   cuentas,
   accion,
+  accionExtra,
   extra,
 }: {
   membresia: MembresiaConCalendly;
   cuentas: CuentaDeCalendly[] | null;
   accion: (
     input: EntradaCalendlyDeMembresia,
+  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Agrega o quita una cuenta adicional (más de un correo de Calendly en el mismo programa). */
+  accionExtra?: (
+    input: { membresiaId: string; calendlyEmail: string; accion: "agregar" | "quitar" },
   ) => Promise<{ ok: true } | { ok: false; error: string }>;
   /** Contenido opcional al final de la fila (p. ej. el botón Quitar del equipo). */
   extra?: ReactNode;
@@ -157,6 +162,7 @@ export function FilaMembresia({
   const [guardada, setGuardada] = useState(membresia.calendlyEmail);
   const [valor, setValor] = useState(membresia.calendlyEmail ?? SIN_CUENTA);
   const [error, setError] = useState<string | null>(null);
+  const [agregando, setAgregando] = useState(false);
   const [eventos, setEventos] = useState<TipoDeEventoCalendly[]>([]);
   const [evento, setEvento] = useState(membresia.calendlyEventType ?? "");
   const [errorEvento, setErrorEvento] = useState<string | null>(null);
@@ -200,6 +206,22 @@ export function FilaMembresia({
         setError(res.error);
         toast.error("No se pudo guardar", { description: res.error });
       }
+    });
+  }
+
+  function gestionarExtra(correo: string, accionExtraElegida: "agregar" | "quitar") {
+    if (!accionExtra || !correo) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await accionExtra({ membresiaId: membresia.id, calendlyEmail: correo, accion: accionExtraElegida });
+      if (!res.ok) {
+        setError(res.error);
+        toast.error("No se pudo guardar", { description: res.error });
+        return;
+      }
+      setAgregando(false);
+      toast.success(accionExtraElegida === "agregar" ? "Cuenta adicional agregada" : "Cuenta adicional quitada");
+      router.refresh();
     });
   }
 
@@ -247,6 +269,48 @@ export function FilaMembresia({
             </option>
           ))}
             </select>
+            {guardada && accionExtra ? (
+              <>
+                {membresia.calendlyExtras.map((correo) => (
+                  <Badge key={correo} variant="outline" className="gap-1">
+                    {correo}
+                    <button
+                      type="button"
+                      disabled={pendiente}
+                      onClick={() => gestionarExtra(correo, "quitar")}
+                      aria-label={`Quitar la cuenta adicional ${correo}`}
+                      className="ml-1 text-muted-foreground hover:text-foreground"
+                    >
+                      ×
+                    </button>
+                  </Badge>
+                ))}
+                {agregando ? (
+                  <select
+                    autoFocus
+                    defaultValue=""
+                    disabled={pendiente}
+                    onChange={(e) => gestionarExtra(e.target.value, "agregar")}
+                    aria-label={`Agregar otra cuenta de Calendly a ${membresia.usuario}`}
+                    className="h-8 max-w-64 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    <option value="" disabled>Elige otra cuenta</option>
+                    {opciones
+                      .filter((c) => c.correo !== guardada && !membresia.calendlyExtras.includes(c.correo))
+                      .map((c) => <option key={c.correo} value={c.correo}>{c.correo}</option>)}
+                  </select>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setAgregando(true)}
+                    disabled={pendiente || cuentas === null}
+                    className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+                  >
+                    + Otro correo
+                  </button>
+                )}
+              </>
+            ) : null}
             {guardada ? (
               <span className="flex items-center gap-1.5">
                 <select

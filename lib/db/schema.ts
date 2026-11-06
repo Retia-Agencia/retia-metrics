@@ -278,6 +278,31 @@ export const miembrosPrograma = pgTable(
 );
 
 /**
+ * Cuentas de Calendly ADICIONALES de una membresia (Mani, 6-nov): una persona puede tomar llamadas
+ * con mas de un correo en el mismo programa, por un tiempo (ej. Tactical). La principal sigue en
+ * `miembros_programa.calendly_email` (de ella cuelgan el evento personal y la pantalla); aqui van
+ * las otras. `program_id` va denormalizado a proposito (como `lead_contactos`) para que la base
+ * garantice que ningun correo sea de dos membresias del mismo programa. Que un extra no choque con
+ * la principal de otra membresia lo comprueba `asignarCalendlyDeMembresia` en la misma transaccion.
+ * Tabla puente: se borra de verdad.
+ */
+export const miembrosProgramaCalendlyExtra = pgTable(
+  "miembros_programa_calendly_extra",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    membresiaId: uuid("membresia_id").notNull().references(() => miembrosPrograma.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    /** Minusculas y sin espacios: el indice compara `lower()`. */
+    email: text("email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("miembros_programa_calendly_extra_idx").on(t.programId, sql`lower(${t.email})`),
+    uniqueIndex("miembros_programa_calendly_extra_par_idx").on(t.membresiaId, sql`lower(${t.email})`),
+  ],
+);
+
+/**
  * Los programas que ve un gerente o un paid trafficker LIMITADO (ADR 0094, ticket 273). Sin
  * filas, ve todos; con filas, solo esos. Es ALCANCE, no membresia: una fila aqui no hace a nadie
  * dueño, setter ni closer (eso es `miembros_programa`). Tabla puente: se borra de verdad.
