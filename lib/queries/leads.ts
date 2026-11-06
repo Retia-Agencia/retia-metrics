@@ -260,11 +260,13 @@ function textoDeRespuesta(valor: unknown): string | null {
   return String(valor);
 }
 
+const esLlaveUtm = (llave: string): boolean => llave.trim().toLowerCase().startsWith("utm_");
+
 /** Las llaves de respuesta de un envío que son preguntas de verdad (sin las UTM promovidas). */
 function preguntasDeRespuestas(respuestas: unknown): [string, unknown][] {
   if (respuestas === null || typeof respuestas !== "object" || Array.isArray(respuestas)) return [];
   return Object.entries(respuestas as Record<string, unknown>).filter(
-    ([llave]) => !llave.trim().toLowerCase().startsWith("utm_"),
+    ([llave]) => !esLlaveUtm(llave),
   );
 }
 
@@ -276,18 +278,23 @@ function preguntasDeRespuestas(respuestas: unknown): [string, unknown][] {
  * los envíos de leads de ESTE programa. Las UTM se omiten (ya tienen su propia columna, "Canal").
  */
 export async function preguntasDisponiblesDelPrograma(db: Db, programId: string): Promise<string[]> {
-  const envios = await db
+  // Las llaves se sacan EN la base: antes se traian los 500 jsonb enteros (~450 KB) solo para
+  // armar un Set de ~20 textos, y ese viaje era el 90 % del costo (la consulta en si, ~10 ms).
+  // El corte de 500 envios y su orden son los mismos; solo cambia lo que viaja por la red.
+  const recientes = db
     .select({ respuestas: submissions.respuestas })
     .from(submissions)
     .innerJoin(leads, eq(leads.id, submissions.leadId))
-    .where(eq(leads.programId, programId))
+    .where(and(eq(leads.programId, programId), sql`jsonb_typeof(${submissions.respuestas}) = 'object'`))
     .orderBy(sql`${submissions.fechaEnvio} desc nulls last`, desc(submissions.createdAt))
-    .limit(ENVIOS_PARA_PREGUNTAS);
-  const llaves = new Set<string>();
-  for (const envio of envios) {
-    for (const [llave] of preguntasDeRespuestas(envio.respuestas)) llaves.add(llave);
-  }
-  return [...llaves].sort((a, b) => a.localeCompare(b, "es"));
+    .limit(ENVIOS_PARA_PREGUNTAS)
+    .as("recientes");
+  const filas = await db
+    .selectDistinct({ llave: sql<string>`jsonb_object_keys(${recientes.respuestas})` })
+    .from(recientes);
+  // El filtro de UTM se queda en JS (la misma regla que `preguntasDeRespuestas`, con su trim de Unicode).
+  const llaves = filas.map((f) => f.llave).filter((llave) => !esLlaveUtm(llave));
+  return llaves.sort((a, b) => a.localeCompare(b, "es"));
 }
 
 /**

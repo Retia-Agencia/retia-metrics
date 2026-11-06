@@ -617,57 +617,70 @@ export interface OpcionesDeTablero {
  * filtros que no filtran nada.
  */
 export async function opcionesDeTablero(db: Db, programId: string): Promise<OpcionesDeTablero> {
-  // Owners con deals vigentes en el programa.
-  const ownerFilas = await db
-    .selectDistinct({ id: users.id, nombre: users.nombre })
-    .from(deals)
-    .innerJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(eq(deals.programId, programId), vigente(deals)));
+  // Las nueve lecturas son independientes entre si y de solo lectura: van JUNTAS. En serie eran
+  // ~10 viajes a la base (~2,4 s medidos con ~106 ms de RTT); juntas cuestan lo que la mas lenta.
+  const [
+    ownerFilas,
+    cohorteFilas,
+    activa,
+    cohortesFuturas,
+    canalFilas,
+    etiquetasFilas,
+    motivoFilas,
+    enlacesDePago,
+    plataformasDelProg,
+  ] = await Promise.all([
+    // Owners con deals vigentes en el programa.
+    db
+      .selectDistinct({ id: users.id, nombre: users.nombre })
+      .from(deals)
+      .innerJoin(users, eq(users.id, deals.ownerUserId))
+      .where(and(eq(deals.programId, programId), vigente(deals))),
+    // Cohortes con deals vigentes en el programa.
+    db
+      .selectDistinct({ id: cohorts.id, codigo: cohorts.codigo, inicio: cohorts.fechaInicioClases })
+      .from(deals)
+      .innerJoin(cohorts, eq(cohorts.id, deals.cohortId))
+      .where(and(eq(deals.programId, programId), vigente(deals))),
+    cohorteActiva(programId, db),
+    db
+      .select({ id: cohorts.id, nombre: cohorts.codigo })
+      .from(cohorts)
+      .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "futuro"))),
+    // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
+    db
+      .selectDistinct({ utmSource: submissions.utmSource, utmMedium: submissions.utmMedium })
+      .from(deals)
+      .innerJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+      .where(and(eq(deals.programId, programId), vigente(deals))),
+    db
+      .selectDistinct({ leadQuality: leads.leadQuality, leadValue: leads.leadValue })
+      .from(deals)
+      .innerJoin(leads, eq(leads.id, deals.leadId))
+      .where(and(eq(deals.programId, programId), vigente(deals))),
+    // Los motivos son un catalogo GLOBAL (no por programa): la flecha decide la lista por
+    // su tipo, y el dialogo la filtra en el cliente.
+    db
+      .select({ id: motivos.id, nombre: motivos.nombre, tipo: motivos.tipo, pideTexto: motivos.pideTexto })
+      .from(motivos)
+      .where(eq(motivos.activo, true)),
+    enlacesDePagoVigentes({ programId }, db),
+    plataformasDelPrograma(db, programId),
+  ]);
+
   const owners = ownerFilas
     .map((o) => ({ id: o.id, nombre: o.nombre ?? "Sin nombre" }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-  // Cohortes con deals vigentes en el programa.
-  const cohorteFilas = await db
-    .selectDistinct({ id: cohorts.id, codigo: cohorts.codigo, inicio: cohorts.fechaInicioClases })
-    .from(deals)
-    .innerJoin(cohorts, eq(cohorts.id, deals.cohortId))
-    .where(and(eq(deals.programId, programId), vigente(deals)));
-  const activa = await cohorteActiva(programId, db);
-  const cohortes = cohorteFilas
-    .map((c) => ({ id: c.id, nombre: c.codigo }));
+  const cohortes = cohorteFilas.map((c) => ({ id: c.id, nombre: c.codigo }));
   if (activa && !cohortes.some((c) => c.id === activa.id)) cohortes.push({ id: activa.id, nombre: activa.codigo });
   cohortes.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const cohortesDestino = (await db
-    .select({ id: cohorts.id, nombre: cohorts.codigo })
-    .from(cohorts)
-    .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "futuro"))))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
-
-  // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
-  const canalFilas = await db
-    .selectDistinct({ utmSource: submissions.utmSource, utmMedium: submissions.utmMedium })
-    .from(deals)
-    .innerJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(eq(deals.programId, programId), vigente(deals)));
+  const cohortesDestino = cohortesFuturas.sort((a, b) => a.nombre.localeCompare(b.nombre));
   const canales = canalFilas
     .filter((c) => c.utmSource && c.utmMedium)
     .map((c) => ({ clave: `${c.utmSource}|${c.utmMedium}`, utmSource: c.utmSource!, utmMedium: c.utmMedium! }))
     .sort((a, b) => a.clave.localeCompare(b.clave));
-  const etiquetasFilas = await db
-    .selectDistinct({ leadQuality: leads.leadQuality, leadValue: leads.leadValue })
-    .from(deals)
-    .innerJoin(leads, eq(leads.id, deals.leadId))
-    .where(and(eq(deals.programId, programId), vigente(deals)));
   const leadQualities = etiquetasFilas.map((f) => f.leadQuality).filter((v): v is string => v !== null).sort();
   const leadValues = etiquetasFilas.map((f) => f.leadValue).filter((v): v is string => v !== null).sort();
-
-  // Los motivos son un catalogo GLOBAL (no por programa): la flecha decide la lista por
-  // su tipo, y el dialogo la filtra en el cliente.
-  const motivoFilas = await db
-    .select({ id: motivos.id, nombre: motivos.nombre, tipo: motivos.tipo, pideTexto: motivos.pideTexto })
-    .from(motivos)
-    .where(eq(motivos.activo, true));
   const listaMotivos = motivoFilas.sort((a, b) => a.nombre.localeCompare(b.nombre));
   const inicioDeClases = Object.fromEntries(
     cohorteFilas
@@ -676,8 +689,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   );
   if (activa?.fechaInicioClases) inicioDeClases[activa.id] = activa.fechaInicioClases;
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
-  const enlacesDePago = await enlacesDePagoVigentes({ programId }, db);
-  const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));
+  const plataformas = plataformasDelProg.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 
   return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas, enlacesDePago };
 }
