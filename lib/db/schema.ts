@@ -2764,6 +2764,68 @@ export type NuevoObjetivo = typeof objetivos.$inferInsert;
 export type FotoPauta = typeof fotosPauta.$inferSelect;
 export type NuevaFotoPauta = typeof fotosPauta.$inferInsert;
 
+// ─────────────────────────────────────────────────────────── MCP del CRM (ADR 0119)
+
+export const mcpScopeEnum = pgEnum("mcp_scope", ["lectura", "escritura"]);
+/** `personal`: lo genera la persona a mano (fase 1). `oauth`: lo emite el flujo OAuth del CRM (ticket 383). */
+export const mcpTokenTipoEnum = pgEnum("mcp_token_tipo", ["personal", "oauth"]);
+export const mcpResultadoEnum = pgEnum("mcp_resultado", ["ok", "error", "denegado", "tope"]);
+
+/**
+ * Los tokens con los que una persona usa el CRM desde una IA (ADR 0119). Se guarda el hash,
+ * nunca el valor; el valor se muestra una vez al crearlo. El rol y el alcance NO se guardan
+ * aqui: salen de `users` en cada llamada, asi que desactivar a alguien lo corta de inmediato.
+ */
+export const mcpTokens = pgTable(
+  "mcp_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    /** Lo escribe la persona: "Claude Code de mi Mac". */
+    nombre: text("nombre").notNull(),
+    /** sha256 del token en hexadecimal. Unico: es la llave con la que se busca. */
+    hash: text("hash").notNull(),
+    scope: mcpScopeEnum("scope").notNull().default("lectura"),
+    tipo: mcpTokenTipoEnum("tipo").notNull().default("personal"),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+    ultimoUsoEn: timestamp("ultimo_uso_en", { withTimezone: true }),
+    revocadoEn: timestamp("revocado_en", { withTimezone: true }),
+    revocadoPorUserId: uuid("revocado_por_user_id").references(() => users.id, { onDelete: "set null" }),
+  },
+  (t) => [
+    uniqueIndex("mcp_tokens_hash_idx").on(t.hash),
+    index("mcp_tokens_user_idx").on(t.userId),
+  ],
+);
+
+/**
+ * Cada llamada al MCP (ADR 0119, punto 12): quien, que herramienta, que programa, como termino.
+ * Los argumentos de texto libre NO se guardan (pueden traer nombres o correos). El tope por token
+ * se cuenta con el indice `(token_id, creado_en)`.
+ */
+export const mcpLlamadas = pgTable(
+  "mcp_llamadas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenId: uuid("token_id").notNull().references(() => mcpTokens.id, { onDelete: "restrict" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    /** A quien suplanto el developer con el argumento `vista`, si aplica. */
+    userIdVista: uuid("user_id_vista").references(() => users.id, { onDelete: "set null" }),
+    herramienta: text("herramienta").notNull(),
+    programId: uuid("program_id").references(() => programs.id, { onDelete: "set null" }),
+    resultado: mcpResultadoEnum("resultado").notNull(),
+    codigoError: text("codigo_error"),
+    duracionMs: integer("duracion_ms"),
+    /** Nombre y version que manda el cliente MCP al iniciar. */
+    cliente: text("cliente"),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("mcp_llamadas_token_creado_idx").on(t.tokenId, t.creadoEn)],
+);
+
+export type McpToken = typeof mcpTokens.$inferSelect;
+export type McpLlamada = typeof mcpLlamadas.$inferSelect;
+
 export type Creador = typeof creadores.$inferSelect;
 export type TipoPieza = typeof tiposPieza.$inferSelect;
 export type Pieza = typeof piezas.$inferSelect;
