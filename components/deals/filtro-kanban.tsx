@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
-import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";
+import { OPCIONES_DE_ORDEN_DEALS, type FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import { Button } from "@/components/ui/button";
@@ -158,7 +158,7 @@ export function FiltroKanban({
           nombre="orden"
           sentido="sentido"
           valor={`${orden.campo}:${orden.sentido}`}
-          opciones={OPCIONES_DE_ORDEN}
+          opciones={OPCIONES_DE_ORDEN_DEALS}
         />
       }
     />

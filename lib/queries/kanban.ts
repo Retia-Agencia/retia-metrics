@@ -152,7 +152,7 @@ export interface TableroKanban {
 }
 
 export interface OrdenKanban {
-  campo: "actividad" | "creado" | "nombre";
+  campo: "actividad" | "creado" | "nombre" | "agenda";
   sentido: "desc" | "asc";
 }
 
@@ -180,7 +180,7 @@ export interface FiltrosKanban {
 type FiltrosDeEntradaKanban = Omit<FiltrosKanban, "orden"> & { orden?: OrdenKanban };
 
 const ordenSchema = z.object({
-  campo: z.enum(["actividad", "creado", "nombre"]),
+  campo: z.enum(["actividad", "creado", "nombre", "agenda"]),
   sentido: z.enum(["desc", "asc"]),
 });
 const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
@@ -517,6 +517,15 @@ function compararTarjetas(
     if (nombreA !== null && nombreB !== null) {
       const porNombre = nombreA.localeCompare(nombreB, "es", { sensitivity: "base" });
       if (porNombre !== 0) return orden.sentido === "asc" ? porNombre : -porNombre;
+    }
+  } else if (orden.campo === "agenda") {
+    // Fecha de la llamada agendada vigente. Los deals sin ella van siempre al final, en cualquier sentido.
+    const agendaA = a.llamada?.fecha?.getTime() ?? null;
+    const agendaB = b.llamada?.fecha?.getTime() ?? null;
+    if (agendaA === null && agendaB !== null) return 1;
+    if (agendaA !== null && agendaB === null) return -1;
+    if (agendaA !== null && agendaB !== null && agendaA !== agendaB) {
+      return orden.sentido === "asc" ? agendaA - agendaB : agendaB - agendaA;
     }
   } else {
     const fechaA = orden.campo === "actividad" ? a.ultimaActividadEn : a.creadoEn;

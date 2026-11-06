@@ -27,6 +27,13 @@ export const OPCIONES_DE_ORDEN = [
   { value: "nombre:desc", label: "Nombre: Z → A" },
 ];
 
+/** Deals suma el orden por la fecha de la llamada agendada; los deals sin llamada quedan al final. */
+export const OPCIONES_DE_ORDEN_DEALS = [
+  ...OPCIONES_DE_ORDEN,
+  { value: "agenda:desc", label: "Agenda: más reciente" },
+  { value: "agenda:asc", label: "Agenda: más antigua" },
+];
+
 /**
  * Un filtro declarado por una pantalla. Hoy solo hay seleccion simple (`select`); la API
  * deja sitio para agregar seleccion multiple despues sin romperla (fuera de alcance).
