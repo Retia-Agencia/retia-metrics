@@ -276,7 +276,13 @@ describe.each(CATALOGOS)("molde de catalogo — $titulo", (caso) => {
  * quitar el vinculo es la operacion, no una perdida de historial. Agregar una tabla
  * a esta lista es una decision consciente, no un descuido que pasa en silencio.
  */
-const TABLAS_PUENTE_BORRABLES = ["plataformasprograma", "usuariosprogramasalcance"];
+const TABLAS_PUENTE_BORRABLES = [
+  "plataformasprograma",
+  "usuariosprogramasalcance",
+  // Los correos de Calendly adicionales de una membresia: solo vinculan membresia y correo, y
+  // `usuarios.ts` deja el rastro en change_log al quitarlos.
+  "miembrosprogramacalendlyextra",
+];
 
 describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => {
   it("h2. el unico archivo de lib/catalogo/ con un DELETE es molde.ts", () => {

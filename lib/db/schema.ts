@@ -279,7 +279,7 @@ export const miembrosPrograma = pgTable(
 
 /**
  * Cuentas de Calendly ADICIONALES de una membresia (Mani, 6-nov): una persona puede tomar llamadas
- * con mas de un correo en el mismo programa, por un tiempo (ej. Tactical). La principal sigue en
+ * con mas de un correo en el mismo programa, por un tiempo. La principal sigue en
  * `miembros_programa.calendly_email` (de ella cuelgan el evento personal y la pantalla); aqui van
  * las otras. `program_id` va denormalizado a proposito (como `lead_contactos`) para que la base
  * garantice que ningun correo sea de dos membresias del mismo programa. Que un extra no choque con
