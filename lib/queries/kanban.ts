@@ -263,9 +263,17 @@ export async function tableroKanban(
   // Un deal + su lead + su dueno, en una sola lectura de la tabla `deals`
   // con joins (sin subconsultas correlacionadas: son joins directos, no plantillas).
   const { creado, actividad, cierre, llamada, seguimiento } = rangosDeFecha(filtros);
-  const cerrados = cierre ? await cerradosEn(db, programId, cierre) : null;
-  const conLlamadaEnRango = llamada ? await llamadasEn(db, programId, llamada) : null;
-  let filas = await db
+  // Los filtros previos no dependen entre si: una sola ida a la base, no una por filtro.
+  const [cerrados, conLlamadaEnRango] = await Promise.all([
+    cierre ? cerradosEn(db, programId, cierre) : null,
+    llamada ? llamadasEn(db, programId, llamada) : null,
+  ]);
+  // La cartera vencida y la busqueda de texto solo dependen del programa: corren a la vez que la lectura
+  // de los deals (la latencia a la base, no el SQL, es lo que cuesta; el SQL tarda milisegundos).
+  const carteraPendiente = carteraVencida(db, programId, hoy);
+  carteraPendiente.catch(() => {}); // si el tablero sale antes de esperarla, que no quede un rechazo sin atender
+  const leadsCasanPendiente = leadsQueCasan(db, programId, filtros.q ?? "");
+  const filasPendientes = db
     .select({
       dealId: deals.id,
       cortesia: deals.cortesia,
@@ -311,19 +319,28 @@ export async function tableroKanban(
         conLlamadaEnRango ? (conLlamadaEnRango.length > 0 ? inArray(deals.id, conLlamadaEnRango) : sql`false`) : undefined,
       ),
     );
-
-  const leadsCasan = await leadsQueCasan(db, programId, filtros.q ?? "");
+  const [filasLeidas, leadsCasan] = await Promise.all([filasPendientes, leadsCasanPendiente]);
+  let filas = filasLeidas;
   if (leadsCasan !== null) filas = filas.filter((fila) => leadsCasan.has(fila.leadId));
 
   const columnasDeLaVista = COLUMNAS_DE_VISTA[filtros.vista ?? VISTA_PREDETERMINADA];
   const columnasVacias = (): ColumnaKanban[] =>
     columnasDeLaVista.map((clave) => ({ clave, tarjetas: [], potencialUsd: 0, confirmadoUsd: confirmadoDeColumna(clave, []) }));
   const orden = filtros.orden ?? ORDEN_PREDETERMINADO;
+  const necesitaActividad = actividad != null || orden.campo === "actividad";
+  // La ultima actividad sale de la funcion que decide "estancado" en el Inbox, no de una copia.
+  // Solo lo que ya ocurrio: una cita agendada para el martes no es actividad de hoy.
+  // Si filtra, hay que tenerla ANTES de lo demas (el filtro cambia que deals quedan); si solo
+  // ordena, corre junto con el resto.
+  let actividadPendiente: Promise<Map<string, Date>> | null = null;
+  if (necesitaActividad && filas.length > 0) {
+    actividadPendiente = ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas, ahora);
+    actividadPendiente.catch(() => {}); // idem: si el tablero sale vacio antes de esperarla
+  }
   let ultimaActividad = new Map<string, Date>();
-  if ((actividad || orden.campo === "actividad") && filas.length > 0) {
-    // La ultima actividad sale de la funcion que decide "estancado" en el Inbox, no de una copia.
-    // Solo lo que ya ocurrio: una cita agendada para el martes no es actividad de hoy.
-    ultimaActividad = await ultimaActividadPorDeal(db, filas.map((f) => f.dealId), filas, ahora);
+  if (actividad && actividadPendiente) {
+    ultimaActividad = await actividadPendiente;
+    actividadPendiente = null;
   }
   if (actividad) {
     filas = filas.filter((f) => {
@@ -344,37 +361,39 @@ export async function tableroKanban(
   const dealIds = filas.map((f) => f.dealId);
   const leadIds = [...new Set(filas.map((f) => f.leadId))];
 
+  // Todo lo que sigue depende solo de los deals elegidos: se pide junto, no uno tras otro.
   // El saldo y la cartera salen de sus modulos (ADR 0024, 0053), nunca se recalculan.
-  const saldos = await saldosDeDeals(db, dealIds);
-  const cartera = await carteraVencida(db, programId, hoy);
+  // - entradas: la entrada a la etapa actual, para "dias en etapa" (se agrupa aparte).
+  // - sinConfirmar: contactos sin confirmar por lead, "unido por telefono" (ADR 0035 punto 4).
+  const [saldos, cartera, entradas, sinConfirmar, sinComprobante, llamadas, actividades, actividadOrdenando] =
+    await Promise.all([
+      saldosDeDeals(db, dealIds),
+      carteraPendiente,
+      entradasAEtapaActual(db, filas),
+      leadsConContactoSinConfirmar(db, leadIds),
+      dealsConAbonoSinComprobante(db, dealIds),
+      db
+        .select({
+          id: calls.id,
+          dealId: calls.dealId,
+          resultado: calls.resultado,
+          fechaAgenda: calls.fechaAgenda,
+          closerNombre: users.nombre,
+          notas: calls.notas,
+          createdAt: calls.createdAt,
+        })
+        .from(calls)
+        .leftJoin(users, eq(users.id, calls.closerUserId))
+        .where(and(inArray(calls.dealId, dealIds), vigente(calls)))
+        .orderBy(desc(calls.createdAt)),
+      db
+        .select({ dealId: dealActividades.dealId, tipo: dealActividades.tipo, canal: dealActividades.canal })
+        .from(dealActividades)
+        .where(and(inArray(dealActividades.dealId, dealIds), vigente(dealActividades))),
+      actividadPendiente,
+    ]);
+  if (actividadOrdenando) ultimaActividad = actividadOrdenando;
   const enCartera = new Set(cartera.vencidos.map((v) => v.dealId));
-
-  // La entrada a la etapa actual, para "dias en etapa": el ultimo movimiento hacia la
-  // etapa que tiene ahora, o su alta. Se agrupa aparte y se une en memoria.
-  const entradas = await entradasAEtapaActual(db, filas);
-
-  // Contactos SIN confirmar por lead: "unido por telefono" (ADR 0035 punto 4). Un lead
-  // con al menos uno lleva el aviso. Se agrupa aparte.
-  const sinConfirmar = await leadsConContactoSinConfirmar(db, leadIds);
-  const sinComprobante = await dealsConAbonoSinComprobante(db, dealIds);
-  const llamadas = await db
-    .select({
-      id: calls.id,
-      dealId: calls.dealId,
-      resultado: calls.resultado,
-      fechaAgenda: calls.fechaAgenda,
-      closerNombre: users.nombre,
-      notas: calls.notas,
-      createdAt: calls.createdAt,
-    })
-    .from(calls)
-    .leftJoin(users, eq(users.id, calls.closerUserId))
-    .where(and(inArray(calls.dealId, dealIds), vigente(calls)))
-    .orderBy(desc(calls.createdAt));
-  const actividades = await db
-    .select({ dealId: dealActividades.dealId, tipo: dealActividades.tipo, canal: dealActividades.canal })
-    .from(dealActividades)
-    .where(and(inArray(dealActividades.dealId, dealIds), vigente(dealActividades)));
   const conCitaVigente = new Set(llamadas.flatMap((c) => c.dealId && c.resultado === "agendada" ? [c.dealId] : []));
   const llamadasPorDeal = new Map<string, typeof llamadas>();
   for (const llamada of llamadas) {

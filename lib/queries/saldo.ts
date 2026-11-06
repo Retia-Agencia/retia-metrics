@@ -89,21 +89,23 @@ export async function saldosDeDeals(db: Db, dealIds: readonly string[]): Promise
   // `incluyendoAnulados(deals)`: esto no es una metrica sobre deals, es el saldo de
   // deals que el llamador ya eligio por id. Si un deal anulado cuenta o no lo decide
   // quien llama.
-  const precios = await db
-    .select({ dealId: deals.id, precio: deals.valorVendidoUsd })
-    .from(deals)
-    .where(and(inArray(deals.id, [...dealIds]), incluyendoAnulados(deals)));
-
-  const sumas = await db
-    .select({
-      dealId: abonos.dealId,
-      moneda: abonos.moneda,
-      total: sumaDeAbonos(),
-      cuantos: sql<number>`count(*)::int`,
-    })
-    .from(abonos)
-    .where(and(inArray(abonos.dealId, [...dealIds]), eq(abonos.concepto, "ticket"), vigente(abonos)))
-    .groupBy(abonos.dealId, abonos.moneda);
+  // Son dos lecturas independientes: se piden juntas (una ida a la base, no dos).
+  const [precios, sumas] = await Promise.all([
+    db
+      .select({ dealId: deals.id, precio: deals.valorVendidoUsd })
+      .from(deals)
+      .where(and(inArray(deals.id, [...dealIds]), incluyendoAnulados(deals))),
+    db
+      .select({
+        dealId: abonos.dealId,
+        moneda: abonos.moneda,
+        total: sumaDeAbonos(),
+        cuantos: sql<number>`count(*)::int`,
+      })
+      .from(abonos)
+      .where(and(inArray(abonos.dealId, [...dealIds]), eq(abonos.concepto, "ticket"), vigente(abonos)))
+      .groupBy(abonos.dealId, abonos.moneda),
+  ]);
 
   for (const p of precios) {
     const suyas = sumas.filter((s) => s.dealId === p.dealId);
