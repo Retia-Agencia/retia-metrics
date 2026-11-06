@@ -185,4 +185,22 @@ describe("sesionEfectiva: ver como un closer de verdad (ticket 172)", () => {
     expect(res.user.id).toBe(developerId);
     expect(res.user.suplantadoPor).toBeUndefined();
   });
+
+  it("las funciones con valor conservan lo que hacen los envoltorios de cookie", async () => {
+    const { rolDeVista, rolDeVistaConValor, sesionEfectivaConVista } = await import("@/lib/auth/vista");
+    for (const valor of ["todo", "gerente"] as const) {
+      const session = sesionDe(developerId, "developer", "Dev Real");
+      cookieVista = valor;
+      expect(await rolDeVistaConValor(session, valor)).toBe(await rolDeVista(session));
+      expect(await sesionEfectivaConVista(session, valor, db)).toEqual(await efectiva(session));
+    }
+
+    const session = sesionDe(developerId, "developer", "Dev Real");
+    const valor = `usuario:${closerId}`;
+    cookieVista = valor;
+    expect(await sesionEfectivaConVista(session, valor, db)).toEqual(await efectiva(session));
+
+    const noDeveloper = sesionDe(closerId, "closer", "Nicolás");
+    expect(await rolDeVistaConValor(noDeveloper, valor)).toBe("closer");
+  });
 });

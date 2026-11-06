@@ -6,7 +6,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, veEquipoComercial, veLeadsDePauta, veTableroDelPrograma } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
-import { esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarParaPauta, proyectarParaTablero, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   METRICAS_DE_EMBUDO_SIN_PERIODO,
@@ -252,9 +252,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   if (!vista) notFound();
   const { periodo, claveCloser } = vista;
   const conVentas = esListaDeVentas(metrica, { escalon, grupo, pago });
-  const lista = esListaDePauta || esListaDeOrigen
-    ? proyectarParaPauta(vista.lista, veEquipo)
-    : proyectarParaTablero(vista.lista, metrica === "no_agendaron" ? veEquipo : esAdmin);
+  const lista = proyectarListaSegunRol(vista.lista, {
+    rol, metrica, esListaDePauta, esListaDeOrigen,
+  });
   const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
   const enlace = urlDeLista({
     slug,

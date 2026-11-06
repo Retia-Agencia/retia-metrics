@@ -5,6 +5,7 @@ import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import type { Db } from "@/lib/db/tipos";
+import { esAdministrador, veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
 import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
@@ -215,6 +216,24 @@ export function proyectarParaPauta<T extends ListaDeMetrica>(lista: T, veEquipo:
   const ocultar = <F extends object>(fila: F) => ({ ...fila, closer: null, claveCloser: null,
     dealId: null, monto: null, recaudado: null, porCobrar: null, ultimaActividad: null });
   return { ...lista, dinero: undefined, filas: lista.filas.map(ocultar), grupos: lista.grupos.map(ocultar) } as T;
+}
+
+export function proyectarListaSegunRol<T extends ListaDeMetrica>(
+  lista: T,
+  o: {
+    rol: Rol | null | undefined;
+    metrica: string;
+    esListaDePauta: boolean;
+    esListaDeOrigen: boolean;
+  },
+): T {
+  if (o.esListaDePauta || o.esListaDeOrigen) {
+    return proyectarParaPauta(lista, veEquipoComercial(o.rol));
+  }
+  return proyectarParaTablero(
+    lista,
+    o.metrica === "no_agendaron" ? veEquipoComercial(o.rol) : esAdministrador(o.rol),
+  );
 }
 
 /**

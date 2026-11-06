@@ -1,10 +1,11 @@
 import type { Session } from "next-auth";
-import { esAccesoTotal, esRolValido, tieneAlcanceConfigurable, type Rol } from "./roles";
+import { esAccesoTotal, esRolValido, type Rol } from "./roles";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import type { Db } from "@/lib/db/tipos";
 import { memoizadaPorSolicitud } from "./solicitud";
+import { alcanceLimitadoDe } from "./campos-de-sesion";
 
 /**
  * "Ver como": con que rol se proyecta y se guarda una pantalla (ticket 028, enmienda
@@ -100,19 +101,25 @@ export function proyectarRol(rol: Rol | null, vista: Vista): Rol | null {
  * `cambiarVista` en `acciones.ts`.
  */
 async function leerRolDeVista(session: Session): Promise<Rol | null> {
+  const { cookies } = await import("next/headers");
+  const store = await cookies();
+  return rolDeVistaConValor(session, store.get(COOKIE_VISTA)?.value);
+}
+
+export async function rolDeVistaConValor(
+  session: Session,
+  cruda: string | undefined,
+): Promise<Rol | null> {
   const rol = esRolValido(session.user.rol) ? session.user.rol : null;
   // Un no-developer ignora la cookie entero: no hace falta ni leerla. Una sesion ya
   // SUPLANTADA llega aqui con rol `closer` (no es acceso total), asi que cae por este
   // camino y devuelve `closer`, que es exactamente lo que se quiere.
   if (!esAccesoTotal(rol)) return rol;
-  const { cookies } = await import("next/headers");
-  const store = await cookies();
-  const cruda = store.get(COOKIE_VISTA)?.value;
   // Suplantando a alguien de verdad, el rol de vista es el SUYO. Se pregunta a
   // `sesionEfectiva`, que valida el id contra `users`: una cookie vieja (id inexistente,
   // inactivo o con acceso total) vuelve a `todo` y no proyecta como nadie.
   if (cruda?.startsWith(PREFIJO_SUPLANTACION)) {
-    const efectiva = await sesionEfectiva(session);
+    const efectiva = await sesionEfectivaConVista(session, cruda, dbDeLaApp);
     if (efectiva.user.suplantadoPor) return efectiva.user.rol;
     return proyectarRol(rol, VISTA_POR_DEFECTO);
   }
@@ -150,12 +157,20 @@ export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
  * entero (un closer real con `closer:<id>` puesto a mano sigue siendo él mismo).
  */
 async function leerSesionEfectiva(session: Session, db: Db): Promise<Session> {
+  const { cookies } = await import("next/headers");
+  const store = await cookies();
+  return sesionEfectivaConVista(session, store.get(COOKIE_VISTA)?.value, db);
+}
+
+export async function sesionEfectivaConVista(
+  session: Session,
+  cruda: string | undefined,
+  db: Db,
+): Promise<Session> {
   const rol = esRolValido(session.user.rol) ? session.user.rol : null;
   if (!esAccesoTotal(rol)) return session;
 
-  const { cookies } = await import("next/headers");
-  const store = await cookies();
-  const id = idSuplantadoDeCookie(store.get(COOKIE_VISTA)?.value);
+  const id = idSuplantadoDeCookie(cruda);
   if (!id) return session;
 
   const [suplantado] = await db
@@ -180,10 +195,7 @@ async function leerSesionEfectiva(session: Session, db: Db): Promise<Session> {
 
   // El alcance limitado se decide con las filas de ESA persona, igual que al iniciar su
   // sesion (`revalidarToken`): un gerente con filas ve solo esos programas.
-  const { programasDelAlcance } = await import("@/lib/auth/alcance");
-  const alcanceLimitado = tieneAlcanceConfigurable(rolSuplantado)
-    ? (await programasDelAlcance(suplantado.id, db)).size > 0
-    : false;
+  const alcanceLimitado = await alcanceLimitadoDe(rolSuplantado, suplantado.id, db);
 
   return {
     ...session,

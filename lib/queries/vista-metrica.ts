@@ -31,6 +31,7 @@ import { lunesDe, sumarDias } from "@/lib/rangos";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import type { NivelPauta, PasoPauta } from "@/lib/queries/roas-de-pauta";
 import type { OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 
@@ -509,4 +510,11 @@ export function sinListas<T>(valor: T): T {
     return Object.fromEntries(Object.entries(valor).map(([clave, v]) => [clave, sinListas(v)])) as T;
   }
   return valor;
+}
+
+export function proyectarDashboardSegunRol<T>(
+  valor: T,
+  rol: Rol | null | undefined,
+): T {
+  return veEquipoComercial(rol) ? valor : sinListas(valor);
 }

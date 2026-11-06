@@ -9,7 +9,7 @@ import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte, t
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
 import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
-import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, sinListas, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, proyectarDashboardSegunRol, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { notFound } from "next/navigation";
 import { z } from "zod";
@@ -328,7 +328,7 @@ async function CuerpoDelHub({
   const slug = programa.slug;
   const esHoy = seccion === "hoy";
   const veEquipo = veEquipoComercial(rol);
-  const proyectar = <T,>(valor: T): T => (veEquipo ? valor : sinListas(valor));
+  const proyectar = <T,>(valor: T): T => proyectarDashboardSegunRol(valor, rol);
 
   if (seccion === "origen") {
     return <SeccionOrigen programId={programa.id} slug={slug} rango={contexto.seleccion.rango} periodo={contexto.periodo} hoy={hoy} origen={origen} puedeAbrirLista={veEquipo} />;

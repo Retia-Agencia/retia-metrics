@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import type { JWT } from "@auth/core/jwt";
-import { esRolValido, tieneAlcanceConfigurable } from "./roles";
+import { camposDeSesionDeUsuario } from "./campos-de-sesion";
 
 /**
  * Las dos decisiones de Auth.js que dependen de la tabla `users`, sacadas de la
@@ -23,12 +23,6 @@ async function buscarUsuario(email: string) {
   const { users } = await import("@/lib/db/schema");
   const filas = await db.select().from(users).where(eq(users.email, email)).limit(1);
   return filas[0] ?? null;
-}
-
-async function tieneFilasDeAlcance(userId: string): Promise<boolean> {
-  const { db } = await import("@/lib/db");
-  const { programasDelAlcance } = await import("@/lib/auth/alcance");
-  return (await programasDelAlcance(userId, db)).size > 0;
 }
 
 /**
@@ -66,12 +60,6 @@ export async function revalidarToken(token: JWT, emailDelLogin?: string | null):
     return { ...token, usuarioId: undefined, rol: undefined, operaComoCloser: undefined, closerId: undefined, alcanceLimitado: undefined };
   }
 
-  token.usuarioId = registro.id;
-  token.rol = esRolValido(registro.rol) ? registro.rol : "closer";
-  token.operaComoCloser = registro.operaComoCloser;
-  token.closerId = registro.closerId;
-  token.alcanceLimitado = tieneAlcanceConfigurable(token.rol)
-    ? await tieneFilasDeAlcance(registro.id)
-    : false;
+  Object.assign(token, await camposDeSesionDeUsuario(registro));
   return token;
 }
