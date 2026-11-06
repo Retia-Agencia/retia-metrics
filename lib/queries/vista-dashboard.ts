@@ -127,17 +127,36 @@ export interface VistaDelDashboard {
   comisionPorcentaje: string | null;
 }
 
-export async function armarVistaDelDashboard(
-  entrada: EntradaDeVista,
-  db: Db = dbDeLaApp,
-): Promise<VistaDelDashboard> {
+/**
+ * Lo barato de la vista: el periodo, el filtro de cohorte y la cohorte activa. Es lo que la cabecera
+ * del Hub necesita para pintar (selector de periodo y de cohorte) sin esperar las ~40 consultas de
+ * cifras. `armarVistaDelDashboard` lo reutiliza, así que hay UNA sola resolución (N1).
+ */
+export interface ContextoDeVista {
+  seleccion: SeleccionDeRango;
+  periodo: PeriodoResuelto;
+  anteriorDisponible: boolean;
+  filtroDeCohorte: FiltroDeCohorteResuelto;
+  claveCloser: string | null;
+  cohorte: VistaDeCohorte | null;
+  cohorteIdDeB: string | null;
+  /** Perezoso y memoizado: la consulta solo corre si alguien lo pide (el Hub la pide en la barra de filtros). */
+  closers: () => Promise<OpcionDeCloser[]>;
+}
+
+export async function resolverContextoDeVista(entrada: EntradaDeVista, db: Db = dbDeLaApp): Promise<ContextoDeVista> {
   const { programId, hoy, preset, desde, hasta } = entrada;
   const claveCloser = entrada.claveCloser ?? null;
-
-  const cohorte = await vistaDeCohorteActiva({ programId, claveCloser }, hoy, db);
   const pedido = entrada.periodo ?? parsearPeriodoUrl({ rango: preset, desde, hasta });
-  const delHub = await cohorteDelHub(db, programId, { parametro: entrada.filtroDeCohorte?.parametro, cohorteVieja: pedido.cohorteVieja });
-  const contexto = await contextoDelFiltro(db, programId, delHub.cohorte, hoy);
+  // La cohorte activa no depende del periodo: corre a la par de la cadena cohorte del Hub -> contexto.
+  const [cohorte, { delHub, contexto }] = await Promise.all([
+    vistaDeCohorteActiva({ programId, claveCloser }, hoy, db),
+    (async () => {
+      const delHub = await cohorteDelHub(db, programId, { parametro: entrada.filtroDeCohorte?.parametro, cohorteVieja: pedido.cohorteVieja });
+      const contexto = await contextoDelFiltro(db, programId, delHub.cohorte, hoy);
+      return { delHub, contexto };
+    })(),
+  ]);
   const periodo = resolverPeriodo(pedido, { hoy, inicio: contexto.inicio, anterior: contexto.anterior });
   const cohorteId = entrada.filtroDeCohorte ? delHub.cohorte?.id ?? null : null;
   const cohorteIdDeB = comparacionesDe(periodo)[0]?.conCohorteAnterior ? contexto.anterior?.id ?? null : cohorteId;
@@ -162,6 +181,28 @@ export async function armarVistaDelDashboard(
     preset: equivalentes[periodo.preset as keyof typeof equivalentes] ?? "custom",
     rango: periodo.a,
   };
+  let closers: Promise<OpcionDeCloser[]> | null = null;
+  return {
+    seleccion,
+    periodo,
+    anteriorDisponible: contexto.anterior !== null,
+    filtroDeCohorte,
+    claveCloser,
+    cohorte,
+    cohorteIdDeB,
+    closers: () => (closers ??= closersConCuenta({ programId, rango: periodo.a }, db)),
+  };
+}
+
+export async function armarVistaDelDashboard(
+  entrada: EntradaDeVista,
+  db: Db = dbDeLaApp,
+  contextoPrevio?: ContextoDeVista,
+): Promise<VistaDelDashboard> {
+  const { programId, hoy } = entrada;
+  const contextoDeVista = contextoPrevio ?? await resolverContextoDeVista(entrada, db);
+  const { seleccion, periodo, filtroDeCohorte, claveCloser, cohorte, cohorteIdDeB } = contextoDeVista;
+  const { cohorteId } = filtroDeCohorte;
   const rango = periodo.a;
 
   const alcance = { programId, rango, claveCloser, cohorteId };
@@ -200,7 +241,7 @@ export async function armarVistaDelDashboard(
     embudoPorEtapas(db, { programId, rango, cohorteId }, ahora),
     embudoPorCloser({ programId, rango, cohorteId }, db, ahora),
     comisionesPorCloser({ programId, rango, cohorteId }, db),
-    closersConCuenta({ programId, rango }, db),
+    contextoDeVista.closers(),
     db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
     periodo.b
       ? Promise.all([
@@ -239,7 +280,7 @@ export async function armarVistaDelDashboard(
   return {
     seleccion,
     periodo,
-    anteriorDisponible: contexto.anterior !== null,
+    anteriorDisponible: contextoDeVista.anteriorDisponible,
     filtroDeCohorte,
     claveCloser,
     closers,

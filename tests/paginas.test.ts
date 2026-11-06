@@ -113,7 +113,13 @@ vi.mock("@/lib/queries/recursos", () => ({
 // El dashboard (ticket 005) arma su vista con `armarVistaDelDashboard`; sin base en
 // los tests se mockea para poder mirar CON QUE lo llama cada rol.
 const armarVistaDelDashboard = vi.fn();
-vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard }));
+// El Hub resuelve primero el contexto barato (cabecera) y arma las cifras dentro de su <Suspense>; el
+// mock del contexto pide la misma vista para que estos tests sigan viendo CON QUE se arma cada rol.
+const resolverContextoDeVista = vi.fn(async (entrada: unknown) => {
+  const vista = await armarVistaDelDashboard(entrada);
+  return { ...vista, closers: async () => vista.closers };
+});
+vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard, resolverContextoDeVista }));
 vi.mock("@/lib/queries/dashboard", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/dashboard")>(),
   dineroDelRango: vi.fn(async () => ({ vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0 })),
@@ -1792,7 +1798,10 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     const { default: pagina } = await import(/* @vite-ignore */ RUTA_PROGRAMA) as {
       default: (props: { params: Promise<{ programa: string }>; searchParams: Promise<Record<string, string>> }) => Promise<unknown>;
     };
-    return pagina({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve(busqueda) });
+    const arbol = await pagina({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve(busqueda) });
+    // El cuerpo del Hub llega por streaming (detrás de <Suspense>): aquí se ejecuta como lo haría React.
+    const cuerpo = buscar(arbol, "CuerpoDelHub") as { type: (props: unknown) => Promise<unknown>; props: unknown } | null;
+    return cuerpo ? [arbol, await cuerpo.type(cuerpo.props)] : arbol;
   }
 
   beforeEach(() => {
@@ -1916,7 +1925,7 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     const busqueda = { seccion: "hoy", mes: "2026-10" };
     auth.mockResolvedValue(sesionGerente);
     // El atajo vive en el bloque «¿Vamos a llegar?» que Hoy trae en las secciones 4 y 5 (373).
-    const configurarDe = async () => (buscar(await renderizar(busqueda), "Hoy")?.props.vamosALlegar as { props: { configurar: unknown } }).props.configurar;
+    const configurarDe = async () => (buscar(await renderizar(busqueda), "Hoy")?.props.vamosALlegar as { props: { children: { props: { configurar: unknown } } } }).props.children.props.configurar;
     const delGerente = await configurarDe() as {
       hrefBase: string;
       origen: string;
