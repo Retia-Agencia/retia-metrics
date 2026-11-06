@@ -82,6 +82,13 @@ export const esquemaUsuario = z.object({
       .transform((v) => (v && v.length > 0 ? v : null)),
     /** Programas donde el usuario vende. Cada uno es un uuid de `programs`. */
     programas: z.array(z.string().uuid("Programa inválido.")).optional(),
+    /**
+     * Cuenta de Calendly por programa, solo al crear (382): una persona puede usar un correo
+     * distinto en cada organizacion. Se vincula en la misma transaccion del alta.
+     */
+    calendlyPorPrograma: z
+      .record(z.string().uuid("Programa inválido."), z.string().trim().toLowerCase().email("El correo de Calendly no es válido.").or(z.literal("")))
+      .optional(),
   });
 
 /**
@@ -225,7 +232,8 @@ function moldeUsuarios(db: Db) {
 
 /** Separa los campos de la fila `users` del arreglo de programas. */
 function separar(datos: UsuarioValidado): { campos: CamposUsuario; programas?: string[] } {
-  const { programas, ...campos } = datos;
+  const { programas, calendlyPorPrograma: _porPrograma, ...campos } = datos;
+  void _porPrograma;
   return { campos, programas };
 }
 
@@ -480,8 +488,15 @@ export async function crearUsuario(
 ): Promise<UsuarioConProgramas> {
   return normalizando(async () => {
     const datos = esquemaUsuario.parse(input);
-    const [duplicado] = await db.select({ id: users.id }).from(users).where(eq(users.email, datos.email)).limit(1);
-    if (duplicado) throw new ErrorDeApp("Ya existe un usuario con ese nombre.", 409);
+    const [duplicado] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.email, datos.email)).limit(1);
+    if (duplicado) {
+      throw new ErrorDeApp(
+        duplicado.activo
+          ? "Ya existe un usuario con ese correo."
+          : "Ya existe un usuario con ese correo y está desactivado. Búscalo en la lista y reactívalo: conserva sus programas y su Calendly.",
+        409,
+      );
+    }
     const contexto = await contextoDeActor(db, actor);
     if (esAccesoTotal(datos.rol) && !esAccesoTotal(actor.rol)) {
       throw new AuthorizationError("No puedes crear un usuario developer.");
@@ -496,14 +511,15 @@ export async function crearUsuario(
           await guardarAlcanceDeUsuario(tx, actor, fila.id, elegidos.length === 0 ? null : elegidos);
         } else if (programas) {
           await sincronizarMembresias(tx, actor.id, fila.id, campos.email, elegidos);
-          if (campos.calendlyEmail && trabajaLeads({ rol: campos.rol, operaComoCloser: campos.operaComoCloser })) {
-            const membresias = await tx.select({ id: miembrosPrograma.id }).from(miembrosPrograma)
+          const porPrograma = datos.calendlyPorPrograma ?? {};
+          if (trabajaLeads({ rol: campos.rol, operaComoCloser: campos.operaComoCloser })) {
+            const membresias = await tx.select({ id: miembrosPrograma.id, programId: miembrosPrograma.programId })
+              .from(miembrosPrograma)
               .where(and(eq(miembrosPrograma.userId, fila.id), eq(miembrosPrograma.activo, true)));
             for (const membresia of membresias) {
-              await asignarCalendlyDeMembresia(tx, actor.id, {
-                membresiaId: membresia.id,
-                calendlyEmail: campos.calendlyEmail,
-              });
+              const calendlyEmail = porPrograma[membresia.programId] || campos.calendlyEmail;
+              if (!calendlyEmail) continue;
+              await asignarCalendlyDeMembresia(tx, actor.id, { membresiaId: membresia.id, calendlyEmail });
             }
           }
         }

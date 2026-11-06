@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { esAccesoTotal, etiquetaDeRol, puedeConfigurarOperaComoCloser, puedeSerMiembro, ROLES, tieneAlcanceConfigurable, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, etiquetaDeRol, puedeConfigurarOperaComoCloser, puedeSerMiembro, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import { cn } from "@/lib/utils";
 import { fecha, fechaDeInstanteEnBogota } from "@/lib/format";
@@ -78,6 +78,8 @@ interface Borrador {
   programasQueVe: string[];
   /** Membresias iniciales: solo se piden al crear (despues se manejan en la tab Programa). */
   membresias: string[];
+  /** Cuenta de Calendly por programa (id de programa -> correo), solo al crear. */
+  calendlyPorPrograma: Record<string, string>;
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -90,6 +92,7 @@ const BORRADOR_VACIO: Borrador = {
   alcance: "todos",
   programasQueVe: [],
   membresias: [],
+  calendlyPorPrograma: {},
 };
 
 function aBorrador(u: UsuarioVista): Borrador {
@@ -103,6 +106,7 @@ function aBorrador(u: UsuarioVista): Borrador {
     alcance: u.programasQueVe.length > 0 ? "solo" : "todos",
     programasQueVe: u.programasQueVe,
     membresias: [],
+    calendlyPorPrograma: {},
   };
 }
 
@@ -431,7 +435,7 @@ function aEntrada(b: Borrador, alCrear: boolean) {
     : b.membresias;
   return {
     // El rol decide si el selector crea membresías o alcance.
-    ...(alCrear ? { programas } : {}),
+    ...(alCrear ? { programas, calendlyPorPrograma: b.calendlyPorPrograma } : {}),
     email: b.email,
     nombre: b.nombre,
     rol: b.rol,
@@ -570,8 +574,26 @@ function FormularioUsuario({
                   </label>
                 ))}
               </div>
+              {trabajaLeads(borrador) ? programas
+                .filter((programa) => borrador.membresias.includes(programa.id))
+                .map((programa) => (
+                  <label key={programa.id} className="block space-y-1 text-sm">
+                    <span className="text-muted-foreground">Correo de Calendly en {programa.nombre}</span>
+                    <input
+                      type="email"
+                      value={borrador.calendlyPorPrograma[programa.id] ?? ""}
+                      onChange={(e) => setBorrador({
+                        ...borrador,
+                        calendlyPorPrograma: { ...borrador.calendlyPorPrograma, [programa.id]: e.target.value },
+                      })}
+                      placeholder="Opcional: puede ser distinto en cada programa"
+                      className={claseInput}
+                      aria-label={`Correo de Calendly en ${programa.nombre}`}
+                    />
+                  </label>
+                )) : null}
               <p className="text-xs text-muted-foreground">
-                La cuenta de Calendly se vincula después, en la tab Programa.
+                Si dejas el Calendly vacío, se vincula después en Programa › Equipo.
               </p>
             </fieldset>
           ) : null}

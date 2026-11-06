@@ -496,6 +496,23 @@ describe("desactivar y reactivar", () => {
   });
 });
 
+describe("alta de un correo que ya existe", () => {
+  it("si el usuario esta desactivado, el error dice que lo reactive", async () => {
+    const creado = await crearUsuario(db, actorGerente(), { ...closerValido, programas: [programaAId] });
+    await desactivarUsuario(db, actorGerente(), creado.id);
+    const error = await crearUsuario(db, actorGerente(), { ...closerValido, programas: [programaAId] }).catch((e) => e);
+    expect(error.status).toBe(409);
+    expect(error.message).toContain("desactivado");
+  });
+
+  it("si esta activo, solo dice que ya existe", async () => {
+    await crearUsuario(db, actorGerente(), { ...closerValido, programas: [programaAId] });
+    const error = await crearUsuario(db, actorGerente(), { ...closerValido, programas: [programaAId] }).catch((e) => e);
+    expect(error.status).toBe(409);
+    expect(error.message).not.toContain("desactivado");
+  });
+});
+
 describe("listar usuarios", () => {
   it("devuelve activos e inactivos con sus programas", async () => {
     const creado = await crearUsuario(db, actorGerente(), {
