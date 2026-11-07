@@ -27,6 +27,17 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-07: el ticket 385 pasa a ser la auditoría COMPLETA de métricas y datos del CRM (decisión de Mani, obligatoria).**
+  La segunda prueba del MCP (Tactical, octubre) ya cita la fuente en palabras y con enlace, pero repitió la ambigüedad:
+  "ventas" (17, por fecha de venta) junto a "% de cierre" (11 vendidos ÷ 33 shows = 33,3 %), dos universos con casi el
+  mismo nombre, y unidades del embudo que no se reconcilian (360 agendas, 290 sin resultado). Además, una de las dos
+  llamadas falló antes del handler y no quedó en `mcp_llamadas` (probable `periodo` inventado, "octubre"). El 385 queda en
+  fases: F0 línea base y reclasificar 351 a 362 (de los doce, solo el 352 está `done`; siete ni se empezaron: 353, 354,
+  355, 358, 359, 360 y 361), F1 inventario por métrica y superficie, F2 paridad cruzada con datos reales, F3 modelo de
+  datos y formas normales, F4 centralización, F5 nombres y tools del MCP, F6 contrato del repo para métricas y datos
+  (con fuentes aún por verificar) y F7 tickets hijos y migraciones. Cinco decisiones abiertas para un grill con Mani antes
+  de F4. No se implementa de corrida: F0 a F3 son solo lectura.
+
 - **2026-11-07: MCP del CRM, pasos 0 a 2C mergeados a main (ticket 348).** Servidor `/api/mcp` con token personal
   (hash sha256, revocable, scope lectura/escritura, tope de 300 llamadas por minuto y bitácora en `mcp_llamadas`) y once
   herramientas de solo lectura: `programas_visibles`, `resumen_del_hub`, `consultar_metrica`, las cinco de operación
