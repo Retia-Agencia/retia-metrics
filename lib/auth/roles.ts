@@ -21,6 +21,9 @@ export const ROLES_DE_FICHA_DE_LEAD = [
   ...ROLES_DE_OPERACION,
   "customer_success",
 ] as const satisfies readonly Rol[];
+export const ROLES_QUE_VEN_STUDENTS = [
+  ...ROLES_DE_FICHA_DE_LEAD,
+] as const satisfies readonly Rol[];
 
 /**
  * Cómo se nombra cada rol en la interfaz y en los mensajes (ticket 177). UNA sola copia:
@@ -184,6 +187,11 @@ export function puedeVerFichaDeLead(rol: Rol | undefined | null): boolean {
   return puedeAcceder(rol, ROLES_DE_FICHA_DE_LEAD);
 }
 
+/** Quien abre Students y, por tanto, ve su cartera vencida. */
+export function veStudents(rol: Rol | undefined | null): boolean {
+  return puedeAcceder(rol, ROLES_QUE_VEN_STUDENTS);
+}
+
 /**
  * Quien maneja la pauta: ve y configura los Canales y lo de tráfico pagado de sus
  * programas (ADR 0052). Es la CUARTA pregunta de esta familia, distinta de las otras
@@ -223,7 +231,7 @@ export function veEquipoComercial(rol: Rol | undefined | null): boolean {
  * solo lugar y nunca escrita a mano. Nunca se compara `rol === "..."` fuera de aqui.
  */
 export function veTableroDelPrograma(rol: Rol | undefined | null): boolean {
-  return esAdministrador(rol) || manejaPauta(rol);
+  return manejaPauta(rol);
 }
 
 /** Quien puede identificar el lead detrás de una cifra de Pauta (ticket 350). */

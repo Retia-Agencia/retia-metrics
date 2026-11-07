@@ -17,8 +17,11 @@ import { contratadoDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { tasasDelRango } from "@/lib/trm/consultar";
 
-export type NivelPauta = "campana" | "conjunto" | "anuncio" | "anuncio_sin_identificar" | "sin_anuncio" | "total";
-export type PasoPauta = "registro" | "agenda" | "show" | "no_show" | "venta";
+export const NIVELES_PAUTA = ["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "total"] as const;
+export type NivelPauta = (typeof NIVELES_PAUTA)[number];
+export const NIVEL_PAUTA_POR_DEFECTO: NivelPauta = "total";
+export const PASOS_PAUTA = ["registro", "agenda", "show", "no_show", "venta"] as const;
+export type PasoPauta = (typeof PASOS_PAUTA)[number];
 
 export interface CitaDePauta {
   id: string;
@@ -347,4 +350,19 @@ export function filtrarEnviosDePauta(envios: readonly FilaPorEnvioPauta[], nivel
   if (!id) return [];
   if (nivel === "anuncio_sin_identificar") return envios.filter((e) => e.campanaId === id && e.anuncioId === null);
   return envios.filter((e) => nivel === "campana" ? e.campanaId === id : nivel === "conjunto" ? e.conjuntoId === id : e.anuncioId === id);
+}
+
+/** Resuelve exactamente una fila de la jerarquía visible de ROAS. */
+export function renglonRoasDeVista(vista: VistaRoasDePauta, nivel: NivelPauta, id?: string): RenglonRoas | null {
+  if (nivel === "total") return id === undefined ? vista.total : null;
+  if (nivel === "sin_anuncio") return id === undefined ? vista.sinAnuncio : null;
+  if (!id) return null;
+  if (nivel === "campana") return vista.campanas.find((fila) => fila.id === id) ?? null;
+  if (nivel === "conjunto") return vista.conjuntos.find((fila) => fila.id === id) ?? null;
+  if (nivel === "anuncio") return vista.anuncios.find((fila) => fila.id === id) ?? null;
+  if (nivel === "anuncio_sin_identificar") {
+    return vista.anunciosSinIdentificar.find((fila) => fila.id === id) ?? null;
+  }
+  const exhaustivo: never = nivel;
+  return exhaustivo;
 }

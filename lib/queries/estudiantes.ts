@@ -74,7 +74,7 @@ export interface FilaStudents extends Estudiante {
 export interface FiltroStudents {
   /** Nulo = todas las cohortes del programa. */
   cohortId?: string | null;
-  onboarded?: "si" | "no" | null;
+  onboarded?: OnboardingStudents | null;
   /**
    * Solo los estudiantes de ESTE dueño (ticket 172, "Mis students" de Mi espacio). Nulo
    * = todos los del programa. El programa sigue siendo frontera; esto solo acota al
@@ -100,8 +100,47 @@ export const ORDENES_STUDENTS = [
 ] as const;
 
 export type OrdenStudents = (typeof ORDENES_STUDENTS)[number]["value"];
+export const VALORES_ORDEN_STUDENTS = ORDENES_STUDENTS.map((opcion) => opcion.value) as unknown as readonly [
+  OrdenStudents,
+  ...OrdenStudents[],
+];
+export const ONBOARDING_STUDENTS = ["si", "no"] as const;
+export type OnboardingStudents = (typeof ONBOARDING_STUDENTS)[number];
 
 export const ORDEN_STUDENTS_POR_DEFECTO: OrdenStudents = "correo:asc";
+
+export interface CohorteParaFiltroStudents {
+  id: string;
+  estado: string;
+}
+
+/** La única interpretación de los filtros de Students, compartida por la página y el MCP. */
+export function resolverFiltroStudents<T extends CohorteParaFiltroStudents>(args: {
+  cohortes: readonly T[];
+  cohorte?: string;
+  onboarding?: string;
+  orden?: string;
+  leadsCasan?: Set<string> | null;
+}) {
+  const activa = args.cohortes.find((c) => c.estado === "activo") ?? null;
+  const cohorte = args.cohorte === "todas"
+    ? null
+    : (args.cohortes.find((c) => c.id === args.cohorte) ?? activa);
+  const onboarding = ONBOARDING_STUDENTS.find((valor) => valor === args.onboarding) ?? null;
+  const orden = ORDENES_STUDENTS.find((opcion) => opcion.value === args.orden)?.value
+    ?? ORDEN_STUDENTS_POR_DEFECTO;
+  return {
+    activa,
+    cohorte,
+    orden,
+    filtro: {
+      cohortId: cohorte?.id ?? null,
+      onboarded: onboarding,
+      leadsCasan: args.leadsCasan ?? null,
+      orden,
+    } satisfies FiltroStudents,
+  };
+}
 
 /**
  * La tab Students (ticket 099): los estudiantes con su saldo, su acuerdo de pago, si están en

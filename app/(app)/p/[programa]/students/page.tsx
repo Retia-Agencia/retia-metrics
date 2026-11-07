@@ -3,12 +3,12 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido, ROLES_QUE_VEN_STUDENTS, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { studentsDelPrograma, type FiltroStudents, ORDENES_STUDENTS, ORDEN_STUDENTS_POR_DEFECTO, type OrdenStudents } from "@/lib/queries/estudiantes";
+import { studentsDelPrograma, ORDENES_STUDENTS, resolverFiltroStudents } from "@/lib/queries/estudiantes";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { totalesDeStudents } from "@/lib/queries/estudiantes-totales";
 import { fecha, fechaDeInstanteEnBogota, monto, num, saldoLegible } from "@/lib/format";
@@ -49,7 +49,7 @@ function uno(value: string | string[] | undefined): string | undefined {
  * (`OnboardingCelda`) y abrir desde el nombre la vista básica del lead; no abre la ficha del deal.
  */
 export default async function StudentsDelProgramaPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer", "customer_success");
+  const session = await paginaConRol(...ROLES_QUE_VEN_STUDENTS);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
@@ -65,26 +65,16 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const cohortes = (await listarCohortes(db, programa.id)).sort((a, b) =>
     (b.fechaInicioVentas ?? "").localeCompare(a.fechaInicioVentas ?? ""),
   );
-  const activa = cohortes.find((c) => c.estado === "activo") ?? null;
-  const cohortePedida = uno(query.cohorte);
-  // Una cohorte que no es de este programa no filtra nada raro: vuelve a la de por defecto.
-  const cohorte =
-    cohortePedida === "todas" ? null : (cohortes.find((c) => c.id === cohortePedida) ?? activa);
-  const onboardedPedido = uno(query.onboarding);
-  // El orden sale de la URL (`?orden=`); un valor desconocido cae al de por defecto.
-  const ordenPedido = uno(query.orden);
-  const orden: OrdenStudents = ORDENES_STUDENTS.some((o) => o.value === ordenPedido)
-    ? (ordenPedido as OrdenStudents)
-    : ORDEN_STUDENTS_POR_DEFECTO;
   // La búsqueda: `leadsQueCasan` devuelve `null` con texto corto (no filtra) o el conjunto
   // de leads del programa que casan. El programa es frontera: la consulta ya recibe su id.
   const leadsCasan = await leadsQueCasan(db, programa.id, uno(query.q) ?? "");
-  const filtro: FiltroStudents = {
-    cohortId: cohorte?.id ?? null,
-    onboarded: onboardedPedido === "si" || onboardedPedido === "no" ? onboardedPedido : null,
+  const { activa, cohorte, orden, filtro } = resolverFiltroStudents({
+    cohortes,
+    cohorte: uno(query.cohorte),
+    onboarding: uno(query.onboarding),
+    orden: uno(query.orden),
     leadsCasan,
-    orden,
-  };
+  });
   const filas = await studentsDelPrograma(db, programa.id, filtro);
   const totales = totalesDeStudents(filas);
 

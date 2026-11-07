@@ -1,5 +1,6 @@
 import { and, eq, inArray } from "drizzle-orm";
-import { textoDeRegla, tipoDePlantilla, type Area } from "@/lib/atribucion/canal";
+import { NOMBRE_DE_AREA, textoDeRegla, tipoDePlantilla, type Area } from "@/lib/atribucion/canal";
+import { proporcionDeOrigen } from "@/lib/atribucion/proporcion";
 import { emparejarFilaDeEnvio, type Traza } from "@/lib/atribucion/emparejar";
 import { cuentasPublicitarias, pautaObjetos, piezas } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -68,6 +69,29 @@ export interface VistaOrigen {
   totalEnvios: number;
   trazaPaid: Record<"N3" | "N2" | "N1", number>;
   plantillas: PlantillasDeCuenta[];
+}
+
+export const PRECISION_PAID = [
+  { nivel: "N3", titulo: "Hasta el anuncio", detalle: "Se sabe el anuncio exacto que trajo el registro." },
+  { nivel: "N2", titulo: "Hasta la campaña o el conjunto", detalle: "Se sabe la campaña o el conjunto, pero no el anuncio." },
+  { nivel: "N1", titulo: "Solo que es pauta", detalle: "Llegó por pauta, pero sin datos para ubicar la campaña." },
+] as const satisfies readonly { nivel: keyof VistaOrigen["trazaPaid"]; titulo: string; detalle: string }[];
+
+
+export function nombreDeCanalOrigen(fila: Pick<FilaOrigenCanal, "area" | "canal" | "categoria">): string {
+  return fila.categoria === null ? `${NOMBRE_DE_AREA[fila.area]} · ${fila.canal}` : fila.canal;
+}
+
+/** Proyección de la tabla visible: nombres humanos, conteos y porcentajes, sin campos internos. */
+export function resumenDeOrigen(vista: VistaOrigen) {
+  return vista.canales.map((fila) => ({
+    clave: fila.clave,
+    nombre: nombreDeCanalOrigen(fila),
+    registros: fila.envios,
+    agendas: fila.agendas,
+    porcentajeDelTotal: fila.categoria === null ? null : proporcionDeOrigen(fila.envios, vista.totalEnvios),
+    porcentajeAgenda: proporcionDeOrigen(fila.agendas, fila.envios),
+  }));
 }
 
 const clavePar = (source: string | null, medium: string | null) => JSON.stringify([source, medium]);

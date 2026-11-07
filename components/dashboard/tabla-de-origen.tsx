@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
+import { proporcionDeOrigen } from "@/lib/atribucion/proporcion";
 import type { FilaOrigenCanal, FilaOrigenUtm } from "@/lib/queries/origen";
 
 /**
@@ -15,7 +16,7 @@ import type { FilaOrigenCanal, FilaOrigenUtm } from "@/lib/queries/origen";
 export interface EnlacesDeOrigen { registros: string; agendas: string }
 export type CanalConEnlaces = Omit<FilaOrigenCanal, "pares"> & {
   enlaces: EnlacesDeOrigen;
-  nombreDeArea: string;
+  nombre: string;
   pares: (FilaOrigenUtm & { enlaces: EnlacesDeOrigen })[];
 };
 
@@ -24,7 +25,8 @@ function Cifra({ href, children }: { href: string; children: React.ReactNode }) 
 }
 
 function tasa(agendas: number, envios: number) {
-  return envios === 0 ? "—" : pct(agendas / envios);
+  const proporcion = proporcionDeOrigen(agendas, envios);
+  return proporcion === null ? "—" : pct(proporcion);
 }
 
 const MAX_PARES = 10;
@@ -78,12 +80,12 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
                   onClick={() => alternar(fila.clave, abiertos, setAbiertos)}
                 >
                   <span aria-hidden>{abierto ? "▾" : "▸"}</span>{" "}
-                  {especial ? <Badge variant={fila.categoria === "macro" ? "alerta" : "neutro"}>{fila.canal}</Badge> : `${fila.nombreDeArea} · ${fila.canal}`}
+                  {especial ? <Badge variant={fila.categoria === "macro" ? "alerta" : "neutro"}>{fila.canal}</Badge> : fila.nombre}
                 </button>
               </td>
               <td className="text-right">
                 <Cifra href={fila.enlaces.registros}>{num(fila.envios)}</Cifra>
-                {especial && !soloConteos ? <span className="cifra text-muted-foreground"> · {pct(totalEnvios === 0 ? 0 : fila.envios / totalEnvios)}</span> : null}
+                {especial && !soloConteos ? <span className="cifra text-muted-foreground"> · {pct(proporcionDeOrigen(fila.envios, totalEnvios) ?? 0)}</span> : null}
               </td>
               <td className="text-right"><Cifra href={fila.enlaces.agendas}>{num(fila.agendas)}</Cifra></td>
               <td className="cifra text-right text-muted-foreground">{tasa(fila.agendas, fila.envios)}</td>

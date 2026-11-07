@@ -129,6 +129,7 @@ describe("ruta MCP real", () => {
         "ficha_de_deal",
         "tablero_de_deals",
         "bandeja",
+        "cartera_vencida",
       ]);
     expect(estructurado(await llamar(tokenCloser.valor))).toEqual([
       { nombre: "Visible A", slug: "visible-a" },

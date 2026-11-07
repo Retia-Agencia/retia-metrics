@@ -1,4 +1,4 @@
-import { rutaDePrograma, type TabDePrograma } from "@/lib/nav";
+import { rutaDePrograma, type SeccionDelHub, type TabDePrograma } from "@/lib/nav";
 
 function absoluta(ruta: string): string {
   return new URL(ruta, process.env.AUTH_URL ?? "http://localhost:3000").toString();
@@ -14,4 +14,10 @@ export function enlaceDeDeal(slug: string, dealId: string): string {
 
 export function enlaceDeTab(slug: string, tab: TabDePrograma): string {
   return absoluta(rutaDePrograma(slug, tab));
+}
+
+export function enlaceDeSeccionHub(slug: string, seccion: SeccionDelHub): string {
+  const enlace = new URL(enlaceDeTab(slug, "hub"));
+  enlace.searchParams.set("seccion", seccion);
+  return enlace.toString();
 }

@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NOMBRE_DE_AREA } from "@/lib/atribucion/canal";
 import { num, pct } from "@/lib/format";
-import type { FilaOrigenCanal, FilaOrigenUtm, VistaOrigen } from "@/lib/queries/origen";
+import { nombreDeCanalOrigen, PRECISION_PAID, type FilaOrigenCanal, type FilaOrigenUtm, type VistaOrigen } from "@/lib/queries/origen";
 import { TablaDeOrigen } from "@/components/dashboard/tabla-de-origen";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import { urlDeLista } from "@/lib/queries/vista-metrica";
@@ -36,13 +35,6 @@ function filtrosDelPar(fila: FilaOrigenCanal, par: FilaOrigenUtm): FiltrosOrigen
   return { source: par.source, medium: par.medium, ...(categoria ? { categoria } : {}) };
 }
 
-// Los niveles N3 a N1 de la traza (`emparejar`) son internos: la pantalla los dice en palabras.
-const PRECISION_PAID = [
-  { nivel: "N3", titulo: "Hasta el anuncio", detalle: "Se sabe el anuncio exacto que trajo el registro." },
-  { nivel: "N2", titulo: "Hasta la campaña o el conjunto", detalle: "Se sabe la campaña o el conjunto, pero no el anuncio." },
-  { nivel: "N1", titulo: "Solo que es pauta", detalle: "Llegó por pauta, pero sin datos para ubicar la campaña." },
-] as const;
-
 export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
   const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
   const enlaces = (filtros: FiltrosOrigen) => ({
@@ -52,7 +44,7 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
   const canales = vista.canales.map((fila) => ({
     ...fila,
     enlaces: enlaces(filtrosDelCanal(fila)),
-    nombreDeArea: NOMBRE_DE_AREA[fila.area],
+    nombre: nombreDeCanalOrigen(fila),
     pares: fila.pares.map((par) => ({ ...par, enlaces: enlaces(filtrosDelPar(fila, par)) })),
   }));
   return <section className="space-y-4">

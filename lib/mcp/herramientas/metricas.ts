@@ -15,35 +15,13 @@ import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/q
 import type { Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
 import { enlaceDeDeal, enlaceDeLead } from "@/lib/mcp/enlaces";
-
-const PERIODOS = ["hoy", "ayer", "manana", "esta_semana", "semana_pasada", "este_mes", "mes_pasado", "desde_el_inicio", "custom"] as const;
-const fechaBogota = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha AAAA-MM-DD de Bogotá.");
-const periodo = {
-  periodo: z.enum(PERIODOS),
-  desde: fechaBogota.optional(),
-  hasta: fechaBogota.optional(),
-};
-
-function busquedaDePeriodo(entrada: { periodo: (typeof PERIODOS)[number]; desde?: string; hasta?: string }) {
-  if (entrada.periodo === "custom" && (!entrada.desde || !entrada.hasta)) {
-    throw new ErrorDeApp("Un periodo custom necesita desde y hasta.", 400);
-  }
-  if (entrada.periodo !== "custom" && (entrada.desde || entrada.hasta)) {
-    throw new ErrorDeApp("Desde y hasta solo se usan con el periodo custom.", 400);
-  }
-  return {
-    periodo: entrada.periodo,
-    ...(entrada.desde ? { a_desde: entrada.desde } : {}),
-    ...(entrada.hasta ? { a_hasta: entrada.hasta } : {}),
-    comparar: "no",
-  };
-}
+import { busquedaDePeriodoMcp, camposDePeriodoMcp } from "./periodo";
 
 function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
   return `${nombre}: ${valor === null ? "—" : pct(valor)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
 }
 
-const entradaResumen = z.object({ programa: z.string().min(1), ...periodo }).strict();
+const entradaResumen = z.object({ programa: z.string().min(1), ...camposDePeriodoMcp }).strict();
 
 export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   nombre: "resumen_del_hub",
@@ -57,7 +35,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   async ejecutar(contexto, entrada) {
     const programa = await programaVisible(contexto, entrada.programa);
     const hoy = hoyEnBogota();
-    const periodoPedido = parsearPeriodoUrl(busquedaDePeriodo(entrada));
+    const periodoPedido = parsearPeriodoUrl(busquedaDePeriodoMcp(entrada));
     const entradaDeVista = { programId: programa.id, hoy, periodo: periodoPedido, preset: entrada.periodo };
     const contextoDeVista = await resolverContextoDeVista(entradaDeVista, contexto.db);
     const sinProyectar = await armarVistaDelDashboard(entradaDeVista, contexto.db, contextoDeVista);
@@ -82,7 +60,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
 const entradaMetrica = z.object({
   programa: z.string().min(1),
   metrica: z.enum(METRICAS_DE_LISTA),
-  ...periodo,
+  ...camposDePeriodoMcp,
   pagina: z.number().int().min(1).max(1_000_000).default(1),
   ...camposDeFiltrosDeLista,
 }).strict();
@@ -106,7 +84,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
     if (!combinacionDeFiltrosValida(entrada, { esAdmin: esAdministrador(contexto.rol) })) {
       throw new ErrorDeApp("No existe esa lista", 404);
     }
-    const busqueda = busquedaDePeriodo(entrada);
+    const busqueda = busquedaDePeriodoMcp(entrada);
     const { source, medium, canal, campaign } = normalizarFiltrosDeOrigen(entrada);
     const vista = await vistaDeLista({
       programId: programa.id,
