@@ -5,7 +5,7 @@ import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import type { Db } from "@/lib/db/tipos";
-import { esAdministrador, veEquipoComercial, type Rol } from "@/lib/auth/roles";
+import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
 import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
@@ -100,6 +100,21 @@ export const METRICAS_SIN_CLOSER: readonly Metrica[] = [
 /** Las métricas que son una foto de hoy: el periodo no las acota (las banderas del 191). */
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["atendidos_sin_valor", "atendidos_sin_grain"];
 export const TAMANO_PAGINA = 50;
+
+/** La misma reja que abre cada lista del Hub, compartida por la página y otros clientes. */
+export function capacidadParaMetrica({
+  metrica,
+  tieneOrigen,
+}: {
+  metrica: Metrica;
+  tieneOrigen: boolean;
+}): (rol: Rol | null | undefined) => boolean {
+  const esListaDeOrigen = metrica === "registros" || metrica === "agendas_creadas"
+    || (metrica === "escalera" && tieneOrigen);
+  if (metrica === "pauta_meta" || esListaDeOrigen) return veTableroDelPrograma;
+  if (metrica === "no_agendaron") return veEquipoComercial;
+  return esAdministrador;
+}
 
 export interface FiltrosDeMetrica {
   programId: string | readonly string[];

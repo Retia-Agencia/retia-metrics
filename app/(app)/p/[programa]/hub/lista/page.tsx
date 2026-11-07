@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, veEquipoComercial, veLeadsDePauta, veTableroDelPrograma } from "@/lib/auth/roles";
+import { esAdministrador, veEquipoComercial, veLeadsDePauta } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
-import { esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { capacidadParaMetrica, esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import {
   BUCKETS_DE_ANTIGUEDAD,
   METRICAS_DE_EMBUDO_SIN_PERIODO,
@@ -185,11 +185,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const esListaDePauta = validado.data.metrica === "pauta_meta";
   const esListaDeOrigen = validado.data.metrica === "registros" || validado.data.metrica === "agendas_creadas"
     || (validado.data.metrica === "escalera" && tieneOrigen);
-  const capacidad = esListaDePauta || esListaDeOrigen
-    ? veTableroDelPrograma
-    : validado.data.metrica === "no_agendaron"
-      ? veEquipoComercial
-      : esAdministrador;
+  const capacidad = capacidadParaMetrica({ metrica: validado.data.metrica, tieneOrigen });
   const session = await paginaConCapacidad(capacidad);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);

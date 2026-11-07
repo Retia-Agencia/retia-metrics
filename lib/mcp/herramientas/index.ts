@@ -1,8 +1,9 @@
 import { programasVisiblesMcp } from "./programas";
+import { consultarMetricaMcp, resumenDelHubMcp } from "./metricas";
 import type { ContextoMcp, Herramienta } from "./tipos";
 
 /** Registro exhaustivo: una herramienta que no aparece aquí no existe para el MCP. */
-export const HERRAMIENTAS = [programasVisiblesMcp] as const satisfies readonly Herramienta[];
+export const HERRAMIENTAS = [programasVisiblesMcp, resumenDelHubMcp, consultarMetricaMcp] as const satisfies readonly Herramienta[];
 
 export function herramientasPara(contexto: ContextoMcp): readonly Herramienta[] {
   return HERRAMIENTAS.filter((herramienta) => herramienta.puede(contexto));
