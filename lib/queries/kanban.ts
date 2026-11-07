@@ -33,6 +33,7 @@ import { hoyEnBogota } from "@/lib/format";
 import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
+import { atajosDePeriodo, type AtajoDePeriodo } from "@/lib/periodo";
 import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
@@ -151,8 +152,10 @@ export interface TableroKanban {
   enProximaCohorte: TarjetaDeal[];
 }
 
+export const CAMPOS_DE_ORDEN_KANBAN = ["actividad", "creado", "nombre", "agenda"] as const;
+
 export interface OrdenKanban {
-  campo: "actividad" | "creado" | "nombre" | "agenda";
+  campo: (typeof CAMPOS_DE_ORDEN_KANBAN)[number];
   sentido: "desc" | "asc";
 }
 
@@ -180,7 +183,7 @@ export interface FiltrosKanban {
 type FiltrosDeEntradaKanban = Omit<FiltrosKanban, "orden"> & { orden?: OrdenKanban };
 
 const ordenSchema = z.object({
-  campo: z.enum(["actividad", "creado", "nombre", "agenda"]),
+  campo: z.enum(CAMPOS_DE_ORDEN_KANBAN),
   sentido: z.enum(["desc", "asc"]),
 });
 const ORDEN_PREDETERMINADO = { campo: "actividad", sentido: "desc" } as const;
@@ -205,6 +208,27 @@ export function vistaDelTablero(
 /** Sobre que fecha filtra la lista de deals (ticket 141), como en HubSpot. */
 export const CAMPOS_DE_FECHA_DE_DEAL = ["creado", "actividad", "cierre", "llamada", "seguimiento"] as const;
 export type CampoDeFechaDeDeal = (typeof CAMPOS_DE_FECHA_DE_DEAL)[number];
+
+const fechaBogota = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha AAAA-MM-DD de Bogotá.");
+const PERIODOS_DE_FILTRO_KANBAN = [...Object.keys(atajosDePeriodo) as AtajoDePeriodo[], "custom"] as const;
+
+/** Los parámetros que acepta la pantalla Deals, compartidos con `tablero_de_deals`. */
+export const camposDeFiltrosKanban = {
+  q: z.string().optional(),
+  owner: z.string().optional(),
+  cohorte: z.string().optional(),
+  canal: z.string().optional(),
+  leadQuality: z.string().optional(),
+  leadValue: z.string().optional(),
+  antiguedad: z.number().int().min(1).optional(),
+  orden: z.enum(CAMPOS_DE_ORDEN_KANBAN).optional(),
+  sentido: z.enum(["asc", "desc"]).optional(),
+  fecha: z.enum(CAMPOS_DE_FECHA_DE_DEAL).optional(),
+  periodo: z.enum(PERIODOS_DE_FILTRO_KANBAN).optional(),
+  a_desde: fechaBogota.optional(),
+  a_hasta: fechaBogota.optional(),
+  vista: vistaSchema.optional(),
+};
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 

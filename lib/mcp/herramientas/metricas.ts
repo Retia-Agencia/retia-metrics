@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota, monto, num, pct } from "@/lib/format";
@@ -14,6 +13,8 @@ import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, METRICAS_DE_LISTA, 
 import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/queries/vista-metrica";
 import type { Herramienta } from "./tipos";
+import { programaVisible } from "./programa";
+import { enlaceDeDeal, enlaceDeLead } from "@/lib/mcp/enlaces";
 
 const PERIODOS = ["hoy", "ayer", "manana", "esta_semana", "semana_pasada", "este_mes", "mes_pasado", "desde_el_inicio", "custom"] as const;
 const fechaBogota = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha AAAA-MM-DD de Bogotá.");
@@ -36,12 +37,6 @@ function busquedaDePeriodo(entrada: { periodo: (typeof PERIODOS)[number]; desde?
     ...(entrada.hasta ? { a_hasta: entrada.hasta } : {}),
     comparar: "no",
   };
-}
-
-async function programaVisible(contexto: Parameters<Herramienta["ejecutar"]>[0], slug: string) {
-  const programa = await programaVisiblePorSlug(contexto.session.user.id, contexto.rol, slug, contexto.db);
-  if (!programa) throw new ErrorDeApp("No existe ese programa", 404);
-  return programa;
 }
 
 function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
@@ -145,14 +140,13 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
     const desgloses = desglosesDelResumen(lista.grupos, nombreDeEtapa);
     const haySiguiente = entrada.pagina * TAMANO_PAGINA < lista.subtotal.cantidad;
     const caja = lista.subtotal.caja.map((valor) => monto(valor.total, valor.moneda));
-    const base = process.env.AUTH_URL ?? "http://localhost:3000";
     const filas = lista.filas.map((fila) => {
-      const ruta = fila.dealId
-        ? `/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`
+      const enlace = fila.dealId
+        ? enlaceDeDeal(programa.slug, fila.dealId)
         : fila.persona
-          ? `/p/${encodeURIComponent(programa.slug)}/leads/${fila.persona.leadId}`
+          ? enlaceDeLead(programa.slug, fila.persona.leadId)
           : null;
-      return { ...fila, enlace: ruta ? new URL(ruta, base).toString() : null };
+      return { ...fila, enlace };
     });
     const texto = [
       `${entrada.metrica}: ${lista.disponible ? num(lista.subtotal.cantidad) : "—"}`,

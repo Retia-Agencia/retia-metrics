@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { cookies } from "next/headers";
 import { destinosDeCorreccion, ETAPAS_EN_ORDEN, NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
 import { COOKIE_VISTA_DEL_TABLERO } from "@/lib/deals/vista-recordada";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
-import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
+import { type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
+import { tableroDeDealsParaActor } from "@/lib/queries/operacion";
 import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
@@ -17,8 +18,6 @@ import { TONO_DE_COLUMNA } from "@/components/deals/etapa-tono";
 import { NuevoDeal } from "@/components/deals/nuevo-deal";
 import { DescargarDeals } from "@/components/deals/descargar-deals";
 import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
-import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
-import { cohorteActiva } from "@/lib/queries/cohortes";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import Link from "next/link";
@@ -50,24 +49,24 @@ type Props = {
  * programa completo, igual que un gerente (ADR 0048, dentro de su programa ve todo).
  */
 export default async function DealsDelProgramaPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  const session = await paginaConRol(...ROLES_DE_OPERACION);
 
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
 
-  const alcanceDeals = await alcanceDeDeals(session);
   const busqueda = await searchParams;
-  const activa = await cohorteActiva(programa.id, db);
   // La vista decide columnas, no cifras (ADR 0103): sin `vista` en la URL, la última de la persona.
-  const vista = vistaDelTablero(busqueda, (await cookies()).get(COOKIE_VISTA_DEL_TABLERO)?.value ?? null);
-  const filtros = { ...parsearFiltros(busqueda, undefined, activa?.id ?? null), vista };
+  const tableroLeido = await tableroDeDealsParaActor(
+    db,
+    programa.id,
+    session,
+    busqueda,
+    (await cookies()).get(COOKIE_VISTA_DEL_TABLERO)?.value ?? null,
+  );
+  const { alcance: alcanceDeals, activa, vista, filtros, tablero, opciones } = tableroLeido;
   const origen = origenDeLaPagina(`/p/${programa.slug}/deals`, busqueda);
-  const [tablero, opciones] = await Promise.all([
-    tableroKanban(db, programa.id, alcanceDeals, filtros),
-    opcionesDeTablero(db, programa.id),
-  ]);
   const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
   const destinosDeCorreccionPorDeal = Object.fromEntries(tarjetas.map((tarjeta) => [
     tarjeta.dealId,

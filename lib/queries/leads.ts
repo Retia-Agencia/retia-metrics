@@ -37,12 +37,18 @@ export interface FiltroLeads {
   duplicado?: boolean;
   /** Sobre qué fecha y en qué días `YYYY-MM-DD` de Bogotá, inclusive (ticket 141). */
   fecha?: { campo: CampoDeFechaDeLead; rango: Rango } | null;
-  orden?: { campo: "actividad" | "creado" | "nombre"; sentido: "asc" | "desc" };
+  orden?: { campo: OrdenDeLeads; sentido: SentidoDeOrdenDeLeads };
   /** Desde 0. */
   pagina?: number;
+  /** Tamaño interno de página; la pantalla conserva 100 y el MCP usa 50. */
+  porPagina?: number;
 }
 
 export const LEADS_POR_PAGINA = 100;
+export const ORDENES_DE_LEADS = ["actividad", "creado", "nombre"] as const;
+export const SENTIDOS_DE_ORDEN_DE_LEADS = ["asc", "desc"] as const;
+export type OrdenDeLeads = (typeof ORDENES_DE_LEADS)[number];
+export type SentidoDeOrdenDeLeads = (typeof SENTIDOS_DE_ORDEN_DE_LEADS)[number];
 
 /** Las calidades que manda un formulario (ADR 0069; 30X tiene tres) y la cubeta de las que faltan. */
 export const CALIDADES_DE_LEAD = ["high", "mid", "low", "sin_calidad"] as const;
@@ -154,6 +160,7 @@ export async function leadsDelPrograma(
 
   const [{ total }] = await db.select({ total: count() }).from(leads).where(donde);
   const pagina = Math.max(0, filtro.pagina ?? 0);
+  const porPagina = Math.max(1, Math.min(LEADS_POR_PAGINA, filtro.porPagina ?? LEADS_POR_PAGINA));
   const orden = filtro.orden ?? { campo: "actividad", sentido: "desc" };
   const columnaDeOrden = orden.campo === "actividad"
     ? fechaDeActividad
@@ -178,8 +185,8 @@ export async function leadsDelPrograma(
     .from(leads)
     .where(donde)
     .orderBy(ordenPrimario, desc(leads.createdAt), asc(leads.id))
-    .limit(LEADS_POR_PAGINA)
-    .offset(pagina * LEADS_POR_PAGINA);
+    .limit(porPagina)
+    .offset(pagina * porPagina);
   if (base.length === 0) return { total, filas: [] };
 
   // Las marcas de la página, en lecturas por lote sobre SUS ids (no subconsultas correlacionadas).

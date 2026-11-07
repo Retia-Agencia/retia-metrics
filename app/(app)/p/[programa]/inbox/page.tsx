@@ -2,13 +2,12 @@ import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { motivos } from "@/lib/db/schema";
 import { duenosPosibles } from "@/lib/deals/duenos";
-import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
-import { inboxDelPrograma, perdidosEnCalendly, type AlcanceInbox } from "@/lib/queries/inbox";
+import { bandejaParaActor } from "@/lib/queries/operacion";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
@@ -56,7 +55,7 @@ const ID_ANTERIOR_DE_SECCION: Record<string, string> = {
  * de verdad vive en las server actions y en `lib/`, que rechazan igual una petición forjada.
  */
 export default async function InboxDelProgramaPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  const session = await paginaConRol(...ROLES_DE_OPERACION);
 
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
@@ -64,19 +63,17 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
   if (!programa || !esRolValido(rol)) notFound();
 
   const administra = esAdministrador(rol);
-  const actor = { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
-  const puedeTrabajar = trabajaLeads(actor);
+  const bandejaPendiente = bandejaParaActor(db, programa.id, session, rol);
   const query = await searchParams;
-  // Un administrador ve el equipo entero; el closer (y el developer en vista closer) ve lo suyo.
-  const alcance: AlcanceInbox = administra ? "equipo" : { ownerUserId: session.user.id };
 
-  const [inbox, perdidos, secciones, duenos, motivosFilas] = await Promise.all([
-    inboxDelPrograma(db, programa.id, alcance, undefined, undefined, actor),
-    perdidosEnCalendly(db, programa.id),
-    seccionesSinDueno(db, programa.id),
+  const [bandeja, duenos, motivosFilas] = await Promise.all([
+    bandejaPendiente,
     duenosPosibles(db, programa.id),
     db.select().from(motivos).where(eq(motivos.activo, true)),
   ]);
+  if (!bandeja) notFound();
+  const { actor, inbox, perdidos, secciones } = bandeja;
+  const puedeTrabajar = trabajaLeads(actor);
 
   const motivosDeReagenda = motivosFilas
     .map((m) => ({ id: m.id, nombre: m.nombre, tipo: m.tipo, pideTexto: m.pideTexto }))

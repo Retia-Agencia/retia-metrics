@@ -27,6 +27,13 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-06: ticket 348, slice 2B-1 listo en el worktree `mcp-348-paso2a`, sin commit.** Se agregaron las cinco
+  herramientas MCP de operación (`buscar_leads`, `ficha_de_lead`, `ficha_de_deal`, `tablero_de_deals`, `bandeja`).
+  Las páginas y herramientas comparten guardas, filtros, actor/alcance, proyecciones, resolución de programa y enlaces;
+  `lib/mcp/` no hace SQL. Verificado: 31 pruebas focalizadas verdes, typecheck verde y lint sin errores (quedan seis
+  warnings preexistentes fuera del slice). En este sandbox `npm test -- …` no arranca porque `scripts/test.mjs` llama
+  `ps` y recibe `EPERM`; se ejecutó la misma lista con `npx vitest run`.
+
 - **2026-11-04: Weekly con Daniel y Hub › Hoy rediseñado (ticket 378).** Prioridades del weekly: atacar el Hub página
   por página y dejarlo pulido; éxito = datos reales, consultas estandarizadas y sin huecos, y trazabilidad (toda cifra
   abre su pop-up o lista). El plan quedó en `lo-que-toca-hacer.md` (raíz) y la transcripción en

@@ -15,6 +15,13 @@ export const ROLES = [
 ] as const;
 export type Rol = (typeof ROLES)[number];
 
+/** Guardas de las pantallas operativas y de sus adaptadores MCP (ticket 348). */
+export const ROLES_DE_OPERACION = ["gerente", "closer"] as const satisfies readonly Rol[];
+export const ROLES_DE_FICHA_DE_LEAD = [
+  ...ROLES_DE_OPERACION,
+  "customer_success",
+] as const satisfies readonly Rol[];
+
 /**
  * Cómo se nombra cada rol en la interfaz y en los mensajes (ticket 177). UNA sola copia:
  * antes estaba duplicada en `user-menu.tsx` y `perfil-de-mi-espacio.tsx`, y el 403 de
@@ -167,6 +174,14 @@ export function puedeAcceder(rol: Rol | undefined | null, permitidos: readonly R
   if (!rol) return false;
   if (esAccesoTotal(rol)) return true;
   return permitidos.includes(rol);
+}
+
+export function puedeVerOperacion(rol: Rol | undefined | null): boolean {
+  return puedeAcceder(rol, ROLES_DE_OPERACION);
+}
+
+export function puedeVerFichaDeLead(rol: Rol | undefined | null): boolean {
+  return puedeAcceder(rol, ROLES_DE_FICHA_DE_LEAD);
 }
 
 /**

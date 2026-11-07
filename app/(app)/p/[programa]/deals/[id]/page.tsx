@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, esRolValido, trabajaLeads, veDetalleTecnico } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeDecidirDuplicado, puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
-import { alertasDelDeal, fichaDeDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
+import { alertasDelDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
@@ -24,10 +24,11 @@ import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
 import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
 import { FichaCierre } from "@/components/deals/ficha/ficha-cierre";
-import { alcanceDeDeals, dealVisiblePara } from "@/lib/auth/alcance-deals";
+import { fichaDeDealVisible } from "@/lib/queries/operacion";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { marcarDealVisto } from "@/lib/deals/cambiar-dueno";
 import { hoyEnBogota } from "@/lib/format";
+import { esIdOpaco } from "@/lib/identificadores";
 import {
   cargarHechosDeEscaleraDeDeal,
   escalonDeDeal,
@@ -38,8 +39,6 @@ import {
 export const dynamic = "force-dynamic";
 
 type Props = { params: Promise<{ programa: string; id: string }>; searchParams?: Promise<{ desde?: string }> };
-
-const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * La ficha de un deal (ticket 074): todo lo de una oportunidad en una pantalla, para que el
@@ -53,19 +52,17 @@ const ES_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * en las funciones de `lib/deals/`, que rechazan igual una peticion forjada.
  */
 export default async function FichaDelDealPage({ params, searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer");
+  const session = await paginaConRol(...ROLES_DE_OPERACION);
 
   const { programa: slug, id } = await params;
   const { desde } = (await searchParams) ?? {};
   const rol = await rolDeVista(session);
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa || !ES_UUID.test(id) || !esRolValido(rol)) notFound();
+  if (!programa || !esIdOpaco(id) || !esRolValido(rol)) notFound();
 
-  const actor = { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser };
-  const ficha = await fichaDeDeal(db, programa.id, id, veDetalleTecnico(rol), actor);
-  if (!ficha) notFound();
-  const alcanceDeals = await alcanceDeDeals(session);
-  if (!dealVisiblePara(alcanceDeals, ficha.owner?.id ?? null)) notFound();
+  const resultado = await fichaDeDealVisible(db, programa.id, id, session, rol);
+  if (!resultado) notFound();
+  const { ficha, actor } = resultado;
   // Una vista suplantada no consume la señal de la persona real. Para el dueño normal,
   // abrir esta ficha es exactamente el gesto que marca el Deal como visto.
   const real = await requireSesionReal();

@@ -121,7 +121,15 @@ describe("ruta MCP real", () => {
     expect(inicial.result).toBeTruthy();
     const listado = await json(await post("tools/list", {}, tokenCloser.valor));
     expect((listado.result as { tools: { name: string }[] }).tools.map((t) => t.name))
-      .toEqual(["programas_visibles", "consultar_metrica"]);
+      .toEqual([
+        "programas_visibles",
+        "consultar_metrica",
+        "buscar_leads",
+        "ficha_de_lead",
+        "ficha_de_deal",
+        "tablero_de_deals",
+        "bandeja",
+      ]);
     expect(estructurado(await llamar(tokenCloser.valor))).toEqual([
       { nombre: "Visible A", slug: "visible-a" },
     ]);
