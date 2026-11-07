@@ -307,13 +307,13 @@ a fase 2.
 | [ ] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | todo · 30-oct · auditoría · espera DA-3 (Mani) y DA-4 (con Pauta) |
 | [ ] | 354 | [Cada hecho con su día, y registro, lead y "sin UTM" una vez](./354-anclas-de-fecha-registros-y-sin-utm.md) | — | todo · 30-oct · auditoría (C-04 parciales sin fecha) |
 | [ ] | 355 | [Pauta: un cargador y una tabla](./355-pauta-un-cargador-y-una-tabla.md) | 351, 352, 353, 354 | todo · 30-oct · auditoría · borra `pauta-interina` |
-| [ ] | 356 | [La comisión siempre congelada](./356-la-comision-siempre-congelada.md) | — | todo · 30-oct · auditoría (C-09: 25 ventas sin %) · backfill con ok de Mani |
+| [x] | 356 | [La comisión siempre congelada](./356-la-comision-siempre-congelada.md) | — | done · 7-nov · reja en `moverEtapa` y backfill aplicado el 30-oct (`76b2b5db`, `597fa7a2`); verificado el 7-nov: 0 ventas vigentes sin % (385 F0) |
 | [x] | 357 | [Un vocabulario de métricas, y un guardián](./357-un-vocabulario-de-metricas.md) | — | reemplazado · 3-nov · por el 374, con la parte del Hub del 358 y del 359 |
 | [ ] | 358 | [Formato único, insignias únicas y la regla del vacío](./358-formato-unico-y-estados-vacios.md) | 357 | todo · 30-oct · auditoría · espera DA-7 (Gerencia) · **enmendado 3-nov: la parte del Hub la hace el 374; fase 2** |
 | [ ] | 359 | [La pantalla sin jerga, y podada](./359-la-pantalla-sin-jerga-y-podada.md) | 357 | todo · 30-oct · auditoría · espera DA-6 (Mani) · **enmendado 3-nov: Hub → 374, Comercial → 372; fase 2** |
 | [ ] | 360 | [Filtros: un nombre por parámetro y un componente de fecha](./360-filtros-un-nombre-y-un-componente.md) | — | todo · 30-oct · auditoría · **enmendado 3-nov: filtros del Hub → 377; quedan las listas, fase 2** |
 | [ ] | 361 | [Retiro de lo muerto, y el guardián del diccionario](./361-retiro-de-lo-muerto.md) | — | todo · 30-oct · auditoría · ADR 0115 N7 |
-| [ ] | 362 | [Documentos sin contradicciones, y el tracker que no miente](./362-documentos-sin-contradicciones.md) | — | todo · 30-oct · auditoría · ADR 0115 N8, N9 |
+| [x] | 362 | [Documentos sin contradicciones, y el tracker que no miente](./362-documentos-sin-contradicciones.md) | — | done · 7-nov · K-01 a K-11 y `tests/tracker-coherente.test.ts` (`1ae0543d`, `c9c5ec85`); cerrado con evidencia en 385 F0 |
 | [ ] | 363 | [Llamadas sueltas: emparejar por el uuid de la cita, sin importar el orden ni el correo](./363-llamadas-sueltas-sugerencias-y-rematch.md) | — | todo · 30-oct · Inbox · ADR 0049 |
 | [ ] | 364 | [El link de la llamada a un clic, y el aviso cuando la cita es manual](./364-link-de-la-llamada-y-aviso-de-cita-manual.md) | — | todo · 30-oct · Kanban · A-137 |
 | [x] | 365 | [La búsqueda de una lista sobrevive al abrir una ficha y volver](./365-la-busqueda-sobrevive-al-volver.md) | — | done · 31-oct · Volver conserva el estado en todo el CRM · A-172 · ADR 0116 |

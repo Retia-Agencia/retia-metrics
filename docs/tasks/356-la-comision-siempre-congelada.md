@@ -3,7 +3,7 @@ id: 356
 etapa: dinero
 serves: "ADR 0115 N6 · auditoría 30-oct C-09, C-16"
 depends: []
-status: todo
+status: done
 ---
 
 # 356 — La comisión siempre congelada, y quién es "el closer" de cada cifra
@@ -40,3 +40,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
 
 > 30-oct: "AI Second Brain Jurídico" estaba activo y sin %; la reja le habría bloqueado la primera venta. Mani pidió 8 % y se cargó en producción por `editarPrograma` (queda en `change_log`).
+
+## Cierre (7-nov, auditoría 385 F0)
+
+Reclasificado como hecho con evidencia: todas las casillas del "Done cuando" marcadas; detalle y comprobaciones en `docs/auditoria-datos-2026-11/f0-linea-base.md` §2. Antes quedaba `todo` en el tracker y en el archivo por no haberse cerrado la fila.

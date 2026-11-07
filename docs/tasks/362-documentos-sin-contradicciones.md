@@ -3,7 +3,7 @@ id: 362
 etapa: plataforma
 serves: "ADR 0115 N8, N9 · auditoría 30-oct K-01 a K-11"
 depends: []
-status: todo
+status: done
 ---
 
 # 362 — Documentos sin contradicciones, y el tracker que no miente
@@ -65,3 +65,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
   `tests/ingesta-estado.test.ts:44`) y la redirección de `/ajustes/canales` que deja afuera al paid trafficker van al
   **361**; el closer veía el Hub de "todos" aunque el de un programa le respondía 404: Mani decidió quitárselo (HUB-1)
   y quedó hecho el mismo día (enmienda del 30-oct al ADR 0082). Nada de esto se midió en el navegador.
+
+## Cierre (7-nov, auditoría 385 F0)
+
+Reclasificado como hecho con evidencia: todas las casillas del "Done cuando" marcadas; detalle y comprobaciones en `docs/auditoria-datos-2026-11/f0-linea-base.md` §2. Antes quedaba `todo` en el tracker y en el archivo por no haberse cerrado la fila.
