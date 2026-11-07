@@ -149,7 +149,7 @@ Para que **el servidor entregue la gráfica o el tablero ya hechos**, el estánd
 herramienta referencia un recurso `ui://` con HTML (`text/html;profile=mcp-app`) que el cliente muestra en un iframe
 con sandbox y que habla con el servidor por JSON-RPC. Es opcional y se negocia por cliente. **Decisión (7-nov):** no se
 construye todavía; primero la salida limpia del 385 (una gráfica sobre cifras ambiguas las hace más creíbles, no más
-correctas). Cuando se haga, será un ticket propio que reutilice el tema de Tinta y las series de `lib/series-pasos.ts`.
+correctas). Cuando se haga, será el ticket 387 (junto con la administración visual y la evaluación de descubrimiento), que reutilice el tema de Tinta y las series de `lib/series-pasos.ts`.
 
 ## 9. Fuentes
 

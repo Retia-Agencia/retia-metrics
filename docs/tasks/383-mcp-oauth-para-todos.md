@@ -153,6 +153,21 @@ nullable, sin reescribir las existentes.
 - Ningún secreto (código, acceso, refresh) aparece en `change_log`, en la bitácora ni en una respuesta que no sea la de
   `/api/oauth/token` (guardián o test de lectura).
 
+## Antes de abrir el MCP a otros roles (hallazgos de la revisión del 7-nov, `docs/mcp.md` §7)
+
+Hoy solo el developer emite tokens, así que estos huecos no bloquean. **Con closers, gerentes y paid traffickers
+conectados sí**, y se resuelven en este ticket, con su test cada uno:
+
+- **Caducidad de tokens** (y de los de OAuth): columna de vencimiento, `verificarToken` la exige y Mi espacio la muestra.
+- **Retención de `mcp_llamadas`:** borrar o agregar lo anterior a N días; crece con cada llamada y se lee en cada una
+  (el tope por minuto), así que su tamaño es latencia.
+- **Paginar `tablero_de_deals` y `cartera_vencida`:** hoy devuelven todo; a escala es una respuesta enorme y un costo de
+  contexto para el cliente. Tope por defecto y `haySiguiente`, como `buscar_leads`.
+- **Tope por minuto atómico:** el SELECT de `segundosDeEspera` admite un pequeño sobrepaso con llamadas simultáneas;
+  pasarlo a un contador atómico o aceptar y documentar el margen.
+- **Revisión de petición forjada por cada rol nuevo** (closer, gerente limitado, customer success, paid trafficker):
+  repetir el método de `tests/mcp-ruta.test.ts` con el token de cada uno contra cada herramienta que no le toca.
+
 ## Done cuando
 
 - [ ] El Owner agrega el conector en claude.ai; un closer y un gerente se conectan con su propia cuenta desde web,
@@ -163,6 +178,7 @@ nullable, sin reescribir las existentes.
 - [ ] Desconectar desde Mi espacio o revocar desde Ajustes › Usuarios corta en la siguiente llamada.
 - [ ] Tests de arriba en verde; typecheck, lint y `npm run build` limpios; recorrido de la pantalla de consentimiento
       en escritorio y celular (`npm run test:humo` sigue verde).
+- [ ] Los cinco puntos de "Antes de abrir el MCP a otros roles" resueltos y probados.
 - [ ] `docs/operations.md` con la guía de conexión; tracker y `status:` iguales.
 
 ## Fuera de este ticket

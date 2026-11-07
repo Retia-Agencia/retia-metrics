@@ -447,6 +447,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 384 | [El MCP del CRM: escrituras con vista previa](./384-mcp-escrituras.md) | 348 | todo · ADR 0119 punto 8 · lleva migración (origen `mcp`) |
 | [ ] | 385 | [Integridad de las tools de métricas del MCP y auditoría del modelo de datos](./385-mcp-integridad-de-tools-de-metricas.md) | 348 | todo · pedido de Mani del 6-nov: montar el MCP no es definir sus tools · sin migraciones, solo informe |
 | [ ] | 386 | [Integridad de las tools de operación del MCP, por rol](./386-mcp-integridad-de-tools-de-operacion.md) | 348, 384 | todo · pedido de Mani del 6-nov |
+| [ ] | 387 | [El MCP del CRM: administración visual, evaluación de descubrimiento y visualizaciones](./387-mcp-administracion-visual-y-visualizaciones.md) | 348, 385 | idea · 7-nov · pedido de Mani: ver y administrar el MCP sin código y gráficas en el chat · docs/mcp.md §7 y §8 |
 | [x] | 349 | [Hub › Pauta: no shows por origen, cifras que abren sus personas y periodo visible](./349-pauta-no-shows-y-listas-por-origen.md) | 093, 251, 262 | done · 29-oct · build limpio y revisado en pantalla (base local) |
 | [x] | 350 | [ROAS por anuncio y campaña, y el registro de llamadas exportable](./350-roas-y-llamadas-por-anuncio-y-campana.md) | 123, 247, 349 | done · 29-oct · Codex + revisión; build y recorrido como paid trafficker (base local, sin árbol de Meta); falta checkpoint |
 

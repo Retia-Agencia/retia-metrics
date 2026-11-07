@@ -35,9 +35,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   developer emite y revoca). Páginas y herramientas comparten guardas, filtros y proyecciones; `lib/mcp/` no hace SQL.
   Verificado el 7-nov en local: typecheck, lint y `next build` limpios; 136 tests focalizados verdes (MCP, guardianes,
   páginas y consultas tocadas); la suite completa la valida el CI. Migración 0117 ya aplicada en producción. Se
-  agregaron topes de longitud a `programa`, `id`, `q` y `cohorte` de las herramientas. **Falta del 348:** probar
-  `claude mcp add` contra un cliente real, forjar la petición (token revocado, usuario inactivo, rol sin permiso, vista
-  ajena) a mano, y la sección de `docs/operations.md` (conectarse y revocar); el ticket sigue sin marcar `done`.
+  agregaron topes de longitud a `programa`, `id`, `q` y `cohorte` de las herramientas. **Falta del 348 (7-nov, tarde):** solo la prueba manual del developer (conectar con `claude mcp add` y comparar una cifra con el Hub); las peticiones forjadas y `operations.md` §8.1 ya están hechas, y el ticket queda `en main` hasta esa prueba. La primera prueba real (Tactical, octubre) funcionó y dejó tres hallazgos escritos en el ticket 385: dos cifras de "ventas" sin distinguir (17 contra 11), la salida con nombres internos, y la latencia, que era del cliente (96 y 890 ms en el servidor). Se agregaron las instrucciones del servidor (`lib/mcp/instrucciones.ts`) y el contrato de mantenimiento (`docs/mcp.md`, `tests/mcp-contrato.test.ts`). Lo que sigue: 385 y 386 (integridad de las herramientas), luego 383 (OAuth, con su lista "Antes de abrir el MCP a otros roles"), 384 (escrituras) y 387 (administración visual y gráficas, en `idea`).
   **Huecos conocidos, no bloqueantes mientras solo el developer emita tokens:** (1) los tokens no caducan; (2)
   `mcp_llamadas` crece sin retención; (3) `tablero_de_deals` y `cartera_vencida` no paginan (respuesta grande a escala);
   (4) el tope por minuto cuenta con un SELECT y admite un pequeño sobrepaso bajo ráfaga concurrente. Revisarlos en el 383 antes de abrir el
