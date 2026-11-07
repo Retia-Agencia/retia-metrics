@@ -27,12 +27,22 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
-- **2026-11-06: ticket 348, slice 2B-1 listo en el worktree `mcp-348-paso2a`, sin commit.** Se agregaron las cinco
-  herramientas MCP de operación (`buscar_leads`, `ficha_de_lead`, `ficha_de_deal`, `tablero_de_deals`, `bandeja`).
-  Las páginas y herramientas comparten guardas, filtros, actor/alcance, proyecciones, resolución de programa y enlaces;
-  `lib/mcp/` no hace SQL. Verificado: 31 pruebas focalizadas verdes, typecheck verde y lint sin errores (quedan seis
-  warnings preexistentes fuera del slice). En este sandbox `npm test -- …` no arranca porque `scripts/test.mjs` llama
-  `ps` y recibe `EPERM`; se ejecutó la misma lista con `npx vitest run`.
+- **2026-11-07: MCP del CRM, pasos 0 a 2C mergeados a main (ticket 348).** Servidor `/api/mcp` con token personal
+  (hash sha256, revocable, scope lectura/escritura, tope de 300 llamadas por minuto y bitácora en `mcp_llamadas`) y once
+  herramientas de solo lectura: `programas_visibles`, `resumen_del_hub`, `consultar_metrica`, las cinco de operación
+  (`buscar_leads`, `ficha_de_lead`, `ficha_de_deal`, `tablero_de_deals`, `bandeja`) y las tres de decisión
+  (`cartera_vencida`, `pauta_roas`, `origen_del_programa`), más la sección "Conexiones de IA" en Mi espacio (solo
+  developer emite y revoca). Páginas y herramientas comparten guardas, filtros y proyecciones; `lib/mcp/` no hace SQL.
+  Verificado el 7-nov en local: typecheck, lint y `next build` limpios; 136 tests focalizados verdes (MCP, guardianes,
+  páginas y consultas tocadas); la suite completa la valida el CI. Migración 0117 ya aplicada en producción. Se
+  agregaron topes de longitud a `programa`, `id`, `q` y `cohorte` de las herramientas. **Falta del 348:** probar
+  `claude mcp add` contra un cliente real, forjar la petición (token revocado, usuario inactivo, rol sin permiso, vista
+  ajena) a mano, y la sección de `docs/operations.md` (conectarse y revocar); el ticket sigue sin marcar `done`.
+  **Huecos conocidos, no bloqueantes mientras solo el developer emita tokens:** (1) los tokens no caducan; (2)
+  `mcp_llamadas` crece sin retención; (3) `tablero_de_deals` y `cartera_vencida` no paginan (respuesta grande a escala);
+  (4) el tope por minuto cuenta con un SELECT y admite un pequeño sobrepaso bajo ráfaga concurrente; (5) `q` de
+  `buscar_leads` y del tablero no tiene máximo (comparte esquema con la pantalla). Revisarlos en el 383 antes de abrir el
+  MCP a otros roles.
 
 - **2026-11-04: Weekly con Daniel y Hub › Hoy rediseñado (ticket 378).** Prioridades del weekly: atacar el Hub página
   por página y dejarlo pulido; éxito = datos reales, consultas estandarizadas y sin huecos, y trazabilidad (toda cifra

@@ -13,7 +13,7 @@ import { bandejaParaActor, fichaDeDealVisible, fichaDeLeadParaActor, tableroDeDe
 import { programaVisible } from "./programa";
 import type { Herramienta } from "./tipos";
 
-const programa = z.string().min(1);
+const programa = z.string().min(1).max(100);
 const pagina = z.number().int().min(1).max(1_000_000).default(1);
 
 const entradaBuscar = z.object({ programa, ...camposDeFiltrosDeLeads, pagina }).strict();

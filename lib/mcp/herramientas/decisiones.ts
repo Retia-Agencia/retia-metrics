@@ -21,7 +21,7 @@ import { busquedaDePeriodoMcp, camposDePeriodoMcp, type EntradaDePeriodoMcp } fr
 import { programaVisible } from "./programa";
 import type { ContextoMcp, Herramienta } from "./tipos";
 
-const programa = z.string().min(1);
+const programa = z.string().min(1).max(100);
 
 async function programaVisibleConCapacidad(
   contexto: ContextoMcp,
@@ -34,9 +34,9 @@ async function programaVisibleConCapacidad(
 
 const entradaCartera = z.object({
   programa,
-  cohorte: z.string().min(1).optional(),
+  cohorte: z.string().min(1).max(100).optional(),
   onboarding: z.enum(ONBOARDING_STUDENTS).optional(),
-  q: z.string().optional(),
+  q: z.string().max(200).optional(),
   orden: z.enum(VALORES_ORDEN_STUDENTS).optional(),
 }).strict();
 
@@ -90,7 +90,7 @@ const entradaRoas = z.object({
   programa,
   ...camposDePeriodoMcp,
   nivel: z.enum(NIVELES_PAUTA).default(NIVEL_PAUTA_POR_DEFECTO),
-  id: z.string().min(1).optional(),
+  id: z.string().min(1).max(200).optional(),
 }).strict();
 
 async function rangoDelHub(contexto: ContextoMcp, programId: string, entrada: EntradaDePeriodoMcp) {
