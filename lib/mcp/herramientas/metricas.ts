@@ -14,7 +14,7 @@ import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/v
 import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/queries/vista-metrica";
 import type { Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
-import { enlaceDeDeal, enlaceDeLead } from "@/lib/mcp/enlaces";
+import { enlaceDeDeal, enlaceDeLead, enlaceDeSeccionHub } from "@/lib/mcp/enlaces";
 import { busquedaDePeriodoMcp, camposDePeriodoMcp } from "./periodo";
 
 function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
@@ -42,6 +42,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
     const vista = proyectarDashboardSegunRol(sinProyectar, contexto.rol);
     const grupo = vista.embudo.grupo;
     const caja = vista.caja.map((valor) => monto(valor.total, valor.moneda));
+    const enlace = enlaceDeSeccionHub(programa.slug, "comercial");
     const lineas = [
       `Programa: ${programa.nombre}`,
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
@@ -52,8 +53,9 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       tasaLegible("Show", vista.embudo.pctShow, grupo.cobertura, grupo.parcial),
       tasaLegible("Cierre", vista.embudo.pctCierre, grupo.cobertura, grupo.parcial),
       tasaLegible("Agenda a venta", vista.embudo.agendaAVenta, grupo.cobertura, grupo.parcial),
+      enlace,
     ];
-    return { texto: lineas.join("\n"), estructurado: { programa: { nombre: programa.nombre, slug: programa.slug }, vista } };
+    return { texto: lineas.join("\n"), estructurado: { programa: { nombre: programa.nombre, slug: programa.slug }, enlace, vista } };
   },
 };
 

@@ -119,6 +119,11 @@ describe("ruta MCP real", () => {
       clientInfo: { name: "vitest", version: "1" },
     }, tokenCloser.valor));
     expect(inicial.result).toBeTruthy();
+    // Guía de uso para el cliente: nombra cada herramienta que el servidor registra para este rol.
+    const instrucciones = (inicial.result as { instructions?: string }).instructions ?? "";
+    for (const nombre of ["programas_visibles", "resumen_del_hub", "consultar_metrica", "buscar_leads", "cartera_vencida"]) {
+      expect(instrucciones).toContain(nombre);
+    }
     const listado = await json(await post("tools/list", {}, tokenCloser.valor));
     expect((listado.result as { tools: { name: string }[] }).tools.map((t) => t.name))
       .toEqual([
