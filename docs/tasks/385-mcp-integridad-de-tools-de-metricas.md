@@ -230,7 +230,13 @@ Al cerrar F3 se escribe el plan: tickets hijos por causa (con dependencias y arc
 `docs/plan-reparto.md`), orden sugerido (primero lo que da cifras falsas hoy, luego duplicados, luego nombres, luego
 limpieza), y la cola de migraciones con su ADR cada una. Los siete tickets abiertos del 30-oct se reubican aquí.
 
-## 4. Decisiones abiertas (a resolver con Mani en un grill antes de F4)
+## 4. Decisiones (resueltas con Mani el 7-nov, tras F2; el texto de cada una es la pregunta original)
+
+**Resolución:** (1) **registro tipado en código** como fuente de verdad, con test de que `docs/metricas.md` no diverge;
+(2) **números dorados como test sobre base sembrada determinista**, con los casos que producción no tiene (F2 midió 7 de 11
+ausentes); (3) **tablas de hechos primero**, el resto en un segundo pase solo si un hijo de F7 las toca; (4) **se congelan
+solo las pantallas nuevas que usen ventas, leads o agendas** hasta que F4/F5 fijen los nombres (F2-01, F2-02, F2-03);
+(5) **cifras antes de F4** (353, 354 y lo que queda del 351), **forma después de F5** (358 a 361).
 
 1. ¿Registro de métricas tipado como fuente de verdad del diccionario, o el diccionario sigue siendo la fuente y el código
    lo verifica? (Recomendación: registro tipado, con test de que `docs/metricas.md` no diverge. A confirmar tras F1.)

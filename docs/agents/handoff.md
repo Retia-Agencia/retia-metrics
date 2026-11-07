@@ -27,6 +27,14 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-07 (tarde-noche): F2 hecha y las cinco decisiones del 385 resueltas** (`docs/auditoria-datos-2026-11/f2-paridad.md`,
+  `f6-investigacion.md`, ticket 385 §4). F2: SQL independiente contra Hub, MCP y Students, 0 diferencias en cifras principales; 7
+  hallazgos de definición (caso 0: 17 ventas = 11 con cita ocurrida + 6 sin cita; leads con tres universos, +55 % en Confianza; agendas
+  por cita contra creadas; cita sin resultado con dos reglas; ADR 0048 dice 5 correos en dos programas y hoy son 49). Decisiones:
+  registro tipado en código, dorados sobre base sembrada, hechos primero, congelar pantallas nuevas con ventas/leads/agendas, cifras
+  (353, 354, resto de 351) antes de F4 y forma (358 a 361) después de F5. **Sigue:** 353 y 354 (esperan DA-3 de Mani y DA-4 de Pauta;
+  354 es independiente y puede abrirse ya), luego F4, F5, F6 (redactar el contrato con la investigación ya hecha) y F7 (tickets hijos
+  y cola de migraciones). F2 quedó sin cubrir metas, Pauta/ROAS, gasto convertido, WhatsApp, CSV, Mi espacio ni las otras 9 tools del MCP.
 - **2026-11-07 (noche): F0, F1 y F3 del 385 hechas e integradas a main** (informes en `docs/auditoria-datos-2026-11/`,
   solo lectura). F1: 29 hallazgos (una "venta" con un predicado y seis recorridos, "agendas" con cuatro universos, "show"
   con siete cuentas, "sin UTM" con tres definiciones, cobertura en tres formas). F3: 19 hallazgos; los altos son 784 leads
