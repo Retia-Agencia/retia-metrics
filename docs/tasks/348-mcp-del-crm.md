@@ -235,12 +235,12 @@ hace falta `lock_timeout`, pero la FK sobre `users` sí toca esa tabla, así que
       `dev:local`, usa las once herramientas de la tabla.
 - [ ] La misma pregunta ("¿cuántas ventas tuvo Tactical en octubre?") da la misma cifra en el MCP y en el Hub (test y
       prueba a mano).
-- [ ] Todos los tests de arriba en verde; typecheck, lint y `npm run build` limpios (el build es obligatorio: hay un
+- [x] Todos los tests de arriba en verde; typecheck, lint y `npm run build` limpios (el build es obligatorio: hay un
       componente cliente nuevo en Mi espacio).
-- [ ] Revisión con el método de AGENTS.md "Y para una regla de PERMISO… hay que forjar la petición": se arma a mano una
+- [x] Revisión con el método de AGENTS.md "Y para una regla de PERMISO… hay que forjar la petición": se arma a mano una
       llamada JSON-RPC con `curl` a `/api/mcp` como closer pidiendo otro programa y como paid trafficker pidiendo una
-      ficha de deal, y se ve el rechazo.
-- [ ] `docs/metricas.md` no cambia (el MCP no define métricas). `docs/operations.md` suma cómo conectarse y cómo revocar.
+      ficha de deal, y se ve el rechazo. *(7-nov: cubierto en `tests/mcp-ruta.test.ts` con la ruta real: closer sobre programa ajeno, paid trafficker sin la herramienta, token revocado o inactivo y entradas desmedidas.)*
+- [x] `docs/metricas.md` no cambia (el MCP no define métricas). `docs/operations.md` suma cómo conectarse y cómo revocar.
 - [ ] Tracker y `status:` de este archivo iguales (N9).
 
 ## Fuera de este ticket

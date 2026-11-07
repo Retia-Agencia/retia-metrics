@@ -221,6 +221,46 @@ describe("ruta MCP real", () => {
     expect(JSON.stringify(respuesta)).not.toContain("secreto-del-driver-no-debe-salir");
   });
 
+  it("petición forjada: un closer pide un deal de un programa ajeno y queda denegado y auditado", async () => {
+    const respuesta = await json(await post("tools/call", {
+      name: "ficha_de_deal",
+      arguments: { programa: "ajeno-b", id: crypto.randomUUID() },
+    }, tokenCloser.valor));
+    const resultado = respuesta.result as { isError: boolean; content: { text: string }[] };
+    expect(resultado.isError).toBe(true);
+    expect(resultado.content[0].text).toBe("No existe ese programa");
+    const filas = await db.select().from(mcpLlamadas).where(eq(mcpLlamadas.tokenId, tokenCloser.id));
+    expect(filas.at(-1)).toMatchObject({ herramienta: "ficha_de_deal", resultado: "denegado" });
+  });
+
+  it("petición forjada: un paid trafficker no tiene la herramienta de fichas de deal", async () => {
+    const [paid] = await db.insert(users).values({
+      email: "paid-mcp@retia.test", nombre: "Paid", rol: "paid_trafficker",
+    }).returning();
+    const token = await emitirTokenPersonal(db, {
+      userId: paid.id, actorId: paid.id, nombre: "Paid", scope: "lectura",
+    });
+    const listado = await json(await post("tools/list", {}, token.valor));
+    const nombres = (listado.result as { tools: { name: string }[] }).tools.map((t) => t.name);
+    expect(nombres).not.toContain("ficha_de_deal");
+    expect(nombres).not.toContain("buscar_leads");
+
+    const respuesta = await json(await post("tools/call", {
+      name: "ficha_de_deal",
+      arguments: { programa: "visible-a", id: crypto.randomUUID() },
+    }, token.valor));
+    expect(JSON.stringify(respuesta)).not.toContain("structuredContent");
+    expect(respuesta.error ?? (respuesta.result as { isError?: boolean }).isError).toBeTruthy();
+  });
+
+  it("rechaza entradas con texto desmedido sin ejecutar la herramienta", async () => {
+    const respuesta = await json(await post("tools/call", {
+      name: "buscar_leads",
+      arguments: { programa: "x".repeat(500), q: "ab" },
+    }, tokenCloser.valor));
+    expect(respuesta.error ?? (respuesta.result as { isError?: boolean }).isError).toBeTruthy();
+  });
+
   it("publica ambas variantes de metadata sin sesión", async () => {
     const principal = await import("@/app/.well-known/oauth-protected-resource/route");
     const sufijo = await import("@/app/.well-known/oauth-protected-resource/api/mcp/route");
