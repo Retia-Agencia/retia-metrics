@@ -1,6 +1,6 @@
 import { and, asc, between, eq, gt, inArray, isNotNull, isNull, lte, ne, notExists, notInArray, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
-import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { vigente } from "@/lib/queries/vigente";
@@ -15,6 +15,7 @@ import {
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
+import { diaDeCreacionDelDeal, diaDeEnvio, diaEnBogota } from "@/lib/queries/hechos/fechas";
 
 /**
  * Fecha de calendario (Bogota) que ancla una fila de `calls`. Todo el embudo de
@@ -29,7 +30,7 @@ import type { Rango } from "@/lib/queries/dashboard";
  * (una llamada del 15-sep 22:00 Bogota contaria como del 16-sep).
  */
 export function fechaAnclaCall() {
-  return sql<string>`(coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada}) AT TIME ZONE 'America/Bogota')::date`;
+  return diaEnBogota(sql`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`);
 }
 
 /**
@@ -115,7 +116,7 @@ export { ETAPAS_VENDIDAS };
  * comision (ticket 062) se habria pagado dos veces. Sin error y con cifras creibles.
  */
 function diaDeVenta() {
-  return sql<string>`(min(${dealEtapaHistorial.fecha}) AT TIME ZONE 'America/Bogota')::date`;
+  return diaEnBogota(sql`min(${dealEtapaHistorial.fecha})`);
 }
 
 /**
@@ -307,7 +308,7 @@ export function filtroCortesias(alcance: Alcance, db: Db) {
 }
 
 export function fechaAnclaLead() {
-  return sql<string>`(${leads.fechaPrimeraAplicacion} AT TIME ZONE 'America/Bogota')::date`;
+  return diaEnBogota(leads.fechaPrimeraAplicacion);
 }
 
 export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcance, db?: Db) {
@@ -331,7 +332,7 @@ export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcanc
  * Exige un `left join` de `submissions` por `deals.submissionOrigenId`.
  */
 export function fechaAnclaDealCreado() {
-  return sql<string>`(coalesce(${submissions.fechaEnvio}, ${deals.createdAt}) AT TIME ZONE 'America/Bogota')::date`;
+  return diaDeCreacionDelDeal();
 }
 
 /**
@@ -340,12 +341,12 @@ export function fechaAnclaDealCreado() {
  * hoy para el martes es una agenda de hoy. Es la misma fecha que usa la vista interina de Pauta.
  */
 export function fechaAnclaAgendaCreada() {
-  return sql<string>`(${calls.createdAt} AT TIME ZONE 'America/Bogota')::date`;
+  return diaEnBogota(calls.createdAt);
 }
 
 /** El día (Bogotá) en que se completó un envío de formulario. */
 export function fechaAnclaEnvio() {
-  return sql<string>`(${submissions.fechaEnvio} AT TIME ZONE 'America/Bogota')::date`;
+  return diaDeEnvio();
 }
 
 /**
@@ -408,7 +409,7 @@ function leadsConFormularioCompleto(alcance: Alcance) {
     where "sources"."program_id" = ${alcance.programId}
       and "submissions"."lead_id" is not null
       and "submissions"."es_parcial" = false
-      and (coalesce("submissions"."fecha_envio", "submissions"."created_at") at time zone 'America/Bogota')::date <= ${alcance.rango.hasta}
+      and ${diaDeEnvio()} <= ${alcance.rango.hasta}
   )`;
 }
 

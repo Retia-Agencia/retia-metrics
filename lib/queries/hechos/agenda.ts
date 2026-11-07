@@ -9,7 +9,7 @@ import {
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
-import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
+import { dimensionesDeFecha, horaMinutoEnBogota } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -107,7 +107,7 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
   db: Db,
   opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {
-  const horaMinuto = sql<string>`to_char(${calls.createdAt} AT TIME ZONE 'America/Bogota', 'HH24:MI')`;
+  const horaMinuto = horaMinutoEnBogota(calls.createdAt);
   const construir = () => db.select({ callId: calls.id, dealId: calls.dealId, ...dimensiones, horaMinuto }).from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId)).where(and(

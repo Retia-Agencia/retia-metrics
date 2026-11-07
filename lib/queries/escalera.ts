@@ -8,7 +8,7 @@ import { diasHabilesEntre, diaDeCalendario, esDiaHabil } from "@/lib/dias-habile
 import { RESULTADOS_FALLIDOS, RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import type { Rango } from "@/lib/queries/dashboard";
 import { fechaAnclaCall, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
-import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
+import { diaDeCreacionDelDeal } from "@/lib/queries/hechos/fechas";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 /**
@@ -278,7 +278,7 @@ export async function cargarEscalera(
       calidad: submissions.leadQuality,
       envioId: submissions.id,
       envio: columnasUtmDelEnvio,
-      creado: dimensionesDeFecha(deals.createdAt).dia,
+      creado: diaDeCreacionDelDeal(),
     }).from(deals)
       .leftJoin(users, eq(users.id, deals.ownerUserId))
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))

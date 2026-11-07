@@ -14,7 +14,7 @@ import {
   grupoDeCierre,
   resumirEscalera,
 } from "@/lib/queries/escalera";
-import { listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { escaleraPorPrograma } from "@/lib/queries/escalera-todos";
 import { sumarConteos } from "@/lib/queries/agregado-programas";
@@ -109,6 +109,32 @@ async function porEscalon(corte?: number | null) {
 }
 
 describe("cargarEscalera: los siete escalones contra la base", () => {
+  it("Deals creados usa el mismo ancla de envío en el Hub y la escalera", async () => {
+    const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
+    const crear = async (sufijo: string, envioCreado: string, dealCreado: string) => {
+      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `ancla-${sufijo}@x.test` }).returning();
+      const [envio] = await db.insert(submissions).values({
+        leadId: lead.id, sourceId: fuente.id, token: sufijo, esParcial: true, fechaEnvio: null,
+        createdAt: new Date(`${envioCreado}T12:00:00-05:00`),
+      }).returning();
+      return db.insert(deals).values({
+        programId, leadId: lead.id, submissionOrigenId: envio.id, etapa: "contactado",
+        createdAt: new Date(`${dealCreado}T12:00:00-05:00`),
+      }).returning().then(([deal]) => deal.id);
+    };
+    const dentro = await crear("dentro", "2026-10-03", "2026-11-03");
+    const fuera = await crear("fuera", "2026-09-30", "2026-10-03");
+
+    const [hub] = await resumenDeMetrica("deals_creados", { programId, rango, hoy: rango.hasta }, db);
+    const escalera = await cargarEscalera(db, { programId, rango });
+    const idsEscalera = escalera.deals.map((deal) => deal.dealId);
+
+    expect(hub.subtotal.cantidad).toBe(1);
+    expect(idsEscalera).toContain(dentro);
+    expect(idsEscalera).not.toContain(fuera);
+    expect(idsEscalera).toHaveLength(hub.subtotal.cantidad);
+  });
+
   it("el loader de un deal coincide con cargarEscalera", async () => {
     const id = await sembrar({
       etapaVendida: true,

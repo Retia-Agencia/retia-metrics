@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray } from "drizzle-orm";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import type { Area } from "@/lib/atribucion/canal";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -14,6 +14,7 @@ import { etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { CLAVE_SIN_DUENO } from "@/lib/queries/embudo-con-filas";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
 import { diaDeCalendario } from "@/lib/dias-habiles";
+import { diaDeEnvio } from "@/lib/queries/hechos/fechas";
 
 /**
  * El embudo del formulario POR CANAL (ticket 126, parte A; `docs/analytics.md` §6): de las
@@ -94,9 +95,6 @@ export interface EmbudoDelFormulario {
   noAgendaron: number;
 }
 
-const diaDeEnvio = () => sql<string>`(${submissions.fechaEnvio} AT TIME ZONE 'America/Bogota')::date`;
-
-
 /**
  * Desde el inicio del rango sin tope: un token que empezó dentro puede completar después. El
  * tope lo pone el primer envío de cada token, en memoria.
@@ -110,6 +108,7 @@ function leerEnvios(db: Db, programId: string, desde: string) {
       esParcial: submissions.esParcial,
       dia: diaDeEnvio(),
       fechaEnvio: submissions.fechaEnvio,
+      createdAt: submissions.createdAt,
       calificacion: submissions.calificacion,
       leadQuality: submissions.leadQuality,
       ...columnasUtmDelEnvio,
@@ -120,7 +119,7 @@ function leerEnvios(db: Db, programId: string, desde: string) {
 }
 
 type EnvioLeido = Awaited<ReturnType<typeof leerEnvios>>[number];
-type Envio = Omit<EnvioLeido, "fechaEnvio"> & { fechaEnvio: Date };
+type Envio = EnvioLeido;
 
 interface RegistroDelFormulario {
   id: string;
@@ -144,14 +143,14 @@ export interface MiembroNoAgendaron {
 function registrosEnElRango(envios: readonly EnvioLeido[], rango: AlcanceDeSerie["rango"]): RegistroDelFormulario[] {
   const porRegistro = new Map<string, Envio[]>();
   for (const envio of envios) {
-    if (envio.fechaEnvio === null) continue;
     const id = `${envio.sourceId}\u0000${envio.token}`;
     const lista = porRegistro.get(id) ?? [];
-    lista.push({ ...envio, fechaEnvio: envio.fechaEnvio });
+    lista.push(envio);
     porRegistro.set(id, lista);
   }
   return [...porRegistro].flatMap(([id, lista]) => {
-    lista.sort((a, b) => a.fechaEnvio.getTime() - b.fechaEnvio.getTime());
+    lista.sort((a, b) =>
+      (a.fechaEnvio ?? a.createdAt).getTime() - (b.fechaEnvio ?? b.createdAt).getTime());
     const primero = lista[0];
     return primero.dia > rango.hasta ? [] : [{ id, leadId: primero.leadId, fecha: primero.dia, envios: lista }];
   });

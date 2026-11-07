@@ -1,5 +1,5 @@
-import { and, between, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
-import { alias, type PgColumn } from "drizzle-orm/pg-core";
+import { and, between, eq, inArray, isNotNull, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { razon, type RazonConCobertura } from "@/lib/cobertura";
@@ -15,6 +15,7 @@ import type { Rango } from "@/lib/queries/dashboard";
 import { medianaDe, ubicacionesDeEscalera, ventasDelPrograma, type Escalon } from "@/lib/queries/escalera";
 import { contratadoDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
+import { diaDeEnvio } from "@/lib/queries/hechos/fechas";
 import { tasasDelRango } from "@/lib/trm/consultar";
 
 export const NIVELES_PAUTA = ["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "total"] as const;
@@ -99,9 +100,6 @@ export function diaDelEnvio(envio: { fechaEnvio: Date | null; createdAt: Date })
   return fechaDeInstanteEnBogota(envio.fechaEnvio ?? envio.createdAt);
 }
 
-const diaDelEnvioSql = (envio: { fechaEnvio: PgColumn; createdAt: PgColumn }) =>
-  sql<string>`(coalesce(${envio.fechaEnvio}, ${envio.createdAt}) AT TIME ZONE 'America/Bogota')::date`;
-
 const enRango = (dia: string, rango: Rango) => dia >= rango.desde && dia <= rango.hasta;
 
 function diasEntre(desde: string, hasta: string): number {
@@ -171,15 +169,15 @@ export async function cargarRoasDePauta(
       .from(submissions).innerJoin(sources, eq(sources.id, submissions.sourceId))
       .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
       .where(and(eq(sources.programId, programId),
-        between(diaDelEnvioSql(submissions), rango.desde, rango.hasta))),
+        between(diaDeEnvio(submissions), rango.desde, rango.hasta))),
     db.select({ parcialId: parcial.id, completoId: completo.id })
       .from(parcial)
       .innerJoin(completo, and(eq(completo.sourceId, parcial.sourceId), eq(completo.token, parcial.token),
         eq(completo.esParcial, false)))
       .innerJoin(sources, eq(sources.id, parcial.sourceId))
       .where(and(eq(sources.programId, programId), eq(parcial.esParcial, true), or(
-        between(diaDelEnvioSql(parcial), rango.desde, rango.hasta),
-        between(diaDelEnvioSql(completo), rango.desde, rango.hasta),
+        between(diaDeEnvio(parcial), rango.desde, rango.hasta),
+        between(diaDeEnvio(completo), rango.desde, rango.hasta),
       ))),
     ventasDelPrograma(db, programId),
     tasasDelRango(db, rango.desde, rango.hasta),

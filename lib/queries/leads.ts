@@ -6,6 +6,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import type { Rango } from "@/lib/queries/dashboard";
+import { diaEnBogota } from "@/lib/queries/hechos/fechas";
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía
@@ -152,8 +153,8 @@ export async function leadsDelPrograma(
   if (filtro.duplicado) condiciones.push(inArray(leads.id, conCorreoSinConfirmar(db)));
   if (filtro.fecha) {
     const dia = filtro.fecha.campo === "creado"
-      ? sql<string>`(${fechaDeCreacion} AT TIME ZONE 'America/Bogota')::date`
-      : sql<string>`(${fechaDeActividad} AT TIME ZONE 'America/Bogota')::date`;
+      ? diaEnBogota(fechaDeCreacion)
+      : diaEnBogota(fechaDeActividad);
     condiciones.push(between(dia, filtro.fecha.rango.desde, filtro.fecha.rango.hasta));
   }
   const donde = and(...condiciones);

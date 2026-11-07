@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { calls, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { embudoDelFormulario, tasasDelEmbudo } from "@/lib/queries/embudo-formulario";
+import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -104,6 +105,26 @@ describe("embudoDelFormulario", () => {
     expect(r.total).toEqual({ dejoDatos: 1, completo: 0, llegoCalendly: 0, agendo: 0 });
   });
 
+  it("un parcial sin fecha usa el mismo día de creación en el embudo y en ROAS", async () => {
+    const [parcial] = await db.insert(submissions).values({
+      leadId,
+      sourceId,
+      token: "parcial-sin-fecha",
+      esParcial: true,
+      fechaEnvio: null,
+      createdAt: new Date("2026-09-10T23:30:00-05:00"),
+      ...meta,
+    }).returning();
+
+    const dia = { desde: "2026-09-10", hasta: "2026-09-10" };
+    const embudo = await embudoDelFormulario(db, { programId, rango: dia });
+    const roas = await cargarRoasDePauta(db, programId, dia, "2026-09-10");
+
+    expect(embudo.total).toMatchObject({ dejoDatos: 1, completo: 0 });
+    expect(roas.envios.find((fila) => fila.envioId === parcial.id)?.diaEnvio).toBe("2026-09-10");
+    expect(embudo.filas.find((fila) => fila.dejoDatos === 1)).toBeDefined();
+  });
+
   it("agendó es el hecho con_calendly, y quien agendó también llegó al Calendly", async () => {
     await db.insert(submissions).values(envio("t1", "2026-09-10T15:00:00Z", { ...meta, calificacion: "con_calendly" }));
     const r = await embudoDelFormulario(db, { programId, rango: RANGO });
@@ -135,8 +156,8 @@ describe("embudoDelFormulario", () => {
       envio("borde", "2026-10-01T15:00:00Z", {}),
       // 19:00 del 31-ago en Bogotá (1-sep 00:00 UTC): fuera.
       envio("antes", "2026-09-01T00:00:00Z", {}),
-      // Sin fecha: un centinela, no cuenta.
-      { leadId, sourceId, token: "sin-fecha", esParcial: false, fechaEnvio: null },
+      // Sin fecha de envío: usa created_at; este queda fuera del rango.
+      { leadId, sourceId, token: "sin-fecha", esParcial: false, fechaEnvio: null, createdAt: new Date("2026-10-02T10:00:00-05:00") },
     ]);
     const r = await embudoDelFormulario(db, { programId, rango: RANGO });
     expect(r.total).toEqual({ dejoDatos: 1, completo: 1, llegoCalendly: 0, agendo: 0 });

@@ -1,4 +1,4 @@
-import { and, between, eq, sql } from "drizzle-orm";
+import { and, between, eq } from "drizzle-orm";
 import { columnasUtmDelEnvio, esMacro, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -8,6 +8,7 @@ import { cargarEscalera, ESCALONES_QUE_PAGARON } from "@/lib/queries/escalera";
 import type { Rango } from "@/lib/queries/dashboard";
 import { fechaAnclaAgendaCreada } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { diaEnBogota } from "@/lib/queries/hechos/fechas";
 
 /**
  * La vista interina de Pauta (ticket 093, enmienda del 29-sep): registros y agendas por UTM,
@@ -105,9 +106,6 @@ export interface VistaPautaInterina {
 }
 
 /** El dia de Bogota de una columna `timestamptz`, el mismo ancla que usa el dashboard. */
-const diaEnBogota = (columna: typeof submissions.fechaEnvio) =>
-  sql<string>`(${columna} AT TIME ZONE 'America/Bogota')::date`;
-
 export function categoriaDe(d: DimensionesUtm): Exclude<CategoriaOrigen, "sin_envio_origen"> {
   const valores = [d.source, d.medium, d.campaign, d.content, d.term];
   if (valores.some(esMacro)) return "macro";

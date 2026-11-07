@@ -4,6 +4,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog, dealEtapaHistorial, deals, origenCambioEnum, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "./vigente";
+import { diaEnBogota } from "./hechos/fechas";
 
 /**
  * La bitacora de Nerd Stats (ticket 076, ADR 0042 punto 3): toda escritura del CRM, filtrable
@@ -92,10 +93,6 @@ export interface PaginaBitacora {
   pagina: number;
   paginas: number;
 }
-
-/** El dia de Bogota de un instante: el rango son dias en texto, ningun `Date` entra a la plantilla. */
-const diaEnBogota = (columna: typeof changeLog.detectadoEn | typeof dealEtapaHistorial.fecha) =>
-  sql<string>`(${columna} AT TIME ZONE 'America/Bogota')::date`;
 
 function condicionDeRango(columna: typeof changeLog.detectadoEn | typeof dealEtapaHistorial.fecha, f: FiltroBitacora) {
   if (f.desde && f.hasta) return between(diaEnBogota(columna), f.desde, f.hasta);

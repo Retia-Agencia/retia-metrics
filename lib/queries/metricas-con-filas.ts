@@ -17,6 +17,7 @@ import {
   closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
 } from "@/lib/queries/metricas-filtros";
+import { diaEnBogota } from "@/lib/queries/hechos/fechas";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import {
   esMetricaDeEmbudo,
@@ -300,7 +301,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
     case "cortesias":
       return {
         id: deals.id,
-        fecha: sql<string>`(${dealEtapaHistorial.fecha} AT TIME ZONE 'America/Bogota')::date`,
+        fecha: diaEnBogota(dealEtapaHistorial.fecha),
         columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
@@ -308,7 +309,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
     case "atendidos_sin_grain":
       return {
         id: deals.id,
-        fecha: sql<string>`(${deals.createdAt} AT TIME ZONE 'America/Bogota')::date`,
+        fecha: diaEnBogota(deals.createdAt),
         columnaCloser: etiquetaDeCloserSql(),
         claveCloser: claveCloserSql(users.id, users.closerId),
       };
