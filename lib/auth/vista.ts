@@ -101,6 +101,9 @@ export function proyectarRol(rol: Rol | null, vista: Vista): Rol | null {
  * `cambiarVista` en `acciones.ts`.
  */
 async function leerRolDeVista(session: Session): Promise<Rol | null> {
+  // Un no-developer ignora la cookie entero: ni se lee (leerla fuera de una peticion lanza).
+  const rolReal = esRolValido(session.user.rol) ? session.user.rol : null;
+  if (!esAccesoTotal(rolReal)) return rolReal;
   const { cookies } = await import("next/headers");
   const store = await cookies();
   return rolDeVistaConValor(session, store.get(COOKIE_VISTA)?.value);
@@ -157,6 +160,9 @@ export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
  * entero (un closer real con `closer:<id>` puesto a mano sigue siendo él mismo).
  */
 async function leerSesionEfectiva(session: Session, db: Db): Promise<Session> {
+  // Igual que arriba: sin acceso total no hay vista que leer ni cookie que tocar.
+  const rolReal = esRolValido(session.user.rol) ? session.user.rol : null;
+  if (!esAccesoTotal(rolReal)) return session;
   const { cookies } = await import("next/headers");
   const store = await cookies();
   return sesionEfectivaConVista(session, store.get(COOKIE_VISTA)?.value, db);
