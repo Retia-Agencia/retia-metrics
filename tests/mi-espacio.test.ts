@@ -38,6 +38,11 @@ class Redireccion extends Error {
 
 vi.mock("@/lib/db", () => ({ db: {} }));
 
+vi.mock("@/lib/mcp/token", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/mcp/token")>()),
+  listarTokensPersonales: async () => [],
+}));
+
 const programasVisibles = vi.fn();
 const programaVisiblePorSlug = vi.fn();
 vi.mock("@/lib/auth/alcance", () => ({ programasVisibles, programaVisiblePorSlug }));
@@ -190,6 +195,7 @@ describe("/mi-espacio (ticket 172)", () => {
     const texto = textoDelArbol(arbol);
     expect(texto).toContain("Ver como closer");
     expect(texto).toContain("según su rol");
+    expect(tieneComponente(arbol, "ConexionesDeIa")).toBe(true);
     // No le muestra el mensaje de "pídele a tu gerente": no aplica al dueño (ADR 0025).
     expect(texto).not.toContain("pídele a tu gerente");
   });

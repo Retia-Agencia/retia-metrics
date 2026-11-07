@@ -4,14 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, trabajaLeads } from "@/lib/auth/roles";
+import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, puedeConectarIa, trabajaLeads } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { rutaDePrograma } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { programasActivos } from "@/lib/queries/programas";
-import { hoyEnBogota } from "@/lib/format";
+import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { seccionPedida, seccionesDeRol, type SeccionMiEspacio } from "@/lib/mi-espacio/secciones";
 import { PageShell } from "@/components/page-shell";
 import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio";
@@ -27,6 +27,8 @@ import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
 import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
+import { ETIQUETA_MCP_SCOPE, listarTokensPersonales, MCP_SCOPES } from "@/lib/mcp/token";
+import { ConexionesDeIa } from "@/components/mi-espacio/conexiones-de-ia";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +123,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // ya no es acceso total y cae por el camino del closer). Va ANTES de cargar membresías:
   // el dueño no tiene espacio propio por programa.
   if (esAccesoTotal(rol)) {
+    const tokens = puedeConectarIa(rol) ? await listarTokensPersonales(db, userId) : null;
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
@@ -132,6 +135,18 @@ export default async function MiEspacioPage({ searchParams }: Props) {
           <p className="max-w-prose text-sm text-muted-foreground">
             {MENSAJE_DEL_DUENO}
           </p>
+          {tokens ? <ConexionesDeIa
+            scopes={MCP_SCOPES}
+            tokens={tokens.map((token) => ({
+              id: token.id,
+              nombre: token.nombre,
+              scope: token.scope,
+              scopeEtiqueta: ETIQUETA_MCP_SCOPE[token.scope],
+              creado: fechaHoraEnBogota(token.creadoEn),
+              ultimoUso: token.ultimoUsoEn ? fechaHoraEnBogota(token.ultimoUsoEn) : "—",
+              revocado: token.revocadoEn !== null,
+            }))}
+          /> : null}
         </div>
       </PageShell>
     );

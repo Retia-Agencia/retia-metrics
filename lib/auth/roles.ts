@@ -72,6 +72,11 @@ export function esAccesoTotal(rol: Rol | undefined | null): boolean {
   return rol === "developer";
 }
 
+/** Quien puede conectar una IA con un token personal (ticket 348; el 383 ampliara esta capacidad). */
+export function puedeConectarIa(rol: Rol | undefined | null): boolean {
+  return esAccesoTotal(rol);
+}
+
 /** Quien ve nombres de columnas y valores internos en la bitácora del CRM. */
 export function veDetalleTecnico(rol: Rol | undefined | null): boolean {
   return esAccesoTotal(rol);

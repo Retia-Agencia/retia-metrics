@@ -4,6 +4,11 @@ function absoluta(ruta: string): string {
   return new URL(ruta, process.env.AUTH_URL ?? "http://localhost:3000").toString();
 }
 
+export function comandoParaClaudeMcp(token: string): string {
+  const origen = new URL(absoluta("/api/mcp")).origin;
+  return `claude mcp add --transport http retia-crm ${origen}/api/mcp --header "Authorization: Bearer ${token}"`;
+}
+
 export function enlaceDeLead(slug: string, leadId: string): string {
   return absoluta(`${rutaDePrograma(slug, "leads")}/${leadId}`);
 }

@@ -6,6 +6,7 @@ import {
   emitirTokenPersonal,
   generarToken,
   hashDeToken,
+  listarTokensPersonales,
   revocarToken,
   verificarToken,
 } from "@/lib/mcp/token";
@@ -97,5 +98,20 @@ describe("tokens personales del MCP", () => {
     // La tabla de tokens guarda el hash por diseño; la bitácora no guarda ni hash ni valor.
     expect(JSON.stringify({ token, logs })).not.toContain(emitido.valor);
     expect(JSON.stringify(logs)).not.toContain(hashDeToken(emitido.valor));
+  });
+
+  it("la lista visible nunca expone valor ni hash", async () => {
+    const emitido = await emitirTokenPersonal(db, {
+      userId, actorId: userId, nombre: "Claude de escritorio", scope: "lectura",
+    });
+
+    const lista = await listarTokensPersonales(db, userId);
+
+    expect(lista).toHaveLength(1);
+    expect(lista[0]).toMatchObject({ id: emitido.id, nombre: "Claude de escritorio", scope: "lectura" });
+    expect(Object.keys(lista[0])).not.toContain("hash");
+    expect(Object.keys(lista[0])).not.toContain("valor");
+    expect(JSON.stringify(lista)).not.toContain(emitido.valor);
+    expect(JSON.stringify(lista)).not.toContain(hashDeToken(emitido.valor));
   });
 });

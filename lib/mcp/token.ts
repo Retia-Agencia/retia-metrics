@@ -1,5 +1,5 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { and, eq, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
 import { changeLog, mcpTokens, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 
@@ -7,6 +7,46 @@ const PREFIJO = "retia_mcp_";
 const FORMATO = /^retia_mcp_[A-Za-z0-9_-]{43}$/;
 
 export type McpScope = "lectura" | "escritura";
+
+/** Una sola lista visible de scopes, exhaustiva respecto del contrato de `McpScope`. */
+export const ETIQUETA_MCP_SCOPE = {
+  lectura: "Solo lectura",
+  escritura: "Lectura y escritura",
+} satisfies Record<McpScope, string>;
+
+export const MCP_SCOPES = Object.entries(ETIQUETA_MCP_SCOPE).map(([valor, etiqueta]) => ({
+  valor: valor as McpScope,
+  etiqueta,
+}));
+
+export function esMcpScope(valor: unknown): valor is McpScope {
+  return typeof valor === "string" && Object.hasOwn(ETIQUETA_MCP_SCOPE, valor);
+}
+
+export type TokenPersonalVisible = {
+  id: string;
+  nombre: string;
+  scope: McpScope;
+  creadoEn: Date;
+  ultimoUsoEn: Date | null;
+  revocadoEn: Date | null;
+};
+
+/** La lectura para Mi espacio selecciona explicitamente solo campos seguros. */
+export async function listarTokensPersonales(db: Db, userId: string): Promise<TokenPersonalVisible[]> {
+  return db
+    .select({
+      id: mcpTokens.id,
+      nombre: mcpTokens.nombre,
+      scope: mcpTokens.scope,
+      creadoEn: mcpTokens.creadoEn,
+      ultimoUsoEn: mcpTokens.ultimoUsoEn,
+      revocadoEn: mcpTokens.revocadoEn,
+    })
+    .from(mcpTokens)
+    .where(and(eq(mcpTokens.userId, userId), eq(mcpTokens.tipo, "personal")))
+    .orderBy(desc(mcpTokens.creadoEn));
+}
 
 export function hashDeToken(valor: string): string {
   return createHash("sha256").update(valor).digest("hex");
