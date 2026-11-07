@@ -16,7 +16,7 @@ const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha AAAA-MM-DD 
 
 /** Esquema compartido por la URL de Leads y `buscar_leads`. */
 export const camposDeFiltrosDeLeads = {
-  q: z.string().min(MINIMO_TEXTO_BUSQUEDA),
+  q: z.string().min(MINIMO_TEXTO_BUSQUEDA).max(200),
   deal: z.enum(["con", "sin"]).optional(),
   calidad: z.enum(CALIDADES_DE_LEAD).optional(),
   abandono: z.boolean().optional(),

@@ -214,12 +214,12 @@ const PERIODOS_DE_FILTRO_KANBAN = [...Object.keys(atajosDePeriodo) as AtajoDePer
 
 /** Los parámetros que acepta la pantalla Deals, compartidos con `tablero_de_deals`. */
 export const camposDeFiltrosKanban = {
-  q: z.string().optional(),
-  owner: z.string().optional(),
-  cohorte: z.string().optional(),
-  canal: z.string().optional(),
-  leadQuality: z.string().optional(),
-  leadValue: z.string().optional(),
+  q: z.string().max(300).optional(),
+  owner: z.string().max(300).optional(),
+  cohorte: z.string().max(300).optional(),
+  canal: z.string().max(300).optional(),
+  leadQuality: z.string().max(300).optional(),
+  leadValue: z.string().max(300).optional(),
   antiguedad: z.number().int().min(1).optional(),
   orden: z.enum(CAMPOS_DE_ORDEN_KANBAN).optional(),
   sentido: z.enum(["asc", "desc"]).optional(),

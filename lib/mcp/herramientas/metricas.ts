@@ -21,7 +21,7 @@ function tasaLegible(nombre: string, valor: number | null, cobertura: number | n
   return `${nombre}: ${valor === null ? "—" : pct(valor)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
 }
 
-const entradaResumen = z.object({ programa: z.string().min(1), ...camposDePeriodoMcp }).strict();
+const entradaResumen = z.object({ programa: z.string().min(1).max(100), ...camposDePeriodoMcp }).strict();
 
 export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   nombre: "resumen_del_hub",
@@ -60,7 +60,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
 };
 
 const entradaMetrica = z.object({
-  programa: z.string().min(1),
+  programa: z.string().min(1).max(100),
   metrica: z.enum(METRICAS_DE_LISTA),
   ...camposDePeriodoMcp,
   pagina: z.number().int().min(1).max(1_000_000).default(1),

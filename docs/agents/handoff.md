@@ -40,8 +40,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   ajena) a mano, y la sección de `docs/operations.md` (conectarse y revocar); el ticket sigue sin marcar `done`.
   **Huecos conocidos, no bloqueantes mientras solo el developer emita tokens:** (1) los tokens no caducan; (2)
   `mcp_llamadas` crece sin retención; (3) `tablero_de_deals` y `cartera_vencida` no paginan (respuesta grande a escala);
-  (4) el tope por minuto cuenta con un SELECT y admite un pequeño sobrepaso bajo ráfaga concurrente; (5) `q` de
-  `buscar_leads` y del tablero no tiene máximo (comparte esquema con la pantalla). Revisarlos en el 383 antes de abrir el
+  (4) el tope por minuto cuenta con un SELECT y admite un pequeño sobrepaso bajo ráfaga concurrente. Revisarlos en el 383 antes de abrir el
   MCP a otros roles.
 
 - **2026-11-04: Weekly con Daniel y Hub › Hoy rediseñado (ticket 378).** Prioridades del weekly: atacar el Hub página
