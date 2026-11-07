@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
-import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
+import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota, monto, num, pct } from "@/lib/format";
 import { parsearPeriodoUrl } from "@/lib/periodo";
@@ -9,22 +9,11 @@ import {
   desglosesDelResumen,
   proyectarListaSegunRol,
   TAMANO_PAGINA,
-  type Metrica,
 } from "@/lib/queries/metricas-con-filas";
+import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, METRICAS_DE_LISTA, normalizarFiltrosDeOrigen, tipoDeLista } from "@/lib/queries/filtros-de-lista";
 import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/queries/vista-metrica";
 import type { Herramienta } from "./tipos";
-
-const METRICAS = [
-  "caja", "agendas", "canceladas", "citas_debidas", "citas_sin_marcar", "shows", "no_shows",
-  "shows_sin_grain", "cierres", "cortesias", "leads", "deals_creados", "deals_que_agendaron",
-  "deals_desde_completo", "deals_desde_parcial", "completos_que_agendaron", "parciales_que_agendaron",
-  "agendas_creadas", "registros", "agendas_futuras", "contratado", "sin_resultado", "atendidos_sin_valor",
-  "atendidos_sin_grain", "grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show",
-  "grupo_pendientes", "embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows",
-  "embudo_comercial_compraron", "etapa_entraron", "etapa_paso", "etapa_siguen", "etapa_perdidos",
-  "etapa_otros", "etapa_tiempo", "etapa_abiertos", "etapa_sin_dueno", "no_agendaron", "pauta_meta", "escalera",
-] as const satisfies readonly Metrica[];
 
 const PERIODOS = ["hoy", "ayer", "manana", "esta_semana", "semana_pasada", "este_mes", "mes_pasado", "desde_el_inicio", "custom"] as const;
 const fechaBogota = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha AAAA-MM-DD de Bogotá.");
@@ -97,41 +86,61 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
 
 const entradaMetrica = z.object({
   programa: z.string().min(1),
-  metrica: z.enum(METRICAS),
+  metrica: z.enum(METRICAS_DE_LISTA),
   ...periodo,
-  closer: z.string().regex(/^[a-f0-9]{64}$/, "El closer debe ser su código opaco de 64 caracteres.").optional(),
-  etapa: z.string().max(100).optional(),
-  antiguedad: z.string().max(100).optional(),
   pagina: z.number().int().min(1).max(1_000_000).default(1),
+  ...camposDeFiltrosDeLista,
 }).strict();
 
 export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
   nombre: "consultar_metrica",
   descripcion:
     "Consulta el número de una métrica del Hub, sus desgloses por closer, etapa y antigüedad, y hasta 50 filas de la página pedida. " +
-    "Programa y periodo son obligatorios; las fechas son días de Bogotá. El filtro closer acepta solo el código opaco que devuelve el CRM. " +
+    "Programa y periodo son obligatorios; las fechas son días de Bogotá. Admite los mismos filtros semánticos de las listas del Hub: origen " +
+    "(fuente, medio, categoría, área, canal y campaña), escalera de conversión y jerarquía de pauta; cada filtro solo existe para las métricas donde tiene sentido. " +
+    "El filtro closer acepta solo el código opaco que devuelve el CRM. " +
     "Los montos siempre incluyen moneda, — significa que no se puede calcular y la respuesta indica si existe una página siguiente.",
   entrada: entradaMetrica,
   puede: (contexto) => veTableroDelPrograma(contexto.rol) || veEquipoComercial(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
     const programa = await programaVisible(contexto, entrada.programa);
-    const capacidad = capacidadParaMetrica({ metrica: entrada.metrica, tieneOrigen: false });
+    const { tieneOrigen, esListaDePauta, esListaDeOrigen } = tipoDeLista(entrada);
+    const capacidad = capacidadParaMetrica({ metrica: entrada.metrica, tieneOrigen });
     if (!capacidad(contexto.rol)) throw new ErrorDeApp("No existe ese programa", 404);
+    if (!combinacionDeFiltrosValida(entrada, { esAdmin: esAdministrador(contexto.rol) })) {
+      throw new ErrorDeApp("No existe esa lista", 404);
+    }
     const busqueda = busquedaDePeriodo(entrada);
+    const { source, medium, canal, campaign } = normalizarFiltrosDeOrigen(entrada);
     const vista = await vistaDeLista({
       programId: programa.id,
       metrica: entrada.metrica,
       busqueda,
       hoy: hoyEnBogota(),
       codigoCloser: entrada.closer,
+      moneda: entrada.moneda,
+      origenDeal: entrada.origen,
       etapa: entrada.etapa,
       antiguedad: entrada.antiguedad,
+      source,
+      medium,
+      campaign,
+      resultado: entrada.resultado,
+      categoria: entrada.categoria,
+      orden: entrada.orden,
+      area: entrada.area,
+      canal,
+      escalon: entrada.escalon,
+      grupo: entrada.grupo,
+      calidad: entrada.calidad,
+      pago: entrada.pago,
+      nivel: entrada.nivel,
+      idMeta: entrada.id,
+      paso: entrada.paso,
       pagina: entrada.pagina,
     }, contexto.db);
     if (!vista) throw new ErrorDeApp("No existe ese programa", 404);
-    const esListaDePauta = entrada.metrica === "pauta_meta";
-    const esListaDeOrigen = entrada.metrica === "registros" || entrada.metrica === "agendas_creadas";
     const lista = proyectarListaSegunRol(vista.lista, { rol: contexto.rol, metrica: entrada.metrica, esListaDePauta, esListaDeOrigen });
     const desgloses = desglosesDelResumen(lista.grupos, nombreDeEtapa);
     const haySiguiente = entrada.pagina * TAMANO_PAGINA < lista.subtotal.cantidad;

@@ -1,10 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Session } from "next-auth";
-import { calls, deals, dealEtapaHistorial, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
+import { calls, deals, dealEtapaHistorial, leads, miembrosPrograma, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { consultarMetricaMcp, resumenDelHubMcp } from "@/lib/mcp/herramientas/metricas";
 import type { ContextoMcp } from "@/lib/mcp/herramientas";
 import { resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { vistaDeLista } from "@/lib/queries/vista-metrica";
 import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -14,6 +15,8 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let programaA: string;
 let programaB: string;
+let fuenteA: string;
+let fuenteB: string;
 let gerenteId: string;
 let paidId: string;
 let closerId: string;
@@ -31,6 +34,12 @@ beforeEach(async () => {
   ]).returning();
   programaA = a.id;
   programaB = b.id;
+  const [origenA, origenB] = await db.insert(sources).values([
+    { programId: programaA, nombre: "Formulario A" },
+    { programId: programaB, nombre: "Formulario B" },
+  ]).returning();
+  fuenteA = origenA.id;
+  fuenteB = origenB.id;
   const [gerente, paid, closer] = await db.insert(users).values([
     { email: "gerente-metricas@retia.test", rol: "gerente" },
     { email: "paid-metricas@retia.test", rol: "paid_trafficker" },
@@ -43,6 +52,14 @@ beforeEach(async () => {
 
   async function venta(programId: string, correo: string, anulada = false) {
     const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+    await db.insert(submissions).values({
+      sourceId: programId === programaA ? fuenteA : fuenteB,
+      leadId: lead.id,
+      token: correo,
+      fechaEnvio: new Date("2026-11-05T08:00:00-05:00"),
+      utmSource: "facebook",
+      utmMedium: "paid_social",
+    });
     const [deal] = await db.insert(deals).values({
       programId,
       leadId: lead.id,
@@ -113,6 +130,40 @@ describe("herramientas MCP de métricas", () => {
 
     expect(pagina.subtotal.cantidad).toBe(1);
     expect(resumen.subtotal.cantidad).toBe(pagina.subtotal.cantidad);
+  });
+
+  it("consultar_metrica aplica los filtros de origen igual que la función de página", async () => {
+    const busqueda = { periodo: "custom", a_desde: RANGO.desde, a_hasta: RANGO.hasta, comparar: "no" };
+    const pagina = await vistaDeLista({
+      programId: programaA,
+      metrica: "registros",
+      busqueda,
+      hoy: HOY,
+      source: "facebook",
+      pagina: 1,
+    }, db);
+    const salida = await consultarMetricaMcp.ejecutar(contexto(gerenteId, "gerente"), {
+      programa: "programa-a",
+      metrica: "registros",
+      periodo: "custom",
+      desde: RANGO.desde,
+      hasta: RANGO.hasta,
+      source: "facebook",
+      pagina: 1,
+    });
+    const resumen = salida.estructurado.resumen as { subtotal: { cantidad: number } };
+
+    expect(resumen.subtotal.cantidad).toBe(pagina?.lista.subtotal.cantidad);
+  });
+
+  it("consultar_metrica convierte una combinación inexistente en error de aplicación", async () => {
+    await expect(consultarMetricaMcp.ejecutar(contexto(gerenteId, "gerente"), {
+      programa: "programa-a",
+      metrica: "caja",
+      periodo: "hoy",
+      pago: "completo",
+      pagina: 1,
+    })).rejects.toMatchObject({ status: 404, message: "No existe esa lista" });
   });
 
   it("una llamada forjada de un closer a otro programa no confirma que exista", async () => {

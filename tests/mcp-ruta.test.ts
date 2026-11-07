@@ -166,6 +166,17 @@ describe("ruta MCP real", () => {
     expect(resultado.content[0].text).toBe("No puedes ver como otra persona.");
   });
 
+  it("devuelve isError para una combinación de filtros que no tiene lista", async () => {
+    const respuesta = await json(await post("tools/call", {
+      name: "consultar_metrica",
+      arguments: { programa: "ajeno-b", metrica: "caja", periodo: "hoy", pago: "completo" },
+    }, tokenGerente.valor));
+    const resultado = respuesta.result as { isError: boolean; content: { text: string }[] };
+
+    expect(resultado.isError).toBe(true);
+    expect(resultado.content[0].text).toBe("No existe esa lista");
+  });
+
   it("audita cada llamada sin argumentos de texto libre y registra a quién se suplantó", async () => {
     await llamar(tokenDeveloper.valor, { vista: `usuario:${closerId}` });
     const filas = await db.select().from(mcpLlamadas).where(eq(mcpLlamadas.tokenId, tokenDeveloper.id));

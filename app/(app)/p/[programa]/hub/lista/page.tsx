@@ -7,14 +7,9 @@ import { esAdministrador, veEquipoComercial, veLeadsDePauta } from "@/lib/auth/r
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { capacidadParaMetrica, esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
-import {
-  BUCKETS_DE_ANTIGUEDAD,
-  METRICAS_DE_EMBUDO_SIN_PERIODO,
-  esMetricaDeEmbudo,
-} from "@/lib/queries/embudo-con-filas";
-import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
-import { ESCALONES, GRUPOS_DE_CIERRE, NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
-import { ETAPAS_EN_ORDEN } from "@/lib/deals/etapas";
+import { esMetricaDeEmbudo, METRICAS_DE_EMBUDO_SIN_PERIODO } from "@/lib/queries/embudo-con-filas";
+import { NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
+import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, METRICAS_DE_LISTA, normalizarFiltrosDeOrigen, tipoDeLista } from "@/lib/queries/filtros-de-lista";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -31,82 +26,17 @@ interface Props {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-const esquema = z.object({
-  metrica: z.enum([
-    "caja",
-    "agendas",
-    "shows",
-    "no_shows",
-    "shows_sin_grain",
-    "cierres",
-    "cortesias",
-    "leads",
-    "deals_creados",
-    "deals_que_agendaron",
-    "deals_desde_completo",
-    "deals_desde_parcial",
-    "completos_que_agendaron",
-    "parciales_que_agendaron",
-    "agendas_creadas",
-    "registros",
-    "citas_debidas",
-    "citas_sin_marcar",
-    "agendas_futuras",
-    "contratado",
-    "sin_resultado",
-    "atendidos_sin_valor",
-    "atendidos_sin_grain",
-    "grupo_citas",
-    "grupo_shows",
-    "grupo_vendidos",
-    "grupo_sin_show",
-    "grupo_pendientes",
-    "embudo_comercial_creados",
-    "embudo_comercial_agendaron",
-    "embudo_comercial_shows",
-    "embudo_comercial_compraron",
-    "etapa_entraron",
-    "etapa_paso",
-    "etapa_siguen",
-    "etapa_perdidos",
-    "etapa_otros",
-    "etapa_tiempo",
-    "etapa_abiertos",
-    "etapa_sin_dueno",
-    "no_agendaron",
-    "escalera",
-    "pauta_meta",
-  ]),
-  // Solo el embudo por etapas (ticket 188): el paso o la etapa, y el tramo de antigüedad.
-  etapa: z.enum([...new Set([...ETAPAS_EN_ORDEN, ...PASOS_DE_CONVERSION, "ganado"])] as [string, ...string[]]).optional(),
-  antiguedad: z.enum(BUCKETS_DE_ANTIGUEDAD as [string, ...string[]]).optional(),
-  closer: z.string().regex(/^[a-f0-9]{64}$/).optional(),
-  moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
-  origen: z.enum(["completo", "parcial", "manual"]).optional(),
+export const esquema = z.object({
+  metrica: z.enum(METRICAS_DE_LISTA),
+  ...camposDeFiltrosDeLista,
   cohorte: z.string().uuid().optional().catch(undefined),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
-  source: z.string().max(300).optional(),
-  medium: z.string().max(300).optional(),
-  categoria: z.enum(["con_utm", "sin_utm", "macro", "pieza_desconocida"]).optional(),
-  area: z.enum(["paid", "organico", "referidos", "sin_utm"]).optional(),
-  canal: z.string().max(300).optional(),
-  campaign: z.string().max(300).optional(),
-  resultado: z.enum(["show", "no_show"]).optional(),
-  orden: z.enum(["envio", "actividad"]).optional(),
-  // Solo la escalera de conversion (ADR 0109): el escalon y la calidad de la cifra.
-  // Los dos grupos son de Pauta: "ventas" (los cuatro escalones que pagaron) y "despues" (pago rapido o tarde).
-  escalon: z.enum([...ESCALONES, "ventas", "despues"]).optional(),
-  grupo: z.enum(Object.keys(GRUPOS_DE_CIERRE) as [keyof typeof GRUPOS_DE_CIERRE, ...(keyof typeof GRUPOS_DE_CIERRE)[]]).optional(),
-  pago: z.enum(["completo", "parcial"]).optional(),
-  calidad: z.string().max(100).optional(),
-  nivel: z.enum(["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "total"]).optional(),
-  id: z.string().max(100).optional(),
-  paso: z.enum(["registro", "agenda", "show", "no_show", "venta"]).optional(),
 });
 
 const titulos = {
   caja: "Entró a caja",
   agendas: "Agendas",
+  canceladas: "Canceladas",
   shows: "Shows",
   no_shows: "No show",
   shows_sin_grain: "Shows sin Grain",
@@ -150,18 +80,6 @@ const titulos = {
   pauta_meta: "Pauta por anuncio",
 };
 
-/** Qué subconjunto exige cada métrica del embudo: sin él, la lista no existe. */
-const SUBCONJUNTO_DEL_EMBUDO = {
-  etapa_entraron: null,
-  etapa_paso: "etapa",
-  etapa_siguen: "etapa",
-  etapa_perdidos: "etapa",
-  etapa_otros: "etapa",
-  etapa_tiempo: "etapa",
-  etapa_abiertos: "etapa",
-  etapa_sin_dueno: "antiguedad",
-} as const;
-
 /** El tono de la antigüedad (GC-35): de lo más nuevo a lo más viejo, con los tonos de Tinta. */
 const TONO_DE_ANTIGUEDAD = {
   "0-7": "neutro",
@@ -181,10 +99,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const busqueda = await searchParams;
   const validado = esquema.safeParse(busqueda);
   if (!validado.success) notFound();
-  const tieneOrigen = validado.data.source !== undefined || validado.data.medium !== undefined || validado.data.campaign !== undefined || validado.data.categoria !== undefined;
-  const esListaDePauta = validado.data.metrica === "pauta_meta";
-  const esListaDeOrigen = validado.data.metrica === "registros" || validado.data.metrica === "agendas_creadas"
-    || (validado.data.metrica === "escalera" && tieneOrigen);
+  const { tieneOrigen, esListaDePauta, esListaDeOrigen } = tipoDeLista(validado.data);
   const capacidad = capacidadParaMetrica({ metrica: validado.data.metrica, tieneOrigen });
   const session = await paginaConCapacidad(capacidad);
   const { programa: slug } = await params;
@@ -195,28 +110,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
   if (!programa) notFound();
   const { metrica, closer, moneda, cohorte, origen: origenDeal, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
-  const sourceNormalizado = source === "__null__" ? null : source;
-  const mediumNormalizado = medium === "__null__" ? null : medium;
-  const canalNormalizado = canal === "__null__" ? null : canal;
-  const campaignNormalizado = campaign === "__null__" ? null : campaign;
-  if (resultado !== undefined && metrica !== "agendas_creadas") notFound();
-  // Pauta reparte las ventas por canal y campana: la escalera acepta esos cuatro filtros de origen y ninguno mas.
-  if (metrica === "escalera" && (area !== undefined || canal !== undefined)) notFound();
-  if (pago !== undefined && metrica !== "escalera") notFound();
-  if (!esListaDeOrigen && metrica !== "escalera" && (source !== undefined || medium !== undefined || campaign !== undefined || categoria !== undefined || area !== undefined || canal !== undefined)) notFound();
-  if (esListaDeOrigen && !esAdmin && closer !== undefined) notFound();
-  if (esListaDePauta && closer !== undefined) notFound();
-  if (metrica !== "no_agendaron" && orden !== undefined) notFound();
-  if (metrica === "pauta_meta" ? (!nivel || !paso || ((nivel === "sin_anuncio" || nivel === "total") ? id !== undefined : id === undefined)) : (nivel !== undefined || id !== undefined || paso !== undefined)) notFound();
-  // El escalon y la calidad son de la escalera: en otra lista no existen (nunca se ignoran en silencio).
-  if (metrica !== "escalera" && (escalon !== undefined || grupo !== undefined || calidad !== undefined)) notFound();
-  if (escalon !== undefined && grupo !== undefined) notFound();
-  if (moneda && metrica !== "caja") notFound();
-  if (origenDeal && !metrica.startsWith("embudo_comercial_")) notFound();
-  // El subconjunto es del embudo por etapas y solo el que su métrica pide: un paso en otra lista,
-  // o una lista del embudo sin su paso, no existe (nunca cae al embudo entero).
-  const pide = esMetricaDeEmbudo(metrica) ? SUBCONJUNTO_DEL_EMBUDO[metrica] : null;
-  if ((pide === "etapa") !== (etapa !== undefined) || (pide === "antiguedad") !== (antiguedad !== undefined)) notFound();
+  const { source: sourceNormalizado, medium: mediumNormalizado, canal: canalNormalizado, campaign: campaignNormalizado } = normalizarFiltrosDeOrigen(validado.data);
+  if (!combinacionDeFiltrosValida(validado.data, { esAdmin })) notFound();
   const vista = await vistaDeLista({
     programId: programa.id,
     metrica,

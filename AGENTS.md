@@ -592,6 +592,12 @@ The agent should run these to get fast signal on whether code works. Keep them c
   diálogos no abren. Entra por un subdominio de `localhost` (`app095.localhost:3095`), que tiene sus propias
   cookies; uno distinto por rol (`closer095.localhost`) para tener dos sesiones a la vez.
 - **`experimental.staleTimes.dynamic = 15` (next.config.ts):** volver a una pestaña vista dentro de 15 s sale del caché de cliente; las escrituras propias (server action con `revalidatePath` o `router.refresh()`) lo purgan entero, pero un cambio externo (otro closer, webhook) se ve hasta 15 s tarde. No subirlo sin repetir la prueba A→B→A tras mutar.
+- **Una herramienta del MCP no copia a su pantalla: la pantalla y la herramienta importan lo mismo (6-nov, ticket 348).**
+  Listas de valores, esquemas de filtros, reglas de combinación y capacidades por rol viven en UN módulo de `lib/`
+  (ej. `lib/queries/filtros-de-lista.ts`, `capacidadParaMetrica`). Nada de listas o enums escritos a mano si ya existen
+  como tipo: se derivan, con un chequeo de exhaustividad en compilación en los dos sentidos para que agregar un miembro
+  obligue a actualizar. La herramienta expone los mismos filtros que la app, no un subconjunto. Olor: un literal repetido
+  entre `app/` y `lib/mcp/`. Es la regla del ADR 0012 aplicada al MCP: lo que crece no puede estar duplicado.
 - **Un paquete no se instala antes del codigo que lo usa.** Instalar por adelantado es
   abstraccion especulativa (ADR 0006).
 - **Dentro de una plantilla `sql` de drizzle, las columnas salen SIN calificar.**
