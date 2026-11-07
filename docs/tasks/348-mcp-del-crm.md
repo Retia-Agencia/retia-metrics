@@ -3,7 +3,7 @@ id: 348
 etapa: mcp
 serves: "Daily del 28-oct (F5): darle vida al CRM, paso 1 · ADR 0119 (fase 1) · contrato C-1 y C-2 · ADR 0115"
 depends: []
-status: todo
+status: en main
 ---
 
 # 348 — El MCP del CRM, fase 1: la base, solo lectura, solo developers, desde Claude Code
