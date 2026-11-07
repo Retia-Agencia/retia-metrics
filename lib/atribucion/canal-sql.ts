@@ -27,10 +27,12 @@ export function categoriaUtmSql() {
     submissions.utmId,
   ];
   const macro = sql.join(columnas.map((columna) => sql`${columna} like '%{{%'`), sql` or `);
+  const source = normalizarSql(submissions.utmSource);
+  const medium = normalizarSql(submissions.utmMedium);
+  const campaign = normalizarSql(submissions.utmCampaign);
   return sql<string>`case
     when ${macro} then 'macro'
-    when ${submissions.utmSource} is null and ${submissions.utmMedium} is null
-      and ${submissions.utmCampaign} is null then 'sin_utm'
+    when ${source} is null and ${medium} is null and ${campaign} is null then 'sin_utm'
     else 'con_utm' end`;
 }
 

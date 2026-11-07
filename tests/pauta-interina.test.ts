@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { categoriaDe, pautaInterina, type FilaPauta } from "@/lib/queries/pauta-interina";
+import { categoriaDeUtm } from "@/lib/atribucion/canal";
+import { pautaInterina, type FilaPauta } from "@/lib/queries/pauta-interina";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -235,6 +236,6 @@ describe("utm_content y utm_term: crudos, de la columna o de respuestas", () => 
   });
 
   it("una macro en utm_term tambien es macro", () => {
-    expect(categoriaDe({ source: "ig", medium: "paid_social", campaign: "c", content: null, term: "{{placement}}" })).toBe("macro");
+    expect(categoriaDeUtm({ source: "ig", medium: "paid_social", campaign: "c", content: null, term: "{{placement}}" })).toBe("macro");
   });
 });

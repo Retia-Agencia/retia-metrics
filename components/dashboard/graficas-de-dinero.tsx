@@ -4,7 +4,7 @@ import { Grafica } from "@/components/graficas/grafica";
 import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
 import { fecha, monto, num, usd } from "@/lib/format";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 import type { SeriesDeDinero, VentanaDeDinero } from "@/lib/queries/series-dinero";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { urlDeLista } from "@/lib/queries/vista-metrica";

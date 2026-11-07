@@ -1,7 +1,7 @@
 import { db as dbDeLaApp } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 import { esDiaHabil, esperadoLineal } from "@/lib/dias-habiles";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import {
   armarMetasDelMes,

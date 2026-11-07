@@ -37,6 +37,32 @@ export function diaDeCalendario(fecha: FechaCalendario): string {
 
 const MS_POR_DIA = 86_400_000;
 
+/** 'YYYY-MM-DD' → milisegundos UTC de ese día de calendario. */
+export function aUtc(fecha: string): number {
+  const [anio, mes, dia] = fecha.split("-").map(Number);
+  return Date.UTC(anio, mes - 1, dia);
+}
+
+/** Milisegundos UTC → 'YYYY-MM-DD'. */
+export function aIso(ms: number): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(new Date(ms));
+}
+
+export function sumarDias(fecha: string, dias: number): string {
+  return aIso(aUtc(fecha) + dias * MS_POR_DIA);
+}
+
+/** Día de la semana de una fecha ISO (0=domingo..6=sábado). */
+export function diaDeLaSemana(fechaIso: string): number {
+  return new Date(aUtc(fechaIso)).getUTCDay();
+}
+
+/** El lunes de la semana a la que pertenece la fecha. */
+export function lunesDe(fecha: string): string {
+  const dia = diaDeLaSemana(fecha);
+  return sumarDias(fecha, dia === 0 ? -6 : 1 - dia);
+}
+
 /** Numero de dia UTC (dias enteros desde epoch) del dia de calendario, sin sesgo de zona. */
 function numeroDeDia(fecha: FechaCalendario): number {
   const [anio, mes, dia] = diaDeCalendario(fecha).split("-").map(Number);
@@ -44,12 +70,12 @@ function numeroDeDia(fecha: FechaCalendario): number {
 }
 
 /** Dia de la semana (0=domingo..6=sabado) de un numero de dia. */
-function diaDeLaSemana(numDia: number): number {
+function diaDeLaSemanaNumero(numDia: number): number {
   return new Date(numDia * MS_POR_DIA).getUTCDay();
 }
 
 function esHabil(numDia: number): boolean {
-  const dow = diaDeLaSemana(numDia);
+  const dow = diaDeLaSemanaNumero(numDia);
   return dow !== 0 && dow !== 6;
 }
 

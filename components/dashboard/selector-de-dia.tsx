@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 
 export function SelectorDeDia({ dia, hoy, base }: { dia: string; hoy: string; base: { path: string; params: Record<string, string> } }) {
   const router = useRouter();

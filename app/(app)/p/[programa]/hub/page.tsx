@@ -47,7 +47,7 @@ import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa
 import { pautaSincronizaciones } from "@/lib/db/schema";
 import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
 import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 import { tokensMeta } from "@/lib/integraciones";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";

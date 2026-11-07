@@ -7,7 +7,7 @@ import { hoyEnBogota } from "@/lib/format";
 import { coberturaDeGasto, diaCubierto, motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
 import * as agenda from "@/lib/queries/hechos/agenda";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 import { tasasDelRango } from "@/lib/trm/consultar";
 import { codigoCortoDeCampana, idsDeCampanas, type PropositoCampana } from "@/lib/pauta/proposito";
 

@@ -2,7 +2,7 @@ import { and, eq, gte, isNotNull, lte, max, min, or } from "drizzle-orm";
 import { gastoPauta } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { fecha } from "@/lib/format";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 
 export interface CoberturaDeGasto {
   primerDia: string | null;

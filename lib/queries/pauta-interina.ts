@@ -1,5 +1,6 @@
 import { and, between, eq } from "drizzle-orm";
-import { columnasUtmDelEnvio, esMacro, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { categoriaDeUtm } from "@/lib/atribucion/canal";
+import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
@@ -106,13 +107,6 @@ export interface VistaPautaInterina {
 }
 
 /** El dia de Bogota de una columna `timestamptz`, el mismo ancla que usa el dashboard. */
-export function categoriaDe(d: DimensionesUtm): Exclude<CategoriaOrigen, "sin_envio_origen"> {
-  const valores = [d.source, d.medium, d.campaign, d.content, d.term];
-  if (valores.some(esMacro)) return "macro";
-  if (d.source === null && d.medium === null && d.campaign === null) return "sin_utm";
-  return "con_utm";
-}
-
 const ocurrio = (resultado: string) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
 
 const FILA_EN_CERO = {
@@ -221,7 +215,7 @@ export async function pautaInterina(
     // El filtro de fecha ya descarto los nulos; el tipo no lo sabe.
     if (e.fechaEnvio === null) continue;
     const d = dimensionesDe(e);
-    const categoria = categoriaDe(d);
+    const categoria = categoriaDeUtm(d);
     resumen.registros++;
     if (categoria === "sin_utm") resumen.sinUtm++;
     if (categoria === "macro") resumen.macro++;
@@ -241,7 +235,7 @@ export async function pautaInterina(
       continue;
     }
     const d = dimensionesDe(a);
-    sumar(dia, categoriaDe(d), d, "agendas", { resultado: a.resultado });
+    sumar(dia, categoriaDeUtm(d), d, "agendas", { resultado: a.resultado });
   }
 
   // Las ventas del periodo salen de la escalera (UNA definicion de venta y de escalon, ADR 0109): los
@@ -256,12 +250,12 @@ export async function pautaInterina(
       continue;
     }
     const d = dimensionesDe(deal.envio);
-    sumar(deal.fecha, categoriaDe(d), d, "ventas", extra);
+    sumar(deal.fecha, categoriaDeUtm(d), d, "ventas", extra);
   }
 
   // "Hoy llegaron N sin UTM" (DP-17) es de HOY, mire el rango que mire la pantalla.
   const sinUtmHoy: EnvioSinUtm[] = (await enviosCompletos(db, programId, { desde: hoy, hasta: hoy }))
-    .filter((e) => e.fechaEnvio !== null && categoriaDe(dimensionesDe(e)) === "sin_utm")
+    .filter((e) => e.fechaEnvio !== null && categoriaDeUtm(dimensionesDe(e)) === "sin_utm")
     .map((e) => ({ id: e.id, fechaEnvio: e.fechaEnvio!, nombre: e.nombre }))
     .sort((x, y) => y.fechaEnvio.getTime() - x.fechaEnvio.getTime());
   return { filas: [...serie.values()], resumen, sinUtmHoy };

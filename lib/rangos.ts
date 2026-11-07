@@ -1,4 +1,5 @@
 import type { Rango } from "@/lib/queries/dashboard";
+import { aIso, aUtc, lunesDe, sumarDias } from "@/lib/dias-habiles";
 
 /**
  * El selector de rango del dashboard (ticket 005): traduce lo que el usuario elige a
@@ -15,31 +16,6 @@ import type { Rango } from "@/lib/queries/dashboard";
  */
 
 export type PresetDeRango = "hoy" | "semana" | "mes" | "cohorte" | "custom";
-
-const MS_POR_DIA = 86_400_000;
-
-/** 'YYYY-MM-DD' → milisegundos UTC de ese dia de calendario. */
-export function aUtc(fecha: string): number {
-  const [anio, mes, dia] = fecha.split("-").map(Number);
-  return Date.UTC(anio, mes - 1, dia);
-}
-
-/** milisegundos UTC → 'YYYY-MM-DD'. */
-export function aIso(ms: number): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" }).format(new Date(ms));
-}
-
-export function sumarDias(fecha: string, dias: number): string {
-  return aIso(aUtc(fecha) + dias * MS_POR_DIA);
-}
-
-/** El lunes de la semana a la que pertenece la fecha (la semana arranca en lunes). */
-export function lunesDe(fecha: string): string {
-  const ms = aUtc(fecha);
-  const dow = new Date(ms).getUTCDay(); // 0 = domingo
-  const desdeElLunes = dow === 0 ? 6 : dow - 1;
-  return aIso(ms - desdeElLunes * MS_POR_DIA);
-}
 
 /**
  * Las semanas de lunes a domingo que tocan el rango, recortadas a sus bordes (ticket 189): un

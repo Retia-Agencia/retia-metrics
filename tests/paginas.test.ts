@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { hoyEnBogota } from "@/lib/format";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 import { renderToStaticMarkup } from "react-dom/server";
 import { enlaceConVueltaAFragmento } from "@/lib/navegacion/volver";
 import { COLUMNAS_CSV_CITAS_PAUTA } from "@/lib/pauta/csv-citas";

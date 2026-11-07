@@ -35,8 +35,8 @@ import {
 import { condicionesDeFiltros } from "@/lib/queries/hechos/consultar";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { categoriaUtmSql, piezaDesconocidaSql } from "@/lib/atribucion/canal-sql";
+import { categoriaDeUtm } from "@/lib/atribucion/canal";
 import { cargarEscalera, ESCALONES_QUE_PAGARON, GRUPOS_DE_CIERRE, esEscalon, esGrupoDeCierre, filtrarEscalera, type Escalon, type EnvioDeOrigen } from "@/lib/queries/escalera";
-import { categoriaDe } from "@/lib/queries/pauta-interina";
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { cargarRoasDePauta, filtrarEnviosDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
@@ -781,7 +781,7 @@ function hayFiltroDeOrigen(f: FiltrosDeMetrica): boolean {
   return f.source !== undefined || f.medium !== undefined || f.campaign !== undefined || f.categoria !== undefined;
 }
 
-/** El origen de un deal contra los filtros de Pauta, con la MISMA regla de categoria que pinta la tabla (`categoriaDe`). */
+/** El origen de un deal contra los filtros de Pauta, con la MISMA regla de categoria que pinta la tabla. */
 function coincideConOrigen(envio: EnvioDeOrigen | null, f: FiltrosDeMetrica): boolean {
   // Un deal sin envio de origen no tiene UTM que filtrar: solo cabe si no se pidio ninguno.
   if (envio === null) return false;
@@ -790,7 +790,7 @@ function coincideConOrigen(envio: EnvioDeOrigen | null, f: FiltrosDeMetrica): bo
   return (f.source === undefined || d.source === f.source)
     && (f.medium === undefined || d.medium === f.medium)
     && (f.campaign === undefined || d.campaign === f.campaign)
-    && (f.categoria === undefined || categoriaDe(d) === f.categoria);
+    && (f.categoria === undefined || categoriaDeUtm(d) === f.categoria);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { aUtc, esFecha, resolverRango, sumarDias } from "@/lib/rangos";
+import { aUtc, sumarDias } from "@/lib/dias-habiles";
+import { esFecha, resolverRango } from "@/lib/rangos";
 import { diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
 import { fecha as formatearFecha, NOMBRES_DE_MES } from "@/lib/format";
 import type { Rango } from "@/lib/queries/dashboard";

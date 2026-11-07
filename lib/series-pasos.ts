@@ -1,5 +1,6 @@
 import { NOMBRES_DE_MES } from "@/lib/format";
-import { aUtc, lunesDe, semanasDelRango, sumarDias } from "@/lib/rangos";
+import { aUtc, lunesDe, sumarDias } from "@/lib/dias-habiles";
+import { semanasDelRango } from "@/lib/rangos";
 import type { Rango } from "@/lib/queries/dashboard";
 
 /**

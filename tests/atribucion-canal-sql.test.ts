@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
-import { areaSql, canalSql, columnasIdMetaDelEnvio, cuentaSql, idEnArbolSql } from "@/lib/atribucion/canal-sql";
-import { resolverCanal } from "@/lib/atribucion/canal";
+import { areaSql, canalSql, categoriaUtmSql, columnasIdMetaDelEnvio, cuentaSql, idEnArbolSql } from "@/lib/atribucion/canal-sql";
+import { categoriaDeUtm, resolverCanal, type DimensionesDeUtm } from "@/lib/atribucion/canal";
 import { emparejar, type ArbolDePauta } from "@/lib/atribucion/emparejar";
 import { sources, submissions } from "@/lib/db/schema";
 import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
@@ -60,6 +60,28 @@ describe("la atribucion SQL es gemela de resolverCanal", () => {
         canal: esperado.canal?.clave ?? null,
         cuenta: esperado.canal?.cuenta ?? null,
       });
+    }
+  });
+
+  it("mantiene paridad en la categoria de UTM, incluidos los blancos", async () => {
+    const casos: DimensionesDeUtm[] = [
+      { source: null, medium: null, campaign: null, content: null, term: null, id: null },
+      { source: "", medium: "", campaign: "", content: null, term: null, id: null },
+      { source: null, medium: null, campaign: null, content: null, term: "{{placement}}", id: null },
+      { source: null, medium: null, campaign: "lanzamiento", content: null, term: null, id: null },
+      { source: "instagram", medium: "paid_social", campaign: "lanzamiento", content: "video-1", term: "feed", id: "ad-1" },
+    ];
+
+    for (const caso of casos) {
+      const resultado = await base.db.execute(sql`
+        with submissions(utm_source, utm_medium, utm_campaign, utm_content, utm_term, utm_id) as (
+          values (${caso.source}::text, ${caso.medium}::text, ${caso.campaign}::text,
+            ${caso.content}::text, ${caso.term}::text, ${caso.id ?? null}::text)
+        )
+        select ${categoriaUtmSql()} as categoria from submissions
+      `);
+      const filas = (Array.isArray(resultado) ? resultado : resultado.rows) as Array<{ categoria: string }>;
+      expect(filas[0].categoria, JSON.stringify(caso)).toBe(categoriaDeUtm(caso));
     }
   });
 

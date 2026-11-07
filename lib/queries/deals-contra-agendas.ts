@@ -15,7 +15,7 @@ import {
 } from "@/lib/queries/metricas-filtros";
 import type { AlcanceDeSerie } from "@/lib/queries/serie";
 import { vigente } from "@/lib/queries/vigente";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 
 /**
  * Deals creados contra agendas creadas (ticket 138, GC-33): *"si la generación de deals sube y

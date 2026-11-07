@@ -3,7 +3,7 @@ import { cuentasPublicitarias, gastoPauta, pautaObjetos, pautaSincronizaciones }
 import type { Db } from "@/lib/db/tipos";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ErrorDeApp } from "@/lib/errors";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 import { arbolDeCuenta, insightsPorAnuncioYDia, type AnuncioConocido } from "./meta-api";
 import { registrarGasto } from "./gasto";
 import type { TokensMeta } from "@/lib/integraciones";

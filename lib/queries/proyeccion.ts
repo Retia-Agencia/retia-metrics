@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, objetivos, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil, metaDeHoy } from "@/lib/dias-habiles";
+import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil, lunesDe, metaDeHoy } from "@/lib/dias-habiles";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
@@ -206,23 +206,6 @@ export interface DatosParaProyeccion {
 
 const disponible = (valor: number): ValorDeProyeccion => ({ valor, razon: null });
 const noDisponible = (razon: string): ValorDeProyeccion => ({ valor: null, razon });
-
-function fechaUtc(anio: number, mes: number, dia: number): string {
-  const fecha = new Date(Date.UTC(anio, mes - 1, dia));
-  const dos = (n: number) => String(n).padStart(2, "0");
-  return `${fecha.getUTCFullYear()}-${dos(fecha.getUTCMonth() + 1)}-${dos(fecha.getUTCDate())}`;
-}
-
-function sumarDias(fecha: string, dias: number): string {
-  const [anio, mes, dia] = fecha.split("-").map(Number);
-  return fechaUtc(anio, mes, dia + dias);
-}
-
-function lunesDe(fecha: string): string {
-  const [anio, mes, dia] = fecha.split("-").map(Number);
-  const semana = new Date(Date.UTC(anio, mes - 1, dia)).getUTCDay();
-  return sumarDias(fecha, semana === 0 ? -6 : 1 - semana);
-}
 
 /** Reparte el faltante desde el siguiente día hábil, conservando exactamente el total. */
 export function repartirFaltantePorSemana(args: {

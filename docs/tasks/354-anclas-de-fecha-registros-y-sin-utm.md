@@ -37,8 +37,10 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Done cuando
 
-- [ ] Test: un parcial sin `fecha_envio` cuenta 1 en "Dejó datos" y 0 en "Completó", y el mismo día en embudo y ROAS.
-- [ ] Test de paridad SQL/TS de la categoría de UTM con `''`, macro y campaña sin source.
-- [ ] Test: "Deals creados" da lo mismo en el Hub y en la escalera.
-- [ ] Guardián de anclas de fecha mordido en los dos sentidos.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Test: un parcial sin `fecha_envio` cuenta 1 en "Dejó datos" y 0 en "Completó", y el mismo día en embudo y ROAS.
+- [x] Test de paridad SQL/TS de la categoría de UTM con `''`, macro y campaña sin source.
+- [x] Test: "Deals creados" da lo mismo en el Hub y en la escalera.
+- [x] Guardián de anclas de fecha mordido en los dos sentidos.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+
+Pendiente: alcance 3 (`leadsDelRango` / meta de leads por día), espera decisión de Mani.

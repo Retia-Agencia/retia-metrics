@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaDeCalendario, diasHabilesEntre, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
+import { diaDeCalendario, diaDeLaSemana, diasHabilesEntre, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
 import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { contratadoDeDeals } from "@/lib/queries/saldo";
@@ -95,7 +95,7 @@ function rangoDelMes(mes: string): Rango {
 
 function rangoDeLaSemana(hoy: string): Rango {
   const numero = numeroDeFecha(hoy);
-  const dia = new Date(numero * 86_400_000).getUTCDay();
+  const dia = diaDeLaSemana(fechaDeNumero(numero));
   const desde = numero - (dia === 0 ? 6 : dia - 1);
   return { desde: fechaDeNumero(desde), hasta: fechaDeNumero(desde + 6) };
 }

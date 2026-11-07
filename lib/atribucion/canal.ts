@@ -31,12 +31,38 @@ export type ResultadoCanal = {
   regla: "id_en_arbol" | "medio_pago" | "referido" | "con_utm" | "sin_utm";
 };
 
+export interface DimensionesDeUtm {
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  content: string | null;
+  term: string | null;
+  id?: string | null;
+}
+
 /** Los vacíos y las macros sin expandir no son datos atribuibles. */
 export function normalizarUtm(valor: string | null): string | null {
   if (valor === null) return null;
   const limpio = valor.trim();
   if (limpio === "" || esMacro(limpio)) return null;
   return limpio.toLowerCase();
+}
+
+/** Categoría operativa de los UTM, gemela de `categoriaUtmSql`. */
+export function categoriaDeUtm(dimensiones: DimensionesDeUtm): "con_utm" | "sin_utm" | "macro" {
+  const valores = [
+    dimensiones.source,
+    dimensiones.medium,
+    dimensiones.campaign,
+    dimensiones.content,
+    dimensiones.term,
+    dimensiones.id ?? null,
+  ];
+  if (valores.some(esMacro)) return "macro";
+  if ([dimensiones.source, dimensiones.medium, dimensiones.campaign].every((valor) => normalizarUtm(valor) === null)) {
+    return "sin_utm";
+  }
+  return "con_utm";
 }
 
 const ALIAS_DE_PLATAFORMA: Readonly<Record<string, string>> = {

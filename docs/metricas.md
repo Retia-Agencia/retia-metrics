@@ -38,10 +38,10 @@ lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
 | % de show y % de no show | por deal, por cita, de Pauta, del comparativo semanal | `showPorDeal` y `showPorCita`, y el no show como complemento nombrado | 353 |
 | Cita sin resultado | cuatro predicados | `citaVencidaSinResultado` en `metricas-filtros.ts` | 353 |
 | Agenda | cita creada, contando reagendas | según DA-4 | 353 |
-| Día de cada hecho (anclas) | ~19 `AT TIME ZONE` sueltos; cuatro expresiones del día del envío | `lib/queries/hechos/fechas.ts` | 354 |
+| Día de cada hecho (anclas) | ✅ `diaEnBogota`, `anclaEnvio`, `diaDeEnvio` y `diaDeCreacionDelDeal` en un solo módulo | `lib/queries/hechos/fechas.ts` | 354 |
 | Registro y lead | `filtroDeEnvios` (registros) y `leadsDelRango` (personas) con el mismo nombre en pantalla | `hechos/envio.ts` para registros; "Leads" solo para personas | 354 |
-| Sin UTM | `resolverCanal`/`areaSql`, `categoriaUtmSql`, `categoriaDe` | `resolverCanal` y su gemela SQL | 354 |
-| Calendario (semana, sumar días, hábiles) | `rangos.ts`, `dias-habiles.ts` y copias en `proyeccion.ts`, `vista-hoy.ts`, `metas.ts` | `lib/dias-habiles.ts` | 354 |
+| Sin UTM | ✅ `categoriaDeUtm` y su gemela `categoriaUtmSql`; `categoriaDe` borrada | `categoriaDeUtm` y `categoriaUtmSql` | 354 |
+| Calendario (semana, sumar días, hábiles) | ✅ un solo módulo; `rangos.ts` queda con los presets | `lib/dias-habiles.ts` | 354 |
 | Gasto convertido a USD o COP | ~~`sumarEnCop` (semáforo) y `convertir` (ROAS, devuelve 0 en silencio)~~ hecho: un solo convertidor | `convertirMonto`/`convertirGasto` en `lib/pauta/convertir-gasto.ts` | 351 ✅ |
 | Embudo de Pauta por campaña y por UTM | `pauta-interina.ts` y `roas-de-pauta.ts`, con dos anclas de venta | un cargador | 355 |
 | Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts` (ahora por día, sin meses fijos, 370), `metricas-con-filas.ts`; `hechos/abono.ts` sin llamadores | `filtroCaja` | 361 |

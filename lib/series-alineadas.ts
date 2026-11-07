@@ -1,5 +1,5 @@
 import type { AlcanceDeSerie, Serie } from "@/lib/queries/serie";
-import { sumarDias } from "@/lib/rangos";
+import { sumarDias } from "@/lib/dias-habiles";
 
 interface DimensionDeDia {
   dia: string;

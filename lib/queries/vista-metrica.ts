@@ -27,7 +27,7 @@ import {
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
 import { grupoDeCitas, gruposPorSemana, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
 import { tasa, type Rango } from "@/lib/queries/dashboard";
-import { lunesDe, sumarDias } from "@/lib/rangos";
+import { lunesDe, sumarDias } from "@/lib/dias-habiles";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";

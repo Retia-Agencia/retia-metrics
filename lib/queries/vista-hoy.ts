@@ -2,9 +2,8 @@ import { and, inArray, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { diaDeCalendario, diaHabilDe } from "@/lib/dias-habiles";
+import { diaDeCalendario, diaDeLaSemana, diaHabilDe, sumarDias } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
-import { sumarDias } from "@/lib/rangos";
 import { listaDeMetrica, TAMANO_PAGINA, type FilaDeMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { cajaRecaudada, type CajaPorMoneda, type VistaDeCohorte } from "@/lib/queries/dashboard";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
@@ -57,9 +56,8 @@ function ultimoDiaDelMes(mes: string): string {
  */
 export function contextoDelDia(hoy: string, cohorte: VistaDeCohorte | null): ContextoDelDia {
   const dia = diaDeCalendario(hoy);
-  const [anio, mes, d] = dia.split("-").map(Number);
-  const diaDeLaSemana = new Date(Date.UTC(anio, mes - 1, d)).getUTCDay();
-  const lunes = sumarDias(dia, diaDeLaSemana === 0 ? -6 : 1 - diaDeLaSemana);
+  const numeroDeDia = diaDeLaSemana(dia);
+  const lunes = sumarDias(dia, numeroDeDia === 0 ? -6 : 1 - numeroDeDia);
   const mesDeHoy = dia.slice(0, 7);
   return {
     semana: diaHabilDe(dia, lunes, sumarDias(lunes, 4)),

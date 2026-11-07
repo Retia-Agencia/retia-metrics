@@ -5,9 +5,9 @@ import type { Db } from "@/lib/db/tipos";
 import { etiquetaDeCloser } from "@/lib/closers/identidad";
 import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
 import { hoyEnBogota } from "@/lib/format";
+import { diaDeLaSemana, sumarDias } from "@/lib/dias-habiles";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
 import { listaDeMetrica, TAMANO_PAGINA, type FilaDeMetrica } from "@/lib/queries/metricas-con-filas";
-import { sumarDias } from "@/lib/rangos";
 import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
 import { fechaAnclaCall, filtroCaja, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
@@ -189,8 +189,8 @@ export async function desgloseDeCaja({ programId, dia }: { programId: string; di
 
 /** La semana (lunes a viernes) del día del reporte, hasta ese día: la misma de la línea de contexto y de sus listas. */
 export function rangoDeLaSemanaDelReporte(dia: string): { desde: string; hasta: string } {
-  const diaDeLaSemana = new Date(`${dia}T00:00:00Z`).getUTCDay();
-  return { desde: sumarDias(dia, diaDeLaSemana === 0 ? -6 : 1 - diaDeLaSemana), hasta: dia };
+  const numeroDeDia = diaDeLaSemana(dia);
+  return { desde: sumarDias(dia, numeroDeDia === 0 ? -6 : 1 - numeroDeDia), hasta: dia };
 }
 
 /**
