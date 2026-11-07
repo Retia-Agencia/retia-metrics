@@ -27,6 +27,13 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-07 (noche): F0, F1 y F3 del 385 hechas e integradas a main** (informes en `docs/auditoria-datos-2026-11/`,
+  solo lectura). F1: 29 hallazgos (una "venta" con un predicado y seis recorridos, "agendas" con cuatro universos, "show"
+  con siete cuentas, "sin UTM" con tres definiciones, cobertura en tres formas). F3: 19 hallazgos; los altos son 784 leads
+  (21 %) fuera de "leads del rango" por el parcial de Typeform sin `fecha_envio`, y 730 citas pasadas aún en
+  `resultado = 'agendada'` (causa de datos del 20 % de cobertura). F0: 356 y 362 cerrados con evidencia; 353 y 354 sin
+  empezar; falta el guardián del N7 del ADR 0115. **Sigue:** F2 (paridad cruzada contra la base, ya con insumos), el grill
+  de las cinco decisiones abiertas del 385 (antes de F4) y F6 (fuentes del contrato de métricas, aún sin investigar).
 - **2026-11-07: el ticket 385 pasa a ser la auditoría COMPLETA de métricas y datos del CRM (decisión de Mani, obligatoria).**
   La segunda prueba del MCP (Tactical, octubre) ya cita la fuente en palabras y con enlace, pero repitió la ambigüedad:
   "ventas" (17, por fecha de venta) junto a "% de cierre" (11 vendidos ÷ 33 shows = 33,3 %), dos universos con casi el
