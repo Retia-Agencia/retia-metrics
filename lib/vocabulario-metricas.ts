@@ -17,6 +17,14 @@ export type ClaveDeMetrica =
   | "citas_pendientes" | "objetivo_semana" | "objetivo_mes" | "objetivo_cohorte"
   | "dias_del_ritmo" | "citas_minimas";
 
+/**
+ * Por qué la agenda del CRM y la de Meta pueden diferir (DA-4, Mani, 7-nov; ticket 353). UN texto para el semáforo, el
+ * mensaje de horas y "Cómo se calcula": la cifra del CRM es la cita creada en el CRM (cada reagenda es otra cita);
+ * la de Meta se muestra aparte y no se corrige contra la otra.
+ */
+export const EXPLICACION_AGENDA_CRM_VS_META =
+  "La agenda del CRM es la cita creada en el CRM, y cada reagenda cuenta como otra cita. La de Meta se muestra aparte: llega con atraso y se la atribuye al anuncio que vio la persona, aunque agende o compre después con otro enlace. Por eso pueden diferir.";
+
 export type EntradaDeVocabulario = { corto: string; largo: string; definicion: string };
 
 export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {

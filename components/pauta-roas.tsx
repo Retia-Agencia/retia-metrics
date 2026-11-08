@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { noShowPorCita } from "@/lib/deals/resultados-de-llamada";
 import type { ReactNode } from "react";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
@@ -43,7 +44,7 @@ function Celdas({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.agendas} href={enlace(fila.nivel, fila.id ?? undefined, "agenda")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.shows} href={enlace(fila.nivel, fila.id ?? undefined, "show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.noShows} href={enlace(fila.nivel, fila.id ?? undefined, "no_show")} /></td>
-    <td className="cifra py-2 pl-1 text-right align-top">{resueltas === 0 ? "—" : <><span className="block">{pct(fila.noShows / resueltas)}</span>
+    <td className="cifra py-2 pl-1 text-right align-top">{noShowPorCita(fila.noShows, fila.shows) === null ? "—" : <><span className="block">{pct(noShowPorCita(fila.noShows, fila.shows)!)}</span>
       <span className="block text-xs text-muted-foreground">{num(fila.noShows)} de {num(resueltas)} con resultado</span></>}</td>
     <td className="cifra py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
     <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}</td>

@@ -311,7 +311,8 @@ async function seccionLlamadasDeHoy(
     .where(
       and(
         eq(calls.programId, programId),
-        citaVencidaSinResultado(ahora),
+        // Criterio declarado (353): excluye negocios cerrados y NO sigue el periodo (toda cita vencida, sea de la fecha que sea).
+        citaVencidaSinResultado(ahora, "excluir"),
         vigente(calls),
         vigente(deals),
         alcanceDeDeal(alcance),

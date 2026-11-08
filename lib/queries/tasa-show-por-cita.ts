@@ -4,6 +4,7 @@ import { calls } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { Alcance } from "@/lib/queries/dashboard";
 import { citaDebida, citaDebidaSinMarcar, citaNoCancelada, filtroLlamadas, llamadaOcurrio } from "@/lib/queries/metricas-filtros";
+import { showPorCita } from "@/lib/deals/resultados-de-llamada";
 import { vigente } from "@/lib/queries/vigente";
 
 export interface ShowPorCita {
@@ -43,6 +44,6 @@ export async function showPorCitaDelRango(
     realizadas,
     sinMarcar,
     // Si ninguna cita debida tiene resultado, el closer no ha marcado nada: no se dice 0,0 %, se dice "—".
-    porcentaje: citasQueYaDebianOcurrir === 0 || sinMarcar === citasQueYaDebianOcurrir ? null : realizadas / citasQueYaDebianOcurrir,
+    porcentaje: citasQueYaDebianOcurrir === 0 || sinMarcar === citasQueYaDebianOcurrir ? null : showPorCita(realizadas, citasQueYaDebianOcurrir),
   };
 }

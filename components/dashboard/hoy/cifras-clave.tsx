@@ -19,11 +19,12 @@ function SinObjetivo({ texto, definir }: { texto: string; definir?: ReactNode })
 
 export function CifrasClave({ programas, definirObjetivo }: { programas: ProgramaDelReporte[]; definirObjetivo?: ReactNode }) {
   return (
-    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros, detalleCitasDebidas, detalleCitasSinMarcar }) => {
+    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros }) => {
       const dia = reporte.horizontes.find((h) => h.clave === "dia")!;
       const objetivoDeLeads = metaDeLeads(reporte.proyeccion.cohorte);
       const hacenFalta = reporte.proyeccion.leadsRequeridosDia.valor;
-      const asistencia = reporte.showPorCita;
+      // DA-3 (353): la cifra de Hoy es el % de show POR DEAL; el de por cita vive en "Cómo se calcula".
+      const grupo = reporte.vista.embudo.grupo;
       return (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-2">
           <Ficha
@@ -67,9 +68,9 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
           <Ficha
             titulo={nombreLargo("asistencia")}
             ayuda="embudo"
-            valor={<CifraConLista titulo="Citas que ya debían ocurrir" detalle={detalleCitasDebidas}>{tasa(asistencia.porcentaje)}</CifraConLista>}
+            valor={<CifraConLista titulo="Personas con cita que ya ocurrió" detalle={detalles?.grupo_citas}>{tasa(reporte.vista.embudo.pctShow)}</CifraConLista>}
           >
-            <p className="text-xs text-muted-foreground"><CuentaDeAsistencia realizadas={asistencia.realizadas} debidas={asistencia.citasQueYaDebianOcurrir} sinMarcar={asistencia.sinMarcar} detalle={detalleCitasSinMarcar} /></p>
+            <p className="text-xs text-muted-foreground"><CuentaDeAsistencia asistieron={grupo.conShow} personas={grupo.deals} sinMarcar={grupo.sinMarcar} detalle={detalles?.grupo_pendientes} /></p>
           </Ficha>
         </div>
       );

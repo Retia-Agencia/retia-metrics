@@ -3,7 +3,7 @@ import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, deals, leads, motivos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { etiquetaDeCloser } from "@/lib/closers/identidad";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { ocurrioSql } from "@/lib/deals/resultados-de-llamada";
 import { hoyEnBogota } from "@/lib/format";
 import { diaDeLaSemana, sumarDias } from "@/lib/dias-habiles";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
@@ -48,7 +48,7 @@ async function diasConShowPorDeal(db: Db, dealIds: readonly string[]): Promise<M
   const filas = await db
     .select({ dealId: calls.dealId, dia: fechaAnclaCall() })
     .from(calls)
-    .where(and(inArray(calls.dealId, [...dealIds]), inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]), vigente(calls)));
+    .where(and(inArray(calls.dealId, [...dealIds]), ocurrioSql(), vigente(calls)));
   for (const f of filas) {
     if (!f.dealId) continue;
     porDeal.set(f.dealId, [...(porDeal.get(f.dealId) ?? []), f.dia]);

@@ -3,7 +3,7 @@ import { calls, deals, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { ocurrio, showPorDeal } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { semanasDelRango } from "@/lib/rangos";
 import { fechaAnclaCall } from "@/lib/queries/metricas-filtros";
@@ -113,7 +113,7 @@ function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelG
     sinMarcar,
     cobertura: dividir(miembros.length, universo),
     parcial: dividir(sinMarcar, universo) !== null && sinMarcar / universo > UMBRAL_SIN_MARCAR,
-    pctShow: dividir(conShow, miembros.length),
+    pctShow: showPorDeal(conShow, miembros.length),
     pctCierre: dividir(vendidos, conShow),
     agendaAVenta: dividir(vendidos, miembros.length),
   };
@@ -122,10 +122,6 @@ function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelG
 function numeroDeDia(fecha: string): number {
   const [anio, mes, dia] = fecha.split("-").map(Number);
   return Math.floor(Date.UTC(anio, mes - 1, dia) / 86_400_000);
-}
-
-export function esShow(resultado: string): boolean {
-  return (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
 }
 
 /** ¿El rango termina hace menos de los días de madurez del programa (30 por defecto)? Las dos fechas son días de Bogotá. */
@@ -176,7 +172,7 @@ export function calcularTasasDelGrupo(args: {
   const miembros: MiembroDelGrupo[] = [...porDeal.values()].flatMap((citasDelDeal) => {
     const conResultado = citasDelDeal.filter((c) => c.resultado !== "agendada");
     if (conResultado.length === 0) return [];
-    const shows = conResultado.filter((c) => esShow(c.resultado));
+    const shows = conResultado.filter((c) => ocurrio(c.resultado));
     const atribuye = (shows.length > 0 ? shows : conResultado).at(-1)!;
     return {
       ...miembro(atribuye, shows.length > 0),

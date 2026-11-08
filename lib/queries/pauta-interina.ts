@@ -3,7 +3,7 @@ import { categoriaDeUtm } from "@/lib/atribucion/canal";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { calls, deals, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { cargarEscalera, ESCALONES_QUE_PAGARON } from "@/lib/queries/escalera";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -23,7 +23,7 @@ import { diaEnBogota } from "@/lib/queries/hechos/fechas";
  *   UTM del envio de origen de SU deal (ADR 0060). Una llamada sin deal, o de un deal sin envio
  *   de origen, va a la categoria "sin envio de origen": nunca se adivina de donde vino.
  * - **Show / no show** = el resultado de esas mismas agendas. Show es cualquier resultado que
- *   ocurrio (`RESULTADOS_QUE_OCURRIERON`); no show es el resultado `no_show`; el resto (agendada,
+ *   ocurrio (`ocurrio`); no show es el resultado `no_show`; el resto (agendada,
  *   cancelada...) no se ha resuelto y no entra a la tasa. La tasa de no show es no shows entre
  *   (shows + no shows): cuantas citas que ya se resolvieron se cayeron.
  * - **Venta** = un deal vendido EN el periodo (fecha de la venta, la misma del Hub y de la escalera, ADR 0109),
@@ -107,7 +107,6 @@ export interface VistaPautaInterina {
 }
 
 /** El dia de Bogota de una columna `timestamptz`, el mismo ancla que usa el dashboard. */
-const ocurrio = (resultado: string) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
 
 const FILA_EN_CERO = {
   registros: 0, agendas: 0, shows: 0, noShows: 0,
@@ -200,7 +199,7 @@ export async function pautaInterina(
     const fila = serie.get(llave) ?? { dia, categoria, ...d, ...FILA_EN_CERO };
     fila[campo]++;
     if (extra?.resultado !== undefined && ocurrio(extra.resultado)) fila.shows++;
-    if (extra?.resultado === "no_show") fila.noShows++;
+    if (extra?.resultado !== undefined && noAsistio(extra.resultado)) fila.noShows++;
     if (campo === "ventas") {
       if (extra?.escalon === "pago_en_llamada") fila.ventasEnLlamada++;
       else if (extra?.escalon === "pago_rapido" || extra?.escalon === "pago_despues") fila.ventasDespues++;
@@ -225,10 +224,9 @@ export async function pautaInterina(
   for (const a of agendas) {
     const dia = fechaDeInstanteEnBogota(a.createdAt);
     resumen.agendas++;
-    const instante = a.fechaAgenda ?? a.fechaLlamada;
-    if (a.resultado === "agendada" && instante !== null && instante.getTime() < ahora.getTime()) resumen.citasSinMarcar++;
+    if (citaSinResultado(a, ahora)) resumen.citasSinMarcar++;
     if (ocurrio(a.resultado)) resumen.shows++;
-    if (a.resultado === "no_show") resumen.noShows++;
+    if (noAsistio(a.resultado)) resumen.noShows++;
     if (a.origenId === null) {
       resumen.agendasSinEnvioDeOrigen++;
       sumar(dia, "sin_envio_origen", DIMENSIONES_VACIAS, "agendas", { resultado: a.resultado });

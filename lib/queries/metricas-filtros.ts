@@ -12,7 +12,7 @@ import {
   igualCloser,
   parsearClaveCloser,
 } from "@/lib/closers/identidad";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { noAsistioSql, ocurrioSql } from "@/lib/deals/resultados-de-llamada";
 import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
 import { diaDeCreacionDelDeal, diaDeEnvio, diaEnBogota } from "@/lib/queries/hechos/fechas";
@@ -234,7 +234,7 @@ export function ventasConDiaEn(db: Db, rango: Rango) {
 }
 
 export function llamadaOcurrio() {
-  return inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]);
+  return ocurrioSql();
 }
 
 /** Una cita viva: las canceladas se informan aparte y nunca inflan la cifra de Citas. */
@@ -456,20 +456,31 @@ export function filtroAgendasFuturas(alcance: Alcance, db: Db, ahora: Date) {
 
 /** Las citas cuyo resultado explícito fue no show, dentro del universo común de llamadas. */
 export function filtroNoShows(alcance: Alcance, db: Db) {
-  return and(filtroLlamadas(alcance, db), eq(calls.resultado, "no_show"));
+  return and(filtroLlamadas(alcance, db), noAsistioSql());
 }
 
 export const ETAPAS_CERRADAS: readonly EtapaDeal[] = ["ganado_completo", "cierre_perdido"];
 
 /**
- * Una cita ya vencida cuyo resultado sigue pendiente. El reloj entra como parámetro.
- * El llamador debe haber unido `deals`.
+ * Qué hacer con los negocios ya cerrados (ganados o perdidos) al contar citas sin resultado. Se DECLARA en cada
+ * llamada (ticket 353, C-06): antes cuatro predicados contaban 251 contra 255 sin decir por qué.
+ *  - `excluir`: lo que hay que ponerse al día (Inbox, bandera del Hub, "Sin resultado"): una cita vieja de un deal ya
+ *    cerrado no se persigue.
+ *  - `incluir`: la cobertura del show por cita (`citaDebidaSinMarcar`): una venta con la llamada sin marcar es justo
+ *    lo que hay que ver.
  */
-export function citaVencidaSinResultado(ahora: Date) {
+export type NegociosCerrados = "excluir" | "incluir";
+
+/**
+ * LA cita pasada sin resultado (353): sigue `agendada` aunque su hora (`coalesce(fecha_agenda, fecha_llamada)`)
+ * ya pasó. El reloj entra como parámetro. Si excluye cerrados, el llamador debe haber unido `deals`. Que siga o no
+ * el periodo lo decide el llamador con `filtroLlamadas`; el Inbox no lo usa y la bandera del Hub sí.
+ */
+export function citaVencidaSinResultado(ahora: Date, negociosCerrados: NegociosCerrados) {
   return and(
     eq(calls.resultado, "agendada"),
-    lte(calls.fechaAgenda, ahora),
-    notInArray(deals.etapa, [...ETAPAS_CERRADAS]),
+    llamadaYaDebiaOcurrir(ahora),
+    negociosCerrados === "excluir" ? notInArray(deals.etapa, [...ETAPAS_CERRADAS]) : undefined,
   );
 }
 
@@ -498,7 +509,7 @@ export function citaDebida(ahora: Date) {
  * negocios cerrados: una venta con la llamada sin marcar es justo lo que hay que ver.
  */
 export function citaDebidaSinMarcar(ahora: Date) {
-  return and(citaDebida(ahora), eq(calls.resultado, "agendada"));
+  return and(citaDebida(ahora), citaVencidaSinResultado(ahora, "incluir"));
 }
 
 /** El complemento: la cita todavía no llega al corte. Operadores de drizzle, nunca un `Date` dentro de `sql`. */

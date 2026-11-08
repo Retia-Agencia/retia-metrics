@@ -36,7 +36,7 @@ export const camposDeFiltrosDeLista = {
   campaign: z.string().max(300).optional(),
   resultado: z.enum(["show", "no_show"]).optional(),
   orden: z.enum(["envio", "actividad"]).optional(),
-  escalon: z.enum([...ESCALONES, "ventas", "despues"]).optional(),
+  escalon: z.enum([...ESCALONES, "ventas", "despues", "cita_sin_resultado"]).optional(),
   grupo: z.enum(Object.keys(GRUPOS_DE_CIERRE) as [keyof typeof GRUPOS_DE_CIERRE, ...(keyof typeof GRUPOS_DE_CIERRE)[]]).optional(),
   pago: z.enum(["completo", "parcial"]).optional(),
   calidad: z.string().max(100).optional(),

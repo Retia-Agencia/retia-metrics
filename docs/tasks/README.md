@@ -304,7 +304,7 @@ a fase 2.
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
 | [ ] | 351 | [Toda razón con su cobertura, y el gasto que falta](./351-toda-razon-con-su-cobertura.md) | — | todo · 30-oct · auditoría de métricas (C-01 ROAS con gasto desde el 8-oct) · ADR 0115 N3 · backfill con ok de Mani |
 | [x] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | done · 3-nov · DA-1, DA-2, DA-5. Alcance 4 (C-17): muestra mínima y días de madurez son columnas de `programs`; sin pantalla de edición todavía |
-| [ ] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | todo · 30-oct · auditoría · espera DA-3 (Mani) y DA-4 (con Pauta) |
+| [x] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | done · 7-nov · DA-3 y DA-4 resueltas por Mani el 7-nov · falta checkpoint verde |
 | [ ] | 354 | [Cada hecho con su día, y registro, lead y "sin UTM" una vez](./354-anclas-de-fecha-registros-y-sin-utm.md) | — | todo · 30-oct · auditoría (C-04 parciales sin fecha) |
 | [ ] | 355 | [Pauta: un cargador y una tabla](./355-pauta-un-cargador-y-una-tabla.md) | 351, 352, 353, 354 | todo · 30-oct · auditoría · borra `pauta-interina` |
 | [x] | 356 | [La comisión siempre congelada](./356-la-comision-siempre-congelada.md) | — | done · 7-nov · reja en `moverEtapa` y backfill aplicado el 30-oct (`76b2b5db`, `597fa7a2`); verificado el 7-nov: 0 ventas vigentes sin % (385 F0) |

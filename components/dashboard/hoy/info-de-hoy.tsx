@@ -69,12 +69,19 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
           { titulo: nombreCorto("cupos_vendidos"), valor: e ? num(e.cierres) : undefined },
         ]} />
         {uno && e ? <BarraDeEjemplo etiqueta="Así se llena una barra" parte={e.agendas} total={Math.max(uno.registros, e.agendas, e.llamadasConShow, e.cierres, 1)} textoParte={`${num(e.agendas)} citas de ${num(Math.max(uno.registros, e.agendas, e.llamadasConShow, e.cierres, 1))} (la barra más larga = 100 %)`} /> : <Frase>La barra más larga es el 100 %; las demás se miden contra ella.</Frase>}
+        {e ? <Formula
+          renglones={[
+            { nombre: "Personas que asistieron", valor: num(e.grupo.conShow) },
+            { operador: "÷", nombre: "Personas con cita que ya ocurrió y resultado marcado", valor: num(e.grupo.deals), origen: "Una persona cuenta una vez aunque haya reagendado; las citas sin resultado quedan fuera" },
+          ]}
+          resultado={{ nombre: nombreLargo("asistencia"), valor: tasa(e.pctShow) }}
+        /> : null}
         {uno ? <Formula
           renglones={[
             { nombre: "Citas realizadas", valor: num(uno.showPorCita.realizadas) },
             { operador: "÷", nombre: "Citas que ya debían ocurrir", valor: num(uno.showPorCita.citasQueYaDebianOcurrir), origen: "Las canceladas no entran; las de hoy que aún no llegan, tampoco" },
           ]}
-          resultado={{ nombre: nombreLargo("asistencia"), valor: tasa(uno.showPorCita.porcentaje) }}
+          resultado={{ nombre: `${nombreLargo("asistencia")}, contada por cita`, valor: tasa(uno.showPorCita.porcentaje) }}
         /> : null}
         {e ? <Formula
           renglones={[

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { noShowPorCita } from "@/lib/deals/resultados-de-llamada";
 import type { ReactNode } from "react";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { Badge } from "@/components/ui/badge";
@@ -139,8 +140,9 @@ function Cifra({ valor: n, href }: { valor: number; href: string | null }) {
 /** La tasa de no show sobre shows + no shows; las dos cifras ya están en sus columnas. */
 function TasaNoShow({ noShows, shows }: { noShows: number; shows: number }) {
   const resueltas = noShows + shows;
-  if (resueltas === 0) return <span className="text-muted-foreground">—</span>;
-  return <span className="block"><span className="block font-medium">{pct(noShows / resueltas)}</span>
+  const tasa = noShowPorCita(noShows, shows);
+  if (tasa === null) return <span className="text-muted-foreground">—</span>;
+  return <span className="block"><span className="block font-medium">{pct(tasa)}</span>
     <span className="block text-xs text-muted-foreground">{num(noShows)} de {num(resueltas)} con resultado</span></span>;
 }
 
@@ -254,7 +256,7 @@ export function PautaInterina({
           <Kpi
             titulo="No shows"
             valor={<Cifra valor={resumen.noShows} href={de("agendas_creadas", { resultado: "no_show" })} />}
-            nota={resueltasTotal === 0 ? "—" : `${pct(resumen.noShows / resueltasTotal)} de ${num(resueltasTotal)} citas resueltas`}
+            nota={noShowPorCita(resumen.noShows, resumen.shows) === null ? "—" : `${pct(noShowPorCita(resumen.noShows, resumen.shows)!)} de ${num(resueltasTotal)} citas resueltas`}
           />
           <Kpi
             titulo="Ventas"

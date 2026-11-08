@@ -50,6 +50,8 @@ export interface FilaDeEscalera {
   total: number;
   celdas: Record<Escalon, CeldaDeEscalera>;
   grupos: Record<GrupoDeCierre, CeldaDeEscalera>;
+  /** Deals con una cita pasada sin resultado: aparte de los escalones, con su lista (353, C-05). */
+  citaSinResultado: CeldaDeEscalera;
 }
 
 export interface VistaDeEscalera {
@@ -156,7 +158,33 @@ function fila(
       detalle,
     } satisfies CeldaDeEscalera];
   })) as Record<GrupoDeCierre, CeldaDeEscalera>;
-  return { clave, etiqueta, esSinDueno, total: resumen.total, celdas, grupos };
+  const sinResultado = conjunto.filter((deal) => deal.citaSinResultado);
+  const detalleSinResultado: DetalleDeCifra | null = entrada.conEquipo && sinResultado.length > 0
+    ? (() => {
+        const resumenDeLista = resumenDeDeals(entrada.programId, sinResultado, entrada.hoy);
+        return {
+          resumen: resumenDeLista,
+          desgloses: desglosesDelResumen(resumenDeLista.grupos, nombreDeEtapa),
+          href: urlDeLista({
+            slug: entrada.slug,
+            metrica: "escalera",
+            periodo: entrada.periodo,
+            origen: entrada.origen,
+            claveCloser: enlace.claveCloser,
+            cohorteId: entrada.cohorteId ?? undefined,
+            escalera: { escalon: "cita_sin_resultado", calidad: enlace.calidad },
+          }),
+        };
+      })()
+    : null;
+  const citaSinResultado: CeldaDeEscalera = {
+    deals: sinResultado.length,
+    porcentaje: tasa(conjunto.length === 0 ? null : (sinResultado.length / conjunto.length) * 100),
+    diasMedianos: null,
+    anterior: anterior ? conjuntoAnterior.filter((deal) => deal.citaSinResultado).length : null,
+    detalle: detalleSinResultado,
+  };
+  return { clave, etiqueta, esSinDueno, total: resumen.total, celdas, grupos, citaSinResultado };
 }
 
 /** Arma la tarjeta: carga la escalera del periodo A (y la del B si hay comparación) una vez cada una. */

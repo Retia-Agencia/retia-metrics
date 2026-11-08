@@ -5,9 +5,10 @@ import type { Db } from "@/lib/db/tipos";
 import { etiquetaDeCloser, normalizarCloserId, parsearClaveCloser } from "@/lib/closers/identidad";
 import { CLAVE_SIN_DUENO } from "@/lib/queries/embudo-con-filas";
 import { diasHabilesEntre, diaDeCalendario, esDiaHabil } from "@/lib/dias-habiles";
-import { RESULTADOS_FALLIDOS, RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { RESULTADOS_FALLIDOS } from "@/lib/deals/mover-etapa";
+import { resultadosQueOcurrieronComoLiterales } from "@/lib/deals/resultados-de-llamada";
 import type { Rango } from "@/lib/queries/dashboard";
-import { fechaAnclaCall, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
+import { citaVencidaSinResultado, fechaAnclaCall, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { diaDeCreacionDelDeal } from "@/lib/queries/hechos/fechas";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
@@ -92,12 +93,24 @@ export interface HechosDeEscalera {
    * haya sucedido y no cuenta (ADR 0109, enmienda del 28-oct).
    */
   citaVencidaSinAtender: boolean;
+  /**
+   * Alguna cita sigue `agendada` con la hora ya pasada (353, C-05): un dato que falta, no un no show. NO mueve al deal
+   * de escalón (sigue en "Dejó datos y sin cita ocurrida" si no hay otra cita); la escalera lo cuenta aparte con
+   * `citaSinResultado`. Incluye negocios cerrados: la escalera ya separó las ventas.
+   */
+  citaPasadaSinResultado: boolean;
 }
 
 export interface UbicacionEnLaEscalera {
   escalon: Escalon;
   /** Días hábiles de la cita al primer abono (0 = el mismo día); solo si pagó y hay cita atendida. */
   diasCitaAPago: number | null;
+  /**
+   * El deal NO vendido tiene una cita pasada sin resultado (353, C-05). Es una marca APARTE del escalón: el deal sigue
+   * donde la fórmula lo puso y la pantalla cuenta "cita pasada sin resultado" con su lista, para que 245 de 999 deals
+   * no se lean como "dejó datos" cuando en realidad el closer no marcó la llamada.
+   */
+  citaSinResultado: boolean;
 }
 
 /**
@@ -113,6 +126,10 @@ export function diasHabilesDespuesDe(cita: string, pago: string): number {
  * de "rápido" y los escalones 2 y 3 se juntan en "pagó después".
  */
 export function escalonDeDeal(hechos: HechosDeEscalera, corte: number | null): UbicacionEnLaEscalera {
+  return { ...ubicarEnEscalon(hechos, corte), citaSinResultado: !hechos.vendido && hechos.citaPasadaSinResultado };
+}
+
+function ubicarEnEscalon(hechos: HechosDeEscalera, corte: number | null): Omit<UbicacionEnLaEscalera, "citaSinResultado"> {
   if (hechos.vendido) {
     const pago = hechos.primerAbono;
     // La última cita atendida que no es posterior al primer abono: la llamada en que se cerró.
@@ -198,14 +215,16 @@ async function cargarHechosDeEscalera(
       dia: fechaAnclaCall(),
       instante: sql<Date>`coalesce(${calls.fechaAgenda}, ${calls.fechaLlamada})`,
       fallida: sql<boolean>`${calls.resultado} in (${sql.raw(RESULTADOS_FALLIDOS.map((r) => `'${r}'`).join(", "))})`,
-      atendida: sql<boolean>`${calls.resultado} in (${sql.raw(RESULTADOS_QUE_OCURRIERON.map((r) => `'${r}'`).join(", "))})`,
+      sinResultado: sql<boolean>`coalesce(${citaVencidaSinResultado(ahora, "incluir")}, false)`,
+      atendida: sql<boolean>`${calls.resultado} in (${sql.raw(resultadosQueOcurrieronComoLiterales())})`,
     }).from(calls).where(and(eq(calls.programId, args.programId), inArray(calls.dealId, [...args.dealIds]), vigente(calls))),
   ]);
   const primerAbono = new Map(filasAbonos.map((fila) => [fila.dealId, diaDeCalendario(fila.primero)]));
-  const citasPorDeal = new Map<string, { atendidas: string[]; vencida: boolean }>();
+  const citasPorDeal = new Map<string, { atendidas: string[]; vencida: boolean; sinResultado: boolean }>();
   for (const cita of filasCitas) {
     if (cita.dealId === null) continue;
-    const acumulado = citasPorDeal.get(cita.dealId) ?? { atendidas: [], vencida: false };
+    const acumulado = citasPorDeal.get(cita.dealId) ?? { atendidas: [], vencida: false, sinResultado: false };
+    if (cita.sinResultado) acumulado.sinResultado = true;
     if (cita.atendida) acumulado.atendidas.push(diaDeCalendario(cita.dia));
     else if (cita.fallida && new Date(cita.instante).getTime() <= ahora.getTime()) acumulado.vencida = true;
     citasPorDeal.set(cita.dealId, acumulado);
@@ -219,6 +238,7 @@ async function cargarHechosDeEscalera(
       primerAbono: primerAbono.get(dealId) ?? null,
       citasAtendidas: citas?.atendidas ?? [],
       citaVencidaSinAtender: citas?.vencida ?? false,
+      citaPasadaSinResultado: citas?.sinResultado ?? false,
     });
   }
   return { corteDias, porDeal };
@@ -336,6 +356,8 @@ export interface FiltrosDeEscalera {
   claveCloser?: string | null;
   calidad?: string;
   cohorteId?: string;
+  /** Solo los deals con cita pasada sin resultado (la lista de la marca aparte, 353). */
+  citaSinResultado?: boolean;
 }
 
 /**
@@ -357,6 +379,7 @@ export function filtrarEscalera(cargada: EscaleraCargada, filtros: FiltrosDeEsca
     delCloser(deal, filtros.claveCloser)
     && (!filtros.calidad || deal.calidad === filtros.calidad)
     && (!filtros.cohorteId || deal.cohorteId === filtros.cohorteId)
+    && (!filtros.citaSinResultado || deal.citaSinResultado)
     && (!filtros.escalon || deal.escalon === filtros.escalon)
     && (!filtros.escalones || filtros.escalones.includes(deal.escalon))
     && (!filtros.pago || deal.etapa === (filtros.pago === "completo" ? "ganado_completo" : "ganado_parcial")));
@@ -376,6 +399,8 @@ export interface ResumenDeEscalera {
   lineas: LineaDeEscalon[];
   /** El programa no definió el corte: "pagó rápido" no existe y sus pagos están en "pagó después". */
   sinCorte: boolean;
+  /** Deals del conjunto con una cita pasada sin resultado: aparte de los escalones, con su lista (353). */
+  citaSinResultado: number;
 }
 
 export function medianaDe(valores: readonly number[]): number | null {
@@ -391,6 +416,7 @@ export function resumirEscalera(delConjunto: readonly DealEnLaEscalera[], corteD
   return {
     total,
     sinCorte: corteDias === null,
+    citaSinResultado: delConjunto.filter((deal) => deal.citaSinResultado).length,
     lineas: ESCALONES.map((escalon) => {
       const delEscalon = delConjunto.filter((deal) => deal.escalon === escalon);
       const dias = delEscalon.flatMap((deal) => (deal.diasCitaAPago === null ? [] : [deal.diasCitaAPago]));

@@ -9,12 +9,12 @@ import {
 
 /** ADR 0109, ticket 319: la regla pura. 2026-10-05 es lunes: sábado 3 y domingo 4 no cuentan. */
 
-const base: HechosDeEscalera = { vendido: false, primerAbono: null, citasAtendidas: [], citaVencidaSinAtender: false };
+const base: HechosDeEscalera = { vendido: false, primerAbono: null, citasAtendidas: [], citaVencidaSinAtender: false, citaPasadaSinResultado: false };
 
 describe("escalonDeDeal: la regla y su precedencia", () => {
   it("pagó el mismo día de la cita atendida: en la llamada", () => {
     expect(escalonDeDeal({ ...base, vendido: true, primerAbono: "2026-10-05", citasAtendidas: ["2026-10-05"] }, 3))
-      .toEqual({ escalon: "pago_en_llamada", diasCitaAPago: 0 });
+      .toMatchObject({ escalon: "pago_en_llamada", diasCitaAPago: 0 });
   });
   it("hasta el corte en hábiles es rápido; un día más es después", () => {
     const h = { ...base, vendido: true, citasAtendidas: ["2026-10-05"] };
@@ -38,7 +38,7 @@ describe("escalonDeDeal: la regla y su precedencia", () => {
   });
   it("pagó sin cita atendida anterior: escalón aparte, sin días", () => {
     expect(escalonDeDeal({ ...base, vendido: true, primerAbono: "2026-10-06", citasAtendidas: ["2026-10-09"] }, 3))
-      .toEqual({ escalon: "pago_sin_llamada", diasCitaAPago: null });
+      .toMatchObject({ escalon: "pago_sin_llamada", diasCitaAPago: null });
     expect(escalonDeDeal({ ...base, vendido: true }, 3).escalon).toBe("pago_sin_llamada");
   });
   it("sin venta: atendió, agendó o dejó datos, en ese orden", () => {

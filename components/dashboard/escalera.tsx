@@ -46,6 +46,11 @@ export function DetalleDeEscalera({ vista, periodo }: { vista: VistaDeEscalera; 
         return <tr key={escalon}><td className="py-2">{NOMBRE_DE_ESCALON[escalon]}</td><td className="text-right"><Cifra celda={celda} titulo={NOMBRE_DE_ESCALON[escalon]} /></td><td className="cifra text-right">{celda.porcentaje.valor === null ? "—" : pct(celda.porcentaje.valor / 100)}</td><td className="cifra text-right">{celda.diasMedianos === null ? "—" : num(celda.diasMedianos, celda.diasMedianos % 1 === 0 ? 0 : 1)}</td>{vista.hayComparacion ? <td className="text-right">{celda.anterior === null ? "—" : <Variacion actual={celda.deals} anterior={celda.anterior} periodo={periodo} />}</td> : null}</tr>;
       })}</tbody>
     </table></div>
+    {vista.principal.citaSinResultado.deals > 0 ? (
+      <p className="text-sm text-muted-foreground">
+        <Cifra celda={vista.principal.citaSinResultado} titulo="Cita pasada sin resultado" /> con la cita pasada y sin resultado marcado. Están dentro de los escalones de arriba, no son faltas de asistencia: el closer no marcó la llamada.
+      </p>
+    ) : null}
     <TablaPorCalidad filas={vista.porCalidad} visibles={visibles} />
   </div>;
 }
