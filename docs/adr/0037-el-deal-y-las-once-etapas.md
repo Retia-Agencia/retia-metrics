@@ -1,4 +1,4 @@
-# 0037 — El Deal es el objeto central: once etapas y un solo motor que las mueve
+# 0037 — El Deal es el objeto central: once etapas, un solo motor que las mueve y una sola consulta de venta
 
 **Fecha:** 2026-09-21 · **Reescrito:** 2026-09-27 (consolida las decisiones del 22 y el 24-sep y los
 ADR retirados 0010, 0021 y 0027) · **Estado:** aceptado; las once etapas y la tabla de transiciones
@@ -74,6 +74,10 @@ Excepción: un Agendado cuyo host de Calendly es closer registrado en el program
 
 **7. Derivados, nunca guardados:** lo abonado, el saldo, "es Student" (etapa Abonado o Completo) y la
 comisión (ventas × monto fijo por venta del programa, en USD; enmendado el 29-sep con el ticket 062: no es un porcentaje del precio) se calculan (ADR 0024).
+**Enmienda del 8-nov (ticket 392, ADR 0115 N1):** "venta" tiene un predicado (`etapaVendida()` y su gemela `esEtapaVendida`)
+y UNA consulta con día, `ventasConDiaEn` (`lib/queries/metricas-filtros.ts`); `vendidosEn` se borró y quien solo necesita los
+deals proyecta con `idsDeVentasEn`. La serie diaria (`ventasDelAlcance`) y la cifra (`filtroCierres`) comparten las condiciones
+de alcance. "Vendido" en la ficha del deal es la etapa actual, ya no "o tiene un abono". `cerradosEn` no es venta: es la Close date.
 
 **8. Deals históricos:** el CRM abre deals solo para leads nuevos desde el corte. Los leads viejos de
 Setteo entran con la migración de la etapa 7, respetando su estado de gestión, no como ~2.400 deals

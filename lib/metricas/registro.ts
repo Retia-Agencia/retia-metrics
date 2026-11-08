@@ -111,7 +111,7 @@ const CITA_SIN_RESULTADO: ReferenciaAFuncion = { archivo: "lib/queries/metricas-
 const CITA_SIN_RESULTADO_EN_MEMORIA: ReferenciaAFuncion = { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "citaCuentaComoPorMarcar" };
 
 /**
- * Los conceptos ya registrados, por clave de `lib/vocabulario-metricas.ts`. Ocho (con `leads`, ticket 389, y la cita sin resultado, 390), a propósito: el esqueleto
+ * Los conceptos ya registrados, por clave de `lib/vocabulario-metricas.ts`. Diez (con `leads`, ticket 389, la cita sin resultado, 390, y `cupos_vendidos` y `llevamos`, 392), a propósito: el esqueleto
  * ejercita los tres tipos (simple, derivada y el dinero con moneda) sin tocar el área del 353 (show, cita sin
  * resultado, agenda) ni la de Pauta (355).
  */
@@ -129,6 +129,36 @@ export const REGISTRO = {
     funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "ventasConDiaEn" },
     gemelaTs: { archivo: "lib/deals/etapas.ts", nombre: "esEtapaVendida" },
     listas: ["cierres"],
+  }),
+  // Cupos vendidos y Llevamos (392): la misma venta, leída en el día y acumulada hasta hoy. No tienen consulta propia.
+  cupos_vendidos: ficha("venta", {
+    filaDelDiccionario: "Cupos vendidos (hoy)",
+    tipo: "derivada",
+    de: ["ventas"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: [],
+    vigencia: ["deals"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "ventasConDiaEn" },
+    gemelaTs: { archivo: "lib/deals/etapas.ts", nombre: "esEtapaVendida" },
+    listas: [],
+  }),
+  llevamos: ficha("venta", {
+    filaDelDiccionario: "Llevamos (a hoy)",
+    tipo: "derivada",
+    de: ["ventas"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: [],
+    vigencia: ["deals"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/ventas-de-la-cohorte.ts", nombre: "ventasDeLaCohorte" },
+    listas: [],
   }),
   vendido: ficha("venta", {
     filaDelDiccionario: "Vendido",

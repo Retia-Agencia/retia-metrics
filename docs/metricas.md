@@ -31,7 +31,7 @@ lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
 
 | Concepto | Hoy (auditoría 30-oct) | Canónico | Ticket |
 |---|---|---|---|
-| Venta (conteo y día) | ✅ una sola: `etapaVendida()` (SQL) y `esEtapaVendida` (memoria) con `ventasConDiaEn`/`vendidosEn` en `lib/queries/metricas-filtros.ts` (DA-1) | guardián: `tests/venta-una-definicion.test.ts` | 352 ✅ |
+| Venta (conteo y día) | ✅ una sola: `etapaVendida()` (SQL) y `esEtapaVendida` (memoria) con UNA consulta con día, `ventasConDiaEn` en `lib/queries/metricas-filtros.ts` (DA-1); la consulta gemela sin día se borró y los recorridos importan esta (`idsDeVentasEn`, `ventasDelAlcance`, `ventasDelPrograma`, hechos, ficha, Students); `cerradosEn` es otro concepto (Close date) | guardián: `tests/venta-una-definicion.test.ts` | 352 ✅, 392 ✅ |
 | Vendidos de la cohorte | ✅ `ventasDeLaCohorte` en `lib/queries/ventas-de-la-cohorte.ts`, sin límite inferior (DA-2); la usan Cupos, meta de hoy, Proyección y alertas | — | 352 ✅ |
 | Meta de hoy y cumplimiento | ✅ `metaDeHoy` y `esperadoLineal` en `lib/dias-habiles.ts`; las importan `dashboard.ts`, `proyeccion.ts`, `metas.ts` y `alertas.ts` | — | 352 ✅ |
 | Show / ocurrió | ✅ `RESULTADOS_QUE_OCURRIERON`, `ocurrio`, `ocurrioSql`, `noAsistio` y `noAsistioSql` en `lib/deals/resultados-de-llamada.ts`; las 8 envolturas se borraron | guardián N1: `tests/resultados-de-llamada.test.ts` | 353 ✅ |
@@ -95,8 +95,12 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
   nadie más escribe esa lista (guardián).
 - **Fecha:** el **primer** día en que entró a una etapa vendida (Bogotá). La reversa de una venta (anular el
   abono que la vendió, ticket 200) la saca.
-- **Función:** `ventasConDiaEn` en `lib/queries/metricas-filtros.ts` (la única definición) y
-  `lib/queries/hechos/venta.ts`; la de la cohorte entera, `ventasDeLaCohorte`.
+- **Función:** `ventasConDiaEn` en `lib/queries/metricas-filtros.ts` (la única consulta, 392) y
+  `lib/queries/hechos/venta.ts`; la de la cohorte entera, `ventasDeLaCohorte`. Los demás recorridos la importan:
+  `idsDeVentasEn` (solo los deals, para `filtroCierres`, caja del día y ventas por closer), `ventasDelAlcance` (la serie
+  diaria, con las mismas condiciones que `filtroCierres`) y `ventasDelPrograma` (escalera y ROAS, sin límite de fechas).
+  Las gemelas en memoria (`esEtapaVendida` en la ficha, las tasas del grupo y el embudo por etapas) usan la misma lista.
+  `cerradosEn` NO es venta: es la Close date (cuenta también perdidos y un perdido recuperado deja de estar cerrado).
 - **Ojo:** un deal que pasa de Abonado a Cierre Perdido **deja de ser venta y cuenta como perdido** (DA-1, Mani,
   3-nov; en la práctica solo con una devolución, 242). Así lo cuentan Mes, Cohorte, alertas, % de cierre, escalera y
   ROAS, a la vez (352). Si una venta de octubre se pierde en noviembre, octubre baja en uno.
@@ -220,6 +224,8 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Concepto | Tipo | Unidad · moneda | Se ubica por | ¿Se suma entre programas? | Cobertura | Dimensiones | Vigencia | Función | Listas |
 |---|---|---|---|---|---|---|---|---|---|
 | Ventas (`ventas`) | simple | cupos | día de su primera entrada a Abonado o Completo | sí | — | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals` | `ventasConDiaEn` (`lib/queries/metricas-filtros.ts`) · gemela `esEtapaVendida` (`lib/deals/etapas.ts`) | `cierres` |
+| Cupos vendidos (`cupos_vendidos`) | derivada de `ventas` | cupos | día de su primera entrada a Abonado o Completo | sí | — |  | `deals` | `ventasConDiaEn` (`lib/queries/metricas-filtros.ts`) · gemela `esEtapaVendida` (`lib/deals/etapas.ts`) | — |
+| Llevamos (`llevamos`) | derivada de `ventas` | cupos | día de su primera entrada a Abonado o Completo | sí | — |  | `deals` | `ventasDeLaCohorte` (`lib/queries/ventas-de-la-cohorte.ts`) | — |
 | Vendido (`vendido`) | simple | dinero · USD | día de su primera entrada a Abonado o Completo | sí | excluye y cuenta aparte | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals`, `abonos` | `dineroDeVentas` (`lib/queries/dinero-de-ventas.ts`) · gemela `dineroDeSaldos` (`lib/queries/dinero-de-ventas.ts`) | `contratado` |
 | Recaudado (`recaudado`) | simple | dinero · USD | día de su primera entrada a Abonado o Completo | sí | excluye y cuenta aparte | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals`, `abonos` | `dineroDeVentas` (`lib/queries/dinero-de-ventas.ts`) · gemela `dineroDeSaldos` (`lib/queries/dinero-de-ventas.ts`) | — |
 | Por cobrar (`por_cobrar`) | derivada de `vendido` y `recaudado` | dinero · USD | día de su primera entrada a Abonado o Completo | sí | excluye y cuenta aparte | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals`, `abonos` | `dineroDeVentas` (`lib/queries/dinero-de-ventas.ts`) · gemela `dineroDeSaldos` (`lib/queries/dinero-de-ventas.ts`) | — |
@@ -257,6 +263,8 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Cita pasada sin resultado en la escalera | deals NO vendidos con una cita `agendada` cuya hora ya pasó (`citaSinResultado` en `UbicacionEnLaEscalera`). Es una marca **aparte** del escalón: el deal sigue en «Dejó datos» o donde lo ponga la fórmula, y la tarjeta cuenta cuántos hay, con su lista (`escalon=cita_sin_resultado`), para que no se lean como falta de asistencia (C-05) | deals | sí | `escalonDeDeal`, `resumirEscalera` en `lib/queries/escalera.ts` | ✅ 353 |
 | Embudo comercial | un solo universo de deals creados en el rango: **creados → agendaron → tuvieron show → compraron**. Cada paso es subconjunto del anterior; `pctDelPaso` es cantidad ÷ paso anterior (`—` si la base es cero) y `perdidos` es la resta exacta. Se puede leer completo, parcial o manual; los cuatro pasos abren su lista desde `metricas-con-filas` | deals y % | no: siempre por programa | `pasosDelEmbudoComercial` / `cargarEmbudoComercial` en `lib/queries/embudo-comercial.ts`; listas `embudo_comercial_*` | ✅ |
 | Ventas | deals vendidos en el rango (§1.4) | ventas | sí | `ventasConDiaEn` | ✅ |
+| Cupos vendidos (hoy) | las ventas del día, un cupo cada una; `ventasConDiaEn` con el rango de un día (392) | cupos | sí | `ventasConDiaEn` | ✅ |
+| Llevamos (a hoy) | las ventas de la cohorte o del mes desde que empezó el periodo hasta hoy, sin límite inferior (DA-2); en USD, su Vendido (392) | cupos y USD | sí | `ventasDeLaCohorte` | ✅ |
 | Ventas por escalón | la escalera de conversión (ADR 0109) conserva siete escalones y arriba los agrupa sin cambiar fórmulas: **Cerró en la llamada** = `pago_en_llamada`; **Cerró con seguimiento** = `pago_rapido` + `pago_despues` (su mediana se calcula sobre los deals de ambos); **No cerró** = `atendio_no_compro`; aparte, **Ventas sin llamada registrada** = `pago_sin_llamada` y **No llegaron a la llamada** = `agendo_no_se_presento` + `dejo_datos` | deals | no: distribución por programa | `GRUPOS_DE_CIERRE` y `grupoDeCierre` en `lib/queries/escalera.ts` | ✅ |
 | Conversión por etapa | conserva la lectura anterior y agrega dos caminos: **setter** (En gestión → Contactado → Calificado) y **llamada** (Agendado → Atendido → Compromiso → Ganado). En cada etapa `pasaron + siguen aquí + se perdieron aquí = llegaron`. El tiempo agrega mediana de días hábiles y devuelve `null` con menos de cinco deals | deals y días hábiles | sí, por programa y cohorte | `lecturaConversion` / `lecturasPorCamino` / `calcularTiempos` en `lib/queries/embudo-etapas.ts`; listas en `lib/queries/embudo-con-filas.ts` | ✅ |
 | Vendido | Σ `deals.valor_vendido_usd` de las ventas que dejan pasar los filtros del Hub (cohorte, periodo por fecha de venta, closer); lo escribe el closer. Una venta sin valor, o con abonos en otra moneda, queda fuera de las tres cifras del dinero y se cuenta aparte, no se inventa. Va siempre junto a Recaudado y Por cobrar, sobre el MISMO conjunto de ventas (369) | USD | sí | `dineroDeVentas` en `lib/queries/dinero-de-ventas.ts` (`contratadoDeDeals` en `saldo.ts` para la cifra suelta) | ✅ |

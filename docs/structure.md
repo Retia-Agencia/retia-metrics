@@ -654,7 +654,7 @@ paginación e ids porque pertenecen al programa anterior.
 - Cada métrica clicable tiene UNA definición de su universo en `lib/queries/metricas-filtros.ts`
   (`filtroCaja`, `filtroLlamadas`, `filtroCierres`, `filtroLeads`), que usan a la vez la cifra del
   Hub (`dashboard.ts`), el resumen y la lista (`metricas-con-filas.ts`): no pueden discrepar.
-  Hoy son caja (abonos, por moneda), agendas y shows (llamadas), cierres (los deals de `vendidosEn`) y
+  Hoy son caja (abonos, por moneda), agendas y shows (llamadas), cierres (los deals de `ventasConDiaEn`) y
   leads. `vigente()` va escrito en cada cadena, no en el filtro, porque el guardián lee cadena por cadena.
 - Paso 1, el **resumen**: agregado en Postgres (`GROUP BY`), sin traer filas; se parte en tres desgloses
   (`desglosesDelResumen`): por closer (agrupado por `claveDeCloser`, ADR 0030), por etapa y por antigüedad

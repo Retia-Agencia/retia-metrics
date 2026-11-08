@@ -16,9 +16,9 @@ import {
   dealsDeLaCohorte,
   porClaveDeDeal,
   porCohorteDeDeal,
-  vendidosEn,
+  idsDeVentasEn,
 } from "@/lib/queries/metricas-filtros";
-export { fechaAnclaCall, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
+export { fechaAnclaCall, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { and, asc, between, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import {
@@ -187,7 +187,7 @@ export function tasa(numerador: number, denominador: number): number | null {
 }
 
 /**
- * Cuenta los deals cuya VENTA (`vendidosEn`: su primera entrada a Ganado Pago Parcial o Ganado Pagado Completo)
+ * Cuenta los deals cuya VENTA (`ventasConDiaEn`: su primera entrada a Ganado Pago Parcial o Ganado Pagado Completo)
  * cae en el rango. Cada venta cuenta en un solo periodo.
  *
  * La fecha de venta es la del movimiento de etapa, no la del abono ni la de la
@@ -234,7 +234,7 @@ async function ventasPorCloser(
     .where(
       and(
         eq(deals.programId, programId),
-        inArray(deals.id, vendidosEn(db, rango)),
+        inArray(deals.id, idsDeVentasEn(db, rango)),
         porCohorteDeDeal(cohorteId),
         vigente(deals),
       ),

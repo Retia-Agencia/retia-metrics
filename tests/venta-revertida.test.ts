@@ -7,7 +7,7 @@ import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
 import { hoyEnBogota } from "@/lib/format";
 import { embudoPorEtapas } from "@/lib/queries/embudo-etapas";
 import { leerMetasDelMes } from "@/lib/queries/metas";
-import { primerosMovimientosDeVenta, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
+import { idsDeVentasEn, primerosMovimientosDeVenta, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -81,7 +81,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
 }
 
 async function vendidos(): Promise<string[]> {
-  return (await vendidosEn(db, SIEMPRE)).map((f) => f.dealId);
+  return (await idsDeVentasEn(db, SIEMPRE)).map((f) => f.dealId);
 }
 
 async function pasoVendido(): Promise<string[]> {
@@ -123,7 +123,7 @@ describe("ticket 200: la venta revertida no cuenta", () => {
     await registrarAbono(db, comoCloser(), abono(dealId, "300"));
 
     expect(await ventasConDiaEn(db, SIEMPRE)).toEqual([{ dealId, dia: hoyEnBogota() }]);
-    expect(await vendidosEn(db, { desde: "2026-08-01", hasta: "2026-08-31" })).toEqual([]);
+    expect(await idsDeVentasEn(db, { desde: "2026-08-01", hasta: "2026-08-31" })).toEqual([]);
     const [primero] = await db.select({ a: dealEtapaHistorial.a, fecha: dealEtapaHistorial.fecha }).from(dealEtapaHistorial)
       .where(inArray(dealEtapaHistorial.id, primerosMovimientosDeVenta(db)));
     expect(primero.fecha.getTime()).toBeGreaterThan(new Date("2026-08-11").getTime());
@@ -164,7 +164,7 @@ describe("ticket 200: la venta revertida no cuenta", () => {
     expect(await pasoVendido()).toEqual(await vendidos());
   });
 
-  it("una cortesía no llega al paso vendido del embudo por etapas (igual que vendidosEn)", async () => {
+  it("una cortesía no llega al paso vendido del embudo por etapas (igual que ventasConDiaEn)", async () => {
     const dealId = await nuevoDeal("ganado_completo", { cortesia: true });
     await db.insert(dealEtapaHistorial).values([
       { dealId, de: null, a: "atendido", fecha: new Date("2026-09-01T15:00:00-05:00") },

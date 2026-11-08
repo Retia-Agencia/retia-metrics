@@ -1,10 +1,10 @@
-import { and, eq, inArray, min } from "drizzle-orm";
+import { and, eq, min } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { abonos, cohorts, deals, users } from "@/lib/db/schema";
+import { abonos, cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { nombreDeMes } from "@/lib/series-pasos";
-import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
-import { filtroCaja, porClaveDeDeal, porCohorteDeDeal } from "@/lib/queries/metricas-filtros";
+import type { Rango } from "@/lib/queries/dashboard";
+import { filtroCaja, ventasDelAlcance } from "@/lib/queries/metricas-filtros";
 import { leerMetasDelMes } from "@/lib/queries/metas";
 import { sumaDeAbonos, valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
@@ -55,8 +55,8 @@ async function leerVentana(
   { rango, cohorteId }: VentanaPedida,
 ): Promise<VentanaDeDinero> {
   const alcance = { programId: entrada.programId, rango, claveCloser: entrada.claveCloser, cohorteId };
-  const [vendidas, caja, primerosAbonos] = await Promise.all([
-    ventasConDiaEn(db, rango),
+  const [ventas, caja, primerosAbonos] = await Promise.all([
+    ventasDelAlcance(alcance, db),
     db.select({ dia: abonos.fecha, moneda: abonos.moneda, total: sumaDeAbonos() })
       .from(abonos)
       .where(and(filtroCaja(alcance, db), vigente(abonos)))
@@ -66,14 +66,6 @@ async function leerVentana(
       .where(and(filtroCaja(alcance, db), vigente(abonos)))
       .groupBy(abonos.dealId),
   ]);
-  // Las ventas se filtran en SQL por programa, closer y cohorte; la lista de ids solo viaja una vez.
-  const elegidas = vendidas.length === 0 ? [] : await db.select({ id: deals.id })
-    .from(deals)
-    .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(inArray(deals.id, vendidas.map((venta) => venta.dealId)),
-      eq(deals.programId, entrada.programId), porClaveDeDeal(entrada.claveCloser), porCohorteDeDeal(cohorteId), vigente(deals)));
-  const idsElegidos = new Set(elegidas.map((deal) => deal.id));
-  const ventas = vendidas.filter((venta) => idsElegidos.has(venta.dealId));
   const valores = await valoresVendidosDeDeals(db, ventas.map((venta) => venta.dealId));
 
   const cuposPorDia = new Map<string, number>();
