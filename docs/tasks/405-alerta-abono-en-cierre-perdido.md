@@ -28,7 +28,7 @@ Desde el 392 la ficha del deal y Students dicen "vendido" solo por la etapa. Un 
 
 ## Done cuando
 
-- [ ] Consulta única del universo (deal no anulado en `cierre_perdido` con al menos un abono vigente), usada por la cifra y por la lista.
-- [ ] La bandera sale en el Pulso por programa, con 0 explícito (no vacío) y abre su lista.
-- [ ] Test sobre base sembrada: con un abono vigente cuenta; con el abono anulado no; con el deal anulado no; otro programa no cruza.
-- [ ] Regla N8 (ADR 0115): fila en `docs/metricas.md`, vocabulario en `overview.md` §11 y registro tipado en el mismo commit.
+- [x] Consulta única del universo (deal no anulado en `cierre_perdido` con al menos un abono vigente), usada por la cifra y por la lista.
+- [x] La bandera sale en el Pulso por programa, con 0 explícito (no vacío) y abre su lista.
+- [x] Test sobre base sembrada: con un abono vigente cuenta; con el abono anulado no; con el deal anulado no; otro programa no cruza.
+- [x] Regla N8 (ADR 0115): fila en `docs/metricas.md`, vocabulario en `overview.md` §11 y registro tipado en el mismo commit.

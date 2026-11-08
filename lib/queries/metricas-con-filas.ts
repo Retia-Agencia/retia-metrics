@@ -11,7 +11,7 @@ import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } 
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
-import { conLlamadaSinGrain, filtroAtendidos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
+import { conAbonoVigente, conLlamadaSinGrain, filtroAtendidos, filtroPerdidosConPagos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
@@ -73,6 +73,7 @@ export type Metrica =
   | "sin_resultado"
   | "atendidos_sin_valor"
   | "atendidos_sin_grain"
+  | "perdidos_con_pagos"
   | MetricaDeGrupo
   | MetricaDeEmbudo
   | MetricaDeEmbudoFormulario
@@ -99,7 +100,7 @@ export const METRICAS_SIN_CLOSER: readonly Metrica[] = [
   "embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron",
 ];
 /** Las métricas que son una foto de hoy: el periodo no las acota (las banderas del 191). */
-export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["atendidos_sin_valor", "atendidos_sin_grain"];
+export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["atendidos_sin_valor", "atendidos_sin_grain", "perdidos_con_pagos"];
 export const TAMANO_PAGINA = 50;
 
 /** La misma reja que abre cada lista del Hub, compartida por la página y otros clientes. */
@@ -307,6 +308,7 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       };
     case "atendidos_sin_valor":
     case "atendidos_sin_grain":
+    case "perdidos_con_pagos":
       return {
         id: deals.id,
         fecha: diaEnBogota(deals.createdAt),
@@ -676,6 +678,14 @@ function consultaDe(
           metrica === "atendidos_sin_valor" ? sinValorVendido() : conLlamadaSinGrain(db),
           vigente(deals),
         ));
+    case "perdidos_con_pagos":
+      // Bandera de integridad (ticket 405): Cierre perdido con abonos vigentes, mismo universo que su cifra.
+      return db
+        .select(campos)
+        .from(deals)
+        .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
+        .leftJoin(users, eq(users.id, deals.ownerUserId))
+        .where(and(filtroPerdidosConPagos(alcance), conAbonoVigente(db), vigente(deals)));
   }
 }
 

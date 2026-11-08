@@ -10,7 +10,7 @@ export const METRICAS_DE_LISTA = [
   "shows_sin_grain", "cierres", "cortesias", "leads", "deals_creados", "deals_que_agendaron",
   "deals_desde_completo", "deals_desde_parcial", "completos_que_agendaron", "parciales_que_agendaron",
   "agendas_creadas", "registros", "agendas_futuras", "contratado", "sin_resultado", "atendidos_sin_valor",
-  "atendidos_sin_grain", "grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show",
+  "atendidos_sin_grain", "perdidos_con_pagos", "grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show",
   "grupo_pendientes", "embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows",
   "embudo_comercial_compraron", "etapa_entraron", "etapa_paso", "etapa_siguen", "etapa_perdidos",
   "etapa_otros", "etapa_tiempo", "etapa_abiertos", "etapa_sin_dueno", "no_agendaron", "pauta_meta", "escalera",

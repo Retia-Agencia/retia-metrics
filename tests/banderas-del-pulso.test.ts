@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { calls, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, calls, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { banderasDelPulso, ETAPAS_QUE_EXIGEN_VALOR } from "@/lib/queries/banderas-del-pulso";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
@@ -54,7 +54,13 @@ async function llamada(dealId: string, datos: Partial<typeof calls.$inferInsert>
 
 const anulado = () => ({ anuladoEn: ahora, anuladoPor: ana, motivoAnulacion: "Error de prueba" });
 
-const esperado = { sinValor: new Set<string>(), sinGrain: new Set<string>(), atendidos: new Set<string>() };
+const esperado = { sinValor: new Set<string>(), sinGrain: new Set<string>(), atendidos: new Set<string>(), perdidosConPagos: new Set<string>() };
+
+async function abono(dealId: string, datos: Partial<typeof abonos.$inferInsert> = {}) {
+  await db.insert(abonos).values({
+    dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400", ...datos,
+  });
+}
 
 beforeAll(async () => {
   ({ db, cerrar } = await crearBaseReutilizable());
@@ -92,6 +98,26 @@ beforeAll(async () => {
   esperado.sinValor = new Set([ambas.id, soloValor.id]);
   esperado.sinGrain = new Set([ambas.id, soloGrain.id]);
 
+  // Ticket 405, Cierre perdido con pagos registrados: solo cuenta el perdido, no anulado, con un abono vigente.
+  const perdidoConPago = await deal({ etapa: "cierre_perdido" });
+  await abono(perdidoConPago.id);
+  await abono(perdidoConPago.id, { anuladoEn: ahora, anuladoPor: ana, motivoAnulacion: "Error de prueba" });
+  esperado.perdidosConPagos.add(perdidoConPago.id);
+  // De Beto, para el filtro de closer.
+  const perdidoDeBeto = await deal({ etapa: "cierre_perdido", ownerUserId: beto });
+  await abono(perdidoDeBeto.id);
+  esperado.perdidosConPagos.add(perdidoDeBeto.id);
+  // Con el único abono anulado: ya no hay plata cobrada.
+  await abono((await deal({ etapa: "cierre_perdido" })).id, { anuladoEn: ahora, anuladoPor: ana, motivoAnulacion: "Error de prueba" });
+  // Perdido limpio, sin abonos.
+  await deal({ etapa: "cierre_perdido" });
+  // Deal anulado que quedó con abono vigente.
+  await abono((await deal({ etapa: "cierre_perdido", ...anulado() })).id);
+  // Una cortesía ganada con abono: no está en Cierre perdido, no es esta inconsistencia.
+  await abono((await deal({ etapa: "ganado_completo", cortesia: true })).id);
+  // Perdido con abono en el otro programa.
+  await abono((await deal({ programId: otroProgramId, etapa: "cierre_perdido" })).id, { programId: otroProgramId });
+
   // Nada de esto cuenta:
   // un deal anulado, sin valor y con show sin Grain;
   const deAnulado = await deal(anulado());
@@ -120,6 +146,7 @@ describe("banderas rojas del Pulso (191)", () => {
       atendidos: 7,
       sinValor: { cantidad: 2, pct: 2 / 7 },
       sinGrain: { cantidad: 2, pct: 2 / 7 },
+      perdidosConPagos: { cantidad: 2 },
     });
   });
 
@@ -145,7 +172,7 @@ describe("banderas rojas del Pulso (191)", () => {
       expect(lista.filas).toHaveLength(cifra);
     }
     const deBeto = await banderasDelPulso({ programId, claveCloser: beto }, db);
-    expect(deBeto).toEqual({ atendidos: 1, sinValor: { cantidad: 0, pct: 0 }, sinGrain: { cantidad: 1, pct: 1 } });
+    expect(deBeto).toEqual({ atendidos: 1, sinValor: { cantidad: 0, pct: 0 }, sinGrain: { cantidad: 1, pct: 1 }, perdidosConPagos: { cantidad: 1 } });
   });
 
   it("sin valor solo mira las etapas donde la ficha exige el valor vendido (128)", async () => {
@@ -166,6 +193,23 @@ describe("banderas rojas del Pulso (191)", () => {
       atendidos: 1,
       sinValor: { cantidad: 1, pct: 1 },
       sinGrain: { cantidad: 0, pct: 0 },
+      perdidosConPagos: { cantidad: 1 },
     });
+  });
+
+  it("Cierre perdido con pagos registrados: la cifra es su lista, con 0 explícito y sin cruzar programas (405)", async () => {
+    const cifra = (await banderasDelPulso({ programId }, db)).perdidosConPagos.cantidad;
+    const [resumen] = await resumenDeMetrica("perdidos_con_pagos", filtros(), db);
+    const [lista] = await listaDeMetrica("perdidos_con_pagos", filtros(), 1, db);
+    expect(cifra).toBe(2);
+    expect(resumen.subtotal.cantidad).toBe(cifra);
+    expect(new Set(lista.filas.map((f) => f.dealId))).toEqual(esperado.perdidosConPagos);
+    // Con closer: la cifra y la lista se acotan al dueño del deal.
+    const [deBeto] = await listaDeMetrica("perdidos_con_pagos", filtros(beto), 1, db);
+    expect(deBeto.filas).toHaveLength(1);
+    expect((await banderasDelPulso({ programId, claveCloser: ana }, db)).perdidosConPagos.cantidad).toBe(1);
+    // Un programa sin casos da 0 explícito, no ausencia.
+    const [vacio] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacio", ticketUsd: "1000" }).returning();
+    expect((await banderasDelPulso({ programId: vacio.id }, db)).perdidosConPagos).toEqual({ cantidad: 0 });
   });
 });
