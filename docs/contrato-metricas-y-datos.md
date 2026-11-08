@@ -232,7 +232,7 @@ su olor.
 
 - 🔒 **Rótulos** (`rotulos-sinonimos-guardian`): ningún sinónimo nuevo de show, dinero cobrado, venta, agenda o lead (H-09, H-10, H-11).
 - 🔒 **Matriz hechos × dimensiones** (`matriz-hechos-dimensiones-guardian`, §7.2).
-- 🔒 **Toda razón declara su cobertura** (`razon-con-cobertura-guardian`, H-13): 25 razones sin cobertura de hoy, nombradas con su ticket.
+- 🔒 **Toda razón declara su cobertura** (`razon-con-cobertura-guardian`, H-13): 26 razones sin cobertura de hoy, nombradas con su ticket.
 - 🔒 **Funciones del diccionario con llamador** (`diccionario-llamadores-guardian`, N7, F1 H-29).
 - 🔒 **Columnas sin lector** (`columnas-sin-lector-guardian`, F3-04, F3-06, F3-13, F3-14, F3-16).
 
