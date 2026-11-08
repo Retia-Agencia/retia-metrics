@@ -227,34 +227,34 @@ export function PautaInterina({
           </div>
           <ComoSeCalcula>
             <section className="space-y-1"><h3 className="font-medium">De dónde sale</h3><p className="text-muted-foreground">
-              Los registros vienen de los formularios con sus UTM. Agendas son citas creadas en el periodo, con el origen
-              del formulario que abrió su deal. Shows y no shows son el resultado que marca el closer. Ventas son deals
+              Los envíos vienen de los formularios con sus UTM. Agendadas son citas creadas en el periodo, con el origen
+              del formulario que abrió su deal. Realizadas y No asistió son el resultado que marca el closer. Ventas son deals
               que pasaron a Ganado en el periodo.
             </p></section>
             <section className="space-y-1"><h3 className="font-medium">Fórmulas</h3><p className="text-muted-foreground">
-              % no show = no shows ÷ (shows + no shows). Pendientes y canceladas no entran.
+              No asistió = citas sin asistencia ÷ (realizadas + sin asistencia). Pendientes y canceladas no entran.
             </p></section>
             <section className="space-y-1"><h3 className="font-medium">Qué la deja incompleta</h3><p className="text-muted-foreground">
-              <span className="cifra">{num(resumen.sinUtm)}</span> registros sin UTM. <span className="cifra">{num(resumen.citasSinMarcar)}</span> citas pasadas sin marcar.
+              <span className="cifra">{num(resumen.sinUtm)}</span> envíos sin UTM. <span className="cifra">{num(resumen.citasSinMarcar)}</span> citas pasadas sin marcar.
             </p></section>
           </ComoSeCalcula>
         </div>
       </CardHeader>
       <CardContent className="space-y-5 text-sm">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-6">
-          <Kpi titulo="Registros" valor={<Cifra valor={resumen.registros} href={de("registros", {})} />} />
+          <Kpi titulo="Envíos" valor={<Cifra valor={resumen.registros} href={de("registros", {})} />} />
           <Kpi
-            titulo="Agendas"
+            titulo="Agendadas"
             valor={<Cifra valor={resumen.agendas} href={de("agendas_creadas", {})} />}
             nota={`${num(resumen.agendasSinEnvioDeOrigen)} sin formulario de origen`}
           />
           <Kpi
-            titulo="Shows"
+            titulo="Realizadas"
             valor={<Cifra valor={resumen.shows} href={de("agendas_creadas", { resultado: "show" })} />}
             nota={resumen.citasSinMarcar > 0 ? `${num(resumen.citasSinMarcar)} citas pasadas sin marcar` : "la cita ocurrió"}
           />
           <Kpi
-            titulo="No shows"
+            titulo="No asistió"
             valor={<Cifra valor={resumen.noShows} href={de("agendas_creadas", { resultado: "no_show" })} />}
             nota={noShowPorCita(resumen.noShows, resumen.shows) === null ? "—" : `${pct(noShowPorCita(resumen.noShows, resumen.shows)!)} de ${num(resueltasTotal)} citas resueltas`}
           />
@@ -269,14 +269,14 @@ export function PautaInterina({
             nota={
               resumen.registros === 0
                 ? "—"
-                : `${pct(resumen.sinUtm / resumen.registros)} de los registros${sinCompletar}`
+                : `${pct(resumen.sinUtm / resumen.registros)} de los envíos${sinCompletar}`
             }
           />
         </div>
 
         <details className="rounded-lg bg-muted/40 px-3 py-2">
           <summary className="cursor-pointer rounded-lg transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            Hoy llegaron <span className="cifra font-semibold">{num(sinUtmHoy.length)}</span> registros sin UTM
+            Hoy llegaron <span className="cifra font-semibold">{num(sinUtmHoy.length)}</span> envíos sin UTM
           </summary>
           {sinUtmHoy.length === 0 ? (
             <p className="mt-2 text-xs text-muted-foreground">Ninguno por ahora.</p>
@@ -314,7 +314,7 @@ export function PautaInterina({
 
         {grupos.length === 0 ? (
           <p className="text-muted-foreground">
-            No hay registros ni agendas en este rango{filtrando ? " con estos filtros" : ""}.
+            No hay envíos ni citas agendadas en este rango{filtrando ? " con estos filtros" : ""}.
           </p>
         ) : (
           <table className="w-full text-sm">
@@ -323,12 +323,12 @@ export function PautaInterina({
                 <th className="py-2 font-medium">
                   {filtros.campaign !== undefined ? "Contenido" : filtrando ? "Campaña" : "Canal (source / medium)"}
                 </th>
-                <th className="py-2 pl-3 text-right font-medium">Registros</th>
-                <th className="py-2 pl-3 text-right font-medium">Agendas</th>
-                <th className="py-2 pl-3 text-right font-medium">Shows</th>
-                <th className="py-2 pl-3 text-right font-medium">No shows</th>
-                <th className="py-2 pl-3 text-right font-medium" title="No shows sobre shows + no shows. Las agendas pendientes o canceladas no entran">% no show<span className="block text-xs font-normal">de llamadas con resultado</span></th>
-                <th className="py-2 pl-3 text-right font-medium" title="Ventas cerradas en el periodo con el origen de esta fila, cuándo pagaron y si fue completo o parcial">Ventas</th>
+                <th className="py-2 pl-3 text-right font-medium">Envíos</th>
+                <th className="py-2 pl-3 text-right font-medium">Agendadas</th>
+                <th className="py-2 pl-3 text-right font-medium">Realizadas</th>
+                <th className="py-2 pl-3 text-right font-medium">No asistió</th>
+                <th className="py-2 pl-3 text-right font-medium" title="No asistió sobre citas realizadas más citas sin asistencia. Las pendientes o canceladas no entran">% no asistió<span className="block text-xs font-normal">de llamadas con resultado</span></th>
+                <th className="py-2 pl-3 text-right font-medium" title="Ventas del periodo con el origen de esta fila, cuándo pagaron y si fue completo o parcial">Ventas</th>
               </tr>
             </thead>
             <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">

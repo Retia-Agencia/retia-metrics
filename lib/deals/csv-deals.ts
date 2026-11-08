@@ -21,7 +21,7 @@ export interface FilaCsvDeal {
 
 const ENCABEZADOS = [
   "Nombre", "Teléfono", "Correo", "Etapa", "Pendiente", "Dueño", "Cohorte",
-  "País", "Ciudad", "Calidad", "Valor", "Origen (UTM)", "Creado", "Link CRM",
+  "País", "Ciudad", "Calidad", "Valor del lead", "Origen (UTM)", "Creado", "Link CRM",
 ] as const;
 
 function celdaCsv(valor: string | null): string {

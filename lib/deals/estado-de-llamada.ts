@@ -5,8 +5,8 @@ type Resultado = (typeof calls.$inferSelect)["resultado"];
 
 export const ETIQUETA_DE_RESULTADO: Record<Resultado, string> = {
   agendada: "Agendada",
-  show: "Show",
-  no_show: "No show",
+  show: "Realizada",
+  no_show: "No asistió",
   cancelada: "Cancelada",
   reagendada: "Reagendada",
   compromiso_pago: "Compromiso de pago",

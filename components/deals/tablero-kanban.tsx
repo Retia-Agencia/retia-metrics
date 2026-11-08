@@ -271,7 +271,7 @@ export function TableroKanban({
                 </div>
                 {columna.confirmadoUsd != null ? (
                   <div className="flex items-center justify-between gap-2">
-                    <span>Confirmado</span>
+                    <span>Recaudado</span>
                     <span className="cifra">{usd(columna.confirmadoUsd)}</span>
                   </div>
                 ) : null}

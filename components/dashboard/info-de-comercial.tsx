@@ -10,7 +10,7 @@ export function seccionesDeInfoDeComercial(): SeccionDeInfo[] {
       contenido: <>
         <Palabras items={[
           { palabra: "Agendadas", significa: "Citas creadas dentro del periodo." },
-          { palabra: "% show", significa: "Citas con show entre citas ya marcadas." },
+          { palabra: "Asistencia", significa: "Citas realizadas entre citas ya marcadas." },
           { palabra: "% cierre", significa: "Ventas entre citas marcadas con show." },
           { palabra: "Agenda → venta", significa: "Ventas entre todas las citas marcadas." },
         ]} />
@@ -61,7 +61,7 @@ export function seccionesDeInfoDeComercial(): SeccionDeInfo[] {
     },
     {
       id: "agendas-semana",
-      titulo: "Agendas por semana",
+      titulo: "Citas por semana",
       contenido: <Frase>Las citas se agrupan por su semana y resultado: show, no-show, sin marcar o futura.</Frase>,
     },
     {

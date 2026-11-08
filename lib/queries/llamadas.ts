@@ -29,8 +29,8 @@ export const ORDEN_LLAMADAS_POR_DEFECTO: OrdenLlamadas = "llamada:desc";
 
 export const RESULTADOS = [
   ["agendada", "Agendada"],
-  ["show", "Show"],
-  ["no_show", "No show"],
+  ["show", "Realizada"],
+  ["no_show", "No asistió"],
   ["cancelada", "Cancelada"],
   ["reagendada", "Reagendada"],
   ["compromiso_pago", "Compromiso de pago"],

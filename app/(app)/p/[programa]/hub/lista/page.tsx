@@ -13,7 +13,7 @@ import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, METRICAS_DE_LISTA, 
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
-import { nombreLargo, rotuloDeImporte } from "@/lib/vocabulario-metricas";
+import { rotuloDeImporte, TITULOS_DE_LISTA } from "@/lib/vocabulario-metricas";
 import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/dashboard/dinero-de-ventas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,53 +33,7 @@ export const esquema = z.object({
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = {
-  caja: "Entró a caja",
-  agendas: "Agendas",
-  canceladas: "Canceladas",
-  shows: "Shows",
-  no_shows: "No show",
-  shows_sin_grain: "Shows sin Grain",
-  cierres: "Cierres",
-  cortesias: "Cortesías",
-  leads: "Leads",
-  deals_creados: "Deals creados",
-  deals_que_agendaron: "Deals que agendaron",
-  deals_desde_completo: nombreLargo("deals_desde_completo"),
-  deals_desde_parcial: nombreLargo("deals_desde_parcial"),
-  completos_que_agendaron: "Deals de un formulario completo que agendaron",
-  parciales_que_agendaron: "Deals de un parcial que agendaron",
-  agendas_creadas: "Agendas creadas",
-  registros: "Registros",
-  citas_debidas: "Citas que ya debían ocurrir",
-  citas_sin_marcar: "Citas sin resultado marcado",
-  agendas_futuras: "Agendas futuras",
-  contratado: "Vendido",
-  sin_resultado: "Llamadas pasadas sin resultado",
-  atendidos_sin_valor: "Atendidos sin valor vendido",
-  atendidos_sin_grain: "Atendidos sin Grain",
-  perdidos_con_pagos: "Cierre perdido con pagos registrados",
-  grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",
-  grupo_shows: "Deals del grupo con show",
-  grupo_vendidos: "Deals del grupo con show y vendidos hoy",
-  grupo_sin_show: "Deals del grupo sin show",
-  grupo_pendientes: "Citas pasadas sin resultado",
-  embudo_comercial_creados: "Deals creados",
-  embudo_comercial_agendaron: "Deals que agendaron",
-  embudo_comercial_shows: "Deals que tuvieron show",
-  embudo_comercial_compraron: "Deals que compraron",
-  etapa_entraron: "Entraron al embudo",
-  etapa_paso: "Llegaron al paso",
-  etapa_siguen: "Siguen aquí",
-  etapa_perdidos: "Se perdieron aquí",
-  etapa_otros: "Tomaron otro camino",
-  etapa_tiempo: "Salieron de la etapa",
-  etapa_abiertos: "Abiertos en la etapa",
-  etapa_sin_dueno: "Abiertos sin dueño",
-  no_agendaron: "No agendaron",
-  escalera: "Ventas por escalón",
-  pauta_meta: "Pauta por anuncio",
-};
+const titulos = TITULOS_DE_LISTA;
 
 /** El tono de la antigüedad (GC-35): de lo más nuevo a lo más viejo, con los tonos de Tinta. */
 const TONO_DE_ANTIGUEDAD = {

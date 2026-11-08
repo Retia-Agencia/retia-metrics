@@ -47,9 +47,9 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
 
   return <Card aria-labelledby="origen-de-los-registros">
     <CardHeader className="space-y-1">
-      <CardTitle id="origen-de-los-registros" className="text-base">Origen de los registros</CardTitle>
+      <CardTitle id="origen-de-los-registros" className="text-base">Origen de los envíos</CardTitle>
       <p className="text-xs text-muted-foreground">
-        Un registro es un envío completo; una agenda, una llamada creada en el rango y atribuida al envío que abrió su deal.
+        Un envío es un formulario enviado; una cita agendada, una llamada creada en el rango y atribuida al envío que abrió su deal.
       </p>
     </CardHeader>
     <CardContent>
@@ -59,8 +59,8 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
           <colgroup><col /><col className="w-32" /><col className="w-28" /><col className="w-28" /></colgroup>
           <thead><tr className="border-b text-xs text-muted-foreground">
             <th className="py-2 pr-3 text-left font-medium">Área · canal / UTM</th>
-            <th className="py-2 text-right font-medium">Registros</th>
-            <th className="py-2 text-right font-medium">Agendas</th>
+            <th className="py-2 text-right font-medium">Envíos</th>
+            <th className="py-2 text-right font-medium">Agendadas</th>
             <th className="py-2 text-right font-medium">% agenda</th>
           </tr></thead>
           <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">

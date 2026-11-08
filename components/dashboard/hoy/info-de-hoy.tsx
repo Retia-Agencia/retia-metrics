@@ -46,7 +46,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
         { palabra: nombreCorto("objetivo_del_dia"), significa: "Lo que falta por vender de la cohorte, repartido entre los días hábiles que quedan." },
         { palabra: "Leads de hoy", significa: "Formularios completos que llegaron hoy." },
         { palabra: nombreCorto("objetivo_de_leads"), significa: definicion("objetivo_de_leads") },
-        { palabra: "Caja del día", significa: definicion("entro_a_caja") },
+        { palabra: "Entró a caja hoy", significa: definicion("entro_a_caja") },
         { palabra: nombreLargo("asistencia"), significa: definicion("asistencia") },
       ]} />,
     },
@@ -125,7 +125,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
       titulo: "Alertas y pendientes",
       contenido: <Palabras items={[
         { palabra: "Citas de mañana", significa: "Citas con fecha de mañana que siguen vivas." },
-        { palabra: "Sin Grain", significa: "Llamadas atendidas a las que falta pegar el enlace de la grabación." },
+        { palabra: "Sin Grain", significa: "Citas realizadas a las que falta pegar el enlace de la grabación." },
         { palabra: "Sin valor vendido", significa: "Personas atendidas a las que el closer no les escribió el valor vendido." },
         { palabra: "Alertas por persistencia", significa: "Una cifra por debajo de lo aceptable varios días hábiles seguidos." },
       ]} />,

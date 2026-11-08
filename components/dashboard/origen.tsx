@@ -52,7 +52,7 @@ export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { 
 
     <Card><CardHeader className="space-y-1">
       <CardTitle className="text-base">Contenido con código que no reconocemos</CardTitle>
-      <p className="text-xs text-muted-foreground">Registros que llegaron por un link de contenido, pero su código no es de ninguna pieza viva de este programa (descartada, de otro programa o mal copiado).</p>
+      <p className="text-xs text-muted-foreground">Envíos que llegaron por un link de contenido, pero su código no es de ninguna pieza viva de este programa (descartada, de otro programa o mal copiado).</p>
     </CardHeader><CardContent className="space-y-2">
       {vista.piezasDesconocidas.envios === 0
         ? <p className="text-sm text-muted-foreground">Ninguno en este periodo.</p>

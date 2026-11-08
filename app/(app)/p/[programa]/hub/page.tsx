@@ -385,7 +385,7 @@ async function CuerpoDelHub({
   const periodoDelDia = { preset: "custom" as const, a: { desde: diaDelReporte, hasta: diaDelReporte }, b: null };
   const semanaDelReporte = rangoDeLaSemanaDelReporte(diaDelReporte);
   const periodoDeLaSemana = { preset: "custom" as const, a: semanaDelReporte, b: null };
-  const listaDelDia = (metrica: "registros" | "citas_debidas" | "citas_sin_marcar") =>
+  const listaDelDia = (metrica: "leads" | "citas_debidas" | "citas_sin_marcar") =>
     detalleDeCifra(metrica, { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen });
 
   const [
@@ -411,7 +411,7 @@ async function CuerpoDelHub({
           origen,
         })
       : undefined,
-    esHoy ? listaDelDia("registros") : undefined,
+    esHoy ? listaDelDia("leads") : undefined,
     esHoy ? listaDelDia("citas_debidas") : undefined,
     esHoy ? listaDelDia("citas_sin_marcar") : undefined,
     (esHoy && veEquipo) || (seccion === "comercial" && !sinActividad)
@@ -456,7 +456,8 @@ async function CuerpoDelHub({
   // Las listas de las cifras de Hoy que no están en el tablero (378): los leads del día y las citas que ya
   // debían ocurrir (el denominador de la asistencia), y los enlaces de lo que llevamos en la semana.
   const listasDeHoy = esHoy
-    ? {
+      ? {
+        leadsDelDia: vistaDeHoy!.vista.leads?.leads ?? 0,
         detalleRegistros: proyectar(detalleRegistros!),
         detalleCitasDebidas: proyectar(detalleCitasDebidas!),
         detalleCitasSinMarcar: proyectar(detalleCitasSinMarcar!),

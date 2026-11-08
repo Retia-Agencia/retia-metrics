@@ -84,11 +84,11 @@ function VendidoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }
 
 function Conteos({ vista, pulso = false }: { vista: VistaDeTodos; pulso?: boolean }) {
   const campos = pulso ? [
-    ["Shows sin Grain", "showsSinGrain", "shows_sin_grain"],
+    ["Realizadas sin Grain", "showsSinGrain", "shows_sin_grain"],
     ["Llamadas pasadas sin resultado", "sinResultado", "sin_resultado"],
   ] as const : [
-    ["Leads", "leads", "leads"], ["Agendas", "agendas", "agendas"],
-    ["Shows", "shows", "shows"], ["Cierres", "cierres", "cierres"],
+    ["Leads", "leads", "leads"], ["Citas", "agendas", "agendas"],
+    ["Realizadas", "shows", "shows"], ["Ventas", "cierres", "cierres"],
   ] as const;
   return campos.map(([titulo, campo, metrica]) => (
     <Tarjeta key={campo} titulo={titulo} valor={
@@ -120,7 +120,7 @@ function Banderas({ vista }: { vista: VistaDeTodos }) {
  */
 function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
   return <TablaPorPrograma titulo="Hoy por programa" vista={vista} seccion="hoy"
-    cabeceras={["Día de la cohorte", "Ventas / meta de hoy", "Agendas", "Shows", "% show", "% cierre"]}
+    cabeceras={["Día de la cohorte", "Ventas / objetivo de hoy", "Citas", "Realizadas", "Asistencia", "Cierre de ventas"]}
     celdas={(fila) => {
       const { cohorte } = contextoDelDia(hoy, fila.dashboard.cohorte);
       const [delDia] = horizontesDeCupos(fila.dashboard);
@@ -185,7 +185,7 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
     <h2 className="text-xl font-semibold">Comercial</h2>
     <div className={GRILLA}><Conteos vista={vista} /></div>
     <TablaPorPrograma titulo="Tasas por programa" vista={vista} seccion="comercial"
-      cabeceras={["% show", "% cierre", "% shows sin Grain"]}
+      cabeceras={["Asistencia", "Cierre de ventas", "% realizadas sin Grain"]}
       celdas={(fila) => <>
         <td className="text-right">{tasa(fila.pctShow.valor)}</td>
         <td className="text-right">{tasa(fila.pctCierre.valor)}</td>

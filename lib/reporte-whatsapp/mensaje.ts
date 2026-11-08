@@ -21,8 +21,8 @@ const MOTIVO = {
   sin_cohorte: "No hay cohorte activa",
   sin_umbral: "Falta cargar la meta en el CRM",
   sin_pauta: "No hay gasto de pauta hoy",
-  sin_agendas_meta: "Meta no reporta agendas de este programa",
-  meta_sin_contar: "Meta aún no cuenta las agendas del CRM (las cuenta con retraso)",
+  sin_agendas_meta: "Meta no reporta Agendas de Meta de este programa",
+  meta_sin_contar: "Meta aún no cuenta las citas agendadas del CRM (las cuenta con retraso)",
 } as const;
 
 const LARGO_MAXIMO_CAMPANA = 40;
@@ -82,7 +82,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   const costo = metrica.motivo === "meta_sin_contar"
     ? "esperando a Meta"
     : metrica.costo === null && metrica.agendasMeta === 0 && metrica.gasto > 0
-      ? "sin agendas"
+      ? "sin citas agendadas"
       : dinero(metrica.costo);
   const lineas: string[] = [];
   const nuevas = metrica.campanas.filter(
@@ -108,7 +108,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     );
   }
   lineas.push(
-    `Gasto de agenda ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
+    `Gasto de citas agendadas ${dinero(metrica.gasto)} · Agendas de Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · Agendadas en CRM ${num(metrica.agendasCrm)}`,
   );
   const campanasActivas = metrica.campanas.filter((campana) => campana.activa);
   const campanas = campanasActivas.some((campana) => campana.codigo !== null)
@@ -119,7 +119,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     const costoCampana = campana.agendasMeta === null
       ? "sin dato"
       : campana.agendasMeta === 0
-        ? "sin agendas"
+        ? "sin citas agendadas"
         : `${dinero(campana.costo)} c/u`;
     lineas.push(
       `• ${campana.codigo ? `#${campana.codigo} ` : ""}${nombresCortos[indice]}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
@@ -138,20 +138,20 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     ? "sin agendas"
     : dinero(metrica.comparacion?.costo ?? null);
   lineas.push(metrica.comparacion
-    ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
+    ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · Agendas de Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · Agendadas en CRM ${num(metrica.comparacion.agendasCrm)}`
     : `${etiqueta}: sin foto`);
   if (metrica.lanzamiento.campanas.length > 0) {
     const resumenRegistros = metrica.lanzamiento.registrosMeta === null
-      ? "registros Meta —"
+      ? "Envíos de Meta —"
       : metrica.lanzamiento.registrosMeta === 0
-        ? "0 registros Meta · sin registros"
-        : `${num(metrica.lanzamiento.registrosMeta)} registros Meta · CPL ${dinero(metrica.lanzamiento.costoPorRegistro)}`;
+        ? "0 Envíos de Meta · sin envíos"
+        : `${num(metrica.lanzamiento.registrosMeta)} Envíos de Meta · CPL ${dinero(metrica.lanzamiento.costoPorRegistro)}`;
     lineas.push(`🚀 Lanzamiento: ${dinero(metrica.lanzamiento.gasto)} · ${resumenRegistros}`);
     for (const campana of metrica.lanzamiento.campanas.filter((campana) => campana.activa)) {
       const registrosCampana = campana.registrosMeta === null
         ? "— reg"
         : campana.registrosMeta === 0
-          ? "0 reg · sin registros"
+          ? "0 env · sin envíos"
           : `${num(campana.registrosMeta)} reg · ${dinero(campana.costoPorRegistro)} c/u`;
       lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${dinero(campana.gasto)} · ${registrosCampana}`);
     }

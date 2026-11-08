@@ -16,6 +16,7 @@ import type { Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
 import { enlaceDeDeal, enlaceDeLead, enlaceDeSeccionHub } from "@/lib/mcp/enlaces";
 import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp } from "./periodo";
+import { nombreCorto, nombreLargo, TITULOS_DE_LISTA } from "@/lib/vocabulario-metricas";
 
 function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
   return `${nombre}: ${valor === null ? "—" : pct(valor)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
@@ -26,7 +27,7 @@ const entradaResumen = z.object({ programa: z.string().min(1).max(100), ...campo
 export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   nombre: "resumen_del_hub",
   descripcion:
-    "Resume las cifras del Hub de un programa para el periodo pedido: ventas, caja, agendas, shows y tasas. " +
+    "Resume las cifras del Hub de un programa para el periodo pedido: ventas, dinero que entró a caja, citas, realizadas y tasas. " +
     "Las fechas son días de Bogotá (AAAA-MM-DD), cada monto conserva su moneda y toda tasa informa su cobertura; " +
     "— significa que no se puede calcular. No mezcla programas ni devuelve filas individuales.",
   entrada: entradaResumen,
@@ -46,13 +47,13 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
     const lineas = [
       `Programa: ${programa.nombre}`,
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
-      `Ventas cerradas: ${num(vista.embudo.cierres)}`,
+      `${nombreLargo("ventas")}: ${num(vista.embudo.cierres)}`,
       `Vendido: ${monto(vista.dinero.vendido, "USD")}`,
-      `Caja: ${caja.length ? caja.join(", ") : monto(0, "USD")}`,
-      `Agendas: ${num(vista.embudo.agendas)} · shows: ${num(vista.embudo.llamadasConShow)}`,
-      tasaLegible("Show", vista.embudo.pctShow, grupo.cobertura, grupo.parcial),
-      tasaLegible("Cierre", vista.embudo.pctCierre, grupo.cobertura, grupo.parcial),
-      tasaLegible("Agenda a venta", vista.embudo.agendaAVenta, grupo.cobertura, grupo.parcial),
+      `${nombreCorto("entro_a_caja")}: ${caja.length ? caja.join(", ") : monto(0, "USD")}`,
+      `${nombreCorto("citas")}: ${num(vista.embudo.agendas)} · ${nombreCorto("shows")}: ${num(vista.embudo.llamadasConShow)}`,
+      tasaLegible(nombreCorto("asistencia"), vista.embudo.pctShow, grupo.cobertura, grupo.parcial),
+      tasaLegible(nombreCorto("cierre_de_ventas"), vista.embudo.pctCierre, grupo.cobertura, grupo.parcial),
+      tasaLegible("Cita a venta", vista.embudo.agendaAVenta, grupo.cobertura, grupo.parcial),
       enlace,
     ];
     return { texto: lineas.join("\n"), estructurado: { programa: { nombre: programa.nombre, slug: programa.slug }, enlace, vista } };
@@ -129,7 +130,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
       return { ...fila, enlace };
     });
     const texto = [
-      `${entrada.metrica}: ${lista.disponible ? num(lista.subtotal.cantidad) : "—"}`,
+      `${TITULOS_DE_LISTA[entrada.metrica]}: ${lista.disponible ? num(lista.subtotal.cantidad) : "—"}`,
       ...(caja.length ? [`Montos: ${caja.join(", ")}`] : []),
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `Página ${num(entrada.pagina)}: ${num(lista.filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${entrada.pagina + 1}.` : "No hay otra página."}`,
