@@ -3,7 +3,7 @@ id: 391
 etapa: hub
 serves: "Auditoría 385 F3-05, F3-07 · ADR 0030 · ADR 0122"
 depends: []
-status: todo
+status: done
 ---
 
 # 391 — Closer: los datos huérfanos (fase A)

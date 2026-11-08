@@ -27,6 +27,20 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-08 (noche): F7 del 385, ola 3 empezada (sesión padre).** En main y con CI verde (`6d4e3287`): 397 (un nombre por concepto: Envíos, Leads
+  = personas, Realizadas/Asistencia/No asistió, Entró a caja, "Valor del lead" en el CSV; "Leads de hoy" ahora cuenta personas contra el
+  objetivo; **decisión de Mani: la meta de leads por día se mide contra Leads**; el texto del semáforo de pauta NO se tocó, sigue en el lenguaje de
+  Pauta) y 399 fase A. También: **decisión de Mani: Vendido cuenta toda venta con valor** (`vendido` en `dineroDeSaldos`), aunque el abono sea en
+  COP; Recaudado y Por cobrar de esa venta quedan sin calcular (`sinSaldoCalculable`) hasta que exista la conversión a USD ("el USD es el
+  referente"; falta definir la fuente de la tasa de cambio, no hay TRM única). Pasaron a `done` 391, 393, 396, 400, 404, 405 y 406.
+  **Abierto:** `leads_que_hacen_falta` y la proyección siguen sobre Envíos (unidad mezclada con "Leads de hoy" en personas; apuntado en el 397);
+  "Leads de hoy" muestra 0 y no — cuando no hay cifra. **Siguiente, en este orden:** (1) 399 fase B, (2) 403 (registro completo; consume
+  `SIN_FICHA_EN_REGISTRO` y las fichas de `cita_a_venta`, `cupos_con_caja`, agenda y show; tope de pendientes en 23), (3) 383 con sus cinco
+  requisitos previos, (4) 351 → 355 → 375, (5) 394, 395, 358 a 361, 401, 402. 388, 389, 390, 392 y 398 están en main pero con casillas sin
+  marcar o `status: todo` en el archivo: revisar contra el código y cerrarlos (N9). **Cómo se trabajó:** una hija de Codex por worktree dentro del
+  repo (`.claude/worktrees/tNNN`), brief con decisiones tomadas y STOP si falta una; Codex no puede commitear ni correr `npm test` (sandbox), lo
+  hace la sesión; fusionar a main exige `WORKTREE_CD_BYPASS=1` desde un worktree. **Aprendido:** antes de empujar un cambio de rótulos o de forma de
+  salida MCP, `rg` en `tests/` por los textos y por `.ejecutar(` y correr todos esos archivos; dos CI rojos de hoy salieron de ahí.
 - **2026-11-08 (tarde): F7 del 385, ola 2 casi cerrada (sesión padre).** En main y empujado: 406 (ya lo resolvía el 389; test de paridad),
   E6/E11/E12 de `moverEtapa` exigen dueño, 396 (sin solape: C2 de Tactical cierra el 27-sep y C1 de Confianza el 15-nov; meta de 50 leads
   por día en las 6 cohortes no cerradas; **migraciones 0121 y 0122 aplicadas en producción con ok de Mani**, `btree_gist` instalada;

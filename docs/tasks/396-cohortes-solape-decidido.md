@@ -3,7 +3,7 @@ id: 396
 etapa: plataforma
 serves: "Auditoría 385 F3-11 · ADR 0022 · ADR 0123"
 depends: []
-status: en main
+status: done
 ---
 
 # 396 — Cohortes: solape decidido
