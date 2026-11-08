@@ -421,6 +421,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   actividad", "dejar en espera", "intento".*
 - **Deshacer:** devolver un evento humano del log a su estado anterior. Antes de confirmar muestra qué valor hay y
   cuál quedará; el motivo es opcional y el log conserva quién lo hizo y cuándo. Un deshacer no se deshace.
+- **Venta (Ventas):** un deal en Abonado o Completo; cuenta una vez, el día en que entró a ese estado por primera vez (hora de Bogotá), y
+  deja de ser venta si pasa a Cierre Perdido. Cada venta es un cupo. *No es «Cierre» ni «% de cierre»: ese es otro universo (deals con show).*
 - **Vendido, Recaudado, Por cobrar, Entró a caja:** los cuatro nombres del dinero, uno por pregunta (ticket 374).
   **Vendido**, **Recaudado** y **Por cobrar** son tres cifras del MISMO conjunto de ventas (las que dejan pasar cohorte,
   periodo y closer) y van siempre juntas, en ese orden (369): Vendido es el valor que el closer escribió; Recaudado, lo
