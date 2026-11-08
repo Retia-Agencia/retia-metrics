@@ -96,7 +96,7 @@ export function DealsContraAgendas({
                   texto: descripcionDeComparacion(periodo),
                   pares: [
                     { actual: "Deals · periodo", referencia: "Deals · comparación" },
-                    { actual: "Agendas · periodo", referencia: "Agendas · comparación" },
+                    { actual: "Agendadas · periodo", referencia: "Agendadas · comparación" },
                   ],
                 }
               : undefined
@@ -105,7 +105,7 @@ export function DealsContraAgendas({
             dias,
             series: [
               { clave: "Deals · periodo", color: 0, valores: valoresDe(a.puntos, (p) => p.deals) },
-              { clave: "Agendas · periodo", color: 1, valores: valoresDe(a.puntos, (p) => p.agendas) },
+              { clave: "Agendadas · periodo", color: 1, valores: valoresDe(a.puntos, (p) => p.agendas) },
               ...(b
                 ? [
                     {
@@ -115,7 +115,7 @@ export function DealsContraAgendas({
                       valores: valoresDe(puntosB, (p) => p.deals),
                     },
                     {
-                      clave: "Agendas · comparación",
+                      clave: "Agendadas · comparación",
                       color: 1,
                       punteada: true,
                       valores: valoresDe(puntosB, (p) => p.agendas),

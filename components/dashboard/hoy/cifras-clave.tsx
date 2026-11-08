@@ -19,10 +19,11 @@ function SinObjetivo({ texto, definir }: { texto: string; definir?: ReactNode })
 
 export function CifrasClave({ programas, definirObjetivo }: { programas: ProgramaDelReporte[]; definirObjetivo?: ReactNode }) {
   return (
-    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros }) => {
+    <Lado programas={programas}>{({ reporte, detalles, leadsDelDia, detalleRegistros }) => {
       const dia = reporte.horizontes.find((h) => h.clave === "dia")!;
       const objetivoDeLeads = metaDeLeads(reporte.proyeccion.cohorte);
       const hacenFalta = reporte.proyeccion.leadsRequeridosDia.valor;
+      const leads = leadsDelDia ?? 0;
       // DA-3 (353): la cifra de Hoy es el % de show POR DEAL; el de por cita vive en "Cómo se calcula".
       const grupo = reporte.vista.embudo.grupo;
       return (
@@ -43,13 +44,13 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
           <Ficha
             titulo="Leads de hoy"
             ayuda="cifras"
-            valor={<CifraConLista titulo="Leads de hoy" detalle={detalleRegistros}>{num(reporte.registros)}</CifraConLista>}
+            valor={<CifraConLista titulo="Leads de hoy" detalle={detalleRegistros}>{num(leads)}</CifraConLista>}
           >
             {objetivoDeLeads === null
               ? <SinObjetivo texto="Sin objetivo de leads por día." definir={definirObjetivo} />
               : <>
-                <BarraDeAvance llevamos={reporte.registros} objetivo={objetivoDeLeads} />
-                <p className="text-xs text-muted-foreground">{nombreCorto("objetivo_de_leads")}: {num(objetivoDeLeads, 0)} por día · llevas el {cumplimiento(reporte.registros, objetivoDeLeads)}</p>
+                <BarraDeAvance llevamos={leads} objetivo={objetivoDeLeads} />
+                <p className="text-xs text-muted-foreground">{nombreCorto("objetivo_de_leads")}: {num(objetivoDeLeads, 0)} por día · llevas el {cumplimiento(leads, objetivoDeLeads)}</p>
               </>}
             <p className="flex items-center gap-1 border-t pt-2 text-xs text-muted-foreground">
               <span>{nombreCorto("leads_que_hacen_falta")}: <span className="cifra font-medium text-foreground">{hacenFalta === null ? "—" : `${num(hacenFalta, 0)} por día`}</span></span>
@@ -58,7 +59,7 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
           </Ficha>
 
           <Ficha
-            titulo="Caja del día"
+            titulo="Entró a caja hoy"
             ayuda="dinero"
             valor={<CifraConLista titulo="Entró a caja del día" detalle={detalles?.caja}><Caja caja={reporte.caja.length ? reporte.caja : [{ moneda: "USD", total: 0 }]} /></CifraConLista>}
           >

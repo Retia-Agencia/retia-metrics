@@ -88,7 +88,7 @@ export default async function NerdStatsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Registros por origen</CardTitle>
+              <CardTitle className="text-base">Envíos por origen</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p className="text-xs text-muted-foreground">

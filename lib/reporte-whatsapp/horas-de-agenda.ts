@@ -60,6 +60,6 @@ export function armarMensajeDeHorasDeAgenda(dia: string, programas: ProgramaConH
     "",
     bloques,
     "",
-    `ℹ️ Agendas del CRM con UTM de pauta, por la hora en que se creó cada cita (hora de Bogotá). ${EXPLICACION_AGENDA_CRM_VS_META}`,
+    `ℹ️ Agendadas en CRM con origen de pauta, por la hora en que se creó cada cita (hora de Bogotá). ${EXPLICACION_AGENDA_CRM_VS_META}`,
   ].join("\n");
 }

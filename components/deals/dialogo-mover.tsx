@@ -337,7 +337,7 @@ export function DialogoMover({
                   </Campo>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm"><Badge variant="exito">Show</Badge><span>La llamada se marcará como atendida.</span></div>
+              <div className="flex items-center gap-2 text-sm"><Badge variant="exito">Realizada</Badge><span>La llamada se marcará como atendida.</span></div>
               {llamadaAunNoPuedeAtenderse ? (
                 <p className="text-sm text-muted-foreground">{llamada.mensajeNoPuedeMarcarAtendida}</p>
               ) : null}

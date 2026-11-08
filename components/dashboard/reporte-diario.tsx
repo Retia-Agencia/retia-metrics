@@ -68,7 +68,7 @@ function TotalDelDia({ programas }: { programas: ProgramaDelReporte[] }) {
 }
 
 const FUENTES = {
-  cifras: "CRM de Retia, día de Bogotá. Cupos: negocios en Abonado o Completo por el día en que entraron a venta (sin cortesías ni anulados). Leads: registros completos del día. Caja: abonos vigentes por su fecha, por moneda, sin convertir.",
+  cifras: "CRM de Retia, día de Bogotá. Cupos: negocios en Abonado o Completo por el día en que entraron a venta (sin cortesías ni anulados). Leads: personas distintas del día. Entró a caja: abonos vigentes por su fecha, por moneda, sin convertir.",
   embudo: "Citas por la fecha de la cita; las canceladas van aparte. Asistencia: realizadas entre las citas que ya debían ocurrir. Cierre: asistentes que compraron entre los que asistieron.",
   dinero: "Vendido, recaudado y por cobrar: de las ventas de hoy, con los abonos a hoy. Cómo nació: agenda del día si hubo llamada realizada ese día, seguimiento si fue antes, sin llamada si nunca la hubo.",
   citas: "Citas con fecha de hoy y lo que pasó con cada una, por closer.",

@@ -63,7 +63,7 @@ export async function SemaforoDelPrograma({ programId }: { programId: string }) 
             </dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Agendas según Meta</dt>
+            <dt className="text-muted-foreground">Agendas de Meta</dt>
             <dd className="cifra">{metrica.agendasMeta ?? "—"}</dd>
             <dd className="text-xs text-muted-foreground">{EXPLICACION_AGENDA_CRM_VS_META}</dd>
           </div>

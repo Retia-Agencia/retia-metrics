@@ -30,7 +30,7 @@ Hora pico: 14h y 22h (4 cada una)
 🌑 Madrugada (0 a 6): 00:12 · 01:30
 🌅 Mañana (6 a 12): 07:00
 
-ℹ️ Agendas del CRM con UTM de pauta, por la hora en que se creó cada cita (hora de Bogotá). La agenda del CRM es la cita creada en el CRM, y cada reagenda cuenta como otra cita. La de Meta se muestra aparte: llega con atraso y se la atribuye al anuncio que vio la persona, aunque agende o compre después con otro enlace. Por eso pueden diferir.`);
+ℹ️ Agendadas en CRM con origen de pauta, por la hora en que se creó cada cita (hora de Bogotá). La agenda del CRM es la cita creada en el CRM, y cada reagenda cuenta como otra cita. La de Meta se muestra aparte: llega con atraso y se la atribuye al anuncio que vio la persona, aunque agende o compre después con otro enlace. Por eso pueden diferir.`);
   });
 
   it("una sola agenda no muestra pico", () => {

@@ -25,6 +25,7 @@ import {
   type DetallesDelDashboard,
 } from "@/lib/queries/vista-metrica";
 import { Caja, Tabla } from "@/components/dashboard/piezas";
+import { nombreCorto, nombreLargo } from "@/lib/vocabulario-metricas";
 
 const formatearTasa = (valor: number | null) => valor === null ? "—" : pct(valor);
 
@@ -52,8 +53,8 @@ const LEYENDA_DE_ETAPAS = [
 ] as const;
 
 const LEYENDA_DE_AGENDAS = [
-  { etiqueta: "Show", tono: "exito" },
-  { etiqueta: "No-show", tono: "peligro" },
+  { etiqueta: "Realizadas", tono: "exito" },
+  { etiqueta: "No asistió", tono: "peligro" },
   { etiqueta: "Sin marcar", tono: "alerta" },
   { etiqueta: "Futuras", tono: "info" },
 ] as const;
@@ -66,11 +67,11 @@ export function textoComisionPrograma(comisionPorcentaje: string | null): string
 
 /** Comparativo compacto que Hoy conserva; Comercial reúne estas cifras en su tabla de closers. */
 export function Comparativo({ vista, detalles, titulo = "¿Cómo va cada closer?" }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"]; titulo?: string; contexto?: string }) {
-  return <Card><CardHeader><CardTitle className="text-base">{titulo}</CardTitle><p className="text-xs text-muted-foreground">Llamadas, shows y agendas {ETIQUETA_CRITERIO_DE_CLOSER.quien_tomo_la_llamada}; cierres y comisión {ETIQUETA_CRITERIO_DE_CLOSER.dueno_del_deal}; caja {ETIQUETA_CRITERIO_DE_CLOSER.quien_registro_el_abono}.</p></CardHeader><CardContent>
-    {vista.comparativo.length === 0 ? <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p> : <div className="overflow-x-auto"><Tabla cabeceras={["Closer", "Agendas", "% show", "Cierres", "% cierre", "Entró a caja"]}>
+  return <Card><CardHeader><CardTitle className="text-base">{titulo}</CardTitle><p className="text-xs text-muted-foreground">Citas y realizadas {ETIQUETA_CRITERIO_DE_CLOSER.quien_tomo_la_llamada}; ventas y comisión {ETIQUETA_CRITERIO_DE_CLOSER.dueno_del_deal}; lo que entró a caja {ETIQUETA_CRITERIO_DE_CLOSER.quien_registro_el_abono}.</p></CardHeader><CardContent>
+    {vista.comparativo.length === 0 ? <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p> : <div className="overflow-x-auto"><Tabla cabeceras={["Closer", nombreCorto("citas"), nombreCorto("asistencia"), nombreCorto("ventas"), nombreCorto("cierre_de_ventas"), nombreCorto("entro_a_caja")] }>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
-        return <tr key={fila.clave}><td className="py-2">{fila.closerId ?? "Sin closer"}</td><td className="cifra text-right"><Celda titulo="Agendas" detalle={c?.agendas}>{num(fila.agendas)}</Celda></td><td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}>{formatearTasa(fila.pctShow)}</Celda></td><td className="cifra text-right"><Celda titulo="Cierres" detalle={c?.cierres}>{num(fila.cierres)}</Celda></td><td className="cifra text-right"><Celda titulo="Grupo con show" detalle={c?.grupo_shows}>{formatearTasa(fila.pctCierre)}</Celda></td><td className="cifra text-right"><Celda titulo="Entró a caja" detalle={c?.caja}><Caja caja={fila.caja} /></Celda></td></tr>;
+        return <tr key={fila.clave}><td className="py-2">{fila.closerId ?? "Sin closer"}</td><td className="cifra text-right"><Celda titulo={nombreLargo("citas")} detalle={c?.agendas}>{num(fila.agendas)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("asistencia")} detalle={c?.grupo_citas}>{formatearTasa(fila.pctShow)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("ventas")} detalle={c?.cierres}>{num(fila.cierres)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}>{formatearTasa(fila.pctCierre)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("entro_a_caja")} detalle={c?.caja}><Caja caja={fila.caja} /></Celda></td></tr>;
       })}
     </Tabla></div>}
   </CardContent></Card>;
@@ -98,14 +99,14 @@ function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "sema
   for (const p of proximas) filas.set(p.semana.desde, { ...(filas.get(p.semana.desde) ?? p.semana), futuras: p.futuras });
   const cantidad = (d?: DetalleDeCifra) => d?.resumen.subtotal.cantidad ?? 0;
   const conCasos = [...filas.values()].filter((s) => cantidad(s.shows) + cantidad(s.noShows) + cantidad(s.pendientes) + cantidad(s.futuras) > 0);
-  const titulo = "Agendas por semana";
+  const titulo = "Citas por semana";
   return <Card><CardHeader><Titulo id="agendas-semana">{titulo}</Titulo></CardHeader><CardContent className="space-y-4">
-    {conCasos.length === 0 ? <p className="text-sm text-muted-foreground">Sin agendas en el periodo.</p> : <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} />}
+    {conCasos.length === 0 ? <p className="text-sm text-muted-foreground">Sin citas en el periodo.</p> : <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} />}
     {conCasos.map((s) => <div key={s.desde} className="space-y-1.5">
       <p className="text-sm font-medium">{fecha(s.desde)} a {fecha(s.hasta)}</p>
       <BarraApilada100 segmentos={[
-        { clave: "show", etiqueta: "Show", cantidad: cantidad(s.shows), detalle: s.shows, tono: "exito" },
-        { clave: "no_show", etiqueta: "No-show", cantidad: cantidad(s.noShows), detalle: s.noShows, tono: "peligro" },
+        { clave: "show", etiqueta: "Realizadas", cantidad: cantidad(s.shows), detalle: s.shows, tono: "exito" },
+        { clave: "no_show", etiqueta: "No asistió", cantidad: cantidad(s.noShows), detalle: s.noShows, tono: "peligro" },
         { clave: "sin_marcar", etiqueta: "Sin marcar", cantidad: cantidad(s.pendientes), detalle: s.pendientes, tono: "alerta" },
         { clave: "futuras", etiqueta: "Futuras", cantidad: cantidad(s.futuras), detalle: s.futuras, tono: "info" },
       ]} />
@@ -141,7 +142,7 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
   const titulo = "Closers";
   if (vista.comparativo.length === 0) return null;
   return <Card><CardHeader><Titulo id="closers">{titulo}</Titulo></CardHeader><CardContent className="overflow-x-auto">
-    <Tabla cabeceras={["Closer", "Agendas", "% show", "% cierre", "Agenda → venta", "Cómo cerró", "Sin marcar", "Vendido", "Recaudado", "Por cobrar"]}>
+    <Tabla cabeceras={["Closer", nombreCorto("citas"), nombreCorto("asistencia"), nombreCorto("cierre_de_ventas"), "Cita → venta", "Cómo vendió", "Sin marcar", "Vendido", "Recaudado", "Por cobrar"]}>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
         const e = escalera.porCloser.find((x) => x.clave === fila.clave);
@@ -150,9 +151,9 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
         const tasa = (valor: number | null) => valor === null ? "—" : formatearTasa(valor);
         return <tr key={fila.clave}>
           <td className="py-2">{fila.closerId ?? "Sin closer"}</td>
-          <td className="cifra text-right"><Celda titulo="Agendas" detalle={c?.agendas}>{fila.agendas ? num(fila.agendas) : "—"}</Celda></td>
+          <td className="cifra text-right"><Celda titulo={nombreLargo("citas")} detalle={c?.agendas}>{fila.agendas ? num(fila.agendas) : "—"}</Celda></td>
           <td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}>{tasa(fila.pctShow)}</Celda></td>
-          <td className="cifra text-right"><Celda titulo="Grupo con show" detalle={c?.grupo_shows}>{tasa(fila.pctCierre)}</Celda></td>
+          <td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}>{tasa(fila.pctCierre)}</Celda></td>
           <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
           <td className="w-56 min-w-44 px-4 text-right">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
           <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
@@ -215,10 +216,10 @@ export function Operacion({
     <Card><CardHeader><Titulo id="cifras">Cifras clave</Titulo></CardHeader><CardContent className="space-y-3">
       {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi titulo="Agendadas" valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
-        <Kpi titulo="% show" valor={formatearTasa(vista.embudo.pctShow)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
-        <Kpi titulo="% cierre" valor={formatearTasa(vista.embudo.pctCierre)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
-        <Kpi titulo="Agenda → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
+        <Kpi titulo={nombreCorto("citas")} valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
+        <Kpi titulo={nombreCorto("asistencia")} valor={formatearTasa(vista.embudo.pctShow)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={formatearTasa(vista.embudo.pctCierre)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo="Cita → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
       </div>
     </CardContent></Card>
     {embudoComercial ? <Card><CardHeader><Titulo id="embudo">¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">

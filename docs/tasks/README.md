@@ -461,7 +461,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 394 | [El programa lo garantiza la base](./394-el-programa-lo-garantiza-la-base.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 2, al final · migración M4 y M5 · ADR 0123 · riesgo alto |
 | [ ] | 395 | [Moneda: un `CHECK` y una regla de suma probada](./395-moneda-un-check-y-una-regla-de-suma.md) | 388 | todo · 7-nov · hijo del 385 (F7) · ola 2 · migración M6 · ADR 0124 |
 | [ ] | 396 | [Cohortes: solape decidido](./396-cohortes-solape-decidido.md) | — | en main · 8-nov · hijo del 385 (F7) · sin solape (Mani) · fechas corregidas en producción · migraciones 0121 y 0122 preparadas, sin aplicar · ADR 0123 |
-| [ ] | 397 | [Un nombre por concepto: glosario y rótulos](./397-un-nombre-por-concepto-glosario-y-rotulos.md) | 389, 390, 392, 393 | todo · 7-nov · hijo del 385 (F7) · ola 3 · sin migración · decisión de Mani sobre la meta de leads |
+| [x] | 397 | [Un nombre por concepto: glosario y rótulos](./397-un-nombre-por-concepto-glosario-y-rotulos.md) | 389, 390, 392, 393 | done · 8-nov · hijo del 385 (F7) · ola 3 · sin migración · Objetivo de leads se mide contra personas |
 | [ ] | 398 | [Diccionario y documentos al día](./398-diccionario-y-documentos-al-dia.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 0 · solo documentación |
 | [ ] | 399 | [MCP: salida con nombres de negocio y descripciones estándar](./399-mcp-salida-con-nombres-de-negocio.md) | 397 | todo · 7-nov · hijo del 385 (F7) · ola 3 · sin migración · coordina con 386 y 387 frente B |
 | [ ] | 400 | [MCP: rechazos de validación auditados y mes concreto](./400-mcp-rechazos-auditados-y-mes-concreto.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 0 · migración M8 solo si hace falta |

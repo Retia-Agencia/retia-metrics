@@ -12,7 +12,7 @@ import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import { urlDeListaTodos } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta, origenDeLaPagina, origenValido } from "@/lib/navegacion/volver";
-import { rotuloDeImporte } from "@/lib/vocabulario-metricas";
+import { rotuloDeImporte, TITULOS_DE_LISTA } from "@/lib/vocabulario-metricas";
 import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/dashboard/dinero-de-ventas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ const esquema = z.object({
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = { caja: "Entró a caja", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain", perdidos_con_pagos: "Cierre perdido con pagos registrados" };
+const titulos = TITULOS_DE_LISTA;
 
 export default async function ListaDeTodosPage({ searchParams }: Props) {
   // El closer no ve el Hub de todos los programas, como no ve el de uno (ADR 0082; decisión HUB-1, 30-oct).

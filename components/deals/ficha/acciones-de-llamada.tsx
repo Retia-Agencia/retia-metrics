@@ -100,7 +100,7 @@ export function AccionesDeLlamada({
       {resultado === "agendada" ? (
         <div className="flex flex-wrap items-center gap-2">
           <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("resultado")}>Resultado</Button>
-          <span className="text-xs text-muted-foreground">Show, no show, cancelada o reagendada.</span>
+          <span className="text-xs text-muted-foreground">Realizada, no asistió, cancelada o reagendada.</span>
         </div>
       ) : null}
       {resultado === "show" || resultado === "no_show" || resultado === "cancelada" ? (
@@ -151,7 +151,7 @@ function DialogoCorregir({
   onCambio?: () => void;
 }) {
   const opciones = ([
-    { value: "show", label: "Show" },
+    { value: "show", label: "Realizada" },
     { value: "no_show", label: "No apareció (no show)" },
     { value: "cancelada", label: "Avisó y canceló" },
   ] as const).filter((opcion) => opcion.value !== actual);
@@ -228,12 +228,12 @@ function DialogoResultado({
 }) {
   const opciones: { etiqueta: string; linea: string; onClick: () => void; disabled?: boolean }[] = [
     {
-      etiqueta: "Show",
+      etiqueta: "Realizada",
       linea: mensajeNoPuedeMarcarAtendida ?? "Se marca en un clic; el deal pasa a Atendido. El link de Grain es opcional.",
       onClick: onShow,
       disabled: !puedeMarcarAtendida,
     },
-    { etiqueta: "No show", linea: "No apareció; el deal queda en Re-agenda.", onClick: () => onFallida("no_show") },
+    { etiqueta: "No asistió", linea: "No apareció; el deal queda en Re-agenda.", onClick: () => onFallida("no_show") },
     { etiqueta: "Cancelada", linea: "Avisó y canceló; el deal queda en Re-agenda.", onClick: () => onFallida("cancelada") },
     ...(conReagenda
       ? [{ etiqueta: "Reagendada", linea: "Cierra esta cita y agenda una nueva con su fecha.", onClick: onReagendada }]

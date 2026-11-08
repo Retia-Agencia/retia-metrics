@@ -10,15 +10,14 @@
 import type { ClaveDeMetrica } from "@/lib/vocabulario-metricas";
 
 export const PENDIENTES_DE_REGISTRO = [
-  "registros", "deals_desde_completo", "deals_desde_parcial",
-  "agendadas", "citas", "shows", "no_asistio",
+  "deals_desde_completo", "deals_desde_parcial",
   "cupos_con_caja", "nacio_agenda_del_dia", "nacio_seguimiento", "nacio_sin_llamada",
   "meta", "esperado_a_hoy", "faltan", "por_dia_habil", "proyeccion",
   "objetivo_del_dia", "objetivo_de_leads", "leads_que_hacen_falta",
-  "asistencia", "cierre_de_ventas", "citas_del_dia", "citas_realizadas", "citas_canceladas",
+  "citas_del_dia", "citas_realizadas", "citas_canceladas",
   "objetivo_semana", "objetivo_mes", "objetivo_cohorte",
   "dias_del_ritmo", "citas_minimas",
 ] as const satisfies readonly ClaveDeMetrica[];
 
 /** Baja cuando se migra un concepto; subirlo es una decisión que se ve en el diff. */
-export const TOPE_DE_PENDIENTES = 29;
+export const TOPE_DE_PENDIENTES = 22;

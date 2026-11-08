@@ -15,6 +15,8 @@ const UNIDADES = {
 const ANCLAS = {
   primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
   fecha_del_abono: "fecha del abono",
+  fecha_del_envio: "fecha del envío",
+  fecha_de_creacion_de_la_cita: "fecha de creación de la cita",
   primera_aplicacion: "día de su primera aplicación (Bogotá)",
   hora_de_la_cita: "hora de la cita (agenda, o la llamada si no tiene)",
 } as const;

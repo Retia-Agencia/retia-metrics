@@ -33,7 +33,7 @@ export function Pendientes({ vista, detalles, citasDeManana, detalleManana, aler
   veEquipo: boolean;
 }) {
   const banderas = [
-    { titulo: "Shows sin Grain", cantidad: vista.sinGrain.sinGrain, detalle: detalles?.shows_sin_grain, nota: `${tasa(vista.sinGrain.pct)} de ${num(vista.sinGrain.shows)} shows de hoy` },
+    { titulo: "Realizadas sin Grain", cantidad: vista.sinGrain.sinGrain, detalle: detalles?.shows_sin_grain, nota: `${tasa(vista.sinGrain.pct)} de ${num(vista.sinGrain.shows)} realizadas hoy` },
     { titulo: "Llamadas pasadas sin resultado", cantidad: vista.sinResultado, detalle: detalles?.sin_resultado },
     { titulo: "Atendidos sin valor vendido", cantidad: vista.banderas.sinValor.cantidad, detalle: detalles?.atendidos_sin_valor, nota: `${tasa(vista.banderas.sinValor.pct)} de ${num(vista.banderas.atendidos)} atendidos` },
     { titulo: "Atendidos sin Grain", cantidad: vista.banderas.sinGrain.cantidad, detalle: detalles?.atendidos_sin_grain, nota: `${tasa(vista.banderas.sinGrain.pct)} de ${num(vista.banderas.atendidos)} atendidos` },

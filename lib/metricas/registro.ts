@@ -12,6 +12,9 @@
  * Migración incremental: lo que aún no tiene ficha está en `./pendientes.ts` (trinquete que solo encoge).
  */
 import type { DimensionAbono } from "@/lib/queries/hechos/abono";
+import type { DimensionAgenda } from "@/lib/queries/hechos/agenda";
+import type { DimensionCita } from "@/lib/queries/hechos/cita";
+import type { DimensionEnvio } from "@/lib/queries/hechos/envio";
 import type { DimensionVenta } from "@/lib/queries/hechos/venta";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
 import type { ClaveDeMetrica } from "@/lib/vocabulario-metricas";
@@ -30,16 +33,17 @@ export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero
 export type MonedaDeMetrica = "usd" | "cop";
 
 /** Los hechos de `docs/metricas.md` §1 que ya tienen módulo en `lib/queries/hechos/`. */
-export type HechoDeMetrica = "venta" | "abono" | "lead" | "cita";
+export type HechoDeMetrica = "venta" | "abono" | "envio" | "agenda" | "lead" | "cita";
 
 /** La dimensión que cada hecho admite: la lista blanca del módulo, por tipo (C-2). */
 export interface DimensionesPorHecho {
   venta: DimensionVenta;
   abono: DimensionAbono;
+  envio: DimensionEnvio;
+  agenda: DimensionAgenda;
   /** El lead aún no tiene módulo de hecho en `hechos/`: solo filtra por la cohorte de su deal (`filtroLeads`). */
   lead: "cohorte";
-  /** La cita pasada sin resultado no se agrupa: es una lista de lo que el closer debe marcar (390). */
-  cita: never;
+  cita: DimensionCita;
 }
 
 /**
@@ -49,6 +53,8 @@ export interface DimensionesPorHecho {
 export type AnclaDeFecha =
   | "primera_entrada_a_venta"
   | "fecha_del_abono"
+  | "fecha_del_envio"
+  | "fecha_de_creacion_de_la_cita"
   | "primera_aplicacion"
   | "hora_de_la_cita";
 
@@ -123,6 +129,109 @@ const CITA_SIN_RESULTADO_EN_MEMORIA: ReferenciaAFuncion = { archivo: "lib/deals/
  * resultado, agenda) ni la de Pauta (355).
  */
 export const REGISTRO = {
+  registros: ficha("envio", {
+    filaDelDiccionario: "Envíos",
+    tipo: "simple",
+    unidad: "personas",
+    monedas: [],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"],
+    vigencia: [],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/hechos/envio.ts", nombre: "filtroDeEnvios" },
+    listas: ["registros"],
+  }),
+  agendadas: ficha("agenda", {
+    filaDelDiccionario: "Agendadas",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "fecha_de_creacion_de_la_cita",
+    dimensiones: ["dia", "semana", "mes", "hora", "area", "canal", "cuenta", "utm_source", "utm_medium", "categoria", "tiene_envio", "dueno", "cohorte", "etapa"],
+    criterioDeCloser: "dueno_del_deal",
+    vigencia: ["calls"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/hechos/agenda.ts", nombre: "agrupar" },
+    listas: ["agendas_creadas"],
+  }),
+  citas: ficha("cita", {
+    filaDelDiccionario: "Citas",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa", "ocurrio"],
+    criterioDeCloser: "quien_tomo_la_llamada",
+    vigencia: ["calls"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/dashboard.ts", nombre: "embudoDelRango" },
+    listas: ["agendas", "canceladas", "citas_debidas", "citas_sin_marcar", "agendas_futuras"],
+  }),
+  shows: ficha("cita", {
+    filaDelDiccionario: "Realizadas",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa"],
+    criterioDeCloser: "quien_tomo_la_llamada",
+    vigencia: ["calls"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "ocurrioSql" },
+    gemelaTs: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "ocurrio" },
+    listas: ["shows", "shows_sin_grain", "atendidos_sin_valor", "atendidos_sin_grain"],
+  }),
+  no_asistio: ficha("cita", {
+    filaDelDiccionario: "No asistió",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa"],
+    criterioDeCloser: "quien_tomo_la_llamada",
+    vigencia: ["calls"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "noAsistioSql" },
+    gemelaTs: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "noAsistio" },
+    listas: ["no_shows"],
+  }),
+  asistencia: ficha("cita", {
+    filaDelDiccionario: "Asistencia",
+    tipo: "razon",
+    de: ["shows", "no_asistio"],
+    unidad: "porcentaje",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: [],
+    criterioDeCloser: "quien_tomo_la_llamada",
+    vigencia: ["calls", "deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/queries/tasas-del-grupo.ts", nombre: "grupoDeCitas" },
+    gemelaTs: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "showPorDeal" },
+    listas: ["grupo_citas", "grupo_pendientes", "grupo_sin_show"],
+  }),
+  cierre_de_ventas: ficha("cita", {
+    filaDelDiccionario: "Cierre de ventas",
+    tipo: "razon",
+    de: ["ventas", "shows"],
+    unidad: "porcentaje",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: [],
+    criterioDeCloser: "quien_tomo_la_llamada",
+    vigencia: ["calls", "deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/queries/tasas-del-grupo.ts", nombre: "grupoDeCitas" },
+    gemelaTs: { archivo: "lib/queries/tasas-del-grupo.ts", nombre: "calcularTasasDelGrupo" },
+    listas: ["grupo_shows", "grupo_vendidos"],
+  }),
   ventas: ficha("venta", {
     filaDelDiccionario: "Ventas",
     tipo: "simple",

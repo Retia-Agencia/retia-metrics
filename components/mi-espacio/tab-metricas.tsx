@@ -56,9 +56,9 @@ function TarjetasDinero({ vista }: { vista: VistaDeMisMetricas }) {
     <>
       {cajas.map((c) => (
         <Card key={c.moneda}>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Caja cobrada</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm">Entró a caja</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            <CifraConLista titulo={`Caja cobrada en ${c.moneda}`} detalle={vista.detalles.caja}>
+            <CifraConLista titulo={`Entró a caja en ${c.moneda}`} detalle={vista.detalles.caja}>
               <span className="cifra text-2xl font-semibold">{monto(c.total, c.moneda)}</span>
             </CifraConLista>
             {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.total} anterior={anterior.get(c.moneda) ?? 0} decimales={2} periodo={vista.periodo} /></p> : null}
@@ -68,7 +68,7 @@ function TarjetasDinero({ vista }: { vista: VistaDeMisMetricas }) {
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-sm">Comisión</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          <CifraConLista titulo="Cierres que generan comisión" detalle={vista.detalles.cierres}>
+          <CifraConLista titulo="Ventas que generan comisión" detalle={vista.detalles.cierres}>
             <span className="cifra text-2xl font-semibold">{monto(vista.a.comisionUsd, "USD")}</span>
           </CifraConLista>
           {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={vista.a.comisionUsd} anterior={vista.b.comisionUsd} decimales={2} periodo={vista.periodo} /></p> : null}
@@ -84,20 +84,20 @@ function BloqueDePrograma({ vista, conSelector = true }: { vista: VistaDeMisMetr
       {conSelector ? <SelectorPeriodo periodo={vista.periodo} anteriorDisponible={vista.anteriorDisponible} /> : null}
       {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={`Métricas de ${vista.programa.nombre}`}>
-        <TarjetaNumero titulo="Agendas" valor={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} periodo={vista.periodo} />
-        <TarjetaNumero titulo="Llamadas atendidas" valor={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} periodo={vista.periodo} />
-        <TarjetaNumero titulo="No show" valor={vista.a.noShows} anterior={vista.b?.noShows} detalle={vista.detalles.noShows} periodo={vista.periodo} />
-        <TarjetaNumero titulo="Cierres" valor={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} periodo={vista.periodo} />
+        <TarjetaNumero titulo="Citas" valor={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} periodo={vista.periodo} />
+        <TarjetaNumero titulo="Realizadas" valor={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} periodo={vista.periodo} />
+        <TarjetaNumero titulo="No asistió" valor={vista.a.noShows} anterior={vista.b?.noShows} detalle={vista.detalles.noShows} periodo={vista.periodo} />
+        <TarjetaNumero titulo="Ventas" valor={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} periodo={vista.periodo} />
         <TarjetaTasa vista={vista} />
         <TarjetasDinero vista={vista} />
       </section>
       <ComoSeCalcula>
-        <p><strong>Agendas:</strong> las llamadas que tomaste.</p>
-        <p><strong>Llamadas atendidas:</strong> las llamadas que tomaste.</p>
-        <p><strong>No show:</strong> las llamadas que tomaste.</p>
-        <p><strong>Cierres:</strong> los deals de los que eres dueño hoy.</p>
+        <p><strong>Citas:</strong> las llamadas que tomaste.</p>
+        <p><strong>Realizadas:</strong> las llamadas que tomaste.</p>
+        <p><strong>No asistió:</strong> las llamadas que tomaste.</p>
+        <p><strong>Ventas:</strong> los deals de los que eres dueño hoy.</p>
         <p><strong>Comisión:</strong> los deals de los que eres dueño hoy.</p>
-        <p><strong>Caja cobrada:</strong> los abonos que registraste.</p>
+        <p><strong>Entró a caja:</strong> los abonos que registraste.</p>
         <p><strong>% de cierre:</strong> va sobre el grupo de citas; cada deal cuenta contigo si tomaste su último show o, sin show, su última cita.</p>
       </ComoSeCalcula>
     </div>
@@ -144,12 +144,12 @@ export async function TabMetricas({
       />
       {todos.periodo.preset === "desde_el_inicio" ? <p className="text-sm text-muted-foreground">Cada programa cuenta desde el inicio de su cohorte activa.</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Totales entre programas">
-        <Total titulo="Agendas" actual={todos.a.agendas.valor} anterior={todos.b?.agendas.valor} periodo={todos.periodo} />
-        <Total titulo="Llamadas atendidas" actual={todos.a.shows.valor} anterior={todos.b?.shows.valor} periodo={todos.periodo} />
-        <Total titulo="No show" actual={todos.a.noShows.valor} anterior={todos.b?.noShows.valor} periodo={todos.periodo} />
-        <Total titulo="Cierres" actual={todos.a.cierres.valor} anterior={todos.b?.cierres.valor} periodo={todos.periodo} />
+        <Total titulo="Citas" actual={todos.a.agendas.valor} anterior={todos.b?.agendas.valor} periodo={todos.periodo} />
+        <Total titulo="Realizadas" actual={todos.a.shows.valor} anterior={todos.b?.shows.valor} periodo={todos.periodo} />
+        <Total titulo="No asistió" actual={todos.a.noShows.valor} anterior={todos.b?.noShows.valor} periodo={todos.periodo} />
+        <Total titulo="Ventas" actual={todos.a.cierres.valor} anterior={todos.b?.cierres.valor} periodo={todos.periodo} />
         {(todos.a.caja.length > 0 ? todos.a.caja : [{ tipo: "dinero" as const, moneda: "USD", valor: 0 }]).map((c) => (
-          <Card key={c.moneda}><CardHeader className="pb-2"><CardTitle className="text-sm">Caja cobrada</CardTitle></CardHeader><CardContent className="space-y-2">
+          <Card key={c.moneda}><CardHeader className="pb-2"><CardTitle className="text-sm">Entró a caja</CardTitle></CardHeader><CardContent className="space-y-2">
             <p className="cifra text-2xl font-semibold">{monto(c.valor, c.moneda)}</p>
             {todos.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.valor} anterior={cajasB.get(c.moneda) ?? 0} decimales={2} periodo={todos.periodo} /></p> : null}
           </CardContent></Card>

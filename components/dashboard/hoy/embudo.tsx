@@ -28,7 +28,7 @@ export function EmbudoDelDia({ programas }: { programas: ProgramaDelReporte[] })
     <Lado programas={programas}>{({ reporte, detalles, detalleRegistros }) => {
       const e = reporte.vista.embudo;
       const pasos = [
-        { clave: "leads", etiqueta: "Leads", cantidad: reporte.registros, detalle: detalleRegistros },
+        { clave: "leads", etiqueta: nombreCorto("registros"), cantidad: reporte.registros, detalle: detalleRegistros },
         { clave: "citas", etiqueta: nombreCorto("citas_del_dia"), cantidad: e.agendas, detalle: detalles?.agendas },
         { clave: "realizadas", etiqueta: nombreCorto("citas_realizadas"), cantidad: e.llamadasConShow, detalle: detalles?.shows },
         { clave: "ventas", etiqueta: nombreCorto("cupos_vendidos"), cantidad: e.cierres, detalle: detalles?.cierres },
