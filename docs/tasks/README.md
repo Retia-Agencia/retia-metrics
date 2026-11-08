@@ -449,7 +449,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 386 | [Integridad de las tools de operación del MCP, por rol](./386-mcp-integridad-de-tools-de-operacion.md) | 348, 384 | todo · pedido de Mani del 6-nov |
 | [ ] | 387 | [El MCP del CRM: administración visual, evaluación de descubrimiento y visualizaciones](./387-mcp-administracion-visual-y-visualizaciones.md) | 348, 385 | idea · 7-nov · pedido de Mani: ver y administrar el MCP sin código y gráficas en el chat · docs/mcp.md §7 y §8 |
 | [ ] | 388 | [F2 tanda 2: paridad de lo que F2 no cubrió](./388-f2-tanda-2-paridad-de-lo-no-cubierto.md) | — | todo · 7-nov · hijo del 385 (F7) · solo lectura · ola 0 |
-| [ ] | 389 | [Lead bien escrito al nacer](./389-lead-bien-escrito-al-nacer.md) | 388 | todo · 7-nov · hijo del 385 (F7) · ola 1 · migración M1 y M2 · ADR 0121 · ok de Mani para el relleno |
+| [ ] | 389 | [Lead bien escrito al nacer](./389-lead-bien-escrito-al-nacer.md) | 388 | en main · 8-nov · hijo del 385 (F7) · M1 y M2 aplicadas · falta el relleno de contactos de las 18 altas manuales |
 | [ ] | 390 | [Captura del resultado de la cita](./390-captura-del-resultado-de-la-cita.md) | 353 | todo · 7-nov · hijo del 385 (F7) · ola 1 · sin migración |
 | [ ] | 391 | [Closer: los datos huérfanos (fase A)](./391-closer-una-pregunta-y-un-dato.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 1 · migración M3 · ADR 0122 · ok de Mani para escribir 3 abonos y 3 ventas |
 | [ ] | 404 | [Closer: una pregunta y una definición (fase B)](./404-closer-una-pregunta-y-una-definicion.md) | 391, 392, 393 | todo · 7-nov · hijo del 385 (F7), partido del 391 · ola 2 · sin migración |

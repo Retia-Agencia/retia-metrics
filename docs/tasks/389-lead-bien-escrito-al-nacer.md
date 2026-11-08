@@ -28,10 +28,10 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] La ingesta escribe `fecha_primera_aplicacion` desde el envío o desde `created_at` del sobre, con test del parcial sin `fecha_envio`.
-- [ ] Un solo ancla de fecha del lead, importada por la métrica y por la lista Leads; grep limpio del `coalesce` suelto.
-- [ ] El alta manual escribe su contacto de correo y teléfono por `ingerirEntradas`; 0 leads sin contacto.
-- [ ] Test de paridad de `calificacion` del resumen contra sus envíos, con el caso de desempate.
-- [ ] Relleno aplicado (784 filas, solo donde es nula), conteo antes y después, y `CHECK` validado.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
-- [ ] Registro: ficha de `leads` (ancla única; el nombre visible lo fija el 397) en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+- [x] La ingesta escribe `fecha_primera_aplicacion` desde el envío o desde `created_at` del sobre, con test del parcial sin `fecha_envio`.
+- [x] Un solo ancla de fecha del lead, importada por la métrica y por la lista Leads; grep limpio del `coalesce` suelto.
+- [ ] El alta manual escribe su contacto de correo y teléfono por `ingerirEntradas`; 0 leads sin contacto. **Pendiente:** el código ya escribe el contacto de las altas nuevas (`lib/ingesta/contactos-de-alta.ts`, no por `ingerirEntradas`, ADR 0121 punto 3), pero las 18 altas manuales existentes siguen sin correo y 16 sin teléfono: falta su relleno (escribe producción, pide ok).
+- [x] Test de paridad de `calificacion` del resumen contra sus envíos, con el caso de desempate.
+- [x] Relleno aplicado (784 filas, solo donde es nula), conteo antes y después, y `CHECK` validado. Aplicado el 8-nov con el ok de Mani: M1 (0118) rellenó 791 leads (no 784: 7 llegaron con el código viejo), 791 filas en `change_log`, 0 de formulario sin fecha; M2 (0119) validada. Los 18 de alta manual (`entrada = crm`) quedan sin fecha a propósito.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Registro: ficha de `leads` (ancla única; el nombre visible lo fija el 397) en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
