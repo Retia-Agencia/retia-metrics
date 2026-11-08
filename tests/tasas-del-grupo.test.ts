@@ -6,6 +6,7 @@ import { embudoDelRango, embudoPorCloser } from "@/lib/queries/dashboard";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { armarVistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 import { calcularTasasDelGrupo, pendientesDe, rangoMadurando, UMBRAL_SIN_MARCAR, type CitaParaTasas } from "@/lib/queries/tasas-del-grupo";
+import { estadoDeCobertura } from "@/lib/cobertura";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -195,6 +196,25 @@ describe("ticket 187: la cuenta pura", () => {
     expect(grupo.tasas).toMatchObject({ deals: 1, conShow: 1 });
     expect(grupo.miembros[0]).toMatchObject({ callId: "c2", claveCloser: "u1" });
     expect([...grupo.porCloser.keys()]).toEqual(["u1"]);
+  });
+
+  it("351: el % de show con 3 de 10 citas resueltas sale parcial, con base y faltan", () => {
+    const cita = (i: number, resultado: string) => base({ callId: `c${i}`, dealId: `d${i}`, resultado });
+    const grupo = calcularTasasDelGrupo({
+      citas: [
+        ...[0, 1, 2].map((i) => cita(i, i === 0 ? "show" : "no_show")),
+        ...[3, 4, 5, 6, 7, 8, 9].map((i) => cita(i, "agendada")),
+      ],
+      rango: S1,
+      hoy: HOY,
+      ahora: AHORA,
+    });
+    expect(grupo.tasas.razonShow).toMatchObject({ base: 3, faltan: 7 });
+    expect(grupo.tasas.razonShow.valor).toBeCloseTo(1 / 3);
+    expect(grupo.tasas.razonShow.motivo).toContain("7 de 10");
+    expect(estadoDeCobertura(grupo.tasas.razonShow)).toBe("parcial");
+    const completo = calcularTasasDelGrupo({ citas: [cita(0, "show"), cita(1, "no_show")], rango: S1, hoy: HOY, ahora: AHORA });
+    expect(estadoDeCobertura(completo.tasas.razonShow)).toBe("completa");
   });
 
   it("separa pendientes e ignora la agendada cuando el deal sí tiene resultado", () => {
