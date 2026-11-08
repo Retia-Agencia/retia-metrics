@@ -541,6 +541,7 @@ export async function embudoPorCloser(
         ...conteosDeLlamadas(ahora),
       })
       .from(calls)
+      .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
       .leftJoin(
         users,
         or(

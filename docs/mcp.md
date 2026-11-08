@@ -139,6 +139,8 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 Tokens sin caducidad; `mcp_llamadas` sin retención; `tablero_de_deals` y `cartera_vencida` sin paginar; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; salidas aún con nombres internos (ticket 385, que se ensanchó el 7-nov a auditoría completa de métricas y datos del CRM) y sin `outputSchema`; sin `title` ni evaluaciones de descubrimiento (385/386).
 
+**Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
+
 ## 8. Visualizaciones dentro del chat
 
 Hoy el servidor devuelve **datos estructurados y texto**; la gráfica la hace el cliente. En Claude, el modelo puede

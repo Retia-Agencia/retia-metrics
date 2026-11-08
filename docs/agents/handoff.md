@@ -27,6 +27,17 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-08 (tarde): F7 del 385, ola 2 casi cerrada (sesión padre).** En main y empujado: 406 (ya lo resolvía el 389; test de paridad),
+  E6/E11/E12 de `moverEtapa` exigen dueño, 396 (sin solape: C2 de Tactical cierra el 27-sep y C1 de Confianza el 15-nov; meta de 50 leads
+  por día en las 6 cohortes no cerradas; **migraciones 0121 y 0122 aplicadas en producción con ok de Mani**, `btree_gist` instalada;
+  ADR 0123), 393 (`dineroDeVentas` única suma; reja sin CHECK porque `requisitos.ts` ya exige valor; `sinValorVendido` como alarma) y
+  404 (criterio de closer en la ficha y en el comparativo; `conteosDeLlamadas` compartido). **Sigue, en este orden:** 397 (glosario y
+  rótulos; depende de 389, 390, 392, 393, todos listos), 399 (MCP: salida con nombres de negocio), 403 (registro completo y diccionario
+  generado; incluye `cupos_con_caja` y las fichas de agenda/show), luego 351 → 355 → 375, 394, 395, 358 a 361, 401, 402. Pendiente de
+  Mani: contra qué cifra se mide la meta de leads por día (Envíos o Leads, 354 alcance 3). Pendiente de cierre: pasar a `done` (archivo y
+  tracker) 389, 391, 392, 393, 396, 404, 405 y 406 con checkpoint verde. **MCP:** hoy solo el developer emite tokens; abrirlo a los
+  demás roles es el 383 (OAuth, caducidad, retención, paginación y petición forjada por rol), después el 384 (escrituras) y el 386;
+  la idea de Mani de un MCP analítico para gerencia y pauta quedó como ticket 407 (idea) y depende de 383, 397, 399 y 403.
 - **2026-11-08: F7 del 385, ola 1 y 2 avanzadas (sesión padre).** En main: 388, 389 (M1 y M2 aplicadas; relleno de contactos de las
   18 altas manuales aplicado, 34 contactos, `scripts/rellenar-contactos-de-altas-389.ts`), 390, 392 (un solo recorrido de venta; la
   ficha del deal ahora dice «vendido» solo por etapa), 398, 400 y 405 (bandera «Cierre perdido con pagos registrados» en el Pulso,

@@ -3,7 +3,7 @@ id: 404
 etapa: hub
 serves: "Auditoría 385 H-12, H-19, C-16 del 30-oct · ADR 0115 N1, N2 · ADR 0030"
 depends: [391, 392, 393]
-status: todo
+status: en main
 ---
 
 # 404 — Closer: una pregunta y una definición (fase B)
@@ -28,7 +28,11 @@ La corrección de los datos huérfanos y el `CHECK` de venta con dueño: son del
 
 ## Done cuando
 
-- [ ] Cada métrica con closer declara en su ficha cuál de los tres criterios usa; el comparativo dice el criterio.
-- [ ] Test: `embudoPorCloser` suma lo mismo que `embudoDelRango` sin filtro (paridad N2).
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
-- [ ] Registro: ficha de las métricas con closer en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+- [x] Cada métrica con closer declara en su ficha cuál de los tres criterios usa; el comparativo dice el criterio.
+- [x] Test: `embudoPorCloser` suma lo mismo que `embudoDelRango` sin filtro (paridad N2).
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Registro: ficha de las métricas con closer en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+
+## Resultado (8-nov)
+
+Las tres definiciones de «closer» quedan declaradas: llamadas, shows y agendas por **quien tomó la llamada**; ventas, comisión, vendido, recaudado y por cobrar por **el dueño del deal**; caja por **quien registró el abono** (`criterioDeCloser` en la ficha, `lib/metricas/registro.ts`; texto visible en `lib/criterios-de-closer.ts` y bajo el título del comparativo). `embudoPorCloser` comparte con `embudoDelRango` los conteos de llamadas (`conteosDeLlamadas`) y el filtro `filtroLlamadas`; Codex olvidó el `leftJoin` de `deals` que esos conteos necesitan y lo agregué (los tests de paridad lo cazaron). Test de paridad: `tests/closer-una-pregunta.test.ts`. Las métricas basadas en llamadas (agenda, show) no están en el registro todavía: su ficha llega con el 403.
