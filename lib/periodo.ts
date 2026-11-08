@@ -56,6 +56,27 @@ const rango = z.object({
   hasta: fecha,
 }).refine((r) => r.desde <= r.hasta);
 
+/**
+ * Un mes concreto, `AAAA-MM` (ticket 400): del día 1 al último día de ese mes, en días de Bogotá.
+ * Es la única respuesta a "¿qué rango es este mes?": la leen la URL de las pantallas y el MCP.
+ * El último día sale de `sumarDias` (aritmética de fechas ISO en UTC, sin zona del proceso), así que
+ * febrero de un bisiesto y los meses de 30 y 31 días salen bien en cualquier máquina.
+ */
+const ANO_MINIMO_DE_MES = 2000;
+const MES = /^(\d{4})-(0[1-9]|1[0-2])$/;
+export const esquemaDeMes = z.string().regex(MES, "Usa un mes AAAA-MM, por ejemplo 2026-10.").refine(
+  (mes) => esFecha(`${mes}-01`) && Number(mes.slice(0, 4)) >= ANO_MINIMO_DE_MES,
+  "Ese mes no existe.",
+);
+
+export function rangoDeMes(mes: string): Rango | null {
+  if (!esquemaDeMes.safeParse(mes).success) return null;
+  const desde = `${mes}-01`;
+  const [anio, numero] = mes.split("-").map(Number);
+  const siguiente = numero === 12 ? `${anio + 1}-01-01` : `${anio}-${String(numero + 1).padStart(2, "0")}-01`;
+  return { desde, hasta: sumarDias(siguiente, -1) };
+}
+
 const RANGO_EN_URL = /^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})$/;
 
 /** Un elemento de `?comparar=`: `anterior`, `cohorte` o `AAAA-MM-DD_AAAA-MM-DD`. */
@@ -224,6 +245,14 @@ export function parsearPeriodoUrl(url: Record<string, unknown>, opciones: Opcion
     (clave) => url[clave] !== undefined,
   );
   const entrada = { ...url };
+  if (typeof entrada.periodo === "string" && MES.test(entrada.periodo)) {
+    // Un mes concreto es un periodo custom con las fechas del mes; con fechas propias a la vez es ambiguo.
+    const mes = rangoDeMes(entrada.periodo);
+    if (!mes || entrada.a_desde !== undefined || entrada.a_hasta !== undefined) return invalido;
+    entrada.periodo = "custom";
+    entrada.a_desde = mes.desde;
+    entrada.a_hasta = mes.hasta;
+  }
   if (moderno) delete entrada.rango;
   if (moderno || entrada.rango !== "custom") {
     delete entrada.desde;

@@ -15,7 +15,7 @@ import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/q
 import type { Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
 import { enlaceDeDeal, enlaceDeLead, enlaceDeSeccionHub } from "@/lib/mcp/enlaces";
-import { busquedaDePeriodoMcp, camposDePeriodoMcp } from "./periodo";
+import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp } from "./periodo";
 
 function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
   return `${nombre}: ${valor === null ? "—" : pct(valor)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
@@ -36,7 +36,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
     const programa = await programaVisible(contexto, entrada.programa);
     const hoy = hoyEnBogota();
     const periodoPedido = parsearPeriodoUrl(busquedaDePeriodoMcp(entrada));
-    const entradaDeVista = { programId: programa.id, hoy, periodo: periodoPedido, preset: entrada.periodo };
+    const entradaDeVista = { programId: programa.id, hoy, periodo: periodoPedido, preset: presetDePeriodoMcp(entrada) };
     const contextoDeVista = await resolverContextoDeVista(entradaDeVista, contexto.db);
     const sinProyectar = await armarVistaDelDashboard(entradaDeVista, contexto.db, contextoDeVista);
     const vista = proyectarDashboardSegunRol(sinProyectar, contexto.rol);
