@@ -6,7 +6,7 @@ import { miembrosActivos, traidoPorDeEnvios } from "@/lib/atribucion/captacion-d
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
-import { construirEnvio, normalizarTelefono, type EntradaEnvio, type Envio } from "./envio";
+import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, hechosDeEntradaDelEnvio, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
 import type { CitaACancelar } from "@/lib/calendly/una-cita-activa";
@@ -409,27 +409,6 @@ export async function ingerirEntradas(
     }
   }
   return escrito;
-}
-
-/**
- * Los contactos de un lead dado de alta a mano (ticket 389, N6): su correo (la llave del lead)
- * y su telefono si es valido, para que el dedup por telefono y la ficha lo vean igual que a uno
- * del formulario. Sin envio que citar (`submission_id` nulo, como dice el esquema). Devuelve la
- * sentencia para que el alta la meta en SU transaccion; el unico escritor de `lead_contactos`
- * sigue siendo este modulo. Un telefono que ya es de otro lead del programa se salta sin error
- * (indice unico), igual que en la ingesta.
- */
-export function insertarContactosDeAlta(
-  tx: Db,
-  alta: { leadId: string; programId: string; correo: string; telefono: string | null | undefined },
-) {
-  const telefono = normalizarTelefono(alta.telefono);
-  const base = { leadId: alta.leadId, programId: alta.programId, submissionId: null, esPrincipal: true, confirmado: true };
-  const filas = [
-    { ...base, tipo: "correo" as const, valor: alta.correo },
-    ...(telefono ? [{ ...base, tipo: "telefono" as const, valor: telefono }] : []),
-  ];
-  return tx.insert(leadContactos).values(filas).onConflictDoNothing();
 }
 
 /**
