@@ -2,7 +2,7 @@
 id: 403
 etapa: hub
 serves: "Auditoría 385 H-29 · docs/contrato-metricas-y-datos.md §8 · ADR 0120"
-depends: [397, 389, 390, 391, 392, 393, 351, 355]
+depends: [397, 389, 390, 391, 404, 392, 393, 351, 355]
 status: todo
 ---
 

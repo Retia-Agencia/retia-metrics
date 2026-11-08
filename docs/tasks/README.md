@@ -451,7 +451,8 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 388 | [F2 tanda 2: paridad de lo que F2 no cubrió](./388-f2-tanda-2-paridad-de-lo-no-cubierto.md) | — | todo · 7-nov · hijo del 385 (F7) · solo lectura · ola 0 |
 | [ ] | 389 | [Lead bien escrito al nacer](./389-lead-bien-escrito-al-nacer.md) | 388 | todo · 7-nov · hijo del 385 (F7) · ola 1 · migración M1 y M2 · ADR 0121 · ok de Mani para el relleno |
 | [ ] | 390 | [Captura del resultado de la cita](./390-captura-del-resultado-de-la-cita.md) | 353 | todo · 7-nov · hijo del 385 (F7) · ola 1 · sin migración |
-| [ ] | 391 | [Closer: una pregunta y un dato](./391-closer-una-pregunta-y-un-dato.md) | 392, 393 | todo · 7-nov · hijo del 385 (F7) · fase A (datos) sin dependencias, fase B tras 392 y 393 · migración M3 · ADR 0122 · ok de Mani para la fase A |
+| [ ] | 391 | [Closer: los datos huérfanos (fase A)](./391-closer-una-pregunta-y-un-dato.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 1 · migración M3 · ADR 0122 · ok de Mani para escribir 3 abonos y 3 ventas |
+| [ ] | 404 | [Closer: una pregunta y una definición (fase B)](./404-closer-una-pregunta-y-una-definicion.md) | 391, 392, 393 | todo · 7-nov · hijo del 385 (F7), partido del 391 · ola 2 · sin migración |
 | [ ] | 392 | [Venta: un solo recorrido](./392-venta-un-solo-recorrido.md) | 351, 353 | todo · 7-nov · hijo del 385 (F7) · ola 2 · sin migración |
 | [ ] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | todo · 7-nov · hijo del 385 (F7) · ola 2 · sin migración · ok de Mani sobre Students |
 | [ ] | 394 | [El programa lo garantiza la base](./394-el-programa-lo-garantiza-la-base.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 2, al final · migración M4 y M5 · ADR 0123 · riesgo alto |
@@ -461,9 +462,9 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 398 | [Diccionario y documentos al día](./398-diccionario-y-documentos-al-dia.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 0 · solo documentación |
 | [ ] | 399 | [MCP: salida con nombres de negocio y descripciones estándar](./399-mcp-salida-con-nombres-de-negocio.md) | 397 | todo · 7-nov · hijo del 385 (F7) · ola 3 · sin migración · coordina con 386 y 387 frente B |
 | [ ] | 400 | [MCP: rechazos de validación auditados y mes concreto](./400-mcp-rechazos-auditados-y-mes-concreto.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 0 · migración M8 solo si hace falta |
-| [ ] | 401 | [Retiro de lo muerto en la base](./401-retiro-de-lo-muerto-en-la-base.md) | 361, 391, 389 | todo · 7-nov · hijo del 385 (F7) · ola 4 · migraciones M9 a M14 · ADR 0126 · decisión de Mani sobre `leads.pais` |
+| [ ] | 401 | [Retiro de lo muerto en la base](./401-retiro-de-lo-muerto-en-la-base.md) | 361, 391, 404, 389 | todo · 7-nov · hijo del 385 (F7) · ola 4 · migraciones M9 a M14 · ADR 0126 · decisión de Mani sobre `leads.pais` |
 | [ ] | 402 | [Retención de entregas y notificaciones](./402-retencion-de-entregas-y-notificaciones.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 4 · sin migración · ADR 0127 |
-| [ ] | 403 | [Registro tipado completo y diccionario generado](./403-registro-tipado-completo-y-diccionario-generado.md) | 397, 389, 390, 391, 392, 393, 351, 355 | todo · 7-nov · hijo del 385 (F7) · ola 3, al final · sin migración |
+| [ ] | 403 | [Registro tipado completo y diccionario generado](./403-registro-tipado-completo-y-diccionario-generado.md) | 397, 389, 390, 391, 404, 392, 393, 351, 355 | todo · 7-nov · hijo del 385 (F7) · ola 3, al final · sin migración |
 | [x] | 349 | [Hub › Pauta: no shows por origen, cifras que abren sus personas y periodo visible](./349-pauta-no-shows-y-listas-por-origen.md) | 093, 251, 262 | done · 29-oct · build limpio y revisado en pantalla (base local) |
 | [x] | 350 | [ROAS por anuncio y campaña, y el registro de llamadas exportable](./350-roas-y-llamadas-por-anuncio-y-campana.md) | 123, 247, 349 | done · 29-oct · Codex + revisión; build y recorrido como paid trafficker (base local, sin árbol de Meta); falta checkpoint |
 
