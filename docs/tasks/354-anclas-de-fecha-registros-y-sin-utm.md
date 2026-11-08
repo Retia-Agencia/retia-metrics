@@ -43,4 +43,4 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - [x] Guardián de anclas de fecha mordido en los dos sentidos.
 - [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
 
-Pendiente: alcance 3 (`leadsDelRango` / meta de leads por día), espera decisión de Mani.
+Pendiente: alcance 3. **Decisión de Mani, 7-nov: ambas cifras visibles con nombre propio, "Envíos" (registros, `hechos/envio.ts`) y "Leads" (personas); `leadsDelRango` deja de llamarse así en pantalla.** Falta decidir contra cuál de las dos se mide la meta de leads por día antes de construirlo.

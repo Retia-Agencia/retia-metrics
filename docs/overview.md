@@ -530,7 +530,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Builder:** la pantalla que arma un link con sus UTM. El link se calcula, no se guarda.
 - **Link de captación del closer ("Mi link"):** el link del programa con el canal Closer y el código
   opaco del closer. **Origen humano (`traido_por`):** quién trajo a un lead.
-- **Sin UTM:** el envío llegó sin origen. Desde el ADR 0087 todo envío con UTM tiene un área y "sin clasificar" desaparece (se construye en el 246).
+- **Sin UTM:** el envío llegó sin origen (la regla única es `categoriaDeUtm`, con `categoriaUtmSql` como gemela; un valor en blanco cuenta como ausente). Desde el ADR 0087 todo envío con UTM tiene un área y "sin clasificar" desaparece (se construye en el 246).
 - **Anuncio (creativo):** la pieza de Meta que trajo el clic; su id viaja en `utm_id` y es la llave hacia su
   conjunto, su campaña y su gasto. **Placement:** dónde se mostró (historias, feed, reels), en `utm_term`.
 - **Macro sin expandir:** un UTM que llegó como `{{campaign.name}}`: un centinela, no un dato.
@@ -554,7 +554,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 **Las métricas de Pauta**
 
-- **Registro:** un envío (un token), contado una vez aunque llegue parcial y completo.
+- **Registro:** un envío (un token), contado una vez aunque llegue parcial y completo. Su día es el del envío, o el de captura si el parcial no trae fecha (`anclaEnvio`).
 - **Agenda:** una llamada agendada, contada el día en que se agendó.
 - **Llamada calificada:** ocurrió y el `lead_value` del lead está en el conjunto calificado del programa.
 - **Contratado:** la suma del valor vendido de las ventas. *No confundir con la caja (lo abonado).*

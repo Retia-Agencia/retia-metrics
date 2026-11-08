@@ -25,9 +25,9 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Decisiones abiertas
 
-- **DA-3:** "el" % de show de Hoy. Propuesta: **por deal** como cifra (ADR 0079, el de las tasas) y por cita dentro de
+- **DA-3 (resuelta por Mani, 7-nov: sí):** "el" % de show de Hoy. Propuesta: **por deal** como cifra (ADR 0079, el de las tasas) y por cita dentro de
   "Cómo se calcula".
-- **DA-4:** la unidad de agenda (cita creada o deal que agendó). Se decide con Pauta: cambia el costo por agenda y las
+- **DA-4 (Mani, 7-nov: sí, cita creada en el CRM como cifra; la de Meta se muestra aparte y la pantalla explica que pueden diferir, como en el semáforo: Meta llega atrasada y atribuye a quien vio el anuncio aunque compre luego con otro UTM):** la unidad de agenda (cita creada o deal que agendó). Se decide con Pauta: cambia el costo por agenda y las
   horas.
 
 ## Alcance

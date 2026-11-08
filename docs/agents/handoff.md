@@ -27,6 +27,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-07 (noche): 354 partes A y B en main.** Un ancla de fecha por hecho (`hechos/fechas.ts`, parciales sin `fecha_envio` cuentan por `created_at`), "Deals creados" igual en Hub y escalera, categoría de UTM única (`categoriaDeUtm`/`categoriaUtmSql`), calendario solo en `dias-habiles.ts`, guardianes de ambos. Decisiones de Mani: alcance 3 con "Envíos" y "Leads" visibles; DA-3 por deal; DA-4 cita creada del CRM con Meta aparte y su explicación de diferencia. **Sigue:** 354 alcance 3 (falta decidir contra qué se mide la meta de leads/día), 353 (ya sin bloqueo), resto del 351, luego F4/F5.
 - **2026-11-07 (tarde-noche): F2 hecha y las cinco decisiones del 385 resueltas** (`docs/auditoria-datos-2026-11/f2-paridad.md`,
   `f6-investigacion.md`, ticket 385 §4). F2: SQL independiente contra Hub, MCP y Students, 0 diferencias en cifras principales; 7
   hallazgos de definición (caso 0: 17 ventas = 11 con cita ocurrida + 6 sin cita; leads con tres universos, +55 % en Confianza; agendas
