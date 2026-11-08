@@ -215,10 +215,27 @@ export async function ingerirEntradas(
           identidad.asignaciones.flatMap((a) => (a.lead?.tipo === "nuevo" ? [a.lead.correo] : [])),
         ),
       ];
+      // La fecha con la que nace cada lead nuevo (ADR 0121): la misma `primeraAplicacion` del resumen,
+      // sobre los envios de este lote que le tocan. Sin ella la base (CHECK de M2) rechazaria el insert.
+      const envioPorLlave = new Map(envios.map((e) => [llaveDeEnvio(e), e]));
+      const recibidoEn = new Date();
+      const enviosDeCorreoNuevo = new Map<string, { fechaEnvio: Date | null; createdAt: Date }[]>();
+      for (const a of identidad.asignaciones) {
+        const envio = envioPorLlave.get(a.token);
+        if (a.lead?.tipo !== "nuevo" || !envio) continue;
+        const previos = enviosDeCorreoNuevo.get(a.lead.correo) ?? [];
+        previos.push({ fechaEnvio: envio.fechaEnvio, createdAt: recibidoEn });
+        enviosDeCorreoNuevo.set(a.lead.correo, previos);
+      }
       for (const lote of enLotes(correosNuevos)) {
         const insertados = await tx
           .insert(leads)
-          .values(lote.map((correo) => ({ programId, emailNormalizado: correo, entrada: "formulario" as const })))
+          .values(lote.map((correo) => ({
+            programId,
+            emailNormalizado: correo,
+            entrada: "formulario" as const,
+            fechaPrimeraAplicacion: primeraAplicacion(enviosDeCorreoNuevo.get(correo) ?? []),
+          })))
           .onConflictDoNothing()
           .returning();
         for (const f of insertados) {
