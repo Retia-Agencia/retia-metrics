@@ -72,6 +72,25 @@ export interface Rango {
   hasta: string;
 }
 
+/** Una sola definicion de los conteos de llamadas que consumen el total y el comparativo. */
+export function conteosDeLlamadas(ahora: Date) {
+  return {
+    agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
+    canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
+    porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})::int`,
+    sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora, "excluir")})::int`,
+    show: sql<number>`count(*) filter (where ${eq(calls.resultado, "show")})::int`,
+    noShow: sql<number>`count(*) filter (where ${noAsistioSql()})::int`,
+    otro: sql<number>`count(*) filter (where ${citaNoCancelada()} and not (
+      (${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})
+      or coalesce(${citaVencidaSinResultado(ahora, "excluir")}, false)
+      or ${inArray(calls.resultado, ["show", "no_show", "reagendada"])}
+    ))::int`,
+    reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
+    llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
+  };
+}
+
 /**
  * A que pregunta responde una consulta del dashboard: un programa, y opcionalmente
  * un closer. Es UN concepto (el alcance de la pregunta), por eso va como objeto y
@@ -385,19 +404,7 @@ export async function embudoDelRango(
 ): Promise<EmbudoDelRango> {
   const [llamadas] = await db
     .select({
-      agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
-      canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
-      porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})::int`,
-      sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora, "excluir")})::int`,
-      show: sql<number>`count(*) filter (where ${eq(calls.resultado, "show")})::int`,
-      noShow: sql<number>`count(*) filter (where ${noAsistioSql()})::int`,
-      otro: sql<number>`count(*) filter (where ${citaNoCancelada()} and not (
-        (${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})
-        or coalesce(${citaVencidaSinResultado(ahora, "excluir")}, false)
-        or ${inArray(calls.resultado, ["show", "no_show", "reagendada"])}
-      ))::int`,
-      reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
-      llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
+      ...conteosDeLlamadas(ahora),
     })
     .from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
@@ -526,17 +533,12 @@ export async function embudoPorCloser(
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
-  const ancla = fechaAnclaCall();
-
   const [llamadasPorCloser, abonosPorCloser, cierresPorCloser, grupo] = await Promise.all([
     db
       .select({
         clave: claveCloserSql(users.id, calls.closerId),
         closerId: sql<string | null>`min(${etiquetaDeCloserSql(calls.closerId)})`,
-        agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
-        canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
-        reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
-        llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
+        ...conteosDeLlamadas(ahora),
       })
       .from(calls)
       .leftJoin(
@@ -551,9 +553,7 @@ export async function embudoPorCloser(
       )
       .where(
         and(
-          eq(calls.programId, programId),
-          between(ancla, rango.desde, rango.hasta),
-          cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+          filtroLlamadas({ programId, rango, cohorteId }, db),
           vigente(calls),
         ),
       )

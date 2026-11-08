@@ -63,6 +63,11 @@ export type TablaConVigencia = "deals" | "abonos" | "calls" | "deal_actividades"
  */
 export type CoberturaDeMetrica = "no_aplica" | "exclusiones_contadas_aparte" | "razon_con_cobertura";
 
+export type CriterioDeCloser =
+  | "quien_tomo_la_llamada"
+  | "dueno_del_deal"
+  | "quien_registro_el_abono";
+
 /** Una función del código, por nombre. `tests/registro-de-metricas.test.ts` la verifica contra el archivo. */
 export interface ReferenciaAFuncion {
   archivo: string;
@@ -81,6 +86,8 @@ export interface FichaDeMetrica {
   anclaDeFecha: AnclaDeFecha;
   /** Los filtros y agrupaciones que admite, de la lista blanca del hecho. */
   dimensiones: readonly string[];
+  /** Qué relación atribuye la métrica a un closer, cuando aplica. */
+  criterioDeCloser?: CriterioDeCloser;
   vigencia: readonly TablaConVigencia[];
   /** ¿Se puede sumar entre programas? Solo las magnitudes en la misma unidad (ADR 0048). */
   sumaEntreProgramas: boolean;
@@ -123,6 +130,7 @@ export const REGISTRO = {
     monedas: [],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: DIMENSIONES_DE_VENTA,
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals"],
     sumaEntreProgramas: true,
     cobertura: "no_aplica",
@@ -139,6 +147,7 @@ export const REGISTRO = {
     monedas: [],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: [],
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals"],
     sumaEntreProgramas: true,
     cobertura: "no_aplica",
@@ -154,6 +163,7 @@ export const REGISTRO = {
     monedas: [],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: [],
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals"],
     sumaEntreProgramas: true,
     cobertura: "no_aplica",
@@ -167,6 +177,7 @@ export const REGISTRO = {
     monedas: ["usd"],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: DIMENSIONES_DE_VENTA,
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals", "abonos"],
     sumaEntreProgramas: true,
     cobertura: "exclusiones_contadas_aparte",
@@ -181,6 +192,7 @@ export const REGISTRO = {
     monedas: ["usd"],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: DIMENSIONES_DE_VENTA,
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals", "abonos"],
     sumaEntreProgramas: true,
     cobertura: "exclusiones_contadas_aparte",
@@ -196,6 +208,7 @@ export const REGISTRO = {
     monedas: ["usd"],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: DIMENSIONES_DE_VENTA,
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals", "abonos"],
     sumaEntreProgramas: true,
     cobertura: "exclusiones_contadas_aparte",
@@ -210,6 +223,7 @@ export const REGISTRO = {
     monedas: ["usd", "cop"],
     anclaDeFecha: "fecha_del_abono",
     dimensiones: DIMENSIONES_DE_ABONO,
+    criterioDeCloser: "quien_registro_el_abono",
     vigencia: ["abonos"],
     sumaEntreProgramas: true,
     cobertura: "no_aplica",
@@ -225,6 +239,7 @@ export const REGISTRO = {
     monedas: ["usd"],
     anclaDeFecha: "primera_entrada_a_venta",
     dimensiones: DIMENSIONES_DE_VENTA,
+    criterioDeCloser: "dueno_del_deal",
     vigencia: ["deals"],
     sumaEntreProgramas: false,
     cobertura: "exclusiones_contadas_aparte",

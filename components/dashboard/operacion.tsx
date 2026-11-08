@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
+import { ETIQUETA_CRITERIO_DE_CLOSER } from "@/lib/criterios-de-closer";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import type { OrigenEmbudoComercial, PasoDelEmbudoComercial } from "@/lib/queries/embudo-comercial";
@@ -65,7 +66,7 @@ export function textoComisionPrograma(comisionPorcentaje: string | null): string
 
 /** Comparativo compacto que Hoy conserva; Comercial reúne estas cifras en su tabla de closers. */
 export function Comparativo({ vista, detalles, titulo = "¿Cómo va cada closer?" }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"]; titulo?: string; contexto?: string }) {
-  return <Card><CardHeader><CardTitle className="text-base">{titulo}</CardTitle></CardHeader><CardContent>
+  return <Card><CardHeader><CardTitle className="text-base">{titulo}</CardTitle><p className="text-xs text-muted-foreground">Llamadas, shows y agendas {ETIQUETA_CRITERIO_DE_CLOSER.quien_tomo_la_llamada}; cierres y comisión {ETIQUETA_CRITERIO_DE_CLOSER.dueno_del_deal}; caja {ETIQUETA_CRITERIO_DE_CLOSER.quien_registro_el_abono}.</p></CardHeader><CardContent>
     {vista.comparativo.length === 0 ? <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p> : <div className="overflow-x-auto"><Tabla cabeceras={["Closer", "Agendas", "% show", "Cierres", "% cierre", "Entró a caja"]}>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
