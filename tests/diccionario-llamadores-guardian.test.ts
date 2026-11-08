@@ -20,14 +20,12 @@ const RAIZ = process.cwd();
 const CARPETAS_DE_CODIGO = ["lib", "app", "components", "scripts"];
 
 /**
- * Citadas por el diccionario y que no existen en el código. `showPorDeal` y `ocurrioSql` las crea el 353; el
- * resto el diccionario las cita a propósito como borradas.
+ * Citadas por el diccionario y que no existen en el código. El diccionario las cita a propósito como
+ * borradas o con el nombre viejo (`showPorDeal` y `ocurrioSql` ya existen desde el 353).
  * Límite honesto: un nombre que existe como alias local o variable (`showPorCita` en `vista-hoy.ts`,
  * `agruparEnvios` como alias de import) cuenta como aparición y no se caza; F1 H-29 los llamaba inexistentes.
  */
 const INEXISTENTES_CONOCIDAS: Record<string, string> = {
-  showPorDeal: "ticket 353: M §0 la nombra como canónica y aún no existe",
-  ocurrioSql: "ticket 353: M §0 la nombra como canónica y aún no existe",
   armarMensaje: "ticket 361: M §3.3 cita el nombre viejo; la real es armarMensajeDeLaHora",
   categoriaDe: "ticket 354: la fila de M §0 la cita como borrada a propósito",
 };
