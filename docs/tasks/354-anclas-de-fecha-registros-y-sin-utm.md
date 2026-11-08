@@ -3,7 +3,7 @@ id: 354
 etapa: hub
 serves: "ADR 0115 N1, N2 · auditoría 30-oct C-04, C-10, C-11, C-14, R-07, R-08"
 depends: []
-status: todo
+status: done
 ---
 
 # 354 — Cada hecho con su día, y registro, lead y "sin UTM" una vez
@@ -44,3 +44,5 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
 
 Pendiente: alcance 3. **Decisión de Mani, 7-nov: ambas cifras visibles con nombre propio, "Envíos" (registros, `hechos/envio.ts`) y "Leads" (personas); `leadsDelRango` deja de llamarse así en pantalla.** Falta decidir contra cuál de las dos se mide la meta de leads por día antes de construirlo.
+
+Cerrado el 7-nov (plan F7 del 385, §3): el alcance 3 sale al [397](./397-un-nombre-por-concepto-glosario-y-rotulos.md); los alcances 1, 2, 4, 5 y 6 están hechos y sus casillas marcadas.

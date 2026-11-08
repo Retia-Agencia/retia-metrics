@@ -1,0 +1,35 @@
+---
+id: 399
+etapa: mcp
+serves: "Auditoría 385 F5.2, F5.3, F5.5 · ADR 0119 · docs/mcp.md"
+depends: [397]
+status: todo
+---
+
+# 399 — MCP: salida con nombres de negocio y descripciones estándar
+
+Hijo del [385](./385-mcp-integridad-de-tools-de-metricas.md) (plan F7 en [`docs/auditoria-datos-2026-11/f7-plan.md`](../auditoria-datos-2026-11/f7-plan.md)). Reglas: ADR 0115.
+
+## Por qué
+
+Cada tool devuelve el objeto interno de la vista (`dinero.ventas`, `embudo.cierres`, `contratadoUsd`) y escribe su texto a mano; la IA cita nombres de backend y mezcla "shows" (llamadas) con "Show" (deals). Depende además del 403 parcial: el registro es la fuente del `outputSchema`; basta con los conceptos que las tools exponen.
+
+## Alcance
+
+**Cubre:** F5.2, F5.3, F5.5. Coordina con el 386 (mismo método para las tools de operación) y con el frente B del 387.
+
+**Archivos calientes** (donde chocan dos sesiones): `lib/mcp/herramientas/*.ts`, `lib/mcp/instrucciones.ts`, `docs/mcp.md`, `tests/mcp-contrato.test.ts`, `tests/mcp-guardian.test.ts`.
+
+**Migración:** Ninguna.
+
+## Fuera
+
+Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.md` §1: una causa, un ticket). Este ticket no migra conceptos del registro que no toca.
+
+## Done cuando
+
+- [ ] `outputSchema` por tool, con nombre de negocio y descripción por campo, derivado del registro y no escrito a mano.
+- [ ] Las once tools con descripción que empieza por cuándo usarla, `title` legible y anotaciones completas (`docs/mcp.md` §4).
+- [ ] `EXPLAIN` a 10 veces el volumen y test de paridad contra la pantalla por tool.
+- [ ] Segunda medición del descubrimiento (15 a 20 preguntas reales) comparada con la primera (se hace en el 387 frente B).
+- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.

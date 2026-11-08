@@ -41,6 +41,8 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 4. Guardián del diccionario (N7): recorre `docs/metricas.md`, extrae cada función citada en backticks y falla si no
    existe o si no tiene un llamador fuera de `tests/`.
 
+**Reducido el 7-nov (plan F7 del 385, §3):** queda solo el **retiro en código** (H-29, `canales-admin`, `proxima-fase`, `perfil-propio`, comentarios de `estados_llegada`). La parte de base (alcance 2: migraciones que quitan `areas` y `canales`) pasa al [401](./401-retiro-de-lo-muerto-en-la-base.md), que depende de este.
+
 ## Done cuando
 
 - [ ] Guardián del diccionario en verde y mordido (una función inventada en el doc lo hace fallar).

@@ -2,7 +2,7 @@
 id: 355
 etapa: pauta
 serves: "ADR 0115 N1, N7 · auditoría 30-oct R-01, R-06, U-03, U-04, U-12, U-13 · enmienda el 350"
-depends: [351, 352, 353, 354]
+depends: [351, 352, 353, 354, 388]
 status: todo
 ---
 
@@ -31,6 +31,8 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 3. Se borran `lib/queries/pauta-interina.ts`, `components/pauta-interina.tsx` y `categoriaDe` en el mismo ticket (N7).
 4. La vista "todos" deja de llamarse "(interina)" y reusa la tabla por programa con solo conteos (ADR 0048).
 5. ROAS con "×", cabeceras "Valor vendido" y "Gasto" (la celda ya lleva la moneda).
+
+**Ampliado el 7-nov (plan F7 del 385, §3):** además de lo anterior, crear `lib/queries/hechos/gasto.ts` (falta; contrato §7), unificar las anclas del ROAS (agendas sin ancla de fecha de cita, ventas de cualquier fecha: H-02, H-18) y borrar `pauta-interina` y `categoriaDe`. Ancla el recorrido de ROAS a lo que mida el [388](./388-f2-tanda-2-paridad-de-lo-no-cubierto.md).
 
 ## Done cuando
 
