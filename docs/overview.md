@@ -390,7 +390,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   recursos. Es parte de la identidad de un lead: una frontera, no un filtro.
 - **Lead:** una persona dentro de un programa. La misma persona en dos programas son dos leads. Nace con su fecha de
   primera aplicación (la del envío, o cuando el CRM lo recibió si el parcial no trae fecha) y con sus contactos; la
-  métrica **Leads** cuenta personas por esa fecha, y quien se dio de alta a mano no es un lead de formulario (ADR 0121).
+  métrica **Leads** cuenta personas por esa fecha, también a quien solo dejó un parcial (406), y quien se dio de alta a mano no es un lead de formulario (ADR 0121).
 - **Envío:** cada vez que alguien llenó el formulario, parcial o completo. Su llave es el token del
   formulario. *No confundir con "registro" en el sentido de Media, que es un envío contado como métrica.*
 - **Sobre crudo:** un envío de webhook que llegó con la firma buena y no se pudo procesar (sin correo,

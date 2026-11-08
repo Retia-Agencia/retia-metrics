@@ -6,6 +6,9 @@ import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import type { Calificacion } from "@/lib/ingesta/calificacion";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
 import { ingerirEntradas, primeraAplicacion, resumirEnvios } from "@/lib/ingesta/ingerir";
+import { leadsDelRango } from "@/lib/queries/dashboard";
+import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { hoyEnBogota } from "@/lib/format";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -590,6 +593,20 @@ describe("ticket 389: el lead nace con su fecha y su calificacion es determinist
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "a@correo.co", fecha: "2020-01-05T10:00:00Z", posicion: 3 })]);
     const [lead] = await db.select().from(leads);
     expect(lead.fechaPrimeraAplicacion?.toISOString()).toBe("2020-01-05T10:00:00.000Z");
+  });
+
+  it("406: quien solo dejo un parcial cuenta como lead, y la cifra del Hub y la lista dan lo mismo", async () => {
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "solo-parcial", correo: "parcial@correo.co", fecha: null, posicion: 2 }),
+      entrada({ token: "completo", correo: "completo@correo.co", fecha: new Date().toISOString() }),
+    ]);
+    const hoy = hoyEnBogota();
+    const alcance = { programId, rango: { desde: hoy, hasta: hoy } };
+    const cifra = (await leadsDelRango(alcance, db)).leads;
+    const [lista] = await listaDeMetrica("leads", { ...alcance, hoy }, 1, db);
+    expect(cifra).toBe(2);
+    expect(lista.subtotal.cantidad).toBe(2);
+    expect(lista.filas).toHaveLength(2);
   });
 
   it("primeraAplicacion: una fecha nula nunca le gana a una real y sin ninguna da null", () => {

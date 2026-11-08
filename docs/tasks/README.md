@@ -454,7 +454,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 391 | [Closer: los datos huérfanos (fase A)](./391-closer-una-pregunta-y-un-dato.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 1 · migración M3 · ADR 0122 · ok de Mani para escribir 3 abonos y 3 ventas |
 | [ ] | 404 | [Closer: una pregunta y una definición (fase B)](./404-closer-una-pregunta-y-una-definicion.md) | 391, 392, 393 | todo · 7-nov · hijo del 385 (F7), partido del 391 · ola 2 · sin migración |
 | [ ] | 405 | [Alerta: Cierre Perdido con abonos vigentes](./405-alerta-abono-en-cierre-perdido.md) | 392 | todo · 8-nov · hijo del 385 (F7) · decisión de Mani · sin migración |
-| [ ] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | todo · 8-nov · hijo del 385 (F7) · F2B-02 · sin migración |
+| [x] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | en main · 8-nov · hijo del 385 (F7) · F2B-02 · el 389 ya lo resolvía; test de paridad agregado |
 | [ ] | 392 | [Venta: un solo recorrido](./392-venta-un-solo-recorrido.md) | 351, 353 | todo · 7-nov · hijo del 385 (F7) · ola 2 · sin migración |
 | [ ] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | todo · 7-nov · hijo del 385 (F7) · ola 2 · sin migración · ok de Mani sobre Students |
 | [ ] | 394 | [El programa lo garantiza la base](./394-el-programa-lo-garantiza-la-base.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 2, al final · migración M4 y M5 · ADR 0123 · riesgo alto |
