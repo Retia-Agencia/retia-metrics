@@ -26,8 +26,13 @@ Hay 3 abonos con `closer_id` (texto) sin usuario resoluble, que aparecen como cl
 
 Una sola definición de "closer" por métrica y `embudoPorCloser` sobre `embudoDelRango`: es el [404](./404-closer-una-pregunta-y-una-definicion.md).
 
+## Decisión de Mani (8-nov)
+
+Las 3 ventas históricas de Comunicarte quedan **sin dueño** a propósito (sus closers, Juanjo Gaitan y Alejo Carvajal, ya no son dueños posibles de ese programa: dárselos cruzaría la frontera de programa). Los 3 abonos conservan su texto. El CHECK exceptúa los deals con `huella_migracion` (ADR 0122). La presentación de esos abonos en el comparativo es del 404.
+
 ## Done cuando
 
-- [ ] 0 abonos con closer sin usuario; 0 ventas vigentes sin dueño; cada escritura con su fila en `change_log`.
-- [ ] `CHECK` aplicado y probado (una venta sin dueño se rechaza; una anulada sin dueño no).
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Decidido sin escribir datos: 0 escrituras en producción; el script de corrección se borró (decisión de Mani, ADR 0122).
+- [ ] `CHECK` (migración 0120) aplicado en producción y probado (una venta sin dueño se rechaza; una anulada o histórica migrada no). Código y test en el PR 17; falta aplicar con ok de Mani.
+- [ ] Rutas E6, E11 y E12 de `moverEtapa` exigen `dueno` (hoy un deal sin dueño revienta contra el CHECK con un 23514 crudo, no con el 409 «El deal no tiene dueño»; `lib/deals/requisitos.ts:94-100`).
+- [x] Regla N8 (ADR 0115): fila de `docs/metricas.md`, vocabulario de `overview.md` §11 y ADR 0122 reescritos en el mismo commit, título e índice incluidos.
