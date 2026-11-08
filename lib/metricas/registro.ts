@@ -30,12 +30,14 @@ export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero
 export type MonedaDeMetrica = "usd" | "cop";
 
 /** Los hechos de `docs/metricas.md` §1 que ya tienen módulo en `lib/queries/hechos/`. */
-export type HechoDeMetrica = "venta" | "abono";
+export type HechoDeMetrica = "venta" | "abono" | "lead";
 
 /** La dimensión que cada hecho admite: la lista blanca del módulo, por tipo (C-2). */
 export interface DimensionesPorHecho {
   venta: DimensionVenta;
   abono: DimensionAbono;
+  /** El lead aún no tiene módulo de hecho en `hechos/`: solo filtra por la cohorte de su deal (`filtroLeads`). */
+  lead: "cohorte";
 }
 
 /**
@@ -44,7 +46,8 @@ export interface DimensionesPorHecho {
  */
 export type AnclaDeFecha =
   | "primera_entrada_a_venta"
-  | "fecha_del_abono";
+  | "fecha_del_abono"
+  | "primera_aplicacion";
 
 /** Las tablas cuya lectura debe pasar por `vigente()` para esta métrica (ADR 0026, 0038). */
 export type TablaConVigencia = "deals" | "abonos" | "calls" | "deal_actividades";
@@ -102,7 +105,7 @@ const DINERO_DE_VENTAS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-v
 const DINERO_DE_SALDOS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeSaldos" };
 
 /**
- * Los conceptos ya registrados, por clave de `lib/vocabulario-metricas.ts`. Cinco, a propósito: el esqueleto
+ * Los conceptos ya registrados, por clave de `lib/vocabulario-metricas.ts`. Seis (con `leads`, ticket 389), a propósito: el esqueleto
  * ejercita los tres tipos (simple, derivada y el dinero con moneda) sin tocar el área del 353 (show, cita sin
  * resultado, agenda) ni la de Pauta (355).
  */
@@ -176,6 +179,20 @@ export const REGISTRO = {
     cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "filtroCaja" },
     listas: ["caja"],
+  }),
+  leads: ficha("lead", {
+    filaDelDiccionario: "Leads",
+    tipo: "simple",
+    unidad: "personas",
+    monedas: [],
+    anclaDeFecha: "primera_aplicacion",
+    dimensiones: ["cohorte"],
+    vigencia: [],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "filtroLeads" },
+    gemelaTs: { archivo: "lib/ingesta/ingerir.ts", nombre: "primeraAplicacion" },
+    listas: ["leads"],
   }),
 } as const satisfies Partial<Record<ClaveDeMetrica, FichaDeMetrica>>;
 

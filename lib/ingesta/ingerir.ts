@@ -6,7 +6,7 @@ import { miembrosActivos, traidoPorDeEnvios } from "@/lib/atribucion/captacion-d
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { ErrorDeApp } from "@/lib/errors";
 import type { Calificacion } from "./calificacion";
-import { construirEnvio, type EntradaEnvio, type Envio } from "./envio";
+import { construirEnvio, normalizarTelefono, type EntradaEnvio, type Envio } from "./envio";
 import { envioMasReciente, type EnvioCandidato } from "./envio-de-origen";
 import { aplicarReglaDeDeal, hechosDeEntradaDelEnvio, type AccionDeDeal, type ResultadoCita } from "./regla-de-deals";
 import type { CitaACancelar } from "@/lib/calendly/una-cita-activa";
@@ -412,6 +412,27 @@ export async function ingerirEntradas(
 }
 
 /**
+ * Los contactos de un lead dado de alta a mano (ticket 389, N6): su correo (la llave del lead)
+ * y su telefono si es valido, para que el dedup por telefono y la ficha lo vean igual que a uno
+ * del formulario. Sin envio que citar (`submission_id` nulo, como dice el esquema). Devuelve la
+ * sentencia para que el alta la meta en SU transaccion; el unico escritor de `lead_contactos`
+ * sigue siendo este modulo. Un telefono que ya es de otro lead del programa se salta sin error
+ * (indice unico), igual que en la ingesta.
+ */
+export function insertarContactosDeAlta(
+  tx: Db,
+  alta: { leadId: string; programId: string; correo: string; telefono: string | null | undefined },
+) {
+  const telefono = normalizarTelefono(alta.telefono);
+  const base = { leadId: alta.leadId, programId: alta.programId, submissionId: null, esPrincipal: true, confirmado: true };
+  const filas = [
+    { ...base, tipo: "correo" as const, valor: alta.correo },
+    ...(telefono ? [{ ...base, tipo: "telefono" as const, valor: telefono }] : []),
+  ];
+  return tx.insert(leadContactos).values(filas).onConflictDoNothing();
+}
+
+/**
  * Quien trajo a cada lead (ticket 086, ADR 0044 punto 2): el codigo del closer en el
  * enlace de captacion, resuelto contra los miembros activos del programa. **El primero
  * gana**: solo se escribe donde el lead no tenia a nadie (`IS NULL` en el UPDATE, asi que
@@ -552,12 +573,51 @@ type EnvioGuardado = Pick<
   | "posicionEnHoja"
   | "calificacion"
   | "puntaje"
-> & { leadQuality?: string | null; leadValue?: string | null };
+> & {
+  leadQuality?: string | null;
+  leadValue?: string | null;
+  /**
+   * Cuando el CRM recibio el envio (`submissions.created_at`, estable ante reintentos: el upsert
+   * no lo toca). Es el respaldo de `fechaEnvio` para la primera aplicacion del lead (ticket 389, N6).
+   */
+  createdAt?: Date | null;
+};
+
+/**
+ * La primera aplicacion del lead: la mas antigua de `fechaEnvio ?? createdAt` de sus envios
+ * (ticket 389, ADR 0121, N6). El parcial de Typeform no trae `fecha_envio`, pero el CRM sabe
+ * cuando lo recibio: escribir el respaldo aqui, al nacer el lead, evita que cada lectura tenga
+ * que parcharlo (`coalesce` suelto) y que dos pantallas cuenten distinto. Una fecha nula nunca
+ * le gana a una real; sin envios o sin ninguna fecha queda null.
+ */
+export function primeraAplicacion(envios: Pick<EnvioGuardado, "fechaEnvio" | "createdAt">[]): Date | null {
+  let primera: Date | null = null;
+  for (const e of envios) {
+    const f = e.fechaEnvio ?? e.createdAt ?? null;
+    if (f !== null && (primera === null || f < primera)) primera = f;
+  }
+  return primera;
+}
+
+/**
+ * El orden estable de dos envios cuando la fecha no los separa (ticket 389): la posicion en la hoja
+ * y, como un webhook no tiene hoja (toda `posicion_en_hoja` es nula en produccion), cuando los recibio
+ * el CRM y al final el token. Sin esos dos desempates el orden de la consulta decidia la calificacion
+ * del lead, y la misma base daba un resumen distinto segun como la devolviera Postgres.
+ */
+function porPosicion(a: EnvioGuardado, b: EnvioGuardado): number {
+  return (
+    (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0) ||
+    (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0) ||
+    (a.token < b.token ? -1 : a.token > b.token ? 1 : 0)
+  );
+}
 
 /**
  * El resumen de un lead a partir de sus envios. Mismas reglas que el dedup de la hoja
  * (`lib/sheets/dedup.ts`), que las aprendio sangrando:
- * - las fechas: la mas antigua y la mas reciente, ignorando las nulas. Una parcial trae
+ * - las fechas: la mas antigua y la mas reciente, ignorando las nulas (la primera usa
+ *   `createdAt` si el envio no trae fecha, ver `primeraAplicacion`). Una parcial trae
  *   el placeholder `1/1/0001`, que el parser ya devuelve nulo, y una fecha nula NUNCA le
  *   gana a una real (🩸 839 de 1.034 personas perdieron su fecha asi);
  * - los UTM NO: el origen es del envio y el deal recuerda el que lo abrio (ADR 0060).
@@ -587,11 +647,10 @@ export function resumirEnvios(
 ): Resumen {
   const conFecha = envios
     .filter((e) => e.fechaEnvio !== null)
-    .sort((a, b) => a.fechaEnvio!.getTime() - b.fechaEnvio!.getTime() || (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0));
+    .sort((a, b) => a.fechaEnvio!.getTime() - b.fechaEnvio!.getTime() || porPosicion(a, b));
   const sinFecha = envios.filter((e) => e.fechaEnvio === null);
 
   const calificados = envios.filter((e) => e.calificacion !== null);
-  const porPosicion = (a: EnvioGuardado, b: EnvioGuardado) => (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0);
   const completos = conFecha.filter((e) => !e.esParcial && e.calificacion !== null);
   const decide =
     completos.at(-1) ??
@@ -637,7 +696,7 @@ export function resumirEnvios(
     puntaje: decideValores?.puntaje ?? null,
     leadQuality: decideValores?.leadQuality ?? null,
     leadValue: decideValores?.leadValue ?? null,
-    fechaPrimeraAplicacion: conFecha[0]?.fechaEnvio ?? null,
+    fechaPrimeraAplicacion: primeraAplicacion(envios),
     fechaUltimaAplicacion: conFecha.at(-1)?.fechaEnvio ?? null,
     numAplicaciones: new Set(envios.map((e) => `${e.sourceId}\u0000${e.token}`)).size,
   };
@@ -703,6 +762,7 @@ export async function recalcularResumen(
         sourceId: submissions.sourceId,
         token: submissions.token,
         fechaEnvio: submissions.fechaEnvio,
+        createdAt: submissions.createdAt,
         nombre: submissions.nombre,
         posicionEnHoja: submissions.posicionEnHoja,
         esParcial: submissions.esParcial,

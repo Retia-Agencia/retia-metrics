@@ -7,6 +7,7 @@ import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import type { Rango } from "@/lib/queries/dashboard";
 import { diaEnBogota } from "@/lib/queries/hechos/fechas";
+import { fechaDeEntradaDelLead } from "@/lib/queries/metricas-filtros";
 
 /**
  * La tab Leads (ticket 072, ADR 0050): la base del programa, sobre todo lo que existe y todavía
@@ -136,7 +137,7 @@ export async function leadsDelPrograma(
 ): Promise<{ total: number; filas: FilaLead[] }> {
   const calidadDelLead = sql<string>`lower(trim(${leads.leadQuality}))`;
   const fechaDeActividad = leads.fechaUltimaAplicacion;
-  const fechaDeCreacion = sql<Date>`coalesce(${leads.fechaPrimeraAplicacion}, ${leads.createdAt})`;
+  const fechaDeCreacion = fechaDeEntradaDelLead();
   const condiciones: (SQL | undefined)[] = [eq(leads.programId, programId)];
   const leadsCasan = await leadsQueCasan(db, programId, filtro.q ?? "");
   if (leadsCasan !== null) {

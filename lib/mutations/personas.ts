@@ -6,6 +6,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
+import { insertarContactosDeAlta } from "@/lib/ingesta/ingerir";
 import type { Rol } from "@/lib/auth/roles";
 import { trabajaLeads } from "@/lib/auth/roles";
 import type { Lead } from "@/lib/db/schema";
@@ -172,6 +173,14 @@ export async function crearPersonaManual(
     try {
       await ejecutarJuntas(db, (tx) => [
         (tx as Db).insert(leads).values(valores),
+        // Su correo y su telefono como contactos (ticket 389): sin ellos el lead no se
+        // encuentra por telefono ni lo ve el dedup. Los escribe el modulo de la ingesta.
+        insertarContactosDeAlta(tx as Db, {
+          leadId: id,
+          programId: datos.programId,
+          correo: datos.correo,
+          telefono: datos.telefono,
+        }),
         ...aBitacora.map(([campo, valor]) =>
           (tx as Db).insert(changeLog).values({
             tabla: "leads",

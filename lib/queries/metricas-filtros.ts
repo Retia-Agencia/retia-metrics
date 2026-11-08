@@ -307,8 +307,22 @@ export function filtroCortesias(alcance: Alcance, db: Db) {
   );
 }
 
+/**
+ * UN ancla de fecha del lead (ADR 0115 N1, ticket 389): el dia de Bogota de su primera aplicacion.
+ * Sin respaldo a proposito: la ingesta la escribe al nacer el lead (N6) y la base lo exige para un
+ * lead de formulario; leer con `coalesce` escondia los que nacieron sin ella.
+ */
 export function fechaAnclaLead() {
   return diaEnBogota(leads.fechaPrimeraAplicacion);
+}
+
+/**
+ * "¿Cuando entro a la base?" para la lista Leads: el instante de la primera aplicacion si vino del
+ * formulario (la misma que `fechaAnclaLead`), y el alta si fue creado a mano (no aplico a nada). Es
+ * una respuesta por TIPO de entrada, no un parche sobre un dato faltante.
+ */
+export function fechaDeEntradaDelLead() {
+  return sql<Date>`case when ${leads.entrada} = 'formulario' then ${leads.fechaPrimeraAplicacion} else ${leads.createdAt} end`;
 }
 
 export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcance, db?: Db) {

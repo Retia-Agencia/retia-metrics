@@ -1,5 +1,7 @@
 # 0035 — El Lead es una persona dentro de un programa; el correo manda y el teléfono une y marca
 
+**Enmendado por el [0121](./0121-el-lead-nace-con-su-fecha-y-sus-contactos.md) (7-nov): el alta manual escribe su correo y su teléfono en `lead_contactos`.**
+
 **Fecha:** 2026-09-21 · **Reescrito:** 2026-09-27 (el renombre `people` → `leads` ya se aplicó en la
 migración 0020) · **Estado:** aceptado
 
