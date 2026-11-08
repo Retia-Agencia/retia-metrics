@@ -14,6 +14,10 @@ Hijo del [385](./385-mcp-integridad-de-tools-de-metricas.md) (plan F7 en [`docs/
 
 El mismo conjunto de ventas se suma varias veces: `contratadoDelRango` y `dineroDeVentas` (`vista-dashboard.ts` 233, 260), la suma de la lista (`metricas-con-filas.ts:369,374`) y los componentes (`hoy/dinero.tsx:30`, `secciones.tsx:73`, `tabla-de-origen.tsx:41`). Students trata la venta sin valor distinto del Hub (F2-06, latente: hoy 0 ventas sin valor). Requiere el ok de Mani sobre qué hace Students con una venta sin valor vendido (el Hub la excluye; Students suma su abonado).
 
+**Decisión de Mani, 8-nov: no debe existir un Student sin valor; todo Student tiene valor vendido.** Es la regla N6 (se exige al
+escribir, no se parcha al leer): el diseño (reja en `moverEtapa` al pasar a Abonado o Completo, como la comisión del 356, o
+`CHECK`) se define aquí; Students y Hub dejan de tener un caso "sin valor" y la prueba de paridad lo cubre.
+
 ## Alcance
 
 **Cubre:** H-05, H-20, H-21, F2-06.

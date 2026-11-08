@@ -14,6 +14,10 @@ Hijo del [385](./385-mcp-integridad-de-tools-de-metricas.md) (plan F7 en [`docs/
 
 Hay dos solapes de ventana en el mismo programa (Tactical C2 y C3 el 28 y 29-sep; Confianza C1 y C2 del 16 al 20 de noviembre) y ninguna restricción ni regla escrita de a qué cohorte va una venta de un día compartido.
 
+**Decisión de Mani, 8-nov: no debe haber solape de cohortes.** Camino "no se permite": corregir las dos parejas con su ok
+(Tactical C2/C3; Confianza C1/C2, 16 al 20-nov, que vende hoy: ojo con las ventas ya hechas en el día compartido) y aplicar M7
+(`EXCLUDE`, ADR 0125). Verificar `btree_gist` en Supabase antes.
+
 ## Alcance
 
 **Cubre:** F3-11.
