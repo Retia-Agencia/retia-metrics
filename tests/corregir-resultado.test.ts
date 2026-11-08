@@ -140,7 +140,7 @@ describe("corregirResultado", () => {
     expect(actual.notas).toMatchObject([{
       tipo: "nota",
       userId: closer,
-      nota: "Corrigió el resultado de la llamada del 20 oct 2026, 14:30: Show → No show. Motivo: Se marcó por error",
+      nota: "Corrigió el resultado de la llamada del 20 oct 2026, 14:30: Realizada → No asistió. Motivo: Se marcó por error",
     }]);
     expect(await db.select().from(changeLog).where(eq(changeLog.registroId, call.id))).toEqual(
       expect.arrayContaining([expect.objectContaining({ campo: "resultado", valorAnterior: "show", valorNuevo: "no_show", userId: closer })]),
