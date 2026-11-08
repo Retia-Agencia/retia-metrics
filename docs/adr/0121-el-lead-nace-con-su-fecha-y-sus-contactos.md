@@ -22,7 +22,7 @@ Además, los 18 leads de alta manual no tenían fila de correo en `lead_contacto
    aplicación, sin respaldo. La lista Leads la importa a través de `fechaDeEntradaDelLead`, que decide por TIPO de entrada
    (formulario: la primera aplicación; alta manual: su alta), nunca por "el dato faltó".
 3. **El alta manual escribe su correo y su teléfono** como `lead_contactos`, por el módulo de la ingesta
-   (`insertarContactosDeAlta`, único escritor de esa tabla). No pasa por `ingerirEntradas` porque no hay envío ni fuente: pasar
+   (`insertarContactosDeAlta` en `lib/ingesta/contactos-de-alta.ts`). No pasa por `ingerirEntradas` porque no hay envío ni fuente: pasar
    por ahí fabricaría una aplicación al formulario que no existió (ADR 0005, 0021).
 4. **La calificación del resumen es determinista.** Entre envíos que la fecha no separa, desempatan la posición en la hoja,
    luego cuándo los recibió el CRM y al final el token (`porPosicion`). Antes, con `posicion_en_hoja` nula en todo envío de

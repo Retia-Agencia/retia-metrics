@@ -6,7 +6,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
-import { insertarContactosDeAlta } from "@/lib/ingesta/ingerir";
+import { insertarContactosDeAlta } from "@/lib/ingesta/contactos-de-alta";
 import type { Rol } from "@/lib/auth/roles";
 import { trabajaLeads } from "@/lib/auth/roles";
 import type { Lead } from "@/lib/db/schema";
