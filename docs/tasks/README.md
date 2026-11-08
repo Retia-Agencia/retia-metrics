@@ -454,12 +454,12 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 391 | [Closer: los datos huérfanos (fase A)](./391-closer-una-pregunta-y-un-dato.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 1 · migración M3 · ADR 0122 · ok de Mani para escribir 3 abonos y 3 ventas |
 | [ ] | 404 | [Closer: una pregunta y una definición (fase B)](./404-closer-una-pregunta-y-una-definicion.md) | 391, 392, 393 | todo · 7-nov · hijo del 385 (F7), partido del 391 · ola 2 · sin migración |
 | [ ] | 405 | [Alerta: Cierre Perdido con abonos vigentes](./405-alerta-abono-en-cierre-perdido.md) | 392 | todo · 8-nov · hijo del 385 (F7) · decisión de Mani · sin migración |
-| [x] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | en main · 8-nov · hijo del 385 (F7) · F2B-02 · el 389 ya lo resolvía; test de paridad agregado |
+| [ ] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | en main · 8-nov · hijo del 385 (F7) · F2B-02 · el 389 ya lo resolvía; test de paridad agregado |
 | [ ] | 392 | [Venta: un solo recorrido](./392-venta-un-solo-recorrido.md) | 351, 353 | todo · 7-nov · hijo del 385 (F7) · ola 2 · sin migración |
-| [x] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | en main · 8-nov · hijo del 385 (F7) · reja sin CHECK · `cupos_con_caja` pasa al 403 |
+| [ ] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | en main · 8-nov · hijo del 385 (F7) · reja sin CHECK · `cupos_con_caja` pasa al 403 |
 | [ ] | 394 | [El programa lo garantiza la base](./394-el-programa-lo-garantiza-la-base.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 2, al final · migración M4 y M5 · ADR 0123 · riesgo alto |
 | [ ] | 395 | [Moneda: un `CHECK` y una regla de suma probada](./395-moneda-un-check-y-una-regla-de-suma.md) | 388 | todo · 7-nov · hijo del 385 (F7) · ola 2 · migración M6 · ADR 0124 |
-| [x] | 396 | [Cohortes: solape decidido](./396-cohortes-solape-decidido.md) | — | en main · 8-nov · hijo del 385 (F7) · sin solape (Mani) · fechas corregidas en producción · migraciones 0121 y 0122 preparadas, sin aplicar · ADR 0123 |
+| [ ] | 396 | [Cohortes: solape decidido](./396-cohortes-solape-decidido.md) | — | en main · 8-nov · hijo del 385 (F7) · sin solape (Mani) · fechas corregidas en producción · migraciones 0121 y 0122 preparadas, sin aplicar · ADR 0123 |
 | [ ] | 397 | [Un nombre por concepto: glosario y rótulos](./397-un-nombre-por-concepto-glosario-y-rotulos.md) | 389, 390, 392, 393 | todo · 7-nov · hijo del 385 (F7) · ola 3 · sin migración · decisión de Mani sobre la meta de leads |
 | [ ] | 398 | [Diccionario y documentos al día](./398-diccionario-y-documentos-al-dia.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 0 · solo documentación |
 | [ ] | 399 | [MCP: salida con nombres de negocio y descripciones estándar](./399-mcp-salida-con-nombres-de-negocio.md) | 397 | todo · 7-nov · hijo del 385 (F7) · ola 3 · sin migración · coordina con 386 y 387 frente B |
