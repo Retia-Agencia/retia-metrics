@@ -3,7 +3,7 @@ id: 393
 etapa: hub
 serves: "Auditoría 385 H-05, H-20, H-21, F2-06 · ADR 0024 · ADR 0115 N1, N2"
 depends: [392]
-status: en main
+status: done
 ---
 
 # 393 — Dinero: una sola suma

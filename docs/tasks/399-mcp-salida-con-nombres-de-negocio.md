@@ -3,7 +3,7 @@ id: 399
 etapa: mcp
 serves: "Auditoría 385 F5.2, F5.3, F5.5 · ADR 0119 · docs/mcp.md"
 depends: [397]
-status: todo
+status: en main
 ---
 
 # 399 — MCP: salida con nombres de negocio y descripciones estándar
@@ -25,6 +25,10 @@ Cada tool devuelve el objeto interno de la vista (`dinero.ventas`, `embudo.cierr
 ## Fuera
 
 Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.md` §1: una causa, un ticket). Este ticket no migra conceptos del registro que no toca.
+
+## Estado (8-nov)
+
+**Fase A en main** (`ad5e36b8`, `6d4e3287`): `outputSchema` con descripción por campo y salida con nombres de negocio en `resumen_del_hub` y `consultar_metrica` (`lib/mcp/salidas/`), `title` y las cuatro anotaciones en las once, descripciones que empiezan por cuándo usarla, clave `cita_a_venta` en el vocabulario. **Fase B pendiente:** `outputSchema` de las otras nueve tools (`programas_visibles`, `buscar_leads`, `ficha_de_lead`, `ficha_de_deal`, `tablero_de_deals`, `bandeja`, `cartera_vencida`, `pauta_roas`, `origen_del_programa`), quitar `salida?` opcional (hacerla obligatoria), `EXPLAIN` a 10 veces y paridad por tool. `SIN_FICHA_EN_REGISTRO` (en `lib/mcp/salidas/campos.ts`) lo consume el 403.
 
 ## Done cuando
 

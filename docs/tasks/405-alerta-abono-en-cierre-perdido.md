@@ -3,7 +3,7 @@ id: 405
 etapa: hub
 serves: "Auditoría 385 · decisión de Mani 8-nov (392) · ADR 0115 N3, N6"
 depends: [392]
-status: todo
+status: done
 ---
 
 # 405 — Alerta: un deal en Cierre Perdido con abonos vigentes

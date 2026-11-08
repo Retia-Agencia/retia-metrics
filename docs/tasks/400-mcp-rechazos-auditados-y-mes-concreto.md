@@ -3,7 +3,7 @@ id: 400
 etapa: mcp
 serves: "Auditoría 385 F5.4 · ADR 0119 · docs/mcp.md"
 depends: []
-status: todo
+status: done
 ---
 
 # 400 — MCP: rechazos de validación auditados y mes concreto

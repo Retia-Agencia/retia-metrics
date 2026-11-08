@@ -3,7 +3,7 @@ id: 404
 etapa: hub
 serves: "Auditoría 385 H-12, H-19, C-16 del 30-oct · ADR 0115 N1, N2 · ADR 0030"
 depends: [391, 392, 393]
-status: en main
+status: done
 ---
 
 # 404 — Closer: una pregunta y una definición (fase B)

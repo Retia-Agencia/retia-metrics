@@ -3,7 +3,7 @@ id: 406
 etapa: hub
 serves: "Auditoría 385 F2B-02 · decisión de Mani 8-nov"
 depends: [389]
-status: en main
+status: done
 ---
 
 # 406 — Leads: quien solo dejó un parcial cuenta como lead
