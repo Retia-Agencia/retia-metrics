@@ -175,6 +175,7 @@ export function calcularTasasDelGrupo(args: {
     closer: atribuye.closer,
     etapa: atribuye.etapa,
     conShow,
+    // Gemela en memoria del predicado de venta (392): la cita ya viene con la etapa ACTUAL del deal.
     vendido: conShow && esEtapaVendida(atribuye.etapa),
   });
   const ordenar = (a: MiembroDelGrupo, b: MiembroDelGrupo) =>
