@@ -1,4 +1,5 @@
 import { contratadoDeDeals, sumaDeAbonos, type ContratadoDeDeals } from "@/lib/queries/saldo";
+import { noAsistioSql } from "@/lib/deals/resultados-de-llamada";
 import {
   closerDeAbono,
   cerradosEn,
@@ -327,7 +328,10 @@ export async function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Pr
   })));
 }
 
-/** Citas pasadas pendientes, con el mismo universo que la primera sección del Inbox. */
+/**
+ * Citas pasadas pendientes (la bandera del Hub). Mismo criterio que el Inbox (353): excluye negocios cerrados; a
+ * diferencia del Inbox, SÍ sigue el periodo (`filtroLlamadas`). Con un rango que cubra todo, dan la misma cifra.
+ */
 export async function sinResultadoDelRango(
   alcance: Alcance,
   ahora: Date,
@@ -339,7 +343,7 @@ export async function sinResultadoDelRango(
     .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
     .where(and(
       filtroLlamadas(alcance, db),
-      citaVencidaSinResultado(ahora),
+      citaVencidaSinResultado(ahora, "excluir"),
       vigente(calls),
       vigente(deals),
     ));
@@ -390,12 +394,12 @@ export async function embudoDelRango(
       agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
       canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
       porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})::int`,
-      sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora)})::int`,
+      sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora, "excluir")})::int`,
       show: sql<number>`count(*) filter (where ${eq(calls.resultado, "show")})::int`,
-      noShow: sql<number>`count(*) filter (where ${eq(calls.resultado, "no_show")})::int`,
+      noShow: sql<number>`count(*) filter (where ${noAsistioSql()})::int`,
       otro: sql<number>`count(*) filter (where ${citaNoCancelada()} and not (
         (${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})
-        or coalesce(${citaVencidaSinResultado(ahora)}, false)
+        or coalesce(${citaVencidaSinResultado(ahora, "excluir")}, false)
         or ${inArray(calls.resultado, ["show", "no_show", "reagendada"])}
       ))::int`,
       reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,

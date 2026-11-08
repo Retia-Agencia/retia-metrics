@@ -1,7 +1,7 @@
-import { and, between, eq, inArray, sql } from "drizzle-orm";
+import { and, between, eq, sql } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { ocurrioSql, resultadosQueOcurrieronComoLiterales } from "@/lib/deals/resultados-de-llamada";
 import { fechaAnclaCall } from "@/lib/queries/dashboard";
 import {
   aplicarPagina,
@@ -18,8 +18,8 @@ import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 export type DimensionCita = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "dueno" | "cohorte" | "etapa" | "ocurrio";
 export type MedidaCita = "citas" | "shows";
 
-const resultadosQueOcurrieron = sql.raw(RESULTADOS_QUE_OCURRIERON.map((resultado) => `'${resultado}'`).join(", "));
-const ocurrio = sql<string>`case when ${calls.resultado} in (${resultadosQueOcurrieron}) then 'si' else 'no' end`;
+const resultadosQueOcurrieron = sql.raw(resultadosQueOcurrieronComoLiterales());
+const ocurrioComoDimension = sql<string>`case when ${calls.resultado} in (${resultadosQueOcurrieron}) then 'si' else 'no' end`;
 const dimensiones = {
   ...dimensionesDeDate(fechaAnclaCall()),
   ...dimensionesDeOrigen(
@@ -31,7 +31,7 @@ const dimensiones = {
   dueno: deals.ownerUserId,
   cohorte: deals.cohortId,
   etapa: deals.etapa,
-  ocurrio,
+  ocurrio: ocurrioComoDimension,
 } as const;
 
 export interface FilaCita {
@@ -57,7 +57,7 @@ export async function agrupar<D extends DimensionCita>(
   let consulta = db.select({
     ...elegidas,
     citas: sql<number>`count(*)::int`,
-    shows: sql<number>`count(*) filter (where ${inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON])})::int`,
+    shows: sql<number>`count(*) filter (where ${ocurrioSql()})::int`,
   }).from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
@@ -71,7 +71,7 @@ export async function agrupar<D extends DimensionCita>(
   const orden = expresionDeOrden({
     ...dimensiones,
     citas: sql<number>`count(*)::int`,
-    shows: sql<number>`count(*) filter (where ${inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON])})::int`,
+    shows: sql<number>`count(*) filter (where ${ocurrioSql()})::int`,
   }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
   consulta = aplicarPagina(consulta, opciones.pagina);

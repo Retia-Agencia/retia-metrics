@@ -165,7 +165,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   // el periodo no los acota.
   const sinPeriodo = (METRICAS_FOTO_DE_HOY as readonly string[]).includes(metrica)
     || (METRICAS_DE_EMBUDO_SIN_PERIODO as readonly string[]).includes(metrica);
-  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? (escalon === "ventas" ? "Ventas" : escalon === "despues" ? "Pagaron después" : NOMBRE_DE_ESCALON[escalon]) : null;
+  const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? (escalon === "ventas" ? "Ventas" : escalon === "despues" ? "Pagaron después" : escalon === "cita_sin_resultado" ? "Con la cita pasada sin resultado" : NOMBRE_DE_ESCALON[escalon]) : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
   const enlaceDePagina = orden ? `${enlace}&orden=${orden}` : enlace;

@@ -5,7 +5,7 @@ import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envi
 import { razon, type RazonConCobertura } from "@/lib/cobertura";
 import { calls, deals, gastoPauta, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { arbolDePauta } from "@/lib/pauta/arbol";
@@ -93,7 +93,6 @@ export interface VistaRoasDePauta {
   rango: Rango;
 }
 
-const ocurrio = (resultado: string) => (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
 
 /** El día de negocio de un envío: el parcial no trae `fechaEnvio`, así que usa su creación. */
 export function diaDelEnvio(envio: { fechaEnvio: Date | null; createdAt: Date }): string {
@@ -120,7 +119,7 @@ function sumarEnvio(r: RenglonRoas, e: FilaPorEnvioPauta, hoy: string) {
   if (e.cuentaComoRegistro) r.registros++;
   r.agendas += e.citas.length;
   r.shows += e.citas.filter((c) => ocurrio(c.resultado)).length;
-  r.noShows += e.citas.filter((c) => c.resultado === "no_show").length;
+  r.noShows += e.citas.filter((c) => noAsistio(c.resultado)).length;
   const dias = diasEntre(e.diaEnvio, hoy);
   r.desdeDias = r.desdeDias === null ? dias : Math.min(r.desdeDias, dias);
   r.hastaDias = r.hastaDias === null ? dias : Math.max(r.hastaDias, dias);
@@ -249,10 +248,7 @@ export async function cargarRoasDePauta(
     id: cita.id, fecha: cita.fechaAgenda ?? cita.fechaLlamada ?? cita.createdAt, resultado: cita.resultado,
     dealId: cita.dealId!, etapa: dealPorId.get(cita.dealId!)!.etapa,
   });
-  const citasSinMarcar = citas.filter((cita) => {
-    const instante = cita.fechaAgenda ?? cita.fechaLlamada;
-    return cita.resultado === "agendada" && instante !== null && instante.getTime() < ahora.getTime();
-  }).length;
+  const citasSinMarcar = citas.filter((cita) => citaSinResultado(cita, ahora)).length;
   const diaVenta = new Map(ventasPrograma.map((v) => [v.dealId, diaDeCalendario(v.dia)]));
   const vendidos = dealsDelUniverso.filter((d) => diaVenta.has(d.id));
   const ubicaciones = await ubicacionesDeEscalera(db, {

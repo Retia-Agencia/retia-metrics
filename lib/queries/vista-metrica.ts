@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { noShowPorDeal } from "@/lib/deals/resultados-de-llamada";
 import { parsearPeriodoUrl, resolverPeriodo, type PeriodoResuelto } from "@/lib/periodo";
 import { cohorteDelHub, contextoDelFiltro } from "@/lib/queries/cohorte-del-hub";
 import {
@@ -26,7 +27,7 @@ import {
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
 import { grupoDeCitas, gruposPorSemana, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
-import { tasa, type Rango } from "@/lib/queries/dashboard";
+import { type Rango } from "@/lib/queries/dashboard";
 import { lunesDe, sumarDias } from "@/lib/dias-habiles";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -391,7 +392,7 @@ export async function detallesPorSemana(
       shows: delGrupo("grupo_shows"),
       noShows,
       pendientes: delGrupo("grupo_pendientes"),
-      pctNoShow: tasa(noShows.resumen.subtotal.cantidad, ocurridas.resumen.subtotal.cantidad),
+      pctNoShow: noShowPorDeal(noShows.resumen.subtotal.cantidad, ocurridas.resumen.subtotal.cantidad),
     };
   }));
 }

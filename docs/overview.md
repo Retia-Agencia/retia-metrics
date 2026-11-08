@@ -266,7 +266,7 @@ Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manu
 |---|---|
 | Lead a venta | ventas ÷ leads (personas) |
 | Invitado a venta | ventas ÷ leads que agendaron. Umbral operativo 15%: por debajo, el problema es la operación, no el volumen de leads |
-| % de show | de los deals con una cita ya ocurrida en el rango (su hora pasó y no se reagendó; la cancelada y la sin resultado cuentan como no-show), cuántos llegaron a una (ADR 0079) |
+| % de show | de los deals con una cita ya ocurrida en el rango (su hora pasó y no se reagendó; la cancelada cuenta como no asistió; la cita sin resultado queda fuera del cociente y se muestra aparte), cuántos llegaron a una (ADR 0079) |
 | % de cierre | de esos deals con show, cuántos están vendidos hoy; por closer, sobre los shows que tomó: cada deal va al closer de su último show o, sin show, al de su última cita (ADR 0079). Mismo grupo arriba y abajo: nunca pasa de 100% |
 | Agenda → venta | de los deals con cita en el rango, cuántos tuvieron show y están vendidos hoy = % de show × % de cierre (ADR 0079) |
 | Caja recaudada | suma de abonos cuya fecha cae en el rango |
@@ -437,8 +437,10 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   días y conversiones disponibles. Su cadena (cupos que faltan ÷ días hábiles ÷ cierre ÷ asistencia ÷ citas por lead)
   y el origen de cada tasa viven en el Info de Hoy. Es un requerido calculado, no un objetivo. *Antes: "Necesarios para llegar".*
 - **Llevamos:** lo acumulado desde que empezó el periodo hasta hoy; llena la barra de avance. *Antes: "Real".*
-- **Asistencia a la cita (show):** citas realizadas ÷ citas que ya debían ocurrir; siempre con su cuenta a la vista
-  ("18 de 39"). **Cierre de ventas:** asistentes que compraron ÷ asistentes.
+- **Asistencia (show):** la cifra de Hoy es **por persona** (deal): quienes asistieron ÷ personas con una cita que ya ocurrió y resultado marcado, con su cuenta a la vista ("6 de 8"). Contada **por cita** (citas realizadas ÷ citas que ya debían ocurrir) vive en «Cómo se calcula» y en la semana, rotulada «a la cita» (353, DA-3). **No show:** el closer marcó que la persona no se presentó; la cita cancelada y la cita sin marcar no lo son.
+- **Cita pasada sin resultado:** una cita que sigue «agendada» aunque su hora ya pasó: un dato que falta, no un no show. El Inbox y la bandera del Hub la cuentan sin los negocios ya cerrados; la escalera la muestra aparte de sus escalones.
+- **Agenda (CRM) y agenda de Meta:** la agenda del CRM es la cita creada en el CRM, y cada reagenda cuenta como otra cita; la de Meta se muestra aparte y puede diferir (llega con atraso y se atribuye al anuncio que vio la persona, aunque agende o compre con otro enlace) (353, DA-4).
+   **Cierre de ventas:** asistentes que compraron ÷ asistentes.
 - **Corregir etapa:** cambiar la etapa a cualquiera de los destinos permitidos sin inventar un resultado de negocio.
   No entra a Ganado ni a Cierre perdido, y no sale de una etapa ganada; esos cambios se hacen sobre el abono, la
   cortesía o el cierre que los causó.

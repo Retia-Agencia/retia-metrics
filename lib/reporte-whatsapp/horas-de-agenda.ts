@@ -1,3 +1,4 @@
+import { EXPLICACION_AGENDA_CRM_VS_META } from "@/lib/vocabulario-metricas";
 import { fechaDeCierre } from "@/lib/reporte-whatsapp/mensaje";
 
 interface ProgramaConHoras {
@@ -59,6 +60,6 @@ export function armarMensajeDeHorasDeAgenda(dia: string, programas: ProgramaConH
     "",
     bloques,
     "",
-    "ℹ️ Agendas del CRM con UTM de pauta, por la hora en que la persona agendó en Calendly (hora de Bogotá). Meta cuenta aparte las que se atribuye, por eso puede dar más.",
+    `ℹ️ Agendas del CRM con UTM de pauta, por la hora en que se creó cada cita (hora de Bogotá). ${EXPLICACION_AGENDA_CRM_VS_META}`,
   ].join("\n");
 }

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { EXPLICACION_AGENDA_CRM_VS_META } from "@/lib/vocabulario-metricas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { cop } from "@/lib/format";
@@ -64,6 +65,7 @@ export async function SemaforoDelPrograma({ programId }: { programId: string }) 
           <div>
             <dt className="text-muted-foreground">Agendas según Meta</dt>
             <dd className="cifra">{metrica.agendasMeta ?? "—"}</dd>
+            <dd className="text-xs text-muted-foreground">{EXPLICACION_AGENDA_CRM_VS_META}</dd>
           </div>
           {metrica.racha ? (
             <div>

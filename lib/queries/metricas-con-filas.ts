@@ -3,7 +3,7 @@ import { dineroDeUnaVenta, dineroDeVentas, type DineroDeVentas } from "@/lib/que
 import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
-import { RESULTADOS_QUE_OCURRIERON } from "@/lib/deals/mover-etapa";
+import { noAsistio, noAsistioSql, ocurrio, ocurrioSql } from "@/lib/deals/resultados-de-llamada";
 import type { Db } from "@/lib/db/tipos";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
@@ -499,7 +499,7 @@ function consultaDe(
         .where(
           and(
             filtroLlamadas(alcance, db),
-            citaVencidaSinResultado(filtros.ahora ?? new Date()),
+            citaVencidaSinResultado(filtros.ahora ?? new Date(), "excluir"),
             vigente(calls),
             vigente(deals),
           ),
@@ -619,8 +619,8 @@ function consultaDe(
           // Sin envío de origen, las columnas UTM llegan nulas y la regla diría "sin_utm"; la tabla de
           // Pauta la pone en su propia fila, así que una categoría pedida exige el envío.
           filtros.categoria ? isNotNull(submissions.id) : undefined,
-          filtros.resultado === "no_show" ? eq(calls.resultado, "no_show") : undefined,
-          filtros.resultado === "show" ? inArray(calls.resultado, [...RESULTADOS_QUE_OCURRIERON]) : undefined,
+          filtros.resultado === "no_show" ? noAsistioSql() : undefined,
+          filtros.resultado === "show" ? ocurrioSql() : undefined,
           vigente(calls),
           vigente(deals),
         ));
@@ -817,11 +817,14 @@ async function miembrosDeLaEscalera(alcance: Alcance, filtros: FiltrosDeMetrica,
   const grupo = filtros.grupo && esGrupoDeCierre(filtros.grupo)
     ? GRUPOS_DE_CIERRE[filtros.grupo]
     : escalon === "ventas" ? ESCALONES_QUE_PAGARON : escalon === "despues" ? (["pago_rapido", "pago_despues"] as const) : undefined;
-  if (escalon !== undefined && grupo === undefined && !esEscalon(escalon)) return [];
+  // "cita_sin_resultado" no es un escalón: es la marca aparte de la escalera (353).
+  const citaSinResultado = escalon === "cita_sin_resultado";
+  if (escalon !== undefined && grupo === undefined && !citaSinResultado && !esEscalon(escalon)) return [];
   const cargada = await cargarEscalera(db, { programId: alcance.programId, rango: alcance.rango, cohorteId: alcance.cohorteId }, filtros.ahora);
   const delOrigen = hayFiltroDeOrigen(filtros);
   return filtrarEscalera(cargada, {
-    escalon: grupo ? undefined : (escalon as Escalon | undefined),
+    escalon: grupo || citaSinResultado ? undefined : (escalon as Escalon | undefined),
+    citaSinResultado: citaSinResultado || undefined,
     escalones: grupo,
     pago: filtros.pago,
     claveCloser: filtros.claveCloser,
@@ -973,8 +976,8 @@ async function leerMetricaDePauta(
     if (filtros.paso === "registro" && e.cuentaComoRegistro) filas.push(base(e, e.envioId, e.diaEnvio, e.dealId, e.etapa));
     else if (filtros.paso === "venta" && e.venta) filas.push(base(e, e.venta.dealId, e.venta.dia, e.venta.dealId, e.venta.etapa));
     else if (filtros.paso !== "venta") for (const c of e.citas) {
-      const cabe = filtros.paso === "agenda" || (filtros.paso === "show" && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(c.resultado))
-        || (filtros.paso === "no_show" && c.resultado === "no_show");
+      const cabe = filtros.paso === "agenda" || (filtros.paso === "show" && ocurrio(c.resultado))
+        || (filtros.paso === "no_show" && noAsistio(c.resultado));
       if (cabe) filas.push(base(e, c.id, fechaDeInstanteEnBogota(c.fecha), c.dealId, c.etapa));
     }
   }

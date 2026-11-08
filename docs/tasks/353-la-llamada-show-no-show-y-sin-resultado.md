@@ -3,7 +3,7 @@ id: 353
 etapa: hub
 serves: "ADR 0115 N1, N2 · auditoría 30-oct C-03, C-05, C-06, C-15, R-04, R-05, U-05"
 depends: []
-status: todo
+status: done
 ---
 
 # 353 — La llamada: show, no show y sin resultado, una vez cada uno
@@ -43,8 +43,17 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Done cuando
 
-- [ ] Test de paridad: el mismo set de citas da el mismo show en Hoy, Comercial, Pauta y escalera, por fórmula.
-- [ ] Test: una reagenda cuenta según DA-4 en las tres pantallas que la usan.
-- [ ] Test: Inbox y bandera dan la misma cifra con el mismo criterio declarado.
-- [ ] Guardianes mordidos en los dos sentidos.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Test de paridad: el mismo set de citas da el mismo show en Hoy, Comercial, Pauta y escalera, por fórmula.
+- [x] Test: una reagenda cuenta según DA-4 en las tres pantallas que la usan.
+- [x] Test: Inbox y bandera dan la misma cifra con el mismo criterio declarado.
+- [x] Guardianes mordidos en los dos sentidos.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+
+
+## Cierre (7-nov, en la rama del worktree; el merge lo decide Mani)
+
+- Módulo `lib/deals/resultados-de-llamada.ts`: lista, `ocurrio`/`ocurrioSql`, `noAsistio`/`noAsistioSql`, `citaSinResultado` (gemela en memoria), `showPorDeal`, `showPorCita`, `noShowPorCita`, `noShowPorDeal`. Se borraron las 8 envolturas y las fórmulas sueltas de Pauta, ROAS, el comparativo semanal y las tasas.
+- `citaVencidaSinResultado(ahora, "excluir" | "incluir")`: única, con `coalesce`; Inbox y bandera la declaran.
+- Escalera: marca `citaSinResultado` aparte del escalón, con su lista (`escalon=cita_sin_resultado`).
+- DA-3: Hoy muestra el % por deal; el de por cita está en «Cómo se calcula». DA-4: la agenda es la cita creada; `EXPLICACION_AGENDA_CRM_VS_META` en el semáforo y el mensaje de horas. La fila de «Horas de agenda» de `metricas.md` decía que la reagenda conservaba la primera hora y el código nunca lo hizo: se corrigió el documento.
+- Pendiente fuera del ticket: el show por canal del embudo (`pctShow` en `dashboard.ts`, shows ÷ agendas del formulario) tiene otra base (agendas, no citas con resultado) y no se tocó; la semana de Hoy sigue por cita.

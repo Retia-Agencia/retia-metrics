@@ -148,7 +148,7 @@ describe("cargarEscalera: los siete escalones contra la base", () => {
 
     expect(individual.corteDias).toBe(cargada.corteDias);
     expect(escalonDeDeal(individual.hechos, individual.corteDias)).toEqual(
-      { escalon: desdeLaEscalera.escalon, diasCitaAPago: desdeLaEscalera.diasCitaAPago },
+      { escalon: desdeLaEscalera.escalon, diasCitaAPago: desdeLaEscalera.diasCitaAPago, citaSinResultado: desdeLaEscalera.citaSinResultado },
     );
   });
 

@@ -319,7 +319,7 @@ export interface GrainPegado {
  * ## Qué transición se usa, y de qué etapa
  *
  * Atendido se alcanza desde Agendado por E8. Exige `llamada_sucedio`, y `resultado = "show"` lo cumple
- * (`RESULTADOS_QUE_OCURRIERON` en `mover-etapa.ts`). Al pegar Grain el movimiento lo
+ * (`ocurrio` en `resultados-de-llamada.ts`). Al pegar Grain el movimiento lo
  * toma `{ tipo: "sistema" }`: el enlace es el hecho que el CRM observa. A mano, el
  * closer puede dar por atendida la ultima llamada vigente con fecha sin inventar Grain.
  *
@@ -463,7 +463,7 @@ export async function corregirResultado(
  * la tabla tiene la flecha desde la etapa actual.
  *
  * El Grain deja de ser requisito para decir "la llamada sucedió": `resultado = "show"`
- * cumple `llamada_sucedio` (`RESULTADOS_QUE_OCURRIERON`). Una llamada show sin Grain no
+ * cumple `llamada_sucedio` (`ocurrio`). Una llamada show sin Grain no
  * bloquea ningún movimiento; su falta de link sale como alerta amarilla, nunca como reja.
  *
  * Si la llamada ya tiene un resultado (no sigue `agendada`), se rechaza con 409: "marcar

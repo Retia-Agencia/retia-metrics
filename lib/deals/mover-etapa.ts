@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, notInArray, sql } from "drizzle-orm";
+import { ocurrio } from "./resultados-de-llamada";
 import {
   calls,
   changeLog,
@@ -948,7 +949,7 @@ async function darPorAtendida(tx: Db, deal: FilaDeal, actorUserId: string): Prom
     throw new MovimientoRechazado(texto, [{ codigo: "llamada_con_fecha", mensaje: texto }], 409);
   }
 
-  if ((RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(call.resultado)) return;
+  if (ocurrio(call.resultado)) return;
 
   await editarConRastro(
     {
@@ -965,13 +966,6 @@ async function darPorAtendida(tx: Db, deal: FilaDeal, actorUserId: string): Prom
     },
   );
 }
-
-/**
- * Resultados de llamada que prueban que la llamada OCURRIO. Mientras `calls` no tenga
- * el link de Grain (ticket 058), "sucedio" es que el closer la marco con uno de estos.
- */
-/** Resultados que prueban que la llamada ocurrió, incluso cuando terminó perdida. */
-export const RESULTADOS_QUE_OCURRIERON = ["show", "compromiso_pago", "cerrada", "perdida"] as const;
 
 /**
  * Los dos resultados de una llamada fallida (ADR 0015): el motor los lee para el hecho
@@ -1000,7 +994,7 @@ export function hechosDeLlamadas(llamadas: readonly { resultado: string; fechaAg
   const ultima = llamadas[0];
   return {
     tieneLlamadaConFecha: llamadas.some((l) => l.resultado === "agendada" && l.fechaAgenda != null),
-    llamadaSucedio: ultima != null && (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(ultima.resultado),
+    llamadaSucedio: ultima != null && ocurrio(ultima.resultado),
     llamadaFallida: ultima != null && (RESULTADOS_FALLIDOS as readonly string[]).includes(ultima.resultado),
   };
 }

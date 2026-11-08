@@ -86,20 +86,26 @@ export const numeroOGuion = (valor: number | null, decimales = 1) => (valor === 
  * La cuenta de la asistencia, con su cobertura (ADR 0115 N3): "6 de 12 citas" y, si el closer no marcó todas,
  * cuántas siguen sin resultado, con su lista. Una cita sin marcar no es un no show: es un dato que falta.
  */
-export function CuentaDeAsistencia({ realizadas, debidas, sinMarcar, detalle, href }: {
-  realizadas: number;
-  debidas: number;
+export function CuentaDeAsistencia({ realizadas, debidas, asistieron, personas, sinMarcar, detalle, href }: {
+  /** Por cita (la semana): citas realizadas de las que ya debían ocurrir. */
+  realizadas?: number;
+  debidas?: number;
+  /** Por persona (Hoy, DA-3): personas con cita ocurrida que asistieron, de las que tienen resultado. */
+  asistieron?: number;
+  personas?: number;
   sinMarcar: number;
   detalle?: DetalleDeCifra;
   href?: string;
 }) {
   return (
     <>
-      {num(realizadas)} de {num(debidas)} citas que ya debían ocurrir
+      {asistieron !== undefined
+        ? <>{num(asistieron)} de {num(personas ?? 0)} personas con cita que ya ocurrió</>
+        : <>{num(realizadas ?? 0)} de {num(debidas ?? 0)} citas que ya debían ocurrir</>}
       {sinMarcar > 0 ? (
         <span className="mt-0.5 block text-tono-alerta">
           Parcial:{" "}
-          {detalle ? <CifraConLista titulo="Citas sin resultado marcado" detalle={detalle}>{num(sinMarcar)}</CifraConLista> : <CifraConEnlace href={href}>{num(sinMarcar)}</CifraConEnlace>}{" "}
+          {detalle ? <CifraConLista titulo={asistieron !== undefined ? "Personas con cita sin resultado marcado" : "Citas sin resultado marcado"} detalle={detalle}>{num(sinMarcar)}</CifraConLista> : <CifraConEnlace href={href}>{num(sinMarcar)}</CifraConEnlace>}{" "}
           sin resultado marcado por el closer
         </span>
       ) : null}
