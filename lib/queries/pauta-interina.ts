@@ -16,7 +16,8 @@ import { diaEnBogota } from "@/lib/queries/hechos/fechas";
  * con lo que YA hay en la base, mientras llegan el catalogo de canales (101), el emparejador
  * (085) y el embudo de Pauta (123). Todo por programa: el programa es frontera (ADR 0043).
  *
- * Las definiciones son las de `docs/analytics.md` §6 y viven SOLO aqui:
+ * Las definiciones que rigen son las de `docs/metricas.md` (`docs/analytics.md` §6 es historia, ADR 0115 N8) y este modulo las
+ * aplica; la lista de abajo es el resumen de lo que hace el codigo:
  * - **Registro** = un token con envio COMPLETO, fechado por ese envio en Bogota (DP-11): el
  *   parcial y la completa del mismo token cuentan una vez, porque el parcial no cuenta.
  * - **Agenda** = una llamada vigente creada en el rango (`calls.created_at`), atribuida a los

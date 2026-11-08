@@ -31,7 +31,7 @@ magnitudes sumables en la misma unidad (conteos, caja en USD, gasto). Tasas, met
 comisión van siempre por programa.
 
 **5. La llave del Lead no se normaliza a una "persona" global. Se midió antes de descartarlo:** el
-21-sep, de 4.823 leads solo 5 correos estaban en los dos programas. Y aunque fueran más, una persona
+21-sep, de 4.823 leads solo 5 correos estaban en los dos programas (7-nov, auditoría 385 F2-07: hoy son 49, y la decisión se sostiene: son dos leads, y el único cruce es el aviso `otrosProgramasDelCorreo`). Y aunque fueran más, una persona
 global reabre la identidad a escala de empresa (un merge equivocado dañaría los dos programas) y
 construye justo la columna por la que un `join` cruzaría la frontera.
 

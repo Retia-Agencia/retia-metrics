@@ -183,7 +183,7 @@ export function traeLinkDeCalendly(valor: string | null | undefined): boolean {
  * de "agendo" lo lee el CRM del envio: si la respuesta de la pregunta de agenda trae un
  * link de Calendly, el envio es `con_calendly`, **venga con el valor que venga**, vacio
  * incluido. Es un HECHO, no una regla de negocio: a que etapa lleva `con_calendly` lo
- * dice su fila en `estados_llegada`. 🩸 Hasta el 117 solo subia desde
+ * dijo su fila en `estados_llegada` (tabla borrada con la 0059; hoy lo decide `etapaDeEntrada`). 🩸 Hasta el 117 solo subia desde
  * `setteo_no_calificado`, y cuando el Typeform de un programa dejo de mandar ese valor (29-sep)
  * ni los que agendaron abrieron deal.
  *
@@ -354,7 +354,7 @@ export function entradaDesdeTypeform(payload: PayloadTypeform, opciones: Opcione
   // El Estado: la variable configurada (via su columna `variable:<nombre>`), mas el
   // hecho de agendar (ADR 0061 punto 4). El texto que queda en `estadoHoja` es el valor
   // que mando el formulario, o `con_calendly` si trae link; que significa lo dice
-  // `estados_llegada`. Si la variable no vino y no hay link, el Estado queda vacio: entra
+  // la regla de `etapaDeEntrada` (la tabla `estados_llegada` se borro en la 0059). Si la variable no vino y no hay link, el Estado queda vacio: entra
   // sin Estado y se cuenta.
   //
   // La pregunta de agenda la dice el mapeo de la fuente (`campoAgenda`), no una

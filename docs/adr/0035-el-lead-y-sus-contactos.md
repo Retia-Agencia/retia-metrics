@@ -42,4 +42,4 @@ fusionaba por teléfono.
 
 **Una entidad "persona" global por encima de los Leads:** resolvería "la misma persona en dos
 programas", que nadie pidió resolver. Medido el 21-sep: 5 correos de 4.823 estaban en los dos
-programas (ADR 0043).
+programas (ADR 0043). *(Nota del 7-nov: hoy son 49; la decisión no cambia, ADR 0043.)*
