@@ -4,7 +4,7 @@
 > hace cumplir cada una. Es el par de `docs/mcp.md` §4 para la capa de datos. Nació en el ticket 385 (F6, 7-nov-2026), que
 > es auditoría: este documento es **redactado, no implementado**. Marca con 🔒 lo que hoy hace cumplir un test de `tests/`,
 > con 🟡 lo que **solo se propone** (el test no existe todavía) y con 👁 lo que queda en **revisión manual**, con su olor
-> nombrado. Nada de lo marcado 🟡 está construido: lo construyen los hijos de F7.
+> nombrado. Nada de lo marcado 🟡 está construido: lo construyen los hijos de F7 (§8 dice cuáles ya lo están).
 >
 > **Qué NO es.** No redefine ninguna cifra (eso es `docs/metricas.md`, único diccionario) ni sustituye al ADR 0115 (N1 a
 > N9, la vara). Lo que esas reglas ya dicen se cita, no se copia.
@@ -19,7 +19,7 @@ nadie escribe su propio `count(` o `sum(` sobre filas de negocio. Una cifra que 
 | Qué | Dónde | Quién lo vigila |
 |---|---|---|
 | Qué significa una cifra (tabla, ancla, unidad, moneda, qué cuenta y qué no) | `docs/metricas.md` (único diccionario) | N8: el código manda sobre "qué hace hoy"; ADR vigente sobre "qué debería". 🟡 test registro contra diccionario |
-| Cómo se llama (nombre de negocio) | `docs/overview.md` §11 | 🔒 `hub-vocabulario-guardian` (solo Hub); 🟡 todas las superficies |
+| Cómo se llama (nombre de negocio) | `docs/overview.md` §11 | 🔒 `hub-vocabulario-guardian` (solo jerga en el Hub); 🔒 `rotulos-sinonimos-guardian` (ningún sinónimo nuevo en ninguna superficie) |
 | **La consulta que la calcula** | `lib/queries/`: un módulo por **hecho** en `lib/queries/hechos/` (envío, agenda, cita, venta, abono, gasto) y por concepto transversal (`vigente.ts`, `saldo.ts`, `metricas-filtros.ts`, `hechos/fechas.ts`, `lib/dias-habiles.ts`, `lib/pauta/convertir-gasto.ts`). La tabla "Conceptos" de `metricas.md` §0 dice qué módulo es el canónico de cada concepto | guardianes 🔒 por concepto (§1 paso 4) |
 | La lista detrás de la cifra | la misma consulta sin agrupar (`metricas-con-filas.ts`) | 🔒 `metricas-con-filas.test.ts` |
 | Qué se decidió y por qué | `docs/adr/` (vigente > ticket > documento de reunión) | revisión + N8 |
@@ -58,15 +58,15 @@ Orden obligatorio. Cada paso dice qué falla si se omite.
 
 | # | Paso | Guardián |
 |---|---|---|
-| 1 | **Nombre de negocio** nuevo en el glosario de `docs/overview.md` §11. Un nombre por concepto; si el universo difiere de una cifra vecina, **el nombre lo dice** (caso F2-01: "Ventas" y "% de cierre" medían universos distintos con rótulo casi igual). | 🔒 `tests/hub-vocabulario-guardian.test.ts` (solo jerga visible en el Hub). 🟡 guardián de rótulos sobre todas las superficies (hoy H-10/H-11: "Show", "Realizadas", "Asistencia"; "Recaudado", "Caja", "Entró a caja" para lo mismo). Olor 👁: dos rótulos distintos con la misma función detrás. |
+| 1 | **Nombre de negocio** nuevo en el glosario de `docs/overview.md` §11. Un nombre por concepto; si el universo difiere de una cifra vecina, **el nombre lo dice** (caso F2-01: "Ventas" y "% de cierre" medían universos distintos con rótulo casi igual). | 🔒 `tests/hub-vocabulario-guardian.test.ts` (solo jerga visible en el Hub). 🔒 `tests/rotulos-sinonimos-guardian.test.ts`: por concepto, los rótulos que conviven hoy (H-09, H-10, H-11: "Show", "Realizadas", "Asistencia"; "Recaudado", "Caja", "Entró a caja") son una lista nombrada que F5 reduce, y un sinónimo nuevo rompe. No sabe cuál es el canónico: eso lo fija el glosario de F5. Olor 👁: dos rótulos distintos con la misma función detrás que el guardián no conoce. |
 | 2 | **Fila completa en `docs/metricas.md`**: de qué tabla sale, qué cuenta y qué no, **unidad** (persona, deal o cita), **ancla de fecha**, moneda, vigencia, dimensiones que admite y las que **no** (con la razón), cobertura. Una métrica nueva entra aquí antes de llegar a una pantalla. | 🟡 test registro contra diccionario (§0, decisión 1). Hoy 👁: olor = función citada en el diccionario sin llamador fuera de `tests/` o métrica visible sin fila (F1 §3 "Métricas sin definición", categoría D). |
 | 3 | **Un hecho de origen** de `lib/queries/hechos/` (envío, agenda, cita, venta, abono, gasto). La métrica es una agregación sobre el hecho, con una **lista blanca de dimensiones**; la lista detrás de la cifra es la misma consulta sin agregar (C-2, `docs/hub.md` §8). | 🔒 `tests/metricas-con-filas.test.ts` (cifra contra todas las páginas de su lista). 👁 olor: una consulta suelta para una métrica, o filtrar en memoria lo que puede filtrar la base. |
 | 4 | **UNA función (SQL) y su gemela TS**, en el módulo que la tabla "Conceptos" de `docs/metricas.md` §0 nombra para ese concepto. Nadie reescribe el predicado (N1). | 🔒 por concepto donde existe: `tests/venta-una-definicion.test.ts` (venta), `tests/vigencia-centralizada.test.ts` (vigente), `tests/saldo-centralizado.test.ts` (dinero), `tests/anclas-de-fecha-guardian.test.ts` (`AT TIME ZONE` solo en `hechos/fechas.ts`), `tests/calendario-guardian.test.ts` (calendario solo en `lib/dias-habiles.ts`), `tests/closer-identidad.test.ts`. 🟡 los conceptos sin guardián: show/ocurrió (siete envolturas, H-15), cita sin resultado (cinco predicados, H-07), lead y registro (H-04), "sin UTM" (tres definiciones, H-17), agenda (H-02). El ticket 354 ya cerró el ancla de fecha, el calendario y la categoría de UTM; 353 queda con show y cita sin resultado. |
 | 5 | **Entrada en el registro tipado** (nombre de negocio, tipo simple/razón/derivada, hecho, dimensiones permitidas, ancla, unidad, moneda, vigencia, cobertura, función y gemela). Una **razón** se define como numerador y denominador que ya son métricas del registro. | 🟡 todo el paso (F4). Es la decisión 1; la investigación lo respalda (§7.1). |
-| 6 | **Programa como frontera.** Una tasa, meta, costo o ROAS **no compila** en la vista "todos los programas"; solo se suman conteos, caja USD y gasto. | 🔒 el tipo de `lib/queries/agregado-programas` (ADR 0048). 🟡 matriz hechos × dimensiones con test contra las listas blancas (§7.2). |
+| 6 | **Programa como frontera.** Una tasa, meta, costo o ROAS **no compila** en la vista "todos los programas"; solo se suman conteos, caja USD y gasto. | 🔒 el tipo de `lib/queries/agregado-programas` (ADR 0048). 🔒 `tests/matriz-hechos-dimensiones-guardian.test.ts`: la rejilla hechos × dimensiones (§7.2) contra las listas blancas de `hechos/`, y ningún hecho admite el programa como dimensión. |
 | 7 | **Vigencia.** Toda lectura de `calls`, `deals`, `abonos`, `deal_actividades` pasa por `vigente()` o `incluyendoAnulados()`. | 🔒 `tests/vigencia-centralizada.test.ts`. |
 | 8 | **Moneda a la vista**, sin conversión silenciosa; formato solo por `lib/format.ts`. | 🔒 `tests/format.test.ts`, `tests/gasto-paridad.test.ts` (gasto convertido). 🟡 caso de moneda mezclada: producción tiene COP y USD en el mismo programa (F3-12) y la TRM no se ejerce con ningún abono real (F2 §3). |
-| 9 | **Cobertura (N3).** Toda razón devuelve qué parte del universo no pudo calcular; la pantalla dice "parcial" o "—", nunca una razón con medio dato. Hoy solo ROAS y costo por agenda usan `RazonConCobertura` (H-13). | 🔒 `tests/cobertura.test.ts` para el tipo. 🟡 que **toda** razón lo use (hoy tres formas conviven). |
+| 9 | **Cobertura (N3).** Toda razón devuelve qué parte del universo no pudo calcular; la pantalla dice "parcial" o "—", nunca una razón con medio dato. Hoy solo ROAS y costo por agenda usan `RazonConCobertura` (H-13). | 🔒 `tests/cobertura.test.ts` para el tipo. 🔒 `tests/razon-con-cobertura-guardian.test.ts`: una razón nueva con número pelado rompe; las de hoy son una lista nombrada con ticket (353 y F4). Hoy tres formas conviven (H-13). |
 | 10 | **Paridad probada** con el caso que haría divergir dos implementaciones (§4). | 🔒 un test comparativo por concepto donde existe; 🟡 por métrica nueva, lo exige la revisión de este contrato hasta que haya registro. |
 | 11 | **Lista detrás de la cifra** y `urlDeLista` con `origen`. | 🔒 `tests/metricas-con-filas.test.ts`, `tests/volver-de-listas.test.ts`. |
 | 12 | **Superficies que la exponen**: pantalla, MCP, WhatsApp, CSV, gráfica. Cada una importa la función; ninguna agrega por su cuenta. La del MCP se escribe con `docs/mcp.md` §5. | 🔒 `tests/mcp-guardian.test.ts` (sin SQL en `lib/mcp/`), `tests/graficas-guardian.test.ts`, `tests/semaforo-endpoint.test.ts`. 👁 olor: `count(`, `sum(` o reducciones sobre filas de negocio fuera de los módulos del diccionario (F1 método (b)). |
@@ -129,7 +129,7 @@ agrupa (ADR 0012). Checklist:
 | Toda escritura del CRM deja rastro | 🔒 `tests/rastro-operativo.test.ts`, `tests/bitacora-jsonb.test.ts`, `tests/texto-de-bitacora.test.ts` |
 | Fila de catálogo se borra solo si no se usó | 🔒 `tests/catalogo.test.ts` |
 | Ningún programa escrito en el código | 🔒 `tests/contrato-extension.test.ts` |
-| Cada tabla/columna nueva tiene su justificación, su `CHECK` y sus lectores | 👁 revisión de la migración. Olor: columna sin lector a los 30 días, texto libre donde hay conjunto cerrado, copia sin test contra su fuente. 🟡 propuesto: test que lista las columnas de `schema.ts` sin ninguna lectura fuera de `schema.ts` y exige que estén en una lista nombrada (F3-06, F3-13, F3-14 miden hoy 0 lectores). |
+| Cada tabla/columna nueva tiene su justificación, su `CHECK` y sus lectores | 👁 revisión de la migración. Olor: columna sin lector a los 30 días, texto libre donde hay conjunto cerrado, copia sin test contra su fuente. 🔒 `tests/columnas-sin-lector-guardian.test.ts`: una columna de las tablas de hechos sin lector fuera de `schema.ts` debe estar en una lista nombrada (F3-04, F3-06, F3-13, F3-14, F3-16). Heurístico: para nombres genéricos solo ve `tabla.campo`; es alarma para lo nuevo, no prueba de muerte. |
 | Garantía de programa entre tabla hija y padre | 🟡 FK compuesta (F3-03); hoy 👁. |
 
 ## 4. Cómo se prueba una cifra
@@ -172,9 +172,9 @@ Guardianes: 🔒 `tests/gasto-paridad.test.ts`, `tests/tasas-del-grupo.test.ts`,
    no quedan.
 
 Guardianes: 🔒 `tests/vigencia-centralizada.test.ts` (nadie vuelve a leer lo retirado sin decidir), `tests/ingesta-estado.test.ts`
-(nadie vuelve a leer `estadosLlegada`), `tests/contrato-extension.test.ts`. 🟡 propuesto: test que recorre las funciones citadas
-en `docs/metricas.md` y falla si alguna no tiene llamador fuera de `tests/` (hoy 👁, ticket 361). Olor: función exportada de
-`lib/queries/` con un solo llamador en `tests/`.
+(nadie vuelve a leer `estadosLlegada`), `tests/contrato-extension.test.ts`, 🔒 `tests/diccionario-llamadores-guardian.test.ts` (toda función o constante citada en
+`docs/metricas.md` existe y tiene llamador fuera de `tests/`; las de hoy son una lista nombrada que retira el 361/353). Olor 👁:
+función exportada de `lib/queries/` con un solo llamador en `tests/` que el diccionario no cita.
 
 ## 6. Dónde vive este contrato
 
@@ -204,7 +204,7 @@ fundamenta una regla. Lo no abierto o no dicho por la página queda **sin fuente
    matriz procesos × dimensiones:
    https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/kimball-techniques/dimensional-modeling-techniques/enterprise-data-warehouse-bus-matrix/.
    Se adopta como **tabla hechos × dimensiones en `docs/metricas.md`** con test contra las listas blancas de `lib/queries/hechos/`
-   (🟡). El programa es la excepción propia del repo (frontera, no dimensión que se suma): **sin fuente verificada** de que
+   (🔒 `matriz-hechos-dimensiones-guardian`, con la tabla viviendo en el test hasta que el registro de F4 la absorba). El programa es la excepción propia del repo (frontera, no dimensión que se suma): **sin fuente verificada** de que
    Kimball trate ese caso; es decisión del repo. No se adopta el modelo estrella.
 3. **Contratos de datos.** Forma frente a contenido; los cambios que rompen son quitar una columna, cambiar un tipo o quitar una
    restricción: https://docs.getdbt.com/docs/mesh/govern/model-contracts. ODCS fija los campos de un contrato (esquema,
@@ -226,15 +226,19 @@ trabajo en progreso), `datacontract-cli`, YAML ODCS, Datafold y el modelo estrel
 Un contrato que no se puede hacer cumplir con un test es una creencia (AGENTS.md): por eso cada regla de arriba trae su guardián o
 su olor.
 
-## 8. Guardianes nuevos propuestos (no implementados)
+## 8. Guardianes: construidos y pendientes
 
-Para los hijos de F7, en el orden en que cierran un hueco que hoy produce cifras creíbles y distintas:
+**Construidos (hija C del 385, 7-nov; cada uno con excepciones nombradas y sin excepciones zombi, mordido en los dos sentidos):**
 
-1. **Registro contra diccionario:** el registro tipado y la tabla de `docs/metricas.md` no divergen (decisión 1).
-2. **Guardián de rótulos** sobre todas las superficies, no solo el Hub (H-10, H-11, H-09).
-3. **Matriz hechos × dimensiones** contra las listas blancas de `hechos/` (§7.2).
-4. **Un guardián por concepto que hoy no lo tiene:** show/ocurrió, cita sin resultado, lead/registro, agenda, "sin UTM" (H-15, H-07, H-04, H-02, H-17).
-5. **Toda razón usa `RazonConCobertura`** (H-13).
-6. **Funciones del diccionario sin llamador fuera de `tests/`** (N7, ticket 361).
-7. **Números dorados sobre base sembrada** con los casos de §4.
-8. **Columnas sin lector fuera de `schema.ts`** contra una lista nombrada (F3-06, F3-13, F3-14).
+- 🔒 **Rótulos** (`rotulos-sinonimos-guardian`): ningún sinónimo nuevo de show, dinero cobrado, venta, agenda o lead (H-09, H-10, H-11).
+- 🔒 **Matriz hechos × dimensiones** (`matriz-hechos-dimensiones-guardian`, §7.2).
+- 🔒 **Toda razón declara su cobertura** (`razon-con-cobertura-guardian`, H-13): 25 razones sin cobertura de hoy, nombradas con su ticket.
+- 🔒 **Funciones del diccionario con llamador** (`diccionario-llamadores-guardian`, N7, F1 H-29).
+- 🔒 **Columnas sin lector** (`columnas-sin-lector-guardian`, F3-04, F3-06, F3-13, F3-14, F3-16).
+
+**Pendientes (🟡), para los hijos de F7:**
+
+1. **Registro contra diccionario:** el registro tipado y la tabla de `docs/metricas.md` no divergen (decisión 1; hija B).
+2. **Un guardián por concepto que hoy no lo tiene:** show/ocurrió, cita sin resultado, lead/registro, agenda, "sin UTM" (H-15, H-07, H-04, H-02, H-17); esperan al 353 y al registro.
+3. **Números dorados sobre base sembrada** con los casos de §4 (hija A).
+4. **Endurecer los de arriba cuando se retiren sus excepciones:** cada lista nombrada se vacía con su ticket (353, 361, F3, F5); cuando F5 fije el glosario, `rotulos-sinonimos-guardian` pasa de "ningún sinónimo nuevo" a "solo el nombre canónico".
