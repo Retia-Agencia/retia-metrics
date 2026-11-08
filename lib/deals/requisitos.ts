@@ -95,7 +95,7 @@ function requisitosDe(t: FlechaConRequisitos): CodigoReal[] {
     case "E2": case "E3": case "PS2": requisitos = ["contacto"]; break;
     case "E4": case "E7": case "E9": requisitos = ["llamada_con_fecha"]; break;
     case "E5": case "E10": requisitos = ["fecha_limite_pago"]; break;
-    case "E6": case "E11": case "E12": requisitos = segunDestino((t as Transicion).a); break;
+    case "E6": case "E11": case "E12": requisitos = ["dueno", ...segunDestino((t as Transicion).a)]; break;
     case "E8": requisitos = ["llamada_sucedio"]; break;
     case "E13": requisitos = ["valor_vendido", "saldo_en_cero"]; break;
     case "RETRO": requisitos = ["fecha_seguimiento"]; break;

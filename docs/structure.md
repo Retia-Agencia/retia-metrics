@@ -209,13 +209,13 @@ Poner un pendiente no cambia la etapa. Todo cambio de etapa lo limpia por defect
 | E3 | En gestión o Contactado → Calificado | closer | confirma que califica |
 | E4 | cualquier etapa de setteo → Agendado | ambos | llamada vigente con fecha |
 | E5 | Contactado o Calificado → Compromiso Verbal | closer | valor vendido, área declarada y fecha límite |
-| E6 | Contactado o Calificado → cualquiera de las dos Ganado | sistema | primer abono y requisitos de venta |
+| E6 | Contactado o Calificado → cualquiera de las dos Ganado | sistema | primer abono, dueño y requisitos de venta |
 | E7 | Agendado → Agendado | ambos | cita nueva o reagendada; limpia el pendiente |
 | E8 | Agendado → Atendido | ambos | la llamada ocurrió |
 | E9 | Atendido con pendiente → Agendado | ambos | llega una cita nueva |
 | E10 | Atendido → Compromiso Verbal | closer | compromiso con sus datos |
-| E11 | Atendido → cualquiera de las dos Ganado | sistema | entra el primer abono |
-| E12 | Compromiso Verbal → cualquiera de las dos Ganado | sistema | entra el primer abono |
+| E11 | Atendido → cualquiera de las dos Ganado | sistema | entra el primer abono y el deal tiene dueño |
+| E12 | Compromiso Verbal → cualquiera de las dos Ganado | sistema | entra el primer abono y el deal tiene dueño |
 | E13 | Ganado Pago Parcial → Ganado Pagado Completo | sistema | saldo en cero |
 | S1 | Potencial → Registrado | sistema | llega el completo sin calidad alta ni agenda (ADR 0073) |
 | S2 | Potencial → Calificado | sistema | llega un envío con calidad High sin agenda (ADR 0073) |

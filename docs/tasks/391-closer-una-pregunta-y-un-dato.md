@@ -34,5 +34,5 @@ Las 3 ventas históricas de Comunicarte quedan **sin dueño** a propósito (sus 
 
 - [x] Decidido sin escribir datos: 0 escrituras en producción; el script de corrección se borró (decisión de Mani, ADR 0122).
 - [x] `CHECK` (migración 0120) aplicado en producción el 8-nov con el ok de Mani, validado, y probado (una venta sin dueño se rechaza; una anulada o histórica migrada no).
-- [ ] Rutas E6, E11 y E12 de `moverEtapa` exigen `dueno` (hoy un deal sin dueño revienta contra el CHECK con un 23514 crudo, no con el 409 «El deal no tiene dueño»; `lib/deals/requisitos.ts:94-100`).
+- [x] Rutas E6, E11 y E12 de `moverEtapa` exigen `dueno` (hoy un deal sin dueño revienta contra el CHECK con un 23514 crudo, no con el 409 «El deal no tiene dueño»; `lib/deals/requisitos.ts:94-100`).
 - [x] Regla N8 (ADR 0115): fila de `docs/metricas.md`, vocabulario de `overview.md` §11 y ADR 0122 reescritos en el mismo commit, título e índice incluidos.

@@ -706,7 +706,7 @@ describe("los hechos salen de la base", () => {
 
   it("no vende si el programa no tiene porcentaje de comisión", async () => {
     await db.update(programs).set({ comisionPorcentaje: null }).where(eq(programs.id, programId));
-    const dealId = await nuevoDeal("atendido", { comisionPorcentaje: null });
+    const dealId = await nuevoDeal("atendido", { comisionPorcentaje: null, ownerUserId: closer });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto: "500" });
     const historialAntes = await historial(dealId);
 
@@ -717,6 +717,22 @@ describe("los hechos salen de la base", () => {
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
     expect(deal.etapa).toBe("atendido");
     expect(deal.comisionPorcentaje).toBeNull();
+    expect(await historial(dealId)).toEqual(historialAntes);
+  });
+
+  it.each([
+    { de: "contactado" as const, destino: "ganado_parcial" as const, monto: "500" },
+    { de: "atendido" as const, destino: "ganado_completo" as const, monto: "1000" },
+    { de: "compromiso_verbal" as const, destino: "ganado_parcial" as const, monto: "500" },
+  ])("E6/E11/E12: una venta de $de a $destino exige dueño y no se mueve sin él", async ({ de, destino, monto }) => {
+    const dealId = await nuevoDeal(de, { ownerUserId: null });
+    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/1.png" });
+    const historialAntes = await historial(dealId);
+
+    const e = await rechazo(moverEtapa(db, { dealId, a: destino, actor: sistema }));
+
+    expect(e.faltantes.map((f) => f.codigo)).toContain("dueno");
+    expect(await etapaDe(dealId)).toBe(de);
     expect(await historial(dealId)).toEqual(historialAntes);
   });
 
