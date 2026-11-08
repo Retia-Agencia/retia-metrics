@@ -62,3 +62,7 @@ muestra"*, y el % de cierre de un closer es *"sobre las llamadas que hizo show"*
   288 deals estaban en `agendada` con la cita ya pasada y el % de show daba 11%). El hueco ya no se esconde dentro de
   la tasa: aparece como un conteo de pendientes, que es un problema de registro de los closers y no de conversión.
   `docs/metricas.md` se actualiza en el mismo commit.
+
+## Enmienda 390 (7-nov-2026): captura del resultado
+
+La cita pasada sin resultado sigue fuera del cociente y se muestra aparte; lo que cambia es que ya no se espera a que el closer la marque por iniciativa propia: Mi espacio le muestra el chip «Sin resultado» y el Inbox del equipo cuenta las pendientes por closer. Es un recordatorio, nunca una reja: un dato por marcar no bloquea ningún cobro. Quedó **abierta** una decisión de Mani: si la cita suelta (sin deal) cuenta como por marcar (`CITA_SUELTA_CUENTA_COMO_POR_MARCAR`, hoy `false`).

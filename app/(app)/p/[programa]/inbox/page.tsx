@@ -87,7 +87,11 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
           id: "por-registrar",
           etiqueta: "Por registrar",
           total: inbox.llamadasDeHoy.length,
-          descripcion: "Llamadas que ya pasaron y nadie registró qué pasó. Registra si hubo show, si se reagendó o si se cayó.",
+          descripcion: `Llamadas que ya pasaron y nadie registró qué pasó. Registra si hubo show, si se reagendó o si se cayó.${
+            inbox.porMarcarPorCloser.length > 0
+              ? ` Por closer: ${inbox.porMarcarPorCloser.map((fila) => `${fila.closer} ${fila.cantidad}`).join(" · ")}.`
+              : ""
+          }`,
           href: urlConSeccion(base, query, "por-registrar"),
         },
         {

@@ -16,6 +16,7 @@ const ANCLAS = {
   primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
   fecha_del_abono: "fecha del abono",
   primera_aplicacion: "día de su primera aplicación (Bogotá)",
+  hora_de_la_cita: "hora de la cita (agenda, o la llamada si no tiene)",
 } as const;
 const COBERTURAS = {
   no_aplica: "—",

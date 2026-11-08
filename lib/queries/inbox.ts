@@ -23,6 +23,7 @@ import { closerHost, emparejarLlamada, type CloserDelPrograma } from "@/lib/cale
 import { candidatosPorCorreo, closersConCalendly } from "@/lib/calendly/colgar-llamada";
 import { HORAS_PARA_ALERTAR_CITA_SUELTA } from "@/lib/calendly/reconciliar";
 import type { Rol } from "@/lib/auth/roles";
+import { porMarcarPorCloser as porMarcarPorCloserDe } from "@/lib/deals/resultados-de-llamada";
 import { normalizarTelefono } from "@/lib/ingesta/envio";
 import { linkEnviadoSinCita } from "@/lib/deals/handoff";
 import type { OrigenDeFila } from "@/lib/queries/inbox-sin-dueno";
@@ -143,6 +144,8 @@ export interface FilaAtencion {
 export interface Inbox {
   /** Sección 1: llamadas que ya pasaron sin resultado, la más vieja primero. */
   llamadasDeHoy: FilaLlamada[];
+  /** El recordatorio (390): cuántas de esas citas por marcar tiene cada closer. Solo con alcance "equipo". */
+  porMarcarPorCloser: { closer: string; cantidad: number }[];
   /** Sección 3: llamadas sueltas del programa, la más vieja primero. */
   llamadasSueltas: FilaLlamada[];
   /** Citas de Calendly cuya host no tiene cuenta vinculada en el programa. */
@@ -277,7 +280,8 @@ export async function inboxDelPrograma(
     seccionAtencion(db, programId, alcance, hoy, diasEstancado),
   ]);
 
-  return { llamadasDeHoy, llamadasSueltas, llamadasSinCloser, atencion };
+  const porMarcarPorCloser = alcance === "equipo" ? porMarcarPorCloserDe(llamadasDeHoy) : [];
+  return { llamadasDeHoy, porMarcarPorCloser, llamadasSueltas, llamadasSinCloser, atencion };
 }
 
 // ───────────────────────────────────────────── sección 1: llamadas que ya pasaron sin resultado

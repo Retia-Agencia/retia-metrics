@@ -48,7 +48,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0077](./0077-cada-dato-vive-en-la-pantalla-de-su-objeto.md) | Cada dato vive en la pantalla de su objeto (Programa, Perfil, Deal, Lead) y lo que no se usa se quita; la llamada siempre tiene closer; los canales los crea quien `manejaPauta`; tres franjas en la ficha |
 | [0078](./0078-corregir-el-ultimo-movimiento.md) | Corregir deshace el último movimiento humano, restaura su pendiente y exige motivo de corrección (**enmendado por el 0117**) |
 | [0117](./0117-deshacer-con-motivo-opcional.md) | Deshacer desde el log restaura cualquier evento humano deshacible, en cualquier momento y con motivo opcional; Corregir etapa elige un destino permitido |
-| [0079](./0079-las-tasas-se-cuentan-sobre-el-mismo-grupo.md) | Las tasas del embudo (show, cierre, agenda → venta) se cuentan por deal sobre la cohorte de citas del rango; por closer, sobre sus shows |
+| [0079](./0079-las-tasas-se-cuentan-sobre-el-mismo-grupo.md) | Las tasas del embudo (show, cierre, agenda → venta) se cuentan por deal sobre la cohorte de citas del rango; por closer, sobre sus shows; la cita pasada sin resultado se empuja a marcar en Mi espacio y el Inbox, sin bloquear (enmienda 390) |
 | [0083](./0083-el-humo-de-la-ui.md) | Las pantallas se prueban con un humo de Playwright que abre todo con cada rol, no con tests de componente |
 | [0084](./0084-un-gerente-puede-operar-como-closer.md) | Un gerente puede operar como closer: capacidad `opera_como_closer`, no un segundo rol (enmienda el 0003) |
 | [0085](./0085-los-archivos-viven-en-storage-y-la-base-los-referencia.md) | Los archivos viven en Storage y la base solo los referencia: tabla `archivos` + FK en el dueño, subida directa firmada, respaldo a Drive (enmienda el 0017 punto 3) |

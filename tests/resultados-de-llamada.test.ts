@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, relative } from "node:path";
+import { ETAPAS_CERRADAS } from "@/lib/queries/metricas-filtros";
 import {
+  CITA_SUELTA_CUENTA_COMO_POR_MARCAR,
+  citaCuentaComoPorMarcar,
   citaSinResultado,
+  porMarcarPorCloser,
   noAsistio,
   noShowPorCita,
   noShowPorDeal,
@@ -89,6 +93,30 @@ export function infraccionesDeResultados(fuente: string, ruta: string): string[]
   if (ruta !== MODULO_DE_FILTROS && CITA_SIN_RESULTADO_A_MANO.test(fuente)) encontradas.push("cita sin resultado a mano");
   return encontradas;
 }
+
+describe("cita por marcar y recordatorio (390)", () => {
+  const ahora = new Date("2026-11-07T15:00:00Z");
+  const pasada = { resultado: "agendada", fechaAgenda: new Date("2026-11-01T15:00:00Z"), fechaLlamada: null };
+
+  it("cuenta la cita de un deal abierto y deja fuera la de un deal cerrado, la futura y la ya marcada", () => {
+    expect(citaCuentaComoPorMarcar({ ...pasada, dealId: "d", etapaDelDeal: "contactado" }, ahora)).toBe(true);
+    for (const etapa of ETAPAS_CERRADAS) expect(citaCuentaComoPorMarcar({ ...pasada, dealId: "d", etapaDelDeal: etapa }, ahora)).toBe(false);
+    expect(citaCuentaComoPorMarcar({ ...pasada, fechaAgenda: new Date("2026-11-09T15:00:00Z"), dealId: "d", etapaDelDeal: "contactado" }, ahora)).toBe(false);
+    expect(citaCuentaComoPorMarcar({ ...pasada, resultado: "show", dealId: "d", etapaDelDeal: "contactado" }, ahora)).toBe(false);
+  });
+
+  it("la cita suelta obedece UNA constante (la decisión de Mani)", () => {
+    expect(citaCuentaComoPorMarcar({ ...pasada, dealId: null, etapaDelDeal: null }, ahora)).toBe(CITA_SUELTA_CUENTA_COMO_POR_MARCAR);
+  });
+
+  it("cuenta por closer, de mayor a menor, con los sin dueño aparte", () => {
+    const filas = [{ ownerNombre: "Maru" }, { ownerNombre: "Andrea" }, { ownerNombre: "Maru" }, { ownerNombre: null }];
+    expect(porMarcarPorCloser(filas)).toEqual([
+      { closer: "Maru", cantidad: 2 }, { closer: "Andrea", cantidad: 1 }, { closer: "Sin dueño", cantidad: 1 },
+    ]);
+    expect(porMarcarPorCloser([])).toEqual([]);
+  });
+});
 
 describe("guardián N1: los resultados de llamada se deciden en un solo módulo", () => {
   it("nadie fuera del módulo escribe la lista, el no_show a mano ni la cita sin resultado", () => {

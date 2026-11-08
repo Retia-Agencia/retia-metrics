@@ -30,7 +30,7 @@ export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero
 export type MonedaDeMetrica = "usd" | "cop";
 
 /** Los hechos de `docs/metricas.md` §1 que ya tienen módulo en `lib/queries/hechos/`. */
-export type HechoDeMetrica = "venta" | "abono" | "lead";
+export type HechoDeMetrica = "venta" | "abono" | "lead" | "cita";
 
 /** La dimensión que cada hecho admite: la lista blanca del módulo, por tipo (C-2). */
 export interface DimensionesPorHecho {
@@ -38,6 +38,8 @@ export interface DimensionesPorHecho {
   abono: DimensionAbono;
   /** El lead aún no tiene módulo de hecho en `hechos/`: solo filtra por la cohorte de su deal (`filtroLeads`). */
   lead: "cohorte";
+  /** La cita pasada sin resultado no se agrupa: es una lista de lo que el closer debe marcar (390). */
+  cita: never;
 }
 
 /**
@@ -47,7 +49,8 @@ export interface DimensionesPorHecho {
 export type AnclaDeFecha =
   | "primera_entrada_a_venta"
   | "fecha_del_abono"
-  | "primera_aplicacion";
+  | "primera_aplicacion"
+  | "hora_de_la_cita";
 
 /** Las tablas cuya lectura debe pasar por `vigente()` para esta métrica (ADR 0026, 0038). */
 export type TablaConVigencia = "deals" | "abonos" | "calls" | "deal_actividades";
@@ -104,8 +107,11 @@ const DIMENSIONES_DE_ABONO = ["dia", "semana", "mes", "dueno", "cohorte", "moned
 const DINERO_DE_VENTAS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeVentas" };
 const DINERO_DE_SALDOS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeSaldos" };
 
+const CITA_SIN_RESULTADO: ReferenciaAFuncion = { archivo: "lib/queries/metricas-filtros.ts", nombre: "citaVencidaSinResultado" };
+const CITA_SIN_RESULTADO_EN_MEMORIA: ReferenciaAFuncion = { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "citaCuentaComoPorMarcar" };
+
 /**
- * Los conceptos ya registrados, por clave de `lib/vocabulario-metricas.ts`. Seis (con `leads`, ticket 389), a propósito: el esqueleto
+ * Los conceptos ya registrados, por clave de `lib/vocabulario-metricas.ts`. Ocho (con `leads`, ticket 389, y la cita sin resultado, 390), a propósito: el esqueleto
  * ejercita los tres tipos (simple, derivada y el dinero con moneda) sin tocar el área del 353 (show, cita sin
  * resultado, agenda) ni la de Pauta (355).
  */
@@ -193,6 +199,36 @@ export const REGISTRO = {
     funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "filtroLeads" },
     gemelaTs: { archivo: "lib/ingesta/ingerir.ts", nombre: "primeraAplicacion" },
     listas: ["leads"],
+  }),
+  // Cita pasada sin resultado (353, 390): UN concepto con dos claves del vocabulario (Hoy y Inbox) hasta que el 397
+  // las funda; la regla es una sola, `citaVencidaSinResultado(ahora, "excluir")` y su gemela en memoria.
+  llamadas_sin_resultado: ficha("cita", {
+    filaDelDiccionario: "Cita pasada sin resultado (por marcar)",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: [],
+    vigencia: ["calls", "deals"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: CITA_SIN_RESULTADO,
+    gemelaTs: CITA_SIN_RESULTADO_EN_MEMORIA,
+    listas: [],
+  }),
+  citas_pendientes: ficha("cita", {
+    filaDelDiccionario: "Cita pasada sin resultado (por marcar)",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "hora_de_la_cita",
+    dimensiones: [],
+    vigencia: ["calls", "deals"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: CITA_SIN_RESULTADO,
+    gemelaTs: CITA_SIN_RESULTADO_EN_MEMORIA,
+    listas: ["sin_resultado"],
   }),
 } as const satisfies Partial<Record<ClaveDeMetrica, FichaDeMetrica>>;
 
