@@ -216,6 +216,22 @@ export const REGISTRO = {
     funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "filtroCaja" },
     listas: ["caja"],
   }),
+  // Comisión (393): Σ valor vendido × el % congelado en el deal; por closer va al dueño del deal.
+  comision: ficha("venta", {
+    filaDelDiccionario: "Comisión",
+    tipo: "derivada",
+    de: ["vendido"],
+    unidad: "dinero",
+    monedas: ["usd"],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: DIMENSIONES_DE_VENTA,
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "exclusiones_contadas_aparte",
+    funcionSql: { archivo: "lib/queries/comision.ts", nombre: "comisionesPorCloser" },
+    gemelaTs: { archivo: "lib/queries/comision.ts", nombre: "comisionDeDeal" },
+    listas: [],
+  }),
   leads: ficha("lead", {
     filaDelDiccionario: "Leads",
     tipo: "simple",

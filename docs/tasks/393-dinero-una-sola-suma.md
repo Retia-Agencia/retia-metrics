@@ -3,7 +3,7 @@ id: 393
 etapa: hub
 serves: "Auditoría 385 H-05, H-20, H-21, F2-06 · ADR 0024 · ADR 0115 N1, N2"
 depends: [392]
-status: todo
+status: en main
 ---
 
 # 393 — Dinero: una sola suma
@@ -32,8 +32,12 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] `dineroDeVentas` es la única suma; ningún componente suma una lista de ventas; ningún `sum(abonos.monto)` fuera de `saldo.ts` (el guardián de `saldo-centralizado` ya lo vigila).
-- [ ] Test de paridad con el caso que las haría divergir: una venta sin valor vendido, en Hub, Students y lista.
-- [ ] Los números dorados de dinero no cambian.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
-- [ ] Registro: ficha de `comision` y `cupos_con_caja` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+- [x] `dineroDeVentas` es la única suma; ningún componente suma una lista de ventas; ningún `sum(abonos.monto)` fuera de `saldo.ts` (el guardián de `saldo-centralizado` ya lo vigila).
+- [x] Test de paridad con el caso que las haría divergir: una venta sin valor vendido, en Hub, Students y lista.
+- [x] Los números dorados de dinero no cambian.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Registro: ficha de `comision` y `cupos_con_caja` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+
+## Resultado (8-nov)
+
+Diseño de la decisión de Mani («todo Student tiene valor vendido»): **reja, sin `CHECK`**. `requisitos.ts` ya exige `valor_vendido` en E6, E11, E12 y E13 y nadie usa la exención histórica; el valor se recalcula, no se anula; en producción los 70 deals vendidos tienen valor. Un `CHECK` habría obligado a tocar ~39 archivos de tests sin cerrar un hueco real. Queda `DineroDeVentas.sinValorVendido` como alarma de integridad (debe dar 0). Se borraron `contratadoDeDeals`, `ContratadoDeDeals` y `contratadoDelRango` (hecho por Codex, revisado); nota: la suma antigua incluía ventas con abonos en otra moneda y la nueva las deja fuera de `vendido` y las cuenta en `sinSaldoCalculable` (hoy 0 casos). Registro: `comision` registrada. **`cupos_con_caja` no se migró aquí** (su prosa y su función `leerVentana` no encajan con el registro; queda para el 403).
