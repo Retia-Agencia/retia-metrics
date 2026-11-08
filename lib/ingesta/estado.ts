@@ -3,8 +3,8 @@ import type { Calificacion } from "./calificacion";
 /**
  * El Estado de llegada de un envio, desde su texto crudo (ADR 0061). Lo pone el
  * FORMULARIO y el CRM confia en el: esta funcion solo lo LIMPIA, no lo califica ni lo
- * valida. Si el valor abre deal lo decide la fila de `estados_llegada`
- * (`lib/ingesta/estados-llegada.ts`), que es donde se sabe si un valor se reconoce.
+ * valida. Si el envio abre deal y en que etapa lo decide `etapaDeEntrada`
+ * (`lib/ingesta/etapa-de-entrada.ts`, ADR 0069); la tabla `estados_llegada` se borro en la 0059.
  *
  * Acepta dos formas del mismo hecho, sin adivinar entre ellas:
  *

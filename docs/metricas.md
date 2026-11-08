@@ -439,7 +439,50 @@ pie. No agrega ninguna cifra a la tabla de arriba, salvo estas:
 | El texto por closer ("9 agendas: 1 cierre, 2 no-show...") | la lista de cada cifra | · | · | fuera del 299 |
 
 **Lo que no viaja en el tiempo:** las banderas (llamadas pasadas sin resultado, atendidos sin valor, sin Grain)
-son una foto de ahora (la cartera ya no existe aparte: es Por cobrar, que sigue los filtros); qué cohorte está activa también se lee de ahora.
+son una foto de ahora (la **cartera vencida** también, §3.6: existe aparte de Por cobrar, que no mira fechas y sigue los filtros); qué cohorte está activa también se lee de ahora.
+
+### 3.6 Métricas operativas fuera del Hub (398, H-28)
+
+> Cifras que las pantallas de Programa, Mi espacio y el MCP ya muestran y que el diccionario no definía. Cada fila se
+> comprobó contra el código el 7-nov. **El rótulo visible lo fija el glosario del ticket 397**: aquí va el nombre que hoy
+> usa el código. «Retiro» marca lo que otro ticket decide quitar o unir.
+
+| Métrica (nombre en el código) | Qué cuenta | Unidad | ¿Se suma? | Función | Estado |
+|---|---|---|---|---|---|
+| Cartera vencida | deals vigentes en **Abonado** con saldo > 0 cuya fecha límite de pago ya pasó (estrictamente anterior a hoy, Bogotá). Fecha efectiva = `fecha_limite_pago` del deal; sin ella, el inicio de clases de su cohorte o de la activa; sin ninguna, se cuenta aparte en `sinFechaDeReferencia`. El saldo sale de `saldosDeDeals`. **No es Por cobrar** (§3.1): Por cobrar suma el saldo de las ventas del periodo sin mirar fechas; la cartera vencida es una lista con fecha, foto de hoy (ADR 0053) | deals y USD/COP | no: por programa | `carteraVencida` en `lib/queries/cartera.ts:55` (la usan Students, Kanban, Inbox, notificaciones y la tool `cartera_vencida` del MCP) | ✅ |
+| Students (lista) | deals en etapa vendida (`etapaVendida()`, la misma de una venta) con su saldo, acuerdo de pago, si están vencidos y su onboarding; filtros por cohorte, closer, búsqueda y onboarding | estudiantes | no | `estudiantesDe` en `lib/queries/estudiantes.ts:36`, `studentsDelPrograma` | ✅ |
+| Students (totales) | sobre las **mismas filas ya filtradas**: Σ abonado y Σ saldo > 0 por moneda, y cuántos no tienen valor vendido; no consulta ni recalcula saldos | USD · COP por moneda | no | `totalesDeStudents` en `lib/queries/estudiantes-totales.ts:20` | ✅ |
+| Cortesías | deals del programa marcados `cortesia` que entran al rango; **no son ventas** ni entran al grupo de citas ni a las banderas (llevan valor 0) | deals | sí | `contarCortesias` (`lib/queries/dashboard.ts:211`) sobre `filtroCortesias` (`metricas-filtros.ts:301`) | ✅ |
+| Descuento promedio | por venta, ticket de la cohorte − valor vendido (en USD y en %), y su promedio simple en el rango; una venta sin ticket o sin valor no entra | USD y % | no (el % nunca) | `descuentoDeDeal` en `lib/queries/saldo.ts:72`; promedio en `lib/queries/vista-dashboard.ts:299` | ✅ |
+| Perdidos por motivo | deals que **hoy** están en Cierre Perdido, cerrados en el rango, agrupados por el motivo (catálogo `motivos`); anulados fuera (ADR 0038). Un deal sin motivo no aparece | deals | sí por motivo; no entre programas con catálogos distintos | `dealsPerdidosPorMotivo` en `lib/queries/dashboard.ts:451` (hoy sin llamador fuera de `tests/`: la pantalla no la pinta) | retiro pendiente, 361 (R-11) o 403 |
+| Ventas por cohorte | las ventas del rango (§1.4) agrupadas por la cohorte del deal, con su contratado y las tres cifras del dinero (369); incluye las de cohortes que aún no inician clases y las «sin cohorte» | ventas y USD | sí | `ventasPorCohorte` en `lib/queries/dashboard.ts:300` | ✅ |
+| Banderas del pulso: atendido sin valor | sobre los deals **atendidos** (Atendido, Compromiso verbal, Ganado parcial o Completo; sin cortesías), los que están en una etapa que exige el valor vendido y lo tienen en 0 o nulo; % sobre los atendidos. **Foto de hoy**: el periodo no la acota | deals y % | sí (el % no) | `sinValorVendido`, `filtroAtendidos`, `banderasDelPulso` en `lib/queries/banderas-del-pulso.ts:29,47,76`; su lista, `metricas-con-filas.ts` | ✅ |
+| Banderas del pulso: atendido sin Grain | los mismos atendidos con al menos una llamada vigente atendida sin enlace de grabación (ADR 0066); foto de hoy | deals y % | sí (el % no) | `conLlamadaSinGrain` (`banderas-del-pulso.ts:55`) y `esAtendidaSinGrain` (`lib/queries/sin-grain.ts:31`) | ✅ |
+| Alertas de cohorte (por persistencia) | por umbral activo del programa, la **racha** de días hábiles cerrados seguidos con cumplimiento (vendido hasta ese día ÷ esperado lineal) por debajo del `aceptable`; se dispara cuando la racha llega a `diasSeguidos`. Hoy no cuenta, un día sin esperado corta la racha, se calcula al leer (ticket 147) | racha y días | no | `alertasDelPrograma` y `evaluarAlerta` en `lib/queries/alertas.ts:119,96` | ✅ |
+| Embudo por pregunta | por pregunta de cada formulario de Typeform, cuántas personas llegaron y se salieron, **leído en vivo** de la API de Insights con el token de la fuente y con caché de 5 minutos; no guarda nada y no pasa por la base (ticket 126 B) | personas | no | `embudoPorPregunta` en `lib/queries/embudo-por-pregunta.ts:38` | ✅ |
+| Próxima cohorte (cola) | deals que esperan cohorte: «sin asignar» o «asignada» a una próxima, con desde cuándo esperan. La fecha de espera se deriva hoy del texto `Esperando corte: …` de `deal_actividades.nota` (frágil, F3 de la auditoría) | deals | no | `dealsDeProximaCohorte` en `lib/queries/proxima-cohorte.ts:27` | ✅ · retiro de la derivación por texto pendiente (F3) |
+| Potencial y Confirmado del tablero | por columna del Kanban: **Potencial** = Σ del precio de sus tarjetas (el del saldo del deal o, sin él, el de la cohorte; `kanban.ts:480`); **Confirmado** = Σ lo abonado, solo en las etapas donde se abona (en el resto, `null`) | USD | no | `confirmadoDeColumna` y `potencialUsd` en `lib/queries/kanban.ts:116-141` | ✅ |
+| Inbox: llamadas sin resultado, sueltas, sin closer, perdidos en Calendly y «lo mío que necesita atención» | cinco listas **de ahora**, no siguen el periodo: citas pasadas sin resultado (`citaVencidaSinResultado`, excluye negocios cerrados), citas de Calendly sin deal, citas cuyo anfitrión no tiene cuenta, registros High parciales sin dueño tras `MINUTOS_PERDIDO_EN_CALENDLY` (5) y deals con motivo (`MotivoAtencion`: reagenda sin fecha, compromiso vencido, pago vencido, abono sin comprobante, reenvío sin atender, link sin cita, próximo contacto vencido, estancado) | filas | no | `inboxDelPrograma` (`lib/queries/inbox.ts:258`), `llamadasSueltasDelPrograma` (`:390`), `llamadasSinCloserDelPrograma` (`:336`), `perdidosEnCalendly` (`:181`) | ✅ |
+| Bandeja | los pendientes del día de quien la pide, según su rol, para el MCP y Mi espacio | filas | no | `bandejaParaActor` en `lib/queries/operacion.ts:58` | ✅ |
+| Leads (lista del programa) | personas `(programa, correo)` con filtros por calidad, closer, fuente y duplicado; **no es «Leads» del Hub** (que cuenta personas nuevas del rango, §1.1/N1): es el universo completo del programa | personas | no | `lib/queries/leads.ts` (`CALIDADES_DE_LEAD` `:55`) | ✅ · nombre visible: lo fija el 397 |
+| Calidad del lead | el `lead_quality` que mandó el formulario, **tal como llegó** (High, Mid, Low o «sin calidad»); filtro de Leads y dimensión de la escalera. **Es texto copiado de la fuente**: el único valor que el código lee es `High`, y solo en la frontera de abajo | texto | no | `esCalidadAlta` en `lib/ingesta/etapa-de-entrada.ts:52`; filtro en `lib/queries/leads.ts:137`; escalera `escalera.ts:298` | ✅ |
+| Posibles duplicados | contactos cuyo correo entró por teléfono y nadie confirmó (ADR 0035), con el teléfono en común; el closer ve solo los de sus deals abiertos | contactos | no | `PosibleDuplicado` y `DUPLICADOS_POR_PAGINA` en `lib/queries/leads.ts:376-392`; el aviso entre programas, `otrosProgramasDelCorreo` (`lib/queries/otros-programas-del-correo.ts:35`), **no entra en ninguna métrica** | ✅ |
+| Reagendadas | citas del rango con resultado `reagendada`; se muestran aparte (no cuentan en el grupo de tasas: la representa la nueva) | citas | sí | `reagendadas` en `embudoDelRango` (`lib/queries/dashboard.ts:123-126,405`) | ✅ |
+| Origen del cierre (cómo nació la venta) | por venta del día: agenda del día, seguimiento o sin llamada (§3.5). La versión de §3.4 por periodo sigue 🟡 254 | ventas | sí | `comoNacioLaVenta` (`lib/queries/reporte-diario.ts`) | ✅ en Hoy · 🟡 254 para el periodo |
+| Meta CAPI (salud del envío de eventos) | de los **últimos 7 días**, eventos del programa por estado (`enviado`, `fallido`, `vencido`, `omitido`) y cuántos enviados llevaron `fbc`; es monitoreo de la integración, no una métrica de negocio | eventos | no | `resumenMetaCapi` en `lib/meta-capi/resumen.ts:14` | ✅ |
+| Nerd Stats | conteos de control del developer: personas, llamadas, ventas y abonos por programa y por origen, últimos cambios, usuarios activos por rol y salud de las fuentes. No es una métrica de negocio y no se cita como cifra | conteos | no | `conteosPorPrograma` y `fuentesConSalud` en `lib/queries/nerd-stats.ts:36,198` | ✅ |
+
+**Constantes de método** (cada una con su override si lo tiene): `UMBRAL_SIN_MARCAR = 0.1` y `DIAS_PARA_MADURAR = 30` en
+`lib/queries/tasas-del-grupo.ts` (el segundo con `diasParaMadurarDe` por programa), `MUESTRA_MINIMA_CONVERSION = 20` en
+`lib/queries/proyeccion.ts` (con override por programa).
+
+**Frontera de `lead_quality`.** `lead_quality` es **texto del formulario** y se guarda como llegó (ADR 0004). El código decide
+con un solo valor, `High` (sin mayúsculas ni espacios): `esCalidadAlta` (`lib/ingesta/etapa-de-entrada.ts:52`) manda un envío
+completo a Calificado y a un parcial a Potencial; `perdidosEnCalendly` (`lib/queries/inbox.ts:213`) reescribe el mismo
+`lower(trim(…)) = 'high'` en SQL; `llegoAlCalendly` (§3.1) lo cuenta; y el adaptador de Dapta lo **escribe**
+(`adaptador-dapta.ts:110-124`: `High` o `Low`). Es una constante de frontera, no un enum: un formulario que cambie la etiqueta
+manda a todos a Registrado sin error, y por eso existe la alarma «sin calidad» de `salud-fuentes.ts`. Las dos lecturas de `High`
+(TypeScript y SQL) tienen que cambiar juntas.
 
 ## 4. Cuentas de Meta por programa (producción, 15-oct)
 

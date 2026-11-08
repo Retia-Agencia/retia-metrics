@@ -507,13 +507,20 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Valor vendido:** lo que el closer escribe que vendió en un deal, en USD. Vacío hasta que lo escribe;
   obligatorio para que el deal sea venta. *No confundir con el ticket base ni con lo abonado.*
 - **Descuento:** ticket base de la cohorte menos el valor vendido, en número y %.
+- **Calidad del lead:** el `lead_quality` que mandó el formulario, tal como llegó (High, Mid, Low o «sin calidad»). El código
+  solo decide con `High` (puerta de entrada, ADR 0069); es texto de la fuente, no un tipo cerrado (`docs/metricas.md` §3.6).
+- **Bandera del pulso:** deal atendido al que le falta algo: sin valor vendido o con una llamada sin Grain. Foto de hoy; el
+  periodo no la acota (`docs/metricas.md` §3.6). **Alerta de cohorte:** una métrica del semáforo de la meta por debajo de su
+  aceptable N días hábiles cerrados seguidos; se calcula al leer.
 - **Comisión:** un porcentaje del valor vendido; el porcentaje es el del programa el día de la venta y no
   cambia después; se exige al vender: un programa sin % no puede registrar una venta (356).
 - **Abono:** un pago recibido, con fecha, monto, moneda, plataforma y comprobante.
 - **Saldo:** valor vendido menos lo abonado. Es nulo, no cero, cuando no hay valor vendido.
 - **Sobrepago:** un abono que dejaría el saldo negativo; se rechaza salvo confirmación explícita.
 - **Acuerdo de pago y fecha límite:** la nota de cómo se pactó pagar el saldo y hasta cuándo. **Cartera
-  vencida:** saldo pendiente con la fecha límite pasada.
+  vencida:** deals en Abonado con saldo pendiente y la fecha límite pasada (la del deal o, sin ella, el inicio de clases de su
+  cohorte); una lista de hoy, no una suma de periodo. *No es **Por cobrar*** (saldo de las ventas del periodo, sin fechas).
+  Definición en `docs/metricas.md` §3.6.
 - **Plataforma de pago:** por dónde entra un pago (PayPal, MercadoPago...). **Enlace de pago:** un link
   de cobro concreto de un programa ("PayPal 797 USD"). Un enlace siempre es de un programa; una
   plataforma puede servir a varios.

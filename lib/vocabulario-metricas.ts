@@ -2,7 +2,8 @@
  * El vocabulario del Hub (ticket 374, ADR 0115 N4): UN nombre por cifra.
  * Cada métrica tiene clave, nombre corto (tarjetas, columnas), nombre largo (títulos, listas) y una línea
  * de definición (tooltip). Las pantallas del Hub y sus listas toman el rótulo de aquí, nunca de un literal.
- * Alineado con `docs/overview.md` §11 y `docs/metricas.md`. "Monto" y "Contratado" no existen: se dice
+ * Alineado con `docs/overview.md` §11 y `docs/metricas.md` (los rotulos visibles los fija el glosario del 397;
+ * "Agendadas" aun no coincide con la tarjeta de citas por fecha de cita, H-27). "Monto" y "Contratado" no existen: se dice
  * Vendido, Recaudado, Por cobrar o Entró a caja, según la pregunta (369: las tres primeras sobre las mismas ventas).
  */
 export type ClaveDeMetrica =
