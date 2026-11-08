@@ -105,6 +105,7 @@ beforeEach(async () => {
     leadId: ajeno.id,
     programId: otroProgramId,
     submissionOrigenId: envioAjeno.id,
+    ownerUserId: ownerId,
     etapa: "ganado_parcial",
   }).returning().then(([fila]) => fila);
 

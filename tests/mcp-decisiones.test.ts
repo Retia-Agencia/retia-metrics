@@ -219,6 +219,7 @@ describe("pauta_roas", () => {
       programId: programaA,
       leadId: pagado.persona.id,
       submissionOrigenId: pagado.fila.id,
+      ownerUserId: closerId,
       etapa: "ganado_completo",
       valorVendidoUsd: "300",
     }).returning();
@@ -228,6 +229,7 @@ describe("pauta_roas", () => {
       programId: programaA,
       leadId: anulado.persona.id,
       submissionOrigenId: anulado.fila.id,
+      ownerUserId: closerId,
       etapa: "ganado_completo",
       valorVendidoUsd: "900",
       anuladoEn: new Date("2026-11-03T12:00:00-05:00"),

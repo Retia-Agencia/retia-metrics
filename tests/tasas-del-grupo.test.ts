@@ -91,11 +91,11 @@ beforeEach(async () => {
   // Fuera del grupo.
   const anulado = await deal(programaA, "atendido", { anuladoEn: new Date(), anuladoPor: ana, motivoAnulacion: "error" });
   await cita(programaA, anulado, ana, "2026-09-22", "show");
-  const cortesia = await deal(programaA, "ganado_completo", { cortesia: true });
+  const cortesia = await deal(programaA, "ganado_completo", { cortesia: true, ownerUserId: ana });
   await cita(programaA, cortesia, ana, "2026-09-22", "show");
   const reagendada = await deal(programaA, "agendado");
   await cita(programaA, reagendada, ana, "2026-09-22", "reagendada");
-  const otroPrograma = await deal(programaB, "ganado_parcial");
+  const otroPrograma = await deal(programaB, "ganado_parcial", { ownerUserId: ana });
   await cita(programaB, otroPrograma, ana, "2026-09-22", "show");
 
   // Esta semana: un show sin venta, y una cita futura que no cuenta todavía.

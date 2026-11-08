@@ -18,6 +18,7 @@ import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
 const HOY = "2026-09-15";
 const RANGO = { desde: HOY, hasta: HOY };
@@ -58,6 +59,7 @@ beforeEach(async () => {
     const [deal] = await db.insert(deals).values({
       programId: programa.id,
       leadId: lead.id,
+      ownerUserId: await duenoDePrueba(db, programa.id),
       etapa: "ganado_parcial",
       valorVendidoUsd: indice ? "1500" : "797",
       comisionPorcentaje: indice ? "5" : "10",

@@ -672,7 +672,7 @@ describe("los hechos salen de la base", () => {
   });
 
   it("el dinero mueve el deal: Abonado con saldo, Completo sin saldo, y A1 vuelve a la etapa de donde vino", async () => {
-    const dealId = await nuevoDeal("atendido");
+    const dealId = await nuevoDeal("atendido", { ownerUserId: closer });
     await db.insert(dealEtapaHistorial).values({ dealId, de: "agendado", a: "atendido" });
     const [primero] = await db
       .insert(abonos)
@@ -744,7 +744,7 @@ describe("los hechos salen de la base", () => {
         estado: "activo",
       })
       .returning();
-    const dealId = await nuevoDeal("atendido", { cohortId: cohorte.id, valorVendidoUsd: null });
+    const dealId = await nuevoDeal("atendido", { cohortId: cohorte.id, valorVendidoUsd: null, ownerUserId: closer });
     await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto, comprobanteUrl: "https://x/valor.png" });
 
     const e = await rechazo(moverEtapa(db, { dealId, a: destino, actor: sistema }));

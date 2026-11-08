@@ -11,6 +11,7 @@ import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
 /**
  * Ticket 353 (ADR 0115 N2): el mismo set de citas, la misma cifra en Hoy, Pauta, el grupo del embudo y la
@@ -33,7 +34,7 @@ async function sembrar() {
   const programId = programa!.id;
   const nuevoDeal = async (correo: string, etapa: "agendado" | "atendido" | "ganado_completo") => {
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `${correo}@retia.co` }).returning();
-    const [deal] = await db.insert(deals).values({ programId, leadId: lead!.id, etapa }).returning();
+    const [deal] = await db.insert(deals).values({ programId, leadId: lead!.id, etapa, ownerUserId: await duenoDePrueba(db, programId) }).returning();
     return deal!;
   };
   const creada = { createdAt: a("08:00:00") };

@@ -63,7 +63,8 @@ async function nuevoLeadConDeal(email: string, etapa: "registrado" | "ganado_com
   const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: email, nombre: email }).returning();
   const dealId = await abrirDeal(db, { leadId: l.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
   if (etapa !== "registrado") {
-    await db.update(deals).set({ etapa }).where(eq(deals.id, dealId));
+    // Una venta tiene dueño (ADR 0122): se fija junto con la etapa.
+    await db.update(deals).set({ etapa, ownerUserId: andrea }).where(eq(deals.id, dealId));
   }
   return dealId;
 }

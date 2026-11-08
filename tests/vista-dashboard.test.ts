@@ -52,7 +52,8 @@ async function sembrarDosClosers() {
     .returning();
   const [deal] = await db
     .insert(deals)
-    .values({ leadId: lead.id, programId: programaA, etapa: "ganado_parcial" })
+    // Closer solo historico (texto "Ana", sin cuenta): una venta sin dueño solo existe como historia migrada (ADR 0122).
+    .values({ leadId: lead.id, programId: programaA, etapa: "ganado_parcial", huellaMigracion: "hoja:vista-dashboard-ana" })
     .returning();
   await db.insert(abonos).values({
     dealId: deal.id,
@@ -81,7 +82,8 @@ describe("el closer elegido acota la vista, menos el comparativo", () => {
 
   it("muestra las ventas sin dueño en una fila sin closer", async () => {
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "sin-closer@retia.co" }).returning();
-    const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, etapa: "ganado_parcial" }).returning();
+    // Venta sin dueño: solo existe como historia migrada (ADR 0122).
+    const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, etapa: "ganado_parcial", huellaMigracion: "hoja:vista-dashboard-sin-dueno" }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,
       a: "ganado_parcial",
