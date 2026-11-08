@@ -150,6 +150,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0119](./0119-el-mcp-del-crm.md) | El MCP del CRM: un servidor dentro de la app, cada persona como ella misma (rol ∩ scope del token), herramientas como adaptadores sobre `lib/`, una tabla de tokens para token personal (fase 1) y OAuth propio con CIMD (fase 2), toda escritura con vista previa y confirmación en el chat, topes blandos y bitácora de llamadas |
 | [0120](./0120-registro-tipado-de-metricas.md) | Un registro tipado y puro de métricas (`lib/metricas/registro.ts`), una ficha por concepto con la clave del vocabulario; el nombre sigue en `lib/vocabulario-metricas.ts`; el diccionario se genera a medias (§3.0 estructurado, prosa a mano); funciones por nombre verificadas por test; migración con trinquete de pendientes (**concreta el 0115 N1, N4 y N7**) |
 | [0121](./0121-el-lead-nace-con-su-fecha-y-sus-contactos.md) | El lead nace con su fecha y sus contactos: la ingesta escribe `fecha_primera_aplicacion` (envío o recepción), un solo ancla de fecha (`fechaAnclaLead`), el alta manual escribe sus contactos y la calificación del resumen desempata de forma estable (**concreta el 0115 N1 y N6; enmienda el 0035**) |
+| [0122](./0122-una-venta-vigente-tiene-dueno.md) | Una venta vigente tiene dueño: `CHECK` en `deals` (Abonado o Completo, no anulada, sin `owner_user_id` se rechaza), después de corregir las 3 ventas y los 3 abonos huérfanos con rastro; la identidad del closer de un abono es `registrado_por_user_id`, no el texto (**concreta el 0115 N6; enmienda el 0030 y el 0037**) |
 
 **Plataforma**
 
