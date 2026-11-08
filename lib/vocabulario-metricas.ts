@@ -14,7 +14,7 @@ export type ClaveDeMetrica =
   | "comision" | "meta" | "esperado_a_hoy" | "faltan" | "por_dia_habil" | "proyeccion"
   // Hub › Hoy (378): los nombres que Mani pidió sin jerga. "Meta" queda solo para la plataforma de pauta.
   | "cupos_vendidos" | "objetivo_del_dia" | "objetivo_de_leads" | "leads_que_hacen_falta" | "llevamos"
-  | "asistencia" | "cierre_de_ventas" | "citas_del_dia" | "citas_realizadas" | "citas_canceladas"
+  | "asistencia" | "cierre_de_ventas" | "cita_a_venta" | "citas_del_dia" | "citas_realizadas" | "citas_canceladas"
   | "citas_pendientes" | "objetivo_semana" | "objetivo_mes" | "objetivo_cohorte"
   | "dias_del_ritmo" | "citas_minimas";
 
@@ -60,6 +60,7 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   llevamos: { corto: "Llevamos", largo: "Llevamos a hoy", definicion: "Lo acumulado desde que empezó el periodo hasta hoy." },
   asistencia: { corto: "Asistencia", largo: "Asistencia", definicion: "De las citas que ya debían ocurrir, cuántas se realizaron." },
   cierre_de_ventas: { corto: "Cierre de ventas", largo: "Cierre de ventas", definicion: "De las citas realizadas, cuántas terminaron en venta." },
+  cita_a_venta: { corto: "Cita a venta", largo: "De cita a venta", definicion: "De las personas que agendaron cita en el periodo, cuántas terminaron en venta." },
   citas_del_dia: { corto: "Citas del día", largo: "Citas del día", definicion: "Citas con fecha de hoy, sin las canceladas." },
   citas_realizadas: { corto: "Realizadas", largo: "Citas realizadas hoy", definicion: "Citas de hoy en las que el closer atendió la llamada." },
   citas_canceladas: { corto: "Canceladas", largo: "Citas canceladas", definicion: "Citas de hoy que se cancelaron; no cuentan para la asistencia." },

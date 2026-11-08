@@ -18,8 +18,11 @@ export interface ResultadoDeHerramienta {
 
 export interface Herramienta<E extends z.ZodObject = z.ZodObject> {
   nombre: string;
+  titulo: string;
   descripcion: string;
   entrada: E;
+  /** Temporalmente opcional mientras el ticket 399 migra las salidas herramienta por herramienta. */
+  salida?: z.ZodObject;
   puede(contexto: ContextoMcp): boolean;
   soloLectura: true;
   ejecutar(contexto: ContextoMcp, entrada: z.output<E>): Promise<ResultadoDeHerramienta>;
