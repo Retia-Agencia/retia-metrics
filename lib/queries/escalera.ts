@@ -180,6 +180,10 @@ export interface EscaleraCargada {
 
 const RANGO_TOTAL: Rango = { desde: "1900-01-01", hasta: "2999-12-31" };
 
+/**
+ * Las ventas de TODO el programa con su dia (392): `ventasConDiaEn` sin limite de fechas, porque la escalera y el
+ * ROAS miden la vida entera del deal y no un periodo. No es otra definicion de venta.
+ */
 export function ventasDelPrograma(db: Db, programId: string, dealIds?: readonly string[]) {
   const ventas = ventasConDiaEn(db, RANGO_TOTAL).as("ventas_de_la_escalera");
   return db.select({ dealId: ventas.dealId, dia: ventas.dia }).from(ventas)

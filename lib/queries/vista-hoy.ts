@@ -8,7 +8,7 @@ import { listaDeMetrica, TAMANO_PAGINA, type FilaDeMetrica, type Metrica } from 
 import { cajaRecaudada, type CajaPorMoneda, type VistaDeCohorte } from "@/lib/queries/dashboard";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
-import { filtroCaja, vendidosEn } from "@/lib/queries/metricas-filtros";
+import { filtroCaja, idsDeVentasEn } from "@/lib/queries/metricas-filtros";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
 import { leerProyeccion, type VentanaRitmo } from "@/lib/queries/proyeccion";
@@ -200,7 +200,7 @@ export async function armarVistaDeHoy(
 /**
  * La caja del día (la misma `cajaRecaudada` de Dinero) partida por el origen de cada abono: los de
  * las ventas de hoy y los que completan una venta anterior. La parte de hoy es la misma suma con un
- * filtro más (el deal está entre los vendidos hoy, `vendidosEn`); la anterior es la diferencia, así
+ * filtro más (el deal está entre los vendidos hoy, `idsDeVentasEn`); la anterior es la diferencia, así
  * que las dos partes siempre suman el total de Dinero.
  */
 export async function cajaDelDiaPorOrigen(
@@ -214,7 +214,7 @@ export async function cajaDelDiaPorOrigen(
     db
       .select({ moneda: abonos.moneda, total: sql<number>`${sumaDeAbonos()}::float8` })
       .from(abonos)
-      .where(and(filtroCaja(alcance, db), vigente(abonos), inArray(abonos.dealId, vendidosEn(db, rango))))
+      .where(and(filtroCaja(alcance, db), vigente(abonos), inArray(abonos.dealId, idsDeVentasEn(db, rango))))
       .groupBy(abonos.moneda),
   ]);
   const deHoyPorMoneda = new Map(deHoy.map((fila) => [fila.moneda, fila.total]));

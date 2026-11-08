@@ -729,7 +729,9 @@ export async function fichaDeDeal(
         }
       : null,
     descuento: descuentoDeDeal(cohorte?.precioUsd, valorVendidoUsd),
-    vendido: saldo.abonosVigentes > 0 || esEtapaVendida(deal.etapa),
+    // 392: el mismo predicado de venta que Students y el Hub (`etapaVendida`, DA-1). Antes tambien contaba un
+    // deal con abonos en cualquier etapa: un perdido con abono seguia "vendido" solo en esta ficha.
+    vendido: esEtapaVendida(deal.etapa),
     cohorte: cohorte ? { id: cohorte.id, codigo: cohorte.codigo, inicioClases: cohorte.fechaInicioClases } : null,
     cohortesVendiendoHoy,
     cohorteDestino: cohorteDestino

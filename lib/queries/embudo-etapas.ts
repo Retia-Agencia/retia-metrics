@@ -363,9 +363,10 @@ function lecturaConversion(
 }
 
 /**
- * La etapa mas lejana a la que llego el deal. Una entrada a Abonado o Completo que una reversa
+ * La etapa mas lejana a la que llego el deal. Es la gemela en memoria de `ventasConDiaEn` (392): usa
+ * `esEtapaVendida` y `esReversaDeVenta`, las mismas listas que `etapaVendida()` y `esMovimientoDeVenta`. Una entrada a Abonado o Completo que una reversa
  * posterior deshizo (anular su abono, ticket 200) no cuenta, y una cortesia no pasa de
- * Compromiso Verbal: los pasos vendidos dicen lo mismo que `vendidosEn`
+ * Compromiso Verbal: los pasos vendidos dicen lo mismo que `ventasConDiaEn`
  * (352: tampoco cuenta una venta que hoy esta en Cierre Perdido).
  */
 function etapaMasLejana(deal: DealParaEmbudo, historial: readonly HistorialParaEmbudo[]): number {

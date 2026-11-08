@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ventasConDiaEn } from "@/lib/queries/dashboard";
+import { ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import {
   aplicarPagina,
   condicionesDeFiltros,

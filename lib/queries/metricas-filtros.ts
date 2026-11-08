@@ -3,7 +3,7 @@ import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
-import { vigente } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
 import {
   claveCloserSql,
@@ -139,7 +139,8 @@ const reversaDeVenta = alias(dealEtapaHistorial, "reversa_de_venta");
 /**
  * Las dos piezas que definen una venta: que movimientos cuentan y en que dia cae la primera.
  * Una cortesía no es una venta (ADR 0071 punto 10).
- * `vendidosEn` y `ventasConDiaEn` solo difieren en la proyeccion (ticket 089).
+ * `ventasConDiaEn` es la UNICA consulta de venta (392, N1/N7): quien solo necesita los deals la proyecta con
+ * `idsDeVentasEn`, que no recorre nada por su cuenta.
  *
  * Cuenta un movimiento que vendio el deal y que NINGUNA reversa posterior deshizo (ticket 200): el dia
  * de la venta es la primera entrada a Abonado o Completo despues de la ultima reversa, y un deal cuyo
@@ -170,16 +171,6 @@ export const etapaVendida = () => inArray(deals.etapa, [...ETAPAS_VENDIDAS]);
 
 const vendidoEnElRango = (rango: Rango) => between(diaDeVenta(), rango.desde, rango.hasta);
 
-export function vendidosEn(db: Db, rango: Rango) {
-  return db
-    .select({ dealId: dealEtapaHistorial.dealId })
-    .from(dealEtapaHistorial)
-    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), etapaVendida(), vigente(deals)))
-    .where(esMovimientoDeVenta(db))
-    .groupBy(dealEtapaHistorial.dealId)
-    .having(vendidoEnElRango(rango));
-}
-
 export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
 
 /**
@@ -194,7 +185,8 @@ export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
  *
  * Se decide en memoria sobre el historial de los deals vigentes del programa (sin subconsultas
  * correlacionadas, AGENTS.md): a esta escala es gratis y la regla se lee. No es una venta: para
- * eso esta `vendidosEn`.
+ * eso esta `ventasConDiaEn`. Es otro concepto, la Close date (cuenta tambien los perdidos y un perdido
+ * recuperado deja de estar cerrado), y por eso no importa la definicion de venta (392).
  */
 export async function cerradosEn(db: Db, programId: string, rango: Rango, cohorteId?: string | null): Promise<string[]> {
   const historial = await db
@@ -222,7 +214,10 @@ function esEtapaDeCierre(etapa: string): boolean {
   return (ETAPAS_DE_CIERRE as readonly string[]).includes(etapa);
 }
 
-/** Lo mismo que `vendidosEn`, con el dia de la venta. */
+/**
+ * La UNICA consulta de venta (392, ADR 0115 N1): una fila por deal vendido en el rango, con el dia de su
+ * venta. Todo recorrido de ventas (Hub, series, escalera, ficha, Students, hechos) sale de aqui.
+ */
 export function ventasConDiaEn(db: Db, rango: Rango) {
   return db
     .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta().as("dia") })
@@ -231,6 +226,15 @@ export function ventasConDiaEn(db: Db, rango: Rango) {
     .where(esMovimientoDeVenta(db))
     .groupBy(dealEtapaHistorial.dealId)
     .having(vendidoEnElRango(rango));
+}
+
+/**
+ * Los deals vendidos en el rango, sin el dia: la proyeccion de `ventasConDiaEn` para un `inArray`. No es una
+ * segunda definicion de venta; la vigencia ya se decidio dentro del derivado (`incluyendoAnulados`).
+ */
+export function idsDeVentasEn(db: Db, rango: Rango) {
+  const ventas = ventasConDiaEn(db, rango).as("ventas_del_rango");
+  return db.select({ dealId: ventas.dealId }).from(ventas).where(incluyendoAnulados(ventas));
 }
 
 export function llamadaOcurrio() {
@@ -279,13 +283,32 @@ export function filtroLlamadas({ programId, rango, claveCloser, cohorteId }: Alc
   );
 }
 
-export function filtroCierres(alcance: Alcance, db: Db) {
+/** Quien pertenece al alcance de una venta: programa, closer y cohorte del deal. Lo comparten la cifra y la serie. */
+function deDealEnAlcance(alcance: Alcance) {
   return and(
     eq(deals.programId, alcance.programId),
-    inArray(deals.id, vendidosEn(db, alcance.rango)),
     porClaveDeDeal(alcance.claveCloser),
     porCohorteDeDeal(alcance.cohorteId),
   );
+}
+
+export function filtroCierres(alcance: Alcance, db: Db) {
+  return and(deDealEnAlcance(alcance), inArray(deals.id, idsDeVentasEn(db, alcance.rango)));
+}
+
+/**
+ * Las ventas del alcance con su dia (392): `ventasConDiaEn` acotada con las MISMAS condiciones que
+ * `filtroCierres`, de modo que la serie diaria y la cifra no pueden discrepar. Va unida a `users` porque
+ * `porClaveDeDeal` compara contra el closer del dueño.
+ */
+export function ventasDelAlcance(alcance: Alcance, db: Db) {
+  const ventas = ventasConDiaEn(db, alcance.rango).as("ventas_del_alcance");
+  return db
+    .select({ dealId: ventas.dealId, dia: ventas.dia })
+    .from(ventas)
+    .innerJoin(deals, and(eq(deals.id, ventas.dealId), vigente(deals)))
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(deDealEnAlcance(alcance), incluyendoAnulados(ventas)));
 }
 
 export function cortesiasEn(db: Db, rango: Rango) {

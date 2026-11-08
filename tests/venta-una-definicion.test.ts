@@ -11,7 +11,8 @@ import { horizontesDeCupos } from "@/lib/queries/vista-hoy";
 import { embudoPorEtapas } from "@/lib/queries/embudo-etapas";
 import { ventasDelPrograma } from "@/lib/queries/escalera";
 import { leerMetasDelMes } from "@/lib/queries/metas";
-import { vendidosEn } from "@/lib/queries/metricas-filtros";
+import { and, eq } from "drizzle-orm";
+import { filtroCierres, idsDeVentasEn, ventasDelAlcance } from "@/lib/queries/metricas-filtros";
 import { leerProyeccion } from "@/lib/queries/proyeccion";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -66,7 +67,7 @@ describe("DA-1: Abonado que pasa a Cierre Perdido deja de ser venta en toda metr
     const buena = await venta("ganado_parcial", "2026-10-14");
     const perdida = await venta("cierre_perdido", "2026-10-14", [{ de: "ganado_parcial", a: "cierre_perdido", dia: "2026-10-16" }]);
 
-    expect((await vendidosEn(db, SIEMPRE)).map((f) => f.dealId)).toEqual([buena]);
+    expect((await idsDeVentasEn(db, SIEMPRE)).map((f) => f.dealId)).toEqual([buena]);
     expect((await leerMetasDelMes(programId, "2026-10", HOY, db)).vendidos).toBe(1);
     expect((await vistaDeCohorteActiva({ programId }, HOY, db))!.vendidos).toBe(1);
     expect((await ventasDeLaCohorte(db, cohortId, HOY)).map((v) => v.dealId)).toEqual([buena]);
@@ -75,6 +76,22 @@ describe("DA-1: Abonado que pasa a Cierre Perdido deja de ser venta en toda metr
     expect(embudo.conversion.todas.pasos.find((p) => p.paso === "vendido")!.dealIds).toEqual([buena]);
     expect((await ventasDelPrograma(db, programId)).map((v) => v.dealId)).toEqual([buena]);
     expect(perdida).toBeTruthy();
+  });
+});
+
+describe("392: la serie diaria y la cifra salen del mismo recorrido", () => {
+  it("ventasDelAlcance trae los mismos deals que filtroCierres, con su dia, con y sin cohorte", async () => {
+    const a = await venta("ganado_parcial", "2026-10-14");
+    const b = await venta("ganado_completo", "2026-10-15");
+    await venta("cierre_perdido", "2026-10-14", [{ de: "ganado_parcial", a: "cierre_perdido", dia: "2026-10-16" }]);
+    const rango = { desde: "2026-10-01", hasta: "2026-10-31" };
+    for (const cohorteId of [null, cohortId]) {
+      const alcance = { programId, rango, claveCloser: null, cohorteId };
+      const cifra = (await db.select({ id: deals.id }).from(deals).where(and(filtroCierres(alcance, db), eq(deals.programId, programId)))).map((f) => f.id).sort();
+      const serie = await ventasDelAlcance(alcance, db);
+      expect(serie.map((f) => f.dealId).sort()).toEqual(cifra);
+      expect(Object.fromEntries(serie.map((f) => [f.dealId, f.dia]))).toEqual({ [a]: "2026-10-14", [b]: "2026-10-15" });
+    }
   });
 });
 

@@ -38,7 +38,7 @@ comentarios; esta tabla es la que los resuelve.
 
 | # | Decisión |
 |---|---|
-| [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas y un solo motor que las mueve (**el punto 2 lo reemplaza el 0065; el Grain como requisito lo enmienda el 0066; las etapas 3, 9 y 11 las reemplaza el 0070**) |
+| [0037](./0037-el-deal-y-las-once-etapas.md) | El Deal es el objeto central, con once etapas, un solo motor que las mueve y una sola consulta de venta (`ventasConDiaEn`, enmienda del 8-nov al punto 7) (**el punto 2 lo reemplaza el 0065; el Grain como requisito lo enmienda el 0066; las etapas 3, 9 y 11 las reemplaza el 0070**) |
 | [0070](./0070-re-agenda-seguimiento-y-proxima-cohorte-son-pendientes-del-deal.md) | Re-agenda, Seguimiento y Próxima Cohorte son pendientes del deal, no etapas: el deal se queda en su etapa y el motor escribe los dos |
 | [0071](./0071-como-se-mueve-un-deal-por-las-etapas-de-30x.md) | Cómo se mueve un deal por las etapas de 30X: primera actividad → En gestión, contacto → Contactado, los tres intentos alertan y no cierran, cortesía = 100% de descuento con marca (**enmienda el punto 7 del 0059**) |
 | [0073](./0073-un-reenvio-sube-el-deal-a-su-mejor-etapa-de-entrada.md) | Un reenvío sube el deal abierto que sigue en una puerta a la etapa de entrada de su mejor envío (S1 a S3, solo hacia arriba); el CRM avisa cuando un lead tiene dos o más envíos |
