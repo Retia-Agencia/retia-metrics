@@ -228,7 +228,7 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
   expect(vista.comision).toEqual({ totalUsd: 8, ventasSinComision: 0 });
   expect(vista.descuento).toEqual({ promedioPct: 0.2, promedioUsd: 20, ventas: 1 });
   // La venta sin valor vendido no entra a ninguna de las tres y se cuenta aparte (369).
-  const dinero = { vendido: 80, recaudado: 30, porCobrar: 50, sobrepago: 0, ventas: 1, sinSaldoCalculable: 0 };
+  const dinero = { vendido: 80, recaudado: 30, porCobrar: 50, sobrepago: 0, ventas: 1, sinSaldoCalculable: 0, sinValorVendido: 0 };
   expect(vista.ventasPorCohorte).toEqual([{ cohorteId: cohorte.id, codigo: "DIN", ventas: 1, contratadoUsd: 80, dinero }]);
   expect(vista.dinero).toEqual(dinero);
 });

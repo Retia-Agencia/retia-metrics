@@ -11,7 +11,7 @@ import {
   type VentaParaMetas,
 } from "@/lib/queries/metas";
 import { leerProyeccion } from "@/lib/queries/proyeccion";
-import { contratadoDeDeals, type ContratadoDeDeals } from "@/lib/queries/saldo";
+import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 
 /**
@@ -20,7 +20,7 @@ import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
  * filtro: la funcion recibe solo programa y hoy (ADR 0023: la meta es de la cohorte, no se reparte).
  *
  * Una sola definicion por cifra (ADR 0115 N1): ventas = `ventasDeLaCohorte` / `leerCohortesYVentas`
- * (352); esperado y por dia habil = `lib/dias-habiles.ts`; Vendido = `contratadoDeDeals`; proyeccion =
+ * (352); esperado y por dia habil = `lib/dias-habiles.ts`; Vendido = `dineroDeVentas`; proyeccion =
  * `leerProyeccion` (253). Esta funcion solo las junta.
  */
 
@@ -108,8 +108,8 @@ export interface EntradaDeVamosALlegar {
   cohortes: readonly CohorteParaMetas[];
   /** Ventas del programa con su dia, hasta hoy (las del mes y las de la cohorte). */
   ventas: readonly VentaParaMetas[];
-  /** Vendido (USD) de los cuatro grupos de ventas; sale de `contratadoDeDeals` sobre `idsParaVendido`. */
-  vendido: Record<keyof ReturnType<typeof idsParaVendido>, ContratadoDeDeals>;
+  /** Vendido (USD) de los cuatro grupos de ventas; sale de `dineroDeVentas` sobre `idsParaVendido`. */
+  vendido: Record<keyof ReturnType<typeof idsParaVendido>, DineroDeVentas>;
   cohorteActiva: { id: string; ventasDeLaCohorte: readonly { dealId: string; dia: string }[] } | null;
   proyeccion: { valor: number | null; razon: string | null } | null;
   umbrales: readonly Pick<Alerta, "metrica" | "aceptable" | "disparada">[];
@@ -159,8 +159,8 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
         antesDeHoy: ids.mesAntes.length, hoy, cierre: finDeMes, umbral: umbralMes,
       }),
       usd: celdaDeMeta({
-        llevamos: entrada.vendido.mes.usd, meta: mesSinMeta ? null : metasMes.metaUsd,
-        esperado: esperadoUsdMes, antesDeHoy: entrada.vendido.mesAntes.usd, hoy, cierre: finDeMes,
+        llevamos: entrada.vendido.mes.vendido, meta: mesSinMeta ? null : metasMes.metaUsd,
+        esperado: esperadoUsdMes, antesDeHoy: entrada.vendido.mesAntes.vendido, hoy, cierre: finDeMes,
         umbral: umbralMes,
       }),
       ventasSinValorVendido: entrada.vendido.mes.sinValorVendido,
@@ -179,7 +179,7 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
     : null;
   const esperadoCupos = ventana ? esperadoLineal({ meta: metaCupos, ...ventana, hasta: hoy }) : null;
   const esperadoUsd = ventana ? esperadoLineal({ meta: metaUsd, ...ventana, hasta: hoy }) : null;
-  const llevamosUsd = entrada.vendido.cohorte.usd;
+  const llevamosUsd = entrada.vendido.cohorte.vendido;
   const proyectados = entrada.proyeccion?.valor ?? null;
   // Los cupos que la proyeccion ve sin vender se valoran al precio de la cohorte: la misma regla de la meta.
   const proyeccionUsd = proyectados === null ? null : llevamosUsd + Math.max(proyectados - ventasCohorte.length, 0) * activa.precioUsd;
@@ -203,7 +203,7 @@ export function armarVamosALlegar(entrada: EntradaDeVamosALlegar): VamosALlegar 
         }),
         usd: celdaDeMeta({
           llevamos: llevamosUsd, meta: metaUsd, esperado: esperadoUsd,
-          antesDeHoy: entrada.vendido.cohorteAntes.usd, hoy, cierre: ventana?.cierre ?? null,
+          antesDeHoy: entrada.vendido.cohorteAntes.vendido, hoy, cierre: ventana?.cierre ?? null,
           proyeccion: proyeccionUsd, umbral: umbralCohorte,
         }),
         ventasSinValorVendido: entrada.vendido.cohorte.sinValorVendido,
@@ -225,8 +225,8 @@ export async function leerVamosALlegar(programId: string, hoy: string, db: Db = 
   const ventasDeLaActiva = activa ? await ventasDeLaCohorte(db, activa.id, hoy) : [];
   const grupos = idsParaVendido(hoy, ventas, ventasDeLaActiva);
   const [mes, mesAntes, cohorte, cohorteAntes] = await Promise.all([
-    contratadoDeDeals(db, grupos.mes), contratadoDeDeals(db, grupos.mesAntes),
-    contratadoDeDeals(db, grupos.cohorte), contratadoDeDeals(db, grupos.cohorteAntes),
+    dineroDeVentas(db, grupos.mes), dineroDeVentas(db, grupos.mesAntes),
+    dineroDeVentas(db, grupos.cohorte), dineroDeVentas(db, grupos.cohorteAntes),
   ]);
   return armarVamosALlegar({
     hoy,

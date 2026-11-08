@@ -70,7 +70,7 @@ describe("las tres cifras (369)", () => {
     const pagada = await vender("1500", [1500], { etapa: "ganado_completo" });
     const parcial = await vender("1500", [500]);
     expect(await dineroDeVentas(db, [pagada.id, parcial.id])).toEqual({
-      vendido: 3000, recaudado: 2000, porCobrar: 1000, sobrepago: 0, ventas: 2, sinSaldoCalculable: 0,
+      vendido: 3000, recaudado: 2000, porCobrar: 1000, sobrepago: 0, ventas: 2, sinSaldoCalculable: 0, sinValorVendido: 0,
     });
   });
 
@@ -108,7 +108,7 @@ describe("las tres cifras (369)", () => {
     await db.insert(abonos).values({ programId, dealId: otraMoneda.id, registradoPorUserId: closerA.id, fecha: "2026-10-06", monto: "400000", moneda: "COP" });
     const buena = await vender("100", [40]);
     expect(await dineroDeVentas(db, [sinValor.id, otraMoneda.id, buena.id])).toEqual({
-      vendido: 100, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, sinSaldoCalculable: 2,
+      vendido: 100, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, sinSaldoCalculable: 2, sinValorVendido: 1,
     });
   });
 });

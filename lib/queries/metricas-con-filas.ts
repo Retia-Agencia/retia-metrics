@@ -184,6 +184,8 @@ export interface FilaDeMetrica {
   cantidad: number;
   persona: { nombre: string | null; leadId: string } | null;
   ultimaActividad?: string | null;
+  /** Solo durante el agregado de Vendido: ids del grupo para pedir su total al módulo central. */
+  dealIds?: string[];
 }
 
 export interface SubtotalDeMetrica {
@@ -374,7 +376,7 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
   }
   if (esContratado) {
     montoDeLaFila = resumen
-      ? sql<number | null>`coalesce(sum(${deals.valorVendidoUsd}), 0)::float8`
+      ? sql<number | null>`null::float8`
       : sql<number | null>`${deals.valorVendidoUsd}::float8`;
   }
 
@@ -404,6 +406,9 @@ function camposDe(metrica: MetricaSql, fuente: FuenteDeMetrica, hoy: string, res
     concepto: esCaja && !resumen ? sql<string>`${abonos.concepto}::text` : nulo,
     nota: esCaja && !resumen ? sql<string | null>`${abonos.nota}` : nulo,
     cantidad: resumen ? sql<number>`count(*)::int` : sql<number>`1::int`,
+    dealIds: esContratado && resumen
+      ? sql<string[]>`array_remove(array_agg(distinct ${deals.id}), null)`
+      : sql<string[]>`array[]::text[]`,
     persona,
   };
 }
@@ -1056,14 +1061,24 @@ async function dealsDeLaListaDeVentas(metrica: Metrica, alcance: Alcance, filtro
 export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetrica, db: Db = dbDeLaApp): Promise<ResumenDeMetrica[]> {
   const programas = typeof filtros.programId === "string" ? [filtros.programId] : [...new Set(filtros.programId)];
   return Promise.all(programas.map(async (programId) => {
-    const grupos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
+    const gruposLeidos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
+    const grupos = metrica === "contratado"
+      ? await Promise.all(gruposLeidos.map(async (grupo) => ({
+          ...grupo,
+          monto: (await dineroDeVentas(db, grupo.dealIds ?? [])).vendido,
+        })))
+      : gruposLeidos;
     const dinero = esListaDeVentas(metrica, filtros)
       ? await dineroDeVentas(db, await dealsDeLaListaDeVentas(metrica, { ...filtros, programId }, filtros, db))
       : undefined;
+    const subtotalDelResumen = subtotal(grupos);
+    const subtotalCentralizado = dinero
+      ? { ...subtotalDelResumen, caja: [{ moneda: "USD", total: dinero.vendido }] }
+      : subtotalDelResumen;
     return {
       programId,
       disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
-      subtotal: subtotal(grupos),
+      subtotal: subtotalCentralizado,
       ...(dinero ? { dinero } : {}),
       grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
         dealId: null,
