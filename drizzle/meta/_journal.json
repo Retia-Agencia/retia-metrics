@@ -827,6 +827,13 @@
       "when": 1794002788451,
       "tag": "0117_mcp-tokens-y-llamadas",
       "breakpoints": true
+    },
+    {
+      "idx": 118,
+      "version": "7",
+      "when": 1794104934621,
+      "tag": "0118_relleno-fecha-primera-aplicacion",
+      "breakpoints": true
     }
   ]
 }
