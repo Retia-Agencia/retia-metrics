@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { changeLog, miembrosPrograma, leads, programs, users } from "@/lib/db/schema";
+import { changeLog, leadContactos, miembrosPrograma, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { crearPersonaManual } from "@/lib/mutations/personas";
@@ -102,6 +102,27 @@ describe("crearPersonaManual", () => {
     expect(log.every((l) => l.origen === "app")).toBe(true);
     expect(log.every((l) => l.userId === anaUserId)).toBe(true);
     expect(log.every((l) => l.tabla === "leads")).toBe(true);
+  });
+
+  it("el alta escribe su contacto de correo y de telefono; ningun lead queda sin contacto (ticket 389)", async () => {
+    const { persona } = await crearPersonaManual(db, actorAna(), {
+      programId: programaA,
+      correo: "Con.Contacto@Correo.CO",
+      telefono: "300 111 2233",
+    });
+    const sinTelefono = await crearPersonaManual(db, actorAna(), { programId: programaA, correo: "solo@correo.co" });
+
+    const filas = await db.select().from(leadContactos).where(eq(leadContactos.leadId, persona.id));
+    expect(filas.map((c) => [c.tipo, c.valor, c.esPrincipal, c.confirmado, c.submissionId]).sort()).toEqual([
+      ["correo", "con.contacto@correo.co", true, true, null],
+      ["telefono", "3001112233", true, true, null],
+    ]);
+    const soloCorreo = await db.select().from(leadContactos).where(eq(leadContactos.leadId, sinTelefono.persona.id));
+    expect(soloCorreo.map((c) => c.tipo)).toEqual(["correo"]);
+
+    const todos = await db.select({ id: leads.id }).from(leads);
+    const conContacto = new Set((await db.select({ id: leadContactos.leadId }).from(leadContactos)).map((c) => c.id));
+    expect(todos.filter((l) => !conContacto.has(l.id))).toEqual([]);
   });
 
   it("repetir el mismo correo (con mayusculas y espacios) no duplica: devuelve la existente y no agrega change_log", async () => {

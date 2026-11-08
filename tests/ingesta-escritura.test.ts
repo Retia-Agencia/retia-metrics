@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import type { Calificacion } from "@/lib/ingesta/calificacion";
 import { entradasDesdeMatriz } from "@/lib/ingesta/adaptador-sheets";
-import { ingerirEntradas, resumirEnvios } from "@/lib/ingesta/ingerir";
+import { ingerirEntradas, primeraAplicacion, resumirEnvios } from "@/lib/ingesta/ingerir";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -137,7 +137,8 @@ describe("ingerirEntradas", () => {
   it("cuando llega la hermana completa, el lead se recalcula y deja rastro", async () => {
     await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "ana@correo.co", fecha: null })]);
     let [lead] = await db.select().from(leads);
-    expect(lead.fechaPrimeraAplicacion).toBeNull();
+    // Desde el 389 el parcial sin fecha ya deja la de su recepcion; la completa fechada la corrige.
+    expect(lead.fechaPrimeraAplicacion).not.toBeNull();
 
     const r = await ingerirEntradas(db, programId, [
       entrada({ token: "t1", correo: "ana@correo.co", utmSource: "facebook" }),
@@ -566,5 +567,68 @@ describe("resumirEnvios", () => {
       expect(r.leadQuality).toBe("High");
       expect(r.leadValue).toBe("1500");
     });
+  });
+});
+
+describe("ticket 389: el lead nace con su fecha y su calificacion es determinista", () => {
+  it("un parcial sin fecha_envio deja al lead con la fecha en que el CRM lo recibio (N6)", async () => {
+    const antes = Date.now();
+    await ingerirEntradas(db, programId, [entrada({ token: "p1", correo: "parcial@correo.co", fecha: null, posicion: 2 })]);
+    const [envio] = await db.select().from(submissions);
+    const [lead] = await db.select().from(leads);
+
+    expect(envio.fechaEnvio).toBeNull();
+    expect(lead.fechaPrimeraAplicacion).not.toBeNull();
+    expect(lead.fechaPrimeraAplicacion!.getTime()).toBe(envio.createdAt.getTime());
+    expect(lead.fechaPrimeraAplicacion!.getTime()).toBeGreaterThanOrEqual(antes - 1000);
+    // El dato que no existe sigue sin inventarse: la ultima aplicacion es de un envio fechado.
+    expect(lead.fechaUltimaAplicacion).toBeNull();
+  });
+
+  it("si despues llega el completo fechado, gana la mas antigua de las dos y no se pierde nada", async () => {
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "a@correo.co", fecha: null, posicion: 2 })]);
+    await ingerirEntradas(db, programId, [entrada({ token: "t1", correo: "a@correo.co", fecha: "2020-01-05T10:00:00Z", posicion: 3 })]);
+    const [lead] = await db.select().from(leads);
+    expect(lead.fechaPrimeraAplicacion?.toISOString()).toBe("2020-01-05T10:00:00.000Z");
+  });
+
+  it("primeraAplicacion: una fecha nula nunca le gana a una real y sin ninguna da null", () => {
+    const recibido = new Date("2026-10-02T00:00:00Z");
+    const real = new Date("2026-09-01T00:00:00Z");
+    expect(primeraAplicacion([{ fechaEnvio: null, createdAt: recibido }, { fechaEnvio: real, createdAt: recibido }])).toEqual(real);
+    expect(primeraAplicacion([{ fechaEnvio: null, createdAt: recibido }])).toEqual(recibido);
+    expect(primeraAplicacion([{ fechaEnvio: null }])).toBeNull();
+    expect(primeraAplicacion([])).toBeNull();
+  });
+
+  const base = { sourceId: "s", nombre: null, posicionEnHoja: null, puntaje: null };
+
+  it("paridad: la calificacion guardada en el lead es la que resumirEnvios saca de sus envios guardados", async () => {
+    await ingerirEntradas(db, programId, [
+      entrada({ token: "t1", correo: "a@correo.co", fecha: "2026-09-01T10:00:00Z", estado: "Setteo no calificado" }),
+      entrada({ token: "t2", correo: "a@correo.co", fecha: "2026-09-02T10:00:00Z", estado: "Con Calendly", agenda: "https://calendly.com/x/y" }),
+    ]);
+    const [lead] = await db.select().from(leads);
+    const envios = await db.select().from(submissions).where(eq(submissions.leadId, lead.id));
+    expect(lead.calificacion).toBe(resumirEnvios(envios, lead.telefono, lead.nombre).calificacion);
+  });
+
+  it("desempate: dos completos con la misma fecha y sin posicion dan la MISMA calificacion en cualquier orden de lectura", () => {
+    const mismaFecha = new Date("2026-09-01T10:00:00Z");
+    const a = { ...base, token: "a", esParcial: false, fechaEnvio: mismaFecha, createdAt: new Date("2026-09-01T10:00:01Z"), calificacion: "setteo_no_calificado" };
+    const b = { ...base, token: "b", esParcial: false, fechaEnvio: mismaFecha, createdAt: new Date("2026-09-01T10:00:02Z"), calificacion: "con_calendly" };
+    // El recibido despues gana, lo lea la base en el orden que lo lea.
+    expect(resumirEnvios([a, b], null).calificacion).toBe("con_calendly");
+    expect(resumirEnvios([b, a], null).calificacion).toBe("con_calendly");
+    // Hasta con el mismo instante de recepcion, el token fija un orden total.
+    const c = { ...a, createdAt: b.createdAt };
+    expect(resumirEnvios([c, b], null).calificacion).toBe(resumirEnvios([b, c], null).calificacion);
+  });
+
+  it("desempate: sin completos, entre parciales sin posicion gana el recibido ultimo, no el orden de lectura", () => {
+    const p1 = { ...base, token: "p1", esParcial: true, fechaEnvio: null, createdAt: new Date("2026-09-01T10:00:00Z"), calificacion: "setteo_no_calificado" };
+    const p2 = { ...base, token: "p2", esParcial: true, fechaEnvio: null, createdAt: new Date("2026-09-03T10:00:00Z"), calificacion: "con_calendly" };
+    expect(resumirEnvios([p1, p2], null).calificacion).toBe("con_calendly");
+    expect(resumirEnvios([p2, p1], null).calificacion).toBe("con_calendly");
   });
 });

@@ -149,6 +149,8 @@ describe("leadsDelPrograma", () => {
         emailNormalizado: "vacio@c.co",
         nombre: "  ",
         fechaUltimaAplicacion: new Date("2026-10-02T12:00:00Z"),
+        // Un lead de formulario nace con su primera aplicacion (ticket 389, N6).
+        fechaPrimeraAplicacion: new Date("2026-09-05T12:00:00Z"),
         createdAt: new Date("2026-09-05T12:00:00Z"),
       },
       {
@@ -156,6 +158,7 @@ describe("leadsDelPrograma", () => {
         emailNormalizado: "nulo@c.co",
         nombre: null,
         fechaUltimaAplicacion: null,
+        fechaPrimeraAplicacion: new Date("2026-09-06T12:00:00Z"),
         createdAt: new Date("2026-09-06T12:00:00Z"),
       },
     ]);

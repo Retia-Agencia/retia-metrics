@@ -20,7 +20,7 @@ comentarios; esta tabla es la que los resuelve.
 |---|---|
 | [0004](./0004-el-formulario-es-la-fuente-del-lead.md) | El formulario es la fuente del lead, y lo que manda una fuente se guarda como llegó |
 | [0005](./0005-dedup-garantizado-por-la-base.md) | Las garantías viven en la base: índices únicos y parciales, no solo código |
-| [0035](./0035-el-lead-y-sus-contactos.md) | El Lead es una persona en un programa; el correo manda y el teléfono une y marca |
+| [0035](./0035-el-lead-y-sus-contactos.md) | El Lead es una persona en un programa; el correo manda y el teléfono une y marca (**el alta manual también escribe sus contactos: 0121**) |
 | [0036](./0036-el-envio-y-todas-las-columnas-sin-plantilla.md) | El Envío guarda todas las columnas; las promovidas no se repiten |
 | [0039](./0039-un-programa-una-fuente-de-leads.md) | Un programa, una fuente de leads activa (**el punto 2 lo enmienda el 0064**) |
 | [0064](./0064-un-programa-puede-tener-varios-formularios-activos.md) | Un programa puede tener varios formularios activos a la vez (migrar de proveedor sin perder envíos) |
@@ -149,6 +149,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0118](./0118-un-solo-alta-de-usuarios-y-todo-gerente-puede-crear.md) | Un solo alta de usuarios en `/ajustes/usuarios`, abierta a todo gerente dentro de su alcance; un selector de programas cuyo efecto lo decide el rol; el alcance lo fija el gerente global o el developer (**enmienda el 0094**) |
 | [0119](./0119-el-mcp-del-crm.md) | El MCP del CRM: un servidor dentro de la app, cada persona como ella misma (rol ∩ scope del token), herramientas como adaptadores sobre `lib/`, una tabla de tokens para token personal (fase 1) y OAuth propio con CIMD (fase 2), toda escritura con vista previa y confirmación en el chat, topes blandos y bitácora de llamadas |
 | [0120](./0120-registro-tipado-de-metricas.md) | Un registro tipado y puro de métricas (`lib/metricas/registro.ts`), una ficha por concepto con la clave del vocabulario; el nombre sigue en `lib/vocabulario-metricas.ts`; el diccionario se genera a medias (§3.0 estructurado, prosa a mano); funciones por nombre verificadas por test; migración con trinquete de pendientes (**concreta el 0115 N1, N4 y N7**) |
+| [0121](./0121-el-lead-nace-con-su-fecha-y-sus-contactos.md) | El lead nace con su fecha y sus contactos: la ingesta escribe `fecha_primera_aplicacion` (envío o recepción), un solo ancla de fecha (`fechaAnclaLead`), el alta manual escribe sus contactos y la calificación del resumen desempata de forma estable (**concreta el 0115 N1 y N6; enmienda el 0035**) |
 
 **Plataforma**
 

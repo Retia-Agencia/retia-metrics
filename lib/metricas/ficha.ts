@@ -15,6 +15,7 @@ const UNIDADES = {
 const ANCLAS = {
   primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
   fecha_del_abono: "fecha del abono",
+  primera_aplicacion: "día de su primera aplicación (Bogotá)",
 } as const;
 const COBERTURAS = {
   no_aplica: "—",
