@@ -58,6 +58,7 @@ const titulos = {
   sin_resultado: "Llamadas pasadas sin resultado",
   atendidos_sin_valor: "Atendidos sin valor vendido",
   atendidos_sin_grain: "Atendidos sin Grain",
+  perdidos_con_pagos: "Cierre perdido con pagos registrados",
   grupo_citas: "Deals con cita ocurrida (grupo de las tasas)",
   grupo_shows: "Deals del grupo con show",
   grupo_vendidos: "Deals del grupo con show y vendidos hoy",

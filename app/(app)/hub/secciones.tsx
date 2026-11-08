@@ -103,13 +103,14 @@ function Banderas({ vista }: { vista: VistaDeTodos }) {
   const campos = [
     ["Atendidos sin valor vendido", "sinValor", "atendidos_sin_valor"],
     ["Atendidos sin Grain", "sinGrain", "atendidos_sin_grain"],
+    ["Cierre perdido con pagos registrados", "perdidosConPagos", "perdidos_con_pagos"],
   ] as const;
   return campos.map(([titulo, campo, metrica]) => (
     <Tarjeta key={campo} titulo={titulo} valor={
       <span className={banderas[campo].valor > 0 ? "text-tono-peligro" : undefined}>
         <CifraConLista titulo={titulo} detalle={vista.detalles[metrica]}>{num(banderas[campo].valor)}</CifraConLista>
       </span>
-    } nota={`de ${num(banderas.atendidos.valor)} atendidos · a hoy`} />
+    } nota={metrica === "perdidos_con_pagos" ? "Plata cobrada sobre una venta perdida · a hoy" : `de ${num(banderas.atendidos.valor)} atendidos · a hoy`} />
   ));
 }
 

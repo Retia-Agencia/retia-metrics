@@ -27,7 +27,7 @@ import { sumarDineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-d
 const METRICAS = ["leads", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "contratado", "caja"] as const;
 type MetricaDeTodos = (typeof METRICAS)[number];
 /** Las que son foto de hoy: no pertenecen a A ni se comparan con B. */
-const FOTOS_DE_HOY = ["atendidos_sin_valor", "atendidos_sin_grain"] as const;
+const FOTOS_DE_HOY = ["atendidos_sin_valor", "atendidos_sin_grain", "perdidos_con_pagos"] as const;
 type MetricaFotoDeHoy = (typeof FOTOS_DE_HOY)[number];
 
 interface TotalesDePeriodo {
@@ -65,7 +65,7 @@ export interface VistaDeTodos {
   detalles: Record<MetricaDeTodos | MetricaFotoDeHoy, DetalleDeCifra>;
   sinValorVendido: Conteo;
   /** Las banderas del Pulso (ticket 191), foto de hoy: los conteos se suman; el % va por programa. */
-  banderas: { atendidos: Conteo; sinValor: Conteo; sinGrain: Conteo };
+  banderas: { atendidos: Conteo; sinValor: Conteo; sinGrain: Conteo; perdidosConPagos: Conteo };
   programas: FilaDePrograma[];
 }
 
@@ -207,6 +207,7 @@ export async function armarVistaDeTodos(
       atendidos: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.atendidos))),
       sinValor: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.sinValor.cantidad))),
       sinGrain: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.sinGrain.cantidad))),
+      perdidosConPagos: sumarConteos(filas.map((f) => conteo(f.dashboard.banderas.perdidosConPagos.cantidad))),
     },
     programas: filas,
   };

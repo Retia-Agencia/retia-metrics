@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
-import { calls, deals, users } from "@/lib/db/schema";
+import { abonos, calls, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { etapasQueExigen } from "@/lib/deals/requisitos";
@@ -61,6 +61,26 @@ export function conLlamadaSinGrain(db: Db) {
   );
 }
 
+/**
+ * "Cierre perdido con pagos registrados" (ticket 405, ADR 0115 N3): un deal no anulado en Cierre perdido
+ * que conserva al menos un abono vigente. Es una INCONSISTENCIA (plata cobrada sobre una venta perdida), no un
+ * caso de negocio; hoy no debería haber ninguno y si aparece uno se ve en vez de quedar callado. Foto de hoy,
+ * como las otras banderas. El universo vive aquí y lo usan la cifra y la lista (ADR 0067).
+ */
+export function filtroPerdidosConPagos({ programId, claveCloser, cohorteId }: { programId: string; claveCloser?: string | null; cohorteId?: string | null }) {
+  return and(
+    eq(deals.programId, programId),
+    eq(deals.etapa, "cierre_perdido"),
+    porClaveDeDeal(claveCloser),
+    porCohorteDeDeal(cohorteId),
+  );
+}
+
+/** Con al menos un abono vigente (un abono anulado no es plata cobrada). */
+export function conAbonoVigente(db: Db) {
+  return inArray(deals.id, db.select({ id: abonos.dealId }).from(abonos).where(vigente(abonos)));
+}
+
 export interface BanderaDelPulso {
   cantidad: number;
   /** Sobre los deals atendidos del mismo alcance; `null` si no hay ninguno. */
@@ -71,6 +91,8 @@ export interface BanderasDelPulso {
   atendidos: number;
   sinValor: BanderaDelPulso;
   sinGrain: BanderaDelPulso;
+  /** Sin porcentaje: no hay un denominador natural, cualquier caso es un error de datos. */
+  perdidosConPagos: { cantidad: number };
 }
 
 export async function banderasDelPulso(
@@ -87,11 +109,18 @@ export async function banderasDelPulso(
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .where(and(filtroAtendidos(alcance), vigente(deals)));
 
+  const [perdidos] = await db
+    .select({ cantidad: sql<number>`count(*)::int` })
+    .from(deals)
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(filtroPerdidosConPagos(alcance), conAbonoVigente(db), vigente(deals)));
+
   const atendidos = fila?.atendidos ?? 0;
   const bandera = (cantidad: number): BanderaDelPulso => ({ cantidad, pct: tasa(cantidad, atendidos) });
   return {
     atendidos,
     sinValor: bandera(fila?.sinValor ?? 0),
     sinGrain: bandera(fila?.sinGrain ?? 0),
+    perdidosConPagos: { cantidad: perdidos?.cantidad ?? 0 },
   };
 }

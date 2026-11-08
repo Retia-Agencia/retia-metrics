@@ -25,12 +25,12 @@ interface Props {
 }
 
 const esquema = z.object({
-  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "leads", "contratado", "atendidos_sin_valor", "atendidos_sin_grain"]),
+  metrica: z.enum(["caja", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "leads", "contratado", "atendidos_sin_valor", "atendidos_sin_grain", "perdidos_con_pagos"]),
   moneda: z.string().regex(/^[A-Z]{3}$/).optional(),
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
-const titulos = { caja: "Entró a caja", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain" };
+const titulos = { caja: "Entró a caja", agendas: "Agendas", shows: "Shows", shows_sin_grain: "Shows sin Grain", sin_resultado: "Llamadas pasadas sin resultado", cierres: "Cierres", leads: "Leads", contratado: "Vendido", atendidos_sin_valor: "Atendidos sin valor vendido", atendidos_sin_grain: "Atendidos sin Grain", perdidos_con_pagos: "Cierre perdido con pagos registrados" };
 
 export default async function ListaDeTodosPage({ searchParams }: Props) {
   // El closer no ve el Hub de todos los programas, como no ve el de uno (ADR 0082; decisión HUB-1, 30-oct).
@@ -67,7 +67,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
       <div className="space-y-6">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">Todos los programas</Badge>
-          <Badge variant="secondary">{metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" ? `Foto de hoy: ${fecha(hoy)}` : `Periodo: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
+          <Badge variant="secondary">{metrica === "atendidos_sin_valor" || metrica === "atendidos_sin_grain" || metrica === "perdidos_con_pagos" ? `Foto de hoy: ${fecha(hoy)}` : `Periodo: ${fecha(periodo.a.desde)} a ${fecha(periodo.a.hasta)}`}</Badge>
           {moneda ? <Badge variant="secondary">{moneda}</Badge> : null}
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}

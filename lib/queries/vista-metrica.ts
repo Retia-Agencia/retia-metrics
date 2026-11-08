@@ -74,6 +74,7 @@ const METRICAS_DEL_TABLERO = [
   "sin_resultado",
   "atendidos_sin_valor",
   "atendidos_sin_grain",
+  "perdidos_con_pagos",
   "grupo_citas",
   "grupo_shows",
   "grupo_vendidos",
