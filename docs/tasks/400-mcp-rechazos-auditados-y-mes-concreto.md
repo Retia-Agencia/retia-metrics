@@ -28,7 +28,7 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Todo rechazo de validación queda en la bitácora con quién, qué tool y qué campo falló (sin guardar datos personales).
-- [ ] `AAAA-MM` aceptado como periodo, con test en Bogotá y mes de 28, 30 y 31 días.
-- [ ] Test forjado: una llamada con `periodo` inválido deja una fila.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos. `docs/mcp.md` actualizado.
+- [x] Todo rechazo de validación queda en la bitácora con quién, qué tool y qué campo falló (sin guardar datos personales).
+- [x] `AAAA-MM` aceptado como periodo, con test en Bogotá y mes de 28, 30 y 31 días.
+- [x] Test forjado: una llamada con `periodo` inválido deja una fila.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos. `docs/mcp.md` actualizado.

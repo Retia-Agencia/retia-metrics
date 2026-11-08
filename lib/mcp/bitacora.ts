@@ -1,4 +1,5 @@
 import { and, asc, eq, gte } from "drizzle-orm";
+import type { ZodError } from "zod";
 import { mcpLlamadas } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 
@@ -34,4 +35,17 @@ export async function segundosDeEspera(
     .limit(TOPE_POR_MINUTO);
   if (filas.length < TOPE_POR_MINUTO) return null;
   return Math.max(1, Math.ceil((filas[0].creadoEn.getTime() + 60_000 - ahora.getTime()) / 1000));
+}
+
+/**
+ * El código con que queda un rechazo de entrada en la bitácora (ticket 400): `ENTRADA_INVALIDA:` y los
+ * campos que fallaron (ruta del esquema, nunca el valor que mandó el cliente: puede traer nombres o correos).
+ * Una clave que el esquema no conoce se anota como `clave_desconocida`, sin copiar su nombre.
+ */
+export function codigoDeEntradaInvalida(error: ZodError): string {
+  const campos = new Set<string>();
+  for (const issue of error.issues) {
+    campos.add(issue.code === "unrecognized_keys" ? "clave_desconocida" : issue.path.join(".") || "entrada");
+  }
+  return `ENTRADA_INVALIDA:${[...campos].sort().join(",")}`.slice(0, 200);
 }

@@ -52,7 +52,7 @@ por cada tools/call:
 | `lib/mcp/herramientas/tipos.ts` | El contrato TypeScript de una herramienta (`Herramienta`). |
 | `lib/mcp/herramientas/index.ts` | **El registro exhaustivo** `HERRAMIENTAS`. Una herramienta que no está aquí no existe. |
 | `lib/mcp/herramientas/{programas,metricas,operacion,decisiones}.ts` | Las once herramientas, agrupadas por familia. Adaptadores delgados. |
-| `lib/mcp/herramientas/{programa,periodo}.ts`, `lib/mcp/enlaces.ts` | Piezas compartidas: resolver un programa visible, el periodo en formato MCP, los enlaces al CRM. |
+| `lib/mcp/herramientas/{programa,periodo}.ts`, `lib/mcp/enlaces.ts` | Piezas compartidas: resolver un programa visible, el periodo en formato MCP (atajo, `custom` con desde y hasta, o un mes `AAAA-MM`; el esquema del mes y su rango viven en `lib/periodo.ts` y los comparte con la URL), los enlaces al CRM. |
 | `lib/auth/roles.ts` | **Quién puede qué.** Cada herramienta pregunta a una función de aquí; nunca compara un rol a mano. |
 | `lib/queries/*` | Las consultas y reglas que las pantallas **y** las herramientas comparten (filtros, proyecciones por rol, alcance). El MCP no define ninguna métrica. |
 | `lib/db/schema.ts` (`mcpTokens`, `mcpLlamadas`) y `drizzle/0117_*` | Las dos tablas propias del MCP (RLS activo). |
@@ -109,7 +109,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 17. **La lista de herramientas es determinista y puede variar por credencial**, nunca por conexión: hoy se filtra por rol con `puede`. Mantener el orden de `HERRAMIENTAS` estable ayuda a la caché de prompts del cliente. *(Spec MCP, "Capabilities".)*
 
 **Operación**
-18. 🔒 **Toda llamada deja rastro sin argumentos** y hay **tope por minuto**. Hoy los tokens no caducan y `mcp_llamadas` no tiene retención: se resuelve en el 383. *(Spec MCP: limitar la tasa y registrar el uso.)*
+18. 🔒 **Toda llamada deja rastro sin argumentos** y hay **tope por minuto**. **También un rechazo del esquema** (el SDK valida antes del handler: `auditarRechazosDeEntrada` en `lib/mcp/servidor.ts` envuelve ese paso): queda `error` con `ENTRADA_INVALIDA:<campos que fallaron>`, sin valores (`tests/mcp-rechazos.test.ts`). Hoy los tokens no caducan y `mcp_llamadas` no tiene retención: se resuelve en el 383. *(Spec MCP: limitar la tasa y registrar el uso.)*
 19. **No hay passthrough de tokens.** El servidor solo acepta tokens emitidos para él (`retia_mcp_…`) y nunca reenvía el del cliente a otro servicio. *(MCP, "Security Best Practices": token passthrough es un anti-patrón.)*
 20. **Una escritura (ticket 384) no entra por una herramienta suelta:** lleva vista previa, confirmación humana, scope `escritura`, `crearConRastro` con origen `mcp` y deshacer (ADR 0042/0117). `soloLectura: true` en el tipo se cambia a propósito en ese ticket, no antes.
 

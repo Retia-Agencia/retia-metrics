@@ -17,7 +17,7 @@ import {
 import { PRECISION_PAID, origenDelPrograma, resumenDeOrigen } from "@/lib/queries/origen";
 import { cargarRoasDePauta, NIVEL_PAUTA_POR_DEFECTO, NIVELES_PAUTA, renglonRoasDeVista } from "@/lib/queries/roas-de-pauta";
 import { resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
-import { busquedaDePeriodoMcp, camposDePeriodoMcp, type EntradaDePeriodoMcp } from "./periodo";
+import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp, type EntradaDePeriodoMcp } from "./periodo";
 import { programaVisible } from "./programa";
 import type { ContextoMcp, Herramienta } from "./tipos";
 
@@ -96,7 +96,7 @@ const entradaRoas = z.object({
 async function rangoDelHub(contexto: ContextoMcp, programId: string, entrada: EntradaDePeriodoMcp) {
   const hoy = hoyEnBogota();
   const periodo = parsearPeriodoUrl(busquedaDePeriodoMcp(entrada));
-  const entradaDeVista = { programId, hoy, periodo, preset: entrada.periodo };
+  const entradaDeVista = { programId, hoy, periodo, preset: presetDePeriodoMcp(entrada) };
   const resuelto = await resolverContextoDeVista(entradaDeVista, contexto.db);
   return { hoy, periodo: resuelto.periodo, rango: resuelto.seleccion.rango };
 }

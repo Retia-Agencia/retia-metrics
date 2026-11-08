@@ -498,7 +498,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   venta y cuenta como pérdida (352, DA-1). *No confundir con la caja, que son los abonos.*
 - **Periodo A contra B:** los dos rangos que compara toda cifra. Por defecto, B es el mismo punto del
   periodo anterior contado en días hábiles (el día hábil 7 de octubre contra el día hábil 7 de
-  septiembre), nunca el periodo anterior entero (ADR 0067).
+  septiembre), nunca el periodo anterior entero (ADR 0067). El periodo puede ser un atajo, un rango o un mes
+  concreto escrito `AAAA-MM` (de su día 1 a su último día, en Bogotá; `rangoDeMes` en `lib/periodo.ts`, lo leen la
+  URL y el MCP).
 
 **El dinero**
 

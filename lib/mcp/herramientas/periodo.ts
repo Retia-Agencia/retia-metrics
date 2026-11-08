@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ErrorDeApp } from "@/lib/errors";
-import { atajosDePeriodo, type AtajoDePeriodo } from "@/lib/periodo";
+import { atajosDePeriodo, esquemaDeMes, type AtajoDePeriodo } from "@/lib/periodo";
 
 export const PERIODOS_MCP = [
   ...(Object.keys(atajosDePeriodo) as AtajoDePeriodo[]),
@@ -10,15 +10,23 @@ export const PERIODOS_MCP = [
 const fechaBogota = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Usa una fecha AAAA-MM-DD de Bogotá.");
 
 export const camposDePeriodoMcp = {
-  periodo: z.enum(PERIODOS_MCP),
+  periodo: z.union([z.enum(PERIODOS_MCP), esquemaDeMes]),
   desde: fechaBogota.optional(),
   hasta: fechaBogota.optional(),
 };
 
 export interface EntradaDePeriodoMcp {
-  periodo: (typeof PERIODOS_MCP)[number];
+  /** Un atajo, `custom` (con desde y hasta) o un mes concreto `AAAA-MM`. */
+  periodo: (typeof PERIODOS_MCP)[number] | string;
   desde?: string;
   hasta?: string;
+}
+
+/** El atajo que la vista dibuja: un mes concreto es un periodo `custom`. */
+export function presetDePeriodoMcp(entrada: EntradaDePeriodoMcp): AtajoDePeriodo | "custom" {
+  return (PERIODOS_MCP as readonly string[]).includes(entrada.periodo)
+    ? (entrada.periodo as AtajoDePeriodo | "custom")
+    : "custom";
 }
 
 export function busquedaDePeriodoMcp(entrada: EntradaDePeriodoMcp) {

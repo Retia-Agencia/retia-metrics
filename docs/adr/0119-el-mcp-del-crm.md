@@ -86,6 +86,10 @@ Lo que pide cada cliente (verificado el 6-nov):
 
 12. **Cada llamada queda en una bitácora propia**: quién, herramienta, programa, resultado, duración y cliente. Los
     argumentos de texto libre no se guardan (pueden traer datos personales). Las escrituras además van a `change_log`.
+    **Enmendado el 7-nov (ticket 400):** también queda en la bitácora todo rechazo de validación del esquema, que el SDK
+    resuelve antes del handler: resultado `error` y código `ENTRADA_INVALIDA:<campos>` con la ruta de cada campo que falló
+    (`periodo`, `desde`...), nunca el valor ni el nombre de una clave desconocida. Sin columna nueva. El periodo de las
+    herramientas acepta además un mes concreto `AAAA-MM`, que se lee con la misma función que la URL de las pantallas.
 
 13. **El programa sigue siendo frontera.** Toda herramienta de lista exige programa y lo resuelve con el alcance; un
     programa ajeno responde que no existe, como el 404 de las pantallas.

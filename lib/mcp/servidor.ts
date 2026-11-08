@@ -1,7 +1,7 @@
 import type { McpServer } from "@modelcontextprotocol/server";
 import { ZodError, z } from "zod";
 import { ErrorDeApp } from "@/lib/errors";
-import { registrarLlamada, segundosDeEspera } from "./bitacora";
+import { codigoDeEntradaInvalida, registrarLlamada, segundosDeEspera } from "./bitacora";
 import { herramientasPara } from "./herramientas";
 import type { ContextoMcp, Herramienta } from "./herramientas/tipos";
 import { sesionDeToken } from "./sesion";
@@ -29,11 +29,16 @@ function respuestaDeFalla(error: unknown): {
     return {
       mensaje: error.issues[0]?.message ?? "Petición inválida.",
       resultado: "error",
-      codigo: "ENTRADA_INVALIDA",
+      codigo: codigoDeEntradaInvalida(error),
     };
   }
   console.error("[mcp: error no controlado]", error);
   return { mensaje: "Error interno.", resultado: "error", codigo: "INTERNO" };
+}
+
+/** El esquema que el servidor valida y publica: el de la herramienta más `vista`, sin claves extra. */
+function esquemaDeEntrada<E extends z.ZodObject>(herramienta: Herramienta<E>) {
+  return herramienta.entrada.extend({ vista: z.string().optional() }).strict();
 }
 
 function registrarUna<E extends z.ZodObject>(
@@ -41,7 +46,7 @@ function registrarUna<E extends z.ZodObject>(
   herramienta: Herramienta<E>,
   contextoBase: ContextoMcp,
 ): void {
-  const entradaComun = herramienta.entrada.extend({ vista: z.string().optional() }).strict();
+  const entradaComun = esquemaDeEntrada(herramienta);
   server.registerTool(
     herramienta.nombre,
     {
@@ -124,8 +129,66 @@ function registrarUna<E extends z.ZodObject>(
   );
 }
 
+/**
+ * El SDK valida la entrada contra el esquema ANTES de llamar al handler, así que un rechazo (un
+ * `periodo: "octubre"`) nunca llegaba a `mcp_llamadas` (ticket 400). Se envuelve ese paso: si falla,
+ * se anota quién, qué herramienta y qué campos, y el error original sigue su camino sin cambios.
+ * ponytail: `validateToolInput` es un método del SDK sin contrato público; si una versión nueva lo
+ * mueve, `tests/mcp-rechazos.test.ts` falla (la fila no aparece) y se cambia por el gancho que traiga.
+ */
+function auditarRechazosDeEntrada(
+  server: McpServer,
+  contexto: ContextoMcp,
+  porNombre: Map<string, Herramienta<z.ZodObject>>,
+): void {
+  const original = (server as unknown as {
+    validateToolInput: (tool: unknown, args: unknown, nombre: string) => Promise<unknown>;
+  }).validateToolInput;
+  if (typeof original !== "function") {
+    throw new Error("El SDK del MCP ya no expone validateToolInput: no se pueden auditar los rechazos.");
+  }
+  (server as unknown as { validateToolInput: typeof original }).validateToolInput = async function (
+    this: unknown,
+    tool,
+    args,
+    nombre,
+  ) {
+    const inicio = Date.now();
+    try {
+      return await original.call(server, tool, args, nombre);
+    } catch (error) {
+      const herramienta = porNombre.get(nombre);
+      if (herramienta) {
+        const analisis = esquemaDeEntrada(herramienta).safeParse(args ?? {});
+        try {
+          await registrarLlamada(contexto.db, {
+            tokenId: contexto.tokenId,
+            userId: contexto.session.user.id,
+            userIdVista: null,
+            herramienta: nombre,
+            programId: null,
+            resultado: "error",
+            codigoError: analisis.success ? "ENTRADA_INVALIDA" : codigoDeEntradaInvalida(analisis.error),
+            duracionMs: Date.now() - inicio,
+            cliente: clienteDe(server),
+          });
+        } catch (falloDeBitacora) {
+          console.error("[mcp: no se pudo anotar el rechazo]", falloDeBitacora);
+        }
+      }
+      throw error;
+    }
+  };
+}
+
 export function registrarHerramientas(server: McpServer, contexto: ContextoMcp): void {
-  for (const herramienta of herramientasPara(contexto)) {
+  const herramientas = herramientasPara(contexto);
+  auditarRechazosDeEntrada(
+    server,
+    contexto,
+    new Map(herramientas.map((herramienta) => [herramienta.nombre, herramienta as Herramienta<z.ZodObject>])),
+  );
+  for (const herramienta of herramientas) {
     registrarUna(server, herramienta, contexto);
   }
 }
