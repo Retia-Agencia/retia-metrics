@@ -209,6 +209,22 @@ Las cifras de Hub › Origen son:
 Leyenda de estado, solo dos valores: ✅ en producción y con su ticket cerrado · 🟡 definida, sin construir o con su
 ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del semáforo, no un estado.
 
+### 3.0 Fichas de los conceptos registrados
+
+> Generado desde el registro tipado (`lib/metricas/registro.ts`, ADR 0120) con `npm run docs:metricas`: no se edita a mano
+> y un test falla si está desactualizado. Solo trae los conceptos que ya tienen ficha; el resto sigue en las tablas de
+> abajo y en `lib/metricas/pendientes.ts`. La **fórmula en prosa** de cada uno sigue escrita a mano en §3.1.
+
+<!-- registro:inicio (generado por `npm run docs:metricas`; no editar a mano) -->
+| Concepto | Tipo | Unidad · moneda | Se ubica por | ¿Se suma entre programas? | Cobertura | Dimensiones | Vigencia | Función | Listas |
+|---|---|---|---|---|---|---|---|---|---|
+| Ventas (`ventas`) | simple | cupos | día de su primera entrada a Abonado o Completo | sí | — | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals` | `ventasConDiaEn` (`lib/queries/metricas-filtros.ts`) · gemela `esEtapaVendida` (`lib/deals/etapas.ts`) | `cierres` |
+| Vendido (`vendido`) | simple | dinero · USD | día de su primera entrada a Abonado o Completo | sí | excluye y cuenta aparte | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals`, `abonos` | `dineroDeVentas` (`lib/queries/dinero-de-ventas.ts`) · gemela `dineroDeSaldos` (`lib/queries/dinero-de-ventas.ts`) | `contratado` |
+| Recaudado (`recaudado`) | simple | dinero · USD | día de su primera entrada a Abonado o Completo | sí | excluye y cuenta aparte | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals`, `abonos` | `dineroDeVentas` (`lib/queries/dinero-de-ventas.ts`) · gemela `dineroDeSaldos` (`lib/queries/dinero-de-ventas.ts`) | — |
+| Por cobrar (`por_cobrar`) | derivada de `vendido` y `recaudado` | dinero · USD | día de su primera entrada a Abonado o Completo | sí | excluye y cuenta aparte | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte` | `deals`, `abonos` | `dineroDeVentas` (`lib/queries/dinero-de-ventas.ts`) · gemela `dineroDeSaldos` (`lib/queries/dinero-de-ventas.ts`) | — |
+| Entró a caja (`entro_a_caja`) | simple | dinero · USD · COP | fecha del abono | sí | — | `dia`, `semana`, `mes`, `dueno`, `cohorte`, `moneda` | `abonos` | `filtroCaja` (`lib/queries/metricas-filtros.ts`) | `caja` |
+<!-- registro:fin -->
+
 ### 3.1 Embudo y ventas
 
 | Métrica | Fórmula | Unidad | ¿Se suma entre programas? | Función | Estado |
@@ -239,7 +255,7 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Recaudado | Σ abonos de ticket vigentes **de esas mismas ventas, a hoy**, sin importar cuándo se abonaron (369, DH-2). Un abono adicional no entra (ADR 0113) | USD | sí | `dineroDeVentas` (sobre `saldosDeDeals`) | ✅ |
 | Por cobrar | Vendido − Recaudado, venta por venta, de esas mismas ventas; un saldo negativo es un sobrepago, que se muestra aparte (`sobrepago`) y no resta deuda a otra venta. Es lo que antes era la cartera: con cohorte «Todas» y «Desde el inicio» da la cartera de hoy. Invariante probado: Vendido = Recaudado + Por cobrar − sobrepago, al centavo | USD | sí | `dineroDeVentas`, `dineroDeSaldos` | ✅ |
 | Comisión | Σ valor vendido × el % congelado en el deal al entrar a Abonado o Completo; sin % del programa no se puede entrar a venta (ADR 0115 N6, ticket 356). Por closer va al dueño del deal; las ventas sin dueño salen en la fila «Sin closer» | USD | no | `comisionDeDeal` y `comisionesPorCloser` en `lib/queries/comision.ts` | ✅ |
-| Entró a caja | Σ abonos vigentes con fecha en el periodo (§1.5), de cualquier venta y también los adicionales, por moneda y sin convertir. Contesta «¿cuánta plata entró esta semana?»; no se infiere de las ventas ni al revés (ADR 0013). Su lista rotula la columna «Abono» | USD · COP | sí | `hechos/abono.ts`, `cajaRecaudada` | ✅ |
+| Entró a caja | Σ abonos vigentes con fecha en el periodo (§1.5), de cualquier venta y también los adicionales, por moneda y sin convertir. Contesta «¿cuánta plata entró esta semana?»; no se infiere de las ventas ni al revés (ADR 0013). Su lista rotula la columna «Abono» | USD · COP | sí | `filtroCaja` (`lib/queries/metricas-filtros.ts`), `cajaRecaudada`, `hechos/abono.ts` | ✅ |
 | Saldo de un deal | contratado − abonado; negativo es sobrepago, no deuda | USD | · | `saldosDeDeals`, `saldoLegible` | ✅ |
 | Meta del mes, de la semana y de la cohorte | cupos de la cohorte repartidos por días hábiles (020, 146) | cupos | no | `lib/queries/metas.ts` | ✅ |
 | Meta en USD del mes y de la cohorte | meta de cupos × precio de la cohorte (la del mes, por cohorte y sumada; la de la cohorte, entera) (371) | USD | no | `armarMetasDelMes` (mes), `armarVamosALlegar` (cohorte) | ✅ |

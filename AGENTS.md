@@ -61,7 +61,8 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    manual con su olor nombrado (👁), y la investigación con fuentes. **Empieza por su "Resumen": la definición vive en
    `docs/metricas.md`, el nombre en `overview.md` §11 y la consulta en `lib/queries/hechos/` y los módulos de concepto; una
    consulta nueva se crea ahí, nunca en una pantalla, en `lib/mcp/` ni en un script.** Es el par de `docs/mcp.md` para la capa de datos; el
-   registro tipado y los guardianes 🟡 todavía no están construidos. Léelo antes de tocar `lib/queries/`, `lib/db/schema.ts` o
+   **registro tipado de métricas** (`lib/metricas/registro.ts`, ADR 0120, diseño en `docs/diseno-registro-de-metricas.md`) ya
+   existe con cinco conceptos y un trinquete de pendientes; los guardianes 🟡 todavía no están construidos. Léelo antes de tocar `lib/queries/`, `lib/db/schema.ts` o
    `docs/metricas.md`.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de

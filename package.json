@@ -24,6 +24,7 @@
     "inspeccionar": "tsx scripts/inspeccionar-pestana.ts",
     "comparar": "tsx scripts/comparar-pestanas.ts",
     "seed:datos": "tsx scripts/seed-datos.ts",
+    "docs:metricas": "tsx scripts/generar-diccionario-metricas.ts",
     "usuarios": "tsx scripts/usuarios.ts",
     "cargar-motivos": "tsx scripts/cargar-motivos.ts",
     "cargar-areas": "tsx scripts/cargar-areas.ts",
