@@ -9,6 +9,7 @@ import { semanasDelRango } from "@/lib/rangos";
 import { fechaAnclaCall } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
+import { razon, type RazonConCobertura } from "@/lib/cobertura";
 
 /**
  * Las tasas del embudo comercial sobre el MISMO grupo de personas (ADR 0079, ticket 187).
@@ -85,6 +86,14 @@ export interface TasasDelGrupo {
   pctShow: number | null;
   pctCierre: number | null;
   agendaAVenta: number | null;
+  /**
+   * Las mismas tres razones con su cobertura (351, N3): `faltan` son las citas pasadas sin resultado, que no
+   * cuentan como no-show. La pantalla decide "parcial" con `estadoDeCobertura`; los `number` de arriba siguen
+   * mientras los consumidores migran (excepciones del guardián).
+   */
+  razonShow: RazonConCobertura;
+  razonCierre: RazonConCobertura;
+  razonAgendaAVenta: RazonConCobertura;
 }
 
 export interface GrupoDeCitas {
@@ -105,6 +114,8 @@ function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelG
   const conShow = miembros.filter((m) => m.conShow).length;
   const vendidos = miembros.filter((m) => m.conShow && m.vendido).length;
   const universo = miembros.length + sinMarcar;
+  const motivo = sinMarcar > 0 ? `${sinMarcar} de ${universo} citas pasadas siguen sin resultado` : null;
+  const cobertura = (base: number) => ({ base, faltan: sinMarcar, motivo, calculable: true });
   return {
     deals: miembros.length,
     conShow,
@@ -116,6 +127,9 @@ function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelG
     pctShow: showPorDeal(conShow, miembros.length),
     pctCierre: dividir(vendidos, conShow),
     agendaAVenta: dividir(vendidos, miembros.length),
+    razonShow: razon(conShow, miembros.length, cobertura(miembros.length)),
+    razonCierre: razon(vendidos, conShow, cobertura(conShow)),
+    razonAgendaAVenta: razon(vendidos, miembros.length, cobertura(miembros.length)),
   };
 }
 

@@ -45,13 +45,18 @@ La captura del resultado de la llamada (341) y la reja de la comisión (356): aq
 - [x] Test: un ROAS con ventas en días sin gasto devuelve `null` y el motivo; con cobertura completa, el valor de antes.
   Evidencia: `tests/roas-de-pauta.test.ts` ("no calcula el ROAS cuando una venta queda antes del primer día de gasto" y el
   `total.roas.valor` igual a contratado ÷ gasto en el escenario de siempre).
-- [ ] Test: el % de show con 3 de 10 citas resueltas sale "parcial" bajo el umbral, con base y faltan.
-  **Para el 353.** La regla ya existe y está probada en puro (`tests/cobertura.test.ts`: 3 de 10 → parcial con umbral 0,8);
-  falta que `tasas-del-grupo.ts` devuelva el % de show con el tipo.
+- [x] Test: el % de show con 3 de 10 citas resueltas sale "parcial" bajo el umbral, con base y faltan.
+  Evidencia (7-nov): `tests/tasas-del-grupo.test.ts` ("351: el % de show con 3 de 10 citas resueltas sale parcial…"):
+  `razonShow` de `calcularTasasDelGrupo` trae base 3, faltan 7, motivo, y `estadoDeCobertura` da `parcial`; con todo
+  resuelto da `completa`. La regla pura sigue en `tests/cobertura.test.ts`.
 - [x] Test de paridad: semáforo y ROAS convierten el mismo gasto al mismo total; una moneda no soportada es error, no 0.
   Evidencia: `tests/gasto-paridad.test.ts` (mismo gasto COP + USD con la misma TRM, y la ventana que empieza antes del gasto
   da costo `null` con `faltan`) y `tests/convertir-gasto.test.ts` (`EUR` lanza).
 - [ ] Ninguna tarjeta de razón recibe un `number` suelto (el tipo no lo deja).
+  **Sigue abierta (7-nov):** `razonShow`/`razonCierre`/`razonAgendaAVenta` ya existen en `TasasDelGrupo`, pero los `number`
+  (`pctShow`, `pctCierre`, `agendaAVenta`) siguen en dashboard, proyección, vista-todos, Mi espacio, MCP y las tarjetas de
+  Hoy; la lista nombrada de `tests/razon-con-cobertura-guardian.test.ts` (24 excepciones) es el pendiente exacto y se
+  cierra al migrarlas (385 F4/F7), no aquí.
   **Mitad de pauta hecha:** la celda de ROAS solo pinta `<CifraDeRazon razon>` (`components/cifra-de-razon.tsx`) y
   `RenglonRoas.roas` es `RazonConCobertura`. El costo por agenda expone `costoCobertura`, pero `costo` sigue como
   `number | null` porque el contrato de WhatsApp es estricto: la tarjeta del semáforo y el mensaje lo pasan al tipo
