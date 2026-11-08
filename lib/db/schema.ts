@@ -1105,10 +1105,10 @@ export const deals = pgTable(
     // Una venta tiene dueno (ticket 391, ADR 0122, auditoria 385 F3-07): un deal vigente en
     // Abonado o Completo sin `owner_user_id` deja la comision sin a quien atribuirla y a
     // "Sin closer" crecer sin error. Un deal ANULADO es un registro que no existio (ADR 0038):
-    // puede quedar sin dueno. Las dos etapas de venta son `etapaVendida` (metricas-filtros.ts).
+    // puede quedar sin dueno. Las dos etapas de venta son `etapaVendida` (metricas-filtros.ts). Excepcion nombrada (ADR 0122, decision de Mani 8-nov): un deal historico migrado de la hoja (`huella_migracion`) puede quedar sin dueno cuando su closer ya no existe como usuario del programa.
     check(
       "deals_venta_con_dueno",
-      sql`${t.anuladoEn} IS NOT NULL OR ${t.etapa} NOT IN ('ganado_parcial', 'ganado_completo') OR ${t.ownerUserId} IS NOT NULL`,
+      sql`${t.anuladoEn} IS NOT NULL OR ${t.etapa} NOT IN ('ganado_parcial', 'ganado_completo') OR ${t.ownerUserId} IS NOT NULL OR ${t.huellaMigracion} IS NOT NULL`,
     ),
     // Esperando corte (ticket 293): el texto solo vive con el pendiente Proxima Cohorte,
     // y un deal en espera sin cohorte destino lleva texto. Sin la primera mitad, salir del

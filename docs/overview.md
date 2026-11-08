@@ -454,8 +454,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   Seguimiento, Próxima Cohorte, Vencidos, Calendly, Nuevos), con las tarjetas de sus deals. El número sin
   ver cuenta lo nuevo que no ha abierto y lo que vence hoy o ya venció.
 - **Dueño:** el closer responsable de un deal. Los deals nacen sin dueño y se reclaman; un deal con llamada
-  es siempre de quien da la llamada (ADR 0076). Una venta vigente (Abonado o Completo) nunca queda sin dueño: la base
-  lo rechaza; una venta anulada sí puede (ADR 0122).
+  es siempre de quien da la llamada (ADR 0076). Una venta vigente (Abonado o Completo) nacida en el CRM nunca queda sin dueño: la base
+  lo rechaza; una venta anulada sí puede, y las 3 históricas migradas de la hoja también (ADR 0122).
 - **Lead Quality y Lead Value:** las dos etiquetas que manda el formulario con su scoring. Quality decide la
   puerta de entrada (High → Calificado); Value ordena la cola. El CRM no las calcula.
 - **Atendido sin Grain:** una llamada que ocurrió (cuenta como show) y no tiene link de Grain. Es una

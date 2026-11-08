@@ -52,6 +52,12 @@ describe("una venta vigente tiene dueno", () => {
     ).resolves.toBeDefined();
   });
 
+  it("acepta una venta HISTORICA migrada de la hoja (huella) sin dueno, y solo esa (ADR 0122)", async () => {
+    await expect(
+      insertarDeal({ etapa: "ganado_completo", ownerUserId: null, huellaMigracion: "hoja:historico-1" }),
+    ).resolves.toBeDefined();
+  });
+
   it("no exige dueno fuera de las etapas de venta (Unclaimed sigue siendo un estado valido)", async () => {
     await expect(insertarDeal({ etapa: "registrado", ownerUserId: null })).resolves.toBeDefined();
     await expect(insertarDeal({ etapa: "cierre_perdido", ownerUserId: null })).resolves.toBeDefined();

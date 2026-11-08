@@ -841,6 +841,13 @@
       "when": 1794105896410,
       "tag": "0119_check-lead-formulario-con-fecha",
       "breakpoints": true
+    },
+    {
+      "idx": 120,
+      "version": "7",
+      "when": 1794155878060,
+      "tag": "0120_check-venta-con-dueno",
+      "breakpoints": true
     }
   ]
 }
