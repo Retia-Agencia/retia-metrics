@@ -10,6 +10,7 @@ import { estadoDeCobertura } from "@/lib/cobertura";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 187 (ADR 0079): las tasas del embudo se cuentan sobre el MISMO grupo de personas.
@@ -43,7 +44,7 @@ async function deal(
   etapa: EtapaDeal,
   extra: Partial<typeof deals.$inferInsert> = {},
 ): Promise<string> {
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `lead${++n}@correo.co` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++n}@correo.co` }).returning();
   const [d] = await db.insert(deals).values({ programId, leadId: lead.id, etapa, ...extra }).returning();
   return d.id;
 }

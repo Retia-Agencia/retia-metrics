@@ -13,6 +13,7 @@ import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -57,6 +58,7 @@ afterAll(async () => cerrar());
 
 async function crearDeal(opciones: { etapa?: "atendido" | "en_gestion"; valor?: string | null } = {}) {
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
     emailNormalizado: `cortesia-${++secuencia}@retia.test`,
   }).returning();

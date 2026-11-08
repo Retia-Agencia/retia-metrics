@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { enviarEventosPendientes } from "@/lib/meta-capi/enviar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let vaciar: () => Promise<void>;
@@ -29,7 +30,7 @@ async function evento(input: { token?: string; dataset?: string; eventTime?: Dat
       config: { datasetId: input.dataset ?? `${secuencia}`, encendido: true },
     });
   }
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `envio-${secuencia}@retia.co` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `envio-${secuencia}@retia.co` }).returning();
   const anulador = input.anulado
     ? (await db.insert(users).values({ email: `anula-${secuencia}@retia.co`, rol: "gerente" }).returning())[0]
     : null;

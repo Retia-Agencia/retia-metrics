@@ -10,6 +10,7 @@ import { leerMetasDelMes } from "@/lib/queries/metas";
 import { primerosMovimientosDeVenta, vendidosEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 200: una venta que se revierte al anular su abono (A1) no cuenta en ninguna métrica,
@@ -70,7 +71,7 @@ afterAll(async () => {
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
     .returning();
   const [d] = await db
     .insert(deals)

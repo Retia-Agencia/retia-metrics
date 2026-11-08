@@ -22,6 +22,7 @@ import { codigoDeCloser, vistaDeLista } from "@/lib/queries/vista-metrica";
 import { ESCALONES, ESCALONES_QUE_PAGARON } from "@/lib/queries/escalera";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * ADR 0109, ticket 319: UN escalón por deal, en una sola función. 2026-10-05 es lunes: el viernes
@@ -57,7 +58,7 @@ interface Siembra {
 async function sembrar(s: Siembra): Promise<string> {
   n += 1;
   const programa = s.programa ?? programId;
-  const [lead] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${n}@x.test` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `l${n}@x.test` }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programa,
     leadId: lead.id,
@@ -112,7 +113,7 @@ describe("cargarEscalera: los siete escalones contra la base", () => {
   it("Deals creados usa el mismo ancla de envío en el Hub y la escalera", async () => {
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
     const crear = async (sufijo: string, envioCreado: string, dealCreado: string) => {
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `ancla-${sufijo}@x.test` }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `ancla-${sufijo}@x.test` }).returning();
       const [envio] = await db.insert(submissions).values({
         leadId: lead.id, sourceId: fuente.id, token: sufijo, esParcial: true, fechaEnvio: null,
         createdAt: new Date(`${envioCreado}T12:00:00-05:00`),

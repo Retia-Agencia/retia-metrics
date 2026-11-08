@@ -10,6 +10,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 369: Vendido, Recaudado y Por cobrar son tres cifras del MISMO conjunto de ventas
@@ -50,7 +51,7 @@ beforeEach(async () => {
 async function vender(valor: string | null, abonosUsd: number[], extra: { programa?: string; owner?: typeof closerA; cohortId?: string; dia?: string; etapa?: "ganado_parcial" | "ganado_completo" } = {}) {
   secuencia += 1;
   const programa = extra.programa ?? programId;
-  const [lead] = await db.insert(leads).values({ programId: programa, emailNormalizado: `d369-${secuencia}@retia.co` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `d369-${secuencia}@retia.co` }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programa, leadId: lead.id, ownerUserId: (extra.owner ?? closerA).id, cohortId: extra.cohortId ?? null,
     etapa: extra.etapa ?? "ganado_parcial", valorVendidoUsd: valor,

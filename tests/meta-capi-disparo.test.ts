@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let vaciar: () => Promise<void>;
@@ -29,7 +30,7 @@ async function nuevo(input: { encendido: boolean; cortesia?: boolean }) {
     precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaInicioClases: "2026-12-01",
     fechaCierreVentas: "2026-11-30",
   }).returning();
-  const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: `p${secuencia}@retia.co` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: `p${secuencia}@retia.co` }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programa.id, leadId: lead.id, cortesia: input.cortesia ?? false,
     valorVendidoUsd: "1000", etapa: "contactado", ownerUserId: dueno.id,

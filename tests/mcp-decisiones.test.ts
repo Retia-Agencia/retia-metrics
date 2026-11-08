@@ -24,6 +24,7 @@ import { origenDelPrograma, resumenDeOrigen } from "@/lib/queries/origen";
 import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -144,7 +145,7 @@ function contexto(userId: string, rol: ContextoMcp["rol"]): ContextoMcp {
 }
 
 async function lead(programId: string, correo: string) {
-  return (await db.insert(leads).values({ programId, emailNormalizado: correo, nombre: correo.split("@")[0] }).returning())[0];
+  return (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo, nombre: correo.split("@")[0] }).returning())[0];
 }
 
 async function dealVencido(args: { programId?: string; correo: string; anulado?: boolean; moneda?: string }) {

@@ -10,6 +10,7 @@ import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
 import { reservarCita, type CitaReservada } from "@/lib/calendly/escritura";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const json = (status: number, cuerpo: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => cuerpo });
 const actor = (userId: string) => ({ userId, rol: "closer" as const, operaComoCloser: false });
@@ -40,7 +41,7 @@ beforeEach(async () => {
   const [u] = await db.insert(users).values({ email: "nico@retia.co", nombre: "Nico", rol: "closer" }).returning();
   ownerId = u.id;
   await db.insert(miembrosPrograma).values({ programId, userId: ownerId, calendlyEmail: "nico@calendly.co", calendlyEventType: "https://api.calendly.com/event_types/E" });
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
   const [d] = await db.insert(deals).values({ programId, leadId: l.id, ownerUserId: ownerId, etapa: "agendado" }).returning();
   dealId = d.id;
 });

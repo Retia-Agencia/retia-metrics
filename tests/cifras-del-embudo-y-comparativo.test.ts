@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries/vista-metrica";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 188: cada cifra del embudo por etapas y cada celda del comparativo abre su lista, y la
@@ -61,7 +62,7 @@ beforeAll(async () => {
   const crear = async (programId: string, i: number, owner: string | null, anulado: boolean) => {
     const recorrido = recorridos[i % recorridos.length];
     const dia = `2026-09-${String(1 + (i % 28)).padStart(2, "0")}`;
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `l${i}-${programId}@e188.test` }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${i}-${programId}@e188.test` }).returning();
     const [deal] = await db.insert(deals).values({
       programId,
       leadId: lead.id,

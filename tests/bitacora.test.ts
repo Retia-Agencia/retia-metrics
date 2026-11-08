@@ -13,6 +13,7 @@ import {
 } from "@/lib/queries/bitacora";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 076: la bitacora de Nerd Stats junta `change_log` y `deal_etapa_historial`, con
@@ -52,7 +53,7 @@ beforeEach(async () => {
   otroId = o.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: CORREO_LEAD, nombre: NOMBRE_LEAD })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: CORREO_LEAD, nombre: NOMBRE_LEAD })
     .returning();
   leadId = l.id;
 }, 60_000);

@@ -124,7 +124,7 @@ describe("la base acepta el modelo del ticket 142", () => {
       const enBase = ("rows" in filas ? filas.rows : filas) as { valor: string }[];
       expect(enBase.map((f) => f.valor).sort()).toEqual([...ETAPAS].sort());
       const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
-      const [l] = await db.insert(leads).values({ programId: p.id, emailNormalizado: "a@b.co" }).returning();
+      const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: p.id, emailNormalizado: "a@b.co" }).returning();
       const [d] = await db.insert(deals).values({ leadId: l.id, programId: p.id, etapa: "atendido", pendiente: "seguimiento" }).returning();
       expect(d).toMatchObject({ etapa: "atendido", pendiente: "seguimiento" });
     } finally {
@@ -134,3 +134,4 @@ describe("la base acepta el modelo del ticket 142", () => {
 });
 
 import "./142-nuevas-deal-etapas";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";

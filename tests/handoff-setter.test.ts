@@ -9,6 +9,7 @@ import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -44,7 +45,7 @@ beforeEach(async () => {
   const [host] = await db.insert(users).values({ email: "host@retia.co", rol: "closer" }).returning();
   hostId = host.id;
   await db.insert(miembrosPrograma).values({ userId: hostId, programId, calendlyEmail: "host@calendly.co" });
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "lead@correo.co" }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@correo.co" }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: ownerId, etapa: "calificado" }).returning();
   dealId = deal.id;
 });

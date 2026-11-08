@@ -5,6 +5,7 @@ import { llamadasDelPrograma, filtroDeLlamadasDesdeUrl } from "@/lib/queries/lla
 import { tieneGrain } from "@/lib/queries/sin-grain";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
@@ -96,7 +97,7 @@ async function crearLlamada({
 }) {
   const [lead] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: correo, nombre })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo, nombre })
     .returning();
   const [deal] = await db
     .insert(deals)

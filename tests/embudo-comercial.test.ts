@@ -7,6 +7,7 @@ import { serieDealsContraAgendas } from "@/lib/queries/deals-contra-agendas";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const rango = { desde: "2026-10-01", hasta: "2026-10-31" };
 const enBogota = (dia: string) => new Date(`${dia}T10:00:00-05:00`);
@@ -56,7 +57,7 @@ describe("381: embudo comercial", () => {
   });
 
   it("reclasifica como completo al lead que primero envió parcial y luego terminó, con lista y cifra iguales", async () => {
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "termino@example.test" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "termino@example.test" }).returning();
     const [parcial] = await db.insert(submissions).values({
       leadId: lead.id, sourceId, token: "persona", esParcial: true, fechaEnvio: enBogota("2026-10-02"),
     }).returning();

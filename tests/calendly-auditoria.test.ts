@@ -8,6 +8,7 @@ import { huellaDeCita } from "@/lib/calendly/colgar-llamada";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const AHORA = new Date("2026-10-15T17:00:00.000Z");
 const ORG = "https://api.calendly.com/organizations/ORG1";
@@ -123,7 +124,7 @@ describe("auditarCalendly", () => {
   ): Promise<void> {
     const [lead] = await db
       .insert(leads)
-      .values({ programId: programa, emailNormalizado: `${uuid}-${programa}@retia.co` })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `${uuid}-${programa}@retia.co` })
       .returning();
     const [deal] = await db.insert(deals).values({ programId: programa, leadId: lead.id }).returning();
     await db.insert(calls).values({

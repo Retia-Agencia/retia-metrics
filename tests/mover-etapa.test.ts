@@ -63,7 +63,7 @@ beforeEach(async () => {
   await db.execute(sql`ALTER TYPE tipo_motivo ADD VALUE IF NOT EXISTS 'correccion'`);
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning();
   programId = p.id;
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co" }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co" }).returning();
   leadId = l.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
   closer = u.id;
@@ -576,7 +576,7 @@ describe("el motivo", () => {
     // Cada deal va sobre un lead distinto: la base no deja dos deals abiertos del mismo
     // lead y programa.
     const dealEnLeadNuevo = async (etapa: EtapaDeal, correo: string) => {
-      const [l] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+      const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
       // Con área: desde Atendido toda salida la pide (143), y aquí se prueba solo el motivo.
       const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa, ownerUserId: closer }).returning();
       return d.id;
@@ -759,7 +759,7 @@ describe("el saldo (ADR 0024)", () => {
   it("valor vendido menos abonos vigentes; sin valor vendido no hay saldo", async () => {
     const conValor = await nuevoDeal("atendido", { valorVendidoUsd: "1000" });
     // Otro lead: la base no deja dos deals abiertos del mismo lead y programa.
-    const [otro] = await db.insert(leads).values({ programId, emailNormalizado: "beto@correo.co" }).returning();
+    const [otro] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@correo.co" }).returning();
     const [sp] = await db.insert(deals).values({ leadId: otro.id, programId, etapa: "atendido" }).returning();
     const sinValor = sp.id;
     await db.insert(abonos).values({ dealId: conValor, programId, fecha: "2026-09-27", monto: "250.50" });
@@ -858,7 +858,7 @@ describe("revisarMovimiento: la vista previa es un ensayo del motor (ADR 0072 pu
   it("lo que no se arregla llenando campos sale como bloqueo: sin flecha, o un deal ajeno", async () => {
     const dealId = await nuevoDeal("potencial", { ownerUserId: closer });
     expect((await revisarMovimiento(db, { dealId, a: "atendido", actor: comoCloser() })).bloqueo).toMatch(/no puede pasar/);
-    const ajeno = await nuevoDeal("contactado", { ownerUserId: closer, leadId: (await db.insert(leads).values({ programId, emailNormalizado: "beto@correo.co" }).returning())[0].id });
+    const ajeno = await nuevoDeal("contactado", { ownerUserId: closer, leadId: (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@correo.co" }).returning())[0].id });
     const r = await revisarMovimiento(db, { dealId: ajeno, a: "calificado", actor: comoOtroCloser() });
     expect(r.bloqueo).not.toBeNull();
     expect(await etapaDe(ajeno)).toBe("contactado");
@@ -933,3 +933,4 @@ describe("abrirDeal: donde nace un deal (ticket 047)", () => {
 });
 
 import "./142-nuevas-mover-etapa";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";

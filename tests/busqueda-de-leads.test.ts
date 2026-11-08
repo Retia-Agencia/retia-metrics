@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket o8-busqueda: la búsqueda centralizada de leads (`leadsQueCasan`). Prueba que casa
@@ -50,6 +51,7 @@ describe("leadsQueCasan (búsqueda centralizada de leads)", () => {
     const [l] = await db
       .insert(leads)
       .values({
+        fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
         programId: valores.programa ?? programId,
         emailNormalizado: valores.email,
         nombre: valores.nombre ?? null,

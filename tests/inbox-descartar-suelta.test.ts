@@ -14,6 +14,7 @@ import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Descartar una suelta (`descartarLlamadaSueltaAccion`): se ANULA con motivo y rastro; misma reja que colgarla. Ver tambien la accion de asignar: `asignarLlamadaSueltaAccion` (decisión K2: la suelta se
@@ -101,7 +102,7 @@ beforeEach(async () => {
     .returning();
 
   // Un lead con deal abierto en el programa A.
-  const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "lead@correo.co", nombre: "Lead" }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "lead@correo.co", nombre: "Lead" }).returning();
   const [deal] = await db
     .insert(deals)
     .values({ leadId: lead.id, programId: programaA, cohortId: cohorteA.id, etapa: "agendado", ownerUserId: closerDeA,})

@@ -5,6 +5,7 @@ import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { costoPorAgendaDeVentana } from "@/lib/semaforo/costo-por-agenda";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -21,6 +22,7 @@ describe("paridad del gasto", () => {
     }).returning();
     const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
     const [lead] = await db.insert(leads).values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: programa.id, emailNormalizado: "paridad@test.co", nombre: "Paridad",
     }).returning();
     const [envio] = await db.insert(submissions).values({

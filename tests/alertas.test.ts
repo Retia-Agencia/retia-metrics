@@ -7,6 +7,7 @@ import { alertasDelPrograma, cumplimientoAlCierre, evaluarAlerta, habilesCerrado
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 147: alertas por persistencia. Una métrica del semáforo de la meta caída N días hábiles
@@ -87,7 +88,7 @@ describe("los umbrales y las alertas del programa", () => {
       fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-30", estado: "activo",
     }).returning();
     // Una sola venta, el 1-oct: después todo queda bajo el 80 %.
-    const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "l@a147.test" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "l@a147.test" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, ownerUserId: closer, etapa: "ganado_completo", cohortId: c.id }).returning();
     await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date("2026-10-01T15:00:00-05:00") });
   }, 120_000);
@@ -121,7 +122,7 @@ describe("los umbrales y las alertas del programa", () => {
   it("la meta de la cohorte cuadra con la del Pulso, también con una venta que se perdió", async () => {
     // Un segundo deal vendido el 2-oct que después pasó a Cierre Perdido: el Pulso ya no lo cuenta.
     const [c] = await db.select().from(cohorts).where(eq(cohorts.programId, programaA));
-    const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "perdido@a147.test" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "perdido@a147.test" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, ownerUserId: closer, etapa: "cierre_perdido", cohortId: c.id }).returning();
     await db.insert(dealEtapaHistorial).values([
       { dealId: deal.id, a: "ganado_parcial", fecha: new Date("2026-10-02T10:00:00-05:00") },

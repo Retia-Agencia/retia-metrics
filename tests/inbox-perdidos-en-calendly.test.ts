@@ -5,6 +5,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { perdidosEnCalendly } from "@/lib/queries/inbox";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const AHORA = new Date("2026-10-02T15:00:00.000Z");
 
@@ -61,7 +62,7 @@ async function crear(o: {
   const token = o.token ?? `token-${numero}`;
   const [lead] = await db
     .insert(leads)
-    .values({ programId: programa, emailNormalizado: `lead${numero}@correo.co`, nombre: `Lead ${numero}` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `lead${numero}@correo.co`, nombre: `Lead ${numero}` })
     .returning();
   const [envio] = await db
     .insert(submissions)

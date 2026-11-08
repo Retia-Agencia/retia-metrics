@@ -24,6 +24,7 @@ import {
 import { buscarLeads } from "@/lib/queries/leads";
 import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * ADR 0048 punto 1 / ticket 094 — "¿qué programas ve esta sesión?" tiene UNA sola
@@ -227,11 +228,11 @@ describe("la función de alcance (ADR 0048, ticket 094)", () => {
   it("buscarLeads queda acotado al programa recibido", async () => {
     const [pa] = await db
       .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "persona-a@correo.co", nombre: "Persona A" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "persona-a@correo.co", nombre: "Persona A" })
       .returning();
     const [pb] = await db
       .insert(leads)
-      .values({ programId: programaB, emailNormalizado: "persona-b@correo.co", nombre: "Persona B" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "persona-b@correo.co", nombre: "Persona B" })
       .returning();
 
     expect((await buscarLeads(db, programaA, "Persona")).map((r) => r.id)).toEqual([pa.id]);

@@ -18,6 +18,7 @@ import {
 } from "@/lib/notificaciones-calendly/notificaciones";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -43,7 +44,7 @@ beforeEach(async () => {
   const [u2] = await db.insert(users).values({ email: "otro@retia.co", rol: "closer" }).returning();
   owner = u.id;
   otro = u2.id;
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "lead@correo.co", nombre: "Lead" }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@correo.co", nombre: "Lead" }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, etapa: "agendado", ownerUserId: owner }).returning();
   dealId = deal.id;
   const [call] = await db.insert(calls).values({ programId, dealId, origen: "calendly", huellaFila: "calendly:A", resultado: "agendada" }).returning();

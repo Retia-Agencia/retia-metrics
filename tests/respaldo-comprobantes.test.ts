@@ -8,6 +8,7 @@ import { abonos, archivos, cohorts, deals, leads, programs, users } from "@/lib/
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const AHORA = new Date("2026-10-13T14:00:00Z");
 const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47]);
@@ -48,6 +49,7 @@ beforeEach(async () => {
   }).returning();
   cohortId = cohorte.id;
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
     emailNormalizado: "ana@retia.co",
     nombre: "Ana Pérez",

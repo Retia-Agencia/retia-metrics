@@ -13,6 +13,7 @@ import { leerHechos } from "@/lib/deals/mover-etapa";
 import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { ventasConDiaEn } from "@/lib/queries/dashboard";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -30,7 +31,7 @@ beforeEach(async () => {
   await vaciar();
   const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "deshacer", nombre: "Deshacer", ticketUsd: "1000" }).returning();
   programId = programa.id;
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "lead@correo.co" }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@correo.co" }).returning();
   leadId = lead.id;
   const filas = await db.insert(users).values([
     { email: "autor@retia.co", rol: "closer" },

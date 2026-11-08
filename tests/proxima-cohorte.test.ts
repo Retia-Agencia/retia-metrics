@@ -11,6 +11,7 @@ import { dealsDeProximaCohorte } from "@/lib/queries/proxima-cohorte";
 import { tableroKanban } from "@/lib/queries/kanban";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -61,6 +62,7 @@ beforeEach(async () => {
 
 async function nuevoDeal(cohortId = activaId, ownerUserId: string | null = closerId, programa = programId) {
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId: programa,
     emailNormalizado: `proxima-${secuencia++}@retia.co`,
     nombre: `Lead ${secuencia}`,

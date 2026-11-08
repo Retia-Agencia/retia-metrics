@@ -6,6 +6,7 @@ import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-fil
 import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 191: "atendido sin valor" y "atendido sin Grain" son una foto de hoy de los deals en
@@ -28,7 +29,7 @@ let n = 0;
 async function deal(datos: Partial<typeof deals.$inferInsert> & { programId?: string } = {}) {
   n += 1;
   const programa = datos.programId ?? programId;
-  const [lead] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${n}@example.test` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `l${n}@example.test` }).returning();
   const [fila] = await db.insert(deals).values({
     programId: programa,
     leadId: lead.id,

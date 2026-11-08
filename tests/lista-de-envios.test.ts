@@ -11,6 +11,7 @@ import {
 } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const RANGO = { desde: "2026-10-01", hasta: "2026-10-31" };
 const HOY = "2026-10-24";
@@ -38,11 +39,12 @@ beforeEach(async () => {
 
   const personas = await db.insert(leads).values([
     ...Array.from({ length: 53 }, (_, indice) => ({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId,
       emailNormalizado: `persona-${indice}@retia.test`,
       nombre: indice === 0 ? "Ana" : null,
     })),
-    { programId: programas[1].id, emailNormalizado: "ajena@retia.test", nombre: "Ajena" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programas[1].id, emailNormalizado: "ajena@retia.test", nombre: "Ajena" },
   ]).returning();
   const envios = await db.insert(submissions).values([
     ...personas.slice(0, 51).map((persona, indice) => ({

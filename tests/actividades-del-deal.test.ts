@@ -8,6 +8,7 @@ import { registrarActividad } from "@/lib/deals/actividades";
 import { destinosDeCorreccion } from "@/lib/deals/etapas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -27,7 +28,7 @@ beforeEach(async () => {
 });
 afterAll(async () => cerrar());
 async function nuevo(etapa: "potencial" | "registrado" | "en_gestion" | "contactado") {
-  const lead = (await db.insert(leads).values({ programId, emailNormalizado: `a${n++}@retia.co` }).returning())[0];
+  const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `a${n++}@retia.co` }).returning())[0];
   return (await db.insert(deals).values({ leadId: lead.id, programId, etapa }).returning())[0];
 }
 

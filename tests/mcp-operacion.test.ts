@@ -9,6 +9,7 @@ import { leadsDelPrograma } from "@/lib/queries/leads";
 import { bandejaParaActor, fichaDeDealVisible, fichaDeLeadParaActor, tableroDeDealsParaActor } from "@/lib/queries/operacion";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -58,8 +59,8 @@ beforeEach(async () => {
   }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programaA, nombre: "Formulario" }).returning();
   const [lead, leadAjeno] = await db.insert(leads).values([
-    { programId: programaA, emailNormalizado: "ana@retia.test", nombre: "Ana", telefono: "3001234567" },
-    { programId: programaA, emailNormalizado: "beto@retia.test", nombre: "Beto" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "ana@retia.test", nombre: "Ana", telefono: "3001234567" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "beto@retia.test", nombre: "Beto" },
   ]).returning();
   leadId = lead.id;
   const [envio] = await db.insert(submissions).values({

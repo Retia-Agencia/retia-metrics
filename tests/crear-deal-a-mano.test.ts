@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 140 — crear un deal a mano. Se prueba por la server action real, invocada a mano
@@ -68,7 +69,7 @@ afterAll(async () => {
 });
 
 async function nuevoLead(programId: string) {
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
   return l.id;
 }
 

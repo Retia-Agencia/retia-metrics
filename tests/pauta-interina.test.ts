@@ -5,6 +5,7 @@ import { categoriaDeUtm } from "@/lib/atribucion/canal";
 import { pautaInterina, type FilaPauta } from "@/lib/queries/pauta-interina";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 093 (enmienda del 29-sep): la vista interina de Pauta. Registro = token completo
@@ -56,7 +57,7 @@ interface OpcEnvio {
 async function envio(o: OpcEnvio = {}) {
   const [l] = await db
     .insert(leads)
-    .values({ programId: o.programa === "q" ? otroProgramId : programId, emailNormalizado: `l${++n}@correo.co` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: o.programa === "q" ? otroProgramId : programId, emailNormalizado: `l${++n}@correo.co` })
     .returning();
   const [s, m, c] = o.utm ?? ["facebook", "cpc", "camp"];
   const [e] = await db

@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Migración 0038 (ticket 096, ADR 0049, A5): la cuenta de Calendly vive en la membresía
@@ -93,7 +94,7 @@ describe("calls: la llamada del CRM siempre tiene deal; la suelta de Calendly no
   });
 
   it("una llamada con deal entra con cualquier origen", async () => {
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co" }).returning();
+    const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co" }).returning();
     const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa: "agendado" }).returning();
     for (const origen of ["sheets", "crm", "calendly"]) {
       await db.insert(calls).values({ ...base(), origen, dealId: d.id });
@@ -102,7 +103,7 @@ describe("calls: la llamada del CRM siempre tiene deal; la suelta de Calendly no
   });
 
   it("asignar una suelta a un deal sigue permitido", async () => {
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co" }).returning();
+    const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co" }).returning();
     const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa: "agendado" }).returning();
     const [c] = await db.insert(calls).values({ ...base(), origen: "calendly", huellaFila: "calendly:xyz" }).returning();
     await db.update(calls).set({ dealId: d.id }).where(eq(calls.id, c.id));

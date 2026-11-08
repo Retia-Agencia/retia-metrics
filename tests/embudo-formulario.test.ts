@@ -7,6 +7,7 @@ import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 126, parte A: el embudo del formulario por canal. La unidad es el registro (fuente,
@@ -44,8 +45,8 @@ beforeEach(async () => {
     db.insert(sources).values({ programId: q.id, nombre: "Typeform" }).returning().then(([f]) => f.id),
   ]);
   [leadId, otroLeadId] = await Promise.all([
-    db.insert(leads).values({ programId, emailNormalizado: "a@c.co" }).returning().then(([l]) => l.id),
-    db.insert(leads).values({ programId: q.id, emailNormalizado: "a@c.co" }).returning().then(([l]) => l.id),
+    db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "a@c.co" }).returning().then(([l]) => l.id),
+    db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: q.id, emailNormalizado: "a@c.co" }).returning().then(([l]) => l.id),
   ]);
 }, 60_000);
 
@@ -198,8 +199,8 @@ describe("embudoDelFormulario", () => {
   it("No agendaron comparte universo con su lista y sale al recibir una cita vigente", async () => {
     const [closer] = await db.insert(users).values({ email: "closer@prueba.test", rol: "closer", closerId: "Ana" }).returning();
     const nuevos = await db.insert(leads).values([
-      { programId, emailNormalizado: "b@c.co", nombre: "B" },
-      { programId, emailNormalizado: "c@c.co", nombre: "C" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "b@c.co", nombre: "B" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "c@c.co", nombre: "C" },
     ]).returning();
     await db.update(leads).set({ nombre: "A" }).where(eq(leads.id, leadId));
     const [sinCita, yaAgendado, vigenteTrasAnulado] = await db.insert(deals).values([
@@ -247,7 +248,7 @@ describe("embudoDelFormulario", () => {
 
   it("No agendaron cuenta personas y muestra el deal abierto, en cualquier orden de inserción", async () => {
     const [closer] = await db.insert(users).values({ email: "closer@prueba.test", rol: "closer", closerId: "Ana" }).returning();
-    const [soloPerdido] = await db.insert(leads).values({ programId, emailNormalizado: "p@c.co", nombre: "P" }).returning();
+    const [soloPerdido] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "p@c.co", nombre: "P" }).returning();
     const [abierto] = await db.insert(deals).values([
       { programId, leadId, ownerUserId: closer.id, etapa: "calificado", createdAt: new Date("2026-09-12T15:00:00Z") },
     ]).returning();

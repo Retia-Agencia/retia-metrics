@@ -10,6 +10,7 @@ import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-we
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * El webhook de Calendly (ticket 096, A5) invocando la RUTA real con eventos firmados,
@@ -114,7 +115,7 @@ beforeEach(async () => {
   otroProgramId = o.id;
   await sembrarIntegracion(db, programId, "calendly", { token: "token", claveFirma: CLAVE });
   await sembrarIntegracion(db, otroProgramId, "calendly", { token: "token", claveFirma: CLAVE_OTRO });
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
   leadId = l.id;
   dealId = await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
   const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
@@ -204,7 +205,7 @@ describe("una cita nueva", () => {
     // Llega el envio "Con Calendly" del lead nuevo, con la misma cita.
     const [nuevo] = await db
       .insert(leads)
-      .values({ programId, emailNormalizado: "nuevo@correo.co", nombre: "Nuevo", calificacion: "con_calendly" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "nuevo@correo.co", nombre: "Nuevo", calificacion: "con_calendly" })
       .returning();
     await aplicarReglaDeDeal(
       db,

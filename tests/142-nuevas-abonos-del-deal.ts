@@ -6,6 +6,7 @@ import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 describe("contratos nuevos de abonos del ticket 142", () => {
 let db: Db;
@@ -25,7 +26,7 @@ beforeEach(async () => {
 afterEach(async () => cerrar());
 
 async function nuevo(etapa: EtapaDeal) {
-  const lead = (await db.insert(leads).values({ programId, emailNormalizado: `p${n++}@retia.co` }).returning())[0];
+  const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `p${n++}@retia.co` }).returning())[0];
   return (await db.insert(deals).values({ leadId: lead.id, programId, cohortId, etapa, ownerUserId: closer, valorVendidoUsd: "1000" }).returning())[0];
 }
 const datos = (dealId: string, monto: string) => ({ dealId, fecha: "2026-10-02", monto, moneda: "USD" as const, comprobanteUrl: "https://retia.co/comprobante.png" });

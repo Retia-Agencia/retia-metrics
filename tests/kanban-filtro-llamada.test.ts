@@ -16,6 +16,7 @@ import { tableroKanban, type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
 import type { FiltroDeFecha } from "@/lib/periodo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 225: el filtro de fecha del Kanban gana dos campos, "Llamada" y "Próximo
@@ -100,7 +101,7 @@ async function deal(o: OpcDeal = {}): Promise<string> {
   const src = o.src ?? sourceId;
   const [l] = await db
     .insert(leads)
-    .values({ programId: prog, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}`, numAplicaciones: 1 })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}`, numAplicaciones: 1 })
     .returning();
   const [env] = await db
     .insert(submissions)

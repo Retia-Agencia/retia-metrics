@@ -7,6 +7,7 @@ import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 072 — confirmar o separar un correo que entró por teléfono (ADR 0035). Decisiones del
@@ -63,7 +64,7 @@ beforeEach(async () => {
   ajeno = { id: u2.id, rol: "closer" };
   gerente = { id: u3.id, rol: "gerente" };
 
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@c.co", nombre: "Ana", numAplicaciones: 3 }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@c.co", nombre: "Ana", numAplicaciones: 3 }).returning();
   ana = l.id;
   const envio = (token: string, correo: string, dia: string) => ({
     leadId: ana,
@@ -121,7 +122,7 @@ describe("posiblesDuplicadosDelPrograma", () => {
   it("pagina de a 25 en el servidor y devuelve la segunda página", async () => {
     // 29 duplicados más: cada uno su lead y su correo marcado por teléfono.
     for (let i = 0; i < 29; i++) {
-      const [l] = await db.insert(leads).values({ programId, emailNormalizado: `p${i}@c.co` }).returning();
+      const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `p${i}@c.co` }).returning();
       await db.insert(leadContactos).values({ leadId: l.id, programId, tipo: "correo", valor: `dup${i}@c.co`, confirmado: false });
     }
     const p0 = await posiblesDuplicadosDelPrograma(db, programId, { pagina: 0 });

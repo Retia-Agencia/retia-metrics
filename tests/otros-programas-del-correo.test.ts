@@ -7,6 +7,7 @@ import type { Db } from "@/lib/db/tipos";
 import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 091 (ADR 0043 punto 6): la unica visibilidad cruzada de un lead. Se prueba el hecho
@@ -40,14 +41,14 @@ describe("otrosProgramasDelCorreo (PGlite)", () => {
   });
 
   it("un correo que solo esta en su programa no avisa nada", async () => {
-    await db.insert(leads).values({ programId: a, emailNormalizado: "solo@correo.co" });
+    await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: a, emailNormalizado: "solo@correo.co" });
     expect(await otrosProgramasDelCorreo(db, "solo@correo.co", a)).toEqual([]);
   });
 
   it("dice en que otros programas esta, con la etapa del deal abierto (o del ultimo)", async () => {
-    await db.insert(leads).values({ programId: a, emailNormalizado: "ana@correo.co" });
-    const [lb] = await db.insert(leads).values({ programId: b, emailNormalizado: "ana@correo.co" }).returning();
-    const [lc] = await db.insert(leads).values({ programId: c, emailNormalizado: "ana@correo.co" }).returning();
+    await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: a, emailNormalizado: "ana@correo.co" });
+    const [lb] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: b, emailNormalizado: "ana@correo.co" }).returning();
+    const [lc] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: c, emailNormalizado: "ana@correo.co" }).returning();
     await db.insert(deals).values([
       { leadId: lb.id, programId: b, etapa: "cierre_perdido", createdAt: new Date("2026-09-01T00:00:00Z") },
       { leadId: lb.id, programId: b, etapa: "agendado", createdAt: new Date("2026-08-01T00:00:00Z") },
@@ -66,8 +67,8 @@ describe("otrosProgramasDelCorreo (PGlite)", () => {
   });
 
   it("no une ni fusiona: los dos leads siguen siendo dos", async () => {
-    await db.insert(leads).values({ programId: a, emailNormalizado: "dos@correo.co" });
-    await db.insert(leads).values({ programId: b, emailNormalizado: "dos@correo.co" });
+    await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: a, emailNormalizado: "dos@correo.co" });
+    await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: b, emailNormalizado: "dos@correo.co" });
     await otrosProgramasDelCorreo(db, "dos@correo.co", a);
     expect(await db.select().from(leads)).toHaveLength(2);
   });

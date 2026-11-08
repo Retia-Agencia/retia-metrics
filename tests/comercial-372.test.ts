@@ -9,6 +9,7 @@ import { listaDeMetrica, resumenDeMetrica, type Metrica } from "@/lib/queries/me
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const HOY = "2026-10-09";
 const A = { desde: "2026-10-01", hasta: "2026-10-09" };
@@ -40,7 +41,7 @@ describe("372: deals de un formulario completo y de un parcial, aparte", () => {
     let n = 0;
     const deal = async (clave: string, esParcial: boolean | null, dia: string) => {
       n += 1;
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `p${n}@example.test` }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `p${n}@example.test` }).returning();
       const [fila] = await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: owner.id, createdAt: bogota(dia) }).returning();
       ids[clave] = fila.id;
       if (esParcial === null) return;

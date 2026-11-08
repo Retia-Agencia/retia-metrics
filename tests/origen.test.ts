@@ -8,6 +8,7 @@ import { agrupar } from "@/lib/queries/hechos/envio";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -25,7 +26,7 @@ beforeEach(prepararPrograma);
 afterAll(async () => cerrar());
 
 async function crearEnvio(source: string | null, medium: string | null, fecha: string, utmId: string | null = null) {
-  const lead = (await db.insert(leads).values({ programId, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning())[0];
+  const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning())[0];
   return (await db.insert(submissions).values({
     leadId: lead.id, sourceId, token: crypto.randomUUID(), esParcial: false,
     fechaEnvio: new Date(`${fecha}T12:00:00-05:00`), utmSource: source, utmMedium: medium, utmId,
@@ -104,7 +105,7 @@ describe("Hub Origen", () => {
   it("una agenda sin envío de origen no cae en la lista de Sin UTM (la tabla la pone en su propia fila)", async () => {
     const sinUtm = await crearEnvio(null, null, "2026-10-10");
     await agendar(sinUtm, "2026-10-12T10:00:00-05:00");
-    const lead = (await db.insert(leads).values({ programId, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning())[0];
+    const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning())[0];
     const manual = (await db.insert(deals).values({ leadId: lead.id, programId, etapa: "agendado" }).returning())[0];
     await db.insert(calls).values({ programId, dealId: manual.id, createdAt: new Date("2026-10-12T11:00:00-05:00") });
     await db.insert(calls).values({ programId, createdAt: new Date("2026-10-12T12:00:00-05:00") });
@@ -167,7 +168,7 @@ describe("Hub Origen", () => {
       ...PROGRAMA_DE_PRUEBA, slug: "origen-otro", nombre: "Otro", ticketUsd: "1000",
     }).returning())[0];
     const fuenteAjena = (await db.insert(sources).values({ programId: otro.id, nombre: "Formulario" }).returning())[0];
-    const leadAjeno = (await db.insert(leads).values({ programId: otro.id, emailNormalizado: "ajeno@retia.test" }).returning())[0];
+    const leadAjeno = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otro.id, emailNormalizado: "ajeno@retia.test" }).returning())[0];
     const envioAjeno = (await db.insert(submissions).values({
       leadId: leadAjeno.id, sourceId: fuenteAjena.id, token: "ajeno", esParcial: false,
       fechaEnvio: new Date("2026-10-10T12:00:00-05:00"), utmSource: "facebook", utmMedium: "cpc",

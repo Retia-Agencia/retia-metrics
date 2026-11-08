@@ -6,6 +6,7 @@ import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { reconciliarCalendly } from "@/lib/calendly/reconciliar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -26,7 +27,7 @@ afterAll(async () => cerrar());
 async function escenario(args: { correo?: string; uuid?: string; etapa?: "registrado" | "calificado" | "potencial"; llamada?: boolean }) {
   const correo = args.correo ?? "santiago.fr10@hotmail.com";
   const uuid = args.uuid ?? "uuid-santiago";
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
   const dealId = await abrirDeal(db, { leadId: lead.id, programId, etapa: args.etapa ?? "calificado", actor: { tipo: "sistema" } });
   await db.insert(submissions).values({
     sourceId,
@@ -76,7 +77,7 @@ describe("reconciliarCalendly", () => {
   });
 
   it("sin UUID solo usa un correo confirmado; nunca uno unido por teléfono sin confirmar", async () => {
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "principal@correo.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "principal@correo.co" }).returning();
     const dealId = await abrirDeal(db, { leadId: lead.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
     await db.insert(leadContactos).values({ leadId: lead.id, programId, tipo: "correo", valor: "agenda@correo.co", confirmado: false });
     const [llamada] = await db.insert(calls).values({ programId, emailLead: "agenda@correo.co", origen: "calendly", resultado: "agendada" }).returning();

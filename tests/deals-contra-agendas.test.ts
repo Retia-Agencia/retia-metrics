@@ -9,6 +9,7 @@ import { periodoDeLaGrafica, vistaDealsContraAgendas } from "@/lib/queries/vista
 import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 // Octubre de 2026 empieza en jueves: el viernes 9 es su hábil 7. Septiembre empieza en martes,
 // así que sus 7 primeros hábiles terminan el miércoles 9.
@@ -83,7 +84,7 @@ describe("138: deals creados contra agendas, contra la base", () => {
     let n = 0;
     const deal = async (clave: string, programId: string, creado: Date, extra: Partial<typeof deals.$inferInsert> = {}) => {
       n += 1;
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `p${n}@example.test` }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `p${n}@example.test` }).returning();
       const [fila] = await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: owner.id, createdAt: creado, ...extra }).returning();
       ids[clave] = fila.id;
       return { lead, fila };

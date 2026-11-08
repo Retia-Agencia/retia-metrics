@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { preguntasDisponiblesDelPrograma, respuestasDelUltimoEnvio } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 209 — "Mostrar respuestas del formulario" en la lista de Leads. Las columnas extra salen
@@ -50,10 +51,10 @@ beforeEach(async () => {
   const filas = await db
     .insert(leads)
     .values([
-      { programId, emailNormalizado: "ana@c.co" },
-      { programId, emailNormalizado: "beto@c.co" },
-      { programId, emailNormalizado: "sin-envio@c.co" },
-      { programId: otroProgramId, emailNormalizado: "ajeno@c.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@c.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@c.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "sin-envio@c.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroProgramId, emailNormalizado: "ajeno@c.co" },
     ])
     .returning();
   for (const l of filas) id[l.emailNormalizado.split("@")[0]] = l.id;

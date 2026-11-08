@@ -25,6 +25,7 @@ import { nombreDelDeal } from "@/lib/deals/nombre";
 import { fichaDeDeal, opcionesDeFicha, respuestasLegibles } from "@/lib/queries/ficha-deal";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 074: `fichaDeDeal`, la lectura de la pantalla. Cubre: la cabecera con sus nombres,
@@ -70,7 +71,7 @@ beforeEach(async () => {
   closer = u.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana", telefono: "300", numAplicaciones: 3 })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana", telefono: "300", numAplicaciones: 3 })
     .returning();
   const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
   const [env] = await db
@@ -166,7 +167,7 @@ describe("fichaDeDeal", () => {
   });
 
   it("ordena los contactos con el principal primero y no mezcla otro lead", async () => {
-    const [otroLead] = await db.insert(leads).values({ programId, emailNormalizado: "otra@correo.co" }).returning();
+    const [otroLead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "otra@correo.co" }).returning();
     await db.insert(leadContactos).values([
       { leadId: otroLead.id, programId, tipo: "correo", valor: "otra@correo.co", esPrincipal: true },
       { leadId: (await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "ana@correo.co")))[0].id, programId, tipo: "telefono", valor: "301", esPrincipal: false },
@@ -182,7 +183,7 @@ describe("fichaDeDeal", () => {
 
   it("combina etapas y cambios del deal y sus registros, excluye otros deals y ordena por fecha", async () => {
     const [abono] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-10", monto: "100", moneda: "USD" }).returning();
-    const [otroLead] = await db.insert(leads).values({ programId, emailNormalizado: "otro-log@correo.co" }).returning();
+    const [otroLead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "otro-log@correo.co" }).returning();
     const [otroDeal] = await db.insert(deals).values({ leadId: otroLead.id, programId, etapa: "atendido" }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId,

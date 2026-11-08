@@ -9,6 +9,7 @@ import type { EventoDeCalendly } from "@/lib/calendly/evento-webhook";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * El filtro por tipo de evento del webhook de Calendly (ADR 0098, ticket 289), contra
@@ -72,7 +73,7 @@ beforeEach(async () => {
     .values({ ...PROGRAMA_DE_PRUEBA, slug: "estadox", nombre: "Second Brain", ticketUsd: "1500", calendlyOrgCompartida: true, calendlyEventType: RR })
     .returning();
   programId = p.id;
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
   leadId = l.id;
   await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
   const [m] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();

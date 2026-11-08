@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 074: las server actions de la ficha del deal, mordidas como las muerde un atacante
@@ -73,7 +74,7 @@ afterAll(async () => {
 });
 
 async function nuevoDeal(programId: string, ownerUserId: string | null) {
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: `lead${++leadN}@correo.co` }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++leadN}@correo.co` }).returning();
   const [d] = await db
     .insert(deals)
     .values({ leadId: l.id, programId, etapa: "atendido", ownerUserId,})
@@ -340,7 +341,7 @@ describe("el customer success solo marca onboarding, por la server action (ticke
     return u.id;
   }
   async function dealGanado(programId: string): Promise<string> {
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: `lead${++leadN}@correo.co` }).returning();
+    const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++leadN}@correo.co` }).returning();
     const [d] = await db.insert(deals).values({ leadId: l.id, programId, etapa: "ganado_parcial", ownerUserId: closerA }).returning();
     return d.id;
   }

@@ -9,6 +9,7 @@ import { vistaDeLista } from "@/lib/queries/vista-metrica";
 import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -51,7 +52,7 @@ beforeEach(async () => {
   await db.insert(miembrosPrograma).values({ userId: closerId, programId: programaA });
 
   async function venta(programId: string, correo: string, anulada = false) {
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
     await db.insert(submissions).values({
       sourceId: programId === programaA ? fuenteA : fuenteB,
       leadId: lead.id,

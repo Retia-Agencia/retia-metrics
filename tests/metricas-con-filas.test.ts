@@ -9,6 +9,7 @@ import { showsSinGrain } from "@/lib/queries/sin-grain";
 import { contratadoDeDeals } from "@/lib/queries/saldo";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -231,7 +232,7 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
 
   it("(d) un closer SIN closer_id abre su lista por su users.id y el total es su cifra", async () => {
     const [closer] = await base.insert(users).values({ email: "sinid@d.co", rol: "closer", closerId: null }).returning();
-    const [lead] = await base.insert(leads).values({ programId: prog, emailNormalizado: "l@d.co" }).returning();
+    const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "l@d.co" }).returning();
     const [deal] = await base.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial" }).returning();
     await base.insert(abonos).values([
       { dealId: deal.id, programId: prog, registradoPorUserId: closer.id, fecha: h, monto: "100", moneda: "USD" },
@@ -297,7 +298,7 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
 
   async function deal(programId: string, extra: Record<string, unknown> = {}) {
     secuencia += 1;
-    const [lead] = await base.insert(leads).values({ programId, emailNormalizado: `m148-${secuencia}@retia.co` }).returning();
+    const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `m148-${secuencia}@retia.co` }).returning();
     const [fila] = await base.insert(deals).values({ programId, leadId: lead.id, ownerUserId: owner.id, ...extra } as never).returning();
     return fila;
   }

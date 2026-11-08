@@ -8,6 +8,7 @@ import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { buscarLeads } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /** `Cesar` y `César` son la misma búsqueda, en memoria y en SQL. */
 describe("búsqueda sin tildes", () => {
@@ -36,7 +37,7 @@ describe("búsqueda sin tildes", () => {
   async function crearLead(nombre: string, email: string) {
     const [lead] = await db
       .insert(leads)
-      .values({ programId, nombre, emailNormalizado: email })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, nombre, emailNormalizado: email })
       .returning();
     return lead.id;
   }

@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { rellenarComisionDeVentas } from "@/lib/deals/rellenar-comision";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 describe("rellenar comisión de ventas", () => {
   let db: Db;
@@ -40,11 +41,11 @@ describe("rellenar comisión de ventas", () => {
       comisionPorcentaje: null,
     }).returning();
     const personas = await db.insert(leads).values([
-      { programId: conPorcentaje.id, emailNormalizado: "uno@retia.co" },
-      { programId: conPorcentaje.id, emailNormalizado: "dos@retia.co" },
-      { programId: conPorcentaje.id, emailNormalizado: "anulado@retia.co" },
-      { programId: conPorcentaje.id, emailNormalizado: "abierto@retia.co" },
-      { programId: sinPorcentaje.id, emailNormalizado: "sin-pct@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: conPorcentaje.id, emailNormalizado: "uno@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: conPorcentaje.id, emailNormalizado: "dos@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: conPorcentaje.id, emailNormalizado: "anulado@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: conPorcentaje.id, emailNormalizado: "abierto@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: sinPorcentaje.id, emailNormalizado: "sin-pct@retia.co" },
     ]).returning();
     const filas = await db.insert(deals).values([
       { programId: conPorcentaje.id, leadId: personas[0].id, etapa: "ganado_parcial", comisionPorcentaje: null },

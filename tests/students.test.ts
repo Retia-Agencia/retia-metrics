@@ -6,6 +6,7 @@ import { studentsDelPrograma } from "@/lib/queries/estudiantes";
 import { totalesDeStudents } from "@/lib/queries/estudiantes-totales";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 099 — la tab Students: la lista por cohorte cuadra con los deals vigentes en Abonado o
@@ -61,7 +62,7 @@ afterAll(async () => {
 });
 
 async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deals.$inferInsert> = {}, programa = programId) {
-  const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++n}@correo.co`, nombre: `Lead ${n}` }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `l${++n}@correo.co`, nombre: `Lead ${n}` }).returning();
   const [d] = await db
     .insert(deals)
     .values({ leadId: l.id, programId: programa, cohortId: c2, etapa, ownerUserId: closer,valorVendidoUsd: "1000.00", ...extra })

@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * ADR 0059 punto 2 y ticket 080 — la migracion de las pestañas de gestion no duplica
@@ -35,7 +36,7 @@ beforeEach(async () => {
   programa = p.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId: programa, emailNormalizado: "ana@correo.co" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "ana@correo.co" })
     .returning();
   lead = l.id;
 });

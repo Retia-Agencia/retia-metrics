@@ -10,6 +10,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const holder: { db: Db | null } = { db: null };
 vi.mock("@/lib/db", () => ({ get db() { return holder.db; } }));
@@ -225,7 +226,7 @@ describe("matriz 363 por las rutas reales", () => {
   });
 
   it("reagenda con otro correo: el deal ya Agendado cuelga la nueva cita por UUID", async () => {
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "titular@correo.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "titular@correo.co" }).returning();
     const dealId = await abrirDeal(db, { leadId: lead.id, programId, etapa: "agendado", actor: { tipo: "sistema" } });
     await db.insert(calls).values({ programId, dealId, origen: "calendly", resultado: "agendada", huellaFila: "calendly:VIEJA", fechaAgenda: new Date("2026-11-01T15:00:00Z") });
     await db.insert(submissions).values({ sourceId, leadId: lead.id, token: "reagenda", respuestas: { [AGENDA]: "https://calendly.com/d/x/invitees/NUEVA" } });
@@ -249,7 +250,7 @@ describe("matriz 363 por las rutas reales", () => {
   it("UUID en envíos de dos leads: I1 negativo, queda suelta y cuenta como duda", async () => {
     const uuid = "UUID-DUDOSO";
     for (const [i, correo] of ["uno@correo.co", "dos@correo.co"].entries()) {
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
       await abrirDeal(db, { leadId: lead.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
       await db.insert(submissions).values({ sourceId, leadId: lead.id, token: `duda-${i}`, respuestas: { [AGENDA]: `https://calendly.com/d/x/invitees/${uuid}` } });
     }
@@ -260,7 +261,7 @@ describe("matriz 363 por las rutas reales", () => {
 
   it("cita de otro programa: nunca cruza la frontera", async () => {
     const uuid = "OTRO-PROGRAMA";
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "frontera@correo.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "frontera@correo.co" }).returning();
     const dealId = await abrirDeal(db, { leadId: lead.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
     await db.insert(submissions).values({ sourceId, leadId: lead.id, token: "frontera", respuestas: { [AGENDA]: `https://calendly.com/d/x/invitees/${uuid}` } });
     await enviarCalendly(cita(uuid, { correo: "frontera@correo.co" }), otroProgramId, CLAVE_OTRO);
@@ -269,7 +270,7 @@ describe("matriz 363 por las rutas reales", () => {
   });
 
   it("sin UUID compartido: I4 queda suelta y nombre/teléfono nunca la asignan solos", async () => {
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "persona@correo.co", nombre: "Santiago Fr", telefono: "573001234567" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "persona@correo.co", nombre: "Santiago Fr", telefono: "573001234567" }).returning();
     await abrirDeal(db, { leadId: lead.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
     await enviarCalendly(cita("SIN-LINK", { correo: "otro@correo.co", nombre: "Santiago Fr", telefono: "+57 300 123 4567" }));
     expect((await db.select().from(calls))[0].dealId).toBeNull();
@@ -302,7 +303,7 @@ describe("matriz 363 por las rutas reales", () => {
 });
 
 async function prepararSueltaReconciliable(uuid: string, correo = `${uuid.toLowerCase()}@correo.co`) {
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
   const dealId = await abrirDeal(db, { leadId: lead.id, programId, etapa: "calificado", actor: { tipo: "sistema" } });
   await db.insert(submissions).values({ sourceId, leadId: lead.id, token: `pre-${uuid}`, respuestas: { [AGENDA]: `https://calendly.com/d/x/invitees/${uuid}` } });
   const [call] = await db.insert(calls).values({ programId, origen: "calendly", resultado: "agendada", huellaFila: `calendly:${uuid}`, fechaAgenda: new Date("2026-11-05T15:00:00Z"), emailLead: "otro@correo.co" }).returning();
