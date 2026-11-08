@@ -659,6 +659,8 @@ export const leads = pgTable(
     uniqueIndex("leads_programa_email_idx").on(t.programId, t.emailNormalizado),
     index("leads_programa_estado_idx").on(t.programId, t.estado),
     index("leads_cohorte_idx").on(t.cohortId),
+    // ADR 0121 (389, N6): un lead de formulario nace con su fecha de primera aplicacion; la base lo exige.
+    check("leads_formulario_con_fecha", sql`${t.entrada} <> 'formulario' OR ${t.fechaPrimeraAplicacion} IS NOT NULL`),
   ],
 );
 
