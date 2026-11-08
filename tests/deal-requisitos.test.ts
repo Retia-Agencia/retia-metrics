@@ -65,6 +65,7 @@ describe("lo que no es un requisito", () => {
 
   it("devuelve TODO lo que falta, no solo lo primero", () => {
     expect(queLeFalta("atendido", "ganado_parcial", NADA).map((f) => f.codigo)).toEqual([
+      "dueno",
       "valor_vendido",
       "abono",
       "saldo_pendiente",

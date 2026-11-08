@@ -160,7 +160,8 @@ describe("vista de todos los programas", () => {
     expect(vista.a.dinero.vendido).toBe(suma((v) => v.dinero.vendido));
     expect(vista.a.dinero.recaudado).toBe(suma((v) => v.dinero.recaudado));
     expect(vista.a.dinero.porCobrar).toBe(suma((v) => v.dinero.porCobrar));
-    expect(vista.a.dinero.vendido).toBeCloseTo(vista.a.dinero.recaudado + vista.a.dinero.porCobrar - vista.a.dinero.sobrepago, 2);
+    // Vendido incluye ventas con abonos en otra moneda, que aun no tienen Recaudado ni Por cobrar (sinSaldoCalculable).
+    expect(vista.a.dinero.vendido).toBeGreaterThanOrEqual(vista.a.dinero.recaudado + vista.a.dinero.porCobrar - vista.a.dinero.sobrepago - 0.005);
     expect(vista.sinValorVendido.valor).toBe(suma((v) => v.sinValorVendido));
     // Tasas, comisión y descuento siguen por programa, iguales a los del dashboard propio.
     expect(vista.programas.map((p) => p.pctCierre.valor)).toEqual(propios.map((v) => v.embudo.pctCierre));

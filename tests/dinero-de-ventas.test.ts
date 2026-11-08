@@ -102,13 +102,13 @@ describe("las tres cifras (369)", () => {
     expect(dineroDeSaldos((await saldosDeDeals(db, ids)).values())).toEqual(d);
   });
 
-  it("una venta sin saldo calculable (sin valor vendido o abonos en otra moneda) queda fuera y se cuenta aparte", async () => {
+  it("sin valor vendido queda fuera; con abonos en otra moneda cuenta en Vendido pero no en Recaudado ni Por cobrar, y se cuenta aparte", async () => {
     const sinValor = await vender(null, [50]);
     const otraMoneda = await vender("100", []);
     await db.insert(abonos).values({ programId, dealId: otraMoneda.id, registradoPorUserId: closerA.id, fecha: "2026-10-06", monto: "400000", moneda: "COP" });
     const buena = await vender("100", [40]);
     expect(await dineroDeVentas(db, [sinValor.id, otraMoneda.id, buena.id])).toEqual({
-      vendido: 100, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, sinSaldoCalculable: 2, sinValorVendido: 1,
+      vendido: 200, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, sinSaldoCalculable: 2, sinValorVendido: 1,
     });
   });
 });

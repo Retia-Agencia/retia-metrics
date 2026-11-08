@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { dealEtapaHistorial, deals, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { crearBaseDePrueba } from "./helpers/base-de-prueba";
+import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { crearLeadDePrueba } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -11,9 +11,14 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 describe("ticket 393: una sola suma del dinero vendido", () => {
   let db: Db;
   let cerrar: () => Promise<void>;
+  let vaciar: () => Promise<void>;
 
   beforeAll(async () => {
-    ({ db, cerrar } = await crearBaseDePrueba());
+    ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+  });
+
+  beforeEach(async () => {
+    await vaciar();
   });
 
   afterAll(async () => cerrar());

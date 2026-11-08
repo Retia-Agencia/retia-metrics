@@ -44,6 +44,9 @@ export function dineroDeSaldos(saldos: Iterable<SaldoDeDeal>): DineroDeVentas {
     if (s.saldo === null || s.precio === null) {
       total.sinSaldoCalculable += 1;
       if (s.sinSaldoPorque === "sin_valor_vendido") total.sinValorVendido += 1;
+      // Vendido es lo que escribio el closer en USD: un abono en otra moneda no lo borra (solo deja sin calcular
+      // Recaudado y Por cobrar hasta que exista la conversion a USD).
+      if (s.precio !== null) total.vendido += s.precio;
       continue;
     }
     total.ventas += 1;

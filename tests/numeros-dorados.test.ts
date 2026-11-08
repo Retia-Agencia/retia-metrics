@@ -103,7 +103,7 @@ interface EsperadoHub {
 
 /**
  * Cada cifra, derivada a mano de la semilla:
- *  - vendido = valor vendido de las ventas con saldo calculable; recaudado = sus abonos de ticket vigentes.
+ *  - vendido = valor vendido de toda venta con valor (con abonos en otra moneda tambien); recaudado = sus abonos de ticket vigentes.
  *  - caja = abonos vigentes (ticket y adicional) con fecha en el rango, por moneda, de ventas o no: el
  *    abono de a3 (Cierre Perdido) SIGUE contando; el anulado de a1 (77) y el de a9 (999) no.
  *  - comision = 10 % del valor vendido de cada venta con valor; a7 no tiene valor, por eso "sin comision".
@@ -134,9 +134,9 @@ const HUB: Record<Programa, Record<Periodo, EsperadoHub>> = {
   },
   B: {
     // OJO (hallazgo del 385): cierres = 1 pero dinero.ventas = 0. La venta con abono SOLO en COP tiene
-    // saldo no calculable y el dinero la deja fuera, mientras cierres y comision si la cuentan.
+    // saldo no calculable: su Vendido (1.500) cuenta, pero no entra a Recaudado, Por cobrar ni ventas.
     mesCerrado: {
-      cierres: 1, dinero: { vendido: 0, recaudado: 0, porCobrar: 0, ventas: 0, sinSaldoCalculable: 1 },
+      cierres: 1, dinero: { vendido: 1500, recaudado: 0, porCobrar: 0, ventas: 0, sinSaldoCalculable: 1 },
       caja: [{ moneda: "COP", total: 2_000_000 }], contratadoUsd: 1500, sinValorVendido: 0,
       comision: { totalUsd: 150, ventasSinComision: 0 }, cortesias: 0,
       porCohorte: [["B1", 1, 1500, 0]], comparativo: [["Ana", 1]],
