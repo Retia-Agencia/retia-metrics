@@ -3,7 +3,7 @@ id: 389
 etapa: hub
 serves: "Auditoría 385 F3-01 · ADR 0115 N6 · ADR 0121"
 depends: [388]
-status: todo
+status: en main
 ---
 
 # 389 — Lead bien escrito al nacer
