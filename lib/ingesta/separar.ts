@@ -15,7 +15,7 @@ import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { envioMasReciente } from "./envio-de-origen";
 import { etapaDeEntrada } from "./etapa-de-entrada";
 import { hechosDeEntradaDelEnvio } from "./regla-de-deals";
-import { recalcularResumen } from "./ingerir";
+import { primeraAplicacion, recalcularResumen } from "./ingerir";
 
 /**
  * Confirmar o separar un correo que entró por teléfono (ticket 072, ADR 0035). La ingesta
@@ -135,6 +135,7 @@ export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosC
           id: submissions.id,
           respuestas: submissions.respuestas,
           fechaEnvio: submissions.fechaEnvio,
+          createdAt: submissions.createdAt,
           posicionEnHoja: submissions.posicionEnHoja,
           esParcial: submissions.esParcial,
           calificacion: submissions.calificacion,
@@ -166,7 +167,12 @@ export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosC
       try {
         const [nuevo] = await tx
           .insert(leads)
-          .values({ programId: contacto.programId, emailNormalizado: correo })
+          // Un lead de formulario nace con su fecha (ADR 0121): la de los envios que se le mudan.
+          .values({
+            programId: contacto.programId,
+            emailNormalizado: correo,
+            fechaPrimeraAplicacion: primeraAplicacion(enviosAMover),
+          })
           .returning();
         leadNuevoId = nuevo.id;
       } catch (e) {
