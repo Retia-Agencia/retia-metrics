@@ -188,18 +188,23 @@ describe("MCP contra Hub, con el escalon conteo y despues claves", () => {
     const pagina = await vistaDe(p, per);
 
     const resumen = await resumenDelHubMcp.ejecutar(contexto(), entrada);
-    const vistaMcp = resumen.estructurado.vista as typeof pagina;
-    expect(vistaMcp.embudo.cierres).toBe(pagina.embudo.cierres);
-    expect(vistaMcp.caja).toEqual(pagina.caja);
-    expect(vistaMcp.dinero).toEqual(pagina.dinero);
+    const salida = resumen.estructurado as {
+      cifras: Record<"ventas" | "vendido" | "recaudado" | "por_cobrar", { valor: number }>;
+      entro_a_caja: Array<{ moneda: string; total: number }>;
+    };
+    expect(salida.cifras.ventas.valor).toBe(pagina.embudo.cierres);
+    expect(salida.entro_a_caja).toEqual(pagina.caja);
+    expect(salida.cifras.vendido.valor).toBe(pagina.dinero.vendido);
+    expect(salida.cifras.recaudado.valor).toBe(pagina.dinero.recaudado);
+    expect(salida.cifras.por_cobrar.valor).toBe(pagina.dinero.porCobrar);
 
     const cierres = await consultarMetricaMcp.ejecutar(contexto(), { ...entrada, metrica: "cierres", pagina: 1 });
-    const filas = cierres.estructurado.filas as Array<{ dealId: string }>;
-    expect((cierres.estructurado.resumen as { subtotal: { cantidad: number } }).subtotal.cantidad).toBe(pagina.embudo.cierres);
-    compararConteoYClaves(filas.map((f) => s.claveDe(f.dealId)), VENTAS[p][per]);
+    const filas = cierres.estructurado.filas as Array<{ enlace: string | null }>;
+    expect((cierres.estructurado.resumen as { total: number }).total).toBe(pagina.embudo.cierres);
+    compararConteoYClaves(filas.map((f) => s.claveDe(f.enlace!.split("/").pop()!)), VENTAS[p][per]);
 
     const caja = await consultarMetricaMcp.ejecutar(contexto(), { ...entrada, metrica: "caja", pagina: 1 });
-    expect((caja.estructurado.resumen as { subtotal: { caja: unknown } }).subtotal.caja).toEqual(pagina.caja);
+    expect((caja.estructurado.resumen as { entro_a_caja: unknown }).entro_a_caja).toEqual(pagina.caja);
   });
 });
 
