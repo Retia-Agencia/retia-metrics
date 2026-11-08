@@ -9,6 +9,34 @@
 > **Qué NO es.** No redefine ninguna cifra (eso es `docs/metricas.md`, único diccionario) ni sustituye al ADR 0115 (N1 a
 > N9, la vara). Lo que esas reglas ya dicen se cita, no se copia.
 
+## Resumen: dónde está la verdad y cómo se toca
+
+**Regla única:** una cifra tiene UNA definición escrita, UNA función y UN guardián. Quien necesite la cifra importa la función;
+nadie escribe su propio `count(` o `sum(` sobre filas de negocio. Una cifra que dos lugares calculan por separado es el bug.
+
+**Dónde vive cada cosa (source of truth)**
+
+| Qué | Dónde | Quién lo vigila |
+|---|---|---|
+| Qué significa una cifra (tabla, ancla, unidad, moneda, qué cuenta y qué no) | `docs/metricas.md` (único diccionario) | N8: el código manda sobre "qué hace hoy"; ADR vigente sobre "qué debería". 🟡 test registro contra diccionario |
+| Cómo se llama (nombre de negocio) | `docs/overview.md` §11 | 🔒 `hub-vocabulario-guardian` (solo Hub); 🟡 todas las superficies |
+| **La consulta que la calcula** | `lib/queries/`: un módulo por **hecho** en `lib/queries/hechos/` (envío, agenda, cita, venta, abono, gasto) y por concepto transversal (`vigente.ts`, `saldo.ts`, `metricas-filtros.ts`, `hechos/fechas.ts`, `lib/dias-habiles.ts`, `lib/pauta/convertir-gasto.ts`). La tabla "Conceptos" de `metricas.md` §0 dice qué módulo es el canónico de cada concepto | guardianes 🔒 por concepto (§1 paso 4) |
+| La lista detrás de la cifra | la misma consulta sin agrupar (`metricas-con-filas.ts`) | 🔒 `metricas-con-filas.test.ts` |
+| Qué se decidió y por qué | `docs/adr/` (vigente > ticket > documento de reunión) | revisión + N8 |
+| Forma de los datos | `lib/db/schema.ts` y migraciones (la base garantiza con `NOT NULL`, `CHECK`, únicos) | 🔒 `modelo-crm-indices`, `migraciones` |
+| Futuro: registro tipado de métricas | un módulo de `lib/` (F4, 🟡) del que salen o contra el que se verifican diccionario, rótulos y salida del MCP | por construir |
+
+**Cómo se amplía o modifica** (cada flujo detallado abajo)
+
+- **Métrica nueva** → §1: glosario → fila en el diccionario → hecho y función única → (registro) → paridad → lista → superficies.
+- **Fórmula distinta** → §2: ADR, diccionario, vocabulario, dorados y tests **en el mismo commit**.
+- **Tabla o columna** → §3: justificación, `CHECK`, `vigente()`, programa, `EXPLAIN`, rastro; migra la sesión principal.
+- **Probar** → §4: paridad entre funciones reales sobre base sembrada. **Retirar** → §5: reemplazar es borrar.
+
+**Antes de escribir una consulta nueva:** busca el hecho en `lib/queries/hechos/` y el concepto en `metricas.md` §0. Si existe,
+impórtala o extiéndela con una dimensión de su lista blanca. Si no existe, se crea **ahí**, con su fila en el diccionario, nunca
+dentro de una pantalla, de `lib/mcp/` o de un script.
+
 ## 0. Estado de este documento (leer primero)
 
 - **Decisiones de Mani del 7-nov** (ticket 385 §4, no se reabren): (1) **registro tipado de métricas en código** como fuente

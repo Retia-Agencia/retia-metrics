@@ -58,7 +58,9 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    `tests/mcp-guardian.test.ts`. Léelo antes de tocar `lib/mcp/`.
 2c. **`docs/contrato-metricas-y-datos.md`** (7-nov, F6 del ticket 385) — el contrato para agregar, cambiar, probar y retirar una
    métrica, una tabla o una columna, con qué guardián existe hoy en `tests/` (🔒), cuál solo se propone (🟡) y cuál es revisión
-   manual con su olor nombrado (👁), y la investigación con fuentes. Es el par de `docs/mcp.md` para la capa de datos; el
+   manual con su olor nombrado (👁), y la investigación con fuentes. **Empieza por su "Resumen": la definición vive en
+   `docs/metricas.md`, el nombre en `overview.md` §11 y la consulta en `lib/queries/hechos/` y los módulos de concepto; una
+   consulta nueva se crea ahí, nunca en una pantalla, en `lib/mcp/` ni en un script.** Es el par de `docs/mcp.md` para la capa de datos; el
    registro tipado y los guardianes 🟡 todavía no están construidos. Léelo antes de tocar `lib/queries/`, `lib/db/schema.ts` o
    `docs/metricas.md`.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
