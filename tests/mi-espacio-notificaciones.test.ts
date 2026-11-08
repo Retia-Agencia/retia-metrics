@@ -289,6 +289,28 @@ describe("notificaciones de Mi espacio (222)", () => {
     expect(lista).not.toContain(ajeno.dealId);
   });
 
+  it("sin_resultado: la cita pasada agendada del deal abierto entra; la marcada, la futura, la anulada y la de otro dueño no (390)", async () => {
+    const hora = async (d: { dealId: string }, dia: string, resultado: string, anulada = false, prog = programId) => {
+      await db.insert(calls).values({
+        dealId: d.dealId, programId: prog, fechaAgenda: new Date(`${dia}T12:00:00-05:00`), fechaLlamada: new Date(`${dia}T12:00:00-05:00`),
+        resultado: resultado as "agendada" | "show",
+        ...(anulada ? { anuladoEn: new Date(), anuladoPor: yo, motivoAnulacion: "error" } : {}),
+      });
+    };
+    const porMarcar = await deal({ etapa: "contactado" });
+    await hora(porMarcar, AYER, "agendada");
+    const marcada = await deal({ etapa: "contactado" });
+    await hora(marcada, AYER, "show");
+    const futura = await deal({ etapa: "contactado" });
+    await hora(futura, "2099-01-01", "agendada");
+    const anulada = await deal({ etapa: "contactado" });
+    await hora(anulada, AYER, "agendada", true);
+    const ajeno = await deal({ etapa: "contactado", owner: otro });
+    await hora(ajeno, AYER, "agendada");
+
+    expect(await todas("sin_resultado")).toEqual([porMarcar.dealId]);
+  });
+
   it("nuevos: solo los que el dueño no ha abierto", async () => {
     const nuevo = await dealId({ etapa: "registrado", nuevo: true });
     await dealId({ etapa: "registrado", nuevo: false });

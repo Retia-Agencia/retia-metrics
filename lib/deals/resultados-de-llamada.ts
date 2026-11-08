@@ -34,6 +34,38 @@ export function citaSinResultado(cita: { resultado: string; fechaAgenda: Date | 
   return cita.resultado === "agendada" && hora !== null && hora.getTime() <= ahora.getTime();
 }
 
+/**
+ * DECISIÓN ABIERTA DE MANI (390, F2-04): ¿la cita SUELTA (sin deal) pasada y sin resultado cuenta como "por marcar"?
+ * Hoy NO: no tiene dueño a quien empujar y ya tiene su pestaña "Sin deal" en el Inbox. Cambiarlo es esta línea
+ * para el conteo en memoria (`citaCuentaComoPorMarcar`); el lado SQL (`citaVencidaSinResultado`, que une `deals`)
+ * seguiría contando solo las de deal hasta que se cambie su join.
+ */
+export const CITA_SUELTA_CUENTA_COMO_POR_MARCAR = false;
+
+/** Estados del negocio que cierran el cupo: una cita vieja de un deal ya cerrado no se persigue (353, "excluir"). */
+const ETAPAS_QUE_NO_SE_PERSIGUEN = ["ganado_completo", "cierre_perdido"] as const;
+
+/**
+ * ¿Esta cita es una que HAY QUE PONERSE AL DÍA marcando (Mi espacio, Inbox)? Es `citaSinResultado` más la regla del
+ * negocio: la suelta cuenta según `CITA_SUELTA_CUENTA_COMO_POR_MARCAR` y la de un deal cerrado nunca (353).
+ * Gemela de `citaVencidaSinResultado(ahora, "excluir")`.
+ */
+export function citaCuentaComoPorMarcar(
+  cita: { resultado: string; fechaAgenda: Date | null; fechaLlamada: Date | null; dealId: string | null; etapaDelDeal: string | null },
+  ahora: Date,
+): boolean {
+  if (!citaSinResultado(cita, ahora)) return false;
+  if (cita.dealId === null) return CITA_SUELTA_CUENTA_COMO_POR_MARCAR;
+  return !(ETAPAS_QUE_NO_SE_PERSIGUEN as readonly (string | null)[]).includes(cita.etapaDelDeal);
+}
+
+/** Cuántas citas por marcar tiene cada closer, de mayor a menor (el conteo del recordatorio). Los sin dueño van aparte. */
+export function porMarcarPorCloser(filas: readonly { ownerNombre: string | null }[]): { closer: string; cantidad: number }[] {
+  const cuenta = new Map<string, number>();
+  for (const fila of filas) cuenta.set(fila.ownerNombre ?? "Sin dueño", (cuenta.get(fila.ownerNombre ?? "Sin dueño") ?? 0) + 1);
+  return [...cuenta].map(([closer, cantidad]) => ({ closer, cantidad })).sort((a, b) => b.cantidad - a.cantidad || a.closer.localeCompare(b.closer, "es"));
+}
+
 /** `ocurrio` en SQL, sobre `calls.resultado` o sobre otra columna de resultado. */
 export function ocurrioSql(columna: SQLWrapper = calls.resultado): SQL {
   return inArray(columna as typeof calls.resultado, [...RESULTADOS_QUE_OCURRIERON]);

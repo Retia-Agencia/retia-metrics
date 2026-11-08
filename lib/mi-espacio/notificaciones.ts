@@ -10,6 +10,7 @@ import { posiblesDuplicadosDelPrograma } from "@/lib/queries/leads";
 import { novedadesCalendlyDeUsuario } from "@/lib/notificaciones-calendly/notificaciones";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
+import { citaCuentaComoPorMarcar } from "@/lib/deals/resultados-de-llamada";
 
 /**
  * Las Notificaciones de Mi espacio (ticket 222): lo que le toca al closer HOY, por tipo,
@@ -33,6 +34,7 @@ export const CHIPS_NOTIFICACIONES = [
   "proxima_cohorte",
   "vencidos",
   "sin_grain",
+  "sin_resultado",
   "calendly",
   "nuevos",
   "duplicados",
@@ -50,6 +52,7 @@ export const NOMBRE_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   proxima_cohorte: "Próxima Cohorte",
   vencidos: "Vencidos",
   sin_grain: "Sin Grain",
+  sin_resultado: "Sin resultado",
   calendly: "Calendly",
   nuevos: "Nuevos",
   duplicados: "Duplicados",
@@ -67,6 +70,7 @@ export const DESCRIPCION_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   proxima_cohorte: "Leads que esperan otra cohorte; se gestionan en la pantalla Próxima cohorte.",
   vencidos: "Seguimientos, compromisos de pago o cartera con la fecha ya pasada.",
   sin_grain: "Llamadas que ya se hicieron y todavía no tienen el link de Grain.",
+  sin_resultado: "Citas que ya pasaron y no marcaste cómo terminaron. Márcalas: sin eso no se sabe si hubo show.",
   calendly: "Citas nuevas, cambiadas o canceladas en Calendly.",
   nuevos: "Deals que te asignaron y todavía no has abierto.",
   duplicados: "Leads que hoy volvieron a llenar el formulario.",
@@ -113,6 +117,8 @@ interface Universo {
   llamadaDeHoy: Map<string, Date>;
   /** La llamada Show sin Grain más antigua de cada deal (ticket 226), por dealId. */
   showSinGrain: Map<string, Date>;
+  /** La cita pasada sin resultado más antigua de cada deal (390), por dealId: lo que el closer debe marcar. */
+  citaSinResultado: Map<string, Date>;
   hoy: string;
 }
 
@@ -122,6 +128,7 @@ async function cargarUniverso(
   userId: string,
   hoy: string,
   q?: string,
+  ahora: Date = new Date(),
 ): Promise<Universo> {
   const alcance: AlcanceDeals = { tipo: "dueno", userId };
   const tablero = await tableroKanban(db, programId, alcance, {}, hoy);
@@ -139,6 +146,8 @@ async function cargarUniverso(
   const fechas = new Map<string, FechasDeDeal>();
   const llamadaDeHoy = new Map<string, Date>();
   const showSinGrain = new Map<string, Date>();
+  const citaSinResultado = new Map<string, Date>();
+  const etapaPorDeal = new Map(tarjetas.map((t) => [t.dealId, t.etapa as string]));
   if (ids.length > 0) {
     const filasDeal = await db
       .select({
@@ -161,6 +170,7 @@ async function cargarUniverso(
       .select({
         dealId: calls.dealId,
         fechaLlamada: calls.fechaLlamada,
+        fechaAgenda: calls.fechaAgenda,
         resultado: calls.resultado,
         linkGrain: calls.linkGrain,
         anuladoEn: calls.anuladoEn,
@@ -174,6 +184,12 @@ async function cargarUniverso(
         const previa = showSinGrain.get(c.dealId);
         if (!previa || c.fechaLlamada < previa) showSinGrain.set(c.dealId, c.fechaLlamada);
       }
+      // Por marcar (390): la MISMA regla que el Inbox y la bandera del Hub (`citaCuentaComoPorMarcar`).
+      if (c.dealId && citaCuentaComoPorMarcar({ ...c, etapaDelDeal: etapaPorDeal.get(c.dealId) ?? null }, ahora)) {
+        const hora = (c.fechaAgenda ?? c.fechaLlamada)!;
+        const previa = citaSinResultado.get(c.dealId);
+        if (!previa || hora < previa) citaSinResultado.set(c.dealId, hora);
+      }
       // CUALQUIER llamada vigente de hoy cuenta, no solo la última: un deal con cita hoy y
       // otra más adelante sigue siendo de hoy.
       if (!c.dealId || !c.fechaLlamada || diaDeCalendario(c.fechaLlamada) !== hoy) continue;
@@ -182,7 +198,7 @@ async function cargarUniverso(
     }
   }
 
-  return { tarjetas, fechas, llamadaDeHoy, showSinGrain, hoy };
+  return { tarjetas, fechas, llamadaDeHoy, showSinGrain, citaSinResultado, hoy };
 }
 
 /** ¿La tarjeta pasa el chip? Y, de pasar, ¿cuál es su fecha clave para ordenar y mostrar? */
@@ -229,6 +245,10 @@ function evaluar(
       const llamada = u.showSinGrain.get(t.dealId) ?? null;
       return { pasa: llamada != null, fechaClave: llamada };
     }
+    case "sin_resultado": {
+      const cita = u.citaSinResultado.get(t.dealId) ?? null;
+      return { pasa: cita != null, fechaClave: cita };
+    }
     case "calendly":
       return { pasa: idsCalendly.has(t.dealId), fechaClave: idsCalendly.get(t.dealId) ?? null };
     case "nuevos":
@@ -259,6 +279,7 @@ function compararPorChip(
       return (fa - fb) || desempate(a, b);
     case "vencidos":
     case "sin_grain":
+    case "sin_resultado":
       // El vencido (o el Show sin Grain) más antiguo primero (fecha ascendente).
       return (fa - fb) || desempate(a, b);
     case "calendly":
@@ -393,7 +414,7 @@ function deberiaVerse(
 
 /** ¿El chip ordena/muestra por una fecha? (Nuevos y Próxima Cohorte no tienen fecha propia). */
 function chipConFecha(chip: ChipNotificacion): boolean {
-  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "sin_grain" || chip === "calendly";
+  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "sin_grain" || chip === "sin_resultado" || chip === "calendly";
 }
 
 /** Novedades de Calendly del universo: todas (leídas o no) y el subconjunto no leído. */
