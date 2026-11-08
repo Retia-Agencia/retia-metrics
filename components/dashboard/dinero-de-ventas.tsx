@@ -13,13 +13,11 @@ import { definicion, nombreCorto } from "@/lib/vocabulario-metricas";
  * de ventas que dejan pasar los filtros del Hub. Cada cifra abre la lista de esas ventas, que lleva las tres
  * columnas. Lo recaudado es a hoy y no por fecha de abono: esa pregunta es "Entró a caja".
  */
-export function TarjetaVendido({ dinero, anterior, periodo, detalle, sinValorVendido = 0 }: {
+export function TarjetaVendido({ dinero, anterior, periodo, detalle }: {
   dinero: DineroDeVentas;
   anterior: DineroDeVentas | null;
   periodo: PeriodoResuelto;
   detalle?: DetalleDeCifra;
-  /** Ventas sin valor vendido: no se inventan, se cuentan aparte. */
-  sinValorVendido?: number;
 }) {
   const cifras = [
     { clave: "vendido", valor: dinero.vendido, antes: anterior?.vendido ?? null },
@@ -61,9 +59,9 @@ export function TarjetaVendido({ dinero, anterior, periodo, detalle, sinValorVen
             <span className="cifra">{fraccion === null ? "—" : pct(fraccion)}</span> recaudado de lo vendido, a hoy
             {dinero.sobrepago > 0 ? <> · <span className="cifra">{usd(dinero.sobrepago)}</span> de sobrepago, aparte</> : null}
           </p>
-          {dinero.sinSaldoCalculable + sinValorVendido > 0 ? (
+          {dinero.sinSaldoCalculable > 0 ? (
             <p className="text-xs text-muted-foreground">
-              <span className="cifra">{num(dinero.sinSaldoCalculable + sinValorVendido)}</span> ventas sin saldo calculable (sin valor vendido o con abonos en otra moneda)
+              <span className="cifra">{num(dinero.sinSaldoCalculable)}</span> ventas sin saldo calculable (sin valor vendido o con abonos en otra moneda)
             </p>
           ) : null}
         </div>

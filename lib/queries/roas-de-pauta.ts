@@ -13,7 +13,8 @@ import { coberturaDeGasto, diaCubierto, motivoDeGasto, type CoberturaDeGasto } f
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
 import type { Rango } from "@/lib/queries/dashboard";
 import { medianaDe, ubicacionesDeEscalera, ventasDelPrograma, type Escalon } from "@/lib/queries/escalera";
-import { contratadoDeDeals } from "@/lib/queries/saldo";
+import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import { valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { diaDeEnvio } from "@/lib/queries/hechos/fechas";
 import { tasasDelRango } from "@/lib/trm/consultar";
@@ -254,14 +255,12 @@ export async function cargarRoasDePauta(
   const ubicaciones = await ubicacionesDeEscalera(db, {
     programId, dealIds: vendidos.map((d) => d.id), vendidos: new Set(vendidos.map((d) => d.id)),
   });
-  const contratado = await contratadoDeDeals(db, vendidos.map((d) => d.id));
-  const valores = vendidos.length === 0 ? [] : await db.select({ id: deals.id, valor: deals.valorVendidoUsd })
-    .from(deals).where(and(inArray(deals.id, vendidos.map((d) => d.id)), vigente(deals)));
-  const valorPorDeal = new Map(valores.map((v) => [v.id, v.valor]));
+  const dinero = await dineroDeVentas(db, vendidos.map((d) => d.id));
+  const valorPorDeal = await valoresVendidosDeDeals(db, vendidos.map((d) => d.id));
   for (const deal of vendidos) {
     const valor = valorPorDeal.get(deal.id);
     filaPorEnvioId.get(deal.submissionOrigenId!)!.venta = { dealId: deal.id, etapa: deal.etapa,
-      dia: diaVenta.get(deal.id)!, contratadoUsd: valor == null ? 0 : Number(valor), sinValorVendido: valor == null,
+      dia: diaVenta.get(deal.id)!, contratadoUsd: valor ?? 0, sinValorVendido: valor == null,
       escalon: ubicaciones.porDeal.get(deal.id)!.escalon };
   }
   const origenesHistoricos = ventasPrograma.length === 0 ? [] : await db.select({
@@ -303,8 +302,8 @@ export async function cargarRoasDePauta(
       sumarEnvio(residual, e, hoy); anunciosSinIdentificar.set(e.campanaId, residual);
     }
   }
-  total.contratadoUsd = contratado.usd;
-  total.sinValorVendido = contratado.sinValorVendido;
+  total.contratadoUsd = dinero.vendido;
+  total.sinValorVendido = dinero.sinValorVendido;
   const convertidos = convertirGasto(gastos.map((g) => ({ dia: g.fecha, monto: g.monto, moneda: g.moneda })), tasas.porDia, "USD");
   for (const [i, g] of gastos.entries()) {
     const usd = convertidos.montos[i] ?? 0;

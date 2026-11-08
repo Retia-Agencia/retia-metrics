@@ -46,7 +46,7 @@ export function Dinero({
       <h2 className="text-xl font-semibold">Dinero</h2>
       <div className="grid gap-4 lg:grid-cols-3">
         <TarjetaVendido dinero={vista.dinero} anterior={vista.anterior?.dinero ?? null} periodo={vista.periodo}
-          detalle={detalles?.contratado} sinValorVendido={vista.sinValorVendido} />
+          detalle={detalles?.contratado} />
         <CajaConVariacion vista={vista} detalles={detalles} />
       </div>
 

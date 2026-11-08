@@ -224,6 +224,8 @@ export async function armarReporteDiario(
   }));
   return {
     ...base,
+    /** Total centralizado de las ventas del día; las filas solo explican el detalle. */
+    dinero: base.vista.dinero,
     ventas,
     /** Registros de lunes al día del reporte (la semana de la plantilla). */
     leadsDeLaSemana: enviosDeLaSemana.reduce((t, f) => t + f.envios, 0),

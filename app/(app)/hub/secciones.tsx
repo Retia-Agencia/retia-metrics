@@ -60,7 +60,7 @@ function VendidoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }
   if (monedas.length === 0) monedas.push("USD");
   return <>
     <TarjetaVendido dinero={vista.a.dinero} anterior={vista.b?.dinero ?? null} periodo={vista.periodo}
-      detalle={vista.detalles.contratado} sinValorVendido={vista.sinValorVendido.valor} />
+      detalle={vista.detalles.contratado} />
     {monedas.map((moneda) => {
       const actual = vista.a.caja.find((c) => c.moneda === moneda)?.valor ?? 0;
       const anterior = vista.b ? vista.b.caja.find((c) => c.moneda === moneda)?.valor ?? 0 : null;

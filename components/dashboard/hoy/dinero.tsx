@@ -27,8 +27,7 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
   return (
     <Lado programas={programas}>{({ reporte, detalles }) => {
       const ventas = reporte.ventas;
-      const suma = (campo: "vendido" | "recaudado" | "porCobrar") => ventas.reduce((t, v) => t + (v[campo] ?? 0), 0);
-      const sinValor = ventas.filter((v) => v.vendido === null).length;
+      const dinero = reporte.dinero;
       const abrir = (valor: number) => (
         <CifraConLista titulo="Cupos vendidos hoy" detalle={detalles?.cierres}>{usd(valor)}</CifraConLista>
       );
@@ -37,16 +36,16 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
           <CardContent className="space-y-4">
             {ventas.length === 0 ? <p className="text-sm text-muted-foreground">Hoy no hay cupos vendidos.</p> : <>
               <div className="grid gap-3 sm:grid-cols-3">
-                <Importe rotulo={`${nombreCorto("vendido")} hoy`} valor={suma("vendido")} abre={abrir(suma("vendido"))} />
-                <Importe rotulo={nombreCorto("recaudado")} valor={suma("recaudado")} abre={abrir(suma("recaudado"))} />
-                <Importe rotulo={nombreCorto("por_cobrar")} valor={suma("porCobrar")} abre={abrir(suma("porCobrar"))} />
+                <Importe rotulo={`${nombreCorto("vendido")} hoy`} valor={dinero.vendido} abre={abrir(dinero.vendido)} />
+                <Importe rotulo={nombreCorto("recaudado")} valor={dinero.recaudado} abre={abrir(dinero.recaudado)} />
+                <Importe rotulo={nombreCorto("por_cobrar")} valor={dinero.porCobrar} abre={abrir(dinero.porCobrar)} />
               </div>
               <p className="text-xs text-muted-foreground">
                 {num(ventas.length)} {ventas.length === 1 ? "cupo vendido" : "cupos vendidos"}
                 {NACIMIENTOS.map((n) => ({ n, c: ventas.filter((v) => v.nacio === n).length })).filter((x) => x.c > 0)
                   .map((x) => ` · ${x.c} ${ETIQUETA_DE_NACIMIENTO[x.n].toLowerCase()}`).join("")}
               </p>
-              {sinValor > 0 ? <Badge variant="alerta">{num(sinValor)} sin valor vendido: el total está incompleto</Badge> : null}
+              {dinero.sinValorVendido > 0 ? <Badge variant="alerta">{num(dinero.sinValorVendido)} sin valor vendido: el total está incompleto</Badge> : null}
               {veEquipo ? (
                 <Tabla cabeceras={["Persona · closer", nombreCorto("vendido"), nombreCorto("recaudado"), nombreCorto("por_cobrar"), "Cómo nació"]}>
                   {ventas.map((v) => (

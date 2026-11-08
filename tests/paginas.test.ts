@@ -122,7 +122,7 @@ const resolverContextoDeVista = vi.fn(async (entrada: unknown) => {
 vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard, resolverContextoDeVista }));
 vi.mock("@/lib/queries/dashboard", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/dashboard")>(),
-  dineroDelRango: vi.fn(async () => ({ vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0 })),
+  dineroDelRango: vi.fn(async () => ({ vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0, sinValorVendido: 0 })),
 }));
 vi.mock("@/lib/queries/embudo-comercial", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/embudo-comercial")>(),
@@ -423,7 +423,7 @@ const VISTA_VACIA = {
   comision: { totalUsd: 0, ventasSinComision: 0 },
   descuento: { promedioPct: null, promedioUsd: null, ventas: 0 },
   ventasPorCohorte: [],
-  dinero: { vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0 },
+  dinero: { vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0, sinValorVendido: 0 },
   sinResultado: 0,
   cortesias: 0,
   leads: { leads: 0, diasHabiles: 1, metaLeadsDia: null, metaDelRango: null, cumplimiento: null },

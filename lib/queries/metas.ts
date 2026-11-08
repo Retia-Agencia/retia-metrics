@@ -5,7 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario, diaDeLaSemana, diasHabilesEntre, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
 import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
-import { contratadoDeDeals } from "@/lib/queries/saldo";
+import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { vigente } from "@/lib/queries/vigente";
 
 export interface CohorteParaMetas {
@@ -330,15 +330,15 @@ export async function leerMetasDelMes(
   const idsDelMes = ventasHastaHoy
     .filter((venta) => venta.dia >= resultado.periodoMes.desde && venta.dia <= resultado.periodoMes.hasta)
     .map((venta) => venta.dealId);
-  const [contratado, cohorteActiva] = await Promise.all([
-    contratadoDeDeals(db, idsDelMes),
+  const [dinero, cohorteActiva] = await Promise.all([
+    dineroDeVentas(db, idsDelMes),
     vistaDeCohorteActiva({ programId, claveCloser: null }, hoy, db),
   ]);
 
   return {
     ...resultado,
-    contratadoUsd: contratado.usd,
-    ventasSinValorVendido: contratado.sinValorVendido,
+    contratadoUsd: dinero.vendido,
+    ventasSinValorVendido: dinero.sinValorVendido,
     compensacionCohorte: cohorteActiva?.ventana
       ? { codigo: cohorteActiva.codigo, porDia: cohorteActiva.ventana.metaDinamica }
       : null,

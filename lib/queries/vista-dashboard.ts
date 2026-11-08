@@ -9,7 +9,6 @@ import { cohorteDelHub, contextoDelFiltro, type OpcionDeCohorte } from "@/lib/qu
 import {
   cajaRecaudada,
   closersConCuenta,
-  contratadoDelRango,
   dineroDelRango,
   contarCortesias,
   embudoDelRango,
@@ -212,7 +211,6 @@ export async function armarVistaDelDashboard(
     embudo,
     sinGrain,
     caja,
-    contratado,
     ventasConValor,
     porCohorte,
     sinResultado,
@@ -230,7 +228,6 @@ export async function armarVistaDelDashboard(
     embudoDelRango(alcance, db, ahora),
     showsSinGrain(alcance, db),
     cajaRecaudada(alcance, db),
-    contratadoDelRango(alcance, db),
     ventasDelRangoConValor(alcance, db),
     ventasPorCohorte(alcance, db),
     sinResultadoDelRango(alcance, ahora, db),
@@ -247,12 +244,11 @@ export async function armarVistaDelDashboard(
       ? Promise.all([
           embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db, ahora),
           cajaRecaudada({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
-          contratadoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
           dineroDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db),
-        ]).then(([embudoAnterior, cajaAnterior, contratadoAnterior, dineroAnterior]) => ({
+        ]).then(([embudoAnterior, cajaAnterior, dineroAnterior]) => ({
           embudo: embudoAnterior,
           caja: cajaAnterior,
-          contratadoUsd: contratadoAnterior.usd,
+          contratadoUsd: dineroAnterior.vendido,
           dinero: dineroAnterior,
         }))
       : Promise.resolve(null),
@@ -286,9 +282,9 @@ export async function armarVistaDelDashboard(
     closers,
     embudo,
     anterior,
-    contratadoUsd: contratado.usd,
+    contratadoUsd: dinero.vendido,
     dinero,
-    sinValorVendido: contratado.sinValorVendido,
+    sinValorVendido: dinero.sinValorVendido,
     sinGrain,
     caja,
     comision: {

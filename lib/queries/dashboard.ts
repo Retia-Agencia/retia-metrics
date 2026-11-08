@@ -1,4 +1,4 @@
-import { contratadoDeDeals, sumaDeAbonos, type ContratadoDeDeals } from "@/lib/queries/saldo";
+import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { noAsistioSql } from "@/lib/deals/resultados-de-llamada";
 import {
   closerDeAbono,
@@ -269,15 +269,6 @@ export async function ventasDelRangoConValor(
     .where(and(filtroCierres(alcance, db), vigente(deals)));
 }
 
-/** Valor vendido de las ventas del rango. Un valor ausente no se inventa. */
-export async function contratadoDelRango(
-  alcance: Alcance,
-  db: Db = dbDeLaApp,
-): Promise<ContratadoDeDeals> {
-  const ventas = await ventasDelRangoConValor(alcance, db);
-  return contratadoDeDeals(db, ventas.map((venta) => venta.dealId));
-}
-
 /**
  * Vendido, Recaudado y Por cobrar de las ventas del rango (369): las tres sobre el MISMO conjunto de
  * ventas, el que dejan pasar el periodo, la cohorte y el closer. Lo recaudado es a hoy, no por fecha.
@@ -319,13 +310,16 @@ export async function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Pr
     grupos.set(clave, grupo);
   }
 
-  return Promise.all([...grupos.values()].map(async (grupo) => ({
-    cohorteId: grupo[0]!.cohorteId,
-    codigo: grupo[0]!.codigo,
-    ventas: grupo.length,
-    contratadoUsd: (await contratadoDeDeals(db, grupo.map((venta) => venta.dealId))).usd,
-    dinero: await dineroDeVentas(db, grupo.map((venta) => venta.dealId)),
-  })));
+  return Promise.all([...grupos.values()].map(async (grupo) => {
+    const dinero = await dineroDeVentas(db, grupo.map((venta) => venta.dealId));
+    return {
+      cohorteId: grupo[0]!.cohorteId,
+      codigo: grupo[0]!.codigo,
+      ventas: grupo.length,
+      contratadoUsd: dinero.vendido,
+      dinero,
+    };
+  }));
 }
 
 /**

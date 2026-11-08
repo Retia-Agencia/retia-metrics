@@ -6,7 +6,7 @@ import { desglosesDelResumen, listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA, t
 import { codigoDeCloser, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { showsSinGrain } from "@/lib/queries/sin-grain";
-import { contratadoDeDeals } from "@/lib/queries/saldo";
+import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -326,7 +326,7 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
     expect(lista.filas.map((fila) => fila.monto ?? 0).sort((a, b) => a - b)).toEqual([70, 80]);
     expect(lista.subtotal.caja).toEqual([{ moneda: "USD", total: 150 }]);
     const ids = lista.filas.flatMap((fila) => fila.dealId ? [fila.dealId] : []);
-    expect(lista.subtotal.caja[0]?.total).toBe((await contratadoDeDeals(base, ids)).usd);
+    expect(lista.subtotal.caja[0]?.total).toBe((await dineroDeVentas(base, ids)).vendido);
     const [porCohorte] = await listaDeMetrica("contratado", { ...filtros, cohorteId: cohortes[0].id }, 1, base);
     expect(porCohorte.filas.map((fila) => fila.monto)).toEqual([80]);
     const href = urlDeLista({ slug: "m148", metrica: "contratado", periodo: { preset: "custom", a: r, b: null }, origen: "/p/m148/hub", cohorteId: cohortes[0].id });

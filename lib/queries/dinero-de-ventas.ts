@@ -27,9 +27,13 @@ export interface DineroDeVentas {
   ventas: number;
   /** Ventas que quedaron fuera de las tres por no tener saldo calculable. */
   sinSaldoCalculable: number;
+  /** Ventas sin valor vendido: alarma de integridad incluida en `sinSaldoCalculable`. */
+  sinValorVendido: number;
 }
 
-export const SIN_DINERO: DineroDeVentas = { vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0 };
+export const SIN_DINERO: DineroDeVentas = {
+  vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0, sinValorVendido: 0,
+};
 
 const centavos = (n: number) => Math.round(n * 100) / 100;
 
@@ -39,6 +43,7 @@ export function dineroDeSaldos(saldos: Iterable<SaldoDeDeal>): DineroDeVentas {
   for (const s of saldos) {
     if (s.saldo === null || s.precio === null) {
       total.sinSaldoCalculable += 1;
+      if (s.sinSaldoPorque === "sin_valor_vendido") total.sinValorVendido += 1;
       continue;
     }
     total.ventas += 1;
@@ -80,6 +85,7 @@ export function sumarDineroDeVentas(xs: readonly DineroDeVentas[]): DineroDeVent
     sobrepago: t.sobrepago + x.sobrepago,
     ventas: t.ventas + x.ventas,
     sinSaldoCalculable: t.sinSaldoCalculable + x.sinSaldoCalculable,
+    sinValorVendido: t.sinValorVendido + x.sinValorVendido,
   }), { ...SIN_DINERO });
   return { ...total, vendido: centavos(total.vendido), recaudado: centavos(total.recaudado), porCobrar: centavos(total.porCobrar), sobrepago: centavos(total.sobrepago) };
 }
