@@ -7,6 +7,7 @@ import { registrarAbono } from "@/lib/deals/abonos";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * ADR 0024: el saldo de un deal tiene UNA definicion, `lib/queries/saldo.ts`. La reja que
@@ -35,7 +36,7 @@ beforeEach(async () => {
     .returning();
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
-  const [l] = await db.insert(leads).values({ programId: p.id, emailNormalizado: "ana@correo.co" }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: p.id, emailNormalizado: "ana@correo.co" }).returning();
   const [d] = await db
     .insert(deals)
     .values({ leadId: l.id, programId: p.id, cohortId: c.id, etapa: "atendido", ownerUserId: closer, valorVendidoUsd: "797" })

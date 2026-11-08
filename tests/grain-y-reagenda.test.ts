@@ -18,6 +18,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { agregarLlamada, marcarFallida, pegarGrain } from "@/lib/deals/llamadas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Tickets 058 y 059 — Pegar el Grain **es** decir que la llamada sucedió, y una
@@ -73,7 +74,7 @@ beforeEach(async () => {
   cohortId = c.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
     .returning();
   leadId = l.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
@@ -415,7 +416,7 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
     // programa (deals_uno_abierto_por_lead_y_programa_idx).
     const [l2] = await db
       .insert(leads)
-      .values({ programId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
       .returning();
 
     const [d1row] = await db

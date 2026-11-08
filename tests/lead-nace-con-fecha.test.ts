@@ -7,8 +7,8 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 /**
- * Ticket 389, ADR 0121 (M2): un lead de formulario NACE con su primera aplicacion. Este archivo crea el CHECK
- * de la migracion M2 sobre su base de prueba, asi el INSERT del lead nuevo (no solo el recalculo del resumen al
+ * Ticket 389, ADR 0121 (M2): un lead de formulario NACE con su primera aplicacion. El CHECK ya viene de la
+ * migracion 0119, asi el INSERT del lead nuevo (no solo el recalculo del resumen al
  * final de la transaccion) tiene que traer la fecha: sin ella la base rechaza el envio entero.
  */
 let db: Db;
@@ -28,9 +28,6 @@ const entrada = (token: string, correo: string, fecha: string | null): EntradaEn
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
-  await (db as unknown as { $client: { exec(sql: string): Promise<unknown> } }).$client.exec(
-    "ALTER TABLE leads ADD CONSTRAINT leads_formulario_con_fecha CHECK (entrada <> 'formulario' OR fecha_primera_aplicacion IS NOT NULL)",
-  );
 });
 
 beforeEach(async () => {

@@ -12,6 +12,7 @@ import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 import { buscarLeads } from "@/lib/queries/leads";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 003 — lecturas de la pantalla `/mi-dia` (ADR 0021, 0023, 0011, 0005, 0013).
@@ -86,7 +87,7 @@ async function sembrarPersona(
 ): Promise<string> {
   const [p] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "lead@correo.co", ...extra } as never)
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@correo.co", ...extra } as never)
     .returning();
   return p.id as string;
 }

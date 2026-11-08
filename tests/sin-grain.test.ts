@@ -7,6 +7,7 @@ import { embudoDelRango } from "@/lib/queries/dashboard";
 import { esAtendidaSinGrain, showsSinGrain } from "@/lib/queries/sin-grain";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -29,7 +30,7 @@ beforeEach(async () => {
   ]).returning();
   [programId, otroProgramId] = programas.map((p) => p.id);
   [closer] = (await db.insert(users).values({ email: "closer@example.test", rol: "closer" }).returning()).map((u) => u.id);
-  [leadId] = (await db.insert(leads).values({ programId, emailNormalizado: "ana@example.test" }).returning()).map((l) => l.id);
+  [leadId] = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@example.test" }).returning()).map((l) => l.id);
 });
 
 afterAll(async () => cerrar());

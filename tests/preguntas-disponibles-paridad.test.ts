@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ENVIOS_PARA_PREGUNTAS, preguntasDisponiblesDelPrograma } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Paridad de `preguntasDisponiblesDelPrograma`: la version nueva saca las llaves en SQL; la vieja
@@ -77,8 +78,8 @@ beforeEach(async () => {
   const [l, la] = await db
     .insert(leads)
     .values([
-      { programId, emailNormalizado: "a@c.co" },
-      { programId: otroProgramId, emailNormalizado: "b@c.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "a@c.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroProgramId, emailNormalizado: "b@c.co" },
     ])
     .returning();
   leadId = l.id;

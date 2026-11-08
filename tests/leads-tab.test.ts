@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { buscarLeads, LEADS_POR_PAGINA, leadsDelPrograma } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 072 — la tab Leads. Cada filtro es un hecho: con o sin deal vigente, el estado (o "sin
@@ -42,12 +43,12 @@ beforeEach(async () => {
     .insert(leads)
     .values([
       // 23:30 del 1-sep en Bogotá: ya es 2-sep en UTC. Tiene que contar como 1-sep.
-      { programId, emailNormalizado: "con-deal@c.co", calificacion: "con_calendly", leadQuality: "High", fechaUltimaAplicacion: new Date("2026-09-02T04:30:00Z") },
-      { programId, emailNormalizado: "sin-estado@c.co", calificacion: null, fechaUltimaAplicacion: new Date("2026-09-10T15:00:00Z") },
-      { programId, emailNormalizado: "parcial@c.co", calificacion: null, fechaUltimaAplicacion: new Date("2026-09-20T15:00:00Z") },
-      { programId, emailNormalizado: "setteo@c.co", calificacion: "setteo_no_calificado", leadQuality: "Low", fechaUltimaAplicacion: new Date("2026-09-25T15:00:00Z") },
-      { programId, emailNormalizado: "anulado@c.co", calificacion: "setteo_no_calificado", leadQuality: " low ", fechaUltimaAplicacion: new Date("2026-09-26T15:00:00Z") },
-      { programId: q.id, emailNormalizado: "ajeno@c.co", calificacion: null },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "con-deal@c.co", calificacion: "con_calendly", leadQuality: "High", fechaUltimaAplicacion: new Date("2026-09-02T04:30:00Z") },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "sin-estado@c.co", calificacion: null, fechaUltimaAplicacion: new Date("2026-09-10T15:00:00Z") },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "parcial@c.co", calificacion: null, fechaUltimaAplicacion: new Date("2026-09-20T15:00:00Z") },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "setteo@c.co", calificacion: "setteo_no_calificado", leadQuality: "Low", fechaUltimaAplicacion: new Date("2026-09-25T15:00:00Z") },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "anulado@c.co", calificacion: "setteo_no_calificado", leadQuality: " low ", fechaUltimaAplicacion: new Date("2026-09-26T15:00:00Z") },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: q.id, emailNormalizado: "ajeno@c.co", calificacion: null },
     ])
     .returning();
   for (const l of filas) id[l.emailNormalizado.split("@")[0]] = l.id;
@@ -97,7 +98,7 @@ describe("leadsDelPrograma", () => {
   });
 
   it("la variable estado ya no filtra ni marca nada: un valor raro es solo un lead más", async () => {
-    await db.insert(leads).values({ programId, emailNormalizado: "raro@c.co", calificacion: "valor_raro", leadQuality: "Mid" });
+    await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "raro@c.co", calificacion: "valor_raro", leadQuality: "Mid" });
     expect(await correos({ calidad: "mid" })).toEqual(["raro@c.co"]);
   });
 
@@ -181,6 +182,7 @@ describe("leadsDelPrograma", () => {
       ticketUsd: "1000",
     }).returning();
     await db.insert(leads).values(Array.from({ length: LEADS_POR_PAGINA + 2 }, (_, indice) => ({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: programaPaginado.id,
       emailNormalizado: `orden-${String(indice).padStart(3, "0")}@c.co`,
       nombre: `Lead ${String(indice).padStart(3, "0")}`,
@@ -225,18 +227,21 @@ describe("leadsDelPrograma", () => {
 describe("buscarLeads", () => {
   it("busca por teléfono, no cruza programas y escapa los comodines de ILIKE", async () => {
     const [propio] = await db.insert(leads).values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId,
       nombre: "Nombre 100% real",
       emailNormalizado: "telefono@c.co",
       telefono: "+57 300 123 4567",
     }).returning();
     await db.insert(leads).values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: otroProgramId,
       nombre: "Nombre 100% ajeno",
       emailNormalizado: "ajeno-telefono@c.co",
       telefono: "+57 300 123 4567",
     });
     await db.insert(leads).values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId,
       nombre: "Nombre 1000 real",
       emailNormalizado: "comodin@c.co",

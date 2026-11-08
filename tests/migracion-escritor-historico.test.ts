@@ -27,6 +27,7 @@ import {
 } from "@/lib/deals/historico";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * ADR 0059 y ticket 078 — el escritor de lo historico.
@@ -65,7 +66,7 @@ beforeEach(async () => {
   otroPrograma = q.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId: programa, emailNormalizado: "ana@correo.co", nombre: "Ana" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "ana@correo.co", nombre: "Ana" })
     .returning();
   lead = l.id;
   const [s] = await db.insert(users).values({ email: "script@retiagrowth.com", rol: "developer" }).returning();
@@ -177,7 +178,7 @@ describe("abrirDealHistorico (ADR 0059 punto 1)", () => {
 
   it("el envío de origen tiene que ser de ESTE lead (ADR 0060)", async () => {
     const [fuente] = await db.insert(sources).values({ programId: programa, nombre: "Typeform" }).returning();
-    const [otro] = await db.insert(leads).values({ programId: programa, emailNormalizado: "beto@correo.co" }).returning();
+    const [otro] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "beto@correo.co" }).returning();
     const [deAna] = await db.insert(submissions).values({ leadId: lead, sourceId: fuente.id, token: "t-ana" }).returning();
     const [deBeto] = await db.insert(submissions).values({ leadId: otro.id, sourceId: fuente.id, token: "t-beto" }).returning();
     const alta = { leadId: lead, programId: programa, etapa: "ganado_completo" as const, huella: H("ana"), actorId: script };
@@ -242,7 +243,7 @@ describe("registrarAbonoHistorico", () => {
   it("al deal vivo del CRM no se le cuelga un abono historico (punto 3, revision de Codex)", async () => {
     const [otroLead] = await db
       .insert(leads)
-      .values({ programId: programa, emailNormalizado: "beto@correo.co" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "beto@correo.co" })
       .returning();
     const vivo = await abrirDeal(db, { leadId: otroLead.id, programId: programa, etapa: "registrado", actor: { tipo: "sistema" } });
 
@@ -326,8 +327,8 @@ describe("en lote (ticket 078)", () => {
     const otros = await db
       .insert(leads)
       .values([
-        { programId: programa, emailNormalizado: "beto@correo.co", nombre: "Beto" },
-        { programId: programa, emailNormalizado: "caro@correo.co", nombre: "Caro" },
+        { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "beto@correo.co", nombre: "Beto" },
+        { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "caro@correo.co", nombre: "Caro" },
       ])
       .returning();
     [beto, caro] = otros.map((l) => l.id);
@@ -370,7 +371,7 @@ describe("en lote (ticket 078)", () => {
   it("una sola alta fuera de la frontera tumba el lote entero, sin escribir nada", async () => {
     const [ajeno] = await db
       .insert(leads)
-      .values({ programId: otroPrograma, emailNormalizado: "zoe@correo.co" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroPrograma, emailNormalizado: "zoe@correo.co" })
       .returning();
     await expect(
       abrirDealesHistoricos(db, [

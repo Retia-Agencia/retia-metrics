@@ -19,6 +19,7 @@ import { costoPorAgenda, costoPorAgendaDeLosUltimosHabiles } from "@/lib/semafor
 import { semaforoDelPrograma } from "@/lib/semaforo/semaforo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -100,6 +101,7 @@ async function crearAgenda(args: {
 }): Promise<void> {
   secuencia += 1;
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId: args.programId,
     emailNormalizado: `agenda-${secuencia}@test.co`,
   }).returning();

@@ -8,6 +8,7 @@ import { editarAcuerdoDePago, fechaLimiteMaxima, fechaEfectivaDePago } from "@/l
 import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 061 (ADR 0053): el acuerdo de pago es una nota y una fecha límite, y el inicio de
@@ -59,7 +60,7 @@ afterAll(async () => {
 });
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: `l${++leadN}@correo.co` }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${++leadN}@correo.co` }).returning();
   const [d] = await db
     .insert(deals)
     .values({ leadId: l.id, programId, cohortId, etapa, ownerUserId: closer, ...extra })
@@ -195,7 +196,7 @@ describe("el tope también rige donde nace la fecha: el motor y el alta del deal
   });
 
   it("abrirDeal en Compromiso Verbal con la fecha pasada del inicio de clases se rechaza", async () => {
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: "nuevo@correo.co" }).returning();
+    const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "nuevo@correo.co" }).returning();
     const e = await capturar(
       abrirDeal(db, { leadId: l.id, programId, etapa: "compromiso_verbal", actor: { tipo: "usuario", userId: closer, rol: "closer", operaComoCloser: false }, cohortId, fechaLimitePago: "2026-10-20" }),
     );

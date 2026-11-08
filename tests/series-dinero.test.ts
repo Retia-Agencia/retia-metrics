@@ -8,6 +8,7 @@ import { leerMetasDelMes } from "@/lib/queries/metas";
 import { tramosDe, valoresPorTramo } from "@/lib/series-pasos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -57,7 +58,7 @@ async function venta(args: {
   completa?: boolean;
 }) {
   const programa = args.programa ?? programId;
-  const [lead] = await db.insert(leads).values({ programId: programa, emailNormalizado: `lead-${++contador}@serie.test` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `lead-${++contador}@serie.test` }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programa, leadId: lead.id, ownerUserId: args.owner ?? ana,
     cohortId: programa === programId ? cohortId : null,

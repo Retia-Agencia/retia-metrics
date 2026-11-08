@@ -16,6 +16,7 @@ import { cajaRecaudada, dealsPerdidosPorMotivo, embudoDelRango, embudoPorCanal, 
 import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 004 — consultas del dashboard.
@@ -69,7 +70,7 @@ async function sembrarDeal(
   secuenciaDeLead += 1;
   const [lead] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: `lead-${secuenciaDeLead}@correo.co` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead-${secuenciaDeLead}@correo.co` })
     .returning();
   const [deal] = await db
     .insert(deals)

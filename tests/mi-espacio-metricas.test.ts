@@ -11,6 +11,7 @@ import { cajaRecaudada, embudoDelRango } from "@/lib/queries/dashboard";
 import { conteo, dinero, tasa } from "@/lib/queries/agregado-programas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const HOY = "2026-10-02";
 let db: Db;
@@ -36,7 +37,7 @@ describe("read model de Mis métricas", () => {
       ticketUsd: "797",
     }).returning();
     const [closer] = await db.insert(users).values({ email: "ana@retia.co", rol: "closer", closerId: "Ana" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "lead@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "lead@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({
       programId: programa.id,
       leadId: lead.id,
@@ -116,7 +117,7 @@ describe("ticket 167: el closer se identifica por users.id", () => {
   }
 
   async function sembrarDealVendido(programaId: string, ownerUserId: string) {
-    const [lead] = await db.insert(leads).values({ programId: programaId, emailNormalizado: `lead-${ownerUserId}@retia.co` }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaId, emailNormalizado: `lead-${ownerUserId}@retia.co` }).returning();
     const [deal] = await db.insert(deals).values({
       programId: programaId,
       leadId: lead.id,

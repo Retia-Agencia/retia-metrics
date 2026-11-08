@@ -6,6 +6,7 @@ import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Al vincular una cuenta de Calendly a una membresia (ADR 0049, ADR 0074), las citas que esa
@@ -59,7 +60,7 @@ afterAll(async () => {
 });
 
 async function nuevoLeadConDeal(email: string, etapa: "registrado" | "ganado_completo" = "registrado") {
-  const [l] = await db.insert(leads).values({ programId, emailNormalizado: email, nombre: email }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: email, nombre: email }).returning();
   const dealId = await abrirDeal(db, { leadId: l.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
   if (etapa !== "registrado") {
     await db.update(deals).set({ etapa }).where(eq(deals.id, dealId));
@@ -99,7 +100,7 @@ describe("asignarLlamadasDelHost", () => {
   it("no toca una llamada de OTRO programa con el mismo correo de host", async () => {
     const [l] = await db
       .insert(leads)
-      .values({ programId: otroProgramId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroProgramId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
       .returning();
     const dealOtro = await abrirDeal(db, {
       leadId: l.id,

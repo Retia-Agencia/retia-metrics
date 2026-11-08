@@ -5,6 +5,7 @@ import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 describe("ticket 148: Inbox y dashboard comparten las llamadas pasadas sin resultado", () => {
   let db: Db;
@@ -24,7 +25,7 @@ describe("ticket 148: Inbox y dashboard comparten las llamadas pasadas sin resul
   afterAll(async () => cerrar());
 
   it("devuelve los mismos call ids para el mismo programa y momento", async () => {
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "sin-resultado@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "sin-resultado@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId, leadId: lead.id }).returning();
     const ahora = new Date("2026-10-04T12:00:00-05:00");
     await db.insert(calls).values([

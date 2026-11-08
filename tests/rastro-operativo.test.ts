@@ -10,6 +10,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * ADR 0042 (D6) — **toda escritura del CRM deja rastro, desde el dia uno**.
@@ -226,7 +227,7 @@ describe("crearConRastro y editarConRastro", () => {
     programaA = p.id;
     const [l] = await db
       .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "ana@correo.co" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "ana@correo.co" })
       .returning();
     leadA = l.id;
     const [u] = await db

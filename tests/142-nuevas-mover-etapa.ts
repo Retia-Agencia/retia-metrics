@@ -6,6 +6,7 @@ import { abrirDeal, moverEtapa, MovimientoRechazado, type Actor } from "@/lib/de
 import type { EtapaDeal, PendienteDeal } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 describe("contratos nuevos de moverEtapa del ticket 142", () => {
 let db: Db;
@@ -32,7 +33,7 @@ beforeEach(async () => {
 afterEach(async () => cerrar());
 
 async function nuevo(etapa: EtapaDeal, pendiente: PendienteDeal | null = null, extra: Partial<typeof deals.$inferInsert> = {}) {
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `persona-${secuencia++}@retia.co` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `persona-${secuencia++}@retia.co` }).returning();
   const [deal] = await db.insert(deals).values({
     leadId: lead.id, programId, etapa, pendiente, ownerUserId: closer,
     valorVendidoUsd: "1000", ...extra,
@@ -124,11 +125,11 @@ describe("pendientes y Próxima Cohorte", () => {
 describe("nacimientos", () => {
   it("el sistema nace en sus cuatro puertas y el usuario solo en En gestión con dueño", async () => {
     for (const etapa of ["potencial", "registrado", "calificado", "agendado"] as const) {
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `alta-${secuencia++}@retia.co` }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `alta-${secuencia++}@retia.co` }).returning();
       const id = await abrirDeal(db, { leadId: lead.id, programId, etapa, actor: sistema });
       expect(await fila(id)).toMatchObject({ etapa, ownerUserId: null });
     }
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "manual@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "manual@retia.co" }).returning();
     const id = await abrirDeal(db, { leadId: lead.id, programId, etapa: "en_gestion", actor: actor() });
     expect(await fila(id)).toMatchObject({ etapa: "en_gestion", ownerUserId: closer });
     expect((await historial(id))[0]).toMatchObject({ de: null, a: "en_gestion", pendienteDe: null, pendienteA: null });

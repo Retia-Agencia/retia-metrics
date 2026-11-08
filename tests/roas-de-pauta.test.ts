@@ -17,6 +17,7 @@ import { COLUMNAS_CSV_CITAS_PAUTA, csvDeCitasPauta } from "@/lib/pauta/csv-citas
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { esAdministrador, veLeadsDePauta } from "@/lib/auth/roles";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -64,7 +65,7 @@ async function envio(opts: { dia?: string; anuncio?: boolean; programa?: "otro";
   fechaEnvioNull?: boolean; createdAt?: string; campanaId?: boolean; campanaNombre?: boolean } = {}) {
   const programa = opts.programa ? otroProgramId : programId;
   const fuente = opts.programa ? sourceOtro : sourceId;
-  const lead = (await db.insert(leads).values({ programId: programa, emailNormalizado: `roas-${++secuencia}@test.co`, nombre: `Lead ${secuencia}` }).returning())[0];
+  const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `roas-${++secuencia}@test.co`, nombre: `Lead ${secuencia}` }).returning())[0];
   const fila = (await db.insert(submissions).values({ leadId: lead.id, sourceId: fuente, token: opts.token ?? crypto.randomUUID(),
     esParcial: opts.parcial ?? false,
     fechaEnvio: opts.fechaEnvioNull ? null : new Date(`${opts.dia ?? "2026-10-02"}T10:00:00-05:00`),

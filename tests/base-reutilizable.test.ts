@@ -4,6 +4,7 @@ import { leads, motivos, plataformasPago, programs, sources } from "@/lib/db/sch
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseDePrueba, crearBaseReutilizable, type BaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 type ClienteConsultable = {
   query: <T>(consulta: string) => Promise<{ rows: T[] }>;
@@ -50,7 +51,7 @@ describe("crearBaseReutilizable", () => {
       .values({ ...PROGRAMA_DE_PRUEBA, slug: "programa", nombre: "Programa", ticketUsd: "1000" })
       .returning();
     await reutilizable.db.insert(sources).values({ programId: programa.id, nombre: "Typeform" });
-    await reutilizable.db.insert(leads).values({ programId: programa.id, emailNormalizado: "ana@correo.co" });
+    await reutilizable.db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "ana@correo.co" });
 
     const [motivo] = await reutilizable.db.select({ id: motivos.id }).from(motivos).limit(1);
     await reutilizable.db.delete(motivos).where(eq(motivos.id, motivo.id));

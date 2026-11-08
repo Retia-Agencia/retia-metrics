@@ -29,6 +29,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { codigoDeDeal } from "@/lib/calendly/link-de-agenda";
 import { citaYaGuardada } from "@/lib/ingesta/procesar-sobre";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * El escritor de las llamadas de Calendly (ticket 096, ADR 0049), contra PGlite: lee la
@@ -86,7 +87,7 @@ beforeEach(async () => {
 
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
     .returning();
   leadId = l.id;
   dealId = await abrirDeal(db, { leadId, programId, etapa: "registrado", actor: { tipo: "sistema" } });
@@ -199,11 +200,11 @@ describe("registrarLlamadaDeCalendly: colgada", () => {
   });
 
   it("un código ajeno o cerrado no casa y cae a la regla de correo", async () => {
-    const [leadAjeno] = await db.insert(leads).values({ programId: otroProgramId, emailNormalizado: "ajeno@correo.co" }).returning();
+    const [leadAjeno] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroProgramId, emailNormalizado: "ajeno@correo.co" }).returning();
     const dealAjeno = await abrirDeal(db, { leadId: leadAjeno.id, programId: otroProgramId, etapa: "registrado", actor: { tipo: "sistema" } });
     expect(await registrarLlamadaDeCalendly(db, programId, cita({ utmContent: codigoDeDeal(dealAjeno) }))).toMatchObject({ tipo: "colgada", dealId });
 
-    const [leadCerrado] = await db.insert(leads).values({ programId, emailNormalizado: "cerrado@correo.co" }).returning();
+    const [leadCerrado] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "cerrado@correo.co" }).returning();
     const [cerrado] = await db.insert(deals).values({ programId, leadId: leadCerrado.id, etapa: "cierre_perdido" }).returning();
     expect(await registrarLlamadaDeCalendly(db, programId, cita({ utmContent: codigoDeDeal(cerrado.id) }))).toMatchObject({ tipo: "colgada", dealId });
   });
@@ -259,7 +260,7 @@ describe("registrarLlamadaDeCalendly: suelta", () => {
   it("un correo que entro unido por telefono y nadie confirmo no decide", async () => {
     const [l] = await db
       .insert(leads)
-      .values({ programId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "beto@correo.co", nombre: "Beto" })
       .returning();
     await abrirDeal(db, { leadId: l.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
     await db
@@ -359,7 +360,7 @@ describe("asignarLlamadaSuelta", () => {
     const callId = await suelta();
     const [l] = await db
       .insert(leads)
-      .values({ programId: otroProgramId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroProgramId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
       .returning();
     const dealAjeno = await abrirDeal(db, {
       leadId: l.id,
@@ -403,7 +404,7 @@ describe("crearDealDesdeSuelta", () => {
   it("si el correo ya tiene deal abierto devuelve 409 y revierte toda la transacción", async () => {
     const correo = "conflicto@correo.co";
     const callId = await sueltaDe(correo);
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
     await abrirDeal(db, { leadId: lead.id, programId, etapa: "registrado", actor: { tipo: "sistema" } });
     const antes = {
       leads: (await db.select().from(leads)).length,
@@ -434,7 +435,7 @@ describe("crearDealDesdeSuelta", () => {
     const correo = "existente@correo.co";
     const [existente] = await db
       .insert(leads)
-      .values({ programId, emailNormalizado: correo, nombre: "Nombre anterior" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo, nombre: "Nombre anterior" })
       .returning();
     const callId = await sueltaDe(correo);
     const r = await crearDealDesdeSuelta(
@@ -474,7 +475,7 @@ describe("el 052 con la host de la cita", () => {
   it("un envio Con Calendly abre el deal con la closer host como dueña y guarda el host", async () => {
     const [l] = await db
       .insert(leads)
-      .values({ programId, emailNormalizado: "caro@correo.co", nombre: "Caro", calificacion: "con_calendly" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "caro@correo.co", nombre: "Caro", calificacion: "con_calendly" })
       .returning();
     const r = await aplicarReglaDeDeal(
       db,
@@ -491,7 +492,7 @@ describe("el 052 con la host de la cita", () => {
   it("sin host registrada el deal nace sin dueño, como antes", async () => {
     const [l] = await db
       .insert(leads)
-      .values({ programId, emailNormalizado: "dani@correo.co", nombre: "Dani", calificacion: "con_calendly" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "dani@correo.co", nombre: "Dani", calificacion: "con_calendly" })
       .returning();
     const r = await aplicarReglaDeDeal(
       db,

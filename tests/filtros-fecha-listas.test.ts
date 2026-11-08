@@ -8,6 +8,7 @@ import { CAMPOS_DE_FECHA_DE_DEAL, parsearFiltros, tableroKanban } from "@/lib/qu
 import { CAMPOS_DE_FECHA_DE_LEAD, leadsDelPrograma } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 141: los filtros de fecha relativos en la lista de deals (creado, última actividad,
@@ -66,7 +67,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
     const [owner] = await db.insert(users).values({ email: "ana@example.test", rol: "closer", closerId: "Ana" }).returning();
 
     const deal = async (clave: string, creado: Date, lead: Partial<typeof leads.$inferInsert> = {}) => {
-      const [l] = await db.insert(leads).values({ programId, emailNormalizado: `${clave}@example.test`, ...lead }).returning();
+      const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `${clave}@example.test`, ...lead }).returning();
       const [d] = await db.insert(deals).values({ programId, leadId: l.id, ownerUserId: owner.id, createdAt: creado }).returning();
       id[clave] = d.id;
       return { lead: l, deal: d };

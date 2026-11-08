@@ -71,7 +71,7 @@ beforeEach(async () => {
   cohortId = c.id;
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" })
     .returning();
   leadId = l.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer" }).returning();
@@ -553,3 +553,4 @@ describe("reagendarLlamada: cierra la cita vieja y crea la nueva (ticket 177)", 
 });
 
 import "./142-nuevas-llamadas-del-deal";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";

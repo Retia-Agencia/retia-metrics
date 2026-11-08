@@ -7,6 +7,7 @@ import type { FilaDeEscalera } from "@/lib/queries/vista-escalera";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 function fila(
   total: number,
@@ -74,8 +75,8 @@ describe("vista de escalera", () => {
       closerId: "Closer Calor",
     }).returning();
     const personas = await db.insert(leads).values([
-      { programId: programa.id, emailNormalizado: "con-closer@x.test" },
-      { programId: programa.id, emailNormalizado: "sin-closer@x.test" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "con-closer@x.test" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "sin-closer@x.test" },
     ]).returning();
     await db.insert(deals).values([
       { programId: programa.id, leadId: personas[0].id, ownerUserId: closer.id, etapa: "contactado", createdAt: new Date("2026-10-02T12:00:00-05:00") },

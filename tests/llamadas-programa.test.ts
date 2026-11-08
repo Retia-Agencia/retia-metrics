@@ -6,6 +6,7 @@ import type { Db } from "@/lib/db/tipos";
 import { filtroDeLlamadasDesdeUrl, llamadasDelPrograma, opcionesDeLlamadas, visibilidadDeLlamada } from "@/lib/queries/llamadas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -58,10 +59,10 @@ beforeEach(async () => {
   cohorteOtroProgramaId = cohorteOtroPrograma.id;
 
   const [leadPropio, leadComoCloser, leadAjeno, leadOtroPrograma] = await db.insert(leads).values([
-    { programId, emailNormalizado: "propio@correo.co", nombre: "Deal propio" },
-    { programId, emailNormalizado: "como-closer@correo.co", nombre: "Como closer" },
-    { programId, emailNormalizado: "ajeno@correo.co", nombre: "Ajeno" },
-    { programId: otroPrograma.id, emailNormalizado: "otro-programa@correo.co", nombre: "Otro programa" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "propio@correo.co", nombre: "Deal propio" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "como-closer@correo.co", nombre: "Como closer" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ajeno@correo.co", nombre: "Ajeno" },
+    { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroPrograma.id, emailNormalizado: "otro-programa@correo.co", nombre: "Otro programa" },
   ]).returning();
   const [propio, comoCloser, ajeno, dealOtroPrograma] = await db.insert(deals).values([
     { programId, leadId: leadPropio.id, cohortId: cohorte.id, etapa: "agendado", ownerUserId: closer },

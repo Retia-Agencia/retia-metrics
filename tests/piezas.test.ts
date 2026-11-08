@@ -22,6 +22,7 @@ import { resolverCanal, UTM_MEDIUM_CONTENIDO, UTM_SOURCE_CREADOR } from "@/lib/a
 import { emparejar, ARBOL_VACIO, type PiezasDelPrograma } from "@/lib/atribucion/emparejar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Tickets 316 a 318 (ADR 0107, 0108, 0110): el creador, la pieza minima, su link y el
@@ -360,7 +361,7 @@ describe("318: Hub › Origen cuenta aparte el contenido con codigo desconocido"
   let fuenteA: string;
 
   async function envioDeContenido(content: string | null, medium = "contenido") {
-    const [lead] = await db.insert(leads).values({ programId: programA, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programA, emailNormalizado: `${crypto.randomUUID()}@correo.co` }).returning();
     await db.insert(submissions).values({
       leadId: lead.id, sourceId: fuenteA, token: crypto.randomUUID(), esParcial: false,
       fechaEnvio: new Date("2026-10-20T12:00:00-05:00"), utmSource: "instagram", utmMedium: medium, utmContent: content,

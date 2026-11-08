@@ -1,6 +1,7 @@
 import { abonos, cohorts, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
+import { FECHA_LEAD_DE_PRUEBA } from "./crear-lead-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./programa-de-prueba";
 
 /**
@@ -95,7 +96,7 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
   }
 
   async function deal(v: Venta) {
-    const [lead] = await db.insert(leads).values({ programId: v.programId, emailNormalizado: v.correo ?? `lead${++n}@dorado.test` }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: v.programId, emailNormalizado: v.correo ?? `lead${++n}@dorado.test` }).returning();
     const [d] = await db.insert(deals).values({
       programId: v.programId,
       leadId: lead.id,

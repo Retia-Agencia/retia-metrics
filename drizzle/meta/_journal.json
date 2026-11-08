@@ -834,6 +834,13 @@
       "when": 1794104934621,
       "tag": "0118_relleno-fecha-primera-aplicacion",
       "breakpoints": true
+    },
+    {
+      "idx": 119,
+      "version": "7",
+      "when": 1794105896410,
+      "tag": "0119_check-lead-formulario-con-fecha",
+      "breakpoints": true
     }
   ]
 }

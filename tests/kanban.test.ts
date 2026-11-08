@@ -17,6 +17,7 @@ import { COLUMNAS_DE_VISTA, ETAPAS, ETAPAS_DE_SETTEO, type EtapaDeal } from "@/l
 import { opcionesDeTablero, parsearFiltros, tableroKanban, vistaDelTablero } from "@/lib/queries/kanban";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 069: el tablero Kanban. Prueba que un deal anulado NUNCA aparece, que los
@@ -99,6 +100,7 @@ async function deal(o: OpcDeal): Promise<string> {
   const [l] = await db
     .insert(leads)
     .values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId,
       emailNormalizado: `l${++leadN}@correo.co`,
       nombre: o.nombre === undefined ? `Lead ${leadN}` : o.nombre,

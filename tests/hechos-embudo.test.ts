@@ -15,6 +15,7 @@ import { hechosDelEmbudo, type FilaHechosDelEmbudo } from "@/lib/queries/hechos-
 import { periodoAnterior } from "@/lib/queries/serie";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const RANGO = { desde: "2026-09-01", hasta: "2026-09-30" };
 
@@ -59,7 +60,7 @@ async function crearEnvio(
 ) {
   const [lead] = await db
     .insert(leads)
-    .values({ programId: programa, emailNormalizado: `serie-${++secuencia}@correo.co` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `serie-${++secuencia}@correo.co` })
     .returning();
   const [source, medium, campaign] = utm;
   const [envio] = await db

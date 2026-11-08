@@ -8,6 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -137,8 +138,8 @@ describe("cambiarCohorte segun la etapa", () => {
     const [leadAceptado, leadRechazado] = await db
       .insert(leads)
       .values([
-        { programId, emailNormalizado: "aceptado@retia.test" },
-        { programId, emailNormalizado: "rechazado@retia.test" },
+        { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "aceptado@retia.test" },
+        { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "rechazado@retia.test" },
       ])
       .returning();
     const [aceptado, rechazado] = await db
@@ -163,7 +164,7 @@ describe("cambiarCohorte segun la etapa", () => {
     const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2999-12-31", estado: "activo" });
     const futura = await crearCohorte({ codigo: "Futura", inicio: null, cierre: "2999-12-31" });
     const [dueno] = await db.insert(users).values({ email: "estudiante@retia.test", rol: "closer", closerId: "Closer" }).returning();
-    const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "lead@retia.test" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@retia.test" }).returning();
     const [deal] = await db
       .insert(deals)
       .values({ leadId: lead.id, programId, cohortId: origen.id, etapa: "ganado_parcial", ownerUserId: dueno.id })

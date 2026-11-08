@@ -18,6 +18,7 @@ import * as envio from "@/lib/queries/hechos/envio";
 import * as venta from "@/lib/queries/hechos/venta";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const RANGO = { desde: "2026-09-01", hasta: "2026-09-30" };
 
@@ -54,6 +55,7 @@ beforeEach(async () => {
     utm: [string | null, string | null, string | null],
   ) => {
     const lead = await db.insert(leads).values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: programa,
       emailNormalizado: `hecho-${programa}-${indice}@test.co`,
     }).returning().then(([fila]) => fila);

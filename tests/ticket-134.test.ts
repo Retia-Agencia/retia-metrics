@@ -20,6 +20,7 @@ import { cambiarCohorte } from "@/lib/deals/estudiante";
 import { descuentoDeDeal } from "@/lib/queries/saldo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -35,7 +36,7 @@ async function lead() {
   secuencia += 1;
   const [fila] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: `persona-${secuencia}@correo.co` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `persona-${secuencia}@correo.co` })
     .returning();
   return fila;
 }

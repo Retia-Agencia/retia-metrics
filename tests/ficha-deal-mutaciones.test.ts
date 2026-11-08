@@ -27,6 +27,7 @@ import { tableroKanban } from "@/lib/queries/kanban";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 074: las tres mutaciones NUEVAS de la ficha del deal (editar, anular, registrar
@@ -105,7 +106,7 @@ it("dueños posibles incluye al gerente con capacidad y membresía, y excluye al
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
     .returning();
   const [d] = await db
     .insert(deals)

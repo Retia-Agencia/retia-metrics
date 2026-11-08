@@ -19,6 +19,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 071: `inboxDelPrograma`, el read model del Inbox. Cada bucket con su caso positivo
@@ -96,7 +97,7 @@ async function crearDeal(o: {
   const prog = o.programa ?? programId;
   const [l] = await db
     .insert(leads)
-    .values({ programId: prog, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
     .returning();
   const marca = o.anulado ? { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "error de tecleo" } : {};
   const [d] = await db

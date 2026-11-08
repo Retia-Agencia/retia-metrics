@@ -14,6 +14,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 003 — server actions de `/mi-dia` (ADR 0003, 0011, 0015, 0021).
@@ -168,7 +169,7 @@ describe("la pantalla es del closer: el gerente no registra (ADR 0003)", () => {
   it("un gerente puede buscar leads de un programa activo", async () => {
     await db
       .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
     const { buscarLeadsAccion } = await accionesLeads();
     const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "Juan" });
@@ -201,7 +202,7 @@ describe("un closer registra en su programa", () => {
   it("busca leads de su programa y los recibe en el payload", async () => {
     await db
       .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "juan@correo.co", nombre: "Juan" });
 
     const { buscarLeadsAccion } = await accionesLeads();
     const res = await buscarLeadsAccion({ programaSlug: "programa-a", texto: "Juan" });
@@ -222,7 +223,7 @@ describe("un closer registra en su programa", () => {
 
   it("una accion forjada no decide el posible duplicado de un programa sin membresia", async () => {
     const [fuente] = await db.insert(sources).values({ programId: programaB, nombre: "Formulario B" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programaB, emailNormalizado: "ana@b.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "ana@b.co" }).returning();
     const [envio] = await db.insert(submissions).values({
       leadId: lead.id,
       sourceId: fuente.id,
@@ -280,8 +281,8 @@ describe("developer con 'ver como' (ticket 028)", () => {
   it("en vista 'closer' busca SOLO en sus membresias, no en todos los programas", async () => {
     // Un lead en A (donde el developer es miembro) y otro en B (donde no lo es).
     await db.insert(leads).values([
-      { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
-      { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
     ]);
     ponerVista("closer");
 
@@ -295,8 +296,8 @@ describe("developer con 'ver como' (ticket 028)", () => {
 
   it("en vista 'todo' (por defecto) busca en TODOS los programas activos", async () => {
     await db.insert(leads).values([
-      { programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
-      { programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "en-a@correo.co", nombre: "Ana En A" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "en-b@correo.co", nombre: "Ana En B" },
     ]);
     // Sin cookie: vista `todo`, el developer administra y ve todo.
 

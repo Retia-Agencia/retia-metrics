@@ -5,6 +5,7 @@ import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 005 — el armado de la vista del dashboard.
@@ -47,7 +48,7 @@ async function sembrarDosClosers() {
   ]);
   const [lead] = await db
     .insert(leads)
-    .values({ programId: programaA, emailNormalizado: "ana@correo.co" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "ana@correo.co" })
     .returning();
   const [deal] = await db
     .insert(deals)
@@ -79,7 +80,7 @@ describe("el closer elegido acota la vista, menos el comparativo", () => {
   });
 
   it("muestra las ventas sin dueño en una fila sin closer", async () => {
-    const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "sin-closer@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "sin-closer@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, etapa: "ganado_parcial" }).returning();
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,
@@ -139,7 +140,7 @@ describe("el selector de closer", () => {
     // closers solo históricos (texto sin cuenta) no se ofrecen; el comparativo los sigue
     // mostrando como filas.
     const [ana] = await db.insert(users).values({ email: "ana@retia.co", rol: "closer", closerId: "Ana" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "lead@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "lead@retia.co" }).returning();
     await db.insert(deals).values({ programId: programaA, leadId: lead.id, ownerUserId: ana.id, etapa: "ganado_parcial" });
 
     const vista = await armarVistaDelDashboard(
@@ -186,7 +187,7 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
     fechaCierreVentas: "2026-09-30",
     estado: "activo",
   }).returning();
-  const [lead] = await db.insert(leads).values({ programId: programaA, emailNormalizado: "dinero@lead.co" }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "dinero@lead.co" }).returning();
   const [deal] = await db.insert(deals).values({
     programId: programaA,
     leadId: lead.id,
@@ -199,7 +200,7 @@ it("arma contratado, comisión, descuento, ventas por cohorte y las tres cifras 
   }).returning();
   const [leadSinSaldo] = await db
     .insert(leads)
-    .values({ programId: programaA, emailNormalizado: "sin-saldo@lead.co" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "sin-saldo@lead.co" })
     .returning();
   await db.insert(deals).values({
     programId: programaA,

@@ -27,6 +27,7 @@ import {
 } from "@/lib/mi-espacio/notificaciones";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 // La ruta `/api/mi-espacio/sin-ver` lee la base por el singleton `@/lib/db` y la sesion por
 // `@/lib/auth`: se controlan con holders (mismo molde que `tests/canales-accion.test.ts`).
@@ -142,6 +143,7 @@ async function deal(o: OpcDeal): Promise<{ dealId: string; leadId: string }> {
   const [l] = await db
     .insert(leads)
     .values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: prog,
       emailNormalizado: `l${++leadN}@correo.co`,
       nombre: `Lead ${leadN}`,

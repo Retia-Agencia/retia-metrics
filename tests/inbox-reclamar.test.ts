@@ -8,6 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 070, parte B: `reclamarDeal`. El closer que ve el lead primero lo toma; el nuevo
@@ -75,7 +76,7 @@ const comoDeveloper = () => ({ userId: developer, rol: "developer" as const, ope
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}) {
   const [l] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead${++leadN}@correo.co`, nombre: `Lead ${leadN}` })
     .returning();
   const [d] = await db
     .insert(deals)

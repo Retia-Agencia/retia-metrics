@@ -11,6 +11,7 @@ import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-fil
 import { grupoDeCitas } from "@/lib/queries/tasas-del-grupo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Hub › Hoy (ticket 252). Hoy no calcula métricas: ordena las de `armarVistaDelDashboard` con el periodo
@@ -112,7 +113,7 @@ describe("la caja de hoy por origen (252)", () => {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-a", nombre: "Programa A", ticketUsd: "797" }).returning();
     const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500" }).returning();
     const deal = async (programId: string, correo: string, vendidoEl: string) => {
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: correo }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
       const [d] = await db.insert(deals).values({ programId, leadId: lead.id, etapa: "ganado_parcial", valorVendidoUsd: "797" }).returning();
       await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "atendido", a: "ganado_parcial", fecha: new Date(`${vendidoEl}T15:00:00Z`) });
       return d;
@@ -217,6 +218,7 @@ describe("la caja de hoy por origen (252)", () => {
     const venta = async (vendidoEl: string) => {
       secuencia += 1;
       const [lead] = await db.insert(leads).values({
+        fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
         programId: programa.id,
         emailNormalizado: `venta-${secuencia}@retia.co`,
       }).returning();
@@ -325,8 +327,8 @@ describe("la caja de hoy por origen (252)", () => {
       { programId: otroPrograma.id, nombre: "Typeform otro" },
     ]).returning();
     const [persona, personaAjena] = await db.insert(leads).values([
-      { programId: programa.id, emailNormalizado: "repite@retia.co" },
-      { programId: otroPrograma.id, emailNormalizado: "repite@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "repite@retia.co" },
+      { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: otroPrograma.id, emailNormalizado: "repite@retia.co" },
     ]).returning();
     await db.insert(submissions).values([
       { leadId: persona.id, sourceId: fuente.id, token: "completo-1", fechaEnvio: new Date(`${dia}T08:00:00-05:00`) },
@@ -368,7 +370,7 @@ describe("367: citas vivas y canceladas aparte", () => {
       { ...PROGRAMA_DE_PRUEBA, slug: "citas-ajenas", nombre: "Citas ajenas", ticketUsd: "1500" },
     ]).returning();
     const [gerente] = await db.insert(users).values({ email: "gerente-citas@retia.co", rol: "gerente" }).returning();
-    const [leadCancelado] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "cancelado@retia.co" }).returning();
+    const [leadCancelado] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "cancelado@retia.co" }).returning();
     const [dealCancelado] = await db.insert(deals).values({ programId: programa.id, leadId: leadCancelado.id, etapa: "agendado" }).returning();
     const base = { programId: programa.id, closerId: "Ana" };
     await db.insert(calls).values([

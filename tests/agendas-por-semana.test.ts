@@ -7,6 +7,7 @@ import type { Metrica } from "@/lib/queries/metricas-con-filas";
 import { detallesPorSemana, proximasPorSemana, vistaDeLista, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 189: agendas creadas, ocurridas (con su show y su no-show sobre el grupo del ADR 0079) y
@@ -44,7 +45,7 @@ describe("ticket 189: agendas por semana", () => {
     programaA = a.id;
     const [closer] = await db.insert(users).values({ email: "c@s189.test", rol: "closer", closerId: "Caro" }).returning();
     const nuevoDeal = async (programId: string, n: number, anulado = false) => {
-      const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `l${n}@s189.test` }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${n}@s189.test` }).returning();
       const [deal] = await db.insert(deals).values({
         programId, leadId: lead.id, ownerUserId: closer.id, etapa: "agendado",
         anuladoEn: anulado ? ahora : null, anuladoPor: anulado ? closer.id : null, motivoAnulacion: anulado ? "Prueba" : null,

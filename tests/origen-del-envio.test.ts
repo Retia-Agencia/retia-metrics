@@ -11,6 +11,7 @@ import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 115, ADR 0060: el origen es del envio y el deal recuerda el que lo abrio. Ninguna
@@ -187,7 +188,7 @@ describe("rellenarOrigenDeDeals: el relleno unico de los deals viejos", () => {
 
   /** Un lead con sus envios (fechas ISO; null = sin fecha) y un deal creado en `creado`. */
   async function dealViejo(o: { envios: (string | null)[]; creado: string; anulado?: boolean }) {
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: `l${++n}@correo.co` }).returning();
+    const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${++n}@correo.co` }).returning();
     const ids: string[] = [];
     for (const [i, f] of o.envios.entries()) {
       const [e] = await db

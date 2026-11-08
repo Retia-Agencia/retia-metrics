@@ -5,6 +5,7 @@ import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -19,7 +20,7 @@ describe("% de show por cita en Hub › Hoy", () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T23:59:59.999-05:00`);
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "dos-citas@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "dos-citas@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "atendido" }).returning();
     // Un deal con dos citas el mismo día: por deal es 1 de 1 con show; por cita, 1 de 2.
     await db.insert(calls).values([
@@ -42,7 +43,7 @@ describe("% de show por cita en Hub › Hoy", () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T10:00:00-05:00`);
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "tarde@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "tarde@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
     await db.insert(calls).values([
       { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T09:00:00-05:00`), resultado: "show" },
@@ -56,7 +57,7 @@ describe("% de show por cita en Hub › Hoy", () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T23:59:59.999-05:00`);
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "mezcla@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "mezcla@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
     await db.insert(calls).values([
       { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T09:00:00-05:00`), resultado: "show" },
@@ -80,7 +81,7 @@ describe("% de show por cita en Hub › Hoy", () => {
     const dia = "2026-10-14";
     const ahora = new Date(`${dia}T23:59:59.999-05:00`);
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tasas", nombre: "Tasas", ticketUsd: "100" }).returning();
-    const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "sin-marcar@retia.co" }).returning();
+    const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "sin-marcar@retia.co" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "agendado" }).returning();
     await db.insert(calls).values([
       { programId: programa.id, dealId: deal.id, fechaAgenda: new Date(`${dia}T09:00:00-05:00`), resultado: "agendada" },

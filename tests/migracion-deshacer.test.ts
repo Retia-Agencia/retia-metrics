@@ -26,6 +26,7 @@ import { extraccionVacia, type DealTemplate, type Extraccion } from "@/lib/migra
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { archivos, sinComentarios } from "./helpers/codigo-fuente";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 127 — la reversa nivel 3 del corte (`operations.md` §12.3): deshacer la migracion de
@@ -62,7 +63,7 @@ async function crearPrograma(slug: string): Promise<Programa> {
   await db.insert(miembrosPrograma).values({ userId: maru, programId: p.id, activo: true });
   await db
     .insert(leads)
-    .values(["ana@c.co", "beto@c.co", "caro@c.co"].map((e) => ({ programId: p.id, emailNormalizado: e })));
+    .values(["ana@c.co", "beto@c.co", "caro@c.co"].map((e) => ({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: p.id, emailNormalizado: e })));
   return { id: p.id, slug };
 }
 

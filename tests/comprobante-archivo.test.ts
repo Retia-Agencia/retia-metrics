@@ -11,6 +11,7 @@ import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -61,6 +62,7 @@ const actor = (userId = closer) => ({ userId, rol: "closer" as const, operaComoC
 
 async function nuevoAbono(opciones: { etapa?: "atendido" | "ganado_completo"; anulado?: boolean } = {}) {
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
     emailNormalizado: `archivo-${++secuencia}@retia.co`,
   }).returning();
@@ -99,6 +101,7 @@ async function archivoVerificado(programa = programId, usuario = closer) {
 
 async function nuevoDeal() {
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
     emailNormalizado: `abono-con-archivo-${++secuencia}@retia.co`,
   }).returning();

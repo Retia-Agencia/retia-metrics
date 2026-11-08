@@ -14,6 +14,7 @@ import {
 } from "@/lib/queries/ficha-lead";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 073: la ficha del Lead. Lo que importa probar:
@@ -149,7 +150,7 @@ describe("fichaDeLead (PGlite)", () => {
       .insert(cohorts)
       .values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30", estado: "activo" })
       .returning();
-    const [l] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
+    const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
     leadId = l.id;
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
 

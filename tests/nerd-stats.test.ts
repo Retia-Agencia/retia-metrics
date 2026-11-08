@@ -23,6 +23,7 @@ import {
 } from "@/lib/queries/nerd-stats";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 025 — las lecturas de `/nerd-stats`, sobre PGlite con las migraciones
@@ -78,6 +79,7 @@ beforeEach(async () => {
   const [persona] = await db
     .insert(leads)
     .values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: programaA,
       emailNormalizado: CORREO_LEAD,
       nombre: NOMBRE_LEAD,

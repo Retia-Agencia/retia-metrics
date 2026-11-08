@@ -17,6 +17,7 @@ import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
 import { reclamarDealsPorSettear } from "@/lib/deals/reclamar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -213,7 +214,7 @@ describe("Asignarme todos", () => {
       .returning())[0];
 
     async function crear(programa: string, correo: string, etapa: "potencial" | "registrado" | "agendado", ownerUserId: string | null = null) {
-      const lead = (await db.insert(leads).values({ programId: programa, emailNormalizado: correo }).returning())[0];
+      const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: correo }).returning())[0];
       return (await db.insert(deals).values({ programId: programa, leadId: lead.id, etapa, ownerUserId }).returning())[0];
     }
     const reclamableA = await crear(programId, "a@lead.test", "potencial");
@@ -251,7 +252,7 @@ describe("Asignarme todos", () => {
     await db.insert(miembrosPrograma).values({ userId: closer.id, programId });
     const creados = [];
     for (const correo of ["carrera-a@lead.test", "carrera-b@lead.test"]) {
-      const lead = (await db.insert(leads).values({ programId, emailNormalizado: correo }).returning())[0];
+      const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning())[0];
       creados.push((await db.insert(deals).values({ programId, leadId: lead.id, etapa: "potencial" }).returning())[0]);
     }
     const segundo = [...creados].sort((a, b) => a.id.localeCompare(b.id))[1];

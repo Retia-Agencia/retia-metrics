@@ -21,6 +21,7 @@ import {
 import { dealsPerdidosPorMotivo, type Rango } from "@/lib/queries/dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const rango: Rango = { desde: "2026-09-01", hasta: "2026-09-30" };
 const ahora = new Date("2026-10-01T12:00:00Z");
@@ -318,6 +319,7 @@ describe("embudoPorEtapas con PGlite", () => {
     const numero = ++secuencia;
     const programa = opciones.programa ?? programId;
     const [lead] = await db.insert(leads).values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: programa,
       emailNormalizado: `embudo-${numero}@correo.co`,
       nombre: `Lead ${numero}`,

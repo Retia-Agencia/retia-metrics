@@ -19,6 +19,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { agrupar as agruparCitas } from "@/lib/queries/hechos/cita";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -71,6 +72,7 @@ async function crearCaso(
 ) {
   secuencia += 1;
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
     emailNormalizado: `persona-${secuencia}@retia.test`,
   }).returning();

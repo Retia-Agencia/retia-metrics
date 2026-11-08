@@ -15,6 +15,7 @@ import {
 import { asignarEventoDeMembresia, autoAsignarEventoPersonal } from "@/lib/catalogo/usuarios";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const json = (status: number, cuerpo: unknown) => ({
   ok: status >= 200 && status < 300,
@@ -55,7 +56,7 @@ beforeEach(async () => {
     calendlyEventType: "https://api.calendly.com/event_types/PERSONAL",
   }).returning();
   membresiaId = m.id;
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "ana@correo.co", nombre: "Ana" }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: ownerId, etapa: "potencial" }).returning();
   dealId = deal.id;
 });

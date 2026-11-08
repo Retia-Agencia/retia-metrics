@@ -36,7 +36,7 @@ afterAll(async () => {
 });
 
 async function vender(programId: string, cohortId: string, email: string, dia: string, ownerUserId?: string) {
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: email }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: new Date(`${dia}T08:00:00-05:00`), programId, emailNormalizado: email }).returning();
   const [deal] = await db.insert(deals).values({
     programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd: "100", ownerUserId: ownerUserId ?? null,
   }).returning();

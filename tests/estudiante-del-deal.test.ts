@@ -8,6 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { estudiantesDe } from "@/lib/queries/estudiantes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 063: el onboarding es un timestamp que marca el closer dueño o quien administra, y
@@ -66,7 +67,7 @@ afterAll(async () => {
 });
 
 async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferInsert> = {}, programa = programId) {
-  const [l] = await db.insert(leads).values({ programId: programa, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
+  const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
   const [d] = await db
     .insert(deals)
     .values({ leadId: l.id, programId: programa, cohortId: septiembre, etapa, ownerUserId: closer,...extra })

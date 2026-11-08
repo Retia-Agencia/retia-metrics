@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { tieneEvidenciaDeSetter } from "@/lib/deals/evidencia-de-setter";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -39,7 +40,7 @@ beforeEach(async () => {
   otroId = otro.id;
   const [lead] = await db
     .insert(leads)
-    .values({ programId: programa.id, emailNormalizado: `lead-${secuencia}@retia.test` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: `lead-${secuencia}@retia.test` })
     .returning();
   dealId = (await db
     .insert(deals)

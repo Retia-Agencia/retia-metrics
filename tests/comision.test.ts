@@ -19,6 +19,7 @@ import { comisionDeDeal } from "@/lib/queries/comision";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -60,7 +61,7 @@ afterAll(async () => {
 async function dealAtendido(valorVendidoUsd: string | null = "1000") {
   const [lead] = await db
     .insert(leads)
-    .values({ programId, emailNormalizado: `lead-${++secuencia}@correo.co` })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `lead-${++secuencia}@correo.co` })
     .returning();
   const [deal] = await db
     .insert(deals)

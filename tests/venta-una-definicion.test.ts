@@ -16,6 +16,7 @@ import { leerProyeccion } from "@/lib/queries/proyeccion";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 352 (ADR 0115 N1, N2): la venta tiene UNA definicion (deal hoy en Abonado o Completo, dia de su
@@ -51,7 +52,7 @@ beforeEach(async () => {
 });
 
 async function venta(etapa: EtapaDeal, dia: string, historialExtra: Array<{ de: EtapaDeal; a: EtapaDeal; dia: string }> = []) {
-  const [lead] = await db.insert(leads).values({ programId, emailNormalizado: `l${++n}@t352.test` }).returning();
+  const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${++n}@t352.test` }).returning();
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, cohortId, etapa }).returning();
   await db.insert(dealEtapaHistorial).values([
     { dealId: deal.id, a: "ganado_parcial" as EtapaDeal, fecha: new Date(`${dia}T11:00:00-05:00`) },

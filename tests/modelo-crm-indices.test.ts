@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 037 — las dos garantias del modelo nuevo que viven en la BASE y no en el
@@ -44,7 +45,7 @@ beforeEach(async () => {
 
   const [l] = await db
     .insert(leads)
-    .values({ programId: programaA, emailNormalizado: "ana@correo.co" })
+    .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "ana@correo.co" })
     .returning();
   leadA = l.id;
 });
@@ -134,7 +135,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
   it("el mismo lead en OTRO programa no choca", async () => {
     const [enB] = await db
       .insert(leads)
-      .values({ programId: programaB, emailNormalizado: "ana@correo.co" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "ana@correo.co" })
       .returning();
 
     await db.insert(deals).values({ leadId: leadA, programId: programaA });
@@ -152,7 +153,7 @@ describe("un contacto por (programa, tipo, valor) (ADR 0035)", () => {
 
     const [otro] = await db
       .insert(leads)
-      .values({ programId: programaA, emailNormalizado: "beto@correo.co" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "beto@correo.co" })
       .returning();
 
     await expect(
@@ -176,7 +177,7 @@ describe("un contacto por (programa, tipo, valor) (ADR 0035)", () => {
     // Un unico global sobre el telefono haria imposible que existiera en los dos.
     const [enB] = await db
       .insert(leads)
-      .values({ programId: programaB, emailNormalizado: "ana@correo.co" })
+      .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "ana@correo.co" })
       .returning();
 
     await db.insert(leadContactos).values([

@@ -6,6 +6,7 @@ import {
 } from "@/lib/queries/reporte-diario";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /** Hub › Hoy como el reporte diario de Michael (373). */
 
@@ -69,7 +70,7 @@ describe("el reporte contra la base", () => {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p-a", nombre: "Programa A", ticketUsd: "797" }).returning();
     const [closer] = await db.insert(users).values({ email: "closer@retia.co", rol: "closer", nombre: "Jerónimo", closerId: "Jero" }).returning();
     const venta = async (correo: string, dia: string, valor: string, nombre: string) => {
-      const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: correo, nombre }).returning();
+      const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: correo, nombre }).returning();
       const [d] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: "ganado_parcial", valorVendidoUsd: valor, ownerUserId: closer.id }).returning();
       await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "atendido", a: "ganado_parcial", fecha: new Date(`${dia}T15:00:00Z`) });
       return d;

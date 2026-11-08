@@ -23,6 +23,7 @@ import { importarGestion } from "@/lib/migracion/importar";
 import { extraccionVacia, type DealTemplate, type Extraccion, type LlamadaTemplate } from "@/lib/migracion/template";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 078 paso 4 — el importador: del template a la base por el escritor historico.
@@ -89,7 +90,7 @@ beforeEach(async () => {
   await db.insert(miembrosPrograma).values({ userId: maru, programId: programa, activo: true });
   const filas = await db
     .insert(leads)
-    .values(["ana@c.co", "beto@c.co", "caro@c.co"].map((e) => ({ programId: programa, emailNormalizado: e })))
+    .values(["ana@c.co", "beto@c.co", "caro@c.co"].map((e) => ({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: e })))
     .returning();
   ana = filas[0].id;
 });

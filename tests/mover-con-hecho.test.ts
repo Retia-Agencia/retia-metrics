@@ -9,6 +9,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { vigente } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -51,6 +52,7 @@ afterAll(async () => cerrar());
 
 async function nuevoDeal(etapa: EtapaDeal, ownerUserId: string | null = closerId) {
   const leadId = (await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
     emailNormalizado: `mover-hecho-${secuencia++}@retia.co`,
   }).returning())[0].id;

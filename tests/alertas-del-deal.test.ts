@@ -7,6 +7,7 @@ import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -54,6 +55,7 @@ async function crearDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
   secuencia += 1;
   const programa = extra.programId ?? programId;
   const [lead] = await db.insert(leads).values({
+    fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId: programa,
     emailNormalizado: `persona-${secuencia}@retia.test`,
     nombre: `Persona ${secuencia}`,

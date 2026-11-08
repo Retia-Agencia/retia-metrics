@@ -6,6 +6,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 070, parte C: `seccionesSinDueno`. Las dos listas por las que un deal consigue
@@ -71,6 +72,7 @@ async function crear(o: {
   const [l] = await db
     .insert(leads)
     .values({
+      fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
       programId: prog,
       emailNormalizado: `lead${++leadN}@correo.co`,
       nombre: `Lead ${leadN}`,
