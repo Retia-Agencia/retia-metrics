@@ -35,8 +35,7 @@ export function citaSinResultado(cita: { resultado: string; fechaAgenda: Date | 
 }
 
 /**
- * DECISIÓN ABIERTA DE MANI (390, F2-04): ¿la cita SUELTA (sin deal) pasada y sin resultado cuenta como "por marcar"?
- * Hoy NO: no tiene dueño a quien empujar y ya tiene su pestaña "Sin deal" en el Inbox. Cambiarlo es esta línea
+ * DECISIÓN DE MANI (7-nov, 390, F2-04): la cita SUELTA (sin deal) pasada y sin resultado NO cuenta como "por marcar": no tiene dueño a quien empujar y ya tiene su pestaña "Sin deal" en el Inbox. Cambiarlo es esta línea
  * para el conteo en memoria (`citaCuentaComoPorMarcar`); el lado SQL (`citaVencidaSinResultado`, que une `deals`)
  * seguiría contando solo las de deal hasta que se cambie su join.
  */
