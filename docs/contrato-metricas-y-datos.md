@@ -139,7 +139,13 @@ agrupa (ADR 0012). Checklist:
    Perdido, venta sin cohorte, sin valor vendido, cortesía, abono en otra moneda, abono adicional y devolución, rango que cruza
    cohortes, cohorte cerrada sin `fechaInicioVentas`, anuladas, venta entre las 7 p. m. y la medianoche de Bogotá, mismo correo
    en dos programas. Las bases de los tests ya son PGlite con todas las migraciones (`tests/helpers/base-de-prueba.ts`, ADR 0020).
-   🟡 el conjunto sembrado y su test (hijo de F7). Hoy 👁: los dorados son una foto de producción, que **no** se corre en CI.
+   🔒 Construido (hija A del 385): la semilla es `tests/helpers/semilla-dorada.ts` (dos programas, cuatro cohortes, 13 deals,
+   fechas absolutas, sin `now()`; nunca toca producción) y los dorados son `tests/numeros-dorados.test.ts`: Hub Comercial y
+   Dinero, Metas y cohorte, Students y MCP (`resumen_del_hub` y `consultar_metrica`) sobre tres periodos fijos (mes cerrado,
+   mes en curso, 14 días que cruzan mes y cohorte), con valores escritos a mano y el escalón conteo y luego claves de deal.
+   **Los esperados no se regeneran**: se editan a mano en el mismo commit que cambia una fórmula o la semilla (N8). 🟡 Todavía
+   fuera de los dorados: llamadas, shows, citas sin resultado y agendas (ticket 353), leads y registros (354), gasto y ROAS,
+   semáforo de WhatsApp y CSV. La foto de producción de F0 sigue siendo solo comparación entre fases, no se corre en CI.
 2. **Paridad entre superficies = un test que invoca las dos funciones reales con la misma base y compara.** Es el patrón de
    `saldo-centralizado` (ADR 0024) y de N2. Escalón (de `audit_helper`, §7.4): primero el **conteo**; solo si difiere, la **lista
    de ids** que sobran y faltan, para que el fallo diga qué filas explican la diferencia y no solo "17 distinto de 11".
@@ -236,5 +242,5 @@ Para los hijos de F7, en el orden en que cierran un hueco que hoy produce cifras
 4. **Un guardián por concepto que hoy no lo tiene:** show/ocurrió, cita sin resultado, lead/registro, agenda, "sin UTM" (H-15, H-07, H-04, H-02, H-17).
 5. **Toda razón usa `RazonConCobertura`** (H-13).
 6. **Funciones del diccionario sin llamador fuera de `tests/`** (N7, ticket 361).
-7. **Números dorados sobre base sembrada** con los casos de §4.
+7. ~~**Números dorados sobre base sembrada** con los casos de §4~~ 🔒 hecho para ventas, caja, dinero, comisión, metas y Students (§4); queda ampliarlo a lo que el 353 y el 354 cierren, gasto y ROAS, semáforo y CSV.
 8. **Columnas sin lector fuera de `schema.ts`** contra una lista nombrada (F3-06, F3-13, F3-14).
