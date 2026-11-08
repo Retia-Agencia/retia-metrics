@@ -285,6 +285,8 @@ describe("acciones de programas — el gerente administra", () => {
     const ok2 = await crearCohorteAccion("programa-a", {
       ...cohorteValida,
       codigo: "C2",
+      fechaInicioVentas: "2026-08-12",
+      fechaCierreVentas: "2026-08-12",
       estado: "futuro",
       programId,
     });

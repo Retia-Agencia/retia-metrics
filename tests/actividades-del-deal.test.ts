@@ -39,8 +39,9 @@ async function enProximaCohorte(fechaInicioVentas: string | null) {
     metaCupos: 10,
     precioUsd: "1000",
     fechaInicioClases: "2026-10-01",
-    fechaInicioVentas: "2026-09-01",
-    fechaCierreVentas: "2026-09-30",
+    // Antigua a proposito: el destino puede vender desde el 2000 y no pueden solaparse (0122).
+    fechaInicioVentas: "1999-01-01",
+    fechaCierreVentas: "1999-12-31",
     estado: "activo",
   }).returning())[0];
   const destino = (await db.insert(cohorts).values({

@@ -1,4 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
+import { btree_gist } from "@electric-sql/pglite/contrib/btree_gist";
 import { drizzle } from "drizzle-orm/pglite";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
@@ -92,7 +93,7 @@ function comoPostgresJs(cliente: PGlite): PGlite {
  */
 export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
   plantilla ??= cargarPlantilla();
-  const cliente = comoPostgresJs(new PGlite({ loadDataDir: await plantilla }));
+  const cliente = comoPostgresJs(new PGlite({ loadDataDir: await plantilla, extensions: { btree_gist } }));
   const db = drizzle(cliente, { schema });
   return {
     db: db as Db,

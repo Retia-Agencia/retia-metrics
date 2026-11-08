@@ -32,6 +32,11 @@ export function esViolacionUnica(error: unknown): boolean {
   return esCodigoPostgres(error, "23505");
 }
 
+/** Violacion de una restriccion EXCLUDE (SQLSTATE `23P01`). */
+export function esViolacionExclusion(error: unknown): boolean {
+  return esCodigoPostgres(error, "23P01");
+}
+
 /** Violacion de un CHECK (SQLSTATE `23514`). */
 export function esViolacionCheck(error: unknown): boolean {
   return esCodigoPostgres(error, "23514");

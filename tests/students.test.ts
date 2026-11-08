@@ -45,8 +45,9 @@ beforeEach(async () => {
     codigo,
     metaCupos: 10,
     precioUsd: "1000",
-    fechaInicioVentas: "2026-08-01",
-    fechaCierreVentas: "2026-09-01",
+    // Ventanas contiguas: dos cohortes del programa no venden el mismo dia (0122).
+    fechaInicioVentas: codigo === "C1" ? "2026-08-01" : "2026-09-02",
+    fechaCierreVentas: codigo === "C1" ? "2026-09-01" : "2026-10-01",
     fechaInicioClases: inicio,
     estado,
   });

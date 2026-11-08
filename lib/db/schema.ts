@@ -1,4 +1,5 @@
 import { sql } from "drizzle-orm";
+import { META_LEADS_DIA_POR_DEFECTO } from "../cohortes-por-defecto";
 import {
   pgEnum,
   pgTable,
@@ -408,7 +409,7 @@ export const cohorts = pgTable(
     codigo: text("codigo").notNull(),
     metaCupos: integer("meta_cupos").notNull(),
     /** Meta de leads por dia habil de la cohorte. Editable desde /ajustes (ticket 014). */
-    metaLeadsDia: integer("meta_leads_dia"),
+    metaLeadsDia: integer("meta_leads_dia").default(META_LEADS_DIA_POR_DEFECTO),
     precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
     /**
      * Nullable solo mientras la cohorte es futura y "por definir" (ticket 227): Gerencia la

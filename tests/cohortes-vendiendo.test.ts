@@ -76,20 +76,22 @@ async function capturar(promesa: Promise<unknown>): Promise<ErrorDeApp> {
 }
 
 describe("cohortesVendiendo", () => {
-  it("devuelve una normalmente y las dos durante la semana de solapamiento", async () => {
-    await crearCohorte({ codigo: "C3", inicio: "2026-06-01", cierre: "2026-06-20" });
+  it("devuelve la que vende ese día y, sin solape (ticket 396), nunca dos", async () => {
+    await crearCohorte({ codigo: "C3", inicio: "2026-06-01", cierre: "2026-06-14" });
     await crearCohorte({ codigo: "C4", inicio: "2026-06-15", cierre: "2026-06-30" });
 
     expect((await cohortesVendiendo(db, programId, "2026-06-10")).map((c) => c.codigo)).toEqual(["C3"]);
-    expect((await cohortesVendiendo(db, programId, "2026-06-15")).map((c) => c.codigo)).toEqual(["C3", "C4"]);
+    expect((await cohortesVendiendo(db, programId, "2026-06-15")).map((c) => c.codigo)).toEqual(["C4"]);
   });
 
   it("excluye cohortes cerradas y las de otro programa", async () => {
+    await crearCohorte({ codigo: "Cerrada", inicio: "2026-05-01", cierre: "2026-05-31", estado: "cerrado" });
     await crearCohorte({ codigo: "C3", inicio: "2026-06-01", cierre: "2026-06-30" });
-    await crearCohorte({ codigo: "Cerrada", inicio: "2026-06-01", cierre: "2026-06-30", estado: "cerrado" });
     await crearCohorte({ codigo: "Ajena", inicio: "2026-06-01", cierre: "2026-06-30", programa: otroProgramId });
 
     expect((await cohortesVendiendo(db, programId, "2026-06-15")).map((c) => c.codigo)).toEqual(["C3"]);
+    // Dentro de la ventana de la cerrada, tampoco vende: el estado manda, no solo la fecha.
+    expect(await cohortesVendiendo(db, programId, "2026-05-15")).toEqual([]);
   });
 
   it("incluye ambos limites de la ventana de ventas", async () => {
@@ -131,8 +133,8 @@ describe("cohortesVendiendo", () => {
 
 describe("cambiarCohorte segun la etapa", () => {
   it("un deal no estudiante solo cambia a una cohorte que vende hoy", async () => {
-    const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2999-12-31", estado: "activo" });
-    const vendiendo = await crearCohorte({ codigo: "Vendiendo", inicio: "2000-01-01", cierre: "2999-12-31" });
+    const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2025-12-31", estado: "activo" });
+    const vendiendo = await crearCohorte({ codigo: "Vendiendo", inicio: "2026-01-01", cierre: "2998-12-31" });
     const futura = await crearCohorte({ codigo: "Futura", inicio: "2999-01-01", cierre: "2999-12-31" });
     const [dueno] = await db.insert(users).values({ email: "closer@retia.test", rol: "closer", closerId: "Closer" }).returning();
     const [leadAceptado, leadRechazado] = await db

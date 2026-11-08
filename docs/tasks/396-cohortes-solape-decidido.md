@@ -1,9 +1,9 @@
 ---
 id: 396
 etapa: plataforma
-serves: "Auditoría 385 F3-11 · ADR 0022 · ADR 0125"
+serves: "Auditoría 385 F3-11 · ADR 0022 · ADR 0123"
 depends: []
-status: todo
+status: en main
 ---
 
 # 396 — Cohortes: solape decidido
@@ -16,7 +16,7 @@ Hay dos solapes de ventana en el mismo programa (Tactical C2 y C3 el 28 y 29-sep
 
 **Decisión de Mani, 8-nov: no debe haber solape de cohortes.** Camino "no se permite": corregir las dos parejas con su ok
 (Tactical C2/C3; Confianza C1/C2, 16 al 20-nov, que vende hoy: ojo con las ventas ya hechas en el día compartido) y aplicar M7
-(`EXCLUDE`, ADR 0125). Verificar `btree_gist` en Supabase antes.
+(`EXCLUDE`, ADR 0123). Verificar `btree_gist` en Supabase antes.
 
 ## Alcance
 
@@ -24,7 +24,7 @@ Hay dos solapes de ventana en el mismo programa (Tactical C2 y C3 el 28 y 29-sep
 
 **Archivos calientes** (donde chocan dos sesiones): `lib/db/schema.ts`, `docs/adr/0022-*`, `docs/metricas.md` (cohorte).
 
-**Migración:** M7, condicional: solo si Mani no permite el solape (`EXCLUDE`; requiere `btree_gist`, a verificar que Supabase lo permita y que el flujo de migraciones de este repo lo aplique). ADR 0125, o enmienda al 0022 si se permite.
+**Migración:** M7, condicional: solo si Mani no permite el solape (`EXCLUDE`; requiere `btree_gist`, a verificar que Supabase lo permita y que el flujo de migraciones de este repo lo aplique). ADR 0123, o enmienda al 0022 si se permite.
 
 ## Fuera
 
@@ -32,6 +32,10 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Decisión de Mani escrita: ¿se permite el solape de cohortes? Si se permite: regla de qué cohorte toma una venta del día compartido, en el diccionario y con test.
-- [ ] Si no se permite: las dos parejas corregidas con ok de Mani y `EXCLUDE` aplicado.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Decisión de Mani escrita: ¿se permite el solape de cohortes? Si se permite: regla de qué cohorte toma una venta del día compartido, en el diccionario y con test.
+- [x] Si no se permite: las dos parejas corregidas con ok de Mani y `EXCLUDE` aplicado.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+
+## Resultado (8-nov)
+
+Decisión de Mani: sin solape. Con su ok se cerró C2 de Tactical el 27-sep y C1 de Confianza el 15-nov (`editarCohorte`, con `change_log`); cero solapes en producción. `btree_gist` está disponible en Supabase (versión 1.7, sin instalar). Migración 0122 (`EXCLUDE`, ADR 0123) y 0121 (meta de 50 por defecto) **preparadas, sin aplicar**. Las 6 cohortes no cerradas quedaron con meta 50. 8 archivos de tests sembraban cohortes solapadas y se ajustaron.

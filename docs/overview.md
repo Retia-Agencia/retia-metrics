@@ -491,7 +491,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 **El ciclo**
 
-- **Cohorte:** el ciclo de venta de un programa, con su meta, su precio y su ventana de venta. Se
+- **Cohorte:** el ciclo de venta de un programa, con su meta, su precio y su ventana de venta (dos
+  cohortes del programa no comparten ningún día de venta, ADR 0123; nace con una meta de 50 leads por día). Se
   nombran C1, C2, C3; como máximo una activa por programa. *Evitar: "corte".* En el Hub es un **filtro
   propio**, separado del Periodo: elegir C3 deja solo los hechos de los deals de C3, sin importar la fecha
   (377). **SKU** = producto × cohorte; con un solo producto por programa, el filtro Cohorte ES el de SKU

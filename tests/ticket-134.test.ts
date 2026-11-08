@@ -247,7 +247,7 @@ describe("ticket 134 — cohorte y descuento", () => {
         metaCupos: 30,
         precioUsd: "897",
         fechaInicioClases: "2027-01-15",
-        fechaInicioVentas: "2000-01-01",
+        fechaInicioVentas: "2026-11-01",
         fechaCierreVentas: "2999-12-31",
         estado: "futuro",
       })

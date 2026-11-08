@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
+import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
 import { siguienteCodigoDeCohorte } from "@/lib/catalogo/codigo-de-cohorte";
 import {
   activarCohorteAccion,
@@ -64,7 +65,7 @@ interface Borrador {
 const BORRADOR_VACIO: Borrador = {
   codigo: "",
   metaCupos: "",
-  metaLeadsDia: "",
+  metaLeadsDia: String(META_LEADS_DIA_POR_DEFECTO),
   precioUsd: "",
   fechaInicioClases: "",
   fechaInicioVentas: "",

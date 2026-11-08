@@ -92,7 +92,7 @@ describe("pendientes y Próxima Cohorte", () => {
   async function cohortes() {
     const base = { programId, metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" };
     const [origen, destino] = await db.insert(cohorts).values([
-      { ...base, codigo: "O", estado: "activo", fechaInicioVentas: "2026-09-01" },
+      { ...base, codigo: "O", estado: "activo", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
       { ...base, codigo: "D", estado: "futuro", fechaInicioVentas: "2026-10-01" },
     ]).returning();
     return { origen, destino };

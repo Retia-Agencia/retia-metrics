@@ -49,7 +49,7 @@ beforeEach(async () => {
   septiembre = s.id;
   const [o] = await db
     .insert(cohorts)
-    .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2999-12-31", estado: "futuro" })
+    .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-11", fechaCierreVentas: "2999-12-31", estado: "futuro" })
     .returning();
   octubre = o.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();

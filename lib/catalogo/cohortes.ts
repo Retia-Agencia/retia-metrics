@@ -1,11 +1,12 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
 import { changeLog, cohorts, estadoCohorteEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
-import { esViolacionCheck, esViolacionUnica, nombreDeConstraint } from "@/lib/db/errores";
+import { esViolacionCheck, esViolacionExclusion, esViolacionUnica, nombreDeConstraint } from "@/lib/db/errores";
 import { mudarDealsDeProximaCohorte } from "@/lib/deals/asignar-proxima-cohorte";
 
 /**
@@ -60,7 +61,7 @@ export const esquemaCohorte = z.object({
     .nonnegative("No puede ser negativo.")
     .nullable()
     .optional()
-    .transform((v) => (v === undefined ? null : v)),
+    .transform((v) => (v === undefined ? META_LEADS_DIA_POR_DEFECTO : v)),
   precioUsd: monto("El precio"),
   /**
    * Inicio de clases. Nullable solo mientras la cohorte es FUTURA y queda "por definir"
@@ -198,6 +199,13 @@ async function normalizando<T>(fn: () => Promise<T>): Promise<T> {
         // indice parcial de cohorte activa o el de (program_id, codigo).
         throw new ErrorDeApp(
           "Ya hay una cohorte activa en este programa, o el código ya existe. Cierra la activa antes de activar otra.",
+          400,
+        );
+      }
+      if (esViolacionExclusion(error)) {
+        // `cohorts_sin_solape_de_ventas` (ticket 396, ADR 0125): dos cohortes del programa no venden el mismo dia.
+        throw new ErrorDeApp(
+          "Las fechas de venta se solapan con otra cohorte de este programa. Ajusta el inicio o el cierre para que no compartan ningún día.",
           400,
         );
       }

@@ -131,10 +131,12 @@ describe("cohortes: el indice unico (23505) sale como 400 y no como 500", () => 
 
   it("editar una cohorte hacia un codigo ya tomado choca igual", async () => {
     await crearCohorte(db, actorId, entrada({ codigo: "C1" }));
-    const segunda = await crearCohorte(db, actorId, entrada({ codigo: "C2" }));
+    // Ventanas distintas: dos cohortes del programa no pueden vender el mismo dia (0122).
+    const ventana = { fechaInicioVentas: "2027-02-01", fechaCierreVentas: "2027-02-20" };
+    const segunda = await crearCohorte(db, actorId, entrada({ codigo: "C2", ...ventana }));
 
     const error = await errorDe(() =>
-      editarCohorte(db, actorId, segunda.id, entrada({ codigo: "C1" })),
+      editarCohorte(db, actorId, segunda.id, entrada({ codigo: "C1", ...ventana })),
     );
 
     expect(error).toBeInstanceOf(ErrorDeApp);

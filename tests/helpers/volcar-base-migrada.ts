@@ -1,4 +1,5 @@
 import { PGlite } from "@electric-sql/pglite";
+import { btree_gist } from "@electric-sql/pglite/contrib/btree_gist";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { fileURLToPath } from "node:url";
@@ -7,7 +8,7 @@ import { fileURLToPath } from "node:url";
 const CARPETA_MIGRACIONES = fileURLToPath(new URL("../../drizzle", import.meta.url));
 
 export async function volcarBaseMigrada(): Promise<File | Blob> {
-  const cliente = new PGlite();
+  const cliente = new PGlite({ extensions: { btree_gist } });
   try {
     await migrate(drizzle(cliente), { migrationsFolder: CARPETA_MIGRACIONES });
     // Sin comprimir: con gzip el volcado tarda ~15x mas y cada carga ~100 ms mas.

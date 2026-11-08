@@ -531,6 +531,8 @@ describe("cohortes de un programa", () => {
     const c2 = await crearCohorte(db, gerenteId, {
       ...cohorteBase,
       codigo: "C2",
+      fechaInicioVentas: "2026-08-12",
+      fechaCierreVentas: "2026-08-12",
       estado: "futuro",
       programId,
     });
@@ -545,6 +547,8 @@ describe("cohortes de un programa", () => {
     const error = await crearCohorte(db, gerenteId, {
       ...cohorteBase,
       codigo: "C2",
+      fechaInicioVentas: "2026-08-12",
+      fechaCierreVentas: "2026-08-12",
       estado: "activo",
       programId,
     }).catch((e) => e);
@@ -583,6 +587,8 @@ describe("cohortes de un programa", () => {
     const c2 = await crearCohorte(db, gerenteId, {
       ...cohorteBase,
       codigo: "C2",
+      fechaInicioVentas: "2026-08-12",
+      fechaCierreVentas: "2026-08-12",
       estado: "futuro",
       programId,
     });

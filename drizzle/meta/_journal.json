@@ -848,6 +848,20 @@
       "when": 1794155878060,
       "tag": "0120_check-venta-con-dueno",
       "breakpoints": true
+    },
+    {
+      "idx": 121,
+      "version": "7",
+      "when": 1794162596480,
+      "tag": "0121_meta-leads-dia-por-defecto",
+      "breakpoints": true
+    },
+    {
+      "idx": 122,
+      "version": "7",
+      "when": 1794162629590,
+      "tag": "0122_cohortes-sin-solape",
+      "breakpoints": true
     }
   ]
 }
