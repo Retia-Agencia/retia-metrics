@@ -34,13 +34,21 @@ function cadenasLibres(esquema: Esquema, ruta = ""): { ruta: string; acotada: bo
 const SIN_TOPE_AUN: Record<string, string[]> = {};
 
 describe("contrato de herramientas del MCP", () => {
-  it("nombres en snake_case ASCII, únicos y con descripción", () => {
+  it("nombres en snake_case ASCII, únicos, con título y descripción orientada al uso", () => {
     const nombres = HERRAMIENTAS.map((herramienta) => herramienta.nombre);
     expect(new Set(nombres).size).toBe(nombres.length);
     for (const herramienta of HERRAMIENTAS) {
       expect(herramienta.nombre, herramienta.nombre).toMatch(FORMATO_DE_NOMBRE);
+      expect(herramienta.titulo.trim().length, `${herramienta.nombre}: título`).toBeGreaterThan(3);
       expect(herramienta.descripcion.trim().length, `${herramienta.nombre}: descripción`).toBeGreaterThan(40);
+      expect(herramienta.descripcion, `${herramienta.nombre}: cuándo usarla`).toMatch(/^Úsala cuando/);
     }
+  });
+
+  it("las dos herramientas de la fase A publican salida y las demás esperan la fase B", () => {
+    const conSalida = HERRAMIENTAS.filter((herramienta) => herramienta.salida !== undefined)
+      .map((herramienta) => herramienta.nombre);
+    expect(conSalida).toEqual(["resumen_del_hub", "consultar_metrica"]);
   });
 
   it("toda herramienta está en las instrucciones del servidor y en la tabla de docs/mcp.md", () => {

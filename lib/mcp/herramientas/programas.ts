@@ -6,8 +6,9 @@ const entrada = z.object({}).strict();
 
 export const programasVisiblesMcp: Herramienta<typeof entrada> = {
   nombre: "programas_visibles",
+  titulo: "Programas visibles",
   descripcion:
-    "Devuelve los programas activos que puede consultar la persona actual, con nombre y slug. " +
+    "Úsala cuando no sepas qué programa consultar o necesites su identificador. Devuelve los programas activos que puede consultar la persona actual, con nombre y slug. " +
     "No mezcla cifras ni devuelve métricas. Usa el slug en herramientas posteriores. " +
     "Las fechas de esas herramientas se interpretan en Bogotá y cada monto incluye su moneda; " +
     "cuando una lista sea paginada, su respuesta indicará cómo pedir la página siguiente.",

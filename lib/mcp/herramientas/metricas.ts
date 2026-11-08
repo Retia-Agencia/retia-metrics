@@ -17,6 +17,8 @@ import { programaVisible } from "./programa";
 import { enlaceDeDeal, enlaceDeLead, enlaceDeSeccionHub } from "@/lib/mcp/enlaces";
 import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp } from "./periodo";
 import { nombreCorto, nombreLargo, TITULOS_DE_LISTA } from "@/lib/vocabulario-metricas";
+import { aSalidaDeResumen, salidaDeResumen } from "@/lib/mcp/salidas/resumen";
+import { salidaDeConsultaDeMetrica } from "@/lib/mcp/salidas/metrica";
 
 function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
   return `${nombre}: ${valor === null ? "—" : pct(valor)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
@@ -26,11 +28,13 @@ const entradaResumen = z.object({ programa: z.string().min(1).max(100), ...campo
 
 export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   nombre: "resumen_del_hub",
+  titulo: "Resumen del Hub",
   descripcion:
-    "Resume las cifras del Hub de un programa para el periodo pedido: ventas, dinero que entró a caja, citas, realizadas y tasas. " +
+    "Úsala cuando necesites las cifras principales del Hub de un programa para un periodo. Devuelve ventas, vendido, recaudado, por cobrar, dinero que entró a caja, citas, realizadas y tasas con cobertura. " +
     "Las fechas son días de Bogotá (AAAA-MM-DD), cada monto conserva su moneda y toda tasa informa su cobertura; " +
     "— significa que no se puede calcular. No mezcla programas ni devuelve filas individuales.",
   entrada: entradaResumen,
+  salida: salidaDeResumen,
   puede: (contexto) => veTableroDelPrograma(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
@@ -56,7 +60,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       tasaLegible("Cita a venta", vista.embudo.agendaAVenta, grupo.cobertura, grupo.parcial),
       enlace,
     ];
-    return { texto: lineas.join("\n"), estructurado: { programa: { nombre: programa.nombre, slug: programa.slug }, enlace, vista } };
+    return { texto: lineas.join("\n"), estructurado: aSalidaDeResumen(vista, { nombre: programa.nombre, slug: programa.slug }, enlace) };
   },
 };
 
@@ -70,13 +74,15 @@ const entradaMetrica = z.object({
 
 export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
   nombre: "consultar_metrica",
+  titulo: "Consultar una métrica",
   descripcion:
-    "Consulta el número de una métrica del Hub, sus desgloses por closer, etapa y antigüedad, y hasta 50 filas de la página pedida. " +
+    "Úsala cuando necesites explicar una métrica del Hub, filtrarla o abrir sus filas. Devuelve su total, desgloses por responsable, etapa y antigüedad, y hasta 50 filas de la página pedida. " +
     "Programa y periodo son obligatorios; las fechas son días de Bogotá. Admite los mismos filtros semánticos de las listas del Hub: origen " +
     "(fuente, medio, categoría, área, canal y campaña), escalera de conversión y jerarquía de pauta; cada filtro solo existe para las métricas donde tiene sentido. " +
     "El filtro closer acepta solo el código opaco que devuelve el CRM. " +
-    "Los montos siempre incluyen moneda, — significa que no se puede calcular y la respuesta indica si existe una página siguiente.",
+    "Los montos siempre incluyen moneda, — significa que no se puede calcular y la respuesta indica si existe una página siguiente. No mezcla programas ni modifica datos.",
   entrada: entradaMetrica,
+  salida: salidaDeConsultaDeMetrica,
   puede: (contexto) => veTableroDelPrograma(contexto.rol) || veEquipoComercial(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
@@ -127,7 +133,32 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
         : fila.persona
           ? enlaceDeLead(programa.slug, fila.persona.leadId)
           : null;
-      return { ...fila, enlace };
+      const valor = fila.monto === null || fila.moneda === null ? null : { valor: fila.monto, moneda: fila.moneda };
+      const recaudado = fila.recaudado === undefined || fila.recaudado === null || fila.moneda === null
+        ? null
+        : { valor: fila.recaudado, moneda: fila.moneda };
+      const porCobrar = fila.porCobrar === undefined || fila.porCobrar === null || fila.moneda === null
+        ? null
+        : { valor: fila.porCobrar, moneda: fila.moneda };
+      return {
+        fecha: fila.fecha,
+        cita_en: fila.citaEn?.toISOString() ?? null,
+        resultado: fila.resultado ?? null,
+        responsable: fila.closer,
+        codigo_del_responsable: fila.claveCloser,
+        etapa: fila.etapa,
+        dias_sin_actividad: fila.antiguedad,
+        rango_de_antiguedad: fila.bucket,
+        valor,
+        recaudado,
+        por_cobrar: porCobrar,
+        concepto: fila.concepto,
+        nota: fila.nota,
+        cantidad: fila.cantidad,
+        persona: fila.persona ? { nombre: fila.persona.nombre, id: fila.persona.leadId } : null,
+        ultima_actividad: fila.ultimaActividad ?? null,
+        enlace,
+      };
     });
     const texto = [
       `${TITULOS_DE_LISTA[entrada.metrica]}: ${lista.disponible ? num(lista.subtotal.cantidad) : "—"}`,
@@ -135,9 +166,36 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `Página ${num(entrada.pagina)}: ${num(lista.filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${entrada.pagina + 1}.` : "No hay otra página."}`,
     ].join("\n");
+    const dinero = lista.dinero;
+    const cifraUsd = (valor: number) => ({ valor, unidad: "dinero" as const, moneda: "USD" as const });
+    const linea = (item: { etiqueta: string; cantidad: number; caja: Array<{ moneda: string; total: number }> }) => ({
+      nombre: item.etiqueta,
+      cantidad: item.cantidad,
+      entro_a_caja: item.caja,
+    });
     return {
       texto,
-      estructurado: { programa: { nombre: programa.nombre, slug: programa.slug }, metrica: entrada.metrica, periodo: vista.periodo, resumen: { disponible: lista.disponible, subtotal: lista.subtotal }, desgloses, pagina: entrada.pagina, haySiguiente, filas },
+      estructurado: {
+        programa: { nombre: programa.nombre, slug: programa.slug },
+        metrica: entrada.metrica,
+        periodo: { desde: vista.periodo.a.desde, hasta: vista.periodo.a.hasta },
+        resumen: {
+          disponible: lista.disponible,
+          total: lista.subtotal.cantidad,
+          entro_a_caja: lista.subtotal.caja,
+          vendido: dinero ? cifraUsd(dinero.vendido) : null,
+          recaudado: dinero ? cifraUsd(dinero.recaudado) : null,
+          por_cobrar: dinero ? cifraUsd(dinero.porCobrar) : null,
+        },
+        desgloses: {
+          por_responsable: desgloses.porCloser.map(linea),
+          por_etapa: desgloses.porEtapa.map(linea),
+          por_antiguedad: desgloses.porAntiguedad.map(linea),
+        },
+        paginacion: { pagina: entrada.pagina, filas_en_esta_pagina: filas.length, hay_siguiente: haySiguiente },
+        filas,
+        enlace: enlaceDeSeccionHub(programa.slug, "comercial"),
+      },
     };
   },
 };

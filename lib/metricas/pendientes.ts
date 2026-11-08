@@ -16,8 +16,8 @@ export const PENDIENTES_DE_REGISTRO = [
   "objetivo_del_dia", "objetivo_de_leads", "leads_que_hacen_falta",
   "citas_del_dia", "citas_realizadas", "citas_canceladas",
   "objetivo_semana", "objetivo_mes", "objetivo_cohorte",
-  "dias_del_ritmo", "citas_minimas",
+  "dias_del_ritmo", "citas_minimas", "cita_a_venta",
 ] as const satisfies readonly ClaveDeMetrica[];
 
 /** Baja cuando se migra un concepto; subirlo es una decisión que se ve en el diff. */
-export const TOPE_DE_PENDIENTES = 22;
+export const TOPE_DE_PENDIENTES = 23;

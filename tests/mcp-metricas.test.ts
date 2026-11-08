@@ -115,10 +115,18 @@ describe("herramientas MCP de métricas", () => {
     const salida = await resumenDelHubMcp.ejecutar(contexto(gerenteId, "gerente"), {
       programa: "programa-a", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta,
     });
-    const vista = salida.estructurado.vista as typeof pagina;
+    const estructurado = salida.estructurado as {
+      cifras: { ventas: { valor: number }; vendido: { valor: number } };
+      tasas: { cita_a_venta: { valor: number | null } };
+    };
 
     expect(pagina.embudo.cierres).toBe(1);
-    expect(vista.embudo.cierres).toBe(pagina.embudo.cierres);
+    expect(estructurado.cifras.ventas.valor).toBe(pagina.embudo.cierres);
+    expect(estructurado.cifras.vendido.valor).toBe(pagina.dinero.vendido);
+    expect(estructurado.tasas.cita_a_venta.valor).toBe(pagina.embudo.agendaAVenta);
+    expect(resumenDelHubMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(Object.keys(salida.estructurado)).not.toContain("vista");
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:contratadoUsd|embudo|cierres|dinero)"\s*:/);
     expect(salida.texto).toContain("cobertura");
   });
 
@@ -127,10 +135,12 @@ describe("herramientas MCP de métricas", () => {
     const salida = await consultarMetricaMcp.ejecutar(contexto(gerenteId, "gerente"), {
       programa: "programa-a", metrica: "cierres", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta, pagina: 1,
     });
-    const resumen = salida.estructurado.resumen as { subtotal: { cantidad: number } };
+    const resumen = salida.estructurado.resumen as { total: number };
 
     expect(pagina.subtotal.cantidad).toBe(1);
-    expect(resumen.subtotal.cantidad).toBe(pagina.subtotal.cantidad);
+    expect(resumen.total).toBe(pagina.subtotal.cantidad);
+    expect(consultarMetricaMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:contratadoUsd|embudo|cierres|dinero)"\s*:/);
   });
 
   it("consultar_metrica aplica los filtros de origen igual que la función de página", async () => {
@@ -152,9 +162,9 @@ describe("herramientas MCP de métricas", () => {
       source: "facebook",
       pagina: 1,
     });
-    const resumen = salida.estructurado.resumen as { subtotal: { cantidad: number } };
+    const resumen = salida.estructurado.resumen as { total: number };
 
-    expect(resumen.subtotal.cantidad).toBe(pagina?.lista.subtotal.cantidad);
+    expect(resumen.total).toBe(pagina?.lista.subtotal.cantidad);
   });
 
   it("consultar_metrica convierte una combinación inexistente en error de aplicación", async () => {
@@ -177,10 +187,10 @@ describe("herramientas MCP de métricas", () => {
     const salida = await consultarMetricaMcp.ejecutar(contexto(paidId, "paid_trafficker"), {
       programa: "programa-a", metrica: "agendas_creadas", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta, pagina: 1,
     });
-    const filas = salida.estructurado.filas as Array<{ closer: unknown; dealId: unknown; monto: unknown }>;
+    const filas = salida.estructurado.filas as Array<{ responsable: unknown; valor: unknown }>;
 
     expect(filas).toHaveLength(1);
-    expect(filas[0]).toMatchObject({ closer: null, dealId: null, monto: null });
+    expect(filas[0]).toMatchObject({ responsable: null, valor: null });
     expect(JSON.stringify(salida.estructurado)).not.toContain("Ana");
   });
 });

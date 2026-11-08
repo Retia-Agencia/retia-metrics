@@ -42,8 +42,9 @@ const entradaCartera = z.object({
 
 export const carteraVencidaMcp: Herramienta<typeof entradaCartera> = {
   nombre: "cartera_vencida",
+  titulo: "Cartera vencida",
   descripcion:
-    "Devuelve la cartera vencida que muestra Students, con sus mismos filtros de cohorte, onboarding, búsqueda y orden. " +
+    "Úsala cuando necesites saber quién tiene saldos vencidos en un programa. Devuelve la cartera vencida que muestra Students, con sus mismos filtros de cohorte, onboarding, búsqueda y orden. " +
     "La fecha de corte es hoy en Bogotá; cada saldo conserva su moneda y cada fila enlaza al deal y a la persona. No pagina.",
   entrada: entradaCartera,
   puede: (contexto) => veStudents(contexto.rol),
@@ -103,8 +104,9 @@ async function rangoDelHub(contexto: ContextoMcp, programId: string, entrada: En
 
 export const pautaRoasMcp: Herramienta<typeof entradaRoas> = {
   nombre: "pauta_roas",
+  titulo: "ROAS de pauta",
   descripcion:
-    "Devuelve el ROAS de Pauta para un periodo y nivel de la misma jerarquía del Hub: total, campaña, conjunto, anuncio, anuncio sin identificar o sin anuncio. " +
+    "Úsala cuando necesites evaluar el rendimiento de pauta por nivel. Devuelve el ROAS para un periodo y para la misma jerarquía del Hub: total, campaña, conjunto, anuncio, anuncio sin identificar o sin anuncio. " +
     "Las fechas son días de Bogotá. Vendido y gasto están en USD; la cobertura siempre acompaña al ROAS, parcial se declara y — significa que no se puede calcular. No pagina.",
   entrada: entradaRoas,
   puede: (contexto) => manejaPauta(contexto.rol),
@@ -152,8 +154,9 @@ const entradaOrigen = z.object({ programa, ...camposDePeriodoMcp }).strict();
 
 export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
   nombre: "origen_del_programa",
+  titulo: "Origen del programa",
   descripcion:
-    "Resume el origen de los registros de un programa para el periodo pedido, con los mismos canales del Hub, conteos y porcentajes. " +
+    "Úsala cuando necesites entender de dónde llegaron los registros de un programa. Devuelve el resumen del periodo con los mismos canales del Hub, conteos y porcentajes. " +
     "Las fechas son días de Bogotá; Sin UTM siempre aparece con su conteo y porcentaje. No expone nombres técnicos ni pagina.",
   entrada: entradaOrigen,
   puede: (contexto) => veTableroDelPrograma(contexto.rol),

@@ -20,8 +20,9 @@ const entradaBuscar = z.object({ programa, ...camposDeFiltrosDeLeads, pagina }).
 
 export const buscarLeadsMcp: Herramienta<typeof entradaBuscar> = {
   nombre: "buscar_leads",
+  titulo: "Buscar personas",
   descripcion:
-    "Busca personas dentro de un programa por nombre, correo o teléfono, con los mismos filtros de Leads: deal, calidad, abandono, duplicado, fecha y orden. " +
+    "Úsala cuando necesites encontrar a una persona dentro de un programa por nombre, correo o teléfono. Aplica los mismos filtros de Leads: deal, calidad, abandono, duplicado, fecha y orden. " +
     "El texto requiere al menos dos caracteres y no se guarda en la bitácora. Devuelve hasta 50 filas y dice si hay otra página; cada fila incluye el enlace a la ficha.",
   entrada: entradaBuscar,
   puede: (contexto) => puedeVerOperacion(contexto.rol),
@@ -47,8 +48,9 @@ const entradaFicha = z.object({ programa, id: idOpacoSchema }).strict();
 
 export const fichaDeLeadMcp: Herramienta<typeof entradaFicha> = {
   nombre: "ficha_de_lead",
+  titulo: "Ficha de una persona",
   descripcion:
-    "Devuelve la ficha de una persona del programa por su id opaco: contactos, envíos y deals. Aplica exactamente la proyección de la pantalla; Customer Success recibe solo el detalle básico. Cada deal y el lead incluyen enlace al CRM.",
+    "Úsala cuando ya tengas el identificador opaco de una persona y necesites su detalle. Devuelve contactos, envíos y deals con la misma proyección de la pantalla; Customer Success recibe solo el detalle básico. Cada deal y la persona incluyen enlace al CRM. No modifica la ficha.",
   entrada: entradaFicha,
   puede: (contexto) => puedeVerFichaDeLead(contexto.rol),
   soloLectura: true,
@@ -73,8 +75,9 @@ export const fichaDeLeadMcp: Herramienta<typeof entradaFicha> = {
 
 export const fichaDeDealMcp: Herramienta<typeof entradaFicha> = {
   nombre: "ficha_de_deal",
+  titulo: "Ficha de un deal",
   descripcion:
-    "Devuelve la ficha operativa de un deal por su id opaco, con etapa, dueño, llamadas, abonos, actividades, bitácora y alertas. Un closer solo puede abrir los mismos deals que en la pantalla. El dinero conserva su moneda y — significa que no se puede calcular.",
+    "Úsala cuando ya tengas el identificador opaco de un deal y necesites su historia operativa. Devuelve etapa, dueño, llamadas, abonos, actividades, bitácora y alertas; un closer solo puede abrir los mismos deals que en la pantalla. El dinero conserva su moneda y — significa que no se puede calcular. No modifica el deal.",
   entrada: entradaFicha,
   puede: (contexto) => puedeVerOperacion(contexto.rol),
   soloLectura: true,
@@ -106,8 +109,9 @@ function parametrosDeTablero(entrada: z.output<typeof entradaTablero>): Record<s
 
 export const tableroDeDealsMcp: Herramienta<typeof entradaTablero> = {
   nombre: "tablero_de_deals",
+  titulo: "Tablero de deals",
   descripcion:
-    "Devuelve el tablero de Deals con las mismas vistas, orden y filtros de la pantalla: texto, dueño, cohorte, canal, calidad, valor, antigüedad y fecha. Incluye las opciones válidas de sus selectores. Cada tarjeta enlaza tanto al deal como al lead.",
+    "Úsala cuando necesites ver o filtrar el pipeline comercial completo de un programa. Devuelve el tablero de Deals con las mismas vistas, orden y filtros de la pantalla, además de las opciones válidas de sus selectores. Cada tarjeta enlaza al deal y a la persona. No modifica ni mueve deals.",
   entrada: entradaTablero,
   puede: (contexto) => puedeVerOperacion(contexto.rol),
   soloLectura: true,
@@ -151,8 +155,9 @@ function conEnlaceDeDeal<T extends { dealId: string | null; sugerencias?: readon
 
 export const bandejaMcp: Herramienta<typeof entradaBandeja> = {
   nombre: "bandeja",
+  titulo: "Bandeja de pendientes",
   descripcion:
-    "Devuelve la Bandeja del programa igual que la pantalla: llamadas vencidas sin resultado, llamadas sueltas, atención, deals por settear y agendados sin dueño. Un closer ve sus deals donde la pantalla aplica dueño; Gerencia ve el equipo. Los montos conservan moneda.",
+    "Úsala cuando necesites saber qué trabajo operativo está pendiente hoy en un programa. Devuelve llamadas vencidas sin resultado, llamadas sueltas, atención, deals por preparar y agendados sin dueño igual que la pantalla. Un closer ve sus deals donde aplica dueño y Gerencia ve el equipo. No resuelve los pendientes ni modifica datos.",
   entrada: entradaBandeja,
   puede: (contexto) => puedeVerOperacion(contexto.rol),
   soloLectura: true,

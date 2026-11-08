@@ -63,19 +63,19 @@ por cada tools/call:
 
 Todas son de solo lectura hoy. El developer pasa toda guarda (ADR 0025). "Programa visible" = el alcance del usuario (ADR 0048/0094).
 
-| Herramienta | Para qué | Roles |
-|---|---|---|
-| `programas_visibles` | Los programas que la persona puede consultar y su slug | todos |
-| `resumen_del_hub` | Cifras del periodo: ventas, caja, agendas, shows, tasas | gerente, paid trafficker |
-| `consultar_metrica` | Una métrica con desgloses, filtros y filas | gerente, paid trafficker, closer (según la métrica) |
-| `buscar_leads` | Buscar personas por nombre, correo o teléfono | gerente, closer |
-| `ficha_de_lead` | Ficha de una persona | gerente, closer, customer success (proyección reducida) |
-| `ficha_de_deal` | Ficha operativa de un deal | gerente, closer |
-| `tablero_de_deals` | El tablero de Deals con sus filtros | gerente, closer |
-| `bandeja` | Pendientes del día | gerente, closer |
-| `cartera_vencida` | Saldos vencidos de Students | gerente, closer, customer success |
-| `pauta_roas` | ROAS por campaña, conjunto o anuncio | gerente, paid trafficker |
-| `origen_del_programa` | De dónde llegan los registros | gerente, paid trafficker |
+| Herramienta | Título | Cuándo usarla | Roles |
+|---|---|---|---|
+| `programas_visibles` | Programas visibles | Para saber qué programas puede consultar la persona y obtener su slug | todos |
+| `resumen_del_hub` | Resumen del Hub | Para responder con las cifras principales de un periodo: ventas, dinero, citas, realizadas y tasas | gerente, paid trafficker |
+| `consultar_metrica` | Consultar una métrica | Para explicar una métrica, filtrarla o abrir sus desgloses y filas | gerente, paid trafficker, closer (según la métrica) |
+| `buscar_leads` | Buscar personas | Para encontrar una persona por nombre, correo o teléfono | gerente, closer |
+| `ficha_de_lead` | Ficha de una persona | Para consultar el detalle de una persona ya identificada | gerente, closer, customer success (proyección reducida) |
+| `ficha_de_deal` | Ficha de un deal | Para consultar la historia operativa de un deal ya identificado | gerente, closer |
+| `tablero_de_deals` | Tablero de deals | Para ver o filtrar el pipeline comercial completo | gerente, closer |
+| `bandeja` | Bandeja de pendientes | Para ver el trabajo operativo pendiente del día | gerente, closer |
+| `cartera_vencida` | Cartera vencida | Para saber quién tiene saldos vencidos | gerente, closer, customer success |
+| `pauta_roas` | ROAS de pauta | Para evaluar pauta por total, campaña, conjunto o anuncio | gerente, paid trafficker |
+| `origen_del_programa` | Origen del programa | Para entender de dónde llegaron los registros | gerente, paid trafficker |
 
 ## 4. Contrato de herramientas (qué se exige y de dónde sale)
 
@@ -97,7 +97,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 **Salida**
 9. Toda respuesta trae **texto legible para una persona de negocio** y `structuredContent` con el dato. Cada monto lleva su moneda; "—" significa que no se puede calcular; toda tasa trae su cobertura. *(ADR 0115 N3/N5.)*
-10. **No se devuelve la vista interna de una pantalla tal cual.** Se devuelve un objeto con nombres de negocio y descripciones por campo. *(Anthropic: devolver campos de alta señal y no identificadores crípticos; pendiente en el 385: `outputSchema` propio.)*
+10. **No se devuelve la vista interna de una pantalla tal cual.** Cada herramienta traduce la consulta canónica a un objeto con nombres de negocio; publica su `outputSchema` con una descripción por campo y el servidor valida `structuredContent` antes de responder. Las claves de cifras salen de `lib/vocabulario-metricas.ts`, y unidad y monedas de `lib/metricas/registro.ts` cuando ya existe ficha. Durante la fase A del 399 esto rige para `resumen_del_hub` y `consultar_metrica`; las otras nueve conservan temporalmente su salida anterior. *(ADR 0115 N4/N8; Anthropic: devolver campos de alta señal y no identificadores crípticos.)*
 11. **Cada entidad enlaza al CRM** (`lib/mcp/enlaces.ts`), para que el modelo cite y la persona verifique.
 12. **Errores accionables.** Un error de negocio se devuelve como `isError: true` con un mensaje que dice qué corregir; un error interno responde "Error interno." sin detalle (🔒 `mcp-ruta`). Los errores de protocolo (herramienta desconocida) los maneja el SDK. *(Spec MCP, "Error Handling".)*
 
@@ -105,7 +105,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 13. 🔒 **Nombre en `snake_case` ASCII, único, de 1 a 64 caracteres**, con la forma `verbo_o_sustantivo` consistente con las demás. *(Spec MCP: nombres únicos, 1 a 128 caracteres y solo letras, números, `_`, `-`, `.`.)*
 14. **Descripción como para una persona nueva en el equipo:** primero cuándo usarla, luego qué devuelve y qué no hace; términos propios explicados. Corta y sin repetir lo que dice el esquema. *(Anthropic: escribe las descripciones como para un recién llegado y refínalas con evaluaciones.)*
 15. 🔒 **Toda herramienta aparece en `INSTRUCCIONES_MCP`** (`lib/mcp/instrucciones.ts`) con la pregunta que resuelve, y en la tabla de §3. Sin esto el cliente no la encuentra a tiempo (el 7-nov una consulta tardó ~40 s en el cliente, no en el servidor: 96 ms y 890 ms medidos en `mcp_llamadas`).
-16. 🔒 **Anotaciones:** `readOnlyHint` verdadero en todas las de lectura. Las anotaciones son pistas no confiables para el cliente: **la seguridad la dan las guardas del servidor, nunca la anotación**. *(Spec MCP.)*
+16. 🔒 **Título y anotaciones:** cada herramienta publica un título legible y declara `readOnlyHint` e `idempotentHint` verdaderos, `openWorldHint` y `destructiveHint` falsos. Las anotaciones son pistas no confiables para el cliente: **la seguridad la dan las guardas del servidor, nunca la anotación**. *(Spec MCP.)*
 17. **La lista de herramientas es determinista y puede variar por credencial**, nunca por conexión: hoy se filtra por rol con `puede`. Mantener el orden de `HERRAMIENTAS` estable ayuda a la caché de prompts del cliente. *(Spec MCP, "Capabilities".)*
 
 **Operación**
@@ -137,7 +137,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 7. Deuda conocida
 
-Tokens sin caducidad; `mcp_llamadas` sin retención; `tablero_de_deals` y `cartera_vencida` sin paginar; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; salidas aún con nombres internos (ticket 385, que se ensanchó el 7-nov a auditoría completa de métricas y datos del CRM) y sin `outputSchema`; sin `title` ni evaluaciones de descubrimiento (385/386).
+Tokens sin caducidad; `mcp_llamadas` sin retención; `tablero_de_deals` y `cartera_vencida` sin paginar; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; nueve salidas aún conservan nombres internos y no publican `outputSchema` (fase B del 399); sin evaluaciones de descubrimiento (386). Las once herramientas ya publican `title` y anotaciones completas; `resumen_del_hub` y `consultar_metrica` ya publican y validan su salida de negocio.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

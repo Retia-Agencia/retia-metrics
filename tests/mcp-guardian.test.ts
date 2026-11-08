@@ -69,7 +69,18 @@ describe("guardián del dominio MCP", () => {
     for (const herramienta of HERRAMIENTAS) {
       expect(typeof herramienta.puede).toBe("function");
       expect(herramienta.soloLectura).toBe(true);
+      expect(herramienta.titulo.trim()).not.toBe("");
       expect(herramienta.entrada.safeParse({ campo_ajeno: true }).success).toBe(false);
     }
+  });
+
+  it("el servidor publica las cuatro anotaciones seguras y valida el esquema de salida", () => {
+    const fuente = fs.readFileSync(path.join(RAIZ, "lib", "mcp", "servidor.ts"), "utf8");
+    expect(fuente).toContain("readOnlyHint: true");
+    expect(fuente).toContain("idempotentHint: true");
+    expect(fuente).toContain("openWorldHint: false");
+    expect(fuente).toContain("destructiveHint: false");
+    expect(fuente).toContain("outputSchema: herramienta.salida");
+    expect(fuente).toContain("herramienta.salida.safeParse(estructurado)");
   });
 });
