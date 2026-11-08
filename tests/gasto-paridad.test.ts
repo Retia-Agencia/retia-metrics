@@ -5,6 +5,7 @@ import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { costoPorAgendaDeVentana } from "@/lib/semaforo/costo-por-agenda";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 let db: Db;
@@ -31,6 +32,7 @@ describe("paridad del gasto", () => {
     }).returning();
     const [deal] = await db.insert(deals).values({
       programId: programa.id, leadId: lead.id, submissionOrigenId: envio.id,
+      ownerUserId: await duenoDePrueba(db, programa.id),
       etapa: "ganado_completo", valorVendidoUsd: "300",
     }).returning();
     await db.insert(dealEtapaHistorial).values({

@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
@@ -69,8 +70,8 @@ describe("huella de migracion en deals (ADR 0059)", () => {
 
   it("los deals nativos (huella nula) no compiten entre si", async () => {
     await db.insert(deals).values([
-      { leadId: lead, programId: programa, etapa: "ganado_completo" },
-      { leadId: lead, programId: programa, etapa: "ganado_completo" },
+      { leadId: lead, programId: programa, etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programa) },
+      { leadId: lead, programId: programa, etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programa) },
     ]);
 
     expect(await db.select().from(deals)).toHaveLength(2);
@@ -83,7 +84,7 @@ describe("huella de migracion en abonos (ADR 0059)", () => {
   beforeEach(async () => {
     const [d] = await db
       .insert(deals)
-      .values({ leadId: lead, programId: programa, etapa: "ganado_completo" })
+      .values({ leadId: lead, programId: programa, etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programa) })
       .returning();
     deal = d.id;
   });

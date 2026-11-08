@@ -6,6 +6,7 @@ import { leerVamosALlegar, celdaDeMeta } from "@/lib/queries/vamos-a-llegar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
 /**
  * Ticket 371: "¿Vamos a llegar?" — mes y cohorte × cupos y USD, sin leer ningun filtro.
@@ -40,7 +41,7 @@ beforeEach(async () => {
 
 async function venta(dia: string, valorVendidoUsd: string | null = "900") {
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `l${++n}@t371.test` }).returning();
-  const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd }).returning();
+  const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd, ownerUserId: await duenoDePrueba(db, programId) }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date(`${dia}T11:00:00-05:00`) });
 }
 

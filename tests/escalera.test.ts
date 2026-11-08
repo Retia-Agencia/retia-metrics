@@ -63,6 +63,8 @@ async function sembrar(s: Siembra): Promise<string> {
     programId: programa,
     leadId: lead.id,
     ownerUserId: s.owner === undefined ? ana : s.owner,
+    // Una venta sin dueño solo existe como historia migrada (ADR 0122): lleva la huella de la hoja.
+    huellaMigracion: s.etapaVendida && s.owner === null ? `hoja:escalera-${n}` : null,
     etapa: s.etapaVendida ? "ganado_parcial" : "contactado",
     cortesia: s.cortesia ?? false,
     createdAt: new Date(`${s.creado ?? "2026-10-02"}T12:00:00-05:00`),

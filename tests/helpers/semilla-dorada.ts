@@ -88,6 +88,8 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
     entrada: Date;
     valor: string | null;
     owner?: string | null;
+    /** Venta historica migrada de la hoja: unica forma de una venta vigente sin dueño (ADR 0122). */
+    huellaMigracion?: string;
     cortesia?: boolean;
     anulado?: boolean;
     /** Movimientos posteriores del historial (reversas). */
@@ -102,6 +104,7 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
       leadId: lead.id,
       cohortId: v.cohortId,
       ownerUserId: v.owner === undefined ? closer.id : v.owner,
+      huellaMigracion: v.huellaMigracion ?? null,
       etapa: v.etapa,
       valorVendidoUsd: v.valor,
       comisionPorcentaje: "10.00",
@@ -144,7 +147,7 @@ export async function sembrarDorada(db: Db): Promise<SemillaDorada> {
   // 9:30 p. m. de Bogota del 31-oct = 2026-11-01T02:30Z: en UTC ya es noviembre, en Bogota sigue siendo octubre.
   await deal({ clave: "a4_noche", programId: pa.id, cohortId: c2.id, etapa: "ganado_parcial", entrada: bogota("2026-10-31", "21:30"), valor: "1000" });
   await deal({ clave: "a5_cohorte3", programId: pa.id, cohortId: c3.id, etapa: "ganado_parcial", entrada: bogota("2026-11-02"), valor: "1000" });
-  await deal({ clave: "a6_sin_cohorte", programId: pa.id, cohortId: null, etapa: "ganado_parcial", entrada: bogota("2026-11-03"), valor: "1000", owner: null });
+  await deal({ clave: "a6_sin_cohorte", programId: pa.id, cohortId: null, etapa: "ganado_parcial", entrada: bogota("2026-11-03"), valor: "1000", owner: null, huellaMigracion: "hoja:dorado-a6" });
   await deal({ clave: "a7_sin_valor", programId: pa.id, cohortId: c3.id, etapa: "ganado_parcial", entrada: bogota("2026-11-04"), valor: null });
   await deal({ clave: "a8_cortesia", programId: pa.id, cohortId: c3.id, etapa: "ganado_completo", entrada: bogota("2026-11-04", "15:00"), valor: "0", cortesia: true });
   await deal({ clave: "a9_anulado", programId: pa.id, cohortId: c2.id, etapa: "ganado_parcial", entrada: bogota("2026-10-22"), valor: "1000", anulado: true });

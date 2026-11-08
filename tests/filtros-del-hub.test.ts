@@ -9,6 +9,7 @@ import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte"
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
 /**
  * Ticket 377 — los filtros del Hub: Cohorte y Periodo cada uno por su lado.
@@ -38,7 +39,7 @@ afterAll(async () => {
 async function vender(programId: string, cohortId: string, email: string, dia: string, ownerUserId?: string) {
   const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: new Date(`${dia}T08:00:00-05:00`), programId, emailNormalizado: email }).returning();
   const [deal] = await db.insert(deals).values({
-    programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd: "100", ownerUserId: ownerUserId ?? null,
+    programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd: "100", ownerUserId: ownerUserId ?? await duenoDePrueba(db, programId),
   }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date(`${dia}T10:00:00-05:00`) });
   await db.insert(abonos).values({ programId, dealId: deal.id, fecha: dia, monto: "50", moneda: "USD" });

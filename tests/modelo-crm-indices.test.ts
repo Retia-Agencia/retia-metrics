@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionCheck, esViolacionUnica } from "@/lib/db/errores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
@@ -74,7 +75,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
   });
 
   it("tambien convive con uno en Completo: una segunda venta es otro deal", async () => {
-    await db.insert(deals).values({ leadId: leadA, programId: programaA, etapa: "ganado_completo" });
+    await db.insert(deals).values({ leadId: leadA, programId: programaA, etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programaA) });
     await db.insert(deals).values({ leadId: leadA, programId: programaA });
 
     expect(await db.select().from(deals)).toHaveLength(2);
@@ -85,7 +86,7 @@ describe("un deal ABIERTO por lead y programa (ADR 0037)", () => {
     await db.insert(deals).values([
       { leadId: leadA, programId: programaA, etapa: "cierre_perdido" },
       { leadId: leadA, programId: programaA, etapa: "cierre_perdido" },
-      { leadId: leadA, programId: programaA, etapa: "ganado_completo" },
+      { leadId: leadA, programId: programaA, etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programaA) },
     ]);
 
     expect(await db.select().from(deals)).toHaveLength(3);

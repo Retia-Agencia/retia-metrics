@@ -16,6 +16,7 @@ import { cajaRecaudada, dealsPerdidosPorMotivo, embudoDelRango, embudoPorCanal, 
 import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
@@ -99,6 +100,11 @@ async function sembrarCloser(closerId: string): Promise<string> {
 }
 
 async function marcarVenta(dealId: string, fecha: Date, ownerUserId?: string) {
+  // Una venta vigente tiene dueño (ADR 0122): sin uno explicito, un closer del programa del deal.
+  if (!ownerUserId) {
+    const [d] = await db.select({ programId: deals.programId }).from(deals).where(eq(deals.id, dealId));
+    ownerUserId = await duenoDePrueba(db, d.programId);
+  }
   await db
     .update(deals)
     .set({ etapa: "ganado_parcial", ownerUserId })
@@ -269,7 +275,7 @@ describe("% de show y % de cierre", () => {
       fechaAgenda: fecha,
       resultado: "show",
     });
-    const dealId = await sembrarDeal(programaA, { etapa: "ganado_completo" });
+    const dealId = await sembrarDeal(programaA, { etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programaA) });
     await db.insert(dealEtapaHistorial).values([
       { dealId, de: null, a: "ganado_parcial", fecha, userId: null },
       { dealId, de: "ganado_parcial", a: "ganado_completo", fecha: new Date("2026-09-15T15:00:00Z"), userId: null },
@@ -457,7 +463,7 @@ describe("meta dinamica no divide por cero", () => {
     const cohorteDeLaMeta = (await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db))!
       .cohorteId;
     for (let i = 0; i < 5; i++) {
-      await sembrarVenta(programaA, { cohortId: cohorteDeLaMeta, etapa: "ganado_parcial" });
+      await sembrarVenta(programaA, { cohortId: cohorteDeLaMeta, etapa: "ganado_parcial", ownerUserId: await duenoDePrueba(db, programaA) });
     }
 
     // hoy despues del cierre: 22-sep. habilesRestantes = 0.

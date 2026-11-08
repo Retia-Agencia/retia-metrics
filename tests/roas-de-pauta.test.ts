@@ -18,6 +18,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { esAdministrador, veLeadsDePauta } from "@/lib/auth/roles";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -77,7 +78,7 @@ async function envio(opts: { dia?: string; anuncio?: boolean; programa?: "otro";
 
 async function vender(e: Awaited<ReturnType<typeof envio>>, valor: string, diaVenta: string, anulada = false) {
   const deal = (await db.insert(deals).values({ programId: e.programa, leadId: e.leadId, submissionOrigenId: e.envioId,
-    etapa: "ganado_completo", valorVendidoUsd: valor, anuladoEn: anulada ? new Date(`${diaVenta}T14:00:00-05:00`) : null,
+    ownerUserId: await duenoDePrueba(db, e.programa), etapa: "ganado_completo", valorVendidoUsd: valor, anuladoEn: anulada ? new Date(`${diaVenta}T14:00:00-05:00`) : null,
     anuladoPor: anulada ? actor : null, motivoAnulacion: anulada ? "Duplicado" : null }).returning())[0];
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date(`${diaVenta}T12:00:00-05:00`) });
   return deal;

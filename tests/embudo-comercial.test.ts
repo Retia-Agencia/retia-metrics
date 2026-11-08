@@ -7,6 +7,7 @@ import { serieDealsContraAgendas } from "@/lib/queries/deals-contra-agendas";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const rango = { desde: "2026-10-01", hasta: "2026-10-31" };
@@ -65,7 +66,7 @@ describe("381: embudo comercial", () => {
       leadId: lead.id, sourceId, token: "persona", esParcial: false, fechaEnvio: enBogota("2026-10-03"),
     });
     const [deal] = await db.insert(deals).values({
-      programId, leadId: lead.id, submissionOrigenId: parcial.id, etapa: "ganado_parcial", createdAt: enBogota("2026-10-02"),
+      programId, leadId: lead.id, submissionOrigenId: parcial.id, ownerUserId: await duenoDePrueba(db, programId), etapa: "ganado_parcial", createdAt: enBogota("2026-10-02"),
     }).returning();
     await db.insert(calls).values({
       programId, dealId: deal.id, createdAt: enBogota("2026-10-04"), fechaAgenda: enBogota("2026-10-05"), resultado: "show",

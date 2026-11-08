@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { rellenarComisionDeVentas } from "@/lib/deals/rellenar-comision";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 describe("rellenar comisión de ventas", () => {
@@ -47,20 +48,22 @@ describe("rellenar comisión de ventas", () => {
       { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: conPorcentaje.id, emailNormalizado: "abierto@retia.co" },
       { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: sinPorcentaje.id, emailNormalizado: "sin-pct@retia.co" },
     ]).returning();
+    const duenoCon = await duenoDePrueba(db, conPorcentaje.id);
     const filas = await db.insert(deals).values([
-      { programId: conPorcentaje.id, leadId: personas[0].id, etapa: "ganado_parcial", comisionPorcentaje: null },
-      { programId: conPorcentaje.id, leadId: personas[1].id, etapa: "ganado_completo", comisionPorcentaje: null },
+      { programId: conPorcentaje.id, leadId: personas[0].id, etapa: "ganado_parcial", comisionPorcentaje: null, ownerUserId: duenoCon },
+      { programId: conPorcentaje.id, leadId: personas[1].id, etapa: "ganado_completo", comisionPorcentaje: null, ownerUserId: duenoCon },
       {
         programId: conPorcentaje.id,
         leadId: personas[2].id,
         etapa: "ganado_completo",
         comisionPorcentaje: null,
+        ownerUserId: duenoCon,
         anuladoEn: new Date("2026-10-30T10:00:00-05:00"),
         anuladoPor: actorId,
         motivoAnulacion: "duplicado",
       },
       { programId: conPorcentaje.id, leadId: personas[3].id, etapa: "atendido", comisionPorcentaje: null },
-      { programId: sinPorcentaje.id, leadId: personas[4].id, etapa: "ganado_parcial", comisionPorcentaje: null },
+      { programId: sinPorcentaje.id, leadId: personas[4].id, etapa: "ganado_parcial", comisionPorcentaje: null, ownerUserId: await duenoDePrueba(db, sinPorcentaje.id) },
     ]).returning();
     return { filas };
   }

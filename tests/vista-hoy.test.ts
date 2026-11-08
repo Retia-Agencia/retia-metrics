@@ -12,6 +12,7 @@ import { grupoDeCitas } from "@/lib/queries/tasas-del-grupo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 
 /**
  * Hub › Hoy (ticket 252). Hoy no calcula métricas: ordena las de `armarVistaDelDashboard` con el periodo
@@ -114,7 +115,7 @@ describe("la caja de hoy por origen (252)", () => {
     const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "Programa B", ticketUsd: "1500" }).returning();
     const deal = async (programId: string, correo: string, vendidoEl: string) => {
       const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo }).returning();
-      const [d] = await db.insert(deals).values({ programId, leadId: lead.id, etapa: "ganado_parcial", valorVendidoUsd: "797" }).returning();
+      const [d] = await db.insert(deals).values({ programId, leadId: lead.id, etapa: "ganado_parcial", valorVendidoUsd: "797", ownerUserId: await duenoDePrueba(db, programId) }).returning();
       await db.insert(dealEtapaHistorial).values({ dealId: d.id, de: "atendido", a: "ganado_parcial", fecha: new Date(`${vendidoEl}T15:00:00Z`) });
       return d;
     };
@@ -226,6 +227,7 @@ describe("la caja de hoy por origen (252)", () => {
         programId: programa.id,
         leadId: lead.id,
         cohortId: cohorteActiva.id,
+        ownerUserId: await duenoDePrueba(db, programa.id),
         etapa: "ganado_parcial",
       }).returning();
       await db.insert(dealEtapaHistorial).values({

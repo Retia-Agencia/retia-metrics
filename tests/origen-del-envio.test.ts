@@ -11,6 +11,7 @@ import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
@@ -128,7 +129,7 @@ describe("el deal que abre la ingesta recuerda el envio que lo abrio", () => {
     );
     const [primero] = await db.select().from(deals);
     // Prepara el estado directo en la base: no es lo que prueba este test.
-    await db.update(deals).set({ etapa: "ganado_completo" }).where(eq(deals.id, primero.id));
+    await db.update(deals).set({ etapa: "ganado_completo", ownerUserId: await duenoDePrueba(db, programId) }).where(eq(deals.id, primero.id));
 
     await ingerirEntradas(
       db,

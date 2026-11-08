@@ -67,6 +67,8 @@ beforeAll(async () => {
       programId,
       leadId: lead.id,
       ownerUserId: owner,
+      // Una venta sin dueño solo existe como historia migrada (ADR 0122).
+      huellaMigracion: owner === null && recorrido[recorrido.length - 1] === "ganado_parcial" ? `hoja:e188-${i}` : null,
       etapa: recorrido[recorrido.length - 1],
       createdAt: instante(dia),
       anuladoEn: anulado ? ahora : null,

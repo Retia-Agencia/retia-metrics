@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { buscarLeads, LEADS_POR_PAGINA, leadsDelPrograma } from "@/lib/queries/leads";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
@@ -199,6 +200,7 @@ describe("leadsDelPrograma", () => {
     await db.insert(deals).values({
       leadId: id["con-deal"],
       programId,
+      ownerUserId: await duenoDePrueba(db, programId),
       etapa: "ganado_completo",
       createdAt: new Date("2026-10-03T12:00:00Z"),
     });

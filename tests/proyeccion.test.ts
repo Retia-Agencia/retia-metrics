@@ -16,6 +16,7 @@ import {
 } from "@/lib/queries/proyeccion";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 const medida = (codigo: string, deals: number, vendidos: number, shows = deals, pendientes = 0) => ({
@@ -258,7 +259,7 @@ describe("leerProyeccion contra la base", () => {
     });
     for (let i = 0; i < personas; i++) {
       const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: `p${i}@retia.co` }).returning();
-      const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, etapa: i < vendidas ? "ganado_completo" : "atendido" }).returning();
+      const [deal] = await db.insert(deals).values({ programId: programa.id, leadId: lead.id, ownerUserId: await duenoDePrueba(db, programa.id), etapa: i < vendidas ? "ganado_completo" : "atendido" }).returning();
       await db.insert(calls).values({ programId: programa.id, dealId: deal.id, fechaAgenda: new Date("2026-10-14T09:00:00-05:00"), resultado: "show" });
     }
     return programa.id;

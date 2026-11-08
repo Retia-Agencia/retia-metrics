@@ -27,6 +27,19 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-08: F7 del 385, ola 1 y 2 avanzadas (sesión padre).** En main: 388, 389 (M1 y M2 aplicadas; relleno de contactos de las
+  18 altas manuales aplicado, 34 contactos, `scripts/rellenar-contactos-de-altas-389.ts`), 390, 392 (un solo recorrido de venta; la
+  ficha del deal ahora dice «vendido» solo por etapa), 398, 400 y 405 (bandera «Cierre perdido con pagos registrados» en el Pulso,
+  hoy 0 casos). **391A:** decisión de Mani: las 3 ventas históricas de Comunicarte y sus 3 abonos quedan sin dueño (sus closers ya no son
+  dueños posibles); el `CHECK deals_venta_con_dueno` (migración 0120, ADR 0122) exceptúa `huella_migracion`. Vive en el PR 17
+  (rama `m3-391-venta-con-dueno`, con los 25 archivos de tests arreglados con `tests/helpers/dueno-de-prueba.ts`); **la 0120 NO está
+  aplicada en producción**: primero CI verde y merge, luego ensayar en transacción revertida (`pg_stat_activity` sin transacciones
+  largas, ref `hfqmiyiuyqapdsbywrag`) y aplicar con el ok de Mani. Hallazgo abierto: E6, E11 y E12 de `moverEtapa` no exigen `dueno`
+  (ver 391). Creados 405 (hecho) y 406 (F2B-02: quien solo dejó un parcial cuenta como lead; también confirma la meta de leads por día
+  contra Leads). **Sigue, ruta crítica:** 406, 393 (todo Student con valor vendido), 404 (391B, depende de 391, 392, 393), 397, 399,
+  403. Aparte: 396 (corregir las dos parejas de cohortes y aplicar M7 sin solape; verificar `btree_gist` en Supabase), 351 → 355 → 375,
+  394, 395. Reglas que se mantuvieron: migraciones solo la sesión padre; sin suite completa en local; hijas con `isolation: worktree`
+  y máximo 3 a la vez. Pendiente de cierre: marcar `done` (archivo y tracker) 389, 391, 392 y 405 con checkpoint verde.
 - **2026-11-07 (noche): 354 partes A y B en main.** Un ancla de fecha por hecho (`hechos/fechas.ts`, parciales sin `fecha_envio` cuentan por `created_at`), "Deals creados" igual en Hub y escalera, categoría de UTM única (`categoriaDeUtm`/`categoriaUtmSql`), calendario solo en `dias-habiles.ts`, guardianes de ambos. Decisiones de Mani: alcance 3 con "Envíos" y "Leads" visibles; DA-3 por deal; DA-4 cita creada del CRM con Meta aparte y su explicación de diferencia. **Sigue:** 354 alcance 3 (falta decidir contra qué se mide la meta de leads/día), 353 (ya sin bloqueo), resto del 351, luego F4/F5.
 - **2026-11-07 (tarde-noche): F2 hecha y las cinco decisiones del 385 resueltas** (`docs/auditoria-datos-2026-11/f2-paridad.md`,
   `f6-investigacion.md`, ticket 385 §4). F2: SQL independiente contra Hub, MCP y Students, 0 diferencias en cifras principales; 7
