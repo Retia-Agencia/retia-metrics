@@ -32,9 +32,9 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   ficha del deal ahora dice «vendido» solo por etapa), 398, 400 y 405 (bandera «Cierre perdido con pagos registrados» en el Pulso,
   hoy 0 casos). **391A:** decisión de Mani: las 3 ventas históricas de Comunicarte y sus 3 abonos quedan sin dueño (sus closers ya no son
   dueños posibles); el `CHECK deals_venta_con_dueno` (migración 0120, ADR 0122) exceptúa `huella_migracion`. Vive en el PR 17
-  (rama `m3-391-venta-con-dueno`, con los 25 archivos de tests arreglados con `tests/helpers/dueno-de-prueba.ts`); **la 0120 NO está
-  aplicada en producción**: primero CI verde y merge, luego ensayar en transacción revertida (`pg_stat_activity` sin transacciones
-  largas, ref `hfqmiyiuyqapdsbywrag`) y aplicar con el ok de Mani. Hallazgo abierto: E6, E11 y E12 de `moverEtapa` no exigen `dueno`
+  (rama `m3-391-venta-con-dueno`, con los 25 archivos de tests arreglados con `tests/helpers/dueno-de-prueba.ts`); **la 0120 se aplicó en
+  producción el 8-nov con el ok de Mani** (ensayo previo en transacción revertida; `deals_venta_con_dueno` validada, 0 ventas vigentes
+  sin dueño fuera de las 3 históricas). Hallazgo abierto: E6, E11 y E12 de `moverEtapa` no exigen `dueno`
   (ver 391). Creados 405 (hecho) y 406 (F2B-02: quien solo dejó un parcial cuenta como lead; también confirma la meta de leads por día
   contra Leads). **Sigue, ruta crítica:** 406, 393 (todo Student con valor vendido), 404 (391B, depende de 391, 392, 393), 397, 399,
   403. Aparte: 396 (corregir las dos parejas de cohortes y aplicar M7 sin solape; verificar `btree_gist` en Supabase), 351 → 355 → 375,
