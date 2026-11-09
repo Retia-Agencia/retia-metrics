@@ -34,7 +34,7 @@ import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { detalleDePuntoAccion } from "./acciones-graficas";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
-import { FiltroDashboard } from "@/components/filtro-dashboard";
+import { FiltrosDelHub } from "@/components/hub/filtros-del-hub";
 import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
 import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
@@ -233,7 +233,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
         </div>
         {esHoy ? null : (
           <div className="min-w-0 max-w-full">
-            <FiltroDashboard
+            <FiltrosDelHub
               periodo={contexto.periodo}
               anteriorDisponible={contexto.anteriorDisponible}
               claveCloser={contexto.claveCloser}

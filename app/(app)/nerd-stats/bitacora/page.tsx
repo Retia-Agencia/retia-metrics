@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { fechaHoraEnBogota, num, truncarId } from "@/lib/format";
 import {
+  CAMPOS_DE_FECHA_DE_BITACORA,
   filtroDeLaUrl,
   opcionesDeBitacora,
   paginaDeBitacora,
@@ -17,7 +18,9 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
-import { FiltroFecha } from "@/components/filtros/filtro-fecha";
+import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
+import { hoyEnBogota } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +38,9 @@ type Props = { searchParams: Promise<Record<string, string | string[] | undefine
 export default async function BitacoraPage({ searchParams }: Props) {
   await paginaDeAccesoTotal();
 
-  const filtro = filtroDeLaUrl(await searchParams);
+  const query = await searchParams;
+  const filtro = filtroDeLaUrl(query);
+  const filtroDeFecha = filtroDeFechaDeLaUrl(query, CAMPOS_DE_FECHA_DE_BITACORA, hoyEnBogota());
   const [pagina, opciones] = await Promise.all([paginaDeBitacora(filtro, db), opcionesDeBitacora(db)]);
   const enlace = "text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline";
 
@@ -78,12 +83,9 @@ export default async function BitacoraPage({ searchParams }: Props) {
           sustantivo={{ singular: "escritura", plural: "escrituras" }}
           filtros={filtrosBitacora}
           compuestosPopover={
-            <div className="grid grid-cols-2 gap-2">
-              <FiltroFecha nombre="desde" etiqueta="Desde" />
-              <FiltroFecha nombre="hasta" etiqueta="Hasta" />
-            </div>
+            <FiltroFechaLista campos={[{ valor: "escritura", etiqueta: "Escritura" }]} filtro={filtroDeFecha} />
           }
-          clavesCompuestas={["desde", "hasta"]}
+          clavesCompuestas={CLAVES_DE_FECHA_LISTA}
           compuestoActivo={Boolean(filtro.desde || filtro.hasta)}
         />
 

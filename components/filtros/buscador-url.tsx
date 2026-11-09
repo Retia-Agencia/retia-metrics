@@ -16,7 +16,7 @@ import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
  * input se sincroniza con la URL por si el texto se borra desde afuera, ajustando el estado
  * en el render (patrón de React para "estado derivado de una prop"), no en un efecto.
  */
-export function BuscadorUrl({ placeholder = "Buscar por nombre, correo o celular" }: { placeholder?: string }) {
+export function BuscadorUrl({ placeholder = "Buscar por nombre, correo o teléfono" }: { placeholder?: string }) {
   const { busqueda, poner } = useFiltrosUrl();
   const valorUrl = busqueda.get("q") ?? "";
   const [texto, setTexto] = useState(valorUrl);

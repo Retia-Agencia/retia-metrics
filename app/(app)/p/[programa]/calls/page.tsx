@@ -21,10 +21,9 @@ import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
-import { FiltroFecha } from "@/components/filtros/filtro-fecha";
+import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
 import { Button } from "@/components/ui/button";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
-import { FiltroSelectUrl } from "@/components/filtros/filtro-select-url";
 
 export const dynamic = "force-dynamic";
 
@@ -124,26 +123,17 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
             sustantivo={{ singular: "llamada", plural: "llamadas" }}
             filtros={filtrosCalls}
             buscador={<BuscadorUrl />}
-            clavesCompuestas={["fecha", "desde", "hasta", "q"]}
+            clavesCompuestas={[...CLAVES_DE_FECHA_LISTA, "q"]}
             compuestosPopover={
-              <div className="space-y-2">
-                <FiltroSelectUrl
-                  nombre="fecha"
-                  etiqueta="Fecha por"
-                  valor={filtro.fecha}
-                  porDefecto="llamada"
-                  opciones={[
-                    { value: "llamada", label: "Llamada" },
-                    { value: "agenda", label: "Agendada" },
-                  ]}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <FiltroFecha nombre="desde" etiqueta="Desde" />
-                  <FiltroFecha nombre="hasta" etiqueta="Hasta" />
-                </div>
-              </div>
+              <FiltroFechaLista
+                campos={[
+                  { valor: "llamada", etiqueta: "Llamada" },
+                  { valor: "agenda", etiqueta: "Agendada" },
+                ]}
+                filtro={filtro.filtroDeFecha}
+              />
             }
-            compuestoActivo={Boolean(filtro.fecha !== "llamada" || filtro.desde || filtro.hasta)}
+            compuestoActivo={filtro.filtroDeFecha != null}
             orden={
               <ControlDeOrden
                 nombre="orden"

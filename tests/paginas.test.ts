@@ -1830,8 +1830,8 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     expect(agendas.href).toBe("");
     expect(agendas.resumen).toMatchObject({ disponible: false, grupos: [] });
     // Hoy no lleva selector (252); en las demás pestañas, el filtro de closer no es suyo.
-    expect(buscar(arbol, "FiltroDashboard")).toBeNull();
-    expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props).toMatchObject({ filtraCloser: false, closers: [] });
+    expect(buscar(arbol, "FiltrosDelHub")).toBeNull();
+    expect(buscar(await renderizar({ seccion: "comercial" }), "FiltrosDelHub")?.props).toMatchObject({ filtraCloser: false, closers: [] });
     // La escalera (320) se arma sin closers ni listas para quien no ve el equipo, y con ellos para el gerente.
     expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: false }));
     auth.mockResolvedValue(sesionGerente);
@@ -1916,7 +1916,7 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     const arbol = await renderizar({ seccion: "hoy" });
     expect(buscar(arbol, "Hoy")?.props.veEquipo).toBe(true);
     expect((buscar(arbol, "Hoy")?.props.programas as Array<{ detallesOperacion?: unknown }>)[0].detallesOperacion).toBeDefined();
-    expect(buscar(await renderizar({ seccion: "comercial" }), "FiltroDashboard")?.props.filtraCloser).toBe(true);
+    expect(buscar(await renderizar({ seccion: "comercial" }), "FiltrosDelHub")?.props.filtraCloser).toBe(true);
   });
 
   it("solo un administrador recibe el atajo a Ventas, con el origen completo y el fragmento al final", async () => {

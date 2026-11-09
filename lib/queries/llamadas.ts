@@ -6,6 +6,8 @@ import { diaDeCalendario } from "@/lib/dias-habiles";
 import { llamadaVisiblePara, type AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { vigente } from "@/lib/queries/vigente";
 import { z } from "zod";
+import { hoyEnBogota } from "@/lib/format";
+import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 
 export const LLAMADAS_POR_PAGINA = 50;
@@ -74,7 +76,8 @@ export async function filtroDeLlamadasDesdeUrl(
   programId: string,
   alcance: AlcanceDeals,
   parametros: ParametrosDeLlamadas,
-): Promise<FiltroLlamadas & { orden: OrdenLlamadas; fecha: FechaLlamadas }> {
+  hoy: string = hoyEnBogota(),
+): Promise<FiltroLlamadas & { orden: OrdenLlamadas; fecha: FechaLlamadas; filtroDeFecha: FiltroDeFecha<FechaLlamadas> | null }> {
   const resultado = valorDeParametro(parametros, "resultado");
   const ordenValues = ORDENES_LLAMADAS.map((opcion) => opcion.value) as [
     OrdenLlamadas,
@@ -84,10 +87,23 @@ export async function filtroDeLlamadasDesdeUrl(
     .enum(ordenValues)
     .catch(ORDEN_LLAMADAS_POR_DEFECTO)
     .parse(valorDeParametro(parametros, "orden"));
-  const fecha = z
-    .enum(FECHAS_LLAMADAS)
-    .catch("llamada")
-    .parse(valorDeParametro(parametros, "fecha"));
+  // La fecha es campo + periodo, como en Leads y Deals (ticket 360): `fecha=agenda&periodo=...`.
+  const conGet = parametros as URLSearchParams;
+  const registro: Record<string, unknown> = typeof conGet.entries === "function"
+    ? Object.fromEntries(conGet.entries())
+    : (parametros as Record<string, unknown>);
+  // `desde`/`hasta` sueltos son la clave de antes del 360: un enlace viejo sigue acotando, sobre el
+  // campo que traiga (`fecha=agenda`) o la llamada, y pasa a ser un periodo a medida.
+  const desdeViejo = valorDeParametro(parametros, "desde") || null;
+  const hastaViejo = valorDeParametro(parametros, "hasta") || null;
+  const esViejo = (desdeViejo || hastaViejo) && registro.periodo === undefined;
+  const campoViejo = FECHAS_LLAMADAS.find((c) => c === valorDeParametro(parametros, "fecha")) ?? "llamada";
+  const filtroDeFecha = esViejo
+    ? desdeViejo && hastaViejo
+      ? filtroDeFechaDeLaUrl({ fecha: campoViejo, periodo: "custom", a_desde: desdeViejo, a_hasta: hastaViejo }, FECHAS_LLAMADAS, hoy)
+      : null
+    : filtroDeFechaDeLaUrl(registro, FECHAS_LLAMADAS, hoy);
+  const fecha: FechaLlamadas = esViejo ? campoViejo : filtroDeFecha?.campo ?? "llamada";
   const leadsCasan = await leadsQueCasan(db, programId, valorDeParametro(parametros, "q") ?? "");
 
   return {
@@ -95,9 +111,10 @@ export async function filtroDeLlamadasDesdeUrl(
     resultado: RESULTADOS.some(([value]) => value === resultado)
       ? (resultado as FiltroLlamadas["resultado"])
       : null,
-    desde: valorDeParametro(parametros, "desde") || null,
-    hasta: valorDeParametro(parametros, "hasta") || null,
+    desde: esViejo ? desdeViejo : filtroDeFecha?.periodo.a.desde ?? null,
+    hasta: esViejo ? hastaViejo : filtroDeFecha?.periodo.a.hasta ?? null,
     fecha,
+    filtroDeFecha,
     cohortId: valorDeParametro(parametros, "cohorte") || null,
     leadsCasan,
     orden,

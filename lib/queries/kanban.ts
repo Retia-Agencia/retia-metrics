@@ -30,6 +30,7 @@ import { saldosDeDeals } from "@/lib/queries/saldo";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
 import { vigente } from "@/lib/queries/vigente";
 import { hoyEnBogota } from "@/lib/format";
+import { conNombresVigentes } from "@/lib/filtros-alias";
 import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
@@ -215,11 +216,11 @@ const PERIODOS_DE_FILTRO_KANBAN = [...Object.keys(atajosDePeriodo) as AtajoDePer
 /** Los parámetros que acepta la pantalla Deals, compartidos con `tablero_de_deals`. */
 export const camposDeFiltrosKanban = {
   q: z.string().max(300).optional(),
-  owner: z.string().max(300).optional(),
+  closer: z.string().max(300).optional(),
   cohorte: z.string().max(300).optional(),
   canal: z.string().max(300).optional(),
-  leadQuality: z.string().max(300).optional(),
-  leadValue: z.string().max(300).optional(),
+  calidad: z.string().max(300).optional(),
+  valor: z.string().max(300).optional(),
   antiguedad: z.number().int().min(1).optional(),
   orden: z.enum(CAMPOS_DE_ORDEN_KANBAN).optional(),
   sentido: z.enum(["asc", "desc"]).optional(),
@@ -252,10 +253,12 @@ export function canalDeLead(utmSource: string | null, utmMedium: string | null):
  * Es puro para poder probarlo: recibe un objeto de strings y devuelve `FiltrosKanban`.
  */
 export function parsearFiltros(
-  busqueda: Record<string, string | string[] | undefined>,
+  busquedaCruda: Record<string, string | string[] | undefined>,
   hoy: string = hoyEnBogota(),
   cohorteActivaId: string | null = null,
 ): FiltrosKanban {
+  // Los enlaces viejos (`owner`, `leadQuality`, `leadValue`) siguen funcionando (ticket 360).
+  const busqueda = conNombresVigentes(busquedaCruda);
   const fecha = filtroDeFechaDeLaUrl(busqueda, CAMPOS_DE_FECHA_DE_DEAL, hoy);
   const texto = (v: string | string[] | undefined): string | undefined =>
     typeof v === "string" && v !== "" ? v : undefined;
@@ -265,11 +268,11 @@ export function parsearFiltros(
   const cohorte = texto(busqueda.cohorte);
   return {
     q: texto(busqueda.q),
-    ownerUserId: texto(busqueda.owner) ?? null,
+    ownerUserId: texto(busqueda.closer) ?? null,
     cohorteId: cohorte === "todas" ? null : cohorte ?? cohorteActivaId,
     canal: texto(busqueda.canal) ?? null,
-    ...(texto(busqueda.leadQuality) !== undefined ? { leadQuality: texto(busqueda.leadQuality) } : {}),
-    ...(texto(busqueda.leadValue) !== undefined ? { leadValue: texto(busqueda.leadValue) } : {}),
+    ...(texto(busqueda.calidad) !== undefined ? { leadQuality: texto(busqueda.calidad) } : {}),
+    ...(texto(busqueda.valor) !== undefined ? { leadValue: texto(busqueda.valor) } : {}),
     antiguedadMinima: antiguedad != null && antiguedad >= 1 ? antiguedad : null,
     orden: orden.success ? orden.data : ORDEN_PREDETERMINADO,
     ...(fecha ? { fecha } : {}),

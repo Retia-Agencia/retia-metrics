@@ -18,7 +18,7 @@ import type { OpcionDeCloser } from "@/lib/queries/dashboard";
  * ticket 167); la cohorte, su id o `todas`. Ningún dato personal de un lead pasa por aquí.
  */
 
-export interface FiltroProps {
+export interface FiltrosDelHubProps {
   periodo: PeriodoResuelto;
   anteriorDisponible: boolean;
   /** El closer elegido: su `users.id`, o null si se mira todo el programa. */
@@ -46,7 +46,7 @@ function ControlConEtiqueta({ etiqueta, children }: { etiqueta: string; children
   );
 }
 
-export function FiltroDashboard({
+export function FiltrosDelHub({
   periodo,
   anteriorDisponible,
   claveCloser,
@@ -54,7 +54,7 @@ export function FiltroDashboard({
   filtraCloser = true,
   cohorte,
   lineaDeCohorte,
-}: FiltroProps) {
+}: FiltrosDelHubProps) {
   const { poner, pendiente } = useFiltrosUrl();
 
   return (

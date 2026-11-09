@@ -14,7 +14,7 @@ import type { OpcionCanal, OpcionCatalogo, OrdenKanban } from "@/lib/queries/kan
  * todos los filtros viven en el popover y el orden queda aparte. Todo vive en la URL,
  * no en estado del componente (ADR 0023): un
  * tablero filtrado se comparte y se recarga. Un closer sin filtros ve el programa
- * completo, igual que un gerente (ADR 0048). Los ids que van a la URL son opacos (owner,
+ * completo, igual que un gerente (ADR 0048). Los ids que van a la URL son opacos (closer,
  * cohorte) o texto de canal; ningún dato personal.
  *
  * La cohorte tiene un centinela propio ("todas") distinto de la ausencia: sin `cohorte`
@@ -93,23 +93,23 @@ export function FiltroKanban({
       ? [
           {
             tipo: "select" as const,
-            nombre: "owner",
-            etiqueta: "Dueño",
-            todos: "Todos los dueños",
+            nombre: "closer",
+            etiqueta: "Closer",
+            todos: "Todos los closers",
             opciones: owners.map((o) => ({ value: o.id, label: o.nombre })),
           },
         ]
       : []),
     {
       tipo: "select",
-      nombre: "leadQuality",
+      nombre: "calidad",
       etiqueta: "Calidad",
       todos: "Todas las calidades",
       opciones: leadQualities.map((v) => ({ value: v, label: v })),
     },
     {
       tipo: "select",
-      nombre: "leadValue",
+      nombre: "valor",
       etiqueta: "Valor",
       todos: "Todos los valores",
       opciones: leadValues.map((v) => ({ value: v, label: v })),
@@ -121,7 +121,11 @@ export function FiltroKanban({
       todos: "Todas las cohortes",
       valorTodos: "todas",
       porDefecto: cohorteActivaId
-        ? { valor: cohorteActivaId, etiqueta: "Cohorte activa", valorTodos: "todas" }
+        ? {
+            valor: cohorteActivaId,
+            etiqueta: `${cohortes.find((c) => c.id === cohorteActivaId)?.nombre ?? "Cohorte"} (activa)`,
+            valorTodos: "todas",
+          }
         : undefined,
       opciones: cohortes.map((c) => ({ value: c.id, label: c.nombre })),
     },

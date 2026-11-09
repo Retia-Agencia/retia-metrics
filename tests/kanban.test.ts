@@ -539,15 +539,15 @@ describe("opcionesDeTablero", () => {
 });
 
 describe("parsearFiltros", () => {
-  it("lee owner, cohorte, canal y antiguedad; ignora vacios y antiguedad no numerica", () => {
-    expect(parsearFiltros({ owner: "u1", cohorte: "c1", canal: "meta|cpc", antiguedad: "7" })).toEqual({
+  it("lee closer, cohorte, canal y antiguedad; ignora vacios y antiguedad no numerica", () => {
+    expect(parsearFiltros({ closer: "u1", cohorte: "c1", canal: "meta|cpc", antiguedad: "7" })).toEqual({
       ownerUserId: "u1",
       cohorteId: "c1",
       canal: "meta|cpc",
       antiguedadMinima: 7,
       orden: { campo: "actividad", sentido: "desc" },
     });
-    expect(parsearFiltros({ owner: "", antiguedad: "abc" })).toEqual({
+    expect(parsearFiltros({ closer: "", antiguedad: "abc" })).toEqual({
       ownerUserId: null,
       cohorteId: null,
       canal: null,
@@ -555,7 +555,7 @@ describe("parsearFiltros", () => {
       orden: { campo: "actividad", sentido: "desc" },
     });
     // Un arreglo (parametro repetido) no es un valor de filtro.
-    expect(parsearFiltros({ owner: ["a", "b"] }).ownerUserId).toBeNull();
+    expect(parsearFiltros({ closer: ["a", "b"] }).ownerUserId).toBeNull();
     // antiguedad 0 no filtra (minimo 1).
     expect(parsearFiltros({ antiguedad: "0" }).antiguedadMinima).toBeNull();
   });

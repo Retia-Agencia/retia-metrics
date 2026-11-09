@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { queryConNombresVigentes, traeNombresViejos } from "@/lib/filtros-alias";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
@@ -57,6 +58,8 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
   if (!programa) notFound();
 
   const busqueda = await searchParams;
+  // Un enlace viejo (`?owner=`, `?leadQuality=`, `?leadValue=`) pasa al nombre vigente (ticket 360).
+  if (traeNombresViejos(busqueda)) redirect(`/p/${programa.slug}/deals?${queryConNombresVigentes(busqueda)}`);
   // La vista decide columnas, no cifras (ADR 0103): sin `vista` en la URL, la última de la persona.
   const tableroLeido = await tableroDeDealsParaActor(
     db,
@@ -106,7 +109,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
             ) : null}
             <FiltroKanban
               total={tablero.total}
-              buscador={<BuscadorUrl placeholder="Buscar por nombre, correo o teléfono" />}
+              buscador={<BuscadorUrl />}
               mostrarDueno={alcanceDeals.tipo === "todos"}
               cohorteActivaId={activa?.id ?? null}
               antiguedadMinima={filtros.antiguedadMinima ?? null}

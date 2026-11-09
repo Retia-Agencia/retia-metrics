@@ -1,5 +1,7 @@
 import { and, between, desc, eq, inArray, isNull, ne, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
+import { hoyEnBogota } from "@/lib/format";
+import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { db as dbDeLaApp } from "@/lib/db";
 import { changeLog, dealEtapaHistorial, deals, origenCambioEnum, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -48,16 +50,24 @@ export const esquemaFiltroBitacora = z.object({
 export type FiltroBitacora = z.infer<typeof esquemaFiltroBitacora>;
 
 /** De los parametros crudos de la URL (un valor repetido toma el primero). */
-export function filtroDeLaUrl(params: Record<string, string | string[] | undefined>): FiltroBitacora {
+export const CAMPOS_DE_FECHA_DE_BITACORA = ["escritura"] as const;
+
+export function filtroDeLaUrl(
+  params: Record<string, string | string[] | undefined>,
+  hoy: string = hoyEnBogota(),
+): FiltroBitacora {
   const uno = (v: string | string[] | undefined) => {
     const x = Array.isArray(v) ? v[0] : v;
     return x === undefined || x.trim() === "" ? undefined : x.trim();
   };
+  // El rango es campo + periodo, el mismo componente que las listas (ticket 360); `desde`/`hasta`
+  // sueltos son la clave de antes y siguen acotando.
+  const rango = filtroDeFechaDeLaUrl(params, CAMPOS_DE_FECHA_DE_BITACORA, hoy)?.periodo.a;
   return esquemaFiltroBitacora.parse({
     usuario: uno(params.usuario),
     tabla: uno(params.tabla),
-    desde: uno(params.desde),
-    hasta: uno(params.hasta),
+    desde: rango?.desde ?? uno(params.desde),
+    hasta: rango?.hasta ?? uno(params.hasta),
     pagina: uno(params.pagina),
   });
 }
