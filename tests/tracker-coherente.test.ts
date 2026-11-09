@@ -31,11 +31,6 @@ type Regla = "estado" | "casilla" | "done-cuando";
 
 /** Clave `<id>:<regla>`. Fecha y razón, siempre. */
 const EXCEPCIONES: Record<string, string> = {
-  "143:estado": "30-oct (K-05): done en el tracker, in_progress en el archivo; lo pone al día Mani en el checkpoint",
-  "152:estado": "30-oct (K-05): done en el tracker, en curso en el archivo; lo pone al día Mani en el checkpoint",
-  "156:estado": "30-oct (K-05): done en el tracker, en curso en el archivo; lo pone al día Mani en el checkpoint",
-  "157:estado": "30-oct (K-05): done en el tracker, in_progress en el archivo; lo pone al día Mani en el checkpoint",
-  "350:done-cuando": "30-oct (K-05): done con sus cinco casillas vacías; su enmienda del 30-oct lo devuelve a `en main`",
   "258:estado": "30-oct: el tracker dice `v1 done` y el archivo `en curso`, con un comentario en el `status:`",
   "281:estado": "30-oct: el tracker dice `en main` y el archivo `todo`",
   "314:estado": "30-oct: el tracker dice `en producción` (no es un estado) y el archivo `doing`",

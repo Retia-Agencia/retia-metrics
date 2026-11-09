@@ -30,8 +30,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 - **2026-11-09: cierre del 399, guardián N9 y MCP listo para el 383 (sesión padre).** En main (`5532cad9`): 399 `done` (once tools con
   `outputSchema` obligatorio y nombres de negocio; paridad por tool; `tests/mcp-volumen.test.ts` opt-in con `MEDIR_VOLUMEN=1`; el
   tablero dice «recaudado»; la medición de descubrimiento pasa al 387 frente B; `EXPLAIN` queda como deuda del 262), 388, 389, 392 y 398
-  `done` con evidencia, 390 y 350 `en main` (N9), y el ticket 408: `tests/tracker-n9-guardian.test.ts` con trinquete
-  (`tests/helpers/n9-excepciones.ts`, 82 históricos; 143, 152, 156 y 157 bajaron a `en main`). **Siguiente, en este orden:** (1) 383 (OAuth y
+  `done` con evidencia, 390 y 350 `en main` (N9), y N9 sin duplicar: el guardián ya existía (`tests/tracker-coherente.test.ts`, ticket 362); se le quitaron las excepciones de 143, 152, 156, 157 y 350 (bajaron a `en main`). Un guardián duplicado (408) se creó y se borró el mismo día: antes de proponer un guardián, `rg` en `tests/` por la regla. **Siguiente, en este orden:** (1) 383 (OAuth y
   todos los roles; sus cinco requisitos previos están en `docs/mcp.md` §7), (2) 351 → 355 → 375, (3) 403 (depende de 351 y 355 para sus
   casillas de gasto/ROAS y el retiro de H-29), (4) 394, 395, 358 a 361, 401, 402, (5) 384 (escrituras), 386 y 387; 407 (MCP analítico) al
   final. **Cómo se trabaja:** una hija de Codex por worktree dentro del repo, brief con decisiones tomadas y STOP si falta una; Codex no

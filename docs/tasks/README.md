@@ -455,7 +455,6 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 404 | [Closer: una pregunta y una definición (fase B)](./404-closer-una-pregunta-y-una-definicion.md) | 391, 392, 393 | done · 7-nov · hijo del 385 (F7), partido del 391 · ola 2 · sin migración |
 | [x] | 405 | [Alerta: Cierre Perdido con abonos vigentes](./405-alerta-abono-en-cierre-perdido.md) | 392 | done · 8-nov · hijo del 385 (F7) · decisión de Mani · sin migración |
 | [x] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | done · 8-nov · hijo del 385 (F7) · F2B-02 · el 389 ya lo resolvía; test de paridad agregado |
-| [x] | 408 | [Guardián de la regla N9 del tracker](./408-guardian-n9-del-tracker.md) | — | done · 9-nov · trinquete de históricos en `tests/helpers/n9-excepciones.ts` |
 | [ ] | 407 | [MCP analítico para gerencia y pauta](./407-mcp-analitico-gerencia-y-pauta.md) | 383, 397, 399, 403 | idea · 8-nov · pedido de Mani · capa semántica de solo lectura + definiciones + proactividad |
 | [x] | 392 | [Venta: un solo recorrido](./392-venta-un-solo-recorrido.md) | 351, 353 | done · 9-nov · un solo recorrido de venta; merge `a8bf350e` · hijo del 385 (F7) |
 | [x] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | done · 8-nov · hijo del 385 (F7) · reja sin CHECK · `cupos_con_caja` pasa al 403 |
