@@ -26,13 +26,11 @@ const CARPETAS_DE_CODIGO = ["lib", "app", "components", "scripts"];
  * `agruparEnvios` como alias de import) cuenta como aparición y no se caza; F1 H-29 los llamaba inexistentes.
  */
 const INEXISTENTES_CONOCIDAS: Record<string, string> = {
-  armarMensaje: "ticket 361: M §3.3 cita el nombre viejo; la real es armarMensajeDeLaHora",
   categoriaDe: "ticket 354: la fila de M §0 la cita como borrada a propósito",
 };
 
 /** Definidas y citadas, sin un solo llamador fuera de su definición (F1 H-29). */
 const SIN_LLAMADOR_CONOCIDAS: Record<string, string> = {
-  tasaDelDia: "ticket 361: la usada es tasasDelRango; M §1.8 cita la equivocada",
 };
 
 function lineaDeDefinicion(nombre: string): RegExp {

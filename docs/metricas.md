@@ -147,7 +147,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 
 - **Tabla:** `tasas_cambio`, cargada de datos.gov.co (`32sa-8pi3`, la TRM oficial).
 - **Uso:** convertir a COP el gasto de una cuenta en USD con la tasa vigente **ese día**.
-- **Función:** `tasaDelDia` en `lib/trm/consultar.ts`.
+- **Función:** `tasasDelRango` en `lib/trm/consultar.ts` (la tasa de cada día de un rango, con sus faltantes y la etiqueta).
 - **Ojo:** si falta la TRM de un día, esas filas en USD **no se suman** y la cifra lo dice con una nota
   ("Sin TRM del ...: N filas en USD no se sumaron"). Nunca se inventa una tasa.
 
@@ -376,7 +376,7 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
    cerrados seguidos tienen ESE mismo color (🟢, 🟡 o 🔴), contra el umbral **de hoy** (no el que había esos días),
    hasta 20. Se corta en el primer día de otro color o ⚪, y hoy no cuenta. Antes solo contaba el rojo, y un día
    verde con "1 día seguido en rojo" se leía como si hoy estuviera en rojo.
-- **Funciones:** `semaforoDelPrograma` en `lib/semaforo/semaforo.ts`; el texto, `armarMensaje` en
+- **Funciones:** `semaforoDelPrograma` en `lib/semaforo/semaforo.ts`; el texto, `armarMensajeDeLaHora` en
   `lib/reporte-whatsapp/mensaje.ts`.
 - **Verificar un día cerrado:**
   1. Gasto: en el Ads Manager, el gasto del día de cada cuenta del programa (las USD × TRM del día).

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import fixture from "./fixtures/trm/datos-gov-2026-10-01-a-15.json";
 import { gastoPauta, programs, tasasCambio } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { tasaDelDia, tasasDelRango } from "@/lib/trm/consultar";
+import { tasasDelRango } from "@/lib/trm/consultar";
 import { leerTrmPublicada } from "@/lib/trm/fuente";
 import { leerTrm } from "@/lib/trm/registrar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -53,18 +53,7 @@ describe("TRM oficial", () => {
     });
     const lectura = await leerTrm(db, { hoy: "2026-10-14", fetchImpl });
     expect(lectura.desde).toBe("2026-10-02");
-    expect((await tasaDelDia(db, "2026-10-02"))?.pesosPorDolar).toBe(3307.73);
-  });
-
-  it("resuelve la publicación vigente en sábado y no inventa una tasa", async () => {
-    await leerTrm(db, { hoy: "2026-10-14", fetchImpl: fetchGrabado() });
-    await expect(tasaDelDia(db, "2026-10-11")).resolves.toEqual({
-      fecha: "2026-10-11",
-      pesosPorDolar: 3194.44,
-      vigenteDesde: "2026-10-10",
-      etiqueta: "TRM 3.194 (10 oct 2026)",
-    });
-    await expect(tasaDelDia(db, "2026-09-20")).resolves.toBeNull();
+    expect((await tasasDelRango(db, "2026-10-02", "2026-10-02")).porDia.get("2026-10-02")).toBe(3307.73);
   });
 
   it("expande rangos, reporta faltantes y construye ambas etiquetas", async () => {
