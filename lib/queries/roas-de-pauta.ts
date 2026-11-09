@@ -22,7 +22,7 @@ import { diaDeEnvio } from "@/lib/queries/hechos/fechas";
 export const NIVELES_PAUTA = ["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "canal", "total"] as const;
 export type NivelPauta = (typeof NIVELES_PAUTA)[number];
 export const NIVEL_PAUTA_POR_DEFECTO: NivelPauta = "total";
-export const PASOS_PAUTA = ["registro", "agenda", "show", "no_show", "venta"] as const;
+export const PASOS_PAUTA = ["registro", "agenda", "show", "no_show", "venta", "pendiente"] as const;
 export type PasoPauta = (typeof PASOS_PAUTA)[number];
 
 export interface CitaDePauta {

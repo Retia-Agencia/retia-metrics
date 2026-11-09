@@ -3,7 +3,7 @@ import { dineroDeUnaVenta, dineroDeVentas, type DineroDeVentas } from "@/lib/que
 import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
 import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
-import { noAsistio, noAsistioSql, ocurrio, ocurrioSql } from "@/lib/deals/resultados-de-llamada";
+import { citaPorVenirDeDealAbierto, noAsistio, noAsistioSql, ocurrio, ocurrioSql } from "@/lib/deals/resultados-de-llamada";
 import type { Db } from "@/lib/db/tipos";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
@@ -977,7 +977,8 @@ async function leerMetricaDePauta(
   db: Db,
 ): Promise<FilaDeMetrica[]> {
   if (!filtros.nivel || !filtros.paso) return [];
-  const vista = await cargarRoasDePauta(db, alcance.programId, alcance.rango, filtros.hoy);
+  const ahora = filtros.ahora ?? new Date();
+  const vista = await cargarRoasDePauta(db, alcance.programId, alcance.rango, filtros.hoy, ahora);
   const envios = filtrarEnviosDePauta(vista.envios, filtros.nivel, filtros.idMeta);
   const filas: FilaDeMetrica[] = [];
   const base = (e: (typeof envios)[number], id: string, fecha: string, dealId: string | null, etapa: string | null): FilaDeMetrica => {
@@ -992,7 +993,8 @@ async function leerMetricaDePauta(
     else if (filtros.paso === "venta" && e.venta) filas.push(base(e, e.venta.dealId, e.venta.dia, e.venta.dealId, e.venta.etapa));
     else if (filtros.paso !== "venta") for (const c of e.citas) {
       const cabe = filtros.paso === "agenda" || (filtros.paso === "show" && ocurrio(c.resultado))
-        || (filtros.paso === "no_show" && noAsistio(c.resultado));
+        || (filtros.paso === "no_show" && noAsistio(c.resultado))
+        || (filtros.paso === "pendiente" && citaPorVenirDeDealAbierto(c, { etapa: e.etapa, tieneVenta: e.venta !== null }, ahora));
       if (cabe) filas.push(base(e, c.id, fechaDeInstanteEnBogota(c.fecha), c.dealId, c.etapa));
     }
   }
@@ -1006,7 +1008,7 @@ async function leerMetricaDePauta(
  * dueño del deal en registro y venta. Es la misma etiqueta y clave de identidad que usan las demás listas.
  */
 async function ponerCloserEnPauta(filas: FilaDeMetrica[], paso: PasoPauta, db: Db): Promise<void> {
-  const porLlamada = paso === "agenda" || paso === "show" || paso === "no_show";
+  const porLlamada = paso === "agenda" || paso === "show" || paso === "no_show" || paso === "pendiente";
   const llaves = [...new Set(filas.map((f) => (porLlamada ? f.id : f.dealId)).filter((id): id is string => id !== null))];
   if (llaves.length === 0) return;
   const lecturas = porLlamada

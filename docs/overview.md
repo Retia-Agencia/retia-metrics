@@ -583,6 +583,10 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   cargado, el ROAS no se calcula ("—" y desde cuándo hay gasto). Se muestra con "×" (3,25×). En Pauta la venta se ancla a la
   cohorte de registro (el día del envío que trajo a la persona); la tabla reconcilia con Comercial las ventas que no son de
   pauta o que registraron en otro periodo, y avisa cuando quedan agendas de la cohorte por ocurrir (ticket 355).
+- **Citas pendientes del rango** y **ROAS proyectado:** las citas por venir de los envíos de Paid del periodo (la cifra abre su
+  lista) y el ROAS esperado cuando ocurran: lo vendido a hoy más, por cada cita, lo que se presenta su closer × lo que compra
+  su closer × el precio de la cohorte, sobre el gasto. Sin gasto completo o sin historial dice «—» y por qué. Cada día se guarda
+  y, cuando las citas ocurren, se muestra «Proyectado … · Real …» (ticket 375, ADR 0126).
 - **Cobertura de una razón:** sobre qué base se midió una tasa, un costo o un ROAS y cuánto falta (ADR 0115 N3). Completa,
   parcial ("parcial · N de M") o no calculable ("—" con el motivo); nunca un número a medias. La proyección sí usa una razón parcial, pero la etiqueta "parcial, N de M" junto al supuesto (351).
 - **Costo por agenda (CPI):** el gasto de pauta entre las agendas. En el **semáforo**, las agendas según Meta (ADR 0088,

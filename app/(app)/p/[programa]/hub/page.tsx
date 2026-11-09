@@ -35,7 +35,9 @@ import { DashboardPrograma } from "@/components/dashboard-programa";
 import { detalleDePuntoAccion } from "./acciones-graficas";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltrosDelHub } from "@/components/hub/filtros-del-hub";
+import { PautaProyeccion } from "@/components/pauta-proyeccion";
 import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
+import { calcularProyeccionDeRoas, proyeccionesConfirmadas } from "@/lib/queries/proyeccion-roas";
 import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
 import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
@@ -632,7 +634,11 @@ async function SeccionPauta({
       }
     });
   }
-  const roas = await cargarRoasDePauta(db, programId, rango, hoy);
+  const roas = await cargarRoasDePauta(db, programId, rango, hoy, ahora);
+  const [proyeccion, historial] = await Promise.all([
+    calcularProyeccionDeRoas(db, { programId, rango, hoy, ahora, vista: roas }),
+    proyeccionesConfirmadas(db, programId),
+  ]);
   // El selector de vista vive en la URL y reemplaza solo `ver_por`, conservando el rango y el closer.
   const verPor: VerPorPauta = texto(busqueda.ver_por) === "canal" ? "canal" : "campana";
   const hrefVerPor = (v: VerPorPauta) => {
@@ -659,6 +665,8 @@ async function SeccionPauta({
         verPor={verPor}
         hrefVerPor={hrefVerPor}
       />
+      <PautaProyeccion proyeccion={proyeccion} historial={historial}
+        hrefPendientes={proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
     </section>
   );
 }

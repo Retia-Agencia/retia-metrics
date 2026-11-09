@@ -42,7 +42,7 @@ export const camposDeFiltrosDeLista = {
   calidad: z.string().max(100).optional(),
   nivel: z.enum(["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "canal", "total"]).optional(),
   id: z.string().max(100).optional(),
-  paso: z.enum(["registro", "agenda", "show", "no_show", "venta"]).optional(),
+  paso: z.enum(["registro", "agenda", "show", "no_show", "venta", "pendiente"]).optional(),
 };
 
 const esquemaDeFiltros = z.object({
