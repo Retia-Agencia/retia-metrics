@@ -32,8 +32,7 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
   Bogotá**; lo implementó **Kiro** con `BRIEF-355.md` (en la raíz del worktree, sin versionar: se borra al cerrar). **Decisiones de Mani:** la venta se
   atribuye al origen y se ancla al día del ENVÍO (Dani, weekly del 3-nov, `docs/weekly-2026-11-03.md`); la vista por canal **oculta Gasto y ROAS** (Meta da el
   gasto por anuncio); aviso «parcial: N agendas pendientes»; la revisión adversarial espera a Codex. **Verificado:** typecheck, lint, build, 7 archivos de
-  test del cambio y 28 de guardianes, todo en verde. **Falta, en este orden:** (1) recorrido visual a 375 px y escritorio, claro y oscuro (Docker estaba apagado:
-  `npm run db:local` y `PORT=3355 npm run dev:local`, subdominio `app355.localhost`; jamás `npm run dev`, la pestaña Pauta escribe al renderizar);
+  test del cambio y 28 de guardianes, todo en verde. **Recorrido visual hecho (9-nov, base local, ver el ticket).** **Falta, en este orden:** (1) _hecho_;
   (2) `/codex:adversarial-review` del diff (reconciliación, agendas pendientes, aserciones adaptadas de `tests/escalera.test.ts` y
   `tests/resultados-de-llamada-paridad.test.ts`); (3) leer a mano los hunks de `roas-de-pauta.ts` y el cambio de nombre `contratadoUsd` → `valorVendidoUsd` en `lib/mcp`
   (la salida pública `vendido` no cambia); (4) commit nombrando archivos, rebase sobre main, push y checkpoint verde; (5) `status: done` + `[x]` en el
