@@ -33,7 +33,6 @@ const INEXISTENTES_CONOCIDAS: Record<string, string> = {
 /** Definidas y citadas, sin un solo llamador fuera de su definición (F1 H-29). */
 const SIN_LLAMADOR_CONOCIDAS: Record<string, string> = {
   tasaDelDia: "ticket 361: la usada es tasasDelRango; M §1.8 cita la equivocada",
-  dealsPerdidosPorMotivo: "ticket 361 (R-11): sin llamador; M §3.6 la marca como retiro pendiente",
 };
 
 function lineaDeDefinicion(nombre: string): RegExp {

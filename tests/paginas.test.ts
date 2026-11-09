@@ -210,9 +210,6 @@ vi.mock("@/lib/queries/reporte-diario", async (importOriginal) => ({
 }));
 // La configuracion de Hoy (378): sin base, sin panel.
 vi.mock("@/lib/queries/configuracion-de-hoy", () => ({ leerConfiguracionDeHoy: vi.fn(async () => null) }));
-// La serie del embudo (089), igual: sin base, una serie vacia.
-const hechosDelEmbudo = vi.fn(async () => []);
-vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
 const embudoDelFormulario = vi.fn(async () => ({
   filas: [],
   total: { dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 },

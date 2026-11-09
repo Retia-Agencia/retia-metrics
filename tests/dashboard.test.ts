@@ -6,13 +6,12 @@ import {
   cohorts,
   dealEtapaHistorial,
   deals,
-  motivos,
   leads,
   programs,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { cajaRecaudada, dealsPerdidosPorMotivo, embudoDelRango, embudoPorCanal, embudoPorCloser, leadsDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
+import { cajaRecaudada, embudoDelRango, embudoPorCloser, leadsDelRango, vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -528,52 +527,6 @@ describe("leadsDelRango", () => {
   });
 });
 
-// ─────────────────────────────────────── 13. deals perdidos por motivo
-
-describe("dealsPerdidosPorMotivo", () => {
-  it("cuenta cierres perdidos vigentes del programa y respeta el owner del closer", async () => {
-    const catalogo = await db.select().from(motivos);
-    const dinero = catalogo.find((m) => m.nombre === "Dinero")!;
-    const horario = catalogo.find((m) => m.nombre === "Horario")!;
-    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
-    const fecha = new Date("2026-09-15T14:00:00Z");
-    const programaB = await crearPrograma("programa-b-motivos", "Programa B motivos");
-    const ana = await sembrarCloser("Ana-motivos");
-    const beto = await sembrarCloser("Beto-motivos");
-    const datos = [
-      { programId: programaA, motivoId: dinero.id, ownerUserId: ana },
-      { programId: programaA, motivoId: dinero.id, ownerUserId: beto },
-      { programId: programaB, motivoId: dinero.id, ownerUserId: ana },
-      {
-        programId: programaA,
-        motivoId: horario.id,
-        ownerUserId: ana,
-        anuladoEn: fecha,
-        anuladoPor: ana,
-        motivoAnulacion: "Prueba de deal anulado",
-      },
-    ];
-    for (const dato of datos) {
-      const dealId = await sembrarDeal(dato.programId, { ...dato, etapa: "cierre_perdido" });
-      await db.insert(dealEtapaHistorial).values({
-        dealId,
-        de: null,
-        a: "cierre_perdido",
-        fecha,
-        userId: dato.ownerUserId,
-      });
-    }
-
-    // No hay ninguna call con motivoId: el bloque sale exclusivamente de deals.
-    expect(await dealsPerdidosPorMotivo({ programId: programaA, rango }, db)).toEqual([
-      { motivo: "Dinero", deals: 2 },
-    ]);
-    expect(await dealsPerdidosPorMotivo({ programId: programaA, rango, claveCloser: claveHistorica("Ana-motivos") }, db)).toEqual([
-      { motivo: "Dinero", deals: 1 },
-    ]);
-  });
-});
-
 // ─────────────────────────────────────── 14. por closer y por canal
 
 describe("embudoPorCloser", () => {
@@ -678,29 +631,6 @@ describe("embudoPorCloser", () => {
     });
   });
 
-});
-
-describe("embudoPorCanal", () => {
-  it("separa canales y Sin UTM sin cambiar los totales", () => {
-    const dimensiones = { programId: programaA, dia: "2026-09-15", duenoUserId: null, cohorteId: null };
-    const hechos = [
-      { ...dimensiones, area: "paid" as const, canalClave: "facebook", origen: "canal" as const, envios: 2, agendas: 1, shows: 1, ventas: 0 },
-      { ...dimensiones, area: "paid" as const, canalClave: "facebook", origen: "canal" as const, envios: 3, agendas: 2, shows: 1, ventas: 1 },
-      { ...dimensiones, area: "sin_utm" as const, canalClave: null, origen: "sin_utm" as const, envios: 4, agendas: 0, shows: 0, ventas: 0 },
-      { ...dimensiones, area: "organico" as const, canalClave: "desconocido", origen: "canal" as const, envios: 1, agendas: 1, shows: 0, ventas: 0 },
-      { ...dimensiones, area: "organico" as const, canalClave: "facebook", origen: "canal" as const, envios: 1, agendas: 0, shows: 0, ventas: 0 },
-    ];
-    const filas = embudoPorCanal(hechos);
-
-    expect(filas.map((fila) => fila.canal ?? fila.origen)).toEqual(["Facebook", "Desconocido", "Facebook", "sin_utm"]);
-    expect(filas[0]).toMatchObject({ canal: "Facebook", area: "paid", envios: 5, agendas: 3, shows: 2, ventas: 1 });
-    expect(filas[2]).toMatchObject({ canal: "Facebook", area: "organico", envios: 1 });
-    for (const medida of ["envios", "agendas", "shows", "ventas"] as const) {
-      expect(filas.reduce((total, fila) => total + fila[medida], 0)).toBe(
-        hechos.reduce((total, hecho) => total + hecho[medida], 0),
-      );
-    }
-  });
 });
 
 // ─────────────────────────────────────── 15. alcance individual por closer (ticket 005)
@@ -846,20 +776,4 @@ describe("pendientes y desgloses acotados a un closer", () => {
   const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
   const fecha = new Date("2026-09-15T14:00:00Z");
 
-  it("los motivos de perdida se acotan al closer", async () => {
-    const catalogoMotivos = await db.select().from(motivos);
-    const dinero = catalogoMotivos.find((m) => m.nombre === "Dinero")!;
-    const ana = await sembrarCloser("Ana-motivo-individual");
-    const beto = await sembrarCloser("Beto-motivo-individual");
-    for (const ownerUserId of [ana, beto]) {
-      const dealId = await sembrarDeal(programaA, { etapa: "cierre_perdido", motivoId: dinero.id, ownerUserId });
-      await db.insert(dealEtapaHistorial).values({ dealId, de: null, a: "cierre_perdido", fecha, userId: ownerUserId });
-    }
-
-    const motivosDeAna = await dealsPerdidosPorMotivo(
-      { programId: programaA, rango, claveCloser: claveHistorica("Ana-motivo-individual") },
-      db,
-    );
-    expect(motivosDeAna).toEqual([{ motivo: "Dinero", deals: 1 }]);
-  });
 });

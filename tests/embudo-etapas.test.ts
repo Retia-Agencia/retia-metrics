@@ -18,7 +18,7 @@ import {
   type DealParaEmbudo,
   type HistorialParaEmbudo,
 } from "@/lib/queries/embudo-etapas";
-import { dealsPerdidosPorMotivo, type Rango } from "@/lib/queries/dashboard";
+import type { Rango } from "@/lib/queries/dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -388,9 +388,6 @@ describe("embudoPorEtapas con PGlite", () => {
       dealsSinTicket: 1,
       moneda: "USD",
     }]);
-
-    const dashboard = await dealsPerdidosPorMotivo({ programId, rango, claveCloser: null }, db);
-    expect(resultado.motivosDePerdida.map(({ motivo, deals: cantidad }) => ({ motivo, deals: cantidad }))).toEqual(dashboard);
 
     const todosLosIds = JSON.stringify(resultado);
     expect(todosLosIds).not.toContain(anulado);
