@@ -2434,6 +2434,64 @@ export const eventosMeta = pgTable(
 );
 
 /**
+ * El aviso de estudiante nuevo para Customer Success (ticket 408, ADR 0128). La fila la escribe
+ * `moverEtapa` en la misma transaccion en que el deal entra por primera vez a Abonado o Completo; una
+ * sola por deal, por el indice unico. A quien se le entrego lo dice `avisos_estudiante_nuevo_envios`.
+ */
+export const avisosEstudianteNuevo = pgTable(
+  "avisos_estudiante_nuevo",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "restrict" }),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("avisos_estudiante_nuevo_deal_idx").on(t.dealId),
+    index("avisos_estudiante_nuevo_programa_idx").on(t.programId, t.creadoEn),
+  ],
+);
+
+/**
+ * Los WhatsApp de una persona (ticket 408): puede tener varios. Solo digitos con indicativo. Un numero
+ * es de UNA persona (indice unico). Que Juanito pueda escribirle (opt-in) vive en Juanito, no aqui.
+ */
+export const usuariosWhatsapp = pgTable(
+  "usuarios_whatsapp",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    telefono: text("telefono").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("usuarios_whatsapp_telefono_idx").on(t.telefono),
+    index("usuarios_whatsapp_user_idx").on(t.userId),
+    check("usuarios_whatsapp_telefono_chk", sql`${t.telefono} ~ '^[0-9]{8,15}$'`),
+  ],
+);
+
+/** Una entrega confirmada por Juanito: un aviso a un numero de CS, una sola vez. */
+export const avisosEstudianteNuevoEnvios = pgTable(
+  "avisos_estudiante_nuevo_envios",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    avisoId: uuid("aviso_id")
+      .notNull()
+      .references(() => avisosEstudianteNuevo.id, { onDelete: "restrict" }),
+    telefono: text("telefono").notNull(),
+    enviadoEn: timestamp("enviado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("avisos_estudiante_nuevo_envios_par_idx").on(t.avisoId, t.telefono)],
+);
+
+/**
  * Una cuenta publicitaria de Meta y el programa al que sirve (ticket 119). Un programa
  * puede tener varias, en monedas distintas; una cuenta es de UN programa
  * (frontera, ADR 0043), y lo garantiza el indice unico sobre `id_meta`.
