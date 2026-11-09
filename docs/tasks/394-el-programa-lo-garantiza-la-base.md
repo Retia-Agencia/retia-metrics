@@ -1,7 +1,7 @@
 ---
 id: 394
 etapa: plataforma
-serves: "Auditoría 385 F3-03, F3-17 · ADR 0043 · ADR 0048 · ADR 0026 · ADR 0123"
+serves: "Auditoría 385 F3-03, F3-17 · ADR 0043 · ADR 0048 · ADR 0026 · ADR 0125"
 depends: []
 status: todo
 ---
@@ -20,7 +20,7 @@ La frontera de programa en tablas hijas (`lead_contactos`, `deals`, `calls`, `ab
 
 **Archivos calientes** (donde chocan dos sesiones): `lib/db/schema.ts`, `drizzle/`, `tests/modelo-crm-indices.test.ts`.
 
-**Migración:** M4 (`UNIQUE (id, program_id)` y FK compuestas; `drizzle-kit` suele expresar el cambio de FK con `DROP`/`ADD` en orden dudoso; `CREATE UNIQUE INDEX CONCURRENTLY` no corre dentro de la transacción de una migración: a verificar cómo lo aplica este repo) y M5 (`ON DELETE restrict` desde `programs`, migración separada de M4 para poder revertir). ADR 0123.
+**Migración:** M4 (`UNIQUE (id, program_id)` y FK compuestas; `drizzle-kit` suele expresar el cambio de FK con `DROP`/`ADD` en orden dudoso; `CREATE UNIQUE INDEX CONCURRENTLY` no corre dentro de la transacción de una migración: a verificar cómo lo aplica este repo) y M5 (`ON DELETE restrict` desde `programs`, migración separada de M4 para poder revertir). ADR 0125.
 
 ## Fuera
 

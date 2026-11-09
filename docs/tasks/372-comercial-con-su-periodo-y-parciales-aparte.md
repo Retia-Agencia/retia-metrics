@@ -50,3 +50,7 @@ casi nunca agenda, así que la tasa baja sin que nada haya empeorado.
 - [x] Regla N8: `docs/metricas.md` (Deals creados desde completo y desde parcial) en el mismo commit.
 
 Nota de cierre (4-nov): el humo de escritorio pasa con developer y gerente; closer, paid_trafficker y media fallan por el 4xx de `/login`, deuda previa anotada. 375 px verificado a mano en `dev:local`, sin correr el proyecto celular del humo. Los interruptores del 370 en Agendas por semana quedan para el 370.
+
+## Anotaciones
+
+- A-176 (9-nov): a 763 px la cifra «Cierre de ventas» se recorta porque el texto del parcial va dentro del número. Abierta; este ticket sigue `done` y la corrección entra en la próxima sesión de UI del Hub.

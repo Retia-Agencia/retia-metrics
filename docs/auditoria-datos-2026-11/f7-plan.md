@@ -186,7 +186,7 @@ Formato: **depende** (tickets que deben estar `done`), **calientes** (archivos d
 - **Depende:** ninguno; una de las migraciones más riesgosas, va después de la ola 2 de código para no chocar con otros
   cambios de esquema.
 - **Calientes:** `lib/db/schema.ts`, `drizzle/`, `tests/modelo-crm-indices.test.ts`.
-- **Migración:** M4 (FK compuestas) y M5 (`ON DELETE restrict`). ADR 0123.
+- **Migración:** M4 (FK compuestas) y M5 (`ON DELETE restrict`). ADR 0125 (el 0123 lo tomó el 396 y el 0125 quedó libre).
 - **Done cuando:**
   - [ ] `UNIQUE (id, program_id)` en `leads`, `deals`, `cohorts` y las FK compuestas de §6.2 de F3, con test que intenta
         insertar un hijo de otro programa y falla.
@@ -382,8 +382,8 @@ Marcas: **LEER** = leer el SQL de `drizzle-kit generate` línea por línea (siem
 | M1 | Relleno de `leads.fecha_primera_aplicacion` donde es nula (784 filas) | 389 | 0121 | sí | no (solo `UPDATE`), pero fila a fila y con conteo antes y después | Escribe producción: ok de Mani. Solo donde es nula, `min(coalesce(fecha_envio, created_at))` de sus envíos |
 | M2 | `CHECK` de fecha en leads de formulario | 389 | 0121 | sí | sí | `ADD CONSTRAINT ... NOT VALID` y luego `VALIDATE`; después de M1 |
 | M3 | `CHECK` de venta con dueño en `deals` | 391 | 0122 | sí | sí | Después de la fase A (datos); anulada sin dueño sigue permitida |
-| M4 | `UNIQUE (id, program_id)` y FK compuestas | 394 | 0123 | **sí, riesgo alto** | sí | `drizzle-kit` suele expresar el cambio de FK con `DROP`/`ADD` en orden dudoso. `CREATE UNIQUE INDEX CONCURRENTLY` no corre dentro de la transacción de una migración: **a verificar** cómo lo aplica este repo (migración aparte o índice normal en tabla pequeña) |
-| M5 | `ON DELETE restrict` desde `programs` | 394 | 0123 | sí | sí | Migración separada de M4 para poder revertir |
+| M4 | `UNIQUE (id, program_id)` y FK compuestas | 394 | 0125 | **sí, riesgo alto** | sí | `drizzle-kit` suele expresar el cambio de FK con `DROP`/`ADD` en orden dudoso. `CREATE UNIQUE INDEX CONCURRENTLY` no corre dentro de la transacción de una migración: **a verificar** cómo lo aplica este repo (migración aparte o índice normal en tabla pequeña) |
+| M5 | `ON DELETE restrict` desde `programs` | 394 | 0125 | sí | sí | Migración separada de M4 para poder revertir |
 | M6 | `CHECK` de `moneda` en seis tablas | 395 | 0124 | sí | sí | Después del 388 y de verificar los datos de hoy |
 | M7 | `EXCLUDE` de solape de cohortes | 396 | 0125 | sí | sí | **Condicional** a la decisión de Mani; requiere `btree_gist` (**a verificar** en Supabase); corregir antes las dos parejas |
 | M8 | Columna de rechazo en `mcp_llamadas` | 400 | propio | sí | sí | **Condicional**, a verificar si hace falta |
