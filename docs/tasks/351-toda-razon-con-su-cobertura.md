@@ -55,8 +55,8 @@ La captura del resultado de la llamada (341) y la reja de la comisión (356): aq
 - [x] Ninguna tarjeta de razón recibe un `number` suelto (el tipo no lo deja).
   Evidencia (9-nov): `pctShow`/`pctCierre` ya no existen en dashboard, proyección, Mi espacio, vista de todos ni
   `TasasDelGrupo`; viajan como `razonShow`/`razonCierre` (`RazonConCobertura`) y se pintan con `<CifraDeRazon>` o
-  `textoDeRazon`. La proyección solo usa una razón completa (`valorSiCompleta`; decisión de Mani del 9-nov: "bloquear con
-  —") y los textos explicativos pasaron a `motivoShow`/`motivoCierre` (N4). El MCP conserva su forma `{valor, cobertura,
+  `textoDeRazon`. La proyección usa la razón aunque sea parcial y la etiqueta en pantalla ("parcial, N de M"; decisión de Mani del
+  9-nov, que revirtió "bloquear con —": nunca mostrar una cifra sin su cobertura). Los textos explicativos pasaron a `motivoShow`/`motivoCierre` (N4). El MCP conserva su forma `{valor, cobertura,
   parcial}`. `tests/razon-con-cobertura-guardian.test.ts` separa `NO_SON_RAZON` (permanente) de `EXCEPCIONES`; lo que
   queda ahí apunta al 403 (embudos, escalera, banderas, `pctNoShow`, show por cita) o al contrato del semáforo
   (`costoPorRegistro`, ADR 0089, cambia junto con Juanito).

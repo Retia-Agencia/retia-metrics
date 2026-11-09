@@ -10,7 +10,7 @@ import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
 import { grupoDeCitas, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
-import { razonVacia, valorSiCompleta, type RazonConCobertura } from "@/lib/cobertura";
+import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
 /** Las ventanas que se pueden escoger en pantalla (`?ritmo=`), en días hábiles. */
 export const OPCIONES_VENTANA_RITMO = [5, 10, 20] as const;
@@ -307,8 +307,8 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
       }))
       : noDisponible("La venta de esta cohorte ya cerró: no quedan días hábiles para repartir lo que falta.");
   const objetivo = datos.conversion.objetivoAgendaAVenta;
-  const pctShow = valorSiCompleta(datos.conversion.razonShow);
-  const pctCierre = valorSiCompleta(datos.conversion.razonCierre);
+  const pctShow = datos.conversion.razonShow.valor;
+  const pctCierre = datos.conversion.razonCierre.valor;
   const motivoDeCobertura = (razon: RazonConCobertura, respaldo: string) => razon.motivo
     ?? (razon.faltan > 0 ? `Faltan resultados de citas: ${razon.faltan} de ${razon.base + razon.faltan}` : respaldo);
   const agendasRequeridasDia = ventasRequeridasDia.valor === null

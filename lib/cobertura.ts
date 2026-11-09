@@ -24,13 +24,6 @@ export function razonVacia(motivo: string): RazonConCobertura {
   return { valor: null, base: 0, faltan: 0, motivo };
 }
 
-export function valorSiCompleta(
-  r: RazonConCobertura,
-  umbral = UMBRAL_COBERTURA_POR_DEFECTO,
-): number | null {
-  return estadoDeCobertura(r, umbral) === "completa" ? r.valor : null;
-}
-
 export function textoDeRazon(
   r: RazonConCobertura,
   formato: (valor: number) => string,

@@ -169,11 +169,11 @@ describe("la conversión agenda → venta", () => {
     expect(calcularProyeccion({ ...cohorte, conversion }).agendasRequeridasDia.razon).toContain("cuando se registren se puede medir");
   });
 
-  it("bloquea la proyección con cobertura parcial y conserva el cálculo con cobertura completa", () => {
+  it("con cobertura parcial proyecta con lo medido y lo dice en pantalla; nunca lo presenta como completo", () => {
     const parcial = elegirConversion({ objetivo: null, anterior: medida("C3", 3, 1, 3, 7), enCurso: null, muestraMinima: 1 });
-    const bloqueada = calcularProyeccion({ ...cohorte, conversion: parcial });
-    expect(bloqueada.agendasRequeridasDia.valor).toBeNull();
-    expect(bloqueada.agendasRequeridasDia.razon).toContain("7 citas sin resultado");
+    const proyeccion = calcularProyeccion({ ...cohorte, conversion: parcial });
+    expect(proyeccion.agendasRequeridasDia.valor).not.toBeNull();
+    expect(pintar({ ...cohorte, conversion: parcial })).toContain("parcial");
 
     const completa = elegirConversion({ objetivo: null, anterior: medida("C3", 10, 2, 5), enCurso: null, muestraMinima: 1 });
     const calculada = calcularProyeccion({ ...cohorte, conversion: completa });

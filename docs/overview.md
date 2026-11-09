@@ -582,7 +582,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **ROAS y ad profit:** contratado frente al gasto, con la TRM de cada día (ADR 0088). Si hay ventas de días sin gasto
   cargado, el ROAS no se calcula ("—" y desde cuándo hay gasto).
 - **Cobertura de una razón:** sobre qué base se midió una tasa, un costo o un ROAS y cuánto falta (ADR 0115 N3). Completa,
-  parcial ("parcial · N de M") o no calculable ("—" con el motivo); nunca un número a medias. La proyección no usa una razón parcial: muestra "—" y el motivo (351).
+  parcial ("parcial · N de M") o no calculable ("—" con el motivo); nunca un número a medias. La proyección sí usa una razón parcial, pero la etiqueta "parcial, N de M" junto al supuesto (351).
 - **Costo por agenda (CPI):** el gasto de pauta entre las agendas. En el **semáforo**, las agendas según Meta (ADR 0088,
   enmienda del 16-oct); en el **Hub**, las del CRM de Paid, todavía sin construir (249). **CPL** es lo mismo por registro
   y **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
