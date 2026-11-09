@@ -3,7 +3,7 @@ id: 383
 etapa: mcp
 serves: "ADR 0119 (fases 2 y 3): el MCP para todos los roles desde claude.ai, Claude Code y cualquier proveedor"
 depends: [348]
-status: todo
+status: en main
 ---
 
 # 383 — El MCP del CRM, fase 2: el CRM emite sus propios tokens (OAuth) y entran todos los roles
@@ -167,6 +167,18 @@ conectados sí**, y se resuelven en este ticket, con su test cada uno:
   pasarlo a un contador atómico o aceptar y documentar el margen.
 - **Revisión de petición forjada por cada rol nuevo** (closer, gerente limitado, customer success, paid trafficker):
   repetir el método de `tests/mcp-ruta.test.ts` con el token de cada uno contra cada herramienta que no le toca.
+
+## Avance (9-nov)
+
+En main (`0fd4f1fe`, `d4d124ad`): migraciones 0123 y 0124 aplicadas en producción (0124 = RLS de las tablas OAuth, cazado por
+`tests/rls-en-todas-las-tablas.test.ts`). `lib/oauth/` (CIMD con anti-SSRF, PKCE S256, códigos de un solo uso, token con
+refresh rotativo de 90 días y acceso de 1 h, revocar), metadata RFC 8414 y 9728, `/oauth/autorizar` con el dominio del
+cliente a la vista, Conexiones de IA para todo rol (token manual solo developer, 365 días), revocación en Ajustes ›
+Usuarios, retención de `mcp_llamadas` (cron 90 días), paginación de `tablero_de_deals` y `cartera_vencida`, y
+`tests/mcp-roles.test.ts` (forja por rol). Decisiones: `offline_access` listado en el metadata (Claude solo pide refresh
+si está); margen del tope por minuto aceptado y documentado; customer success y media ven Mi espacio en el menú.
+**Falta** (casillas abiertas abajo): conectar en claude.ai (necesita al Owner del plan), Claude Code, ChatGPT y
+`npm run test:humo` de la pantalla de consentimiento; `npm run build` local no se corrió (swap lleno), lo cubrió el CI.
 
 ## Done cuando
 

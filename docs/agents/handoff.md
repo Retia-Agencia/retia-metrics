@@ -27,6 +27,21 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-09 (noche): 383 en main y 351 cerrado (sesión padre).** En main y con CI verde: 383 (OAuth del MCP: `lib/oauth/`, consentimiento,
+  Conexiones de IA para todo rol, revocación en Ajustes, retención, paginación, forja por rol; migraciones 0123 y 0124 **ya aplicadas en
+  producción**) y 351 `done` (`razonShow`/`razonCierre` como `RazonConCobertura` en dashboard, Mi espacio, vista de todos y proyección).
+  **Regla nueva de Mani (9-nov): NUNCA mostrar una cifra sin su cobertura, pero tampoco esconderla**: la proyección usa el % parcial y lo
+  etiqueta ("parcial, N de M"); no se bloquea con "—" salvo que no haya valor (revertí mi "bloquear" tras su corrección).
+  **Siguiente, en este orden:** (1) cerrar el 383: Mani dice quién es el Owner del plan de Claude; conectar en claude.ai (web, Desktop,
+  celular), Claude Code (`/mcp`) y ChatGPT con un closer y un gerente; `npm run test:humo`; `npm run build` local cuando el swap lo permita;
+  luego `status: done` y registrar en el Daily Brief. (2) 355 (un cargador y una tabla de Pauta, crea `lib/queries/hechos/gasto.ts`, borra
+  `pauta-interina`), (3) 375, (4) 403, (5) 394, 395, 358 a 361, 401, 402, (6) 384, 386, 387; 407 al final. **Cómo se trabaja:** worktree por
+  ticket dentro del repo (`.claude/worktrees/tNNN`, `node_modules` enlazado), Codex con brief y STOP si falta una decisión; el aviso del agente
+  intermediario NO es el fin de Codex: se confirma con `~/.claude/skills/delegate/codex-busy.sh <worktree>` (FREE tres veces seguidas) y se
+  cierra con `codex-reap.sh`; fusionar a main con `git -C <main> merge --ff-only` y empujar; migraciones las aplica la sesión padre con ok de
+  Mani (verificar ref `hfqmiyiuyqapdsbywrag` y transacciones abiertas antes). **Aprendido:** una tabla nueva sin RLS rompe
+  `rls-en-todas-las-tablas` (toda tabla nueva lleva `ENABLE ROW LEVEL SECURITY` en su migración); `drizzle-kit generate --custom` crea
+  una migración vacía para SQL a mano; el `gh run watch --exit-status` puede salir con 1 sin que el CI haya terminado: esperar al `status`.
 - **2026-11-09: cierre del 399, guardián N9 y MCP listo para el 383 (sesión padre).** En main (`5532cad9`): 399 `done` (once tools con
   `outputSchema` obligatorio y nombres de negocio; paridad por tool; `tests/mcp-volumen.test.ts` opt-in con `MEDIR_VOLUMEN=1`; el
   tablero dice «recaudado»; la medición de descubrimiento pasa al 387 frente B; `EXPLAIN` queda como deuda del 262), 388, 389, 392 y 398
