@@ -10,8 +10,6 @@ export interface FilaCsvDeal {
   pendiente: string | null;
   dueno: string | null;
   cohorte: string | null;
-  pais: string | null;
-  ciudad: string | null;
   calidad: string | null;
   valor: string | null;
   origen: string | null;
@@ -21,7 +19,7 @@ export interface FilaCsvDeal {
 
 const ENCABEZADOS = [
   "Nombre", "Teléfono", "Correo", "Etapa", "Pendiente", "Dueño", "Cohorte",
-  "País", "Ciudad", "Calidad", "Valor del lead", "Origen (UTM)", "Creado", "Link CRM",
+  "Calidad", "Valor del lead", "Origen (UTM)", "Creado", "Link CRM",
 ] as const;
 
 function celdaCsv(valor: string | null): string {
@@ -38,7 +36,7 @@ export function csvDeDeals(filas: readonly FilaCsvDeal[]): string {
     ...filas.map((f) =>
       [
         f.nombre, f.telefono, f.correo, f.etapa, f.pendiente, f.dueno, f.cohorte,
-        f.pais, f.ciudad, f.calidad, f.valor, f.origen, f.creado, f.linkCrm,
+        f.calidad, f.valor, f.origen, f.creado, f.linkCrm,
       ]
         .map(celdaCsv)
         .join(","),

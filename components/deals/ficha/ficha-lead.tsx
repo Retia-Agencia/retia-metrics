@@ -36,8 +36,6 @@ export function FichaLead({ ficha, rutaDelLead }: { ficha: FichaDeDeal; rutaDelL
           <Dato etiqueta="Nombre">{lead.nombre}</Dato>
           <Dato etiqueta="Correo">{lead.email}</Dato>
           <Dato etiqueta="Teléfono">{lead.telefono}</Dato>
-          <Dato etiqueta="Empresa · cargo">{[lead.empresa, lead.cargo].filter(Boolean).join(" · ") || null}</Dato>
-          <Dato etiqueta="Ubicación">{[lead.ciudad, lead.pais].filter(Boolean).join(", ") || null}</Dato>
         </dl>
         {ficha.contactos.length === 0 ? (
           <Vacio>Este lead no tiene contactos adicionales.</Vacio>

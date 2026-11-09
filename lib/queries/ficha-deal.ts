@@ -205,10 +205,6 @@ export interface FichaDeDeal {
     nombre: string | null;
     email: string;
     telefono: string | null;
-    empresa: string | null;
-    cargo: string | null;
-    ciudad: string | null;
-    pais: string | null;
   };
   /**
    * El origen del deal: los UTM del envio que lo abrio, completos (ADR 0060). `null` = el
@@ -689,10 +685,6 @@ export async function fichaDeDeal(
       nombre: lead.nombre,
       email: lead.emailNormalizado,
       telefono: lead.telefono,
-      empresa: lead.empresa,
-      cargo: lead.cargo,
-      ciudad: lead.ciudad,
-      pais: lead.pais,
     },
     origen: deal.submissionOrigenId && fila.envioId && fila.envioFecha
       ? {

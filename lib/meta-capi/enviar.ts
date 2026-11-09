@@ -27,7 +27,6 @@ async function pendientes(db: Db, ahora: Date) {
       emailNormalizado: leads.emailNormalizado,
       telefono: leads.telefono,
       nombre: leads.nombre,
-      pais: leads.pais,
     },
   }).from(eventosMeta)
     .innerJoin(deals, eq(deals.id, eventosMeta.dealId))

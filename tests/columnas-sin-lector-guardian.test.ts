@@ -45,6 +45,8 @@ const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
   "leads.cohortId": "F3-06: 100 % nulo, 0 lectores",
   "leads.cargo": "F3-06: 0 filas pobladas, 0 lectores",
   "leads.empresa": "F3-06: 0 filas pobladas, 0 lectores",
+  "leads.ciudad": "F3-06 / 401 M9: 0 filas pobladas; se retiró su lectura (ficha, MCP, CSV)",
+  "leads.pais": "401 M9 (decisión de Mani, 9-nov): vacío en 3.760 leads; se retiró su lectura (Meta CAPI, ficha, MCP, CSV)",
   "leads.ingresoDeclarado": "F3-06: 0 filas pobladas, 0 lectores",
   "leads.urgencia": "F3-06: 0 filas pobladas, 0 lectores",
   "leads.porQueAplico": "F3-06: 0 filas pobladas, 0 lectores",

@@ -96,10 +96,6 @@ export interface FichaDeLead {
   nombre: string | null;
   email: string;
   telefono: string | null;
-  empresa: string | null;
-  cargo: string | null;
-  ciudad: string | null;
-  pais: string | null;
   entrada: "formulario" | "crm";
   leadQuality: string | null;
   leadValue: string | null;
@@ -387,10 +383,6 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     nombre: lead.nombre,
     email: lead.emailNormalizado,
     telefono: lead.telefono,
-    empresa: lead.empresa,
-    cargo: lead.cargo,
-    ciudad: lead.ciudad,
-    pais: lead.pais,
     entrada: lead.entrada,
     leadQuality: lead.leadQuality,
     leadValue: lead.leadValue,

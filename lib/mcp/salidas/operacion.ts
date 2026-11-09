@@ -103,10 +103,6 @@ export const salidaDeFichaDeLead = z.object({
     nombre: z.string().nullable().describe("Nombre de la persona, cuando está disponible."),
     email: z.string().describe("Correo principal de la persona."),
     telefono: z.string().nullable().describe("Teléfono principal, cuando está disponible."),
-    empresa: z.string().nullable().describe("Empresa, cuando está disponible."),
-    cargo: z.string().nullable().describe("Cargo, cuando está disponible."),
-    ciudad: z.string().nullable().describe("Ciudad, cuando está disponible."),
-    pais: z.string().nullable().describe("País, cuando está disponible."),
     entrada: z.enum(["formulario", "crm"]).describe("Forma en que la persona entró al CRM."),
     calidad: z.string().nullable().describe("Calidad comercial asignada, cuando existe."),
     valor: z.string().nullable().describe("Valor comercial asignado, cuando existe."),
@@ -127,8 +123,8 @@ export function aSalidaDeFichaDeLead(resultado: { ficha: FichaDeLead; basico: bo
   const f = resultado.ficha;
   const valor = (v: FichaDeLead["envios"][number]["campos"][number]["valor"]) => ({ estado: v.tipo, texto: v.tipo === "valor" ? v.texto : null });
   return { programa: programaVisible, basico: resultado.basico, ficha: {
-    id_de_la_persona: f.id, nombre: f.nombre, email: f.email, telefono: f.telefono, empresa: f.empresa, cargo: f.cargo,
-    ciudad: f.ciudad, pais: f.pais, entrada: f.entrada, calidad: f.leadQuality, valor: f.leadValue,
+    id_de_la_persona: f.id, nombre: f.nombre, email: f.email, telefono: f.telefono,
+    entrada: f.entrada, calidad: f.leadQuality, valor: f.leadValue,
     cantidad_de_envios: f.numAplicaciones,
     fecha_de_primera_aplicacion: f.fechaPrimeraAplicacion ? fechaDeInstanteEnBogota(f.fechaPrimeraAplicacion) : null,
     fecha_de_ultima_aplicacion: f.fechaUltimaAplicacion ? fechaDeInstanteEnBogota(f.fechaUltimaAplicacion) : null,
@@ -143,9 +139,8 @@ export function aSalidaDeFichaDeLead(resultado: { ficha: FichaDeLead; basico: bo
 const personaDeDeal = z.object({
   id_de_la_persona: z.string().describe("Identificador opaco de la persona."), cantidad_de_envios: z.number().int().describe("Cantidad de envíos."),
   nombre: z.string().nullable().describe("Nombre, cuando está disponible."), email: z.string().describe("Correo principal."),
-  telefono: z.string().nullable().describe("Teléfono, cuando está disponible."), empresa: z.string().nullable().describe("Empresa, cuando está disponible."),
-  cargo: z.string().nullable().describe("Cargo, cuando está disponible."), ciudad: z.string().nullable().describe("Ciudad, cuando está disponible."),
-  pais: z.string().nullable().describe("País, cuando está disponible."), enlace_de_la_persona: z.string().describe("Enlace a la ficha de la persona."),
+  telefono: z.string().nullable().describe("Teléfono, cuando está disponible."),
+  enlace_de_la_persona: z.string().describe("Enlace a la ficha de la persona."),
 }).strict().describe("Persona vinculada al deal.");
 const usuario = z.object({ id: z.string().describe("Identificador opaco del usuario."), nombre: z.string().nullable().describe("Nombre del usuario, cuando existe.") }).strict().nullable().describe("Usuario asignado, o null.");
 const anulado = z.object({ en: instante.describe("Instante de anulación."), por: z.string().nullable().describe("Nombre de quien anuló."), motivo: z.string().describe("Motivo de anulación.") }).strict().nullable().describe("Datos de anulación, o null si está vigente.");
@@ -193,7 +188,7 @@ export function aSalidaDeFichaDeDeal(f: FichaDeDeal, alertas: AlertasDelDeal | n
   const moneda = f.saldo.moneda;
   const ficha = {
     id_del_deal: f.dealId, cortesia: f.cortesia, etapa: { clave: f.etapa, nombre: nombreDeEtapa(f.etapa) }, pendiente: f.pendiente,
-    persona: { id_de_la_persona: f.lead.id, cantidad_de_envios: f.lead.envios, nombre: f.lead.nombre, email: f.lead.email, telefono: f.lead.telefono, empresa: f.lead.empresa, cargo: f.lead.cargo, ciudad: f.lead.ciudad, pais: f.lead.pais, enlace_de_la_persona: enlaces.persona(f.lead.id) },
+    persona: { id_de_la_persona: f.lead.id, cantidad_de_envios: f.lead.envios, nombre: f.lead.nombre, email: f.lead.email, telefono: f.lead.telefono, enlace_de_la_persona: enlaces.persona(f.lead.id) },
     origen: f.origen ? { id_del_envio: f.origen.envioId, fecha: f.origen.fecha.toISOString(), calificacion: f.origen.calificacion, fuente: f.origen.utm.source, medio: f.origen.utm.medium, campana: f.origen.utm.campaign, contenido: f.origen.utm.content, termino: f.origen.utm.term, id_del_anuncio: f.origen.utm.id } : null,
     perfil: { calidad: f.perfil.leadQuality, valor: f.perfil.leadValue, respuestas: f.perfil.respuestas },
     contactos: f.contactos.map((c) => ({ id: c.id, tipo: c.tipo, valor: c.valor, es_principal: c.esPrincipal, confirmado: c.confirmado })), dueno: f.owner, setter: f.setter,

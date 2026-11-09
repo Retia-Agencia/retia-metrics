@@ -61,8 +61,6 @@ export function FichaLeadCabecera({ ficha }: { ficha: FichaDeLead }) {
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-4">
           <Dato etiqueta="Correo">{ficha.email}</Dato>
           <Dato etiqueta="Teléfono">{ficha.telefono}</Dato>
-          <Dato etiqueta="Empresa · cargo">{[ficha.empresa, ficha.cargo].filter(Boolean).join(" · ")}</Dato>
-          <Dato etiqueta="Ubicación">{[ficha.ciudad, ficha.pais].filter(Boolean).join(", ")}</Dato>
           <Dato etiqueta="Aplicaciones">
             <span className="cifra">{num(ficha.numAplicaciones)}</span>
           </Dato>

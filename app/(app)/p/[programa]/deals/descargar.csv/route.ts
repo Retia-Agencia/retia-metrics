@@ -42,8 +42,6 @@ export async function GET(
         pendiente: f.pendiente ? NOMBRE_DE_PENDIENTE[f.pendiente] : null,
         dueno: f.duenoNombre ?? f.duenoCorreo,
         cohorte: f.cohorte,
-        pais: f.pais,
-        ciudad: f.ciudad,
         calidad: f.calidad,
         valor: f.valor,
         origen: [f.utmSource, f.utmMedium, f.utmCampaign].filter(Boolean).join(" / ") || null,

@@ -24,8 +24,6 @@ export async function dealsParaCsv(db: Db, programId: string, alcance: AlcanceDe
       nombre: leads.nombre,
       correo: leads.emailNormalizado,
       telefono: leads.telefono,
-      pais: leads.pais,
-      ciudad: leads.ciudad,
       calidad: leads.leadQuality,
       valor: leads.leadValue,
       duenoNombre: dueno.nombre,

@@ -12,7 +12,7 @@ describe("payload de venta para Meta CAPI", () => {
       deal: { id: "deal-opaco", valorVendidoUsd: "797.00" },
       lead: {
         id: "lead-opaco", emailNormalizado: " PRUEBA@RETIA.CO ", telefono: "+57 (315) 555-1212",
-        nombre: "  Ana María Pérez ", pais: "México",
+        nombre: "  Ana María Pérez ",
       },
       fbc: { fbclid: "clic-opaco", capturadoEn },
       eventTime,
@@ -23,20 +23,20 @@ describe("payload de venta para Meta CAPI", () => {
       action_source: "system_generated", custom_data: { value: 797, currency: "USD" },
       user_data: {
         em: [h("prueba@retia.co")], ph: [h("573155551212")], fn: [h("ana")],
-        ln: [h("maría pérez")], country: [h("mx")], external_id: [h("lead-opaco")],
+        ln: [h("maría pérez")], external_id: [h("lead-opaco")],
         fbc: `fb.1.${capturadoEn.getTime()}.clic-opaco`,
       },
     });
     const serializado = JSON.stringify(payload);
-    for (const pii of ["prueba@retia.co", "3155551212", "Ana", "María", "México"]) {
+    for (const pii of ["prueba@retia.co", "3155551212", "Ana", "María"]) {
       expect(serializado.toLowerCase()).not.toContain(pii.toLowerCase());
     }
   });
 
-  it("omite teléfono, apellido, país y fbc cuando no hay datos válidos", () => {
+  it("omite teléfono, apellido y fbc cuando no hay datos válidos", () => {
     const payload = payloadDeVenta({
       deal: { id: "d", valorVendidoUsd: "1" },
-      lead: { id: "l", emailNormalizado: "a@b.co", telefono: "---", nombre: "Luz", pais: "Latam" },
+      lead: { id: "l", emailNormalizado: "a@b.co", telefono: "---", nombre: "Luz" },
       fbc: null, eventTime: new Date(0),
     });
     expect(payload.user_data).toEqual({ em: [h("a@b.co")], fn: [h("luz")], external_id: [h("l")] });
