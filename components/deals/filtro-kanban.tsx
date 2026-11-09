@@ -3,7 +3,8 @@
 import type { ReactNode } from "react";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { OPCIONES_DE_ORDEN_DEALS, type FiltroDeclarado } from "@/components/filtros/declaracion";
-import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
+import { CLAVES_DE_FECHA_LISTA } from "@/lib/claves-de-fecha-lista";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
 import { Button } from "@/components/ui/button";
 import type { PeriodoResuelto } from "@/lib/periodo";

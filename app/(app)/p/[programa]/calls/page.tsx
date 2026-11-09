@@ -21,7 +21,8 @@ import { LlamadasPrograma } from "@/components/deals/llamadas-programa";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
-import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
+import { CLAVES_DE_FECHA_LISTA } from "@/lib/claves-de-fecha-lista";
 import { Button } from "@/components/ui/button";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 

@@ -18,7 +18,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
-import { FiltroFechaLista, CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
+import { CLAVES_DE_FECHA_LISTA } from "@/lib/claves-de-fecha-lista";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { hoyEnBogota } from "@/lib/format";
 

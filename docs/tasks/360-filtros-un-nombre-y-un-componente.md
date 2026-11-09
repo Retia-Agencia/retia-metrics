@@ -3,7 +3,7 @@ id: 360
 etapa: plataforma
 serves: "ADR 0115 N1, N4 · auditoría 30-oct G-11, G-13, R-12"
 depends: []
-status: en curso
+status: done
 ---
 
 # 360 — Filtros: un nombre por parámetro y un componente de fecha
@@ -33,7 +33,12 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Done cuando
 
-- [ ] Un enlace viejo (`?owner=`, `?leadQuality=`) sigue funcionando por alias, con test.
-- [ ] Buscar en Leads, abrir un lead y volver conserva la búsqueda.
-- [ ] Recorrido de las cinco listas con clic en cada filtro.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Un enlace viejo (`?owner=`, `?leadQuality=`) sigue funcionando por alias, con test.
+- [x] Buscar en Leads, abrir un lead y volver conserva la búsqueda.
+- [x] Recorrido de las cinco listas con clic en cada filtro.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+
+
+## Estado
+
+Recorrido hecho el 9-nov contra la base local (gerente, ComunicArte Local, escritorio): Deals con alias `?owner=&leadQuality=` (redirige a `closer`/`calidad`, chips y popover correctos, fecha «Creado» + periodo en la URL), Leads con `?q=` que sobrevive a abrir un lead y volver por «← Leads · filtrados», y Calls, Students, Inbox y Bitácora abren sin error con los filtros de fecha. **Hallazgo del recorrido:** Calls reventaba (`CLAVES_DE_FECHA_LISTA is not iterable`): un valor exportado de un archivo `"use client"` llega al servidor como referencia, no como arreglo. La constante pasó a `lib/claves-de-fecha-lista.ts`. Ningún test lo veía.

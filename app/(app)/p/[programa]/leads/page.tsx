@@ -20,7 +20,7 @@ import { filtrosDeLeads } from "@/lib/queries/filtros-de-leads";
 import { fecha, fechaDeInstanteEnBogota, num } from "@/lib/format";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
-import { CLAVES_DE_FECHA_LISTA } from "@/components/filtro-fecha-lista";
+import { CLAVES_DE_FECHA_LISTA } from "@/lib/claves-de-fecha-lista";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import { OPCIONES_DE_ORDEN, type FiltroDeclarado } from "@/components/filtros/declaracion";

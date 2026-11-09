@@ -2,6 +2,7 @@
 
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
+import { CLAVES_DE_PERIODO, CLAVES_VIEJAS } from "@/lib/claves-de-fecha-lista";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import {
   Select,
@@ -12,12 +13,6 @@ import {
 } from "@/components/ui/select";
 
 const SIN_FECHA = "sin_fecha";
-const CLAVES_DE_PERIODO = ["periodo", "a_desde", "a_hasta", "b_desde", "b_hasta"];
-/** Las claves de antes del 136 (`desde`, `hasta`, `rango`): un marcador viejo no debe decidir el periodo. */
-const CLAVES_VIEJAS = ["rango", "desde", "hasta"];
-
-/** Todas las claves de la URL que mueve este filtro: para que "Quitar todo" las limpie (ticket 202). */
-export const CLAVES_DE_FECHA_LISTA = ["fecha", ...CLAVES_DE_PERIODO, ...CLAVES_VIEJAS];
 
 interface FiltroFechaListaProps {
   /** Los campos que la lista sabe filtrar, con su etiqueta. */
