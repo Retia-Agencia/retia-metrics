@@ -153,6 +153,7 @@ describe("herramientas MCP de operación", () => {
     const salida = await tableroDeDealsMcp.ejecutar(ctx, { programa: "operacion-a", q: "ana", vista: "todo" });
     const tablero = salida.estructurado.tablero as { total: number; columnas: { tarjetas: { id_del_deal: string; enlace: string }[] }[] };
     expect(tablero.total).toBe(directo.tablero.total);
+    expect(salida.estructurado).toMatchObject({ pagina: 1, hay_otra_pagina: false });
     expect(tablero.columnas.flatMap((c) => c.tarjetas).map((t) => t.id_del_deal)).toEqual([dealId]);
     expect(tableroDeDealsMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|leadQuality|leadValue|enlaceLead|enProximaCohorte)"\s*:/);

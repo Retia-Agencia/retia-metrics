@@ -95,11 +95,11 @@ export const fichaDeDealMcp: Herramienta<typeof entradaFicha> = {
   },
 };
 
-const entradaTablero = z.object({ programa, ...camposDeFiltrosKanban }).strict();
+const entradaTablero = z.object({ programa, ...camposDeFiltrosKanban, pagina: pagina.optional() }).strict();
 
 function parametrosDeTablero(entrada: z.output<typeof entradaTablero>): Record<string, string | undefined> {
   return Object.fromEntries(Object.entries(entrada)
-    .filter(([clave, valor]) => clave !== "programa" && valor !== undefined)
+    .filter(([clave, valor]) => clave !== "programa" && clave !== "pagina" && valor !== undefined)
     .map(([clave, valor]) => [clave, String(valor)]));
 }
 
@@ -107,7 +107,7 @@ export const tableroDeDealsMcp: Herramienta<typeof entradaTablero> = {
   nombre: "tablero_de_deals",
   titulo: "Tablero de deals",
   descripcion:
-    "Úsala cuando necesites ver o filtrar el pipeline comercial completo de un programa. Devuelve el tablero de Deals con las mismas vistas, orden y filtros de la pantalla, además de las opciones válidas de sus selectores. Cada tarjeta enlaza al deal y a la persona. No modifica ni mueve deals.",
+    "Úsala cuando necesites ver o filtrar el pipeline comercial de un programa. Devuelve hasta 50 tarjetas por página con las mismas vistas, orden y filtros de la pantalla, además de las opciones válidas de sus selectores. Cada tarjeta enlaza al deal y a la persona. No modifica ni mueve deals.",
   entrada: entradaTablero,
   salida: salidaDeTablero,
   puede: (contexto) => puedeVerOperacion(contexto.rol),
@@ -115,9 +115,24 @@ export const tableroDeDealsMcp: Herramienta<typeof entradaTablero> = {
   async ejecutar(contexto, entrada) {
     const visible = await programaVisible(contexto, entrada.programa);
     const resultado = await tableroDeDealsParaActor(contexto.db, visible.id, contexto.session, parametrosDeTablero(entrada));
-    const estructurado = aSalidaDeTablero(resultado.tablero, resultado.filtros, resultado.opciones, { nombre: visible.nombre, slug: visible.slug }, { deal: (id) => enlaceDeDeal(visible.slug, id), persona: (id) => enlaceDeLead(visible.slug, id) });
+    const numeroPagina = entrada.pagina ?? 1;
+    const inicio = (numeroPagina - 1) * TAMANO_PAGINA;
+    let vistos = 0;
+    const recortar = <T,>(filas: T[]) => filas.filter(() => {
+      const indice = vistos++;
+      return indice >= inicio && indice < inicio + TAMANO_PAGINA;
+    });
+    const totalPaginable = resultado.tablero.columnas.reduce((total, columna) => total + columna.tarjetas.length, 0)
+      + resultado.tablero.enProximaCohorte.length;
+    const tableroPaginado = {
+      ...resultado.tablero,
+      columnas: resultado.tablero.columnas.map((columna) => ({ ...columna, tarjetas: recortar(columna.tarjetas) })),
+      enProximaCohorte: recortar(resultado.tablero.enProximaCohorte),
+    };
+    const haySiguiente = inicio + TAMANO_PAGINA < totalPaginable;
+    const estructurado = { ...aSalidaDeTablero(tableroPaginado, resultado.filtros, resultado.opciones, { nombre: visible.nombre, slug: visible.slug }, { deal: (id) => enlaceDeDeal(visible.slug, id), persona: (id) => enlaceDeLead(visible.slug, id) }), pagina: numeroPagina, hay_otra_pagina: haySiguiente };
     return {
-      texto: `${num(resultado.tablero.total)} deals en el tablero.\n${resultado.tablero.columnas.map((c) => `${c.clave}: ${num(c.tarjetas.length)}`).join("\n")}\n${enlaceDeTab(visible.slug, "deals")}`,
+      texto: `${num(resultado.tablero.total)} deals en el tablero. Página ${num(numeroPagina)}: ${num(Math.min(TAMANO_PAGINA, Math.max(0, totalPaginable - inicio)))} tarjetas. ${haySiguiente ? `Hay otra página; pide pagina ${numeroPagina + 1}.` : "No hay otra página."}\n${enlaceDeTab(visible.slug, "deals")}`,
       estructurado,
     };
   },

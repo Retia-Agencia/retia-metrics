@@ -31,6 +31,8 @@ export const salidaDeCarteraVencida = z.object({
     orden: z.enum(VALORES_ORDEN_STUDENTS).describe("Orden aplicado a las filas."),
   }).strict().describe("Filtros resueltos con los mismos criterios de Students."),
   total: z.number().int().describe("Cantidad de deals en cartera vencida que cumplen los filtros."),
+  pagina: z.number().int().describe("Página devuelta."),
+  hay_otra_pagina: z.boolean().describe("Indica si quedan filas en otra página."),
   filas: z.array(z.object({
     id_del_deal: z.string().describe("Identificador opaco del deal."),
     id_de_la_persona: z.string().describe("Identificador opaco de la persona."),

@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { emitirTokenPersonal, revocarToken } from "@/lib/mcp/token";
+import { purgarLlamadasAntiguas } from "@/lib/mcp/bitacora";
 import { programasVisiblesMcp } from "@/lib/mcp/herramientas/programas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -286,7 +287,21 @@ describe("ruta MCP real", () => {
     ] as const) {
       const respuesta = GET(new Request(`https://crm.retia.test${ruta}`));
       expect(respuesta.status).toBe(200);
-      expect(await respuesta.json()).toMatchObject({ authorization_servers: [] });
+      expect(await respuesta.json()).toMatchObject({
+        resource: "http://localhost:3000/api/mcp",
+        authorization_servers: ["http://localhost:3000"],
+        scopes_supported: ["lectura", "escritura"],
+      });
     }
+  });
+
+  it("purga solo llamadas anteriores a la retención", async () => {
+    const ahora = new Date("2026-11-08T12:00:00.000Z");
+    await db.insert(mcpLlamadas).values([
+      { tokenId: tokenCloser.id, userId: closerId, herramienta: "vieja", resultado: "ok", creadoEn: new Date("2026-08-01T12:00:00.000Z") },
+      { tokenId: tokenCloser.id, userId: closerId, herramienta: "reciente", resultado: "ok", creadoEn: new Date("2026-11-01T12:00:00.000Z") },
+    ]);
+    expect(await purgarLlamadasAntiguas(db, 90, ahora)).toBe(1);
+    expect((await db.select().from(mcpLlamadas)).map((fila) => fila.herramienta)).toEqual(["reciente"]);
   });
 });

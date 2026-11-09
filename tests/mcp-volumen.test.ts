@@ -155,4 +155,15 @@ describe.skipIf(!medir)("herramientas MCP a 10x del volumen actual", () => {
 
     console.table(mediciones);
   }, 120_000);
+
+  it("pagina tablero y cartera con el mismo contrato de buscar personas", async () => {
+    const tablero = await tableroDeDealsMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", pagina: 1 });
+    const tarjetas = (tablero.estructurado.tablero as { columnas: Array<{ tarjetas: unknown[] }>; en_proxima_cohorte: unknown[] });
+    expect(tarjetas.columnas.flatMap((columna) => columna.tarjetas).length + tarjetas.en_proxima_cohorte.length).toBeLessThanOrEqual(50);
+    expect(tablero.estructurado).toMatchObject({ pagina: 1, hay_otra_pagina: true });
+
+    const cartera = await carteraVencidaMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", pagina: 1 });
+    expect((cartera.estructurado.filas as unknown[]).length).toBeLessThanOrEqual(50);
+    expect(cartera.estructurado).toMatchObject({ pagina: 1, hay_otra_pagina: true });
+  }, 120_000);
 });

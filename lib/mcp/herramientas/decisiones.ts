@@ -18,11 +18,13 @@ import {
 import { PRECISION_PAID, origenDelPrograma, resumenDeOrigen } from "@/lib/queries/origen";
 import { cargarRoasDePauta, NIVEL_PAUTA_POR_DEFECTO, NIVELES_PAUTA, renglonRoasDeVista } from "@/lib/queries/roas-de-pauta";
 import { resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
+import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp, type EntradaDePeriodoMcp } from "./periodo";
 import { programaVisible } from "./programa";
 import type { ContextoMcp, Herramienta } from "./tipos";
 
 const programa = z.string().min(1).max(100);
+const pagina = z.number().int().min(1).max(1_000_000).default(1);
 
 async function programaVisibleConCapacidad(
   contexto: ContextoMcp,
@@ -39,6 +41,7 @@ const entradaCartera = z.object({
   onboarding: z.enum(ONBOARDING_STUDENTS).optional(),
   q: z.string().max(200).optional(),
   orden: z.enum(VALORES_ORDEN_STUDENTS).optional(),
+  pagina: pagina.optional(),
 }).strict();
 
 export const carteraVencidaMcp: Herramienta<typeof entradaCartera> = {
@@ -46,7 +49,7 @@ export const carteraVencidaMcp: Herramienta<typeof entradaCartera> = {
   titulo: "Cartera vencida",
   descripcion:
     "Úsala cuando necesites saber quién tiene saldos vencidos en un programa. Devuelve la cartera vencida que muestra Students, con sus mismos filtros de cohorte, onboarding, búsqueda y orden. " +
-    "La fecha de corte es hoy en Bogotá; cada saldo conserva su moneda y cada fila enlaza al deal y a la persona. No pagina.",
+    "La fecha de corte es hoy en Bogotá; cada saldo conserva su moneda y cada fila enlaza al deal y a la persona. Devuelve hasta 50 filas por página.",
   entrada: entradaCartera,
   salida: salidaDeCarteraVencida,
   puede: (contexto) => veStudents(contexto.rol),
@@ -67,15 +70,19 @@ export const carteraVencidaMcp: Herramienta<typeof entradaCartera> = {
     const vencidos = cartera.vencidos
       .filter((fila) => orden.has(fila.dealId))
       .sort((a, b) => orden.get(a.dealId)! - orden.get(b.dealId)!);
-    const estructurado = aSalidaDeCarteraVencida(
-      { ...cartera, vencidos }, { nombre: visible.nombre, slug: visible.slug }, hoy,
+    const numeroPagina = entrada.pagina ?? 1;
+    const inicio = (numeroPagina - 1) * TAMANO_PAGINA;
+    const filas = vencidos.slice(inicio, inicio + TAMANO_PAGINA);
+    const haySiguiente = inicio + TAMANO_PAGINA < vencidos.length;
+    const estructurado = { ...aSalidaDeCarteraVencida(
+      { ...cartera, vencidos: filas }, { nombre: visible.nombre, slug: visible.slug }, hoy,
       { cohorte: resueltos.cohorte?.id ?? "todas", onboarding: resueltos.filtro.onboarded, busqueda: entrada.q ?? null, orden: resueltos.orden },
       { deal: (id) => enlaceDeDeal(visible.slug, id), persona: (id) => enlaceDeLead(visible.slug, id) },
       monto,
-    );
+    ), total: vencidos.length, pagina: numeroPagina, hay_otra_pagina: haySiguiente };
     return {
       texto: [
-        `${num(vencidos.length)} en cartera vencida al ${hoy} (Bogotá).`,
+        `${num(vencidos.length)} en cartera vencida al ${hoy} (Bogotá). Página ${num(numeroPagina)}: ${num(filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${numeroPagina + 1}.` : "No hay otra página."}`,
         ...estructurado.filas.map((fila) => `- ${fila.nombre ?? fila.email} · ${fila.saldo?.legible ?? "—"} · ${num(fila.dias_de_atraso)} días · ${fila.enlace}`),
       ].join("\n"),
       estructurado,

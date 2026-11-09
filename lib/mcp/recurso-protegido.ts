@@ -1,4 +1,10 @@
-import { protectedResourceHandler } from "mcp-handler";
+import { origenDeLaApp, urlDelRecurso } from "@/lib/oauth/origen";
 
-/** El ticket 383 agregará aquí los servidores de autorización. */
-export const recursoProtegido = protectedResourceHandler({ authServerUrls: [] });
+export function recursoProtegido(_request?: Request) {
+  return Response.json({
+    resource: urlDelRecurso(),
+    authorization_servers: [origenDeLaApp()],
+    scopes_supported: ["lectura", "escritura"],
+    bearer_methods_supported: ["header"],
+  });
+}

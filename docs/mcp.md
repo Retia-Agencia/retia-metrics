@@ -71,9 +71,9 @@ Todas son de solo lectura hoy. El developer pasa toda guarda (ADR 0025). "Progra
 | `buscar_leads` | Buscar personas | Para encontrar una persona por nombre, correo o teléfono | gerente, closer |
 | `ficha_de_lead` | Ficha de una persona | Para consultar el detalle de una persona ya identificada | gerente, closer, customer success (proyección reducida) |
 | `ficha_de_deal` | Ficha de un deal | Para consultar la historia operativa de un deal ya identificado | gerente, closer |
-| `tablero_de_deals` | Tablero de deals | Para ver o filtrar el pipeline comercial completo | gerente, closer |
+| `tablero_de_deals` | Tablero de deals | Para ver o filtrar el pipeline comercial completo, paginado | gerente, closer |
 | `bandeja` | Bandeja de pendientes | Para ver el trabajo operativo pendiente del día | gerente, closer |
-| `cartera_vencida` | Cartera vencida | Para saber quién tiene saldos vencidos | gerente, closer, customer success |
+| `cartera_vencida` | Cartera vencida | Para saber quién tiene saldos vencidos, paginado | gerente, closer, customer success |
 | `pauta_roas` | ROAS de pauta | Para evaluar pauta por total, campaña, conjunto o anuncio | gerente, paid trafficker |
 | `origen_del_programa` | Origen del programa | Para entender de dónde llegaron los registros | gerente, paid trafficker |
 
@@ -137,7 +137,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 7. Deuda conocida
 
-Tokens sin caducidad; `mcp_llamadas` sin retención; `tablero_de_deals` y `cartera_vencida` sin paginar; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title` y anotaciones completas; las once publican y validan su salida de negocio.
+Los tokens personales anteriores al 383 pueden no tener caducidad; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title` y anotaciones completas; las once publican y validan su salida de negocio.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

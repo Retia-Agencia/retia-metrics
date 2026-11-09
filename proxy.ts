@@ -24,6 +24,9 @@ export default auth((req) => {
     pathname === "/api/mcp" ||
     // Metadata pública RFC 9728 para que el cliente descubra cómo autenticarse.
     pathname.startsWith("/.well-known/oauth-protected-resource") ||
+    // Descubrimiento y canje OAuth no usan cookie; cada endpoint valida su propio protocolo.
+    pathname === "/.well-known/oauth-authorization-server" ||
+    pathname.startsWith("/api/oauth/") ||
     // Los cron no tienen sesion: cada handler exige su propio secreto de Vercel.
     pathname.startsWith("/api/cron/") ||
     // Juanito consulta que reportes enviar y se autentica en el handler con su secreto.

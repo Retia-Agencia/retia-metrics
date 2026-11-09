@@ -52,6 +52,18 @@ describe("tokens personales del MCP", () => {
     expect(await verificarToken(db, `otro_${emitido.valor}`)).toBeNull();
   });
 
+  it("los nuevos vencen a 365 días y un token vencido no verifica", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-08T12:00:00.000Z"));
+    const emitido = await emitirTokenPersonal(db, {
+      userId, actorId: userId, nombre: "Caducidad", scope: "lectura",
+    });
+    const [fila] = await db.select().from(mcpTokens).where(eq(mcpTokens.id, emitido.id));
+    expect(fila.venceEn?.toISOString()).toBe("2027-11-08T12:00:00.000Z");
+    vi.setSystemTime(new Date("2027-11-08T12:00:00.001Z"));
+    expect(await verificarToken(db, emitido.valor)).toBeNull();
+  });
+
   it("un token revocado o de un usuario desactivado deja de verificar", async () => {
     const revocado = await emitirTokenPersonal(db, {
       userId, actorId: userId, nombre: "Revocado", scope: "lectura",

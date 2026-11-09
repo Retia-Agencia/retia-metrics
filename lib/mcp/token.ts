@@ -1,7 +1,8 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { and, desc, eq, isNull, lt, or } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lt, or } from "drizzle-orm";
 import { changeLog, mcpTokens, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { urlDelRecurso } from "@/lib/oauth/origen";
 
 const PREFIJO = "retia_mcp_";
 const FORMATO = /^retia_mcp_[A-Za-z0-9_-]{43}$/;
@@ -30,6 +31,7 @@ export type TokenPersonalVisible = {
   creadoEn: Date;
   ultimoUsoEn: Date | null;
   revocadoEn: Date | null;
+  venceEn: Date | null;
 };
 
 /** La lectura para Mi espacio selecciona explicitamente solo campos seguros. */
@@ -42,6 +44,7 @@ export async function listarTokensPersonales(db: Db, userId: string): Promise<To
       creadoEn: mcpTokens.creadoEn,
       ultimoUsoEn: mcpTokens.ultimoUsoEn,
       revocadoEn: mcpTokens.revocadoEn,
+      venceEn: mcpTokens.venceEn,
     })
     .from(mcpTokens)
     .where(and(eq(mcpTokens.userId, userId), eq(mcpTokens.tipo, "personal")))
@@ -71,6 +74,7 @@ export async function emitirTokenPersonal(
       hash,
       scope: entrada.scope,
       tipo: "personal",
+      venceEn: new Date(Date.now() + 365 * 24 * 60 * 60_000),
     });
     await tx.insert(changeLog).values({
       tabla: "mcp_tokens",
@@ -125,6 +129,8 @@ export async function verificarToken(
       eq(mcpTokens.hash, hashDeToken(valor)),
       isNull(mcpTokens.revocadoEn),
       eq(users.activo, true),
+      or(isNull(mcpTokens.venceEn), gt(mcpTokens.venceEn, new Date())),
+      or(eq(mcpTokens.tipo, "personal"), and(eq(mcpTokens.tipo, "oauth"), eq(mcpTokens.resource, urlDelRecurso()))),
     ))
     .limit(1);
   if (!fila) return null;

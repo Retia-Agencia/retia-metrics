@@ -1,4 +1,4 @@
-import { and, asc, eq, gte } from "drizzle-orm";
+import { and, asc, eq, gte, lt } from "drizzle-orm";
 import type { ZodError } from "zod";
 import { mcpLlamadas } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -26,6 +26,7 @@ export async function segundosDeEspera(
   tokenId: string,
   ahora: Date,
 ): Promise<number | null> {
+  // La lectura y la insercion no forman una reserva atomica: se acepta un margen pequeno bajo rafaga.
   const desde = new Date(ahora.getTime() - 60_000);
   const filas = await db
     .select({ creadoEn: mcpLlamadas.creadoEn })
@@ -35,6 +36,12 @@ export async function segundosDeEspera(
     .limit(TOPE_POR_MINUTO);
   if (filas.length < TOPE_POR_MINUTO) return null;
   return Math.max(1, Math.ceil((filas[0].creadoEn.getTime() + 60_000 - ahora.getTime()) / 1000));
+}
+
+export async function purgarLlamadasAntiguas(db: Db, dias = 90, ahora = new Date()): Promise<number> {
+  const limite = new Date(ahora.getTime() - dias * 24 * 60 * 60_000);
+  const borradas = await db.delete(mcpLlamadas).where(lt(mcpLlamadas.creadoEn, limite)).returning();
+  return borradas.length;
 }
 
 /**

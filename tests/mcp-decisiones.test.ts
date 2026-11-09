@@ -212,6 +212,7 @@ describe("cartera_vencida", () => {
 
     expect(directa.vencidos.map((fila) => fila.dealId)).toEqual([vigente.id]);
     expect(filas.map((fila) => fila.id_del_deal)).toEqual(directa.vencidos.map((fila) => fila.dealId));
+    expect(salida.estructurado).toMatchObject({ pagina: 1, hay_otra_pagina: false });
     expect(filas[0].saldo).toMatchObject({ moneda: "USD", legible: "USD 600,00" });
     expect(carteraVencidaMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|nombreLead|emailLead|fechaLimite|fechaPropia|diasDeAtraso|acuerdoPago|enlaceLead|fechaDeCorte)"\s*:/);
