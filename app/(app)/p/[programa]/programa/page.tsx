@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { administraGlobal, configuraPrograma, editaObjetivo, leePrograma, veEquipoComercial, type Rol } from "@/lib/auth/roles";
+import { administraUsuarios, configuraPrograma, editaObjetivo, leePrograma, veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
@@ -113,10 +113,8 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
 
   const presentacion = presentacionDeLaFicha(rol);
   const { configura } = presentacion;
-  const puedeAgregarMiembros = administraGlobal({
-    rol,
-    alcanceLimitado: session.user.alcanceLimitado,
-  });
+  // ADR 0118: todo gerente agrega existentes; la lista de candidatos ya sale filtrada por su alcance.
+  const puedeAgregarMiembros = administraUsuarios(rol);
   const query = await searchParams;
   const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
     ficha;
@@ -139,7 +137,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     ? await Promise.all([
         fuentesDelProgramaParaAdmin(programa.id, db),
         membresiasConCalendly(db, programa.id),
-        puedeAgregarMiembros ? listarUsuarios(db) : Promise.resolve([]),
+        puedeAgregarMiembros ? listarUsuarios(db, { id: session.user.id, rol }) : Promise.resolve([]),
         cuentasPorPrograma(db, [programa.id]),
       ])
     : [null, [], [], {}];

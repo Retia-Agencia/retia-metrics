@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { changeLog, miembrosPrograma, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalogo/usuarios";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 /**
  * Ticket 015 — administrar usuarios y closers desde /ajustes.
@@ -525,5 +526,85 @@ describe("listar usuarios", () => {
     expect(andrea!.programas.sort()).toEqual([programaAId, programaBId].sort());
     // El gerente sembrado tambien aparece.
     expect(lista.find((u) => u.id === gerenteId)).toBeDefined();
+  });
+});
+
+describe("alta con Calendly por programa, en una sola transaccion (382, ADR 0118)", () => {
+  const ORG = "https://api.calendly.com/organizations/o";
+  function calendly(miembros: string[]) {
+    return vi.fn(async (url: string) => {
+      const json = (cuerpo: unknown) => ({ ok: true, status: 200, json: async () => cuerpo });
+      if (url.endsWith("/users/me")) return json({ resource: { current_organization: ORG } });
+      if (url.includes("/organization_memberships?")) {
+        return json({ collection: miembros.map((email) => ({ user: { email } })), pagination: {} });
+      }
+      throw new Error(`URL inesperada ${url}`);
+    });
+  }
+
+  it("escribe usuario, membresia y cuenta de Calendly de cada programa con su rastro", async () => {
+    await sembrarIntegracion(db, programaAId, "calendly", { token: "pat" });
+    await sembrarIntegracion(db, programaBId, "calendly", { token: "pat" });
+    const creado = await crearUsuario(
+      db,
+      actorGerente(),
+      {
+        ...closerValido,
+        programas: [programaAId, programaBId],
+        calendlyPorPrograma: { [programaAId]: "a@calendly.co", [programaBId]: "b@calendly.co" },
+      },
+      { fetch: calendly(["a@calendly.co", "b@calendly.co"]) },
+    );
+    const membresias = await membresiasDe(creado.id);
+    expect(Object.fromEntries(membresias.map((m) => [m.programId, m.calendlyEmail]))).toEqual({
+      [programaAId]: "a@calendly.co",
+      [programaBId]: "b@calendly.co",
+    });
+    const rastros = (await db.select().from(changeLog)).filter((fila) => fila.tabla === "miembros_programa" && fila.campo === "calendlyEmail");
+    expect(rastros).toHaveLength(2);
+    expect(rastros.every((fila) => fila.userId === gerenteId)).toBe(true);
+  });
+
+  it("si una cuenta de Calendly no es de la organizacion, no queda ni el usuario ni las membresias", async () => {
+    await sembrarIntegracion(db, programaAId, "calendly", { token: "pat" });
+    await expect(
+      crearUsuario(
+        db,
+        actorGerente(),
+        { ...closerValido, programas: [programaAId], calendlyPorPrograma: { [programaAId]: "intrusa@calendly.co" } },
+        { fetch: calendly(["otra@calendly.co"]) },
+      ),
+    ).rejects.toMatchObject({ status: 422 });
+    expect(await db.select().from(users).where(eq(users.email, "andrea@retiagrowth.com"))).toHaveLength(0);
+    expect(await db.select().from(miembrosPrograma)).toHaveLength(0);
+    expect((await db.select().from(changeLog)).some((fila) => fila.etiqueta === "andrea@retiagrowth.com")).toBe(false);
+  });
+});
+
+describe("lista de usuarios filtrada por alcance (382, ADR 0118)", () => {
+  it("un gerente limitado solo ve a quien esta del todo dentro de su alcance; el global y el developer ven todo", async () => {
+    const [limitado, propio, ajeno, mixto, sinProgramas, dev] = await db.insert(users).values([
+      { email: "limitado@retia.co", rol: "gerente" },
+      { email: "propio@retia.co", rol: "closer" },
+      { email: "ajeno@retia.co", rol: "closer" },
+      { email: "mixto@retia.co", rol: "closer" },
+      { email: "sin@retia.co", rol: "closer" },
+      { email: "dev@retia.co", rol: "developer" },
+    ]).returning();
+    await db.insert(usuariosProgramasAlcance).values({ userId: limitado.id, programId: programaAId });
+    await db.insert(miembrosPrograma).values([
+      { userId: propio.id, programId: programaAId },
+      { userId: ajeno.id, programId: programaBId },
+      { userId: mixto.id, programId: programaAId },
+      { userId: mixto.id, programId: programaBId },
+    ]);
+    const vistos = (await listarUsuarios(db, { id: limitado.id, rol: "gerente" })).map((u) => u.email);
+    expect([...vistos].sort()).toEqual(["limitado@retia.co", "propio@retia.co"]);
+    expect(vistos).not.toContain(dev.email);
+    expect(vistos).not.toContain(sinProgramas.email);
+    const global = await listarUsuarios(db, actorGerente());
+    expect(global.map((u) => u.email)).toEqual(expect.arrayContaining([ajeno.email, mixto.email, dev.email]));
+    const comoDeveloper = await listarUsuarios(db, { id: dev.id, rol: "developer" });
+    expect(comoDeveloper).toHaveLength(global.length);
   });
 });

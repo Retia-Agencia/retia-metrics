@@ -303,6 +303,31 @@ describe("acciones de usuarios — gerente limitado", () => {
   });
 });
 
+describe("Equipo del programa: agregar existente con alcance (382, ADR 0118)", () => {
+  async function accionesPrograma() {
+    return import("@/app/(app)/p/[programa]/programa/acciones-programa");
+  }
+
+  it("un gerente limitado no agrega a quien tiene programas ajenos ni a un programa fuera de su alcance (peticion forjada)", async () => {
+    await db.insert(usuariosProgramasAlcance).values({ userId: gerenteId, programId: programaAId });
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    const [propio, ajeno] = await db.insert(users).values([
+      { email: "equipo-propio@retia.co", rol: "closer" },
+      { email: "equipo-ajeno@retia.co", rol: "closer" },
+    ]).returning();
+    await db.insert(miembrosPrograma).values([
+      { userId: ajeno.id, programId: programaBId },
+    ]);
+    const { agregarAlProgramaAccion } = await accionesPrograma();
+    const antes = await db.select().from(miembrosPrograma);
+    // Ajeno: ya es de B, agregarlo a A lo expondria en el equipo de A. Se rechaza sin mover nada.
+    expect((await agregarAlProgramaAccion({ userId: ajeno.id, programId: programaAId })).ok).toBe(false);
+    // Programa fuera del alcance: tambien.
+    expect((await agregarAlProgramaAccion({ userId: propio.id, programId: programaBId })).ok).toBe(false);
+    expect(await db.select().from(miembrosPrograma)).toEqual(antes);
+  });
+});
+
 describe("alcance visible de un usuario (ADR 0094)", () => {
   it("el gerente global y el developer fijan y quitan alcance con change_log", async () => {
     const [objetivo] = await db

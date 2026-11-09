@@ -661,6 +661,16 @@ describe("usuarios tiene su propia guarda", () => {
     const { paginaConAdministracionDeUsuarios } = await import("@/lib/auth/page-guards");
     await expect(paginaConAdministracionDeUsuarios()).resolves.toMatchObject({ user: { rol: "gerente" } });
   });
+
+  it("el resto de Ajustes sigue cerrado al limitado, y un closer no pasa la guarda de usuarios", async () => {
+    const { paginaConAdministracionGlobal, paginaConAdministracionDeUsuarios } = await import("@/lib/auth/page-guards");
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    await expect(paginaConAdministracionGlobal()).rejects.toThrow(/redirect a/);
+    auth.mockResolvedValue(sesionCloser);
+    await expect(paginaConAdministracionDeUsuarios()).rejects.toThrow(/redirect a/);
+    auth.mockResolvedValue(sesionDeveloper);
+    await expect(paginaConAdministracionGlobal()).resolves.toMatchObject({ user: { rol: "developer" } });
+  });
 });
 
 describe("paginas de gerente", () => {
