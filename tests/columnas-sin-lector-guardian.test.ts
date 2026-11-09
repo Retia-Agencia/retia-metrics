@@ -25,7 +25,7 @@ const RAIZ = process.cwd();
 /** Constante de drizzle de cada tabla bajo vigilancia. */
 const TABLAS = [
   "submissions", "leads", "leadContactos", "deals", "dealEtapaHistorial", "calls", "abonos", "gastoPauta",
-  "pautaObjetos", "cohorts", "users", "programs", "syncRuns", "canales", "changeLog", "sources",
+  "pautaObjetos", "cohorts", "users", "programs", "canales", "changeLog", "sources",
 ] as const;
 
 /** Nombres que aparecen en casi cualquier objeto: ahí `.campo` no prueba nada, solo `tabla.campo`. */
@@ -37,6 +37,7 @@ const GENERICOS = new Set([
 
 /** `tabla.campo` → hallazgo de F3 o ticket que lo retira. Una columna aquí NO tiene lector hoy. */
 const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
+  "changeLog.syncRunId": "401 M13: el sync se retiró y nadie la escribe ni la lee; se elimina con sync_runs",
   "calls.cohortId": "F3-04: la cohorte de un hecho es la de su deal; eliminar columna e índice",
   "calls.closerId": "F3-05 / 401 M10: 0 pobladas; el closer de una llamada es solo closer_user_id",
   "calls.motivoPerdida": "401 M10: texto de las filas viejas de Sheets; el motivo es motivo_id",

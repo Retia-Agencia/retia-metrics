@@ -121,7 +121,6 @@ async function trasladarPrograma(
   base: Db,
   programa: { id: string; slug: string; nombre: string },
   aplicar: boolean,
-  syncRunId: string | null,
 ): Promise<ReportePrograma> {
   const filas = await base
     .select({
@@ -188,7 +187,6 @@ async function trasladarPrograma(
       try {
         const r = await ingerirEntradas(tx, programa.id, nuevas, {
           aplicarReglaDeDeals: false,
-          syncRunId,
         });
         console.log(`  ✓ ${c.fuente.nombre}: ${((Date.now() - inicio) / 1000).toFixed(1)} s`);
         fuentesReporte.push({ ...vacio, ...resumen, yaEnElCrm, ingesta: reporteDesdeIngesta(r) });
@@ -287,9 +285,7 @@ async function main() {
 
   const reportes: ReportePrograma[] = [];
   for (const p of progs) {
-    // `syncRunId` es null: el sync se retiro (108) y `sync_runs` es historial de solo
-    // lectura. El rastro del lead lo dejan `ingerirEntradas`/`recalcularResumen` igual.
-    reportes.push(await trasladarPrograma(db, p, aplicar, null));
+    reportes.push(await trasladarPrograma(db, p, aplicar));
   }
 
   imprimirReporte(reportes, aplicar);

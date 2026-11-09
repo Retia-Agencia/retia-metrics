@@ -2,8 +2,6 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, changeLog, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { num } from "@/lib/format";
-import type { FuenteLeida } from "./fuentes";
 import { posiblesDuplicadosDelPrograma } from "./leads";
 import { saludDeFuentes, type EstadoDeFuente } from "./salud-fuentes";
 import { vigente } from "./vigente";
@@ -17,10 +15,6 @@ import { vigente } from "./vigente";
  * (`saludDeFuentes`, ticket 107, que reemplazo al 055) y los leads "unidos por telefono" sin
  * resolver (ticket 050). Las dos ultimas preguntas ya tienen su modulo y se importan, no se
  * reescriben (ADR 0024).
- *
- * Las corridas de sync NO se leen aca: viven en `lib/queries/fuentes.ts`, porque
- * la tab Programa hace exactamente la misma pregunta (ADR 0024). Desde el 108 son
- * historial de solo lectura.
  *
  * **Ningun dato personal sale de aca, y no es por cuidado al escribir sino por
  * construccion.** La bitacora de cambios devuelve `tabla`, `campo`, quien y cuando,
@@ -215,14 +209,4 @@ export async function fuentesConSalud(db: Db = dbDeLaApp, ahora: Date = new Date
     sobresPendientes: f.sobresPendientes,
     sinCalidad: f.sinCalidad,
   }));
-}
-
-/**
- * Las fuentes que leyo una corrida del sync, escritas para leer: "Hoja (1.234) + Forms (55)".
- * `null` es una corrida anterior a la migracion que no guardo el dato (ADR 0031, F-07): sale
- * "—", nunca un nombre inventado.
- */
-export function textoDeFuentesLeidas(fuentes: readonly FuenteLeida[] | null): string {
-  if (fuentes === null) return "—";
-  return fuentes.map((f) => `${f.nombre} (${num(f.filas)})`).join(" + ");
 }

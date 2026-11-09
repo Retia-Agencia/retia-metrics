@@ -192,7 +192,7 @@ export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosC
         ...aMover.map((id) => rastro(actor.id, "submissions", id, etiqueta, "leadId", lead.id, leadNuevoId)),
       ]);
 
-      await recalcularResumen(tx, [lead.id, leadNuevoId], new Set([leadNuevoId]), null, actor.id);
+      await recalcularResumen(tx, [lead.id, leadNuevoId], new Set([leadNuevoId]), actor.id);
       await abrirDeal(tx, {
         leadId: leadNuevoId,
         programId: contacto.programId,

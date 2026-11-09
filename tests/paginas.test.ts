@@ -273,18 +273,13 @@ vi.mock("@/lib/catalogo/areas", async (importOriginal) => ({
 // mockean para que la guarda sea lo unico bajo prueba. `@/lib/queries/fuentes` se
 // mockea entero: las paginas de gerente solo se prueban por rechazo, asi que nadie
 // mas depende de su implementacion real aca.
-const ultimasCorridasDeSync = vi.fn(async () => []);
-vi.mock("@/lib/queries/fuentes", () => ({
-  ultimasCorridasDeSync,
-  estadoDeFuentes: vi.fn(async () => ({ fuentes: [], conteos: [], corridas: [], cambios: 0 })),
-}));
+vi.mock("@/lib/queries/fuentes", () => ({}));
 vi.mock("@/lib/queries/nerd-stats", () => ({
   conteosPorPrograma: vi.fn(async () => []),
   conteosPorOrigen: vi.fn(async () => ({ llamadas: [], ventas: [] })),
   ultimosCambiosDesdeLaApp: vi.fn(async () => []),
   usuariosActivosPorRol: vi.fn(async () => []),
   fuentesConSalud: vi.fn(async () => []),
-  textoDeFuentesLeidas: vi.fn(() => "—"),
 }));
 // La bitacora (076): se mockean SOLO las lecturas, para ver si la pagina llega a ellas.
 const paginaDeBitacora = vi.fn(async () => ({ entradas: [], total: 0, pagina: 1, paginas: 1 }));

@@ -17,7 +17,6 @@ import {
   conteosPorOrigen,
   conteosPorPrograma,
   fuentesConSalud,
-  textoDeFuentesLeidas,
   ultimosCambiosDesdeLaApp,
   usuariosActivosPorRol,
 } from "@/lib/queries/nerd-stats";
@@ -278,18 +277,6 @@ describe("fuentesConSalud (068)", () => {
 
     await db.update(sources).set({ estado: "rota" });
     expect((await fuentesConSalud(db, ahora))[0]).toMatchObject({ estado: "al_dia", rota: true, marcada: true });
-  });
-});
-
-describe("textoDeFuentesLeidas (068, ADR 0031)", () => {
-  it("una corrida sin el dato muestra —, nunca un nombre inventado", () => {
-    expect(textoDeFuentesLeidas(null)).toBe("—");
-    expect(
-      textoDeFuentesLeidas([
-        { nombre: "Hoja", tab: "New form", filas: 1234 },
-        { nombre: "Forms", tab: "Viejo", filas: 55 },
-      ]),
-    ).toBe("Hoja (1.234) + Forms (55)");
   });
 });
 

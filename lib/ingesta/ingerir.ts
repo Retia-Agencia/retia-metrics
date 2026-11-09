@@ -73,8 +73,6 @@ export interface ResultadoIngesta {
 }
 
 export interface OpcionesIngesta {
-  /** La corrida que origino la escritura, para la bitacora. Nulo para un webhook. */
-  syncRunId?: string | null;
   /**
    * Si aplicar la regla de creacion y movimiento de deals (ticket 052) a cada lead
    * tocado. **Default `false`.** Lo pide el webhook (ticket 106); el traslado desde
@@ -358,10 +356,10 @@ export async function ingerirEntradas(
         ),
       ];
       for (const leadId of tocados) leadsTocados.add(leadId);
-      const { actualizados, cambios } = await recalcularResumen(tx, tocados, creados, opciones.syncRunId ?? null);
+      const { actualizados, cambios } = await recalcularResumen(tx, tocados, creados);
       resultado.leadsNuevos = creados.size;
       resultado.leadsActualizados = actualizados;
-      resultado.cambiosRegistrados = cambios + (await escribirTraidoPor(tx, programId, escritos, creados, opciones.syncRunId ?? null));
+      resultado.cambiosRegistrados = cambios + (await escribirTraidoPor(tx, programId, escritos, creados));
 
       // 8. La regla de deals (ticket 052), SOLO si el llamador la pidio. Corre DENTRO
       // de esta misma transaccion, despues del resumen. Decide con los hechos del ENVIO que
@@ -435,7 +433,6 @@ async function escribirTraidoPor(
   programId: string,
   escritos: (typeof submissions.$inferSelect)[],
   creados: Set<string>,
-  syncRunId: string | null,
 ): Promise<number> {
   const conLead = escritos.filter((f) => f.leadId !== null);
   if (conLead.length === 0) return 0;
@@ -464,7 +461,6 @@ async function escribirTraidoPor(
       valorAnterior: null,
       valorNuevo: userId,
       origen: "sync",
-      syncRunId,
     });
     cambios++;
   }
@@ -735,7 +731,6 @@ export async function recalcularResumen(
   tx: Db,
   leadIds: string[],
   creados: Set<string>,
-  syncRunId: string | null,
   actorId: string | null = null,
 ): Promise<{ actualizados: number; cambios: number }> {
   let actualizados = 0;
@@ -797,7 +792,6 @@ export async function recalcularResumen(
           valorNuevo: comoTexto(resumen[campo]),
           origen: actorId ? ("app" as const) : ("sync" as const),
           userId: actorId,
-          syncRunId,
         });
       }
       cambios += diffs.length;

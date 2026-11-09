@@ -7,12 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { haceCuanto, num } from "@/lib/format";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { EstadoDeFuente } from "@/lib/queries/salud-fuentes";
-import { ultimasCorridasDeSync } from "@/lib/queries/fuentes";
 import {
   conteosPorOrigen,
   conteosPorPrograma,
   fuentesConSalud,
-  textoDeFuentesLeidas,
   ultimosCambiosDesdeLaApp,
   usuariosActivosPorRol,
 } from "@/lib/queries/nerd-stats";
@@ -26,8 +24,7 @@ export const dynamic = "force-dynamic";
  * closer por igual y deja pasar solo a quien `esAccesoTotal` dice, sin escribir el rol a mano.
  *
  * Desde el 28-sep los leads entran por webhook (ticket 108): no hay sync ni cron, y la pantalla
- * lo dice en vez de pintar un estado de cron que no existe. Las corridas viejas se muestran como
- * historial.
+ * lo dice en vez de pintar un estado de cron que no existe.
  *
  * Todo se renderiza en el servidor: es solo lectura, no hay nada que el navegador
  * tenga que recalcular, asi que no hay componente cliente ni JS que enviar.
@@ -39,8 +36,7 @@ export const dynamic = "force-dynamic";
 export default async function NerdStatsPage() {
   await paginaDeAccesoTotal();
 
-  const [corridas, programas, fuentes, origenes, cambios, roles] = await Promise.all([
-    ultimasCorridasDeSync(8, db),
+  const [programas, fuentes, origenes, cambios, roles] = await Promise.all([
     conteosPorPrograma(db),
     fuentesConSalud(db),
     conteosPorOrigen(db),
@@ -173,39 +169,6 @@ export default async function NerdStatsPage() {
                     haceCuanto(f.ultimo),
                     num(f.sobresPendientes),
                     num(f.sinCalidad),
-                  ],
-                }))}
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Historial del sync de Sheets</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-3 text-xs text-muted-foreground">
-              Solo lectura: el sync se retiró el 28-sep (ticket 108) y nadie escribe aquí desde entonces.
-            </p>
-            {corridas.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hay corridas en el historial.</p>
-            ) : (
-              <Tabla
-                encabezados={["Cuándo", "Programa", "Fuentes", "Estado", "Duración", "Filas", "Nuevas", "Actualizadas"]}
-                filas={corridas.map((c) => ({
-                  clave: c.id,
-                  celdas: [
-                    haceCuanto(c.iniciado),
-                    c.programaNombre ?? "programa borrado",
-                    textoDeFuentesLeidas(c.fuentesLeidas),
-                    <Badge key="e" variant={c.estado === "error" ? "peligro" : "neutro"}>
-                      {c.estado}
-                    </Badge>,
-                    c.duracionSegundos === null ? "en curso" : `${num(c.duracionSegundos)} s`,
-                    num(c.filasLeidas),
-                    num(c.personasNuevas),
-                    num(c.personasActualizadas),
                   ],
                 }))}
               />
