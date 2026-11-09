@@ -273,7 +273,8 @@ describe("registrarLlamadaHistorica", () => {
     const r = await registrarLlamadaHistorica(db, { ...llamada, programId: programa, actorId: script });
     expect(r.estado).toBe("creado");
     const [fila] = await db.select().from(calls);
-    expect(fila).toMatchObject({ dealId: null, resultado: "show", origen: "sheets", closerId: "Maru" });
+    expect(fila).toMatchObject({ dealId: null, resultado: "show", origen: "sheets" });
+    expect(fila.notas).toContain("Closer (hoja): Maru");
   });
 
   it("colgada de su deal, no mueve la etapa, y la segunda corrida no duplica", async () => {
