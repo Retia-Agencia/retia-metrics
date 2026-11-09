@@ -19,6 +19,8 @@ import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agenda
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
 import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
+import { CifraDeRazon } from "@/components/cifra-de-razon";
+import { pct } from "@/lib/format";
 
 type Seccion = "hoy" | "comercial" | "dinero";
 const GRILLA = "grid gap-4 sm:grid-cols-2 xl:grid-cols-4";
@@ -130,8 +132,8 @@ function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
         <td className="text-right">{num(delDia.real)} / {delDia.meta === null ? "—" : num(delDia.meta, 1)}</td>
         <td className="text-right">{num(embudo.agendas)}</td>
         <td className="text-right">{num(embudo.llamadasConShow)}</td>
-        <td className="text-right">{tasa(embudo.pctShow)}</td>
-        <td className="text-right">{tasa(embudo.pctCierre)}</td>
+        <td className="text-right"><CifraDeRazon razon={embudo.razonShow} formato={pct} /></td>
+        <td className="text-right"><CifraDeRazon razon={embudo.razonCierre} formato={pct} /></td>
       </>;
     }} />;
 }
@@ -187,8 +189,8 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
     <TablaPorPrograma titulo="Tasas por programa" vista={vista} seccion="comercial"
       cabeceras={["Asistencia", "Cierre de ventas", "% realizadas sin Grain"]}
       celdas={(fila) => <>
-        <td className="text-right">{tasa(fila.pctShow.valor)}</td>
-        <td className="text-right">{tasa(fila.pctCierre.valor)}</td>
+        <td className="text-right"><CifraDeRazon razon={fila.razonShow} formato={pct} /></td>
+        <td className="text-right"><CifraDeRazon razon={fila.razonCierre} formato={pct} /></td>
         <td className="text-right">{tasa(fila.pctSinGrain.valor)}</td>
       </>} />
     {/* La escalera es una distribución: una tarjeta por programa, lado a lado, sin total ni % combinado (ADR 0048). */}

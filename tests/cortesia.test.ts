@@ -134,7 +134,7 @@ describe("cortesías en estudiantes y métricas", () => {
     await db.insert(calls).values({ programId, dealId: normal.id, fechaLlamada: new Date(), resultado: "show" });
 
     const embudo = await embudoDelRango({ programId, rango }, db);
-    expect(embudo).toMatchObject({ cierres: 1, pctCierre: 1 });
+    expect(embudo).toMatchObject({ cierres: 1, razonCierre: { valor: 1 } });
     expect(await comisionesPorCloser({ programId, rango }, db)).toEqual([
       expect.objectContaining({ closerId: "Ana", comisionUsd: 100, ventasSinComision: 0 }),
     ]);

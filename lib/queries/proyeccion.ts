@@ -10,6 +10,7 @@ import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
 import { grupoDeCitas, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
+import { razonVacia, valorSiCompleta, type RazonConCobertura } from "@/lib/cobertura";
 
 /** Las ventanas que se pueden escoger en pantalla (`?ritmo=`), en días hábiles. */
 export const OPCIONES_VENTANA_RITMO = [5, 10, 20] as const;
@@ -32,8 +33,8 @@ export const MUESTRA_MINIMA_CONVERSION = 20;
 export type OrigenConversion = "objetivo_cohorte" | "cohorte_anterior" | "cohorte_en_curso" | "sin_conversion";
 
 export interface ConversionElegida {
-  pctShow: number | null;
-  pctCierre: number | null;
+  razonShow: RazonConCobertura;
+  razonCierre: RazonConCobertura;
   /** Solo existe cuando manda el objetivo declarado agenda → venta. */
   objetivoAgendaAVenta: number | null;
   origen: OrigenConversion;
@@ -43,13 +44,13 @@ export interface ConversionElegida {
   muestra: { personas: number; shows: number; vendidos: number; pendientes: number } | null;
   /** La medición de la cohorte en curso todavía puede subir: hay citas recientes sin decidir. */
   madurando: boolean;
-  razonShow: string | null;
-  razonCierre: string | null;
+  motivoShow: string | null;
+  motivoCierre: string | null;
 }
 
 interface MedicionDeCohorte {
   codigo: string;
-  tasas: Pick<TasasDelGrupo, "deals" | "conShow" | "vendidos" | "pctShow" | "pctCierre">;
+  tasas: Pick<TasasDelGrupo, "deals" | "conShow" | "vendidos" | "razonShow" | "razonCierre">;
   pendientes: number;
 }
 
@@ -91,28 +92,28 @@ export function elegirConversion(args: {
         ? `Ninguno de los ${m.tasas.conShow} shows de ${m.codigo} ha comprado todavía, así que no hay con qué medir el % de cierre.`
         : null;
   const medida = (m: MedicionDeCohorte, origen: OrigenConversion, madurando: boolean): ConversionElegida => ({
-    pctShow: m.tasas.pctShow,
-    pctCierre: m.tasas.pctCierre,
+    razonShow: m.tasas.razonShow,
+    razonCierre: m.tasas.razonCierre,
     objetivoAgendaAVenta: null,
     origen,
     cohorteCodigo: m.codigo,
     muestra: muestraDe(m),
     madurando,
-    razonShow: null,
-    razonCierre: null,
+    motivoShow: null,
+    motivoCierre: null,
   });
   if (args.objetivo !== null && args.objetivo > 0) {
     const medidaShow = [args.anterior, args.enCurso].find((m) => !!m && m.tasas.deals >= muestraMinima) ?? null;
     return {
-      pctShow: medidaShow?.tasas.pctShow ?? null,
-      pctCierre: null,
+      razonShow: medidaShow?.tasas.razonShow ?? razonVacia(razonDeShow(args.enCurso ?? args.anterior) ?? "Sin citas en el periodo"),
+      razonCierre: razonVacia("El objetivo de la cohorte reemplaza la conversión medida"),
       objetivoAgendaAVenta: args.objetivo,
       origen: "objetivo_cohorte",
       cohorteCodigo: medidaShow?.codigo ?? null,
       muestra: medidaShow ? muestraDe(medidaShow) : null,
       madurando: medidaShow === args.enCurso ? args.enCurso?.madurando ?? false : false,
-      razonShow: medidaShow ? null : razonDeShow(args.enCurso ?? args.anterior),
-      razonCierre: null,
+      motivoShow: medidaShow ? null : razonDeShow(args.enCurso ?? args.anterior),
+      motivoCierre: null,
     };
   }
   if (args.anterior && alcanzaMuestra(args.anterior, muestraMinima)) return medida(args.anterior, "cohorte_anterior", false);
@@ -120,15 +121,15 @@ export function elegirConversion(args: {
 
   const enCurso = args.enCurso;
   return {
-    pctShow: null,
-    pctCierre: null,
+    razonShow: razonVacia(razonDeShow(enCurso) ?? "Sin citas en el periodo"),
+    razonCierre: razonVacia(razonDeCierre(enCurso) ?? "Sin shows en el periodo"),
     objetivoAgendaAVenta: null,
     origen: "sin_conversion",
     cohorteCodigo: enCurso?.codigo ?? null,
     muestra: enCurso ? muestraDe(enCurso) : null,
     madurando: false,
-    razonShow: razonDeShow(enCurso),
-    razonCierre: razonDeCierre(enCurso),
+    motivoShow: razonDeShow(enCurso),
+    motivoCierre: razonDeCierre(enCurso),
   };
 }
 
@@ -306,29 +307,32 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
       }))
       : noDisponible("La venta de esta cohorte ya cerró: no quedan días hábiles para repartir lo que falta.");
   const objetivo = datos.conversion.objetivoAgendaAVenta;
+  const pctShow = valorSiCompleta(datos.conversion.razonShow);
+  const pctCierre = valorSiCompleta(datos.conversion.razonCierre);
+  const motivoDeCobertura = (razon: RazonConCobertura, respaldo: string) => razon.motivo
+    ?? (razon.faltan > 0 ? `Faltan resultados de citas: ${razon.faltan} de ${razon.base + razon.faltan}` : respaldo);
   const agendasRequeridasDia = ventasRequeridasDia.valor === null
     ? noDisponible(ventasRequeridasDia.razon!)
     : ventasRequeridasDia.valor === 0
       ? disponible(0)
       : objetivo !== null && objetivo > 0
         ? disponible(ventasRequeridasDia.valor / objetivo)
-        : datos.conversion.pctCierre !== null && datos.conversion.pctCierre > 0
-          && datos.conversion.pctShow !== null && datos.conversion.pctShow > 0
-          ? disponible((ventasRequeridasDia.valor / datos.conversion.pctCierre) / datos.conversion.pctShow)
-          : noDisponible(datos.conversion.pctShow === null
-            ? datos.conversion.razonShow ?? "Todavía no sabemos qué porcentaje de las agendas llega al show."
-            : datos.conversion.razonCierre ?? "Todavía no sabemos qué porcentaje de los shows termina en venta.");
+        : pctCierre !== null && pctCierre > 0 && pctShow !== null && pctShow > 0
+          ? disponible((ventasRequeridasDia.valor / pctCierre) / pctShow)
+          : noDisponible(pctShow === null
+            ? datos.conversion.motivoShow ?? motivoDeCobertura(datos.conversion.razonShow, "Todavía no sabemos qué porcentaje de las agendas llega al show.")
+            : datos.conversion.motivoCierre ?? motivoDeCobertura(datos.conversion.razonCierre, "Todavía no sabemos qué porcentaje de los shows termina en venta."));
   const showsRequeridosDia = ventasRequeridasDia.valor === null
     ? noDisponible(ventasRequeridasDia.razon!)
     : ventasRequeridasDia.valor === 0
       ? disponible(0)
       : objetivo !== null
-        ? datos.conversion.pctShow !== null
-          ? disponible(agendasRequeridasDia.valor! * datos.conversion.pctShow)
-          : noDisponible(datos.conversion.razonShow ?? "Todavía no sabemos qué porcentaje de las agendas llega al show.")
-        : datos.conversion.pctCierre !== null && datos.conversion.pctCierre > 0
-          ? disponible(ventasRequeridasDia.valor / datos.conversion.pctCierre)
-          : noDisponible(datos.conversion.razonCierre ?? "Todavía no sabemos qué porcentaje de los shows termina en venta.");
+        ? pctShow !== null
+          ? disponible(agendasRequeridasDia.valor! * pctShow)
+          : noDisponible(datos.conversion.motivoShow ?? motivoDeCobertura(datos.conversion.razonShow, "Todavía no sabemos qué porcentaje de las agendas llega al show."))
+        : pctCierre !== null && pctCierre > 0
+          ? disponible(ventasRequeridasDia.valor / pctCierre)
+          : noDisponible(datos.conversion.motivoCierre ?? motivoDeCobertura(datos.conversion.razonCierre, "Todavía no sabemos qué porcentaje de los shows termina en venta."));
   const leadsRequeridosDia = agendasRequeridasDia.valor === null
     ? noDisponible(ventasRequeridasDia.valor !== null
       ? "Sale de las agendas por día, que todavía no se pueden calcular."

@@ -68,7 +68,7 @@ describe("353: el mismo set de citas da el mismo show en cada pantalla", () => {
     expect(showPorCita.realizadas).toBe(1);
     // Por deal: A tuvo show → 1 de 1 con resultado; B, C y D no tienen resultado.
     expect(vista.embudo.grupo.conShow).toBe(1);
-    expect(vista.embudo.pctShow).toBe(1);
+    expect(vista.embudo.razonShow.valor).toBe(1);
 
     const pauta = await pautaInterina(db, programId, { desde: DIA, hasta: DIA }, {}, DIA, ahora);
     expect(pauta.resumen.shows).toBe(showPorCita.realizadas);

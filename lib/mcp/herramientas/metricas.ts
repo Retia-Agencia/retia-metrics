@@ -19,9 +19,10 @@ import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp } from "./
 import { nombreCorto, nombreLargo, TITULOS_DE_LISTA } from "@/lib/vocabulario-metricas";
 import { aSalidaDeResumen, salidaDeResumen } from "@/lib/mcp/salidas/resumen";
 import { salidaDeConsultaDeMetrica } from "@/lib/mcp/salidas/metrica";
+import { textoDeRazon, type RazonConCobertura } from "@/lib/cobertura";
 
-function tasaLegible(nombre: string, valor: number | null, cobertura: number | null, parcial: boolean): string {
-  return `${nombre}: ${valor === null ? "—" : pct(valor)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
+function tasaLegible(nombre: string, razon: RazonConCobertura, cobertura: number | null, parcial: boolean): string {
+  return `${nombre}: ${textoDeRazon(razon, pct)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
 }
 
 const entradaResumen = z.object({ programa: z.string().min(1).max(100), ...camposDePeriodoMcp }).strict();
@@ -55,9 +56,9 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       `Vendido: ${monto(vista.dinero.vendido, "USD")}`,
       `${nombreCorto("entro_a_caja")}: ${caja.length ? caja.join(", ") : monto(0, "USD")}`,
       `${nombreCorto("citas")}: ${num(vista.embudo.agendas)} · ${nombreCorto("shows")}: ${num(vista.embudo.llamadasConShow)}`,
-      tasaLegible(nombreCorto("asistencia"), vista.embudo.pctShow, grupo.cobertura, grupo.parcial),
-      tasaLegible(nombreCorto("cierre_de_ventas"), vista.embudo.pctCierre, grupo.cobertura, grupo.parcial),
-      tasaLegible("Cita a venta", vista.embudo.agendaAVenta, grupo.cobertura, grupo.parcial),
+      tasaLegible(nombreCorto("asistencia"), vista.embudo.razonShow, grupo.cobertura, grupo.parcial),
+      tasaLegible(nombreCorto("cierre_de_ventas"), vista.embudo.razonCierre, grupo.cobertura, grupo.parcial),
+      `Cita a venta: ${vista.embudo.agendaAVenta === null ? "—" : pct(vista.embudo.agendaAVenta)} · cobertura ${grupo.cobertura === null ? "—" : pct(grupo.cobertura)}${grupo.parcial ? " (parcial)" : ""}`,
       enlace,
     ];
     return { texto: lineas.join("\n"), estructurado: aSalidaDeResumen(vista, { nombre: programa.nombre, slug: programa.slug }, enlace) };

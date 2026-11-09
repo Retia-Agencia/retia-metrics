@@ -3,7 +3,7 @@ id: 351
 etapa: hub
 serves: "ADR 0115 N3 · auditoría 30-oct C-01, C-02, C-13, R-06"
 depends: []
-status: todo
+status: done
 ---
 
 # 351 — Toda razón con su cobertura, y el gasto que falta
@@ -52,15 +52,14 @@ La captura del resultado de la llamada (341) y la reja de la comisión (356): aq
 - [x] Test de paridad: semáforo y ROAS convierten el mismo gasto al mismo total; una moneda no soportada es error, no 0.
   Evidencia: `tests/gasto-paridad.test.ts` (mismo gasto COP + USD con la misma TRM, y la ventana que empieza antes del gasto
   da costo `null` con `faltan`) y `tests/convertir-gasto.test.ts` (`EUR` lanza).
-- [ ] Ninguna tarjeta de razón recibe un `number` suelto (el tipo no lo deja).
-  **Sigue abierta (7-nov):** `razonShow`/`razonCierre`/`razonAgendaAVenta` ya existen en `TasasDelGrupo`, pero los `number`
-  (`pctShow`, `pctCierre`, `agendaAVenta`) siguen en dashboard, proyección, vista-todos, Mi espacio, MCP y las tarjetas de
-  Hoy; la lista nombrada de `tests/razon-con-cobertura-guardian.test.ts` (24 excepciones) es el pendiente exacto y se
-  cierra al migrarlas (385 F4/F7), no aquí.
-  **Mitad de pauta hecha:** la celda de ROAS solo pinta `<CifraDeRazon razon>` (`components/cifra-de-razon.tsx`) y
-  `RenglonRoas.roas` es `RazonConCobertura`. El costo por agenda expone `costoCobertura`, pero `costo` sigue como
-  `number | null` porque el contrato de WhatsApp es estricto: la tarjeta del semáforo y el mensaje lo pasan al tipo
-  junto con las tarjetas de Hoy y Comercial (353).
+- [x] Ninguna tarjeta de razón recibe un `number` suelto (el tipo no lo deja).
+  Evidencia (9-nov): `pctShow`/`pctCierre` ya no existen en dashboard, proyección, Mi espacio, vista de todos ni
+  `TasasDelGrupo`; viajan como `razonShow`/`razonCierre` (`RazonConCobertura`) y se pintan con `<CifraDeRazon>` o
+  `textoDeRazon`. La proyección solo usa una razón completa (`valorSiCompleta`; decisión de Mani del 9-nov: "bloquear con
+  —") y los textos explicativos pasaron a `motivoShow`/`motivoCierre` (N4). El MCP conserva su forma `{valor, cobertura,
+  parcial}`. `tests/razon-con-cobertura-guardian.test.ts` separa `NO_SON_RAZON` (permanente) de `EXCEPCIONES`; lo que
+  queda ahí apunta al 403 (embudos, escalera, banderas, `pctNoShow`, show por cita) o al contrato del semáforo
+  (`costoPorRegistro`, ADR 0089, cambia junto con Juanito).
 - [x] Recorrido de Hub › Pauta y Hoy con octubre: el ROAS dice desde cuándo hay gasto.
   Evidencia (30-oct, `dev:local` desde el worktree, que tiene `node_modules` copiado; base local con gasto pago sembrado
   solo del 15 al 30-sep, porque producción ya quedó cubierta con el backfill): con el periodo 1 al 30-sep, Total Paid

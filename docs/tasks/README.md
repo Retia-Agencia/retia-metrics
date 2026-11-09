@@ -302,7 +302,7 @@ a fase 2.
 | [x] | 263 | [La sincronización de pauta liviana](./263-la-sincronizacion-de-pauta-liviana.md) | 120, 245 | done · 14-oct · Codex + central · CI verde `85c5213` · corrida real 12,1 s (antes 2 min 18 s), 446 filas |
 | [ ] | 286 | [El top 10 de UTMs orgánicos cada 15 días](./286-top-10-de-utms-organicos.md) | 246, 262, 260 | todo · 19-oct · Juanito días 1 y 16 + Hub › Origen |
 | [ ] | 288 | [Hub › Cierres: las ventas por canal y plataforma](./288-hub-cierres-por-canal-y-plataforma.md) | 123, 250, 262 | todo · 19-oct · modelo de Daniel Tovar (artifact de 30X) |
-| [ ] | 351 | [Toda razón con su cobertura, y el gasto que falta](./351-toda-razon-con-su-cobertura.md) | — | todo · 30-oct · auditoría de métricas (C-01 ROAS con gasto desde el 8-oct) · ADR 0115 N3 · backfill con ok de Mani |
+| [x] | 351 | [Toda razón con su cobertura, y el gasto que falta](./351-toda-razon-con-su-cobertura.md) | — | done · 9-nov · 30-oct · auditoría de métricas (C-01 ROAS con gasto desde el 8-oct) · ADR 0115 N3 · backfill con ok de Mani |
 | [x] | 352 | [La venta tiene una definición, y la cohorte una cuenta](./352-venta-una-definicion-y-la-cohorte.md) | — | done · 3-nov · DA-1, DA-2, DA-5. Alcance 4 (C-17): muestra mínima y días de madurez son columnas de `programs`; sin pantalla de edición todavía |
 | [x] | 353 | [La llamada: show, no show y sin resultado, una vez cada uno](./353-la-llamada-show-no-show-y-sin-resultado.md) | — | done · 7-nov · DA-3 y DA-4 resueltas por Mani el 7-nov · falta checkpoint verde |
 | [x] | 354 | [Cada hecho con su día, y registro, lead y "sin UTM" una vez](./354-anclas-de-fecha-registros-y-sin-utm.md) | — | done · 7-nov · alcance 3 sale al 397 (decisión de Mani del 7-nov) · antes: 30-oct · auditoría (C-04 parciales sin fecha) |

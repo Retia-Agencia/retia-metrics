@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle, Di
 import type { DatosConfiguracionHoy } from "@/lib/queries/configuracion-de-hoy";
 import { num, pct } from "@/lib/format";
 import { definicion, nombreCorto } from "@/lib/vocabulario-metricas";
+import { textoDeRazon, type RazonConCobertura } from "@/lib/cobertura";
 
 /** Los números vivos de la cohorte, para que cada ejemplo del panel sea con sus cifras y no inventado. */
 export interface VivoDeHoy {
@@ -18,8 +19,8 @@ export interface VivoDeHoy {
   diasHabilesRestantes: number;
   ventasPorDia: number | null;
   leadsPorDia: number | null;
-  pctCierre: number | null;
-  pctShow: number | null;
+  razonCierre: RazonConCobertura;
+  razonShow: RazonConCobertura;
   objetivoAgendaAVenta: number | null;
   citasPorLead: number | null;
   origenDeLaTasa: string;
@@ -164,8 +165,8 @@ export function ConfiguracionHoy({ datos, enlace = false }: { datos: DatosDelPan
             titulo="De cada 100 citas, ¿cuántas deberían terminar en venta? (%)"
             sirve="Una promesa de conversión de cita a venta. Si la escribes, manda sobre lo que se mide."
             cambia={[{ texto: "leads que hacen falta", seccion: "leads-que-hacen-falta" }]}
-            ejemplo={`con 15 %, de 100 citas se esperan 15 ventas. Hoy lo medido es cierre ${p1(v.pctCierre)} × asistencia ${p1(v.pctShow)}.`}
-            ahora={v.objetivoAgendaAVenta !== null ? `${p1(v.objetivoAgendaAVenta)} (escrito por ustedes).` : `sin escribir: se usa lo medido (${v.origenDeLaTasa}): cierre ${p1(v.pctCierre)} y asistencia ${p1(v.pctShow)}.`}
+            ejemplo={`con 15 %, de 100 citas se esperan 15 ventas. Hoy lo medido es cierre ${textoDeRazon(v.razonCierre, pct)} × asistencia ${textoDeRazon(v.razonShow, pct)}.`}
+            ahora={v.objetivoAgendaAVenta !== null ? `${p1(v.objetivoAgendaAVenta)} (escrito por ustedes).` : `sin escribir: se usa lo medido (${v.origenDeLaTasa}): cierre ${textoDeRazon(v.razonCierre, pct)} y asistencia ${textoDeRazon(v.razonShow, pct)}.`}
             verEnInfo={verEnInfo}
           ><input className={claseInput} type="number" min="0" max="100" step="0.01" value={objetivo} disabled={!datos.cohorte} onChange={(e) => setObjetivo(e.target.value)} /></Campo>
           <Campo

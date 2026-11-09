@@ -3,13 +3,13 @@ import { calls, deals, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
-import { ocurrio, showPorDeal } from "@/lib/deals/resultados-de-llamada";
+import { ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { semanasDelRango } from "@/lib/rangos";
 import { fechaAnclaCall } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
 import type { Rango } from "@/lib/queries/dashboard";
-import { razon, type RazonConCobertura } from "@/lib/cobertura";
+import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
 /**
  * Las tasas del embudo comercial sobre el MISMO grupo de personas (ADR 0079, ticket 187).
@@ -83,13 +83,10 @@ export interface TasasDelGrupo {
   sinMarcar: number;
   cobertura: number | null;
   parcial: boolean;
-  pctShow: number | null;
-  pctCierre: number | null;
   agendaAVenta: number | null;
   /**
-   * Las mismas tres razones con su cobertura (351, N3): `faltan` son las citas pasadas sin resultado, que no
-   * cuentan como no-show. La pantalla decide "parcial" con `estadoDeCobertura`; los `number` de arriba siguen
-   * mientras los consumidores migran (excepciones del guardián).
+   * Las tres razones con su cobertura (351, N3): `faltan` son las citas pasadas sin resultado, que no
+   * cuentan como no-show. La pantalla decide "parcial" con `estadoDeCobertura`.
    */
   razonShow: RazonConCobertura;
   razonCierre: RazonConCobertura;
@@ -124,11 +121,13 @@ function tasasDe(miembros: readonly MiembroDelGrupo[], sinMarcar = 0): TasasDelG
     sinMarcar,
     cobertura: dividir(miembros.length, universo),
     parcial: dividir(sinMarcar, universo) !== null && sinMarcar / universo > UMBRAL_SIN_MARCAR,
-    pctShow: showPorDeal(conShow, miembros.length),
-    pctCierre: dividir(vendidos, conShow),
     agendaAVenta: dividir(vendidos, miembros.length),
-    razonShow: razon(conShow, miembros.length, cobertura(miembros.length)),
-    razonCierre: razon(vendidos, conShow, cobertura(conShow)),
+    razonShow: miembros.length === 0
+      ? razonVacia("Sin citas en el periodo")
+      : razon(conShow, miembros.length, cobertura(miembros.length)),
+    razonCierre: conShow === 0
+      ? razonVacia("Sin shows en el periodo")
+      : razon(vendidos, conShow, cobertura(conShow)),
     razonAgendaAVenta: razon(vendidos, miembros.length, cobertura(miembros.length)),
   };
 }

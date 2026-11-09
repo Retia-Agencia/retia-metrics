@@ -26,6 +26,8 @@ import {
 } from "@/lib/queries/vista-metrica";
 import { Caja, Tabla } from "@/components/dashboard/piezas";
 import { nombreCorto, nombreLargo } from "@/lib/vocabulario-metricas";
+import { CifraDeRazon } from "@/components/cifra-de-razon";
+import { textoDeRazon } from "@/lib/cobertura";
 
 const formatearTasa = (valor: number | null) => valor === null ? "—" : pct(valor);
 
@@ -71,7 +73,7 @@ export function Comparativo({ vista, detalles, titulo = "¿Cómo va cada closer?
     {vista.comparativo.length === 0 ? <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p> : <div className="overflow-x-auto"><Tabla cabeceras={["Closer", nombreCorto("citas"), nombreCorto("asistencia"), nombreCorto("ventas"), nombreCorto("cierre_de_ventas"), nombreCorto("entro_a_caja")] }>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
-        return <tr key={fila.clave}><td className="py-2">{fila.closerId ?? "Sin closer"}</td><td className="cifra text-right"><Celda titulo={nombreLargo("citas")} detalle={c?.agendas}>{num(fila.agendas)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("asistencia")} detalle={c?.grupo_citas}>{formatearTasa(fila.pctShow)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("ventas")} detalle={c?.cierres}>{num(fila.cierres)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}>{formatearTasa(fila.pctCierre)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("entro_a_caja")} detalle={c?.caja}><Caja caja={fila.caja} /></Celda></td></tr>;
+        return <tr key={fila.clave}><td className="py-2">{fila.closerId ?? "Sin closer"}</td><td className="cifra text-right"><Celda titulo={nombreLargo("citas")} detalle={c?.agendas}>{num(fila.agendas)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("asistencia")} detalle={c?.grupo_citas}><CifraDeRazon razon={fila.razonShow} formato={pct} /></Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("ventas")} detalle={c?.cierres}>{num(fila.cierres)}</Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}><CifraDeRazon razon={fila.razonCierre} formato={pct} /></Celda></td><td className="cifra text-right"><Celda titulo={nombreLargo("entro_a_caja")} detalle={c?.caja}><Caja caja={fila.caja} /></Celda></td></tr>;
       })}
     </Tabla></div>}
   </CardContent></Card>;
@@ -152,8 +154,8 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
         return <tr key={fila.clave}>
           <td className="py-2">{fila.closerId ?? "Sin closer"}</td>
           <td className="cifra text-right"><Celda titulo={nombreLargo("citas")} detalle={c?.agendas}>{fila.agendas ? num(fila.agendas) : "—"}</Celda></td>
-          <td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}>{tasa(fila.pctShow)}</Celda></td>
-          <td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}>{tasa(fila.pctCierre)}</Celda></td>
+          <td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}><CifraDeRazon razon={fila.razonShow} formato={pct} /></Celda></td>
+          <td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}><CifraDeRazon razon={fila.razonCierre} formato={pct} /></Celda></td>
           <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
           <td className="w-56 min-w-44 px-4 text-right">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
           <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
@@ -217,8 +219,8 @@ export function Operacion({
       {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi titulo={nombreCorto("citas")} valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
-        <Kpi titulo={nombreCorto("asistencia")} valor={formatearTasa(vista.embudo.pctShow)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
-        <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={formatearTasa(vista.embudo.pctCierre)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo={nombreCorto("asistencia")} valor={textoDeRazon(vista.embudo.razonShow, pct)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={textoDeRazon(vista.embudo.razonCierre, pct)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
         <Kpi titulo="Cita → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
       </div>
     </CardContent></Card>

@@ -70,7 +70,7 @@ describe("read model de Mis métricas", () => {
       agendas: dashboard.embudo.agendas,
       shows: dashboard.embudo.llamadasConShow,
       cierres: dashboard.embudo.cierres,
-      pctCierre: dashboard.embudo.pctCierre,
+      razonCierre: dashboard.embudo.razonCierre,
       caja: dashboard.caja,
       noShows: 1,
     });

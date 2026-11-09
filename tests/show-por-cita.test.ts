@@ -30,7 +30,7 @@ describe("% de show por cita en Hub › Hoy", () => {
 
     const { vista, showPorCita } = await armarVistaDeHoy({ programId: programa.id, dia, ahora }, db);
     expect(showPorCita).toMatchObject({ citasDelDia: 2, citasQueYaDebianOcurrir: 2, realizadas: 1, porcentaje: 0.5 });
-    expect(vista.embudo.pctShow).toBe(1);
+    expect(vista.embudo.razonShow.valor).toBe(1);
 
     const filtros = { programId: programa.id, rango: { desde: dia, hasta: dia }, hoy: dia, ahora };
     const total = async (metrica: "citas_debidas" | "shows") =>

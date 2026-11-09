@@ -117,12 +117,13 @@ describe("herramientas MCP de métricas", () => {
     });
     const estructurado = salida.estructurado as {
       cifras: { ventas: { valor: number }; vendido: { valor: number } };
-      tasas: { cita_a_venta: { valor: number | null } };
+      tasas: { asistencia: { valor: number | null }; cita_a_venta: { valor: number | null } };
     };
 
     expect(pagina.embudo.cierres).toBe(1);
     expect(estructurado.cifras.ventas.valor).toBe(pagina.embudo.cierres);
     expect(estructurado.cifras.vendido.valor).toBe(pagina.dinero.vendido);
+    expect(estructurado.tasas.asistencia.valor).toBe(pagina.embudo.razonShow.valor);
     expect(estructurado.tasas.cita_a_venta.valor).toBe(pagina.embudo.agendaAVenta);
     expect(resumenDelHubMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(Object.keys(salida.estructurado)).not.toContain("vista");

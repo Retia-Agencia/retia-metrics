@@ -23,6 +23,7 @@ import {
 import { nombreDeEtapa, type DetalleDeCifra } from "@/lib/queries/vista-metrica";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { sumarDineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import type { RazonConCobertura } from "@/lib/cobertura";
 
 const METRICAS = ["leads", "agendas", "shows", "shows_sin_grain", "sin_resultado", "cierres", "contratado", "caja"] as const;
 type MetricaDeTodos = (typeof METRICAS)[number];
@@ -46,8 +47,8 @@ interface TotalesDePeriodo {
 
 export interface FilaDePrograma {
   programa: ProgramaVisible;
-  pctShow: Tasa;
-  pctCierre: Tasa;
+  razonShow: RazonConCobertura;
+  razonCierre: RazonConCobertura;
   pctSinGrain: Tasa;
   metaCupos: Conteo | null;
   metaDinamica: Conteo | null;
@@ -178,8 +179,8 @@ export async function armarVistaDeTodos(
       const { embudo, sinGrain, cohorte } = dashboard;
       return {
         programa,
-        pctShow: tasa(embudo.pctShow),
-        pctCierre: tasa(embudo.pctCierre),
+        razonShow: embudo.razonShow,
+        razonCierre: embudo.razonCierre,
         pctSinGrain: tasa(sinGrain.pct),
         metaCupos: cohorte ? conteo(cohorte.meta) : null,
         metaDinamica: cohorte?.ventana ? conteo(cohorte.ventana.metaDinamica) : null,

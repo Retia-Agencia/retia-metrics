@@ -112,11 +112,11 @@ describe("ticket 187: el grupo de citas", () => {
     const embudo = await embudoDelRango({ programId: programaA, rango: S1 }, db, AHORA);
 
     expect(embudo.grupo).toMatchObject({ deals: 4, conShow: 2, vendidos: 1 });
-    expect(embudo.pctShow).toBe(0.5);
-    expect(embudo.pctCierre).toBe(0.5);
+    expect(embudo.razonShow.valor).toBe(0.5);
+    expect(embudo.razonCierre.valor).toBe(0.5);
     expect(embudo.agendaAVenta).toBe(0.25);
-    expect(embudo.pctShow! * embudo.pctCierre!).toBeCloseTo(embudo.agendaAVenta!);
-    for (const t of [embudo.pctShow, embudo.pctCierre, embudo.agendaAVenta]) expect(t!).toBeLessThanOrEqual(1);
+    expect(embudo.razonShow.valor! * embudo.razonCierre.valor!).toBeCloseTo(embudo.agendaAVenta!);
+    for (const t of [embudo.razonShow.valor, embudo.razonCierre.valor, embudo.agendaAVenta]) expect(t!).toBeLessThanOrEqual(1);
   });
 
   it("el show de la semana pasada con venta hoy cuenta en la semana pasada, no en esta", async () => {
@@ -126,7 +126,7 @@ describe("ticket 187: el grupo de citas", () => {
     expect(esta.grupo).toMatchObject({ deals: 1, conShow: 1, vendidos: 0 });
     // Las cantidades no cambian: la venta de d1 es del 1-oct y cuenta en el periodo de esta semana.
     expect(esta.cierres).toBe(1);
-    expect(esta.pctCierre).toBe(0);
+    expect(esta.razonCierre.valor).toBe(0);
   });
 
   it("la cita futura no entra aunque caiga en el rango", async () => {
@@ -138,9 +138,9 @@ describe("ticket 187: el grupo de citas", () => {
     const ana187 = await embudoDelRango({ programId: programaA, rango: S1, claveCloser: ana }, db, AHORA);
     const beto187 = await embudoDelRango({ programId: programaA, rango: S1, claveCloser: beto }, db, AHORA);
     expect(ana187.grupo).toMatchObject({ deals: 2, conShow: 2, vendidos: 1 });
-    expect(ana187.pctCierre).toBe(0.5);
+    expect(ana187.razonCierre.valor).toBe(0.5);
     expect(beto187.grupo).toMatchObject({ deals: 2, conShow: 0, vendidos: 0 });
-    expect(beto187.pctCierre).toBeNull();
+    expect(beto187.razonCierre.valor).toBeNull();
   });
 
   it("el comparativo, el dashboard filtrado y Mi espacio dan el mismo número", async () => {
@@ -154,9 +154,9 @@ describe("ticket 187: el grupo de citas", () => {
       { programa: { id: programaA, slug: "a", nombre: "A" }, closerUserId: ana, hoy: HOY, periodo: { preset: "custom", a: S1 }, origen: "/mi-espacio?tab=metricas" },
       db,
     );
-    expect(deAna.pctCierre).toBe(0.5);
-    expect(dashboard.embudo.pctCierre).toBe(0.5);
-    expect(miEspacio.a.pctCierre).toBe(0.5);
+    expect(deAna.razonCierre.valor).toBe(0.5);
+    expect(dashboard.embudo.razonCierre.valor).toBe(0.5);
+    expect(miEspacio.a.razonCierre.valor).toBe(0.5);
     expect(miEspacio.detalles.grupoVendidos.resumen.subtotal.cantidad).toBe(1);
   });
 
@@ -235,7 +235,7 @@ describe("ticket 187: la cuenta pura", () => {
     expect(grupo.tasas).toMatchObject({ deals: 1, conShow: 1, vendidos: 1, pendientes: 1 });
     expect(pendientesDe(grupo, "u2")).toHaveLength(1);
     expect(grupo.porCloser.get("u2")).toMatchObject({ deals: 0, pendientes: 1 });
-    expect(grupo.tasas.pctShow! * grupo.tasas.pctCierre!).toBeCloseTo(grupo.tasas.agendaAVenta!);
+    expect(grupo.tasas.razonShow.valor! * grupo.tasas.razonCierre.valor!).toBeCloseTo(grupo.tasas.agendaAVenta!);
   });
 
   it("informa cobertura parcial con dos deals marcados y uno sin marcar, también por closer", () => {
@@ -257,7 +257,7 @@ describe("ticket 187: la cuenta pura", () => {
       pendientes: 1,
       cobertura: 2 / 3,
       parcial: true,
-      pctShow: 1 / 2,
+      razonShow: { valor: 1 / 2 },
     });
     expect(grupo.porCloser.get("u1")).toMatchObject({ sinMarcar: 1, cobertura: 2 / 3, parcial: true });
   });

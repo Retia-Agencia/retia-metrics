@@ -9,6 +9,7 @@ import type {
   ValorDeProyeccion,
   VentanaRitmo,
 } from "@/lib/queries/proyeccion";
+import { textoDeRazon } from "@/lib/cobertura";
 
 /** Un enlace por ventana de ritmo; los arma la página con la URL actual (`?ritmo=`). */
 export interface EnlaceDeVentana {
@@ -131,10 +132,10 @@ export function Proyeccion({ datos, ventanas = [] }: { datos: ProyeccionDeCohort
               <Paso
                 dato={datos.showsRequeridosDia}
                 unidad="shows"
-                explicacion={conversion.pctCierre !== null
-                  ? `${pct(conversion.pctCierre)} de los shows termina en venta (${origenDelCierre(conversion)})`
-                  : conversion.objetivoAgendaAVenta !== null && conversion.pctShow !== null
-                    ? `${pct(conversion.pctShow)} de las agendas llega al show (${origenDelShow(conversion)})`
+                explicacion={conversion.razonCierre.valor !== null
+                  ? `${textoDeRazon(conversion.razonCierre, pct)} de los shows termina en venta (${origenDelCierre(conversion)})`
+                  : conversion.objetivoAgendaAVenta !== null && conversion.razonShow.valor !== null
+                    ? `${textoDeRazon(conversion.razonShow, pct)} de las agendas llega al show (${origenDelShow(conversion)})`
                     : null}
               />
               <Flecha />
@@ -143,7 +144,7 @@ export function Proyeccion({ datos, ventanas = [] }: { datos: ProyeccionDeCohort
                 unidad="agendas"
                 explicacion={conversion.objetivoAgendaAVenta !== null
                   ? `${pct(conversion.objetivoAgendaAVenta)} de las agendas termina en venta (según el objetivo de la cohorte)`
-                  : conversion.pctShow === null ? null : `${pct(conversion.pctShow)} de las agendas llega al show (${origenDelShow(conversion)})`}
+                  : conversion.razonShow.valor === null ? null : `${textoDeRazon(conversion.razonShow, pct)} de las agendas llega al show (${origenDelShow(conversion)})`}
               />
               <Flecha />
               <Paso

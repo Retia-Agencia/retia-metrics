@@ -4,6 +4,8 @@ import { BarraDeEjemplo, Formula, Frase, Palabras, Pasos } from "@/components/hu
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
 import { num } from "@/lib/format";
 import { definicion, nombreCorto, nombreLargo } from "@/lib/vocabulario-metricas";
+import { textoDeRazon } from "@/lib/cobertura";
+import { pct } from "@/lib/format";
 
 /**
  * Lo que explica el botón Info de Hoy (378): una tarjeta por sección, en el orden de la página y con las
@@ -26,8 +28,8 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
       ...(c.objetivoAgendaAVenta !== null
         ? [{ operador: "÷" as const, nombre: "De cada 100 citas, las que terminan en venta", valor: tasa(c.objetivoAgendaAVenta), origen: `Objetivo escrito en Configuración (${origen})` }]
         : [
-          { operador: "÷" as const, nombre: nombreLargo("cierre_de_ventas"), valor: tasa(c.pctCierre), origen: `${origen}${muestra ? ` · ${muestra}` : ""}` },
-          { operador: "÷" as const, nombre: nombreLargo("asistencia"), valor: tasa(c.pctShow), origen },
+          { operador: "÷" as const, nombre: nombreLargo("cierre_de_ventas"), valor: textoDeRazon(c.razonCierre, pct), origen: `${origen}${muestra ? ` · ${muestra}` : ""}` },
+          { operador: "÷" as const, nombre: nombreLargo("asistencia"), valor: textoDeRazon(c.razonShow, pct), origen },
         ]),
       { operador: "÷" as const, nombre: "Citas por cada lead", valor: tasa(p.supuestos.agendasPorRegistro), origen: `${num(p.supuestos.agendasVentana)} citas de ${num(p.supuestos.registrosVentana)} leads en los últimos ${num(p.supuestos.diasHabilesVentana)} días hábiles` },
     ];
@@ -74,7 +76,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
             { nombre: "Personas que asistieron", valor: num(e.grupo.conShow) },
             { operador: "÷", nombre: "Personas con cita que ya ocurrió y resultado marcado", valor: num(e.grupo.deals), origen: "Una persona cuenta una vez aunque haya reagendado; las citas sin resultado quedan fuera" },
           ]}
-          resultado={{ nombre: nombreLargo("asistencia"), valor: tasa(e.pctShow) }}
+          resultado={{ nombre: nombreLargo("asistencia"), valor: textoDeRazon(e.razonShow, pct) }}
         /> : null}
         {uno ? <Formula
           renglones={[
@@ -88,7 +90,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
             { nombre: "Personas que asistieron y compraron", valor: num(e.grupo.vendidos) },
             { operador: "÷", nombre: "Personas que asistieron", valor: num(e.grupo.conShow) },
           ]}
-          resultado={{ nombre: nombreLargo("cierre_de_ventas"), valor: tasa(e.pctCierre) }}
+          resultado={{ nombre: nombreLargo("cierre_de_ventas"), valor: textoDeRazon(e.razonCierre, pct) }}
         /> : null}
         {uno && uno.showPorCita.sinMarcar > 0
           ? <Frase>Parcial: {num(uno.showPorCita.sinMarcar)} de las {num(uno.showPorCita.citasQueYaDebianOcurrir)} citas siguen sin resultado marcado por el closer. No son no shows: son datos que faltan. Si ninguna tiene resultado, la asistencia se ve como —.</Frase>

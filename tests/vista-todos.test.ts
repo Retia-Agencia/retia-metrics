@@ -123,10 +123,7 @@ describe("vista de todos los programas", () => {
     const vista = await armarVistaDeTodos({ programas, hoy: HOY, periodo: { preset: "hoy" }, origen: "/hub?seccion=hoy" }, db);
 
     expect(vista.programas).toHaveLength(2);
-    expect(vista.programas.map((p) => p.pctShow)).toEqual([
-      { tipo: "tasa", valor: 0.5 },
-      { tipo: "tasa", valor: 1 },
-    ]);
+    expect(vista.programas.map((p) => p.razonShow.valor)).toEqual([0.5, 1]);
     expect(vista.programas.map((p) => p.metaCupos?.valor)).toEqual([10, 11]);
     expect(vista.programas.map((p) => p.comision)).toEqual([
       { tipo: "dinero", moneda: "USD", valor: 79.7 },
@@ -164,7 +161,7 @@ describe("vista de todos los programas", () => {
     expect(vista.a.dinero.vendido).toBeGreaterThanOrEqual(vista.a.dinero.recaudado + vista.a.dinero.porCobrar - vista.a.dinero.sobrepago - 0.005);
     expect(vista.sinValorVendido.valor).toBe(suma((v) => v.sinValorVendido));
     // Tasas, comisión y descuento siguen por programa, iguales a los del dashboard propio.
-    expect(vista.programas.map((p) => p.pctCierre.valor)).toEqual(propios.map((v) => v.embudo.pctCierre));
+    expect(vista.programas.map((p) => p.razonCierre.valor)).toEqual(propios.map((v) => v.embudo.razonCierre.valor));
     expect(vista.programas.map((p) => p.comision.valor)).toEqual(propios.map((v) => v.comision.totalUsd));
     expect(vista.programas.map((p) => p.descuento.valor)).toEqual(propios.map((v) => v.descuento.promedioPct));
   });

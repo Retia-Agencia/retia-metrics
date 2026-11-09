@@ -52,8 +52,8 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, programaVisible: Prog
     },
     entro_a_caja: vista.caja.map(({ moneda, total }) => ({ moneda, total })),
     tasas: {
-      asistencia: { valor: vista.embudo.pctShow, cobertura: grupo.cobertura, parcial: grupo.parcial },
-      cierre_de_ventas: { valor: vista.embudo.pctCierre, cobertura: grupo.cobertura, parcial: grupo.parcial },
+      asistencia: { valor: vista.embudo.razonShow.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
+      cierre_de_ventas: { valor: vista.embudo.razonCierre.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
       cita_a_venta: { valor: vista.embudo.agendaAVenta, cobertura: grupo.cobertura, parcial: grupo.parcial },
     },
   };

@@ -26,8 +26,8 @@ const medida = (codigo: string, deals: number, vendidos: number, shows = deals, 
     deals,
     conShow: shows,
     vendidos,
-    pctShow: deals === 0 ? null : shows / deals,
-    pctCierre: shows === 0 ? null : vendidos / shows,
+    razonShow: { valor: deals === 0 ? null : shows / deals, base: deals, faltan: pendientes, motivo: pendientes ? `${pendientes} citas sin resultado` : null },
+    razonCierre: { valor: shows === 0 ? null : vendidos / shows, base: shows, faltan: pendientes, motivo: pendientes ? `${pendientes} citas sin resultado` : null },
   },
 });
 
@@ -88,7 +88,7 @@ describe("proyección", () => {
     expect(resultado.ventasRequeridasDia.valor).toBeCloseTo(22 / 9);
     expect(resultado.showsRequeridosDia.valor).toBeCloseTo((22 / 9) / (10 / 32));
     expect(resultado.agendasRequeridasDia.valor).toBeCloseTo((22 / 9) / (10 / 32) / (32 / 70));
-    expect(conversion.pctShow! * conversion.pctCierre!).toBeCloseTo(10 / 70);
+    expect(conversion.razonShow.valor! * conversion.razonCierre.valor!).toBeCloseTo(10 / 70);
   });
 
   it("con la meta cumplida pide cero y no reparte nada", () => {
@@ -129,7 +129,7 @@ describe("la muestra mínima es del programa (352, C-17)", () => {
     expect(elegirConversion({ objetivo: null, anterior: corta, enCurso: null }).origen).toBe("sin_conversion");
     const propia = elegirConversion({ objetivo: null, anterior: corta, enCurso: null, muestraMinima: 10 });
     expect(propia.origen).toBe("cohorte_anterior");
-    expect(elegirConversion({ objetivo: 0.25, anterior: medida("C2", 12, 3), enCurso: null, muestraMinima: 15 }).razonShow)
+    expect(elegirConversion({ objetivo: 0.25, anterior: medida("C2", 12, 3), enCurso: null, muestraMinima: 15 }).motivoShow)
       .toContain("hacen falta 15");
   });
 });
@@ -138,11 +138,11 @@ describe("la conversión agenda → venta", () => {
   it("prefiere el objetivo, luego la cohorte anterior y luego la cohorte en curso", () => {
     const anterior = medida("C2", 40, 10);
     const enCurso = { ...medida("C3", 30, 3), madurando: true };
-    expect(elegirConversion({ objetivo: 0.3, anterior, enCurso })).toMatchObject({ objetivoAgendaAVenta: 0.3, pctShow: 1, origen: "objetivo_cohorte" });
-    expect(elegirConversion({ objetivo: null, anterior, enCurso })).toMatchObject({ pctShow: 1, pctCierre: 10 / 40, origen: "cohorte_anterior", cohorteCodigo: "C2" });
+    expect(elegirConversion({ objetivo: 0.3, anterior, enCurso })).toMatchObject({ objetivoAgendaAVenta: 0.3, razonShow: { valor: 1 }, origen: "objetivo_cohorte" });
+    expect(elegirConversion({ objetivo: null, anterior, enCurso })).toMatchObject({ razonShow: { valor: 1 }, razonCierre: { valor: 10 / 40 }, origen: "cohorte_anterior", cohorteCodigo: "C2" });
     expect(elegirConversion({ objetivo: null, anterior: null, enCurso })).toMatchObject({
-      pctShow: 1,
-      pctCierre: 3 / 30,
+      razonShow: { valor: 1 },
+      razonCierre: { valor: 3 / 30 },
       origen: "cohorte_en_curso",
       cohorteCodigo: "C3",
       muestra: { personas: 30, shows: 30, vendidos: 3, pendientes: 0 },
@@ -152,21 +152,32 @@ describe("la conversión agenda → venta", () => {
 
   it("no usa una medición con menos de la muestra mínima ni sin ventas", () => {
     const corta = elegirConversion({ objetivo: null, anterior: medida("C2", MUESTRA_MINIMA_CONVERSION - 1, 5), enCurso: { ...medida("C3", MUESTRA_MINIMA_CONVERSION - 1, 5), madurando: true } });
-    expect(corta.pctShow).toBeNull();
-    expect(corta.razonShow).toContain(`van ${MUESTRA_MINIMA_CONVERSION - 1} personas`);
+    expect(corta.razonShow.valor).toBeNull();
+    expect(corta.motivoShow).toContain(`van ${MUESTRA_MINIMA_CONVERSION - 1} personas`);
 
     const justa = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C3", MUESTRA_MINIMA_CONVERSION, 4), madurando: false } });
-    expect(justa.pctCierre).toBe(4 / MUESTRA_MINIMA_CONVERSION);
+    expect(justa.razonCierre.valor).toBe(4 / MUESTRA_MINIMA_CONVERSION);
 
     const sinVentas = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C3", 25, 0), madurando: false } });
-    expect(sinVentas.pctCierre).toBeNull();
-    expect(sinVentas.razonCierre).toContain("Ninguno de los 25 shows de C3 ha comprado todavía");
+    expect(sinVentas.razonCierre.valor).toBeNull();
+    expect(sinVentas.motivoCierre).toContain("Ninguno de los 25 shows de C3 ha comprado todavía");
   });
 
   it("nombra los pendientes cuando dejan corta la muestra", () => {
     const conversion = elegirConversion({ objetivo: null, anterior: null, enCurso: { ...medida("C3", 10, 1, 5, 221), madurando: true } });
-    expect(conversion.razonShow).toContain("En C3 hay 221 citas pasadas sin resultado");
+    expect(conversion.motivoShow).toContain("En C3 hay 221 citas pasadas sin resultado");
     expect(calcularProyeccion({ ...cohorte, conversion }).agendasRequeridasDia.razon).toContain("cuando se registren se puede medir");
+  });
+
+  it("bloquea la proyección con cobertura parcial y conserva el cálculo con cobertura completa", () => {
+    const parcial = elegirConversion({ objetivo: null, anterior: medida("C3", 3, 1, 3, 7), enCurso: null, muestraMinima: 1 });
+    const bloqueada = calcularProyeccion({ ...cohorte, conversion: parcial });
+    expect(bloqueada.agendasRequeridasDia.valor).toBeNull();
+    expect(bloqueada.agendasRequeridasDia.razon).toContain("7 citas sin resultado");
+
+    const completa = elegirConversion({ objetivo: null, anterior: medida("C3", 10, 2, 5), enCurso: null, muestraMinima: 1 });
+    const calculada = calcularProyeccion({ ...cohorte, conversion: completa });
+    expect(calculada.agendasRequeridasDia.valor).toBeCloseTo((20 / 11) / (2 / 5) / (5 / 10));
   });
 
   it("dice en pantalla de dónde salió la conversión", () => {
@@ -271,8 +282,8 @@ describe("leerProyeccion contra la base", () => {
     expect(resultado.supuestos.conversion).toMatchObject({
       origen: "cohorte_en_curso",
       cohorteCodigo: "C3",
-      pctShow: 1,
-      pctCierre: 5 / MUESTRA_MINIMA_CONVERSION,
+      razonShow: { valor: 1 },
+      razonCierre: { valor: 5 / MUESTRA_MINIMA_CONVERSION },
       muestra: { personas: MUESTRA_MINIMA_CONVERSION, shows: MUESTRA_MINIMA_CONVERSION, vendidos: 5, pendientes: 0 },
       madurando: true,
     });
@@ -289,7 +300,7 @@ describe("leerProyeccion contra la base", () => {
   it("con menos de la muestra mínima no inventa la conversión", async () => {
     const programId = await sembrar(MUESTRA_MINIMA_CONVERSION - 1, 5);
     const resultado = await leerProyeccion({ programId, hoy: "2026-10-21", ahora: new Date("2026-10-21T18:00:00-05:00") }, db);
-    expect(resultado.supuestos.conversion.pctShow).toBeNull();
+    expect(resultado.supuestos.conversion.razonShow.valor).toBeNull();
     expect(resultado.agendasRequeridasDia.razon).toContain(`van ${MUESTRA_MINIMA_CONVERSION - 1} personas con cita`);
   });
 });

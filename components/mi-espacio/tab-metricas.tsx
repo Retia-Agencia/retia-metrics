@@ -13,6 +13,7 @@ import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { textoDeVariacionDeTasa } from "@/lib/variacion";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
+import { CifraDeRazon } from "@/components/cifra-de-razon";
 
 type Busqueda = Record<string, string | string[] | undefined>;
 
@@ -34,9 +35,9 @@ function TarjetaTasa({ vista }: { vista: VistaDeMisMetricas }) {
       <CardHeader className="pb-2"><CardTitle className="text-sm">% de cierre sobre atendidas</CardTitle></CardHeader>
       <CardContent className="space-y-2">
         <CifraConLista titulo="Con show y vendidos hoy" detalle={vista.detalles.grupoVendidos}>
-          <span className="cifra text-2xl font-semibold">{vista.a.pctCierre === null ? "—" : pct(vista.a.pctCierre)}</span>
+          <span className="cifra text-2xl font-semibold"><CifraDeRazon razon={vista.a.razonCierre} formato={pct} /></span>
         </CifraConLista>
-        {vista.b ? <p className="cifra text-xs text-muted-foreground">{textoDeVariacionDeTasa(vista.a.pctCierre, vista.b.pctCierre)}</p> : null}
+        {vista.b ? <p className="cifra text-xs text-muted-foreground">{textoDeVariacionDeTasa(vista.a.razonCierre.valor, vista.b.razonCierre.valor)}</p> : null}
         {vista.a.pendientesDeResultado > 0 ? (
           <p className="text-xs text-muted-foreground">
             <CifraConLista titulo="Citas pasadas sin resultado" detalle={vista.detalles.grupoPendientes}>{num(vista.a.pendientesDeResultado)}</CifraConLista>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
-import { Caja, tasa } from "@/components/dashboard/piezas";
+import { Caja } from "@/components/dashboard/piezas";
 import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 import { CuentaDeAsistencia, Ficha, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
 import { BarraDeAvance } from "@/components/hub/barra-de-avance";
@@ -8,6 +8,8 @@ import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
 import { num } from "@/lib/format";
 import { metaDeLeads } from "@/lib/queries/proyeccion";
 import { nombreCorto, nombreLargo } from "@/lib/vocabulario-metricas";
+import { CifraDeRazon } from "@/components/cifra-de-razon";
+import { pct } from "@/lib/format";
 
 /**
  * Las cuatro cifras de entrada de Hoy (378). Cada una abre su lista y dice contra qué se mide: si el
@@ -69,7 +71,7 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
           <Ficha
             titulo={nombreLargo("asistencia")}
             ayuda="embudo"
-            valor={<CifraConLista titulo="Personas con cita que ya ocurrió" detalle={detalles?.grupo_citas}>{tasa(reporte.vista.embudo.pctShow)}</CifraConLista>}
+            valor={<CifraConLista titulo="Personas con cita que ya ocurrió" detalle={detalles?.grupo_citas}><CifraDeRazon razon={reporte.vista.embudo.razonShow} formato={pct} /></CifraConLista>}
           >
             <p className="text-xs text-muted-foreground"><CuentaDeAsistencia asistieron={grupo.conShow} personas={grupo.deals} sinMarcar={grupo.sinMarcar} detalle={detalles?.grupo_pendientes} /></p>
           </Ficha>

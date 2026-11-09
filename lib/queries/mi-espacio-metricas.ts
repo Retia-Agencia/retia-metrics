@@ -11,11 +11,10 @@ import {
   dinero,
   sumarConteos,
   sumarDinero,
-  tasa,
   type Conteo,
   type Dinero,
-  type Tasa,
 } from "@/lib/queries/agregado-programas";
+import type { RazonConCobertura } from "@/lib/cobertura";
 
 export interface ProgramaDeMetricas {
   id: string;
@@ -28,7 +27,7 @@ export interface CifrasDePeriodo {
   shows: number;
   noShows: number;
   cierres: number;
-  pctCierre: number | null;
+  razonCierre: RazonConCobertura;
   pendientesDeResultado: number;
   /** El rango termina hace menos de 30 días: el % de cierre todavía puede subir (ADR 0079). */
   madurando: boolean;
@@ -82,7 +81,7 @@ async function cifrasDelPeriodo(
     shows: embudo.llamadasConShow,
     noShows: noShows.subtotal.cantidad,
     cierres: embudo.cierres,
-    pctCierre: embudo.pctCierre,
+    razonCierre: embudo.razonCierre,
     pendientesDeResultado: embudo.pendientesDeResultado,
     madurando: embudo.madurando,
     caja,
@@ -140,7 +139,7 @@ export async function armarVistaDeMisMetricas(
       shows: dashboard.embudo.llamadasConShow,
       noShows: noShowsA[0].subtotal.cantidad,
       cierres: dashboard.embudo.cierres,
-      pctCierre: dashboard.embudo.pctCierre,
+      razonCierre: dashboard.embudo.razonCierre,
       pendientesDeResultado: dashboard.embudo.pendientesDeResultado,
       madurando: dashboard.embudo.madurando,
       caja: dashboard.caja,
@@ -190,7 +189,7 @@ function sumables(cifras: CifrasDePeriodo): SumablesDeMisMetricas {
 
 export interface FilaDeMisMetricasPorPrograma {
   vista: VistaDeMisMetricas;
-  pctCierre: Tasa;
+  razonCierre: RazonConCobertura;
   comision: Dinero;
 }
 
@@ -217,7 +216,7 @@ export async function armarVistaDeMisMetricasTodos(
       : null,
     programas: vistas.map((vista) => ({
       vista,
-      pctCierre: tasa(vista.a.pctCierre),
+      razonCierre: vista.a.razonCierre,
       comision: dinero("USD", vista.a.comisionUsd),
     })),
   };

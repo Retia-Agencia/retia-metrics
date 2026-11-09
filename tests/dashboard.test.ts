@@ -257,15 +257,15 @@ describe("% de show y % de cierre", () => {
     expect(embudo.agendas).toBe(4);
     expect(embudo.llamadasConShow).toBe(3);
     expect(embudo.cierres).toBe(1);
-    expect(embudo.pctShow).toBeCloseTo(3 / 4);
-    expect(embudo.pctCierre).toBeCloseTo(1 / 3);
+    expect(embudo.razonShow.valor).toBeCloseTo(3 / 4);
+    expect(embudo.razonCierre.valor).toBeCloseTo(1 / 3);
   });
 
   it("con 0 agendas las tasas son null, no NaN", async () => {
     const embudo = await embudoDelRango({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db);
     expect(embudo.agendas).toBe(0);
-    expect(embudo.pctShow).toBeNull();
-    expect(embudo.pctCierre).toBeNull();
+    expect(embudo.razonShow.valor).toBeNull();
+    expect(embudo.razonCierre.valor).toBeNull();
   });
 
   it("cuenta una sola vez un deal que pasa por abonado y completo", async () => {
@@ -762,7 +762,7 @@ describe("alcance acotado a un closer", () => {
 
     const nadie = await embudoDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db);
     expect(nadie.agendas).toBe(0);
-    expect(nadie.pctShow).toBeNull();
+    expect(nadie.razonShow.valor).toBeNull();
     expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db)).toEqual([]);
   });
 });

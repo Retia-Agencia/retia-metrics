@@ -36,32 +36,27 @@ export function razonesSinCobertura(fuente: string): string[] {
 
 /** `archivo:campo` → por qué se acepta hoy y qué ticket lo retira. */
 const EXCEPCIONES: Record<string, string> = {
-  "lib/queries/dashboard.ts:pctShow": "353: % de show con la cobertura de las citas sin resultado (H-13, F2-05)",
-  "lib/queries/dashboard.ts:pctCierre": "353: % de cierre con su cobertura (H-13)",
-  "lib/queries/tasas-del-grupo.ts:pctShow": "353: la razón canónica del grupo nace sin cobertura",
-  "lib/queries/tasas-del-grupo.ts:pctCierre": "353: la razón canónica del grupo nace sin cobertura",
-  "lib/queries/proyeccion.ts:pctShow": "353: proyección usa la tasa del grupo sin cobertura (lleva aparte `razonShow` como texto)",
-  "lib/queries/proyeccion.ts:pctCierre": "353: proyección usa la tasa del grupo sin cobertura (lleva aparte `razonCierre` como texto)",
-  "lib/queries/mi-espacio-metricas.ts:pctCierre": "353: Mi espacio repite la tasa sin cobertura",
-  "lib/queries/vista-todos.ts:pctShow": "353: vista de todos los programas; la regla del tipo permite tasas por programa, no sin cobertura",
-  "lib/queries/vista-todos.ts:pctCierre": "353: vista de todos los programas",
-  "lib/queries/vista-todos.ts:pctSinGrain": "385 F4: banderas del pulso sin cobertura",
-  "lib/queries/vista-metrica.ts:pctNoShow": "353: el no show como complemento nombrado de la razón del show",
-  "lib/queries/tasa-show-por-cita.ts:porcentaje": "353: showPorCita; hoy calcula su propia cobertura aparte",
-  "lib/queries/deals-contra-agendas.ts:pctAgendaron": "385 F4: razón del embudo del formulario sin cobertura",
-  "lib/queries/embudo-comercial.ts:pctDelPaso": "385 F4: pasos del embudo comercial",
-  "lib/queries/embudo-etapas.ts:tasaDesdeAnterior": "385 F4: embudo por etapas",
-  "lib/queries/embudo-etapas.ts:tasaDesdeEntrada": "385 F4: embudo por etapas",
-  "lib/queries/banderas-del-pulso.ts:pct": "385 F4: banderas del pulso",
-  "lib/queries/vamos-a-llegar.ts:pct": "no es razón de captura: avance contra la meta, siempre calculable (N3 no aplica); decisión de F4",
-  "lib/queries/saldo.ts:porcentaje": "no es razón con dato faltante: abonado sobre ticket, sin universo parcial (ADR 0024)",
-  "lib/queries/vista-escalera.ts:porcentaje": "385 F4: escalera de conversión (la vista repite el campo como Tasa)",
-  "lib/queries/escalera.ts:porcentaje": "385 F4: escalera de conversión",
-  "lib/semaforo/costo-por-agenda.ts:costoPorRegistro": "385 F4: costo por registro del semáforo; el costo por agenda sí trae cobertura",
-  "lib/semaforo/semaforo.ts:costoPorRegistro": "385 F4: costo por registro del semáforo",
-  "lib/semaforo/semaforo.ts:porcentajeDelUmbral": "no es razón de negocio: distancia al umbral configurado",
-  "lib/reporte-whatsapp/contrato.ts:costoPorRegistro": "385 F4: contrato del semáforo (ADR 0089), cambia con el costo por registro",
-  "lib/reporte-whatsapp/contrato.ts:porcentajeDelUmbral": "no es razón de negocio: distancia al umbral configurado",
+  "lib/queries/vista-todos.ts:pctSinGrain": "403: banderas del pulso sin cobertura",
+  "lib/queries/vista-metrica.ts:pctNoShow": "403: el no show como complemento nombrado de la razón del show",
+  "lib/queries/tasa-show-por-cita.ts:porcentaje": "403: showPorCita; hoy calcula su propia cobertura aparte",
+  "lib/queries/deals-contra-agendas.ts:pctAgendaron": "403: razón del embudo del formulario sin cobertura",
+  "lib/queries/embudo-comercial.ts:pctDelPaso": "403: pasos del embudo comercial",
+  "lib/queries/embudo-etapas.ts:tasaDesdeAnterior": "403: embudo por etapas",
+  "lib/queries/embudo-etapas.ts:tasaDesdeEntrada": "403: embudo por etapas",
+  "lib/queries/banderas-del-pulso.ts:pct": "403: banderas del pulso",
+  "lib/queries/vista-escalera.ts:porcentaje": "403: escalera de conversión (la vista repite el campo como Tasa)",
+  "lib/queries/escalera.ts:porcentaje": "403: escalera de conversión",
+  "lib/semaforo/costo-por-agenda.ts:costoPorRegistro": "contrato del semaforo (ADR 0089): cambia junto con Juanito",
+  "lib/semaforo/semaforo.ts:costoPorRegistro": "contrato del semaforo (ADR 0089): cambia junto con Juanito",
+  "lib/reporte-whatsapp/contrato.ts:costoPorRegistro": "contrato del semaforo (ADR 0089): cambia junto con Juanito",
+};
+
+/** Campos cuyo nombre parece una razón, pero el concepto no tiene cobertura parcial. */
+const NO_SON_RAZON: Record<string, string> = {
+  "lib/queries/vamos-a-llegar.ts:pct": "avance contra la meta, siempre calculable (N3 no aplica)",
+  "lib/queries/saldo.ts:porcentaje": "abonado sobre ticket, sin universo parcial (ADR 0024)",
+  "lib/semaforo/semaforo.ts:porcentajeDelUmbral": "distancia al umbral configurado, no una razón de captura",
+  "lib/reporte-whatsapp/contrato.ts:porcentajeDelUmbral": "distancia al umbral configurado, no una razón de captura",
 };
 
 function hallazgosDelRepo(): string[] {
@@ -76,11 +71,11 @@ describe("guardián: toda razón declara su cobertura (N3)", () => {
   const hallazgos = [...new Set(hallazgosDelRepo())].sort();
 
   it("ninguna razón nueva es un número pelado", () => {
-    expect(hallazgos.filter((h) => !(h in EXCEPCIONES))).toEqual([]);
+    expect(hallazgos.filter((h) => !(h in EXCEPCIONES) && !(h in NO_SON_RAZON))).toEqual([]);
   });
 
   it("sin excepciones zombi: cada excepción nombrada sigue siendo una violación", () => {
-    expect(Object.keys(EXCEPCIONES).filter((e) => !hallazgos.includes(e))).toEqual([]);
+    expect([...Object.keys(EXCEPCIONES), ...Object.keys(NO_SON_RAZON)].filter((e) => !hallazgos.includes(e))).toEqual([]);
   });
 
   it("muerde: caza la razón pelada en interface, type y esquema zod", () => {

@@ -40,6 +40,7 @@ import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-e
 import { nombreDeCanal, type Area } from "@/lib/atribucion/canal";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
+import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
 /**
  * Consultas del dashboard (ticket 004). Todo lo que pide el reporte diario de Retia
@@ -144,9 +145,9 @@ export interface EmbudoDelRango {
   };
   reagendadas: number;
   llamadasConShow: number;
-  pctShow: number | null;
+  razonShow: RazonConCobertura;
   cierres: number;
-  pctCierre: number | null;
+  razonCierre: RazonConCobertura;
   agendaAVenta: number | null;
   pendientesDeResultado: number;
   /** El grupo detrás de las tasas: deals con cita ocurrida, con show y con show vendidos hoy. */
@@ -438,9 +439,9 @@ export async function embudoDelRango(
     },
     reagendadas,
     llamadasConShow,
-    pctShow: tasas.pctShow,
+    razonShow: tasas.razonShow,
     cierres,
-    pctCierre: tasas.pctCierre,
+    razonCierre: tasas.razonCierre,
     agendaAVenta: tasas.agendaAVenta,
     pendientesDeResultado: tasas.pendientes,
     grupo: tasas,
@@ -606,9 +607,9 @@ export async function embudoPorCloser(
         estadosDeCitas: { porVenir: 0, sinResultado: 0, show: 0, noShow: 0, reagendadas: 0, otro: 0 },
         reagendadas: 0,
         llamadasConShow: 0,
-        pctShow: null,
+        razonShow: razonVacia("Sin citas en el periodo"),
         cierres: 0,
-        pctCierre: null,
+        razonCierre: razonVacia("Sin shows en el periodo"),
         agendaAVenta: null,
         pendientesDeResultado: 0,
         grupo: tasasDelAlcance(grupo, clave),
@@ -640,8 +641,8 @@ export async function embudoPorCloser(
   // Las tasas salen del grupo de citas (ADR 0079): cada deal cuenta en un solo closer.
   for (const fila of porClave.values()) {
     fila.grupo = tasasDelAlcance(grupo, fila.clave);
-    fila.pctShow = fila.grupo.pctShow;
-    fila.pctCierre = fila.grupo.pctCierre;
+    fila.razonShow = fila.grupo.razonShow;
+    fila.razonCierre = fila.grupo.razonCierre;
     fila.agendaAVenta = fila.grupo.agendaAVenta;
     fila.pendientesDeResultado = fila.grupo.pendientes;
   }
@@ -658,7 +659,7 @@ export interface FilaEmbudoPorCanal {
   agendas: number;
   shows: number;
   ventas: number;
-  pctShow: number | null;
+  razonShow: RazonConCobertura;
 }
 
 /** Reagrupa los hechos ya filtrados sin cambiar su universo. */
@@ -680,7 +681,7 @@ export function embudoPorCanal(hechos: FilaHechosDelEmbudo[]): FilaEmbudoPorCana
       agendas: 0,
       shows: 0,
       ventas: 0,
-      pctShow: null,
+      razonShow: razonVacia("Sin citas en el periodo"),
     };
     fila.envios += hecho.envios;
     fila.agendas += hecho.agendas;
@@ -691,7 +692,12 @@ export function embudoPorCanal(hechos: FilaHechosDelEmbudo[]): FilaEmbudoPorCana
 
   const conTasa = [...filas.values()]
     .filter((fila) => fila.envios + fila.agendas + fila.shows + fila.ventas > 0)
-    .map((fila) => ({ ...fila, pctShow: tasa(fila.shows, fila.agendas) }));
+    .map((fila) => ({
+      ...fila,
+      razonShow: fila.agendas === 0
+        ? razonVacia("Sin citas en el periodo")
+        : razon(fila.shows, fila.agendas, { base: fila.agendas, faltan: 0, motivo: null, calculable: true }),
+    }));
   const canalesAgrupados = conTasa
     .filter((fila) => fila.origen === "canal")
     .sort((a, b) =>
