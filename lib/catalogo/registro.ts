@@ -3,7 +3,6 @@ import type { Db } from "@/lib/db/tipos";
 import type { Catalogo } from "./molde";
 import { esquemaPlataformaPago, plataformasDePago } from "./plataformas";
 import { esquemaMotivo, motivos } from "./motivos";
-import { areas, esquemaArea } from "./areas";
 
 /**
  * Registro de catalogos de la pantalla `/ajustes/catalogos` (ticket 013, ADR 0012).
@@ -73,15 +72,6 @@ export const REGISTRO_CATALOGOS: readonly DefinicionCatalogo[] = [
     camposBooleanos: [{ campo: "pideTexto", etiqueta: "Pide texto" }],
     esquema: esquemaMotivo,
     fabrica: motivos,
-  },
-  {
-    slug: "areas",
-    vinculadoAProgramas: false,
-    compartidoConClosers: false,
-    nombre: "Áreas",
-    camposBooleanos: [],
-    esquema: esquemaArea,
-    fabrica: areas,
   },
 ];
 

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, FileWarning, ListChecks, Shapes, Users } from "lucide-react";
+import { Activity, FileWarning, ListChecks, Users } from "lucide-react";
 import { paginaConPautaGlobal } from "@/lib/auth/page-guards";
 import { administraGlobal, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -38,13 +38,6 @@ const ENLACES = [
     icono: ListChecks,
     titulo: "Motivos",
     descripcion: "Los motivos que se usan al perder, retroceder o recuperar un deal.",
-    requisito: "administra",
-  },
-  {
-    href: "/ajustes/areas",
-    icono: Shapes,
-    titulo: "Áreas",
-    descripcion: "Agrupan los canales por área de origen, para el rendimiento por área.",
     requisito: "administra",
   },
   {

@@ -25,7 +25,7 @@ const RAIZ = process.cwd();
 /** Constante de drizzle de cada tabla bajo vigilancia. */
 const TABLAS = [
   "submissions", "leads", "leadContactos", "deals", "dealEtapaHistorial", "calls", "abonos", "gastoPauta",
-  "pautaObjetos", "cohorts", "users", "programs", "canales", "changeLog", "sources",
+  "pautaObjetos", "cohorts", "users", "programs", "changeLog", "sources",
 ] as const;
 
 /** Nombres que aparecen en casi cualquier objeto: ahí `.campo` no prueba nada, solo `tabla.campo`. */
@@ -41,9 +41,6 @@ const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
   "calls.cohortId": "F3-04: la cohorte de un hecho es la de su deal; eliminar columna e índice",
   "calls.closerId": "F3-05 / 401 M10: 0 pobladas; el closer de una llamada es solo closer_user_id",
   "calls.motivoPerdida": "401 M10: texto de las filas viejas de Sheets; el motivo es motivo_id",
-  "canales.id": "F3-16: la pantalla es un redirect y la regla vive en resolverCanal; eliminar la tabla",
-  "canales.nombre": "F3-16: eliminar la tabla",
-  "canales.activo": "F3-16: eliminar la tabla",
   "leads.estado": "F3-06: 100 % cola_setteo, 0 lectores",
   "leads.cohortId": "F3-06: 100 % nulo, 0 lectores",
   "leads.cargo": "F3-06: 0 filas pobladas, 0 lectores",

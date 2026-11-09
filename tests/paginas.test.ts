@@ -264,10 +264,6 @@ vi.mock("@/lib/catalogo/plataformas", async (importOriginal) => ({
   plataformasDePago: () => ({ listar: listarVacio }),
   vinculosDePlataformas: vi.fn(async () => new Map<string, string[]>()),
 }));
-vi.mock("@/lib/catalogo/areas", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/catalogo/areas")>()),
-  areas: () => ({ listar: listarVacio }),
-}));
 
 // `/nerd-stats` (ticket 025) lee la base por dos modulos; sin base en los tests se
 // mockean para que la guarda sea lo unico bajo prueba. `@/lib/queries/fuentes` se
@@ -476,7 +472,6 @@ const TODAS_LAS_PAGINAS_DE_AJUSTES = [
   "@/app/(app)/ajustes/page",
   "@/app/(app)/ajustes/salud/page",
   "@/app/(app)/ajustes/catalogos/page",
-  "@/app/(app)/ajustes/areas/page",
   "@/app/(app)/ajustes/migracion/page",
 ] as const;
 
@@ -716,7 +711,7 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     expect(hrefs).not.toContain("/ajustes/canales");
     expect(hrefs).toContain("/ajustes/salud");
     expect(hrefs).toContain("/ajustes/catalogos");
-    expect(hrefs).toContain("/ajustes/areas");
+    expect(hrefs).not.toContain("/ajustes/areas");
     expect(hrefs).toContain("/ajustes/migracion");
     // Lo que se fue (A-81): programas y fuentes ya no están en el índice.
     expect(hrefs.filter((h) => /^\/ajustes\/(programas|fuentes)/.test(h))).toEqual([]);
@@ -727,7 +722,7 @@ describe("índice de Ajustes por rol (ticket 173)", () => {
     const hrefs = await hrefsDeAjustes();
     expect(hrefs).toContain("/ajustes/usuarios");
     expect(hrefs).not.toContain("/ajustes/canales");
-    expect(hrefs).toContain("/ajustes/areas");
+    expect(hrefs).not.toContain("/ajustes/areas");
   });
 
   it("el paid trafficker no tiene ajustes desde que Canales pasó a Hub › Origen (248; ADR 0094: nunca administra lo global)", async () => {

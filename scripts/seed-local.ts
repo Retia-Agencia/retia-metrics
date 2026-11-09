@@ -22,8 +22,6 @@ import {
 } from "../lib/catalogo/fuentes";
 import { crearUsuario } from "../lib/catalogo/usuarios";
 import { motivos } from "../lib/catalogo/motivos";
-import { areas } from "../lib/catalogo/areas";
-import { canales } from "../lib/catalogo/canales";
 import { ingerirEntradas } from "../lib/ingesta/ingerir";
 import type { EntradaEnvio } from "../lib/ingesta/envio";
 import { abrirDeal, moverEtapa } from "../lib/deals/mover-etapa";
@@ -547,44 +545,6 @@ export async function sembrarLocal(): Promise<void> {
     if (!mapaMotivos.has(clave)) {
       const creado = await catMotivos.crear(actorId, m);
       mapaMotivos.set(clave, creado.id);
-    }
-  }
-
-  // 4b. Catálogo global de Áreas
-  console.log("[seed:local] Configurando catálogo de áreas...");
-  const catAreas = areas(db);
-  const areasExistentes = await catAreas.listar();
-  const nombresDeAreas = new Set(
-    areasExistentes.map((area) => String(area.nombre).toLowerCase()),
-  );
-  const AREAS_BASE = ["Paid", "Orgánico", "Referidos"];
-
-  for (const nombre of AREAS_BASE) {
-    if (!nombresDeAreas.has(nombre.toLowerCase())) {
-      await catAreas.crear(actorId, { nombre });
-    }
-  }
-
-  // 4c. Canales mínimos para recorrer atribución y los tres formatos en local.
-  console.log("[seed:local] Configurando catálogo de canales...");
-  const areasPorNombre = new Map(
-    (await catAreas.listar({ soloActivos: true })).map((area) => [String(area.nombre).toLowerCase(), area.id]),
-  );
-  const catCanales = canales(db);
-  const canalesExistentes = new Set(
-    (await catCanales.listar()).map((canal) =>
-      `${String(canal.utmSource ?? "").trim().toLowerCase()}|${String(canal.utmMedium).trim().toLowerCase()}`,
-    ),
-  );
-  const CANALES_BASE = [
-    { nombre: "Meta (cualquier source) / paid_social", utmSource: "", utmMedium: "paid_social", area: "paid", formato: "plantilla_pauta" as const },
-    { nombre: "closer / referido", utmSource: "closer", utmMedium: "referido", area: "referidos", formato: "closer" as const },
-    { nombre: "direct / organic", utmSource: "direct", utmMedium: "organic", area: "orgánico", formato: null },
-  ];
-  for (const canal of CANALES_BASE) {
-    const par = `${canal.utmSource}|${canal.utmMedium}`;
-    if (!canalesExistentes.has(par)) {
-      await catCanales.crear(actorId, { ...canal, areaId: areasPorNombre.get(canal.area)! });
     }
   }
 

@@ -55,7 +55,6 @@ const RUTAS_GLOBALES = [
   "/ajustes/usuarios",
   "/ajustes/canales",
   "/ajustes/catalogos",
-  "/ajustes/areas",
   "/ajustes/salud",
   "/ajustes/migracion",
 ];
