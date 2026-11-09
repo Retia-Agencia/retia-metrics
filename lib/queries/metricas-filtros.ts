@@ -74,6 +74,18 @@ function porClaveConFk(
 }
 
 /**
+ * Condicion de closer sobre `calls`, cuyo closer es SIEMPRE una FK (`closer_user_id`; el texto
+ * `closer_id` se retiro, 401 M10). Una clave de cuenta filtra por el id; la historica vacia es la
+ * fila "sin closer" del comparativo; una historica con texto ya no tiene que casar en las llamadas.
+ */
+export function porClaveDeLlamada(claveCloser: string | null | undefined) {
+  const clave = parsearClaveCloser(claveCloser);
+  if (clave == null) return undefined;
+  if (clave.tipo === "usuario") return eq(calls.closerUserId, clave.userId);
+  return clave.clave === "" ? isNull(calls.closerUserId) : sql`false`;
+}
+
+/**
  * Condicion de closer sobre `deals`, cuyo dueno es SIEMPRE una FK (`owner_user_id`,
  * ADR 0037). Para una clave de cuenta se filtra por el id; para una historica se cae
  * al texto de `users.closerId` del dueno (el comportamiento previo al ticket 167),
@@ -278,7 +290,7 @@ export function filtroLlamadas({ programId, rango, claveCloser, cohorteId }: Alc
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaCall(), rango.desde, rango.hasta),
-    porClaveConFk(calls.closerUserId, calls.closerId, claveCloser, db),
+    porClaveDeLlamada(claveCloser),
     cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
   );
 }

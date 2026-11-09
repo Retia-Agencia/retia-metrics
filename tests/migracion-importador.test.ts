@@ -245,7 +245,8 @@ describe("importarGestion (ADR 0059)", () => {
     const llamadas = await db.select().from(calls);
     expect(llamadas.find((l) => l.huellaFila?.endsWith(":2"))?.dealId).toBe(deBeto.id);
     const suelta = llamadas.find((l) => l.huellaFila?.endsWith(":3"))!;
-    expect(suelta).toMatchObject({ dealId: null, resultado: "no_show", motivoPerdida: "FOLLOW UP · FU-3" });
+    expect(suelta).toMatchObject({ dealId: null, resultado: "no_show" });
+    expect(suelta.notas).toContain("Motivo (hoja): FOLLOW UP · FU-3");
 
     // Las notas del Setteo de beto quedaron en su deal de estudiante.
     expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, deBeto.id))).toHaveLength(1);

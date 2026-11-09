@@ -71,24 +71,24 @@ async function vender(dia: string, valor: string, diaVenta: string) {
 }
 
 /** Un envío de pauta con su deal abierto y una cita agendada para el 9-nov de este closer. */
-async function citaPendiente(dia: string, closerUserId: string, closerId: string, cohortId: string | null = cohorteId) {
+async function citaPendiente(dia: string, closerUserId: string, cohortId: string | null = cohorteId) {
   const e = await envio(dia);
   const deal = (await db.insert(deals).values({ programId, leadId: e.leadId, submissionOrigenId: e.envioId, cohortId,
     ownerUserId: closerUserId, etapa: "agendado" }).returning())[0];
-  const [cita] = await db.insert(calls).values({ programId, dealId: deal.id, resultado: "agendada", closerUserId, closerId,
+  const [cita] = await db.insert(calls).values({ programId, dealId: deal.id, resultado: "agendada", closerUserId,
     fechaAgenda: new Date("2026-11-09T10:00:00-05:00") }).returning();
   return cita;
 }
 
 /** Historia de un closer en las últimas 3 semanas: personas con cita, con show y con venta. */
-async function historia(closerUserId: string, closerId: string, args: { personas: number; conShow: number; vendidas: number }) {
+async function historia(closerUserId: string, args: { personas: number; conShow: number; vendidas: number }) {
   for (let i = 0; i < args.personas; i++) {
     const lead = (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `hist-${++secuencia}@test.co`, nombre: `Hist ${secuencia}` }).returning())[0];
     const show = i < args.conShow;
     const vendida = i < args.vendidas;
     const deal = (await db.insert(deals).values({ programId, leadId: lead.id, ownerUserId: closerUserId, cohortId: cohorteId,
       etapa: vendida ? "ganado_completo" : "agendado", valorVendidoUsd: vendida ? "797" : null }).returning())[0];
-    await db.insert(calls).values({ programId, dealId: deal.id, closerUserId, closerId, resultado: show ? "show" : "no_show",
+    await db.insert(calls).values({ programId, dealId: deal.id, closerUserId, resultado: show ? "show" : "no_show",
       fechaAgenda: new Date("2026-10-22T10:00:00-05:00") });
   }
 }
@@ -98,10 +98,10 @@ async function ejemploDeDani() {
   await gasto(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"]);
   await vender("2026-11-02", "400", "2026-11-05");
   for (const [i, dia] of ["2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-06"].entries()) {
-    await citaPendiente(dia, andrea, "Andrea"); await citaPendiente(dia, maru, "Maru"); void i;
+    await citaPendiente(dia, andrea); await citaPendiente(dia, maru); void i;
   }
-  await historia(andrea, "Andrea", { personas: 10, conShow: 8, vendidas: 4 }); // se presenta 80 %, compra 50 %
-  await historia(maru, "Maru", { personas: 10, conShow: 4, vendidas: 1 }); // se presenta 40 %, compra 25 %
+  await historia(andrea, { personas: 10, conShow: 8, vendidas: 4 }); // se presenta 80 %, compra 50 %
+  await historia(maru, { personas: 10, conShow: 4, vendidas: 1 }); // se presenta 40 %, compra 25 %
 }
 
 describe("ROAS proyectado (375)", () => {
@@ -130,9 +130,9 @@ describe("ROAS proyectado (375)", () => {
   it("un closer sin muestra usa la tasa del programa y lo dice", async () => {
     await gasto(["2026-11-02", "2026-11-03"]);
     await vender("2026-11-02", "400", "2026-11-03");
-    await citaPendiente("2026-11-03", maru, "Maru");
-    await historia(andrea, "Andrea", { personas: 10, conShow: 8, vendidas: 4 });
-    await historia(maru, "Maru", { personas: 3, conShow: 1, vendidas: 0 }); // 3 < 10 personas
+    await citaPendiente("2026-11-03", maru);
+    await historia(andrea, { personas: 10, conShow: 8, vendidas: 4 });
+    await historia(maru, { personas: 3, conShow: 1, vendidas: 0 }); // 3 < 10 personas
     const p = await calcularProyeccionDeRoas(db, { programId, rango: { desde: "2026-11-02", hasta: HOY }, hoy: HOY, ahora: AHORA });
     const [s] = p.supuestos.porCloser;
     expect(s).toMatchObject({ closer: "Maru", usaPrograma: true, muestra: 3 });
@@ -153,8 +153,8 @@ describe("ROAS proyectado (375)", () => {
   it("sin historial suficiente en el programa el proyectado es «—» con motivo", async () => {
     await gasto(["2026-11-02", "2026-11-03"]);
     await vender("2026-11-02", "400", "2026-11-03");
-    await citaPendiente("2026-11-03", maru, "Maru");
-    await historia(maru, "Maru", { personas: 3, conShow: 1, vendidas: 0 });
+    await citaPendiente("2026-11-03", maru);
+    await historia(maru, { personas: 3, conShow: 1, vendidas: 0 });
     const p = await calcularProyeccionDeRoas(db, { programId, rango: RANGO, hoy: HOY, ahora: AHORA });
     expect(p.valor).toBeNull();
     expect(p.motivo).toContain("Sin historial suficiente");
@@ -163,8 +163,8 @@ describe("ROAS proyectado (375)", () => {
   it("una cita de una persona sin cohorte no se proyecta con un precio inventado", async () => {
     await gasto(["2026-11-02", "2026-11-03"]);
     await vender("2026-11-02", "400", "2026-11-03");
-    await citaPendiente("2026-11-03", andrea, "Andrea", null);
-    await historia(andrea, "Andrea", { personas: 10, conShow: 8, vendidas: 4 });
+    await citaPendiente("2026-11-03", andrea, null);
+    await historia(andrea, { personas: 10, conShow: 8, vendidas: 4 });
     const p = await calcularProyeccionDeRoas(db, { programId, rango: RANGO, hoy: HOY, ahora: AHORA });
     expect(p.valor).toBeNull();
     expect(p.motivo).toContain("sin cohorte");

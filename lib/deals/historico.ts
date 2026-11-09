@@ -131,7 +131,7 @@ export interface LlamadaHistorica {
   fechaLlamada?: Date | null;
   closer?: string | null;
   emailLead?: string | null;
-  motivoPerdida?: string | null;
+  motivoDeLaHoja?: string | null;
   notas?: string | null;
 }
 
@@ -162,7 +162,6 @@ export async function registrarLlamadasHistoricas(
     const ids = await crearVariosConRastro(
       { db: tx, tabla: calls, nombreTabla: "calls", actorId, omitirChoques: true },
       lista.map((llamada) => {
-        let cohortId: string | null = null;
         if (llamada.dealId) {
           const d = deal.get(llamada.dealId)!;
           // El programa es frontera (ADR 0043): una llamada de un programa colgada de un deal
@@ -170,21 +169,24 @@ export async function registrarLlamadasHistoricas(
           if (d.programId !== llamada.programId) {
             throw new ErrorDeApp("El deal es de otro programa: la llamada no se puede colgar de el.", 422);
           }
-          cohortId = d.cohortId;
         }
+        // `calls` ya no guarda el closer de la hoja ni el motivo de perdida como columnas (401 M10):
+        // el texto de la hoja se conserva en las notas, sin perder lo que la hoja decia.
+        const notas = [
+          llamada.notas,
+          llamada.closer ? `Closer (hoja): ${llamada.closer}` : null,
+          llamada.motivoDeLaHoja ? `Motivo (hoja): ${llamada.motivoDeLaHoja}` : null,
+        ].filter(Boolean).join("\n") || null;
         return {
           etiqueta: llamada.emailLead ?? llamada.huella,
           valores: {
             dealId: llamada.dealId ?? null,
             programId: llamada.programId,
-            cohortId,
-            closerId: llamada.closer ?? null,
             emailLead: llamada.emailLead ?? null,
             fechaAgenda: llamada.fechaAgenda ?? null,
             fechaLlamada: llamada.fechaLlamada ?? null,
             resultado: llamada.resultado,
-            motivoPerdida: llamada.motivoPerdida ?? null,
-            notas: llamada.notas ?? null,
+            notas,
             origen: "sheets",
             huellaFila: llamada.huella,
           },

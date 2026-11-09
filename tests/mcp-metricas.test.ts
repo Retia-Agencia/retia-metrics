@@ -87,7 +87,6 @@ beforeEach(async () => {
     programId: programaA,
     dealId: vigente.id,
     closerUserId: closerId,
-    closerId: "Ana",
     resultado: "agendada",
     fechaAgenda: new Date("2026-11-06T15:00:00-05:00"),
     createdAt: new Date("2026-11-05T09:00:00-05:00"),

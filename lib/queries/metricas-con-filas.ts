@@ -289,8 +289,8 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       return {
         id: calls.id,
         fecha: fechaAnclaCall(),
-        columnaCloser: etiquetaDeCloserSql(calls.closerId),
-        claveCloser: claveCloserSql(calls.closerUserId, calls.closerId),
+        columnaCloser: etiquetaDeCloserSql(),
+        claveCloser: claveCloserSql(calls.closerUserId),
       };
     case "leads":
       return {
@@ -1012,7 +1012,7 @@ async function ponerCloserEnPauta(filas: FilaDeMetrica[], paso: PasoPauta, db: D
   const llaves = [...new Set(filas.map((f) => (porLlamada ? f.id : f.dealId)).filter((id): id is string => id !== null))];
   if (llaves.length === 0) return;
   const lecturas = porLlamada
-    ? await db.select({ llave: calls.id, closer: etiquetaDeCloserSql(calls.closerId), clave: claveCloserSql(calls.closerUserId, calls.closerId) })
+    ? await db.select({ llave: calls.id, closer: etiquetaDeCloserSql(), clave: claveCloserSql(calls.closerUserId) })
       .from(calls).leftJoin(users, eq(users.id, calls.closerUserId)).where(and(inArray(calls.id, llaves), vigente(calls)))
     : await db.select({ llave: deals.id, closer: etiquetaDeCloserSql(), clave: claveCloserSql(users.id, users.closerId) })
       .from(deals).leftJoin(users, eq(users.id, deals.ownerUserId)).where(and(inArray(deals.id, llaves), vigente(deals)));

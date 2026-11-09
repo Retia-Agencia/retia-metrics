@@ -5,8 +5,8 @@ import { users } from "@/lib/db/schema";
 /**
  * Cuando dos textos nombran al MISMO closer (ADR 0030).
  *
- * `closerId` es texto copiado, no una relacion (ADR 0011): vive en `users`, en
- * `calls` y en `abonos` (`sales` y el responsable de `people` salieron con la
+ * `closerId` es texto copiado, no una relacion (ADR 0011): vive en `users` y en
+ * `abonos` (`calls.closer_id` se retiro en el 401 M10: su closer es solo la FK) (`sales` y el responsable de `people` salieron con la
  * migracion 0020), y lo producen
  * dos fuentes que no se hablan — la columna Closer de las hojas, que escribe gente
  * a mano, y el formulario de la app. Comparar ese texto en crudo hace que `Mani` y
@@ -134,12 +134,13 @@ export function parsearClaveCloser(clave: string | null | undefined): ClaveClose
  * La `claveCloser` en SQL: el `users.id` cuando la fila casa con una cuenta, y
  * `historico:<texto normalizado>` cuando no. Es la generalizacion de
  * `claveDeRegistradorDeAbono`: `columnaUserId` es la FK (puede ser `NULL`) y
- * `columnaTexto` es el texto copiado historico.
+ * `columnaTexto` es el texto copiado historico (opcional: `calls` ya no lo tiene, su closer es solo la FK).
  */
-export function claveCloserSql(columnaUserId: PgColumn | SQL, columnaTexto: PgColumn | SQL): SQL<string> {
+export function claveCloserSql(columnaUserId: PgColumn | SQL, columnaTexto?: PgColumn | SQL): SQL<string> {
+  const texto = columnaTexto ? sql`coalesce(${claveDeCloserSql(columnaTexto)}, '')` : sql`''`;
   return sql<string>`case
     when ${columnaUserId} is not null then ${columnaUserId}::text
-    else '${sql.raw(PREFIJO_HISTORICO)}' || coalesce(${claveDeCloserSql(columnaTexto)}, '')
+    else '${sql.raw(PREFIJO_HISTORICO)}' || ${texto}
   end`;
 }
 

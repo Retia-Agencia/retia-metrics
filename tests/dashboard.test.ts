@@ -536,10 +536,12 @@ describe("embudoPorCloser", () => {
 
     // Ana: 2 agendas (1 show, 1 cerrada), 1 venta, un abono de 100.
     // Beto: 1 agenda (no_show), sin venta, sin abono.
+    const anaId = await sembrarCloser("Ana");
+    const betoId = await sembrarCloser("Beto");
     await db.insert(calls).values([
-      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "show" },
-      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
-      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
+      { programId: programaA, closerUserId: anaId, fechaAgenda: fecha, resultado: "show" },
+      { programId: programaA, closerUserId: anaId, fechaAgenda: fecha, resultado: "cerrada" },
+      { programId: programaA, closerUserId: betoId, fechaAgenda: fecha, resultado: "no_show" },
     ]);
     const ventaAna = { id: await sembrarDeal(programaA) };
     await db
@@ -584,7 +586,7 @@ describe("embudoPorCloser", () => {
     const [closer] = await db.insert(users).values({ email: "fk@retia.co", nombre: "Closer FK", rol: "closer", closerId: null }).returning();
     const dealId = await sembrarDeal(programaA, { ownerUserId: closer.id, valorVendidoUsd: "100" });
     await marcarVenta(dealId, fecha, closer.id);
-    await db.insert(calls).values({ programId: programaA, dealId, closerUserId: closer.id, closerId: null, fechaAgenda: fecha, resultado: "show" });
+    await db.insert(calls).values({ programId: programaA, dealId, closerUserId: closer.id, fechaAgenda: fecha, resultado: "show" });
     await db.insert(abonos).values({ programId: programaA, dealId, registradoPorUserId: closer.id, fecha: "2026-09-15", monto: "40", moneda: "USD" });
 
     const filas = await embudoPorCloser({ programId: programaA, rango }, db);
@@ -596,38 +598,6 @@ describe("embudoPorCloser", () => {
       llamadasConShow: 1,
       cierres: 1,
       caja: [{ moneda: "USD", total: 40 }],
-    });
-  });
-
-  it("une una llamada historica por closer normalizado con la venta de la cuenta", async () => {
-    const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
-    const fecha = new Date("2026-09-15T14:00:00Z");
-    const [closer] = await db
-      .insert(users)
-      .values({ email: "mani@retia.co", rol: "closer", closerId: "Mani" })
-      .returning();
-    const dealId = await sembrarDeal(programaA, {
-      ownerUserId: closer.id,
-      valorVendidoUsd: "100",
-    });
-    await marcarVenta(dealId, fecha, closer.id);
-    await db.insert(calls).values({
-      programId: programaA,
-      dealId,
-      closerUserId: null,
-      closerId: "mani ",
-      fechaAgenda: fecha,
-      resultado: "show",
-    });
-
-    const filas = await embudoPorCloser({ programId: programaA, rango }, db);
-
-    expect(filas).toHaveLength(1);
-    expect(filas[0]).toMatchObject({
-      clave: closer.id,
-      closerId: "Mani",
-      agendas: 1,
-      cierres: 1,
     });
   });
 
@@ -653,10 +623,10 @@ describe("alcance acotado a un closer", () => {
     const anaId = await sembrarCloser("Ana");
     const betoId = await sembrarCloser("Beto");
     await db.insert(calls).values([
-      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "show" },
-      { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
-      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
-      { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "cerrada" },
+      { programId: programaA, closerUserId: anaId, fechaAgenda: fecha, resultado: "show" },
+      { programId: programaA, closerUserId: anaId, fechaAgenda: fecha, resultado: "cerrada" },
+      { programId: programaA, closerUserId: betoId, fechaAgenda: fecha, resultado: "no_show" },
+      { programId: programaA, closerUserId: betoId, fechaAgenda: fecha, resultado: "cerrada" },
     ]);
     const ventaAna = { id: await sembrarDeal(programaA, { ownerUserId: anaId }) };
     const ventaBeto = { id: await sembrarDeal(programaA, { ownerUserId: betoId }) };
@@ -666,23 +636,24 @@ describe("alcance acotado a un closer", () => {
       { dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" },
       { dealId: ventaBeto.id, programId: programaA, closerId: "Beto", fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
     ]);
+    return { anaId, betoId };
   }
 
   it("el embudo y la caja de un closer son solo suyos; sin closer sale el total del programa", async () => {
-    await sembrarDosClosers();
+    const { anaId, betoId } = await sembrarDosClosers();
 
     const total = await embudoDelRango({ programId: programaA, rango }, db);
     expect(total.agendas).toBe(4);
 
-    const ana = await embudoDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Ana") }, db);
+    const ana = await embudoDelRango({ programId: programaA, rango, claveCloser: anaId }, db);
     expect(ana.agendas).toBe(2);
     expect(ana.llamadasConShow).toBe(2);
     expect(ana.cierres).toBe(1);
 
-    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Ana") }, db)).toEqual([
+    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: anaId }, db)).toEqual([
       { moneda: "USD", total: 100 },
     ]);
-    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Beto") }, db)).toEqual([
+    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: betoId }, db)).toEqual([
       { moneda: "USD", total: 250 },
     ]);
   });

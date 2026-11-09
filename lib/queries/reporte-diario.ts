@@ -141,11 +141,11 @@ async function motivosDeAgendas(db: Db, ids: readonly string[]): Promise<Map<str
   const m = new Map<string, string>();
   if (ids.length === 0) return m;
   const filas = await db
-    .select({ id: calls.id, motivo: motivos.nombre, texto: calls.motivoPerdida })
+    .select({ id: calls.id, motivo: motivos.nombre })
     .from(calls)
     .leftJoin(motivos, eq(motivos.id, calls.motivoId))
     .where(and(inArray(calls.id, [...ids]), eq(calls.resultado, "perdida"), vigente(calls)));
-  for (const f of filas) if (f.motivo ?? f.texto) m.set(f.id, (f.motivo ?? f.texto) as string);
+  for (const f of filas) if (f.motivo) m.set(f.id, f.motivo);
   return m;
 }
 

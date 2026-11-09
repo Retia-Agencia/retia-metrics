@@ -332,7 +332,6 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
       .values({
         dealId,
         programId,
-        cohortId,
         emailLead: "ana@correo.co",
         resultado: "agendada",
         origen: "calendly",
@@ -373,7 +372,6 @@ describe("completarAgendada: el dueño completa la agendada del sistema", () => 
       .values({
         dealId,
         programId,
-        cohortId,
         resultado: "agendada",
         origen: "crm",
         closerUserId: closer,

@@ -38,6 +38,8 @@ const GENERICOS = new Set([
 /** `tabla.campo` → hallazgo de F3 o ticket que lo retira. Una columna aquí NO tiene lector hoy. */
 const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
   "calls.cohortId": "F3-04: la cohorte de un hecho es la de su deal; eliminar columna e índice",
+  "calls.closerId": "F3-05 / 401 M10: 0 pobladas; el closer de una llamada es solo closer_user_id",
+  "calls.motivoPerdida": "401 M10: texto de las filas viejas de Sheets; el motivo es motivo_id",
   "canales.id": "F3-16: la pantalla es un redirect y la regla vive en resolverCanal; eliminar la tabla",
   "canales.nombre": "F3-16: eliminar la tabla",
   "canales.activo": "F3-16: eliminar la tabla",

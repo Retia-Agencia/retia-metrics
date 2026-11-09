@@ -1,5 +1,5 @@
-import { and, desc, eq, inArray, isNotNull, isNull, or } from "drizzle-orm";
-import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
+import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { claveCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import type { RazonConCobertura } from "@/lib/cobertura";
 import { calls, cohorts, deals, programs, proyeccionesRoas, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -149,13 +149,12 @@ export async function calcularProyeccionDeRoas(
   const ids = pendientes.map((p) => p.callId);
   const [duenos, grupo, [programa]] = await Promise.all([
     ids.length === 0 ? [] : db.select({
-      callId: calls.id, clave: claveCloserSql(users.id, calls.closerId), closer: etiquetaDeCloserSql(calls.closerId),
+      callId: calls.id, clave: claveCloserSql(users.id), closer: etiquetaDeCloserSql(),
       precio: cohorts.precioUsd,
     }).from(calls)
       .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
       .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
-      .leftJoin(users, or(eq(users.id, calls.closerUserId),
-        and(isNull(calls.closerUserId), eq(claveDeCloserSql(users.closerId), claveDeCloserSql(calls.closerId)))))
+      .leftJoin(users, eq(users.id, calls.closerUserId))
       .where(and(eq(calls.programId, programId), inArray(calls.id, ids), vigente(calls))),
     grupoDeCitas(db, { programId, rango: { desde: sumarDias(hoy, -7 * SEMANAS_DE_MUESTRA), hasta: hoy }, ahora }),
     db.select({ minima: programs.muestraMinimaConversion }).from(programs).where(eq(programs.id, programId)),

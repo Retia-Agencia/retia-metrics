@@ -93,9 +93,9 @@ beforeEach(async () => {
   const [ventaB] = await db.select({ id: deals.id }).from(deals).where(eq(deals.programId, programas[1].id));
   const [perdidoA] = await db.insert(deals).values({ programId: programas[0].id, leadId: ventaA.leadId, etapa: "cierre_perdido" }).returning();
   await db.insert(calls).values([
-    { programId: programas[0].id, dealId: ventaA.id, closerId: "Ana", fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "show" },
-    { programId: programas[0].id, dealId: perdidoA.id, closerId: "Ana", fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "no_show" },
-    { programId: programas[1].id, dealId: ventaB.id, closerId: "Beto", fechaAgenda: new Date("2026-09-15T17:00:00Z"), resultado: "show" },
+    { programId: programas[0].id, dealId: ventaA.id, fechaAgenda: new Date("2026-09-15T14:00:00Z"), resultado: "show" },
+    { programId: programas[0].id, dealId: perdidoA.id, fechaAgenda: new Date("2026-09-15T16:00:00Z"), resultado: "no_show" },
+    { programId: programas[1].id, dealId: ventaB.id, fechaAgenda: new Date("2026-09-15T17:00:00Z"), resultado: "show" },
   ]);
 }, 60_000);
 

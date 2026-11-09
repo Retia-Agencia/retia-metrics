@@ -116,11 +116,7 @@ export async function detalleDeLlamada(
     calendlyHostEmail: fila.llamada.calendlyHostEmail,
     emailLead: fila.llamada.emailLead,
     notas: fila.llamada.notas,
-    closer: closer
-      ? { nombre: closer.nombre ?? fila.llamada.closerId, email: closer.email }
-      : fila.llamada.closerId
-        ? { nombre: fila.llamada.closerId, email: null }
-        : null,
+    closer: closer ? { nombre: closer.nombre, email: closer.email } : null,
     dealId: fila.dealId,
     lead: fila.dealId && fila.leadEmail
       ? { nombre: fila.leadNombre, email: fila.leadEmail }

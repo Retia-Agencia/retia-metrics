@@ -72,7 +72,7 @@ beforeAll(async () => {
         fechaAgenda: i % 2 ? fecha : null,
         fechaLlamada: fecha,
         resultado: i % 3 && !anulada ? "agendada" : "show",
-        closerId: i % 2 ? "Ana" : "  ANA  ",
+        closerUserId: owner.id,
         anuladoEn: anulada ? fecha : null,
         anuladoPor: anulada ? owner.id : null,
         motivoAnulacion: anulada ? "Prueba de corrección" : null,
@@ -155,7 +155,7 @@ describe("137: la cifra, el resumen y todas las páginas cuentan exactamente lo 
     expect(segunda.subtotal).toEqual(primera.subtotal);
   });
 
-  it.each(["caja", "agendas", "shows", "shows_sin_grain", "cierres"] as const)("%s conserva la identidad normalizada del closer", async (metrica) => {
+  it.each(["caja", "cierres"] as const)("%s conserva la identidad normalizada del closer", async (metrica) => {
     const filas = await todas(metrica, programaA, claveHistorica("ana"));
     expect(metrica === "caja" ? suma(filas) : filas.length).toEqual(await cifra(metrica, programaA, claveHistorica("ana")));
     expect(filas.length).toBeGreaterThan(0);
@@ -255,23 +255,25 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
     expect(vista?.lista.subtotal.caja).toEqual([{ moneda: "USD", total: 100 }]);
   });
 
-  it("(e) un closer historico (texto, sin cuenta) abre su lista desde la fila del comparativo", async () => {
-    // Una llamada historica sin FK y sin usuario: solo el texto "Caro".
-    await base.insert(calls).values({ programId: prog, closerId: "Caro", fechaAgenda: new Date("2026-10-02T14:00:00Z"), resultado: "show" });
+  it("(e) un closer historico (texto, sin cuenta) abre la lista de su caja desde la fila del resumen", async () => {
+    // Un abono historico sin FK y sin usuario: solo el texto "Caro" (las llamadas ya no guardan texto, 401 M10).
+    const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "caro@e.co" }).returning();
+    const [dueno] = await base.insert(users).values({ email: "dueno@e.co", rol: "closer", closerId: "Dueno" }).returning();
+    const [deal] = await base.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: dueno.id, etapa: "ganado_parcial" }).returning();
+    await base.insert(abonos).values({ dealId: deal.id, programId: prog, closerId: "Caro", fecha: h, monto: "100", moneda: "USD" });
 
-    // Su clave es historica. La fila del comparativo/resumen la expone en `claveCloser`.
-    const [resumen] = await resumenDeMetrica("agendas", { programId: prog, rango: r, hoy: h }, base);
+    // Su clave es historica. La fila del resumen la expone en `claveCloser`.
+    const [resumen] = await resumenDeMetrica("caja", { programId: prog, rango: r, hoy: h }, base);
     const grupo = resumen.grupos.find((g) => g.closer === "Caro");
     expect(grupo?.claveCloser).toBe(claveHistorica("Caro"));
 
     const codigo = codigoDeCloser(claveHistorica("Caro"));
     const vista = await vistaDeLista(
-      { programId: prog, metrica: "agendas", busqueda: { periodo: "custom", a_desde: r.desde, a_hasta: r.hasta }, hoy: h, codigoCloser: codigo, pagina: 1 },
+      { programId: prog, metrica: "caja", busqueda: { periodo: "custom", a_desde: r.desde, a_hasta: r.hasta }, hoy: h, codigoCloser: codigo, pagina: 1 },
       base,
     );
     expect(vista?.claveCloser).toBe(claveHistorica("Caro"));
-    expect(vista?.lista.subtotal.cantidad).toBe(1);
-    expect(vista?.lista.filas.every((f) => f.closer === "Caro")).toBe(true);
+    expect(vista?.lista.subtotal.caja).toEqual([{ moneda: "USD", total: 100 }]);
   });
 });
 

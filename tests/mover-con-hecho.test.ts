@@ -76,7 +76,6 @@ describe("moverConHecho", () => {
     const callId = (await db.insert(calls).values({
       dealId: deal.id,
       programId,
-      cohortId,
       closerUserId: closerId,
       fechaAgenda: new Date("2026-10-10T15:00:00Z"),
       resultado: "agendada",

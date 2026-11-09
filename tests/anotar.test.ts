@@ -103,7 +103,6 @@ async function llamadaAgendada(dealId: string) {
   return (await db.insert(calls).values({
     dealId,
     programId,
-    cohortId,
     closerUserId: closerId,
     fechaAgenda: new Date("2026-10-10T15:00:00.000Z"),
     resultado: "agendada",

@@ -502,29 +502,20 @@ export async function embudoPorCloser(
   const [llamadasPorCloser, abonosPorCloser, cierresPorCloser, grupo] = await Promise.all([
     db
       .select({
-        clave: claveCloserSql(users.id, calls.closerId),
-        closerId: sql<string | null>`min(${etiquetaDeCloserSql(calls.closerId)})`,
+        clave: claveCloserSql(users.id),
+        closerId: sql<string | null>`min(${etiquetaDeCloserSql()})`,
         ...conteosDeLlamadas(ahora),
       })
       .from(calls)
       .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
-      .leftJoin(
-        users,
-        or(
-          eq(users.id, calls.closerUserId),
-          and(
-            isNull(calls.closerUserId),
-            eq(claveDeCloserSql(users.closerId), claveDeCloserSql(calls.closerId)),
-          ),
-        ),
-      )
+      .leftJoin(users, eq(users.id, calls.closerUserId))
       .where(
         and(
           filtroLlamadas({ programId, rango, cohorteId }, db),
           vigente(calls),
         ),
       )
-      .groupBy(claveCloserSql(users.id, calls.closerId)),
+      .groupBy(claveCloserSql(users.id)),
     db
       .select({
         clave: claveCloserSql(users.id, abonos.closerId),

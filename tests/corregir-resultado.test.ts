@@ -88,7 +88,6 @@ async function crearCaso(
   const [call] = await db.insert(calls).values({
     dealId: deal.id,
     programId,
-    cohortId,
     closerUserId: closer,
     emailLead: lead.emailNormalizado,
     fechaAgenda,

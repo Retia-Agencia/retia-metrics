@@ -92,8 +92,8 @@ beforeAll(async () => {
   }
   for (let i = 0; i < 5; i += 1) await crear(programaB, 100 + i, ajena, false);
 
-  // Llamadas y abonos para el comparativo. Una llamada histórica de Ana va SIN FK, solo con su
-  // texto: el comparativo la junta bajo su cuenta y su lista tiene que traerla.
+  // Llamadas y abonos para el comparativo. Una llamada sin closer (sin FK; `calls` ya no guarda el
+  // texto del closer, 401 M10) forma la fila "sin closer" del comparativo y su lista tiene que traerla.
   const conDueno = dealsDeA.filter((d) => d.owner !== null && !anulados.has(d.id)).slice(0, 12);
   for (const [n, d] of conDueno.entries()) {
     const sinFk = n === 0;
@@ -101,7 +101,6 @@ beforeAll(async () => {
       programId: programaA,
       dealId: d.id,
       closerUserId: sinFk ? null : d.owner,
-      closerId: sinFk ? "  ana " : null,
       fechaAgenda: instante(`2026-09-${String(10 + n).padStart(2, "0")}`),
       resultado: n % 3 === 0 ? "no_show" : "show",
     });
@@ -226,15 +225,6 @@ describe("ticket 188: cada celda del comparativo abre la lista de ese closer", (
       expect(new URL(href, "https://e188.test").searchParams.get("closer")).toBe(codigoDeCloser(fila.clave));
       expect(href).not.toContain(fila.clave);
     }
-  });
-
-  it("la agenda histórica sin FK de Ana se cuenta y se lista bajo su cuenta", async () => {
-    const comparativo = await embudoPorCloser({ programId: programaA, rango }, db, ahora);
-    const deAna = comparativo.find((f) => f.clave === ana)!;
-    const detalles = await detallesDelComparativo({ programId: programaA, slug: "e188-a", hoy, periodo, origen: "/p/e188-a/hub?seccion=comercial" }, [ana], db, ahora);
-    const filas = await todasLasPaginas(detalles[ana].agendas);
-    expect(filas?.length).toBe(deAna.agendas);
-    expect(filas?.some((f) => f.claveCloser.startsWith("historico:"))).toBe(true);
   });
 
   it("forjar el código de una closer de otro programa da lista vacía o 404, nunca filas ajenas", async () => {

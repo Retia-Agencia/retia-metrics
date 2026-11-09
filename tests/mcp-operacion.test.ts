@@ -80,7 +80,6 @@ beforeEach(async () => {
     programId: programaA,
     dealId,
     closerUserId: closerId,
-    closerId: "Closer",
     resultado: "agendada",
     fechaAgenda: new Date("2020-01-01T12:00:00-05:00"),
     emailLead: "ana@retia.test",

@@ -111,7 +111,6 @@ async function agendadaDe(dealId: string, extra: Partial<typeof calls.$inferInse
     .values({
       dealId,
       programId,
-      cohortId,
       emailLead: "ana@correo.co",
       closerUserId: closer,
       fechaAgenda: new Date(Date.now() - 60 * 60 * 1000),
@@ -435,7 +434,6 @@ describe("marcarFallida: no_show y cancelada mandan a Pendiente Re-agenda", () =
       .values({
         dealId: d2row.id,
         programId,
-        cohortId,
         emailLead: "beto@correo.co",
         closerUserId: closer,
         fechaAgenda: enUnaHora(),

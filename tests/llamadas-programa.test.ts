@@ -74,17 +74,17 @@ beforeEach(async () => {
 
   const [callPropio, callComoCloser, callAjena, callSuelta, callOtroPrograma] = await db.insert(calls).values([
     {
-      programId, dealId: propio.id, cohortId: cohorte.id, closerUserId: otroCloser,
+      programId, dealId: propio.id, closerUserId: otroCloser,
       emailLead: leadPropio.emailNormalizado, resultado: "show",
       fechaAgenda: new Date("2026-09-28T15:00:00-05:00"),
     },
     {
-      programId, dealId: comoCloser.id, cohortId: cohorte.id, closerUserId: closer,
+      programId, dealId: comoCloser.id, closerUserId: closer,
       emailLead: leadComoCloser.emailNormalizado, resultado: "show",
       fechaAgenda: new Date("2026-09-29T15:00:00-05:00"),
     },
     {
-      programId, dealId: ajeno.id, cohortId: cohorte.id, closerUserId: otroCloser,
+      programId, dealId: ajeno.id, closerUserId: otroCloser,
       emailLead: leadAjeno.emailNormalizado, resultado: "cancelada",
       fechaAgenda: new Date("2026-09-30T15:00:00-05:00"),
     },
@@ -94,7 +94,7 @@ beforeEach(async () => {
       fechaAgenda: new Date("2026-10-01T15:00:00-05:00"),
     },
     {
-      programId: otroPrograma.id, dealId: dealOtroPrograma.id, cohortId: cohorteOtroPrograma.id,
+      programId: otroPrograma.id, dealId: dealOtroPrograma.id,
       closerUserId: closer, emailLead: leadOtroPrograma.emailNormalizado, resultado: "show",
     },
   ]).returning();

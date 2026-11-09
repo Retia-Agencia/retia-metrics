@@ -182,7 +182,7 @@ export async function importarGestion(db: Db, extraccion: Extraccion, op: Opcion
       closer: l.closer,
       emailLead: l.correo,
       // `motivo_perdida` es el texto libre de las filas viejas de Sheets (ADR 0015).
-      motivoPerdida: [l.categoria, l.subcategoria].filter(Boolean).join(" · ") || null,
+      motivoDeLaHoja: [l.categoria, l.subcategoria].filter(Boolean).join(" · ") || null,
       notas,
     };
     return { l, dealId, llamada };

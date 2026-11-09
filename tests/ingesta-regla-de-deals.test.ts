@@ -515,7 +515,6 @@ describe("aplicarReglaDeDeals via ingerirEntradas", () => {
     expect(filasCall).toHaveLength(1);
     expect(filasCall[0].resultado).toBe("agendada");
     expect(filasCall[0].fechaAgenda?.toISOString()).toBe(CITA_VIGENTE.inicio.toISOString());
-    expect(filasCall[0].closerId).toBeNull();
     expect(filasCall[0].closerUserId).toBe(host.id);
     expect(filasCall[0].origen).toBe("calendly");
     expect(filasCall[0].huellaFila).toBe("calendly:UU-1");

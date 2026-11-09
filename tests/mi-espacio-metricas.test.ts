@@ -52,10 +52,11 @@ describe("read model de Mis métricas", () => {
       a: "ganado_parcial",
       fecha: new Date("2026-10-02T15:00:00Z"),
     });
+    const [otro] = await db.insert(users).values({ email: "otro@retia.co", rol: "closer", closerId: "Otro" }).returning();
     await db.insert(calls).values([
-      { programId: programa.id, dealId: deal.id, closerId: "Ana", fechaAgenda: new Date("2026-10-02T14:00:00Z"), resultado: "show" },
-      { programId: programa.id, dealId: deal.id, closerId: "Ana", fechaAgenda: new Date("2026-10-02T16:00:00Z"), resultado: "no_show" },
-      { programId: programa.id, dealId: deal.id, closerId: "Otro", fechaAgenda: new Date("2026-10-02T17:00:00Z"), resultado: "show" },
+      { programId: programa.id, dealId: deal.id, closerUserId: closer.id, fechaAgenda: new Date("2026-10-02T14:00:00Z"), resultado: "show" },
+      { programId: programa.id, dealId: deal.id, closerUserId: closer.id, fechaAgenda: new Date("2026-10-02T16:00:00Z"), resultado: "no_show" },
+      { programId: programa.id, dealId: deal.id, closerUserId: otro.id, fechaAgenda: new Date("2026-10-02T17:00:00Z"), resultado: "show" },
     ]);
     await db.insert(abonos).values({ dealId: deal.id, programId: programa.id, closerId: "Ana", fecha: HOY, monto: "250", moneda: "USD" });
 
@@ -167,13 +168,13 @@ describe("ticket 167: el closer se identifica por users.id", () => {
     expect(miEspacio.a.comisionUsd).toBe(100); // 1000 * 10%
   });
 
-  it("(b) un closer CON closer_id y filas historicas sin FK cuenta igual que antes", async () => {
+  it("(b) un closer CON closer_id y un abono historico sin FK cuenta igual que antes", async () => {
     const programa = await sembrarPrograma();
     const [closer] = await db.insert(users).values({ email: "conid@retia.co", rol: "closer", closerId: "Ana" }).returning();
     const deal = await sembrarDealVendido(programa.id, closer.id);
-    // Historicas: la llamada y el abono SOLO traen el texto, sin FK (como antes del 167).
+    // Historico: el abono SOLO trae el texto, sin FK (como antes del 167); la llamada va por FK (401 M10).
     await db.insert(calls).values({
-      programId: programa.id, dealId: deal.id, closerId: "Ana",
+      programId: programa.id, dealId: deal.id, closerUserId: closer.id,
       fechaAgenda: new Date("2026-10-02T14:00:00Z"), resultado: "show",
     });
     await db.insert(abonos).values({

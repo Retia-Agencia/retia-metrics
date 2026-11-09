@@ -1,7 +1,7 @@
-import { and, between, eq, isNull, ne, or } from "drizzle-orm";
+import { and, between, eq, ne } from "drizzle-orm";
 import { calls, deals, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
+import { claveCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
 import { ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
@@ -238,7 +238,7 @@ export function tasasDelAlcance(grupo: GrupoDeCitas, claveCloser: string | null 
 
 /**
  * Lee las citas del programa en el rango, de deals vigentes y no cortesía, con la clave del closer
- * resuelta como en el comparativo (FK, o el texto viejo de un usuario con cuenta).
+ * resuelta como en el comparativo (la FK `closer_user_id`).
  */
 export async function leerCitasDelGrupo(
   db: Db,
@@ -248,8 +248,8 @@ export async function leerCitasDelGrupo(
     .select({
       callId: calls.id,
       dealId: deals.id,
-      claveCloser: claveCloserSql(users.id, calls.closerId),
-      closer: etiquetaDeCloserSql(calls.closerId),
+      claveCloser: claveCloserSql(users.id),
+      closer: etiquetaDeCloserSql(),
       resultado: calls.resultado,
       fechaAgenda: calls.fechaAgenda,
       fechaLlamada: calls.fechaLlamada,
@@ -263,16 +263,7 @@ export async function leerCitasDelGrupo(
       cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
       vigente(deals),
     ))
-    .leftJoin(
-      users,
-      or(
-        eq(users.id, calls.closerUserId),
-        and(
-          isNull(calls.closerUserId),
-          eq(claveDeCloserSql(users.closerId), claveDeCloserSql(calls.closerId)),
-        ),
-      ),
-    )
+    .leftJoin(users, eq(users.id, calls.closerUserId))
     .where(and(
       eq(calls.programId, programId),
       between(fechaAnclaCall(), rango.desde, rango.hasta),

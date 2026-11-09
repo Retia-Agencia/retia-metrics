@@ -162,7 +162,7 @@ describe("la caja de hoy por origen (252)", () => {
 
   it("las ventas del día de Hoy son los cierres de hoy de Comercial", async () => {
     const programa = await sembrar();
-    await db.insert(calls).values({ programId: programa.id, closerId: "Ana", fechaAgenda: new Date(`${HOY}T14:00:00Z`), resultado: "show" });
+    await db.insert(calls).values({ programId: programa.id, fechaAgenda: new Date(`${HOY}T14:00:00Z`), resultado: "show" });
     const vista = await armarVistaDelDashboard({ programId: programa.id, hoy: HOY, preset: "hoy", periodo: { preset: "hoy" } }, db);
     const [dia] = horizontesDeCupos(vista);
     expect(dia.real).toBe(vista.embudo.cierres);
@@ -374,7 +374,7 @@ describe("367: citas vivas y canceladas aparte", () => {
     const [gerente] = await db.insert(users).values({ email: "gerente-citas@retia.co", rol: "gerente" }).returning();
     const [leadCancelado] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "cancelado@retia.co" }).returning();
     const [dealCancelado] = await db.insert(deals).values({ programId: programa.id, leadId: leadCancelado.id, etapa: "agendado" }).returning();
-    const base = { programId: programa.id, closerId: "Ana" };
+    const base = { programId: programa.id };
     await db.insert(calls).values([
       { ...base, fechaAgenda: new Date(`${DIA}T09:00:00-05:00`), resultado: "agendada" },
       { ...base, fechaAgenda: new Date(`${DIA}T15:00:00-05:00`), resultado: "agendada" },

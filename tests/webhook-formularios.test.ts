@@ -285,7 +285,6 @@ describe("POST /api/webhooks/formularios/[fuente]", () => {
     expect(filasCall).toHaveLength(1);
     expect(filasCall[0].resultado).toBe("agendada");
     expect(filasCall[0].fechaAgenda?.toISOString()).toBe("2026-10-05T16:00:00.000Z");
-    expect(filasCall[0].closerId).toBeNull();
     expect(filasCall[0].origen).toBe("calendly");
     expect(filasCall[0].huellaFila).toBe("calendly:UU-9");
   });

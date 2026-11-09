@@ -2,7 +2,6 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { claveHistorica } from "@/lib/closers/identidad";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -42,9 +41,13 @@ afterAll(async () => {
 
 async function sembrarDosClosers() {
   const fecha = new Date("2026-09-15T14:00:00Z");
+  const [ana, beto] = await db.insert(users).values([
+    { email: "ana@vd.test", rol: "closer", closerId: "Ana" },
+    { email: "beto@vd.test", rol: "closer", closerId: "Beto" },
+  ]).returning();
   await db.insert(calls).values([
-    { programId: programaA, closerId: "Ana", fechaAgenda: fecha, resultado: "cerrada" },
-    { programId: programaA, closerId: "Beto", fechaAgenda: fecha, resultado: "no_show" },
+    { programId: programaA, closerUserId: ana.id, fechaAgenda: fecha, resultado: "cerrada" },
+    { programId: programaA, closerUserId: beto.id, fechaAgenda: fecha, resultado: "no_show" },
   ]);
   const [lead] = await db
     .insert(leads)
@@ -63,14 +66,15 @@ async function sembrarDosClosers() {
     monto: "100.00",
     moneda: "USD",
   });
+  return { anaId: ana.id };
 }
 
 describe("el closer elegido acota la vista, menos el comparativo", () => {
   it("con closer, el embudo y la caja son suyos y el comparativo sigue mostrando a todos (ADR 0009)", async () => {
-    await sembrarDosClosers();
+    const { anaId } = await sembrarDosClosers();
 
     const vista = await armarVistaDelDashboard(
-      { programId: programaA, hoy: HOY, preset: "hoy", claveCloser: claveHistorica("Ana") },
+      { programId: programaA, hoy: HOY, preset: "hoy", claveCloser: anaId },
       db,
     );
 
