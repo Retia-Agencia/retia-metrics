@@ -395,7 +395,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   formulario. *No confundir con "registro" en el sentido de Media, que es un envío contado como métrica.*
 - **Sobre crudo:** un envío de webhook que llegó con la firma buena y no se pudo procesar (sin correo,
   payload raro, la ingesta falló). Se guarda el cuerpo tal como llegó para reprocesarlo; no es un envío
-  todavía (tabla `sobres_crudos`, ticket 106).
+  todavía (tabla `sobres_crudos`, ticket 106). Se conserva 180 días (los que fallaron y nadie reprocesó, nunca se purgan); las notificaciones de Calendly, 90 días (ADR 0127).
 - **Deal:** la oportunidad de venderle un programa a un lead. Tiene dueño, etapa, valor vendido y cohorte.
   Como máximo uno abierto por lead y programa.
 - **Formulario completo:** la persona terminó el formulario.
