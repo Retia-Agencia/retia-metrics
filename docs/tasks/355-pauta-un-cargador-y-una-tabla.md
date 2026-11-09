@@ -3,7 +3,7 @@ id: 355
 etapa: pauta
 serves: "ADR 0115 N1, N7 · auditoría 30-oct R-01, R-06, U-03, U-04, U-12, U-13 · enmienda el 350"
 depends: [351, 352, 353, 354, 388]
-status: en curso
+status: done
 ---
 
 # 355 — Pauta: un cargador y una tabla
@@ -57,5 +57,5 @@ citas de la cohorte por ocurrir; el ROAS proyectado es del 375.
 **Falta (por eso sigue `en curso`):**
 - [x] Recorrido hecho el 9-nov contra la base local (gerente, ComunicArte Local, escritorio claro y 375 px oscuro): tabla por campaña y por canal (sin Gasto ni ROAS), nota de reconciliación (16 ventas del periodo, 8 atribuidas), «Cómo se calcula», vista «todos» solo con conteos sin «(interina)», sin desbordamiento horizontal de la página (la tabla desplaza dentro de su caja), sin errores de consola de la app. Límites: la semilla no trae campañas con anuncio, así que no se abrió el detalle campaña › conjunto › anuncio; el aviso «agendas pendientes» no apareció (la semilla no tiene citas futuras). Detalle visual menor en celular: las cabeceras de la tabla se pegan («EnvíosAgendadas…») y «% no asistió» parte el texto; es del componente `Tabla` compartido, fuera del 355.
 - Cómo se corre (aprendido): `preview_start` arranca desde el checkout principal; para probar un worktree se agrega temporalmente una configuración con `sh -c "cd <worktree> && PORT=3355 npm run dev:local"` a `.claude/launch.json` del principal y se revierte con `git checkout`.
-- [ ] `/codex:adversarial-review` del diff cuando Codex tenga cupo (dinero y ROAS): mirar `reconciliacion`, `agendasPendientes` y las aserciones adaptadas de `tests/escalera.test.ts`.
-- [ ] Commit, push y checkpoint verde; solo entonces `status: done` y `[x]` en el tracker.
+- [x] `/codex:adversarial-review` hecha el 9-nov: 3 hallazgos (gasto por canal en el MCP, pendientes de deals vendidos, madurez fuera de la cobertura) corregidos en `10ec98ec`.
+- [x] Commit, push y CI verde (`10ec98ec`).
