@@ -45,6 +45,14 @@ export function textoDeRazon(
   return formato(r.valor!);
 }
 
+/** Solo el número de una razón (o "—"): la cobertura se dice aparte, nunca dentro de la cifra grande (A-176). */
+export function valorDeRazon(
+  r: RazonConCobertura,
+  formato: (valor: number) => string,
+): string {
+  return r.valor === null ? "—" : formato(r.valor);
+}
+
 export function razon(
   numerador: number,
   denominador: number,
