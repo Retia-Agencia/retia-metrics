@@ -3,7 +3,7 @@ id: 152
 etapa: NC2
 serves: "ADR 0074; operación comercial: closers nuevos sin pasar por el gerente"
 depends: [096, 031]
-status: en curso
+status: en main
 ---
 
 # 152 — El closer asigna y cambia su propia cuenta de Calendly por programa
@@ -26,8 +26,8 @@ organización de ese programa (preseleccionada si su correo de login está en la
 
 ## Done cuando
 
-- [ ] Tests: el dueño asigna y cambia la suya; otro closer recibe 403 con un `membresiaId` ajeno y la base no se
+- [x] Tests: el dueño asigna y cambia la suya; otro closer recibe 403 con un `membresiaId` ajeno y la base no se
   mueve; una cuenta ya tomada por otro se rechaza (índice); el gerente sigue pudiendo; cada cambio deja
-  `change_log`.
+  `change_log`. Evidencia: `aa1b34b`, `tests/acciones-perfil.test.ts`.
 - [ ] Typecheck, lint, `npm run build` (toca un componente cliente) y los tests del cambio en verde.
 - [ ] Recorrido en local como closer, y la acción mordida forjando la petición con el `membresiaId` de otro.
