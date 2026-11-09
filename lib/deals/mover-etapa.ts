@@ -49,6 +49,7 @@ import {
 import { congelarValorVendido } from "./valor-vendido";
 import { camposDeDueno, reclamarAlMoverPorE1 } from "./cambiar-dueno";
 import { encolarVenta } from "@/lib/meta-capi/disparo";
+import { encolarAvisoDeEstudiante } from "@/lib/avisos-cs/encolar";
 
 /**
  * `moverEtapa()`: el UNICO camino para cambiar `deals.etapa` (ADR 0037 punto 4,
@@ -391,6 +392,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
     }
     if ((ETAPAS_VENDIDAS as readonly EtapaDeal[]).includes(mov.a)) {
       await encolarVenta(tx, escritas[0]);
+      await encolarAvisoDeEstudiante(tx, { programId: deal.programId, dealId: deal.id });
     }
 
     await tx.insert(dealEtapaHistorial).values({

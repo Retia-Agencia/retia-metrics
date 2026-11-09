@@ -57,9 +57,9 @@ Grupos de WhatsApp, avisos a closers, reintentos con cola externa, plantillas po
 
 ## Done cuando
 
-- [ ] Test: primer paso a Abonado crea el aviso; el segundo paso (o abono posterior) no; Completo directo también avisa; anulado no.
-- [ ] Test: solo CS con membresía activa del programa del deal reciben; otro programa, inactivo o sin número, no.
-- [ ] Test de contrato: la respuesta recorre la lista blanca y falla con una llave fuera de ella; sin secreto, 401.
-- [ ] Test: confirmar es idempotente; sin confirmar, el aviso reaparece.
+- [x] Test: primer paso a Abonado crea el aviso; el segundo paso (o abono posterior) no; Completo directo también avisa; anulado no.
+- [x] Test: solo CS con membresía activa del programa del deal reciben; otro programa, inactivo o sin número, no.
+- [x] Test de contrato: la respuesta recorre la lista blanca y falla con una llave fuera de ella; sin secreto, 401.
+- [x] Test: confirmar es idempotente; sin confirmar, el aviso reaparece.
 - [ ] Juanito desplegado y verificado con un deal de prueba en base local antes del push.
 - [ ] Typecheck, lint, `npm run build` limpios. Tracker de `docs/tasks/README.md` actualizado.

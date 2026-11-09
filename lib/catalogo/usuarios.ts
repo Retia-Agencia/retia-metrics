@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, miembrosPrograma, miembrosProgramaCalendlyExtra, programs, users, usuariosProgramasAlcance } from "@/lib/db/schema";
+import { changeLog, miembrosPrograma, miembrosProgramaCalendlyExtra, programs, users, usuariosProgramasAlcance, usuariosWhatsapp } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { esViolacionUnica } from "@/lib/db/errores";
@@ -90,6 +90,13 @@ export const esquemaUsuario = z.object({
       .record(z.string().uuid("Programa inválido."), z.string().trim().toLowerCase().email("El correo de Calendly no es válido.").or(z.literal("")))
       .optional(),
   });
+
+/** Unico esquema de los numeros de WhatsApp; acepta separadores humanos y guarda solo digitos. */
+export const esquemaWhatsappDeUsuario = z.object({
+  telefono: z.string()
+    .transform((valor) => valor.replace(/[\s+-]/g, ""))
+    .pipe(z.string().regex(/^[0-9]{8,15}$/, "Escribe un número de 8 a 15 dígitos, con indicativo.")),
+}).strict();
 
 /**
  * El `closerId` como campo suelto, con la MISMA normalizacion que dentro de
@@ -392,6 +399,7 @@ export interface UsuarioConProgramas extends FilaCatalogo {
   calendlyEmail: string | null;
   programas: string[];
   programasQueVe: string[];
+  whatsapps: string[];
   /** Cuando entro el usuario (fecha de creacion de la fila). */
   creadoEn: Date;
 }
@@ -404,6 +412,7 @@ export async function listarUsuarios(
   const filas = await db.select().from(users);
   const membresias = await db.select().from(miembrosPrograma);
   const alcances = await db.select().from(usuariosProgramasAlcance);
+  const whatsapps = await db.select().from(usuariosWhatsapp);
   const activasPorUsuario = new Map<string, string[]>();
   for (const m of membresias) {
     if (!m.activo) continue;
@@ -417,6 +426,13 @@ export async function listarUsuarios(
     lista.push(alcance.programId);
     alcancePorUsuario.set(alcance.userId, lista);
   }
+  const whatsappsPorUsuario = new Map<string, string[]>();
+  for (const whatsapp of whatsapps) {
+    const lista = whatsappsPorUsuario.get(whatsapp.userId) ?? [];
+    lista.push(whatsapp.telefono);
+    whatsappsPorUsuario.set(whatsapp.userId, lista);
+  }
+  for (const lista of whatsappsPorUsuario.values()) lista.sort();
   const resultado = filas.map((u) => ({
     id: u.id,
     activo: u.activo,
@@ -428,6 +444,7 @@ export async function listarUsuarios(
     calendlyEmail: u.calendlyEmail,
     programas: activasPorUsuario.get(u.id) ?? [],
     programasQueVe: alcancePorUsuario.get(u.id) ?? [],
+    whatsapps: whatsappsPorUsuario.get(u.id) ?? [],
     creadoEn: u.createdAt,
   }));
   if (!actor) return resultado;
@@ -437,6 +454,85 @@ export async function listarUsuarios(
     if (esAccesoTotal(usuario.rol)) return false;
     const programas = new Set([...usuario.programas, ...usuario.programasQueVe]);
     return programas.size > 0 && [...programas].every((programId) => contexto.programas.has(programId));
+  });
+}
+
+/** Agrega un numero y su fila de auditoria, limitado por el alcance del administrador. */
+export async function agregarWhatsappDeUsuario(
+  db: Db,
+  actor: ActorDeUsuarios,
+  userId: string,
+  input: z.input<typeof esquemaWhatsappDeUsuario>,
+): Promise<void> {
+  return normalizando(async () => {
+    const objetivoId = idValido(userId);
+    const { telefono } = esquemaWhatsappDeUsuario.parse(input);
+    const contexto = await contextoDeActor(db, actor);
+    const objetivo = await exigirObjetivoDentroDelAlcance(db, contexto, objetivoId);
+    const [ocupado] = await db.select({ userId: usuariosWhatsapp.userId })
+      .from(usuariosWhatsapp).where(eq(usuariosWhatsapp.telefono, telefono)).limit(1);
+    if (ocupado) {
+      throw new ErrorDeApp(
+        ocupado.userId === objetivoId
+          ? "Ese número ya está guardado para esta persona."
+          : "Ese número de WhatsApp ya está asignado a otra persona.",
+        409,
+      );
+    }
+    const id = crypto.randomUUID();
+    try {
+      await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(async (tx) => {
+        await tx.insert(usuariosWhatsapp).values({ id, userId: objetivoId, telefono });
+        await tx.insert(changeLog).values({
+          tabla: "usuarios_whatsapp",
+          registroId: id,
+          etiqueta: objetivo.email,
+          campo: "telefono",
+          valorAnterior: null,
+          valorNuevo: telefono,
+          origen: "app",
+          userId: actor.id,
+        });
+      });
+    } catch (error) {
+      if (esViolacionUnica(error)) {
+        throw new ErrorDeApp("Ese número de WhatsApp ya está asignado a otra persona.", 409);
+      }
+      throw error;
+    }
+  });
+}
+
+/** Quita un numero de la persona y conserva el cambio en la bitacora. */
+export async function quitarWhatsappDeUsuario(
+  db: Db,
+  actor: ActorDeUsuarios,
+  userId: string,
+  input: z.input<typeof esquemaWhatsappDeUsuario>,
+): Promise<void> {
+  return normalizando(async () => {
+    const objetivoId = idValido(userId);
+    const { telefono } = esquemaWhatsappDeUsuario.parse(input);
+    const contexto = await contextoDeActor(db, actor);
+    const objetivo = await exigirObjetivoDentroDelAlcance(db, contexto, objetivoId);
+    const [actual] = await db.select({ id: usuariosWhatsapp.id })
+      .from(usuariosWhatsapp)
+      .where(and(eq(usuariosWhatsapp.userId, objetivoId), eq(usuariosWhatsapp.telefono, telefono)))
+      .limit(1);
+    if (!actual) throw new ErrorDeApp("Ese número no está guardado para esta persona.", 404);
+    await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(async (tx) => {
+      await tx.delete(usuariosWhatsapp).where(eq(usuariosWhatsapp.id, actual.id));
+      await tx.insert(changeLog).values({
+        tabla: "usuarios_whatsapp",
+        registroId: actual.id,
+        etiqueta: objetivo.email,
+        campo: "telefono",
+        valorAnterior: telefono,
+        valorNuevo: null,
+        origen: "app",
+        userId: actor.id,
+      });
+    });
   });
 }
 

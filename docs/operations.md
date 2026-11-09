@@ -338,6 +338,16 @@ editor) y en Vercel.
 - **Apagarlo:** el interruptor "Enviar reporte" de cada programa. Para apagarlo todo desde Juanito, vaciar
   `RETIA_SEMAFORO_URL` en su `.env` del VPS y `docker compose up -d` (el job se autodesactiva).
 
+### 3.2 Avisos de estudiantes nuevos a Customer Success (ticket 408)
+
+1. En Ajustes › Usuarios, abre la persona de Customer Success y agrega uno o varios números en WhatsApp. Se pueden
+   pegar con `+`, espacios o guiones; el CRM guarda solo los 8 a 15 dígitos con indicativo. Un número solo puede
+   pertenecer a una persona.
+2. Confirma que la persona esté activa y tenga membresía activa en cada programa cuyos estudiantes debe recibir.
+3. Desde cada número, escríbele primero a Juanito (por ejemplo, "hola"). Juanito nunca inicia una conversación:
+   sin ese opt-in no envía ni confirma, y el aviso queda pendiente durante 48 horas.
+4. Para dejar de recibirlos, quita el número en Ajustes › Usuarios o desactiva la membresía correspondiente.
+
 ## 4. La base de datos
 
 **Reglas** (las completas en `AGENTS.md`, convenciones):

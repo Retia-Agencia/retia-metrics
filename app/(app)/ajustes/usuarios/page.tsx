@@ -54,6 +54,7 @@ export default async function UsuariosPage() {
     activo: u.activo,
     programas: u.programas,
     programasQueVe: u.programasQueVe,
+    whatsapps: u.whatsapps,
     creadoEn: u.creadoEn.toISOString(),
     conexionesIa: (conexionesPorUsuario.get(u.id) ?? []).map((conexion) => ({
       id: conexion.id,

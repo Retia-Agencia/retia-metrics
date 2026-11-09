@@ -295,6 +295,11 @@ export function marcaOnboarding(rol: Rol | undefined | null): boolean {
   return rol === "customer_success" || trabajaLeads({ rol, operaComoCloser: false }) || esAdministrador(rol);
 }
 
+/** Recibe por WhatsApp los avisos de estudiantes nuevos de sus membresias activas. */
+export function recibeAvisosDeEstudianteNuevo(rol: Rol | undefined | null): boolean {
+  return rol === "customer_success";
+}
+
 /**
  * Quien ve únicamente los datos básicos de la ficha del lead: persona, contactos, envíos y
  * cuántas llamadas tuvo cada deal, sin abrir el deal ni el detalle de sus citas. Es la rama de

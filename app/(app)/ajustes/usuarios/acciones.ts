@@ -14,12 +14,14 @@ import { revocarConexionOauthAdministrada } from "@/lib/oauth/conexiones";
 import { z } from "zod";
 import {
   asignarCalendlyDeMembresia,
+  agregarWhatsappDeUsuario,
   crearUsuario,
   gestionarCalendlyExtra,
   desactivarUsuario,
   editarUsuario,
   reactivarUsuario,
   guardarAlcanceDeUsuario,
+  quitarWhatsappDeUsuario,
   type EntradaCalendlyDeMembresia,
   type EntradaUsuario,
 } from "@/lib/catalogo/usuarios";
@@ -104,6 +106,38 @@ export async function reactivarUsuarioAccion(id: string): Promise<ResultadoAccio
     const rol = await rolDeVista(session);
     if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
     await reactivarUsuario(db, { id: session.user.id, rol }, id);
+    revalidar();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function agregarWhatsappDeUsuarioAccion(
+  id: string,
+  telefono: string,
+): Promise<ResultadoAccion> {
+  try {
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await agregarWhatsappDeUsuario(db, { id: session.user.id, rol }, id, { telefono });
+    revalidar();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function quitarWhatsappDeUsuarioAccion(
+  id: string,
+  telefono: string,
+): Promise<ResultadoAccion> {
+  try {
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
+    await quitarWhatsappDeUsuario(db, { id: session.user.id, rol }, id, { telefono });
     revalidar();
     return { ok: true };
   } catch (error) {

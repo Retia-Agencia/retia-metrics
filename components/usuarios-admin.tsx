@@ -2,22 +2,24 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RotateCcw, Search, Unplug } from "lucide-react";
+import { Plus, RotateCcw, Search, Trash2, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { esAccesoTotal, etiquetaDeRol, puedeConfigurarOperaComoCloser, puedeSerMiembro, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
+import { esAccesoTotal, etiquetaDeRol, puedeConfigurarOperaComoCloser, puedeSerMiembro, recibeAvisosDeEstudianteNuevo, ROLES, tieneAlcanceConfigurable, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import { cn } from "@/lib/utils";
 import { fecha, fechaDeInstanteEnBogota } from "@/lib/format";
 import { clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import {
   crearUsuarioAccion,
+  agregarWhatsappDeUsuarioAccion,
   desactivarUsuarioAccion,
   editarUsuarioAccion,
   reactivarUsuarioAccion,
+  quitarWhatsappDeUsuarioAccion,
   revocarConexionDeIa,
   type ResultadoAccion,
 } from "@/app/(app)/ajustes/usuarios/acciones";
@@ -44,6 +46,7 @@ export interface UsuarioVista {
   programas: string[];
   /** Alcance explicito de un gerente o paid trafficker; vacio = todos. */
   programasQueVe: string[];
+  whatsapps: string[];
   /** Instante de creacion, ISO. */
   creadoEn: string;
   conexionesIa: Array<{
@@ -279,6 +282,14 @@ export function UsuariosAdmin({
                 alcanceLimitado={alcanceLimitado}
                 puedeCrearDeveloper={puedeCrearDeveloper}
                 emailBloqueado
+                usuarioId={usuarioEditado.id}
+                whatsapps={usuarioEditado.whatsapps}
+                onAgregarWhatsapp={(telefono) =>
+                  correr(() => agregarWhatsappDeUsuarioAccion(usuarioEditado.id, telefono), "WhatsApp agregado")
+                }
+                onQuitarWhatsapp={(telefono) =>
+                  correr(() => quitarWhatsappDeUsuarioAccion(usuarioEditado.id, telefono), "WhatsApp eliminado")
+                }
                 onCancelar={() => setEditando(null)}
                 onGuardar={(borrador) =>
                   correr(
@@ -479,6 +490,10 @@ function FormularioUsuario({
   alcanceLimitado,
   puedeCrearDeveloper,
   emailBloqueado,
+  usuarioId,
+  whatsapps = [],
+  onAgregarWhatsapp,
+  onQuitarWhatsapp,
   onCancelar,
   onGuardar,
 }: {
@@ -490,12 +505,17 @@ function FormularioUsuario({
   alcanceLimitado: boolean;
   puedeCrearDeveloper: boolean;
   emailBloqueado?: boolean;
+  usuarioId?: string;
+  whatsapps?: string[];
+  onAgregarWhatsapp?: (telefono: string) => void;
+  onQuitarWhatsapp?: (telefono: string) => void;
   onCancelar: () => void;
   onGuardar: (borrador: Borrador) => void;
 }) {
   const [borrador, setBorrador] = useState<Borrador>(() => alcanceLimitado
     ? { ...inicial, alcance: "solo" }
     : inicial);
+  const [nuevoWhatsapp, setNuevoWhatsapp] = useState("");
   // El closer_id ya no se captura: el borrador lo conserva tal cual para que editar
   // otro campo no lo borre de la fila.
   const muestraAlcance = tieneAlcanceConfigurable(borrador.rol);
@@ -674,6 +694,62 @@ function FormularioUsuario({
           ) : null}
 
           {/* La cuenta de Calendly es de cada membresia (ticket 096): se vincula en la tab Programa. */}
+
+          {usuarioId ? (
+            <fieldset className="space-y-2 rounded-lg border border-border p-3 sm:col-span-2">
+              <legend className="px-1 text-sm text-muted-foreground">WhatsApp</legend>
+              {whatsapps.length > 0 ? (
+                <ul className="space-y-1">
+                  {whatsapps.map((telefono) => (
+                    <li key={telefono} className="flex items-center justify-between gap-2 text-sm">
+                      <span className="cifra">{telefono}</span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={pendiente}
+                        aria-label={`Quitar WhatsApp ${telefono}`}
+                        onClick={() => onQuitarWhatsapp?.(telefono)}
+                      >
+                        <Trash2 className="size-4" />
+                        Quitar
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground">Sin números guardados.</p>
+              )}
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={nuevoWhatsapp}
+                  onChange={(evento) => setNuevoWhatsapp(evento.target.value)}
+                  placeholder="Ej. +57 300 123 4567"
+                  className={claseInput}
+                  aria-label="Nuevo número de WhatsApp"
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pendiente || !nuevoWhatsapp.trim()}
+                  onClick={() => {
+                    onAgregarWhatsapp?.(nuevoWhatsapp);
+                    setNuevoWhatsapp("");
+                  }}
+                >
+                  <Plus className="size-4" />
+                  Agregar
+                </Button>
+              </div>
+              {recibeAvisosDeEstudianteNuevo(borrador.rol) ? (
+                <p className="text-xs text-muted-foreground">
+                  Sin WhatsApp no recibe avisos. Cada número tiene que escribirle primero a Juanito
+                </p>
+              ) : null}
+            </fieldset>
+          ) : null}
 
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button type="button" size="sm" variant="ghost" onClick={onCancelar}>
