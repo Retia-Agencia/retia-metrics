@@ -41,8 +41,8 @@ describe("estadoDesdeTexto", () => {
 });
 
 /**
- * 117 fase 2 (ADR 0069 punto 5): la tabla `estados_llegada` sigue en el esquema hasta su
- * migración, pero NADIE la lee. Si una consulta vuelve a mirarla, la variable `estado` del
+ * 117 fase 2 (ADR 0069 punto 5): la tabla `estados_llegada` se borró con la migración 0059; si
+ * alguien la resucita y una consulta vuelve a mirarla, la variable `estado` del
  * formulario vuelve a decidir en silencio, que es justo lo que el 0069 retiró.
  */
 describe("nadie lee estados_llegada (ADR 0069)", () => {

@@ -1008,6 +1008,13 @@ describe("las rutas viejas del Dashboard y de Metas redirigen al Hub (ticket 250
     );
   });
 
+  it("la lista vieja deja pasar al paid trafficker, como el tablero: el destino aplica la capacidad de la cifra (361)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/lista/page", { metrica: "agendas_creadas" })).toBe(
+      `/p/${SLUG}/hub/lista?metrica=agendas_creadas`,
+    );
+  });
+
   it("la lista de una cifra abre la misma lista en el Hub", async () => {
     auth.mockResolvedValue(sesionGerente);
     expect(await destino("@/app/(app)/p/[programa]/dashboard/lista/page", { metrica: "cierres", pagina: "2" })).toBe(

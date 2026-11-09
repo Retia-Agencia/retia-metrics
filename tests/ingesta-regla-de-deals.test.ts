@@ -293,7 +293,6 @@ beforeEach(async () => {
   programId = p.id;
   const [f] = await db.insert(sources).values({ programId, nombre: "Typeform", tipo: "google_sheet" }).returning();
   sourceId = f.id;
-  // Sin filas en `estados_llegada`: la regla ya no las lee (ADR 0069).
 });
 
 afterAll(async () => {
