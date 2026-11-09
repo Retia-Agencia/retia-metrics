@@ -27,7 +27,7 @@ import {
 import { Caja, Tabla } from "@/components/dashboard/piezas";
 import { nombreCorto, nombreLargo } from "@/lib/vocabulario-metricas";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
-import { textoDeRazon } from "@/lib/cobertura";
+import { valorDeRazon } from "@/lib/cobertura";
 
 const formatearTasa = (valor: number | null) => valor === null ? "—" : pct(valor);
 
@@ -219,8 +219,8 @@ export function Operacion({
       {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi titulo={nombreCorto("citas")} valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
-        <Kpi titulo={nombreCorto("asistencia")} valor={textoDeRazon(vista.embudo.razonShow, pct)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
-        <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={textoDeRazon(vista.embudo.razonCierre, pct)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo={nombreCorto("asistencia")} valor={valorDeRazon(vista.embudo.razonShow, pct)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
+        <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={valorDeRazon(vista.embudo.razonCierre, pct)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
         <Kpi titulo="Cita → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
       </div>
     </CardContent></Card>

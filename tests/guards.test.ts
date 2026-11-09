@@ -91,6 +91,14 @@ describe("administración de usuarios", () => {
     await expect(requireAdministracionDeUsuarios()).resolves.toMatchObject({ user: { rol: "gerente" } });
     await expect(requireAdministracionGlobal()).rejects.toMatchObject({ status: 403 });
   });
+
+  it("un closer no pasa, y el developer pasa por la pregunta de roles, no por un literal (ADR 0025)", async () => {
+    const { requireAdministracionDeUsuarios } = await import("@/lib/auth/guards");
+    auth.mockResolvedValue(sesionCloser);
+    await expect(requireAdministracionDeUsuarios()).rejects.toMatchObject({ status: 403 });
+    auth.mockResolvedValue(sesionDeveloper);
+    await expect(requireAdministracionDeUsuarios()).resolves.toMatchObject({ user: { rol: "developer" } });
+  });
 });
 
 /**

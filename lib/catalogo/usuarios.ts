@@ -581,6 +581,7 @@ export async function crearUsuario(
   db: Db,
   actor: ActorDeUsuarios,
   input: EntradaUsuario,
+  opciones: { fetch?: FetchLike } = {},
 ): Promise<UsuarioConProgramas> {
   return normalizando(async () => {
     const datos = esquemaUsuario.parse(input);
@@ -615,7 +616,7 @@ export async function crearUsuario(
             for (const membresia of membresias) {
               const calendlyEmail = porPrograma[membresia.programId] || campos.calendlyEmail;
               if (!calendlyEmail) continue;
-              await asignarCalendlyDeMembresia(tx, actor.id, { membresiaId: membresia.id, calendlyEmail });
+              await asignarCalendlyDeMembresia(tx, actor.id, { membresiaId: membresia.id, calendlyEmail }, opciones);
             }
           }
         }

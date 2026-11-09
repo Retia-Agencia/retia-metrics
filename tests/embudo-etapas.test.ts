@@ -18,6 +18,7 @@ import {
   type DealParaEmbudo,
   type HistorialParaEmbudo,
 } from "@/lib/queries/embudo-etapas";
+import { idsDeLaCifra } from "@/lib/queries/embudo-con-filas";
 import type { Rango } from "@/lib/queries/dashboard";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -167,6 +168,26 @@ describe("calcularEmbudoEtapas", () => {
     for (const camino of caminos) {
       for (const paso of camino.pasos) {
         expect(paso.pasaron + paso.siguenAqui + paso.perdidosAqui).toBe(paso.llegaron);
+      }
+    }
+  });
+
+  it("la lista de cada tramo (pasaron, siguen, perdidos) tiene exactamente los deals que cuenta la barra", () => {
+    const filas = [deal("avanza", "atendido"), deal("sigue", "agendado"), deal("pierde", "cierre_perdido")];
+    const historial = [
+      movimiento("01", "avanza", null, "en_gestion", "2026-09-01T12:00:00Z"),
+      movimiento("02", "avanza", "en_gestion", "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("03", "avanza", "agendado", "atendido", "2026-09-03T12:00:00Z"),
+      movimiento("04", "sigue", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("05", "pierde", null, "agendado", "2026-09-02T12:00:00Z"),
+      movimiento("06", "pierde", "agendado", "cierre_perdido", "2026-09-03T12:00:00Z"),
+    ];
+    const resultado = calcular(filas, historial);
+    for (const camino of resultado.conversion.porCamino) {
+      for (const paso of camino.pasos) {
+        expect(idsDeLaCifra(resultado, "etapa_paso", { etapa: paso.etapa })).toHaveLength(paso.llegaron);
+        expect(idsDeLaCifra(resultado, "etapa_siguen", { etapa: paso.etapa })).toHaveLength(paso.siguenAqui);
+        expect(idsDeLaCifra(resultado, "etapa_perdidos", { etapa: paso.etapa })).toHaveLength(paso.perdidosAqui);
       }
     }
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadoDeCobertura, razon, razonVacia, textoDeRazon } from "@/lib/cobertura";
+import { estadoDeCobertura, razon, razonVacia, textoDeRazon, valorDeRazon } from "@/lib/cobertura";
 
 describe("cobertura de razones", () => {
   it("distingue completa, parcial y no calculable", () => {
@@ -19,6 +19,12 @@ describe("cobertura de razones", () => {
     expect(textoDeRazon({ valor: 0.41, base: 3, faltan: 7, motivo: "Faltan resultados" }, formato))
       .toBe("41 % (parcial, 3 de 10)");
     expect(textoDeRazon({ valor: 0.41, base: 10, faltan: 0, motivo: null }, formato)).toBe("41 %");
+  });
+
+  it("valorDeRazon deja solo el número: la cobertura no va dentro de la cifra grande (A-176)", () => {
+    const formato = (n: number) => `${Math.round(n * 100)} %`;
+    expect(valorDeRazon({ valor: 0.289, base: 38, faltan: 400, motivo: "Faltan resultados" }, formato)).toBe("29 %");
+    expect(valorDeRazon({ valor: null, base: 0, faltan: 0, motivo: "Sin citas" }, formato)).toBe("—");
   });
 
   it("construye una razón vacía con su motivo", () => {
