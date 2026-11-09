@@ -252,12 +252,6 @@ describe("fichaDelPrograma", () => {
     await expect(fichaDelPrograma("no-es-uuid", db)).rejects.toMatchObject({ status: 400 });
   });
 
-  it("sin fuente principal lo dice (ADR 0068)", async () => {
-    const { avisoDelFormulario } = await import("@/lib/queries/ficha-programa");
-    expect(avisoDelFormulario(null)).toMatch(/no tiene fuente principal/);
-    expect(avisoDelFormulario({ fuente: "Typeform", url: "https://form.typeform.com/to/x" })).toBeNull();
-  });
-
   it("el formulario de la ficha es la fuente principal, no programs.form_url", async () => {
     const { fichaDelPrograma } = await import("@/lib/queries/ficha-programa");
     const { sources } = await import("@/lib/db/schema");

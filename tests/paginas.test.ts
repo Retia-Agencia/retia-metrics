@@ -58,16 +58,11 @@ const notFound = vi.fn();
 vi.mock("next/navigation", () => ({ redirect, permanentRedirect, notFound }));
 
 // La pagina dinamica de programa lee la base; en los tests no hay base, asi que se
-// mockea la query. `programaActivoPorSlug` devuelve un programa para los slugs
-// "existentes" y null para el resto, imitando "no existe o esta inactivo".
-const programaActivoPorSlug = vi.fn();
+// mockea la query.
 const programasActivos = vi.fn();
-const programaPorSlug = vi.fn();
 const programasGestionablesPorUsuario = vi.fn();
 vi.mock("@/lib/queries/programas", () => ({
-  programaActivoPorSlug,
   programasActivos,
-  programaPorSlug,
   programasGestionablesPorUsuario,
 }));
 
@@ -340,9 +335,7 @@ beforeEach(() => {
   redirect.mockReset();
   permanentRedirect.mockReset();
   notFound.mockReset();
-  programaActivoPorSlug.mockReset();
   programasActivos.mockReset();
-  programaPorSlug.mockReset();
   programaVisiblePorSlug.mockReset();
   programasVisibles.mockReset();
   programasVisibles.mockResolvedValue([]);

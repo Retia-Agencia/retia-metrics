@@ -1,8 +1,8 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { creadores, piezas, tiposPieza } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { UTM_MEDIUM_CONTENIDO, UTM_SOURCE_CREADOR } from "./canal";
 import { campanaDePieza } from "./campana-de-pieza";
 import { destinoDeCaptacion, generarLink } from "./link-de-captacion";
@@ -51,17 +51,3 @@ export async function linkDePieza(db: Db, piezaId: string): Promise<string> {
   });
 }
 
-/** El link fijo del creador: el de su pieza permanente viva en esa red. */
-export async function linkFijoDelCreador(db: Db, creadorId: string, red: string | null): Promise<string> {
-  const [fija] = await db
-    .select({ id: piezas.id })
-    .from(piezas)
-    .where(and(
-      eq(piezas.creadorId, creadorId),
-      red === null ? isNull(piezas.red) : eq(piezas.red, red),
-      eq(piezas.permanente, true),
-      vigente(piezas),
-    ));
-  if (!fija) throw new ErrorDeApp(`Este creador no tiene link fijo ${red ?? "sin red"}.`, 404);
-  return linkDePieza(db, fija.id);
-}

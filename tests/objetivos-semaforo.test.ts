@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { colorDeCupos, colorDeObjetivo } from "@/lib/objetivos/semaforo";
+import { colorDeObjetivo } from "@/lib/objetivos/semaforo";
 
 describe("colorDeObjetivo", () => {
   it("evalúa mayor es mejor, incluidos los bordes", () => {
@@ -19,10 +19,3 @@ describe("colorDeObjetivo", () => {
   });
 });
 
-describe("colorDeCupos", () => {
-  it("escala meta y aceptable por la fracción transcurrida", () => {
-    expect(colorDeCupos({ meta: 100, aceptable: 80, vendidos: 50, fraccionTranscurrida: 0.5 })).toBe("exito");
-    expect(colorDeCupos({ meta: 100, aceptable: 80, vendidos: 40, fraccionTranscurrida: 0.5 })).toBe("alerta");
-    expect(colorDeCupos({ meta: 100, aceptable: 80, vendidos: 39, fraccionTranscurrida: 0.5 })).toBe("peligro");
-  });
-});

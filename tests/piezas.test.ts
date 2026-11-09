@@ -17,7 +17,7 @@ import {
   piezasDelCreador,
   type ActorDeMedia,
 } from "@/lib/media/piezas";
-import { campanaDePieza, linkDePieza, linkFijoDelCreador } from "@/lib/atribucion/link-de-pieza";
+import { campanaDePieza, linkDePieza } from "@/lib/atribucion/link-de-pieza";
 import { resolverCanal, UTM_MEDIUM_CONTENIDO, UTM_SOURCE_CREADOR } from "@/lib/atribucion/canal";
 import { emparejar, ARBOL_VACIO, type PiezasDelPrograma } from "@/lib/atribucion/emparejar";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -226,9 +226,8 @@ describe("317: el link de la pieza", () => {
   });
 
   it("el link fijo sin red usa source=creador y su codigo resuelve a la pieza", async () => {
-    await expect(linkFijoDelCreador(db, creadorConPrograma, null)).rejects.toMatchObject({ status: 404 });
     const id = await crearLinkFijoDeCreador(media, { creadorId: creadorConPrograma, tipoId, red: null });
-    const link = await linkFijoDelCreador(db, creadorConPrograma, null);
+    const link = await linkDePieza(db, id);
     const url = new URL(link);
     expect(url.searchParams.get("utm_source")).toBe(UTM_SOURCE_CREADOR);
     expect(url.searchParams.get("utm_medium")).toBe(UTM_MEDIUM_CONTENIDO);
@@ -319,7 +318,7 @@ describe("316: crear y editar creadores con la reja de media", () => {
     const vieja = await crearLinkFijoDeCreador(media, { creadorId: creadorSinPrograma, tipoId, red: "instagram" });
     const [v0] = await db.select().from(piezas).where(eq(piezas.id, vieja));
     expect(v0.programId).toBeNull();
-    await expect(linkFijoDelCreador(db, creadorSinPrograma, "instagram")).rejects.toMatchObject({ status: 422 });
+    await expect(linkDePieza(db, vieja)).rejects.toMatchObject({ status: 422 });
 
     await editarCreador(media, creadorSinPrograma, { nombre: "Cliente Sin Programa", slug: "sinprog", programId: programA });
 
@@ -332,7 +331,7 @@ describe("316: crear y editar creadores con la reja de media", () => {
     expect(nueva.codigo).not.toBe(descartada.codigo);
     expect(nueva.anuladoEn).toBeNull();
     // El link fijo existe desde ese dia y lleva el codigo nuevo.
-    const link = await linkFijoDelCreador(db, creadorSinPrograma, "instagram");
+    const link = await linkDePieza(db, nueva.id);
     expect(new URL(link).searchParams.get("utm_content")).toBe(nueva.codigo);
     const log = await db.select().from(changeLog).where(and(eq(changeLog.tabla, "piezas"), eq(changeLog.registroId, vieja)));
     expect(log.some((l) => l.campo === "motivoAnulacion" && l.valorNuevo === MOTIVO_CAMBIO_DE_PROGRAMA)).toBe(true);

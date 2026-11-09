@@ -771,9 +771,3 @@ describe("leads y cohorte acotados a un closer", () => {
     expect(vistaDeAna!.ventana!.metaDinamica).toBe(programa!.ventana!.metaDinamica);
   });
 });
-
-describe("pendientes y desgloses acotados a un closer", () => {
-  const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
-  const fecha = new Date("2026-09-15T14:00:00Z");
-
-});

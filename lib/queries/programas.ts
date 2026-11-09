@@ -42,47 +42,6 @@ export async function programasActivos(
 
 
 /**
- * Un programa por su slug, solo si esta activo. Devuelve `null` si no existe o
- * esta inactivo: la ruta lo traduce a un 404 y no filtra que slugs existen.
- */
-export async function programaActivoPorSlug(
-  slug: string,
-  db: Db = dbDeLaApp,
-): Promise<{ id: string; slug: string; nombre: string } | null> {
-  const [programa] = await db
-    .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre })
-    .from(programs)
-    .where(and(eq(programs.slug, slug), eq(programs.activo, true)))
-    .limit(1);
-
-  return programa ?? null;
-}
-
-/**
- * Un programa por su slug SIN filtrar por activo, para la administracion de sus
- * cohortes (ticket 014): un gerente puede querer cerrar o revisar las cohortes de un
- * programa que ya desactivo. Devuelve `null` si el slug no existe.
- */
-export async function programaPorSlug(
-  slug: string,
-  db: Db = dbDeLaApp,
-): Promise<{ id: string; slug: string; nombre: string; activo: boolean; ticketUsd: string } | null> {
-  const [programa] = await db
-    .select({
-      id: programs.id,
-      slug: programs.slug,
-      nombre: programs.nombre,
-      activo: programs.activo,
-      ticketUsd: programs.ticketUsd,
-    })
-    .from(programs)
-    .where(eq(programs.slug, slug))
-    .limit(1);
-
-  return programa ?? null;
-}
-
-/**
  * Programas activos que un usuario puede gestionar en catálogos por programa.
  * Un gerente los ve todos; un closer solo aquellos donde tiene una membresía ACTIVA.
  * Devuelve id + nombre. Los programas salen de la base: ningún
