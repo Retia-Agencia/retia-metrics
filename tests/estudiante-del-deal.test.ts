@@ -70,7 +70,7 @@ async function nuevoDeal(etapa: EtapaDeal, extra: Partial<typeof deals.$inferIns
   const [l] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: `l${++leadN}@correo.co`, nombre: `Lead ${leadN}` }).returning();
   const [d] = await db
     .insert(deals)
-    .values({ leadId: l.id, programId: programa, cohortId: septiembre, etapa, ownerUserId: closer,...extra })
+    .values({ leadId: l.id, programId: programa, cohortId: programa === programId ? septiembre : null, etapa, ownerUserId: closer,...extra })
     .returning();
   return d.id;
 }

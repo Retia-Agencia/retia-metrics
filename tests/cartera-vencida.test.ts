@@ -4,7 +4,6 @@ import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema"
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { carteraVencida } from "@/lib/queries/cartera";
-import { fechaLimiteMaxima } from "@/lib/deals/pago";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -58,19 +57,8 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
 }
 
 describe("carteraVencida", () => {
-  it("una cohorte ajena no presta su fecha: coincide con fechaLimiteMaxima", async () => {
-    const [otro] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1000" }).returning();
-    const [ajena] = await db.insert(cohorts).values({
-      programId: otro.id, codigo: "C1", metaCupos: 10, precioUsd: "1000",
-      fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro",
-    }).returning();
-    const d = await deal("ganado_parcial", "400", { cohortId: ajena.id });
-    const maxima = await fechaLimiteMaxima(db, d);
-    expect(maxima).toBe("2026-10-15");
-    const r = await carteraVencida(db, programId, HOY);
-    expect(r.vencidos).toHaveLength(1);
-    expect(r.vencidos[0].fechaLimite).toBe(maxima);
-  });
+  // «Una cohorte ajena no presta su fecha» ya no se puede construir: la base rechaza un deal con la cohorte de
+  // otro programa (ADR 0125, `tests/programa-garantizado.test.ts`).
 
   it("un deal con saldo y fecha límite vencida sale, con su saldo y sus días de atraso", async () => {
     const d = await deal("ganado_parcial", "400", { fechaLimitePago: "2026-10-10", acuerdoPago: "el resto antes de clases" });

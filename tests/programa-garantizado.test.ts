@@ -38,9 +38,8 @@ beforeEach(async () => {
   const [b] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "programa-b", nombre: "B", ticketUsd: "1000" }).returning();
   programaA = a.id;
   programaB = b.id;
-  const base = { fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA };
-  [{ id: leadA }] = await db.insert(leads).values({ ...base, programId: programaA, emailNormalizado: "a@correo.co" }).returning();
-  [{ id: leadB }] = await db.insert(leads).values({ ...base, programId: programaB, emailNormalizado: "b@correo.co" }).returning();
+  [{ id: leadA }] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "a@correo.co" }).returning();
+  [{ id: leadB }] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaB, emailNormalizado: "b@correo.co" }).returning();
   [{ id: cohorteB }] = await db.insert(cohorts).values({ programId: programaB, codigo: "CB", metaCupos: 1, precioUsd: "1" }).returning();
   [{ id: dealA }] = await db.insert(deals).values({ programId: programaA, leadId: leadA, etapa: "en_gestion" }).returning();
 });
