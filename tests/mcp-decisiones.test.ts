@@ -20,6 +20,8 @@ import type { Db } from "@/lib/db/tipos";
 import type { ContextoMcp } from "@/lib/mcp/herramientas";
 import { carteraVencidaMcp, origenDelProgramaMcp, pautaRoasMcp } from "@/lib/mcp/herramientas/decisiones";
 import { carteraVencida } from "@/lib/queries/cartera";
+import { hoyEnBogota } from "@/lib/format";
+import { resolverFiltroStudents, studentsDelPrograma } from "@/lib/queries/estudiantes";
 import { origenDelPrograma, resumenDeOrigen } from "@/lib/queries/origen";
 import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -148,16 +150,25 @@ async function lead(programId: string, correo: string) {
   return (await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: correo, nombre: correo.split("@")[0] }).returning())[0];
 }
 
-async function dealVencido(args: { programId?: string; correo: string; anulado?: boolean; moneda?: string }) {
+async function dealVencido(args: {
+  programId?: string;
+  correo: string;
+  anulado?: boolean;
+  moneda?: string;
+  cohortId?: string;
+  valorVendidoUsd?: string;
+  abono?: string;
+  fechaLimitePago?: string;
+}) {
   const programId = args.programId ?? programaA;
   const persona = await lead(programId, args.correo);
   const [deal] = await db.insert(deals).values({
     programId,
     leadId: persona.id,
-    cohortId: programId === programaA ? cohorteA : null,
+    cohortId: args.cohortId ?? (programId === programaA ? cohorteA : null),
     etapa: "ganado_parcial",
-    valorVendidoUsd: "800",
-    fechaLimitePago: "2026-10-31",
+    valorVendidoUsd: args.valorVendidoUsd ?? "800",
+    fechaLimitePago: args.fechaLimitePago ?? "2026-10-31",
     ownerUserId: closerId,
     anuladoEn: args.anulado ? new Date("2026-11-01T12:00:00-05:00") : null,
     anuladoPor: args.anulado ? actorId : null,
@@ -167,7 +178,7 @@ async function dealVencido(args: { programId?: string; correo: string; anulado?:
     programId,
     dealId: deal.id,
     fecha: "2026-10-20",
-    monto: "200",
+    monto: args.abono ?? "200",
     moneda: args.moneda ?? "USD",
   });
   return deal;
@@ -204,6 +215,64 @@ describe("cartera_vencida", () => {
     expect(filas[0].saldo).toMatchObject({ moneda: "USD", legible: "USD 600,00" });
     expect(carteraVencidaMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|nombreLead|emailLead|fechaLimite|fechaPropia|diasDeAtraso|acuerdoPago|enlaceLead|fechaDeCorte)"\s*:/);
+  });
+
+  it("compone la pertenencia y el orden de Students con los saldos y vencimientos de cartera", async () => {
+    const [otraCohorte] = await db.insert(cohorts).values({
+      programId: programaA,
+      codigo: "A2",
+      metaCupos: 10,
+      precioUsd: "800",
+      fechaInicioVentas: "2027-01-01",
+      fechaCierreVentas: "2027-01-31",
+      fechaInicioClases: "2027-02-01",
+      estado: "cerrado",
+    }).returning();
+    const saldoMenor = await dealVencido({
+      correo: "alfa@retia.test", cohortId: cohorteA, valorVendidoUsd: "700", abono: "300", fechaLimitePago: "2026-10-20",
+    });
+    const saldoMayor = await dealVencido({
+      correo: "zulu@retia.test", cohortId: cohorteA, valorVendidoUsd: "900", abono: "100", fechaLimitePago: "2026-10-30",
+    });
+    const excluido = await dealVencido({
+      correo: "excluido@retia.test", cohortId: otraCohorte.id, valorVendidoUsd: "1000", abono: "50",
+    });
+    const resueltos = resolverFiltroStudents({
+      cohortes: [{ id: cohorteA, estado: "activo" }, { id: otraCohorte.id, estado: "cerrado" }],
+      cohorte: cohorteA,
+      orden: "saldo:desc",
+    });
+    const [students, cartera] = await Promise.all([
+      studentsDelPrograma(db, programaA, resueltos.filtro, hoyEnBogota()),
+      carteraVencida(db, programaA, hoyEnBogota(), resueltos.cohorte?.id),
+    ]);
+    const salida = await carteraVencidaMcp.ejecutar(contexto(gerenteId, "gerente"), {
+      programa: "decision-a",
+      cohorte: cohorteA,
+      orden: "saldo:desc",
+    });
+    const filas = salida.estructurado.filas as Array<{
+      id_del_deal: string;
+      saldo: { valor: number; moneda: string } | null;
+      fecha_limite: string;
+      dias_de_atraso: number;
+    }>;
+    const vencidosPorId = new Map(cartera.vencidos.map((fila) => [fila.dealId, fila]));
+    const idsSegunStudents = students.filter((fila) => vencidosPorId.has(fila.dealId)).map((fila) => fila.dealId);
+
+    expect(cartera.vencidos.map((fila) => fila.dealId)).toEqual([saldoMenor.id, saldoMayor.id]);
+    expect(idsSegunStudents).toEqual([saldoMayor.id, saldoMenor.id]);
+    expect(filas.map((fila) => fila.id_del_deal)).toEqual(idsSegunStudents);
+    expect(filas).toEqual(idsSegunStudents.map((id) => {
+      const directa = vencidosPorId.get(id)!;
+      return expect.objectContaining({
+        id_del_deal: id,
+        saldo: directa.moneda === null ? null : { valor: directa.saldo, moneda: directa.moneda, legible: expect.any(String) },
+        fecha_limite: directa.fechaLimite,
+        dias_de_atraso: directa.diasDeAtraso,
+      });
+    }));
+    expect(filas.map((fila) => fila.id_del_deal)).not.toContain(excluido.id);
   });
 
   it("un closer no puede forjar un programa sin membresía y un rol sin capacidad ve el mismo 404", async () => {
