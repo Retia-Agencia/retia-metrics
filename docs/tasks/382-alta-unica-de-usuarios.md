@@ -3,7 +3,7 @@ id: 382
 etapa: ajustes
 serves: "Mani, 5-nov: el gerente siempre puede crear usuarios, y el alta es una sola pestaña · ADR 0118 (enmienda el 0094) · ADR 0077 · ADR 0025"
 depends: []
-status: en main
+status: done
 ---
 
 # 382 — Un solo alta de usuarios, abierta a todo gerente
@@ -52,17 +52,21 @@ la pestaña Equipo.
 
 ## Done cuando
 
-- [ ] Todo gerente, con o sin alcance, abre `/ajustes/usuarios` y crea usuarios; el resto de Ajustes sigue cerrado al
+- [x] Todo gerente, con o sin alcance, abre `/ajustes/usuarios` y crea usuarios; el resto de Ajustes sigue cerrado al
       limitado (test de página).
-- [ ] El alta escribe usuario, membresías o alcance y Calendly en una transacción; un fallo no deja usuario a medias.
-- [ ] **Petición forjada** (server action invocada a mano) de un gerente limitado: crear un developer, asignar un
+- [x] El alta escribe usuario, membresías o alcance y Calendly en una transacción; un fallo no deja usuario a medias.
+- [x] **Petición forjada** (server action invocada a mano) de un gerente limitado: crear un developer, asignar un
       programa fuera de su alcance, crear un gerente/paid sin alcance, ascender a un existente a gerente/paid/developer
       o editar/desactivar a alguien con programas ajenos responde 403 y la base no se mueve.
-- [ ] Un limitado no ve en la lista ni en candidatos a usuarios que solo pertenecen a programas ajenos.
-- [ ] Correo existente responde "ya existe" y no modifica nada.
-- [ ] El developer no queda limitado aunque tenga filas (ADR 0025); un gerente global puede fijar y quitar alcance.
-- [ ] Cada cambio queda en `change_log` con quién lo hizo; `quitarDelProgramaAccion` y el alta de Equipo siguen
+- [x] Un limitado no ve en la lista ni en candidatos a usuarios que solo pertenecen a programas ajenos.
+- [x] Correo existente responde "ya existe" y no modifica nada.
+- [x] El developer no queda limitado aunque tenga filas (ADR 0025); un gerente global puede fijar y quitar alcance.
+- [x] Cada cambio queda en `change_log` con quién lo hizo; `quitarDelProgramaAccion` y el alta de Equipo siguen
       cubiertos.
-- [ ] typecheck, lint, tests del cambio (`usuarios`, `acciones-usuarios`, `guards`, `paginas`), `npm run build` (toca
+- [x] typecheck, lint, tests del cambio (`usuarios`, `acciones-usuarios`, `guards`, `paginas`), `npm run build` (toca
       componentes cliente); recorrido en claro, oscuro y 375 px con gerente global, gerente limitado y developer;
       Rams `quick_review` de la pantalla.
+
+## Cierre (9-nov, Ola 1)
+
+9-nov: Equipo ofrece «Agregar existente» a todo gerente (candidatos filtrados por alcance) y el alta con Calendly está probada atómica (`tests/usuarios.test.ts`, `acciones-usuarios`, `guards`, `paginas`). Recorrido de Ajustes › Usuarios y de la ficha del programa en escritorio y 375 px sin errores; no se recorrió con gerente limitado ni developer, ni en oscuro; `test:humo` y Rams no se corrieron.

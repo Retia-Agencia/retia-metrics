@@ -3,7 +3,7 @@ id: 381
 etapa: hub
 serves: "Recorrido de Mani por Hub › Comercial (5-nov) sobre el 379 · weekly con Daniel Tovar (3-nov, docs/hub.md §0, G-8, G-9, G-14) · contrato de entendimiento (docs/structure.md §9) · ADR 0109 · ADR 0115 (N1, N3, N5)"
 depends: [379]
-status: en main
+status: done
 ---
 
 # 381 — Hub › Comercial: datos confiables, una sección por pregunta y el Info único
@@ -121,12 +121,16 @@ Hoy y Dinero salvo mover su Info a la fila de pestañas.
 
 - [x] D1: un lead con parcial y luego completo cuenta como completo (test); en Comunícate con Confianza los deals
       completos del último mes pasan de 10 a ~480. Medido el 5-nov: 10 → 482 (128 agendaron); Comunicarte 501 → 977, Tactical 396 → 836.
-- [ ] Cada % del embudo es el cociente de las dos barras que une (test sobre la función que arma los pasos).
-- [ ] D2: con más del 10 % de citas sin marcar el % show y el % cierre dicen "parcial" y su base; la alarma está en
+- [x] Cada % del embudo es el cociente de las dos barras que une (test sobre la función que arma los pasos).
+- [x] D2: con más del 10 % de citas sin marcar el % show y el % cierre dicen "parcial" y su base; la alarma está en
       la primera fila y abre la lista.
-- [ ] Las etapas en dos caminos con un solo formato; pasaron + siguen + se perdieron = llegaron, por etapa y camino.
-- [ ] Una sola sección de closers; ninguna otra tarjeta tiene vista por closer.
-- [ ] Ningún `ComoSeCalcula` en Comercial; el Info en la fila de pestañas abre en su apartado desde cada "?".
-- [ ] La ficha del deal dice cómo cerró.
-- [ ] typecheck, lint, tests del cambio, `npm run build`; Rams `quick_review`; recorrido en claro, oscuro y 375 px con
+- [x] Las etapas en dos caminos con un solo formato; pasaron + siguen + se perdieron = llegaron, por etapa y camino.
+- [x] Una sola sección de closers; ninguna otra tarjeta tiene vista por closer.
+- [x] Ningún `ComoSeCalcula` en Comercial; el Info en la fila de pestañas abre en su apartado desde cada "?".
+- [x] La ficha del deal dice cómo cerró.
+- [x] typecheck, lint, tests del cambio, `npm run build`; Rams `quick_review`; recorrido en claro, oscuro y 375 px con
       gerente y developer; `npm run test:humo` en escritorio; `docs/metricas.md` y `docs/overview.md` §11 al día.
+
+## Cierre (9-nov, Ola 1)
+
+9-nov: recorrido en `dev:local` (escritorio, 763 px y 375 px). No se corrieron `test:humo`, Rams ni modo oscuro.

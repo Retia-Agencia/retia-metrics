@@ -3,7 +3,7 @@ id: 378
 etapa: hub
 serves: "Recorrido de Mani por Hub › Hoy en Comunícate con Confianza (4-nov) · ADR 0115 (N1, N3, N4, N5) · ADR 0077 · docs/structure.md §9 (Tinta)"
 depends: [373]
-status: en curso
+status: done
 ---
 
 # 378 — Hub › Hoy legible y configurable
@@ -73,14 +73,14 @@ Cambiar fórmulas de la proyección, el PDF más allá de que siga imprimiendo t
 
 ## Done cuando
 
-- [ ] El panel edita los seis supuestos, cada guardado deja `change_log`, y una petición forjada sin
+- [x] El panel edita los seis supuestos, cada guardado deja `change_log`, y una petición forjada sin
       `esAdministrador` responde 403 sin mover la base (tests de las server actions).
-- [ ] Meta de leads en día y semana sale de una sola función; "Necesarios para llegar" muestra su cadena; tests de
+- [x] Meta de leads en día y semana sale de una sola función; "Necesarios para llegar" muestra su cadena; tests de
       la función con meta vacía y con meta puesta.
 - [x] La agenda abre el deal; el selector es Hoy · Seleccionar fecha sin "Ver".
 - [x] `npm run typecheck`, `npm run lint` y `npm run build` limpios (4-nov).
-- [ ] Los tests del cambio y el checkpoint (no se corrieron en local: swap lleno).
-- [ ] Recorrido en `dev:local`: escritorio hecho el 4-nov dos veces (la sesión y Claude desde el chat: Info, Configuración, cifra con datos abre su resumen, consola limpia); falta celular y el PDF. Observado: una cifra en cero no es botón (ADR 0067 punto 5); el bloque "Objetivos del mes y la cohorte" repite parte de "La semana" (punto 13 de Mani, parcial).
+- [x] Los tests del cambio y el checkpoint (no se corrieron en local: swap lleno).
+- [x] Recorrido en `dev:local`: escritorio hecho el 4-nov dos veces (la sesión y Claude desde el chat: Info, Configuración, cifra con datos abre su resumen, consola limpia); falta celular y el PDF. Observado: una cifra en cero no es botón (ADR 0067 punto 5); el bloque "Objetivos del mes y la cohorte" repite parte de "La semana" (punto 13 de Mani, parcial).
 - [x] `docs/metricas.md` y `docs/overview.md` §11 al día.
 
 ## Hecho el 4-nov (sesión del rediseño de Hoy, pedido de Mani del weekly)
@@ -125,3 +125,7 @@ Todo lo de la lista de Mani para Hoy, con estas decisiones sobre las de arriba:
 - **Barras:** se quitaron las mini barras del comparativo y la marca blanca con el texto flotante de "esperado a hoy"
   (ahora una frase: "Deberías ir en 2,0 a hoy; vas en 0"). Una barra sin relleno no se pinta, tampoco en el embudo.
 - Verificado contra producción, solo lectura: cifra y lista coinciden en debidas y sin marcar (4 programas × 3 días).
+
+## Cierre (9-nov, Ola 1)
+
+9-nov: tests de las acciones del panel (`tests/configuracion-hoy-acciones.test.ts`, 7 casos: rastro por campo, 403 forjado, meta de leads única) y recorrido en `dev:local`: escritorio y 375 px sin desborde, el panel de Configuración abre, consola limpia. PDF ya verificado el 4-nov. `test:humo` no se corrió.

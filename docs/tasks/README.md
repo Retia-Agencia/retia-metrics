@@ -33,12 +33,12 @@ a fase 2.
 | [x] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | done · 4-nov · fase 1, paso 3 · absorbe al 253 |
 | [x] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 377 | done · 4-nov · fase 1, paso 3 |
 | [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | en main · 4-nov · falta checkpoint verde · fase 1, paso 4 · absorbe al 256 |
-| [ ] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | en main · 4-nov · falta checkpoint verde · fase 1, paso 4 · la plantilla del 15-sep v5 · absorbe al 254 y la parte imprimible del 300 |
-| [ ] | 378 | [Hub › Hoy legible y configurable](./378-hoy-legible-y-configurable.md) | 373 | en curso · 4-nov · rediseño hecho; falta celular, PDF y checkpoint |
-| [ ] | 379 | [Hub › Comercial se entiende a la primera](./379-comercial-se-entiende-a-la-primera.md) | 372 | en main · 4-nov · falta checkpoint verde · contrato de entendimiento |
-| [ ] | 381 | [Hub › Comercial: datos confiables, una sección por pregunta y el Info único](./381-comercial-datos-confiables-y-por-secciones.md) | 379 | en main · 5-nov · CI verde (ba8ffe5c); D1 medido; falta test:humo |
-| [ ] | 380 | [Hub › Dinero legible](./380-dinero-legible.md) | 369, 370, 371 | en main · 4-nov · falta checkpoint verde |
-| [ ] | 382 | [Un solo alta de usuarios, abierta a todo gerente](./382-alta-unica-de-usuarios.md) | — | en main · 5-nov · ADR 0118 · sin migración · falta Calendly dentro del alta, test:humo y checkpoint verde |
+| [x] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | done · 9-nov · cierre de la Ola 1 |
+| [x] | 378 | [Hub › Hoy legible y configurable](./378-hoy-legible-y-configurable.md) | 373 | done · 9-nov · cierre de la Ola 1 |
+| [x] | 379 | [Hub › Comercial se entiende a la primera](./379-comercial-se-entiende-a-la-primera.md) | 372 | done · 9-nov · cierre de la Ola 1 |
+| [x] | 381 | [Hub › Comercial: datos confiables, una sección por pregunta y el Info único](./381-comercial-datos-confiables-y-por-secciones.md) | 379 | done · 9-nov · cierre de la Ola 1 |
+| [x] | 380 | [Hub › Dinero legible](./380-dinero-legible.md) | 369, 370, 371 | done · 9-nov · cierre de la Ola 1 |
+| [x] | 382 | [Un solo alta de usuarios, abierta a todo gerente](./382-alta-unica-de-usuarios.md) | — | done · 9-nov · cierre de la Ola 1 |
 | [x] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | done · 9-nov · cron diario + tabla `proyecciones_roas` (0130, 0131) · ADR 0126 · CI verde `e2f25f52` · recorrido local hecho, humo sin correr |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |
 

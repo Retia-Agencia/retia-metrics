@@ -3,7 +3,7 @@ id: 380
 etapa: hub
 serves: "Recorrido de Mani por Hub › Dinero (4-nov) · ADR 0115 (N3, N4, N5) · ADR 0067 (toda cifra abre su lista) · ADR 0091 (contrato de gráficas) · ADR 0077 · docs/structure.md §9 (Tinta)"
 depends: [369, 370, 371]
-status: en main
+status: done
 ---
 
 # 380 — Hub › Dinero legible: menos cifras, gráficas lado a lado que abren su lista, y "¿Vamos a llegar?" en una frase
@@ -93,3 +93,7 @@ Cambiar fórmulas (vendido, recaudado, caja, proyección, esperado). Hub › Hoy
 - [x] `npm run typecheck`, `npm run lint`, los tests del cambio y `npm run build` limpios.
 - [x] Recorrido en `dev:local`: Dinero en escritorio y celular, hover y clic en puntos de las dos gráficas, cambiar
       paso y forma, con y sin "Comparar con", consola limpia; Hoy sigue pintando "¿Vamos a llegar?".
+
+## Cierre (9-nov, Ola 1)
+
+9-nov: recorrido en `dev:local` (escritorio y 375 px, sin desborde, consola limpia). CI verde en main.

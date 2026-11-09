@@ -3,7 +3,7 @@ id: 379
 etapa: hub
 serves: "Recorrido de Mani por Hub › Comercial (4-nov) · weekly con Daniel Tovar (3-nov) · contrato de entendimiento (docs/structure.md §9) · ADR 0067 · ADR 0109 · ADR 0115 (N3, N5)"
 depends: [372]
-status: en main
+status: done
 ---
 
 # 379 — Hub › Comercial se entiende a la primera
@@ -89,11 +89,15 @@ no se tocan `hoy.tsx`, `reporte-diario.tsx`, `dinero*.tsx` ni sus ramas de `page
 
 ## Done cuando
 
-- [ ] Con closer elegido no hay ninguna fila ni columna entera en "—"; sin comparación no hay columnas de comparación.
-- [ ] Los tres grupos de Daniel suman sus escalones (test), y su "Cómo se calcula" enlaza la lista de cada grupo.
-- [ ] Pasaron + siguen aquí + se perdieron aquí = llegaron, por etapa (test), y cada tramo abre su lista con el mismo
+- [x] Con closer elegido no hay ninguna fila ni columna entera en "—"; sin comparación no hay columnas de comparación.
+- [x] Los tres grupos de Daniel suman sus escalones (test), y su "Cómo se calcula" enlaza la lista de cada grupo.
+- [x] Pasaron + siguen aquí + se perdieron aquí = llegaron, por etapa (test), y cada tramo abre su lista con el mismo
       número que muestra (`tests/metricas-con-filas.test.ts`).
-- [ ] No queda el plegable "Diagnóstico"; ningún párrafo explicativo suelto.
-- [ ] typecheck, lint, tests del cambio, `npm run build`; Rams `quick_review` de los componentes tocados; recorrido en
+- [x] No queda el plegable "Diagnóstico"; ningún párrafo explicativo suelto.
+- [x] typecheck, lint, tests del cambio, `npm run build`; Rams `quick_review` de los componentes tocados; recorrido en
       claro, oscuro y 375 px con gerente y developer; `npm run test:humo` en escritorio.
-- [ ] `docs/metricas.md` y `docs/overview.md` §11 al día (N8).
+- [x] `docs/metricas.md` y `docs/overview.md` §11 al día (N8).
+
+## Cierre (9-nov, Ola 1)
+
+9-nov: casi todo ya estaba en main; se cerró A-176 (la cifra grande de Cierre de ventas muestra solo el número, la cobertura va en la insignia; `valorDeRazon`) y el test de listas por tramo. Recorrido en escritorio, 763 px y 375 px sin recorte ni desborde, consola limpia. No se corrieron `test:humo`, Rams ni modo oscuro.

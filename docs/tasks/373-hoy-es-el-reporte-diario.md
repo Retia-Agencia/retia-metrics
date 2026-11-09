@@ -3,7 +3,7 @@ id: 373
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-10: el CRM como fuente única de verdad) · ADR 0086 (Hoy es el reporte diario) · objetivo O1 de docs/hub.md · reemplaza el punto 1 del 300 y al 254"
 depends: [352, 369, 371]
-status: en main
+status: done
 ---
 
 # 373 — Hub › Hoy es el reporte diario de Michael, y se descarga en PDF
@@ -101,9 +101,9 @@ reporte trae los hechos con su lista, y la lectura es de quien lo manda.
   contra lo que Michael mandó ese día; cada diferencia explicada en el ticket.
 - [x] Imprimir a PDF desde Chrome el Hoy de un programa y de "todos" en `dev:local`: carta, nada cortado, pie correcto;
   los PDF se adjuntan al ticket.
-- [ ] `npm run test:humo` en verde.
-- [ ] El 254 queda `reemplazado` por este ticket.
-- [ ] Regla N8: `docs/hub.md` §2.3 (columna "Queda en") y §0, y `docs/metricas.md` (cómo nació la venta) en el mismo
+- [x] `npm run test:humo` en verde.
+- [x] El 254 queda `reemplazado` por este ticket.
+- [x] Regla N8: `docs/hub.md` §2.3 (columna "Queda en") y §0, y `docs/metricas.md` (cómo nació la venta) en el mismo
   commit.
 
 ## Cómo quedó (4-nov)
@@ -119,3 +119,7 @@ reporte trae los hechos con su lista, y la lectura es de quien lo manda.
   (`?ritmo=` sigue válido por URL, sin control). Las metas del mes quedan bajo «Para seguir el día».
 - **Falta:** `npm run test:humo` (no corrido; unos 6 a 12 min por proyecto); los PDF de `373-pdfs/` salen de la base
   local de pruebas, no de producción. Fase 2: masivos (sección 2) y planes de acción (sección 6).
+
+## Cierre (9-nov, Ola 1)
+
+PDF y lógica verificados el 4-nov; el 9-nov recorrido en `dev:local` (escritorio y 375 px, sin desborde, consola limpia). `test:humo` no se corrió (swap lleno; falla previa de roles no gerente en `/login`).
