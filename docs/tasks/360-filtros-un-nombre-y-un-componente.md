@@ -3,7 +3,7 @@ id: 360
 etapa: plataforma
 serves: "ADR 0115 N1, N4 · auditoría 30-oct G-11, G-13, R-12"
 depends: []
-status: todo
+status: en curso
 ---
 
 # 360 — Filtros: un nombre por parámetro y un componente de fecha

@@ -3,7 +3,7 @@ id: 402
 etapa: plataforma
 serves: "Auditoría 385 F3-19 · ADR 0058 · ADR 0127"
 depends: []
-status: todo
+status: done
 ---
 
 # 402 — Retención de entregas y notificaciones
@@ -28,5 +28,5 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Política escrita y aplicada por un job con test; el crudo de una entrega procesada con firma válida no se pierde antes del plazo (regla de AGENTS.md: nunca perder un envío con firma buena).
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Política escrita y aplicada por un job con test; el crudo de una entrega procesada con firma válida no se pierde antes del plazo (regla de AGENTS.md: nunca perder un envío con firma buena).
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.

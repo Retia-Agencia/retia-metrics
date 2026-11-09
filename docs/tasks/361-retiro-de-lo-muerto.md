@@ -3,7 +3,7 @@ id: 361
 etapa: plataforma
 serves: "ADR 0115 N7 · auditoría 30-oct R-02, R-10, R-11, R-13, K-12, G-14"
 depends: []
-status: todo
+status: done
 ---
 
 # 361 — Retiro de lo muerto, y el guardián del diccionario
@@ -45,9 +45,9 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Done cuando
 
-- [ ] Guardián del diccionario en verde y mordido (una función inventada en el doc lo hace fallar).
-- [ ] Grep limpio de cada pieza borrada; typecheck, lint y `npm run build`.
-- [ ] Ningún comentario de `lib/` ni de `tests/` dice que `estados_llegada` existe (los guardianes que la nombran para
+- [x] Guardián del diccionario en verde y mordido (una función inventada en el doc lo hace fallar).
+- [x] Grep limpio de cada pieza borrada; typecheck, lint y `npm run build`.
+- [x] Ningún comentario de `lib/` ni de `tests/` dice que `estados_llegada` existe (los guardianes que la nombran para
       vigilar que nadie la lea se quedan).
-- [ ] Un paid trafficker que abre `/ajustes/canales` llega a Hub › Origen de su programa (forjado con su sesión).
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Un paid trafficker que abre `/ajustes/canales` llega a Hub › Origen de su programa (forjado con su sesión).
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
