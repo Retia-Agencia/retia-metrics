@@ -8,7 +8,7 @@ status: idea
 
 # 410 — Abonos en COP: la conversión a USD se congela al registrar
 
-**No se construye hasta que Mani cierre las decisiones de abajo.** Mientras tanto un closer **no puede** abonar en COP: `esquemaAbono` exige `z.literal("USD")` (`lib/abonos/esquema.ts`). El `CHECK` del 395 (ADR 0124) solo deja la puerta abierta en la base; nada la usa.
+**Estado (9-nov, Mani): «maybe muy maybe». Todo sigue en USD y este ticket no se construye mientras no haya pagos reales en COP.** Respondió D1 (es previsión, hoy todo entra en USD), D2 (la TRM del día del pago) y D3 (bloquear si no hay TRM); lo demás queda abierto. Mientras tanto un closer **no puede** abonar en COP: `esquemaAbono` exige `z.literal("USD")` (`lib/abonos/esquema.ts`). El `CHECK` del 395 (ADR 0124) solo deja la puerta abierta en la base; nada la usa.
 
 ## Por qué
 
