@@ -883,6 +883,13 @@
       "when": 1794227634271,
       "tag": "0125_aviso_estudiante_nuevo",
       "breakpoints": true
+    },
+    {
+      "idx": 126,
+      "version": "7",
+      "when": 1794248953157,
+      "tag": "0126_moneda_check",
+      "breakpoints": true
     }
   ]
 }

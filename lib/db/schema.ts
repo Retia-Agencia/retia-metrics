@@ -1249,6 +1249,8 @@ export const cuotasPactadas = pgTable(
     uniqueIndex("cuotas_pactadas_numero_idx").on(t.dealId, t.numero),
     // La cartera vencida pregunta por esto: cuotas con fecha pasada y sin abono.
     index("cuotas_pactadas_vencimiento_idx").on(t.fechaPactada),
+    // Moneda cerrada en la base (ADR 0124): el ticket es en USD y nada se convierte en silencio.
+    check("cuotas_pactadas_moneda_chk", sql`${t.moneda} = 'USD'`),
   ],
 );
 
@@ -1520,6 +1522,9 @@ export const abonos = pgTable(
       .where(sql`${t.huellaMigracion} is not null`),
     index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
     index("abonos_deal_idx").on(t.dealId),
+    // Moneda cerrada en la base (ADR 0124): COP o USD. La app solo acepta USD hoy (zod); la base deja la puerta
+    // abierta a la conversion pendiente y veta el tecleo ("usd", "US$"), que sumaria como otra moneda.
+    check("abonos_moneda_chk", sql`${t.moneda} in ('COP', 'USD')`),
     uniqueIndex("abonos_comprobante_archivo_idx")
       .on(t.comprobanteArchivoId)
       .where(sql`${t.comprobanteArchivoId} is not null`),
@@ -2343,7 +2348,11 @@ export const enlacesPago = pgTable(
     activo: boolean("activo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("enlaces_pago_programa_idx").on(t.programId)],
+  (t) => [
+    index("enlaces_pago_programa_idx").on(t.programId),
+    // Moneda cerrada en la base (ADR 0124): un enlace de pago cobra en USD.
+    check("enlaces_pago_moneda_chk", sql`${t.moneda} = 'USD'`),
+  ],
 );
 
 // ─────────────────────────────────────────────────────────── Meta (ticket 119)
@@ -2430,6 +2439,8 @@ export const eventosMeta = pgTable(
   (t) => [
     uniqueIndex("eventos_meta_deal_evento_idx").on(t.dealId, t.evento),
     index("eventos_meta_programa_estado_idx").on(t.programId, t.estado),
+    // Moneda cerrada en la base (ADR 0124): el valor de la conversion que se manda a Meta es USD.
+    check("eventos_meta_moneda_chk", sql`${t.moneda} = 'USD'`),
   ],
 );
 
@@ -2518,6 +2529,8 @@ export const cuentasPublicitarias = pgTable(
   (t) => [
     uniqueIndex("cuentas_publicitarias_id_meta_idx").on(t.idMeta),
     index("cuentas_publicitarias_programa_idx").on(t.programId),
+    // Moneda cerrada en la base (ADR 0124): la cuenta gasta en COP o en USD, nunca otra cosa.
+    check("cuentas_publicitarias_moneda_chk", sql`${t.moneda} in ('COP', 'USD')`),
   ],
 );
 
@@ -2607,6 +2620,8 @@ export const gastoPauta = pgTable(
       .on(t.pautaObjetoId, t.fecha)
       .where(sql`${t.origen} = 'meta_api'`),
     index("gasto_pauta_programa_fecha_idx").on(t.programId, t.fecha),
+    // Moneda cerrada en la base (ADR 0124): COP o USD; sumar las dos sin convertir es el error que esto ataja.
+    check("gasto_pauta_moneda_chk", sql`${t.moneda} in ('COP', 'USD')`),
   ],
 );
 
@@ -2687,6 +2702,8 @@ export const fotosPauta = pgTable(
     index("fotos_pauta_programa_fecha_idx").on(t.programId, t.fecha, t.tomadaEn),
     index("fotos_pauta_tomada_idx").on(t.tomadaEn),
     check("fotos_pauta_gasto_chk", sql`${t.gasto} >= 0`),
+    // Moneda cerrada en la base (ADR 0124), igual que el gasto del que sale la foto.
+    check("fotos_pauta_moneda_chk", sql`${t.moneda} in ('COP', 'USD')`),
   ],
 );
 

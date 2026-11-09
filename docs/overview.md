@@ -250,7 +250,7 @@ Qué mueve cada una y con qué requisito: [`manual-gestion-comercial.md`](./manu
 - **Anular ≠ Cierre Perdido.** Perdido es "el lead dijo que no" y cuenta en el embudo. Anulado es "este
   registro nunca debió existir" y no cuenta en ninguna métrica.
 - **Nunca se convierte moneda en silencio.** El ticket va en USD, la pauta en COP; la moneda va al lado
-  del número.
+  del número. La moneda es un conjunto cerrado en la base (COP o USD; ADR 0124).
 - **Todas las fechas son de Bogotá** (`-05:00`, sin horario de verano).
 - **Días hábiles:** todo lo que no sea sábado o domingo; los festivos cuentan como hábiles (regla de
   Retia, no del calendario colombiano).

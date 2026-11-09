@@ -114,7 +114,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Tabla:** `abonos`.
 - **Cuenta:** abonos vigentes del programa, tanto del ticket como adicionales vendidos aparte.
 - **Fecha:** `abonos.fecha` (la fecha del pago, no la del registro).
-- **Moneda:** USD.
+- **Moneda:** USD en la app; la base acepta COP o USD (ADR 0124, `CHECK` de la migración 0126). Un abono en COP deja el saldo de su venta sin calcular, nunca lo resta contra dólares.
 - **Función:** `lib/queries/hechos/abono.ts`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`, cuentan solo abonos de ticket.
 - **Ojo:** caja y ventas son métricas separadas: un abono no es una venta ni al revés (ADR 0013).
 
@@ -128,7 +128,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
   (`vercel.json`, `0 11 * * *` UTC), reescribiendo **los últimos 7 días** (Meta corrige días pasados); un día que
   Meta corrigió a cero vuelve a cero.
 - **Fecha:** el día que reporta Meta en la zona de la cuenta (todas están en `America/Bogota`).
-- **Moneda:** la de la cuenta (COP o USD), guardada tal cual.
+- **Moneda:** la de la cuenta (COP o USD), guardada tal cual; cualquier otra la rechaza la base (ADR 0124).
 - **Funciones:** `lib/pauta/sincronizar.ts` (lee Meta), `registrarGasto` en `lib/pauta/gasto.ts` (único escritor).
 - **También:** gasto manual (`origen = manual`) con un área; solo el de área `paid` entra al costo por agenda.
 - **Ojo:** un anuncio que no está en el árbol del programa (`pauta_objetos`) se omite y se cuenta en "omitidas".
