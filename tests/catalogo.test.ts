@@ -282,6 +282,9 @@ const TABLAS_PUENTE_BORRABLES = [
   // Los correos de Calendly adicionales de una membresia: solo vinculan membresia y correo, y
   // `usuarios.ts` deja el rastro en change_log al quitarlos.
   "miembrosprogramacalendlyextra",
+  // Los WhatsApp de una persona (ticket 408): nadie los referencia y `usuarios.ts` deja el rastro en
+  // change_log al quitarlos; los avisos ya enviados guardan el numero como texto, no una FK.
+  "usuarioswhatsapp",
 ];
 
 describe("guardian estatico — el molde solo borra por borrarSiNoSeUso", () => {

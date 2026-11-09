@@ -260,6 +260,12 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
    * lado de ESCRITURA (administrar membresías, o "¿este actor puede tocar esta fila?").
    */
   const EXCEPCIONES: Record<string, string> = {
+    // Los destinatarios del aviso de estudiante nuevo (ticket 408, ADR 0128): "¿que numeros de CS
+    // tienen membresia activa en el programa del deal?". No es el alcance de una sesion: es resolver
+    // a quien escribirle, sin sesion (lo llama Juanito con un secreto).
+    [path.join("lib", "avisos-cs", "pendientes.ts")]:
+      "resuelve destinatarios de un aviso, no el alcance de una sesion",
+
     // La DEFINICIÓN de la TABLA: el esquema declara `miembros_programa`. No es una
     // consulta, es la tabla misma; sin ella no habría membresía que consultar.
     [path.join("lib", "db", "schema.ts")]:

@@ -456,7 +456,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 405 | [Alerta: Cierre Perdido con abonos vigentes](./405-alerta-abono-en-cierre-perdido.md) | 392 | done · 8-nov · hijo del 385 (F7) · decisión de Mani · sin migración |
 | [x] | 406 | [Leads: quien solo dejó un parcial cuenta](./406-leads-cuentan-a-quien-solo-dejo-un-parcial.md) | 389 | done · 8-nov · hijo del 385 (F7) · F2B-02 · el 389 ya lo resolvía; test de paridad agregado |
 | [ ] | 407 | [MCP analítico para gerencia y pauta](./407-mcp-analitico-gerencia-y-pauta.md) | 383, 397, 399, 403 | idea · 8-nov · pedido de Mani · capa semántica de solo lectura + definiciones + proactividad |
-| [ ] | 408 | [Aviso de estudiante nuevo a CS](./408-aviso-de-estudiante-nuevo-a-cs.md) | 259 | construido en rama 408-aviso-cs · 9-nov · pedido de Daniel Tovar · Juanito avisa por WhatsApp al CS del programa (ADR 0128) |
+| [ ] | 408 | [Aviso de estudiante nuevo a CS](./408-aviso-de-estudiante-nuevo-a-cs.md) | 259 | todo · 9-nov · construido y en producción, falta Juanito y el checkpoint · pedido de Daniel Tovar · Juanito avisa por WhatsApp al CS del programa (ADR 0128) |
 | [x] | 392 | [Venta: un solo recorrido](./392-venta-un-solo-recorrido.md) | 351, 353 | done · 9-nov · un solo recorrido de venta; merge `a8bf350e` · hijo del 385 (F7) |
 | [x] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | done · 8-nov · hijo del 385 (F7) · reja sin CHECK · `cupos_con_caja` pasa al 403 |
 | [ ] | 394 | [El programa lo garantiza la base](./394-el-programa-lo-garantiza-la-base.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 2, al final · migración M4 y M5 · ADR 0123 · riesgo alto |
