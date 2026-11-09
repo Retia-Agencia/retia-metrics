@@ -3,7 +3,7 @@ id: 375
 etapa: pauta
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-12, 'la cereza del pastel') · ADR 0115 N3 · metricas.md ROAS"
 depends: [351, 353, 355, 377]
-status: todo
+status: done
 ---
 
 # 375 — El ROAS que espera sus citas, y el ROAS proyectado
@@ -53,9 +53,13 @@ cuenta lo que todavía no pasó.
 
 ## Done cuando
 
-- [ ] Test con el ejemplo de Dani: gasto del 2 al 6-nov, 10 citas el 9-nov (5 de un closer, 5 de otro, tasas
+- [x] Test con el ejemplo de Dani: gasto del 2 al 6-nov, 10 citas el 9-nov (5 de un closer, 5 de otro, tasas
   distintas): el ROAS a hoy no cuenta el 9, el aviso dice 10 pendientes y el proyectado da el número a mano.
-- [ ] Test: un closer sin muestra usa la tasa del programa y la pantalla lo dice.
-- [ ] Test: con gasto parcial el proyectado es "—" con motivo.
-- [ ] Recorrido en `dev:local` con datos sembrados.
-- [ ] Regla N8: filas "Citas pendientes del rango" y "ROAS proyectado" en `docs/metricas.md`, mismo commit.
+- [x] Test: un closer sin muestra usa la tasa del programa y la pantalla lo dice.
+- [x] Test: con gasto parcial el proyectado es "—" con motivo.
+- [x] Recorrido en `dev:local` con datos sembrados.
+- [x] Regla N8: filas "Citas pendientes del rango" y "ROAS proyectado" en `docs/metricas.md`, mismo commit.
+
+## Cierre (9-nov)
+
+Código de la hija (`87c1598c`) integrado en `main`; migración 0130 (tabla `proyecciones_roas`) y 0131 (RLS que la 0130 olvidó) aplicadas en producción. Cron diario `/api/cron/proyeccion-roas` a las 11:30 UTC, 30 min tras el de pauta (decisión de Mani: cron, no al abrir la pantalla). ADR 0126. Recorrido en `dev:local` (375 px, sin scroll horizontal; gasto parcial => proyectado «—» con motivo); `test:humo` no corrido. La tarjeta se oculta sin citas por venir ni historial.
