@@ -234,7 +234,8 @@ describe("Hub Origen", () => {
 
   it("retira Canales con un redirect a Origen", async () => {
     const pagina = await readFile("app/(app)/ajustes/canales/page.tsx", "utf8");
-    expect(pagina).toContain('redirect("/hub?seccion=origen")');
+    expect(pagina).toContain('?seccion=origen`');
+    expect(pagina).not.toContain('redirect("/hub?seccion=origen")');
   });
 });
 

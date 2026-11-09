@@ -479,7 +479,6 @@ const PAGINAS_DE_AJUSTES = [
 
 const TODAS_LAS_PAGINAS_DE_AJUSTES = [
   "@/app/(app)/ajustes/page",
-  "@/app/(app)/ajustes/canales/page",
   "@/app/(app)/ajustes/salud/page",
   "@/app/(app)/ajustes/catalogos/page",
   "@/app/(app)/ajustes/areas/page",
@@ -627,6 +626,32 @@ describe("Ajustes completo respeta administraGlobal (ADR 0094)", () => {
     await expect(modulo.default({ searchParams: Promise.resolve({}) })).rejects.toMatchObject({
       destino: "/p/programa-a/hub",
     });
+  });
+});
+
+describe("/ajustes/canales redirige a Hub › Origen del primer programa visible (361)", () => {
+  const PROGRAMA = [{ id: "p-1", slug: "programa-a", nombre: "Programa A" }];
+  const correrCanales = () => destinoDe("@/app/(app)/ajustes/canales/page");
+
+  it("un paid trafficker llega al Origen de su programa, no al Hub de todos (que le daria 404)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programasVisibles.mockResolvedValue(PROGRAMA);
+    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=origen");
+  });
+
+  it("un gerente limitado tambien, solo a un programa que ve", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    programasVisibles.mockResolvedValue(PROGRAMA);
+    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=origen");
+  });
+
+  it("un closer recibe 404 y sin programas visibles tambien", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue(PROGRAMA);
+    await expect(correrCanales()).rejects.toBeInstanceOf(NoEncontrado);
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programasVisibles.mockResolvedValue([]);
+    await expect(correrCanales()).rejects.toBeInstanceOf(NoEncontrado);
   });
 });
 
