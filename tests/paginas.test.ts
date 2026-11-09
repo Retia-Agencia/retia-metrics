@@ -58,16 +58,11 @@ const notFound = vi.fn();
 vi.mock("next/navigation", () => ({ redirect, permanentRedirect, notFound }));
 
 // La pagina dinamica de programa lee la base; en los tests no hay base, asi que se
-// mockea la query. `programaActivoPorSlug` devuelve un programa para los slugs
-// "existentes" y null para el resto, imitando "no existe o esta inactivo".
-const programaActivoPorSlug = vi.fn();
+// mockea la query.
 const programasActivos = vi.fn();
-const programaPorSlug = vi.fn();
 const programasGestionablesPorUsuario = vi.fn();
 vi.mock("@/lib/queries/programas", () => ({
-  programaActivoPorSlug,
   programasActivos,
-  programaPorSlug,
   programasGestionablesPorUsuario,
 }));
 
@@ -210,9 +205,6 @@ vi.mock("@/lib/queries/reporte-diario", async (importOriginal) => ({
 }));
 // La configuracion de Hoy (378): sin base, sin panel.
 vi.mock("@/lib/queries/configuracion-de-hoy", () => ({ leerConfiguracionDeHoy: vi.fn(async () => null) }));
-// La serie del embudo (089), igual: sin base, una serie vacia.
-const hechosDelEmbudo = vi.fn(async () => []);
-vi.mock("@/lib/queries/hechos-embudo", () => ({ hechosDelEmbudo }));
 const embudoDelFormulario = vi.fn(async () => ({
   filas: [],
   total: { dejoDatos: 0, completo: 0, llegoCalendly: 0, agendo: 0 },
@@ -343,9 +335,7 @@ beforeEach(() => {
   redirect.mockReset();
   permanentRedirect.mockReset();
   notFound.mockReset();
-  programaActivoPorSlug.mockReset();
   programasActivos.mockReset();
-  programaPorSlug.mockReset();
   programaVisiblePorSlug.mockReset();
   programasVisibles.mockReset();
   programasVisibles.mockResolvedValue([]);
@@ -489,7 +479,6 @@ const PAGINAS_DE_AJUSTES = [
 
 const TODAS_LAS_PAGINAS_DE_AJUSTES = [
   "@/app/(app)/ajustes/page",
-  "@/app/(app)/ajustes/canales/page",
   "@/app/(app)/ajustes/salud/page",
   "@/app/(app)/ajustes/catalogos/page",
   "@/app/(app)/ajustes/areas/page",
@@ -637,6 +626,32 @@ describe("Ajustes completo respeta administraGlobal (ADR 0094)", () => {
     await expect(modulo.default({ searchParams: Promise.resolve({}) })).rejects.toMatchObject({
       destino: "/p/programa-a/hub",
     });
+  });
+});
+
+describe("/ajustes/canales redirige a Hub › Origen del primer programa visible (361)", () => {
+  const PROGRAMA = [{ id: "p-1", slug: "programa-a", nombre: "Programa A" }];
+  const correrCanales = () => destinoDe("@/app/(app)/ajustes/canales/page");
+
+  it("un paid trafficker llega al Origen de su programa, no al Hub de todos (que le daria 404)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programasVisibles.mockResolvedValue(PROGRAMA);
+    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=origen");
+  });
+
+  it("un gerente limitado tambien, solo a un programa que ve", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    programasVisibles.mockResolvedValue(PROGRAMA);
+    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=origen");
+  });
+
+  it("un closer recibe 404 y sin programas visibles tambien", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue(PROGRAMA);
+    await expect(correrCanales()).rejects.toBeInstanceOf(NoEncontrado);
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    programasVisibles.mockResolvedValue([]);
+    await expect(correrCanales()).rejects.toBeInstanceOf(NoEncontrado);
   });
 });
 
@@ -990,6 +1005,13 @@ describe("las rutas viejas del Dashboard y de Metas redirigen al Hub (ticket 250
     auth.mockResolvedValue(sesionGerente);
     expect(await destino("@/app/(app)/p/[programa]/metas/page", { mes: "2026-09" })).toBe(
       `/p/${SLUG}/hub?mes=2026-09&seccion=hoy#metas`,
+    );
+  });
+
+  it("la lista vieja deja pasar al paid trafficker, como el tablero: el destino aplica la capacidad de la cifra (361)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    expect(await destino("@/app/(app)/p/[programa]/dashboard/lista/page", { metrica: "agendas_creadas" })).toBe(
+      `/p/${SLUG}/hub/lista?metrica=agendas_creadas`,
     );
   });
 

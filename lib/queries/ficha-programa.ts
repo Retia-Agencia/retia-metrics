@@ -223,18 +223,6 @@ function formularioPrincipal(
   return principal?.urlPublica ? { fuente: principal.nombre, url: principal.urlPublica } : null;
 }
 
-/**
- * Lo que la ficha dice sobre el destino del formulario. Es la respuesta de la ficha a "¿hay
- * a donde mandar un link de captacion?": sin fuente principal no hay link que repartir y se
- * dice, en vez de mostrar uno roto (ADR 0068 punto 4). El generador (092) hace la misma
- * pregunta con `destinoDeCaptacion`.
- */
-export function avisoDelFormulario(formulario: DatosDelPrograma["formulario"]): string | null {
-  return formulario
-    ? null
-    : "Este programa no tiene fuente principal: no hay a dónde mandar un link de captación. Márcala en Formularios.";
-}
-
 export type FaltaParaActivar = {
   clave: "calendly_token" | "fuente_principal";
   texto: string;

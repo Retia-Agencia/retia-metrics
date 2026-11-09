@@ -2,7 +2,6 @@ import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { noAsistioSql } from "@/lib/deals/resultados-de-llamada";
 import {
   closerDeAbono,
-  cerradosEn,
   fechaAnclaCall,
   filtroCaja,
   filtroCierres,
@@ -14,7 +13,6 @@ import {
   citaVencidaSinResultado,
   llamadaOcurrio,
   dealsDeLaCohorte,
-  porClaveDeDeal,
   porCohorteDeDeal,
   idsDeVentasEn,
 } from "@/lib/queries/metricas-filtros";
@@ -27,7 +25,6 @@ import {
   cohorts,
   deals,
   leads,
-  motivos,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -36,11 +33,9 @@ import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
-import type { FilaHechosDelEmbudo, OrigenDelHecho } from "@/lib/queries/hechos-embudo";
-import { nombreDeCanal, type Area } from "@/lib/atribucion/canal";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
-import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
+import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
 /**
  * Consultas del dashboard (ticket 004). Todo lo que pide el reporte diario de Retia
@@ -449,36 +444,6 @@ export async function embudoDelRango(
   };
 }
 
-/** Deals que cerraron como perdidos en el rango, agrupados por su motivo. */
-export async function dealsPerdidosPorMotivo(
-  { programId, rango, claveCloser, cohorteId }: Alcance,
-  db: Db = dbDeLaApp,
-): Promise<{ motivo: string; deals: number }[]> {
-  const idsCerrados = await cerradosEn(db, programId, rango);
-  if (idsCerrados.length === 0) return [];
-
-  return db
-    .select({
-      motivo: motivos.nombre,
-      deals: sql<number>`count(*)::int`,
-    })
-    .from(deals)
-    .innerJoin(motivos, eq(motivos.id, deals.motivoId))
-    .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(
-      and(
-        eq(deals.etapa, "cierre_perdido"),
-        vigente(deals),
-        eq(deals.programId, programId),
-        inArray(deals.id, idsCerrados),
-        porClaveDeDeal(claveCloser),
-        porCohorteDeDeal(cohorteId),
-      ),
-    )
-    .groupBy(motivos.nombre)
-    .orderBy(sql`count(*) desc`);
-}
-
 /** Una opcion del selector de closer: el `users.id` (valor) y su etiqueta visible. */
 export interface OpcionDeCloser {
   id: string;
@@ -648,68 +613,6 @@ export async function embudoPorCloser(
   }
 
   return [...porClave.values()];
-}
-
-export interface FilaEmbudoPorCanal {
-  origen: OrigenDelHecho;
-  canalClave: string | null;
-  canal: string | null;
-  area: Area | null;
-  envios: number;
-  agendas: number;
-  shows: number;
-  ventas: number;
-  razonShow: RazonConCobertura;
-}
-
-/** Reagrupa los hechos ya filtrados sin cambiar su universo. */
-export function embudoPorCanal(hechos: FilaHechosDelEmbudo[]): FilaEmbudoPorCanal[] {
-  const filas = new Map<string, FilaEmbudoPorCanal>();
-
-  for (const hecho of hechos) {
-    const clave = hecho.origen === "canal"
-      ? `canal:${hecho.area ?? ""}:${hecho.canalClave ?? ""}`
-      : hecho.origen;
-    const fila = filas.get(clave) ?? {
-      origen: hecho.origen,
-      canalClave: hecho.origen === "canal" ? hecho.canalClave : null,
-      canal: hecho.origen === "canal"
-        ? hecho.canalClave === null ? "(sin utm_source)" : nombreDeCanal(hecho.canalClave)
-        : null,
-      area: hecho.area,
-      envios: 0,
-      agendas: 0,
-      shows: 0,
-      ventas: 0,
-      razonShow: razonVacia("Sin citas en el periodo"),
-    };
-    fila.envios += hecho.envios;
-    fila.agendas += hecho.agendas;
-    fila.shows += hecho.shows;
-    fila.ventas += hecho.ventas;
-    filas.set(clave, fila);
-  }
-
-  const conTasa = [...filas.values()]
-    .filter((fila) => fila.envios + fila.agendas + fila.shows + fila.ventas > 0)
-    .map((fila) => ({
-      ...fila,
-      razonShow: fila.agendas === 0
-        ? razonVacia("Sin citas en el periodo")
-        : razon(fila.shows, fila.agendas, { base: fila.agendas, faltan: 0, motivo: null, calculable: true }),
-    }));
-  const canalesAgrupados = conTasa
-    .filter((fila) => fila.origen === "canal")
-    .sort((a, b) =>
-      b.envios - a.envios ||
-      (a.canal ?? "").localeCompare(b.canal ?? "") ||
-      (a.area ?? "").localeCompare(b.area ?? ""),
-    );
-  const ordenHuerfanos: OrigenDelHecho[] = ["sin_utm", "sin_envio_origen"];
-  return [
-    ...canalesAgrupados,
-    ...ordenHuerfanos.flatMap((origen) => conTasa.filter((fila) => fila.origen === origen)),
-  ];
 }
 
 /**

@@ -10,26 +10,3 @@ export interface AlcanceDeSerie {
   /** El filtro de cohorte del Hub (377); ausente = todas. */
   cohorteId?: string | null;
 }
-
-const MS_POR_DIA = 86_400_000;
-const formatoIsoUtc = new Intl.DateTimeFormat("en-CA", { timeZone: "UTC" });
-
-function instanteUtc(dia: string): number {
-  return Date.parse(`${dia}T00:00:00Z`);
-}
-
-function diaUtc(instante: number): string {
-  return formatoIsoUtc.format(new Date(instante));
-}
-
-/** El periodo inmediatamente anterior, con la misma cantidad inclusiva de dias. */
-export function periodoAnterior(rango: Rango): Rango {
-  const desde = instanteUtc(rango.desde);
-  const hasta = instanteUtc(rango.hasta);
-  const cantidadDeDias = Math.round((hasta - desde) / MS_POR_DIA) + 1;
-  const hastaAnterior = desde - MS_POR_DIA;
-  return {
-    desde: diaUtc(hastaAnterior - (cantidadDeDias - 1) * MS_POR_DIA),
-    hasta: diaUtc(hastaAnterior),
-  };
-}

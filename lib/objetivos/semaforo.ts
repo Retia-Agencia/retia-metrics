@@ -21,26 +21,3 @@ export function colorDeObjetivo({
   return cumpleAceptable ? "alerta" : "peligro";
 }
 
-/**
- * Compara los cupos vendidos con el avance esperado. La fracción la calcula el llamador con
- * `lib/dias-habiles.ts`; esta función pura no conoce fechas ni base de datos.
- */
-export function colorDeCupos({
-  meta,
-  aceptable,
-  vendidos,
-  fraccionTranscurrida,
-}: {
-  meta: number;
-  aceptable: number | null;
-  vendidos: number;
-  fraccionTranscurrida: number;
-}): ColorDeObjetivo {
-  const fraccion = Math.min(Math.max(fraccionTranscurrida, 0), 1);
-  return colorDeObjetivo({
-    metrica: "cupos",
-    meta: meta * fraccion,
-    aceptable: aceptable === null ? null : aceptable * fraccion,
-    valor: vendidos,
-  });
-}

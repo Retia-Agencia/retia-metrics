@@ -147,7 +147,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 
 - **Tabla:** `tasas_cambio`, cargada de datos.gov.co (`32sa-8pi3`, la TRM oficial).
 - **Uso:** convertir a COP el gasto de una cuenta en USD con la tasa vigente **ese día**.
-- **Función:** `tasaDelDia` en `lib/trm/consultar.ts`.
+- **Función:** `tasasDelRango` en `lib/trm/consultar.ts` (la tasa de cada día de un rango, con sus faltantes y la etiqueta).
 - **Ojo:** si falta la TRM de un día, esas filas en USD **no se suman** y la cifra lo dice con una nota
   ("Sin TRM del ...: N filas en USD no se sumaron"). Nunca se inventa una tasa.
 
@@ -376,7 +376,7 @@ Es la métrica del semáforo por WhatsApp. Para un programa y un día:
    cerrados seguidos tienen ESE mismo color (🟢, 🟡 o 🔴), contra el umbral **de hoy** (no el que había esos días),
    hasta 20. Se corta en el primer día de otro color o ⚪, y hoy no cuenta. Antes solo contaba el rojo, y un día
    verde con "1 día seguido en rojo" se leía como si hoy estuviera en rojo.
-- **Funciones:** `semaforoDelPrograma` en `lib/semaforo/semaforo.ts`; el texto, `armarMensaje` en
+- **Funciones:** `semaforoDelPrograma` en `lib/semaforo/semaforo.ts`; el texto, `armarMensajeDeLaHora` en
   `lib/reporte-whatsapp/mensaje.ts`.
 - **Verificar un día cerrado:**
   1. Gasto: en el Ads Manager, el gasto del día de cada cuenta del programa (las USD × TRM del día).
@@ -478,7 +478,7 @@ son una foto de ahora (la **cartera vencida** también, §3.6: existe aparte de 
 | Students (totales) | sobre las **mismas filas ya filtradas**: Σ abonado y Σ saldo > 0 por moneda, y cuántos no tienen valor vendido; no consulta ni recalcula saldos | USD · COP por moneda | no | `totalesDeStudents` en `lib/queries/estudiantes-totales.ts:20` | ✅ |
 | Cortesías | deals del programa marcados `cortesia` que entran al rango; **no son ventas** ni entran al grupo de citas ni a las banderas (llevan valor 0) | deals | sí | `contarCortesias` (`lib/queries/dashboard.ts:211`) sobre `filtroCortesias` (`metricas-filtros.ts:301`) | ✅ |
 | Descuento promedio | por venta, ticket de la cohorte − valor vendido (en USD y en %), y su promedio simple en el rango; una venta sin ticket o sin valor no entra | USD y % | no (el % nunca) | `descuentoDeDeal` en `lib/queries/saldo.ts:72`; promedio en `lib/queries/vista-dashboard.ts:299` | ✅ |
-| Perdidos por motivo | deals que **hoy** están en Cierre Perdido, cerrados en el rango, agrupados por el motivo (catálogo `motivos`); anulados fuera (ADR 0038). Un deal sin motivo no aparece | deals | sí por motivo; no entre programas con catálogos distintos | `dealsPerdidosPorMotivo` en `lib/queries/dashboard.ts:451` (hoy sin llamador fuera de `tests/`: la pantalla no la pinta) | retiro pendiente, 361 (R-11) o 403 |
+| Perdidos por motivo | deals que **hoy** están en Cierre Perdido, cerrados en el rango, agrupados por el motivo (catálogo `motivos`); anulados fuera (ADR 0038). Un deal sin motivo no aparece | deals | sí por motivo; no entre programas con catálogos distintos | `embudoPorEtapas` (campo `motivosDePerdida`) en `lib/queries/embudo-etapas.ts` (la consulta aparte del Dashboard se retiró en el 361) | vigente |
 | Ventas por cohorte | las ventas del rango (§1.4) agrupadas por la cohorte del deal, con su contratado y las tres cifras del dinero (369); incluye las de cohortes que aún no inician clases y las «sin cohorte» | ventas y USD | sí | `ventasPorCohorte` en `lib/queries/dashboard.ts:300` | ✅ |
 | Banderas del pulso: atendido sin valor | sobre los deals **atendidos** (Atendido, Compromiso verbal, Ganado parcial o Completo; sin cortesías), los que están en una etapa que exige el valor vendido y lo tienen en 0 o nulo; % sobre los atendidos. **Foto de hoy**: el periodo no la acota | deals y % | sí (el % no) | `sinValorVendido`, `filtroAtendidos`, `banderasDelPulso` en `lib/queries/banderas-del-pulso.ts:29,47,76`; su lista, `metricas-con-filas.ts` | ✅ |
 | Banderas del pulso: atendido sin Grain | los mismos atendidos con al menos una llamada vigente atendida sin enlace de grabación (ADR 0066); foto de hoy | deals y % | sí (el % no) | `conLlamadaSinGrain` (`banderas-del-pulso.ts:55`) y `esAtendidaSinGrain` (`lib/queries/sin-grain.ts:31`) | ✅ |

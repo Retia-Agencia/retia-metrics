@@ -1,34 +1,8 @@
-import { and, asc, desc, gte, lte } from "drizzle-orm";
+import { and, asc, gte, lte } from "drizzle-orm";
 import { tasasCambio } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { fecha, num } from "@/lib/format";
 import { desplazarFecha, fechaBogotaSchema } from "./fecha";
-
-export type TasaDelDia = {
-  fecha: string;
-  pesosPorDolar: number;
-  vigenteDesde: string;
-  etiqueta: string;
-};
-
-export async function tasaDelDia(db: Db, dia: string): Promise<TasaDelDia | null> {
-  fechaBogotaSchema.parse(dia);
-  const [fila] = await db.select({
-    vigenteDesde: tasasCambio.vigenteDesde,
-    pesosPorDolar: tasasCambio.pesosPorDolar,
-  }).from(tasasCambio).where(and(
-    lte(tasasCambio.vigenteDesde, dia),
-    gte(tasasCambio.vigenteHasta, dia),
-  )).orderBy(desc(tasasCambio.vigenteDesde)).limit(1);
-  if (!fila) return null;
-  const valor = Number(fila.pesosPorDolar);
-  return {
-    fecha: dia,
-    pesosPorDolar: valor,
-    vigenteDesde: fila.vigenteDesde,
-    etiqueta: etiquetaUnica(valor, fila.vigenteDesde),
-  };
-}
 
 export async function tasasDelRango(
   db: Db,
