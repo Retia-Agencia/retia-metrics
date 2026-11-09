@@ -14,8 +14,10 @@ export function esDireccionPrivada(valor: string): boolean {
   const ip = valor.toLowerCase().split("%")[0];
   if (isIP(ip) === 4) {
     const [a, b] = ip.split(".").map(Number);
+    // Privadas, loopback, link-local, CGNAT (100.64/10), pruebas (198.18/15) y multicast/reservadas (224+).
     return a === 0 || a === 10 || a === 127 || (a === 169 && b === 254)
-      || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168);
+      || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
+      || (a === 100 && b >= 64 && b <= 127) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
   }
   if (isIP(ip) === 6) {
     const mapeada = ip.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);

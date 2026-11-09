@@ -27,7 +27,7 @@ describe("CIMD", () => {
     await expect(obtenerClienteCimd(db, clientId, { lookup: lookupPublico, fetch: vi.fn() })).rejects.toBeInstanceOf(ErrorCimd);
   });
 
-  it.each(["127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.0.1", "169.254.169.254", "0.0.0.0", "::1", "0:0:0:0:0:0:0:1", "fc00::1", "fe80::1", "::ffff:127.0.0.1"])("rechaza DNS que incluya %s", async (address) => {
+  it.each(["127.0.0.1", "10.0.0.1", "172.16.0.1", "192.168.0.1", "169.254.169.254", "100.64.0.1", "198.18.0.1", "224.0.0.1", "0.0.0.0", "::1", "0:0:0:0:0:0:0:1", "fc00::1", "fe80::1", "::ffff:127.0.0.1"])("rechaza DNS que incluya %s", async (address) => {
     const fetchFalso = vi.fn();
     await expect(obtenerClienteCimd(db, CLIENTE, {
       lookup: async () => [{ address, family: address.includes(":") ? 6 : 4 }], fetch: fetchFalso,

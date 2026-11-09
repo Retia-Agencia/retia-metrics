@@ -69,6 +69,7 @@ export default async function AutorizarPage({ searchParams }: { searchParams: Bu
             {peticion.cliente.nombre} quiere usar el CRM como {nombre} ({etiquetaDeRol(rolReal)})
           </CardTitle>
           <CardDescription>
+            Conexión iniciada desde {new URL(peticion.cliente.clientId).hostname}.{" "}
             {scope === "lectura"
               ? "Solo podrá consultar lo que tú ya ves en el CRM."
               : "Podrá consultar y proponer cambios que tú confirmas."}
