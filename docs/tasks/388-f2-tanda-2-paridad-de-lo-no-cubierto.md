@@ -3,7 +3,7 @@ id: 388
 etapa: hub
 serves: "Auditoría 385 F2 (tanda 2) · ADR 0115 N2"
 depends: []
-status: todo
+status: done
 ---
 
 # 388 — F2 tanda 2: paridad de lo que F2 no cubrió
@@ -28,8 +28,10 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Reconstrucción independiente por SQL de metas del mes y de la cohorte, ROAS, gasto convertido (Comunicarte tiene COP y USD el mismo programa), Origen, costo por agenda del semáforo y los tres CSV, contra lo que muestran Hub, MCP y WhatsApp.
-- [ ] Verificado que ninguna suma agrupa Comunicarte COP con Comunicarte USD (insumo del 395).
-- [ ] Cuántas ventas caen antes del primer día de gasto (cobertura del ROAS) por programa, y cuántos envíos pagos no tienen `utm_id` (F3-09), con conteo.
-- [ ] Impacto de los 784 leads sin fecha en "Leads" y en las tasas por lead, por programa y mes (insumo del 389).
-- [ ] Divergencias nuevas con su clase y severidad; si alguna es crítica, se abre ticket antes de seguir la ola 1.
+- [x] Reconstrucción independiente por SQL de metas del mes y de la cohorte, ROAS, gasto convertido (Comunicarte tiene COP y USD el mismo programa), Origen, costo por agenda del semáforo y los tres CSV, contra lo que muestran Hub, MCP y WhatsApp.
+- [x] Verificado que ninguna suma agrupa Comunicarte COP con Comunicarte USD (insumo del 395).
+- [x] Cuántas ventas caen antes del primer día de gasto (cobertura del ROAS) por programa, y cuántos envíos pagos no tienen `utm_id` (F3-09), con conteo.
+- [x] Impacto de los 784 leads sin fecha en "Leads" y en las tasas por lead, por programa y mes (insumo del 389).
+- [x] Divergencias nuevas con su clase y severidad; si alguna es crítica, se abre ticket antes de seguir la ola 1.
+
+**Cierre 9-nov:** cada casilla tiene su evidencia en [`docs/auditoria-datos-2026-11/f2b-paridad.md`](../auditoria-datos-2026-11/f2b-paridad.md) §1 a §7 (veredicto: ninguna divergencia crítica; F2B-01 es Alta, de clase A, y la atienden 354/355). Verificado contra el archivo, no contra una corrida nueva.

@@ -3,7 +3,7 @@ id: 350
 etapa: pauta
 serves: "Paid Ads Trafficker (29-oct): ROAS atribuido a su origen y el registro de llamadas por anuncio y campaña · 123, 125, 288"
 depends: [123, 247, 349]
-status: done
+status: en main
 ---
 
 # 350 — ROAS por anuncio y campaña, y el registro de llamadas exportable
@@ -77,3 +77,5 @@ Pauta llevan la explicación de fuentes, fórmulas, madurez, TRM, cobertura y ci
   tienen test: `tests/paginas.test.ts`, `tests/roas-de-pauta.test.ts`).
 - El ROAS de octubre está inflado porque el gasto empieza el 8-oct (C-01): lo arregla el 351.
 - Pauta pinta este ROAS y la tabla interina con dos anclas de venta (R-01, U-03): las une el 355.
+
+**9-nov (N9):** vuelve a `en main` como pedía la enmienda del 30-oct: sus casillas siguen vacías hasta que Mani confirme cada una con su evidencia.

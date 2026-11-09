@@ -3,7 +3,7 @@ id: 392
 etapa: hub
 serves: "Auditoría 385 H-08, H-01 · ADR 0115 N1, N7"
 depends: [351, 353]
-status: todo
+status: done
 ---
 
 # 392 — Venta: un solo recorrido
@@ -28,9 +28,11 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Una función de venta con día; `vendidosEn` o `ventasConDiaEn` se borra (N7); grep limpio.
-- [ ] Cada uno de los otros recorridos importa esa función o declara en su ficha por qué no (`cerradosEn` es otro concepto: Close date).
-- [ ] "Vendido" de la ficha del deal sale del mismo predicado que Students y el Hub.
-- [ ] Los números dorados de F0 y `tests/venta-una-definicion.test.ts` quedan idénticos; el test de la serie diaria coincide con `filtroCierres`.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
-- [ ] Registro: ficha de `cupos_vendidos` y `llevamos` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+- [x] Una función de venta con día; `vendidosEn` o `ventasConDiaEn` se borra (N7); grep limpio.
+- [x] Cada uno de los otros recorridos importa esa función o declara en su ficha por qué no (`cerradosEn` es otro concepto: Close date).
+- [x] "Vendido" de la ficha del deal sale del mismo predicado que Students y el Hub.
+- [x] Los números dorados de F0 y `tests/venta-una-definicion.test.ts` quedan idénticos; el test de la serie diaria coincide con `filtroCierres`.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Registro: ficha de `cupos_vendidos` y `llevamos` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+
+**Cierre 9-nov:** `vendidosEn` ya no existe (queda `ventasConDiaEn` como única función de venta con día); fichas `cupos_vendidos` y `llevamos` en el registro y fuera de `pendientes.ts`; `tests/venta-una-definicion.test.ts` en verde en el CI de `a776a7a6`.

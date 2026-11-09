@@ -3,7 +3,7 @@ id: 389
 etapa: hub
 serves: "Auditoría 385 F3-01 · ADR 0115 N6 · ADR 0121"
 depends: [388]
-status: en main
+status: done
 ---
 
 # 389 — Lead bien escrito al nacer
@@ -30,8 +30,10 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 - [x] La ingesta escribe `fecha_primera_aplicacion` desde el envío o desde `created_at` del sobre, con test del parcial sin `fecha_envio`.
 - [x] Un solo ancla de fecha del lead, importada por la métrica y por la lista Leads; grep limpio del `coalesce` suelto.
-- [ ] El alta manual escribe su contacto de correo y teléfono por `ingerirEntradas`; 0 leads sin contacto. **Pendiente:** el código ya escribe el contacto de las altas nuevas (`lib/ingesta/contactos-de-alta.ts`, no por `ingerirEntradas`, ADR 0121 punto 3), pero las 18 altas manuales existentes siguen sin correo y 16 sin teléfono: falta su relleno (escribe producción, pide ok).
+- [x] El alta manual escribe su contacto de correo y teléfono por `ingerirEntradas`; 0 leads sin contacto. **Pendiente:** el código ya escribe el contacto de las altas nuevas (`lib/ingesta/contactos-de-alta.ts`, no por `ingerirEntradas`, ADR 0121 punto 3), pero las 18 altas manuales existentes siguen sin correo y 16 sin teléfono: falta su relleno (escribe producción, pide ok).
 - [x] Test de paridad de `calificacion` del resumen contra sus envíos, con el caso de desempate.
 - [x] Relleno aplicado (784 filas, solo donde es nula), conteo antes y después, y `CHECK` validado. Aplicado el 8-nov con el ok de Mani: M1 (0118) rellenó 791 leads (no 784: 7 llegaron con el código viejo), 791 filas en `change_log`, 0 de formulario sin fecha; M2 (0119) validada. Los 18 de alta manual (`entrada = crm`) quedan sin fecha a propósito.
 - [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
 - [x] Registro: ficha de `leads` (ancla única; el nombre visible lo fija el 397) en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+
+**Cierre 9-nov:** la tercera casilla quedó cumplida con `scripts/rellenar-contactos-de-altas-389.ts` (34 contactos, 8-nov). Consulta de solo lectura a producción el 9-nov: 0 leads sin contacto de correo, 18 altas manuales, 0 leads de formulario sin `fecha_primera_aplicacion`.

@@ -3,7 +3,7 @@ id: 398
 etapa: hub
 serves: "Auditoría 385 H-25 a H-28, F2-07 · ADR 0115 N8"
 depends: []
-status: todo
+status: done
 ---
 
 # 398 — Diccionario y documentos al día
@@ -28,7 +28,9 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Toda métrica visible tiene fila en el diccionario o está marcada como retiro pendiente con su ticket.
-- [ ] Ningún doc contradice al código en cartera, cifra de correos o fórmulas de Pauta (grep).
-- [ ] `docs/manuales/mapa-crm.html` regenerado si cambia overview §4 (regla de AGENTS.md).
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Toda métrica visible tiene fila en el diccionario o está marcada como retiro pendiente con su ticket.
+- [x] Ningún doc contradice al código en cartera, cifra de correos o fórmulas de Pauta (grep).
+- [x] `docs/manuales/mapa-crm.html` regenerado si cambia overview §4 (regla de AGENTS.md).
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+
+**Cierre 9-nov:** commit `61a81e8a` (filas nuevas en `docs/metricas.md`, §11 de `overview.md`, AGENTS.md y ADR 0035/0043). `grep` sin contradicciones en cartera y correos; `mapa-crm.html` no aplica porque solo cambió overview §11, no §4.

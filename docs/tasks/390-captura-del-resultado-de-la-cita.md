@@ -3,7 +3,7 @@ id: 390
 etapa: hub
 serves: "Auditoría 385 F3-02, F2-05, F2-04 · ADR 0115 N3, N6"
 depends: [353]
-status: todo
+status: en main
 ---
 
 # 390 — Captura del resultado de la cita
@@ -28,9 +28,11 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] Decisión de Mani registrada: ¿la cita suelta sin resultado cuenta como "por marcar"?
-- [ ] Un mecanismo de captura que empuje al closer a marcar (recordatorio en Mi espacio o la bandeja, con conteo por closer); no una reja que bloquee, porque un cobro real no se frena por un dato de configuración (misma lógica del ADR 0034).
+- [x] Decisión de Mani registrada: ¿la cita suelta sin resultado cuenta como "por marcar"?
+- [x] Un mecanismo de captura que empuje al closer a marcar (recordatorio en Mi espacio o la bandeja, con conteo por closer); no una reja que bloquee, porque un cobro real no se frena por un dato de configuración (misma lógica del ADR 0034).
 - [ ] La cobertura sube medida: citas pasadas sin resultado por semana antes y después, por programa.
 - [ ] El Hub dice "parcial" con base y faltan en toda razón que dependa del resultado (cierra con el 351).
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
-- [ ] Registro: ficha de `citas_pendientes` y `llamadas_sin_resultado` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+- [x] Registro: ficha de `citas_pendientes` y `llamadas_sin_resultado` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
+
+**9-nov (revisión N9):** quedan abiertas la 3.ª casilla (medir la cobertura antes y después: hay que esperar semanas de uso del chip) y la 4.ª (el Hub dice «parcial» en toda razón que dependa del resultado: cierra con el 351). Por eso NO es `done`.
