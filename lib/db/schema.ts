@@ -2350,8 +2350,9 @@ export const enlacesPago = pgTable(
   },
   (t) => [
     index("enlaces_pago_programa_idx").on(t.programId),
-    // Moneda cerrada en la base (ADR 0124): un enlace de pago cobra en USD.
-    check("enlaces_pago_moneda_chk", sql`${t.moneda} = 'USD'`),
+    // Moneda cerrada en la base (ADR 0124): COP o USD, igual que el abono que lo paga (la reja de
+    // `registrarAbono` compara las dos monedas, asi que la base tiene que dejar que difieran).
+    check("enlaces_pago_moneda_chk", sql`${t.moneda} in ('COP', 'USD')`),
   ],
 );
 
