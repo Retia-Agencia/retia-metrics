@@ -61,7 +61,7 @@ function Celdas({ fila, enlace, nombre, sangria = "", soloConteos = false, sinGa
     {soloConteos ? null : <>
       <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.valorVendidoUsd)}</td>
       {sinGasto ? null : <>
-        <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
+        <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === null ? "—" : usd(fila.gastoUsd)}</td>
         <td className="cifra py-2 pl-1 text-right align-top"><CifraDeRazon razon={fila.roas} formato={roas} /></td>
       </>}
     </>}
@@ -94,14 +94,6 @@ function detalleDeCampana(vista: VistaRoasDePauta, campana: RenglonRoas, enlace:
     {CABECERAS("Campaña › conjunto › anuncio").map((c) => <th key={c} className="break-words py-2 pl-1 text-right font-medium first:pl-0 first:text-left">{c}</th>)}
   </tr></thead>
     <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">{filas}</tbody></table>;
-}
-
-/** El aviso de agendas por ocurrir (AJUSTE 3-nov): cobertura, no bloqueo. El ROAS se muestra y se etiqueta. */
-function AvisoPendientes({ pendientes }: { pendientes: number }) {
-  if (pendientes === 0) return null;
-  return <p role="status" className="rounded-md border border-tono-alerta/40 bg-tono-alerta/5 px-3 py-2 text-xs text-muted-foreground">
-    Parcial: <span className="cifra font-medium">{num(pendientes)}</span> {pendientes === 1 ? "agenda pendiente" : "agendas pendientes"} por ocurrir en esta cohorte; el ROAS puede estar por debajo de lo esperado.
-  </p>;
 }
 
 /** La reconciliación con Comercial: las ventas que el ROAS no atribuye por cohorte, nunca escondidas (N3). */
@@ -189,7 +181,6 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloCont
         : <Link key={v} href={hrefVerPor(v)} className={claseEnlace}>{v === "campana" ? "Campaña de Meta" : "Canal"}</Link>)}
     </div>
   </CardHeader><CardContent className="space-y-3">
-    {soloConteos ? null : <AvisoPendientes pendientes={vista.agendasPendientes} />}
     <Tabla cabeceras={CABECERAS(primera, soloConteos, sinGasto)}>
       <Fila fila={vista.total} enlace={enlace} soloConteos={soloConteos} sinGasto={sinGasto} />
       {verPor === "campana" ? <>

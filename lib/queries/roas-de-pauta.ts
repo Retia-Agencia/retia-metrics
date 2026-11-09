@@ -2,10 +2,10 @@ import { and, between, eq, inArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
-import { razon, type RazonConCobertura } from "@/lib/cobertura";
+import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 import { calls, deals, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
+import { citaPorVenirDeDealAbierto, citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { arbolDePauta } from "@/lib/pauta/arbol";
@@ -72,7 +72,8 @@ export interface RenglonRoas {
   ventasSinLlamada: number;
   valorVendidoUsd: number;
   sinValorVendido: number;
-  gastoUsd: number;
+  /** `null` = no disponible (Meta da el gasto por anuncio, no por canal): nunca un 0 inventado (N3). */
+  gastoUsd: number | null;
   roas: RazonConCobertura;
   desdeDias: number | null;
   hastaDias: number | null;
@@ -155,7 +156,16 @@ function sumarEnvio(r: RenglonRoas, e: FilaPorEnvioPauta, hoy: string) {
   }
 }
 
-function calcularRoas(r: RenglonRoas, envios: readonly FilaPorEnvioPauta[], cobertura: CoberturaDeGasto) {
+export const MOTIVO_GASTO_POR_CANAL = "Meta da el gasto por anuncio, no por canal";
+
+/** Las citas por venir de deals abiertos sin venta de estos envíos: la madurez de la cohorte (355). */
+function pendientesDe(envios: readonly FilaPorEnvioPauta[], ahora: Date): number {
+  return envios.reduce((n, e) => n + e.citas.filter((c) => citaPorVenirDeDealAbierto(
+    c, { etapa: e.etapa, tieneVenta: e.venta !== null }, ahora)).length, 0);
+}
+
+function calcularRoas(r: RenglonRoas, envios: readonly FilaPorEnvioPauta[], cobertura: CoberturaDeGasto, ahora: Date) {
+  if (r.gastoUsd === null) { r.roas = razonVacia(MOTIVO_GASTO_POR_CANAL); return; }
   const ventas = envios.filter((envio) => envio.venta !== null);
   const base = ventas.filter((envio) => diaCubierto(envio.diaEnvio, cobertura)).length;
   const faltan = ventas.length - base;
@@ -164,6 +174,7 @@ function calcularRoas(r: RenglonRoas, envios: readonly FilaPorEnvioPauta[], cobe
     faltan,
     calculable: faltan === 0,
     motivo: faltan > 0 ? motivoDeGasto(cobertura) : r.gastoUsd === 0 ? "Sin pauta" : null,
+    agendasPendientes: pendientesDe(envios, ahora),
   });
 }
 
@@ -334,30 +345,30 @@ export async function cargarRoasDePauta(
   // El gasto convertido ya vive en el hecho (355): aquí solo se reparte por la jerarquía de Meta.
   total.gastoUsd = gasto.totalUsd;
   for (const [idMeta, usd] of gasto.porAnuncio) {
-    const a = anuncios.get(idMeta); if (a) a.gastoUsd += usd;
+    const a = anuncios.get(idMeta); if (a) a.gastoUsd = (a.gastoUsd ?? 0) + usd;
     const arbolAnuncio = arbol.anuncios.find((x) => x.id === idMeta);
-    if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s.gastoUsd += usd;
-      const c = campanas.get(arbolAnuncio.campanaId); if (c) c.gastoUsd += usd; }
+    if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s.gastoUsd = (s.gastoUsd ?? 0) + usd;
+      const c = campanas.get(arbolAnuncio.campanaId); if (c) c.gastoUsd = (c.gastoUsd ?? 0) + usd; }
   }
   // El mismo universo agrupado por canal (par UTM): la otra vista de la tabla. El gasto por canal
   // no se puede repartir (Meta lo da por anuncio, no por par UTM), así que su ROAS no aplica: la
   // columna Gasto/ROAS de canal queda en 0/—, con la misma cobertura.
   const canalesMap = new Map<string, RenglonRoas>();
   for (const e of universo) {
-    const fila = canalesMap.get(e.canalClave) ?? renglonBase("canal", e.canalClave, e.canal, null);
+    const fila = canalesMap.get(e.canalClave) ?? { ...renglonBase("canal", e.canalClave, e.canal, null), gastoUsd: null };
     sumarEnvio(fila, e, hoy); canalesMap.set(e.canalClave, fila);
   }
   const para = (predicado: (envio: FilaPorEnvioPauta) => boolean) => universo.filter(predicado);
-  calcularRoas(total, universo, coberturaGasto);
-  calcularRoas(sinAnuncio, para((e) => e.campanaId === null), coberturaGasto);
-  for (const fila of campanas.values()) calcularRoas(fila, para((e) => e.campanaId === fila.id), coberturaGasto);
-  for (const fila of conjuntos.values()) calcularRoas(fila, para((e) => e.conjuntoId === fila.id), coberturaGasto);
-  for (const fila of anuncios.values()) calcularRoas(fila, para((e) => e.anuncioId === fila.id), coberturaGasto);
+  calcularRoas(total, universo, coberturaGasto, ahora);
+  calcularRoas(sinAnuncio, para((e) => e.campanaId === null), coberturaGasto, ahora);
+  for (const fila of campanas.values()) calcularRoas(fila, para((e) => e.campanaId === fila.id), coberturaGasto, ahora);
+  for (const fila of conjuntos.values()) calcularRoas(fila, para((e) => e.conjuntoId === fila.id), coberturaGasto, ahora);
+  for (const fila of anuncios.values()) calcularRoas(fila, para((e) => e.anuncioId === fila.id), coberturaGasto, ahora);
   for (const fila of anunciosSinIdentificar.values()) {
-    calcularRoas(fila, para((e) => e.campanaId === fila.id && e.anuncioId === null), coberturaGasto);
+    calcularRoas(fila, para((e) => e.campanaId === fila.id && e.anuncioId === null), coberturaGasto, ahora);
   }
-  for (const fila of canalesMap.values()) calcularRoas(fila, para((e) => e.canalClave === fila.id), coberturaGasto);
-  const visible = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0 || r.gastoUsd > 0;
+  for (const fila of canalesMap.values()) calcularRoas(fila, para((e) => e.canalClave === fila.id), coberturaGasto, ahora);
+  const visible = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0 || (r.gastoUsd ?? 0) > 0;
   const registros = universo.filter((e) => e.cuentaComoRegistro);
   const cobertura = {
     anuncio: registros.filter((e) => e.anuncioId !== null).length,
@@ -374,10 +385,9 @@ export async function cargarRoasDePauta(
     atribuidasPorCohorteEnPeriodo: atribuidasEnPeriodo,
     sinEnvioDePautaODeOtroPeriodo: Math.max(0, ventasDelPeriodoPorFecha.size - atribuidasEnPeriodo),
   };
-  // Las citas de la cohorte todavía por ocurrir (agendadas y sin resultado, su hora aún no llega):
+  // Las citas de la cohorte todavía por ocurrir (agendadas, su hora aún no llega, de deals abiertos sin venta):
   // el ROAS puede subir cuando se resuelvan (AJUSTE 3-nov). No es un no show ni un dato que falta.
-  const agendasPendientes = universo.reduce((n, e) =>
-    n + e.citas.filter((c) => c.resultado === "agendada" && c.fecha.getTime() > ahora.getTime()).length, 0);
+  const agendasPendientes = pendientesDe(universo, ahora);
   return { envios: universo, total, campanas: [...campanas.values()].filter(visible),
     conjuntos: [...conjuntos.values()].filter(visible), anuncios: [...anuncios.values()].filter(visible),
     anunciosSinIdentificar: [...anunciosSinIdentificar.values()].filter(visible), sinAnuncio,

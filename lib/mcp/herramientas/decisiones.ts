@@ -123,13 +123,14 @@ export const pautaRoasMcp: Herramienta<typeof entradaRoas> = {
     const fila = renglonRoasDeVista(vista, nivel, entrada.id);
     if (!fila) throw new ErrorDeApp("No existe ese nivel de pauta", 404);
     const estado = estadoDeCobertura(fila.roas);
-    const roas = fila.roas.valor === null ? "—" : `${num(fila.roas.valor, 2)}${estado === "parcial" ? " (parcial)" : ""}`;
+    const pendientes = fila.roas.agendasPendientes ?? 0;
+    const roas = fila.roas.valor === null ? "—" : `${num(fila.roas.valor, 2)}${estado === "parcial" ? pendientes > 0 ? ` (parcial: ${num(pendientes)} ${pendientes === 1 ? "agenda pendiente" : "agendas pendientes"})` : " (parcial)" : ""}`;
     const enlace = enlaceDeSeccionHub(visible.slug, "pauta");
     return {
       texto: [
         `${fila.nombre} · ${periodo.rango.desde} a ${periodo.rango.hasta} (Bogotá)`,
         `ROAS: ${roas} · cobertura ${num(fila.roas.base)} de ${num(fila.roas.base + fila.roas.faltan)}${fila.roas.motivo ? ` · ${fila.roas.motivo}` : ""}`,
-        `Vendido: ${monto(fila.valorVendidoUsd, "USD")} · gasto: ${monto(fila.gastoUsd, "USD")}`,
+        `Vendido: ${monto(fila.valorVendidoUsd, "USD")} · gasto: ${fila.gastoUsd === null ? "—" : monto(fila.gastoUsd, "USD")}`,
         `Envíos: ${num(fila.registros)} · agendadas: ${num(fila.agendas)} · realizadas: ${num(fila.shows)} · ventas: ${num(fila.ventas)}`,
         enlace,
       ].join("\n"),

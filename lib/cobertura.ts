@@ -3,6 +3,11 @@ export interface RazonConCobertura {
   base: number;
   faltan: number;
   motivo: string | null;
+  /**
+   * Madurez (355, AJUSTE 3-nov): citas por venir de deals abiertos que aún pueden mover la razón. Con alguna, la razón
+   * es parcial aunque la base cubra todo. Ausente o 0 = sin aviso; las razones que no maduran no lo traen.
+   */
+  agendasPendientes?: number;
 }
 
 export type EstadoDeCobertura = "completa" | "parcial" | "no_calculable";
@@ -16,6 +21,7 @@ export function estadoDeCobertura(
   umbral = UMBRAL_COBERTURA_POR_DEFECTO,
 ): EstadoDeCobertura {
   if (r.valor === null) return "no_calculable";
+  if ((r.agendasPendientes ?? 0) > 0) return "parcial";
   if (r.faltan === 0) return "completa";
   return r.base / (r.base + r.faltan) < umbral ? "parcial" : "completa";
 }
@@ -30,19 +36,25 @@ export function textoDeRazon(
 ): string {
   const estado = estadoDeCobertura(r);
   if (estado === "no_calculable") return "—";
-  if (estado === "parcial") return `${formato(r.valor!)} (parcial, ${r.base} de ${r.base + r.faltan})`;
+  if (estado === "parcial") {
+    if (r.faltan === 0 || r.base / (r.base + r.faltan) >= UMBRAL_COBERTURA_POR_DEFECTO) {
+      return `${formato(r.valor!)} (parcial: ${r.agendasPendientes} ${r.agendasPendientes === 1 ? "agenda pendiente" : "agendas pendientes"})`;
+    }
+    return `${formato(r.valor!)} (parcial, ${r.base} de ${r.base + r.faltan})`;
+  }
   return formato(r.valor!);
 }
 
 export function razon(
   numerador: number,
   denominador: number,
-  cobertura: { base: number; faltan: number; motivo: string | null; calculable: boolean },
+  cobertura: { base: number; faltan: number; motivo: string | null; calculable: boolean; agendasPendientes?: number },
 ): RazonConCobertura {
   return {
     valor: !cobertura.calculable || denominador === 0 ? null : numerador / denominador,
     base: cobertura.base,
     faltan: cobertura.faltan,
     motivo: cobertura.motivo,
+    ...(cobertura.agendasPendientes ? { agendasPendientes: cobertura.agendasPendientes } : {}),
   };
 }

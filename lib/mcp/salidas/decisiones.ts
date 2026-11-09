@@ -80,6 +80,7 @@ const roas = z.object({
   base: z.number().int().describe("Ventas con valor vendido que sí cubren el cálculo."),
   faltan: z.number().int().describe("Ventas sin valor vendido que impiden completar el cálculo."),
   motivo: z.string().nullable().describe("Razón por la que el cálculo es parcial o no calculable, cuando aplica."),
+  agendas_pendientes: z.number().int().describe("Citas por venir de deals abiertos sin venta que aún pueden subir el ROAS; con alguna, el estado es parcial."),
   estado: z.enum(["completa", "parcial", "no_calculable"]).describe("Estado de cobertura del cálculo."),
   legible: z.string().describe("ROAS listo para mostrar, o — cuando no se puede calcular."),
 }).strict().describe("ROAS con su cobertura explícita.");
@@ -96,7 +97,7 @@ export const salidaDePautaRoas = z.object({
   no_asistio: z.number().int().describe(descripcionDeMetrica("no_asistio")),
   ventas: z.number().int().describe(descripcionDeMetrica("ventas")),
   vendido: dinero(descripcionDeMetrica("vendido")),
-  gasto: dinero("Gasto de pauta convertido a USD para el periodo."),
+  gasto: dinero("Gasto de pauta convertido a USD para el periodo.").nullable().describe("Gasto en USD, o null cuando no está disponible (por canal: Meta da el gasto por anuncio); null nunca es 0."),
   roas,
   precision_del_origen: z.object({
     hasta_el_anuncio: z.number().int().describe("Envíos atribuidos hasta un anuncio exacto."),
@@ -116,8 +117,8 @@ export function aSalidaDePautaRoas(args: {
     programa: args.programa, periodo: args.periodo, nivel: fila.nivel, identificador: fila.id, nombre: fila.nombre,
     envios: fila.registros, citas: fila.agendas, realizadas: fila.shows, no_asistio: fila.noShows, ventas: fila.ventas,
     vendido: { valor: fila.valorVendidoUsd, moneda: "USD", legible: args.dineroLegible(fila.valorVendidoUsd, "USD") },
-    gasto: { valor: fila.gastoUsd, moneda: "USD", legible: args.dineroLegible(fila.gastoUsd, "USD") },
-    roas: { ...fila.roas, estado: args.estado, legible: args.roasLegible },
+    gasto: fila.gastoUsd === null ? null : { valor: fila.gastoUsd, moneda: "USD", legible: args.dineroLegible(fila.gastoUsd, "USD") },
+    roas: { ...fila.roas, agendas_pendientes: fila.roas.agendasPendientes ?? 0, estado: args.estado, legible: args.roasLegible },
     precision_del_origen: {
       hasta_el_anuncio: args.vista.cobertura.anuncio,
       hasta_campana_o_conjunto: args.vista.cobertura.soloCampanaOConjunto,

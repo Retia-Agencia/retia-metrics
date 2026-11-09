@@ -6,6 +6,7 @@ import {
   cuentasPublicitarias,
   deals,
   dealEtapaHistorial,
+  calls,
   gastoPauta,
   leads,
   miembrosPrograma,
@@ -23,7 +24,8 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { hoyEnBogota } from "@/lib/format";
 import { resolverFiltroStudents, studentsDelPrograma } from "@/lib/queries/estudiantes";
 import { origenDelPrograma, resumenDeOrigen } from "@/lib/queries/origen";
-import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
+import { estadoDeCobertura } from "@/lib/cobertura";
+import { cargarRoasDePauta, MOTIVO_GASTO_POR_CANAL } from "@/lib/queries/roas-de-pauta";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -327,6 +329,47 @@ describe("pauta_roas", () => {
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:registros|agendas|shows|noShows|contratadoUsd|gastoUsd|cobertura)"\s*:/);
     expect(salida.texto).toContain("ROAS: —");
     expect(salida.texto).toContain("USD 300,00");
+  });
+
+  it("nivel canal: gasto y ROAS no disponibles (null con motivo) aunque haya gasto real; nunca 0", async () => {
+    await envio(programaA, fuenteA, "canal-roas@retia.test", "ad-a");
+    const directa = await cargarRoasDePauta(db, programaA, RANGO, HOY);
+    expect(directa.total.gastoUsd).toBeGreaterThan(0);
+    const canal = directa.canales[0]!;
+    const salida = await pautaRoasMcp.ejecutar(contexto(paidId, "paid_trafficker"), {
+      programa: "decision-a", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta, nivel: "canal", id: canal.id!,
+    });
+    const roas = salida.estructurado.roas as { valor: number | null; motivo: string | null; estado: string };
+    expect(salida.estructurado.gasto).toBeNull();
+    expect(roas).toMatchObject({ valor: null, estado: "no_calculable", motivo: MOTIVO_GASTO_POR_CANAL });
+    expect(pautaRoasMcp.salida.safeParse(salida.estructurado).success).toBe(true);
+    expect(salida.texto).toContain("gasto: —");
+    expect(salida.texto).not.toContain("Sin pauta");
+  });
+
+  it("madurez: una cita pendiente válida da el MISMO estado parcial en la tarjeta y en el MCP", async () => {
+    // El gasto cubre el día del envío (1-nov): sin esto el ROAS sería no calculable por gasto, no por madurez.
+    await db.insert(tasasCambio).values({ vigenteDesde: "2026-11-01", vigenteHasta: "2026-11-01", pesosPorDolar: "4000", fuente: "prueba" });
+    await db.insert(gastoPauta).values({ programId: programaA, fecha: "2026-11-01", monto: "400000", moneda: "COP", origen: "meta_api", pautaObjetoId: anuncioDbId });
+    const e = await envio(programaA, fuenteA, "madurez@retia.test", "ad-a");
+    const [venta] = await db.insert(deals).values({ programId: programaA, leadId: e.persona.id, submissionOrigenId: e.fila.id,
+      ownerUserId: closerId, etapa: "ganado_completo", valorVendidoUsd: "300" }).returning();
+    await db.insert(dealEtapaHistorial).values({ dealId: venta.id, a: "ganado_completo", fecha: new Date("2026-11-03T12:00:00-05:00") });
+    const abierto = await envio(programaA, fuenteA, "madurez-abierto@retia.test", "ad-a");
+    const [dealAbierto] = await db.insert(deals).values({ programId: programaA, leadId: abierto.persona.id, submissionOrigenId: abierto.fila.id,
+      ownerUserId: closerId, etapa: "agendado" }).returning();
+    await db.insert(calls).values({ programId: programaA, dealId: dealAbierto.id, resultado: "agendada",
+      fechaAgenda: new Date(Date.now() + 5 * 86_400_000), createdAt: new Date("2026-11-03T09:00:00-05:00") });
+    const directa = await cargarRoasDePauta(db, programaA, RANGO, HOY);
+    const salida = await pautaRoasMcp.ejecutar(contexto(paidId, "paid_trafficker"), {
+      programa: "decision-a", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta, nivel: "total",
+    });
+    const roas = salida.estructurado.roas as { valor: number | null; estado: string; agendas_pendientes: number };
+    expect(directa.agendasPendientes).toBe(1);
+    expect(estadoDeCobertura(directa.total.roas)).toBe("parcial");
+    expect(roas).toMatchObject({ estado: "parcial", agendas_pendientes: 1 });
+    expect(roas.valor).toBe(directa.total.roas.valor);
+    expect(salida.texto).toContain("parcial: 1 agenda pendiente");
   });
 
   it("una llamada forjada por un closer falla como programa desconocido", async () => {

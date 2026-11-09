@@ -12,7 +12,8 @@ import { PautaRoas } from "@/components/pauta-roas";
 import { abonos, calls, cuentasPublicitarias, deals, dealEtapaHistorial, gastoPauta, leads, pautaObjetos, programs, sources, submissions, tasasCambio, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { listaDeMetrica, proyectarParaPauta } from "@/lib/queries/metricas-con-filas";
-import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
+import { estadoDeCobertura } from "@/lib/cobertura";
+import { cargarRoasDePauta, MOTIVO_GASTO_POR_CANAL } from "@/lib/queries/roas-de-pauta";
 import { COLUMNAS_CSV_CITAS_PAUTA, csvDeCitasPauta } from "@/lib/pauta/csv-citas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -112,9 +113,9 @@ describe("ROAS de Pauta", () => {
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
     const campana = vista.campanas.find((f) => f.id === "camp1")!;
     expect(campana).toMatchObject({ registros: 2, ventas: 1, valorVendidoUsd: 300, gastoUsd: 150, agendas: 2, shows: 1, noShows: 1 });
-    expect(campana.valorVendidoUsd / campana.gastoUsd).toBe(2);
+    expect(campana.valorVendidoUsd / campana.gastoUsd!).toBe(2);
     expect(vista.total).toMatchObject({ registros: 3, ventas: 2, valorVendidoUsd: 400, gastoUsd: 150 });
-    expect(vista.total.roas.valor).toBe(vista.total.valorVendidoUsd / vista.total.gastoUsd);
+    expect(vista.total.roas.valor).toBe(vista.total.valorVendidoUsd / vista.total.gastoUsd!);
     expect(vista.sinAnuncio).toMatchObject({ ventas: 1, valorVendidoUsd: 100 });
     expect(vista.campanas.some((fila) => fila.id === "camp-vacia")).toBe(false);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
@@ -219,18 +220,40 @@ describe("ROAS de Pauta", () => {
     expect(html).toContain("Facebook");
   });
 
-  it("355 (AJUSTE 3-nov): una cita futura sin resultado marca el ROAS como parcial con su aviso", async () => {
+  it("355 (AJUSTE 3-nov): cita futura de un deal ABIERTO = 1 pendiente, y el ROAS de la tarjeta queda parcial", async () => {
+    const e = await envio({ dia: "2026-10-01" });
+    await db.insert(deals).values({ programId, leadId: e.leadId, submissionOrigenId: e.envioId,
+      ownerUserId: await duenoDePrueba(db, programId), etapa: "agendado" });
+    const [deal] = await db.select().from(deals).where(eq(deals.leadId, e.leadId));
+    await db.insert(calls).values({ programId, dealId: deal.id, resultado: "agendada",
+      fechaAgenda: new Date("2026-10-20T10:00:00-05:00"), createdAt: new Date("2026-10-02T09:00:00-05:00") });
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY, new Date("2026-10-02T12:00:00-05:00"));
+    expect(vista.agendasPendientes).toBe(1);
+    expect(vista.total.roas.agendasPendientes).toBe(1);
+    const html = renderToStaticMarkup(createElement(PautaRoas, {
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
+    }));
+    expect(html).toContain("parcial: 1 agenda pendiente");
+  });
+
+  it("355 (AJUSTE 3-nov): cita futura de un deal ya VENDIDO = 0 pendientes y el ROAS no se marca parcial", async () => {
     const e = await envio({ dia: "2026-10-01" });
     await vender(e, "300", "2026-10-02");
     const [deal] = await db.select().from(deals).where(eq(deals.leadId, e.leadId));
     await db.insert(calls).values({ programId, dealId: deal.id, resultado: "agendada",
       fechaAgenda: new Date("2026-10-20T10:00:00-05:00"), createdAt: new Date("2026-10-02T09:00:00-05:00") });
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY, new Date("2026-10-02T12:00:00-05:00"));
-    expect(vista.agendasPendientes).toBe(1);
-    const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
-    }));
-    expect(html).toContain("agenda pendiente");
-    expect(html).toContain("el ROAS puede estar por debajo de lo esperado");
+    expect(vista.agendasPendientes).toBe(0);
+    expect(estadoDeCobertura(vista.total.roas)).toBe("completa");
+  });
+
+  it("355: por canal el gasto y el ROAS son NO DISPONIBLES (null con motivo), nunca 0 ni «Sin pauta»", async () => {
+    await escenario();
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+    expect(vista.canales.length).toBeGreaterThan(0);
+    for (const canal of vista.canales) {
+      expect(canal.gastoUsd).toBeNull();
+      expect(canal.roas).toMatchObject({ valor: null, motivo: MOTIVO_GASTO_POR_CANAL });
+    }
   });
 });

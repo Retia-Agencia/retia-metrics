@@ -58,6 +58,20 @@ export function citaCuentaComoPorMarcar(
   return !(ETAPAS_QUE_NO_SE_PERSIGUEN as readonly (string | null)[]).includes(cita.etapaDelDeal);
 }
 
+/**
+ * ¿Esta cita está POR VENIR y puede todavía mover una razón (madurez del ROAS, 355)? Sigue `agendada`, su hora es posterior
+ * al corte y su deal sigue abierto: ni vendido (`tieneVenta`) ni en una etapa que cierra el cupo. Es la mitad "futura"
+ * de `citaCuentaComoPorMarcar`; comparten las etapas que no se persiguen.
+ */
+export function citaPorVenirDeDealAbierto(
+  cita: { resultado: string; fecha: Date },
+  deal: { etapa: string | null; tieneVenta: boolean },
+  ahora: Date,
+): boolean {
+  if (cita.resultado !== "agendada" || cita.fecha.getTime() <= ahora.getTime()) return false;
+  return !deal.tieneVenta && !(ETAPAS_QUE_NO_SE_PERSIGUEN as readonly (string | null)[]).includes(deal.etapa);
+}
+
 /** Cuántas citas por marcar tiene cada closer, de mayor a menor (el conteo del recordatorio). Los sin dueño van aparte. */
 export function porMarcarPorCloser(filas: readonly { ownerNombre: string | null }[]): { closer: string; cantidad: number }[] {
   const cuenta = new Map<string, number>();
