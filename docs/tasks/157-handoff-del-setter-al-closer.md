@@ -3,7 +3,7 @@ id: 157
 etapa: O2
 serves: "docs/anotaciones.md A-40 · ADR 0076"
 depends: [156]
-status: in_progress
+status: en main
 ---
 
 # 157 — El setter entrega el deal al closer por la cita: handoff, crédito y los cuatro caminos de una llamada
