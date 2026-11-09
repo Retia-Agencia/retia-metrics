@@ -2666,6 +2666,47 @@ export const gastoPauta = pgTable(
   ],
 );
 
+/**
+ * Una proyeccion del ROAS guardada con su fecha (ticket 375, ADR 0115 N3). El cron diario escribe una por
+ * programa y dia: el periodo es el mes en curso de Bogota hasta ese dia (`desde`..`hasta`, fijos), con el
+ * ROAS a hoy y el proyectado. Cuando la ultima cita pendiente tiene resultado se recalcula el MISMO rango y
+ * se guarda `roas_real`: la pantalla muestra "Proyectado el 6-nov: 2,4x · Real: 2,1x". Nunca se reescribe
+ * `roas_proyectado` despues: una proyeccion que cambia al verla no sirve para confirmarla.
+ * Todo monto en USD; un ROAS que no se pudo calcular es NULL con su `motivo`, nunca un cero.
+ */
+export const proyeccionesRoas = pgTable(
+  "proyecciones_roas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id")
+      .notNull()
+      .references(() => programs.id, { onDelete: "restrict" }),
+    /** Dia de Bogota en que se calculo (la llave junto con el programa). */
+    dia: date("dia").notNull(),
+    desde: date("desde").notNull(),
+    hasta: date("hasta").notNull(),
+    gastoUsd: numeric("gasto_usd", { precision: 14, scale: 2 }),
+    vendidoUsd: numeric("vendido_usd", { precision: 14, scale: 2 }),
+    roasAHoy: numeric("roas_a_hoy", { precision: 10, scale: 4 }),
+    roasProyectado: numeric("roas_proyectado", { precision: 10, scale: 4 }),
+    /** Por que el proyectado es NULL (gasto parcial, sin muestra...). Nulo cuando se calculo. */
+    motivo: text("motivo"),
+    citasPendientes: integer("citas_pendientes").notNull().default(0),
+    /** Hora de la ultima cita pendiente: cuando pasa, la proyeccion se puede confirmar. */
+    ultimaCitaEn: timestamp("ultima_cita_en", { withTimezone: true }),
+    /** Las probabilidades usadas, por closer, con su muestra y si cayo a la tasa del programa. */
+    supuestos: jsonb("supuestos").notNull().default({}),
+    confirmadaEn: timestamp("confirmada_en", { withTimezone: true }),
+    roasReal: numeric("roas_real", { precision: 10, scale: 4 }),
+    creadaEn: timestamp("creada_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("proyecciones_roas_programa_dia_idx").on(t.programId, t.dia),
+    check("proyecciones_roas_rango_chk", sql`${t.desde} <= ${t.hasta}`),
+    check("proyecciones_roas_citas_chk", sql`${t.citasPendientes} >= 0`),
+  ],
+);
+
 export const pautaSincronizaciones = pgTable(
   "pauta_sincronizaciones",
   {
