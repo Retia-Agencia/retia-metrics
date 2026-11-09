@@ -27,6 +27,18 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-09: cierre del 399, guardián N9 y MCP listo para el 383 (sesión padre).** En main (`5532cad9`): 399 `done` (once tools con
+  `outputSchema` obligatorio y nombres de negocio; paridad por tool; `tests/mcp-volumen.test.ts` opt-in con `MEDIR_VOLUMEN=1`; el
+  tablero dice «recaudado»; la medición de descubrimiento pasa al 387 frente B; `EXPLAIN` queda como deuda del 262), 388, 389, 392 y 398
+  `done` con evidencia, 390 y 350 `en main` (N9), y el ticket 408: `tests/tracker-n9-guardian.test.ts` con trinquete
+  (`tests/helpers/n9-excepciones.ts`, 82 históricos; 143, 152, 156 y 157 bajaron a `en main`). **Siguiente, en este orden:** (1) 383 (OAuth y
+  todos los roles; sus cinco requisitos previos están en `docs/mcp.md` §7), (2) 351 → 355 → 375, (3) 403 (depende de 351 y 355 para sus
+  casillas de gasto/ROAS y el retiro de H-29), (4) 394, 395, 358 a 361, 401, 402, (5) 384 (escrituras), 386 y 387; 407 (MCP analítico) al
+  final. **Cómo se trabaja:** una hija de Codex por worktree dentro del repo, brief con decisiones tomadas y STOP si falta una; Codex no
+  commitea ni corre tests; fusionar a main desde un worktree exige `WORKTREE_CD_BYPASS=1`; migraciones y escrituras en producción las
+  aplica la sesión padre con ok de Mani; si el swap pasa de ~8 GB, solo archivos de test sueltos y decide el CI. **Aprendido:** un guardián de
+  sinónimos (`rotulos-sinonimos-guardian`) cazó «Confirmado» en una descripción de salida MCP; antes de empujar, correr los guardianes
+  de `tests/` que miran `lib/mcp` aunque el cambio parezca solo de forma.
 - **2026-11-08 (noche): F7 del 385, ola 3 empezada (sesión padre).** En main y con CI verde (`6d4e3287`): 397 (un nombre por concepto: Envíos, Leads
   = personas, Realizadas/Asistencia/No asistió, Entró a caja, "Valor del lead" en el CSV; "Leads de hoy" ahora cuenta personas contra el
   objetivo; **decisión de Mani: la meta de leads por día se mide contra Leads**; el texto del semáforo de pauta NO se tocó, sigue en el lenguaje de
