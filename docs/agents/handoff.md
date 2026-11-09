@@ -27,16 +27,15 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
-- **2026-11-09 (noche, 2): 355 implementado en la rama `t355`, sin commit (sesión padre).** Worktree `.claude/worktrees/t355` (rama `t355`, base `c7f0eeda`;
-  `node_modules` es una copia APFS, no enlace, para poder correr `next build`). Codex falló sin escribir nada por **límite de uso hasta las 23:56 de
+- **2026-11-09 (noche, 2): 355 en main (`3884f27f`), CI en cola, ticket `en curso` (sesión padre).** _Actualización 9-nov: el worktree y la rama `t355` ya se borraron (también t351 y t383, mergeados); se sigue desde `main`. Docker y servidores apagados._ Trabajó en el worktree `t355` (ya borrado). Codex falló sin escribir nada por **límite de uso hasta las 23:56 de
   Bogotá**; lo implementó **Kiro** con `BRIEF-355.md` (en la raíz del worktree, sin versionar: se borra al cerrar). **Decisiones de Mani:** la venta se
   atribuye al origen y se ancla al día del ENVÍO (Dani, weekly del 3-nov, `docs/weekly-2026-11-03.md`); la vista por canal **oculta Gasto y ROAS** (Meta da el
   gasto por anuncio); aviso «parcial: N agendas pendientes»; la revisión adversarial espera a Codex. **Verificado:** typecheck, lint, build, 7 archivos de
   test del cambio y 28 de guardianes, todo en verde. **Recorrido visual hecho (9-nov, base local, ver el ticket).** **Falta, en este orden:** (1) _hecho_;
   (2) `/codex:adversarial-review` del diff (reconciliación, agendas pendientes, aserciones adaptadas de `tests/escalera.test.ts` y
   `tests/resultados-de-llamada-paridad.test.ts`); (3) leer a mano los hunks de `roas-de-pauta.ts` y el cambio de nombre `contratadoUsd` → `valorVendidoUsd` en `lib/mcp`
-  (la salida pública `vendido` no cambia); (4) commit nombrando archivos, rebase sobre main, push y checkpoint verde; (5) `status: done` + `[x]` en el
-  tracker y quitar el worktree (`rmdir`/`rm node_modules`, `git worktree remove`); (6) línea del Daily Brief. **Después:** 375 (proyectado), 403, 394,
+  (la salida pública `vendido` no cambia); (4) esperar el CI verde del push `3884f27f` (checkpoint); (5) `status: done` + `[x]` en el
+  tracker (el ticket 355 trae también su sección «Estado»); (6) línea del Daily Brief. **Después:** 375 (proyectado), 403, 394,
   395, 358 a 361, 401, 402; el 383 sigue esperando conectar el MCP y al Owner del plan. **Del weekly del 3-nov** (todo en `docs/weekly-2026-11-03.md`): productos y SKUs por
   lead sin ticket, filtros de periodo y SKU separados, descarga de transcripciones de Grain, sentarse 30 min con Andrea, Maru y Dana, y la sentada con César por los UTM
   (plazo: el viernes). **Aprendido:** el aviso del agente intermediario NO es el fin del trabajo (Codex/Kiro); `sed -i` en macOS pide `''`; un hook de «terminó la reunión» se
