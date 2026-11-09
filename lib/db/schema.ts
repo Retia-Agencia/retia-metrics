@@ -16,6 +16,7 @@ import {
   uniqueIndex,
   unique,
   check,
+  foreignKey,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
@@ -405,7 +406,7 @@ export const cohorts = pgTable(
   "cohorts",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     codigo: text("codigo").notNull(),
     metaCupos: integer("meta_cupos").notNull(),
     /** Meta de leads por dia habil de la cohorte. Editable desde /ajustes (ticket 014). */
@@ -435,6 +436,8 @@ export const cohorts = pgTable(
   },
   (t) => [
     uniqueIndex("cohorts_programa_codigo_idx").on(t.programId, t.codigo),
+    // ADR 0125: destino de las FK compuestas (cohort_id, program_id) de `deals`.
+    unique("cohorts_id_programa_uq").on(t.id, t.programId),
     // Maximo una cohorte activa por programa (ADR 0005: la garantia vive en la base,
     // no solo en codigo). Indice unico PARCIAL: solo las filas en estado 'activo'
     // compiten por la unicidad; 'cerrado' y 'futuro' no. Un segundo intento de
@@ -477,7 +480,7 @@ export const sources = pgTable(
   "sources",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     nombre: text("nombre").notNull(),
     tipo: tipoFuenteEnum("tipo").notNull().default("google_sheet"),
     sheetId: text("sheet_id"),
@@ -590,7 +593,7 @@ export const leads = pgTable(
   "leads",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     /** Correo en minusculas y sin espacios. Es la llave del dedup. */
     emailNormalizado: text("email_normalizado").notNull(),
     nombre: text("nombre"),
@@ -657,6 +660,8 @@ export const leads = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // ADR 0125: destino de las FK compuestas (lead_id, program_id) de `deals` y `lead_contactos`.
+    unique("leads_id_programa_uq").on(t.id, t.programId),
     uniqueIndex("leads_programa_email_idx").on(t.programId, t.emailNormalizado),
     index("leads_programa_estado_idx").on(t.programId, t.estado),
     index("leads_cohorte_idx").on(t.cohortId),
@@ -695,7 +700,7 @@ export const leadContactos = pgTable(
   "lead_contactos",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
+    leadId: uuid("lead_id").notNull(),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
     tipo: tipoContactoEnum("tipo").notNull(),
     /** El valor ya normalizado: correo en minusculas, telefono en digitos. */
@@ -714,6 +719,12 @@ export const leadContactos = pgTable(
   },
   (t) => [
     uniqueIndex("lead_contactos_valor_idx").on(t.programId, t.tipo, t.valor),
+    // ADR 0125: un contacto es del programa de su lead; la base lo impide.
+    foreignKey({
+      name: "lead_contactos_lead_programa_fk",
+      columns: [t.leadId, t.programId],
+      foreignColumns: [leads.id, leads.programId],
+    }).onDelete("cascade"),
     index("lead_contactos_lead_idx").on(t.leadId),
   ],
 );
@@ -939,9 +950,9 @@ export const deals = pgTable(
   "deals",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "restrict" }),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
-    cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "restrict" }),
+    leadId: uuid("lead_id").notNull(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    cohortId: uuid("cohort_id"),
     /**
      * El dueno de la OPORTUNIDAD (ADR 0037, enmienda al ADR 0021). Es FK real a
      * `users` y no el texto copiado del ADR 0011: quien trabaja un deal es siempre
@@ -1064,6 +1075,19 @@ export const deals = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // ADR 0125: lead y cohorte son del programa del deal; la base lo impide. Con `cohort_id` nulo
+    // la FK no se evalua (MATCH SIMPLE), que es lo correcto: un deal puede no tener cohorte.
+    unique("deals_id_programa_uq").on(t.id, t.programId),
+    foreignKey({
+      name: "deals_lead_programa_fk",
+      columns: [t.leadId, t.programId],
+      foreignColumns: [leads.id, leads.programId],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "deals_cohorte_programa_fk",
+      columns: [t.cohortId, t.programId],
+      foreignColumns: [cohorts.id, cohorts.programId],
+    }).onDelete("restrict"),
     check("deals_valor_vendido_no_negativo", sql`${t.valorVendidoUsd} IS NULL OR ${t.valorVendidoUsd} >= 0`),
     check(
       "deals_comision_porcentaje_rango",
@@ -1269,9 +1293,9 @@ export const calls = pgTable(
      * lo historico: las llamadas de la hoja vieja pueden no tener deal al que
      * apuntar. `restrict` porque borrar un deal con llamadas perderia historia.
      */
-    dealId: uuid("deal_id").references((): AnyPgColumn => deals.id, { onDelete: "restrict" }),
+    dealId: uuid("deal_id"),
     cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     /** Nombre del closer tal como aparece en la hoja. Se cruza contra users.closerId. */
     closerId: text("closer_id"),
     /**
@@ -1324,6 +1348,12 @@ export const calls = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // ADR 0125: la llamada es del programa de su deal. Con `deal_id` nulo no se evalua.
+    foreignKey({
+      name: "calls_deal_programa_fk",
+      columns: [t.dealId, t.programId],
+      foreignColumns: [deals.id, deals.programId],
+    }).onDelete("restrict"),
     index("calls_cohorte_closer_idx").on(t.cohortId, t.closerId),
     index("calls_deal_idx").on(t.dealId),
     index("calls_closer_user_idx").on(t.closerUserId),
@@ -1486,8 +1516,8 @@ export const abonos = pgTable(
      * vinculo dejo de necesitar una tabla intermedia. `restrict` por la misma razon
      * de siempre: no se borra un deal que ya recibio plata.
      */
-    dealId: uuid("deal_id").notNull().references((): AnyPgColumn => deals.id, { onDelete: "restrict" }),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
+    dealId: uuid("deal_id").notNull(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     fecha: date("fecha").notNull(),
     monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
     moneda: text("moneda").notNull().default("USD"),
@@ -1517,6 +1547,12 @@ export const abonos = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // ADR 0125: el abono es del programa de su deal.
+    foreignKey({
+      name: "abonos_deal_programa_fk",
+      columns: [t.dealId, t.programId],
+      foreignColumns: [deals.id, deals.programId],
+    }).onDelete("restrict"),
     uniqueIndex("abonos_huella_migracion_idx")
       .on(t.huellaMigracion)
       .where(sql`${t.huellaMigracion} is not null`),
@@ -2419,9 +2455,7 @@ export const eventosMeta = pgTable(
     programId: uuid("program_id")
       .notNull()
       .references(() => programs.id, { onDelete: "restrict" }),
-    dealId: uuid("deal_id")
-      .notNull()
-      .references(() => deals.id, { onDelete: "restrict" }),
+    dealId: uuid("deal_id").notNull(),
     evento: eventoMetaEnum("evento").notNull(),
     estado: estadoEventoMetaEnum("estado").notNull().default("pendiente"),
     razon: text("razon"),
@@ -2438,6 +2472,12 @@ export const eventosMeta = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    // ADR 0125: el evento es del programa de su deal.
+    foreignKey({
+      name: "eventos_meta_deal_programa_fk",
+      columns: [t.dealId, t.programId],
+      foreignColumns: [deals.id, deals.programId],
+    }).onDelete("restrict"),
     uniqueIndex("eventos_meta_deal_evento_idx").on(t.dealId, t.evento),
     index("eventos_meta_programa_estado_idx").on(t.programId, t.estado),
     // Moneda cerrada en la base (ADR 0124): el valor de la conversion que se manda a Meta es USD.

@@ -1,4 +1,6 @@
-# 0043 — El Área agrupa leads y deals por origen; el Programa es una frontera, no un filtro
+# 0043 — El Área agrupa leads y deals por origen; el Programa es una frontera, no un filtro, y la garantiza la base
+
+- **Enmendado por el ADR 0125 (9-nov):** la frontera deja de vivir solo en el tipo de la consulta y en el código: las FK compuestas `(id, program_id)` impiden en la base un hijo de otro programa, y `programs` ya no borra en cascada hacia leads, deals, llamadas, abonos, cohortes ni fuentes.
 
 **Fecha:** 2026-09-21 · **Reescrito:** 2026-09-27 (consolida la enmienda del ADR 0048) · **Estado:**
 aceptado

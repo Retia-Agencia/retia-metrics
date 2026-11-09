@@ -387,7 +387,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 **El modelo**
 
 - **Programa:** una línea de formación con sus leads, su formulario, su Calendly, su meta y sus
-  recursos. Es parte de la identidad de un lead: una frontera, no un filtro.
+  recursos. Es parte de la identidad de un lead: una frontera, no un filtro, y la garantiza la base (ADR 0125): un lead, deal, contacto, llamada, abono o evento no puede apuntar a un padre de otro programa, y un programa con historia no se borra.
 - **Lead:** una persona dentro de un programa. La misma persona en dos programas son dos leads. Nace con su fecha de
   primera aplicación (la del envío, o cuando el CRM lo recibió si el parcial no trae fecha) y con sus contactos; la
   métrica **Leads** cuenta personas por esa fecha, también a quien solo dejó un parcial (406), y quien se dio de alta a mano no es un lead de formulario (ADR 0121).

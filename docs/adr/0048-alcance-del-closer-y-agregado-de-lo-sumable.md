@@ -3,6 +3,7 @@
 **Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (consolida el ADR retirado 0009, "todos ven todo")
 · **Estado:** aceptado · **Implementación:** tickets 094 y 095
 
+- **Enmendado por el ADR 0125 (9-nov):** la frontera de programa que este ADR respeta en las consultas la garantiza también la base (FK compuestas); el alcance por rol sigue siendo del código.
 - **Enmendado por el ADR 0082 (9-oct):** el closer ya no ve el Dashboard ni las Metas del programa; "todos ven todo" queda para gerente y developer.
 
 ## De dónde viene

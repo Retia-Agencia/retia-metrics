@@ -3,7 +3,7 @@ id: 394
 etapa: plataforma
 serves: "Auditoría 385 F3-03, F3-17 · ADR 0043 · ADR 0048 · ADR 0026 · ADR 0125"
 depends: []
-status: todo
+status: done
 ---
 
 # 394 — El programa lo garantiza la base
@@ -28,7 +28,11 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] `UNIQUE (id, program_id)` en `leads`, `deals`, `cohorts` y las FK compuestas de §6.2 de F3, con test que intenta insertar un hijo de otro programa y falla.
-- [ ] `programs` hacia hijos con `restrict`; un `DELETE` de programa falla con mensaje claro.
-- [ ] Antes de aplicar: `pg_stat_activity` sin transacciones largas, SQL leído línea por línea, código desplegado.
-- [ ] Regla N8: ADR 0043 y 0048 enmendados (la frontera pasa a ser de la base), con título, índice, fila de `docs/metricas.md` y vocabulario de `overview.md` §11 en el mismo commit.
+- [x] `UNIQUE (id, program_id)` en `leads`, `deals`, `cohorts` y las FK compuestas de §6.2 de F3, con test que intenta insertar un hijo de otro programa y falla.
+- [x] `programs` hacia hijos con `restrict`; un `DELETE` de programa falla con mensaje claro.
+- [x] Antes de aplicar: `pg_stat_activity` sin transacciones largas, SQL leído línea por línea, código desplegado.
+- [x] Regla N8: ADR 0043 y 0048 enmendados (la frontera pasa a ser de la base), con título, índice, fila de `docs/metricas.md` y vocabulario de `overview.md` §11 en el mismo commit.
+
+## Cierre (9-nov)
+
+Migraciones 0128 (M4) y 0129 (M5) aplicadas en producción (ref `hfqmiyiuyqapdsbywrag`), sin transacciones largas y con `lock_timeout` 5 s; 6 relaciones medidas sin filas divergentes antes de aplicar; todas las restricciones validadas después. El SQL de `drizzle-kit` salía con los `UNIQUE` después de las FK que los referencian: se reordenó a mano. ADR 0125; `tests/programa-garantizado.test.ts`. Candidatas fuera de alcance: `notificaciones_calendly`, `avisos_estudiante_nuevo`.
