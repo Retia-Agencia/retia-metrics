@@ -139,6 +139,15 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 La caducidad de credenciales, la retención de 90 días y la paginación de listas quedaron resueltas en el 383. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title`, anotaciones completas y salida de negocio validada.
 
+**Alcance y límites del MCP (9-nov, ticket 411, ADR 0129): este documento describe el estado de hoy, no el destino.** Hoy son
+once herramientas de solo lectura; el destino decidido por Mani es una puerta total con reglas de orientación (todo lo que la
+app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
+llamada (p95: `pauta_roas` 2,8 s, `tablero_de_deals` 2,0 s, `consultar_metrica` 1,0 s) y no se alcanzó el tope de 300/min; las
+limitaciones L1 a L11 (solo lectura, consultas pre-armadas con N+1, nombres inconsistentes, filtro `closer` que devuelve vacío
+sin error, cohorte por defecto silenciosa, respuestas desmedidas, paginación en memoria, sin consulta genérica de hechos, costo
+fijo por llamada sin medir, descubrimiento, rol que acota la superficie) están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
+Al construir el 411 se reescriben §1, §3 y §4 (puntos 7, 8 y 20) en el mismo commit.
+
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 
 ## 8. Visualizaciones dentro del chat

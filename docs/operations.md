@@ -544,7 +544,8 @@ el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como his
   no se borra de paso.
 - **`users.calendly_email` sin lector (28-sep, ticket 096):** la cuenta de Calendly pasó a la membresía
   (`miembros_programa.calendly_email`, migración 0038) y el campo salió del formulario. La columna sigue
-  en el esquema y en el molde de usuarios; quitarla es una migración.
+  en el esquema; desde el 9-nov (401 M12) el molde de usuarios, la pantalla y el CLI ya no la leen ni la escriben,
+  y quitarla es una migración.
 - **Columnas sin uso tras retirar T2 (28-sep):** `sources.calificacion`, `submissions.calificacion` y
   `submissions.puntaje` siguen en el esquema, y `scripts/seed-datos.ts` todavía siembra
   `sources.calificacion`. Quitarlas es una migración; nadie la ha pedido.

@@ -157,6 +157,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0126](./0126-roas-proyectado-y-su-confirmacion.md) | ROAS proyectado: citas por venir × prob. de show y cierre de su closer (3 semanas, muestra mínima del programa) × precio de la cohorte; se guarda con un cron diario y se confirma con el real; «—» con motivo sin gasto completo o sin historial (**ticket 375**) |
 | [0127](./0127-retencion-de-sobres-y-notificaciones.md) | Retención: sobre crudo procesado 180 días (junto con su entrega), con error pendiente nunca, notificaciones de Calendly 90 días; un cron diario por lotes, sin migración (**concreta el 0058; ticket 402**) |
 | [0128](./0128-aviso-de-estudiante-nuevo-a-customer-success.md) | Aviso de estudiante nuevo a CS: fila en `moverEtapa` (una por deal, índice único), Juanito entrega por número con opt-in y confirma; el endpoint lleva datos personales solo dentro del texto (**ticket 408**) |
+| [0129](./0129-el-mcp-es-una-puerta-total-con-reglas-de-orientacion.md) | El MCP del CRM es una puerta total con reglas de orientación: capacidad de la app = capacidad del MCP por rol, filtros que nunca devuelven vacío en silencio, escritura con confirmación y deshacer, guardián de cobertura (enmienda el 0119; ticket 411) |
 
 **Plataforma**
 
