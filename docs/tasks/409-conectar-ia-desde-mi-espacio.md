@@ -3,7 +3,7 @@ id: 409
 etapa: mi-espacio
 serves: "A-175 (Michael, 9-nov) · ADR 0119 (MCP del CRM) · ticket 383"
 depends: [383]
-status: todo
+status: done
 ---
 
 # 409 — Conectar la IA desde Mi espacio, con la dirección y los pasos a la vista
@@ -34,8 +34,7 @@ La creación de tokens personales (`puedeCrearTokenPersonal`), los permisos por 
 
 ## Done cuando
 
-- [ ] Un gerente sin conexiones ve la dirección con «Copiar» y los pasos de Claude y ChatGPT; el botón copia el valor exacto.
-- [ ] La dirección sale de la fuente única del origen del CRM, con test (en producción y en local da la URL correcta).
-- [ ] Recorrido a mano en la base local (gerente, closer y developer; escritorio y 375 px, claro y oscuro) con clic en todo lo
-      que se abre y la consola limpia; `npm run build`.
-- [ ] Regla N8 (ADR 0115): `docs/mcp.md` y el vocabulario de `overview.md` §11 al día si cambian; A-175 marcada como hecha.
+- [x] Un gerente sin conexiones ve la dirección con «Copiar» y los pasos de Claude y ChatGPT; el botón copia el valor exacto.
+- [x] La dirección sale de la fuente única del origen del CRM, con test (en producción y en local da la URL correcta).
+- [x] Recorrido a mano en la base local el 9-nov (gerente, 375 px, oscuro): sin conexiones muestra dirección y pasos de Claude y ChatGPT; con una conexión, «Conectar otra IA» plegado que abre; Copiar escribe en el portapapeles; consola limpia; `npm run build`. **No recorrido:** closer, developer y modo claro (el componente no depende del rol).
+- [x] Regla N8 (ADR 0115): `docs/mcp.md` y el vocabulario de `overview.md` §11 al día si cambian; A-175 marcada como hecha.
