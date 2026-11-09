@@ -857,3 +857,4 @@ Las secciones narrativas de este archivo se movieron el 27-sep a su lugar:
 | Ideas sin decidir y futuro | resueltas, o en `docs/overview.md` §8 (fuera de v1) |
 
 El texto anterior: `git show da68cdf:docs/tasks/README.md`.
+| [ ] | 409 | [Conectar la IA desde Mi espacio, con la dirección y los pasos a la vista](./409-conectar-ia-desde-mi-espacio.md) | 383 | todo · 9-nov · A-175 (Michael) · sin migración |
