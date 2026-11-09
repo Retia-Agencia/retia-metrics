@@ -148,8 +148,13 @@ export const salidaDeOrigenDelPrograma = z.object({
 export function aSalidaDeOrigenDelPrograma(args: {
   programa: ProgramaVisible; periodo: { desde: string; hasta: string }; vista: VistaOrigen;
   canales: { nombre: string; registros: number; agendas: number; porcentajeDelTotal: number | null; porcentajeAgenda: number | null }[];
-  precision: { titulo: string; detalle: string; registros: number }[]; enlace: string;
+  precision: { nivel: "N1" | "N2" | "N3"; titulo: string; detalle: string; registros: number }[]; enlace: string;
 }) {
+  const detallePorNivel = {
+    N3: "Se sabe el anuncio exacto que trajo el envío.",
+    N2: "Se sabe la campaña o el conjunto, pero no el anuncio.",
+    N1: "Llegó por pauta, pero sin datos para ubicar la campaña.",
+  } as const;
   return {
     programa: args.programa, periodo: args.periodo, total_de_envios: args.vista.totalEnvios,
     canales: args.canales.map((fila) => ({
@@ -158,7 +163,7 @@ export function aSalidaDeOrigenDelPrograma(args: {
     })),
     precision_de_pauta: args.precision.map((fila) => ({
       titulo: fila.titulo,
-      detalle: fila.detalle.replace("registro", "envío"),
+      detalle: detallePorNivel[fila.nivel],
       envios: fila.registros,
     })),
     envios_sin_pieza_reconocida: args.vista.piezasDesconocidas.envios,

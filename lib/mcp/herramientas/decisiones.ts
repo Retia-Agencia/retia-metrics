@@ -149,6 +149,7 @@ export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
     const vista = await origenDelPrograma(contexto.db, { programId: visible.id, rango: periodo.rango, hoy: periodo.hoy });
     const canales = resumenDeOrigen(vista);
     const precision = PRECISION_PAID.map((item) => ({
+      nivel: item.nivel,
       titulo: item.titulo,
       detalle: item.detalle,
       registros: vista.trazaPaid[item.nivel],

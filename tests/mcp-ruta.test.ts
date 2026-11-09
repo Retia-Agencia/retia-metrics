@@ -130,7 +130,8 @@ describe("ruta MCP real", () => {
       expect(instrucciones).toContain(nombre);
     }
     const listado = await json(await post("tools/list", {}, tokenCloser.valor));
-    expect((listado.result as { tools: { name: string }[] }).tools.map((t) => t.name))
+    const herramientas = (listado.result as { tools: { name: string; outputSchema?: unknown }[] }).tools;
+    expect(herramientas.map((t) => t.name))
       .toEqual([
         "programas_visibles",
         "consultar_metrica",
@@ -141,12 +142,13 @@ describe("ruta MCP real", () => {
         "bandeja",
         "cartera_vencida",
       ]);
+    expect(herramientas.every((herramienta) => herramienta.outputSchema !== undefined)).toBe(true);
     const respuesta = await llamar(tokenCloser.valor);
     expect(estructurado(respuesta)).toEqual([
       { nombre: "Visible A", slug: "visible-a" },
     ]);
     const salida = contenidoEstructurado(respuesta);
-    expect(programasVisiblesMcp.salida?.safeParse(salida).success).toBe(true);
+    expect(programasVisiblesMcp.salida.safeParse(salida).success).toBe(true);
     expect(JSON.stringify(salida)).not.toMatch(/"(?:programId|id|activo)"\s*:/);
   });
 

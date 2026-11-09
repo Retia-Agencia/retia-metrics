@@ -202,7 +202,7 @@ describe("cartera_vencida", () => {
     expect(directa.vencidos.map((fila) => fila.dealId)).toEqual([vigente.id]);
     expect(filas.map((fila) => fila.id_del_deal)).toEqual(directa.vencidos.map((fila) => fila.dealId));
     expect(filas[0].saldo).toMatchObject({ moneda: "USD", legible: "USD 600,00" });
-    expect(carteraVencidaMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(carteraVencidaMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|nombreLead|emailLead|fechaLimite|fechaPropia|diasDeAtraso|acuerdoPago|enlaceLead|fechaDeCorte)"\s*:/);
   });
 
@@ -253,7 +253,7 @@ describe("pauta_roas", () => {
     expect(salida.estructurado.envios).toBe(directa.total.registros);
     expect(salida.estructurado.ventas).toBe(directa.total.ventas);
     expect(roas).toMatchObject({ valor: null, estado: "no_calculable", faltan: 1 });
-    expect(pautaRoasMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(pautaRoasMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:registros|agendas|shows|noShows|contratadoUsd|gastoUsd|cobertura)"\s*:/);
     expect(salida.texto).toContain("ROAS: —");
     expect(salida.texto).toContain("USD 300,00");
@@ -291,7 +291,7 @@ describe("origen_del_programa", () => {
       porcentaje_de_citas: fila.porcentajeAgenda,
     })));
     expect(sinUtm).toMatchObject({ envios: 1, porcentaje_del_total: 0.5 });
-    expect(origenDelProgramaMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(origenDelProgramaMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:clave|registros|agendas|porcentajeDelTotal|porcentajeAgenda|totalRegistros|contenidoNoReconocido|precision)"\s*:/);
     expect(salida.texto).toContain("Sin UTM: 1 (50,0%)");
     expect(salida.texto).not.toContain("utm_");
