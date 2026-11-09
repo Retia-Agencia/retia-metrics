@@ -16,11 +16,18 @@ Mani lo confirmó: cada vez que un deal entra a **Abonado o Completo por primera
 
 ## Decisiones (Mani, 9-nov)
 
-- **Destino: números individuales**, no un grupo. Los destinatarios son los usuarios `customer_success` con membresía
-  ACTIVA del programa del deal. Si no hay ninguno, el aviso queda pendiente y visible (nunca se descarta en silencio).
-- **Dónde vive el número:** `users.telefono_whatsapp` (nullable, solo dígitos con indicativo, un CHECK de forma). Es de
-  la persona, no del programa. Se edita en Ajustes › Usuarios por quien administra usuarios (ADR 0118), con `change_log`
-  por el molde. Un CS sin número no recibe y la pantalla lo dice.
+- **Destino: números individuales**, no un grupo (hoy hay un CS por programa). Los destinatarios son los números de los
+  usuarios `customer_success` con membresía ACTIVA del programa del deal. Sin destinatarios, el aviso queda pendiente
+  (ventana de 48 h) y se cuenta en `sinDestinatario`; nunca se descarta en silencio.
+- **Varios números por persona:** tabla `usuarios_whatsapp` (`telefono` solo dígitos 8 a 15, único: un número es de una
+  persona). Se edita en Ajustes › Usuarios por quien administra usuarios (ADR 0118), con `change_log`.
+- **Opt-in (convención de Juanito):** Juanito nunca inicia una conversación. Solo manda a números que ya le escribieron;
+  el CS le escribe "hola" y Juanito lo registra si su número está en `telefonosCs`. Sin opt-in no manda ni confirma: el
+  aviso queda pendiente y le llega si se registra dentro de las 48 h.
+- **Línea Producto:** el deal no tiene producto ni SKU hoy (`docs/weekly-2026-11-03.md`). El aviso muestra el programa y
+  el código de la cohorte (o "—"). Se amplía cuando existan productos.
+- **Orden de despliegue (cambia el de arriba):** primero el CRM (migración + deploy, los endpoints quedan quietos), después
+  Juanito; al revés Juanito consultaría un endpoint inexistente y llenaría el log de errores.
 
 ## Alcance
 
