@@ -45,10 +45,18 @@ describe("contrato de herramientas del MCP", () => {
     }
   });
 
-  it("las dos herramientas de la fase A publican salida y las demás esperan la fase B", () => {
+  it("las siete herramientas migradas publican salida y las demás esperan la fase B2", () => {
     const conSalida = HERRAMIENTAS.filter((herramienta) => herramienta.salida !== undefined)
       .map((herramienta) => herramienta.nombre);
-    expect(conSalida).toEqual(["resumen_del_hub", "consultar_metrica"]);
+    expect(conSalida).toEqual([
+      "programas_visibles",
+      "resumen_del_hub",
+      "consultar_metrica",
+      "buscar_leads",
+      "cartera_vencida",
+      "pauta_roas",
+      "origen_del_programa",
+    ]);
   });
 
   it("toda herramienta está en las instrucciones del servidor y en la tabla de docs/mcp.md", () => {

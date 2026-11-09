@@ -110,9 +110,11 @@ describe("herramientas MCP de operación", () => {
     const entrada = { programa: "operacion-a", q: "ana", deal: "con" as const, pagina: 1 };
     const directo = await leadsDelPrograma(db, programaA, { ...filtrosDeLeads(entrada, 0).filtro, porPagina: 50 });
     const salida = await buscarLeadsMcp.ejecutar(contexto(gerenteId, "gerente"), entrada);
-    const filas = salida.estructurado.filas as { id: string; enlace: string }[];
-    expect(filas.map((fila) => fila.id)).toEqual(directo.filas.map((fila) => fila.id));
-    expect(filas[0]?.enlace).toMatch(`/p/operacion-a/leads/${leadId}`);
+    const filas = salida.estructurado.filas as { id_de_la_persona: string; enlace_de_la_persona: string }[];
+    expect(filas.map((fila) => fila.id_de_la_persona)).toEqual(directo.filas.map((fila) => fila.id));
+    expect(filas[0]?.enlace_de_la_persona).toMatch(`/p/operacion-a/leads/${leadId}`);
+    expect(buscarLeadsMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:leadQuality|leadValue|fechaUltimaAplicacion|numAplicaciones|tieneDeal|soloParciales|correosSinConfirmar|haySiguiente|canal)"\s*:/);
   });
 
   it("un closer no puede forjar un programa fuera de sus membresías", async () => {

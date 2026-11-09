@@ -4,6 +4,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { monto, num } from "@/lib/format";
 import { idOpacoSchema } from "@/lib/identificadores";
 import { enlaceDeDeal, enlaceDeLead, enlaceDeTab } from "@/lib/mcp/enlaces";
+import { aSalidaDeBuscarLeads, salidaDeBuscarLeads } from "@/lib/mcp/salidas/operacion";
 import { camposDeFiltrosDeLeads, filtrosDeLeads } from "@/lib/queries/filtros-de-leads";
 import { alertasDelDeal } from "@/lib/queries/ficha-deal";
 import { camposDeFiltrosKanban } from "@/lib/queries/kanban";
@@ -25,21 +26,22 @@ export const buscarLeadsMcp: Herramienta<typeof entradaBuscar> = {
     "Úsala cuando necesites encontrar a una persona dentro de un programa por nombre, correo o teléfono. Aplica los mismos filtros de Leads: deal, calidad, abandono, duplicado, fecha y orden. " +
     "El texto requiere al menos dos caracteres y no se guarda en la bitácora. Devuelve hasta 50 filas y dice si hay otra página; cada fila incluye el enlace a la ficha.",
   entrada: entradaBuscar,
+  salida: salidaDeBuscarLeads,
   puede: (contexto) => puedeVerOperacion(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
     const visible = await programaVisible(contexto, entrada.programa);
     const { filtro } = filtrosDeLeads(entrada, entrada.pagina - 1);
     const resultado = await leadsDelPrograma(contexto.db, visible.id, { ...filtro, porPagina: TAMANO_PAGINA });
-    const filas = resultado.filas.map((fila) => ({ ...fila, enlace: enlaceDeLead(visible.slug, fila.id) }));
     const haySiguiente = entrada.pagina * TAMANO_PAGINA < resultado.total;
+    const estructurado = aSalidaDeBuscarLeads(resultado, { nombre: visible.nombre, slug: visible.slug }, entrada.pagina, haySiguiente, (id) => enlaceDeLead(visible.slug, id));
     return {
       texto: [
         `${num(resultado.total)} leads encontrados.`,
-        `Página ${num(entrada.pagina)}: ${num(filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${entrada.pagina + 1}.` : "No hay otra página."}`,
-        ...filas.map((fila) => `- ${fila.nombre ?? fila.email} · ${fila.email} · ${fila.enlace}`),
+        `Página ${num(entrada.pagina)}: ${num(resultado.filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${entrada.pagina + 1}.` : "No hay otra página."}`,
+        ...estructurado.filas.map((fila) => `- ${fila.nombre ?? fila.email} · ${fila.email} · ${fila.enlace_de_la_persona}`),
       ].join("\n"),
-      estructurado: { programa: { nombre: visible.nombre, slug: visible.slug }, total: resultado.total, pagina: entrada.pagina, haySiguiente, filas },
+      estructurado,
     };
   },
 };

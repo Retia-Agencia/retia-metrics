@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { programasVisibles } from "@/lib/auth/alcance";
+import { salidaDeProgramasVisibles } from "@/lib/mcp/salidas/programas";
 import type { Herramienta } from "./tipos";
 
 const entrada = z.object({}).strict();
@@ -13,6 +14,7 @@ export const programasVisiblesMcp: Herramienta<typeof entrada> = {
     "Las fechas de esas herramientas se interpretan en Bogotá y cada monto incluye su moneda; " +
     "cuando una lista sea paginada, su respuesta indicará cómo pedir la página siguiente.",
   entrada,
+  salida: salidaDeProgramasVisibles,
   puede: () => true,
   soloLectura: true,
   async ejecutar(contexto) {

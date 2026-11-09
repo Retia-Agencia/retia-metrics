@@ -197,11 +197,13 @@ describe("cartera_vencida", () => {
       programa: "decision-a",
       cohorte: cohorteA,
     });
-    const filas = salida.estructurado.filas as Array<{ dealId: string; saldo: { moneda: string; legible: string } }>;
+    const filas = salida.estructurado.filas as Array<{ id_del_deal: string; saldo: { moneda: string; legible: string } }>;
 
     expect(directa.vencidos.map((fila) => fila.dealId)).toEqual([vigente.id]);
-    expect(filas.map((fila) => fila.dealId)).toEqual(directa.vencidos.map((fila) => fila.dealId));
+    expect(filas.map((fila) => fila.id_del_deal)).toEqual(directa.vencidos.map((fila) => fila.dealId));
     expect(filas[0].saldo).toMatchObject({ moneda: "USD", legible: "USD 600,00" });
+    expect(carteraVencidaMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|nombreLead|emailLead|fechaLimite|fechaPropia|diasDeAtraso|acuerdoPago|enlaceLead|fechaDeCorte)"\s*:/);
   });
 
   it("un closer no puede forjar un programa sin membresía y un rol sin capacidad ve el mismo 404", async () => {
@@ -248,9 +250,11 @@ describe("pauta_roas", () => {
     });
     const roas = salida.estructurado.roas as { valor: number | null; estado: string; faltan: number };
 
-    expect(salida.estructurado.registros).toBe(directa.total.registros);
+    expect(salida.estructurado.envios).toBe(directa.total.registros);
     expect(salida.estructurado.ventas).toBe(directa.total.ventas);
     expect(roas).toMatchObject({ valor: null, estado: "no_calculable", faltan: 1 });
+    expect(pautaRoasMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:registros|agendas|shows|noShows|contratadoUsd|gastoUsd|cobertura)"\s*:/);
     expect(salida.texto).toContain("ROAS: —");
     expect(salida.texto).toContain("USD 300,00");
   });
@@ -276,11 +280,19 @@ describe("origen_del_programa", () => {
       desde: RANGO.desde,
       hasta: RANGO.hasta,
     });
-    const canales = salida.estructurado.canales as ReturnType<typeof resumenDeOrigen>;
+    const canales = salida.estructurado.canales as Array<{ nombre: string; envios: number; porcentaje_del_total: number | null }>;
     const sinUtm = canales.find((fila) => fila.nombre === "Sin UTM");
 
-    expect(canales).toEqual(resumenDeOrigen(directa));
-    expect(sinUtm).toMatchObject({ registros: 1, porcentajeDelTotal: 0.5 });
+    expect(canales).toEqual(resumenDeOrigen(directa).map((fila) => ({
+      nombre: fila.nombre,
+      envios: fila.registros,
+      citas: fila.agendas,
+      porcentaje_del_total: fila.porcentajeDelTotal,
+      porcentaje_de_citas: fila.porcentajeAgenda,
+    })));
+    expect(sinUtm).toMatchObject({ envios: 1, porcentaje_del_total: 0.5 });
+    expect(origenDelProgramaMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:clave|registros|agendas|porcentajeDelTotal|porcentajeAgenda|totalRegistros|contenidoNoReconocido|precision)"\s*:/);
     expect(salida.texto).toContain("Sin UTM: 1 (50,0%)");
     expect(salida.texto).not.toContain("utm_");
   });
