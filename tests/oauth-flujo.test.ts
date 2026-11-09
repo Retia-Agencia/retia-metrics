@@ -67,6 +67,14 @@ describe("flujo OAuth MCP", () => {
     expect((await token({ grant_type: "refresh_token", client_id: clientId, refresh_token: String(inicial.refresh_token) })).status).toBe(400);
   });
 
+  it("el refresh viejo tras rotar responde invalid_grant", async () => {
+    const inicial = await cuerpo(await canjear(await codigo()));
+    await token({ grant_type: "refresh_token", client_id: clientId, refresh_token: String(inicial.refresh_token) });
+    const repetido = await token({ grant_type: "refresh_token", client_id: clientId, refresh_token: String(inicial.refresh_token) });
+    expect(repetido.status).toBe(400);
+    expect(await cuerpo(repetido)).toMatchObject({ error: "invalid_grant" });
+  });
+
   it("rechaza PKCE malo, código vencido, otro redirect, otro cliente y resource ajeno", async () => {
     const malo = await codigo();
     expect((await canjear(malo, { code_verifier: "x".repeat(43) })).status).toBe(400);

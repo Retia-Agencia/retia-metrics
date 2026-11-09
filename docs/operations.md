@@ -474,26 +474,29 @@ el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como his
 - 🔴 Borrar el cliente OAuth web viejo del proyecto `google-workspace-mcp`.
 - 🔴 Probar el login con una cuenta real de closer, local y en producción.
 
-### 8.1 El MCP del CRM: conectarse y revocar (ADR 0119, ticket 348)
+### 8.1 Conectar una IA al CRM
 
 - **Qué es:** `POST/GET /api/mcp`, un servidor MCP de solo lectura con once herramientas (programas visibles, resumen del
   Hub, consultar métrica, buscar leads, ficha de lead y de deal, tablero de deals, bandeja, cartera vencida, ROAS de pauta
   y origen). Cada herramienta responde lo que la pantalla correspondiente le mostraría a esa persona: mismo rol, mismo
-  alcance de programas, mismas cifras. Hoy solo el **developer** puede conectarlo (el 383 abre el resto de roles).
-- **Conectarse:** Mi espacio › Conexiones de IA › crear conexión (nombre y permiso). El valor del token se muestra
-  **una sola vez**; la pantalla da el comando `claude mcp add --transport http retia-crm <origen>/api/mcp --header
-  "Authorization: Bearer <token>"`. Contra `dev:local`, el origen es `http://localhost:3000` y el token se emite en la
-  base local (el token de producción no sirve ahí, ni al revés).
-- **Revocar:** en la misma pantalla, "Revocar" sobre la conexión. Surte efecto en la siguiente llamada. También deja de
+  alcance de programas, mismas cifras. Cada persona entra con Google y la IA recibe únicamente lo que ese rol ya ve.
+- **Claude Team/Enterprise:** el Owner entra a **Organization settings › Connectors › Add custom connector**, usa
+  `https://<host>/api/mcp` y deja seleccionada **Use Claude's published identity**. Luego cada miembro abre
+  **Connectors › Connect** e ingresa con su cuenta de Google del CRM.
+- **Claude Code:** ejecutar `claude mcp add --transport http retia-crm https://<host>/api/mcp` y después `/mcp` para
+  completar el ingreso con Google. Claude Code 2.1.80 o posterior muestra el aviso `invalid_redirect_uri` cuando no puede
+  usar su puerto de retorno; en ese caso se define `MCP_OAUTH_CALLBACK_PORT` con un puerto local disponible y se repite.
+- **ChatGPT:** crear un conector con la misma URL `https://<host>/api/mcp` y completar el ingreso con Google cuando lo pida.
+- **Revocar:** en Mi espacio › Conexiones de IA, "Desconectar" sobre la conexión. Surte efecto en la siguiente llamada.
+  Gerencia también puede revocarla desde Ajustes › Usuarios, dentro de su alcance. También deja de
   valer si la persona se desactiva en Ajustes › Usuarios. Si un token se filtra: revócalo y emite otro; no hay forma de
   recuperar el valor porque solo se guarda su hash.
 - **Rastro:** emitir y revocar quedan en `change_log` (tabla `mcp_tokens`, sin valor ni hash); cada llamada queda en
   `mcp_llamadas` (herramienta, resultado, duración, cliente, y a quién se suplantó con `vista`), **sin argumentos**.
   Tope: 300 llamadas por minuto por token; la 301 recibe "Muchas consultas seguidas" y también queda registrada.
 - **Qué mirar si algo falla:** 401 vacío = token ausente, mal formado, revocado o de usuario inactivo. `isError` "No
-  existe ese programa" = fuera del alcance de esa persona (por diseño no distingue de un slug inexistente).
-- **Deuda conocida:** los tokens no caducan, `mcp_llamadas` no tiene retención y `tablero_de_deals` y `cartera_vencida`
-  no paginan; se resuelven en el 383 antes de abrirlo a otros roles.
+  existe ese programa" = fuera del alcance de esa persona (por diseño no distingue de un slug inexistente). Las IP de
+  Anthropic `160.79.104.0/21` no deben estar bloqueadas por el firewall o la plataforma de despliegue.
 
 ## 9. Incidentes que enseñaron algo
 

@@ -31,6 +31,7 @@ function textoDelArbol(nodo: unknown): string {
 
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
+vi.mock("@/lib/oauth/conexiones", () => ({ listarConexionesOauth: async () => [] }));
 
 /**
  * La cookie de vista (ticket 028) la lee `rolDeVista` via `next/headers`, que fuera de
@@ -2053,9 +2054,8 @@ describe("el customer success solo entra a Students (ticket 145)", () => {
 });
 
 /**
- * Mi espacio para el customer success (ticket 145): su pantalla es Students, así que sólo llega
- * aquí sin un programa visible, y entonces ve SÓLO el estado vacío que le pide a gerencia un
- * programa. Con un programa visible, Mi espacio lo redirige a sus Students.
+ * Mi espacio para customer success: conserva Students como trabajo principal, pero Mi espacio
+ * queda disponible para administrar sus conexiones de IA.
  */
 describe("Mi espacio y el customer success (ticket 145)", () => {
   /** Busca recursivamente un trozo de texto en el árbol de elementos que devuelve la página. */
@@ -2085,11 +2085,10 @@ describe("Mi espacio y el customer success (ticket 145)", () => {
     expect(contieneTexto(arbol, MENSAJE)).toBe(true);
   });
 
-  it("con un programa visible, lo redirige a sus Students (no se queda en Mi espacio)", async () => {
+  it("con un programa visible, muestra el enlace conceptual a Students y sus conexiones", async () => {
     auth.mockResolvedValue(sesionCustomerSuccess);
     programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
-    await expect(renderMiEspacio()).rejects.toSatisfy(
-      (e: unknown) => e instanceof Redireccion && e.destino === "/p/programa-a/students",
-    );
+    const arbol = await renderMiEspacio();
+    expect(contieneTexto(arbol, "Tu trabajo por programa está en Students.")).toBe(true);
   });
 });

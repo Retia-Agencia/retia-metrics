@@ -442,16 +442,15 @@ describe("navegacion por rol", () => {
     expect(rutaInicial(sujeto("paid_trafficker"), null)).toBe("/mi-espacio");
   });
 
-  it("el customer success ve SOLO Students del programa elegido (ticket 145): ni otras tabs, ni Mi espacio, ni Ajustes", () => {
+  it("customer success ve Students y Mi espacio para sus conexiones, sin otras tabs ni Ajustes", () => {
     const rutas = rutasDe("customer_success");
-    expect(rutas).toEqual([`/p/${PROGRAMA}/students`]);
-    expect(rutas).not.toContain("/mi-espacio");
+    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/students`]);
     expect(rutas).not.toContain("/ajustes");
     expect(rutas).not.toContain(`/p/${PROGRAMA}/recursos`);
     expect(rutas).not.toContain(`/p/${PROGRAMA}/hub`);
     expect(rutas).not.toContain(`/p/${PROGRAMA}/deals`);
-    // Sin programa visible no tiene ninguna tab.
-    expect(rutasDe("customer_success", null)).toEqual([]);
+    // Sin programa visible conserva Mi espacio para gestionar sus conexiones.
+    expect(rutasDe("customer_success", null)).toEqual(["/mi-espacio"]);
   });
 
   it("el customer success aterriza en los Students de su primer programa (ticket 145)", () => {
@@ -643,10 +642,10 @@ describe("media y trabajaContenido (ADR 0107, ticket 315)", () => {
     expect(trabajaLeads({ rol: "media", operaComoCloser: true })).toBe(false); // aunque el dato llegue en true
   });
 
-  it("media aterriza en /media y su menu es solo esa pagina; gerente y developer no cambian", () => {
+  it("media aterriza en /media y tambien abre Mi espacio para sus conexiones", () => {
     expect(rutaInicial(sujeto("media"), "programa-a")).toBe("/media");
     expect(rutaInicial(sujeto("media"), null)).toBe("/media");
-    expect(navParaRol(sujeto("media"), "programa-a").map((i) => i.href)).toEqual(["/media"]);
+    expect(navParaRol(sujeto("media"), "programa-a").map((i) => i.href)).toEqual(["/mi-espacio", "/media"]);
     expect(rutaInicial(sujeto("gerente"), "programa-a")).toBe("/p/programa-a/hub");
     // Quien trabaja contenido sin ser solo media (gerente, developer) tambien la tiene en su menu.
     expect(navParaRol(sujeto("gerente"), "programa-a").map((i) => i.href)).toContain("/media");

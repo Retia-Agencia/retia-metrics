@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, RotateCcw, Search } from "lucide-react";
+import { Plus, RotateCcw, Search, Unplug } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   desactivarUsuarioAccion,
   editarUsuarioAccion,
   reactivarUsuarioAccion,
+  revocarConexionDeIa,
   type ResultadoAccion,
 } from "@/app/(app)/ajustes/usuarios/acciones";
 
@@ -45,6 +46,14 @@ export interface UsuarioVista {
   programasQueVe: string[];
   /** Instante de creacion, ISO. */
   creadoEn: string;
+  conexionesIa: Array<{
+    id: string;
+    clienteNombre: string;
+    scopeEtiqueta: string;
+    creado: string;
+    ultimoUso: string;
+    vence: string;
+  }>;
 }
 
 type FiltroPrograma = "todos" | "sin_programa" | (string & {});
@@ -346,6 +355,22 @@ export function UsuariosAdmin({
                       {u.email} · entró el {fecha(fechaDeInstanteEnBogota(u.creadoEn))}
                     </span>
                     <ProgramasDelUsuario usuario={u} programas={programas} nombres={nombrePrograma} />
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
+                        {u.conexionesIa.length} {u.conexionesIa.length === 1 ? "conexion de IA activa" : "conexiones de IA activas"}
+                      </summary>
+                      {u.conexionesIa.length > 0 ? <ul className="mt-2 space-y-2">
+                        {u.conexionesIa.map((conexion) => <li key={conexion.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium">{conexion.clienteNombre}</p>
+                            <p className="text-xs text-muted-foreground">{conexion.scopeEtiqueta} · Conectada <span className="cifra">{conexion.creado}</span> · Último uso: <span className="cifra">{conexion.ultimoUso}</span> · {conexion.vence}</p>
+                          </div>
+                          <Button size="sm" variant="destructive" disabled={pendiente} onClick={() => correr(() => revocarConexionDeIa(conexion.id), "Conexion revocada")}>
+                            <Unplug className="size-4" />Revocar
+                          </Button>
+                        </li>)}
+                      </ul> : null}
+                    </details>
                   </div>
                   <span className="flex items-center gap-1">
                     {u.activo ? (

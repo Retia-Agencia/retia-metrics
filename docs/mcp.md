@@ -56,7 +56,7 @@ por cada tools/call:
 | `lib/auth/roles.ts` | **Quién puede qué.** Cada herramienta pregunta a una función de aquí; nunca compara un rol a mano. |
 | `lib/queries/*` | Las consultas y reglas que las pantallas **y** las herramientas comparten (filtros, proyecciones por rol, alcance). El MCP no define ninguna métrica. |
 | `lib/db/schema.ts` (`mcpTokens`, `mcpLlamadas`) y `drizzle/0117_*` | Las dos tablas propias del MCP (RLS activo). |
-| `app/(app)/mi-espacio/acciones.ts` y `components/mi-espacio/conexiones-de-ia.tsx` | Emitir y revocar tokens (hoy solo el developer: `puedeConectarIa`). |
+| `app/oauth/autorizar/**`, `app/(app)/mi-espacio/acciones.ts` y `components/mi-espacio/conexiones-de-ia.tsx` | Consentimiento, conexiones propias y revocación. Todos conectan mediante `puedeConectarIa`; solo el developer emite claves manuales con `puedeCrearTokenPersonal`. |
 | `tests/mcp-*.test.ts` | Las pruebas, incluido el guardián de dominio y el de contrato (§6). |
 
 ## 3. Las herramientas y quién las ve
@@ -109,7 +109,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 17. **La lista de herramientas es determinista y puede variar por credencial**, nunca por conexión: hoy se filtra por rol con `puede`. Mantener el orden de `HERRAMIENTAS` estable ayuda a la caché de prompts del cliente. *(Spec MCP, "Capabilities".)*
 
 **Operación**
-18. 🔒 **Toda llamada deja rastro sin argumentos** y hay **tope por minuto**. **También un rechazo del esquema** (el SDK valida antes del handler: `auditarRechazosDeEntrada` en `lib/mcp/servidor.ts` envuelve ese paso): queda `error` con `ENTRADA_INVALIDA:<campos que fallaron>`, sin valores (`tests/mcp-rechazos.test.ts`). Hoy los tokens no caducan y `mcp_llamadas` no tiene retención: se resuelve en el 383. *(Spec MCP: limitar la tasa y registrar el uso.)*
+18. 🔒 **Toda llamada deja rastro sin argumentos** y hay **tope por minuto**. **También un rechazo del esquema** (el SDK valida antes del handler: `auditarRechazosDeEntrada` en `lib/mcp/servidor.ts` envuelve ese paso): queda `error` con `ENTRADA_INVALIDA:<campos que fallaron>`, sin valores (`tests/mcp-rechazos.test.ts`). Los accesos OAuth duran una hora, el refresh 90 días, los tokens personales nuevos un año y `mcp_llamadas` conserva 90 días. *(Spec MCP: limitar la tasa y registrar el uso.)*
 19. **No hay passthrough de tokens.** El servidor solo acepta tokens emitidos para él (`retia_mcp_…`) y nunca reenvía el del cliente a otro servicio. *(MCP, "Security Best Practices": token passthrough es un anti-patrón.)*
 20. **Una escritura (ticket 384) no entra por una herramienta suelta:** lleva vista previa, confirmación humana, scope `escritura`, `crearConRastro` con origen `mcp` y deshacer (ADR 0042/0117). `soloLectura: true` en el tipo se cambia a propósito en ese ticket, no antes.
 
@@ -125,7 +125,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 **Cambiar quién puede usar una herramienta:** edita la función de `lib/auth/roles.ts` que la herramienta usa (o agrega una) y su test en `tests/roles-operacion.test.ts`. No toques la herramienta.
 
-**Abrir el MCP a otro rol** (ticket 383): hoy solo el developer emite tokens (`puedeConectarIa`). Antes de ampliarlo, resolver los huecos de la sección 7 y repetir la revisión de petición forjada.
+**Abrir el MCP a otro rol** (ticket 383, hecho): `puedeConectarIa` admite todos los roles; cada persona autoriza con Google, `tools/list` se filtra por las capacidades del rol y la revisión de petición forjada cubre herramientas y programas ajenos. Solo el developer conserva la creación manual de tokens personales mediante `puedeCrearTokenPersonal`.
 
 **Cambiar una cifra:** no se cambia aquí. La métrica vive en `docs/metricas.md` y en su función; el MCP solo la expone.
 
@@ -137,7 +137,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 7. Deuda conocida
 
-Los tokens personales anteriores al 383 pueden no tener caducidad; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title` y anotaciones completas; las once publican y validan su salida de negocio.
+La caducidad de credenciales, la retención de 90 días y la paginación de listas quedaron resueltas en el 383. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title`, anotaciones completas y salida de negocio validada.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

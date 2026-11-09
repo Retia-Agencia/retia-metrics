@@ -42,6 +42,7 @@ vi.mock("@/lib/mcp/token", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/mcp/token")>()),
   listarTokensPersonales: async () => [],
 }));
+vi.mock("@/lib/oauth/conexiones", () => ({ listarConexionesOauth: async () => [] }));
 
 const programasVisibles = vi.fn();
 const programaVisiblePorSlug = vi.fn();

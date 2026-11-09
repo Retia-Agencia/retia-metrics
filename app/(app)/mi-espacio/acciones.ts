@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z, ZodError } from "zod";
 import { requireSession } from "@/lib/auth/guards";
-import { AuthorizationError, puedeConectarIa, trabajaLeads } from "@/lib/auth/roles";
-import { rolDeVista } from "@/lib/auth/vista";
+import { AuthorizationError, puedeConectarIa, puedeCrearTokenPersonal, trabajaLeads } from "@/lib/auth/roles";
+import { rolDeVista, rolRealDeSesion } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import {
@@ -24,6 +24,7 @@ import {
   type McpScope,
 } from "@/lib/mcp/token";
 import { comandoParaClaudeMcp } from "@/lib/mcp/enlaces";
+import { revocarConexionOauthPropia } from "@/lib/oauth/conexiones";
 
 /**
  * Server actions de Mi espacio (ticket 172). Lo único que se edita del propio usuario es
@@ -50,9 +51,16 @@ function aResultadoMcp(error: unknown): { ok: false; error: string } {
 
 async function exigirConexionIa() {
   const session = await requireSession();
-  const rol = await rolDeVista(session);
-  if (!puedeConectarIa(rol)) {
+  if (!puedeConectarIa(rolRealDeSesion(session))) {
     throw new AuthorizationError("No tienes permiso para administrar conexiones de IA.");
+  }
+  return session;
+}
+
+async function exigirTokenPersonal() {
+  const session = await requireSession();
+  if (!puedeCrearTokenPersonal(rolRealDeSesion(session))) {
+    throw new AuthorizationError("No tienes permiso para crear claves personales.");
   }
   return session;
 }
@@ -68,7 +76,7 @@ export type ResultadoEmitirToken =
 
 export async function emitirMiTokenAccion(input: unknown): Promise<ResultadoEmitirToken> {
   try {
-    const session = await exigirConexionIa();
+    const session = await exigirTokenPersonal();
     const entrada = entradaTokenPersonal.parse(input);
     const token = await emitirTokenPersonal(db, {
       userId: session.user.id,
@@ -88,13 +96,25 @@ export async function emitirMiTokenAccion(input: unknown): Promise<ResultadoEmit
 
 export async function revocarMiTokenAccion(tokenId: string): Promise<ResultadoAccion> {
   try {
-    const session = await exigirConexionIa();
+    const session = await exigirTokenPersonal();
     const id = z.string().uuid("La conexión no es válida.").parse(tokenId);
     const propios = await listarTokensPersonales(db, session.user.id);
     if (!propios.some((token) => token.id === id)) {
       throw new AuthorizationError("Solo puedes revocar tus propias conexiones.");
     }
     await revocarToken(db, { tokenId: id, actorId: session.user.id });
+    revalidatePath("/mi-espacio");
+    return { ok: true };
+  } catch (error) {
+    return aResultadoMcp(error);
+  }
+}
+
+export async function desconectarMiConexionAccion(tokenId: string): Promise<ResultadoAccion> {
+  try {
+    const session = await exigirConexionIa();
+    const id = z.string().uuid("La conexion no es valida.").parse(tokenId);
+    await revocarConexionOauthPropia(db, { tokenId: id, userId: session.user.id });
     revalidatePath("/mi-espacio");
     return { ok: true };
   } catch (error) {

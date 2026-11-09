@@ -7,6 +7,9 @@ import { listarUsuarios } from "@/lib/catalogo/usuarios";
 import { administraGlobal, esAccesoTotal, esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programasVisibles } from "@/lib/auth/alcance";
+import { listarConexionesOauthDeUsuarios } from "@/lib/oauth/conexiones";
+import { ETIQUETA_MCP_SCOPE } from "@/lib/mcp/token";
+import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +35,13 @@ export default async function UsuariosPage() {
     listarUsuarios(db, actor),
     programasVisibles(session.user.id, rol, db),
   ]);
+  const conexiones = await listarConexionesOauthDeUsuarios(db, usuarios.map((usuario) => usuario.id));
+  const conexionesPorUsuario = new Map<string, typeof conexiones>();
+  for (const conexion of conexiones) {
+    const lista = conexionesPorUsuario.get(conexion.userId) ?? [];
+    lista.push(conexion);
+    conexionesPorUsuario.set(conexion.userId, lista);
+  }
 
   const vista: UsuarioVista[] = usuarios.map((u) => ({
     id: u.id,
@@ -45,6 +55,16 @@ export default async function UsuariosPage() {
     programas: u.programas,
     programasQueVe: u.programasQueVe,
     creadoEn: u.creadoEn.toISOString(),
+    conexionesIa: (conexionesPorUsuario.get(u.id) ?? []).map((conexion) => ({
+      id: conexion.id,
+      clienteNombre: conexion.clienteNombre,
+      scopeEtiqueta: ETIQUETA_MCP_SCOPE[conexion.scope],
+      creado: fechaHoraEnBogota(conexion.creadoEn),
+      ultimoUso: conexion.ultimoUsoEn ? fechaHoraEnBogota(conexion.ultimoUsoEn) : "—",
+      vence: conexion.refreshVenceEn
+        ? `Vence el ${fecha(fechaDeInstanteEnBogota(conexion.refreshVenceEn))}`
+        : "Sin vencimiento",
+    })),
   }));
 
   return (

@@ -3,15 +3,14 @@ import type { ReactElement } from "react";
 import { notFound, redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
-import { rolDeVista } from "@/lib/auth/vista";
-import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, puedeConectarIa, trabajaLeads } from "@/lib/auth/roles";
+import { rolDeVista, rolRealDeSesion } from "@/lib/auth/vista";
+import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, puedeConectarIa, puedeCrearTokenPersonal, trabajaLeads } from "@/lib/auth/roles";
 import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
-import { rutaDePrograma } from "@/lib/nav";
 import { db } from "@/lib/db";
 import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
 import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { programasActivos } from "@/lib/queries/programas";
-import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
+import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { seccionPedida, seccionesDeRol, type SeccionMiEspacio } from "@/lib/mi-espacio/secciones";
 import { PageShell } from "@/components/page-shell";
 import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio";
@@ -29,6 +28,7 @@ import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { ETIQUETA_MCP_SCOPE, listarTokensPersonales, MCP_SCOPES } from "@/lib/mcp/token";
 import { ConexionesDeIa } from "@/components/mi-espacio/conexiones-de-ia";
+import { listarConexionesOauth } from "@/lib/oauth/conexiones";
 
 export const dynamic = "force-dynamic";
 
@@ -71,13 +71,14 @@ function uno(value: string | string[] | undefined): string | undefined {
  * secciones propias en el registro, así que nunca cae en el camino de las tabs.
  */
 export default async function MiEspacioPage({ searchParams }: Props) {
-  const session = await paginaConRol("gerente", "closer", "paid_trafficker", "customer_success");
+  const session = await paginaConRol("gerente", "closer", "paid_trafficker", "customer_success", "media");
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) notFound();
 
   const userId = session.user.id;
   const sujeto = { rol, operaComoCloser: session.user.operaComoCloser };
   const query = await searchParams;
+  const conexionesIa = await bloqueConexionesIa(userId, rolRealDeSesion(session));
 
   // El `?tab=atencion` viejo ahora es `?tab=notificaciones` (ticket 221): redirect de
   // servidor para que un enlace guardado no caiga en la sección por defecto por el rename.
@@ -96,11 +97,6 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // sin administrar, trabajar leads ni manejar pauta—, nunca por el literal del rol (ADR 0025).
   if (marcaOnboarding(rol) && !trabajaLeads(sujeto) && !esAdministrador(rol) && !manejaPauta(rol)) {
     const visibles = await programasVisibles(userId, rol);
-    if (visibles.length > 0) {
-      const preferido = await programaPreferidoDeCookie();
-      const elegido = elegirPrograma(visibles, preferido) ?? visibles[0];
-      redirect(rutaDePrograma(elegido.slug, "students"));
-    }
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
@@ -110,8 +106,11 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             rol={rol}
           />
           <p className="max-w-prose text-sm text-muted-foreground">
-            Aún no tienes un programa asignado. Pídele a gerencia que te agregue a uno.
+            {visibles.length === 0
+              ? "Aún no tienes un programa asignado. Pídele a gerencia que te agregue a uno."
+              : "Tu trabajo por programa está en Students."}
           </p>
+          {conexionesIa}
         </div>
       </PageShell>
     );
@@ -123,7 +122,6 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // ya no es acceso total y cae por el camino del closer). Va ANTES de cargar membresías:
   // el dueño no tiene espacio propio por programa.
   if (esAccesoTotal(rol)) {
-    const tokens = puedeConectarIa(rol) ? await listarTokensPersonales(db, userId) : null;
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
@@ -135,18 +133,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
           <p className="max-w-prose text-sm text-muted-foreground">
             {MENSAJE_DEL_DUENO}
           </p>
-          {tokens ? <ConexionesDeIa
-            scopes={MCP_SCOPES}
-            tokens={tokens.map((token) => ({
-              id: token.id,
-              nombre: token.nombre,
-              scope: token.scope,
-              scopeEtiqueta: ETIQUETA_MCP_SCOPE[token.scope],
-              creado: fechaHoraEnBogota(token.creadoEn),
-              ultimoUso: token.ultimoUsoEn ? fechaHoraEnBogota(token.ultimoUsoEn) : "—",
-              revocado: token.revocadoEn !== null,
-            }))}
-          /> : null}
+          {conexionesIa}
         </div>
       </PageShell>
     );
@@ -181,6 +168,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
               ? MENSAJE_DEL_DUENO
               : "Todavía no tienes programas asignados; pídele a tu gerente que te agregue al equipo de un programa."}
           </p>
+          {conexionesIa}
         </div>
       </PageShell>
     );
@@ -190,7 +178,13 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // cumple; si no (sin `?tab=` o una `?tab=` de otra sección forjada a mano), la primera.
   const secciones = seccionesDeRol(sujeto);
   const seccion = seccionPedida(sujeto, uno(query.tab));
-  if (!seccion) notFound();
+  if (!seccion) {
+    return (
+      <PageShell titulo="Mi espacio" descripcion="Tu perfil y tus conexiones.">
+        <div className="space-y-6">{perfil}{conexionesIa}</div>
+      </PageShell>
+    );
+  }
 
   // El Calendly solo para quien trabaja leads, y solo de los programas con membresía (169).
   const calendly = puedeTrabajar ? await bloqueCalendly(membresias) : null;
@@ -224,10 +218,44 @@ export default async function MiEspacioPage({ searchParams }: Props) {
           ) : null}
 
           {Seccion({ seccion, programa, programas: visibles, userId, busqueda: query, perfil, calendly, enlaces, origen: origenDeLaPagina("/mi-espacio", query) })}
+          {conexionesIa}
         </div>
       </div>
     </PageShell>
   );
+}
+
+async function bloqueConexionesIa(userId: string, rolReal: unknown) {
+  if (!esRolValido(rolReal) || !puedeConectarIa(rolReal)) return null;
+  const puedeCrear = puedeCrearTokenPersonal(rolReal);
+  const [conexiones, tokens] = await Promise.all([
+    listarConexionesOauth(db, userId),
+    puedeCrear ? listarTokensPersonales(db, userId) : Promise.resolve([]),
+  ]);
+  const fechaDeVencimiento = (instante: Date | null) => instante
+    ? `Vence el ${fecha(fechaDeInstanteEnBogota(instante))}`
+    : "Sin vencimiento";
+  return <ConexionesDeIa
+    conexiones={conexiones.map((conexion) => ({
+      id: conexion.id,
+      clienteNombre: conexion.clienteNombre,
+      scopeEtiqueta: ETIQUETA_MCP_SCOPE[conexion.scope],
+      creado: fechaHoraEnBogota(conexion.creadoEn),
+      ultimoUso: conexion.ultimoUsoEn ? fechaHoraEnBogota(conexion.ultimoUsoEn) : "—",
+      vence: fechaDeVencimiento(conexion.refreshVenceEn),
+    }))}
+    scopes={puedeCrear ? MCP_SCOPES : undefined}
+    tokens={puedeCrear ? tokens.filter((token) => token.revocadoEn === null).map((token) => ({
+      id: token.id,
+      nombre: token.nombre,
+      clienteNombre: token.nombre,
+      scope: token.scope,
+      scopeEtiqueta: ETIQUETA_MCP_SCOPE[token.scope],
+      creado: fechaHoraEnBogota(token.creadoEn),
+      ultimoUso: token.ultimoUsoEn ? fechaHoraEnBogota(token.ultimoUsoEn) : "—",
+      vence: fechaDeVencimiento(token.venceEn),
+    })) : undefined}
+  />;
 }
 
 /**

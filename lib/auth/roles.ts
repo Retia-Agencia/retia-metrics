@@ -72,8 +72,13 @@ export function esAccesoTotal(rol: Rol | undefined | null): boolean {
   return rol === "developer";
 }
 
-/** Quien puede conectar una IA con un token personal (ticket 348; el 383 ampliara esta capacidad). */
+/** Quien puede ver y desconectar sus propias conexiones de IA. */
 export function puedeConectarIa(rol: Rol | undefined | null): boolean {
+  return rol != null && (ROLES as readonly string[]).includes(rol);
+}
+
+/** Quien puede emitir manualmente una clave personal, fuera del flujo de consentimiento. */
+export function puedeCrearTokenPersonal(rol: Rol | undefined | null): boolean {
   return esAccesoTotal(rol);
 }
 

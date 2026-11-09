@@ -133,21 +133,24 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
     ];
   }
 
-  // El customer success (ticket 145) ve SOLO los Students del programa elegido, en los
-  // programas donde tiene membresía activa. Nada más: ni otras tabs, ni Mi espacio, ni
-  // Recursos ni Ajustes. Se pregunta por capacidad —`marcaOnboarding` sin administrar ni
+  // El customer success (ticket 145) ve Students y su Mi espacio para administrar conexiones.
+  // No ve otras tabs, Recursos ni Ajustes. Se pregunta por capacidad —`marcaOnboarding` sin administrar ni
   // trabajar leads ni manejar pauta—, nunca por el literal del rol (ADR 0025). Sin programa
   // visible no tiene ninguna tab.
   if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
-    return programa
-      ? [{ href: rutaDePrograma(programa, "students"), etiqueta: "Students", icono: "students", roles: ["customer_success"] }]
-      : [];
+    return [
+      { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["customer_success"] },
+      ...(programa ? [{ href: rutaDePrograma(programa, "students"), etiqueta: "Students", icono: "students", roles: ["customer_success"] } satisfies ItemNav] : []),
+    ];
   }
 
   // Media (ADR 0107): mientras no exista su vista completa (321), solo su pagina minima. Por
   // capacidad —`trabajaContenido` sin administrar, trabajar leads ni manejar pauta—, no por el literal.
   if (trabajaContenido(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
-    return [{ href: "/media", etiqueta: "Media", icono: "recursos", roles: ["media"] }];
+    return [
+      { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["media"] },
+      { href: "/media", etiqueta: "Media", icono: "recursos", roles: ["media"] },
+    ];
   }
 
   const items: ItemNav[] = [];

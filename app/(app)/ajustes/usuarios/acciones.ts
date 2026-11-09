@@ -10,6 +10,8 @@ import { db } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
 import { miembrosPrograma } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
+import { revocarConexionOauthAdministrada } from "@/lib/oauth/conexiones";
+import { z } from "zod";
 import {
   asignarCalendlyDeMembresia,
   crearUsuario,
@@ -102,6 +104,23 @@ export async function reactivarUsuarioAccion(id: string): Promise<ResultadoAccio
     const rol = await rolDeVista(session);
     if (!esRolValido(rol)) throw new ErrorDeApp("Rol inválido.", 403);
     await reactivarUsuario(db, { id: session.user.id, rol }, id);
+    revalidar();
+    return { ok: true };
+  } catch (error) {
+    return aResultado(error);
+  }
+}
+
+export async function revocarConexionDeIa(tokenId: string): Promise<ResultadoAccion> {
+  try {
+    const session = await requireAdministracionDeUsuarios();
+    const rol = await rolDeVista(session);
+    if (!esRolValido(rol)) throw new ErrorDeApp("Rol invalido.", 403);
+    const id = z.string().uuid("La conexion no es valida.").parse(tokenId);
+    await revocarConexionOauthAdministrada(db, {
+      tokenId: id,
+      actor: { id: session.user.id, rol },
+    });
     revalidar();
     return { ok: true };
   } catch (error) {

@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { changeLog, mcpTokens, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { emitirTokenPersonal, hashDeToken } from "@/lib/mcp/token";
-import { puedeConectarIa, ROLES, type Rol } from "@/lib/auth/roles";
+import { puedeConectarIa, puedeCrearTokenPersonal, ROLES, type Rol } from "@/lib/auth/roles";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 const auth = vi.fn();
@@ -57,9 +57,10 @@ async function acciones() {
 }
 
 describe("capacidad para conectar una IA", () => {
-  it("admite al developer y a ningún otro rol", () => {
-    expect(puedeConectarIa("developer")).toBe(true);
-    expect(ROLES.filter((rol) => rol !== "developer").every((rol) => !puedeConectarIa(rol))).toBe(true);
+  it("todos conectan una IA y solo developer crea claves personales", () => {
+    expect(ROLES.every((rol) => puedeConectarIa(rol))).toBe(true);
+    expect(ROLES.filter((rol) => rol !== "developer").every((rol) => !puedeCrearTokenPersonal(rol))).toBe(true);
+    expect(puedeCrearTokenPersonal("developer")).toBe(true);
   });
 });
 
@@ -74,7 +75,7 @@ describe("acciones de conexiones de IA", () => {
       scope: "lectura",
     });
 
-    expect(resultado).toEqual({ ok: false, error: "No tienes permiso para administrar conexiones de IA." });
+    expect(resultado).toEqual({ ok: false, error: "No tienes permiso para crear claves personales." });
     expect(await db.select().from(mcpTokens)).toHaveLength(0);
   });
 

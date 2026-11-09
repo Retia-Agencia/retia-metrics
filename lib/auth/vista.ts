@@ -54,6 +54,11 @@ export const PREFIJO_SUPLANTACION = "usuario:";
 /** La vista por defecto: la mas ancha. Sin cookie, un developer ve todo. */
 export const VISTA_POR_DEFECTO: Vista = "todo";
 
+/** Rol guardado en la identidad de una sesion, sin aplicar la vista elegida. */
+export function rolRealDeSesion(session: Session): Rol | null {
+  return esRolValido(session.user.rol) ? session.user.rol : null;
+}
+
 /** `true` si el texto (de la cookie) es una vista valida. */
 export function esVistaValida(valor: unknown): valor is Vista {
   return typeof valor === "string" && (VISTAS as readonly string[]).includes(valor);
@@ -102,7 +107,7 @@ export function proyectarRol(rol: Rol | null, vista: Vista): Rol | null {
  */
 async function leerRolDeVista(session: Session): Promise<Rol | null> {
   // Un no-developer ignora la cookie entero: ni se lee (leerla fuera de una peticion lanza).
-  const rolReal = esRolValido(session.user.rol) ? session.user.rol : null;
+  const rolReal = rolRealDeSesion(session);
   if (!esAccesoTotal(rolReal)) return rolReal;
   const { cookies } = await import("next/headers");
   const store = await cookies();
@@ -113,7 +118,7 @@ export async function rolDeVistaConValor(
   session: Session,
   cruda: string | undefined,
 ): Promise<Rol | null> {
-  const rol = esRolValido(session.user.rol) ? session.user.rol : null;
+  const rol = rolRealDeSesion(session);
   // Un no-developer ignora la cookie entero: no hace falta ni leerla. Una sesion ya
   // SUPLANTADA llega aqui con rol `closer` (no es acceso total), asi que cae por este
   // camino y devuelve `closer`, que es exactamente lo que se quiere.
@@ -161,7 +166,7 @@ export function idSuplantadoDeCookie(cruda: string | undefined): string | null {
  */
 async function leerSesionEfectiva(session: Session, db: Db): Promise<Session> {
   // Igual que arriba: sin acceso total no hay vista que leer ni cookie que tocar.
-  const rolReal = esRolValido(session.user.rol) ? session.user.rol : null;
+  const rolReal = rolRealDeSesion(session);
   if (!esAccesoTotal(rolReal)) return session;
   const { cookies } = await import("next/headers");
   const store = await cookies();
