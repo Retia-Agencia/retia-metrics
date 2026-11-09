@@ -4,12 +4,22 @@ import type { ReactNode } from "react";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { FilaDeCampana } from "@/components/pauta-roas-campana";
+import { Tabla } from "@/components/dashboard/piezas";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
 import type { NivelPauta, PasoPauta, RenglonRoas, VistaRoasDePauta } from "@/lib/queries/roas-de-pauta";
 
 type Enlace = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => string;
 const claseEnlace = "rounded-lg text-marca-texto underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
+/** Las dos vistas de la misma tabla: la jerarquía de Meta, o el canal (par UTM). */
+export type VerPorPauta = "campana" | "canal";
+
+/** El ROAS se muestra con "×" (3,25×); una razón sin cobertura dice "—". */
+function roas(n: number): string {
+  return `${num(n, 2)}×`;
+}
 
 function Cifra({ n, href }: { n: number; href: string }) {
   return n === 0 ? <>{num(n)}</> : <Link href={href} className={claseEnlace}>{num(n)}</Link>;
@@ -34,8 +44,9 @@ function CeldaVentas({ fila, enlace }: { fila: RenglonRoas; enlace: Enlace }) {
     ])}</span></span>;
 }
 
-function Celdas({ fila, enlace, nombre, sangria = "" }: {
-  fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string;
+/** Las mismas columnas en las dos vistas: solo cambia la primera (nombre / sangría). */
+function Celdas({ fila, enlace, nombre, sangria = "", soloConteos = false, sinGasto = false }: {
+  fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string; soloConteos?: boolean; sinGasto?: boolean;
 }) {
   const resueltas = fila.shows + fila.noShows;
   return <>
@@ -44,25 +55,64 @@ function Celdas({ fila, enlace, nombre, sangria = "" }: {
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.agendas} href={enlace(fila.nivel, fila.id ?? undefined, "agenda")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.shows} href={enlace(fila.nivel, fila.id ?? undefined, "show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.noShows} href={enlace(fila.nivel, fila.id ?? undefined, "no_show")} /></td>
-    <td className="cifra py-2 pl-1 text-right align-top">{noShowPorCita(fila.noShows, fila.shows) === null ? "—" : <><span className="block">{pct(noShowPorCita(fila.noShows, fila.shows)!)}</span>
-      <span className="block text-xs text-muted-foreground">{num(fila.noShows)} de {num(resueltas)} con resultado</span></>}</td>
+    {soloConteos ? null : <td className="cifra py-2 pl-1 text-right align-top">{noShowPorCita(fila.noShows, fila.shows) === null ? "—" : <><span className="block">{pct(noShowPorCita(fila.noShows, fila.shows)!)}</span>
+      <span className="block text-xs text-muted-foreground">{num(fila.noShows)} de {num(resueltas)} con resultado</span></>}</td>}
     <td className="cifra py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
-    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.contratadoUsd)}</td>
-    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
-    <td className="cifra py-2 pl-1 text-right align-top"><CifraDeRazon razon={fila.roas} formato={(n) => num(n, 2)} /></td>
+    {soloConteos ? null : <>
+      <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.valorVendidoUsd)}</td>
+      {sinGasto ? null : <>
+        <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.gastoUsd)}</td>
+        <td className="cifra py-2 pl-1 text-right align-top"><CifraDeRazon razon={fila.roas} formato={roas} /></td>
+      </>}
+    </>}
   </>;
 }
 
-function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string }) {
+function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string; soloConteos?: boolean; sinGasto?: boolean }) {
   return <tr><Celdas {...props} /></tr>;
 }
 
-function Cabecera() {
-  return <thead><tr className="border-b text-left text-xs text-muted-foreground">
-    <th className="w-[19%] py-2 font-medium">Campaña › conjunto › anuncio</th>
-    {["Envíos", "Agendadas", "Realizadas", "No asistió", "% no asistió", "Ventas", "Vendido USD", "Gasto USD", "ROAS"].map((titulo) =>
-      <th key={titulo} className={`break-words py-2 pl-1 text-right font-medium${titulo === "Ventas" ? " w-[17%] pl-3" : ""}`}>{titulo}{titulo === "% no show" ? <span className="block text-xs font-normal">de llamadas con resultado</span> : null}</th>)}
-  </tr></thead>;
+const COLUMNAS_COMPLETAS = ["Envíos", "Agendadas", "Realizadas", "No asistió", "% no asistió", "Ventas", "Valor vendido", "Gasto", "ROAS"];
+const COLUMNAS_CONTEOS = ["Envíos", "Agendadas", "Realizadas", "No asistió", "Ventas"];
+// Meta reporta el gasto por anuncio, no por canal: en la vista por canal no hay Gasto ni ROAS que mostrar (355).
+const COLUMNAS_SIN_GASTO = COLUMNAS_COMPLETAS.filter((c) => c !== "Gasto" && c !== "ROAS");
+const CABECERAS = (primera: string, soloConteos = false, sinGasto = false) =>
+  [primera, ...(soloConteos ? COLUMNAS_CONTEOS : sinGasto ? COLUMNAS_SIN_GASTO : COLUMNAS_COMPLETAS)];
+
+/** El detalle de una campaña (conjuntos y anuncios), que el diálogo muestra. */
+function detalleDeCampana(vista: VistaRoasDePauta, campana: RenglonRoas, enlace: Enlace): ReactNode {
+  const conjuntos = vista.conjuntos.filter((f) => f.padreId === campana.id);
+  const anuncios = (conjunto: string) => vista.anuncios.filter((f) => f.padreId === conjunto);
+  const filas: ReactNode[] = [<Fila key={campana.id} fila={campana} enlace={enlace} />];
+  for (const conjunto of conjuntos) {
+    filas.push(<Fila key={conjunto.id} fila={conjunto} enlace={enlace} sangria="pl-3" />);
+    for (const anuncio of anuncios(conjunto.id!)) filas.push(<Fila key={anuncio.id} fila={anuncio} enlace={enlace} sangria="pl-6" />);
+  }
+  const residual = vista.anunciosSinIdentificar.find((fila) => fila.padreId === campana.id);
+  if (residual) filas.push(<Fila key={`residual-${campana.id}`} fila={residual} enlace={enlace} sangria="pl-6" />);
+  return <table className="w-full min-w-[56rem] text-xs"><thead><tr className="border-b text-left text-xs text-muted-foreground">
+    {CABECERAS("Campaña › conjunto › anuncio").map((c) => <th key={c} className="break-words py-2 pl-1 text-right font-medium first:pl-0 first:text-left">{c}</th>)}
+  </tr></thead>
+    <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">{filas}</tbody></table>;
+}
+
+/** El aviso de agendas por ocurrir (AJUSTE 3-nov): cobertura, no bloqueo. El ROAS se muestra y se etiqueta. */
+function AvisoPendientes({ pendientes }: { pendientes: number }) {
+  if (pendientes === 0) return null;
+  return <p role="status" className="rounded-md border border-tono-alerta/40 bg-tono-alerta/5 px-3 py-2 text-xs text-muted-foreground">
+    Parcial: <span className="cifra font-medium">{num(pendientes)}</span> {pendientes === 1 ? "agenda pendiente" : "agendas pendientes"} por ocurrir en esta cohorte; el ROAS puede estar por debajo de lo esperado.
+  </p>;
+}
+
+/** La reconciliación con Comercial: las ventas que el ROAS no atribuye por cohorte, nunca escondidas (N3). */
+function NotaReconciliacion({ reconciliacion }: { reconciliacion: VistaRoasDePauta["reconciliacion"] }) {
+  if (reconciliacion.sinEnvioDePautaODeOtroPeriodo === 0) return null;
+  return <p className="text-xs text-muted-foreground">
+    Ventas del periodo sin envío de pauta de origen o de registros de otro periodo:{" "}
+    <span className="cifra font-medium">{num(reconciliacion.sinEnvioDePautaODeOtroPeriodo)}</span>.
+    En el periodo se cerraron <span className="cifra">{num(reconciliacion.ventasDelPeriodoPorFecha)}</span> ventas;
+    el ROAS atribuye <span className="cifra">{num(reconciliacion.atribuidasPorCohorteEnPeriodo)}</span> a una cohorte de registro de este periodo.
+  </p>;
 }
 
 function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
@@ -77,10 +127,14 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
       : `Los registros tienen entre ${num(vista.total.desdeDias)} y ${num(vista.total.hastaDias)} días; aquí una venta tarda en mediana ${num(vista.ventanaCierreDias)} días desde el registro (sobre ${num(vista.ventasParaMadurez)} ventas).`;
   return <ComoSeCalcula>
     <section className="space-y-1"><h3 className="font-medium">De dónde sale</h3><p className="text-muted-foreground">
-      Envíos pagos del periodo; sus citas agendadas, realizadas y ventas cuentan aunque ocurran después. Vendido es el valor
-      vendido que escribe el closer. El gasto es lo que reporta Meta por anuncio, en COP convertido a USD con la TRM de cada día.
+      Envíos pagos del periodo; sus citas agendadas, realizadas y ventas cuentan aunque ocurran después. El valor vendido
+      lo escribe el closer. El gasto es lo que reporta Meta por anuncio, en COP convertido a USD con la TRM de cada día.
     </p></section>
-    <section className="space-y-1"><h3 className="font-medium">Fórmula</h3><p className="text-muted-foreground">ROAS = contratado ÷ gasto.</p></section>
+    <section className="space-y-1"><h3 className="font-medium">Anclas</h3><p className="text-muted-foreground">
+      Registro: el día del envío. Agendada, realizada y no asistió: la cita de los envíos de esa cohorte. Venta: la cohorte
+      de registro, el día del envío que trajo a la persona, aunque compre semanas después.
+    </p></section>
+    <section className="space-y-1"><h3 className="font-medium">Fórmula</h3><p className="text-muted-foreground">ROAS = valor vendido ÷ gasto.</p></section>
     <section className="space-y-1"><h3 className="font-medium">Madurez</h3><p className="text-muted-foreground">{madurez}</p>
       {vista.ventanaCierreDias !== null && vista.total.desdeDias !== null && vista.total.desdeDias < vista.ventanaCierreDias
         ? <p className="text-muted-foreground">El ROAS de este periodo todavía va a subir.</p> : null}
@@ -96,50 +150,57 @@ function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
     </section> : null}
     <section className="space-y-1"><h3 className="font-medium">Cobertura del origen</h3><ul className="space-y-1 text-muted-foreground">
       <li>Con anuncio: <span className="cifra">{num(cobertura.anuncio)}</span>. Se miden hasta el anuncio.</li>
-      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre. Para llegar al anuncio, el link tiene que llevar el id del anuncio y la landing pasarlo al formulario.</li>
-      <li>Sin campaña de Meta: <span className="cifra">{num(cobertura.sinCampana)}</span>. No traen id ni un nombre de campaña que exista en Meta: no se pueden atribuir y van en su propia fila.</li>
+      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre.</li>
+      <li>Sin campaña de Meta: <span className="cifra">{num(cobertura.sinCampana)}</span>. No se pueden atribuir y van en su propia fila.</li>
     </ul></section>
     {vista.total.sinValorVendido > 0 ? <section className="space-y-1"><h3 className="font-medium">Ventas sin valor vendido</h3><p className="text-muted-foreground">
-      <span className="cifra">{num(vista.total.sinValorVendido)}</span>: el closer no escribió el valor vendido; cuentan como venta pero suman 0 al contratado.</p></section> : null}
+      <span className="cifra">{num(vista.total.sinValorVendido)}</span>: el closer no escribió el valor vendido; cuentan como venta pero suman 0 al valor vendido.</p></section> : null}
     <section className="space-y-1"><h3 className="font-medium">Citas sin marcar</h3><p className="text-muted-foreground">
-      <span className="cifra">{num(vista.citasSinMarcar)}</span>: el closer no marcó show o no show.
+      <span className="cifra">{num(vista.citasSinMarcar)}</span>: el closer no marcó realizada o no asistió.
     </p></section>
   </ComoSeCalcula>;
 }
 
-export function PautaRoas({ vista, enlace, hrefCsv }: {
+/**
+ * La tabla única de Pauta (ticket 355): un cargador y una tabla. "Ver por: Campaña de Meta | Canal" cambia la
+ * agrupación con un parámetro de la URL. El gasto por canal no se puede repartir (Meta lo da por anuncio), así que
+ * la vista por canal oculta Gasto y ROAS (decisión de Mani, 9-nov); el resto de columnas es el mismo.
+ */
+export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloConteos = false }: {
   vista: VistaRoasDePauta;
   enlace: Enlace;
   hrefCsv: string;
+  verPor: VerPorPauta;
+  hrefVerPor: (v: VerPorPauta) => string;
+  /** La vista "todos los programas" muestra solo conteos: ninguna tasa, gasto ni ROAS cruza programas (ADR 0048). */
+  soloConteos?: boolean;
 }) {
-  const conjuntos = (campana: string) => vista.conjuntos.filter((f) => f.padreId === campana);
-  const anuncios = (conjunto: string) => vista.anuncios.filter((f) => f.padreId === conjunto);
-  const detalleDe = (campana: RenglonRoas) => {
-    const filas: ReactNode[] = [<Fila key={campana.id} fila={campana} enlace={enlace} />];
-    for (const conjunto of conjuntos(campana.id!)) {
-      filas.push(<Fila key={conjunto.id} fila={conjunto} enlace={enlace} sangria="pl-3" />);
-      for (const anuncio of anuncios(conjunto.id!)) filas.push(<Fila key={anuncio.id} fila={anuncio} enlace={enlace} sangria="pl-6" />);
-    }
-    const residual = vista.anunciosSinIdentificar.find((fila) => fila.padreId === campana.id);
-    if (residual) filas.push(<Fila key={`residual-${campana.id}`} fila={residual} enlace={enlace} sangria="pl-6" />);
-    return <table className="w-full min-w-[56rem] table-fixed text-xs"><Cabecera />
-      <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">{filas}</tbody></table>;
-  };
+  const primera = verPor === "campana" ? "Campaña › conjunto › anuncio" : "Canal";
+  const sinGasto = verPor === "canal";
   return <Card aria-labelledby="roas-pauta"><CardHeader><div className="flex flex-wrap items-start justify-between gap-2">
-    <div><CardTitle id="roas-pauta">ROAS por anuncio y campaña</CardTitle><p className="text-sm text-muted-foreground">Anclado a la fecha de registro. Toca una campaña para ver sus conjuntos y anuncios.</p></div>
-    <div className="flex flex-wrap items-center gap-2"><InformacionRoas vista={vista} /><Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link></div>
-  </div></CardHeader><CardContent className="space-y-3">
-    <table className="w-full table-fixed text-xs"><Cabecera />
-    <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
-      <Fila fila={vista.total} enlace={enlace} />
-      {vista.campanas.map((campana) => <FilaDeCampana key={campana.id} id={campana.id!} nombre={campana.nombre} detalle={detalleDe(campana)}>
-        <Celdas fila={campana} enlace={enlace}
-          nombre={<button type="button" className="rounded-lg break-words text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">▸ {campana.nombre}</button>} />
-      </FilaDeCampana>)}
-      {(vista.sinAnuncio.registros > 0 || vista.sinAnuncio.agendas > 0 || vista.sinAnuncio.ventas > 0) ? <>
-        <Fila fila={vista.sinAnuncio} enlace={enlace} />
-        {vista.sinAnuncio.ventas > 0 ? <tr><td colSpan={10} className="py-2 text-xs text-muted-foreground">{num(vista.sinAnuncio.ventas)} de {num(vista.total.ventas)} ventas sin campaña de Meta</td></tr> : null}
-      </> : null}
-    </tbody></table>
+    <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y ROAS</CardTitle>
+      <p className="text-sm text-muted-foreground">Envíos pagos del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
+    <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <><InformacionRoas vista={vista} /><Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link></>}</div>
+  </div>
+    <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
+      <span className="text-muted-foreground">Ver por:</span>
+      {(["campana", "canal"] as const).map((v) => v === verPor
+        ? <Badge key={v} variant="info">{v === "campana" ? "Campaña de Meta" : "Canal"}</Badge>
+        : <Link key={v} href={hrefVerPor(v)} className={claseEnlace}>{v === "campana" ? "Campaña de Meta" : "Canal"}</Link>)}
+    </div>
+  </CardHeader><CardContent className="space-y-3">
+    {soloConteos ? null : <AvisoPendientes pendientes={vista.agendasPendientes} />}
+    <Tabla cabeceras={CABECERAS(primera, soloConteos, sinGasto)}>
+      <Fila fila={vista.total} enlace={enlace} soloConteos={soloConteos} sinGasto={sinGasto} />
+      {verPor === "campana" ? <>
+        {vista.campanas.map((campana) => <FilaDeCampana key={campana.id} id={campana.id!} nombre={campana.nombre} detalle={detalleDeCampana(vista, campana, enlace)}>
+          <Celdas fila={campana} enlace={enlace} soloConteos={soloConteos}
+            nombre={<button type="button" className="rounded-lg break-words text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">▸ {campana.nombre}</button>} />
+        </FilaDeCampana>)}
+        {(vista.sinAnuncio.registros > 0 || vista.sinAnuncio.agendas > 0 || vista.sinAnuncio.ventas > 0)
+          ? <Fila fila={vista.sinAnuncio} enlace={enlace} soloConteos={soloConteos} /> : null}
+      </> : vista.canales.map((canal) => <Fila key={canal.id} fila={canal} enlace={enlace} soloConteos={soloConteos} sinGasto={sinGasto} />)}
+    </Tabla>
+    <NotaReconciliacion reconciliacion={vista.reconciliacion} />
   </CardContent></Card>;
 }

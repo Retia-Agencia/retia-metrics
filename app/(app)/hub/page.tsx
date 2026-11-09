@@ -93,7 +93,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
           {seccion === "origen"
             ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
             : seccion === "pauta"
-            ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} />
+            ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} busqueda={busqueda} />
             : esHoy
             ? <>
                 {diaPedido === null ? <p role="alert" className="mb-3 rounded-md border border-tono-peligro/40 px-3 py-2 text-sm text-tono-peligro">Esa fecha no es válida (no puede ser futura): se muestra hoy.</p> : null}

@@ -23,7 +23,6 @@ import { EsqueletoDelHub, EsqueletoDelNorte } from "@/components/hub/esqueleto-d
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
 import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
-import { pautaInterina, type FiltrosPauta } from "@/lib/queries/pauta-interina";
 import { origenDelPrograma } from "@/lib/queries/origen";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
@@ -36,8 +35,7 @@ import { DashboardPrograma } from "@/components/dashboard-programa";
 import { detalleDePuntoAccion } from "./acciones-graficas";
 import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltroDashboard } from "@/components/filtro-dashboard";
-import { PautaInterina, type EnlaceDeLista } from "@/components/pauta-interina";
-import { PautaRoas } from "@/components/pauta-roas";
+import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
 import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { EmbudoFormulario } from "@/components/embudo-formulario";
 import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
@@ -67,17 +65,9 @@ type Props = {
 };
 
 /**
- * Los filtros de UTM de la vista interina de Pauta (093). Un valor que no cuadra se ignora en
- * vez de romper la pagina: es un filtro de lectura, no una escritura.
+ * El filtro de closer de la URL es un `users.id` (ticket 167, Decision 5): un valor
+ * que no es uuid se ignora (no filtra), igual que el filtro de area.
  */
-const esquemaFiltrosPauta = z.object({
-  source: z.string().trim().min(1).max(200).optional().catch(undefined),
-  medium: z.string().trim().min(1).max(200).optional().catch(undefined),
-  campaign: z.string().trim().min(1).max(300).optional().catch(undefined),
-});
-
-// El filtro de closer de la URL es un `users.id` (ticket 167, Decision 5): un valor
-// que no es uuid se ignora (no filtra), igual que el filtro de area.
 const esquemaFiltroCloser = z.string().uuid().optional().catch(undefined);
 
 /** Un parametro de la URL solo sirve si vino una vez y como texto. */
@@ -112,8 +102,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
 
   // El Hub (ADR 0086, ticket 250): una pantalla fija con cinco pestañas en `?seccion=`, en
   // este orden. Hoy junta lo que eran Pulso y Metas (el 252 lo rearma como reporte diario);
-  // Comercial es la Operación de antes; Pauta guarda la vista interina hasta que el 248 la
-  // reparta con Origen.
+  // Comercial es la Operación de antes; Pauta es una sola tabla de origen, embudo y ROAS (355).
   const base = rutaDePrograma(programa.slug, "hub");
   const pestanas: Pestana[] = [
     {
@@ -343,9 +332,6 @@ async function CuerpoDelHub({
         origen={origen}
         hoy={hoy}
         busqueda={busqueda}
-        enlaceLista={veTableroDelPrograma(rol) ? (metrica, { escalon, pago, ...filtrosDeOrigen }) => metrica === "escalera"
-          ? urlDeLista({ slug, metrica, periodo: { ...contexto.periodo, b: null }, origen, filtrosDeOrigen, escalera: { escalon, pago } })
-          : urlDeLista({ slug, metrica, periodo: { ...contexto.periodo, b: null }, origen, filtrosDeOrigen }) : undefined}
       />
     );
   }
@@ -602,10 +588,10 @@ async function cargarVistaComercial({ programa, busqueda, vista, cohorteId, coho
 }
 
 /**
- * La pestaña "Pauta y origen (interina)" (093): de dónde vienen los leads y cuánto cuesta
- * cada uno. Sus consultas son exclusivas de esta pestaña, así que solo corren cuando está
- * activa (ticket 197 §5). El link de profundizar conserva el rango y el closer y reemplaza
- * solo los filtros de UTM.
+ * La pestaña "Pauta" (355): de dónde vienen los registros, el embudo y el ROAS, en una sola tabla.
+ * Sus consultas son exclusivas de esta pestaña, así que solo corren cuando está
+ * activa (ticket 197 §5). Una sola tabla con "Ver por: Campaña de Meta | Canal" (ticket 355):
+ * el selector vive en la URL (`ver_por`) y reemplaza solo ese parámetro.
  */
 async function SeccionPauta({
   programId,
@@ -615,7 +601,6 @@ async function SeccionPauta({
   origen,
   hoy,
   busqueda,
-  enlaceLista,
 }: {
   programId: string;
   slug: string;
@@ -624,7 +609,6 @@ async function SeccionPauta({
   origen: string;
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
-  enlaceLista?: EnlaceDeLista;
 }) {
   const ahora = new Date();
   const [ultimaSincronizacion] = await db
@@ -648,22 +632,15 @@ async function SeccionPauta({
       }
     });
   }
-  const filtrosPauta: FiltrosPauta = esquemaFiltrosPauta.parse({
-    source: texto(busqueda.source),
-    medium: texto(busqueda.medium),
-    campaign: texto(busqueda.campaign),
-  });
-  const [pauta, roas] = await Promise.all([
-    pautaInterina(db, programId, rango, filtrosPauta, hoy),
-    cargarRoasDePauta(db, programId, rango, hoy),
-  ]);
-  // El link de profundizar conserva el rango y el closer, y reemplaza solo los filtros de UTM.
-  const hrefConFiltros = (f: FiltrosPauta) => {
+  const roas = await cargarRoasDePauta(db, programId, rango, hoy);
+  // El selector de vista vive en la URL y reemplaza solo `ver_por`, conservando el rango y el closer.
+  const verPor: VerPorPauta = texto(busqueda.ver_por) === "canal" ? "canal" : "campana";
+  const hrefVerPor = (v: VerPorPauta) => {
     const q = new URLSearchParams();
-    for (const [k, v] of Object.entries(busqueda)) {
-      if (typeof v === "string" && !["source", "medium", "campaign"].includes(k)) q.set(k, v);
+    for (const [k, valor] of Object.entries(busqueda)) {
+      if (typeof valor === "string" && k !== "ver_por") q.set(k, valor);
     }
-    for (const [k, v] of Object.entries(f)) if (v !== undefined) q.set(k, v);
+    if (v !== "campana") q.set("ver_por", v);
     const query = q.toString();
     return query ? `?${query}` : "?";
   };
@@ -675,8 +652,13 @@ async function SeccionPauta({
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
-      <PautaInterina vista={pauta} filtros={filtrosPauta} hrefCon={hrefConFiltros} enlaceLista={enlaceLista} />
-      <PautaRoas vista={roas} enlace={enlaceRoas} hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`} />
+      <PautaRoas
+        vista={roas}
+        enlace={enlaceRoas}
+        hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`}
+        verPor={verPor}
+        hrefVerPor={hrefVerPor}
+      />
     </section>
   );
 }

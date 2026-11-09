@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { abonos, calls, deals, dealEtapaHistorial, leads, programs, sources, submissions, users } from "@/lib/db/schema";
-import { pautaInterina } from "@/lib/queries/pauta-interina";
+import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import type { Db } from "@/lib/db/tipos";
 import {
   agruparEscalera,
@@ -419,7 +419,7 @@ describe("320: todos los programas, lado a lado y sin mezclar (ADR 0048)", () =>
   });
 });
 
-describe("349: las ventas de Pauta por origen salen de la escalera y abren su lista", () => {
+describe("349/355: las ventas de Pauta por origen salen del cargador de ROAS y abren su lista", () => {
   async function conOrigen(dealId: string, source: string, medium: string, campaign: string) {
     const [deal] = await db.select().from(deals).where(eq(deals.id, dealId));
     const [fuente] = await db.insert(sources).values({ programId, nombre: `F${n++}` }).returning();
@@ -430,7 +430,7 @@ describe("349: las ventas de Pauta por origen salen de la escalera y abren su li
     await db.update(deals).set({ submissionOrigenId: envio.id }).where(eq(deals.id, dealId));
   }
 
-  it("reparte ventas, cuándo pagaron y completo o parcial por origen, y cada cifra cuadra con su lista", async () => {
+  it("reparte las ventas pagas por origen y reconcilia las que no son de pauta", async () => {
     const enLlamada = await sembrar({ etapaVendida: true, abonos: [{ fecha: "2026-10-05" }], citas: [{ dia: "2026-10-05", resultado: "cerrada" }] });
     const despues = await sembrar({ etapaVendida: true, ventaEl: "2026-10-12", abonos: [{ fecha: "2026-10-12" }], citas: [{ dia: "2026-10-05", resultado: "show" }] });
     const otroCanal = await sembrar({ etapaVendida: true, ventaEl: "2026-10-09", abonos: [{ fecha: "2026-10-09" }] });
@@ -438,25 +438,30 @@ describe("349: las ventas de Pauta por origen salen de la escalera y abren su li
     const cortesia = await sembrar({ etapaVendida: true, cortesia: true, abonos: [{ fecha: "2026-10-09" }] });
     await conOrigen(enLlamada, "ig", "paid_social", "c1");
     await conOrigen(despues, "ig", "paid_social", "c1");
+    // Origen orgánico (medium que no es pago): queda FUERA del universo de Pauta (355) y entra a la reconciliación.
     await conOrigen(otroCanal, "linkedin", "francisco", "c9");
     await conOrigen(cortesia, "ig", "paid_social", "c1");
     await db.update(deals).set({ etapa: "ganado_completo" }).where(eq(deals.id, enLlamada));
 
-    const v = await pautaInterina(db, programId, rango, {}, "2026-10-31");
-    const suma = (pred: (f: (typeof v.filas)[number]) => boolean, campo: "ventas" | "ventasEnLlamada" | "ventasDespues" | "ventasCompletas" | "ventasParciales") =>
-      v.filas.filter(pred).reduce((total, f) => total + f[campo], 0);
-    const ig = (f: (typeof v.filas)[number]) => f.source === "ig";
-    expect(v.resumen.ventas).toBe(4);
-    expect(suma(ig, "ventas")).toBe(2);
-    expect(suma(ig, "ventasEnLlamada")).toBe(1);
-    expect(suma(ig, "ventasDespues")).toBe(1);
-    expect(suma(ig, "ventasCompletas")).toBe(1);
-    expect(suma(ig, "ventasParciales")).toBe(1);
-    expect(suma((f) => f.categoria === "sin_envio_origen", "ventas")).toBe(1);
+    // El cargador que sobrevive: su universo son los envíos PAGOS. Solo enLlamada y despues (ig/paid_social).
+    const v = await cargarRoasDePauta(db, programId, rango, "2026-10-31");
+    const ig = v.canales.find((f) => f.id === "instagram")!;
+    expect(v.total.ventas).toBe(2);
+    expect(ig).toMatchObject({ ventas: 2, ventasEnLlamada: 1, ventasDespues: 1, ventasCompletas: 1, ventasParciales: 1 });
+    // La suma por campaña y por canal da lo mismo que el total (una sola ancla por paso).
+    const sumar = (filas: typeof v.canales) => filas.reduce((n, f) => n + f.ventas, 0);
+    expect(sumar(v.canales)).toBe(v.total.ventas);
+    expect(sumar(v.campanas) + v.sinAnuncio.ventas).toBe(v.total.ventas);
+    // Reconciliación: en el periodo se cerraron 4 ventas vigentes (sin cortesía); el ROAS atribuye 2 por cohorte.
+    expect(v.reconciliacion.ventasDelPeriodoPorFecha).toBe(4);
+    expect(v.reconciliacion.atribuidasPorCohorteEnPeriodo).toBe(2);
+    expect(v.reconciliacion.sinEnvioDePautaODeOtroPeriodo).toBe(2);
 
+    // La escalera es la definición de venta de Comercial: su total + la reconciliación cuadran por fecha.
     const base = { programId, rango, hoy: "2026-10-31" };
     const lista = async (extra: object) => (await listaDeMetrica("escalera", { ...base, ...extra }, 1, db))[0].subtotal.cantidad;
-    expect(await lista({ escalon: "ventas" })).toBe(v.resumen.ventas);
+    expect(await lista({ escalon: "ventas" })).toBe(4);
+    expect(v.reconciliacion.atribuidasPorCohorteEnPeriodo + v.reconciliacion.sinEnvioDePautaODeOtroPeriodo).toBe(await lista({ escalon: "ventas" }));
     expect(await lista({ escalon: "ventas", source: "ig", medium: "paid_social", categoria: "con_utm" })).toBe(2);
     expect(await lista({ escalon: "pago_en_llamada", source: "ig", medium: "paid_social" })).toBe(1);
     expect(await lista({ escalon: "despues", source: "ig", medium: "paid_social" })).toBe(1);

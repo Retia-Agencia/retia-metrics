@@ -27,6 +27,21 @@ como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la
 
 ## Memory
 
+- **2026-11-09 (noche, 2): 355 implementado en la rama `t355`, sin commit (sesión padre).** Worktree `.claude/worktrees/t355` (rama `t355`, base `c7f0eeda`;
+  `node_modules` es una copia APFS, no enlace, para poder correr `next build`). Codex falló sin escribir nada por **límite de uso hasta las 23:56 de
+  Bogotá**; lo implementó **Kiro** con `BRIEF-355.md` (en la raíz del worktree, sin versionar: se borra al cerrar). **Decisiones de Mani:** la venta se
+  atribuye al origen y se ancla al día del ENVÍO (Dani, weekly del 3-nov, `docs/weekly-2026-11-03.md`); la vista por canal **oculta Gasto y ROAS** (Meta da el
+  gasto por anuncio); aviso «parcial: N agendas pendientes»; la revisión adversarial espera a Codex. **Verificado:** typecheck, lint, build, 7 archivos de
+  test del cambio y 28 de guardianes, todo en verde. **Falta, en este orden:** (1) recorrido visual a 375 px y escritorio, claro y oscuro (Docker estaba apagado:
+  `npm run db:local` y `PORT=3355 npm run dev:local`, subdominio `app355.localhost`; jamás `npm run dev`, la pestaña Pauta escribe al renderizar);
+  (2) `/codex:adversarial-review` del diff (reconciliación, agendas pendientes, aserciones adaptadas de `tests/escalera.test.ts` y
+  `tests/resultados-de-llamada-paridad.test.ts`); (3) leer a mano los hunks de `roas-de-pauta.ts` y el cambio de nombre `contratadoUsd` → `valorVendidoUsd` en `lib/mcp`
+  (la salida pública `vendido` no cambia); (4) commit nombrando archivos, rebase sobre main, push y checkpoint verde; (5) `status: done` + `[x]` en el
+  tracker y quitar el worktree (`rmdir`/`rm node_modules`, `git worktree remove`); (6) línea del Daily Brief. **Después:** 375 (proyectado), 403, 394,
+  395, 358 a 361, 401, 402; el 383 sigue esperando conectar el MCP y al Owner del plan. **Del weekly del 3-nov** (todo en `docs/weekly-2026-11-03.md`): productos y SKUs por
+  lead sin ticket, filtros de periodo y SKU separados, descarga de transcripciones de Grain, sentarse 30 min con Andrea, Maru y Dana, y la sentada con César por los UTM
+  (plazo: el viernes). **Aprendido:** el aviso del agente intermediario NO es el fin del trabajo (Codex/Kiro); `sed -i` en macOS pide `''`; un hook de «terminó la reunión» se
+  dispara si pegas un transcript con la frase «extrae toda la transcripción».
 - **2026-11-09 (noche): 383 en main y 351 cerrado (sesión padre).** En main y con CI verde: 383 (OAuth del MCP: `lib/oauth/`, consentimiento,
   Conexiones de IA para todo rol, revocación en Ajustes, retención, paginación, forja por rol; migraciones 0123 y 0124 **ya aplicadas en
   producción**) y 351 `done` (`razonShow`/`razonCierre` como `RazonConCobertura` en dashboard, Mi espacio, vista de todos y proyección).

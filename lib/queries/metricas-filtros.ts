@@ -375,7 +375,7 @@ export function fechaAnclaDealCreado() {
 /**
  * El dia (Bogota) en que se AGENDO una llamada (ticket 138): cuando entro su fila, por el
  * webhook de Calendly o a mano. No es `fechaAgenda`, que es el dia de la cita: una agenda hecha
- * hoy para el martes es una agenda de hoy. Es la misma fecha que usa la vista interina de Pauta.
+ * hoy para el martes es una agenda de hoy. Es la misma fecha que usa la tabla de Pauta.
  */
 export function fechaAnclaAgendaCreada() {
   return diaEnBogota(calls.createdAt);

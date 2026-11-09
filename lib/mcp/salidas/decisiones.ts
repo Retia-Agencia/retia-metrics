@@ -115,7 +115,7 @@ export function aSalidaDePautaRoas(args: {
   return {
     programa: args.programa, periodo: args.periodo, nivel: fila.nivel, identificador: fila.id, nombre: fila.nombre,
     envios: fila.registros, citas: fila.agendas, realizadas: fila.shows, no_asistio: fila.noShows, ventas: fila.ventas,
-    vendido: { valor: fila.contratadoUsd, moneda: "USD", legible: args.dineroLegible(fila.contratadoUsd, "USD") },
+    vendido: { valor: fila.valorVendidoUsd, moneda: "USD", legible: args.dineroLegible(fila.valorVendidoUsd, "USD") },
     gasto: { valor: fila.gastoUsd, moneda: "USD", legible: args.dineroLegible(fila.gastoUsd, "USD") },
     roas: { ...fila.roas, estado: args.estado, legible: args.roasLegible },
     precision_del_origen: {

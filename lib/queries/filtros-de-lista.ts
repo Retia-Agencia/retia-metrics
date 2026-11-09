@@ -40,7 +40,7 @@ export const camposDeFiltrosDeLista = {
   grupo: z.enum(Object.keys(GRUPOS_DE_CIERRE) as [keyof typeof GRUPOS_DE_CIERRE, ...(keyof typeof GRUPOS_DE_CIERRE)[]]).optional(),
   pago: z.enum(["completo", "parcial"]).optional(),
   calidad: z.string().max(100).optional(),
-  nivel: z.enum(["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "total"]).optional(),
+  nivel: z.enum(["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "canal", "total"]).optional(),
   id: z.string().max(100).optional(),
   paso: z.enum(["registro", "agenda", "show", "no_show", "venta"]).optional(),
 };

@@ -151,25 +151,22 @@ vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
 }));
 const leerSeriesDeDinero = vi.fn(async () => ({ meses: [] }));
 vi.mock("@/lib/queries/series-dinero", () => ({ leerSeriesDeDinero }));
-// La vista interina de Pauta (093) tambien lee la base: aqui solo importa que la pagina pase.
-const pautaInterina = vi.fn(async () => ({
-  filas: [],
-  resumen: { registros: 0, sinUtm: 0, macro: 0, agendas: 0, agendasSinEnvioDeOrigen: 0, shows: 0, noShows: 0, citasSinMarcar: 0, ventas: 0 },
-  sinUtmHoy: [],
-}));
-vi.mock("@/lib/queries/pauta-interina", () => ({ pautaInterina }));
+// Pauta (355): la tabla única lee la base por `cargarRoasDePauta`; aquí solo importa que la página pase.
 const VISTA_ROAS_VACIA = {
   envios: [],
   total: { nivel: "total", id: null, nombre: "Total Paid", padreId: null, registros: 0, agendas: 0, shows: 0,
     noShows: 0, ventas: 0, ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0, ventasDespues: 0,
-    ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0, desdeDias: null, hastaDias: null },
-  campanas: [], conjuntos: [], anuncios: [], anunciosSinIdentificar: [],
+    ventasSinLlamada: 0, valorVendidoUsd: 0, sinValorVendido: 0, gastoUsd: 0, roas: { valor: null, base: 0, faltan: 0, motivo: null }, desdeDias: null, hastaDias: null },
+  campanas: [], conjuntos: [], anuncios: [], anunciosSinIdentificar: [], canales: [],
   sinAnuncio: { nivel: "sin_anuncio", id: null, nombre: "Sin campaña de Meta", padreId: null, registros: 0, agendas: 0,
     shows: 0, noShows: 0, ventas: 0, ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0,
-    ventasDespues: 0, ventasSinLlamada: 0, contratadoUsd: 0, sinValorVendido: 0, gastoUsd: 0,
+    ventasDespues: 0, ventasSinLlamada: 0, valorVendidoUsd: 0, sinValorVendido: 0, gastoUsd: 0, roas: { valor: null, base: 0, faltan: 0, motivo: null },
     desdeDias: null, hastaDias: null },
-  cobertura: { anuncio: 0, soloCampanaOConjunto: 0, sinCampana: 0 }, citasSinMarcar: 0,
+  cobertura: { anuncio: 0, soloCampanaOConjunto: 0, sinCampana: 0 },
+  reconciliacion: { ventasDelPeriodoPorFecha: 0, atribuidasPorCohorteEnPeriodo: 0, sinEnvioDePautaODeOtroPeriodo: 0 },
+  agendasPendientes: 0, citasSinMarcar: 0,
   ventanaCierreDias: null, ventasParaMadurez: 0, trmEtiqueta: null, diasSinTrm: [],
+  coberturaGasto: { primerDia: null, ultimoDia: null, diasSinFila: [] }, rango: { desde: "2026-09-01", hasta: "2026-09-30" },
 };
 const cargarRoasDePauta = vi.fn(async () => VISTA_ROAS_VACIA);
 vi.mock("@/lib/queries/roas-de-pauta", async (importOriginal) => ({

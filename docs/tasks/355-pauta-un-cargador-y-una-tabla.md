@@ -3,7 +3,7 @@ id: 355
 etapa: pauta
 serves: "ADR 0115 N1, N7 · auditoría 30-oct R-01, R-06, U-03, U-04, U-12, U-13 · enmienda el 350"
 depends: [351, 352, 353, 354, 388]
-status: todo
+status: en curso
 ---
 
 # 355 — Pauta: un cargador y una tabla
@@ -36,7 +36,25 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 ## Done cuando
 
-- [ ] Test: para el mismo periodo, la suma de ventas de la tabla por campaña y por canal da lo mismo que Comercial.
-- [ ] `pauta-interina.*` y `categoriaDe` no existen; grep limpio.
+- [x] Test: para el mismo periodo, la suma de ventas de la tabla por campaña y por canal da lo mismo que Comercial.
+- [x] `pauta-interina.*` y `categoriaDe` no existen; grep limpio.
 - [ ] Recorrido a 375 px y en escritorio, claro y oscuro, con clic en todo lo que se abre; `npm run build`.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+
+## Estado (9-nov, noche) · rama `t355`, sin commit
+
+**Decisiones de Mani (9-nov):** (1) la venta se atribuye al origen que trajo a la persona y se ancla al día del ENVÍO (cohorte), aunque compre
+semanas después (lo dijo Daniel Tovar en el weekly del 3-nov, `docs/weekly-2026-11-03.md`); las ventas del periodo sin envío de pauta salen
+aparte en una nota de reconciliación (28 del Hub contra 13 de Pauta en Comunicarte octubre). (2) La vista **por canal oculta Gasto y ROAS**: Meta da
+el gasto por anuncio, no por canal, y mostrar "—" o 0 se leería como dato. (3) Aviso de cobertura "parcial: N agendas pendientes" cuando quedan
+citas de la cohorte por ocurrir; el ROAS proyectado es del 375.
+
+**Hecho (Kiro, Codex estaba sin cupo):** `lib/queries/hechos/gasto.ts` (nuevo), un solo cargador (`roas-de-pauta.ts`, nivel `canal`,
+`reconciliacion`, `agendasPendientes`, `valorVendidoUsd`), tabla única `components/pauta-roas.tsx` (`?ver_por=`), borrados `pauta-interina.ts`,
+`components/pauta-interina.tsx` y su test; tres tests de paridad reescritos sobre el cargador (353 N2, escalera 349, páginas); `metricas.md` y
+`overview.md` §11 al día. Verificado: typecheck, lint, 7 archivos de test del cambio + 28 de guardianes (mcp, pauta, tracker, loading…), `npm run build`.
+
+**Falta (por eso sigue `en curso`):**
+- [ ] Recorrido a 375 px y escritorio, claro y oscuro, con clic en todo (Docker apagado: `npm run db:local` + `npm run dev:local`; nunca `npm run dev`, la pestaña Pauta escribe al renderizar).
+- [ ] `/codex:adversarial-review` del diff cuando Codex tenga cupo (dinero y ROAS): mirar `reconciliacion`, `agendasPendientes` y las aserciones adaptadas de `tests/escalera.test.ts`.
+- [ ] Commit, push y checkpoint verde; solo entonces `status: done` y `[x]` en el tracker.

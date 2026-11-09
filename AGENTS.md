@@ -46,6 +46,8 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    **`docs/hub.md`** (14-oct) es el plan del **Hub**, que reemplaza al Dashboard y a Metas (ADR 0086 a 0090): el
    audit medido, los frentes con sus tickets (244 a 262) y los contratos C-1 y C-2 (§8). Léelo antes de tocar
    métricas, pauta, atribución o el Hub.
+   **`docs/weekly-2026-11-03.md`** (9-nov) resume lo que pidió Daniel Tovar en el weekly del 3-nov (ROAS por cohorte de envío, tres columnas de dinero,
+   productos y SKUs, media) y a qué ticket va cada pedido; es documento de reunión (N8: manda ADR > ticket > él).
    **`docs/metricas.md`** (15-oct) es **el diccionario de métricas, la única tabla de definiciones**: de qué tabla
    sale cada cifra, qué cuenta y qué no, con qué fecha y moneda, en qué función vive y cómo verificarla. Una métrica
    nueva o un cambio de fórmula lo actualiza en el mismo commit.

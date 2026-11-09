@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { calls, deals, leads, programs } from "@/lib/db/schema";
+import { calls, deals, leads, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { sinResultadoDelRango } from "@/lib/queries/dashboard";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
 import { inboxDelPrograma } from "@/lib/queries/inbox";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { cargarEscalera, filtrarEscalera, resumirEscalera } from "@/lib/queries/escalera";
-import { pautaInterina } from "@/lib/queries/pauta-interina";
+import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -16,7 +16,9 @@ import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 /**
  * Ticket 353 (ADR 0115 N2): el mismo set de citas, la misma cifra en Hoy, Pauta, el grupo del embudo y la
  * escalera; la reagenda cuenta como otra agenda (DA-4) en las pantallas que la usan; Inbox y bandera dan lo mismo
- * con el criterio declarado.
+ * con el criterio declarado. Pauta se mide con el cargador que sobrevive (`cargarRoasDePauta`, 355): su universo
+ * son los envíos pagos, así que cada deal de prueba nace de un envío pago en el periodo para que la paridad siga
+ * midiendo el mismo conjunto de citas.
  */
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -32,9 +34,13 @@ const a = (hora: string) => new Date(`${DIA}T${hora}-05:00`);
 async function sembrar() {
   const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "paridad", nombre: "Paridad", ticketUsd: "100" }).returning();
   const programId = programa!.id;
+  const [fuente] = await db.insert(sources).values({ programId, nombre: "Formulario" }).returning();
   const nuevoDeal = async (correo: string, etapa: "agendado" | "atendido" | "ganado_completo") => {
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: `${correo}@retia.co` }).returning();
-    const [deal] = await db.insert(deals).values({ programId, leadId: lead!.id, etapa, ownerUserId: await duenoDePrueba(db, programId) }).returning();
+    // Un envío pago del día: el universo de Pauta (355) son los envíos pagos, así que el deal nace de uno.
+    const [envio] = await db.insert(submissions).values({ leadId: lead!.id, sourceId: fuente!.id, token: `${correo}-${DIA}`,
+      esParcial: false, fechaEnvio: a("07:00:00"), utmSource: "facebook", utmMedium: "cpc", utmCampaign: `camp-${correo}` }).returning();
+    const [deal] = await db.insert(deals).values({ programId, leadId: lead!.id, etapa, submissionOrigenId: envio!.id, ownerUserId: await duenoDePrueba(db, programId) }).returning();
     return deal!;
   };
   const creada = { createdAt: a("08:00:00") };
@@ -70,9 +76,9 @@ describe("353: el mismo set de citas da el mismo show en cada pantalla", () => {
     expect(vista.embudo.grupo.conShow).toBe(1);
     expect(vista.embudo.razonShow.valor).toBe(1);
 
-    const pauta = await pautaInterina(db, programId, { desde: DIA, hasta: DIA }, {}, DIA, ahora);
-    expect(pauta.resumen.shows).toBe(showPorCita.realizadas);
-    expect(pauta.resumen.noShows).toBe(1);
+    const pauta = await cargarRoasDePauta(db, programId, { desde: DIA, hasta: DIA }, DIA, ahora);
+    expect(pauta.total.shows).toBe(showPorCita.realizadas);
+    expect(pauta.total.noShows).toBe(1);
 
     const escalera = await cargarEscalera(db, { programId, rango: { desde: "2000-01-01", hasta: "2099-12-31" } }, ahora);
     const fila = escalera.deals.find((d) => d.dealId === dealA.id)!;
@@ -86,8 +92,8 @@ describe("353 (DA-4): la agenda es la cita creada y la reagenda es otra cita", (
     // 6 citas creadas ese día: A2 + B1 + C1 + D2 (la nueva de D se creó el mismo día).
     const [agendas] = await agruparAgendas(db, { programId, rango: { desde: DIA, hasta: DIA }, agruparPor: [] });
     expect(agendas!.agendas).toBe(6);
-    const pauta = await pautaInterina(db, programId, { desde: DIA, hasta: DIA }, {}, DIA, ahora);
-    expect(pauta.resumen.agendas).toBe(agendas!.agendas);
+    const pauta = await cargarRoasDePauta(db, programId, { desde: DIA, hasta: DIA }, DIA, ahora);
+    expect(pauta.total.agendas).toBe(agendas!.agendas);
   });
 });
 

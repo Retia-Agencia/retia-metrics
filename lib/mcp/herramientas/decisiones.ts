@@ -129,7 +129,7 @@ export const pautaRoasMcp: Herramienta<typeof entradaRoas> = {
       texto: [
         `${fila.nombre} · ${periodo.rango.desde} a ${periodo.rango.hasta} (Bogotá)`,
         `ROAS: ${roas} · cobertura ${num(fila.roas.base)} de ${num(fila.roas.base + fila.roas.faltan)}${fila.roas.motivo ? ` · ${fila.roas.motivo}` : ""}`,
-        `Vendido: ${monto(fila.contratadoUsd, "USD")} · gasto: ${monto(fila.gastoUsd, "USD")}`,
+        `Vendido: ${monto(fila.valorVendidoUsd, "USD")} · gasto: ${monto(fila.gastoUsd, "USD")}`,
         `Envíos: ${num(fila.registros)} · agendadas: ${num(fila.agendas)} · realizadas: ${num(fila.shows)} · ventas: ${num(fila.ventas)}`,
         enlace,
       ].join("\n"),

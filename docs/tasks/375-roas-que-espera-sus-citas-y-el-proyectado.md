@@ -8,6 +8,8 @@ status: todo
 
 # 375 — El ROAS que espera sus citas, y el ROAS proyectado
 
+> **Nota 9-nov:** el 355 (rama `t355`) ya trae el aviso «parcial: N agendas pendientes» y la ancla por cohorte de envío; el 375 conserva la proyección (tasa de show y cierre de las últimas ~3 semanas por closer) y la confirmación posterior. Fuente: `docs/weekly-2026-11-03.md`.
+
 **Fase 2** de la entrega (`docs/hub.md` §0): Dani lo dijo explícito, "Manu, esto es para allá? No. Para allá es el tema
 comercial (...) ya después vemos el tema de pauta más a profundidad". Se escribe hoy para que el detalle no se pierda.
 

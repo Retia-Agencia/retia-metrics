@@ -111,16 +111,16 @@ describe("ROAS de Pauta", () => {
     await escenario();
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
     const campana = vista.campanas.find((f) => f.id === "camp1")!;
-    expect(campana).toMatchObject({ registros: 2, ventas: 1, contratadoUsd: 300, gastoUsd: 150, agendas: 2, shows: 1, noShows: 1 });
-    expect(campana.contratadoUsd / campana.gastoUsd).toBe(2);
-    expect(vista.total).toMatchObject({ registros: 3, ventas: 2, contratadoUsd: 400, gastoUsd: 150 });
-    expect(vista.total.roas.valor).toBe(vista.total.contratadoUsd / vista.total.gastoUsd);
-    expect(vista.sinAnuncio).toMatchObject({ ventas: 1, contratadoUsd: 100 });
+    expect(campana).toMatchObject({ registros: 2, ventas: 1, valorVendidoUsd: 300, gastoUsd: 150, agendas: 2, shows: 1, noShows: 1 });
+    expect(campana.valorVendidoUsd / campana.gastoUsd).toBe(2);
+    expect(vista.total).toMatchObject({ registros: 3, ventas: 2, valorVendidoUsd: 400, gastoUsd: 150 });
+    expect(vista.total.roas.valor).toBe(vista.total.valorVendidoUsd / vista.total.gastoUsd);
+    expect(vista.sinAnuncio).toMatchObject({ ventas: 1, valorVendidoUsd: 100 });
     expect(vista.campanas.some((fila) => fila.id === "camp-vacia")).toBe(false);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv",
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
     }));
-    expect(html).toContain("1 de 2 ventas sin campaña de Meta");
+    expect(html).toContain("Sin campaña de Meta");
     expect(html).toContain("Cómo se calcula");
     expect(html).not.toContain("Aún madurando");
     expect(html).toContain("Cuándo: ");
@@ -156,10 +156,10 @@ describe("ROAS de Pauta", () => {
     await vender(parcialSolo, "150", "2026-10-04");
 
     const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
-    expect(vista.total).toMatchObject({ registros: 1, agendas: 1, shows: 1, ventas: 2, contratadoUsd: 350 });
+    expect(vista.total).toMatchObject({ registros: 1, agendas: 1, shows: 1, ventas: 2, valorVendidoUsd: 350 });
     expect(vista.envios).toHaveLength(2);
     expect(vista.envios.find((fila) => fila.envioId === completo.envioId)?.venta?.dealId).toBe(plegado.id);
-    expect(vista.envios.some((fila) => !fila.cuentaComoRegistro && fila.venta?.contratadoUsd === 150)).toBe(true);
+    expect(vista.envios.some((fila) => !fila.cuentaComoRegistro && fila.venta?.valorVendidoUsd === 150)).toBe(true);
   });
 
   it("atribuye por campaña id o nombre exacto y separa el anuncio sin identificar", async () => {
@@ -178,7 +178,7 @@ describe("ROAS de Pauta", () => {
     expect(vista.cobertura).toEqual({ anuncio: 0, soloCampanaOConjunto: 2, sinCampana: 1 });
     expect(vista.citasSinMarcar).toBe(1);
     const html = renderToStaticMarkup(createElement(PautaRoas, {
-      vista, enlace: () => "/lista", hrefCsv: "/citas.csv",
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
     }));
     // El detalle de la campaña vive en un diálogo cerrado: la fila es un botón y no despliega nada en la tabla.
     expect(html).toContain("<button");
@@ -200,5 +200,37 @@ describe("ROAS de Pauta", () => {
       const proyectada = proyectarParaPauta(lista, false);
       expect(proyectada.filas.every((fila) => fila.persona !== null && fila.closer === null && fila.dealId === null && fila.monto === null)).toBe(true);
     }
+  });
+
+  it("355: la suma de ventas por campaña y por canal da lo mismo que el total de la cohorte", async () => {
+    await escenario();
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+    const sumarVentas = (filas: typeof vista.canales) => filas.reduce((n, f) => n + f.ventas, 0);
+    // Campaña (jerarquía de Meta) y canal (par UTM) agrupan el MISMO universo: su suma es el total.
+    expect(sumarVentas(vista.campanas) + vista.sinAnuncio.ventas).toBe(vista.total.ventas);
+    expect(sumarVentas(vista.canales)).toBe(vista.total.ventas);
+    // La vista por canal también ancla la venta a la cohorte de registro (el valor vendido coincide).
+    const vendidoCanal = vista.canales.reduce((n, f) => n + f.valorVendidoUsd, 0);
+    expect(vendidoCanal).toBe(vista.total.valorVendidoUsd);
+    const html = renderToStaticMarkup(createElement(PautaRoas, {
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "canal", hrefVerPor: () => "?",
+    }));
+    expect(html).toContain("Canal");
+    expect(html).toContain("Facebook");
+  });
+
+  it("355 (AJUSTE 3-nov): una cita futura sin resultado marca el ROAS como parcial con su aviso", async () => {
+    const e = await envio({ dia: "2026-10-01" });
+    await vender(e, "300", "2026-10-02");
+    const [deal] = await db.select().from(deals).where(eq(deals.leadId, e.leadId));
+    await db.insert(calls).values({ programId, dealId: deal.id, resultado: "agendada",
+      fechaAgenda: new Date("2026-10-20T10:00:00-05:00"), createdAt: new Date("2026-10-02T09:00:00-05:00") });
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY, new Date("2026-10-02T12:00:00-05:00"));
+    expect(vista.agendasPendientes).toBe(1);
+    const html = renderToStaticMarkup(createElement(PautaRoas, {
+      vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
+    }));
+    expect(html).toContain("agenda pendiente");
+    expect(html).toContain("el ROAS puede estar por debajo de lo esperado");
   });
 });

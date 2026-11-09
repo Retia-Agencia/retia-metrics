@@ -8,7 +8,7 @@ import { JERGA_PROHIBIDA_EN_EL_HUB, VOCABULARIO, rotuloDeImporte } from "@/lib/v
  * de JSX o un literal que no es un código de una sola palabra en minúsculas (`"macro"`, `"con_utm"` son
  * valores del código, no pantalla). Mordido en los dos sentidos abajo.
  */
-const CARPETAS = ["components/cifra-con-lista.tsx", "components/selector-periodo.tsx", "components/variacion.tsx", "components/pauta-roas.tsx", "components/pauta-interina.tsx", "app/(app)/hub", "app/(app)/p/[programa]/hub", "components/dashboard", "components/metas", "components/hub"];
+const CARPETAS = ["components/cifra-con-lista.tsx", "components/selector-periodo.tsx", "components/variacion.tsx", "components/pauta-roas.tsx", "app/(app)/hub", "app/(app)/p/[programa]/hub", "components/dashboard", "components/metas", "components/hub"];
 
 function archivos(dir: string): string[] {
   if (statSync(dir).isFile()) return [dir];
