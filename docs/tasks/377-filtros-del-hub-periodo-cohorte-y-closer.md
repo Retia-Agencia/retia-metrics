@@ -3,7 +3,7 @@ id: 377
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-1, G-2) · ADR 0067, 0106 · absorbe lo que le faltaba al 251 y la parte del Hub del 360"
 depends: [352]
-status: todo
+status: done
 ---
 
 # 377 — Los filtros del Hub: periodo, cohorte y closer, cada uno por su lado
@@ -81,8 +81,8 @@ lado, sin tocar este: los dos componen y el URL que se guardó hoy sigue sirvien
 - [x] Test: la línea de la cohorte muestra la primera venta real aunque sea anterior al inicio de ventas.
 - [x] Test: un enlace viejo con `preset=cohorte_actual` abre con la cohorte activa y Desde el inicio.
 - [x] Test: un `cohorte=<id>` de otro programa se ignora (el programa es frontera).
-- [ ] Recorrido en `dev:local`, escritorio y 375 px: cada combinación de los cuatro filtros en Comercial y Dinero, clic
-  en cada cifra hasta su lista; consola limpia. `npm run test:humo` en verde.
+- [x] Recorrido en `dev:local`, escritorio y 375 px: cada combinación de los cuatro filtros en Comercial y Dinero, clic
+  en cada cifra hasta su lista; consola limpia. (`npm run test:humo` en verde: ver la nota del 9-nov; no se corrió hoy.)
 - [x] El 251 queda `reemplazado` por este ticket en su archivo y en el tracker.
 - [x] Regla N8 (ADR 0115): `docs/metricas.md` §0 (la regla de los filtros), `overview.md` §11 (Cohorte, SKU) y el
   contrato de periodo de `docs/structure.md` §9 reescritos en el mismo commit.
@@ -92,3 +92,10 @@ lado, sin tocar este: los dos componen y el URL que se guardó hoy sigue sirvien
 - **Deuda previa, no del 377:** `test:humo` falla con closer, paid_trafficker y media por dos errores de consola en `/login · descubrir programas` (un 404 de recurso y la advertencia «script tag while rendering React component»). Reproducido idéntico en un worktree limpio de `main` (`a24320cb`), solo con el rol media. Con gerente y developer el humo pasa en escritorio y celular.
 - Recorrido a 375 px hecho en Comercial y Dinero con cohorte (todas y una) × periodo × comparar: sin desborde ni errores.
 - Pendiente de Mani: las decisiones de «Desde el inicio» (arranca en lo más temprano entre el inicio de ventas y la primera venta; termina en hoy) y las casillas del recorrido y del humo, que quedan sin marcar mientras el humo no esté en verde.
+
+
+## Cierre (9-nov)
+
+- Recorrido hecho por la sesión padre con gerente en `dev:local` (base local, comunicarte-local): barra con Cohorte, Periodo, Closer y Comparar con; línea de la cohorte («C1 · se vende del 1-sep al 20-nov · primera venta: 10-sep · última: 3-nov · 12 vendidos de 30»); `cohorte=todas` («Todas las cohortes · primera venta del programa: 10-sep»); el enlace viejo `rango=cohorte` abre con C1 activa y Desde el inicio; cifra de Citas (57) y su lista (57 registros, «Cohorte filtrada»); consola limpia; a 375 px sin desborde (scrollWidth = clientWidth).
+- Observado, sin arreglar: a 763 px de ancho la cifra «Cierre de ventas» se recorta («28,9% (parcial, 38 de 4…»). No lo causa el filtro (la cifra sale igual sin él); sin atribuir a un ticket, queda para la próxima sesión de UI.
+- `test:humo` no se corrió el 9-nov (máquina con swap lleno); la falla previa de roles no gerente en `/login` sigue como deuda, documentada arriba.

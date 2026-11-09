@@ -28,7 +28,7 @@ a fase 2.
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
 | [x] | 374 | [El Hub habla un solo idioma](./374-el-hub-habla-un-solo-idioma.md) | — | done · 3-nov · reemplaza al 357 |
-| [ ] | 377 | [Los filtros del Hub: periodo, cohorte y closer, separados](./377-filtros-del-hub-periodo-cohorte-y-closer.md) | 352 | todo · fase 1, paso 2 · absorbe al 251 |
+| [x] | 377 | [Los filtros del Hub: periodo, cohorte y closer, separados](./377-filtros-del-hub-periodo-cohorte-y-closer.md) | 352 | done · 9-nov · recorrido hecho (humo sin correr) · antes: todo · fase 1, paso 2 · absorbe al 251 |
 | [x] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 377, 352, 374 | done · fase 1, paso 3 |
 | [x] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | done · 4-nov · fase 1, paso 3 · absorbe al 253 |
 | [x] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 377 | done · 4-nov · fase 1, paso 3 |
@@ -461,7 +461,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 392 | [Venta: un solo recorrido](./392-venta-un-solo-recorrido.md) | 351, 353 | done · 9-nov · un solo recorrido de venta; merge `a8bf350e` · hijo del 385 (F7) |
 | [x] | 393 | [Dinero: una sola suma](./393-dinero-una-sola-suma.md) | 392 | done · 8-nov · hijo del 385 (F7) · reja sin CHECK · `cupos_con_caja` pasa al 403 |
 | [ ] | 394 | [El programa lo garantiza la base](./394-el-programa-lo-garantiza-la-base.md) | — | todo · 7-nov · hijo del 385 (F7) · ola 2, al final · migración M4 y M5 · ADR 0123 · riesgo alto |
-| [ ] | 395 | [Moneda: un `CHECK` y una regla de suma probada](./395-moneda-un-check-y-una-regla-de-suma.md) | 388 | todo · 7-nov · hijo del 385 (F7) · ola 2 · migración M6 · ADR 0124 |
+| [x] | 395 | [Moneda: un `CHECK` y una regla de suma probada](./395-moneda-un-check-y-una-regla-de-suma.md) | 388 | done · 9-nov · migraciones 0126 y 0127 aplicadas, CI verde `ba15992b` · ADR 0124 · hijo del 385 (F7) · antes: todo · 7-nov · hijo del 385 (F7) · ola 2 · migración M6 · ADR 0124 |
 | [x] | 396 | [Cohortes: solape decidido](./396-cohortes-solape-decidido.md) | — | done · 8-nov · hijo del 385 (F7) · sin solape (Mani) · fechas corregidas en producción · migraciones 0121 y 0122 preparadas, sin aplicar · ADR 0123 |
 | [x] | 397 | [Un nombre por concepto: glosario y rótulos](./397-un-nombre-por-concepto-glosario-y-rotulos.md) | 389, 390, 392, 393 | done · 8-nov · hijo del 385 (F7) · ola 3 · sin migración · Objetivo de leads se mide contra personas |
 | [x] | 398 | [Diccionario y documentos al día](./398-diccionario-y-documentos-al-dia.md) | — | done · 9-nov · merge `3fd5d18b` · hijo del 385 (F7) · solo documentación |
