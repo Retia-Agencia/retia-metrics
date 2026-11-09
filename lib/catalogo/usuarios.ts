@@ -72,14 +72,6 @@ export const esquemaUsuario = z.object({
       .optional()
       .default("")
       .transform((v) => (v && v.length > 0 ? v : null)),
-    calendlyEmail: z
-      .string()
-      .trim()
-      .toLowerCase()
-      .email("El correo de Calendly no es válido.")
-      .optional()
-      .or(z.literal(""))
-      .transform((v) => (v && v.length > 0 ? v : null)),
     /** Programas donde el usuario vende. Cada uno es un uuid de `programs`. */
     programas: z.array(z.string().uuid("Programa inválido.")).optional(),
     /**
@@ -150,7 +142,6 @@ type CamposUsuario = {
   rol: (typeof ROLES)[number];
   operaComoCloser: boolean;
   closerId: string | null;
-  calendlyEmail: string | null;
 };
 
 export interface ActorDeUsuarios {
@@ -228,7 +219,6 @@ function moldeUsuarios(db: Db) {
         rol: z.enum(ROLES),
         operaComoCloser: z.boolean(),
         closerId: z.string().nullable(),
-        calendlyEmail: z.string().nullable(),
       }) as unknown as z.ZodType<CamposUsuario>,
       etiqueta: (fila) => String(fila.email),
       nombreEntidad: "un usuario",
@@ -396,7 +386,6 @@ export interface UsuarioConProgramas extends FilaCatalogo {
   rol: (typeof ROLES)[number];
   operaComoCloser: boolean;
   closerId: string | null;
-  calendlyEmail: string | null;
   programas: string[];
   programasQueVe: string[];
   whatsapps: string[];
@@ -441,7 +430,6 @@ export async function listarUsuarios(
     rol: u.rol,
     operaComoCloser: u.operaComoCloser,
     closerId: u.closerId,
-    calendlyEmail: u.calendlyEmail,
     programas: activasPorUsuario.get(u.id) ?? [],
     programasQueVe: alcancePorUsuario.get(u.id) ?? [],
     whatsapps: whatsappsPorUsuario.get(u.id) ?? [],
@@ -614,7 +602,7 @@ export async function crearUsuario(
               .from(miembrosPrograma)
               .where(and(eq(miembrosPrograma.userId, fila.id), eq(miembrosPrograma.activo, true)));
             for (const membresia of membresias) {
-              const calendlyEmail = porPrograma[membresia.programId] || campos.calendlyEmail;
+              const calendlyEmail = porPrograma[membresia.programId];
               if (!calendlyEmail) continue;
               await asignarCalendlyDeMembresia(tx, actor.id, { membresiaId: membresia.id, calendlyEmail }, opciones);
             }
@@ -825,7 +813,6 @@ export async function editarCloserIdPropio(
       rol: actual.rol,
       operaComoCloser: actual.operaComoCloser,
       closerId,
-      calendlyEmail: actual.calendlyEmail,
     });
     return {
       ...(fila as UsuarioConProgramas),

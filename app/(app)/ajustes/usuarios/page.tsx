@@ -50,7 +50,6 @@ export default async function UsuariosPage() {
     rol: u.rol,
     operaComoCloser: u.operaComoCloser,
     closerId: u.closerId,
-    calendlyEmail: u.calendlyEmail,
     activo: u.activo,
     programas: u.programas,
     programasQueVe: u.programasQueVe,

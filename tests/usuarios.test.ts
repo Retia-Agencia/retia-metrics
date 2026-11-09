@@ -84,7 +84,6 @@ const closerValido = {
   nombre: "Andrea",
   rol: "closer" as const,
   closerId: "Andrea",
-  calendlyEmail: "",
   programas: [] as string[],
 };
 

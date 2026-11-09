@@ -40,7 +40,6 @@ export interface UsuarioVista {
   rol: Rol;
   operaComoCloser: boolean;
   closerId: string | null;
-  calendlyEmail: string | null;
   activo: boolean;
   /** Programas donde tiene membresia activa. */
   programas: string[];
@@ -85,7 +84,6 @@ interface Borrador {
   rol: Rol;
   operaComoCloser: boolean;
   closerId: string;
-  calendlyEmail: string;
   alcance: "todos" | "solo";
   programasQueVe: string[];
   /** Membresias iniciales: solo se piden al crear (despues se manejan en la tab Programa). */
@@ -100,7 +98,6 @@ const BORRADOR_VACIO: Borrador = {
   rol: "closer",
   operaComoCloser: false,
   closerId: "",
-  calendlyEmail: "",
   alcance: "todos",
   programasQueVe: [],
   membresias: [],
@@ -114,7 +111,6 @@ function aBorrador(u: UsuarioVista): Borrador {
     rol: u.rol,
     operaComoCloser: u.operaComoCloser,
     closerId: u.closerId ?? "",
-    calendlyEmail: u.calendlyEmail ?? "",
     alcance: u.programasQueVe.length > 0 ? "solo" : "todos",
     programasQueVe: u.programasQueVe,
     membresias: [],
@@ -477,7 +473,6 @@ function aEntrada(b: Borrador, alCrear: boolean) {
     rol: b.rol,
     operaComoCloser: b.operaComoCloser,
     closerId: b.closerId,
-    calendlyEmail: b.calendlyEmail,
   };
 }
 

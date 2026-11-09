@@ -47,13 +47,11 @@ async function main() {
       slug: "comunicarte",
       nombre: "Comunicarte",
       ticketUsd: "797.00",
-      recordPersonasPorDiaHabil: 73,
     },
     {
       slug: "tactical-investor",
       nombre: "Tactical Investor",
       ticketUsd: "1500.00",
-      recordPersonasPorDiaHabil: 30,
     },
   ];
 

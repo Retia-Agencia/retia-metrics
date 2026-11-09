@@ -86,7 +86,6 @@ async function agregar(email: string, rol: string, closerId?: string, ...program
         email: datos.email,
         rol: datos.rol,
         closerId: datos.closerId,
-        calendlyEmail: datos.calendlyEmail,
         nombre: datos.nombre,
         activo: true,
       })
