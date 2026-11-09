@@ -2802,11 +2802,59 @@ export const mcpTokens = pgTable(
     ultimoUsoEn: timestamp("ultimo_uso_en", { withTimezone: true }),
     revocadoEn: timestamp("revocado_en", { withTimezone: true }),
     revocadoPorUserId: uuid("revocado_por_user_id").references(() => users.id, { onDelete: "set null" }),
+    /** Vencimiento del acceso. Nulo = no vence (solo los personales anteriores al 383). */
+    venceEn: timestamp("vence_en", { withTimezone: true }),
+    /** Solo `tipo = 'oauth'` (ticket 383): el cliente (URL del documento CIMD) y la audiencia (RFC 8707). */
+    clientId: text("client_id"),
+    resource: text("resource"),
+    /** sha256 del refresh token vigente. Unico; rota en cada uso. */
+    refreshHash: text("refresh_hash"),
+    refreshVenceEn: timestamp("refresh_vence_en", { withTimezone: true }),
+    /** El codigo de autorizacion que lo emitio: reutilizarlo revoca todo lo emitido con el. */
+    codigoId: uuid("codigo_id").references((): AnyPgColumn => oauthCodigos.id, { onDelete: "set null" }),
   },
   (t) => [
     uniqueIndex("mcp_tokens_hash_idx").on(t.hash),
+    uniqueIndex("mcp_tokens_refresh_hash_idx").on(t.refreshHash),
     index("mcp_tokens_user_idx").on(t.userId),
+    index("mcp_tokens_codigo_idx").on(t.codigoId),
   ],
+);
+
+/**
+ * Clientes OAuth que el CRM conoce por su documento de metadatos (CIMD, ticket 383). Es cache +
+ * historial: el `client_id` ES la URL https del documento. `bloqueado_en` corta un cliente entero.
+ */
+export const oauthClientes = pgTable(
+  "oauth_clientes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clientId: text("client_id").notNull(),
+    nombre: text("nombre").notNull(),
+    redirectUris: jsonb("redirect_uris").$type<string[]>().notNull(),
+    obtenidoEn: timestamp("obtenido_en", { withTimezone: true }).notNull().defaultNow(),
+    bloqueadoEn: timestamp("bloqueado_en", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("oauth_clientes_client_id_idx").on(t.clientId)],
+);
+
+/** Codigos de autorizacion de un solo uso (10 min). Se guarda el hash, nunca el valor. */
+export const oauthCodigos = pgTable(
+  "oauth_codigos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    hash: text("hash").notNull(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    clientId: text("client_id").notNull(),
+    redirectUri: text("redirect_uri").notNull(),
+    codeChallenge: text("code_challenge").notNull(),
+    scope: mcpScopeEnum("scope").notNull(),
+    resource: text("resource").notNull(),
+    venceEn: timestamp("vence_en", { withTimezone: true }).notNull(),
+    usadoEn: timestamp("usado_en", { withTimezone: true }),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("oauth_codigos_hash_idx").on(t.hash)],
 );
 
 /**
@@ -2834,6 +2882,8 @@ export const mcpLlamadas = pgTable(
   (t) => [index("mcp_llamadas_token_creado_idx").on(t.tokenId, t.creadoEn)],
 );
 
+export type OauthCliente = typeof oauthClientes.$inferSelect;
+export type OauthCodigo = typeof oauthCodigos.$inferSelect;
 export type McpToken = typeof mcpTokens.$inferSelect;
 export type McpLlamada = typeof mcpLlamadas.$inferSelect;
 
