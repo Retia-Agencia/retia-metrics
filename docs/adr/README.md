@@ -152,6 +152,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0121](./0121-el-lead-nace-con-su-fecha-y-sus-contactos.md) | El lead nace con su fecha y sus contactos: la ingesta escribe `fecha_primera_aplicacion` (envío o recepción), un solo ancla de fecha (`fechaAnclaLead`), el alta manual escribe sus contactos y la calificación del resumen desempata de forma estable (**concreta el 0115 N1 y N6; enmienda el 0035**) |
 | [0122](./0122-una-venta-vigente-tiene-dueno.md) | Una venta vigente tiene dueño: `CHECK` en `deals` (Abonado o Completo, no anulada, sin `owner_user_id` se rechaza), con una excepción nombrada: el deal histórico migrado de la hoja (`huella_migracion`); las 3 ventas históricas de Comunicarte quedan sin dueño por decisión de Mani; la identidad del closer de un abono es `registrado_por_user_id`, no el texto (**concreta el 0115 N6; enmienda el 0030 y el 0037**) |
 | [0123](./0123-las-ventanas-de-venta-no-se-solapan.md) | Las ventanas de venta de las cohortes de un programa no se solapan: `EXCLUDE` con `btree_gist` sobre `(program_id, daterange de venta cerrado)`; las dos parejas existentes se corrigieron; el catálogo traduce el 23P01; una cohorte nace con meta de 50 leads por día (**enmienda el 0022; concreta el 0115 N6**) |
+| [0127](./0127-retencion-de-sobres-y-notificaciones.md) | **Propuesto.** Retención: sobre crudo procesado 180 días (junto con su entrega), con error pendiente nunca, notificaciones de Calendly 90 días; un cron diario por lotes, sin migración (**concreta el 0058; ticket 402**) |
 
 **Plataforma**
 
