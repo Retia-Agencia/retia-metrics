@@ -1,6 +1,6 @@
 # 0127 — Retención de sobres crudos, entregas y notificaciones
 
-- **Estado:** aceptada · 9-nov-2026 (Mani: 180 días para sobres procesados, 90 para notificaciones, cron nuevo)
+- **Estado:** aceptada · 9-nov-2026 (Mani aprobó en chat los plazos: 180 días para sobres procesados, 90 para notificaciones, cron nuevo)
 - **Relacionadas:** ADR 0058 (el webhook no pierde nada), ADR 0093 (lectura de Form30x), ADR 0115 N7, ticket 402, auditoría 385 F3-19
 
 ## Contexto

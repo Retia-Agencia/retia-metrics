@@ -38,7 +38,7 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 
 - [x] Test: para el mismo periodo, la suma de ventas de la tabla por campaña y por canal da lo mismo que Comercial.
 - [x] `pauta-interina.*` y `categoriaDe` no existen; grep limpio.
-- [ ] Recorrido a 375 px y en escritorio, claro y oscuro, con clic en todo lo que se abre; `npm run build`.
+- [x] Recorrido a 375 px y en escritorio, claro y oscuro, con clic en todo lo que se abre; `npm run build` (hecho el 9-nov contra la base local, ver «Falta» abajo).
 - [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
 
 ## Estado (9-nov, noche) · rama `t355`, sin commit
