@@ -19,8 +19,8 @@ export const EXCEPCIONES_HISTORICAS: readonly string[] = [
   "226:R1", "227:R1", "228:R1", "229:R1", "230:R1", "231:R1",
   "234:R1", "235:R1", "238:R1", "239:R1", "240:R1", "241:R1",
   "244:R1", "245:R1", "246:R1", "255:R1", "259:R1", "260:R1",
-  "264:R1", "265:R1", "269:R1", "310:R1", "350:R1",
+  "264:R1", "265:R1", "269:R1", "310:R1",
 ];
 
 /** Baja al borrar una excepción; subirlo es una decisión que se ve en el diff. */
-export const TOPE_DE_EXCEPCIONES = 83;
+export const TOPE_DE_EXCEPCIONES = 82;
