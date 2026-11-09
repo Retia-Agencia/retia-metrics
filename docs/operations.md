@@ -131,6 +131,7 @@ setter. Para deshacer la limitación, vuelve a elegir **Todos**.
   `simulate` se verifica el puntaje combinación por combinación, como se hizo con Typeform (216 combinaciones).
 - **Webhook:** se configura en la página *Connect* del form, no por la API de settings. Firma
   `X-Form30x-Signature: sha256=<HMAC>` en **hex** (medido con la entrega del 15-oct; base64 ya no se acepta).
+- **Retención (ADR 0127, 402):** `GET /api/cron/retencion` (Vercel, 7:00 UTC, `CRON_SECRET`) borra por lotes los sobres crudos de más de 180 días con su entrega (los que fallaron y no se reprocesaron, nunca) y las notificaciones de Calendly de más de 90 días. Devuelve `{ sobres, entregas, notificaciones }`.
 - **Parciales:** el webhook no los manda. Los lee `POST /api/cron/form30x` en los minutos 13 y 43 de cada hora (UTC)
   con `lib/form30x/api.ts`, el único lector de la key, que solo hace `GET /responses` (ADR 0093). **Lo dispara
   pg_cron en Supabase** (job `leer-form30x`, migración 0092) con pg_net; la URL y el secreto los lee en cada corrida
