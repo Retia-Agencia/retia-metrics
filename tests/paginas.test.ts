@@ -1555,7 +1555,6 @@ describe("la ficha del lead /p/[programa]/leads/[id] (ticket 073)", () => {
         empezoComoParcial: null,
         fecha: new Date("2026-09-01T12:00:00Z"),
         fechaEsDeLlegada: false,
-        posicionEnHoja: null,
         calificacion: null,
         fuente: "Typeform",
         canal: "Sin UTM",

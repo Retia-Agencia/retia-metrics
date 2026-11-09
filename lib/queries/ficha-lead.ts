@@ -12,9 +12,8 @@ import { resolverCanal } from "@/lib/atribucion/canal";
  *
  * - **El programa es frontera** (ADR 0043): recibe `programId` Y `leadId`; un lead de otro
  *   programa devuelve `null`, igual que uno inexistente, y la ruta responde 404 sin decir cual.
- * - **Los envios van en el orden en que ocurrieron, no por fecha** (ADR 0036): por
- *   `posicion_en_hoja`, porque los parciales de Typeform llevan una fecha placeholder. Lo que
- *   entro por webhook no tiene hoja y va despues, en el orden en que llego (`created_at`).
+ * - **Los envios van en el orden en que llegaron, no por fecha** (ADR 0036): por `created_at`,
+ *   porque los parciales de Typeform llevan una fecha placeholder.
  * - **El diff entre envios distingue "no habia" de "vacio"**: una columna que el formulario no
  *   tenia cuando se lleno el envio viejo no es una respuesta en blanco. `respuestas` guarda el
  *   encabezado como llave, asi que una llave ausente es justo eso: la pregunta no existia.
@@ -52,8 +51,6 @@ export interface EnvioDeLaFicha {
   /** La fecha que trae el formulario (en un parcial puede ser aproximada) o, sin ella, cuando llego. */
   fecha: Date;
   fechaEsDeLlegada: boolean;
-  /** De la hoja (traslado) o por webhook. */
-  posicionEnHoja: number | null;
   calificacion: string | null;
   fuente: string;
   canal: string;
@@ -155,7 +152,6 @@ function legible(valor: unknown): ValorDeCampo {
 export type EnvioParaComparar = Parameters<typeof utmsDelEnvio>[0] & {
   nombre: string | null;
   calificacion: string | null;
-  estadoHoja: string | null;
   leadQuality: string | null;
   leadValue: string | null;
 };
@@ -171,7 +167,6 @@ export function camposDelEnvio(envio: EnvioParaComparar): CampoDelEnvio[] {
   const promovidos: [string, string | null][] = [
     ["Nombre", envio.nombre],
     ["Estado de llegada", envio.calificacion],
-    ["Estado en la hoja", envio.estadoHoja],
     ["Lead quality", envio.leadQuality],
     ["Lead value", envio.leadValue],
     ["UTM Source", utm.source],
@@ -219,14 +214,9 @@ export function diferenciasEntreEnvios(anterior: CampoDelEnvio[], actual: CampoD
   return salida;
 }
 
-/** El orden real de los envios (ADR 0036): hoja primero por posicion, luego lo que llego por webhook. */
-export function ordenarEnvios<T extends { posicionEnHoja: number | null; createdAt: Date; id: string }>(envios: T[]): T[] {
+/** El orden real de los envios (ADR 0036): el orden en que llegaron al CRM. */
+export function ordenarEnvios<T extends { createdAt: Date; id: string }>(envios: T[]): T[] {
   return [...envios].sort((a, b) => {
-    if (a.posicionEnHoja !== null && b.posicionEnHoja !== null && a.posicionEnHoja !== b.posicionEnHoja) {
-      return a.posicionEnHoja - b.posicionEnHoja;
-    }
-    if (a.posicionEnHoja !== null && b.posicionEnHoja === null) return -1;
-    if (a.posicionEnHoja === null && b.posicionEnHoja !== null) return 1;
     const t = a.createdAt.getTime() - b.createdAt.getTime();
     return t !== 0 ? t : a.id.localeCompare(b.id);
   });
@@ -267,10 +257,8 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       esParcial: submissions.esParcial,
       fechaEnvio: submissions.fechaEnvio,
       createdAt: submissions.createdAt,
-      posicionEnHoja: submissions.posicionEnHoja,
       nombre: submissions.nombre,
       calificacion: submissions.calificacion,
-      estadoHoja: submissions.estadoHoja,
       leadQuality: submissions.leadQuality,
       leadValue: submissions.leadValue,
       ...columnasUtmDelEnvio,
@@ -332,7 +320,6 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       empezoComoParcial: e.empezoComoParcial,
       fecha: e.fechaEnvio ?? e.createdAt,
       fechaEsDeLlegada: e.fechaEnvio === null,
-      posicionEnHoja: e.posicionEnHoja,
       calificacion: e.calificacion,
       fuente: nombreDeFuente.get(e.sourceId) ?? "Fuente desconocida",
       canal: canal.regla === "sin_utm" ? "Sin UTM" : canal.canal?.nombre ?? "(sin utm_source)",

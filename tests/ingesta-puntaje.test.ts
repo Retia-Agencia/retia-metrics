@@ -133,8 +133,6 @@ describe("el score aterriza en submission y en el resumen del lead", () => {
 
     const [sub] = await db.select().from(submissions).where(eq(submissions.token, "tok-score"));
     expect(sub.puntaje).toBe(63);
-    // versionPuntaje sigue nulo: no hay pesos del CRM.
-    expect(sub.versionPuntaje).toBeNull();
 
     const [lead] = await db.select().from(leads).where(eq(leads.emailNormalizado, "ana.perez@correo.co"));
     expect(lead.puntaje).toBe(63);

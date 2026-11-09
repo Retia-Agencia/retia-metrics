@@ -63,7 +63,6 @@ export async function rellenarOrigenDeDeals(
       leadId: submissions.leadId,
       id: submissions.id,
       fechaEnvio: submissions.fechaEnvio,
-      posicionEnHoja: submissions.posicionEnHoja,
     })
     .from(submissions)
     .where(inArray(submissions.leadId, leadIds));

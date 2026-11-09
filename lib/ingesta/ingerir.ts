@@ -178,12 +178,11 @@ export async function ingerirEntradas(
   // `construirEnvio`), y se guarda sin decidir nada con el (ADR 0069). El puntaje
   // (ticket 070, decision del 29-sep) tambien lo TRAE el formulario, no lo calcula el
   // CRM (decision A8): es el `e.puntaje` que el adaptador leyo de la variable de score, o
-  // null si la fuente no la nombra o el valor no era numero. `versionPuntaje` sigue nulo:
-  // no hay pesos del CRM que versionar (el formulario es quien pondera).
-  type Nota = { calificacion: Calificacion | null; puntaje: number | null; versionPuntaje: number | null };
+  // null si la fuente no la nombra o el valor no era numero.
+  type Nota = { calificacion: Calificacion | null; puntaje: number | null };
   const notaDe = new Map<string, Nota>();
   for (const e of envios) {
-    notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: e.puntaje, versionPuntaje: null });
+    notaDe.set(llaveDeEnvio(e), { calificacion: e.estado, puntaje: e.puntaje });
   }
 
   const leadsTocados = new Set<string>();
@@ -277,14 +276,12 @@ export async function ingerirEntradas(
               esParcial: e.esParcial,
               fechaEnvio: e.fechaEnvio,
               nombre: e.nombre,
-              estadoHoja: e.estadoHoja,
               utmSource: e.utmSource,
               utmMedium: e.utmMedium,
               utmCampaign: e.utmCampaign,
               utmId: e.utmId,
               utmContent: e.utmContent,
               utmTerm: e.utmTerm,
-              posicionEnHoja: e.posicionEnHoja,
               respuestas: e.respuestas,
               puntaje: e.puntaje,
               leadQuality: e.leadQuality,
@@ -298,20 +295,17 @@ export async function ingerirEntradas(
               leadId: sql`coalesce("submissions"."lead_id", excluded."lead_id")`,
               fechaEnvio: sql`excluded."fecha_envio"`,
               nombre: sql`excluded."nombre"`,
-              estadoHoja: sql`excluded."estado_hoja"`,
               utmSource: sql`excluded."utm_source"`,
               utmMedium: sql`excluded."utm_medium"`,
               utmCampaign: sql`excluded."utm_campaign"`,
               utmId: sql`excluded."utm_id"`,
               utmContent: sql`excluded."utm_content"`,
               utmTerm: sql`excluded."utm_term"`,
-              posicionEnHoja: sql`excluded."posicion_en_hoja"`,
               respuestas: sql`excluded."respuestas"`,
               calificacion: sql`excluded."calificacion"`,
               puntaje: sql`excluded."puntaje"`,
               leadQuality: sql`excluded."lead_quality"`,
               leadValue: sql`excluded."lead_value"`,
-              versionPuntaje: sql`excluded."version_puntaje"`,
             },
             // 🩸 Los dos puntos de envio parcial (el del WhatsApp y el previo al Calendly,
             // ADR 0061 punto 6) comparten token y parcialidad: son VERSIONES de la misma fila.
@@ -566,7 +560,6 @@ type EnvioGuardado = Pick<
   | "esParcial"
   | "fechaEnvio"
   | "nombre"
-  | "posicionEnHoja"
   | "calificacion"
   | "puntaje"
 > & {
@@ -596,14 +589,12 @@ export function primeraAplicacion(envios: Pick<EnvioGuardado, "fechaEnvio" | "cr
 }
 
 /**
- * El orden estable de dos envios cuando la fecha no los separa (ticket 389): la posicion en la hoja
- * y, como un webhook no tiene hoja (toda `posicion_en_hoja` es nula en produccion), cuando los recibio
+ * El orden estable de dos envios cuando la fecha no los separa (ticket 389): cuando los recibio
  * el CRM y al final el token. Sin esos dos desempates el orden de la consulta decidia la calificacion
  * del lead, y la misma base daba un resumen distinto segun como la devolviera Postgres.
  */
-function porPosicion(a: EnvioGuardado, b: EnvioGuardado): number {
+function porLlegada(a: EnvioGuardado, b: EnvioGuardado): number {
   return (
-    (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0) ||
     (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0) ||
     (a.token < b.token ? -1 : a.token > b.token ? 1 : 0)
   );
@@ -643,15 +634,15 @@ export function resumirEnvios(
 ): Resumen {
   const conFecha = envios
     .filter((e) => e.fechaEnvio !== null)
-    .sort((a, b) => a.fechaEnvio!.getTime() - b.fechaEnvio!.getTime() || porPosicion(a, b));
+    .sort((a, b) => a.fechaEnvio!.getTime() - b.fechaEnvio!.getTime() || porLlegada(a, b));
   const sinFecha = envios.filter((e) => e.fechaEnvio === null);
 
   const calificados = envios.filter((e) => e.calificacion !== null);
   const completos = conFecha.filter((e) => !e.esParcial && e.calificacion !== null);
   const decide =
     completos.at(-1) ??
-    calificados.filter((e) => !e.esParcial).sort(porPosicion).at(-1) ??
-    calificados.sort(porPosicion).at(-1) ??
+    calificados.filter((e) => !e.esParcial).sort(porLlegada).at(-1) ??
+    calificados.sort(porLlegada).at(-1) ??
     null;
 
   // Los valores (puntaje, leadQuality, leadValue) van por separado de la calificacion:
@@ -665,8 +656,8 @@ export function resumirEnvios(
   const completosConValores = conFecha.filter((e) => !e.esParcial && tieneValores(e));
   const decideValores =
     completosConValores.at(-1) ??
-    conValores.filter((e) => !e.esParcial).sort(porPosicion).at(-1) ??
-    conValores.sort(porPosicion).at(-1) ??
+    conValores.filter((e) => !e.esParcial).sort(porLlegada).at(-1) ??
+    conValores.sort(porLlegada).at(-1) ??
     null;
 
   // El nombre sigue el mismo criterio "mas reciente" que las fechas: entre los envios
@@ -760,7 +751,6 @@ export async function recalcularResumen(
         fechaEnvio: submissions.fechaEnvio,
         createdAt: submissions.createdAt,
         nombre: submissions.nombre,
-        posicionEnHoja: submissions.posicionEnHoja,
         esParcial: submissions.esParcial,
         calificacion: submissions.calificacion,
         puntaje: submissions.puntaje,

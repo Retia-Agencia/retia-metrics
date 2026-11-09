@@ -18,7 +18,7 @@ import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 
 /**
  * Ticket 073: la ficha del Lead. Lo que importa probar:
- * - los envios en el orden de la hoja (no por fecha) y el diff entre uno y el siguiente;
+ * - los envios en el orden de llegada (no por fecha) y el diff entre uno y el siguiente;
  * - una columna que no existia en el envio viejo sale "no habia", no vacia;
  * - los deals cerrados y anulados se ven sin buscarlos;
  * - cada contacto dice de que envio llego, y la marca de "unido por telefono";
@@ -28,7 +28,6 @@ import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 const vacio = (): EnvioParaComparar => ({
   nombre: null,
   calificacion: null,
-  estadoHoja: null,
   leadQuality: null,
   leadValue: null,
   utmSource: null,
@@ -111,15 +110,16 @@ describe("camposDelEnvio y diferenciasEntreEnvios (puras)", () => {
     ]);
   });
 
-  it("ordena por la posicion en la hoja, no por la fecha; lo del webhook va despues, por llegada", () => {
+  it("ordena por llegada al CRM, no por la fecha del formulario; a igual llegada, por id", () => {
     const t = (iso: string) => new Date(iso);
     const orden = ordenarEnvios([
-      { id: "w2", posicionEnHoja: null, createdAt: t("2026-09-30T00:00:00Z") },
-      { id: "h9", posicionEnHoja: 9, createdAt: t("2026-01-01T00:00:00Z") },
-      { id: "w1", posicionEnHoja: null, createdAt: t("2026-09-29T00:00:00Z") },
-      { id: "h3", posicionEnHoja: 3, createdAt: t("2026-09-01T00:00:00Z") },
+      { id: "w2", createdAt: t("2026-09-30T00:00:00Z") },
+      { id: "h9", createdAt: t("2026-01-01T00:00:00Z") },
+      { id: "w1", createdAt: t("2026-09-29T00:00:00Z") },
+      { id: "h3", createdAt: t("2026-09-01T00:00:00Z") },
+      { id: "a0", createdAt: t("2026-09-01T00:00:00Z") },
     ]);
-    expect(orden.map((e) => e.id)).toEqual(["h3", "h9", "w1", "w2"]);
+    expect(orden.map((e) => e.id)).toEqual(["h9", "a0", "h3", "w1", "w2"]);
   });
 });
 
@@ -154,18 +154,18 @@ describe("fichaDeLead (PGlite)", () => {
     leadId = l.id;
     const [fuente] = await db.insert(sources).values({ programId, nombre: "Typeform" }).returning();
 
-    // Tres envios. La FECHA miente a proposito (el parcial trae placeholder): el orden lo da la hoja.
+    // Tres envios. La FECHA miente a proposito (el parcial trae placeholder): el orden lo da la llegada.
     const [e1] = await db
       .insert(submissions)
       .values({
-        leadId, sourceId: fuente.id, token: "t1", posicionEnHoja: 10, esParcial: true,
+        leadId, sourceId: fuente.id, token: "t1", esParcial: true,
         fechaEnvio: new Date("2026-09-30T00:00:00Z"), respuestas: { Ingreso: "1000" },
       })
       .returning();
     const [e2] = await db
       .insert(submissions)
       .values({
-        leadId, sourceId: fuente.id, token: "t2", posicionEnHoja: 20, calificacion: "calificado",
+        leadId, sourceId: fuente.id, token: "t2", calificacion: "calificado",
         fechaEnvio: new Date("2026-07-01T00:00:00Z"), respuestas: { Ingreso: "1000", Urgencia: "Ya" },
       })
       .returning();

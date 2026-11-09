@@ -12,12 +12,12 @@ import type { Db } from "@/lib/db/tipos";
  * El deal que abre la ingesta no pasa por aquí: su origen es el envío que disparó la regla.
  */
 
-export type EnvioCandidato = Pick<typeof submissions.$inferSelect, "id" | "fechaEnvio" | "posicionEnHoja">;
+export type EnvioCandidato = Pick<typeof submissions.$inferSelect, "id" | "fechaEnvio">;
 
 /**
  * El más reciente de los envíos de UN lead. Mismo orden que `resumirEnvios`: la fecha manda y
  * un envío sin fecha nunca le gana a uno fechado (🩸 el placeholder de los parciales); a igual
- * fecha, o sin fecha, decide la posición en la hoja. El id desempata al final para que el
+ * fecha, o sin fecha, decide el id, para que el
  * resultado no dependa del orden en que la base devolvió las filas.
  */
 export function envioMasReciente(envios: readonly EnvioCandidato[]): string | null {
@@ -34,8 +34,6 @@ function comparar(a: EnvioCandidato, b: EnvioCandidato): number {
     if (fb === null) return 1;
     return fa - fb;
   }
-  const porPosicion = (a.posicionEnHoja ?? 0) - (b.posicionEnHoja ?? 0);
-  if (porPosicion !== 0) return porPosicion;
   return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 }
 
@@ -50,7 +48,6 @@ export async function enviosDeOrigenPorLead(db: Db, programId: string): Promise<
       leadId: submissions.leadId,
       id: submissions.id,
       fechaEnvio: submissions.fechaEnvio,
-      posicionEnHoja: submissions.posicionEnHoja,
     })
     .from(submissions)
     .innerJoin(leads, eq(submissions.leadId, leads.id))

@@ -136,7 +136,6 @@ export async function separarCorreo(db: Db, actor: ActorConAcceso, datos: DatosC
           respuestas: submissions.respuestas,
           fechaEnvio: submissions.fechaEnvio,
           createdAt: submissions.createdAt,
-          posicionEnHoja: submissions.posicionEnHoja,
           esParcial: submissions.esParcial,
           calificacion: submissions.calificacion,
           leadQuality: submissions.leadQuality,

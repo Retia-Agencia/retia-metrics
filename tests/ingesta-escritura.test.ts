@@ -208,7 +208,6 @@ describe("ingerirEntradas", () => {
     ]);
     expect(r.envios).toBe(1);
     const [envio] = await db.select().from(submissions);
-    expect(envio.posicionEnHoja).toBe(5);
     expect((envio.respuestas as Record<string, string>)["Cuanto puedes invertir"]).toBe("despues");
   });
 
@@ -264,7 +263,6 @@ describe("ingerirEntradas: el Estado lo pone el formulario (ADR 0061, tickets 05
     await ingerirEntradas(db, programId, [uno]);
     const [envio] = await db.select().from(submissions);
     expect(envio.calificacion).toBe(valor);
-    expect(envio.estadoHoja).toBe(etiqueta);
     const [lead] = await db.select().from(leads);
     expect(lead.calificacion).toBe(valor);
   });
