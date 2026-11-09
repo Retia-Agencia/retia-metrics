@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, KeyRound, Plus, Unplug } from "lucide-react";
 import { toast } from "sonner";
@@ -16,7 +16,24 @@ export type ConexionOauthVista = { id: string; clienteNombre: string; scopeEtiqu
 export type TokenPersonalVista = ConexionOauthVista & { nombre: string; scope: McpScope };
 type TokenNuevo = { valor: string; comando: string };
 
-export function ConexionesDeIa({ conexiones, tokens, scopes }: {
+type HerramientaDeIa = "claude" | "chatgpt";
+const PASOS: Record<HerramientaDeIa, { nombre: string; pasos: string[] }> = {
+  claude: { nombre: "Claude", pasos: [
+    "En Claude, abre Ajustes (o Personalizar) y entra a Conectores.",
+    "Elige «Agregar conector personalizado».",
+    "Pega la dirección de arriba y confirma.",
+    "Pulsa «Conectar»: se abrirá el inicio de sesión de Google. Entra con tu cuenta de Retia.",
+  ] },
+  chatgpt: { nombre: "ChatGPT", pasos: [
+    "En ChatGPT, abre Ajustes y entra a Aplicaciones (o Conectores).",
+    "Activa el modo desarrollador en la configuración avanzada, si aún no está activo.",
+    "Elige «Crear», pon un nombre (por ejemplo, Retia) y pega la dirección de arriba.",
+    "Confirma: se abrirá el inicio de sesión de Google. Entra con tu cuenta de Retia.",
+  ] },
+};
+
+export function ConexionesDeIa({ conexiones, tokens, scopes, direccion }: {
+  direccion: string;
   conexiones: ConexionOauthVista[];
   tokens?: TokenPersonalVista[];
   scopes?: ReadonlyArray<{ valor: McpScope; etiqueta: string }>;
@@ -27,6 +44,17 @@ export function ConexionesDeIa({ conexiones, tokens, scopes }: {
   const [guardando, setGuardando] = useState(false);
   const [revocando, setRevocando] = useState<string | null>(null);
   const [nuevo, setNuevo] = useState<TokenNuevo | null>(null);
+  const [herramienta, setHerramienta] = useState<HerramientaDeIa>("claude");
+  const [guiaAbierta, setGuiaAbierta] = useState(false);
+  const guiaVisible = conexiones.length === 0 || guiaAbierta;
+
+  // Al volver a esta pestaña tras conectar en la IA, la lista se actualiza sola.
+  useEffect(() => {
+    if (!guiaVisible) return;
+    const alVolver = () => { if (document.visibilityState === "visible") router.refresh(); };
+    document.addEventListener("visibilitychange", alVolver);
+    return () => document.removeEventListener("visibilitychange", alVolver);
+  }, [guiaVisible, router]);
 
   async function crear(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -58,7 +86,7 @@ export function ConexionesDeIa({ conexiones, tokens, scopes }: {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base"><KeyRound aria-hidden />Conexiones de IA</CardTitle>
-        <CardDescription>Conecta Claude o ChatGPT al CRM. En la IA, agrega la dirección del CRM y entra con tu cuenta de Google.</CardDescription>
+        <CardDescription>Conecta Claude o ChatGPT al CRM con tu cuenta de Google. No necesitas ninguna clave.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <section className="space-y-3" aria-labelledby="conexiones-activas">
@@ -67,6 +95,13 @@ export function ConexionesDeIa({ conexiones, tokens, scopes }: {
             <Lista conexiones={conexiones} revocando={revocando} onRevocar={(id, etiqueta) => revocar(id, etiqueta, true)} />
           )}
         </section>
+
+        {conexiones.length === 0
+          ? <GuiaDeConexion direccion={direccion} herramienta={herramienta} onHerramienta={setHerramienta} onCopiar={() => copiar(direccion, "Dirección copiada")} />
+          : <details className="rounded-lg border border-border p-3" onToggle={(e) => setGuiaAbierta(e.currentTarget.open)}>
+            <summary className="cursor-pointer text-sm font-medium">Conectar otra IA</summary>
+            <div className="mt-3"><GuiaDeConexion direccion={direccion} herramienta={herramienta} onHerramienta={setHerramienta} onCopiar={() => copiar(direccion, "Dirección copiada")} /></div>
+          </details>}
 
         {tokens && scopes ? (
           <section className="space-y-4 border-t border-border pt-5" aria-labelledby="claves-personales">
@@ -94,6 +129,17 @@ export function ConexionesDeIa({ conexiones, tokens, scopes }: {
       </CardContent>
     </Card>
   );
+}
+
+function GuiaDeConexion({ direccion, herramienta, onHerramienta, onCopiar }: { direccion: string; herramienta: HerramientaDeIa; onHerramienta: (h: HerramientaDeIa) => void; onCopiar: () => void }) {
+  return <div className="space-y-3">
+    <DatoCopiable etiqueta="Dirección del CRM" valor={direccion} onCopiar={onCopiar} />
+    <div role="group" aria-label="Herramienta de IA" className="flex gap-2">
+      {(Object.keys(PASOS) as HerramientaDeIa[]).map((clave) => <Button key={clave} type="button" size="sm" variant={herramienta === clave ? "default" : "outline"} aria-pressed={herramienta === clave} onClick={() => onHerramienta(clave)}>{PASOS[clave].nombre}</Button>)}
+    </div>
+    <ol className="list-decimal space-y-1 pl-5 text-sm">{PASOS[herramienta].pasos.map((paso) => <li key={paso}>{paso}</li>)}</ol>
+    <p className="text-xs text-muted-foreground">Los nombres de los menús pueden cambiar un poco según tu plan. Al terminar, vuelve aquí: tu conexión aparecerá en «Conexiones».</p>
+  </div>;
 }
 
 function Lista({ conexiones, revocando, onRevocar }: { conexiones: ConexionOauthVista[]; revocando: string | null; onRevocar: (id: string, nombre: string) => void }) {

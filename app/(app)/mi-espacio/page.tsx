@@ -27,6 +27,7 @@ import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { ETIQUETA_MCP_SCOPE, listarTokensPersonales, MCP_SCOPES } from "@/lib/mcp/token";
+import { urlDelRecurso } from "@/lib/oauth/origen";
 import { ConexionesDeIa } from "@/components/mi-espacio/conexiones-de-ia";
 import { listarConexionesOauth } from "@/lib/oauth/conexiones";
 
@@ -236,6 +237,7 @@ async function bloqueConexionesIa(userId: string, rolReal: unknown) {
     ? `Vence el ${fecha(fechaDeInstanteEnBogota(instante))}`
     : "Sin vencimiento";
   return <ConexionesDeIa
+    direccion={urlDelRecurso()}
     conexiones={conexiones.map((conexion) => ({
       id: conexion.id,
       clienteNombre: conexion.clienteNombre,

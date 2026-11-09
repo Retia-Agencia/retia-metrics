@@ -56,7 +56,7 @@ por cada tools/call:
 | `lib/auth/roles.ts` | **Quién puede qué.** Cada herramienta pregunta a una función de aquí; nunca compara un rol a mano. |
 | `lib/queries/*` | Las consultas y reglas que las pantallas **y** las herramientas comparten (filtros, proyecciones por rol, alcance). El MCP no define ninguna métrica. |
 | `lib/db/schema.ts` (`mcpTokens`, `mcpLlamadas`) y `drizzle/0117_*` | Las dos tablas propias del MCP (RLS activo). |
-| `app/oauth/autorizar/**`, `app/(app)/mi-espacio/acciones.ts` y `components/mi-espacio/conexiones-de-ia.tsx` | Consentimiento, conexiones propias y revocación. Todos conectan mediante `puedeConectarIa`; solo el developer emite claves manuales con `puedeCrearTokenPersonal`. |
+| `app/oauth/autorizar/**`, `app/(app)/mi-espacio/acciones.ts` y `components/mi-espacio/conexiones-de-ia.tsx` | Consentimiento, conexiones propias y revocación. La tarjeta muestra la dirección del MCP (`urlDelRecurso()` de `lib/oauth/origen.ts`, calculada en la página y pasada por props) con los pasos de Claude y ChatGPT (ticket 409). Todos conectan mediante `puedeConectarIa`; solo el developer emite claves manuales con `puedeCrearTokenPersonal`. |
 | `tests/mcp-*.test.ts` | Las pruebas, incluido el guardián de dominio y el de contrato (§6). |
 
 ## 3. Las herramientas y quién las ve
