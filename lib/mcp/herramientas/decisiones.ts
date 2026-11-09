@@ -5,6 +5,7 @@ import { estadoDeCobertura } from "@/lib/cobertura";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota, monto, num, pct } from "@/lib/format";
 import { enlaceDeDeal, enlaceDeLead, enlaceDeSeccionHub } from "@/lib/mcp/enlaces";
+import { aSalidaDeCarteraVencida, aSalidaDeOrigenDelPrograma, aSalidaDePautaRoas, salidaDeCarteraVencida, salidaDeOrigenDelPrograma, salidaDePautaRoas } from "@/lib/mcp/salidas/decisiones";
 import { parsearPeriodoUrl } from "@/lib/periodo";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
@@ -47,6 +48,7 @@ export const carteraVencidaMcp: Herramienta<typeof entradaCartera> = {
     "Úsala cuando necesites saber quién tiene saldos vencidos en un programa. Devuelve la cartera vencida que muestra Students, con sus mismos filtros de cohorte, onboarding, búsqueda y orden. " +
     "La fecha de corte es hoy en Bogotá; cada saldo conserva su moneda y cada fila enlaza al deal y a la persona. No pagina.",
   entrada: entradaCartera,
+  salida: salidaDeCarteraVencida,
   puede: (contexto) => veStudents(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
@@ -64,25 +66,19 @@ export const carteraVencidaMcp: Herramienta<typeof entradaCartera> = {
     const orden = new Map(students.map((fila, indice) => [fila.dealId, indice]));
     const vencidos = cartera.vencidos
       .filter((fila) => orden.has(fila.dealId))
-      .sort((a, b) => orden.get(a.dealId)! - orden.get(b.dealId)!)
-      .map((fila) => ({
-        ...fila,
-        saldo: { valor: fila.saldo, moneda: fila.moneda, legible: fila.moneda ? monto(fila.saldo, fila.moneda) : "—" },
-        enlace: enlaceDeDeal(visible.slug, fila.dealId),
-        enlaceLead: enlaceDeLead(visible.slug, fila.leadId),
-      }));
+      .sort((a, b) => orden.get(a.dealId)! - orden.get(b.dealId)!);
+    const estructurado = aSalidaDeCarteraVencida(
+      { ...cartera, vencidos }, { nombre: visible.nombre, slug: visible.slug }, hoy,
+      { cohorte: resueltos.cohorte?.id ?? "todas", onboarding: resueltos.filtro.onboarded, busqueda: entrada.q ?? null, orden: resueltos.orden },
+      { deal: (id) => enlaceDeDeal(visible.slug, id), persona: (id) => enlaceDeLead(visible.slug, id) },
+      monto,
+    );
     return {
       texto: [
         `${num(vencidos.length)} en cartera vencida al ${hoy} (Bogotá).`,
-        ...vencidos.map((fila) => `- ${fila.nombreLead ?? fila.emailLead} · ${fila.saldo.legible} · ${num(fila.diasDeAtraso)} días · ${fila.enlace}`),
+        ...estructurado.filas.map((fila) => `- ${fila.nombre ?? fila.email} · ${fila.saldo?.legible ?? "—"} · ${num(fila.dias_de_atraso)} días · ${fila.enlace}`),
       ].join("\n"),
-      estructurado: {
-        programa: { nombre: visible.nombre, slug: visible.slug },
-        fechaDeCorte: hoy,
-        filtros: { cohorte: resueltos.cohorte?.id ?? "todas", onboarding: resueltos.filtro.onboarded, q: entrada.q ?? null, orden: resueltos.orden },
-        total: vencidos.length,
-        filas: vencidos,
-      },
+      estructurado,
     };
   },
 };
@@ -109,6 +105,7 @@ export const pautaRoasMcp: Herramienta<typeof entradaRoas> = {
     "Úsala cuando necesites evaluar el rendimiento de pauta por nivel. Devuelve el ROAS para un periodo y para la misma jerarquía del Hub: total, campaña, conjunto, anuncio, anuncio sin identificar o sin anuncio. " +
     "Las fechas son días de Bogotá. Vendido y gasto están en USD; la cobertura siempre acompaña al ROAS, parcial se declara y — significa que no se puede calcular. No pagina.",
   entrada: entradaRoas,
+  salida: salidaDePautaRoas,
   puede: (contexto) => manejaPauta(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
@@ -129,23 +126,7 @@ export const pautaRoasMcp: Herramienta<typeof entradaRoas> = {
         `Envíos: ${num(fila.registros)} · agendadas: ${num(fila.agendas)} · realizadas: ${num(fila.shows)} · ventas: ${num(fila.ventas)}`,
         enlace,
       ].join("\n"),
-      estructurado: {
-        programa: { nombre: visible.nombre, slug: visible.slug },
-        periodo: periodo.periodo,
-        nivel,
-        id: fila.id,
-        nombre: fila.nombre,
-        registros: fila.registros,
-        agendas: fila.agendas,
-        shows: fila.shows,
-        noShows: fila.noShows,
-        ventas: fila.ventas,
-        vendido: { valor: fila.contratadoUsd, moneda: "USD", legible: monto(fila.contratadoUsd, "USD") },
-        gasto: { valor: fila.gastoUsd, moneda: "USD", legible: monto(fila.gastoUsd, "USD") },
-        roas: { ...fila.roas, estado, legible: roas },
-        cobertura: vista.cobertura,
-        enlace,
-      },
+      estructurado: aSalidaDePautaRoas({ programa: { nombre: visible.nombre, slug: visible.slug }, periodo: periodo.rango, fila, vista, estado, roasLegible: roas, enlace, dineroLegible: monto }),
     };
   },
 };
@@ -156,9 +137,10 @@ export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
   nombre: "origen_del_programa",
   titulo: "Origen del programa",
   descripcion:
-    "Úsala cuando necesites entender de dónde llegaron los registros de un programa. Devuelve el resumen del periodo con los mismos canales del Hub, conteos y porcentajes. " +
+    "Úsala cuando necesites entender de dónde llegaron los envíos de un programa. Devuelve el resumen del periodo con los mismos canales del Hub, conteos y porcentajes. " +
     "Las fechas son días de Bogotá; Sin UTM siempre aparece con su conteo y porcentaje. No expone nombres técnicos ni pagina.",
   entrada: entradaOrigen,
+  salida: salidaDeOrigenDelPrograma,
   puede: (contexto) => veTableroDelPrograma(contexto.rol),
   soloLectura: true,
   async ejecutar(contexto, entrada) {
@@ -167,6 +149,7 @@ export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
     const vista = await origenDelPrograma(contexto.db, { programId: visible.id, rango: periodo.rango, hoy: periodo.hoy });
     const canales = resumenDeOrigen(vista);
     const precision = PRECISION_PAID.map((item) => ({
+      nivel: item.nivel,
       titulo: item.titulo,
       detalle: item.detalle,
       registros: vista.trazaPaid[item.nivel],
@@ -175,19 +158,11 @@ export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
     const porcentaje = (valor: number | null) => valor === null ? "—" : pct(valor);
     return {
       texto: [
-        `Origen · ${periodo.rango.desde} a ${periodo.rango.hasta} (Bogotá) · ${num(vista.totalEnvios)} registros.`,
+        `Origen · ${periodo.rango.desde} a ${periodo.rango.hasta} (Bogotá) · ${num(vista.totalEnvios)} envíos.`,
         ...canales.map((fila) => `- ${fila.nombre}: ${num(fila.registros)}${fila.porcentajeDelTotal === null ? "" : ` (${porcentaje(fila.porcentajeDelTotal)})`} · ${num(fila.agendas)} agendas (${porcentaje(fila.porcentajeAgenda)})`),
         enlace,
       ].join("\n"),
-      estructurado: {
-        programa: { nombre: visible.nombre, slug: visible.slug },
-        periodo: periodo.periodo,
-        totalRegistros: vista.totalEnvios,
-        canales,
-        precision,
-        contenidoNoReconocido: vista.piezasDesconocidas.envios,
-        enlace,
-      },
+      estructurado: aSalidaDeOrigenDelPrograma({ programa: { nombre: visible.nombre, slug: visible.slug }, periodo: periodo.rango, vista, canales, precision, enlace }),
     };
   },
 };

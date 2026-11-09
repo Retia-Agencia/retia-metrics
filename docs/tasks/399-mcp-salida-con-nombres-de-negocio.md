@@ -28,12 +28,12 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Estado (8-nov)
 
-**Fase A en main** (`ad5e36b8`, `6d4e3287`): `outputSchema` con descripción por campo y salida con nombres de negocio en `resumen_del_hub` y `consultar_metrica` (`lib/mcp/salidas/`), `title` y las cuatro anotaciones en las once, descripciones que empiezan por cuándo usarla, clave `cita_a_venta` en el vocabulario. **Fase B pendiente:** `outputSchema` de las otras nueve tools (`programas_visibles`, `buscar_leads`, `ficha_de_lead`, `ficha_de_deal`, `tablero_de_deals`, `bandeja`, `cartera_vencida`, `pauta_roas`, `origen_del_programa`), quitar `salida?` opcional (hacerla obligatoria), `EXPLAIN` a 10 veces y paridad por tool. `SIN_FICHA_EN_REGISTRO` (en `lib/mcp/salidas/campos.ts`) lo consume el 403.
+**Fase A en main** (`ad5e36b8`, `6d4e3287`): `outputSchema` con descripción por campo y salida con nombres de negocio en `resumen_del_hub` y `consultar_metrica` (`lib/mcp/salidas/`), `title` y las cuatro anotaciones en las once, descripciones que empiezan por cuándo usarla, clave `cita_a_venta` en el vocabulario. **Fase B en main** (9-nov): `outputSchema` de las otras nueve tools (`lib/mcp/salidas/{programas,operacion,decisiones}.ts`) y `salida` obligatoria. **Falta:** `EXPLAIN` a 10 veces del volumen y la segunda medición del descubrimiento (387 frente B). `SIN_FICHA_EN_REGISTRO` (en `lib/mcp/salidas/campos.ts`) lo consume el 403.
 
 ## Done cuando
 
-- [ ] `outputSchema` por tool, con nombre de negocio y descripción por campo, derivado del registro y no escrito a mano.
-- [ ] Las once tools con descripción que empieza por cuándo usarla, `title` legible y anotaciones completas (`docs/mcp.md` §4).
+- [x] `outputSchema` por tool, con nombre de negocio y descripción por campo, derivado del registro cuando hay ficha.
+- [x] Las once tools con descripción que empieza por cuándo usarla, `title` legible y anotaciones completas (`docs/mcp.md` §4).
 - [ ] `EXPLAIN` a 10 veces el volumen y test de paridad contra la pantalla por tool.
 - [ ] Segunda medición del descubrimiento (15 a 20 preguntas reales) comparada con la primera (se hace en el 387 frente B).
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.

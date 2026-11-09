@@ -12,7 +12,7 @@ import { INSTRUCCIONES_MCP } from "@/lib/mcp/instrucciones";
 const DOC = fs.readFileSync(fileURLToPath(new URL("../docs/mcp.md", import.meta.url)), "utf8");
 const FORMATO_DE_NOMBRE = /^[a-z][a-z0-9_]{0,63}$/;
 
-type Esquema = { type?: string; maxLength?: number; pattern?: string; enum?: unknown[]; properties?: Record<string, Esquema>; items?: Esquema; anyOf?: Esquema[] };
+type Esquema = { type?: string; description?: string; maxLength?: number; pattern?: string; enum?: unknown[]; properties?: Record<string, Esquema>; items?: Esquema; anyOf?: Esquema[] };
 
 /** Las rutas de cada cadena libre (sin enum) y su tope, recorriendo el JSON Schema de la entrada. */
 function cadenasLibres(esquema: Esquema, ruta = ""): { ruta: string; acotada: boolean }[] {
@@ -45,10 +45,41 @@ describe("contrato de herramientas del MCP", () => {
     }
   });
 
-  it("las dos herramientas de la fase A publican salida y las demás esperan la fase B", () => {
+  it("las once herramientas publican salida", () => {
     const conSalida = HERRAMIENTAS.filter((herramienta) => herramienta.salida !== undefined)
       .map((herramienta) => herramienta.nombre);
-    expect(conSalida).toEqual(["resumen_del_hub", "consultar_metrica"]);
+    expect(conSalida).toEqual([
+      "programas_visibles",
+      "resumen_del_hub",
+      "consultar_metrica",
+      "buscar_leads",
+      "ficha_de_lead",
+      "ficha_de_deal",
+      "tablero_de_deals",
+      "bandeja",
+      "cartera_vencida",
+      "pauta_roas",
+      "origen_del_programa",
+    ]);
+  });
+
+  it("cada campo de cada salida explica su significado", () => {
+    function sinDescripcion(esquema: Esquema, ruta = ""): string[] {
+      const propias = Object.entries(esquema.properties ?? {}).flatMap(([clave, hijo]) => {
+        const actual = ruta ? `${ruta}.${clave}` : clave;
+        return [
+          ...(hijo.description?.trim() ? [] : [actual]),
+          ...sinDescripcion(hijo, actual),
+        ];
+      });
+      const items = esquema.items ? sinDescripcion(esquema.items, `${ruta}[]`) : [];
+      const variantes = (esquema.anyOf ?? []).flatMap((parte) => sinDescripcion(parte, ruta));
+      return [...propias, ...items, ...variantes];
+    }
+    for (const herramienta of HERRAMIENTAS) {
+      const esquema = z.toJSONSchema(herramienta.salida, { io: "output", unrepresentable: "any" }) as Esquema;
+      expect(sinDescripcion(esquema), herramienta.nombre).toEqual([]);
+    }
   });
 
   it("toda herramienta está en las instrucciones del servidor y en la tabla de docs/mcp.md", () => {

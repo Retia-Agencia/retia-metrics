@@ -97,7 +97,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 **Salida**
 9. Toda respuesta trae **texto legible para una persona de negocio** y `structuredContent` con el dato. Cada monto lleva su moneda; "—" significa que no se puede calcular; toda tasa trae su cobertura. *(ADR 0115 N3/N5.)*
-10. **No se devuelve la vista interna de una pantalla tal cual.** Cada herramienta traduce la consulta canónica a un objeto con nombres de negocio; publica su `outputSchema` con una descripción por campo y el servidor valida `structuredContent` antes de responder. Las claves de cifras salen de `lib/vocabulario-metricas.ts`, y unidad y monedas de `lib/metricas/registro.ts` cuando ya existe ficha. Durante la fase A del 399 esto rige para `resumen_del_hub` y `consultar_metrica`; las otras nueve conservan temporalmente su salida anterior. *(ADR 0115 N4/N8; Anthropic: devolver campos de alta señal y no identificadores crípticos.)*
+10. **No se devuelve la vista interna de una pantalla tal cual.** Cada herramienta traduce la consulta canónica a un objeto con nombres de negocio; publica su `outputSchema` con una descripción por campo y el servidor valida `structuredContent` antes de responder. Las claves de cifras salen de `lib/vocabulario-metricas.ts`, y unidad y monedas de `lib/metricas/registro.ts` cuando ya existe ficha. Rige para las once herramientas (fases A y B del 399): `salida` es obligatoria en `Herramienta` y el servidor la publica y la valida siempre. Las etapas salen como `{clave, nombre}` y el dinero como `{valor, moneda, legible}`. *(ADR 0115 N4/N8; Anthropic: devolver campos de alta señal y no identificadores crípticos.)*
 11. **Cada entidad enlaza al CRM** (`lib/mcp/enlaces.ts`), para que el modelo cite y la persona verifique.
 12. **Errores accionables.** Un error de negocio se devuelve como `isError: true` con un mensaje que dice qué corregir; un error interno responde "Error interno." sin detalle (🔒 `mcp-ruta`). Los errores de protocolo (herramienta desconocida) los maneja el SDK. *(Spec MCP, "Error Handling".)*
 
@@ -137,7 +137,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 7. Deuda conocida
 
-Tokens sin caducidad; `mcp_llamadas` sin retención; `tablero_de_deals` y `cartera_vencida` sin paginar; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; nueve salidas aún conservan nombres internos y no publican `outputSchema` (fase B del 399); sin evaluaciones de descubrimiento (386). Las once herramientas ya publican `title` y anotaciones completas; `resumen_del_hub` y `consultar_metrica` ya publican y validan su salida de negocio.
+Tokens sin caducidad; `mcp_llamadas` sin retención; `tablero_de_deals` y `cartera_vencida` sin paginar; el tope por minuto admite un sobrepaso pequeño bajo ráfaga; sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title` y anotaciones completas; las once publican y validan su salida de negocio.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

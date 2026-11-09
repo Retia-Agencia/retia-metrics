@@ -53,7 +53,7 @@ function registrarUna<E extends z.ZodObject>(
       title: herramienta.titulo,
       description: herramienta.descripcion,
       inputSchema: entradaComun,
-      ...(herramienta.salida ? { outputSchema: herramienta.salida } : {}),
+      outputSchema: herramienta.salida,
       annotations: {
         readOnlyHint: true,
         idempotentHint: true,
@@ -104,14 +104,12 @@ function registrarUna<E extends z.ZodObject>(
         const entrada = herramienta.entrada.parse(propios);
         const salida = await herramienta.ejecutar(contexto, entrada);
         let estructurado = salida.estructurado;
-        if (herramienta.salida) {
-          const validada = herramienta.salida.safeParse(estructurado);
-          if (!validada.success) {
-            console.error(`[mcp: salida inválida de ${herramienta.nombre}]`, validada.error);
-            throw new Error(`La salida de ${herramienta.nombre} no cumple su contrato.`);
-          }
-          estructurado = validada.data;
+        const validada = herramienta.salida.safeParse(estructurado);
+        if (!validada.success) {
+          console.error(`[mcp: salida inválida de ${herramienta.nombre}]`, validada.error);
+          throw new Error(`La salida de ${herramienta.nombre} no cumple su contrato.`);
         }
+        estructurado = validada.data;
         respuesta = {
           content: [{ type: "text" as const, text: salida.texto }],
           structuredContent: estructurado,

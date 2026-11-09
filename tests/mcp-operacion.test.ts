@@ -110,9 +110,11 @@ describe("herramientas MCP de operación", () => {
     const entrada = { programa: "operacion-a", q: "ana", deal: "con" as const, pagina: 1 };
     const directo = await leadsDelPrograma(db, programaA, { ...filtrosDeLeads(entrada, 0).filtro, porPagina: 50 });
     const salida = await buscarLeadsMcp.ejecutar(contexto(gerenteId, "gerente"), entrada);
-    const filas = salida.estructurado.filas as { id: string; enlace: string }[];
-    expect(filas.map((fila) => fila.id)).toEqual(directo.filas.map((fila) => fila.id));
-    expect(filas[0]?.enlace).toMatch(`/p/operacion-a/leads/${leadId}`);
+    const filas = salida.estructurado.filas as { id_de_la_persona: string; enlace_de_la_persona: string }[];
+    expect(filas.map((fila) => fila.id_de_la_persona)).toEqual(directo.filas.map((fila) => fila.id));
+    expect(filas[0]?.enlace_de_la_persona).toMatch(`/p/operacion-a/leads/${leadId}`);
+    expect(buscarLeadsMcp.salida.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:leadQuality|leadValue|fechaUltimaAplicacion|numAplicaciones|tieneDeal|soloParciales|correosSinConfirmar|haySiguiente|canal)"\s*:/);
   });
 
   it("un closer no puede forjar un programa fuera de sus membresías", async () => {
@@ -125,18 +127,22 @@ describe("herramientas MCP de operación", () => {
     const ctx = contexto(csId, "customer_success");
     const directo = await fichaDeLeadParaActor(db, programaA, leadId, { rol: "customer_success", operaComoCloser: false });
     const salida = await fichaDeLeadMcp.ejecutar(ctx, { programa: "operacion-a", id: leadId });
-    const ficha = salida.estructurado.ficha as NonNullable<typeof directo>["ficha"];
+    const ficha = salida.estructurado.ficha as { envios: unknown[]; enlace: string };
     expect(salida.estructurado.basico).toBe(true);
-    expect(ficha).toMatchObject(directo!.ficha);
+    expect(ficha.envios).toHaveLength(directo!.ficha.envios.length);
     expect(JSON.stringify(ficha)).toContain("Enlace oculto");
     expect(JSON.stringify(ficha)).not.toContain("calendly.test/secreto");
+    expect(fichaDeLeadMcp.salida.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|programId|leadQuality|leadValue|ownerNombre|enlaceLead)"\s*:/);
   });
 
   it("ficha_de_deal conserva la ficha visible y oculta como 404 el deal de otro dueño", async () => {
     const ctx = contexto(closerId, "closer");
     const directo = await fichaDeDealVisible(db, programaA, dealId, ctx.session, "closer");
     const salida = await fichaDeDealMcp.ejecutar(ctx, { programa: "operacion-a", id: dealId });
-    expect((salida.estructurado.ficha as { dealId: string }).dealId).toBe(directo!.ficha.dealId);
+    expect((salida.estructurado.ficha as { id_del_deal: string }).id_del_deal).toBe(directo!.ficha.dealId);
+    expect(fichaDeDealMcp.salida.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|programId|leadQuality|leadValue|ownerNombre|enlaceLead)"\s*:/);
     await expect(fichaDeDealMcp.ejecutar(ctx, { programa: "operacion-a", id: dealAjenoId }))
       .rejects.toThrow("No existe ese deal");
   });
@@ -145,19 +151,21 @@ describe("herramientas MCP de operación", () => {
     const ctx = contexto(closerId, "closer");
     const directo = await tableroDeDealsParaActor(db, programaA, ctx.session, { q: "ana", vista: "todo" });
     const salida = await tableroDeDealsMcp.ejecutar(ctx, { programa: "operacion-a", q: "ana", vista: "todo" });
-    const tablero = salida.estructurado.tablero as { total: number; columnas: { tarjetas: { dealId: string; enlace: string }[] }[] };
+    const tablero = salida.estructurado.tablero as { total: number; columnas: { tarjetas: { id_del_deal: string; enlace: string }[] }[] };
     expect(tablero.total).toBe(directo.tablero.total);
-    expect(tablero.columnas.flatMap((c) => c.tarjetas).map((t) => t.dealId)).toEqual([dealId]);
-    expect(salida.estructurado.opciones).toMatchObject(directo.opciones);
+    expect(tablero.columnas.flatMap((c) => c.tarjetas).map((t) => t.id_del_deal)).toEqual([dealId]);
+    expect(tableroDeDealsMcp.salida.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|leadQuality|leadValue|enlaceLead|enProximaCohorte)"\s*:/);
   });
 
   it("bandeja conserva el alcance y las secciones de la composición de página", async () => {
     const ctx = contexto(closerId, "closer");
     const directo = await bandejaParaActor(db, programaA, ctx.session, "closer");
     const salida = await bandejaMcp.ejecutar(ctx, { programa: "operacion-a" });
-    const inbox = salida.estructurado.inbox as { llamadasDeHoy: { dealId: string; enlace: string }[] };
-    expect(inbox.llamadasDeHoy.map((fila) => fila.dealId)).toEqual(directo!.inbox.llamadasDeHoy.map((fila) => fila.dealId));
-    expect(inbox.llamadasDeHoy[0]?.enlace).toMatch(`/p/operacion-a/deals/${dealId}`);
-    expect(salida.estructurado.secciones).toMatchObject(directo!.secciones);
+    const llamadas = salida.estructurado.llamadas_por_registrar as { id_del_deal: string; enlace: string }[];
+    expect(llamadas.map((fila) => fila.id_del_deal)).toEqual(directo!.inbox.llamadasDeHoy.map((fila) => fila.dealId));
+    expect(llamadas[0]?.enlace).toMatch(`/p/operacion-a/deals/${dealId}`);
+    expect(bandejaMcp.salida.safeParse(salida.estructurado).success).toBe(true);
+    expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|unclaimed|pendienteSetteo|llamadasSueltas|llamadasDeHoy|llamadasSinCloser|saldoLegible|enlaceLead)"\s*:/);
   });
 });

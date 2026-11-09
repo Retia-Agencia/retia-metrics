@@ -124,7 +124,7 @@ describe("herramientas MCP de métricas", () => {
     expect(estructurado.cifras.ventas.valor).toBe(pagina.embudo.cierres);
     expect(estructurado.cifras.vendido.valor).toBe(pagina.dinero.vendido);
     expect(estructurado.tasas.cita_a_venta.valor).toBe(pagina.embudo.agendaAVenta);
-    expect(resumenDelHubMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(resumenDelHubMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(Object.keys(salida.estructurado)).not.toContain("vista");
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:contratadoUsd|embudo|cierres|dinero)"\s*:/);
     expect(salida.texto).toContain("cobertura");
@@ -139,7 +139,7 @@ describe("herramientas MCP de métricas", () => {
 
     expect(pagina.subtotal.cantidad).toBe(1);
     expect(resumen.total).toBe(pagina.subtotal.cantidad);
-    expect(consultarMetricaMcp.salida?.safeParse(salida.estructurado).success).toBe(true);
+    expect(consultarMetricaMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:contratadoUsd|embudo|cierres|dinero)"\s*:/);
   });
 

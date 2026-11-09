@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { emitirTokenPersonal, revocarToken } from "@/lib/mcp/token";
+import { programasVisiblesMcp } from "@/lib/mcp/herramientas/programas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -112,6 +113,10 @@ function estructurado(respuesta: Record<string, unknown>) {
   return (respuesta.result as { structuredContent?: { programas?: unknown[] } })?.structuredContent?.programas;
 }
 
+function contenidoEstructurado(respuesta: Record<string, unknown>) {
+  return (respuesta.result as { structuredContent?: Record<string, unknown> })?.structuredContent;
+}
+
 describe("ruta MCP real", () => {
   it("atiende initialize, tools/list y programas_visibles con un token válido", async () => {
     const inicial = await json(await post("initialize", {
@@ -125,7 +130,8 @@ describe("ruta MCP real", () => {
       expect(instrucciones).toContain(nombre);
     }
     const listado = await json(await post("tools/list", {}, tokenCloser.valor));
-    expect((listado.result as { tools: { name: string }[] }).tools.map((t) => t.name))
+    const herramientas = (listado.result as { tools: { name: string; outputSchema?: unknown }[] }).tools;
+    expect(herramientas.map((t) => t.name))
       .toEqual([
         "programas_visibles",
         "consultar_metrica",
@@ -136,9 +142,14 @@ describe("ruta MCP real", () => {
         "bandeja",
         "cartera_vencida",
       ]);
-    expect(estructurado(await llamar(tokenCloser.valor))).toEqual([
+    expect(herramientas.every((herramienta) => herramienta.outputSchema !== undefined)).toBe(true);
+    const respuesta = await llamar(tokenCloser.valor);
+    expect(estructurado(respuesta)).toEqual([
       { nombre: "Visible A", slug: "visible-a" },
     ]);
+    const salida = contenidoEstructurado(respuesta);
+    expect(programasVisiblesMcp.salida.safeParse(salida).success).toBe(true);
+    expect(JSON.stringify(salida)).not.toMatch(/"(?:programId|id|activo)"\s*:/);
   });
 
   it("sin token, falso, revocado o de usuario inactivo responde 401 vacío con challenge", async () => {
