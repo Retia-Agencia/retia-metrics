@@ -78,3 +78,45 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
     `structure.md` §9.
   - Nota: `npm run db:local` falla al sembrar (el programa de prueba no tiene % de comisión, `mover-etapa.ts:338`). La base
     queda con datos parciales y sirve para mirar. No es de este carril.
+
+## Para retomar (10-nov, Alejandro se quedó sin créditos)
+
+Estado: commits `241edac9` (campos de la ficha), `2b518987` (contrato y tests), `9d025099` (status coherente) y `76f75e84`
+(pieza y cumplimiento) en `main`. Typecheck, lint, build y los tests del ticket en verde en local.
+
+**Cómo está armado (lee esto antes de tocar nada):**
+- `lib/metricas/cifra.ts` es puro (sin `lib/db`). `armarCifra(EntradaDeCifra)` → `CifraDeMetrica` con todo el texto ya
+  escrito. Un "—" sin `motivo` lanza error a propósito. `fmtAvance` escribe lo esperado con decimal.
+- `lib/metricas/explicaciones-de-pauta.ts` es un PUENTE: los textos de §2.1 por clave (`ClaveDePauta`). Cuando el carril D
+  registre los conceptos de Pauta en `REGISTRO`, se pasan a `que`/`formula`/`variables`/`aliasExcel` de la ficha en un
+  commit propio y este archivo se borra. Incluye `agendas_total` (Agendadas · todas las áreas), que no está en el diseño.
+- Uso: un componente de servidor llama `armarCifra` y pasa el resultado a `<Cifra cifra={...} />` (cliente). Ejemplo vivo en
+  `components/pauta/cumplimiento.tsx` (`cifraDeAvance`).
+- `BarraDeAvance` tiene dos formas: con marca (props `lleno/atraso/marca/rotuloDeMarca/tono/etiqueta`) y la simple vieja
+  (`llevamos/objetivo`), que siguen usando Hoy y "¿Vamos a llegar?" del programa.
+- `ComoSeCalcula` (diálogo de texto libre) sigue vivo para `pauta-roas`, `pauta-proyeccion` y `mi-espacio`: se borra
+  cuando esos bloques pasen a la Cifra.
+
+**Siguiente, en orden:**
+1. **Evidencia del cumplimiento.** Cada barra necesita `lista: { href, nombre, total, filas }`. Hay que encontrar la lista
+   (`urlDeLista` en `lib/queries/vista-metrica.ts`, métricas `agendas_creadas` y `cierres`) que cuente EXACTAMENTE lo
+   mismo que la cifra (cohorte desde el inicio de ventas hasta hoy) y escribir un test que compare cifra contra lista.
+   Las cinco filas salen de la misma consulta paginada. Sin eso, no se inventa.
+2. **La celda en la tabla semanal** (`components/pauta/tabla-semanal.tsx`, datos en `lib/queries/hechos/pauta-semanal.ts`):
+   cada celda con `<Cifra tamano="celda">`, partes reales en `partes`, `comparacion` contra la columna anterior con
+   `etiqueta: "La línea pequeña"` y estado por objetivo en las filas que lo tienen. Esta es la prueba de costura de la ola.
+3. El semáforo como cuatro Cifras (§4.2), la proyección del ROAS (§4.5) y el resto del Hub.
+4. `npm run test:humo` con `dev:local` arriba; ajustar `docs/structure.md` §9 a lo construido; marcar las casillas.
+
+**Pendiente con Mani (carril D):** avisarle del commit `241edac9` en `registro.ts` y preguntarle quién registra las claves y
+fichas de Pauta (no existen en `ClaveDeMetrica`). Si ya se le mandó el mensaje, esperar su respuesta.
+
+**Trampas que ya costaron tiempo:**
+- `tests/tracker-coherente.test.ts`: el `status:` del archivo tiene que ser igual al del tracker. El "en curso" va en un
+  comentario después de `#`.
+- Docker no arranca solo: `open -a Docker` antes de `npm run db:local`. La siembra falla al final (falta % de comisión
+  del programa de prueba, `lib/deals/mover-etapa.ts:338`), pero la base queda usable. Para ver el cumplimiento se
+  cargaron metas a mano en la base LOCAL (`objetivos`: `agendas` 60, `cupos`/`paid` 12, `inversion` 26.000.000 en
+  `tactical-local`). Login local: `dev@retia.local`.
+- Un contenedor flex al lado de un `float` pierde el ancho del float: por eso "Cerrar" del panel va `absolute`.
+- `next build` rompe un `dev` vivo en la misma carpeta: detén el dev antes.
