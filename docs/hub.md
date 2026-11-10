@@ -73,6 +73,15 @@ solo el día del deal) y 356 (la comisión no la pidió Dani). Quedan en fase 2.
 de 358, 359 y 360 → 374, 372 y 377 (su resto queda en fase 2); el 300 pierde la vista imprimible (→ 373) y se queda con
 la foto del día, sin fecha.
 
+### Ola 2 del Hub: Pauta y Origen en una pestaña (412, 9-nov)
+
+La Ola 1 cerró el 9-nov (falta el checkpoint con tag que incluya 370). Lo siguiente es el **412**: Origen y Pauta se funden
+y la pestaña reemplaza el Excel de Paid Media (tabla semanal en General/Comercial/Tráfico, cumplimiento de la cohorte,
+traza por anuncio). Sale de la reunión con Paid Media del 7-nov y de los reportes de 30X; la extracción completa, las
+decisiones D-1 a D-7, el reparto en sesión padre e hijas A a E y sus briefs viven en `docs/paid-media-2026-11-09.md`.
+Trae migración (tráfico de Meta en `gasto_pauta`; metas de agendas e inversión en `objetivos`). Del bloque "pausados"
+de abajo, el 412 absorbe lo que pedía el 249 (costo por agenda del CRM) y parte del 123 (CPL y costos por etapa).
+
 ### Fase 2 (después de la entrega, sin fecha)
 
 375 (ROAS pendiente y proyectado), 376 (productos y SKUs), 353, 354 y 356 (auditoría), 351 y 355 (cobertura y cargador de pauta), 358, 359 y 360

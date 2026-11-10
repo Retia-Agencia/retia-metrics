@@ -9,23 +9,35 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, ola O10 (docs/plan-reparto.md §4). Esta sesión orquesta: Codex implementa en
-worktrees dentro del repo (.claude/worktrees/<nombre>), la sesión revisa, integra, corre la build y mira el CI.
-Lee AGENTS.md, docs/hub.md y la entrada del 15-oct (266 y 267) en Memory.
-
-Semáforo por WhatsApp: 259, 260, 266 y 267 en producción. En curso, en su sesión (t268-horas): 268 (horas libres,
-un solo grupo; Juanito ya desplegado, falta el CRM y la 0087) y después 269 (un envío por hora con los tres
-programas). Umbrales provisionales cargados el 15-oct; Pauta confirma los suyos después del daily.
-Pendientes de Mani: encender los reportes cuando el 268 esté en producción; respuestas de Pauta (HQ-1, HQ-6,
-HQ-8 a HQ-12 en docs/hub.md). Pendientes de verificación: 244 (TRM 8, 10 y 14-oct). El 247 cerró el 21-oct (los tres programas en N3).
-
-Reglas de esta ola: antes de empujar, typecheck, lint, los tests del ticket Y los guardianes
-(tests/contrato-extension.test.ts, tests/vigencia-centralizada.test.ts) más tests/paginas.test.ts si toca una
-página; npm run build si toca un componente cliente. Codex: sin red, sin commit (lo hace la sesión), relanzar
-como tarea nueva (no --resume); si para con una pregunta, la sesión decide y la agrega al brief.
+Seguimos con el CRM de Retia. Esta sesión es la PADRE del ticket 412 (Pauta y Origen en una sola pestaña: el Excel de
+Paid Media sale del CRM). El prompt completo, los briefs de las hijas y todo el contexto están en
+docs/paid-media-2026-11-09.md §10: léelo entero y síguelo tal cual. Antes: AGENTS.md y la entrada del 9-nov (noche, 8)
+en Memory de docs/agents/handoff.md.
 ```
 
 ## Memory
+
+### 9-nov (noche, 8) · Paid Media en el CRM: extracción completa y ticket 412 (sesión de Mani)
+**Qué pasó.** Mani pidió atacar el Hub con prioridad alta y llegar con algo para mostrar el 10-nov. Se cruzaron cuatro fuentes:
+la reunión con Paid Media del 7-nov (Dani Rodríguez y Michael: reemplazar los tres Excels de pauta que llenan César y Michael a
+mano, con sección semanal y diaria), la weekly con Daniel Tovar del 3-nov, los artifacts "Paid Media Diario 30X" y "Reporte
+Semanal · Crece 30X" (se leyó su HTML y su JSON: métricas, fórmulas, umbrales, estados) y la imagen KPI del Excel (16 filas en
+General, Comercial y Tráfico).
+**Medido.** Lo de la weekly del 3-nov está casi todo en done (Ola 1: 374, 377, 369, 371, 372, 373, 379, 380, 381, 355, 375,
+397). Pendientes del Hub: 370 (en main, sin checkpoint: el último tag es `cp-20261029-1` aunque el CI de `7d52adf2` está
+verde), 376 (fase 2), 288 y la pauta 123-125/249/284/285 pausados. `gasto_pauta` no guarda tráfico (sin CPM, CTR, landing ni
+frecuencia) y `objetivos` no tiene meta de agendas ni de inversión de la cohorte.
+**Decidido (Mani, "sí" a D-1 a D-7).** Origen y Pauta se funden en "Pauta" (`?seccion=origen` redirige). Costo por agenda en
+dos filas, CRM y Meta; solo gasto de propósito agenda; semana lunes-domingo; COP para inversión y costos, USD para facturación,
+ROAS y Profit; umbrales como filas de `objetivos` (los de 30X solo si Paid Media los confirma); cumplimiento En meta ≥ 100 %,
+En seguimiento ≥ 65 %, Rezagado. Detalle en `docs/paid-media-2026-11-09.md` §7.
+**Escrito.** `docs/paid-media-2026-11-09.md` (fuente única de la ola: extracción, catálogo deduplicado M1-M27 cruzado con el
+CRM, diseño de la pestaña, migración, reparto en sesión padre e hijas A a E con contratos de props, briefs listos para copiar,
+prompt de la padre, guion de demo, X-1 a X-12 para después, tareas de Mani); ticket `docs/tasks/412-...` y su fila en el
+tracker; `docs/hub.md` §0 (Ola 2); `docs/weekly-2026-11-03.md` (pendientes mapeados); `AGENTS.md` (el doc nuevo en la lista).
+**Pendiente.** Nada de código ni migración: lo hace la sesión padre con el prompt de `docs/paid-media-2026-11-09.md` §10.
+Sin commit (Mani no lo pidió). Tareas de Mani en §13 de ese doc (acceso de Dani Rodríguez, Excel de una semana cerrada,
+umbrales, PowerTalk, César, closers, EstadoX).
 
 ### 9-nov (noche, 7) · MCP: diagnóstico de limitaciones y ticket 411 (sesión de Mani en Ventas Francisco)
 **Qué pasó.** En el grupo de Ventas Francisco (Comunícate con Confianza) Nicolás pidió «pasar este lead a mi CRM» y Mani preguntó si los closers

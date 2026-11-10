@@ -40,6 +40,7 @@ a fase 2.
 | [x] | 380 | [Hub › Dinero legible](./380-dinero-legible.md) | 369, 370, 371 | done · 9-nov · cierre de la Ola 1 |
 | [x] | 382 | [Un solo alta de usuarios, abierta a todo gerente](./382-alta-unica-de-usuarios.md) | — | done · 9-nov · cierre de la Ola 1 |
 | [x] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | done · 9-nov · cron diario + tabla `proyecciones_roas` (0130, 0131) · ADR 0126 · CI verde `e2f25f52` · recorrido local hecho, humo sin correr |
+| [ ] | 412 | [Pauta y Origen, una sola pestaña: el Excel de pauta sale del CRM](./412-pauta-y-origen-una-sola-pestana.md) | 355, 370, 371, 375, 377 | todo · 9-nov · reunión con Paid Media + reportes de 30X · migración (tráfico de Meta y metas de cohorte) · reparto en hijas A a E |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |
 
 ## 1 · Entrada y lead

@@ -48,6 +48,10 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    métricas, pauta, atribución o el Hub.
    **`docs/weekly-2026-11-03.md`** (9-nov) resume lo que pidió Daniel Tovar en el weekly del 3-nov (ROAS por cohorte de envío, tres columnas de dinero,
    productos y SKUs, media) y a qué ticket va cada pedido; es documento de reunión (N8: manda ADR > ticket > él).
+   **`docs/paid-media-2026-11-09.md`** (9-nov) extrae la reunión con Paid Media (7-nov), los reportes diario y semanal de
+   Paid Media de 30X y la tabla KPI del Excel: el catálogo depurado de métricas de pauta cruzado con el CRM, las decisiones
+   D-1 a D-7, el reparto del **412** en sesión padre e hijas y sus briefs. Documento de reunión (N8). Léelo antes de tocar
+   Hub › Pauta, `gasto_pauta`, `objetivos` o el sync de Meta.
    **`docs/metricas.md`** (15-oct) es **el diccionario de métricas, la única tabla de definiciones**: de qué tabla
    sale cada cifra, qué cuenta y qué no, con qué fecha y moneda, en qué función vive y cómo verificarla. Una métrica
    nueva o un cambio de fórmula lo actualiza en el mismo commit.
