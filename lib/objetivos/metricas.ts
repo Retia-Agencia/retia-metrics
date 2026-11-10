@@ -32,8 +32,8 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "conteo",
     admiteArea: true,
     dePauta: false,
-    // ponytail: sin lector, sin filas en producción (10-nov) y fuera de la oferta. Borrarlo exige migrar el enum
-    // `metrica_objetivo` y su CHECK de moneda (decisión pendiente de Mani, ticket 403 F4).
+    // ponytail: pendiente de borrar con migración (decisión de Mani, 10-nov): sin lector ni filas en producción.
+    // Borrarla exige recrear el enum `metrica_objetivo` y su CHECK de moneda (ticket 403 F4).
     lector: null,
   },
   costo_por_agenda: {
@@ -52,6 +52,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "COP",
     admiteArea: true,
     dePauta: true,
+    // ponytail: pendiente de borrar con migración (ver `agendas_por_dia`).
     lector: null,
   },
   costo_por_venta: {
@@ -61,6 +62,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "COP",
     admiteArea: true,
     dePauta: true,
+    // ponytail: pendiente de borrar con migración (ver `agendas_por_dia`).
     lector: null,
   },
   roas: {
