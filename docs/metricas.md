@@ -46,7 +46,7 @@ lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
 | Calendario (semana, sumar días, hábiles) | ✅ un solo módulo; `rangos.ts` queda con los presets | `lib/dias-habiles.ts` | 354 |
 | Gasto convertido a USD o COP | ✅ un solo convertidor y un hecho: `gastoConvertido` (`hechos/gasto.ts`) reusa `convertirGasto` y `coberturaDeGasto`; el ROAS lo consume en vez de leer el gasto por su cuenta | `convertirMonto`/`convertirGasto` en `lib/pauta/convertir-gasto.ts` · `gastoConvertido` en `lib/queries/hechos/gasto.ts` | 351 ✅ · 355 ✅ |
 | Embudo de Pauta por campaña y por canal | ✅ un cargador y una tabla: `cargarRoasDePauta` (`roas-de-pauta.ts`) expone registro, agenda, show, no show, venta, valor vendido, gasto y ROAS por campaña › conjunto › anuncio **o** por canal (par UTM, `resolverCanal`), con UNA ancla por paso. `pauta-interina.ts` borrada | `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` | 355 ✅ |
-| Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts` (ahora por día, sin meses fijos, 370), `metricas-con-filas.ts`; `hechos/abono.ts` sin llamadores | `filtroCaja` | 361 |
+| Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts` (ahora por día, sin meses fijos, 370), `metricas-con-filas.ts`; `hechos/abono.ts` retirado (403 F4) | `filtroCaja` | 361 |
 
 ## 1. Los hechos: lo que se cuenta
 
@@ -115,7 +115,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Cuenta:** abonos vigentes del programa, tanto del ticket como adicionales vendidos aparte.
 - **Fecha:** `abonos.fecha` (la fecha del pago, no la del registro).
 - **Moneda:** USD en la app; la base acepta COP o USD (ADR 0124, `CHECK` de la migración 0126). Un abono en COP deja el saldo de su venta sin calcular, nunca lo resta contra dólares.
-- **Función:** `lib/queries/hechos/abono.ts`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`, cuentan solo abonos de ticket.
+- **Función:** `filtroCaja` y `cajaRecaudada`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`, cuentan solo abonos de ticket.
 - **Ojo:** caja y ventas son métricas separadas: un abono no es una venta ni al revés (ADR 0013).
 
 ### 1.6 Gasto de pauta (días cerrados)
@@ -282,7 +282,7 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Recaudado | Σ abonos de ticket vigentes **de esas mismas ventas, a hoy**, sin importar cuándo se abonaron (369, DH-2). Un abono adicional no entra (ADR 0113) | USD | sí | `dineroDeVentas` (sobre `saldosDeDeals`) | ✅ |
 | Por cobrar | Vendido − Recaudado, venta por venta, de esas mismas ventas; un saldo negativo es un sobrepago, que se muestra aparte (`sobrepago`) y no resta deuda a otra venta. Es lo que antes era la cartera: con cohorte «Todas» y «Desde el inicio» da la cartera de hoy. Invariante probado: Vendido = Recaudado + Por cobrar − sobrepago, al centavo | USD | sí | `dineroDeVentas`, `dineroDeSaldos` | ✅ |
 | Comisión | Σ valor vendido × el % congelado en el deal al entrar a Abonado o Completo; sin % del programa no se puede entrar a venta (ADR 0115 N6, ticket 356). Por closer va al dueño del deal. Una venta vigente nacida en el CRM siempre tiene dueño (la base lo exige, ADR 0122); las 3 ventas históricas migradas de la hoja (Comunicarte, closers que ya no son dueños posibles) quedan sin dueño a propósito y caen en «Sin closer» | USD | no | `comisionDeDeal` y `comisionesPorCloser` en `lib/queries/comision.ts` | ✅ |
-| Entró a caja | Σ abonos vigentes con fecha en el periodo (§1.5), de cualquier venta y también los adicionales, por moneda y sin convertir. Contesta «¿cuánta plata entró esta semana?»; no se infiere de las ventas ni al revés (ADR 0013). Su lista rotula la columna «Abono» | USD · COP | sí | `filtroCaja` (`lib/queries/metricas-filtros.ts`), `cajaRecaudada`, `hechos/abono.ts` | ✅ |
+| Entró a caja | Σ abonos vigentes con fecha en el periodo (§1.5), de cualquier venta y también los adicionales, por moneda y sin convertir. Contesta «¿cuánta plata entró esta semana?»; no se infiere de las ventas ni al revés (ADR 0013). Su lista rotula la columna «Abono» | USD · COP | sí | `filtroCaja` (`lib/queries/metricas-filtros.ts`), `cajaRecaudada` | ✅ |
 | Saldo de un deal | contratado − abonado; negativo es sobrepago, no deuda | USD | · | `saldosDeDeals`, `saldoLegible` | ✅ |
 | Meta del mes, de la semana y de la cohorte | cupos de la cohorte repartidos por días hábiles (020, 146) | cupos | no | `lib/queries/metas.ts` | ✅ |
 | Meta en USD del mes y de la cohorte | meta de cupos × precio de la cohorte (la del mes, por cohorte y sumada; la de la cohorte, entera) (371) | USD | no | `armarMetasDelMes` (mes), `armarVamosALlegar` (cohorte) | ✅ |

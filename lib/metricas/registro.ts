@@ -11,7 +11,6 @@
  * El nombre visible NO vive aquí: lo da la `clave` en `lib/vocabulario-metricas.ts` (ADR 0115 N4).
  * Migración incremental: lo que aún no tiene ficha está en `./pendientes.ts` (trinquete que solo encoge).
  */
-import type { DimensionAbono } from "@/lib/queries/hechos/abono";
 import type { DimensionAgenda } from "@/lib/queries/hechos/agenda";
 import type { DimensionCita } from "@/lib/queries/hechos/cita";
 import type { DimensionEnvio } from "@/lib/queries/hechos/envio";
@@ -32,7 +31,10 @@ export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero
 
 export type MonedaDeMetrica = "usd" | "cop";
 
-/** Los hechos de `docs/metricas.md` §1 que ya tienen módulo en `lib/queries/hechos/`. */
+/** Dimensiones de la caja (abonos). Sin módulo en `hechos/` desde el 10-nov (403 F4: no tenía llamador); la caja se lee por `filtroCaja`. */
+export type DimensionAbono = "dia" | "semana" | "mes" | "dueno" | "cohorte" | "moneda";
+
+/** Los hechos de `docs/metricas.md` §1; todos tienen módulo en `lib/queries/hechos/` salvo `abono` (ver `DimensionAbono`). */
 export type HechoDeMetrica = "venta" | "abono" | "envio" | "agenda" | "lead" | "cita";
 
 /** La dimensión que cada hecho admite: la lista blanca del módulo, por tipo (C-2). */

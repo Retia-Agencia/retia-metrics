@@ -12,7 +12,6 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import * as agenda from "@/lib/queries/hechos/agenda";
-import * as abono from "@/lib/queries/hechos/abono";
 import * as cita from "@/lib/queries/hechos/cita";
 import * as envio from "@/lib/queries/hechos/envio";
 import * as venta from "@/lib/queries/hechos/venta";
@@ -181,17 +180,11 @@ describe("capa de hechos", () => {
     expect(citas.reduce((n, fila) => n + fila.shows, 0)).toBe(1);
   });
 
-  it("venta y abono agregan lo mismo que sus filas subyacentes", async () => {
+  it("venta agrega lo mismo que sus filas subyacentes", async () => {
     const ventas = await venta.agrupar(db, { programId, rango: RANGO, agruparPor: ["dia", "area", "dueno"] });
     const listaVentas = await venta.listar(db, { programId, rango: RANGO, pagina: { limite: 10, offset: 0 } });
     expect(ventas.reduce((n, fila) => n + fila.ventas, 0)).toBe(listaVentas.total);
     expect(listaVentas.total).toBe(2);
-
-    const abonosAgrupados = await abono.agrupar(db, { programId, rango: RANGO, agruparPor: ["mes", "moneda", "dueno"] });
-    const listaAbonos = await abono.listar(db, { programId, rango: RANGO, pagina: { limite: 1, offset: 0 }, orden: { campo: "dia", sentido: "asc" } });
-    expect(abonosAgrupados.reduce((n, fila) => n + fila.abonos, 0)).toBe(listaAbonos.total);
-    expect(abonosAgrupados.reduce((n, fila) => n + fila.monto, 0)).toBe(300);
-    expect(listaAbonos.total).toBe(2);
   });
 
   it("rechaza dimensiones desconocidas y alcances sin programa en tipos", () => {
