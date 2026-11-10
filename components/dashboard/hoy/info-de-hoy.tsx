@@ -83,7 +83,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
             { nombre: "Citas realizadas", valor: num(uno.showPorCita.realizadas) },
             { operador: "÷", nombre: "Citas que ya debían ocurrir", valor: num(uno.showPorCita.citasQueYaDebianOcurrir), origen: "Las canceladas no entran; las de hoy que aún no llegan, tampoco" },
           ]}
-          resultado={{ nombre: `${nombreLargo("asistencia")}, contada por cita`, valor: tasa(uno.showPorCita.porcentaje) }}
+          resultado={{ nombre: nombreLargo("show_por_cita"), valor: tasa(uno.showPorCita.porcentaje) }}
         /> : null}
         {e ? <Formula
           renglones={[

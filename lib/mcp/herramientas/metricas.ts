@@ -31,7 +31,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   nombre: "resumen_del_hub",
   titulo: "Resumen del Hub",
   descripcion:
-    "Úsala cuando necesites las cifras principales del Hub de un programa para un periodo. Devuelve ventas, vendido, recaudado, por cobrar, dinero que entró a caja, citas, realizadas y tasas con cobertura. " +
+    `Úsala cuando necesites las cifras principales del Hub de un programa para un periodo. Devuelve ${nombreCorto("ventas").toLocaleLowerCase()}, ${nombreCorto("vendido").toLocaleLowerCase()}, recaudado, por cobrar, dinero que entró a caja, ${nombreCorto("citas").toLocaleLowerCase()}, ${nombreCorto("shows").toLocaleLowerCase()} y tasas con cobertura. ` +
     "Las fechas son días de Bogotá (AAAA-MM-DD), cada monto conserva su moneda y toda tasa informa su cobertura; " +
     "— significa que no se puede calcular. No mezcla programas ni devuelve filas individuales.",
   entrada: entradaResumen,
@@ -53,12 +53,12 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       `Programa: ${programa.nombre}`,
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `${nombreLargo("ventas")}: ${num(vista.embudo.cierres)}`,
-      `Vendido: ${monto(vista.dinero.vendido, "USD")}`,
+      `${nombreCorto("vendido")}: ${monto(vista.dinero.vendido, "USD")}`,
       `${nombreCorto("entro_a_caja")}: ${caja.length ? caja.join(", ") : monto(0, "USD")}`,
       `${nombreCorto("citas")}: ${num(vista.embudo.agendas)} · ${nombreCorto("shows")}: ${num(vista.embudo.llamadasConShow)}`,
       tasaLegible(nombreCorto("asistencia"), vista.embudo.razonShow, grupo.cobertura, grupo.parcial),
       tasaLegible(nombreCorto("cierre_de_ventas"), vista.embudo.razonCierre, grupo.cobertura, grupo.parcial),
-      `Cita a venta: ${vista.embudo.agendaAVenta === null ? "—" : pct(vista.embudo.agendaAVenta)} · cobertura ${grupo.cobertura === null ? "—" : pct(grupo.cobertura)}${grupo.parcial ? " (parcial)" : ""}`,
+      `${nombreCorto("cita_a_venta")}: ${vista.embudo.agendaAVenta === null ? "—" : pct(vista.embudo.agendaAVenta)} · cobertura ${grupo.cobertura === null ? "—" : pct(grupo.cobertura)}${grupo.parcial ? " (parcial)" : ""}`,
       enlace,
     ];
     return { texto: lineas.join("\n"), estructurado: aSalidaDeResumen(vista, { nombre: programa.nombre, slug: programa.slug }, enlace) };

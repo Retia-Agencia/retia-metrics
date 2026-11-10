@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct, usd } from "@/lib/format";
 import type { NivelPauta, PasoPauta, RenglonRoas, VistaRoasDePauta } from "@/lib/queries/roas-de-pauta";
+import { nombreCorto, UNIVERSO_PAUTA, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
 type Enlace = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => string;
 const claseEnlace = "rounded-lg text-marca-texto underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
@@ -72,10 +73,10 @@ function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sa
   return <tr><Celdas {...props} /></tr>;
 }
 
-const COLUMNAS_COMPLETAS = ["Envíos", "Agendadas", "Realizadas", "No asistió", "% no asistió", "Ventas", "Valor vendido", "Gasto", "ROAS"];
-const COLUMNAS_CONTEOS = ["Envíos", "Agendadas", "Realizadas", "No asistió", "Ventas"];
+const COLUMNAS_COMPLETAS = [VOCABULARIO_PAUTA_SEMANAL.envios, nombreCorto("agendadas"), nombreCorto("shows"), nombreCorto("no_asistio"), VOCABULARIO_PAUTA_SEMANAL.pct_no_asistio, nombreCorto("ventas"), nombreCorto("vendido"), VOCABULARIO_PAUTA_SEMANAL.gasto, VOCABULARIO_PAUTA_SEMANAL.roas];
+const COLUMNAS_CONTEOS = [VOCABULARIO_PAUTA_SEMANAL.envios, nombreCorto("agendadas"), nombreCorto("shows"), nombreCorto("no_asistio"), nombreCorto("ventas")];
 // Meta reporta el gasto por anuncio, no por canal: en la vista por canal no hay Gasto ni ROAS que mostrar (355).
-const COLUMNAS_SIN_GASTO = COLUMNAS_COMPLETAS.filter((c) => c !== "Gasto" && c !== "ROAS");
+const COLUMNAS_SIN_GASTO = COLUMNAS_COMPLETAS.filter((c) => c !== VOCABULARIO_PAUTA_SEMANAL.gasto && c !== VOCABULARIO_PAUTA_SEMANAL.roas);
 const CABECERAS = (primera: string, soloConteos = false, sinGasto = false) =>
   [primera, ...(soloConteos ? COLUMNAS_CONTEOS : sinGasto ? COLUMNAS_SIN_GASTO : COLUMNAS_COMPLETAS)];
 
@@ -170,7 +171,8 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloCont
   const primera = verPor === "campana" ? "Campaña › conjunto › anuncio" : "Canal";
   const sinGasto = verPor === "canal";
   return <Card aria-labelledby="roas-pauta"><CardHeader><div className="flex flex-wrap items-start justify-between gap-2">
-    <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y ROAS</CardTitle>
+    <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y {VOCABULARIO_PAUTA_SEMANAL.roas}</CardTitle>
+      <p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p>
       <p className="text-sm text-muted-foreground">Envíos pagos del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
     <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <><InformacionRoas vista={vista} /><Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link></>}</div>
   </div>

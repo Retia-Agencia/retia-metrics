@@ -1,5 +1,6 @@
 import type { SeccionDeInfo } from "@/components/hub/info-de-pagina";
 import { Frase, Palabras, Pasos } from "@/components/hub/piezas-de-info";
+import { nombreCorto } from "@/lib/vocabulario-metricas";
 
 /** Explicación única de Hub › Comercial, en el orden de la pantalla. */
 export function seccionesDeInfoDeComercial(): SeccionDeInfo[] {
@@ -9,10 +10,10 @@ export function seccionesDeInfoDeComercial(): SeccionDeInfo[] {
       titulo: "Cifras clave",
       contenido: <>
         <Palabras items={[
-          { palabra: "Agendadas", significa: "Citas creadas dentro del periodo." },
-          { palabra: "Asistencia", significa: "Citas realizadas entre citas ya marcadas." },
-          { palabra: "% cierre", significa: "Ventas entre citas marcadas con show." },
-          { palabra: "Agenda → venta", significa: "Ventas entre todas las citas marcadas." },
+          { palabra: nombreCorto("agendadas"), significa: "Citas creadas dentro del periodo." },
+          { palabra: nombreCorto("asistencia"), significa: "Citas realizadas entre citas ya marcadas." },
+          { palabra: nombreCorto("cierre_de_ventas"), significa: "Ventas entre citas marcadas con show." },
+          { palabra: nombreCorto("cita_a_venta"), significa: "Ventas entre todas las citas marcadas." },
         ]} />
         <Frase>Más de 10 % sin marcar vuelve parcial la tasa. Esas citas nunca cuentan como no-show.</Frase>
       </>,

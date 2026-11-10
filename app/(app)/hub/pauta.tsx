@@ -9,6 +9,7 @@ import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
 import { Button } from "@/components/ui/button";
 import { origenDelPrograma } from "@/lib/queries/origen";
 import { Origen } from "@/components/dashboard/origen";
+import { UNIVERSO_PAUTA } from "@/lib/vocabulario-metricas";
 
 /** Pauta contiene tasas y costos: en "todos" cada programa muestra solo conteos (ADR 0048). */
 export async function PautaPorPrograma({ programas, periodo, hoy, busqueda }: {
@@ -19,7 +20,7 @@ export async function PautaPorPrograma({ programas, periodo, hoy, busqueda }: {
 }) {
   const verPor: VerPorPauta = busqueda.ver_por === "canal" ? "canal" : "campana";
   return <section id="pauta" className="space-y-6">
-    <h2 className="text-xl font-semibold">Pauta y origen</h2>
+    <div><h2 className="text-xl font-semibold">Pauta y origen</h2><p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p></div>
     {await Promise.all(programas.map(async (programa) => {
       const roas = await cargarRoasDePauta(db, programa.id, periodo.a, hoy);
       const query = queryDePeriodo(periodo);
