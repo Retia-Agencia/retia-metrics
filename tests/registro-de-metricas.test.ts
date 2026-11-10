@@ -3,7 +3,11 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, relative } from "node:path";
 import { insertarBloque, MARCA_FIN, MARCA_INICIO, renderizarFichas } from "@/lib/metricas/ficha";
-import { PENDIENTES_DE_REGISTRO, TOPE_DE_PENDIENTES } from "@/lib/metricas/pendientes";
+import {
+  CONCEPTO_DE_OBJETIVO, CONCEPTO_DE_PAUTA_SEMANAL, PENDIENTES_DE_REGISTRO, TOPE_DE_PENDIENTES,
+  TOPE_PENDIENTES_DE_OBJETIVO, TOPE_PENDIENTES_DE_PAUTA_SEMANAL, TOPE_TOTAL, type DestinoDeUnaClave,
+} from "@/lib/metricas/pendientes";
+import { METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
 import { REGISTRO, type ClaveRegistrada, type FichaDeMetrica, type ReferenciaAFuncion } from "@/lib/metricas/registro";
 import { METRICAS_DE_LISTA } from "@/lib/queries/filtros-de-lista";
 import { nombreCorto, VOCABULARIO } from "@/lib/vocabulario-metricas";
@@ -76,6 +80,23 @@ describe("registro de métricas (ADR 0120)", () => {
     expect(cubiertas).toEqual(delVocabulario);
     expect(claves.filter((c) => (PENDIENTES_DE_REGISTRO as readonly string[]).includes(c))).toEqual([]);
     expect(PENDIENTES_DE_REGISTRO).toHaveLength(TOPE_DE_PENDIENTES);
+  });
+
+  it("el trinquete cubre también la tabla semanal de Pauta y los objetivos, con el tope a la vista", () => {
+    const hub = new Set<string>([...claves, ...PENDIENTES_DE_REGISTRO]);
+    const mapas: Array<[string, Record<string, DestinoDeUnaClave>, number]> = [
+      ["tabla semanal", CONCEPTO_DE_PAUTA_SEMANAL, TOPE_PENDIENTES_DE_PAUTA_SEMANAL],
+      ["objetivos", CONCEPTO_DE_OBJETIVO, TOPE_PENDIENTES_DE_OBJETIVO],
+    ];
+    for (const [nombre, mapa, tope] of mapas) {
+      const propios = Object.values(mapa).filter((d) => d === "pendiente" || d === "retirar");
+      expect(propios, `${nombre}: el tope no coincide con los pendientes`).toHaveLength(tope);
+      for (const destino of Object.values(mapa)) {
+        if (destino !== "pendiente" && destino !== "retirar") expect(hub.has(destino), `${nombre}: ${destino} no está cubierto`).toBe(true);
+      }
+    }
+    expect(Object.keys(CONCEPTO_DE_OBJETIVO).sort()).toEqual([...METRICAS_OBJETIVO].sort());
+    expect(TOPE_TOTAL).toBe(TOPE_DE_PENDIENTES + TOPE_PENDIENTES_DE_PAUTA_SEMANAL + TOPE_PENDIENTES_DE_OBJETIVO);
   });
 
   it("la forma de cada ficha es coherente: derivadas y razones nombran conceptos ya registrados", () => {

@@ -590,6 +590,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   de `grupoDeCitas` restringido al área Paid (ADR 0079, enmienda 10-nov) y el bloque dice «solo Paid»; en Comercial son de todas las áreas.
   **% de show por cita** es la otra pregunta (por cita, no por deal) y lleva ese nombre completo. *Evitar: «% cierre», «Facturación»
   (se dice «Vendido»).*
+- **Citas del día y Canceladas:** Citas del día son las citas con fecha de hoy sin las canceladas (la misma cita que «Citas», leída en un día);
+  Canceladas se muestran aparte y no suman en Citas ni cuentan para la Asistencia (403).
+- **Cómo nació la venta:** de cada venta del día, la llamada que la explica: **Agenda del día** (la persona tuvo su llamada el mismo día
+  que entró a venta), **Seguimiento** (su última llamada fue un día anterior) o **Sin llamada** (ninguna llamada realizada hasta ese día).
+  Un show posterior a la venta no la explica (403).
 - **Semana sin gasto cargado:** en la tabla semanal, Inversión, Profit y CPM muestran «—» con «Gasto de Meta desde el …»; 0 es cero
   gastado, «—» es «no se puede calcular» (ADR 0115, enmienda 10-nov).
 - **Profit:** valor vendido de la cohorte de registro de Paid menos el gasto total de Paid, ambos en USD y con la TRM de cada día.
