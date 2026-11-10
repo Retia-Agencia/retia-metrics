@@ -6,7 +6,7 @@
 > repo**: tienen datos de negocio. Aquí solo hay estructura, fórmulas y cifras agregadas como ejemplo de forma.
 > Un tercer archivo, `Reporte_Diario_Llamadas_PowerTalk.xlsx`, se agregó el mismo día (§1.5 y §3.1).
 
-## Resumen en diez líneas
+## Resumen
 
 1. Son el Excel de Pauta que Dani Rodríguez pidió reemplazar (F1 de `paid-media-2026-11-09.md`). Un archivo por programa, **un
    renglón por métrica y una columna por día**, una hoja por cohorte, más un bloque semanal y un "Resumen del periodo". La nota
