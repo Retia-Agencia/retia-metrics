@@ -342,7 +342,7 @@ Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vista
 **Por qué es lo primero.** Después de todo lo extraído (weekly del 3-nov, reunión con Pauta del 7-nov, daily de Michael, pedidos de
 Gerencia, los tres Excels, los artifacts de 30X) y de todo lo construido (371, 373, 355, 375, 412), el Hub tiene mucho más de lo
 que cabe en la cabeza de quien lo mantiene. Mani sospecha que hay redundancia, huecos, cálculos errados y cifras que no significan lo
-mismo en dos pantallas. Esta sesión **encontró ya cuatro candidatas** leyendo solo la pestaña Pauta (§9.2). Una pantalla con cifras
+mismo en dos pantallas. Esta sesión **encontró ya ocho candidatas** leyendo solo la pestaña Pauta (§9.2). Una pantalla con cifras
 que no cuadran es peor que un Excel: el Excel al menos no pretende ser la verdad. El norte del 30-oct (ADR 0115) lo dice: una
 pregunta, una respuesta.
 
@@ -440,7 +440,7 @@ entender su estructura sin abrirlos. Si se necesita un valor concreto, se le pid
 | 21 a 32 | Resumen: meta de cupos (40), ticket, presupuesto, agendas/día necesarias, ventas acumuladas, % cumplimiento, inversión acumulada, % presupuesto, agendas acumuladas, agendas/día real, CAC, ROAS | Cumplimiento de la cohorte (371/412) | ✅ salvo CAC y promedio por hábil |
 | 35 a 41 | General semanal: Inversión, Agendas, Costo por agenda, Ventas, Facturación, ROAS, Profit | M1 a M3, M5, M7 a M11 | ✅ |
 | 42 a 44 | Comercial semanal: % de presentación a zoom (llamadas ÷ agendas Meta), % de cierre zoom a cliente (ventas ÷ llamadas), % de cierre agenda a cliente (ventas ÷ agendas) | M12 a M14 | ✅ con otra definición (I-1, I-4) |
-| 45 a 51 | Tráfico semanal: Agendas Meta, CPM, CTR enlace, % clics a landing, % conversión landing, costo por agenda, Frecuencia (los de Meta, a mano) | M15 a M19 | ✅ (D hija D); frecuencia semanal "—" (I-6) |
+| 45 a 51 | Tráfico semanal: Agendas Meta, CPM, CTR enlace, % clics a landing, % conversión landing, costo por agenda, Frecuencia (los de Meta, a mano) | M15 a M19 | ✅ (hija D del 412); frecuencia semanal "—" (I-6) |
 
 Formato condicional: cada renglón se pinta cuando la celda contiene `NONE` (no hay umbrales de semáforo en ningún Excel). Celdas azules =
 captura manual. Los semáforos de 30X (F4) son la propuesta para D-6, no algo que el Excel de Retia tenga.
