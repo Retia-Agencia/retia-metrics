@@ -242,6 +242,6 @@ describe("definición de métricas ofrecidas", () => {
     }
     expect(METRICAS_OFRECIDAS.filter(
       (metrica) => DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "COP",
-    )).toEqual(["costo_por_agenda"]);
+    )).toEqual(["costo_por_agenda", "inversion"]);
   });
 });

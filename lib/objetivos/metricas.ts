@@ -86,7 +86,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "conteo",
     admiteArea: false,
     dePauta: true,
-    lector: null, // 412: la hija C lo pone en "412" al leerla
+    lector: "412",
   },
   inversion: {
     nombre: "Inversión de la cohorte",
@@ -95,7 +95,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "COP",
     admiteArea: false,
     dePauta: true,
-    lector: null, // 412: la hija C lo pone en "412" al leerla
+    lector: "412",
   },
 };
 
