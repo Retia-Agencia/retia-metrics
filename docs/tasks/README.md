@@ -35,6 +35,7 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 | [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | bloqueado · Q-4 (Paid Media) |
 | [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
 | [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | bloqueado · DM-8 (Michael y Paid Media) y D-C · migración |
+| [ ] | 422 | [Hub de todos los programas: la Pauta con la misma forma, sin cruzar programas](./422-hub-de-todos-los-programas-pauta.md) | 419, 420 | todo · carril P (compañero) · nace del 403 · DT-1 a DT-3 por decidir (Mani) · sin migración |
 
 ## 20 · Entrega del Hub a Gerencia (weekly con Daniel Tovar, 3-nov) · PRIORIDAD ÚNICA DEL HUB
 
@@ -489,7 +490,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 400 | [MCP: rechazos de validación auditados y mes concreto](./400-mcp-rechazos-auditados-y-mes-concreto.md) | — | done · 7-nov · hijo del 385 (F7) · ola 0 · migración M8 solo si hace falta |
 | [ ] | 401 | [Retiro de lo muerto en la base](./401-retiro-de-lo-muerto-en-la-base.md) | 361, 391, 404, 389 | en curso · 9-nov · código M9 y M10 hechos (`f995129a`, `58d5ac8d`), faltan M11 a M14 y todas las migraciones · 7-nov · hijo del 385 (F7) · ola 4 · migraciones M9 a M14 · ADR 0126 · decisión de Mani sobre `leads.pais` |
 | [x] | 402 | [Retención de entregas y notificaciones](./402-retencion-de-entregas-y-notificaciones.md) | — | done · 9-nov · ADR 0127 aceptada por Mani (180/90 días), cron `/api/cron/retencion`, CI verde (`4771f1f7`) · antes: todo · 7-nov · hijo del 385 (F7) · ola 4 · sin migración · ADR 0127 |
-| [ ] | 403 | [Registro tipado completo y diccionario generado](./403-registro-tipado-completo-y-diccionario-generado.md) | 397, 389, 390, 391, 404, 392, 393, 351, 355 | en curso · 10-nov · absorbe el 413 (audit del Hub) · F0 a F3 hechas, F4 parcial (fichas, 9 filas de `metricas.md`, funciones muertas) · tope de pendientes 32, no 0 · queda migración aparte para 3 objetivos sin lector · sin migración en este ticket |
+| [ ] | 403 | [Registro tipado completo y diccionario generado](./403-registro-tipado-completo-y-diccionario-generado.md) | 397, 389, 390, 391, 404, 392, 393, 351, 355 | en curso · 10-nov · absorbe el 413 (audit del Hub) · F0 a F3 hechas, F4 parcial (fichas, 9 filas de `metricas.md`, funciones muertas) · migración 0133 aplicada en producción el 10-nov (3 objetivos sin lector fuera del enum) · tope de pendientes 29 |
 | [x] | 349 | [Hub › Pauta: no shows por origen, cifras que abren sus personas y periodo visible](./349-pauta-no-shows-y-listas-por-origen.md) | 093, 251, 262 | done · 29-oct · build limpio y revisado en pantalla (base local) |
 | [ ] | 350 | [ROAS por anuncio y campaña, y el registro de llamadas exportable](./350-roas-y-llamadas-por-anuncio-y-campana.md) | 123, 247, 349 | en main · 9-nov · vuelve de `done` por la enmienda N9 del 30-oct (casillas sin marcar); ROAS de octubre depende del 351 |
 
