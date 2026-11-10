@@ -5,12 +5,11 @@ import { join, relative } from "node:path";
 import { insertarBloque, MARCA_FIN, MARCA_INICIO, renderizarFichas } from "@/lib/metricas/ficha";
 import {
   CONCEPTO_DE_OBJETIVO, CONCEPTO_DE_PAUTA_SEMANAL, PENDIENTES_DE_REGISTRO, TOPE_DE_PENDIENTES,
-  TOPE_PENDIENTES_DE_OBJETIVO, TOPE_PENDIENTES_DE_PAUTA_SEMANAL, TOPE_TOTAL, type DestinoDeUnaClave,
 } from "@/lib/metricas/pendientes";
 import { METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
 import { REGISTRO, type ClaveRegistrada, type FichaDeMetrica, type ReferenciaAFuncion } from "@/lib/metricas/registro";
 import { METRICAS_DE_LISTA } from "@/lib/queries/filtros-de-lista";
-import { nombreCorto, VOCABULARIO } from "@/lib/vocabulario-metricas";
+import { nombreDeConcepto, VOCABULARIO, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
 /**
  * Ticket 385 F4 (ADR 0120, contrato `docs/contrato-metricas-y-datos.md` §1 paso 5): el registro tipado de
@@ -67,8 +66,9 @@ const claves = Object.keys(REGISTRO) as ClaveRegistrada[];
 const referencias = (f: FichaDeMetrica): ReferenciaAFuncion[] => [f.funcionSql, ...(f.gemelaTs ? [f.gemelaTs] : [])];
 
 function filaDeProsa(nombre: string): string[] | null {
+  // Las filas de prosa viven en §3.1 (embudo y ventas) y §3.2 (pauta).
   const desde = DOC.indexOf("### 3.1 Embudo y ventas");
-  const hasta = DOC.indexOf("### 3.2 Pauta");
+  const hasta = DOC.indexOf("### 3.3 ");
   const linea = DOC.slice(desde, hasta).split("\n").find((l) => l.startsWith(`| ${nombre} |`));
   return linea ? linea.replace(/^\|\s*/, "").replace(/\s*\|\s*$/, "").split(" | ") : null;
 }
@@ -76,27 +76,27 @@ function filaDeProsa(nombre: string): string[] | null {
 describe("registro de métricas (ADR 0120)", () => {
   it("cada clave del vocabulario está registrada o pendiente, nunca las dos, y los pendientes solo encogen", () => {
     const delVocabulario = Object.keys(VOCABULARIO).sort();
-    const cubiertas = [...claves, ...PENDIENTES_DE_REGISTRO].sort();
+    const delHub = new Set(Object.keys(VOCABULARIO));
+    const cubiertas = [...claves.filter((c) => delHub.has(c)), ...PENDIENTES_DE_REGISTRO].sort();
     expect(cubiertas).toEqual(delVocabulario);
     expect(claves.filter((c) => (PENDIENTES_DE_REGISTRO as readonly string[]).includes(c))).toEqual([]);
     expect(PENDIENTES_DE_REGISTRO).toHaveLength(TOPE_DE_PENDIENTES);
   });
 
-  it("el trinquete cubre también la tabla semanal de Pauta y los objetivos, con el tope a la vista", () => {
-    const hub = new Set<string>([...claves, ...PENDIENTES_DE_REGISTRO]);
-    const mapas: Array<[string, Record<string, DestinoDeUnaClave>, number]> = [
-      ["tabla semanal", CONCEPTO_DE_PAUTA_SEMANAL, TOPE_PENDIENTES_DE_PAUTA_SEMANAL],
-      ["objetivos", CONCEPTO_DE_OBJETIVO, TOPE_PENDIENTES_DE_OBJETIVO],
-    ];
-    for (const [nombre, mapa, tope] of mapas) {
-      const propios = Object.values(mapa).filter((d) => d === "pendiente");
-      expect(propios, `${nombre}: el tope no coincide con los pendientes`).toHaveLength(tope);
-      for (const destino of Object.values(mapa)) {
-        if (destino !== "pendiente") expect(hub.has(destino), `${nombre}: ${destino} no está cubierto`).toBe(true);
+  it("la tabla semanal de Pauta y los objetivos ya no tienen pendientes: cada clave apunta a un concepto con ficha", () => {
+    for (const [nombre, mapa] of [["tabla semanal", CONCEPTO_DE_PAUTA_SEMANAL], ["objetivos", CONCEPTO_DE_OBJETIVO]] as const) {
+      for (const [clave, destino] of Object.entries(mapa)) {
+        expect(claves as string[], `${nombre}: ${clave} apunta a ${destino}, que no tiene ficha`).toContain(destino);
       }
     }
     expect(Object.keys(CONCEPTO_DE_OBJETIVO).sort()).toEqual([...METRICAS_OBJETIVO].sort());
-    expect(TOPE_TOTAL).toBe(TOPE_DE_PENDIENTES + TOPE_PENDIENTES_DE_PAUTA_SEMANAL + TOPE_PENDIENTES_DE_OBJETIVO);
+  });
+
+  it("las claves propias de Pauta no se solapan con el vocabulario del Hub y todas existen en el vocabulario de Pauta", () => {
+    const delHub = new Set(Object.keys(VOCABULARIO));
+    const propias = claves.filter((c) => !delHub.has(c));
+    expect(propias.length).toBeGreaterThan(0);
+    for (const clave of propias) expect(Object.keys(VOCABULARIO_PAUTA_SEMANAL), `${clave} no está en el vocabulario de Pauta`).toContain(clave);
   });
 
   it("la forma de cada ficha es coherente: derivadas y razones nombran conceptos ya registrados", () => {
@@ -159,14 +159,14 @@ describe("registro de métricas (ADR 0120)", () => {
     for (const clave of claves) {
       const f: FichaDeMetrica = REGISTRO[clave];
       const celdas = filaDeProsa(f.filaDelDiccionario);
-      expect(celdas, `${clave}: falta la fila "${f.filaDelDiccionario}" en §3.1`).not.toBeNull();
+      expect(celdas, `${clave}: falta la fila "${f.filaDelDiccionario}" en §3.1 o §3.2`).not.toBeNull();
       expect(celdas![4], `${clave}: la fila no cita ${f.funcionSql.nombre}`).toContain(f.funcionSql.nombre);
       expect(celdas![3], `${clave}: ¿se suma entre programas?`).toBe(f.sumaEntreProgramas ? "sí" : "no");
     }
   });
 
   it("el nombre de cada concepto registrado aparece en el glosario de overview.md §11", () => {
-    for (const clave of claves) expect(GLOSARIO, `${clave}: "${nombreCorto(clave)}" no está en §11`).toContain(nombreCorto(clave));
+    for (const clave of claves) expect(GLOSARIO, `${clave}: "${nombreDeConcepto(clave)}" no está en §11`).toContain(nombreDeConcepto(clave));
   });
 
   it("existen los archivos que el contrato cita", () => {

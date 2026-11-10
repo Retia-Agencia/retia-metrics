@@ -4,13 +4,13 @@
  * `tests/registro-de-metricas.test.ts`. La prosa de la fórmula NO se genera: sigue a mano en §3.1.
  */
 import { REGISTRO, type ClaveRegistrada, type FichaDeMetrica } from "@/lib/metricas/registro";
-import { nombreCorto } from "@/lib/vocabulario-metricas";
+import { nombreDeConcepto } from "@/lib/vocabulario-metricas";
 
 export const MARCA_INICIO = "<!-- registro:inicio (generado por `npm run docs:metricas`; no editar a mano) -->";
 export const MARCA_FIN = "<!-- registro:fin -->";
 
 const UNIDADES = {
-  cupos: "cupos", personas: "personas", citas: "citas", deals: "deals", dinero: "dinero", porcentaje: "%",
+  cupos: "cupos", personas: "personas", citas: "citas", deals: "deals", dinero: "dinero", porcentaje: "%", veces: "veces",
 } as const;
 const ANCLAS = {
   primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
@@ -19,6 +19,7 @@ const ANCLAS = {
   fecha_de_creacion_de_la_cita: "fecha de creación de la cita",
   primera_aplicacion: "día de su primera aplicación (Bogotá)",
   hora_de_la_cita: "hora de la cita (agenda, o la llamada si no tiene)",
+  fecha_del_gasto: "día del gasto cargado (Bogotá)",
 } as const;
 const COBERTURAS = {
   no_aplica: "—",
@@ -31,7 +32,7 @@ const referencia = (r: { archivo: string; nombre: string }) => `\`${r.nombre}\` 
 function fila(clave: ClaveRegistrada, f: FichaDeMetrica): string {
   const monedas = f.monedas.length === 0 ? "—" : f.monedas.map((m) => m.toUpperCase()).join(" · ");
   const celdas = [
-    `${nombreCorto(clave)} (\`${clave}\`)`,
+    `${nombreDeConcepto(clave)} (\`${clave}\`)`,
     f.tipo + (f.de ? ` de ${f.de.map((c) => `\`${c}\``).join(" y ")}` : ""),
     `${UNIDADES[f.unidad]}${f.monedas.length ? ` · ${monedas}` : ""}`,
     ANCLAS[f.anclaDeFecha],

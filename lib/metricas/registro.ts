@@ -16,7 +16,7 @@ import type { DimensionCita } from "@/lib/queries/hechos/cita";
 import type { DimensionEnvio } from "@/lib/queries/hechos/envio";
 import type { DimensionVenta } from "@/lib/queries/hechos/venta";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
-import type { ClaveDeMetrica } from "@/lib/vocabulario-metricas";
+import type { ClaveDeConcepto } from "@/lib/vocabulario-metricas";
 
 export type TipoDeMetrica =
   /** Un conteo o una suma directa sobre un hecho. */
@@ -27,7 +27,7 @@ export type TipoDeMetrica =
   | "derivada";
 
 /** Qué se cuenta. Cerrado a propósito: una unidad nueva es una decisión de vocabulario, no un string suelto. */
-export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero" | "porcentaje";
+export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero" | "porcentaje" | "veces";
 
 export type MonedaDeMetrica = "usd" | "cop";
 
@@ -35,7 +35,10 @@ export type MonedaDeMetrica = "usd" | "cop";
 export type DimensionAbono = "dia" | "semana" | "mes" | "dueno" | "cohorte" | "moneda";
 
 /** Los hechos de `docs/metricas.md` §1; todos tienen módulo en `lib/queries/hechos/` salvo `abono` (ver `DimensionAbono`). */
-export type HechoDeMetrica = "venta" | "abono" | "envio" | "agenda" | "lead" | "cita";
+export type HechoDeMetrica = "venta" | "abono" | "envio" | "agenda" | "lead" | "cita" | "gasto";
+
+/** Dimensiones del gasto de pauta. `hechos/gasto.ts` no tiene lista blanca propia: la tabla semanal solo agrupa por día y semana. */
+export type DimensionGasto = "dia" | "semana";
 
 /** La dimensión que cada hecho admite: la lista blanca del módulo, por tipo (C-2). */
 export interface DimensionesPorHecho {
@@ -46,6 +49,7 @@ export interface DimensionesPorHecho {
   /** El lead aún no tiene módulo de hecho en `hechos/`: solo filtra por la cohorte de su deal (`filtroLeads`). */
   lead: "cohorte";
   cita: DimensionCita;
+  gasto: DimensionGasto;
 }
 
 /**
@@ -58,7 +62,8 @@ export type AnclaDeFecha =
   | "fecha_del_envio"
   | "fecha_de_creacion_de_la_cita"
   | "primera_aplicacion"
-  | "hora_de_la_cita";
+  | "hora_de_la_cita"
+  | "fecha_del_gasto";
 
 /** Las tablas cuya lectura debe pasar por `vigente()` para esta métrica (ADR 0026, 0038). */
 export type TablaConVigencia = "deals" | "abonos" | "calls" | "deal_actividades";
@@ -120,7 +125,7 @@ export interface FichaDeMetrica {
   filaDelDiccionario: string;
   tipo: TipoDeMetrica;
   /** Solo en `derivada` y `razon`: las claves de los conceptos de los que sale. Deben estar registradas. */
-  de?: readonly ClaveDeMetrica[];
+  de?: readonly ClaveDeConcepto[];
   unidad: UnidadDeMetrica;
   /** Monedas en que se expresa; vacío si no es dinero. Nunca se convierten en silencio. */
   monedas: readonly MonedaDeMetrica[];
@@ -154,6 +159,8 @@ const DIMENSIONES_DE_ABONO = ["dia", "semana", "mes", "dueno", "cohorte", "moned
 
 const DINERO_DE_VENTAS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeVentas" };
 const DINERO_DE_SALDOS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeSaldos" };
+
+const PAUTA_SEMANAL: ReferenciaAFuncion = { archivo: "lib/queries/hechos/pauta-semanal.ts", nombre: "cargarPautaSemanal" };
 
 const CITA_SIN_RESULTADO: ReferenciaAFuncion = { archivo: "lib/queries/metricas-filtros.ts", nombre: "citaVencidaSinResultado" };
 const CITA_SIN_RESULTADO_EN_MEMORIA: ReferenciaAFuncion = { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "citaCuentaComoPorMarcar" };
@@ -561,7 +568,148 @@ export const REGISTRO = {
     funcionSql: { archivo: "lib/queries/reporte-diario.ts", nombre: "comoNacioLaVenta" },
     listas: [],
   }),
-} as const satisfies Partial<Record<ClaveDeMetrica, FichaDeMetrica>>;
+  // ── Pauta (403 F2): conceptos de la tabla semanal que no son del vocabulario del Hub (`ClaveDePauta`). ──
+  // Inversión (D-E): gasto de Meta en COP; una semana sin gasto cargado es «—» con motivo, no 0.
+  inversion: ficha("gasto", {
+    filaDelDiccionario: "Inversión de la tabla semanal",
+    tipo: "simple",
+    unidad: "dinero",
+    monedas: ["cop"],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: true,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+  // Costo por agenda del Hub: gasto de campañas con propósito agenda ÷ agendas del CRM de área Paid (la misma cifra de «Agendadas»).
+  costo_agenda_crm: ficha("gasto", {
+    filaDelDiccionario: "Costo por agenda del Hub",
+    tipo: "razon",
+    de: ["inversion", "agendadas"],
+    unidad: "dinero",
+    monedas: ["cop"],
+    anclaDeFecha: "fecha_de_creacion_de_la_cita",
+    dimensiones: ["dia", "semana"],
+    vigencia: ["calls"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/queries/hechos/costo-agenda-crm.ts", nombre: "costoPorAgendaDelCrm" },
+    listas: [],
+  }),
+  // Costo por agenda del semáforo: la misma pregunta con las agendas que reporta Meta (pueden diferir del CRM, DA-4).
+  costo_agenda_meta: ficha("gasto", {
+    filaDelDiccionario: "Costo por agenda del semáforo",
+    tipo: "derivada",
+    de: ["inversion"],
+    unidad: "dinero",
+    monedas: ["cop"],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/semaforo/costo-por-agenda.ts", nombre: "costoPorAgendaDeVentana" },
+    listas: [],
+  }),
+  // ROAS (D-B): ventas de la cohorte de registro de Paid (semana del envío, no de la venta) ÷ gasto en USD de cada día.
+  roas: ficha("gasto", {
+    filaDelDiccionario: "ROAS",
+    tipo: "razon",
+    de: ["vendido", "inversion"],
+    unidad: "veces",
+    monedas: [],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/queries/roas-de-pauta.ts", nombre: "cargarRoasDePauta" },
+    listas: [],
+  }),
+  profit: ficha("gasto", {
+    filaDelDiccionario: "Profit",
+    tipo: "derivada",
+    de: ["vendido", "inversion"],
+    unidad: "dinero",
+    monedas: ["usd"],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+  // Las cinco de abajo salen de columnas de `gasto_pauta` que Meta informa: nunca promedian porcentajes y dicen «parcial» si Meta omitió filas.
+  cpm: ficha("gasto", {
+    filaDelDiccionario: "CPM",
+    tipo: "simple",
+    unidad: "dinero",
+    monedas: ["cop"],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+  ctr: ficha("gasto", {
+    filaDelDiccionario: "CTR",
+    tipo: "simple",
+    unidad: "porcentaje",
+    monedas: [],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+  llegada_landing: ficha("gasto", {
+    filaDelDiccionario: "Llegada a la landing",
+    tipo: "simple",
+    unidad: "porcentaje",
+    monedas: [],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+  conversion_landing: ficha("gasto", {
+    filaDelDiccionario: "Conversión de la landing",
+    tipo: "razon",
+    de: ["registros"],
+    unidad: "porcentaje",
+    monedas: [],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+  frecuencia: ficha("gasto", {
+    filaDelDiccionario: "Frecuencia",
+    tipo: "simple",
+    unidad: "veces",
+    monedas: [],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
+} as const satisfies Partial<Record<ClaveDeConcepto, FichaDeMetrica>>;
 
 export type ClaveRegistrada = keyof typeof REGISTRO;
 
@@ -569,6 +717,6 @@ export function fichaDe(clave: ClaveRegistrada): FichaDeMetrica {
   return REGISTRO[clave];
 }
 
-export function estaRegistrada(clave: ClaveDeMetrica): clave is ClaveRegistrada {
+export function estaRegistrada(clave: ClaveDeConcepto): clave is ClaveRegistrada {
   return Object.prototype.hasOwnProperty.call(REGISTRO, clave);
 }

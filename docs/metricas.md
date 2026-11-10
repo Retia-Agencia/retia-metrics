@@ -251,6 +251,16 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 | Agenda del día (`nacio_agenda_del_dia`) | derivada de `ventas` | cupos | día de su primera entrada a Abonado o Completo | sí | — |  | `deals`, `calls` | `comoNacioLaVenta` (`lib/queries/reporte-diario.ts`) | — |
 | Seguimiento (`nacio_seguimiento`) | derivada de `ventas` | cupos | día de su primera entrada a Abonado o Completo | sí | — |  | `deals`, `calls` | `comoNacioLaVenta` (`lib/queries/reporte-diario.ts`) | — |
 | Sin llamada (`nacio_sin_llamada`) | derivada de `ventas` | cupos | día de su primera entrada a Abonado o Completo | sí | — |  | `deals`, `calls` | `comoNacioLaVenta` (`lib/queries/reporte-diario.ts`) | — |
+| Inversión (`inversion`) | simple | dinero · COP | día del gasto cargado (Bogotá) | sí | razón con cobertura | `dia`, `semana` |  | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
+| Costo por agenda (`costo_agenda_crm`) | razon de `inversion` y `agendadas` | dinero · COP | fecha de creación de la cita | no | razón con cobertura | `dia`, `semana` | `calls` | `costoPorAgendaDelCrm` (`lib/queries/hechos/costo-agenda-crm.ts`) | — |
+| Costo por agenda (según Meta) (`costo_agenda_meta`) | derivada de `inversion` | dinero · COP | día del gasto cargado (Bogotá) | no | razón con cobertura | `dia`, `semana` |  | `costoPorAgendaDeVentana` (`lib/semaforo/costo-por-agenda.ts`) | — |
+| ROAS (`roas`) | razon de `vendido` y `inversion` | veces | fecha del envío | no | razón con cobertura | `dia`, `semana` | `deals` | `cargarRoasDePauta` (`lib/queries/roas-de-pauta.ts`) | — |
+| Profit (`profit`) | derivada de `vendido` y `inversion` | dinero · USD | fecha del envío | no | razón con cobertura | `dia`, `semana` | `deals` | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
+| CPM (`cpm`) | simple | dinero · COP | día del gasto cargado (Bogotá) | no | razón con cobertura | `dia`, `semana` |  | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
+| CTR (`ctr`) | simple | % | día del gasto cargado (Bogotá) | no | razón con cobertura | `dia`, `semana` |  | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
+| Llegada a la landing (`llegada_landing`) | simple | % | día del gasto cargado (Bogotá) | no | razón con cobertura | `dia`, `semana` |  | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
+| Conversión de la landing (`conversion_landing`) | razon de `registros` | % | fecha del envío | no | razón con cobertura | `dia`, `semana` |  | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
+| Frecuencia (`frecuencia`) | simple | veces | día del gasto cargado (Bogotá) | no | razón con cobertura | `dia` |  | `cargarPautaSemanal` (`lib/queries/hechos/pauta-semanal.ts`) | — |
 <!-- registro:fin -->
 
 ### 3.1 Embudo y ventas

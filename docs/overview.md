@@ -611,7 +611,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Cobertura de una razón:** sobre qué base se midió una tasa, un costo o un ROAS y cuánto falta (ADR 0115 N3). Completa,
   parcial ("parcial · N de M") o no calculable ("—" con el motivo); nunca un número a medias. La proyección sí usa una razón parcial, pero la etiqueta "parcial, N de M" junto al supuesto (351).
 - **Costo por agenda (CPI):** el gasto de pauta entre las agendas. En el **semáforo**, las agendas según Meta (ADR 0088,
-  enmienda del 16-oct); en el **Hub**, las del CRM de Paid, todavía sin construir (249). **CPL** es lo mismo por registro
+  enmienda del 16-oct): se rotula **Costo por agenda (según Meta)**; en el **Hub** y la tabla semanal de Pauta, las del CRM
+  de Paid (**Costo por agenda**, 403 F2). **CPL** es lo mismo por registro
   y **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
 - **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Son el denominador del costo
   por agenda del semáforo; contra las del CRM, la diferencia es un control (ADR 0088, 249).

@@ -52,3 +52,11 @@ así que un concepto podía existir en la pantalla sin fila en el diccionario, o
 - El inventario de conceptos es el vocabulario (40 claves). Filas del diccionario sin clave (por ejemplo «Saldo de un deal») no
   están cubiertas todavía; entran cuando el vocabulario les dé nombre.
 - No hay migración de base de datos.
+
+## Enmienda del 10-nov (ticket 403 F2): el registro admite claves de Pauta
+
+El registro se indexa por `ClaveDeConcepto = ClaveDeMetrica | ClaveDePauta` (`lib/vocabulario-metricas.ts`). Los diez conceptos de
+la tabla semanal de Pauta que no son del Hub (inversión, costo por agenda del Hub y del semáforo, ROAS, profit, CPM, CTR, llegada
+y conversión de la landing, frecuencia) tienen ficha con el hecho `gasto`, el ancla `fecha_del_gasto` y la unidad `veces`; su nombre
+sale de `VOCABULARIO_PAUTA_SEMANAL`. Las claves de la tabla semanal y de los objetivos apuntan a un concepto con ficha
+(`CONCEPTO_DE_PAUTA_SEMANAL`, `CONCEPTO_DE_OBJETIVO`) y ya no tienen trinquete propio: queda solo el del vocabulario del Hub.

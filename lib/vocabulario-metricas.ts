@@ -91,6 +91,23 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
   otras_campaignas: "Otras campañas",
 } as const;
 
+/**
+ * Las claves de la tabla semanal de Pauta que son un CONCEPTO propio con ficha en el registro (403 F2). Viven en su
+ * vocabulario (`VOCABULARIO_PAUTA_SEMANAL`) y no en `ClaveDeMetrica`: el Hub no las muestra, la Pauta sí. `gasto`,
+ * `envios`, `pct_no_asistio` y `otras_campaignas` no son conceptos aparte (son una suma, otro concepto o un desglose).
+ */
+export type ClaveDePauta =
+  | "inversion" | "costo_agenda_crm" | "costo_agenda_meta" | "roas" | "profit"
+  | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "frecuencia";
+
+/** Toda clave que puede tener ficha: las del Hub y las de Pauta. Los nombres no se solapan (lo vigila el test del registro). */
+export type ClaveDeConcepto = ClaveDeMetrica | ClaveDePauta;
+
+/** El nombre corto de cualquier concepto registrable, del vocabulario que le toca. */
+export function nombreDeConcepto(clave: ClaveDeConcepto): string {
+  return clave in VOCABULARIO ? VOCABULARIO[clave as ClaveDeMetrica].corto : VOCABULARIO_PAUTA_SEMANAL[clave as ClaveDePauta];
+}
+
 export const UNIVERSO_PAUTA = "solo Paid";
 export const UNIVERSO_COMERCIAL = "todas las áreas";
 

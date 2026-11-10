@@ -1,18 +1,12 @@
 /**
- * Lo que todavía NO tiene ficha en `./registro.ts` (ADR 0120), en los TRES universos de métricas que vigila el
- * trinquete (ticket 403 F2): el vocabulario del Hub, la tabla semanal de Pauta y los objetivos del semáforo.
- * `tests/registro-de-metricas.test.ts` exige que cada clave de cada universo esté cubierta, que ninguna esté en
- * el registro Y en los pendientes, y que cada tope sea igual a la longitud de su lista. Agregar una clave sin
- * ficha obliga a subir el tope a la vista de todos; migrar un concepto obliga a bajarlo.
- * Migrar un concepto = escribir su ficha y BORRAR su línea de aquí (N7).
- *
- * Las claves de Pauta y de objetivos que miden un concepto del Hub apuntan a su clave (no tienen ficha propia: la
- * ficha es la del concepto, y si ese está pendiente cuenta en el tope del Hub). `"pendiente"` es un concepto propio
- * de ese universo que aún no tiene función única ni ficha.
+ * Lo que todavía NO tiene ficha en `./registro.ts` (ADR 0120): el trinquete del vocabulario del Hub (ticket 403).
+ * `tests/registro-de-metricas.test.ts` exige que cada clave esté cubierta, que ninguna esté en el registro Y aquí,
+ * y que el tope sea igual a la longitud de la lista. Migrar un concepto = escribir su ficha y BORRAR su línea (N7).
+ * La tabla semanal de Pauta y los objetivos del semáforo ya no tienen pendientes: cada clave apunta a una ficha (abajo).
  */
 import type { MetricaObjetivo } from "@/lib/objetivos/metricas";
 import type { ClavePautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
-import type { ClaveDeMetrica } from "@/lib/vocabulario-metricas";
+import type { ClaveDeConcepto, ClaveDeMetrica } from "@/lib/vocabulario-metricas";
 
 export const PENDIENTES_DE_REGISTRO = [
   "deals_desde_completo", "deals_desde_parcial",
@@ -26,39 +20,35 @@ export const PENDIENTES_DE_REGISTRO = [
 /** Baja cuando se migra un concepto; subirlo es una decisión que se ve en el diff. */
 export const TOPE_DE_PENDIENTES = 16;
 
-export type DestinoDeUnaClave = ClaveDeMetrica | "pendiente";
-
-/** Tabla semanal de Pauta (412): exhaustiva, agregar una `ClavePautaSemanal` obliga a decidir su destino. */
-export const CONCEPTO_DE_PAUTA_SEMANAL: Record<ClavePautaSemanal, DestinoDeUnaClave> = {
+/**
+ * Hacia qué concepto va cada clave de la tabla semanal de Pauta y de los objetivos del semáforo. Exhaustivas: agregar una
+ * `ClavePautaSemanal` o una `MetricaObjetivo` obliga a decidir su concepto, y el test exige que esté registrado. Desde el
+ * 403 F2 todas apuntan a una ficha (ya no hay pendientes propios de estos universos: el trinquete es solo el del Hub).
+ */
+export const CONCEPTO_DE_PAUTA_SEMANAL: Record<ClavePautaSemanal, ClaveDeConcepto> = {
   agendas: "agendadas",
   ventas: "ventas",
   facturacion: "vendido",
   show: "asistencia",
   cierre_ventas: "cierre_de_ventas",
   agenda_venta: "cita_a_venta",
-  inversion: "pendiente",
-  costo_agenda_crm: "pendiente",
-  costo_agenda_meta: "pendiente",
-  roas: "pendiente",
-  profit: "pendiente",
-  cpm: "pendiente",
-  ctr: "pendiente",
-  llegada_landing: "pendiente",
-  conversion_landing: "pendiente",
-  frecuencia: "pendiente",
+  inversion: "inversion",
+  costo_agenda_crm: "costo_agenda_crm",
+  costo_agenda_meta: "costo_agenda_meta",
+  roas: "roas",
+  profit: "profit",
+  cpm: "cpm",
+  ctr: "ctr",
+  llegada_landing: "llegada_landing",
+  conversion_landing: "conversion_landing",
+  frecuencia: "frecuencia",
 };
-export const TOPE_PENDIENTES_DE_PAUTA_SEMANAL = 10;
 
-/** Objetivos del semáforo (`METRICAS_OBJETIVO`): exhaustiva. */
-export const CONCEPTO_DE_OBJETIVO: Record<MetricaObjetivo, DestinoDeUnaClave> = {
+export const CONCEPTO_DE_OBJETIVO: Record<MetricaObjetivo, ClaveDeConcepto> = {
   cupos: "ventas",
   agendas: "agendadas",
   conversion_agenda_venta: "cita_a_venta",
-  costo_por_agenda: "pendiente",
-  roas: "pendiente",
-  inversion: "pendiente",
+  costo_por_agenda: "costo_agenda_crm",
+  roas: "roas",
+  inversion: "inversion",
 };
-export const TOPE_PENDIENTES_DE_OBJETIVO = 3;
-
-/** El tope a la vista de los tres universos juntos (antes: 23 + 16 + 9 = 48 por medir; ahora, lo que mide el código). */
-export const TOPE_TOTAL = TOPE_DE_PENDIENTES + TOPE_PENDIENTES_DE_PAUTA_SEMANAL + TOPE_PENDIENTES_DE_OBJETIVO;
