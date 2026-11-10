@@ -180,15 +180,15 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   };
 }
 
+function totalDeAgendas(filas: Array<{ agendas: number }>): number {
+  return filas.reduce((total, fila) => total + fila.agendas, 0);
+}
+
 /**
  * Meta omite la conversión de agenda cuando cuenta 0, así que una fila sin agendas es ambigua: si el
  * programa ya tuvo agendas de Meta alguna vez, mide con el pixel y la ausencia es un 0; si nunca las
  * tuvo, de verdad no las mide.
  */
-function totalDeAgendas(filas: Array<{ agendas: number }>): number {
-  return filas.reduce((total, fila) => total + fila.agendas, 0);
-}
-
 async function programaMideAgendasMeta(db: Db, programId: string): Promise<boolean> {
   const [fila] = await db.select({ id: gastoPauta.id }).from(gastoPauta).where(and(
     eq(gastoPauta.programId, programId),
