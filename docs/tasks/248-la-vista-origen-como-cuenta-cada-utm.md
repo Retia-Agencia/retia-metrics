@@ -37,7 +37,7 @@ y que un par nuevo se note sin tener que mantener nada.
 - [ ] `instagram francisco / storiesfijadas` aparece como Orgánico · Instagram · Francisco con su regla, y con la marca
   nuevo mientras tenga menos de siete días.
 - [ ] La suma de los envíos por par da el total de envíos del rango, con test.
-- [ ] Un paid trafficker ve la pestaña de sus programas; un closer que forja la ruta recibe 404.
+- [x] Un paid trafficker ve la pestaña de sus programas; un closer que forja la ruta recibe 404. (recorrido 10-nov en `dev:local`: pauta@ abre Pauta sin filtro ni comparativo de closers, `?seccion=origen` redirige; carlos.closer@ recibe 404 en hub, hub/lista y /hub)
 - [ ] Recorrido con clic en todo lo que se abre, escritorio y 375 px, consola limpia.
 
 ## Notas
