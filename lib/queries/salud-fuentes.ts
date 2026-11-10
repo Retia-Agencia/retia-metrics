@@ -1,7 +1,7 @@
 import { and, count, eq, gte, isNotNull, isNull, lt, max } from "drizzle-orm";
-import { MEDIOS_PAGOS, normalizarUtm } from "@/lib/atribucion/canal";
 import { emparejar } from "@/lib/atribucion/emparejar";
-import { columnasUtmDelEnvio, esMacro, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { esEnvioPago, esPagoSinId } from "@/lib/atribucion/traza-sin-id";
+import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { db as dbDeLaApp } from "@/lib/db";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -193,8 +193,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     const programId = programaPorFuente.get(envio.sourceId);
     if (!programId) continue;
     const utms = utmsDelEnvio(envio);
-    const medium = normalizarUtm(utms.medium);
-    if (!MEDIOS_PAGOS.some((medio) => medio === medium)) continue;
+    if (!esEnvioPago(utms)) continue;
     const conteo = trazaDe.get(envio.sourceId) ?? {
       pagos: 0,
       pagosSinId: 0,
@@ -203,9 +202,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     };
     conteo.pagos += 1;
     if (!utms.fbclid) conteo.pagosSinFbclid += 1;
-    const tieneId = [utms.idsMeta.adId, utms.id, utms.idsMeta.adsetId, utms.idsMeta.campaignId]
-      .some((id) => id !== null && id.trim() !== "" && !esMacro(id));
-    if (!tieneId) conteo.pagosSinId += 1;
+    if (esPagoSinId(utms)) conteo.pagosSinId += 1;
     else if (emparejar(utms, arboles.get(programId)!).avisos.includes("anuncio_desconocido")) {
       conteo.pagosIdDesconocido += 1;
     }
