@@ -33,7 +33,7 @@ las sumables.
 | Rótulos | Uno por concepto, del vocabulario; el bloque de Pauta con el subtítulo «solo Paid»; Comercial con «todas las áreas» | D-C (`docs/audit-hub-2026-11-10.md` §8), ya en `main` (403 F2) |
 | Agendas diarias por programa con interruptores | **«Falta decidir»**; solo cantidades, nunca tasas entre programas | `docs/diseno-cifra-y-pauta.md` (tabla de pedidos), `docs/paid-media-2026-11-09.md` X-4 |
 
-## Decisiones abiertas (las contesta Mani antes de construir)
+## Decisiones (contestadas por Mani el 10-nov, con la recomendación)
 
 | # | Pregunta | Recomendación | Por qué |
 |---|---|---|---|
@@ -41,15 +41,17 @@ las sumables.
 | DT-2 | ¿Se incluye la gráfica de agendas diarias por programa con interruptores (X-4)? | Sí, como una línea por programa (cantidades) | Está dibujada en el boceto y «solo cantidades» respeta el 0048; usa la gráfica del 370, sin código nuevo de dibujo |
 | DT-3 | ¿Cada programa en «todos» repite las dos vistas completas o solo Resultados (tabla semanal y cumplimiento) con un enlace a su Origen y calidad? | Resultados por programa, y Origen y calidad con enlace al Hub del programa | 4 programas × 9 bloques es una pantalla ilegible; el contrato de entendimiento pide poco texto y lo principal visible |
 
-## Alcance (pendiente de DT-1 a DT-3)
+## Alcance (DT-1 a DT-3 = sí)
 
 1. **Sección Pauta de `/hub`** con la forma del 420: por programa, lado a lado, con el rótulo y el subtítulo del vocabulario, y la
    tabla semanal de cada programa (una por programa, §6 del 9-nov).
-2. **Franja de totales** (si DT-1 = sí): solo magnitudes sumables en la misma unidad, con la guarda en el **tipo** (la función del
+2. **Franja de totales** (DT-1): solo magnitudes sumables en la misma unidad, con la guarda en el **tipo** (la función del
    agregado no admite una tasa; `lib/queries/vista-todos.ts`), y la moneda al lado de cada número.
 3. **Cifra y explicación (419)** en cada cifra de «todos»: la explicación dice por programa, no combinada.
 4. **Retirar `PautaRoas soloConteos` y `OrigenPorPrograma`** cuando queden cubiertos (N7: reemplazar es borrar).
-5. **Paridad (N2):** cada total de «todos» es la suma de las cifras del Hub de cada programa (test con dos programas y monedas
+5. **Gráfica de agendas diarias por programa** (DT-2, X-4): una línea por programa, solo cantidades, con los tres interruptores del 370 y sin echarts directo.
+6. **Resultados por programa** (DT-3): tabla semanal y cumplimiento de cada programa; Origen y calidad solo como enlace a su Hub.
+7. **Paridad (N2):** cada total de «todos» es la suma de las cifras del Hub de cada programa (test con dos programas y monedas
    distintas, y con un programa sin gasto cargado: da «—», no cero).
 
 **Archivos calientes:** `app/(app)/hub/pauta.tsx`, `app/(app)/hub/page.tsx`, `lib/queries/vista-todos.ts`, `components/pauta/*`. Los
@@ -66,7 +68,7 @@ mismos del 420 y 419 (carril P, Alejandro): **no se empieza hasta que el 420 est
 
 ## Done cuando
 
-- [ ] DT-1 a DT-3 contestadas por Mani y escritas aquí.
+- [x] DT-1 a DT-3 contestadas por Mani (10-nov): las tres con la recomendación (franja de totales sumables; gráfica de agendas diarias por programa; Resultados por programa y Origen y calidad con enlace al Hub del programa).
 - [ ] `/hub` Pauta: la misma forma que el Hub de un programa, comparada lado a lado con el boceto en claro, oscuro y 375 px.
 - [ ] Ninguna tasa, ROAS ni costo combinado entre programas; el tipo del agregado lo impide y hay un test que lo muerde.
 - [ ] Test de paridad: total de «todos» = suma de los programas, con monedas distintas y un programa sin gasto.

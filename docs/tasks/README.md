@@ -35,7 +35,7 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 | [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | bloqueado · Q-4 (Paid Media) |
 | [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
 | [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | bloqueado · DM-8 (Michael y Paid Media) y D-C · migración |
-| [ ] | 422 | [Hub de todos los programas: la Pauta con la misma forma, sin cruzar programas](./422-hub-de-todos-los-programas-pauta.md) | 419, 420 | todo · carril P (compañero) · nace del 403 · DT-1 a DT-3 por decidir (Mani) · sin migración |
+| [ ] | 422 | [Hub de todos los programas: la Pauta con la misma forma, sin cruzar programas](./422-hub-de-todos-los-programas-pauta.md) | 419, 420 | todo · carril P (compañero) · nace del 403 · DT-1 a DT-3 decididas (10-nov, con la recomendación) · sin migración |
 
 ## 20 · Entrega del Hub a Gerencia (weekly con Daniel Tovar, 3-nov) · PRIORIDAD ÚNICA DEL HUB
 
