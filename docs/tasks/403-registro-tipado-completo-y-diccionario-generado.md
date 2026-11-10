@@ -39,8 +39,8 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 
 ## Done cuando
 
-- [ ] `PENDIENTES_DE_REGISTRO` vacío y `TOPE_DE_PENDIENTES` en 0; el trinquete se retira o queda en 0.
-- [ ] §3.1 de `docs/metricas.md` sin las columnas que ya genera §3.0.
+- [x] `PENDIENTES_DE_REGISTRO` vacío y `TOPE_DE_PENDIENTES` en 0; el trinquete se retira o queda en 0. *(10-nov: el registro se indexa por `ClaveDeConcepto = ClaveDeMetrica | ClaveDePauta`; 10 fichas de Pauta con el hecho `gasto`, 13 del Hub con `parametro`/`plan`/`deal`; tabla semanal y objetivos apuntan a una ficha; tope total 29 → 0, `tests/registro-de-metricas.test.ts` en verde.)*
+- [x] §3.1 de `docs/metricas.md` sin las columnas que ya genera §3.0. *(10-nov: Métrica, Fórmula, Estado; el test lo vigila.)*
 - [ ] Números dorados ampliados a gasto y ROAS, semáforo y CSV, sobre base sembrada.
 - [ ] Un guardián por concepto que hoy no lo tiene: show y ocurrió, cita sin resultado, lead y registro, agenda, "sin UTM".
 - [x] Funciones inexistentes o sin llamador de H-29 (`tasaDelDia`, `hechos/abono.ts`, `hechos-embudo.ts`, `embudoPorCanal`, `dealsPerdidosPorMotivo`, `periodoAnterior`, `colorDeCupos`) borradas o con su llamador. *(10-nov: `hechos/abono.ts` retirado; las otras seis ya no existían, grep limpio.)*

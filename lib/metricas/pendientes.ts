@@ -8,17 +8,10 @@ import type { MetricaObjetivo } from "@/lib/objetivos/metricas";
 import type { ClavePautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import type { ClaveDeConcepto, ClaveDeMetrica } from "@/lib/vocabulario-metricas";
 
-export const PENDIENTES_DE_REGISTRO = [
-  "deals_desde_completo", "deals_desde_parcial",
-  "cupos_con_caja",
-  "meta", "esperado_a_hoy", "faltan", "por_dia_habil", "proyeccion",
-  "objetivo_del_dia", "objetivo_de_leads", "leads_que_hacen_falta",
-  "objetivo_semana", "objetivo_mes", "objetivo_cohorte",
-  "dias_del_ritmo", "citas_minimas",
-] as const satisfies readonly ClaveDeMetrica[];
+export const PENDIENTES_DE_REGISTRO = [] as const satisfies readonly ClaveDeMetrica[];
 
 /** Baja cuando se migra un concepto; subirlo es una decisión que se ve en el diff. */
-export const TOPE_DE_PENDIENTES = 16;
+export const TOPE_DE_PENDIENTES = 0;
 
 /**
  * Hacia qué concepto va cada clave de la tabla semanal de Pauta y de los objetivos del semáforo. Exhaustivas: agregar una

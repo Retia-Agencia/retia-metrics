@@ -614,6 +614,15 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   enmienda del 16-oct): se rotula **Costo por agenda (según Meta)**; en el **Hub** y la tabla semanal de Pauta, las del CRM
   de Paid (**Costo por agenda**, 403 F2). **CPL** es lo mismo por registro
   y **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
+- **Objetivo, Objetivo de la cohorte, Objetivo del mes, Objetivo de la semana y Objetivo del día (403):** el objetivo de la
+  cohorte son los cupos que la empresa quiere vender en toda la cohorte (lo escribe una persona); el del mes es la parte que
+  cae en el mes, el de la semana la que toca de lunes a domingo y el del día lo que hay que vender hoy. **Faltan** es el
+  objetivo menos las ventas; **Esperado a hoy** lo que el objetivo pedía a esta fecha; **Por día hábil** lo que falta
+  repartido entre los días hábiles que quedan; **Proyección** las ventas esperadas al cierre con el ritmo actual;
+  **Leads que hacen falta** los leads por día que exige el objetivo, y **Objetivo de leads** el que declara la cohorte.
+  **Días para medir el ritmo** y **Mínimo para confiar en una tasa** son ajustes, no cifras. Definiciones en `docs/metricas.md`.
+- **Deals (completo) y Deals (parcial):** los deals abiertos por un formulario terminado y por uno que quedó a medias
+  (ADR 0069). **Cupos con caja:** las ventas con al menos un abono en el periodo, una vez cada una.
 - **Agendas según Meta:** las que cuenta el pixel de Meta (`invitee_meeting_scheduled`). Son el denominador del costo
   por agenda del semáforo; contra las del CRM, la diferencia es un control (ADR 0088, 249).
 - **TRM del día:** la tasa oficial COP/USD de una fecha, guardada; toda cifra convertida dice la que usó.

@@ -10,7 +10,7 @@ export const MARCA_INICIO = "<!-- registro:inicio (generado por `npm run docs:me
 export const MARCA_FIN = "<!-- registro:fin -->";
 
 const UNIDADES = {
-  cupos: "cupos", personas: "personas", citas: "citas", deals: "deals", dinero: "dinero", porcentaje: "%", veces: "veces",
+  cupos: "cupos", personas: "personas", citas: "citas", deals: "deals", dinero: "dinero", porcentaje: "%", veces: "veces", dias: "días hábiles",
 } as const;
 const ANCLAS = {
   primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
@@ -20,6 +20,7 @@ const ANCLAS = {
   primera_aplicacion: "día de su primera aplicación (Bogotá)",
   hora_de_la_cita: "hora de la cita (agenda, o la llamada si no tiene)",
   fecha_del_gasto: "día del gasto cargado (Bogotá)",
+  sin_fecha: "—  (lo fija una persona o se reparte por cohorte, mes y día hábil)",
 } as const;
 const COBERTURAS = {
   no_aplica: "—",

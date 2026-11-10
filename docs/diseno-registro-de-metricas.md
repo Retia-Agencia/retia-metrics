@@ -67,7 +67,7 @@ El registro es puro precisamente para que cualquiera de ellos lo importe sin tra
 
 ## 6. Migración incremental
 
-Hecho: `ventas`, `vendido`, `recaudado`, `por_cobrar`, `entro_a_caja` (35 pendientes de 40). Orden sugerido para el resto, de
+Hecho al 10-nov (403): los 40 conceptos del Hub y los 10 de Pauta tienen ficha; el trinquete está en 0 y se conserva como guardián. Historia: `ventas`, `vendido`, `recaudado`, `por_cobrar`, `entro_a_caja` fueron los primeros (35 pendientes de 40). Orden sugerido para el resto, de
 lo que da cifras falsas hoy a lo cosmético: (1) lo que desbloquea el 353 (`shows`, `no_asistio`, `llamadas_sin_resultado`,
 `asistencia`, `cierre_de_ventas`, `citas_*`); (2) `registros`, `leads` y los deals desde formulario (354); (3) objetivos,
 proyección y comisión; (4) lo que queda. Cada paso baja el tope y no cambia ninguna cifra.
@@ -78,4 +78,4 @@ proyección y comisión; (4) lo que queda. Cada paso baja el tope y no cambia ni
 - **Una función por métrica de verdad:** la ficha apunta a la función canónica, no la reemplaza. Mientras haya seis recorridos a
   la venta (H-08) el registro dice cuál es el canónico y los guardianes de la hija C vigilan que nadie escriba otro.
 - **Filas del diccionario sin clave** (por ejemplo «Saldo de un deal»): entran cuando el vocabulario les dé nombre.
-- **Quitar de §3.1 las columnas ya cubiertas por §3.0** al terminar la migración.
+- ~~Quitar de §3.1 las columnas ya cubiertas por §3.0~~: hecho el 10-nov; §3.1 es Métrica, Fórmula y Estado, y las filas sin ficha llevan su unidad, suma y función dentro de la fórmula.

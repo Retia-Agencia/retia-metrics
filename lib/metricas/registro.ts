@@ -21,13 +21,15 @@ import type { ClaveDeConcepto } from "@/lib/vocabulario-metricas";
 export type TipoDeMetrica =
   /** Un conteo o una suma directa sobre un hecho. */
   | "simple"
+  /** Un valor que escribe una persona (objetivo, ajuste de la pantalla): nadie lo calcula. `funcionSql` es quien lo lee. */
+  | "parametro"
   /** numerador ÷ denominador, ambos conceptos del registro; devuelve su cobertura (N3). */
   | "razon"
   /** Se calcula a partir de otros conceptos ya registrados (`de`). */
   | "derivada";
 
 /** Qué se cuenta. Cerrado a propósito: una unidad nueva es una decisión de vocabulario, no un string suelto. */
-export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero" | "porcentaje" | "veces";
+export type UnidadDeMetrica = "cupos" | "personas" | "citas" | "deals" | "dinero" | "porcentaje" | "veces" | "dias";
 
 export type MonedaDeMetrica = "usd" | "cop";
 
@@ -35,10 +37,16 @@ export type MonedaDeMetrica = "usd" | "cop";
 export type DimensionAbono = "dia" | "semana" | "mes" | "dueno" | "cohorte" | "moneda";
 
 /** Los hechos de `docs/metricas.md` §1; todos tienen módulo en `lib/queries/hechos/` salvo `abono` (ver `DimensionAbono`). */
-export type HechoDeMetrica = "venta" | "abono" | "envio" | "agenda" | "lead" | "cita" | "gasto";
+export type HechoDeMetrica = "venta" | "abono" | "envio" | "agenda" | "lead" | "cita" | "gasto" | "deal" | "plan";
 
 /** Dimensiones del gasto de pauta. `hechos/gasto.ts` no tiene lista blanca propia: la tabla semanal solo agrupa por día y semana. */
 export type DimensionGasto = "dia" | "semana";
+
+/** Deals creados desde un formulario: se ubican por el día del envío que los abrió y se filtran por cohorte. Sin módulo propio en `hechos/`. */
+export type DimensionDeal = "dia" | "semana" | "mes" | "cohorte";
+
+/** Objetivos y su reparto (cohorte, mes, semana, día): se leen por cohorte o por mes. Sin módulo propio en `hechos/`. */
+export type DimensionPlan = "cohorte" | "mes";
 
 /** La dimensión que cada hecho admite: la lista blanca del módulo, por tipo (C-2). */
 export interface DimensionesPorHecho {
@@ -50,6 +58,8 @@ export interface DimensionesPorHecho {
   lead: "cohorte";
   cita: DimensionCita;
   gasto: DimensionGasto;
+  deal: DimensionDeal;
+  plan: DimensionPlan;
 }
 
 /**
@@ -63,7 +73,9 @@ export type AnclaDeFecha =
   | "fecha_de_creacion_de_la_cita"
   | "primera_aplicacion"
   | "hora_de_la_cita"
-  | "fecha_del_gasto";
+  | "fecha_del_gasto"
+  /** Un objetivo o ajuste que fija una persona: no se ubica en un periodo. */
+  | "sin_fecha";
 
 /** Las tablas cuya lectura debe pasar por `vigente()` para esta métrica (ADR 0026, 0038). */
 export type TablaConVigencia = "deals" | "abonos" | "calls" | "deal_actividades";
@@ -161,6 +173,11 @@ const DINERO_DE_VENTAS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-v
 const DINERO_DE_SALDOS: ReferenciaAFuncion = { archivo: "lib/queries/dinero-de-ventas.ts", nombre: "dineroDeSaldos" };
 
 const PAUTA_SEMANAL: ReferenciaAFuncion = { archivo: "lib/queries/hechos/pauta-semanal.ts", nombre: "cargarPautaSemanal" };
+
+const LEER_PROYECCION: ReferenciaAFuncion = { archivo: "lib/queries/proyeccion.ts", nombre: "leerProyeccion" };
+const META_DE_HOY: ReferenciaAFuncion = { archivo: "lib/dias-habiles.ts", nombre: "metaDeHoy" };
+const ARMAR_METAS_DEL_MES: ReferenciaAFuncion = { archivo: "lib/queries/metas.ts", nombre: "armarMetasDelMes" };
+const LEER_COHORTES_Y_VENTAS: ReferenciaAFuncion = { archivo: "lib/queries/metas.ts", nombre: "leerCohortesYVentas" };
 
 const CITA_SIN_RESULTADO: ReferenciaAFuncion = { archivo: "lib/queries/metricas-filtros.ts", nombre: "citaVencidaSinResultado" };
 const CITA_SIN_RESULTADO_EN_MEMORIA: ReferenciaAFuncion = { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "citaCuentaComoPorMarcar" };
@@ -566,6 +583,230 @@ export const REGISTRO = {
     sumaEntreProgramas: true,
     cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/reporte-diario.ts", nombre: "comoNacioLaVenta" },
+    listas: [],
+  }),
+  // ── Objetivos, ritmo y deals desde formulario (403 F4): lo que el Hub escribe o reparte, ya con ficha. ──
+  // Objetivo (`meta`) y Objetivo de la cohorte son el MISMO valor con dos claves del vocabulario: `cohorts.meta_cupos`, que escribe una persona.
+  meta: ficha("plan", {
+    filaDelDiccionario: "Objetivo de la cohorte",
+    tipo: "parametro",
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: ["cohorte"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: LEER_COHORTES_Y_VENTAS,
+    listas: [],
+  }),
+  objetivo_cohorte: ficha("plan", {
+    filaDelDiccionario: "Objetivo de la cohorte",
+    tipo: "parametro",
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: ["cohorte"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: LEER_COHORTES_Y_VENTAS,
+    listas: [],
+  }),
+  // Leads por día que la cohorte se propuso; la declara una persona y nunca se sustituye por el requerido calculado.
+  objetivo_de_leads: ficha("plan", {
+    filaDelDiccionario: "Objetivo de leads",
+    tipo: "parametro",
+    unidad: "personas",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: ["cohorte"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/proyeccion.ts", nombre: "metaDeLeads" },
+    listas: [],
+  }),
+  dias_del_ritmo: ficha("plan", {
+    filaDelDiccionario: "Días para medir el ritmo",
+    tipo: "parametro",
+    unidad: "dias",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: [],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/proyeccion.ts", nombre: "ventanaRitmoDeUrl" },
+    listas: [],
+  }),
+  citas_minimas: ficha("plan", {
+    filaDelDiccionario: "Mínimo para confiar en una tasa",
+    tipo: "parametro",
+    unidad: "personas",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: [],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/proyeccion.ts", nombre: "alcanzaMuestra" },
+    listas: [],
+  }),
+  objetivo_mes: ficha("plan", {
+    filaDelDiccionario: "Objetivo del mes",
+    tipo: "derivada",
+    de: ["objetivo_cohorte"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: ["cohorte", "mes"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: ARMAR_METAS_DEL_MES,
+    listas: [],
+  }),
+  objetivo_semana: ficha("plan", {
+    filaDelDiccionario: "Objetivo de la semana",
+    tipo: "derivada",
+    de: ["objetivo_mes", "ventas"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: ["mes"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: ARMAR_METAS_DEL_MES,
+    listas: [],
+  }),
+  esperado_a_hoy: ficha("plan", {
+    filaDelDiccionario: "Esperado a hoy",
+    tipo: "derivada",
+    de: ["objetivo_cohorte"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "sin_fecha",
+    dimensiones: ["cohorte"],
+    vigencia: [],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/dias-habiles.ts", nombre: "esperadoLineal" },
+    listas: [],
+  }),
+  faltan: ficha("plan", {
+    filaDelDiccionario: "Faltan",
+    tipo: "derivada",
+    de: ["objetivo_cohorte", "ventas"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: ["cohorte"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: LEER_PROYECCION,
+    listas: [],
+  }),
+  por_dia_habil: ficha("plan", {
+    filaDelDiccionario: "Por día hábil",
+    tipo: "derivada",
+    de: ["faltan"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: ["cohorte"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: META_DE_HOY,
+    listas: [],
+  }),
+  // Misma regla de reparto que Por día hábil (`metaDeHoy`), aplicada al objetivo del mes en el reporte diario.
+  objetivo_del_dia: ficha("plan", {
+    filaDelDiccionario: "Objetivo del día",
+    tipo: "derivada",
+    de: ["objetivo_mes", "ventas"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: ["cohorte"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: META_DE_HOY,
+    listas: [],
+  }),
+  proyeccion: ficha("plan", {
+    filaDelDiccionario: "Proyección",
+    tipo: "derivada",
+    de: ["ventas", "faltan"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: ["cohorte"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: LEER_PROYECCION,
+    listas: [],
+  }),
+  // Se calcula hacia atrás desde el objetivo con las tasas medidas hoy; con muestra insuficiente da «—» con su razón (N3).
+  leads_que_hacen_falta: ficha("plan", {
+    filaDelDiccionario: "Leads que hacen falta (por día)",
+    tipo: "derivada",
+    de: ["objetivo_cohorte", "asistencia", "cierre_de_ventas"],
+    unidad: "personas",
+    monedas: [],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: ["cohorte"],
+    vigencia: ["deals", "calls"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: LEER_PROYECCION,
+    listas: [],
+  }),
+  deals_desde_completo: ficha("deal", {
+    filaDelDiccionario: "Deals creados desde un formulario",
+    tipo: "simple",
+    unidad: "deals",
+    monedas: [],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana", "mes", "cohorte"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "filtroDealsDesde" },
+    listas: ["deals_desde_completo"],
+  }),
+  deals_desde_parcial: ficha("deal", {
+    filaDelDiccionario: "Deals creados desde un formulario",
+    tipo: "simple",
+    unidad: "deals",
+    monedas: [],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana", "mes", "cohorte"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/metricas-filtros.ts", nombre: "filtroDealsDesde" },
+    listas: ["deals_desde_parcial"],
+  }),
+  // Cupos con caja (370): cada venta con un abono vigente en el periodo cuenta UNA vez, el día de su primer abono del periodo.
+  cupos_con_caja: ficha("abono", {
+    filaDelDiccionario: "Cupos con caja",
+    tipo: "derivada",
+    de: ["ventas", "entro_a_caja"],
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "fecha_del_abono",
+    dimensiones: ["dia", "semana", "mes", "dueno", "cohorte"],
+    criterioDeCloser: "quien_registro_el_abono",
+    vigencia: ["deals", "abonos"],
+    sumaEntreProgramas: true,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/series-dinero.ts", nombre: "leerSeriesDeDinero" },
     listas: [],
   }),
   // ── Pauta (403 F2): conceptos de la tabla semanal que no son del vocabulario del Hub (`ClaveDePauta`). ──

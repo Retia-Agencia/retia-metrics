@@ -60,3 +60,5 @@ la tabla semanal de Pauta que no son del Hub (inversión, costo por agenda del H
 y conversión de la landing, frecuencia) tienen ficha con el hecho `gasto`, el ancla `fecha_del_gasto` y la unidad `veces`; su nombre
 sale de `VOCABULARIO_PAUTA_SEMANAL`. Las claves de la tabla semanal y de los objetivos apuntan a un concepto con ficha
 (`CONCEPTO_DE_PAUTA_SEMANAL`, `CONCEPTO_DE_OBJETIVO`) y ya no tienen trinquete propio: queda solo el del vocabulario del Hub.
+
+El 10-nov (F4) el trinquete llegó a **0**: los objetivos y ajustes que escribe una persona son el tipo `parametro` (su `funcionSql` es quien los lee), con el hecho `plan` y el ancla `sin_fecha`; los repartos y proyecciones son `derivada` de ellos. Se conserva en 0: una clave nueva del vocabulario del Hub sin ficha rompe el test. §3.1 de `docs/metricas.md` quedó en Métrica, Fórmula y Estado (el resto lo genera §3.0).

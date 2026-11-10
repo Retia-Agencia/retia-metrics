@@ -102,7 +102,7 @@ describe("registro de métricas (ADR 0120)", () => {
   it("la forma de cada ficha es coherente: derivadas y razones nombran conceptos ya registrados", () => {
     for (const clave of claves) {
       const f: FichaDeMetrica = REGISTRO[clave];
-      if (f.tipo === "simple") expect(f.de, `${clave} simple no lleva "de"`).toBeUndefined();
+      if (f.tipo === "simple" || f.tipo === "parametro") expect(f.de, `${clave} (${f.tipo}) no lleva "de"`).toBeUndefined();
       else {
         expect(f.de?.length ?? 0, `${clave} necesita "de"`).toBeGreaterThan(0);
         for (const origen of f.de ?? []) expect(claves as string[], `${clave} depende de ${origen}`).toContain(origen);
@@ -155,14 +155,17 @@ describe("registro de métricas (ADR 0120)", () => {
     expect(insertarBloque(`a\n${MARCA_INICIO}\nviejo\n${MARCA_FIN}\nb`, "NUEVO")).toBe("a\nNUEVO\nb");
   });
 
-  it("cada concepto registrado tiene su fila de prosa en §3.1 y la fila cita su función y su suma entre programas", () => {
+  it("cada concepto registrado tiene su fila de fórmula en §3.1 o §3.2 (la función y la suma las genera §3.0)", () => {
     for (const clave of claves) {
       const f: FichaDeMetrica = REGISTRO[clave];
-      const celdas = filaDeProsa(f.filaDelDiccionario);
-      expect(celdas, `${clave}: falta la fila "${f.filaDelDiccionario}" en §3.1 o §3.2`).not.toBeNull();
-      expect(celdas![4], `${clave}: la fila no cita ${f.funcionSql.nombre}`).toContain(f.funcionSql.nombre);
-      expect(celdas![3], `${clave}: ¿se suma entre programas?`).toBe(f.sumaEntreProgramas ? "sí" : "no");
+      expect(filaDeProsa(f.filaDelDiccionario), `${clave}: falta la fila "${f.filaDelDiccionario}" en §3.1 o §3.2`).not.toBeNull();
     }
+  });
+
+  it("§3.1 no repite las columnas que genera §3.0: solo Métrica, Fórmula y Estado", () => {
+    const desde = DOC.indexOf("### 3.1 Embudo y ventas");
+    const encabezado = DOC.slice(desde).split("\n").find((l) => l.startsWith("| Métrica |"));
+    expect(encabezado).toBe("| Métrica | Fórmula | Estado |");
   });
 
   it("el nombre de cada concepto registrado aparece en el glosario de overview.md §11", () => {
