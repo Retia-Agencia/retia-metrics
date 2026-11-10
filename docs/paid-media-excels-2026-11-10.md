@@ -26,7 +26,7 @@
    día** (misma consulta, otro paso), agregar 3 filas (CAC, inversión por cuenta, plan) y cerrar las 4 preguntas de definición.
 8. **¿Reorganizar el Hub?** No las cuatro pestañas (Hoy, Comercial, Dinero, Pauta). Sí hay que decidir si Pauta, que hoy junta ocho
    bloques, se parte en dos vistas. Esa decisión se toma con la pestaña ya mostrando el diario (§5.3), no antes.
-9. Cinco tickets propuestos (413 a 417), uno con migración (el plan de inversión diario).
+9. Seis tickets propuestos: **413 (audit total, prioridad 1)** y 414 a 418, uno con migración (el plan de inversión diario). Ver §9.
 10. **PowerTalk (tercer Excel)** tiene otra estructura: ya trae el bloque KPI General/Comercial/Tráfico del Excel de 30X (§1.5). Evidencia fuerte, no prueba, de que es Comunícate con Confianza, que ya existe en el CRM (§3.1, Q-1).
 11. Nueve preguntas abiertas para Mani y Paid Media (§6). Ninguna se asumió.
 
@@ -300,18 +300,19 @@ no diarios), pero es una inclinación sin datos.
 
 ## 6. Tickets propuestos (no creados)
 
-Los números son los siguientes libres en `docs/tasks/` (el último archivo es el 412). **Verificar el tracker antes de tomarlos**: otras
+Los números son los siguientes libres en `docs/tasks/` (el último archivo es el 412). El 413 es el audit y va primero: los demás se re-ordenan con lo que él decida. **Verificar el tracker antes de tomarlos**: otras
 sesiones pueden reservar números.
 
 | # propuesto | Título | Alcance | Depende de | Migración |
 |---|---|---|---|---|
-| 413 | Tabla de Pauta por día | Paso `dia` en `cargarPautaSemanal` y `TablaSemanalDePauta`; interruptor en la URL (`lib/series-pasos.ts`); CSV por día; el límite de columnas razonable y paginación o desplazamiento horizontal; tests de paridad día = suma de la semana | 412, Q-2, Q-3 | No |
-| 414 | Costo por venta (CAC) de Paid | Fila nueva con cobertura, módulo único, fila en `metricas.md` §3.2 (cierra el 🟡 123), nombre en `overview.md` §11 | 412 | No |
-| 415 | Pauta por cuenta | Dimensión `cuenta` en `hechos/dimensiones.ts`; "Ver por cuenta" para inversión, agendas Meta y costo por agenda según Meta; no suma programas | 412 | No |
-| 416 | Plan de inversión diario y diferencia vs plan | Según Q-4: reparto de la meta de cohorte (sin migración) o tabla editable `plan_inversion` por el molde `lib/catalogo/`; fila "Diferencia vs plan" | 413, 415, Q-4 | **Sí** si se elige la tabla |
-| 417 | Cuadre del Excel y retiro | Con una semana cerrada de Paid Media (PQ-3), probar la tabla contra el Excel fila por fila y anotar las diferencias; criterio para apagar el Excel | 413, 414, 415 | No |
+| **413** | **Audit total del Hub y de la parte gerencial y de pauta (prioridad 1)** | Ver §9: inventario de toda cifra mostrada, redundancias, huecos, cálculos errados, una definición por concepto, simplificación y reorganización visual con flexibilidad e interactividad. Entrega un documento y los tickets que salgan; no cambia código por sí mismo | 412 | No (las correcciones que salgan pueden traer la suya) |
+| 414 | Tabla de Pauta por día | Paso `dia` en `cargarPautaSemanal` y `TablaSemanalDePauta`; interruptor en la URL (`lib/series-pasos.ts`); CSV por día; el límite de columnas razonable y paginación o desplazamiento horizontal; tests de paridad día = suma de la semana | 412, Q-2, Q-3 | No |
+| 415 | Costo por venta (CAC) de Paid | Fila nueva con cobertura, módulo único, fila en `metricas.md` §3.2 (cierra el 🟡 123), nombre en `overview.md` §11 | 412 | No |
+| 416 | Pauta por cuenta | Dimensión `cuenta` en `hechos/dimensiones.ts`; "Ver por cuenta" para inversión, agendas Meta y costo por agenda según Meta; no suma programas | 412 | No |
+| 417 | Plan de inversión diario y diferencia vs plan | Según Q-4: reparto de la meta de cohorte (sin migración) o tabla editable `plan_inversion` por el molde `lib/catalogo/`; fila "Diferencia vs plan" | 414, 416, Q-4 | **Sí** si se elige la tabla |
+| 418 | Cuadre del Excel y retiro | Con una semana cerrada de Paid Media (PQ-3), probar la tabla contra el Excel fila por fila y anotar las diferencias; criterio para apagar el Excel | 414, 415, 416 | No |
 
-Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vistas (§5.3). Se abre después del 413.
+Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vistas (§5.3). Se abre después del 414.
 
 ## 7. Preguntas abiertas (nada asumido)
 
@@ -324,7 +325,7 @@ Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vista
 | Q-5 | ¿Qué día cuenta una venta en el reporte diario de Pauta: el de la venta o el del registro? | Mani | Define la fila de ventas y el ROAS diarios; ya existen las dos |
 | Q-6 | ¿La semana de Pauta es lun a dom (D-3) o sáb a vie como en la hoja de Comunicarte? | Paid Media | Cambia todos los totales semanales |
 | Q-7 | ¿Se puede retirar el Excel de lo anterior al 1-oct, o hay que cargar un histórico a mano en el CRM? | Mani | El CRM no tiene gasto ni agendas previas: el Excel de septiembre no tiene equivalente |
-| Q-8 | ¿Inversión por cuenta se necesita por Milena y Rosario como columnas siempre visibles, o basta un desplegable? | Paid Media | Define el costo de pantalla de 415 |
+| Q-8 | ¿Inversión por cuenta se necesita por Milena y Rosario como columnas siempre visibles, o basta un desplegable? | Paid Media | Define el costo de pantalla de 416 |
 | Q-9 | ¿Quién llena hoy la "línea de base" (costo por agenda 139.448, cierre 47,8 %) y debería ser una meta de cohorte? | Paid Media | Convierte una nota en un objetivo con semáforo (D-6) |
 
 ## 8. Lo que no pude verificar
@@ -335,3 +336,111 @@ Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vista
   revisar ese error** (no es de esta sesión; lo anoto aquí para que alguien lo vea).
 - PowerTalk: la inversión y las agendas de Meta de la semana comparada, por la misma razón de §3.
 - Por qué ventas 5 contra 6: se necesita la lista de deals de la semana, que no traje para no meter datos de personas en este documento.
+
+## 9. Prioridad 1: audit total del Hub, de la parte gerencial y de Pauta (pedido de Mani, 10-nov)
+
+**Por qué es lo primero.** Después de todo lo extraído (weekly del 3-nov, reunión con Pauta del 7-nov, daily de Michael, pedidos de
+Gerencia, los tres Excels, los artifacts de 30X) y de todo lo construido (371, 373, 355, 375, 412), el Hub tiene mucho más de lo
+que cabe en la cabeza de quien lo mantiene. Mani sospecha que hay redundancia, huecos, cálculos errados y cifras que no significan lo
+mismo en dos pantallas. Esta sesión **encontró ya ocho candidatas** leyendo solo la pestaña Pauta (§9.2). Una pantalla con cifras
+que no cuadran es peor que un Excel: el Excel al menos no pretende ser la verdad. El norte del 30-oct (ADR 0115) lo dice: una
+pregunta, una respuesta.
+
+### 9.1 Alcance
+
+| Superficie | Qué se audita |
+|---|---|
+| Hub del programa, 4 pestañas (Hoy, Comercial, Dinero, Pauta) y filtro de cohorte | Cada cifra, tabla, gráfica y barra: de qué función sale, qué fila de `docs/metricas.md` la define, qué test la cubre, qué lista abre |
+| `/hub` (todos los programas) | Que solo sume magnitudes sumables (ADR 0048) |
+| Programa › General, Mi espacio, Metas, Ajustes de metas | Las mismas cifras repetidas en otro lugar |
+| Reporte de WhatsApp (semáforo), CSV (`pauta-citas`, `pauta-semanal`), PDF de Hoy, MCP (`resumen_del_hub`, `consultar_metrica`, `pauta_roas`) | Que den lo mismo que la pantalla, para el mismo periodo |
+| Los tres Excels (§1) y los reportes de 30X | Como fuente de necesidades, no de definiciones |
+
+### 9.2 Candidatas ya encontradas (hechos con fuente; falta decidir cuál es la correcta)
+
+| # | Qué | Fuente |
+|---|---|---|
+| I-1 | **"Cierre de ventas" y "Agenda → venta" se calculan distinto en dos pestañas.** Comercial y Hoy usan el grupo de citas (`grupoDeCitas`, por deal, ADR 0079): la venta y el show son del mismo grupo. La tabla de Pauta divide `ventas` (por día de **venta**) entre `shows` o `citas` (por día de **cita**): dos grupos distintos con el mismo nombre. El doc del 9-nov afirma que el CRM las calcula "sobre el mismo grupo" | `lib/queries/hechos/pauta-semanal.ts:250-251` contra `lib/queries/tasas-del-grupo.ts:290` y `docs/paid-media-2026-11-09.md` §2 F5 |
+| I-2 | **El ROAS de la tabla semanal y el ROAS de la tabla por campaña/anuncio (355) usan anclas distintas.** `metricas.md` §3.2 fija el ROAS por **cohorte de registro** (el día del envío que trajo a la persona). La tabla semanal divide el vendido de las ventas con **fecha de venta** en la semana entre el gasto de la semana. Las dos están en la pestaña Pauta con el mismo rótulo "ROAS" | `pauta-semanal.ts:204-206` y `leerTodasLasVentas` (usa `venta.listar` por `dia`), contra `metricas.md` §3.2 (fila ROAS) y `lib/queries/roas-de-pauta.ts` |
+| I-3 | **"Agendas" tiene tres significados** (creadas §1.2, citas §1.3, Meta §1.9) y el Excel usa uno que no pude identificar. En Hoy hay dos tarjetas rotuladas; en la tabla de Pauta la fila se llama "Agendadas" | `metricas.md` §1.2, §1.3, §1.9 y §3.5 (D1, DA-4) |
+| I-4 | **"% de show" tiene tres fórmulas**: por deal (DA-3, Hoy), por cita (`showPorCita`, tabla de Pauta y Hoy al lado) y, en el Excel, llamadas ÷ agendas Meta. Las tres con el mismo nombre en alguna pantalla | `metricas.md` §3.5; `pauta-semanal.ts:249` |
+| I-5 | **Las tasas salen "parcial" por falta de resultados marcados** (cobertura 35 % en Tactical y 57 % en Comunícate con Confianza en las semanas medidas): la causa no es de cálculo, es de captura | §3 y §3.1 |
+| I-6 | **La frecuencia es "—" en toda semana** (Meta no da alcance de varios días, D-5) y los Excels la llenan a mano por semana. El reemplazo promete menos que lo que reemplaza | `pauta-semanal.ts` (`frecuencia`) y Excel PowerTalk fila 51 |
+| I-7 | **Universos que se llaman igual**: Show, Cierre y Agenda → venta aparecen en Comercial (todas las áreas) y en Pauta (solo Paid) sin que el rótulo lo diga | §5.3 |
+| I-8 | **El gasto de Meta empieza el 1-oct**: cualquier rango que lo cruce da "—" en ROAS por cobertura, correcto; pero otras filas (ventas, agendas) sí tienen número en esas fechas y se ven juntas | §3 |
+
+### 9.3 Método propuesto (una sola sesión padre, sub-sesiones por superficie, sin tocar código en la fase 1)
+
+1. **Inventario**: una tabla con cada cifra visible en el Hub y sus hermanas (MCP, WhatsApp, CSV, PDF): rótulo en pantalla → función →
+   fila de `metricas.md` → vocabulario (`lib/vocabulario-metricas.ts`) → test → lista que abre. Lo que no tenga las cinco columnas es hallazgo.
+2. **Paridad por concepto**: para cada concepto del registro (`lib/metricas/registro.ts`, ADR 0120) y los que aún no están, correr el mismo
+   periodo por todas las superficies y comparar. Una diferencia es hallazgo hasta que una definición la explique por escrito.
+3. **Cálculo**: reconstruir cada fórmula a mano con una consulta independiente sobre la base (local con datos sintéticos conocidos; producción
+   solo en lectura) y con casos que las harían divergir (N2): venta anulada, reagendada, cita cancelada, otro programa, USD y COP, día sin TRM.
+4. **Redundancia y huecos**: matriz pedido (Gerencia, Pauta, Comercial) × lo construido (el trazado de `docs/hub.md` §0, `weekly-2026-11-03.md`,
+   `paid-media-2026-11-09.md` y este documento). Una fila sin dueño es un hueco; una fila con dos dueños es redundancia.
+5. **Una definición universal**: para cada concepto en conflicto, decidir con Mani cuál manda (ADR nuevo o enmienda, N8), reescribir en el mismo
+   commit título, índice, `metricas.md` y vocabulario, y dejar un guardián que impida volver (N7).
+6. **Reorganización visual**, solo cuando el cálculo esté cerrado: ver §9.4.
+
+### 9.4 Lo que la pantalla tiene que poder hacer (requisitos de flexibilidad e interactividad)
+
+Sacados de lo que pidieron Gerencia y Pauta; cada uno ya tiene su sitio en el contrato de `docs/structure.md` §9:
+
+- Cualquier **periodo** y comparar hasta tres (`lib/periodo.ts`); "de tal fecha a tal fecha" (Dani); atajos Últimos 7/14/28 y Todo (X-2).
+- Cualquier **paso**: por día, por semana (y por mes si Gerencia lo pide); el mismo interruptor para toda tabla y gráfica (`lib/series-pasos.ts`).
+- Cualquier **corte**: cohorte, cuenta, canal, campaña, conjunto, anuncio, closer (este último solo para quien `veEquipoComercial`).
+- **Cumplimiento** siempre visible: por cupos y en plata, del mes y de la cohorte (371), contra lo esperado a la fecha.
+- **Toda cifra abre su lista** y toda lista sabe volver (`urlDeLista`, `enlaceConVuelta`).
+- **Semáforo** por métrica con umbrales como datos (`objetivos`, D-6), no escritos en pantalla.
+- **Exportar** lo que se ve (CSV) y descargar el reporte del día (PDF de Hoy).
+- **Sin cruzar programas** en una tasa; la vista de todos solo suma lo sumable (ADR 0048).
+
+### 9.5 Entregable y criterio de cierre del 413
+
+Un documento (`docs/audit-hub-AAAA-MM-DD.md`, documento de reunión N8) con las tablas de §9.3 llenas, cada hallazgo con severidad
+(cifra equivocada, cifra ambigua, redundancia, hueco, mejora visual), la decisión que necesita de Mani y el ticket que la ejecuta. Está
+cerrado cuando: ninguna cifra del Hub queda sin las cinco columnas, I-1 a I-8 tienen decisión escrita, y la reorganización visual
+propuesta (si la hay) cabe en el contrato de entendimiento de `structure.md` §9 sin plegar lo principal.
+
+**Lo que esta sesión no hizo:** no se midió ninguna de las candidatas I-1 a I-8 con una consulta que demuestre la diferencia numérica; se
+leyó el código y la documentación. Que existan dos anclas distintas no prueba que den cifras distintas en un periodo real: eso lo mide el
+audit.
+
+## 10. Los tres Excels como plantilla: referencia completa para quien no los tenga abiertos
+
+Los archivos viven en `~/Downloads` de Mani y **no se mueven ni se copian al repo** (datos de negocio). Esta sección y §1 bastan para
+entender su estructura sin abrirlos. Si se necesita un valor concreto, se le pide a Mani el archivo.
+
+| Archivo | Hojas | Rango | Programa |
+|---|---|---|---|
+| `Reporte_Diario_Llamada_Comunicarte.xlsx` | `Comunicarte Llamada`, `Cohorte Oct - Nov` | 12-ago a 25-sep; 26-sep a 13-nov | Comunicarte (dos cuentas: Milena y Rosario), ticket USD 797 (2.537.648 COP a 3.184) |
+| `Reporte_Diario_Llamadas_Tactical.xlsx` | `Tactical`, `Cohorte Oct - Nov` | 19-ago a 4-oct; 5-oct a 15-nov | Tactical Investor, meta 60 cupos, ticket USD 1.500 (4.776.000 COP), presupuesto 16,74 M COP |
+| `Reporte_Diario_Llamadas_PowerTalk.xlsx` | `Power Talk Oct Nov` (rótulo "FRANCISCO - LLAMADA") | 5-oct a 20-nov | Probablemente Comunícate con Confianza (Q-1), meta 40 cupos, ticket 2.538.232 COP, plan de inversión 620.000 y luego 1.100.000 por día |
+
+**PowerTalk es la plantilla de destino más completa que tenemos** (la inferencia de que es la más reciente es mía: tiene el bloque de
+30X completo y fechas hasta el 20-nov; no está verificada). Su contenido, renglón por renglón, con el equivalente que debería tener el CRM:
+
+| Fila | Renglón y cálculo en el Excel | Equivalente en el CRM | Estado |
+|---|---|---|---|
+| 5 | Inversión (a mano, COP) | Inversión (M1) | ✅ |
+| 6 | Agendas en Meta (Invite) (a mano) | Agendas según Meta (M4) | ✅ |
+| 7 | Costo por agenda = inv ÷ agendas Meta | Costo por agenda (según Meta) | ✅ |
+| 8 | Typeform (registros, a mano) | Registros de Paid (`hechos/envio`) | ✅ en datos; sin fila en la tabla del 412 |
+| 9 | Costo por Typeform = inv ÷ registros | CPL de Paid | 🟡 123 |
+| 10 | Agendas del día (a mano) | Agendadas Paid | 🟡 Q-2 |
+| 11 | Llamadas realizadas (a mano) | Shows | 🟡 Q-3 |
+| 12 | Ventas (a mano) | Ventas de Paid | ✅ |
+| 13 | % de cierre = ventas ÷ llamadas del día | Cierre de ventas | 🟡 I-1 |
+| 14 | Ingresos = ventas × ticket fijo | Facturación | 🟡 no copiar |
+| 15 | ROAS = ingresos ÷ inversión del día | ROAS | 🟡 I-2 |
+| 16 | Ventas necesarias hoy | Objetivo del día / requeridas | ✅ |
+| 17 | Inversión sugerida (espejo del gasto hasta una fecha; luego 620.000, 1.100.000) | Plan de inversión | ❌ ticket 417 |
+| 18 | Diferencia vs plan = real − sugerida | Diferencia vs plan | ❌ ticket 417 |
+| 21 a 32 | Resumen: meta de cupos (40), ticket, presupuesto, agendas/día necesarias, ventas acumuladas, % cumplimiento, inversión acumulada, % presupuesto, agendas acumuladas, agendas/día real, CAC, ROAS | Cumplimiento de la cohorte (371/412) | ✅ salvo CAC y promedio por hábil |
+| 35 a 41 | General semanal: Inversión, Agendas, Costo por agenda, Ventas, Facturación, ROAS, Profit | M1 a M3, M5, M7 a M11 | ✅ |
+| 42 a 44 | Comercial semanal: % de presentación a zoom (llamadas ÷ agendas Meta), % de cierre zoom a cliente (ventas ÷ llamadas), % de cierre agenda a cliente (ventas ÷ agendas) | M12 a M14 | ✅ con otra definición (I-1, I-4) |
+| 45 a 51 | Tráfico semanal: Agendas Meta, CPM, CTR enlace, % clics a landing, % conversión landing, costo por agenda, Frecuencia (los de Meta, a mano) | M15 a M19 | ✅ (hija D del 412); frecuencia semanal "—" (I-6) |
+
+Formato condicional: cada renglón se pinta cuando la celda contiene `NONE` (no hay umbrales de semáforo en ningún Excel). Celdas azules =
+captura manual. Los semáforos de 30X (F4) son la propuesta para D-6, no algo que el Excel de Retia tenga.
