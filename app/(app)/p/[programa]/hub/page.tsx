@@ -675,7 +675,6 @@ async function SeccionPauta({
       <SemaforoDelPrograma programId={programId} />
       <CumplimientoDeCohorte programId={programId} slug={slug} cohorteId={cohorteId} hoy={hoy} />
       <TablaSemanalDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} />
-      {/* Gráfica por día: hueco hasta que la hija B la traiga (412-b). */}
       <PautaRoas
         vista={roas}
         enlace={enlaceRoas}
