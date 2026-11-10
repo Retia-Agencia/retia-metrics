@@ -16,6 +16,11 @@ recorrido del paid trafficker y 375 px, build, CI, checkpoint, casillas del 370,
 
 ## Memory
 
+### 10-nov · 412: cierre de verificación y análisis de los Excels de Pauta (sesión padre de Mani)
+**Hecho.** CI verde de `9b34054c` y tag `cp-20261109-2`. Hija F: `npm run build` limpio, recorrido en `dev:local` (gerente, paid trafficker, closer; claro/oscuro; 375 px sin scroll de página, la tabla semanal desplaza dentro de su contenedor; closer 404; consola limpia); marcó las casillas del 412 (menos el cuadre contra el Excel) y una del 248. No corrió humo ni lint por el swap. Hija G: `docs/paid-media-excels-2026-11-10.md` analiza los tres Excels de Mani (Comunicarte, Tactical, PowerTalk) contra el CRM.
+**G, en corto.** Los Excels son el reporte DIARIO de Pauta (una columna por día, hoja por cohorte). Casi todo existe en la tabla del 412; lo que falta es el paso **por día**, CAC, inversión por cuenta y un plan diario. Recomienda NO una vista aparte, sino un interruptor Por semana | Por día en la misma tabla (opción B), y no reorganizar las cuatro pestañas del Hub; solo decidir si Pauta (8 bloques) se parte en Resultados y Origen/calidad, con la pantalla delante. Tickets propuestos 413 a 417, sin crear. El Excel tiene tres errores que el CRM no debe copiar (ingresos con ticket y TRM fijos, ROAS del mismo día, totales con rangos cortos). Medido: ventas 5 vs 6, agendas 88 vs 124 de Paid, llamadas 30 vs 8 marcadas: no cuadran y no se sabe por qué.
+**Pendiente (decide Mani).** Preguntas Q-1 a Q-9 del documento (PowerTalk = Comunícate con Confianza, qué es una agenda del día, llamadas realizadas, plan de inversión, día de una venta, semana lun-dom o sáb-vie, histórico, cuentas, línea de base). Crear los tickets 413 a 417 o ajustarlos. Casillas del 370 y 350 siguen abiertas.
+
 ### 9-nov (noche, 9) · 412: Pauta y Origen en una pestaña, en main (sesión padre de Mani)
 **Qué pasó.** Se ejecutó el reparto de `docs/paid-media-2026-11-09.md` §8: checkpoint, migración, cinco hijas (Codex implementa, la padre revisa e integra).
 **Hecho.** (1) Tag `cp-20261109-1` sobre `7d52adf2` (CI verde). (2) Migración **0132** aplicada en producción con el ok de Mani (ref `hfqmiyiuyqapdsbywrag`, sin transacciones abiertas):
