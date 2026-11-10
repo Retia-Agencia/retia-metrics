@@ -37,6 +37,11 @@ También: punto 10 del contrato de entendimiento en `structure.md` §9, línea 2
 **Pendiente:** commit y push de todo esto (el compañero lo necesita en `main`); 403 F1 (Mani); conversaciones del carril H.
 Sin código de producción. Sin migración.
 
+### 10-nov (tarde) · 403 F1 a F5 parcial: rótulos únicos, trinquete a 32, funciones muertas (sesión padre de Mani)
+**Hecho (en `main` local, sin empujar).** F2 (hija A, rama `403-f2-rotulos` integrada por merge): un rótulo por concepto de D-C en Pauta, Comercial, `/hub` y MCP desde `lib/vocabulario-metricas.ts`; el MCP dice `agendadas` y `porcentaje_de_agendadas` donde decía `citas` (cambio visible para clientes del MCP). F4 parcial (hija B): `roas` y `conversion_agenda_venta` declaran su lector real, `hechos/abono.ts` retirado, los tres objetivos sin lector marcados "pendiente de borrar con migración". Hija C: el trinquete cubre Hub, tabla semanal de Pauta y objetivos con tope 32 (16 + 10 + 6), 8 fichas nuevas y 9 filas en `metricas.md`. La padre arregló `tests/matriz-hechos-dimensiones-guardian.test.ts` (rompía el retiro de `abono.ts`: sin fila Abono ni dimensión `moneda`) y borró `SIN_FICHA_EN_REGISTRO`.
+**Verificado.** Typecheck y lint (0 errores) y los tests de registro y de la matriz. No se corrió la suite completa (swap alto): decide el CI. Recorrido: A probó oscuro y 375 px; **falta el modo claro** (Docker apagado, sin `dev:local`).
+**Falta.** (1) Migración aparte: quitar `agendas_por_dia`, `costo_por_lead` y `costo_por_venta` del enum `metrica_objetivo` (decidido por Mani). (2) Casillas abiertas del 403: tope en 0 (los 10 de Pauta necesitan que el registro admita claves fuera del vocabulario del Hub), dorados de gasto y ROAS, guardianes de lead/registro, agenda y "sin UTM". (3) Decidir con Mani si el `/hub` de todos los programas con la Pauta vieja entra al 403 o va a ticket propio (recomendación: ticket propio). (4) Checkpoint verde y tag `cp-AAAAMMDD-N` antes de dar el 403 por hecho.
+
 ### 10-nov · 403 F0: audit del Hub cerrado (sesión de Mani)
 **Hecho.** El 413 quedó fundido en el 403 (fases F0 a F5 en el ticket). `docs/audit-hub-2026-11-10.md` tiene el inventario de las
 cuatro superficies (43 claves del Hub generadas por script, las 16 de la tabla semanal, las 9 del semáforo, MCP, WhatsApp, CSV y PDF),

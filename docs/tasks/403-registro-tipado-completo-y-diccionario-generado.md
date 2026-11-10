@@ -43,8 +43,10 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 - [ ] §3.1 de `docs/metricas.md` sin las columnas que ya genera §3.0.
 - [ ] Números dorados ampliados a gasto y ROAS, semáforo y CSV, sobre base sembrada.
 - [ ] Un guardián por concepto que hoy no lo tiene: show y ocurrió, cita sin resultado, lead y registro, agenda, "sin UTM".
-- [ ] Funciones inexistentes o sin llamador de H-29 (`tasaDelDia`, `hechos/abono.ts`, `hechos-embudo.ts`, `embudoPorCanal`, `dealsPerdidosPorMotivo`, `periodoAnterior`, `colorDeCupos`) borradas o con su llamador.
-- [ ] Ex 413: toda cifra visible del Hub, `/hub`, MCP, WhatsApp, CSV y PDF con sus cinco columnas en el audit (rótulo, función, fila de `metricas.md`, clave, test, lista); I-1 a I-8 con decisión escrita.
-- [ ] Cada clave de los cuatro vocabularios (Hub, tabla semanal de Pauta, semáforo y objetivos, MCP) tiene ficha, o está en el trinquete con el tope a la vista.
+- [x] Funciones inexistentes o sin llamador de H-29 (`tasaDelDia`, `hechos/abono.ts`, `hechos-embudo.ts`, `embudoPorCanal`, `dealsPerdidosPorMotivo`, `periodoAnterior`, `colorDeCupos`) borradas o con su llamador. *(10-nov: `hechos/abono.ts` retirado; las otras seis ya no existían, grep limpio.)*
+- [x] Ex 413: toda cifra visible del Hub, `/hub`, MCP, WhatsApp, CSV y PDF con sus cinco columnas en el audit (rótulo, función, fila de `metricas.md`, clave, test, lista); I-1 a I-8 con decisión escrita.
+- [x] Cada clave de los cuatro vocabularios (Hub, tabla semanal de Pauta, semáforo y objetivos, MCP) tiene ficha, o está en el trinquete con el tope a la vista.
 - [ ] Un test de paridad por concepto que compara todas las superficies que lo muestran; con I-1 sin arreglar, el de show y cierre falla.
-- [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+- [x] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
+
+**Estado al 10-nov (F5 parcial).** Hechas: F0, F1 (D-A a D-E), F2 (vocabulario único, trinquete a Pauta semanal y objetivos), F3 (paridad de show, cierre, ROAS y costo por agenda en `tests/paridad-pauta-comercial.test.ts`) y la parte de H-29 sobre funciones muertas. Quedan abiertas las casillas 1, 2, 3, 4 y 8: el tope total está en 32 (16 Hub + 10 Pauta semanal + 6 objetivos) y no en 0 (los 10 de Pauta necesitan que el registro admita claves fuera del vocabulario del Hub; `cupos_con_caja` y `deals_desde_*` no tienen función única); faltan los dorados de gasto y ROAS, los guardianes de lead/registro, agenda y "sin UTM", y el paridad de cita sin resultado. **Pendiente de migración aparte:** borrar del enum `metrica_objetivo` los tres objetivos sin lector (`agendas_por_dia`, `costo_por_lead`, `costo_por_venta`), decidido por Mani el 10-nov.
