@@ -224,4 +224,24 @@ describe("sincronización de pauta", () => {
     expect(gastos).toHaveLength(1);
     expect(gastos[0]).toMatchObject({ monto: "0.00", agendasMeta: null, registrosMeta: null, programId });
   });
+
+  it("guarda el tráfico por anuncio y día, deja null lo ausente y el upsert lo actualiza", async () => {
+    const base = (insights as { data: Record<string, unknown>[] }).data[0];
+    const con = (extra: Record<string, unknown>) => ({ data: [{ ...base, ...extra }] });
+    const args = { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual" as const };
+    await sincronizarPauta(db, { ...args, f: fetchMeta(con({
+      impressions: "1000", reach: "800", inline_link_clicks: "30",
+      actions: [{ action_type: "landing_page_view", value: "25" }],
+    })) });
+    let [fila] = await db.select().from(gastoPauta);
+    expect(fila).toMatchObject({ impresiones: 1000, alcance: 800, clicsEnlace: 30, vistasLanding: 25 });
+    await sincronizarPauta(db, { ...args, f: fetchMeta(con({ impressions: "1200", reach: "900" })) });
+    const filas = await db.select().from(gastoPauta);
+    expect(filas).toHaveLength(1);
+    [fila] = filas;
+    expect(fila).toMatchObject({ impresiones: 1200, alcance: 900, clicsEnlace: null, vistasLanding: null });
+    await sincronizarPauta(db, { ...args, f: fetchMeta(vacios) });
+    [fila] = await db.select().from(gastoPauta);
+    expect(fila).toMatchObject({ impresiones: null, alcance: null, clicsEnlace: null, vistasLanding: null });
+  });
 });

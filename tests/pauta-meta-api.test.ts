@@ -64,7 +64,28 @@ describe("creativos de Meta", () => {
   });
 });
 
+const SIN_TRAFICO = { impresiones: null, alcance: null, clicsEnlace: null, vistasLanding: null };
+
 describe("insights de Meta", () => {
+  it("pide y lee impresiones, alcance, clics al enlace y vistas de landing; ausente es null", async () => {
+    const f = vi.fn(async (entrada: string | URL | Request) => {
+      const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
+      const campos = url.searchParams.get("fields")!.split(",");
+      expect(campos).toEqual(expect.arrayContaining(["impressions", "reach", "inline_link_clicks", "actions"]));
+      return Response.json({ data: [
+        { ad_id: "ad-1", spend: "10", date_start: "2026-10-14", impressions: "1371", reach: "1177",
+          inline_link_clicks: "22", actions: [{ action_type: "landing_page_view", value: "19" }] },
+        { ad_id: "ad-2", spend: "5", date_start: "2026-10-14", impressions: "0", reach: "0",
+          inline_link_clicks: "0", actions: [] },
+        { ad_id: "ad-3", spend: "5", date_start: "2026-10-14" },
+      ] });
+    }) as typeof globalThis.fetch;
+    const [a, b, c] = await insightsPorAnuncioYDia("123", "2026-10-14", "2026-10-14", TOKEN, f);
+    expect(a).toMatchObject({ impresiones: 1371, alcance: 1177, clicsEnlace: 22, vistasLanding: 19 });
+    expect(b).toMatchObject({ impresiones: 0, alcance: 0, clicsEnlace: 0, vistasLanding: null });
+    expect(c).toMatchObject(SIN_TRAFICO);
+  });
+
   it("lee complete_registration de actions y conserva null cuando no viene", async () => {
     const f = vi.fn(async (entrada: string | URL | Request) => {
       const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
@@ -79,8 +100,8 @@ describe("insights de Meta", () => {
 
     expect(await insightsPorAnuncioYDia("123", "2026-10-14", "2026-10-14", TOKEN, f))
       .toEqual([
-        { adId: "ad-1", monto: "10", fecha: "2026-10-14", agendas: null, registros: 7 },
-        { adId: "ad-2", monto: "20", fecha: "2026-10-14", agendas: null, registros: null },
+        { adId: "ad-1", monto: "10", fecha: "2026-10-14", agendas: null, registros: 7, ...SIN_TRAFICO },
+        { adId: "ad-2", monto: "20", fecha: "2026-10-14", agendas: null, registros: null, ...SIN_TRAFICO },
       ]);
   });
 });

@@ -156,6 +156,10 @@ export async function sincronizarPautaEnVentana(
           moneda: cuenta.moneda,
           agendasMeta: insight.agendas,
           registrosMeta: insight.registros,
+          impresiones: insight.impresiones,
+          alcance: insight.alcance,
+          clicsEnlace: insight.clicsEnlace,
+          vistasLanding: insight.vistasLanding,
           origen: "meta_api" as const,
           pautaObjetoId,
           area: null,
@@ -166,7 +170,11 @@ export async function sincronizarPautaEnVentana(
       // trajo esta corrida, en la misma transaccion para que nadie lea el cero a medias.
       await db.transaction(async (tx) => {
         await (tx as Db).update(gastoPauta)
-          .set({ monto: "0", agendasMeta: null, registrosMeta: null, actualizadoEn: sql`now()` })
+          .set({
+            monto: "0", agendasMeta: null, registrosMeta: null,
+            impresiones: null, alcance: null, clicsEnlace: null, vistasLanding: null,
+            actualizadoEn: sql`now()`,
+          })
           .where(and(
             eq(gastoPauta.origen, "meta_api"),
             gte(gastoPauta.fecha, args.desde),
