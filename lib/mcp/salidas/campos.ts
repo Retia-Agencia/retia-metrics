@@ -2,9 +2,6 @@ import { z } from "zod";
 import { estaRegistrada, fichaDe, type MonedaDeMetrica, type UnidadDeMetrica } from "@/lib/metricas/registro";
 import { definicion, nombreLargo, type ClaveDeMetrica } from "@/lib/vocabulario-metricas";
 
-/** Deuda explícita para el ticket 403; este módulo no completa el registro tipado. */
-export const SIN_FICHA_EN_REGISTRO: readonly ClaveDeMetrica[] = ["cita_a_venta"];
-
 type DatosDeCampo = {
   unidad: UnidadDeMetrica;
   monedas: readonly MonedaDeMetrica[];

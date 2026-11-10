@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
  *   - el programa es frontera y no filtro (AGENTS.md, ADR 0043): ningún hecho admite `programa` como dimensión.
  *
  * Límites honestos: no prueba que la dimensión CALCULE bien (eso es la paridad por métrica); la tabla vive aquí
- * hasta que el registro tipado de F4 la absorba y `docs/metricas.md` la muestre; el gasto no tiene módulo en
+ * hasta que el registro tipado de F4 la absorba y `docs/metricas.md` la muestre; el gasto y el abono no tienen módulo en
  * `hechos/` y por eso no tiene fila (se agrega cuando lo tenga).
  */
 const RAIZ = process.cwd();
@@ -24,7 +24,7 @@ const RAIZ = process.cwd();
 const DIMENSIONES = [
   "dia", "semana", "mes", "hora",
   "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria", "tiene_envio",
-  "dueno", "cohorte", "etapa", "ocurrio", "moneda",
+  "dueno", "cohorte", "etapa", "ocurrio",
 ] as const;
 type DimensionConforme = (typeof DIMENSIONES)[number];
 type Celda = "si" | "aun" | `no:${string}`;
@@ -39,31 +39,25 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     area: "si", canal: "si", cuenta: "si", campana: "si", fuente: "si", utm_source: "si", utm_medium: "si", categoria: "si",
     tiene_envio: "no:todo envío es un envío",
     dueno: DEL_DEAL, cohorte: DEL_DEAL, etapa: DEL_DEAL,
-    ocurrio: "no:solo las citas ocurren", moneda: SIN_DINERO,
+    ocurrio: "no:solo las citas ocurren",
   },
   Agenda: {
     dia: "si", semana: "si", mes: "si", hora: "si",
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "si", utm_medium: "si", categoria: "si", tiene_envio: "si",
     dueno: "si", cohorte: "si", etapa: "si",
-    ocurrio: "no:la agenda es la cita creada, no la ocurrida", moneda: SIN_DINERO,
+    ocurrio: "no:la agenda es la cita creada, no la ocurrida",
   },
   Cita: {
     dia: "si", semana: "si", mes: "si", hora: "aun",
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
     dueno: "si", cohorte: "si", etapa: "si",
-    ocurrio: "si", moneda: SIN_DINERO,
+    ocurrio: "si",
   },
   Venta: {
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
     dueno: "si", cohorte: "si", etapa: "no:una venta ya es Abonado o Completo; la etapa no la separa",
-    ocurrio: "no:solo las citas ocurren", moneda: "no:el valor vendido es siempre USD",
-  },
-  Abono: {
-    dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
-    area: "aun", canal: "aun", cuenta: "aun", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
-    dueno: "si", cohorte: "si", etapa: "no:el abono no tiene etapa; la tiene su deal",
-    ocurrio: "no:solo las citas ocurren", moneda: "si",
+    ocurrio: "no:solo las citas ocurren",
   },
 };
 
@@ -127,9 +121,9 @@ describe("guardián: matriz hechos × dimensiones conformes (§7.2)", () => {
   });
 
   it("no marca lo bueno: lo que el código y la matriz comparten no sobra ni falta", () => {
-    const fuente = 'export type DimensionAbono = "dia" | "semana" | "mes" | "dueno" | "cohorte" | "moneda";';
-    const celdas = MATRIZ.Abono;
+    const fuente = 'export type DimensionVenta = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "dueno" | "cohorte";';
+    const celdas = MATRIZ.Venta;
     const si = Object.entries(celdas).filter(([, c]) => c === "si").map(([d]) => d).sort();
-    expect(dimensionesDelCodigo(fuente, "Abono")?.sort()).toEqual(si);
+    expect(dimensionesDelCodigo(fuente, "Venta")?.sort()).toEqual(si);
   });
 });
