@@ -2,7 +2,8 @@
 
 - **Estado:** aceptado, 4-oct-2026 (Mani). Se construye en el ticket 187. **Enmendado el 24-oct-2026 (Mani):** una
   cita ocurrida sin resultado queda fuera del grupo hasta que lo tenga (puntos 1 y 8), y la Proyección del 253
-  usa la cadena con el show (punto 9).
+  usa la cadena con el show (punto 9). **Enmendado el 10-nov-2026 (Mani, audit del Hub 403 F1, D-A):** la tabla
+  semanal de Pauta usa este mismo grupo (abajo).
 - **Enmienda:** `overview.md` §7 (% de show y % de cierre), que no decía de quiénes se contaba cada lado.
 - **Confirma:** la regla dura de `AGENTS.md` (toda tasa se calcula sobre personas, nunca sobre filas) y el ADR 0067
   (toda cifra abre la lista que la produjo).
@@ -66,3 +67,18 @@ muestra"*, y el % de cierre de un closer es *"sobre las llamadas que hizo show"*
 ## Enmienda 390 (7-nov-2026): captura del resultado
 
 La cita pasada sin resultado sigue fuera del cociente y se muestra aparte; lo que cambia es que ya no se espera a que el closer la marque por iniciativa propia: Mi espacio le muestra el chip «Sin resultado» y el Inbox del equipo cuenta las pendientes por closer. Es un recordatorio, nunca una reja: un dato por marcar no bloquea ningún cobro. Mani decidió el 7-nov que la cita suelta (sin deal) **no** cuenta como por marcar (`CITA_SUELTA_CUENTA_COMO_POR_MARCAR = false`): no tiene dueño y ya vive en «Sin deal».
+
+## Enmienda 10-nov-2026 (Mani, audit del Hub 403 F1, D-A): Pauta usa este grupo, restringido a Paid
+
+La tabla semanal de Pauta (412) le pasaba a `showPorCita` **todas** las citas del rango, con las futuras y las sin resultado
+en el denominador: 4 % a 11 % de show donde el grupo da 33 % a 75 % (`docs/audit-hub-2026-11-10.md` §1, I-1). El cierre y la
+agenda → venta mezclaban ventas de una semana con shows de otra. Pauta pidió ver show y close rate junto al gasto (reunión del
+7-nov), no otra fórmula. Por eso:
+
+1. **El % de show, el cierre de ventas y la agenda → venta de la tabla semanal son `grupoDeCitas` restringido a los deals con
+   cita de área Paid** (el mismo filtro de área de `agendasDePauta`), sobre la cohorte de citas de la semana. Ninguna superficie
+   vuelve a dividir `shows ÷ citas` por su cuenta.
+2. **Con su cobertura a la vista (ADR 0115 N3):** la celda dice "parcial, N sin marcar" y la cifra abre su lista (ADR 0067). Sin
+   resultado marcado en ninguna cita, "—", no 0.
+3. `showPorCita` sigue existiendo como pregunta distinta (por cita, dentro de «Cómo se calcula»), con otro rótulo (D-C).
+4. Paid y todas las áreas son dos universos legítimos; el rótulo dice cuál (D-C, ADR 0115 enmienda 10-nov).

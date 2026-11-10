@@ -185,6 +185,7 @@ export async function cargarRoasDePauta(
   rango: Rango,
   hoy: string,
   ahora: Date = new Date(),
+  cohorteId: string | null = null,
 ): Promise<VistaRoasDePauta> {
   const parcial = alias(submissions, "submission_parcial_roas");
   const completo = alias(submissions, "submission_completo_roas");
@@ -218,7 +219,8 @@ export async function cargarRoasDePauta(
     (async () => {
       const dias = ventasConDiaEn(db, rango).as("ventas_por_fecha_roas");
       return db.select({ dealId: dias.dealId }).from(dias)
-        .innerJoin(deals, and(eq(deals.id, dias.dealId), eq(deals.programId, programId), vigente(deals)))
+        .innerJoin(deals, and(eq(deals.id, dias.dealId), eq(deals.programId, programId),
+          cohorteId === null ? undefined : eq(deals.cohortId, cohorteId), vigente(deals)))
         .where(incluyendoAnulados(dias));
     })(),
   ]);
@@ -268,16 +270,17 @@ export async function cargarRoasDePauta(
     }
     filaPorEnvioId.set(e.id, fila);
   }
-  const universo = [...canonicos.values()];
   const idsEnvio = [...filaPorEnvioId.keys()];
   const dealsDelUniverso = idsEnvio.length === 0 ? [] : await db.select({ id: deals.id, submissionOrigenId: deals.submissionOrigenId,
     etapa: deals.etapa }).from(deals).where(and(eq(deals.programId, programId), eq(deals.cortesia, false),
+      cohorteId === null ? undefined : eq(deals.cohortId, cohorteId),
       inArray(deals.submissionOrigenId, idsEnvio), vigente(deals)));
   const idsDeal = dealsDelUniverso.map((d) => d.id);
   for (const deal of dealsDelUniverso) {
     const envio = filaPorEnvioId.get(deal.submissionOrigenId!);
     if (envio && envio.dealId === null) { envio.dealId = deal.id; envio.etapa = deal.etapa; }
   }
+  const universo = [...canonicos.values()].filter((envio) => cohorteId === null || envio.dealId !== null);
   const citas = idsDeal.length === 0 ? [] : await db.select({ id: calls.id, dealId: calls.dealId,
     fechaAgenda: calls.fechaAgenda, fechaLlamada: calls.fechaLlamada, createdAt: calls.createdAt,
     resultado: calls.resultado }).from(calls).where(and(eq(calls.programId, programId), inArray(calls.dealId, idsDeal), vigente(calls)));
@@ -304,7 +307,8 @@ export async function cargarRoasDePauta(
   const origenesHistoricos = ventasPrograma.length === 0 ? [] : await db.select({
     dealId: deals.id, envioId: submissions.id, fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt,
   }).from(deals).leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(eq(deals.programId, programId), inArray(deals.id, ventasPrograma.map((v) => v.dealId)), vigente(deals)));
+    .where(and(eq(deals.programId, programId), cohorteId === null ? undefined : eq(deals.cohortId, cohorteId),
+      inArray(deals.id, ventasPrograma.map((v) => v.dealId)), vigente(deals)));
   const fechaOrigen = new Map(origenesHistoricos.map((f) => [f.dealId, f]));
   const diasCierre = ventasPrograma.flatMap((v) => {
     const origen = fechaOrigen.get(v.dealId);

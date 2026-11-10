@@ -1,13 +1,11 @@
 import { and, between, count, eq, sql } from "drizzle-orm";
-import { showPorCita } from "@/lib/deals/resultados-de-llamada";
 import { gastoPauta } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
-import { diaCubierto, motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
+import { motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
 import type { Rango } from "@/lib/queries/dashboard";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import * as agenda from "@/lib/queries/hechos/agenda";
-import * as cita from "@/lib/queries/hechos/cita";
 import * as envio from "@/lib/queries/hechos/envio";
 import { esGastoPaid, gastoConvertido, type VistaGasto } from "@/lib/queries/hechos/gasto";
 import * as venta from "@/lib/queries/hechos/venta";
@@ -18,6 +16,9 @@ import { costoPorAgendaDeVentana, type CostoPorAgenda } from "@/lib/semaforo/cos
 import { tasasDelRango } from "@/lib/trm/consultar";
 import { sumarDias } from "@/lib/dias-habiles";
 import { VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
+import { estadoDeCobertura, type RazonConCobertura } from "@/lib/cobertura";
+import { cargarRoasDePauta, type RenglonRoas } from "@/lib/queries/roas-de-pauta";
+import { grupoDeCitas, gruposPorSemana, type GrupoDeCitas } from "@/lib/queries/tasas-del-grupo";
 
 export type BloquePautaSemanal = "general" | "comercial" | "trafico";
 export type UnidadPautaSemanal = "COP" | "USD" | "conteo" | "razon" | "porcentaje";
@@ -83,14 +84,12 @@ type GastoAgrupado = {
 };
 
 type VentaLeida = { dealId: string; dia: string; semana: string; valor: number | null };
-type Conteos = { agendas: number; ventas: number; vendido: number; ventasSinValor: number; diasDeVentas: string[]; citas: number; shows: number; registros: number };
+type Conteos = { agendas: number; ventas: number; vendido: number; ventasSinValor: number; registros: number };
 
 const OK: CoberturaPautaSemanal = { estado: "ok", razon: null };
 const celda = (valor: number | null, cobertura: CoberturaPautaSemanal = OK, otrasCampanasCop?: number): CeldaPautaSemanal =>
   ({ valor, cobertura, ...(otrasCampanasCop !== undefined ? { otrasCampanasCop } : {}) });
 const sinDato = (razon: string): CeldaPautaSemanal => celda(null, { estado: "sin_dato", razon });
-const dividir = (numerador: number, denominador: number, razon: string): CeldaPautaSemanal =>
-  denominador === 0 ? sinDato(razon) : celda(numerador / denominador);
 
 function coberturaDeColumnas(filas: number, presentes: number, sinDatoMeta = true): CoberturaPautaSemanal {
   if (filas === 0 || presentes === 0) return { estado: "sin_dato", razon: sinDatoMeta ? "Sin dato de Meta" : "Sin datos" };
@@ -151,21 +150,16 @@ function conteosDelRango(args: {
   rango: Rango;
   agendas: Array<{ dia: string; agendas: number }>;
   ventas: VentaLeida[];
-  citas: Array<{ dia: string; citas: number; shows: number }>;
   registros: Array<{ dia: string; envios: number }>;
   dinero: DineroDeVentas;
 }): Conteos {
   const agendas = args.agendas.filter((fila) => enRango(fila.dia, args.rango)).reduce((n, fila) => n + fila.agendas, 0);
   const ventas = args.ventas.filter((fila) => enRango(fila.dia, args.rango));
-  const citas = args.citas.filter((fila) => enRango(fila.dia, args.rango));
   return {
     agendas,
     ventas: ventas.length,
     vendido: args.dinero.vendido,
     ventasSinValor: ventas.filter((fila) => fila.valor === null).length,
-    diasDeVentas: ventas.map((fila) => fila.dia),
-    citas: citas.reduce((n, fila) => n + fila.citas, 0),
-    shows: citas.reduce((n, fila) => n + fila.shows, 0),
     registros: args.registros.filter((fila) => enRango(fila.dia, args.rango)).reduce((n, fila) => n + fila.envios, 0),
   };
 }
@@ -175,9 +169,13 @@ function coberturaDeVenta(conteos: Conteos): CoberturaPautaSemanal {
   return { estado: "parcial", razon: `${conteos.ventasSinValor} ventas sin valor vendido` };
 }
 
-function celdaDeRazon(valor: number | null, razon: string, cobertura: CoberturaPautaSemanal = OK): CeldaPautaSemanal {
-  if (valor === null) return sinDato(razon);
-  return celda(valor, cobertura);
+function celdaDeRazonConCobertura(razon: RazonConCobertura, motivoVacio: string): CeldaPautaSemanal {
+  const estado = estadoDeCobertura(razon);
+  const motivo = razon.motivo ?? ((razon.agendasPendientes ?? 0) > 0
+    ? `${razon.agendasPendientes} ${razon.agendasPendientes === 1 ? "agenda pendiente" : "agendas pendientes"}`
+    : motivoVacio);
+  if (estado === "no_calculable") return sinDato(motivo);
+  return celda(razon.valor, estado === "parcial" ? { estado: "parcial", razon: motivo } : OK);
 }
 
 async function celdasDelRango(
@@ -188,22 +186,17 @@ async function celdasDelRango(
   gastoUsd: VistaGasto,
   costoMeta: CostoPorAgenda,
   costoCrm: CostoPorAgendaDelCrm,
+  grupo: GrupoDeCitas,
+  roasDeCohorte: RenglonRoas | null,
 ): Promise<Record<ClavePautaSemanal, CeldaPautaSemanal>> {
   const filasGasto = gastos.reduce((n, fila) => n + fila.filas, 0);
   const inversionCop = await convertirFilas(db, gastos, rango, "monto", "COP");
   const gastoCpmCop = await convertirFilas(db, gastos.filter((fila) => fila.filasImpresiones > 0), rango, "montoConImpresiones", "COP");
   const otrasCampanasCop = inversionCop.valor === null ? undefined : costoCrm.gastoOtras;
   const coberturaVenta = coberturaDeVenta(conteos);
-  const ventasFueraDeCobertura = conteos.diasDeVentas.filter((dia) => !diaCubierto(dia, gastoUsd.cobertura)).length;
-  const gastoIncompleto = gastoUsd.diasSinTrm.length > 0 || ventasFueraDeCobertura > 0;
   const razonGasto = gastoUsd.diasSinTrm.length > 0
     ? `Falta TRM para ${gastoUsd.diasSinTrm.join(", ")}`
     : motivoDeGasto(gastoUsd.cobertura);
-  const gastoUsdValido = gastoIncompleto ? null : gastoUsd.totalUsd;
-  const roas = gastoUsdValido === null || conteos.ventasSinValor > 0 || gastoUsdValido === 0
-    ? null
-    : conteos.vendido / gastoUsdValido;
-  const profit = gastoUsdValido === null || conteos.ventasSinValor > 0 ? null : conteos.vendido - gastoUsdValido;
   const impresiones = sumarCampo(gastos, "impresiones");
   const presentesImpresiones = sumarCampo(gastos, "filasImpresiones");
   const clicsConImpresiones = sumarCampo(gastos, "clicsConImpresiones");
@@ -219,7 +212,6 @@ async function celdasDelRango(
   const coberturaCtr = coberturaDeColumnas(filasGasto, sumarCampo(gastos, "filasCtr"));
   const coberturaLanding = coberturaDeColumnas(filasGasto, sumarCampo(gastos, "filasLlegada"));
   const coberturaConversion = coberturaDeColumnas(filasGasto, presentesLanding);
-  const show = showPorCita(conteos.shows, conteos.citas);
   const costoCobertura = costoMeta.costoCobertura;
   const costoMetaCelda = costoCobertura.valor === null
     ? sinDato(costoCobertura.motivo ?? (costoMeta.agendasMeta === 0 ? "Sin agendas según Meta" : "Sin gasto de agenda"))
@@ -228,7 +220,9 @@ async function celdasDelRango(
       : OK);
 
   return {
-    inversion: inversionCop.valor === null
+    inversion: filasGasto === 0
+      ? sinDato(razonGasto)
+      : inversionCop.valor === null
       ? sinDato(inversionCop.razon ?? "No se puede convertir la inversión")
       : celda(inversionCop.valor, OK, otrasCampanasCop),
     agendas: celda(conteos.agendas),
@@ -239,16 +233,21 @@ async function celdasDelRango(
         : OK),
     ventas: celda(conteos.ventas),
     facturacion: celda(conteos.vendido, coberturaVenta),
-    roas: roas === null
-      ? sinDato(conteos.ventasSinValor > 0 ? coberturaVenta.razon! : gastoUsdValido === 0 ? "Sin pauta" : razonGasto)
-      : celda(roas),
-    profit: profit === null
-      ? sinDato(conteos.ventasSinValor > 0 ? coberturaVenta.razon! : razonGasto)
-      : celda(profit),
-    show: celdaDeRazon(show, "Sin citas de Paid en el periodo"),
-    cierre_ventas: dividir(conteos.ventas, conteos.shows, "Sin shows de Paid en el periodo"),
-    agenda_venta: dividir(conteos.ventas, conteos.citas, "Sin citas de Paid en el periodo"),
-    cpm: gastoCpmCop.valor === null || impresiones === 0
+    roas: roasDeCohorte
+      ? celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS")
+      : sinDato("ROAS por cohorte no disponible"),
+    profit: roasDeCohorte
+      ? (() => {
+        const base = celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular profit");
+        return base.valor === null ? base : celda(roasDeCohorte.valorVendidoUsd - (roasDeCohorte.gastoUsd ?? 0), base.cobertura);
+      })()
+      : sinDato("Profit por cohorte no disponible"),
+    show: celdaDeRazonConCobertura(grupo.tasas.razonShow, "Sin citas de Paid en el periodo"),
+    cierre_ventas: celdaDeRazonConCobertura(grupo.tasas.razonCierre, "Sin shows de Paid en el periodo"),
+    agenda_venta: celdaDeRazonConCobertura(grupo.tasas.razonAgendaAVenta, "Sin citas de Paid en el periodo"),
+    cpm: filasGasto === 0
+      ? sinDato(razonGasto)
+      : gastoCpmCop.valor === null || impresiones === 0
       ? sinDato(gastoCpmCop.razon ?? "Sin dato de Meta")
       : celda(gastoCpmCop.valor / impresiones * 1_000, coberturaImpresiones),
     ctr: impresionesConClics === 0
@@ -293,7 +292,7 @@ export async function cargarPautaSemanal(
   args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null },
 ): Promise<VistaPautaSemanal> {
   const semanas = semanasDelRango(args.rango);
-  const [gastos, agendas, ventas, citas, registros] = await Promise.all([
+  const [gastos, agendas, ventas, registros] = await Promise.all([
     db.select({
       semana: sql<string>`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
       fecha: gastoPauta.fecha,
@@ -330,12 +329,6 @@ export async function cargarPautaSemanal(
       cohorteId: args.cohorteId,
     }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, agendas: fila.agendas }))),
     leerTodasLasVentas(db, args),
-    cita.agrupar<"dia" | "semana" | "area" | "cohorte">(db, {
-      programId: args.programId,
-      rango: args.rango,
-      agruparPor: ["dia", "semana"],
-      filtros: { area: ["paid"], ...(args.cohorteId ? { cohorte: [args.cohorteId] } : {}) },
-    }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, citas: fila.citas, shows: fila.shows }))),
     envio.agrupar<"dia" | "semana" | "area">(db, {
       programId: args.programId,
       rango: args.rango,
@@ -344,7 +337,8 @@ export async function cargarPautaSemanal(
     }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, envios: fila.envios }))),
   ]);
   const rangos = [args.rango, ...semanas];
-  const [gastosUsd, costosMeta, costosCrm, dineros] = await Promise.all([
+  const ahora = new Date(`${args.hoy}T23:59:59-05:00`);
+  const [gastosUsd, costosMeta, costosCrm, dineros, grupoTotal, gruposSemanales, roasPorRango] = await Promise.all([
     Promise.all(rangos.map((rango) => gastoConvertido(db, args.programId, rango))),
     Promise.all(rangos.map((rango) => costoPorAgendaDeVentana(db, {
       programId: args.programId,
@@ -363,15 +357,35 @@ export async function cargarPautaSemanal(
       db,
       ventas.filter((fila) => enRango(fila.dia, rango)).map((fila) => fila.dealId),
     ))),
+    grupoDeCitas(db, {
+      programId: args.programId,
+      rango: args.rango,
+      ahora,
+      cohorteId: args.cohorteId,
+      area: "paid",
+    }),
+    gruposPorSemana(db, {
+      programId: args.programId,
+      rango: args.rango,
+      ahora,
+      cohorteId: args.cohorteId,
+      area: "paid",
+    }),
+    Promise.all(rangos.map((rango) => cargarRoasDePauta(
+      db, args.programId, rango, args.hoy, ahora, args.cohorteId,
+    ))),
   ]);
+  const grupos = [grupoTotal, ...gruposSemanales.map(({ grupo }) => grupo)];
   const celdas = await Promise.all(rangos.map((rango, i) => celdasDelRango(
     db,
     rango,
     gastos.filter((fila) => enRango(fila.fecha, rango)),
-    conteosDelRango({ rango, agendas, ventas, citas, registros, dinero: dineros[i] }),
+    conteosDelRango({ rango, agendas, ventas, registros, dinero: dineros[i] }),
     gastosUsd[i],
     costosMeta[i],
     costosCrm[i],
+    grupos[i],
+    roasPorRango[i]?.total ?? null,
   )));
   const filas = DEFINICION_FILAS.map((definicion) => ({
     ...definicion,

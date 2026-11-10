@@ -445,7 +445,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Realizadas, Asistencia y No asistió:** Realizadas cuenta las citas ocurridas; Asistencia es el porcentaje por persona (deal): quienes asistieron ÷ personas con una cita que ya ocurrió y resultado marcado; No asistió es el complemento marcado por el closer. La cita cancelada y la cita sin marcar no son No asistió. *Evitar: “Show”, “Shows”, “No-show”, “No show”, “Llamadas atendidas”.*
 - **Cita pasada sin resultado («Sin resultado»):** una cita que sigue «agendada» aunque su hora ya pasó: un dato que falta, no un no show. El Inbox y la bandera del Hub la cuentan sin los negocios ya cerrados; la escalera la muestra aparte de sus escalones. Se empuja al closer a marcarla sin bloquearlo: chip «Sin resultado» en Mi espacio y, en el Inbox del equipo, el conteo por closer (390). La cita suelta no cuenta como por marcar (decidido por Mani, 7-nov).
 - **Cierre perdido con pagos registrados:** un negocio que está en Cierre perdido y aun así conserva al menos un abono vigente. Es una inconsistencia (plata cobrada sobre una venta perdida), no un resultado del negocio; aparece como bandera roja del Pulso, por programa, con su 0 explícito, y su cifra abre la lista de esos negocios (405). Impedir el movimiento que la produce queda fuera: hoy es alcanzable por la flecha P y por la corrección de etapa.
-- **Agendadas, Citas y Agendas de Meta:** Agendadas cuenta citas creadas en el periodo; Citas cuenta por la fecha de la cita; Agendas de Meta es el universo del pixel. Cada reagenda del CRM cuenta como otra cita; Meta se muestra aparte y puede diferir (353, DA-4). *“Agendas” suelto no se usa.*
+- **Agendadas, Citas y Agendas de Meta:** Agendadas cuenta citas creadas en el periodo (el MCP la llama «agendadas», no «citas»); Citas cuenta por la fecha de la cita; Agendas de Meta es el universo del pixel. Cada reagenda del CRM cuenta como otra cita; Meta se muestra aparte y puede diferir (353, DA-4). *“Agendas” suelto no se usa.*
 - **Envíos y Leads:** Envíos cuenta cada formulario enviado, completo o parcial; Leads cuenta personas distintas, una por programa. La ficha Objetivo de leads se mide contra Leads del día; Envíos conserva sus otras lecturas. *“Registros” no se usa como rótulo.*
 - **Ventas, Ventas del periodo y Vendidas del grupo con cita:** Ventas es el conteo canónico; Ventas del periodo usa fecha de venta y Vendidas del grupo con cita es el numerador de Cierre de ventas. En Hub › Hoy también se permite Cupos vendidos. *Evitar: “Cierres” y “Ventas cerradas”.*
 - **Cierre de ventas:** asistentes que compraron ÷ asistentes.
@@ -582,8 +582,17 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **ROAS y ad profit:** valor vendido frente al gasto, con la TRM de cada día (ADR 0088). Si hay ventas de días sin gasto
   cargado, el ROAS no se calcula ("—" y desde cuándo hay gasto). Se muestra con "×" (3,25×). En Pauta la venta se ancla a la
   cohorte de registro (el día del envío que trajo a la persona); la tabla reconcilia con Comercial las ventas que no son de
-  pauta o que registraron en otro periodo, y avisa cuando quedan agendas de la cohorte por ocurrir (ticket 355).
-- **Profit:** valor vendido de Paid menos el gasto total de Paid, ambos en USD y con la TRM de cada día.
+  pauta o que registraron en otro periodo, y avisa cuando quedan agendas de la cohorte por ocurrir (ticket 355). Es el único ROAS de la
+  pestaña Pauta, también en la tabla semanal, donde la semana es la del envío (ADR 0063, enmienda 10-nov). *Evitar: «ROAS por fecha de
+  venta»; esa otra pregunta se llama «Retorno de caja de la semana».*
+- **De cita a venta, Cierre de ventas y % de show por cita:** De cita a venta (antes «Cita a venta», «Cita → venta», «Agenda → venta») es el
+  producto de Asistencia y Cierre de ventas; Cierre de ventas son las vendidas ÷ las que asistieron. En la tabla semanal de Pauta salen
+  de `grupoDeCitas` restringido al área Paid (ADR 0079, enmienda 10-nov) y el bloque dice «solo Paid»; en Comercial son de todas las áreas.
+  **% de show por cita** es la otra pregunta (por cita, no por deal) y lleva ese nombre completo. *Evitar: «% cierre», «Facturación»
+  (se dice «Vendido»).*
+- **Semana sin gasto cargado:** en la tabla semanal, Inversión, Profit y CPM muestran «—» con «Gasto de Meta desde el …»; 0 es cero
+  gastado, «—» es «no se puede calcular» (ADR 0115, enmienda 10-nov).
+- **Profit:** valor vendido de la cohorte de registro de Paid menos el gasto total de Paid, ambos en USD y con la TRM de cada día.
 - **CPM:** gasto de las filas que tienen impresiones, dividido por sus impresiones y multiplicado por mil.
 - **CTR:** clics al enlace divididos por impresiones; se suman los conteos antes de calcular la tasa.
 - **Llegada a la landing:** vistas de la landing divididas por clics al enlace.

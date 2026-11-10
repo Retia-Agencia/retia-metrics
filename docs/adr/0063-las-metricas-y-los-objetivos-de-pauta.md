@@ -1,6 +1,7 @@
 # 0063 — Las métricas y los objetivos de Pauta: qué cuenta, sobre qué ingreso y contra qué meta
 
-- **Estado:** aceptado · 29-sep-2026 (Mani), todos los puntos (el 5 y el 6 aprobados esa noche).
+- **Estado:** aceptado · 29-sep-2026 (Mani), todos los puntos (el 5 y el 6 aprobados esa noche). **Enmendado el
+  10-nov-2026 (Mani, audit del Hub 403 F1, D-B):** en toda la pestaña Pauta el ROAS es el de la cohorte de registro (abajo).
 - **Relacionadas:** ADR 0013 (caja y ventas), 0022 (ventana de la cohorte), 0023 (la meta no se reparte
   entre closers), 0024 (una definición por pregunta), 0043 y 0048 (frontera y agregado), 0045 (regla del
   cero), 0060 (pauta cuenta envíos, venta cuenta deals); tickets 067, 088, 090, 122, 123, 124;
@@ -67,3 +68,18 @@ umbrales.
 > ⚠️ **1-oct: abierto.** La migración 0057 quita `cohorts.trm_cohorte` (Mani). De dónde sale la TRM del ROAS es
 > la decisión A12 de `docs/plan.md` §7, y se toma antes de E7. Hasta entonces, lo que este documento dice de la
 > "TRM de la cohorte" describe la intención, no una columna que exista.
+
+## Enmienda 10-nov-2026 (Mani, audit del Hub 403 F1, D-B): un solo ROAS, el de la cohorte de registro
+
+La tabla semanal de Pauta (412) calculaba el ROAS con las ventas por **fecha de venta** de la semana, mientras la tabla por
+campaña, el MCP (`pauta_roas`) y el ROAS proyectado (ADR 0126) lo calculan por cohorte de registro. Dos respuestas con el mismo
+rótulo, hasta 3× de diferencia (`docs/audit-hub-2026-11-10.md` §2, I-2), y contra lo pedido por Gerencia el 3-nov ("por el día
+en que se creó el envío"). Se decide:
+
+1. **ROAS = vendido de las personas cuyo envío cae en la semana (la cohorte de registro, ticket 355) ÷ gasto de la semana.** La
+   tabla semanal agrupa por semana del **envío**, no de la venta. Lleva la cobertura y la marca de agendas pendientes de la
+   cohorte (N3); una cohorte que todavía no ha comprado dice "parcial", no un 0,00× sin aviso.
+2. **El Profit usa la misma ancla** (vendido de la cohorte menos gasto), para no tener dos anclas en una tabla.
+3. Quien quiera "vendido de la semana ÷ gasto de la semana" pide **otra cifra con otro nombre**: «Retorno de caja de la semana»,
+   con su ficha en `docs/metricas.md`. No se construye hasta que alguien la pida; mientras tanto no existe en pantalla.
+4. El umbral `roas` de `objetivos` colorea el ROAS de cohorte, y su `lector` deja de ser `null` (N7).

@@ -133,6 +133,15 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
  */
 const AREA_DE_PAUTA: string[] = ["paid"];
 
+function filtrosDeAreaDePauta() {
+  return { area: AREA_DE_PAUTA };
+}
+
+/** El predicado canónico del área Paid para cualquier lectura de citas. */
+export function condicionDeAreaDePauta() {
+  return condicionesDeFiltros(dimensiones, filtrosDeAreaDePauta());
+}
+
 type FilaAgrupada<D extends DimensionAgenda> = Record<D, string | null> & { agendas: number };
 
 /** Agendas de área Paid: citas vigentes creadas en el rango; con `cohorteId` solo las de esa cohorte. */
@@ -150,7 +159,7 @@ export async function agendasDePauta<D extends DimensionAgenda = "dia">(
     programId: opciones.programId,
     rango: opciones.rango,
     agruparPor: (opciones.agruparPor ?? ["dia"]) as readonly D[],
-    filtros: { area: AREA_DE_PAUTA, ...(opciones.cohorteId ? { cohorte: [opciones.cohorteId] } : {}) } as Filtros<D | "area" | "cohorte">,
+    filtros: { ...filtrosDeAreaDePauta(), ...(opciones.cohorteId ? { cohorte: [opciones.cohorteId] } : {}) } as Filtros<D | "area" | "cohorte">,
     creadaHasta: opciones.creadaHasta,
   }) as Array<FilaAgrupada<D>>;
 }

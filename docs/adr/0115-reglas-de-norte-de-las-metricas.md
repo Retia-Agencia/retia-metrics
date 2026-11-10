@@ -40,3 +40,18 @@ Nueve reglas. Cada una dice qué se enforza y dónde; una regla sin guardián es
 - Los tickets 351 a 362 traen el código actual a estas reglas. Hasta que cada guardián exista, la regla se revisa a mano
   y el olor está escrito en la tabla de arriba.
 - `AGENTS.md` resume estas reglas en "Restricciones no-negociables" y `docs/metricas.md` §0 suma la tabla "Conceptos".
+
+## Enmienda 10-nov-2026 (Mani, audit del Hub 403 F1, D-C y D-E)
+
+**D-C, un rótulo por concepto y el universo a la vista (N4).** El audit encontró un mismo concepto con varios rótulos y un mismo
+rótulo con varios significados (`docs/audit-hub-2026-11-10.md` §5 y §7). Rige este vocabulario, que sale solo de
+`lib/vocabulario-metricas.ts`, en Comercial, Pauta, `/hub`, el MCP y los CSV:
+- **Agendadas** = citas creadas en el periodo. **Citas** = citas por la fecha de la cita. El MCP dice «agendadas» a lo creado.
+- **Asistencia** = por deal (ADR 0079). **% de show por cita** = por cita, aparte y nombrado así.
+- **De cita a venta** en las tres pantallas (antes «Cita a venta», «Cita → venta», «Agenda → venta»). **Cierre de ventas**
+  (no «% cierre»).
+- **Vendido** (no «Facturación»).
+- El bloque de Pauta lleva el subtítulo **«solo Paid»**; Comercial, «todas las áreas». Son universos legítimos y distintos.
+
+**D-E, un vacío no es un cero (N5, N3).** En la tabla semanal, una semana sin gasto cargado muestra **«—» con «Gasto de Meta desde
+el …»** en Inversión, Profit y CPM, igual que ya hace el ROAS; 0 queda para cuando el gasto cargado sumó cero.
