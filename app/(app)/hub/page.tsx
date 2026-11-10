@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -18,7 +18,7 @@ import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { veEquipoComercial } from "@/lib/auth/roles";
 import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
-import { RUTA_HUB_TODOS } from "@/lib/nav";
+import { queryDePautaDesdeOrigen, RUTA_HUB_TODOS } from "@/lib/nav";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
@@ -37,13 +37,15 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   const programas = await programasVisibles(session.user.id, rol);
   if (programas.length === 0) notFound();
   const busqueda = await searchParams;
+  // `?seccion=origen` ya no existe (412): Origen es la vista Canal de Pauta.
+  const haciaPauta = queryDePautaDesdeOrigen(busqueda);
+  if (haciaPauta) redirect(`${RUTA_HUB_TODOS}${haciaPauta}`);
   const hoy = hoyEnBogota();
   const pestanas = [
     { id: "hoy", etiqueta: "Hoy", descripcion: "El día de cada programa: cupos, operación, caja y lo que pide atención." },
     { id: "comercial", etiqueta: "Comercial", descripcion: "Actividad total y embudo de cada programa." },
     { id: "dinero", etiqueta: "Dinero", descripcion: "Lo vendido, lo recaudado y lo que falta por cobrar de esas ventas; lo que entró a caja, por moneda." },
-    { id: "pauta", etiqueta: "Pauta", descripcion: "Origen y rendimiento de los canales dentro de cada programa." },
-    { id: "origen", etiqueta: "Origen", descripcion: "De dónde vino cada lead y cómo cuenta cada UTM." },
+    { id: "pauta", etiqueta: "Pauta", descripcion: "De dónde vienen los registros y qué rindió la plata, programa por programa." },
   ].map((pestana) => ({ ...pestana, href: urlConSeccion(RUTA_HUB_TODOS, busqueda, pestana.id) }));
   const seccion = pestanaActiva(typeof busqueda.seccion === "string" ? busqueda.seccion : undefined, pestanas, "hoy");
   // Hoy (252) es siempre de hoy, sin importar el periodo de la URL; por eso no lleva selector.
@@ -90,10 +92,11 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
           />
         </div>
         <div className={clasesDeZonaConScroll()}>
-          {seccion === "origen"
-            ? <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
-            : seccion === "pauta"
-            ? <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} busqueda={busqueda} />
+          {seccion === "pauta"
+            ? <div className="space-y-6">
+                <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} busqueda={busqueda} />
+                <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
+              </div>
             : esHoy
             ? <>
                 {diaPedido === null ? <p role="alert" className="mb-3 rounded-md border border-tono-peligro/40 px-3 py-2 text-sm text-tono-peligro">Esa fecha no es válida (no puede ser futura): se muestra hoy.</p> : null}

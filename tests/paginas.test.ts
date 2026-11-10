@@ -626,13 +626,13 @@ describe("/ajustes/canales redirige a Hub › Origen del primer programa visible
   it("un paid trafficker llega al Origen de su programa, no al Hub de todos (que le daria 404)", async () => {
     auth.mockResolvedValue(sesionPaidTrafficker);
     programasVisibles.mockResolvedValue(PROGRAMA);
-    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=origen");
+    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=pauta&ver_por=canal");
   });
 
   it("un gerente limitado tambien, solo a un programa que ve", async () => {
     auth.mockResolvedValue(sesionGerenteLimitado);
     programasVisibles.mockResolvedValue(PROGRAMA);
-    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=origen");
+    expect(await correrCanales()).toBe("/p/programa-a/hub?seccion=pauta&ver_por=canal");
   });
 
   it("un closer recibe 404 y sin programas visibles tambien", async () => {
@@ -1924,8 +1924,24 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     const dinero = buscar(await renderizar({ seccion: "dinero", rango: "semana" }), "DashboardPrograma");
     expect(dinero?.props.origen).toBe(`/p/${SLUG}/hub?seccion=dinero&rango=semana`);
 
-    const seccionOrigen = buscar(await renderizar({ seccion: "origen", rango: "semana" }), "SeccionOrigen");
-    expect(seccionOrigen?.props.origen).toBe(`/p/${SLUG}/hub?seccion=origen&rango=semana`);
+    const seccionPauta = buscar(await renderizar({ seccion: "pauta", rango: "semana" }), "SeccionPauta");
+    expect(seccionPauta?.props.origen).toBe(`/p/${SLUG}/hub?seccion=pauta&rango=semana`);
+  });
+
+  it("?seccion=origen redirige a Pauta conservando la URL y cae en la vista Canal (412)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const destino = async (busqueda: Record<string, string>) => {
+      try { await renderizar(busqueda); return null; } catch (e) { return e instanceof Redireccion ? e.destino : Promise.reject(e); }
+    };
+    expect(await destino({ seccion: "origen", rango: "semana" })).toBe(`/p/${SLUG}/hub?seccion=pauta&rango=semana&ver_por=canal`);
+    expect(await destino({ seccion: "origen", ver_por: "campana" })).toBe(`/p/${SLUG}/hub?seccion=pauta&ver_por=campana`);
+  });
+
+  it("el paid trafficker abre Pauta y el closer recibe 404 (412)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    expect(await correrPrograma(SLUG, { seccion: "pauta" })).toBe("paso");
+    auth.mockResolvedValue(sesionCloser);
+    expect(await correrPrograma(SLUG, { seccion: "pauta" })).toBe("notFound");
   });
 
   it("al gerente nada de eso le cambia (mordido en el otro sentido)", async () => {

@@ -162,7 +162,7 @@ export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
       detalle: item.detalle,
       registros: vista.trazaPaid[item.nivel],
     }));
-    const enlace = enlaceDeSeccionHub(visible.slug, "origen");
+    const enlace = `${enlaceDeSeccionHub(visible.slug, "pauta")}&ver_por=canal`;
     const porcentaje = (valor: number | null) => valor === null ? "—" : pct(valor);
     return {
       texto: [

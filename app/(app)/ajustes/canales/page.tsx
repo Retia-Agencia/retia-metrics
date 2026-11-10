@@ -8,7 +8,7 @@ import { rutaDePrograma } from "@/lib/nav";
 export const dynamic = "force-dynamic";
 
 /**
- * Canales se retiró (ADR 0087): su pantalla es Hub › Origen. Redirige al Hub del primer programa visible,
+ * Canales se retiró (ADR 0087): su pantalla es Hub › Pauta (vista Canal). Redirige al Hub del primer programa visible,
  * no al de "todos": ese solo abre quien administra (ADR 0082) y el paid trafficker, dueño de Origen (ADR 0052),
  * recibiría 404. Misma guarda que Origen: `manejaPauta`.
  */
@@ -17,5 +17,5 @@ export default async function CanalesPage() {
   const rol = await rolDeVista(session);
   const [primero] = await programasVisibles(session.user.id, rol);
   if (!primero) notFound();
-  redirect(`${rutaDePrograma(primero.slug, "hub")}?seccion=origen`);
+  redirect(`${rutaDePrograma(primero.slug, "hub")}?seccion=pauta&ver_por=canal`);
 }
