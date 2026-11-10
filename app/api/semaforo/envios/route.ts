@@ -196,10 +196,9 @@ export async function POST(request: Request) {
             let offset = 0;
             let total = 0;
             do {
-              const pagina = await agenda.listar(db, {
+              const pagina = await agenda.listarAgendasDePauta(db, {
                 programId,
                 rango: { desde: diaCierre, hasta: diaCierre },
-                filtros: { area: ["paid"] },
                 orden: { campo: "horaMinuto", sentido: "asc" },
                 pagina: { limite: 200, offset },
               });

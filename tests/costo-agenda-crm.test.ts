@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, cuentasPublicitarias, deals, gastoPauta, leads, pautaObjetos, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { agendasDePauta } from "@/lib/queries/hechos/agenda";
 import { costoPorAgendaDelCrm } from "@/lib/queries/hechos/costo-agenda-crm";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -74,10 +75,31 @@ describe("costoPorAgendaDelCrm", () => {
     });
     await agenda(otro, "ajena", "paid_social");
 
-    const resultado = await costoPorAgendaDelCrm(db, { programId: p.id, desde: "2026-11-05", hasta: "2026-11-05" });
+    const rango = { desde: "2026-11-05", hasta: "2026-11-05" };
+    const agendasCrm = (await agendasDePauta(db, { programId: p.id, rango })).reduce((n, f) => n + f.agendas, 0);
+    const resultado = await costoPorAgendaDelCrm(db, { programId: p.id, ...rango, agendasCrm });
+    // D-2: el costo usa solo el gasto de campañas con propósito agenda (300k); la campaña sin propósito (200k)
+    // va aparte en "Otras campañas". Antes del 412 F este test esperaba 500k y "otras" en 0, que contradecía D-2.
     expect(resultado).toEqual({
-      gasto: 500000, agendasCrm: 1, gastoTotal: 1000000, gastoOtras: 0, moneda: "COP",
-      costo: { valor: 500000, base: 1, faltan: 0, motivo: null },
+      gasto: 300000, agendasCrm: 1, gastoTotal: 1000000, gastoOtras: 200000, moneda: "COP",
+      costo: { valor: 300000, base: 1, faltan: 0, motivo: null },
     });
+  });
+
+  it("con agendas y sin gasto de agenda el costo es '—' con su motivo, no COP 0 (412 F)", async () => {
+    const p = await programa("sin-gasto");
+    const adLanzamiento = await campana(p, "lanzamiento", "lanzamiento");
+    await db.insert(gastoPauta).values([
+      { programId: p.id, fecha: "2026-11-05", monto: "500000", moneda: "COP", origen: "meta_api", pautaObjetoId: adLanzamiento.id },
+    ]);
+    await agenda(p, "paid", "paid_social");
+
+    const rango = { desde: "2026-11-05", hasta: "2026-11-05" };
+    const agendasCrm = (await agendasDePauta(db, { programId: p.id, rango })).reduce((n, f) => n + f.agendas, 0);
+    const resultado = await costoPorAgendaDelCrm(db, { programId: p.id, ...rango, agendasCrm });
+    expect(resultado.agendasCrm).toBe(1);
+    expect(resultado.gasto).toBe(0);
+    expect(resultado.costo.valor).toBeNull();
+    expect(resultado.costo.motivo).toBe("Sin gasto de agenda en el periodo");
   });
 });

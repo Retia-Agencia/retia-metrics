@@ -37,11 +37,12 @@ function Desfase({ valor, formato, unidad }: { valor: number | null; formato: (n
   </p>;
 }
 
-function Barra({ titulo, datos, unidad }: { titulo: string; datos: BarraDeCumplimiento; unidad: "agendas" | "cupos" }) {
+function Barra({ titulo, datos, unidad, universo }: { titulo: string; datos: BarraDeCumplimiento; unidad: "agendas" | "cupos"; universo?: string }) {
   const { cupos, usd: dolares } = datos;
   const estado = cupos.cumplimiento?.estado;
   return <section className="space-y-2" aria-label={titulo}>
     <h3 className="text-sm font-medium">{titulo}</h3>
+    {universo ? <p className="text-xs text-muted-foreground">{universo}</p> : null}
     <BarraDeAvance
       llevamos={cupos.llevamos}
       objetivo={cupos.meta}
@@ -75,7 +76,7 @@ export function CumplimientoVista({ datos, slug }: { datos: CumplimientoDeCohort
     </CardHeader>
     <CardContent className="space-y-6">
       {datos.agendas
-        ? <Barra titulo="Agendadas" datos={datos.agendas} unidad="agendas" />
+        ? <Barra titulo="Agendadas" datos={datos.agendas} unidad="agendas" universo="De la cohorte, de todos los orígenes (no solo Paid), desde que empezó a venderse." />
         : <section className="space-y-1"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
       {datos.ventasPauta
         ? <Barra titulo="Ventas de pauta" datos={datos.ventasPauta} unidad="cupos" />

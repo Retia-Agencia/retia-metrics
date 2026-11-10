@@ -172,6 +172,7 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <p className="text-xs text-muted-foreground">Agendadas y su costo cuentan solo las agendas de Paid creadas en cada semana. El cumplimiento de arriba cuenta todos los orígenes de la cohorte, por eso puede dar más.</p>
         <div className="overflow-x-auto">
           <table className="w-full min-w-max text-sm">
             <caption className="sr-only">Métricas de Paid Media del periodo y por semana, de lunes a domingo en Bogotá.</caption>
