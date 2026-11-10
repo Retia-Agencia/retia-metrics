@@ -130,4 +130,4 @@ migración esté en `main`.
       repetida (guardián N1).
 - [x] Cumplimiento muestra En meta / En seguimiento / Rezagado y "sin meta" cuando falta.
 - [x] Tráfico muestra "—" con cobertura antes de la migración y cifras después (el sync de D ya escribe las columnas; las cifras llegan con los días sincronizados desde hoy).
-- [ ] Recorrido como gerente y como paid trafficker, escritorio y 375 px, `npm run build`, CI verde.
+- [x] Recorrido como gerente y como paid trafficker, escritorio y 375 px, `npm run build`, CI verde. (10-nov, hija F: build limpio, recorrido en `dev:local` claro/oscuro, 375 px sin scroll horizontal de página —la tabla semanal desplaza dentro de su contenedor—, consola limpia, closer 404; CI verde de la punta `9b34054c`, tag `cp-20261109-2`)
