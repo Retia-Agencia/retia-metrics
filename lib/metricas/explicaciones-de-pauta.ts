@@ -11,6 +11,7 @@
  * `tests/explicacion-sin-jerga.test.ts`.
  */
 import type { FormulaDeMetrica, VariableDeMetrica } from "@/lib/metricas/registro";
+import { nombreCorto, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
 export type UniversoDeCifra = "pauta" | "todas";
 
@@ -40,7 +41,7 @@ const ABONADO_O_COMPLETO = "El cliente ya pagó al menos un abono. Un deal en cu
 
 export const EXPLICACIONES_DE_PAUTA = {
   inversion: {
-    rotulo: "Inversión", universo: "pauta", unidad: "cop",
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.inversion, universo: "pauta", unidad: "cop",
     que: "Lo que se gastó en anuncios de Meta, sumando todas las cuentas del programa.",
     formula: { forma: "suma", terminos: ["gasto de cada día en Meta"] },
     variables: [{ nombre: "Gasto de cada día", explicacion: "Lo que Meta reporta como gastado ese día, en pesos. Entran todas las campañas: agenda, lanzamiento y otras." }],
@@ -52,7 +53,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Inversión planeada", explicacion: `El presupuesto de la cohorte. Lo cargan Pauta o Gerencia en ${OBJETIVOS}.` }],
   },
   agendas: {
-    rotulo: "Agendadas", universo: "pauta", unidad: "conteo",
+    rotulo: nombreCorto("agendadas"), universo: "pauta", unidad: "conteo",
     que: "Cuántas citas se reservaron, de personas que llegaron por anuncios.",
     formula: { forma: "conteo", terminos: ["citas reservadas en el periodo por personas de pauta"] },
     variables: [
@@ -61,7 +62,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     ],
   },
   agendas_total: {
-    rotulo: "Agendadas", universo: "todas", unidad: "conteo",
+    rotulo: nombreCorto("agendadas"), universo: "todas", unidad: "conteo",
     que: "Cuántas citas se reservaron en la cohorte, vengan de pauta, orgánico, referidos o sin origen.",
     formula: { forma: "conteo", terminos: ["citas reservadas desde que abrió la venta de la cohorte"] },
     variables: [{ nombre: "Cita reservada", explicacion: "La llamada que el lead apartó en el calendario. Cuenta el día en que la reservó, no el día de la llamada." }],
@@ -73,7 +74,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Pixel de Meta", explicacion: "El código de Meta en la página de agenda. No siempre ve lo mismo que el CRM; la diferencia avisa que algo se está midiendo mal." }],
   },
   costo_agenda_crm: {
-    rotulo: "Costo por agenda", universo: "pauta", unidad: "cop", admiteObjetivo: true, unidadesDePartes: ["cop", "conteo"],
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_crm, universo: "pauta", unidad: "cop", admiteObjetivo: true, unidadesDePartes: ["cop", "conteo"],
     que: "Cuánto costó, en promedio, cada cita que trajo la pauta.",
     formula: { forma: "razon", terminos: ["Gasto en campañas de agenda", "Agendadas de pauta"] },
     variables: [
@@ -82,7 +83,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     ],
   },
   costo_agenda_meta: {
-    rotulo: "Costo por agenda (según Meta)", universo: "pauta", unidad: "cop", unidadesDePartes: ["cop", "conteo"],
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_meta, universo: "pauta", unidad: "cop", unidadesDePartes: ["cop", "conteo"],
     que: "El mismo costo por agenda, pero dividiendo por las agendas que ve Meta en vez de las del CRM.",
     formula: { forma: "razon", terminos: ["Gasto en campañas de agenda", "Agendas según Meta"] },
     variables: [{ nombre: "Agendas según Meta", explicacion: "Las que reporta el pixel. Si difiere mucho del costo por agenda del CRM, la medición tiene un problema." }],
@@ -97,7 +98,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     ],
   },
   ventas: {
-    rotulo: "Ventas", universo: "pauta", unidad: "conteo",
+    rotulo: nombreCorto("ventas"), universo: "pauta", unidad: "conteo",
     que: "Cuántos deals de personas de pauta pasaron a Abonado o Completo.",
     formula: { forma: "conteo", terminos: ["deals en Abonado o Completo, por la fecha de la venta"] },
     variables: [{ nombre: "Abonado o Completo", explicacion: ABONADO_O_COMPLETO }],
@@ -109,7 +110,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Abonado o Completo", explicacion: ABONADO_O_COMPLETO }],
   },
   facturacion: {
-    rotulo: "Facturación", universo: "pauta", unidad: "usd",
+    rotulo: nombreCorto("vendido"), universo: "pauta", unidad: "usd",
     que: "Cuánto se vendió, en dólares: el valor pactado con el cliente, no lo que ya entró a caja.",
     formula: { forma: "suma", terminos: ["valor vendido de cada venta de pauta"] },
     variables: [{ nombre: "Valor vendido", explicacion: VALOR_VENDIDO }],
@@ -127,23 +128,23 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Valor vendido", explicacion: VALOR_VENDIDO }],
   },
   roas: {
-    rotulo: "ROAS", universo: "pauta", unidad: "veces", admiteObjetivo: true, unidadesDePartes: ["usd", "usd"],
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.roas, universo: "pauta", unidad: "veces", admiteObjetivo: true, unidadesDePartes: ["usd", "usd"],
     que: "Cuántos dólares vendidos trajo cada dólar invertido.",
-    formula: { forma: "razon", terminos: ["Facturación de pauta", "Inversión en dólares"] },
+    formula: { forma: "razon", terminos: [`${nombreCorto("vendido")} de pauta`, "Inversión en dólares"] },
     variables: [
-      { nombre: "Facturación de pauta", explicacion: "El valor vendido de las ventas de pauta, en USD." },
+      { nombre: `${nombreCorto("vendido")} de pauta`, explicacion: "El valor vendido de las ventas de pauta, en USD." },
       { nombre: "Inversión en dólares", explicacion: INVERSION_EN_DOLARES },
     ],
   },
   profit: {
     rotulo: "Profit", universo: "pauta", unidad: "usd", unidadesDePartes: ["usd", "usd"],
     que: "Lo vendido en pauta menos lo invertido, los dos en dólares.",
-    formula: { forma: "resta", terminos: ["Facturación de pauta", "Inversión en dólares"] },
+    formula: { forma: "resta", terminos: [`${nombreCorto("vendido")} de pauta`, "Inversión en dólares"] },
     variables: [{ nombre: "Inversión en dólares", explicacion: INVERSION_EN_DOLARES }],
   },
   show: {
-    rotulo: "% de show", universo: "pauta", unidad: "porcentaje", unidadesDePartes: ["conteo", "conteo"],
-    aliasExcel: "% de presentación a zoom",
+    rotulo: nombreCorto("asistencia"), universo: "pauta", unidad: "porcentaje", unidadesDePartes: ["conteo", "conteo"],
+    aliasExcel: "% de show / % presentación a zoom",
     que: "De las citas que ya debían ocurrir, qué parte ocurrió.",
     formula: { forma: "razon", terminos: ["Citas realizadas", "Citas del grupo"] },
     variables: [
@@ -152,7 +153,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     ],
   },
   cierre_ventas: {
-    rotulo: "Cierre de ventas", universo: "pauta", unidad: "porcentaje", unidadesDePartes: ["conteo", "conteo"],
+    rotulo: nombreCorto("cierre_de_ventas"), universo: "pauta", unidad: "porcentaje", unidadesDePartes: ["conteo", "conteo"],
     aliasExcel: "% de cierre zoom a cliente",
     que: "De las llamadas que ocurrieron, qué parte terminó en venta.",
     formula: { forma: "razon", terminos: ["Ventas", "Citas realizadas"] },
@@ -162,7 +163,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     ],
   },
   agenda_venta: {
-    rotulo: "Agenda → venta", universo: "pauta", unidad: "porcentaje", admiteObjetivo: true, unidadesDePartes: ["conteo", "conteo"],
+    rotulo: nombreCorto("cita_a_venta"), universo: "pauta", unidad: "porcentaje", admiteObjetivo: true, unidadesDePartes: ["conteo", "conteo"],
     aliasExcel: "% de cierre agenda a cliente",
     que: "De las citas reservadas, qué parte terminó en venta.",
     formula: { forma: "razon", terminos: ["Ventas", "Agendadas"] },

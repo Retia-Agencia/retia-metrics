@@ -17,7 +17,7 @@ import { contextoDeCifra } from "@/lib/contexto-de-cifra";
 import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
-import { nombreCorto } from "@/lib/vocabulario-metricas";
+import { nombreCorto, UNIVERSO_COMERCIAL } from "@/lib/vocabulario-metricas";
 import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
 import { pct } from "@/lib/format";
@@ -122,7 +122,7 @@ function Banderas({ vista }: { vista: VistaDeTodos }) {
  */
 function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
   return <TablaPorPrograma titulo="Hoy por programa" vista={vista} seccion="hoy"
-    cabeceras={["Día de la cohorte", "Ventas / objetivo de hoy", "Citas", "Realizadas", "Asistencia", "Cierre de ventas"]}
+    cabeceras={["Día de la cohorte", `${nombreCorto("ventas")} / objetivo de hoy`, nombreCorto("citas"), nombreCorto("shows"), nombreCorto("asistencia"), nombreCorto("cierre_de_ventas")]}
     celdas={(fila) => {
       const { cohorte } = contextoDelDia(hoy, fila.dashboard.cohorte);
       const [delDia] = horizontesDeCupos(fila.dashboard);
@@ -184,10 +184,10 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
   </section>;
 
   return <section id="comercial" className="space-y-4">
-    <h2 className="text-xl font-semibold">Comercial</h2>
+    <div><h2 className="text-xl font-semibold">Comercial</h2><p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p></div>
     <div className={GRILLA}><Conteos vista={vista} /></div>
     <TablaPorPrograma titulo="Tasas por programa" vista={vista} seccion="comercial"
-      cabeceras={["Asistencia", "Cierre de ventas", "% realizadas sin Grain"]}
+      cabeceras={[nombreCorto("asistencia"), nombreCorto("cierre_de_ventas"), "% realizadas sin Grain"]}
       celdas={(fila) => <>
         <td className="text-right"><CifraDeRazon razon={fila.razonShow} formato={pct} /></td>
         <td className="text-right"><CifraDeRazon razon={fila.razonCierre} formato={pct} /></td>

@@ -25,7 +25,7 @@ import {
   type DetallesDelDashboard,
 } from "@/lib/queries/vista-metrica";
 import { Caja, Tabla } from "@/components/dashboard/piezas";
-import { nombreCorto, nombreLargo } from "@/lib/vocabulario-metricas";
+import { nombreCorto, nombreLargo, UNIVERSO_COMERCIAL } from "@/lib/vocabulario-metricas";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
 import { valorDeRazon } from "@/lib/cobertura";
 
@@ -144,7 +144,7 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
   const titulo = "Closers";
   if (vista.comparativo.length === 0) return null;
   return <Card><CardHeader><Titulo id="closers">{titulo}</Titulo></CardHeader><CardContent className="overflow-x-auto">
-    <Tabla cabeceras={["Closer", nombreCorto("citas"), nombreCorto("asistencia"), nombreCorto("cierre_de_ventas"), "Cita → venta", "Cómo vendió", "Sin marcar", "Vendido", "Recaudado", "Por cobrar"]}>
+    <Tabla cabeceras={["Closer", nombreCorto("citas"), nombreCorto("asistencia"), nombreCorto("cierre_de_ventas"), nombreCorto("cita_a_venta"), "Cómo vendió", "Sin marcar", nombreCorto("vendido"), nombreCorto("recaudado"), nombreCorto("por_cobrar")]}>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
         const e = escalera.porCloser.find((x) => x.clave === fila.clave);
@@ -214,14 +214,14 @@ export function Operacion({
   const ventasSinLlamada = vistaEscalera?.principal.grupos.ventas_sin_llamada;
   const opciones = [{ clave: "todos", etiqueta: "Todos" }, { clave: "completo", etiqueta: "Formulario completo" }, { clave: "parcial", etiqueta: "Parcial" }] as const;
   return <section id="operacion" className="scroll-mt-4 space-y-4">
-    <div><h2 className="text-xl font-semibold">Comercial</h2><ContextoDeCifra texto={contexto} /></div>
+    <div><h2 className="text-xl font-semibold">Comercial</h2><p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p><ContextoDeCifra texto={contexto} /></div>
     <Card><CardHeader><Titulo id="cifras">Cifras clave</Titulo></CardHeader><CardContent className="space-y-3">
       {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Kpi titulo={nombreCorto("citas")} valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
         <Kpi titulo={nombreCorto("asistencia")} valor={valorDeRazon(vista.embudo.razonShow, pct)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
         <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={valorDeRazon(vista.embudo.razonCierre, pct)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
-        <Kpi titulo="Cita → venta" valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
+        <Kpi titulo={nombreCorto("cita_a_venta")} valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
       </div>
     </CardContent></Card>
     {embudoComercial ? <Card><CardHeader><Titulo id="embudo">¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">

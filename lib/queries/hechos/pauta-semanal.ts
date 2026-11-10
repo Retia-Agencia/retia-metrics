@@ -15,7 +15,7 @@ import { costoPorAgendaDelCrm, type CostoPorAgendaDelCrm } from "@/lib/queries/h
 import { costoPorAgendaDeVentana, type CostoPorAgenda } from "@/lib/semaforo/costo-por-agenda";
 import { tasasDelRango } from "@/lib/trm/consultar";
 import { sumarDias } from "@/lib/dias-habiles";
-import { VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
+import { nombreCorto, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 import { estadoDeCobertura, type RazonConCobertura } from "@/lib/cobertura";
 import { cargarRoasDePauta, type RenglonRoas } from "@/lib/queries/roas-de-pauta";
 import { grupoDeCitas, gruposPorSemana, type GrupoDeCitas } from "@/lib/queries/tasas-del-grupo";
@@ -269,21 +269,21 @@ async function celdasDelRango(
 }
 
 const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombre" | "unidad">> = [
-  { clave: "inversion", bloque: "general", nombre: "Inversión", unidad: "COP" },
-  { clave: "agendas", bloque: "general", nombre: "Agendadas", unidad: "conteo" },
-  { clave: "costo_agenda_crm", bloque: "general", nombre: "Costo por agenda", unidad: "COP" },
-  { clave: "ventas", bloque: "general", nombre: "Ventas", unidad: "conteo" },
-  { clave: "facturacion", bloque: "general", nombre: "Facturación", unidad: "USD" },
-  { clave: "roas", bloque: "general", nombre: "ROAS", unidad: "razon" },
+  { clave: "inversion", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.inversion, unidad: "COP" },
+  { clave: "agendas", bloque: "general", nombre: nombreCorto("agendadas"), unidad: "conteo" },
+  { clave: "costo_agenda_crm", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_crm, unidad: "COP" },
+  { clave: "ventas", bloque: "general", nombre: nombreCorto("ventas"), unidad: "conteo" },
+  { clave: "facturacion", bloque: "general", nombre: nombreCorto("vendido"), unidad: "USD" },
+  { clave: "roas", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.roas, unidad: "razon" },
   { clave: "profit", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.profit, unidad: "USD" },
-  { clave: "show", bloque: "comercial", nombre: "% de show", unidad: "porcentaje" },
-  { clave: "cierre_ventas", bloque: "comercial", nombre: "Cierre de ventas", unidad: "porcentaje" },
-  { clave: "agenda_venta", bloque: "comercial", nombre: "Agenda → venta", unidad: "porcentaje" },
+  { clave: "show", bloque: "comercial", nombre: nombreCorto("asistencia"), unidad: "porcentaje" },
+  { clave: "cierre_ventas", bloque: "comercial", nombre: nombreCorto("cierre_de_ventas"), unidad: "porcentaje" },
+  { clave: "agenda_venta", bloque: "comercial", nombre: nombreCorto("cita_a_venta"), unidad: "porcentaje" },
   { clave: "cpm", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.cpm, unidad: "COP" },
   { clave: "ctr", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.ctr, unidad: "porcentaje" },
   { clave: "llegada_landing", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.llegada_landing, unidad: "porcentaje" },
   { clave: "conversion_landing", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.conversion_landing, unidad: "porcentaje" },
-  { clave: "costo_agenda_meta", bloque: "trafico", nombre: "Costo por agenda (según Meta)", unidad: "COP" },
+  { clave: "costo_agenda_meta", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_meta, unidad: "COP" },
   { clave: "frecuencia", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.frecuencia, unidad: "razon" },
 ];
 

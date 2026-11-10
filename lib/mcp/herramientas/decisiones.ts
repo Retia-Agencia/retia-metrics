@@ -22,6 +22,7 @@ import { TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { busquedaDePeriodoMcp, camposDePeriodoMcp, presetDePeriodoMcp, type EntradaDePeriodoMcp } from "./periodo";
 import { programaVisible } from "./programa";
 import type { ContextoMcp, Herramienta } from "./tipos";
+import { nombreCorto, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
 const programa = z.string().min(1).max(100);
 const pagina = z.number().int().min(1).max(1_000_000).default(1);
@@ -129,9 +130,9 @@ export const pautaRoasMcp: Herramienta<typeof entradaRoas> = {
     return {
       texto: [
         `${fila.nombre} · ${periodo.rango.desde} a ${periodo.rango.hasta} (Bogotá)`,
-        `ROAS: ${roas} · cobertura ${num(fila.roas.base)} de ${num(fila.roas.base + fila.roas.faltan)}${fila.roas.motivo ? ` · ${fila.roas.motivo}` : ""}`,
-        `Vendido: ${monto(fila.valorVendidoUsd, "USD")} · gasto: ${fila.gastoUsd === null ? "—" : monto(fila.gastoUsd, "USD")}`,
-        `Envíos: ${num(fila.registros)} · agendadas: ${num(fila.agendas)} · realizadas: ${num(fila.shows)} · ventas: ${num(fila.ventas)}`,
+        `${VOCABULARIO_PAUTA_SEMANAL.roas}: ${roas} · cobertura ${num(fila.roas.base)} de ${num(fila.roas.base + fila.roas.faltan)}${fila.roas.motivo ? ` · ${fila.roas.motivo}` : ""}`,
+        `${nombreCorto("vendido")}: ${monto(fila.valorVendidoUsd, "USD")} · ${VOCABULARIO_PAUTA_SEMANAL.gasto.toLocaleLowerCase()}: ${fila.gastoUsd === null ? "—" : monto(fila.gastoUsd, "USD")}`,
+        `${VOCABULARIO_PAUTA_SEMANAL.envios}: ${num(fila.registros)} · ${nombreCorto("agendadas").toLocaleLowerCase()}: ${num(fila.agendas)} · ${nombreCorto("shows").toLocaleLowerCase()}: ${num(fila.shows)} · ${nombreCorto("ventas").toLocaleLowerCase()}: ${num(fila.ventas)}`,
         enlace,
       ].join("\n"),
       estructurado: aSalidaDePautaRoas({ programa: { nombre: visible.nombre, slug: visible.slug }, periodo: periodo.rango, fila, vista, estado, roasLegible: roas, enlace, dineroLegible: monto }),
@@ -167,7 +168,7 @@ export const origenDelProgramaMcp: Herramienta<typeof entradaOrigen> = {
     return {
       texto: [
         `Origen · ${periodo.rango.desde} a ${periodo.rango.hasta} (Bogotá) · ${num(vista.totalEnvios)} envíos.`,
-        ...canales.map((fila) => `- ${fila.nombre}: ${num(fila.registros)}${fila.porcentajeDelTotal === null ? "" : ` (${porcentaje(fila.porcentajeDelTotal)})`} · ${num(fila.agendas)} agendas (${porcentaje(fila.porcentajeAgenda)})`),
+        ...canales.map((fila) => `- ${fila.nombre}: ${num(fila.registros)}${fila.porcentajeDelTotal === null ? "" : ` (${porcentaje(fila.porcentajeDelTotal)})`} · ${num(fila.agendas)} ${nombreCorto("agendadas").toLocaleLowerCase()} (${porcentaje(fila.porcentajeAgenda)})`),
         enlace,
       ].join("\n"),
       estructurado: aSalidaDeOrigenDelPrograma({ programa: { nombre: visible.nombre, slug: visible.slug }, periodo: periodo.rango, vista, canales, precision, enlace }),

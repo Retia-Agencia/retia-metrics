@@ -8,7 +8,7 @@
  */
 export type ClaveDeMetrica =
   | "registros" | "leads" | "deals_desde_completo" | "deals_desde_parcial"
-  | "agendadas" | "citas" | "shows" | "no_asistio" | "llamadas_sin_resultado"
+  | "agendadas" | "citas" | "shows" | "show_por_cita" | "no_asistio" | "llamadas_sin_resultado"
   | "ventas" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja" | "cupos_con_caja"
   | "nacio_agenda_del_dia" | "nacio_seguimiento" | "nacio_sin_llamada"
   | "comision" | "meta" | "esperado_a_hoy" | "faltan" | "por_dia_habil" | "proyeccion"
@@ -36,6 +36,7 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   agendadas: { corto: "Agendadas", largo: "Agendadas en el periodo", definicion: "Citas creadas en el periodo, vengan para cuando vengan." },
   citas: { corto: "Citas", largo: "Citas del periodo", definicion: "Citas cuya fecha cae en el periodo y no fueron canceladas." },
   shows: { corto: "Realizadas", largo: "Citas realizadas en el periodo", definicion: "Citas ocurridas en las que se atendió la llamada." },
+  show_por_cita: { corto: "% de show por cita", largo: "% de show por cita", definicion: "Citas que ocurrieron ÷ citas vivas que ya debían ocurrir." },
   no_asistio: { corto: "No asistió", largo: "Citas a las que no asistieron", definicion: "Citas ocurridas sin llamada atendida." },
   llamadas_sin_resultado: { corto: "Sin resultado", largo: "Llamadas sin resultado", definicion: "Citas que ya ocurrieron y el closer no marcó como atendidas ni como no asistidas." },
   ventas: { corto: "Ventas", largo: "Ventas del periodo", definicion: "Deals en Abonado o Completo; cada uno es un cupo." },
@@ -60,7 +61,7 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   llevamos: { corto: "Llevamos", largo: "Llevamos a hoy", definicion: "Lo acumulado desde que empezó el periodo hasta hoy." },
   asistencia: { corto: "Asistencia", largo: "Asistencia", definicion: "De las citas que ya debían ocurrir, cuántas se realizaron." },
   cierre_de_ventas: { corto: "Cierre de ventas", largo: "Cierre de ventas", definicion: "De las citas realizadas, cuántas terminaron en venta." },
-  cita_a_venta: { corto: "Cita a venta", largo: "De cita a venta", definicion: "De las personas que agendaron cita en el periodo, cuántas terminaron en venta." },
+  cita_a_venta: { corto: "De cita a venta", largo: "De cita a venta", definicion: "De las personas que agendaron cita en el periodo, cuántas terminaron en venta." },
   citas_del_dia: { corto: "Citas del día", largo: "Citas del día", definicion: "Citas con fecha de hoy, sin las canceladas." },
   citas_realizadas: { corto: "Realizadas", largo: "Citas realizadas hoy", definicion: "Citas de hoy en las que el closer atendió la llamada." },
   citas_canceladas: { corto: "Canceladas", largo: "Citas canceladas", definicion: "Citas de hoy que se cancelaron; no cuentan para la asistencia." },
@@ -74,6 +75,13 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
 
 /** Nombres nuevos de la tabla semanal de Paid Media (412 B), aún fuera del registro tipado de conceptos. */
 export const VOCABULARIO_PAUTA_SEMANAL = {
+  inversion: "Inversión",
+  costo_agenda_crm: "Costo por agenda",
+  costo_agenda_meta: "Costo por agenda (según Meta)",
+  roas: "ROAS",
+  gasto: "Gasto",
+  pct_no_asistio: "% no asistió",
+  envios: nombreCorto("registros"),
   profit: "Profit",
   cpm: "CPM",
   ctr: "CTR",
@@ -82,6 +90,9 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
   frecuencia: "Frecuencia",
   otras_campaignas: "Otras campañas",
 } as const;
+
+export const UNIVERSO_PAUTA = "solo Paid";
+export const UNIVERSO_COMERCIAL = "todas las áreas";
 
 /** "Meta" sola es ambigua (pauta, empresa, objetivo): en pantalla es siempre Objetivo, y Meta solo la plataforma. */
 export const PLATAFORMA_DE_PAUTA = "Meta";

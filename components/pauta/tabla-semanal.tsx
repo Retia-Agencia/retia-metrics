@@ -29,7 +29,7 @@ import {
   tramosDe,
   valoresPorTramo,
 } from "@/lib/series-pasos";
-import { VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
+import { nombreCorto, UNIVERSO_PAUTA, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
 const LISTAS: Partial<Record<ClavePautaSemanal, Metrica>> = {
   agendas: "agendas_creadas",
@@ -167,7 +167,7 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
     <Card aria-labelledby="tabla-semanal-pauta">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle id="tabla-semanal-pauta" className="text-base">¿Cómo cambió Pauta cada semana?</CardTitle>
+          <div><CardTitle id="tabla-semanal-pauta" className="text-base">¿Cómo cambió Pauta cada semana?</CardTitle><p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p></div>
           <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefCsv} />}>Exportar CSV</Button>
         </div>
       </CardHeader>
@@ -205,7 +205,7 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
 
         <details className="text-sm">
           <summary className="cursor-pointer rounded-lg px-2 py-1 hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring">Cómo se calcula</summary>
-          <p className="mt-2 text-muted-foreground">% presentación a zoom = % de show; % cierre zoom a cliente = Cierre de ventas; % cierre agenda a cliente = Agenda → venta.</p>
+          <p className="mt-2 text-muted-foreground">% de show / % presentación a zoom = {nombreCorto("asistencia")}; % cierre zoom a cliente = {nombreCorto("cierre_de_ventas")}; % cierre agenda a cliente = {nombreCorto("cita_a_venta")}.</p>
         </details>
 
         <section aria-labelledby="grafica-pauta-semanal" className="space-y-4">
@@ -214,12 +214,12 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
           <div className="grid gap-6 lg:grid-cols-2">
             <Grafica
               tipo="barra"
-              titulo="Inversión"
+              titulo={VOCABULARIO_PAUTA_SEMANAL.inversion}
               unidad="COP"
               frescura={`Datos hasta ${fecha(p.rango.hasta)}.`}
               etiquetas={etiquetas}
               formato={cop}
-              datos={{ dias: tramos.map((tramo) => tramo.desde), series: [{ clave: "Inversión", valores: valoresPorTramo(porDiaInversion, tramos, config.forma) }] }}
+              datos={{ dias: tramos.map((tramo) => tramo.desde), series: [{ clave: VOCABULARIO_PAUTA_SEMANAL.inversion, valores: valoresPorTramo(porDiaInversion, tramos, config.forma) }] }}
             />
             <Grafica
               tipo="linea"

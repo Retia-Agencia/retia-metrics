@@ -402,9 +402,9 @@ describe("origen_del_programa", () => {
     expect(canales).toEqual(resumenDeOrigen(directa).map((fila) => ({
       nombre: fila.nombre,
       envios: fila.registros,
-      citas: fila.agendas,
+      agendadas: fila.agendas,
       porcentaje_del_total: fila.porcentajeDelTotal,
-      porcentaje_de_citas: fila.porcentajeAgenda,
+      porcentaje_de_agendadas: fila.porcentajeAgenda,
     })));
     expect(sinUtm).toMatchObject({ envios: 1, porcentaje_del_total: 0.5 });
     expect(origenDelProgramaMcp.salida.safeParse(salida.estructurado).success).toBe(true);

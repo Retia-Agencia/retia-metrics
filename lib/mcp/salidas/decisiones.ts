@@ -92,7 +92,7 @@ export const salidaDePautaRoas = z.object({
   identificador: z.string().nullable().describe("Identificador opaco del nivel consultado, o null para el total."),
   nombre: z.string().describe("Nombre legible del nivel consultado."),
   envios: z.number().int().describe("Cantidad de envíos atribuidos a este nivel."),
-  citas: z.number().int().describe(descripcionDeMetrica("citas")),
+  agendadas: z.number().int().describe(descripcionDeMetrica("agendadas")),
   realizadas: z.number().int().describe(descripcionDeMetrica("shows")),
   no_asistio: z.number().int().describe(descripcionDeMetrica("no_asistio")),
   ventas: z.number().int().describe(descripcionDeMetrica("ventas")),
@@ -117,7 +117,7 @@ export function aSalidaDePautaRoas(args: {
   const { agendasPendientes, ...roasSinPendientes } = fila.roas;
   return {
     programa: args.programa, periodo: args.periodo, nivel: fila.nivel, identificador: fila.id, nombre: fila.nombre,
-    envios: fila.registros, citas: fila.agendas, realizadas: fila.shows, no_asistio: fila.noShows, ventas: fila.ventas,
+    envios: fila.registros, agendadas: fila.agendas, realizadas: fila.shows, no_asistio: fila.noShows, ventas: fila.ventas,
     vendido: { valor: fila.valorVendidoUsd, moneda: "USD", legible: args.dineroLegible(fila.valorVendidoUsd, "USD") },
     gasto: fila.gastoUsd === null ? null : { valor: fila.gastoUsd, moneda: "USD", legible: args.dineroLegible(fila.gastoUsd, "USD") },
     roas: { ...roasSinPendientes, agendas_pendientes: agendasPendientes ?? 0, estado: args.estado, legible: args.roasLegible },
@@ -137,9 +137,9 @@ export const salidaDeOrigenDelPrograma = z.object({
   canales: z.array(z.object({
     nombre: z.string().describe("Nombre legible del origen."),
     envios: z.number().int().describe("Cantidad de envíos de este origen."),
-    citas: z.number().int().describe(descripcionDeMetrica("citas")),
+    agendadas: z.number().int().describe(descripcionDeMetrica("agendadas")),
     porcentaje_del_total: z.number().nullable().describe("Proporción de todos los envíos, o null cuando no aplica."),
-    porcentaje_de_citas: z.number().nullable().describe("Proporción de envíos de este origen que llegaron a cita, o null cuando no se puede calcular."),
+    porcentaje_de_agendadas: z.number().nullable().describe(`Proporción de envíos de este origen que agendaron cita, o null cuando no se puede calcular.`),
   }).strict().describe("Resumen de un origen visible en el Hub.")).describe("Orígenes del periodo."),
   precision_de_pauta: z.array(z.object({
     titulo: z.string().describe("Nivel legible de precisión."),
@@ -163,8 +163,8 @@ export function aSalidaDeOrigenDelPrograma(args: {
   return {
     programa: args.programa, periodo: args.periodo, total_de_envios: args.vista.totalEnvios,
     canales: args.canales.map((fila) => ({
-      nombre: fila.nombre, envios: fila.registros, citas: fila.agendas,
-      porcentaje_del_total: fila.porcentajeDelTotal, porcentaje_de_citas: fila.porcentajeAgenda,
+      nombre: fila.nombre, envios: fila.registros, agendadas: fila.agendas,
+      porcentaje_del_total: fila.porcentajeDelTotal, porcentaje_de_agendadas: fila.porcentajeAgenda,
     })),
     precision_de_pauta: args.precision.map((fila) => ({
       titulo: fila.titulo,
