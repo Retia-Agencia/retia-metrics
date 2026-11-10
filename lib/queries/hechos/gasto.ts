@@ -33,7 +33,7 @@ export interface VistaGasto {
   cobertura: CoberturaDeGasto;
 }
 
-const esGastoPaid = or(eq(gastoPauta.area, "paid"), isNotNull(gastoPauta.pautaObjetoId));
+export const esGastoPaid = or(eq(gastoPauta.area, "paid"), isNotNull(gastoPauta.pautaObjetoId));
 
 /** El gasto PAID del rango convertido a `destino`, con la cobertura y la TRM que se usó. */
 export async function gastoConvertido(

@@ -583,6 +583,13 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   cargado, el ROAS no se calcula ("—" y desde cuándo hay gasto). Se muestra con "×" (3,25×). En Pauta la venta se ancla a la
   cohorte de registro (el día del envío que trajo a la persona); la tabla reconcilia con Comercial las ventas que no son de
   pauta o que registraron en otro periodo, y avisa cuando quedan agendas de la cohorte por ocurrir (ticket 355).
+- **Profit:** valor vendido de Paid menos el gasto total de Paid, ambos en USD y con la TRM de cada día.
+- **CPM:** gasto de las filas que tienen impresiones, dividido por sus impresiones y multiplicado por mil.
+- **CTR:** clics al enlace divididos por impresiones; se suman los conteos antes de calcular la tasa.
+- **Llegada a la landing:** vistas de la landing divididas por clics al enlace.
+- **Conversión de la landing:** registros de Paid en el CRM divididos por vistas de la landing.
+- **Frecuencia:** impresiones divididas por alcance. Solo se calcula para un día porque el alcance de varios días no es aditivo.
+- **Otras campañas:** gasto total menos el gasto de campañas de agenda y de lanzamiento.
 - **Citas pendientes del rango** y **ROAS proyectado:** las citas por venir de los envíos de Paid del periodo (la cifra abre su
   lista) y el ROAS esperado cuando ocurran: lo vendido a hoy más, por cada cita, lo que se presenta su closer × lo que compra
   su closer × el precio de la cohorte, sobre el gasto. Sin gasto completo o sin historial dice «—» y por qué. Cada día se guarda
