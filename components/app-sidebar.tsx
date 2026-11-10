@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Activity, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, UserCircle, X } from "lucide-react";
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
-import { esAdministrador, type Rol } from "@/lib/auth/roles";
+import { veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import type { Vista } from "@/lib/auth/vista";
 import type { UsuarioSuplantable } from "@/lib/catalogo/usuarios";
 import { cn } from "@/lib/utils";
@@ -175,7 +175,7 @@ export function AppSidebar({
               inactivos={inactivos}
               puedeCrear={puedeCrear}
               actual={actual}
-              ofreceTodos={esAdministrador(rol)}
+              ofreceTodos={veTableroDelPrograma(rol)}
             />
           </div>
         ) : null}

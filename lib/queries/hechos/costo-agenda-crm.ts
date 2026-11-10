@@ -23,11 +23,13 @@ export async function costoPorAgendaDelCrm(
     gastoTotal: ventana.gastoTotal,
     gastoOtras: Math.max(0, ventana.gastoTotal - ventana.gasto - ventana.lanzamiento.gasto),
     moneda: "COP",
+    // Sin gasto de agenda no hay costo que calcular: 0 / N diría "COP 0 por agenda" para agendas que
+    // nadie pagó (412 F, Mani 10-nov). Es la misma regla de la fila de Meta, que con 0 agendas da "—".
     costo: razon(ventana.gasto, ventana.agendasCrm, {
       base,
       faltan,
-      motivo,
-      calculable: ventana.costoCobertura.valor !== null || faltan === 0,
+      motivo: ventana.gasto === 0 && faltan === 0 ? "Sin gasto de agenda en el periodo" : motivo,
+      calculable: ventana.gasto > 0 && (ventana.costoCobertura.valor !== null || faltan === 0),
     }),
   };
 }

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador } from "@/lib/auth/roles";
+import { veTableroDelPrograma } from "@/lib/auth/roles";
 import { parsearPeriodoUrl } from "@/lib/periodo";
 import { hoyEnBogota } from "@/lib/format";
 import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
@@ -30,8 +30,10 @@ interface Props {
 }
 
 export default async function HubDeTodosPage({ searchParams }: Props) {
-  // El closer no ve el Hub de todos los programas, como no ve el de uno (ADR 0082; decisión HUB-1, 30-oct).
-  const session = await paginaConCapacidad(esAdministrador);
+  // Misma capacidad que el Hub de un programa: lo ven gerente, developer y paid trafficker; el closer no
+  // (ADR 0082; decisión HUB-1, 30-oct). El paid trafficker ve todos SUS programas (alcance, ADR 0094) pero
+  // no el trabajo del equipo comercial: las listas de closers se apagan con `veEquipoComercial`.
+  const session = await paginaConCapacidad(veTableroDelPrograma);
   const rol = await rolDeVista(session);
   // Ningún parámetro de la URL decide qué programas entran a las sumas (ADR 0048).
   const programas = await programasVisibles(session.user.id, rol);
@@ -108,16 +110,16 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
                   selector={<SelectorDeDia dia={diaDelReporte} hoy={hoy} base={{ path: RUTA_HUB_TODOS, params: {} }} />}
                   vamosALlegar={<div className={`grid gap-4 ${programas.length > 1 ? "xl:grid-cols-2 print:grid-cols-1" : ""}`}>
                     {programas.map((programa) => (
-                      <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={esAdministrador(rol)} configurar={null} />
+                      <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={veEquipoComercial(rol)} configurar={null} />
                     ))}
                   </div>}
                 />
               </>
-            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} />}
+            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} conListas={veEquipoComercial(rol)} />}
           {/* El norte (371): una matriz por programa, lado a lado y nunca sumada (ADR 0048); no lee el periodo. */}
           {esHoy ? null : <div className="mt-6 grid gap-4 xl:grid-cols-2">
             {programas.map((programa) => (
-              <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={esAdministrador(rol)} configurar={null} />
+              <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={veEquipoComercial(rol)} configurar={null} />
             ))}
           </div>}
         </div>

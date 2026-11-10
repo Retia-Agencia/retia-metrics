@@ -541,6 +541,15 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     expect(armarVistaDeTodos).not.toHaveBeenCalled();
   });
 
+  it("el paid trafficker abre el Hub de todos sus programas (412 F)", async () => {
+    auth.mockResolvedValue(sesionPaidTrafficker);
+    const suyo = { id: "p-1", slug: "programa-a", nombre: "Programa A" };
+    programasVisibles.mockResolvedValue([suyo]);
+
+    expect(await correrTodos({ seccion: "pauta" })).toBe("paso");
+    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
+  });
+
   it("el gerente solo entrega a la vista sus programas visibles", async () => {
     auth.mockResolvedValue(sesionGerente);
     const suyo = { id: "p-1", slug: "programa-a", nombre: "Programa A" };
