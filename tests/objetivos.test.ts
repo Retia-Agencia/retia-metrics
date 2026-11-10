@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   borrarObjetivo,
   copiarObjetivos,
@@ -132,17 +132,15 @@ describe("objetivos de la cohorte", () => {
     });
     expect(fila).toMatchObject({ moneda: "COP", area: null });
 
+    // El ROAS ya tiene lector (la tabla semanal de Pauta lo colorea, 403): se guarda, sin moneda.
     await expect(crearObjetivo(db, actor(), {
       cohortId,
       area: null,
       metrica: "roas",
       meta: 3,
       aceptable: 2,
-    })).rejects.toMatchObject({
-      message: "Esa métrica todavía no tiene quien la lea.",
-      status: 400,
-    });
-    expect(await db.select().from(objetivos).where(eq(objetivos.cohortId, cohortId))).toHaveLength(1);
+    })).resolves.toMatchObject({ metrica: "roas", moneda: null });
+    expect(await db.select().from(objetivos).where(eq(objetivos.cohortId, cohortId))).toHaveLength(2);
   });
 
   it("guarda como nulo un aceptable vacío", async () => {
@@ -243,5 +241,17 @@ describe("definición de métricas ofrecidas", () => {
     expect(METRICAS_OFRECIDAS.filter(
       (metrica) => DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "COP",
     )).toEqual(["costo_por_agenda", "inversion"]);
+  });
+});
+
+describe("migración 0133: el enum y el CHECK de moneda", () => {
+  it("el presupuesto de la cohorte (inversion) se guarda con su moneda y un valor retirado ya no existe", async () => {
+    const presupuesto = await crearObjetivo(db, actor(), {
+      cohortId, area: null, metrica: "inversion" as const, meta: 5_000_000, aceptable: null,
+    });
+    expect(presupuesto).toMatchObject({ metrica: "inversion", moneda: "COP" });
+    for (const retirada of ["agendas_por_dia", "costo_por_lead", "costo_por_venta"]) {
+      await expect(db.execute(sql`select ${retirada}::metrica_objetivo`)).rejects.toBeDefined();
+    }
   });
 });

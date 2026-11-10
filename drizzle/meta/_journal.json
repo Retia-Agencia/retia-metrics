@@ -932,6 +932,13 @@
       "when": 1794281379121,
       "tag": "0132_trafico_meta_y_metas_de_cohorte",
       "breakpoints": true
+    },
+    {
+      "idx": 133,
+      "version": "7",
+      "when": 1794334997005,
+      "tag": "0133_objetivos_sin_los_tres_retirados",
+      "breakpoints": true
     }
   ]
 }

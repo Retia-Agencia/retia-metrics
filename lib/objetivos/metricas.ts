@@ -25,17 +25,6 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     dePauta: false,
     lector: "122",
   },
-  agendas_por_dia: {
-    nombre: "Agendas por día",
-    descripcion: "Agendas que necesita el programa por día hábil.",
-    sentido: "mayor_es_mejor",
-    unidad: "conteo",
-    admiteArea: true,
-    dePauta: false,
-    // ponytail: pendiente de borrar con migración (decisión de Mani, 10-nov): sin lector ni filas en producción.
-    // Borrarla exige recrear el enum `metrica_objetivo` y su CHECK de moneda (ticket 403 F4).
-    lector: null,
-  },
   costo_por_agenda: {
     nombre: "Costo por agenda",
     descripcion: "Lo que cuesta en pauta cada agenda que entra por Paid: gasto ÷ agendas del CRM.",
@@ -44,26 +33,6 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     admiteArea: false,
     dePauta: true,
     lector: "258",
-  },
-  costo_por_lead: {
-    nombre: "Costo por lead",
-    descripcion: "Lo que cuesta en pauta cada registro que entra por Paid: gasto ÷ registros de Paid.",
-    sentido: "menor_es_mejor",
-    unidad: "COP",
-    admiteArea: true,
-    dePauta: true,
-    // ponytail: pendiente de borrar con migración (ver `agendas_por_dia`).
-    lector: null,
-  },
-  costo_por_venta: {
-    nombre: "Costo por venta",
-    descripcion: "Lo que cuesta en pauta cada venta que entra por Paid: gasto ÷ ventas de Paid.",
-    sentido: "menor_es_mejor",
-    unidad: "COP",
-    admiteArea: true,
-    dePauta: true,
-    // ponytail: pendiente de borrar con migración (ver `agendas_por_dia`).
-    lector: null,
   },
   roas: {
     nombre: "ROAS",

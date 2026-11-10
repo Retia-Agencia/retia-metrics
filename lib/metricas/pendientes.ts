@@ -8,7 +8,7 @@
  *
  * Las claves de Pauta y de objetivos que miden un concepto del Hub apuntan a su clave (no tienen ficha propia: la
  * ficha es la del concepto, y si ese está pendiente cuenta en el tope del Hub). `"pendiente"` es un concepto propio
- * de ese universo que aún no tiene función única ni ficha; `"retirar"` es un objetivo sin lector.
+ * de ese universo que aún no tiene función única ni ficha.
  */
 import type { MetricaObjetivo } from "@/lib/objetivos/metricas";
 import type { ClavePautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
@@ -26,7 +26,7 @@ export const PENDIENTES_DE_REGISTRO = [
 /** Baja cuando se migra un concepto; subirlo es una decisión que se ve en el diff. */
 export const TOPE_DE_PENDIENTES = 16;
 
-export type DestinoDeUnaClave = ClaveDeMetrica | "pendiente" | "retirar";
+export type DestinoDeUnaClave = ClaveDeMetrica | "pendiente";
 
 /** Tabla semanal de Pauta (412): exhaustiva, agregar una `ClavePautaSemanal` obliga a decidir su destino. */
 export const CONCEPTO_DE_PAUTA_SEMANAL: Record<ClavePautaSemanal, DestinoDeUnaClave> = {
@@ -49,7 +49,7 @@ export const CONCEPTO_DE_PAUTA_SEMANAL: Record<ClavePautaSemanal, DestinoDeUnaCl
 };
 export const TOPE_PENDIENTES_DE_PAUTA_SEMANAL = 10;
 
-/** Objetivos del semáforo (`METRICAS_OBJETIVO`): exhaustiva. Los tres `retirar` esperan la migración que recrea el enum. */
+/** Objetivos del semáforo (`METRICAS_OBJETIVO`): exhaustiva. */
 export const CONCEPTO_DE_OBJETIVO: Record<MetricaObjetivo, DestinoDeUnaClave> = {
   cupos: "ventas",
   agendas: "agendadas",
@@ -57,11 +57,8 @@ export const CONCEPTO_DE_OBJETIVO: Record<MetricaObjetivo, DestinoDeUnaClave> = 
   costo_por_agenda: "pendiente",
   roas: "pendiente",
   inversion: "pendiente",
-  agendas_por_dia: "retirar",
-  costo_por_lead: "retirar",
-  costo_por_venta: "retirar",
 };
-export const TOPE_PENDIENTES_DE_OBJETIVO = 6;
+export const TOPE_PENDIENTES_DE_OBJETIVO = 3;
 
 /** El tope a la vista de los tres universos juntos (antes: 23 + 16 + 9 = 48 por medir; ahora, lo que mide el código). */
 export const TOPE_TOTAL = TOPE_DE_PENDIENTES + TOPE_PENDIENTES_DE_PAUTA_SEMANAL + TOPE_PENDIENTES_DE_OBJETIVO;

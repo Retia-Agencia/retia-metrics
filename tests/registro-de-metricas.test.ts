@@ -89,10 +89,10 @@ describe("registro de métricas (ADR 0120)", () => {
       ["objetivos", CONCEPTO_DE_OBJETIVO, TOPE_PENDIENTES_DE_OBJETIVO],
     ];
     for (const [nombre, mapa, tope] of mapas) {
-      const propios = Object.values(mapa).filter((d) => d === "pendiente" || d === "retirar");
+      const propios = Object.values(mapa).filter((d) => d === "pendiente");
       expect(propios, `${nombre}: el tope no coincide con los pendientes`).toHaveLength(tope);
       for (const destino of Object.values(mapa)) {
-        if (destino !== "pendiente" && destino !== "retirar") expect(hub.has(destino), `${nombre}: ${destino} no está cubierto`).toBe(true);
+        if (destino !== "pendiente") expect(hub.has(destino), `${nombre}: ${destino} no está cubierto`).toBe(true);
       }
     }
     expect(Object.keys(CONCEPTO_DE_OBJETIVO).sort()).toEqual([...METRICAS_OBJETIVO].sort());

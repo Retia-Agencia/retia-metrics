@@ -31,7 +31,6 @@ type Celda = "si" | "aun" | `no:${string}`;
 
 const SOLO_DIA = "no:el hecho se ancla por día de negocio; no tiene hora";
 const DEL_DEAL = "no:es del deal, no del hecho";
-const SIN_DINERO = "no:el hecho no lleva dinero";
 
 const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
   Envio: {

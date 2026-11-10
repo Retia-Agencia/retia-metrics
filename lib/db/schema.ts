@@ -2806,10 +2806,7 @@ export const fotosPauta = pgTable(
  */
 export const metricaObjetivoEnum = pgEnum("metrica_objetivo", [
   "cupos",
-  "agendas_por_dia",
   "costo_por_agenda",
-  "costo_por_lead",
-  "costo_por_venta",
   "roas",
   "conversion_agenda_venta",
   // 412: meta total de la cohorte (agendas) y presupuesto de la cohorte (inversion, en `objetivos.moneda`).
@@ -2846,10 +2843,10 @@ export const objetivos = pgTable(
     check("objetivos_meta_chk", sql`${t.meta} >= 0`),
     check("objetivos_aceptable_chk", sql`${t.aceptable} is null or ${t.aceptable} >= 0`),
     check("objetivos_moneda_chk", sql`${t.moneda} is null or ${t.moneda} in ('COP', 'USD')`),
-    // Un costo sin moneda no se puede comparar contra nada, y una tasa con moneda es un error de tecleo.
+    // Un costo o un presupuesto sin moneda no se puede comparar contra nada, y una tasa con moneda es un error de tecleo.
     check(
       "objetivos_moneda_de_costo_chk",
-      sql`(${t.metrica} in ('costo_por_agenda', 'costo_por_lead', 'costo_por_venta')) = (${t.moneda} is not null)`,
+      sql`(${t.metrica} in ('costo_por_agenda', 'inversion')) = (${t.moneda} is not null)`,
     ),
   ],
 );

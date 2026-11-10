@@ -9,13 +9,13 @@ describe("colorDeObjetivo", () => {
   });
 
   it("evalúa menor es mejor, incluidos los bordes", () => {
-    expect(colorDeObjetivo({ metrica: "costo_por_lead", meta: 10, aceptable: 15, valor: 10 })).toBe("exito");
-    expect(colorDeObjetivo({ metrica: "costo_por_lead", meta: 10, aceptable: 15, valor: 15 })).toBe("alerta");
-    expect(colorDeObjetivo({ metrica: "costo_por_lead", meta: 10, aceptable: 15, valor: 15.01 })).toBe("peligro");
+    expect(colorDeObjetivo({ metrica: "costo_por_agenda", meta: 10, aceptable: 15, valor: 10 })).toBe("exito");
+    expect(colorDeObjetivo({ metrica: "costo_por_agenda", meta: 10, aceptable: 15, valor: 15 })).toBe("alerta");
+    expect(colorDeObjetivo({ metrica: "costo_por_agenda", meta: 10, aceptable: 15, valor: 15.01 })).toBe("peligro");
   });
 
   it("marca peligro al incumplir una meta sin aceptable", () => {
-    expect(colorDeObjetivo({ metrica: "agendas_por_dia", meta: 4, aceptable: null, valor: 3.99 })).toBe("peligro");
+    expect(colorDeObjetivo({ metrica: "cupos", meta: 4, aceptable: null, valor: 3.99 })).toBe("peligro");
   });
 });
 
