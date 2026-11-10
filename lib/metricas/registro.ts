@@ -80,7 +80,40 @@ export interface ReferenciaAFuncion {
   nombre: string;
 }
 
+/**
+ * La forma de la fórmula, para escribirla como matemática en la explicación (ticket 419, diseño de la Cifra §2):
+ * razón = fracción apilada, suma = "Σ", conteo = "número de …", resta = "A − B", producto = "A × B".
+ */
+export type FormaDeFormula = "razon" | "suma" | "conteo" | "resta" | "producto";
+
+/**
+ * La fórmula en palabras de negocio, nunca en términos del código. `terminos` va en orden: en una razón,
+ * [numerador, denominador]; en una resta o un producto, [A, B]; en una suma o un conteo, uno solo.
+ */
+export interface FormulaDeMetrica {
+  forma: FormaDeFormula;
+  terminos: readonly string[];
+  /** La razón se multiplica por 1.000 (CPM). */
+  por1000?: boolean;
+}
+
+/** Un nombre de la fórmula y su explicación en una línea, para Gerencia y Pauta. */
+export interface VariableDeMetrica {
+  nombre: string;
+  explicacion: string;
+}
+
 export interface FichaDeMetrica {
+  /**
+   * La explicación que abre toda cifra (ticket 419, DM-9). Opcionales mientras se llenan: los de Pauta los
+   * escribe el 419 y el resto el 403 F4. Ningún texto lleva rutas, funciones, tickets ni ids (lo vigila un guardián).
+   */
+  /** Qué mide, en una frase de negocio. */
+  que?: string;
+  formula?: FormulaDeMetrica;
+  variables?: readonly VariableDeMetrica[];
+  /** Cómo la llama el Excel de Pauta, si la llama distinto ("% de presentación a zoom"). */
+  aliasExcel?: string;
   /** Cómo se llama el concepto en el diccionario (`docs/metricas.md` §3.1, primera celda de su fila). */
   filaDelDiccionario: string;
   tipo: TipoDeMetrica;
