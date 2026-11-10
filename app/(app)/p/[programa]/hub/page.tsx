@@ -8,10 +8,10 @@ import { Hoy } from "@/components/dashboard/hoy";
 import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte, type ReporteDiario } from "@/lib/queries/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
-import { rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
+import { queryDePautaDesdeOrigen, rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
 import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, proyectarDashboardSegunRol, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
@@ -52,6 +52,8 @@ import { tokensMeta } from "@/lib/integraciones";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
+import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
+import { CumplimientoDeCohorte, TablaSemanalDePauta, TrazaDePauta } from "./pauta-pendientes";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { dineroDelRango } from "@/lib/queries/dashboard";
 import {
@@ -100,11 +102,14 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const veEquipo = veEquipoComercial(rol);
 
   const busqueda = await searchParams;
+  // `?seccion=origen` ya no existe (412): Origen es la vista Canal de Pauta.
+  const haciaPauta = queryDePautaDesdeOrigen(busqueda);
+  if (haciaPauta) redirect(`${rutaDePrograma(programa.slug, "hub")}${haciaPauta}`);
   const hoy = hoyEnBogota();
 
-  // El Hub (ADR 0086, ticket 250): una pantalla fija con cinco pestañas en `?seccion=`, en
+  // El Hub (ADR 0086, ticket 250): una pantalla fija con cuatro pestañas en `?seccion=`, en
   // este orden. Hoy junta lo que eran Pulso y Metas (el 252 lo rearma como reporte diario);
-  // Comercial es la Operación de antes; Pauta es una sola tabla de origen, embudo y ROAS (355).
+  // Comercial es la Operación de antes; Pauta junta origen, cohorte, embudo y ROAS (355, 412).
   const base = rutaDePrograma(programa.slug, "hub");
   const pestanas: Pestana[] = [
     {
@@ -128,14 +133,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     {
       id: "pauta",
       etiqueta: "Pauta",
-      descripcion: "De dónde vienen los leads y cuánto cuesta cada uno.",
+      descripcion: "De dónde vienen los registros, qué rindió la plata y cómo va la cohorte.",
       href: urlConSeccion(base, busqueda, "pauta"),
-    },
-    {
-      id: "origen",
-      etiqueta: "Origen",
-      descripcion: "De dónde vino cada lead y cómo cuenta cada UTM.",
-      href: urlConSeccion(base, busqueda, "origen"),
     },
   ] satisfies (Pestana & { id: SeccionDelHub })[];
   const seccion = pestanaActiva(texto(busqueda.seccion), pestanas, "hoy");
@@ -184,7 +183,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const closersDelFiltro = !esHoy && veEquipo ? await contexto.closers() : [];
 
   const { elegida, opciones, ventas } = contexto.filtroDeCohorte;
-  const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero";
+  const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero" || seccion === "pauta";
   const lineaDeCohorte = conFiltroDeCohorte
     ? lineaDeLaCohorte({
         cohorte: elegida ? { codigo: elegida.codigo, metaCupos: elegida.metaCupos, inicioVentas: elegida.inicioVentas, cierreVentas: elegida.cierreVentas } : null,
@@ -201,7 +200,9 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     : null;
   const tituloDelInfo = seccion === "comercial"
     ? "Comercial: qué hay y cómo se calcula"
-    : "Hoy: qué hay y cómo se calcula";
+    : seccion === "pauta"
+      ? "Pauta: qué hay y cómo se calcula"
+      : "Hoy: qué hay y cómo se calcula";
   const datosDelPrograma = { id: programa.id, slug: programa.slug, nombre: programa.nombre };
   const norte = <VamosALlegar programa={datosDelPrograma} hoy={hoy} origen={origen} conListas={veEquipo} configurar={configurar} />;
 
@@ -230,7 +231,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               <InfoDeHoy titulo={tituloDelInfo} programa={datosDelPrograma} reporte={reporteDeHoy} />
             </Suspense>
           ) : (
-            <InfoDePagina titulo={tituloDelInfo} secciones={seccion === "comercial" ? seccionesDeInfoDeComercial() : []} />
+            <InfoDePagina titulo={tituloDelInfo} secciones={seccion === "comercial" ? seccionesDeInfoDeComercial() : seccion === "pauta" ? seccionesDeInfoDePauta() : []} />
           )}
         </div>
         {esHoy ? null : (
@@ -321,9 +322,6 @@ async function CuerpoDelHub({
   const veEquipo = veEquipoComercial(rol);
   const proyectar = <T,>(valor: T): T => proyectarDashboardSegunRol(valor, rol);
 
-  if (seccion === "origen") {
-    return <SeccionOrigen programId={programa.id} slug={slug} rango={contexto.seleccion.rango} periodo={contexto.periodo} hoy={hoy} origen={origen} puedeAbrirLista={veEquipo} />;
-  }
   if (seccion === "pauta") {
     return (
       <SeccionPauta
@@ -334,6 +332,8 @@ async function CuerpoDelHub({
         origen={origen}
         hoy={hoy}
         busqueda={busqueda}
+        cohorteId={contexto.filtroDeCohorte.elegida?.id ?? null}
+        puedeAbrirLista={veEquipo}
       />
     );
   }
@@ -358,7 +358,7 @@ async function CuerpoDelHub({
   // La cohorte que filtra las cifras de esta pestaña; Hoy es del día entero y no la usa (373).
   const cohorteId = esHoy ? null : vista.filtroDeCohorte.cohorteId;
   const cohorteIdDeB = esHoy ? null : vista.filtroDeCohorte.cohorteIdDeB;
-  const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero";
+  const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero" || seccion === "pauta";
   const { elegida } = vista.filtroDeCohorte;
   // Cohorte y periodo que no se tocan se dicen; no se pinta una pantalla de ceros (N5).
   const sinActividad = conFiltroDeCohorte && elegida !== null
@@ -603,6 +603,8 @@ async function SeccionPauta({
   origen,
   hoy,
   busqueda,
+  cohorteId,
+  puedeAbrirLista,
 }: {
   programId: string;
   slug: string;
@@ -611,6 +613,8 @@ async function SeccionPauta({
   origen: string;
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
+  cohorteId: string | null;
+  puedeAbrirLista: boolean;
 }) {
   const ahora = new Date();
   const [ultimaSincronizacion] = await db
@@ -634,10 +638,19 @@ async function SeccionPauta({
       }
     });
   }
-  const roas = await cargarRoasDePauta(db, programId, rango, hoy, ahora);
-  const [proyeccion, historial] = await Promise.all([
-    calcularProyeccionDeRoas(db, { programId, rango, hoy, ahora, vista: roas }),
-    proyeccionesConfirmadas(db, programId),
+  // Todo en paralelo (197 §5): el ROAS y la proyección dependen entre sí; el resto son consultas propias de la pestaña.
+  const [[roas, proyeccion, historial], vistaOrigen, formulario, porPregunta] = await Promise.all([
+    (async () => {
+      const vista = await cargarRoasDePauta(db, programId, rango, hoy, ahora);
+      const [calculada, confirmadas] = await Promise.all([
+        calcularProyeccionDeRoas(db, { programId, rango, hoy, ahora, vista }),
+        proyeccionesConfirmadas(db, programId),
+      ]);
+      return [vista, calculada, confirmadas] as const;
+    })(),
+    origenDelPrograma(db, { programId, rango, hoy }),
+    embudoDelFormulario(db, { programId, rango }),
+    embudoPorPregunta(db, programId),
   ]);
   // El selector de vista vive en la URL y reemplaza solo `ver_por`, conservando el rango y el closer.
   const verPor: VerPorPauta = texto(busqueda.ver_por) === "canal" ? "canal" : "campana";
@@ -658,6 +671,9 @@ async function SeccionPauta({
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
+      <CumplimientoDeCohorte programId={programId} slug={slug} cohorteId={cohorteId} hoy={hoy} />
+      <TablaSemanalDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} />
+      {/* Gráfica por día: hueco hasta que la hija B la traiga (412-b). */}
       <PautaRoas
         vista={roas}
         enlace={enlaceRoas}
@@ -665,33 +681,16 @@ async function SeccionPauta({
         verPor={verPor}
         hrefVerPor={hrefVerPor}
       />
+      {/* Origen (412): el canal que se abre en sus UTM y la regla que lo clasificó, debajo del ROAS hasta que PautaRoas lo absorba. */}
+      <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
+      <TrazaDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} />
       <PautaProyeccion proyeccion={proyeccion} historial={historial}
         hrefPendientes={proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
+      <EmbudoFormulario
+        embudo={formulario}
+        hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined}
+      />
+      <EmbudoPorPregunta embudos={porPregunta} />
     </section>
   );
-}
-
-/** Origen explica la clasificación y conserva juntos los cuatro bloques trasladados de Pauta. */
-async function SeccionOrigen({ programId, slug, rango, periodo, hoy, origen, puedeAbrirLista }: {
-  programId: string;
-  slug: string;
-  rango: { desde: string; hasta: string };
-  periodo: PeriodoResuelto;
-  hoy: string;
-  origen: string;
-  puedeAbrirLista: boolean;
-}) {
-  const [vistaOrigen, formulario, porPregunta] = await Promise.all([
-    origenDelPrograma(db, { programId, rango, hoy }),
-    embudoDelFormulario(db, { programId, rango }),
-    embudoPorPregunta(db, programId),
-  ]);
-  return <section className="space-y-4">
-    <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
-    <EmbudoFormulario
-      embudo={formulario}
-      hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined}
-    />
-    <EmbudoPorPregunta embudos={porPregunta} />
-  </section>;
 }

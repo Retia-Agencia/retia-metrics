@@ -26,7 +26,7 @@ export const TAB_POR_DEFECTO: TabDePrograma = "hub";
 export const RUTA_HUB_TODOS = "/hub";
 
 /** Las pestañas del Hub, en el orden del ADR 0086. */
-export const SECCIONES_DEL_HUB = ["hoy", "comercial", "dinero", "pauta", "origen"] as const;
+export const SECCIONES_DEL_HUB = ["hoy", "comercial", "dinero", "pauta"] as const;
 export type SeccionDelHub = (typeof SECCIONES_DEL_HUB)[number];
 
 /** Las pestañas del Dashboard que cambiaron de nombre al pasar al Hub (ticket 250). */
@@ -34,6 +34,24 @@ const SECCION_VIEJA_EN_EL_HUB: Readonly<Record<string, SeccionDelHub>> = {
   pulso: "hoy",
   operacion: "comercial",
 };
+
+/**
+ * `?seccion=origen` ya no existe (412): Origen es la vista Canal de Pauta. Devuelve la query de Pauta con
+ * todo lo demás intacto y `ver_por=canal` si la URL no traía `ver_por`; `null` si la sección no era Origen.
+ */
+export function queryDePautaDesdeOrigen(
+  busqueda: Record<string, string | string[] | undefined>,
+): string | null {
+  if (busqueda.seccion !== "origen") return null;
+  const q = new URLSearchParams();
+  for (const [clave, valor] of Object.entries(busqueda)) {
+    for (const v of Array.isArray(valor) ? valor : valor === undefined ? [] : [valor]) {
+      q.append(clave, clave === "seccion" ? "pauta" : v);
+    }
+  }
+  if (!q.has("ver_por")) q.set("ver_por", "canal");
+  return `?${q.toString()}`;
+}
 
 /**
  * La query con la que una URL vieja (`dashboard`, `metas` y sus listas) abre la misma vista
