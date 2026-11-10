@@ -3,7 +3,7 @@ id: 419
 etapa: hub
 serves: "docs/diseno-cifra-y-pauta.md §1, §2, §10 (norte aprobado por Mani el 10-nov: el boceto docs/bocetos/una-forma-de-metrica.html, tal cual) · DM-1, DM-2, DM-9 · anotaciones A-186 a A-190 · structure.md §9 contrato de entendimiento · ADR 0067 · ADR 0115 N3 y N5"
 depends: []
-status: en curso (Alejandro, carril P, 10-nov)
+status: todo  # en curso desde el 10-nov: Alejandro, carril P (el tracker lo pone Mani en el checkpoint)
 ---
 
 # 419 — La Cifra: una forma de métrica y su explicación, en todo el Hub
