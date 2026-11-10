@@ -32,6 +32,8 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "conteo",
     admiteArea: true,
     dePauta: false,
+    // ponytail: sin lector, sin filas en producción (10-nov) y fuera de la oferta. Borrarlo exige migrar el enum
+    // `metrica_objetivo` y su CHECK de moneda (decisión pendiente de Mani, ticket 403 F4).
     lector: null,
   },
   costo_por_agenda: {
@@ -68,7 +70,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "razon",
     admiteArea: true,
     dePauta: true,
-    lector: null,
+    lector: "403",
   },
   conversion_agenda_venta: {
     nombre: "Conversión de agenda a venta",
@@ -77,7 +79,7 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     unidad: "porcentaje",
     admiteArea: true,
     dePauta: false,
-    lector: null,
+    lector: "403",
   },
   agendas: {
     nombre: "Agendas de la cohorte",
