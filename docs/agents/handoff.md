@@ -9,12 +9,26 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. El 412 (Pauta y Origen en una pestaña) está en main desde el 9-nov (noche, 9). Lee AGENTS.md y la
-entrada del 9-nov (noche, 9) en Memory de docs/agents/handoff.md: dice qué falta (cuadre contra el Excel de Paid Media,
-recorrido del paid trafficker y 375 px, build, CI, checkpoint, casillas del 370, 248 y 350) y qué quedó fuera.
+Seguimos con el CRM de Retia, ticket 403 (absorbe el 413, audit del Hub). La F0 está cerrada: lee AGENTS.md, la entrada
+"10-nov · 403 F0" en Memory de docs/agents/handoff.md y docs/audit-hub-2026-11-10.md (§8 decisiones, §9 cómo continuar).
+Primero F1: preséntame D-A, D-B, D-C y D-E con su recomendación y espera mi respuesta; con cada "sí", escribe la enmienda
+con N8 (ADR, docs/metricas.md, overview.md §11) en el mismo commit. Después F3: el test de paridad que tiene que salir rojo
+con I-1 sin arreglar, y el arreglo va a Codex con /delegate.
 ```
-
 ## Memory
+
+### 10-nov · 403 F0: audit del Hub cerrado (sesión de Mani)
+**Hecho.** El 413 quedó fundido en el 403 (fases F0 a F5 en el ticket). `docs/audit-hub-2026-11-10.md` tiene el inventario de las
+cuatro superficies (43 claves del Hub generadas por script, las 16 de la tabla semanal, las 9 del semáforo, MCP, WhatsApp, CSV y PDF),
+I-1 a I-8 medidos en producción solo en lectura, las paridades y las decisiones con su fuente en lo pedido por Gerencia (weekly 3-nov)
+y Pauta (D-1 a D-7). `pauta_roas` del MCP respondía "Error interno" con agendas pendientes (`.strict()` contra `agendasPendientes`
+copiada): arreglado en `lib/mcp/salidas/decisiones.ts` con el test de madurez de `tests/mcp-decisiones.test.ts` mordido en rojo.
+**Hallazgos que importan.** (1) I-1: la tabla semanal le pasa a `showPorCita` todas las citas, incluidas futuras y sin resultado:
+4-11 % contra 33-75 % del grupo. La función está bien, la entrada no; por eso el guardián de F3 compara salidas, no imports.
+(2) I-2: el ROAS semanal va por fecha de venta, contra el weekly del 3-nov y la fila ROAS de `metricas.md`; y se colorea con el umbral
+`roas`. (3) I-8: inversión 0 "ok" en semanas sin gasto (N5). (4) Semáforo y tabla semanal cuadran al peso en costo por agenda.
+**Qué falta.** F1: Mani decide D-A, D-B, D-C, D-E (§8 del audit). Luego F2 (vocabulario y trinquete de 48), F3 (paridad + arreglos vía
+Codex), F4 (fichas, objetivos sin lector, funciones muertas), F5. Nada de esto toca migraciones.
 
 ### 10-nov · 412: cierre de verificación y análisis de los Excels de Pauta (sesión padre de Mani)
 **Hecho.** CI verde de `9b34054c` y tag `cp-20261109-2`. Hija F: `npm run build` limpio, recorrido en `dev:local` (gerente, paid trafficker, closer; claro/oscuro; 375 px sin scroll de página, la tabla semanal desplaza dentro de su contenedor; closer 404; consola limpia); marcó las casillas del 412 (menos el cuadre contra el Excel) y una del 248. No corrió humo ni lint por el swap. Hija G: `docs/paid-media-excels-2026-11-10.md` analiza los tres Excels de Mani (Comunicarte, Tactical, PowerTalk) contra el CRM.

@@ -113,12 +113,14 @@ export function aSalidaDePautaRoas(args: {
   enlace: string; dineroLegible: (valor: number, moneda: string) => string;
 }) {
   const { fila } = args;
+  // La llave interna va en snake_case al contrato; copiarla tal cual la rechaza el `.strict()` (403 F0).
+  const { agendasPendientes, ...roasSinPendientes } = fila.roas;
   return {
     programa: args.programa, periodo: args.periodo, nivel: fila.nivel, identificador: fila.id, nombre: fila.nombre,
     envios: fila.registros, citas: fila.agendas, realizadas: fila.shows, no_asistio: fila.noShows, ventas: fila.ventas,
     vendido: { valor: fila.valorVendidoUsd, moneda: "USD", legible: args.dineroLegible(fila.valorVendidoUsd, "USD") },
     gasto: fila.gastoUsd === null ? null : { valor: fila.gastoUsd, moneda: "USD", legible: args.dineroLegible(fila.gastoUsd, "USD") },
-    roas: { ...fila.roas, agendas_pendientes: fila.roas.agendasPendientes ?? 0, estado: args.estado, legible: args.roasLegible },
+    roas: { ...roasSinPendientes, agendas_pendientes: agendasPendientes ?? 0, estado: args.estado, legible: args.roasLegible },
     precision_del_origen: {
       hasta_el_anuncio: args.vista.cobertura.anuncio,
       hasta_campana_o_conjunto: args.vista.cobertura.soloCampanaOConjunto,

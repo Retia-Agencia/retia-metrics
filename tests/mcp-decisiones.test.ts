@@ -369,6 +369,9 @@ describe("pauta_roas", () => {
     expect(estadoDeCobertura(directa.total.roas)).toBe("parcial");
     expect(roas).toMatchObject({ estado: "parcial", agendas_pendientes: 1 });
     expect(roas.valor).toBe(directa.total.roas.valor);
+    // 403 F0 (10-nov): con una agenda pendiente la salida copiaba `agendasPendientes` y el `.strict()` la rechazaba
+    // en producción ("Error interno"); el contrato tiene que aceptar la misma salida que el handler devuelve.
+    expect(pautaRoasMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(salida.texto).toContain("parcial: 1 agenda pendiente");
   });
 
