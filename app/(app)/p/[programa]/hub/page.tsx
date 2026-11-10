@@ -54,8 +54,8 @@ import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
 import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte } from "@/components/pauta/cumplimiento";
+import { TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
 import { TrazaDePauta } from "@/components/pauta/traza";
-import { TablaSemanalDePauta } from "./pauta-pendientes";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { dineroDelRango } from "@/lib/queries/dashboard";
 import {
