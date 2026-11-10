@@ -158,7 +158,9 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
   const porDiaInversion = new Map(vista.dias.flatMap((punto) => punto.inversionCop === null ? [] : [[punto.dia, punto.inversionCop] as const]));
   const porDiaAgendas = new Map(vista.dias.map((punto) => [punto.dia, punto.agendas] as const));
   const etiquetas = tramos.map(etiquetaDeTramo);
-  const hrefCsv = `/p/${encodeURIComponent(p.slug)}/hub/pauta-semanal.csv?a_desde=${encodeURIComponent(p.rango.desde)}&a_hasta=${encodeURIComponent(p.rango.hasta)}${p.cohorteId ? `&cohorte=${encodeURIComponent(p.cohorteId)}` : ""}`;
+  const paramsCsv = new URLSearchParams({ a_desde: p.rango.desde, a_hasta: p.rango.hasta });
+  if (p.cohorteId) paramsCsv.set("cohorte", p.cohorteId);
+  const hrefCsv = `/p/${encodeURIComponent(p.slug)}/hub/pauta-semanal.csv?${paramsCsv}`;
   const bloques = ["general", "comercial", "trafico"] as const;
 
   return (
@@ -220,12 +222,12 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
             />
             <Grafica
               tipo="linea"
-              titulo="Agendas"
+              titulo="Agendadas"
               unidad="agendas"
               frescura={`Datos hasta ${fecha(p.rango.hasta)}.`}
               etiquetas={etiquetas}
               formato={(valor) => num(valor)}
-              datos={{ dias: tramos.map((tramo) => tramo.desde), series: [{ clave: "Agendas", valores: valoresPorTramo(porDiaAgendas, tramos, config.forma) }] }}
+              datos={{ dias: tramos.map((tramo) => tramo.desde), series: [{ clave: "Agendadas", valores: valoresPorTramo(porDiaAgendas, tramos, config.forma) }] }}
             />
           </div>
         </section>

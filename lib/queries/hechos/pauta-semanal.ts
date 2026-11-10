@@ -272,7 +272,7 @@ async function celdasDelRango(
 
 const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombre" | "unidad">> = [
   { clave: "inversion", bloque: "general", nombre: "Inversión", unidad: "COP" },
-  { clave: "agendas", bloque: "general", nombre: "Agendas", unidad: "conteo" },
+  { clave: "agendas", bloque: "general", nombre: "Agendadas", unidad: "conteo" },
   { clave: "costo_agenda_crm", bloque: "general", nombre: "Costo por agenda", unidad: "COP" },
   { clave: "ventas", bloque: "general", nombre: "Ventas", unidad: "conteo" },
   { clave: "facturacion", bloque: "general", nombre: "Facturación", unidad: "USD" },

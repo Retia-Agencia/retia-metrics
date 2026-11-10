@@ -75,7 +75,7 @@ export function CumplimientoVista({ datos, slug }: { datos: CumplimientoDeCohort
     </CardHeader>
     <CardContent className="space-y-6">
       {datos.agendas
-        ? <Barra titulo="Agendas" datos={datos.agendas} unidad="agendas" />
+        ? <Barra titulo="Agendadas" datos={datos.agendas} unidad="agendas" />
         : <section className="space-y-1"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
       {datos.ventasPauta
         ? <Barra titulo="Ventas de pauta" datos={datos.ventasPauta} unidad="cupos" />
