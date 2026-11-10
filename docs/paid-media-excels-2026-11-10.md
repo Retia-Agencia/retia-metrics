@@ -4,7 +4,7 @@
 > (solo análisis, sin código ni migraciones). Cruza dos archivos que Mani descargó (`Reporte_Diario_Llamada_Comunicarte.xlsx`
 > y `Reporte_Diario_Llamadas_Tactical.xlsx`) con la pestaña Hub › Pauta que ya está en `main`. Los archivos **no se copian al
 > repo**: tienen datos de negocio. Aquí solo hay estructura, fórmulas y cifras agregadas como ejemplo de forma.
-> Existe un tercero, `Reporte_Diario_Llamadas_PowerTalk.xlsx`, que **no se leyó** (no estaba en el encargo): ver Q-1.
+> Un tercer archivo, `Reporte_Diario_Llamadas_PowerTalk.xlsx`, se agregó el mismo día (§1.5 y §3.1).
 
 ## Resumen en diez líneas
 
@@ -27,7 +27,8 @@
 8. **¿Reorganizar el Hub?** No las cuatro pestañas (Hoy, Comercial, Dinero, Pauta). Sí hay que decidir si Pauta, que hoy junta ocho
    bloques, se parte en dos vistas. Esa decisión se toma con la pestaña ya mostrando el diario (§5.3), no antes.
 9. Cinco tickets propuestos (413 a 417), uno con migración (el plan de inversión diario).
-10. Nueve preguntas abiertas para Mani y Paid Media (§6). Ninguna se asumió.
+10. **PowerTalk (tercer Excel)** tiene otra estructura: ya trae el bloque KPI General/Comercial/Tráfico del Excel de 30X (§1.5). Evidencia fuerte, no prueba, de que es Comunícate con Confianza, que ya existe en el CRM (§3.1, Q-1).
+11. Nueve preguntas abiertas para Mani y Paid Media (§6). Ninguna se asumió.
 
 ## 1. Inventario de los Excels
 
@@ -92,6 +93,23 @@ Tactical usa 12 renglones diarios más 6 filas de resumen y 4 de notas. Diferenc
 | 33 a 36 | Notas | *Celdas azules: captura manual diaria. Inversión y agendas se toman de Meta; llamadas y ventas del CRM. Plan: $620.000/día sobre 27 días. Ticket USD 1.500 (TRM 3.184). Referencia al 3 de septiembre: costo por agenda $139.448, cierre 47,8 %.* |
 | 41 a 50 | Bloque semanal | 10 filas: inversión, agendas Meta, costo, agendas del día, llamadas, ventas, conversión, CAC, ingresos, ROAS |
 
+### 1.5 PowerTalk (`Power Talk Oct Nov`, rótulo "FRANCISCO - LLAMADA")
+
+Una sola hoja, 5-oct a 20-nov (48 columnas de día). **Su estructura difiere de las otras dos**: es la más nueva y la más parecida a lo que pide Paid Media.
+
+| Elemento | Qué hay | Diferencia con Comunicarte y Tactical |
+|---|---|---|
+| Cuentas | Una sola (inversión, sin Milena/Rosario) | Como Tactical |
+| Filas diarias (5 a 18) | Inversión · Agendas en Meta (Invite) · Costo por agenda · **Typeform** (registros) · **Costo por Typeform** (`inv/typeform`) · Agendas del día · Llamadas realizadas · Ventas · % de cierre · Ingresos (`ventas × ticket`) · ROAS · Ventas necesarias hoy · Inversión sugerida · Diferencia vs plan | Las dos filas de Typeform son nuevas: el CRM las tiene (registros, CPL). Las otras son las mismas |
+| Inversión sugerida | Constantes: 620.000 y luego 1.100.000 por día. Hasta una fecha es un espejo (`=(C5)`) | Mismo patrón que Tactical, con un plan real desde la tercera semana |
+| Resumen (filas 21 a 32) | Meta de cupos 40, ticket 2.538.232 COP, presupuesto, agendas/día necesarias, ventas acumuladas, % cumplimiento, inversión acumulada, % presupuesto (da `#DIV/0!` porque el presupuesto está vacío), agendas, CAC, ROAS | Igual que Tactical, con el mismo error E-4 |
+| **Bloque semanal en tres secciones** (filas 34 a 51) | **General**: Inversión, Agendas, Costo por agenda, Ventas, Facturación, ROAS, Profit. **Comercial**: % de presentación a zoom, % de cierre zoom a cliente, % de cierre agenda a cliente. **Tráfico**: Agendas Meta, CPM, CTR enlace, % clics a landing, % conversión landing, costo por agenda, Frecuencia | **Es el bloque KPI de la imagen F5 del Excel de 30X** (M1 a M19 casi renglón por renglón). Por eso el 412 lo cubre mejor que a los otros dos |
+| Cómo se llenan los renglones de tráfico | **A mano**, semana a semana: CPM y frecuencia son números escritos; CTR y % clics a landing son divisiones de dos números pegados (`=3158/145037`); conversión landing = agendas Meta ÷ clics a landing, también con un denominador pegado | Es justo lo que el 412 (hija D) trae de Meta |
+| Facturación | `SUM` de "Ingresos" (ventas × ticket fijo), no el valor vendido | Misma observación que E-1 |
+| Calendario | Semanas lun a dom (05-11 oct…), como el CRM (D-3) | Comunicarte es sáb a vie |
+
+Tres hechos nuevos que se suman a los errores de §1.4: la tasa "% de presentación a zoom" es `llamadas ÷ agendas Meta` (no ÷ citas del CRM), la conversión de landing mezcla agendas con clics (no registros con vistas, como M18) y el título dice "3 - 29 SEPTIEMBRE" en una hoja de octubre y noviembre.
+
 ### 1.4 Errores y olores del propio Excel (hechos, no opinión)
 
 | # | Hecho | Dónde |
@@ -139,8 +157,10 @@ Leyenda: ✅ existe igual · 🟡 existe con otra definición · ❌ falta · �
 | Nota: "referencia al 3 de septiembre" (costo por agenda de 139.448, cierre 47,8 %) | ❌ | Línea de base escrita en una nota. En el CRM sería una meta (`objetivos`, D-6) | No |
 | Separación por cohorte (una hoja por cohorte) | ✅ | Filtro de cohorte `?cohorte=` (377) | Sí |
 
-Filas del 412 que **el Excel no tiene** y que Paid Media pidió: M15 a M19 (CPM, CTR, llegada y conversión de la landing,
-frecuencia) y los semáforos. Son las que sacan al CRM de ser solo un reemplazo.
+**Cruce de lo que PowerTalk agrega:** Typeform y costo por Typeform → ✅ registros y CPL del CRM (M-registros; el CPL de Paid sigue 🟡 123 en `metricas.md` §3.2, no está en la tabla del 412). Profit, % de presentación, % de cierre zoom a cliente, % de cierre agenda a cliente, CPM, CTR, clics a landing, conversión landing, frecuencia → **todos están en el 412 (M11 a M19)**, pero con otra definición: el CRM divide por citas del grupo y por vistas de landing, el Excel por agendas Meta y por clics.
+
+Filas del 412 que **Comunicarte y Tactical no tienen** (PowerTalk sí, a mano): M15 a M19 (CPM, CTR, llegada y conversión de la
+landing, frecuencia) y los semáforos. Son las que sacan al CRM de ser solo un reemplazo.
 
 ### 2.1 Reglas duras que tocan al Excel
 
@@ -176,12 +196,26 @@ nada). Ninguna cifra de persona está en este documento.
 **Semana 21 a 27 de septiembre, Comunicarte** (Excel: 13 ventas, 27 llamadas, 65 agendas, 3,07 M COP de inversión). CRM: **1
 venta**, 0 citas, 0 agendas creadas; el ROAS de la ventana sale **"—, Gasto de Meta desde el 1 oct 2026"**. Es la cobertura (N3)
 funcionando: el CRM empezó a guardar gasto el 1-oct y las agendas anteriores a esa fecha no están en su base. **Consecuencia práctica:**
-mientras Paid Media quiera ver septiembre, tiene que seguir en el Excel; el CRM solo reemplaza lo posterior al 1-oct.
+mientras Paid Media quiera ver septiembre, tiene que seguir en el Excel; el CRM solo reemplaza lo posterior al 1-oct. (Aplica a Comunicarte; PowerTalk empieza el 5-oct.)
 
 **Lo que quedó sin medir y por qué:** la inversión de la semana (necesita `gasto_pauta` de producción; no hay herramienta de lectura
 del gasto, solo el ROAS que falló) y la tabla semanal tal como la ve Dani en pantalla (no la abrí; la sesión no tiene login al CRM
 desplegado). Se puede cuadrar en minutos con el CRM abierto: Hub › Pauta, programa Tactical, 5 a 11 oct, cohorte del 5-oct, y comparar
 Inversión, Agendadas y Ventas contra los números de arriba (PQ-3 del doc del 9-nov).
+
+### 3.1 PowerTalk contra Comunícate con Confianza
+
+El CRM de producción tiene el programa **Comunícate con Confianza**, y `docs/metricas.md` §4 dice que su cuenta de Meta (567726836094755) es "la de Francisco … Power Talk". El Excel se rotula "FRANCISCO - LLAMADA". Semana **12 a 18 de octubre** (lunes a domingo, igual en ambos):
+
+| Renglón | Excel PowerTalk | CRM, Comunícate con Confianza | Veredicto |
+|---|---|---|---|
+| Ventas | 1 | 1 (vendido USD 800) | **Cuadra** |
+| Llamadas realizadas / shows | 2 | 2 shows; 7 citas con fecha en la semana; tasas "parcial", cobertura 57 % | **Cuadra** |
+| Agendas del día | 8 | 7 citas con fecha en la semana | Cerca, no igual (Q-2) |
+| Ingresos / vendido | 1 × 2.538.232 COP ≈ USD 797 (TRM fija) | USD 800 | Cerca, por el ticket de lista |
+| Inversión (2.454.118 COP) y agendas Meta (30) | · | No medible con las herramientas de lectura (mismo límite de §3) | Sin dato |
+
+Es una semana con 1 venta: **evidencia, no prueba**. Pero Comunícate con Confianza cuadra en ventas y shows donde Tactical y Comunicarte no, así que PowerTalk es casi seguro ese programa y **no hay que crearlo** (Q-1, sin asumirlo). En la base local solo hay `comunicarte-local` y `tactical-local`: ahí no se puede comprobar.
 
 ## 4. Qué hay que decidir antes de construir (las cuatro definiciones)
 
@@ -283,7 +317,7 @@ Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vista
 
 | # | Pregunta | A quién | Por qué importa |
 |---|---|---|---|
-| Q-1 | ¿Hay que leer también el Excel de PowerTalk? ¿Es un programa de Retia que falta en el CRM (PQ-1 del doc del 9-nov)? Las cuentas dicen que Power Talk es Comunícate con Confianza | Mani, Paid Media | El tercer archivo existe en Descargas y no se leyó |
+| Q-1 (PQ-1) | ¿PowerTalk es Comunícate con Confianza, que ya existe en el CRM? Evidencia: la cuenta de Meta de Francisco está asignada a ese programa (`metricas.md` §4) y una semana cuadra en ventas y shows (§3.1). En contra: una sola semana con 1 venta. No se asumió | Paid Media, Mani | Si sí, no hay que crear programa; si no, es el ADR 0012 y una migración de datos |
 | Q-2 | "Agendas del día": ¿cita creada ese día, cita con fecha ese día, o la del pixel? Medí 88 contra 124 Paid creadas, 162 totales y 65 citas | Michael / Paid Media | Define la fila diaria; sin esto el diario no cuadra |
 | Q-3 | "Llamadas realizadas": ¿lo que el closer reporta o lo marcado en el CRM? Medí 30 contra 8 shows con cobertura 35 % | Michael, closers | Si es lo marcado, el trabajo es que los closers marquen; si no, el Excel mide otra cosa |
 | Q-4 | "Inversión sugerida": ¿la fija Pauta cada día o sale de un presupuesto repartido? | Paid Media | Decide si hay migración (§5.4) |
@@ -299,5 +333,5 @@ Y una decisión sobre la que no propongo ticket aún: ordenar Pauta en dos vista
   el CRM desplegado.
 - La inversión y las agendas de Meta de la semana medida (§3): `pauta_roas` falló con "Error interno" en producción. **Conviene
   revisar ese error** (no es de esta sesión; lo anoto aquí para que alguien lo vea).
-- Qué hay en el tercer Excel (PowerTalk).
+- PowerTalk: la inversión y las agendas de Meta de la semana comparada, por la misma razón de §3.
 - Por qué ventas 5 contra 6: se necesita la lista de deals de la semana, que no traje para no meter datos de personas en este documento.
