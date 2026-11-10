@@ -72,6 +72,17 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   citas_minimas: { corto: "Mínimo para confiar en una tasa", largo: "Mínimo de personas para confiar en una tasa", definicion: "El % de asistencia necesita al menos este número de personas con cita atendida o no asistida, y el % de cierre este número de asistentes. Con menos, se usa la cohorte anterior o no se calcula. Ejemplo: con 20, una cohorte con 12 asistentes todavía no sirve." },
 };
 
+/** Nombres nuevos de la tabla semanal de Paid Media (412 B), aún fuera del registro tipado de conceptos. */
+export const VOCABULARIO_PAUTA_SEMANAL = {
+  profit: "Profit",
+  cpm: "CPM",
+  ctr: "CTR",
+  llegada_landing: "Llegada a la landing",
+  conversion_landing: "Conversión de la landing",
+  frecuencia: "Frecuencia",
+  otras_campaignas: "Otras campañas",
+} as const;
+
 /** "Meta" sola es ambigua (pauta, empresa, objetivo): en pantalla es siempre Objetivo, y Meta solo la plataforma. */
 export const PLATAFORMA_DE_PAUTA = "Meta";
 
