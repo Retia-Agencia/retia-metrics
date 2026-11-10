@@ -75,7 +75,7 @@ la foto del día, sin fecha.
 
 ### Ola 2 del Hub: Pauta y Origen en una pestaña (412, 9-nov)
 
-La Ola 1 cerró el 9-nov (falta el checkpoint con tag que incluya 370). Lo siguiente es el **412**: Origen y Pauta se funden
+La Ola 1 cerró el 9-nov (checkpoint `cp-20261109-1`). El **412** está en `main` desde el 9-nov (noche): Origen y Pauta son una pestaña. Era: Origen y Pauta se funden
 y la pestaña reemplaza el Excel de Paid Media (tabla semanal en General/Comercial/Tráfico, cumplimiento de la cohorte,
 traza por anuncio). Sale de la reunión con Paid Media del 7-nov y de los reportes de 30X; la extracción completa, las
 decisiones D-1 a D-7, el reparto en sesión padre e hijas A a E y sus briefs viven en `docs/paid-media-2026-11-09.md`.

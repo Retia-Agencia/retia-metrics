@@ -3,7 +3,7 @@ id: 412
 etapa: pauta
 serves: "docs/paid-media-2026-11-09.md (extracción completa, briefs de las hijas y prompt de la sesión padre) · Reunión con Paid Media (Dani Rodríguez y Michael, 7-nov) · weekly con Daniel Tovar del 3-nov (docs/weekly-2026-11-03.md) · reportes de Paid Media de 30X (diario y semanal) e imagen de KPI General/Comercial/Tráfico que pasó Mani el 9-nov · ADR 0115 N1, N3 y N5 · contrato C-1 y C-2 (docs/hub.md §8)"
 depends: [355, 370, 371, 375, 377]
-status: todo
+status: en main
 ---
 
 # 412 — Pauta y Origen, una sola pestaña: el Excel de pauta sale del CRM
@@ -123,11 +123,11 @@ migración esté en `main`.
 
 ## Done cuando
 
-- [ ] `?seccion=origen` lleva a Pauta con la misma URL; no queda ningún enlace a la pestaña vieja.
+- [x] `?seccion=origen` lleva a Pauta con la misma URL; no queda ningún enlace a la pestaña vieja.
 - [ ] La tabla semanal cuadra contra el Excel de Paid Media de una semana cerrada (Mani elige cuál), fila por fila, o
       la diferencia está explicada en "Cómo se calcula".
-- [ ] Cada fila de la tabla tiene su fila en `docs/metricas.md` y su función en un módulo de concepto; ninguna fórmula
+- [x] Cada fila de la tabla tiene su fila en `docs/metricas.md` y su función en un módulo de concepto; ninguna fórmula
       repetida (guardián N1).
-- [ ] Cumplimiento muestra En meta / En seguimiento / Rezagado y "sin meta" cuando falta.
-- [ ] Tráfico muestra "—" con cobertura antes de la migración y cifras después.
+- [x] Cumplimiento muestra En meta / En seguimiento / Rezagado y "sin meta" cuando falta.
+- [x] Tráfico muestra "—" con cobertura antes de la migración y cifras después (el sync de D ya escribe las columnas; las cifras llegan con los días sincronizados desde hoy).
 - [ ] Recorrido como gerente y como paid trafficker, escritorio y 375 px, `npm run build`, CI verde.

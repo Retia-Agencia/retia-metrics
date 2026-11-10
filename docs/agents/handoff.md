@@ -9,13 +9,26 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. Esta sesión es la PADRE del ticket 412 (Pauta y Origen en una sola pestaña: el Excel de
-Paid Media sale del CRM). El prompt completo, los briefs de las hijas y todo el contexto están en
-docs/paid-media-2026-11-09.md §10: léelo entero y síguelo tal cual. Antes: AGENTS.md y la entrada del 9-nov (noche, 8)
-en Memory de docs/agents/handoff.md.
+Seguimos con el CRM de Retia. El 412 (Pauta y Origen en una pestaña) está en main desde el 9-nov (noche, 9). Lee AGENTS.md y la
+entrada del 9-nov (noche, 9) en Memory de docs/agents/handoff.md: dice qué falta (cuadre contra el Excel de Paid Media,
+recorrido del paid trafficker y 375 px, build, CI, checkpoint, casillas del 370, 248 y 350) y qué quedó fuera.
 ```
 
 ## Memory
+
+### 9-nov (noche, 9) · 412: Pauta y Origen en una pestaña, en main (sesión padre de Mani)
+**Qué pasó.** Se ejecutó el reparto de `docs/paid-media-2026-11-09.md` §8: checkpoint, migración, cinco hijas (Codex implementa, la padre revisa e integra).
+**Hecho.** (1) Tag `cp-20261109-1` sobre `7d52adf2` (CI verde). (2) Migración **0132** aplicada en producción con el ok de Mani (ref `hfqmiyiuyqapdsbywrag`, sin transacciones abiertas):
+`gasto_pauta.impresiones/alcance/clics_enlace/vistas_landing` nulas y `metrica_objetivo` + `agendas`, `inversion`. (3) **D**: el sync guarda las cuatro columnas
+(verificado contra Meta real en solo lectura y base local: 17 filas, `vistas_landing` nula donde Meta no devolvió `landing_page_view`). (4) **E**: `trazaPorAnuncio`,
+`TrazaDePauta`, `costoPorAgendaDelCrm` (D-2), predicado compartido `lib/atribucion/traza-sin-id.ts` con la alarma del 290. (5) **C**: `lib/metas/cumplimiento-de-cohorte.ts`
+y `CumplimientoDeCohorte` (cupos y USD; agendas e inversión leen `objetivos`; `lector: "412"`). (6) **B**: `pauta-semanal.ts` (M1 a M19 por semana lunes-domingo), `TablaSemanalDePauta`
+con gráfica por día, CSV, filas en `metricas.md`, vocabulario. (7) **A**: `?seccion=origen` redirige a `pauta&ver_por=canal`, la pestaña Origen desaparece, `SeccionPauta` compone todo
+(la padre reemplazó los stubs por los componentes reales). Recorrido en `dev:local` como gerente: redirect, cumplimiento, tabla, traza, proyección y embudo presentes, consola limpia.
+**Decisiones.** `agendas` e `inversion` nacieron con `lector: null` (un test exige que "ofrecida" signifique que alguien la lee) y C las puso en "412". D tocó también
+`lib/pauta/gasto.ts` (esquema del upsert), fuera de su lista, por necesidad. 370, 248 y 350 NO se marcaron done: tienen casillas de recorrido sin marcar (N9).
+**Pendiente.** (a) CI de la punta y checkpoint nuevo. (b) `npm run build`: falló solo por tipos viejos en `.next/dev` (carpeta generada; el borrado se denegó): borrar `.next/dev` y repetir. (c) Recorrido del paid trafficker, 375 px y 404 del closer en navegador (el 404 solo está en `tests/paginas.test.ts`). (d) Cuadre fila por fila contra el Excel de una semana cerrada (PQ-3, lo trae Mani). (e) Cargar metas de agendas e inversión por cohorte (Hub › metas) y, cuando Paid Media los confirme, los umbrales (D-6, PQ-2). (f) D-5: medir si el alcance por semana es barato; frecuencia semanal queda "—" hasta decidir dónde guardarlo. (g) Casillas del 370, 248 y 350. (h) X-1 a X-12 siguen sin ticket.
+**Tareas de Mani (no código, §13 del doc).** Dani Rodríguez con usuario paid trafficker activo; Excel de una semana cerrada, umbrales y PowerTalk (PQ-1 a PQ-3); sesión de 30 min con César y Ander con la lista de la traza; sesiones con Andrea, Maru y Dana; escribir a Alfredo y Mariana (EstadoX).
 
 ### 9-nov (noche, 8) · Paid Media en el CRM: extracción completa y ticket 412 (sesión de Mani)
 **Qué pasó.** Mani pidió atacar el Hub con prioridad alta y llegar con algo para mostrar el 10-nov. Se cruzaron cuatro fuentes:

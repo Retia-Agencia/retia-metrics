@@ -32,7 +32,7 @@ a fase 2.
 | [x] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 377, 352, 374 | done · fase 1, paso 3 |
 | [x] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | done · 4-nov · fase 1, paso 3 · absorbe al 253 |
 | [x] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 377 | done · 4-nov · fase 1, paso 3 |
-| [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | en main · 4-nov · falta checkpoint verde · fase 1, paso 4 · absorbe al 256 |
+| [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | en main · 4-nov · checkpoint `cp-20261109-1` · falta el recorrido en claro, oscuro y 375 px · fase 1, paso 4 · absorbe al 256 |
 | [x] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | done · 9-nov · cierre de la Ola 1 |
 | [x] | 378 | [Hub › Hoy legible y configurable](./378-hoy-legible-y-configurable.md) | 373 | done · 9-nov · cierre de la Ola 1 |
 | [x] | 379 | [Hub › Comercial se entiende a la primera](./379-comercial-se-entiende-a-la-primera.md) | 372 | done · 9-nov · cierre de la Ola 1 |
@@ -40,7 +40,7 @@ a fase 2.
 | [x] | 380 | [Hub › Dinero legible](./380-dinero-legible.md) | 369, 370, 371 | done · 9-nov · cierre de la Ola 1 |
 | [x] | 382 | [Un solo alta de usuarios, abierta a todo gerente](./382-alta-unica-de-usuarios.md) | — | done · 9-nov · cierre de la Ola 1 |
 | [x] | 375 | [El ROAS que espera sus citas, y el proyectado](./375-roas-que-espera-sus-citas-y-el-proyectado.md) | 351, 353, 355, 377 | done · 9-nov · cron diario + tabla `proyecciones_roas` (0130, 0131) · ADR 0126 · CI verde `e2f25f52` · recorrido local hecho, humo sin correr |
-| [ ] | 412 | [Pauta y Origen, una sola pestaña: el Excel de pauta sale del CRM](./412-pauta-y-origen-una-sola-pestana.md) | 355, 370, 371, 375, 377 | todo · 9-nov · reunión con Paid Media + reportes de 30X · migración (tráfico de Meta y metas de cohorte) · reparto en hijas A a E |
+| [ ] | 412 | [Pauta y Origen, una sola pestaña: el Excel de pauta sale del CRM](./412-pauta-y-origen-una-sola-pestana.md) | 355, 370, 371, 375, 377 | en main · 9-nov · migración 0132 aplicada; A a E integradas en main · falta cuadre contra el Excel de una semana cerrada, recorrido del paid trafficker y 375 px, build y CI |
 | [ ] | 376 | [Productos y SKUs: qué compró cada persona](./376-productos-y-skus.md) | 377, 369 | todo · **fase 2** · ADR nuevo antes de construir · migración |
 
 ## 1 · Entrada y lead
