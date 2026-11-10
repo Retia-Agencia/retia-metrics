@@ -10,6 +10,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { BadgeDeEstado, ExplicacionDeCifra, PUNTO } from "@/components/como-se-calcula";
+import { BarraDeAvance } from "@/components/hub/barra-de-avance";
+import { CambioDeCifra } from "@/components/variacion";
+import { cn } from "@/lib/utils";
+import type { CifraDeMetrica } from "@/lib/metricas/cifra";
 import { monto, num, pct } from "@/lib/format";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
 import type { LineaDeDesglose } from "@/lib/queries/metricas-con-filas";
@@ -42,6 +49,100 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
         <ResumenDeCifra titulo={titulo} detalle={detalle} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * La Cifra (ticket 419, diseño de la Cifra §1): una sola pieza en todo el Hub. A la vista, solo lo necesario para leerla
+ * en un segundo; toda la tarjeta es el botón que abre la explicación en el panel lateral. Tres tamaños de la misma
+ * pieza: `tarjeta` (con barra si la cifra trae avance) y `celda` de tabla. No calcula nada: pinta `CifraDeMetrica`.
+ */
+export function Cifra({ cifra, tamano = "tarjeta", className }: {
+  cifra: CifraDeMetrica;
+  tamano?: "tarjeta" | "celda";
+  className?: string;
+}) {
+  const disparador = tamano === "celda" ? <CeldaDeCifra cifra={cifra} /> : <TarjetaDeCifra cifra={cifra} />;
+  return (
+    <Sheet>
+      <SheetTrigger
+        aria-label={cifra.ariaLabel}
+        className={cn(
+          tamano === "celda"
+            ? "inline-flex cursor-pointer flex-col items-end gap-px rounded-md px-1 py-0.5 text-right transition-colors duration-150 outline-none hover:bg-marca-suave focus-visible:outline-2 focus-visible:outline-marca"
+            : "group flex min-w-0 cursor-pointer flex-col gap-2 rounded-xl border border-transparent bg-card p-3.5 text-left shadow-tarjeta transition-colors duration-150 outline-none hover:border-marca focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-marca",
+          className,
+        )}
+      >
+        {disparador}
+      </SheetTrigger>
+      <SheetContent>
+        <ExplicacionDeCifra cifra={cifra} />
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function TarjetaDeCifra({ cifra }: { cifra: CifraDeMetrica }) {
+  return (
+    <>
+      <span className="flex items-start justify-between gap-2 text-[13px]">
+        <span>
+          <span className="font-medium">{cifra.rotulo}</span>{" "}
+          <span className="text-muted-foreground">· {cifra.textoDeUniverso}</span>
+        </span>
+        <BadgeDeEstado estado={cifra.estado} />
+      </span>
+      <span className={cn("cifra text-[26px] leading-[1.1] font-semibold", cifra.vacio && "text-muted-foreground")}>
+        {cifra.textoDelValor}
+        {cifra.deMeta ? <span className="ml-1.5 font-sans text-[13px] font-medium text-muted-foreground">{cifra.deMeta}</span> : null}
+      </span>
+      {cifra.barra ? (
+        <>
+          <BarraDeAvance
+            lleno={cifra.barra.lleno}
+            atraso={cifra.barra.atraso}
+            marca={cifra.barra.marca}
+            rotuloDeMarca={cifra.barra.rotuloDeMarca}
+            tono={cifra.estado?.tono}
+            etiqueta={`Llevamos ${cifra.textoDelValor} ${cifra.deMeta ?? ""}`.trim()}
+          />
+          <span className="text-xs text-muted-foreground">
+            {cifra.barra.lectura.antes}
+            <b className="cifra font-medium text-foreground">{cifra.barra.lectura.cifra}</b>
+            {cifra.barra.lectura.despues}
+          </span>
+        </>
+      ) : null}
+      {cifra.linea ? (
+        <span className="text-xs text-muted-foreground">
+          {cifra.linea.antes}
+          {cifra.linea.cifra ? <b className="cifra font-medium text-foreground">{cifra.linea.cifra}</b> : null}
+          {cifra.linea.despues}
+        </span>
+      ) : null}
+      {cifra.comparacion ? <CambioDeCifra comparacion={cifra.comparacion} /> : null}
+      {cifra.etiquetas.length > 0 ? (
+        <span className="flex flex-wrap items-center gap-2">
+          {cifra.etiquetas.map((etiqueta) => <Badge key={etiqueta} variant="neutro" className="rounded-lg">{etiqueta}</Badge>)}
+        </span>
+      ) : null}
+      <span className="text-xs text-marca-texto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+        Cómo se calcula →
+      </span>
+    </>
+  );
+}
+
+function CeldaDeCifra({ cifra }: { cifra: CifraDeMetrica }) {
+  return (
+    <>
+      <span className={cn("cifra inline-flex items-center gap-1.5", cifra.vacio && "text-muted-foreground")}>
+        {cifra.estado ? <span aria-label={cifra.estado.rotulo} className={`size-2 rounded-full ${PUNTO[cifra.estado.tono]}`} /> : null}
+        {cifra.textoDelValor}
+      </span>
+      {cifra.comparacion ? <CambioDeCifra comparacion={cifra.comparacion} enCelda /> : null}
+    </>
   );
 }
 

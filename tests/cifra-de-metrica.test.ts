@@ -105,6 +105,16 @@ describe("la barra de avance (diseño §1.1)", () => {
     expect(fraseDe(agendas, "En seguimiento")).toBe("Llevamos 74 % de lo esperado a hoy. En meta desde 100 %, en seguimiento desde 65 %, rezagado por debajo.");
   });
 
+  it("lo esperado a hoy lleva su decimal en una meta de cantidad", () => {
+    const ventas = armarCifra(entrada("ventas", {
+      valor: 21,
+      avance: { llevamos: 21, meta: 55, esperado: 34.1, fraccionDeTiempo: 0.62, de: "ventas de pauta" },
+    }));
+    expect(ventas.barra?.rotuloDeMarca).toBe("a hoy 34,1");
+    expect(ventas.barra?.lectura.cifra).toBe("13,1");
+    expect(ventas.textoDelValor).toBe("21");
+  });
+
   it("adelante: sin rayado", () => {
     const c = armarCifra({ ...agendas, avance: { ...agendas.avance!, llevamos: 600 }, valor: 600 });
     expect(c.barra?.atraso).toBe(0);

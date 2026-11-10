@@ -61,3 +61,20 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
   Pauta no tiene claves en `ClaveDeMetrica` ni fichas en `REGISTRO` (solo `VOCABULARIO_PAUTA_SEMANAL`). Mientras D las registra,
   los textos de §2.1 de Pauta viven en el módulo de la Cifra ligados a su clave, y pasan a la ficha en un commit propio cuando
   existan.
+- **10-nov · Alejandro.** Contrato y pieza:
+  - `lib/metricas/cifra.ts`: `armarCifra` arma `CifraDeMetrica` en el servidor, todo ya escrito (valor, los ocho casos raros,
+    estado DM-1, barra, comparación en gris, fórmula con "Con los números de esta cifra", cómo leer la tarjeta, filtros,
+    evidencia). La escala de estado vive ahí y `cumplimiento-de-cohorte.ts` la importa.
+  - Piezas evolucionadas: `cifra-con-lista.tsx` (`Cifra`, tamaños tarjeta y celda), `como-se-calcula.tsx`
+    (`ExplicacionDeCifra`, las cinco secciones), `barra-de-avance.tsx` (forma con marca: lleno, rayado y "a hoy N"),
+    `variacion.tsx` (`CambioDeCifra`). Nuevo `components/ui/sheet.tsx` (panel lateral; foco en Cerrar, Escape y vuelta del
+    foco, verificados).
+  - Primer uso: "¿Vamos a llegar a la meta de la cohorte?" en Hub › Pauta, con cuatro barras. Agendadas va con "todas las
+    áreas" porque eso es lo que cuenta hoy la consulta (`agendasDeLaCohorte`), no "de pauta" como el boceto.
+  - Semáforo con En meta / En seguimiento / Rezagado.
+  - Verificado con `dev:local` en claro y oscuro, a 1280 y 375 px; consola limpia; `npm run build` en verde.
+  - **Falta:** la evidencia (cinco filas y el botón a la lista) en el cumplimiento, que necesita una lista que cuente lo
+    mismo que la cifra, con test; la celda en la tabla semanal; migrar el resto de los bloques; `test:humo`; ajustar
+    `structure.md` §9.
+  - Nota: `npm run db:local` falla al sembrar (el programa de prueba no tiene % de comisión, `mover-etapa.ts:338`). La base
+    queda con datos parciales y sirve para mirar. No es de este carril.

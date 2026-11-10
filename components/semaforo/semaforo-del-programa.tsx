@@ -3,14 +3,11 @@ import { EXPLICACION_AGENDA_CRM_VS_META } from "@/lib/vocabulario-metricas";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { cop } from "@/lib/format";
+import { ROTULO_DE_TONO } from "@/lib/metricas/cifra";
 import { semaforoDelPrograma, type MetricaSemaforo } from "@/lib/semaforo/semaforo";
 
-const etiquetaDeColor = {
-  exito: "En meta",
-  alerta: "Atención",
-  peligro: "En peligro",
-  sin_dato: "Sin dato",
-} as const;
+// DM-1 (419): un solo vocabulario de estado en todo el CRM. Cambia el rótulo, no el cálculo; el reporte de WhatsApp no cambia.
+const etiquetaDeColor = { ...ROTULO_DE_TONO, sin_dato: "Sin dato" } as const;
 
 function horaEnBogota(instante: Date): number {
   return Number(new Intl.DateTimeFormat("en-CA", {

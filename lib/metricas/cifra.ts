@@ -214,6 +214,8 @@ function sinPuntoFinal(texto: string): string {
 export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
   const x = e.explicacion;
   const fmt = (v: number) => formatearValor(x.unidad, v, e.enMillones);
+  // Lo esperado a hoy casi nunca es entero: en una meta de cantidad se escribe con su decimal ("a hoy 34,1").
+  const fmtAvance = (v: number) => formatearValor(x.unidad === "conteo" ? "decimal" : x.unidad, v, e.enMillones);
   const vacio = e.valor === null;
   if (vacio && !e.motivo) throw new Error(`La cifra ${e.concepto} no tiene valor ni motivo: "—" siempre dice por qué.`);
 
@@ -231,10 +233,10 @@ export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
         lleno,
         marca,
         atraso: Math.max(0, marca - lleno),
-        rotuloDeMarca: `a hoy ${fmt(a.esperado)}`,
+        rotuloDeMarca: `a hoy ${fmtAvance(a.esperado)}`,
         lectura: desfase > 0
-          ? { antes: "Vamos ", cifra: fmt(desfase), despues: " atrás" }
-          : { antes: "Vamos ", cifra: fmt(-desfase), despues: " adelante" },
+          ? { antes: "Vamos ", cifra: fmtAvance(desfase), despues: " atrás" }
+          : { antes: "Vamos ", cifra: fmtAvance(-desfase), despues: " adelante" },
       };
     })()
     : null;
@@ -260,12 +262,12 @@ export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
   lectura.push([UNIVERSO[x.universo].corto, UNIVERSO[x.universo].explicacion]);
   if (a && barra) {
     const tiempo = num(a.fraccionDeTiempo * 100, 0);
-    lectura.push([`de ${fmt(a.meta)}`, `La meta de ${a.de} de la cohorte. La cargan Pauta o Gerencia en Programa › Objetivos.`]);
-    lectura.push([barra.rotuloDeMarca, `Lo que deberíamos llevar si avanzáramos parejo: ${fmt(a.meta)} × ${tiempo} %, porque ya pasó el ${tiempo} % de los días hábiles de venta de la cohorte. Es la marca sobre la barra.`]);
+    lectura.push([`de ${fmtAvance(a.meta)}`, `La meta de ${a.de} de la cohorte. La cargan Pauta o Gerencia en Programa › Objetivos.`]);
+    lectura.push([barra.rotuloDeMarca, `Lo que deberíamos llevar si avanzáramos parejo: ${fmtAvance(a.meta)} × ${tiempo} %, porque ya pasó el ${tiempo} % de los días hábiles de venta de la cohorte. Es la marca sobre la barra.`]);
     const desfase = a.esperado - a.llevamos;
     lectura.push(desfase > 0
-      ? [`${fmt(desfase)} atrás`, `${fmt(a.esperado)} − ${fmt(a.llevamos)}. Es lo rayado en la barra.`]
-      : [`${fmt(-desfase)} adelante`, "Ya vamos por encima de lo esperado a hoy."]);
+      ? [`${fmtAvance(desfase)} atrás`, `${fmtAvance(a.esperado)} − ${fmtAvance(a.llevamos)}. Es lo rayado en la barra.`]
+      : [`${fmtAvance(-desfase)} adelante`, "Ya vamos por encima de lo esperado a hoy."]);
   }
   if (estado && e.estado && calculado) {
     if (e.estado.fuente === "esperado") {
@@ -319,13 +321,13 @@ export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
     valor: e.valor,
     textoDelValor,
     vacio: e.valor === null,
-    deMeta: a ? `de ${fmt(a.meta)}` : null,
+    deMeta: a ? `de ${fmtAvance(a.meta)}` : null,
     estado,
     barra,
     linea: e.linea ?? null,
     comparacion,
     etiquetas,
-    ariaLabel: `${x.rotulo}: ${textoDelValor}${a ? ` de ${fmt(a.meta)}` : ""}. Abrir cómo se calcula`,
+    ariaLabel: `${x.rotulo}: ${textoDelValor}${a ? ` de ${fmtAvance(a.meta)}` : ""}. Abrir cómo se calcula`,
     explicacion: {
       que: x.que,
       formula: { forma: x.formula.forma, nombre: x.rotulo, terminos: x.formula.terminos, por1000: Boolean(x.formula.por1000), conLosNumeros },

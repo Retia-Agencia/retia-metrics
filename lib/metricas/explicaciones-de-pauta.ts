@@ -60,6 +60,12 @@ export const EXPLICACIONES_DE_PAUTA = {
       { nombre: "Persona de pauta", explicacion: "Llegó por el enlace de un anuncio pago." },
     ],
   },
+  agendas_total: {
+    rotulo: "Agendadas", universo: "todas", unidad: "conteo",
+    que: "Cuántas citas se reservaron en la cohorte, vengan de pauta, orgánico, referidos o sin origen.",
+    formula: { forma: "conteo", terminos: ["citas reservadas desde que abrió la venta de la cohorte"] },
+    variables: [{ nombre: "Cita reservada", explicacion: "La llamada que el lead apartó en el calendario. Cuenta el día en que la reservó, no el día de la llamada." }],
+  },
   agendas_meta: {
     rotulo: "Agendas según Meta", universo: "pauta", unidad: "conteo",
     que: "Las agendas que reporta el pixel de Meta. Sirven para revisar la medición, no como dato de negocio.",

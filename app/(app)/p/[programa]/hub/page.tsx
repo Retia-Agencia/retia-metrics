@@ -328,6 +328,7 @@ async function CuerpoDelHub({
     return (
       <SeccionPauta
         programId={programa.id}
+        programaNombre={programa.nombre}
         slug={slug}
         rango={contexto.seleccion.rango}
         periodo={contexto.periodo}
@@ -599,6 +600,7 @@ async function cargarVistaComercial({ programa, busqueda, vista, cohorteId, coho
  */
 async function SeccionPauta({
   programId,
+  programaNombre,
   slug,
   rango,
   periodo,
@@ -609,6 +611,7 @@ async function SeccionPauta({
   puedeAbrirLista,
 }: {
   programId: string;
+  programaNombre: string;
   slug: string;
   rango: { desde: string; hasta: string };
   periodo: PeriodoResuelto;
@@ -673,7 +676,7 @@ async function SeccionPauta({
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
-      <CumplimientoDeCohorte programId={programId} slug={slug} cohorteId={cohorteId} hoy={hoy} />
+      <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} />
       <TablaSemanalDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} />
       <PautaRoas
         vista={roas}

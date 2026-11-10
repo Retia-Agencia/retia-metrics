@@ -1,88 +1,93 @@
 import Link from "next/link";
-import { BarraDeAvance } from "@/components/hub/barra-de-avance";
-import { Badge } from "@/components/ui/badge";
+import { Cifra } from "@/components/cifra-con-lista";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cop, fecha, num, pct, usd } from "@/lib/format";
+import { cop, fecha, num } from "@/lib/format";
 import {
-  ETIQUETA_POR_ESTADO,
-  VARIANTE_POR_ESTADO,
   leerCumplimientoDeCohorte,
-  type BarraDeCumplimiento,
   type CumplimientoDeCohorteLeido,
+  type MedidaDeCumplimiento,
 } from "@/lib/metas/cumplimiento-de-cohorte";
+import { armarCifra, type CifraDeMetrica, type EntradaDeCifra } from "@/lib/metricas/cifra";
+import { explicacionDePauta, type ClaveDePauta } from "@/lib/metricas/explicaciones-de-pauta";
 
 export interface PropsCumplimientoDeCohorte {
   programId: string;
   slug: string;
   cohorteId: string | null;
   hoy: string;
+  /** El nombre del programa, para "Calculada con". */
+  programa?: string;
 }
-
-const TONO_POR_ESTADO = {
-  en_meta: "bg-tono-exito",
-  en_seguimiento: "bg-tono-alerta",
-  rezagado: "bg-tono-peligro",
-} as const;
 
 function Configurar({ slug }: { slug: string }) {
   const href = `/p/${encodeURIComponent(slug)}/programa?seccion=ventas`;
   return <Button size="sm" variant="link" nativeButton={false} render={<Link href={href} />}>Configurar</Button>;
 }
 
-function Desfase({ valor, formato, unidad }: { valor: number | null; formato: (n: number) => string; unidad?: string }) {
-  if (valor === null || valor === 0) return null;
-  return <p className="text-xs text-muted-foreground">
-    {valor > 0 ? "Atraso" : "Adelanto"} de <span className="cifra">{formato(Math.abs(valor))}</span>{unidad ? ` ${unidad}` : ""}
-  </p>;
+/**
+ * Una barra del cumplimiento como Cifra (419): la arma el servidor con `armarCifra`, y la tarjeta solo la pinta.
+ * El cumplimiento no sigue el periodo: solo programa y cohorte en "Calculada con" (diseño §2 punto 4).
+ */
+function cifraDeAvance(concepto: ClaveDePauta, medida: MedidaDeCumplimiento, filtros: ReadonlyArray<readonly [string, string]>, de: string, extra: Partial<EntradaDeCifra> = {}): CifraDeMetrica {
+  const conEsperado = medida.esperado !== null && medida.meta > 0;
+  return armarCifra({
+    concepto,
+    explicacion: explicacionDePauta(concepto),
+    valor: medida.llevamos,
+    periodo: "desde que abrió la venta de la cohorte hasta hoy",
+    filtros,
+    avance: conEsperado
+      ? { llevamos: medida.llevamos, meta: medida.meta, esperado: medida.esperado!, fraccionDeTiempo: medida.esperado! / medida.meta, de }
+      : undefined,
+    estado: conEsperado ? { fuente: "esperado", llevamos: medida.llevamos, esperado: medida.esperado! } : undefined,
+    ...extra,
+  });
 }
 
-function Barra({ titulo, datos, unidad, universo }: { titulo: string; datos: BarraDeCumplimiento; unidad: "agendas" | "cupos"; universo?: string }) {
-  const { cupos, usd: dolares } = datos;
-  const estado = cupos.cumplimiento?.estado;
-  return <section className="space-y-2" aria-label={titulo}>
-    <h3 className="text-sm font-medium">{titulo}</h3>
-    {universo ? <p className="text-xs text-muted-foreground">{universo}</p> : null}
-    <BarraDeAvance
-      llevamos={cupos.llevamos}
-      objetivo={cupos.meta}
-      unidad={` ${unidad}`}
-      tono={estado ? TONO_POR_ESTADO[estado] : "bg-primary"}
-    />
-    <p className="text-sm">
-      Llevamos <span className="cifra">{num(cupos.llevamos)}</span> de <span className="cifra">{num(cupos.meta)}</span> ({pct(cupos.llevamos / cupos.meta)})
-    </p>
-    <p className="text-xs text-muted-foreground">Esperado a hoy: <span className="cifra">{cupos.esperado === null ? "—" : num(cupos.esperado, 1)}</span></p>
-    <div className="flex flex-wrap items-center gap-2">
-      {estado ? <Badge variant={VARIANTE_POR_ESTADO[estado]}>{ETIQUETA_POR_ESTADO[estado]}</Badge> : null}
-      <Desfase valor={cupos.desfase} formato={(valor) => num(valor, 1)} unidad={unidad} />
-    </div>
-    {dolares ? <div className="space-y-1 rounded-lg bg-muted p-3 text-xs">
-      <p>Vendido: <span className="cifra">{usd(dolares.llevamos)}</span> de <span className="cifra">{usd(dolares.meta)}</span> ({pct(dolares.llevamos / dolares.meta)})</p>
-      <p className="text-muted-foreground">Esperado a hoy: <span className="cifra">{dolares.esperado === null ? "—" : usd(dolares.esperado)}</span></p>
-      <Desfase valor={dolares.desfase} formato={usd} />
-    </div> : null}
-  </section>;
-}
-
-export function CumplimientoVista({ datos, slug }: { datos: CumplimientoDeCohorteLeido; slug: string }) {
+export function CumplimientoVista({ datos, slug, programa }: { datos: CumplimientoDeCohorteLeido; slug: string; programa?: string }) {
   if (!datos.cohorte) return <Card data-testid="cumplimiento-cohorte">
-    <CardHeader><CardTitle>Cumplimiento de la cohorte</CardTitle></CardHeader>
+    <CardHeader><CardTitle>¿Vamos a llegar a la meta de la cohorte?</CardTitle></CardHeader>
     <CardContent><p className="text-sm text-muted-foreground">Sin cohorte activa</p></CardContent>
   </Card>;
+  const filtros: ReadonlyArray<readonly [string, string]> = [
+    ...(programa ? [["Programa", programa] as const] : []),
+    ["Cohorte", datos.cohorte.codigo],
+  ];
+  // La fracción de tiempo de la cohorte es la misma para toda meta: la da la barra de ventas totales, que siempre existe.
+  const totales = datos.ventasTotales?.cupos;
+  const fraccion = totales && totales.esperado !== null && totales.meta > 0 ? totales.esperado / totales.meta : null;
   return <Card data-testid="cumplimiento-cohorte">
     <CardHeader>
-      <CardTitle>Cumplimiento de la cohorte {datos.cohorte.codigo}</CardTitle>
+      <CardTitle>¿Vamos a llegar a la meta de la cohorte?</CardTitle>
+      <p className="text-xs text-muted-foreground">Cohorte {datos.cohorte.codigo}. Solo cambia con la cohorte: el periodo y los demás filtros no la mueven.</p>
     </CardHeader>
     <CardContent className="space-y-6">
-      {datos.agendas
-        ? <Barra titulo="Agendadas" datos={datos.agendas} unidad="agendas" universo="De la cohorte, de todos los orígenes (no solo Paid), desde que empezó a venderse." />
-        : <section className="space-y-1"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
-      {datos.ventasPauta
-        ? <Barra titulo="Ventas de pauta" datos={datos.ventasPauta} unidad="cupos" />
-        : <section className="space-y-1"><p className="text-sm">Sin meta de ventas de pauta para esta cohorte</p><Configurar slug={slug} /></section>}
-      {datos.ventasTotales ? <Barra titulo="Ventas totales" datos={datos.ventasTotales} unidad="cupos" /> : null}
-      {datos.inversion ? <p className="text-sm">Inversión: llevamos <span className="cifra">{cop(datos.inversion.llevamos)}</span> de <span className="cifra">{cop(datos.inversion.meta)}</span></p> : null}
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {datos.agendas
+          ? <Cifra cifra={cifraDeAvance("agendas_total", datos.agendas.cupos, filtros, "agendas")} />
+          : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
+        {datos.ventasPauta
+          ? <Cifra cifra={cifraDeAvance("ventas", datos.ventasPauta.cupos, filtros, "ventas de pauta")} />
+          : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de ventas de pauta para esta cohorte</p><Configurar slug={slug} /></section>}
+        {datos.ventasTotales ? <Cifra cifra={cifraDeAvance("ventas_total", datos.ventasTotales.cupos, filtros, "ventas")} /> : null}
+        {datos.inversion ? <Cifra cifra={armarCifra({
+          concepto: "presupuesto",
+          explicacion: explicacionDePauta("presupuesto"),
+          valor: datos.inversion.llevamos,
+          periodo: "desde que abrió la venta de la cohorte hasta hoy",
+          filtros,
+          enMillones: true,
+          avance: fraccion === null ? undefined : {
+            llevamos: datos.inversion.llevamos,
+            meta: datos.inversion.meta,
+            esperado: datos.inversion.meta * fraccion,
+            fraccionDeTiempo: fraccion,
+            de: "inversión",
+          },
+          notas: [["Sin color", "Gastar más rápido o más lento de lo planeado no es bueno ni malo por sí solo: se lee junto al costo por agenda."]],
+        })} /> : null}
+      </div>
       {datos.cohorte.cerrada ? <p className="text-sm font-medium">La cohorte ya cerró</p> : null}
       {datos.requeridos ? <section className="space-y-2 rounded-lg bg-muted p-3" aria-label="Requeridos">
         {datos.requeridos.metaCumplida
@@ -103,5 +108,5 @@ export function CumplimientoVista({ datos, slug }: { datos: CumplimientoDeCohort
 
 export async function CumplimientoDeCohorte(props: PropsCumplimientoDeCohorte) {
   const datos = await leerCumplimientoDeCohorte(props.programId, props.cohorteId, props.hoy);
-  return <CumplimientoVista datos={datos} slug={props.slug} />;
+  return <CumplimientoVista datos={datos} slug={props.slug} programa={props.programa} />;
 }
