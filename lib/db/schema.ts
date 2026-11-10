@@ -2636,6 +2636,14 @@ export const gastoPauta = pgTable(
     agendasMeta: integer("agendas_meta"),
     /** Registros según el pixel de Meta (`complete_registration`): el denominador del CPL de lanzamiento. */
     registrosMeta: integer("registros_meta"),
+    /**
+     * Trafico segun Meta, por anuncio y dia (412). Nulos a proposito: lo anterior a la migracion no se
+     * conoce y la pantalla dice "—" con cobertura (N3), nunca 0. El alcance de varios dias no se suma (D-5).
+     */
+    impresiones: integer("impresiones"),
+    alcance: integer("alcance"),
+    clicsEnlace: integer("clics_enlace"),
+    vistasLanding: integer("vistas_landing"),
     origen: origenGastoEnum("origen").notNull(),
     pautaObjetoId: uuid("pauta_objeto_id").references(() => pautaObjetos.id, {
       onDelete: "restrict",
@@ -2804,6 +2812,9 @@ export const metricaObjetivoEnum = pgEnum("metrica_objetivo", [
   "costo_por_venta",
   "roas",
   "conversion_agenda_venta",
+  // 412: meta total de la cohorte (agendas) y presupuesto de la cohorte (inversion, en `objetivos.moneda`).
+  "agendas",
+  "inversion",
 ]);
 
 /**

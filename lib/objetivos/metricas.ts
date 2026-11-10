@@ -79,6 +79,24 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     dePauta: false,
     lector: null,
   },
+  agendas: {
+    nombre: "Agendas de la cohorte",
+    descripcion: "Agendas totales que debe juntar la cohorte para llegar a su meta de ventas.",
+    sentido: "mayor_es_mejor",
+    unidad: "conteo",
+    admiteArea: false,
+    dePauta: true,
+    lector: null, // 412: la hija C lo pone en "412" al leerla
+  },
+  inversion: {
+    nombre: "Inversión de la cohorte",
+    descripcion: "Presupuesto de pauta de la cohorte, en la moneda de la meta.",
+    sentido: "menor_es_mejor",
+    unidad: "COP",
+    admiteArea: false,
+    dePauta: true,
+    lector: null, // 412: la hija C lo pone en "412" al leerla
+  },
 };
 
 export const METRICAS_OFRECIDAS = METRICAS_OBJETIVO.filter(

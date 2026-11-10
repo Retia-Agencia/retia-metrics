@@ -925,6 +925,13 @@
       "when": 1794253230017,
       "tag": "0131_rls_proyecciones_roas",
       "breakpoints": true
+    },
+    {
+      "idx": 132,
+      "version": "7",
+      "when": 1794281379121,
+      "tag": "0132_trafico_meta_y_metas_de_cohorte",
+      "breakpoints": true
     }
   ]
 }
