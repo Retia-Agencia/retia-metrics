@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { estadoDeCobertura, razon, razonVacia, textoDeRazon, valorDeRazon } from "@/lib/cobertura";
+import { diaCubierto, motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
+import { estadoDeCobertura, MOTIVO_SIN_GASTO_DE_AGENDA, razon, razonDeCosto, razonVacia, textoDeRazon, valorDeRazon } from "@/lib/cobertura";
 
 describe("cobertura de razones", () => {
   it("distingue completa, parcial y no calculable", () => {
@@ -34,5 +35,33 @@ describe("cobertura de razones", () => {
       faltan: 0,
       motivo: "Sin citas en el periodo",
     });
+  });
+});
+
+describe("razonDeCosto: sin gasto no hay costo (412 F)", () => {
+  const completa = { base: 7, faltan: 0, motivo: null, calculable: true };
+  it("gasto 0 con cantidad es '—' con motivo, no 0", () => {
+    const r = razonDeCosto(0, 28, completa);
+    expect(r.valor).toBeNull();
+    expect(r.motivo).toBe(MOTIVO_SIN_GASTO_DE_AGENDA);
+  });
+  it("con gasto se comporta como razon; si la cobertura no permite calcular conserva su motivo", () => {
+    expect(razonDeCosto(100, 4, completa).valor).toBe(25);
+    const parcial = razonDeCosto(0, 4, { base: 3, faltan: 4, motivo: "Gasto de Meta desde el 15 sep", calculable: false });
+    expect(parcial.valor).toBeNull();
+    expect(parcial.motivo).toBe("Gasto de Meta desde el 15 sep");
+  });
+});
+
+describe("diaCubierto: un hueco en medio no es un cero (412 F)", () => {
+  const cobertura = { primerDia: "2026-11-02", ultimoDia: "2026-11-06", diasSinFila: ["2026-11-04"] };
+  it("el día sin fila entre el primero y el último no está cubierto", () => {
+    expect(diaCubierto("2026-11-03", cobertura)).toBe(true);
+    expect(diaCubierto("2026-11-04", cobertura)).toBe(false);
+    expect(diaCubierto("2026-11-01", cobertura)).toBe(false);
+    expect(diaCubierto("2026-11-07", cobertura)).toBe(false);
+  });
+  it("el motivo nombra el hueco en vez de decir 'desde el primer día'", () => {
+    expect(motivoDeGasto(cobertura)).toMatch(/Sin gasto de Meta cargado el/);
   });
 });

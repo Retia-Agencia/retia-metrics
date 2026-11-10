@@ -66,3 +66,23 @@ export function razon(
     ...(cobertura.agendasPendientes ? { agendasPendientes: cobertura.agendasPendientes } : {}),
   };
 }
+
+export const MOTIVO_SIN_GASTO_DE_AGENDA = "Sin gasto de agenda en el periodo";
+
+/**
+ * Una razón de COSTO (gasto ÷ cantidad). Sin gasto no hay costo que calcular: 0 ÷ N diría "COP 0" para
+ * cantidades que nadie pagó (412 F). Es la única función que decide ese vacío; el costo por agenda del Hub
+ * la usa y nadie vuelve a escribir `razon(gasto, …)` a mano para un costo.
+ */
+export function razonDeCosto(
+  gasto: number,
+  cantidad: number,
+  cobertura: { base: number; faltan: number; motivo: string | null; calculable: boolean },
+): RazonConCobertura {
+  const sinGasto = gasto <= 0;
+  return razon(gasto, cantidad, {
+    ...cobertura,
+    motivo: sinGasto && cobertura.calculable ? MOTIVO_SIN_GASTO_DE_AGENDA : cobertura.motivo,
+    calculable: cobertura.calculable && !sinGasto,
+  });
+}

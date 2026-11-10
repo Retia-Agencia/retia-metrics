@@ -192,8 +192,7 @@ async function celdasDelRango(
   const filasGasto = gastos.reduce((n, fila) => n + fila.filas, 0);
   const inversionCop = await convertirFilas(db, gastos, rango, "monto", "COP");
   const gastoCpmCop = await convertirFilas(db, gastos.filter((fila) => fila.filasImpresiones > 0), rango, "montoConImpresiones", "COP");
-  const otras = costoMeta.gastoTotal - costoMeta.gasto - costoMeta.lanzamiento.gasto;
-  const otrasCampanasCop = inversionCop.valor === null ? undefined : Math.max(0, otras);
+  const otrasCampanasCop = inversionCop.valor === null ? undefined : costoCrm.gastoOtras;
   const coberturaVenta = coberturaDeVenta(conteos);
   const ventasFueraDeCobertura = conteos.diasDeVentas.filter((dia) => !diaCubierto(dia, gastoUsd.cobertura)).length;
   const gastoIncompleto = gastoUsd.diasSinTrm.length > 0 || ventasFueraDeCobertura > 0;
@@ -325,11 +324,10 @@ export async function cargarPautaSemanal(
       gastoPauta.fecha,
       gastoPauta.moneda,
     ) as Promise<GastoAgrupado[]>,
-    agenda.agrupar<"dia" | "semana" | "area" | "cohorte">(db, {
+    agenda.agendasDePauta(db, {
       programId: args.programId,
       rango: args.rango,
-      agruparPor: ["dia", "semana"],
-      filtros: { area: ["paid"], ...(args.cohorteId ? { cohorte: [args.cohorteId] } : {}) },
+      cohorteId: args.cohorteId,
     }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, agendas: fila.agendas }))),
     leerTodasLasVentas(db, args),
     cita.agrupar<"dia" | "semana" | "area" | "cohorte">(db, {
@@ -352,11 +350,14 @@ export async function cargarPautaSemanal(
       programId: args.programId,
       desde: rango.desde,
       hasta: rango.hasta,
+      cohorteId: args.cohorteId,
     }))),
+    // El denominador del costo es la MISMA cifra que pinta la celda "Agendadas" de ese rango (412 F).
     Promise.all(rangos.map((rango) => costoPorAgendaDelCrm(db, {
       programId: args.programId,
       desde: rango.desde,
       hasta: rango.hasta,
+      agendasCrm: agendas.filter((fila) => enRango(fila.dia, rango)).reduce((n, fila) => n + fila.agendas, 0),
     }))),
     Promise.all(rangos.map((rango) => dineroDeVentas(
       db,

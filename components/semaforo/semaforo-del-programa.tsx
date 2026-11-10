@@ -47,6 +47,7 @@ export async function SemaforoDelPrograma({ programId }: { programId: string }) 
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-xs text-muted-foreground">Del día de hoy hasta esta hora (después de las 6 p. m., el día de ayer completo). No sigue el periodo ni la cohorte que elegiste en esta página.</p>
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="cifra text-2xl font-semibold">{costo(metrica.costo)}</p>
           {metrica.umbral ? (

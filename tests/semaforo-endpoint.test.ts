@@ -284,7 +284,7 @@ describe("endpoint de maquina del semaforo", () => {
     vi.setSystemTime(new Date("2026-10-13T18:00:00-05:00"));
     await crearPrograma("roto");
     await crearPrograma("sano");
-    vi.spyOn(agenda, "listar").mockRejectedValueOnce(new Error("fallo de prueba"));
+    vi.spyOn(agenda, "listarAgendasDePauta").mockRejectedValueOnce(new Error("fallo de prueba"));
 
     const respuesta = await cuerpo();
     const envios = respuesta.envios as Array<{ tipo: string; texto: string }>;

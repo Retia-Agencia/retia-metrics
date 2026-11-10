@@ -34,9 +34,16 @@ export async function coberturaDeGasto(
   return { primerDia: extremos?.primerDia ?? null, ultimoDia: extremos?.ultimoDia ?? null, diasSinFila };
 }
 
+/**
+ * Un día está cubierto si cae entre el primer y el último gasto cargado Y tiene al menos una fila. Un hueco
+ * en medio no es un cero: pudo ser un sync que no corrió (412 F; antes todo lo de en medio pasaba por cubierto
+ * y un costo salía "COP 0" sobre días que nadie leyó). Meta no devuelve filas de un día sin entrega, así que una
+ * pausa real también cuenta como hueco: el costo de esa ventana queda en "—" con el motivo, nunca en un 0.
+ */
 export function diaCubierto(dia: string, cobertura: CoberturaDeGasto): boolean {
   return cobertura.primerDia !== null && cobertura.ultimoDia !== null
-    && cobertura.primerDia <= dia && dia <= cobertura.ultimoDia;
+    && cobertura.primerDia <= dia && dia <= cobertura.ultimoDia
+    && !cobertura.diasSinFila.includes(dia);
 }
 
 export function motivoDeGasto(cobertura: CoberturaDeGasto): string {
@@ -47,5 +54,7 @@ export function motivoDeGasto(cobertura: CoberturaDeGasto): string {
   if (cobertura.ultimoDia !== null && cobertura.diasSinFila.some((dia) => dia > cobertura.ultimoDia!)) {
     return `Gasto de Meta hasta el ${fecha(cobertura.ultimoDia)}`;
   }
+  const hueco = cobertura.diasSinFila.find((dia) => dia >= cobertura.primerDia! && dia <= (cobertura.ultimoDia ?? dia));
+  if (hueco) return `Sin gasto de Meta cargado el ${fecha(hueco)}`;
   return `Gasto de Meta desde el ${fecha(cobertura.primerDia)}`;
 }

@@ -6,7 +6,7 @@ import type { Db } from "@/lib/db/tipos";
 import { esperadoLineal } from "@/lib/dias-habiles";
 import { cohorteActiva, type Cohorte } from "@/lib/queries/cohortes";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
-import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
+import { agendasDeLaCohorte } from "@/lib/queries/hechos/agenda";
 import { gastoConvertido } from "@/lib/queries/hechos/gasto";
 import { listar as listarVentas } from "@/lib/queries/hechos/venta";
 import { leerProyeccion, type ValorDeProyeccion } from "@/lib/queries/proyeccion";
@@ -165,7 +165,7 @@ export async function leerCumplimientoDeCohorte(
   const rangoAgendas = cohorte.fechaInicioVentas ? { desde: cohorte.fechaInicioVentas, hasta: hoy } : null;
   const esActiva = activa?.id === cohorte.id;
   const cerrada = cohorte.fechaCierreVentas !== null && hoy > cohorte.fechaCierreVentas;
-  const [ventasTotales, ventasPauta, gruposAgendas, objetivos, proyeccion] = await Promise.all([
+  const [ventasTotales, ventasPauta, agendas, objetivos, proyeccion] = await Promise.all([
     ventasDeLaCohorte(db, cohorte.id, hoy),
     listarVentas(db, {
       programId,
@@ -174,14 +174,13 @@ export async function leerCumplimientoDeCohorte(
       // Todas las ventas de la cohorte (DA-2). ponytail: tope de 10.000 ventas por cohorte; la escala de hoy es de cientos.
       pagina: { limite: 10_000, offset: 0 },
     }),
-    rangoAgendas ? agruparAgendas(db, { programId, rango: rangoAgendas, agruparPor: [], filtros: { cohorte: [cohorte.id] } }) : Promise.resolve([]),
+    rangoAgendas ? agendasDeLaCohorte(db, { programId, rango: rangoAgendas, cohorteId: cohorte.id }) : Promise.resolve(0),
     objetivosDeCohortes(db, [cohorte.id]),
     esActiva && !cerrada ? leerProyeccion({ programId, hoy }, db) : Promise.resolve(null),
   ]);
   const activos = objetivos.filter((o) => o.activo);
   const meta = (metrica: typeof activos[number]["metrica"], area: typeof activos[number]["area"]) =>
     activos.find((o) => o.metrica === metrica && o.area === area)?.meta ?? null;
-  const agendas = gruposAgendas.reduce((total, grupo) => total + grupo.agendas, 0);
   const idsTotales = ventasTotales.map((venta) => venta.dealId);
   const idsPauta = ventasPauta.filas.map((venta) => venta.dealId);
   const necesitaGasto = cohorte.fechaInicioVentas !== null;

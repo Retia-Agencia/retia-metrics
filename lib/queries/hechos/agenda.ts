@@ -8,7 +8,7 @@ import {
   seleccionarDimensiones,
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
-import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
+import type { ConsultaAgrupada, ConsultaDeLista, Filtros, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
 import { dimensionesDeFecha, horaMinutoEnBogota } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
@@ -123,4 +123,56 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
   consulta = aplicarPagina(consulta, opciones.pagina);
   const [filas, total] = await Promise.all([consulta, totalDeConsulta(db, construir())]);
   return { filas, total };
+}
+
+/**
+ * LAS DOS PREGUNTAS DE AGENDAS (412 F, contrato de unicidad pedido por Mani el 10-nov, ADR 0115 N1).
+ * Ninguna otra función escribe el filtro de área para agendas: quien cuente agendas de pauta llama
+ * `agendasDePauta`; quien cuente las de una cohorte (todos los orígenes) llama `agendasDeLaCohorte`.
+ * `tests/agendas-una-pregunta.test.ts` hace divergir las dos y vigila que el filtro no se escriba fuera.
+ */
+const AREA_DE_PAUTA: string[] = ["paid"];
+
+type FilaAgrupada<D extends DimensionAgenda> = Record<D, string | null> & { agendas: number };
+
+/** Agendas de área Paid: citas vigentes creadas en el rango; con `cohorteId` solo las de esa cohorte. */
+export async function agendasDePauta<D extends DimensionAgenda = "dia">(
+  db: Db,
+  opciones: {
+    programId: string;
+    rango: { desde: string; hasta: string };
+    cohorteId?: string | null;
+    creadaHasta?: Date;
+    agruparPor?: readonly D[];
+  },
+): Promise<Array<FilaAgrupada<D>>> {
+  return await agrupar<D | "area" | "cohorte">(db, {
+    programId: opciones.programId,
+    rango: opciones.rango,
+    agruparPor: (opciones.agruparPor ?? ["dia"]) as readonly D[],
+    filtros: { area: AREA_DE_PAUTA, ...(opciones.cohorteId ? { cohorte: [opciones.cohorteId] } : {}) } as Filtros<D | "area" | "cohorte">,
+    creadaHasta: opciones.creadaHasta,
+  }) as Array<FilaAgrupada<D>>;
+}
+
+/** Total de agendas de una cohorte, de TODOS los orígenes (la meta de agendas es de la cohorte, no de Paid). */
+export async function agendasDeLaCohorte(
+  db: Db,
+  opciones: { programId: string; rango: { desde: string; hasta: string }; cohorteId: string },
+): Promise<number> {
+  const filas = await agrupar<"cohorte">(db, {
+    programId: opciones.programId,
+    rango: opciones.rango,
+    agruparPor: [],
+    filtros: { cohorte: [opciones.cohorteId] },
+  });
+  return filas.reduce((total, fila) => total + fila.agendas, 0);
+}
+
+/** Lista de las agendas de pauta (la misma pregunta de `agendasDePauta`, fila por fila). */
+export async function listarAgendasDePauta(
+  db: Db,
+  opciones: Omit<ConsultaAgendaLista<"area">, "filtros">,
+): Promise<ListaPaginada<FilaAgenda>> {
+  return await listar<"area">(db, { ...opciones, filtros: { area: AREA_DE_PAUTA } });
 }
