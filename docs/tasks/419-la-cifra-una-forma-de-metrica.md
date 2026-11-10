@@ -3,7 +3,7 @@ id: 419
 etapa: hub
 serves: "docs/diseno-cifra-y-pauta.md §1, §2, §10 (norte aprobado por Mani el 10-nov: el boceto docs/bocetos/una-forma-de-metrica.html, tal cual) · DM-1, DM-2, DM-9 · anotaciones A-186 a A-190 · structure.md §9 contrato de entendimiento · ADR 0067 · ADR 0115 N3 y N5"
 depends: []
-status: todo
+status: en curso (Alejandro, carril P, 10-nov)
 ---
 
 # 419 — La Cifra: una forma de métrica y su explicación, en todo el Hub
@@ -53,3 +53,11 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
 - [ ] Semáforo con el vocabulario único.
 - [ ] Guardián de texto técnico en verde y mordido.
 - [ ] `quick_review` de Rams, `npm run build`, `test:humo` y la pantalla abierta con la consola limpia.
+
+## Avance
+
+- **10-nov · Alejandro (carril P).** Commit 1: `FichaDeMetrica` gana `que`, `formula` (`forma` razón/suma/conteo/resta/producto,
+  `terminos`, `por1000?`), `variables` y `aliasExcel?`, todos opcionales; no se tocó ninguna ficha. **Costura con el carril D:**
+  Pauta no tiene claves en `ClaveDeMetrica` ni fichas en `REGISTRO` (solo `VOCABULARIO_PAUTA_SEMANAL`). Mientras D las registra,
+  los textos de §2.1 de Pauta viven en el módulo de la Cifra ligados a su clave, y pasan a la ficha en un commit propio cuando
+  existan.
