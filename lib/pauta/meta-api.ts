@@ -344,8 +344,27 @@ export interface InsightDeAnuncioMeta {
   fecha: string;
   agendas: number | null;
   registros: number | null;
+  impresiones: number | null;
+  alcance: number | null;
+  clicsEnlace: number | null;
+  vistasLanding: number | null;
 }
 
+/** Meta manda los números como texto; ausente o ilegible es null, nunca 0. */
+function enteroOpcional(valor: unknown): number | null {
+  if (valor == null || valor === "") return null;
+  const n = Number(valor);
+  return Number.isFinite(n) ? n : null;
+}
+
+function valorDeAccion(acciones: unknown, tipo: string): number | null {
+  if (!Array.isArray(acciones)) return null;
+  const accion = acciones.find((a) => a && typeof a === "object" &&
+    (a as { action_type?: unknown }).action_type === tipo);
+  return accion ? enteroOpcional((accion as { value?: unknown }).value) : null;
+}
+
+const ACCION_VISTA_LANDING = "landing_page_view";
 const ACCION_REGISTRO_COMPLETO = "offsite_conversion.fb_pixel_complete_registration";
 
 /** Gasto y conversiones reportados por Meta, con grano anuncio × día. */
@@ -360,7 +379,7 @@ export async function insightsPorAnuncioYDia(
   url.searchParams.set("level", "ad");
   url.searchParams.set("time_increment", "1");
   url.searchParams.set("time_range", JSON.stringify({ since: desde, until: hasta }));
-  url.searchParams.set("fields", "ad_id,spend,date_start,conversions,actions");
+  url.searchParams.set("fields", "ad_id,spend,date_start,conversions,actions,impressions,reach,inline_link_clicks");
   url.searchParams.set("limit", "500");
   const filas = await consultarPaginas<Record<string, unknown>>(url, token, f);
   return filas.map((fila) => {
@@ -391,6 +410,10 @@ export async function insightsPorAnuncioYDia(
       fecha,
       agendas: Number.isFinite(valor) ? valor : null,
       registros: Number.isFinite(registros) ? registros : null,
+      impresiones: enteroOpcional(fila.impressions),
+      alcance: enteroOpcional(fila.reach),
+      clicsEnlace: enteroOpcional(fila.inline_link_clicks),
+      vistasLanding: valorDeAccion(fila.actions, ACCION_VISTA_LANDING),
     };
   });
 }
