@@ -553,6 +553,8 @@ Ninguno tiene ticket todavía; cada uno dice de dónde sale y qué haría falta.
 | X-11 | Descarga de transcripciones de Grain por tipo de cierre, programa y cohorte | F2 | frente de media (328 a 330) |
 | X-12 | Parrilla de media conectada al flujo de edición | F2 | `docs/media/` |
 
+**Los Excels diarios de Pauta (Comunicarte y Tactical) cruzados fila por fila con el CRM, con la recomendación y los tickets propuestos 413 a 417:** `docs/paid-media-excels-2026-11-10.md`.
+
 ## 13. Tareas de Mani que no son código
 
 - Verificar que **Dani Rodríguez** tiene usuario activo con rol paid trafficker y que entra (no pudo en la reunión).
