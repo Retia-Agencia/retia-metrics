@@ -12,8 +12,10 @@ import { listar as listarVentas } from "@/lib/queries/hechos/venta";
 import { leerProyeccion, type ValorDeProyeccion } from "@/lib/queries/proyeccion";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 
-export const UMBRAL_EN_META = 1;
-export const UMBRAL_EN_SEGUIMIENTO = 0.65;
+import { ROTULO_DE_TONO, UMBRAL_EN_META, UMBRAL_EN_SEGUIMIENTO } from "@/lib/metricas/cifra";
+
+// La escala de estado vive UNA vez en la Cifra (419, DM-1); aquí solo se reexporta para quien ya la importaba.
+export { UMBRAL_EN_META, UMBRAL_EN_SEGUIMIENTO };
 
 export type EstadoDeCumplimiento = "en_meta" | "en_seguimiento" | "rezagado";
 
@@ -24,9 +26,9 @@ export const VARIANTE_POR_ESTADO = {
 } as const;
 
 export const ETIQUETA_POR_ESTADO: Record<EstadoDeCumplimiento, string> = {
-  en_meta: "En meta",
-  en_seguimiento: "En seguimiento",
-  rezagado: "Rezagado",
+  en_meta: ROTULO_DE_TONO[VARIANTE_POR_ESTADO.en_meta],
+  en_seguimiento: ROTULO_DE_TONO[VARIANTE_POR_ESTADO.en_seguimiento],
+  rezagado: ROTULO_DE_TONO[VARIANTE_POR_ESTADO.rezagado],
 };
 
 export function estadoDeCumplimiento({ llevamos, meta, esperado }: {
