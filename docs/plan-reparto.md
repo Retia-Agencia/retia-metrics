@@ -121,6 +121,51 @@ tickets en la etapa 0, con el ok de Mani**; hasta entonces mandan los tickets co
 
 ## 4. La ola vigente y el mapa de etapas
 
+### 🌊 Ola O12 · una forma de métrica y Pauta en dos vistas · abierta el 10-nov · dos personas
+
+Sale del boceto aprobado por Mani el 10-nov (**norte visual, tal cual**: [`docs/bocetos/una-forma-de-metrica.html`](./bocetos/una-forma-de-metrica.html);
+todo en palabras en [`docs/diseno-cifra-y-pauta.md`](./diseno-cifra-y-pauta.md)) y del 403 (audit del Hub). Trabajan **Mani y un compañero**,
+cada uno con sus sesiones. El compañero tiene más tokens: lleva el carril pesado (pantalla y consultas de Pauta). Mani lleva lo que
+solo él puede hacer (decidir y hablar con Paid Media y Michael) y las definiciones, que implementa con Codex (`/delegate`).
+
+| Carril | Quién | Tickets, en orden | Archivos del carril (nadie más los toca) | Migración |
+|---|---|---|---|---|
+| **P · pantalla y Pauta** | Compañero | **419** → **420** · en paralelo con 420: **414** → **416** → **415**. Cuando Mani decida D-A, D-B y D-E: los arreglos I-1, I-2 e I-8 del 403 (F3 bis), **antes** del 414, porque son el mismo archivo | `components/cifra-con-lista.tsx`, `components/como-se-calcula.tsx`, `components/variacion.tsx`, `components/hub/barra-de-avance.tsx`, `components/pauta/*`, `components/semaforo/*`, `components/graficas/*`, la sección Pauta de `app/(app)/p/[programa]/hub/page.tsx`, `lib/queries/hechos/pauta-semanal.ts`, `lib/queries/hechos/dimensiones.ts`, `lib/metas/cumplimiento-de-cohorte.ts`, el módulo nuevo de `CifraDeMetrica` | No |
+| **D · definiciones** | Mani (código con Codex) | **403**: F1 hoy (decidir D-A, D-B, D-C, D-E con N8), F2 vocabulario, F3 paridad, F4 fichas (el texto de explicación de lo que no es Pauta), F5 | `lib/metricas/registro.ts` (salvo el commit de campos del 419), `lib/metricas/pendientes.ts`, `lib/vocabulario-*`, `docs/metricas.md`, `overview.md` §11, ADR, `tests/registro-de-metricas.test.ts` y los de paridad | No |
+| **H · personas** | Mani | DM-8 con Michael y Paid Media (desbloquea **421** y el cuadre); Q-8 (columnas por cuenta); umbrales de Tráfico (DM-4, D-6); Q-4 (desbloquea **417**); una semana cerrada de Paid Media (PQ-3, para **418**); cargar en Programa › Objetivos la meta de agendas y la inversión de la cohorte vigente; Q-1 (PowerTalk) | Ninguno (conversaciones y datos cargados por la app) | — |
+
+**Costuras (los únicos puntos donde los carriles se tocan):**
+- **`lib/metricas/registro.ts`:** el 419 hace **un** commit que solo agrega a `FichaDeMetrica` los campos `que`, `formula`,
+  `variables` y `aliasExcel?` (opcionales), lo avisa y no vuelve a tocar el archivo salvo para llenar las fichas de Pauta en un
+  commit propio. El carril D hace `git pull --rebase` antes de seguir.
+- **Rótulos y fórmulas de D-A a D-E:** el carril P construye la forma con el rótulo vigente; Mani decide y escribe la enmienda
+  (N8, carril D); el carril P aplica el cambio de código en `pauta-semanal.ts`. Ninguno fija un rótulo de esas cifras por su cuenta.
+- **Vocabulario:** lo escribe el carril D; el carril P solo lo importa.
+- **Migraciones:** cola **421 → 417**. Las aplica Mani (sesión principal), una a la vez, leyendo el SQL (AGENTS.md).
+
+**Reglas de la ola (las de siempre, §1 y §6):** todo en `main`; cada commit nombra sus archivos (nunca `git add -A`) y
+`git pull --rebase` antes de `git push`; cada sesión escribe su avance **en el archivo de su ticket**; el tracker
+(`docs/tasks/README.md`) y el handoff los pone al día Mani en cada checkpoint verde; en local, typecheck, lint y los tests del
+ticket (la suite la corre el CI); un cambio de pantalla corre `npm run build`, se abre con `npm run dev:local` y se compara **lado
+a lado con el HTML del boceto** en claro, oscuro y 375 px. Nadie empuja durante un checkpoint.
+
+**Listos hoy, sin esperar a nadie:** 419 (compañero) y 403 F1 (Mani, solo decisiones). **Prueba de costura de la ola:** la tabla
+de Pauta por día, en Cifras, con una celda que abre su explicación con la fórmula, sus partes y su lista, y el mismo número que
+devuelve el MCP para esa cifra.
+
+**Lo que se le dice al compañero para arrancar** (pegar en una sesión nueva de Claude Code, en este repo, con `main` al día):
+
+```
+Somos dos en el CRM de Retia (ola O12, docs/plan-reparto.md §4). Tu carril es P (pantalla y Pauta). Lee AGENTS.md, el diseño
+aprobado docs/diseno-cifra-y-pauta.md completo y abre docs/bocetos/una-forma-de-metrica.html en el navegador: es el norte
+visual y tiene que verse y sentirse IGUAL. Toma el ticket 419 (docs/tasks/419-la-cifra-una-forma-de-metrica.md). Antes de
+escribir código, lee components/cifra-con-lista.tsx, components/como-se-calcula.tsx, components/variacion.tsx,
+components/hub/barra-de-avance.tsx y lib/metricas/registro.ts, y preséntame un plan corto: qué se evoluciona, qué se crea y en
+qué orden. Tu primer commit solo agrega los campos de la explicación a FichaDeMetrica (avisa: ese archivo es del carril D).
+No toques los rótulos ni las fórmulas que dependen de D-A a D-E del 403. Toca solo los archivos de tu carril; commits con
+archivos nombrados, pull --rebase antes de push, y tu avance va en el archivo del ticket, no en el tracker.
+```
+
 ### 🌊 Ola O11 · media entra al CRM · abierta el 28-oct
 
 Sale del grill del plan de media (ADR 0107 a 0112, tickets 315 a 338; el 336 es un levantamiento sin código). Mismo molde que la O10: carriles por archivos,

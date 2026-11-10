@@ -483,3 +483,16 @@ Para verificar un traspaso de lead entre closers hicieron falta ~18 llamadas. Me
 | A-183 | MCP › tamaño de respuesta | cambio | `tablero_de_deals` repite en cada llamada las opciones completas (19 motivos, canales, plataformas, cohortes, dueños) y `ficha_de_lead` devuelve todos los campos del formulario, `fbclid` incluido. Opciones en una herramienta aparte, parámetro `campos` y vista compacta. | 411 (F1) | abierta |
 | A-184 | MCP › paginación | cambio | `tablero_de_deals` carga el tablero entero y recorta 50 tarjetas por página en memoria. Paginar y filtrar en SQL (contrato C-2 de `docs/hub.md` §8); `EXPLAIN` a 10× el volumen. | 411 (F1, F4) · deuda del 386 | abierta |
 | A-185 | MCP › medición | cambio | `mcp_llamadas` guarda solo `duracion_ms`. Agregar bytes de respuesta y consultas por llamada (migración) para saber con datos qué es overhead y qué es consulta. | 411 (F4) | abierta |
+
+## Recorrido · 10-nov · Mani sobre el boceto "Una forma de métrica" (v1)
+
+El boceto v1 de la Cifra y de Hub › Pauta (artifact privado de Mani). Todas resueltas en la v2, que Mani aprobó "tal cual" como norte
+(`docs/bocetos/una-forma-de-metrica.html`, `docs/diseno-cifra-y-pauta.md` §8). Aplican a todo el Hub, no solo a Pauta.
+
+| Id | Pantalla | Tipo | Anotación | Destino | Estado |
+|---|---|---|---|---|---|
+| A-186 | Hub › toda cifra con barra | usabilidad | La tarjeta estaba saturada y los números no se entendían a simple vista; la barra tenía una línea (la marca de lo esperado, blanca en oscuro) que parecía puesta al azar. Cada número con su rótulo ("de 900", "a hoy 558", "146 atrás"), el atraso rayado y la marca rotulada | 419 | resuelta en el boceto |
+| A-187 | Hub › Pauta › cumplimiento | usabilidad | "¿Vamos a llegar a la meta?": no se entendían los números de las tarjetas. Misma tarjeta que A-186, Cupos \| Plata y una fila de ritmo con cada número rotulado | 420 | resuelta en el boceto |
+| A-188 | Hub › Cómo se calcula | cambio | Debe mostrar la fórmula y explicar las variables; ver la lista completa está bien; **nunca convenciones del backend** ("§3 M3 · lib/queries/hechos/agenda.ts"): la usan Gerencia y Pauta | 419 (DM-9) | resuelta en el boceto |
+| A-189 | Hub › tablas y toda cifra | aclaración | ¿El cambio en cantidad y porcentaje es contra la columna anterior? Sí. Toda duda sobre cómo leer los números de una tarjeta se responde al abrirla: qué es cada número y etiqueta, la fórmula en bloque con sus variables y la evidencia | 419, 414 | resuelta en el boceto |
+| A-190 | Hub › gráficas | cambio | La gráfica tiene que ser interactiva, no una imagen estática: tooltip, clic a la explicación, leyenda, zoom. Y filtros flexibles (Gerencia y Pauta los pidieron) | 420 | resuelta en el boceto |

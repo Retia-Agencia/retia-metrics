@@ -785,6 +785,17 @@ Nació del recorrido por Hub › Comercial, Hoy y Dinero del 4-nov ("satura, tod
 9. **Revisión.** Antes de empujar una pantalla: `quick_review` de Rams sobre los componentes tocados, recorrido en
    claro, oscuro y 375 px, y `npm run test:humo`. Las piezas compartidas (barras, embudo, Cómo se calcula) tienen un
    solo dueño y se reutilizan: una segunda versión de la misma pieza en otra pestaña es el olor.
+10. **La Cifra (10-nov, aprobada; `docs/diseno-cifra-y-pauta.md`).** Toda métrica del Hub es la misma pieza en tres tamaños
+   (tarjeta, barra, celda): rótulo con su universo ("de pauta" o "todas las áreas"), valor, "de N" si hay meta, barra con el atraso
+   rayado y la marca **rotulada** "a hoy N", una línea de lectura y, solo si se pidió, la comparación en gris. Nada más a la vista.
+   **Toda cifra se explica al abrirla** (DM-9), en un panel con cinco secciones: qué mide; la fórmula en bloque (fracción apilada) con
+   "con los números de esta cifra" y sus variables; cómo leer cada número y etiqueta de la tarjeta (meta, esperado, atraso, estado
+   con umbrales, cambio y contra qué, Parcial, En curso, —, 0, Sin datos); los filtros con que se calculó; y la evidencia con "Ver
+   las N". Ningún texto de la explicación lleva rutas, funciones, tickets, ADR, "§" ni ids de decisión: la leen Gerencia y Pauta.
+   El texto vive en la ficha del concepto (`lib/metricas/registro.ts`), nunca en la pantalla. Una sola escala de estado: En meta ·
+   En seguimiento · Rezagado (DM-1). Las gráficas son interactivas: tooltip, clic en un punto abre su explicación, leyenda y zoom.
+   **Referencia visual permanente de todo el CRM** (componentes y layouts, Mani 10-nov): `docs/bocetos/una-forma-de-metrica.html`;
+   copia publicada https://claude.ai/artifact/HSVdjQ6QdPdHeQ9obbEAPS (privada). Si discrepan, manda el HTML del repo.
 
 **Criterios de uso** (de los closers, 24-sep): el cierre de una llamada cuesta pegar el Grain y un clic;
 nada que decida se teclea; utilidad sobre estética. 🔴 Uso desde el celular: no se alcanzó a preguntar.

@@ -70,6 +70,14 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    **registro tipado de métricas** (`lib/metricas/registro.ts`, ADR 0120, diseño en `docs/diseno-registro-de-metricas.md`) ya
    existe con cinco conceptos y un trinquete de pendientes; los guardianes 🟡 todavía no están construidos. Léelo antes de tocar `lib/queries/`, `lib/db/schema.ts` o
    `docs/metricas.md`.
+2d. **`docs/diseno-cifra-y-pauta.md`** (10-nov) — **el diseño aprobado de cómo se muestra una métrica en todo el Hub (la Cifra y
+   su explicación) y de Hub › Pauta en dos vistas**. Su norte visual es el boceto `docs/bocetos/una-forma-de-metrica.html`, que Mani
+   aprobó "tal cual": una pantalla nueva se compara lado a lado con él. Toda cifra se explica al abrirla (qué mide, fórmula con
+   variables, cada número y etiqueta, filtros y lista) sin una sola referencia técnica. Léelo antes de tocar una cifra o Pauta.
+   🎯 **Referencia visual PERMANENTE (Mani, 10-nov): así se ven TODOS los componentes y layouts del CRM**, no solo Pauta.
+   Fuente de verdad en el repo: `docs/bocetos/una-forma-de-metrica.html` (se abre con doble clic). Copia publicada (privada, de
+   Mani): https://claude.ai/artifact/HSVdjQ6QdPdHeQ9obbEAPS. Si discrepan, manda el HTML del repo. Toda pantalla nueva o tocada se
+   compara lado a lado con él en claro, oscuro y 375 px antes de empujar.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que
@@ -320,7 +328,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
 - **UI/UX es prioridad, al nivel de la integridad de los datos (Mani, 4-nov).** Una pantalla se juzga por si se
   entiende a la primera y sirve para decidir: jerarquía de tres pesos, visual antes que tabla, nada vacío a la vista,
   poco texto (lo demás en "Cómo se calcula"), nada redundante, lo principal nunca plegado y toda cifra abre su lista.
-  El contrato completo, con sus nueve puntos, vive en `docs/structure.md` §9 ("Contrato de entendimiento") y se lee
+  El contrato completo, con sus diez puntos (el 10, la Cifra, del 10-nov), vive en `docs/structure.md` §9 ("Contrato de entendimiento") y se lee
   antes de tocar una pantalla. Lo que pidió gerencia en el weekly (`docs/hub.md` §0) decide qué va arriba.
 
 **Arquitectura**

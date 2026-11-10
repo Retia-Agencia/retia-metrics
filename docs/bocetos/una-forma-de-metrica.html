@@ -1,0 +1,931 @@
+<title>Una forma de métrica</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: marco negro de Tinta a la izquierda (arriba en celular), hoja gris con bloques blancos; una vista por hash; panel lateral de explicación. */
+:root{
+  --marco:#0a0a0a; --marco-fg:#ededed; --marco-lila:#b57bff;
+  --bg:#f6f4f9; --card:#ffffff; --fg:#0a0a0a; --muted:#6b6b6b; --border:#e5e5e5;
+  --marca:#820ad1; --marca-texto:#820ad1; --marca-suave:#f3e8fc;
+  --exito:#15803d; --exito-suave:#dcfce7; --alerta:#b45309; --alerta-suave:#fef3c7;
+  --peligro:#b91c1c; --peligro-suave:#fee2e2; --info:#1d4ed8; --info-suave:#dbeafe;
+  --neutro:#525252; --neutro-suave:#f0eef3; --ejemplo:#7c2d12; --ejemplo-suave:#ffedd5;
+  --sombra:0 1px 2px rgba(10,10,10,.06),0 1px 3px rgba(10,10,10,.08);
+  --flota:0 10px 30px rgba(10,10,10,.18);
+  --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --marco:#050505; --bg:#0a0a0a; --card:#141414; --fg:#ededed; --muted:#a3a3a3; --border:rgba(255,255,255,.08);
+  --marca:#b57bff; --marca-texto:#c9a3ff; --marca-suave:rgba(181,123,255,.14);
+  --exito:#4ade80; --exito-suave:rgba(74,222,128,.14); --alerta:#fbbf24; --alerta-suave:rgba(251,191,36,.14);
+  --peligro:#f87171; --peligro-suave:rgba(248,113,113,.14); --info:#93c5fd; --info-suave:rgba(147,197,253,.14);
+  --neutro:#a3a3a3; --neutro-suave:rgba(255,255,255,.06); --ejemplo:#fdba74; --ejemplo-suave:rgba(253,186,116,.12);
+  --sombra:0 0 0 1px rgba(255,255,255,.06); --flota:0 10px 30px rgba(0,0,0,.6); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --marco:#050505; --bg:#0a0a0a; --card:#141414; --fg:#ededed; --muted:#a3a3a3; --border:rgba(255,255,255,.08);
+  --marca:#b57bff; --marca-texto:#c9a3ff; --marca-suave:rgba(181,123,255,.14);
+  --exito:#4ade80; --exito-suave:rgba(74,222,128,.14); --alerta:#fbbf24; --alerta-suave:rgba(251,191,36,.14);
+  --peligro:#f87171; --peligro-suave:rgba(248,113,113,.14); --info:#93c5fd; --info-suave:rgba(147,197,253,.14);
+  --neutro:#a3a3a3; --neutro-suave:rgba(255,255,255,.06); --ejemplo:#fdba74; --ejemplo-suave:rgba(253,186,116,.12);
+  --sombra:0 0 0 1px rgba(255,255,255,.06); --flota:0 10px 30px rgba(0,0,0,.6); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:14px;line-height:1.5;margin:0}
+.cifra{font-family:var(--mono);font-variant-numeric:tabular-nums}
+a{color:var(--marca-texto)}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--marca);outline-offset:2px;border-radius:6px}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.marco{background:var(--marco);color:var(--marco-fg);padding:20px 14px;display:flex;flex-direction:column;gap:18px}
+.firma{font-weight:700;letter-spacing:.02em}.firma span{color:var(--marco-lila)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav small{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a8a8a;padding:10px 10px 4px}
+.nav a{color:var(--marco-fg);text-decoration:none;padding:7px 10px;border-radius:8px;transition:background-color .15s}
+.nav a:hover{background:rgba(255,255,255,.06)}
+.nav a[aria-current="page"]{background:rgba(181,123,255,.16);color:#fff}
+.marco p{font-size:12px;color:#8a8a8a;margin:0}
+.hoja{min-width:0;padding-block:24px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hoja-int{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.cinta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;background:var(--ejemplo-suave);color:var(--ejemplo);border-radius:8px;padding:8px 12px;font-size:13px}
+h1{font-size:18px;font-weight:600;margin:0;text-wrap:balance}
+h2{font-size:16px;font-weight:600;margin:0;text-wrap:balance}
+h3{font-size:12px;font-weight:600;margin:0;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.sub{color:var(--muted);margin:2px 0 0;max-width:72ch}
+.tarjeta{background:var(--card);border-radius:12px;box-shadow:var(--sombra);padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.fila{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.entre{justify-content:space-between}
+.grid{display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:1px 8px;font-size:12px;font-weight:500;white-space:nowrap}
+.b-exito{background:var(--exito-suave);color:var(--exito)}.b-alerta{background:var(--alerta-suave);color:var(--alerta)}
+.b-peligro{background:var(--peligro-suave);color:var(--peligro)}.b-info{background:var(--info-suave);color:var(--info)}
+.b-neutro{background:var(--neutro-suave);color:var(--neutro)}.b-marca{background:var(--marca-suave);color:var(--marca-texto)}
+.b-ejemplo{background:var(--ejemplo-suave);color:var(--ejemplo)}
+.punto{width:8px;height:8px;border-radius:999px;display:inline-block;flex:none}
+.p-exito{background:var(--exito)}.p-alerta{background:var(--alerta)}.p-peligro{background:var(--peligro)}
+.muted{color:var(--muted)}.xs{font-size:12px}
+/* La pieza: Cifra. Rótulo arriba, valor, barra rotulada, una línea de lectura. Nada más a la vista. */
+.cifra-pieza{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;background:var(--card);box-shadow:var(--sombra);border:1px solid transparent;transition:border-color .15s,background-color .15s;min-width:0}
+.cifra-pieza:hover{border-color:var(--marca)}
+.cifra-pieza:focus-visible{outline:2px solid var(--marca);outline-offset:2px}
+.rotulo{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:13px}
+.rotulo .nombre{font-weight:500}
+.rotulo .uni{color:var(--muted)}
+.valor{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:26px;font-weight:600;line-height:1.1}
+.valor .de{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--muted);margin-left:6px}
+.linea{font-size:12px;color:var(--muted)}
+.linea b{font-family:var(--mono);font-weight:500;color:var(--fg)}
+.vacio{color:var(--muted)}
+.barra-caja{position:relative;padding-bottom:18px}
+.barra{position:relative;height:10px;border-radius:999px;background:var(--neutro-suave);overflow:hidden;display:flex}
+.barra .lleno{height:100%}
+.barra .hueco{height:100%}
+.barra-caja .marca{position:absolute;top:-3px;width:2px;height:16px;background:var(--fg);opacity:.55;border-radius:1px}
+.barra-caja .etq{position:absolute;top:15px;transform:translateX(-50%);font-size:11px;color:var(--muted);white-space:nowrap}
+.raya-alerta{background:repeating-linear-gradient(45deg,var(--alerta) 0 3px,var(--alerta-suave) 3px 6px)}
+.raya-peligro{background:repeating-linear-gradient(45deg,var(--peligro) 0 3px,var(--peligro-suave) 3px 6px)}
+.raya-exito{background:repeating-linear-gradient(45deg,var(--exito) 0 3px,var(--exito-suave) 3px 6px)}
+.ver{font-size:12px;color:var(--marca-texto);opacity:0;transition:opacity .15s}
+.cifra-pieza:hover .ver,.cifra-pieza:focus-visible .ver{opacity:1}
+/* Controles */
+.seg{display:inline-flex;background:var(--neutro-suave);border-radius:8px;padding:2px}
+.seg button{border:0;background:transparent;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:13px;transition:background-color .15s}
+.seg button[aria-pressed="true"]{background:var(--card);box-shadow:var(--sombra);font-weight:500}
+.seg button:hover{background:var(--card)}
+.chip{border:1px solid var(--border);background:var(--card);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer;transition:background-color .15s}
+.chip:hover{background:var(--marca-suave)}
+.chip[aria-pressed="true"]{border-color:var(--marca);color:var(--marca-texto)}
+.filtros{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end}
+.filtros label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}
+.filtros select,.filtros input{border:1px solid var(--border);background:var(--card);border-radius:8px;padding:5px 8px;font-size:13px;color:var(--fg);min-width:0}
+/* Tabla */
+.tabla-scroll{overflow-x:auto;border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:8px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--border)}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
+thead th{font-size:12px;font-weight:500;color:var(--muted)}
+th.total,td.total{background:var(--marca-suave)}
+td.total .celda{font-weight:600}
+tr.grupo td{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-top:14px;background:var(--card)}
+tr.sub td:first-child{padding-left:24px;color:var(--muted)}
+.celda{all:unset;cursor:pointer;display:inline-flex;flex-direction:column;align-items:flex-end;gap:1px;padding:2px 4px;border-radius:6px;font-family:var(--mono);font-variant-numeric:tabular-nums;transition:background-color .15s}
+.celda:hover{background:var(--marca-suave)}
+.celda:focus-visible{outline:2px solid var(--marca)}
+.celda .v{display:inline-flex;align-items:center;gap:6px}
+.celda .d{font-size:11px;color:var(--muted)}
+/* Panel de explicación */
+.velo{position:fixed;inset:0;background:rgba(10,10,10,.35);z-index:20}
+.panel{position:fixed;top:0;right:0;bottom:0;width:min(480px,100%);background:var(--card);box-shadow:var(--flota);z-index:21;overflow-y:auto;padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) 20px}
+.panel .cerrar{float:right;border:0;background:var(--neutro-suave);border-radius:8px;padding:4px 10px;cursor:pointer}
+.ex{display:flex;flex-direction:column;gap:18px}
+.ex section{display:flex;flex-direction:column;gap:8px}
+.ex .que{margin:0;font-size:14px}
+.mate{background:var(--neutro-suave);border-radius:8px;padding:14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:14px}
+.mate .mi{font-weight:600}
+.mate .eq{font-weight:600;color:var(--muted)}
+.frac{display:inline-flex;flex-direction:column;align-items:center;text-align:center}
+.frac .num{padding:0 8px 4px;border-bottom:1.5px solid var(--fg)}
+.frac .den{padding:4px 8px 0}
+.sust{margin:0;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.sust b{color:var(--fg)}
+dl.vars{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr);gap:6px 12px;margin:0;font-size:13px}
+dl.vars dt{font-weight:500}
+dl.vars dd{margin:0;color:var(--muted)}
+ul.lectura{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+ul.lectura li{display:grid;grid-template-columns:minmax(0,120px) minmax(0,1fr);gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
+ul.lectura li b{font-family:var(--mono);font-weight:500}
+ul.lectura li span{color:var(--muted)}
+ul.lista{list-style:none;margin:0;padding:0}
+ul.lista li{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+ul.lista li span:last-child{font-family:var(--mono);text-align:right}
+.btn{border:0;background:var(--marca);color:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:500;text-align:center;text-decoration:none;display:block}
+:root[data-theme="dark"] .btn{color:#0a0a0a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .btn{color:#0a0a0a}}
+/* Documentación del boceto */
+pre{background:var(--neutro-suave);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12px;overflow-x:auto;margin:0}
+.tabla-doc td,.tabla-doc th{text-align:left;white-space:normal;vertical-align:top}
+.tabla-doc td:first-child,.tabla-doc th:first-child{position:static}
+.tabla-doc{min-width:760px}
+code{font-family:var(--mono);font-size:12px;background:var(--neutro-suave);padding:0 4px;border-radius:4px}
+.ciclo{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ciclo .paso{border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--card);font-size:13px}
+.ciclo .paso.nuevo{border-color:var(--marca);color:var(--marca-texto)}
+.ciclo .flecha{color:var(--muted)}
+.dos-col{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+#grafica{width:100%;height:320px}
+@media (max-width:900px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:1fr}.dos-col{grid-template-columns:1fr}}
+@media (max-width:720px){.app{grid-template-columns:1fr}.marco{padding:12px max(16px,env(safe-area-inset-left,0px));gap:8px}.nav{flex-direction:row;flex-wrap:wrap}.nav small,.marco p{display:none}.g2{grid-template-columns:1fr}}
+@media (max-width:420px){.g4{grid-template-columns:1fr}ul.lectura li{grid-template-columns:1fr;gap:2px}dl.vars{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="app">
+  <aside class="marco" aria-label="Navegación del boceto">
+    <div class="firma">Retia <span>CRM</span> · boceto</div>
+    <nav class="nav">
+      <small>La propuesta</small>
+      <a href="#forma">La forma de una métrica</a>
+      <small>Hub › Pauta</small>
+      <a href="#resultados">Resultados</a>
+      <a href="#calidad">Origen y calidad</a>
+      <small>Para decidir</small>
+      <a href="#cobertura">Lo que pidió cada uno</a>
+      <a href="#bloques">Los nueve bloques</a>
+      <a href="#decisiones">Decisiones</a>
+    </nav>
+    <p>Versión 2 · 10 nov. Boceto para aprobación: nada de esto es código de producción.</p>
+  </aside>
+
+  <main class="hoja"><div class="hoja-int">
+    <div class="cinta" role="note"><span class="badge b-ejemplo">Datos de ejemplo</span><span>Todas las cifras son inventadas para mostrar la forma; ninguna sale del CRM. Las fórmulas sí son las vigentes.</span></div>
+
+    <!-- Filtros compartidos por Resultados y Origen y calidad -->
+    <div id="zona-filtros" class="grid" hidden>
+      <div class="fila entre" style="align-items:flex-end">
+        <div><h1 id="titulo-pauta">Hub › Pauta</h1><p class="sub" id="sub-pauta"></p></div>
+        <div class="seg" role="group" aria-label="Vista de Pauta"><button data-ir="resultados">Resultados</button><button data-ir="calidad">Origen y calidad</button></div>
+      </div>
+      <div class="tarjeta" style="gap:8px">
+        <div class="filtros" aria-label="Filtros">
+          <label>Programa<select id="f-programa"><option value="ca">Comunicarte</option><option value="ti">Tactical Investor</option></select></label>
+          <label>Cohorte<select id="f-cohorte"><option value="c6">C6 · en venta</option><option value="c5">C5 · cerrada</option></select></label>
+          <label>Periodo<select id="f-periodo"><option value="cohorte">Desde que abrió la cohorte</option><option value="7">Últimos 7 días</option><option value="14">Últimos 14 días</option><option value="28">Últimos 28 días</option><option value="rango">Elegir fechas…</option></select></label>
+          <label id="f-rango" hidden>Del · al<span class="fila" style="gap:4px"><input type="date" id="f-desde" value="2026-10-12"><input type="date" id="f-hasta" value="2026-11-10"></span></label>
+          <label>Comparar con<select id="f-comparar"><option value="nada">Nada</option><option value="anterior">El periodo anterior</option><option value="cohorte">C5 al mismo día de venta</option></select></label>
+          <label>Ver solo<select id="f-corte">
+            <option value="todo">Todo el programa</option>
+            <optgroup label="Cuenta de Meta"><option value="Cuenta · Rosario">Rosario</option><option value="Cuenta · Milena">Milena</option></optgroup>
+            <optgroup label="Canal"><option value="Canal · Instagram">Instagram</option><option value="Canal · Facebook">Facebook</option></optgroup>
+            <optgroup label="Campaña"><option value="Campaña · Video testimonio">Agenda · Video testimonio</option><option value="Campaña · Carrusel método">Agenda · Carrusel método</option></optgroup>
+            <optgroup label="Conjunto"><option value="Conjunto · Mujeres 30-45">Mujeres 30-45</option></optgroup>
+            <optgroup label="Anuncio"><option value="Anuncio · Testimonio Ana 30s">Testimonio Ana 30s</option></optgroup>
+          </select></label>
+        </div>
+        <p class="xs muted" id="filtros-resumen" style="margin:0"></p>
+      </div>
+    </div>
+
+    <!-- ===================== LA FORMA ===================== -->
+    <section id="v-forma" data-vista="forma" class="grid" hidden>
+      <div><h1>Una métrica, una forma</h1>
+      <p class="sub">Una sola pieza, la Cifra, igual en todo el Hub. A la vista lleva solo lo necesario para leerla en un segundo; todo lo demás (la fórmula, qué es cada número, cada etiqueta, los filtros y la lista) aparece al hacer clic.</p></div>
+
+      <div class="tarjeta">
+        <h2>La tarjeta y lo que abre</h2>
+        <div class="dos-col">
+          <div class="grid" style="gap:8px"><div id="demo-tarjeta"></div><p class="xs muted">Cada número tiene su rótulo: «de 900» es la meta y «a hoy 558» marca lo que deberíamos llevar. Lo rayado es el atraso. Clic en la tarjeta para abrirla como en la app.</p></div>
+          <div class="tarjeta" style="box-shadow:none;border:1px solid var(--border)" id="demo-explica"></div>
+        </div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Tres tamaños, la misma pieza</h2>
+        <p class="sub">Tarjeta para lo principal de un bloque, barra para el cumplimiento y celda dentro de una tabla. Las tres abren la misma explicación.</p>
+        <div class="grid g3" id="densidades"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Los casos raros, resueltos una vez</h2>
+        <p class="sub">Hoy cada bloque los resuelve a su manera. Con la Cifra salen siempre igual, y al abrirlos dicen qué significan.</p>
+        <div class="grid g4" id="bordes"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Una escala de estado</h2>
+        <div class="tabla-scroll"><table class="tabla-doc">
+          <thead><tr><th>Estado</th><th>Metas de cantidad (agendas, ventas, plata): contra lo que deberíamos llevar a hoy</th><th>Costos y tasas: contra el objetivo que cargan Pauta o Gerencia</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge b-exito"><span class="punto p-exito"></span>En meta</span></td><td>llevamos 100 % o más de lo esperado</td><td>cumple el objetivo</td></tr>
+            <tr><td><span class="badge b-alerta"><span class="punto p-alerta"></span>En seguimiento</span></td><td>entre 65 % y 100 %</td><td>entre el objetivo y lo aceptable</td></tr>
+            <tr><td><span class="badge b-peligro"><span class="punto p-peligro"></span>Rezagado</span></td><td>menos de 65 %</td><td>peor que lo aceptable</td></tr>
+          </tbody></table></div>
+        <p class="xs muted">Sin objetivo cargado no hay color. El color es solo del estado: el cambio contra otro periodo va siempre en gris.</p>
+      </div>
+
+      <div class="tarjeta">
+        <h2>Para construirla</h2>
+        <p class="sub">Especificación para discutir. Lo arma el servidor; la pantalla solo la pinta, así la explicación y la cifra no se pueden separar.</p>
+<pre>CifraDeMetrica {
+  concepto      // clave del registro de métricas: de ahí salen nombre, "qué mide", fórmula y variables
+  universo      // "paid" | "todas"
+  valor         // número | null  (null = "—", siempre con motivo en palabras)
+  unidad        // conteo | COP | USD | porcentaje | veces
+  partes?       // [numerador, denominador] con los que se calculó: para "con los números de esta cifra"
+  periodo       // texto del periodo y los filtros con que se calculó
+  cobertura     // { completa } | { parcial, motivo }
+  enCurso?      // el periodo no ha cerrado
+  comparacion?  // { referencia, valor }   (solo si se pidió comparar)
+  estado?       // { tono, fuente: "esperado" | "objetivo", umbrales }
+  avance?       // { llevamos, meta, esperado, fraccionDeTiempo }
+  lista         // la lista detrás de la cifra; sin lista, la cifra no se muestra
+}</pre>
+      </div>
+    </section>
+
+    <!-- ===================== RESULTADOS ===================== -->
+    <section id="v-resultados" data-vista="resultados" class="grid" hidden>
+      <div class="tarjeta">
+        <div class="fila entre">
+          <div><h2>¿Vamos a llegar a la meta de la cohorte?</h2>
+          <p class="sub">Solo cambia con la cohorte: el periodo y los demás filtros no la mueven.</p></div>
+          <div class="seg" role="group" aria-label="Ver en"><button data-unidad="cupos" aria-pressed="true">Cupos</button><button data-unidad="plata" aria-pressed="false">Plata</button></div>
+        </div>
+        <div class="grid g4" id="cumplimiento"></div>
+        <div class="grid g3" id="ritmo"></div>
+      </div>
+
+      <div class="tarjeta">
+        <div><h2>¿Cómo va el costo por agenda hoy?</h2><p class="sub">Hoy hasta las 3 p. m. Siempre es de hoy, sin importar el periodo elegido.</p></div>
+        <div class="grid g4" id="hoy"></div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="fila entre">
+          <div><h2 id="titulo-tabla">¿Qué semana rindió mejor?</h2><p class="sub">Las filas del Excel y de la imagen KPI, en sus tres bloques. Cualquier celda se abre.</p></div>
+          <div class="fila">
+            <div class="seg" role="group" aria-label="Paso"><button aria-pressed="true" data-paso="semana">Por semana</button><button aria-pressed="false" data-paso="dia">Por día</button></div>
+            <div class="seg" role="group" aria-label="Detalle"><button aria-pressed="true" data-detalle="total">Total</button><button aria-pressed="false" data-detalle="cuenta">Por cuenta</button></div>
+            <button class="chip" id="t-cambio" aria-pressed="true">Cambio contra la semana anterior</button>
+            <button class="chip">Descargar CSV</button>
+          </div>
+        </div>
+        <p class="xs muted" id="leyenda-tabla" style="margin:0"></p>
+        <div class="tabla-scroll"><table id="tabla"></table></div>
+      </div>
+
+      <div class="tarjeta">
+        <div class="fila entre">
+          <div><h2>¿Cómo se mueve día a día? <span class="xs muted" style="font-weight:400">· meta: <span class="cifra">22,2</span> agendas por día</span></h2>
+          <p class="sub">Pasa el mouse para ver cada día; clic en un punto para abrir esa cifra; clic en la leyenda para prender o apagar una serie; arrastra abajo para acercar.</p></div>
+          <div class="fila">
+            <div class="seg" role="group" aria-label="Unidad"><button data-gu="mixto" aria-pressed="true">Inversión y agendas</button><button data-gu="cupos" aria-pressed="false">Cupos</button><button data-gu="plata" aria-pressed="false">Plata</button></div>
+            <div class="seg" role="group" aria-label="Paso de la gráfica"><button data-gp="dia" aria-pressed="true">Día</button><button data-gp="semana" aria-pressed="false">Semana</button></div>
+            <div class="seg" role="group" aria-label="Forma"><button data-gf="paso" aria-pressed="true">Por paso</button><button data-gf="acum" aria-pressed="false">Acumulado</button></div>
+          </div>
+        </div>
+        <div id="grafica" role="img" aria-label="Gráfica interactiva de ejemplo"></div>
+        <div class="fila entre"><span class="xs muted">Datos de Meta de hace 14 min · ejemplo</span><button class="chip" id="t-tabla-graf" aria-pressed="false">Ver como tabla</button></div>
+        <div class="tabla-scroll" id="tabla-graf" hidden></div>
+      </div>
+
+      <div class="tarjeta">
+        <div><h2>¿Qué ROAS esperamos cuando ocurran las citas que faltan?</h2><p class="sub">El ROAS de hoy es parcial mientras haya citas pendientes; el proyectado estima cuánto subirá.</p></div>
+        <div class="grid g4" id="proyectado"></div>
+      </div>
+    </section>
+
+    <!-- ===================== CALIDAD ===================== -->
+    <section id="v-calidad" data-vista="calidad" class="grid" hidden>
+      <div class="tarjeta">
+        <div class="fila entre">
+          <div><h2>¿Qué trae ventas?</h2><p class="sub">Inversión, agendas y ventas por origen. «Revisar» marca lo que gastó sin traer agendas.</p></div>
+          <div class="seg" role="group" aria-label="Ver por"><button data-verpor="cuenta">Cuenta</button><button data-verpor="canal">Canal</button><button data-verpor="campana" aria-pressed="true">Campaña</button><button data-verpor="anuncio">Anuncio</button></div>
+        </div>
+        <div class="tabla-scroll"><table id="tabla-origen"></table></div>
+      </div>
+      <div class="grid g2">
+        <div class="tarjeta">
+          <div><h2>¿Qué llega sin origen?</h2><p class="sub">Lo que no se puede atribuir a un anuncio. Es la lista para corregir los enlaces.</p></div>
+          <div class="grid g2" id="traza"></div>
+          <ul class="lista" id="traza-lista"></ul>
+        </div>
+        <div class="tarjeta">
+          <div><h2>¿Dónde se va la gente del formulario?</h2><p class="sub">Cada paso y, debajo, la pregunta que más pierde.</p></div>
+          <div id="embudo"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== COBERTURA ===================== -->
+    <section id="v-cobertura" data-vista="cobertura" class="grid" hidden>
+      <div><h1>Lo que pidió cada uno, y dónde quedó</h1>
+      <p class="sub">Cruce de la reunión con Paid Media (7 nov), el weekly con Daniel Tovar (3 nov), los Excel de pauta, el diario de 30X y la imagen KPI contra este boceto.</p></div>
+      <div class="grid g4" id="cobertura-resumen"></div>
+      <div class="tarjeta"><div class="tabla-scroll"><table class="tabla-doc" id="tabla-cobertura"></table></div></div>
+    </section>
+
+    <!-- ===================== BLOQUES ===================== -->
+    <section id="v-bloques" data-vista="bloques" class="grid" hidden>
+      <div><h1>Qué pasa con los bloques de Pauta</h1>
+      <p class="sub">Hoy la pestaña pinta nueve bloques en una sola pantalla (el documento del 10 nov dice ocho porque cuenta los dos embudos como uno).</p></div>
+      <div class="tarjeta"><div class="tabla-scroll"><table class="tabla-doc" id="tabla-bloques"></table></div></div>
+      <div class="tarjeta">
+        <h2>Resultado</h2>
+        <p class="sub">De nueve bloques en una pantalla a cinco en Resultados (cumplimiento, hoy, tabla, gráfica, ROAS proyectado) y tres en Origen y calidad (qué trae ventas, qué llega sin origen, embudo). Ninguna cifra desaparece; lo que se quita es la repetición.</p>
+      </div>
+    </section>
+
+    <!-- ===================== DECISIONES ===================== -->
+    <section id="v-decisiones" data-vista="decisiones" class="grid" hidden>
+      <div><h1>Decisiones</h1><p class="sub">Con tus respuestas del 10 nov. Lo aprobado queda para escribirse en el diccionario y el sistema de diseño en el mismo cambio que lo construya.</p></div>
+      <div class="tarjeta"><div class="tabla-scroll"><table class="tabla-doc" id="tabla-decisiones"></table></div></div>
+
+      <div class="tarjeta">
+        <h2>DM-8 · Agenda, cita confirmada y llamada: una sola cosa con estados</h2>
+        <p class="sub">Recomendación. Hoy «agenda», «cita», «llamada» y «agendas del día» se usan como si fueran cosas distintas, y el Excel no cuadra con ninguna de las tres que mide el CRM. Propuesta: existe un solo objeto, la <b>cita</b>, que pasa por estados.</p>
+        <div class="ciclo" aria-label="Estados de una cita">
+          <span class="paso">Agendada</span><span class="flecha">→</span>
+          <span class="paso nuevo">Confirmada (nuevo)</span><span class="flecha">→</span>
+          <span class="paso">Realizada</span><span class="flecha">o</span>
+          <span class="paso">No asistió</span><span class="flecha">·</span>
+          <span class="paso">Reagendada</span><span class="flecha">·</span>
+          <span class="paso">Cancelada</span>
+        </div>
+        <div class="tabla-scroll"><table class="tabla-doc">
+          <thead><tr><th>Métrica</th><th>Qué cuenta</th><th>Con qué fecha</th><th>Quién la usa</th></tr></thead>
+          <tbody>
+            <tr><td><b>Agendadas</b></td><td>Citas creadas</td><td>El día en que el lead reservó</td><td>Pauta: es lo que compra la inversión (costo por agenda)</td></tr>
+            <tr><td><b>Citas del día</b></td><td>Citas programadas para ese día</td><td>El día de la llamada</td><td>Comercial: la carga del día de cada closer</td></tr>
+            <tr><td><b>Confirmadas</b></td><td>De las citas del día, las que el lead confirmó</td><td>El día de la llamada</td><td>Comercial: el closer marca «confirmó» cuando el lead dice que va</td></tr>
+            <tr><td><b>Realizadas</b></td><td>De las citas del día, las que ocurrieron</td><td>El día de la llamada</td><td>Las dos: base del % de show y del cierre</td></tr>
+            <tr><td><b>Agendas según Meta</b></td><td>Lo que reporta el pixel</td><td>El día en que Meta la vio</td><td>Pauta, solo para revisar la medición, nunca como dato de negocio</td></tr>
+          </tbody></table></div>
+        <p class="xs muted">Consecuencia: «llamada» deja de ser una métrica (una llamada es una cita realizada) y por eso el número del día nunca cuadra: las 30 agendadas hoy y las 8 realizadas hoy son citas distintas, porque las de hoy se reservaron días antes. Para el Excel, «Agendas del día» = Agendadas y «Llamadas realizadas» = Realizadas. Falta que Michael y Paid Media confirmen que eso es lo que querían decir; si sí, se escribe en el vocabulario y en el diccionario, y «Confirmada» entra al pipeline comercial como estado nuevo de la cita.</p>
+      </div>
+    </section>
+  </div></main>
+</div>
+
+<div class="velo" id="velo" hidden></div>
+<aside class="panel" id="panel" role="dialog" aria-modal="true" aria-labelledby="panel-titulo" hidden></aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const fmtN=(n,d=0)=>Number(n).toLocaleString("es-CO",{minimumFractionDigits:d,maximumFractionDigits:d});
+const FMT={
+  COP:v=>"COP "+fmtN(Math.round(v)),
+  USD:v=>"USD "+fmtN(v,2),
+  conteo:v=>fmtN(Math.round(v)),
+  dec:v=>fmtN(v,1),
+  porcentaje:v=>fmtN(v*100,1)+" %",
+  veces:v=>fmtN(v,1)+"×",
+  razon:v=>fmtN(v,2)
+};
+const fmt=(u,v)=>(v===null||v===undefined||Number.isNaN(v))?"—":FMT[u](v);
+function cambioTxt(u,a,b){
+  if(a==null||b==null) return "—";
+  const d=a-b, s=d>0?"+":d<0?"−":"";
+  if(u==="porcentaje") return s+fmtN(Math.abs(d)*100,1)+" puntos";
+  const abs=u==="COP"?fmtN(Math.abs(Math.round(d))):u==="USD"?fmtN(Math.abs(d),2):u==="veces"||u==="dec"?fmtN(Math.abs(d),1):u==="razon"?fmtN(Math.abs(d),2):fmtN(Math.abs(Math.round(d)));
+  const pct=b===0?"—":s+fmtN(Math.abs(d/b)*100,0)+" %";
+  return `${s}${abs} (${pct})`;
+}
+function cambioCon(f,a,b){const d=a-b,s=d>0?"+":d<0?"−":"";return `${s}${f(Math.abs(d))} (${b===0?"—":s+fmtN(Math.abs(d/b)*100,0)+" %"})`;}
+const TONO={exito:["b-exito","p-exito","En meta"],alerta:["b-alerta","p-alerta","En seguimiento"],peligro:["b-peligro","p-peligro","Rezagado"]};
+
+/* ---------- Definiciones en palabras (traza a docs/metricas.md y paid-media-2026-11-09.md §3; no se muestra) ---------- */
+const DEF={
+  inversion:{n:"Inversión",u:"COP",uni:"paid",lista:"gasto",que:"Lo que se gastó en anuncios de Meta, sumando todas las cuentas del programa.",
+    f:{suma:["Inversión","gasto de cada día en Meta"]},vars:[["Gasto de cada día","Lo que Meta reporta como gastado ese día, en pesos. Entran todas las campañas: agenda, lanzamiento y otras."]]},
+  presupuesto:{n:"Presupuesto usado",u:"COP",uni:"paid",lista:"gasto",que:"Cuánto de la inversión planeada para la cohorte ya se gastó.",
+    f:{suma:["Presupuesto usado","gasto de cada día desde que abrió la venta de la cohorte"]},vars:[["Inversión planeada","El presupuesto de la cohorte. Lo cargan Pauta o Gerencia en Programa › Objetivos."]]},
+  agendas:{n:"Agendadas",u:"conteo",uni:"paid",lista:"citas_creadas",que:"Cuántas citas se reservaron, de personas que llegaron por anuncios.",
+    f:{conteo:["Agendadas","citas reservadas en el periodo por personas de pauta"]},vars:[["Cita reservada","La llamada que el lead apartó en el calendario. Cuenta el día en que la reservó, no el día de la llamada."],["Persona de pauta","Llegó por el enlace de un anuncio pago."]]},
+  agendas_meta:{n:"Agendas según Meta",u:"conteo",uni:"paid",lista:"anuncios",que:"Las agendas que reporta el pixel de Meta. Sirven para revisar la medición, no como dato de negocio.",
+    f:{conteo:["Agendas según Meta","agendas que reporta el pixel de Meta"]},vars:[["Pixel de Meta","El código de Meta en la página de agenda. No siempre ve lo mismo que el CRM; la diferencia avisa que algo se está midiendo mal."]]},
+  costo_agenda_crm:{n:"Costo por agenda",u:"COP",uni:"paid",obj:true,lista:"citas_creadas",nu:"COP",du:"conteo",que:"Cuánto costó, en promedio, cada cita que trajo la pauta.",
+    f:{div:["Costo por agenda","Gasto en campañas de agenda","Agendadas de pauta"]},vars:[["Gasto en campañas de agenda","Solo las campañas cuyo objetivo es agendar. No entran lanzamientos ni tráfico a Instagram, que se muestran aparte como «otras campañas»."],["Agendadas de pauta","Citas reservadas en el periodo por personas que llegaron por anuncios, contadas en el CRM."]]},
+  costo_agenda_meta:{n:"Costo por agenda según Meta",u:"COP",uni:"paid",lista:"anuncios",nu:"COP",du:"conteo",que:"El mismo costo por agenda, pero dividiendo por las agendas que ve Meta en vez de las del CRM.",
+    f:{div:["Costo por agenda según Meta","Gasto en campañas de agenda","Agendas según Meta"]},vars:[["Agendas según Meta","Las que reporta el pixel. Si difiere mucho del costo por agenda del CRM, la medición tiene un problema."]]},
+  cac:{n:"Costo por venta",u:"COP",uni:"paid",obj:true,lista:"ventas",nu:"COP",du:"conteo",nueva:true,que:"Cuánto se invirtió en pauta por cada venta de pauta. También se le dice CAC.",
+    f:{div:["Costo por venta","Inversión","Ventas de pauta"]},vars:[["Inversión","Todo lo gastado en Meta en el periodo."],["Ventas de pauta","Deals de personas de pauta que pasaron a Abonado o Completo en el periodo."]]},
+  ventas:{n:"Ventas",u:"conteo",uni:"paid",lista:"ventas",que:"Cuántos deals de personas de pauta pasaron a Abonado o Completo.",
+    f:{conteo:["Ventas","deals en Abonado o Completo, por la fecha de la venta"]},vars:[["Abonado o Completo","El cliente ya pagó al menos un abono. Un deal en cualquier otra etapa no es venta."]]},
+  ventas_total:{n:"Ventas totales",u:"conteo",uni:"todas",lista:"ventas",que:"Todas las ventas de la cohorte, vengan de pauta, orgánico, referidos o sin origen.",
+    f:{conteo:["Ventas totales","deals de la cohorte en Abonado o Completo"]},vars:[["Abonado o Completo","El cliente ya pagó al menos un abono."]]},
+  facturacion:{n:"Facturación",u:"USD",uni:"paid",lista:"ventas",que:"Cuánto se vendió, en dólares: el valor pactado con el cliente, no lo que ya entró a caja.",
+    f:{suma:["Facturación","valor vendido de cada venta de pauta"]},vars:[["Valor vendido","El precio pactado, en USD. Lo ya pagado es «Recaudado» y lo que falta es «Por cobrar»."]]},
+  vendido_pauta:{n:"Vendido de pauta",u:"USD",uni:"paid",lista:"ventas",que:"El valor pactado de las ventas de pauta de la cohorte, en dólares.",
+    f:{suma:["Vendido de pauta","valor vendido de cada venta de pauta de la cohorte"]},vars:[["Valor vendido","El precio pactado, en USD; no lo que ya entró a caja."]]},
+  vendido_total:{n:"Vendido total",u:"USD",uni:"todas",lista:"ventas",que:"El valor pactado de todas las ventas de la cohorte, en dólares.",
+    f:{suma:["Vendido total","valor vendido de cada venta de la cohorte"]},vars:[["Valor vendido","El precio pactado, en USD; no lo que ya entró a caja."]]},
+  roas:{n:"ROAS",u:"veces",uni:"paid",obj:true,lista:"ventas",nu:"USD",du:"USD",que:"Cuántos dólares vendidos trajo cada dólar invertido.",
+    f:{div:["ROAS","Facturación de pauta","Inversión en dólares"]},vars:[["Facturación de pauta","El valor vendido de las ventas de pauta, en USD."],["Inversión en dólares","El gasto de cada día en pesos dividido por la tasa de cambio de ese día."],["A qué día va una venta","Al día en que la persona se registró, no al día de la venta: así el retorno queda con la inversión que la trajo."]]},
+  profit:{n:"Profit",u:"USD",uni:"paid",lista:"ventas",nu:"USD",du:"USD",que:"Lo vendido en pauta menos lo invertido, los dos en dólares.",
+    f:{resta:["Profit","Facturación de pauta","Inversión en dólares"]},vars:[["Inversión en dólares","El gasto de cada día en pesos dividido por la tasa de cambio de ese día."]]},
+  show:{n:"% de show",u:"porcentaje",uni:"paid",lista:"citas",nu:"conteo",du:"conteo",alias:"% de presentación a zoom",que:"De las citas que ya debían ocurrir, qué parte ocurrió.",
+    f:{div:["% de show","Citas realizadas","Citas del grupo"]},vars:[["Citas realizadas","El closer marcó que la llamada ocurrió."],["Citas del grupo","Las citas de pauta del periodo cuya hora ya pasó."]]},
+  cierre_ventas:{n:"Cierre de ventas",u:"porcentaje",uni:"paid",lista:"realizadas",nu:"conteo",du:"conteo",alias:"% de cierre zoom a cliente",que:"De las llamadas que ocurrieron, qué parte terminó en venta.",
+    f:{div:["Cierre de ventas","Ventas","Citas realizadas"]},vars:[["Ventas","De esas mismas citas, las que terminaron en Abonado o Completo."],["Citas realizadas","El closer marcó que la llamada ocurrió."]]},
+  agenda_venta:{n:"Agenda → venta",u:"porcentaje",uni:"paid",obj:true,lista:"citas_creadas",nu:"conteo",du:"conteo",alias:"% de cierre agenda a cliente",que:"De las citas reservadas, qué parte terminó en venta.",
+    f:{div:["Agenda → venta","Ventas","Agendadas"]},vars:[["Ventas","De esas mismas citas, las que terminaron en Abonado o Completo."],["Agendadas","Citas reservadas por personas de pauta."]]},
+  cpm:{n:"CPM",u:"COP",uni:"paid",lista:"anuncios",nu:"COP",du:"conteo",que:"Cuánto cuesta que Meta muestre los anuncios mil veces.",
+    f:{div:["CPM","Inversión","Impresiones"],x1000:true},vars:[["Impresiones","Veces que Meta mostró los anuncios."]]},
+  ctr:{n:"CTR",u:"porcentaje",uni:"paid",lista:"anuncios",nu:"conteo",du:"conteo",que:"De las veces que se mostró un anuncio, qué parte terminó en un clic al enlace.",
+    f:{div:["CTR","Clics al enlace","Impresiones"]},vars:[["Clics al enlace","Clics que llevan a la landing; no cuenta likes ni clics al perfil."]]},
+  llegada_landing:{n:"Llegada a la landing",u:"porcentaje",uni:"paid",lista:"anuncios",nu:"conteo",du:"conteo",que:"De los clics al enlace, qué parte terminó de cargar la página.",
+    f:{div:["Llegada a la landing","Vistas de la landing","Clics al enlace"]},vars:[["Vistas de la landing","Meta cuenta una cuando la página terminó de cargar. Un clic sin vista suele ser alguien que se fue antes."]]},
+  conversion_landing:{n:"Conversión de la landing",u:"porcentaje",uni:"paid",lista:"registros",nu:"conteo",du:"conteo",que:"De quienes vieron la página, qué parte se registró en el formulario.",
+    f:{div:["Conversión de la landing","Registros de pauta","Vistas de la landing"]},vars:[["Registros de pauta","Formularios enviados que llegaron al CRM desde anuncios."]]},
+  frecuencia:{n:"Frecuencia",u:"razon",uni:"paid",lista:"anuncios",nu:"conteo",du:"conteo",que:"Cuántas veces, en promedio, vio los anuncios cada persona.",
+    f:{div:["Frecuencia","Impresiones","Personas alcanzadas"]},vars:[["Personas alcanzadas","Personas distintas que vieron algún anuncio. Meta solo la da día por día; por eso en una semana sale «—»."]]},
+  agendas_dia:{n:"Agendas por día",u:"dec",uni:"paid",lista:"citas_creadas",nu:"conteo",du:"conteo",que:"Cuántas citas se reservan, en promedio, por día hábil de la cohorte.",
+    f:{div:["Agendas por día","Agendadas de la cohorte","Días hábiles transcurridos"]},vars:[["Días hábiles","De lunes a viernes; los festivos cuentan como hábiles."]]},
+  agendas_req:{n:"Agendas por día necesarias",u:"dec",uni:"paid",lista:"citas_creadas",nu:"conteo",du:"conteo",que:"Cuántas citas por día hacen falta, de hoy al cierre, para llegar a la meta.",
+    f:{div:["Agendas por día necesarias","Meta − Agendadas","Días hábiles que faltan"]},vars:[["Meta","La meta de agendas de la cohorte, en Programa › Objetivos."],["Días hábiles que faltan","De hoy al cierre de la venta de la cohorte, de lunes a viernes."]]},
+  inversion_req:{n:"Inversión por día necesaria",u:"COP",uni:"paid",lista:null,nu:"dec",du:"COP",que:"Cuánto habría que invertir por día para conseguir las agendas necesarias.",
+    f:{mult:["Inversión por día necesaria","Agendas por día necesarias","Costo por agenda"]},vars:[["Costo por agenda","Se calcula con dos: el objetivo de la cohorte (la cifra grande) y el promedio real de la cohorte (la línea de abajo)."]]},
+  roas_proy:{n:"ROAS proyectado",u:"veces",uni:"paid",lista:"citas",nu:"USD",du:"USD",que:"El ROAS que se espera cuando ocurran las citas de pauta que faltan.",
+    f:{div:["ROAS proyectado","Vendido a hoy + Valor esperado de las citas pendientes","Inversión en dólares"]},vars:[["Valor esperado de una cita","Probabilidad de que ocurra × probabilidad de que cierre × precio de la cohorte."],["Probabilidades","Las del closer dueño de la cita en las últimas 3 semanas. Si un closer tiene muy pocas citas, se usa la del programa."]]},
+  envios_sin_id:{n:"Registros de pauta sin anuncio",u:"conteo",uni:"paid",lista:"registros",que:"Registros que llegaron por un anuncio pago pero sin el dato de cuál anuncio fue. Sin ese dato no se sabe qué anuncio vendió.",
+    f:{conteo:["Registros de pauta sin anuncio","registros de pauta que llegaron sin el id del anuncio"]},vars:[["Id del anuncio","Lo agrega Meta al enlace si el anuncio usa la plantilla de enlaces de Retia."]]},
+  registros_sin_utm:{n:"Registros sin origen",u:"conteo",uni:"todas",lista:"registros",que:"Registros que llegaron sin decir de dónde vienen. No se pueden recuperar: se corrige el enlace hacia adelante.",
+    f:{conteo:["Registros sin origen","registros sin fuente ni medio en el enlace"]},vars:[["Origen","Lo que dice el enlace por el que llegó la persona: plataforma, tipo de tráfico y campaña."]]},
+  ventas_sin_anuncio:{n:"Ventas sin anuncio identificado",u:"conteo",uni:"paid",lista:"ventas",que:"Ventas de pauta en las que no se sabe qué anuncio trajo a la persona.",
+    f:{conteo:["Ventas sin anuncio identificado","ventas de pauta cuyo registro llegó sin id del anuncio"]},vars:[["Id del anuncio","Lo agrega Meta al enlace si el anuncio usa la plantilla de enlaces de Retia."]]},
+  embudo:{n:"Paso del formulario",u:"conteo",uni:"todas",lista:"registros",nu:"conteo",du:"conteo",que:"Cuántas personas llegaron a este paso del formulario.",
+    f:{div:["% que llega","Personas en este paso","Personas que abrieron el formulario"]},vars:[["Abrieron el formulario","Personas que cargaron la primera pregunta."]]}
+};
+const UMB={costo_agenda_crm:{meta:40000,acept:52000,menor:true},cac:{meta:450000,acept:600000,menor:true},roas:{meta:10,acept:5},agenda_venta:{meta:.10,acept:.06}}; // ejemplo: D-6 sin confirmar
+function estadoObj(k,v){
+  const m=UMB[k]; if(!m||v==null) return null;
+  const ok=m.menor?v<=m.meta:v>=m.meta, acep=m.menor?v<=m.acept:v>=m.acept;
+  return {tono:ok?"exito":acep?"alerta":"peligro",fuente:"objetivo",k};
+}
+function estadoEsp(llevamos,esperado){ const r=llevamos/esperado; return {tono:r>=1?"exito":r>=.65?"alerta":"peligro",fuente:"esperado",ratio:r}; }
+const badge=e=>e?`<span class="badge ${TONO[e.tono][0]}"><span class="punto ${TONO[e.tono][1]}"></span>${TONO[e.tono][2]}</span>`:"";
+
+/* ---------- Estado de filtros y datos de ejemplo ---------- */
+const F={programa:"ca",cohorte:"c6",periodo:"cohorte",comparar:"nada",corte:"todo"};
+const PROG={ca:"Comunicarte",ti:"Tactical Investor"};
+const PERIODO={cohorte:"12 oct a 10 nov",7:"4 a 10 nov",14:"28 oct a 10 nov",28:"14 oct a 10 nov",rango:""};
+const periodoTxt=()=>F.periodo==="rango"?`${$("#f-desde").value} a ${$("#f-hasta").value}`:PERIODO[F.periodo];
+const SEMANAS=["12–18 oct","19–25 oct","26 oct–1 nov","2–8 nov","9–15 nov"];
+const DIAS=Array.from({length:14},(_,i)=>{const d=new Date(Date.UTC(2026,9,28+i));return d.getUTCDate()+" "+["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][d.getUTCMonth()];});
+const div=(a,b)=>b?a/b:null;
+function derivar(c){
+  return Object.assign(c,{agendas_meta:c.agMeta,costo_agenda_crm:div(c.invAgenda,c.agendas),cac:div(c.inversion,c.ventas),roas:div(c.facturacion,c.invUsd),
+    profit:c.facturacion-c.invUsd,show:div(c.shows,c.citas),cierre_ventas:div(c.ventas,c.shows),agenda_venta:div(c.ventas,c.agendas),
+    cpm:c.impr?c.inversion/c.impr*1000:null,ctr:div(c.clics,c.impr),llegada_landing:div(c.vistas,c.clics),conversion_landing:div(c.regs,c.vistas),
+    costo_agenda_meta:div(c.invAgenda,c.agMeta),frecuencia:c.alcance?c.impr/c.alcance:null});
+}
+const RAW=["inversion","invAgenda","agendas","agMeta","ventas","facturacion","invUsd","citas","shows","impr","clics","vistas","regs"];
+function sumar(cols){const t={};RAW.forEach(k=>t[k]=cols.reduce((a,c)=>a+c[k],0));t.alcance=null;return derivar(t);}
+function escalar(c,f){const t={};RAW.forEach(k=>t[k]=["ventas","agendas","agMeta","citas","shows","impr","clics","vistas","regs"].includes(k)?Math.round(c[k]*f):c[k]*f);t.alcance=c.alcance?Math.round(c.alcance*f):null;return derivar(t);}
+function gen(n,dia,seed,esc){
+  let s=seed%233280; const r=()=>{s=(s*9301+49297)%233280;return s/233280;};
+  return Array.from({length:n},(_,i)=>{
+    const inv=(dia?520000:3600000)*(0.75+r()*0.5)*esc, ag=Math.round((dia?13:88)*(0.7+r()*0.6)*esc);
+    const agMeta=Math.round(ag*(0.78+r()*0.2)); let ventas=Math.max(0,Math.round((dia?0.9:6)*(0.4+r()*1.2)*esc));
+    if(dia&&i===n-1) ventas=0;
+    const fact=ventas*(1300+r()*400), trm=3900+r()*80, citas=Math.round(ag*(0.9+r()*0.15)), shows=Math.round(citas*(0.45+r()*0.2));
+    const impr=Math.round(inv/(12000+r()*3000)*1000), clics=Math.round(impr*(0.015+r()*0.01)), vistas=Math.round(clics*(0.85+r()*0.1)), regs=Math.round(vistas*(0.025+r()*0.015));
+    return derivar({inversion:inv,invAgenda:inv*0.92,agendas:ag,agMeta,ventas,facturacion:fact,invUsd:inv/trm,citas,shows,impr,clics,vistas,regs,alcance:dia?Math.round(impr/(1.6+r()*0.7)):null});
+  });
+}
+let DATOS;
+function recalcular(){
+  const semilla=[...JSON.stringify(F)].reduce((a,ch)=>(a*31+ch.charCodeAt(0))%233280,7);
+  const esc=F.corte==="todo"?1:0.45;
+  DATOS={semana:gen(5,false,semilla,esc),dia:gen(14,true,semilla+3,esc),antSemana:gen(5,false,semilla+11,esc),antDia:gen(14,true,semilla+13,esc)};
+}
+const PARTES={costo_agenda_crm:c=>[c.invAgenda,c.agendas],cac:c=>[c.inversion,c.ventas],roas:c=>[c.facturacion,c.invUsd],profit:c=>[c.facturacion,c.invUsd],
+  show:c=>[c.shows,c.citas],cierre_ventas:c=>[c.ventas,c.shows],agenda_venta:c=>[c.ventas,c.agendas],cpm:c=>[c.inversion,c.impr],ctr:c=>[c.clics,c.impr],
+  llegada_landing:c=>[c.vistas,c.clics],conversion_landing:c=>[c.regs,c.vistas],costo_agenda_meta:c=>[c.invAgenda,c.agMeta],frecuencia:c=>[c.impr,c.alcance]};
+
+/* ---------- Registro de contextos: cada cifra pintada guarda todo lo que su explicación necesita ---------- */
+const REG=new Map(); let nid=0;
+const reg=ctx=>{REG.set(++nid,ctx);return nid;};
+function completar(ctx){
+  const d=DEF[ctx.k]; ctx.u=ctx.u||d.u; ctx.uni=ctx.uni||d.uni; ctx.rotulo=ctx.rotulo||d.n; ctx.filtros=ctx.filtros||filtrosActuales(ctx.alcance);
+  if(ctx.col) ctx.filtros=ctx.filtros.map(f=>f[0]==="Periodo"?[ctx.col[0],ctx.col[1]]:f);
+  return ctx;
+}
+function filtrosActuales(alcance){
+  const f=[["Programa",PROG[F.programa]],["Cohorte",F.cohorte==="c6"?"C6":"C5"]];
+  if(alcance==="hoy") f.push(["Periodo","hoy hasta las 3 p. m."]);
+  else if(alcance!=="cohorte") f.push(["Periodo",periodoTxt()]);
+  if(alcance!=="cohorte"&&F.corte!=="todo") f.push(["Solo",F.corte]);
+  return f;
+}
+
+/* ---------- La pieza ---------- */
+function pieza(ctx){
+  completar(ctx); const id=reg(ctx), d=DEF[ctx.k];
+  const vacio=ctx.valor==null&&!ctx.textoValor;
+  const val=ctx.textoValor??(ctx.avance?ctx.avance.fmt(ctx.valor):fmt(ctx.u,ctx.valor));
+  let h=`<button class="cifra-pieza" data-c="${id}" aria-label="${ctx.rotulo}: ${val}. Abrir cómo se calcula">`;
+  h+=`<span class="rotulo"><span><span class="nombre">${ctx.rotulo}</span> <span class="uni">· ${ctx.uni==="paid"?"de pauta":"todas las áreas"}</span></span>${badge(ctx.estado)}</span>`;
+  h+=`<span class="valor ${vacio?"vacio":""}">${val}${ctx.avance?`<span class="de">de ${ctx.avance.fmt(ctx.avance.meta)}</span>`:""}</span>`;
+  if(ctx.avance){
+    const a=ctx.avance, pc=Math.min(1,a.llevamos/a.meta), pe=Math.min(1,a.esperado/a.meta), tono=ctx.estado?ctx.estado.tono:"marca";
+    const hueco=Math.max(0,pe-pc), etq=Math.min(.9,Math.max(.1,pe));
+    h+=`<span class="barra-caja"><span class="barra" aria-hidden="true"><span class="lleno" style="width:${pc*100}%;background:var(--${tono==="marca"?"marca":tono})"></span>${hueco?`<span class="hueco raya-${tono}" style="width:${hueco*100}%"></span>`:""}</span><span class="marca" style="left:calc(${pe*100}% - 1px)"></span><span class="etq" style="left:${etq*100}%">a hoy ${a.fmt(a.esperado)}</span></span>`;
+    const des=a.esperado-a.llevamos;
+    h+=`<span class="linea">${des>0?`Vamos <b>${a.fmt(des)}</b> atrás`:`Vamos <b>${a.fmt(-des)}</b> adelante`}</span>`;
+  }
+  if(ctx.linea) h+=`<span class="linea">${ctx.linea}</span>`;
+  if(ctx.comp&&F.comparar!=="nada") h+=`<span class="linea">${ctx.comp.ref}: <b>${ctx.avance?ctx.avance.fmt(ctx.comp.valor):fmt(ctx.u,ctx.comp.valor)}</b> · ${ctx.avance?cambioCon(ctx.avance.fmt,ctx.valor,ctx.comp.valor):cambioTxt(ctx.u,ctx.valor,ctx.comp.valor)}</span>`;
+  const tags=[];
+  if(ctx.cobertura) tags.push(`<span class="badge b-neutro">Parcial</span>`);
+  if(ctx.enCurso) tags.push(`<span class="badge b-neutro">En curso</span>`);
+  if(d.nueva) tags.push(`<span class="badge b-ejemplo">Por construir</span>`);
+  if(tags.length) h+=`<span class="fila">${tags.join("")}</span>`;
+  h+=`<span class="ver">Cómo se calcula →</span></button>`;
+  return h;
+}
+function celda(k,c,ant,opts={}){
+  const d=DEF[k], v=c?c[k]:null, e=estadoObj(k,v);
+  const ctx=completar({k,valor:v,partes:PARTES[k]&&c?PARTES[k](c):null,periodoTxt:opts.periodoTxt,col:opts.col,enCurso:opts.enCurso,
+    comp:opts.cambio&&ant&&v!=null?{ref:opts.refTxt,valor:ant[k],fija:true}:null,estado:e,
+    motivo:v==null?(k==="frecuencia"?"Meta solo da las personas alcanzadas día por día; en un periodo de varios días no se puede sumar.":k==="cac"&&c&&c.ventas===0?"No hubo ventas: no hay entre qué dividir.":"Falta uno de los números de la fórmula."):null,
+    cobertura:opts.parcial?{motivo:"Hay citas de esta semana que todavía no ocurren; la tasa puede cambiar cuando ocurran."}:null,
+    rotulo:opts.rotulo});
+  const id=reg(ctx), mostrar=opts.cambio&&ant&&v!=null&&ant[k]!=null;
+  return `<button class="celda" data-c="${id}"><span class="v ${v==null?"vacio":""}">${e?`<span class="punto ${TONO[e.tono][1]}" aria-label="${TONO[e.tono][2]}"></span>`:""}${fmt(d.u,v)}</span>${mostrar?`<span class="d">${cambioTxt(d.u,v,ant[k])}</span>`:""}</button>`;
+}
+
+/* ---------- La explicación ---------- */
+function formula(ctx){
+  const d=DEF[ctx.k], f=d.f; let h=`<div class="mate" role="math">`;
+  if(f.div) h+=`<span class="mi">${f.div[0]}</span><span class="eq">=</span><span class="frac"><span class="num">${f.div[1]}</span><span class="den">${f.div[2]}</span></span>${f.x1000?`<span class="eq">×</span><span class="cifra">1.000</span>`:""}`;
+  else if(f.resta) h+=`<span class="mi">${f.resta[0]}</span><span class="eq">=</span><span>${f.resta[1]}</span><span class="eq">−</span><span>${f.resta[2]}</span>`;
+  else if(f.mult) h+=`<span class="mi">${f.mult[0]}</span><span class="eq">=</span><span>${f.mult[1]}</span><span class="eq">×</span><span>${f.mult[2]}</span>`;
+  else if(f.suma) h+=`<span class="mi">${f.suma[0]}</span><span class="eq">=</span><span class="eq" style="font-size:18px">Σ</span><span>${f.suma[1]}</span>`;
+  else if(f.conteo) h+=`<span class="mi">${f.conteo[0]}</span><span class="eq">=</span><span>número de ${f.conteo[1]}</span>`;
+  h+=`</div>`;
+  const p=ctx.partes;
+  if(p&&p[0]!=null&&p[1]!=null&&ctx.valor!=null){
+    const op=f.resta?"−":f.mult?"×":"÷";
+    h+=`<p class="sust">Con los números de esta cifra: ${fmt(d.nu||"conteo",p[0])} ${op} ${fmt(d.du||"conteo",p[1])}${f.x1000?" × 1.000":""} = <b>${fmt(ctx.u,ctx.valor)}</b></p>`;
+  }
+  return h;
+}
+function lectura(ctx){
+  const d=DEF[ctx.k], u=ctx.u, L=[], F2=ctx.avance?ctx.avance.fmt:(v=>fmt(u,v));
+  const val=ctx.textoValor??F2(ctx.valor);
+  if(ctx.valor==null&&!ctx.textoValor) L.push(["—",`No se puede calcular. ${ctx.motivo||""} «—» nunca significa cero.`]);
+  else if(ctx.textoValor) L.push([ctx.textoValor,`${ctx.motivo||""} Todavía no hay periodo que medir.`]);
+  else if(ctx.valor===0) L.push(["0","Es cero de verdad: se midió y no hubo ninguna."]);
+  else L.push([val,`${d.que.replace(/\.$/,"")}${ctx.periodoTxt?`, ${ctx.periodoTxt}`:""}.`]);
+  L.push([ctx.uni==="paid"?"de pauta":"todas las áreas",ctx.uni==="paid"?"Solo personas o gasto que vienen de anuncios pagos.":"Pauta, orgánico, referidos y registros sin origen, juntos."]);
+  if(ctx.avance){
+    const a=ctx.avance, des=a.esperado-a.llevamos;
+    L.push([`de ${a.fmt(a.meta)}`,`La meta de ${a.que} de la cohorte. La cargan Pauta o Gerencia en Programa › Objetivos.`]);
+    L.push([`a hoy ${a.fmt(a.esperado)}`,`Lo que deberíamos llevar si avanzáramos parejo: ${a.fmt(a.meta)} × ${fmtN(a.tiempo*100,0)} %, porque ya pasó el ${fmtN(a.tiempo*100,0)} % de los días hábiles de venta de la cohorte. Es la marca sobre la barra.`]);
+    L.push([des>0?`${a.fmt(des)} atrás`:`${a.fmt(-des)} adelante`,des>0?`${a.fmt(a.esperado)} − ${a.fmt(a.llevamos)}. Es lo rayado en la barra.`:"Ya vamos por encima de lo esperado a hoy."]);
+  }
+  if(ctx.estado){
+    const e=ctx.estado, t=TONO[e.tono][2];
+    if(e.fuente==="esperado") L.push([t,`Llevamos ${fmtN(e.ratio*100,0)} % de lo esperado a hoy. En meta desde 100 %, en seguimiento desde 65 %, rezagado por debajo.`]);
+    else { const m=UMB[e.k], f=v=>fmt(DEF[e.k].u,v), w=m.menor?"o menos":"o más";
+      L.push([t,`El objetivo es ${f(m.meta)} ${w} y lo aceptable ${f(m.acept)} ${w}. ${e.tono==="exito"?"Esta cifra cumple el objetivo.":e.tono==="alerta"?"Esta cifra queda entre los dos.":"Esta cifra es peor que lo aceptable."} Los cargan Pauta o Gerencia en Programa › Objetivos.`]); }
+  } else if(d.obj&&ctx.valor!=null) L.push(["Sin color","Esta cohorte no tiene objetivo cargado para esta métrica, así que no hay estado. Se carga en Programa › Objetivos."]);
+  if(ctx.comp&&(F.comparar!=="nada"||ctx.comp.fija)) L.push([ctx.comp.etq||(ctx.comp.fija?"La línea pequeña":"Cambio"),`Comparado con ${ctx.comp.ref} (${F2(ctx.comp.valor)}): ${ctx.avance?cambioCon(ctx.avance.fmt,ctx.valor,ctx.comp.valor):cambioTxt(u,ctx.valor,ctx.comp.valor)}.${u==="porcentaje"?" En una tasa el cambio va en puntos: de 40 % a 42 % son 2 puntos.":""} Va en gris porque subir no siempre es bueno; el color solo lo pone el estado.`]);
+  if(ctx.cobertura) L.push(["Parcial",ctx.cobertura.motivo]);
+  if(ctx.enCurso) L.push(["En curso",`${ctx.periodoTxt||"Este periodo"} todavía no termina: las cifras pueden subir y las tasas cambiar hasta que cierre.`]);
+  if(ctx.notas) ctx.notas.forEach(n=>L.push(n));
+  return L;
+}
+const LISTAS={
+  gasto:{nombre:"días de gasto",fila:i=>[["Agenda · Video testimonio","Agenda · Carrusel método","Lanzamiento · Masterclass"][i%3],`${3+i} nov`,FMT.COP(380000+i*21000)]},
+  citas_creadas:{nombre:"agendadas",fila:i=>[`Persona de ejemplo ${i+1}`,`reservó el ${3+i} nov`,["Instagram · Rosario","Facebook · Milena"][i%2]]},
+  citas:{nombre:"citas",fila:i=>[`Persona de ejemplo ${i+1}`,`cita el ${4+i} nov`,["Realizada","No asistió","Realizada","Reagendada","Pendiente"][i]]},
+  realizadas:{nombre:"citas realizadas",fila:i=>[`Persona de ejemplo ${i+1}`,`${4+i} nov`,["Vendió","No vendió","Vendió","No vendió","No vendió"][i]]},
+  ventas:{nombre:"ventas",fila:i=>[`Persona de ejemplo ${i+1}`,["Abonado","Completo"][i%2],FMT.USD([1497,797,1497,1497,797][i])]},
+  anuncios:{nombre:"anuncios",fila:i=>[["Testimonio Ana 30s","Carrusel 5 pasos","Video método v2","Reel pregunta","Historia cupos"][i],["Video testimonio","Carrusel método","Carrusel método","Video testimonio","Carrusel método"][i],FMT.COP([980000,640000,410000,260000,190000][i])]},
+  registros:{nombre:"registros",fila:i=>[`Persona de ejemplo ${i+1}`,`${3+i} nov`,["Carrusel método","Video testimonio","sin anuncio","Carrusel método","sin anuncio"][i]]}
+};
+function explicacion(ctx,enPanel){
+  const d=DEF[ctx.k], val=ctx.textoValor??(ctx.avance?ctx.avance.fmt(ctx.valor):fmt(ctx.u,ctx.valor));
+  let h=`<div class="ex">`;
+  h+=`<header style="display:flex;flex-direction:column;gap:6px">${enPanel?`<span><span class="badge b-ejemplo">Ejemplo</span></span>`:""}<h2 ${enPanel?'id="panel-titulo"':""}>${ctx.rotulo}</h2>`;
+  h+=`<div class="fila"><span class="valor">${val}${ctx.avance?`<span class="de">de ${ctx.avance.fmt(ctx.avance.meta)}</span>`:""}</span>${badge(ctx.estado)}</div>`;
+  h+=`<p class="que">${d.que}</p></header>`;
+  h+=`<section><h3>Fórmula</h3>${formula(ctx)}<dl class="vars">${d.vars.map(v=>`<dt>${v[0]}</dt><dd>${v[1]}</dd>`).join("")}</dl>${d.alias?`<p class="xs muted" style="margin:0">En el Excel se llama «${d.alias}».</p>`:""}</section>`;
+  h+=`<section><h3>Cómo leer la tarjeta</h3><ul class="lectura">${lectura(ctx).map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join("")}</ul></section>`;
+  h+=`<section><h3>Calculada con</h3><div class="fila">${ctx.filtros.map(([a,b])=>`<span class="badge b-neutro">${a}: ${b}</span>`).join("")}</div></section>`;
+  const t=LISTAS[d.lista];
+  if(t){
+    const n=ctx.n??(ctx.partes&&d.f.div?ctx.partes[1]:null)??(ctx.u==="conteo"?ctx.valor:null);
+    const nota=d.f.div&&d.du==="conteo"?`<p class="xs muted" style="margin:0">Son las ${t.nombre} de abajo de la fórmula${d.nu==="conteo"?"; la última columna dice cuáles suman arriba":""}.</p>`:"";
+    h+=`<section><h3>La evidencia</h3>${nota}<ul class="lista">${[0,1,2,3,4].map(i=>`<li>${t.fila(i).map(x=>`<span>${x}</span>`).join("")}</li>`).join("")}</ul><a class="btn" href="#resultados" data-cerrar>Ver ${n!=null?`las ${fmtN(n)} `:"todas las "}${t.nombre}</a></section>`;
+  }
+  return h+`</div>`;
+}
+
+/* ---------- Vista: la forma ---------- */
+const f0=v=>fmtN(Math.round(v)), f1=v=>fmtN(v,v%1?1:0);
+function avanceAgendas(){return {k:"agendas",valor:412,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",n:412,avance:{llevamos:412,meta:900,esperado:558,tiempo:.62,que:"agendas",fmt:f0},estado:estadoEsp(412,558),comp:{ref:"C5 al mismo día",valor:380}};}
+function pintarForma(){
+  const demo=avanceAgendas();
+  $("#demo-tarjeta").innerHTML=pieza(demo);
+  $("#demo-explica").innerHTML=`<span class="xs muted">Al hacer clic se abre esto:</span>`+explicacion(demo,false);
+  const sem=DATOS.semana;
+  $("#densidades").innerHTML=
+    `<div class="grid"><span class="xs muted">Tarjeta</span>${pieza({k:"costo_agenda_crm",valor:sem[3].costo_agenda_crm,partes:PARTES.costo_agenda_crm(sem[3]),periodoTxt:"semana del 2 al 8 nov",estado:estadoObj("costo_agenda_crm",sem[3].costo_agenda_crm),comp:{ref:"Semana anterior",valor:sem[2].costo_agenda_crm}})}</div>`+
+    `<div class="grid"><span class="xs muted">Barra</span>${pieza({k:"ventas",rotulo:"Ventas",valor:21,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",n:21,avance:{llevamos:21,meta:55,esperado:34.1,tiempo:.62,que:"ventas de pauta",fmt:f1},estado:estadoEsp(21,34.1),comp:{ref:"C5 al mismo día",valor:19}})}</div>`+
+    `<div class="grid"><span class="xs muted">Celda de tabla</span><div class="tarjeta" style="padding:10px"><table><thead><tr><th></th><th>2–8 nov</th></tr></thead><tbody><tr><td>Costo por agenda</td><td>${celda("costo_agenda_crm",sem[3],sem[2],{cambio:true,refTxt:"la semana anterior (26 oct–1 nov)",periodoTxt:"semana del 2 al 8 nov"})}</td></tr></tbody></table></div></div>`;
+  const B=[
+    ["Normal, con estado",{k:"roas",valor:6.4,partes:[25340,3959],estado:estadoObj("roas",6.4)}],
+    ["Parcial: falta dato",{k:"show",valor:0.41,partes:[34,83],cobertura:{motivo:"Hay 18 citas del periodo cuya hora no ha llegado; cuando ocurran, la tasa cambia."}}],
+    ["— no se puede calcular",{k:"frecuencia",valor:null,motivo:"Meta solo da las personas alcanzadas día por día; en un periodo de varios días no se puede sumar."}],
+    ["0 es cero",{k:"ventas",valor:0}],
+    ["Sin datos todavía",{k:"facturacion",valor:null,textoValor:"Sin datos",motivo:"La cohorte C7 aún no abre la venta."}],
+    ["Sin objetivo cargado",{k:"agenda_venta",valor:0.08,partes:[7,88]}],
+    ["En curso",{k:"agendas",valor:31,enCurso:true,periodoTxt:"la semana del 9 al 15 nov"}],
+    ["— por falta de gasto",{k:"roas",valor:null,motivo:"El gasto de Meta solo está desde el 1 oct y el periodo empieza antes: dividir daría un ROAS inflado."}]
+  ];
+  $("#bordes").innerHTML=B.map(([t,c])=>`<div class="grid" style="gap:6px"><span class="xs muted">${t}</span>${pieza(c)}</div>`).join("");
+}
+
+/* ---------- Resultados ---------- */
+let paso="semana", cambio=true, detalle="total", unidadCumpl="cupos";
+const BLOQUES=[["General",["inversion","agendas","costo_agenda_crm","ventas","cac","facturacion","roas","profit"]],["Comercial",["show","cierre_ventas","agenda_venta"]],["Tráfico",["cpm","ctr","llegada_landing","conversion_landing","agendas_meta","costo_agenda_meta","frecuencia"]]];
+const POR_CUENTA=["inversion","agendas_meta","costo_agenda_meta"];
+function pintarResultados(){
+  const comp=F.comparar==="cohorte";
+  const cc=c=>comp?c:null;
+  const plata=unidadCumpl==="plata";
+  $("#cumplimiento").innerHTML=[
+    pieza(Object.assign(avanceAgendas(),{comp:cc({ref:"C5 al mismo día",valor:380})})),
+    plata?pieza({k:"vendido_pauta",valor:28400,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",n:21,avance:{llevamos:28400,meta:74000,esperado:45880,tiempo:.62,que:"vendido de pauta",fmt:v=>"USD "+f0(v)},estado:estadoEsp(28400,45880),comp:cc({ref:"C5 al mismo día",valor:25100})})
+         :pieza({k:"ventas",valor:21,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",n:21,avance:{llevamos:21,meta:55,esperado:34.1,tiempo:.62,que:"ventas de pauta",fmt:f1},estado:estadoEsp(21,34.1),comp:cc({ref:"C5 al mismo día",valor:19})}),
+    plata?pieza({k:"vendido_total",valor:41900,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",n:31,avance:{llevamos:41900,meta:108000,esperado:66960,tiempo:.62,que:"vendido total",fmt:v=>"USD "+f0(v)},estado:estadoEsp(41900,66960),comp:cc({ref:"C5 al mismo día",valor:38200})})
+         :pieza({k:"ventas_total",valor:31,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",n:31,avance:{llevamos:31,meta:80,esperado:49.6,tiempo:.62,que:"ventas",fmt:f1},estado:estadoEsp(31,49.6),comp:cc({ref:"C5 al mismo día",valor:27})}),
+    pieza({k:"presupuesto",valor:15600000,alcance:"cohorte",periodoTxt:"cohorte C6 hasta hoy",avance:{llevamos:15600000,meta:26000000,esperado:16120000,tiempo:.62,que:"inversión",fmt:v=>"COP "+fmtN(v/1e6,1)+" M"},comp:cc({ref:"C5 al mismo día",valor:14100000}),
+      notas:[["Sin color","Gastar más rápido o más lento de lo planeado no es bueno ni malo por sí solo: se lee junto al costo por agenda."]]})
+  ].join("");
+  $("#ritmo").innerHTML=[
+    pieza({k:"agendas_dia",valor:412/35,partes:[412,35],alcance:"cohorte",periodoTxt:"en los 35 días hábiles que lleva la cohorte",linea:"Promedio real de la cohorte"}),
+    pieza({k:"agendas_req",valor:488/22,partes:[488,22],alcance:"cohorte",periodoTxt:"de hoy al 9 dic",linea:"Hasta el cierre, el 9 dic"}),
+    pieza({k:"inversion_req",valor:22.2*40000,partes:[22.2,40000],alcance:"cohorte",periodoTxt:"de hoy al 9 dic",linea:"Al costo promedio real: <b>COP 1.023.400</b>",notas:[["COP 1.023.400","La misma cuenta con el costo por agenda promedio real de la cohorte, COP 46.100. Se muestran los dos, como hace 30X."]]})
+  ].join("");
+  const hoyComp=F.comparar!=="nada";
+  const hc=(r,v)=>hoyComp?{ref:"Ayer a esta hora",valor:v}:null;
+  $("#hoy").innerHTML=[
+    pieza({k:"costo_agenda_crm",rotulo:"Costo por agenda",valor:44800,partes:[403200,9],alcance:"hoy",periodoTxt:"hoy hasta las 3 p. m.",estado:estadoObj("costo_agenda_crm",44800),comp:hc(0,51200),linea:"Sin contar <b>COP 57.000</b> de otras campañas",
+      notas:[["COP 57.000","Gasto de hoy en campañas que no son de agenda: «Tráfico a Instagram». Se nombran aparte para no inflar el costo por agenda."]]}),
+    pieza({k:"agendas",valor:9,alcance:"hoy",periodoTxt:"hoy hasta las 3 p. m.",comp:hc(0,7)}),
+    pieza({k:"agendas_meta",valor:11,alcance:"hoy",periodoTxt:"hoy hasta las 3 p. m.",comp:hc(0,8)}),
+    pieza({k:"inversion",valor:460200,alcance:"hoy",periodoTxt:"hoy hasta las 3 p. m.",comp:hc(0,412000)})
+  ].join("");
+  $("#proyectado").innerHTML=[
+    pieza({k:"roas",rotulo:"ROAS a hoy",valor:6.1,partes:[24150,3959],periodoTxt:`del periodo ${periodoTxt()}`,estado:estadoObj("roas",6.1),cobertura:{motivo:"Hay 18 citas de pauta que todavía no ocurren. Si alguna termina en venta el ROAS sube: por eso el de hoy puede quedar por debajo del real."},linea:"<b>18</b> citas de pauta pendientes"}),
+    pieza({k:"roas_proy",valor:8.3,partes:[32860,3959],periodoTxt:`del periodo ${periodoTxt()}`,linea:"Proyectado el 3 nov: <b>7,2×</b> · real: <b>6,8×</b>",notas:[["7,2× · 6,8×","Cada día se guarda lo proyectado y, cuando ya ocurrieron todas esas citas, el real. Así se ve qué tan bien proyecta."]]})
+  ].join("");
+  pintarTabla(); pintarGrafica();
+}
+function pintarTabla(){
+  const cols=DATOS[paso], hdr=paso==="semana"?SEMANAS:DIAS, tot=sumar(cols), unidad=paso==="semana"?"semana":"día";
+  $("#titulo-tabla").textContent=paso==="semana"?"¿Qué semana rindió mejor?":"¿Qué día rindió mejor?";
+  $("#t-cambio").textContent=`Cambio contra ${paso==="semana"?"la semana anterior":"el día anterior"}`;
+  $("#leyenda-tabla").innerHTML=cambio?`Debajo de cada número, en gris: cuánto cambió contra ${paso==="semana"?"la semana":"el día"} de la izquierda, en cantidad y en porcentaje. El punto de color solo aparece donde hay objetivo cargado.`:"El punto de color solo aparece donde hay objetivo cargado.";
+  let h=`<thead><tr><th>Métrica</th><th class="total">Total del periodo</th>${hdr.map((x,i)=>`<th>${x}${i===hdr.length-1?" · en curso":""}</th>`).join("")}</tr></thead><tbody>`;
+  for(const [titulo,claves] of BLOQUES){
+    h+=`<tr class="grupo"><td colspan="${hdr.length+2}">${titulo}</td></tr>`;
+    for(const k of claves){
+      const d=DEF[k];
+      const fila=(cs,t,etq,f)=>{
+        let r=`<tr class="${etq?"sub":""}"><td>${etq||d.n}${!etq&&d.nueva?' <span class="badge b-ejemplo">Por construir</span>':""}</td><td class="total">${celda(k,t,null,{periodoTxt:`total del periodo ${periodoTxt()}`,rotulo:etq?`${d.n} · ${etq}`:undefined})}</td>`;
+        cs.forEach((c,i)=>{ const ult=i===cs.length-1; r+=`<td>${celda(k,c,i>0?cs[i-1]:null,{cambio,refTxt:`${paso==="semana"?"la semana anterior":"el día anterior"} (${hdr[i-1]||""})`,periodoTxt:`${paso==="semana"?"la semana del":"el"} ${hdr[i]}`,col:[paso==="semana"?"Semana":"Día",hdr[i]],enCurso:ult,parcial:ult&&titulo==="Comercial",rotulo:etq?`${d.n} · ${etq}`:undefined})}</td>`; });
+        return r+`</tr>`;
+      };
+      h+=fila(cols,tot);
+      if(detalle==="cuenta"&&POR_CUENTA.includes(k)){
+        [["Rosario",.6],["Milena",.4]].forEach(([n,f])=>{ const cs=cols.map(c=>escalar(c,f)); h+=fila(cs,sumar(cs),n); });
+      }
+    }
+  }
+  $("#tabla").innerHTML=h+"</tbody>";
+}
+
+/* ---------- Gráfica interactiva (en la app: components/graficas sobre echarts, nunca directo) ---------- */
+let gU="mixto", gP="dia", gF="paso", chart=null;
+const SERIES={inversion:["Inversión","COP"],agendas:["Agendadas","conteo"],agMeta:["Agendas según Meta","conteo"],ventas:["Ventas","conteo"],facturacion:["Facturación","USD"]};
+const K_DEF={agMeta:"agendas_meta"};
+function pintarGrafica(){
+  const el=$("#grafica"); if(!el||el.offsetParent===null) return;
+  if(!window.echarts){ el.innerHTML='<p class="muted">No cargó la librería de gráficas: usa «Ver como tabla».</p>'; pintarTablaGraf(); return; }
+  if(chart){chart.dispose();chart=null;}
+  chart=echarts.init(el,null,{renderer:"svg"});
+  const css=getComputedStyle(document.documentElement), v=n=>css.getPropertyValue(n).trim();
+  const cols=gP==="dia"?DATOS.dia:DATOS.semana, ant=gP==="dia"?DATOS.antDia:DATOS.antSemana, labels=gP==="dia"?DIAS:SEMANAS;
+  const acum=a=>{let s=0;return a.map(x=>s+=x);}, pick=(cs,k)=>{const a=cs.map(c=>c[k]);return gF==="acum"?acum(a):a;};
+  const eje=(u,pos)=>({type:"value",position:pos,name:u==="conteo"?"cantidad":u,nameTextStyle:{color:v("--muted")},axisLabel:{color:v("--muted"),formatter:x=>u==="COP"?fmtN(x/1000)+" mil":fmtN(x)},splitLine:{lineStyle:{color:v("--border")}}});
+  let def;
+  if(gU==="mixto") def={ejes:[eje("COP","left"),eje("conteo","right")],s:[["inversion","bar",0],["agendas","line",1]]};
+  else if(gU==="cupos") def={ejes:[eje("conteo","left")],s:[["agendas","line",0],["agMeta","line",0],["ventas","bar",0]]};
+  else def={ejes:[eje("COP","left"),eje("USD","right")],s:[["inversion","bar",0],["facturacion","line",1]]};
+  const colores=[v("--marca"),v("--info"),v("--exito")];
+  const series=def.s.map(([k,t,y],i)=>({name:SERIES[k][0],_k:k,type:t,yAxisIndex:y,data:pick(cols,k),barMaxWidth:26,symbolSize:7,
+    itemStyle:t==="bar"?{color:v("--marca-suave"),borderColor:colores[i],borderWidth:1,borderRadius:[3,3,0,0]}:{color:colores[i]},lineStyle:{width:2,color:colores[i]},emphasis:{focus:"series"}}));
+  if(F.comparar!=="nada"){ const lin=def.s.find(s=>s[1]==="line"); if(lin) series.push({name:`${SERIES[lin[0]][0]} · periodo anterior`,_k:lin[0],_ant:true,type:"line",yAxisIndex:lin[2],data:pick(ant,lin[0]),symbol:"none",lineStyle:{type:"dashed",width:1.5,color:v("--muted")},itemStyle:{color:v("--muted")}}); }
+  chart.setOption({
+    animation:!matchMedia("(prefers-reduced-motion: reduce)").matches,
+    textStyle:{fontFamily:"Geist, system-ui, sans-serif"},
+    grid:{left:56,right:56,top:64,bottom:gP==="dia"?56:28},
+    legend:{top:0,left:"center",textStyle:{color:v("--muted")},itemGap:14},
+    tooltip:{trigger:"axis",backgroundColor:v("--card"),borderColor:v("--border"),textStyle:{color:v("--fg")},
+      formatter:ps=>`<b>${ps[0].axisValue}${gF==="acum"?" · acumulado":""}</b><br>`+ps.map(p=>{const k=series[p.seriesIndex]._k;return `${p.marker}${p.seriesName}: <b>${fmt(SERIES[k][1],p.value)}</b>`;}).join("<br>")+`<br><span style="opacity:.7">Clic para ver cómo se calcula</span>`},
+    xAxis:{type:"category",data:labels,axisLabel:{color:v("--muted")},axisLine:{lineStyle:{color:v("--border")}}},
+    yAxis:def.ejes,
+    dataZoom:gP==="dia"?[{type:"inside"},{type:"slider",height:16,bottom:8,borderColor:v("--border"),textStyle:{color:v("--muted")}}]:[],
+    series
+  });
+  chart.on("click",p=>{
+    const s=series[p.seriesIndex], k=K_DEF[s._k]||s._k, i=p.dataIndex, c=(s._ant?ant:cols)[i];
+    abrirCtx(completar({k,valor:p.value,periodoTxt:`${gF==="acum"?"acumulado hasta":gP==="dia"?"el":"la semana del"} ${labels[i]}${s._ant?" del periodo anterior":""}`,
+      comp:i>0&&gF==="paso"?{ref:gP==="dia"?`el día anterior (${labels[i-1]})`:`la semana anterior (${labels[i-1]})`,valor:pick(s._ant?ant:cols,s._k)[i-1],fija:true,etq:gP==="dia"?"Contra el día anterior":"Contra la semana anterior"}:null,
+      col:[gP==="dia"?"Día":"Semana",labels[i]],enCurso:i===labels.length-1&&!s._ant}),null);
+  });
+  if(!$("#tabla-graf").hidden) pintarTablaGraf();
+}
+function pintarTablaGraf(){
+  const cols=gP==="dia"?DATOS.dia:DATOS.semana, labels=gP==="dia"?DIAS:SEMANAS, ks=gU==="mixto"?["inversion","agendas"]:gU==="cupos"?["agendas","agMeta","ventas"]:["inversion","facturacion"];
+  $("#tabla-graf").innerHTML=`<table><thead><tr><th>${gP==="dia"?"Día":"Semana"}</th>${ks.map(k=>`<th>${SERIES[k][0]}</th>`).join("")}</tr></thead><tbody>${cols.map((c,i)=>`<tr><td>${labels[i]}</td>${ks.map(k=>`<td>${celda(K_DEF[k]||k,c,null,{periodoTxt:labels[i]})}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+}
+
+/* ---------- Origen y calidad ---------- */
+let verPor="campana";
+const ORIGEN={
+  cuenta:[["Rosario",2190000,52,6,""],["Milena",1210000,31,3,""]],
+  canal:[["Instagram",1820000,46,6,"de pauta"],["Facebook",1210000,31,3,"de pauta"],["Instagram (orgánico)",0,12,2,"orgánico"],["Referido de closer",0,8,3,"referidos"],["Sin origen",0,9,1,"sin origen"]],
+  campana:[["Agenda · Video testimonio",1640000,41,5,""],["Agenda · Carrusel método",1020000,29,3,""],["Lanzamiento · Masterclass",370000,0,1,""]],
+  anuncio:[["Testimonio Ana 30s",980000,27,4,""],["Carrusel 5 pasos",640000,19,2,""],["Video método v2",410000,0,0,"Revisar"],["Reel pregunta",260000,8,1,""]]
+};
+function pintarCalidad(){
+  $$("[data-verpor]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.verpor===verPor)));
+  const nombre={cuenta:"Cuenta",canal:"Canal",campana:"Campaña",anuncio:"Anuncio"}[verPor];
+  let h=`<thead><tr><th>${nombre}</th><th>Inversión</th><th>Agendadas</th><th>Costo por agenda</th><th>Ventas</th><th>ROAS</th></tr></thead><tbody>`;
+  for(const [n,inv,ag,ven,tag] of ORIGEN[verPor]){
+    const c=derivar({inversion:inv,invAgenda:inv,agendas:ag,agMeta:ag,ventas:ven,facturacion:ven*1400,invUsd:inv/3940,citas:ag,shows:Math.round(ag*.5),impr:0,clics:0,vistas:0,regs:0,alcance:null});
+    const o={periodoTxt:`${nombre.toLowerCase()} ${n}, ${periodoTxt()}`};
+    const sinGasto=`<span class="vacio" title="Sin gasto: no viene de pauta">—</span>`;
+    h+=`<tr><td>${n} ${tag?`<span class="badge ${tag==="Revisar"?"b-peligro":"b-neutro"}">${tag}</span>`:""}</td><td>${inv?celda("inversion",c,null,o):sinGasto}</td><td>${celda("agendas",c,null,o)}</td><td>${inv&&ag?celda("costo_agenda_crm",c,null,o):sinGasto}</td><td>${celda("ventas",c,null,o)}</td><td>${inv?celda("roas",c,null,o):sinGasto}</td></tr>`;
+  }
+  $("#tabla-origen").innerHTML=h+"</tbody>";
+  $("#traza").innerHTML=pieza({k:"envios_sin_id",valor:38,periodoTxt:periodoTxt(),linea:"de <b>214</b> registros de pauta (18 %)"})+pieza({k:"ventas_sin_anuncio",valor:4,periodoTxt:periodoTxt(),linea:"de <b>21</b> ventas de pauta"});
+  $("#traza-lista").innerHTML=[["Carrusel 5 pasos","Agenda · Carrusel método",21],["Reel pregunta","Agenda · Video testimonio",11],["Video método v2","Agenda · Carrusel método",6]].map(r=>`<li><span>${r[0]}</span><span class="muted">${r[1]}</span><span>${r[2]} sin id</span></li>`).join("");
+  const pasos=[["Abrieron el formulario",1240],["Respondieron la 1.ª pregunta",980],["Llegaron a la agenda",610],["Agendaron",214]];
+  $("#embudo").innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">`+pasos.map(([n,val],i)=>{
+    const pc=val/pasos[0][1], perdio=i?pasos[i-1][1]-val:0;
+    const id=reg(completar({k:"embudo",rotulo:n,valor:val,partes:[val,pasos[0][1]],n:val,periodoTxt:periodoTxt(),notas:[[fmtN(pc*100,0)+" %",`De cada 100 personas que abrieron el formulario, ${fmtN(pc*100,0)} llegaron aquí.`]].concat(perdio?[[`${fmtN(perdio)} se fueron`,`Personas que estaban en el paso anterior y no llegaron a este.`]]:[])}));
+    return `<button class="cifra-pieza" data-c="${id}" style="padding:8px 10px;gap:4px"><span class="rotulo"><span class="nombre">${n}</span><span class="cifra">${fmtN(val)} · ${fmtN(pc*100,0)} %</span></span><span class="barra"><span class="lleno" style="width:${pc*100}%;background:var(--marca)"></span></span>${perdio?`<span class="linea">Se fueron <b>${fmtN(perdio)}</b> en este paso</span>`:""}</button>`;
+  }).join("")+`<p class="linea" style="margin:0">La pregunta que más pierde: «¿Cuánto inviertes al mes?», se van <b>22 %</b>.</p></div>`;
+}
+
+/* ---------- Cobertura, bloques y decisiones (documentación del boceto) ---------- */
+const COB=[
+ ["La tabla semanal del Excel: inversión, agendas, costo por agenda, ventas, facturación, ROAS","Paid Media 7 nov · Excel","Resultados › tabla","ok"],
+ ["Una sección diaria","Dani Rodríguez","Tabla «Por día» y gráfica por día","ok","El número diario cuadra con el Excel cuando se cierre DM-8"],
+ ["Filtrar de tal fecha a tal fecha","Dani Rodríguez","Filtros › Periodo › Elegir fechas","ok"],
+ ["Show y cierre al lado del gasto","Dani Rodríguez","Tabla › bloque Comercial","ok"],
+ ["Bloques General, Comercial y Tráfico con semáforo","Imagen KPI 30X","Tabla, con el punto de estado","ok","Semáforos de Tráfico esperan umbrales (DM-4)"],
+ ["Tres barras de cumplimiento: agendas, ventas de pauta, ventas totales","Diario 30X","Cumplimiento","ok"],
+ ["Presupuesto usado","Excel","Cumplimiento","ok","Funciona cuando se cargue la inversión planeada de la cohorte"],
+ ["Agendas por día necesarias","Diario 30X · Excel","Cumplimiento › ritmo","ok"],
+ ["Agendas por día promedio real","Excel","Cumplimiento › ritmo","falta","Sencillo, sin cambios en la base"],
+ ["Inversión por día necesaria (al objetivo y al promedio)","Diario 30X","Cumplimiento › ritmo","falta","Sencillo, sin cambios en la base"],
+ ["Costo por agenda sin otras campañas, y otras campañas nombradas","Diario 30X","¿Cómo va hoy? › costo por agenda","ok"],
+ ["Costo por venta (CAC)","Excel","Tabla › General","falta","Sin cambios en la base"],
+ ["Inversión, agendas según Meta y costo por cuenta (Milena, Rosario)","Excel","Tabla › Por cuenta · Qué trae ventas › Cuenta · Filtro Ver solo","falta","Sin cambios en la base; falta decidir si columnas fijas o desplegable"],
+ ["CPM, CTR, llegada y conversión de la landing, frecuencia","Imagen KPI 30X · PowerTalk","Tabla › Tráfico","falta","Hay que traer impresiones, clics y vistas de Meta"],
+ ["Gráficas en cupos y en plata","Weekly 3 nov","Gráfica › Unidad; Cumplimiento › Cupos | Plata","ok"],
+ ["Periodo y cohorte como filtros separados","Weekly 3 nov","Filtros","ok"],
+ ["Cortar por cuenta, canal, campaña, conjunto, anuncio","Doc. 10 nov","Filtros › Ver solo","ok","Cuenta y conjunto faltan como corte"],
+ ["ROAS por el día del registro, aviso de citas pendientes, ROAS proyectado","Weekly 3 nov","ROAS a hoy y proyectado","ok","La tabla semanal hoy ancla el ROAS al día de la venta: se unifica en el audit"],
+ ["Lista de anuncios que llegan sin id (para César)","Weekly 3 nov","Origen y calidad › ¿Qué llega sin origen?","ok"],
+ ["Ranking de anuncios con «Revisar» y ventas sin anuncio","Diario 30X","Qué trae ventas › Anuncio · Ventas sin anuncio identificado","ok"],
+ ["Descargar lo que se ve","Weekly 3 nov · Excel","Botón Descargar CSV; PDF del día en Hoy","ok"],
+ ["Que Pauta y Gerencia carguen metas y umbrales sin técnico","Mani 10 nov","Programa › Objetivos (ya existe para la cohorte)","decidir","Los umbrales de Tráfico necesitan agregarse ahí"],
+ ["Plan de inversión diaria por cuenta y diferencia contra el plan","Excel","No está","decidir","Necesita guardar un plan nuevo en la base"],
+ ["Agendas diarias por programa, con interruptores","Diario 30X","No está: es la vista de todos los programas","decidir","Solo suma cantidades; nunca tasas entre programas"],
+ ["Día contra el promedio de 7 días","Diario 30X","No está","decidir","Segunda fase"],
+ ["Línea de base «referencia al 3 de septiembre»","Excel","No está","decidir","Se carga como objetivo, no como nota"]
+];
+const EST={ok:["b-exito","En el boceto"],falta:["b-alerta","En el boceto, falta construir"],decidir:["b-neutro","Falta decidir"]};
+const TB=[
+ ["Semáforo del programa","¿Cómo va el costo por agenda hoy?","Cambia de forma","Resultados, segundo bloque","Hoy usa otras palabras para el estado y un párrafo para avisar que no sigue los filtros. Como Cifras, la misma escala, y el título dice que es de hoy. El reporte de WhatsApp no cambia."],
+ ["Cumplimiento de la cohorte","¿Vamos a llegar a la meta?","Se queda, arriba","Resultados, primero","Las tres barras de 30X más el presupuesto, con Cupos | Plata y el ritmo por día."],
+ ["Tabla semanal de pauta","¿Qué semana rindió mejor?","Se queda y crece","Resultados, tercero","Gana Por día, Por cuenta y el costo por venta. Cada celda se abre."],
+ ["ROAS de pauta","¿Qué trae ventas?","Se mueve","Origen y calidad, primero","Con Ver por Cuenta | Canal | Campaña | Anuncio absorbe a Origen y al ranking de anuncios."],
+ ["Origen","¿De qué canal llegan?","Se funde","Dentro de «Qué trae ventas», vista Canal","Ya estaba decidido el 9 nov."],
+ ["Traza de pauta","¿Qué llega sin origen?","Se mueve","Origen y calidad","Es un problema de captación, no un resultado: la lista para corregir los enlaces."],
+ ["Proyección del ROAS","¿Qué ROAS esperamos?","Se queda","Resultados, al final","Dos Cifras: a hoy (parcial) y proyectado."],
+ ["Embudo del formulario","¿Dónde se va la gente?","Se mueve","Origen y calidad","Calidad del embudo de captación, en barras."],
+ ["Embudo por pregunta","¿En qué pregunta?","Se funde","Dentro del embudo","La misma pregunta con más detalle."]
+];
+const TD=[
+ ["DM-1","Un solo vocabulario de estado","Aprobada","En meta · En seguimiento · Rezagado para todo, también para el semáforo. Se suma al trabajo de vocabulario que ya existe."],
+ ["DM-2","La variación no lleva color","Aprobada","Gris, número y porcentaje (en tasas, puntos). El color es solo del estado."],
+ ["DM-3","Sin tarjetas sueltas arriba de la tabla","Aprobada","La columna «Total del periodo» es la cifra fuerte."],
+ ["DM-4","Semáforos de Tráfico","Aprobada","Esperan los umbrales de Paid Media. Objetivos y umbrales los cargan Pauta o Gerencia en Programa › Objetivos, sin técnico; los de Tráfico se agregan ahí cuando lleguen."],
+ ["DM-5","Pauta en dos vistas","Aprobada","Resultados | Origen y calidad, con los mismos filtros."],
+ ["DM-6","Qué se mide, siempre visible","Aprobada","«de pauta» o «todas las áreas» en cada cifra, y el detalle en la explicación."],
+ ["DM-7","Lo que está en curso","Aprobada","La última columna dice «en curso»; «Parcial» y toda etiqueta se explican al abrir la cifra."],
+ ["DM-8","Agenda, confirmada y llamada","Propuesta","Un solo objeto, la cita, con estados. Ver abajo. Falta el visto bueno de Michael y Paid Media."],
+ ["DM-9","Toda cifra se explica al abrirla","Propuesta (de tu feedback)","Qué mide, fórmula con variables, qué es cada número y etiqueta de la tarjeta, filtros y la lista. Ninguna referencia técnica a la vista. Aplica a todo el Hub, no solo a Pauta."],
+ ["Q-8","Por cuenta: ¿columnas fijas o desplegable?","Abierta","El boceto usa un interruptor Total | Por cuenta. Lo decide Paid Media."]
+];
+function pintarDocs(){
+  const cnt=k=>COB.filter(r=>r[3]===k).length;
+  $("#cobertura-resumen").innerHTML=[["Pedidos",COB.length,"b-neutro"],["En el boceto",cnt("ok"),"b-exito"],["En el boceto, falta construir",cnt("falta"),"b-alerta"],["Falta decidir",cnt("decidir"),"b-neutro"]]
+    .map(([t,n])=>`<div class="tarjeta" style="gap:2px"><span class="xs muted">${t}</span><span class="valor">${n}</span></div>`).join("");
+  $("#tabla-cobertura").innerHTML=`<thead><tr><th>Pedido</th><th>Quién</th><th>Dónde queda</th><th>Estado</th><th>Nota</th></tr></thead><tbody>`+
+    COB.map(r=>`<tr><td>${r[0]}</td><td class="muted">${r[1]}</td><td>${r[2]}</td><td><span class="badge ${EST[r[3]][0]}">${EST[r[3]][1]}</span></td><td class="muted">${r[4]||""}</td></tr>`).join("")+`</tbody>`;
+  $("#tabla-bloques").innerHTML=`<thead><tr><th>Bloque hoy</th><th>Pregunta</th><th>Qué pasa</th><th>Dónde queda</th><th>Por qué</th></tr></thead><tbody>`+
+    TB.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td><span class="badge ${r[2].startsWith("Se queda")?"b-exito":r[2].startsWith("Se funde")?"b-marca":"b-info"}">${r[2]}</span></td><td>${r[3]}</td><td class="muted">${r[4]}</td></tr>`).join("")+`</tbody>`;
+  $("#tabla-decisiones").innerHTML=`<thead><tr><th>#</th><th>Qué</th><th>Estado</th><th>Cómo queda</th></tr></thead><tbody>`+
+    TD.map(r=>`<tr><td class="cifra">${r[0]}</td><td><b>${r[1]}</b></td><td><span class="badge ${r[2]==="Aprobada"?"b-exito":r[2]==="Abierta"?"b-neutro":"b-marca"}">${r[2]}</span></td><td class="muted">${r[3]}</td></tr>`).join("")+`</tbody>`;
+}
+
+/* ---------- Panel ---------- */
+let ultimoFoco=null;
+function abrirCtx(ctx,origen){
+  ultimoFoco=origen; if(chart) chart.dispatchAction({type:"hideTip"});
+  $("#panel").innerHTML=`<button class="cerrar" id="cerrar">Cerrar</button>`+explicacion(ctx,true);
+  $("#panel").hidden=false; $("#velo").hidden=false; $("#panel").scrollTop=0; $("#cerrar").focus();
+}
+function cerrar(){ $("#panel").hidden=true; $("#velo").hidden=true; if(ultimoFoco) ultimoFoco.focus(); }
+
+/* ---------- Eventos ---------- */
+function pintarTodo(){ recalcular(); pintarForma(); pintarResultados(); pintarCalidad(); resumenFiltros(); }
+function resumenFiltros(){
+  $("#filtros-resumen").textContent=`Viendo ${PROG[F.programa]}, cohorte ${F.cohorte==="c6"?"C6":"C5"}, ${periodoTxt()}${F.corte!=="todo"?`, solo ${F.corte}`:""}${F.comparar!=="nada"?`, comparado con ${F.comparar==="cohorte"?"C5 al mismo día de venta":"el periodo anterior"}`:""}. Un programa a la vez: nunca se mezclan.`;
+}
+document.addEventListener("click",e=>{
+  if(e.target.closest("[data-cerrar]")||e.target.id==="cerrar"||e.target.id==="velo"){ e.preventDefault(); cerrar(); return; }
+  const c=e.target.closest("[data-c]"); if(c){ e.preventDefault(); const ctx=REG.get(Number(c.dataset.c)); if(ctx) abrirCtx(ctx,c); return; }
+  const ir=e.target.closest("[data-ir]"); if(ir){ location.hash=ir.dataset.ir; return; }
+  const set=(sel,attr,val)=>$$(sel).forEach(x=>x.setAttribute("aria-pressed",String(x.getAttribute(attr)===val)));
+  const p=e.target.closest("[data-paso]"); if(p){ paso=p.dataset.paso; set("[data-paso]","data-paso",paso); pintarTabla(); return; }
+  const dt=e.target.closest("[data-detalle]"); if(dt){ detalle=dt.dataset.detalle; set("[data-detalle]","data-detalle",detalle); pintarTabla(); return; }
+  const un=e.target.closest("[data-unidad]"); if(un){ unidadCumpl=un.dataset.unidad; set("[data-unidad]","data-unidad",unidadCumpl); pintarResultados(); return; }
+  const gu=e.target.closest("[data-gu]"); if(gu){ gU=gu.dataset.gu; set("[data-gu]","data-gu",gU); pintarGrafica(); return; }
+  const gp=e.target.closest("[data-gp]"); if(gp){ gP=gp.dataset.gp; set("[data-gp]","data-gp",gP); pintarGrafica(); return; }
+  const gf=e.target.closest("[data-gf]"); if(gf){ gF=gf.dataset.gf; set("[data-gf]","data-gf",gF); pintarGrafica(); return; }
+  const vp=e.target.closest("[data-verpor]"); if(vp){ verPor=vp.dataset.verpor; pintarCalidad(); return; }
+  if(e.target.closest("#t-cambio")){ cambio=!cambio; $("#t-cambio").setAttribute("aria-pressed",String(cambio)); pintarTabla(); return; }
+  if(e.target.closest("#t-tabla-graf")){ const t=$("#tabla-graf"); t.hidden=!t.hidden; $("#t-tabla-graf").setAttribute("aria-pressed",String(!t.hidden)); if(!t.hidden) pintarTablaGraf(); }
+});
+[["#f-programa","programa"],["#f-cohorte","cohorte"],["#f-periodo","periodo"],["#f-comparar","comparar"],["#f-corte","corte"]].forEach(([s,k])=>$(s).addEventListener("change",e=>{F[k]=e.target.value; if(k==="periodo") $("#f-rango").hidden=F.periodo!=="rango"; pintarTodo();}));
+["#f-desde","#f-hasta"].forEach(s=>$(s).addEventListener("change",pintarTodo));
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!$("#panel").hidden) cerrar(); });
+window.addEventListener("resize",()=>{ if(chart) chart.resize(); });
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",pintarGrafica);
+new MutationObserver(pintarGrafica).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+/* ---------- Rutas ---------- */
+const VISTAS=["forma","resultados","calidad","cobertura","bloques","decisiones"];
+function ruta(){
+  const h=location.hash.slice(1), v=VISTAS.includes(h)?h:"forma", pauta=v==="resultados"||v==="calidad";
+  $$("[data-vista]").forEach(s=>s.hidden=s.dataset.vista!==v);
+  $("#zona-filtros").hidden=!pauta;
+  if(pauta){ $("#titulo-pauta").textContent=v==="resultados"?"Hub › Pauta › Resultados":"Hub › Pauta › Origen y calidad";
+    $("#sub-pauta").textContent=v==="resultados"?"Lo que reemplaza al Excel.":"De dónde vienen las ventas y qué llega mal.";
+    $$("[data-ir]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.ir===v))); }
+  $$(".nav a").forEach(a=>{ if(a.getAttribute("href")==="#"+v) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current"); });
+  window.scrollTo(0,0);
+  if(v==="resultados") requestAnimationFrame(pintarGrafica);
+}
+window.addEventListener("hashchange",ruta);
+pintarTodo(); pintarDocs(); ruta();
+})();
+</script>

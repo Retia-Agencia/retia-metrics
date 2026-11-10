@@ -299,6 +299,10 @@ No elijo: depende de Q-4. Mi inclinación es **a** con una excepción **b** por 
 no diarios), pero es una inclinación sin datos.
 
 ## 6. Tickets propuestos (no creados)
+> **10-nov, creados:** 414 a 418 existen en `docs/tasks/` con este alcance, más 419 (la Cifra), 420 (Pauta en dos vistas) y 421
+> (cita confirmada, DM-8), del diseño aprobado [`diseno-cifra-y-pauta.md`](./diseno-cifra-y-pauta.md). La decisión de "Pauta en dos
+> vistas" quedó tomada (DM-5) y es el 420. Q-2 y Q-3 tienen propuesta en DM-8. Orden y reparto: ola O12 de `plan-reparto.md`.
+
 
 Los números son los siguientes libres en `docs/tasks/` (el último archivo es el 412). El 413 es el audit y va primero: los demás se re-ordenan con lo que él decida. **Verificar el tracker antes de tomarlos**: otras
 sesiones pueden reservar números.

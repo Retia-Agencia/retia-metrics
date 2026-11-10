@@ -9,13 +9,33 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, ticket 403 (absorbe el 413, audit del Hub). La F0 está cerrada: lee AGENTS.md, la entrada
-"10-nov · 403 F0" en Memory de docs/agents/handoff.md y docs/audit-hub-2026-11-10.md (§8 decisiones, §9 cómo continuar).
-Primero F1: preséntame D-A, D-B, D-C y D-E con su recomendación y espera mi respuesta; con cada "sí", escribe la enmienda
-con N8 (ADR, docs/metricas.md, overview.md §11) en el mismo commit. Después F3: el test de paridad que tiene que salir rojo
-con I-1 sin arreglar, y el arreglo va a Codex con /delegate.
+Seguimos con el CRM de Retia. Desde el 10-nov somos dos personas (ola O12, docs/plan-reparto.md §4): el compañero lleva el
+carril P (419 → 420, 414 → 416 → 415) con su propio prompt, que está en esa ola. Esta sesión es de Mani, carril D: ticket 403
+(absorbe el 413). Lee AGENTS.md, las entradas "10-nov" en Memory de docs/agents/handoff.md, docs/audit-hub-2026-11-10.md
+(§8 y §9) y docs/diseno-cifra-y-pauta.md §7. Primero F1: preséntame D-A, D-B, D-C y D-E con su recomendación y espera mi
+respuesta; con cada "sí", escribe la enmienda con N8 (ADR, docs/metricas.md, overview.md §11) en el mismo commit y avísale al
+carril P qué cambia en pauta-semanal.ts. Después F3: el test de paridad que tiene que salir rojo con I-1 sin arreglar (el
+arreglo en código lo hace el carril P, dueño de pauta-semanal.ts). No toques los archivos del carril P.
 ```
 ## Memory
+
+### 10-nov · La Cifra y Pauta en dos vistas: diseño aprobado, ola O12 para dos personas (sesión de Mani)
+**Hecho.** Boceto navegable en dos versiones (`docs/bocetos/una-forma-de-metrica.html`, también artifact privado de Mani). La v1
+recibió cinco observaciones de Mani (A-186 a A-190: tarjeta saturada y línea sin rótulo, cumplimiento ilegible, "Cómo se calcula"
+con convenciones del backend, cambio sin decir contra qué, gráfica estática); la v2 las resolvió y **Mani la aprobó "tal cual, ese
+debe ser el norte; que se vea y sienta igual"**. Todo el diseño en palabras, sin perder detalle: `docs/diseno-cifra-y-pauta.md`.
+**Decidido:** DM-1 (una escala: En meta · En seguimiento · Rezagado, también el semáforo), DM-2 (cambio en gris), DM-3 (la columna
+Total es la cifra fuerte), DM-4 (semáforos de Tráfico esperan umbrales; objetivos los cargan Pauta o Gerencia en Programa ›
+Objetivos), DM-5 (Pauta en Resultados | Origen y calidad), DM-6 (universo visible), DM-7 (en curso y parcial, explicados al abrir),
+DM-9 (toda cifra se explica al abrirla: qué mide, fórmula con variables, cada número y etiqueta, filtros, lista; nada técnico).
+**Propuesto, sin cerrar:** DM-8, una sola cita con estados (Agendada → Confirmada → Realizada…): "Agendadas" por día de reserva,
+"Citas del día", "Confirmadas" y "Realizadas" por día de la llamada; "llamada" deja de ser métrica. Falta el sí de Michael y Paid
+Media (cierra Q-2 y Q-3). **Creados:** tickets 414 a 421 (sección 21 del tracker); ola O12 con carriles P (compañero, más tokens:
+pantalla y Pauta), D (Mani: 403, definiciones con Codex) y H (Mani: Paid Media y Michael), costuras y el prompt para el compañero.
+También: punto 10 del contrato de entendimiento en `structure.md` §9, línea 2d en AGENTS.md, nota en `paid-media-excels-2026-11-10.md`
+§6. **Coordinación con el 403:** la sesión del 403 pidió no fijar rótulos ni fórmulas de D-A a D-E hasta F1; el diseño lo respeta (§7.2).
+**Pendiente:** commit y push de todo esto (el compañero lo necesita en `main`); 403 F1 (Mani); conversaciones del carril H.
+Sin código de producción. Sin migración.
 
 ### 10-nov · 403 F0: audit del Hub cerrado (sesión de Mani)
 **Hecho.** El 413 quedó fundido en el 403 (fases F0 a F5 en el ticket). `docs/audit-hub-2026-11-10.md` tiene el inventario de las

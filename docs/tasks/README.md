@@ -19,6 +19,23 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 > checkpoint verde.
 
 
+## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
+
+Norte visual aprobado por Mani el 10-nov, tal cual: [`docs/bocetos/una-forma-de-metrica.html`](../bocetos/una-forma-de-metrica.html);
+en palabras: [`docs/diseno-cifra-y-pauta.md`](../diseno-cifra-y-pauta.md). Reparto en [`plan-reparto.md`](../plan-reparto.md) §4, ola O12.
+Los rótulos y fórmulas de D-A a D-E esperan el 403 F1.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 419 | [La Cifra: una forma de métrica y su explicación, en todo el Hub](./419-la-cifra-una-forma-de-metrica.md) | — | todo · carril P (compañero) · listo hoy |
+| [ ] | 420 | [Hub › Pauta en dos vistas, con la forma aprobada](./420-pauta-en-dos-vistas.md) | 419 | todo · carril P |
+| [ ] | 414 | [Tabla de Pauta por día](./414-tabla-de-pauta-por-dia.md) | 412, 419 | todo · carril P · cuadre con el Excel espera DM-8 |
+| [ ] | 416 | [Pauta por cuenta](./416-pauta-por-cuenta.md) | 412 | todo · carril P · Q-8 ajusta la presentación |
+| [ ] | 415 | [Costo por venta (CAC) de Pauta](./415-costo-por-venta-de-pauta.md) | 412 | todo · carril P |
+| [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | bloqueado · Q-4 (Paid Media) |
+| [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
+| [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | bloqueado · DM-8 (Michael y Paid Media) y D-C · migración |
+
 ## 20 · Entrega del Hub a Gerencia (weekly con Daniel Tovar, 3-nov) · PRIORIDAD ÚNICA DEL HUB
 
 Plan, trazabilidad cita por cita y decisiones en [`docs/hub.md`](../hub.md) §0. Fase 1 en este orden (352 → 374 y 377 → 369, 371 y 372 → 370 y 373); nada más del componente 9 se toca hasta su
