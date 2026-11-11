@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calls, cohorts, dealEtapaHistorial, deals, leads, objetivos, programs, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { leerCumplimientoDeCohorte } from "@/lib/metas/cumplimiento-de-cohorte";
+import { leerCumplimientoDeCohorte, leerEvidenciaDeVentas } from "@/lib/metas/cumplimiento-de-cohorte";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -89,8 +89,7 @@ describe("419: la lista de cada barra del cumplimiento cuenta lo mismo que la ba
     await deal({ cohorteId: c1, medium: "paid_social", vendidoEl: "2026-11-06", anulado: true }); // deal anulado
   }
 
-  const seccion = async (...args: Parameters<typeof listaDeMetrica>) => (await listaDeMetrica(...args))[0];
-  const cantidad = async (...args: Parameters<typeof listaDeMetrica>) => (await seccion(...args)).subtotal.cantidad;
+  const cantidad = async (...args: Parameters<typeof listaDeMetrica>) => (await listaDeMetrica(...args))[0].subtotal.cantidad;
 
   // PENDIENTE (Mani): la barra cuenta la agenda de un deal ANULADO (`hechos/agenda.ts` une los deals con
   // `incluyendoAnulados`) y la lista no (ADR 0038). Hasta que se decida, la barra de agendas no abre evidencia.
@@ -106,19 +105,23 @@ describe("419: la lista de cada barra del cumplimiento cuenta lo mismo que la ba
   it("ventas totales: la barra y la lista de ventas de la cohorte desde la venta más vieja", async () => {
     await sembrar();
     const datos = await leerCumplimientoDeCohorte(programId, c1, HOY, db);
-    const lista = await cantidad("cierres", { programId, rango: { desde: "2026-10-28", hasta: HOY }, cohorteId: c1, hoy: HOY }, 1, db);
+    // La lista arranca en la venta más vieja (anterior al inicio de ventas), como la que abre la pantalla.
+    expect(datos.cohorte?.desdeLista).toBe("2026-10-28");
+    const lista = await leerEvidenciaDeVentas({ programId, cohorteId: c1, desde: datos.cohorte!.desdeLista, hoy: HOY }, db);
     expect(datos.ventasTotales?.cupos.llevamos).toBe(3);
-    expect(lista).toBe(datos.ventasTotales?.cupos.llevamos);
+    expect(lista.subtotal.cantidad).toBe(datos.ventasTotales?.cupos.llevamos);
+    expect(lista.filas).toHaveLength(3);
   });
 
   it("ventas de pauta: la barra y la lista de ventas de la cohorte con área Paid", async () => {
     await sembrar();
     const datos = await leerCumplimientoDeCohorte(programId, c1, HOY, db);
-    const lista = await cantidad("cierres", { programId, rango: { desde: "2026-10-28", hasta: HOY }, cohorteId: c1, hoy: HOY, area: "paid" }, 1, db);
+    const conDinero = await leerEvidenciaDeVentas({ programId, cohorteId: c1, desde: datos.cohorte!.desdeLista, hoy: HOY, area: "paid" }, db);
     expect(datos.ventasPauta?.cupos.llevamos).toBe(2);
-    expect(lista).toBe(datos.ventasPauta?.cupos.llevamos);
+    expect(conDinero.subtotal.cantidad).toBe(datos.ventasPauta?.cupos.llevamos);
+    // Mordido: sin el área, la misma lista cuenta también la venta orgánica.
+    expect((await leerEvidenciaDeVentas({ programId, cohorteId: c1, desde: datos.cohorte!.desdeLista, hoy: HOY }, db)).subtotal.cantidad).toBe(3);
     // El dinero de la lista sale de las mismas filas: lo vendido de la barra.
-    const conDinero = await seccion("cierres", { programId, rango: { desde: "2026-10-28", hasta: HOY }, cohorteId: c1, hoy: HOY, area: "paid" }, 1, db);
     expect(conDinero.dinero?.vendido).toBe(1800);
     expect(conDinero.dinero?.vendido).toBe(datos.ventasPauta?.usd?.llevamos);
     expect(conDinero.filas).toHaveLength(2);

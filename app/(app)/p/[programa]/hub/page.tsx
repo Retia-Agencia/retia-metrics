@@ -54,6 +54,7 @@ import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
 import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte } from "@/components/pauta/cumplimiento";
+import { capacidadParaMetrica } from "@/lib/queries/metricas-con-filas";
 import { TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
 import { TrazaDePauta } from "@/components/pauta/traza";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
@@ -337,6 +338,7 @@ async function CuerpoDelHub({
         busqueda={busqueda}
         cohorteId={contexto.filtroDeCohorte.elegida?.id ?? null}
         puedeAbrirLista={veEquipo}
+        puedeVerVentas={capacidadParaMetrica({ metrica: "cierres", tieneOrigen: false })(rol)}
       />
     );
   }
@@ -609,6 +611,7 @@ async function SeccionPauta({
   busqueda,
   cohorteId,
   puedeAbrirLista,
+  puedeVerVentas,
 }: {
   programId: string;
   programaNombre: string;
@@ -620,6 +623,8 @@ async function SeccionPauta({
   busqueda: Record<string, string | string[] | undefined>;
   cohorteId: string | null;
   puedeAbrirLista: boolean;
+  /** Abre la lista de ventas (la reja de la página de lista): la evidencia de las barras de ventas. */
+  puedeVerVentas: boolean;
 }) {
   const ahora = new Date();
   const [ultimaSincronizacion] = await db
@@ -676,7 +681,7 @@ async function SeccionPauta({
   return (
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
-      <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} />
+      <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas} />
       <TablaSemanalDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} />
       <PautaRoas
         vista={roas}

@@ -9,6 +9,7 @@ import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { agendasDeLaCohorte } from "@/lib/queries/hechos/agenda";
 import { gastoConvertido } from "@/lib/queries/hechos/gasto";
 import { listar as listarVentas } from "@/lib/queries/hechos/venta";
+import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { leerProyeccion, type ValorDeProyeccion } from "@/lib/queries/proyeccion";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 
@@ -62,6 +63,8 @@ export interface CumplimientoDeCohorteLeido {
     codigo: string;
     cierre: string | null;
     cerrada: boolean;
+    /** El primer día que la lista de ventas de la cohorte tiene que cubrir: el inicio de ventas o una venta anterior (DA-2). */
+    desdeLista: string;
   } | null;
   agendas: BarraDeCumplimiento | null;
   ventasPauta: BarraDeCumplimiento | null;
@@ -86,6 +89,8 @@ export interface EntradaDeCumplimiento {
   metas: { agendas: number | null; ventasPauta: number | null; costoPorAgenda: number | null; inversion: number | null };
   gastoCop: number;
   proyeccion: { agendasRequeridasDia: ValorDeProyeccion; faltan: number } | null;
+  /** Los días de las ventas de la cohorte, para que su lista arranque en la más vieja. */
+  diasDeVenta?: readonly string[];
 }
 
 function medida(llevamos: number, meta: number, esperado: number | null): MedidaDeCumplimiento {
@@ -126,7 +131,10 @@ export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoD
   const agendasDia = entrada.proyeccion?.agendasRequeridasDia ?? null;
   const valorAgendasDia = agendasDia?.valor ?? null;
   return {
-    cohorte: { id: c.id, codigo: c.codigo, cierre: c.fechaCierreVentas, cerrada },
+    cohorte: {
+      id: c.id, codigo: c.codigo, cierre: c.fechaCierreVentas, cerrada,
+      desdeLista: [...(c.fechaInicioVentas ? [c.fechaInicioVentas] : []), ...(entrada.diasDeVenta ?? [])].sort()[0] ?? entrada.hoy,
+    },
     agendas,
     ventasPauta: entrada.metas.ventasPauta === null ? null : barraVentas(entrada.ventasPauta, entrada.metas.ventasPauta),
     ventasTotales: barraVentas(entrada.ventasTotales, c.metaCupos),
@@ -209,5 +217,26 @@ export async function leerCumplimientoDeCohorte(
     // `gastoConvertido` conserva el nombre historico `totalUsd`, aunque el valor esta en `destino` (COP aqui).
     gastoCop: gasto?.totalUsd ?? 0,
     proyeccion: proyeccion ? { agendasRequeridasDia: proyeccion.agendasRequeridasDia, faltan: proyeccion.faltan } : null,
+    diasDeVenta: ventasTotales.map((venta) => venta.dia),
   });
+}
+
+/**
+ * La evidencia de una barra de ventas del cumplimiento (419): la primera página de la lista de ventas de la cohorte,
+ * desde la venta más vieja hasta hoy, con el área si la barra es de un área. Cuenta lo mismo que la barra:
+ * lo vigila `tests/cumplimiento-evidencia.test.ts`. Solo para quien abre la lista de ventas (la llama la pantalla
+ * con esa capacidad ya decidida).
+ */
+export async function leerEvidenciaDeVentas(
+  args: { programId: string; cohorteId: string; desde: string; hoy: string; area?: "paid" },
+  db: Db = dbDeLaApp,
+) {
+  const [seccion] = await listaDeMetrica("cierres", {
+    programId: args.programId,
+    rango: { desde: args.desde, hasta: args.hoy },
+    cohorteId: args.cohorteId,
+    hoy: args.hoy,
+    ...(args.area ? { area: args.area } : {}),
+  }, 1, db);
+  return seccion;
 }

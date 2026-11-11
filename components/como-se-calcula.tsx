@@ -160,7 +160,7 @@ export function ExplicacionDeCifra({ cifra }: { cifra: CifraDeMetrica }) {
               </li>
             ))}
           </ul>
-          <Link href={x.evidencia.href} className={buttonVariants({ className: "w-full" })}>{x.evidencia.boton}</Link>
+          {x.evidencia.boton ? <Link href={x.evidencia.href} className={buttonVariants({ className: "w-full" })}>{x.evidencia.boton}</Link> : null}
         </Seccion>
       ) : null}
     </div>

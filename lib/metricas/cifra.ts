@@ -127,7 +127,8 @@ export interface CifraDeMetrica {
     filtros: ReadonlyArray<readonly [string, string]>;
     evidencia: {
       href: string;
-      boton: string;
+      /** `null` cuando la lista está vacía: no hay nada que abrir y la nota lo dice. */
+      boton: string | null;
       filas: ReadonlyArray<ReadonlyArray<string>>;
       nota: string | null;
     } | null;
@@ -301,7 +302,9 @@ export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
 
   const l = e.lista;
   const esRazonDeConteo = x.formula.forma === "razon" && unidades[1] === "conteo";
-  const evidencia = l
+  const evidencia = l && l.total === 0
+    ? { href: l.href, boton: null, filas: [], nota: `Todavía no hay ${l.nombre}.` }
+    : l
     ? {
       href: l.href,
       boton: l.total !== null ? `Ver las ${num(l.total)} ${l.nombre}` : `Ver todas las ${l.nombre}`,

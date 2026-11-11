@@ -145,4 +145,9 @@ describe("fórmula, comparación y evidencia", () => {
     expect(c.explicacion.evidencia?.boton).toBe("Ver las 88 agendadas");
     expect(c.explicacion.evidencia?.nota).toBe("Son las agendadas de abajo de la fórmula; la última columna dice cuáles suman arriba.");
   });
+
+  it("una lista vacía no ofrece botón: dice que todavía no hay", () => {
+    const c = armarCifra(entrada("ventas", { valor: 0, lista: { href: "/x", nombre: "ventas", total: 0, filas: [] } }));
+    expect(c.explicacion.evidencia).toEqual({ href: "/x", boton: null, filas: [], nota: "Todavía no hay ventas." });
+  });
 });

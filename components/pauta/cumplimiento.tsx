@@ -2,14 +2,17 @@ import Link from "next/link";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cop, fecha, num } from "@/lib/format";
+import { cop, fecha, num, usd } from "@/lib/format";
 import {
   leerCumplimientoDeCohorte,
+  leerEvidenciaDeVentas,
   type CumplimientoDeCohorteLeido,
   type MedidaDeCumplimiento,
 } from "@/lib/metas/cumplimiento-de-cohorte";
 import { armarCifra, type CifraDeMetrica, type EntradaDeCifra } from "@/lib/metricas/cifra";
 import { explicacionDePauta, type ClaveDeExplicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import type { ListaDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 
 export interface PropsCumplimientoDeCohorte {
   programId: string;
@@ -18,6 +21,32 @@ export interface PropsCumplimientoDeCohorte {
   hoy: string;
   /** El nombre del programa, para "Calculada con". */
   programa?: string;
+  /** El origen de la pantalla, para que la lista completa sepa volver. */
+  origen?: string;
+  /** La sesión abre la lista de ventas (la misma reja de la página de lista): solo así la barra trae su evidencia. */
+  puedeVerVentas?: boolean;
+}
+
+type ListaDeCifra = NonNullable<EntradaDeCifra["lista"]>;
+
+/** Las barras de ventas con su evidencia: la lista de ventas que cuenta lo mismo que la barra (419). */
+export interface EvidenciaDeCumplimiento {
+  ventasTotales?: ListaDeCifra;
+  ventasPauta?: ListaDeCifra;
+}
+
+/** Cinco filas como en el boceto: persona, etapa y valor vendido. */
+function listaDeVentas(seccion: ListaDeMetrica, href: string): ListaDeCifra {
+  return {
+    href,
+    nombre: "ventas",
+    total: seccion.subtotal.cantidad,
+    filas: seccion.filas.slice(0, 5).map((fila) => [
+      fila.persona?.nombre ?? "Sin nombre",
+      fila.etapa ? nombreDeEtapa(fila.etapa) : "—",
+      fila.monto === null ? "—" : usd(fila.monto),
+    ]),
+  };
 }
 
 function Configurar({ slug }: { slug: string }) {
@@ -45,7 +74,7 @@ function cifraDeAvance(concepto: ClaveDeExplicacionDePauta, medida: MedidaDeCump
   });
 }
 
-export function CumplimientoVista({ datos, slug, programa }: { datos: CumplimientoDeCohorteLeido; slug: string; programa?: string }) {
+export function CumplimientoVista({ datos, slug, programa, evidencia = {} }: { datos: CumplimientoDeCohorteLeido; slug: string; programa?: string; evidencia?: EvidenciaDeCumplimiento }) {
   if (!datos.cohorte) return <Card data-testid="cumplimiento-cohorte">
     <CardHeader><CardTitle>¿Vamos a llegar a la meta de la cohorte?</CardTitle></CardHeader>
     <CardContent><p className="text-sm text-muted-foreground">Sin cohorte activa</p></CardContent>
@@ -68,9 +97,9 @@ export function CumplimientoVista({ datos, slug, programa }: { datos: Cumplimien
           ? <Cifra cifra={cifraDeAvance("agendas_total", datos.agendas.cupos, filtros, "agendas")} />
           : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
         {datos.ventasPauta
-          ? <Cifra cifra={cifraDeAvance("ventas", datos.ventasPauta.cupos, filtros, "ventas de pauta")} />
+          ? <Cifra cifra={cifraDeAvance("ventas", datos.ventasPauta.cupos, filtros, "ventas de pauta", { lista: evidencia.ventasPauta })} />
           : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de ventas de pauta para esta cohorte</p><Configurar slug={slug} /></section>}
-        {datos.ventasTotales ? <Cifra cifra={cifraDeAvance("ventas_total", datos.ventasTotales.cupos, filtros, "ventas")} /> : null}
+        {datos.ventasTotales ? <Cifra cifra={cifraDeAvance("ventas_total", datos.ventasTotales.cupos, filtros, "ventas", { lista: evidencia.ventasTotales })} /> : null}
         {datos.inversion ? <Cifra cifra={armarCifra({
           concepto: "presupuesto",
           explicacion: explicacionDePauta("presupuesto"),
@@ -108,5 +137,24 @@ export function CumplimientoVista({ datos, slug, programa }: { datos: Cumplimien
 
 export async function CumplimientoDeCohorte(props: PropsCumplimientoDeCohorte) {
   const datos = await leerCumplimientoDeCohorte(props.programId, props.cohorteId, props.hoy);
-  return <CumplimientoVista datos={datos} slug={props.slug} programa={props.programa} />;
+  const cohorte = datos.cohorte;
+  const origen = props.origen;
+  let evidencia: EvidenciaDeCumplimiento = {};
+  if (cohorte && origen && props.puedeVerVentas) {
+    const base = { programId: props.programId, cohorteId: cohorte.id, desde: cohorte.desdeLista, hoy: props.hoy };
+    const href = (area?: "paid") => urlDeLista({
+      slug: props.slug, metrica: "cierres", origen, cohorteId: cohorte.id,
+      periodo: { preset: "custom", a: { desde: cohorte.desdeLista, hasta: props.hoy }, b: null, comparaciones: [] },
+      ...(area ? { filtrosDeOrigen: { area } } : {}),
+    });
+    const [totales, pauta] = await Promise.all([
+      leerEvidenciaDeVentas(base),
+      datos.ventasPauta ? leerEvidenciaDeVentas({ ...base, area: "paid" }) : Promise.resolve(null),
+    ]);
+    evidencia = {
+      ventasTotales: listaDeVentas(totales, href()),
+      ...(pauta ? { ventasPauta: listaDeVentas(pauta, href("paid")) } : {}),
+    };
+  }
+  return <CumplimientoVista datos={datos} slug={props.slug} programa={props.programa} evidencia={evidencia} />;
 }
