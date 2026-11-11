@@ -3,7 +3,7 @@ import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { esperadoLineal } from "@/lib/dias-habiles";
+import { diasHabilesEntre, esperadoLineal } from "@/lib/dias-habiles";
 import { cohorteActiva, type Cohorte } from "@/lib/queries/cohortes";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { agendasDeLaCohorte } from "@/lib/queries/hechos/agenda";
@@ -70,10 +70,18 @@ export interface CumplimientoDeCohorteLeido {
   ventasPauta: BarraDeCumplimiento | null;
   ventasTotales: BarraDeCumplimiento | null;
   inversion: { llevamos: number; meta: number } | null;
+  /**
+   * Agendas por día (420, diseño §4.1): el promedio real de la cohorte, las agendadas de la barra entre los días hábiles
+   * de la venta transcurridos (del inicio de ventas a hoy, o al cierre si ya cerró). Null si la venta no ha abierto.
+   */
+  agendasPorDia: { agendas: number; diasHabiles: number; valor: number | null } | null;
   requeridos: {
     agendasDia: ValorDeProyeccion;
     inversionDiaMeta: number | null;
     inversionDiaPromedio: number | null;
+    /** El costo por agenda objetivo de la cohorte y el promedio real (gasto ÷ agendadas): las partes de la inversión. */
+    costoPorAgendaMeta: number | null;
+    costoPorAgendaPromedio: number | null;
     metaCumplida: boolean;
     cierre: string;
   } | null;
@@ -111,7 +119,7 @@ function esperado(meta: number, cohorte: NonNullable<EntradaDeCumplimiento["coho
 /** Une cifras ya leidas sin base ni reloj. */
 export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoDeCohorteLeido {
   const c = entrada.cohorte;
-  if (!c) return { cohorte: null, agendas: null, ventasPauta: null, ventasTotales: null, inversion: null, requeridos: null };
+  if (!c) return { cohorte: null, agendas: null, ventasPauta: null, ventasTotales: null, inversion: null, agendasPorDia: null, requeridos: null };
   const precioUsd = Number(c.precioUsd);
   const cerrada = c.fechaCierreVentas !== null && entrada.hoy > c.fechaCierreVentas;
   const barraVentas = (datos: { cantidad: number; vendidoUsd: number }, meta: number): BarraDeCumplimiento => {
@@ -130,6 +138,9 @@ export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoD
   const metaCumplida = metaAgendas !== null && entrada.agendas >= metaAgendas || entrada.proyeccion?.faltan === 0;
   const agendasDia = entrada.proyeccion?.agendasRequeridasDia ?? null;
   const valorAgendasDia = agendasDia?.valor ?? null;
+  const costoPromedio = entrada.agendas > 0 ? entrada.gastoCop / entrada.agendas : null;
+  const finDelRitmo = c.fechaCierreVentas !== null && c.fechaCierreVentas < entrada.hoy ? c.fechaCierreVentas : entrada.hoy;
+  const diasDelRitmo = c.fechaInicioVentas && c.fechaInicioVentas <= entrada.hoy ? diasHabilesEntre(c.fechaInicioVentas, finDelRitmo) : null;
   return {
     cohorte: {
       id: c.id, codigo: c.codigo, cierre: c.fechaCierreVentas, cerrada,
@@ -139,14 +150,21 @@ export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoD
     ventasPauta: entrada.metas.ventasPauta === null ? null : barraVentas(entrada.ventasPauta, entrada.metas.ventasPauta),
     ventasTotales: barraVentas(entrada.ventasTotales, c.metaCupos),
     inversion: entrada.metas.inversion === null ? null : { llevamos: entrada.gastoCop, meta: entrada.metas.inversion },
+    agendasPorDia: diasDelRitmo === null ? null : {
+      agendas: entrada.agendas,
+      diasHabiles: diasDelRitmo,
+      valor: diasDelRitmo > 0 ? entrada.agendas / diasDelRitmo : null,
+    },
     requeridos: entrada.esActiva && !cerrada && c.fechaCierreVentas && agendasDia ? {
       agendasDia,
       inversionDiaMeta: valorAgendasDia === null || entrada.metas.costoPorAgenda === null
         ? null
         : valorAgendasDia * entrada.metas.costoPorAgenda,
-      inversionDiaPromedio: valorAgendasDia === null || entrada.agendas <= 0
+      inversionDiaPromedio: valorAgendasDia === null || costoPromedio === null
         ? null
-        : valorAgendasDia * (entrada.gastoCop / entrada.agendas),
+        : valorAgendasDia * costoPromedio,
+      costoPorAgendaMeta: entrada.metas.costoPorAgenda,
+      costoPorAgendaPromedio: costoPromedio,
       metaCumplida: Boolean(metaCumplida),
       cierre: c.fechaCierreVentas,
     } : null,

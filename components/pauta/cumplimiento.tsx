@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Cifra } from "@/components/cifra-con-lista";
+import { Pestanas } from "@/components/layout/pestanas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cop, fecha, num, usd } from "@/lib/format";
+import { cop, fecha, usd } from "@/lib/format";
 import {
   leerCumplimientoDeCohorte,
   leerEvidenciaDeVentas,
@@ -25,6 +26,9 @@ export interface PropsCumplimientoDeCohorte {
   origen?: string;
   /** La sesión abre la lista de ventas (la misma reja de la página de lista): solo así la barra trae su evidencia. */
   puedeVerVentas?: boolean;
+  /** Cupos o Plata, de la URL, y los enlaces del interruptor. */
+  unidad?: UnidadDeCumplimiento;
+  hrefDeUnidad?: Record<UnidadDeCumplimiento, string>;
 }
 
 type ListaDeCifra = NonNullable<EntradaDeCifra["lista"]>;
@@ -74,9 +78,60 @@ function cifraDeAvance(concepto: ClaveDeExplicacionDePauta, medida: MedidaDeCump
   });
 }
 
-export function CumplimientoVista({ datos, slug, programa, evidencia = {} }: { datos: CumplimientoDeCohorteLeido; slug: string; programa?: string; evidencia?: EvidenciaDeCumplimiento }) {
+/** Cupos o Plata (420, diseño §4.1): las ventas en cantidad o en valor vendido; agendas y presupuesto no cambian. */
+export type UnidadDeCumplimiento = "cupos" | "plata";
+
+export function unidadDeCumplimiento(valor: string | string[] | undefined): UnidadDeCumplimiento {
+  return valor === "plata" ? "plata" : "cupos";
+}
+
+/** La fila del ritmo (420, diseño §4.1): agendas por día real, necesarias e inversión por día necesaria. */
+function cifrasDelRitmo(datos: CumplimientoDeCohorteLeido, filtros: ReadonlyArray<readonly [string, string]>): CifraDeMetrica[] {
+  const cifras: CifraDeMetrica[] = [];
+  const periodo = "desde que abrió la venta de la cohorte hasta hoy";
+  if (datos.agendasPorDia) {
+    const { agendas, diasHabiles, valor } = datos.agendasPorDia;
+    cifras.push(armarCifra({
+      concepto: "agendas_dia", explicacion: explicacionDePauta("agendas_dia"), valor,
+      motivo: valor === null ? "La venta de la cohorte abrió hoy: todavía no hay un día hábil completo." : undefined,
+      partes: [agendas, diasHabiles], periodo, filtros,
+      linea: { antes: "Promedio real de la cohorte" },
+    }));
+  }
+  const r = datos.requeridos;
+  if (r && !r.metaCumplida) {
+    const porDia = r.agendasDia.valor;
+    cifras.push(armarCifra({
+      concepto: "agendas_req", explicacion: explicacionDePauta("agendas_req"), valor: porDia,
+      motivo: porDia === null ? r.agendasDia.razon ?? "No hay tasas medidas con qué calcularlo." : undefined,
+      periodo: `de hoy al cierre, el ${fecha(r.cierre)}`, filtros,
+      linea: { antes: "Hasta el cierre, el ", cifra: fecha(r.cierre) },
+    }));
+    cifras.push(armarCifra({
+      concepto: "inversion_req", explicacion: explicacionDePauta("inversion_req"), valor: r.inversionDiaMeta,
+      motivo: r.inversionDiaMeta === null
+        ? porDia === null ? "Sin agendas por día necesarias, no hay con qué multiplicar." : "Sin costo por agenda objetivo cargado para la cohorte."
+        : undefined,
+      partes: [porDia, r.costoPorAgendaMeta], periodo: `de hoy al cierre, el ${fecha(r.cierre)}`, filtros,
+      linea: r.inversionDiaPromedio === null ? undefined : { antes: "Al costo promedio real: ", cifra: cop(r.inversionDiaPromedio) },
+      notas: r.costoPorAgendaPromedio === null ? undefined : [["Costo promedio real", `${cop(r.costoPorAgendaPromedio)} por agenda: la inversión de la cohorte entre sus agendadas.`]],
+    }));
+  }
+  return cifras;
+}
+
+export function CumplimientoVista({ datos, slug, programa, evidencia = {}, unidad = "cupos", hrefDeUnidad }: {
+  datos: CumplimientoDeCohorteLeido;
+  slug: string;
+  programa?: string;
+  evidencia?: EvidenciaDeCumplimiento;
+  unidad?: UnidadDeCumplimiento;
+  /** El enlace de cada lado del interruptor Cupos | Plata; sin él no se muestra. */
+  hrefDeUnidad?: Record<UnidadDeCumplimiento, string>;
+}) {
+  const titulo = <CardTitle>¿Vamos a llegar a la meta de la cohorte?</CardTitle>;
   if (!datos.cohorte) return <Card data-testid="cumplimiento-cohorte">
-    <CardHeader><CardTitle>¿Vamos a llegar a la meta de la cohorte?</CardTitle></CardHeader>
+    <CardHeader>{titulo}</CardHeader>
     <CardContent><p className="text-sm text-muted-foreground">Sin cohorte activa</p></CardContent>
   </Card>;
   const filtros: ReadonlyArray<readonly [string, string]> = [
@@ -86,20 +141,38 @@ export function CumplimientoVista({ datos, slug, programa, evidencia = {} }: { d
   // La fracción de tiempo de la cohorte es la misma para toda meta: la da la barra de ventas totales, que siempre existe.
   const totales = datos.ventasTotales?.cupos;
   const fraccion = totales && totales.esperado !== null && totales.meta > 0 ? totales.esperado / totales.meta : null;
+  const enPlata = unidad === "plata";
+  const barraDeVentas = (barra: NonNullable<CumplimientoDeCohorteLeido["ventasPauta"]>, cupos: ClaveDeExplicacionDePauta, plata: ClaveDeExplicacionDePauta, de: string, lista?: ListaDeCifra) =>
+    enPlata && barra.usd
+      ? cifraDeAvance(plata, barra.usd, filtros, `vendido ${de}`, { lista })
+      : cifraDeAvance(cupos, barra.cupos, filtros, `ventas ${de}`, { lista });
+  const ritmo = cifrasDelRitmo(datos, filtros);
   return <Card data-testid="cumplimiento-cohorte">
     <CardHeader>
-      <CardTitle>¿Vamos a llegar a la meta de la cohorte?</CardTitle>
-      <p className="text-xs text-muted-foreground">Cohorte {datos.cohorte.codigo}. Solo cambia con la cohorte: el periodo y los demás filtros no la mueven.</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0 space-y-1">
+          {titulo}
+          <p className="text-xs text-muted-foreground">Cohorte {datos.cohorte.codigo}. Solo cambia con la cohorte: el periodo y los demás filtros no la mueven.</p>
+        </div>
+        {hrefDeUnidad ? <Pestanas
+          grupos={[{ pestanas: [
+            { id: "cupos", etiqueta: "Cupos", descripcion: "Las ventas en cantidad.", href: hrefDeUnidad.cupos },
+            { id: "plata", etiqueta: "Plata", descripcion: "Las ventas en valor vendido, en dólares.", href: hrefDeUnidad.plata },
+          ] }]}
+          activa={unidad}
+          etiqueta="Ver en"
+        /> : null}
+      </div>
     </CardHeader>
-    <CardContent className="space-y-6">
+    <CardContent className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {datos.agendas
           ? <Cifra cifra={cifraDeAvance("agendas_total", datos.agendas.cupos, filtros, "agendas")} />
           : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
         {datos.ventasPauta
-          ? <Cifra cifra={cifraDeAvance("ventas", datos.ventasPauta.cupos, filtros, "ventas de pauta", { lista: evidencia.ventasPauta })} />
+          ? <Cifra cifra={barraDeVentas(datos.ventasPauta, "ventas", "vendido_pauta", "de pauta", evidencia.ventasPauta)} />
           : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de ventas de pauta para esta cohorte</p><Configurar slug={slug} /></section>}
-        {datos.ventasTotales ? <Cifra cifra={cifraDeAvance("ventas_total", datos.ventasTotales.cupos, filtros, "ventas", { lista: evidencia.ventasTotales })} /> : null}
+        {datos.ventasTotales ? <Cifra cifra={barraDeVentas(datos.ventasTotales, "ventas_total", "vendido_total", "total", evidencia.ventasTotales)} /> : null}
         {datos.inversion ? <Cifra cifra={armarCifra({
           concepto: "presupuesto",
           explicacion: explicacionDePauta("presupuesto"),
@@ -117,20 +190,11 @@ export function CumplimientoVista({ datos, slug, programa, evidencia = {} }: { d
           notas: [["Sin color", "Gastar más rápido o más lento de lo planeado no es bueno ni malo por sí solo: se lee junto al costo por agenda."]],
         })} /> : null}
       </div>
+      {ritmo.length > 0 ? <div className="grid gap-3 sm:grid-cols-3" aria-label="Ritmo">
+        {ritmo.map((cifra) => <Cifra key={cifra.concepto} cifra={cifra} />)}
+      </div> : null}
       {datos.cohorte.cerrada ? <p className="text-sm font-medium">La cohorte ya cerró</p> : null}
-      {datos.requeridos ? <section className="space-y-2 rounded-lg bg-muted p-3" aria-label="Requeridos">
-        {datos.requeridos.metaCumplida
-          ? <p className="text-sm font-medium">Meta cumplida: no hace falta más inversión</p>
-          : <>
-            <p className="text-sm">
-              {datos.requeridos.agendasDia.valor === null
-                ? datos.requeridos.agendasDia.razon ?? "—"
-                : <>Requiere <span className="cifra">{num(datos.requeridos.agendasDia.valor, 1)}</span> agendas/día hasta el {fecha(datos.requeridos.cierre)}</>}
-            </p>
-            <p className="text-xs text-muted-foreground">Inversión/día al costo meta: <span className="cifra">{datos.requeridos.inversionDiaMeta === null ? "—" : cop(datos.requeridos.inversionDiaMeta)}</span></p>
-            <p className="text-xs text-muted-foreground">Inversión/día al promedio de la cohorte: <span className="cifra">{datos.requeridos.inversionDiaPromedio === null ? "—" : cop(datos.requeridos.inversionDiaPromedio)}</span></p>
-          </>}
-      </section> : null}
+      {datos.requeridos?.metaCumplida ? <p className="text-sm font-medium">Meta cumplida: no hace falta más inversión</p> : null}
     </CardContent>
   </Card>;
 }
@@ -156,5 +220,5 @@ export async function CumplimientoDeCohorte(props: PropsCumplimientoDeCohorte) {
       ...(pauta ? { ventasPauta: listaDeVentas(pauta, href("paid")) } : {}),
     };
   }
-  return <CumplimientoVista datos={datos} slug={props.slug} programa={props.programa} evidencia={evidencia} />;
+  return <CumplimientoVista datos={datos} slug={props.slug} programa={props.programa} evidencia={evidencia} unidad={props.unidad} hrefDeUnidad={props.hrefDeUnidad} />;
 }

@@ -219,18 +219,19 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Personas alcanzadas", explicacion: "Personas distintas que vieron algún anuncio. Meta solo la da día por día; por eso en una semana sale «—»." }],
   },
   agendas_dia: {
-    rotulo: "Agendas por día", universo: "pauta", unidad: "decimal", unidadesDePartes: ["conteo", "conteo"],
-    que: "Cuántas citas se reservan, en promedio, por día hábil de la cohorte.",
+    rotulo: "Agendas por día", universo: "todas", unidad: "decimal", unidadesDePartes: ["conteo", "conteo"],
+    que: "Cuántas citas se reservan, en promedio, por día hábil de la venta de la cohorte, vengan de pauta, orgánico, referidos o sin origen.",
     formula: { forma: "razon", terminos: ["Agendadas de la cohorte", "Días hábiles transcurridos"] },
     variables: [{ nombre: "Días hábiles", explicacion: "De lunes a viernes; los festivos cuentan como hábiles." }],
   },
   agendas_req: {
-    rotulo: "Agendas por día necesarias", universo: "pauta", unidad: "decimal", unidadesDePartes: ["conteo", "conteo"],
-    que: "Cuántas citas por día hacen falta, de hoy al cierre, para llegar a la meta.",
-    formula: { forma: "razon", terminos: ["Meta − Agendadas", "Días hábiles que faltan"] },
+    rotulo: "Agendas por día necesarias", universo: "todas", unidad: "decimal",
+    que: "Cuántas citas por día hacen falta, de hoy al cierre, para llegar a la meta de ventas de la cohorte.",
+    formula: { forma: "razon", terminos: ["Ventas por día necesarias", "Cierre de ventas × Asistencia"] },
     variables: [
-      { nombre: "Meta", explicacion: `La meta de agendas de la cohorte, en ${OBJETIVOS}.` },
-      { nombre: "Días hábiles que faltan", explicacion: "De hoy al cierre de la venta de la cohorte, de lunes a viernes." },
+      { nombre: "Ventas por día necesarias", explicacion: "Las ventas que faltaban al abrir hoy para la meta de la cohorte, repartidas entre los días hábiles que quedan hasta el cierre, contando hoy." },
+      { nombre: "Cierre de ventas y Asistencia", explicacion: "Las tasas medidas en las citas de la cohorte anterior o de la que está en venta. Si hay un objetivo de agenda a venta cargado, manda ese." },
+      { nombre: "Días hábiles", explicacion: "De lunes a viernes; los festivos cuentan como hábiles." },
     ],
   },
   inversion_req: {

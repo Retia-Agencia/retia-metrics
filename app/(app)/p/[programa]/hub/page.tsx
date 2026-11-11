@@ -54,7 +54,7 @@ import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
 import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
-import { CumplimientoDeCohorte } from "@/components/pauta/cumplimiento";
+import { CumplimientoDeCohorte, unidadDeCumplimiento } from "@/components/pauta/cumplimiento";
 import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
 import { TrazaDePauta } from "@/components/pauta/traza";
@@ -686,7 +686,12 @@ async function SeccionPauta({
     ]);
     return (
       <section className="space-y-4" data-vista-de-pauta="resultados">
-        <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas} />
+        <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas}
+          unidad={unidadDeCumplimiento(busqueda.cumpl)}
+          hrefDeUnidad={{
+            cupos: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "cumpl" }),
+            plata: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "plata", { parametro: "cumpl" }),
+          }} />
         <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} />
         <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre} />
         <PautaProyeccion proyeccion={proyeccion} historial={historial} objetivos={objetivosDeLaCohorte} hoy={hoy}

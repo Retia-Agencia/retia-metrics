@@ -72,6 +72,49 @@ describe("412 C: cumplimiento puro", () => {
   });
 });
 
+describe("420: Cupos | Plata y la fila del ritmo", () => {
+  it("agendas por día real: las agendadas de la barra entre los días hábiles transcurridos de la venta", () => {
+    // Del lunes 2 al viernes 6 de noviembre: 5 días hábiles.
+    const datos = armarCumplimiento(base);
+    expect(datos.agendasPorDia).toEqual({ agendas: 40, diasHabiles: 5, valor: 8 });
+    // Un fin de semana no suma días: el sábado 7 sigue en 5.
+    expect(armarCumplimiento({ ...base, hoy: "2026-11-07" }).agendasPorDia?.diasHabiles).toBe(5);
+    // Cerrada, el ritmo termina en el cierre (viernes 13: 10 días hábiles).
+    expect(armarCumplimiento({ ...base, hoy: "2026-11-20" }).agendasPorDia?.diasHabiles).toBe(10);
+    // Sin abrir la venta, no hay ritmo.
+    expect(armarCumplimiento({ ...base, hoy: "2026-10-30" }).agendasPorDia).toBeNull();
+  });
+
+  it("inversión por día necesaria: al costo objetivo la cifra, al promedio real la línea", () => {
+    const r = armarCumplimiento(base).requeridos!;
+    expect(r.inversionDiaMeta).toBe(5 * 50_000);
+    expect(r.costoPorAgendaPromedio).toBe(2_000_000 / 40);
+    expect(r.inversionDiaPromedio).toBe(5 * 50_000);
+    const salida = html(base);
+    expect(salida).toContain("Agendas por día necesarias");
+    expect(salida).toContain("Inversión por día necesaria");
+    expect(salida).toContain("Promedio real de la cohorte");
+    expect(salida).toContain("Al costo promedio real");
+  });
+
+  it("sin costo objetivo la inversión necesaria es — con su motivo, y la línea del promedio sigue", () => {
+    const entrada = { ...base, metas: { ...base.metas, costoPorAgenda: null } };
+    expect(armarCumplimiento(entrada).requeridos?.inversionDiaMeta).toBeNull();
+    expect(html(entrada)).toContain("Al costo promedio real");
+  });
+
+  it("en Plata las ventas pasan a valor vendido; agendas y presupuesto no cambian", () => {
+    const datos = armarCumplimiento(base);
+    const plata = renderToStaticMarkup(createElement(CumplimientoVista, { datos, slug: "p", unidad: "plata" }));
+    const cupos = renderToStaticMarkup(createElement(CumplimientoVista, { datos, slug: "p", unidad: "cupos" }));
+    expect(plata).toContain("Vendido de pauta");
+    expect(plata).toContain("Vendido total");
+    expect(plata).toContain("USD 20.000,00");
+    expect(cupos).not.toContain("Vendido de pauta");
+    expect(plata.match(/Presupuesto/g)?.length).toBe(cupos.match(/Presupuesto/g)?.length);
+  });
+});
+
 let db: Db;
 let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
