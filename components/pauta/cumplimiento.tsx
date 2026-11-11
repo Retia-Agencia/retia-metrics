@@ -9,7 +9,7 @@ import {
   type MedidaDeCumplimiento,
 } from "@/lib/metas/cumplimiento-de-cohorte";
 import { armarCifra, type CifraDeMetrica, type EntradaDeCifra } from "@/lib/metricas/cifra";
-import { explicacionDePauta, type ClaveDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDePauta, type ClaveDeExplicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
 
 export interface PropsCumplimientoDeCohorte {
   programId: string;
@@ -29,7 +29,7 @@ function Configurar({ slug }: { slug: string }) {
  * Una barra del cumplimiento como Cifra (419): la arma el servidor con `armarCifra`, y la tarjeta solo la pinta.
  * El cumplimiento no sigue el periodo: solo programa y cohorte en "Calculada con" (diseño §2 punto 4).
  */
-function cifraDeAvance(concepto: ClaveDePauta, medida: MedidaDeCumplimiento, filtros: ReadonlyArray<readonly [string, string]>, de: string, extra: Partial<EntradaDeCifra> = {}): CifraDeMetrica {
+function cifraDeAvance(concepto: ClaveDeExplicacionDePauta, medida: MedidaDeCumplimiento, filtros: ReadonlyArray<readonly [string, string]>, de: string, extra: Partial<EntradaDeCifra> = {}): CifraDeMetrica {
   const conEsperado = medida.esperado !== null && medida.meta > 0;
   return armarCifra({
     concepto,

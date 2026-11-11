@@ -2,10 +2,11 @@
  * El texto que abre cada cifra de Pauta (ticket 419, `docs/diseno-cifra-y-pauta.md` §2.1, DM-9).
  *
  * PUENTE, no casa: el texto de una explicación vive en la ficha del concepto (`FichaDeMetrica.que`, `formula`,
- * `variables`, `aliasExcel` en `./registro.ts`). Los conceptos de Pauta todavía no tienen clave en
- * `ClaveDeMetrica` ni ficha en el registro; cuando el carril D los registre, cada entrada de aquí pasa a su ficha
- * en un commit propio y se borra. Los rótulos son los vigentes de la tabla semanal: los que dependen de D-C, y las
- * fórmulas de D-A, D-B y D-E, no se fijan aquí (los decide el 403).
+ * `variables`, `aliasExcel` en `./registro.ts`). El 403 F2 ya registró parte de estos conceptos (`ClaveDePauta` de
+ * `lib/vocabulario-metricas.ts`) sin el texto; cada entrada pasa a su ficha en un commit propio cuando el 403 avise,
+ * y este archivo se borra. Los rótulos salen del vocabulario (D-C). Lo que cada texto dice de la fórmula sigue su fila
+ * de `docs/metricas.md`: show, cierre y cita a venta sobre el grupo de citas de Paid (D-A); ROAS, Profit y las ventas
+ * de la tabla por la semana del registro, no de la venta (D-B); la inversión sin gasto cargado en «—» (D-E).
  *
  * Módulo PURO: lo puede leer un componente cliente. Ningún texto lleva rutas, funciones, tickets ni ids: lo vigila
  * `tests/explicacion-sin-jerga.test.ts`.
@@ -37,6 +38,11 @@ const OBJETIVOS = "Programa › Objetivos";
 const VALOR_VENDIDO = "El precio pactado, en USD. Lo ya pagado es «Recaudado» y lo que falta es «Por cobrar».";
 const INVERSION_EN_DOLARES = "El gasto de cada día en pesos dividido por la tasa de cambio de ese día.";
 const ID_DEL_ANUNCIO = "Lo agrega Meta al enlace si el anuncio usa la plantilla de enlaces de Retia.";
+const SEMANA_DEL_REGISTRO = "Cuenta en la semana en que la persona se registró, aunque haya comprado semanas después; no en la semana de la venta.";
+const GRUPO_DE_CITAS = "Los deals de pauta con al menos una cita del periodo cuya hora ya pasó: asistió, no asistió o canceló. Cada deal cuenta una vez. No entran las reagendadas (cuenta su cita nueva), las cortesías ni los anulados.";
+const ASISTIERON = "Deals del grupo con al menos una cita a la que la persona asistió, según lo marcó el closer.";
+const VENDIDOS_HOY = "De los deals que asistieron, los que hoy están en Abonado o Completo, aunque hayan comprado después del periodo.";
+const SIN_MARCAR = "Citas cuya hora ya pasó y el closer no ha dicho qué pasó. Quedan fuera del grupo hasta que se marquen; si hay, la cifra sale como parcial y se puede abrir la lista.";
 const ABONADO_O_COMPLETO = "El cliente ya pagó al menos un abono. Un deal en cualquier otra etapa no es venta.";
 
 export const EXPLICACIONES_DE_PAUTA = {
@@ -44,7 +50,10 @@ export const EXPLICACIONES_DE_PAUTA = {
     rotulo: VOCABULARIO_PAUTA_SEMANAL.inversion, universo: "pauta", unidad: "cop",
     que: "Lo que se gastó en anuncios de Meta, sumando todas las cuentas del programa.",
     formula: { forma: "suma", terminos: ["gasto de cada día en Meta"] },
-    variables: [{ nombre: "Gasto de cada día", explicacion: "Lo que Meta reporta como gastado ese día, en pesos. Entran todas las campañas: agenda, lanzamiento y otras." }],
+    variables: [
+      { nombre: "Gasto de cada día", explicacion: "Lo que Meta reporta como gastado ese día, en pesos. Entran todas las campañas: agenda, lanzamiento y otras." },
+      { nombre: "Semana sin gasto cargado", explicacion: "Si el gasto de Meta todavía no se había cargado esa semana, sale «—» y la fecha desde la que hay gasto. Cero solo cuando el gasto cargado sumó cero." },
+    ],
   },
   presupuesto: {
     rotulo: "Presupuesto usado", universo: "pauta", unidad: "cop",
@@ -132,44 +141,51 @@ export const EXPLICACIONES_DE_PAUTA = {
     que: "Cuántos dólares vendidos trajo cada dólar invertido.",
     formula: { forma: "razon", terminos: [`${nombreCorto("vendido")} de pauta`, "Inversión en dólares"] },
     variables: [
-      { nombre: `${nombreCorto("vendido")} de pauta`, explicacion: "El valor vendido de las ventas de pauta, en USD." },
+      { nombre: `${nombreCorto("vendido")} de pauta`, explicacion: `El valor vendido de las ventas de pauta, en USD. ${SEMANA_DEL_REGISTRO}` },
       { nombre: "Inversión en dólares", explicacion: INVERSION_EN_DOLARES },
+      { nombre: "Parcial", explicacion: "Si alguna venta viene de un día sin gasto cargado, el ROAS sale como parcial o «—»: dividir esa venta por un gasto que falta lo inflaría." },
     ],
   },
   profit: {
     rotulo: "Profit", universo: "pauta", unidad: "usd", unidadesDePartes: ["usd", "usd"],
     que: "Lo vendido en pauta menos lo invertido, los dos en dólares.",
     formula: { forma: "resta", terminos: [`${nombreCorto("vendido")} de pauta`, "Inversión en dólares"] },
-    variables: [{ nombre: "Inversión en dólares", explicacion: INVERSION_EN_DOLARES }],
+    variables: [
+      { nombre: `${nombreCorto("vendido")} de pauta`, explicacion: SEMANA_DEL_REGISTRO },
+      { nombre: "Inversión en dólares", explicacion: INVERSION_EN_DOLARES },
+    ],
   },
   show: {
     rotulo: nombreCorto("asistencia"), universo: "pauta", unidad: "porcentaje", unidadesDePartes: ["conteo", "conteo"],
     aliasExcel: "% de show / % presentación a zoom",
-    que: "De las citas que ya debían ocurrir, qué parte ocurrió.",
-    formula: { forma: "razon", terminos: ["Citas realizadas", "Citas del grupo"] },
+    que: "De los deals de pauta con cita ya pasada, qué parte asistió.",
+    formula: { forma: "razon", terminos: ["Deals que asistieron", "Deals del grupo"] },
     variables: [
-      { nombre: "Citas realizadas", explicacion: "El closer marcó que la llamada ocurrió." },
-      { nombre: "Citas del grupo", explicacion: "Las citas de pauta del periodo cuya hora ya pasó." },
+      { nombre: "Deals que asistieron", explicacion: ASISTIERON },
+      { nombre: "Deals del grupo", explicacion: GRUPO_DE_CITAS },
+      { nombre: "Sin marcar", explicacion: SIN_MARCAR },
     ],
   },
   cierre_ventas: {
     rotulo: nombreCorto("cierre_de_ventas"), universo: "pauta", unidad: "porcentaje", unidadesDePartes: ["conteo", "conteo"],
     aliasExcel: "% de cierre zoom a cliente",
-    que: "De las llamadas que ocurrieron, qué parte terminó en venta.",
-    formula: { forma: "razon", terminos: ["Ventas", "Citas realizadas"] },
+    que: "De los deals de pauta que asistieron a su cita, qué parte ya compró.",
+    formula: { forma: "razon", terminos: ["Deals que asistieron y compraron", "Deals que asistieron"] },
     variables: [
-      { nombre: "Ventas", explicacion: "De esas mismas citas, las que terminaron en Abonado o Completo." },
-      { nombre: "Citas realizadas", explicacion: "El closer marcó que la llamada ocurrió." },
+      { nombre: "Deals que asistieron y compraron", explicacion: VENDIDOS_HOY },
+      { nombre: "Deals que asistieron", explicacion: `${ASISTIERON} ${GRUPO_DE_CITAS}` },
+      { nombre: "Sin marcar", explicacion: SIN_MARCAR },
     ],
   },
   agenda_venta: {
     rotulo: nombreCorto("cita_a_venta"), universo: "pauta", unidad: "porcentaje", admiteObjetivo: true, unidadesDePartes: ["conteo", "conteo"],
     aliasExcel: "% de cierre agenda a cliente",
-    que: "De las citas reservadas, qué parte terminó en venta.",
-    formula: { forma: "razon", terminos: ["Ventas", "Agendadas"] },
+    que: "De los deals de pauta con cita ya pasada, qué parte asistió y compró. Es la asistencia por el cierre.",
+    formula: { forma: "razon", terminos: ["Deals que asistieron y compraron", "Deals del grupo"] },
     variables: [
-      { nombre: "Ventas", explicacion: "De esas mismas citas, las que terminaron en Abonado o Completo." },
-      { nombre: "Agendadas", explicacion: "Citas reservadas por personas de pauta." },
+      { nombre: "Deals que asistieron y compraron", explicacion: VENDIDOS_HOY },
+      { nombre: "Deals del grupo", explicacion: GRUPO_DE_CITAS },
+      { nombre: "Sin marcar", explicacion: SIN_MARCAR },
     ],
   },
   cpm: {
@@ -258,8 +274,9 @@ export const EXPLICACIONES_DE_PAUTA = {
   },
 } as const satisfies Record<string, ExplicacionDeConcepto>;
 
-export type ClaveDePauta = keyof typeof EXPLICACIONES_DE_PAUTA;
+/** Las claves de este puente. No es `ClaveDePauta` de `lib/vocabulario-metricas.ts`: aquí hay más (agendas, ventas, tasas). */
+export type ClaveDeExplicacionDePauta = keyof typeof EXPLICACIONES_DE_PAUTA;
 
-export function explicacionDePauta(clave: ClaveDePauta): ExplicacionDeConcepto {
+export function explicacionDePauta(clave: ClaveDeExplicacionDePauta): ExplicacionDeConcepto {
   return EXPLICACIONES_DE_PAUTA[clave];
 }

@@ -8,11 +8,11 @@ import {
   textoDeCambio,
   type EntradaDeCifra,
 } from "@/lib/metricas/cifra";
-import { explicacionDePauta, type ClaveDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDePauta, type ClaveDeExplicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
 
 const FILTROS = [["Programa", "Comunicarte"], ["Cohorte", "C6"]] as const;
 
-function entrada(clave: ClaveDePauta, resto: Omit<EntradaDeCifra, "concepto" | "explicacion" | "filtros"> & { filtros?: EntradaDeCifra["filtros"] }): EntradaDeCifra {
+function entrada(clave: ClaveDeExplicacionDePauta, resto: Omit<EntradaDeCifra, "concepto" | "explicacion" | "filtros"> & { filtros?: EntradaDeCifra["filtros"] }): EntradaDeCifra {
   return { concepto: clave, explicacion: explicacionDePauta(clave), filtros: FILTROS, ...resto };
 }
 
