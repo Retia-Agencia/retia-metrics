@@ -51,7 +51,7 @@ export function SelectorPeriodo({ periodo, anteriorDisponible, partes = "ambas",
   // "Desde el inicio" cuenta desde la cohorte del filtro: sin cohortes a la vista (todos los programas, listas) no existe.
   const atajos = Object.entries(atajosDePeriodo).filter(([valor]) => (mostrarCohortes && !soloA) || valor !== "desde_el_inicio");
   const legible = (r: PeriodoResuelto["a"]) => r.desde === r.hasta ? fecha(r.desde) : `${fecha(r.desde)} a ${fecha(r.hasta)}`;
-  const nombrePreset = periodo.preset === "custom" ? "Personalizado" : atajosDePeriodo[periodo.preset];
+  const nombrePreset = periodo.preset === "custom" ? "Fechas elegidas" : atajosDePeriodo[periodo.preset];
   const esCohorte = periodo.preset === "desde_el_inicio";
   const yaPedido = (clave: string) => pedidos.some((p) => claveDePedido(p) === clave);
   // En un atajo de cohorte el periodo anterior ES la cohorte anterior: una sola opción.
@@ -87,7 +87,7 @@ export function SelectorPeriodo({ periodo, anteriorDisponible, partes = "ambas",
           <DialogDescription>Elige un atajo o un rango. Los días son de Bogotá.</DialogDescription>
           <Select
             value={periodo.preset}
-            items={[...atajos.map(([value, label]) => ({ value, label })), { value: "custom", label: "Personalizado" }]}
+            items={[...atajos.map(([value, label]) => ({ value, label })), { value: "custom", label: "Elegir fechas…" }]}
             onValueChange={(valor) => {
               if (valor && valor !== "custom") navegar({ periodo: valor }, soloA ? [...clavesPeriodo, ...clavesComparacion] : clavesPeriodo, () => setDialogoPeriodo(false));
             }}
@@ -97,7 +97,7 @@ export function SelectorPeriodo({ periodo, anteriorDisponible, partes = "ambas",
               {atajos.map(([valor, etiqueta]) => (
                 <SelectItem key={valor} value={valor}>{etiqueta}</SelectItem>
               ))}
-              <SelectItem value="custom">Personalizado</SelectItem>
+              <SelectItem value="custom">Elegir fechas…</SelectItem>
             </SelectContent>
           </Select>
           <form
@@ -121,7 +121,7 @@ export function SelectorPeriodo({ periodo, anteriorDisponible, partes = "ambas",
             <fieldset className="contents">
               <legend className="col-span-2 text-sm font-medium">Rango</legend>
               {(["desde", "hasta"] as const).map((extremo) => (
-                <label key={extremo} className="text-sm">{extremo === "desde" ? "Desde" : "Hasta"}
+                <label key={extremo} className="text-sm">{extremo === "desde" ? "Del" : "Al"}
                   <input className={claseInput} type="date" name={`a_${extremo}`} aria-label={extremo} required defaultValue={periodo.a[extremo]} />
                 </label>
               ))}
@@ -187,7 +187,7 @@ export function SelectorPeriodo({ periodo, anteriorDisponible, partes = "ambas",
               <fieldset className="contents">
                 <legend className="col-span-2 text-sm font-medium">O un rango que elijo</legend>
                 {(["desde", "hasta"] as const).map((extremo) => (
-                  <label key={extremo} className="text-sm">{extremo === "desde" ? "Desde" : "Hasta"}
+                  <label key={extremo} className="text-sm">{extremo === "desde" ? "Del" : "Al"}
                     <input className={claseInput} type="date" name={`b_${extremo}`} aria-label={`Comparación ${extremo}`} required />
                   </label>
                 ))}

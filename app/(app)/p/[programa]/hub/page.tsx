@@ -58,7 +58,7 @@ import { QueTraeVentas } from "@/components/pauta/que-trae-ventas";
 import { SinOrigen } from "@/components/pauta/sin-origen";
 import { DondeSeVaLaGente } from "@/components/pauta/embudo-del-formulario";
 import { VER_POR_ORIGEN, verPorOrigen, type VerPorOrigen } from "@/lib/pauta/cifras-de-origen";
-import { VISTAS_DE_PAUTA, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
+import { resumenDeFiltrosDePauta, VISTAS_DE_PAUTA, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { dineroDelRango } from "@/lib/queries/dashboard";
 import {
@@ -260,6 +260,18 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
               lineaDeCohorte={lineaDeCohorte}
             />
+            {seccion === "pauta" ? (
+              <p className="mt-1 text-xs text-muted-foreground" data-testid="resumen-de-filtros">
+                {resumenDeFiltrosDePauta({
+                  programa: programa.nombre,
+                  cohorte: elegida?.codigo ?? null,
+                  rango: contexto.seleccion.rango,
+                  comparacion: contexto.periodo.b,
+                  closer: closersDelFiltro.find((c) => c.id === contexto.claveCloser)?.label ?? null,
+                  escribirFecha: fecha,
+                })}
+              </p>
+            ) : null}
             </div>
           </div>
         )}
