@@ -69,7 +69,16 @@ export interface EntradaDeCifra {
   linea?: { antes: string; cifra?: string; despues?: string };
   notas?: ReadonlyArray<readonly [string, string]>;
   /** La lista detrás de la cifra. Sin lista, la cifra no abre evidencia. */
-  lista?: { href: string; nombre: string; total: number | null; filas: ReadonlyArray<ReadonlyArray<string>> };
+  lista?: {
+    href: string;
+    nombre: string;
+    total: number | null;
+    filas: ReadonlyArray<ReadonlyArray<string>>;
+    /** "los" o "las" delante del nombre ("Ver los 3 deals que asistieron"). Por defecto "las". */
+    articulo?: "los" | "las";
+    /** Qué lado de la fórmula es la lista en una razón. Por defecto el de abajo; "arriba" si es el numerador. */
+    parte?: "arriba" | "abajo";
+  };
 }
 
 export interface EstadoDeCifra {
@@ -307,11 +316,12 @@ export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
     : l
     ? {
       href: l.href,
-      boton: l.total !== null ? `Ver las ${num(l.total)} ${l.nombre}` : `Ver todas las ${l.nombre}`,
+      boton: l.total !== null ? `Ver ${l.articulo ?? "las"} ${num(l.total)} ${l.nombre}` : `Ver ${l.articulo === "los" ? "todos los" : "todas las"} ${l.nombre}`,
       filas: l.filas.slice(0, 5),
-      nota: esRazonDeConteo
-        ? `Son las ${l.nombre} de abajo de la fórmula${unidades[0] === "conteo" ? "; la última columna dice cuáles suman arriba" : ""}.`
-        : null,
+      nota: !esRazonDeConteo ? null
+        : l.parte === "arriba"
+        ? `Son ${l.articulo ?? "las"} ${l.nombre} de arriba de la fórmula.`
+        : `Son ${l.articulo ?? "las"} ${l.nombre} de abajo de la fórmula${unidades[0] === "conteo" ? "; la última columna dice cuáles suman arriba" : ""}.`,
     }
     : null;
 

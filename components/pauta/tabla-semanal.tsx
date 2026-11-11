@@ -1,26 +1,26 @@
 import type { JSX, ReactNode } from "react";
 import Link from "next/link";
-import { DatoOVacio } from "@/components/dato-o-vacio";
+import { Cifra } from "@/components/cifra-con-lista";
 import { Grafica } from "@/components/graficas/grafica";
 import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
-import { Variacion } from "@/components/variacion";
-import { Badge } from "@/components/ui/badge";
+import { listaDeVentas } from "@/components/pauta/cumplimiento";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { db } from "@/lib/db";
-import { cop, fecha, num } from "@/lib/format";
-import { colorDeObjetivo } from "@/lib/objetivos/semaforo";
-import type { MetricaObjetivo } from "@/lib/objetivos/metricas";
+import { cop, fecha, fechaCorta, num } from "@/lib/format";
+import { leerEvidencia } from "@/lib/metas/cumplimiento-de-cohorte";
+import type { CifraDeMetrica } from "@/lib/metricas/cifra";
+import { cifraDeCeldaSemanal, type EntradaDeCeldaSemanal } from "@/lib/pauta/cifra-de-celda-semanal";
 import type { PeriodoResuelto } from "@/lib/periodo";
-import { etiquetaDeSemana, textoDeValorSemanal } from "@/lib/pauta/csv-tabla-semanal";
+import { etiquetaDeSemana } from "@/lib/pauta/csv-tabla-semanal";
 import {
   cargarPautaSemanal,
   type CeldaPautaSemanal,
   type ClavePautaSemanal,
   type FilaPautaSemanal,
 } from "@/lib/queries/hechos/pauta-semanal";
-import { urlDeLista } from "@/lib/queries/vista-metrica";
+import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
 import {
   configDeGraficaEnOrigen,
@@ -31,126 +31,108 @@ import {
 } from "@/lib/series-pasos";
 import { nombreCorto, UNIVERSO_PAUTA, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
-const LISTAS: Partial<Record<ClavePautaSemanal, Metrica>> = {
-  agendas: "agendas_creadas",
-  ventas: "cierres",
-  facturacion: "contratado",
-  // Asistencia y cierre son tasas sobre el grupo de citas de Paid: su lista es la del grupo, no la de llamadas (419).
-  show: "grupo_shows",
-  cierre_ventas: "grupo_vendidos",
-};
-
-const METRICAS_DE_OBJETIVO: Partial<Record<ClavePautaSemanal, MetricaObjetivo>> = {
-  costo_agenda_crm: "costo_por_agenda",
-  costo_agenda_meta: "costo_por_agenda",
-  roas: "roas",
-  agenda_venta: "conversion_agenda_venta",
-};
-
 const NOMBRE_DE_BLOQUE = { general: "General", comercial: "Comercial", trafico: "Tráfico" } as const;
-const ETIQUETA_COLOR = { exito: "En meta", alerta: "En seguimiento", peligro: "Rezagado" } as const;
+
+/**
+ * La lista que abre cada celda y que cuenta lo mismo que ella (419, ADR 0067): Agendadas abre las agendas creadas de
+ * Paid; Ventas y Vendido, las ventas de Paid de esa columna; las tres tasas, la parte de arriba de su fórmula en el
+ * grupo de citas de Paid (decisión de Mani del 11-nov). Lo vigila `tests/pauta-semanal.test.ts`. Solo se lee la
+ * lista que la sesión puede abrir (`listasQueAbre`, la misma reja de la página de lista).
+ */
+const EVIDENCIA: Partial<Record<ClavePautaSemanal, { metrica: Metrica; nombre: string; articulo: "los" | "las"; parte?: "arriba" }>> = {
+  agendas: { metrica: "agendas_creadas", nombre: "agendas", articulo: "las" },
+  ventas: { metrica: "cierres", nombre: "ventas", articulo: "las" },
+  facturacion: { metrica: "cierres", nombre: "ventas", articulo: "las" },
+  show: { metrica: "grupo_shows", nombre: "deals que asistieron", articulo: "los", parte: "arriba" },
+  cierre_ventas: { metrica: "grupo_vendidos", nombre: "deals que asistieron y compraron", articulo: "los", parte: "arriba" },
+  agenda_venta: { metrica: "grupo_vendidos", nombre: "deals que asistieron y compraron", articulo: "los", parte: "arriba" },
+};
+
+/** Las listas que abre la tabla: la página decide con ellas cuáles puede abrir la sesión. */
+export const LISTAS_DE_LA_TABLA_SEMANAL: readonly Metrica[] = [...new Set(Object.values(EVIDENCIA).map((e) => e.metrica))];
+
+type Lista = NonNullable<EntradaDeCeldaSemanal["lista"]>;
 
 function periodoDelRango(rango: { desde: string; hasta: string }): PeriodoResuelto {
   return { preset: "custom", a: rango, b: null, comparaciones: [] };
 }
 
-function hrefDeCelda(args: {
-  fila: FilaPautaSemanal;
-  rango: { desde: string; hasta: string };
-  slug: string;
-  origen: string;
-  cohorteId: string | null;
-}): string | null {
-  const metrica = LISTAS[args.fila.clave];
-  if (!metrica) return null;
-  return urlDeLista({
-    slug: args.slug,
+async function listaDelRango(p: PropsTabla, metrica: Metrica, rango: { desde: string; hasta: string }): Promise<Lista> {
+  const seccion = await leerEvidencia(metrica, { programId: p.programId, cohorteId: p.cohorteId, desde: rango.desde, hasta: rango.hasta, hoy: p.hoy, area: "paid" });
+  const href = urlDeLista({
+    slug: p.slug,
     metrica,
-    periodo: periodoDelRango(args.rango),
-    origen: args.origen,
-    cohorteId: args.cohorteId,
+    periodo: periodoDelRango(rango),
+    origen: p.origen,
+    cohorteId: p.cohorteId,
     filtrosDeOrigen: { area: "paid" },
   });
+  if (metrica === "cierres") return listaDeVentas(seccion, href);
+  return {
+    href,
+    nombre: "",
+    total: seccion.subtotal.cantidad,
+    filas: seccion.filas.slice(0, 5).map((fila) => [
+      fila.persona?.nombre ?? "Sin nombre",
+      fila.etapa ? nombreDeEtapa(fila.etapa) : "—",
+      fechaCorta(fila.fecha),
+    ]),
+  };
 }
 
-function Cifra({ celda, fila, href }: { celda: CeldaPautaSemanal; fila: FilaPautaSemanal; href: string | null }) {
-  const contenido = (
-    <span className="cifra whitespace-nowrap">
-      <DatoOVacio valor={celda.valor} motivo={celda.cobertura.razon ?? undefined}>
-        {(valor) => textoDeValorSemanal(valor, fila.unidad)}
-      </DatoOVacio>
-    </span>
-  );
-  return href && celda.valor !== null
-    ? <Link href={href} className="rounded-lg text-primary underline underline-offset-2 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-ring">{contenido}</Link>
-    : contenido;
-}
-
-function EstadoDeObjetivo({
-  fila,
-  celda,
-  objetivos,
-}: {
-  fila: FilaPautaSemanal;
-  celda: CeldaPautaSemanal;
-  objetivos: Awaited<ReturnType<typeof objetivosDeCohortes>>;
-}) {
-  const metrica = METRICAS_DE_OBJETIVO[fila.clave];
-  if (!metrica || celda.valor === null) return null;
-  const candidatas = objetivos.filter((objetivo) => objetivo.activo && objetivo.metrica === metrica && (objetivo.area === null || objetivo.area === "paid"));
-  const objetivo = candidatas.find((fila) => fila.area === "paid") ?? candidatas.find((fila) => fila.area === null);
-  if (!objetivo) return null;
-  if (metrica === "costo_por_agenda" && objetivo.moneda !== "COP") return null;
-  const valor = fila.unidad === "porcentaje" ? celda.valor * 100 : celda.valor;
-  const color = colorDeObjetivo({ metrica, meta: objetivo.meta, aceptable: objetivo.aceptable, valor });
-  return <Badge variant={color}>{ETIQUETA_COLOR[color]}</Badge>;
-}
-
-function Celda({
-  fila,
-  celda,
-  rango,
-  anterior,
-  slug,
-  origen,
-  cohorteId,
-  objetivos,
-}: {
-  fila: FilaPautaSemanal;
-  celda: CeldaPautaSemanal;
-  rango: { desde: string; hasta: string };
-  anterior?: CeldaPautaSemanal;
-  slug: string;
-  origen: string;
-  cohorteId: string | null;
-  objetivos: Awaited<ReturnType<typeof objetivosDeCohortes>>;
-}) {
+function Celda({ cifra, celda }: { cifra: CifraDeMetrica; celda: CeldaPautaSemanal }) {
   return (
-    <div className="space-y-1 text-right">
-      <Cifra celda={celda} fila={fila} href={hrefDeCelda({ fila, rango, slug, origen, cohorteId })} />
-      <div className="flex flex-wrap items-center justify-end gap-1">
-        {celda.cobertura.estado === "parcial" ? <Badge variant="info">Parcial</Badge> : null}
-        <EstadoDeObjetivo fila={fila} celda={celda} objetivos={objetivos} />
-      </div>
-      {anterior?.valor !== null && anterior?.valor !== undefined && celda.valor !== null
-        ? <p className="text-xs text-muted-foreground"><Variacion actual={celda.valor} anterior={anterior.valor} comparacion="contra la semana anterior" decimales={fila.unidad === "conteo" ? 0 : 2} /></p>
-        : null}
+    <div className="flex flex-col items-end gap-0.5">
+      <Cifra cifra={cifra} tamano="celda" />
       {celda.otrasCampanasCop !== undefined
-        ? <p className="text-xs text-muted-foreground">{VOCABULARIO_PAUTA_SEMANAL.otras_campaignas}: <span className="cifra">{cop(celda.otrasCampanasCop)}</span></p>
+        ? <p className="text-[11px] text-muted-foreground">{VOCABULARIO_PAUTA_SEMANAL.otras_campaignas}: <span className="cifra">{cop(celda.otrasCampanasCop)}</span></p>
         : null}
     </div>
   );
+}
+
+interface PropsTabla {
+  programId: string;
+  programa?: string;
+  cohorte?: string;
+  slug: string;
+  rango: { desde: string; hasta: string };
+  periodo: PeriodoResuelto;
+  origen: string;
+  hoy: string;
+  cohorteId: string | null;
+  /** Las listas que la sesión abre (la reja de la página de lista): solo esas celdas traen su evidencia. */
+  listasQueAbre?: readonly Metrica[];
 }
 
 function filasPorBloque(filas: FilaPautaSemanal[], bloque: FilaPautaSemanal["bloque"]): FilaPautaSemanal[] {
   return filas.filter((fila) => fila.bloque === bloque);
 }
 
-export async function TablaSemanalDePauta(p: { programId: string; slug: string; rango: { desde: string; hasta: string }; periodo: PeriodoResuelto; origen: string; hoy: string; cohorteId: string | null }): Promise<JSX.Element> {
+export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
   const [vista, objetivos] = await Promise.all([
     cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId }),
     p.cohorteId ? objetivosDeCohortes(db, [p.cohorteId]) : Promise.resolve([]),
   ]);
+  // Una lectura por lista y columna (Total y cada semana); Ventas y Vendido comparten la de ventas.
+  const columnas = [p.rango, ...vista.semanas];
+  const metricas = LISTAS_DE_LA_TABLA_SEMANAL.filter((m) => p.listasQueAbre?.includes(m));
+  const leidas = new Map(await Promise.all(metricas.map(async (m) => [m, await Promise.all(columnas.map((rango) => listaDelRango(p, m, rango)))] as const)));
+  const listaDe = (clave: ClavePautaSemanal, columna: number): Lista | undefined => {
+    const e = EVIDENCIA[clave];
+    const lista = e ? leidas.get(e.metrica)?.[columna] : undefined;
+    return e && lista ? { ...lista, nombre: e.nombre, articulo: e.articulo, ...(e.parte ? { parte: e.parte } : {}) } : undefined;
+  };
+  const cifra = (fila: FilaPautaSemanal, columna: number) => {
+    const esTotal = columna === 0;
+    const rango = esTotal ? p.rango : vista.semanas[columna - 1];
+    const celda = esTotal ? fila.celdas.total : fila.celdas.porSemana[columna - 1];
+    const anterior = columna > 1 ? { celda: fila.celdas.porSemana[columna - 2], rango: vista.semanas[columna - 2] } : undefined;
+    return cifraDeCeldaSemanal({
+      fila, celda, rango, esTotal, anterior, hoy: p.hoy, objetivos, programa: p.programa, cohorte: p.cohorte,
+      lista: listaDe(fila.clave, columna),
+    });
+  };
   const config = configDeGraficaEnOrigen(p.origen, "pauta-semanal", {
     unidad: "plata",
     paso: pasoPorDefecto(p.rango),
@@ -181,8 +163,8 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
             <thead>
               <tr className="border-b text-left">
                 <th scope="col" className="px-2 py-2 font-medium">Métrica</th>
-                <th scope="col" className="px-2 py-2 text-right font-medium">Total</th>
-                {vista.semanas.map((semana) => <th scope="col" key={semana.desde} className="px-2 py-2 text-right font-medium">{etiquetaDeSemana(semana)}</th>)}
+                <th scope="col" className="bg-marca-suave px-2 py-2 text-right font-medium">Total</th>
+                {vista.semanas.map((semana) => <th scope="col" key={semana.desde} className="px-2 py-2 text-right font-medium">{etiquetaDeSemana(semana)}{semana.hasta >= p.hoy ? <span className="font-normal text-muted-foreground"> · en curso</span> : null}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -192,10 +174,10 @@ export async function TablaSemanalDePauta(p: { programId: string; slug: string; 
                 return [titulo, ...filas.map((fila) => (
                   <tr key={fila.clave} className="border-b last:border-0">
                     <th scope="row" className="px-2 py-3 text-left font-normal">{fila.nombre}</th>
-                    <td className="px-2 py-3"><Celda fila={fila} celda={fila.celdas.total} rango={p.rango} slug={p.slug} origen={p.origen} cohorteId={p.cohorteId} objetivos={objetivos} /></td>
+                    <td className="bg-marca-suave px-2 py-2 text-right font-semibold"><Celda cifra={cifra(fila, 0)} celda={fila.celdas.total} /></td>
                     {fila.celdas.porSemana.map((celda, i) => (
-                      <td key={vista.semanas[i].desde} className="px-2 py-3">
-                        <Celda fila={fila} celda={celda} anterior={i > 0 ? fila.celdas.porSemana[i - 1] : undefined} rango={vista.semanas[i]} slug={p.slug} origen={p.origen} cohorteId={p.cohorteId} objetivos={objetivos} />
+                      <td key={vista.semanas[i].desde} className="px-2 py-2 text-right">
+                        <Celda cifra={cifra(fila, i + 1)} celda={celda} />
                       </td>
                     ))}
                   </tr>

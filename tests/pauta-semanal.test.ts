@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -17,6 +18,7 @@ import {
 import type { Db } from "@/lib/db/tipos";
 import { cargarPautaSemanal, type ClavePautaSemanal, type VistaPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
+import { leerEvidencia, leerEvidenciaDeVentas } from "@/lib/metas/cumplimiento-de-cohorte";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
@@ -272,5 +274,84 @@ describe("tabla semanal de Paid Media", () => {
     expect(total(semanal, "inversion")! / 4_000).toBe(roas.total.gastoUsd);
     expect(total(semanal, "ventas")).toBe(roas.total.ventas);
     expect(total(semanal, "roas")).toBe(roas.total.roas.valor);
+  });
+  it("419: cada razón trae las partes de su fórmula, y las partes dan el valor de la celda", async () => {
+    await escenarioManual();
+    const dia = { desde: "2026-10-05", hasta: "2026-10-05" };
+    const vista = await cargarPautaSemanal(db, { programId, rango: dia, hoy: HOY, cohorteId: null });
+    const partes = (clave: ClavePautaSemanal) => fila(vista, clave).celdas.total.partes;
+
+    expect(partes("show")).toEqual([1, 2]);
+    expect(partes("cierre_ventas")).toEqual([1, 1]);
+    expect(partes("agenda_venta")).toEqual([1, 2]);
+    expect(partes("roas")).toEqual([200, 100]);
+    expect(partes("profit")).toEqual([200, 100]);
+    expect(partes("cpm")).toEqual([400_000, 10_000]);
+    expect(partes("ctr")).toEqual([200, 10_000]);
+    expect(partes("llegada_landing")).toEqual([100, 200]);
+    expect(partes("frecuencia")).toEqual([10_000, 5_000]);
+    expect(partes("costo_agenda_meta")).toEqual([400_000, 4]);
+    // Las partes reproducen la celda: si una consulta cambia una y no la otra, esto se pone rojo.
+    for (const clave of ["show", "cierre_ventas", "agenda_venta", "roas", "ctr", "llegada_landing", "conversion_landing", "frecuencia", "costo_agenda_meta", "costo_agenda_crm"] as const) {
+      const c = fila(vista, clave).celdas.total;
+      if (c.valor === null) continue;
+      const [a, b] = c.partes!;
+      expect(a! / b!, clave).toBeCloseTo(c.valor, 10);
+    }
+    const cpm = fila(vista, "cpm").celdas.total;
+    expect(cpm.partes![0]! / cpm.partes![1]! * 1_000).toBeCloseTo(cpm.valor!, 10);
+    const profit = fila(vista, "profit").celdas.total;
+    expect(profit.partes![0]! - profit.partes![1]!).toBe(profit.valor);
+    // Una fila de conteo no lleva partes.
+    expect(partes("ventas")).toBeUndefined();
+  });
+
+  it("419: la lista de ventas de cada columna cuenta lo mismo que las celdas Ventas y Vendido", async () => {
+    // Semana 1: una venta de pauta, una orgánica (no cuenta), una anulada (no cuenta) y una de otro programa.
+    await crearDeal(await crearEnvio(programId, "2026-10-05"), { venta: true, valor: "200", diaVenta: "2026-10-06" });
+    const organico = await crearEnvio(programId, "2026-10-05");
+    await db.update(submissions).set({ utmSource: "instagram", utmMedium: "organic", utmId: null }).where(eq(submissions.id, organico.envioId));
+    await crearDeal(organico, { venta: true, valor: "900", diaVenta: "2026-10-06" });
+    await crearDeal(await crearEnvio(programId, "2026-10-05"), { venta: true, valor: "500", diaVenta: "2026-10-07", anulado: true });
+    await crearDeal(await crearEnvio(otroProgramId, "2026-10-05"), { venta: true, valor: "700", diaVenta: "2026-10-07" });
+    // Semana 2: dos ventas de pauta, una registrada en la semana 1.
+    await crearDeal(await crearEnvio(programId, "2026-10-05"), { venta: true, valor: "300", diaVenta: "2026-10-13" });
+    await crearDeal(await crearEnvio(programId, "2026-10-12"), { venta: true, valor: "400", diaVenta: "2026-10-14" });
+
+    const vista = await cargarPautaSemanal(db, { programId, rango: RANGO, hoy: HOY, cohorteId: null });
+    const columnas = [RANGO, ...vista.semanas];
+    const celdas = (clave: ClavePautaSemanal) => [fila(vista, clave).celdas.total, ...fila(vista, clave).celdas.porSemana];
+    const ventas = celdas("ventas");
+    const vendido = celdas("facturacion");
+    expect(ventas.map((c) => c.valor)).toEqual([3, 1, 2]);
+    for (const [i, rango] of columnas.entries()) {
+      const lista = await leerEvidenciaDeVentas({ programId, cohorteId: null, desde: rango.desde, hasta: rango.hasta, hoy: HOY, area: "paid" }, db);
+      expect(lista.subtotal.cantidad, `ventas ${rango.desde}`).toBe(ventas[i].valor);
+      expect(lista.filas.reduce((n, f) => n + (f.monto ?? 0), 0), `vendido ${rango.desde}`).toBe(vendido[i].valor);
+    }
+  });
+  it("419: Agendadas y la parte de arriba de cada tasa cuentan lo mismo que su lista, columna por columna", async () => {
+    // Semana 1: dos citas de pauta (una asistió y compró), una sobre un deal anulado y una orgánica; semana 2: una que asistió.
+    const vendido = await crearDeal(await crearEnvio(programId, "2026-10-05"), { venta: true, valor: "200", diaVenta: "2026-10-07" });
+    await crearCita(vendido.id, "2026-10-06", "show");
+    await crearCita((await crearDeal(await crearEnvio(programId, "2026-10-05"))).id, "2026-10-07", "no_show");
+    await crearCita((await crearDeal(await crearEnvio(programId, "2026-10-05"), { anulado: true })).id, "2026-10-07", "show");
+    const organico = await crearEnvio(programId, "2026-10-05");
+    await db.update(submissions).set({ utmSource: "instagram", utmMedium: "organic", utmId: null }).where(eq(submissions.id, organico.envioId));
+    await crearCita((await crearDeal(organico)).id, "2026-10-08", "show");
+    await crearCita((await crearDeal(await crearEnvio(programId, "2026-10-12"))).id, "2026-10-13", "show");
+
+    const vista = await cargarPautaSemanal(db, { programId, rango: RANGO, hoy: HOY, cohorteId: null });
+    const columnas = [RANGO, ...vista.semanas];
+    const celdas = (clave: ClavePautaSemanal) => [fila(vista, clave).celdas.total, ...fila(vista, clave).celdas.porSemana];
+    const cuenta = async (metrica: Parameters<typeof leerEvidencia>[0], rango: { desde: string; hasta: string }) =>
+      (await leerEvidencia(metrica, { programId, cohorteId: null, desde: rango.desde, hasta: rango.hasta, hoy: HOY, area: "paid" }, db)).subtotal.cantidad;
+    expect(celdas("agendas").map((c) => c.valor)).toEqual([3, 2, 1]);
+    for (const [i, rango] of columnas.entries()) {
+      expect(await cuenta("agendas_creadas", rango), `agendas ${rango.desde}`).toBe(celdas("agendas")[i].valor);
+      expect(await cuenta("grupo_shows", rango), `shows ${rango.desde}`).toBe(celdas("show")[i].partes?.[0] ?? 0);
+      expect(await cuenta("grupo_vendidos", rango), `cierre ${rango.desde}`).toBe(celdas("cierre_ventas")[i].partes?.[0] ?? 0);
+      expect(await cuenta("grupo_vendidos", rango), `cita a venta ${rango.desde}`).toBe(celdas("agenda_venta")[i].partes?.[0] ?? 0);
+    }
   });
 });

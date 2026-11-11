@@ -54,8 +54,8 @@ import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
 import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
 import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte } from "@/components/pauta/cumplimiento";
-import { capacidadParaMetrica } from "@/lib/queries/metricas-con-filas";
-import { TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
+import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
+import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
 import { TrazaDePauta } from "@/components/pauta/traza";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { dineroDelRango } from "@/lib/queries/dashboard";
@@ -337,8 +337,10 @@ async function CuerpoDelHub({
         hoy={hoy}
         busqueda={busqueda}
         cohorteId={contexto.filtroDeCohorte.elegida?.id ?? null}
+        cohorteCodigo={contexto.filtroDeCohorte.elegida?.codigo ?? null}
         puedeAbrirLista={veEquipo}
         puedeVerVentas={capacidadParaMetrica({ metrica: "cierres", tieneOrigen: false })(rol)}
+        listasQueAbre={LISTAS_DE_LA_TABLA_SEMANAL.filter((metrica) => capacidadParaMetrica({ metrica, tieneOrigen: true })(rol))}
       />
     );
   }
@@ -610,8 +612,10 @@ async function SeccionPauta({
   hoy,
   busqueda,
   cohorteId,
+  cohorteCodigo,
   puedeAbrirLista,
   puedeVerVentas,
+  listasQueAbre,
 }: {
   programId: string;
   programaNombre: string;
@@ -622,9 +626,12 @@ async function SeccionPauta({
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
   cohorteId: string | null;
+  cohorteCodigo: string | null;
   puedeAbrirLista: boolean;
   /** Abre la lista de ventas (la reja de la página de lista): la evidencia de las barras de ventas. */
   puedeVerVentas: boolean;
+  /** Las listas de la tabla semanal que la sesión abre: la evidencia de sus celdas. */
+  listasQueAbre: readonly Metrica[];
 }) {
   const ahora = new Date();
   const [ultimaSincronizacion] = await db
@@ -682,7 +689,7 @@ async function SeccionPauta({
     <section className="space-y-4">
       <SemaforoDelPrograma programId={programId} />
       <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas} />
-      <TablaSemanalDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} />
+      <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre} />
       <PautaRoas
         vista={roas}
         enlace={enlaceRoas}

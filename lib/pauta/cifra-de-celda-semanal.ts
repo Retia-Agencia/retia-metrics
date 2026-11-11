@@ -1,0 +1,97 @@
+/**
+ * La celda de la tabla semanal de Pauta como Cifra (ticket 419 paso 2, `docs/diseno-cifra-y-pauta.md` §1.2 y §4.3).
+ *
+ * `cifraDeCeldaSemanal` recibe lo que ya calculó `cargarPautaSemanal` (el valor, su cobertura y las partes de la
+ * fórmula) y lo vuelve `CifraDeMetrica` con `armarCifra`: el valor en mono, el punto de estado solo si la fila tiene
+ * objetivo cargado, y debajo el cambio contra la columna anterior ("La línea pequeña"). La explicación sale del texto
+ * del concepto. No consulta la base: la pantalla le pasa los objetivos y la lista ya leídos.
+ */
+import { armarCifra, type CifraDeMetrica, type EntradaDeCifra, type FuenteDeEstado } from "@/lib/metricas/cifra";
+import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import type { ObjetivoDeCohorte } from "@/lib/catalogo/objetivos";
+import { DEFINICION_METRICAS_OBJETIVO, type MetricaObjetivo } from "@/lib/objetivos/metricas";
+import { etiquetaDeSemana } from "@/lib/pauta/csv-tabla-semanal";
+import type { CeldaPautaSemanal, ClavePautaSemanal, FilaPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
+
+type Rango = { desde: string; hasta: string };
+
+/** Las filas que tienen objetivo en Programa › Objetivos (diseño §4.3: costo por agenda, ROAS, Agenda → venta). */
+export const METRICAS_DE_OBJETIVO: Partial<Record<ClavePautaSemanal, MetricaObjetivo>> = {
+  costo_agenda_crm: "costo_por_agenda",
+  costo_agenda_meta: "costo_por_agenda",
+  roas: "roas",
+  agenda_venta: "conversion_agenda_venta",
+};
+
+/**
+ * El estado de la celda contra el objetivo de Paid de la cohorte (o el de todas las áreas si no hay uno de Paid).
+ * Sin objetivo no hay estado: nunca un color inventado. El objetivo de una tasa se carga en puntos (40 = 40 %) y la
+ * celda la trae como fracción; aquí se ponen en la misma escala. Sin "aceptable", lo que no cumple es rezagado.
+ */
+export function estadoDeCeldaSemanal(
+  clave: ClavePautaSemanal,
+  objetivos: readonly ObjetivoDeCohorte[],
+): FuenteDeEstado | undefined {
+  const metrica = METRICAS_DE_OBJETIVO[clave];
+  if (!metrica) return undefined;
+  const candidatas = objetivos.filter((o) => o.activo && o.metrica === metrica && (o.area === null || o.area === "paid"));
+  const objetivo = candidatas.find((o) => o.area === "paid") ?? candidatas.find((o) => o.area === null);
+  if (!objetivo) return undefined;
+  if (metrica === "costo_por_agenda" && objetivo.moneda !== "COP") return undefined;
+  const escala = DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "porcentaje" ? 100 : 1;
+  return {
+    fuente: "objetivo",
+    objetivo: objetivo.meta / escala,
+    aceptable: (objetivo.aceptable ?? objetivo.meta) / escala,
+    menorEsMejor: DEFINICION_METRICAS_OBJETIVO[metrica].sentido === "menor_es_mejor",
+  };
+}
+
+export interface EntradaDeCeldaSemanal {
+  fila: Pick<FilaPautaSemanal, "clave">;
+  celda: CeldaPautaSemanal;
+  rango: Rango;
+  /** `true` en la columna Total del periodo; las demás son semanas. */
+  esTotal: boolean;
+  /** La columna de la izquierda (la semana anterior), para "La línea pequeña". El Total no compara. */
+  anterior?: { celda: CeldaPautaSemanal; rango: Rango };
+  hoy: string;
+  objetivos: readonly ObjetivoDeCohorte[];
+  programa?: string;
+  cohorte?: string;
+  lista?: EntradaDeCifra["lista"];
+}
+
+export function textoDePeriodoDeCelda(rango: Rango, esTotal: boolean): string {
+  return esTotal ? `del ${etiquetaDeSemana(rango)}` : `semana del ${etiquetaDeSemana(rango)}`;
+}
+
+export function cifraDeCeldaSemanal(e: EntradaDeCeldaSemanal): CifraDeMetrica {
+  const { celda, rango } = e;
+  const periodo = textoDePeriodoDeCelda(rango, e.esTotal);
+  const filtros: Array<readonly [string, string]> = [];
+  if (e.programa) filtros.push(["Programa", e.programa]);
+  if (e.cohorte) filtros.push(["Cohorte", e.cohorte]);
+  filtros.push(["Área", "Paid"]);
+  filtros.push([e.esTotal ? "Periodo" : "Semana", etiquetaDeSemana(rango)]);
+  return armarCifra({
+    concepto: e.fila.clave,
+    explicacion: explicacionDePauta(e.fila.clave),
+    valor: celda.valor,
+    motivo: celda.valor === null ? celda.cobertura.razon ?? "Faltan datos para calcularla" : undefined,
+    partes: celda.partes,
+    periodo,
+    filtros,
+    parcial: celda.valor !== null && celda.cobertura.estado === "parcial" ? celda.cobertura.razon ?? "Falta parte del dato." : undefined,
+    enCurso: rango.hasta >= e.hoy,
+    comparacion: !e.esTotal && e.anterior
+      ? {
+        referencia: `la semana anterior (${etiquetaDeSemana(e.anterior.rango)})`,
+        valor: e.anterior.celda.valor,
+        etiqueta: "La línea pequeña",
+      }
+      : undefined,
+    estado: estadoDeCeldaSemanal(e.fila.clave, e.objetivos),
+    lista: e.lista,
+  });
+}

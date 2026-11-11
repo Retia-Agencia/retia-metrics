@@ -36,7 +36,7 @@ export interface EvidenciaDeCumplimiento {
 }
 
 /** Cinco filas como en el boceto: persona, etapa y valor vendido. */
-function listaDeVentas(seccion: ListaDeMetrica, href: string): ListaDeCifra {
+export function listaDeVentas(seccion: ListaDeMetrica, href: string): ListaDeCifra {
   return {
     href,
     nombre: "ventas",

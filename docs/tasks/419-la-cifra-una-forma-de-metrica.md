@@ -85,6 +85,33 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
   `grupo_shows` y `cierre_ventas` abre `grupo_vendidos`, con área Paid (misma lectura que la cifra). Las dos notas de "Para
   retomar" sobre esto quedan resueltas.
 
+## Para retomar (11-nov, Alejandro)
+
+**Paso 2 hecho: la celda de la tabla semanal es una Cifra.**
+- `lib/pauta/cifra-de-celda-semanal.ts` (puro): `cifraDeCeldaSemanal` arma la Cifra de cada celda con `armarCifra`:
+  "Calculada con" (programa, cohorte, área Paid, semana o periodo), "La línea pequeña" contra la columna de la izquierda
+  (el Total no compara), Parcial con su motivo, En curso si la semana no ha cerrado, y el punto de estado solo con
+  objetivo (`estadoDeCeldaSemanal`: el de Paid gana al de todas las áreas, una tasa se carga en puntos y la celda la
+  trae en fracción, sin "aceptable" lo que no cumple es rezagado, un costo en USD no colorea).
+- `cargarPautaSemanal` trae `partes` en cada fila de razón o resta (show, cierre, cita a venta, ROAS, Profit, CPM, CTR,
+  landing, frecuencia y los dos costos por agenda): "Con los números de esta cifra" sale de datos reales.
+- Cada celda con lista abre su evidencia (cinco filas y la lista completa de esa columna, con área Paid y la cohorte),
+  solo si la sesión abre esa lista: Agendadas (`agendas_creadas`), Ventas y Vendido (`cierres`), y las tres tasas la
+  parte de arriba de su fórmula en el grupo de citas de Paid (Asistencia `grupo_shows`; Cierre y De cita a venta
+  `grupo_vendidos`, con el desbloqueo de Mani del 11-nov). La nota dice "de arriba de la fórmula" (`lista.parte`).
+  `leerEvidencia(metrica, …)` en `lib/metas/cumplimiento-de-cohorte.ts` lee cualquier lista con un rango y la cohorte nula.
+- Columna Total en `marca-suave` y semana abierta con "· en curso" (diseño §4.3).
+- Tests: `tests/pauta-semanal-celdas.test.ts` (puro) y dos casos nuevos en `tests/pauta-semanal.test.ts` (las partes
+  dan el valor de la celda; la lista de cada columna cuenta lo mismo que Agendadas, Ventas, Vendido y las partes de
+  arriba de las tres tasas, con orgánica, anulada y otro programa sembrados).
+- Verificado: typecheck, lint (0 errores), los tests del cambio, `npm run build` y recorrido en `dev:local` (oscuro,
+  claro y 375 px sin desplazamiento horizontal de página; explicaciones de Agendadas, Asistencia y Ventas; consola limpia).
+  Para ver valores se sembró en la base LOCAL de `comunicarte-local`: gasto manual del 28-oct al 10-nov, cuatro citas
+  sobre deals de Paid y un objetivo de costo por agenda de C1. El punto de estado no se vio en pantalla (el gasto manual
+  no tiene campaña con propósito agenda, así que el costo sale "—"); lo cubre el test puro.
+
+**Siguiente:** paso 3 (el semáforo como cuatro Cifras, la proyección del ROAS y el resto del Hub), luego el 4.
+
 ## Para retomar (10-nov noche, Alejandro)
 
 Lo nuevo desde las notas de abajo (commits `31554eea`, `5496e2d7`, `205d23f7`, sin push):

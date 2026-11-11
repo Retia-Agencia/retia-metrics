@@ -37,6 +37,11 @@ export interface CeldaPautaSemanal {
   cobertura: CoberturaPautaSemanal;
   /** Desglose que la UI formatea; hoy solo la inversión que no fue agenda ni lanzamiento. */
   otrasCampanasCop?: number;
+  /**
+   * Las dos partes con que se calculó una razón o una resta, en el orden de la fórmula de su explicación (419):
+   * "Con los números de esta cifra". Solo en filas de razón o resta; `null` en una parte = no se tiene.
+   */
+  partes?: readonly [number | null, number | null];
 }
 
 export interface FilaPautaSemanal {
@@ -89,6 +94,9 @@ type Conteos = { agendas: number; ventas: number; vendido: number; ventasSinValo
 const OK: CoberturaPautaSemanal = { estado: "ok", razon: null };
 const celda = (valor: number | null, cobertura: CoberturaPautaSemanal = OK, otrasCampanasCop?: number): CeldaPautaSemanal =>
   ({ valor, cobertura, ...(otrasCampanasCop !== undefined ? { otrasCampanasCop } : {}) });
+/** La celda con las partes de su fórmula; una celda sin valor no las lleva (no hay cuenta que mostrar). */
+const conPartes = (c: CeldaPautaSemanal, partes: readonly [number | null, number | null]): CeldaPautaSemanal =>
+  c.valor === null ? c : { ...c, partes };
 const sinDato = (razon: string): CeldaPautaSemanal => celda(null, { estado: "sin_dato", razon });
 
 function coberturaDeColumnas(filas: number, presentes: number, sinDatoMeta = true): CoberturaPautaSemanal {
@@ -215,9 +223,9 @@ async function celdasDelRango(
   const costoCobertura = costoMeta.costoCobertura;
   const costoMetaCelda = costoCobertura.valor === null
     ? sinDato(costoCobertura.motivo ?? (costoMeta.agendasMeta === 0 ? "Sin agendas según Meta" : "Sin gasto de agenda"))
-    : celda(costoCobertura.valor, costoCobertura.faltan > 0
+    : conPartes(celda(costoCobertura.valor, costoCobertura.faltan > 0
       ? { estado: "parcial", razon: costoCobertura.motivo }
-      : OK);
+      : OK), [costoMeta.gasto, costoMeta.agendasMeta]);
 
   return {
     inversion: filasGasto === 0
@@ -228,43 +236,45 @@ async function celdasDelRango(
     agendas: celda(conteos.agendas),
     costo_agenda_crm: costoCrm.costo.valor === null
       ? sinDato(costoCrm.costo.motivo ?? (costoCrm.agendasCrm === 0 ? "Sin agendas del CRM en el periodo" : "Sin gasto de agenda"))
-      : celda(costoCrm.costo.valor, costoCrm.costo.faltan > 0
+      : conPartes(celda(costoCrm.costo.valor, costoCrm.costo.faltan > 0
         ? { estado: "parcial", razon: costoCrm.costo.motivo }
-        : OK),
+        : OK), [costoCrm.gasto, costoCrm.agendasCrm]),
     ventas: celda(conteos.ventas),
     facturacion: celda(conteos.vendido, coberturaVenta),
     roas: roasDeCohorte
-      ? celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS")
+      ? conPartes(celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS"), [roasDeCohorte.valorVendidoUsd, roasDeCohorte.gastoUsd])
       : sinDato("ROAS por cohorte no disponible"),
     profit: roasDeCohorte
       ? (() => {
         const base = celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular profit");
-        return base.valor === null ? base : celda(roasDeCohorte.valorVendidoUsd - (roasDeCohorte.gastoUsd ?? 0), base.cobertura);
+        return base.valor === null
+          ? base
+          : conPartes(celda(roasDeCohorte.valorVendidoUsd - (roasDeCohorte.gastoUsd ?? 0), base.cobertura), [roasDeCohorte.valorVendidoUsd, roasDeCohorte.gastoUsd ?? 0]);
       })()
       : sinDato("Profit por cohorte no disponible"),
-    show: celdaDeRazonConCobertura(grupo.tasas.razonShow, "Sin citas de Paid en el periodo"),
-    cierre_ventas: celdaDeRazonConCobertura(grupo.tasas.razonCierre, "Sin shows de Paid en el periodo"),
-    agenda_venta: celdaDeRazonConCobertura(grupo.tasas.razonAgendaAVenta, "Sin citas de Paid en el periodo"),
+    show: conPartes(celdaDeRazonConCobertura(grupo.tasas.razonShow, "Sin citas de Paid en el periodo"), [grupo.tasas.conShow, grupo.tasas.deals]),
+    cierre_ventas: conPartes(celdaDeRazonConCobertura(grupo.tasas.razonCierre, "Sin shows de Paid en el periodo"), [grupo.tasas.vendidos, grupo.tasas.conShow]),
+    agenda_venta: conPartes(celdaDeRazonConCobertura(grupo.tasas.razonAgendaAVenta, "Sin citas de Paid en el periodo"), [grupo.tasas.vendidos, grupo.tasas.deals]),
     cpm: filasGasto === 0
       ? sinDato(razonGasto)
       : gastoCpmCop.valor === null || impresiones === 0
       ? sinDato(gastoCpmCop.razon ?? "Sin dato de Meta")
-      : celda(gastoCpmCop.valor / impresiones * 1_000, coberturaImpresiones),
+      : conPartes(celda(gastoCpmCop.valor / impresiones * 1_000, coberturaImpresiones), [gastoCpmCop.valor, impresiones]),
     ctr: impresionesConClics === 0
       ? sinDato("Sin dato de Meta")
-      : celda(clicsConImpresiones / impresionesConClics, coberturaCtr),
+      : conPartes(celda(clicsConImpresiones / impresionesConClics, coberturaCtr), [clicsConImpresiones, impresionesConClics]),
     llegada_landing: clicsConLanding === 0
       ? sinDato("Sin dato de Meta")
-      : celda(vistasConClics / clicsConLanding, coberturaLanding),
+      : conPartes(celda(vistasConClics / clicsConLanding, coberturaLanding), [vistasConClics, clicsConLanding]),
     conversion_landing: landing === 0
       ? sinDato("Sin dato de Meta")
-      : celda(conteos.registros / landing, coberturaConversion),
+      : conPartes(celda(conteos.registros / landing, coberturaConversion), [conteos.registros, landing]),
     costo_agenda_meta: costoMetaCelda,
     frecuencia: rango.desde !== rango.hasta
       ? sinDato("Meta no da el alcance de varios días")
       : alcance === 0 || impresionesConAlcance === 0
         ? sinDato("Sin dato de Meta")
-        : celda(impresionesConAlcance / alcance, coberturaDeColumnas(filasGasto, presentesAlcance)),
+        : conPartes(celda(impresionesConAlcance / alcance, coberturaDeColumnas(filasGasto, presentesAlcance)), [impresionesConAlcance, alcance]),
   };
 }
 

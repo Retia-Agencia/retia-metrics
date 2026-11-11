@@ -9,7 +9,7 @@ import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { agendasDeLaCohorte } from "@/lib/queries/hechos/agenda";
 import { gastoConvertido } from "@/lib/queries/hechos/gasto";
 import { listar as listarVentas } from "@/lib/queries/hechos/venta";
-import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { listaDeMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { leerProyeccion, type ValorDeProyeccion } from "@/lib/queries/proyeccion";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 
@@ -222,18 +222,30 @@ export async function leerCumplimientoDeCohorte(
 }
 
 /**
- * La evidencia de una barra de ventas del cumplimiento (419): la primera página de la lista de ventas de la cohorte,
- * desde la venta más vieja hasta hoy, con el área si la barra es de un área. Cuenta lo mismo que la barra:
- * lo vigila `tests/cumplimiento-evidencia.test.ts`. Solo para quien abre la lista de ventas (la llama la pantalla
- * con esa capacidad ya decidida).
+ * La evidencia de una cifra de ventas (419): la primera página de la lista de ventas, del `desde` al `hasta` (hoy si
+ * no se da), con la cohorte y el área si la cifra las tiene. La usan las barras del cumplimiento (desde la venta más
+ * vieja de la cohorte) y las celdas de ventas de la tabla semanal de Pauta (cada semana). Cuenta lo mismo que la
+ * cifra: lo vigilan `tests/cumplimiento-evidencia.test.ts` y `tests/pauta-semanal.test.ts`. Solo para quien
+ * abre la lista de ventas (la llama la pantalla con esa capacidad ya decidida).
  */
 export async function leerEvidenciaDeVentas(
-  args: { programId: string; cohorteId: string; desde: string; hoy: string; area?: "paid" },
+  args: ArgsDeEvidencia,
   db: Db = dbDeLaApp,
 ) {
-  const [seccion] = await listaDeMetrica("cierres", {
+  return leerEvidencia("cierres", args, db);
+}
+
+type ArgsDeEvidencia = { programId: string; cohorteId: string | null; desde: string; hasta?: string; hoy: string; area?: "paid" };
+
+/**
+ * La primera página de cualquier lista del Hub, con los mismos filtros que la cifra que la abre (419): la usan las
+ * celdas de la tabla semanal de Pauta (agendas, ventas y el grupo de citas de Paid). Que cuente lo mismo que su celda
+ * lo vigila `tests/pauta-semanal.test.ts`.
+ */
+export async function leerEvidencia(metrica: Metrica, args: ArgsDeEvidencia, db: Db = dbDeLaApp) {
+  const [seccion] = await listaDeMetrica(metrica, {
     programId: args.programId,
-    rango: { desde: args.desde, hasta: args.hoy },
+    rango: { desde: args.desde, hasta: args.hasta ?? args.hoy },
     cohorteId: args.cohorteId,
     hoy: args.hoy,
     ...(args.area ? { area: args.area } : {}),
