@@ -14,7 +14,7 @@ import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { conAbonoVigente, conLlamadaSinGrain, filtroAtendidos, filtroPerdidosConPagos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
-  closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
+  closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, dealsDelArea, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
   primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
 } from "@/lib/queries/metricas-filtros";
 import { diaEnBogota } from "@/lib/queries/hechos/fechas";
@@ -550,6 +550,8 @@ function consultaDe(
         )
         .where(and(
           filtroCierres(alcance, db),
+          // La lista de ventas de un área (Pauta, cumplimiento): la misma regla que la cifra de ventas de esa área.
+          filtros.area ? inArray(deals.id, dealsDelArea(db, alcance.programId, filtros.area)) : undefined,
           vigente(deals),
         ));
     case "cortesias":
@@ -1056,7 +1058,11 @@ export function esListaDeVentas(metrica: Metrica, filtros: Pick<FiltrosDeMetrica
 /** Los deals de una lista de ventas, sin paginar: el MISMO universo que la cifra y que la lista. */
 async function dealsDeLaListaDeVentas(metrica: Metrica, alcance: Alcance, filtros: FiltrosDeMetrica, db: Db): Promise<string[]> {
   if (metrica === "escalera") return (await miembrosDeLaEscalera(alcance, filtros, db)).map((m) => m.dealId);
-  return (await ventasDelRangoConValor(alcance, db)).map((venta) => venta.dealId);
+  const ids = (await ventasDelRangoConValor(alcance, db)).map((venta) => venta.dealId);
+  if (!filtros.area || ids.length === 0) return ids;
+  // El dinero de la lista sale de las MISMAS filas: con área, solo las ventas de esa área.
+  const delArea = new Set((await dealsDelArea(db, alcance.programId, filtros.area)).map((fila) => fila.id));
+  return ids.filter((id) => delArea.has(id));
 }
 
 /** Una sección por programa: no existe una salida que mezcle sus filas. */

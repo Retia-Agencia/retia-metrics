@@ -22,6 +22,8 @@ describe("filtros compartidos de las listas del Hub", () => {
   it.each<[string, FiltrosDeLista, FiltrosDeLista]>([
     ["resultado", { metrica: "cierres", resultado: "show" }, { metrica: "agendas_creadas", resultado: "show" }],
     ["área de escalera", { metrica: "escalera", area: "paid" }, { metrica: "registros", area: "paid" }],
+    ["área fuera de ventas y origen", { metrica: "shows", area: "paid" }, { metrica: "cierres", area: "paid" }],
+    ["canal en ventas", { metrica: "cierres", canal: "instagram" }, { metrica: "contratado", area: "paid" }],
     ["pago", { metrica: "caja", pago: "completo" }, { metrica: "escalera", pago: "completo" }],
     ["origen ajeno", { metrica: "caja", source: "meta" }, { metrica: "registros", source: "meta" }],
     ["closer de pauta", { metrica: "pauta_meta", closer: "a".repeat(64), nivel: "total", paso: "registro" }, { metrica: "pauta_meta", nivel: "total", paso: "registro" }],

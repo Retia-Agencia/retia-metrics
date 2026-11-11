@@ -1,6 +1,6 @@
 import { and, asc, between, eq, gt, inArray, isNotNull, isNull, lte, ne, notExists, notInArray, or, sql } from "drizzle-orm";
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
-import { abonos, calls, deals, dealEtapaHistorial, leads, users } from "@/lib/db/schema";
+import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -16,6 +16,7 @@ import { noAsistioSql, ocurrioSql } from "@/lib/deals/resultados-de-llamada";
 import { ETAPAS_EN_ORDEN, ETAPAS_VENDIDAS, type EtapaDeal } from "@/lib/deals/etapas";
 import type { Rango } from "@/lib/queries/dashboard";
 import { diaDeCreacionDelDeal, diaDeEnvio, diaEnBogota } from "@/lib/queries/hechos/fechas";
+import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 
 /**
  * Fecha de calendario (Bogota) que ancla una fila de `calls`. Todo el embudo de
@@ -302,6 +303,21 @@ function deDealEnAlcance(alcance: Alcance) {
     porClaveDeDeal(alcance.claveCloser),
     porCohorteDeDeal(alcance.cohorteId),
   );
+}
+
+/**
+ * Los deals del programa cuyo envío de origen cae en el ÁREA dada (419): la misma regla de área que agrupa las
+ * ventas en `hechos/venta.ts` (`dimensionesDeOrigen` sobre `deals.submission_origen_id`), así que la lista de
+ * ventas filtrada por área cuenta lo mismo que la cifra de ventas de esa área. Un deal sin envío es
+ * `sin_envio_origen`. Subconsulta cerrada, sin correlación (AGENTS.md).
+ */
+export function dealsDelArea(db: Db, programId: string, area: string) {
+  const { area: areaDelDeal } = dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, deals.programId);
+  return db
+    .select({ id: deals.id })
+    .from(deals)
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .where(and(eq(deals.programId, programId), eq(areaDelDeal, area), vigente(deals)));
 }
 
 export function filtroCierres(alcance: Alcance, db: Db) {
