@@ -19,6 +19,13 @@ arreglo en código lo hace el carril P, dueño de pauta-semanal.ts). No toques l
 ```
 ## Memory
 
+### 10-nov · Students muestra toda la información de pago (pedido de Michael, sesión de Mani)
+**Hecho.** Columna Pagos en `/p/<programa>/students` con un diálogo de solo lectura: valor vendido, descuento, abonado, saldo,
+acuerdo, fecha límite y todos los abonos con plataforma, enlace, nota, quién registró y comprobante; los anulados tachados con su
+motivo. Para todos los roles que ya ven Students (Customer Success incluido), sin tocar permisos. Detalle en el ticket 099
+(Ampliación 10-nov). **Verificado:** typecheck, lint, tests del cambio, build. **Pendiente:** recorrido visual en la tab (claro,
+oscuro, 375 px) y que CS abra un comprobante real desde ahí.
+
 ### 10-nov · La Cifra y Pauta en dos vistas: diseño aprobado, ola O12 para dos personas (sesión de Mani)
 **Hecho.** Boceto navegable en dos versiones (`docs/bocetos/una-forma-de-metrica.html`, también artifact privado de Mani). La v1
 recibió cinco observaciones de Mani (A-186 a A-190: tarjeta saturada y línea sin rótulo, cumplimiento ilegible, "Cómo se calcula"
