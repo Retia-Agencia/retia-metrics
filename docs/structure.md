@@ -792,8 +792,18 @@ Nació del recorrido por Hub › Comercial, Hoy y Dinero del 4-nov ("satura, tod
    "con los números de esta cifra" y sus variables; cómo leer cada número y etiqueta de la tarjeta (meta, esperado, atraso, estado
    con umbrales, cambio y contra qué, Parcial, En curso, —, 0, Sin datos); los filtros con que se calculó; y la evidencia con "Ver
    las N". Ningún texto de la explicación lleva rutas, funciones, tickets, ADR, "§" ni ids de decisión: la leen Gerencia y Pauta.
-   El texto vive en la ficha del concepto (`lib/metricas/registro.ts`), nunca en la pantalla. Una sola escala de estado: En meta ·
-   En seguimiento · Rezagado (DM-1). Las gráficas son interactivas: tooltip, clic en un punto abre su explicación, leyenda y zoom.
+   El texto vive en la ficha del concepto (`lib/metricas/registro.ts`), nunca en la pantalla; mientras los conceptos de Pauta no
+   tienen ficha, en el puente `lib/metricas/explicaciones-de-pauta.ts` (se borra al pasarlos). Una sola escala de estado: En meta ·
+   En seguimiento · Rezagado (DM-1).
+   **Cómo está construida (419):** el servidor llama `armarCifra` (`lib/metricas/cifra.ts`, puro) con los números que ya calculó la
+   consulta y pasa el resultado a `<Cifra cifra tamano>` (`components/cifra-con-lista.tsx`); la explicación es
+   `ExplicacionDeCifra` (`components/como-se-calcula.tsx`) en el panel lateral `components/ui/sheet.tsx`. Un "—" sin motivo lanza
+   error. El estado sale de lo esperado a hoy, de un objetivo cargado o, si el módulo dueño ya decidió el color (el semáforo, que
+   también colorea un gasto sin agendas), de ese tono (`FuenteDeEstado.tono`): la Cifra no recalcula. Cada bloque tiene un
+   constructor puro con su test (`lib/pauta/cifra-de-celda-semanal.ts`, `lib/semaforo/cifras-del-semaforo.ts`,
+   `lib/pauta/cifras-de-proyeccion.ts`). La evidencia ("Ver las N") solo se conecta con una lista que cuenta exactamente lo mismo,
+   probado por test; en una razón la lista dice si es la parte de arriba o la de abajo de la fórmula. `ComoSeCalcula` (el diálogo de
+   texto libre) queda solo en la tabla de ROAS de pauta (pasa a Cifras con el 420) y en Mi espacio (con los textos del 403 F4). Las gráficas son interactivas: tooltip, clic en un punto abre su explicación, leyenda y zoom.
    **Referencia visual permanente de todo el CRM** (componentes y layouts, Mani 10-nov): `docs/bocetos/una-forma-de-metrica.html`;
    copia publicada https://claude.ai/artifact/HSVdjQ6QdPdHeQ9obbEAPS (privada). Si discrepan, manda el HTML del repo.
 

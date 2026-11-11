@@ -119,6 +119,24 @@ async function cortarEscrituras(page: Page, sumidero: Sumidero) {
   });
 }
 
+/**
+ * `page.goto` que tolera una redirección del servidor que llega después del primer byte: una página con
+ * `loading.tsx` ya mandó su esqueleto (200) cuando su `redirect()` corre, y Next la completa en el cliente.
+ * Playwright ve esa segunda navegación como `ERR_ABORTED`; no es un error de la app, es la redirección.
+ * Devuelve la respuesta, o `null` si fue redirigida así (el llamador mira `page.url()`).
+ */
+async function ir(page: Page, ruta: string) {
+  try {
+    return await page.goto(ruta);
+  } catch (error) {
+    const redirigida = error instanceof Error
+      && (error.message.includes("net::ERR_ABORTED") || error.message.includes("is interrupted by another navigation"));
+    if (!redirigida) throw error;
+    await page.waitForLoadState("load").catch(() => {});
+    return null;
+  }
+}
+
 /** Entra con el login local. Devuelve `false` si la base no tiene ese usuario (AccessDenied). */
 async function entrar(page: Page, correo: string): Promise<boolean> {
   await page.goto("/login");
@@ -137,7 +155,7 @@ async function entrar(page: Page, correo: string): Promise<boolean> {
 async function descubrirProgramas(page: Page): Promise<string[]> {
   const slugs = new Set<string>();
   for (const ruta of ["/", "/mi-espacio", "/hub"]) {
-    await page.goto(ruta);
+    await ir(page, ruta);
     const hrefs = await page.locator("a[href^='/p/']").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
     for (const href of hrefs) {
       const m = /^\/p\/([^/?#]+)/.exec(href);
@@ -149,10 +167,16 @@ async function descubrirProgramas(page: Page): Promise<string[]> {
 
 /** El primer enlace a una ficha (`/p/<slug>/<tab>/<id>`) que haya en la lista. */
 async function primeraFicha(page: Page, slug: string, tab: "deals" | "leads"): Promise<string | null> {
-  await page.goto(`/p/${slug}/${tab}`);
+  await ir(page, `/p/${slug}/${tab}`);
+  // Un rol sin esta lista es redirigido desde el cliente (ver `ir`); la redirección puede caer mientras se leen los enlaces.
   const hrefs = await page
     .locator(`a[href^='/p/${slug}/${tab}/']`)
-    .evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
+    .evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""))
+    .catch((error: unknown) => {
+      if (error instanceof Error && error.message.includes("Execution context was destroyed")) return [] as string[];
+      throw error;
+    });
+  if (!new URL(page.url()).pathname.startsWith(`/p/${slug}/${tab}`)) return null;
   const ficha = hrefs.find((h) => new RegExp(`^/p/${slug}/${tab}/[0-9a-f-]{8,}`).test(h));
   return ficha ? ficha.split(/[?#]/)[0] : null;
 }
@@ -190,7 +214,7 @@ async function abrirTodo(page: Page, ruta: string, sumidero: Sumidero) {
       // Tapado por otro elemento o fuera de pantalla: no es un error de la app.
     }
     if (new URL(page.url()).pathname !== ruta.split("?")[0]) {
-      await page.goto(ruta);
+      await ir(page, ruta);
       continue;
     }
     // Un diálogo recién abierto: se abre lo que tiene adentro (selects, menús), un solo nivel.
@@ -241,8 +265,9 @@ for (const { rol, correo } of ROLES) {
       sumidero.actual = ruta;
       sumidero.accion = "cargar";
       const antes = hallazgos.length;
-      const respuesta = await page.goto(ruta);
-      const estado = respuesta?.status() ?? 0;
+      const respuesta = await ir(page, ruta);
+      // Sin respuesta es una redirección después del esqueleto (`ir`): se lee como un 307.
+      const estado = respuesta?.status() ?? 307;
       // Un 4xx es una pantalla que este rol no tiene (ADR 0082: el closer no abre Dashboard, Metas ni
       // Programa): no se prueba, y lo que la página de 404 deja en la consola no es un hallazgo.
       if (estado >= 400 && estado < 500) {

@@ -45,13 +45,13 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
 
 ## Done cuando
 
-- [ ] `CifraDeMetrica` armada en el servidor; la pantalla no calcula nada.
+- [x] `CifraDeMetrica` armada en el servidor; la pantalla no calcula nada.
 - [ ] Ficha con `que`, `formula`, `variables`, `aliasExcel?`; todas las cifras de Pauta con su texto (§2.1).
 - [ ] Tarjeta, barra y celda iguales al boceto en claro, oscuro y 375 px (comparar lado a lado con `docs/bocetos/una-forma-de-metrica.html`).
-- [ ] Panel con las cinco secciones; foco, Escape y vuelta del foco; la lista completa sabe volver.
-- [ ] Los ocho casos raros, cada uno con test de su frase.
-- [ ] Semáforo con el vocabulario único.
-- [ ] Guardián de texto técnico en verde y mordido.
+- [x] Panel con las cinco secciones; foco, Escape y vuelta del foco; la lista completa sabe volver.
+- [x] Los ocho casos raros, cada uno con test de su frase.
+- [x] Semáforo con el vocabulario único.
+- [x] Guardián de texto técnico en verde y mordido.
 - [ ] `quick_review` de Rams, `npm run build`, `test:humo` y la pantalla abierta con la consola limpia.
 
 ## Avance
@@ -127,7 +127,25 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
 - **Para Mani:** ¿el costo del bloque "hoy" debe ser el del CRM (como el ejemplo del diseño) o se queda el de Meta (como
   el semáforo y el WhatsApp)? Cambiarlo es cambiar el semáforo, no la pantalla.
 
-**Siguiente:** el resto del Hub (los bloques que aún usan `ComoSeCalcula`: `pauta-roas`, `mi-espacio`), luego el paso 4.
+**Paso 4 (11-nov), lo que se cerró y lo que queda abierto:**
+- **`ComoSeCalcula` no se borra todavía, y no es del 419.** Lo usan dos bloques: la tabla de ROAS de pauta, que el 420
+  convierte en "¿Qué trae ventas?" con toda celda como Cifra (diseño §5.1, 420 punto 5), y Mi espacio, cuyos conceptos
+  (citas, realizadas, comisión, caja, % de cierre) no tienen texto todavía (403 F4). Migrarlos aquí sería adelantar esos
+  tickets.
+- **`structure.md` §9 punto 10** dice ahora cómo quedó construida la Cifra (constructores puros por bloque, `tono` del
+  módulo dueño, evidencia solo con lista probada, el puente de textos y dónde queda `ComoSeCalcula`).
+- **`npm run test:humo` verde** en escritorio y celular con los cinco roles, contra `dev:local`. Antes falló en cuatro
+  roles por un defecto del propio humo, no de la app: una página con `loading.tsx` que redirige (`/dashboard`, `/perfil`,
+  `/ajustes/canales`, Leads para el paid trafficker) responde 200 con el esqueleto y la redirección llega en el cliente;
+  Playwright lo veía como `ERR_ABORTED` o "interrupted by another navigation". `e2e/humo.spec.ts` gana `ir`, que lo lee
+  como redirección, y `primeraFicha` tolera que la redirección caiga mientras lee los enlaces.
+- **Casillas abiertas:** (1) los textos de Pauta siguen en el puente y no en la ficha: esperan a que el 403 registre los
+  conceptos; (2) el lado a lado visual con el boceto: se comparó por texto (mismas tarjetas, orden, estado y líneas) y se
+  revisó cada bloque en claro, oscuro y 375 px, pero el boceto es una foto estática que no deja mostrar cada vista para una
+  captura junto a la app; (3) `quick_review` de Rams no existe en esta sesión. Build, humo y consola limpia sí están.
+
+**Siguiente:** cuando el 403 registre las fichas de Pauta, pasar los textos y borrar el puente; el lado a lado con Mani; y
+el 420.
 
 ## Para retomar (10-nov noche, Alejandro)
 
