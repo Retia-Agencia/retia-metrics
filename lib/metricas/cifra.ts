@@ -29,7 +29,14 @@ export const UMBRAL_EN_SEGUIMIENTO = 0.65;
 /** El estado viene de una de dos fuentes; sin fuente no hay estado (nunca un gris inventado). */
 export type FuenteDeEstado =
   | { fuente: "esperado"; llevamos: number; esperado: number }
-  | { fuente: "objetivo"; objetivo: number; aceptable: number; menorEsMejor: boolean };
+  | {
+    fuente: "objetivo"; objetivo: number; aceptable: number; menorEsMejor: boolean;
+    /**
+     * El tono ya decidido por el módulo dueño del concepto (el semáforo, que también colorea un costo sin agendas).
+     * Con él, la Cifra no recalcula: la pantalla y el reporte de WhatsApp dicen lo mismo (N1).
+     */
+    tono?: TonoDeEstado;
+  };
 
 export interface AvanceDeEntrada {
   llevamos: number;
@@ -187,6 +194,7 @@ export function estadoDe(fuente: FuenteDeEstado, valor: number | null): { tono: 
     const ratio = fuente.llevamos / fuente.esperado;
     return { tono: ratio >= UMBRAL_EN_META ? "exito" : ratio >= UMBRAL_EN_SEGUIMIENTO ? "alerta" : "peligro", ratio };
   }
+  if (fuente.tono) return { tono: fuente.tono, ratio: null };
   if (valor === null) return null;
   const cumple = fuente.menorEsMejor ? valor <= fuente.objetivo : valor >= fuente.objetivo;
   const acepta = fuente.menorEsMejor ? valor <= fuente.aceptable : valor >= fuente.aceptable;

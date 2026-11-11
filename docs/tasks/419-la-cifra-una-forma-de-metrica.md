@@ -110,7 +110,24 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
   sobre deals de Paid y un objetivo de costo por agenda de C1. El punto de estado no se vio en pantalla (el gasto manual
   no tiene campaña con propósito agenda, así que el costo sale "—"); lo cubre el test puro.
 
-**Siguiente:** paso 3 (el semáforo como cuatro Cifras, la proyección del ROAS y el resto del Hub), luego el 4.
+**Paso 3 hecho (11-nov): el semáforo y la proyección del ROAS son Cifras.**
+- `lib/semaforo/cifras-del-semaforo.ts` (puro): "¿Cómo va el costo por agenda hoy?" con cuatro Cifras (costo, agendadas,
+  agendas según Meta, inversión). **No recalcula:** el costo es el del semáforo y del WhatsApp, que divide el gasto en
+  campañas de agenda entre las agendas **según Meta** (no las del CRM, como dice el ejemplo del diseño §4.2); por eso el
+  rótulo es "Costo por agenda (según Meta)" y no se tocó el cálculo (DM-1). El estado es el color del semáforo
+  (`FuenteDeEstado.tono`, nuevo en `lib/metricas/cifra.ts`), así un gasto sin agendas de Meta sale "—" y Rezagado, igual
+  que en el reporte. "Sin contar COP X de otras campañas" en el costo; "Ayer a esta hora" solo si se pidió comparar.
+  Debajo quedan la trayectoria, la racha y solo las notas de problema.
+- `lib/pauta/cifras-de-proyeccion.ts` (puro): ROAS a hoy (parcial con las citas pendientes, estado por el objetivo de
+  ROAS) y ROAS proyectado (la última proyección confirmada contra lo real en su línea; los supuestos por closer en la
+  explicación). `ComoSeCalcula` ya no lo usa `pauta-proyeccion.tsx`.
+- Test: `tests/semaforo-y-proyeccion-cifras.test.ts` (incluye que ningún texto lleve "..": la hora "p. m." lo producía).
+- Verificado: typecheck, lint, build, los tests del cambio y `dev:local` (oscuro, claro, 375 px, consola limpia). La
+  proyección no se vio en local (no hay citas pendientes); la cubre el test.
+- **Para Mani:** ¿el costo del bloque "hoy" debe ser el del CRM (como el ejemplo del diseño) o se queda el de Meta (como
+  el semáforo y el WhatsApp)? Cambiarlo es cambiar el semáforo, no la pantalla.
+
+**Siguiente:** el resto del Hub (los bloques que aún usan `ComoSeCalcula`: `pauta-roas`, `mi-espacio`), luego el paso 4.
 
 ## Para retomar (10-nov noche, Alejandro)
 

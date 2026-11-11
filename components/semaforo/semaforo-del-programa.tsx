@@ -1,13 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-import { EXPLICACION_AGENDA_CRM_VS_META } from "@/lib/vocabulario-metricas";
+import { Cifra } from "@/components/cifra-con-lista";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { cop } from "@/lib/format";
 import { ROTULO_DE_TONO } from "@/lib/metricas/cifra";
+import { cifrasDelSemaforo } from "@/lib/semaforo/cifras-del-semaforo";
 import { semaforoDelPrograma, type MetricaSemaforo } from "@/lib/semaforo/semaforo";
-
-// DM-1 (419): un solo vocabulario de estado en todo el CRM. Cambia el rótulo, no el cálculo; el reporte de WhatsApp no cambia.
-const etiquetaDeColor = { ...ROTULO_DE_TONO, sin_dato: "Sin dato" } as const;
 
 function horaEnBogota(instante: Date): number {
   return Number(new Intl.DateTimeFormat("en-CA", {
@@ -26,70 +24,56 @@ function Trayectoria({ puntos }: { puntos: MetricaSemaforo["trayectoria"] }) {
   return <span>{puntos.map((punto) => `${punto.hora.slice(0, 2)}h ${costo(punto.costo)}`).join(" → ")}</span>;
 }
 
-export async function SemaforoDelPrograma({ programId }: { programId: string }) {
+function horaTexto(instante: Date): string {
+  return new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "numeric", minute: "2-digit", hour12: true })
+    .format(instante).replace(/\s+/g, " ");
+}
+
+/**
+ * "¿Cómo va el costo por agenda hoy?" (419 paso 3, diseño §4.2): cuatro Cifras que arma el servidor. El costo y su
+ * color son los del semáforo y del reporte de WhatsApp; debajo, la trayectoria del día, la racha y las notas.
+ */
+export async function SemaforoDelPrograma({ programId, programa, comparar = false }: {
+  programId: string;
+  programa?: string;
+  /** Solo si se pidió comparar en la página: "Ayer a esta hora". */
+  comparar?: boolean;
+}) {
   const ahora = new Date();
-  const metrica = await semaforoDelPrograma(db, {
-    programId,
-    ahora,
-    tipo: horaEnBogota(ahora) >= 18 ? "cierre" : "dia",
-  });
-  const variante = metrica.color === "sin_dato" ? "neutro" : metrica.color;
+  const tipo = horaEnBogota(ahora) >= 18 ? "cierre" : "dia";
+  const metrica = await semaforoDelPrograma(db, { programId, ahora, tipo });
+  const cifras = cifrasDelSemaforo({ metrica, tipo, hora: horaTexto(ahora), comparar, programa });
+  const problemas = metrica.notas.filter((nota) => nota.tipo === "problema");
 
   return (
     <Card aria-labelledby="semaforo-costo-agenda">
       <CardHeader>
-        <div className="flex flex-wrap items-center gap-2">
-          <CardTitle id="semaforo-costo-agenda">Costo por agenda</CardTitle>
-          <Badge variant={variante}>{etiquetaDeColor[metrica.color]}</Badge>
-        </div>
+        <CardTitle id="semaforo-costo-agenda">¿Cómo va el costo por agenda hoy?</CardTitle>
+        <p className="text-xs text-muted-foreground">{cifras.subtitulo}</p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-xs text-muted-foreground">Del día de hoy hasta esta hora (después de las 6 p. m., el día de ayer completo). No sigue el periodo ni la cohorte que elegiste en esta página.</p>
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="cifra text-2xl font-semibold">{costo(metrica.costo)}</p>
-          {metrica.umbral ? (
-            <p className="text-sm text-muted-foreground">(umbral {cop(metrica.umbral.meta)})</p>
-          ) : null}
-          <p>{metrica.agendasCrm === 0 ? "0 agendas CRM" : `${metrica.agendasCrm} agendas CRM`}</p>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Cifra cifra={cifras.costo} />
+          <Cifra cifra={cifras.agendas} />
+          <Cifra cifra={cifras.agendasMeta} />
+          <Cifra cifra={cifras.inversion} />
         </div>
-
-        <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <dt className="text-muted-foreground">Ayer a esta hora</dt>
-            <dd className="cifra">
-              {metrica.comparacion ? costo(metrica.comparacion.costo) : "Sin foto"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-muted-foreground">Agendas de Meta</dt>
-            <dd className="cifra">{metrica.agendasMeta ?? "—"}</dd>
-            <dd className="text-xs text-muted-foreground">{EXPLICACION_AGENDA_CRM_VS_META}</dd>
-          </div>
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <p><span>Trayectoria del costo: </span><Trayectoria puntos={metrica.trayectoria} /></p>
           {metrica.racha ? (
-            <div>
-              <dt className="text-muted-foreground">Días cerrados seguidos</dt>
-              <dd>
-                <Badge variant={metrica.racha.color}>
-                  <span className="cifra">{metrica.racha.dias}</span> · {etiquetaDeColor[metrica.racha.color]}
-                </Badge>
-              </dd>
-            </div>
+            <p>
+              Días cerrados seguidos en <Badge variant={metrica.racha.color}>{ROTULO_DE_TONO[metrica.racha.color]}</Badge>:{" "}
+              <span className="cifra">{metrica.racha.dias}</span>
+            </p>
           ) : null}
-        </dl>
-
-        <p className="text-sm">
-          <span className="text-muted-foreground">Trayectoria: </span>
-          <Trayectoria puntos={metrica.trayectoria} />
-        </p>
-
-        <ul className="space-y-1 text-sm">
-          {metrica.notas.map((nota) => (
-            <li key={`${nota.tipo}:${nota.texto}`}>
-              <Badge variant={nota.tipo === "problema" ? "peligro" : "info"}>{nota.tipo}</Badge>{" "}
-              {nota.texto}
-            </li>
-          ))}
-        </ul>
+        </div>
+        {problemas.length > 0 ? (
+          <ul className="space-y-1 text-sm">
+            {problemas.map((nota) => (
+              <li key={nota.texto}><Badge variant="peligro">Problema</Badge> {nota.texto}</li>
+            ))}
+          </ul>
+        ) : null}
       </CardContent>
     </Card>
   );
