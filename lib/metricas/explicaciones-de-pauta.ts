@@ -249,6 +249,38 @@ export const EXPLICACIONES_DE_PAUTA = {
       { nombre: "Probabilidades", explicacion: "Las del closer dueño de la cita en las últimas 3 semanas. Si un closer tiene muy pocas citas, se usa la del programa." },
     ],
   },
+  inversion_origen: {
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.inversion, universo: "pauta", unidad: "cop",
+    que: "Lo que Meta reporta como gastado en esta campaña o este anuncio durante el periodo, en pesos.",
+    formula: { forma: "suma", terminos: ["gasto de cada día del periodo en los anuncios de esta fila"] },
+    variables: [
+      { nombre: "Gasto", explicacion: "Lo que reporta Meta por anuncio; un gasto en dólares se pasa a pesos con la tasa de cambio de ese día." },
+      { nombre: "Sin gasto", explicacion: "Lo orgánico, los referidos y lo que llegó sin origen no tienen gasto: no vienen de un anuncio pago." },
+    ],
+  },
+  agendas_origen: {
+    rotulo: nombreCorto("agendadas"), universo: "pauta", unidad: "conteo",
+    que: "Las citas de las personas que se registraron en el periodo por esta campaña o este anuncio, aunque las reservaran después.",
+    formula: { forma: "conteo", terminos: ["citas de las personas registradas en el periodo por esta fila"] },
+    variables: [
+      { nombre: "Registradas en el periodo", explicacion: "Cuenta por el día en que la persona llenó el formulario, no por el día de la cita." },
+      { nombre: "Cita", explicacion: "La llamada que la persona apartó en el calendario. Si reagendó, cuenta cada cita." },
+    ],
+  },
+  costo_agenda_origen: {
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_crm, universo: "pauta", unidad: "cop", unidadesDePartes: ["cop", "conteo"],
+    que: "Cuánto costó, en promedio, cada cita que trajo esta campaña o este anuncio.",
+    formula: { forma: "razon", terminos: ["Inversión de la fila", "Agendadas de la fila"] },
+    variables: [
+      { nombre: "Agendadas de la fila", explicacion: "Las citas de las personas que se registraron en el periodo por esta fila, aunque las reservaran después. Por eso puede no dar lo mismo que el costo por agenda de la tabla semanal, que cuenta las citas por el día en que se reservaron." },
+    ],
+  },
+  ventas_origen: {
+    rotulo: nombreCorto("ventas"), universo: "pauta", unidad: "conteo",
+    que: "Las ventas de las personas que se registraron en el periodo por esta campaña o este anuncio, aunque compraran después.",
+    formula: { forma: "conteo", terminos: ["deals en Abonado o Completo de las personas registradas en el periodo por esta fila"] },
+    variables: [{ nombre: "Abonado o Completo", explicacion: ABONADO_O_COMPLETO }],
+  },
   envios_sin_id: {
     rotulo: "Registros de pauta sin anuncio", universo: "pauta", unidad: "conteo",
     que: "Registros que llegaron por un anuncio pago pero sin el dato de cuál anuncio fue. Sin ese dato no se sabe qué anuncio vendió.",

@@ -2,12 +2,11 @@ import Link from "next/link";
 import { noShowPorCita } from "@/lib/deals/resultados-de-llamada";
 import type { ReactNode } from "react";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
-import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { FilaDeCampana } from "@/components/pauta-roas-campana";
 import { Tabla } from "@/components/dashboard/piezas";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { fecha, num, pct, usd } from "@/lib/format";
+import { num, pct, usd } from "@/lib/format";
 import type { NivelPauta, PasoPauta, RenglonRoas, VistaRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { nombreCorto, UNIVERSO_PAUTA, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
@@ -81,7 +80,7 @@ const CABECERAS = (primera: string, soloConteos = false, sinGasto = false) =>
   [primera, ...(soloConteos ? COLUMNAS_CONTEOS : sinGasto ? COLUMNAS_SIN_GASTO : COLUMNAS_COMPLETAS)];
 
 /** El detalle de una campaña (conjuntos y anuncios), que el diálogo muestra. */
-function detalleDeCampana(vista: VistaRoasDePauta, campana: RenglonRoas, enlace: Enlace): ReactNode {
+export function detalleDeCampana(vista: VistaRoasDePauta, campana: RenglonRoas, enlace: Enlace): ReactNode {
   const conjuntos = vista.conjuntos.filter((f) => f.padreId === campana.id);
   const anuncios = (conjunto: string) => vista.anuncios.filter((f) => f.padreId === conjunto);
   const filas: ReactNode[] = [<Fila key={campana.id} fila={campana} enlace={enlace} />];
@@ -108,52 +107,6 @@ function NotaReconciliacion({ reconciliacion }: { reconciliacion: VistaRoasDePau
   </p>;
 }
 
-function InformacionRoas({ vista }: { vista: VistaRoasDePauta }) {
-  const { cobertura } = vista;
-  const mostrarCoberturaGasto = vista.coberturaGasto.primerDia === null
-    || vista.coberturaGasto.primerDia > vista.rango.desde
-    || vista.coberturaGasto.diasSinFila.length > 0;
-  const madurez = vista.ventanaCierreDias === null
-    ? "Todavía no hay 5 ventas para estimarlo."
-    : vista.total.desdeDias === null || vista.total.hastaDias === null
-      ? `Aquí una venta tarda en mediana ${num(vista.ventanaCierreDias)} días desde el registro (sobre ${num(vista.ventasParaMadurez)} ventas).`
-      : `Los registros tienen entre ${num(vista.total.desdeDias)} y ${num(vista.total.hastaDias)} días; aquí una venta tarda en mediana ${num(vista.ventanaCierreDias)} días desde el registro (sobre ${num(vista.ventasParaMadurez)} ventas).`;
-  return <ComoSeCalcula>
-    <section className="space-y-1"><h3 className="font-medium">De dónde sale</h3><p className="text-muted-foreground">
-      Envíos pagos del periodo; sus citas agendadas, realizadas y ventas cuentan aunque ocurran después. El valor vendido
-      lo escribe el closer. El gasto es lo que reporta Meta por anuncio, en COP convertido a USD con la TRM de cada día.
-    </p></section>
-    <section className="space-y-1"><h3 className="font-medium">Anclas</h3><p className="text-muted-foreground">
-      Registro: el día del envío. Agendada, realizada y no asistió: la cita de los envíos de esa cohorte. Venta: la cohorte
-      de registro, el día del envío que trajo a la persona, aunque compre semanas después.
-    </p></section>
-    <section className="space-y-1"><h3 className="font-medium">Fórmula</h3><p className="text-muted-foreground">ROAS = valor vendido ÷ gasto.</p></section>
-    <section className="space-y-1"><h3 className="font-medium">Madurez</h3><p className="text-muted-foreground">{madurez}</p>
-      {vista.ventanaCierreDias !== null && vista.total.desdeDias !== null && vista.total.desdeDias < vista.ventanaCierreDias
-        ? <p className="text-muted-foreground">El ROAS de este periodo todavía va a subir.</p> : null}
-    </section>
-    <section className="space-y-1"><h3 className="font-medium">TRM usada</h3>
-      <p className="text-muted-foreground">{vista.trmEtiqueta ?? "No hay una TRM aplicada en este periodo."}</p>
-      {vista.diasSinTrm.length > 0 ? <p className="text-muted-foreground">Días sin TRM: {vista.diasSinTrm.map(fecha).join(", ")}.</p> : null}
-    </section>
-    {mostrarCoberturaGasto ? <section className="space-y-1"><h3 className="font-medium">Cobertura del gasto</h3>
-      <p className="text-muted-foreground">{vista.coberturaGasto.primerDia === null || vista.coberturaGasto.ultimoDia === null
-        ? "No hay gasto de Meta cargado."
-        : `Hay gasto de Meta desde el ${fecha(vista.coberturaGasto.primerDia)} hasta el ${fecha(vista.coberturaGasto.ultimoDia)}.`}</p>
-    </section> : null}
-    <section className="space-y-1"><h3 className="font-medium">Cobertura del origen</h3><ul className="space-y-1 text-muted-foreground">
-      <li>Con anuncio: <span className="cifra">{num(cobertura.anuncio)}</span>. Se miden hasta el anuncio.</li>
-      <li>Solo campaña o conjunto: <span className="cifra">{num(cobertura.soloCampanaOConjunto)}</span>. Se miden por campaña: el link manda el id de la campaña, o ningún id y solo su nombre.</li>
-      <li>Sin campaña de Meta: <span className="cifra">{num(cobertura.sinCampana)}</span>. No se pueden atribuir y van en su propia fila.</li>
-    </ul></section>
-    {vista.total.sinValorVendido > 0 ? <section className="space-y-1"><h3 className="font-medium">Ventas sin valor vendido</h3><p className="text-muted-foreground">
-      <span className="cifra">{num(vista.total.sinValorVendido)}</span>: el closer no escribió el valor vendido; cuentan como venta pero suman 0 al valor vendido.</p></section> : null}
-    <section className="space-y-1"><h3 className="font-medium">Citas sin marcar</h3><p className="text-muted-foreground">
-      <span className="cifra">{num(vista.citasSinMarcar)}</span>: el closer no marcó realizada o no asistió.
-    </p></section>
-  </ComoSeCalcula>;
-}
-
 /**
  * La tabla única de Pauta (ticket 355): un cargador y una tabla. "Ver por: Campaña de Meta | Canal" cambia la
  * agrupación con un parámetro de la URL. El gasto por canal no se puede repartir (Meta lo da por anuncio), así que
@@ -174,7 +127,7 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloCont
     <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y {VOCABULARIO_PAUTA_SEMANAL.roas}</CardTitle>
       <p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p>
       <p className="text-sm text-muted-foreground">Envíos pagos del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
-    <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <><InformacionRoas vista={vista} /><Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link></>}</div>
+    <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link>}</div>
   </div>
     <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
       <span className="text-muted-foreground">Ver por:</span>

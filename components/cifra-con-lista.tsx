@@ -67,6 +67,7 @@ export function Cifra({ cifra, tamano = "tarjeta", className }: {
     <Sheet>
       <SheetTrigger
         aria-label={cifra.ariaLabel}
+        data-abre-explicacion=""
         className={cn(
           tamano === "celda"
             ? "inline-flex cursor-pointer flex-col items-end gap-px rounded-md px-1 py-0.5 text-right transition-colors duration-150 outline-none hover:bg-marca-suave focus-visible:outline-2 focus-visible:outline-marca"

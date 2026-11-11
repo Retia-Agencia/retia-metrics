@@ -13,7 +13,8 @@ import { abonos, calls, cuentasPublicitarias, deals, dealEtapaHistorial, gastoPa
 import type { Db } from "@/lib/db/tipos";
 import { listaDeMetrica, proyectarParaPauta } from "@/lib/queries/metricas-con-filas";
 import { estadoDeCobertura } from "@/lib/cobertura";
-import { cargarRoasDePauta, MOTIVO_GASTO_POR_CANAL } from "@/lib/queries/roas-de-pauta";
+import { cargarRoasDePauta, filtrarEnviosDePauta, MOTIVO_GASTO_POR_CANAL } from "@/lib/queries/roas-de-pauta";
+import { cifrasDeSinOrigen, filasDeQueTraeVentas, listaDeOrigen, type ContextoDeOrigen } from "@/lib/pauta/cifras-de-origen";
 import { COLUMNAS_CSV_CITAS_PAUTA, csvDeCitasPauta } from "@/lib/pauta/csv-citas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -122,7 +123,6 @@ describe("ROAS de Pauta", () => {
       vista, enlace: () => "/lista", hrefCsv: "/citas.csv", verPor: "campana", hrefVerPor: () => "?",
     }));
     expect(html).toContain("Sin campaña de Meta");
-    expect(html).toContain("Cómo se calcula");
     expect(html).not.toContain("Aún madurando");
     expect(html).toContain("Cuándo: ");
     expect(html).toContain("1 en llamada");
@@ -255,5 +255,71 @@ describe("ROAS de Pauta", () => {
       expect(canal.gastoUsd).toBeNull();
       expect(canal.roas).toMatchObject({ valor: null, motivo: MOTIVO_GASTO_POR_CANAL });
     }
+  });
+});
+
+describe("420: ¿Qué trae ventas? y ¿Qué llega sin origen? como Cifras", () => {
+  async function contexto(): Promise<ContextoDeOrigen> {
+    const vista = await cargarRoasDePauta(db, programId, RANGO, HOY);
+    return { vista, enlace: (nivel, id, paso) => `/lista?nivel=${nivel}&id=${id ?? ""}&paso=${paso}`, programa: "ROAS", periodo: "del 1 al 2 oct" };
+  }
+
+  it("cada celda es la del renglón, y la lista de Agendadas y Ventas cuenta lo mismo que la celda", async () => {
+    await escenario();
+    const c = await contexto();
+    const v = c.vista;
+    const renglones = [v.total, ...v.campanas, ...v.conjuntos, ...v.anuncios, ...v.anunciosSinIdentificar, v.sinAnuncio, ...v.canales];
+    for (const r of renglones) {
+      expect(listaDeOrigen(v, r, "agenda", c.enlace!).total).toBe(r.agendas);
+      expect(listaDeOrigen(v, r, "venta", c.enlace!).total).toBe(r.ventas);
+    }
+    for (const verPor of ["campana", "anuncio", "canal"] as const) {
+      for (const fila of filasDeQueTraeVentas(c, verPor)) {
+        expect(fila.agendas.explicacion.evidencia?.filas.length ?? 0).toBeLessThanOrEqual(5);
+        expect(fila.agendas.explicacion.evidencia?.href).toContain("paso=agenda");
+      }
+    }
+    const [total, campana] = filasDeQueTraeVentas(c, "campana");
+    expect(total.nivel).toBe("total");
+    expect(campana).toMatchObject({ id: "camp1", conDetalle: true, revisar: false });
+    // Inversión en COP (400.000 + 210.000) y costo por agenda = inversión ÷ agendadas.
+    expect(campana.inversion.valor).toBe(610000);
+    expect(campana.agendas.valor).toBe(2);
+    expect(campana.costo.valor).toBe(305000);
+    expect(campana.roas.valor).toBe(2);
+    // La lista es la de los mismos envíos que filtra la página de la lista.
+    const envios = filtrarEnviosDePauta(c.vista.envios, "campana", "camp1");
+    expect(campana.agendas.valor).toBe(envios.reduce((n, e) => n + e.citas.length, 0));
+  });
+
+  it("por canal no hay inversión, costo ni ROAS: «—» con su motivo, nunca 0", async () => {
+    await escenario();
+    const filas = filasDeQueTraeVentas(await contexto(), "canal").filter((f) => f.nivel === "canal");
+    expect(filas.length).toBeGreaterThan(0);
+    for (const fila of filas) {
+      expect(fila.inversion.valor).toBeNull();
+      expect(fila.costo.valor).toBeNull();
+      expect(fila.roas.valor).toBeNull();
+    }
+  });
+
+  it("«Revisar» marca el anuncio que gastó sin traer agendas, y solo ese", async () => {
+    await escenario();
+    const sinAgendas = (await db.select().from(pautaObjetos).where(eq(pautaObjetos.idMeta, "ad-vacio")))[0];
+    await db.insert(gastoPauta).values({ programId, fecha: "2026-10-02", monto: "50000", moneda: "COP", origen: "meta_api", pautaObjetoId: sinAgendas.id });
+    const filas = filasDeQueTraeVentas(await contexto(), "anuncio");
+    const vacio = filas.find((f) => f.id === "ad-vacio");
+    expect(vacio).toMatchObject({ revisar: true });
+    expect(vacio!.costo.valor).toBeNull();
+    expect(filas.find((f) => f.id === "ad1")).toMatchObject({ revisar: false });
+  });
+
+  it("sin la sesión que abre listas, ninguna celda trae evidencia; sin origen suma lo que no llega al anuncio", async () => {
+    await escenario();
+    const c = { ...(await contexto()), enlace: undefined };
+    for (const fila of filasDeQueTraeVentas(c, "campana")) expect(fila.agendas.explicacion.evidencia).toBeNull();
+    const [sinAnuncio, ventasSinAnuncio] = cifrasDeSinOrigen(c);
+    expect(sinAnuncio.valor).toBe(c.vista.cobertura.soloCampanaOConjunto + c.vista.cobertura.sinCampana);
+    expect(ventasSinAnuncio.valor).toBe(1);
   });
 });

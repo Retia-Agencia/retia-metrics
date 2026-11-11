@@ -74,6 +74,8 @@ export interface RenglonRoas {
   sinValorVendido: number;
   /** `null` = no disponible (Meta da el gasto por anuncio, no por canal): nunca un 0 inventado (N3). */
   gastoUsd: number | null;
+  /** El mismo gasto en COP, la moneda en que se paga la pauta (420, "¿Qué trae ventas?"); `null` igual que `gastoUsd`. */
+  gastoCop: number | null;
   roas: RazonConCobertura;
   desdeDias: number | null;
   hastaDias: number | null;
@@ -132,7 +134,7 @@ function diasEntre(desde: string, hasta: string): number {
 function renglonBase(nivel: NivelPauta, id: string | null, nombre: string, padreId: string | null): RenglonRoas {
   return { nivel, id, nombre, padreId, registros: 0, agendas: 0, shows: 0, noShows: 0, ventas: 0,
     ventasCompletas: 0, ventasParciales: 0, ventasEnLlamada: 0, ventasDespues: 0, ventasSinLlamada: 0,
-    valorVendidoUsd: 0, sinValorVendido: 0, gastoUsd: 0, roas: { valor: null, base: 0, faltan: 0, motivo: null },
+    valorVendidoUsd: 0, sinValorVendido: 0, gastoUsd: 0, gastoCop: 0, roas: { valor: null, base: 0, faltan: 0, motivo: null },
     desdeDias: null, hastaDias: null };
 }
 
@@ -192,7 +194,7 @@ export async function cargarRoasDePauta(
   const seleccionarEnvio = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
     esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: leads.nombre,
     fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
-  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha] = await Promise.all([
+  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha, gastoEnCop] = await Promise.all([
     arbolDePauta(db, programId),
     db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
       padreIdMeta: pautaObjetos.padreIdMeta }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId)),
@@ -223,6 +225,8 @@ export async function cargarRoasDePauta(
           cohorteId === null ? undefined : eq(deals.cohortId, cohorteId), vigente(deals)))
         .where(incluyendoAnulados(dias));
     })(),
+    // El mismo hecho de gasto en COP: la inversión y el costo por agenda de "¿Qué trae ventas?" (420).
+    gastoConvertido(db, programId, rango, "COP"),
   ]);
   const coberturaGasto = gasto.cobertura;
   const idsCargados = new Set(enviosEnRango.map((e) => e.id));
@@ -348,18 +352,23 @@ export async function cargarRoasDePauta(
   total.sinValorVendido = dinero.sinValorVendido;
   // El gasto convertido ya vive en el hecho (355): aquí solo se reparte por la jerarquía de Meta.
   total.gastoUsd = gasto.totalUsd;
-  for (const [idMeta, usd] of gasto.porAnuncio) {
-    const a = anuncios.get(idMeta); if (a) a.gastoUsd = (a.gastoUsd ?? 0) + usd;
-    const arbolAnuncio = arbol.anuncios.find((x) => x.id === idMeta);
-    if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s.gastoUsd = (s.gastoUsd ?? 0) + usd;
-      const c = campanas.get(arbolAnuncio.campanaId); if (c) c.gastoUsd = (c.gastoUsd ?? 0) + usd; }
-  }
+  total.gastoCop = gastoEnCop.totalUsd;
+  const repartir = (porAnuncio: Map<string, number>, campo: "gastoUsd" | "gastoCop") => {
+    for (const [idMeta, monto] of porAnuncio) {
+      const a = anuncios.get(idMeta); if (a) a[campo] = (a[campo] ?? 0) + monto;
+      const arbolAnuncio = arbol.anuncios.find((x) => x.id === idMeta);
+      if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s[campo] = (s[campo] ?? 0) + monto;
+        const c = campanas.get(arbolAnuncio.campanaId); if (c) c[campo] = (c[campo] ?? 0) + monto; }
+    }
+  };
+  repartir(gasto.porAnuncio, "gastoUsd");
+  repartir(gastoEnCop.porAnuncio, "gastoCop");
   // El mismo universo agrupado por canal (par UTM): la otra vista de la tabla. El gasto por canal
   // no se puede repartir (Meta lo da por anuncio, no por par UTM), así que su ROAS no aplica: la
   // columna Gasto/ROAS de canal queda en 0/—, con la misma cobertura.
   const canalesMap = new Map<string, RenglonRoas>();
   for (const e of universo) {
-    const fila = canalesMap.get(e.canalClave) ?? { ...renglonBase("canal", e.canalClave, e.canal, null), gastoUsd: null };
+    const fila = canalesMap.get(e.canalClave) ?? { ...renglonBase("canal", e.canalClave, e.canal, null), gastoUsd: null, gastoCop: null };
     sumarEnvio(fila, e, hoy); canalesMap.set(e.canalClave, fila);
   }
   const para = (predicado: (envio: FilaPorEnvioPauta) => boolean) => universo.filter(predicado);

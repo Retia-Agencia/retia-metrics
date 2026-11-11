@@ -1,5 +1,4 @@
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota, num, pct } from "@/lib/format";
 import type { EmbudoPorPreguntaDeFuente } from "@/lib/queries/embudo-por-pregunta";
 
@@ -94,25 +93,38 @@ function Fuente({ embudo, conNombre }: { embudo: EmbudoPorPreguntaDeFuente; conN
   );
 }
 
-export function EmbudoPorPregunta({ embudos }: { embudos: EmbudoPorPreguntaDeFuente[] }) {
+/**
+ * El detalle por pregunta dentro de "¿Dónde se va la gente del formulario?" (420): el Insights de Typeform de cada
+ * fuente, sin tarjeta propia. Es el histórico acumulado: no sigue el periodo, y lo dice.
+ */
+export function DetallePorPregunta({ embudos }: { embudos: EmbudoPorPreguntaDeFuente[] }) {
   if (embudos.length === 0) return null;
   return (
-    <Card aria-labelledby="embudo-por-pregunta">
-      <CardHeader className="space-y-1">
-        <CardTitle id="embudo-por-pregunta" className="text-base">
-          Embudo por pregunta
-        </CardTitle>
+    <section className="space-y-3 text-sm" aria-labelledby="embudo-por-pregunta">
+      <div className="space-y-1">
+        <h3 id="embudo-por-pregunta" className="text-sm font-medium">Por pregunta</h3>
         <p className="text-xs text-muted-foreground">
-          Del Insights de Typeform: histórico acumulado del formulario, sin canal. No sigue el período ni el filtro de
-          closer, porque Typeform no lo deja acotar por fechas. La vieron: % sobre quienes vieron la primera pregunta. Se
-          fueron aquí: % sobre quienes la vieron.
+          Del Insights de Typeform: histórico acumulado del formulario, sin canal. No sigue el periodo, porque Typeform no lo
+          deja acotar por fechas. La vieron: % sobre quienes vieron la primera pregunta. Se fueron aquí: % sobre quienes la vieron.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-6 text-sm">
-        {embudos.map((e) => (
-          <Fuente key={e.fuenteId} embudo={e} conNombre={embudos.length > 1} />
-        ))}
-      </CardContent>
-    </Card>
+      </div>
+      {embudos.map((e) => (
+        <Fuente key={e.fuenteId} embudo={e} conNombre={embudos.length > 1} />
+      ))}
+    </section>
   );
+}
+
+/** La pregunta donde se va una mayor parte de quienes la vieron, entre las fuentes leídas. */
+export function preguntaQueMasPierde(embudos: readonly EmbudoPorPreguntaDeFuente[]): { titulo: string; tasa: number } | null {
+  let peor: { titulo: string; tasa: number } | null = null;
+  for (const e of embudos) {
+    if (e.estado !== "ok") continue;
+    for (const p of e.insights.preguntas) {
+      if (p.vistas <= 0) continue;
+      const tasa = p.abandonos / p.vistas;
+      if (!peor || tasa > peor.tasa) peor = { titulo: p.titulo, tasa };
+    }
+  }
+  return peor;
 }

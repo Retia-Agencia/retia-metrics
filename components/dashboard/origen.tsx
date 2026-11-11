@@ -35,18 +35,28 @@ function filtrosDelPar(fila: FilaOrigenCanal, par: FilaOrigenUtm): FiltrosOrigen
   return { source: par.source, medium: par.medium, ...(categoria ? { categoria } : {}) };
 }
 
-export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
-  const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
+/** Los canales de Origen con el enlace a la lista de cada cifra: los pinta `TablaDeOrigen`. */
+export function canalesConEnlaces(vista: VistaOrigen, slug: string, periodo: PeriodoResuelto, origen: string) {
   const enlaces = (filtros: FiltrosOrigen) => ({
     registros: hrefDeLista(slug, periodo, origen, "registros", filtros),
     agendas: hrefDeLista(slug, periodo, origen, "agendas_creadas", filtros),
   });
-  const canales = vista.canales.map((fila) => ({
+  return vista.canales.map((fila) => ({
     ...fila,
     enlaces: enlaces(filtrosDelCanal(fila)),
     nombre: nombreDeCanalOrigen(fila),
     pares: fila.pares.map((par) => ({ ...par, enlaces: enlaces(filtrosDelPar(fila, par)) })),
   }));
+}
+
+/** El enlace a la lista de los envíos de contenido con código que no reconocemos. */
+export function hrefDePiezasDesconocidas(slug: string, periodo: PeriodoResuelto, origen: string) {
+  return hrefDeLista(slug, periodo, origen, "registros", { categoria: "pieza_desconocida" });
+}
+
+export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
+  const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
+  const canales = canalesConEnlaces(vista, slug, periodo, origen);
   return <section className="space-y-4">
     <TablaDeOrigen canales={canales} totalEnvios={vista.totalEnvios} soloConteos={soloConteos} />
 

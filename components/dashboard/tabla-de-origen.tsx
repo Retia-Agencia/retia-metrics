@@ -31,10 +31,12 @@ function tasa(agendas: number, envios: number) {
 
 const MAX_PARES = 10;
 
-export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
+export function TablaDeOrigen({ canales, totalEnvios, soloConteos, dentroDeOtraTarjeta = false }: {
   canales: CanalConEnlaces[];
   totalEnvios: number;
   soloConteos: boolean;
+  /** Dentro de "¿Qué trae ventas?" › Canal (420): la misma tabla, sin tarjeta propia. */
+  dentroDeOtraTarjeta?: boolean;
 }) {
   const [abiertos, setAbiertos] = useState<ReadonlySet<string>>(new Set());
   const [completos, setCompletos] = useState<ReadonlySet<string>>(new Set());
@@ -45,15 +47,20 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
     cambiar(siguiente);
   };
 
-  return <Card aria-labelledby="origen-de-los-registros">
-    <CardHeader className="space-y-1">
+  const cabecera = dentroDeOtraTarjeta
+    ? <div className="space-y-1">
+      <h3 id="origen-de-los-registros" className="text-sm font-medium">Todos los orígenes, y la regla que clasificó cada enlace</h3>
+      <p className="text-xs text-muted-foreground">
+        Pauta, orgánico, referidos y lo que llegó sin origen. Un envío es un formulario enviado; una cita agendada, una llamada creada en el rango y atribuida al envío que abrió su deal.
+      </p>
+    </div>
+    : <CardHeader className="space-y-1">
       <CardTitle id="origen-de-los-registros" className="text-base">Origen de los envíos</CardTitle>
       <p className="text-xs text-muted-foreground">
         Un envío es un formulario enviado; una cita agendada, una llamada creada en el rango y atribuida al envío que abrió su deal.
       </p>
-    </CardHeader>
-    <CardContent>
-      <div className="overflow-x-auto">
+    </CardHeader>;
+  const tabla = <div className="overflow-x-auto">
         {/* Anchos fijos: abrir un canal no mueve las columnas. La regla va bajo su UTM, no en una columna. */}
         <table className="w-full min-w-[32rem] table-fixed text-sm">
           <colgroup><col /><col className="w-32" /><col className="w-28" /><col className="w-28" /></colgroup>
@@ -121,7 +128,7 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos }: {
         </tr>
           </tbody>
         </table>
-      </div>
-    </CardContent>
-  </Card>;
+      </div>;
+  if (dentroDeOtraTarjeta) return <section aria-labelledby="origen-de-los-registros" className="space-y-2">{cabecera}{tabla}</section>;
+  return <Card aria-labelledby="origen-de-los-registros">{cabecera}<CardContent>{tabla}</CardContent></Card>;
 }

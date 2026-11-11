@@ -3,7 +3,7 @@ import { Suspense, type ReactNode } from "react";
 import { desc } from "drizzle-orm";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
-import { Origen } from "@/components/dashboard/origen";
+import { canalesConEnlaces, hrefDePiezasDesconocidas } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
 import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte, type ReporteDiario } from "@/lib/queries/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
@@ -37,11 +37,8 @@ import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltrosDelHub } from "@/components/hub/filtros-del-hub";
 import { PautaProyeccion } from "@/components/pauta-proyeccion";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
-import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
 import { calcularProyeccionDeRoas, proyeccionesConfirmadas } from "@/lib/queries/proyeccion-roas";
 import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
-import { EmbudoFormulario } from "@/components/embudo-formulario";
-import { EmbudoPorPregunta } from "@/components/embudo-por-pregunta";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
@@ -57,7 +54,10 @@ import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte, unidadDeCumplimiento } from "@/components/pauta/cumplimiento";
 import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
-import { TrazaDePauta } from "@/components/pauta/traza";
+import { QueTraeVentas } from "@/components/pauta/que-trae-ventas";
+import { SinOrigen } from "@/components/pauta/sin-origen";
+import { DondeSeVaLaGente } from "@/components/pauta/embudo-del-formulario";
+import { VER_POR_ORIGEN, verPorOrigen, type VerPorOrigen } from "@/lib/pauta/cifras-de-origen";
 import { VISTAS_DE_PAUTA, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { dineroDelRango } from "@/lib/queries/dashboard";
@@ -707,36 +707,25 @@ async function SeccionPauta({
     embudoDelFormulario(db, { programId, rango }),
     embudoPorPregunta(db, programId),
   ]);
-  // El selector de vista vive en la URL y reemplaza solo `ver_por`, conservando el rango y el closer.
-  const verPor: VerPorPauta = texto(busqueda.ver_por) === "canal" ? "canal" : "campana";
-  const hrefVerPor = (v: VerPorPauta) => {
-    const q = new URLSearchParams();
-    for (const [k, valor] of Object.entries(busqueda)) {
-      if (typeof valor === "string" && k !== "ver_por") q.set(k, valor);
-    }
-    if (v !== "campana") q.set("ver_por", v);
-    const query = q.toString();
-    return query ? `?${query}` : "?";
-  };
-  const csv = new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" });
+  // "Ver por" vive en la URL (`ver_por`) y reemplaza solo ese parámetro; Campaña es el valor por defecto.
+  const verPor = verPorOrigen(busqueda.ver_por);
+  const base = rutaDePrograma(slug, "hub");
+  const hrefDeVerPor = Object.fromEntries(VER_POR_ORIGEN.map((v) => [v.id,
+    urlConSeccion(base, busqueda, v.id === "campana" ? null : v.id, { parametro: "ver_por" })])) as Record<VerPorOrigen, string>;
+  const periodoEnPalabras = rango.desde === rango.hasta ? `el ${fecha(rango.desde)}` : `del ${fecha(rango.desde)} al ${fecha(rango.hasta)}`;
+  const contexto = { vista: roas, enlace: puedeAbrirLista ? enlaceRoas : undefined, programa: programaNombre, periodo: periodoEnPalabras };
 
   return (
     <section className="space-y-4" data-vista-de-pauta="calidad">
-      <PautaRoas
-        vista={roas}
-        enlace={enlaceRoas}
-        hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${csv}`}
-        verPor={verPor}
-        hrefVerPor={hrefVerPor}
-      />
-      {/* Origen (412): el canal que se abre en sus UTM y la regla que lo clasificó, debajo del ROAS hasta que PautaRoas lo absorba. */}
-      <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
-      <TrazaDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} />
-      <EmbudoFormulario
-        embudo={formulario}
-        hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined}
-      />
-      <EmbudoPorPregunta embudos={porPregunta} />
+      <QueTraeVentas contexto={contexto} verPor={verPor} hrefDeVerPor={hrefDeVerPor} enlace={enlaceRoas}
+        hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" })}`}
+        canalesDeOrigen={verPor === "canal" ? { canales: canalesConEnlaces(vistaOrigen, slug, periodo, origen), totalEnvios: vistaOrigen.totalEnvios } : undefined} />
+      <div className="grid gap-4 xl:grid-cols-2">
+        <SinOrigen contexto={contexto} programId={programId} rango={rango} vistaOrigen={vistaOrigen}
+          hrefPiezasDesconocidas={hrefDePiezasDesconocidas(slug, periodo, origen)} />
+        <DondeSeVaLaGente embudo={formulario} porPregunta={porPregunta} programa={programaNombre} periodo={periodoEnPalabras}
+          hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined} />
+      </div>
     </section>
   );
 }

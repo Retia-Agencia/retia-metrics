@@ -8,7 +8,7 @@ const PARAMETRO = "roas_campana";
 
 /**
  * La fila de una campaña del ROAS: toda la fila abre un diálogo con sus conjuntos y anuncios, en vez de
- * desplegarlos dentro de la tabla. Un clic en un enlace de la fila (una cifra) sigue yendo a su lista.
+ * desplegarlos dentro de la tabla. Un clic en un enlace de la fila sigue yendo a su lista, y uno en una Cifra abre su explicación.
  * El diálogo abierto vive en la URL (`roas_campana`): así la lista a la que se salta lo trae en su `desde`
  * y al volver el diálogo sigue abierto.
  */
@@ -31,7 +31,13 @@ export function FilaDeCampana({ id, nombre, detalle, children }: { id: string; n
   };
 
   return <>
-    <tr className="cursor-pointer" onClick={(e) => { if (!(e.target as HTMLElement).closest("a")) fijar(true); }}>
+    <tr className="cursor-pointer" onClick={(e) => {
+      // Un clic en una cifra (enlace o la que abre su explicación) no abre la campaña; tampoco uno dentro del panel de
+      // la explicación, que React propaga hasta aquí aunque viva fuera de la fila.
+      const objetivo = e.target as HTMLElement;
+      if (!e.currentTarget.contains(objetivo) || objetivo.closest("a, [data-abre-explicacion]")) return;
+      fijar(true);
+    }}>
       {children}
     </tr>
     <Dialog open={abierto} onOpenChange={fijar}>
