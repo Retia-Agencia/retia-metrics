@@ -79,6 +79,27 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
   - Nota: `npm run db:local` falla al sembrar (el programa de prueba no tiene % de comisión, `mover-etapa.ts:338`). La base
     queda con datos parciales y sirve para mirar. No es de este carril.
 
+## Para retomar (10-nov noche, Alejandro)
+
+Lo nuevo desde las notas de abajo (commits `31554eea`, `5496e2d7`, `205d23f7`, sin push):
+- **Textos del puente** al día con D-A, D-B y D-E (tasas por deal sobre el grupo de citas de Paid, ROAS y Profit por la
+  semana del registro, inversión sin gasto en —). El tipo del puente es `ClaveDeExplicacionDePauta`; `ClaveDePauta` es
+  el de Mani en `lib/vocabulario-metricas.ts` (403 F2, con fichas sin texto). Pasar los textos a la ficha cuando él avise.
+- **Paso 1 hecho para ventas.** `dealsDelArea` (`lib/queries/metricas-filtros.ts`) da a la lista de ventas
+  (`cierres`, `contratado`) el filtro de área con la misma regla que la cifra; `combinacionDeFiltrosValida` lo admite.
+  Las barras "Ventas · de pauta" y "Ventas totales" traen evidencia (`leerEvidenciaDeVentas`, desde
+  `cohorte.desdeLista`), solo para quien abre la lista de ventas. Lista vacía: "Todavía no hay …", sin botón.
+  Test: `tests/cumplimiento-evidencia.test.ts`.
+- **Agendadas sin evidencia, esperando a Mani** (mensaje enviado el 10-nov): `agendasDeLaCohorte` cuenta agendas de
+  deals anulados (`incluyendoAnulados(deals)` en `hechos/agenda.ts`) y `agendas_creadas` no. El test es `it.fails`:
+  cuando se ponga rojo, conectar la evidencia de agendas.
+- **Bug ajeno visto:** el enlace de Asistencia de la tabla semanal (`shows` con `area=paid`) da 404; `shows` no acepta área.
+- Verificado en `dev:local` (claro, oscuro, 375 px, consola limpia); build en verde antes del último commit (no se
+  repitió). Para ver filas se pasaron 3 deals de `comunicarte-local` a ganado en la base LOCAL.
+- **Borrar a mano** `e2e/zz-419-evidencia.spec.ts` (desechable; `rm` está bloqueado para el agente).
+
+**Siguiente:** paso 2 (la celda en la tabla semanal), luego 3 y 4 de abajo.
+
 ## Para retomar (10-nov, Alejandro se quedó sin créditos)
 
 Estado: commits `241edac9` (campos de la ficha), `2b518987` (contrato y tests), `9d025099` (status coherente) y `76f75e84`
