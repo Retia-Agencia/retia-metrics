@@ -58,6 +58,7 @@ import { CumplimientoDeCohorte } from "@/components/pauta/cumplimiento";
 import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
 import { TrazaDePauta } from "@/components/pauta/traza";
+import { VISTAS_DE_PAUTA, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { dineroDelRango } from "@/lib/queries/dashboard";
 import {
@@ -239,7 +240,17 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
           )}
         </div>
         {esHoy ? null : (
-          <div className="min-w-0 max-w-full">
+          <div className="flex min-w-0 max-w-full flex-wrap items-start justify-between gap-2">
+            {seccion === "pauta" ? (
+              <div className="order-first w-full sm:order-last sm:w-auto">
+                <Pestanas
+                  grupos={[{ pestanas: VISTAS_DE_PAUTA.map((v) => ({ ...v, href: urlConSeccion(base, busqueda, v.id === "resultados" ? null : v.id, { parametro: "vista" }) })) }]}
+                  activa={vistaDePauta(busqueda.vista)}
+                  etiqueta="Vista de Pauta"
+                />
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1">
             <FiltrosDelHub
               periodo={contexto.periodo}
               anteriorDisponible={contexto.anteriorDisponible}
@@ -249,6 +260,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
               lineaDeCohorte={lineaDeCohorte}
             />
+            </div>
           </div>
         )}
 
@@ -656,20 +668,39 @@ async function SeccionPauta({
       }
     });
   }
-  // Todo en paralelo (197 §5): el ROAS y la proyección dependen entre sí; el resto son consultas propias de la pestaña.
-  const [[roas, proyeccion, historial], vistaOrigen, formulario, porPregunta, objetivosDeLaCohorte] = await Promise.all([
-    (async () => {
-      const vista = await cargarRoasDePauta(db, programId, rango, hoy, ahora);
-      const [calculada, confirmadas] = await Promise.all([
-        calcularProyeccionDeRoas(db, { programId, rango, hoy, ahora, vista }),
-        proyeccionesConfirmadas(db, programId),
-      ]);
-      return [vista, calculada, confirmadas] as const;
-    })(),
+  // La vista de Pauta (420): Resultados o Origen y calidad, con los mismos filtros. Solo corren las consultas de
+  // la vista que se ve (197 §5); la proyección del ROAS necesita la vista del ROAS, así que la carga Resultados.
+  const vista = vistaDePauta(busqueda.vista);
+  const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
+    slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
+  });
+
+  if (vista === "resultados") {
+    const [roas, objetivosDeLaCohorte] = await Promise.all([
+      cargarRoasDePauta(db, programId, rango, hoy, ahora),
+      cohorteId ? objetivosDeCohortes(db, [cohorteId]) : Promise.resolve([]),
+    ]);
+    const [proyeccion, historial] = await Promise.all([
+      calcularProyeccionDeRoas(db, { programId, rango, hoy, ahora, vista: roas }),
+      proyeccionesConfirmadas(db, programId),
+    ]);
+    return (
+      <section className="space-y-4" data-vista-de-pauta="resultados">
+        <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas} />
+        <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} />
+        <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre} />
+        <PautaProyeccion proyeccion={proyeccion} historial={historial} objetivos={objetivosDeLaCohorte} hoy={hoy}
+          programa={programaNombre} cohorte={cohorteCodigo ?? undefined}
+          hrefPendientes={proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
+      </section>
+    );
+  }
+
+  const [roas, vistaOrigen, formulario, porPregunta] = await Promise.all([
+    cargarRoasDePauta(db, programId, rango, hoy, ahora),
     origenDelPrograma(db, { programId, rango, hoy }),
     embudoDelFormulario(db, { programId, rango }),
     embudoPorPregunta(db, programId),
-    cohorteId ? objetivosDeCohortes(db, [cohorteId]) : Promise.resolve([]),
   ]);
   // El selector de vista vive en la URL y reemplaza solo `ver_por`, conservando el rango y el closer.
   const verPor: VerPorPauta = texto(busqueda.ver_por) === "canal" ? "canal" : "campana";
@@ -682,16 +713,10 @@ async function SeccionPauta({
     const query = q.toString();
     return query ? `?${query}` : "?";
   };
-  const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
-    slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
-  });
   const csv = new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" });
 
   return (
-    <section className="space-y-4">
-      <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} />
-      <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas} />
-      <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre} />
+    <section className="space-y-4" data-vista-de-pauta="calidad">
       <PautaRoas
         vista={roas}
         enlace={enlaceRoas}
@@ -702,9 +727,6 @@ async function SeccionPauta({
       {/* Origen (412): el canal que se abre en sus UTM y la regla que lo clasificó, debajo del ROAS hasta que PautaRoas lo absorba. */}
       <Origen vista={vistaOrigen} slug={slug} periodo={periodo} origen={origen} />
       <TrazaDePauta programId={programId} slug={slug} rango={rango} periodo={periodo} origen={origen} />
-      <PautaProyeccion proyeccion={proyeccion} historial={historial} objetivos={objetivosDeLaCohorte} hoy={hoy}
-        programa={programaNombre} cohorte={cohorteCodigo ?? undefined}
-        hrefPendientes={proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
       <EmbudoFormulario
         embudo={formulario}
         hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined}

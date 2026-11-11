@@ -17,5 +17,5 @@ export default async function CanalesPage() {
   const rol = await rolDeVista(session);
   const [primero] = await programasVisibles(session.user.id, rol);
   if (!primero) notFound();
-  redirect(`${rutaDePrograma(primero.slug, "hub")}?seccion=pauta&ver_por=canal`);
+  redirect(`${rutaDePrograma(primero.slug, "hub")}?seccion=pauta&vista=calidad&ver_por=canal`);
 }

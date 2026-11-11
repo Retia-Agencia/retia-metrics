@@ -234,7 +234,7 @@ describe("Hub Origen", () => {
 
   it("retira Canales con un redirect a Pauta (vista Canal)", async () => {
     const pagina = await readFile("app/(app)/ajustes/canales/page.tsx", "utf8");
-    expect(pagina).toContain('?seccion=pauta&ver_por=canal`');
+    expect(pagina).toContain('?seccion=pauta&vista=calidad&ver_por=canal`');
     expect(pagina).not.toContain('redirect("/hub?seccion=pauta")');
   });
 });

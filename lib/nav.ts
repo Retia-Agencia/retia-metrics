@@ -37,7 +37,7 @@ const SECCION_VIEJA_EN_EL_HUB: Readonly<Record<string, SeccionDelHub>> = {
 
 /**
  * `?seccion=origen` ya no existe (412): Origen es la vista Canal de Pauta. Devuelve la query de Pauta con
- * todo lo demás intacto y `ver_por=canal` si la URL no traía `ver_por`; `null` si la sección no era Origen.
+ * todo lo demás intacto, `ver_por=canal` si la URL no traía `ver_por` y `vista=calidad` si no traía vista; `null` si la sección no era Origen.
  */
 export function queryDePautaDesdeOrigen(
   busqueda: Record<string, string | string[] | undefined>,
@@ -50,6 +50,8 @@ export function queryDePautaDesdeOrigen(
     }
   }
   if (!q.has("ver_por")) q.set("ver_por", "canal");
+  // Origen vive en la vista "Origen y calidad" de Pauta (420).
+  if (!q.has("vista")) q.set("vista", "calidad");
   return `?${q.toString()}`;
 }
 
