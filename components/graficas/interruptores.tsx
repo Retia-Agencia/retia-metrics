@@ -4,14 +4,16 @@ import {
   FORMAS,
   PASOS,
   ROTULOS,
-  UNIDADES,
+  UNIDADES_COMUNES,
   hrefConConfigDeGrafica,
   type ConfigDeGrafica,
+  type Paso,
+  type Unidad,
 } from "@/lib/series-pasos";
 
 type Grupo = "unidad" | "paso" | "forma";
 
-const OPCIONES: Record<Grupo, readonly string[]> = { unidad: UNIDADES, paso: PASOS, forma: FORMAS };
+const OPCIONES: Record<Grupo, readonly string[]> = { unidad: UNIDADES_COMUNES, paso: PASOS, forma: FORMAS };
 const NOMBRE_DEL_GRUPO: Record<Grupo, string> = { unidad: "Unidad", paso: "Paso", forma: "Forma" };
 
 /**
@@ -24,19 +26,26 @@ export function InterruptoresDeGrafica({
   clave,
   config,
   sinUnidad = false,
+  unidades,
+  pasos,
 }: {
   origen: string;
   clave: string;
   config: ConfigDeGrafica;
   sinUnidad?: boolean;
+  /** Las unidades de ESTA gráfica, en orden (por defecto Cupos y Plata). */
+  unidades?: readonly Unidad[];
+  /** Los pasos de ESTA gráfica (por defecto Día, Semana y Mes). */
+  pasos?: readonly Paso[];
 }) {
+  const opciones: Record<Grupo, readonly string[]> = { ...OPCIONES, ...(unidades ? { unidad: unidades } : {}), ...(pasos ? { paso: pasos } : {}) };
   const grupos = (["unidad", "paso", "forma"] as const).filter((grupo) => !(sinUnidad && grupo === "unidad"));
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2" data-testid={`interruptores-${clave}`}>
       {grupos.map((grupo) => (
         <div key={grupo} role="group" aria-label={NOMBRE_DEL_GRUPO[grupo]} className="flex items-center gap-1">
           <span className="mr-1 text-xs text-muted-foreground">{NOMBRE_DEL_GRUPO[grupo]}</span>
-          {OPCIONES[grupo].map((valor) => {
+          {opciones[grupo].map((valor) => {
             const activa = config[grupo] === valor;
             return (
               <Button

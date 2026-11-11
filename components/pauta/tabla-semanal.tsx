@@ -1,14 +1,13 @@
 import type { JSX, ReactNode } from "react";
 import Link from "next/link";
 import { Cifra } from "@/components/cifra-con-lista";
-import { Grafica } from "@/components/graficas/grafica";
-import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
 import { listaDeVentas } from "@/components/pauta/cumplimiento";
+import { MovimientoDiario } from "@/components/pauta/movimiento-diario";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { db } from "@/lib/db";
-import { cop, fecha, fechaCorta, num } from "@/lib/format";
+import { cop, fechaCorta } from "@/lib/format";
 import { leerEvidencia } from "@/lib/metas/cumplimiento-de-cohorte";
 import type { CifraDeMetrica } from "@/lib/metricas/cifra";
 import { cifraDeCeldaSemanal, type EntradaDeCeldaSemanal } from "@/lib/pauta/cifra-de-celda-semanal";
@@ -22,13 +21,6 @@ import {
 } from "@/lib/queries/hechos/pauta-semanal";
 import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
-import {
-  configDeGraficaEnOrigen,
-  etiquetaDeTramo,
-  pasoPorDefecto,
-  tramosDe,
-  valoresPorTramo,
-} from "@/lib/series-pasos";
 import { nombreCorto, UNIVERSO_PAUTA, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 
 const NOMBRE_DE_BLOQUE = { general: "General", comercial: "Comercial", trafico: "Tráfico" } as const;
@@ -133,21 +125,13 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
       lista: listaDe(fila.clave, columna),
     });
   };
-  const config = configDeGraficaEnOrigen(p.origen, "pauta-semanal", {
-    unidad: "plata",
-    paso: pasoPorDefecto(p.rango),
-    forma: "paso",
-  });
-  const tramos = tramosDe(p.rango, config.paso, p.hoy);
-  const porDiaInversion = new Map(vista.dias.flatMap((punto) => punto.inversionCop === null ? [] : [[punto.dia, punto.inversionCop] as const]));
-  const porDiaAgendas = new Map(vista.dias.map((punto) => [punto.dia, punto.agendas] as const));
-  const etiquetas = tramos.map(etiquetaDeTramo);
   const paramsCsv = new URLSearchParams({ a_desde: p.rango.desde, a_hasta: p.rango.hasta });
   if (p.cohorteId) paramsCsv.set("cohorte", p.cohorteId);
   const hrefCsv = `/p/${encodeURIComponent(p.slug)}/hub/pauta-semanal.csv?${paramsCsv}`;
   const bloques = ["general", "comercial", "trafico"] as const;
 
   return (
+    <>
     <Card aria-labelledby="tabla-semanal-pauta">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -192,31 +176,10 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
           <p className="mt-2 text-muted-foreground">% de show / % presentación a zoom = {nombreCorto("asistencia")}; % cierre zoom a cliente = {nombreCorto("cierre_de_ventas")}; % cierre agenda a cliente = {nombreCorto("cita_a_venta")}.</p>
         </details>
 
-        <section aria-labelledby="grafica-pauta-semanal" className="space-y-4">
-          <h3 id="grafica-pauta-semanal" className="font-medium">¿Cómo se movieron la inversión y las agendas?</h3>
-          <InterruptoresDeGrafica origen={p.origen} clave="pauta-semanal" config={config} />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Grafica
-              tipo="barra"
-              titulo={VOCABULARIO_PAUTA_SEMANAL.inversion}
-              unidad="COP"
-              frescura={`Datos hasta ${fecha(p.rango.hasta)}.`}
-              etiquetas={etiquetas}
-              formato={cop}
-              datos={{ dias: tramos.map((tramo) => tramo.desde), series: [{ clave: VOCABULARIO_PAUTA_SEMANAL.inversion, valores: valoresPorTramo(porDiaInversion, tramos, config.forma) }] }}
-            />
-            <Grafica
-              tipo="linea"
-              titulo="Agendadas"
-              unidad="agendas"
-              frescura={`Datos hasta ${fecha(p.rango.hasta)}.`}
-              etiquetas={etiquetas}
-              formato={(valor) => num(valor)}
-              datos={{ dias: tramos.map((tramo) => tramo.desde), series: [{ clave: "Agendadas", valores: valoresPorTramo(porDiaAgendas, tramos, config.forma) }] }}
-            />
-          </div>
-        </section>
       </CardContent>
     </Card>
+    <MovimientoDiario programId={p.programId} programa={p.programa} cohorte={p.cohorte} rango={p.rango} periodo={p.periodo}
+      origen={p.origen} hoy={p.hoy} cohorteId={p.cohorteId} dias={vista.dias} />
+    </>
   );
 }

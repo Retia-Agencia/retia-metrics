@@ -34,7 +34,7 @@ it("el eje arranca en el primer día del periodo (la primera venta de C3) y llev
   expect(modelo.etiquetas[0]).toBe("23 sep");
   expect(modelo.etiquetas.every((e) => !e.includes("/"))).toBe(true);
   expect(new Set(modelo.etiquetas).size).toBe(modelo.etiquetas.length);
-  expect(crearOpcionGrafica(modelo, colores).yAxis.name).toBe("cupos");
+  expect([crearOpcionGrafica(modelo, colores).yAxis].flat()[0].name).toBe("cupos");
 });
 
 it("semana de lunes a domingo, recortada al periodo y con el tramo de hoy en curso", () => {

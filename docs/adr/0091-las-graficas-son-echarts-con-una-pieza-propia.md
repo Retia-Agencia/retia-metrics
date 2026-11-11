@@ -74,3 +74,10 @@ El tiempo de render no separó a nadie: las tres marcaron entre 117 y 164 ms en 
 | visx | 25 KB, pero ejes, escalas y tooltips se arman a mano en cada gráfica (Mani: no) |
 | `echarts-for-react` | resuelve 40 líneas a cambio de una dependencia con menos mantenimiento que ECharts |
 | Claude Dashboards | referencia de diseño, no candidata: vive fuera del CRM y se salta su rol y su frontera de programa (H-8) |
+
+## Enmienda del 11-nov (ticket 420)
+
+La pieza admite una gráfica mixta (barra y línea por serie), dos ejes con su unidad cada uno, leyenda al centro, zoom por
+día y el clic en un punto o en una celda de la tabla que abre la explicación de la Cifra (419) de ese punto. Sigue siendo
+una sola pieza sobre `echarts/core`: el constructor de opciones es `crearOpcionGrafica` y ninguna pantalla importa
+`echarts`. El detalle está en `docs/structure.md` §9.

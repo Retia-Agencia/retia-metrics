@@ -56,6 +56,11 @@ export interface PuntoDiarioPautaSemanal {
   dia: string;
   inversionCop: number | null;
   agendas: number;
+  /** Las ventas de Paid de ese día, las mismas que suma la celda Ventas (420, la gráfica diaria). */
+  ventas: number;
+  /** Su valor vendido en USD (`valoresVendidosDeDeals`); una venta sin valor suma 0 y se cuenta aparte. */
+  vendidoUsd: number;
+  ventasSinValor: number;
 }
 
 export interface VistaPautaSemanal {
@@ -405,7 +410,15 @@ export async function cargarPautaSemanal(
   for (let dia = args.rango.desde; dia <= args.rango.hasta; dia = sumarDias(dia, 1)) diasDelRango.push(dia);
   const dias = await Promise.all(diasDelRango.map(async (dia) => {
     const inversion = await convertirFilas(db, gastos.filter((fila) => fila.fecha === dia), { desde: dia, hasta: dia }, "monto", "COP");
-    return { dia, inversionCop: inversion.valor, agendas: agendas.find((fila) => fila.dia === dia)?.agendas ?? 0 };
+    const delDia = ventas.filter((fila) => fila.dia === dia);
+    return {
+      dia,
+      inversionCop: inversion.valor,
+      agendas: agendas.find((fila) => fila.dia === dia)?.agendas ?? 0,
+      ventas: delDia.length,
+      vendidoUsd: delDia.reduce((n, fila) => n + (fila.valor ?? 0), 0),
+      ventasSinValor: delDia.filter((fila) => fila.valor === null).length,
+    };
   }));
   return { semanas, filas, dias };
 }

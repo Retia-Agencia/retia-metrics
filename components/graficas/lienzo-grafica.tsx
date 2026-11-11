@@ -2,12 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { BarChart, LineChart } from "echarts/charts";
-import { AriaComponent, GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
+import { AriaComponent, DataZoomInsideComponent, DataZoomSliderComponent, GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echartsCore from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { crearOpcionGrafica, type ModeloDeGrafica } from "@/components/graficas/contrato";
 
-echartsCore.use([LineChart, BarChart, GridComponent, LegendComponent, TooltipComponent, AriaComponent, SVGRenderer]);
+echartsCore.use([LineChart, BarChart, GridComponent, LegendComponent, TooltipComponent, AriaComponent, DataZoomInsideComponent, DataZoomSliderComponent, SVGRenderer]);
 
 let versionTema = 0;
 
@@ -20,6 +20,7 @@ function coloresDeTinta(elemento: HTMLElement) {
     textoSecundario: token("--muted-foreground"),
     divisor: token("--border"),
     fondo: token("--card"),
+    relleno: token("--marca-suave"),
   };
 }
 

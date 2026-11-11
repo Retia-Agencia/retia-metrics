@@ -8,7 +8,9 @@ import type { Rango } from "@/lib/queries/dashboard";
  * Todo es puro y sin reloj: el que llama entrega `hoy` (Bogotá) y el rango ya resuelto por los filtros
  * del 377. El eje X de una gráfica es el periodo elegido; nada escribe un número de meses aquí.
  */
-export const UNIDADES = ["cupos", "plata"] as const;
+export const UNIDADES = ["cupos", "plata", "inversion"] as const;
+/** Las unidades que ofrece una gráfica si no dice otras: "Inversión y agendas" es solo de la gráfica diaria de Pauta (420). */
+export const UNIDADES_COMUNES = ["cupos", "plata"] as const satisfies readonly (typeof UNIDADES)[number][];
 export const PASOS = ["dia", "semana", "mes"] as const;
 export const FORMAS = ["paso", "acum"] as const;
 
@@ -23,7 +25,7 @@ export interface ConfigDeGrafica {
 }
 
 export const ROTULOS = {
-  unidad: { cupos: "Cupos", plata: "Plata" },
+  unidad: { cupos: "Cupos", plata: "Plata", inversion: "Inversión y agendas" },
   paso: { dia: "Día", semana: "Semana", mes: "Mes" },
   forma: { paso: "Por paso", acum: "Acumulado" },
 } as const;
