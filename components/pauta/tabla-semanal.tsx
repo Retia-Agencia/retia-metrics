@@ -35,7 +35,9 @@ const LISTAS: Partial<Record<ClavePautaSemanal, Metrica>> = {
   agendas: "agendas_creadas",
   ventas: "cierres",
   facturacion: "contratado",
-  show: "shows",
+  // Asistencia y cierre son tasas sobre el grupo de citas de Paid: su lista es la del grupo, no la de llamadas (419).
+  show: "grupo_shows",
+  cierre_ventas: "grupo_vendidos",
 };
 
 const METRICAS_DE_OBJETIVO: Partial<Record<ClavePautaSemanal, MetricaObjetivo>> = {

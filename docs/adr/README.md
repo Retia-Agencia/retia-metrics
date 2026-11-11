@@ -57,7 +57,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0015](./0015-resultado-de-llamada-ampliado.md) | La llamada dice qué pasó (ocho resultados); el motor decide qué significa |
 | [0049](./0049-calendly-cuelga-llamadas-de-deals.md) | Calendly reconcilia cada cita por UUID del invitado y, sin UUID, por correo confirmado; ingesta, webhook y cron reintentan; si hay duda queda suelta y alarma |
 | [0026](./0026-anular-registros-y-borrar-del-catalogo.md) | Un registro se anula, no se borra; del catálogo se borra solo lo que nunca se usó (**enmendado por el 0117**) |
-| [0038](./0038-anular-no-es-cierre-perdido.md) | Anular no es Cierre Perdido |
+| [0038](./0038-anular-no-es-cierre-perdido.md) | Anular no es Cierre Perdido (enmendado 11-nov: la llamada de un deal anulado tampoco cuenta) |
 | [0042](./0042-todo-movimiento-del-crm-deja-rastro.md) | Todo movimiento del CRM deja rastro, desde el primer día |
 | [0059](./0059-el-deal-historico-nace-en-su-etapa.md) | El deal histórico nace en su etapa, por un template y con su huella |
 | [0060](./0060-el-origen-es-del-envio-y-la-venta-hereda-el-del-envio-que-abrio-el-deal.md) | El origen es del envío; la venta hereda el del envío que abrió su deal (cierra D5) |

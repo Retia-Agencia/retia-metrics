@@ -27,7 +27,7 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 419 | [La Cifra: una forma de métrica y su explicación, en todo el Hub](./419-la-cifra-una-forma-de-metrica.md) | — | todo · carril P (compañero) · listo hoy |
+| [ ] | 419 | [La Cifra: una forma de métrica y su explicación, en todo el Hub](./419-la-cifra-una-forma-de-metrica.md) | — | en curso · 10-nov · carril P (compañero) · evidencia de agendas desbloqueada el 11-nov (ADR 0038) |
 | [ ] | 420 | [Hub › Pauta en dos vistas, con la forma aprobada](./420-pauta-en-dos-vistas.md) | 419 | todo · carril P |
 | [ ] | 414 | [Tabla de Pauta por día](./414-tabla-de-pauta-por-dia.md) | 412, 419 | todo · carril P · cuadre con el Excel espera DM-8 |
 | [ ] | 416 | [Pauta por cuenta](./416-pauta-por-cuenta.md) | 412 | todo · carril P · Q-8 ajusta la presentación |

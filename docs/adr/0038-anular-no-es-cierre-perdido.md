@@ -84,3 +84,11 @@ consulta lo olvide para que la tasa mienta. Es el mismo error que el ADR 0026 pr
 **Un `deleted_at` generico en vez de la terna `anulado_*`.** Pierde el **motivo** y el **quien**,
 que son la mitad del valor. Y el repo ya tiene la terna en tres tablas: una cuarta forma de decir
 lo mismo es la divergencia que el invariante 1 del plan prohibe.
+
+## Enmienda 11-nov: las llamadas de un deal anulado
+
+La regla "anulado no cuenta en ninguna métrica" alcanza también a la llamada **vigente** de un deal anulado (creada o
+reactivada después de anular, o dato viejo; anular el deal ya anula sus llamadas en cascada). Unir el deal con `vigente` no
+la saca (queda como llamada suelta y cuenta) y unirlo con `incluyendoAnulados` la deja pasar: la barra de agendas del
+cumplimiento y su lista dieron 4 contra 3. La respuesta es `llamadaSinDealAnulado` (`lib/queries/llamada-sin-deal-anulado.ts`);
+la llamada **suelta** (sin deal) sigue contando. Lo vigila `tests/llamada-sin-deal-anulado.test.ts`.

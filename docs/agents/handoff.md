@@ -19,6 +19,24 @@ arreglo en código lo hace el carril P, dueño de pauta-semanal.ts). No toques l
 ```
 ## Memory
 
+### 11-nov · La llamada de un deal anulado no cuenta en ninguna lectura; Asistencia de Pauta enlaza a su lista (sesión de Mani, desde el aviso de Alejo en el 419)
+**Hecho.** Alejo vio que la barra de agendas del cumplimiento (4) y su lista (3) no cuadraban: `hechos/agenda.ts` unía el deal con
+`incluyendoAnulados`. Al mirar el fondo, el hueco era más ancho: unir el deal con `vigente` NO saca la llamada (la vuelve *suelta*, y
+una suelta sí cuenta), y `agendas_creadas` solo parecía correcta con cohorte. **Decidido (ADR 0038):** una llamada vigente sobre un
+deal anulado no cuenta en ninguna métrica; la suelta (sin deal) sí. Un solo predicado, `llamadaSinDealAnulado(db)`
+(`lib/queries/llamada-sin-deal-anulado.ts`), dentro de `filtroLlamadas`, `filtroAgendasCreadas` y los hechos de agenda y cita.
+`filtroAgendasCreadas` exige `db` (antes opcional). Asistencia de la tabla semanal: la fila enlazaba a `shows` (llamadas, sin área,
+404); ahora `show` → `grupo_shows` y `cierre_ventas` → `grupo_vendidos`, con área Paid sobre el mismo `grupoDeCitas` que la cifra
+(`combinacionDeFiltrosValida` admite `area=paid` solo en las listas del grupo). **Corregido un dato:** `tests/agendas-por-semana.test.ts`
+esperaba 6 agendas contando la de un deal anulado; son 5. **Pruebas:** `tests/llamada-sin-deal-anulado.test.ts` (cifra contra lista,
+suelta sí / anulado no, Asistencia de Paid contra su lista) y un guardián que obliga a decidir a todo archivo de `lib/queries` o
+`lib/calendly` que una `deals` con `calls` (excepciones nombradas con su razón). `it.fails` del 419 pasó a test normal.
+**Verificado:** typecheck, eslint y 14 archivos de tests (317). **No verificado:** la suite completa (máquina al tope; la corre el CI) y
+`npm run build`/`test:humo` (no se tocó un componente cliente). **Pendiente, de Alejo (419):** conectar la evidencia de la barra de
+agendas (ya cuadra), celda en la tabla semanal, migrar bloques, `test:humo`, comparar con el boceto. **Deuda:** ninguna otra celda de la
+tabla semanal tiene su enlace verificado contra su lista; `lib/queries/llamadas.ts` (lista operativa) y `detalle-llamada.ts` siguen
+mostrando llamadas de deals anulados a propósito (no son métricas).
+
 ### 10-nov · Students muestra toda la información de pago (pedido de Michael, sesión de Mani)
 **Hecho.** Columna Pagos en `/p/<programa>/students` con un diálogo de solo lectura: valor vendido, descuento, abonado, saldo,
 acuerdo, fecha límite y todos los abonos con plataforma, enlace, nota, quién registró y comprobante; los anulados tachados con su

@@ -725,6 +725,8 @@ async function leerMetricaDeGrupo(
     rango: alcance.rango,
     ahora: filtros.ahora ?? new Date(),
     cohorteId: alcance.cohorteId,
+    // El grupo de citas de Paid (D-A, tabla semanal de Pauta): la misma lectura que la cifra de esa tabla.
+    area: filtros.area === "paid" ? "paid" : undefined,
   });
   const base = metrica === "grupo_pendientes"
     ? pendientesDe(grupo, filtros.claveCloser)

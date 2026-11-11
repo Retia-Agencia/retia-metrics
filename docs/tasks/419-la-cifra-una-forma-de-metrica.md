@@ -79,6 +79,12 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
   - Nota: `npm run db:local` falla al sembrar (el programa de prueba no tiene % de comisión, `mover-etapa.ts:338`). La base
     queda con datos parciales y sirve para mirar. No es de este carril.
 
+- **11-nov · Mani (desbloqueo).** Decidido por el ADR 0038 (enmienda 11-nov): la llamada de un deal anulado no cuenta. Ya está en
+  `main`: la barra de agendas del cumplimiento y la lista `agendas_creadas` cuadran (el `it.fails` pasó a test normal), así que
+  **la evidencia de agendas ya se puede conectar**. El enlace de Asistencia de la tabla semanal ya no da 404: `show` abre
+  `grupo_shows` y `cierre_ventas` abre `grupo_vendidos`, con área Paid (misma lectura que la cifra). Las dos notas de "Para
+  retomar" sobre esto quedan resueltas.
+
 ## Para retomar (10-nov noche, Alejandro)
 
 Lo nuevo desde las notas de abajo (commits `31554eea`, `5496e2d7`, `205d23f7`, sin push):

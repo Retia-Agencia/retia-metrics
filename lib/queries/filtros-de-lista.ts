@@ -74,6 +74,8 @@ const SUBCONJUNTO_DEL_EMBUDO = {
 
 /** Listas que no son de origen y aceptan el filtro de área: las de ventas (`dealsDelArea`). */
 const METRICAS_CON_AREA: readonly string[] = ["cierres", "contratado"];
+/** Las listas del grupo de citas aceptan solo el área Paid (`grupoDeCitas`), la de la tabla semanal de Pauta. */
+const METRICAS_DE_GRUPO_CON_AREA: readonly string[] = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"];
 
 export function combinacionDeFiltrosValida(filtros: FiltrosDeLista, { esAdmin }: { esAdmin: boolean }): boolean {
   const { metrica, resultado, area, canal, pago, source, medium, campaign, categoria, closer, orden, nivel, id, paso, escalon, grupo, calidad, moneda, origen, etapa, antiguedad } = filtros;
@@ -83,7 +85,8 @@ export function combinacionDeFiltrosValida(filtros: FiltrosDeLista, { esAdmin }:
   if (pago !== undefined && metrica !== "escalera") return false;
   if (!esListaDeOrigen && metrica !== "escalera" && (source !== undefined || medium !== undefined || campaign !== undefined || categoria !== undefined || canal !== undefined)) return false;
   // El área sola sí la aplican las listas de ventas (419): la misma regla que la cifra de ventas de esa área.
-  if (area !== undefined && !esListaDeOrigen && !METRICAS_CON_AREA.includes(metrica)) return false;
+  if (area !== undefined && !esListaDeOrigen && !METRICAS_CON_AREA.includes(metrica)
+    && !(METRICAS_DE_GRUPO_CON_AREA.includes(metrica) && area === "paid")) return false;
   if (esListaDeOrigen && !esAdmin && closer !== undefined) return false;
   if (esListaDePauta && closer !== undefined) return false;
   if (metrica !== "no_agendaron" && orden !== undefined) return false;

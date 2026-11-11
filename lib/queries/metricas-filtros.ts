@@ -3,6 +3,7 @@ import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diaDeCalendario } from "@/lib/dias-habiles";
+import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import type { Alcance } from "@/lib/queries/dashboard";
 import {
@@ -293,6 +294,7 @@ export function filtroLlamadas({ programId, rango, claveCloser, cohorteId }: Alc
     between(fechaAnclaCall(), rango.desde, rango.hasta),
     porClaveDeLlamada(claveCloser),
     cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+    llamadaSinDealAnulado(db),
   );
 }
 
@@ -376,7 +378,7 @@ export function fechaDeEntradaDelLead() {
   return sql<Date>`case when ${leads.entrada} = 'formulario' then ${leads.fechaPrimeraAplicacion} else ${leads.createdAt} end`;
 }
 
-export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcance, db?: Db) {
+export function filtroLeads({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
   return and(
     eq(leads.programId, programId),
     eq(leads.entrada, "formulario"),
@@ -427,12 +429,13 @@ export function filtroDealsCreados({ programId, rango, claveCloser, cohorteId }:
   );
 }
 
-export function filtroAgendasCreadas({ programId, rango, claveCloser, cohorteId }: Alcance, db?: Db) {
+export function filtroAgendasCreadas({ programId, rango, claveCloser, cohorteId }: Alcance, db: Db) {
   return and(
     eq(calls.programId, programId),
     between(fechaAnclaAgendaCreada(), rango.desde, rango.hasta),
     claveCloser ? sql`false` : undefined,
-    cohorteId && db ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+    cohorteId ? inArray(calls.dealId, dealsDeLaCohorte(db, programId, cohorteId)) : undefined,
+    llamadaSinDealAnulado(db),
   );
 }
 

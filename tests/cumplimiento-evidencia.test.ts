@@ -91,10 +91,8 @@ describe("419: la lista de cada barra del cumplimiento cuenta lo mismo que la ba
 
   const cantidad = async (...args: Parameters<typeof listaDeMetrica>) => (await listaDeMetrica(...args))[0].subtotal.cantidad;
 
-  // PENDIENTE (Mani): la barra cuenta la agenda de un deal ANULADO (`hechos/agenda.ts` une los deals con
-  // `incluyendoAnulados`) y la lista no (ADR 0038). Hasta que se decida, la barra de agendas no abre evidencia.
-  // `it.fails`: cuando las dos cuadren, este test se pone rojo y avisa que ya se puede conectar.
-  it.fails("agendas: la barra y la lista de agendas creadas de la cohorte desde el inicio de ventas", async () => {
+  // Un deal anulado no cuenta en ninguna métrica (ADR 0038): `hechos/agenda.ts` lo saca en el where, igual que la lista.
+  it("agendas: la barra y la lista de agendas creadas de la cohorte desde el inicio de ventas", async () => {
     await sembrar();
     const datos = await leerCumplimientoDeCohorte(programId, c1, HOY, db);
     const lista = await cantidad("agendas_creadas", { programId, rango: { desde: INICIO, hasta: HOY }, cohorteId: c1, hoy: HOY }, 1, db);

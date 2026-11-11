@@ -13,6 +13,7 @@ import {
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
 import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
+import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 export type DimensionCita = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "dueno" | "cohorte" | "etapa" | "ocurrio";
@@ -66,6 +67,7 @@ export async function agrupar<D extends DimensionCita>(
       between(fechaAnclaCall(), opciones.rango.desde, opciones.rango.hasta),
       condicionesDeFiltros(dimensiones, opciones.filtros),
       vigente(calls),
+      llamadaSinDealAnulado(db),
     ))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({
@@ -89,6 +91,7 @@ export async function listar<D extends DimensionCita = DimensionCita>(
       between(fechaAnclaCall(), opciones.rango.desde, opciones.rango.hasta),
       condicionesDeFiltros(dimensiones, opciones.filtros),
       vigente(calls),
+      llamadaSinDealAnulado(db),
     ));
   let consulta = construir().$dynamic();
   const orden = expresionDeOrden(dimensiones, opciones.orden);

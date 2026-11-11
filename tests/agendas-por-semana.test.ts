@@ -103,7 +103,8 @@ describe("ticket 189: agendas por semana", () => {
       { creadas: 1, ocurridas: 0, shows: 0, noShows: 0, pendientes: 0, pctNoShow: null },
       { creadas: 1, ocurridas: 1, shows: 0, noShows: 1, pendientes: 0, pctNoShow: 1 },
       // Ocurrida con resultado: solo la 1 (show). La 4 pasó sin resultado: pendiente, no no-show. La 3 es futura.
-      { creadas: 6, ocurridas: 1, shows: 1, noShows: 0, pendientes: 1, pctNoShow: 0 },
+      // Son 5 y no 6: la llamada vigente de un deal ANULADO (3c) no cuenta en ninguna métrica (ADR 0038, 11-nov).
+      { creadas: 5, ocurridas: 1, shows: 1, noShows: 0, pendientes: 1, pctNoShow: 0 },
     ]);
 
     // Las futuras, desde hoy y por la semana de la cita: la 3 esta semana y la 3b en noviembre;

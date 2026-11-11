@@ -12,6 +12,7 @@ import type { ConsultaAgrupada, ConsultaDeLista, Filtros, ListaPaginada } from "
 import { dimensionesDeFecha, horaMinutoEnBogota } from "@/lib/queries/hechos/fechas";
 import { dimensionesDeOrigen } from "@/lib/queries/hechos/origen";
 import { categoriaUtmSql } from "@/lib/atribucion/canal-sql";
+import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import type { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -77,6 +78,7 @@ export async function agruparTrazas(
       eq(calls.programId, opciones.programId),
       between(dimensiones.dia, opciones.rango.desde, opciones.rango.hasta),
       vigente(calls),
+      vigente(deals),
     ))
     .groupBy(...Object.values(columnasUtmDelEnvio));
 }
@@ -95,6 +97,7 @@ export async function agrupar<D extends DimensionAgenda>(
       condicionesDeFiltros(dimensiones, opciones.filtros),
       opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
       vigente(calls),
+      llamadaSinDealAnulado(db),
     ))
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, agendas: sql<number>`count(*)::int` }, opciones.orden);
@@ -116,6 +119,7 @@ export async function listar<D extends DimensionAgenda = DimensionAgenda>(
       condicionesDeFiltros(dimensiones, opciones.filtros),
       opciones.creadaHasta ? lte(calls.createdAt, opciones.creadaHasta) : undefined,
       vigente(calls),
+      llamadaSinDealAnulado(db),
     ));
   let consulta = construir().$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, horaMinuto }, opciones.orden);
