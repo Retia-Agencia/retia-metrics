@@ -63,3 +63,23 @@ onboarding sea una marca operativa del CRM, no una lista de tareas.
   inválida, slug inexistente 404).
 
 **Recorrido visual (30-sep, Alejo, base local):** claro, oscuro, 390 px sin desborde (medido con `zoom` 500/390: Chrome no baja de 500 px en Windows), consola limpia. Filtros de cohorte y onboarding (incluido el vacío), la fila lleva a la ficha con el mismo saldo, y una fecha límite pasada sale como "Vencida el 20 sep 2026 · 10 días" con el KPI en 1. Arreglo: un deal en Completo ya no muestra su fecha límite (`e5cb64e`). **Cerrado.**
+
+---
+
+## Ampliación (10-nov, pedido de Michael Castellanos): toda la información de pago en Students
+
+Customer Success necesita ver los pagos de cada estudiante sin abrir la ficha del deal (que rechaza su rol) y sin
+bloqueos. **Construido:** columna **Pagos** en la tab, un botón ("3 abonos") que abre un diálogo de solo lectura con
+valor vendido, descuento, abonado, saldo, acuerdo de pago, fecha límite y **todos los abonos**: monto, fecha,
+plataforma, enlace de pago, nota, quién lo registró y comprobante (archivo o enlace; "Sin comprobante" si falta). Los
+anulados salen tachados con quién, cuándo y por qué, y no entran en ninguna cifra.
+
+- Lo ven todos los roles que ya ven Students (customer success, closer, gerente, developer), acotado al programa
+  (ADR 0048). No cambia ningún permiso; el comprobante sale por `/p/<programa>/archivos/<id>`, que ya admite al
+  customer success.
+- `lib/queries/pagos-de-students.ts` (`pagosDeStudents`): una lectura por lista. El saldo y lo abonado salen de
+  `saldosDeDeals` (ADR 0024); los abonos pasan por `incluyendoAnulados(abonos)` a propósito (se muestran anulados).
+- Componente: `components/deals/pagos-de-student.tsx`. Test: `tests/pagos-de-students.test.ts` (anulados, cifras
+  contra `saldosDeDeals`, frontera de programa, comprobante y nombres, cero abonos).
+- Verificado: typecheck, lint, los tests del cambio y `npm run build`. **No** se recorrió en pantalla (sin Docker
+  para la base local); mirar la tab con la consola abierta en claro, oscuro y 375 px.

@@ -23,6 +23,8 @@ import { puedeMarcarOnboarding } from "@/lib/deals/permiso";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
+import { pagosDeStudents } from "@/lib/queries/pagos-de-students";
+import { PagosDeStudentCelda } from "@/components/deals/pagos-de-student";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +78,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
     leadsCasan,
   });
   const filas = await studentsDelPrograma(db, programa.id, filtro);
+  const pagos = await pagosDeStudents(db, programa.id, filas.map((fila) => fila.dealId));
   const totales = totalesDeStudents(filas);
 
   // El origen de ESTA lista para los enlaces al detalle (ticket 174).
@@ -151,7 +154,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                   : "No hay estudiantes con estos filtros. Un deal aparece aquí cuando entra en Ganado Pago Parcial o Ganado Pagado Completo."}
               </p>
             ) : (
-              <table className="min-w-[72rem] w-full border-collapse whitespace-nowrap text-sm">
+              <table className="min-w-[80rem] w-full border-collapse whitespace-nowrap text-sm">
                 <thead className="sticky top-0 bg-card text-left text-xs text-muted-foreground">
                   <tr className="border-b">
                     <th className="px-2 py-1.5 font-medium">Nombre</th>
@@ -160,6 +163,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                     {!cohorte ? <th className="px-2 py-1.5 font-medium">Cohorte</th> : null}
                     <th className="px-2 py-1.5 font-medium">Closer</th>
                     <th className="px-2 py-1.5 font-medium">Saldo</th>
+                    <th className="px-2 py-1.5 font-medium">Pagos</th>
                     <th className="px-2 py-1.5 font-medium">Vencimiento</th>
                   </tr>
                 </thead>
@@ -217,6 +221,15 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
                         >
                           {saldo.valor}
                         </CeldaDeal>
+                      </td>
+                      <td className="px-2 py-1.5">
+                        {pagos.get(f.dealId) ? (
+                          <PagosDeStudentCelda
+                            nombre={f.nombre ?? f.email}
+                            pagos={pagos.get(f.dealId)!}
+                            slug={programa.slug}
+                          />
+                        ) : null}
                       </td>
                       <td title={f.acuerdoPago ?? undefined}>
                         <CeldaDeal abreFicha={abreFicha} href={href}>
