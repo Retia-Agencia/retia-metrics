@@ -284,15 +284,16 @@ de operación) comparte método con F5 y se coordina con este.
       (`outputSchema`, descripciones, paridad por tool y `tests/mcp-volumen.test.ts` a 10× con `MEDIR_VOLUMEN=1`), 400
       (rechazos en la bitácora y `AAAA-MM`), los tres `done` con casillas marcadas. La segunda medición de descubrimiento
       pasó al 387 por decisión de Mani (9-nov).
-- [ ] F6: el contrato de métricas y datos escrito con fuentes verificadas, enlazado desde `AGENTS.md`, con sus guardianes.
-      — **Escrito, con fuentes (`f6-investigacion.md`) y enlazado (`AGENTS.md` punto 2c), pero desfasado** (último
-      cambio 7-nov, `e9504a87`): el encabezado dice "nada de lo marcado 🟡 está construido" y siguen en 🟡 cosas que ya
-      existen y muerden: la FK compuesta de programa (fila "Garantía de programa", hoy `tests/programa-garantizado.test.ts`,
-      394), la moneda mezclada (paso 8, hoy `tests/moneda-check.test.ts`, 395), el test registro contra diccionario
-      (fila 1 del mapa y paso 2, con el trinquete ya en 0, 403) y, en §8, el guardián por concepto de lead, registro y
-      "sin UTM" (`lead-y-registro-guardian`, `sin-utm-guardian`, `0b2c06a7`) y los dorados de Pauta y CSV
-      (`numeros-dorados-pauta.test.ts`). Falta: pasar a 🔒 lo construido, dejar en 🟡 solo lo que siga sin guardián
-      (por revisar: show y agenda como concepto único) y fechar el cambio (N8). Es solo documentación.
+- [x] F6: el contrato de métricas y datos escrito con fuentes verificadas, enlazado desde `AGENTS.md`, con sus guardianes.
+      — `docs/contrato-metricas-y-datos.md`, con fuentes (`f6-investigacion.md`) y enlazado (`AGENTS.md` punto 2c); puesto al
+      día el 12-nov (hija H4) verificando cada guardián en `tests/`: pasaron a 🔒 el registro contra el diccionario con el
+      trinquete en 0 (`registro-de-metricas`, 403), lead y registro, "sin UTM" y el filtro de área de las agendas
+      (`lead-y-registro-guardian`, `sin-utm-guardian`, `agendas-una-pregunta`, 403), los dorados de Pauta y de leads
+      (`numeros-dorados-pauta`, `lead-y-registro-paridad`, 403), la moneda (`moneda-check`, 395), el programa garantizado
+      por la base (`programa-garantizado`, 394) y la regla de la fecha ancla (`anclaDeFecha` obligatorio en la ficha). En 🟡
+      quedan solo, sin test que los haga cumplir: el guardián de show/ocurrió y de cita sin resultado, los dorados de
+      Comercial fuera de Pauta y del mensaje del semáforo, el título del ADR contra la fila del diccionario y que WhatsApp
+      lea el registro (§8 "Pendientes").
 - [x] F7: tickets hijos escritos con dependencias, el orden decidido y la cola de migraciones. — `f7-plan.md`
       (`5c0cc8ff`): 388 a 404 con depende, archivos calientes y migración, reubicación de 351 a 361 y siete migraciones
       M1 a M7 con su ADR. Estado de los hijos al 12-nov: `done` 388, 389, 391 a 400, 402, 404 a 406; abiertos 390 (en

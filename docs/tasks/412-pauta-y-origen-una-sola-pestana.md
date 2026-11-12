@@ -141,13 +141,37 @@ migración esté en `main`.
       | Agendas | 82 (Meta) | 78 agendadas de Paid · 88 citas | Fuentes distintas (D-1); falta la fila "según Meta" de la tabla |
       | Llamadas | 16 | 12 shows (cobertura 29 %) | Captura del resultado de la cita (390) |
       | Ventas | 3 | 3 en el Hub · 2 en el ROAS de Paid | El Excel cuenta todas las ventas cerradas en la semana |
-      | ROAS | 2,33 | 1,56 | USD 4.500 de las 3 ventas ÷ USD 1.928,62 = 2,33: misma cifra si se toman todas las ventas; el CRM usa solo Paid |
+      | ROAS | 2,33 | 1,56 | USD 4.500 de las 3 ventas ÷ USD 1.928,62 = 2,33: misma cifra si se toman todas las ventas cerradas en la semana; el CRM usa solo las de Paid y las ancla al día del envío (`docs/metricas.md`, fila ROAS, D-B) |
 
       ComunicArte, 26-sep a 30-oct, por las semanas del Excel: la inversión cuadra (10-16 oct: COP 5.907.439 contra
       USD 1.864,21, TRM ≈ 3.169), pero **las ventas no**: Excel 5 · 10 · 9 · 7 · 10 = 41, CRM 4 · 8 · 5 · 7 · 4 = 28 (lista
       de cierres del Hub). Solo la semana 17-23 oct coincide. Eso no es de definición: o el Excel cuenta algo que el CRM no
-      registra como venta (¿abonos, otra cuenta?), o hay ventas sin registrar en el CRM. Se pregunta a Paid Media.
-      **Falta para cerrar:** (1) la respuesta sobre las 13 ventas de ComunicArte; (2) abrir la tabla semanal de Pauta en
+      registra como venta (¿abonos, otra cuenta?), o hay ventas sin registrar en el CRM. Es captura de comercial, no cálculo:
+      Mani lo comunica (12-nov).
+
+      Comunícate con Confianza (el Excel se llama "PowerTalk"; pestaña "Power Talk Oct Nov", filas 34-51: la misma tabla KPI
+      de 16 filas del 412, con Total y semanas de lunes a domingo; sus sumas cuadran con los días, 12-18 oct = COP 2.454.118):
+
+      | Semana | Inversión Excel / CRM (TRM implícita) | Ventas Excel / CRM (Hub, fecha de venta) | ROAS Excel / CRM (Paid, día del envío) | Agendas Meta / CRM Paid |
+      |---|---|---|---|---|
+      | 12-18 oct | COP 2.454.118 / USD 722,72 (≈ 3.396) | 1 / 1 | 1,03 / 1,03 | 30 / 37 |
+      | 19-25 oct | COP 3.979.190 / USD 1.255,67 (≈ 3.169) | 1 / 1 | 0,64 / 1,27 | 49 / 47 |
+      | 26 oct-1 nov | COP 3.154.864 / USD 997,23 (≈ 3.164) | 3 / 2 | 2,41 / 0,80 (parcial) | 29 / 24 |
+      | 2-8 nov | COP 4.300.787 / USD 1.332,31 (≈ 3.228) | 4 / 6 | 2,36 / 0,60 (parcial) | 35 / 36 |
+
+      Lectura: las ventas casi cuadran (Excel 9, CRM 10 del 5-oct al 8-nov), con días corridos al final (el CRM pone 3 el
+      7-nov, el Excel 1). El ROAS solo coincide cuando las dos preguntas dan lo mismo (12-18 oct): el Excel divide las
+      ventas cerradas en la semana, de todas las áreas, × ticket fijo (COP 2.538.232) entre la inversión; el CRM divide las
+      ventas de Paid de los envíos de esa semana, cuando sea que compren, × su valor vendido. Las dos son válidas y
+      responden cosas distintas. **A revisar en el CRM:** la inversión del 12-18 oct da una TRM implícita de ≈ 3.396
+      contra ≈ 3.170 de las otras semanas y de Tactical y ComunicArte: al CRM le faltarían unos COP 160.000 de gasto esa
+      semana (sync o propósito de campaña); y 2-8 nov ≈ 3.228 (unos COP 75.000).
+
+      **Propuesta (Mani, 12-nov: "se podrían mostrar ambos"):** en la tabla semanal, junto al ROAS de Paid por envío, un
+      segundo ROAS de todas las ventas cerradas en la semana × valor vendido ÷ inversión (la pregunta del Excel con el valor
+      real, no el ticket fijo). Enmienda D-B ("es el único ROAS de la pestaña Pauta") y el ADR 0063 (N8); carril P.
+
+      **Falta para cerrar:** (1) que comercial registre o explique las 13 ventas de ComunicArte; (2) abrir la tabla semanal de Pauta en
       producción con 12-18 oct y comparar sus 16 filas; (3) agregar a "Cómo se calcula" (`components/dashboard/info-de-pauta.tsx`,
       "Equivalencias con el Excel") que el ROAS y los ingresos del Excel usan todas las ventas × ticket fijo en COP y el
       CRM solo las de Paid × su valor vendido en USD.

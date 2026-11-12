@@ -3,7 +3,7 @@ id: 384
 etapa: mcp
 serves: "ADR 0119 punto 8: toda escritura se muestra antes y se confirma en el chat · ADR 0042 (rastro) · ADR 0117 (deshacer)"
 depends: [348]
-status: todo
+status: reemplazado  # absorbido por el 411 como su F2 (D4, Mani, 12-nov)
 ---
 
 # 384 — El MCP del CRM: escrituras con vista previa y confirmación en el chat
