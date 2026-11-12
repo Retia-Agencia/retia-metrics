@@ -256,20 +256,49 @@ de operación) comparte método con F5 y se coordina con este.
 
 ## 6. Done cuando
 
-- [ ] F0: números dorados guardados con fecha y commit; los tickets 351 a 362 reclasificados con evidencia; el ADR 0115
-      verificado contra el código (cada guardián muerde).
-- [ ] F1: el inventario existe en `docs/auditoria-datos-2026-11.md`, una fila por métrica y superficie, con las nueve
-      columnas completas; toda agregación fuera de los módulos del diccionario está listada o justificada.
-- [ ] F2: matriz de paridad con las divergencias clasificadas por severidad y clase; el caso 0 (17 contra 11 y las
-      unidades del embudo) explicado desde la base.
-- [ ] F3: informe por tabla con forma normal, cada denormalización justificada o con ticket para quitarla, los conteos de
-      integridad de producción y la lista de lo muerto con sus llamadores.
-- [ ] F4: decisiones abiertas resueltas con Mani y el diseño de la centralización escrito (ADR si cambia una regla).
-- [ ] F5: nombres unificados en el glosario; `outputSchema` y estándar de descripción en las once tools; rechazos de
-      validación auditados; mes concreto aceptado; `EXPLAIN` y paridad por tool.
+- [x] F0: números dorados guardados con fecha y commit; los tickets 351 a 362 reclasificados con evidencia; el ADR 0115
+      verificado contra el código (cada guardián muerde). — `docs/auditoria-datos-2026-11/f0-linea-base.md` (`f782f89d`):
+      dorados del 7-nov sobre `10467f24` (§1), 351 a 362 reclasificados (§2), N1 a N9 con "¿muerde?" (§3). Los guardianes
+      que F0 halló sin dientes pasaron a hijos: N7 → `tests/diccionario-llamadores-guardian.test.ts` y N3/N4 →
+      `razon-con-cobertura-guardian` y `rotulos-sinonimos-guardian` (`de0ab92f`, endurecido por el 397), dorados como test → `tests/numeros-dorados.test.ts` y
+      `numeros-dorados-pauta.test.ts` (403).
+- [x] F1: el inventario existe en `docs/auditoria-datos-2026-11.md`, una fila por métrica y superficie, con las nueve
+      columnas completas; toda agregación fuera de los módulos del diccionario está listada o justificada. — Vive en
+      `docs/auditoria-datos-2026-11/f1-inventario.md` (carpeta, no archivo; `4a8cca9e`, `63c07e4d`): §0 nombra las nueve
+      columnas, §1 el catálogo por concepto, §2 las superficies del alcance y 29 hallazgos.
+- [x] F2: matriz de paridad con las divergencias clasificadas por severidad y clase; el caso 0 (17 contra 11 y las
+      unidades del embudo) explicado desde la base. — `f2-paridad.md` (`d2d6e259`): F2-01 a F2-07 con severidad y clase,
+      F2-01 es el caso 0 (11 de las 17 ventas de Tactical tienen cita ocurrida; 6 no tienen ninguna) con su consulta de
+      reproducción; lo no cubierto lo cerró el 388 (`f2b-paridad.md`, `d4a3caf2`, sin divergencias críticas).
+- [x] F3: informe por tabla con forma normal, cada denormalización justificada o con ticket para quitarla, los conteos de
+      integridad de producción y la lista de lo muerto con sus llamadores. — `f3-modelo-de-datos.md` (`bf971141`,
+      `98b75a18`): §2 forma normal y denormalizaciones con las tres preguntas, §3 registro por tabla de hechos con
+      conteos de producción, §4 lo muerto con conteo de lecturas, §6 migraciones propuestas (hoy hijos 389, 391, 394 a 396
+      y 401).
+- [x] F4: decisiones abiertas resueltas con Mani y el diseño de la centralización escrito (ADR si cambia una regla). —
+      §4 de este ticket (resueltas el 7-nov), ADR 0120 (registro tipado) y `docs/diseno-registro-de-metricas.md`;
+      construido: `lib/metricas/registro.ts` con el trinquete `PENDIENTES_DE_REGISTRO` en 0 (`lib/metricas/pendientes.ts`,
+      403).
+- [x] F5: nombres unificados en el glosario; `outputSchema` y estándar de descripción en las once tools; rechazos de
+      validación auditados; mes concreto aceptado; `EXPLAIN` y paridad por tool. — 397 (glosario y rótulos), 399
+      (`outputSchema`, descripciones, paridad por tool y `tests/mcp-volumen.test.ts` a 10× con `MEDIR_VOLUMEN=1`), 400
+      (rechazos en la bitácora y `AAAA-MM`), los tres `done` con casillas marcadas. La segunda medición de descubrimiento
+      pasó al 387 por decisión de Mani (9-nov).
 - [ ] F6: el contrato de métricas y datos escrito con fuentes verificadas, enlazado desde `AGENTS.md`, con sus guardianes.
-- [ ] F7: tickets hijos escritos con dependencias, el orden decidido y la cola de migraciones.
-- [ ] Tracker y `status:` iguales (N9).
+      — **Escrito, con fuentes (`f6-investigacion.md`) y enlazado (`AGENTS.md` punto 2c), pero desfasado** (último
+      cambio 7-nov, `e9504a87`): el encabezado dice "nada de lo marcado 🟡 está construido" y siguen en 🟡 cosas que ya
+      existen y muerden: la FK compuesta de programa (fila "Garantía de programa", hoy `tests/programa-garantizado.test.ts`,
+      394), la moneda mezclada (paso 8, hoy `tests/moneda-check.test.ts`, 395), el test registro contra diccionario
+      (fila 1 del mapa y paso 2, con el trinquete ya en 0, 403) y, en §8, el guardián por concepto de lead, registro y
+      "sin UTM" (`lead-y-registro-guardian`, `sin-utm-guardian`, `0b2c06a7`) y los dorados de Pauta y CSV
+      (`numeros-dorados-pauta.test.ts`). Falta: pasar a 🔒 lo construido, dejar en 🟡 solo lo que siga sin guardián
+      (por revisar: show y agenda como concepto único) y fechar el cambio (N8). Es solo documentación.
+- [x] F7: tickets hijos escritos con dependencias, el orden decidido y la cola de migraciones. — `f7-plan.md`
+      (`5c0cc8ff`): 388 a 404 con depende, archivos calientes y migración, reubicación de 351 a 361 y siete migraciones
+      M1 a M7 con su ADR. Estado de los hijos al 12-nov: `done` 388, 389, 391 a 400, 402, 404 a 406; abiertos 390 (en
+      main, falta medir cobertura y el "parcial" del 351), 401 (en curso, M11 a M14 y migraciones) y 403 (en curso,
+      todas las casillas marcadas, espera checkpoint). Ninguno es casilla de este ticket.
+- [ ] Tracker y `status:` iguales (N9). — Hoy coinciden en `todo`; lo cierra la sesión padre al marcar F6.
 
 ## 7. Pendientes del MCP absorbidos aquí (de la primera prueba, 7-nov)
 

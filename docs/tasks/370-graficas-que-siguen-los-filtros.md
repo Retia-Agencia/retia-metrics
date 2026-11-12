@@ -69,8 +69,8 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
 - [x] Test: Unidad USD suma Vendido del tramo y cuadra con la lista del punto; Cupos cuenta ventas.
 - [x] Test: Acumulado del último punto = total de la cifra del periodo.
 - [x] Guardián: ninguna serie del Hub con un número de meses escrito en el código.
-- [ ] Recorrido en `dev:local` en claro, oscuro y 375 px con los tres interruptores en cada gráfica; consola limpia;
-  `npm run test:humo` en verde.
+- [x] Recorrido en `dev:local` en claro, oscuro y 375 px con los tres interruptores en cada gráfica; consola limpia;
+  `npm run test:humo` en verde. (12-nov, hija H4, sobre `9309e590`; detalle en "Recorrido del 12-nov" abajo.)
 - [x] El 256 queda `reemplazado` por este ticket en su archivo y en el tracker.
 - [x] Regla N8: el contrato de gráficas de `docs/structure.md` §9 y `AGENTS.md` (fila "Como se dibuja una grafica") en
   el mismo commit.
@@ -78,3 +78,28 @@ Hoy (3-nov, `components/dashboard/dinero.tsx:174-260`, `lib/queries/series-diner
 ## Estado (4-nov, sesión del 370)
 
 Hecho y verificado: todo salvo dos casillas. **Falta:** `npm run test:humo` en verde y comparar una gráfica de cada pestaña contra producción (la máquina estaba sin aire, swap de 8,7 GB, y el humo tarda 6 a 12 min por proyecto); el recorrido de `dev:local` se hizo en claro (escritorio) y oscuro (375 px) con los interruptores de Ventas, Caja y Deals contra agendas, consola limpia. Los puntos de «Cupos con caja» no abren lista todavía (no existe la lista de deals con abono). El ticket sigue en `todo` hasta cerrar esas casillas (N9).
+
+## Recorrido del 12-nov (hija H4, `dev:local` sobre `9309e590`, gerente, ComunicArte Local, C1 · Desde el inicio)
+
+- **Interruptores por gráfica, en la URL:** Dinero (`?g_dinero=`) y Comercial (`?g_deals-agendas=`) traen Paso
+  (Día · Semana · Mes) y Forma (Por paso · Acumulado); cada clic reescribe la clave y la gráfica cambia. **Sin Unidad
+  por diseño:** en Dinero lo quitó el 380 (el tooltip muestra siempre cupos y USD); en Comercial es actividad (DH-3:
+  "Son conteos de personas y citas, no plata"). Pauta (`?g_pauta-diaria=`) trae los tres: Unidad (Inversión y agendas ·
+  Cupos · Plata), Paso (Día · Semana) y Forma; las siete combinaciones responden 200 sin error de servidor.
+- **Rótulos:** eje con una fecha por punto (`1 sep`, `Sem. 19 oct`, `nov 2026 (en curso)`), eje Y con unidad, tramo en
+  curso marcado; tooltip de una línea por serie ("2 nov · C1: 5 cupos · Vendido: USD 3.586,50").
+- **Toda serie es la lista:** clic en un punto de Cupos vendidos y de **Cupos con caja** abre su resumen con "Ver la
+  lista completa" (`metrica=caja`, el día del punto). La deuda del 4-nov ("Cupos con caja no abre lista") ya no existe.
+- **Claro, oscuro y 375 px:** Dinero, Comercial y Pauta en oscuro (escritorio y 375 px) y claro (375 px). Consola sin
+  errores; solo un `log` de ECharts (`grid.containLabel` sin `LegacyGridContainLabel`, carril P).
+- **`test:humo`:** en verde el 11-nov, escritorio 5/5 y celular 5/5 (`5e1fe816`, ticket 420), sobre código que ya incluye
+  el 370 (`d362c59d` es ancestro). No se relanzó hoy: swap de 4,3 GB.
+- **Comparado con el boceto** (`docs/bocetos/una-forma-de-metrica.html`): "¿Cómo se mueve día a día?" de Pauta tiene los
+  mismos tres grupos, el mismo texto de ayuda y el mismo Paso sin Mes.
+- **Hallazgos fuera del 370, reportados a la sesión padre:** (1) Comercial desborda en horizontal a 375 y a 763 px
+  (`scrollWidth` 1141): la tabla `sr-only` de `BarraApilada100` (`components/graficas/barras.tsx:168`) dentro de la
+  tabla de Closers (`components/dashboard/operacion.tsx:146-160`) se escapa del `overflow-x-auto` porque ningún ancestro
+  dentro del contenedor es `relative`. (2) `AGENTS.md` (fila "Como se dibuja una grafica") y `docs/structure.md` §9 dicen
+  "cada grafica trae sus tres interruptores", y Dinero y Comercial traen dos por decisión (380, DH-3): falta la enmienda N8.
+- **Sigue abierto, sin casilla:** el alcance 6 ("comparar las cifras migradas contra producción, una gráfica de cada
+  pestaña") no se hizo; `dev:local` no lee producción.

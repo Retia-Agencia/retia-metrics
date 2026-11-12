@@ -126,8 +126,40 @@ migración esté en `main`.
 - [x] `?seccion=origen` lleva a Pauta con la misma URL; no queda ningún enlace a la pestaña vieja.
 - [ ] La tabla semanal cuadra contra el Excel de Paid Media de una semana cerrada (Mani elige cuál), fila por fila, o
       la diferencia está explicada en "Cómo se calcula".
+      **Abierta, con el primer cruce hecho (12-nov, hija H4).** Fuente: los reportes diarios de Paid Media que pasó Mani
+      (`Reporte_Diario_Llamadas_Tactical.xlsx` y `Reporte_Diario_Llamada_Comunicarte.xlsx`, pestaña "Cohorte Oct - Nov",
+      con una tabla semanal armada con fórmulas: filas 40-50 y 45-61). Contra producción por el MCP del CRM (solo lectura),
+      **no** contra la tabla semanal en pantalla, que falta abrir.
+      Cómo calcula el Excel: inversión y "Agendas en Meta" a mano desde Meta; costo por agenda = inversión ÷ agendas de
+      Meta; "Agendas del día", "Llamadas realizadas" y "Ventas" a mano; % conversión = ventas ÷ llamadas; CAC = inversión
+      ÷ ventas; **Ingresos = ventas × ticket fijo en COP** (Tactical 4.776.000, ComunicArte 2.537.648); ROAS = ingresos ÷
+      inversión. Todo en COP; ComunicArte separa las cuentas de Milena y Rosario y corta la semana de viernes a jueves.
+
+      | Tactical, 12-18 oct | Excel | CRM | Lectura |
+      |---|---|---|---|
+      | Inversión | COP 6.136.870 | USD 1.928,62 | Cuadra: TRM implícita ≈ 3.182, la misma del ticket (4.776.000 ÷ 1.500 ≈ 3.184) |
+      | Agendas | 82 (Meta) | 78 agendadas de Paid · 88 citas | Fuentes distintas (D-1); falta la fila "según Meta" de la tabla |
+      | Llamadas | 16 | 12 shows (cobertura 29 %) | Captura del resultado de la cita (390) |
+      | Ventas | 3 | 3 en el Hub · 2 en el ROAS de Paid | El Excel cuenta todas las ventas cerradas en la semana |
+      | ROAS | 2,33 | 1,56 | USD 4.500 de las 3 ventas ÷ USD 1.928,62 = 2,33: misma cifra si se toman todas las ventas; el CRM usa solo Paid |
+
+      ComunicArte, 26-sep a 30-oct, por las semanas del Excel: la inversión cuadra (10-16 oct: COP 5.907.439 contra
+      USD 1.864,21, TRM ≈ 3.169), pero **las ventas no**: Excel 5 · 10 · 9 · 7 · 10 = 41, CRM 4 · 8 · 5 · 7 · 4 = 28 (lista
+      de cierres del Hub). Solo la semana 17-23 oct coincide. Eso no es de definición: o el Excel cuenta algo que el CRM no
+      registra como venta (¿abonos, otra cuenta?), o hay ventas sin registrar en el CRM. Se pregunta a Paid Media.
+      **Falta para cerrar:** (1) la respuesta sobre las 13 ventas de ComunicArte; (2) abrir la tabla semanal de Pauta en
+      producción con 12-18 oct y comparar sus 16 filas; (3) agregar a "Cómo se calcula" (`components/dashboard/info-de-pauta.tsx`,
+      "Equivalencias con el Excel") que el ROAS y los ingresos del Excel usan todas las ventas × ticket fijo en COP y el
+      CRM solo las de Paid × su valor vendido en USD.
 - [x] Cada fila de la tabla tiene su fila en `docs/metricas.md` y su función en un módulo de concepto; ninguna fórmula
       repetida (guardián N1).
 - [x] Cumplimiento muestra En meta / En seguimiento / Rezagado y "sin meta" cuando falta.
 - [x] Tráfico muestra "—" con cobertura antes de la migración y cifras después (el sync de D ya escribe las columnas; las cifras llegan con los días sincronizados desde hoy).
 - [x] Recorrido como gerente y como paid trafficker, escritorio y 375 px, `npm run build`, CI verde. (10-nov, hija F: build limpio, recorrido en `dev:local` claro/oscuro, 375 px sin scroll horizontal de página —la tabla semanal desplaza dentro de su contenedor—, consola limpia, closer 404; CI verde de la punta `9b34054c`, tag `cp-20261109-2`)
+      Repetido el 12-nov (hija H4, `9309e590`, gerente): Pauta sin desborde a 375 px (`scrollWidth` = 375) ni a 763 px,
+      consola limpia en claro y oscuro, los tres interruptores de la gráfica diaria en la URL. Tres observaciones para el
+      carril P, ninguna bloquea esta casilla: (1) a 375 px la columna de nombres de la tabla semanal ocupa ~260 px y el
+      Total queda fuera de vista hasta desplazar; (2) Cumplimiento dice "Vamos 14,9 atrás" en cupos, y el boceto y Dinero
+      los muestran sin decimales ("Vas 15 atrás"); (3) la tabla semanal marca "solo Paid" (D-C del 403), pero la leyenda de
+      la gráfica diaria dice solo "Vendido" (USD 3.586,50 de Paid) mientras Dinero, con los mismos filtros, dice "Vendido"
+      USD 8.687,30 de todas las áreas: vale revisar si la leyenda debe llevar el "solo Paid".

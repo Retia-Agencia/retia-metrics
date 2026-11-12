@@ -90,19 +90,75 @@ pre-armada: es una **puerta con reglas de orientación** sobre los mismos servic
 
 - **D1 Forma:** ¿una acción genérica `proponer_accion`/`confirmar_accion` con registro exhaustivo, o una herramienta por
   familia de acciones? (Hay que sopesar la guía de «pocas herramientas» contra «sin límites».)
+  - ✅ **Respondida (Mani, 12-nov): genérica con registro exhaustivo y descubrimiento progresivo.** Medido: 137 server
+    actions en `app/`, unas 40 de escritura operativa (31 solo en `deals/[id]/acciones.ts`); una herramienta por acción
+    llevaría `tools/list` de 11 a más de 50, y cargar definiciones por adelantado es lo que más contexto gasta (Anthropic,
+    *Code execution with MCP*: 150.000 → 2.000 tokens con divulgación progresiva y una búsqueda con nivel de detalle). La spec
+    permite que `tools/list` varíe por credencial, no por conexión, con orden determinista. **El contrato:**
+    - `capacidades({accion?, detalle})` (lectura): qué acciones y consultas tiene el rol, una línea cada una; con `accion`,
+      su esquema completo y un ejemplo.
+    - `preparar_accion({accion, argumentos})` (no escribe): `accion` es el enum de las permitidas al rol; el servidor valida
+      `argumentos` con el zod `.strict()` de la acción y, si falla, el error nombra el campo y devuelve el esquema esperado.
+      Responde vista previa (antes → después, lo que no se podrá aplicar y por qué, efectos externos), id de un uso con
+      vencimiento de 10 minutos y huellas; lotes hasta 50.
+    - `confirmar_cambio({id})` (`destructiveHint`): revisa la huella, aplica por fila en su transacción, dice cómo deshacer.
+    - Deshacer es una acción más del registro.
+    - **`AccionMcp`** en un registro exhaustivo `ACCIONES`: clave, título, cuándo usarla, zod estricto con topes, `puede`
+      de `roles.ts`, `revisar` (la vista previa pura de la app), `huella`, `aplicar` (el MISMO caso de uso de `lib/` que la
+      server action, con origen `mcp`), si se deshace y si tiene efecto externo. Una funcionalidad nueva de la app = una fila
+      en `ACCIONES` y su test; el guardián del F3 falla si falta.
+    - El propósito que lo juzga (Mani): productividad. Gerencia pide cualquier dato (pauta, negocio) y el MCP es su puerta a
+      los datos; el closer ve y opera todo lo suyo (alertas, hallazgos, su pipeline entero), extrae y actualiza.
 - **D2 Escrituras y roles:** ¿cada rol escribe exactamente lo que escribe en la app? ¿El gerente que opera como closer
   (ADR 0084) cumple? ¿Customer success? (Propuesta: sí, sin ensanchar nada.)
+  - ✅ **Respondida (Mani, 12-nov): igual que la app, ni más ni menos.** La lista de acciones de un rol sale del `puede` de
+    cada acción (funciones de `roles.ts`) y el permiso sobre la fila lo vuelve a decidir `lib/` (`puedeTrabajarDeal`, la reja de
+    `moverEtapa`): el MCP no tiene reglas propias. El gerente con `opera_como_closer` escribe como closer (`trabajaLeads` ya
+    recibe la capacidad), customer success lo que su pantalla permite (onboarding), el paid trafficker lo de pauta que la app le
+    deja, el developer todo salvo con «ver como» activo (172), y un token de lectura no ve ninguna acción de escritura.
 - **D3 Qué queda fuera por seguridad:** emitir o revocar tokens, secretos de fuentes, usuarios y roles. ¿Algo más?
+  - ✅ **Respondida (Mani, 12-nov): tres grupos, todos nombrados en el guardián del F3.** (A) **Siempre fuera:** emitir o
+    revocar tokens y el consentimiento OAuth; secretos (firma de fuentes, tokens de Calendly, Meta y Typeform); usuarios, roles,
+    alcance y `opera_como_closer`; **SQL libre** (cruza programas, recalcula cifras fuera de su módulo, N1, y se salta
+    `vigente()`): la puerta de gerencia a los datos es `consultar_hechos` sobre los hechos del C-2 con todas sus dimensiones y la
+    lista detrás de cada cifra. (B) **Dentro con confirmación**, al revés del 384: anular deal, llamada o abono (la app lo
+    permite, lleva motivo y se deshace). (C) **Dentro en una ola posterior**, como pendientes nombrados: configuración del
+    programa e integraciones (objetivos, umbrales, fuentes y su mapeo, Meta, Calendly, reporte de WhatsApp, catálogos), porque un
+    mapeo roto pierde leads sin error.
 - **D4 Orden frente a los tickets abiertos:** Mani pidió prioridad. ¿411 antes del 384 (que pasa a ser su F2), del 385 F3 en
   adelante y de la ola 2 del 401?
+  - ✅ **Respondida (Mani, 12-nov): el 411 antes del 384 (que se cierra absorbido como F2), del 385 F3 en adelante, del 386,
+    387, 407 y de la ola 2 del 401; y dentro del 411, gerencia primero.** El F1 entero (incluido `consultar_hechos` con paginación
+    en SQL) va antes de cualquier escritura; luego F2 (ola 1 pipeline del closer, ola 2 dinero, Calendly y anular), F3, F4 y F5.
+    Se descartó partir el F1 para adelantar las escrituras de Michael.
 - **D5 Cesión de deal entre closers (A-177):** ¿entra como primera acción de escritura de prueba del MCP o primero la
   pantalla? Las nueve preguntas de A-177 siguen abiertas.
+  - ✅ **Respondida (Mani, 12-nov): primero ADR y pantalla.** La cesión pasa por `/grill-with-docs`, un ADR (enmienda del 0003)
+    y su caso de uso en `lib/` con su pantalla; cuando exista, entra al MCP como una fila más de `ACCIONES`. La primera acción
+    del MCP es mover de etapa, que ya tiene vista previa pura (`revisarMovimiento`): se prueba el molde, no una norma nueva. La
+    pregunta del 9-nov (¿quedó bien el traspaso?) es de lectura y la resuelve el F1.
 - **D6 Cuánto se mide en producción:** ¿bytes y conteo de consultas por llamada siempre, o solo con una bandera?
+  - ✅ **Respondida (Mani, 12-nov): siempre, sin bandera.** Cada fila de `mcp_llamadas` guarda bytes de la respuesta (largo del
+    JSON serializado) y número de consultas a la base (contador por llamada en el logger de drizzle). Retención de 90 días, la
+    que ya existe; la migración la aplica la sesión principal.
 
 ## Fases y "Done cuando"
 
-- [ ] **F0 Diagnóstico cerrado.** Las 11 limitaciones confirmadas con una medición reproducible (script de lectura en
+- [x] **F0 Diagnóstico cerrado.** Las 11 limitaciones confirmadas con una medición reproducible (script de lectura en
   `mcp_llamadas`) y D1 a D6 respondidas por Mani. Sin esto, no se construye.
+  - **Hecho el 12-nov.** `scripts/informe-mcp.ts` (solo lectura, sin usuarios ni tokens): por herramienta llamadas, p50, p95,
+    máximo y fallas por código; con `--desde`/`--hasta`, la secuencia. Se corre con
+    `npx tsx --env-file=<.env.local> scripts/informe-mcp.ts [--dias N | --desde ISO --hasta ISO]`; es también la línea base del F4.
+  - **La sesión del 9-nov** (22:00 a 22:06 UTC): 17 llamadas registradas (el ticket contó ~18; `mcp_llamadas` no explica
+    la diferencia), 10.366 ms en servidor en total; 4 rechazos de esquema (3 `ficha_de_lead` por `id`, 1 `tablero_de_deals`) de 0 a
+    2 ms: confirma L2, L3 y que el servidor no es el cuello. L1, L4 a L8, L10 y L11 se confirman en el código citado en la tabla;
+    L9 se confirma por ausencia (la tabla no tiene bytes ni consultas).
+  - **7 días (5 al 12-nov), p50/p95 en ms:** `programas_visibles` 113/175 · `buscar_leads` 331/741 · `ficha_de_lead` 172/351 ·
+    `cartera_vencida` 438/535 · `consultar_metrica` 369/947 · `resumen_del_hub` 774/1.021 · `tablero_de_deals` 783/1.789 ·
+    `bandeja` 840/866 · `origen_del_programa` 1.224/1.460 · `pauta_roas` 1.745/2.757 · **`ficha_de_deal` 2.023/2.472 (máx.
+    2.612)**, la más lenta por llamada y no estaba en la medición del 9-nov. Ningún tope alcanzado.
+  - **Hallazgo fuera de las L:** `pauta_roas` respondió 7 veces «Error interno» (9-nov 19:37 desde claude.ai, cuatro seguidas;
+    10-nov 05:08 y 05:43 desde Claude Code); ninguna después del 10-nov 05:44 UTC. No es de este ticket: va como follow-up.
 - [ ] **F1 Lectura abierta.** `buscar` con dueño; filtros por nombre o id sin 0 silencioso; filtros por defecto declarados;
   opciones aparte; `campos`; paginación en SQL; un solo nombre por concepto. La pregunta del 9-nov = 1 llamada.
 - [ ] **F2 Escritura (reemplaza al 384).** Registro de acciones, vista previa, confirmación, rastro `mcp`, deshacer; revisión
