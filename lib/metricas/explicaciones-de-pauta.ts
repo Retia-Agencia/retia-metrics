@@ -77,7 +77,7 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Cita reservada", explicacion: "La llamada que el lead apartó en el calendario. Cuenta el día en que la reservó, no el día de la llamada." }],
   },
   agendas_meta: {
-    rotulo: "Agendas según Meta", universo: "pauta", unidad: "conteo",
+    rotulo: "Agendas de Meta", universo: "pauta", unidad: "conteo",
     que: "Las agendas que reporta el pixel de Meta. Sirven para revisar la medición, no como dato de negocio.",
     formula: { forma: "conteo", terminos: ["agendas que reporta el pixel de Meta"] },
     variables: [{ nombre: "Pixel de Meta", explicacion: "El código de Meta en la página de agenda. No siempre ve lo mismo que el CRM; la diferencia avisa que algo se está midiendo mal." }],
@@ -94,8 +94,8 @@ export const EXPLICACIONES_DE_PAUTA = {
   costo_agenda_meta: {
     rotulo: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_meta, universo: "pauta", unidad: "cop", unidadesDePartes: ["cop", "conteo"],
     que: "El mismo costo por agenda, pero dividiendo por las agendas que ve Meta en vez de las del CRM.",
-    formula: { forma: "razon", terminos: ["Gasto en campañas de agenda", "Agendas según Meta"] },
-    variables: [{ nombre: "Agendas según Meta", explicacion: "Las que reporta el pixel. Si difiere mucho del costo por agenda del CRM, la medición tiene un problema." }],
+    formula: { forma: "razon", terminos: ["Gasto en campañas de agenda", "Agendas de Meta"] },
+    variables: [{ nombre: "Agendas de Meta", explicacion: "Las que reporta el pixel. Si difiere mucho del costo por agenda del CRM, la medición tiene un problema." }],
   },
   cac: {
     rotulo: "Costo por venta", universo: "pauta", unidad: "cop", admiteObjetivo: true, unidadesDePartes: ["cop", "conteo"],

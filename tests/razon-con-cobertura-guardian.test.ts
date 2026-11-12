@@ -46,6 +46,7 @@ const EXCEPCIONES: Record<string, string> = {
   "lib/queries/banderas-del-pulso.ts:pct": "403: banderas del pulso",
   "lib/queries/vista-escalera.ts:porcentaje": "403: escalera de conversión (la vista repite el campo como Tasa)",
   "lib/queries/escalera.ts:porcentaje": "403: escalera de conversión",
+  "lib/metas/cumplimiento-de-cohorte.ts:costoPorAgendaPromedio": "420: parte mostrada de la inversión por día del ritmo (gasto ÷ agendadas de la cohorte); sin cobertura propia hasta el 403",
   "lib/semaforo/costo-por-agenda.ts:costoPorRegistro": "contrato del semaforo (ADR 0089): cambia junto con Juanito",
   "lib/semaforo/semaforo.ts:costoPorRegistro": "contrato del semaforo (ADR 0089): cambia junto con Juanito",
   "lib/reporte-whatsapp/contrato.ts:costoPorRegistro": "contrato del semaforo (ADR 0089): cambia junto con Juanito",
@@ -54,6 +55,7 @@ const EXCEPCIONES: Record<string, string> = {
 /** Campos cuyo nombre parece una razón, pero el concepto no tiene cobertura parcial. */
 const NO_SON_RAZON: Record<string, string> = {
   "lib/queries/vamos-a-llegar.ts:pct": "avance contra la meta, siempre calculable (N3 no aplica)",
+  "lib/metas/cumplimiento-de-cohorte.ts:costoPorAgendaMeta": "el objetivo de costo por agenda configurado en la cohorte, no una razón calculada",
   "lib/queries/saldo.ts:porcentaje": "abonado sobre ticket, sin universo parcial (ADR 0024)",
   "lib/semaforo/semaforo.ts:porcentajeDelUmbral": "distancia al umbral configurado, no una razón de captura",
   "lib/reporte-whatsapp/contrato.ts:porcentajeDelUmbral": "distancia al umbral configurado, no una razón de captura",

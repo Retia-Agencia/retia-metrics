@@ -26,19 +26,19 @@ import { VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 /**
  * "¿Cómo se mueve día a día?" (420, diseño §4.4): una sola gráfica con sus tres interruptores en la URL
  * (`?g_pauta-diaria=inversion,dia,paso`). Lee la serie diaria de la tabla semanal (`cargarPautaSemanal`, la misma que
- * suma cada celda), así que no vuelve a contar nada; solo las agendas según Meta, que la tabla da por semana, se leen
+ * suma cada celda), así que no vuelve a contar nada; solo las agendas de Meta, que la tabla da por semana, se leen
  * por tramo con el mismo `costoPorAgendaDeVentana`. Toda serie abre su explicación al hacer clic en un punto.
  */
 export const CLAVE_GRAFICA_DIARIA = "pauta-diaria";
 const UNIDADES_DE_LA_GRAFICA = ["inversion", "cupos", "plata"] as const;
 const PASOS_DE_LA_GRAFICA = ["dia", "semana"] as const;
-/** Más tramos que esto no se piden a Meta uno por uno: la serie de agendas según Meta se omite y la gráfica lo dice. */
+/** Más tramos que esto no se piden a Meta uno por uno: la serie de agendas de Meta se omite y la gráfica lo dice. */
 const TRAMOS_MAXIMOS_SEGUN_META = 45;
 
 const SERIE = {
   inversion: VOCABULARIO_PAUTA_SEMANAL.inversion,
   agendas: "Agendadas",
-  agendasMeta: "Agendas según Meta",
+  agendasMeta: "Agendas de Meta",
   ventas: "Ventas",
   vendido: "Vendido",
   anterior: "Agendadas · periodo anterior",
@@ -166,7 +166,7 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
           ? <GraficaConExplicacion modelo={modelo} explicaciones={explicaciones}
             titulo={`${titulo} Ejes lineales con cero visible.`}
             tituloDeTabla={`${titulo}, por ${porDiaTexto ? "día" : "semana"}`}
-            frescura={`Datos hasta el ${fecha(p.rango.hasta < p.hoy ? p.rango.hasta : p.hoy)}.${omitioMeta ? " Las agendas según Meta se ven por semana con periodos largos." : ""}`} />
+            frescura={`Datos hasta el ${fecha(p.rango.hasta < p.hoy ? p.rango.hasta : p.hoy)}.${omitioMeta ? " Las agendas de Meta se ven por semana con periodos largos." : ""}`} />
           : <p className="text-sm text-muted-foreground">Sin inversión, agendas ni ventas de Paid en este periodo.</p>}
       </CardContent>
     </Card>

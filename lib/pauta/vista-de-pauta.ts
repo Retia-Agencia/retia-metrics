@@ -15,7 +15,7 @@ export function vistaDePauta(valor: string | string[] | undefined): VistaDePauta
 }
 
 /**
- * La línea gris bajo los filtros de Pauta (diseño §3): lo que se está viendo, en palabras. "Viendo ComunicArte, cohorte C6,
+ * La línea gris bajo los filtros de Pauta (diseño §3): lo que se está viendo, en palabras. "Viendo <programa>, cohorte C6,
  * 12 oct 2026 a 10 nov 2026, comparado con 12 sep 2026 a 11 oct 2026. Un programa a la vez: nunca se mezclan."
  */
 export function resumenDeFiltrosDePauta(f: {
