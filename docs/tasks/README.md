@@ -19,6 +19,17 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 > checkpoint verde.
 
 
+## 22 · Pedidos del 11-nov (Michael y Paid Media) · 12-nov
+
+Lo que no tenía ticket. Las alertas cada hora quedaron como configuración (268), sin ticket. El push de recién agendado
+y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo Sánchez es configuración
+(`operations.md` §2.1). Las confirmadas van por el 421.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 423 | [La plataforma de pago es obligatoria en el abono, y el link de pago sale del formulario](./423-plataforma-obligatoria-en-el-abono.md) | — | todo · 12-nov · Michael · D-1 y D-2 con Mani · sin migración |
+| [ ] | 424 | [La historia del lead se descarga desde la lista que ya abre cada cifra](./424-la-historia-del-lead-exportable.md) | — | todo · 12-nov · Dani Rodríguez, «top 1» · **ensamblaje: ninguna métrica, universo ni forma visual nueva** · D-1 a D-3 · sin migración |
+
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
 Norte visual aprobado por Mani el 10-nov, tal cual: [`docs/bocetos/una-forma-de-metrica.html`](../bocetos/una-forma-de-metrica.html);
