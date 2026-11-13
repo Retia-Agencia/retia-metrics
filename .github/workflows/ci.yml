@@ -8,6 +8,10 @@ on:
   push:
     branches: [main]
 
+# El token del CI solo lee el repo: ningun job publica, comenta ni empuja.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

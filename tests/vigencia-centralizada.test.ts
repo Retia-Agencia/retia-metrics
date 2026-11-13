@@ -289,7 +289,7 @@ const PREDICADOS = ["vigente", "incluyendoAnulados"];
 
 /** La cadena aplica alguno de los predicados centrales sobre ese identificador. */
 function tieneElPredicado(cadena: string, tabla: string): boolean {
-  const nombre = tabla.replace(/\$/g, "\\$");
+  const nombre = tabla.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return PREDICADOS.some((p) => new RegExp(`${p}\\s*\\(\\s*${nombre}\\s*[),]`).test(cadena));
 }
 

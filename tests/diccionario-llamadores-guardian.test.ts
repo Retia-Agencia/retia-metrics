@@ -101,7 +101,7 @@ describe("guardián: toda función del diccionario existe y tiene llamador (N7)"
 
   it("no marca lo bueno: campos, columnas y funciones con llamador", () => {
     const corpus = "export const calculo = () => 1;\nuse(calculo);\nconst t = { cohortId: 1 };\n";
-    const r = auditar("Calcula `calculo` sobre `cohortId` en `calls` con `fecha_envio`.", corpus.replace("cohortId", "cohortId"));
+    const r = auditar("Calcula `calculo` sobre `cohortId` en `calls` con `fecha_envio`.", corpus);
     expect(r).toEqual({ inexistentes: [], sinLlamador: [] });
   });
 
