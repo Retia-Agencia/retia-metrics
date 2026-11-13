@@ -42,6 +42,7 @@ let otroPrograma: string;
 let cohortId: string;
 let closer: string;
 let dealId: string;
+let plataformaId: string;
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -83,6 +84,7 @@ beforeEach(async () => {
     .values({ leadId: l.id, submissionOrigenId: env.id, programId, cohortId, etapa: "atendido", ownerUserId: closer,valorVendidoUsd: "1000.00", acuerdoPago: "30% en octubre" })
     .returning();
   dealId = d.id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma ficha" }).returning())[0].id;
 }, 60_000);
 
 afterAll(async () => {
@@ -274,8 +276,8 @@ describe("fichaDeDeal", () => {
   });
 
   it("los abonos anulados se muestran marcados pero NO entran en abonado ni saldo", async () => {
-    const a1 = await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-20", monto: "300", comprobanteUrl: "https://drive.google.com/c" });
-    await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-21", monto: "200" });
+    const a1 = await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-20", monto: "300", plataformaId, comprobanteUrl: "https://drive.google.com/c" });
+    await registrarAbono(db, comoCloser(), { dealId, fecha: "2026-09-21", monto: "200", plataformaId });
     await anularAbono(db, comoCloser(), { abonoId: a1.abonoId, motivo: "pago mal tecleado" });
 
     const f = (await fichaDeDeal(db, programId, dealId))!;

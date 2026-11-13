@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { enlacesPago } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -100,31 +100,6 @@ function moldeEnlaces(db: Db) {
     },
     db,
   );
-}
-
-/**
- * Resuelve un enlace elegible para cobrar dentro de UN programa. La escritura del
- * abono usa esta fila para derivar la plataforma; el cliente nunca decide ese par.
- */
-export async function exigirEnlaceDePagoVigente(
-  db: Db,
-  enlacePagoId: string,
-  programId: string,
-): Promise<{ id: string; plataformaId: string; monto: string; moneda: string }> {
-  const [enlace] = await db
-    .select({ id: enlacesPago.id, plataformaId: enlacesPago.plataformaId, monto: enlacesPago.monto, moneda: enlacesPago.moneda })
-    .from(enlacesPago)
-    .where(and(
-      eq(enlacesPago.id, idValido(enlacePagoId)),
-      eq(enlacesPago.programId, programId),
-      eq(enlacesPago.activo, true),
-      eq(enlacesPago.vigente, true),
-    ))
-    .limit(1);
-  if (!enlace) {
-    throw new ErrorDeApp("El enlace de pago no está disponible para este programa.", 400);
-  }
-  return enlace;
 }
 
 /** Quien realiza la operacion: su id (para `change_log`) y su rol de vista (ADR 0028). */

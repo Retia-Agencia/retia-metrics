@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { abonos, calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, programs, users } from "@/lib/db/schema";
+import { abonos, calls, cohorts, dealActividades, dealEtapaHistorial, deals, leads, motivos, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
@@ -18,6 +18,7 @@ let programId: string;
 let cohortId: string;
 let closerId: string;
 let motivoOtroId: string;
+let plataformaId: string;
 let secuencia = 0;
 
 const actor = () => ({ userId: closerId, rol: "closer" as const, operaComoCloser: false });
@@ -46,6 +47,7 @@ beforeEach(async () => {
   }).returning())[0].id;
   closerId = (await db.insert(users).values({ email: "closer-mover-hecho@retia.co", rol: "closer" }).returning())[0].id;
   motivoOtroId = (await db.insert(motivos).values({ nombre: "Otro", tipo: "reagenda", pideTexto: true }).returning())[0].id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma mover" }).returning())[0].id;
 });
 
 afterAll(async () => cerrar());
@@ -105,7 +107,7 @@ describe("moverConHecho", () => {
       const resultado = await moverConHecho(db, actor(), {
         dealId: deal.id,
         a: "ganado_parcial",
-        hecho: { tipo: "abono", fecha: "2026-10-09", monto: "1000", moneda: "USD" },
+        hecho: { tipo: "abono", fecha: "2026-10-09", monto: "1000", moneda: "USD", plataformaId },
       });
 
       expect(resultado.etapa).toBe("ganado_completo");
@@ -120,7 +122,7 @@ describe("moverConHecho", () => {
     const resultado = await moverConHecho(db, actor(), {
       dealId: deal.id,
       a: "ganado_parcial",
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD", concepto: "ticket" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD", plataformaId, concepto: "ticket" },
     });
 
     expect(resultado.etapa).toBe("ganado_parcial");
@@ -141,6 +143,7 @@ describe("moverConHecho", () => {
         fecha: "2026-10-09",
         monto: "1437",
         moneda: "USD",
+        plataformaId,
         concepto: "adicional",
         nota: "One-to-one",
       },
@@ -162,7 +165,7 @@ describe("moverConHecho", () => {
     const error = await moverConHecho(db, actor(), {
       dealId: deal.id,
       a: "ganado_parcial",
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "1437", moneda: "USD", concepto: "adicional", nota: "   " },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "1437", moneda: "USD", plataformaId, concepto: "adicional", nota: "   " },
     }).catch((causa: unknown) => causa);
 
     expect(error).toBeInstanceOf(ErrorDeApp);
@@ -177,7 +180,7 @@ describe("moverConHecho", () => {
       dealId: deal.id,
       a: "ganado_parcial",
       datos: { descuentoUsd: 200 },
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "800", moneda: "USD" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "800", moneda: "USD", plataformaId },
     });
 
     expect(resultado.etapa).toBe("ganado_completo");
@@ -191,7 +194,7 @@ describe("moverConHecho", () => {
       dealId: deal.id,
       a: "ganado_parcial",
       datos: { descuentoUsd: 200, fechaLimitePago: "2026-11-20" },
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "300", moneda: "USD" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "300", moneda: "USD", plataformaId },
     });
 
     expect(resultado.etapa).toBe("ganado_parcial");
@@ -209,7 +212,7 @@ describe("moverConHecho", () => {
       dealId: deal.id,
       a: "ganado_parcial",
       datos: { descuentoUsd: 1000 },
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "100", moneda: "USD" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "100", moneda: "USD", plataformaId },
     })).rejects.toThrow(/descuento/);
     expect(await etapaDe(deal.id)).toBe("compromiso_verbal");
     expect(await db.select().from(abonos).where(eq(abonos.dealId, deal.id))).toHaveLength(0);
@@ -242,7 +245,7 @@ describe("moverConHecho", () => {
     await expect(moverConHecho(db, actor(), {
       dealId: deal.id,
       a: "ganado_parcial",
-      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD" },
+      hecho: { tipo: "abono", fecha: "2026-10-09", monto: "250", moneda: "USD", plataformaId },
     })).rejects.toThrow();
     expect(await etapaDe(deal.id)).toBe("registrado");
     expect(await db.select().from(abonos).where(eq(abonos.dealId, deal.id))).toHaveLength(0);

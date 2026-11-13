@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, cohorts, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -22,6 +22,7 @@ let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let dealId: string;
 let closer: string;
+let plataformaId: string;
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -42,13 +43,14 @@ beforeEach(async () => {
     .values({ leadId: l.id, programId: p.id, cohortId: c.id, etapa: "atendido", ownerUserId: closer, valorVendidoUsd: "797" })
     .returning();
   dealId = d.id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma saldo" }).returning())[0].id;
 });
 
 afterAll(async () => {
   await cerrar();
 });
 
-const abono = (monto: string) => ({ dealId, fecha: "2026-09-28", monto, comprobanteUrl: "https://drive.google.com/c" });
+const abono = (monto: string) => ({ dealId, fecha: "2026-09-28", monto, plataformaId, comprobanteUrl: "https://drive.google.com/c" });
 
 describe("la reja del sobrepago y el saldo que ve el closer son la misma cifra", () => {
   it("lo máximo que la reja acepta es exactamente el saldo del módulo; un centavo más se rechaza", async () => {

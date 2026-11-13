@@ -2,7 +2,7 @@ import { eq, inArray } from "drizzle-orm";
 import { existsSync, readFileSync } from "node:fs";
 import { parse } from "dotenv";
 import { db } from "../lib/db";
-import { deals, etapaDealEnum, integraciones, leads, programs, submissions, users } from "../lib/db/schema";
+import { deals, etapaDealEnum, integraciones, leads, plataformasPago, programs, submissions, users } from "../lib/db/schema";
 import type { PendienteDeal } from "../lib/deals/etapas";
 import { actorDelScript } from "./actor";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
@@ -1093,6 +1093,11 @@ export async function sembrarLocal(): Promise<void> {
     actor: { tipo: "usuario", userId: closer2.id, rol: "closer", operaComoCloser: false },
   });
 
+  const [plataformaDeAbonos] = await db
+    .insert(plataformasPago)
+    .values({ nombre: "Transferencia de prueba" })
+    .returning();
+
   // Deal 6 -> Etapa: abonado (abono parcial con comprobante + moverEtapa sistema)
   const lead6 = mapaLeads.get("felipe.torres@ejemplo.local")!;
   const deal6Id = await abrirDeal(db, {
@@ -1124,6 +1129,7 @@ export async function sembrarLocal(): Promise<void> {
     dealId: deal6Id,
     fecha: "2026-09-26",
     monto: "300.00",
+    plataformaId: plataformaDeAbonos.id,
     comprobanteUrl: "https://ejemplo.local/comprobantes/abono-felipe.pdf",
   });
 
@@ -1158,6 +1164,7 @@ export async function sembrarLocal(): Promise<void> {
     dealId: deal7Id,
     fecha: "2026-09-27",
     monto: "797.00",
+    plataformaId: plataformaDeAbonos.id,
     comprobanteUrl: "https://ejemplo.local/comprobantes/completo-gloria.pdf",
   });
 
@@ -1247,6 +1254,7 @@ export async function sembrarLocal(): Promise<void> {
     dealId: deal10Id,
     fecha: "2026-09-28",
     monto: "500.00",
+    plataformaId: plataformaDeAbonos.id,
     comprobanteUrl: "https://ejemplo.local/comprobantes/abono-jorge.pdf",
   });
 

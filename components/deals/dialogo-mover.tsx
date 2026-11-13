@@ -89,7 +89,6 @@ export interface DialogoMoverProps {
   /** Motivos activos con su tipo; el dialogo filtra por el tipo de la flecha. */
   motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
   plataformas: { id: string; nombre: string }[];
-  enlacesDePago: import("@/lib/queries/recursos").EnlaceDeLaPantalla[];
   saldo: number | null;
   moneda: string | null;
   llamada: {
@@ -163,7 +162,6 @@ export function DialogoMover({
   cohortes,
   motivos,
   plataformas,
-  enlacesDePago,
   saldo,
   moneda,
   llamada,
@@ -276,6 +274,8 @@ export function DialogoMover({
     datos.abono?.concepto
     && datos.abono.fecha
     && datos.abono.monto.trim()
+    && datos.abono.plataformaId
+    && (datos.abono.comprobanteUrl.trim() || datos.abono.archivoId)
     && (datos.abono.concepto !== "adicional" || datos.abono.nota.trim()),
   );
   const motivoElegido = motivos.find((m) => m.id === datos.motivoId);
@@ -371,7 +371,7 @@ export function DialogoMover({
                     ? "No cambia la etapa del deal."
                     : "Elige qué está pagando para continuar."}
               </p>
-              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} enlacesDePago={enlacesDePago} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
+              <FormularioAbono dealId={dealId} moneda={moneda ?? "USD"} plataformas={plataformas} datos={datos.abono} onChange={(abono) => setDatos((d) => ({ ...d, abono }))} />
             </section>
           ) : null}
 

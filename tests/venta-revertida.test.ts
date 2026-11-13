@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
-import { cohorts, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, dealEtapaHistorial, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { anularAbono, registrarAbono } from "@/lib/deals/abonos";
@@ -24,6 +24,7 @@ let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closer: string;
+let plataformaId: string;
 let leadN = 0;
 
 const SIEMPRE = { desde: "2000-01-01", hasta: "2100-12-31" };
@@ -32,6 +33,7 @@ const abono = (dealId: string, monto: string) => ({
   dealId,
   fecha: hoyEnBogota(),
   monto,
+  plataformaId,
   comprobanteUrl: "https://drive.google.com/comprobante",
 });
 
@@ -62,6 +64,7 @@ beforeEach(async () => {
   cohortId = c.id;
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma venta" }).returning())[0].id;
 });
 
 afterAll(async () => {

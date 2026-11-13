@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { calls, dealActividades, dealEtapaHistorial, deals, enlacesPago, leads, miembrosPrograma, plataformasPago, programs, users } from "@/lib/db/schema";
+import { abonos, calls, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, plataformasPago, plataformasPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -90,32 +90,42 @@ async function deal(dealId: string) {
 const acciones = () => import("@/app/(app)/p/[programa]/deals/[id]/acciones");
 const accionesMover = () => import("@/app/(app)/p/[programa]/deals/acciones");
 
-describe("crear link desde el flujo de abono", () => {
-  it("un closer con membresia lo crea en el programa del deal", async () => {
+describe("crear plataforma desde el flujo de abono", () => {
+  it("un closer con membresia la crea y vincula al programa del deal", async () => {
     const dealId = await nuevoDeal(programaA, closerA);
-    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Wompi acción" }).returning();
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
 
-    const r = await (await acciones()).crearEnlaceParaAbonoAccion({
-      dealId, plataformaId: plataforma.id, nombre: "Pago completo", monto: "1000", moneda: "USD", url: "https://pago.test/completo",
-    });
+    const r = await (await acciones()).crearPlataformaParaAbonoAccion({ dealId, nombre: "Wompi acción" });
 
-    expect(r).toMatchObject({ ok: true, enlace: { nombre: "Pago completo", programId: programaA } });
-    expect(await db.select().from(enlacesPago).where(eq(enlacesPago.programId, programaA))).toHaveLength(1);
+    expect(r).toMatchObject({ ok: true, plataforma: { nombre: "Wompi acción" } });
+    const [plataforma] = await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "Wompi acción"));
+    expect(await db.select().from(plataformasPrograma).where(and(eq(plataformasPrograma.programId, programaA), eq(plataformasPrograma.plataformaId, plataforma.id)))).toHaveLength(1);
   });
 
-  it("un closer sin membresia recibe 403 y no crea el link", async () => {
+  it("un closer sin membresia no crea la plataforma", async () => {
     const dealId = await nuevoDeal(programaB, closerB);
-    const [plataforma] = await db.insert(plataformasPago).values({ nombre: "Wompi ajena" }).returning();
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
 
-    const r = await (await acciones()).crearEnlaceParaAbonoAccion({
-      dealId, plataformaId: plataforma.id, nombre: "No permitido", monto: "1500", moneda: "USD", url: "https://pago.test/ajeno",
-    });
+    const r = await (await acciones()).crearPlataformaParaAbonoAccion({ dealId, nombre: "No permitido" });
 
     expect(r).toMatchObject({ ok: false });
-    expect((r as { error: string }).error).toMatch(/No puedes gestionar enlaces de pago/);
-    expect(await db.select().from(enlacesPago)).toHaveLength(0);
+    expect(await db.select().from(plataformasPago).where(eq(plataformasPago.nombre, "No permitido"))).toHaveLength(0);
+  });
+});
+
+describe("abono al mover", () => {
+  it("mover a Ganado sin plataforma responde 400 y no escribe el abono", async () => {
+    const dealId = await nuevoDeal(programaA, closerA);
+    auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
+
+    const r = await (await acciones()).moverConHechoAccion({
+      dealId,
+      a: "ganado_parcial",
+      hecho: { tipo: "abono", fecha: "2026-11-12", monto: "100", moneda: "USD", concepto: "ticket" } as never,
+    });
+
+    expect(r).toEqual({ ok: false, error: "Elige la plataforma por la que entró el pago." });
+    expect(await db.select().from(abonos).where(eq(abonos.dealId, dealId))).toHaveLength(0);
   });
 });
 

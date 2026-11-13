@@ -13,6 +13,9 @@ import { z } from "zod";
  * El monto se recibe como texto (la columna es `numeric`, que Drizzle mapea a
  * string): un adelanto POSITIVO con hasta dos decimales. Cero o negativo no es un
  * abono.
+ *
+ * El historico y el importador escriben por su lado (`lib/deals/historico.ts`,
+ * `lib/migracion/importar.ts`) y pueden dejar la plataforma nula.
  */
 export const esquemaAbono = z.object({
   dealId: z.string().uuid("Deal inválido."),
@@ -34,8 +37,9 @@ export const esquemaAbono = z.object({
     .max(500, "La nota puede tener máximo 500 caracteres.")
     .transform((v) => v || null)
     .optional(),
-  plataformaId: z.string().uuid("Plataforma inválida.").optional(),
-  enlacePagoId: z.string().uuid("Enlace de pago inválido.").optional(),
+  plataformaId: z
+    .string({ error: "Elige la plataforma por la que entró el pago." })
+    .uuid("Plataforma inválida."),
   comprobanteUrl: z.string().url("El comprobante debe ser una URL válida.").optional(),
 });
 

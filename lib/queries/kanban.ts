@@ -44,7 +44,6 @@ import { esContactoRegistrado, hechosDeLlamadas } from "@/lib/deals/mover-etapa"
 import { propiedadesQueLeFaltan } from "@/lib/deals/requisitos";
 import { proximoContactoVencido } from "@/lib/deals/proximo-contacto";
 import { redondearUsd } from "@/lib/dinero";
-import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 
 /**
@@ -640,7 +639,6 @@ export interface OpcionesDeTablero {
   /** Motivos activos por tipo (para las flechas que exigen motivo). */
   motivos: { id: string; nombre: string; tipo: string; pideTexto: boolean }[];
   plataformas: OpcionCatalogo[];
-  enlacesDePago: EnlaceDeLaPantalla[];
 }
 
 /**
@@ -663,7 +661,6 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     canalFilas,
     etiquetasFilas,
     motivoFilas,
-    enlacesDePago,
     plataformasDelProg,
   ] = await Promise.all([
     // Owners con deals vigentes en el programa.
@@ -700,7 +697,6 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
       .select({ id: motivos.id, nombre: motivos.nombre, tipo: motivos.tipo, pideTexto: motivos.pideTexto })
       .from(motivos)
       .where(eq(motivos.activo, true)),
-    enlacesDePagoVigentes({ programId }, db),
     plataformasDelPrograma(db, programId),
   ]);
 
@@ -727,7 +723,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
   const plataformas = plataformasDelProg.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 
-  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas, enlacesDePago };
+  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros, ausentes. */

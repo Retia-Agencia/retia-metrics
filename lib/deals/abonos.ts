@@ -1,6 +1,6 @@
 import { and, eq, ne, notInArray } from "drizzle-orm";
 import { z } from "zod";
-import { abonos, archivos, deals, leads, users } from "@/lib/db/schema";
+import { abonos, archivos, deals, enlacesPago, leads, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { dejarNotaDelActor } from "@/lib/deals/nota-del-sistema";
@@ -9,7 +9,6 @@ import { normalizando } from "@/lib/errors-zod";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
-import { exigirEnlaceDePagoVigente } from "@/lib/catalogo/enlaces-pago";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -85,11 +84,13 @@ export const esquemaAdjuntarComprobante = z.object({
 });
 export type DatosAdjuntarComprobante = z.input<typeof esquemaAdjuntarComprobante>;
 
-export const esquemaCambiarEnlaceDeAbono = z.object({
+export const esquemaCambiarPlataformaDeAbono = z.object({
   abonoId: z.string().uuid("El abono no es válido."),
-  enlacePagoId: z.string().uuid("El enlace de pago no es válido.").nullable(),
+  plataformaId: z
+    .string({ error: "Elige la plataforma por la que entró el pago." })
+    .uuid("Plataforma inválida."),
 });
-export type DatosCambiarEnlaceDeAbono = z.input<typeof esquemaCambiarEnlaceDeAbono>;
+export type DatosCambiarPlataformaDeAbono = z.input<typeof esquemaCambiarPlataformaDeAbono>;
 
 type FilaDeal = typeof deals.$inferSelect;
 
@@ -180,18 +181,7 @@ export async function registrarAbono(
         });
         if (deal.cohortId == null) cohorteAsignada = congelado.cohortId;
       }
-      const enlace = entrada.enlacePagoId
-        ? await exigirEnlaceDePagoVigente(tx, entrada.enlacePagoId, deal.programId)
-        : null;
-      if (enlace && Number(enlace.monto) !== Number(entrada.monto)) {
-        throw new ErrorDeApp("El monto del abono no coincide con el link de pago.", 400);
-      }
-      if (enlace && enlace.moneda !== entrada.moneda) {
-        throw new ErrorDeApp("La moneda del abono no coincide con el link de pago.", 400);
-      }
-      // `plataformaId` queda aceptado para importadores/histórico; el flujo operativo
-      // manda el enlace y la plataforma se deriva siempre de esa fila.
-      if (!enlace) await exigirPlataformaActiva(entrada.plataformaId, tx);
+      await exigirPlataformaActiva(entrada.plataformaId, tx);
 
       // La reja del sobrepago: el abono no puede pasar de lo que queda. Es la MISMA cifra
       // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
@@ -235,8 +225,8 @@ export async function registrarAbono(
           moneda: entrada.moneda,
           concepto: entrada.concepto,
           nota: entrada.nota ?? null,
-          plataformaId: enlace?.plataformaId ?? entrada.plataformaId ?? null,
-          enlacePagoId: enlace?.id ?? null,
+          plataformaId: entrada.plataformaId,
+          enlacePagoId: null,
           comprobanteUrl: entrada.comprobanteUrl ?? null,
           comprobanteArchivoId: archivo?.archivoId ?? null,
           registradoPorUserId: actor.userId,
@@ -361,20 +351,20 @@ export async function adjuntarComprobante(
 }
 
 /** Corrige solo la plataforma; monto y fecha se corrigen anulando el abono (ADR 0026). */
-export async function cambiarEnlaceDeAbono(
+export async function cambiarPlataformaDeAbono(
   db: Db,
   actor: ActorDeAbono,
-  datos: DatosCambiarEnlaceDeAbono,
+  datos: DatosCambiarPlataformaDeAbono,
 ): Promise<void> {
   return normalizando(async () => {
-    const entrada = esquemaCambiarEnlaceDeAbono.parse(datos);
+    const entrada = esquemaCambiarPlataformaDeAbono.parse(datos);
     if (!trabajaLeads(actor)) {
-      throw new ErrorDeApp("Solo un closer cambia el enlace de un abono.", 403);
+      throw new ErrorDeApp("Solo un closer cambia la plataforma de un abono.", 403);
     }
 
     await (db as unknown as Transaccion).transaction(async (tx) => {
       const [abono] = await tx
-        .select({ dealId: abonos.dealId, monto: abonos.monto, moneda: abonos.moneda, anuladoEn: abonos.anuladoEn })
+        .select({ dealId: abonos.dealId, enlacePagoId: abonos.enlacePagoId, anuladoEn: abonos.anuladoEn })
         .from(abonos)
         .where(and(eq(abonos.id, entrada.abonoId), incluyendoAnulados(abonos)));
       if (!abono) throw new ErrorDeApp("No existe el abono.", 404);
@@ -383,19 +373,20 @@ export async function cambiarEnlaceDeAbono(
       const { deal, emailLead } = await dealBloqueado(tx, abono.dealId);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado.", 409);
       if (!puedeTrabajarDeal(actor, deal)) {
-        throw new ErrorDeApp("Solo el dueño del deal puede cambiar el enlace del abono.", 403);
+        throw new ErrorDeApp("Solo el dueño del deal puede cambiar la plataforma del abono.", 403);
       }
 
-      const enlace = entrada.enlacePagoId
-        ? await exigirEnlaceDePagoVigente(tx, entrada.enlacePagoId, deal.programId)
-        : null;
-      if (enlace && (Number(enlace.monto) !== Number(abono.monto) || enlace.moneda !== abono.moneda)) {
-        throw new ErrorDeApp("El link de pago no corresponde al monto y la moneda del abono.", 400);
-      }
+      await exigirPlataformaActiva(entrada.plataformaId, tx);
+      const [enlace] = abono.enlacePagoId
+        ? await tx.select({ plataformaId: enlacesPago.plataformaId }).from(enlacesPago).where(eq(enlacesPago.id, abono.enlacePagoId)).limit(1)
+        : [];
       await editarConRastro(
         { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
         entrada.abonoId,
-        { enlacePagoId: enlace?.id ?? null, plataformaId: enlace?.plataformaId ?? null },
+        {
+          plataformaId: entrada.plataformaId,
+          ...(enlace && enlace.plataformaId !== entrada.plataformaId ? { enlacePagoId: null } : {}),
+        },
       );
     });
   });

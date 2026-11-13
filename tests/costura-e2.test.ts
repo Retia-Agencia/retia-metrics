@@ -9,6 +9,7 @@ import {
   dealEtapaHistorial,
   deals,
   miembrosPrograma,
+  plataformasPago,
   programs,
   sources,
   users,
@@ -65,6 +66,7 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let programId: string;
+let plataformaId: string;
 let webhookSourceId: string;
 let closer: string;
 let gerente: string;
@@ -129,6 +131,7 @@ beforeEach(async () => {
 
   const [p] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "tactical", nombre: "Tactical", ticketUsd: "1500" }).returning();
   programId = p.id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma costura" }).returning())[0].id;
   await sembrarIntegracion(db, p.id, "calendly", { token: "token-de-prueba" });
 
   // Cohorte activa que arranca el 15-oct: el tope del plazo de pago y la que se asigna sola.
@@ -202,6 +205,7 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
       dealId,
       fecha: "2026-10-06",
       monto: "400",
+      plataformaId,
       comprobanteUrl: "https://drive.google.com/comprobante-1",
     });
     expect(primero).toMatchObject({ etapa: "ganado_parcial", movioElDeal: true, saldo: 1100, cohorteAsignada: null });
@@ -218,12 +222,13 @@ describe("E2 — la cita cae en su deal, el Grain lo atiende, el dinero lo mueve
 
     // 5. Un sobrepago se rechaza con la misma cifra; el abono exacto que salda lleva a Completo.
     await expect(
-      registrarAbono(db, comoCloser(), { dealId, fecha: "2026-10-13", monto: "1100.01", comprobanteUrl: "https://drive.google.com/x" }),
+      registrarAbono(db, comoCloser(), { dealId, fecha: "2026-10-13", monto: "1100.01", plataformaId, comprobanteUrl: "https://drive.google.com/x" }),
     ).rejects.toMatchObject({ status: 422 });
     const cierre = await registrarAbono(db, comoCloser(), {
       dealId,
       fecha: "2026-10-13",
       monto: "1100",
+      plataformaId,
       comprobanteUrl: "https://drive.google.com/comprobante-2",
     });
     expect(cierre).toMatchObject({ etapa: "ganado_completo", movioElDeal: true, saldo: 0 });

@@ -51,7 +51,6 @@ export interface OpcionesDeRespuesta {
   cohortesDestino: OpcionCatalogo[];
   motivos: { id: string; nombre: string; tipo: string; pideTexto?: boolean }[];
   plataformas: { id: string; nombre: string }[];
-  enlacesDePago: import("@/lib/queries/recursos").EnlaceDeLaPantalla[];
 }
 
 const TITULO_DE_ACTIVIDAD: Record<TipoDeActividad, string> = {
@@ -181,7 +180,7 @@ export function useResponder(
       : tipoDeHecho === "agendado" && datos.horaElegida
         ? { tipo: "agendado" as const, horaElegida: datos.horaElegida }
         : tipoDeHecho === "abono" && datos.abono?.concepto
-          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, concepto: datos.abono.concepto, nota: datos.abono.concepto === "adicional" ? datos.abono.nota : undefined, enlacePagoId: datos.abono.enlacePagoId ?? undefined, comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
+          ? { tipo: "abono" as const, fecha: datos.abono.fecha, monto: datos.abono.monto.trim(), moneda: datos.abono.moneda, concepto: datos.abono.concepto, nota: datos.abono.concepto === "adicional" ? datos.abono.nota : undefined, plataformaId: datos.abono.plataformaId ?? "", comprobanteUrl: datos.abono.comprobanteUrl, archivoId: datos.abono.archivoId ?? undefined }
           : undefined;
     const r = pendiente === "proxima_cohorte"
       ? await proximaCohorteAccion({
@@ -346,7 +345,6 @@ export function useResponder(
         cohortes={opciones.cohortesDestino}
         motivos={opciones.motivos}
         plataformas={opciones.plataformas}
-        enlacesDePago={opciones.enlacesDePago}
         saldo={deal.saldo}
         moneda={deal.moneda}
         llamada={deal.llamada}

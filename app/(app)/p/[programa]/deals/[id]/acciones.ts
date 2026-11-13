@@ -16,7 +16,7 @@ import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDea
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarEnlaceDeAbono } from "@/lib/deals/abonos";
+import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
 import { almacenDeArchivos, confirmarArchivo, pedirSubida, verificarArchivo } from "@/lib/archivos";
 import { MAX_BYTES, TIPOS_PERMITIDOS } from "@/lib/archivos/reglas";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
@@ -35,8 +35,7 @@ import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals
 import { marcarCortesia } from "@/lib/deals/cortesia";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
-import { crearEnlacePago, esquemaEnlacePago } from "@/lib/catalogo/enlaces-pago";
-import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/recursos";
+import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
 import { deshacerEvento, esquemaDeshacerEvento, eventoDeCreacion, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
 
 /**
@@ -133,6 +132,11 @@ const ROLES_ONBOARDING: readonly Rol[] = ["gerente", "closer", "customer_success
 const id = (mensaje: string) => z.string().uuid(mensaje);
 /** Un campo de formulario vacio es "no lo mande", no un texto vacio que falle la validacion. */
 const vacioAUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
+/** Sin plataforma no hay abono (ticket 423); vacío y ausente dan el mismo mensaje. */
+const plataformaObligatoria = () => z.preprocess(
+  vacioAUndefined,
+  z.string({ error: "Elige la plataforma por la que entró el pago." }).uuid("Plataforma inválida."),
+);
 const textoOpcional = <T extends z.ZodTypeAny>(esquema: T) => z.preprocess(vacioAUndefined, esquema.optional());
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");
 const hora = z.string().regex(/^\d{2}:\d{2}$/, "La hora debe ser HH:MM.");
@@ -188,7 +192,7 @@ const esquemaHecho = z.discriminatedUnion("tipo", [
     moneda: z.literal("USD"),
     concepto: z.enum(["ticket", "adicional"]),
     nota: z.string().trim().max(500, "La nota puede tener máximo 500 caracteres.").optional(),
-    enlacePagoId: textoOpcional(id("Enlace de pago inválido.")),
+    plataformaId: plataformaObligatoria(),
     comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
     archivoId: textoOpcional(id("Archivo inválido.")),
   }),
@@ -411,7 +415,7 @@ const esquemaAbonoAccion = z.object({
   moneda: z.literal("USD").default("USD"),
   concepto: z.enum(["ticket", "adicional"]),
   nota: z.string().trim().max(500, "La nota puede tener máximo 500 caracteres.").optional(),
-  enlacePagoId: textoOpcional(id("Enlace de pago inválido.")),
+  plataformaId: plataformaObligatoria(),
   comprobanteUrl: textoOpcional(z.string().url("El comprobante debe ser una URL válida.")),
   archivoId: textoOpcional(id("Archivo inválido.")),
 });
@@ -458,47 +462,48 @@ export async function pedirSubidaParaAbonoAccion(
     });
   });
 }
-const esquemaCambiarEnlaceDeAbonoAccion = z.object({
+const esquemaCambiarPlataformaDeAbonoAccion = z.object({
   abonoId: id("Abono inválido."),
-  enlacePagoId: id("Enlace de pago inválido.").nullable(),
+  plataformaId: plataformaObligatoria(),
 });
-export type EntradaCambiarEnlaceDeAbono = z.input<typeof esquemaCambiarEnlaceDeAbonoAccion>;
+export type EntradaCambiarPlataformaDeAbono = z.input<typeof esquemaCambiarPlataformaDeAbonoAccion>;
 
-export async function cambiarEnlaceDeAbonoAccion(
-  entrada: EntradaCambiarEnlaceDeAbono,
+export async function cambiarPlataformaDeAbonoAccion(
+  entrada: EntradaCambiarPlataformaDeAbono,
 ): Promise<ResultadoFicha> {
   return correr(async (ctx) => {
-    const datos = esquemaCambiarEnlaceDeAbonoAccion.parse(entrada);
+    const datos = esquemaCambiarPlataformaDeAbonoAccion.parse(entrada);
     await exigirAbonoVisible(ctx, datos.abonoId);
-    await cambiarEnlaceDeAbono(db, ctx.actor, datos);
+    await cambiarPlataformaDeAbono(db, ctx.actor, datos);
     return {};
   });
 }
 
-const esquemaCrearEnlaceParaAbono = esquemaEnlacePago
-  .omit({ programId: true })
-  .extend({ dealId: id("Deal inválido.") });
-export type EntradaCrearEnlaceParaAbono = z.input<typeof esquemaCrearEnlaceParaAbono>;
+const esquemaCrearPlataformaParaAbono = z.object({
+  dealId: id("Deal inválido."),
+  nombre: z.string(),
+});
+export type EntradaCrearPlataformaParaAbono = z.input<typeof esquemaCrearPlataformaParaAbono>;
 
-/** Crea el link en el programa DEL deal; el cliente no puede elegir otro programa. */
-export async function crearEnlaceParaAbonoAccion(
-  entrada: EntradaCrearEnlaceParaAbono,
-): Promise<ResultadoFicha<{ enlace: EnlaceDeLaPantalla }>> {
+/** Crea o vincula la plataforma al programa DEL deal. */
+export async function crearPlataformaParaAbonoAccion(
+  entrada: EntradaCrearPlataformaParaAbono,
+): Promise<ResultadoFicha<{ plataforma: { id: string; nombre: string } }>> {
   return correr(async (ctx) => {
-    const datos = esquemaCrearEnlaceParaAbono.parse(entrada);
+    const datos = esquemaCrearPlataformaParaAbono.parse(entrada);
+    await exigirDealVisible(ctx, datos.dealId);
     const [deal] = await db
       .select({ programId: deals.programId })
       .from(deals)
       .where(and(eq(deals.id, datos.dealId), incluyendoAnulados(deals)));
     if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-    const creado = await crearEnlacePago(
+    const plataforma = await crearOVincularPlataforma(
       db,
       { id: ctx.actor.userId, rol: ctx.actor.rol },
-      { ...datos, programId: deal.programId },
+      datos.nombre,
+      deal.programId,
     );
-    const enlace = (await enlacesDePagoVigentes({ programId: deal.programId }, db)).find((e) => e.id === creado.id);
-    if (!enlace) throw new ErrorDeApp("El link se creó pero no se pudo volver a leer.", 500);
-    return { enlace };
+    return { plataforma: { id: plataforma.id, nombre: String(plataforma.nombre) } };
   });
 }
 

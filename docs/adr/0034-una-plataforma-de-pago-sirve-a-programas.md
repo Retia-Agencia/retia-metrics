@@ -1,6 +1,6 @@
 # 0034 — Una plataforma de pago sirve a programas, por tabla puente
 
-**Fecha:** 2026-09-20 · **Estado:** aceptado (Mani, 20-sep) · **Implementacion:** enmienda del
+**Fecha:** 2026-09-20 · **Estado:** aceptado (Mani, 20-sep; enmendado el 30-oct y el 12-nov) · **Implementacion:** enmienda del
 ticket 013 · **Aplica:** ADR 0012, ADR 0016 · **Toca:** ADR 0005
 
 ## El problema
@@ -115,3 +115,16 @@ plataforma no cambian. Un link fija monto y moneda (el servidor rechaza una disc
 y queda marcado "Sin link de pago" hasta asociarlo. Plataformas y links se gestionan en Programa > Plataformas de pago
 y se pueden crear al abonar con el mismo permiso de siempre (administradores y closers con membresía activa en el
 programa). Recursos se queda como vista de lectura. Migración 0112.
+
+## Enmienda (12-nov, ticket 423): el abono vuelve a la plataforma, y es obligatoria
+
+Reemplaza la del 30-oct. Michael (11-nov) y Mani (12-nov): el abono **no pide link**, pide la **plataforma** por la
+que entró el pago, y sin ella no se guarda (400 en el servidor; el comprobante sigue igual de obligatorio). El
+selector lista las plataformas vinculadas al programa y, si la que se usó no está, el closer la crea ahí mismo
+(`crearOVincularPlataforma`: la crea por el molde con `change_log` y la vincula, o vincula la existente). El abono
+guarda `plataforma_id` y deja `enlace_pago_id` nulo; "cambiar link" se reemplaza por "cambiar plataforma", y un abono
+viejo sin plataforma se marca "Sin plataforma" en la ficha para que el closer la elija (no se rellena a mano). El
+vínculo sigue siendo proyección, no reja: el servidor exige que la plataforma exista y esté activa, no que esté
+vinculada. Los links de pago se quedan en Recursos para mandárselos al lead; la columna `abonos.enlace_pago_id` se
+queda con su historia. El histórico y el importador (`lib/deals/historico.ts`, `lib/migracion/importar.ts`) siguen
+pudiendo dejar la plataforma nula.

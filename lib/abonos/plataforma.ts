@@ -8,18 +8,13 @@ import { ErrorDeApp } from "@/lib/errors";
  * Se valida antes de insertar para dar un 400 claro en vez de un fallo de FK opaco,
  * y una plataforma desactivada no vuelve a entrar por la puerta de atras.
  *
- * Sin `plataformaId` no hay nada que validar: la columna es opcional (un abono puede
- * registrarse sin saber todavia por donde entro).
- *
- * Hoy no la llama nadie: el registro de abonos salio con el corte de la migracion
- * 0020 y vuelve, colgado del deal, en el ticket 060, que es quien la usa.
+ * La llama `registrarAbono`: todo abono operativo declara por donde entro el pago.
+ * La columna sigue nullable para el historico y el importador.
  */
 export async function exigirPlataformaActiva(
-  plataformaId: string | undefined,
+  plataformaId: string,
   db: Db,
 ): Promise<void> {
-  if (!plataformaId) return;
-
   const [plataforma] = await db
     .select({ id: plataformasPago.id })
     .from(plataformasPago)

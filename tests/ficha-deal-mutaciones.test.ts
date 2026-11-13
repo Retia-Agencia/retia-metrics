@@ -9,6 +9,7 @@ import {
   leads,
   miembrosPrograma,
   motivos,
+  plataformasPago,
   programs,
   users,
   dealEtapaHistorial,
@@ -48,6 +49,7 @@ let closer: string;
 let otroCloser: string;
 let gerente: string;
 let developer: string;
+let plataformaId: string;
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -79,6 +81,7 @@ beforeEach(async () => {
   gerente = g.id;
   const [d] = await db.insert(users).values({ email: "dev@retiagrowth.com", rol: "developer" }).returning();
   developer = d.id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma mutaciones" }).returning())[0].id;
   await db.insert(miembrosPrograma).values([
     { userId: closer, programId },
     { userId: otroCloser, programId },
@@ -293,6 +296,7 @@ describe("anularDeal", () => {
       dealId,
       fecha: "2026-09-28",
       monto: "300",
+      plataformaId,
       comprobanteUrl: "https://drive.google.com/c",
     });
 

@@ -9,6 +9,7 @@ import {
   dealActividades,
   deals,
   leads,
+  plataformasPago,
   programs,
   users,
 } from "@/lib/db/schema";
@@ -28,6 +29,7 @@ let vaciar: () => Promise<void>;
 let programId: string;
 let cohortId: string;
 let closerId: string;
+let plataformaId: string;
 let secuencia = 0;
 
 const actor = () => ({ userId: closerId, rol: "closer" as const, operaComoCloser: false });
@@ -100,6 +102,7 @@ beforeEach(async () => {
     .values({ email: "closer-134@retia.co", rol: "closer", closerId: "Closer 134" })
     .returning();
   closerId = closer.id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma 134" }).returning())[0].id;
 });
 
 afterAll(async () => cerrar());
@@ -144,6 +147,7 @@ describe("ticket 134 — cohorte y descuento", () => {
       dealId: conActiva.id,
       fecha: "2026-10-01",
       monto: "100",
+      plataformaId,
       comprobanteUrl: "https://drive.google.com/abono",
     });
     const [congelado] = await db.select().from(deals).where(eq(deals.id, conActiva.id));
@@ -156,6 +160,7 @@ describe("ticket 134 — cohorte y descuento", () => {
         dealId: sinActiva.id,
         fecha: "2026-10-01",
         monto: "100",
+        plataformaId,
         comprobanteUrl: "https://drive.google.com/abono",
       }),
     );

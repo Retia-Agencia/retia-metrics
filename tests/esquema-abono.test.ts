@@ -16,6 +16,7 @@ describe("esquema del abono", () => {
     programId: "22222222-2222-4222-8222-222222222222",
     fecha: "2026-09-15",
     monto: "750",
+    plataformaId: "33333333-3333-4333-8333-333333333333",
   };
 
   it("acepta un abono en USD", () => {
@@ -24,10 +25,11 @@ describe("esquema del abono", () => {
     expect(r.monto).toBe("750");
   });
 
-  it("acepta un enlace de pago opcional y rechaza un id inválido", () => {
-    const enlacePagoId = "33333333-3333-4333-8333-333333333333";
-    expect(esquemaAbono.parse({ ...base, enlacePagoId }).enlacePagoId).toBe(enlacePagoId);
-    expect(() => esquemaAbono.parse({ ...base, enlacePagoId: "no-es-uuid" })).toThrow();
+  it("exige una plataforma válida", () => {
+    const sinPlataforma: Record<string, unknown> = { ...base };
+    delete sinPlataforma.plataformaId;
+    expect(() => esquemaAbono.parse(sinPlataforma)).toThrow("Elige la plataforma por la que entró el pago.");
+    expect(() => esquemaAbono.parse({ ...base, plataformaId: "no-es-uuid" })).toThrow("Plataforma inválida.");
   });
 
   it("usa USD por defecto si no se pasa moneda", () => {

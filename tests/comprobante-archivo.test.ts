@@ -6,7 +6,7 @@ import { confirmarArchivo, pedirSubida, verificarArchivo } from "@/lib/archivos"
 import { adjuntarComprobante, registrarAbono } from "@/lib/deals/abonos";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
-import { abonos, archivos, changeLog, cohorts, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
+import { abonos, archivos, changeLog, cohorts, dealActividades, deals, leads, plataformasPago, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
@@ -21,6 +21,7 @@ let otroProgramId: string;
 let cohortId: string;
 let closer: string;
 let otroCloser: string;
+let plataformaId: string;
 let secuencia = 0;
 let almacen: AlmacenEnMemoria;
 
@@ -53,6 +54,7 @@ beforeEach(async () => {
   ]).returning();
   closer = actores[0].id;
   otroCloser = actores[1].id;
+  plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma comprobante" }).returning())[0].id;
   almacen = new AlmacenEnMemoria();
 });
 
@@ -117,7 +119,7 @@ async function nuevoDeal() {
 }
 
 function datosDeAbono(dealId: string, monto = "100") {
-  return { dealId, fecha: "2026-10-13", monto, moneda: "USD" as const };
+  return { dealId, fecha: "2026-10-13", monto, moneda: "USD" as const, plataformaId };
 }
 
 async function errorDe(promesa: Promise<unknown>) {
@@ -241,7 +243,7 @@ describe("registrar abono con archivo", () => {
       dealId: deal.id,
       a: "ganado_parcial",
       datos: {},
-      hecho: { tipo: "abono", fecha: "2026-10-13", monto: "100", moneda: "USD", archivo },
+      hecho: { tipo: "abono", fecha: "2026-10-13", monto: "100", moneda: "USD", plataformaId, archivo },
     });
 
     const [abono] = await db.select().from(abonos).where(eq(abonos.dealId, deal.id));

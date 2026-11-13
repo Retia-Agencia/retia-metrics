@@ -13,7 +13,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import type { FichaDeAbono, FichaDeDeal, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   anularAbonoAccion,
-  cambiarEnlaceDeAbonoAccion,
+  cambiarPlataformaDeAbonoAccion,
   desmarcarOnboardedAccion,
   editarAcuerdoAccion,
   marcarOnboardedAccion,
@@ -26,7 +26,7 @@ import {
 import { Campo, claseInput, claseTextarea, DialogoForm, Vacio } from "./campos";
 import { useAccion } from "./uso-accion";
 import { cn } from "@/lib/utils";
-import { ControlEnlacePago, FormularioAbono, datosInicialesDeAbono } from "../formulario-abono";
+import { ControlPlataforma, FormularioAbono, datosInicialesDeAbono } from "../formulario-abono";
 import { SubirArchivo } from "@/components/archivos/subir-archivo";
 import { DialogoDeshacer } from "./dialogo-deshacer";
 
@@ -44,7 +44,7 @@ import { DialogoDeshacer } from "./dialogo-deshacer";
 type Dialogo =
   | { tipo: "abono" }
   | { tipo: "anular"; abono: FichaDeAbono }
-  | { tipo: "enlace"; abono: FichaDeAbono }
+  | { tipo: "plataforma"; abono: FichaDeAbono }
   | { tipo: "comprobante"; abono: FichaDeAbono }
   | { tipo: "acuerdo" }
   | { tipo: "descuento" };
@@ -234,8 +234,8 @@ export function FichaPago({
                   <span className={anulada ? "cifra line-through" : "cifra font-medium"}>{monto(Number(a.monto), a.moneda)}</span>
                   {a.concepto === "adicional" ? <Badge variant="info">Adicional</Badge> : null}
                   <span className="text-xs text-muted-foreground">{fecha(a.fecha)}</span>
-                  {a.enlacePagoNombre ? <span className="text-xs text-muted-foreground">· {a.enlacePagoNombre}</span> : a.plataformaNombre ? <span className="text-xs text-muted-foreground">· {a.plataformaNombre}</span> : null}
-                  {!a.enlacePagoId ? <Badge variant="alerta">Sin link de pago</Badge> : null}
+                  {a.plataformaNombre ? <span className="text-xs text-muted-foreground">· {a.plataformaNombre}</span> : null}
+                  {!a.plataformaId && !anulada ? <Badge variant="alerta">Sin plataforma</Badge> : null}
                   {a.comprobanteUrl ? (
                     <a className="text-xs text-marca-texto underline-offset-2 hover:underline" href={a.comprobanteUrl} target="_blank" rel="noreferrer">
                       Comprobante
@@ -257,8 +257,8 @@ export function FichaPago({
                     </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
-                    <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "enlace", abono: a })}>
-                      {a.enlacePagoId ? "Cambiar enlace" : "Asociar link"}
+                    <Button size="xs" variant="secondary" onClick={() => setDialogo({ tipo: "plataforma", abono: a })}>
+                      Cambiar plataforma
                     </Button>
                   ) : null}
                   {!anulada && puedeRegistrar && !anulado ? (
@@ -291,7 +291,7 @@ export function FichaPago({
         <DialogoAnularAbono abono={dialogo.abono} nombreDeEtapa={nombreDeEtapa} onCerrar={cerrar} />
       ) : null}
       {dialogo?.tipo === "abono" ? <DialogoRegistrarAbono ficha={ficha} opciones={opciones} hoy={hoy} ticketDeshabilitado={cerrado || !aceptaAbono} motivoTicketDeshabilitado={cerrado ? "El deal ya está cerrado." : `Desde ${nombreDeEtapa[ficha.etapa]} aún no se cobra el programa: mueve el deal a una etapa donde el lead ya hable de pagar.`} onCerrar={cerrar} /> : null}
-      {dialogo?.tipo === "enlace" ? <DialogoCambiarEnlace ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
+      {dialogo?.tipo === "plataforma" ? <DialogoCambiarPlataforma ficha={ficha} abono={dialogo.abono} opciones={opciones} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "comprobante" ? <DialogoComprobante abono={dialogo.abono} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "acuerdo" ? <DialogoAcuerdo ficha={ficha} onCerrar={cerrar} /> : null}
       {dialogo?.tipo === "descuento" ? <DialogoDescuento ficha={ficha} onCerrar={cerrar} /> : null}
@@ -317,7 +317,8 @@ function DialogoRegistrarAbono({
   const { pendiente, correr } = useAccion();
   const [datos, setDatos] = useState(() => ({ ...datosInicialesDeAbono("USD"), fecha: hoy }));
   const completo = Boolean(
-    datos.concepto && datos.fecha && datos.monto.trim()
+    datos.concepto && datos.fecha && datos.monto.trim() && datos.plataformaId
+    && (datos.comprobanteUrl.trim() || datos.archivoId)
     && (datos.concepto !== "adicional" || datos.nota.trim()),
   );
   return (
@@ -341,7 +342,7 @@ function DialogoRegistrarAbono({
               moneda: datos.moneda,
               concepto,
               nota: concepto === "adicional" ? datos.nota : undefined,
-              enlacePagoId: datos.enlacePagoId ?? undefined,
+              plataformaId: datos.plataformaId!,
               comprobanteUrl: datos.comprobanteUrl,
               archivoId: datos.archivoId ?? undefined,
             }),
@@ -354,7 +355,6 @@ function DialogoRegistrarAbono({
         dealId={ficha.dealId}
         moneda="USD"
         plataformas={opciones.plataformas}
-        enlacesDePago={opciones.enlacesDePago}
         datos={datos}
         onChange={setDatos}
         ticketDeshabilitado={ticketDeshabilitado}
@@ -431,7 +431,7 @@ function AccionesEnlacePago({ url }: { url: string }) {
   );
 }
 
-function DialogoCambiarEnlace({
+function DialogoCambiarPlataforma({
   ficha,
   abono,
   opciones,
@@ -443,32 +443,29 @@ function DialogoCambiarEnlace({
   onCerrar: () => void;
 }) {
   const { pendiente, correr } = useAccion();
-  const [enlacePagoId, setEnlacePagoId] = useState<string | null>(abono.enlacePagoId);
+  const [plataformaId, setPlataformaId] = useState<string | null>(abono.plataformaId);
   return (
     <DialogoForm
-      titulo="Cambiar enlace"
+      titulo="Cambiar plataforma"
       descripcion={`${monto(Number(abono.monto), abono.moneda)} del ${fecha(abono.fecha)}. El monto y la fecha no cambian.`}
       pendiente={pendiente}
       onCerrar={onCerrar}
+      deshabilitarConfirmar={!plataformaId}
       confirmar={{
-        texto: "Guardar enlace",
+        texto: "Guardar plataforma",
         enCurso: "Guardando…",
         onClick: () => correr(
-          () => cambiarEnlaceDeAbonoAccion({ abonoId: abono.id, enlacePagoId }),
-          { exito: "Enlace actualizado.", alExito: onCerrar },
+          () => cambiarPlataformaDeAbonoAccion({ abonoId: abono.id, plataformaId: plataformaId! }),
+          { exito: "Plataforma actualizada.", alExito: onCerrar },
         ),
       }}
     >
-      <Campo etiqueta="Link de pago (opcional)">
-        <ControlEnlacePago
+      <Campo etiqueta="Plataforma de pago">
+        <ControlPlataforma
           dealId={ficha.dealId}
           plataformas={opciones.plataformas}
-          enlaces={opciones.enlacesDePago}
-          value={enlacePagoId}
-          monto={abono.monto}
-          moneda={abono.moneda}
-          restringirAMonto
-          onValueChange={setEnlacePagoId}
+          value={plataformaId}
+          onValueChange={setPlataformaId}
         />
       </Campo>
     </DialogoForm>
