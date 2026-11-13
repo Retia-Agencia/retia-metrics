@@ -1182,6 +1182,12 @@ export const dealEtapaHistorial = pgTable(
     motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
     /** La reversion que escribio este movimiento (ADR 0117). Con valor, la fila no se deshace. */
     reversionId: uuid("reversion_id").references((): AnyPgColumn => reversiones.id, { onDelete: "restrict" }),
+    /**
+     * Por que puerta entro el movimiento (411 F2): `app` o `mcp`. Nulo = fila anterior al 13-nov-2026,
+     * cuando no se guardaba: no se rellena, porque un rastro inventado se ve igual que el de verdad
+     * (ADR 0029). Toda fila nueva la escribe `moverEtapa` con `mov.origen`.
+     */
+    origen: origenCambioEnum("origen"),
     fecha: timestamp("fecha", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("deal_etapa_historial_deal_idx").on(t.dealId, t.fecha)],
