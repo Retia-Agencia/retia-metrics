@@ -2,6 +2,7 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { editarConRastro } from "@/lib/crm/rastro";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { vigente } from "@/lib/queries/vigente";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 
@@ -32,11 +33,12 @@ export async function cambiarDuenoDeal(
     esNovedad?: boolean;
     cambiosAdicionales?: Record<string, unknown>;
     reversionId?: string;
+    origen?: OrigenOperativo;
   },
 ): Promise<boolean> {
   if (entrada.ownerActual === entrada.ownerNuevo) return false;
   return editarConRastro(
-    { db, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, reversionId: entrada.reversionId },
+    { db, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, reversionId: entrada.reversionId, origen: entrada.origen ?? "app" },
     entrada.dealId,
     {
       ...camposDeDueno(entrada.ownerNuevo, { esNovedad: entrada.esNovedad ?? true }),

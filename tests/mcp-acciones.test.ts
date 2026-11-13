@@ -125,7 +125,11 @@ describe("acciones MCP", () => {
   it("un closer prepara y confirma; cambia etapa, deja historial y el deshacer deja todo change_log con origen mcp", async () => {
     const dealId = await nuevoDeal();
     const capacidades = contenido(await post("tools/call", { name: "capacidades", arguments: {} }, tokenEscritura.valor))!;
-    expect((capacidades.acciones as { clave: string }[]).map((accion) => accion.clave)).toEqual(["mover_etapa", "deshacer_evento"]);
+    expect((capacidades.acciones as { clave: string }[]).map((accion) => accion.clave)).toEqual([
+      "mover_etapa", "deshacer_evento", "marcar_show", "pegar_grain", "corregir_resultado",
+      "registrar_abono", "cambiar_plataforma_de_abono", "anular_deal", "anular_abono", "anular_llamada",
+      "marcar_fallida", "asignar_llamada_suelta",
+    ]);
     const previa = contenido(await preparar(dealId))!;
     expect((previa.filas as { se_puede_aplicar: boolean }[])[0].se_puede_aplicar).toBe(true);
     expect(previa.texto_para_la_persona).not.toContain(dealId);

@@ -55,7 +55,7 @@ export function FichaHistorial({
             const recortar = (valor: string) => (valor.length > 80 ? `${valor.slice(0, 77)}…` : valor);
             return (
               <li key={`${evento.tipo}-${evento.id}`} className="flex min-w-0 flex-wrap justify-between gap-2 px-4 py-3 text-sm">
-                <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
+                <div className="flex min-w-0 flex-[1_1_14rem] flex-wrap items-start gap-2">
                 {evento.tipo === "etapa" ? (
                   <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                     {evento.esDeshacer ? <span className="font-medium">Deshacer:</span> : null}
@@ -126,6 +126,7 @@ export function FichaHistorial({
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {evento.porNombre ?? "Sistema"} · {fechaHoraEnBogota(evento.fecha)}
+                  {evento.tipo === "etapa" && evento.origen ? ` · ${evento.origen === "app" ? "desde la app" : "desde el asistente"}` : null}
                 </span>
               </li>
             );

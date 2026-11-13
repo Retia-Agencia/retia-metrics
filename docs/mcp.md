@@ -4,7 +4,7 @@
 > *cómo se cambia sin romperlo*. El *por qué* de cada decisión vive en el [ADR 0119](./adr/0119-el-mcp-del-crm.md); el avance en
 > los tickets 348, 383, 384, 385 y 386; cómo conectarse y revocar, en `operations.md` §8.1. Si algo de aquí contradice al
 > código, manda el código (ADR 0115 N8) y este archivo se corrige en el mismo commit.
-> Última revisión: 12-nov-2026.
+> Última revisión: 13-nov-2026.
 
 ## 1. Qué es y dónde vive
 
@@ -88,6 +88,37 @@ Las consultas son de solo lectura. Las escrituras siguen el molde preparar → c
 | `origen_del_programa` | Origen del programa | Para entender de dónde llegaron los registros | gerente, paid trafficker |
 | `preparar_accion` | Preparar una acción | Para revisar antes y después, permisos y requisitos sin cambiar el negocio | quien tenga scope de escritura; la acción decide el rol |
 | `confirmar_cambio` | Confirmar un cambio | Para aplicar una vista previa vigente una sola vez, solo tras el sí explícito | quien tenga scope de escritura y no esté suplantando |
+
+Las acciones disponibles son `mover_etapa`, `deshacer_evento`, `marcar_show`, `pegar_grain`,
+`corregir_resultado`, `registrar_abono`, `cambiar_plataforma_de_abono`, `anular_deal`,
+`anular_abono`, `anular_llamada`, `marcar_fallida` y `asignar_llamada_suelta`. Todas llaman el mismo caso de uso que la app y vuelven a
+validar el alcance: un deal, una llamada o un abono de otro programa responde 404 y no revela que
+existe.
+
+**Decisión de Mani del 13-nov (deshacer igual que la app):** solo `mover_etapa` y `registrar_abono`
+devuelven un evento para deshacer. `registrar_abono` devuelve el evento de creación del abono: al deshacerlo, el abono deja de contar
+y el deal recalcula su etapa. `marcar_show`, `pegar_grain`, `corregir_resultado`,
+`marcar_fallida` y `asignar_llamada_suelta` no se deshacen en un paso, igual que la app; la vista
+previa indica cómo corregir el resultado. `cambiar_plataforma_de_abono` tampoco: la app no deshace
+ese cambio ("un pago mal registrado se deshace anulando el abono"), y si quedó mal se vuelve a
+cambiar. `anular_deal`, `anular_abono` y `anular_llamada` tampoco
+se deshacen, igual que la app, y su vista previa dice «Una anulación no se puede deshacer». Esto
+corrige la afirmación de D3 de que toda escritura se deshace.
+
+**Decisión de Mani del 13-nov:** sin enlace del comprobante el abono se registra en la app,
+donde se adjunta el archivo y se revisa antes de mover el deal. Por eso `comprobante_url` es
+obligatorio solo en `registrar_abono` del MCP; no cambia la regla de la app.
+
+`marcar_fallida` y `asignar_llamada_suelta` entran como en la app. La vista previa avisa solo si
+la operación tocará Calendly. La escritura del CRM se confirma primero y la cancelación en
+Calendly corre después del commit; si falla, la escritura no se revierte, queda pendiente y el
+deal recibe una nota para reintentar. Esta es una decisión de Mani del 13-nov. Con el mismo
+mecanismo, `pegar_grain` agenda la lectura de la grabación en Grain solo después del commit de la
+fila (revisión adversarial del 13-nov): si la fila falla, no queda ninguna lectura agendada.
+
+Quedan pendientes `reagendar`/`agendar`, la **reversión compuesta de una operación** y
+**deshacer una anulación** (una regla nueva de app bajo ADR 0026/0038). Crear plataforma no será
+una acción: es mantenimiento de catálogo.
 
 `detalle` decide entre la proyección `compacta` y `completa` en `buscar`, `ficha_de_lead` y
 `tablero_de_deals`. En el tablero, `vista` nombra exclusivamente las columnas del Kanban

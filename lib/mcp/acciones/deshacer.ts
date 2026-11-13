@@ -45,7 +45,7 @@ export const deshacerEventoMcp: AccionMcp<typeof argumentosDeshacerEvento> = {
       detalle: evento ? { resumen: evento.resumen, evento_id: evento.id } : undefined,
     };
   },
-  huella: (db, objetivo) => huellaDeAccionDeal(db, objetivo.id),
+  huella: (db, objetivo, opciones) => huellaDeAccionDeal(db, objetivo.id, opciones),
   async aplicar(db, actor, objetivoBase, opciones) {
     const objetivo = objetivoBase as ObjetivoDeshacer;
     const evento = await eventoDelObjetivo(db, actor, objetivo);

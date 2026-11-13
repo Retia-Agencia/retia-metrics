@@ -188,10 +188,10 @@ async function deshacerCambio(
   });
 
   if (clasificacion.tipo === "creacion") {
-    if (tabla === "abonos") await anularAbono(tx, actor, { abonoId: evento.registroId, motivo: entrada.motivo }, { reversionId });
-    else if (tabla === "deals") await anularDeal(tx, actor, { dealId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true });
-    else if (tabla === "calls") await anularLlamada(tx, actor, { callId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true });
-    else await anularActividad(tx, actor, { actividadId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true });
+    if (tabla === "abonos") await anularAbono(tx, actor, { abonoId: evento.registroId, motivo: entrada.motivo }, { reversionId, origen: opciones.origen });
+    else if (tabla === "deals") await anularDeal(tx, actor, { dealId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true, origen: opciones.origen });
+    else if (tabla === "calls") await anularLlamada(tx, actor, { callId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true, origen: opciones.origen });
+    else await anularActividad(tx, actor, { actividadId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true, origen: opciones.origen });
     return;
   }
 
@@ -199,6 +199,7 @@ async function deshacerCambio(
     motivo: entrada.motivo?.trim() || null,
     filas: filas as FilaDeGrupo[],
     esCortesia: tabla === "deals" && filas.some((fila) => fila.campo === "cortesia" && fila.valorAnterior === "false"),
+    origen: opciones.origen,
   };
   for (const fila of filas) {
     const r = (REGISTRO[tabla] as Record<string, ReglaDeCampo>)[fila.campo];
@@ -268,6 +269,7 @@ export async function deshacerEvento(
 
 export interface EventoDeshacible {
   id: string;
+  fecha: Date;
   puedeDeshacer: boolean;
   resumen: { campo: string; ahora: string | null; quedaria: string | null }[];
   /** Es el alta del registro: deshacerla lo anula. La pantalla lo dice en una línea, sin campos. */
@@ -321,6 +323,7 @@ export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: str
     const cortesiaRestringida = grupo.some((fila) => fila.campo === "cortesia") && !esAdministrador(actor.rol);
     cambios.push({
       id,
+      fecha: primera.detectadoEn,
       puedeDeshacer: clasificacion.tipo !== "no" && reversion == null && primera.userId != null
         && grupo.every((fila) => fila.reversionId == null) && !cortesiaRestringida
         && puedeDeshacer(actor, { autorId: primera.userId, ownerUserId: deal.ownerUserId, campo: primera.campo }),
@@ -339,6 +342,7 @@ export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: str
     ...cambios,
     ...etapas.map(({ historia, reversion, tipoMotivo }) => ({
       id: historia.id,
+      fecha: historia.fecha,
       puedeDeshacer: historia.userId != null && historia.reversionId == null && reversion == null && tipoMotivo !== "correccion"
         && puedeDeshacer(actor, { autorId: historia.userId, ownerUserId: deal.ownerUserId }),
       resumen: [{ campo: "etapa", ahora: historia.a, quedaria: historia.de }],
@@ -346,5 +350,5 @@ export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: str
       tabla: "deal_etapa_historial",
       deshecho: reversion ? { userId: reversion.userId, fecha: reversion.fecha, motivo: reversion.motivo } : null,
     })),
-  ];
+  ].sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
 }

@@ -205,11 +205,11 @@ describe("editar el deal, forjando la peticion", () => {
     expect(r).toMatchObject({ ok: false, status: 400, error: "El próximo contacto tiene que ser una fecha futura." });
   });
 
-  it("mover un deal de otro programa devuelve 403 y no lo cambia", async () => {
+  it("mover un deal de otro programa devuelve 404 y no lo cambia", async () => {
     const dealId = await nuevoDeal(programaB, closerA);
     auth.mockResolvedValue(sesion(closerA, "closer", "Maru"));
     const r = await (await accionesMover()).moverDeal({ dealId, a: "agendado", pendiente: "reagenda" });
-    expect(r).toMatchObject({ ok: false, status: 403 });
+    expect(r).toMatchObject({ ok: false, status: 404 });
     expect((await deal(dealId)).etapa).toBe("atendido");
   });
 

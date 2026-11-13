@@ -1,12 +1,9 @@
-import { and, eq } from "drizzle-orm";
 import { z } from "zod";
-import { programaEnAlcance } from "@/lib/auth/alcance";
 import type { OrigenOperativo } from "@/lib/crm/rastro";
-import { deals, etapaDealEnum, pendienteDealEnum } from "@/lib/db/schema";
+import { etapaDealEnum, pendienteDealEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { ErrorDeApp } from "@/lib/errors";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { deshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
+import { exigirDealVisible } from "./alcance";
 import { esquemaProximoContacto } from "./proximo-contacto";
 import { esquemaDescuentoUsdOpcional } from "./valor-vendido";
 import { moverEtapa, revisarMovimiento, type Actor, type RevisionDeMovimiento } from "./mover-etapa";
@@ -38,23 +35,13 @@ export type EntradaMover = z.input<typeof esquemaMover>;
 export type EntradaRevisar = z.input<typeof esquemaRevisar>;
 export type ActorDeMovimiento = Extract<Actor, { tipo: "usuario" }>;
 
-async function exigirDealEnAlcance(db: Db, actor: ActorDeMovimiento, dealId: string) {
-  const [deal] = await db.select({ programId: deals.programId }).from(deals)
-    .where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
-  if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-  if (!(await programaEnAlcance(actor.userId, actor.rol, deal.programId, db))) {
-    throw new ErrorDeApp("No puedes mover un deal de otro programa.", 403);
-  }
-  return deal;
-}
-
 export async function deshacerEventoComo(
   db: Db,
   actor: ActorDeMovimiento,
   entrada: EntradaDeshacerEvento,
   opciones: { origen: OrigenOperativo },
 ): Promise<void> {
-  await exigirDealEnAlcance(db, actor, entrada.dealId);
+  await exigirDealVisible(db, actor, entrada.dealId);
   await deshacerEvento(db, actor, entrada, opciones);
 }
 
@@ -64,7 +51,7 @@ export async function moverDealComo(
   mov: z.output<typeof esquemaMover>,
   opciones: { origen: OrigenOperativo },
 ): Promise<void> {
-  await exigirDealEnAlcance(db, actor, mov.dealId);
+  await exigirDealVisible(db, actor, mov.dealId);
   if (mov.correccion) {
     await deshacerEventoComo(db, actor, {
       dealId: mov.dealId,
@@ -90,7 +77,7 @@ export async function revisarMovimientoComo(
   actor: ActorDeMovimiento,
   mov: z.output<typeof esquemaRevisar>,
 ): Promise<RevisionDeMovimiento> {
-  await exigirDealEnAlcance(db, actor, mov.dealId);
+  await exigirDealVisible(db, actor, mov.dealId);
   return revisarMovimiento(db, {
     dealId: mov.dealId,
     a: mov.a,

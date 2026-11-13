@@ -9,7 +9,7 @@ export const INSTRUCCIONES_MCP = `Eres el acceso al CRM de Retia y a todos sus p
 Qué herramienta usar, sin explorar las demás:
 - «¿De quién es X?» o «¿quedó bien el traspaso?»: Buscar en el CRM (buscar), primero y sin necesidad de conocer el programa.
 - No sabes qué consultas están disponibles: Capacidades (capacidades). No adivines una capacidad.
-- Para cambiar algo, prepara la acción (preparar_accion), muéstrale a la persona la vista previa y confirma (confirmar_cambio) solo con su sí explícito en el chat. Al terminar, dile cómo deshacer usando el evento que devuelve el CRM.
+- Para mover un deal, registrar o corregir una llamada, registrar o corregir un abono, o anular un registro, prepara la acción (preparar_accion), muestra la vista previa y confirma (confirmar_cambio) solo con el sí explícito. Al terminar, explica cómo deshacer solo si el CRM devolvió un evento; una anulación no se puede deshacer.
 - No sabes los valores válidos antes de filtrar: Opciones de filtros (opciones_de_filtros).
 - Cifras de un periodo (ventas, caja, citas, realizadas y tasas): Resumen del Hub (resumen_del_hub).
 - Una métrica en detalle, sus filas, o filtrada por origen, closer, etapa o pauta: Consultar una métrica (consultar_metrica).

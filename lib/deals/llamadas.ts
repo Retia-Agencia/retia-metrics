@@ -7,13 +7,19 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { dejarNotaDelActor } from "./nota-del-sistema";
 import type { FetchLike } from "@/lib/calendly/cita";
 import { type CitaReservada } from "@/lib/calendly/escritura";
 import { adoptarSueltaDeCita, huellaDeCita } from "@/lib/calendly/colgar-llamada";
-import { cancelarCitaEnCalendly, cancelarCitasReemplazadas, reemplazarCitasAnteriores } from "@/lib/calendly/una-cita-activa";
+import {
+  cancelarCitaEnCalendly,
+  cancelarCitasReemplazadas,
+  esCancelacionDeCitaActiva,
+  reemplazarCitasAnteriores,
+  type CancelacionDeCita,
+} from "@/lib/calendly/una-cita-activa";
 import { moverEtapa, RESULTADOS_FALLIDOS } from "./mover-etapa";
 import { puedeTrabajarDeal } from "./permiso";
 import { transicion, transicionPendiente, unaCitaMueveAAgendado, type EtapaDeal } from "./etapas";
@@ -63,7 +69,7 @@ export async function anularLlamada(
   db: Db,
   actor: ActorDeLlamada,
   datos: { callId: string; motivo?: string | null },
-  contexto?: { reversionId?: string; permisoValidado?: true },
+  contexto: { reversionId?: string; permisoValidado?: true; origen?: OrigenOperativo } = {},
 ): Promise<void> {
   return normalizando(async () => (db as unknown as Transaccion).transaction(async (tx) => {
     const [llamada] = await tx.select().from(calls)
@@ -76,7 +82,7 @@ export async function anularLlamada(
     if (!contexto?.permisoValidado && !puedeTrabajarDeal(actor, deal)) throw new ErrorDeApp("No puedes anular esta llamada.", 403);
     if (llamada.anuladoEn) throw new ErrorDeApp("La llamada ya está anulada.", 409);
     await editarConRastro(
-      { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId: contexto?.reversionId },
+      { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId: contexto.reversionId, origen: contexto.origen ?? "app" },
       llamada.id,
       { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: datos.motivo?.trim() || null },
     );
@@ -337,6 +343,7 @@ export async function pegarGrain(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosPegarGrain,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<GrainPegado> {
   return normalizando(async () => {
     const { callId, linkGrain } = esquemaPegarGrain.parse(datos);
@@ -348,7 +355,7 @@ export async function pegarGrain(
     // `marcarComoShow`; aquí solo se le suma el campo del enlace.
     return (db as unknown as Transaccion).transaction(async (db) => {
       const { call, deal } = await llamadaVigenteDeDealCompletable(db, callId, actor);
-      return marcarComoShow(db, actor, call, deal, { linkGrain }, "Se pegó el link de Grain con el deal ya en Ganado completo.");
+      return marcarComoShow(db, actor, call, deal, { linkGrain }, "Se pegó el link de Grain con el deal ya en Ganado completo.", opciones.origen ?? "app");
     });
   });
 }
@@ -380,7 +387,7 @@ export async function corregirResultado(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosCorregirResultado,
-  contexto?: { reversionId?: string },
+  contexto: { reversionId?: string; origen?: OrigenOperativo } = {},
 ): Promise<{ etapa: EtapaDeal }> {
   return normalizando(async () => {
     const { callId, resultado, motivo, motivoReagendaId } = esquemaCorregirResultado.parse(datos);
@@ -407,7 +414,8 @@ export async function corregirResultado(
           nombreTabla: "calls",
           actorId: actor.userId,
           etiqueta: call.emailLead ?? call.id,
-          reversionId: contexto?.reversionId,
+          reversionId: contexto.reversionId,
+          origen: contexto.origen ?? "app",
         },
         call.id,
         {
@@ -424,7 +432,8 @@ export async function corregirResultado(
         deal.id,
         actor.userId,
         `Corrigió el resultado de la llamada${call.fechaAgenda ? ` del ${fechaHoraEnBogota(call.fechaAgenda)}` : ""}: ${ETIQUETA_DE_RESULTADO[antes]} → ${ETIQUETA_DE_RESULTADO[resultado]}. Motivo: ${motivo}`,
-        contexto?.reversionId,
+        contexto.reversionId,
+        contexto.origen ?? "app",
       );
 
       if (antes === "show" && resultado !== "show" && deal.etapa === "atendido") {
@@ -434,7 +443,8 @@ export async function corregirResultado(
           pendiente: "reagenda",
           actor: { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
           ...(motivoReagendaId !== undefined ? { motivoId: motivoReagendaId } : {}),
-          reversionId: contexto?.reversionId,
+          reversionId: contexto.reversionId,
+          origen: contexto.origen ?? "app",
         });
         return { etapa: hecho.a };
       }
@@ -445,7 +455,8 @@ export async function corregirResultado(
           dealId: deal.id,
           a: "atendido",
           actor: { tipo: "sistema" },
-          reversionId: contexto?.reversionId,
+          reversionId: contexto.reversionId,
+          origen: contexto.origen ?? "app",
         });
         return { etapa: hecho.a };
       }
@@ -474,6 +485,7 @@ export async function marcarShow(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosMarcarShow,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<GrainPegado> {
   return normalizando(async () => {
     const { callId } = esquemaMarcarShow.parse(datos);
@@ -485,7 +497,7 @@ export async function marcarShow(
       if (call.resultado !== "agendada") {
         throw new ErrorDeApp("Solo se marca como show una llamada agendada.", 409);
       }
-      return marcarComoShow(db, actor, call, deal, {}, "Se marcó el resultado de la llamada (show) con el deal ya en Ganado completo.");
+      return marcarComoShow(db, actor, call, deal, {}, "Se marcó el resultado de la llamada (show) con el deal ya en Ganado completo.", opciones.origen ?? "app");
     });
   });
 }
@@ -508,6 +520,7 @@ async function marcarComoShow(
   deal: FilaDeal,
   extra: { linkGrain?: string },
   notaSiCompleto: string,
+  origen: OrigenOperativo,
 ): Promise<GrainPegado> {
   const ahora = new Date();
   exigirQueLaLlamadaYaPudoOcurrir(call.fechaAgenda, ahora);
@@ -520,6 +533,7 @@ async function marcarComoShow(
       nombreTabla: "calls",
       actorId: actor.userId,
       etiqueta: call.emailLead ?? call.id,
+      origen,
     },
     call.id,
     {
@@ -530,7 +544,7 @@ async function marcarComoShow(
   );
 
   if (deal.etapa === "ganado_completo") {
-    await dejarNotaDelActor(db, deal.id, actor.userId, notaSiCompleto);
+    await dejarNotaDelActor(db, deal.id, actor.userId, notaSiCompleto, undefined, origen);
     return { movioAAtendido: false, etapa: deal.etapa };
   }
 
@@ -542,6 +556,7 @@ async function marcarComoShow(
       dealId: deal.id,
       a: "atendido",
       actor: { tipo: "sistema" },
+      origen,
     });
     return { movioAAtendido: true, etapa: hecho.a };
   }
@@ -712,6 +727,11 @@ export interface LlamadaFallida {
   cancelacionPendiente?: boolean;
 }
 
+export interface LlamadaFallidaSinCalendly {
+  etapa: EtapaDeal;
+  cancelacion: CancelacionDeCita | null;
+}
+
 /**
  * Marca una llamada como `no_show` o `cancelada` y pone Re-agenda mediante PR1,
  * sin cambiar la etapa Agendado.
@@ -726,8 +746,28 @@ export async function marcarFallida(
   db: Db,
   actor: ActorDeLlamada,
   datos: DatosMarcarFallida,
-  opciones: { fetch?: FetchLike; ahora?: Date } = {},
+  opciones: { fetch?: FetchLike; ahora?: Date; origen?: OrigenOperativo } = {},
 ): Promise<LlamadaFallida> {
+  const escrito = await marcarFallidaSinCalendly(db, actor, datos, opciones);
+  const cancelacionPendiente = await ejecutarCancelacionDeCita(db, escrito.cancelacion, opciones);
+  return { etapa: escrito.etapa, cancelacionPendiente };
+}
+
+export async function ejecutarCancelacionDeCita(
+  db: Db,
+  cancelacion: CancelacionDeCita | null,
+  opciones: { fetch?: FetchLike; ahora?: Date; origen?: OrigenOperativo } = {},
+): Promise<boolean> {
+  if (!cancelacion) return false;
+  return cancelarCitaEnCalendly(db, cancelacion.dealId, cancelacion.llamada, "Cancelada", opciones);
+}
+
+export async function marcarFallidaSinCalendly(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosMarcarFallida,
+  opciones: { ahora?: Date; origen?: OrigenOperativo } = {},
+): Promise<LlamadaFallidaSinCalendly> {
   return normalizando(async () => {
     const { callId, resultado, motivoId } = esquemaMarcarFallida.parse(datos);
 
@@ -746,6 +786,7 @@ export async function marcarFallida(
           nombreTabla: "calls",
           actorId: actor.userId,
           etiqueta: call.emailLead ?? call.id,
+          origen: opciones.origen ?? "app",
         },
         call.id,
         { resultado },
@@ -757,8 +798,10 @@ export async function marcarFallida(
           deal.id,
           actor.userId,
           `Se marcó el resultado de la llamada (${resultado}) con el deal ya en Ganado completo.`,
+          undefined,
+          opciones.origen ?? "app",
         );
-        return { etapa: deal.etapa, call, dealId: deal.id };
+        return { etapa: deal.etapa, call: { ...call, resultado }, dealId: deal.id };
       }
 
       // La flecha a Re-agenda decide quién la toma: desde Agendado es del sistema (PR1, el
@@ -773,14 +816,16 @@ export async function marcarFallida(
           ? { tipo: "sistema" }
           : { tipo: "usuario", userId: actor.userId, rol: actor.rol, operaComoCloser: actor.operaComoCloser },
         ...(motivoId !== undefined ? { motivoId } : {}),
+        origen: opciones.origen ?? "app",
       });
 
-      return { etapa: hecho.a, call, dealId: deal.id };
+      return { etapa: hecho.a, call: { ...call, resultado }, dealId: deal.id };
     });
-    const cancelacionPendiente = resultado === "cancelada"
-      ? await cancelarCitaEnCalendly(db, escrito.dealId, escrito.call, "Cancelada", opciones)
-      : false;
-    return { etapa: escrito.etapa, cancelacionPendiente };
+    const ahora = opciones.ahora ?? new Date();
+    const cancelacion = esCancelacionDeCitaActiva(escrito.call, ahora)
+      ? { dealId: escrito.dealId, llamada: escrito.call }
+      : null;
+    return { etapa: escrito.etapa, cancelacion };
   });
 }
 

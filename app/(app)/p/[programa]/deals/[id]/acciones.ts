@@ -16,7 +16,7 @@ import { abonos, calls, deals, etapaDealEnum, leadContactos, leads, pendienteDea
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { instanteDeBogota } from "@/lib/format";
-import { adjuntarComprobante, registrarAbono, anularAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
+import { adjuntarComprobante, registrarAbono, pegarComprobante, cambiarPlataformaDeAbono } from "@/lib/deals/abonos";
 import { almacenDeArchivos, confirmarArchivo, pedirSubida, verificarArchivo } from "@/lib/archivos";
 import { MAX_BYTES, TIPOS_PERMITIDOS } from "@/lib/archivos/reglas";
 import { puedeTrabajarDeal } from "@/lib/deals/permiso";
@@ -24,7 +24,8 @@ import { registrarActividad } from "@/lib/deals/actividades";
 import { anotar, esquemaAnotar, type DatosAnotar, type AnotacionHecha } from "@/lib/deals/anotar";
 import { moverConHecho } from "@/lib/deals/mover-con-hecho";
 import { resumenDelCambio } from "@/lib/deals/resumen-del-cambio";
-import { anularDeal } from "@/lib/deals/anular-deal";
+import { anularAbonoComo, anularDealComo } from "@/lib/deals/anular";
+import { exigirAbonoVisible as exigirAbonoVisibleEnLib, exigirDealVisible as exigirDealVisibleEnLib, exigirLlamadaVisible as exigirLlamadaVisibleEnLib } from "@/lib/deals/alcance";
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
 import { programarLecturaDeGrain, programarLecturaDeGrainDelDeal } from "@/lib/grain/despues";
@@ -36,7 +37,7 @@ import { marcarCortesia } from "@/lib/deals/cortesia";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { confirmarCorreo, EnvioConDealVigenteError, esquemaContacto, separarCorreo } from "@/lib/ingesta/separar";
 import { crearOVincularPlataforma } from "@/lib/catalogo/plataformas";
-import { deshacerEvento, esquemaDeshacerEvento, eventoDeCreacion, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
+import { deshacerEvento, esquemaDeshacerEvento, type EntradaDeshacerEvento } from "@/lib/deshacer/deshacer";
 
 /**
  * Server actions de la ficha del deal (ticket 074). Mismo patron que `../acciones.ts`:
@@ -70,27 +71,16 @@ async function contextoDe(permitidos: readonly Rol[] = ["gerente", "closer"]): P
   return { session, actor: { userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser } };
 }
 
-/** El deal tiene que ser de un programa que la sesion ve; si no, 404 como si no existiera. */
-async function exigirProgramaVisible(ctx: Contexto, programId: string | undefined): Promise<void> {
-  if (!programId || !(await programaEnAlcance(ctx.actor.userId, ctx.actor.rol, programId, db))) {
-    throw new ErrorDeApp("No existe el deal.", 404);
-  }
-}
-
 async function exigirDealVisible(ctx: Contexto, dealId: string): Promise<void> {
-  // Por clave primaria, no una metrica: `incluyendoAnulados` para poder decir "esta anulado".
-  const [d] = await db.select({ programId: deals.programId }).from(deals).where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
-  await exigirProgramaVisible(ctx, d?.programId);
+  await exigirDealVisibleEnLib(db, ctx.actor, dealId);
 }
 
 async function exigirLlamadaVisible(ctx: Contexto, callId: string): Promise<void> {
-  const [c] = await db.select({ programId: calls.programId }).from(calls).where(and(eq(calls.id, callId), incluyendoAnulados(calls)));
-  await exigirProgramaVisible(ctx, c?.programId);
+  await exigirLlamadaVisibleEnLib(db, ctx.actor, callId);
 }
 
 async function exigirAbonoVisible(ctx: Contexto, abonoId: string): Promise<void> {
-  const [a] = await db.select({ programId: abonos.programId }).from(abonos).where(and(eq(abonos.id, abonoId), incluyendoAnulados(abonos)));
-  await exigirProgramaVisible(ctx, a?.programId);
+  await exigirAbonoVisibleEnLib(db, ctx.actor, abonoId);
 }
 
 function aError(error: unknown): { ok: false; error: string; dealId?: string } {
@@ -288,12 +278,7 @@ export async function anularDealAccion(entrada: EntradaAnularDeal): Promise<Resu
     const { actor } = ctx;
     const { dealId, motivo } = esquemaAnular.parse(entrada);
     await exigirDealVisible(ctx, dealId);
-    const evento = await eventoDeCreacion(db, "deals", dealId);
-    if (evento) {
-      await deshacerEvento(db, actor, { dealId, evento: { tipo: "cambio", changeLogId: evento }, motivo });
-    } else {
-      await anularDeal(db, actor, { dealId, motivo });
-    }
+    await anularDealComo(db, actor, { dealId, motivo }, { origen: "app" });
     return {};
   });
 }
@@ -579,22 +564,7 @@ export async function anularAbonoAccion(entrada: EntradaAnularAbono): Promise<Re
     const { actor } = ctx;
     const { abonoId, motivo } = esquemaAnularAbonoAccion.parse(entrada);
     await exigirAbonoVisible(ctx, abonoId);
-    const [antes] = await db.select({ dealId: abonos.dealId, etapa: deals.etapa })
-      .from(abonos).innerJoin(deals, eq(deals.id, abonos.dealId))
-      .where(and(eq(abonos.id, abonoId), incluyendoAnulados(abonos), incluyendoAnulados(deals)));
-    if (!antes) throw new ErrorDeApp("No existe el abono.", 404);
-    const evento = await eventoDeCreacion(db, "abonos", abonoId);
-    if (!evento) {
-      const r = await anularAbono(db, actor, { abonoId, motivo });
-      return { etapa: r.etapa, movioElDeal: r.movioElDeal };
-    }
-    await deshacerEvento(db, actor, {
-      dealId: antes.dealId,
-      evento: { tipo: "cambio", changeLogId: evento },
-      motivo,
-    });
-    const [despues] = await db.select({ etapa: deals.etapa }).from(deals).where(and(eq(deals.id, antes.dealId), vigente(deals)));
-    return { etapa: despues.etapa, movioElDeal: despues.etapa !== antes.etapa };
+    return anularAbonoComo(db, actor, { abonoId, motivo }, { origen: "app" });
   });
 }
 

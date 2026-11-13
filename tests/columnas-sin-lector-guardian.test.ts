@@ -57,7 +57,6 @@ const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
   "programs.recordPersonasPorDiaHabil": "401 M12: el seed ya no la escribe; eliminar",
   "abonos.origen": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "cohorts.notas": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
-  "dealEtapaHistorial.origen": "411 F2 (0135, 13-nov): se escribe desde el 13-nov; su lector (por qué puerta entró cada movimiento en la ficha del deal y en ficha_de_deal) va en la ola 2 del F2",
   "deals.creadoPor": "385 F7: sin lector el 7-nov y no está en F3 (el rastro vive en change_log); decidir",
 };
 

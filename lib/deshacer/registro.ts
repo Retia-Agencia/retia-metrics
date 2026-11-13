@@ -10,6 +10,7 @@ import { cambiarCohorte } from "@/lib/deals/estudiante";
 import { exigirFechaLimiteValida } from "@/lib/deals/pago";
 import { corregirResultado, RESULTADOS_CORREGIBLES } from "@/lib/deals/llamadas";
 import { ErrorDeApp } from "@/lib/errors";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 
 export interface FilaDeGrupo {
   campo: string;
@@ -21,6 +22,7 @@ export interface ContextoDeRestauracion {
   motivo: string | null;
   filas: readonly FilaDeGrupo[];
   esCortesia: boolean;
+  origen: OrigenOperativo;
 }
 
 export type RestaurarCampo = (
@@ -45,7 +47,7 @@ function convertir(valor: string | null, actual: unknown): unknown {
 
 function restaurar(tabla: PgTable, nombreTabla: Contexto["nombreTabla"], campo: string): ReglaDeCampo {
   return {
-    restaurar: async (tx, actor, registroId, valorAnterior, reversionId) => {
+    restaurar: async (tx, actor, registroId, valorAnterior, reversionId, contexto) => {
       const columnas = tabla as unknown as Record<string, unknown>;
       const filas = await tx.select().from(tabla).where(and(
         // La PK de las cuatro tablas es `id`; drizzle conserva el tipo en runtime.
@@ -55,7 +57,7 @@ function restaurar(tabla: PgTable, nombreTabla: Contexto["nombreTabla"], campo: 
       const actual = filas[0];
       if (!actual) return;
       await editarConRastro(
-        { db: tx, tabla, nombreTabla, actorId: actor.userId, etiqueta: registroId, reversionId },
+        { db: tx, tabla, nombreTabla, actorId: actor.userId, etiqueta: registroId, reversionId, origen: contexto.origen },
         registroId,
         { [campo]: convertir(valorAnterior, actual[campo]) },
       );
@@ -69,7 +71,7 @@ const identidad = no("La identidad del registro no cambia.");
 const anulacion = no("Una anulación no se deshace.");
 
 const restaurarDueno: ReglaDeCampo = {
-  restaurar: async (tx, actor, registroId, valorAnterior, reversionId) => {
+  restaurar: async (tx, actor, registroId, valorAnterior, reversionId, contexto) => {
     const [deal] = await tx.select({ ownerUserId: deals.ownerUserId }).from(deals)
       .where(and(eq(deals.id, registroId), incluyendoAnulados(deals)));
     if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
@@ -81,6 +83,7 @@ const restaurarDueno: ReglaDeCampo = {
       etiqueta: registroId,
       esNovedad: false,
       reversionId,
+      origen: contexto.origen,
     });
   },
 };
@@ -94,18 +97,18 @@ const restaurarCohorte: ReglaDeCampo = {
       dealId: registroId,
       cohortId: valorAnterior,
       motivo: contexto.motivo ?? "Se deshizo el cambio de cohorte.",
-    }, { reversionId });
+    }, { reversionId, origen: contexto.origen });
   },
 };
 
 const restaurarFechaLimite: ReglaDeCampo = {
-  restaurar: async (tx, actor, registroId, valorAnterior, reversionId) => {
+  restaurar: async (tx, actor, registroId, valorAnterior, reversionId, contexto) => {
     const [deal] = await tx.select().from(deals)
       .where(and(eq(deals.id, registroId), incluyendoAnulados(deals)));
     if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
     if (valorAnterior !== null) await exigirFechaLimiteValida(tx, deal, valorAnterior);
     await editarConRastro(
-      { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: registroId, reversionId },
+      { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: registroId, reversionId, origen: contexto.origen },
       registroId,
       { fechaLimitePago: valorAnterior },
     );
@@ -119,7 +122,7 @@ const restaurarResultado: ReglaDeCampo = {
     if (!llamada || valorAnterior == null) throw new ErrorDeApp("Ese resultado no se puede restaurar.", 409);
     if (valorAnterior === "agendada") {
       await editarConRastro(
-        { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId },
+        { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId, origen: contexto.origen },
         registroId,
         { resultado: valorAnterior },
       );
@@ -133,18 +136,18 @@ const restaurarResultado: ReglaDeCampo = {
       callId: registroId,
       resultado: valorAnterior as (typeof RESULTADOS_CORREGIBLES)[number],
       motivo: contexto.motivo ?? "Se deshizo el cambio de resultado.",
-    }, { reversionId });
+    }, { reversionId, origen: contexto.origen });
   },
 };
 
 const restaurarDatoDeCita = (campo: "fechaAgenda" | "linkCalendly"): ReglaDeCampo => ({
-  restaurar: async (tx, actor, registroId, valorAnterior, reversionId) => {
+  restaurar: async (tx, actor, registroId, valorAnterior, reversionId, contexto) => {
     const [llamada] = await tx.select().from(calls)
       .where(and(eq(calls.id, registroId), incluyendoAnulados(calls)));
     if (!llamada) throw new ErrorDeApp("No existe la llamada.", 404);
     if (llamada.origen === "calendly") throw new ErrorDeApp("La hora de la cita la manda Calendly; se reagenda.", 409);
     await editarConRastro(
-      { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId },
+      { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId, origen: contexto.origen },
       registroId,
       { [campo]: convertir(valorAnterior, llamada[campo]) },
     );

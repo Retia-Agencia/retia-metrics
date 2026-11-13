@@ -5,6 +5,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { editarConRastro } from "@/lib/crm/rastro";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { vigente } from "@/lib/queries/vigente";
 import { dealBloqueadoConLead } from "./leer-deal";
@@ -47,7 +48,7 @@ export type DatosAnularDeal = z.input<typeof esquemaAnularDeal>;
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };
 
-export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularDeal, contexto?: { reversionId?: string; permisoValidado?: true }): Promise<void> {
+export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularDeal, contexto: { reversionId?: string; permisoValidado?: true; origen?: OrigenOperativo } = {}): Promise<void> {
   return normalizando(async () => {
     const { dealId, motivo } = esquemaAnularDeal.parse(datos);
 
@@ -74,7 +75,7 @@ export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularD
       }
 
       await editarConRastro(
-        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
+        { db: tx, tabla: deals, nombreTabla: "deals", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto.reversionId, origen: contexto.origen ?? "app" },
         deal.id,
         { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
       );
@@ -85,7 +86,7 @@ export async function anularDeal(db: Db, actor: ActorDeDeal, datos: DatosAnularD
         .where(and(eq(calls.dealId, deal.id), vigente(calls)));
       for (const llamada of llamadas) {
         await editarConRastro(
-          { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
+          { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto.reversionId, origen: contexto.origen ?? "app" },
           llamada.id,
           { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo ? `Se anuló su deal: ${motivo}` : null },
         );

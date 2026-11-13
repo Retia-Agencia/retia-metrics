@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { and, eq } from "drizzle-orm";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { trabajaLeads } from "@/lib/auth/roles";
@@ -100,7 +101,7 @@ export async function anularActividad(
   db: Db,
   actor: ActorDeDeal,
   datos: { actividadId: string; motivo?: string | null },
-  contexto?: { reversionId?: string; permisoValidado?: true },
+  contexto: { reversionId?: string; permisoValidado?: true; origen?: OrigenOperativo } = {},
 ): Promise<void> {
   return normalizando(async () => {
     const motivo = datos.motivo?.trim() || null;
@@ -112,7 +113,7 @@ export async function anularActividad(
       if (actividad.anuladoEn) throw new ErrorDeApp("La actividad ya está anulada.", 409);
       if (!contexto?.permisoValidado && !puedeTrabajarDeal(actor, deal)) throw new ErrorDeApp("No puedes anular esta actividad.", 403);
       await editarConRastro(
-        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
+        { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto.reversionId, origen: contexto.origen ?? "app" },
         actividad.id,
         { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
       );

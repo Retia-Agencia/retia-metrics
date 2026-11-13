@@ -158,7 +158,7 @@ export async function cambiarCohorte(
   db: Db,
   actor: ActorDeEstudiante,
   datos: DatosCambiarCohorte,
-  contexto?: { reversionId?: string },
+  contexto: { reversionId?: string; origen?: import("@/lib/crm/rastro").OrigenOperativo } = {},
 ): Promise<CohorteCambiada> {
   return normalizando(async () => {
     const { dealId, cohortId, motivo } = esquemaCambiarCohorte.parse(datos);
@@ -189,7 +189,8 @@ export async function cambiarCohorte(
         etiqueta: emailLead,
         limpiarProximaCohorte: estabaEsperandoCorte,
         nota: (origen, codigoDestino) => `Cambio de cohorte: ${origen} → ${codigoDestino}. ${motivo}`,
-        reversionId: contexto?.reversionId,
+        reversionId: contexto.reversionId,
+        origen: contexto.origen ?? "app",
       });
     });
   });

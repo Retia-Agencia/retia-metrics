@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { cohorts, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { editarConRastro } from "@/lib/crm/rastro";
+import { editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { ErrorDeApp } from "@/lib/errors";
 import { usd } from "@/lib/format";
 import { cohorteActiva } from "@/lib/queries/cohortes";
@@ -40,6 +40,7 @@ export async function congelarValorVendido(
     descuentoUsd: number;
     actorId: string | null;
     etiqueta: string;
+    origen?: OrigenOperativo;
   },
 ): Promise<ValorVendidoCongelado> {
   const descuentoUsd = esquemaDescuentoUsd.parse(entrada.descuentoUsd);
@@ -52,7 +53,7 @@ export async function congelarValorVendido(
     }
     cohortId = activa.id;
     await editarConRastro(
-      { db: tx, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta },
+      { db: tx, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, origen: entrada.origen ?? "app" },
       entrada.deal.id,
       { cohortId },
     );
@@ -86,7 +87,7 @@ export async function congelarValorVendido(
 
   const valorAnteriorUsd = entrada.deal.valorVendidoUsd == null ? null : Number(entrada.deal.valorVendidoUsd);
   await editarConRastro(
-    { db: tx, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta },
+    { db: tx, tabla: deals, nombreTabla: "deals", actorId: entrada.actorId, etiqueta: entrada.etiqueta, origen: entrada.origen ?? "app" },
     entrada.deal.id,
     { valorVendidoUsd: String(valorVendidoUsd) },
   );

@@ -7,7 +7,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { programaEnAlcance } from "@/lib/auth/alcance";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { puedeColgarSuelta, sueltaPorAsignar } from "./suelta";
 import { dealDeCodigo } from "./link-de-agenda";
@@ -346,20 +346,25 @@ export async function efectoSobreElDeal(
   host: string | null,
   etiqueta: string | null,
   fechaCita?: Date | null,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; citasACancelar: CitaACancelar[]; rechazo?: string }> {
   const [deal] = await tx
     .select({ etapa: deals.etapa, pendiente: deals.pendiente, ownerUserId: deals.ownerUserId })
     .from(deals)
     .where(and(eq(deals.id, dealId), vigente(deals)));
 
-  const citasACancelar = await reemplazarCitasAnteriores(tx, { dealId, callIdNueva });
-  const duenoAnterior = await darDealAlHost(tx, dealId, deal.ownerUserId, host, etiqueta ?? dealId);
+  const citasACancelar = await reemplazarCitasAnteriores(tx, {
+    dealId,
+    callIdNueva,
+    origen: opciones.origen,
+  });
+  const duenoAnterior = await darDealAlHost(tx, dealId, deal.ownerUserId, host, etiqueta ?? dealId, opciones);
 
   if (!unaCitaMueveAAgendado(deal.etapa, deal.pendiente)) {
     return { movioAAgendado: false, duenoAnterior, citasACancelar };
   }
   try {
-    await moverEtapa(tx, { dealId, a: "agendado", actor: { tipo: "sistema" } });
+    await moverEtapa(tx, { dealId, a: "agendado", actor: { tipo: "sistema" }, origen: opciones.origen ?? "app" });
     // Solo deja nota cuando la cita le quita al deal un pendiente: eso es lo que el sistema
     // decide solo. Una cita sobre un deal de setteo ya se explica con la llamada misma.
     if (fechaCita && deal.pendiente != null) {
@@ -367,6 +372,7 @@ export async function efectoSobreElDeal(
         tx,
         dealId,
         `Llegó una cita nueva para el ${fechaHoraEnBogota(fechaCita)}: el deal pasó a Agendado y se quitó el pendiente ${NOMBRE_DE_PENDIENTE[deal.pendiente]}.`,
+        opciones.origen ?? "app",
       );
     }
     return { movioAAgendado: true, duenoAnterior, citasACancelar };
@@ -484,6 +490,7 @@ export async function darDealAlHost(
   ownerActual: string | null,
   host: string | null,
   etiqueta: string,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<string | null> {
   if (host === null || host === ownerActual) return null;
   const [actual] = await tx
@@ -502,10 +509,11 @@ export async function darDealAlHost(
     actorId: null,
     etiqueta,
     cambiosAdicionales: acreditarSetter ? { setterUserId: ownerActual } : undefined,
+    origen: opciones.origen ?? "app",
   });
   if (ownerActual === null) return null;
   await crearConRastro(
-    { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: null, etiqueta },
+    { db: tx, tabla: dealActividades, nombreTabla: "deal_actividades", actorId: null, etiqueta, origen: opciones.origen ?? "app" },
     {
       dealId,
       tipo: "nota" as const,
@@ -561,10 +569,11 @@ export async function colgarSueltaEnDeal(
   deal: DealParaSuelta,
   host: string | null,
   actorId: string | null,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; citasACancelar: CitaACancelar[]; rechazo?: string }> {
   const etiqueta = llamada.emailLead ?? llamada.id;
   await editarConRastro(
-    { db: tx, tabla: calls, nombreTabla: "calls", actorId, etiqueta },
+    { db: tx, tabla: calls, nombreTabla: "calls", actorId, etiqueta, origen: opciones.origen ?? "app" },
     llamada.id,
     {
       dealId: deal.id,
@@ -572,7 +581,7 @@ export async function colgarSueltaEnDeal(
       ...(llamada.closerUserId === null && host !== null ? { closerUserId: host } : {}),
     },
   );
-  return efectoSobreElDeal(tx, deal.id, llamada.id, host, etiqueta, llamada.fechaAgenda);
+  return efectoSobreElDeal(tx, deal.id, llamada.id, host, etiqueta, llamada.fechaAgenda, opciones);
 }
 
 /**
@@ -585,7 +594,28 @@ export async function asignarLlamadaSuelta(
   db: Db,
   actor: ActorDeAsignacion,
   datos: DatosAsignarSuelta,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; rechazo?: string }> {
+  const escrito = await asignarLlamadaSueltaSinCalendly(db, actor, datos, opciones);
+  await cancelarCitasReemplazadas(db, escrito.citasACancelar);
+  return {
+    movioAAgendado: escrito.movioAAgendado,
+    duenoAnterior: escrito.duenoAnterior,
+    rechazo: escrito.rechazo,
+  };
+}
+
+export async function asignarLlamadaSueltaSinCalendly(
+  db: Db,
+  actor: ActorDeAsignacion,
+  datos: DatosAsignarSuelta,
+  opciones: { origen?: OrigenOperativo } = {},
+): Promise<{
+  movioAAgendado: boolean;
+  duenoAnterior: string | null;
+  citasACancelar: CitaACancelar[];
+  rechazo?: string;
+}> {
   return normalizando(async () => {
     const { callId, dealId } = esquemaAsignarSuelta.parse(datos);
     const escrito = await enTransaccion(db, async (tx) => {
@@ -618,10 +648,9 @@ export async function asignarLlamadaSuelta(
         throw new ErrorDeApp("El deal está cerrado: no se le cuelgan llamadas.", 409);
       }
 
-      return colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId);
+      return colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId, opciones);
     });
-    await cancelarCitasReemplazadas(db, escrito.citasACancelar);
-    return { movioAAgendado: escrito.movioAAgendado, duenoAnterior: escrito.duenoAnterior, rechazo: escrito.rechazo };
+    return escrito;
   });
 }
 

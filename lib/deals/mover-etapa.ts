@@ -503,7 +503,7 @@ async function datosDeEsperaParaCorreccion(
 async function escribirDatos(tx: Db, deal: FilaDeal, mov: Movimiento): Promise<FilaDeal> {
   const datos = mov.datos;
   if (!datos) return deal;
-  return escribirDatosDelDeal(tx, deal, datos, mov.actor);
+  return escribirDatosDelDeal(tx, deal, datos, mov.actor, mov.origen ?? "app");
 }
 
 /**
@@ -517,6 +517,7 @@ export async function escribirDatosDelDeal(
   deal: FilaDeal,
   datos: DatosMovimiento,
   actor: Actor,
+  origen: OrigenOperativo = "app",
 ): Promise<FilaDeal> {
   const mov = { actor };
 
@@ -531,6 +532,7 @@ export async function escribirDatosDelDeal(
       descuentoUsd: datos.descuentoUsd,
       actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
       etiqueta: deal.id,
+      origen,
     });
     deal = { ...deal, cohortId: congelado.cohortId, valorVendidoUsd: String(congelado.valorVendidoUsd) };
   }
@@ -575,6 +577,7 @@ export async function escribirDatosDelDeal(
       nombreTabla: "deals",
       actorId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
       etiqueta: deal.id,
+      origen,
     },
     deal.id,
     cambios,

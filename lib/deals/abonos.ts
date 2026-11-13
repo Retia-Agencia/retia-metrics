@@ -9,7 +9,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { trabajaLeads, type Rol } from "@/lib/auth/roles";
 import { esquemaAbono } from "@/lib/abonos/esquema";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { etapaALaQueVuelve, moverEtapa } from "./mover-etapa";
@@ -140,6 +140,7 @@ export async function registrarAbono(
   db: Db,
   actor: ActorDeAbono,
   datos: DatosRegistrarAbono,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<AbonoRegistrado> {
   return normalizando(async () => {
     const entrada = esquemaRegistrarAbono.parse(datos);
@@ -178,6 +179,7 @@ export async function registrarAbono(
           descuentoUsd: 0,
           actorId: actor.userId,
           etiqueta: emailLead,
+          origen: opciones.origen ?? "app",
         });
         if (deal.cohortId == null) cohorteAsignada = congelado.cohortId;
       }
@@ -215,7 +217,7 @@ export async function registrarAbono(
       }
 
       const abonoId = await crearConRastro(
-        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen ?? "app" },
         {
           dealId: deal.id,
           // El programa sale del deal, nunca del input (frontera, ADR 0043).
@@ -267,6 +269,7 @@ export async function registrarAbono(
         dealId: deal.id,
         a: destino,
         actor: { tipo: "sistema" },
+        origen: opciones.origen ?? "app",
       });
       return { abonoId, etapa: destino, movioElDeal: true, saldo, cohorteAsignada };
     });
@@ -355,6 +358,7 @@ export async function cambiarPlataformaDeAbono(
   db: Db,
   actor: ActorDeAbono,
   datos: DatosCambiarPlataformaDeAbono,
+  opciones: { origen?: OrigenOperativo } = {},
 ): Promise<void> {
   return normalizando(async () => {
     const entrada = esquemaCambiarPlataformaDeAbono.parse(datos);
@@ -381,7 +385,7 @@ export async function cambiarPlataformaDeAbono(
         ? await tx.select({ plataformaId: enlacesPago.plataformaId }).from(enlacesPago).where(eq(enlacesPago.id, abono.enlacePagoId)).limit(1)
         : [];
       await editarConRastro(
-        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead },
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead, origen: opciones.origen ?? "app" },
         entrada.abonoId,
         {
           plataformaId: entrada.plataformaId,
@@ -419,7 +423,7 @@ export async function anularAbono(
   db: Db,
   actor: ActorDeAbono,
   datos: DatosAnularAbono,
-  contexto?: { reversionId?: string },
+  contexto: { reversionId?: string; origen?: OrigenOperativo } = {},
 ): Promise<AbonoAnulado> {
   return normalizando(async () => {
     const { abonoId, motivo } = esquemaAnularAbono.parse(datos);
@@ -476,7 +480,7 @@ export async function anularAbono(
       }
 
       await editarConRastro(
-        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto?.reversionId },
+        { db: tx, tabla: abonos, nombreTabla: "abonos", actorId: actor.userId, etiqueta: emailLead, reversionId: contexto.reversionId, origen: contexto.origen ?? "app" },
         abono.id,
         { anuladoEn: new Date(), anuladoPor: actor.userId, motivoAnulacion: motivo },
       );
@@ -490,12 +494,12 @@ export async function anularAbono(
       const sistema = { tipo: "sistema" } as const;
 
       if (etapa === "ganado_completo" && saldo.saldo !== null && saldo.saldo > 0) {
-        await moverEtapa(tx, { dealId: deal.id, a: "ganado_parcial", actor: sistema });
+        await moverEtapa(tx, { dealId: deal.id, a: "ganado_parcial", actor: sistema, origen: contexto.origen ?? "app" });
         etapa = "ganado_parcial";
       }
       if (etapa === "ganado_parcial" && saldo.abonosVigentes === 0) {
         const previa = await etapaALaQueVuelve(tx, deal.id);
-        await moverEtapa(tx, { dealId: deal.id, a: previa, actor: sistema });
+        await moverEtapa(tx, { dealId: deal.id, a: previa, actor: sistema, origen: contexto.origen ?? "app" });
         etapa = previa;
       }
       return { etapa, movioElDeal: etapa !== deal.etapa };

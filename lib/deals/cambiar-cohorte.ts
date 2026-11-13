@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { cohorts, dealActividades, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { crearConRastro, editarConRastro } from "@/lib/crm/rastro";
+import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { fechaLimiteMaxima } from "./pago";
 import { limpiarPendientePorCambioDeCohorte } from "./mover-etapa";
 
@@ -32,6 +32,7 @@ export async function cambiarCohorteDelDeal(
     /** Conserva literalmente la nota del llamador, sin anexar el ajuste del plazo. */
     notaExacta?: boolean;
     reversionId?: string;
+    origen?: OrigenOperativo;
   },
 ): Promise<CambioDeCohorteEscrito> {
   let origenCodigo = "sin cohorte";
@@ -62,6 +63,7 @@ export async function cambiarCohorteDelDeal(
       actorId: datos.actorId,
       etiqueta: datos.etiqueta,
       reversionId: datos.reversionId,
+      origen: datos.origen ?? "app",
     },
     datos.deal.id,
     cambios,
@@ -77,6 +79,7 @@ export async function cambiarCohorteDelDeal(
       actorId: datos.actorId,
       etiqueta: datos.etiqueta,
       reversionId: datos.reversionId,
+      origen: datos.origen ?? "app",
     },
     {
       dealId: datos.deal.id,

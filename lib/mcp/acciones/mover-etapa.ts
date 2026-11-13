@@ -69,11 +69,12 @@ export const moverEtapaMcp: AccionMcp<typeof argumentosMoverEtapa> = {
       detalle: { requisitos: revision.requisitos },
     };
   },
-  huella: (db, objetivo) => huellaDeAccionDeal(db, objetivo.id),
+  huella: (db, objetivo, opciones) => huellaDeAccionDeal(db, objetivo.id, opciones),
   aplicar: async (db, actor, objetivo, opciones) => {
     const mov = esquemaMover.parse(aMovimientoApp((objetivo as ObjetivoMover).movimiento));
     await moverDealComo(db, actor, mov, opciones);
   },
+  eventoDeshacer: (nuevos) => nuevos.find((evento) => evento.tabla === "deal_etapa_historial"),
   seDeshace: true,
   efectoExterno: false,
 };

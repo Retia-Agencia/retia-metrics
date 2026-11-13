@@ -1,6 +1,6 @@
 import { z, ZodError } from "zod";
 import { ACCIONES, accionPorClave, CLAVES_DE_ACCION } from "@/lib/mcp/acciones";
-import { estadoParaAccionDeal, huellaDeAccionDeal } from "@/lib/deals/estado-para-accion";
+import { estadoParaAccionDeal } from "@/lib/deals/estado-para-accion";
 import { eventosDeshacibles } from "@/lib/deshacer/deshacer";
 import { ErrorDeApp } from "@/lib/errors";
 import { MovimientoRechazado } from "@/lib/deals/mover-etapa";
@@ -10,6 +10,7 @@ import type { ActorDeMovimiento } from "@/lib/deals/mover-deal";
 import type { ContextoMcp, Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
+import type { AplicacionAccionMcp } from "@/lib/mcp/acciones/tipos";
 
 const claveAccion = z.enum(CLAVES_DE_ACCION);
 const entradaPreparar = z.object({
@@ -27,6 +28,7 @@ const filaVista = z.object({
   se_puede_aplicar: z.boolean().describe("Si esta fila cumple hoy permisos y requisitos."),
   razon: z.string().nullable().describe("Motivo legible por el que la fila no se podrá aplicar."),
   efecto_externo: z.boolean().describe("Si la acción contactará un servicio fuera del CRM."),
+  aviso: z.string().optional().describe("Advertencia adicional de la vista previa."),
   detalle: z.record(z.string(), z.unknown()).optional().describe("Requisitos y explicación adicional de la revisión."),
 }).strict();
 const salidaPreparar = z.object({
@@ -42,6 +44,7 @@ const filaResultado = z.object({
   estado: z.enum(["aplicada", "rechazada"]).describe("Resultado definitivo de esta fila."),
   razon: z.string().nullable().describe("Motivo legible del rechazo, cuando exista."),
   evento_id: z.string().uuid().nullable().describe("Evento con el que puede deshacerse la fila aplicada."),
+  aviso: z.string().nullable().default(null).describe("Aviso de un efecto externo que quedó pendiente."),
 }).strict();
 const salidaConfirmar = z.object({
   id: z.string().uuid().describe("Identificador consumido de la vista previa."),
@@ -64,9 +67,13 @@ function accionesPermitidas(contexto: ContextoMcp) {
 }
 
 function errorDeArgumentos(error: ZodError, accion: (typeof ACCIONES)[number]): ErrorDeApp {
-  const campo = error.issues[0]?.path.join(".") || "argumentos";
+  const primera = error.issues[0];
+  const campo = primera?.path.join(".") || "argumentos";
   const esperado = JSON.stringify(z.toJSONSchema(accion.argumentos, { io: "input", unrepresentable: "any" }));
-  return new ErrorDeApp(`El campo ${campo} no es válido. Esquema esperado: ${esperado}`, 400);
+  const mensaje = primera?.message
+    ? `${primera.message} (campo ${campo}). Esquema esperado: ${esperado}`
+    : `El campo ${campo} no es válido. Esquema esperado: ${esperado}`;
+  return new ErrorDeApp(mensaje, 400);
 }
 
 function mensajeDeError(error: unknown): { mensaje: string; status: number } {
@@ -80,6 +87,12 @@ function etapaLegible(valor: unknown): string {
 
 function textoDeFila(fila: { nombre: string; antes: Record<string, unknown> | null; despues: Record<string, unknown> | null }): string {
   return `${fila.nombre}: ${etapaLegible(fila.antes?.etapa)} → ${etapaLegible(fila.despues?.etapa)}`;
+}
+
+function diferidoDe(aplicacion: unknown): AplicacionAccionMcp["diferido"] {
+  if (!aplicacion || typeof aplicacion !== "object" || !("diferido" in aplicacion)) return undefined;
+  const diferido = (aplicacion as AplicacionAccionMcp).diferido;
+  return typeof diferido === "function" ? diferido : undefined;
 }
 
 export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
@@ -102,7 +115,7 @@ export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
     if (!analisis.success) throw errorDeArgumentos(analisis.error, accion as (typeof ACCIONES)[number]);
     const actor = actorDe(contexto);
     const objetivos = accion.objetivos(analisis.data);
-    const filas = [];
+    const filas: z.output<typeof filaVista>[] = [];
     const huellas = [];
     for (const objetivo of objetivos) {
       const estado = await estadoParaAccionDeal(contexto.db, objetivo.id);
@@ -120,7 +133,8 @@ export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
           despues: revision.despues,
           se_puede_aplicar: revision.sePuedeAplicar,
           razon: revision.razon,
-          efecto_externo: accion.efectoExterno,
+          efecto_externo: revision.efectoExterno ?? accion.efectoExterno,
+          ...(revision.aviso ? { aviso: revision.aviso } : {}),
           ...(revision.detalle ? { detalle: revision.detalle } : {}),
         });
       } catch (error) {
@@ -138,7 +152,7 @@ export const prepararAccionMcp: Herramienta<typeof entradaPreparar> = {
       huellas,
       vistaPrevia: filas,
     });
-    const texto = filas.map((fila) => `${textoDeFila(fila)}: ${fila.se_puede_aplicar ? "se puede aplicar" : `no se podrá aplicar: ${fila.razon}`}`).join("\n");
+    const texto = filas.map((fila) => `${textoDeFila(fila)}: ${fila.se_puede_aplicar ? "se puede aplicar" : `no se podrá aplicar: ${fila.razon}`}${fila.aviso ? ` ${fila.aviso}` : ""}`).join("\n");
     const estructurado = {
       id: guardada.id,
       vence_en: guardada.venceEn.toISOString(),
@@ -159,6 +173,7 @@ type VistaGuardada = {
   despues: Record<string, unknown> | null;
   se_puede_aplicar: boolean;
   razon: string | null;
+  aviso?: string;
 };
 
 function respuestaDeConfirmacion(
@@ -172,7 +187,7 @@ function respuestaDeConfirmacion(
   const estructurado = { id, filas, como_deshacer: comoDeshacer };
   const texto = filas.map((fila) => {
     const vista = vistas.get(fila.objetivo_id) ?? { nombre: "Sin nombre", antes: null, despues: null };
-    return `${textoDeFila(vista)}: ${fila.estado}${fila.razon ? `: ${fila.razon}` : ""}${fila.evento_id ? "; se puede deshacer" : ""}`;
+    return `${textoDeFila(vista)}: ${fila.estado}${fila.razon ? `: ${fila.razon}` : ""}${fila.evento_id ? "; se puede deshacer" : ""}${fila.aviso ? ` ${fila.aviso}` : ""}`;
   }).join("\n");
   return { texto, estructurado };
 }
@@ -220,6 +235,7 @@ export const confirmarCambioMcp: Herramienta<typeof entradaConfirmar> = {
         estado: "rechazada" as const,
         razon: "No se aplicó: prepárala de nuevo.",
         evento_id: null,
+        aviso: null,
       });
       return respuestaDeConfirmacion(guardada.id, filas, vistas);
     }
@@ -227,32 +243,47 @@ export const confirmarCambioMcp: Herramienta<typeof entradaConfirmar> = {
     for (const objetivo of objetivos) {
       const vista = vistas.get(objetivo.id);
       if (!vista?.se_puede_aplicar) {
-        const fila = { objetivo_id: objetivo.id, estado: "rechazada" as const, razon: vista?.razon ?? "La vista previa rechazó esta fila.", evento_id: null };
+        const fila = { objetivo_id: objetivo.id, estado: "rechazada" as const, razon: vista?.razon ?? "La vista previa rechazó esta fila.", evento_id: null, aviso: null };
         await anotarFila(contexto.db, guardada.id, fila);
         filas.push(fila);
         continue;
       }
       try {
-        const fila = await contexto.db.transaction(async (tx) => {
-          const actual = await huellaDeAccionDeal(tx, objetivo.id, { bloquear: true });
+        const aplicado = await contexto.db.transaction(async (tx) => {
+          const actual = await accion.huella(tx, objetivo, { bloquear: true });
           if (actual == null || actual !== huellas.get(objetivo.id)) {
             throw new ErrorDeApp("El deal cambió desde la vista previa.", 409);
           }
           const anteriores = new Set((await eventosDeshacibles(tx, actor, objetivo.id)).map((evento) => evento.id));
-          await accion.aplicar(tx, actor, objetivo, { origen: "mcp" });
-          const nuevo = accion.seDeshace
-            ? (await eventosDeshacibles(tx, actor, objetivo.id)).find((evento) => (
-              !anteriores.has(evento.id) && evento.puedeDeshacer && evento.tabla === "deal_etapa_historial"
-            ))
-            : null;
-          const resultado = { objetivo_id: objetivo.id, estado: "aplicada" as const, razon: null, evento_id: nuevo?.id ?? null };
+          const aplicacion = await accion.aplicar(tx, actor, objetivo, { origen: "mcp" });
+          const nuevos = accion.seDeshace
+            ? (await eventosDeshacibles(tx, actor, objetivo.id)).filter((evento) => !anteriores.has(evento.id) && evento.puedeDeshacer)
+            : [];
+          const nuevo = accion.seDeshace ? accion.eventoDeshacer?.(nuevos, objetivo) : null;
+          const resultado = { objetivo_id: objetivo.id, estado: "aplicada" as const, razon: null, evento_id: nuevo?.id ?? null, aviso: null };
           await anotarFila(tx, guardada.id, resultado);
-          return resultado;
+          return { fila: resultado, diferido: diferidoDe(aplicacion) };
         });
+        let fila: z.output<typeof filaResultado> = aplicado.fila;
+        if (aplicado.diferido) {
+          let pendiente = false;
+          try {
+            pendiente = (await aplicado.diferido(contexto.db)).pendiente;
+          } catch {
+            pendiente = true;
+          }
+          if (pendiente) {
+            fila = {
+              ...fila,
+              aviso: "La cita en Calendly no se pudo cancelar; quedó pendiente y el deal tiene una nota para reintentar.",
+            };
+            await anotarFila(contexto.db, guardada.id, fila);
+          }
+        }
         filas.push(fila);
       } catch (error) {
         const falla = mensajeDeError(error);
-        const fila = { objetivo_id: objetivo.id, estado: "rechazada" as const, razon: falla.mensaje, evento_id: null };
+        const fila = { objetivo_id: objetivo.id, estado: "rechazada" as const, razon: falla.mensaje, evento_id: null, aviso: null };
         await anotarFila(contexto.db, guardada.id, fila);
         filas.push(fila);
       }

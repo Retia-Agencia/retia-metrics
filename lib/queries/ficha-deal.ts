@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, inArray, ne } from "drizzle-orm";
 import {
   abonos,
   calls,
@@ -115,6 +115,7 @@ export interface FichaDeMovimiento {
   /** `null` = lo movio el sistema. */
   porNombre: string | null;
   motivoNombre: string | null;
+  origen: "app" | "mcp" | null;
 }
 
 interface FichaDeEventoBase {
@@ -132,6 +133,7 @@ export type FichaDeEvento =
       de: EtapaDeal | null;
       a: EtapaDeal;
       motivoNombre: string | null;
+      origen: "app" | "mcp" | null;
     })
   | (FichaDeEventoBase & {
       tipo: "cambio";
@@ -422,6 +424,10 @@ function fechaDeLlamada(c: { fechaAgenda: Date | null; fechaLlamada: Date | null
   return c.fechaAgenda ?? c.fechaLlamada;
 }
 
+function origenOperativo(origen: string | null): "app" | "mcp" | null {
+  return origen === "app" || origen === "mcp" ? origen : null;
+}
+
 export interface HistoriaDeDeal {
   llamadas: Array<(typeof calls.$inferSelect) & { closerNombre: string | null; anuladoPorNombre: string | null }>;
   abonos: Array<(typeof abonos.$inferSelect) & { anuladoPorNombre: string | null }>;
@@ -444,7 +450,11 @@ export async function historiaDeDeals(
   const [llamadasFilas, abonosFilas, historialFilas] = await Promise.all([
     db.select().from(calls).where(and(inArray(calls.dealId, idsValidos), eq(calls.programId, programId), incluyendoAnulados(calls))),
     db.select().from(abonos).where(and(inArray(abonos.dealId, idsValidos), eq(abonos.programId, programId), incluyendoAnulados(abonos))).orderBy(desc(abonos.fecha), desc(abonos.createdAt)),
-    db.select().from(dealEtapaHistorial).where(inArray(dealEtapaHistorial.dealId, idsValidos)).orderBy(asc(dealEtapaHistorial.fecha)),
+    // origen explícito: la ficha y ficha_de_deal dicen por qué puerta entró el movimiento
+    db.select({
+      ...getTableColumns(dealEtapaHistorial),
+      origen: dealEtapaHistorial.origen,
+    }).from(dealEtapaHistorial).where(inArray(dealEtapaHistorial.dealId, idsValidos)).orderBy(asc(dealEtapaHistorial.fecha)),
   ]);
   const idsUsuarios = [...new Set([
     ...llamadasFilas.flatMap((fila) => [fila.closerUserId, fila.anuladoPor]),
@@ -841,6 +851,7 @@ export async function fichaDeDeal(
       fecha: h.fecha,
       porNombre: nombreDe(h.userId),
       motivoNombre: nombreDeMotivo(h.motivoId),
+      origen: origenOperativo(h.origen),
     })),
     log: [
       ...historialFilas.map((h): FichaDeEvento => ({
@@ -851,6 +862,7 @@ export async function fichaDeDeal(
         a: h.a,
         porNombre: nombreDe(h.userId),
         motivoNombre: nombreDeMotivo(h.motivoId),
+        origen: origenOperativo(h.origen),
         ...datosDeDeshacer(h.id),
         esDeshacer: h.reversionId != null,
       })),
