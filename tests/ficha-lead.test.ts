@@ -5,6 +5,7 @@ import {
   camposDelEnvio,
   diferenciasEntreEnvios,
   fichaDeLead,
+  fichasDeLeads,
   fichaSinDetalleDeCitas,
   ordenarEnvios,
   type CampoDelEnvio,
@@ -160,6 +161,7 @@ describe("fichaDeLead (PGlite)", () => {
       .values({
         leadId, sourceId: fuente.id, token: "t1", esParcial: true,
         fechaEnvio: new Date("2026-09-30T00:00:00Z"), respuestas: { Ingreso: "1000" },
+        createdAt: new Date("2026-09-01T10:00:00Z"),
       })
       .returning();
     const [e2] = await db
@@ -167,11 +169,12 @@ describe("fichaDeLead (PGlite)", () => {
       .values({
         leadId, sourceId: fuente.id, token: "t2", calificacion: "calificado",
         fechaEnvio: new Date("2026-07-01T00:00:00Z"), respuestas: { Ingreso: "1000", Urgencia: "Ya" },
+        createdAt: new Date("2026-09-01T10:01:00Z"),
       })
       .returning();
     const [e3] = await db
       .insert(submissions)
-      .values({ leadId, sourceId: fuente.id, token: "t3", respuestas: { Ingreso: "5000", Urgencia: "Ya" } })
+      .values({ leadId, sourceId: fuente.id, token: "t3", respuestas: { Ingreso: "5000", Urgencia: "Ya" }, createdAt: new Date("2026-09-01T10:02:00Z") })
       .returning();
     envios = [e1.id, e2.id, e3.id];
 
@@ -268,6 +271,13 @@ describe("fichaDeLead (PGlite)", () => {
     const [m] = await db.insert(leads).values({ programId, emailNormalizado: "manual@correo.co", entrada: "crm" }).returning();
     const f = (await fichaDeLead(db, programId, m.id))!;
     expect(f).toMatchObject({ entrada: "crm", envios: [], deals: [], contactos: [], soloParciales: false });
+  });
+
+  it("la lectura por lotes conserva exactamente la ficha individual", async () => {
+    const [otro] = await db.insert(leads).values({ programId, emailNormalizado: "lote@correo.co", entrada: "crm" }).returning();
+    const lote = await fichasDeLeads(db, programId, [leadId, otro.id]);
+    expect(lote.get(leadId)).toEqual(await fichaDeLead(db, programId, leadId));
+    expect(lote.get(otro.id)).toEqual(await fichaDeLead(db, programId, otro.id));
   });
 });
 

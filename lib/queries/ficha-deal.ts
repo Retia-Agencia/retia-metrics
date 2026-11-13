@@ -422,6 +422,62 @@ function fechaDeLlamada(c: { fechaAgenda: Date | null; fechaLlamada: Date | null
   return c.fechaAgenda ?? c.fechaLlamada;
 }
 
+export interface HistoriaDeDeal {
+  llamadas: Array<(typeof calls.$inferSelect) & { closerNombre: string | null; anuladoPorNombre: string | null }>;
+  abonos: Array<(typeof abonos.$inferSelect) & { anuladoPorNombre: string | null }>;
+  historial: Array<(typeof dealEtapaHistorial.$inferSelect) & { porNombre: string | null; motivoNombre: string | null }>;
+}
+
+/** Lee en lotes la historia trazable de varios deals del mismo programa. */
+export async function historiaDeDeals(
+  db: Db,
+  programId: string,
+  dealIds: readonly string[],
+): Promise<Map<string, HistoriaDeDeal>> {
+  const ids = [...new Set(dealIds)];
+  if (ids.length === 0) return new Map();
+  const validos = await db.select({ id: deals.id }).from(deals)
+    .where(and(inArray(deals.id, ids), eq(deals.programId, programId), incluyendoAnulados(deals)));
+  const idsValidos = validos.map((deal) => deal.id);
+  if (idsValidos.length === 0) return new Map();
+
+  const [llamadasFilas, abonosFilas, historialFilas] = await Promise.all([
+    db.select().from(calls).where(and(inArray(calls.dealId, idsValidos), eq(calls.programId, programId), incluyendoAnulados(calls))),
+    db.select().from(abonos).where(and(inArray(abonos.dealId, idsValidos), eq(abonos.programId, programId), incluyendoAnulados(abonos))).orderBy(desc(abonos.fecha), desc(abonos.createdAt)),
+    db.select().from(dealEtapaHistorial).where(inArray(dealEtapaHistorial.dealId, idsValidos)).orderBy(asc(dealEtapaHistorial.fecha)),
+  ]);
+  const idsUsuarios = [...new Set([
+    ...llamadasFilas.flatMap((fila) => [fila.closerUserId, fila.anuladoPor]),
+    ...abonosFilas.map((fila) => fila.anuladoPor),
+    ...historialFilas.map((fila) => fila.userId),
+  ].filter((id): id is string => id !== null))];
+  const idsMotivos = [...new Set(historialFilas.map((fila) => fila.motivoId).filter((id): id is string => id !== null))];
+  const usuariosFilas = idsUsuarios.length > 0
+    ? await db.select({ id: users.id, nombre: users.nombre, email: users.email }).from(users).where(inArray(users.id, idsUsuarios))
+    : [];
+  const motivosFilas = idsMotivos.length > 0
+    ? await db.select({ id: motivos.id, nombre: motivos.nombre }).from(motivos).where(inArray(motivos.id, idsMotivos))
+    : [];
+  const nombreDe = new Map(usuariosFilas.map((usuario) => [usuario.id, usuario.nombre ?? usuario.email] as const));
+  const motivoDe = new Map(motivosFilas.map((motivo) => [motivo.id, motivo.nombre] as const));
+  return new Map(idsValidos.map((dealId) => [dealId, {
+    llamadas: llamadasFilas.filter((fila) => fila.dealId === dealId).map((fila) => ({
+      ...fila,
+      closerNombre: fila.closerUserId ? nombreDe.get(fila.closerUserId) ?? null : null,
+      anuladoPorNombre: fila.anuladoPor ? nombreDe.get(fila.anuladoPor) ?? null : null,
+    })),
+    abonos: abonosFilas.filter((fila) => fila.dealId === dealId).map((fila) => ({
+      ...fila,
+      anuladoPorNombre: fila.anuladoPor ? nombreDe.get(fila.anuladoPor) ?? null : null,
+    })),
+    historial: historialFilas.filter((fila) => fila.dealId === dealId).map((fila) => ({
+      ...fila,
+      porNombre: fila.userId ? nombreDe.get(fila.userId) ?? null : null,
+      motivoNombre: fila.motivoId ? motivoDe.get(fila.motivoId) ?? null : null,
+    })),
+  }]));
+}
+
 /** La ficha de un deal de ESTE programa, o `null` si no existe o es de otro. */
 export async function fichaDeDeal(
   db: Db,
@@ -458,25 +514,15 @@ export async function fichaDeDeal(
   const cohortesVendiendoHoy = await cohortesVendiendo(db, deal.programId, hoyEnBogota());
 
   // Las tablas de apoyo, cada una aparte y unidas en memoria.
-  const llamadasFilas = await db
-    .select()
-    .from(calls)
-    .where(and(eq(calls.dealId, deal.id), incluyendoAnulados(calls)));
-  const abonosFilas = await db
-    .select()
-    .from(abonos)
-    .where(and(eq(abonos.dealId, deal.id), incluyendoAnulados(abonos)))
-    .orderBy(desc(abonos.fecha), desc(abonos.createdAt));
+  const historia = (await historiaDeDeals(db, programId, [deal.id])).get(deal.id)!;
+  const llamadasFilas = historia.llamadas;
+  const abonosFilas = historia.abonos;
   const actividadesFilas = await db
     .select()
     .from(dealActividades)
     .where(and(eq(dealActividades.dealId, deal.id), incluyendoAnulados(dealActividades)))
     .orderBy(desc(dealActividades.fecha));
-  const historialFilas = await db
-    .select()
-    .from(dealEtapaHistorial)
-    .where(eq(dealEtapaHistorial.dealId, deal.id))
-    .orderBy(asc(dealEtapaHistorial.fecha));
+  const historialFilas = historia.historial;
   const contactosFilas = await db
     .select()
     .from(leadContactos)

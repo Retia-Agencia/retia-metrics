@@ -33,6 +33,17 @@ export const esquema = z.object({
   pagina: z.string().regex(/^[1-9][0-9]{0,6}$/).transform(Number).pipe(z.number().max(1_000_000)).optional(),
 });
 
+function enlaceCsv(slug: string, busqueda: Record<string, string | string[] | undefined>, forma: "leads" | "traza") {
+  const query = new URLSearchParams();
+  for (const [llave, valor] of Object.entries(busqueda)) {
+    if (llave === "pagina" || valor === undefined) continue;
+    if (Array.isArray(valor)) valor.forEach((item) => query.append(llave, item));
+    else query.set(llave, valor);
+  }
+  query.set("forma", forma);
+  return `/p/${encodeURIComponent(slug)}/hub/lista.csv?${query.toString()}`;
+}
+
 const titulos = TITULOS_DE_LISTA;
 
 /** El tono de la antigüedad (GC-35): de lo más nuevo a lo más viejo, con los tonos de Tinta. */
@@ -163,6 +174,8 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           ) : null}
           {campaignNormalizado !== undefined ? <Badge variant="secondary">Campaña: {campaignNormalizado ?? "—"}</Badge> : null}
           {categoria ? <Badge variant="secondary">{categoria === "sin_utm" ? "Sin UTM" : categoria === "macro" ? "Plantilla sin completar" : categoria === "con_utm" ? "Con UTM" : "Pieza desconocida"}</Badge> : null}
+          <Button variant="outline" nativeButton={false} render={<a href={enlaceCsv(slug, busqueda, "leads")} />}>Descargar leads</Button>
+          <Button variant="outline" nativeButton={false} render={<a href={enlaceCsv(slug, busqueda, "traza")} />}>Descargar historia</Button>
         </div>
         {periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{periodo.aviso}</p> : null}
         <p className="cifra">{lista.disponible ? num(lista.subtotal.cantidad) : "—"} {metrica === "no_agendaron" ? "personas" : "registros"}</p>

@@ -1,4 +1,4 @@
-# 0052 — El cuarto rol: Paid Trafficker, y su pregunta `manejaPauta`
+# 0052 — El cuarto rol: Paid Trafficker, y su pregunta `manejaPauta` (enmendado el 12-nov: el archivo de la historia del lead lleva contacto y monto)
 
 **Fecha:** 2026-09-24 · **Reescrito:** 2026-09-27 (referencias al dia) · **Estado:** aceptado (Mani: entra en el builder v1) · **Implementación:**
 ticket 102 · **Aplica:** ADR 0025 (las preguntas de rol viven en un solo lugar), ADR 0051 (el CRM genera los
@@ -69,3 +69,13 @@ Detrás de cada cifra de Pauta, el paid trafficker puede ver el **lead: nombre y
 última actividad salvo para quien también cumple `veEquipoComercial`; en ese caso conserva la vista comercial y sus
 enlaces. Deals, llamadas y abonos sueltos siguen fuera de su alcance, y una escalera sin filtro de origen continúa
 reservada a quien administra.
+
+## Enmienda 2026-11-12 (ticket 424; Mani)
+
+**El archivo de la historia del lead sí lleva contacto y monto.** La lista de una cifra que el paid trafficker abre
+(Pauta y Origen) se descarga en dos archivos, uno por lead y otro por evento. Ahí, y solo ahí, el paid trafficker
+recibe **nombre, correo, teléfono y el monto** de la venta y de cada abono, sin enlaces al CRM. Mani, textual: *«poco ton
+de links del CRM que nadie va a abrir es solamente fricción»*; Paid Media necesita la compra para cruzarla con la
+campaña. Lo que no cambia: el archivo **nunca** lleva closer ni deal para quien no cumple `veEquipoComercial`, la
+pantalla de la lista conserva la proyección de la enmienda del 29-oct, y deals, llamadas y abonos sueltos siguen fuera
+de su alcance. La proyección del archivo vive en `lib/hub/csv-historia.ts` y la ruta en `hub/lista.csv`.

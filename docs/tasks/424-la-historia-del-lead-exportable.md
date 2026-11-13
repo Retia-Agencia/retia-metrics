@@ -3,7 +3,7 @@ id: 424
 etapa: pauta
 serves: "Dani Rodríguez (Paid Media), audio del 11-nov, «top 1 prioridades»: ver y descargar la traza completa de cada lead (formulario, campaña, agenda, compra, programa) · Mani, 12-nov"
 depends: []
-status: todo
+status: en main
 ---
 
 # 424 — La historia del lead se descarga desde la lista que ya abre cada cifra
@@ -72,17 +72,28 @@ cada lead que ya arman las fichas.
 - **D-3. Si la lista que usa Dani hoy no es la de una cifra concreta** (quiere "todos los leads de la semana"), se usa la
   cifra Registros con sus filtros de origen, que ya existe. Confirmar con Dani que le basta.
 
+### Respuestas (Mani, 12-nov)
+
+- **D-1 → con monto, en este ticket.** El archivo lleva el monto de la compra y de cada abono también para el paid
+  trafficker. Sigue sin closer ni deal para quien no cumple `veEquipoComercial`. Se enmienda el ADR 0052 en el mismo
+  diff (N8). La pantalla de la lista no cambia: la enmienda es del archivo.
+- **D-2 → nombre, correo y teléfono, para todo rol que abre la lista; sin links al CRM.** Mani: *«poco ton de links del
+  CRM que nadie va a abrir es solamente fricción»*. Reemplaza la recomendación (nunca correo ni teléfono) y la casilla
+  correspondiente del "Done cuando". Misma enmienda del ADR 0052, dentro de este ticket.
+- **D-3 → Registros con sus filtros de origen.** Mani le confirma a Dani Rodríguez; la casilla queda abierta hasta su sí.
+
 ## Done cuando
 
-- [ ] D-1 a D-3 respondidas, con fecha y quién.
-- [ ] `git diff` sin cambios en el universo ni en los filtros de ninguna métrica (`metricas-con-filas.ts`,
+- [x] D-1 a D-3 respondidas, con fecha y quién.
+- [x] `git diff` sin cambios en el universo ni en los filtros de ninguna métrica (`metricas-con-filas.ts`,
       `metricas-filtros.ts`, `filtros-de-lista.ts`, `lib/metricas/registro.ts`) ni en `docs/metricas.md`, salvo la
       generalización a lista del punto 3, nombrada.
-- [ ] Test: el ancho tiene tantas filas como la lista de la misma cifra con el mismo filtro (todas las páginas), con
+- [x] Test: el ancho tiene tantas filas como la lista de la misma cifra con el mismo filtro (todas las páginas), con
       anulados y otro programa sembrados.
-- [ ] Test: la cabecera nunca trae correo ni teléfono, y como paid trafficker nunca closer, deal ni monto (forjando la
-      petición). Un programa ajeno da 404.
-- [ ] Test: la ficha del lead y la del deal siguen dando lo mismo después de generalizar sus funciones.
-- [ ] `npm run build`; recorrido en `dev:local` con gerente y paid trafficker, claro, oscuro y 375 px, lado a lado con el
+- [x] Test: el archivo trae nombre, correo y teléfono, y monto (D-1, D-2); como paid trafficker nunca closer ni deal
+      (forjando la petición). Un programa ajeno da 404.
+- [x] ADR 0052 enmendado (título, índice y cuerpo, N8) con el archivo de la historia: contacto y monto sí, closer y deal no.
+- [x] Test: la ficha del lead y la del deal siguen dando lo mismo después de generalizar sus funciones.
+- [x] `npm run build`; recorrido en `dev:local` con gerente y paid trafficker, claro, oscuro y 375 px, lado a lado con el
       boceto.
 - [ ] Dani Rodríguez descargó una semana real y dijo que le sirve.

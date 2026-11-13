@@ -99,7 +99,7 @@ comentarios; esta tabla es la que los resuelve.
 |---|---|
 | [0003](./0003-roles-sin-herencia.md) | Los roles no heredan: gerente y closer son disjuntos |
 | [0025](./0025-developer-es-la-unica-excepcion-a-la-disjuncion.md) | `developer` es la única excepción a la disjunción |
-| [0052](./0052-el-cuarto-rol-paid-trafficker.md) | El cuarto rol: Paid Trafficker |
+| [0052](./0052-el-cuarto-rol-paid-trafficker.md) | El cuarto rol: Paid Trafficker (**enmendado el 12-nov**: el archivo de la historia del lead le lleva contacto y monto, nunca closer ni deal) |
 | [0048](./0048-alcance-del-closer-y-agregado-de-lo-sumable.md) | Un closer ve solo sus programas; el agregado suma solo lo sumable |
 | [0028](./0028-ver-como-la-vista-estrecha-guarda-y-proyeccion.md) | "Ver como": la vista estrecha la proyección y la guarda |
 | [0030](./0030-mani-y-mani-son-el-mismo-closer.md) | La identidad del closer: FK para lo nativo, nombre normalizado para el histórico |

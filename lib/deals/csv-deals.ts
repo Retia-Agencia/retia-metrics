@@ -22,7 +22,7 @@ const ENCABEZADOS = [
   "Calidad", "Valor del lead", "Origen (UTM)", "Creado", "Link CRM",
 ] as const;
 
-function celdaCsv(valor: string | null): string {
+export function celdaCsv(valor: string | null): string {
   let texto = valor ?? "";
   // Una celda que empieza con = + - @ se ejecuta como fórmula en Excel.
   if (/^[=+\-@\t\r]/.test(texto)) texto = `'${texto}`;

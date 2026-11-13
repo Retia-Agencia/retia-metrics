@@ -240,18 +240,26 @@ export function unirParcialesConSuCompleto<
     .map((e) => ({ ...e, empezoComoParcial: e.esParcial ? null : (parcialDe.get(llaveDeToken(e)) ?? null) }));
 }
 
-/** La ficha de un lead de ESTE programa, o `null` si no existe o es de otro. */
-export async function fichaDeLead(db: Db, programId: string, leadId: string): Promise<FichaDeLead | null> {
-  const [lead] = await db
+/** Las fichas de los leads que existen en ESTE programa, leídas por lotes. */
+export async function fichasDeLeads(
+  db: Db,
+  programId: string,
+  leadIds: readonly string[],
+): Promise<Map<string, FichaDeLead>> {
+  const ids = [...new Set(leadIds)];
+  if (ids.length === 0) return new Map();
+  const leadsFilas = await db
     .select()
     .from(leads)
-    .where(and(eq(leads.id, leadId), eq(leads.programId, programId)));
-  if (!lead) return null;
+    .where(and(inArray(leads.id, ids), eq(leads.programId, programId)));
+  if (leadsFilas.length === 0) return new Map();
+  const idsPresentes = leadsFilas.map((lead) => lead.id);
 
   // Cada cosa aparte y unida en memoria (AGENTS.md: nada de subconsultas correlacionadas).
   const enviosFilas = await db
     .select({
       id: submissions.id,
+      leadId: submissions.leadId,
       sourceId: submissions.sourceId,
       token: submissions.token,
       esParcial: submissions.esParcial,
@@ -264,11 +272,11 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       ...columnasUtmDelEnvio,
     })
     .from(submissions)
-    .where(eq(submissions.leadId, lead.id));
+    .where(inArray(submissions.leadId, idsPresentes));
   const contactosFilas = await db
     .select()
     .from(leadContactos)
-    .where(and(eq(leadContactos.leadId, lead.id), eq(leadContactos.programId, programId)))
+    .where(and(inArray(leadContactos.leadId, idsPresentes), eq(leadContactos.programId, programId)))
     .orderBy(asc(leadContactos.createdAt));
   const fuentesFilas = enviosFilas.length > 0
     ? await db.select({ id: sources.id, nombre: sources.nombre }).from(sources).where(inArray(sources.id, [...new Set(enviosFilas.map((e) => e.sourceId))]))
@@ -276,7 +284,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
   const dealsFilas = await db
     .select()
     .from(deals)
-    .where(and(eq(deals.leadId, lead.id), eq(deals.programId, programId), incluyendoAnulados(deals)));
+    .where(and(inArray(deals.leadId, idsPresentes), eq(deals.programId, programId), incluyendoAnulados(deals)));
 
   const idsDeDeals = dealsFilas.map((d) => d.id);
   const llamadasFilas = idsDeDeals.length > 0
@@ -299,37 +307,42 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       ? await db.select({ id: cohorts.id, codigo: cohorts.codigo }).from(cohorts).where(inArray(cohorts.id, idsDeCohortes))
       : [];
 
-  const ordenados = ordenarEnvios(unirParcialesConSuCompleto(enviosFilas));
   const nombreDeFuente = new Map(fuentesFilas.map((f) => [f.id, String(f.nombre)] as const));
-  const numeroDe = new Map(ordenados.map((e, i) => [e.id, i + 1] as const));
-  // Un parcial absorbido por su completo lleva el número de ese completo: un contacto o un deal
-  // que nació del parcial nació del MISMO envío.
-  const numeroPorToken = new Map(ordenados.map((e) => [llaveDeToken(e), numeroDe.get(e.id)!] as const));
-  for (const e of enviosFilas) {
-    if (!numeroDe.has(e.id)) numeroDe.set(e.id, numeroPorToken.get(llaveDeToken(e))!);
-  }
-  let previos: CampoDelEnvio[] | null = null;
-  const envios: EnvioDeLaFicha[] = [];
-  for (const [i, e] of ordenados.entries()) {
-    const campos = camposDelEnvio(e);
-    const canal = resolverCanal(utmsDelEnvio(e));
-    envios.push({
-      id: e.id,
-      numero: i + 1,
-      esParcial: e.esParcial,
-      empezoComoParcial: e.empezoComoParcial,
-      fecha: e.fechaEnvio ?? e.createdAt,
-      fechaEsDeLlegada: e.fechaEnvio === null,
-      calificacion: e.calificacion,
-      fuente: nombreDeFuente.get(e.sourceId) ?? "Fuente desconocida",
-      canal: canal.regla === "sin_utm" ? "Sin UTM" : canal.canal?.nombre ?? "(sin utm_source)",
-      campos,
-      cambios: previos === null ? null : diferenciasEntreEnvios(previos, campos),
-    });
-    previos = campos;
-  }
+  const salida = new Map<string, FichaDeLead>();
+  for (const lead of leadsFilas) {
+    const enviosDelLead = enviosFilas.filter((envio) => envio.leadId === lead.id);
+    const dealsDelLead = dealsFilas.filter((deal) => deal.leadId === lead.id);
+    const contactosDelLead = contactosFilas.filter((contacto) => contacto.leadId === lead.id);
+    const ordenados = ordenarEnvios(unirParcialesConSuCompleto(enviosDelLead));
+    const numeroDe = new Map(ordenados.map((e, i) => [e.id, i + 1] as const));
+    // Un parcial absorbido por su completo lleva el número de ese completo: un contacto o un deal
+    // que nació del parcial nació del MISMO envío.
+    const numeroPorToken = new Map(ordenados.map((e) => [llaveDeToken(e), numeroDe.get(e.id)!] as const));
+    for (const e of enviosDelLead) {
+      if (!numeroDe.has(e.id)) numeroDe.set(e.id, numeroPorToken.get(llaveDeToken(e))!);
+    }
+    let previos: CampoDelEnvio[] | null = null;
+    const envios: EnvioDeLaFicha[] = [];
+    for (const [i, e] of ordenados.entries()) {
+      const campos = camposDelEnvio(e);
+      const canal = resolverCanal(utmsDelEnvio(e));
+      envios.push({
+        id: e.id,
+        numero: i + 1,
+        esParcial: e.esParcial,
+        empezoComoParcial: e.empezoComoParcial,
+        fecha: e.fechaEnvio ?? e.createdAt,
+        fechaEsDeLlegada: e.fechaEnvio === null,
+        calificacion: e.calificacion,
+        fuente: nombreDeFuente.get(e.sourceId) ?? "Fuente desconocida",
+        canal: canal.regla === "sin_utm" ? "Sin UTM" : canal.canal?.nombre ?? "(sin utm_source)",
+        campos,
+        cambios: previos === null ? null : diferenciasEntreEnvios(previos, campos),
+      });
+      previos = campos;
+    }
 
-  const dealsDeLaFicha: DealDeLaFicha[] = dealsFilas
+    const dealsDeLaFicha: DealDeLaFicha[] = dealsDelLead
     .map((d) => {
       const owner = owners.find((o) => o.id === d.ownerUserId);
       return {
@@ -351,7 +364,7 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
       return peso(a) - peso(b) || b.creadoEn.getTime() - a.creadoEn.getTime();
     });
 
-  const contactos: ContactoDeLaFicha[] = contactosFilas
+    const contactos: ContactoDeLaFicha[] = contactosDelLead
     .map((c) => ({
       id: c.id,
       tipo: c.tipo,
@@ -364,23 +377,30 @@ export async function fichaDeLead(db: Db, programId: string, leadId: string): Pr
     }))
     .sort((a, b) => Number(b.esPrincipal) - Number(a.esPrincipal) || a.creadoEn.getTime() - b.creadoEn.getTime());
 
-  return {
-    id: lead.id,
-    programId: lead.programId,
-    nombre: lead.nombre,
-    email: lead.emailNormalizado,
-    telefono: lead.telefono,
-    entrada: lead.entrada,
-    leadQuality: lead.leadQuality,
-    leadValue: lead.leadValue,
-    numAplicaciones: lead.numAplicaciones,
-    fechaPrimeraAplicacion: lead.fechaPrimeraAplicacion,
-    fechaUltimaAplicacion: lead.fechaUltimaAplicacion,
-    creadoEn: lead.createdAt,
-    unidoPorTelefono: contactos.some((c) => !c.confirmado),
-    soloParciales: envios.length > 0 && envios.every((e) => e.esParcial),
-    envios: envios.reverse(),
-    contactos,
-    deals: dealsDeLaFicha,
-  };
+    salida.set(lead.id, {
+      id: lead.id,
+      programId: lead.programId,
+      nombre: lead.nombre,
+      email: lead.emailNormalizado,
+      telefono: lead.telefono,
+      entrada: lead.entrada,
+      leadQuality: lead.leadQuality,
+      leadValue: lead.leadValue,
+      numAplicaciones: lead.numAplicaciones,
+      fechaPrimeraAplicacion: lead.fechaPrimeraAplicacion,
+      fechaUltimaAplicacion: lead.fechaUltimaAplicacion,
+      creadoEn: lead.createdAt,
+      unidoPorTelefono: contactos.some((c) => !c.confirmado),
+      soloParciales: envios.length > 0 && envios.every((e) => e.esParcial),
+      envios: envios.reverse(),
+      contactos,
+      deals: dealsDeLaFicha,
+    });
+  }
+  return salida;
+}
+
+/** La ficha de un lead de ESTE programa, o `null` si no existe o es de otro. */
+export async function fichaDeLead(db: Db, programId: string, leadId: string): Promise<FichaDeLead | null> {
+  return (await fichasDeLeads(db, programId, [leadId])).get(leadId) ?? null;
 }
