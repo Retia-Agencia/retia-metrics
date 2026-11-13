@@ -24,7 +24,7 @@ const dimensionesAgenda = listaExacta<DimensionAgenda>()(["dia", "semana", "mes"
 const dimensionesCita = listaExacta<DimensionCita>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa", "ocurrio"] as const);
 const dimensionesVenta = listaExacta<DimensionVenta>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte"] as const);
 const dimensionesAbono = listaExacta<DimensionAbono>()(["dia", "semana", "mes", "moneda", "plataforma", "registrado_por", "dueno", "cohorte"] as const);
-const dimensionesGasto = listaExacta<DimensionGasto>()(["dia", "semana", "mes", "moneda", "objeto_de_pauta"] as const);
+const dimensionesGasto = listaExacta<DimensionGasto>()(["dia", "semana", "mes", "moneda", "objeto_de_pauta", "cuenta_meta"] as const);
 
 interface DefinicionDeHecho {
   dimensiones: readonly string[];

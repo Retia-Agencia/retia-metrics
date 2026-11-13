@@ -19,8 +19,9 @@ import {
   type VistaRoasDePauta,
 } from "@/lib/queries/roas-de-pauta";
 
-/** Ver por (diseño §5.1). Cuenta llega con la dimensión de cuenta (416). */
+/** Ver por (diseño §5.1). Cuenta es la cuenta de Meta del gasto (416). */
 export const VER_POR_ORIGEN = [
+  { id: "cuenta", etiqueta: "Cuenta" },
   { id: "canal", etiqueta: "Canal" },
   { id: "campana", etiqueta: "Campaña" },
   { id: "anuncio", etiqueta: "Anuncio" },
@@ -68,6 +69,7 @@ function etiquetaDeNivel(nivel: NivelPauta): string {
     case "conjunto": return "Conjunto";
     case "anuncio": case "anuncio_sin_identificar": return "Anuncio";
     case "canal": return "Canal";
+    case "cuenta_meta": return "Cuenta de Meta";
     default: return "Origen";
   }
 }
@@ -184,6 +186,10 @@ export function filasDeQueTraeVentas(c: ContextoDeOrigen, verPor: VerPorOrigen):
   const conActividad = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0;
   if (verPor === "canal") {
     for (const r of vista.canales) filas.push(filaDeQueTraeVentas(r, c, `canal:${r.id}`));
+    return filas;
+  }
+  if (verPor === "cuenta") {
+    for (const r of vista.cuentas) filas.push(filaDeQueTraeVentas(r, c, `cuenta:${r.id}`));
     return filas;
   }
   if (verPor === "campana") {

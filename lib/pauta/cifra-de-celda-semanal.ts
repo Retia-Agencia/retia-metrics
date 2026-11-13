@@ -61,7 +61,21 @@ export interface EntradaDeCeldaSemanal {
   objetivos: readonly ObjetivoDeCohorte[];
   programa?: string;
   cohorte?: string;
+  /** La cuenta de Meta de una subfila de «Por cuenta» (416): va a los filtros de la explicación y a "Calculada con". */
+  cuenta?: string;
   lista?: EntradaDeCifra["lista"];
+}
+
+/**
+ * La explicación de una subfila de «Por cuenta» (416): la del concepto, con "qué mide" dicho para esa cuenta. La de
+ * Inversión dice "sumando todas las cuentas del programa", que en una subfila sería falso.
+ */
+function explicacionDeCuenta(clave: ClavePautaSemanal, cuenta: string) {
+  const base = explicacionDePauta(clave);
+  const que = clave === "inversion"
+    ? `Lo que se gastó en anuncios de Meta en la cuenta ${cuenta}. Las cuentas del programa suman la fila Inversión.`
+    : `${base.que} Aquí, solo la cuenta ${cuenta}.`;
+  return { ...base, que };
 }
 
 export function textoDePeriodoDeCelda(rango: Rango, esTotal: boolean, paso: PasoDeTablaDePauta = "semana"): string {
@@ -77,10 +91,11 @@ export function cifraDeCeldaSemanal(e: EntradaDeCeldaSemanal): CifraDeMetrica {
   if (e.programa) filtros.push(["Programa", e.programa]);
   if (e.cohorte) filtros.push(["Cohorte", e.cohorte]);
   filtros.push(["Área", "Paid"]);
+  if (e.cuenta) filtros.push(["Cuenta de Meta", e.cuenta]);
   filtros.push([e.esTotal ? "Periodo" : porDia ? "Día" : "Semana", etiquetaDeSemana(rango)]);
   return armarCifra({
     concepto: e.fila.clave,
-    explicacion: explicacionDePauta(e.fila.clave),
+    explicacion: e.cuenta ? explicacionDeCuenta(e.fila.clave, e.cuenta) : explicacionDePauta(e.fila.clave),
     valor: celda.valor,
     motivo: celda.valor === null ? celda.cobertura.razon ?? "Faltan datos para calcularla" : undefined,
     partes: celda.partes,

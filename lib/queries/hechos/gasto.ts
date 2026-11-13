@@ -1,5 +1,5 @@
-import { and, between, eq, isNotNull, or, sql } from "drizzle-orm";
-import { gastoPauta, pautaObjetos } from "@/lib/db/schema";
+import { and, asc, between, eq, isNotNull, or, sql } from "drizzle-orm";
+import { cuentasPublicitarias, gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { Rango } from "@/lib/queries/dashboard";
 import { coberturaDeGasto, type CoberturaDeGasto } from "@/lib/pauta/cobertura-de-gasto";
@@ -9,14 +9,27 @@ import { aplicarPagina, condicionesDeFiltros, expresionDeOrden, seleccionarDimen
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
 import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
 
-export type DimensionGasto = "dia" | "semana" | "mes" | "moneda" | "objeto_de_pauta";
+export type DimensionGasto = "dia" | "semana" | "mes" | "moneda" | "objeto_de_pauta" | "cuenta_meta";
 export type MedidaGasto = "monto";
+
+/**
+ * La cuenta de Meta de un gasto (416): la del objeto de pauta al que está colgado (`pauta_objetos.cuenta_id`). Es la
+ * ÚNICA forma de responder "¿de qué cuenta es este gasto?": la usan la tabla de Pauta, «Ver por Cuenta» y el filtro
+ * «Ver solo», así las tres dicen lo mismo de cada cuenta. Un gasto cargado a mano (solo `area`) no tiene cuenta: nulo,
+ * y la pantalla lo muestra aparte como "Sin cuenta de Meta" para que las cuentas sumen el total.
+ */
+export const cuentaDelGasto = pautaObjetos.cuentaId;
+export const NOMBRE_SIN_CUENTA = "Sin cuenta de Meta";
 
 const dimensiones = {
   ...dimensionesDeDate(gastoPauta.fecha),
   moneda: gastoPauta.moneda,
   objeto_de_pauta: gastoPauta.pautaObjetoId,
+  cuenta_meta: cuentaDelGasto,
 } as const;
+
+/** El gasto con el objeto de pauta unido: de ahí sale su cuenta. Nunca cambia el número de filas (FK a la llave). */
+const conObjeto = eq(pautaObjetos.id, gastoPauta.pautaObjetoId);
 
 export interface FilaGastoNativo {
   gastoId: string;
@@ -25,6 +38,7 @@ export interface FilaGastoNativo {
   mes: string;
   moneda: string;
   objeto_de_pauta: string | null;
+  cuenta_meta: string | null;
   monto: number;
 }
 
@@ -36,7 +50,7 @@ function consultaAgrupada<D extends DimensionGasto>(db: Db, opciones: ConsultaAg
   const agruparPor = opciones.agruparPor.includes("moneda" as D) ? opciones.agruparPor : [...opciones.agruparPor, "moneda" as D];
   const elegidas = seleccionarDimensiones(dimensiones, agruparPor);
   const suma = sql<number>`sum(${gastoPauta.monto})::float8`;
-  let consulta = db.select({ ...elegidas, monto: suma }).from(gastoPauta).where(alcanceNativo(opciones))
+  let consulta = db.select({ ...elegidas, monto: suma }).from(gastoPauta).leftJoin(pautaObjetos, conObjeto).where(alcanceNativo(opciones))
     .groupBy(...agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, monto: suma }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
@@ -52,7 +66,7 @@ export async function contarGrupos<D extends DimensionGasto>(db: Db, opciones: C
 }
 
 export async function listar<D extends DimensionGasto = DimensionGasto>(db: Db, opciones: ConsultaDeLista<D, D | MedidaGasto>): Promise<ListaPaginada<FilaGastoNativo>> {
-  const construir = () => db.select({ gastoId: gastoPauta.id, ...dimensiones, monto: sql<number>`${gastoPauta.monto}::float8` }).from(gastoPauta).where(alcanceNativo(opciones));
+  const construir = () => db.select({ gastoId: gastoPauta.id, ...dimensiones, monto: sql<number>`${gastoPauta.monto}::float8` }).from(gastoPauta).leftJoin(pautaObjetos, conObjeto).where(alcanceNativo(opciones));
   let consulta = construir().$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, monto: gastoPauta.monto }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
@@ -83,6 +97,8 @@ export interface VistaGasto {
   totalUsd: number;
   /** Suma USD por `idMeta` de anuncio (los que están colgados de un objeto de pauta). */
   porAnuncio: Map<string, number>;
+  /** Suma por cuenta de Meta (`cuentaDelGasto`); la llave `null` es el gasto sin cuenta. Suman `totalUsd`. */
+  porCuenta: Map<string | null, number>;
   trmEtiqueta: string | null;
   diasSinTrm: string[];
   cobertura: CoberturaDeGasto;
@@ -104,9 +120,10 @@ export async function gastoConvertido(
         monto: gastoPauta.monto,
         moneda: gastoPauta.moneda,
         idMetaAnuncio: pautaObjetos.idMeta,
+        cuentaId: cuentaDelGasto,
       })
       .from(gastoPauta)
-      .leftJoin(pautaObjetos, eq(pautaObjetos.id, gastoPauta.pautaObjetoId))
+      .leftJoin(pautaObjetos, conObjeto)
       .where(and(eq(gastoPauta.programId, programId), between(gastoPauta.fecha, rango.desde, rango.hasta), esGastoPaid)),
     tasasDelRango(db, rango.desde, rango.hasta),
     coberturaDeGasto(db, programId, rango),
@@ -122,10 +139,19 @@ export async function gastoConvertido(
     idMetaAnuncio: g.idMetaAnuncio ?? null,
   }));
   const porAnuncio = new Map<string, number>();
+  const porCuenta = new Map<string | null, number>();
   let totalUsd = 0;
-  for (const fila of filas) {
+  for (const [i, fila] of filas.entries()) {
     totalUsd += fila.montoUsd;
     if (fila.idMetaAnuncio) porAnuncio.set(fila.idMetaAnuncio, (porAnuncio.get(fila.idMetaAnuncio) ?? 0) + fila.montoUsd);
+    const cuenta = crudos[i].cuentaId ?? null;
+    porCuenta.set(cuenta, (porCuenta.get(cuenta) ?? 0) + fila.montoUsd);
   }
-  return { filas, totalUsd, porAnuncio, trmEtiqueta: tasas.etiqueta, diasSinTrm: convertidos.diasSinTrm, cobertura };
+  return { filas, totalUsd, porAnuncio, porCuenta, trmEtiqueta: tasas.etiqueta, diasSinTrm: convertidos.diasSinTrm, cobertura };
+}
+
+/** Las cuentas de Meta del programa, por nombre: los renglones de «Por cuenta» y «Ver por Cuenta». Nunca de otro programa. */
+export async function cuentasDelPrograma(db: Db, programId: string): Promise<Array<{ id: string; nombre: string }>> {
+  return db.select({ id: cuentasPublicitarias.id, nombre: cuentasPublicitarias.nombre }).from(cuentasPublicitarias)
+    .where(eq(cuentasPublicitarias.programId, programId)).orderBy(asc(cuentasPublicitarias.nombre), asc(cuentasPublicitarias.id));
 }

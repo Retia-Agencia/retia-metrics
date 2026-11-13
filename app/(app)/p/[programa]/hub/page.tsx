@@ -711,6 +711,11 @@ async function SeccionPauta({
           hrefDePaso={{
             semana: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "tabla" }),
             dia: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "dia", { parametro: "tabla" }),
+          }}
+          porCuenta={busqueda.por_cuenta === "1"}
+          hrefDeCuenta={{
+            total: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "por_cuenta" }),
+            cuenta: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "1", { parametro: "por_cuenta" }),
           }} />
         <PautaProyeccion proyeccion={proyeccion} historial={historial} objetivos={objetivosDeLaCohorte} hoy={hoy}
           programa={programaNombre} cohorte={cohorteCodigo ?? undefined}

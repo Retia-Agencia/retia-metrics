@@ -29,10 +29,12 @@ export function textoDeCeldaSemanal(celda: CeldaPautaSemanal, fila: Pick<FilaPau
 /** CSV con el mismo orden de filas y columnas que la tabla visible. */
 export function csvDePautaSemanal(vista: VistaPautaSemanal): string {
   const encabezado = ["Métrica", "Total", ...vista.columnas.map(etiquetaDeSemana)];
-  const filas = vista.filas.map((fila) => [
-    fila.nombre,
-    textoDeCeldaSemanal(fila.celdas.total, fila),
-    ...fila.celdas.porColumna.map((celda) => textoDeCeldaSemanal(celda, fila)),
-  ]);
+  // Con «Por cuenta» (416), cada cuenta va debajo de su fila como "Inversión · Rosario", igual que en la tabla.
+  const filas = vista.filas.flatMap((fila) => [fila, ...(fila.subfilas ?? []).map((sub) => ({ ...fila, nombre: `${fila.nombre} · ${sub.nombre}`, celdas: sub.celdas }))])
+    .map((fila) => [
+      fila.nombre,
+      textoDeCeldaSemanal(fila.celdas.total, fila),
+      ...fila.celdas.porColumna.map((celda) => textoDeCeldaSemanal(celda, fila)),
+    ]);
   return `\uFEFF${[encabezado, ...filas].map((fila) => fila.map(escapar).join(",")).join("\r\n")}\r\n`;
 }

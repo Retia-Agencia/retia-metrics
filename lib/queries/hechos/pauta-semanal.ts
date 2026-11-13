@@ -1,5 +1,5 @@
 import { and, between, count, eq, sql } from "drizzle-orm";
-import { gastoPauta } from "@/lib/db/schema";
+import { gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
 import { motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
@@ -7,7 +7,7 @@ import type { Rango } from "@/lib/queries/dashboard";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import * as agenda from "@/lib/queries/hechos/agenda";
 import * as envio from "@/lib/queries/hechos/envio";
-import { esGastoPaid, gastoConvertido, type VistaGasto } from "@/lib/queries/hechos/gasto";
+import { cuentaDelGasto, cuentasDelPrograma, esGastoPaid, gastoConvertido, NOMBRE_SIN_CUENTA, type VistaGasto } from "@/lib/queries/hechos/gasto";
 import * as venta from "@/lib/queries/hechos/venta";
 import { valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { semanasDelRango } from "@/lib/rangos";
@@ -53,14 +53,34 @@ export interface CeldaPautaSemanal {
   partes?: readonly [number | null, number | null];
 }
 
+export interface CeldasPautaSemanal {
+  total: CeldaPautaSemanal;
+  /** `porColumna[i]` es la celda de `columnas[i]` de la vista: una semana o un día, según el paso. */
+  porColumna: CeldaPautaSemanal[];
+}
+
+/** Una cuenta de Meta debajo de su fila (416, «Por cuenta»); `cuentaId` nulo = el gasto cargado a mano. */
+export interface SubfilaPautaSemanal {
+  cuentaId: string | null;
+  nombre: string;
+  celdas: CeldasPautaSemanal;
+}
+
 export interface FilaPautaSemanal {
   clave: ClavePautaSemanal;
   bloque: BloquePautaSemanal;
   nombre: string;
   unidad: UnidadPautaSemanal;
-  /** `porColumna[i]` es la celda de `columnas[i]` de la vista: una semana o un día, según el paso. */
-  celdas: { total: CeldaPautaSemanal; porColumna: CeldaPautaSemanal[] };
+  celdas: CeldasPautaSemanal;
+  /**
+   * Solo con «Por cuenta» y solo en las filas de Meta (`CLAVES_POR_CUENTA`): una subfila por cuenta del programa con
+   * gasto o agendas en el periodo. En Inversión y Agendas según Meta suman la fila (lo vigila `tests/pauta-por-cuenta`).
+   */
+  subfilas?: SubfilaPautaSemanal[];
 }
+
+/** Las filas que se abren por cuenta (diseño §4.3): lo que Meta da por cuenta. Lo del CRM no tiene cuenta. */
+export const CLAVES_POR_CUENTA = ["inversion", "agendas_meta", "costo_agenda_meta"] as const satisfies readonly ClavePautaSemanal[];
 
 export interface PuntoDiarioPautaSemanal {
   dia: string;
@@ -83,6 +103,8 @@ export interface VistaPautaSemanal {
 }
 
 type GastoAgrupado = {
+  /** `cuentaDelGasto`: la cuenta de Meta del objeto del gasto; nula en el gasto cargado a mano (416). */
+  cuentaId: string | null;
   semana: string;
   fecha: string;
   moneda: string;
@@ -363,14 +385,59 @@ function marcarEnCurso(celdas: Record<ClavePautaSemanal, CeldaPautaSemanal>, ran
   return salida;
 }
 
+/**
+ * Las subfilas de «Por cuenta» (416). La inversión sale de las MISMAS filas de gasto que la celda (agrupadas además por
+ * `cuentaDelGasto`), así que las cuentas suman la celda; las agendas y el costo según Meta, del desglose por cuenta de
+ * la misma lectura que llena la fila (`costoPorAgendaDeVentana`). Si la celda de la fila no se puede calcular, la de la
+ * cuenta tampoco y dice lo mismo. Las cuentas van de más a menos inversión; «Sin cuenta de Meta» al final.
+ */
+function subfilasPorCuenta(e: {
+  rangos: Rango[];
+  celdas: Array<Record<ClavePautaSemanal, CeldaPautaSemanal>>;
+  gastos: readonly GastoAgrupado[];
+  cuentas: Array<{ id: string; nombre: string }>;
+  tasas: Map<string, number>;
+  costos: CostoPorAgenda[];
+}): Map<ClavePautaSemanal, SubfilaPautaSemanal[]> {
+  const inversionDe = (cuentaId: string | null, rango: Rango): number => {
+    const filas = e.gastos.filter((g) => g.cuentaId === cuentaId && enRango(g.fecha, rango));
+    const convertido = convertirGasto(filas.map((g) => ({ dia: g.fecha, monto: g.monto, moneda: g.moneda })), e.tasas, "COP");
+    return convertido.montos.reduce<number>((n, monto) => n + (monto ?? 0), 0);
+  };
+  const conCuenta = (cuentaId: string | null) => e.gastos.some((g) => g.cuentaId === cuentaId)
+    || (e.costos[0].porCuenta.find((c) => c.cuentaId === cuentaId)?.agendasMeta ?? 0) > 0;
+  const renglones = [...e.cuentas, { id: null, nombre: NOMBRE_SIN_CUENTA }]
+    .filter((c) => conCuenta(c.id))
+    .map((c) => ({ ...c, inversion: inversionDe(c.id, e.rangos[0]) }))
+    .sort((a, b) => Number(a.id === null) - Number(b.id === null) || b.inversion - a.inversion);
+  const celdaDe = (clave: (typeof CLAVES_POR_CUENTA)[number], cuentaId: string | null, i: number): CeldaPautaSemanal => {
+    const fila = e.celdas[i][clave];
+    if (clave !== "costo_agenda_meta" && fila.valor === null) return fila;
+    const rango = e.rangos[i];
+    const deLaCuenta = e.costos[i].porCuenta.find((c) => c.cuentaId === cuentaId);
+    if (clave === "inversion") return celda(inversionDe(cuentaId, rango));
+    if (clave === "agendas_meta") return deLaCuenta?.agendasMeta === null ? sinDato("Sin dato de Meta") : celda(deLaCuenta?.agendasMeta ?? 0);
+    if (!deLaCuenta || deLaCuenta.gasto === 0) return sinDato("Sin gasto de agenda de esta cuenta");
+    const costo = deLaCuenta.costoCobertura;
+    if (costo.valor === null) return sinDato(costo.motivo ?? (deLaCuenta.agendasMeta ? "Sin gasto de agenda" : "Sin agendas según Meta"));
+    return conPartes(celda(costo.valor, costo.faltan > 0 ? { estado: "parcial", razon: costo.motivo } : OK), [deLaCuenta.gasto, deLaCuenta.agendasMeta]);
+  };
+  return new Map(CLAVES_POR_CUENTA.map((clave) => [clave, renglones.map((c) => ({
+    cuentaId: c.id,
+    nombre: c.nombre,
+    celdas: { total: celdaDe(clave, c.id, 0), porColumna: e.rangos.slice(1).map((_, i) => celdaDe(clave, c.id, i + 1)) },
+  }))]));
+}
+
 export async function cargarPautaSemanal(
   db: Db,
-  args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null; paso?: PasoDeTablaDePauta },
+  args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null; paso?: PasoDeTablaDePauta; porCuenta?: boolean },
 ): Promise<VistaPautaSemanal> {
   const paso = args.paso ?? "semana";
   const columnas = columnasDelPaso(args.rango, paso, args.hoy);
-  const [gastos, agendas, ventas, registros] = await Promise.all([
+  const [gastos, agendas, ventas, registros, cuentasMeta, tasasDelPeriodo] = await Promise.all([
     db.select({
+      cuentaId: cuentaDelGasto,
       semana: sql<string>`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
       fecha: gastoPauta.fecha,
       moneda: gastoPauta.moneda,
@@ -391,7 +458,7 @@ export async function cargarPautaSemanal(
       impresionesConAlcance: sql<number | null>`sum(${gastoPauta.impresiones}) filter (where ${gastoPauta.alcance} is not null)::double precision`,
       alcance: sql<number | null>`sum(${gastoPauta.alcance})::double precision`,
       filasAlcance: sql<number>`count(${gastoPauta.alcance})::int`,
-    }).from(gastoPauta).where(and(
+    }).from(gastoPauta).leftJoin(pautaObjetos, eq(pautaObjetos.id, gastoPauta.pautaObjetoId)).where(and(
       eq(gastoPauta.programId, args.programId),
       between(gastoPauta.fecha, args.rango.desde, args.rango.hasta),
       esGastoPaid,
@@ -399,6 +466,7 @@ export async function cargarPautaSemanal(
       sql`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
       gastoPauta.fecha,
       gastoPauta.moneda,
+      cuentaDelGasto,
     ) as Promise<GastoAgrupado[]>,
     agenda.agendasDePauta(db, {
       programId: args.programId,
@@ -412,6 +480,8 @@ export async function cargarPautaSemanal(
       agruparPor: ["dia", "semana"],
       filtros: { area: ["paid"] },
     }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, envios: fila.envios }))),
+    args.porCuenta ? cuentasDelPrograma(db, args.programId) : Promise.resolve([]),
+    args.porCuenta ? tasasDelRango(db, args.rango.desde, args.rango.hasta) : Promise.resolve(null),
   ]);
   const rangos = [args.rango, ...columnas];
   const ahora = new Date(`${args.hoy}T23:59:59-05:00`);
@@ -465,10 +535,18 @@ export async function cargarPautaSemanal(
     grupos[i],
     porRango[i].roas?.total ?? null,
   ), rango, args.hoy, paso, i === 0)));
-  const filas = DEFINICION_FILAS.map((definicion) => ({
-    ...definicion,
-    celdas: { total: celdas[0][definicion.clave], porColumna: celdas.slice(1).map((grupo) => grupo[definicion.clave]) },
-  }));
+  const subfilas = tasasDelPeriodo === null ? null : subfilasPorCuenta({
+    rangos, celdas, gastos, cuentas: cuentasMeta, tasas: tasasDelPeriodo.porDia,
+    costos: porRango.map((r) => r.costoMeta),
+  });
+  const filas: FilaPautaSemanal[] = DEFINICION_FILAS.map((definicion) => {
+    const sub = subfilas?.get(definicion.clave);
+    return {
+      ...definicion,
+      celdas: { total: celdas[0][definicion.clave], porColumna: celdas.slice(1).map((grupo) => grupo[definicion.clave]) },
+      ...(sub ? { subfilas: sub } : {}),
+    };
+  });
   const dias = await Promise.all(diasEntre(args.rango.desde, args.rango.hasta).map(async (dia) => {
     const inversion = await convertirFilas(db, gastos.filter((fila) => fila.fecha === dia), { desde: dia, hasta: dia }, "monto", "COP");
     const delDia = ventas.filter((fila) => fila.dia === dia);

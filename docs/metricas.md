@@ -132,7 +132,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Fecha:** el día que reporta Meta en la zona de la cuenta (todas están en `America/Bogota`).
 - **Moneda:** la de la cuenta (COP o USD), guardada tal cual; cualquier otra la rechaza la base (ADR 0124).
 - **Funciones:** `lib/pauta/sincronizar.ts` (lee Meta), `registrarGasto` en `lib/pauta/gasto.ts` (único escritor).
-- **Hecho:** `lib/queries/hechos/gasto.ts`. `gastoConvertido` es el gasto en UNA moneda con su cobertura (lo consume el ROAS); `agrupar`, `contarGrupos` y `listar` (411 F1) dan el gasto Paid (`esGastoPaid`) **en su moneda nativa**, siempre separado por moneda y sin convertir, para `consultar_hechos` del MCP. Dimensiones: `dia`, `semana`, `mes`, `moneda`, `objeto_de_pauta`.
+- **Hecho:** `lib/queries/hechos/gasto.ts`. `gastoConvertido` es el gasto en UNA moneda con su cobertura (lo consume el ROAS); `agrupar`, `contarGrupos` y `listar` (411 F1) dan el gasto Paid (`esGastoPaid`) **en su moneda nativa**, siempre separado por moneda y sin convertir, para `consultar_hechos` del MCP. Dimensiones: `dia`, `semana`, `mes`, `moneda`, `objeto_de_pauta`, `cuenta_meta` (416: la cuenta de Meta del objeto del gasto, `cuentaDelGasto`; nula en el gasto cargado a mano).
 - **También:** gasto manual (`origen = manual`) con un área; solo el de área `paid` entra al costo por agenda.
 - **Ojo:** un anuncio que no está en el árbol del programa (`pauta_objetos`) se omite y se cuenta en "omitidas".
 - **Verificar:** en el Ads Manager de la cuenta, el gasto del día por anuncio contra `gasto_pauta`.

@@ -33,6 +33,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prog
       hoy: hoyEnBogota(),
       cohorteId,
       paso,
+      porCuenta: url.searchParams.get("por_cuenta") === "1",
     });
     return new Response(csvDePautaSemanal(vista), { headers: {
       "content-type": "text/csv; charset=utf-8",

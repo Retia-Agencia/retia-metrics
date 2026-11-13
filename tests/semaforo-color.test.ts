@@ -15,6 +15,7 @@ function datos(gasto: number, agendasMeta: number | null, agendasCrm = 0): Costo
     campanas: [],
     lanzamiento: { gasto: 0, registrosMeta: null, costoPorRegistro: null, campanas: [] },
     gastoTotal: gasto,
+    porCuenta: [],
     notas: [],
   };
 }

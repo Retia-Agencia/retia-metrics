@@ -24,7 +24,7 @@ const DIMENSIONES = [
   "dia", "semana", "mes", "hora",
   "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria", "tiene_envio",
   "dueno", "cohorte", "etapa", "ocurrio",
-  "moneda", "plataforma", "registrado_por", "objeto_de_pauta",
+  "moneda", "plataforma", "registrado_por", "objeto_de_pauta", "cuenta_meta",
 ] as const;
 type DimensionConforme = (typeof DIMENSIONES)[number];
 type Celda = "si" | "aun" | `no:${string}`;
@@ -43,6 +43,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     plataforma: "no:la plataforma de pago pertenece al abono",
     registrado_por: "no:quien registra pertenece al abono, no al envío",
     objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+    cuenta_meta: "aun",
   },
   Agenda: {
     dia: "si", semana: "si", mes: "si", hora: "si",
@@ -53,6 +54,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     plataforma: "no:la plataforma de pago pertenece al abono",
     registrado_por: "no:quien registra pertenece al abono, no a la agenda",
     objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+    cuenta_meta: "aun",
   },
   Cita: {
     dia: "si", semana: "si", mes: "si", hora: "aun",
@@ -63,6 +65,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     plataforma: "no:la plataforma de pago pertenece al abono",
     registrado_por: "no:quien registra pertenece al abono, no a la cita",
     objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+    cuenta_meta: "aun",
   },
   Venta: {
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
@@ -73,6 +76,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     plataforma: "no:la plataforma de pago pertenece al abono",
     registrado_por: "no:quien registra pertenece al abono, no a la venta",
     objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+    cuenta_meta: "aun",
   },
   Abono: {
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
@@ -90,6 +94,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     ocurrio: "no:solo las citas ocurren",
     moneda: "si", plataforma: "si", registrado_por: "si",
     objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+    cuenta_meta: "no:el abono mide caja, no el origen del lead",
   },
   Gasto: {
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
@@ -107,6 +112,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     etapa: "no:el gasto es de la pauta, no de un deal",
     ocurrio: "no:solo las citas ocurren",
     moneda: "si",
+    cuenta_meta: "si",
     plataforma: "no:la plataforma es la del pago de un abono",
     registrado_por: "no:el gasto no registra al autor como dimensión",
     objeto_de_pauta: "si",

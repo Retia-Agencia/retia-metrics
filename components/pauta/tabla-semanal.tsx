@@ -20,6 +20,7 @@ import {
   type ClavePautaSemanal,
   type FilaPautaSemanal,
   type PasoDeTablaDePauta,
+  type SubfilaPautaSemanal,
 } from "@/lib/queries/hechos/pauta-semanal";
 import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
@@ -100,6 +101,9 @@ interface PropsTabla {
   /** Por semana o por día (`?tabla=dia`, 414), y el enlace de cada lado del interruptor; sin enlaces no se muestra. */
   paso?: PasoDeTablaDePauta;
   hrefDePaso?: Record<PasoDeTablaDePauta, string>;
+  /** «Por cuenta» (`?por_cuenta=1`, 416): subfilas por cuenta de Meta bajo las filas de Meta; sin enlaces no hay interruptor. */
+  porCuenta?: boolean;
+  hrefDeCuenta?: { total: string; cuenta: string };
 }
 
 const TEXTOS_DEL_PASO = {
@@ -121,7 +125,7 @@ function filasPorBloque(filas: FilaPautaSemanal[], bloque: FilaPautaSemanal["blo
 
 export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
   const [vista, objetivos] = await Promise.all([
-    cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId, paso: p.paso }),
+    cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId, paso: p.paso, porCuenta: p.porCuenta }),
     p.cohorteId ? objetivosDeCohortes(db, [p.cohorteId]) : Promise.resolve([]),
   ]);
   const paso = vista.paso;
@@ -135,19 +139,22 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
     const lista = e ? leidas.get(e.metrica)?.[columna] : undefined;
     return e && lista ? { ...lista, nombre: e.nombre, articulo: e.articulo, ...(e.parte ? { parte: e.parte } : {}) } : undefined;
   };
-  const cifra = (fila: FilaPautaSemanal, columna: number) => {
+  const cifra = (fila: FilaPautaSemanal, columna: number, sub?: SubfilaPautaSemanal) => {
     const esTotal = columna === 0;
     const rango = esTotal ? p.rango : vista.columnas[columna - 1];
-    const celda = esTotal ? fila.celdas.total : fila.celdas.porColumna[columna - 1];
-    const anterior = columna > 1 ? { celda: fila.celdas.porColumna[columna - 2], rango: vista.columnas[columna - 2] } : undefined;
+    const celdas = sub?.celdas ?? fila.celdas;
+    const celda = esTotal ? celdas.total : celdas.porColumna[columna - 1];
+    const anterior = columna > 1 ? { celda: celdas.porColumna[columna - 2], rango: vista.columnas[columna - 2] } : undefined;
     return cifraDeCeldaSemanal({
       fila, celda, rango, esTotal, paso, anterior, hoy: p.hoy, objetivos, programa: p.programa, cohorte: p.cohorte,
-      lista: listaDe(fila.clave, columna),
+      cuenta: sub?.nombre,
+      lista: sub ? undefined : listaDe(fila.clave, columna),
     });
   };
   const paramsCsv = new URLSearchParams({ a_desde: p.rango.desde, a_hasta: p.rango.hasta });
   if (p.cohorteId) paramsCsv.set("cohorte", p.cohorteId);
   if (paso === "dia") paramsCsv.set("tabla", "dia");
+  if (p.porCuenta) paramsCsv.set("por_cuenta", "1");
   const hrefCsv = `/p/${encodeURIComponent(p.slug)}/hub/pauta-semanal.csv?${paramsCsv}`;
   const bloques = ["general", "comercial", "trafico"] as const;
 
@@ -165,6 +172,14 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
               ] }]}
               activa={paso}
               etiqueta="Columnas"
+            /> : null}
+            {p.hrefDeCuenta ? <Pestanas
+              grupos={[{ pestanas: [
+                { id: "total", etiqueta: "Total", descripcion: "Todas las cuentas de Meta del programa juntas.", href: p.hrefDeCuenta.total },
+                { id: "cuenta", etiqueta: "Por cuenta", descripcion: "Inversión y agendas según Meta, abiertas por cuenta de Meta.", href: p.hrefDeCuenta.cuenta },
+              ] }]}
+              activa={p.porCuenta ? "cuenta" : "total"}
+              etiqueta="Cuentas"
             /> : null}
             <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefCsv} />}>Descargar CSV</Button>
           </div>
@@ -187,8 +202,8 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
               {bloques.flatMap((bloque) => {
                 const filas = filasPorBloque(vista.filas, bloque);
                 const titulo: ReactNode = <tr key={`${bloque}-titulo`} className="border-b bg-muted/50"><th scope="rowgroup" colSpan={vista.columnas.length + 2} className="px-2 py-2 text-left text-xs font-medium">{NOMBRE_DE_BLOQUE[bloque]}</th></tr>;
-                return [titulo, ...filas.map((fila) => (
-                  <tr key={fila.clave} className="border-b last:border-0">
+                return [titulo, ...filas.flatMap((fila) => [
+                  <tr key={fila.clave} className={fila.subfilas?.length ? "" : "border-b last:border-0"}>
                     <th scope="row" className="sticky left-0 z-10 bg-card px-2 py-3 text-left font-normal">{fila.nombre}</th>
                     <td className="bg-marca-suave px-2 py-2 text-right font-semibold"><Celda cifra={cifra(fila, 0)} celda={fila.celdas.total} /></td>
                     {fila.celdas.porColumna.map((celda, i) => (
@@ -196,8 +211,19 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
                         <Celda cifra={cifra(fila, i + 1)} celda={celda} />
                       </td>
                     ))}
-                  </tr>
-                ))];
+                  </tr>,
+                  ...(fila.subfilas ?? []).map((sub, j, todas) => (
+                    <tr key={`${fila.clave}-${sub.cuentaId ?? "sin-cuenta"}`} className={j === todas.length - 1 ? "border-b" : ""}>
+                      <th scope="row" className="sticky left-0 z-10 bg-card py-1.5 pl-6 pr-2 text-left text-xs font-normal text-muted-foreground"><span className="block max-w-32 whitespace-normal break-words sm:max-w-none">{sub.nombre}</span></th>
+                      <td className="bg-marca-suave px-2 py-1.5 text-right"><Cifra cifra={cifra(fila, 0, sub)} tamano="celda" /></td>
+                      {sub.celdas.porColumna.map((_, i) => (
+                        <td key={vista.columnas[i].desde} className="px-2 py-1.5 text-right">
+                          <Cifra cifra={cifra(fila, i + 1, sub)} tamano="celda" />
+                        </td>
+                      ))}
+                    </tr>
+                  )),
+                ])];
               })}
             </tbody>
           </table>

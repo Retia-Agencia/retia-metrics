@@ -13,13 +13,18 @@ import { diaCubierto, motivoDeGasto, type CoberturaDeGasto } from "@/lib/pauta/c
 import type { Rango } from "@/lib/queries/dashboard";
 import { medianaDe, ubicacionesDeEscalera, ventasDelPrograma, type Escalon } from "@/lib/queries/escalera";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
-import { gastoConvertido } from "@/lib/queries/hechos/gasto";
+import { cuentasDelPrograma, gastoConvertido, NOMBRE_SIN_CUENTA } from "@/lib/queries/hechos/gasto";
 import { ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { diaDeEnvio } from "@/lib/queries/hechos/fechas";
 
-export const NIVELES_PAUTA = ["campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "canal", "total"] as const;
+export const NIVELES_PAUTA = ["cuenta_meta", "campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "canal", "total"] as const;
+/**
+ * El renglón de «Ver por Cuenta» que junta lo que no es de ninguna cuenta de Meta (416): el gasto cargado a mano y los
+ * envíos de pauta sin campaña identificada. Existe para que las cuentas sumen el total; su id es este texto, no un uuid.
+ */
+export const SIN_CUENTA = "sin-cuenta";
 export type NivelPauta = (typeof NIVELES_PAUTA)[number];
 export const NIVEL_PAUTA_POR_DEFECTO: NivelPauta = "total";
 export const PASOS_PAUTA = ["registro", "agenda", "show", "no_show", "venta", "pendiente"] as const;
@@ -47,6 +52,8 @@ export interface FilaPorEnvioPauta {
   etapa: string | null;
   campanaId: string | null;
   campanaNombre: string | null;
+  /** La cuenta de Meta de su campaña (`pauta_objetos.cuenta_id`, 416); nula sin campaña de Meta. */
+  cuentaId: string | null;
   conjuntoId: string | null;
   conjuntoNombre: string | null;
   anuncioId: string | null;
@@ -84,6 +91,8 @@ export interface RenglonRoas {
 export interface VistaRoasDePauta {
   envios: FilaPorEnvioPauta[];
   total: RenglonRoas;
+  /** Por cuenta de Meta (416), de más a menos inversión, con «Sin cuenta de Meta» al final si tiene algo: suman el total. */
+  cuentas: RenglonRoas[];
   campanas: RenglonRoas[];
   conjuntos: RenglonRoas[];
   anuncios: RenglonRoas[];
@@ -194,10 +203,10 @@ export async function cargarRoasDePauta(
   const seleccionarEnvio = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
     esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: leads.nombre,
     fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
-  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha, gastoEnCop] = await Promise.all([
+  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha, gastoEnCop, cuentasMeta] = await Promise.all([
     arbolDePauta(db, programId),
     db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
-      padreIdMeta: pautaObjetos.padreIdMeta }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId)),
+      padreIdMeta: pautaObjetos.padreIdMeta, cuentaId: pautaObjetos.cuentaId }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId)),
     db.select(seleccionarEnvio)
       .from(submissions).innerJoin(sources, eq(sources.id, submissions.sourceId))
       .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
@@ -227,6 +236,7 @@ export async function cargarRoasDePauta(
     })(),
     // El mismo hecho de gasto en COP: la inversión y el costo por agenda de "¿Qué trae ventas?" (420).
     gastoConvertido(db, programId, rango, "COP"),
+    cuentasDelPrograma(db, programId),
   ]);
   const coberturaGasto = gasto.cobertura;
   const idsCargados = new Set(enviosEnRango.map((e) => e.id));
@@ -240,6 +250,7 @@ export async function cargarRoasDePauta(
   const envioPorId = new Map(enviosCrudos.map((e) => [e.id, e]));
   const completoPorParcial = new Map(parejas.map((p) => [p.parcialId, p.completoId]));
   const nombres = new Map(objetos.map((o) => [o.idMeta, o.nombre]));
+  const cuentaDeCampana = new Map(objetos.filter((o) => o.nivel === "campana").map((o) => [o.idMeta, o.cuentaId]));
   const pagados = enviosCrudos.flatMap((e) => {
     const completoId = e.esParcial ? completoPorParcial.get(e.id) : undefined;
     const base = completoId ? envioPorId.get(completoId) : e;
@@ -265,6 +276,7 @@ export async function cargarRoasDePauta(
         canalClave: traza.origen.canal?.clave ?? "paid",
         dealId: null, etapa: null,
         campanaId, campanaNombre: campanaId ? nombres.get(campanaId) ?? campanaId : null,
+        cuentaId: campanaId ? cuentaDeCampana.get(campanaId) ?? null : null,
         conjuntoId: conjunto?.conjuntoId ?? null,
         conjuntoNombre: conjunto ? nombres.get(conjunto.conjuntoId) ?? conjunto.conjuntoId : null,
         anuncioId: anuncio?.anuncioId ?? null,
@@ -330,8 +342,13 @@ export async function cargarRoasDePauta(
   const anuncios = new Map(objetos.filter((o) => o.nivel === "anuncio")
     .map((o) => [o.idMeta, renglonBase("anuncio", o.idMeta, o.nombre, o.padreIdMeta)]));
   const anunciosSinIdentificar = new Map<string, RenglonRoas>();
+  const cuentas = new Map(cuentasMeta.map((c) => [c.id, renglonBase("cuenta_meta", c.id, c.nombre, null)]));
+  cuentas.set(SIN_CUENTA, renglonBase("cuenta_meta", SIN_CUENTA, NOMBRE_SIN_CUENTA, null));
+  const claveDeCuenta = (e: FilaPorEnvioPauta) => e.cuentaId ?? SIN_CUENTA;
   for (const e of universo) {
     sumarEnvio(total, e, hoy);
+    const cuenta = cuentas.get(claveDeCuenta(e));
+    if (cuenta) sumarEnvio(cuenta, e, hoy);
     if (!e.campanaId) { sumarEnvio(sinAnuncio, e, hoy); continue; }
     const c = campanas.get(e.campanaId!) ?? renglonBase("campana", e.campanaId, e.campanaNombre!, null);
     sumarEnvio(c, e, hoy); campanas.set(e.campanaId, c);
@@ -363,6 +380,12 @@ export async function cargarRoasDePauta(
   };
   repartir(gasto.porAnuncio, "gastoUsd");
   repartir(gastoEnCop.porAnuncio, "gastoCop");
+  // Por cuenta, la misma cuenta que resuelve el hecho de gasto (`cuentaDelGasto`); lo que no tiene cuenta va a SIN_CUENTA.
+  for (const [porCuenta, campo] of [[gasto.porCuenta, "gastoUsd"], [gastoEnCop.porCuenta, "gastoCop"]] as const) {
+    for (const [cuentaId, monto] of porCuenta) {
+      const fila = cuentas.get(cuentaId ?? SIN_CUENTA); if (fila) fila[campo] = (fila[campo] ?? 0) + monto;
+    }
+  }
   // El mismo universo agrupado por canal (par UTM): la otra vista de la tabla. El gasto por canal
   // no se puede repartir (Meta lo da por anuncio, no por par UTM), así que su ROAS no aplica: la
   // columna Gasto/ROAS de canal queda en 0/—, con la misma cobertura.
@@ -374,6 +397,7 @@ export async function cargarRoasDePauta(
   const para = (predicado: (envio: FilaPorEnvioPauta) => boolean) => universo.filter(predicado);
   calcularRoas(total, universo, coberturaGasto, ahora);
   calcularRoas(sinAnuncio, para((e) => e.campanaId === null), coberturaGasto, ahora);
+  for (const fila of cuentas.values()) calcularRoas(fila, para((e) => claveDeCuenta(e) === fila.id), coberturaGasto, ahora);
   for (const fila of campanas.values()) calcularRoas(fila, para((e) => e.campanaId === fila.id), coberturaGasto, ahora);
   for (const fila of conjuntos.values()) calcularRoas(fila, para((e) => e.conjuntoId === fila.id), coberturaGasto, ahora);
   for (const fila of anuncios.values()) calcularRoas(fila, para((e) => e.anuncioId === fila.id), coberturaGasto, ahora);
@@ -381,7 +405,8 @@ export async function cargarRoasDePauta(
     calcularRoas(fila, para((e) => e.campanaId === fila.id && e.anuncioId === null), coberturaGasto, ahora);
   }
   for (const fila of canalesMap.values()) calcularRoas(fila, para((e) => e.canalClave === fila.id), coberturaGasto, ahora);
-  const visible = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0 || (r.gastoUsd ?? 0) > 0;
+  // Con gasto en cualquiera de las dos monedas: sin TRM del día, el USD queda en 0 aunque haya inversión en pesos (416).
+  const visible = (r: RenglonRoas) => r.registros > 0 || r.agendas > 0 || r.ventas > 0 || (r.gastoUsd ?? 0) > 0 || (r.gastoCop ?? 0) > 0;
   const registros = universo.filter((e) => e.cuentaComoRegistro);
   const cobertura = {
     anuncio: registros.filter((e) => e.anuncioId !== null).length,
@@ -401,7 +426,9 @@ export async function cargarRoasDePauta(
   // Las citas de la cohorte todavía por ocurrir (agendadas, su hora aún no llega, de deals abiertos sin venta):
   // el ROAS puede subir cuando se resuelvan (AJUSTE 3-nov). No es un no show ni un dato que falta.
   const agendasPendientes = pendientesDe(universo, ahora);
-  return { envios: universo, total, campanas: [...campanas.values()].filter(visible),
+  const cuentasVisibles = [...cuentas.values()].filter(visible)
+    .sort((a, b) => Number(a.id === SIN_CUENTA) - Number(b.id === SIN_CUENTA) || (b.gastoCop ?? 0) - (a.gastoCop ?? 0));
+  return { envios: universo, total, cuentas: cuentasVisibles, campanas: [...campanas.values()].filter(visible),
     conjuntos: [...conjuntos.values()].filter(visible), anuncios: [...anuncios.values()].filter(visible),
     anunciosSinIdentificar: [...anunciosSinIdentificar.values()].filter(visible), sinAnuncio,
     canales: [...canalesMap.values()].filter(visible), cobertura, reconciliacion, agendasPendientes, citasSinMarcar,
@@ -415,6 +442,7 @@ export function filtrarEnviosDePauta(envios: readonly FilaPorEnvioPauta[], nivel
   if (!id) return [];
   if (nivel === "anuncio_sin_identificar") return envios.filter((e) => e.campanaId === id && e.anuncioId === null);
   if (nivel === "canal") return envios.filter((e) => e.canalClave === id);
+  if (nivel === "cuenta_meta") return envios.filter((e) => (e.cuentaId ?? SIN_CUENTA) === id);
   return envios.filter((e) => nivel === "campana" ? e.campanaId === id : nivel === "conjunto" ? e.conjuntoId === id : e.anuncioId === id);
 }
 
@@ -430,6 +458,7 @@ export function renglonRoasDeVista(vista: VistaRoasDePauta, nivel: NivelPauta, i
     return vista.anunciosSinIdentificar.find((fila) => fila.id === id) ?? null;
   }
   if (nivel === "canal") return vista.canales.find((fila) => fila.id === id) ?? null;
+  if (nivel === "cuenta_meta") return vista.cuentas.find((fila) => fila.id === id) ?? null;
   const exhaustivo: never = nivel;
   return exhaustivo;
 }

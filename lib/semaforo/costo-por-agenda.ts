@@ -28,6 +28,19 @@ export interface CampanaSemaforo {
   proposito: PropositoCampana | null;
 }
 
+/**
+ * El costo por agenda según Meta de una cuenta (416): la misma cuenta que resuelve el hecho de gasto (`cuentaDelGasto`,
+ * el objeto de pauta del gasto). `cuentaId` nulo = gasto cargado a mano, sin cuenta. Las cuentas suman `gasto`,
+ * `gastoTotal` y `agendasMeta` del total; el costo de cada una es su gasto entre sus agendas, nunca se suma.
+ */
+export interface CostoDeCuenta {
+  cuentaId: string | null;
+  gasto: number;
+  gastoTotal: number;
+  agendasMeta: number | null;
+  costoCobertura: RazonConCobertura;
+}
+
 export interface CostoPorAgenda {
   gasto: number;
   agendasMeta: number | null;
@@ -42,6 +55,7 @@ export interface CostoPorAgenda {
     campanas: CampanaSemaforo[];
   };
   gastoTotal: number;
+  porCuenta: CostoDeCuenta[];
   notas: NotaSemaforo[];
 }
 
@@ -56,7 +70,11 @@ type FilaDeGasto = {
   campanaNombre: string | null;
   campanaEstado: string | null;
   proposito: PropositoCampana | null;
+  /** La cuenta del objeto de pauta del gasto (`pauta_objetos.cuenta_id`); nulo en el gasto cargado a mano. */
+  cuentaId: string | null;
 };
+
+type SumaDeCuenta = { gasto: number; gastoTotal: number; agendasMeta: number; tieneAgendasMeta: boolean };
 
 async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly string[]): Promise<{
   gasto: number;
@@ -83,6 +101,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     proposito: PropositoCampana | null;
   }> };
   notas: NotaSemaforo[];
+  porCuenta: Map<string | null, SumaDeCuenta>;
 }> {
   let gasto = 0;
   let gastoTotal = 0;
@@ -109,6 +128,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     registrosMeta: number;
     tieneRegistrosMeta: boolean;
   }>();
+  const porCuenta = new Map<string | null, SumaDeCuenta>();
 
   for (const [i, fila] of filas.entries()) {
     const esLanzamiento = fila.proposito === "lanzamiento";
@@ -130,6 +150,14 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     gastoTotal += montoCop;
     if (esLanzamiento) gastoLanzamiento += montoCop;
     else gasto += montoCop;
+    const cuenta = porCuenta.get(fila.cuentaId) ?? { gasto: 0, gastoTotal: 0, agendasMeta: 0, tieneAgendasMeta: false };
+    cuenta.gastoTotal += montoCop;
+    if (!esLanzamiento) cuenta.gasto += montoCop;
+    if (!esLanzamiento && fila.agendasMeta !== null) {
+      cuenta.agendasMeta += fila.agendasMeta;
+      cuenta.tieneAgendasMeta = true;
+    }
+    porCuenta.set(fila.cuentaId, cuenta);
     campana.gasto += montoCop;
     if (!esLanzamiento && fila.agendasMeta !== null) {
       agendasMeta += fila.agendasMeta;
@@ -177,6 +205,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
       campanas: todas.filter((campana) => campana.proposito === "lanzamiento"),
     },
     notas,
+    porCuenta,
   };
 }
 
@@ -208,6 +237,7 @@ function completar(
   lanzamientoLeido: Awaited<ReturnType<typeof sumarEnCop>>["lanzamiento"],
   gastoTotal: number,
   cobertura: { base: number; faltan: number; motivo: string | null; calculable: boolean },
+  cuentasLeidas: Map<string | null, SumaDeCuenta>,
 ): CostoPorAgenda {
   const agendasMeta = agendasMetaLeidas === null && mideAgendasMeta ? 0 : agendasMetaLeidas;
   const costoCobertura = razon(gasto, agendasMeta ?? 0, cobertura);
@@ -258,6 +288,10 @@ function completar(
       })).filter((campana) => campana.gasto > 0).sort((a, b) => b.gasto - a.gasto),
     },
     gastoTotal,
+    porCuenta: [...cuentasLeidas].map(([cuentaId, c]) => {
+      const agendas = !c.tieneAgendasMeta ? (mideAgendasMeta ? 0 : null) : c.agendasMeta;
+      return { cuentaId, gasto: c.gasto, gastoTotal: c.gastoTotal, agendasMeta: agendas, costoCobertura: razon(c.gasto, agendas ?? 0, cobertura) };
+    }),
     notas,
   };
 }
@@ -277,6 +311,7 @@ async function costoDesdeFotos(
     campanaNombre: pautaObjetos.nombre,
     campanaEstado: pautaObjetos.estado,
     proposito: pautaObjetos.proposito,
+    cuentaId: pautaObjetos.cuentaId,
   }).from(fotosPauta).where(and(
     eq(fotosPauta.programId, args.programId),
     eq(fotosPauta.fecha, args.dia),
@@ -294,7 +329,7 @@ async function costoDesdeFotos(
   ]);
   const suma = await sumarEnCop(db, fotos, idsCampanas);
   return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal,
-    { base: 1, faltan: 0, motivo: null, calculable: true });
+    { base: 1, faltan: 0, motivo: null, calculable: true }, suma.porCuenta);
 }
 
 export async function costoPorAgenda(
@@ -343,6 +378,7 @@ export async function costoPorAgendaDeVentana(
     nombre: pautaObjetos.nombre,
     estado: pautaObjetos.estado,
     proposito: pautaObjetos.proposito,
+    cuentaId: pautaObjetos.cuentaId,
   }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId));
   const objetosPorId = new Map(objetos.map((objeto) => [objeto.id, objeto]));
   const objetosPorIdMeta = new Map(objetos.map((objeto) => [objeto.idMeta, objeto]));
@@ -361,6 +397,8 @@ export async function costoPorAgendaDeVentana(
       campanaNombre: campana?.nivel === "campana" ? campana.nombre : null,
       campanaEstado: campana?.nivel === "campana" ? campana.estado : null,
       proposito: campana?.nivel === "campana" ? campana.proposito : null,
+      // La cuenta del objeto del gasto, igual que `cuentaDelGasto` del hecho de gasto (416).
+      cuentaId: anuncio?.cuentaId ?? null,
     };
   });
   const [idsCampanas, agendasCrm, mide, coberturaGasto] = await Promise.all([
@@ -381,7 +419,7 @@ export async function costoPorAgendaDeVentana(
     else faltan++;
   }
   return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal,
-    { base, faltan, motivo: faltan > 0 ? motivoDeGasto(coberturaGasto) : null, calculable: faltan === 0 });
+    { base, faltan, motivo: faltan > 0 ? motivoDeGasto(coberturaGasto) : null, calculable: faltan === 0 }, suma.porCuenta);
 }
 
 /**
