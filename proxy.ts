@@ -36,6 +36,8 @@ export default auth((req) => {
     // Y los avisos de estudiante nuevo a CS (ticket 408, ADR 0128): consulta y confirmacion, con el mismo secreto.
     pathname === "/api/semaforo/estudiantes-nuevos" ||
     pathname === "/api/semaforo/estudiantes-nuevos/confirmar" ||
+    // Las alertas tecnicas (ADR 0130, ticket 425): Juanito, con su propio secreto en el handler.
+    pathname === "/api/salud/alertas" ||
     // El webhook de formularios (ADR 0055): no tiene sesion, se autentica con la firma
     // HMAC en el propio handler. Nunca redirige a /login, o cada envio se perderia.
     pathname.startsWith("/api/webhooks/formularios/") ||

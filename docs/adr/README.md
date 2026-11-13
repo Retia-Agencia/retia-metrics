@@ -158,6 +158,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0127](./0127-retencion-de-sobres-y-notificaciones.md) | Retención: sobre crudo procesado 180 días (junto con su entrega), con error pendiente nunca, notificaciones de Calendly 90 días; un cron diario por lotes, sin migración (**concreta el 0058; ticket 402**) |
 | [0128](./0128-aviso-de-estudiante-nuevo-a-customer-success.md) | Aviso de estudiante nuevo a CS: fila en `moverEtapa` (una por deal, índice único), Juanito entrega por número con opt-in y confirma; el endpoint lleva datos personales solo dentro del texto (**ticket 408**) |
 | [0129](./0129-el-mcp-es-una-puerta-total-con-reglas-de-orientacion.md) | El MCP del CRM es una puerta total con reglas de orientación: capacidad de la app = capacidad del MCP por rol, filtros que nunca devuelven vacío en silencio, escritura con confirmación y deshacer, guardián de cobertura (enmienda el 0119; ticket 411) |
+| [0130](./0130-toda-alerta-tecnica-sale-por-un-solo-contrato.md) | Toda alerta técnica sale por un solo contrato: el CRM la evalúa en un registro exhaustivo, Juanito la entrega al grupo CRM Retia - Health y detecta él mismo cuando el CRM no responde (ticket 425) |
 
 **Plataforma**
 

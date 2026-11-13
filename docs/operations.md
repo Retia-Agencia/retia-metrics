@@ -321,9 +321,12 @@ editor) y en Vercel.
 | `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` | el de AI Second Brain Jurídico (15-oct; cuenta pagada el 16-oct) | local |
 | `FORM_30X_API_KEY` | key de la API de Form30x (15-oct, ADR 0092; en Vercel, solo producción, desde el 16-oct, ADR 0093). **Lee y edita todos los forms de 30X y EstadoX**: se usa solo con el form de SBJ (§2.2). En la app la lee solo `lib/form30x/api.ts`, que solo hace `GET` (guardián en `tests/form30x-api-guardian.test.ts`) | local, Vercel |
 | `SEMAFORO_SECRETO` | el secreto con que Juanito llama a `POST /api/semaforo/envios` (ADR 0089, 259); el mismo valor va en `RETIA_SEMAFORO_SECRETO` del `.env` de Juanito, local y VPS. Generado el 15-oct sin mostrarlo | Vercel |
+| `ALERTAS_SECRETO` | el secreto con que Juanito llama a `POST /api/salud/alertas` (ADR 0130, 425) | Vercel |
 | `CALENDLY_PAT_LOCAL_COMUNICARTE`, `CALENDLY_PAT_LOCAL_TACTICAL` | **no se usan** (Mani, 29-sep). Solo los lee `seed-local`; vacios va un token de mentira |
 
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
+
+Para agregar una alerta se crea una llave en `REGISTRO_DE_ALERTAS` y su prueba. El endpoint y Juanito no cambian.
 
 ### 3.1 El reporte de pauta por WhatsApp (semáforo; ADR 0089, tickets 259 a 269)
 

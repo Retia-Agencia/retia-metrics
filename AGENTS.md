@@ -304,6 +304,7 @@ Reglas duras que gobiernan todo el proyecto y que ningun linter puede verificar.
   mismo secreto para leer durante 48 h los avisos pendientes por numero de Customer Success y confirmar cada par.
   Es el unico endpoint de maquina que lleva datos personales: solo dentro del `texto` ya armado y en los telefonos
   de CS declarados por su contrato `.strict()`; sin secreto responde 401 sin cuerpo.
+  **`POST /api/salud/alertas`** (ADR 0130, ticket 425) lo consulta Juanito con `x-alertas-secreto` y devuelve alertas tecnicas sin datos personales.
   **El MCP del CRM** (ADR 0119, tickets 348, 383 y 384; por construir): `/api/mcp` y sus endpoints de OAuth.
   Sin token, 401 sin cuerpo; con token, la persona dueña del token con su rol y su alcance, revalidados en cada
   llamada, y nada que la app no le muestre.

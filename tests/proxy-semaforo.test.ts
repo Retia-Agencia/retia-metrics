@@ -22,4 +22,9 @@ describe("proxy: rutas de maquina del semaforo", () => {
     expect(encontradas.length).toBeGreaterThanOrEqual(4);
     for (const ruta of encontradas) expect(proxy).toContain(`pathname === "${ruta}"`);
   });
+
+  it("deja pasar el endpoint de alertas que valida su propio secreto", () => {
+    const proxy = readFileSync(join(process.cwd(), "proxy.ts"), "utf8");
+    expect(proxy).toContain('pathname === "/api/salud/alertas"');
+  });
 });

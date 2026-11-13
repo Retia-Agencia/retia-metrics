@@ -5,7 +5,14 @@ function hash(valor: string): Buffer {
 }
 
 export function secretoDeSemaforoValido(request: Request): boolean {
-  const esperado = process.env.SEMAFORO_SECRETO;
-  const recibido = request.headers.get("x-semaforo-secreto");
+  return secretoDeMaquinaValido(request, { header: "x-semaforo-secreto", variable: "SEMAFORO_SECRETO" });
+}
+
+export function secretoDeMaquinaValido(
+  request: Request,
+  { header, variable }: { header: string; variable: string },
+): boolean {
+  const esperado = process.env[variable];
+  const recibido = request.headers.get(header);
   return Boolean(esperado && recibido && timingSafeEqual(hash(esperado), hash(recibido)));
 }

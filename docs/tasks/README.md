@@ -29,6 +29,7 @@ y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo S
 |---|---|---|---|---|
 | [x] | 423 | [La plataforma de pago es obligatoria en el abono, y el link de pago sale del formulario](./423-plataforma-obligatoria-en-el-abono.md) | — | done · 12-nov · checkpoint `cp-20261112-2` · D-1 sí (el closer crea o vincula plataforma desde el abono), D-2 no rellenar: 53 abonos vigentes sin plataforma (ComunicArte 37, Confianza 11, Tactical 5) · ADR 0034 enmendado |
 | [ ] | 424 | [La historia del lead se descarga desde la lista que ya abre cada cifra](./424-la-historia-del-lead-exportable.md) | — | en main · 12-nov · D-1 con monto y D-2 con contacto en el archivo (ADR 0052 enmendado), D-3 Registros · falta el sí de Dani Rodríguez con una semana real |
+| [ ] | 425 | [Alertas técnicas por WhatsApp: registro en el CRM, entrega por Juanito](./425-alertas-tecnicas-por-whatsapp.md) | — | en curso · 13-nov · tras la caída del 12-nov (ADR 0130) |
 
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
