@@ -3,7 +3,7 @@ id: 411
 etapa: mcp
 serves: "Pedido de Mani del 9-nov (el MCP no limita acciones ni métricas: puerta de entrada con reglas de orientación, visibilidad completa y control total según el rol) · ADR 0129 · ADR 0119 · A-177 · A-178 a A-185"
 depends: [348, 383]
-status: todo
+status: en curso  # 13-nov: F0, F1 y F2 hechas; faltan F3, F4 y F5
 ---
 
 # 411 — El MCP del CRM como puerta total: sin límites de acciones ni de métricas
@@ -168,6 +168,57 @@ pre-armada: es una **puerta con reglas de orientación** sobre los mismos servic
 - [ ] **F5 Descubrimiento y evaluaciones.**
 - [ ] `docs/mcp.md` reescrito (§1, §3, §4 puntos 7, 8 y 20, §7) en el mismo commit que el código (N8); `INSTRUCCIONES_MCP` al día.
 - [ ] Tracker y `status:` coinciden (N9).
+
+## F3 en detalle (enmienda del 13-nov, para implementar sin huecos)
+
+> Origen: `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`, hallazgos H-5 y H-6. **F3 va antes de sumar más acciones:**
+> sin el guardián, cada acción nueva de la app nace fuera del MCP y nadie se entera (ADR 0129).
+
+**Medido el 13-nov.** La app exporta unas 150 funciones desde archivos `"use server"`
+(`grep -rl '^"use server"' app components lib | xargs grep -h "^export async function"`). El MCP tiene 12 acciones en
+`lib/mcp/acciones/`. La clasificación de abajo es **por el nombre de la función, sin abrir cada una**: es el punto de partida
+del registro, no su contenido final. Quien implemente abre cada función y confirma su grupo.
+
+| Grupo | Qué es | Funciones de la app (nombre de la server action) |
+|---|---|---|
+| **Expuestas** (12) | Ya tienen acción en `ACCIONES` | `moverDeal`/`moverConHechoAccion`, `deshacerEventoAccion`, `marcarShowAccion`, `pegarGrainAccion`, `corregirResultadoAccion`, `registrarAbonoAccion`, `cambiarPlataformaDeAbonoAccion`, `anularDealAccion`, `anularAbonoAccion`, anular llamada, `marcarFallidaAccion`, `asignarLlamadaSueltaAccion` |
+| **Pendientes de operación** (grupo B de D3: entran, con confirmación) | Lo que hace un closer, un gerente o CS a diario y hoy solo se puede en la app | `anotarAccion`/`registrarActividadAccion`, `reclamarDealAccion`, `reclamarTodosPorSettearAccion`, `reasignarDealAccion`, `editarDealAccion`, `editarAcuerdoAccion`, `crearDeal`, `crearDealDesdeSueltaAccion`, `crearPersonaAccion`, `agendarLlamadaAccion`, `reagendarLlamadaAccion`, `completarAgendadaAccion`, `descartarLlamadaSueltaAccion`, `confirmarComprobanteAccion`, `pegarComprobanteAccion`, `marcarCortesiaAccion`, `marcarLinkEnviadoAccion`, `cambiarCohorteAccion`, `proximaCohorteAccion`/`asignarProximaCohorteAccion`, `marcarOnboardedAccion`/`desmarcarOnboardedAccion`, `confirmarCorreoAccion`/`separarCorreoAccion` (y sus pares `DesdeDeal`), `revisarMovimientoAccion` |
+| **Pendientes de configuración** (grupo C de D3: ola posterior) | Programa, cohortes, objetivos, umbrales, fuentes y su mapeo, integraciones, reporte de WhatsApp, plataformas y enlaces de pago, recursos, Calendly por membresía, media | `crearCohorteAccion`, `editarCohorteAccion`, `activarCohorteAccion`, `guardarObjetivoAccion`, `copiarObjetivosAccion`, `guardarUmbralAccion`, `crearFuenteAccion`, `editarFuenteAccion`, `activarFuenteAccion`, `guardarIntegracionAccion`, `guardarReporteWhatsappAccion`, `crearPlataformaAccion`, `crearEnlacePagoAccion`, `crearRecursoAccion`, `guardarRoundRobinAccion`, `asignarCalendlyDeMembresiaAccion`, `crearPiezaAccion`, `crearCreadorAccion` y sus pares de editar, desactivar y borrar |
+| **Siempre fuera** (grupo A de D3) | Tokens, secretos, usuarios, roles, suplantación | `emitirMiTokenAccion`, `revocarMiTokenAccion`, `revocarConexionDeIa`, `permitirConexion`, `cancelarConexion`, `desconectarMiConexionAccion`, `rotarSecretoFuenteAccion`, `guardarSecretoFuenteAccion`, `crearUsuarioAccion`, `editarUsuarioAccion`, `desactivarUsuarioAccion`, `reactivarUsuarioAccion`, `verComoUsuario`, `cambiarVista`, `agregarWhatsappDeUsuarioAccion` |
+| **No son escrituras** | Leen para la pantalla; su par del MCP es una consulta | `buscarLeadsAccion`, `buscarDealsAbiertosAccion`, `detalleDeLlamadaAccion`, `detalleDePuntoAccion`, `horasDisponiblesAccion`, `eventosDeMembresiaAccion`, `cargarMasEntregasAccion`, `probarFuenteAccion`, `probarIntegracionAccion` |
+
+**Cómo se construye el guardián** (molde: `lib/deshacer/registro.ts`, que clasifica exhaustivamente cada columna con rastro):
+
+1. `lib/mcp/cobertura.ts`: un `Record` con **cada** server action de la app y su clase: `expuesta` (con el nombre de la acción del
+   MCP), `pendiente` (con el grupo y una frase), `fuera` (con la razón de D3) o `lectura` (con la herramienta que la cubre).
+2. `tests/mcp-cobertura-guardian.test.ts` recorre los archivos `"use server"` de `app/`, `components/` y `lib/`, extrae las
+   funciones exportadas y falla si una no está en el registro, o si el registro nombra una que ya no existe (N7). Y al revés:
+   toda acción de `ACCIONES` aparece como `expuesta` en al menos una fila.
+3. **Trinquete:** el número de `pendiente` se escribe en una constante (`TOPE_DE_PENDIENTES_DEL_MCP`) que solo puede bajar, como
+   `lib/metricas/pendientes.ts`. Nace con el número real del día, no con cero.
+4. Mordido en los dos sentidos: una server action sintética sin clasificar hace fallar el test; clasificarla lo pone en verde.
+5. `capacidades` del MCP devuelve los pendientes como "todavía solo en la app", para que el modelo diga "eso se hace en la app" en
+   vez de inventar un camino.
+
+**Lo mismo para las consultas.** F3 pide también "consultas por rol". Lo mínimo verificable: cada `Metrica` de
+`lib/queries/metricas-con-filas.ts` y cada concepto de `lib/metricas/registro.ts` se puede pedir por `consultar_metrica` o
+`consultar_hechos` con el rol que lo ve en la app; un test lo recorre. Cuando el 419 (E-1) deje el texto de cada métrica en su
+ficha, `capacidades` y `consultar_metrica` devuelven `que` y `formula` desde ahí: la definición que lee el modelo es la misma que
+lee Gerencia en la pantalla.
+
+**Orden recomendado de las acciones pendientes de operación** (después de F3; cada tanda con su revisión adversarial y su
+petición forjada por rol): (1) anotar actividad, reclamar, editar deal y acuerdo: es lo que más se hace y no toca a terceros;
+(2) crear persona y deal; (3) comprobantes, cortesía y onboarding; (4) cohorte y próxima cohorte; (5) agendar y reagendar, que
+reservan en Calendly (Mani las dejó fuera el 13-nov: necesitan su propia decisión). La cesión de deal (A-177) sigue esperando su ADR.
+
+**H-6 · `docs/mcp.md` se contradice.** §3 lista las 12 acciones; §7 todavía dice "la puerta de escritura ya tiene su primer caso de
+uso, mover de etapa y deshacerlo". La casilla de abajo ("`docs/mcp.md` reescrito") lo cubre: hacerlo en el commit de F3. Revisar
+también que `INSTRUCCIONES_MCP` (`lib/mcp/instrucciones.ts`) nombre las mismas acciones que `ACCIONES`; lo ideal es que la lista
+salga de `ACCIONES` y no esté escrita a mano (regla de AGENTS.md: una herramienta no copia).
+
+**Pendiente del 348 y del 383 que F5 debe cerrar** (no son de código): conectar un cliente real (Claude Code con `claude mcp add`,
+claude.ai, ChatGPT), y comparar una misma cifra en el MCP, el Hub y el mensaje de WhatsApp para un programa y un periodo
+cerrado. Es la prueba de aceptación de todo el frente de métricas y nadie la ha hecho.
 
 ## Riesgos que este ticket no puede olvidar
 

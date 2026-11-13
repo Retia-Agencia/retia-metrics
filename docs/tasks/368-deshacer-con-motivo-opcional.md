@@ -137,3 +137,47 @@ Confirmar o separar correo; catálogo, ajustes y Media; lo que escribe el sistem
       la regla nueva (no borrados).
 - [ ] typecheck, lint, tests del cambio y `npm run build` limpios. Recorrido en `dev:local` con clic en el diálogo.
 - [ ] Migración 0113 aplicada en producción con el ok de Mani, antes de desplegar el código.
+- [ ] **(Enmienda 13-nov.) Deshacer el resultado de una llamada fallida también deshace el pendiente Re-agenda.** Ver
+      "Hallazgo del 13-nov" abajo.
+
+## Hallazgo del 13-nov: deshacer un no show deja el pendiente Re-agenda puesto
+
+Encontrado al construir el 411 F2 (handoff del 13-nov) y **fijado como comportamiento actual, no como regla**, en
+`tests/mcp-acciones-ola2.test.ts` › "hallazgo: deshacer el resultado de una fallida deja Re-agenda".
+
+- **Qué pasa.** `marcarFallida` con `no_show` (o `cancelada`) escribe dos cosas: `calls.resultado` y `deals.pendiente =
+  "reagenda"`. `eventosDeshacibles` ofrece deshacer el cambio de `calls.resultado`; `deshacerEvento` devuelve la llamada a
+  `agendada` pero no toca el deal. Queda un deal con una cita vigente y a la vez el pendiente Re-agenda.
+- **A quién le duele.** Al closer: el deal sigue en la columna Re-agenda del Kanban (296, ADR 0103) y en su bandeja, con una
+  cita que no hay que reagendar. No cambia ninguna métrica de dinero.
+- **Por qué pasa.** El registro de `lib/deshacer/registro.ts` trata cada columna con rastro por separado; el pendiente del deal
+  es otro evento de `change_log`, sin vínculo con el de la llamada. Es el mismo problema que `docs/mcp.md` §3 nombra como
+  "reversión compuesta de una operación".
+- **Dos caminos, decide Mani** (ninguno asumido):
+  1. **Agrupar:** `marcarFallida` escribe sus dos cambios con un mismo id de operación y deshacer uno deshace los dos. Es la
+     base de la reversión compuesta que el 411 dejó pendiente; sirve después para otras operaciones de dos escrituras.
+     Probablemente lleva una columna en `change_log` (migración).
+  2. **Regla puntual:** al deshacer un `calls.resultado` que venía de fallida, si el deal tiene `pendiente = "reagenda"` puesto
+     por esa misma operación y no hay otra llamada fallida vigente, se limpia. Sin migración, pero es una regla que conoce un
+     caso; el siguiente caso pide otra.
+  Recomendación: la 1 si el 411 va a necesitar la reversión compuesta de todos modos (lo tiene como pendiente nombrado); la 2
+  si se quiere cerrar ya el síntoma.
+- **Decidido (13-nov).** Mani delegó la elección ("elige tú la que mejor consideres: fácil, consistente, intuitivo y rápido") y
+  queda **el camino 2, la regla puntual**. Por qué: no lleva migración, se arregla en un commit y para el closer el resultado es
+  el que espera (deshace el no show y el deal sale de Re-agenda). El camino 1 es mejor diseño pero es una pieza grande que hoy
+  nadie necesita para otra cosa. **Condición para que no quede como parche:** la regla vive en un solo lugar, dentro de
+  `lib/deshacer/` (no en la pantalla ni en el MCP), con un comentario `ponytail:` que diga que se reemplaza cuando exista la
+  reversión compuesta del 411; ese pendiente del 411 la absorbe y la borra.
+- **Regla exacta a implementar:** al deshacer un cambio de `calls.resultado` cuyo valor deshecho era `no_show` o `cancelada`, si
+  el deal tiene `pendiente = "reagenda"` y **no** le queda otra llamada vigente con resultado `no_show` o `cancelada`, el pendiente
+  vuelve al valor que tenía antes de esa operación (se lee del `change_log` del deal: el evento de `deals.pendiente` de la misma
+  operación; si no se encuentra, queda nulo). La escritura pasa por `editarConRastro`, así deja su fila de rastro. Casos del test:
+  (a) un solo no show deshecho → sin pendiente; (b) dos no shows, se deshace uno → sigue Re-agenda; (c) el deal ya tenía otro
+  pendiente antes del no show → vuelve a ese; (d) lo mismo por `deshacer_evento` del MCP; (e) un closer ajeno recibe 403 y la
+  base no se mueve.
+- **Al arreglarlo:** el test "hallazgo: …" se reescribe a la regla nueva (el pendiente vuelve a su valor anterior) y se le quita
+  la palabra "hallazgo". El deshacer del MCP (`deshacer_evento`) usa el mismo caso de uso, así que queda arreglado a la vez; se
+  verifica con un caso en ese mismo archivo. Regla N8: `docs/mcp.md` §3 y el ADR 0117 en el mismo commit.
+- **Estado del ticket (N9).** Está "en main" desde el 3-nov con **las nueve casillas de arriba sin marcar**. Antes de pasarlo a
+  `done` hay que marcar cada una con su evidencia (el test que la cubre) o decir cuál no se cumple.
+

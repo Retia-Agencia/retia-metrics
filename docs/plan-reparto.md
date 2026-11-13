@@ -166,6 +166,81 @@ No toques los rótulos ni las fórmulas que dependen de D-A a D-E del 403. Toca 
 archivos nombrados, pull --rebase antes de push, y tu avance va en el archivo del ticket, no en el tracker.
 ```
 
+#### Reordenada el 13-nov: primero una sola forma de cifra en todo el Hub
+
+Sale de la revisión del 13-nov ([`docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`](./reportes/revision-hub-metricas-mcp-2026-11-13.md)).
+**Decidido por Mani el 13-nov:** Hoy, Comercial y Dinero pasan a la Cifra **antes** de seguir abriendo Pauta. No hay tickets
+nuevos: se enmendaron 419, 414, 422, 411, 368, 390, 358 y 359, cada uno con su sección "Enmienda 13-nov" y sus casillas. La tabla
+de arriba sigue valiendo para los archivos de cada carril; lo que cambia es **el orden**. El reparto por carril de abajo es
+**propuesto**: Mani lo confirma o lo cambia aquí.
+
+**Paso 0 · Higiene (Mani, minutos, sin código de producción).** Hace falta antes de que nadie empuje:
+
+| Qué | Por qué | Cómo se verifica |
+|---|---|---|
+| Tag `cp-20261113-1` sobre la punta de `main` cuando su CI esté verde | Hay 15 commits después de `cp-20261112-2`; `fdc36b0d` salió verde, el CI de `65c2c3af` (416) no se ha mirado | `gh run list --branch main --limit 4` |
+| 403 a `done` (archivo y tracker) | Todas sus casillas están marcadas desde el 10-nov y ya hubo dos checkpoints verdes después | `npm test -- tests/tracker-coherente.test.ts` |
+| 367 a `done` (archivo y tracker) | "en main" con sus seis casillas marcadas; solo esperaba checkpoint | el mismo test |
+| 368: marcar sus nueve casillas con evidencia o decir cuál no se cumple | Está "en main" desde el 3-nov con todas vacías (N9) | leer `tests/deshacer.test.ts` contra cada casilla |
+| 411 ya quedó en `en curso` (13-nov) | Decía `todo` con F0 a F2 hechas | hecho |
+
+**Decisiones que frenan código** (las contesta Mani; hasta entonces nadie las asume):
+
+| # | Dónde está | Frena |
+|---|---|---|
+| ~~DC-1 a DC-4~~ | **Respondidas por Mani el 13-nov** (ticket 419, "Respondidas por Mani"): el botón Info se retira; el universo vive en la cifra y se pinta como en el boceto; los desgloses van a la cabecera de la lista; Mi espacio usa el universo "tuyas" | ya no frenan |
+| Texto de cada explicación del Hub (tabla §2.2 que la sesión redacta) | 419 E-1 paso 4 | 419 E-3 de cada pestaña |
+| ~~Camino del pendiente Re-agenda~~ | **Decidido el 13-nov:** camino 2, regla puntual dentro de `lib/deshacer/` (ticket 368) | ya no frena |
+| ¿`npm run test:humo` entra al CI, al menos en el checkpoint? | Revisión del 13-nov, D-3 | nada; hoy 377 y 375 se cerraron sin correrlo |
+| Q-1 a Q-9 y DM-8 (Michael y Paid Media) | `docs/paid-media-excels-2026-11-10.md` §7 | 417, 418, 421 y el cierre del 412 y del 414 |
+
+**Orden por carril (propuesto):**
+
+| Carril | Quién | Ahora, en este orden | Después |
+|---|---|---|---|
+| **D · definiciones** | Mani (código con Codex) | **419 E-0** (decidir) → **419 E-1** (texto a la ficha, borrar el puente: toca `lib/metricas/registro.ts`, que es de este carril) → **390** (guardianes de show y dorados de Comercial) | **411 F3** (guardián de cobertura del MCP) → 358 (WhatsApp consume el registro) → 401 (migraciones, una por una) |
+| **P · pantalla** | Compañero | Terminar lo que tenga abierto del 416 sin dejar nada a medias → **419 E-2** (constructores de Comercial; puede empezar ya con los conceptos que tienen texto en el puente) → **419 E-3** Comercial → Dinero → Hoy → "¿Vamos a llegar?" | «Ver solo» (cierra 420 y 416) → 414 (boceto y la casilla nueva de celdas) → 415 → **422** → 419 E-4 (`/hub`) → E-5 (Mi espacio) → E-6 y E-7 (borrar y guardián) |
+| **H · personas** | Mani | Q-1 a Q-9 y DM-8 con Michael y Paid Media; el Excel de una semana cerrada; **sentarse con Daniel Tovar a usar el Hub comercial** (paso 5 de la fase 1 de `docs/hub.md` §0, sin evidencia en el repo); el sí de Dani Rodríguez al 424 | — |
+
+**Costuras nuevas de este orden:**
+- **`lib/metricas/registro.ts`:** solo el carril D durante E-1. El carril P no lo toca; si necesita un campo, lo pide.
+- **`app/(app)/p/[programa]/hub/page.tsx`** (754 líneas): lo tocan E-3 y «Ver solo». Un dueño por commit, `git pull --rebase`
+  antes de empujar. Mientras el carril P esté en E-3, «Ver solo» espera.
+- **`app/(app)/hub/secciones.tsx` y `components/pauta-roas.tsx`:** primero el 422, después 419 E-4. Nunca a la vez.
+- **El 415 crea el concepto del costo por venta** (clave, ficha, fila del diccionario). El 419 E-1 no lo duplica: si E-1 llega
+  antes, deja `cac` en el puente con una nota y lo pasa el 415.
+- **Ninguna cifra cambia en el 419.** Si un número se mueve al migrar una pestaña, se detiene y se anota en el ticket.
+
+**Prueba de costura del orden nuevo:** abrir "Asistencia" en Comercial, "Vendido" en Dinero y "Cupos vendidos" en Hoy; las tres
+abren el mismo panel, con su fórmula, sus números, sus filtros y su lista; el total de la lista es el número de la tarjeta; y
+`consultar_metrica` del MCP devuelve ese mismo número para el mismo programa y periodo.
+
+**Lo que se le dice al compañero** (pegar en una sesión nueva, con `main` al día):
+
+```
+Seguimos en la ola O12 del CRM de Retia, reordenada el 13-nov (docs/plan-reparto.md §4, "Reordenada el 13-nov"). Tu carril es P.
+Lee AGENTS.md, docs/reportes/revision-hub-metricas-mcp-2026-11-13.md (§4 H-1 y §5), y en docs/tasks/419-la-cifra-una-forma-de-metrica.md
+la sección "Enmienda del 13-nov" completa: inventario, decisiones DC-1 a DC-4, fases E-1 a E-7 y riesgos. Abre
+docs/bocetos/una-forma-de-metrica.html: es el norte visual. Primero cierra lo que tengas abierto del 416 sin dejar nada a medias y
+escribe su estado en su archivo. Después toma 419 E-2 para Comercial: lee lib/pauta/cifras-de-proyeccion.ts (el molde),
+lib/metricas/cifra.ts, components/cifra-de-razon.tsx y components/dashboard/operacion.tsx, repite el grep del inventario y
+preséntame un plan corto antes de escribir código. No toques lib/metricas/registro.ts (carril D) ni cambies ninguna cifra: si un
+número se mueve al migrar, detente y anótalo en el ticket. DC-1 a DC-4 ya están respondidas (léelas: el botón Info se retira por
+pestaña en el mismo commit de E-3). E-3 de una pestaña no empieza hasta que Mani haya aprobado el texto de sus explicaciones. Commits con archivos nombrados, pull --rebase antes de push, build en cada commit
+de pantalla, y tu avance va en el archivo del ticket, no en el tracker.
+```
+
+**Lo que arranca la sesión de Mani (carril D):**
+
+```
+Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4). Esta sesión es de Mani, carril D. Lee
+AGENTS.md, docs/reportes/revision-hub-metricas-mcp-2026-11-13.md y, en docs/tasks/419-la-cifra-una-forma-de-metrica.md, la sección
+"Enmienda del 13-nov". Primero el paso 0 de higiene de plan-reparto (tag de checkpoint si el CI de la punta está verde; 403 y 367 a
+done; las casillas del 368). E-0 ya está: DC-1 a DC-4 respondidas el 13-nov, en el ticket. Sigue E-1 con Codex (/delegate): redacta primero la tabla de textos (qué mide, fórmula, variables) de las
+claves del Hub como §2.2 de docs/diseno-cifra-y-pauta.md y espera mi sí antes de pasarla al código. No toques los archivos del
+carril P.
+```
+
 ### 🌊 Ola O11 · media entra al CRM · abierta el 28-oct
 
 Sale del grill del plan de media (ADR 0107 a 0112, tickets 315 a 338; el 336 es un levantamiento sin código). Mismo molde que la O10: carriles por archivos,

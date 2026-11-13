@@ -54,6 +54,245 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
 - [x] Guardián de texto técnico en verde y mordido.
 - [ ] `quick_review` de Rams, `npm run build`, `test:humo` y la pantalla abierta con la consola limpia.
 
+**Casillas de la enmienda del 13-nov** (el detalle de cada una está en "Enmienda del 13-nov", abajo; sin ellas el 419 no es `done`):
+
+- [x] **E-0** Decisiones DC-1 a DC-4 respondidas por Mani y escritas aquí, antes de tocar código. *(13-nov: las cuatro, en "Respondidas por Mani".)*
+- [ ] **E-1** El texto de toda explicación vive en la ficha (`lib/metricas/registro.ts`); `lib/metricas/explicaciones-de-pauta.ts` borrado; las 52 fichas con `que`, `formula` y `variables`, y un test que falla si una ficha registrada no los tiene.
+- [ ] **E-2** Constructores puros de `CifraDeMetrica` para Comercial, Dinero, Hoy y "¿Vamos a llegar?", cada uno con su test (los ocho casos raros que apliquen y la paridad cifra = lista).
+- [ ] **E-3** Comercial, Dinero, Hoy y "¿Vamos a llegar?" pintan solo `<Cifra>`; comparados lado a lado con el boceto en claro, oscuro y 375 px; el PDF de Hoy sigue saliendo bien.
+- [ ] **E-4** `/hub` (todos los programas): Hoy, Comercial y Dinero con la misma pieza, sin una sola tasa combinada entre programas.
+- [ ] **E-5** Mi espacio › Métricas con la misma pieza.
+- [ ] **E-6** El botón Info retirado de las cinco pestañas y de `/hub` (DC-1), sin perder ninguna frase. Borrados sin llamadores: `CifraConLista`, `ResumenDeCifra`, `CifraDeRazon`, `ComoSeCalcula` (el diálogo), las props viejas de `BarraDeAvance`, `Variacion` y las piezas `Tarjeta`/`Ficha`/`Dato`/`Fila` que queden sin uso (N7).
+- [ ] **E-7** Guardián `tests/una-forma-de-cifra-guardian.test.ts`, mordido en los dos sentidos.
+- [ ] **E-8** `structure.md` §9 (puntos 5, 8 y 10), `diseno-cifra-y-pauta.md` y el ADR 0067 reescritos en el mismo commit que cierra cada fase (N8). Tracker y `status:` iguales (N9).
+
+## Enmienda del 13-nov: la Cifra en TODO el Hub (decisión de Mani)
+
+> **Decidido por Mani el 13-nov:** Hoy, Comercial y Dinero pasan a la Cifra **antes** de seguir abriendo Pauta. Origen:
+> `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`, hallazgo H-1. Esta enmienda no abre un ticket nuevo: completa el
+> alcance que el título del 419 ya prometía ("en todo el Hub") y que su "Done cuando" original dejó solo en Pauta.
+
+### Por qué hace falta (medido en el código el 13-nov)
+
+1. **La pieza nueva solo se usa en Pauta y el semáforo.** `CifraDeMetrica` se arma en cuatro módulos: `lib/pauta/cifras-de-origen.ts`,
+   `lib/pauta/cifras-de-proyeccion.ts`, `lib/pauta/cifra-de-celda-semanal.ts` y `lib/semaforo/cifras-del-semaforo.ts`. Hoy,
+   Comercial, Dinero, "¿Vamos a llegar?", `/hub` y Mi espacio siguen con la forma vieja.
+2. **Nadie era dueño del resto.** El alcance 2 de este ticket dice "el resto lo completa el 403 F4". El 403 F4 llenó la ficha
+   **estructurada** (unidad, ancla, función) y cerró el trinquete en 0, pero no escribió ningún texto de explicación:
+   `grep -c "que:" lib/metricas/registro.ts` da 0 sobre 52 fichas.
+3. **El puente quedó huérfano.** `lib/metricas/explicaciones-de-pauta.ts` dice en su cabecera "PUENTE, no casa (…) este archivo se
+   borra" y esperaba a que el 403 registrara los conceptos de Pauta. El 403 los registró el 10-nov (`CONCEPTO_DE_PAUTA_SEMANAL` en
+   `lib/metricas/pendientes.ts`). El traspaso está desbloqueado y nadie lo hizo.
+
+### Inventario: qué pinta cada archivo hoy (conteo de usos por `grep`, 13-nov)
+
+| Archivo | Pestaña | `<CifraConLista` | `<CifraDeRazon` | Otras piezas viejas | Cifras que muestra |
+|---|---|---|---|---|---|
+| `components/dashboard/operacion.tsx` | Comercial | 1 | 3 | `Tarjeta`, `Tabla` | Citas, Asistencia, Ventas, Cierre de ventas, Entró a caja; por closer: Citas, Asistencia, Cierre, Cita a venta, Vendido, Recaudado, Por cobrar; Grupo de citas, Citas sin marcar, Deals abiertos, Deals sin dueño, Ventas sin llamada registrada |
+| `components/dashboard/escalera.tsx` | Comercial | 1 | 0 | ya usa `<Cifra` 3 veces (mezcla) | Los escalones y "Cita pasada sin resultado" |
+| `components/dashboard/dinero.tsx` | Dinero | 0 | 0 | `Tarjeta` | Vendido, Recaudado, Por cobrar |
+| `components/dashboard/dinero-de-ventas.tsx` | Dinero y Hoy | 1 | 0 | `Variacion` | Vendido, Recaudado, Por cobrar (por clave) |
+| `components/dashboard/graficas-de-dinero.tsx` | Dinero | 0 | 0 | punto de gráfica por `ResumenDeCifra` | Vendido, Entró a caja, Cupos con caja |
+| `components/dashboard/piezas.tsx` | Compartido | 1 | 0 | `Tarjeta`, `Caja`, `CajaConVariacion`, `Variacion` | Entró a caja, por moneda |
+| `components/dashboard/hoy/cifras-clave.tsx` | Hoy | 4 | 1 | `Ficha`, `BarraDeAvance` (forma vieja `llevamos`/`objetivo`), `EnlaceAInfo` | Cupos vendidos, Leads de hoy, Entró a caja hoy, Asistencia; Objetivo del día, Objetivo de leads, Leads que hacen falta |
+| `components/dashboard/hoy/embudo.tsx` | Hoy | 1 | 1 | — | Envíos, Citas del día, Realizadas, Cupos vendidos, Cierre de ventas |
+| `components/dashboard/hoy/citas.tsx` | Hoy | 1 | 0 | — | Citas del día, Realizadas, Canceladas, Sin resultado, "¿Cómo va cada closer?" |
+| `components/dashboard/hoy/dinero.tsx` | Hoy | 1 | 0 | — | Cupos vendidos hoy, Vendido, Recaudado, Por cobrar |
+| `components/dashboard/hoy/semana.tsx` | Hoy | 0 | 0 | `Fila`, `Variacion` | Llevamos, Cupos vendidos, Leads, Asistencia de la semana |
+| `components/dashboard/hoy/pendientes.tsx` | Hoy | 1 | 0 | — | Citas de mañana |
+| `components/dashboard/hoy/comunes.tsx` | Hoy | 1 | 0 | define `Ficha`, `Lado`, `CuentaDeAsistencia`, `cumplimiento` | (piezas) |
+| `components/metas/vamos-a-llegar.tsx` | Las cinco pestañas | 0 | 0 | `Dato`, `Fila`, `Variacion` | Mes y cohorte × cupos y USD: Vendido, Faltan, Esperado a hoy, Por día hábil, Proyección |
+| `app/(app)/hub/secciones.tsx` | `/hub` (todos) | 3 | 4 | `Tarjeta`, `Variacion` | Entró a caja por moneda, Hoy por programa (Ventas, Citas, Realizadas, Asistencia, Cierre), Vendido/Recaudado/Por cobrar, Comisión y descuento, Tasas por programa |
+| `components/mi-espacio/tab-metricas.tsx` | Mi espacio | 5 | 1 | `Tarjeta`, `ComoSeCalcula` (diálogo), `Variacion` | Con show y vendidos hoy, Citas pasadas sin resultado, Entró a caja, Ventas que generan comisión, Citas, Realizadas, No asistió, Ventas |
+| `components/graficas/barras.tsx` | Compartido | 1 | 0 | — | Pasos del embudo, segmentos, filas |
+| `components/graficas/resumen-de-punto.tsx` | Gráficas | 0 | 0 | `ResumenDeCifra` | El punto de una gráfica de Dinero y Comercial |
+| `components/pauta-roas.tsx` | Pauta (`/hub`) | 0 | 1 | ya usa `<Cifra` 4 veces | ROAS por campaña (lo cierra el 422) |
+
+Totales: `CifraConLista` 40 referencias en 14 archivos, `CifraDeRazon` en 7, `ComoSeCalcula` solo en Mi espacio.
+**Antes de empezar, repetir el conteo** (el inventario envejece): `grep -rc "<CifraConLista\|<CifraDeRazon" app components | grep -v ":0"`.
+
+Las 43 claves del Hub, con su función, su fila del diccionario y su lista, están en `docs/audit-hub-2026-11-10.md` §4.1. Hoy las
+52 claves registradas son (`lib/metricas/registro.ts`): `registros`, `agendadas`, `citas`, `shows`, `no_asistio`, `asistencia`,
+`cierre_de_ventas`, `ventas`, `cupos_vendidos`, `llevamos`, `vendido`, `recaudado`, `por_cobrar`, `entro_a_caja`, `comision`,
+`leads`, `llamadas_sin_resultado`, `citas_pendientes`, `citas_del_dia`, `citas_realizadas`, `citas_canceladas`, `show_por_cita`,
+`cita_a_venta`, `nacio_agenda_del_dia`, `nacio_seguimiento`, `nacio_sin_llamada`, `meta`, `objetivo_cohorte`, `objetivo_de_leads`,
+`dias_del_ritmo`, `citas_minimas`, `objetivo_mes`, `objetivo_semana`, `esperado_a_hoy`, `faltan`, `por_dia_habil`,
+`objetivo_del_dia`, `proyeccion`, `leads_que_hacen_falta`, `deals_desde_completo`, `deals_desde_parcial`, `cupos_con_caja`,
+`inversion`, `costo_agenda_crm`, `costo_agenda_meta`, `roas`, `profit`, `cpm`, `ctr`, `llegada_landing`, `conversion_landing`,
+`frecuencia`.
+
+### Decisiones que van antes del código (E-0). Ninguna se asume.
+
+| # | Pregunta | Recomendación y por qué |
+|---|---|---|
+| **DC-1** | El botón **Info** de cada pestaña (`components/hub/info-de-pagina.tsx`, 381, con `?info=<sección>` y los "?" de `EnlaceAInfo`) explica hoy las cifras por sección. Con la explicación por cifra habría dos lugares que explican lo mismo. ¿Se queda, se retira o cambia? | **Se queda como índice de la página, pero deja de tener texto propio de métricas:** cada sección lista sus cifras y pinta `que` y `formula` desde la ficha. Así hay un solo texto (N1) y no se pierde el enlace compartible. Retirarlo del todo es más simple, pero lo pidió Mani el 4-nov y lo usa el PDF de Hoy |
+| **DC-2** | El **universo** ("de pauta" / "todas las áreas") hoy es un campo de `ExplicacionDeConcepto`, o sea del concepto. Pero un concepto se muestra en los dos universos: el puente tiene `agendas` y `agendas_total`, `ventas` y `ventas_total`, `vendido_pauta` y `vendido_total` con el mismo concepto detrás. ¿Dónde vive? | **En la cifra, no en la ficha:** `universo` pasa a `EntradaDeCifra` (el diseño §10 ya lo pone en `CifraDeMetrica`). La ficha guarda el texto general del concepto. Lo que una vista de Pauta necesite decir distinto ("cuenta en la semana del registro", "solo campañas de agenda") va como **variante nombrada** de esa ficha, no como otra ficha. Un concepto, una ficha |
+| **DC-3** | Hoy el primer clic de una cifra abre un **resumen con desgloses** (por closer, por etapa, por antigüedad: `ResumenDeCifra`, ADR 0067 punto 5). La explicación nueva muestra 5 filas y el botón "Ver las N". ¿Se pierden los desgloses? | **No se pierden: pasan a la cabecera de la lista completa** (`/p/[programa]/hub/lista`). Medido el 13-nov: esa página **no** pinta hoy ningún desglose (`grep` de `desglose`, `porCloser` y `Resumen` en `lista/page.tsx` da cero), así que pintarlos ahí es trabajo de E-3, con la misma consulta que hoy alimenta `ResumenDeCifra` (`lib/queries/vista-metrica.ts`). Enmienda al ADR 0067 punto 5 en el mismo commit (N8). Para quien no cumple `veEquipoComercial` nada cambia: no ve listas |
+| **DC-4** | ¿Qué universo dice una cifra de **Mi espacio** (las del closer)? "todas las áreas" es cierto pero no dice que son solo suyas | **Un tercer valor de universo, "tuyas"**, con la explicación "Solo tus deals y tus llamadas". Es un valor nuevo de un tipo cerrado (`UniversoDeCifra`), decisión de vocabulario: se escribe en `overview.md` §11 |
+
+#### Respondidas por Mani (13-nov). Mandan sobre la columna "Recomendación" de la tabla.
+
+- **DC-1 · El botón Info se va.** Textual: "se debería ir para evitar redundancia; ya cada tarjeta de cifra abre el popup
+  estandarizado para ver el cálculo y los registros". **No es la recomendación de la tabla** (que lo dejaba como índice): se retira
+  entero. Qué implica, medido el 13-nov:
+  - Se borran `components/hub/info-de-pagina.tsx` (`InfoDePagina`, `EnlaceAInfo`, `abrirInfo`, el parámetro `?info=`),
+    `components/hub/piezas-de-info.tsx`, `components/dashboard/info-de-comercial.tsx`, `components/dashboard/info-de-pauta.tsx` y
+    `components/dashboard/hoy/info-de-hoy.tsx`, y sus usos en `app/(app)/hub/page.tsx` y `app/(app)/p/[programa]/hub/page.tsx`.
+  - Hay 16 usos de `EnlaceAInfo` o `abrirInfo` fuera de ese archivo, en `components/dashboard/operacion.tsx`, `escalera.tsx`,
+    `configuracion-hoy.tsx`, `hoy/cifras-clave.tsx`, `hoy/comunes.tsx`, `components/deals-contra-agendas.tsx` y
+    `components/deals/ficha/ficha-cierre.tsx`. **Los dos últimos no son del Hub:** mirar qué enlazan antes de quitarlos.
+  - **Nada se pierde al borrar:** antes de quitar una sección del Info, cada frase suya tiene que estar en la ficha de una cifra
+    (`que`, `formula`, `variables`) o, si explica un ajuste (días del ritmo, mínimo para confiar en una tasa, objetivo de leads), en
+    la ficha de ese parámetro, que se abre desde donde se configura (`components/dashboard/configuracion-hoy.tsx`). El commit que
+    borra una sección lista en su descripción a dónde fue cada frase. Lo que no explique ninguna cifra ni ningún ajuste se anota
+    aquí y lo decide Mani; no se tira en silencio.
+  - **El PDF de Hoy** (373) no puede depender del Info: verificar el PDF antes y después.
+  - Va **por pestaña, en el mismo commit de E-3** que migra esa pestaña (cuando sus cifras ya abren su explicación, su Info sobra),
+    no al final: así nunca hay una pestaña sin explicación ni una con dos.
+  - N8 en ese commit: `docs/structure.md` §9 (el contrato de entendimiento habla de "Cómo se calcula" y del Info), el ticket 381
+    ("el Info único", que esta decisión revierte) con una nota de enmienda, y `docs/hub.md` si lo nombra.
+- **DC-2 · El universo vive en la cifra.** Textual: "en la cifra; que sea consistente con el UI que tenemos propuesto, nada feo.
+  Tiene que ser entendible y poco saturado". Regla de pantalla que sale de ahí: el universo se pinta **exactamente como en el
+  boceto** (gris, junto al rótulo: "Agendadas · de pauta"), sin píldora, sin borde y sin una línea propia. Si en una pestaña todas
+  las cifras son del mismo universo, igual se pinta en cada una (DM-6: siempre visible), pero no se repite en un subtítulo ni en un
+  encabezado además. Ante la duda entre mostrar un dato más o dejar la tarjeta limpia, gana la tarjeta limpia: el dato va en la
+  explicación.
+- **DC-3 · Los desgloses pasan a la cabecera de la lista completa.** Sí, con la recomendación. Enmienda al ADR 0067 punto 5 en el
+  commit que lo construye.
+- **DC-4 · Mi espacio usa un tercer universo, "tuyas".** Sí, con la recomendación. Texto de la explicación: "Solo tus deals y tus
+  llamadas". Entra a `UniversoDeCifra` y a `docs/overview.md` §11 en el mismo commit.
+
+### Fases, en orden. Cada fase deja `main` desplegable.
+
+**E-1 · El texto a la ficha, y el puente se borra** (archivo caliente: `lib/metricas/registro.ts`; una sola sesión a la vez)
+
+1. `FichaDeMetrica` gana lo que hoy solo tiene `ExplicacionDeConcepto` y es del concepto: `admiteObjetivo?` y `unidadesDePartes?`.
+   `rotulo` NO entra: sale del vocabulario (`nombreCorto`, N4). `universo` NO entra (DC-2).
+2. `UnidadDeCifra` (`conteo`, `decimal`, `cop`, `usd`, `porcentaje`, `veces`) y `UnidadDeMetrica` de la ficha (`cupos`, `personas`,
+   `citas`, `deals`, `dinero`, `porcentaje`, `veces`, `dias`) son dos enums para lo mismo. Una función `unidadDeCifra(ficha, moneda?)`
+   en `lib/metricas/cifra.ts` deriva la primera de la segunda; nadie escribe la unidad dos veces. Falta decidir cómo se escribe
+   `dias` (hoy no existe en `UnidadDeCifra`): agregar el caso a `formatearValor`.
+3. Pasar los 35 textos del puente a su ficha. El mapa de clave del puente a concepto:
+   - **Con concepto registrado** (por `CONCEPTO_DE_PAUTA_SEMANAL`): `inversion`→`inversion`, `agendas`/`agendas_total`/`agendas_origen`→`agendadas`,
+     `ventas`/`ventas_total`/`ventas_origen`→`ventas`, `facturacion`/`vendido_pauta`/`vendido_total`→`vendido`, `show`→`asistencia`,
+     `cierre_ventas`→`cierre_de_ventas`, `agenda_venta`→`cita_a_venta`, `costo_agenda_crm`/`costo_agenda_origen`→`costo_agenda_crm`,
+     `agendas_meta`/`costo_agenda_meta`→`costo_agenda_meta`, `inversion_origen`→`inversion`, `roas`, `profit`, `cpm`, `ctr`,
+     `llegada_landing`, `conversion_landing`, `frecuencia` a su clave igual.
+   - **Sin concepto registrado todavía** (hay que crear clave en `lib/vocabulario-metricas.ts`, ficha, y fila en `docs/metricas.md`
+     si no la tiene, todo en el mismo commit, N8): `presupuesto`, `cac` (lo crea el 415: coordinar, no duplicar), `agendas_dia`,
+     `agendas_req`, `inversion_req`, `roas_proy`, `envios_sin_id`, `registros_sin_utm`, `ventas_sin_anuncio`, `embudo`.
+     Antes de crear una clave, buscar si el concepto ya existe con otro nombre (`por_dia_habil`, `proyeccion`, `leads_que_hacen_falta`
+     son del mismo tipo de cuenta para ventas y leads): si es el mismo concepto, se reutiliza; si es otro, se dice por qué.
+4. Escribir `que`, `formula` y `variables` de las claves del Hub que no vienen del puente. **El texto es de negocio y lo aprueba
+   Mani**: la sesión redacta una tabla como la de `docs/diseno-cifra-y-pauta.md` §2.1 (clave, rótulo, qué mide, fórmula, variables),
+   la agrega a ese documento como §2.2, Mani la lee y dice sí, y solo entonces entra al código. Fuente de cada texto: la fila del
+   concepto en `docs/metricas.md`, traducida a palabras de Gerencia. Las fichas de tipo `parametro` (objetivos, `dias_del_ritmo`,
+   `citas_minimas`) llevan `que` y, como fórmula, "lo escribe [quién] en [dónde]".
+5. `explicacionDePauta(clave)` se reemplaza por una función que arma la `ExplicacionDeConcepto` desde la ficha más la variante
+   (DC-2). Borrar `lib/metricas/explicaciones-de-pauta.ts` y mover sus tipos a `lib/metricas/cifra.ts`.
+6. Test nuevo en `tests/registro-de-metricas.test.ts`: toda ficha registrada tiene `que`, `formula` y `variables` (trinquete en 0
+   desde el primer día: no nace con excepciones). `tests/explicacion-sin-jerga.test.ts` pasa a recorrer el registro entero.
+7. **Costura con el MCP y WhatsApp:** con el texto en la ficha, `capacidades` del MCP y el mensaje del semáforo pueden leerlo. No se
+   hace aquí; se anota en el 411 (F5) y en el 358.
+
+**E-2 · Constructores puros por pestaña** (molde: `lib/pauta/cifras-de-proyeccion.ts`, 89 líneas)
+
+- Módulos nuevos, puros (sin `lib/db`), en `lib/hub/`: `cifras-de-comercial.ts`, `cifras-de-dinero.ts`, `cifras-de-hoy.ts`,
+  `cifras-del-norte.ts`. Reciben lo que la página ya consulta (`VistaDelDashboard`, `DetallesDelDashboard`, `ReporteDiario`, los datos
+  de `VamosALlegar`) y devuelven `CifraDeMetrica`. **No consultan ni recalculan** (N1): si un constructor necesita un número que
+  la consulta no trae (las `partes` de una razón), se agrega a la consulta, no se deduce en el constructor.
+- Lo que hoy decide `CifraDeRazon` (`components/cifra-de-razon.tsx`) se traduce así, una sola vez, en un ayudante
+  `entradaDesdeRazon(razon: RazonConCobertura)` junto a `armarCifra`:
+  `estadoDeCobertura === "no_calculable"` → `valor: null` + `motivo`; `"parcial"` → `parcial: "…"` con base y faltan en palabras
+  ("12 de 30 citas ya tienen resultado") y, si hay `agendasPendientes`, su frase; completa → nada. El umbral sigue siendo
+  `UMBRAL_COBERTURA_POR_DEFECTO` de `lib/cobertura.ts`.
+- `lista` de cada cifra: `href` sale del `DetalleDeCifra` que ya existe (viene de `urlDeLista`, que exige `origen`); `total` de
+  `resumen.subtotal.cantidad`; las 5 filas con `leerEvidencia` (`lib/metas/cumplimiento-de-cohorte.ts`), que ya lee cualquier lista
+  con un rango. Si esa función queda como dependencia de todo el Hub, mudarla a `lib/queries/` (no es de metas).
+  **Una cifra sin lista probada no lleva evidencia** (regla del 419 original): primero el test cifra = lista, después la evidencia.
+- **Dinero en varias monedas:** "Entró a caja" es **una Cifra por moneda**, nunca una suma (regla dura de AGENTS.md). El constructor
+  devuelve un arreglo; si no hay abonos, una sola Cifra en USD con 0.
+- **Comparación:** `Variacion` (vieja) → `comparacion: { referencia, valor }` de la entrada; `referencia` en palabras ("el periodo
+  anterior", "C5 al mismo día"), nunca "periodo B" (N5).
+- **Estado:** solo con fuente. "¿Vamos a llegar?" y Cupos vendidos de Hoy usan `fuente: "esperado"`; las tasas no llevan estado
+  salvo que tengan objetivo cargado. Sin fuente, sin badge.
+- **`filtros` ("Calculada con"):** Programa, Cohorte, Periodo, Closer (si hay), y en Hoy "Día: 13 nov". El norte muestra solo
+  Programa (no sigue filtros: `docs/hub.md` §1).
+- Tests por módulo (puros, sin base): cada caso raro del §1.3 que aplique; que ningún texto lleve ".." ni jerga; y, con base, la
+  paridad cifra = lista sembrando una anulada, otro programa y un parcial.
+
+**E-3 · Las pantallas, una pestaña por commit**
+
+Orden recomendado: **Comercial → Dinero → Hoy → "¿Vamos a llegar?"**. Comercial primero porque `operacion.tsx` concentra las
+razones y es la que más se parece a Pauta; Hoy casi al final porque es el reporte que se descarga en PDF (373) y es donde más se
+puede romper algo que Gerencia ya usa.
+
+- En cada archivo de la tabla: reemplazar la pieza vieja por `<Cifra cifra={…}>` (tamaño `tarjeta` o `celda`). La página del
+  servidor (`app/(app)/p/[programa]/hub/page.tsx`) llama al constructor y pasa las cifras **como props**; el componente cliente no
+  importa nada de `lib/` que cargue `lib/db` (regla de AGENTS.md: `Module not found: 'fs'` solo aparece en el build).
+- **PDF de Hoy:** la Cifra es un botón con panel; en `print:` debe verse como texto plano, con la barra y sin "Cómo se calcula →".
+  Verificar descargando el PDF (`components/dashboard/descargar-reporte.tsx`) antes y después, y comparar página por página.
+- **Gráficas de Dinero y Comercial:** el punto abre hoy `ResumenDeCifra` (`components/graficas/resumen-de-punto.tsx`). Pasa a
+  `components/graficas/grafica-con-explicacion.tsx`, que ya existe para Pauta (420): clic en un punto abre la explicación de esa
+  cifra en ese día.
+- **Tablas por closer** (Comercial): cada celda es `<Cifra tamano="celda">`. Solo para quien cumple `veEquipoComercial`; el paid
+  trafficker sigue sin verlas (`sinListas`). La proyección por rol se decide en el servidor, no en el constructor.
+- Por cada pestaña: `npm run build`, abrir con `npm run dev:local`, **clic en cada cifra** con la consola abierta, comparar lado a
+  lado con `docs/bocetos/una-forma-de-metrica.html` en claro, oscuro y 375 px, y `npm run test:humo`. Recorrer con gerente y con
+  paid trafficker.
+- **El Info de esa pestaña se borra en este mismo commit** (DC-1, arriba), con la lista de a dónde fue cada frase. `ContextoDeCifra`
+  (la línea de contexto bajo el título) se queda: no explica una cifra, dice qué se está mirando.
+
+**E-4 · `/hub` de todos los programas** (`app/(app)/hub/secciones.tsx`)
+
+Misma pieza, **una Cifra por programa, lado a lado**. La función del agregado no compila con una tasa (ADR 0048): no se toca ese
+tipo. Lo sumable (conteos, caja por moneda) puede llevar una Cifra de total; tasas, metas, comisión, CPL y ROAS nunca. La parte de
+Pauta de `/hub` es del **422**: coordinar para no tocar los mismos archivos a la vez (`components/pauta-roas.tsx`).
+
+**E-5 · Mi espacio › Métricas** (`components/mi-espacio/tab-metricas.tsx`)
+
+Último llamador de `ComoSeCalcula`. Usa el universo de DC-4. El closer no entra al Hub (ADR 0082): esto no le abre nada nuevo, solo
+cambia la forma de lo que ya ve.
+
+**E-6 · Borrar lo reemplazado** (N7: reemplazar es borrar)
+
+Cuando `grep` dé cero llamadores: `CifraConLista` y `ResumenDeCifra` (`components/cifra-con-lista.tsx`; el archivo se queda solo con
+`Cifra`), `components/cifra-de-razon.tsx`, el diálogo `ComoSeCalcula` (`components/como-se-calcula.tsx` se queda con
+`ExplicacionDeCifra`, `BadgeDeEstado`, `PUNTO`), la forma vieja de `BarraDeAvance` (`llevamos`/`objetivo`), `Variacion` si quedó sin
+uso (`CambioDeCifra` se queda), `components/graficas/resumen-de-punto.tsx`, y de `components/dashboard/piezas.tsx` y
+`hoy/comunes.tsx` lo que quede huérfano (`Tarjeta`, `Ficha`, `Dato`, `Fila`, `Caja`, `tasa`). `components/dato-o-vacio.tsx`: mirar
+quién lo llama antes de decidir. Nada se borra "porque parece muerto": se borra con el `grep` en la descripción del commit.
+
+**E-7 · El guardián** (`tests/una-forma-de-cifra-guardian.test.ts`)
+
+Recorre `app/` y `components/` y falla si: (a) alguien importa un nombre borrado en E-6; (b) un archivo de `components/dashboard/`,
+`components/metas/`, `components/pauta/`, `components/semaforo/`, `app/(app)/hub/` o `app/(app)/p/[programa]/hub/` llama `pct(`,
+`monto(`, `usd(` o `cop(` de `lib/format.ts` para pintar una métrica fuera de la Cifra. La (b) nace con una lista de excepciones
+nombradas y fechadas (ejes de gráficas, CSV, encabezados) que solo se achica, como `tests/tracker-coherente.test.ts`. Mordido en
+los dos sentidos: una fuente sintética con la pieza vieja falla; la pieza nueva no.
+
+### Riesgos conocidos (leer antes de empezar)
+
+- **El build, no los tests, caza el import equivocado.** Un componente cliente que importe un valor de un módulo con `lib/db`
+  revienta solo en `npm run build`. Correrlo en cada commit de E-3 a E-5.
+- **Un servidor no importa valores de un archivo `"use client"`** (`tests/frontera-cliente-guardian.test.ts`): constantes
+  compartidas en `lib/`.
+- **Base UI es estricto:** el panel (`components/ui/sheet.tsx`) y cualquier menú fallan en tiempo de ejecución, no al compilar.
+  Cargar la pantalla no la prueba: hay que abrir cada cifra.
+- **Rendimiento:** la evidencia (5 filas por cifra) es una consulta por cifra. Hoy tiene más de 20 cifras. Medir el tiempo de la
+  página antes y después; si sube, leer las filas por lote o solo al abrir (decisión a registrar aquí, no a improvisar).
+- **`hub/page.tsx` es archivo caliente** (754 líneas, lo tocan 420, 414, 416 y 422): un solo dueño por commit, `git pull --rebase`
+  antes de empujar, y avisar al otro carril.
+- **No cambiar ninguna cifra.** Esta enmienda cambia la forma, no el cálculo. Si un número cambia al migrar, es un hallazgo: se
+  detiene, se anota aquí y se decide con Mani. Verificación: antes de E-3, guardar los valores de cada pestaña en la base local
+  (captura o CSV) y compararlos después.
+
+### Quién y en qué orden (propuesto; lo confirma Mani en `docs/plan-reparto.md` §4)
+
+E-0 Mani. E-1 carril D (Mani con Codex): es su archivo. E-2 a E-7 carril P (compañero), una pestaña por commit. E-1 y E-2 pueden
+ir en paralelo si E-2 arranca con los conceptos que ya tienen texto en el puente; E-3 de una pestaña espera a que sus fichas
+tengan texto aprobado.
+
 ## Avance
 
 - **10-nov · Alejandro (carril P).** Commit 1: `FichaDeMetrica` gana `que`, `formula` (`forma` razón/suma/conteo/resta/producto,

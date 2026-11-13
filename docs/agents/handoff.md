@@ -9,15 +9,45 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia. Desde el 10-nov somos dos personas (ola O12, docs/plan-reparto.md §4): el compañero lleva el
-carril P (419 → 420, 414 → 416 → 415) con su propio prompt, que está en esa ola. Esta sesión es de Mani, carril D: ticket 403
-(absorbe el 413). Lee AGENTS.md, las entradas "10-nov" en Memory de docs/agents/handoff.md, docs/audit-hub-2026-11-10.md
-(§8 y §9) y docs/diseno-cifra-y-pauta.md §7. Primero F1: preséntame D-A, D-B, D-C y D-E con su recomendación y espera mi
-respuesta; con cada "sí", escribe la enmienda con N8 (ADR, docs/metricas.md, overview.md §11) en el mismo commit y avísale al
-carril P qué cambia en pauta-semanal.ts. Después F3: el test de paridad que tiene que salir rojo con I-1 sin arreglar (el
-arreglo en código lo hace el carril P, dueño de pauta-semanal.ts). No toques los archivos del carril P.
+Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4, "Reordenada el 13-nov"): primero una sola
+forma de cifra en todo el Hub. Somos dos; el compañero lleva el carril P con su propio prompt, que está en esa sección. Esta sesión
+es de Mani, carril D. Lee AGENTS.md, la entrada "13-nov · Revisión del Hub" en Memory, docs/reportes/revision-hub-metricas-mcp-2026-11-13.md
+y, en docs/tasks/419-la-cifra-una-forma-de-metrica.md, la sección "Enmienda del 13-nov". Primero el paso 0 de higiene de
+plan-reparto. E-0 ya está (DC-1 a DC-4 respondidas el 13-nov, en el ticket). Sigue E-1 con Codex: la tabla de
+textos de las claves del Hub como §2.2 de docs/diseno-cifra-y-pauta.md, y espera mi sí antes de pasarla al código. No toques los
+archivos del carril P.
 ```
 ## Memory
+
+### 13-nov · Revisión del Hub, las métricas y el MCP; la Cifra pasa a todo el Hub (sesión de Mani, solo documentos)
+**Qué pasó.** Mani pidió una revisión de solo lectura de los tres frentes (métricas, UI del Hub, MCP) contra lo pedido por
+Gerencia (weekly 3-nov) y Pauta (7-nov). Reporte: `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md` (estado por frente,
+tickets cerrados y abiertos, hallazgos H-1 a H-8, orden recomendado). **Sin código de producción, sin migración, sin commit.**
+**Hallazgo principal (H-1).** La "forma única de métrica" solo existe en Pauta y el semáforo: `CifraDeMetrica` se arma en cuatro
+módulos de `lib/pauta/` y `lib/semaforo/`; Hoy, Comercial, Dinero, "¿Vamos a llegar?", `/hub` y Mi espacio siguen con
+`CifraConLista` (14 archivos) y `CifraDeRazon` (7). El 419 le dejaba el resto al 403 F4, que cerró sin escribir un solo texto de
+explicación (0 `que:` en 52 fichas), y el puente `lib/metricas/explicaciones-de-pauta.ts` quedó sin que nadie lo pasara a la ficha.
+**Decidido por Mani (13-nov):** Hoy, Comercial y Dinero pasan a la Cifra **antes** de seguir con Pauta. Y que no se escriban
+tickets de cero si ya hay uno que cubra: se enmienda.
+**Enmendados (cada uno con su sección "Enmienda 13-nov" y casillas nuevas):** 419 (alcance a todo el Hub: inventario por archivo,
+DC-1 a DC-4, fases E-0 a E-8, riesgos); 414 (toda celda que abre lista cuenta lo mismo que su lista); 422 (costura con 419 E-4);
+411 (F3 en detalle: unas 150 server actions clasificadas por nombre contra 12 acciones del MCP, cómo se construye el guardián,
+`docs/mcp.md` §7 contradice a §3; `status` a `en curso`); 368 (deshacer un no show deja el pendiente Re-agenda: dos caminos);
+390 (guardianes de show y cita sin resultado, dorados de Comercial); 358 (WhatsApp consume el registro; título del ADR contra el
+diccionario); 359 (el Inbox infiere «Sin UTM»). Tracker con la nota en cada fila. `docs/plan-reparto.md` §4: "Reordenada el
+13-nov", con el paso 0 de higiene, las decisiones que frenan, el orden por carril (propuesto) y los dos prompts.
+**Verificado.** `main` en `65c2c3af` (416); `fdc36b0d` con CI verde, así que la casilla F2 del 411 queda confirmada. El CI de
+`65c2c3af` no se miró. La coherencia tracker contra archivo de los tickets tocados se comprobó a mano con la misma
+regla del guardián (estado con que empieza la celda = `status:` del archivo); `tests/tracker-coherente.test.ts` **no se corrió**
+(4,5 GB de swap): lo corre el CI al empujar.
+**No verificado.** No se abrió la app, no se consultó producción y no se comparó ninguna cifra entre Hub, MCP y WhatsApp: es la
+prueba de aceptación pendiente del frente de métricas. La clasificación de server actions del 411 es por nombre.
+**Decidido después, el mismo día.** DC-1: el botón Info se retira (no la recomendación, que lo dejaba como índice). DC-2: el
+universo vive en la cifra y se pinta como en el boceto, sin saturar. DC-3 y DC-4: sí. 368: camino 2, regla puntual en
+`lib/deshacer/`. Todo escrito en el 419 y el 368.
+**Retomar.** (1) Mani: paso 0 de higiene. (2) Carril D: 419 E-1. (3) Carril P: cerrar el 416 y 419 E-2 de Comercial.
+(4) Carril H: Q-1 a Q-9, DM-8 y la sesión con Daniel Tovar usando el Hub comercial, que el repo no registra como hecha.
+
 
 ### 13-nov · 411 F2 ola 2: el MCP registra dinero, resultados de llamada y anulaciones (sesión padre de Mani, una hija)
 **Hecho (`125af01c`).** Diez acciones nuevas en `ACCIONES` (`lib/mcp/acciones/`), cada una sobre el MISMO caso de uso de `lib/` que

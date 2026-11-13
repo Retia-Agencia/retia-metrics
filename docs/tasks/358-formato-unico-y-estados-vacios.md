@@ -42,4 +42,17 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
 - [ ] `tests/format.test.ts` cubre `razon` y la regla del vacío.
 - [ ] Guardián mordido en los dos sentidos.
 - [ ] Recorrido: la calidad se ve igual en Leads, Deals y la ficha; el semáforo con el mismo vocabulario en UI y WhatsApp.
+- [ ] **(Enmienda 13-nov.) El mensaje de WhatsApp consume el registro de métricas, y un test lo exige.** Es el punto 4 de
+  "Pendientes (🟡)" de `docs/contrato-metricas-y-datos.md` (H-4 de `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`): la
+  Cifra y el MCP ya leen `lib/metricas/registro.ts`; `lib/reporte-whatsapp/` no (medido el 13-nov: `mensaje.ts` no importa ni el
+  vocabulario ni el registro; `horas-de-agenda.ts` solo una constante de explicación). Alcance:
+  (a) cada cifra del mensaje toma su rótulo de `lib/vocabulario-metricas.ts` y su formato de `lib/format.ts`; (b) un test recorre
+  las métricas encendidas del contrato (`lib/reporte-whatsapp/contrato.ts`) y falla si una no apunta a un concepto registrado
+  (molde: `CONCEPTO_DE_OBJETIVO` en `lib/metricas/pendientes.ts`, exhaustivo en compilación); (c) un dorado: el mismo día
+  sembrado da el mismo número en el mensaje y en Hub › Pauta. **Ojo, decisión de Mani del 10-nov (DM-1):** el reporte de
+  WhatsApp no cambió de palabras cuando el semáforo pasó a En meta / En seguimiento / Rezagado. Si este ticket las unifica, es
+  un cambio visible para el grupo: se confirma con Mani antes y se coordina con Juanito, que manda el texto tal cual.
+- [ ] **(Enmienda 13-nov.) El título del ADR que cita una fila de `docs/metricas.md` coincide con el título del ADR.** Punto 3 de
+  los pendientes del contrato (hoy revisión manual). Test chico: para cada fila que cite "ADR NNNN", el archivo existe en
+  `docs/adr/` y no está en el índice de retirados.
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.

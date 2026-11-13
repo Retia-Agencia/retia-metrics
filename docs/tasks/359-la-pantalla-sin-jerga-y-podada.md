@@ -48,4 +48,11 @@ Quienes usan el CRM no son técnicos, y la pantalla todavía habla como el códi
 - [ ] Guardián de jerga mordido en los dos sentidos.
 - [ ] Recorrido de cada pestaña del Hub y de Mi espacio con cada rol (`npm run test:humo` en verde).
 - [ ] Ninguna tarjeta que el ADR 0077 mande quitar sigue en pantalla.
+- [ ] **(Enmienda 13-nov.) El Inbox deja de inferir "Sin UTM" por su cuenta.** Deuda nombrada por el 403 al cerrar y sin dueño
+  desde entonces: `components/deals/inbox-perdidos-en-calendly.tsx:15` decide "Sin UTM" mirando tres campos nulos y
+  `components/deals/inbox-sin-dueno.tsx:64` pinta el badge igual. Son las dos únicas excepciones de
+  `tests/sin-utm-guardian.test.ts` ("Deuda real: infiere Sin UTM desde tres campos nulos"). Arreglo: la consulta del Inbox
+  (`lib/queries/inbox.ts`) devuelve el área ya resuelta con `resolverCanal` (`lib/atribucion/canal.ts`, ADR 0087), el componente
+  solo la pinta, y las dos excepciones se borran del guardián (la lista solo se achica). Cuidado: `resolverCanal` trata una
+  macro sin expandir como ausente; tres nulos no es la misma pregunta, y por eso hoy pueden discrepar.
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.

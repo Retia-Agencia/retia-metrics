@@ -32,6 +32,22 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 - [x] Un mecanismo de captura que empuje al closer a marcar (recordatorio en Mi espacio o la bandeja, con conteo por closer); no una reja que bloquee, porque un cobro real no se frena por un dato de configuración (misma lógica del ADR 0034).
 - [ ] La cobertura sube medida: citas pasadas sin resultado por semana antes y después, por programa.
 - [ ] El Hub dice "parcial" con base y faltan en toda razón que dependa del resultado (cierra con el 351).
+- [ ] **(Enmienda 13-nov.) Los dos guardianes que el contrato sigue listando como "solo propuestos"** para este concepto
+  (`docs/contrato-metricas-y-datos.md`, "Pendientes (🟡)", puntos 1 y 2; H-4 de
+  `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`):
+  1. **Un guardián por concepto para show ("ocurrió") y para cita sin resultado.** Molde: `tests/venta-una-definicion.test.ts`
+     y `tests/sin-utm-guardian.test.ts`. Recorre `lib/`, `app/`, `components/` y `scripts/` y falla si alguien reescribe el
+     predicado fuera del módulo dueño, el que nombra la tabla "Conceptos" de `docs/metricas.md` §0 (medido el 13-nov:
+     `ocurrioSql` y `noAsistioSql` en `lib/deals/resultados-de-llamada.ts`; `citaVencidaSinResultado` en
+     `lib/queries/metricas-filtros.ts`, con su gemela `citaCuentaComoPorMarcar`). Olores a cazar: comparar
+     `calls.resultado` contra `"show"` o `"agendada"` a mano, o `fecha_agenda < now()` suelto. Excepciones nombradas con su razón;
+     mordido en los dos sentidos.
+  2. **Números dorados de Hub › Comercial:** citas, realizadas, no asistió, sin resultado, asistencia, cierre de ventas y cita a
+     venta, sobre una base sembrada a mano con los casos que las harían divergir (cita futura, cita pasada sin marcar, reagendada,
+     cortesía, deal anulado con llamada vigente, llamada suelta, otro programa). Molde: `tests/numeros-dorados-pauta.test.ts`.
+     El mismo dorado se compara contra `resumen_del_hub` del MCP y contra el texto del semáforo de WhatsApp donde aplique: tres
+     superficies, un número.
+  Al cerrarlos, pasar esas dos líneas de 🟡 a 🔒 en `docs/contrato-metricas-y-datos.md` en el mismo commit.
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
 - [x] Registro: ficha de `citas_pendientes` y `llamadas_sin_resultado` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
 

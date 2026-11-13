@@ -30,6 +30,17 @@ status: en curso
   agendas no tiene costo.)*
 - [ ] Por día con "en curso", "Parcial" y CSV; igual al boceto. *(Hecho: «en curso», «Parcial» en Comercial de la columna
   que contiene hoy, CSV `pauta-diaria-…csv` y textos de la celda en día. **Falta** compararlo lado a lado con el boceto.)*
+- [ ] **(Enmienda 13-nov, H-3 de `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`.) Toda celda que abre una lista
+  cuenta lo mismo que su lista.** Deuda escrita en el handoff del 11-nov: "ninguna otra celda de la tabla semanal tiene su
+  enlace verificado contra su lista"; ese día Asistencia abría un 404 y la barra de agendas decía 4 con una lista de 3.
+  Hoy `tests/pauta-semanal.test.ts` lo prueba para Agendadas, Ventas, Vendido y la parte de arriba de las tres tasas.
+  **Falta un test exhaustivo:** recorre todas las claves de `ClavePautaSemanal` y, para cada una, o compara el valor de la
+  celda con el total de la lista a la que enlaza (en la columna de una semana, en la de un día y en el Total), o la clave
+  está en una lista nombrada "sin lista, con su razón" (inversión, CPM, CTR, frecuencia: son de Meta, no hay personas que
+  listar). Exhaustivo en compilación (`Record<ClavePautaSemanal, …>`): una fila nueva obliga a decidir. Base sembrada con
+  una orgánica, una anulada, otro programa y un deal anulado con llamada vigente (ADR 0038). Cubre también las subfilas
+  **Por cuenta** del 416 (`?por_cuenta=1`): cada subfila es de Meta y va en la lista "sin lista", pero el test comprueba
+  que no enlazan a nada.
 - [x] Agendas según Meta como fila. *(Rótulo canónico «Agendas de Meta», justo antes de su costo; mismo número que el
   denominador del costo según Meta.)*
 

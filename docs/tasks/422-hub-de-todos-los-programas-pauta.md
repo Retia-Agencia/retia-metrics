@@ -75,3 +75,9 @@ mismos del 420 y 419 (carril P, Alejandro): **no se empieza hasta que el 420 est
 - [ ] Rótulos solo del vocabulario; el subtítulo «solo Paid» y «todas las áreas» donde corresponda.
 - [ ] `PautaRoas soloConteos` y `OrigenPorPrograma` borrados si quedaron sin llamador.
 - [ ] Recorrido del gerente y del paid trafficker con alcance limitado; `npm run build`, `test:humo` y consola limpia.
+
+**Costura con el 419 (enmienda del 13-nov).** Este ticket lleva solo la **Pauta** de `/hub`. Hoy, Comercial y Dinero de `/hub`
+(`app/(app)/hub/secciones.tsx`: 3 `CifraConLista`, 4 `CifraDeRazon`, `Tarjeta` y `Variacion`) pasan a la Cifra en la fase **E-4
+del 419**. Los dos tocan `app/(app)/hub/secciones.tsx`, `app/(app)/hub/page.tsx` y `components/pauta-roas.tsx`: **no van a la
+vez**. Orden: primero este 422 (Pauta), después E-4 del 419; quien termine avisa en el archivo del otro ticket. Medido el 13-nov:
+`soloConteos` aparece en 5 archivos y `OrigenPorPrograma` en 2; repetir el `grep` antes de borrar.
