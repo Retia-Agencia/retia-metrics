@@ -42,7 +42,8 @@ revisión adversarial de Codex con un hallazgo alto, resuelto; ficha en claro, o
 «después» de la vista previa del ensayo, no escribirlo a mano (marcar_fallida, anular_llamada y cambiar plataforma). **No verificado
 en local:** la suite completa (6 GB de swap; la corre el CI). **CI:** `125af01c` salió rojo solo por el tracker del 414
 (heredado de `401cdeea`: tracker «todo», archivo «en curso»); `d1b817ee` lo alinea y su CI quedaba corriendo al cerrar. **La casilla
-F2 del 411 queda SIN marcar hasta ver ese CI en verde** (N9): la próxima sesión lo revisa, la marca y anota el checkpoint.
+F2 del 411 se marcó a pedido de Mani con ese CI aún corriendo**: la próxima sesión confirma que `d1b817ee` salió verde; si
+no, desmarca y arregla primero.
 **Pendientes nombrados (`docs/mcp.md`):** reagendar y agendar; reversión compuesta de una operación; deshacer una anulación; crear
 plataforma (catálogo, grupo C). **Sigue en el 411:** F3 (guardián de cobertura), F4 (medición, migración), F5 (descubrimiento y
 evaluaciones), y la configuración del programa (grupo C). La cesión de deal A-177 espera su ADR y su pantalla (D5).
