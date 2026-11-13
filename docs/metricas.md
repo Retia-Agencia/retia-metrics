@@ -47,7 +47,7 @@ lugar en "Hoy", esas cifras pueden discrepar entre pantallas.
 | Calendario (semana, sumar días, hábiles) | ✅ un solo módulo; `rangos.ts` queda con los presets | `lib/dias-habiles.ts` | 354 |
 | Gasto convertido a USD o COP | ✅ un solo convertidor y un hecho: `gastoConvertido` (`hechos/gasto.ts`) reusa `convertirGasto` y `coberturaDeGasto`; el ROAS lo consume en vez de leer el gasto por su cuenta | `convertirMonto`/`convertirGasto` en `lib/pauta/convertir-gasto.ts` · `gastoConvertido` en `lib/queries/hechos/gasto.ts` | 351 ✅ · 355 ✅ |
 | Embudo de Pauta por campaña y por canal | ✅ un cargador y una tabla: `cargarRoasDePauta` (`roas-de-pauta.ts`) expone registro, agenda, show, no show, venta, valor vendido, gasto y ROAS por campaña › conjunto › anuncio **o** por canal (par UTM, `resolverCanal`), con UNA ancla por paso. `pauta-interina.ts` borrada | `cargarRoasDePauta` en `lib/queries/roas-de-pauta.ts` | 355 ✅ |
-| Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts` (ahora por día, sin meses fijos, 370), `metricas-con-filas.ts`; `hechos/abono.ts` retirado (403 F4) | `filtroCaja` | 361 |
+| Caja recaudada | `cajaRecaudada`+`filtroCaja`, `cajaDelDiaPorOrigen`, `series-dinero.ts` (ahora por día, sin meses fijos, 370), `metricas-con-filas.ts`; `hechos/abono.ts` (411 F1) agrupa y lista sobre el MISMO `filtroCaja`, sin predicado propio, para `consultar_hechos` del MCP | `filtroCaja` | 361 · 411 F1 |
 
 ## 1. Los hechos: lo que se cuenta
 
@@ -117,6 +117,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Fecha:** `abonos.fecha` (la fecha del pago, no la del registro).
 - **Moneda:** USD en la app; la base acepta COP o USD (ADR 0124, `CHECK` de la migración 0126). Un abono en COP deja el saldo de su venta sin calcular, nunca lo resta contra dólares.
 - **Función:** `filtroCaja` y `cajaRecaudada`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`, cuentan solo abonos de ticket.
+- **Hecho:** `lib/queries/hechos/abono.ts` (411 F1) agrupa, cuenta y lista la caja sobre `filtroCaja` y suma con `sumaDeAbonos` (`saldo.ts`), siempre separada por moneda: nunca suma COP con USD. Dimensiones: `dia`, `semana`, `mes`, `moneda`, `plataforma`, `registrado_por`, `dueno`, `cohorte`; `dueno` y `registrado_por` solo para quien ve el trabajo del equipo comercial. Lo lee `consultar_hechos` del MCP.
 - **Ojo:** caja y ventas son métricas separadas: un abono no es una venta ni al revés (ADR 0013).
 
 ### 1.6 Gasto de pauta (días cerrados)
@@ -131,6 +132,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Fecha:** el día que reporta Meta en la zona de la cuenta (todas están en `America/Bogota`).
 - **Moneda:** la de la cuenta (COP o USD), guardada tal cual; cualquier otra la rechaza la base (ADR 0124).
 - **Funciones:** `lib/pauta/sincronizar.ts` (lee Meta), `registrarGasto` en `lib/pauta/gasto.ts` (único escritor).
+- **Hecho:** `lib/queries/hechos/gasto.ts`. `gastoConvertido` es el gasto en UNA moneda con su cobertura (lo consume el ROAS); `agrupar`, `contarGrupos` y `listar` (411 F1) dan el gasto Paid (`esGastoPaid`) **en su moneda nativa**, siempre separado por moneda y sin convertir, para `consultar_hechos` del MCP. Dimensiones: `dia`, `semana`, `mes`, `moneda`, `objeto_de_pauta`.
 - **También:** gasto manual (`origen = manual`) con un área; solo el de área `paid` entra al costo por agenda.
 - **Ojo:** un anuncio que no está en el árbol del programa (`pauta_objetos`) se omite y se cuenta en "omitidas".
 - **Verificar:** en el Ads Manager de la cuenta, el gasto del día por anuncio contra `gasto_pauta`.
