@@ -38,6 +38,17 @@ toda alerta futura se construya de la misma manera.
 5. **No se repite una alerta abierta.** Una alerta que sigue abierta no vuelve a sonar; si hace falta recordatorio,
    se decide después con datos de uso.
 
+6. **Enmienda del 13-nov (Mani, ticket 426): silencio global y cierre del día.**
+   - **Silencio global.** El umbral por fuente con 3 h habría sonado 72 veces en 14 días (noches y horas flojas);
+     "ninguna fuente activa recibió envíos en 3 h" solo pasó 3 veces (la caída del 12-nov y dos madrugadas). Por eso la
+     caída de ingesta la vigila un tipo `sin_envios_global` (3 h, clave `sin_envios_global:todas`) y el umbral por
+     fuente queda en 12 h, como dato editable. Un tipo del registro puede ser por fuente o global: el registro recibe
+     todas las fuentes y devuelve sus alertas.
+   - **Cierre del día.** A las 9:00 p.m. (Bogotá) Juanito pide `POST /api/salud/cierre` (mismo secreto y mismas reglas
+     del punto 3) y manda tal cual el `texto` que arma el CRM al grupo: envíos que llegaron hoy por fuente, alertas
+     abiertas, fuentes sin activar, alarmas de Calendly y el estado de los avisos cableados (semáforo, avisos a CS,
+     alertas). Sin datos personales. Si el CRM no responde, Juanito lo dice en una línea.
+
 ## Consecuencias
 
 - Orden de despliegue: CRM primero (el endpoint queda quieto sin Juanito), luego `ALERTAS_SECRETO` en Vercel y en el

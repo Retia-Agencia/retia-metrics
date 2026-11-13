@@ -10,3 +10,8 @@ export const respuestaAlertasSchema = z.object({
     texto: z.string(),
   }).strict()),
 }).strict();
+
+export const respuestaCierreSchema = z.object({
+  generadoEn: z.string().datetime(),
+  texto: z.string().min(1),
+}).strict();

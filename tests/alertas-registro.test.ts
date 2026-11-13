@@ -80,12 +80,45 @@ describe("registro de alertas tecnicas", () => {
 
     const alertas = await alertasActivas(db, AHORA);
 
-    expect(alertas).toHaveLength(1);
-    expect(alertas[0]).toMatchObject({
+    expect(alertas).toHaveLength(2);
+    const alerta = alertas.find((item) => item.tipo === "fuente_silenciosa");
+    expect(alerta).toMatchObject({
       clave: `fuente_silenciosa:${sourceId}`,
       tipo: "fuente_silenciosa",
       severidad: "critica",
     });
-    expect(alertas[0].texto).toContain("49 horas sin envíos");
+    expect(alerta?.texto).toContain("49 horas sin envíos");
+  });
+
+  it("publica el silencio global cuando toda fuente activa lleva mas de tres horas sin envios", async () => {
+    await db.insert(submissions).values({
+      sourceId,
+      token: "global-silenciosa",
+      createdAt: hace(4),
+      leadQuality: "High",
+    });
+
+    expect(await alertasActivas(db, AHORA)).toContainEqual(expect.objectContaining({
+      clave: "sin_envios_global:todas",
+      tipo: "sin_envios_global",
+      severidad: "critica",
+    }));
+  });
+
+  it("no publica el silencio global cuando hay un envio reciente", async () => {
+    await db.insert(submissions).values({
+      sourceId,
+      token: "global-reciente",
+      createdAt: hace(2),
+      leadQuality: "High",
+    });
+
+    expect((await alertasActivas(db, AHORA)).some((alerta) => alerta.tipo === "sin_envios_global")).toBe(false);
+  });
+
+  it("no publica el silencio global cuando no hay fuentes activas", async () => {
+    await db.update(sources).set({ activo: false }).where(eq(sources.id, sourceId));
+
+    expect((await alertasActivas(db, AHORA)).some((alerta) => alerta.tipo === "sin_envios_global")).toBe(false);
   });
 });

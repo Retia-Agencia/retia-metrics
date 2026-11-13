@@ -327,6 +327,7 @@ editor) y en Vercel.
 `npm run build` no necesita `.env.local`: el cliente de la base se crea de forma perezosa.
 
 Para agregar una alerta se crea una llave en `REGISTRO_DE_ALERTAS` y su prueba. El endpoint y Juanito no cambian.
+El cierre diario de las 9 p. m. sale de `textoDeCierre`; cada aviso nuevo que quede cableado agrega allí su línea.
 
 ### 3.1 El reporte de pauta por WhatsApp (semáforo; ADR 0089, tickets 259 a 269)
 

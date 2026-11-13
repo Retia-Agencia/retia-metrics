@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray } from "drizzle-orm";
 import { recibeAvisosDeEstudianteNuevo } from "@/lib/auth/roles";
 import {
   avisosEstudianteNuevo,
@@ -20,6 +20,14 @@ import type { RespuestaEstudiantesNuevos } from "./contrato";
 import { textoDeAvisoEstudianteNuevo } from "./texto";
 
 const VENTANA_MS = 48 * 60 * 60 * 1000;
+
+export async function resumenDelDia(db: Db, desde: Date): Promise<{ avisos: number; entregados: number }> {
+  const [[avisos], [envios]] = await Promise.all([
+    db.select({ n: count() }).from(avisosEstudianteNuevo).where(gte(avisosEstudianteNuevo.creadoEn, desde)),
+    db.select({ n: count() }).from(avisosEstudianteNuevoEnvios).where(gte(avisosEstudianteNuevoEnvios.enviadoEn, desde)),
+  ]);
+  return { avisos: Number(avisos?.n ?? 0), entregados: Number(envios?.n ?? 0) };
+}
 
 interface DestinatarioElegible {
   programId: string;

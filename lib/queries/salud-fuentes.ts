@@ -131,6 +131,16 @@ export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
   dealsConCitaSinLlamada: number;
 }
 
+/** Envíos recibidos desde un instante, agrupados en una sola lectura. */
+export async function recibidosDesde(db: Db, desde: Date): Promise<Map<string, number>> {
+  const filas = await db
+    .select({ sourceId: submissions.sourceId, n: count() })
+    .from(submissions)
+    .where(gte(submissions.createdAt, desde))
+    .groupBy(submissions.sourceId);
+  return new Map(filas.map((fila) => [fila.sourceId, Number(fila.n)]));
+}
+
 /**
  * La salud de cada fuente ACTIVA. Una inactiva no recibe a proposito: marcarla
  * seria ruido. Lecturas agrupadas que se unen en memoria (AGENTS.md: nada de
