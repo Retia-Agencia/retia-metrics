@@ -19,6 +19,42 @@ arreglo en código lo hace el carril P, dueño de pauta-semanal.ts). No toques l
 ```
 ## Memory
 
+### 13-nov · 411 F2 ola 2: el MCP registra dinero, resultados de llamada y anulaciones (sesión padre de Mani, una hija)
+**Hecho (`125af01c`).** Diez acciones nuevas en `ACCIONES` (`lib/mcp/acciones/`), cada una sobre el MISMO caso de uso de `lib/` que
+la server action: `marcar_show`, `pegar_grain`, `corregir_resultado`, `marcar_fallida`, `asignar_llamada_suelta`, `registrar_abono`,
+`cambiar_plataforma_de_abono`, `anular_deal`, `anular_abono` y `anular_llamada`. La vista previa ejecuta el caso de uso dentro de una
+transacción que se revierte (`lib/mcp/acciones/ensayo.ts`), así que no hay reglas copiadas en el MCP. **Una guarda de alcance**,
+`lib/deals/alcance.ts` (deal, llamada y abono), que responde 404 en la app y en el MCP (la ola 1 respondía 403 en `mover-deal.ts`).
+Anular salió de las server actions a `lib/deals/anular.ts`. Calendly y Grain se llaman después del commit (`diferido` en
+`confirmar_cambio`; en la app, `marcarFallida` = `marcarFallidaSinCalendly` + `ejecutarCancelacionDeCita`). La huella de las
+acciones de abono cubre saldo y abonos vigentes. El origen de cada movimiento se lee en la ficha («desde la app», «desde el
+asistente», nada si es anterior al 13-nov) y en `ficha_de_deal`; salió de `SIN_LECTOR_CONOCIDOS`.
+**Decidido por Mani (13-nov):** guarda única ya; sin reagendar ni agendar (reservan en Calendly); `cancelada` y asignar suelta entran
+avisando que cancelan en Calendly y que deshacer no lo restaura; el enlace del comprobante es OBLIGATORIO en el MCP (sin él, el abono se
+registra en la app: evita meter deals a Abonado o Completo sin revisar), única regla del MCP más estricta que la app; las anulaciones
+NO se deshacen, como en la app (corregido el D3 del ticket). Por la misma regla «igual que la app», tampoco se deshacen en un paso
+`marcar_fallida`, `asignar_llamada_suelta`, `corregir_resultado`, `marcar_show`, `pegar_grain` y `cambiar_plataforma_de_abono`; solo
+`mover_etapa` y `registrar_abono` devuelven evento.
+**Hallazgo de la app, sin tocar:** deshacer el resultado de una llamada no_show o cancelada la devuelve a agendada pero deja puesto el
+pendiente Re-agenda (fijado en `tests/mcp-acciones-ola2.test.ts`, «hallazgo: …»). Merece ticket propio.
+**Verificado:** la hija corrió typecheck, lint, build, `tests/mcp-acciones-ola2.test.ts` (33), 41 guardianes y 45 archivos de dominio;
+revisión adversarial de Codex con un hallazgo alto, resuelto; ficha en claro, oscuro y 375 px. La padre revisó el diff y pidió leer el
+«después» de la vista previa del ensayo, no escribirlo a mano (marcar_fallida, anular_llamada y cambiar plataforma). **No verificado
+en local:** la suite completa (6 GB de swap; la corre el CI). **CI:** `125af01c` salió rojo solo por el tracker del 414
+(heredado de `401cdeea`: tracker «todo», archivo «en curso»); `d1b817ee` lo alinea y su CI quedaba corriendo al cerrar. **La casilla
+F2 del 411 queda SIN marcar hasta ver ese CI en verde** (N9): la próxima sesión lo revisa, la marca y anota el checkpoint.
+**Pendientes nombrados (`docs/mcp.md`):** reagendar y agendar; reversión compuesta de una operación; deshacer una anulación; crear
+plataforma (catálogo, grupo C). **Sigue en el 411:** F3 (guardián de cobertura), F4 (medición, migración), F5 (descubrimiento y
+evaluaciones), y la configuración del programa (grupo C). La cesión de deal A-177 espera su ADR y su pantalla (D5).
+
+### 12-nov · 411 F0 y F1 cerrados; 423 y 424; seguridad (sesiones de Mani)
+**Hecho.** 411 F0: D1 a D6 respondidas por Mani y `scripts/informe-mcp.ts` (solo lectura) como línea base. 411 F1 (`cdae5a0a`,
+`597129c9`, `5c19bd52`): búsqueda global por programa, filtros por nombre o id sin 0 silencioso, `consultar_hechos` sobre seis hechos
+con paginación en SQL, opciones de filtros aparte; dueño y registrado_por ocultos a quien no cumple `veEquipoComercial`. 423 (la
+plataforma de pago es obligatoria en el abono) y 424 (descargar leads e historia desde la lista de cada cifra), done con
+`cp-20261112-2`. Seguridad olas 1 a 4 (Next 16.4.6, Zod 4.6.7, Code Scanning, link de Calendly validado por host, Dependabot).
+El detalle vive en el ticket 411 y en sus commits.
+
 ### 11-nov · La llamada de un deal anulado no cuenta en ninguna lectura; Asistencia de Pauta enlaza a su lista (sesión de Mani, desde el aviso de Alejo en el 419)
 **Hecho.** Alejo vio que la barra de agendas del cumplimiento (4) y su lista (3) no cuadraban: `hechos/agenda.ts` unía el deal con
 `incluyendoAnulados`. Al mirar el fondo, el hueco era más ancho: unir el deal con `vigente` NO saca la llamada (la vuelve *suelta*, y
