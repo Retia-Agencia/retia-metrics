@@ -309,21 +309,34 @@ export async function grupoDeCitas(
  */
 export async function gruposPorSemana(
   db: Db,
-  { programId, rango, ahora, cohorteId, area }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid" },
+  args: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid" },
 ): Promise<{ semana: Rango; grupo: GrupoDeCitas }[]> {
+  const grupos = await gruposPorTramo(db, { ...args, tramos: semanasDelRango(args.rango) });
+  return grupos.map(({ tramo, grupo }) => ({ semana: tramo, grupo }));
+}
+
+/**
+ * Lo mismo que `gruposPorSemana` para tramos cualesquiera dentro del rango (los días de la tabla de Pauta, 414): cada
+ * tramo es SU grupo, igual al de `grupoDeCitas` con ese rango, y las citas se leen una sola vez.
+ */
+export async function gruposPorTramo(
+  db: Db,
+  { programId, rango, ahora, cohorteId, area, tramos }:
+    { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid"; tramos: readonly Rango[] },
+): Promise<{ tramo: Rango; grupo: GrupoDeCitas }[]> {
   const [citas, diasParaMadurar] = await Promise.all([
     leerCitasDelGrupo(db, { programId, rango, cohorteId, area }),
     diasParaMadurarDe(db, programId),
   ]);
   const hoy = diaDeCalendario(ahora);
-  return semanasDelRango(rango).map((semana) => ({
-    semana,
+  return tramos.map((tramo) => ({
+    tramo,
     grupo: calcularTasasDelGrupo({
       citas: citas.filter((c) => {
         const dia = diaDeCalendario(c.instante);
-        return dia >= semana.desde && dia <= semana.hasta;
+        return dia >= tramo.desde && dia <= tramo.hasta;
       }),
-      rango: semana,
+      rango: tramo,
       hoy,
       ahora,
       diasParaMadurar,

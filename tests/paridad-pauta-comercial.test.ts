@@ -134,7 +134,7 @@ describe("I-2: el ROAS de la tabla semanal es el de la cohorte de registro", () 
       cargarRoasDePauta(db, programId, SEMANA_1, HOY, AHORA),
     ]);
     expect(roas.total.roas.valor).toBe(2);
-    expect(fila(vista, "roas").celdas.porSemana[0].valor).toBe(roas.total.roas.valor);
+    expect(fila(vista, "roas").celdas.porColumna[0].valor).toBe(roas.total.roas.valor);
   });
 });
 
@@ -142,7 +142,7 @@ describe("I-8: una semana sin gasto cargado no muestra inversión 0", () => {
   it("la inversión de una semana sin filas de gasto es «—» con el motivo, no 0", async () => {
     await gasto("2026-10-05", "400000");
     const vista = await cargarPautaSemanal(db, { programId, rango: DOS_SEMANAS, hoy: HOY, cohorteId: null });
-    const semana2 = fila(vista, "inversion").celdas.porSemana[1];
+    const semana2 = fila(vista, "inversion").celdas.porColumna[1];
     expect(semana2.valor).toBeNull();
     expect(semana2.cobertura.estado).toBe("sin_dato");
     expect(semana2.cobertura.razon).toContain("Gasto de Meta");

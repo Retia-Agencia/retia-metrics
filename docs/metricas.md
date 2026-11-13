@@ -159,7 +159,8 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Origen:** el mismo `insights`, la conversión `offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled`
   (`gasto_pauta.agendas_meta`, `fotos_pauta.agendas_meta`).
 - **Uso:** **control**, nunca el costo oficial (H-4 de `docs/hub.md`, ADR 0088). Sirve para ver la diferencia
-  contra el CRM.
+  contra el CRM. Desde el 414 es fila propia de Tráfico en la tabla de Pauta («Agendas de Meta», `cargarPautaSemanal`):
+  el mismo número que divide el costo según Meta de esa columna (solo campañas de agenda, D-2).
 - **Por qué difieren (medido el 15-oct, ComunicArte, agendas creadas del 9 al 13-oct):**
 
   | Fuente | Agendas |

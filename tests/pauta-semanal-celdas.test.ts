@@ -29,6 +29,18 @@ describe("419: la celda semanal de Pauta", () => {
     expect(cifra.etiquetas).toEqual([]);
   });
 
+  it("414: por día, la celda dice día y compara contra el día anterior", () => {
+    const D1 = { desde: "2026-11-09", hasta: "2026-11-09" };
+    const D2 = { desde: "2026-11-10", hasta: "2026-11-10" };
+    const cifra = cifraDeCeldaSemanal({
+      fila: { clave: "agendas" }, celda: celda(7), rango: D2, esTotal: false, paso: "dia", hoy: "2026-11-10",
+      anterior: { celda: celda(5), rango: D1 }, objetivos: [],
+    });
+    expect(cifra.comparacion?.texto).toBe("el día anterior (9-nov)");
+    expect(cifra.explicacion.filtros.at(-1)).toEqual(["Día", "10-nov"]);
+    expect(cifra.etiquetas).toEqual(["En curso"]);
+  });
+
   it("la columna Total no compara y la semana que no ha terminado dice En curso", () => {
     const total = cifraDeCeldaSemanal({ fila: { clave: "agendas" }, celda: celda(12), rango: { desde: S1.desde, hasta: S2.hasta }, esTotal: true, hoy: "2026-11-11", objetivos: [] });
     expect(total.comparacion).toBeNull();

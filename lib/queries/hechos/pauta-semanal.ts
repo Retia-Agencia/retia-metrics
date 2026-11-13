@@ -18,14 +18,23 @@ import { sumarDias } from "@/lib/dias-habiles";
 import { nombreCorto, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 import { estadoDeCobertura, type RazonConCobertura } from "@/lib/cobertura";
 import { cargarRoasDePauta, type RenglonRoas } from "@/lib/queries/roas-de-pauta";
-import { grupoDeCitas, gruposPorSemana, type GrupoDeCitas } from "@/lib/queries/tasas-del-grupo";
+import { grupoDeCitas, gruposPorTramo, type GrupoDeCitas } from "@/lib/queries/tasas-del-grupo";
+import { EXPLICACIONES_DE_PAUTA } from "@/lib/metricas/explicaciones-de-pauta";
 
 export type BloquePautaSemanal = "general" | "comercial" | "trafico";
+/** Las columnas de la tabla: una por semana (lunes a domingo, Bogotá) o una por día (414). */
+export const PASOS_DE_TABLA_DE_PAUTA = ["semana", "dia"] as const;
+export type PasoDeTablaDePauta = (typeof PASOS_DE_TABLA_DE_PAUTA)[number];
+
+/** `?tabla=dia` en la URL; cualquier otro valor es la tabla por semana (un filtro de lectura, no una escritura). */
+export function pasoDeTablaDePauta(valor: string | string[] | undefined): PasoDeTablaDePauta {
+  return valor === "dia" ? "dia" : "semana";
+}
 export type UnidadPautaSemanal = "COP" | "USD" | "conteo" | "razon" | "porcentaje";
 export type ClavePautaSemanal =
   | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "facturacion" | "roas" | "profit"
   | "show" | "cierre_ventas" | "agenda_venta"
-  | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "costo_agenda_meta" | "frecuencia";
+  | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "agendas_meta" | "costo_agenda_meta" | "frecuencia";
 
 export interface CoberturaPautaSemanal {
   estado: "ok" | "parcial" | "sin_dato";
@@ -49,7 +58,8 @@ export interface FilaPautaSemanal {
   bloque: BloquePautaSemanal;
   nombre: string;
   unidad: UnidadPautaSemanal;
-  celdas: { total: CeldaPautaSemanal; porSemana: CeldaPautaSemanal[] };
+  /** `porColumna[i]` es la celda de `columnas[i]` de la vista: una semana o un día, según el paso. */
+  celdas: { total: CeldaPautaSemanal; porColumna: CeldaPautaSemanal[] };
 }
 
 export interface PuntoDiarioPautaSemanal {
@@ -64,7 +74,9 @@ export interface PuntoDiarioPautaSemanal {
 }
 
 export interface VistaPautaSemanal {
-  semanas: Rango[];
+  paso: PasoDeTablaDePauta;
+  /** Por semana, las del rango; por día, cada día del rango hasta hoy (un día que no ha llegado no tiene nada que medir). */
+  columnas: Rango[];
   filas: FilaPautaSemanal[];
   /** Serie diaria del mismo universo para la gráfica del contrato 370. */
   dias: PuntoDiarioPautaSemanal[];
@@ -274,6 +286,11 @@ async function celdasDelRango(
     conversion_landing: landing === 0
       ? sinDato("Sin dato de Meta")
       : conPartes(celda(conteos.registros / landing, coberturaConversion), [conteos.registros, landing]),
+    agendas_meta: costoMeta.agendasMeta === null
+      ? sinDato("Sin dato de Meta")
+      : filasGasto === 0
+      ? sinDato(razonGasto)
+      : celda(costoMeta.agendasMeta),
     costo_agenda_meta: costoMetaCelda,
     frecuencia: rango.desde !== rango.hasta
       ? sinDato("Meta no da el alcance de varios días")
@@ -298,15 +315,60 @@ const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombr
   { clave: "ctr", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.ctr, unidad: "porcentaje" },
   { clave: "llegada_landing", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.llegada_landing, unidad: "porcentaje" },
   { clave: "conversion_landing", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.conversion_landing, unidad: "porcentaje" },
+  { clave: "agendas_meta", bloque: "trafico", nombre: EXPLICACIONES_DE_PAUTA.agendas_meta.rotulo, unidad: "conteo" },
   { clave: "costo_agenda_meta", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_meta, unidad: "COP" },
   { clave: "frecuencia", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.frecuencia, unidad: "razon" },
 ];
 
+/** Los días del rango, en orden, sin pasar de `hasta`. */
+function diasEntre(desde: string, hasta: string): string[] {
+  const dias: string[] = [];
+  for (let dia = desde; dia <= hasta; dia = sumarDias(dia, 1)) dias.push(dia);
+  return dias;
+}
+
+function columnasDelPaso(rango: Rango, paso: PasoDeTablaDePauta, hoy: string): Rango[] {
+  if (paso === "semana") return semanasDelRango(rango);
+  return diasEntre(rango.desde, rango.hasta < hoy ? rango.hasta : hoy).map((dia) => ({ desde: dia, hasta: dia }));
+}
+
+/**
+ * Por día la tabla tiene hasta 31 columnas, y cada una lee su ROAS, su costo y su dinero: se leen de a pocas para no
+ * llenar el pooler con cientos de consultas a la vez.
+ */
+const COLUMNAS_A_LA_VEZ = 4;
+async function porColumnas<T, R>(items: readonly T[], leer: (item: T) => Promise<R>): Promise<R[]> {
+  const salida = new Array<R>(items.length);
+  let siguiente = 0;
+  await Promise.all(Array.from({ length: Math.min(COLUMNAS_A_LA_VEZ, items.length) }, async () => {
+    while (siguiente < items.length) {
+      const i = siguiente++;
+      salida[i] = await leer(items[i]);
+    }
+  }));
+  return salida;
+}
+
+/** Las tasas de Comercial esperan citas que todavía no ocurren: en un tramo que sigue en curso son parciales (diseño §4.3). */
+const CLAVES_COMERCIALES: readonly ClavePautaSemanal[] = ["show", "cierre_ventas", "agenda_venta"];
+function marcarEnCurso(celdas: Record<ClavePautaSemanal, CeldaPautaSemanal>, rango: Rango, hoy: string, paso: PasoDeTablaDePauta, esTotal: boolean) {
+  if (rango.desde > hoy || rango.hasta < hoy) return celdas;
+  const tramo = esTotal ? "El periodo sigue" : paso === "dia" ? "El día sigue" : "La semana sigue";
+  const razon = `${tramo} en curso: faltan citas por ocurrir.`;
+  const salida = { ...celdas };
+  for (const clave of CLAVES_COMERCIALES) {
+    const c = salida[clave];
+    if (c.valor !== null && c.cobertura.estado === "ok") salida[clave] = { ...c, cobertura: { estado: "parcial", razon } };
+  }
+  return salida;
+}
+
 export async function cargarPautaSemanal(
   db: Db,
-  args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null },
+  args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null; paso?: PasoDeTablaDePauta },
 ): Promise<VistaPautaSemanal> {
-  const semanas = semanasDelRango(args.rango);
+  const paso = args.paso ?? "semana";
+  const columnas = columnasDelPaso(args.rango, paso, args.hoy);
   const [gastos, agendas, ventas, registros] = await Promise.all([
     db.select({
       semana: sql<string>`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
@@ -351,27 +413,30 @@ export async function cargarPautaSemanal(
       filtros: { area: ["paid"] },
     }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, envios: fila.envios }))),
   ]);
-  const rangos = [args.rango, ...semanas];
+  const rangos = [args.rango, ...columnas];
   const ahora = new Date(`${args.hoy}T23:59:59-05:00`);
-  const [gastosUsd, costosMeta, costosCrm, dineros, grupoTotal, gruposSemanales, roasPorRango] = await Promise.all([
-    Promise.all(rangos.map((rango) => gastoConvertido(db, args.programId, rango))),
-    Promise.all(rangos.map((rango) => costoPorAgendaDeVentana(db, {
-      programId: args.programId,
-      desde: rango.desde,
-      hasta: rango.hasta,
-      cohorteId: args.cohorteId,
-    }))),
-    // El denominador del costo es la MISMA cifra que pinta la celda "Agendadas" de ese rango (412 F).
-    Promise.all(rangos.map((rango) => costoPorAgendaDelCrm(db, {
-      programId: args.programId,
-      desde: rango.desde,
-      hasta: rango.hasta,
-      agendasCrm: agendas.filter((fila) => enRango(fila.dia, rango)).reduce((n, fila) => n + fila.agendas, 0),
-    }))),
-    Promise.all(rangos.map((rango) => dineroDeVentas(
-      db,
-      ventas.filter((fila) => enRango(fila.dia, rango)).map((fila) => fila.dealId),
-    ))),
+  const [porRango, grupoTotal, gruposDeColumnas] = await Promise.all([
+    porColumnas(rangos, async (rango) => {
+      const [gastoUsd, costoMeta, costoCrm, dinero, roas] = await Promise.all([
+        gastoConvertido(db, args.programId, rango),
+        costoPorAgendaDeVentana(db, {
+          programId: args.programId,
+          desde: rango.desde,
+          hasta: rango.hasta,
+          cohorteId: args.cohorteId,
+        }),
+        // El denominador del costo es la MISMA cifra que pinta la celda "Agendadas" de ese rango (412 F).
+        costoPorAgendaDelCrm(db, {
+          programId: args.programId,
+          desde: rango.desde,
+          hasta: rango.hasta,
+          agendasCrm: agendas.filter((fila) => enRango(fila.dia, rango)).reduce((n, fila) => n + fila.agendas, 0),
+        }),
+        dineroDeVentas(db, ventas.filter((fila) => enRango(fila.dia, rango)).map((fila) => fila.dealId)),
+        cargarRoasDePauta(db, args.programId, rango, args.hoy, ahora, args.cohorteId),
+      ]);
+      return { gastoUsd, costoMeta, costoCrm, dinero, roas };
+    }),
     grupoDeCitas(db, {
       programId: args.programId,
       rango: args.rango,
@@ -379,36 +444,32 @@ export async function cargarPautaSemanal(
       cohorteId: args.cohorteId,
       area: "paid",
     }),
-    gruposPorSemana(db, {
+    gruposPorTramo(db, {
       programId: args.programId,
       rango: args.rango,
       ahora,
       cohorteId: args.cohorteId,
       area: "paid",
+      tramos: columnas,
     }),
-    Promise.all(rangos.map((rango) => cargarRoasDePauta(
-      db, args.programId, rango, args.hoy, ahora, args.cohorteId,
-    ))),
   ]);
-  const grupos = [grupoTotal, ...gruposSemanales.map(({ grupo }) => grupo)];
-  const celdas = await Promise.all(rangos.map((rango, i) => celdasDelRango(
+  const grupos = [grupoTotal, ...gruposDeColumnas.map(({ grupo }) => grupo)];
+  const celdas = await Promise.all(rangos.map(async (rango, i) => marcarEnCurso(await celdasDelRango(
     db,
     rango,
     gastos.filter((fila) => enRango(fila.fecha, rango)),
-    conteosDelRango({ rango, agendas, ventas, registros, dinero: dineros[i] }),
-    gastosUsd[i],
-    costosMeta[i],
-    costosCrm[i],
+    conteosDelRango({ rango, agendas, ventas, registros, dinero: porRango[i].dinero }),
+    porRango[i].gastoUsd,
+    porRango[i].costoMeta,
+    porRango[i].costoCrm,
     grupos[i],
-    roasPorRango[i]?.total ?? null,
-  )));
+    porRango[i].roas?.total ?? null,
+  ), rango, args.hoy, paso, i === 0)));
   const filas = DEFINICION_FILAS.map((definicion) => ({
     ...definicion,
-    celdas: { total: celdas[0][definicion.clave], porSemana: celdas.slice(1).map((grupo) => grupo[definicion.clave]) },
+    celdas: { total: celdas[0][definicion.clave], porColumna: celdas.slice(1).map((grupo) => grupo[definicion.clave]) },
   }));
-  const diasDelRango: string[] = [];
-  for (let dia = args.rango.desde; dia <= args.rango.hasta; dia = sumarDias(dia, 1)) diasDelRango.push(dia);
-  const dias = await Promise.all(diasDelRango.map(async (dia) => {
+  const dias = await Promise.all(diasEntre(args.rango.desde, args.rango.hasta).map(async (dia) => {
     const inversion = await convertirFilas(db, gastos.filter((fila) => fila.fecha === dia), { desde: dia, hasta: dia }, "monto", "COP");
     const delDia = ventas.filter((fila) => fila.dia === dia);
     return {
@@ -420,5 +481,5 @@ export async function cargarPautaSemanal(
       ventasSinValor: delDia.filter((fila) => fila.valor === null).length,
     };
   }));
-  return { semanas, filas, dias };
+  return { paso, columnas, filas, dias };
 }

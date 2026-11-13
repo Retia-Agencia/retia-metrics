@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota } from "@/lib/format";
 import { csvDePautaSemanal } from "@/lib/pauta/csv-tabla-semanal";
-import { cargarPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
+import { cargarPautaSemanal, pasoDeTablaDePauta } from "@/lib/queries/hechos/pauta-semanal";
 
 export const runtime = "nodejs";
 
@@ -26,15 +26,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ prog
       hasta: url.searchParams.get("a_hasta"),
     });
     const cohorteId = url.searchParams.get("cohorte");
+    const paso = pasoDeTablaDePauta(url.searchParams.get("tabla") ?? undefined);
     const vista = await cargarPautaSemanal(db, {
       programId: programa.id,
       rango,
       hoy: hoyEnBogota(),
       cohorteId,
+      paso,
     });
     return new Response(csvDePautaSemanal(vista), { headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": `attachment; filename="pauta-semanal-${programa.slug}-${rango.desde}-${rango.hasta}.csv"`,
+      "content-disposition": `attachment; filename="pauta-${paso === "dia" ? "diaria" : "semanal"}-${programa.slug}-${rango.desde}-${rango.hasta}.csv"`,
       "cache-control": "no-store",
     } });
   } catch (error) {

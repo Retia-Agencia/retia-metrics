@@ -184,7 +184,7 @@ describe("tabla semanal de Paid Media", () => {
     const dia = { desde: "2026-10-05", hasta: "2026-10-05" };
     const vista = await cargarPautaSemanal(db, { programId, rango: dia, hoy: HOY, cohorteId: null });
 
-    expect(vista.semanas).toEqual([dia]);
+    expect(vista.columnas).toEqual([dia]);
     expect(total(vista, "inversion")).toBe(400_000);
     expect(total(vista, "agendas")).toBe(2);
     expect(total(vista, "ventas")).toBe(1);
@@ -202,12 +202,12 @@ describe("tabla semanal de Paid Media", () => {
     expect(total(vista, "frecuencia")).toBe(2);
 
     const dosSemanas = await cargarPautaSemanal(db, { programId, rango: RANGO, hoy: HOY, cohorteId: null });
-    expect(dosSemanas.semanas).toEqual([
+    expect(dosSemanas.columnas).toEqual([
       { desde: "2026-10-05", hasta: "2026-10-11" },
       { desde: "2026-10-12", hasta: "2026-10-18" },
     ]);
-    expect(fila(dosSemanas, "agendas").celdas.porSemana[1].valor).toBe(0);
-    expect(fila(dosSemanas, "costo_agenda_meta").celdas.porSemana[1].valor).toBeNull();
+    expect(fila(dosSemanas, "agendas").celdas.porColumna[1].valor).toBe(0);
+    expect(fila(dosSemanas, "costo_agenda_meta").celdas.porColumna[1].valor).toBeNull();
   });
 
   it("las filas aditivas suman sus semanas y Total recalcula las razones", async () => {
@@ -219,7 +219,7 @@ describe("tabla semanal de Paid Media", () => {
     const vista = await cargarPautaSemanal(db, { programId, rango: RANGO, hoy: HOY, cohorteId: null });
 
     for (const clave of ["inversion", "agendas", "ventas", "facturacion"] as const) {
-      expect(fila(vista, clave).celdas.porSemana.reduce((n, celda) => n + (celda.valor ?? 0), 0)).toBe(total(vista, clave));
+      expect(fila(vista, clave).celdas.porColumna.reduce((n, celda) => n + (celda.valor ?? 0), 0)).toBe(total(vista, clave));
     }
     expect(total(vista, "roas")).toBeCloseTo(2);
   });
@@ -319,8 +319,8 @@ describe("tabla semanal de Paid Media", () => {
     await crearDeal(await crearEnvio(programId, "2026-10-12"), { venta: true, valor: "400", diaVenta: "2026-10-14" });
 
     const vista = await cargarPautaSemanal(db, { programId, rango: RANGO, hoy: HOY, cohorteId: null });
-    const columnas = [RANGO, ...vista.semanas];
-    const celdas = (clave: ClavePautaSemanal) => [fila(vista, clave).celdas.total, ...fila(vista, clave).celdas.porSemana];
+    const columnas = [RANGO, ...vista.columnas];
+    const celdas = (clave: ClavePautaSemanal) => [fila(vista, clave).celdas.total, ...fila(vista, clave).celdas.porColumna];
     const ventas = celdas("ventas");
     const vendido = celdas("facturacion");
     expect(ventas.map((c) => c.valor)).toEqual([3, 1, 2]);
@@ -342,8 +342,8 @@ describe("tabla semanal de Paid Media", () => {
     await crearCita((await crearDeal(await crearEnvio(programId, "2026-10-12"))).id, "2026-10-13", "show");
 
     const vista = await cargarPautaSemanal(db, { programId, rango: RANGO, hoy: HOY, cohorteId: null });
-    const columnas = [RANGO, ...vista.semanas];
-    const celdas = (clave: ClavePautaSemanal) => [fila(vista, clave).celdas.total, ...fila(vista, clave).celdas.porSemana];
+    const columnas = [RANGO, ...vista.columnas];
+    const celdas = (clave: ClavePautaSemanal) => [fila(vista, clave).celdas.total, ...fila(vista, clave).celdas.porColumna];
     const cuenta = async (metrica: Parameters<typeof leerEvidencia>[0], rango: { desde: string; hasta: string }) =>
       (await leerEvidencia(metrica, { programId, cohorteId: null, desde: rango.desde, hasta: rango.hasta, hoy: HOY, area: "paid" }, db)).subtotal.cantidad;
     expect(celdas("agendas").map((c) => c.valor)).toEqual([3, 2, 1]);
@@ -352,6 +352,86 @@ describe("tabla semanal de Paid Media", () => {
       expect(await cuenta("grupo_shows", rango), `shows ${rango.desde}`).toBe(celdas("show")[i].partes?.[0] ?? 0);
       expect(await cuenta("grupo_vendidos", rango), `cierre ${rango.desde}`).toBe(celdas("cierre_ventas")[i].partes?.[0] ?? 0);
       expect(await cuenta("grupo_vendidos", rango), `cita a venta ${rango.desde}`).toBe(celdas("agenda_venta")[i].partes?.[0] ?? 0);
+    }
+  });
+});
+
+describe("414: la tabla de Pauta por día", () => {
+  const SEMANA = { desde: "2026-10-05", hasta: "2026-10-11" };
+
+  /**
+   * Gasto todos los días (un día sin gasto cargado deja el costo de la semana en «—», 412 F), pero agendas y ventas
+   * solo en tres, con días de cero en medio.
+   */
+  async function semanaDeVariosDias() {
+    await gasto({ dia: "2026-10-05", monto: "400000", impresiones: 10_000, clics: 200, landing: 100, alcance: 5_000, agendasMeta: 4 });
+    await gasto({ dia: "2026-10-07", monto: "100000", impresiones: 5_000, clics: 50, landing: 20, alcance: 3_000, agendasMeta: 1 });
+    await gasto({ dia: "2026-10-09", monto: "60000", impresiones: 3_000, clics: 30, landing: 10, alcance: 2_000, agendasMeta: 2 });
+    for (const dia of ["2026-10-06", "2026-10-08", "2026-10-10", "2026-10-11"]) {
+      await gasto({ dia, monto: "10000", impresiones: 1_000, clics: 10, landing: 5, alcance: 800, agendasMeta: 0 });
+    }
+    const v1 = await crearDeal(await crearEnvio(programId, "2026-10-05"), { venta: true, valor: "200", diaVenta: "2026-10-05" });
+    await crearCita(v1.id, "2026-10-05", "show");
+    await crearCita((await crearDeal(await crearEnvio(programId, "2026-10-07"))).id, "2026-10-07", "no_show");
+    const v3 = await crearDeal(await crearEnvio(programId, "2026-10-09"), { venta: true, valor: "150", diaVenta: "2026-10-09" });
+    await crearCita(v3.id, "2026-10-09", "show");
+  }
+
+  it("una columna por día del periodo, y la suma de los días es la semana (conteos, dinero y las partes de cada razón)", async () => {
+    await semanaDeVariosDias();
+    const [porSemana, porDia] = await Promise.all([
+      cargarPautaSemanal(db, { programId, rango: SEMANA, hoy: HOY, cohorteId: null }),
+      cargarPautaSemanal(db, { programId, rango: SEMANA, hoy: HOY, cohorteId: null, paso: "dia" }),
+    ]);
+    expect(porDia.paso).toBe("dia");
+    expect(porDia.columnas.map((c) => c.desde)).toEqual(
+      ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-10", "2026-10-11"],
+    );
+    expect(porDia.columnas.every((c) => c.desde === c.hasta)).toBe(true);
+    const semana = (clave: ClavePautaSemanal) => fila(porSemana, clave).celdas.porColumna[0];
+    const dias = (clave: ClavePautaSemanal) => fila(porDia, clave).celdas.porColumna;
+
+    // Conteos y dinero: la suma de los días es la semana, y el Total no depende del paso.
+    for (const clave of ["inversion", "agendas", "agendas_meta", "ventas", "facturacion"] as const) {
+      expect(dias(clave).reduce((n, c) => n + (c.valor ?? 0), 0), clave).toBe(semana(clave).valor);
+      expect(fila(porDia, clave).celdas.total.valor, clave).toBe(fila(porSemana, clave).celdas.total.valor);
+    }
+    expect(semana("agendas_meta").valor).toBe(7);
+    // Las razones no se suman: se suman sus partes y la razón de la semana sale de ellas.
+    for (const clave of ["cpm", "ctr", "llegada_landing"] as const) {
+      const sumaDe = (i: 0 | 1) => dias(clave).reduce((n, c) => n + (c.partes?.[i] ?? 0), 0);
+      expect([sumaDe(0), sumaDe(1)], clave).toEqual(semana(clave).partes);
+    }
+    // Un día con 0 agendas no tiene costo (ni partes): el costo de la semana es el gasto de los días entre sus agendas.
+    const suma = (clave: ClavePautaSemanal) => dias(clave).reduce((n, c) => n + (c.valor ?? 0), 0);
+    expect(semana("costo_agenda_meta").partes).toEqual([suma("inversion"), suma("agendas_meta")]);
+    expect(semana("costo_agenda_crm").partes).toEqual([suma("inversion"), suma("agendas")]);
+    // Un día sin una sola agenda es cero, no «—»; un día sin gasto cargado sí es «—» con su motivo.
+    expect(dias("agendas")[1].valor).toBe(0);
+    const sinGasto = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-12", hasta: "2026-10-13" }, hoy: HOY, cohorteId: null, paso: "dia" });
+    expect(fila(sinGasto, "inversion").celdas.porColumna[0]).toMatchObject({ valor: null, cobertura: { estado: "sin_dato" } });
+  });
+
+  it("Agendas de Meta es una fila propia de Tráfico, con el mismo número que el denominador del costo según Meta", async () => {
+    await semanaDeVariosDias();
+    const vista = await cargarPautaSemanal(db, { programId, rango: SEMANA, hoy: HOY, cohorteId: null, paso: "dia" });
+    const claves = vista.filas.filter((f) => f.bloque === "trafico").map((f) => f.clave);
+    expect(claves.indexOf("agendas_meta")).toBe(claves.indexOf("costo_agenda_meta") - 1);
+    expect(fila(vista, "agendas_meta").celdas.total.valor).toBe(fila(vista, "costo_agenda_meta").celdas.total.partes?.[1]);
+    expect(fila(vista, "agendas_meta").nombre).toBe("Agendas de Meta");
+  });
+
+  it("la columna en curso marca Parcial las tasas de Comercial, también cuando cuadran", async () => {
+    await semanaDeVariosDias();
+    const hoy = "2026-10-09";
+    const vista = await cargarPautaSemanal(db, { programId, rango: SEMANA, hoy, cohorteId: null, paso: "dia" });
+    const enCurso = vista.columnas.findIndex((c) => c.hasta === hoy);
+    for (const clave of ["show", "cierre_ventas", "agenda_venta"] as const) {
+      const celda = fila(vista, clave).celdas.porColumna[enCurso];
+      expect(celda.valor, clave).not.toBeNull();
+      expect(celda.cobertura.estado, clave).toBe("parcial");
+      // Un día ya cerrado no lleva la marca.
+      expect(fila(vista, clave).celdas.porColumna[0].cobertura.estado, clave).toBe("ok");
     }
   });
 });

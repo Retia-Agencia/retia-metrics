@@ -11,7 +11,7 @@ import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
 import type { ObjetivoDeCohorte } from "@/lib/catalogo/objetivos";
 import { DEFINICION_METRICAS_OBJETIVO, type MetricaObjetivo } from "@/lib/objetivos/metricas";
 import { etiquetaDeSemana } from "@/lib/pauta/csv-tabla-semanal";
-import type { CeldaPautaSemanal, ClavePautaSemanal, FilaPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
+import type { CeldaPautaSemanal, ClavePautaSemanal, FilaPautaSemanal, PasoDeTablaDePauta } from "@/lib/queries/hechos/pauta-semanal";
 
 type Rango = { desde: string; hasta: string };
 
@@ -51,9 +51,11 @@ export interface EntradaDeCeldaSemanal {
   fila: Pick<FilaPautaSemanal, "clave">;
   celda: CeldaPautaSemanal;
   rango: Rango;
-  /** `true` en la columna Total del periodo; las demás son semanas. */
+  /** `true` en la columna Total del periodo; las demás son semanas o días, según el paso. */
   esTotal: boolean;
-  /** La columna de la izquierda (la semana anterior), para "La línea pequeña". El Total no compara. */
+  /** Semana por defecto; por día (414) los textos dicen «día». */
+  paso?: PasoDeTablaDePauta;
+  /** La columna de la izquierda (la semana o el día anterior), para "La línea pequeña". El Total no compara. */
   anterior?: { celda: CeldaPautaSemanal; rango: Rango };
   hoy: string;
   objetivos: readonly ObjetivoDeCohorte[];
@@ -62,18 +64,20 @@ export interface EntradaDeCeldaSemanal {
   lista?: EntradaDeCifra["lista"];
 }
 
-export function textoDePeriodoDeCelda(rango: Rango, esTotal: boolean): string {
-  return esTotal ? `del ${etiquetaDeSemana(rango)}` : `semana del ${etiquetaDeSemana(rango)}`;
+export function textoDePeriodoDeCelda(rango: Rango, esTotal: boolean, paso: PasoDeTablaDePauta = "semana"): string {
+  if (esTotal) return `del ${etiquetaDeSemana(rango)}`;
+  return paso === "dia" ? `día ${etiquetaDeSemana(rango)}` : `semana del ${etiquetaDeSemana(rango)}`;
 }
 
 export function cifraDeCeldaSemanal(e: EntradaDeCeldaSemanal): CifraDeMetrica {
   const { celda, rango } = e;
-  const periodo = textoDePeriodoDeCelda(rango, e.esTotal);
+  const porDia = e.paso === "dia";
+  const periodo = textoDePeriodoDeCelda(rango, e.esTotal, e.paso);
   const filtros: Array<readonly [string, string]> = [];
   if (e.programa) filtros.push(["Programa", e.programa]);
   if (e.cohorte) filtros.push(["Cohorte", e.cohorte]);
   filtros.push(["Área", "Paid"]);
-  filtros.push([e.esTotal ? "Periodo" : "Semana", etiquetaDeSemana(rango)]);
+  filtros.push([e.esTotal ? "Periodo" : porDia ? "Día" : "Semana", etiquetaDeSemana(rango)]);
   return armarCifra({
     concepto: e.fila.clave,
     explicacion: explicacionDePauta(e.fila.clave),
@@ -86,7 +90,7 @@ export function cifraDeCeldaSemanal(e: EntradaDeCeldaSemanal): CifraDeMetrica {
     enCurso: rango.hasta >= e.hoy,
     comparacion: !e.esTotal && e.anterior
       ? {
-        referencia: `la semana anterior (${etiquetaDeSemana(e.anterior.rango)})`,
+        referencia: `${porDia ? "el día anterior" : "la semana anterior"} (${etiquetaDeSemana(e.anterior.rango)})`,
         valor: e.anterior.celda.valor,
         etiqueta: "La línea pequeña",
       }

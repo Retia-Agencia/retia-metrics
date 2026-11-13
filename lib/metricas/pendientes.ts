@@ -27,6 +27,8 @@ export const CONCEPTO_DE_PAUTA_SEMANAL: Record<ClavePautaSemanal, ClaveDeConcept
   agenda_venta: "cita_a_venta",
   inversion: "inversion",
   costo_agenda_crm: "costo_agenda_crm",
+  // 414: la fila «Agendas de Meta» es la parte de abajo del costo según Meta, la misma lectura (metricas.md §1.9); no es concepto aparte.
+  agendas_meta: "costo_agenda_meta",
   costo_agenda_meta: "costo_agenda_meta",
   roas: "roas",
   profit: "profit",

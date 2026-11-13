@@ -134,7 +134,7 @@ describe("dorado de Pauta: la tabla semanal", () => {
   it("la semana y el total coinciden (hay una sola semana)", async () => {
     const v = await vista();
     for (const clave of ["inversion", "agendas", "ventas", "roas", "profit", "costo_agenda_crm"] as const) {
-      expect(fila(v, clave).celdas.porSemana[0].valor, clave).toBe(total(v, clave).valor);
+      expect(fila(v, clave).celdas.porColumna[0].valor, clave).toBe(total(v, clave).valor);
     }
   });
 });

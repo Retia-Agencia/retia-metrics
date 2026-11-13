@@ -54,6 +54,7 @@ import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte, unidadDeCumplimiento } from "@/components/pauta/cumplimiento";
 import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
+import { pasoDeTablaDePauta } from "@/lib/queries/hechos/pauta-semanal";
 import { QueTraeVentas } from "@/components/pauta/que-trae-ventas";
 import { SinOrigen } from "@/components/pauta/sin-origen";
 import { DondeSeVaLaGente } from "@/components/pauta/embudo-del-formulario";
@@ -705,7 +706,12 @@ async function SeccionPauta({
             plata: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "plata", { parametro: "cumpl" }),
           }} />
         <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} />
-        <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre} />
+        <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre}
+          paso={pasoDeTablaDePauta(busqueda.tabla)}
+          hrefDePaso={{
+            semana: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "tabla" }),
+            dia: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "dia", { parametro: "tabla" }),
+          }} />
         <PautaProyeccion proyeccion={proyeccion} historial={historial} objetivos={objetivosDeLaCohorte} hoy={hoy}
           programa={programaNombre} cohorte={cohorteCodigo ?? undefined}
           hrefPendientes={proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
