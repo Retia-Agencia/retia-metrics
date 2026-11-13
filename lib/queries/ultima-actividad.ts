@@ -1,6 +1,7 @@
 import { and, inArray, lt, max, sql } from "drizzle-orm";
 import { abonos, calls, dealActividades, dealEtapaHistorial } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { inicioDelDiaEnBogota } from "@/lib/queries/hechos/fechas";
 import { vigente } from "@/lib/queries/vigente";
 
 /**
@@ -86,7 +87,7 @@ export function ultimaActividadSql(db: Db, hasta?: Date) {
     : undefined;
   const pagos = db.select({
     dealId: abonos.dealId,
-    fecha: sql<Date>`max(${abonos.fecha})::timestamp at time zone 'America/Bogota'`.as("fecha"),
+    fecha: inicioDelDiaEnBogota(max(abonos.fecha)).as("fecha"),
   }).from(abonos)
     .where(and(vigente(abonos), diaLimite ? sql`${abonos.fecha} <= ${diaLimite}` : undefined))
     .groupBy(abonos.dealId).as("ultima_actividad_pagos");

@@ -15,8 +15,7 @@ import { describe, expect, it } from "vitest";
  *   - el programa es frontera y no filtro (AGENTS.md, ADR 0043): ningún hecho admite `programa` como dimensión.
  *
  * Límites honestos: no prueba que la dimensión CALCULE bien (eso es la paridad por métrica); la tabla vive aquí
- * hasta que el registro tipado de F4 la absorba y `docs/metricas.md` la muestre; el gasto y el abono no tienen módulo en
- * `hechos/` y por eso no tiene fila (se agrega cuando lo tenga).
+ * hasta que el registro tipado de F4 la absorba y `docs/metricas.md` la muestre.
  */
 const RAIZ = process.cwd();
 
@@ -25,6 +24,7 @@ const DIMENSIONES = [
   "dia", "semana", "mes", "hora",
   "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria", "tiene_envio",
   "dueno", "cohorte", "etapa", "ocurrio",
+  "moneda", "plataforma", "registrado_por", "objeto_de_pauta",
 ] as const;
 type DimensionConforme = (typeof DIMENSIONES)[number];
 type Celda = "si" | "aun" | `no:${string}`;
@@ -39,24 +39,77 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     tiene_envio: "no:todo envío es un envío",
     dueno: DEL_DEAL, cohorte: DEL_DEAL, etapa: DEL_DEAL,
     ocurrio: "no:solo las citas ocurren",
+    moneda: "no:el envío no es un hecho de dinero",
+    plataforma: "no:la plataforma de pago pertenece al abono",
+    registrado_por: "no:quien registra pertenece al abono, no al envío",
+    objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
   },
   Agenda: {
     dia: "si", semana: "si", mes: "si", hora: "si",
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "si", utm_medium: "si", categoria: "si", tiene_envio: "si",
     dueno: "si", cohorte: "si", etapa: "si",
     ocurrio: "no:la agenda es la cita creada, no la ocurrida",
+    moneda: "no:la agenda no es un hecho de dinero",
+    plataforma: "no:la plataforma de pago pertenece al abono",
+    registrado_por: "no:quien registra pertenece al abono, no a la agenda",
+    objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
   },
   Cita: {
     dia: "si", semana: "si", mes: "si", hora: "aun",
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
     dueno: "si", cohorte: "si", etapa: "si",
     ocurrio: "si",
+    moneda: "no:la cita no es un hecho de dinero",
+    plataforma: "no:la plataforma de pago pertenece al abono",
+    registrado_por: "no:quien registra pertenece al abono, no a la cita",
+    objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
   },
   Venta: {
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
     dueno: "si", cohorte: "si", etapa: "no:una venta ya es Abonado o Completo; la etapa no la separa",
     ocurrio: "no:solo las citas ocurren",
+    moneda: "no:este hecho cuenta ventas; no mide su valor",
+    plataforma: "no:la plataforma de pago pertenece al abono",
+    registrado_por: "no:quien registra pertenece al abono, no a la venta",
+    objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+  },
+  Abono: {
+    dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
+    area: "no:el abono mide caja, no el origen del lead",
+    canal: "no:el abono mide caja, no el origen del lead",
+    cuenta: "no:el abono mide caja, no el origen del lead",
+    campana: "no:el abono mide caja, no el origen del lead",
+    fuente: "no:el abono mide caja, no el origen del lead",
+    utm_source: "no:el abono mide caja, no el origen del lead",
+    utm_medium: "no:el abono mide caja, no el origen del lead",
+    categoria: "no:el abono mide caja, no la categoría del envío",
+    tiene_envio: "no:el abono mide caja, no la existencia de un envío",
+    dueno: "si", cohorte: "si",
+    etapa: "no:el abono no conserva la etapa vigente cuando se registró",
+    ocurrio: "no:solo las citas ocurren",
+    moneda: "si", plataforma: "si", registrado_por: "si",
+    objeto_de_pauta: "no:el objeto de pauta pertenece al gasto",
+  },
+  Gasto: {
+    dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
+    area: "no:todo gasto incluido pertenece al área de pauta",
+    canal: "no:el gasto se identifica por su objeto de pauta",
+    cuenta: "no:el gasto se identifica por su objeto de pauta",
+    campana: "no:el gasto se identifica por su objeto de pauta",
+    fuente: "no:el gasto no proviene de una fuente de leads",
+    utm_source: "no:el gasto no lleva atributos del envío",
+    utm_medium: "no:el gasto no lleva atributos del envío",
+    categoria: "no:el gasto no lleva categoría del envío",
+    tiene_envio: "no:el gasto existe aunque no haya envíos",
+    dueno: "no:el gasto es de la pauta, no de un deal",
+    cohorte: "aun",
+    etapa: "no:el gasto es de la pauta, no de un deal",
+    ocurrio: "no:solo las citas ocurren",
+    moneda: "si",
+    plataforma: "no:la plataforma es la del pago de un abono",
+    registrado_por: "no:el gasto no registra al autor como dimensión",
+    objeto_de_pauta: "si",
   },
 };
 

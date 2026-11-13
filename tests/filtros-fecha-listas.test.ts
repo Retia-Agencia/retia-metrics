@@ -205,7 +205,8 @@ describe("141: la última actividad tiene UNA definición", () => {
     const leer = (ruta: string) => readFileSync(ruta, "utf8");
     expect(leer("lib/queries/ultima-actividad.ts")).toMatch(/export async function ultimaActividadPorDeal/);
     for (const ruta of ["lib/queries/inbox.ts", "lib/queries/kanban.ts"]) {
-      expect(leer(ruta)).toMatch(/import \{ ultimaActividadPorDeal \} from "@\/lib\/queries\/ultima-actividad"/);
+      // Puede compartir el import con otros nombres, pero debe venir del módulo dueño.
+      expect(leer(ruta)).toMatch(/import \{[^}]*\bultimaActividadPorDeal\b[^}]*\} from "@\/lib\/queries\/ultima-actividad"/);
       expect(leer(ruta)).not.toMatch(/function ultimaActividadPorDeal/);
     }
   });

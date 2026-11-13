@@ -12,6 +12,10 @@ export function horaMinutoEnBogota(fecha: Fecha) {
   return sql<string>`to_char(${fecha} AT TIME ZONE 'America/Bogota', 'HH24:MI')`;
 }
 
+export function inicioDelDiaEnBogota(fecha: Fecha) {
+  return sql<Date>`${fecha}::timestamp AT TIME ZONE 'America/Bogota'`;
+}
+
 export function anclaEnvio(envio: EnvioFechado = submissions) {
   return sql<Date>`coalesce(${envio.fechaEnvio}, ${envio.createdAt})`;
 }

@@ -276,6 +276,9 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
     [path.join("lib", "auth", "alcance.ts")]:
       "la definición misma: la función de alcance consulta miembros_programa",
 
+    [path.join("lib", "queries", "resolver-filtros.ts")]:
+      "resuelve un nombre de dueño entre los miembros del programa (identidad, no alcance); el programa ya lo decidió programaVisible",
+
     // El lado de ESCRITURA nombrado por el ticket 094: "¿este actor puede tocar una
     // fila de ESTE programa?" (ADR 0016). No limita una lectura al alcance; autoriza
     // una escritura contra la base.

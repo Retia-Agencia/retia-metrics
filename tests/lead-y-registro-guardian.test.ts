@@ -15,6 +15,7 @@ const MODULOS_DUENOS = new Set([
 const EXCEPCIONES: Record<string, string> = {
   "lib/atribucion/envios-por-canal.ts": "Consulta heredada de atribución: limita el conteo a envíos completos.",
   "lib/queries/inbox.ts": "La bandeja operativa distingue envíos parciales y completos y su antigüedad.",
+  "lib/queries/kanban.ts": "La fecha de entrada del deal a su etapa actual (coalesce con deals.created_at), no el ancla del lead.",
   "lib/queries/salud-fuentes.ts": "Salud de fuentes mide por separado los envíos completos.",
   "lib/queries/traza-por-anuncio.ts": "La traza histórica cuenta únicamente envíos completos.",
 };
