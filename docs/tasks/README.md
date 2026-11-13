@@ -27,8 +27,8 @@ y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo S
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 423 | [La plataforma de pago es obligatoria en el abono, y el link de pago sale del formulario](./423-plataforma-obligatoria-en-el-abono.md) | — | todo · 12-nov · Michael · D-1 y D-2 con Mani · sin migración |
-| [ ] | 424 | [La historia del lead se descarga desde la lista que ya abre cada cifra](./424-la-historia-del-lead-exportable.md) | — | todo · 12-nov · Dani Rodríguez, «top 1» · **ensamblaje: ninguna métrica, universo ni forma visual nueva** · D-1 a D-3 · sin migración |
+| [ ] | 423 | [La plataforma de pago es obligatoria en el abono, y el link de pago sale del formulario](./423-plataforma-obligatoria-en-el-abono.md) | — | en main · 12-nov · D-1 sí (el closer crea o vincula plataforma desde el abono), D-2 no rellenar: 53 abonos vigentes sin plataforma (ComunicArte 37, Confianza 11, Tactical 5) · ADR 0034 enmendado · `done` con el próximo checkpoint verde |
+| [ ] | 424 | [La historia del lead se descarga desde la lista que ya abre cada cifra](./424-la-historia-del-lead-exportable.md) | — | en main · 12-nov · D-1 con monto y D-2 con contacto en el archivo (ADR 0052 enmendado), D-3 Registros · falta el sí de Dani Rodríguez con una semana real |
 
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
@@ -61,7 +61,7 @@ a fase 2.
 | [x] | 369 | [Vendido, Recaudado y Por cobrar](./369-vendido-recaudado-y-por-cobrar.md) | 377, 352, 374 | done · fase 1, paso 3 |
 | [x] | 371 | ["¿Vamos a llegar?": el bloque fijo de metas](./371-vamos-a-llegar-el-bloque-fijo-de-metas.md) | 352 | done · 4-nov · fase 1, paso 3 · absorbe al 253 |
 | [x] | 372 | [Comercial con su periodo, y los parciales aparte](./372-comercial-con-su-periodo-y-parciales-aparte.md) | 377 | done · 4-nov · fase 1, paso 3 |
-| [ ] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | en main · 4-nov · checkpoint `cp-20261109-1` · recorrido en claro, oscuro y 375 px hecho el 12-nov (H4), casillas completas · antes de `done`: enmienda N8 de "tres interruptores" (Dinero y Comercial traen dos por el 380 y DH-3) · alcance 6 sin hacer · fase 1, paso 4 · absorbe al 256 |
+| [x] | 370 | [Gráficas que siguen los filtros, en cupos o en plata](./370-graficas-que-siguen-los-filtros.md) | 377, 369 | done · 12-nov · checkpoint `cp-20261112-1` · recorrido en claro, oscuro y 375 px (H4) y enmienda N8 de los interruptores · alcance 6 (comparar contra producción) queda sin casilla · absorbe al 256 |
 | [x] | 373 | [Hub › Hoy es el reporte diario de Michael, y se descarga en PDF](./373-hoy-es-el-reporte-diario.md) | 352, 369, 371 | done · 9-nov · cierre de la Ola 1 |
 | [x] | 378 | [Hub › Hoy legible y configurable](./378-hoy-legible-y-configurable.md) | 373 | done · 9-nov · cierre de la Ola 1 |
 | [x] | 379 | [Hub › Comercial se entiende a la primera](./379-comercial-se-entiende-a-la-primera.md) | 372 | done · 9-nov · cierre de la Ola 1 |
@@ -475,7 +475,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 348 | [El MCP del CRM, fase 1: solo lectura, solo developers](./348-mcp-del-crm.md) | — | en main · 7-nov: código, build, tests y peticiones forjadas listos y en main; falta que el developer lo conecte con `claude mcp add` y compare una cifra con el Hub · migración 0117 aplicada |
 | [ ] | 383 | [El MCP del CRM, fase 2: OAuth propio y todos los roles](./383-mcp-oauth-para-todos.md) | 348 | en main · 9-nov · falta conectar en claude.ai, Claude Code y ChatGPT, y `test:humo` · ADR 0119 |
 | [-] | 384 | [El MCP del CRM: escrituras con vista previa](./384-mcp-escrituras.md) | 348 | reemplazado por el 411, su F2 (D4, Mani, 12-nov) · no se toma suelto · lleva migración (origen `mcp`) |
-| [ ] | 385 | [Auditoría completa de métricas y datos del CRM: una definición por cifra, modelo justificado, consultas centralizadas y contrato](./385-mcp-integridad-de-tools-de-metricas.md) | 348 | todo · OBLIGATORIO (Mani, 7-nov) · alcance todo el CRM, no solo el MCP · fases F0 a F7 · sin migraciones dentro: se parte en hijos tras F3 · reclasifica 351 a 362 · 12-nov (H4): F0 a F5 y F7 verificadas con evidencia; falta F6 (el contrato está desfasado: pasar a 🔒 lo ya construido por 394, 395, 403) |
+| [x] | 385 | [Auditoría completa de métricas y datos del CRM: una definición por cifra, modelo justificado, consultas centralizadas y contrato](./385-mcp-integridad-de-tools-de-metricas.md) | 348 | done · 12-nov · checkpoint `cp-20261112-1` · F0 a F7 verificadas con evidencia (H4) · hijos abiertos fuera de sus casillas: 390, 401, 403 |
 | [ ] | 386 | [Integridad de las tools de operación del MCP, por rol](./386-mcp-integridad-de-tools-de-operacion.md) | 348, 384 | todo · pedido de Mani del 6-nov |
 | [ ] | 387 | [El MCP del CRM: administración visual, evaluación de descubrimiento y visualizaciones](./387-mcp-administracion-visual-y-visualizaciones.md) | 348, 385 | idea · 7-nov · pedido de Mani: ver y administrar el MCP sin código y gráficas en el chat · docs/mcp.md §7 y §8 |
 | [x] | 388 | [F2 tanda 2: paridad de lo que F2 no cubrió](./388-f2-tanda-2-paridad-de-lo-no-cubierto.md) | — | done · 9-nov · informe `f2b-paridad.md`, sin divergencias críticas · hijo del 385 (F7) |

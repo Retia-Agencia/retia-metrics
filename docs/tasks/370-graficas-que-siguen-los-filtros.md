@@ -3,7 +3,7 @@ id: 370
 etapa: hub
 serves: "Weekly con Daniel Tovar del 3-nov (docs/hub.md §0, G-4, G-5, G-6) · ADR 0091, 0106 · absorbe lo que le faltaba al 256"
 depends: [377, 369]
-status: en main
+status: done
 ---
 
 # 370 — Gráficas que siguen los filtros, en cupos o en plata, por día o acumuladas

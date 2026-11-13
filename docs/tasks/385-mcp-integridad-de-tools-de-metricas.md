@@ -3,7 +3,7 @@ id: 385
 etapa: mcp
 serves: "Auditoría COMPLETA de métricas y datos del CRM (obligatoria, Mani 7-nov) · ADR 0115 (N1 a N9) · ADR 0012 · C-1 y C-2 de docs/hub.md §8 · ADR 0119"
 depends: [348]
-status: todo
+status: done
 ---
 
 # 385 — Auditoría completa de métricas y datos del CRM: una definición por cifra, modelo de datos justificado, consultas centralizadas y contrato de mantenimiento
@@ -299,7 +299,7 @@ de operación) comparte método con F5 y se coordina con este.
       M1 a M7 con su ADR. Estado de los hijos al 12-nov: `done` 388, 389, 391 a 400, 402, 404 a 406; abiertos 390 (en
       main, falta medir cobertura y el "parcial" del 351), 401 (en curso, M11 a M14 y migraciones) y 403 (en curso,
       todas las casillas marcadas, espera checkpoint). Ninguno es casilla de este ticket.
-- [ ] Tracker y `status:` iguales (N9). — Hoy coinciden en `todo`; lo cierra la sesión padre al marcar F6.
+- [x] Tracker y `status:` iguales (N9). — Cerrado el 12-nov por la sesión padre con el checkpoint `cp-20261112-1` (`8ae3924f`, CI verde). Antes: coincidían en `todo`; lo cierra la sesión padre al marcar F6.
 
 ## 7. Pendientes del MCP absorbidos aquí (de la primera prueba, 7-nov)
 
