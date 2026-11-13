@@ -180,7 +180,7 @@ export const estadoSincronizacionPautaEnum = pgEnum("estado_sincronizacion_pauta
  * encabezado renombrado apagara el intake del programa en silencio.
  */
 export const estadoFuenteEnum = pgEnum("estado_fuente", ["activa", "rota"]);
-export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload", "whatsapp"]);
+export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload", "whatsapp", "mcp"]);
 
 // ─────────────────────────────────────────────────────────── usuarios
 
@@ -3045,6 +3045,38 @@ export const mcpLlamadas = pgTable(
     creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("mcp_llamadas_token_creado_idx").on(t.tokenId, t.creadoEn)],
+);
+
+/**
+ * Vista previa de una escritura del MCP (ticket 411 F2, D1): `preparar_accion` la guarda y
+ * `confirmar_cambio` la aplica UNA vez. El uso unico lo garantiza la base: el UPDATE que pone
+ * `confirmada_en` exige que siga nula y sin vencer (molde del ADR 0005). `accion` es texto, no enum:
+ * el tipo vive en el registro `ACCIONES` del codigo (ADR 0012). Se purga a los 90 dias, como
+ * `mcp_llamadas`; el rastro permanente del cambio sigue en `change_log` con origen `mcp`.
+ */
+export const mcpVistasPrevias = pgTable(
+  "mcp_vistas_previas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenId: uuid("token_id").notNull().references(() => mcpTokens.id, { onDelete: "restrict" }),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    accion: text("accion").notNull(),
+    argumentos: jsonb("argumentos").notNull(),
+    /** Una por fila del lote: `[{ objetivo_id, huella }]`. */
+    huellas: jsonb("huellas").notNull(),
+    /** Lo que se le mostro a la persona (antes y despues, lo que no se podra aplicar). */
+    vistaPrevia: jsonb("vista_previa").notNull(),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+    venceEn: timestamp("vence_en", { withTimezone: true }).notNull(),
+    confirmadaEn: timestamp("confirmada_en", { withTimezone: true }),
+    /** Por fila: aplicada o rechazada con su razon, y los eventos con que se deshace. */
+    resultado: jsonb("resultado"),
+  },
+  (t) => [
+    index("mcp_vistas_previas_vence_idx").on(t.venceEn),
+    check("mcp_vistas_previas_vence_despues", sql`${t.venceEn} > ${t.creadoEn}`),
+  ],
 );
 
 export type OauthCliente = typeof oauthClientes.$inferSelect;

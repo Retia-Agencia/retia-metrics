@@ -939,6 +939,13 @@
       "when": 1794334997005,
       "tag": "0133_objetivos_sin_los_tres_retirados",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1794546136251,
+      "tag": "0134_mcp_escrituras",
+      "breakpoints": true
     }
   ]
 }
