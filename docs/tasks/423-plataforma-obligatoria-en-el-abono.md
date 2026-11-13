@@ -3,7 +3,7 @@ id: 423
 etapa: comercial
 serves: "Michael Castellanos, reunión del 11-nov: «que sea obligatorio… la forma de pago y el comprobante», «quita el link de pago, eso no hace falta», «las plataformas ya están puestas»"
 depends: []
-status: en main
+status: done
 ---
 
 # 423 — La plataforma de pago es obligatoria en el abono, y el link de pago sale del formulario
