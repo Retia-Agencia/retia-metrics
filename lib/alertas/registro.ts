@@ -94,7 +94,11 @@ export const REGISTRO_DE_ALERTAS = {
 export const TIPOS_DE_ALERTA = Object.keys(REGISTRO_DE_ALERTAS) as [TipoDeAlerta, ...TipoDeAlerta[]];
 
 export async function alertasActivas(db: Db, ahora: Date) {
-  const fuentes = await saludDeFuentes(db, ahora);
+  return alertasDeFuentes(await saludDeFuentes(db, ahora), ahora);
+}
+
+/** Las alertas de una salud ya calculada: quien ya tiene `saludDeFuentes` no la recalcula (es la consulta pesada). */
+export function alertasDeFuentes(fuentes: SaludDeFuenteConDatos[], ahora: Date) {
   return TIPOS_DE_ALERTA.flatMap((tipo) => {
     const definicion = REGISTRO_DE_ALERTAS[tipo];
     return definicion.evaluar(fuentes, ahora).map((alerta) => ({

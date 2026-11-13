@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { alertasActivas } from "@/lib/alertas/registro";
+import { alertasDeFuentes } from "@/lib/alertas/registro";
 import { resumenDelDia } from "@/lib/avisos-cs/pendientes";
 import { reportesActivos } from "@/lib/catalogo/reportes-whatsapp";
 import { programs, sources } from "@/lib/db/schema";
@@ -24,9 +24,10 @@ export async function textoDeCierre(db: Db, ahora: Date): Promise<string> {
   const desde = instanteDeBogota(dia, "00:00");
   if (!desde) throw new Error("No se pudo calcular el inicio del día en Bogotá.");
 
-  const [alertas, fuentes, recibidos, inactivas, reportes, estudiantes] = await Promise.all([
-    alertasActivas(db, ahora),
-    saludDeFuentes(db, ahora),
+  // La salud se calcula UNA vez y de ella salen las alertas: en paralelo dos veces se pasó de los 300 s de Vercel (13-nov).
+  const fuentes = await saludDeFuentes(db, ahora);
+  const alertas = alertasDeFuentes(fuentes, ahora);
+  const [recibidos, inactivas, reportes, estudiantes] = await Promise.all([
     recibidosDesde(db, desde),
     db
       .select({ programa: programs.nombre, nombre: sources.nombre })
