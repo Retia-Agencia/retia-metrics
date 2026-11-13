@@ -114,7 +114,16 @@ describe("MCP por rol y alcance", () => {
 
   it("Media solo recibe programas_visibles", () => {
     const actor = actores.find((item) => item.rol === "media")!;
-    expect(herramientasPara(contexto(actor)).map((tool) => tool.nombre)).toEqual(["programas_visibles"]);
+    expect(herramientasPara(contexto(actor)).map((tool) => tool.nombre)).toEqual(["programas_visibles", "capacidades"]);
+  });
+
+  it("paid trafficker y Customer Success no reciben búsqueda global ni tablero de deals", () => {
+    for (const rol of ["paid_trafficker", "customer_success"] as const) {
+      const actor = actores.find((item) => item.rol === rol)!;
+      const nombres = herramientasPara(contexto(actor)).map((tool) => tool.nombre);
+      expect(nombres).not.toContain("buscar");
+      expect(nombres).not.toContain("tablero_de_deals");
+    }
   });
 
   it("rechaza cada herramienta forjada que no corresponde a cada actor", async () => {

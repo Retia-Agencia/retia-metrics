@@ -4,7 +4,7 @@
 > *cómo se cambia sin romperlo*. El *por qué* de cada decisión vive en el [ADR 0119](./adr/0119-el-mcp-del-crm.md); el avance en
 > los tickets 348, 383, 384, 385 y 386; cómo conectarse y revocar, en `operations.md` §8.1. Si algo de aquí contradice al
 > código, manda el código (ADR 0115 N8) y este archivo se corrige en el mismo commit.
-> Última revisión: 7-nov-2026.
+> Última revisión: 12-nov-2026.
 
 ## 1. Qué es y dónde vive
 
@@ -13,7 +13,9 @@ Un **servidor MCP remoto dentro de la propia app de Next** (no hay otro servicio
 mismo `git push` a `main`. Habla *Streamable HTTP* y es **sin estado**: cada petición HTTP arma su propio servidor y lo
 descarta, así que escala como cualquier route handler.
 
-Lo mantiene quien mantenga el repo: no hay nada que operar aparte. Cambiar una herramienta es cambiar TypeScript en
+Lo mantiene quien mantenga el repo: no hay nada que operar aparte. La lectura es abierta dentro del rol y del alcance:
+`capacidades` descubre qué consultas existen, `buscar` encuentra una persona sin exigir conocer el programa y las consultas
+de hechos cubren listas y conteos sin crear una herramienta por pregunta. Cambiar una herramienta es cambiar TypeScript en
 `lib/mcp/`, probarlo y empujar.
 
 ```
@@ -51,7 +53,9 @@ por cada tools/call:
 | `lib/mcp/instrucciones.ts` | El campo `instructions` del servidor: qué herramienta usar para qué y cómo responder en lenguaje de negocio. |
 | `lib/mcp/herramientas/tipos.ts` | El contrato TypeScript de una herramienta (`Herramienta`). |
 | `lib/mcp/herramientas/index.ts` | **El registro exhaustivo** `HERRAMIENTAS`. Una herramienta que no está aquí no existe. |
-| `lib/mcp/herramientas/{programas,metricas,operacion,decisiones}.ts` | Las once herramientas, agrupadas por familia. Adaptadores delgados. |
+| `lib/mcp/herramientas/{programas,metricas,operacion,decisiones,hechos,capacidades}.ts` | Las herramientas, agrupadas por familia. Adaptadores delgados. |
+| `lib/mcp/vocabulario.ts` | Vocabulario canónico de identificadores y alias retrocompatibles de entrada. |
+| `lib/queries/hechos/registro.ts`, `lib/queries/resolver-filtros.ts` | Registro exhaustivo de hechos consultables y resolución de nombres o ids antes de consultar. |
 | `lib/mcp/herramientas/{programa,periodo}.ts`, `lib/mcp/enlaces.ts` | Piezas compartidas: resolver un programa visible, el periodo en formato MCP (atajo, `custom` con desde y hasta, o un mes `AAAA-MM`; el esquema del mes y su rango viven en `lib/periodo.ts` y los comparte con la URL), los enlaces al CRM. |
 | `lib/auth/roles.ts` | **Quién puede qué.** Cada herramienta pregunta a una función de aquí; nunca compara un rol a mano. |
 | `lib/queries/*` | Las consultas y reglas que las pantallas **y** las herramientas comparten (filtros, proyecciones por rol, alcance). El MCP no define ninguna métrica. |
@@ -66,16 +70,24 @@ Todas son de solo lectura hoy. El developer pasa toda guarda (ADR 0025). "Progra
 | Herramienta | Título | Cuándo usarla | Roles |
 |---|---|---|---|
 | `programas_visibles` | Programas visibles | Para saber qué programas puede consultar la persona y obtener su slug | todos |
+| `capacidades` | Capacidades | Para descubrir las consultas y, con detalle esquema, sus filtros, dimensiones y medidas | todos |
 | `resumen_del_hub` | Resumen del Hub | Para responder con las cifras principales de un periodo: ventas, dinero, citas, realizadas y tasas | gerente, paid trafficker |
 | `consultar_metrica` | Consultar una métrica | Para explicar una métrica, filtrarla o abrir sus desgloses y filas | gerente, paid trafficker, closer (según la métrica) |
+| `consultar_hechos` | Consultar hechos | Para listar o agrupar envíos, agendas, citas, ventas, abonos y gasto nativo | gerente, paid trafficker (sin trabajo por closer) |
+| `buscar` | Buscar en el CRM | Para encontrar una persona, sus deals, llamadas y último traspaso, con una sección por programa | gerente, closer |
 | `buscar_leads` | Buscar personas | Para encontrar una persona por nombre, correo o teléfono | gerente, closer |
 | `ficha_de_lead` | Ficha de una persona | Para consultar el detalle de una persona ya identificada | gerente, closer, customer success (proyección reducida) |
 | `ficha_de_deal` | Ficha de un deal | Para consultar la historia operativa de un deal ya identificado | gerente, closer |
 | `tablero_de_deals` | Tablero de deals | Para ver o filtrar el pipeline comercial completo, paginado | gerente, closer |
+| `opciones_de_filtros` | Opciones de filtros | Para descubrir los valores permitidos por el rol; pauta no recibe dueños ni dimensiones por closer | gerente, closer, paid trafficker |
 | `bandeja` | Bandeja de pendientes | Para ver el trabajo operativo pendiente del día | gerente, closer |
 | `cartera_vencida` | Cartera vencida | Para saber quién tiene saldos vencidos, paginado | gerente, closer, customer success |
 | `pauta_roas` | ROAS de pauta | Para evaluar pauta por total, campaña, conjunto o anuncio | gerente, paid trafficker |
 | `origen_del_programa` | Origen del programa | Para entender de dónde llegaron los registros | gerente, paid trafficker |
+
+`detalle` decide entre la proyección `compacta` y `completa` en `buscar`, `ficha_de_lead` y
+`tablero_de_deals`. En el tablero, `vista` nombra exclusivamente las columnas del Kanban
+(`llamada`, `setteo` o `todo`); sus valores válidos salen del mismo esquema que usa la pantalla.
 
 ## 4. Contrato de herramientas (qué se exige y de dónde sale)
 
@@ -91,15 +103,15 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 5. Los identificadores que entran o salen son **ids opacos o códigos opacos**, nunca correos ni teléfonos en un id. *(AGENTS.md.)*
 
 **Entrada**
-6. 🔒 **Esquema zod `.strict()`**, parámetros con nombres inequívocos, y **toda cadena con tope de longitud** (`max`). El servidor **valida todas las entradas** (spec MCP, "Security Considerations").
-7. **Listas largas se paginan o se acotan** con un tope por defecto, y la respuesta dice cómo pedir la siguiente página. Una respuesta sin tope es un riesgo de contexto y de costo. *(Anthropic, "Writing tools for agents": paginación, filtros y truncado con valores por defecto.)*
-8. **Prefiere pocas herramientas de alto valor** a envolver cada consulta, y una búsqueda con filtros a "listar todo". *(Anthropic, ídem: consolidar y preferir búsqueda.)*
+6. 🔒 **Esquema zod `.strict()`**, parámetros con nombres del vocabulario único de `lib/mcp/vocabulario.ts`, y **toda cadena con tope de longitud** (`max`). Los alias de entrada se normalizan al nombre canónico antes de validar; `id` conserva compatibilidad solo donde la herramienta declara a qué identificador equivale. El servidor **valida todas las entradas** (spec MCP, "Security Considerations").
+7. **Listas largas se paginan en SQL** con `total`, `hay_otra_pagina` y un tope por defecto; nada se carga entero para recortarlo en memoria. *(Anthropic, "Writing tools for agents": paginación, filtros y truncado con valores por defecto.)*
+8. **Pocas herramientas de alto alcance:** `buscar` resuelve la búsqueda global y `consultar_hechos` las listas y conteos base; no se envuelve cada consulta en una herramienta nueva. *(Anthropic, ídem: consolidar y preferir búsqueda.)*
 
 **Salida**
 9. Toda respuesta trae **texto legible para una persona de negocio** y `structuredContent` con el dato. Cada monto lleva su moneda; "—" significa que no se puede calcular; toda tasa trae su cobertura. *(ADR 0115 N3/N5.)*
-10. **No se devuelve la vista interna de una pantalla tal cual.** Cada herramienta traduce la consulta canónica a un objeto con nombres de negocio; publica su `outputSchema` con una descripción por campo y el servidor valida `structuredContent` antes de responder. Las claves de cifras salen de `lib/vocabulario-metricas.ts`, y unidad y monedas de `lib/metricas/registro.ts` cuando ya existe ficha. Rige para las once herramientas (fases A y B del 399): `salida` es obligatoria en `Herramienta` y el servidor la publica y la valida siempre. Las etapas salen como `{clave, nombre}` y el dinero como `{valor, moneda, legible}`. *(ADR 0115 N4/N8; Anthropic: devolver campos de alta señal y no identificadores crípticos.)*
+10. **No se devuelve la vista interna de una pantalla tal cual.** Cada herramienta traduce la consulta canónica a un objeto con nombres de negocio; publica su `outputSchema` con una descripción por campo y el servidor valida `structuredContent` antes de responder. Las claves de cifras salen de `lib/vocabulario-metricas.ts`, y unidad y monedas de `lib/metricas/registro.ts` cuando ya existe ficha. `salida` es obligatoria en `Herramienta` y el servidor la publica y la valida siempre. Las etapas salen como `{clave, nombre}` y el dinero como `{valor, moneda, legible}`. *(ADR 0115 N4/N8; Anthropic: devolver campos de alta señal y no identificadores crípticos.)*
 11. **Cada entidad enlaza al CRM** (`lib/mcp/enlaces.ts`), para que el modelo cite y la persona verifique.
-12. **Errores accionables.** Un error de negocio se devuelve como `isError: true` con un mensaje que dice qué corregir; un error interno responde "Error interno." sin detalle (🔒 `mcp-ruta`). Los errores de protocolo (herramienta desconocida) los maneja el SDK. *(Spec MCP, "Error Handling".)*
+12. **Errores accionables.** Un error de negocio se devuelve como `isError: true` con un mensaje que dice qué corregir; un filtro por nombre o id que no resuelve falla con sus opciones, **nunca se convierte en cero filas silenciosas**. Un error interno responde "Error interno." sin detalle (🔒 `mcp-ruta`). Los errores de protocolo (herramienta desconocida) los maneja el SDK. *(Spec MCP, "Error Handling".)*
 
 **Descubrimiento (que el modelo escoja bien y rápido)**
 13. 🔒 **Nombre en `snake_case` ASCII, único, de 1 a 64 caracteres**, con la forma `verbo_o_sustantivo` consistente con las demás. *(Spec MCP: nombres únicos, 1 a 128 caracteres y solo letras, números, `_`, `-`, `.`.)*
@@ -111,7 +123,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 **Operación**
 18. 🔒 **Toda llamada deja rastro sin argumentos** y hay **tope por minuto**. **También un rechazo del esquema** (el SDK valida antes del handler: `auditarRechazosDeEntrada` en `lib/mcp/servidor.ts` envuelve ese paso): queda `error` con `ENTRADA_INVALIDA:<campos que fallaron>`, sin valores (`tests/mcp-rechazos.test.ts`). Los accesos OAuth duran una hora, el refresh 90 días, los tokens personales nuevos un año y `mcp_llamadas` conserva 90 días. *(Spec MCP: limitar la tasa y registrar el uso.)*
 19. **No hay passthrough de tokens.** El servidor solo acepta tokens emitidos para él (`retia_mcp_…`) y nunca reenvía el del cliente a otro servicio. *(MCP, "Security Best Practices": token passthrough es un anti-patrón.)*
-20. **Una escritura (ticket 384) no entra por una herramienta suelta:** lleva vista previa, confirmación humana, scope `escritura`, `crearConRastro` con origen `mcp` y deshacer (ADR 0042/0117). `soloLectura: true` en el tipo se cambia a propósito en ese ticket, no antes.
+20. **Las escrituras del F2 se descubren por `capacidades` y entran por `preparar_accion` + `confirmar_cambio`** (decisión D1, 12-nov): vista previa, confirmación humana, scope `escritura`, `crearConRastro` con origen `mcp` y deshacer (ADR 0042/0117). `soloLectura` cambia allí, no antes.
 
 ## 5. Recetas
 
@@ -137,16 +149,13 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 7. Deuda conocida
 
-La caducidad de credenciales, la retención de 90 días y la paginación de listas quedaron resueltas en el 383. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan sin `EXPLAIN` a 10 veces de las tools de operación ni evaluaciones de descubrimiento (386). Las once herramientas ya publican `title`, anotaciones completas y salida de negocio validada.
+La caducidad de credenciales, la retención de 90 días, la paginación SQL, la búsqueda global, los filtros resueltos y la consulta genérica de hechos quedaron resueltos. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan los `EXPLAIN` a 10× de las herramientas de operación y las evaluaciones de descubrimiento (386). `consultar_metrica` todavía usa `closer` como código opaco, un concepto distinto del dueño del deal; es candidato a renombrarse en F5.
 
 **Alcance y límites del MCP (9-nov, ticket 411, ADR 0129): este documento describe el estado de hoy, no el destino.** Hoy son
-once herramientas de solo lectura; el destino decidido por Mani es una puerta total con reglas de orientación (todo lo que la
+herramientas de solo lectura; el destino decidido por Mani es una puerta total con reglas de orientación (todo lo que la
 app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
 llamada (p95: `pauta_roas` 2,8 s, `tablero_de_deals` 2,0 s, `consultar_metrica` 1,0 s) y no se alcanzó el tope de 300/min; las
-limitaciones L1 a L11 (solo lectura, consultas pre-armadas con N+1, nombres inconsistentes, filtro `closer` que devuelve vacío
-sin error, cohorte por defecto silenciosa, respuestas desmedidas, paginación en memoria, sin consulta genérica de hechos, costo
-fijo por llamada sin medir, descubrimiento, rol que acota la superficie) están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
-Al construir el 411 se reescriben §1, §3 y §4 (puntos 7, 8 y 20) en el mismo commit.
+límites pendientes de las fases siguientes están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

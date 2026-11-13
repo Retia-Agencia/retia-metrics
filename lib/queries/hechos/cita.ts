@@ -50,10 +50,10 @@ export interface FilaCita {
   ocurrio: string;
 }
 
-export async function agrupar<D extends DimensionCita>(
+function consultaAgrupada<D extends DimensionCita>(
   db: Db,
   opciones: ConsultaAgrupada<D, D | MedidaCita>,
-): Promise<Array<Record<D, string | null> & { citas: number; shows: number }>> {
+) {
   const elegidas = seleccionarDimensiones(dimensiones, opciones.agruparPor);
   let consulta = db.select({
     ...elegidas,
@@ -76,8 +76,18 @@ export async function agrupar<D extends DimensionCita>(
     shows: sql<number>`count(*) filter (where ${ocurrioSql()})::int`,
   }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
-  consulta = aplicarPagina(consulta, opciones.pagina);
-  return await consulta as Array<Record<D, string | null> & { citas: number; shows: number }>;
+  return consulta;
+}
+
+export async function agrupar<D extends DimensionCita>(
+  db: Db,
+  opciones: ConsultaAgrupada<D, D | MedidaCita>,
+): Promise<Array<Record<D, string | null> & { citas: number; shows: number }>> {
+  return await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { citas: number; shows: number }>;
+}
+
+export async function contarGrupos<D extends DimensionCita>(db: Db, opciones: ConsultaAgrupada<D, D | MedidaCita>): Promise<number> {
+  return totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined }));
 }
 
 export async function listar<D extends DimensionCita = DimensionCita>(

@@ -119,10 +119,10 @@ export function filtroDeEnvios({
   return and(alcance(programId, rango), condicionesDeFiltros(dimensiones, filtros));
 }
 
-export async function agrupar<D extends DimensionEnvio>(
+function consultaAgrupada<D extends DimensionEnvio>(
   db: Db,
   opciones: ConsultaAgrupada<D, D | MedidaEnvio>,
-): Promise<Array<Record<D, string | null> & { envios: number }>> {
+) {
   const elegidas = seleccionarDimensiones(dimensiones, opciones.agruparPor);
   let consulta = db
     .select({ ...elegidas, envios: sql<number>`count(*)::int` })
@@ -134,8 +134,18 @@ export async function agrupar<D extends DimensionEnvio>(
   const ordenables = { ...dimensiones, envios: sql<number>`count(*)::int` };
   const orden = expresionDeOrden(ordenables, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
-  consulta = aplicarPagina(consulta, opciones.pagina);
-  return await consulta as Array<Record<D, string | null> & { envios: number }>;
+  return consulta;
+}
+
+export async function agrupar<D extends DimensionEnvio>(
+  db: Db,
+  opciones: ConsultaAgrupada<D, D | MedidaEnvio>,
+): Promise<Array<Record<D, string | null> & { envios: number }>> {
+  return await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { envios: number }>;
+}
+
+export async function contarGrupos<D extends DimensionEnvio>(db: Db, opciones: ConsultaAgrupada<D, D | MedidaEnvio>): Promise<number> {
+  return totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined }));
 }
 
 export async function listar<D extends DimensionEnvio = DimensionEnvio>(

@@ -110,6 +110,10 @@ async function llamar(token: string, args: Record<string, unknown> = {}) {
   return json(await post("tools/call", { name: "programas_visibles", arguments: args }, token));
 }
 
+async function llamarHerramienta(token: string, nombre: string, args: Record<string, unknown> = {}) {
+  return json(await post("tools/call", { name: nombre, arguments: args }, token));
+}
+
 function estructurado(respuesta: Record<string, unknown>) {
   return (respuesta.result as { structuredContent?: { programas?: unknown[] } })?.structuredContent?.programas;
 }
@@ -127,7 +131,7 @@ describe("ruta MCP real", () => {
     expect(inicial.result).toBeTruthy();
     // Guía de uso para el cliente: nombra cada herramienta que el servidor registra para este rol.
     const instrucciones = (inicial.result as { instructions?: string }).instructions ?? "";
-    for (const nombre of ["programas_visibles", "resumen_del_hub", "consultar_metrica", "buscar_leads", "cartera_vencida"]) {
+    for (const nombre of ["programas_visibles", "resumen_del_hub", "consultar_metrica", "buscar", "opciones_de_filtros", "buscar_leads", "cartera_vencida"]) {
       expect(instrucciones).toContain(nombre);
     }
     const listado = await json(await post("tools/list", {}, tokenCloser.valor));
@@ -135,11 +139,14 @@ describe("ruta MCP real", () => {
     expect(herramientas.map((t) => t.name))
       .toEqual([
         "programas_visibles",
+        "capacidades",
         "consultar_metrica",
+        "buscar",
         "buscar_leads",
         "ficha_de_lead",
         "ficha_de_deal",
         "tablero_de_deals",
+        "opciones_de_filtros",
         "bandeja",
         "cartera_vencida",
       ]);
@@ -183,6 +190,19 @@ describe("ruta MCP real", () => {
     ]);
     expect(estructurado(await llamar(tokenDeveloper.valor, { vista: `usuario:${closerId}` })))
       .toEqual([{ nombre: "Visible A", slug: "visible-a" }]);
+  });
+
+  it("conserva la vista propia del tablero y permite suplantar en esa herramienta", async () => {
+    const tablero = contenidoEstructurado(await llamarHerramienta(tokenCloser.valor, "tablero_de_deals", {
+      programa: "visible-a", vista: "todo",
+    })) as { filtros: { vista: string } };
+    expect(tablero.filtros.vista).toBe("todo");
+
+    const suplantado = contenidoEstructurado(await llamarHerramienta(tokenDeveloper.valor, "tablero_de_deals", {
+      programa: "visible-a", vista: `usuario:${closerId}`,
+    })) as { programa: { slug: string }; filtros: { vista: string } };
+    expect(suplantado.programa.slug).toBe("visible-a");
+    expect(suplantado.filtros.vista).toBe("todo");
   });
 
   it("rechaza vista de un no-developer como error de herramienta", async () => {

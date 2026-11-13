@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { HERRAMIENTAS } from "@/lib/mcp/herramientas";
 import { INSTRUCCIONES_MCP } from "@/lib/mcp/instrucciones";
+import { IDENTIFICADORES_MCP } from "@/lib/mcp/vocabulario";
 
 /**
  * Contrato de mantenimiento del MCP (`docs/mcp.md` §4). Cada regla de ese documento marcada con 🔒
@@ -45,22 +46,64 @@ describe("contrato de herramientas del MCP", () => {
     }
   });
 
-  it("las once herramientas publican salida", () => {
+  it("todas las herramientas publican salida", () => {
     const conSalida = HERRAMIENTAS.filter((herramienta) => herramienta.salida !== undefined)
       .map((herramienta) => herramienta.nombre);
     expect(conSalida).toEqual([
       "programas_visibles",
+      "capacidades",
       "resumen_del_hub",
       "consultar_metrica",
+      "consultar_hechos",
+      "buscar",
       "buscar_leads",
       "ficha_de_lead",
       "ficha_de_deal",
       "tablero_de_deals",
+      "opciones_de_filtros",
       "bandeja",
       "cartera_vencida",
       "pauta_roas",
       "origen_del_programa",
     ]);
+  });
+
+  it("usa un vocabulario único para identificadores de entrada y salida", () => {
+    const canonicas = new Set<string>(IDENTIFICADORES_MCP);
+    // Un `id` suelto es el id del objeto que lo contiene (`dueno.id`, `cohorte.id`): el padre ya nombra el concepto.
+    // Lo que el guardián caza es una clave `id_*` fuera del vocabulario, y una entrada canónica que ninguna salida devuelve (L3).
+    function identificadores(esquema: Esquema, ruta = ""): string[] {
+      const propios = Object.entries(esquema.properties ?? {}).flatMap(([clave, hijo]) => {
+        const actual = ruta ? `${ruta}.${clave}` : clave;
+        return [...(clave === "id" || clave.startsWith("id_") ? [actual] : []), ...identificadores(hijo, actual)];
+      });
+      return [...propios, ...(esquema.items ? identificadores(esquema.items, `${ruta}[]`) : []), ...(esquema.anyOf ?? []).flatMap((parte) => identificadores(parte, ruta))];
+    }
+    const salidas = new Set<string>();
+    const fueraDelVocabulario: string[] = [];
+    for (const herramienta of HERRAMIENTAS) {
+      for (const lado of ["entrada", "salida"] as const) {
+        const esquema = z.toJSONSchema(herramienta[lado], { io: lado === "entrada" ? "input" : "output", unrepresentable: "any" }) as Esquema;
+        for (const ruta of identificadores(esquema, lado)) {
+          const clave = ruta.split(".").at(-1)!.replace("[]", "");
+          if (clave !== "id" && !canonicas.has(clave)) fueraDelVocabulario.push(`${herramienta.nombre}:${ruta}`);
+          if (lado === "salida") salidas.add(clave);
+        }
+      }
+    }
+    expect(fueraDelVocabulario).toEqual([]);
+    for (const herramienta of HERRAMIENTAS) {
+      const esquema = z.toJSONSchema(herramienta.entrada, { io: "input", unrepresentable: "any" }) as Esquema;
+      for (const ruta of identificadores(esquema, "entrada")) {
+        const clave = ruta.split(".").at(-1)!;
+        if (canonicas.has(clave)) expect(salidas.has(clave), `${herramienta.nombre}:${clave} no aparece en ninguna salida`).toBe(true);
+      }
+    }
+
+    const sintetico = (clave: string) => ({ type: "object", properties: { [clave]: { type: "string" } } } as Esquema);
+    expect(identificadores(sintetico("id_de_lead"))).toEqual(["id_de_lead"]);
+    expect(canonicas.has("id_de_lead")).toBe(false);
+    expect(canonicas.has(identificadores(sintetico("id_de_la_persona"))[0])).toBe(true);
   });
 
   it("cada campo de cada salida explica su significado", () => {

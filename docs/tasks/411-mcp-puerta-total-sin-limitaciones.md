@@ -159,8 +159,8 @@ pre-armada: es una **puerta con reglas de orientación** sobre los mismos servic
     2.612)**, la más lenta por llamada y no estaba en la medición del 9-nov. Ningún tope alcanzado.
   - **Hallazgo fuera de las L:** `pauta_roas` respondió 7 veces «Error interno» (9-nov 19:37 desde claude.ai, cuatro seguidas;
     10-nov 05:08 y 05:43 desde Claude Code); ninguna después del 10-nov 05:44 UTC. No es de este ticket: va como follow-up.
-- [ ] **F1 Lectura abierta.** `buscar` con dueño; filtros por nombre o id sin 0 silencioso; filtros por defecto declarados;
-  opciones aparte; `campos`; paginación en SQL; un solo nombre por concepto. La pregunta del 9-nov = 1 llamada.
+- [x] **F1 Lectura abierta.** `buscar` con dueño; filtros por nombre o id sin 0 silencioso; filtros por defecto declarados;
+  opciones aparte; `campos`; paginación en SQL; un solo nombre por concepto. La pregunta del 9-nov = 1 llamada. Cerrada el 12-nov (H3a): `consultar_hechos` sobre seis hechos, `buscar` por programa (una sección por programa, sin total, Mani), dueño y registrado_por ocultos a quien no ve el equipo comercial; abierto: el orden por nombre en SQL usa el collation de la base y la pantalla `localeCompare("es")`.
 - [ ] **F2 Escritura (reemplaza al 384).** Registro de acciones, vista previa, confirmación, rastro `mcp`, deshacer; revisión
   adversarial (`/codex:adversarial-review`) y petición forjada por rol y programa.
 - [ ] **F3 Guardián de cobertura** mordido en los dos sentidos.

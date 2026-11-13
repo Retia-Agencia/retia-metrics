@@ -1,4 +1,4 @@
-import { and, between, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, gte, inArray, lt, max, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   cohorts,
@@ -19,6 +19,7 @@ import {
   VISTA_PREDETERMINADA,
   VISTAS_DEL_TABLERO,
   columnaDelDeal,
+  columnaDelDealSql,
   type ColumnaDelTablero,
   type EtapaDeal,
   type PendienteDeal,
@@ -28,7 +29,7 @@ import { carteraVencida } from "@/lib/queries/cartera";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { saldosDeDeals } from "@/lib/queries/saldo";
 import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
-import { vigente } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { hoyEnBogota } from "@/lib/format";
 import { conNombresVigentes } from "@/lib/filtros-alias";
 import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-de-llamada";
@@ -36,7 +37,8 @@ import { diaDeCalendario } from "@/lib/dias-habiles";
 import { filtroDeFechaDeLaUrl, type FiltroDeFecha } from "@/lib/periodo";
 import { atajosDePeriodo, type AtajoDePeriodo } from "@/lib/periodo";
 import { cerradosEn, fechaAnclaDealCreado } from "@/lib/queries/metricas-filtros";
-import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
+import { ultimaActividadPorDeal, ultimaActividadSql } from "@/lib/queries/ultima-actividad";
+import { casaSinTildes } from "@/lib/busqueda-sin-tildes";
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { linkEnviadoSinCita } from "@/lib/deals/handoff";
@@ -244,6 +246,33 @@ export function canalDeLead(utmSource: string | null, utmMedium: string | null):
   return `${utmSource}|${utmMedium}`;
 }
 
+/** Gemela SQL de `canalDeLead`. */
+export function canalDeLeadSql(): ReturnType<typeof sql<string | null>> {
+  return sql<string | null>`case when ${submissions.utmSource} is null or ${submissions.utmMedium} is null then null else ${submissions.utmSource} || '|' || ${submissions.utmMedium} end`;
+}
+
+type RangosDelTablero = ReturnType<typeof rangosDeFecha>;
+
+/** El WHERE común de la pantalla y de la página operativa. */
+function condicionesBaseDelTablero(
+  programId: string,
+  alcance: AlcanceDeals,
+  rangos: RangosDelTablero,
+  previos: { cerrados: string[] | null; conLlamadaEnRango: string[] | null },
+  soloDeals?: readonly string[],
+) {
+  return and(
+    eq(deals.programId, programId),
+    soloDeals ? (soloDeals.length > 0 ? inArray(deals.id, [...soloDeals]) : sql`false`) : undefined,
+    alcance.tipo === "dueno" ? eq(deals.ownerUserId, alcance.userId) : undefined,
+    rangos.creado ? between(fechaAnclaDealCreado(), rangos.creado.desde, rangos.creado.hasta) : undefined,
+    previos.cerrados ? (previos.cerrados.length > 0 ? inArray(deals.id, previos.cerrados) : sql`false`) : undefined,
+    previos.conLlamadaEnRango
+      ? (previos.conLlamadaEnRango.length > 0 ? inArray(deals.id, previos.conLlamadaEnRango) : sql`false`)
+      : undefined,
+  );
+}
+
 /**
  * Los filtros del tablero leidos de los parametros de la URL (ADR 0023: nunca de la
  * sesion). Un parametro ausente o vacio no filtra. `antiguedad` solo cuenta si es un
@@ -285,10 +314,12 @@ export async function tableroKanban(
   filtros: FiltrosDeEntradaKanban = {},
   hoy: string = hoyEnBogota(),
   ahora: Date = new Date(),
+  opcionesInternas: { soloDeals?: readonly string[] } = {},
 ): Promise<TableroKanban> {
   // Un deal + su lead + su dueno, en una sola lectura de la tabla `deals`
   // con joins (sin subconsultas correlacionadas: son joins directos, no plantillas).
-  const { creado, actividad, cierre, llamada, seguimiento } = rangosDeFecha(filtros);
+  const rangos = rangosDeFecha(filtros);
+  const { actividad, cierre, llamada, seguimiento } = rangos;
   // Los filtros previos no dependen entre si: una sola ida a la base, no una por filtro.
   const [cerrados, conLlamadaEnRango] = await Promise.all([
     cierre ? cerradosEn(db, programId, cierre) : null,
@@ -332,19 +363,10 @@ export async function tableroKanban(
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, programId)))
-    .where(
-      and(
-        eq(deals.programId, programId),
-        vigente(deals),
-        alcance.tipo === "dueno" ? eq(deals.ownerUserId, alcance.userId) : undefined,
-        // Creado y cierre se deciden en SQL con la MISMA definicion que el dashboard (138, 141).
-        creado ? between(fechaAnclaDealCreado(), creado.desde, creado.hasta) : undefined,
-        // Un arreglo vacio en `inArray` no filtra nada: sin cerrados, la condicion es falsa.
-        cerrados ? (cerrados.length > 0 ? inArray(deals.id, cerrados) : sql`false`) : undefined,
-        // Deals con al menos una llamada VIGENTE (cualquier resultado, no-show incluido) en el rango.
-        conLlamadaEnRango ? (conLlamadaEnRango.length > 0 ? inArray(deals.id, conLlamadaEnRango) : sql`false`) : undefined,
-      ),
-    );
+    .where(and(
+      condicionesBaseDelTablero(programId, alcance, rangos, { cerrados, conLlamadaEnRango }, opcionesInternas.soloDeals),
+      vigente(deals),
+    ));
   const [filasLeidas, leadsCasan] = await Promise.all([filasPendientes, leadsCasanPendiente]);
   let filas = filasLeidas;
   if (leadsCasan !== null) filas = filas.filter((fila) => leadsCasan.has(fila.leadId));
@@ -530,6 +552,99 @@ export async function tableroKanban(
   return { columnas, total: columnas.reduce((total, columna) => total + columna.tarjetas.length, 0), enProximaCohorte };
 }
 
+export interface PaginaDelTablero {
+  ids: string[];
+  total: number;
+  tablero: TableroKanban;
+}
+
+/**
+ * Página operativa del Kanban. El armado final vuelve a `tableroKanban` limitado a los ids
+ * elegidos para conservar exactamente avisos, saldos y llamadas de la pantalla.
+ */
+export async function paginaDelTablero(
+  db: Db,
+  programId: string,
+  alcance: AlcanceDeals,
+  filtros: FiltrosDeEntradaKanban,
+  pagina: { limite: number; offset: number },
+  hoy: string = hoyEnBogota(),
+  ahora: Date = new Date(),
+): Promise<PaginaDelTablero> {
+  const rangos = rangosDeFecha(filtros);
+  const [cerrados, conLlamadaEnRango] = await Promise.all([
+    rangos.cierre ? cerradosEn(db, programId, rangos.cierre) : null,
+    rangos.llamada ? llamadasEn(db, programId, rangos.llamada) : null,
+  ]);
+  const entrada = entradaAEtapaActualSql(db);
+  const agenda = fechaLlamadaAgendadaVigenteSql(db);
+  const actividad = ultimaActividadSql(db, ahora);
+  const columna = columnaDelDealSql(sql`${deals.etapa}`, sql`${deals.pendiente}`);
+  const canal = canalDeLeadSql();
+  const fechaEntrada = sql<Date>`coalesce("entrada_etapa_actual"."fecha", ${deals.createdAt})`.mapWith(deals.createdAt);
+  const filtrosVisibles = alcance.tipo === "dueno" ? { ...filtros, ownerUserId: null } : filtros;
+  const columnas = COLUMNAS_DE_VISTA[filtros.vista ?? VISTA_PREDETERMINADA];
+  const orden = filtros.orden ?? ORDEN_PREDETERMINADO;
+  const inicioDeDia = (dia: string) => new Date(`${dia}T00:00:00-05:00`);
+  const diaSiguiente = (dia: string) => new Date(inicioDeDia(dia).getTime() + MS_POR_DIA);
+  const fechaSiguiente = (dia: string) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(diaSiguiente(dia));
+  const instanteSql = (fecha: Date) => sql<Date>`${fecha.toISOString()}::timestamptz`;
+  const limiteAntiguedad = filtrosVisibles.antiguedadMinima == null
+    ? undefined
+    : new Date(inicioDeDia(hoy).getTime() - (filtrosVisibles.antiguedadMinima - 1) * MS_POR_DIA);
+  const q = filtrosVisibles.q?.trim();
+  const condiciones = and(
+    condicionesBaseDelTablero(programId, alcance, rangos, { cerrados, conLlamadaEnRango }),
+    filtrosVisibles.ownerUserId ? eq(deals.ownerUserId, filtrosVisibles.ownerUserId) : undefined,
+    filtrosVisibles.cohorteId ? eq(deals.cohortId, filtrosVisibles.cohorteId) : undefined,
+    filtrosVisibles.canal ? eq(canal, filtrosVisibles.canal) : undefined,
+    filtrosVisibles.leadQuality ? eq(leads.leadQuality, filtrosVisibles.leadQuality) : undefined,
+    filtrosVisibles.leadValue ? eq(leads.leadValue, filtrosVisibles.leadValue) : undefined,
+    limiteAntiguedad ? lt(fechaEntrada, instanteSql(limiteAntiguedad)) : undefined,
+    rangos.actividad ? gte(actividad.fecha, instanteSql(inicioDeDia(rangos.actividad.desde))) : undefined,
+    rangos.actividad ? lt(actividad.fecha, instanteSql(diaSiguiente(rangos.actividad.hasta))) : undefined,
+    rangos.seguimiento ? gte(deals.fechaSeguimiento, rangos.seguimiento.desde) : undefined,
+    rangos.seguimiento ? lt(deals.fechaSeguimiento, fechaSiguiente(rangos.seguimiento.hasta)) : undefined,
+    q && q.length >= 2 ? or(casaSinTildes(leads.nombre, q), casaSinTildes(leads.emailNormalizado, q)) : undefined,
+    sql`${deals.pendiente} is distinct from 'proxima_cohorte'`,
+    inArray(columna, [...columnas]),
+  );
+  const ordenColumna = sql<number>`case ${sql.join(columnas.map((clave, indice) => sql`when ${columna} = ${clave} then ${indice}`), sql.raw(" "))} else ${columnas.length} end`;
+  const principal = orden.campo === "actividad" ? actividad.fecha
+    : orden.campo === "creado" ? deals.createdAt
+      : orden.campo === "agenda" ? sql<Date>`"llamada_agendada_vigente"."fecha"`
+        : sql<string>`nullif(trim(${leads.nombre}), '')`;
+  const ordenPrincipal = orden.sentido === "asc" ? asc(principal) : desc(principal);
+  const filas = await db.select({ id: deals.id, total: sql<number>`count(*) over()` })
+    .from(deals)
+    .innerJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .leftJoin(entrada, and(eq(entrada.dealId, deals.id), eq(entrada.etapa, deals.etapa)))
+    .leftJoin(agenda, eq(agenda.dealId, deals.id))
+    .leftJoin(actividad.actividades, eq(actividad.actividades.dealId, deals.id))
+    .leftJoin(actividad.llamadasCreadas, eq(actividad.llamadasCreadas.dealId, deals.id))
+    .leftJoin(actividad.llamadasAgendadas, eq(actividad.llamadasAgendadas.dealId, deals.id))
+    .leftJoin(actividad.pagos, eq(actividad.pagos.dealId, deals.id))
+    .leftJoin(actividad.movimientos, eq(actividad.movimientos.dealId, deals.id))
+    .where(and(
+      condiciones,
+      vigente(deals),
+      incluyendoAnulados(entrada),
+      incluyendoAnulados(agenda),
+      incluyendoAnulados(actividad.actividades),
+      incluyendoAnulados(actividad.llamadasCreadas),
+      incluyendoAnulados(actividad.llamadasAgendadas),
+      incluyendoAnulados(actividad.pagos),
+      incluyendoAnulados(actividad.movimientos),
+    ))
+    .orderBy(asc(ordenColumna), asc(sql`${principal} is null`), ordenPrincipal, desc(deals.createdAt), asc(deals.id))
+    .limit(pagina.limite).offset(pagina.offset);
+  const ids = filas.map((fila) => fila.id);
+  const total = Number(filas[0]?.total ?? 0);
+  const tablero = await tableroKanban(db, programId, alcance, filtros, hoy, ahora, { soloDeals: ids });
+  return { ids, total, tablero };
+}
+
 function compararTarjetas(
   a: TarjetaDeal,
   b: TarjetaDeal,
@@ -579,7 +694,7 @@ function pasaFiltros(t: TarjetaDeal, f: FiltrosDeEntradaKanban): boolean {
  * historial hacia esa etapa. Se trae el historial de los deals y se resuelve en memoria
  * (nada de subconsultas correlacionadas). Un deal sin fila que case usa su `createdAt`.
  */
-async function entradasAEtapaActual(
+export async function entradasAEtapaActual(
   db: Db,
   filas: { dealId: string; etapa: EtapaDeal }[],
 ): Promise<Map<string, Date>> {
@@ -599,6 +714,24 @@ async function entradasAEtapaActual(
     if (h.a === etapaDeDeal.get(h.dealId)) entrada.set(h.dealId, h.fecha);
   }
   return entrada;
+}
+
+/** Gemela pública usada por la página SQL y por su prueba de paridad. */
+export function entradaAEtapaActualSql(db: Db) {
+  return db.select({
+    dealId: dealEtapaHistorial.dealId,
+    etapa: dealEtapaHistorial.a,
+    fecha: max(dealEtapaHistorial.fecha).as("fecha"),
+  }).from(dealEtapaHistorial)
+    .groupBy(dealEtapaHistorial.dealId, dealEtapaHistorial.a)
+    .as("entrada_etapa_actual");
+}
+
+/** Fecha más reciente de una llamada agendada vigente, agrupada por deal. */
+export function fechaLlamadaAgendadaVigenteSql(db: Db) {
+  return db.select({ dealId: calls.dealId, fecha: max(calls.fechaAgenda).as("fecha") }).from(calls)
+    .where(and(eq(calls.resultado, "agendada"), vigente(calls)))
+    .groupBy(calls.dealId).as("llamada_agendada_vigente");
 }
 
 /** Los leads (de la lista dada) que tienen al menos un contacto SIN confirmar. */
@@ -641,6 +774,18 @@ export interface OpcionesDeTablero {
   plataformas: OpcionCatalogo[];
 }
 
+/** Dueños que tienen deals vigentes; es también el catálogo visible del tablero. */
+export async function duenosConDealsDelPrograma(db: Db, programId: string): Promise<OpcionCatalogo[]> {
+  const filas = await db.selectDistinct({ id: users.id, nombre: users.nombre })
+    .from(deals)
+    .innerJoin(users, eq(users.id, deals.ownerUserId))
+    .where(and(eq(deals.programId, programId), vigente(deals)));
+  return filas.map((fila) => ({
+    id: fila.id,
+    nombre: fila.nombre ?? "Sin nombre",
+  })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+
 /**
  * Las opciones del programa para poblar los selectores del Kanban: los duenos que
  * tienen algun deal, las cohortes con deals, los canales presentes, y los catalogos
@@ -663,12 +808,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     motivoFilas,
     plataformasDelProg,
   ] = await Promise.all([
-    // Owners con deals vigentes en el programa.
-    db
-      .selectDistinct({ id: users.id, nombre: users.nombre })
-      .from(deals)
-      .innerJoin(users, eq(users.id, deals.ownerUserId))
-      .where(and(eq(deals.programId, programId), vigente(deals))),
+    duenosConDealsDelPrograma(db, programId),
     // Cohortes con deals vigentes en el programa.
     db
       .selectDistinct({ id: cohorts.id, codigo: cohorts.codigo, inicio: cohorts.fechaInicioClases })
@@ -700,9 +840,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     plataformasDelPrograma(db, programId),
   ]);
 
-  const owners = ownerFilas
-    .map((o) => ({ id: o.id, nombre: o.nombre ?? "Sin nombre" }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const owners = ownerFilas;
   const cohortes = cohorteFilas.map((c) => ({ id: c.id, nombre: c.codigo }));
   if (activa && !cohortes.some((c) => c.id === activa.id)) cohortes.push({ id: activa.id, nombre: activa.codigo });
   cohortes.sort((a, b) => a.nombre.localeCompare(b.nombre));

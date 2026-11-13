@@ -83,10 +83,10 @@ export async function agruparTrazas(
     .groupBy(...Object.values(columnasUtmDelEnvio));
 }
 
-export async function agrupar<D extends DimensionAgenda>(
+function consultaAgrupada<D extends DimensionAgenda>(
   db: Db,
   opciones: ConsultaAgendaAgrupada<D>,
-): Promise<Array<Record<D, string | null> & { agendas: number }>> {
+) {
   const elegidas = seleccionarDimensiones(dimensiones, opciones.agruparPor);
   let consulta = db.select({ ...elegidas, agendas: sql<number>`count(*)::int` }).from(calls)
     .leftJoin(deals, and(eq(deals.id, calls.dealId), incluyendoAnulados(deals)))
@@ -102,8 +102,18 @@ export async function agrupar<D extends DimensionAgenda>(
     .groupBy(...opciones.agruparPor.map((nombre) => dimensiones[nombre])).$dynamic();
   const orden = expresionDeOrden({ ...dimensiones, agendas: sql<number>`count(*)::int` }, opciones.orden);
   if (orden) consulta = consulta.orderBy(orden);
-  consulta = aplicarPagina(consulta, opciones.pagina);
-  return await consulta as Array<Record<D, string | null> & { agendas: number }>;
+  return consulta;
+}
+
+export async function agrupar<D extends DimensionAgenda>(
+  db: Db,
+  opciones: ConsultaAgendaAgrupada<D>,
+): Promise<Array<Record<D, string | null> & { agendas: number }>> {
+  return await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { agendas: number }>;
+}
+
+export async function contarGrupos<D extends DimensionAgenda>(db: Db, opciones: ConsultaAgendaAgrupada<D>): Promise<number> {
+  return totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined }));
 }
 
 export async function listar<D extends DimensionAgenda = DimensionAgenda>(

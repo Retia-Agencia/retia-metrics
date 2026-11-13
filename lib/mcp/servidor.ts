@@ -5,6 +5,7 @@ import { codigoDeEntradaInvalida, registrarLlamada, segundosDeEspera } from "./b
 import { herramientasPara } from "./herramientas";
 import type { ContextoMcp, Herramienta } from "./herramientas/tipos";
 import { sesionDeToken } from "./sesion";
+import { esVistaValida, PREFIJO_SUPLANTACION } from "@/lib/auth/vista";
 
 function clienteDe(server: McpServer): string | null {
   const cliente = server.server.getClientVersion();
@@ -38,7 +39,7 @@ function respuestaDeFalla(error: unknown): {
 
 /** El esquema que el servidor valida y publica: el de la herramienta más `vista`, sin claves extra. */
 function esquemaDeEntrada<E extends z.ZodObject>(herramienta: Herramienta<E>) {
-  return herramienta.entrada.extend({ vista: z.string().optional() }).strict();
+  return herramienta.entrada.safeExtend({ vista: z.string().optional() }).strict();
 }
 
 function registrarUna<E extends z.ZodObject>(
@@ -87,8 +88,15 @@ function registrarUna<E extends z.ZodObject>(
       let codigoError: string | null = null;
       let respuesta;
       try {
-        const { vista: vistaCruda, ...propios } = argumentos;
-        const vista = typeof vistaCruda === "string" ? vistaCruda : undefined;
+        const vistaCruda = argumentos.vista;
+        const tieneVistaPropia = "vista" in herramienta.entrada.shape;
+        const vistaPropiaAcepta = tieneVistaPropia
+          && herramienta.entrada.shape.vista.safeParse(vistaCruda).success;
+        const esVistaDeSesion = typeof vistaCruda === "string"
+          && (!vistaPropiaAcepta && (esVistaValida(vistaCruda) || vistaCruda.startsWith(PREFIJO_SUPLANTACION)));
+        const vista = esVistaDeSesion ? vistaCruda : undefined;
+        const propios = { ...argumentos };
+        if (esVistaDeSesion) delete propios.vista;
         const sesion = await sesionDeToken(contextoBase.db, {
           userId: contextoBase.session.user.id,
           scope: contextoBase.escritura ? "escritura" : "lectura",

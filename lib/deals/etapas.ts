@@ -4,6 +4,7 @@ import {
   tipoMotivoEnum,
   type EtapaDeal,
 } from "@/lib/db/schema";
+import { sql, type SQL } from "drizzle-orm";
 
 export type { EtapaDeal };
 export type PendienteDeal = (typeof pendienteDealEnum.enumValues)[number];
@@ -58,6 +59,11 @@ export const NOMBRE_DE_COLUMNA: Readonly<Record<ColumnaDelTablero, string>> = {
 /** En qué columna del Kanban va un deal: Re-agenda le gana a Agendado y a Atendido. */
 export function columnaDelDeal(etapa: EtapaDeal, pendiente: PendienteDeal | null): ColumnaDelTablero {
   return pendiente === "reagenda" && ETAPAS_CON_COLUMNA_REAGENDA.includes(etapa) ? COLUMNA_REAGENDA : etapa;
+}
+
+/** Gemela SQL de `columnaDelDeal`; recibe columnas, nunca valores interpolados. */
+export function columnaDelDealSql(etapa: SQL, pendiente: SQL): SQL<string> {
+  return sql<string>`case when ${pendiente} = 'reagenda' and ${etapa} in ('agendado', 'atendido') then 'reagenda' else ${etapa}::text end`;
 }
 
 /**

@@ -133,10 +133,10 @@ describe.skipIf(!medir)("herramientas MCP a 10x del volumen actual", () => {
   it("mantiene cada ejecución por debajo del tope de humo de PGlite", async () => {
     const casos: Array<{ nombre: string; ejecutar: () => Promise<unknown> }> = [
       { nombre: "buscar_leads", ejecutar: () => buscarLeadsMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", q: "", pagina: 1 }) },
-      { nombre: "tablero_de_deals", ejecutar: () => tableroDeDealsMcp.ejecutar(contexto(), { programa: "mcp-volumen-a" }) },
+      { nombre: "tablero_de_deals", ejecutar: () => tableroDeDealsMcp.ejecutar(contexto(), tableroDeDealsMcp.entrada.parse({ programa: "mcp-volumen-a" })) },
       { nombre: "bandeja", ejecutar: () => bandejaMcp.ejecutar(contexto(), { programa: "mcp-volumen-a" }) },
       { nombre: "cartera_vencida", ejecutar: () => carteraVencidaMcp.ejecutar(contexto(), { programa: "mcp-volumen-a" }) },
-      { nombre: "ficha_de_lead", ejecutar: () => fichaDeLeadMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", id: leadId }) },
+      { nombre: "ficha_de_lead", ejecutar: () => fichaDeLeadMcp.ejecutar(contexto(), fichaDeLeadMcp.entrada.parse({ programa: "mcp-volumen-a", id: leadId })) },
       { nombre: "ficha_de_deal", ejecutar: () => fichaDeDealMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", id: dealId }) },
       { nombre: "origen_del_programa", ejecutar: () => origenDelProgramaMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", periodo: "custom", desde: "2026-09-01", hasta: "2026-09-30" }) },
       { nombre: "pauta_roas", ejecutar: () => pautaRoasMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", periodo: "custom", desde: "2026-09-01", hasta: "2026-09-30", nivel: "total" }) },
@@ -157,7 +157,7 @@ describe.skipIf(!medir)("herramientas MCP a 10x del volumen actual", () => {
   }, 120_000);
 
   it("pagina tablero y cartera con el mismo contrato de buscar personas", async () => {
-    const tablero = await tableroDeDealsMcp.ejecutar(contexto(), { programa: "mcp-volumen-a", pagina: 1 });
+    const tablero = await tableroDeDealsMcp.ejecutar(contexto(), tableroDeDealsMcp.entrada.parse({ programa: "mcp-volumen-a", pagina: 1 }));
     const tarjetas = (tablero.estructurado.tablero as { columnas: Array<{ tarjetas: unknown[] }>; en_proxima_cohorte: unknown[] });
     expect(tarjetas.columnas.flatMap((columna) => columna.tarjetas).length + tarjetas.en_proxima_cohorte.length).toBeLessThanOrEqual(50);
     expect(tablero.estructurado).toMatchObject({ pagina: 1, hay_otra_pagina: true });

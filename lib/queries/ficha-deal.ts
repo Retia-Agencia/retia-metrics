@@ -1,8 +1,7 @@
-import { and, asc, desc, eq, inArray, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne } from "drizzle-orm";
 import {
   abonos,
   calls,
-  changeLog,
   cohorts,
   dealActividades,
   dealEtapaHistorial,
@@ -38,6 +37,7 @@ import { enlacesDePagoVigentes, type EnlaceDeLaPantalla } from "@/lib/queries/re
 import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { linkDeAgenda } from "@/lib/calendly/link-de-agenda";
 import { telefonosEnComun } from "@/lib/queries/leads";
+import { cambiosDeDeals } from "@/lib/queries/cambios-de-dueno";
 
 /**
  * Todo lo de UN deal para su ficha (ticket 074): cabecera, llamadas, abonos, actividades e
@@ -529,15 +529,7 @@ export async function fichaDeDeal(
     .where(and(eq(leadContactos.leadId, lead.id), eq(leadContactos.programId, deal.programId)))
     .orderBy(desc(leadContactos.esPrincipal), asc(leadContactos.createdAt));
   const idsRelacionados = [...llamadasFilas, ...abonosFilas, ...actividadesFilas].map((x) => x.id);
-  const cambiosFilas = await db
-    .select()
-    .from(changeLog)
-    .where(
-      idsRelacionados.length > 0
-        ? or(and(eq(changeLog.tabla, "deals"), eq(changeLog.registroId, deal.id)), inArray(changeLog.registroId, idsRelacionados))
-        : and(eq(changeLog.tabla, "deals"), eq(changeLog.registroId, deal.id)),
-    )
-    .orderBy(desc(changeLog.detectadoEn));
+  const cambiosFilas = await cambiosDeDeals(db, [deal.id], idsRelacionados);
   const eventosConDeshacer = actor ? await eventosDeshacibles(db, actor, deal.id) : [];
   const deshacerPorId = new Map(eventosConDeshacer.map((evento) => [evento.id, evento]));
   const enlacesDePago = await enlacesDePagoVigentes({ programId: deal.programId }, db);
