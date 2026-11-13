@@ -13,6 +13,7 @@ const EXCEPCIONES: Record<string, string> = {
   "components/deals/inbox-perdidos-en-calendly.tsx": "Deuda real: infiere Sin UTM desde tres campos nulos para mostrarlo.",
   "components/deals/inbox-sin-dueno.tsx": "Deuda real: infiere Sin UTM desde tres campos nulos para mostrarlo.",
   "components/embudo-formulario.tsx": "Presenta la categoría ya calculada del embudo.",
+  "lib/hub/csv-historia.ts": "Traduce a texto la regla ya devuelta por resolverCanal, igual que la ficha del lead.",
   "lib/queries/embudo-formulario.ts": "Agrupa y ordena usando la categoría devuelta por resolverCanal.",
   "lib/queries/ficha-lead.ts": "Traduce a texto la regla ya devuelta por resolverCanal.",
   "lib/queries/origen.ts": "Agrega filas usando la categoría centralizada que recibe del módulo de atribución.",
