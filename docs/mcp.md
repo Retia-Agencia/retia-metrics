@@ -46,7 +46,8 @@ por cada tools/call:
 | `app/api/mcp/route.ts` | La puerta: autenticación del bearer, 401 vacío con challenge, armado del servidor por petición. Sin lógica de negocio. |
 | `app/.well-known/oauth-protected-resource/**` y `lib/mcp/recurso-protegido.ts` | Metadata pública RFC 9728 para que el cliente descubra cómo autenticarse. El 383 llena aquí los servidores OAuth. |
 | `proxy.ts` | `/api/mcp` y `/.well-known/oauth-protected-resource*` son públicos para la cookie de Auth.js (el MCP valida su propio bearer). |
-| `lib/mcp/token.ts` | Emitir, verificar y revocar tokens (formato `retia_mcp_…`, solo se guarda el hash, scope lectura/escritura). **Una de las tres únicas con SQL.** |
+| `lib/mcp/token.ts` | Emitir, verificar y revocar tokens (formato `retia_mcp_…`, solo se guarda el hash, scope lectura/escritura). **Uno de los cuatro límites con SQL.** |
+| `lib/mcp/vistas-previas.ts` | Guarda, consume atómicamente una sola vez y conserva el resultado de las vistas previas de escritura. |
 | `lib/mcp/sesion.ts` | Convierte un token en una `Session` del CRM con rol y alcance revalidados en cada llamada. Es lo que hace que quitar a alguien lo saque ya. **SQL permitido.** |
 | `lib/mcp/bitacora.ts` | Tope de 300 llamadas/minuto por token y registro de cada llamada. **SQL permitido.** |
 | `lib/mcp/servidor.ts` | Registra las herramientas, aplica el flujo de arriba, traduce errores a `isError` sin filtrar detalles internos. |
@@ -65,7 +66,8 @@ por cada tools/call:
 
 ## 3. Las herramientas y quién las ve
 
-Todas son de solo lectura hoy. El developer pasa toda guarda (ADR 0025). "Programa visible" = el alcance del usuario (ADR 0048/0094).
+Las consultas son de solo lectura. Las escrituras siguen el molde preparar → confirmar → deshacer, requieren scope de escritura y desaparecen durante una suplantación. El developer pasa toda guarda (ADR 0025). "Programa visible" = el alcance del usuario (ADR 0048/0094).
+`tools/list` depende de la credencial, no de una vista por llamada; con «Ver como», `capacidades` devuelve `acciones: []` y el servidor vuelve a validar cada herramienta contra el rol efectivo.
 
 | Herramienta | Título | Cuándo usarla | Roles |
 |---|---|---|---|
@@ -84,6 +86,8 @@ Todas son de solo lectura hoy. El developer pasa toda guarda (ADR 0025). "Progra
 | `cartera_vencida` | Cartera vencida | Para saber quién tiene saldos vencidos, paginado | gerente, closer, customer success |
 | `pauta_roas` | ROAS de pauta | Para evaluar pauta por total, campaña, conjunto o anuncio | gerente, paid trafficker |
 | `origen_del_programa` | Origen del programa | Para entender de dónde llegaron los registros | gerente, paid trafficker |
+| `preparar_accion` | Preparar una acción | Para revisar antes y después, permisos y requisitos sin cambiar el negocio | quien tenga scope de escritura; la acción decide el rol |
+| `confirmar_cambio` | Confirmar un cambio | Para aplicar una vista previa vigente una sola vez, solo tras el sí explícito | quien tenga scope de escritura y no esté suplantando |
 
 `detalle` decide entre la proyección `compacta` y `completa` en `buscar`, `ficha_de_lead` y
 `tablero_de_deals`. En el tablero, `vista` nombra exclusivamente las columnas del Kanban
@@ -117,13 +121,13 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 13. 🔒 **Nombre en `snake_case` ASCII, único, de 1 a 64 caracteres**, con la forma `verbo_o_sustantivo` consistente con las demás. *(Spec MCP: nombres únicos, 1 a 128 caracteres y solo letras, números, `_`, `-`, `.`.)*
 14. **Descripción como para una persona nueva en el equipo:** primero cuándo usarla, luego qué devuelve y qué no hace; términos propios explicados. Corta y sin repetir lo que dice el esquema. *(Anthropic: escribe las descripciones como para un recién llegado y refínalas con evaluaciones.)*
 15. 🔒 **Toda herramienta aparece en `INSTRUCCIONES_MCP`** (`lib/mcp/instrucciones.ts`) con la pregunta que resuelve, y en la tabla de §3. Sin esto el cliente no la encuentra a tiempo (el 7-nov una consulta tardó ~40 s en el cliente, no en el servidor: 96 ms y 890 ms medidos en `mcp_llamadas`).
-16. 🔒 **Título y anotaciones:** cada herramienta publica un título legible y declara `readOnlyHint` e `idempotentHint` verdaderos, `openWorldHint` y `destructiveHint` falsos. Las anotaciones son pistas no confiables para el cliente: **la seguridad la dan las guardas del servidor, nunca la anotación**. *(Spec MCP.)*
+16. 🔒 **Título y anotaciones:** cada herramienta publica un título legible. Las lecturas declaran `readOnlyHint` e `idempotentHint`; `confirmar_cambio` declara ambos falsos y `destructiveHint` verdadero. `openWorldHint` es siempre falso. Las anotaciones son pistas no confiables para el cliente: **la seguridad la dan las guardas del servidor, nunca la anotación**. *(Spec MCP.)*
 17. **La lista de herramientas es determinista y puede variar por credencial**, nunca por conexión: hoy se filtra por rol con `puede`. Mantener el orden de `HERRAMIENTAS` estable ayuda a la caché de prompts del cliente. *(Spec MCP, "Capabilities".)*
 
 **Operación**
 18. 🔒 **Toda llamada deja rastro sin argumentos** y hay **tope por minuto**. **También un rechazo del esquema** (el SDK valida antes del handler: `auditarRechazosDeEntrada` en `lib/mcp/servidor.ts` envuelve ese paso): queda `error` con `ENTRADA_INVALIDA:<campos que fallaron>`, sin valores (`tests/mcp-rechazos.test.ts`). Los accesos OAuth duran una hora, el refresh 90 días, los tokens personales nuevos un año y `mcp_llamadas` conserva 90 días. *(Spec MCP: limitar la tasa y registrar el uso.)*
 19. **No hay passthrough de tokens.** El servidor solo acepta tokens emitidos para él (`retia_mcp_…`) y nunca reenvía el del cliente a otro servicio. *(MCP, "Security Best Practices": token passthrough es un anti-patrón.)*
-20. **Las escrituras del F2 se descubren por `capacidades` y entran por `preparar_accion` + `confirmar_cambio`** (decisión D1, 12-nov): vista previa, confirmación humana, scope `escritura`, `crearConRastro` con origen `mcp` y deshacer (ADR 0042/0117). `soloLectura` cambia allí, no antes.
+20. **Las escrituras se descubren por `capacidades` y entran por `preparar_accion` + `confirmar_cambio`** (decisión D1, 12-nov): vista previa de diez minutos, confirmación humana explícita, consumo atómico una sola vez, scope `escritura`, rastro con origen `mcp` y deshacer (ADR 0042/0117). Cada fila del lote se confirma en su propia transacción y se rechaza si el deal cambió. El resultado de cada fila se guarda en la MISMA transacción que la fila: una fila con resultado se aplicó y una sin resultado no. Confirmar de nuevo con el mismo token devuelve lo guardado y no vuelve a aplicar nada. **Riesgo aceptado (13-nov):** si ese reintento llega mientras la primera confirmación todavía aplica filas, dice «no se aplicó» de las que aún no terminan; preparar de nuevo no duplica nada, porque su huella ya cambió y la fila se rechaza.
 
 ## 5. Recetas
 
@@ -143,7 +147,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 6. Cómo se hace cumplir
 
-- `tests/mcp-guardian.test.ts`: sin SQL fuera de los tres módulos, sin roles a mano, y cada herramienta declara permiso, entrada estricta y solo lectura.
+- `tests/mcp-guardian.test.ts`: sin SQL fuera de los cuatro límites (`token`, `sesion`, `bitacora`, `vistas-previas`), sin roles a mano, y cada herramienta declara permiso, entrada estricta y anotaciones de lectura/escritura.
 - `tests/mcp-contrato.test.ts`: nombres válidos y únicos, descripción presente, toda herramienta en las instrucciones y en este documento, y toda cadena de entrada con tope.
 - `tests/mcp-ruta.test.ts`: la ruta real de punta a punta, con peticiones forjadas (token falso, revocado, inactivo, rol sin permiso, programa ajeno, vista ajena, entradas desmedidas, tope).
 
@@ -151,9 +155,7 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 La caducidad de credenciales, la retención de 90 días, la paginación SQL, la búsqueda global, los filtros resueltos y la consulta genérica de hechos quedaron resueltos. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan los `EXPLAIN` a 10× de las herramientas de operación y las evaluaciones de descubrimiento (386). `consultar_metrica` todavía usa `closer` como código opaco, un concepto distinto del dueño del deal; es candidato a renombrarse en F5.
 
-**Alcance y límites del MCP (9-nov, ticket 411, ADR 0129): este documento describe el estado de hoy, no el destino.** Hoy son
-herramientas de solo lectura; el destino decidido por Mani es una puerta total con reglas de orientación (todo lo que la
-app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
+**Alcance y límites del MCP (9-nov, ticket 411, ADR 0129):** la puerta de escritura ya tiene su primer caso de uso, mover de etapa y deshacerlo, con el mismo permiso y motor que la app. El destino sigue siendo una puerta total con reglas de orientación (todo lo que la app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
 llamada (p95: `pauta_roas` 2,8 s, `tablero_de_deals` 2,0 s, `consultar_metrica` 1,0 s) y no se alcanzó el tope de 300/min; las
 límites pendientes de las fases siguientes están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
 

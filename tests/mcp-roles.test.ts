@@ -131,7 +131,8 @@ describe("MCP por rol y alcance", () => {
       const permitidas = new Set(herramientasPara(contexto(actor)).map((tool) => tool.nombre));
       for (const herramienta of HERRAMIENTAS.filter((item) => !permitidas.has(item.nombre))) {
         const respuesta = await json(await post("tools/call", { name: herramienta.nombre, arguments: {} }, actor.token));
-        expect(respuesta.error, `${actor.rol}:${herramienta.nombre}`).toBeDefined();
+        const denegada = respuesta.error ?? ((respuesta.result as { isError?: boolean } | undefined)?.isError ? respuesta.result : undefined);
+        expect(denegada, `${actor.rol}:${herramienta.nombre}`).toBeDefined();
       }
     }
   });

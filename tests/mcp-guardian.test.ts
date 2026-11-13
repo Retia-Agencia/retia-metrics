@@ -6,7 +6,8 @@ import path from "node:path";
 import { HERRAMIENTAS } from "@/lib/mcp/herramientas";
 
 const RAIZ = fileURLToPath(new URL("../", import.meta.url));
-const CON_SQL = new Set(["token.ts", "sesion.ts", "bitacora.ts"]);
+// vistas-previas.ts escribe la tabla propia del MCP, como bitacora.ts.
+const CON_SQL = new Set(["token.ts", "sesion.ts", "bitacora.ts", "vistas-previas.ts"]);
 const PATRONES_DB = [/\bdb\.select\b/, /\bdb\.insert\b/, /\bdb\.update\b/, /\.from\s*\(/, /\bsql`/];
 const PATRONES_ROL = [/\brol\s*={2,3}\s*["']/, /["'][^"']+["']\s*={2,3}\s*\brol\b/, /session\.user\.rol/];
 
@@ -65,10 +66,10 @@ describe("guardián del dominio MCP", () => {
     expect(violaciones(temporal)).toEqual([]);
   });
 
-  it("cada herramienta registrada declara permiso, entrada estricta y solo lectura", () => {
+  it("cada herramienta registrada declara permiso, entrada estricta y solo confirmar cambia datos", () => {
     for (const herramienta of HERRAMIENTAS) {
       expect(typeof herramienta.puede).toBe("function");
-      expect(herramienta.soloLectura).toBe(true);
+      expect(herramienta.soloLectura).toBe(herramienta.nombre !== "confirmar_cambio");
       expect(herramienta.titulo.trim()).not.toBe("");
       expect(herramienta.entrada.safeParse({ campo_ajeno: true }).success).toBe(false);
     }
@@ -76,10 +77,10 @@ describe("guardián del dominio MCP", () => {
 
   it("el servidor publica las cuatro anotaciones seguras y valida el esquema de salida", () => {
     const fuente = fs.readFileSync(path.join(RAIZ, "lib", "mcp", "servidor.ts"), "utf8");
-    expect(fuente).toContain("readOnlyHint: true");
-    expect(fuente).toContain("idempotentHint: true");
+    expect(fuente).toContain("readOnlyHint: herramienta.soloLectura");
+    expect(fuente).toContain("idempotentHint: herramienta.soloLectura");
     expect(fuente).toContain("openWorldHint: false");
-    expect(fuente).toContain("destructiveHint: false");
+    expect(fuente).toContain("destructiveHint: herramienta.destructiva ?? false");
     expect(fuente).toContain("outputSchema: herramienta.salida");
     expect(fuente).toContain("herramienta.salida.safeParse(estructurado)");
   });

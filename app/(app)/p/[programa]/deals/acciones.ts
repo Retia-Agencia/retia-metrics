@@ -3,21 +3,15 @@
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
-import { programaEnAlcance } from "@/lib/auth/alcance";
 import { esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
-import { deals, etapaDealEnum, pendienteDealEnum } from "@/lib/db/schema";
-import { and, eq } from "drizzle-orm";
-import { incluyendoAnulados } from "@/lib/queries/vigente";
-import { moverEtapa, MovimientoRechazado, revisarMovimiento, type RevisionDeMovimiento } from "@/lib/deals/mover-etapa";
+import { MovimientoRechazado, type RevisionDeMovimiento } from "@/lib/deals/mover-etapa";
 import type { RequisitoFaltante } from "@/lib/deals/requisitos";
-import { esquemaDescuentoUsdOpcional } from "@/lib/deals/valor-vendido";
 import { crearDealAMano, DealYaAbierto, type EntradaDealAMano } from "@/lib/deals/crear-a-mano";
-import { deshacerEvento } from "@/lib/deshacer/deshacer";
-import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
+import { esquemaMover, esquemaRevisar, moverDealComo, revisarMovimientoComo, type EntradaMover, type EntradaRevisar } from "@/lib/deals/mover-deal";
 
 /**
  * Server action del Kanban (ticket 069): mover un deal de etapa.
@@ -37,28 +31,7 @@ import { esquemaProximoContacto } from "@/lib/deals/proximo-contacto";
  * lleva su tipo), mismo patron que `mi-dia/acciones.ts`.
  */
 
-/** Los datos que una flecha puede pedir, validados en el borde (zod). */
-const esquemaDatos = z
-  .object({
-    descuentoUsd: esquemaDescuentoUsdOpcional,
-    fechaLimitePago: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha inválida.").nullable().optional(),
-    acuerdoPago: z.string().trim().max(500).nullable().optional(),
-    cohorteDestinoId: z.string().uuid().nullable().optional(),
-    fechaSeguimiento: esquemaProximoContacto,
-  })
-  .optional();
-
-const esquemaMover = z.object({
-  dealId: z.string().uuid("Deal inválido."),
-  a: z.enum(etapaDealEnum.enumValues),
-  pendiente: z.enum(pendienteDealEnum.enumValues).nullable().optional(),
-  motivoId: z.string().uuid().nullable().optional(),
-  comentarioMotivo: z.string().trim().max(4000, "El comentario es muy largo.").optional(),
-  correccion: z.boolean().optional(),
-  datos: esquemaDatos,
-});
-
-export type EntradaMover = z.input<typeof esquemaMover>;
+export type { EntradaMover } from "@/lib/deals/mover-deal";
 
 export type ResultadoMover =
   | { ok: true }
@@ -79,44 +52,14 @@ export async function moverDeal(entrada: EntradaMover): Promise<ResultadoMover> 
     const session = await requireRole("gerente", "closer");
     const mov = await normalizando(async () => esquemaMover.parse(entrada));
     const actor = await actorDe(session);
-    const [deal] = await db
-      .select({ programId: deals.programId })
-      .from(deals)
-      .where(and(eq(deals.id, mov.dealId), incluyendoAnulados(deals)));
-    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-    if (!(await programaEnAlcance(actor.userId, actor.rol, deal.programId, db))) {
-      throw new ErrorDeApp("No puedes mover un deal de otro programa.", 403);
-    }
-    await normalizando(async () => {
-      if (mov.correccion) {
-        await deshacerEvento(db, actor, {
-          dealId: mov.dealId,
-          evento: { tipo: "etapa", id: null, a: mov.a },
-          motivo: mov.comentarioMotivo,
-        });
-        return;
-      }
-      await moverEtapa(db, {
-        dealId: mov.dealId,
-        a: mov.a,
-        pendiente: mov.pendiente,
-        actor,
-        motivoId: mov.motivoId ?? null,
-        correccion: mov.correccion,
-        datos: mov.datos,
-      });
-    });
+    await normalizando(() => moverDealComo(db, actor, mov, { origen: "app" }));
     return { ok: true };
   } catch (error) {
     return aResultado(error);
   }
 }
 
-const esquemaRevisar = esquemaMover.extend({
-  a: z.union([z.enum(etapaDealEnum.enumValues), z.literal("retroceso")]),
-});
-
-export type EntradaRevisar = z.input<typeof esquemaRevisar>;
+export type { EntradaRevisar } from "@/lib/deals/mover-deal";
 
 export type ResultadoRevisar =
   | ({ ok: true } & RevisionDeMovimiento)
@@ -135,25 +78,7 @@ export async function revisarMovimientoAccion(entrada: EntradaRevisar): Promise<
     const session = await requireRoleDeLectura("gerente", "closer");
     const mov = await normalizando(async () => esquemaRevisar.parse(entrada));
     const actor = await actorDe(session);
-    const [deal] = await db
-      .select({ programId: deals.programId })
-      .from(deals)
-      .where(and(eq(deals.id, mov.dealId), incluyendoAnulados(deals)));
-    if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-    if (!(await programaEnAlcance(actor.userId, actor.rol, deal.programId, db))) {
-      throw new ErrorDeApp("No puedes mover un deal de otro programa.", 403);
-    }
-    const revision = await normalizando(() =>
-      revisarMovimiento(db, {
-        dealId: mov.dealId,
-        a: mov.a,
-        pendiente: mov.pendiente,
-        actor,
-        motivoId: mov.motivoId ?? null,
-        correccion: mov.correccion,
-        datos: mov.datos,
-      }),
-    );
+    const revision = await normalizando(() => revisarMovimientoComo(db, actor, mov));
     return { ok: true, ...revision };
   } catch (error) {
     return aResultado(error);

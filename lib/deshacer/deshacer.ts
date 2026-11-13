@@ -13,6 +13,7 @@ import { anularDeal } from "@/lib/deals/anular-deal";
 import { anularActividad } from "@/lib/deals/actividades";
 import { anularLlamada, RESULTADOS_CORREGIBLES } from "@/lib/deals/llamadas";
 import { REGISTRO, type ContextoDeRestauracion, type FilaDeGrupo, type ReglaDeCampo, type TablaDeshacible } from "./registro";
+import type { OrigenOperativo } from "@/lib/crm/rastro";
 
 export const esquemaDeshacerEvento = z.object({
   dealId: z.string().uuid("El deal no es válido."),
@@ -157,6 +158,7 @@ async function deshacerCambio(
   actor: ActorDeDeal,
   entrada: z.output<typeof esquemaDeshacerEvento> & { evento: { tipo: "cambio"; changeLogId: string } },
   deal: typeof deals.$inferSelect,
+  opciones: { origen: OrigenOperativo },
 ): Promise<void> {
   const [evento] = await tx.select().from(changeLog).where(eq(changeLog.id, entrada.evento.changeLogId));
   if (!evento || evento.userId == null || evento.reversionId != null || !(evento.tabla in REGISTRO) || evento.registroId == null) {
@@ -210,7 +212,7 @@ async function deshacerCambio(
       .where(and(eq(dealEtapaHistorial.dealId, deal.id), eq(dealEtapaHistorial.a, "ganado_completo")))
       .orderBy(desc(dealEtapaHistorial.fecha), desc(dealEtapaHistorial.id)).limit(1);
     if (!origen?.de) throw new ErrorDeApp("No se encontró la etapa anterior de la cortesía.", 409);
-    await moverEtapa(tx, { dealId: deal.id, a: origen.de, actor: { tipo: "usuario", ...actor }, correccion: true, reversionId, permitirSalirDeGanado: true });
+    await moverEtapa(tx, { dealId: deal.id, a: origen.de, actor: { tipo: "usuario", ...actor }, correccion: true, reversionId, permitirSalirDeGanado: true, origen: opciones.origen });
   }
 }
 
@@ -219,6 +221,7 @@ async function deshacerEtapa(
   actor: ActorDeDeal,
   entrada: z.output<typeof esquemaDeshacerEvento> & { evento: { tipo: "etapa"; id: string | null; a: typeof deals.$inferSelect.etapa } },
   deal: typeof deals.$inferSelect,
+  opciones: { origen: OrigenOperativo },
 ): Promise<void> {
   let historia: typeof dealEtapaHistorial.$inferSelect | undefined;
   if (entrada.evento.id) {
@@ -239,10 +242,16 @@ async function deshacerEtapa(
   await moverEtapa(tx, {
     dealId: deal.id, a: entrada.evento.a, actor: { tipo: "usuario", ...actor }, correccion: true, reversionId,
     pendiente: historia?.de === entrada.evento.a ? historia.pendienteDe : null,
+    origen: opciones.origen,
   });
 }
 
-export async function deshacerEvento(db: Db, actor: ActorDeDeal, datos: EntradaDeshacerEvento): Promise<void> {
+export async function deshacerEvento(
+  db: Db,
+  actor: ActorDeDeal,
+  datos: EntradaDeshacerEvento,
+  opciones: { origen?: OrigenOperativo } = {},
+): Promise<void> {
   return normalizando(async () => {
     const entrada = esquemaDeshacerEvento.parse(datos);
     await (db as unknown as Transaccion).transaction(async (tx) => {
@@ -250,8 +259,9 @@ export async function deshacerEvento(db: Db, actor: ActorDeDeal, datos: EntradaD
         .where(and(eq(deals.id, entrada.dealId), incluyendoAnulados(deals))).for("update");
       if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
       if (deal.anuladoEn) throw new ErrorDeApp("El deal está anulado.", 409);
-      if (entrada.evento.tipo === "cambio") await deshacerCambio(tx, actor, { ...entrada, evento: entrada.evento }, deal);
-      else await deshacerEtapa(tx, actor, { ...entrada, evento: entrada.evento }, deal);
+      const origen = opciones.origen ?? "app";
+      if (entrada.evento.tipo === "cambio") await deshacerCambio(tx, actor, { ...entrada, evento: entrada.evento }, deal, { origen });
+      else await deshacerEtapa(tx, actor, { ...entrada, evento: entrada.evento }, deal, { origen });
     });
   });
 }
@@ -264,6 +274,15 @@ export interface EventoDeshacible {
   esCreacion: boolean;
   tabla: string;
   deshecho: { userId: string; fecha: Date; motivo: string | null } | null;
+}
+
+/** Convierte la ficha pública del evento en la entrada única que valida `deshacerEvento`. */
+export function entradaDeEventoDeshacible(evento: EventoDeshacible): z.output<typeof esquemaDeshacerEvento>["evento"] {
+  if (evento.tabla !== "deal_etapa_historial") return { tipo: "cambio", changeLogId: evento.id };
+  const anterior = evento.resumen.find((fila) => fila.campo === "etapa")?.quedaria;
+  const analisis = z.enum(deals.etapa.enumValues).safeParse(anterior);
+  if (!analisis.success) throw new ErrorDeApp("Ese movimiento no se puede deshacer.", 409);
+  return { tipo: "etapa", id: evento.id, a: analisis.data };
 }
 
 /** Proyección única para la ficha y para validar qué se ofrece. */

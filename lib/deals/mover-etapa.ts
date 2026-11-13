@@ -12,7 +12,8 @@ import {
   programs,
   submissions,
 } from "@/lib/db/schema";
-import { crearConRastro, crearVariosConRastro, editarConRastro } from "@/lib/crm/rastro";
+import type { PgInsertValue } from "drizzle-orm/pg-core";
+import { crearConRastro, crearVariosConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { esViolacionUnica } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
@@ -89,6 +90,17 @@ export type Actor =
   | { tipo: "usuario"; userId: string; rol: Rol; operaComoCloser: boolean };
 
 /**
+ * Fila del historial de etapas: el origen es OBLIGATORIO en el tipo (migración 0135). Nulo
+ * queda solo para las filas anteriores al 13-nov, cuando no se guardaba; ninguna fila nueva
+ * sale sin él. Es el único lugar que inserta en `deal_etapa_historial`.
+ */
+type FilaDeHistorial = PgInsertValue<typeof dealEtapaHistorial> & { origen: OrigenOperativo };
+
+async function insertarHistorial(tx: Db, filas: FilaDeHistorial | FilaDeHistorial[]): Promise<void> {
+  await tx.insert(dealEtapaHistorial).values(Array.isArray(filas) ? filas : [filas]);
+}
+
+/**
  * Datos que la flecha PIDE y que se escriben en el mismo movimiento (Mani, 27-sep,
  * ticket 103, punto 6; como en HubSpot). Antes la pantalla tenia que escribir la
  * fecha —u otro campo— en una operacion y mover en otra: si la segunda fallaba, el
@@ -130,6 +142,8 @@ export interface Movimiento {
    * (punto 6). Opcional: una flecha que no pide nada no los necesita.
    */
   datos?: DatosMovimiento;
+  /** Borde que pidió el movimiento; solo cambia la procedencia del rastro. */
+  origen?: OrigenOperativo;
 }
 
 /** El movimiento no se hizo, y dice por que con lo que le falta al deal. */
@@ -187,6 +201,7 @@ export async function limpiarPendientePorCambioDeCohorte(
   actorId: string,
   etiqueta: string,
   reversionId?: string,
+  origen: OrigenOperativo = "app",
 ): Promise<void> {
   if (deal.pendiente == null && deal.cohorteDestinoId == null && deal.cohorteDestinoTexto == null) return;
   await tx
@@ -202,7 +217,7 @@ export async function limpiarPendientePorCambioDeCohorte(
           campo: "pendiente",
           valorAnterior: deal.pendiente,
           valorNuevo: null,
-          origen: "app" as const,
+          origen,
           userId: actorId,
           reversionId: reversionId ?? null,
         }]
@@ -215,7 +230,7 @@ export async function limpiarPendientePorCambioDeCohorte(
           campo: "cohorteDestinoId",
           valorAnterior: deal.cohorteDestinoId,
           valorNuevo: null,
-          origen: "app" as const,
+          origen,
           userId: actorId,
           reversionId: reversionId ?? null,
         }]
@@ -228,7 +243,7 @@ export async function limpiarPendientePorCambioDeCohorte(
           campo: "cohorteDestinoTexto",
           valorAnterior: deal.cohorteDestinoTexto,
           valorNuevo: null,
-          origen: "app" as const,
+          origen,
           userId: actorId,
           reversionId: reversionId ?? null,
         }]
@@ -385,7 +400,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
         registroId: deal.id,
         etiqueta: deal.id,
         ...cambio,
-        origen: "app" as const,
+        origen: mov.origen ?? "app",
         userId: mov.actor.tipo === "usuario" ? mov.actor.userId : null,
         reversionId: mov.reversionId ?? null,
       })));
@@ -395,7 +410,8 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       await encolarAvisoDeEstudiante(tx, { programId: deal.programId, dealId: deal.id });
     }
 
-    await tx.insert(dealEtapaHistorial).values({
+    await insertarHistorial(tx, {
+      origen: mov.origen ?? "app",
       dealId: deal.id,
       de,
       a: mov.a,
@@ -417,7 +433,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
           campo: "etapa",
           valorAnterior: de,
           valorNuevo: mov.a,
-          origen: "app",
+          origen: mov.origen ?? "app",
           userId: actorId,
           reversionId: mov.reversionId ?? null,
         },
@@ -430,7 +446,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
                 campo: "pendiente",
                 valorAnterior: pendienteDe,
                 valorNuevo: pendienteA,
-                origen: "app" as const,
+                origen: mov.origen ?? "app",
                 userId: actorId,
                 reversionId: mov.reversionId ?? null,
               }]
@@ -660,7 +676,9 @@ export async function abrirDeal(db: Db, alta: AltaDeDeal): Promise<string> {
       throw e;
     }
 
-    await tx.insert(dealEtapaHistorial).values({
+    // El alta usa el mismo origen que su rastro en change_log (crearConRastro, "app").
+    await insertarHistorial(tx, {
+      origen: "app",
       dealId: id,
       de: null,
       a: alta.etapa,
@@ -844,8 +862,10 @@ export async function abrirDealesHistoricos(db: Db, altas: readonly AltaHistoric
       return dealId ? [{ alta, dealId, etiqueta: etiquetas[i] }] : [];
     });
     for (let i = 0; i < creados.length; i += 500) {
-      await tx.insert(dealEtapaHistorial).values(
+      // Mismo origen que el rastro de este traslado en change_log (crearVariosConRastro, "app").
+      await insertarHistorial(tx,
         creados.slice(i, i + 500).map(({ alta, dealId }) => ({
+          origen: "app" as const,
           dealId,
           de: null,
           a: alta.etapa,

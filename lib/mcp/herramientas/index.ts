@@ -5,6 +5,7 @@ import { carteraVencidaMcp, origenDelProgramaMcp, pautaRoasMcp } from "./decisio
 import type { ContextoMcp, Herramienta } from "./tipos";
 import { capacidadesMcp } from "./capacidades";
 import { consultarHechosMcp } from "./hechos";
+import { confirmarCambioMcp, prepararAccionMcp } from "./acciones";
 
 /** Registro exhaustivo: una herramienta que no aparece aquí no existe para el MCP. */
 export const HERRAMIENTAS = [
@@ -23,6 +24,8 @@ export const HERRAMIENTAS = [
   carteraVencidaMcp,
   pautaRoasMcp,
   origenDelProgramaMcp,
+  prepararAccionMcp,
+  confirmarCambioMcp,
 ] as const satisfies readonly Herramienta[];
 
 export function herramientasPara(contexto: ContextoMcp): readonly Herramienta[] {

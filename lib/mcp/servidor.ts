@@ -56,10 +56,10 @@ function registrarUna<E extends z.ZodObject>(
       inputSchema: entradaComun,
       outputSchema: herramienta.salida,
       annotations: {
-        readOnlyHint: true,
-        idempotentHint: true,
+        readOnlyHint: herramienta.soloLectura,
+        idempotentHint: herramienta.soloLectura,
         openWorldHint: false,
-        destructiveHint: false,
+        destructiveHint: herramienta.destructiva ?? false,
       },
     },
     async (argumentos) => {
@@ -109,6 +109,9 @@ function registrarUna<E extends z.ZodObject>(
           rol: sesion.rol,
           escritura: sesion.escritura,
         };
+        if (!herramienta.puede(contexto)) {
+          throw new ErrorDeApp("No puedes usar esta herramienta con esta conexión o mientras usas Ver como.", 403);
+        }
         const entrada = herramienta.entrada.parse(propios);
         const salida = await herramienta.ejecutar(contexto, entrada);
         let estructurado = salida.estructurado;

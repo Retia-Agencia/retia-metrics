@@ -53,6 +53,7 @@ import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 export const TABLAS_CON_RASTRO = ["deals", "calls", "abonos", "deal_actividades", "piezas"] as const;
 
 export type TablaConRastro = (typeof TABLAS_CON_RASTRO)[number];
+export type OrigenOperativo = "app" | "mcp";
 
 /**
  * Como se escribe un valor en `change_log`: vive en un solo modulo, `textoDeBitacora`,
@@ -83,6 +84,8 @@ export interface Contexto {
   desdeElMotor?: true;
   /** La operación de deshacer que causó esta escritura. */
   reversionId?: string;
+  /** Borde que originó la escritura; la app conserva el valor histórico por defecto. */
+  origen?: OrigenOperativo;
 }
 
 /** La etapa y el pendiente de un deal solo los escribe el motor. */
@@ -106,7 +109,7 @@ export async function crearConRastro(
   ctx: Contexto,
   valores: Record<string, unknown>,
 ): Promise<string> {
-  const { db, tabla, nombreTabla, actorId, etiqueta } = ctx;
+  const { db, tabla, nombreTabla, actorId, etiqueta, origen = "app" } = ctx;
   exigirQueElMotorEscribaSuEstado(ctx, valores);
   // El id se genera en codigo para meter el alta y su bitacora en el mismo lote:
   // `ejecutarJuntas` no deja encadenar el id recien insertado.
@@ -122,7 +125,7 @@ export async function crearConRastro(
     // Una expresión SQL describe cómo escribir, no qué quedó escrito. La bitácora guarda
     // siempre el valor materializado que devolvió la misma escritura.
     const bitacora = aRegistrar.map(([campo, valor]) =>
-      filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, is(valor, SQL) ? fila[campo] : valor, ctx.reversionId),
+      filaDeBitacora(nombreTabla, actorId, id, etiqueta, campo, is(valor, SQL) ? fila[campo] : valor, ctx.reversionId, origen),
     );
     if (bitacora.length > 0) await tx.insert(changeLog).values(bitacora);
   });
@@ -138,6 +141,7 @@ function filaDeBitacora(
   campo: string,
   valor: unknown,
   reversionId?: string,
+  origen: OrigenOperativo = "app",
 ) {
   return {
     tabla: nombreTabla,
@@ -146,7 +150,7 @@ function filaDeBitacora(
     campo,
     valorAnterior: null,
     valorNuevo: aTexto(valor),
-    origen: "app" as const,
+    origen,
     userId: actorId,
     reversionId: reversionId ?? null,
   };
@@ -196,7 +200,7 @@ export async function crearVariosConRastro(
       escritos.has(ids[i])
         ? Object.entries(a.valores)
             .filter(([campo, valor]) => campo !== "id" && valor !== null && valor !== undefined)
-            .map(([campo, valor]) => filaDeBitacora(ctx.nombreTabla, ctx.actorId, ids[i], a.etiqueta, campo, valor, ctx.reversionId))
+            .map(([campo, valor]) => filaDeBitacora(ctx.nombreTabla, ctx.actorId, ids[i], a.etiqueta, campo, valor, ctx.reversionId, ctx.origen))
         : [],
     );
     for (let i = 0; i < bitacora.length; i += FILAS_POR_LOTE) {
@@ -231,7 +235,7 @@ export async function editarConRastro(
   id: string,
   valores: Record<string, unknown>,
 ): Promise<boolean> {
-  const { db, tabla, nombreTabla, actorId, etiqueta } = ctx;
+  const { db, tabla, nombreTabla, actorId, etiqueta, origen = "app" } = ctx;
   // Editar la etapa no tiene excepcion: moverla es `moverEtapa()`, que no pasa por aqui.
   exigirQueElMotorEscribaSuEstado({ ...ctx, desdeElMotor: undefined }, valores);
   const columnas = tabla as unknown as Record<string, unknown>;
@@ -268,7 +272,7 @@ export async function editarConRastro(
         campo,
         valorAnterior: aTexto(actual[campo]),
         valorNuevo: aTexto(is(valor, SQL) ? fila[campo] : valor),
-        origen: "app" as const,
+        origen,
         userId: actorId,
         reversionId: ctx.reversionId ?? null,
       })),

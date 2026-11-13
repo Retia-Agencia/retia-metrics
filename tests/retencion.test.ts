@@ -4,6 +4,8 @@ import {
   deals,
   entregasWebhook,
   leads,
+  mcpTokens,
+  mcpVistasPrevias,
   notificacionesCalendly,
   programs,
   sobresCrudos,
@@ -15,10 +17,12 @@ import type { Db } from "@/lib/db/tipos";
 import {
   DIAS_NOTIFICACION,
   DIAS_SOBRE_PROCESADO,
+  DIAS_VISTA_PREVIA_MCP,
   TAMANO_DE_LOTE,
   aplicarRetencion,
   purgarNotificacionesVencidas,
   purgarSobresVencidos,
+  purgarVistasPreviasVencidas,
 } from "@/lib/retencion/retencion";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -187,6 +191,20 @@ describe("notificaciones de Calendly", () => {
   });
 });
 
+describe("vistas previas del MCP", () => {
+  it("borra la vencida hace 91 días y conserva la de 89, confirmada o no", async () => {
+    const [usuario] = await db.insert(users).values({ email: "retencion-mcp@r.co", rol: "developer", nombre: "MCP" }).returning();
+    const [token] = await db.insert(mcpTokens).values({ userId: usuario.id, nombre: "prueba", hash: "a".repeat(64), scope: "escritura" }).returning();
+    await db.insert(mcpVistasPrevias).values([
+      { tokenId: token.id, userId: usuario.id, programId, accion: "mover_etapa", argumentos: {}, huellas: [], vistaPrevia: [], creadoEn: hace(DIAS_VISTA_PREVIA_MCP + 92), venceEn: hace(DIAS_VISTA_PREVIA_MCP + 91), confirmadaEn: hace(DIAS_VISTA_PREVIA_MCP + 91) },
+      { tokenId: token.id, userId: usuario.id, programId, accion: "mover_etapa", argumentos: {}, huellas: [], vistaPrevia: [], creadoEn: hace(DIAS_VISTA_PREVIA_MCP - 88), venceEn: hace(DIAS_VISTA_PREVIA_MCP - 89) },
+      { tokenId: token.id, userId: usuario.id, programId, accion: "mover_etapa", argumentos: {}, huellas: [], vistaPrevia: [], creadoEn: hace(DIAS_VISTA_PREVIA_MCP - 88), venceEn: hace(DIAS_VISTA_PREVIA_MCP - 89), confirmadaEn: hace(1) },
+    ]);
+    expect(await purgarVistasPreviasVencidas(db, AHORA)).toBe(1);
+    expect(await db.select().from(mcpVistasPrevias)).toHaveLength(2);
+  });
+});
+
 describe("ruta del cron", () => {
   it("falla cerrado sin secreto o con uno incorrecto, y con el correcto aplica la retencion", async () => {
     const { GET } = await import("@/app/api/cron/retencion/route");
@@ -199,7 +217,7 @@ describe("ruta del cron", () => {
       const vencido = await sobre({ recibido: new Date(Date.now() - (DIAS_SOBRE_PROCESADO + 1) * DIA) });
       const r = await GET(new Request("http://localhost/api/cron/retencion", { headers: { authorization: "Bearer bueno" } }));
       expect(r.status).toBe(200);
-      expect(await r.json()).toEqual({ sobres: 1, entregas: 1, notificaciones: 0 });
+      expect(await r.json()).toEqual({ sobres: 1, entregas: 1, notificaciones: 0, vistasPreviasMcp: 0 });
       expect(await idsDeSobres()).not.toContain(vencido);
     } finally {
       if (anterior === undefined) delete process.env.CRON_SECRET;
@@ -207,7 +225,7 @@ describe("ruta del cron", () => {
     }
   });
 
-  it("aplicarRetencion junta los tres conteos", async () => {
-    expect(await aplicarRetencion(db, AHORA)).toEqual({ sobres: 0, entregas: 0, notificaciones: 0 });
+  it("aplicarRetencion junta los cuatro conteos", async () => {
+    expect(await aplicarRetencion(db, AHORA)).toEqual({ sobres: 0, entregas: 0, notificaciones: 0, vistasPreviasMcp: 0 });
   });
 });

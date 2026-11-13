@@ -65,6 +65,8 @@ describe("contrato de herramientas del MCP", () => {
       "cartera_vencida",
       "pauta_roas",
       "origen_del_programa",
+      "preparar_accion",
+      "confirmar_cambio",
     ]);
   });
 

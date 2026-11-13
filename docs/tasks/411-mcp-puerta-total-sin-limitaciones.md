@@ -162,7 +162,7 @@ pre-armada: es una **puerta con reglas de orientación** sobre los mismos servic
 - [x] **F1 Lectura abierta.** `buscar` con dueño; filtros por nombre o id sin 0 silencioso; filtros por defecto declarados;
   opciones aparte; `campos`; paginación en SQL; un solo nombre por concepto. La pregunta del 9-nov = 1 llamada. Cerrada el 12-nov (H3a): `consultar_hechos` sobre seis hechos, `buscar` por programa (una sección por programa, sin total, Mani), dueño y registrado_por ocultos a quien no ve el equipo comercial; abierto: el orden por nombre en SQL usa el collation de la base y la pantalla `localeCompare("es")`.
 - [ ] **F2 Escritura (reemplaza al 384).** Registro de acciones, vista previa, confirmación, rastro `mcp`, deshacer; revisión
-  adversarial (`/codex:adversarial-review`) y petición forjada por rol y programa.
+  adversarial (`/codex:adversarial-review`) y petición forjada por rol y programa. Ola 1 en main el 13-nov: registro `ACCIONES` con `mover_etapa` y `deshacer_evento`, un solo caso de uso (`lib/deals/mover-deal.ts`), `mcp_vistas_previas` de un uso (0134) y el origen del movimiento en `deal_etapa_historial` (0135); falta la ola 2 y el lector de ese origen.
 - [ ] **F3 Guardián de cobertura** mordido en los dos sentidos.
 - [ ] **F4 Medición** (migración propia, aplicada por la sesión principal, con `lock_timeout`) e informe.
 - [ ] **F5 Descubrimiento y evaluaciones.**

@@ -23,6 +23,7 @@ export interface Herramienta<E extends z.ZodObject = z.ZodObject> {
   entrada: E;
   salida: z.ZodObject;
   puede(contexto: ContextoMcp): boolean;
-  soloLectura: true;
+  soloLectura: boolean;
+  destructiva?: boolean;
   ejecutar(contexto: ContextoMcp, entrada: z.output<E>): Promise<ResultadoDeHerramienta>;
 }
