@@ -1,0 +1,37 @@
+# 13-nov: las alertas de seguridad llegaron a 60 porque nadie recibia los PRs de actualizacion.
+# Un PR por semana y por grupo, no uno por paquete: produccion aparte de desarrollo para que un
+# salto de Next o de Base UI se revise solo (AGENTS.md: Next cambia API entre versiones y Base UI
+# falla en tiempo de ejecucion). Las versiones mayores llegan sueltas, nunca dentro de un grupo.
+# Un PR de Dependabot pasa por el mismo CI y por las mismas reglas de cualquier cambio.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      produccion:
+        dependency-type: production
+        update-types: [minor, patch]
+      desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: America/Bogota
+    commit-message:
+      prefix: "ci"
+    groups:
+      acciones:
+        patterns: ["*"]

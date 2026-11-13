@@ -44,7 +44,8 @@ hay razón para que cada programa enrute distinto.
    Ningún envío se descarta (GC-27): todo envío abre deal o actualiza el abierto. En 30X un workflow pasa
    Potencial y Registrado a *En gestión* en minutos; eso es parte de la migración comercial, no de este ADR.
 3. **"Agendó" lo dice la pregunta de agenda del mapeo de la fuente** (`agenda`, ticket 106): en Typeform, la
-   respuesta con el link de Calendly; en Dapta, `data.agenda` lleno (`"booked"`, medido el 1-oct). La cita en sí
+   respuesta con el link de Calendly, es decir una URL http(s) cuyo host es `calendly.com` o un subdominio
+   (`traeLinkDeCalendly`; precisado el 13-nov: el texto con el dominio en otra parte no cuenta); en Dapta, `data.agenda` lleno (`"booked"`, medido el 1-oct). La cita en sí
    la cuelga el webhook de Calendly (096).
 4. **`lead_value` no cambia la etapa:** se guarda y ordena el trabajo, pero no enruta.
 5. **La variable `estado` deja de leerse.** `estados_llegada` y su pantalla se retiran cuando el código nuevo esté

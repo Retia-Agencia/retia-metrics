@@ -291,9 +291,19 @@ describe("estadoConAgenda (ADR 0054, segunda enmienda) — por fila, agenda del 
 });
 
 describe("traeLinkDeCalendly", () => {
-  it("reconoce el dominio sin importar mayusculas ni ruta", () => {
+  it("reconoce un link de Calendly sin importar mayusculas ni ruta", () => {
     expect(traeLinkDeCalendly("https://Calendly.com/retia/x")).toBe(true);
-    expect(traeLinkDeCalendly("CALENDLY.COM")).toBe(true);
+    // Las dos formas medidas en produccion el 13-nov (1.148 de 1.148 respuestas con Calendly).
+    expect(traeLinkDeCalendly("https://calendly.com/d/abc-123/entrevista")).toBe(true);
+    expect(traeLinkDeCalendly("https://api.calendly.com/scheduled_events/uuid/invitees/uuid")).toBe(true);
+  });
+  it("el dominio escrito en cualquier otra parte no es un link de Calendly (Code Scanning #6)", () => {
+    expect(traeLinkDeCalendly("CALENDLY.COM")).toBe(false);
+    expect(traeLinkDeCalendly("no agende, pero escribo calendly.com")).toBe(false);
+    expect(traeLinkDeCalendly("https://calendly.com.ataque.io/x")).toBe(false);
+    expect(traeLinkDeCalendly("https://ataque.io/?r=calendly.com")).toBe(false);
+    expect(traeLinkDeCalendly("https://falsocalendly.com/x")).toBe(false);
+    expect(traeLinkDeCalendly("javascript://calendly.com/%0aalert(1)")).toBe(false);
   });
   it("un texto sin el dominio o vacio es false", () => {
     expect(traeLinkDeCalendly("https://meet.google.com/x")).toBe(false);

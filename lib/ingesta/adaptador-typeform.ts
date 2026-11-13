@@ -163,16 +163,27 @@ export type OpcionesTypeform = OpcionesAdaptador;
 
 // ─────────────────────────────────────────────── el agendo (ADR 0054)
 
-/** Un link de Calendly es cualquier texto que contenga este dominio. */
+/** El dominio de Calendly: el host del link es este o un subdominio suyo (`api.`). */
 const DOMINIO_CALENDLY = "calendly.com";
 
 /**
- * ¿La respuesta de agenda trae un link de Calendly? Es exactamente lo que hace hoy el
- * Apps Script de la hoja: `cal.toLowerCase().includes("calendly")` (ADR 0054, segunda
- * enmienda). No interpreta la URL, solo busca el dominio.
+ * ¿La respuesta de agenda trae un link de Calendly? (ADR 0069: "la respuesta con el link
+ * de Calendly"). Un link es una URL http(s) cuyo HOST es `calendly.com` o un subdominio.
+ * Hasta el 13-nov bastaba con que el texto contuviera el dominio, como el Apps Script de la
+ * hoja: cualquiera que escribiera "calendly.com" en la respuesta, o una URL con ese texto en
+ * otra parte, contaba como agendado (Code Scanning #6). Medido ese dia en produccion: las
+ * 1.148 respuestas que mencionan Calendly son URLs de `calendly.com` o `api.calendly.com`,
+ * asi que la regla nueva no reclasifica ningun envio ya recibido.
  */
 export function traeLinkDeCalendly(valor: string | null | undefined): boolean {
-  return (valor ?? "").toLowerCase().includes(DOMINIO_CALENDLY);
+  let url: URL;
+  try {
+    url = new URL((valor ?? "").trim());
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+  return url.hostname === DOMINIO_CALENDLY || url.hostname.endsWith(`.${DOMINIO_CALENDLY}`);
 }
 
 /**
