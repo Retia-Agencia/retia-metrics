@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Retia · 13 de noviembre</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#fafafa;--card:#fff;--ink:#18181b;--muted:#71717a;--line:#e4e4e7;--accent:#6d28d9;--soft:#ede9fe;
+    --ok:#15803d;--okb:#dcfce7;--wip:#b45309;--wipb:#fef3c7;--todo:#52525b;--todob:#f4f4f5}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f0f12;--card:#18181c;--ink:#f4f4f5;--muted:#a1a1aa;--line:#2a2a31;--accent:#a78bfa;--soft:#2b2340;
+    --ok:#4ade80;--okb:#12301d;--wip:#fbbf24;--wipb:#33270c;--todo:#d4d4d8;--todob:#26262c}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 20px 64px}
+  .eyebrow{color:var(--accent);font-weight:600;font-size:12px;letter-spacing:.05em;text-transform:uppercase}
+  h1{font-size:30px;line-height:1.15;margin:6px 0 8px}
+  .lead{color:var(--muted);font-size:17px;margin:0}
+  h2{font-size:19px;margin:40px 0 14px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi .n{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+  .kpi .l{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .cap{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px}
+  .cap b{font-size:15px}
+  .cap span{color:var(--muted);font-size:14px}
+  .where{margin-top:auto;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;background:var(--soft);border-radius:8px;padding:6px 10px;align-self:flex-start}
+  a.where:hover{text-decoration:underline}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  td:last-child{text-align:right;white-space:nowrap}
+  .badge{font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px}
+  .ok{color:var(--ok);background:var(--okb)}.wip{color:var(--wip);background:var(--wipb)}.todo{color:var(--todo);background:var(--todob)}
+  ol{margin:0;padding-left:20px}ol li{margin:6px 0}
+  .note{border-left:3px solid var(--accent);background:var(--soft);padding:14px 16px;border-radius:0 12px 12px 0}
+  footer{margin-top:40px;color:var(--muted);font-size:13px}
+  footer a{color:var(--accent)}
+  @media (max-width:700px){.kpis,.grid{grid-template-columns:1fr}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="eyebrow">Weekly · 13 de noviembre de 2026</div>
+<h1>El CRM ya responde las preguntas del negocio</h1>
+<p class="lead">Ventas, caja, meta, pauta y equipo comercial en un solo lugar, en tiempo real y sin Excels.</p>
+
+<div class="kpis">
+  <div class="kpi"><div class="n">13 de 14</div><div class="l">pedidos del weekly del 3-nov entregados</div></div>
+  <div class="kpi"><div class="n">0</div><div class="l">reportes manuales: todo sale del CRM</div></div>
+  <div class="kpi"><div class="n">Cada hora</div><div class="l">alerta de pauta en WhatsApp</div></div>
+</div>
+
+<h2>Lo que puedes hacer hoy</h2>
+<div class="grid">
+  <div class="cap"><b>Ver el día en un clic y bajarlo en PDF</b><span>El reporte diario que se hacía a mano.</span><a class="where" href="https://retia-metrics-seven.vercel.app/p/tactical-investor/hub?seccion=hoy">Hub › Hoy</a></div>
+  <div class="cap"><b>Saber si llegamos a la meta</b><span>Avance del mes y de la cohorte, en cupos y en dólares.</span><a class="where" href="https://retia-metrics-seven.vercel.app/p/tactical-investor/hub?seccion=hoy">Hub › ¿Vamos a llegar?</a></div>
+  <div class="cap"><b>Vendido, Recaudado y Por cobrar</b><span>Por cualquier periodo y cohorte, comparado contra otro periodo.</span><a class="where" href="https://retia-metrics-seven.vercel.app/p/tactical-investor/hub?seccion=dinero">Hub › Dinero</a></div>
+  <div class="cap"><b>Medir al equipo comercial</b><span>Agendas, show y cierre por closer.</span><a class="where" href="https://retia-metrics-seven.vercel.app/p/tactical-investor/hub?seccion=comercial">Hub › Comercial</a></div>
+  <div class="cap"><b>Saber si la pauta da plata</b><span>ROAS real y proyectado, costo por agenda, inversión por cuenta y qué anuncio trae ventas.</span><a class="where" href="https://retia-metrics-seven.vercel.app/p/tactical-investor/hub?seccion=pauta">Hub › Pauta</a></div>
+  <div class="cap"><b>Ver quién está detrás de cada número</b><span>Clic en cualquier cifra: sale la lista exacta y se descarga.</span><span class="where">Clic en cualquier cifra del Hub</span></div>
+  <div class="cap"><b>Preguntarle al CRM en español</b><span>"¿Cuánto vendimos esta semana?", "¿Quién nos debe plata?". Los closers también registran desde ahí.</span><span class="where">Asistente del CRM en Claude</span></div>
+  <div class="cap"><b>Enterarte sin abrir nada</b><span>Semáforo de pauta cada hora y agendas del día al cierre; el closer recibe aviso apenas alguien agenda.</span><span class="where">WhatsApp (Juanito)</span></div>
+  <div class="cap"><b>Que Meta optimice con ventas reales</b><span>Cada venta se le reporta a Meta sola, con su valor.</span><span class="where">Automático al cerrar una venta</span></div>
+  <div class="cap"><b>Ver pagos y cartera de cada estudiante</b><span>Abonos, comprobantes y saldo, listos para Customer Success.</span><a class="where" href="https://retia-metrics-seven.vercel.app/p/tactical-investor/students">Programa › Students</a></div>
+</div>
+
+<h2>Lo que viene</h2>
+<table>
+  <tr><td><b>Productos y SKUs</b>: qué compró cada persona y cuándo</td><td><span class="badge todo">Siguiente</span></td></tr>
+  <tr><td><b>Pauta sin Excel</b>: cuadre final con Paid Media y se retira el Excel</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td><b>Cada cifra se explica sola</b> al abrirla, en todo el Hub</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td><b>Reporte diario más presentable</b> (el PDF ya existe)</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td><b>Programa de Majo Sánchez</b> montado en el CRM</td><td><span class="badge todo">Falta</span></td></tr>
+  <tr><td><b>Insights de las llamadas</b> (Grain) para guiones de Media</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td><b>Media en el CRM</b>, después de Comercial</td><td><span class="badge todo">En espera</span></td></tr>
+</table>
+
+<h2>Para que los números cuadren: adopción</h2>
+<div class="note">El CRM solo es tan bueno como lo que se registra. Ejemplo: en ComunicArte el Excel dice 41 ventas y el CRM 28. Siguiente paso: que closers y todos los roles registren todo en el CRM, empezando por una sesión de 30 min con Andrea, Maru y Dana.</div>
+
+<h2>Decisiones que necesito de ti</h2>
+<ol>
+  <li><b>Pago rápido y escalones:</b> qué cuenta como pago rápido y cuánto pesa cada nivel de lead.</li>
+  <li><b>Protocolo 30X completo:</b> si lo implementamos tal cual o solo una parte.</li>
+  <li><b>SKUs:</b> nomenclatura y quién los crea.</li>
+  <li><b>Plan de IA:</b> uno más grande, por el consumo actual.</li>
+</ol>
+
+<footer>Entra con tu correo de Google: <a href="https://retia-metrics-seven.vercel.app">retia-metrics-seven.vercel.app</a> · Preparado por Mani.</footer>
+</div>
+</body>
+</html>

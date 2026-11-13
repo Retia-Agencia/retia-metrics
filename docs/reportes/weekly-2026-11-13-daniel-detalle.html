@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekly Retia · 13 de noviembre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fafafa; --card:#ffffff; --ink:#18181b; --muted:#71717a; --line:#e4e4e7;
+    --accent:#6d28d9; --accent-soft:#ede9fe;
+    --ok:#15803d; --ok-bg:#dcfce7; --wip:#b45309; --wip-bg:#fef3c7;
+    --todo:#52525b; --todo-bg:#f4f4f5; --stop:#b91c1c; --stop-bg:#fee2e2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f0f12; --card:#18181c; --ink:#f4f4f5; --muted:#a1a1aa; --line:#2a2a31;
+      --accent:#a78bfa; --accent-soft:#2b2340;
+      --ok:#4ade80; --ok-bg:#12301d; --wip:#fbbf24; --wip-bg:#33270c;
+      --todo:#d4d4d8; --todo-bg:#26262c; --stop:#f87171; --stop-bg:#3a1515;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,system-ui,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:40px 20px 80px}
+  header .eyebrow{color:var(--accent);font-weight:600;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+  h1{font-size:32px;line-height:1.15;margin:6px 0 10px}
+  .lead{font-size:17px;color:var(--muted);max-width:720px;margin:0}
+  h2{font-size:20px;margin:48px 0 6px}
+  .sub{color:var(--muted);margin:0 0 16px}
+  nav{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0}
+  nav a{font-size:13px;color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:5px 12px;background:var(--card)}
+  nav a:hover{border-color:var(--accent);color:var(--accent)}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .kpi .n{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+  .kpi .l{color:var(--muted);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h3{margin:0 0 4px;font-size:16px}
+  .card p{margin:0 0 10px;color:var(--muted);font-size:14px}
+  .card ul{margin:0;padding-left:18px}
+  .card li{margin:4px 0}
+  .badge{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .ok{color:var(--ok);background:var(--ok-bg)} .wip{color:var(--wip);background:var(--wip-bg)}
+  .todo{color:var(--todo);background:var(--todo-bg)} .stop{color:var(--stop);background:var(--stop-bg)}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+  th{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+  tr:last-child td{border-bottom:0}
+  .demo{counter-reset:paso}
+  .step{display:grid;grid-template-columns:36px 1fr auto;gap:14px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+  .step::before{counter-increment:paso;content:counter(paso);width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:14px}
+  .step b{display:block}
+  .step span{color:var(--muted);font-size:14px}
+  .btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:13px;border-radius:8px;padding:7px 12px;white-space:nowrap}
+  @media (prefers-color-scheme: dark){.btn{color:#140c24}}
+  .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+  .q{font-style:italic;color:var(--ink)}
+  .note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 10px 10px 0;font-size:14px;margin-top:14px}
+  .refs a{color:var(--accent)}
+  footer{margin-top:56px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+  @media (max-width:720px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.step{grid-template-columns:30px 1fr}.step .btn{grid-column:2}h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Weekly con Daniel Tovar · jueves 13 de noviembre de 2026</div>
+  <h1>CRM de Retia: qué está vivo, qué estoy haciendo y qué falta</h1>
+  <p class="lead">De lo que pediste el 3 de noviembre está entregado todo menos productos y SKUs, que es lo siguiente. Esta semana el CRM ganó la pauta en una sola pantalla y un asistente al que se le pregunta y se le ordena en español.</p>
+  <nav>
+    <a href="#demo">Verlo en vivo</a>
+    <a href="#pedidos">Lo que pediste</a>
+    <a href="#reuniones-cruce">Pedidos de las reuniones</a>
+    <a href="#necesito">Lo que necesito de ti</a>
+    <a href="#live">Lo que está vivo</a>
+    <a href="#ahora">En qué estoy</a>
+    <a href="#falta">Lo que falta</a>
+    <a href="#reuniones">Reuniones</a>
+    <a href="#otros">Otros frentes</a>
+  </nav>
+  <div class="kpis">
+    <div class="kpi"><div class="n">13 de 14</div><div class="l">pedidos del weekly del 3-nov entregados</div></div>
+    <div class="kpi"><div class="n">12</div><div class="l">acciones que el asistente ya hace en el CRM, siempre con confirmación</div></div>
+    <div class="kpi"><div class="n">24/7</div><div class="l">semáforo de pauta por WhatsApp, cada hora que se elija</div></div>
+    <div class="kpi"><div class="n">1</div><div class="l">pedido abierto tuyo: productos y SKUs por persona</div></div>
+  </div>
+</header>
+
+<h2 id="demo">Verlo en vivo (10 minutos)</h2>
+<p class="sub">El orden en que te lo muestro. Todo es la app real, con datos reales.</p>
+<div class="demo">
+  <div class="step"><div><b>Hub › Hoy: el reporte diario en un botón</b><span>Lo que hacía Michael a mano cada día, ahora sale del CRM con los filtros puestos y se descarga en PDF.</span></div><a class="btn" href="https://retia-metrics-seven.vercel.app/hub">Abrir el Hub</a></div>
+  <div class="step"><div><b>Comercial y Dinero: Vendido, Recaudado y Por cobrar</b><span>Periodo y cohorte como filtros separados, gráficas en cupos o en plata, y el bloque fijo "¿Vamos a llegar?" contra la meta del mes y de la cohorte.</span></div><a class="btn ghost" href="https://retia-metrics-seven.vercel.app/hub">Ver</a></div>
+  <div class="step"><div><b>Toda cifra se abre</b><span>Le doy clic a un número y aparece la lista exacta de personas o ventas que lo forman, y se puede descargar.</span></div><span></span></div>
+  <div class="step"><div><b>Pauta: el Excel de Paid Media sale del CRM</b><span>Tabla semanal y por día, inversión por cuenta de Meta, ROAS que avisa cuando todavía hay citas pendientes y ROAS proyectado.</span></div><a class="btn ghost" href="https://retia-metrics-seven.vercel.app/hub">Ver</a></div>
+  <div class="step"><div><b>El asistente del CRM (en Claude)</b><span>Le pregunto en español y responde con las cifras del Hub. Ejemplos: <span class="q">"¿Cuánto vendimos esta semana en Tactical?"</span>, <span class="q">"¿Quién debe plata?"</span>, <span class="q">"Mueve el deal de Juan a Abonado"</span> (muestra una vista previa y no hace nada sin un sí).</span></div><span></span></div>
+  <div class="step"><div><b>Juanito en WhatsApp</b><span>El semáforo de costo por agenda llega al grupo a las horas elegidas, con las horas de agenda al cierre del día.</span></div><span></span></div>
+</div>
+<div class="note">Para revisarlo por tu cuenta: entra con tu correo de Google al CRM (<a href="https://retia-metrics-seven.vercel.app">retia-metrics-seven.vercel.app</a>). No hay vista pública: nada se ve sin sesión.</div>
+
+<h2 id="pedidos">Lo que pediste el 3 de noviembre</h2>
+<p class="sub">Cada pedido del weekly y dónde quedó.</p>
+<table>
+  <tr><th>Pedido</th><th>Estado</th></tr>
+  <tr><td>Periodo y cohorte como dos filtros, con la fecha de la primera venta</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Tres columnas siempre: Vendido, Recaudado y Por cobrar (nunca "Monto")</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Gráficas que siguen los filtros, en cupos y en plata, por día</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Bloque fijo "¿Vamos a llegar?" contra la meta del mes y de la cohorte</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Comercial que dice su periodo, con completos y parciales aparte</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Reporte diario descargable en PDF como fuente única</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Un solo nombre por cifra en todas las pantallas</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>ROAS medido por el día en que entró el lead, con aviso de citas pendientes, y ROAS proyectado</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Certeza de que los datos están bien (auditoría completa de métricas)</td><td><span class="badge ok">Vivo</span> <span class="badge wip">cierre de detalles</span></td></tr>
+  <tr><td>Productos y SKUs: qué compró cada persona y cuándo</td><td><span class="badge todo">Siguiente</span></td></tr>
+  <tr><td>Sentarme 30 min con Andrea, Maru y Dana a usarlo</td><td><span class="badge todo">Pendiente</span></td></tr>
+  <tr><td>Revisar con César los anuncios sin UTM</td><td><span class="badge wip">El CRM ya lista cuáles</span></td></tr>
+</table>
+
+<h2 id="reuniones-cruce">Lo pedido en las reuniones de octubre y noviembre</h2>
+<p class="sub">Cada pedido de los dailies, el weekly y las reuniones con Pauta y closers (20-oct a 11-nov), dónde se ve hoy y qué falta.</p>
+<table>
+  <tr><th>Pedido</th><th>Cuándo</th><th>Dónde se ve hoy</th><th>Estado</th></tr>
+  <tr><td>Que cada venta vuelva a Meta con su valor</td><td>20 y 21-oct</td><td>Automático al marcar un deal como ganado</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Juanito manda al cierre a qué horas se agendó la gente</td><td>22-oct</td><td>WhatsApp, mensaje aparte al cierre del día</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Que el Hub no muestre datos falsos</td><td>21 y 22-oct</td><td>Hub: auditoría completa de métricas, cada cifra abre su lista</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Comparar un periodo con otros, con un botón para agregar</td><td>21-oct</td><td>Selector de periodo del Hub</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Bandeja de "próxima cohorte"</td><td>21-oct</td><td>Pestaña Próxima cohorte del programa</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Leads reagendados aparte de los nuevos</td><td>22-oct</td><td>Columna Re-agenda en el tablero de deals</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Asistente del CRM en el Claude de cada quien, según su rol</td><td>21 y 28-oct</td><td>Asistente del CRM (lectura para todos los roles)</td><td><span class="badge ok">Vivo</span> <span class="badge wip">falta conectarlo a cada persona</span></td></tr>
+  <tr><td>Que el closer registre desde el asistente</td><td>9-nov</td><td>12 acciones con vista previa y confirmación</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Link con UTM por pieza de media y link fijo por creador</td><td>26, 28 y 30-oct</td><td>Pestaña Media</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Pauta por campaña y por anuncio en el Hub</td><td>30-oct</td><td>Hub › Pauta</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Los Excels de pauta y comercial salen del CRM (semanal y diario)</td><td>6-nov</td><td>Hub › Pauta, tabla semanal y por día</td><td><span class="badge ok">Vivo</span> <span class="badge stop">falta el cuadre con Paid Media</span></td></tr>
+  <tr><td>Buscar nombres sin depender de tildes</td><td>3-nov</td><td>Todos los buscadores</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Recursos solo del programa de cada quien</td><td>3-nov</td><td>Recursos como pestaña del programa</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Al volver de un lead, la búsqueda sigue ahí</td><td>30-oct</td><td>Todas las listas</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Ordenar deals por fecha de agenda</td><td>5-nov</td><td>Deals</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>PDF del día más corto y entendible</td><td>4 y 5-nov</td><td>Hub › Hoy, botón de PDF</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Customer Success con acceso y todos los pagos</td><td>4 y 9-nov</td><td>Students</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Forma de pago y comprobante obligatorios; fuera el link de pago</td><td>11-nov</td><td>Registro del abono</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Comandos de Juanito para lanzamientos (/t0, /pitch, /cierre)</td><td>4-nov</td><td>Juanito</td><td><span class="badge ok">Vivo</span></td></tr>
+  <tr><td>Alertas del semáforo todas las horas</td><td>11-nov</td><td>Configuración de horas del reporte</td><td><span class="badge wip">Por confirmar</span></td></tr>
+  <tr><td>Push nuevo al closer cuando alguien se agenda, y push 1 más corto</td><td>11-nov</td><td>Juanito</td><td><span class="badge wip">Por confirmar</span></td></tr>
+  <tr><td>Protocolo 30X en Juanito para todo el equipo</td><td>3 y 4-nov</td><td>Juanito</td><td><span class="badge wip">Por confirmar</span></td></tr>
+  <tr><td>Montar el programa de Majo Sánchez</td><td>11-nov</td><td>Todavía no está en el CRM</td><td><span class="badge todo">Falta</span></td></tr>
+  <tr><td>Reporte diario consolidado (día, semana, mes y cohorte, por closer) enviado solo</td><td>22-oct y 5-nov</td><td>El PDF existe; el envío automático no</td><td><span class="badge todo">Falta</span></td></tr>
+  <tr><td>Llamadas confirmadas por closer</td><td>9-nov</td><td>Espera decisión con Michael y Paid Media</td><td><span class="badge stop">Bloqueado</span></td></tr>
+  <tr><td>Insights de las llamadas de Grain para guiones</td><td>26, 28 y 30-oct</td><td>Transcripción construida; insights no</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td>Parrilla y cockpit de media dentro del CRM</td><td>26-oct y 3-nov</td><td>Después de Comercial; falta la reunión con Media</td><td><span class="badge todo">En espera</span></td></tr>
+  <tr><td>Pago rápido contra pago después, y el peso de cada escalón</td><td>28-oct</td><td>Se configura desde gerencia, sin nada fijo</td><td><span class="badge stop">Espera tu definición</span></td></tr>
+</table>
+
+<h2 id="necesito">Lo que necesito de ti</h2>
+<div class="grid">
+  <div class="card"><h3>Pago rápido y escalones</h3><p>Qué cuenta como pago rápido y cuánto pesa cada escalón (alto, medio, bajo). Con eso se mide calidad de lead y no solo volumen.</p></div>
+  <div class="card"><h3>Productos y SKUs</h3><p>Validar la nomenclatura de los SKUs y quién los crea, antes de construir.</p></div>
+  <div class="card"><h3>Uso de IA</h3><p>El consumo de tokens es alto con tres cuentas pequeñas; quedó pendiente hablar de un plan más grande.</p></div>
+  <div class="card"><h3>Usar el Hub juntos</h3><p>Diez minutos con tus preguntas reales: es lo que confirma que el Hub ya te sirve.</p></div>
+</div>
+
+<h2 id="live">Lo que está vivo hoy</h2>
+<p class="sub">En producción y en uso.</p>
+<div class="grid">
+  <div class="card"><h3>Operación comercial <span class="badge ok">Vivo</span></h3><ul>
+    <li>Los leads entran solos desde los formularios, sin duplicados por persona.</li>
+    <li>Tablero de deals con las etapas de 30X; las citas de Calendly se cuelgan solas.</li>
+    <li>Abonos con plataforma de pago obligatoria y comprobante.</li>
+    <li>Students muestra todos los pagos para Customer Success.</li>
+    <li>La historia de un lead se descarga desde cualquier cifra.</li>
+  </ul></div>
+  <div class="card"><h3>Hub para Gerencia <span class="badge ok">Vivo</span></h3><ul>
+    <li>Hoy, Comercial, Dinero y "¿Vamos a llegar?".</li>
+    <li>Comparar un periodo contra otro, con número y porcentaje.</li>
+    <li>Todos los programas juntos solo para lo que se puede sumar; tasas siempre por programa.</li>
+  </ul></div>
+  <div class="card"><h3>Pauta <span class="badge ok">Vivo</span></h3><ul>
+    <li>Tabla semanal y tabla por día, como el Excel de Paid Media.</li>
+    <li>Inversión desglosada por cuenta de Meta (nuevo hoy).</li>
+    <li>Qué canal, campaña y anuncio trae ventas, y alarma cuando un anuncio llega sin rastreo.</li>
+  </ul></div>
+  <div class="card"><h3>Asistente del CRM <span class="badge ok">Vivo</span></h3><ul>
+    <li>Responde cualquier cifra del Hub y busca leads y deals.</li>
+    <li>Registra abonos, resultados de llamada, mueve etapas y anula, siempre con vista previa y confirmación.</li>
+    <li>Cada persona ve solo lo que su rol le permite en la app.</li>
+  </ul></div>
+  <div class="card"><h3>Juanito (WhatsApp) <span class="badge ok">Vivo</span></h3><ul>
+    <li>Semáforo de pauta por hora, un mensaje con todos los programas.</li>
+    <li>Horas de agenda en un mensaje aparte al cierre.</li>
+    <li>El equipo marca campañas como agenda o lanzamiento respondiendo en el grupo.</li>
+  </ul></div>
+  <div class="card"><h3>Seguridad <span class="badge ok">Vivo</span></h3><ul>
+    <li>Actualizaciones de seguridad aplicadas esta semana.</li>
+    <li>Revisión automática semanal de dependencias.</li>
+  </ul></div>
+</div>
+
+<h2 id="ahora">En qué estoy ahora</h2>
+<p class="sub">Esta semana y la próxima.</p>
+<table>
+  <tr><th>Qué</th><th>Para qué</th><th>Estado</th></tr>
+  <tr><td>Cada cifra del Hub se explica sola al abrirla</td><td>Qué mide, cómo se calcula y de dónde sale cada número, sin jerga. Ya está en Pauta; sigue Hoy, Comercial y Dinero.</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td>Pauta en dos vistas, con "Ver solo" por cuenta, canal, campaña o anuncio</td><td>Que Paid Media deje el Excel.</td><td><span class="badge wip">En curso</span></td></tr>
+  <tr><td>Costo por venta (CAC) de pauta</td><td>Saber cuánto cuesta cada venta que trae Meta.</td><td><span class="badge todo">Siguiente</span></td></tr>
+  <tr><td>Asistente para todos los roles, en claude.ai y ChatGPT</td><td>Que closers y gerencia le pregunten al CRM desde su celular.</td><td><span class="badge wip">Construido, falta conectar</span></td></tr>
+</table>
+
+<h2 id="falta">Lo que falta</h2>
+<div class="grid">
+  <div class="card"><h3>Productos y SKUs <span class="badge todo">Próximo cambio grande</span></h3><p>Que una persona pueda comprar varios productos (por ejemplo, el programa virtual y el uno a uno de Tactical C3) y ver qué compró y cuándo. Los SKUs los crea gerencia; los closers solo los asignan. Primero se decide el diseño, después se construye.</p></div>
+  <div class="card"><h3>Reportes diarios <span class="badge todo">Falta</span></h3><p>El PDF diario ya sale de Hub › Hoy. Falta que el reporte del día se arme y se envíe solo, sin que nadie lo descargue.</p></div>
+  <div class="card"><h3>Aviso de estudiante nuevo a Customer Success <span class="badge wip">Casi</span></h3><p>Tu pedido: cuando alguien paga, Juanito le avisa a CS. El CRM ya lo prepara; falta conectarlo en Juanito.</p></div>
+  <div class="card"><h3>Insights de las llamadas (Grain) <span class="badge wip">En curso</span></h3><p>Transcripción de cada llamada, sus insights y un resumen semanal por WhatsApp. La transcripción está construida; falta probarla con un link real.</p></div>
+  <div class="card"><h3>Media (después de Comercial) <span class="badge todo">En espera</span></h3><p>Centralizar guiones, grabación, edición y parrilla en el CRM y el cockpit. El orden que diste: primero Comercial.</p></div>
+  <div class="card"><h3>Cuadre final con el Excel de Paid Media <span class="badge stop">Espera respuestas</span></h3><p>Para retirar el Excel faltan respuestas de Paid Media (plan de inversión diario, cita confirmada) y explicar una diferencia: en ComunicArte el Excel dice 41 ventas y el CRM 28.</p></div>
+</div>
+
+<h2 id="reuniones">Reuniones que debo agendar</h2>
+<p class="sub">No las hice por tiempo; van esta semana.</p>
+<table>
+  <tr><th>Con quién</th><th>Para qué</th><th>Estado</th></tr>
+  <tr><td>Andrea, Maru y Dana (closers)</td><td>30 min usando el CRM con ellas, sin intermediario.</td><td><span class="badge todo">Por agendar</span></td></tr>
+  <tr><td>Media (Majo y Dani Rodríguez)</td><td>Entender los crudos y el flujo real de reels antes de llevar Media al CRM. No la he tenido.</td><td><span class="badge todo">Por agendar</span></td></tr>
+  <tr><td>Paid Media (Michael y equipo)</td><td>Cerrar las preguntas que frenan el retiro del Excel.</td><td><span class="badge todo">Por agendar</span></td></tr>
+  <tr><td>Contigo, hoy</td><td>Usar el Hub juntos: es el paso que cierra la entrega comercial.</td><td><span class="badge wip">Hoy</span></td></tr>
+</table>
+
+<h2 id="otros">Otros frentes</h2>
+<div class="grid">
+  <div class="card"><h3>Juanito</h3><p>Además del semáforo y las agendas, recibe la clasificación de campañas desde el grupo y está listo para los avisos a Customer Success.</p></div>
+  <div class="card"><h3>Cockpit de contenido y Media Ops</h3><p>La propuesta para gerencia está lista para cuando arranquemos Media.</p></div>
+</div>
+
+<h2>Referencias para revisar</h2>
+<div class="card refs"><ul>
+  <li><a href="https://retia-metrics-seven.vercel.app">CRM de Retia</a> (la app, con tu correo)</li>
+  <li><a href="https://claude.ai/artifact/BmqdCvrv6KLvmHMCHYkeeo">Guía del Hub Retia</a>: dónde se configura cada meta y umbral</li>
+  <li><a href="https://claude.ai/artifact/W2TFuCnkujsvL71wPmdPC7">Alcance del Hub</a>: qué es cada parte y por qué</li>
+  <li><a href="https://claude.ai/artifact/L7gb5GmWQCXgq9JmsEPw5K">Mapa del CRM</a>: quién hace qué y qué falta en cada parte</li>
+  <li><a href="https://claude.ai/artifact/FiN71FMHxTRSqSAPMP9DzB">Operación comercial Retia</a></li>
+  <li><a href="https://claude.ai/artifact/XZYPPXCbvr92szwqUgiHgA">UTMs en Retia: diagnóstico y estándar</a></li>
+  <li><a href="https://claude.ai/artifact/9ieUYcs5pmH9FpvqSeBazP">Media Ops para gerencia</a> (presentación)</li>
+</ul></div>
+
+<footer>Preparado por Mani el 13 de noviembre de 2026 a partir del tracker del CRM, la revisión del Hub del 13-nov, el weekly del 3-nov y las reuniones de Retia del 20-oct al 11-nov.</footer>
+</div>
+</body>
+</html>
