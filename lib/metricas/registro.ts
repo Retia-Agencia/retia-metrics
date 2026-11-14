@@ -839,6 +839,21 @@ export const REGISTRO = {
     funcionSql: { archivo: "lib/queries/hechos/costo-agenda-crm.ts", nombre: "costoPorAgendaDelCrm" },
     listas: [],
   }),
+  // Costo por venta (CAC, 415): la celda Inversión ÷ la celda Ventas del mismo periodo; sin ventas o sin inversión es «—».
+  cac: ficha("gasto", {
+    filaDelDiccionario: "Costo por venta (CAC)",
+    tipo: "razon",
+    de: ["inversion", "ventas"],
+    unidad: "dinero",
+    monedas: ["cop"],
+    anclaDeFecha: "primera_entrada_a_venta",
+    dimensiones: ["dia", "semana"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/pauta/costo-por-venta.ts", nombre: "costoPorVenta" },
+    listas: [],
+  }),
   // Costo por agenda del semáforo: la misma pregunta con las agendas que reporta Meta (pueden diferir del CRM, DA-4).
   costo_agenda_meta: ficha("gasto", {
     filaDelDiccionario: "Costo por agenda del semáforo",

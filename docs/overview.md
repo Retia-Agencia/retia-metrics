@@ -612,8 +612,11 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   parcial ("parcial · N de M") o no calculable ("—" con el motivo); nunca un número a medias. La proyección sí usa una razón parcial, pero la etiqueta "parcial, N de M" junto al supuesto (351).
 - **Costo por agenda (CPI):** el gasto de pauta entre las agendas. En el **semáforo**, las agendas según Meta (ADR 0088,
   enmienda del 16-oct): se rotula **Costo por agenda (según Meta)**; en el **Hub** y la tabla semanal de Pauta, las del CRM
-  de Paid (**Costo por agenda**, 403 F2). **CPL** es lo mismo por registro
-  y **costo por venta (CAC)** por venta. Definiciones en `docs/metricas.md`.
+  de Paid (**Costo por agenda**, 403 F2). **CPL** es lo mismo por registro. Definiciones en `docs/metricas.md`.
+- **Costo por venta (CAC):** cuánto se invirtió en pauta por cada venta de pauta, en COP: la Inversión del periodo entre
+  las ventas de área Paid del mismo periodo, por fecha de venta (415). Sin ventas o sin inversión es "—" con su motivo,
+  nunca COP 0. Vive en la tabla de Hub › Pauta, bloque General. *No confundir con el ROAS, que ubica la venta en el día
+  en que la persona se registró.*
 - **Objetivo, Objetivo de la cohorte, Objetivo del mes, Objetivo de la semana y Objetivo del día (403):** el objetivo de la
   cohorte son los cupos que la empresa quiere vender en toda la cohorte (lo escribe una persona); el del mes es la parte que
   cae en el mes, el de la semana la que toca de lunes a domingo y el del día lo que hay que vender hoy. **Faltan** es el

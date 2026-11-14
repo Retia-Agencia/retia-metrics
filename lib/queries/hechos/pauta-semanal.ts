@@ -2,6 +2,7 @@ import { and, between, count, eq, sql } from "drizzle-orm";
 import { gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
+import { costoPorVenta } from "@/lib/pauta/costo-por-venta";
 import { motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
 import type { Rango } from "@/lib/queries/dashboard";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
@@ -32,7 +33,7 @@ export function pasoDeTablaDePauta(valor: string | string[] | undefined): PasoDe
 }
 export type UnidadPautaSemanal = "COP" | "USD" | "conteo" | "razon" | "porcentaje";
 export type ClavePautaSemanal =
-  | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "facturacion" | "roas" | "profit"
+  | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "cac" | "facturacion" | "roas" | "profit"
   | "show" | "cierre_ventas" | "agenda_venta"
   | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "agendas_meta" | "costo_agenda_meta" | "frecuencia";
 
@@ -266,12 +267,16 @@ async function celdasDelRango(
       ? { estado: "parcial", razon: costoCobertura.motivo }
       : OK), [costoMeta.gasto, costoMeta.agendasMeta]);
 
+  const inversion = filasGasto === 0
+    ? sinDato(razonGasto)
+    : inversionCop.valor === null
+    ? sinDato(inversionCop.razon ?? "No se puede convertir la inversión")
+    : celda(inversionCop.valor, OK, otrasCampanasCop);
+  // Costo por venta (415): las MISMAS dos cifras que pintan las celdas Inversión y Ventas de este rango.
+  const cac = costoPorVenta({ inversionCop: inversion.valor, motivoSinInversion: inversion.cobertura.razon, ventas: conteos.ventas });
+
   return {
-    inversion: filasGasto === 0
-      ? sinDato(razonGasto)
-      : inversionCop.valor === null
-      ? sinDato(inversionCop.razon ?? "No se puede convertir la inversión")
-      : celda(inversionCop.valor, OK, otrasCampanasCop),
+    inversion,
     agendas: celda(conteos.agendas),
     costo_agenda_crm: costoCrm.costo.valor === null
       ? sinDato(costoCrm.costo.motivo ?? (costoCrm.agendasCrm === 0 ? "Sin agendas del CRM en el periodo" : "Sin gasto de agenda"))
@@ -279,6 +284,9 @@ async function celdasDelRango(
         ? { estado: "parcial", razon: costoCrm.costo.motivo }
         : OK), [costoCrm.gasto, costoCrm.agendasCrm]),
     ventas: celda(conteos.ventas),
+    cac: cac.valor === null
+      ? sinDato(cac.motivo ?? "Faltan datos para calcularlo")
+      : conPartes(celda(cac.valor), [inversion.valor, conteos.ventas]),
     facturacion: celda(conteos.vendido, coberturaVenta),
     roas: roasDeCohorte
       ? conPartes(celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS"), [roasDeCohorte.valorVendidoUsd, roasDeCohorte.gastoUsd])
@@ -327,6 +335,7 @@ const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombr
   { clave: "agendas", bloque: "general", nombre: nombreCorto("agendadas"), unidad: "conteo" },
   { clave: "costo_agenda_crm", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_crm, unidad: "COP" },
   { clave: "ventas", bloque: "general", nombre: nombreCorto("ventas"), unidad: "conteo" },
+  { clave: "cac", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.cac, unidad: "COP" },
   { clave: "facturacion", bloque: "general", nombre: nombreCorto("vendido"), unidad: "USD" },
   { clave: "roas", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.roas, unidad: "razon" },
   { clave: "profit", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.profit, unidad: "USD" },

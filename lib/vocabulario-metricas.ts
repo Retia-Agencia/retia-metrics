@@ -78,6 +78,7 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
   inversion: "Inversión",
   costo_agenda_crm: "Costo por agenda",
   costo_agenda_meta: "Costo por agenda (según Meta)",
+  cac: "Costo por venta",
   roas: "ROAS",
   gasto: "Gasto",
   pct_no_asistio: "% no asistió",
@@ -97,7 +98,7 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
  * `envios`, `pct_no_asistio` y `otras_campaignas` no son conceptos aparte (son una suma, otro concepto o un desglose).
  */
 export type ClaveDePauta =
-  | "inversion" | "costo_agenda_crm" | "costo_agenda_meta" | "roas" | "profit"
+  | "inversion" | "costo_agenda_crm" | "costo_agenda_meta" | "cac" | "roas" | "profit"
   | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "frecuencia";
 
 /** Toda clave que puede tener ficha: las del Hub y las de Pauta. Los nombres no se solapan (lo vigila el test del registro). */

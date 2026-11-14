@@ -5,6 +5,7 @@ import {
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cop, num, pct, usd } from "@/lib/format";
+import { MOTIVO_SIN_VENTAS } from "@/lib/pauta/costo-por-venta";
 import { csvDePautaSemanal } from "@/lib/pauta/csv-tabla-semanal";
 import { cargarPautaSemanal, type ClavePautaSemanal, type VistaPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
@@ -29,6 +30,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
  *   agendas          = 4                       ventas = 1          facturación (vendido) = USD 1.400
  *   costo por agenda (CRM, Hub)       = 2.800.000 ÷ 4 = COP 700.000
  *   costo por agenda (según Meta)     = 2.800.000 ÷ 14 = COP 200.000
+ *   costo por venta (CAC)             = 2.800.000 ÷ 1 = COP 2.800.000
  *   ROAS             = 1.400 ÷ 700 = 2         profit = 1.400 − 700 = USD 700
  *   CPM              = 400.000 ÷ 20.000 × 1.000 = COP 20.000 (solo la fila con impresiones)
  *   CTR              = 400 ÷ 20.000 = 2 %      llegada a la landing = 200 ÷ 400 = 50 %
@@ -81,7 +83,7 @@ beforeEach(async () => {
   await cita(tercera.id, "2026-10-07", "no_show");
 });
 
-async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: string }) {
+async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: string }, origen: "paid" | "organico" = "paid") {
   const lead = (await db.insert(leads).values({
     programId, fechaPrimeraAplicacion: new Date(`${dia}T10:00:00-05:00`),
     emailNormalizado: `dorado-pauta-${++secuencia}@test.co`, nombre: `Lead ${secuencia}`,
@@ -89,7 +91,9 @@ async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: str
   const envio = (await db.insert(submissions).values({
     sourceId, leadId: lead.id, token: crypto.randomUUID(), esParcial: false,
     fechaEnvio: new Date(`${dia}T10:00:00-05:00`), createdAt: new Date(`${dia}T10:00:00-05:00`),
-    utmSource: "facebook", utmMedium: "cpc", utmId: "par-anuncio",
+    ...(origen === "paid"
+      ? { utmSource: "facebook", utmMedium: "cpc", utmId: "par-anuncio" }
+      : { utmSource: "instagram", utmMedium: "organico" }),
   }).returning())[0];
   const deal = (await db.insert(deals).values({
     programId, leadId: lead.id, submissionOrigenId: envio.id,
@@ -122,6 +126,7 @@ describe("dorado de Pauta: la tabla semanal", () => {
     expect(total(v, "ventas").valor).toBe(1);
     expect(total(v, "facturacion").valor).toBe(1400);
     expect(total(v, "costo_agenda_crm").valor).toBe(700_000);
+    expect(total(v, "cac").valor).toBe(2_800_000);
     expect(total(v, "roas").valor).toBe(2);
     expect(total(v, "profit").valor).toBe(700);
     expect(total(v, "cpm").valor).toBe(20_000);
@@ -136,6 +141,46 @@ describe("dorado de Pauta: la tabla semanal", () => {
     for (const clave of ["inversion", "agendas", "ventas", "roas", "profit", "costo_agenda_crm"] as const) {
       expect(fila(v, clave).celdas.porColumna[0].valor, clave).toBe(total(v, clave).valor);
     }
+  });
+});
+
+describe("dorado de Pauta: costo por venta (415)", () => {
+  it("es la celda Inversión entre la celda Ventas, y las muestra como sus partes", async () => {
+    const v = await vista();
+    expect(total(v, "cac").partes).toEqual([total(v, "inversion").valor, total(v, "ventas").valor]);
+    expect(fila(v, "cac").celdas.porColumna[0].valor).toBe(2_800_000);
+    expect(fila(v, "cac")).toMatchObject({ bloque: "general", unidad: "COP", nombre: VOCABULARIO_PAUTA_SEMANAL.cac });
+    // General, justo después de Ventas (diseño §4.3).
+    const claves = v.filas.map((f) => f.clave);
+    expect(claves[claves.indexOf("ventas") + 1]).toBe("cac");
+  });
+
+  it("una venta de otra área no baja el costo: sigue dividiendo por la única venta de pauta", async () => {
+    await personaDePaid("2026-10-05", { diaVenta: "2026-10-09", valor: "1400" }, "organico");
+    const v = await vista();
+    expect(total(v, "ventas").valor).toBe(1);
+    expect(total(v, "cac").valor).toBe(2_800_000);
+  });
+
+  it("una semana sin gasto cargado no da COP 0: «—» con el motivo de la Inversión", async () => {
+    // La venta de pauta de la semana siguiente (12 al 18-oct), donde no hay ni una fila de gasto.
+    await personaDePaid("2026-10-12", { diaVenta: "2026-10-13", valor: "1400" });
+    const v = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-12", hasta: "2026-10-18" }, hoy: HOY, cohorteId: null });
+    expect(total(v, "ventas").valor).toBe(1);
+    expect(total(v, "inversion").valor).toBeNull();
+    expect(total(v, "cac").valor).toBeNull();
+    expect(total(v, "cac").cobertura).toEqual(total(v, "inversion").cobertura);
+  });
+
+  it("con gasto y sin ventas es «—»: no hay entre qué dividir", async () => {
+    const v = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-05", hasta: "2026-10-07" }, hoy: HOY, cohorteId: null });
+    expect(total(v, "inversion").valor).toBe(1_200_000);
+    expect(total(v, "ventas").valor).toBe(0);
+    expect(total(v, "cac")).toEqual({ valor: null, cobertura: { estado: "sin_dato", razon: MOTIVO_SIN_VENTAS } });
+  });
+
+  it("en el CSV sale con su nombre y en pesos", async () => {
+    expect(csvDePautaSemanal(await vista())).toContain(`${VOCABULARIO_PAUTA_SEMANAL.cac},${cop(2_800_000)}`);
   });
 });
 

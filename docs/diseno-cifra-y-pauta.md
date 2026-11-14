@@ -383,7 +383,7 @@ Fuentes: reunión con Paid Media (7-nov), weekly con Daniel Tovar (3-nov), Excel
 | Agendas por día promedio real | Excel | Ritmo | Falta construir | Sin migración (420) |
 | Inversión por día necesaria (objetivo y promedio) | Diario 30X | Ritmo | Falta construir | Sin migración (420) |
 | Costo por agenda sin otras campañas, nombradas | Diario 30X | Hoy › costo por agenda | En el boceto | "Otras campañas" falta exponer (M2) |
-| Costo por venta (CAC) | Excel | Tabla › General | Falta construir | 415, sin migración |
+| Costo por venta (CAC) | Excel | Tabla › General | Hecho (13-nov); falta el estado contra objetivo, que pide migración | 415 |
 | Inversión, agendas Meta y costo por cuenta | Excel | Por cuenta · Ver por Cuenta · Ver solo | Falta construir | 416, sin migración; Q-8 |
 | CPM, CTR, llegada, conversión landing, frecuencia | Imagen KPI · PowerTalk | Tabla › Tráfico | Falta construir | Traer impresiones, clics y vistas de Meta (hija D del 412) |
 | Gráficas en cupos y en plata | Weekly 3-nov | Gráfica › Unidad; Cumplimiento › Cupos \| Plata | En el boceto | — |

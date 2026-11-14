@@ -98,12 +98,12 @@ export const EXPLICACIONES_DE_PAUTA = {
     variables: [{ nombre: "Agendas de Meta", explicacion: "Las que reporta el pixel. Si difiere mucho del costo por agenda del CRM, la medición tiene un problema." }],
   },
   cac: {
-    rotulo: "Costo por venta", universo: "pauta", unidad: "cop", admiteObjetivo: true, unidadesDePartes: ["cop", "conteo"],
+    rotulo: VOCABULARIO_PAUTA_SEMANAL.cac, universo: "pauta", unidad: "cop", admiteObjetivo: true, unidadesDePartes: ["cop", "conteo"],
     que: "Cuánto se invirtió en pauta por cada venta de pauta. También se le dice CAC.",
     formula: { forma: "razon", terminos: ["Inversión", "Ventas de pauta"] },
     variables: [
-      { nombre: "Inversión", explicacion: "Todo lo gastado en Meta en el periodo." },
-      { nombre: "Ventas de pauta", explicacion: "Deals de personas de pauta que pasaron a Abonado o Completo en el periodo." },
+      { nombre: "Inversión", explicacion: "Todo lo gastado en Meta en el periodo, sumando todas las campañas." },
+      { nombre: "Ventas de pauta", explicacion: "Deals de personas de pauta que pasaron a Abonado o Completo en el periodo. Cuenta el día de la venta; una venta de orgánico o de referidos no entra." },
     ],
   },
   ventas: {

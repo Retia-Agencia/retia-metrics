@@ -30,7 +30,7 @@ y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo S
 | [x] | 423 | [La plataforma de pago es obligatoria en el abono, y el link de pago sale del formulario](./423-plataforma-obligatoria-en-el-abono.md) | — | done · 12-nov · checkpoint `cp-20261112-2` · D-1 sí (el closer crea o vincula plataforma desde el abono), D-2 no rellenar: 53 abonos vigentes sin plataforma (ComunicArte 37, Confianza 11, Tactical 5) · ADR 0034 enmendado |
 | [ ] | 424 | [La historia del lead se descarga desde la lista que ya abre cada cifra](./424-la-historia-del-lead-exportable.md) | — | en main · 12-nov · D-1 con monto y D-2 con contacto en el archivo (ADR 0052 enmendado), D-3 Registros · falta el sí de Dani Rodríguez con una semana real |
 | [x] | 425 | [Alertas técnicas por WhatsApp: registro en el CRM, entrega por Juanito](./425-alertas-tecnicas-por-whatsapp.md) | — | done · 13-nov · en producción y probado de punta a punta (CRM 1fcdbfd7, Juanito a331770) |
-| [ ] | 426 | [Silencio global de 3 h y cierre del día por Juanito](./426-silencio-global-y-cierre-del-dia.md) | 425 | en producción · 13-nov · falta ver el primer cierre de las 9 p.m. (ADR 0130 punto 6) |
+| [ ] | 426 | [Silencio global de 3 h y cierre del día por Juanito](./426-silencio-global-y-cierre-del-dia.md) | 425 | en curso · 13-nov · en producción, falta ver el primer cierre de las 9 p.m. (ADR 0130 punto 6) |
 
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
@@ -44,7 +44,7 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 | [ ] | 420 | [Hub › Pauta en dos vistas, con la forma aprobada](./420-pauta-en-dos-vistas.md) | 419 | en curso · 11-nov · carril P · dos vistas, ritmo, Origen y calidad, gráfica diaria y resumen hechos; falta «Ver solo» (416) |
 | [ ] | 414 | [Tabla de Pauta por día](./414-tabla-de-pauta-por-dia.md) | 412, 419 | en curso · carril P · cuadre con el Excel espera DM-8 · enmendado 13-nov: casilla nueva, toda celda que abre lista cuenta lo mismo que su lista (test exhaustivo por `ClavePautaSemanal`) |
 | [ ] | 416 | [Pauta por cuenta](./416-pauta-por-cuenta.md) | 412 | en curso · 13-nov · carril P · tabla Por cuenta y Ver por Cuenta hechos; falta Ver solo (420) y Q-8 ajusta la presentación |
-| [ ] | 415 | [Costo por venta (CAC) de Pauta](./415-costo-por-venta-de-pauta.md) | 412 | todo · carril P |
+| [ ] | 415 | [Costo por venta (CAC) de Pauta](./415-costo-por-venta-de-pauta.md) | 412 | en curso · 13-nov · carril P · fila, ficha, diccionario y tests hechos; falta el estado contra objetivo (`costo_por_venta` no está en el enum: migración) |
 | [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | bloqueado · Q-4 (Paid Media) |
 | [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
 | [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | bloqueado · DM-8 (Michael y Paid Media) y D-C · migración |
