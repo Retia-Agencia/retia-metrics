@@ -1009,6 +1009,13 @@
       "when": 1794633120218,
       "tag": "0143_mcp_llamadas_medicion",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1794672485646,
+      "tag": "0144_avisos_pendientes_closer",
+      "breakpoints": true
     }
   ]
 }

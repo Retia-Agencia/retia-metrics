@@ -2401,6 +2401,29 @@ export const avisosEstudianteNuevoEnvios = pgTable(
 );
 
 /**
+ * Una entrega confirmada por Juanito del aviso de registros pendientes de un closer (ticket 428): una sola por
+ * closer, día hábil de Bogotá y ventana (la de la mañana lleva todo lo acumulado; la de la tarde, solo lo de hoy).
+ * El índice único ES el silencio: el mismo bloque no se manda dos veces en la misma ventana.
+ */
+export const avisosPendientesCloserEnvios = pgTable(
+  "avisos_pendientes_closer_envios",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    dia: date("dia").notNull(),
+    ventana: text("ventana").notNull(),
+    telefono: text("telefono").notNull(),
+    enviadoEn: timestamp("enviado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("avisos_pendientes_closer_envios_ventana_idx").on(t.userId, t.dia, t.ventana),
+    check("avisos_pendientes_closer_envios_ventana_chk", sql`${t.ventana} IN ('manana', 'tarde')`),
+  ],
+);
+
+/**
  * Una cuenta publicitaria de Meta y el programa al que sirve (ticket 119). Un programa
  * puede tener varias, en monedas distintas; una cuenta es de UN programa
  * (frontera, ADR 0043), y lo garantiza el indice unico sobre `id_meta`.
