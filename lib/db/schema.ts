@@ -162,7 +162,6 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
  * adaptador, nunca un endpoint nuevo.
  */
 export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta", "form30x"]);
-export const estadoSyncEnum = pgEnum("estado_sync", ["corriendo", "ok", "error"]);
 export const nivelPautaEnum = pgEnum("nivel_pauta", ["campana", "conjunto", "anuncio"]);
 
 /** Para qué es una campaña (ticket 314): nulo = sin clasificar, y cuenta como agenda. */
@@ -1611,50 +1610,6 @@ export const rarezasMigracion = pgTable(
 // ─────────────────────────────────────────────────────────── sincronizacion
 
 /**
- * Legado: el sync de Sheets se retiro el 28-sep (ticket 108); la tabla queda como
- * historial de las corridas viejas y nadie escribe en ella. Una corrida de sync era
- * de un PROGRAMA, no de una fuente: un programa tiene varios formularios, se leen
- * TODOS juntos y se deduplica sobre el conjunto, porque si no `numAplicaciones`
- * dependeria del orden de ejecucion. Colgar la corrida de una fuente obligaba a
- * elegir una a dedo (`fuentes[0]`), y en un programa con dos formularios activos
- * eso atribuia cada corrida a UNO de ellos, el viejo de 65 personas (F-07).
- */
-export const syncRuns = pgTable(
-  "sync_runs",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "cascade" }),
-    iniciado: timestamp("iniciado", { withTimezone: true }).notNull().defaultNow(),
-    terminado: timestamp("terminado", { withTimezone: true }),
-    estado: estadoSyncEnum("estado").notNull().default("corriendo"),
-    filasLeidas: integer("filas_leidas").notNull().default(0),
-    personasNuevas: integer("personas_nuevas").notNull().default(0),
-    personasActualizadas: integer("personas_actualizadas").notNull().default(0),
-    registrosNuevos: integer("registros_nuevos").notNull().default(0),
-    /**
-     * Que fuentes leyo la corrida y cuantas filas trajo cada una:
-     * `[{ nombre, tab, filas }]`. Reemplaza al `source_id` unico, que solo podia
-     * nombrar una de varias. El `tab` va aparte del `nombre` porque la pestana es
-     * lo que se abre en Sheets cuando hay que revisar por que vino vacia.
-     */
-    fuentesLeidas: jsonb("fuentes_leidas"),
-    errores: jsonb("errores"),
-  },
-  (t) => [
-    index("sync_runs_programa_idx").on(t.programId, t.iniciado),
-    // El candado de F-03. La exclusion mutua vive en la base (ADR 0005), no en un
-    // `pg_advisory_lock`: con el pooler de Supabase en modo transaction un lock de
-    // sesion no sobrevive entre consultas (ADR 0047). Indice unico PARCIAL, del mismo molde que
-    // `cohorts_una_activa_por_programa_idx`: solo las filas 'corriendo' compiten,
-    // y las 'ok'/'error' historicas no. El INSERT de la corrida ES el candado; un
-    // segundo sync simultaneo chocaba con 23505 (el sync se retiro, ticket 108).
-    uniqueIndex("sync_runs_una_corriendo_por_programa_idx")
-      .on(t.programId)
-      .where(sql`${t.estado} = 'corriendo'`),
-  ],
-);
-
-/**
  * Bitacora de cambios. Es el corazon del requisito de "registrar cambios":
  * cada campo que cambia respecto a lo guardado deja una fila aca.
  */
@@ -1679,7 +1634,6 @@ export const changeLog = pgTable(
      * dia se desactiva/borra al usuario.
      */
     userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
-    syncRunId: uuid("sync_run_id").references(() => syncRuns.id, { onDelete: "set null" }),
     /** La reversion que escribio esta fila (ADR 0117). Con valor, la fila no se deshace. */
     reversionId: uuid("reversion_id").references((): AnyPgColumn => reversiones.id, { onDelete: "restrict" }),
   },
@@ -2909,7 +2863,6 @@ export type CuotaPactada = typeof cuotasPactadas.$inferSelect;
 export type Llamada = typeof calls.$inferSelect;
 export type Abono = typeof abonos.$inferSelect;
 export type NuevoAbono = typeof abonos.$inferInsert;
-export type CorridaSync = typeof syncRuns.$inferSelect;
 export type Cambio = typeof changeLog.$inferSelect;
 export type PlataformaPago = typeof plataformasPago.$inferSelect;
 export type PlataformaPrograma = typeof plataformasPrograma.$inferSelect;

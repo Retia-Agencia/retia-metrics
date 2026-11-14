@@ -51,8 +51,7 @@ export interface DatosParaProbar {
  *
  * IMPORTANTE (S-13 y privacidad): esta funcion NO escribe los encabezados en logs.
  * Los encabezados son las preguntas del formulario; solo viajan en la respuesta a
- * quien pidio la prueba (un administrador autenticado), igual que el detalle de un
- * `MapeoInvalidoError` vive en `sync_runs.errores` y no en el log publico del cron.
+ * quien pidio la prueba (un administrador autenticado).
  */
 export async function probarMapeoDeFuente(
   datos: DatosParaProbar,

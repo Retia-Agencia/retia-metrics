@@ -461,7 +461,7 @@ Un script sale con `process.exit`: `postgres-js` deja el pool abierto y el proce
 **Retirado el 28-sep (ticket 108).** Los leads entran solo por el webhook (corte directo, 22-sep). Se
 fueron el cron, la corrida manual, `lib/sheets/sync.ts` y `plan-sync.ts`, sus scripts y sus tests
 (`git show bfeea2a:<ruta>` los recupera). Queda en `lib/sheets/` lo que lee una hoja una sola vez, para
-el traslado y la migración de la etapa 7. `sync_runs` sigue en la base como historial de solo lectura.
+el traslado y la migración de la etapa 7. `sync_runs` se borró de la base el 13-nov (401 M13; estaba vacía).
 
 - 🩸 La primera corrida del cron contra Supabase (28-sep, 7:52 a.m.) metió **5.343 leads sin envíos** en
   producción por la puerta descartada, y se borraron con el ok de Mani. **Lección:** cambiar el

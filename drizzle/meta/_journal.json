@@ -974,6 +974,13 @@
       "when": 1794631990593,
       "tag": "0138_users_programs_sin_columnas_muertas",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1794632139792,
+      "tag": "0139_retiro_de_sync_runs",
+      "breakpoints": true
     }
   ]
 }
