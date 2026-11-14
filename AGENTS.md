@@ -48,6 +48,8 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    métricas, pauta, atribución o el Hub.
    **`docs/weekly-2026-11-03.md`** (9-nov) resume lo que pidió Daniel Tovar en el weekly del 3-nov (ROAS por cohorte de envío, tres columnas de dinero,
    productos y SKUs, media) y a qué ticket va cada pedido; es documento de reunión (N8: manda ADR > ticket > él).
+   **`docs/weekly-2026-11-13.md`** (13-nov) cruza el weekly del 13-nov con el estado del CRM: salida de Daniel y Michael, el Hub
+   terminado a más tardar la segunda semana de diciembre y la sesión presencial del 20-nov. Mismo rango N8.
    **`docs/paid-media-2026-11-09.md`** (9-nov) extrae la reunión con Paid Media (7-nov), los reportes diario y semanal de
    Paid Media de 30X y la tabla KPI del Excel: el catálogo depurado de métricas de pauta cruzado con el CRM, las decisiones
    D-1 a D-7, el reparto del **412** en sesión padre e hijas y sus briefs. Documento de reunión (N8). Léelo antes de tocar
