@@ -6,7 +6,6 @@ export type TipoDeAlerta =
   | "fuente_silenciosa"
   | "sobres_con_error"
   | "completos_sin_calidad"
-  | "lectura_form30x_vieja"
   | "traza_de_pauta_rota"
   | "sin_envios_global";
 
@@ -51,12 +50,6 @@ export const REGISTRO_DE_ALERTAS = {
     severidad: "aviso",
     evaluar: porFuente("completos_sin_calidad", (fuente) => fuente.sinCalidad > 0
       ? `🟡 ${contexto(fuente)}: ${num(fuente.sinCalidad)} envíos completos llegaron sin calidad. ${destino}`
-      : null),
-  },
-  lectura_form30x_vieja: {
-    severidad: "aviso",
-    evaluar: porFuente("lectura_form30x_vieja", (fuente) => fuente.lecturaVieja
-      ? `🟡 ${contexto(fuente)}: la lectura de Form30x está desactualizada. ${destino}`
       : null),
   },
   traza_de_pauta_rota: {

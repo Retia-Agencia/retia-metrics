@@ -201,23 +201,6 @@ export default async function SaludPage({
                         · {num(s.pagosIdDesconocido)} con anuncio desconocido
                       </span>
                     ) : null}
-                    {s.lecturaApi !== null ? (
-                      s.lecturaVieja ? (
-                        <span className="text-tono-alerta">
-                          {s.lecturaApi.leidaEn ? (
-                            <>
-                              · Lectura por la API detenida: última {fechaHoraEnBogota(s.lecturaApi.leidaEn)} ({haceCuanto(s.lecturaApi.leidaEn)})
-                            </>
-                          ) : (
-                            <>· Nunca leída por la API</>
-                          )}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">
-                          · Última lectura por la API: {fechaHoraEnBogota(s.lecturaApi.leidaEn!)} ({haceCuanto(s.lecturaApi.leidaEn)})
-                        </span>
-                      )
-                    ) : null}
                   </div>
                 ))}
               </div>

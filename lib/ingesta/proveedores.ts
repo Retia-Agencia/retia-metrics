@@ -7,7 +7,6 @@ import {
   type MapeoWebhook,
 } from "./adaptador-typeform";
 import { entradaDesdeDapta, payloadDaptaSchema } from "./adaptador-dapta";
-import { entradaDesdeForm30x, payloadForm30xSchema } from "./adaptador-form30x";
 
 export interface OpcionesAdaptador {
   sourceId: string;
@@ -65,14 +64,6 @@ export const PROVEEDORES: Record<ProveedorFormulario, ProveedorWebhook> = {
     verificarFirma: firmaDaptaValida,
     adaptar(cuerpoCrudo, opciones) {
       return entradaDesdeDapta(payloadDaptaSchema.parse(JSON.parse(cuerpoCrudo)), opciones);
-    },
-  },
-  form30x: {
-    headerFirma: "x-form30x-signature",
-    correoPorDefecto: true,
-    verificarFirma: firmaDaptaValida,
-    adaptar(cuerpoCrudo, opciones) {
-      return entradaDesdeForm30x(payloadForm30xSchema.parse(JSON.parse(cuerpoCrudo)), opciones);
     },
   },
 };

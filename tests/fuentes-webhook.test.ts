@@ -15,6 +15,7 @@ import {
 } from "@/lib/catalogo/fuentes";
 import { PROVEEDORES_FORMULARIO } from "@/lib/catalogo/fuentes-webhook";
 import { fuentesParaAdmin } from "@/lib/queries/fuentes";
+import { esProveedorRegistrado } from "@/lib/ingesta/proveedores";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -78,8 +79,11 @@ async function secretoEnLaBase(id: string): Promise<string | null> {
   return f.s;
 }
 
-it("la lista de proveedores de la pantalla es la del enum de la base", () => {
-  expect([...PROVEEDORES_FORMULARIO]).toEqual(proveedorFormularioEnum.enumValues);
+it("la lista de proveedores de la pantalla excluye el valor retirado pendiente de migración", () => {
+  // retirado: solo queda en el enum hasta la migración.
+  expect([...PROVEEDORES_FORMULARIO]).toEqual(
+    proveedorFormularioEnum.enumValues.filter(esProveedorRegistrado),
+  );
 });
 
 describe("crear una fuente webhook", () => {
@@ -261,26 +265,4 @@ describe("activar y editar", () => {
     expect(await secretoEnLaBase(f.id)).not.toBeNull();
   });
 
-  it("guarda el id del form en una fuente Form30x", async () => {
-    const f = await crearFuente(db, actorGerente(), {
-      ...entradaWebhook(),
-      proveedor: "form30x",
-    });
-    const editada = await editarFuente(db, actorGerente(), f.id, {
-      ...entradaWebhook(),
-      proveedor: "form30x",
-      form30xFormId: "form-sbj",
-    });
-    expect(editada.form30xFormId).toBe("form-sbj");
-  });
-
-  it("pone el id de Form30x en null cuando la fuente es Typeform", async () => {
-    const f = await crearFuente(db, actorGerente(), entradaWebhook());
-    await db.update(sources).set({ form30xFormId: "id-viejo" }).where(eq(sources.id, f.id));
-    const editada = await editarFuente(db, actorGerente(), f.id, {
-      ...entradaWebhook(),
-      form30xFormId: "no-aplica",
-    });
-    expect(editada.form30xFormId).toBeNull();
-  });
 });

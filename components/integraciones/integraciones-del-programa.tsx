@@ -197,9 +197,6 @@ export function IntegracionesDelPrograma({
               </Badge>
             </div>
           ))}
-          {fuentes.some((fuente) => fuente.proveedor === "form30x") ? (
-            <p className="text-muted-foreground">Form30x usa la llave de la compañía, configurada en el servidor.</p>
-          ) : null}
           <Link className="font-medium text-marca-texto underline-offset-2 hover:underline" href={hrefCaptacion}>Ir a Captación</Link>
         </CardContent>
       </Card>

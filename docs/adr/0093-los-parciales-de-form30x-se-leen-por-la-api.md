@@ -1,6 +1,6 @@
 # 0093: Los parciales de Form30x se leen por la API cada 30 minutos, con la key de la compañía
 
-- **Estado:** aceptado, 15-oct-2026 (Mani, después de la prueba de SBJ). Se construye en el 272.
+- **Estado:** retirado el 14-nov-2026 (programa AI Second Brain Jurídico fuera del CRM).
 - **Enmienda:** ADR 0092, puntos 5 y 6 (decían que sin webhook de parciales SBJ no tenía Potencial, y que ninguna
   ruta de la app leía la key).
 - **Confirma:** ADR 0058 (el sobre crudo se guarda antes de procesar), ADR 0069 (un parcial nace en Potencial), ADR

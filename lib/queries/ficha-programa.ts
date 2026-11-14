@@ -11,6 +11,7 @@ import { fuentesParaAdmin } from "@/lib/queries/fuentes";
 import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { haceCuanto } from "@/lib/format";
 import type { ProgramaConFuentes } from "@/components/admin/fuentes-admin";
+import { esProveedorRegistrado } from "@/lib/ingesta/proveedores";
 
 /**
  * La ficha del programa (ticket 100, ADR 0050): todo lo que define un programa en una
@@ -261,6 +262,8 @@ export async function fuentesDelProgramaParaAdmin(
     plantillaLead: (programa.plantillaLead as MapeoColumnas | null) ?? null,
     fuentes: fuentes
       .filter((fuente) => fuente.programId === programId)
+      // retirado: el valor legado solo queda en el enum hasta la migración.
+      .filter((fuente) => fuente.proveedor === null || esProveedorRegistrado(fuente.proveedor))
       .map((fuente) => {
         const salud = saludPorFuente.get(fuente.id);
         return {
@@ -272,7 +275,9 @@ export async function fuentesDelProgramaParaAdmin(
           tab: fuente.tab,
           rango: fuente.rango,
           mapeoColumnas: (fuente.mapeoColumnas as MapeoColumnas) ?? {},
-          proveedor: fuente.proveedor,
+          proveedor: fuente.proveedor !== null && esProveedorRegistrado(fuente.proveedor)
+            ? fuente.proveedor
+            : null,
           tieneSecreto: fuente.tieneSecreto,
           activo: fuente.activo,
           ultimaSync: fuente.ultimaSync ? fuente.ultimaSync.toISOString() : null,
@@ -280,7 +285,6 @@ export async function fuentesDelProgramaParaAdmin(
           umbralSinRespuestaHoras: fuente.umbralSinRespuestaHoras,
           umbralMuertaHoras: fuente.umbralMuertaHoras,
           urlPublica: fuente.urlPublica ?? null,
-          form30xFormId: fuente.form30xFormId ?? null,
           principal: Boolean(fuente.principal),
           salud: salud
             ? {

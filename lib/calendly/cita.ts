@@ -90,7 +90,7 @@ export interface ParametrosCita {
 }
 
 /**
- * El uuid del invitado que lleva un link de Calendly guardado por Typeform o Form30x.
+ * El uuid del invitado que lleva un link de Calendly guardado por Typeform.
  * Acepta el link publico de `calendly.com` y la URI de `api.calendly.com`; devuelve el
  * uuid, o `null` si la URL no casa (otro dominio, sin segmento `invitees`, etc.).
  */

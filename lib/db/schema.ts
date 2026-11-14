@@ -517,17 +517,6 @@ export const sources = pgTable(
      */
     secretoWebhook: text("secreto_webhook"),
     /**
-     * El id del form de Form30x cuyas respuestas lee la lectura periodica (ADR 0093, ticket
-     * 272). Solo en una fuente `form30x`; nula = la lectura la salta. Es dato de la fuente,
-     * nunca un literal en el codigo (ADR 0012).
-     */
-    form30xFormId: text("form30x_form_id"),
-    /**
-     * La hora de la ultima lectura EXITOSA por la API (ADR 0093 punto 3); la escribe
-     * solo `leerForm30x`; es el latido del cron. Una corrida que lee 0 respuestas tambien la escribe.
-     */
-    form30xLeidoEn: timestamp("form30x_leido_en", { withTimezone: true }),
-    /**
      * Cuanto silencio aguanta ESTA fuente antes de que la app la marque (ticket 107).
      * Por fuente y no fijo (ADR 0012): un programa con pauta prendida recibe varios
      * envios al dia y uno sin pauta puede pasar dias sin ninguno. Los defectos son de
@@ -831,10 +820,7 @@ export const sobresCrudos = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     sourceId: uuid("source_id").references(() => sources.id, { onDelete: "restrict" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
-    /**
-     * `formulario` (webhook de un proveedor, con su fuente), `form30x_api` (respuesta leida
-     * de la API de Form30x, con su fuente; ADR 0093) o `calendly` (del programa, sin fuente).
-     */
+    /** `formulario` (webhook de un proveedor, con su fuente) o `calendly` (del programa, sin fuente). */
     origen: text("origen").notNull().default("formulario"),
     cuerpo: text("cuerpo").notNull(),
     /** Nulo = se proceso bien. Con texto = por que no se pudo procesar. */
@@ -850,7 +836,7 @@ export const sobresCrudos = pgTable(
       .where(sql`${t.error} is not null and ${t.reprocesadoEn} is null`),
     check(
       "sobres_crudos_origen_chk",
-      sql`(${t.origen} IN ('formulario', 'form30x_api') AND ${t.sourceId} IS NOT NULL) OR (${t.origen} = 'calendly' AND ${t.sourceId} IS NULL)`,
+      sql`(${t.origen} = 'formulario' AND ${t.sourceId} IS NOT NULL) OR (${t.origen} = 'calendly' AND ${t.sourceId} IS NULL)`,
     ),
   ],
 );

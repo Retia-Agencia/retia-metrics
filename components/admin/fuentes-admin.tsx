@@ -58,7 +58,6 @@ export interface FuenteVista {
   rango: string;
   mapeoColumnas: MapeoColumnas;
   proveedor: ProveedorFormulario | null;
-  form30xFormId: string | null;
   tieneSecreto: boolean;
   activo: boolean;
   ultimaSync: string | null;
@@ -97,7 +96,6 @@ interface Borrador {
   proveedor: ProveedorFormulario;
   nombre: string;
   urlPublica: string;
-  form30xFormId: string;
   sheetId: string;
   tab: string;
   rango: string;
@@ -111,7 +109,6 @@ const BORRADOR_VACIO: Borrador = {
   proveedor: PROVEEDORES_FORMULARIO[0],
   nombre: "",
   urlPublica: "",
-  form30xFormId: "",
   sheetId: "",
   tab: "",
   rango: "A1:BZ",
@@ -126,7 +123,6 @@ function aBorrador(f: FuenteVista): Borrador {
     proveedor: f.proveedor ?? PROVEEDORES_FORMULARIO[0],
     nombre: f.nombre,
     urlPublica: f.urlPublica ?? "",
-    form30xFormId: f.form30xFormId ?? "",
     sheetId: f.sheetId ?? "",
     tab: f.tab ?? "",
     rango: f.rango,
@@ -548,7 +544,6 @@ function aEntrada(b: Borrador, programId: string) {
       nombre: b.nombre,
       tipo: "webhook" as const,
       proveedor: b.proveedor,
-      form30xFormId: b.form30xFormId.trim() === "" ? null : b.form30xFormId.trim(),
       mapeoColumnas: aMapeo(b.mapeo),
       ...umbrales,
     };
@@ -700,17 +695,6 @@ function FormularioFuente({
                     </option>
                   ))}
                 </select>
-              </label>
-            ) : null}
-            {esWebhook && borrador.proveedor === "form30x" ? (
-              <label className="block space-y-1 text-sm sm:col-span-2">
-                <span className="text-muted-foreground">ID del form en Form30x</span>
-                <input
-                  value={borrador.form30xFormId}
-                  onChange={(e) => setBorrador({ ...borrador, form30xFormId: e.target.value })}
-                  className={CLASE_INPUT}
-                  aria-label="ID del form en Form30x"
-                />
               </label>
             ) : null}
           </div>

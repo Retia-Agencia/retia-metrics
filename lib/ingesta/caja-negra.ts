@@ -16,7 +16,6 @@ import type { Db } from "@/lib/db/tipos";
 /** De donde viene el sobre: la fuente de un formulario, o Calendly (del programa). */
 export type DuenoDelSobre =
   | { canal: "formulario"; sourceId: string; programId: string }
-  | { canal: "form30x_api"; sourceId: string; programId: string }
   | { canal: "calendly"; programId: string };
 
 function valores(dueno: DuenoDelSobre, cuerpo: string, error: string | null) {

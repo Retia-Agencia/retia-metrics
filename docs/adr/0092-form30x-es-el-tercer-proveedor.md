@@ -1,6 +1,6 @@
 # 0092: Form30x es el tercer proveedor de formularios, y su API key se usa con un solo form
 
-- **Estado:** aceptado, 15-oct-2026 (Mani, setup de AI Second Brain Jurídico de EstadoX). Se construye en el 271.
+- **Estado:** retirado el 14-nov-2026 (programa AI Second Brain Jurídico fuera del CRM).
 - **Confirma:** ADR 0055 (fuente webhook con secreto HMAC por fuente), ADR 0058 (el sobre crudo se guarda apenas la
   firma cuadra), ADR 0064 (varias fuentes activas por programa), ADR 0069 (el CRM decide la etapa con agenda, calidad
   y valor), ADR 0087 (los campos ocultos completos desde el primer día).

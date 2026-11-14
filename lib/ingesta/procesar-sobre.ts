@@ -10,7 +10,7 @@ import { vigente } from "@/lib/queries/vigente";
 import type { ResultadoCita } from "@/lib/ingesta/regla-de-deals";
 import type { EntradaEnvio } from "@/lib/ingesta/envio";
 import { mapeoWebhookDesdeFuente, type MapeoWebhookResuelto } from "@/lib/ingesta/mapeo-webhook";
-import { PROVEEDORES } from "@/lib/ingesta/proveedores";
+import { esProveedorRegistrado, PROVEEDORES } from "@/lib/ingesta/proveedores";
 import type { ProveedorFormulario } from "@/lib/catalogo/fuentes-webhook";
 import { tokenCalendly } from "@/lib/integraciones";
 import { cancelarCitasReemplazadas } from "@/lib/calendly/una-cita-activa";
@@ -234,7 +234,8 @@ export async function reprocesarSobre(db: Db, sobreId: string): Promise<Reproces
     .from(sources)
     .where(eq(sources.id, sobre.sourceId))
     .limit(1);
-  if (!fuente?.proveedor) return null;
+  // retirado: el valor legado solo queda en el enum hasta la migración.
+  if (!fuente?.proveedor || !esProveedorRegistrado(fuente.proveedor)) return null;
 
   const resultado = await procesarSobre(
     db,
