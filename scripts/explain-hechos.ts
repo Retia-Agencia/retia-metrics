@@ -1,8 +1,5 @@
 import "./load-env";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
-import * as schema from "../lib/db/schema";
-import type { Db } from "../lib/db/tipos";
+import { abrirBaseDeScript } from "@/lib/db/cliente-de-script";
 import { LOCAL_DB_URL, validarUrlLocal } from "./db-local-url";
 import * as abonos from "../lib/queries/hechos/abono";
 import * as agendas from "../lib/queries/hechos/agenda";
@@ -32,20 +29,14 @@ const TABLAS_GRANDES = new Set(["submissions", "calls", "deals", "abonos", "gast
  */
 async function main() {
   validarUrlLocal(LOCAL_DB_URL);
-  const cliente = postgres(LOCAL_DB_URL, { prepare: false });
   const capturadas: ConsultaCapturada[] = [];
   let nombreActual = "preparación";
-  const base = drizzle(cliente, {
-    schema,
-    logger: {
-      logQuery(sql: string, parametros: unknown[]) {
-        if (nombreActual !== "preparación") capturadas.push({ nombre: nombreActual, sql, parametros });
-      },
-    },
-  }) as Db;
+  const { base, sql, cerrar } = abrirBaseDeScript(LOCAL_DB_URL, (texto, parametros) => {
+    if (nombreActual !== "preparación") capturadas.push({ nombre: nombreActual, sql: texto, parametros });
+  });
 
   try {
-    const [programa] = await cliente<{ id: string }[]>`select id from programs order by created_at limit 1`;
+    const [programa] = await sql<{ id: string }>("select id from programs order by created_at limit 1");
     if (!programa) throw new Error("La base local no está sembrada. Ejecuta npm run db:local.");
     const alcance = {
       programId: programa.id,
@@ -76,10 +67,7 @@ async function main() {
       const clave = `${capturada.nombre}\n${capturada.sql}`;
       if (vistas.has(clave)) continue;
       vistas.add(clave);
-      const filas = await cliente.unsafe<{ "QUERY PLAN": unknown }[]>(
-        `EXPLAIN (FORMAT JSON) ${capturada.sql}`,
-        capturada.parametros as Parameters<typeof cliente.unsafe>[1],
-      );
+      const filas = await sql<{ "QUERY PLAN": unknown }>(`EXPLAIN (FORMAT JSON) ${capturada.sql}`, capturada.parametros);
       const documento = filas[0]?.["QUERY PLAN"];
       const planRaiz = (typeof documento === "string" ? JSON.parse(documento) : documento) as Array<{ Plan: NodoPlan }>;
       const visitar = (nodo: NodoPlan | undefined) => {
@@ -96,7 +84,7 @@ async function main() {
     if (hallazgos.length === 0) console.log("Sin Seq Scan sobre tablas grandes.");
     else console.table(hallazgos);
   } finally {
-    await cliente.end();
+    await cerrar();
   }
 }
 

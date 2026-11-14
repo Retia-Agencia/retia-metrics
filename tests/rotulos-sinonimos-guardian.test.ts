@@ -88,6 +88,7 @@ export function cadenasVisibles(fuente: string): string[] {
  */
 const NOMBRES_APROBADOS = [
   "Agendas de Meta",
+  "Agendas según Meta",
   "Agendas por día necesarias",
   "Agendas por día hábil",
   "Agendas por día",

@@ -231,6 +231,7 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
   costo_agenda_crm: "Cifra de resumen_del_hub: divide inversión entre agendas del CRM.",
   cac: "Cifra de resumen_del_hub: divide inversión entre ventas del mismo periodo.",
   costo_agenda_meta: "Cifra de resumen_del_hub: divide inversión entre agendas informadas por Meta.",
+  agendas_meta: "Cifra de resumen_del_hub: agendas que reporta el pixel de Meta, el denominador del costo según Meta.",
   roas: "Cifra de resumen_del_hub: relaciona vendido atribuido con inversión convertida.",
   profit: "Cifra de resumen_del_hub: resta la inversión al vendido atribuido.",
   cpm: "Cifra de resumen_del_hub: agrega costo e impresiones reportados por Meta.",
@@ -241,7 +242,7 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
 } as const satisfies Partial<Record<ClaveDeConcepto, RazonSinLista>>;
 
 /** Solo baja cuando un concepto obtiene una lista consultable propia. */
-export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 48;
+export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 49;
 
 export function viaDeConceptoSinLista(clave: ClaveRegistrada): "consultar_hechos" | "resumen_del_hub" {
   const razon = (CONCEPTOS_SIN_LISTA_EN_EL_MCP as Partial<Record<ClaveRegistrada, RazonSinLista>>)[clave];

@@ -1,3 +1,5 @@
+-- ADR 0047: toda tabla de public nace con RLS.
+SET lock_timeout = '5s';--> statement-breakpoint
 CREATE TABLE "avisos_pendientes_closer_envios" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
@@ -9,4 +11,5 @@ CREATE TABLE "avisos_pendientes_closer_envios" (
 );
 --> statement-breakpoint
 ALTER TABLE "avisos_pendientes_closer_envios" ADD CONSTRAINT "avisos_pendientes_closer_envios_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "avisos_pendientes_closer_envios_ventana_idx" ON "avisos_pendientes_closer_envios" USING btree ("user_id","dia","ventana");
+CREATE UNIQUE INDEX "avisos_pendientes_closer_envios_ventana_idx" ON "avisos_pendientes_closer_envios" USING btree ("user_id","dia","ventana");--> statement-breakpoint
+ALTER TABLE "avisos_pendientes_closer_envios" ENABLE ROW LEVEL SECURITY;
