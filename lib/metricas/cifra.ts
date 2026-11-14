@@ -46,6 +46,12 @@ export interface AvanceDeEntrada {
   fraccionDeTiempo: number;
   /** De qué es la meta, en minúscula: "agendas", "ventas de pauta", "inversión". */
   de: string;
+  /** De qué periodo es la meta. Por defecto "la cohorte"; en Hoy, "la semana". */
+  ambito?: string;
+  /** De dónde sale la meta, en una frase. Por defecto, que la cargan Pauta o Gerencia en Programa › Objetivos. */
+  origenDeLaMeta?: string;
+  /** Los días que mide `fraccionDeTiempo`. Por defecto "días hábiles de venta de la cohorte". */
+  dias?: string;
 }
 
 /** Lo que entrega la consulta para una cifra concreta. Todo lo demás sale del concepto. */
@@ -280,8 +286,8 @@ export function armarCifra(e: EntradaDeCifra): CifraDeMetrica {
   lectura.push([UNIVERSO[x.universo].corto, UNIVERSO[x.universo].explicacion]);
   if (a && barra) {
     const tiempo = num(a.fraccionDeTiempo * 100, 0);
-    lectura.push([`de ${fmtAvance(a.meta)}`, `La meta de ${a.de} de la cohorte. La cargan Pauta o Gerencia en Programa › Objetivos.`]);
-    lectura.push([barra.rotuloDeMarca, `Lo que deberíamos llevar si avanzáramos parejo: ${fmtAvance(a.meta)} × ${tiempo} %, porque ya pasó el ${tiempo} % de los días hábiles de venta de la cohorte. Es la marca sobre la barra.`]);
+    lectura.push([`de ${fmtAvance(a.meta)}`, `La meta de ${a.de} de ${a.ambito ?? "la cohorte"}. ${a.origenDeLaMeta ?? "La cargan Pauta o Gerencia en Programa › Objetivos."}`]);
+    lectura.push([barra.rotuloDeMarca, `Lo que deberíamos llevar si avanzáramos parejo: ${fmtAvance(a.meta)} × ${tiempo} %, porque ya pasó el ${tiempo} % de los ${a.dias ?? "días hábiles de venta de la cohorte"}. Es la marca sobre la barra.`]);
     const desfase = a.esperado - a.llevamos;
     lectura.push(desfase > 0
       ? [`${fmtAvance(desfase)} atrás`, `${fmtAvance(a.esperado)} − ${fmtAvance(a.llevamos)}. Es lo rayado en la barra.`]

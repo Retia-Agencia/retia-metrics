@@ -381,6 +381,34 @@ tengan texto aprobado.
   - **Falta de E-2 Dinero:** el punto de las gráficas (`graficas-de-dinero.tsx`, hoy `ResumenDeCifra`), que en E-3 pasa a
     `grafica-con-explicacion.tsx`. Después Hoy y el norte.
 
+- **13-nov · Alejandro (carril P). E-2, Hoy.** Tampoco cambia ninguna pantalla.
+  - `lib/hub/cifras-de-hoy.ts` (puro): `cifrasDeHoy` con las cifras clave (Cupos vendidos, Leads, Leads que hacen falta,
+    Entró a caja por moneda, Asistencia y sus sin marcar), el embudo del día, los cuatro conteos de citas, el dinero del día,
+    la semana (cupos y leads con barra, asistencia por cita) y Citas de mañana. Recibe `DatosDeHoy`: los campos del reporte
+    diario que la página copia, sin calcular. **Hoy no sigue cohorte ni closer:** "Calculada con" dice Programa y Día (o Semana).
+  - Reutiliza a Comercial y a Dinero: las tasas del grupo quedaron en tres funciones (`cifraDeAsistencia`,
+    `cifraDeCierreDeVentas`, `cifraDeCitaAVenta`), y `tresDeLasVentas` y `cifrasDeEntroACaja` son públicas.
+  - **Un cambio en `lib/metricas/cifra.ts` (aviso al carril D):** `AvanceDeEntrada` gana tres campos opcionales (`ambito`,
+    `origenDeLaMeta`, `dias`) para que la barra de la semana no diga "de la cohorte" ni "la cargan en Programa › Objetivos".
+    Sin ellos el texto es el de siempre; los tests de Pauta y del semáforo siguen en verde.
+  - `tests/cifras-de-hoy.test.ts` (13): cada bloque, los casos raros y, con base, la paridad sobre `armarReporteDiario` de
+    verdad (citas, realizadas, canceladas, cupos, las dos tasas y sin marcar contra su lista; anulado y otro programa).
+  - **Hallazgos para Mani (ningún número cambia):**
+    10. **El paso "Envíos" del embudo del día abre hoy la lista de leads** (`detalleRegistros`): cuenta formularios y lista
+        personas. El constructor lo deja sin lista hasta que haya una probada.
+    11. **"Leads" de la semana son envíos** (`leadsDeLaSemana` suma `agruparEnvios`), con el rótulo Leads (N4). El constructor
+        lo pinta con el concepto `leads` como hoy; hay que decidir el nombre o la consulta.
+    12. **`leadsDelDia` nulo se pinta 0** (`?? 0` en el componente). Se conserva; §2.2 dice que sin medir va «—».
+    13. **Cupos vendidos del día pierde su barra.** La barra de la Cifra tiene marca "a hoy" y en un día lo esperado es el
+        objetivo entero. Queda el estado (contra el objetivo del día) y la línea "Objetivo del día: 2,5 · llevas el 80 %".
+        Leads del día queda igual, sin estado (la enmienda solo nombra Cupos vendidos). Decidir en E-3 con el boceto al lado.
+    14. **Sin texto ni concepto:** "Citas de mañana" (el constructor la pide como `citas_de_manana`) y las cinco banderas de
+        Pendientes (realizadas sin Grain, atendidos sin valor, etc.), que **no entraron** al constructor.
+    15. **Dos asistencias en la misma pestaña:** la del día es por persona (`asistencia`) y la de la semana por cita
+        (`show_por_cita`). Cada una va con su concepto y su texto; el rótulo de hoy ("Asistencia a la cita") no las distingue.
+  - **Falta de E-2:** "¿Vamos a llegar?" (`cifras-del-norte.ts`), el resto de Comercial, las banderas de Pendientes y la
+    tabla "¿Cómo va cada closer?" de Hoy (es `cifrasDeCloser` de Comercial con el día).
+
 ## Para retomar (11-nov, Alejandro)
 
 **Paso 2 hecho: la celda de la tabla semanal es una Cifra.**

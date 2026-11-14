@@ -64,64 +64,80 @@ export interface CifrasClaveDeComercial {
   sinMarcar: CifraDeMetrica | null;
 }
 
-interface PartesDelGrupo {
+export interface PartesDelGrupo {
   embudo: EmbudoDelRango;
   anterior?: EmbudoDelRango | null;
   referencia?: string;
   detalles?: Partial<Record<ListaDeComercial, DetalleDeCifra>>;
   evidencia?: Partial<Record<ListaDeComercial, FilasDeEvidencia>>;
-  explicaciones: ExplicacionesDeComercial;
   filtros: Array<readonly [string, string]>;
   periodo: string;
   enCurso: boolean;
 }
 
-/** Las tres tasas del grupo de citas: las mismas para el programa y para la fila de un closer. */
-function tasasDelGrupo(p: PartesDelGrupo): Pick<CifrasClaveDeComercial, "asistencia" | "cierreDeVentas" | "citaAVenta"> {
+const comunDe = (p: PartesDelGrupo) => ({ filtros: p.filtros, periodo: p.periodo, enCurso: p.enCurso });
+const referenciaDe = (p: PartesDelGrupo) => (p.anterior ? p.referencia : undefined);
+
+// Las tres tasas del grupo de citas, las mismas para el programa, para la fila de un closer y para el día de Hoy.
+
+export function cifraDeAsistencia(p: PartesDelGrupo, explicacion: ExplicacionDeConcepto): CifraDeMetrica {
   const g = p.embudo.grupo;
-  const comun = { filtros: p.filtros, periodo: p.periodo, enCurso: p.enCurso };
-  const ref = p.anterior ? p.referencia : undefined;
-  const citaAVenta = entradaDesdeRazon(g.razonAgendaAVenta, { base: BASE_DE_LAS_TASAS });
+  return armarCifra({
+    concepto: "asistencia",
+    explicacion,
+    ...entradaDesdeRazon(p.embudo.razonShow, { base: BASE_DE_LAS_TASAS }),
+    partes: [g.conShow, g.deals],
+    comparacion: comparar(referenciaDe(p), p.anterior?.razonShow.valor),
+    lista: listaDe(p.detalles?.grupo_citas, p.evidencia?.grupo_citas, { nombre: "personas con resultado marcado", articulo: "las", parte: "abajo" }),
+    ...comunDe(p),
+  });
+}
+
+export function cifraDeCierreDeVentas(p: PartesDelGrupo, explicacion: ExplicacionDeConcepto): CifraDeMetrica {
+  const g = p.embudo.grupo;
+  return armarCifra({
+    concepto: "cierre_de_ventas",
+    explicacion,
+    ...entradaDesdeRazon(p.embudo.razonCierre, { base: BASE_DE_LAS_TASAS }),
+    partes: [g.vendidos, g.conShow],
+    comparacion: comparar(referenciaDe(p), p.anterior?.razonCierre.valor),
+    lista: listaDe(p.detalles?.grupo_shows, p.evidencia?.grupo_shows, { nombre: "personas con cita realizada", articulo: "las", parte: "abajo" }),
+    ...comunDe(p),
+  });
+}
+
+export function cifraDeCitaAVenta(p: PartesDelGrupo, explicacion: ExplicacionDeConcepto): CifraDeMetrica {
+  const g = p.embudo.grupo;
+  const deLaRazon = entradaDesdeRazon(g.razonAgendaAVenta, { base: BASE_DE_LAS_TASAS });
+  return armarCifra({
+    concepto: "cita_a_venta",
+    explicacion,
+    // El valor es el campo que hoy pinta la pantalla; de la razón del grupo solo sale si es parcial.
+    valor: p.embudo.agendaAVenta,
+    motivo: p.embudo.agendaAVenta === null ? g.razonAgendaAVenta.motivo ?? MOTIVO_SIN_CITAS : undefined,
+    parcial: p.embudo.agendaAVenta === null ? undefined : deLaRazon.parcial,
+    partes: [g.vendidos, g.deals],
+    comparacion: comparar(referenciaDe(p), p.anterior?.agendaAVenta),
+    lista: listaDe(p.detalles?.grupo_citas, p.evidencia?.grupo_citas, { nombre: "personas del grupo de citas", articulo: "las", parte: "abajo" }),
+    ...comunDe(p),
+  });
+}
+
+function tasasDelGrupo(p: PartesDelGrupo, x: ExplicacionesDeComercial): Pick<CifrasClaveDeComercial, "asistencia" | "cierreDeVentas" | "citaAVenta"> {
   return {
-    asistencia: armarCifra({
-      concepto: "asistencia",
-      explicacion: p.explicaciones.asistencia,
-      ...entradaDesdeRazon(p.embudo.razonShow, { base: BASE_DE_LAS_TASAS }),
-      partes: [g.conShow, g.deals],
-      comparacion: comparar(ref, p.anterior?.razonShow.valor),
-      lista: listaDe(p.detalles?.grupo_citas, p.evidencia?.grupo_citas, { nombre: "personas con resultado marcado", articulo: "las", parte: "abajo" }),
-      ...comun,
-    }),
-    cierreDeVentas: armarCifra({
-      concepto: "cierre_de_ventas",
-      explicacion: p.explicaciones.cierre_de_ventas,
-      ...entradaDesdeRazon(p.embudo.razonCierre, { base: BASE_DE_LAS_TASAS }),
-      partes: [g.vendidos, g.conShow],
-      comparacion: comparar(ref, p.anterior?.razonCierre.valor),
-      lista: listaDe(p.detalles?.grupo_shows, p.evidencia?.grupo_shows, { nombre: "personas con cita realizada", articulo: "las", parte: "abajo" }),
-      ...comun,
-    }),
-    citaAVenta: armarCifra({
-      concepto: "cita_a_venta",
-      explicacion: p.explicaciones.cita_a_venta,
-      // El valor es el campo que hoy pinta la pantalla; de la razón del grupo solo sale si es parcial.
-      valor: p.embudo.agendaAVenta,
-      motivo: p.embudo.agendaAVenta === null ? g.razonAgendaAVenta.motivo ?? MOTIVO_SIN_CITAS : undefined,
-      parcial: p.embudo.agendaAVenta === null ? undefined : citaAVenta.parcial,
-      partes: [g.vendidos, g.deals],
-      comparacion: comparar(ref, p.anterior?.agendaAVenta),
-      lista: listaDe(p.detalles?.grupo_citas, p.evidencia?.grupo_citas, { nombre: "personas del grupo de citas", articulo: "las", parte: "abajo" }),
-      ...comun,
-    }),
+    asistencia: cifraDeAsistencia(p, x.asistencia),
+    cierreDeVentas: cifraDeCierreDeVentas(p, x.cierre_de_ventas),
+    citaAVenta: cifraDeCitaAVenta(p, x.cita_a_venta),
   };
 }
 
-function cifraSinMarcar(p: PartesDelGrupo): CifraDeMetrica | null {
+/** Las citas pasadas sin resultado del grupo: `null` si no hay ninguna. */
+export function cifraSinMarcar(p: PartesDelGrupo, explicacion: ExplicacionDeConcepto): CifraDeMetrica | null {
   const sinMarcar = p.embudo.grupo.sinMarcar;
   if (sinMarcar <= 0) return null;
   return armarCifra({
     concepto: "citas_sin_marcar",
-    explicacion: p.explicaciones.citas_sin_marcar,
+    explicacion,
     valor: sinMarcar,
     filtros: p.filtros,
     periodo: p.periodo,
@@ -137,7 +153,6 @@ export function cifrasClaveDeComercial(e: EntradaDeCifrasClave): CifrasClaveDeCo
     referencia: e.referencia,
     detalles: e.detalles,
     evidencia: e.evidencia,
-    explicaciones: e.explicaciones,
     filtros: filtrosDe(c),
     periodo: periodoEnPalabras(c),
     enCurso: estaEnCurso(c),
@@ -153,8 +168,8 @@ export function cifrasClaveDeComercial(e: EntradaDeCifrasClave): CifrasClaveDeCo
       periodo: partes.periodo,
       enCurso: partes.enCurso,
     }),
-    ...tasasDelGrupo(partes),
-    sinMarcar: cifraSinMarcar(partes),
+    ...tasasDelGrupo(partes, e.explicaciones),
+    sinMarcar: cifraSinMarcar(partes, e.explicaciones.citas_sin_marcar),
   };
 }
 
@@ -194,7 +209,7 @@ export function cifrasDeCloser(e: EntradaDeCifrasDeCloser): CifrasDeCloser {
   const periodo = periodoEnPalabras(c);
   const enCurso = estaEnCurso(c);
   const partes: PartesDelGrupo = {
-    embudo: e.fila, detalles: e.detalles, evidencia: e.evidencia, explicaciones: e.explicaciones, filtros, periodo, enCurso,
+    embudo: e.fila, detalles: e.detalles, evidencia: e.evidencia, filtros, periodo, enCurso,
   };
   const d = e.dinero;
   const conVentas = d !== undefined && d.ventas > 0;
@@ -221,8 +236,8 @@ export function cifrasDeCloser(e: EntradaDeCifrasDeCloser): CifrasDeCloser {
       periodo,
       enCurso,
     }),
-    ...tasasDelGrupo(partes),
-    sinMarcar: cifraSinMarcar(partes),
+    ...tasasDelGrupo(partes, e.explicaciones),
+    sinMarcar: cifraSinMarcar(partes, e.explicaciones.citas_sin_marcar),
     vendido: dinero("vendido", d?.vendido),
     recaudado: dinero("recaudado", d?.recaudado),
     porCobrar: dinero("por_cobrar", d?.porCobrar),

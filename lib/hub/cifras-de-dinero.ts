@@ -74,13 +74,13 @@ export interface CifrasDeDinero {
   entroACaja: CifraDeMetrica[];
 }
 
-/** Vendido, Recaudado y Por cobrar de un conjunto de ventas: el del periodo o el de una cohorte. */
-function tresDeLasVentas(p: {
+/** Vendido, Recaudado y Por cobrar de un conjunto de ventas: el del periodo, el de una cohorte o el del día. */
+export function tresDeLasVentas(p: {
   dinero: DineroDeVentas;
   anterior?: DineroDeVentas | null;
   referencia?: string;
   lista: ReturnType<typeof listaDeDetalle>;
-  explicaciones: ExplicacionesDeDinero;
+  explicaciones: Pick<ExplicacionesDeDinero, "vendido" | "recaudado" | "por_cobrar">;
   filtros: Array<readonly [string, string]>;
   periodo: string;
   enCurso: boolean;
@@ -125,25 +125,9 @@ export function cifrasDeDinero(e: EntradaDeCifrasDeDinero): CifrasDeDinero {
   const periodo = periodoEnPalabras(c);
   const ref = e.anterior ? e.referencia : undefined;
 
-  const actual = new Map(e.caja.map((fila) => [fila.moneda, fila.total]));
-  const antes = new Map((e.anterior?.caja ?? []).map((fila) => [fila.moneda, fila.total]));
-  const monedas = [...new Set([...actual.keys(), ...antes.keys()])].sort();
-  if (monedas.length === 0) monedas.push("USD");
-  const entroACaja = monedas.map((moneda) => {
-    if (!esMoneda(moneda)) throw new Error(`Entró a caja trae una moneda que el CRM no registra: ${moneda}.`);
-    return armarCifra({
-      concepto: "entro_a_caja",
-      explicacion: { ...e.explicaciones.entro_a_caja, unidad: UNIDAD_DE_MONEDA[moneda] },
-      valor: actual.get(moneda) ?? 0,
-      comparacion: comparacionCon(ref, e.anterior ? antes.get(moneda) ?? 0 : undefined),
-      // La lista de abonos es una sola, con todas las monedas: su total no es el de una moneda.
-      lista: monedas.length === 1
-        ? listaDeDetalle(e.detalles?.caja, e.evidencia?.caja, { nombre: "abonos", articulo: "los" })
-        : conTotalSinContar(listaDeDetalle(e.detalles?.caja, e.evidencia?.caja, { nombre: "abonos", articulo: "los" })),
-      filtros: [...filtros, ["Moneda", moneda]],
-      periodo,
-      enCurso: enCurso(c),
-    });
+  const entroACaja = cifrasDeEntroACaja({
+    caja: e.caja, anterior: e.anterior ? e.anterior.caja : undefined, referencia: ref,
+    detalle: e.detalles?.caja, evidencia: e.evidencia?.caja, explicacion: e.explicaciones.entro_a_caja, contexto: c,
   });
 
   return {
@@ -159,6 +143,39 @@ export function cifrasDeDinero(e: EntradaDeCifrasDeDinero): CifrasDeDinero {
     }),
     entroACaja,
   };
+}
+
+/** "Entró a caja": una Cifra por moneda, nunca una suma. Sin abonos, una sola en USD con 0. La usan Dinero y Hoy. */
+export function cifrasDeEntroACaja(p: {
+  caja: ReadonlyArray<{ moneda: string; total: number }>;
+  /** La caja del periodo de comparación; ausente si no se pidió comparar. */
+  anterior?: ReadonlyArray<{ moneda: string; total: number }>;
+  referencia?: string;
+  detalle?: DetalleDeCifra;
+  evidencia?: FilasDeEvidencia;
+  explicacion: ExplicacionDeConcepto;
+  contexto: ContextoDelHub;
+}): CifraDeMetrica[] {
+  const c = p.contexto;
+  const actual = new Map(p.caja.map((fila) => [fila.moneda, fila.total]));
+  const antes = new Map((p.anterior ?? []).map((fila) => [fila.moneda, fila.total]));
+  const monedas = [...new Set([...actual.keys(), ...antes.keys()])].sort();
+  if (monedas.length === 0) monedas.push("USD");
+  const lista = listaDeDetalle(p.detalle, p.evidencia, { nombre: "abonos", articulo: "los" });
+  return monedas.map((moneda) => {
+    if (!esMoneda(moneda)) throw new Error(`Entró a caja trae una moneda que el CRM no registra: ${moneda}.`);
+    return armarCifra({
+      concepto: "entro_a_caja",
+      explicacion: { ...p.explicacion, unidad: UNIDAD_DE_MONEDA[moneda] },
+      valor: actual.get(moneda) ?? 0,
+      comparacion: comparacionCon(p.anterior ? p.referencia : undefined, p.anterior ? antes.get(moneda) ?? 0 : undefined),
+      // La lista de abonos es una sola, con todas las monedas: su total no es el de una moneda.
+      lista: monedas.length === 1 ? lista : conTotalSinContar(lista),
+      filtros: [...filtrosDelHub(c), ["Moneda", moneda]],
+      periodo: periodoEnPalabras(c),
+      enCurso: enCurso(c),
+    });
+  });
 }
 
 function conTotalSinContar<T extends { total: number | null }>(lista: T | undefined): T | undefined {
