@@ -427,6 +427,45 @@ tengan texto aprobado.
   - **Falta de E-2:** "¿Vamos a llegar?" (`cifras-del-norte.ts`), el resto de Comercial, las banderas de Pendientes y la
     tabla "¿Cómo va cada closer?" de Hoy (es `cifrasDeCloser` de Comercial con el día).
 
+- **13-nov · Continuación E-2 (sin commit, sin pantallas).** En el orden pedido: Norte → resto de Comercial → Pendientes y closers de Hoy.
+  - Nuevos módulos **puros**, sin consultas ni reloj: `lib/hub/cifras-del-norte.ts`,
+    `lib/hub/cifras-de-recorridos.ts` y `lib/hub/cifras-de-pendientes-y-closers.ts`. Reciben los resultados existentes y
+    las explicaciones por parámetro; no modifican fórmulas, consultas, registro, esquema ni migraciones.
+  - Norte: mes y cohorte × cupos/USD, llevamos, faltan, esperado, por día hábil y proyección (solo cohorte).
+    «Calculada con» solo Programa y estado con fuente `esperado`; USD parcial cuando falta valor vendido.
+    No incorpora evidencia: queda por probar la lista del mes y de la cohorte antes de conectarla.
+  - Comercial: escalera principal/closer/calidad (cantidades, porcentaje y mediana), grupos, cita sin resultado;
+    embudo comercial (cantidad, porcentaje y pérdida); caminos y tiempo en etapa; citas semanales y auditoría
+    (abiertos, sin dueño, motivos y ventas sin llamada). Las cantidades se copian del resultado; el porcentaje de
+    escalera pasa de 0–100 a fracción para el formato existente, como ya hace la pantalla.
+  - Hoy: las cinco banderas, separadas en con casos/en cero, y las cinco columnas numéricas del comparativo actual:
+    Citas, Asistencia, Ventas, Cierre y Entró a caja por moneda. Reutiliza las tasas de Comercial y la caja de Dinero;
+    la caja continúa siendo de quien registró el abono, aunque la venta sea de otro closer.
+  - Tests nuevos: `tests/cifras-del-norte.test.ts`, `tests/cifras-de-recorridos.test.ts` y
+    `tests/cifras-de-pendientes-y-closers.test.ts`. Casos puros de vacío/cero/parcial/estado/formato y paridad con
+    listas reales en PGlite para escalera, embudo, semanas, auditoría, banderas y comparativo. Las pruebas con base
+    bloquean el cliente de la app: olvidar pasar PGlite falla antes de abrir una conexión real.
+  - **Validación pendiente de ejecutar:** los tres comandos `npm test -- tests/<archivo>.test.ts` fallan ANTES de
+    arrancar Vitest: el sandbox deniega `ps -axo pid=,ppid=,command=` en `scripts/test.mjs` (`spawnSync ps EPERM`).
+    No se saltó el lanzador ni se ejecutó Vitest directamente. Typecheck pasó; lint terminó con 0 errores y
+    7 advertencias en archivos ajenos a este cambio. Los tests escritos **no se declaran verdes** y E-2
+    sigue abierto hasta ejecutarlos. No se accedió a ninguna base real ni a secretos.
+  - **Hallazgos para E-1/E-3 (sin cambiar cifras):**
+    16. Abiertos y sin dueño ignoran periodo y closer, **pero sí conservan cohorte** (`cargarEntradaDelEmbudo`).
+        Caminos, tiempo en etapa y semanas tampoco siguen closer. Las explicaciones evitan afirmar filtros que esas
+        consultas no aplicaron. Las tres banderas del deal son foto actual incluso al abrir un reporte de otro día.
+    17. Los caminos conservan los conteos actuales, pero quedan **sin evidencia**: la pantalla enlaza «Pasaron» al
+        siguiente paso global, sin una dimensión de camino en la lista. Falta probar que ese universo coincida;
+        no se conectan esas listas por parecido. Las pérdidas del embudo y los motivos tampoco reciben una lista
+        sin prueba. No se cambió ninguna consulta para hacerlos cuadrar.
+    18. Las claves auxiliares de recorridos son de presentación hasta que E-1 fije sus fichas. En particular,
+        `citas_futuras` se mantiene separada de Sin resultado, `citas_sin_marcar` cuenta personas del grupo y
+        `cita_sin_resultado_de_escalera` conserva el universo de la escalera; el tiempo mediano de caminos continúa siendo el de la
+        etapa del programa, no una mediana calculada por camino. Los textos se exigen al llamador, sin tocar el registro.
+    19. Norte todavía tiene `tono` por umbrales de alertas; el constructor usa la escala contra esperado exigida por
+        esta enmienda. Pueden cambiar las etiquetas de estado en E-3, **no las cantidades**. No hay comparación en Norte
+        porque el resultado actual no trae un periodo comparado.
+
 ## Para retomar (11-nov, Alejandro)
 
 **Paso 2 hecho: la celda de la tabla semanal es una Cifra.**
