@@ -755,17 +755,10 @@ The agent should run these to get fast signal on whether code works. Keep them c
   - `CALENDLY_ACCESS_TOKEN_COMUNICARTE`, `CALENDLY_ACCESS_TOKEN_TACTICAL` y `CALENDLY_ACCESS_TOKEN_COMUNICATE_CONFIANZA` (5-oct): uno por programa, de una cuenta
     OWNER de su organizacion. Ven miembros, tipos de evento, citas y webhooks de esa organizacion. Cada
     programa usa SU token: nunca uno para consultar el otro. `CALENDLY_PAT_LOCAL_*` no se usa.
-    `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` (15-oct) es el de AI Second Brain Jurídico (EstadoX); la cuenta
-    está pagada desde el 16-oct.
-  - 🚨 `FORM_30X_API_KEY` (15-oct, ADR 0092): key de la API de Form30x (`https://form.30x.com/api/v1`, Bearer).
-    **Lee y edita TODOS los formularios de 30X y EstadoX, no solo los de Retia: cuidado como prioridad 1.** Se usa con
-    UN solo form, el de título exacto `AI Second Brain Jurídico | Registro | EstadoX` (id
-    `cmulcaari04c001s6m0x1ats6`), y todo script lo pide por ese id explícito: nunca lista y recorre, nunca escribe
-    en otro form. Leer ese form es libre; escribir en él (`PATCH`, `PUT`, `POST`, `DELETE`) pide el ok de Mani, con
-    `If-Match` del ETag para no pisar al que lo tenga abierto en el builder. **Su `salesFlow` (el envío a HubSpot de
-    30X) no se toca.** **Desde el ADR 0093 (15-oct) la app la lee en producción** (Vercel), en UN solo módulo,
-    `lib/form30x/api.ts`, que solo hace `GET /forms/:id/responses` de los forms de fuentes activas: ningún otro
-    archivo nombra la variable ni el host, y el código no tiene forma de escribir en Form30x (guardián del 272).
+    **14-nov:** el programa AI Second Brain Jurídico (EstadoX) se retiró del CRM por completo (base, `CALENDLY_ACCESS_TOKEN_SB_JURIDICO` y
+    `FORM_30X_API_KEY` de `.env.local` y de Vercel); sigue vivo fuera del CRM (HubSpot). Ya no hay fuente `form30x` ni variable de Form30x:
+    `lib/form30x/` queda sin uso y se retira en un ticket aparte (ADR 0092 y 0093). Respaldo de lo borrado, fuera del repo:
+    `work/retia/backups/second-brain-juridico-2026-11-14.json`.
   - **Reglas:** leer es libre; **crear, editar o borrar en Typeform, Form30x, Calendly o la base pide el ok de Mani**
     (un webhook o un form editado por API se ve igual que uno bueno y no lanza error). Nunca imprimir un token
     ni pegarlo en un commit, un ticket o el chat: se comprueba por presencia o por lo que devuelve la API. Usa

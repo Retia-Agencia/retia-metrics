@@ -61,3 +61,13 @@ cálculo nuevo. (4) El destinatario es el WhatsApp del closer (`usuarios_whatsap
 ## B-6 · 429 las tres filas sin fuente (casi todo documentos; puede hacerlo Claude)
 Medir qué cuenta hoy el código de Envíos (`lib/queries/hechos/`), reescribir las filas de `docs/metricas.md` con la regla de `objetivo_semana`
 (`lib/metricas/pendientes.ts`) y dar clave propia a `agendas_meta` en `lib/metricas/registro.ts`, con ficha. Decisiones ya escritas en el ticket 429.
+
+## B-7 · Retirar del código lo de Second Brain Jurídico y Form30x (el programa ya se borró de la base el 14-nov)
+**Hecho ya (Claude):** programa y todo lo suyo borrado de producción (respaldo en `work/retia/backups/second-brain-juridico-2026-11-14.json`, fuera del repo);
+`CALENDLY_ACCESS_TOKEN_SB_JURIDICO` y `FORM_30X_API_KEY` fuera de `.env.local` y de Vercel.
+**Hacer:** quitar `lib/form30x/` (`api.ts`), el proveedor `form30x` de `lib/ingesta/proveedores.ts` y su adaptador (`lib/ingesta/adaptador-form30x.ts`), el valor
+del enum `proveedor_formulario` **solo si ninguna fila lo usa (migración: la genera Claude)**, los fixtures `tests/fixtures/form30x-*.json`, los tests que
+los usan, el guardián del 272, el comentario de `lib/calendly/pertenencia.ts` y la mención en `tests/calendly-filtro-evento.test.ts`; marcar los ADR 0092 y 0093
+como retirados en `docs/adr/README.md` (índice de retirados) y limpiar `docs/operations.md`. **Ojo:** el valor del enum se quita al final y aparte; typecheck,
+lint y los tests de ingesta (`tests/contrato-proveedores.test.ts`, `tests/ingesta-*.test.ts`) deben seguir verdes.
+**No toca:** Typeform, Dapta, Calendly de los otros programas.
