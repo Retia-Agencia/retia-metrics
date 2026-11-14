@@ -53,3 +53,11 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 - [x] Registro: ficha de `citas_pendientes` y `llamadas_sin_resultado` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
 
 **9-nov (revisión N9):** quedan abiertas la 3.ª casilla (medir la cobertura antes y después: hay que esperar semanas de uso del chip) y la 4.ª (el Hub dice «parcial» en toda razón que dependa del resultado: cierra con el 351). Por eso NO es `done`.
+
+**13-nov, cobertura medida (solo lectura a producción; citas vigentes con `fecha_agenda` pasada, semana de Bogotá; % con resultado = `resultado` distinto de `agendada`).** El chip entró el 7-nov (`c8944917`), así que la semana del 9-nov es la única con el chip y todavía no madura (la gente marca días después).
+| Programa | 5-oct | 12-oct | 19-oct | 26-oct | 2-nov | 9-nov |
+|---|---|---|---|---|---|---|
+| Comunicarte | 27 % de 88 | 24 % de 80 | 22 % de 76 | 19 % de 67 | 12 % de 50 | 10 % de 48 |
+| Tactical Investor | 35 % de 69 | 30 % de 96 | 20 % de 83 | 5 % de 94 | 10 % de 59 | 8 % de 80 |
+| Comunícate con Confianza | 100 % de 2 | 57 % de 7 | 68 % de 57 | 67 % de 49 | 76 % de 37 | 30 % de 27 |
+Lectura: **no hay subida medible todavía**; Comunicarte y Tactical siguen en 8 a 12 % en las semanas recientes y las más viejas tienen más resultado solo porque tuvieron más tiempo. Confianza ya marcaba. La casilla 3 sigue abierta: repetir la consulta hacia el 21-nov (dos semanas con el chip) y comparar la semana del 2-nov contra la del 16-nov. Consulta: citas por `program_id` y `date_trunc('week', fecha_agenda at time zone 'America/Bogota')`, `anulado_en is null`.
