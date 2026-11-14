@@ -30,14 +30,11 @@ const EXCEPCIONES: Record<string, string> = {
   "lib/ingesta/procesar-sobre.ts": "Empareja una cita activa durante la escritura de la ingesta.",
   "lib/migracion/consolidar.ts": "Migración histórica que traduce estados de origen.",
   "lib/migracion/extraer-llamadas.ts": "Migración histórica que traduce resultados de las hojas.",
-  "lib/queries/dashboard.ts": "deuda: reescribe el predicado, ver informe",
   "lib/queries/ficha-deal.ts": "Proyecta si el deal tiene una cita activa; no calcula estas métricas.",
   "lib/queries/inbox-sin-dueno.ts": "Busca citas activas para la bandeja operativa sin dueño.",
   "lib/queries/inbox.ts": "Busca citas activas para las bandejas operativas.",
   "lib/queries/kanban.ts": "Proyecta la cita activa para las acciones del kanban.",
   "lib/queries/metricas-con-filas.ts": "Traduce el filtro de lista a ocurrioSql() o noAsistioSql().",
-  "lib/queries/proyeccion-roas.ts": "deuda: reescribe el predicado, ver informe",
-  "lib/queries/tasas-del-grupo.ts": "deuda: reescribe el predicado, ver informe",
   "scripts/seed-local.ts": "Semilla local: asigna y describe resultados sintéticos.",
 };
 

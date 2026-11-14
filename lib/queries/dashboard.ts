@@ -1,5 +1,11 @@
 import { sumaDeAbonos } from "@/lib/queries/saldo";
-import { noAsistioSql } from "@/lib/deals/resultados-de-llamada";
+import {
+  agendadaSql,
+  canceladaSql,
+  noAsistioSql,
+  reagendadaSql,
+  showSql,
+} from "@/lib/deals/resultados-de-llamada";
 import {
   closerDeAbono,
   fechaAnclaCall,
@@ -72,17 +78,17 @@ export interface Rango {
 export function conteosDeLlamadas(ahora: Date) {
   return {
     agendas: sql<number>`count(*) filter (where ${citaNoCancelada()})::int`,
-    canceladas: sql<number>`count(*) filter (where ${eq(calls.resultado, "cancelada")})::int`,
-    porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})::int`,
+    canceladas: sql<number>`count(*) filter (where ${canceladaSql()})::int`,
+    porVenir: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${agendadaSql()} and ${citaPorVenir(ahora)})::int`,
     sinResultado: sql<number>`count(*) filter (where ${citaNoCancelada()} and ${citaVencidaSinResultado(ahora, "excluir")})::int`,
-    show: sql<number>`count(*) filter (where ${eq(calls.resultado, "show")})::int`,
+    show: sql<number>`count(*) filter (where ${showSql()})::int`,
     noShow: sql<number>`count(*) filter (where ${noAsistioSql()})::int`,
     otro: sql<number>`count(*) filter (where ${citaNoCancelada()} and not (
-      (${eq(calls.resultado, "agendada")} and ${citaPorVenir(ahora)})
+      (${agendadaSql()} and ${citaPorVenir(ahora)})
       or coalesce(${citaVencidaSinResultado(ahora, "excluir")}, false)
-      or ${inArray(calls.resultado, ["show", "no_show", "reagendada"])}
+      or (${showSql()} or ${noAsistioSql()} or ${reagendadaSql()})
     ))::int`,
-    reagendadas: sql<number>`count(*) filter (where ${eq(calls.resultado, "reagendada")})::int`,
+    reagendadas: sql<number>`count(*) filter (where ${reagendadaSql()})::int`,
     llamadasConShow: sql<number>`count(*) filter (where ${llamadaOcurrio()})::int`,
   };
 }

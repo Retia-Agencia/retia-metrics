@@ -3,7 +3,7 @@ import { claveCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import type { RazonConCobertura } from "@/lib/cobertura";
 import { calls, cohorts, deals, programs, proyeccionesRoas, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { citaPorVenirDeDealAbierto } from "@/lib/deals/resultados-de-llamada";
+import { citaPorVenirDeDealAbierto, estaAgendada, fueReagendada } from "@/lib/deals/resultados-de-llamada";
 import { sumarDias } from "@/lib/dias-habiles";
 import type { Rango } from "@/lib/queries/dashboard";
 import { cargarRoasDePauta, type VistaRoasDePauta } from "@/lib/queries/roas-de-pauta";
@@ -214,7 +214,7 @@ export async function confirmarProyecciones(db: Db, programId: string, hoy: stri
     if (ids.length === 0 || !fila.ultimaCitaEn || fila.ultimaCitaEn.getTime() > ahora.getTime()) continue;
     const citas = await db.select({ id: calls.id, resultado: calls.resultado }).from(calls)
       .where(and(eq(calls.programId, programId), inArray(calls.id, ids), vigente(calls)));
-    if (citas.some((c) => c.resultado === "agendada" || c.resultado === "reagendada")) continue;
+    if (citas.some((c) => estaAgendada(c.resultado) || fueReagendada(c.resultado))) continue;
     const real = await cargarRoasDePauta(db, programId, { desde: fila.desde, hasta: fila.hasta }, hoy, ahora);
     const marcadas = await db.update(proyeccionesRoas).set({
       confirmadaEn: ahora, roasReal: numerico(real.total.roas.valor),

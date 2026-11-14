@@ -1,4 +1,4 @@
-import { eq, inArray, type SQL, type SQLWrapper } from "drizzle-orm";
+import { eq, inArray, ne, type SQL, type SQLWrapper } from "drizzle-orm";
 import { calls } from "@/lib/db/schema";
 
 /**
@@ -14,6 +14,11 @@ export const RESULTADOS_QUE_OCURRIERON = ["show", "compromiso_pago", "cerrada", 
 /** El único resultado que dice "agendó y no se presentó". La cancelada no es un no show: nadie dejó plantado a nadie. */
 export const RESULTADO_NO_ASISTIO = "no_show" as const;
 
+const RESULTADO_AGENDADO = "agendada" as const;
+const RESULTADO_CANCELADO = "cancelada" as const;
+const RESULTADO_REAGENDADO = "reagendada" as const;
+const RESULTADO_SHOW = "show" as const;
+
 /** ¿Este resultado prueba que la llamada ocurrió? */
 export function ocurrio(resultado: string): boolean {
   return (RESULTADOS_QUE_OCURRIERON as readonly string[]).includes(resultado);
@@ -24,6 +29,26 @@ export function noAsistio(resultado: string): boolean {
   return resultado === RESULTADO_NO_ASISTIO;
 }
 
+/** ¿La cita sigue pendiente de que ocurra o se marque? */
+export function estaAgendada(resultado: string): boolean {
+  return resultado === RESULTADO_AGENDADO;
+}
+
+/** ¿La cita se canceló? */
+export function fueCancelada(resultado: string): boolean {
+  return resultado === RESULTADO_CANCELADO;
+}
+
+/** ¿La cita se movió y otra cita la representa? */
+export function fueReagendada(resultado: string): boolean {
+  return resultado === RESULTADO_REAGENDADO;
+}
+
+/** ¿El resultado exacto es show? No incluye los demás resultados que prueban que la llamada ocurrió. */
+export function esShow(resultado: string): boolean {
+  return resultado === RESULTADO_SHOW;
+}
+
 /**
  * La gemela en memoria de `citaVencidaSinResultado` (`metricas-filtros.ts`, 353): sigue `agendada` y su hora
  * (`coalesce(fecha_agenda, fecha_llamada)`) ya llegó al corte, inclusive. Sin hora no hay cita vencida. Un dato que falta,
@@ -31,7 +56,7 @@ export function noAsistio(resultado: string): boolean {
  */
 export function citaSinResultado(cita: { resultado: string; fechaAgenda: Date | null; fechaLlamada: Date | null }, ahora: Date): boolean {
   const hora = cita.fechaAgenda ?? cita.fechaLlamada;
-  return cita.resultado === "agendada" && hora !== null && hora.getTime() <= ahora.getTime();
+  return estaAgendada(cita.resultado) && hora !== null && hora.getTime() <= ahora.getTime();
 }
 
 /**
@@ -68,7 +93,7 @@ export function citaPorVenirDeDealAbierto(
   deal: { etapa: string | null; tieneVenta: boolean },
   ahora: Date,
 ): boolean {
-  if (cita.resultado !== "agendada" || cita.fecha.getTime() <= ahora.getTime()) return false;
+  if (!estaAgendada(cita.resultado) || cita.fecha.getTime() <= ahora.getTime()) return false;
   return !deal.tieneVenta && !(ETAPAS_QUE_NO_SE_PERSIGUEN as readonly (string | null)[]).includes(deal.etapa);
 }
 
@@ -87,6 +112,27 @@ export function ocurrioSql(columna: SQLWrapper = calls.resultado): SQL {
 /** `noAsistio` en SQL. */
 export function noAsistioSql(): SQL {
   return eq(calls.resultado, RESULTADO_NO_ASISTIO);
+}
+
+/** Los estados exactos en SQL, gemelos de los predicados puros de arriba. */
+export function agendadaSql(): SQL {
+  return eq(calls.resultado, RESULTADO_AGENDADO);
+}
+
+export function canceladaSql(): SQL {
+  return eq(calls.resultado, RESULTADO_CANCELADO);
+}
+
+export function reagendadaSql(): SQL {
+  return eq(calls.resultado, RESULTADO_REAGENDADO);
+}
+
+export function noReagendadaSql(): SQL {
+  return ne(calls.resultado, RESULTADO_REAGENDADO);
+}
+
+export function showSql(): SQL {
+  return eq(calls.resultado, RESULTADO_SHOW);
 }
 
 /** Los resultados que ocurrieron como lista de literales para una plantilla `sql.raw`. */

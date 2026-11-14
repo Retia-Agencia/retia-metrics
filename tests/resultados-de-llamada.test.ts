@@ -7,6 +7,10 @@ import {
   CITA_SUELTA_CUENTA_COMO_POR_MARCAR,
   citaCuentaComoPorMarcar,
   citaSinResultado,
+  esShow,
+  estaAgendada,
+  fueCancelada,
+  fueReagendada,
   porMarcarPorCloser,
   noAsistio,
   noShowPorCita,
@@ -28,6 +32,19 @@ describe("resultados de llamada", () => {
   it("no asistió es solo no_show: la cancelada y la sin marcar no lo son", () => {
     expect(noAsistio("no_show")).toBe(true);
     for (const r of ["cancelada", "agendada", "reagendada", "show"]) expect(noAsistio(r)).toBe(false);
+  });
+
+  it("cada estado operativo exacto tiene un único predicado", () => {
+    expect(estaAgendada("agendada")).toBe(true);
+    expect(fueCancelada("cancelada")).toBe(true);
+    expect(fueReagendada("reagendada")).toBe(true);
+    expect(esShow("show")).toBe(true);
+    for (const resultado of ["no_show", "perdida", "cerrada", "compromiso_pago"]) {
+      expect(estaAgendada(resultado)).toBe(false);
+      expect(fueCancelada(resultado)).toBe(false);
+      expect(fueReagendada(resultado)).toBe(false);
+      expect(esShow(resultado)).toBe(false);
+    }
   });
 
   it("show por deal y por cita son cocientes distintos del mismo set; el no show es su complemento nombrado", () => {

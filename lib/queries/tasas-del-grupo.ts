@@ -1,9 +1,14 @@
-import { and, between, eq, ne } from "drizzle-orm";
+import { and, between, eq } from "drizzle-orm";
 import { calls, deals, programs, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
-import { ocurrio } from "@/lib/deals/resultados-de-llamada";
+import {
+  estaAgendada,
+  fueReagendada,
+  noReagendadaSql,
+  ocurrio,
+} from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { semanasDelRango } from "@/lib/rangos";
 import { fechaAnclaCall } from "@/lib/queries/metricas-filtros";
@@ -45,9 +50,6 @@ export async function diasParaMadurarDe(db: Db, programId: string): Promise<numb
   const [fila] = await db.select({ dias: programs.diasParaMadurar }).from(programs).where(eq(programs.id, programId));
   return fila?.dias ?? DIAS_PARA_MADURAR;
 }
-
-/** El resultado que saca una cita del grupo: se movió, y la representa su cita nueva. */
-const RESULTADOS_FUERA_DEL_GRUPO = ["reagendada"] as const;
 
 export interface CitaParaTasas {
   callId: string;
@@ -156,7 +158,7 @@ export function calcularTasasDelGrupo(args: {
   diasParaMadurar?: number;
 }): GrupoDeCitas {
   const ocurridas = args.citas
-    .filter((c) => !(RESULTADOS_FUERA_DEL_GRUPO as readonly string[]).includes(c.resultado))
+    .filter((c) => !fueReagendada(c.resultado))
     .filter((c) => c.instante.getTime() <= args.ahora.getTime())
     .sort((a, b) => a.instante.getTime() - b.instante.getTime() || a.callId.localeCompare(b.callId));
 
@@ -181,11 +183,11 @@ export function calcularTasasDelGrupo(args: {
   const ordenar = (a: MiembroDelGrupo, b: MiembroDelGrupo) =>
     a.fecha.localeCompare(b.fecha) || a.dealId.localeCompare(b.dealId);
   const pendientes: MiembroDelGrupo[] = [...porDeal.values()]
-    .filter((citasDelDeal) => citasDelDeal.every((c) => c.resultado === "agendada"))
+    .filter((citasDelDeal) => citasDelDeal.every((c) => estaAgendada(c.resultado)))
     .map((citasDelDeal) => miembro(citasDelDeal.at(-1)!, false))
     .sort(ordenar);
   const miembros: MiembroDelGrupo[] = [...porDeal.values()].flatMap((citasDelDeal) => {
-    const conResultado = citasDelDeal.filter((c) => c.resultado !== "agendada");
+    const conResultado = citasDelDeal.filter((c) => !estaAgendada(c.resultado));
     if (conResultado.length === 0) return [];
     const shows = conResultado.filter((c) => ocurrio(c.resultado));
     const atribuye = (shows.length > 0 ? shows : conResultado).at(-1)!;
@@ -269,7 +271,7 @@ export async function leerCitasDelGrupo(
     .where(and(
       eq(calls.programId, programId),
       between(fechaAnclaCall(), rango.desde, rango.hasta),
-      ne(calls.resultado, "reagendada"),
+      noReagendadaSql(),
       area === "paid" ? condicionDeAreaDePauta() : undefined,
       vigente(calls),
     ));
