@@ -31,7 +31,7 @@ falta). Cero cálculo nuevo; un concepto, un módulo (N1).
 
 ## Done cuando
 
-- [ ] D-1 y D-4 respondidas; D-2 y D-3 provisionales (14-nov), falta el ok de Mani a la propuesta.
+- [x] D-1 a D-4 respondidas (14-nov). Falta el ok de Mani al formato y a la lista de alertas de abajo.
 - [ ] El contrato del endpoint con lista blanca y su test (molde `tests/semaforo-endpoint.test.ts`); 401 sin secreto.
 - [ ] Un closer solo recibe lo suyo (el dueño sale del criterio de closer del registro); un test forjado con otro closer.
 - [ ] Probado de punta a punta con Juanito, y con la regla de no repetir dentro de la ventana de silencio.
@@ -42,3 +42,33 @@ falta). Cero cálculo nuevo; un concepto, un módulo (N1).
 - **D-2 y D-3 (Mani no lo tiene claro; propuesta provisional, falta su ok):** el aviso va **a cada closer, a su WhatsApp personal, cuando tenga algo pendiente** (si no tiene nada, no recibe nada). Propuesta: una vez al día hábil a una hora fija de Bogotá, y silencio por closer: no repetir el mismo bloque dentro de 24 h. Razón: un grupo expone a cada closer frente a los demás, y un aviso por evento se vuelve ruido.
 - **D-4: sí se mide**, citas pasadas sin resultado por semana antes y después (es la casilla abierta del 390; la línea base está en ese ticket).
 - Brief para Codex: `docs/agents/briefs-codex-14-nov.md`, B-5. Necesita una migración (tabla de avisos enviados) que genera la sesión principal.
+
+## Especificación propuesta (14-nov; D-2 y D-3 con el ok de Mani, formato y alertas por confirmar)
+**Cuándo:** dos avisos por día hábil a cada closer, a su WhatsApp personal, **solo si tiene algo**: **8:00 a.m.** (todo lo acumulado, agrupado por deal) y **6:00 p.m.** (solo lo de hoy: citas de hoy sin resultado y llamadas de hoy sin Grain, para marcarlas el mismo día). Fines de semana, nada (solo hábiles, regla de Retia). Silencio por closer: el mismo bloque no se manda dos veces en la misma ventana.
+**Qué alertas entran** (cada una ya la calcula la bandeja, `lib/queries/inbox.ts`; cero cálculo nuevo), **agrupadas por deal, con lo que le falta a cada uno**:
+1. Cita pasada sin resultado (solo de los últimos 7 días; ver el hallazgo).
+2. Llamada hecha sin link de Grain.
+3. Re-agenda pendiente (la llamada no se hizo y hay que volver a agendar).
+4. Seguimiento, compromiso de pago o cartera con la fecha vencida.
+5. Comprobante de abono por confirmar.
+6. Deal asignado todavía sin abrir.
+**Qué NO entra:** "Hoy" (es agenda, no pendiente), seguimientos que aún no vencen, cambios de Calendly, duplicados y próxima cohorte (informativos o con su propia pantalla).
+**Formato (nombre completo del lead, solo al dueño; sin correo ni teléfono):**
+```
+Andrea, te faltan 6 registros en 4 deals:
+
+1) Camilo Moreno · Tactical · Agendado
+   • Cita del lun 10-nov sin resultado (hace 4 días)
+   • Llamada hecha sin link de Grain
+2) Silvia Velázquez · Comunicarte · Seguimiento
+   • Seguimiento vencido desde el 12-nov
+3) …
+(y 2 deals más en el CRM)
+
+Además: 380 citas de hace más de 7 días siguen sin resultado.
+Márcalas aquí: <enlace a Mi espacio con el filtro Sin resultado>
+```
+El de las 6:00 p.m.: "Andrea, hoy tuviste 6 citas y 4 siguen sin resultado: Camilo Moreno (10:00), … Márcalas aquí: <enlace>". Tope de 8 deals por mensaje, más urgente primero (la fecha más vieja), y "lleva N días" cuando pasa de 3.
+**Hallazgos de producción (14-nov) que condicionan esto:**
+- **Hay un atraso enorme:** Andrea tiene 416 deals con una cita pasada sin resultado y Maru 330 (en los últimos 3 días, 27 y 22). Un aviso que los liste todos no sirve: por eso solo se listan los de 7 días y el resto es **una línea con el conteo**. Limpiar ese atraso (marcarlo en bloque o declararlo cerrado) es una decisión aparte de Mani.
+- **Ninguno de los 15 usuarios activos tiene WhatsApp cargado** (`usuarios_whatsapp`): antes de probar con Juanito hay que cargar el número de cada closer (`agregarWhatsappDeUsuarioAccion`).
