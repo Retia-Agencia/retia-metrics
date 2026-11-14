@@ -33,9 +33,14 @@ es el caso que el ADR 0115 N8 prohíbe: la ficha dice una cosa y nadie puede dec
 
 ## Done cuando
 
-- [ ] D-1 y D-2 respondidas por Mani, con su respuesta escrita aquí.
+- [x] D-1 y D-2 respondidas (14-nov; D-2 recomendada por Claude, confirmable).
 - [ ] Las tres filas del diccionario reescritas con su fuente, y la ficha igual que la fila en el mismo commit (N8: título del ADR, índice,
       vocabulario de `overview.md` §11).
 - [ ] Un test o la prueba existente (`tests/explicacion-sin-jerga.test.ts`, `tests/registro-de-metricas.test.ts`) cubre el cambio; si la
       definición de Envíos cambia una cifra, se detiene y se anota (la regla del 419: ninguna cifra se mueve sin avisar).
 - [ ] Tracker y `status:` coinciden (N9).
+
+## Decisiones (14-nov, Mani)
+- **D-1: Envíos cuenta completos y parciales, con los parciales aparte**, porque así los recibe el CRM (el formulario manda un parcial cuando la persona se va a mitad). Es la misma regla de Comercial en el 372. Falta medir qué cuenta hoy el código y reescribir una sola fila.
+- **D-2 (Mani preguntó qué es): `agendas_meta` es el número de agendas que reporta el pixel de Meta, distinto de las agendas que cuenta el CRM.** Hoy se trata como variante de `costo_agenda_meta` (= gasto ÷ `agendas_meta`), pero el mensaje de WhatsApp lo pinta solo ("agendas Meta N", `lib/reporte-whatsapp/mensaje.ts:111`). Dar "clave propia" es registrarlo como métrica con su nombre, definición y explicación, como cualquier otra. **Recomendación: sí, clave propia**, porque la regla que Mani aprobó el 13-nov es "todo lo visible, registrado" y esta cifra ya es visible sola. Queda así salvo que Mani diga que no.
+- Brief: `docs/agents/briefs-codex-14-nov.md`, B-6 (casi todo documentos).

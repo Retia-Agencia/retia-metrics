@@ -2899,6 +2899,10 @@ export const mcpLlamadas = pgTable(
     resultado: mcpResultadoEnum("resultado").notNull(),
     codigoError: text("codigo_error"),
     duracionMs: integer("duracion_ms"),
+    /** Tamaño de la respuesta en bytes (411 F4). Nulo en las llamadas anteriores al 14-nov. */
+    bytesRespuesta: integer("bytes_respuesta"),
+    /** Consultas SQL que ejecutó la herramienta (411 F4). Nulo en las llamadas anteriores al 14-nov. */
+    consultas: integer("consultas"),
     /** Nombre y version que manda el cliente MCP al iniciar. */
     cliente: text("cliente"),
     creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),

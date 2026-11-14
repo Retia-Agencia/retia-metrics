@@ -31,8 +31,14 @@ falta). Cero cálculo nuevo; un concepto, un módulo (N1).
 
 ## Done cuando
 
-- [ ] D-1 a D-4 respondidas por Mani.
+- [ ] D-1 y D-4 respondidas; D-2 y D-3 provisionales (14-nov), falta el ok de Mani a la propuesta.
 - [ ] El contrato del endpoint con lista blanca y su test (molde `tests/semaforo-endpoint.test.ts`); 401 sin secreto.
 - [ ] Un closer solo recibe lo suyo (el dueño sale del criterio de closer del registro); un test forjado con otro closer.
 - [ ] Probado de punta a punta con Juanito, y con la regla de no repetir dentro de la ventana de silencio.
 - [ ] Regla N8 y N9; tracker y `status:` coinciden.
+
+## Decisiones (14-nov, Mani)
+- **D-1: registro pendiente = cualquier cosa que no se haya hecho en los deals que vienen de etapas anteriores**, agrupada por deal y fácil de ver lo que le falta a cada uno (no una lista suelta de citas). Incluye las citas pasadas sin resultado, y lo que ya calcula la bandeja (071) y las alertas (128): siguiente paso, comprobante por confirmar, etc. Un deal por bloque, con lo que le falta.
+- **D-2 y D-3 (Mani no lo tiene claro; propuesta provisional, falta su ok):** el aviso va **a cada closer, a su WhatsApp personal, cuando tenga algo pendiente** (si no tiene nada, no recibe nada). Propuesta: una vez al día hábil a una hora fija de Bogotá, y silencio por closer: no repetir el mismo bloque dentro de 24 h. Razón: un grupo expone a cada closer frente a los demás, y un aviso por evento se vuelve ruido.
+- **D-4: sí se mide**, citas pasadas sin resultado por semana antes y después (es la casilla abierta del 390; la línea base está en ese ticket).
+- Brief para Codex: `docs/agents/briefs-codex-14-nov.md`, B-5. Necesita una migración (tabla de avisos enviados) que genera la sesión principal.

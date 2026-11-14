@@ -29,8 +29,14 @@ magnitudes sumables juntas y tasas, meta y ROAS **por programa, lado a lado** (n
 
 ## Done cuando
 
-- [ ] D-1 a D-3 respondidas por Mani, con su respuesta escrita aquí.
+- [x] D-1 a D-3 respondidas por Mani, con su respuesta escrita aquí (14-nov).
 - [ ] El PDF de un día con tres programas da, por programa, las mismas cifras que Hub › Hoy; un cuadro así sembrado en un test.
 - [ ] El paid trafficker no ve nada del equipo comercial en el PDF (`sinListas`).
 - [ ] Probado en claro y en papel (vista previa de impresión), 375 px no aplica.
 - [ ] Regla N8 y N9; tracker y `status:` coinciden.
+
+## Decisiones (14-nov, Mani: "el que consideres más eficiente y correcto para el CRM")
+- **D-1: `window.print()`, sin archivo del servidor.** Un PDF generado en el servidor exige un navegador sin cabeza o una librería (costo, tamaño y mantenimiento en Vercel) y rompe el ADR 0006 (nada instalado antes del código que lo usa). `window.print()` ya funciona en `/hub` (373), guarda como PDF desde el navegador y no tiene piezas que se rompan. Si Juanito necesita *mandarlo* algún día, es otro ticket con su costo.
+- **D-2: las secciones que el Hub "todos" ya muestra (Hoy y Pauta), una por programa, sin cálculo nuevo.** Una sección de la plantilla de septiembre que el Hub no tenga se anota como faltante, no se inventa.
+- **D-3: Michael lo valida contra su reporte manual de una semana real antes de irse (30-nov), con Daniel Tovar como segundo ojo.** Es quien lo hace hoy y se va; el valor del ticket es que pueda salir sin él.
+- Brief para Codex: `docs/agents/briefs-codex-14-nov.md`, B-4.
