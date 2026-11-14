@@ -298,6 +298,28 @@ tengan texto aprobado.
 
 ## Avance
 
+- **13-nov · E-3 Comercial — detenido antes de modificar código.** Al contrastar los constructores con E-1 se confirma el
+  bloqueo del hallazgo 18: `cifras-de-recorridos.ts` requiere explicaciones sin ficha registrada para
+  `porcentaje_de_escalera`, `dias_medianos_de_escalera`, `conversion_del_paso`, `perdidos_del_paso`,
+  `pasaron`, `siguen_en_etapa`, `perdidos_en_etapa`, `dias_medianos_en_etapa`, `citas_futuras`,
+  `deals_perdidos` y `ticket_perdido`. El embudo pide además `embudo_comercial_creados`,
+  `embudo_comercial_agendaron`, `embudo_comercial_tuvieron_show` y `embudo_comercial_compraron`:
+  la clave local `tuvieron_show` tampoco coincide con `embudo_comercial_shows` del vocabulario de listas.
+  Las cantidades de escalera/grupos pueden corresponder a `ventas_por_escalon`, y
+  `cita_sin_resultado_de_escalera` a `escalera_sin_resultado`; eso no resuelve las unidades porcentaje/días ni
+  los otros conceptos. **Se necesita que el carril de Mani registre las fichas faltantes o confirme el mapa a fichas
+  existentes, con su texto aprobado.** No se inventaron explicaciones locales ni se tocó `registro.ts`.
+  - Leída la línea base suministrada; ninguna cifra ni pantalla se modificó. No se abrió la app, ninguna base ni secretos.
+  - Solo cambia esta entrada del ticket. E-3 queda pendiente; no se construye una migración parcial que deje el Info
+    con explicaciones duplicadas o retire explicaciones antes de tener sus fichas.
+  - **Retirado: nada.** `rg -n 'seccionesDeInfoDeComercial|EnlaceAInfo|BarraDeCierre|DetalleDeEscalera|<Escalera' app components`
+    confirma el llamador del Info en la página del programa, enlaces de Comercial y usos compartidos de `Escalera`
+    en `/hub`, además de enlaces de Hoy y de la ficha del deal. No hay piezas reemplazadas con cero llamadores.
+  - **Evidencia pendiente de conectar:** toda la integración; se conserva el criterio del hallazgo 17 (caminos,
+    pérdidas del embudo y motivos sin lista probada). No se añadieron enlaces por similitud.
+  - No se ejecutaron typecheck, lint ni tests: no cambió código ni se creó un test. Build y recorrido visual
+    siguen a cargo de quien revisa, conforme al alcance de esta sesión.
+
 - **13-nov (noche), E-1 hecho (carril D, Codex; revisado por Claude).** El texto vive en la ficha (`lib/metricas/registro.ts`) y
   lo arma `explicacionDe(clave, variante?)` en `lib/metricas/explicacion.ts`, con las diferencias de Pauta como variantes nombradas
   (`VARIANTES_DE_PAUTA`); el puente se borró y sus tipos viven en `lib/metricas/cifra.ts`, que deriva la unidad de la ficha
