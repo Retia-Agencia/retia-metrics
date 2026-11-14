@@ -36,6 +36,9 @@ export default auth((req) => {
     // Y los avisos de estudiante nuevo a CS (ticket 408, ADR 0128): consulta y confirmacion, con el mismo secreto.
     pathname === "/api/semaforo/estudiantes-nuevos" ||
     pathname === "/api/semaforo/estudiantes-nuevos/confirmar" ||
+    // Avisos personales de registros pendientes (ticket 428): consulta y confirmacion con el secreto de Juanito.
+    pathname === "/api/pendientes/avisos" ||
+    pathname === "/api/pendientes/avisos/confirmar" ||
     // Las alertas tecnicas (ADR 0130, ticket 425): Juanito, con su propio secreto en el handler.
     pathname === "/api/salud/alertas" ||
     // El cierre diario de salud (ticket 426): usa el mismo secreto y no lleva datos personales.

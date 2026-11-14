@@ -108,6 +108,12 @@ export interface ResultadoChip {
   proxima: Date | string | null;
 }
 
+/** La lista completa de un chip con la fecha que ya usa Mi espacio para ordenarlo. */
+export interface NotificacionCompleta {
+  tarjeta: TarjetaDeal;
+  fechaClave: Date | string | null;
+}
+
 /** El universo + lo extra, leído una sola vez y reutilizado por todos los predicados. */
 interface Universo {
   tarjetas: TarjetaDeal[];
@@ -341,6 +347,29 @@ export async function notificacionesDeChip(
   const proxima = chipConFecha(chip) && evaluadas.length > 0 ? evaluadas[0].fechaClave : null;
 
   return { chip, total, tarjetas, proxima };
+}
+
+/**
+ * La misma proyeccion de un chip, sin paginar y conservando su fecha clave. Los avisos de
+ * registros pendientes la necesitan para agrupar varios chips por deal; no redefine ningun
+ * predicado: pasa por `cargarUniverso`, `evaluar` y `compararPorChip`, igual que la pantalla.
+ */
+export async function notificacionesCompletasDeChip(
+  db: Db,
+  args: { programId: string; userId: string; chip: ChipNotificacion },
+  hoy: string = hoyEnBogota(),
+  ahora: Date = new Date(),
+): Promise<NotificacionCompleta[]> {
+  const universo = await cargarUniverso(db, args.programId, args.userId, hoy, undefined, ahora);
+  const evaluadas: NotificacionCompleta[] = [];
+  const idsCalendly = new Map<string, Date>();
+  const idsDuplicados = new Set<string>();
+  for (const tarjeta of universo.tarjetas) {
+    const resultado = evaluar(universo, tarjeta, args.chip, idsCalendly, idsDuplicados);
+    if (resultado.pasa) evaluadas.push({ tarjeta, fechaClave: resultado.fechaClave });
+  }
+  evaluadas.sort((a, b) => compararPorChip(args.chip, a, b));
+  return evaluadas;
 }
 
 /** Los conteos de TODOS los chips, para pintarlos con su número. Una sola carga del universo. */
