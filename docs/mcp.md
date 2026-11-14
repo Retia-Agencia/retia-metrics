@@ -162,6 +162,8 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 ## 5. Recetas
 
+**Agregar una server action a la app:** clasifícala en `lib/mcp/cobertura.ts` como expuesta, pendiente, fuera o lectura. El guardián falla si falta la fila o si el registro conserva una función que ya no existe.
+
 **Agregar una herramienta de lectura**
 1. Si la pregunta ya la responde una pantalla, extrae su consulta a `lib/queries/` (si no está) y úsala en las dos.
 2. Define la herramienta en el archivo de su familia (`herramientas/*.ts`) con la forma de `tipos.ts`.
@@ -186,9 +188,9 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 La caducidad de credenciales, la retención de 90 días, la paginación SQL, la búsqueda global, los filtros resueltos y la consulta genérica de hechos quedaron resueltos. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan los `EXPLAIN` a 10× de las herramientas de operación y las evaluaciones de descubrimiento (386). `consultar_metrica` todavía usa `closer` como código opaco, un concepto distinto del dueño del deal; es candidato a renombrarse en F5.
 
-**Alcance y límites del MCP (9-nov, ticket 411, ADR 0129):** la puerta de escritura ya tiene su primer caso de uso, mover de etapa y deshacerlo, con el mismo permiso y motor que la app. El destino sigue siendo una puerta total con reglas de orientación (todo lo que la app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
+**Alcance y límites del MCP (13-nov, ticket 411, ADR 0129):** la app y el MCP se comparan mediante el registro exhaustivo de `lib/mcp/cobertura.ts`; su guardián detecta funciones nuevas sin clasificar, filas obsoletas y acciones del MCP sin server action cubierta. El trinquete permite hoy 96 capacidades todavía solo en la app: 32 de operación y 64 de configuración; solo puede bajar. Una acción del MCP sin server action propia va en `ACCIONES_SIN_PAR_EN_LA_APP` con su razón: hoy `anular_llamada`, porque la app solo anula una llamada al deshacer su registro. El destino sigue siendo una puerta total con reglas de orientación (todo lo que la app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
 llamada (p95: `pauta_roas` 2,8 s, `tablero_de_deals` 2,0 s, `consultar_metrica` 1,0 s) y no se alcanzó el tope de 300/min; las
-límites pendientes de las fases siguientes están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
+fases siguientes están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

@@ -177,6 +177,11 @@ describe("consultar_hechos", () => {
     expect(consulta.hechos.venta.dimensiones).not.toContain("dueno");
     const gerente = await capacidadesMcp.ejecutar(contexto(gerenteId, "gerente"), { detalle: "esquema", herramienta: "consultar_hechos" });
     expect((gerente.estructurado.consultas as Array<{ hechos: Record<string, { dimensiones: string[] }> }>)[0].hechos.venta.dimensiones).toContain("dueno");
+    const pendientes = gerente.estructurado.todavia_solo_en_la_app as Array<{ grupo: string; capacidad: string }>;
+    expect(pendientes.length).toBeGreaterThan(0);
+    expect(pendientes.every((fila) => ["operacion", "configuracion"].includes(fila.grupo))).toBe(true);
+    expect(pendientes.every((fila) => fila.capacidad.length > 0 && !/Accion\b/.test(fila.capacidad))).toBe(true);
+    expect(gerente.texto).toContain("todavía solo en la app");
   });
 
   it("ficha de lead acepta alias y canónico, pero no ambos", async () => {

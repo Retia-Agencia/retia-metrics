@@ -3,6 +3,7 @@ import { veEquipoComercial } from "@/lib/auth/roles";
 import { dimensionesVisibles, HECHOS_CONSULTABLES } from "@/lib/queries/hechos/registro";
 import type { Herramienta } from "./tipos";
 import { ACCIONES, accionPorClave } from "@/lib/mcp/acciones";
+import { COBERTURA_MCP } from "@/lib/mcp/cobertura";
 
 const entrada = z.object({
   detalle: z.enum(["nombre", "resumen", "esquema"]).default("resumen"),
@@ -32,6 +33,10 @@ const salida = z.object({
     argumentos: z.record(z.string(), z.unknown()).optional().describe("Esquema JSON de los argumentos aceptados."),
     ejemplo: z.record(z.string(), z.unknown()).optional().describe("Ejemplo válido de argumentos."),
   }).strict()).describe("Acciones disponibles para el rol y la conexión actuales."),
+  todavia_solo_en_la_app: z.array(z.object({
+    grupo: z.enum(["operacion", "configuracion"]).describe("Tipo de capacidad pendiente."),
+    capacidad: z.string().describe("Acción expresada en palabras de negocio."),
+  }).strict()).describe("Capacidades que todavía se hacen solo en la app."),
 }).strict();
 
 export const capacidadesMcp: Herramienta<typeof entrada> = {
@@ -76,9 +81,12 @@ export const capacidadesMcp: Herramienta<typeof entrada> = {
           } : {}),
         }))
       : [];
+    const todaviaSoloEnLaApp = Object.values(COBERTURA_MCP)
+      .filter((fila) => fila.clase === "pendiente")
+      .map((fila) => ({ grupo: fila.grupo, capacidad: fila.capacidad }));
     return {
-      texto: `${consultas.length} consultas y ${acciones.length} acciones disponibles.`,
-      estructurado: { consultas, acciones },
+      texto: `${consultas.length} consultas y ${acciones.length} acciones disponibles. ${todaviaSoloEnLaApp.length} capacidades todavía solo en la app.`,
+      estructurado: { consultas, acciones, todavia_solo_en_la_app: todaviaSoloEnLaApp },
     };
   },
 };
