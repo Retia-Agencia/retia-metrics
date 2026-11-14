@@ -152,7 +152,6 @@ describe("agregarLlamada: la llamada nace del deal", () => {
       id: callId,
       dealId,
       programId,
-      cohortId,
       closerUserId: closer,
       emailLead: "ana@correo.co",
       resultado: "agendada",
