@@ -33,6 +33,22 @@ nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/han
 ```
 ## Memory
 
+### 13-nov (cierre) · main en verde y carril D hasta el 368 (sesión de Mani, tres Codex en worktrees)
+- **Main en verde (`32818b16`, tag `cp-20261113-2`).** El rojo de E-1 eran `deals_sin_dueno` y `ventas_sin_anuncio` sin `criterioDeCloser`
+  (ahora `dueno_del_deal`) y el guardián de sinónimos, que cazaba "Agendas por día" y "Registros de pauta/sin origen": quedan como
+  `NOMBRES_APROBADOS` por frase exacta (boceto aprobado). **Si Mani prefiere renombrar a Agendadas/Envíos, es un cambio de copia del boceto.**
+- **390 deuda (`60b5eef9`).** `dashboard.ts`, `proyeccion-roas.ts` y `tasas-del-grupo.ts` usan los estados de `lib/deals/resultados-de-llamada.ts`
+  (`agendadaSql`, `showSql`, `estaAgendada`...). Queda `components/dashboard/hoy/citas.tsx` (Hoy, carril P, 419 E-3). Siguen abiertas las casillas de
+  cobertura medida (citas pasadas sin resultado por semana, antes y después; consulta a producción), el "parcial" del Hub (351) y N8.
+- **411 F3 completo (`06a80349`).** `CONCEPTOS_SIN_LISTA_EN_EL_MCP` (48, trinquete) y `capacidades({ concepto })`. Las 48 razones las escribió Codex
+  leyendo fichas; no se verificó una por una contra los hechos reales. Faltan F4 y F5.
+- **368 (`f52830d8`).** Regla puntual del Re-agenda en `lib/deshacer/reagenda.ts`. Efecto lateral a revisar: `moverEtapa` ahora deja rastro de TODO cambio de
+  pendiente (antes solo en correcciones) y `rastro.ts` tiene una llave `desdeDeshacerReagenda` (guardián del motor la reconoce solo en ese módulo).
+- **Sin hacer:** 358 (espera DA-7 y confirmar con Mani/Juanito el cambio visible del mensaje de WhatsApp; el test de contrato→registro y el del título del ADR
+  no necesitan decisión) y 401 (una migración a la vez, con ok de Mani). **Preguntas a Mani:** ticket para el PDF del reporte diario y para el push de Juanito; qué hacer
+  con Envíos completos o parciales y la compensación de `objetivo_semana`.
+- **No verificado:** suite completa (la corre el CI de estos pushes), `npm run build`, la app abierta.
+
 ### 13-nov (noche) · 419 E-1, 390 y 411 F3 en main (sesión de Mani, carril D, tres Codex en worktrees)
 - **419 E-1 (`cfe27fd0`).** El texto de las explicaciones vive en la ficha; `explicacionDe` + `VARIANTES_DE_PAUTA` en
   `lib/metricas/explicacion.ts`; puente borrado. Claves retiradas: `citas_realizadas` (→ `shows`) y `llamadas_sin_resultado`
