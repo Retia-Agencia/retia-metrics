@@ -34,9 +34,9 @@ es el caso que el ADR 0115 N8 prohíbe: la ficha dice una cosa y nadie puede dec
 ## Done cuando
 
 - [x] D-1 y D-2 respondidas (14-nov; D-2 recomendada por Claude, confirmable).
-- [ ] Las tres filas del diccionario reescritas con su fuente, y la ficha igual que la fila en el mismo commit (N8: título del ADR, índice,
-      vocabulario de `overview.md` §11).
-- [ ] Un test o la prueba existente (`tests/explicacion-sin-jerga.test.ts`, `tests/registro-de-metricas.test.ts`) cubre el cambio; si la
+- [x] Las tres filas del diccionario reescritas con su fuente, y la ficha igual que la fila en el mismo commit (N8: título del ADR, índice,
+      vocabulario de `overview.md` §11). **Hecho el 14-nov (`f2372cc3`); la de Envíos es PROVISIONAL, ver «Hallazgo del 14-nov» abajo.**
+- [x] Un test o la prueba existente (`tests/explicacion-sin-jerga.test.ts`, `tests/registro-de-metricas.test.ts`) cubre el cambio; si la
       definición de Envíos cambia una cifra, se detiene y se anota (la regla del 419: ninguna cifra se mueve sin avisar).
 - [ ] Tracker y `status:` coinciden (N9).
 
@@ -44,3 +44,20 @@ es el caso que el ADR 0115 N8 prohíbe: la ficha dice una cosa y nadie puede dec
 - **D-1: Envíos cuenta completos y parciales, con los parciales aparte**, porque así los recibe el CRM (el formulario manda un parcial cuando la persona se va a mitad). Es la misma regla de Comercial en el 372. Falta medir qué cuenta hoy el código y reescribir una sola fila.
 - **D-2 (Mani preguntó qué es): `agendas_meta` es el número de agendas que reporta el pixel de Meta, distinto de las agendas que cuenta el CRM.** Hoy se trata como variante de `costo_agenda_meta` (= gasto ÷ `agendas_meta`), pero el mensaje de WhatsApp lo pinta solo ("agendas Meta N", `lib/reporte-whatsapp/mensaje.ts:111`). Dar "clave propia" es registrarlo como métrica con su nombre, definición y explicación, como cualquier otra. **Recomendación: sí, clave propia**, porque la regla que Mani aprobó el 13-nov es "todo lo visible, registrado" y esta cifra ya es visible sola. Queda así salvo que Mani diga que no.
 - Brief: `docs/agents/briefs-codex-14-nov.md`, B-6 (casi todo documentos).
+
+## Hallazgo del 14-nov (tarde): D-1 contradice lo que cuenta el código — DECIDE MANI
+**Qué se midió.** Envíos cuenta HOY solo formularios completos: `lib/queries/hechos/envio.ts:104` aplica `eq(submissions.esParcial, false)` y la
+suma sale de la línea ~128. Los parciales no se muestran aparte en Envíos. El diccionario (`docs/metricas.md`, filas de Envíos) decía «completo o parcial»,
+contra el código. Comercial sí separa los parciales (`lib/queries/embudo-comercial.ts:83`, `filtroDealsD…`, ticket 372).
+**Lo que se hizo (sin mover ninguna cifra):** Codex se detuvo a propósito al ver la discrepancia (regla del brief); yo decidí documentar lo que el código hace:
+fila de Envíos = «formularios completos; los parciales no entran en este número», con la nota «Pendiente de Mani: D-1 pidió completos y parciales con los parciales
+aparte». Reescritas la fila de `docs/metricas.md` (~232 y ~307), la ficha de `lib/metricas/registro.ts` (~1090) y el vocabulario de `docs/overview.md` §11 (~449).
+También quedaron: regla exacta de `objetivo_semana` con el ejemplo 7 ÷ 3 = 2,33 (`metricas.md` ~358, `registro.ts` ~1232: la compensación ocurre DENTRO de la semana) y
+`agendas_meta` con clave propia (`registro.ts` ~946, `pendientes.ts:31` apunta a `"agendas_meta"`, vocabulario «Agendas según Meta», fila de `metricas.md` ~418).
+**La decisión que falta (una sola pregunta para Mani):** ¿Envíos queda como completos solamente (con los parciales aparte en Comercial) o debe contar completos y parciales
+con un desglose?
+- **A (recomendada):** dejar Envíos = completos, cerrar D-1 como «completos; los parciales se miden aparte en Comercial (372)». No mueve nada; solo se quita la nota «Pendiente».
+- **B:** cambiar el hecho de envíos para contar los dos con parciales aparte. Mueve cifras: exige consulta nueva, dorados y aviso (regla del 419: ninguna cifra se mueve sin avisar).
+**Qué cierra el ticket:** la respuesta de Mani, quitar la nota provisional de las tres filas (`metricas.md`, `registro.ts`, `overview.md` §11) en el mismo commit (N8) y marcar tracker y `status:` (N9).
+**Hueco relacionado, medido el 14-nov:** `agendas_meta` quedó declarada en `lib/mcp/cobertura.ts` con la razón «Cifra de resumen_del_hub» (el tipo `RazonSinLista` solo admite esa o «Se pide por consultar_hechos»),
+pero `resumen_del_hub` NO devuelve hoy ninguna cifra de pauta (ni costos ni agendas Meta): el MCP no puede consultar `agendas_meta` todavía. `TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP` subió de 48 a 49.

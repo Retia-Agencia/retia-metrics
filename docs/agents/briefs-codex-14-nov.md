@@ -1,3 +1,18 @@
+# Estado de los briefs (actualizado el 14-nov, tarde)
+
+| Brief | Resultado | Commit en main |
+|---|---|---|
+| B-1 · 411 F4 | hecho | `d182f274` |
+| B-2 · 411 F5 | hecho (8 pasan, 1 `it.todo` A-177) | `ad503ef0` |
+| B-6 · 429 | hecho; Envíos provisional (D-1 contradice el código) | `f2372cc3` |
+| B-3 · 358 WhatsApp | hecho; costo por agenda del semáforo = Meta | `13bb32d8`, `f939b581` |
+| B-4 · 427 | hecho; falta validar con Michael | `f24c3502` |
+| B-5 · 428 | lado CRM hecho; falta Juanito | `374ef920`, `dc7ba64b` (migración 0144 aplicada) |
+| B-7 · Form30x | código fuera; migración 0145 aplicada | `21643ccc`, `50afa32d` |
+
+**Lecciones del lote (para el próximo brief a Codex):** Codex NO puede commitear (el sandbox bloquea `index.lock`): el commit lo hace Claude con archivos nombrados; no corre `npm test` (bloquea `ps`) pero sí Vitest directo; se detiene si el brief le pide algo que contradice el código (así halló D-1 de Envíos y la ausencia del chip de comprobante), y conviene tener esa regla escrita en cada brief; dos veces el brief se quedó corto en el read map (B-5: las alertas viven en `lib/mi-espacio/notificaciones.ts`). El subagente lanzador a veces no pasa `--background`/`--effort`: el config de Codex ya fija `medium`. Verificar siempre `codex-busy.sh` y el resultado con `codex-companion.mjs result <job>`.
+**El CI se rompió con cuatro fallos que ningún test local del lote cubría:** RLS en la tabla nueva (`tests/rls-en-todas-las-tablas.test.ts`), un script que importa el driver (`tests/base-portable.test.ts`), un concepto nuevo sin cobertura MCP (`tests/mcp-cobertura-conceptos.test.ts`) y un rótulo nuevo sin aprobar (`tests/rotulos-sinonimos-guardian.test.ts`). Antes de empujar un lote, correr `tests/*guardian*.test.ts tests/mcp-*.test.ts tests/rls-*.test.ts`.
+
 # Briefs para Codex (14-nov), cada uno cabe en una sesión limpia
 
 Reglas comunes a todos: leer `AGENTS.md`; effort `medium`; **no corre `db:generate` ni `db:migrate` ni la suite completa**

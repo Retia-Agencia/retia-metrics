@@ -9,27 +9,29 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4). Esta sesión es la sesión padre de Mani,
-carril D. Lee AGENTS.md y las dos entradas "13-nov (noche)" en Memory de docs/agents/handoff.md. Orquesta, no implementes: el código
-va con Codex (/delegate) o con sesiones hijas en Sonnet; tú revisas diff y tests, decides y cuidas tu contexto. Verifica cada paso
-antes de seguir.
-0. main está en ROJO desde dba34927 (419 E-1, cfe27fd0), shard 2 del CI: tests/closer-una-pregunta.test.ts ("cada ficha con
-   dimension de dueno declara su criterio": una ficha nueva o renombrada no declara su criterio de dueño) y
-   tests/rotulos-sinonimos-guardian.test.ts (sinónimo prohibido 'cita creada: Agendas' en una superficie). Arréglalo primero, sin
-   mover ninguna cifra; nadie empuja otra cosa hasta verlo verde. Luego el tag cp-AAAAMMDD-N sobre esa punta.
-1. 411 F3: lo que falta, la cobertura por concepto del registro (ver el ticket 411 y docs/mcp.md §7).
-2. 390: sus casillas abiertas (3, 4 y N8) y la deuda que nombra su guardián (cuatro lecturas que reescriben el predicado de show o de
-   cita sin resultado: components/dashboard/hoy/citas.tsx, lib/queries/dashboard.ts, proyeccion-roas.ts, tasas-del-grupo.ts), cada
-   una pasando a la función única sin mover cifras.
-3. 368: la regla puntual del Re-agenda (camino 2, ya decidido; ticket 368, "Hallazgo del 13-nov", casos a-e). Cierra su casilla.
-4. Después, en orden del plan-reparto: 358 (WhatsApp lee el texto del registro) y 401 (migraciones, una por una, con mi ok antes de
-   aplicar cada una en producción).
-Para decidir yo (pregúntame, no asumas): ¿se abre ticket para el PDF del reporte diario con todos los programas y para el push de
-Juanito por registros pendientes (carril H)? ¿y lo que E-1 dejó sin fuente (Envíos completos o parciales, compensación de
-objetivo_semana, en el ticket 419 "Avance")?
-No toques los archivos del carril P (Alejo: 419 E-3 de Comercial, Dinero y Hoy con el mapa de nombres del 419). Antes de empujar:
-typecheck, lint y los tests del cambio, más los guardianes que toque el cambio; la suite completa la corre el CI. Commits con archivos
-nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/handoff.md.
+Seguimos con el CRM de Retia, carril D (sesión de Mani). Lee AGENTS.md y la entrada "14-nov (tarde)" en Memory de docs/agents/handoff.md,
+y docs/agents/briefs-codex-14-nov.md (tabla de estado arriba). Orquesta, no implementes: el código va con Codex (/delegate, effort medium,
+worktree dentro del repo, un job por carpeta) y tú revisas diff, typecheck, lint y los tests del ticket; Codex NO commitea (lo haces tú, con
+archivos nombrados). Las migraciones las generas y las aplicas tú, con el ok de Mani, leyendo antes el SQL y mirando el ref de la conexión.
+Estado: main en cp-20261114-1 (21671073) más los commits posteriores; migraciones 0144 y 0145 YA aplicadas en producción (147 en total).
+Lo que sigue, en este orden (cada punto tiene su ticket con el detalle completo, sección «14-nov (tarde)»):
+0. Primero, con Mani: revocar el token del MCP que quedó impreso en el chat de la sesión anterior (Ajustes › Conexiones IA) y emitir otro.
+1. 429 (decisión de Mani, una pregunta): ¿Envíos = completos solamente (recomendado, cierra D-1) o completos y parciales? Hoy el código cuenta
+   solo completos (`lib/queries/hechos/envio.ts:104`) y la nota «Pendiente de Mani» está en `metricas.md`, `registro.ts` y `overview.md` §11.
+2. 428, lo que falta fuera del CRM: Juanito (repo aparte) llama `/api/pendientes/avisos` a las 8:00 y 18:00 de Bogotá y `/confirmar`;
+   cargar el WhatsApp de cada closer (ninguno de los 15 usuarios activos lo tiene); decidir la alerta «comprobante por confirmar»
+   (no existe chip) y qué hacer con el atraso (Andrea 416 deals, Maru 330); probar con dos closers reales; luego medir D-4.
+3. 427: Michael valida `/hub/reporte` contra su reporte manual de una semana real antes del 30-nov; decidir «meta de la semana a la fecha»
+   (no existe en `lib/queries/`); cambiar «hoy» por «del día» en días pasados; probar la vista de impresión real.
+4. 411: F4 anotar la salida de `scripts/informe-mcp.ts` tras unos días; F5 decidir la cesión A-177 (no es acción del MCP) y el hueco de pauta
+   (`resumen_del_hub` no devuelve cifras de pauta aunque `lib/mcp/cobertura.ts` lo declara para ~5 conceptos). Antes de empujar un lote,
+   correr `tests/*guardian*.test.ts tests/mcp-*.test.ts tests/rls-*.test.ts` (el CI se rompió por cuatro guardianes el 14-nov).
+5. 358 (lo que no es WhatsApp): helpers locales de formato, `<InsigniaDeCalidad>`, Mi espacio y listas operativas, DA-7, guardián, regla del vacío.
+   Y 390 (casillas 3, 4 y N8; deuda de cuatro lecturas del predicado de show) y 368 (regla del Re-agenda) siguen en el plan de la ola.
+6. Housekeeping: quitar los worktrees b1 a b7 e integracion-14nov (`git worktree remove --force`, borran su carpeta `node_modules/.vite`), las ramas
+   locales `b*-*` y `integracion-14nov` (ya están en main), y los worktrees viejos 403-f2, 408-aviso-cs, 411-f2-ola2, 419-e1 si sus ramas ya entraron.
+No toques los archivos del carril P (Alejo: Comercial, Dinero y Hoy). Commits con archivos nombrados, `git pull --rebase` antes de push, y un
+solo push a la vez (el CI cancela la corrida anterior). Al cerrar, actualiza docs/agents/handoff.md.
 ```
 ## Memory
 
@@ -39,7 +41,10 @@ nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/han
 - **Migraciones aplicadas en producción (14-nov, con el ok de Mani):** `0144` (tabla `avisos_pendientes_closer_envios`, con RLS) y `0145` (sin el valor `form30x` en el enum ni las columnas `form30x_*` de `sources`); verificado: 147 migraciones, 10 fuentes intactas. El primer CI de este lote salió rojo por 4 fallos míos (RLS de la tabla nueva, `scripts/explain-hechos.ts` con el driver, `agendas_meta` sin cobertura MCP, nombre "Agendas según Meta" sin aprobar) y un test viejo de `llamadas-del-deal`; todo arreglado en 21671073.
 - **Abierto para Mani:** (1) 429 D-1: pidió completos y parciales con los parciales aparte, pero Envíos cuenta solo completos y los parciales no se muestran aparte; documentado como provisional, nada se movió. (2) 428: "comprobante por confirmar" no existe como chip de Mi espacio, quedó fuera del aviso; falta cargar el WhatsApp de cada closer y probar con Juanito (en su repo). (3) 427: `/hub/reporte` abre en producción con las tres secciones y el pie; la impresión reutiliza el CSS global de `#reporte-diario`; falta que Michael la valide contra su reporte y revisar que en un día pasado dice "hoy" ("Entró a caja hoy", "Leads de hoy"). Además `agendas_meta` quedó declarada en la cobertura del MCP vía `resumen_del_hub`, pero esa herramienta aún no devuelve cifras de pauta (hueco real). (4) El token del MCP salió impreso en el chat de esta sesión: revocarlo y emitir otro en Ajustes › Conexiones IA.
 - **411 F5, prueba real (14-nov):** Claude Code conectado a `/api/mcp`; ventas de Comunicarte en octubre-2026: MCP (`resumen_del_hub` y `consultar_hechos`) 28, consulta independiente a la base 28. Hub en pantalla (Dinero, todas las cohortes, octubre): vendido USD 22.136, recaudado 18.273, por cobrar 3.863, entró a caja 24.364, idéntico al MCP. Ojo: Comercial trae por defecto el filtro de cohorte C3, otra población. El mensaje de WhatsApp no imprime ventas: su paridad con Pauta la cubre `tests/numeros-dorados-whatsapp.test.ts`.
-- **No verificado:** suite completa en local (la corre el CI), `npm run build` local, ninguna pantalla nueva abierta.
+- **B-7 en detalle:** borrados `lib/form30x/`, `lib/ingesta/{adaptador-form30x,leer-form30x}.ts`, `app/api/cron/form30x/route.ts`, 3 tests y 2 fixtures; ADR 0092 y 0093 movidos al índice de retirados. La migración 0145 (con `lock_timeout`) cambia el enum recreándolo, quita `sources.form30x_form_id` y `form30x_leido_en` y re-crea `sobres_crudos_origen_chk` sin `form30x_api`; medido antes: 0 fuentes, 0 sobres y 0 columnas con dato; `sobres_crudos` tiene ~8.900 filas.
+- **Un error mío del lote, corregido:** el commit del costo por agenda del semáforo (`f939b581`, decisión de Mani: es con las agendas de Meta) se quedó en una rama que no entró a main; se trajo con cherry-pick después. Moraleja: tras ramificar por cadena, verificar con `git branch --contains <commit>` que cada decisión posterior llegó a la rama que se empuja.
+- **Notas de entorno:** el sandbox de Codex no escribe `index.lock` (commit lo hace Claude); `rm -rf` y `cd` al checkout principal desde un worktree están bloqueados por hooks; `drizzle-kit migrate` corre desde un worktree con `DATABASE_URL_DIRECTA` exportada desde el `.env.local` del checkout principal (sin imprimirla); el navegador integrado entra a producción con la sesión de Mani.
+- **No verificado:** suite completa en local (la corre el CI), `npm run build` local, la vista de impresión de `/hub/reporte`, ningún aviso real de 428.
 
 ### 14-nov (madrugada, 2.ª parte) · todas las migraciones de base aplicadas; lo que queda es código de Codex y decisiones de Mani
 - **401 completo en base:** M9 `0141` (`leads`, 11 columnas y 2 índices, todo vacío o constante) y M10 `0142` (`calls`: `closer_id` y `motivo_perdida` vacías, `cohort_id` copia del deal; 2 de 740 decían C3 con el deal ya en C4) aplicadas con el ok de Mani. **ADR 0131** reemplaza la cita errónea al 0126; ticket 401 `en main` (pasa a `done` con el checkpoint verde que incluya `0141`/`0142`).

@@ -32,8 +32,8 @@ falta). Cero cálculo nuevo; un concepto, un módulo (N1).
 ## Done cuando
 
 - [x] D-1 a D-4 respondidas (14-nov). Formato, seis alertas y horarios aprobados por Mani el 14-nov.
-- [ ] El contrato del endpoint con lista blanca y su test (molde `tests/semaforo-endpoint.test.ts`); 401 sin secreto.
-- [ ] Un closer solo recibe lo suyo (el dueño sale del criterio de closer del registro); un test forjado con otro closer.
+- [x] El contrato del endpoint con lista blanca y su test (hecho 14-nov, `dc7ba64b`) (molde `tests/semaforo-endpoint.test.ts`); 401 sin secreto.
+- [x] Un closer solo recibe lo suyo (hecho 14-nov) (el dueño sale del criterio de closer del registro); un test forjado con otro closer.
 - [ ] Probado de punta a punta con Juanito, y con la regla de no repetir dentro de la ventana de silencio.
 - [ ] Regla N8 y N9; tracker y `status:` coinciden.
 
@@ -72,3 +72,19 @@ El de las 6:00 p.m.: "Andrea, hoy tuviste 6 citas y 4 siguen sin resultado: Cami
 **Hallazgos de producción (14-nov) que condicionan esto:**
 - **Hay un atraso enorme:** Andrea tiene 416 deals con una cita pasada sin resultado y Maru 330 (en los últimos 3 días, 27 y 22). Un aviso que los liste todos no sirve: por eso solo se listan los de 7 días y el resto es **una línea con el conteo**. Limpiar ese atraso (marcarlo en bloque o declararlo cerrado) es una decisión aparte de Mani.
 - **Ninguno de los 15 usuarios activos tiene WhatsApp cargado** (`usuarios_whatsapp`): antes de probar con Juanito hay que cargar el número de cada closer (`agregarWhatsappDeUsuarioAccion`).
+
+## Avance del 14-nov (tarde): lado CRM construido y en main; falta Juanito, los WhatsApp y probar de punta a punta
+**Construido** (commits `374ef920` tabla+migración y `dc7ba64b` código; migración **0144 aplicada en producción** el 14-nov con el ok de Mani, RLS incluido):
+- Tabla `avisos_pendientes_closer_envios` (`user_id`, `dia`, `ventana` ∈ {`manana`,`tarde`}, `telefono`, `enviado_en`); el índice único `(user_id, dia, ventana)` ES el silencio (un aviso por closer, día hábil de Bogotá y ventana).
+- `lib/pendientes-de-closer/`: `contrato.ts` (zod `.strict()`), `armar.ts` (junta los pendientes de UN closer), `texto.ts` (puro: formato exacto de la especificación, tope de 8 deals, «lleva N días» >3, «(y K deals más en el CRM)», línea de atraso >7 días, versión de las 6 p.m. solo de hoy), `registrar.ts`.
+- Endpoints `POST /api/pendientes/avisos` (cuerpo `{ ventana: "manana" | "tarde" }`; devuelve los avisos que toca mandar AHORA; sábado y domingo vacío; closer con algo pendiente pero sin WhatsApp → `sinDestinatario`, sin texto) y `POST /api/pendientes/avisos/confirmar` (hasta 200 pares `{userId, ventana, telefono}`, `onConflictDoNothing`). **Secreto: el mismo de Juanito, `SEMAFORO_SECRETO` / cabecera `x-semaforo-secreto`** (`lib/semaforo/secreto.ts`), sin secreto 401 sin cuerpo. Rutas añadidas a `proxy.ts` y a la excepción de «Nada de la app es público» en `AGENTS.md`.
+- Las alertas salen de los chips de Mi espacio, NO de `inbox.ts` (el bloqueo que halló Codex: `inbox.ts` devuelve un solo motivo por deal y no calcula «sin Grain» ni «sin abrir»): se exportó `notificacionesCompletasDeChip` en `lib/mi-espacio/notificaciones.ts` (lista completa de un chip con su fecha clave, sin paginar, mismos `cargarUniverso`/`evaluar`/`compararPorChip`: cero predicado nuevo). Chips usados: `sin_resultado`, `sin_grain`, `reagenda`, `vencidos`, `nuevos` (= deal asignado sin abrir).
+- Tests: `tests/pendientes-de-closer-endpoint.test.ts` (401, un closer solo recibe lo suyo con un id ajeno forjado, no repite en la ventana, fin de semana vacío, sin WhatsApp) y `tests/pendientes-de-closer-texto.test.ts` (formato, tope de 8, contrato estricto).
+**Lo que NO está y por qué:**
+1. **«Comprobante de abono por confirmar» (alerta 5 de la especificación) quedó FUERA:** no existe un chip que lo represente en `notificaciones.ts` y no se inventó un cálculo. Decidir: ¿crear el chip (ticket aparte, toca Mi espacio) o sacar la alerta de la especificación?
+2. **Juanito** (repo aparte): falta que llame `/api/pendientes/avisos` a las **8:00 a.m. (`manana`) y 6:00 p.m. (`tarde`) de Bogotá**, mande cada `texto` al `telefono` y llame `/confirmar` con los pares enviados. Ticket aparte en su repo. El endpoint ya filtra fines de semana y silencio; Juanito solo agenda.
+3. **Ningún usuario activo tiene WhatsApp cargado** (medido el 14-nov, 15 usuarios): cargar el número de cada closer (`agregarWhatsappDeUsuarioAccion`, Mi espacio) antes de probar; sin él responden `sinDestinatario`.
+4. **El atraso:** Andrea tiene 416 deals con cita pasada sin resultado y Maru 330 (en los últimos 3 días, 27 y 22); el aviso lista solo los de 7 días y el resto es una línea con el conteo. Limpiar el atraso (marcarlo en bloque o declararlo cerrado) es una decisión aparte de Mani.
+5. **El enlace «Márcalas aquí»:** Codex usó la ruta de Mi espacio; verificar en el primer envío real que el filtro «Sin resultado» llega aplicado.
+6. **D-4 (medir el efecto):** línea base en el ticket 390; medir citas pasadas sin resultado por semana tras empezar a mandar. D-2 y D-3 siguen siendo provisionales (Mani no dio su ok explícito; se aprobaron horarios y formato).
+**Cierra el ticket:** probado de punta a punta con Juanito en dos closers reales, la ventana de silencio comprobada en producción, N8 y N9.
