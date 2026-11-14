@@ -33,6 +33,15 @@ nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/han
 ```
 ## Memory
 
+### 14-nov (madrugada) · checkpoint `cp-20261113-3`, 401 M11 a M14 aplicadas y 390 medido (sesión de Mani, carril D, sin Codex: cuota hasta las 1:16 a.m.)
+- **Checkpoint:** tag `cp-20261113-3` sobre `bc1b3740` (CI verde, 4 jobs). Worktrees `r368`, `f3-conceptos`, `deuda-390` y `t358` borrados (sus commits ya estaban en main con otro hash). Quedan 6 worktrees de otras sesiones (`403-f2`, `408-aviso-cs`, `411-f2-ola2-*`, `419-e1`, `festive-rosalind-*`): no se tocaron.
+- **401, aplicadas en producción con el ok de Mani, una por una (ref `hfqmiyiuyqapdsbywrag`, sin transacciones abiertas, `lock_timeout 5s`, sin CASCADE):** M11 `0137` (`submissions`: `estado_hoja` idéntica a `calificacion` en las 3.218 filas; las otras dos, 0 filas), M12 `0138` (`users.calendly_email` 0 de 28; `programs.record_personas_por_dia_habil` valía 73 Comunicarte y 30 Tactical, sin lector ni rastro; el emparejamiento de Calendly usa `miembros_programa.calendly_email`, 58 tests en verde), M13 `0139` (`sync_runs` vacía, `change_log.sync_run_id` 0 de 71.563, tipo `estado_sync`), M14 `0140` (`canales` 26 filas y `areas` 3, respaldo en `docs/auditoria-datos-2026-11/canales-y-areas-antes-de-m14.json`; `change_log` conserva su historia).
+  🩸 En M13 el `generate` puso `DROP CONSTRAINT` después de `DROP TABLE ... CASCADE` (fallaría, caso 0020): se reescribió a mano en orden y sin CASCADE; M14 también.
+  **Faltan M9 y M10** (`leads` y `calls`, con su código ya fuera): la base aún tiene `leads.pais/estado/cohort_id` y `calls.closer_id/cohort_id/motivo_perdida`; y la regla N8. Ojo: el ticket cita "ADR 0126" para estas migraciones, pero el 0126 es ROAS proyectado; hay que corregir la cita o escribir el ADR.
+- **390, casilla 3 medida (solo lectura):** no hay subida visible con el chip (7-nov). Comunicarte y Tactical siguen en 8 a 12 % con resultado en las semanas recientes; Confianza en 67 a 76 %. Tabla en el ticket. Repetir hacia el 21-nov. Siguen abiertas la 4 (el «parcial» del Hub, 351, toca `lib/hub/`) y N8.
+- **No hecho:** 411 F4 y F5, 358 (todo es código: espera a Codex), 427, 428 y 429 (esperan las decisiones de Mani).
+- **No verificado:** suite completa (la corre el CI), `npm run build`, la app abierta.
+
 ### 13-nov (cierre) · main en verde, carril D hasta el 368 y estado de los dos carriles (sesión de Mani, tres Codex en worktrees)
 - **Main en verde:** CI success en `f8ded346` (incluye lo de Alejo, `bb1ff447`). Último checkpoint con tag: `cp-20261113-2` (`32818b16`);
   lo posterior (390 deuda, 411 F3, 368, 358 tests, tickets 427 a 429) aún no tiene tag: el siguiente checkpoint lo cubre.
