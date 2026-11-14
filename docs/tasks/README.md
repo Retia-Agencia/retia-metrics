@@ -31,6 +31,8 @@ y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo S
 | [ ] | 424 | [La historia del lead se descarga desde la lista que ya abre cada cifra](./424-la-historia-del-lead-exportable.md) | — | en main · 12-nov · D-1 con monto y D-2 con contacto en el archivo (ADR 0052 enmendado), D-3 Registros · falta el sí de Dani Rodríguez con una semana real |
 | [x] | 425 | [Alertas técnicas por WhatsApp: registro en el CRM, entrega por Juanito](./425-alertas-tecnicas-por-whatsapp.md) | — | done · 13-nov · en producción y probado de punta a punta (CRM 1fcdbfd7, Juanito a331770) |
 | [ ] | 426 | [Silencio global de 3 h y cierre del día por Juanito](./426-silencio-global-y-cierre-del-dia.md) | 425 | en curso · 13-nov · en producción, falta ver el primer cierre de las 9 p.m. (ADR 0130 punto 6) |
+| [ ] | 427 | [El PDF del reporte diario trae todos los programas](./427-pdf-del-reporte-diario-de-todos-los-programas.md) | 373 | todo · 13-nov · carril H · D-1 a D-3 abiertas (Mani) |
+| [ ] | 428 | [Juanito avisa por WhatsApp los registros pendientes de cada closer](./428-push-de-juanito-por-registros-pendientes.md) | 390 | todo · 13-nov · carril H · D-1 a D-4 abiertas (Mani) |
 
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
