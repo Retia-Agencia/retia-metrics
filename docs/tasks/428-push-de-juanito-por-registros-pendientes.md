@@ -31,7 +31,7 @@ falta). Cero cálculo nuevo; un concepto, un módulo (N1).
 
 ## Done cuando
 
-- [x] D-1 a D-4 respondidas (14-nov). Falta el ok de Mani al formato y a la lista de alertas de abajo.
+- [x] D-1 a D-4 respondidas (14-nov). Formato, seis alertas y horarios aprobados por Mani el 14-nov.
 - [ ] El contrato del endpoint con lista blanca y su test (molde `tests/semaforo-endpoint.test.ts`); 401 sin secreto.
 - [ ] Un closer solo recibe lo suyo (el dueño sale del criterio de closer del registro); un test forjado con otro closer.
 - [ ] Probado de punta a punta con Juanito, y con la regla de no repetir dentro de la ventana de silencio.
@@ -43,7 +43,7 @@ falta). Cero cálculo nuevo; un concepto, un módulo (N1).
 - **D-4: sí se mide**, citas pasadas sin resultado por semana antes y después (es la casilla abierta del 390; la línea base está en ese ticket).
 - Brief para Codex: `docs/agents/briefs-codex-14-nov.md`, B-5. Necesita una migración (tabla de avisos enviados) que genera la sesión principal.
 
-## Especificación propuesta (14-nov; D-2 y D-3 con el ok de Mani, formato y alertas por confirmar)
+## Especificación aprobada (14-nov, Mani)
 **Cuándo:** dos avisos por día hábil a cada closer, a su WhatsApp personal, **solo si tiene algo**: **8:00 a.m.** (todo lo acumulado, agrupado por deal) y **6:00 p.m.** (solo lo de hoy: citas de hoy sin resultado y llamadas de hoy sin Grain, para marcarlas el mismo día). Fines de semana, nada (solo hábiles, regla de Retia). Silencio por closer: el mismo bloque no se manda dos veces en la misma ventana.
 **Qué alertas entran** (cada una ya la calcula la bandeja, `lib/queries/inbox.ts`; cero cálculo nuevo), **agrupadas por deal, con lo que le falta a cada uno**:
 1. Cita pasada sin resultado (solo de los últimos 7 días; ver el hallazgo).
