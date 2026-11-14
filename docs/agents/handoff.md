@@ -23,6 +23,22 @@ Antes de empujar: typecheck, lint y los tests del cambio. Commits con archivos n
 ```
 ## Memory
 
+### 13-nov (noche) · 419 E-1, 390 y 411 F3 en main (sesión de Mani, carril D, tres Codex en worktrees)
+- **419 E-1 (`cfe27fd0`).** El texto de las explicaciones vive en la ficha; `explicacionDe` + `VARIANTES_DE_PAUTA` en
+  `lib/metricas/explicacion.ts`; puente borrado. Claves retiradas: `citas_realizadas` (→ `shows`) y `llamadas_sin_resultado`
+  (→ `citas_pendientes`). Decidido en la sesión con el diccionario como fuente: descuento promedio en dos claves (USD y %); la
+  escalera es un concepto (`ventas_por_escalon`) con el escalón como dimensión; `escalera_sin_resultado` tiene clave propia porque su
+  predicado incluye Cierre Perdido. Detalle, lo que no tuvo fuente (Envíos completos o parciales, compensación de `objetivo_semana`) y
+  el mapa de nombres para `lib/hub/` del carril P en el ticket 419, "Avance".
+- **390 (`ca0c5621`).** Guardián de show y cita sin resultado y dorados de Comercial (Hub = MCP; el semáforo no pinta estas cifras).
+  Deuda nombrada en el guardián: cuatro lecturas reescriben el predicado (`components/dashboard/hoy/citas.tsx`,
+  `lib/queries/dashboard.ts`, `proyeccion-roas.ts`, `tasas-del-grupo.ts`). 390 sigue "en main" (casillas 3, 4 y N8).
+- **411 F3 (`2a6febce`).** `lib/mcp/cobertura.ts` (137 server actions: 12 expuestas, 96 pendientes, 19 fuera, 10 lectura; trinquete
+  96) y su guardián. Hallazgo: la app no tiene server action para anular una llamada (solo al deshacer); `anular_llamada` va en
+  `ACCIONES_SIN_PAR_EN_LA_APP`. Falta en F3 la cobertura por concepto del registro (se dejó para después de E-1). `docs/mcp.md` §7.
+- **No verificado:** suite completa (9 GB de swap; la corre el CI de los tres pushes), `npm run build` (ningún componente cliente
+  tocado), la app abierta. **Retomar:** checkpoint verde; 411 F3 cobertura por concepto; carril P E-3 con el mapa de nombres.
+
 ### 13-nov (noche) · Paso 0, §2.2 aprobada y 0136 (sesión de Mani, carril D)
 - **Paso 0:** tag `cp-20261113-1` sobre `a61412ea` (CI verde, 4 jobs). 403 y 367 a `done`. 368: nueve casillas marcadas con su
   test de `tests/deshacer.test.ts`; sigue "en main" por la casilla de la enmienda (regla del Re-agenda, camino 2, sin construir).
