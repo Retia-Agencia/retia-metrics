@@ -29,13 +29,12 @@ descubra desde ahí.
 **Lo que NO es de Codex (Mani con Claude):** `claude mcp add` contra producción y comparar una cifra (ventas de un programa en un mes
 cerrado) en MCP, Hub y mensaje de WhatsApp.
 
-## B-3 · 358 formato y rótulos del mensaje de WhatsApp (espera la confirmación DM-1 de Mani)
-**Bloqueado hasta que Mani diga "sí" o "no" a los rótulos nuevos** (ver la nota DM-1 en el chat del 14-nov y en el ticket 358).
+## B-3 · 358 formato y nombres de las cifras del mensaje de WhatsApp (DM-1 resuelta: los colores 🟢🟡🔴 se quedan)
+**Los rótulos de estado NO cambian** (Mani, 14-nov): el mensaje sigue con 🟢🟡🔴 y "verde/amarillo/rojo".
 **Hacer:** cada cifra de `lib/reporte-whatsapp/mensaje.ts` toma su rótulo de `lib/vocabulario-metricas.ts` y su formato de
 `lib/format.ts`; claves nuevas en `lib/reporte-whatsapp/conceptos.ts` para gasto y agendas (con 429 D-2: `agendas_meta` tiene clave
 propia); dorado: el mismo día sembrado da el mismo número en el mensaje y en Hub › Pauta (`tests/numeros-dorados-pauta.test.ts` es el molde).
 **No hace:** cambia el cálculo, ni toca Juanito (manda el texto tal cual).
-**Si Mani dijo no a DM-1:** solo se hacen (a) del formato y el dorado, y los rótulos de estado quedan como hoy.
 
 ## B-4 · 427 PDF del reporte diario de todos los programas (decisión: `window.print()`, sin servidor)
 **Hacer:** una hoja `@media print` para `/hub` ("todos"; `app/(app)/hub/page.tsx`, `components/dashboard/reporte-diario.tsx`,
