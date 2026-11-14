@@ -9,7 +9,7 @@ import type { ClaveRegistrada } from "@/lib/metricas/registro";
  * Meta) todavía no es una métrica con clave y es el siguiente paso del 358.
  */
 export const CONCEPTO_DE_METRICA_DEL_REPORTE: Record<MetricaSemaforo["metrica"], ClaveRegistrada> = {
-  costo_por_agenda: "costo_agenda_crm",
+  costo_por_agenda: "costo_agenda_meta",
 };
 
 /** Cifras impresas por el reporte que no son una métrica configurable del semáforo. */
