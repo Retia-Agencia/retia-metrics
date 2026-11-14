@@ -824,7 +824,7 @@ const REGISTRO_BASE = {
   deals_sin_dueno: ficha("deal", {
     filaDelDiccionario: "Deals sin dueño",
     tipo: "derivada", de: ["deals_abiertos"], unidad: "deals", monedas: [], anclaDeFecha: "sin_fecha", dimensiones: ["etapa", "dueno", "cohorte"],
-    vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    criterioDeCloser: "dueno_del_deal", vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/embudo-etapas.ts", nombre: "calcularEmbudoEtapas" }, listas: ["etapa_sin_dueno"],
   }),
   descuento_promedio: ficha("venta", {
@@ -888,7 +888,7 @@ const REGISTRO_BASE = {
   ventas_sin_anuncio: ficha("venta", {
     filaDelDiccionario: "Ventas sin anuncio identificado",
     tipo: "derivada", de: ["ventas", "envios_sin_id"], unidad: "cupos", monedas: [], anclaDeFecha: "fecha_del_envio",
-    dimensiones: DIMENSIONES_DE_VENTA, vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    dimensiones: DIMENSIONES_DE_VENTA, criterioDeCloser: "dueno_del_deal", vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/roas-de-pauta.ts", nombre: "cargarRoasDePauta" }, listas: [],
   }),
   embudo: ficha("envio", {

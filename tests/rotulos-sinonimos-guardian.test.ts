@@ -80,9 +80,28 @@ export function cadenasVisibles(fuente: string): string[] {
   return [...literales, ...jsx].filter((t) => !/^[a-z0-9_\-:./]+$/.test(t));
 }
 
+/**
+ * Nombres compuestos aprobados por Mani en el boceto `docs/bocetos/una-forma-de-metrica.html` y en
+ * `docs/diseno-cifra-y-pauta.md` (Pauta los usa así en su Excel). Contienen un rótulo prohibido, pero son otro
+ * concepto o la forma aprobada: "Agendas por día" es un promedio, no la cita creada. Cada frase es exacta:
+ * un "Agendas" o "Registros" suelto sigue contando.
+ */
+const NOMBRES_APROBADOS = [
+  "Agendas de Meta",
+  "Agendas por día necesarias",
+  "Agendas por día hábil",
+  "Agendas por día",
+  "Registros de pauta sin anuncio identificado",
+  "Registros de pauta sin anuncio",
+  "Registros de pauta",
+  "Registros sin origen",
+  "Registros cuyo enlace",
+];
+
 export function conteoDe(textos: string[], rotulo: string): number {
   const re = new RegExp(`(?<![A-Za-zÁ-ú0-9_-])${rotulo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![A-Za-zÁ-ú0-9_-])`);
-  return textos.filter((texto) => re.test(rotulo === "Agendas" ? texto.replaceAll("Agendas de Meta", "") : texto)).length;
+  const sinAprobados = (texto: string) => NOMBRES_APROBADOS.filter((n) => n !== rotulo).reduce((t, n) => t.replaceAll(n, ""), texto);
+  return textos.filter((texto) => re.test(sinAprobados(texto))).length;
 }
 
 function textosDeLasSuperficies(): string[] {
