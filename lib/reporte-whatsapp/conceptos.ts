@@ -11,3 +11,9 @@ import type { ClaveRegistrada } from "@/lib/metricas/registro";
 export const CONCEPTO_DE_METRICA_DEL_REPORTE: Record<MetricaSemaforo["metrica"], ClaveRegistrada> = {
   costo_por_agenda: "costo_agenda_crm",
 };
+
+/** Cifras impresas por el reporte que no son una métrica configurable del semáforo. */
+export const CONCEPTO_DE_CIFRA_DEL_REPORTE = {
+  gasto: "inversion",
+  agendas_meta: "agendas_meta",
+} as const satisfies Record<"gasto" | "agendas_meta", ClaveRegistrada>;

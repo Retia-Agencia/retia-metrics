@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { CONCEPTO_DE_METRICA_DEL_REPORTE } from "@/lib/reporte-whatsapp/conceptos";
+import {
+  CONCEPTO_DE_CIFRA_DEL_REPORTE,
+  CONCEPTO_DE_METRICA_DEL_REPORTE,
+} from "@/lib/reporte-whatsapp/conceptos";
 import { CONCEPTO_DE_OBJETIVO } from "@/lib/metricas/pendientes";
 import { REGISTRO } from "@/lib/metricas/registro";
 
@@ -12,6 +15,14 @@ describe("el reporte de WhatsApp apunta al registro de métricas", () => {
   it("cada métrica del reporte tiene un concepto registrado", () => {
     expect(Object.keys(CONCEPTO_DE_METRICA_DEL_REPORTE).length).toBeGreaterThan(0);
     expect(conceptosSinRegistrar(CONCEPTO_DE_METRICA_DEL_REPORTE, REGISTRO)).toEqual([]);
+  });
+
+  it("el gasto y las agendas de Meta impresos por el reporte tienen un concepto registrado", () => {
+    expect(CONCEPTO_DE_CIFRA_DEL_REPORTE).toEqual({
+      gasto: "inversion",
+      agendas_meta: "agendas_meta",
+    });
+    expect(conceptosSinRegistrar(CONCEPTO_DE_CIFRA_DEL_REPORTE, REGISTRO)).toEqual([]);
   });
 
   it("el costo por agenda del reporte es el mismo concepto que el objetivo del semáforo", () => {

@@ -1,7 +1,7 @@
-import { horaEnBogota, instanteDeBogota, num } from "@/lib/format";
+import { cop, horaEnBogota, instanteDeBogota, num, pct } from "@/lib/format";
 import { rutaDePrograma } from "@/lib/nav";
-import { DEFINICION_METRICAS_OBJETIVO } from "@/lib/objetivos/metricas";
 import { NOTA_SIN_ERRORES } from "@/lib/semaforo/semaforo";
+import { nombreCorto, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metricas";
 import type { RespuestaSemaforo } from "./contrato";
 
 const EMOJI = {
@@ -66,15 +66,22 @@ type Bloque = RespuestaSemaforo["envios"][number]["bloques"][number];
 type Sincronizacion = RespuestaSemaforo["sincronizacion"];
 type Metrica = Bloque["metricas"][number];
 
-function dinero(valor: number | null): string {
-  return valor === null ? "sin dato" : `$${num(Math.round(valor))} COP`;
+function pesos(valor: number | null): string {
+  return valor === null ? "—" : cop(valor);
 }
+
+const ROTULO = {
+  inversion: VOCABULARIO_PAUTA_SEMANAL.inversion,
+  agendasMeta: VOCABULARIO_PAUTA_SEMANAL.agendas_meta,
+  agendasCrm: nombreCorto("agendadas"),
+  costoAgendaMeta: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_meta,
+} as const;
 
 function frenteALaMeta(porcentajeDelUmbral: number | null): string {
   if (porcentajeDelUmbral === null) return "";
   const diferencia = Math.round(porcentajeDelUmbral) - 100;
-  if (diferencia > 0) return ` · ${num(diferencia)}% más caro que la meta`;
-  if (diferencia < 0) return ` · ${num(-diferencia)}% más barato que la meta`;
+  if (diferencia > 0) return ` · ${pct(diferencia / 100, 0)} más caro que la meta`;
+  if (diferencia < 0) return ` · ${pct(-diferencia / 100, 0)} más barato que la meta`;
   return " · igual a la meta";
 }
 
@@ -83,7 +90,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     ? "esperando a Meta"
     : metrica.costo === null && metrica.agendasMeta === 0 && metrica.gasto > 0
       ? "sin agendas"
-      : dinero(metrica.costo);
+      : pesos(metrica.costo);
   const lineas: string[] = [];
   const nuevas = metrica.campanas.filter(
     (campana) => campana.codigo !== null && campana.proposito === null && campana.gasto > 0,
@@ -91,7 +98,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   if (nuevas.length > 0) {
     lineas.push("🆕 Campañas nuevas: ¿agenda o lanzamiento?");
     for (const campana of nuevas) {
-      lineas.push(`#${campana.codigo} ${campana.nombre} · ${dinero(campana.gasto)}`);
+      lineas.push(`#${campana.codigo} ${campana.nombre} · ${ROTULO.inversion} ${pesos(campana.gasto)}`);
     }
     lineas.push("👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:");
     lineas.push(nuevas.length === 1
@@ -99,16 +106,16 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
       : `${nuevas[0].codigo} A, ${nuevas[1].codigo} L`);
   }
   lineas.push(
-    `${EMOJI[metrica.color]} ${DEFINICION_METRICAS_OBJETIVO[metrica.metrica].nombre}: ${costo}${frenteALaMeta(metrica.porcentajeDelUmbral)}`,
+    `${EMOJI[metrica.color]} ${ROTULO.costoAgendaMeta}: ${costo}${frenteALaMeta(metrica.porcentajeDelUmbral)}`,
   );
 
   if (metrica.umbral) {
     lineas.push(
-      `Meta ${dinero(metrica.umbral.meta)} · aceptable ${dinero(metrica.umbral.aceptable)}`,
+      `Meta ${pesos(metrica.umbral.meta)} · aceptable ${pesos(metrica.umbral.aceptable)}`,
     );
   }
   lineas.push(
-    `Gasto de agenda ${dinero(metrica.gasto)} · agendas Meta ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · CRM ${num(metrica.agendasCrm)}`,
+    `${ROTULO.inversion} ${pesos(metrica.gasto)} · ${ROTULO.agendasMeta} ${metrica.agendasMeta === null ? "—" : num(metrica.agendasMeta)} · ${ROTULO.agendasCrm} ${num(metrica.agendasCrm)}`,
   );
   const campanasActivas = metrica.campanas.filter((campana) => campana.activa);
   const campanas = campanasActivas.some((campana) => campana.codigo !== null)
@@ -117,43 +124,43 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   const nombresCortos = nombresCortosDeCampanas(campanas.map((campana) => campana.nombre));
   for (const [indice, campana] of campanas.entries()) {
     const costoCampana = campana.agendasMeta === null
-      ? "sin dato"
+      ? "—"
       : campana.agendasMeta === 0
         ? "sin agendas"
-        : `${dinero(campana.costo)} c/u`;
+        : pesos(campana.costo);
     lineas.push(
-      `• ${campana.codigo ? `#${campana.codigo} ` : ""}${nombresCortos[indice]}: ${dinero(campana.gasto)} · ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} ag · ${costoCampana}`,
+      `• ${campana.codigo ? `#${campana.codigo} ` : ""}${nombresCortos[indice]}: ${ROTULO.inversion} ${pesos(campana.gasto)} · ${ROTULO.agendasMeta} ${campana.agendasMeta === null ? "—" : num(campana.agendasMeta)} · ${ROTULO.costoAgendaMeta} ${costoCampana}`,
     );
   }
   const pausadas = metrica.campanas.filter((campana) => !campana.activa && campana.gasto > 0);
   if (pausadas.length > 0) {
     const gastoPausado = pausadas.reduce((total, campana) => total + campana.gasto, 0);
     const agendasPausadas = pausadas.reduce((total, campana) => total + (campana.agendasMeta ?? 0), 0);
-    lineas.push(`• Pausadas con gasto: ${dinero(gastoPausado)} · ${num(agendasPausadas)} ag`);
+    lineas.push(`• Pausadas con gasto: ${ROTULO.inversion} ${pesos(gastoPausado)} · ${ROTULO.agendasMeta} ${num(agendasPausadas)}`);
   }
   const etiqueta = tipo === "cierre" ? "Día anterior" : "Ayer a esta hora";
   const costoComparacion = metrica.comparacion?.costo === null
     && metrica.comparacion.agendasMeta === 0
     && metrica.comparacion.gasto > 0
     ? "sin agendas"
-    : dinero(metrica.comparacion?.costo ?? null);
+    : pesos(metrica.comparacion?.costo ?? null);
   lineas.push(metrica.comparacion
-    ? `${etiqueta}: costo ${costoComparacion} · gasto ${dinero(metrica.comparacion.gasto)} · agendas Meta ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · CRM ${num(metrica.comparacion.agendasCrm)}`
+    ? `${etiqueta}: ${ROTULO.costoAgendaMeta} ${costoComparacion} · ${ROTULO.inversion} ${pesos(metrica.comparacion.gasto)} · ${ROTULO.agendasMeta} ${metrica.comparacion.agendasMeta === null ? "—" : num(metrica.comparacion.agendasMeta)} · ${ROTULO.agendasCrm} ${num(metrica.comparacion.agendasCrm)}`
     : `${etiqueta}: sin foto`);
   if (metrica.lanzamiento.campanas.length > 0) {
     const resumenRegistros = metrica.lanzamiento.registrosMeta === null
       ? "registros Meta —"
       : metrica.lanzamiento.registrosMeta === 0
         ? "0 registros Meta · sin registros"
-        : `${num(metrica.lanzamiento.registrosMeta)} registros Meta · CPL ${dinero(metrica.lanzamiento.costoPorRegistro)}`;
-    lineas.push(`🚀 Lanzamiento: ${dinero(metrica.lanzamiento.gasto)} · ${resumenRegistros}`);
+        : `${num(metrica.lanzamiento.registrosMeta)} registros Meta · CPL ${pesos(metrica.lanzamiento.costoPorRegistro)}`;
+    lineas.push(`🚀 Lanzamiento: ${ROTULO.inversion} ${pesos(metrica.lanzamiento.gasto)} · ${resumenRegistros}`);
     for (const campana of metrica.lanzamiento.campanas.filter((campana) => campana.activa)) {
       const registrosCampana = campana.registrosMeta === null
         ? "— reg"
         : campana.registrosMeta === 0
           ? "0 reg · sin registros"
-          : `${num(campana.registrosMeta)} reg · ${dinero(campana.costoPorRegistro)} c/u`;
-      lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${dinero(campana.gasto)} · ${registrosCampana}`);
+          : `${num(campana.registrosMeta)} reg · ${pesos(campana.costoPorRegistro)} c/u`;
+      lineas.push(`• ${campana.codigo ? `#${campana.codigo} ` : ""}${campana.nombre}: ${ROTULO.inversion} ${pesos(campana.gasto)} · ${registrosCampana}`);
     }
     const pausadasLanzamiento = metrica.lanzamiento.campanas.filter(
       (campana) => !campana.activa && campana.gasto > 0,
@@ -164,9 +171,9 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
         (total, campana) => total + (campana.registrosMeta ?? 0),
         0,
       );
-      lineas.push(`• Pausadas con gasto: ${dinero(gastoPausado)} · ${num(registrosPausados)} reg`);
+      lineas.push(`• Pausadas con gasto: ${ROTULO.inversion} ${pesos(gastoPausado)} · ${num(registrosPausados)} reg`);
     }
-    lineas.push(`Gasto total del programa: ${dinero(metrica.gastoTotal)}`);
+    lineas.push(`${ROTULO.inversion} total del programa: ${pesos(metrica.gastoTotal)}`);
   }
   if (metrica.racha) {
     const { color, dias } = metrica.racha;
@@ -178,7 +185,7 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
   }
   if (tipo === "cierre" && metrica.trayectoria.length > 0) {
     const puntos = metrica.trayectoria.map(
-      (punto) => `${punto.hora} ${dinero(punto.gasto)} · ${punto.agendasMeta === null ? "—" : num(punto.agendasMeta)} ag Meta`,
+      (punto) => `${punto.hora} ${ROTULO.inversion} ${pesos(punto.gasto)} · ${ROTULO.agendasMeta} ${punto.agendasMeta === null ? "—" : num(punto.agendasMeta)}`,
     );
     lineas.push(`Trayectoria: ${puntos.join(" | ")}`);
   }

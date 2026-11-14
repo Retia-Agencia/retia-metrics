@@ -70,16 +70,16 @@ describe("mensaje del reporte por WhatsApp", () => {
     }], "09:00", null, ORIGEN);
     expect(mensaje).toContain([
       "🆕 Campañas nuevas: ¿agenda o lanzamiento?",
-      "#1001 Ventas abiertas · $300.000 COP",
-      "#1002 Retargeting · $200.000 COP",
+      "#1001 Ventas abiertas · Inversión COP 300.000",
+      "#1002 Retargeting · Inversión COP 200.000",
       "👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:",
       "1001 A, 1002 L",
     ].join("\n"));
-    expect(mensaje).toContain("🚀 Lanzamiento: $322.697 COP · 7 registros Meta · CPL $46.100 COP\n• #5102 Registro Lanzamiento: $322.697 COP · 7 reg · $46.100 COP c/u");
-    expect(mensaje).toContain("• #1001 Ventas abiertas: $300.000 COP · 2 ag · $150.000 COP c/u");
+    expect(mensaje).toContain("🚀 Lanzamiento: Inversión COP 322.697 · 7 registros Meta · CPL COP 46.100\n• #5102 Registro Lanzamiento: Inversión COP 322.697 · 7 reg · COP 46.100 c/u");
+    expect(mensaje).toContain("• #1001 Ventas abiertas: Inversión COP 300.000 · Agendas según Meta 2 · Costo por agenda (según Meta) COP 150.000");
     expect(mensaje).not.toContain("• #1002 Retargeting:");
-    expect(mensaje).toContain("• Pausadas con gasto: $200.000 COP · 0 ag");
-    expect(mensaje).toContain("Gasto total del programa: $932.557 COP");
+    expect(mensaje).toContain("• Pausadas con gasto: Inversión COP 200.000 · Agendas según Meta 0");
+    expect(mensaje).toContain("Inversión total del programa: COP 932.557");
     const mensajeConUnaNueva = armarMensajeDeLaHora([{
       ...bloque(),
       metricas: [{ ...METRICA, campanas: [{ ...METRICA.campanas[0], proposito: null }] }],
@@ -107,8 +107,8 @@ describe("mensaje del reporte por WhatsApp", () => {
         lanzamiento: { gasto: 322697, registrosMeta: null, costoPorRegistro: null, campanas: [campana] },
       }],
     }], "09:00", null, ORIGEN);
-    expect(sinDato).toContain("🚀 Lanzamiento: $322.697 COP · registros Meta —");
-    expect(sinDato).toContain("• #5102 Registro Lanzamiento: $322.697 COP · — reg");
+    expect(sinDato).toContain("🚀 Lanzamiento: Inversión COP 322.697 · registros Meta —");
+    expect(sinDato).toContain("• #5102 Registro Lanzamiento: Inversión COP 322.697 · — reg");
 
     const conCero = armarMensajeDeLaHora([{
       ...bloque(),
@@ -122,8 +122,8 @@ describe("mensaje del reporte por WhatsApp", () => {
         },
       }],
     }], "09:00", null, ORIGEN);
-    expect(conCero).toContain("🚀 Lanzamiento: $322.697 COP · 0 registros Meta · sin registros");
-    expect(conCero).toContain("• #5102 Registro Lanzamiento: $322.697 COP · 0 reg · sin registros");
+    expect(conCero).toContain("🚀 Lanzamiento: Inversión COP 322.697 · 0 registros Meta · sin registros");
+    expect(conCero).toContain("• #5102 Registro Lanzamiento: Inversión COP 322.697 · 0 reg · sin registros");
   });
 
   it("compacta umbral, gasto, ayer, rojo y problema en un bloque", () => {
@@ -133,13 +133,13 @@ describe("mensaje del reporte por WhatsApp", () => {
       "🚦 Semáforo de pauta · 09:00 · 1🔴",
       "",
       "*Alpha*",
-      "🔴 Costo por agenda: $304.930 COP · 53% más caro que la meta",
-      "Meta $200.000 COP · aceptable $250.000 COP",
-      "Gasto de agenda $609.860 COP · agendas Meta 2 · CRM 4",
-      "• #1001 Ventas abiertas: $300.000 COP · 2 ag · $150.000 COP c/u",
-      "• #1002 Retargeting: $200.000 COP · 0 ag · sin agendas",
-      "• #1003 Prospección amplia: $109.860 COP · — ag · sin dato",
-      "Ayer a esta hora: costo $100.000 COP · gasto $300.000 COP · agendas Meta 3 · CRM 2",
+      "🔴 Costo por agenda (según Meta): COP 304.930 · 53% más caro que la meta",
+      "Meta COP 200.000 · aceptable COP 250.000",
+      "Inversión COP 609.860 · Agendas según Meta 2 · Agendadas 4",
+      "• #1001 Ventas abiertas: Inversión COP 300.000 · Agendas según Meta 2 · Costo por agenda (según Meta) COP 150.000",
+      "• #1002 Retargeting: Inversión COP 200.000 · Agendas según Meta 0 · Costo por agenda (según Meta) sin agendas",
+      "• #1003 Prospección amplia: Inversión COP 109.860 · Agendas según Meta — · Costo por agenda (según Meta) —",
+      "Ayer a esta hora: Costo por agenda (según Meta) COP 100.000 · Inversión COP 300.000 · Agendas según Meta 3 · Agendadas 2",
       "Días cerrados: 🔴 3 seguidos en rojo",
       "⚠️ Creativo agotado",
       "",
@@ -159,7 +159,7 @@ describe("mensaje del reporte por WhatsApp", () => {
     );
 
     expect(mensaje).toMatch(/^🌙 Cierre del viernes 16-oct/);
-    expect(mensaje).toMatch(/Trayectoria: 09:00 \$0 COP · 0 ag Meta \| 11:00 \$120\.000 COP · 1 ag Meta/);
+    expect(mensaje).toContain("Trayectoria: 09:00 Inversión COP 0 · Agendas según Meta 0 | 11:00 Inversión COP 120.000 · Agendas según Meta 1");
     expect(mensaje).not.toContain("Las agendas de hoy pueden seguir subiendo");
   });
 
@@ -205,8 +205,8 @@ describe("mensaje del reporte por WhatsApp", () => {
       ORIGEN,
     );
 
-    expect(conPorcentaje(72.4)).toContain("🟢 Costo por agenda: $304.930 COP · 28% más barato que la meta");
-    expect(conPorcentaje(100.2)).toContain("🟢 Costo por agenda: $304.930 COP · igual a la meta");
+    expect(conPorcentaje(72.4)).toContain("🟢 Costo por agenda (según Meta): COP 304.930 · 28% más barato que la meta");
+    expect(conPorcentaje(100.2)).toContain("🟢 Costo por agenda (según Meta): COP 304.930 · igual a la meta");
   });
 
   it("con gasto y cero agendas de Meta dice sin agendas, no sin dato", () => {
@@ -220,8 +220,8 @@ describe("mensaje del reporte por WhatsApp", () => {
     };
     const mensaje = armarMensajeDeLaHora([{ ...bloque(), metricas: [metrica] }], "11:00", null, ORIGEN);
 
-    expect(mensaje).toContain("🔴 Costo por agenda: sin agendas\n");
-    expect(mensaje).toContain("Gasto de agenda $63.902 COP · agendas Meta 0 · CRM 0");
+    expect(mensaje).toContain("🔴 Costo por agenda (según Meta): sin agendas\n");
+    expect(mensaje).toContain("Inversión COP 63.902 · Agendas según Meta 0 · Agendadas 0");
   });
 
   it("explica cuando Meta aún no cuenta las agendas del CRM", () => {
@@ -237,7 +237,7 @@ describe("mensaje del reporte por WhatsApp", () => {
     };
     const mensaje = armarMensajeDeLaHora([{ ...bloque(), metricas: [metrica] }], "11:00", null, ORIGEN);
 
-    expect(mensaje).toContain("⚪ Costo por agenda: esperando a Meta\n");
+    expect(mensaje).toContain("⚪ Costo por agenda (según Meta): esperando a Meta\n");
     expect(mensaje).toContain("Meta aún no cuenta las agendas del CRM (las cuenta con retraso)");
   });
 
@@ -256,7 +256,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       ORIGEN,
     );
 
-    expect(mensaje).toMatch(/⚪ Costo por agenda: sin dato/);
+    expect(mensaje).toMatch(/⚪ Costo por agenda \(según Meta\): —/);
     expect(mensaje).toMatch(/Falta cargar la meta en el CRM/);
   });
 
@@ -286,7 +286,7 @@ describe("mensaje del reporte por WhatsApp", () => {
 
     expect(mensaje.match(/🚦 Semáforo de pauta · 09:00 · 2🔴/g)).toHaveLength(1);
     expect(mensaje.match(/━━━━━━━━━━/g)).toHaveLength(1);
-    expect(mensaje).toContain("*Alpha*\n🔴 Costo por agenda");
+    expect(mensaje).toContain("*Alpha*\n🔴 Costo por agenda (según Meta)");
     expect(mensaje).toContain("\n━━━━━━━━━━\n*Beta*\n");
     expect(mensaje.match(new RegExp(textoHQ4, "g"))).toHaveLength(1);
     expect(mensaje).toContain(`ℹ️ ${textoHQ4}\n✅ Sin errores en esta corrida`);
@@ -349,7 +349,7 @@ describe("mensaje del reporte por WhatsApp", () => {
     }], "09:00", null, ORIGEN);
 
     expect(mensaje).toContain("*Alpha*\n⚠️ No se pudo calcular el semáforo de este programa.");
-    expect(mensaje).not.toContain("🔴 Costo por agenda:");
+    expect(mensaje).not.toContain("🔴 Costo por agenda (según Meta):");
     expect(mensaje).not.toContain("✅ Sin errores en esta corrida");
   });
 });
@@ -398,6 +398,6 @@ describe("nombres cortos de campaña", () => {
       error: null,
     }], "11:00", null, ORIGEN);
     // Con una sola campaña ninguna pieza distingue, así que va el nombre completo.
-    expect(mensaje).toContain("• #1234 AS | CBO | Única: $609.860 COP · 2 ag · $304.930 COP c/u");
+    expect(mensaje).toContain("• #1234 AS | CBO | Única: Inversión COP 609.860 · Agendas según Meta 2 · Costo por agenda (según Meta) COP 304.930");
   });
 });
