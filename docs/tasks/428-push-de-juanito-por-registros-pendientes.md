@@ -3,7 +3,7 @@ id: 428
 etapa: operacion
 serves: "Mani, 13-nov (carril H de `docs/plan-reparto.md` §4): que Juanito avise a cada closer qué registros tiene pendientes · 071 · 128 · 390"
 depends: [390]
-status: todo
+status: en curso
 ---
 
 # 428 — Juanito avisa por WhatsApp los registros pendientes de cada closer

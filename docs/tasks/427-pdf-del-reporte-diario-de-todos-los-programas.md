@@ -3,7 +3,7 @@ id: 427
 etapa: hub
 serves: "Mani, 13-nov (carril H de `docs/plan-reparto.md` §4): el reporte diario de Michael en PDF con todos los programas · 373 · ADR 0048"
 depends: [373]
-status: todo
+status: en curso
 ---
 
 # 427 — El PDF del reporte diario trae todos los programas
