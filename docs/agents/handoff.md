@@ -33,6 +33,14 @@ nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/han
 ```
 ## Memory
 
+### 14-nov (madrugada, 2.ª parte) · todas las migraciones de base aplicadas; lo que queda es código de Codex y decisiones de Mani
+- **401 completo en base:** M9 `0141` (`leads`, 11 columnas y 2 índices, todo vacío o constante) y M10 `0142` (`calls`: `closer_id` y `motivo_perdida` vacías, `cohort_id` copia del deal; 2 de 740 decían C3 con el deal ya en C4) aplicadas con el ok de Mani. **ADR 0131** reemplaza la cita errónea al 0126; ticket 401 `en main` (pasa a `done` con el checkpoint verde que incluya `0141`/`0142`).
+- **411 F4, base:** `0143` agrega `mcp_llamadas.bytes_respuesta` y `consultas`. Falta el código.
+- **Decisiones escritas en tickets:** 427 (`window.print()`, secciones del Hub "todos", valida Michael con Daniel), 428 (D-1 y D-4 de Mani; D-2 y D-3 provisionales, falta su ok), 429 (Envíos completos y parciales aparte; `agendas_meta` con clave propia, recomendada).
+- **Alejo:** el «parcial» del Hub (390 casilla 4 y 351) quedó como brief en el ticket 390, sección "Para Alejo".
+- **Código pendiente, todo en `docs/agents/briefs-codex-14-nov.md` (B-1 a B-6):** 411 F4 y F5, 358 (espera DM-1), 427, 428 (su migración la genera la sesión principal) y 429. Cuota de Codex desde el 14-nov 1:16 a.m.
+- **No verificado:** suite completa, `npm run build`, la app abierta.
+
 ### 14-nov (madrugada) · checkpoint `cp-20261113-3`, 401 M11 a M14 aplicadas y 390 medido (sesión de Mani, carril D, sin Codex: cuota hasta las 1:16 a.m.)
 - **Checkpoint:** tag `cp-20261113-3` sobre `bc1b3740` (CI verde, 4 jobs). Worktrees `r368`, `f3-conceptos`, `deuda-390` y `t358` borrados (sus commits ya estaban en main con otro hash). Quedan 6 worktrees de otras sesiones (`403-f2`, `408-aviso-cs`, `411-f2-ola2-*`, `419-e1`, `festive-rosalind-*`): no se tocaron.
 - **401, aplicadas en producción con el ok de Mani, una por una (ref `hfqmiyiuyqapdsbywrag`, sin transacciones abiertas, `lock_timeout 5s`, sin CASCADE):** M11 `0137` (`submissions`: `estado_hoja` idéntica a `calificacion` en las 3.218 filas; las otras dos, 0 filas), M12 `0138` (`users.calendly_email` 0 de 28; `programs.record_personas_por_dia_habil` valía 73 Comunicarte y 30 Tactical, sin lector ni rastro; el emparejamiento de Calendly usa `miembros_programa.calendly_email`, 58 tests en verde), M13 `0139` (`sync_runs` vacía, `change_log.sync_run_id` 0 de 71.563, tipo `estado_sync`), M14 `0140` (`canales` 26 filas y `areas` 3, respaldo en `docs/auditoria-datos-2026-11/canales-y-areas-antes-de-m14.json`; `change_log` conserva su historia).

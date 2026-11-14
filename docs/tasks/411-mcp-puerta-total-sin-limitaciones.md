@@ -228,3 +228,5 @@ cerrado. Es la prueba de aceptación de todo el frente de métricas y nadie la h
   programas rompe la frontera del programa (ADR 0043). El tipo de la consulta debe impedirlo.
 - Una consulta genérica no define métricas: toda cifra sigue viniendo de `docs/metricas.md` y de su módulo (ADR 0115 N1).
 - No copiar la proyección de una pantalla a la herramienta: importar el mismo módulo (regla del 6-nov, `AGENTS.md`).
+
+**14-nov, F4 (parte de base):** la migración 0143 agregó `mcp_llamadas.bytes_respuesta` y `consultas` (nulas), aplicada en producción con el ok de Mani. Falta solo el código (brief B-1 de `docs/agents/briefs-codex-14-nov.md`) y F5 (B-2 y la prueba con un cliente real).
