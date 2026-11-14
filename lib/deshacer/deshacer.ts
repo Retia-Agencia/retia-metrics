@@ -14,6 +14,7 @@ import { anularActividad } from "@/lib/deals/actividades";
 import { anularLlamada, RESULTADOS_CORREGIBLES } from "@/lib/deals/llamadas";
 import { REGISTRO, type ContextoDeRestauracion, type FilaDeGrupo, type ReglaDeCampo, type TablaDeshacible } from "./registro";
 import type { OrigenOperativo } from "@/lib/crm/rastro";
+import { restaurarPendienteAlDeshacerLlamadaFallida } from "./reagenda";
 
 export const esquemaDeshacerEvento = z.object({
   dealId: z.string().uuid("El deal no es válido."),
@@ -206,6 +207,18 @@ async function deshacerCambio(
     if (r && "no" in r && r.omitirEnGrupo) continue;
     if (!r || !("restaurar" in r)) throw new ErrorDeApp(r?.no ?? "El cambio incluye un campo que no se puede deshacer.", 409);
     await r.restaurar(tx, actor, evento.registroId, fila.valorAnterior, reversionId, contexto);
+  }
+
+  const cambioDeResultado = tabla === "calls" ? filas.find((fila) => fila.campo === "resultado") : undefined;
+  if (cambioDeResultado) {
+    await restaurarPendienteAlDeshacerLlamadaFallida(
+      tx,
+      actor.userId,
+      deal,
+      cambioDeResultado,
+      reversionId,
+      opciones.origen,
+    );
   }
 
   if (tabla === "deals" && filas.some((fila) => fila.campo === "cortesia" && fila.valorAnterior === "false")) {

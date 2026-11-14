@@ -120,6 +120,11 @@ Quedan pendientes `reagendar`/`agendar`, la **reversión compuesta de una operac
 **deshacer una anulación** (una regla nueva de app bajo ADR 0026/0038). Crear plataforma no será
 una acción: es mantenimiento de catálogo.
 
+Mientras no exista la reversión compuesta, `deshacer_evento` aplica la misma regla puntual que la app al deshacer una
+llamada marcada como no show o cancelada: si el deal sigue en Re-agenda y no queda otra llamada fallida vigente, recupera
+el pendiente anterior registrado por esa operación (o lo deja vacío si no aparece). La regla vive en `lib/deshacer/`, no
+en el MCP.
+
 `detalle` decide entre la proyección `compacta` y `completa` en `buscar`, `ficha_de_lead` y
 `tablero_de_deals`. En el tablero, `vista` nombra exclusivamente las columnas del Kanban
 (`llamada`, `setteo` o `todo`); sus valores válidos salen del mismo esquema que usa la pantalla.

@@ -82,6 +82,8 @@ export interface Contexto {
    * historial. Que no aparezca en otro archivo lo vigila `tests/motor-etapas-guardian.test.ts`.
    */
   desdeElMotor?: true;
+  /** Excepción puntual del ticket 368: deshacer una llamada fallida restaura solo el pendiente. */
+  desdeDeshacerReagenda?: true;
   /** La operación de deshacer que causó esta escritura. */
   reversionId?: string;
   /** Borde que originó la escritura; la app conserva el valor histórico por defecto. */
@@ -90,10 +92,13 @@ export interface Contexto {
 
 /** La etapa y el pendiente de un deal solo los escribe el motor. */
 function exigirQueElMotorEscribaSuEstado(ctx: Contexto, valores: Record<string, unknown>): void {
-  // Es un error de programacion, no del usuario: sale como 500. Se revisa en tiempo de
-  // ejecucion porque la etapa puede llegar dentro de una variable que el guardian
-  // estatico no ve.
-  if (ctx.nombreTabla === "deals" && ("etapa" in valores || "pendiente" in valores) && !ctx.desdeElMotor) {
+  // Es un error de programacion, no del usuario: sale como 500. La única excepción
+  // fuera del motor restaura exclusivamente el pendiente al deshacer una re-agenda.
+  const soloPendienteDeReagenda = ctx.desdeDeshacerReagenda
+    && Object.keys(valores).length === 1
+    && "pendiente" in valores;
+  if (ctx.nombreTabla === "deals" && ("etapa" in valores || "pendiente" in valores)
+    && !ctx.desdeElMotor && !soloPendienteDeReagenda) {
     throw new Error("La etapa o el pendiente de un deal no se escribe aqui: usa moverEtapa() o abrirDeal() de lib/deals/mover-etapa.ts.");
   }
 }
@@ -236,7 +241,8 @@ export async function editarConRastro(
   valores: Record<string, unknown>,
 ): Promise<boolean> {
   const { db, tabla, nombreTabla, actorId, etiqueta, origen = "app" } = ctx;
-  // Editar la etapa no tiene excepcion: moverla es `moverEtapa()`, que no pasa por aqui.
+  // Editar la etapa no tiene excepción. El pendiente solo admite la restauración
+  // puntual declarada arriba; ambas puertas también se validan en ejecución.
   exigirQueElMotorEscribaSuEstado({ ...ctx, desdeElMotor: undefined }, valores);
   const columnas = tabla as unknown as Record<string, unknown>;
   const idCol = columnas.id as never;

@@ -41,6 +41,11 @@ cómo, o por qué no.
 | Se marcó cortesía | Se quita la cortesía y el deal sale de Completo a la etapa en que estaba |
 | Movimiento de etapa | Corrección: el diálogo propone volver a la etapa de origen y deja escoger otra |
 
+Al deshacer el resultado no show o cancelada de una llamada, si el deal sigue en Re-agenda y no queda otra llamada vigente
+con uno de esos resultados, también se restaura el pendiente anterior que registró la misma operación; si ese rastro no
+aparece, queda sin pendiente. Es una regla puntual en `lib/deshacer/` hasta que el ticket 411 construya la reversión
+compuesta de operaciones.
+
 **4. La etapa se corrige libre, salvo donde manda el dinero.** La corrección (`moverEtapa` con la flecha `CORR`) va a
 cualquier etapa, en cualquier momento, también desde un botón "Corregir etapa" de la ficha sin escoger fila. Tres
 excepciones, porque ahí la etapa es la consecuencia de un hecho y no una opinión: no se corrige **hacia** Ganado

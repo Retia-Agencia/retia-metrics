@@ -149,8 +149,9 @@ Confirmar o separar correo; catálogo, ajustes y Media; lo que escribe el sistem
       `cp-20261113-1` (typecheck, lint, build y suite); recorrido del 3-nov anotado en el tracker: nota anulada con motivo, etapa
       corregida sin motivo, actividad tachada.)*
 - [x] Migración 0113 aplicada en producción con el ok de Mani, antes de desplegar el código. *(Anotado en el tracker el 3-nov.)*
-- [ ] **(Enmienda 13-nov.) Deshacer el resultado de una llamada fallida también deshace el pendiente Re-agenda.** Ver
-      "Hallazgo del 13-nov" abajo.
+- [x] **(Enmienda 13-nov.) Deshacer el resultado de una llamada fallida también deshace el pendiente Re-agenda.** Ver
+      "Hallazgo del 13-nov" abajo. *(Evidencia: casos a, b, c y e en `tests/deshacer.test.ts`; caso d por
+      `deshacer_evento` en `tests/mcp-acciones-ola2.test.ts`.)*
 
 ## Hallazgo del 13-nov: deshacer un no show deja el pendiente Re-agenda puesto
 
@@ -193,4 +194,3 @@ Encontrado al construir el 411 F2 (handoff del 13-nov) y **fijado como comportam
 - **Estado del ticket (N9).** 13-nov: marcadas con su evidencia las nueve casillas originales; **queda abierta la de la enmienda**
   (la regla del Re-agenda no está construida), así que sigue "en main". Antes decía: estaba "en main" desde el 3-nov con las nueve casillas sin marcar. Antes de pasarlo a
   `done` hay que marcar cada una con su evidencia (el test que la cubre) o decir cuál no se cumple.
-

@@ -28,6 +28,7 @@ const DIRECTORIOS = ["lib", "app", "components", "scripts"];
 const EXTENSIONES = new Set([".ts", ".tsx"]);
 /** El unico modulo autorizado a escribir la etapa. */
 const MOTOR = path.join("lib", "deals", "mover-etapa.ts");
+const RESTAURA_REAGENDA = path.join("lib", "deshacer", "reagenda.ts");
 
 /** Quita comentarios y conserva cadenas y saltos de linea. */
 function sinComentarios(fuente: string): string {
@@ -102,6 +103,11 @@ const PATRONES: { nombre: string; buscar: RegExp; tocaEtapa: (s: string) => bool
     buscar: /\bdesdeElMotor\s*:\s*true\b/g,
     tocaEtapa: () => true,
   },
+  {
+    nombre: "la llave puntual de deshacer Re-agenda fuera de su modulo",
+    buscar: /\bdesdeDeshacerReagenda\s*:\s*true\b/g,
+    tocaEtapa: () => true,
+  },
 ];
 
 function escriturasDeEtapa(raiz: string): string[] {
@@ -113,9 +119,14 @@ function escriturasDeEtapa(raiz: string): string[] {
       const texto = sinComentarios(fs.readFileSync(archivo, "utf8"));
       for (const { nombre, buscar, tocaEtapa } of PATRONES) {
         for (const m of texto.matchAll(buscar)) {
+          const expresion = sentencia(texto, m.index!);
+          const excepcionPuntual = relativo === RESTAURA_REAGENDA
+            && expresion.includes("desdeDeshacerReagenda: true")
+            && !/\betapa\b/.test(expresion);
+          if (excepcionPuntual && (nombre.startsWith("editarConRastro") || nombre.startsWith("la llave puntual"))) continue;
           // `.update(deals)` de drizzle tambien casa con la regla del SQL crudo; se cuenta una vez.
           if (nombre.startsWith("SQL") && /\.\s*$/.test(texto.slice(0, m.index))) continue;
-          if (!tocaEtapa(sentencia(texto, m.index!))) continue;
+          if (!tocaEtapa(expresion)) continue;
           const linea = texto.slice(0, m.index).split("\n").length;
           hallazgos.push(`${relativo}:${linea}: ${nombre}`);
         }
@@ -157,6 +168,7 @@ describe("nadie escribe deals.etapa fuera del motor (ADR 0037, ticket 046)", () 
         "  await db.execute(sql`update deals set pendiente = null where id = ${id}`);",
         "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta }, id, { pendiente: null });",
         "  await crearConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta, desdeElMotor: true }, valores);",
+        "  await editarConRastro({ db, tabla: deals, nombreTabla: 'deals', actorId, etiqueta, desdeDeshacerReagenda: true }, id, { pendiente: null });",
         "}",
       ].join("\n"),
     );
@@ -185,6 +197,8 @@ describe("nadie escribe deals.etapa fuera del motor (ADR 0037, ticket 046)", () 
       path.join("lib", "mutations", "sucio.ts") + ":6: SQL crudo que actualiza etapa o pendiente de deals",
       path.join("lib", "mutations", "sucio.ts") + ":7: editarConRastro sobre deals con etapa o pendiente",
       path.join("lib", "mutations", "sucio.ts") + ":8: la llave del motor (desdeElMotor) fuera del motor",
+      path.join("lib", "mutations", "sucio.ts") + ":9: editarConRastro sobre deals con etapa o pendiente",
+      path.join("lib", "mutations", "sucio.ts") + ":9: la llave puntual de deshacer Re-agenda fuera de su modulo",
     ]);
   });
 });

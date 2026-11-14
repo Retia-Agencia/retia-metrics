@@ -8,11 +8,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { vigente } from "@/lib/queries/vigente";
 import { registrarAbono } from "@/lib/deals/abonos";
 import { marcarFallida } from "@/lib/deals/llamadas";
-import {
-  deshacerEvento,
-  entradaDeEventoDeshacible,
-  eventosDeshacibles,
-} from "@/lib/deshacer/deshacer";
+import { eventosDeshacibles } from "@/lib/deshacer/deshacer";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -482,7 +478,7 @@ describe("acciones MCP ola 2", () => {
     },
   );
 
-  it("hallazgo: deshacer el resultado de una fallida deja Re-agenda", async () => {
+  it("deshacer_evento restaura el pendiente de una llamada fallida", async () => {
     const dealId = await nuevoDeal("agendado");
     const callId = await nuevaLlamada(dealId);
     const actor = { userId: closerId, rol: "closer" as const, operaComoCloser: false };
@@ -491,13 +487,9 @@ describe("acciones MCP ola 2", () => {
       fila.tabla === "calls" && fila.resumen.some((campo) => campo.campo === "resultado")
     ));
     expect(resultado).toBeDefined();
-    await deshacerEvento(db, actor, {
-      dealId,
-      evento: entradaDeEventoDeshacible(resultado!),
-    }, { origen: "app" });
-    // Comportamiento actual: se restaura la llamada, pero el pendiente del deal no se agrupa con ese undo.
+    await deshacer(dealId, resultado!.id);
     expect((await db.select().from(calls).where(eq(calls.id, callId)))[0].resultado).toBe("agendada");
-    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].pendiente).toBe("reagenda");
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].pendiente).toBeNull();
   });
 
   it.each(["agendado", "ganado_completo"] as const)(

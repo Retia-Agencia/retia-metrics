@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { abonos, archivos, calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, programs, reversiones, users } from "@/lib/db/schema";
+import { abonos, archivos, calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, motivos, programs, reversiones, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -14,6 +14,7 @@ import { cambiarDuenoDeal } from "@/lib/deals/cambiar-dueno";
 import { ventasConDiaEn } from "@/lib/queries/dashboard";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { marcarFallida } from "@/lib/deals/llamadas";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -51,6 +52,20 @@ async function deal(ownerUserId: string | null = autor): Promise<string> {
     { db, tabla: deals, nombreTabla: "deals", actorId: autor, etiqueta: "Lead", desdeElMotor: true },
     { leadId, programId, ownerUserId, etapa: "en_gestion" },
   );
+}
+
+async function dealConCita(
+  estado: { etapa: "agendado" | "atendido"; pendiente?: "seguimiento" | null } = { etapa: "agendado" },
+): Promise<{ dealId: string; callId: string }> {
+  const dealId = await crearConRastro(
+    { db, tabla: deals, nombreTabla: "deals", actorId: autor, etiqueta: "Lead", desdeElMotor: true },
+    { leadId, programId, ownerUserId: autor, etapa: estado.etapa, pendiente: estado.pendiente ?? null },
+  );
+  const callId = await crearConRastro(
+    { db, tabla: calls, nombreTabla: "calls", actorId: autor, etiqueta: "Lead" },
+    { dealId, programId, origen: "crm", resultado: "agendada", closerUserId: autor },
+  );
+  return { dealId, callId };
 }
 
 async function evento(tabla: string, registroId: string, campo: string): Promise<string> {
@@ -351,6 +366,66 @@ describe("deshacer cambios", () => {
     const changeLogId = await eventoEditado("calls", otro, "resultado");
     expect((await eventosDeshacibles(db, actor(autor), dealId)).find((evento) => evento.id === changeLogId)?.puedeDeshacer).toBe(false);
     expect((await error(deshacerEvento(db, actor(autor), { dealId, evento: { tipo: "cambio", changeLogId } }))).status).toBe(409);
+  });
+
+  it.each(["no_show", "cancelada"] as const)("al deshacer una sola %s limpia Re-agenda", async (resultado) => {
+    const { dealId, callId } = await dealConCita();
+    await marcarFallida(db, actor(autor), { callId, resultado });
+
+    await deshacerEvento(db, actor(autor), {
+      dealId,
+      evento: { tipo: "cambio", changeLogId: await eventoEditado("calls", callId, "resultado") },
+    });
+
+    expect((await db.select({ resultado: calls.resultado }).from(calls).where(eq(calls.id, callId)))[0].resultado).toBe("agendada");
+    expect((await db.select({ pendiente: deals.pendiente }).from(deals).where(eq(deals.id, dealId)))[0].pendiente).toBeNull();
+  });
+
+  it("con dos no shows, deshacer uno conserva Re-agenda", async () => {
+    const { dealId, callId } = await dealConCita();
+    await marcarFallida(db, actor(autor), { callId, resultado: "no_show" });
+    const primerEvento = await eventoEditado("calls", callId, "resultado");
+    const segundoCallId = await crearConRastro(
+      { db, tabla: calls, nombreTabla: "calls", actorId: autor, etiqueta: "Lead" },
+      { dealId, programId, origen: "crm", resultado: "agendada", closerUserId: autor },
+    );
+    await marcarFallida(db, actor(autor), { callId: segundoCallId, resultado: "no_show" });
+
+    await deshacerEvento(db, actor(autor), { dealId, evento: { tipo: "cambio", changeLogId: primerEvento } });
+
+    expect((await db.select({ pendiente: deals.pendiente }).from(deals).where(eq(deals.id, dealId)))[0].pendiente).toBe("reagenda");
+  });
+
+  it("restaura el pendiente anterior al no show", async () => {
+    const { dealId, callId } = await dealConCita({ etapa: "atendido", pendiente: "seguimiento" });
+    const [motivo] = await db.insert(motivos).values({ nombre: "No asistió", tipo: "reagenda" }).returning();
+    await marcarFallida(db, actor(autor), { callId, resultado: "no_show", motivoId: motivo.id });
+
+    await deshacerEvento(db, actor(autor), {
+      dealId,
+      evento: { tipo: "cambio", changeLogId: await eventoEditado("calls", callId, "resultado") },
+    });
+
+    expect((await db.select({ pendiente: deals.pendiente }).from(deals).where(eq(deals.id, dealId)))[0].pendiente).toBe("seguimiento");
+  });
+
+  it("un closer ajeno no deshace la llamada fallida ni su Re-agenda", async () => {
+    const { dealId, callId } = await dealConCita();
+    await marcarFallida(db, actor(autor), { callId, resultado: "no_show" });
+    const changeLogId = await eventoEditado("calls", callId, "resultado");
+    const antes = {
+      deal: (await db.select().from(deals).where(eq(deals.id, dealId)))[0],
+      call: (await db.select().from(calls).where(eq(calls.id, callId)))[0],
+      reversiones: await db.select().from(reversiones),
+    };
+
+    expect((await error(deshacerEvento(db, actor(ajeno), {
+      dealId,
+      evento: { tipo: "cambio", changeLogId },
+    }))).status).toBe(403);
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0]).toEqual(antes.deal);
+    expect((await db.select().from(calls).where(eq(calls.id, callId)))[0]).toEqual(antes.call);
+    expect(await db.select().from(reversiones)).toEqual(antes.reversiones);
   });
 
   it("un choque de otro índice único no se traduce como evento ya deshecho", async () => {

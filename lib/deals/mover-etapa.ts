@@ -423,10 +423,11 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       fecha: sql`clock_timestamp()`,
     });
 
-    if (mov.correccion) {
-      const actorId = mov.actor.tipo === "usuario" ? mov.actor.userId : null;
-      await tx.insert(changeLog).values([
-        {
+    const actorId = mov.actor.tipo === "usuario" ? mov.actor.userId : null;
+    const cambiosDeEstado = [
+      ...(
+        mov.correccion
+          ? [{
           tabla: "deals",
           registroId: deal.id,
           etiqueta: deal.id,
@@ -436,24 +437,26 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
           origen: mov.origen ?? "app",
           userId: actorId,
           reversionId: mov.reversionId ?? null,
-        },
-        ...(
-          pendienteDe !== pendienteA
-            ? [{
-                tabla: "deals",
-                registroId: deal.id,
-                etiqueta: deal.id,
-                campo: "pendiente",
-                valorAnterior: pendienteDe,
-                valorNuevo: pendienteA,
-                origen: mov.origen ?? "app",
-                userId: actorId,
-                reversionId: mov.reversionId ?? null,
-              }]
-            : []
-        ),
-      ]);
-    }
+          }]
+          : []
+      ),
+      ...(
+        pendienteDe !== pendienteA
+          ? [{
+              tabla: "deals",
+              registroId: deal.id,
+              etiqueta: deal.id,
+              campo: "pendiente",
+              valorAnterior: pendienteDe,
+              valorNuevo: pendienteA,
+              origen: mov.origen ?? "app",
+              userId: actorId,
+              reversionId: mov.reversionId ?? null,
+            }]
+          : []
+      ),
+    ];
+    if (cambiosDeEstado.length > 0) await tx.insert(changeLog).values(cambiosDeEstado);
 
     return { de, a: mov.a, pendienteDe, pendienteA, transicion: t };
   });
