@@ -943,11 +943,24 @@ const REGISTRO_BASE = {
     funcionSql: { archivo: "lib/pauta/costo-por-venta.ts", nombre: "costoPorVenta" },
     listas: [],
   }),
+  agendas_meta: ficha("gasto", {
+    filaDelDiccionario: "Agendas según Meta",
+    tipo: "simple",
+    unidad: "citas",
+    monedas: [],
+    anclaDeFecha: "fecha_del_gasto",
+    dimensiones: ["dia", "semana"],
+    vigencia: [],
+    sumaEntreProgramas: true,
+    cobertura: "razon_con_cobertura",
+    funcionSql: PAUTA_SEMANAL,
+    listas: [],
+  }),
   // Costo por agenda del semáforo: la misma pregunta con las agendas que reporta Meta (pueden diferir del CRM, DA-4).
   costo_agenda_meta: ficha("gasto", {
     filaDelDiccionario: "Costo por agenda del semáforo",
-    tipo: "derivada",
-    de: ["inversion"],
+    tipo: "razon",
+    de: ["inversion", "agendas_meta"],
     unidad: "dinero",
     monedas: ["cop"],
     anclaDeFecha: "fecha_del_gasto",
@@ -1075,8 +1088,11 @@ const DIAS_HABILES: VariableDeMetrica = {
 
 const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
   registros: texto(
-    "Cuántos formularios completos llegaron.", "conteo", ["formularios completos enviados en el periodo"],
-    [{ nombre: "Completo", explicacion: "La persona terminó el formulario. Una persona que aplica dos veces son dos envíos; cuenta el día del envío." }],
+    "Cuántos formularios completos llegaron; los parciales, cuando la persona se fue a mitad del formulario, no entran en este número.", "conteo", ["formularios completos enviados en el periodo"],
+    [
+      { nombre: "Completo", explicacion: "La persona terminó el formulario. Una persona que aplica dos veces son dos envíos; cuenta el día del envío." },
+      { nombre: "Parcial", explicacion: "La persona se fue a mitad del formulario. Hoy no entra en Envíos ni se muestra aparte en esta cifra." },
+    ],
   ),
   agendadas: texto(
     "Cuántas citas se reservaron, de personas que llegaron por anuncios.", "conteo", ["citas reservadas en el periodo por personas de pauta"],
@@ -1214,8 +1230,8 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
     [{ nombre: "Reparto", explicacion: "Se reparte por días hábiles y se suman las cohortes del programa que venden en el mes." }],
   ),
   objetivo_semana: texto(
-    "Cuántos cupos toca vender de lunes a domingo.", "suma", ["parte semanal del Objetivo del mes más lo que faltó antes"],
-    [{ nombre: "Compensación", explicacion: "Incluye lo que faltó vender en semanas anteriores del mes." }],
+    "Cuántos cupos toca vender de lunes a domingo.", "suma", ["parte de cada Objetivo de la cohorte que cae en los días hábiles de la semana"],
+    [{ nombre: "Compensación", explicacion: "Al abrir cada día, toma lo que falta del objetivo semanal después de las ventas de días anteriores y lo reparte entre los días hábiles que quedan, contando hoy. Ejemplo: objetivo semanal 10, 3 ventas antes del miércoles y 3 días hábiles restantes: 7 ÷ 3 = 2,33 por día. Las ventas de hoy no se descuentan." }],
   ),
   esperado_a_hoy: texto(
     "Cuántas ventas debería llevar la cohorte hoy si vendiera parejo.", "producto", ["Objetivo ÷ Días hábiles de la venta", "Días hábiles transcurridos"],
@@ -1325,6 +1341,10 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
       { nombre: "Ventas de pauta", explicacion: "Deals de personas de pauta en Abonado o Completo en el periodo." },
     ],
     { admiteObjetivo: true, unidadesDePartes: ["cop", "conteo"] },
+  ),
+  agendas_meta: texto(
+    "Cuántas agendas reporta el píxel de Meta, distintas de las citas del CRM.", "conteo", ["agendas que reporta Meta"],
+    [{ nombre: "Agenda según Meta", explicacion: "La cuenta el píxel de Meta. Se muestra aparte de las citas del CRM y es el denominador del costo por agenda según Meta." }],
   ),
   costo_agenda_meta: texto(
     "El mismo costo por agenda, pero dividiendo por las agendas que ve Meta en vez de las del CRM.", "razon", ["Gasto en campañas de agenda", "Agendas de Meta"],
