@@ -3,12 +3,17 @@ import { veEquipoComercial } from "@/lib/auth/roles";
 import { dimensionesVisibles, HECHOS_CONSULTABLES } from "@/lib/queries/hechos/registro";
 import type { Herramienta } from "./tipos";
 import { ACCIONES, accionPorClave } from "@/lib/mcp/acciones";
-import { COBERTURA_MCP } from "@/lib/mcp/cobertura";
+import { COBERTURA_MCP, viaDeConceptoSinLista } from "@/lib/mcp/cobertura";
+import { explicacionDe } from "@/lib/metricas/explicacion";
+import { REGISTRO, type ClaveRegistrada } from "@/lib/metricas/registro";
+
+const conceptos = Object.keys(REGISTRO) as [ClaveRegistrada, ...ClaveRegistrada[]];
 
 const entrada = z.object({
   detalle: z.enum(["nombre", "resumen", "esquema"]).default("resumen"),
   herramienta: z.string().min(1).max(100).optional(),
   accion: z.string().min(1).max(100).optional(),
+  concepto: z.enum(conceptos).optional(),
 }).strict();
 
 const consulta = z.object({
@@ -37,6 +42,20 @@ const salida = z.object({
     grupo: z.enum(["operacion", "configuracion"]).describe("Tipo de capacidad pendiente."),
     capacidad: z.string().describe("Acción expresada en palabras de negocio."),
   }).strict()).describe("Capacidades que todavía se hacen solo en la app."),
+  concepto: z.object({
+    nombre: z.string().describe("Nombre de negocio del concepto."),
+    que: z.string().describe("Qué mide el concepto."),
+    formula: z.object({
+      forma: z.enum(["razon", "suma", "conteo", "resta", "producto"]).describe("Operación que relaciona los términos."),
+      terminos: z.array(z.string()).describe("Partes de la fórmula en orden."),
+      por1000: z.boolean().optional().describe("Si la razón se expresa por cada mil."),
+    }).strict().describe("Fórmula canónica expresada en palabras de negocio."),
+    variables: z.array(z.object({
+      nombre: z.string().describe("Nombre de la variable."),
+      explicacion: z.string().describe("Significado de la variable."),
+    }).strict()).describe("Variables que intervienen en la fórmula."),
+    via: z.array(z.string()).min(1).describe("Listas de consultar_metrica que abren el concepto, o herramienta de consulta equivalente."),
+  }).strict().optional().describe("Definición canónica del concepto pedido."),
 }).strict();
 
 export const capacidadesMcp: Herramienta<typeof entrada> = {
@@ -84,9 +103,27 @@ export const capacidadesMcp: Herramienta<typeof entrada> = {
     const todaviaSoloEnLaApp = Object.values(COBERTURA_MCP)
       .filter((fila) => fila.clase === "pendiente")
       .map((fila) => ({ grupo: fila.grupo, capacidad: fila.capacidad }));
+    const concepto = pedido.concepto
+      ? (() => {
+          const explicacion = explicacionDe(pedido.concepto);
+          const listas = REGISTRO[pedido.concepto].listas;
+          return {
+            nombre: explicacion.rotulo,
+            que: explicacion.que,
+            formula: explicacion.formula,
+            variables: explicacion.variables,
+            via: listas.length > 0 ? [...listas] : [viaDeConceptoSinLista(pedido.concepto)],
+          };
+        })()
+      : undefined;
     return {
       texto: `${consultas.length} consultas y ${acciones.length} acciones disponibles. ${todaviaSoloEnLaApp.length} capacidades todavía solo en la app.`,
-      estructurado: { consultas, acciones, todavia_solo_en_la_app: todaviaSoloEnLaApp },
+      estructurado: {
+        consultas,
+        acciones,
+        todavia_solo_en_la_app: todaviaSoloEnLaApp,
+        ...(concepto ? { concepto } : {}),
+      },
     };
   },
 };

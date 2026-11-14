@@ -3,7 +3,7 @@ id: 411
 etapa: mcp
 serves: "Pedido de Mani del 9-nov (el MCP no limita acciones ni métricas: puerta de entrada con reglas de orientación, visibilidad completa y control total según el rol) · ADR 0129 · ADR 0119 · A-177 · A-178 a A-185"
 depends: [348, 383]
-status: en curso  # 13-nov: F0, F1 y F2 hechas; faltan F3, F4 y F5
+status: en curso  # 13-nov: F0, F1, F2 y F3 hechas; faltan F4 y F5
 ---
 
 # 411 — El MCP del CRM como puerta total: sin límites de acciones ni de métricas

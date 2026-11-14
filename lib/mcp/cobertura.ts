@@ -1,4 +1,6 @@
 import type { ACCIONES } from "@/lib/mcp/acciones";
+import type { ClaveRegistrada } from "@/lib/metricas/registro";
+import type { ClaveDeConcepto } from "@/lib/vocabulario-metricas";
 
 type ClaveDeAccionMcp = (typeof ACCIONES)[number]["clave"];
 
@@ -183,3 +185,89 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
 
 /** Solo baja cuando una capacidad pendiente entra al MCP o sale justificadamente de su alcance. */
 export const TOPE_DE_PENDIENTES_DEL_MCP = 96;
+
+type RazonSinLista = `Se pide por consultar_hechos: ${string}` | `Cifra de resumen_del_hub: ${string}`;
+
+/** Conceptos que no abren filas propias, con la ruta de consulta que conserva su definición canónica. */
+export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
+  cupos_vendidos: "Se pide por consultar_hechos: son las ventas del día agrupadas por fecha.",
+  llevamos: "Cifra de resumen_del_hub: es el acumulado del periodo, no otro conjunto de filas.",
+  recaudado: "Cifra de resumen_del_hub: acompaña a las ventas elegidas y no tiene filas distintas.",
+  por_cobrar: "Cifra de resumen_del_hub: es vendido menos recaudado para las mismas ventas.",
+  comision: "Cifra de resumen_del_hub: es un porcentaje sobre lo vendido, no una población aparte.",
+  citas_del_dia: "Se pide por consultar_hechos: son las citas agrupadas por el día de la cita.",
+  show_por_cita: "Cifra de resumen_del_hub: es una razón entre citas, no una lista adicional.",
+  cita_a_venta: "Cifra de resumen_del_hub: es una tasa del grupo de citas y comparte sus filas.",
+  nacio_agenda_del_dia: "Se pide por consultar_hechos: es una clasificación de las ventas según sus llamadas.",
+  nacio_seguimiento: "Se pide por consultar_hechos: es una clasificación de las ventas según sus llamadas.",
+  nacio_sin_llamada: "Se pide por consultar_hechos: es una clasificación de las ventas según sus llamadas.",
+  meta: "Cifra de resumen_del_hub: es el objetivo declarado de la cohorte, no filas operativas.",
+  objetivo_cohorte: "Cifra de resumen_del_hub: es el objetivo declarado de la cohorte, no filas operativas.",
+  objetivo_de_leads: "Cifra de resumen_del_hub: es un objetivo declarado por día, no filas operativas.",
+  dias_del_ritmo: "Cifra de resumen_del_hub: es el parámetro de la ventana del ritmo.",
+  citas_minimas: "Cifra de resumen_del_hub: es el mínimo configurado para confiar en una tasa.",
+  objetivo_mes: "Cifra de resumen_del_hub: reparte el objetivo de las cohortes sobre el mes.",
+  objetivo_semana: "Cifra de resumen_del_hub: reparte el objetivo mensual sobre la semana.",
+  esperado_a_hoy: "Cifra de resumen_del_hub: es el objetivo proporcional a los días transcurridos.",
+  faltan: "Cifra de resumen_del_hub: es objetivo menos ventas de la cohorte.",
+  por_dia_habil: "Cifra de resumen_del_hub: reparte lo que falta entre los días hábiles restantes.",
+  objetivo_del_dia: "Cifra de resumen_del_hub: reparte el objetivo mensual sobre el día.",
+  proyeccion: "Cifra de resumen_del_hub: proyecta el cierre a partir del ritmo medido.",
+  leads_que_hacen_falta: "Cifra de resumen_del_hub: deriva la necesidad diaria de las tasas y el objetivo.",
+  cupos_con_caja: "Se pide por consultar_hechos: son ventas relacionadas con sus abonos vigentes.",
+  escalera_sin_resultado: "Se pide por consultar_hechos: es una marca de los deals de la escalera.",
+  descuento_promedio: "Cifra de resumen_del_hub: promedia el descuento de las ventas, sin filas propias.",
+  descuento_promedio_porcentaje: "Cifra de resumen_del_hub: expresa el mismo descuento como porcentaje.",
+  presupuesto: "Cifra de resumen_del_hub: es la parte consumida del presupuesto de la cohorte.",
+  agendas_dia: "Cifra de resumen_del_hub: promedia las agendas sobre los días hábiles transcurridos.",
+  agendas_req: "Cifra de resumen_del_hub: deriva las agendas necesarias del objetivo y las tasas.",
+  inversion_req: "Cifra de resumen_del_hub: deriva la inversión diaria de agendas y costo por agenda.",
+  roas_proy: "Cifra de resumen_del_hub: proyecta el ROAS cuando terminen las citas pendientes.",
+  envios_sin_id: "Se pide por consultar_hechos: son envíos de pauta sin anuncio identificado.",
+  registros_sin_utm: "Se pide por consultar_hechos: son envíos agrupables por la categoría sin origen.",
+  ventas_sin_anuncio: "Se pide por consultar_hechos: son ventas atribuibles a envíos sin anuncio identificado.",
+  embudo: "Se pide por consultar_hechos: cuenta envíos por el paso alcanzado en el formulario.",
+  inversion: "Se pide por consultar_hechos: es gasto de pauta agrupado por periodo.",
+  costo_agenda_crm: "Cifra de resumen_del_hub: divide inversión entre agendas del CRM.",
+  cac: "Cifra de resumen_del_hub: divide inversión entre ventas del mismo periodo.",
+  costo_agenda_meta: "Cifra de resumen_del_hub: divide inversión entre agendas informadas por Meta.",
+  roas: "Cifra de resumen_del_hub: relaciona vendido atribuido con inversión convertida.",
+  profit: "Cifra de resumen_del_hub: resta la inversión al vendido atribuido.",
+  cpm: "Cifra de resumen_del_hub: agrega costo e impresiones reportados por Meta.",
+  ctr: "Cifra de resumen_del_hub: agrega clics e impresiones reportados por Meta.",
+  llegada_landing: "Cifra de resumen_del_hub: agrega llegadas y clics reportados por Meta.",
+  conversion_landing: "Cifra de resumen_del_hub: relaciona envíos con llegadas a la página.",
+  frecuencia: "Cifra de resumen_del_hub: agrega impresiones y alcance reportados por Meta.",
+} as const satisfies Partial<Record<ClaveDeConcepto, RazonSinLista>>;
+
+/** Solo baja cuando un concepto obtiene una lista consultable propia. */
+export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 48;
+
+export function viaDeConceptoSinLista(clave: ClaveRegistrada): "consultar_hechos" | "resumen_del_hub" {
+  const razon = (CONCEPTOS_SIN_LISTA_EN_EL_MCP as Partial<Record<ClaveRegistrada, RazonSinLista>>)[clave];
+  if (!razon) throw new Error(`El concepto ${clave} no tiene vía de consulta registrada.`);
+  return razon.startsWith("Se pide por consultar_hechos")
+    ? "consultar_hechos"
+    : "resumen_del_hub";
+}
+
+type FichaAuditable = { listas: readonly string[] };
+
+/** Compara fichas, listas y excepciones sin depender del registro real; los tests sintéticos muerden ambos bordes. */
+export function auditarCoberturaDeConceptos(
+  registro: Readonly<Record<string, FichaAuditable>>,
+  listasAceptadas: readonly string[],
+  excepciones: Readonly<Partial<Record<ClaveDeConcepto | string, string>>>,
+) {
+  const claves = Object.keys(registro);
+  const clavesDeExcepcion = Object.keys(excepciones);
+  const aceptadas = new Set(listasAceptadas);
+  return {
+    sinCobertura: claves.filter((clave) => registro[clave].listas.length === 0 && !(clave in excepciones)).sort(),
+    listasDesconocidas: claves.flatMap((clave) => registro[clave].listas
+      .filter((lista) => !aceptadas.has(lista))
+      .map((lista) => `${clave}:${lista}`)).sort(),
+    excepcionesInexistentes: clavesDeExcepcion.filter((clave) => !(clave in registro)).sort(),
+    excepcionesConLista: clavesDeExcepcion.filter((clave) => (registro[clave]?.listas.length ?? 0) > 0).sort(),
+  };
+}
