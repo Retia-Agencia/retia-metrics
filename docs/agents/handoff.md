@@ -9,15 +9,35 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4, "Reordenada el 13-nov"): primero una sola
-forma de cifra en todo el Hub. Somos dos; el compañero lleva el carril P con su propio prompt, que está en esa sección. Esta sesión
-es de Mani, carril D. Lee AGENTS.md, la entrada "13-nov · Revisión del Hub" en Memory, docs/reportes/revision-hub-metricas-mcp-2026-11-13.md
-y, en docs/tasks/419-la-cifra-una-forma-de-metrica.md, la sección "Enmienda del 13-nov". Primero el paso 0 de higiene de
-plan-reparto. E-0 ya está (DC-1 a DC-4 respondidas el 13-nov, en el ticket). Sigue E-1 con Codex: la tabla de
-textos de las claves del Hub como §2.2 de docs/diseno-cifra-y-pauta.md, y espera mi sí antes de pasarla al código. No toques los
-archivos del carril P.
+Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4). Esta sesión es de Mani, carril D. Lee
+AGENTS.md, la entrada "13-nov (noche) · Paso 0, §2.2 aprobada y 0136" en Memory, y en docs/tasks/419-la-cifra-una-forma-de-metrica.md
+la fase E-1 (con el paso 5b). La tabla de textos ya está aprobada: docs/diseno-cifra-y-pauta.md §2.2, con "Respondidas por Mani".
+Orquesta, no implementes: lanza el código con Codex (/delegate) o con sesiones hijas en Sonnet y cuida tu contexto.
+1. 419 E-1: el texto de §2.1 y §2.2 a la ficha (lib/metricas/registro.ts); una clave por concepto (Realizadas y Sin resultado
+   unificadas); registrar toda cifra visible sin clave; borrar lib/metricas/explicaciones-de-pauta.ts; test que falla si una ficha
+   registrada no tiene que, formula y variables. Ninguna cifra cambia. Coordinar con el carril P (Alejo ya hizo E-2 de Comercial y
+   Dinero en lib/hub/, que reciben el texto por parámetro).
+2. 390 (guardianes de show y cita sin resultado, números de referencia de Comercial).
+3. 411 F3 (guardián de cobertura del MCP), reescribiendo docs/mcp.md §7 en el mismo commit.
+Antes de empujar: typecheck, lint y los tests del cambio. Commits con archivos nombrados. No toques los archivos del carril P.
 ```
 ## Memory
+
+### 13-nov (noche) · Paso 0, §2.2 aprobada y 0136 (sesión de Mani, carril D)
+- **Paso 0:** tag `cp-20261113-1` sobre `a61412ea` (CI verde, 4 jobs). 403 y 367 a `done`. 368: nueve casillas marcadas con su
+  test de `tests/deshacer.test.ts`; sigue "en main" por la casilla de la enmienda (regla del Re-agenda, camino 2, sin construir).
+- **Carril H** (plan-reparto §4): Michael antes del 30-nov, Majo Sánchez, login de Daniel, sesión del 20-nov. PDF de todos los
+  programas y push de Juanito **sin ticket, esperando que Mani decida** si se abren.
+- **§2.2 de `docs/diseno-cifra-y-pauta.md`:** la redactó una hija en Sonnet desde `docs/metricas.md`; revisada fila a fila en
+  Comercial; "negocio" pasó a "deal" (N4). **Aprobada por Mani** con respuestas: una clave por concepto (Realizadas, Sin resultado),
+  todo lo visible registrado, y Asistencia / De cita a venta leídas **por persona sobre el grupo** (es lo que hace el código, ninguna
+  cifra se mueve). Si Mani quisiera "todas las ventas ÷ todas las agendas del periodo", es otro número y otro ticket (enmienda de D-A).
+- **415, migración 0136 aplicada en producción** con el ok de Mani (verificado: enum con `costo_por_venta` y CHECK con él).
+  🩸 La 0133 había retirado ese valor "por no tener lector": volver es coherente (el 415 es el lector), pero el 415 no veía que el
+  CHECK de moneda rechazaría un objetivo en COP; la 0136 lo rehace comparando `metrica::text`, porque un valor recién agregado a un
+  enum no se puede usar como literal en la misma transacción. Código en `84f6d23c` (su mensaje dice "sin aplicar": se aplicó antes
+  del push). 415 queda "en main", falta checkpoint.
+- **Pendiente:** 419 E-1 (Codex), 390, 411 F3. Alejo empujó en paralelo 419 E-2 de Comercial y Dinero (`lib/hub/`).
 
 ### 13-nov · Revisión del Hub, las métricas y el MCP; la Cifra pasa a todo el Hub (sesión de Mani, solo documentos)
 **Qué pasó.** Mani pidió una revisión de solo lectura de los tres frentes (métricas, UI del Hub, MCP) contra lo pedido por

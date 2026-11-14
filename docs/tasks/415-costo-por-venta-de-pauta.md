@@ -3,7 +3,7 @@ id: 415
 etapa: pauta
 serves: "docs/paid-media-excels-2026-11-10.md §2 (CAC) y §6 · docs/metricas.md §3.2 (🟡 123) · docs/diseno-cifra-y-pauta.md §2.1 (cac) y §4.3"
 depends: [412]
-status: en curso
+status: en main
 ---
 
 # 415 — Costo por venta (CAC) de Pauta
@@ -21,7 +21,7 @@ status: en curso
 
 - [x] Fila, ficha, diccionario y vocabulario en el mismo commit (N8).
 - [x] Test con el caso que la haría divergir (venta de otra área, semana sin gasto).
-- [ ] Estado contra el objetivo `costo_por_venta` (ver "Avance"). *(13-nov: código y migración 0136 listos y probados en PGlite; falta aplicarla en producción con el ok de Mani y empujar después.)*
+- [x] Estado contra el objetivo `costo_por_venta` (ver "Avance"). *(13-nov: migración 0136 aplicada en producción con el ok de Mani, verificada (enum y CHECK); código en main en `84f6d23c`.)*
 
 ## Avance (13-nov)
 
@@ -43,5 +43,5 @@ status: en curso
   `METRICAS_DE_OBJETIVO.cac`; la regla "un costo con objetivo en otra moneda no colorea" pasa de solo `costo_por_agenda` a todo
   objetivo en COP. Tests: `tests/objetivos.test.ts` (migración 0136: se guarda con moneda; sin moneda choca con el CHECK) y
   `tests/pauta-semanal-celdas.test.ts` (estado del costo por venta).
-- **Orden de despliegue:** aplicar la 0136 en producción (ok de Mani) y solo después empujar el commit.
+- **Orden de despliegue:** cumplido: la 0136 se aplicó en producción (ok de Mani, 13-nov) antes de empujar `84f6d23c`. Falta el checkpoint verde para `done`.
 
