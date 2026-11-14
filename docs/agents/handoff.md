@@ -9,17 +9,27 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4). Esta sesión es de Mani, carril D. Lee
-AGENTS.md, la entrada "13-nov (noche) · Paso 0, §2.2 aprobada y 0136" en Memory, y en docs/tasks/419-la-cifra-una-forma-de-metrica.md
-la fase E-1 (con el paso 5b). La tabla de textos ya está aprobada: docs/diseno-cifra-y-pauta.md §2.2, con "Respondidas por Mani".
-Orquesta, no implementes: lanza el código con Codex (/delegate) o con sesiones hijas en Sonnet y cuida tu contexto.
-1. 419 E-1: el texto de §2.1 y §2.2 a la ficha (lib/metricas/registro.ts); una clave por concepto (Realizadas y Sin resultado
-   unificadas); registrar toda cifra visible sin clave; borrar lib/metricas/explicaciones-de-pauta.ts; test que falla si una ficha
-   registrada no tiene que, formula y variables. Ninguna cifra cambia. Coordinar con el carril P (Alejo ya hizo E-2 de Comercial y
-   Dinero en lib/hub/, que reciben el texto por parámetro).
-2. 390 (guardianes de show y cita sin resultado, números de referencia de Comercial).
-3. 411 F3 (guardián de cobertura del MCP), reescribiendo docs/mcp.md §7 en el mismo commit.
-Antes de empujar: typecheck, lint y los tests del cambio. Commits con archivos nombrados. No toques los archivos del carril P.
+Seguimos con el CRM de Retia, ola O12 reordenada el 13-nov (docs/plan-reparto.md §4). Esta sesión es la sesión padre de Mani,
+carril D. Lee AGENTS.md y las dos entradas "13-nov (noche)" en Memory de docs/agents/handoff.md. Orquesta, no implementes: el código
+va con Codex (/delegate) o con sesiones hijas en Sonnet; tú revisas diff y tests, decides y cuidas tu contexto. Verifica cada paso
+antes de seguir.
+0. main está en ROJO desde dba34927 (419 E-1, cfe27fd0), shard 2 del CI: tests/closer-una-pregunta.test.ts ("cada ficha con
+   dimension de dueno declara su criterio": una ficha nueva o renombrada no declara su criterio de dueño) y
+   tests/rotulos-sinonimos-guardian.test.ts (sinónimo prohibido 'cita creada: Agendas' en una superficie). Arréglalo primero, sin
+   mover ninguna cifra; nadie empuja otra cosa hasta verlo verde. Luego el tag cp-AAAAMMDD-N sobre esa punta.
+1. 411 F3: lo que falta, la cobertura por concepto del registro (ver el ticket 411 y docs/mcp.md §7).
+2. 390: sus casillas abiertas (3, 4 y N8) y la deuda que nombra su guardián (cuatro lecturas que reescriben el predicado de show o de
+   cita sin resultado: components/dashboard/hoy/citas.tsx, lib/queries/dashboard.ts, proyeccion-roas.ts, tasas-del-grupo.ts), cada
+   una pasando a la función única sin mover cifras.
+3. 368: la regla puntual del Re-agenda (camino 2, ya decidido; ticket 368, "Hallazgo del 13-nov", casos a-e). Cierra su casilla.
+4. Después, en orden del plan-reparto: 358 (WhatsApp lee el texto del registro) y 401 (migraciones, una por una, con mi ok antes de
+   aplicar cada una en producción).
+Para decidir yo (pregúntame, no asumas): ¿se abre ticket para el PDF del reporte diario con todos los programas y para el push de
+Juanito por registros pendientes (carril H)? ¿y lo que E-1 dejó sin fuente (Envíos completos o parciales, compensación de
+objetivo_semana, en el ticket 419 "Avance")?
+No toques los archivos del carril P (Alejo: 419 E-3 de Comercial, Dinero y Hoy con el mapa de nombres del 419). Antes de empujar:
+typecheck, lint y los tests del cambio, más los guardianes que toque el cambio; la suite completa la corre el CI. Commits con archivos
+nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/handoff.md.
 ```
 ## Memory
 
