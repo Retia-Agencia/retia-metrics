@@ -36,15 +36,17 @@ cerrado) en MCP, Hub y mensaje de WhatsApp.
 propia); dorado: el mismo día sembrado da el mismo número en el mensaje y en Hub › Pauta (`tests/numeros-dorados-pauta.test.ts` es el molde).
 **No hace:** cambia el cálculo, ni toca Juanito (manda el texto tal cual).
 
-## B-4 · 427 PDF del reporte diario de todos los programas (decisión: `window.print()`, sin servidor)
-**Hacer:** una hoja `@media print` para `/hub` ("todos"; `app/(app)/hub/page.tsx`, `components/dashboard/reporte-diario.tsx`,
-`components/dashboard/descargar-reporte.tsx` ya existen): una sección por programa visible para la sesión, solo magnitudes sumables
-en el total y tasas, meta y ROAS por programa lado a lado; pie "Datos del CRM al <fecha y hora> (Bogotá)" y la URL. El paid trafficker
-no ve el equipo comercial (`sinListas`). Sin librerías nuevas (ADR 0006).
-**Tests:** un cuadro de tres programas sembrado da por programa las mismas cifras que Hub › Hoy; el paid trafficker no ve nada del equipo.
-**Ojo:** `lib/hub/` y los componentes de Hoy son del carril P. Si hace falta tocarlos, parar y pedírselo a Alejo; el CSS de impresión y el
-componente del reporte son de este ticket.
-**Listo cuando:** casillas 2 a 4 del 427; la vista previa de impresión se mira a mano (Mani).
+## B-4 · 427 página propia del reporte diario, todos los programas (Mani, 14-nov: no es un Ctrl+P del Hub)
+**Hacer:** ruta `/hub/reporte` (`app/(app)/hub/reporte/page.tsx`), pensada como documento corto: **1. El día** (meta contra real de cupos y leads;
+caja del día; por programa agendas, realizadas, show, ventas y % de cierre; y lo mismo por closer), **3. La semana** (meta de la semana, a la fecha y
+real; meta diaria para llegar a la del corte) y **4. El corte** (vendidos contra meta de la cohorte y cumplimiento), un programa al lado del otro,
+con el pie "Datos del CRM al <fecha y hora> (Bogotá)". Referencia visual y de contenido: `/Users/mani/Desktop/mani/work/retia/reportes diarios/Reporte-Diario-Retia-2026-09-15-v5.pdf`.
+Botón "Guardar como PDF" = `window.print()` sobre esta página, con `@media print` (sin librerías, ADR 0006). **Cero cálculo nuevo**: cada cifra sale de lo que Hub › Hoy
+y Comercial ya calculan (módulos de `lib/queries/`), solo magnitudes sumables en el total; tasas, meta y ROAS por programa, nunca sumadas (ADR 0048).
+Solo programas activos y visibles para la sesión. El paid trafficker no ve el equipo comercial (`sinListas`).
+**No entra:** "Los masivos" y los párrafos narrativos por closer (el CRM no los tiene).
+**Tests:** tres programas sembrados dan por programa las mismas cifras que Hub › Hoy; el paid trafficker no ve closers; un programa fuera del alcance responde 404.
+**Ojo:** `lib/hub/` y los componentes de Comercial, Dinero y Hoy son del carril P: se importan los módulos de `lib/queries/`, no se editan.
 
 ## B-5 · 428 aviso de registros pendientes por closer (decisiones D-1 a D-4 escritas en el ticket; D-2 y D-3 provisionales)
 **Hacer:** (1) `lib/pendientes-de-closer/contrato.ts` (`.strict()`, molde `lib/alertas/contrato.ts` y `tests/semaforo-endpoint.test.ts`): por closer,
