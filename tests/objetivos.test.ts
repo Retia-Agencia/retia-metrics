@@ -230,7 +230,7 @@ describe("objetivos de la cohorte", () => {
 });
 
 describe("definición de métricas ofrecidas", () => {
-  it("solo ofrece métricas completas y costo por agenda es el único costo ofrecido", () => {
+  it("solo ofrece métricas completas y los costos ofrecidos son el de agenda y el de venta", () => {
     for (const metrica of METRICAS_OFRECIDAS) {
       expect(DEFINICION_METRICAS_OBJETIVO[metrica]).toMatchObject({
         lector: expect.any(String),
@@ -240,7 +240,7 @@ describe("definición de métricas ofrecidas", () => {
     }
     expect(METRICAS_OFRECIDAS.filter(
       (metrica) => DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "COP",
-    )).toEqual(["costo_por_agenda", "inversion"]);
+    )).toEqual(["costo_por_agenda", "inversion", "costo_por_venta"]);
   });
 });
 
@@ -250,8 +250,20 @@ describe("migración 0133: el enum y el CHECK de moneda", () => {
       cohortId, area: null, metrica: "inversion" as const, meta: 5_000_000, aceptable: null,
     });
     expect(presupuesto).toMatchObject({ metrica: "inversion", moneda: "COP" });
-    for (const retirada of ["agendas_por_dia", "costo_por_lead", "costo_por_venta"]) {
+    for (const retirada of ["agendas_por_dia", "costo_por_lead"]) {
       await expect(db.execute(sql`select ${retirada}::metrica_objetivo`)).rejects.toBeDefined();
     }
+  });
+});
+
+describe("migración 0136: vuelve el costo por venta (415)", () => {
+  it("se guarda con moneda, y el CHECK rechaza un costo por venta sin moneda", async () => {
+    const cac = await crearObjetivo(db, actor(), {
+      cohortId, area: null, metrica: "costo_por_venta" as const, meta: 1_500_000, aceptable: 2_000_000,
+    });
+    expect(cac).toMatchObject({ metrica: "costo_por_venta", moneda: "COP" });
+    const sinMoneda = await db.execute(sql`insert into objetivos (cohort_id, metrica, meta) values (${cohortId}, 'costo_por_venta', 1)`)
+      .then(() => null, (e: { cause?: { message?: string } }) => e.cause?.message ?? "");
+    expect(sinMoneda).toMatch(/objetivos_moneda_de_costo_chk/);
   });
 });

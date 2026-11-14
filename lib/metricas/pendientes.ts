@@ -47,4 +47,5 @@ export const CONCEPTO_DE_OBJETIVO: Record<MetricaObjetivo, ClaveDeConcepto> = {
   costo_por_agenda: "costo_agenda_crm",
   roas: "roas",
   inversion: "inversion",
+  costo_por_venta: "cac",
 };

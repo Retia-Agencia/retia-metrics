@@ -2818,6 +2818,8 @@ export const metricaObjetivoEnum = pgEnum("metrica_objetivo", [
   // 412: meta total de la cohorte (agendas) y presupuesto de la cohorte (inversion, en `objetivos.moneda`).
   "agendas",
   "inversion",
+  // 415: el costo por venta (CAC) de Pauta, inversión ÷ ventas; un costo, así que verde por debajo.
+  "costo_por_venta",
 ]);
 
 /**
@@ -2850,9 +2852,10 @@ export const objetivos = pgTable(
     check("objetivos_aceptable_chk", sql`${t.aceptable} is null or ${t.aceptable} >= 0`),
     check("objetivos_moneda_chk", sql`${t.moneda} is null or ${t.moneda} in ('COP', 'USD')`),
     // Un costo o un presupuesto sin moneda no se puede comparar contra nada, y una tasa con moneda es un error de tecleo.
+    // `::text` (0136): un valor recién agregado al enum no se puede usar como literal en la misma transacción que lo agrega.
     check(
       "objetivos_moneda_de_costo_chk",
-      sql`(${t.metrica} in ('costo_por_agenda', 'inversion')) = (${t.moneda} is not null)`,
+      sql`(${t.metrica}::text in ('costo_por_agenda', 'inversion', 'costo_por_venta')) = (${t.moneda} is not null)`,
     ),
   ],
 );

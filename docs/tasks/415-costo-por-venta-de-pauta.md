@@ -21,7 +21,7 @@ status: en curso
 
 - [x] Fila, ficha, diccionario y vocabulario en el mismo commit (N8).
 - [x] Test con el caso que la haría divergir (venta de otra área, semana sin gasto).
-- [ ] Estado contra el objetivo `costo_por_venta` (ver "Avance").
+- [ ] Estado contra el objetivo `costo_por_venta` (ver "Avance"). *(13-nov: código y migración 0136 listos y probados en PGlite; falta aplicarla en producción con el ok de Mani y empujar después.)*
 
 ## Avance (13-nov)
 
@@ -32,3 +32,16 @@ status: en curso
   `metrica_objetivo` tiene cupos, costo_por_agenda, roas, conversion_agenda_venta, agendas e inversion. Agregarlo es una
   migración (`ALTER TYPE ... ADD VALUE`), su definición en `lib/objetivos/metricas.ts` y `CONCEPTO_DE_OBJETIVO`, y una
   línea en `METRICAS_DE_OBJETIVO` de `lib/pauta/cifra-de-celda-semanal.ts`. Va por la cola de migraciones (Mani).
+
+## Avance (13-nov, noche, carril D)
+
+- Migración `drizzle/0136_costo_por_venta_objetivo.sql`: `ADD VALUE 'costo_por_venta'` y el CHECK de moneda rehecho para
+  incluirlo. **Hallazgo:** la 0133 (403 F4) había retirado ese valor "por no tener lector"; este ticket es el lector, así que
+  volver es coherente con esa razón. Sin rehacer el CHECK, un objetivo de costo por venta en COP habría chocado contra él. El
+  CHECK compara `metrica::text`: un valor recién agregado a un enum no se puede usar como literal en la misma transacción.
+- Código: `DEFINICION_METRICAS_OBJETIVO.costo_por_venta` (COP, menor es mejor, lector 415), `CONCEPTO_DE_OBJETIVO` → `cac`,
+  `METRICAS_DE_OBJETIVO.cac`; la regla "un costo con objetivo en otra moneda no colorea" pasa de solo `costo_por_agenda` a todo
+  objetivo en COP. Tests: `tests/objetivos.test.ts` (migración 0136: se guarda con moneda; sin moneda choca con el CHECK) y
+  `tests/pauta-semanal-celdas.test.ts` (estado del costo por venta).
+- **Orden de despliegue:** aplicar la 0136 en producción (ok de Mani) y solo después empujar el commit.
+

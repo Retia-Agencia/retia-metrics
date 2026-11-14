@@ -70,6 +70,15 @@ export const DEFINICION_METRICAS_OBJETIVO: Record<MetricaObjetivo, DefinicionMet
     dePauta: true,
     lector: "412",
   },
+  costo_por_venta: {
+    nombre: "Costo por venta",
+    descripcion: "Lo que cuesta en pauta cada venta que entra por Paid: inversión ÷ ventas de Paid.",
+    sentido: "menor_es_mejor",
+    unidad: "COP",
+    admiteArea: false,
+    dePauta: true,
+    lector: "415",
+  },
 };
 
 export const METRICAS_OFRECIDAS = METRICAS_OBJETIVO.filter(

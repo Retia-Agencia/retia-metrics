@@ -75,4 +75,13 @@ describe("419: la celda semanal de Pauta", () => {
     // Sin aceptable, lo que no cumple es rezagado.
     expect(estadoDeCeldaSemanal("roas", [objetivo({ metrica: "roas", meta: 3, aceptable: null, moneda: null })])).toMatchObject({ aceptable: 3 });
   });
+
+  it("el costo por venta se colorea contra su objetivo en pesos, y no contra el del costo por agenda (415)", () => {
+    const cac = objetivo({ metrica: "costo_por_venta", meta: 1_500_000, aceptable: 2_000_000 });
+    expect(estadoDeCeldaSemanal("cac", [cac])).toEqual({ fuente: "objetivo", objetivo: 1_500_000, aceptable: 2_000_000, menorEsMejor: true });
+    expect(estadoDeCeldaSemanal("cac", [objetivo({})])).toBeUndefined();
+    expect(estadoDeCeldaSemanal("cac", [objetivo({ metrica: "costo_por_venta", moneda: "USD" })])).toBeUndefined();
+    const celdaCac = cifraDeCeldaSemanal({ fila: { clave: "cac" }, celda: celda(2_500_000, { partes: [5_000_000, 2] }), rango: S1, esTotal: false, hoy: "2026-11-20", objetivos: [cac] });
+    expect(celdaCac.estado?.tono).not.toBe("exito");
+  });
 });

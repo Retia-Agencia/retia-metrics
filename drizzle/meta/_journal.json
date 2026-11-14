@@ -953,6 +953,13 @@
       "when": 1794547985287,
       "tag": "0135_historial_de_etapa_con_origen",
       "breakpoints": true
+    },
+    {
+      "idx": 136,
+      "version": "7",
+      "when": 1794617297216,
+      "tag": "0136_costo_por_venta_objetivo",
+      "breakpoints": true
     }
   ]
 }

@@ -21,6 +21,7 @@ export const METRICAS_DE_OBJETIVO: Partial<Record<ClavePautaSemanal, MetricaObje
   costo_agenda_meta: "costo_por_agenda",
   roas: "roas",
   agenda_venta: "conversion_agenda_venta",
+  cac: "costo_por_venta",
 };
 
 /**
@@ -37,7 +38,8 @@ export function estadoDeCeldaSemanal(
   const candidatas = objetivos.filter((o) => o.activo && o.metrica === metrica && (o.area === null || o.area === "paid"));
   const objetivo = candidatas.find((o) => o.area === "paid") ?? candidatas.find((o) => o.area === null);
   if (!objetivo) return undefined;
-  if (metrica === "costo_por_agenda" && objetivo.moneda !== "COP") return undefined;
+  // Las celdas de costo vienen en pesos: un objetivo en otra moneda no se compara (nunca convertir en silencio).
+  if (DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "COP" && objetivo.moneda !== "COP") return undefined;
   const escala = DEFINICION_METRICAS_OBJETIVO[metrica].unidad === "porcentaje" ? 100 : 1;
   return {
     fuente: "objetivo",
