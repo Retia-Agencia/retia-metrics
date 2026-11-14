@@ -1016,6 +1016,13 @@
       "when": 1794672485646,
       "tag": "0144_avisos_pendientes_closer",
       "breakpoints": true
+    },
+    {
+      "idx": 145,
+      "version": "7",
+      "when": 1794673575001,
+      "tag": "0145_retira_form30x",
+      "breakpoints": true
     }
   ]
 }

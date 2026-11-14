@@ -161,7 +161,7 @@ export const motivoEntregaEnum = pgEnum("motivo_entrega", [
  * porque el codigo elige el adaptador con el: un proveedor nuevo es un valor mas y un
  * adaptador, nunca un endpoint nuevo.
  */
-export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta", "form30x"]);
+export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform", "dapta"]);
 export const nivelPautaEnum = pgEnum("nivel_pauta", ["campana", "conjunto", "anuncio"]);
 
 /** Para qué es una campaña (ticket 314): nulo = sin clasificar, y cuenta como agenda. */
