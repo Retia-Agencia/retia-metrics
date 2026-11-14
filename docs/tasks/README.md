@@ -33,6 +33,7 @@ y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo S
 | [ ] | 426 | [Silencio global de 3 h y cierre del día por Juanito](./426-silencio-global-y-cierre-del-dia.md) | 425 | en curso · 13-nov · en producción, falta ver el primer cierre de las 9 p.m. (ADR 0130 punto 6) |
 | [ ] | 427 | [El PDF del reporte diario trae todos los programas](./427-pdf-del-reporte-diario-de-todos-los-programas.md) | 373 | todo · 13-nov · carril H · D-1 a D-3 abiertas (Mani) |
 | [ ] | 428 | [Juanito avisa por WhatsApp los registros pendientes de cada closer](./428-push-de-juanito-por-registros-pendientes.md) | 390 | todo · 13-nov · carril H · D-1 a D-4 abiertas (Mani) |
+| [ ] | 429 | [Tres textos del registro que no tienen fuente](./429-textos-sin-fuente-del-registro.md) | 419 | todo · 13-nov · carril D · Envíos, compensación de `objetivo_semana` y `agendas_meta` · D-1 y D-2 abiertas (Mani) |
 
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
