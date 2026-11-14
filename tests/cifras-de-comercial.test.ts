@@ -237,7 +237,8 @@ describe("419 E-2: la fila de un closer, celda por celda", () => {
     }
     const c = cifrasDeCloser({ fila, dinero: { ...SIN_DINERO, vendido: 1000, recaudado: 1000, ventas: 1, sinSaldoCalculable: 1 }, explicaciones, contexto });
     expect(c.porCobrar.textoDelValor).toBe("USD 0,00");
-    expect(c.vendido.explicacion.lectura).toContainEqual(["Parcial", "1 venta quedó fuera porque su saldo no se puede calcular."]);
+    expect(c.vendido.etiquetas).toEqual([]);
+    expect(c.porCobrar.explicacion.lectura).toContainEqual(["Parcial", "1 venta quedó fuera porque no tiene valor vendido o tiene abonos en otra moneda."]);
   });
 });
 

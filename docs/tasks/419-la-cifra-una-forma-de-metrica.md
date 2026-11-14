@@ -354,6 +354,30 @@ tengan texto aprobado.
   - **Para E-3 Comercial:** la página lee las cinco filas de evidencia por lista (`leerEvidencia`) y las pasa en `evidencia`;
     la referencia de la comparación sale de `nombreDePedido`; guardar antes los valores de la pestaña en la base local.
 
+- **13-nov · Alejandro (carril P). E-2, Dinero.** Tampoco cambia ninguna pantalla.
+  - `lib/hub/contexto-de-cifras.ts` (puro): lo que toda Cifra del Hub dice igual (chips de "Calculada con", el periodo en
+    palabras, la lista desde su `DetalleDeCifra`, la comparación solo si se pidió). Comercial y Dinero lo importan.
+  - `lib/hub/cifras-de-dinero.ts` (puro): `cifrasDeDinero` (Vendido, Recaudado, Por cobrar y **"Entró a caja" como una Cifra
+    por moneda**, nunca una suma; sin abonos, una sola en USD con 0; una moneda que el CRM no registra hace fallar) y
+    `cifrasPorCohorte` (las cuatro celdas de cada fila de "Ventas por cohorte").
+  - `tests/cifras-de-dinero.test.ts` (13): sobrepago, parcial, cero, comparación, una moneda que solo existe en el otro
+    periodo, sin jerga; y con base la paridad cifra = lista (ventas y abonos del periodo, ventas por cohorte) con una venta
+    anulada, abonos en COP y otro programa.
+  - **Hallazgos para Mani (ningún número cambia):**
+    6. **"Parcial" no es igual para las tres.** Una venta con abonos en otra moneda SÍ cuenta en Vendido y queda fuera de
+       Recaudado y Por cobrar (así lo fija `tests/dinero-de-ventas.test.ts`); hoy la tarjeta dice una sola frase para las tres.
+       El constructor lo separa: Vendido es parcial solo si hay ventas sin valor vendido. Y por eso "Vendido − Recaudado" no da
+       "Por cobrar" cuando hay sobrepago o una venta sin saldo: en esos casos la resta no se escribe con números.
+    7. **El "% recaudado de lo vendido" lo calcula hoy el componente** (`dinero-de-ventas.tsx`). Pasa tal cual al constructor
+       como línea de Recaudado. Si debe ser una cifra con ficha propia, se pide a la consulta (N1).
+    8. **Con dos monedas, la lista de "Entró a caja" es una sola** (todos los abonos): el botón dice "Ver todos los abonos" y
+       no un total, que no sería el de esa moneda. Un filtro de moneda en la lista lo arreglaría (`vistaDeLista` ya admite
+       `moneda`; falta que `urlDeLista` lo lleve). Para E-3.
+    9. **Conceptos que Dinero pide:** `vendido`, `recaudado`, `por_cobrar`, `entro_a_caja`, `ventas` (`CONCEPTOS_DE_DINERO`).
+       `por_cobrar` necesita `unidadesDePartes: ["usd", "usd"]` en su ficha y `entro_a_caja` cambia de unidad por moneda.
+  - **Falta de E-2 Dinero:** el punto de las gráficas (`graficas-de-dinero.tsx`, hoy `ResumenDeCifra`), que en E-3 pasa a
+    `grafica-con-explicacion.tsx`. Después Hoy y el norte.
+
 ## Para retomar (11-nov, Alejandro)
 
 **Paso 2 hecho: la celda de la tabla semanal es una Cifra.**

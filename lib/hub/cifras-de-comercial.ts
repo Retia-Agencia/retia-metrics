@@ -11,8 +11,12 @@
  *
  * Módulo PURO (solo importa tipos de `lib/queries/`): su salida viaja como props a un componente cliente.
  */
-import { fechaCorta, num } from "@/lib/format";
-import { armarCifra, type CifraDeMetrica, type EntradaDeCifra, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
+import {
+  comparacionCon as comparar, enCurso as estaEnCurso, filtrosDelHub as filtrosDe, listaDeDetalle as listaDe, periodoEnPalabras,
+  type ContextoDelHub, type FilasDeEvidencia,
+} from "@/lib/hub/contexto-de-cifras";
+import { fraseSinSaldo, fraseSinValorVendido } from "@/lib/hub/cifras-de-dinero";
+import { armarCifra, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
 import { entradaDesdeRazon } from "@/lib/metricas/razon-a-cifra";
 import type { EmbudoDelRango } from "@/lib/queries/dashboard";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
@@ -27,59 +31,14 @@ export type ExplicacionesDeComercial = Record<ConceptoDeComercial, ExplicacionDe
 
 /** Las listas que abre Comercial: las cinco primeras filas de cada una, ya escritas, las lee la página. */
 export type ListaDeComercial = "agendas" | "grupo_citas" | "grupo_shows" | "grupo_pendientes" | "cierres";
-export type FilasDeEvidencia = ReadonlyArray<ReadonlyArray<string>>;
 
-export interface ContextoDeComercial {
-  programa: string;
-  /** El código de la cohorte elegida, o `null` con "Todas". */
-  cohorte: string | null;
-  rango: { desde: string; hasta: string };
-  hoy: string;
-  /** El nombre del closer del filtro, o `null` con todos. */
-  closer: string | null;
-}
-
-type Lista = NonNullable<EntradaDeCifra["lista"]>;
-type Comparacion = NonNullable<EntradaDeCifra["comparacion"]>;
+export type ContextoDeComercial = ContextoDelHub;
+export type { FilasDeEvidencia } from "@/lib/hub/contexto-de-cifras";
+export { periodoDelHub as periodoDeComercial } from "@/lib/hub/contexto-de-cifras";
 
 const BASE_DE_LAS_TASAS = "personas ya tienen resultado marcado";
 const MOTIVO_SIN_CITAS = "Sin citas en el periodo";
 export const MOTIVO_SIN_VENTAS_DEL_CLOSER = "Este closer no tiene ventas en el periodo";
-
-/** El periodo como se lee en "Calculada con": "1-nov a hoy", o un solo día. */
-export function periodoDeComercial(rango: { desde: string; hasta: string }, hoy: string): string {
-  const dia = (d: string) => (d === hoy ? "hoy" : fechaCorta(d));
-  return rango.desde === rango.hasta ? dia(rango.desde) : `${fechaCorta(rango.desde)} a ${dia(rango.hasta)}`;
-}
-
-function filtrosDe(c: ContextoDeComercial, closer: string | null = c.closer): Array<readonly [string, string]> {
-  const filtros: Array<readonly [string, string]> = [
-    ["Programa", c.programa],
-    ["Cohorte", c.cohorte ?? "Todas"],
-    ["Periodo", periodoDeComercial(c.rango, c.hoy)],
-  ];
-  if (closer) filtros.push(["Closer", closer]);
-  return filtros;
-}
-
-function periodoEnPalabras(c: ContextoDeComercial): string {
-  const dia = (d: string) => (d === c.hoy ? "hoy" : `el ${fechaCorta(d)}`);
-  return c.rango.desde === c.rango.hasta ? dia(c.rango.desde) : `del ${fechaCorta(c.rango.desde)} a ${dia(c.rango.hasta)}`;
-}
-
-/** La lista de una cifra, solo si la sesión la puede abrir (con `sinListas` el detalle llega sin enlace). */
-function listaDe(
-  detalle: DetalleDeCifra | null | undefined,
-  filas: FilasDeEvidencia | undefined,
-  forma: Pick<Lista, "nombre" | "articulo" | "parte">,
-): Lista | undefined {
-  if (!detalle || !detalle.href || !detalle.resumen.disponible) return undefined;
-  return { href: detalle.href, total: detalle.resumen.subtotal.cantidad, filas: filas ?? [], ...forma };
-}
-
-function comparar(referencia: string | undefined, valor: number | null | undefined): Comparacion | undefined {
-  return referencia === undefined || valor === undefined ? undefined : { referencia, valor };
-}
 
 // ---------------------------------------------------------------------------------------------------------------
 // Cifras clave
@@ -181,7 +140,7 @@ export function cifrasClaveDeComercial(e: EntradaDeCifrasClave): CifrasClaveDeCo
     explicaciones: e.explicaciones,
     filtros: filtrosDe(c),
     periodo: periodoEnPalabras(c),
-    enCurso: c.rango.hasta >= c.hoy,
+    enCurso: estaEnCurso(c),
   };
   return {
     citas: armarCifra({
@@ -233,21 +192,18 @@ export function cifrasDeCloser(e: EntradaDeCifrasDeCloser): CifrasDeCloser {
   const closer = e.fila.closerId ?? "Sin closer";
   const filtros = filtrosDe(c, closer);
   const periodo = periodoEnPalabras(c);
-  const enCurso = c.rango.hasta >= c.hoy;
+  const enCurso = estaEnCurso(c);
   const partes: PartesDelGrupo = {
     embudo: e.fila, detalles: e.detalles, evidencia: e.evidencia, explicaciones: e.explicaciones, filtros, periodo, enCurso,
   };
   const d = e.dinero;
   const conVentas = d !== undefined && d.ventas > 0;
-  const sinSaldo = d && d.sinSaldoCalculable > 0
-    ? `${num(d.sinSaldoCalculable)} ${d.sinSaldoCalculable === 1 ? "venta quedó" : "ventas quedaron"} fuera porque su saldo no se puede calcular.`
-    : undefined;
   const dinero = (concepto: "vendido" | "recaudado" | "por_cobrar", valor: number | undefined) => armarCifra({
     concepto,
     explicacion: e.explicaciones[concepto],
     valor: conVentas && valor !== undefined ? valor : null,
     motivo: conVentas ? undefined : MOTIVO_SIN_VENTAS_DEL_CLOSER,
-    parcial: conVentas ? sinSaldo : undefined,
+    parcial: !conVentas ? undefined : concepto === "vendido" ? fraseSinValorVendido(d) : fraseSinSaldo(d),
     lista: listaDe(e.detalles?.cierres, e.evidencia?.cierres, { nombre: "ventas", articulo: "las" }),
     filtros,
     periodo,
