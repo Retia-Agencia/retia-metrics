@@ -164,6 +164,161 @@ donde el audit tiene D-C abierta (§7).
 | ventas_sin_anuncio | Ventas sin anuncio identificado | pauta | Ventas de pauta sin saber qué anuncio trajo a la persona | número de ventas de pauta cuyo registro llegó sin id | — |
 | embudo | (nombre del paso) | todas | Cuántas personas llegaron a este paso del formulario | % que llega = Personas en este paso ÷ Personas que abrieron el formulario | Abrieron: cargaron la primera pregunta |
 
+### 2.2 El texto de las demás cifras del Hub (borrador para el sí de Mani, 13-nov)
+
+Misma forma y mismas columnas que §2.1. Es el contenido a escribir en las fichas del registro, y la única fuente de cada fórmula es
+`docs/metricas.md` (si otro documento dice distinto, manda el diccionario; las discrepancias están en "Dudas para Mani", al final).
+Cada clave aparece una sola vez, en la primera pestaña donde se muestra; el pie de cada tabla dice en qué otras sale. El rótulo es el
+del vocabulario del Hub. Las seis cifras que §2.1 ya tiene con universo "pauta" (Agendadas, Ventas, Vendido, Asistencia, Cierre de
+ventas, De cita a venta) son **la misma ficha con otro universo** (DC-2): aquí se repiten solo donde el Hub las muestra con universo
+"todas", con el texto de `docs/metricas.md`. Universo "todas" quiere decir todas las áreas: pauta, orgánico, referidos y registros sin
+origen, juntos. Una "cita" y una "venta" se leen igual en todas las tablas: venta es un deal en Abonado o Completo; lo anulado no
+cuenta en ninguna cifra; los días hábiles son de lunes a viernes y los festivos cuentan; las fechas son de Bogotá.
+
+#### Comercial
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |
+|---|---|---|---|---|---|
+| citas | Citas | todas | Cuántas citas con closer caen en el periodo, sin contar las canceladas | número de citas del periodo que no se cancelaron | Cita: la llamada agendada con un closer; cuenta el día de la cita, no el día en que se reservó (eso es "Agendadas"). Canceladas: se muestran aparte y no suman. La cita de un deal anulado no cuenta; la cita suelta, sin deal asignado, sí |
+| shows | Realizadas | todas | Cuántas citas del periodo ocurrieron de verdad, con la llamada atendida | número de citas del periodo con llamada atendida | Atendida: el closer marcó show, compromiso de pago, cerrada o perdida. Cuenta el día de la cita. La cancelada, la no asistida y la que sigue sin resultado no son realizadas |
+| no_asistio | No asistió | todas | Cuántas citas del periodo ya se resolvieron y la persona no se presentó | número de citas del periodo marcadas "no asistió" | Solo la marcada "no asistió". La cancelada y la cita sin resultado no cuentan: la segunda es un dato que falta, no una inasistencia |
+| asistencia | Asistencia | todas | De las personas que debían tener su cita, qué parte ya la tuvo | Personas con cita realizada ÷ Personas con resultado marcado | Personas: se cuenta por persona (un deal cada una), no por llamada. Grupo: quienes tenían al menos una cita que ya debía ocurrir en el periodo; sin reagendadas, cortesías ni anulados. Con cita realizada: show, compromiso de pago, cerrada o perdida. Resultado marcado: las citas que siguen "agendada" con la hora ya pasada quedan fuera y se avisan como "parcial, N sin marcar"; nunca se cuentan como no asistió. En el Excel se llama «% de presentación a zoom» |
+| cierre_de_ventas | Cierre de ventas | todas | De las personas que sí tuvieron su llamada, qué parte hoy está vendida | Personas vendidas ÷ Personas con cita realizada | Vendida: hoy en Abonado o Completo; si se pierde después (por ejemplo, por una devolución), deja de contar. Personas con cita realizada: las del grupo de Asistencia que tuvieron llamada atendida. Mismo aviso de "parcial" que Asistencia. En el Excel se llama «% de cierre zoom a cliente» |
+| cita_a_venta | De cita a venta | todas | De las personas que debían tener su cita, qué parte terminó en venta | Personas vendidas con cita realizada ÷ Personas del grupo de citas | Es Asistencia × Cierre de ventas. Grupo de citas: el mismo de Asistencia. Las personas con la cita sin marcar quedan fuera del grupo y se muestran aparte. En el Excel se llama «% de cierre agenda a cliente» |
+| ventas | Ventas | todas | Cuántas personas pasaron a Abonado o Completo en el periodo, un cupo cada una | número de ventas del periodo | Venta: deal hoy en Abonado o Completo, sin cortesía ni anulado; cuenta el primer día en que llegó a esa etapa. Si una venta de octubre se pierde en noviembre, octubre baja en uno. Cuando se mira por closer, la venta va a quien es dueño del deal |
+| llamadas_sin_resultado | Sin resultado | todas | Citas cuya hora ya pasó y el closer no marcó cómo terminaron | número de citas pasadas que siguen en "agendada" | Solo deals no cerrados; la cita suelta, sin deal, no cuenta aquí (vive en el Inbox). Es un dato que falta, no una inasistencia. Es una foto de ahora: no sigue el periodo |
+| entro_a_caja | Entró a caja | todas | Cuánta plata entró en el periodo | Σ abonos del periodo, por moneda | Abono: un pago registrado, de cualquier venta, incluidos los adicionales vendidos aparte. Cuenta el día del pago, no el del registro. Los anulados no cuentan. Cada moneda se muestra aparte (USD y COP): nunca se suman ni se convierten. No se deduce de las ventas ni al revés. Por closer va a quien registró el abono |
+| vendido | Vendido | todas | Cuánto se vendió en USD, el valor pactado, no lo que ya entró a caja | Σ valor vendido de cada venta | Valor vendido: el precio pactado que escribe el closer en el deal; una venta sin valor queda fuera y se cuenta aparte. Por closer va al dueño del deal. Se lee siempre junto a Recaudado y Por cobrar |
+| recaudado | Recaudado | todas | Cuánto de lo vendido ya se pagó | Σ abonos del ticket de esas mismas ventas, a hoy | Abonos del ticket: los pagos del programa; los adicionales no entran. Cuenta lo abonado hasta hoy, sin importar cuándo se pagó. Si una venta tiene abonos en otra moneda, su recaudado no se calcula y se cuenta aparte |
+| por_cobrar | Por cobrar | todas | Cuánto falta por pagar de lo vendido | Vendido − Recaudado, venta por venta | Un saldo negativo es un sobrepago: se muestra aparte y no resta deuda a otra venta. No mira fechas de vencimiento (eso es la cartera vencida) |
+| deals_desde_completo | Deals (completo) | todas | Cuántos deals se abrieron a partir de un formulario terminado | número de deals creados en el periodo desde un formulario completo | Cuenta el día del envío que abrió el deal. Completo: la persona tiene al menos un envío terminado hasta el fin del periodo, aunque el deal se abriera con un parcial. Un deal abierto a mano no pertenece a ninguna mitad |
+| deals_desde_parcial | Deals (parcial) | todas | Cuántos deals se abrieron a partir de un formulario dejado a medias | número de deals creados en el periodo desde un formulario parcial | Parcial: hasta el fin del periodo la persona solo tiene envíos incompletos. Cuenta el día del envío que abrió el deal |
+
+Pie: el escalón de la escalera, "Citas sin marcar", "Deals abiertos", "Deals sin dueño", "Grupo de citas" y "Ventas sin llamada
+registrada" son cifras visibles de esta pestaña sin clave en el registro (ver dudas). Citas, Realizadas, No asistió, Ventas y Entró a
+caja salen también en Mi espacio; Vendido, Recaudado y Por cobrar, en Dinero; Asistencia, Cierre de ventas y Realizadas, en Hoy.
+
+#### Dinero
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |
+|---|---|---|---|---|---|
+| cupos_con_caja | Cupos con caja | todas | Cuántas ventas recibieron al menos un pago en el periodo | número de ventas con al menos un abono en el periodo | Cada venta cuenta una vez, el día de su primer abono del periodo; un segundo abono de la misma venta no suma otro cupo. Abono: ver Entró a caja. Los anulados no cuentan |
+| comision | Comisión | todas | Cuánto se le debe pagar al closer por sus ventas, en USD | Σ (valor vendido × porcentaje de comisión de la venta) | Porcentaje de comisión: el del programa, que queda fijado en la venta cuando entra a Abonado o Completo; no cambia si luego se ajusta el porcentaje. Va al dueño del deal; las tres ventas históricas sin dueño caen en «Sin closer». No se suma entre programas |
+
+Pie: Vendido, Recaudado, Por cobrar y Entró a caja se definen en Comercial y se pintan también aquí; Cupos con caja y Entró a caja
+alimentan las gráficas de esta pestaña. Comisión sale además en el Hub de todos los programas.
+
+#### Hoy
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |
+|---|---|---|---|---|---|
+| registros | Envíos | todas | Cuántos formularios completos llegaron | número de formularios completos enviados en el periodo | Completo: la persona terminó el formulario; el parcial no cuenta aquí (solo en el embudo del formulario). Una persona que aplica dos veces son dos envíos. Cuenta el día del envío. Debe coincidir con las respuestas completas del formulario |
+| leads | Leads | todas | Cuántas personas distintas aplicaron por primera vez en el periodo | número de personas cuya primera aplicación cae en el periodo | Persona: un correo distinto dentro del programa; la misma persona cuenta una vez, y la misma persona en dos programas son dos leads. Primera aplicación: el día de su primer formulario, también si fue solo un parcial. El alta hecha a mano no cuenta. Filtrado por closer no hay cifra («—») |
+| cupos_vendidos | Cupos vendidos | todas | Cuántas ventas se cerraron hoy | número de ventas de hoy | Venta: ver Ventas. Cada venta es un cupo |
+| llevamos | Llevamos | todas | Cuántas ventas lleva el periodo (la semana, el mes o la cohorte) desde que empezó hasta hoy | número de ventas desde el inicio del periodo hasta hoy | Para una cohorte cuentan también las ventas anteriores a que abriera su venta. Sin límite inferior de fecha. Su par en dinero es el Vendido de esas mismas ventas |
+| citas_del_dia | Citas del día | todas | Cuántas citas hay hoy, sin contar las canceladas | número de citas de hoy que no se cancelaron | Es la cifra Citas con el periodo de un solo día |
+| citas_realizadas | Realizadas | todas | De las citas de hoy, cuántas el closer atendió | número de citas de hoy con llamada atendida | Atendida: show, compromiso de pago, cerrada o perdida |
+| citas_canceladas | Canceladas | todas | Cuántas citas de hoy se cancelaron | número de citas de hoy con resultado cancelado | No cuentan en Citas ni en Asistencia |
+| citas_pendientes | Sin resultado | todas | Citas de hoy cuya hora ya pasó y el closer no marcó cómo terminaron | número de citas pasadas que siguen en «agendada» | Misma regla que Sin resultado de Comercial. Es un dato que falta, no una inasistencia |
+| show_por_cita | % de show por cita | todas | De las citas que ya debían ocurrir, qué parte ocurrió | Citas que ocurrieron ÷ Citas que ya debían ocurrir | Citas que ya debían ocurrir: las no canceladas cuya hora ya pasó. Las que siguen sin marcar no son no shows: se avisa «parcial, N sin marcar»; si ninguna tiene resultado se muestra «—», no 0 %. Es otra pregunta que Asistencia (esa cuenta personas, esta cuenta citas) |
+| nacio_agenda_del_dia | Agenda del día | todas | De las ventas del día, cuántas salieron de una llamada hecha ese mismo día | número de ventas del día con llamada realizada el día de la venta | Llamada realizada: show, compromiso de pago, cerrada o perdida. Los días son de Bogotá. Cada venta cae en exactamente una de las tres: Agenda del día, Seguimiento o Sin llamada |
+| nacio_seguimiento | Seguimiento | todas | De las ventas del día, cuántas salieron de una llamada de un día anterior | número de ventas del día cuya última llamada realizada fue un día anterior | Una llamada posterior a la venta no la explica |
+| nacio_sin_llamada | Sin llamada | todas | De las ventas del día, cuántas no tienen ninguna llamada realizada | número de ventas del día sin llamada realizada hasta ese día | No se inventa un origen para una venta sin deal |
+| objetivo_del_dia | Objetivo del día | todas | Cuántas ventas hay que cerrar hoy para ir al ritmo del objetivo | (Objetivo − Ventas hasta ayer) ÷ Días hábiles que quedan, contando hoy | Objetivo: el del mes. Las ventas de hoy no se descuentan (vender 4 contra un objetivo de 2 no da 200 %). El último día hábil da el faltante entero. Es la misma regla de «Por día hábil» |
+| leads_que_hacen_falta | Leads que hacen falta | todas | Cuántos leads por día se necesitan para llegar al objetivo de cupos, con las tasas que se miden hoy | Ventas por día necesarias ÷ Cierre de ventas ÷ Asistencia ÷ Conversión de lead a cita | Ventas por día necesarias: lo que falta ÷ días hábiles que quedan. Cierre de ventas y Asistencia: las medidas en la ventana de «Días para medir el ritmo». Conversión de lead a cita: citas agendadas ÷ registros del programa en esa ventana. Con menos personas que el «Mínimo para confiar en una tasa» no se usa y sale «—» con su razón. Se calcula, no se escribe |
+
+Pie: Citas del día, Realizadas, Canceladas y Sin resultado también salen en el PDF de Hoy; Llevamos, Cupos vendidos y Leads también
+salen en "¿Vamos a llegar?"; Envíos y Leads, en el Hub de todos los programas. Asistencia, Cierre de ventas, Vendido, Recaudado y Por
+cobrar se pintan aquí con el texto de Comercial.
+
+#### «¿Vamos a llegar?» (norte)
+
+Se lee por mes y por cohorte, en cupos y en USD; no sigue ningún filtro y el objetivo no se reparte entre closers.
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |
+|---|---|---|---|---|---|
+| esperado_a_hoy | Esperado a hoy | todas | Cuántas ventas debería llevar la cohorte hoy si vendiera parejo | Objetivo ÷ Días hábiles de la venta × Días hábiles transcurridos | Días hábiles de la venta: los de lunes a viernes entre la apertura y el cierre de la venta de la cohorte, festivos incluidos. Antes de la apertura el esperado es 0; pasado el cierre es el objetivo entero. Es la marca sobre la barra |
+| faltan | Faltan | todas | Cuántas ventas faltan para el objetivo | Objetivo − Llevamos | No baja de 0. Llevamos: las ventas de la cohorte hasta hoy |
+| por_dia_habil | Por día hábil | todas | Cuántas ventas hay que cerrar por día hábil que queda para llegar | Faltan al abrir hoy ÷ Días hábiles que quedan, contando hoy | Las ventas de hoy no se descuentan. Pasado el cierre da el faltante entero. En USD, los cupos se valoran al precio de la cohorte |
+| proyeccion | Proyección | todas | Cuántas ventas tendrá la cohorte al cierre si se mantiene el ritmo de hoy | Llevamos + Ritmo × Días hábiles que quedan | Ritmo: ventas por día hábil de los últimos 5, 10 o 20 días hábiles (los que elija «Días para medir el ritmo»), recortados a la apertura de la venta. Si el ritmo no se puede medir sale «—» con su razón. En USD, valora los cupos que faltan al precio de la cohorte |
+
+Pie: Llevamos se define en Hoy. Las mismas cifras se leen en el cumplimiento de la cohorte y en Hoy.
+
+#### Mi espacio
+
+Universo: **tuyas**, «Solo tus deals y tus llamadas» (DC-4). No son fichas nuevas: cada fila declara solo lo que cambia respecto de la
+ficha de la clave, que se define arriba. Cada cifra va al closer por su propio criterio: la cita, a quien tomó la llamada; la venta
+y la comisión, al dueño del deal; la caja, a quien registró el abono.
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |
+|---|---|---|---|---|---|
+| citas | Citas | tuyas | Cuántas citas tuyas caen en el periodo, sin las canceladas | la de Comercial | Solo las llamadas que tomaste tú |
+| shows | Realizadas | tuyas | Cuántas de tus citas ocurrieron | la de Comercial | Solo las llamadas que tomaste tú |
+| no_asistio | No asistió | tuyas | Cuántas de tus citas la persona no se presentó | la de Comercial | Solo las llamadas que tomaste tú |
+| ventas | Ventas | tuyas | Cuántas ventas tuyas hay en el periodo | la de Comercial | Solo los deals de los que eres dueño |
+| entro_a_caja | Entró a caja | tuyas | Cuánta plata entró en abonos que tú registraste | la de Comercial | Solo los abonos que registraste tú, por moneda |
+| comision | Comisión | tuyas | Cuánto te corresponde por tus ventas | la de Dinero | Solo tus ventas, con el porcentaje fijado en cada una |
+| llamadas_sin_resultado | Sin resultado | tuyas | Cuántas citas tuyas ya pasaron y no has marcado | la de Comercial | Solo tus citas |
+
+Pie: la tarjeta «Con show y vendidos hoy» no tiene clave (ver dudas).
+
+#### Parámetros
+
+Lo que una persona escribe o elige; nadie lo calcula, salvo los dos objetivos derivados. No aparecen como cifra de resultado: su
+explicación se abre desde donde se configuran.
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |
+|---|---|---|---|---|---|
+| meta | Objetivo | todas | Cuántos cupos quiere vender la empresa en la cohorte; es el mismo valor que «Objetivo de la cohorte» | lo escribe una persona en Configuración de Hoy | Cupos: ventas. No se reparte entre closers: un closer aporta ventas, no tiene objetivo propio |
+| objetivo_cohorte | Objetivo de la cohorte | todas | Cuántos cupos quiere vender la empresa en toda la cohorte | lo escribe una persona en Configuración de Hoy | Es el valor del que se reparten el esperado, lo que falta y la proyección |
+| objetivo_de_leads | Objetivo de leads | todas | Cuántos leads por día se propuso conseguir la cohorte | lo escribe una persona en Configuración de Hoy | Leads: personas nuevas del día. Nunca se reemplaza por «Leads que hacen falta», que se calcula aparte. En la semana se multiplica por los días hábiles |
+| dias_del_ritmo | Días para medir el ritmo | todas | Cuántos días hábiles hacia atrás se miran para medir qué tan rápido se vende y se convierte | se elige en Configuración de Hoy: 5, 10 o 20 | Por defecto 10. Un valor fuera de esas opciones vuelve a 10 sin fallar. Es un ajuste de pantalla, no una cifra |
+| citas_minimas | Mínimo para confiar en una tasa | todas | Cuántas personas con cita hacen falta para usar una tasa medida al proyectar | lo escribe una persona en Configuración de Hoy (ajuste del programa) | Por defecto 20. Cuenta personas con cita atendida o no asistida; con menos, la tasa no se usa y la cifra sale «—» con su razón |
+| objetivo_mes | Objetivo del mes | todas | Cuántos cupos de la cohorte tocan en el mes | Σ por cohorte de Objetivo × Días hábiles del mes dentro de la venta ÷ Días hábiles de la venta | Se calcula, no se escribe. Se reparte por días hábiles y se suman las cohortes del programa que venden en el mes |
+| objetivo_semana | Objetivo de la semana | todas | Cuántos cupos toca vender de lunes a domingo | la parte del Objetivo del mes de esa semana, más lo que faltó vender en semanas anteriores | Se calcula, no se escribe. La compensación de semanas anteriores usa las ventas del mes |
+
+Pie: Objetivo del día, Esperado a hoy, Faltan, Por día hábil y Proyección se definen en Hoy y en «¿Vamos a llegar?».
+
+#### Dudas para Mani
+
+1. **Rótulos repetidos.** «Realizadas» es `shows` y `citas_realizadas`; «Sin resultado» es `llamadas_sin_resultado` y
+   `citas_pendientes` (misma fórmula en el diccionario); «Objetivo» (`meta`) y «Objetivo de la cohorte» son el mismo valor con dos
+   claves. ¿Se funden (un concepto, una ficha, N1) o quedan separadas por el periodo de un día? Recomiendo fundir las dos parejas de
+   «Sin resultado» y de «Objetivo»; `shows` y `citas_realizadas` se quedan separadas por el periodo.
+2. **Envíos: ¿completos o también parciales?** El diccionario lo dice dos veces distinto: la sección de hechos (§1.1) y la
+   decisión D3 del reporte diario dicen solo completos; la fila de métricas (§3.1) y el vocabulario dicen «completo o parcial».
+   Escribí «completos», que es lo que cuenta el código (`filtroDeEnvios`), y el vocabulario del Hub habría que corregirlo.
+3. **Asistencia y De cita a venta en §2.1.** §2.1 define Asistencia como «Citas realizadas ÷ Citas del grupo» y De cita a venta como
+   «Ventas ÷ Agendadas». El diccionario las define por persona: Asistencia = personas con cita realizada ÷ personas con resultado
+   marcado; De cita a venta = personas vendidas con cita realizada ÷ personas del grupo. Seguí el diccionario; la §2.1 debe
+   reescribirse en el mismo commit.
+4. **Objetivo del día: ¿del mes o de la cohorte?** La fila de métricas dice que usa el objetivo del mes; la tabla del reporte
+   diario (§3.5) habla de la meta dinámica de la cohorte activa. Escribí «del mes» (la fila del concepto, la ficha dice
+   `derivada de objetivo_mes`).
+5. **Quién edita los parámetros.** El diccionario dice «lo escribe una persona en la Configuración de Hoy» para el objetivo de la
+   cohorte y el objetivo de leads, y «ajuste del programa» para el mínimo de una tasa, pero no dice con qué rol. La ficha pide
+   «lo escribe [quién]»: ¿gerente y developer (administran), también el paid trafficker?
+6. **Compensación semanal.** El diccionario dice «con la compensación de lo que falte de semanas anteriores» sin la fórmula
+   exacta; mi texto de Objetivo de la semana es una paráfrasis, no una fórmula. Necesito la regla del ticket 146 para escribirla.
+7. **Cifras visibles sin clave en el registro.** Comercial: los siete escalones de la escalera y su agrupación, «Grupo de citas»,
+   «Citas sin marcar», «Deals abiertos», «Deals sin dueño», «Ventas sin llamada registrada». Mi espacio: «Con show y vendidos hoy».
+   Hub de todos: «Descuento promedio» y «Tasas por programa». ¿Se registran como claves nuevas o son variantes de las existentes
+   («Citas sin marcar» parece ser `llamadas_sin_resultado`)? El diccionario ya las define en §3.1 y §3.6.
+8. **Dónde se ven `deals_desde_completo`, `deals_desde_parcial` y `cupos_con_caja`.** El audit del 10-nov dice que las dos
+   primeras no tienen superficie con el rótulo del vocabulario; las puse en Comercial por su lugar en el diccionario (embudo de
+   deals). Si ninguna pantalla las pinta, ¿la ficha se escribe igual o se retiran del registro? `cupos_con_caja` solo sale en las
+   gráficas de Dinero.
+9. **`shows` y `no_asistio` en Comercial.** El inventario de Comercial no las pinta como tarjeta; las puse ahí porque el
+   diccionario las define para el periodo y alimentan las listas. Si solo viven dentro de «Cómo se calcula» de Asistencia, no
+   necesitan ficha propia de pantalla.
+10. **Universo de los parámetros.** Puse «todas» por la regla de la tarea; un objetivo no tiene universo. ¿Se muestra vacío?
+11. **Claves de §2.1 sin ficha con su nombre.** `presupuesto`, `agendas_dia`, `agendas_req`, `inversion_req`, `roas_proy`,
+    `envios_sin_id`, `registros_sin_utm`, `ventas_sin_anuncio` y `embudo` no están en el registro; el diccionario define varias
+    (agendas por día, inversión por día necesaria, ROAS proyectado) en §3.2 y §3.4. No las toqué aquí: son de §2.1 y de la fase E-1
+    paso 3.
+12. **`comision` y `descuento` en el Hub de todos.** No encontré pestaña para la comisión en el inventario; la puse en Dinero.
+    Si va en Comercial por closer, se mueve.
+
 ## 3. Filtros (compartidos por las dos vistas de Pauta)
 
 Barra en una tarjeta debajo del título, con etiquetas arriba de cada control:
