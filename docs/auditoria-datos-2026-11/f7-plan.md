@@ -309,7 +309,7 @@ Formato: **depende** (tickets que deben estar `done`), **calientes** (archivos d
 - **Depende:** 361 (el código deja de leer primero), 391 (para `calls.closer_id`), 389 (la ingesta ya no escribe campos muertos).
 - **Calientes:** `lib/db/schema.ts`, `drizzle/`, `lib/queries/fuentes.ts`, `lib/catalogo/canales.ts`, `lib/catalogo/areas.ts`,
   `lib/ingesta/mapeo-webhook.ts`, `lib/sheets/`, `tests/columnas-sin-lector-guardian`.
-- **Migración:** M9 a M14, una por grupo para poder revertir (§4). ADR 0126.
+- **Migración:** M9 a M14, una por grupo para poder revertir (§4). ADR 0131.
 - **Done cuando:**
   - [ ] Por cada grupo: el código deja de leer y escribir, se despliega, y solo después va la migración.
   - [ ] El `drizzle-kit generate` de cada grupo leído a mano (los `DROP TABLE ... CASCADE` y los renombres falsos son el riesgo

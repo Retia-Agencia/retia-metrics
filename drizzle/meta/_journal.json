@@ -988,6 +988,20 @@
       "when": 1794632226005,
       "tag": "0140_retiro_de_canales_y_areas",
       "breakpoints": true
+    },
+    {
+      "idx": 141,
+      "version": "7",
+      "when": 1794632834421,
+      "tag": "0141_leads_sin_columnas_muertas",
+      "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1794632909726,
+      "tag": "0142_calls_sin_columnas_muertas",
+      "breakpoints": true
     }
   ]
 }

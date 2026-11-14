@@ -593,13 +593,6 @@ export const leads = pgTable(
     emailNormalizado: text("email_normalizado").notNull(),
     nombre: text("nombre"),
     telefono: text("telefono"),
-    cargo: text("cargo"),
-    empresa: text("empresa"),
-    ciudad: text("ciudad"),
-    pais: text("pais"),
-    ingresoDeclarado: text("ingreso_declarado"),
-    urgencia: text("urgencia"),
-    porQueAplico: text("por_que_aplico"),
     // Sin UTM a proposito (ADR 0060, ticket 115): el origen es de cada envio
     // (`submissions`) y el de un deal es el envio que lo abrio. Un resumen por lead
     // mezclaba campos de clics distintos en una combinacion que nadie hizo.
@@ -607,18 +600,6 @@ export const leads = pgTable(
     fechaUltimaAplicacion: timestamp("fecha_ultima_aplicacion", { withTimezone: true }),
     /** Cuantas veces aplico la misma persona. Senal de intensidad, no personas distintas. */
     numAplicaciones: integer("num_aplicaciones").notNull().default(1),
-    /**
-     * El estado con el que la hoja clasifica al lead (ADR 0032). Es TEXTO y no un
-     * enum porque **el codigo no decide nada segun su valor**: lo escribe el sync
-     * copiandolo del formulario y lo lee una pantalla. Un enum obligaria a una
-     * migracion cada vez que el negocio agregue una casilla al formulario, que es
-     * justo lo que el ADR 0012 manda evitar cuando el valor es una instancia.
-     *
-     * Es la direccion contraria a `deals.etapa`, que SI es enum: ahi todo decide
-     * con el valor. No se contradicen; contestan la misma pregunta sobre datos
-     * distintos.
-     */
-    estado: text("estado").notNull().default("cola_setteo"),
     /**
      * Por donde entro la persona: por el formulario o creada a mano en el CRM (alta
      * manual, ADR 0044 punto 3). Es un tipo, no una fila: el conteo de leads contra la
@@ -640,8 +621,6 @@ export const leads = pgTable(
     puntaje: integer("puntaje"),
     leadQuality: text("lead_quality"),
     leadValue: text("lead_value"),
-    motivoDescarte: text("motivo_descarte"),
-    cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     /**
      * Quien TRAJO al lead (ADR 0044 punto 2, ticket 086): FK real a `users`, nunca texto
      * (ADR 0030). La escribe la ingesta desde el codigo del closer en `utm_content` de su
@@ -649,8 +628,6 @@ export const leads = pgTable(
      * reescribe una vez puesta. Traerlo no lo hace dueño (punto 4).
      */
     traidoPorUserId: uuid("traido_por_user_id").references(() => users.id, { onDelete: "restrict" }),
-    /** Fila original tal como vino de la hoja, para auditar sin volver a Sheets. */
-    raw: jsonb("raw"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -658,8 +635,6 @@ export const leads = pgTable(
     // ADR 0125: destino de las FK compuestas (lead_id, program_id) de `deals` y `lead_contactos`.
     unique("leads_id_programa_uq").on(t.id, t.programId),
     uniqueIndex("leads_programa_email_idx").on(t.programId, t.emailNormalizado),
-    index("leads_programa_estado_idx").on(t.programId, t.estado),
-    index("leads_cohorte_idx").on(t.cohortId),
     // ADR 0121 (389, N6): un lead de formulario nace con su fecha de primera aplicacion; la base lo exige.
     check("leads_formulario_con_fecha", sql`${t.entrada} <> 'formulario' OR ${t.fechaPrimeraAplicacion} IS NOT NULL`),
   ],
@@ -1285,14 +1260,10 @@ export const calls = pgTable(
      * apuntar. `restrict` porque borrar un deal con llamadas perderia historia.
      */
     dealId: uuid("deal_id"),
-    cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "set null" }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
-    /** Nombre del closer tal como aparece en la hoja. Se cruza contra users.closerId. */
-    closerId: text("closer_id"),
     /**
-     * Quien tomo la llamada, como FK real a `users` (ticket 057). `closerId` queda
-     * solo para lo que llega de la hoja: el texto copiado repite el ADR 0030. Nulo
-     * mientras la llamada este sin reclamar (la agendada que crea el sistema).
+     * Quien tomo la llamada, como FK real a `users` (ticket 057). Nulo mientras la llamada
+     * este sin reclamar (la agendada que crea el sistema).
      */
     closerUserId: uuid("closer_user_id").references(() => users.id, { onDelete: "restrict" }),
     /** Link de la cita en Calendly, que completa el closer al reclamar (ticket 057). */
@@ -1308,10 +1279,9 @@ export const calls = pgTable(
     fechaAgenda: timestamp("fecha_agenda", { withTimezone: true }),
     fechaLlamada: timestamp("fecha_llamada", { withTimezone: true }),
     resultado: resultadoLlamadaEnum("resultado").notNull().default("agendada"),
-    motivoPerdida: text("motivo_perdida"),
     /** Fecha prometida de un compromiso de pago o nueva cita de una reagendada (ADR 0015). */
     fechaSeguimiento: timestamp("fecha_seguimiento", { withTimezone: true }),
-    /** Motivo de perdida como catalogo (ADR 0015). `motivoPerdida` queda solo para filas viejas de Sheets. */
+    /** Motivo de perdida como catalogo (ADR 0015). */
     motivoId: uuid("motivo_id").references(() => motivos.id, { onDelete: "restrict" }),
     notas: text("notas"),
     origen: text("origen").notNull().default("sheets"),
@@ -1345,7 +1315,6 @@ export const calls = pgTable(
       columns: [t.dealId, t.programId],
       foreignColumns: [deals.id, deals.programId],
     }).onDelete("restrict"),
-    index("calls_cohorte_closer_idx").on(t.cohortId, t.closerId),
     index("calls_deal_idx").on(t.dealId),
     index("calls_closer_user_idx").on(t.closerUserId),
     uniqueIndex("calls_huella_idx").on(t.programId, t.huellaFila),

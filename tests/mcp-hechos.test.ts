@@ -44,7 +44,7 @@ beforeEach(async () => {
   const [envio] = await db.insert(submissions).values({ leadId, sourceId: fuente.id, token: "hecho", fechaEnvio: new Date("2026-11-05T10:00:00-05:00"), utmSource: "instagram", utmMedium: "paid_social" }).returning();
   const [deal] = await db.insert(deals).values({ programId: programa.id, leadId, submissionOrigenId: envio.id, cohortId: cohorte.id, ownerUserId: closer.id, etapa: "ganado_parcial", valorVendidoUsd: "797" }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: "agendado", a: "ganado_parcial", userId: closer.id, fecha: new Date("2026-11-06T12:00:00-05:00") });
-  await db.insert(calls).values({ programId: programa.id, dealId: deal.id, cohortId: cohorte.id, closerUserId: closer.id, resultado: "show", fechaAgenda: new Date("2026-11-06T09:00:00-05:00"), fechaLlamada: new Date("2026-11-06T09:00:00-05:00"), origen: "app" });
+  await db.insert(calls).values({ programId: programa.id, dealId: deal.id, closerUserId: closer.id, resultado: "show", fechaAgenda: new Date("2026-11-06T09:00:00-05:00"), fechaLlamada: new Date("2026-11-06T09:00:00-05:00"), origen: "app" });
   await db.insert(abonos).values([
     { programId: programa.id, dealId: deal.id, fecha: "2026-11-07", monto: "100", moneda: "USD", registradoPorUserId: closer.id },
     { programId: programa.id, dealId: deal.id, fecha: "2026-11-07", monto: "200000", moneda: "COP", registradoPorUserId: closer.id },

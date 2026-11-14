@@ -182,9 +182,7 @@ export const registroDeals = {
 export const registroCalls = {
   id: identidad,
   dealId: restaurar(calls, "calls", "dealId"),
-  cohortId: sistema,
   programId: identidad,
-  closerId: sistema,
   closerUserId: restaurar(calls, "calls", "closerUserId"),
   linkCalendly: restaurarDatoDeCita("linkCalendly"),
   linkGrain: restaurar(calls, "calls", "linkGrain"),
@@ -192,7 +190,6 @@ export const registroCalls = {
   fechaAgenda: restaurarDatoDeCita("fechaAgenda"),
   fechaLlamada: restaurar(calls, "calls", "fechaLlamada"),
   resultado: restaurarResultado,
-  motivoPerdida: sistema,
   fechaSeguimiento: restaurar(calls, "calls", "fechaSeguimiento"),
   motivoId: restaurar(calls, "calls", "motivoId"),
   notas: restaurar(calls, "calls", "notas"),

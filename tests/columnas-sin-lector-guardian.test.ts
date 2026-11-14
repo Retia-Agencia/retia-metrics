@@ -37,20 +37,6 @@ const GENERICOS = new Set([
 
 /** `tabla.campo` → hallazgo de F3 o ticket que lo retira. Una columna aquí NO tiene lector hoy. */
 const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
-  "calls.cohortId": "F3-04: la cohorte de un hecho es la de su deal; eliminar columna e índice",
-  "calls.closerId": "F3-05 / 401 M10: 0 pobladas; el closer de una llamada es solo closer_user_id",
-  "calls.motivoPerdida": "401 M10: texto de las filas viejas de Sheets; el motivo es motivo_id",
-  "leads.estado": "F3-06: 100 % cola_setteo, 0 lectores",
-  "leads.cohortId": "F3-06: 100 % nulo, 0 lectores",
-  "leads.cargo": "F3-06: 0 filas pobladas, 0 lectores",
-  "leads.empresa": "F3-06: 0 filas pobladas, 0 lectores",
-  "leads.ciudad": "F3-06 / 401 M9: 0 filas pobladas; se retiró su lectura (ficha, MCP, CSV)",
-  "leads.pais": "401 M9 (decisión de Mani, 9-nov): vacío en 3.760 leads; se retiró su lectura (Meta CAPI, ficha, MCP, CSV)",
-  "leads.ingresoDeclarado": "F3-06: 0 filas pobladas, 0 lectores",
-  "leads.urgencia": "F3-06: 0 filas pobladas, 0 lectores",
-  "leads.porQueAplico": "F3-06: 0 filas pobladas, 0 lectores",
-  "leads.motivoDescarte": "F3-06: 0 filas pobladas, 0 lectores",
-  "leads.raw": "F3-06: 0 filas pobladas, 0 lectores",
   "abonos.origen": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "cohorts.notas": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "deals.creadoPor": "385 F7: sin lector el 7-nov y no está en F3 (el rastro vive en change_log); decidir",
