@@ -582,6 +582,45 @@ describe("dashboard de todos los programas (ticket 095)", () => {
   });
 });
 
+describe("reporte diario de todos los programas (ticket 427)", () => {
+  async function correrReporte(busqueda: Record<string, string> = {}) {
+    const pagina = (await import("@/app/(app)/hub/reporte/page")).default;
+    try {
+      await pagina({ searchParams: Promise.resolve(busqueda) });
+      return "paso";
+    } catch (error) {
+      if (error instanceof NoEncontrado) return "notFound";
+      if (error instanceof Redireccion) return error.destino === "/login" ? "login" : "redireccion";
+      throw error;
+    }
+  }
+
+  it("solo consulta los programas visibles; uno fuera del alcance no aparece", async () => {
+    auth.mockResolvedValue(sesionGerenteLimitado);
+    const visible = { id: "p-visible", slug: "visible", nombre: "Visible" };
+    programasVisibles.mockResolvedValue([visible]);
+
+    expect(await correrReporte()).toBe("paso");
+    expect(armarReporteDiario).toHaveBeenCalledTimes(1);
+    expect(armarReporteDiario).toHaveBeenCalledWith(expect.objectContaining({ programId: visible.id }));
+    expect(armarReporteDiario.mock.calls.flatMap((llamada) => JSON.stringify(llamada))).not.toContain("p-ajeno");
+  });
+
+  it("sin programas visibles responde 404", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programasVisibles.mockResolvedValue([]);
+    expect(await correrReporte()).toBe("notFound");
+    expect(armarReporteDiario).not.toHaveBeenCalled();
+  });
+
+  it("usa la misma guarda del Hub: el closer recibe 404", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programasVisibles.mockResolvedValue([{ id: "p-1", slug: "programa-a", nombre: "Programa A" }]);
+    expect(await correrReporte()).toBe("notFound");
+    expect(armarReporteDiario).not.toHaveBeenCalled();
+  });
+});
+
 describe("índice de Ajustes por rol en el servidor (ticket 224, ADR 0082)", () => {
   for (const [nombre, ruta] of PAGINAS_DE_AJUSTES) {
     it(`${nombre} REBOTA a un closer a su vista (ya no entra)`, async () => {
