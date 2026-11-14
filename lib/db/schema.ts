@@ -774,8 +774,6 @@ export const submissions = pgTable(
     token: text("token").notNull(),
     esParcial: boolean("es_parcial").notNull().default(false),
     fechaEnvio: timestamp("fecha_envio", { withTimezone: true }),
-    /** El `estado` tal como lo escribio la hoja, sin interpretar (ADR 0032). */
-    estadoHoja: text("estado_hoja"),
     utmSource: text("utm_source"),
     utmMedium: text("utm_medium"),
     utmCampaign: text("utm_campaign"),
@@ -803,13 +801,6 @@ export const submissions = pgTable(
     utmTerm: text("utm_term"),
     utmContent: text("utm_content"),
     /**
-     * 🩸 El orden de los envios se decide por AQUI y no por `fechaEnvio`: los
-     * parciales de Typeform traen una fecha placeholder (la misma familia del
-     * `1/1/0001` que ya envenenó el dedup). La posicion en la hoja no miente.
-     * Nulo para lo que entre por webhook, que no tiene hoja.
-     */
-    posicionEnHoja: integer("posicion_en_hoja"),
-    /**
      * La variable `estado` que mando el formulario, ya con el hecho de agendar aplicado
      * (`con_calendly` si la pregunta de agenda trae link). Es TEXTO (ticket 117) y se guarda
      * como llego (ADR 0004). Desde el ADR 0069 solo se lee el hecho de agendar
@@ -817,9 +808,8 @@ export const submissions = pgTable(
      * rellena con un supuesto.
      */
     calificacion: text("calificacion"),
-    /** El puntaje (T4) y la version de los pesos que lo produjo. Nulos sin pesos. */
+    /** El puntaje (T4); nulo mientras no haya pesos. */
     puntaje: integer("puntaje"),
-    versionPuntaje: integer("version_puntaje"),
     /** Etiquetas calculadas por Typeform; el CRM las recibe y muestra sin interpretarlas. */
     leadQuality: text("lead_quality"),
     leadValue: text("lead_value"),
