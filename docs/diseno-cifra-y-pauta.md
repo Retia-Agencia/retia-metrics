@@ -164,7 +164,7 @@ donde el audit tiene D-C abierta (§7).
 | ventas_sin_anuncio | Ventas sin anuncio identificado | pauta | Ventas de pauta sin saber qué anuncio trajo a la persona | número de ventas de pauta cuyo registro llegó sin id | — |
 | embudo | (nombre del paso) | todas | Cuántas personas llegaron a este paso del formulario | % que llega = Personas en este paso ÷ Personas que abrieron el formulario | Abrieron: cargaron la primera pregunta |
 
-### 2.2 El texto de las demás cifras del Hub (borrador para el sí de Mani, 13-nov)
+### 2.2 El texto de las demás cifras del Hub (aprobado por Mani el 13-nov, con las respuestas de abajo)
 
 Misma forma y mismas columnas que §2.1. Es el contenido a escribir en las fichas del registro, y la única fuente de cada fórmula es
 `docs/metricas.md` (si otro documento dice distinto, manda el diccionario; las discrepancias están en "Dudas para Mani", al final).
@@ -278,6 +278,22 @@ explicación se abre desde donde se configuran.
 | objetivo_semana | Objetivo de la semana | todas | Cuántos cupos toca vender de lunes a domingo | la parte del Objetivo del mes de esa semana, más lo que faltó vender en semanas anteriores | Se calcula, no se escribe. La compensación de semanas anteriores usa las ventas del mes |
 
 Pie: Objetivo del día, Esperado a hoy, Faltan, Por día hábil y Proyección se definen en Hoy y en «¿Vamos a llegar?».
+
+#### Respondidas por Mani (13-nov, noche). Mandan sobre las dudas de abajo.
+
+- **Asistencia, Cierre de ventas y De cita a venta:** sí. En palabras de la explicación, Asistencia = Realizadas ÷ Citas del grupo, y
+  De cita a venta = Ventas ÷ Agendadas ("tal cual"). **Lectura que se construye** (análisis de la sesión, sin cambiar ninguna cifra):
+  las dos se cuentan por persona, una por deal, sobre el grupo de citas que ya debían ocurrir, como dice `docs/metricas.md`; "Ventas"
+  son las del grupo que tuvieron su llamada y "Agendadas" las personas del grupo. Así §2.1 y §2.2 dicen lo mismo que el código de
+  Comercial y de Pauta (`razonAgendaAVenta`). Si la intención fuera otra cuenta (todas las ventas del periodo ÷ todas las citas
+  reservadas en el periodo), es otro número: va en un ticket propio con enmienda de D-A y N8, nunca dentro del 419, que no mueve cifras.
+- **Rótulos repetidos:** son el mismo concepto. Realizadas (`shows` y `citas_realizadas`) es de llamadas, y Sin resultado
+  (`llamadas_sin_resultado` y `citas_pendientes`) también. En E-1 queda **una clave por concepto** (la otra se retira o pasa a alias
+  del vocabulario, N4 y N7).
+- **Cifras sin clave:** todo lo que se pinta va registrado. E-1 crea la clave, la ficha y, si falta, la fila del diccionario de cada
+  cifra visible sin clave (escalones, Grupo de citas, Citas sin marcar, Deals abiertos, Deals sin dueño, Ventas sin llamada
+  registrada, Con show y vendidos hoy, Descuento promedio, Tasas por programa), reutilizando un concepto existente cuando lo sea.
+- El resto de las dudas lo resuelve E-1 con el diccionario como fuente; lo que no tenga fuente vuelve a Mani.
 
 #### Dudas para Mani
 

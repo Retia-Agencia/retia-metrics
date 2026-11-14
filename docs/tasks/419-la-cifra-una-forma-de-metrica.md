@@ -190,6 +190,9 @@ Las 43 claves del Hub, con su función, su fila del diccionario y su lista, est�
    `citas_minimas`) llevan `que` y, como fórmula, "lo escribe [quién] en [dónde]".
 5. `explicacionDePauta(clave)` se reemplaza por una función que arma la `ExplicacionDeConcepto` desde la ficha más la variante
    (DC-2). Borrar `lib/metricas/explicaciones-de-pauta.ts` y mover sus tipos a `lib/metricas/cifra.ts`.
+5b. **(13-nov, noche) Mani aprobó §2.2** con sus respuestas (diseño §2.2, "Respondidas por Mani"): una clave por concepto
+   (Realizadas y Sin resultado se unifican), toda cifra visible queda registrada, y §2.1 se reescribe en palabras por persona
+   (Asistencia = Realizadas ÷ Citas del grupo; De cita a venta = Ventas ÷ Agendadas del grupo) sin mover ningún número.
 6. Test nuevo en `tests/registro-de-metricas.test.ts`: toda ficha registrada tiene `que`, `formula` y `variables` (trinquete en 0
    desde el primer día: no nace con excepciones). `tests/explicacion-sin-jerga.test.ts` pasa a recorrer el registro entero.
 7. **Costura con el MCP y WhatsApp:** con el texto en la ficha, `capacidades` del MCP y el mensaje del semáforo pueden leerlo. No se
