@@ -56,3 +56,5 @@ Auditoría: [`docs/auditoria-metricas-2026-10-30.md`](../auditoria-metricas-2026
   los pendientes del contrato (hoy revisión manual). Test chico: para cada fila que cite "ADR NNNN", el archivo existe en
   `docs/adr/` y no está en el índice de retirados.
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y cualquier ADR que cambie quedan reescritos en el mismo commit, título e índice incluidos.
+
+**14-nov (avance, sin cerrar casillas).** Hechos los dos tests que no necesitan decisión: `tests/reporte-whatsapp-registro.test.ts` (con `lib/reporte-whatsapp/conceptos.ts`: hoy el semáforo enciende una sola métrica tipada, `costo_por_agenda` → `costo_agenda_crm`; gasto y agendas del mensaje aún no son métricas con clave) y `tests/adr-de-las-filas.test.ts` (ningún ADR citado en `docs/metricas.md` falta ni está retirado). Siguen abiertas: (a) rótulos y formato del mensaje desde el vocabulario y `lib/format.ts` (cambio visible: confirmar con Mani y coordinar con Juanito) y (c) el dorado mensaje = Hub › Pauta.
