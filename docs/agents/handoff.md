@@ -33,21 +33,34 @@ nombrados, git pull --rebase antes de push. Al cerrar, actualiza docs/agents/han
 ```
 ## Memory
 
-### 13-nov (cierre) · main en verde y carril D hasta el 368 (sesión de Mani, tres Codex en worktrees)
-- **Main en verde (`32818b16`, tag `cp-20261113-2`).** El rojo de E-1 eran `deals_sin_dueno` y `ventas_sin_anuncio` sin `criterioDeCloser`
-  (ahora `dueno_del_deal`) y el guardián de sinónimos, que cazaba "Agendas por día" y "Registros de pauta/sin origen": quedan como
-  `NOMBRES_APROBADOS` por frase exacta (boceto aprobado). **Si Mani prefiere renombrar a Agendadas/Envíos, es un cambio de copia del boceto.**
+### 13-nov (cierre) · main en verde, carril D hasta el 368 y estado de los dos carriles (sesión de Mani, tres Codex en worktrees)
+- **Main en verde:** CI success en `f8ded346` (incluye lo de Alejo, `bb1ff447`). Último checkpoint con tag: `cp-20261113-2` (`32818b16`);
+  lo posterior (390 deuda, 411 F3, 368, 358 tests, tickets 427 a 429) aún no tiene tag: el siguiente checkpoint lo cubre.
+- **Paso 0.** El rojo de E-1 eran `deals_sin_dueno` y `ventas_sin_anuncio` sin `criterioDeCloser` (ahora `dueno_del_deal`) y el guardián de
+  sinónimos, que cazaba "Agendas por día" y "Registros de pauta/sin origen": quedan como `NOMBRES_APROBADOS` por frase exacta (boceto aprobado).
+  Si Mani prefiere renombrar a Agendadas/Envíos, es un cambio de copia del boceto.
 - **390 deuda (`60b5eef9`).** `dashboard.ts`, `proyeccion-roas.ts` y `tasas-del-grupo.ts` usan los estados de `lib/deals/resultados-de-llamada.ts`
-  (`agendadaSql`, `showSql`, `estaAgendada`...). Queda `components/dashboard/hoy/citas.tsx` (Hoy, carril P, 419 E-3). Siguen abiertas las casillas de
-  cobertura medida (citas pasadas sin resultado por semana, antes y después; consulta a producción), el "parcial" del Hub (351) y N8.
-- **411 F3 completo (`06a80349`).** `CONCEPTOS_SIN_LISTA_EN_EL_MCP` (48, trinquete) y `capacidades({ concepto })`. Las 48 razones las escribió Codex
-  leyendo fichas; no se verificó una por una contra los hechos reales. Faltan F4 y F5.
+  (`agendadaSql`, `showSql`, `estaAgendada`...). Queda `components/dashboard/hoy/citas.tsx` (Hoy, carril P). Abiertas: cobertura medida (citas pasadas
+  sin resultado por semana, antes y después; consulta a producción), el "parcial" del Hub (351) y N8.
+- **411 F3 completo (`06a80349`).** `CONCEPTOS_SIN_LISTA_EN_EL_MCP` (48, trinquete) y `capacidades({ concepto })`. Las 48 razones las escribió Codex leyendo
+  fichas; no se verificó una por una contra los hechos reales. Faltan F4 (medición, migración propia) y F5 (descubrimiento y evaluaciones).
 - **368 (`f52830d8`).** Regla puntual del Re-agenda en `lib/deshacer/reagenda.ts`. Efecto lateral a revisar: `moverEtapa` ahora deja rastro de TODO cambio de
-  pendiente (antes solo en correcciones) y `rastro.ts` tiene una llave `desdeDeshacerReagenda` (guardián del motor la reconoce solo en ese módulo).
-- **Sin hacer:** 358 (espera DA-7 y confirmar con Mani/Juanito el cambio visible del mensaje de WhatsApp; el test de contrato→registro y el del título del ADR
-  no necesitan decisión) y 401 (una migración a la vez, con ok de Mani). **Preguntas a Mani:** ticket para el PDF del reporte diario y para el push de Juanito; qué hacer
-  con Envíos completos o parciales y la compensación de `objetivo_semana`.
-- **No verificado:** suite completa (la corre el CI de estos pushes), `npm run build`, la app abierta.
+  pendiente (antes solo en correcciones) y `rastro.ts` tiene la llave `desdeDeshacerReagenda` (el guardián del motor la acepta solo en ese módulo).
+- **358 (`f8ded346`, sin cerrar casillas).** `tests/reporte-whatsapp-registro.test.ts` + `lib/reporte-whatsapp/conceptos.ts` (hoy una sola métrica tipada,
+  `costo_por_agenda`; gasto y agendas del mensaje aún no tienen clave) y `tests/adr-de-las-filas.test.ts` (sin citas rotas). Faltan: rótulos y formato del
+  mensaje desde el vocabulario (cambio visible: confirmar con Mani y Juanito, DM-1) y el dorado mensaje = Hub › Pauta. DA-7 espera a Gerencia.
+- **Tickets nuevos (decididos hoy por Mani):** 427 PDF del reporte diario con todos los programas (D-1 a D-3 abiertas), 428 push de Juanito por registros
+  pendientes (D-1 a D-4), 429 tres textos del registro sin fuente (Envíos, compensación de `objetivo_semana`, `agendas_meta`; D-1 y D-2).
+- **Codex:** la cuota se agotó a las 21:38 y vuelve el 14-nov 1:16 a.m.; los tests del 358 los escribió Claude por orden de Mani.
+- **Lo que falta, de Mani (carril D):** el checkpoint (CI verde, tag `cp-AAAAMMDD-N`); 401 (migraciones M11 en adelante, una a una, con su ok antes de aplicar
+  en producción); resto del 358; 411 F4 y F5 (incluye conectar un cliente real y comparar una cifra MCP = Hub = WhatsApp); 390 (3 casillas); responder 427, 428
+  y 429; carril H (Michael antes del 30-nov, Q-1 a Q-9, DM-8, Majo Sánchez, login de Daniel, sesión presencial con Daniel el vie 20-nov 8:00 a 12:00, ver `docs/plan-reparto.md` §4).
+- **Lo que falta, de Alejo (carril P, 419):** E-2 va por constructores puros sin tocar pantallas: hechos Comercial (cifras clave, tabla de closers, recorridos), Dinero,
+  Hoy (cifras, embudo, citas, pendientes y closers) y Norte (`bb1ff447`). Falta el punto de las gráficas de Dinero y lo que su "Falta de E-2" nombra en el ticket 419.
+  Luego **E-3** (las pantallas, una pestaña por commit: Comercial → Dinero → Hoy → "¿Vamos a llegar?", con `npm run build` en cada commit y comparado con el boceto en
+  claro, oscuro y 375 px; la tabla §2.2 ya la aprobó Mani el 13-nov), E-3 de Hoy debe sacar la deuda de `components/dashboard/hoy/citas.tsx` (390); luego «Ver solo»,
+  414, 415, 422 y E-4 a E-7. Tiene que estar con Comercial hecho para la sesión del 20-nov. No toca `lib/metricas/registro.ts` (carril D).
+- **No verificado:** `npm run build`, la app abierta, la suite completa en local (la corre el CI).
 
 ### 13-nov (noche) · 419 E-1, 390 y 411 F3 en main (sesión de Mani, carril D, tres Codex en worktrees)
 - **419 E-1 (`cfe27fd0`).** El texto de las explicaciones vive en la ficha; `explicacionDe` + `VARIANTES_DE_PAUTA` en
