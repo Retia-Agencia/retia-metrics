@@ -14,6 +14,8 @@ export interface EntradaDeLlamada {
   resultado: "ok" | "error" | "denegado" | "tope";
   codigoError: string | null;
   duracionMs: number;
+  bytesRespuesta?: number;
+  consultas?: number;
   cliente: string | null;
 }
 

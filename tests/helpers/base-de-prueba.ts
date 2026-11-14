@@ -6,6 +6,7 @@ import { readFile } from "node:fs/promises";
 import { inject } from "vitest";
 import * as schema from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { loggerDeConsultasMcp } from "@/lib/mcp/contador-de-consultas";
 import { volcarBaseMigrada } from "./volcar-base-migrada";
 
 /**
@@ -94,7 +95,7 @@ function comoPostgresJs(cliente: PGlite): PGlite {
 export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
   plantilla ??= cargarPlantilla();
   const cliente = comoPostgresJs(new PGlite({ loadDataDir: await plantilla, extensions: { btree_gist } }));
-  const db = drizzle(cliente, { schema });
+  const db = drizzle(cliente, { schema, logger: loggerDeConsultasMcp });
   return {
     db: db as Db,
     cerrar: () => cliente.close(),

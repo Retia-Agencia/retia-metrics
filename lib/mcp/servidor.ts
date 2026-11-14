@@ -6,6 +6,11 @@ import { herramientasPara } from "./herramientas";
 import type { ContextoMcp, Herramienta } from "./herramientas/tipos";
 import { sesionDeToken } from "./sesion";
 import { esVistaValida, PREFIJO_SUPLANTACION } from "@/lib/auth/vista";
+import { conContadorDeConsultas } from "./contador-de-consultas";
+
+function bytesDe(respuesta: unknown): number {
+  return Buffer.byteLength(JSON.stringify(respuesta), "utf8");
+}
 
 function clienteDe(server: McpServer): string | null {
   const cliente = server.server.getClientVersion();
@@ -62,13 +67,14 @@ function registrarUna<E extends z.ZodObject>(
         destructiveHint: herramienta.destructiva ?? false,
       },
     },
-    async (argumentos) => {
+    async (argumentos) => conContadorDeConsultas(async (consultas) => {
       const inicio = Date.now();
       const ahora = new Date();
       const cliente = clienteDe(server);
       const espera = await segundosDeEspera(contextoBase.db, contextoBase.tokenId, ahora);
       if (espera !== null) {
         const mensaje = `Muchas consultas seguidas: espera ${espera} segundos.`;
+        const respuesta = { isError: true, content: [{ type: "text" as const, text: mensaje }] };
         await registrarLlamada(contextoBase.db, {
           tokenId: contextoBase.tokenId,
           userId: contextoBase.session.user.id,
@@ -78,9 +84,11 @@ function registrarUna<E extends z.ZodObject>(
           resultado: "tope",
           codigoError: "TOPE",
           duracionMs: Date.now() - inicio,
+          bytesRespuesta: bytesDe(respuesta),
+          consultas: consultas(),
           cliente,
         });
-        return { isError: true, content: [{ type: "text", text: mensaje }] };
+        return respuesta;
       }
 
       let userIdVista: string | null = null;
@@ -147,10 +155,12 @@ function registrarUna<E extends z.ZodObject>(
         resultado,
         codigoError,
         duracionMs: Date.now() - inicio,
+        bytesRespuesta: bytesDe(respuesta),
+        consultas: consultas(),
         cliente,
       });
       return respuesta;
-    },
+    }),
   );
 }
 

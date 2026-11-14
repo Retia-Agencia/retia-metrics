@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "./schema";
+import { loggerDeConsultasMcp } from "@/lib/mcp/contador-de-consultas";
 
 type DB = ReturnType<typeof crear>;
 
@@ -20,7 +21,7 @@ function crear() {
   // un statement revienta con "prepared statement does not exist" — y solo en
   // produccion, porque PGlite no pasa por ningun pooler.
   const cliente = postgres(connectionString, { prepare: false });
-  return drizzle(cliente, { schema });
+  return drizzle(cliente, { schema, logger: loggerDeConsultasMcp });
 }
 
 /**

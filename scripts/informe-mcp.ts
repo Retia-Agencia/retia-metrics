@@ -2,6 +2,10 @@ import "./load-env";
 import { and, asc, gte, lt, sql } from "drizzle-orm";
 import { db } from "../lib/db";
 import { mcpLlamadas } from "../lib/db/schema";
+import type { Db } from "../lib/db/tipos";
+
+// 64 KiB conserva margen para instrucciones y conversación en clientes LLM con contexto limitado.
+export const TOPE_BYTES_POR_DEFECTO = 64 * 1024;
 
 /**
  * Informe de solo lectura del MCP (ticket 411, F0 y línea base del F4): por herramienta, cuántas llamadas,
@@ -24,13 +28,14 @@ function fecha(texto: string | undefined, nombre: string): Date | undefined {
   return valor;
 }
 
-async function main() {
-  const hasta = fecha(argumento("hasta"), "hasta") ?? new Date();
-  const dias = Number(argumento("dias") ?? 7);
-  const desde = fecha(argumento("desde"), "desde") ?? new Date(hasta.getTime() - dias * 86_400_000);
+export async function datosDelInforme(
+  base: Db,
+  desde: Date,
+  hasta: Date,
+) {
   const ventana = and(gte(mcpLlamadas.creadoEn, desde), lt(mcpLlamadas.creadoEn, hasta));
 
-  const porHerramienta = await db
+  const porHerramienta = await base
     .select({
       herramienta: mcpLlamadas.herramienta,
       llamadas: sql<number>`count(*)::int`,
@@ -38,13 +43,17 @@ async function main() {
       p50: sql<number | null>`percentile_cont(0.5) within group (order by ${mcpLlamadas.duracionMs})::int`,
       p95: sql<number | null>`percentile_cont(0.95) within group (order by ${mcpLlamadas.duracionMs})::int`,
       maximo: sql<number | null>`max(${mcpLlamadas.duracionMs})`,
+      bytesP50: sql<number | null>`percentile_cont(0.5) within group (order by ${mcpLlamadas.bytesRespuesta})::int`,
+      bytesP95: sql<number | null>`percentile_cont(0.95) within group (order by ${mcpLlamadas.bytesRespuesta})::int`,
+      consultasPromedio: sql<number | null>`avg(${mcpLlamadas.consultas})::float8`,
+      sobreTope: sql<number>`count(*) filter (where ${mcpLlamadas.bytesRespuesta} > ${TOPE_BYTES_POR_DEFECTO})::int`,
     })
     .from(mcpLlamadas)
     .where(ventana)
     .groupBy(mcpLlamadas.herramienta)
     .orderBy(asc(mcpLlamadas.herramienta));
 
-  const fallas = await db
+  const fallas = await base
     .select({
       herramienta: mcpLlamadas.herramienta,
       resultado: mcpLlamadas.resultado,
@@ -55,6 +64,15 @@ async function main() {
     .where(and(ventana, sql`${mcpLlamadas.resultado} <> 'ok'`))
     .groupBy(mcpLlamadas.herramienta, mcpLlamadas.resultado, mcpLlamadas.codigoError)
     .orderBy(asc(mcpLlamadas.herramienta));
+
+  return { porHerramienta, fallas, ventana };
+}
+
+async function main() {
+  const hasta = fecha(argumento("hasta"), "hasta") ?? new Date();
+  const dias = Number(argumento("dias") ?? 7);
+  const desde = fecha(argumento("desde"), "desde") ?? new Date(hasta.getTime() - dias * 86_400_000);
+  const { porHerramienta, fallas, ventana } = await datosDelInforme(db, desde, hasta);
 
   console.log(`MCP · ${desde.toISOString()} → ${hasta.toISOString()}`);
   console.table(porHerramienta);
@@ -68,6 +86,8 @@ async function main() {
         resultado: mcpLlamadas.resultado,
         codigo: mcpLlamadas.codigoError,
         ms: mcpLlamadas.duracionMs,
+        bytes: mcpLlamadas.bytesRespuesta,
+        consultas: mcpLlamadas.consultas,
         cliente: mcpLlamadas.cliente,
       })
       .from(mcpLlamadas)
@@ -79,9 +99,11 @@ async function main() {
   }
 }
 
-main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
-    process.exit(1);
-  });
+if (process.argv[1]?.endsWith("informe-mcp.ts")) {
+  main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exit(1);
+    });
+}
