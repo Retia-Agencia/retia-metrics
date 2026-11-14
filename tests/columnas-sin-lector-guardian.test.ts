@@ -52,7 +52,6 @@ const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
   "leads.porQueAplico": "F3-06: 0 filas pobladas, 0 lectores",
   "leads.motivoDescarte": "F3-06: 0 filas pobladas, 0 lectores",
   "leads.raw": "F3-06: 0 filas pobladas, 0 lectores",
-  "programs.recordPersonasPorDiaHabil": "401 M12: el seed ya no la escribe; eliminar",
   "abonos.origen": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "cohorts.notas": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "deals.creadoPor": "385 F7: sin lector el 7-nov y no está en F3 (el rastro vive en change_log); decidir",

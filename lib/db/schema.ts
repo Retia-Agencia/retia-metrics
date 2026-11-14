@@ -193,8 +193,6 @@ export const users = pgTable(
     rol: rolEnum("rol").notNull().default("closer"),
     /** Identificador con el que este closer aparece en la BBDD de Google Sheets. */
     closerId: text("closer_id"),
-    /** Correo de la cuenta de Calendly del closer, para cruzar sus agendamientos. */
-    calendlyEmail: text("calendly_email"),
     /**
      * Capacidad de trabajar leads como closer sin dejar de ser lo que es (ticket 236, ADR 0084): un
      * gerente que también cierra. No es un rol: las rutas se siguen decidiendo por `rol`; solo amplía
@@ -354,8 +352,6 @@ export const programs = pgTable(
     muestraMinimaConversion: integer("muestra_minima_conversion").notNull().default(20),
     /** Dias que tarda en madurar una cohorte de citas: antes de eso su % de cierre todavia puede subir (352, C-17). Por defecto 30. */
     diasParaMadurar: integer("dias_para_madurar").notNull().default(30),
-    /** Maximo historico de personas por dia habil. Marca cuando una meta es inalcanzable por volumen. */
-    recordPersonasPorDiaHabil: integer("record_personas_por_dia_habil"),
     /**
      * Plantilla de lead del programa (ADR 0019, ticket 016): en que encabezado de SU
      * hoja esta cada campo. Misma forma que `sources.mapeoColumnas`.

@@ -967,6 +967,13 @@
       "when": 1794630784508,
       "tag": "0137_submissions_sin_columnas_muertas",
       "breakpoints": true
+    },
+    {
+      "idx": 138,
+      "version": "7",
+      "when": 1794631990593,
+      "tag": "0138_users_programs_sin_columnas_muertas",
+      "breakpoints": true
     }
   ]
 }
