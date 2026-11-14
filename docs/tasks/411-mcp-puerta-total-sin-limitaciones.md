@@ -230,3 +230,5 @@ cerrado. Es la prueba de aceptación de todo el frente de métricas y nadie la h
 - No copiar la proyección de una pantalla a la herramienta: importar el mismo módulo (regla del 6-nov, `AGENTS.md`).
 
 **14-nov, F4 (parte de base):** la migración 0143 agregó `mcp_llamadas.bytes_respuesta` y `consultas` (nulas), aplicada en producción con el ok de Mani. Falta solo el código (brief B-1 de `docs/agents/briefs-codex-14-nov.md`) y F5 (B-2 y la prueba con un cliente real).
+
+**14-nov (tarde), F4 y F5:** el código de F4 está (bitácora con bytes y consultas, `scripts/informe-mcp.ts`, `scripts/explain-hechos.ts`, `tests/mcp-bitacora-medicion.test.ts`); las columnas se llenan desde el despliegue, así que la salida del informe se anota tras unos días de uso. F5: `tests/mcp-evaluaciones.test.ts` y la prueba con un cliente real (ventas de Comunicarte, octubre-2026: MCP 28, base 28); falta comparar contra el Hub en pantalla (login de Mani). Las casillas F4 y F5 siguen abiertas hasta eso.
