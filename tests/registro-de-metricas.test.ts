@@ -113,6 +113,15 @@ describe("registro de métricas (ADR 0120)", () => {
     }
   });
 
+  it("toda ficha tiene una explicación completa, sin excepciones", () => {
+    for (const clave of claves) {
+      const { que, formula, variables } = REGISTRO[clave];
+      expect(que.trim(), `${clave}: falta qué mide`).not.toBe("");
+      expect(formula.terminos.length, `${clave}: falta fórmula`).toBeGreaterThan(0);
+      expect(variables.length, `${clave}: faltan variables`).toBeGreaterThan(0);
+    }
+  });
+
   it("cada id de lista está en el tipo `Metrica` y pertenece a un solo concepto", () => {
     const ids = claves.flatMap((c) => [...REGISTRO[c].listas]);
     expect(new Set(ids).size).toBe(ids.length);

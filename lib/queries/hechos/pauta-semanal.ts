@@ -20,7 +20,6 @@ import { nombreCorto, VOCABULARIO_PAUTA_SEMANAL } from "@/lib/vocabulario-metric
 import { estadoDeCobertura, type RazonConCobertura } from "@/lib/cobertura";
 import { cargarRoasDePauta, type RenglonRoas } from "@/lib/queries/roas-de-pauta";
 import { grupoDeCitas, gruposPorTramo, type GrupoDeCitas } from "@/lib/queries/tasas-del-grupo";
-import { EXPLICACIONES_DE_PAUTA } from "@/lib/metricas/explicaciones-de-pauta";
 
 export type BloquePautaSemanal = "general" | "comercial" | "trafico";
 /** Las columnas de la tabla: una por semana (lunes a domingo, Bogotá) o una por día (414). */
@@ -346,7 +345,7 @@ const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombr
   { clave: "ctr", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.ctr, unidad: "porcentaje" },
   { clave: "llegada_landing", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.llegada_landing, unidad: "porcentaje" },
   { clave: "conversion_landing", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.conversion_landing, unidad: "porcentaje" },
-  { clave: "agendas_meta", bloque: "trafico", nombre: EXPLICACIONES_DE_PAUTA.agendas_meta.rotulo, unidad: "conteo" },
+  { clave: "agendas_meta", bloque: "trafico", nombre: "Agendas de Meta", unidad: "conteo" },
   { clave: "costo_agenda_meta", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.costo_agenda_meta, unidad: "COP" },
   { clave: "frecuencia", bloque: "trafico", nombre: VOCABULARIO_PAUTA_SEMANAL.frecuencia, unidad: "razon" },
 ];

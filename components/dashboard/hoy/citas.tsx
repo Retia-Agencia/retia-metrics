@@ -92,7 +92,7 @@ export function CitasDelDia({ programas, veEquipo }: { programas: ProgramaDelRep
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <Conteo titulo={nombreCorto("citas_del_dia")} cantidad={e.agendas} detalle={detalles?.agendas} />
-                <Conteo titulo={nombreCorto("citas_realizadas")} cantidad={e.llamadasConShow} detalle={detalles?.shows} />
+                <Conteo titulo={nombreCorto("shows")} cantidad={e.llamadasConShow} detalle={detalles?.shows} />
                 <Conteo titulo={nombreCorto("citas_canceladas")} cantidad={e.canceladas} detalle={detalles?.canceladas} />
                 <Conteo titulo={nombreCorto("citas_pendientes")} cantidad={reporte.vista.sinResultado} detalle={detalles?.sin_resultado} alerta />
               </div>

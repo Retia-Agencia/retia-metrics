@@ -8,12 +8,13 @@ import {
   textoDeCambio,
   type EntradaDeCifra,
 } from "@/lib/metricas/cifra";
-import { explicacionDePauta, type ClaveDeExplicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe } from "@/lib/metricas/explicacion";
+import type { ClaveRegistrada } from "@/lib/metricas/registro";
 
 const FILTROS = [["Programa", "Comunicarte"], ["Cohorte", "C6"]] as const;
 
-function entrada(clave: ClaveDeExplicacionDePauta, resto: Omit<EntradaDeCifra, "concepto" | "explicacion" | "filtros"> & { filtros?: EntradaDeCifra["filtros"] }): EntradaDeCifra {
-  return { concepto: clave, explicacion: explicacionDePauta(clave), filtros: FILTROS, ...resto };
+function entrada(clave: ClaveRegistrada, resto: Omit<EntradaDeCifra, "concepto" | "explicacion" | "filtros"> & { filtros?: EntradaDeCifra["filtros"] }): EntradaDeCifra {
+  return { concepto: clave, explicacion: explicacionDe(clave), filtros: FILTROS, ...resto };
 }
 
 const lectura = (e: EntradaDeCifra) => armarCifra(e).explicacion.lectura;
@@ -29,7 +30,7 @@ describe("los ocho casos raros (diseño §1.3), cada uno con su frase", () => {
 
   it("parcial: la etiqueta en la tarjeta y su motivo al abrir", () => {
     const motivo = "Hay 18 citas del periodo cuya hora no ha llegado; cuando ocurran, la tasa cambia.";
-    const e = entrada("show", { valor: 0.41, partes: [34, 83], parcial: motivo });
+    const e = entrada("asistencia", { valor: 0.41, partes: [34, 83], parcial: motivo });
     expect(armarCifra(e).etiquetas).toEqual(["Parcial"]);
     expect(fraseDe(e, "Parcial")).toBe(motivo);
   });
@@ -53,20 +54,20 @@ describe("los ocho casos raros (diseño §1.3), cada uno con su frase", () => {
   });
 
   it("sin datos todavía", () => {
-    const e = entrada("facturacion", { valor: null, sinDatos: true, motivo: "La cohorte C7 aún no abre la venta." });
+    const e = entrada("vendido", { valor: null, sinDatos: true, motivo: "La cohorte C7 aún no abre la venta." });
     expect(armarCifra(e).textoDelValor).toBe("Sin datos");
     expect(fraseDe(e, "Sin datos")).toBe(`La cohorte C7 aún no abre la venta. ${FRASE_SIN_DATOS}`);
   });
 
   it("sin objetivo cargado: valor sin color y «Sin color» al abrir, solo si el concepto admite objetivo", () => {
-    const conObjetivo = entrada("agenda_venta", { valor: 0.08, partes: [7, 88] });
+    const conObjetivo = entrada("cita_a_venta", { valor: 0.08, partes: [7, 88] });
     expect(armarCifra(conObjetivo).estado).toBeNull();
     expect(fraseDe(conObjetivo, "Sin color")).toBe(FRASE_SIN_OBJETIVO);
     expect(fraseDe(entrada("ctr", { valor: 0.02 }), "Sin color")).toBeUndefined();
   });
 
   it("en curso", () => {
-    const e = entrada("agendas", { valor: 31, enCurso: true, periodo: "la semana del 9 al 15 nov" });
+    const e = entrada("agendadas", { valor: 31, enCurso: true, periodo: "la semana del 9 al 15 nov" });
     expect(armarCifra(e).etiquetas).toEqual(["En curso"]);
     expect(fraseDe(e, "En curso")).toBe("La semana del 9 al 15 nov todavía no termina: las cifras pueden subir y las tasas cambiar hasta que cierre.");
   });
@@ -79,7 +80,7 @@ describe("los ocho casos raros (diseño §1.3), cada uno con su frase", () => {
 });
 
 describe("la barra de avance (diseño §1.1)", () => {
-  const agendas = entrada("agendas", {
+  const agendas = entrada("agendadas", {
     valor: 412,
     periodo: "cohorte C6 hasta hoy",
     avance: { llevamos: 412, meta: 900, esperado: 558, fraccionDeTiempo: 0.62, de: "agendas" },
@@ -140,7 +141,7 @@ describe("fórmula, comparación y evidencia", () => {
 
   it("la evidencia: cinco filas, el botón con el total y la nota de la razón", () => {
     const filas = Array.from({ length: 8 }, (_, i) => [`Persona ${i}`]);
-    const c = armarCifra(entrada("agenda_venta", { valor: 0.08, partes: [7, 88], lista: { href: "/x", nombre: "agendadas", total: 88, filas } }));
+    const c = armarCifra(entrada("cita_a_venta", { valor: 0.08, partes: [7, 88], lista: { href: "/x", nombre: "agendadas", total: 88, filas } }));
     expect(c.explicacion.evidencia?.filas).toHaveLength(5);
     expect(c.explicacion.evidencia?.boton).toBe("Ver las 88 agendadas");
     expect(c.explicacion.evidencia?.nota).toBe("Son las agendadas de abajo de la fórmula; la última columna dice cuáles suman arriba.");

@@ -6,7 +6,7 @@
 import type { ObjetivoDeCohorte } from "@/lib/catalogo/objetivos";
 import { fechaCorta, num, pct } from "@/lib/format";
 import { armarCifra, formatearValor, type CifraDeMetrica } from "@/lib/metricas/cifra";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe } from "@/lib/metricas/explicacion";
 import { estadoDeCeldaSemanal } from "@/lib/pauta/cifra-de-celda-semanal";
 import { etiquetaDeSemana } from "@/lib/pauta/csv-tabla-semanal";
 import type { ProyeccionDeRoas, ProyeccionGuardada } from "@/lib/queries/proyeccion-roas";
@@ -42,7 +42,7 @@ export function cifrasDeProyeccion(e: EntradaDeCifrasDeProyeccion): { aHoy: Cifr
 
   const aHoy = armarCifra({
     concepto: "roas",
-    explicacion: explicacionDePauta("roas"),
+    explicacion: explicacionDe("roas"),
     valor: p.roasAHoy.valor,
     motivo: p.roasAHoy.valor === null ? p.roasAHoy.motivo ?? "Falta el gasto del periodo" : undefined,
     partes: [p.vendidoUsd, p.gastoUsd],
@@ -66,7 +66,7 @@ export function cifrasDeProyeccion(e: EntradaDeCifrasDeProyeccion): { aHoy: Cifr
   ]);
   const proyectado = armarCifra({
     concepto: "roas_proy",
-    explicacion: explicacionDePauta("roas_proy"),
+    explicacion: explicacionDe("roas_proy"),
     valor: p.valor,
     motivo: p.valor === null ? p.motivo ?? "No hay historial suficiente para proyectar" : undefined,
     partes: [p.vendidoUsd + p.esperadoUsd, p.gastoUsd],

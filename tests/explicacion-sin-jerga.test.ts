@@ -5,7 +5,6 @@
  */
 import { describe, expect, it } from "vitest";
 import * as cifra from "@/lib/metricas/cifra";
-import { EXPLICACIONES_DE_PAUTA } from "@/lib/metricas/explicaciones-de-pauta";
 import { REGISTRO } from "@/lib/metricas/registro";
 
 const JERGA: ReadonlyArray<readonly [string, RegExp]> = [
@@ -45,13 +44,7 @@ describe("ninguna explicación lleva texto técnico (DM-9)", () => {
     expect(jergaEn("COP 44.800 · Meta · ROAS 6,1× · Mi espacio")).toEqual([]);
   });
 
-  it("las explicaciones de Pauta", () => {
-    for (const [clave, x] of Object.entries(EXPLICACIONES_DE_PAUTA)) {
-      for (const texto of textosDe(x)) expect(jergaEn(texto), `${clave}: «${texto}»`).toEqual([]);
-    }
-  });
-
-  it("los campos de explicación de las fichas del registro", () => {
+  it("los campos de explicación de todas las fichas del registro", () => {
     for (const [clave, ficha] of Object.entries(REGISTRO)) {
       const { que, formula, variables, aliasExcel } = ficha as { que?: string; formula?: unknown; variables?: unknown; aliasExcel?: string };
       for (const texto of textosDe([que, formula, variables, aliasExcel])) {

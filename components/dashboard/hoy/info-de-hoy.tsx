@@ -67,7 +67,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
         <Pasos pasos={[
           { titulo: "Leads", valor: uno ? num(uno.registros) : undefined },
           { titulo: nombreCorto("citas_del_dia"), valor: e ? num(e.agendas) : undefined },
-          { titulo: nombreCorto("citas_realizadas"), valor: e ? num(e.llamadasConShow) : undefined },
+          { titulo: nombreCorto("shows"), valor: e ? num(e.llamadasConShow) : undefined },
           { titulo: nombreCorto("cupos_vendidos"), valor: e ? num(e.cierres) : undefined },
         ]} />
         {uno && e ? <BarraDeEjemplo etiqueta="Así se llena una barra" parte={e.agendas} total={Math.max(uno.registros, e.agendas, e.llamadasConShow, e.cierres, 1)} textoParte={`${num(e.agendas)} citas de ${num(Math.max(uno.registros, e.agendas, e.llamadasConShow, e.cierres, 1))} (la barra más larga = 100 %)`} /> : <Frase>La barra más larga es el 100 %; las demás se miden contra ella.</Frase>}
@@ -115,7 +115,7 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
       contenido: <>
         <Palabras items={[
           { palabra: nombreCorto("citas_del_dia"), significa: definicion("citas_del_dia") },
-          { palabra: nombreCorto("citas_realizadas"), significa: definicion("citas_realizadas") },
+          { palabra: nombreCorto("shows"), significa: definicion("shows") },
           { palabra: nombreCorto("citas_canceladas"), significa: definicion("citas_canceladas") },
           { palabra: nombreCorto("citas_pendientes"), significa: definicion("citas_pendientes") },
         ]} />

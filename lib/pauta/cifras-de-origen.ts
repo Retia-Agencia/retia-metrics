@@ -8,7 +8,7 @@
  * que la cifra por construcción; lo vigila `tests/pauta-origen-cifras.test.ts`.
  */
 import { armarCifra, type CifraDeMetrica, type EntradaDeCifra } from "@/lib/metricas/cifra";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe, VARIANTES_DE_PAUTA } from "@/lib/metricas/explicacion";
 import { ETIQUETA_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
 import { fecha, fechaDeInstanteEnBogota, num, usd } from "@/lib/format";
 import {
@@ -146,21 +146,21 @@ export function filaDeQueTraeVentas(r: RenglonRoas, c: ContextoDeOrigen, clave: 
     revisar: (r.nivel === "anuncio" || r.nivel === "anuncio_sin_identificar") && (r.gastoCop ?? 0) > 0 && r.agendas === 0,
     conDetalle: r.nivel === "campana" && r.id !== null,
     inversion: armarCifra({
-      ...base, concepto: "inversion_origen", explicacion: explicacionDePauta("inversion_origen"), valor: inversion,
+      ...base, concepto: "inversion", explicacion: explicacionDe("inversion", VARIANTES_DE_PAUTA.inversion_origen), valor: inversion,
       motivo: sinGasto ?? undefined,
     }),
     agendas: armarCifra({
-      ...base, concepto: "agendas_origen", explicacion: explicacionDePauta("agendas_origen"), valor: r.agendas,
+      ...base, concepto: "agendadas", explicacion: explicacionDe("agendadas", VARIANTES_DE_PAUTA.agendas_origen), valor: r.agendas,
       lista: c.enlace ? listaDeOrigen(c.vista, r, "agenda", c.enlace) : undefined,
       notas: r.agendas > 0 ? [["Con resultado", `${num(r.shows)} asistieron y ${num(r.noShows)} no asistieron.`]] : undefined,
     }),
     costo: armarCifra({
-      ...base, concepto: "costo_agenda_origen", explicacion: explicacionDePauta("costo_agenda_origen"), valor: costo,
+      ...base, concepto: "costo_agenda_crm", explicacion: explicacionDe("costo_agenda_crm", VARIANTES_DE_PAUTA.costo_agenda_origen), valor: costo,
       partes: inversion === null ? undefined : [inversion, r.agendas],
       motivo: costo === null ? sinGasto ?? (r.agendas === 0 ? "Sin agendadas: no hay entre qué dividir." : undefined) : undefined,
     }),
     ventas: armarCifra({
-      ...base, concepto: "ventas_origen", explicacion: explicacionDePauta("ventas_origen"), valor: r.ventas,
+      ...base, concepto: "ventas", explicacion: explicacionDe("ventas", VARIANTES_DE_PAUTA.ventas_origen), valor: r.ventas,
       lista: c.enlace ? listaDeOrigen(c.vista, r, "venta", c.enlace) : undefined,
       notas: r.ventas > 0 ? [
         ["Cuándo", `${num(r.ventasEnLlamada)} en la llamada, ${num(r.ventasDespues)} después y ${num(r.ventasSinLlamada)} sin llamada.`],
@@ -169,7 +169,7 @@ export function filaDeQueTraeVentas(r: RenglonRoas, c: ContextoDeOrigen, clave: 
       ] : undefined,
     }),
     roas: armarCifra({
-      ...base, concepto: "roas", explicacion: explicacionDePauta("roas"),
+      ...base, concepto: "roas", explicacion: explicacionDe("roas"),
       valor: sinGasto ? null : roas.valor,
       motivo: sinGasto ?? (roas.valor === null ? roas.motivo ?? "No se puede calcular con los datos del periodo." : undefined),
       partes: sinGasto || r.gastoUsd === null ? undefined : [r.valorVendidoUsd, r.gastoUsd],
@@ -219,7 +219,7 @@ export function cifrasDeSinOrigen(c: ContextoDeOrigen): CifraDeMetrica[] {
   const porcentaje = registrosPauta === 0 ? null : Math.round((sinAnuncio / registrosPauta) * 100);
   return [
     armarCifra({
-      concepto: "envios_sin_id", explicacion: explicacionDePauta("envios_sin_id"), valor: sinAnuncio, filtros, periodo: c.periodo,
+      concepto: "envios_sin_id", explicacion: explicacionDe("envios_sin_id"), valor: sinAnuncio, filtros, periodo: c.periodo,
       linea: { antes: "de ", cifra: num(registrosPauta), despues: ` registros de pauta${porcentaje === null ? "" : ` (${porcentaje} %)`}` },
       notas: [
         ["Hasta la campaña", `${num(vista.cobertura.soloCampanaOConjunto)} registros: se sabe la campaña o el conjunto, no el anuncio.`],
@@ -228,7 +228,7 @@ export function cifrasDeSinOrigen(c: ContextoDeOrigen): CifraDeMetrica[] {
       ],
     }),
     armarCifra({
-      concepto: "ventas_sin_anuncio", explicacion: explicacionDePauta("ventas_sin_anuncio"), valor: ventasSinAnuncio, filtros, periodo: c.periodo,
+      concepto: "ventas_sin_anuncio", explicacion: explicacionDe("ventas_sin_anuncio"), valor: ventasSinAnuncio, filtros, periodo: c.periodo,
       linea: { antes: "de ", cifra: num(vista.total.ventas), despues: " ventas de pauta" },
     }),
   ];

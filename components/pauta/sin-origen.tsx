@@ -3,7 +3,7 @@ import { Cifra } from "@/components/cifra-con-lista";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { armarCifra } from "@/lib/metricas/cifra";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe } from "@/lib/metricas/explicacion";
 import { cifrasDeSinOrigen, type ContextoDeOrigen } from "@/lib/pauta/cifras-de-origen";
 import { num } from "@/lib/format";
 import type { VistaOrigen } from "@/lib/queries/origen";
@@ -28,7 +28,7 @@ export async function SinOrigen({ contexto, programId, rango, vistaOrigen, hrefP
   filtros.push(["Periodo", contexto.periodo]);
   const porcentajeSinUtm = traza.registros.porcentajeSinUtm;
   const sinUtm = armarCifra({
-    concepto: "registros_sin_utm", explicacion: explicacionDePauta("registros_sin_utm"), valor: traza.registros.sinUtm,
+    concepto: "registros_sin_utm", explicacion: explicacionDe("registros_sin_utm", { universo: "todas" }), valor: traza.registros.sinUtm,
     filtros, periodo: contexto.periodo,
     linea: { antes: "de ", cifra: num(traza.registros.total), despues: ` registros${porcentajeSinUtm === null ? "" : ` (${Math.round(porcentajeSinUtm * 100)} %)`}` },
   });

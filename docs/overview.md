@@ -564,6 +564,12 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 **El Hub y las métricas**
 
+- **Cifras registradas del Hub:** **Ventas por escalón** distribuye los deals por su escalón; **Grupo de citas** y
+  **Con show y vendidos hoy** son las cantidades detrás de las tasas; **Deals abiertos** y **Deals sin dueño** son
+  fotos del embudo; **Descuento promedio** y **% de descuento promedio** separan USD de porcentaje. En Pauta,
+  **Presupuesto usado**, **Agendas por día**, **Agendas por día necesarias**, **Inversión por día necesaria**,
+  **Registros de pauta sin anuncio**, **Registros sin origen**, **Ventas sin anuncio identificado** y **Paso del formulario**
+  tienen una ficha propia y conservan el predicado del diccionario.
 - **Hub:** la tab de métricas del CRM, por programa o "todos": Hoy (el reporte diario), Comercial, Dinero, Pauta y
   Origen. Reemplazó al Dashboard y a Metas (ADR 0086). *Evitar: "dashboard".*
 - **Acción:** lo que se decidió hacer, con dueño, estado y la cifra que lo justifica; vive en el programa (ADR 0090).

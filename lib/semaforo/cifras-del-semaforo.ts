@@ -6,7 +6,7 @@
  * WhatsApp nunca discrepan (DM-1: cambia el rótulo, no el cálculo). Módulo PURO.
  */
 import { armarCifra, type CifraDeMetrica, type FuenteDeEstado } from "@/lib/metricas/cifra";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe, VARIANTES_DE_PAUTA } from "@/lib/metricas/explicacion";
 import { cop, fechaCorta } from "@/lib/format";
 import type { MetricaSemaforo } from "@/lib/semaforo/semaforo";
 
@@ -74,7 +74,7 @@ export function cifrasDelSemaforo(e: EntradaDeCifrasDelSemaforo): CifrasDelSemaf
 
   const costo = armarCifra({
     concepto: "costo_agenda_meta",
-    explicacion: explicacionDePauta("costo_agenda_meta"),
+    explicacion: explicacionDe("costo_agenda_meta"),
     valor: m.costo,
     motivo: m.costo === null ? motivoSinCosto(m, enCurso) : undefined,
     partes: [m.gasto, m.agendasMeta],
@@ -89,8 +89,8 @@ export function cifrasDelSemaforo(e: EntradaDeCifrasDelSemaforo): CifrasDelSemaf
       : undefined,
   });
   const agendas = armarCifra({
-    concepto: "agendas",
-    explicacion: explicacionDePauta("agendas"),
+    concepto: "agendadas",
+    explicacion: explicacionDe("agendadas"),
     valor: m.agendasCrm,
     periodo,
     filtros,
@@ -99,7 +99,7 @@ export function cifrasDelSemaforo(e: EntradaDeCifrasDelSemaforo): CifrasDelSemaf
   });
   const agendasMeta = armarCifra({
     concepto: "agendas_meta",
-    explicacion: explicacionDePauta("agendas_meta"),
+    explicacion: explicacionDe("costo_agenda_meta", VARIANTES_DE_PAUTA.agendas_meta),
     valor: m.agendasMeta,
     motivo: m.agendasMeta === null ? "Meta no reporta agendas de este programa" : undefined,
     periodo,
@@ -109,7 +109,7 @@ export function cifrasDelSemaforo(e: EntradaDeCifrasDelSemaforo): CifrasDelSemaf
   });
   const inversion = armarCifra({
     concepto: "inversion",
-    explicacion: explicacionDePauta("inversion"),
+    explicacion: explicacionDe("inversion"),
     valor: m.gastoTotal,
     periodo,
     filtros,

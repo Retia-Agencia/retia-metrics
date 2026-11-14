@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { crearModeloGrafica, type ExplicacionDeSerie } from "@/components/graficas/contrato";
 import { cifraDelPunto } from "@/components/graficas/grafica-con-explicacion";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe } from "@/lib/metricas/explicacion";
 
 const modelo = crearModeloGrafica({
   unidad: "agendas",
@@ -12,7 +12,7 @@ const modelo = crearModeloGrafica({
 });
 const explicaciones: Record<string, ExplicacionDeSerie> = {
   Agendadas: {
-    entrada: { concepto: "agendas", explicacion: explicacionDePauta("agendas"), filtros: [["Área", "Paid"]] },
+    entrada: { concepto: "agendadas", explicacion: explicacionDe("agendadas"), filtros: [["Área", "Paid"]] },
     paso: "Día", anterior: "el día anterior", motivoVacio: "Sin agendas ese día.",
   },
 };

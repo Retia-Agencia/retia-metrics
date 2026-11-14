@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { cop, fecha, num, usd } from "@/lib/format";
 import { leerCumplimientoDeCohorte } from "@/lib/metas/cumplimiento-de-cohorte";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe, VARIANTES_DE_PAUTA } from "@/lib/metricas/explicacion";
+import type { ClaveRegistrada } from "@/lib/metricas/registro";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import * as agenda from "@/lib/queries/hechos/agenda";
 import type { PuntoDiarioPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
@@ -113,8 +114,8 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
   filtros.push(["Área", "Paid"]);
   if (p.cohorte) filtros.push(["Cohorte", p.cohorte]);
   const porDiaTexto = config.paso === "dia";
-  const explicacion = (concepto: Parameters<typeof explicacionDePauta>[0], motivoVacio: string): ExplicacionDeSerie => ({
-    entrada: { concepto, explicacion: explicacionDePauta(concepto), filtros },
+  const explicacion = (concepto: ClaveRegistrada, motivoVacio: string, variante?: Parameters<typeof explicacionDe>[1]): ExplicacionDeSerie => ({
+    entrada: { concepto, explicacion: explicacionDe(concepto, variante), filtros },
     paso: porDiaTexto ? "Día" : "Semana",
     anterior: porDiaTexto ? "el día anterior" : "la semana anterior",
     prefijo: config.forma === "acum" ? "acumulado hasta" : undefined,
@@ -122,10 +123,10 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
   });
   const explicaciones: Record<string, ExplicacionDeSerie> = {
     [SERIE.inversion]: explicacion("inversion", "Sin gasto de Meta cargado ese día."),
-    [SERIE.agendas]: explicacion("agendas", "Sin agendas ese día."),
-    [SERIE.agendasMeta]: explicacion("agendas_meta", "Meta no reporta agendas de este programa."),
+    [SERIE.agendas]: explicacion("agendadas", "Sin agendas ese día."),
+    [SERIE.agendasMeta]: explicacion("costo_agenda_meta", "Meta no reporta agendas de este programa.", VARIANTES_DE_PAUTA.agendas_meta),
     [SERIE.ventas]: explicacion("ventas", "Sin ventas ese día."),
-    [SERIE.vendido]: explicacion("facturacion", "Sin ventas ese día."),
+    [SERIE.vendido]: explicacion("vendido", "Sin ventas ese día.", VARIANTES_DE_PAUTA.facturacion),
   };
 
   const unidadPrincipal = config.unidad === "cupos" ? "cantidad" : "COP";

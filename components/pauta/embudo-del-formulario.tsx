@@ -4,7 +4,7 @@ import { DetallePorPregunta, preguntaQueMasPierde } from "@/components/embudo-po
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num, pct } from "@/lib/format";
 import { armarCifra, type CifraDeMetrica } from "@/lib/metricas/cifra";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe } from "@/lib/metricas/explicacion";
 import type { EmbudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import type { EmbudoPorPreguntaDeFuente } from "@/lib/queries/embudo-por-pregunta";
 
@@ -15,7 +15,7 @@ import type { EmbudoPorPreguntaDeFuente } from "@/lib/queries/embudo-por-pregunt
  */
 export function cifrasDelEmbudo(embudo: EmbudoDelFormulario, filtros: ReadonlyArray<readonly [string, string]>, periodo: string): CifraDeMetrica[] {
   const { total } = embudo;
-  const base = explicacionDePauta("embudo");
+  const base = explicacionDe("embudo", { universo: "todas" });
   return PASOS.map((paso, i) => {
     const valor = total[paso.clave];
     const anterior = i === 0 ? null : total[PASOS[i - 1].clave];

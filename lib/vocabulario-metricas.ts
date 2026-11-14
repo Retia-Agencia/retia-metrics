@@ -8,15 +8,19 @@
  */
 export type ClaveDeMetrica =
   | "registros" | "leads" | "deals_desde_completo" | "deals_desde_parcial"
-  | "agendadas" | "citas" | "shows" | "show_por_cita" | "no_asistio" | "llamadas_sin_resultado"
+  | "agendadas" | "citas" | "shows" | "show_por_cita" | "no_asistio"
   | "ventas" | "vendido" | "recaudado" | "por_cobrar" | "entro_a_caja" | "cupos_con_caja"
   | "nacio_agenda_del_dia" | "nacio_seguimiento" | "nacio_sin_llamada"
   | "comision" | "meta" | "esperado_a_hoy" | "faltan" | "por_dia_habil" | "proyeccion"
   // Hub › Hoy (378): los nombres que Mani pidió sin jerga. "Meta" queda solo para la plataforma de pauta.
   | "cupos_vendidos" | "objetivo_del_dia" | "objetivo_de_leads" | "leads_que_hacen_falta" | "llevamos"
-  | "asistencia" | "cierre_de_ventas" | "cita_a_venta" | "citas_del_dia" | "citas_realizadas" | "citas_canceladas"
+  | "asistencia" | "cierre_de_ventas" | "cita_a_venta" | "citas_del_dia" | "citas_canceladas"
   | "citas_pendientes" | "objetivo_semana" | "objetivo_mes" | "objetivo_cohorte"
-  | "dias_del_ritmo" | "citas_minimas";
+  | "dias_del_ritmo" | "citas_minimas"
+  | "presupuesto" | "agendas_dia" | "agendas_req" | "inversion_req" | "roas_proy"
+  | "envios_sin_id" | "registros_sin_utm" | "ventas_sin_anuncio" | "embudo"
+  | "ventas_por_escalon" | "escalera_sin_resultado" | "grupo_de_citas" | "con_show_y_vendidos_hoy"
+  | "deals_abiertos" | "deals_sin_dueno" | "descuento_promedio" | "descuento_promedio_porcentaje";
 
 /**
  * Por qué la agenda del CRM y la de Meta pueden diferir (DA-4, Mani, 7-nov; ticket 353). UN texto para el semáforo, el
@@ -38,7 +42,6 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   shows: { corto: "Realizadas", largo: "Citas realizadas en el periodo", definicion: "Citas ocurridas en las que se atendió la llamada." },
   show_por_cita: { corto: "% de show por cita", largo: "% de show por cita", definicion: "Citas que ocurrieron ÷ citas vivas que ya debían ocurrir." },
   no_asistio: { corto: "No asistió", largo: "Citas a las que no asistieron", definicion: "Citas ocurridas sin llamada atendida." },
-  llamadas_sin_resultado: { corto: "Sin resultado", largo: "Llamadas sin resultado", definicion: "Citas que ya ocurrieron y el closer no marcó como atendidas ni como no asistidas." },
   ventas: { corto: "Ventas", largo: "Ventas del periodo", definicion: "Deals en Abonado o Completo; cada uno es un cupo." },
   vendido: { corto: "Vendido", largo: "Valor vendido", definicion: "Suma del valor vendido que el closer escribió en cada venta." },
   recaudado: { corto: "Recaudado", largo: "Recaudado de lo vendido", definicion: "Lo abonado, a hoy, a las ventas elegidas, sin importar cuándo se abonó." },
@@ -63,7 +66,6 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   cierre_de_ventas: { corto: "Cierre de ventas", largo: "Cierre de ventas", definicion: "De las citas realizadas, cuántas terminaron en venta." },
   cita_a_venta: { corto: "De cita a venta", largo: "De cita a venta", definicion: "De las personas que agendaron cita en el periodo, cuántas terminaron en venta." },
   citas_del_dia: { corto: "Citas del día", largo: "Citas del día", definicion: "Citas con fecha de hoy, sin las canceladas." },
-  citas_realizadas: { corto: "Realizadas", largo: "Citas realizadas hoy", definicion: "Citas de hoy en las que el closer atendió la llamada." },
   citas_canceladas: { corto: "Canceladas", largo: "Citas canceladas", definicion: "Citas de hoy que se cancelaron; no cuentan para la asistencia." },
   citas_pendientes: { corto: "Sin resultado", largo: "Citas sin resultado", definicion: "Citas cuya hora ya pasó y el closer no marcó cómo terminaron." },
   objetivo_semana: { corto: "Objetivo de la semana", largo: "Objetivo de cupos de la semana", definicion: "Parte del objetivo del mes que toca vender esta semana." },
@@ -71,6 +73,23 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   objetivo_cohorte: { corto: "Objetivo de la cohorte", largo: "Objetivo de cupos de la cohorte", definicion: "Cupos que la empresa quiere vender en toda la cohorte." },
   dias_del_ritmo: { corto: "Días para medir el ritmo", largo: "Días hábiles para medir el ritmo", definicion: "Cuántos días hábiles hacia atrás se miran para medir qué tan rápido se vende y cuántos leads se vuelven cita. Ejemplo: con 10, se miran las dos últimas semanas." },
   citas_minimas: { corto: "Mínimo para confiar en una tasa", largo: "Mínimo de personas para confiar en una tasa", definicion: "El % de asistencia necesita al menos este número de personas con cita atendida o no asistida, y el % de cierre este número de asistentes. Con menos, se usa la cohorte anterior o no se calcula. Ejemplo: con 20, una cohorte con 12 asistentes todavía no sirve." },
+  presupuesto: { corto: "Presupuesto usado", largo: "Presupuesto usado", definicion: "Parte de la inversión planeada para la cohorte que ya se gastó." },
+  agendas_dia: { corto: "Agendas por día", largo: "Agendas por día hábil", definicion: "Citas reservadas por día hábil transcurrido de la cohorte." },
+  agendas_req: { corto: "Agendas por día necesarias", largo: "Agendas por día necesarias", definicion: "Citas por día que hacen falta para llegar al objetivo." },
+  inversion_req: { corto: "Inversión por día necesaria", largo: "Inversión por día necesaria", definicion: "Inversión diaria necesaria para conseguir las agendas requeridas." },
+  roas_proy: { corto: "ROAS proyectado", largo: "ROAS proyectado", definicion: "ROAS esperado cuando terminen las citas de pauta pendientes." },
+  envios_sin_id: { corto: "Registros de pauta sin anuncio", largo: "Registros de pauta sin anuncio identificado", definicion: "Registros de pauta en los que no se sabe qué anuncio trajo a la persona." },
+  registros_sin_utm: { corto: "Registros sin origen", largo: "Registros sin origen", definicion: "Registros cuyo enlace no dijo de dónde llegaron." },
+  ventas_sin_anuncio: { corto: "Ventas sin anuncio identificado", largo: "Ventas sin anuncio identificado", definicion: "Ventas de pauta en las que no se sabe qué anuncio trajo a la persona." },
+  embudo: { corto: "Paso del formulario", largo: "Paso del formulario", definicion: "Personas que llegaron a un paso del formulario." },
+  ventas_por_escalon: { corto: "Ventas por escalón", largo: "Ventas por escalón", definicion: "Distribución de los deals entre los siete escalones de la conversión." },
+  escalera_sin_resultado: { corto: "Cita pasada sin resultado", largo: "Cita pasada sin resultado en la escalera", definicion: "Deals no vendidos con una cita pasada que sigue sin resultado; es una marca aparte del escalón." },
+  grupo_de_citas: { corto: "Grupo de citas", largo: "Grupo de citas", definicion: "Deals vigentes con al menos una cita que ya debía ocurrir en el periodo." },
+  con_show_y_vendidos_hoy: { corto: "Con show y vendidos hoy", largo: "Con show y vendidos hoy", definicion: "Deals del grupo de citas que tuvieron show y hoy están vendidos." },
+  deals_abiertos: { corto: "Deals abiertos", largo: "Deals abiertos en la etapa", definicion: "Deals que siguen abiertos en cada etapa del embudo." },
+  deals_sin_dueno: { corto: "Deals sin dueño", largo: "Deals abiertos sin dueño", definicion: "Deals abiertos que no tienen una persona responsable." },
+  descuento_promedio: { corto: "Descuento promedio", largo: "Descuento promedio en USD", definicion: "Promedio del ticket de la cohorte menos el valor vendido, en dólares." },
+  descuento_promedio_porcentaje: { corto: "% de descuento promedio", largo: "Descuento promedio en porcentaje", definicion: "Promedio del descuento de cada venta como porcentaje de su ticket." },
 };
 
 /** Nombres nuevos de la tabla semanal de Paid Media (412 B), aún fuera del registro tipado de conceptos. */
@@ -142,7 +161,7 @@ export const TITULOS_DE_LISTA = {
   citas_sin_marcar: "Citas sin resultado marcado",
   agendas_futuras: "Citas futuras",
   contratado: nombreLargo("vendido"),
-  sin_resultado: nombreLargo("llamadas_sin_resultado"),
+  sin_resultado: nombreLargo("citas_pendientes"),
   atendidos_sin_valor: "Realizadas sin valor vendido",
   atendidos_sin_grain: "Realizadas sin Grain",
   perdidos_con_pagos: "Cierre perdido con pagos registrados",

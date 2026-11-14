@@ -11,7 +11,8 @@ import {
   type MedidaDeCumplimiento,
 } from "@/lib/metas/cumplimiento-de-cohorte";
 import { armarCifra, type CifraDeMetrica, type EntradaDeCifra } from "@/lib/metricas/cifra";
-import { explicacionDePauta, type ClaveDeExplicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe, VARIANTES_DE_PAUTA, type VarianteDeExplicacion } from "@/lib/metricas/explicacion";
+import type { ClaveRegistrada } from "@/lib/metricas/registro";
 import type { ListaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 
@@ -62,11 +63,11 @@ function Configurar({ slug }: { slug: string }) {
  * Una barra del cumplimiento como Cifra (419): la arma el servidor con `armarCifra`, y la tarjeta solo la pinta.
  * El cumplimiento no sigue el periodo: solo programa y cohorte en "Calculada con" (diseño §2 punto 4).
  */
-function cifraDeAvance(concepto: ClaveDeExplicacionDePauta, medida: MedidaDeCumplimiento, filtros: ReadonlyArray<readonly [string, string]>, de: string, extra: Partial<EntradaDeCifra> = {}): CifraDeMetrica {
+function cifraDeAvance(concepto: ClaveRegistrada, medida: MedidaDeCumplimiento, filtros: ReadonlyArray<readonly [string, string]>, de: string, extra: Partial<EntradaDeCifra> = {}, variante?: VarianteDeExplicacion): CifraDeMetrica {
   const conEsperado = medida.esperado !== null && medida.meta > 0;
   return armarCifra({
     concepto,
-    explicacion: explicacionDePauta(concepto),
+    explicacion: explicacionDe(concepto, variante),
     valor: medida.llevamos,
     periodo: "desde que abrió la venta de la cohorte hasta hoy",
     filtros,
@@ -92,7 +93,7 @@ function cifrasDelRitmo(datos: CumplimientoDeCohorteLeido, filtros: ReadonlyArra
   if (datos.agendasPorDia) {
     const { agendas, diasHabiles, valor } = datos.agendasPorDia;
     cifras.push(armarCifra({
-      concepto: "agendas_dia", explicacion: explicacionDePauta("agendas_dia"), valor,
+      concepto: "agendas_dia", explicacion: explicacionDe("agendas_dia", { universo: "todas" }), valor,
       motivo: valor === null ? "La venta de la cohorte abrió hoy: todavía no hay un día hábil completo." : undefined,
       partes: [agendas, diasHabiles], periodo, filtros,
       linea: { antes: "Promedio real de la cohorte" },
@@ -102,13 +103,13 @@ function cifrasDelRitmo(datos: CumplimientoDeCohorteLeido, filtros: ReadonlyArra
   if (r && !r.metaCumplida) {
     const porDia = r.agendasDia.valor;
     cifras.push(armarCifra({
-      concepto: "agendas_req", explicacion: explicacionDePauta("agendas_req"), valor: porDia,
+      concepto: "agendas_req", explicacion: explicacionDe("agendas_req", { universo: "todas" }), valor: porDia,
       motivo: porDia === null ? r.agendasDia.razon ?? "No hay tasas medidas con qué calcularlo." : undefined,
       periodo: `de hoy al cierre, el ${fecha(r.cierre)}`, filtros,
       linea: { antes: "Hasta el cierre, el ", cifra: fecha(r.cierre) },
     }));
     cifras.push(armarCifra({
-      concepto: "inversion_req", explicacion: explicacionDePauta("inversion_req"), valor: r.inversionDiaMeta,
+      concepto: "inversion_req", explicacion: explicacionDe("inversion_req"), valor: r.inversionDiaMeta,
       motivo: r.inversionDiaMeta === null
         ? porDia === null ? "Sin agendas por día necesarias, no hay con qué multiplicar." : "Sin costo por agenda objetivo cargado para la cohorte."
         : undefined,
@@ -142,10 +143,10 @@ export function CumplimientoVista({ datos, slug, programa, evidencia = {}, unida
   const totales = datos.ventasTotales?.cupos;
   const fraccion = totales && totales.esperado !== null && totales.meta > 0 ? totales.esperado / totales.meta : null;
   const enPlata = unidad === "plata";
-  const barraDeVentas = (barra: NonNullable<CumplimientoDeCohorteLeido["ventasPauta"]>, cupos: ClaveDeExplicacionDePauta, plata: ClaveDeExplicacionDePauta, de: string, lista?: ListaDeCifra) =>
+  const barraDeVentas = (barra: NonNullable<CumplimientoDeCohorteLeido["ventasPauta"]>, de: string, total: boolean, lista?: ListaDeCifra) =>
     enPlata && barra.usd
-      ? cifraDeAvance(plata, barra.usd, filtros, `vendido ${de}`, { lista })
-      : cifraDeAvance(cupos, barra.cupos, filtros, `ventas ${de}`, { lista });
+      ? cifraDeAvance("vendido", barra.usd, filtros, `vendido ${de}`, { lista }, total ? VARIANTES_DE_PAUTA.vendido_total : VARIANTES_DE_PAUTA.vendido_pauta)
+      : cifraDeAvance("ventas", barra.cupos, filtros, `ventas ${de}`, { lista }, total ? VARIANTES_DE_PAUTA.ventas_total : undefined);
   const ritmo = cifrasDelRitmo(datos, filtros);
   return <Card data-testid="cumplimiento-cohorte">
     <CardHeader>
@@ -167,15 +168,15 @@ export function CumplimientoVista({ datos, slug, programa, evidencia = {}, unida
     <CardContent className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {datos.agendas
-          ? <Cifra cifra={cifraDeAvance("agendas_total", datos.agendas.cupos, filtros, "agendas")} />
+          ? <Cifra cifra={cifraDeAvance("agendadas", datos.agendas.cupos, filtros, "agendas", {}, VARIANTES_DE_PAUTA.agendas_total)} />
           : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de agendas para esta cohorte</p><Configurar slug={slug} /></section>}
         {datos.ventasPauta
-          ? <Cifra cifra={barraDeVentas(datos.ventasPauta, "ventas", "vendido_pauta", "de pauta", evidencia.ventasPauta)} />
+          ? <Cifra cifra={barraDeVentas(datos.ventasPauta, "de pauta", false, evidencia.ventasPauta)} />
           : <section className="space-y-1 rounded-xl bg-muted p-3.5"><p className="text-sm">Sin meta de ventas de pauta para esta cohorte</p><Configurar slug={slug} /></section>}
-        {datos.ventasTotales ? <Cifra cifra={barraDeVentas(datos.ventasTotales, "ventas_total", "vendido_total", "total", evidencia.ventasTotales)} /> : null}
+        {datos.ventasTotales ? <Cifra cifra={barraDeVentas(datos.ventasTotales, "total", true, evidencia.ventasTotales)} /> : null}
         {datos.inversion ? <Cifra cifra={armarCifra({
           concepto: "presupuesto",
-          explicacion: explicacionDePauta("presupuesto"),
+          explicacion: explicacionDe("presupuesto"),
           valor: datos.inversion.llevamos,
           periodo: "desde que abrió la venta de la cohorte hasta hoy",
           filtros,

@@ -32,7 +32,7 @@ export function EmbudoDelDia({ programas }: { programas: ProgramaDelReporte[] })
       const pasos = [
         { clave: "leads", etiqueta: nombreCorto("registros"), cantidad: reporte.registros, detalle: detalleRegistros },
         { clave: "citas", etiqueta: nombreCorto("citas_del_dia"), cantidad: e.agendas, detalle: detalles?.agendas },
-        { clave: "realizadas", etiqueta: nombreCorto("citas_realizadas"), cantidad: e.llamadasConShow, detalle: detalles?.shows },
+        { clave: "realizadas", etiqueta: nombreCorto("shows"), cantidad: e.llamadasConShow, detalle: detalles?.shows },
         { clave: "ventas", etiqueta: nombreCorto("cupos_vendidos"), cantidad: e.cierres, detalle: detalles?.cierres },
       ];
       const mayor = pasos.reduce((m, p) => (p.cantidad > m.cantidad ? p : m), pasos[0]);

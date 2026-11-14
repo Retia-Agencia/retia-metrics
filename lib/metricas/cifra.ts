@@ -8,10 +8,45 @@
  * Módulo PURO (sin `lib/db`): el contrato viaja como props a un componente cliente.
  */
 import { cop, num, pct, usd } from "@/lib/format";
-import type { FormaDeFormula } from "@/lib/metricas/registro";
-import type { ExplicacionDeConcepto, UnidadDeCifra, UniversoDeCifra } from "@/lib/metricas/explicaciones-de-pauta";
+import type {
+  FichaDeMetrica, FormaDeFormula, FormulaDeMetrica, MonedaDeMetrica, VariableDeMetrica,
+} from "@/lib/metricas/registro";
 
-export type { ExplicacionDeConcepto, UnidadDeCifra, UniversoDeCifra } from "@/lib/metricas/explicaciones-de-pauta";
+export type UniversoDeCifra = "pauta" | "todas";
+
+/** "decimal" es un promedio con un decimal; "veces" escribe el ROAS como 6,1×. */
+export type UnidadDeCifra = "conteo" | "decimal" | "cop" | "usd" | "porcentaje" | "veces" | "dias";
+
+/** Todo lo que una cifra explica del concepto, sin los números de una instancia concreta. */
+export interface ExplicacionDeConcepto {
+  rotulo: string;
+  universo: UniversoDeCifra;
+  unidad: UnidadDeCifra;
+  que: string;
+  formula: FormulaDeMetrica;
+  variables: readonly VariableDeMetrica[];
+  aliasExcel?: string;
+  admiteObjetivo?: boolean;
+  unidadesDePartes?: readonly [UnidadDeCifra, UnidadDeCifra];
+}
+
+export function unidadDeCifra(ficha: FichaDeMetrica, moneda?: MonedaDeMetrica): UnidadDeCifra {
+  if (ficha.decimales === 1) return "decimal";
+  switch (ficha.unidad) {
+    case "dinero": {
+      const elegida = moneda ?? (ficha.monedas.length === 1 ? ficha.monedas[0] : undefined);
+      if (!elegida) throw new Error(`La métrica de dinero «${ficha.filaDelDiccionario}» necesita moneda`);
+      return elegida;
+    }
+    case "porcentaje": return "porcentaje";
+    case "veces": return "veces";
+    case "dias": return "dias";
+    case "cupos":
+    case "personas":
+    case "citas":
+    case "deals": return "conteo";
+  }
+}
 
 export type TonoDeEstado = "exito" | "alerta" | "peligro";
 
@@ -170,6 +205,7 @@ export function formatearValor(unidad: UnidadDeCifra, valor: number, enMillones 
     case "usd": return enMillones ? millones(valor, "USD") : usd(valor);
     case "porcentaje": return pct(valor, 1);
     case "veces": return `${num(valor, 1)}×`;
+    case "dias": return `${num(Math.round(valor))} días`;
     case "decimal": return num(valor, Number.isInteger(valor) ? 0 : 1);
     case "conteo": return num(Math.round(valor));
   }

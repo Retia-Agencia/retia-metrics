@@ -57,7 +57,7 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
 **Casillas de la enmienda del 13-nov** (el detalle de cada una está en "Enmienda del 13-nov", abajo; sin ellas el 419 no es `done`):
 
 - [x] **E-0** Decisiones DC-1 a DC-4 respondidas por Mani y escritas aquí, antes de tocar código. *(13-nov: las cuatro, en "Respondidas por Mani".)*
-- [ ] **E-1** El texto de toda explicación vive en la ficha (`lib/metricas/registro.ts`); `lib/metricas/explicaciones-de-pauta.ts` borrado; las 52 fichas con `que`, `formula` y `variables`, y un test que falla si una ficha registrada no los tiene.
+- [x] **E-1** El texto de toda explicación vive en la ficha (`lib/metricas/registro.ts`); `lib/metricas/explicaciones-de-pauta.ts` borrado; las 52 fichas con `que`, `formula` y `variables`, y un test que falla si una ficha registrada no los tiene.
 - [ ] **E-2** Constructores puros de `CifraDeMetrica` para Comercial, Dinero, Hoy y "¿Vamos a llegar?", cada uno con su test (los ocho casos raros que apliquen y la paridad cifra = lista).
 - [ ] **E-3** Comercial, Dinero, Hoy y "¿Vamos a llegar?" pintan solo `<Cifra>`; comparados lado a lado con el boceto en claro, oscuro y 375 px; el PDF de Hoy sigue saliendo bien.
 - [ ] **E-4** `/hub` (todos los programas): Hoy, Comercial y Dinero con la misma pieza, sin una sola tasa combinada entre programas.
@@ -297,6 +297,24 @@ ir en paralelo si E-2 arranca con los conceptos que ya tienen texto en el puente
 tengan texto aprobado.
 
 ## Avance
+
+- **13-nov (noche), E-1 hecho (carril D, Codex; revisado por Claude).** El texto vive en la ficha (`lib/metricas/registro.ts`) y
+  lo arma `explicacionDe(clave, variante?)` en `lib/metricas/explicacion.ts`, con las diferencias de Pauta como variantes nombradas
+  (`VARIANTES_DE_PAUTA`); el puente se borró y sus tipos viven en `lib/metricas/cifra.ts`, que deriva la unidad de la ficha
+  (`unidadDeCifra`, con `dias`). Test sin excepciones: toda ficha con `que`, `formula` y `variables`; `explicacion-sin-jerga`
+  recorre el registro entero. Claves nuevas: las nueve de Pauta (`presupuesto`, `agendas_dia`, `agendas_req`, `inversion_req`,
+  `roas_proy`, `envios_sin_id`, `registros_sin_utm`, `ventas_sin_anuncio`, `embudo`) y `ventas_por_escalon` (un concepto con el
+  escalón como dimensión, no siete claves: la regla vive solo en `escalonDeDeal`), `escalera_sin_resultado` (fila propia del
+  diccionario: su predicado incluye Cierre Perdido, así que no es `citas_pendientes`), `grupo_de_citas`,
+  `con_show_y_vendidos_hoy`, `deals_abiertos`, `deals_sin_dueno`, `descuento_promedio` (USD) y `descuento_promedio_porcentaje`
+  (dos claves porque el USD se suma entre programas y el % nunca, ADR 0048). Retiradas: `citas_realizadas` (queda `shows`) y
+  `llamadas_sin_resultado` (queda `citas_pendientes`). "Citas sin marcar" es `citas_pendientes`; "Tasas por programa" es una vista,
+  no un concepto. Ninguna cifra cambió; el texto visible de Pauta solo cambió en Asistencia y De cita a venta, como aprobó Mani.
+  **Para el carril P:** en `lib/hub/` los nombres locales `citas_realizadas` → ficha `shows`, `citas_sin_marcar` → `citas_pendientes`,
+  `citas_de_manana` → `citas_del_dia` (mismo concepto, otro día). `ExplicacionDeConcepto` no cambió de forma.
+  **Sin fuente, quedaron con el texto de §2.2:** Envíos (¿solo completos o también parciales? el diccionario se contradice) y la
+  compensación exacta de `objetivo_semana` (regla del 146). **Revisar:** `agendas_meta` (pixel de Meta) quedó como variante de
+  `costo_agenda_meta` según el mapa del ticket, pero es otro número; si se pinta solo, merece clave propia.
 
 - **10-nov · Alejandro (carril P).** Commit 1: `FichaDeMetrica` gana `que`, `formula` (`forma` razón/suma/conteo/resta/producto,
   `terminos`, `por1000?`), `variables` y `aliasExcel?`, todos opcionales; no se tocó ninguna ficha. **Costura con el carril D:**

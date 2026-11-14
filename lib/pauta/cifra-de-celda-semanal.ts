@@ -7,7 +7,8 @@
  * del concepto. No consulta la base: la pantalla le pasa los objetivos y la lista ya leídos.
  */
 import { armarCifra, type CifraDeMetrica, type EntradaDeCifra, type FuenteDeEstado } from "@/lib/metricas/cifra";
-import { explicacionDePauta } from "@/lib/metricas/explicaciones-de-pauta";
+import { explicacionDe, VARIANTES_DE_PAUTA } from "@/lib/metricas/explicacion";
+import { CONCEPTO_DE_PAUTA_SEMANAL } from "@/lib/metricas/pendientes";
 import type { ObjetivoDeCohorte } from "@/lib/catalogo/objetivos";
 import { DEFINICION_METRICAS_OBJETIVO, type MetricaObjetivo } from "@/lib/objetivos/metricas";
 import { etiquetaDeSemana } from "@/lib/pauta/csv-tabla-semanal";
@@ -73,11 +74,18 @@ export interface EntradaDeCeldaSemanal {
  * Inversión dice "sumando todas las cuentas del programa", que en una subfila sería falso.
  */
 function explicacionDeCuenta(clave: ClavePautaSemanal, cuenta: string) {
-  const base = explicacionDePauta(clave);
+  const base = explicacionSemanal(clave);
   const que = clave === "inversion"
     ? `Lo que se gastó en anuncios de Meta en la cuenta ${cuenta}. Las cuentas del programa suman la fila Inversión.`
     : `${base.que} Aquí, solo la cuenta ${cuenta}.`;
   return { ...base, que };
+}
+
+function explicacionSemanal(clave: ClavePautaSemanal) {
+  return explicacionDe(
+    CONCEPTO_DE_PAUTA_SEMANAL[clave],
+    clave === "agendas_meta" ? VARIANTES_DE_PAUTA.agendas_meta : undefined,
+  );
 }
 
 export function textoDePeriodoDeCelda(rango: Rango, esTotal: boolean, paso: PasoDeTablaDePauta = "semana"): string {
@@ -97,7 +105,7 @@ export function cifraDeCeldaSemanal(e: EntradaDeCeldaSemanal): CifraDeMetrica {
   filtros.push([e.esTotal ? "Periodo" : porDia ? "Día" : "Semana", etiquetaDeSemana(rango)]);
   return armarCifra({
     concepto: e.fila.clave,
-    explicacion: e.cuenta ? explicacionDeCuenta(e.fila.clave, e.cuenta) : explicacionDePauta(e.fila.clave),
+    explicacion: e.cuenta ? explicacionDeCuenta(e.fila.clave, e.cuenta) : explicacionSemanal(e.fila.clave),
     valor: celda.valor,
     motivo: celda.valor === null ? celda.cobertura.razon ?? "Faltan datos para calcularla" : undefined,
     partes: celda.partes,
