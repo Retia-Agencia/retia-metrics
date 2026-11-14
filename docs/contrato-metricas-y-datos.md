@@ -251,12 +251,11 @@ su olor.
 **Construidos después (hijos de F7):** 🔒 registro contra diccionario con el trinquete en 0 (`registro-de-metricas`, ADR 0120,
 403); 🔒 lead y registro, "sin UTM" y el filtro de área de las agendas (`lead-y-registro-guardian`, `sin-utm-guardian`,
 `agendas-una-pregunta`, 403); 🔒 dorados de Pauta y de leads y registros (`numeros-dorados-pauta`, `lead-y-registro-paridad`,
-403); 🔒 moneda (`moneda-check`, 395); 🔒 programa garantizado por la base (`programa-garantizado`, 394).
+403); 🔒 show/ocurrió y cita sin resultado (`tests/show-y-sin-resultado-guardian.test.ts`, 390); 🔒 dorados de Comercial
+(`tests/numeros-dorados-comercial.test.ts`, 390); 🔒 moneda (`moneda-check`, 395); 🔒 programa garantizado por la base (`programa-garantizado`, 394).
 
 **Pendientes (🟡), verificados en `tests/` el 12-nov:**
 
-1. **Un guardián por concepto** para show/ocurrió y cita sin resultado (H-15, H-07).
-2. **Dorados** de llamadas, shows y citas sin resultado del Hub Comercial y del mensaje del semáforo de WhatsApp entero.
-3. **Título del ADR contra la fila del diccionario** (§2): no hay test; hoy 👁.
-4. **Que toda superficie consuma el registro:** la Cifra y el MCP lo leen; el mensaje de WhatsApp no, y ningún test lo exige.
-5. **Endurecer los de arriba cuando se retiren sus excepciones:** cada lista nombrada se vacía con su ticket.
+1. **Título del ADR contra la fila del diccionario** (§2): no hay test; hoy 👁.
+2. **Que toda superficie consuma el registro:** la Cifra y el MCP lo leen; el mensaje de WhatsApp no, y ningún test lo exige.
+3. **Endurecer los de arriba cuando se retiren sus excepciones:** cada lista nombrada se vacía con su ticket.

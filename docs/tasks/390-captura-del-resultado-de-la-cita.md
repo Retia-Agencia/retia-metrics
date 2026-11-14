@@ -32,7 +32,7 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
 - [x] Un mecanismo de captura que empuje al closer a marcar (recordatorio en Mi espacio o la bandeja, con conteo por closer); no una reja que bloquee, porque un cobro real no se frena por un dato de configuración (misma lógica del ADR 0034).
 - [ ] La cobertura sube medida: citas pasadas sin resultado por semana antes y después, por programa.
 - [ ] El Hub dice "parcial" con base y faltan en toda razón que dependa del resultado (cierra con el 351).
-- [ ] **(Enmienda 13-nov.) Los dos guardianes que el contrato sigue listando como "solo propuestos"** para este concepto
+- [x] **(Enmienda 13-nov.) Los dos guardianes que el contrato sigue listando como "solo propuestos"** para este concepto
   (`docs/contrato-metricas-y-datos.md`, "Pendientes (🟡)", puntos 1 y 2; H-4 de
   `docs/reportes/revision-hub-metricas-mcp-2026-11-13.md`):
   1. **Un guardián por concepto para show ("ocurrió") y para cita sin resultado.** Molde: `tests/venta-una-definicion.test.ts`
@@ -48,6 +48,7 @@ Lo que pertenece a otro hijo del 385 (ver `docs/auditoria-datos-2026-11/f7-plan.
      El mismo dorado se compara contra `resumen_del_hub` del MCP y contra el texto del semáforo de WhatsApp donde aplique: tres
      superficies, un número.
   Al cerrarlos, pasar esas dos líneas de 🟡 a 🔒 en `docs/contrato-metricas-y-datos.md` en el mismo commit.
+  13-nov: hecho en tests/show-y-sin-resultado-guardian.test.ts y tests/numeros-dorados-comercial.test.ts. Hallazgo: deuda que reescribe el predicado en `components/dashboard/hoy/citas.tsx`, `lib/queries/dashboard.ts`, `lib/queries/proyeccion-roas.ts` y `lib/queries/tasas-del-grupo.ts`; Hub y MCP no difieren en el dorado, y el semáforo no pinta estas cifras.
 - [ ] Regla N8 (ADR 0115): la fila de `docs/metricas.md`, el vocabulario de `overview.md` §11 y el ADR afectado quedan reescritos en el mismo commit, título e índice incluidos.
 - [x] Registro: ficha de `citas_pendientes` y `llamadas_sin_resultado` en `lib/metricas/registro.ts` y su línea borrada de `lib/metricas/pendientes.ts` con `TOPE_DE_PENDIENTES` bajado.
 
