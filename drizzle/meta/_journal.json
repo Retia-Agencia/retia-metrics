@@ -981,6 +981,13 @@
       "when": 1794632139792,
       "tag": "0139_retiro_de_sync_runs",
       "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1794632226005,
+      "tag": "0140_retiro_de_canales_y_areas",
+      "breakpoints": true
     }
   ]
 }

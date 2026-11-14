@@ -2152,64 +2152,6 @@ export const trasladoCockpit = pgTable(
   (t) => [uniqueIndex("traslado_cockpit_ref_idx").on(t.tabla, t.refCockpit), index("traslado_cockpit_fila_idx").on(t.tabla, t.filaId)],
 );
 
-/**
- * Areas de Retia (ticket 083, ADR 0043): agrupan leads por origen. Area NO es rol.
- * El area de un lead se deriva de su Canal (ticket 101), nunca se guarda en leads ni deals.
- */
-export const areas = pgTable(
-  "areas",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    nombre: text("nombre").notNull(),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [uniqueIndex("areas_nombre_idx").on(sql`lower(${t.nombre})`)],
-);
-
-/**
- * El formato de `utm_content` y `utm_term` en un Canal (ticket 101, DP-22). Es un
- * tipo y no una fila porque el emparejador decide con el (ADR 0012): dice EN QUE
- * CAMPO viene cada cosa, nunca que valores son validos. Nulo = el canal no declara
- * formato y esos dos campos se guardan sin interpretar.
- *   plantilla_pauta: content = anuncio, term = placement (plantilla de Pauta, ADR 0062)
- *   meta_historico:  content = conjunto, term = anuncio (`facebook / cpc` de Retia)
- *   closer:          content = codigo opaco del closer (ADR 0044, ticket 086)
- */
-export const formatoUtmEnum = pgEnum("formato_utm", [
-  "plantilla_pauta",
-  "meta_historico",
-  "closer",
-]);
-
-/**
- * Canales (ticket 101, ADR 0051 punto 2): un par `utm_source + utm_medium` con su
- * Area. Uno solo para todos los programas, porque la convencion de UTM es la misma
- * (Mani, 30-sep). `utm_source` nulo es el COMODIN: cualquier source con ese medium
- * (`paid_social` de Meta, cuyo source lo llena `{{site_source_name}}`). El par exacto
- * gana sobre el comodin, y el indice unico hace imposible el empate (ADR 0045).
- * Se compara con `lower(trim())`; el crudo del envio no se reescribe (ADR 0004).
- */
-export const canales = pgTable(
-  "canales",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    nombre: text("nombre").notNull(),
-    utmSource: text("utm_source"),
-    utmMedium: text("utm_medium").notNull(),
-    areaId: uuid("area_id").notNull().references(() => areas.id, { onDelete: "restrict" }),
-    formato: formatoUtmEnum("formato"),
-    activo: boolean("activo").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [
-    uniqueIndex("canales_par_idx").on(
-      sql`coalesce(lower(trim(${t.utmSource})), '')`,
-      sql`lower(trim(${t.utmMedium}))`,
-    ),
-  ],
-);
-
 // ─────────────────────────────────────────────────────────── alertas por persistencia
 
 /**

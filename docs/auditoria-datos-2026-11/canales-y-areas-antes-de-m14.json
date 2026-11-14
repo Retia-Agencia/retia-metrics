@@ -1,0 +1,311 @@
+{
+  "retirado": "13-nov-2026, 401 M14",
+  "areas": [
+    {
+      "id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "nombre": "Orgánico",
+      "activo": true,
+      "created_at": "2026-09-30T08:58:23.208Z"
+    },
+    {
+      "id": "67f07607-f53a-4307-a704-289a7aee0f03",
+      "nombre": "Paid",
+      "activo": true,
+      "created_at": "2026-09-30T08:58:22.361Z"
+    },
+    {
+      "id": "6503fca1-47a7-4f6b-a7a9-2aee52f30608",
+      "nombre": "Referidos",
+      "activo": true,
+      "created_at": "2026-09-30T08:58:24.038Z"
+    }
+  ],
+  "canales": [
+    {
+      "id": "93a2599e-1778-4735-aeaa-522d1002900f",
+      "nombre": "direct / organic",
+      "utm_source": "direct",
+      "utm_medium": "organic",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:40:57.722Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "7ed81c0c-6446-472d-a777-0d84d0c58267",
+      "nombre": "instagram / dm",
+      "utm_source": "instagram",
+      "utm_medium": "dm",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:22.869Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "f868a708-0e2e-4c3d-ac7a-a7c3b0fb244e",
+      "nombre": "instagram / linktree",
+      "utm_source": "instagram",
+      "utm_medium": "linktree",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:16.144Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "d8303488-9705-4d9d-87c6-7c961ddcce92",
+      "nombre": "instagram / manychat",
+      "utm_source": "instagram",
+      "utm_medium": "manychat",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:19.543Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "0aafb9fe-254b-4d60-99c6-e2292fc07d39",
+      "nombre": "instagram / stories",
+      "utm_source": "instagram",
+      "utm_medium": "stories",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:17.879Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "f47017ba-57ce-4338-957d-9b9416caf67e",
+      "nombre": "instagram / storiesfijadas",
+      "utm_source": "instagram",
+      "utm_medium": "storiesfijadas",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:21.205Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "9d05894f-b9db-4246-995f-77b38c4c065c",
+      "nombre": "instagram / storiesmanychat",
+      "utm_source": "instagram",
+      "utm_medium": "storiesmanychat",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:24.547Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "6cf23497-ae1f-4940-be71-48b8c1ba096b",
+      "nombre": "instagram milena / dm",
+      "utm_source": "instagram milena",
+      "utm_medium": "dm",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:14.489Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "ac1a9fe3-e6bc-4e33-b893-95ec9d27c977",
+      "nombre": "instagram milena / linktree",
+      "utm_source": "instagram milena",
+      "utm_medium": "linktree",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:01.102Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "62bc8856-f0cc-4f6d-9d92-e32ea635c324",
+      "nombre": "instagram milena / manychat",
+      "utm_source": "instagram milena",
+      "utm_medium": "manychat",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:07.775Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "e3998fa3-8de8-4486-8e7c-e3afbab3fbc8",
+      "nombre": "instagram milena / stories",
+      "utm_source": "instagram milena",
+      "utm_medium": "stories",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:04.431Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "3bad038c-66bf-4487-941f-defb2ad8fed6",
+      "nombre": "instagram milena / storiesfijadas",
+      "utm_source": "instagram milena",
+      "utm_medium": "storiesfijadas",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:11.153Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "f334af63-df51-43d1-8ffc-4429beb2eeda",
+      "nombre": "instagram rosario / dm",
+      "utm_source": "instagram rosario",
+      "utm_medium": "dm",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:12.822Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "c52d03e1-b54b-420a-969b-5d79d5dd715e",
+      "nombre": "instagram rosario / linktree",
+      "utm_source": "instagram rosario",
+      "utm_medium": "linktree",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:40:59.373Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "cf0826e7-799a-44cb-bc7b-c2060b22f055",
+      "nombre": "instagram rosario / manychat",
+      "utm_source": "instagram rosario",
+      "utm_medium": "manychat",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:06.094Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "cced75c6-c4b1-43e0-a8ec-b0920467b9be",
+      "nombre": "instagram rosario / stories",
+      "utm_source": "instagram rosario",
+      "utm_medium": "stories",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:02.767Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "eea0b7bf-e36c-490c-9ca1-7cda7c242a4e",
+      "nombre": "instagram rosario / storiesfijadas",
+      "utm_source": "instagram rosario",
+      "utm_medium": "storiesfijadas",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:09.489Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "2e71f5b4-86ad-4b5d-9231-e8436a71d1a5",
+      "nombre": "leadmagnetdiagnostico / pdf",
+      "utm_source": "leadmagnetdiagnostico",
+      "utm_medium": "pdf",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:32.921Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "6d63171f-8742-4b46-9da4-6395d28c791a",
+      "nombre": "tiktok / linktree",
+      "utm_source": "tiktok",
+      "utm_medium": "linktree",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:26.265Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "0bfd96a0-791b-4a51-a195-984d797adba1",
+      "nombre": "tiktok / manychat",
+      "utm_source": "tiktok",
+      "utm_medium": "manychat",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:27.929Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "3a719f8c-5ac9-439a-973d-092bb8a7cc6d",
+      "nombre": "whatsapp rosario / chat",
+      "utm_source": "whatsapp rosario",
+      "utm_medium": "chat",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:31.260Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "9e0a0e86-be39-4126-a005-b3d418ba8079",
+      "nombre": "youtube / linktree",
+      "utm_source": "youtube",
+      "utm_medium": "linktree",
+      "area_id": "73aa6775-9e5f-4ffa-ae65-881bfbe17df6",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:41:29.595Z",
+      "area": "Orgánico"
+    },
+    {
+      "id": "0ca16e73-14f0-457a-9611-80f07c0035e5",
+      "nombre": "facebook / cpc",
+      "utm_source": "facebook",
+      "utm_medium": "cpc",
+      "area_id": "67f07607-f53a-4307-a704-289a7aee0f03",
+      "formato": "meta_historico",
+      "activo": true,
+      "created_at": "2026-09-30T14:40:52.697Z",
+      "area": "Paid"
+    },
+    {
+      "id": "625638c5-28ac-4494-ac6a-5c903f581f52",
+      "nombre": "fb / paid",
+      "utm_source": "fb",
+      "utm_medium": "paid",
+      "area_id": "67f07607-f53a-4307-a704-289a7aee0f03",
+      "formato": null,
+      "activo": true,
+      "created_at": "2026-09-30T14:40:54.375Z",
+      "area": "Paid"
+    },
+    {
+      "id": "a5802f0f-146e-4eca-86d3-4bc581100e4e",
+      "nombre": "Meta (cualquier source) / paid_social",
+      "utm_source": null,
+      "utm_medium": "paid_social",
+      "area_id": "67f07607-f53a-4307-a704-289a7aee0f03",
+      "formato": "plantilla_pauta",
+      "activo": true,
+      "created_at": "2026-09-30T14:40:51.044Z",
+      "area": "Paid"
+    },
+    {
+      "id": "74a03513-173e-4b36-a0b6-a4e2489f11ea",
+      "nombre": "closer / referido",
+      "utm_source": "closer",
+      "utm_medium": "referido",
+      "area_id": "6503fca1-47a7-4f6b-a7a9-2aee52f30608",
+      "formato": "closer",
+      "activo": true,
+      "created_at": "2026-09-30T14:40:56.041Z",
+      "area": "Referidos"
+    }
+  ]
+}
