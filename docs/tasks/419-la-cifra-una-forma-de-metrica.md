@@ -324,6 +324,36 @@ tengan texto aprobado.
   `grupo_shows` y `cierre_ventas` abre `grupo_vendidos`, con área Paid (misma lectura que la cifra). Las dos notas de "Para
   retomar" sobre esto quedan resueltas.
 
+- **13-nov · Alejandro (carril P). E-2, Comercial, primer commit: cifras clave y tabla de closers.** Ninguna pantalla cambia
+  todavía (eso es E-3); nada llama aún a los constructores fuera de `tests/`.
+  - `lib/metricas/razon-a-cifra.ts`: `entradaDesdeRazon(razon)`, la única traducción de `RazonConCobertura` a la Cifra. Archivo
+    aparte y no dentro de `cifra.ts` para no chocar con E-1, que mueve tipos ahí. Si la consulta trae motivo, esa es la frase del
+    parcial; la base en números ("12 de 30 …") solo cuando no lo trae; las citas por venir, su frase.
+  - `lib/hub/cifras-de-comercial.ts` (puro): `cifrasClaveDeComercial` (Citas, Asistencia, Cierre de ventas, De cita a venta y
+    "Citas sin marcar" si hay) y `cifrasDeCloser` (cada celda de la tabla de closers, con Vendido, Recaudado y Por cobrar).
+    **El texto llega por parámetro** (`explicaciones`), con el universo ya puesto por quien llama (DC-2): el módulo no depende de
+    dónde viva el texto ni toca `registro.ts`. `CONCEPTOS_DE_COMERCIAL` declara qué fichas necesita.
+  - `tests/cifras-de-comercial.test.ts` (15): contra la pieza vieja (`textoDeRazon`) caso por caso; parcial, «—» con motivo, 0,
+    en curso, comparación en puntos, sin jerga; y con base, la paridad cifra = lista (programa y por closer) con una anulada, una
+    cancelada, tres sin marcar y otro programa sembrados. Typecheck y lint limpios.
+  - **Hallazgos para Mani (ningún número cambia; son rótulos y texto):**
+    1. **Hoy hay dos reglas de "parcial" en la misma pestaña.** La tarjeta usa `grupo.parcial` (más de 10 % sin marcar,
+       `UMBRAL_SIN_MARCAR`) y la tabla de closers usa `estadoDeCobertura` (cobertura bajo 80 %, o citas por venir). El constructor
+       usa la segunda en los dos lados, como pide esta enmienda. Efecto en E-3: con entre 10 % y 20 % sin marcar la tarjeta deja
+       de decir "Parcial" (la cifra "Citas sin marcar" sigue saliendo), y con citas por venir empieza a decirlo.
+    2. **"De cita a venta" hoy no avisa parcial** en la tarjeta aunque sale del mismo grupo que Asistencia. Con la Cifra lo dice
+       igual que las otras dos (`razonAgendaAVenta`).
+    3. **La cancelada SÍ cuenta en el grupo de citas** (el test lo fija: 8 personas con una cancelada). El borrador §2.2 dice de
+       Canceladas "no cuentan en Citas ni en Asistencia": para Asistencia no es lo que hace el código. Corregir el texto o decidir.
+    4. **En la tabla de closers, 0 citas hoy se pinta «—».** Con la Cifra es "0" (regla del vacío). El dinero de un closer sin
+       ventas sigue en «—», ahora con su motivo.
+    5. **Sin texto todavía:** "Citas sin marcar" (duda 7 de §2.2: ¿es `llamadas_sin_resultado`?). El constructor la pide como
+       `citas_sin_marcar`; si se funde, cambia solo la llave.
+  - **Falta de E-2 Comercial (segundo commit):** escalera, embudo "¿Dónde se pierden?", caminos, citas por semana y auditoría
+    (Deals abiertos, Deals sin dueño, Ventas sin llamada), que dependen de la duda 7. Después Dinero, Hoy y el norte.
+  - **Para E-3 Comercial:** la página lee las cinco filas de evidencia por lista (`leerEvidencia`) y las pasa en `evidencia`;
+    la referencia de la comparación sale de `nombreDePedido`; guardar antes los valores de la pestaña en la base local.
+
 ## Para retomar (11-nov, Alejandro)
 
 **Paso 2 hecho: la celda de la tabla semanal es una Cifra.**
