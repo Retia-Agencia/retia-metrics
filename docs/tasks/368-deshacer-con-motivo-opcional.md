@@ -124,19 +124,31 @@ Confirmar o separar correo; catálogo, ajustes y Media; lo que escribe el sistem
 
 ## Done cuando
 
-- [ ] `tests/deshacer.test.ts`: cada regla del registro en los dos sentidos (se deshace / no se ofrece); permiso forjado
+- [x] `tests/deshacer.test.ts`: cada regla del registro en los dos sentidos (se deshace / no se ofrece); permiso forjado
       (closer ajeno 403 sin mover la base; autor, dueño, gerente y developer pasan); un evento se deshace una vez (409);
       una fila de reversión no se deshace; motivo en blanco queda `null`; deshacer un cambio viejo pisa el posterior.
-- [ ] Etapa: corrección a cualquier destino permitido en cualquier momento; rechaza ganado, perdido y salir de ganado;
-      recupera el pendiente solo al volver a la etapa de origen.
-- [ ] Cortesía deshecha: sale de Completo y deja de contar como venta. Abono deshecho: el motor recalcula (A1/A2).
-- [ ] Actividad anulada: deja de contar como contacto y gestión (prueba con la función real que lo cuenta).
-- [ ] Llamada de Calendly deshecha vuelve a sueltas; llamada del CRM se anula.
-- [ ] Guardianes: `vigencia-centralizada` con `deal_actividades`, `rastro-operativo` y `motor-etapas-guardian` en verde.
-- [ ] Tests existentes que fijaban "motivo obligatorio", "solo cohorte activa" o "solo el último movimiento", reescritos a
-      la regla nueva (no borrados).
-- [ ] typecheck, lint, tests del cambio y `npm run build` limpios. Recorrido en `dev:local` con clic en el diálogo.
-- [ ] Migración 0113 aplicada en producción con el ok de Mani, antes de desplegar el código.
+      *(13-nov: "el registro clasifica exhaustivamente…", "corregir etapa sin fila rechaza al closer ajeno sin mover la base",
+      "restaura un cambio viejo, guarda motivo vacío como null y solo permite una vez" (409 al repetir y a la fila de reversión)
+      y "%s puede deshacer" para autor, dueño, gerente y developer.)*
+- [x] Etapa: corrección a cualquier destino permitido en cualquier momento; rechaza ganado, perdido y salir de ganado;
+      recupera el pendiente solo al volver a la etapa de origen. *(13-nov: "corrige libremente la etapa y solo recupera el
+      pendiente al volver al origen" y "no corrige desde %s" con ganado parcial, ganado completo y perdido, 409 sin mover la base.)*
+- [x] Cortesía deshecha: sale de Completo y deja de contar como venta. Abono deshecho: el motor recalcula (A1/A2). *(13-nov: "deshacer una
+      cortesía restaura el valor y saca el deal de Completo" (no sale en `ventasConDiaEn`) y "deshacer la creación de un abono lo
+      anula y recalcula la etapa".)*
+- [x] Actividad anulada: deja de contar como contacto y gestión (prueba con la función real que lo cuenta). *(13-nov: "una actividad creada se anula y deja
+      de estar vigente", con `leerHechos` del motor: `tieneContactoRegistrado` pasa a falso.)*
+- [x] Llamada de Calendly deshecha vuelve a sueltas; llamada del CRM se anula. *(13-nov: "una llamada de Calendly asignada vuelve a sueltas y una
+      llamada CRM creada se anula".)*
+- [x] Guardianes: `vigencia-centralizada` con `deal_actividades`, `rastro-operativo` y `motor-etapas-guardian` en verde. *(13-nov: `dealActividades` está en
+      `TABLAS_ANULABLES` de `tests/vigencia-centralizada.test.ts`; los tres en verde en el CI de `cp-20261113-1`.)*
+- [x] Tests existentes que fijaban "motivo obligatorio", "solo cohorte activa" o "solo el último movimiento", reescritos a
+      la regla nueva (no borrados). *(13-nov: `9182f37b` reescribió `mover-etapa`, `abonos-del-deal`,
+      `ficha-deal-mutaciones`, `inbox-descartar-suelta` y `vigencia-centralizada`; ninguno se borró.)*
+- [x] typecheck, lint, tests del cambio y `npm run build` limpios. Recorrido en `dev:local` con clic en el diálogo. *(13-nov: CI verde en
+      `cp-20261113-1` (typecheck, lint, build y suite); recorrido del 3-nov anotado en el tracker: nota anulada con motivo, etapa
+      corregida sin motivo, actividad tachada.)*
+- [x] Migración 0113 aplicada en producción con el ok de Mani, antes de desplegar el código. *(Anotado en el tracker el 3-nov.)*
 - [ ] **(Enmienda 13-nov.) Deshacer el resultado de una llamada fallida también deshace el pendiente Re-agenda.** Ver
       "Hallazgo del 13-nov" abajo.
 
@@ -178,6 +190,7 @@ Encontrado al construir el 411 F2 (handoff del 13-nov) y **fijado como comportam
 - **Al arreglarlo:** el test "hallazgo: …" se reescribe a la regla nueva (el pendiente vuelve a su valor anterior) y se le quita
   la palabra "hallazgo". El deshacer del MCP (`deshacer_evento`) usa el mismo caso de uso, así que queda arreglado a la vez; se
   verifica con un caso en ese mismo archivo. Regla N8: `docs/mcp.md` §3 y el ADR 0117 en el mismo commit.
-- **Estado del ticket (N9).** Está "en main" desde el 3-nov con **las nueve casillas de arriba sin marcar**. Antes de pasarlo a
+- **Estado del ticket (N9).** 13-nov: marcadas con su evidencia las nueve casillas originales; **queda abierta la de la enmienda**
+  (la regla del Re-agenda no está construida), así que sigue "en main". Antes decía: estaba "en main" desde el 3-nov con las nueve casillas sin marcar. Antes de pasarlo a
   `done` hay que marcar cada una con su evidencia (el test que la cubre) o decir cuál no se cumple.
 
