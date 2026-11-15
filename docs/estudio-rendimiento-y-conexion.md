@@ -369,3 +369,133 @@ Lo que se propone discutir, en el molde de los demás contratos (estándar, dón
 - Logs: `vercel --scope team_ieTBizkH5rn0BsF2pQfi5X6C logs --project prj_7XSmQuw14kAiqB8B6IP4V9ITqVU8
   --environment production --json --since 7d --query <texto>` (el MCP de Vercel responde 403 para este proyecto; la
   CLI sí funciona). El límite es de 100 filas por llamada: filtra con `--query` o `--status-code` o te corta la ventana.
+
+## 13. Mediciones del 14-nov (noche): lo que la §9 pedía
+
+> Método. **Conexión y costo por consulta:** scripts desechables contra producción, solo lectura (ya borrados; `pg` se
+> instaló con `--no-save` y se quitó). **Inventario por página, prefetch, peso de cliente y carga:** la app contra la
+> base local de Docker (`db:local`: 3 programas, 2 fuentes, 301 leads, 286 deals), porque renderizar páginas contra
+> producción escribe. Los **conteos de consultas** son estructurales y valen; los **milisegundos locales no** (latencia
+> ~0 y pocos datos). Los tickets que salen de aquí son el 435 a 446 (`docs/tasks/`).
+
+### 13.1 Conexión (§9.4 y §9.5): `pg` no cuelga
+
+| Prueba (producción, pooler 6543) | Resultado |
+|---|---|
+| `postgres-js`, 5 funciones de Nerd Stats en paralelo (control) | Colgada en la ronda 1 |
+| `pg`, mismo bucle, 12 rondas | 12 ok, 52 consultas por ronda, mediana 11,8 s |
+| `pg`, una conexión (`max: 1`), 6 rondas | 6 ok |
+| `pg`, 10 transacciones concurrentes con chequeo de parámetro cruzado, 105 rondas (1.050 transacciones) | 104 ok; **1 ronda con error no capturado** (el arnés aún no lo imprimía; no reapareció en 90 rondas) |
+| `postgres-js`, mismas transacciones, 15 rondas | 15 ok: `db.transaction` **no** cuelga (el backend queda fijo) |
+| Tipos devueltos, `pg` contra `postgres-js`, las 5 funciones | 0 diferencias |
+
+Mecanismo confirmado en el código: `node_modules/pg/lib/query.js`, `submit()` hace `cork()` y `prepare()` escribe
+Parse + Bind + Describe + Execute + Sync antes de `uncork()`: una sola ida, sin hueco.
+
+### 13.2 Costo por consulta y `EXPLAIN` (§9.2)
+
+- Ida y vuelta `select 1` desde la máquina local: **101 ms**. Las consultas en la base tardan **0,06 a 23 ms**
+  (`EXPLAIN (ANALYZE, BUFFERS)`): el tiempo es latencia y transferencia, no ejecución.
+- `conteosPorPrograma`: 19 consultas, 2,0 s. `fuentesConSalud`: 30 consultas, 4,2 s.
+- Las más lentas (800 a 900 ms cada una) son `select lead_id, respuestas from submissions … where program_id = $1`,
+  **una por programa**: bajan el JSON de respuestas (6.792 envíos, **5,96 MB** en total) para contar en memoria. En la
+  base: 23 ms, `Seq Scan` de `submissions`.
+- `entregas_webhook`: 10.953 `seq_scan` contra 120 `idx_scan` (8.968 filas): candidata a índice.
+- `statement_timeout` del rol: **2 min**. `max_connections`: 60, **29 ocupadas en reposo**.
+
+### 13.3 Inventario por página (§9.1), base local, rol developer
+
+`idénticas` = misma consulta con los mismos parámetros repetida en el mismo render (trabajo tirado). `N+1` = misma
+consulta con parámetros distintos. Base por petición: 4 consultas (sesión, alcance y layout).
+
+| Ruta | Consultas | Distintas | Idénticas | N+1 |
+|---|---:|---:|---:|---:|
+| `/p/[programa]/hub?seccion=pauta` | **846** | 112 | **515** | 219 |
+| `/hub` (todos, Hoy) | 286 | 69 | 139 | 78 |
+| `/hub?seccion=comercial` | 278 | 81 | 107 | 90 |
+| `/p/[programa]/hub?seccion=comercial` | 234 | 108 | 84 | 42 |
+| `/hub?seccion=pauta` | 202 | 81 | 52 | 69 |
+| `/p/[programa]/hub?seccion=dinero` | 172 | 73 | 83 | 16 |
+| `/hub?seccion=dinero` | 154 | 61 | 41 | 52 |
+| `/p/[programa]/hub` (Hoy) | 138 | 73 | 56 | 9 |
+| `/hub/reporte` | 136 | 55 | — | — |
+| `/p/[programa]/deals/[id]` | 74 | 66 | 7 | 1 |
+| `/p/[programa]/programa` | 55 | 39 | 11 | 5 |
+| `/mi-espacio` (closer) | 47 | 27 | 19 | 1 |
+| `/nerd-stats` (52 en producción) | 37 | 28 | 0 | 9 |
+| `/ajustes/salud` | 37 | 30 | 2 | 5 |
+| `/p/[programa]/inbox` | 34 | 34 | 0 | 0 |
+| `/p/[programa]/deals` | 30 | 28 | 2 | 0 |
+| `/media` | 20 | 11 | 7 | 2 |
+| `/p/[programa]/students` | 18 | 16 | — | — |
+| `/p/[programa]/leads`, `/calls` | 14 | 14 | 0 | 0 |
+| `/ajustes/usuarios` | 12 | 10 | — | — |
+| `/nerd-stats/bitacora`, `/p/[programa]/leads/[id]` | 11 | 11 | 0 | 0 |
+| `/ajustes/catalogos`, `/p/[programa]/proxima-cohorte` | 8 | 7 a 8 | — | — |
+| `/ajustes/migracion` | 7 | 6 | — | — |
+| `/mi-espacio` (developer), `/p/[programa]/recursos` | 6 | 6 | 0 | 0 |
+| `/recursos` | 5 | 4 | — | — |
+| `/`, `/mi-dia`, `/perfil`, `/ajustes`, `/ajustes/canales`, `/dashboard*`, `/metas`, `/hub/lista` sin filtros, `/p/[programa]` | 2 a 4 | — | 0 | 0 |
+| `/api/me`, `/api/admin/ping` | 1 | 1 | 0 | 0 |
+
+Las repeticiones que más pesan en Hub › Pauta de un programa (846): `tasasDelRango` ×74, `coberturaDeGasto` ×67 (dos
+consultas cada vez), `diasParaMadurarDe` ×57. En el Hub de todos: la cohorte del programa ×14, `ventas_de_la_cohorte`
+×14, la consulta de llamadas con closer ×14 a ×21. En Dinero: `saldosDeDeals` ×18 con un solo deal por llamada.
+
+**No medido aquí:** rutas de máquina con escritura o servicios externos (`/api/cron/*`, webhooks, `/api/mcp`,
+`/api/oauth/*`); `/hub/lista` y `/dashboard/lista` con filtros reales; las rutas de salud y semáforo solo en tiempo
+(11 a 33 ms locales), no en conteo. Lo cubre la instrumentación del ticket 436.
+
+### 13.4 Conexiones por proceso y carga concurrente (§9.7)
+
+- **Build de producción, un proceso (`next start`, base local):** tras recorrer todas las rutas en serie quedan **15
+  conexiones** abiertas: más de un pool de 10 dentro del mismo proceso (el módulo `lib/db` se instancia más de una vez).
+- **`next dev`:** el servidor agotó las 100 conexiones del Postgres local ("too many clients already") tras ~150
+  peticiones; un closer perdió la sesión por eso. El pool se recrea en cada recompilación y nunca se cierra.
+- **30 peticiones a la vez, build de producción, base local (latencia ~0):** Hub › Pauta de un programa 0,7 s sola,
+  6,2 s con 10 y **18 s con 30** (escala lineal: 25.000 consultas por 10 conexiones). `/hub` 3,0 s, Deals 1,2 s,
+  Leads 0,6 s.
+- **`pg` contra el pooler de producción, N instancias × pool:** 1×10 con 4 renders de Nerd Stats: ok (23 s). 4×10 con
+  16 renders: 13 de 16 ok, con `ECHECKOUTTIMEOUT: unable to check out connection from the pool after 15000ms in
+  Transaction mode`. 8×5, 20×3 y 40×2: la mayoría falla por tiempo de conexión. Pico de conexiones en Postgres: **25**.
+  La prueba la domina la descarga del JSON por el enlace local, pero muestra el techo: el pooler reparte ~15 backends y
+  **una consulta que baja megas retiene uno mientras transfiere**. ⚠️ Esta prueba cargó el pooler de producción unos
+  5 minutos (23:15); no repetirla contra producción.
+
+### 13.5 Prefetch (§9.6)
+
+Confirmado en el navegador contra el build de producción local: la primera carga de `/p/[programa]/leads` dispara **43
+precargas**: el menú lateral, las pestañas del programa, los enlaces de filtros **y cada fila visible de la tabla, dos
+veces por fila**. Deals tiene 130 enlaces internos (114 tarjetas). Ningún `<Link>` de los 100 del código declara
+`prefetch`. Según `node_modules/next/dist/docs/01-app/03-api-reference/02-components/link.md`, en una ruta dinámica el
+valor por defecto precarga hasta el `loading.tsx` más cercano: cada precarga es una invocación con la sesión y el
+layout (2 a 4 consultas), no el render completo. Una carga de Calls en el navegador costó 34 transacciones contra 21
+sin precargas. El costo exacto en Vercel queda para el 436.
+
+### 13.6 Cliente
+
+| Ruta (build de producción) | JS descargado | JS comprimido | HTML | Nodos del DOM |
+|---|---:|---:|---:|---:|
+| `/mi-espacio` | 925 KB | 286 KB | 64 KB | 320 |
+| `/p/[programa]/leads` | 907 KB | 284 KB | 353 KB | — |
+| `/p/[programa]/deals` (Kanban) | 959 KB | 301 KB | **531 KB** | 2.807 |
+| `/p/[programa]/hub?seccion=pauta` | 949 KB | 297 KB | **663 KB** | 1.802 |
+| `/login` | 508 KB | 159 KB | 4 KB | — |
+
+Toda ruta carga ~290 KB comprimidos de JavaScript aunque no tenga gráficas. 93 de 164 componentes son cliente; un solo
+`next/dynamic`; 3 `<Suspense>`.
+
+### 13.7 Verificado en documentación
+
+- Vercel `iad1` = `us-east-1`; la base está en `us-east-2` = **`cle1`** (https://vercel.com/docs/regions).
+- `attachDatabasePool` de `@vercel/functions` cierra las conexiones ociosas antes de suspender la instancia; se
+  recomienda pool global e `idleTimeoutMillis` bajo, ~5 s (https://vercel.com/kb/guide/connection-pooling-with-functions).
+- En Supabase el tamaño del pool se cambia en el panel; el máximo de clientes lo fija el tamaño del cómputo
+  (https://supabase.com/kb/troubleshooting/how-do-i-update-connection-pool-settings-in-my-dashboard-wAxTJ_).
+- Los logs de Vercel (`vercel logs --json`) **no traen duración**.
+
+### 13.8 Lo único que sigue sin medir
+
+**Tiempos reales en producción** (render por ruta en Vercel, y el peso del prefetch allá). El navegador del agente no
+tiene sesión de Google y los logs no traen duración. Sale del 436 (log estructurado por petición) o de una sesión de
+Mani en el panel del navegador.

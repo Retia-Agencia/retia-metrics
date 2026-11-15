@@ -31,6 +31,44 @@ Análisis en `docs/onboarding-de-programa.md`. Dos carriles: ficha (430 → 432 
 | [ ] | 433 | [El recorrido de configuración de un programa inactivo](./433-recorrido-de-configuracion-del-programa.md) | 430, 432 | en main · 14-nov · CI verde; faltan los recorridos de su Done cuando |
 | [ ] | 434 | [El alta de un programa sin pedir el slug](./434-alta-de-programa-sin-slug.md) | 431 | en main · 14-nov · CI verde; faltan los recorridos de su Done cuando |
 
+## 24 · Rendimiento: conexión, consultas, render y cliente · 14-nov
+
+Mediciones y causa raíz en `docs/estudio-rendimiento-y-conexion.md` (§13). Orden: 435 → 436 → (437 → 438 → 444) y, en
+paralelo tras el 436, 439, 440, 442 y 443 → 441 → 445. El 446 es independiente. Cierra el 243.
+
+**Cómo retomar (pegar en una sesión nueva):** "Lee AGENTS.md, `docs/estudio-rendimiento-y-conexion.md` §13 y el
+ticket `docs/tasks/<N>-….md`. Impleméntalo con `/delegate` (Codex), verifica contra su Done cuando y márcalo en el
+tracker." Una sesión por ticket.
+
+**Carriles en paralelo** (el reparto es por archivos, AGENTS.md):
+- Ya, a la vez: **435** (dueño de `lib/db/`) y **446** (solo `lib/calendly/`).
+- Tras el 435: **436 y luego 440** en la misma sesión (los dos tocan `lib/db/index.ts`); **441** lo hace la sesión principal.
+- Tras el 436, cuatro carriles a la vez: **A** 437 → 438 → 444 (Hub y `lib/queries/`) · **B** 439 (`salud-fuentes`,
+  `nerd-stats`, `leads.ts`) · **C** 442 → 443 (enlaces y componentes cliente; van en fila porque tocan los mismos
+  archivos) · y el 440 si no salió antes.
+- Al final: **445**.
+
+**Modo rápido (Mani, 14-nov: menos tests, enviar antes).** Por ticket se exige solo: typecheck, lint, build si toca un
+componente cliente, y **la medición antes y después** de su Done cuando. De tests nuevos quedan únicamente el
+presupuesto de consultas (436) y el bucle de conexión (435), que es lo que impide retroceder sin error visible. Los
+tests de paridad se cambian por comparar la salida vieja y la nueva una vez, en la sesión, antes de borrar la vieja.
+Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se escriben juntos en el 445.
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | todo |
+| [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | todo |
+| [ ] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | todo |
+| [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |
+| [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | todo |
+| [ ] | 440 | [Una petición lenta falla en segundos y con mensaje](./440-fallar-rapido.md) | 435 | todo |
+| [ ] | 441 | [La función junto a la base y la cuenta de conexiones](./441-region-y-presupuesto-de-conexiones.md) | 435, 436 | todo · operación, sesión principal |
+| [ ] | 442 | [Qué enlaces precargan se decide](./442-prefetch-decidido.md) | 436 | todo |
+| [ ] | 443 | [El navegador recibe solo lo que la pantalla usa](./443-peso-del-cliente.md) | 436 | todo |
+| [ ] | 444 | [Lo que casi no cambia se lee de caché](./444-cache-de-lo-que-casi-no-cambia.md) | 437, 438 | todo |
+| [ ] | 445 | [El contrato de rendimiento, escrito y vigilado](./445-contrato-de-rendimiento.md) | 435 a 444 | todo |
+| [ ] | 446 | [El cron de Calendly falla todos los días](./446-cron-de-calendly-falla-a-diario.md) | — | todo |
+
 ## 22 · Pedidos del 11-nov (Michael y Paid Media) · 12-nov
 
 Lo que no tenía ticket. Las alertas cada hora quedaron como configuración (268), sin ticket. El push de recién agendado
