@@ -3,7 +3,7 @@ id: 437
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §13.3 (consultas idénticas) · contrato de rendimiento"
 depends: [436]
-status: en curso
+status: done
 ---
 
 # 437 — Una lectura se hace una vez por solicitud: fuera las consultas idénticas
@@ -106,7 +106,7 @@ memoiza la función dueña de cada una. No memoices en la página ni en el compo
 - [x] Hub › Pauta de un programa baja de 846 a ≤ 331 (medido 15-nov en dev:local: 837 → 323, 1 idéntica) consultas (846 − 515) solo con este ticket.
 - [x] `lib/auth/solicitud.ts` usa el helper o comparte su regla (una sola copia de "¿es escritura?"): `esEscrituraOFueraDeRequest` vive ahí y `lib/db/por-solicitud.ts` la importa.
 - [x] Recorrido en `dev:local`: registrar un abono y ver el saldo nuevo sin recargar (una escritura no lee de la memoria). 15-nov: deal de Felipe Torres (ComunicArte local), abono de USD 100 → saldo 497 → 397 y abonado 300 → 400 en la misma carga de página, consola limpia.
-- [ ] Typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
+- [x] Typecheck, lint, tests del cambio, build; tracker y `status:` iguales. CI verde de 282c34e2 (run 43753865174; el shard 3 se cortó una vez por el tope de 480 s y pasó al re-correrlo).
 
 ## Medición del 15-nov (dev:local, consultas totales / idénticas; antes → después)
 | Ruta | Antes | Después |

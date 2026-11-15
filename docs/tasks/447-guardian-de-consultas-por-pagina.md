@@ -3,7 +3,7 @@ id: 447
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §8.2 · ticket 445 (adelanta sus filas de consultas) · AGENTS.md › Contratos"
 depends: [437]
-status: todo
+status: en curso
 ---
 
 # 447 — Una página no repite una consulta: contrato escrito y guardián por página

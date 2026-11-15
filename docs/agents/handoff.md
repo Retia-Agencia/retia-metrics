@@ -31,6 +31,29 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
 ```
 ## Memory
 
+### 15-nov (noche) · 437 done; 447 a medias en la rama `t447` (sesión de Mani, Codex por /delegate)
+- **437 cerrado:** CI verde de `282c34e2` (el shard 3 se cortó una vez por el tope de 480 s, sin test rojo, y pasó al
+  re-correrlo). Tracker y `status:` en `done`.
+- **447, decidido:** la memoria por solicitud se activa en el test con `vi.mock` de `@/lib/db/por-solicitud` (fábrica real,
+  `esLaBaseDeLaApp: () => true`, un `Map` por corrida con `abrirSolicitud()`). Medido contra AsyncLocalStorage: mismo costo
+  (200 mil lecturas, 34 a 57 ms ambas); se eligió `vi.mock` porque no toca producción. Las páginas se miden con un cargador
+  puro en `lib/` (`cargarDatosDe<Pagina>(db, entrada)`) que la página y el test importan.
+- **447, hecho en `t447` (WIP, sin tests corridos):** las tres filas de AGENTS.md › Contratos (el 445 las cita);
+  `tests/consultas-por-pagina.test.ts` (presupuestos de `/hub` ×4 secciones y `/mi-espacio` closer, 3 contra 6 programas,
+  los cuatro mordiscos más el control, trinquete de cobertura de `app/**/page.tsx` con `PENDIENTES_447` y `SIN_CONSULTAS`);
+  `lib/queries/hub-todos.ts`, `lib/mi-espacio/cargar-datos.ts` y `lib/mi-espacio/datos-{notificaciones,metricas,canales,por-decidir}.ts`
+  (las cuatro tabs quedaron como vistas síncronas).
+- **447, falta (Codex se quedó sin cuota a mitad del arreglo):** (1) revertir `puedeTrabajar = trabajaLeads(sujeto) && !esAccesoTotal(rol)`
+  en `app/(app)/mi-espacio/page.tsx` a `trabajaLeads(sujeto)`: esconde el mensaje del dueño al developer; (2) en `cargarDatosDeHub`,
+  `pauta` y `origenes` en un solo `Promise.all`, y escalera con operaciones en otro (antes corrían en paralelo); (3) `VamosALlegar`
+  lee solo en `/hub` no-Hoy: pasar `leerVamosALlegar` al cargador y renderizar `VamosALlegarVista`; (4) mover el `vi.mock` del helper
+  al archivo del test (`moduloConMemoria(importActual)` exportado por el helper); (5) ajustar `tests/mi-espacio.test.ts`,
+  `tests/mi-espacio-notificaciones.test.ts` y `tests/mi-espacio-por-decidir.test.ts` si mockean lo que las tabs ya no leen;
+  (6) typecheck, lint, build (toca componentes) y correr el guardián; (7) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`
+  (topes del estudio §13.3), con la misma revisión: ningún componente asíncrono que lea datos fuera del cargador.
+- **No verificado:** nada del 447 corrió (la Mac sin aire: 8 GB de swap). Procesos de Codex del worktree sin cosechar
+  (`codex-reap.sh .claude/worktrees/447` y `--orphans`).
+
 ### 15-nov (tarde) · 437: cero consultas idénticas en el Hub y Mi espacio, sin commitear (sesión de Mani)
 - **Estado:** el código está **sin commitear en el checkout principal** (12 archivos de `lib/` más los tickets 437, 445, 447 y
   el tracker). `AGENTS.md` también aparece modificado: lo reescribe `next dev`, no va en el commit. Falta commit, push y CI verde
