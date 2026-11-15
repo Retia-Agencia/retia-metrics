@@ -3,7 +3,7 @@ id: 431
 etapa: configuracion
 serves: "Mani, 14-nov: con un programa inactivo hay rutas que fallan · ADR 0132 punto 3 · docs/onboarding-de-programa.md F1"
 depends: []
-status: en curso
+status: en main
 ---
 
 # 431 — El estado del programa decide las tabs

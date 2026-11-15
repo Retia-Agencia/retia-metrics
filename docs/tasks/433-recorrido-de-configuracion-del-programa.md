@@ -3,7 +3,7 @@ id: 433
 etapa: configuracion
 serves: "Mani, 14-nov: un onboarding paso a paso, súper intuitivo · ADR 0132 punto 3 · docs/onboarding-de-programa.md F3"
 depends: [430, 432]
-status: en curso
+status: en main
 ---
 
 # 433 — El recorrido de configuración de un programa inactivo

@@ -10,7 +10,12 @@ const requireSesionReal = vi.fn();
 const marcarDealVisto = vi.fn();
 const notFound = vi.fn(() => { throw new Error("notFound"); });
 
-vi.mock("@/lib/auth/page-guards", () => ({ paginaConRol }));
+vi.mock("@/lib/auth/page-guards", () => ({
+  paginaConRol,
+  // La guarda real (431) usa programaVisiblePorSlug; un inactivo no entra en estos casos.
+  programaDeTabOConfigurar: async (userId: string, rol: unknown, slug: string) =>
+    (await programaVisiblePorSlug(userId, rol, slug)) ?? notFound(),
+}));
 vi.mock("@/lib/auth/guards", () => ({ requireSesionReal }));
 vi.mock("@/lib/deals/cambiar-dueno", () => ({ marcarDealVisto }));
 vi.mock("@/lib/auth/vista", () => ({ rolDeVista }));

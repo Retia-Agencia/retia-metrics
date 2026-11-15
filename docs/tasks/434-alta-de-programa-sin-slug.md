@@ -3,7 +3,7 @@ id: 434
 etapa: configuracion
 serves: "Mani, 14-nov: el alta pide un dato técnico · ADR 0132 punto 5 · docs/onboarding-de-programa.md F6"
 depends: [431]
-status: en curso
+status: en main
 ---
 
 # 434 — El alta de un programa sin pedir el slug

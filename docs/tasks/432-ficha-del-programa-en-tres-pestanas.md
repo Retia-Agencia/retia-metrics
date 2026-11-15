@@ -3,7 +3,7 @@ id: 432
 etapa: configuracion
 serves: "Mani, 14-nov: la ficha tiene cinco pestañas y las integraciones partidas · ADR 0132 punto 4 · docs/onboarding-de-programa.md F4 y F5"
 depends: [430]
-status: en curso
+status: en main
 ---
 
 # 432 — La ficha de un programa activo en tres pestañas

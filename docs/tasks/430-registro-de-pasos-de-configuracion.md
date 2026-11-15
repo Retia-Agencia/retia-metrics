@@ -3,7 +3,7 @@ id: 430
 etapa: configuracion
 serves: "Mani, 14-nov: onboarding de un programa sin fricción · ADR 0132 puntos 1 y 2 · docs/onboarding-de-programa.md F2 y F3"
 depends: []
-status: en curso
+status: en main
 ---
 
 # 430 — Un registro de pasos de configuración del programa
