@@ -31,7 +31,7 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
 ```
 ## Memory
 
-### 15-nov (noche) · 437 done; 447 a medias en la rama `t447` (sesión de Mani, Codex por /delegate)
+### 15-nov (noche) · 437 done; 447 fase 1 en la rama `t447`, PR borrador #24 (sesión de Mani, Codex por /delegate)
 - **437 cerrado:** CI verde de `282c34e2` (el shard 3 se cortó una vez por el tope de 480 s, sin test rojo, y pasó al
   re-correrlo). Tracker y `status:` en `done`.
 - **447, decidido:** la memoria por solicitud se activa en el test con `vi.mock` de `@/lib/db/por-solicitud` (fábrica real,
@@ -43,16 +43,18 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
   los cuatro mordiscos más el control, trinquete de cobertura de `app/**/page.tsx` con `PENDIENTES_447` y `SIN_CONSULTAS`);
   `lib/queries/hub-todos.ts`, `lib/mi-espacio/cargar-datos.ts` y `lib/mi-espacio/datos-{notificaciones,metricas,canales,por-decidir}.ts`
   (las cuatro tabs quedaron como vistas síncronas).
-- **447, falta (Codex se quedó sin cuota a mitad del arreglo):** (1) revertir `puedeTrabajar = trabajaLeads(sujeto) && !esAccesoTotal(rol)`
-  en `app/(app)/mi-espacio/page.tsx` a `trabajaLeads(sujeto)`: esconde el mensaje del dueño al developer; (2) en `cargarDatosDeHub`,
-  `pauta` y `origenes` en un solo `Promise.all`, y escalera con operaciones en otro (antes corrían en paralelo); (3) `VamosALlegar`
-  lee solo en `/hub` no-Hoy: pasar `leerVamosALlegar` al cargador y renderizar `VamosALlegarVista`; (4) mover el `vi.mock` del helper
-  al archivo del test (`moduloConMemoria(importActual)` exportado por el helper); (5) ajustar `tests/mi-espacio.test.ts`,
-  `tests/mi-espacio-notificaciones.test.ts` y `tests/mi-espacio-por-decidir.test.ts` si mockean lo que las tabs ya no leen;
-  (6) typecheck, lint, build (toca componentes) y correr el guardián; (7) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`
-  (topes del estudio §13.3), con la misma revisión: ningún componente asíncrono que lea datos fuera del cargador.
-- **No verificado:** nada del 447 corrió (la Mac sin aire: 8 GB de swap). Procesos de Codex del worktree sin cosechar
-  (`codex-reap.sh .claude/worktrees/447` y `--orphans`).
+- **447, después (Claude, misma sesión, `2c95e5ef` en `t447`):** hechos los puntos que Codex dejó: `puedeTrabajar` volvió a
+  `trabajaLeads(sujeto)`; `cargarDatosDeMiEspacio` lee la tab elegida y sin sección no lee Calendly, enlaces ni programas;
+  `cargarDatosDeHub` corre pauta, origen, comercial y "¿Vamos a llegar?" en paralelo (la página dibuja `VamosALlegarVista`);
+  el `vi.mock` vive en el test (`moduloConMemoria` en el helper); `tests/mi-espacio.test.ts` y `mi-espacio-por-decidir.test.ts`
+  ajustados. Typecheck y lint limpios. **PR borrador [#24](https://github.com/Retia-Agencia/retia-metrics/pull/24)** para que el
+  CI corra el guardián (el CI no corre en ramas sin PR).
+- **447, falta:** (1) leer el CI de #24 y corregir lo que salga (sobre todo los topes y el 3 contra 6 de `/mi-espacio`, nunca
+  corrido); (2) `npm run build` y abrir `/hub` (las cuatro secciones) y `/mi-espacio` (closer, cada tab, y developer con su
+  mensaje del dueño) en `dev:local`, mirando la consola; (3) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447` con
+  topes del estudio §13.3, revisando que ningún componente asíncrono lea datos fuera de su cargador; (4) con CI verde, sacar
+  #24 de borrador, merge, y 447 a `done` en el tracker y en su `status:`.
+- **No verificado:** ningún test del 447 corrió en local (la Mac sin aire: 9 GB de swap); ni build ni pantalla.
 
 ### 15-nov (tarde) · 437: cero consultas idénticas en el Hub y Mi espacio, sin commitear (sesión de Mani)
 - **Estado:** el código está **sin commitear en el checkout principal** (12 archivos de `lib/` más los tickets 437, 445, 447 y
