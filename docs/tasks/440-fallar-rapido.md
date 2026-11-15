@@ -3,7 +3,7 @@ id: 440
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §7 (tiempo máximo) y §8.8 · contrato de rendimiento"
 depends: [435]
-status: en curso
+status: done
 ---
 
 # 440 — Una petición lenta falla en segundos y con mensaje, no a los 300
@@ -71,6 +71,6 @@ de un layout, con un valor ≤ al de su clase; excepciones nombradas (los crons)
       _Medido el 15-nov por el pooler 6543: el parámetro de arranque `statement_timeout` y `options=-c ...` los IGNORA el pooler (cortó a 20,5 s y 20,7 s). Lo que funciona: `query_timeout: 15_000` del cliente (cortó a 15,5 s, "Query read timeout"; la consulta sigue viva en el servidor) y `SET LOCAL statement_timeout` dentro de las transacciones (57014 a 16,1 s), que `aplicarTopeEnTransacciones` aplica tras cada `begin`._
 - [x] Con el pool lleno (prueba local: `max: 1` y dos consultas lentas), la segunda falla a los 10 s con error, no se
       cuelga. _(medido: 10,0 s, "timeout exceeded when trying to connect")_
-- [ ] Una página con una consulta lenta forzada en `dev:local` muestra el mensaje y el botón de reintentar.
-      _Pendiente: `app/(app)/error.tsx` existe y el build pasa; falta verla renderizada._
-- [ ] Guardián verde y mordido; typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
+- [x] Una página con una consulta lenta forzada en `dev:local` muestra el mensaje y el botón de reintentar.
+      _(visto el 15-nov: `/perfil` con `pg_sleep` y tope de 2 s muestra "No pudimos cargar esta pantalla" y Reintentar)_
+- [x] Guardián verde y mordido; typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
