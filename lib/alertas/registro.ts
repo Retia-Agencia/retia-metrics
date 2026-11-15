@@ -1,4 +1,5 @@
 import { fechaHoraEnBogota, num } from "@/lib/format";
+import { hostsDeCalendlySinCloser, type HostDeCalendlySinCloser } from "@/lib/calendly/hosts-sin-closer";
 import { saludDeFuentes, type SaludDeFuenteConDatos } from "@/lib/queries/salud-fuentes";
 import type { Db } from "@/lib/db/tipos";
 
@@ -7,11 +8,17 @@ export type TipoDeAlerta =
   | "sobres_con_error"
   | "completos_sin_calidad"
   | "traza_de_pauta_rota"
+  | "host_de_calendly_sin_closer"
   | "sin_envios_global";
+
+export interface ContextoDeAlertas {
+  fuentes: SaludDeFuenteConDatos[];
+  hostsSinCloser: HostDeCalendlySinCloser[];
+}
 
 type DefinicionDeAlerta = {
   severidad: "critica" | "aviso";
-  evaluar(fuentes: SaludDeFuenteConDatos[], ahora: Date): { clave: string; texto: string }[];
+  evaluar(contexto: ContextoDeAlertas, ahora: Date): { clave: string; texto: string }[];
 };
 
 export const HORAS_SILENCIO_GLOBAL = 3;
@@ -23,7 +30,7 @@ function porFuente(
   tipo: TipoDeAlerta,
   deFuente: (fuente: SaludDeFuenteConDatos, ahora: Date) => string | null,
 ): DefinicionDeAlerta["evaluar"] {
-  return (fuentes, ahora) => fuentes.flatMap((fuente) => {
+  return ({ fuentes }, ahora) => fuentes.flatMap((fuente) => {
     const texto = deFuente(fuente, ahora);
     return texto === null ? [] : [{ clave: `${tipo}:${fuente.sourceId}`, texto }];
   });
@@ -63,9 +70,16 @@ export const REGISTRO_DE_ALERTAS = {
       return `🟡 ${contexto(fuente)}: de ${num(fuente.pagos)} envíos pagos, ${problemas}. ${destino}`;
     }),
   },
+  host_de_calendly_sin_closer: {
+    severidad: "critica",
+    evaluar: ({ hostsSinCloser }) => hostsSinCloser.map(({ programId, programaNombre, host, citas }) => ({
+      clave: `host_de_calendly_sin_closer:${programId}:${host}`,
+      texto: `🔴 ${programaNombre}: la cuenta de Calendly ${host} tiene ${num(citas)} ${citas === 1 ? "cita agendada" : "citas agendadas"} y no está vinculada a ningún closer del programa. Esos deals no cambian de dueño hasta vincularla. Revisar en Ajustes › Usuarios.`,
+    })),
+  },
   sin_envios_global: {
     severidad: "critica",
-    evaluar: (fuentes, ahora) => {
+    evaluar: ({ fuentes }, ahora) => {
       if (fuentes.length === 0) return [];
       const ultimos = fuentes.flatMap((fuente) => fuente.ultimo ? [fuente.ultimo] : []);
       const ultimo = ultimos.length === 0
@@ -87,14 +101,18 @@ export const REGISTRO_DE_ALERTAS = {
 export const TIPOS_DE_ALERTA = Object.keys(REGISTRO_DE_ALERTAS) as [TipoDeAlerta, ...TipoDeAlerta[]];
 
 export async function alertasActivas(db: Db, ahora: Date) {
-  return alertasDeFuentes(await saludDeFuentes(db, ahora), ahora);
+  const [fuentes, hostsSinCloser] = await Promise.all([
+    saludDeFuentes(db, ahora),
+    hostsDeCalendlySinCloser(db),
+  ]);
+  return alertasDelContexto({ fuentes, hostsSinCloser }, ahora);
 }
 
-/** Las alertas de una salud ya calculada: quien ya tiene `saludDeFuentes` no la recalcula (es la consulta pesada). */
-export function alertasDeFuentes(fuentes: SaludDeFuenteConDatos[], ahora: Date) {
+/** Las alertas de un contexto ya calculado: quien ya tiene sus consultas no las recalcula. */
+export function alertasDelContexto(contexto: ContextoDeAlertas, ahora: Date) {
   return TIPOS_DE_ALERTA.flatMap((tipo) => {
     const definicion = REGISTRO_DE_ALERTAS[tipo];
-    return definicion.evaluar(fuentes, ahora).map((alerta) => ({
+    return definicion.evaluar(contexto, ahora).map((alerta) => ({
         ...alerta,
         tipo,
         severidad: definicion.severidad,

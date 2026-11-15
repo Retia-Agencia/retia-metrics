@@ -1,7 +1,8 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { calls } from "@/lib/db/schema";
 import { esAdministrador, trabajaLeads, type Rol } from "@/lib/auth/roles";
 import type { MotivoSuelta } from "@/lib/calendly/emparejar-llamada";
+import { agendadaSql } from "@/lib/deals/resultados-de-llamada";
 
 /**
  * ¿Esta llamada sin deal se asigna a mano? Solo si la trajo Calendly (ADR 0049; Mani, 30-sep).
@@ -20,6 +21,16 @@ export const ORIGEN_DE_SUELTA_ASIGNABLE = "calendly";
 /** El predicado SQL: sin deal y de Calendly. No incluye la vigencia: esa la decide quien lee. */
 export function sueltaPorAsignar() {
   return and(isNull(calls.dealId), eq(calls.origen, ORIGEN_DE_SUELTA_ASIGNABLE));
+}
+
+/** El predicado SQL: cita agendada de Calendly con host pero sin closer. No incluye la vigencia: esa la decide quien lee. */
+export function citaSinCloserConHost() {
+  return and(
+    eq(calls.origen, ORIGEN_DE_SUELTA_ASIGNABLE),
+    agendadaSql(),
+    isNull(calls.closerUserId),
+    isNotNull(calls.calendlyHostEmail),
+  );
 }
 
 /** El mismo predicado sobre una fila ya leida. */

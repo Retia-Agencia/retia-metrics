@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { alertasActivas } from "@/lib/alertas/registro";
-import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
+import { calls, programs, sobresCrudos, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -15,6 +15,7 @@ describe("registro de alertas tecnicas", () => {
   let vaciar: () => Promise<void>;
   let programId: string;
   let sourceId: string;
+  let closerId: string;
 
   beforeAll(async () => {
     ({ db, cerrar, vaciar } = await crearBaseReutilizable());
@@ -37,6 +38,12 @@ describe("registro de alertas tecnicas", () => {
       activo: true,
     }).returning();
     sourceId = fuente.id;
+    const [closer] = await db.insert(users).values({
+      email: "closer-alertas@retia.test",
+      nombre: "Closer Alertas",
+      rol: "closer",
+    }).returning();
+    closerId = closer.id;
   });
 
   afterAll(async () => cerrar());
@@ -120,5 +127,95 @@ describe("registro de alertas tecnicas", () => {
     await db.update(sources).set({ activo: false }).where(eq(sources.id, sourceId));
 
     expect((await alertasActivas(db, AHORA)).some((alerta) => alerta.tipo === "sin_envios_global")).toBe(false);
+  });
+
+  it("publica una cuenta host con una cita sin closer sin filtrar el correo del lead", async () => {
+    await db.insert(calls).values({
+      programId,
+      origen: "calendly",
+      resultado: "agendada",
+      calendlyHostEmail: "Cuenta@Calendly.co",
+      emailLead: "lead-privado@ejemplo.co",
+      fechaAgenda: hace(-24),
+    });
+
+    const alertas = (await alertasActivas(db, AHORA))
+      .filter((alerta) => alerta.tipo === "host_de_calendly_sin_closer");
+
+    expect(alertas).toHaveLength(1);
+    expect(alertas[0]).toMatchObject({
+      clave: `host_de_calendly_sin_closer:${programId}:cuenta@calendly.co`,
+      tipo: "host_de_calendly_sin_closer",
+      severidad: "critica",
+    });
+    expect(alertas[0].texto).toContain("Programa Alertas");
+    expect(alertas[0].texto).toContain("cuenta@calendly.co");
+    expect(alertas[0].texto).toContain("1 cita agendada");
+    expect(alertas[0].texto).not.toContain("lead-privado@ejemplo.co");
+  });
+
+  it("agrupa dos citas del mismo host sin distinguir mayusculas", async () => {
+    await db.insert(calls).values([
+      { programId, origen: "calendly", resultado: "agendada", calendlyHostEmail: "Cuenta@Calendly.co" },
+      { programId, origen: "calendly", resultado: "agendada", calendlyHostEmail: "cuenta@calendly.CO" },
+    ]);
+
+    const alertas = (await alertasActivas(db, AHORA))
+      .filter((alerta) => alerta.tipo === "host_de_calendly_sin_closer");
+
+    expect(alertas).toHaveLength(1);
+    expect(alertas[0].texto).toContain("2 citas agendadas");
+  });
+
+  it("ignora citas con closer, anuladas o con un resultado distinto de agendada", async () => {
+    await db.insert(calls).values([
+      {
+        programId,
+        origen: "calendly",
+        resultado: "agendada",
+        calendlyHostEmail: "con-closer@calendly.co",
+        closerUserId: closerId,
+      },
+      {
+        programId,
+        origen: "calendly",
+        resultado: "agendada",
+        calendlyHostEmail: "anulada@calendly.co",
+        anuladoEn: AHORA,
+        anuladoPor: closerId,
+        motivoAnulacion: "Prueba",
+      },
+      {
+        programId,
+        origen: "calendly",
+        resultado: "show",
+        calendlyHostEmail: "show@calendly.co",
+      },
+    ]);
+
+    expect((await alertasActivas(db, AHORA))
+      .some((alerta) => alerta.tipo === "host_de_calendly_sin_closer")).toBe(false);
+  });
+
+  it("mantiene el mismo host separado por programa", async () => {
+    const [segundoPrograma] = await db.insert(programs).values({
+      ...PROGRAMA_DE_PRUEBA,
+      slug: "alertas-segundo",
+      nombre: "Programa Alertas Segundo",
+      ticketUsd: "1000",
+    }).returning();
+    await db.insert(calls).values([
+      { programId, origen: "calendly", resultado: "agendada", calendlyHostEmail: "host@calendly.co" },
+      { programId: segundoPrograma.id, origen: "calendly", resultado: "agendada", calendlyHostEmail: "host@calendly.co" },
+    ]);
+
+    const alertas = (await alertasActivas(db, AHORA))
+      .filter((alerta) => alerta.tipo === "host_de_calendly_sin_closer");
+
+    expect(alertas).toHaveLength(2);
+    expect(alertas.map((alerta) => alerta.clave)).toEqual([
+      `host_de_calendly_sin_closer:${programId}:host@calendly.co`,
+      `host_de_calendly_sin_closer:${segundoPrograma.id}:host@calendly.co`,
+    ].sort());
   });
 });

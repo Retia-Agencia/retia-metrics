@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
-import { alertasDeFuentes } from "@/lib/alertas/registro";
+import { alertasDelContexto } from "@/lib/alertas/registro";
 import { resumenDelDia } from "@/lib/avisos-cs/pendientes";
+import { hostsDeCalendlySinCloser } from "@/lib/calendly/hosts-sin-closer";
 import { reportesActivos } from "@/lib/catalogo/reportes-whatsapp";
 import { programs, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -26,7 +27,8 @@ export async function textoDeCierre(db: Db, ahora: Date): Promise<string> {
 
   // La salud se calcula UNA vez y de ella salen las alertas: en paralelo dos veces se pasó de los 300 s de Vercel (13-nov).
   const fuentes = await saludDeFuentes(db, ahora);
-  const alertas = alertasDeFuentes(fuentes, ahora);
+  const hostsSinCloser = await hostsDeCalendlySinCloser(db);
+  const alertas = alertasDelContexto({ fuentes, hostsSinCloser }, ahora);
   const [recibidos, inactivas, reportes, estudiantes] = await Promise.all([
     recibidosDesde(db, desde),
     db

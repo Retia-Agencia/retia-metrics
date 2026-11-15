@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull, isNull, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
 import { sinTildes } from "@/lib/busqueda-sin-tildes";
 import {
   calls,
@@ -16,7 +16,7 @@ import { hoyEnBogota } from "@/lib/format";
 import { carteraVencida } from "@/lib/queries/cartera";
 import { vigente } from "@/lib/queries/vigente";
 import { ultimaActividadPorDeal } from "@/lib/queries/ultima-actividad";
-import { explicarSuelta, ORIGEN_DE_SUELTA_ASIGNABLE, sueltaPorAsignar, type ExplicacionDeSuelta } from "@/lib/calendly/suelta";
+import { citaSinCloserConHost, explicarSuelta, sueltaPorAsignar, type ExplicacionDeSuelta } from "@/lib/calendly/suelta";
 import { puedeColgarSuelta } from "@/lib/calendly/suelta";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { closerHost, emparejarLlamada, type CloserDelPrograma } from "@/lib/calendly/emparejar-llamada";
@@ -350,16 +350,7 @@ export async function llamadasSinCloserDelPrograma(
       hostEmail: calls.calendlyHostEmail,
     })
     .from(calls)
-    .where(
-      and(
-        eq(calls.programId, programId),
-        eq(calls.origen, ORIGEN_DE_SUELTA_ASIGNABLE),
-        eq(calls.resultado, "agendada"),
-        isNull(calls.closerUserId),
-        isNotNull(calls.calendlyHostEmail),
-        vigente(calls),
-      ),
-    );
+    .where(and(eq(calls.programId, programId), citaSinCloserConHost(), vigente(calls)));
   const dealIds = filas.flatMap((fila) => (fila.dealId ? [fila.dealId] : []));
   const personas = dealIds.length
     ? await db
