@@ -43,17 +43,17 @@ function datosDelHub(seccion: SeccionDelHubDeTodos) {
   });
 }
 
-// Topes del escenario de ESTE test (3 programas sembrados), medidos en el CI del PR #24 (15-nov) antes
-// de quitar las idénticas que el guardián encontró. No son comparables con la tabla del 437 (dev:local,
-// datos reales). El tope solo baja: al quitar consultas, se baja al nuevo conteo en el mismo commit.
+// Topes del escenario de ESTE test (3 programas sembrados), medidos en el CI. No son comparables con la
+// tabla del 437 (dev:local, datos reales). El tope es EXACTO: si una página usa menos, el guardián falla
+// con el número nuevo, y se baja en el mismo commit (el trinquete nunca queda holgado).
 const PAGINAS = {
-  "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 185, escalaConProgramas: true, cargar: datosDelHub("hoy") },
-  "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 263, escalaConProgramas: true, cargar: datosDelHub("comercial") },
+  "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 179, escalaConProgramas: true, cargar: datosDelHub("hoy") },
+  "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
   "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 219, escalaConProgramas: true, cargar: datosDelHub("pauta") },
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
-    tope: 34,
+    tope: 18,
     escalaConProgramas: false,
     cargar: (db, sembrado) => cargarDatosDeMiEspacio(db, {
       userId: sembrado.closerId,
@@ -147,6 +147,8 @@ function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
   return [
     ...(costo.identicas === 0 ? [] : [`consultas identicas: ${costo.identicas}`]),
     ...(costo.consultas <= tope ? [] : [`tope excedido: ${costo.consultas} > ${tope}`]),
+    // El tope solo baja: si la página ya usa menos, el trinquete se aprieta en el mismo commit.
+    ...(costo.consultas >= tope ? [] : [`tope holgado: baja el tope de ${tope} a ${costo.consultas}`]),
   ];
 }
 
@@ -184,7 +186,7 @@ describe("consultas por pagina", () => {
     if (pagina.escalaConProgramas) {
       expect(conSeis.costo.consultas).toBeGreaterThan(conTres.costo.consultas);
     } else {
-      expect(conSeis.fallas).toEqual([]);
+      expect(conSeis.costo.consultas).toBeLessThanOrEqual(pagina.tope);
       expect(conSeis.costo.consultas).toBe(conTres.costo.consultas);
     }
   });
@@ -233,7 +235,8 @@ describe("el guardian muerde", () => {
       unaVezPorSolicitud(db, claveDe("bien", sembrado.closerId), () => lecturaReal(db, sembrado)),
       unaVezPorSolicitud(db, claveDe("bien", sembrado.closerId), () => lecturaReal(db, sembrado)),
     ]));
-    expect(resultado.fallas).toEqual([]);
+    // La sintética no tiene tope propio: aquí solo importa que no repita.
+    expect(resultado.fallas.filter((falla) => !falla.startsWith("tope holgado"))).toEqual([]);
     expect(resultado.costo.identicas).toBe(0);
   });
 });
