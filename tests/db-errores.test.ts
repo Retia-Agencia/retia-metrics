@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esViolacionCheck, esViolacionForanea, esViolacionUnica } from "@/lib/db/errores";
+import { esViolacionCheck, esViolacionForanea, esViolacionUnica, nombreDeConstraint } from "@/lib/db/errores";
 
 /**
  * Los detectores de codigo SQLSTATE (`lib/db/errores.ts`) caminan la cadena de `cause`
@@ -37,5 +37,17 @@ describe("esViolacionForanea (SQLSTATE 23503)", () => {
   it("un error sin codigo no es una violacion foranea", () => {
     expect(esViolacionForanea(new Error("timeout"))).toBe(false);
     expect(esViolacionForanea(null)).toBe(false);
+  });
+});
+
+describe("nombreDeConstraint", () => {
+  it("lee constraint de node-postgres aun cuando Drizzle lo envuelve", () => {
+    expect(nombreDeConstraint({ cause: { constraint: "deals_programa_fk" } })).toBe("deals_programa_fk");
+  });
+
+  it("conserva constraint_name para errores historicos", () => {
+    expect(nombreDeConstraint({ constraint_name: "cohorts_definida_si_no_es_futura" })).toBe(
+      "cohorts_definida_si_no_es_futura",
+    );
   });
 });

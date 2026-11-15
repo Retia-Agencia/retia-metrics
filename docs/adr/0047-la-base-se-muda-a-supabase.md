@@ -1,4 +1,4 @@
-# 0047 — La base se muda a Supabase, con `postgres-js` y transacciones de verdad
+# 0047 — La base usa Supabase con `pg`, un pool por proceso y transacciones de verdad
 
 **Fecha:** 2026-09-22 · **Estado:** aceptado (Alejandro y Mani, chat del 22-sep) ·
 **Reemplaza:** ADR 0018 (ramas de Neon) · **Enmienda:** ADR 0042 (la razón por la que se
@@ -21,17 +21,22 @@ inclinó la decisión fue el punto 1.
 
 ## Qué se decide
 
-1. **Driver: `drizzle-orm/postgres-js`**, con `prepare: false`. Es el que documenta Supabase para
-   Drizzle. `ejecutarJuntas` es una transacción real en los dos entornos, y ejecuta **en orden**.
-   Desaparece el tipo `NeonHttpDatabase` y con él la bifurcación.
+1. **Driver: `drizzle-orm/node-postgres` (`pg`)**, con un solo pool por proceso, guardado en
+   `globalThis`, y tope de cinco conexiones. `ejecutarJuntas` es una transacción real en los dos
+   entornos, y ejecuta **en orden**. Desaparece el tipo `NeonHttpDatabase` y con él la bifurcación.
+   La enmienda del 14-nov reemplaza `postgres-js`: aun con `prepare: false`, ese driver enviaba las
+   consultas parametrizadas en dos idas y el pooler transaction podía soltar la conexión entre
+   ambas, produciendo cuelgues o parámetros cruzados. La medición y el control están en
+   `docs/estudio-rendimiento-y-conexion.md` §3 y §13.1.
 2. **Dos conexiones:**
    - la app entra por el **pooler en modo transaction (puerto 6543)**, en `DATABASE_URL`, porque es
      el que aguanta funciones serverless;
    - `drizzle-kit` entra por la **conexión directa o el pooler en modo session (puerto 5432)**, en
      `DATABASE_URL_DIRECTA`.
 
-   🩸 El modo transaction **no admite prepared statements**: sin `prepare: false`, la segunda consulta
-   revienta solo en producción, porque PGlite no pasa por ningún pooler.
+   🩸 La nota anterior de `prepare: false` pertenecía a `postgres-js`. Con `pg` no se configura esa
+   opción: node-postgres envía el protocolo parametrizado completo sin depender de que una
+   conexión sobreviva entre dos idas al pooler transaction.
 3. **Dos proyectos, no ramas:** `dev` y producción, en una organización de Retia, **en plan gratis
    por ahora** y en `us-east-1`, junto a las funciones de Vercel. Las ramas de Supabase exigen Pro y
    nacen sin datos, así que no dan lo que daban las de Neon (copia instantánea de producción).
@@ -69,7 +74,7 @@ inclinó la decisión fue el punto 1.
 - **Los triggers de rastro (R2) vuelven a ser posibles.** El ADR 0042 los descartó porque con
   `neon-http` el trigger no podía saber quién escribía. Con una transacción real,
   `SET LOCAL app.user_id` lo resuelve. Queda como decisión aparte.
-- **Los scripts de `scripts/` salen con `process.exit`.** `postgres-js` mantiene un pool abierto y
+- **Los scripts de `scripts/` salen con `process.exit`.** `pg` mantiene un pool abierto y
   un script que no sale explícitamente se queda colgado.
 - 🩸 **Un componente `"use client"` no puede importar un módulo que toque la base.** Al cambiar
   el driver, el build se cayó: `recursos-pantalla.tsx` importaba `MONEDAS` de

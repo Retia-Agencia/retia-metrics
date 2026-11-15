@@ -694,7 +694,7 @@ function comoTexto(v: unknown): string | null {
  * UN `UPDATE ... FROM (VALUES ...)` por lote en vez de uno por lead: por el pooler cada
  * viaje cuesta y el traslado de ~3.000 leads no cabia (AGENTS.md, "Rendimiento y escala").
  * Los valores van con su cast: un `null` sin tipo en un VALUES no lo infiere Postgres, y un
- * `Date` NUNCA se interpola crudo en una plantilla `sql` (postgres-js lo rechaza), asi que
+ * `Date` NUNCA se interpola crudo en una plantilla `sql` (no se depende de la conversión del driver), asi que
  * viajan como ISO. Los nombres de columna van escritos a mano porque aqui no hay ambiguedad
  * que resolver: el UPDATE es de una sola tabla.
  */

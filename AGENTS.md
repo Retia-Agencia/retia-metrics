@@ -668,22 +668,21 @@ The agent should run these to get fast signal on whether code works. Keep them c
   hay que desconfiar de un cast de tipo sobre una columna ni "arreglarlo" a ciegas. Si dudas,
   imprime `query.toSQL().sql`: cuesta un comando y responde de verdad.
 - 🩸 **Un `Date` nunca va interpolado en una plantilla `sql`: usa `gte`/`lt`/`eq` de drizzle.** La
-  plantilla le manda el valor crudo al driver, y postgres-js rechaza un `Date` con
-  `ERR_INVALID_ARG_TYPE` contra un Postgres real; PGlite lo acepta, asi que **ningun test lo ve**. Los
-  operadores pasan el valor por el mapeo de la columna. Estuvo en `leerHechos` de `moverEtapa` y salio
+  plantilla le manda el valor crudo al driver y depender de su conversion implicita no es portable:
+  el driver anterior, postgres-js, lo rechazaba con `ERR_INVALID_ARG_TYPE`, mientras PGlite y `pg` lo
+  aceptan. Los operadores pasan el valor por el mapeo de la columna. Estuvo en `leerHechos` de `moverEtapa` y salio
   el 28-sep sembrando la base local del 113, no en un test.
-- **La base es Supabase y se usa por `drizzle-orm/postgres-js`, con transacciones de verdad**
+- **La base es Supabase y se usa por `drizzle-orm/node-postgres` (`pg`), con transacciones de verdad**
   (ADR 0047, 22-sep; antes era Neon con `neon-http`, sin transacciones). La app entra por el
-  **pooler en modo transaction (6543)** con `prepare: false`; `drizzle-kit` por la conexion de
-  **5432** (`DATABASE_URL_DIRECTA`). 🩸 Sin `prepare: false` la app revienta **solo en
-  produccion**: PGlite no pasa por ningun pooler, asi que ningun test lo ve. `ejecutarJuntas` es
-  una transaccion real y corre **en orden**; quien necesite leer y decidir dentro de la misma
+  **pooler en modo transaction (6543)**, con un pool por proceso y tope de 5 conexiones;
+  `drizzle-kit` por la conexion de **5432** (`DATABASE_URL_DIRECTA`). `ejecutarJuntas` es una
+  transaccion real y corre **en orden**; quien necesite leer y decidir dentro de la misma
   transaccion usa `db.transaction` directo. **La exclusion mutua sigue viviendo en un indice
   unico**, no en `pg_advisory_lock`: con el pooler en modo transaction un lock de sesion no
   sobrevive entre consultas. **Hecho en el sync (ADR 0005):** el INSERT de la corrida ES el
   candado, contra un indice unico parcial `WHERE estado = 'corriendo'`. Si necesitas exclusion
   mutua en otra parte, ese es el molde: no hay candado que pedir ni que acordarse de soltar.
-  Un script de `scripts/` **sale con `process.exit`**: `postgres-js` deja el pool abierto y el
+  Un script de `scripts/` **sale con `process.exit`**: `pg` deja el pool abierto y el
   proceso se queda colgado.
 - **UN solo proyecto de Supabase, "CRM Retia" (ref `hfqmiyiuyqapdsbywrag`), y ES produccion**
   (Mani, 28-sep; enmienda el ADR 0047, que pedia `dev` y produccion). No hay base de pruebas: local

@@ -8,7 +8,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 /**
  * `ejecutarJuntas` es una transaccion de verdad (ADR 0047). Con `neon-http` habia dos
  * caminos —`batch` en produccion, `transaction` en los tests— y este archivo probaba
- * el de produccion con una base falsa. Con `postgres-js` hay UNO solo, el mismo que
+ * el de produccion con una base falsa. Con `node-postgres` hay UNO solo, el mismo que
  * PGlite, asi que se prueba contra la base real de migraciones.
  */
 

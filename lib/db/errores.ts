@@ -44,8 +44,9 @@ export function esViolacionCheck(error: unknown): boolean {
 
 /**
  * El nombre del CONSTRAINT que un error del driver reporta, o `null`. Camina la misma
- * cadena de `cause` que `esCodigoPostgres`. postgres-js lo expone en `constraint_name`;
- * PGlite —la base de los tests— en `constraint`. Sirve para distinguir DOS CHECK sobre la
+ * cadena de `cause` que `esCodigoPostgres`. node-postgres y PGlite lo exponen en
+ * `constraint`; `constraint_name` conserva compatibilidad con errores historicos. Sirve para
+ * distinguir DOS CHECK sobre la
  * misma tabla (p. ej. las cohortes tienen `cohorts_activa_con_inicio_ventas` y
  * `cohorts_definida_si_no_es_futura`) y dar a cada uno su mensaje.
  */

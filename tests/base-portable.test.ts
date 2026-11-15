@@ -22,7 +22,9 @@ const PERMITIDOS = [
 
 const PROHIBIDOS = [
   /from\s+["']postgres["']/,
+  /from\s+["']pg["']/,
   /from\s+["']drizzle-orm\/(postgres-js|neon-http|neon-serverless|node-postgres)["']/,
+  /\bnew\s+Pool\s*\(/,
   /from\s+["']@supabase\//,
   /from\s+["']@neondatabase\//,
 ];
@@ -51,7 +53,9 @@ describe("la base es portable (ADR 0047)", () => {
 
   it("el guardian muerde: reconoce los imports que prohibe", () => {
     expect(PROHIBIDOS.some((re) => re.test(`import postgres from "postgres";`))).toBe(true);
+    expect(PROHIBIDOS.some((re) => re.test(`import { Pool } from "pg";`))).toBe(true);
     expect(PROHIBIDOS.some((re) => re.test(`import { drizzle } from "drizzle-orm/postgres-js";`))).toBe(true);
+    expect(PROHIBIDOS.some((re) => re.test(`const pool = new Pool({ max: 2 });`))).toBe(true);
     expect(PROHIBIDOS.some((re) => re.test(`import { createClient } from "@supabase/supabase-js";`))).toBe(true);
     // Y no marca lo legitimo: drizzle-orm a secas es el ORM, no el driver.
     expect(PROHIBIDOS.some((re) => re.test(`import { eq } from "drizzle-orm";`))).toBe(false);

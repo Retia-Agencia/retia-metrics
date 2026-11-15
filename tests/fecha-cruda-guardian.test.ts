@@ -5,8 +5,8 @@ import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 
 /**
- * La base de prueba rechaza un `Date` crudo como lo hace postgres-js en producción
- * (`tests/helpers/base-de-prueba.ts`). Mordido en los dos sentidos: caza la plantilla `sql`
+ * La base de prueba rechaza un `Date` crudo para que ninguna plantilla `sql` dependa de la
+ * conversión implícita del driver (`tests/helpers/base-de-prueba.ts`). Mordido en los dos sentidos: caza la plantilla `sql`
  * con un `Date` y deja pasar el operador de drizzle, fuera y dentro de una transacción.
  */
 describe("guardián del Date crudo en la base de prueba", () => {

@@ -56,7 +56,7 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | todo |
+| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso |
 | [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | todo |
 | [ ] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | todo |
 | [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |

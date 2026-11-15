@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { and, eq } from "drizzle-orm";
 import * as schema from "@/lib/db/schema";
 import { registrarAbono, type AbonoRegistrado } from "@/lib/deals/abonos";
@@ -25,19 +25,21 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
     const urlDePrueba = new URL(url!);
     urlDePrueba.pathname = `/${nombreBase}`;
     validarUrlLocal(urlDePrueba.toString());
-    const admin = postgres(url!, { max: 1, prepare: false });
-    const clientes: ReturnType<typeof postgres>[] = [];
+    const admin = new Pool({ connectionString: url!, max: 1 });
+    const clientes: Pool[] = [];
     let creada = false;
 
     try {
       // Las migraciones nombran public: una base desechable las aplica sin reescribirlas
       // ni tocar las tablas de la base indicada en la URL. El usuario local necesita CREATEDB.
-      await admin`create database ${admin(nombreBase)}`;
+      await admin.query(`create database "${nombreBase}"`);
       creada = true;
       const conectar = (nombre: string) => {
-        const cliente = postgres(urlDePrueba.toString(), {
-          max: 1, prepare: false,
-          connection: { application_name: nombre, statement_timeout: 15_000 },
+        const cliente = new Pool({
+          connectionString: urlDePrueba.toString(),
+          max: 1,
+          application_name: nombre,
+          statement_timeout: 15_000,
         });
         clientes.push(cliente);
         return cliente;
@@ -59,12 +61,12 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
 
       const actor = { userId: closer.id, rol: "closer", operaComoCloser: false } as const;
       const datos = { dealId: deal.id, monto: "600", fecha: "2026-09-28", plataformaId: plataforma.id, comprobanteUrl: "https://prueba.local/600" };
-      const bloqueo = await control.reserve();
+      const bloqueo = await control.connect();
       let pagos: Promise<PromiseSettledResult<AbonoRegistrado>[]> | undefined;
       let resultados: PromiseSettledResult<AbonoRegistrado>[] = [];
       try {
-        await bloqueo`begin`;
-        await bloqueo`select id from deals where id = ${deal.id} for update`;
+        await bloqueo.query("begin");
+        await bloqueo.query("select id from deals where id = $1 for update", [deal.id]);
         pagos = Promise.allSettled([
           registrarAbono(db1, actor, datos),
           registrarAbono(db2, actor, datos),
@@ -75,12 +77,12 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
         const limite = Date.now() + 5_000;
         let esperando = 0;
         do {
-          const [fila] = await admin<{ cantidad: number }[]>`
+          const { rows: [fila] } = await admin.query<{ cantidad: number }>(`
             select count(*)::int as cantidad from pg_stat_activity
-            where datname = ${nombreBase}
+            where datname = $1
               and application_name in ('prueba_abonos_1', 'prueba_abonos_2')
               and wait_event_type = 'Lock' and lower(query) like '%for update%'
-          `;
+          `, [nombreBase]);
           esperando = fila.cantidad;
           if (esperando === 2) break;
           await new Promise((resolver) => setTimeout(resolver, 25));
@@ -88,7 +90,7 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
         expect(esperando, "las dos conexiones esperan el bloqueo del deal antes de leer el saldo").toBe(2);
       } finally {
         try {
-          await bloqueo`rollback`;
+          await bloqueo.query("rollback");
         } finally {
           bloqueo.release();
           if (pagos) resultados = await pagos;
@@ -108,12 +110,12 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
       expect(final.etapa).toBe("ganado_completo");
     } finally {
       try {
-        await Promise.all(clientes.map((cliente) => cliente.end({ timeout: 5 })));
+        await Promise.all(clientes.map((cliente) => cliente.end()));
       } finally {
         try {
-          if (creada) await admin`drop database ${admin(nombreBase)}`;
+          if (creada) await admin.query(`drop database "${nombreBase}"`);
         } finally {
-          await admin.end({ timeout: 5 });
+          await admin.end();
         }
       }
     }

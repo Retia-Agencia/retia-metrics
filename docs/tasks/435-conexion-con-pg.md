@@ -3,7 +3,7 @@ id: 435
 etapa: rendimiento
 serves: "Ticket 243 (causa raíz) · docs/estudio-rendimiento-y-conexion.md §3, §5.1 y §13.1 · ADR 0047 (enmienda)"
 depends: []
-status: todo
+status: en curso  # 14-nov: código listo sin commit; faltan CI, conexiones locales, 24 h en producción y cierre del 243
 ---
 
 # 435 — La app se conecta con `pg`: un pool por proceso, sin cuelgues por el pooler
@@ -100,10 +100,12 @@ de 15 s. Y un guardián de código: `import … from "postgres"` o `new Pool(` f
 (amplía `tests/base-portable.test.ts`).
 
 ## Done cuando
-- [ ] `npm run typecheck`, `npm run lint` y los tests del cambio en verde; el CI completo verde (incluye Postgres real).
-- [ ] **El bucle del estudio §3.3 contra producción, con el cliente nuevo por 6543: 30 rondas de las 5 funciones de
+- [ ] `npm run typecheck`, `npm run lint` y los tests del cambio en verde (hecho el 14-nov, local); **falta el CI completo verde** (incluye Postgres real).
+- [x] **El bucle del estudio §3.3 contra producción, con el cliente nuevo por 6543: 30 rondas de las 5 funciones de
       Nerd Stats en paralelo y 60 rondas de transacciones, 0 cuelgues y 0 parámetros cruzados.** Lo corre la sesión
       principal (solo lectura) y pega la salida aquí.
+      **Salida (14-nov, pool `max: 5`, 6543):** lecturas 30 rondas × 52 consultas con parámetro propio: 0 cuelgues,
+      0 cruzados, 35,9 s; transacciones 60 rondas × 10: 600 ok, 0 errores, 0 cruzados (93,6 s en total).
 - [ ] Un proceso de `next start` contra la base local, tras recorrer todas las rutas, tiene ≤ 5 conexiones
       (`select count(*) from pg_stat_activity`). `next dev` tras 200 peticiones: ≤ 5.
 - [ ] `/nerd-stats`, `/p/[programa]/programa` y `POST /api/salud/alertas` responden en producción; 24 h sin 504 en

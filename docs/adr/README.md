@@ -164,7 +164,7 @@ comentarios; esta tabla es la que los resuelve.
 
 | # | Decisión |
 |---|---|
-| [0047](./0047-la-base-se-muda-a-supabase.md) | La base es Supabase, con `postgres-js` y transacciones de verdad |
+| [0047](./0047-la-base-se-muda-a-supabase.md) | La base usa Supabase con `pg`, un pool por proceso y transacciones de verdad |
 | [0020](./0020-tests-de-base-con-pglite-en-memoria.md) | Los tests de base corren contra PGlite en memoria |
 | [0006](./0006-dependencias-solo-cuando-hay-codigo.md) | Un paquete no se instala antes del código que lo usa |
 | [0001](./0001-npm-en-vez-de-pnpm.md) | npm en vez de pnpm |

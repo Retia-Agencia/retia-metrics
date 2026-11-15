@@ -1,5 +1,5 @@
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 import type { Db } from "./tipos";
 
@@ -11,12 +11,12 @@ export function abrirBaseDeScript(
   url: string,
   logQuery: (sql: string, parametros: unknown[]) => void,
 ) {
-  const cliente = postgres(url, { prepare: false });
-  const base = drizzle(cliente, { schema, logger: { logQuery } }) as Db;
+  const pool = new Pool({ connectionString: url, max: 2 });
+  const base = drizzle(pool, { schema, logger: { logQuery } }) as Db;
   return {
     base,
-    sql: <T>(texto: string, parametros: unknown[] = []) =>
-      cliente.unsafe<T[]>(texto, parametros as Parameters<typeof cliente.unsafe>[1]),
-    cerrar: () => cliente.end(),
+    sql: async <T>(texto: string, parametros: unknown[] = []) =>
+      (await pool.query<T & Record<string, unknown>>(texto, parametros)).rows as T[],
+    cerrar: () => pool.end(),
   };
 }

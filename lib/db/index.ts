@@ -1,11 +1,18 @@
-import postgres from "postgres";
-import { drizzle } from "drizzle-orm/postgres-js";
+import { attachDatabasePool } from "@vercel/functions";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 import { loggerDeConsultasMcp } from "@/lib/mcp/contador-de-consultas";
 
 type DB = ReturnType<typeof crear>;
 
-let instancia: DB | null = null;
+/** Tope de conexiones de ESTE proceso. La cuenta completa vive en AGENTS.md › Contratos (ticket 441). */
+const MAX_CONEXIONES_POR_PROCESO = 5;
+
+// Un pool por PROCESO, no por copia del modulo: Next instancia `lib/db` mas de una vez (paginas y route
+// handlers) y `next dev` lo recarga en cada cambio. Medido el 14-nov: 15 conexiones en un proceso de
+// produccion y "too many clients" en dev. `globalThis` es lo unico que comparten todas las copias.
+const global = globalThis as unknown as { __retiaDb?: DB };
 
 function crear() {
   const connectionString = process.env.DATABASE_URL;
@@ -15,13 +22,16 @@ function crear() {
         "pooler de Supabase (puerto 6543).",
     );
   }
-  // Supabase (ADR 0047). La app entra por el pooler en modo *transaction* (puerto 6543),
-  // que es el que aguanta funciones serverless abriendo y cerrando conexiones. Ese modo
-  // NO admite prepared statements: sin `prepare: false`, la segunda consulta que reuse
-  // un statement revienta con "prepared statement does not exist" — y solo en
-  // produccion, porque PGlite no pasa por ningun pooler.
-  const cliente = postgres(connectionString, { prepare: false });
-  return drizzle(cliente, { schema, logger: loggerDeConsultasMcp });
+  const pool = new Pool({
+    connectionString,
+    max: MAX_CONEXIONES_POR_PROCESO,
+    idleTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000,
+  });
+  // Un error en una conexion ociosa no puede tumbar el proceso.
+  pool.on("error", (error) => console.error("[db] conexion ociosa:", error.message));
+  attachDatabasePool(pool);
+  return drizzle(pool, { schema, logger: loggerDeConsultasMcp });
 }
 
 /**
@@ -38,14 +48,14 @@ function crear() {
  *
  * El error sigue llegando en el primer query, que es donde de verdad hace falta.
  *
- * ⚠️ `postgres-js` mantiene un pool abierto: un script de terminal que termina sin
- * `process.exit` se queda colgado esperando. Todos los de `scripts/` salen explicito.
+ * ⚠️ `pg` mantiene el pool abierto: un script de terminal que termina sin
+ * `process.exit` se queda esperando. Todos los de `scripts/` salen explicito.
  */
 export const db = new Proxy({} as DB, {
   get(_, prop) {
-    instancia ??= crear();
-    const valor = Reflect.get(instancia, prop);
-    return typeof valor === "function" ? valor.bind(instancia) : valor;
+    global.__retiaDb ??= crear();
+    const valor = Reflect.get(global.__retiaDb, prop);
+    return typeof valor === "function" ? valor.bind(global.__retiaDb) : valor;
   },
 });
 

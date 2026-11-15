@@ -3,7 +3,7 @@ import type { Db } from "./tipos";
 /**
  * Ejecuta varias escrituras como una sola unidad atomica: todas o ninguna.
  *
- * Es una transaccion de verdad, igual en produccion (`postgres-js` sobre Supabase,
+ * Es una transaccion de verdad, igual en produccion (`pg` sobre Supabase,
  * ADR 0047) y en los tests (PGlite). Antes, con `neon-http`, produccion usaba
  * `db.batch` y los tests `db.transaction`, y el camino de produccion no lo probaba
  * nadie; esa bifurcacion desaparecio con el cambio de driver.
@@ -23,7 +23,7 @@ export async function ejecutarJuntas(
   db: Db,
   consultas: (tx: Db) => readonly PromiseLike<unknown>[],
 ): Promise<void> {
-  // El cast une las dos firmas de `transaction` (postgres-js y PGlite), que son
+  // El cast une las dos firmas de `transaction` (node-postgres y PGlite), que son
   // equivalentes pero TypeScript no sabe llamar sobre la union.
   await (db as { transaction: (fn: (tx: Db) => Promise<void>) => Promise<void> }).transaction(
     async (tx) => {

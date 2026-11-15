@@ -55,20 +55,20 @@ async function cargarPlantilla(): Promise<File | Blob> {
 }
 
 /**
- * PGlite acepta un `Date` crudo como parámetro y postgres-js, el driver de producción, lo
- * rechaza con `ERR_INVALID_ARG_TYPE`. Un `Date` solo llega crudo cuando va interpolado en una
- * plantilla `sql` (los operadores de drizzle lo pasan por el mapeo de la columna), así que
- * aquí se rechaza igual que en producción. 🩸 El 3-nov tumbó Hub › Hoy con la suite en verde.
+ * PGlite y node-postgres aceptan un `Date` crudo como parámetro, pero el contrato prohíbe que una
+ * plantilla `sql` dependa de la conversión implícita del driver (los operadores de drizzle sí lo
+ * pasan por el mapeo de la columna). Esta guardia conserva el caso que postgres-js rechazaba con
+ * `ERR_INVALID_ARG_TYPE`: el 3-nov tumbó Hub › Hoy con la suite en verde.
  */
 function rechazarFechaCruda(params: unknown[] | undefined): void {
   if (params?.some((valor) => valor instanceof Date)) {
     throw new TypeError(
-      "Un Date crudo llegó al driver: postgres-js lo rechaza en producción. Usa gte/lt/eq de drizzle en vez de interpolarlo en `sql` (AGENTS.md).",
+      "Un Date crudo llegó al driver. Usa gte/lt/eq de drizzle en vez de interpolarlo en `sql` (AGENTS.md).",
     );
   }
 }
 
-function comoPostgresJs(cliente: PGlite): PGlite {
+function conGuardiaDeFechaCruda(cliente: PGlite): PGlite {
   const consultar = cliente.query.bind(cliente);
   cliente.query = ((texto: string, params?: unknown[], opciones?: never) => {
     rechazarFechaCruda(params);
@@ -94,7 +94,7 @@ function comoPostgresJs(cliente: PGlite): PGlite {
  */
 export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
   plantilla ??= cargarPlantilla();
-  const cliente = comoPostgresJs(new PGlite({ loadDataDir: await plantilla, extensions: { btree_gist } }));
+  const cliente = conGuardiaDeFechaCruda(new PGlite({ loadDataDir: await plantilla, extensions: { btree_gist } }));
   const db = drizzle(cliente, { schema, logger: loggerDeConsultasMcp });
   return {
     db: db as Db,
