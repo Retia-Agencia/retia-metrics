@@ -51,3 +51,20 @@ describe("texto de registros pendientes", () => {
     expect(texto).toContain("Una llamada de hoy sigue sin link de Grain: Lead Completo 0.");
   });
 });
+
+describe("vencidos en el texto", () => {
+  it("concuerda el género y omite la fecha cuando no la hay", () => {
+    const base = { nombreCloser: "Juan", ventana: "manana" as const, dia: "2026-11-16", citasAntiguas: 0, enlace: "https://x" };
+    const t = textoDePendientesDeCloser({
+      ...base,
+      deals: [{ ...deal(0), pendientes: [
+        { tipo: "vencidos", fecha: null, detalle: "cartera" },
+        { tipo: "vencidos", fecha: "2026-11-10", detalle: "compromiso" },
+      ] }],
+    });
+    expect(t).toContain("• Cartera vencida");
+    expect(t).not.toContain("fecha pendiente");
+    expect(t).not.toContain("vencido desde el fecha");
+    expect(t).toContain("• Compromiso de pago vencido desde el");
+  });
+});

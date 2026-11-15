@@ -83,7 +83,7 @@ afterEach(() => {
 
 afterAll(async () => cerrar());
 
-async function dealNuevo(owner: string, nombre: string): Promise<string> {
+async function dealNuevo(owner: string, nombre: string, opciones: { creadoEn?: Date; etapa?: "registrado" | "cierre_perdido" } = {}): Promise<string> {
   const [lead] = await db.insert(leads).values({
     fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA,
     programId,
@@ -103,9 +103,10 @@ async function dealNuevo(owner: string, nombre: string): Promise<string> {
     submissionOrigenId: envio.id,
     programId,
     cohortId,
-    etapa: "registrado",
+    etapa: opciones.etapa ?? "registrado",
     ownerUserId: owner,
     ownerNovedadEn: new Date(),
+    ...(opciones.creadoEn ? { createdAt: opciones.creadoEn } : {}),
   }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: null, a: "registrado", fecha: new Date() });
   return deal.id;
@@ -144,6 +145,19 @@ describe("avisos de registros pendientes", () => {
     expect(cuerpo.avisos[0].texto).toContain("Camilo Moreno · Tactical · Registrado");
     expect(cuerpo.avisos[0].texto).not.toContain("Nombre Ajeno");
     expect(cuerpo.sinDestinatario).toEqual([otro]);
+  });
+
+  it("no avisa de atraso viejo ni de deals perdidos: solo lo accionable", async () => {
+    await dealNuevo(closer, "Reciente Uno");
+    await dealNuevo(closer, "Viejo Atrasado", { creadoEn: new Date("2026-10-01T10:00:00Z") });
+    await dealNuevo(closer, "Perdido Cierre", { etapa: "cierre_perdido" });
+    const cuerpo = esquemaRespuestaAvisosPendientes.parse(await (await listar(
+      request("/api/pendientes/avisos", { ventana: "manana" }),
+    )).json());
+    const texto = cuerpo.avisos[0].texto;
+    expect(texto).toContain("Reciente Uno");
+    expect(texto).not.toContain("Viejo Atrasado");
+    expect(texto).not.toContain("Perdido Cierre");
   });
 
   it("solo confirma pares elegibles y no repite la ventana del día", async () => {

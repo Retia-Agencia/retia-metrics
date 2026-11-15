@@ -24,6 +24,14 @@ import {
 
 const CHIPS_DE_AVISO = ["sin_resultado", "sin_grain", "reagenda", "vencidos", "nuevos"] as const satisfies readonly ChipNotificacion[];
 
+/**
+ * Un aviso es para actuar hoy: sin_grain, reagenda y nuevos de hace más de este número de días
+ * son atraso acumulado y se quedan en el CRM (el 14-nov un closer habría recibido "te faltan 2.417").
+ * Los vencidos (dinero y compromisos) y las citas sin resultado tienen su propia regla.
+ */
+export const DIAS_MAXIMOS_DE_AVISO = 7;
+const CHIPS_CON_TOPE_DE_ANTIGUEDAD: readonly (typeof CHIPS_DE_AVISO)[number][] = ["sin_grain", "reagenda", "nuevos"];
+
 interface ProgramaDelCloser {
   id: string;
   nombre: string;
@@ -104,8 +112,11 @@ async function pendientesDelCloser(
         ahora,
       );
       for (const notificacion of notificaciones) {
+        // Un deal perdido no tiene nada que registrar: un aviso sobre él es ruido.
+        if (notificacion.tarjeta.etapa === "cierre_perdido") continue;
         const fecha = fechaDeNotificacion(notificacion);
         const antiguedad = Math.floor((new Date(`${dia}T12:00:00-05:00`).getTime() - fecha.getTime()) / 86_400_000);
+        if (CHIPS_CON_TOPE_DE_ANTIGUEDAD.includes(chip) && antiguedad > DIAS_MAXIMOS_DE_AVISO) continue;
         if (chip === "sin_resultado" && antiguedad > 7) {
           if (ventana === "manana") citasAntiguas += 1;
           continue;

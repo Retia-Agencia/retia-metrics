@@ -61,9 +61,10 @@ function vineta(pendiente: PendienteDeDeal, dia: string): string {
     case "reagenda":
       return `Re-agenda pendiente${antiguedad(pendiente.fecha, dia)}`;
     case "vencidos": {
-      const nombre = pendiente.detalle === "compromiso" ? "Compromiso de pago"
-        : pendiente.detalle === "cartera" ? "Cartera" : "Seguimiento";
-      return `${nombre} vencido desde el ${fechaCorta(pendiente.fecha)}${antiguedad(pendiente.fecha, dia)}`;
+      const nombre = pendiente.detalle === "compromiso" ? "Compromiso de pago vencido"
+        : pendiente.detalle === "cartera" ? "Cartera vencida" : "Seguimiento vencido";
+      const desde = fechaComoDate(pendiente.fecha) ? ` desde el ${fechaCorta(pendiente.fecha)}` : "";
+      return `${nombre}${desde}${antiguedad(pendiente.fecha, dia)}`;
     }
     case "nuevos":
       return `Deal asignado todavía sin abrir${antiguedad(pendiente.fecha, dia)}`;
