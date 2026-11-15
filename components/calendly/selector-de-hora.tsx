@@ -131,7 +131,7 @@ export function SelectorDeHora({ dealId, valor, onChange }: {
           <label className="space-y-1 text-xs font-medium text-muted-foreground">Link de la reunión
             <input type="url" required placeholder="https://…" className="h-8 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground" value={manualElegida.link} onChange={(e) => onChange({ ...manualElegida, link: e.currentTarget.value })} />
           </label>
-          <p className="text-xs text-muted-foreground">Esta hora no queda bloqueada en Calendly: otro lead puede reservarla.</p>
+          <p className="text-xs text-muted-foreground">Esta hora no queda bloqueada en Calendly: otro lead puede reservarla. El CRM no crea la reunión ni invita al lead: crea la reunión y mándale el link tú.</p>
         </div>
       ) : null}
     </div>

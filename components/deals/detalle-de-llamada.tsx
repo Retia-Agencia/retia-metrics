@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import {
   cambioLegible,
+  esCitaManual,
+  etiquetaDelEnlace,
   etiquetaDeOrigen,
   ETIQUETA_DE_RESULTADO,
   TONO_DE_RESULTADO,
@@ -141,6 +143,9 @@ function Contenido({ detalle, esActiva, explicacionDeSuelta }: { detalle: Detall
           {ETIQUETA_DE_RESULTADO[detalle.resultado]}
         </Badge>
         {esActiva ? <Badge variant="default">Cita activa</Badge> : null}
+        {esCitaManual(detalle.origen) ? (
+          <Badge variant="alerta" title="El lead no recibe invitación: avísale tú.">Cita manual</Badge>
+        ) : null}
         {detalle.anuladoEn ? <Badge variant="peligro">Anulada</Badge> : null}
       </div>
 
@@ -166,7 +171,7 @@ function Contenido({ detalle, esActiva, explicacionDeSuelta }: { detalle: Detall
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {detalle.linkCalendly ? (
           <a className="text-marca-texto underline-offset-2 hover:underline" href={detalle.linkCalendly} target="_blank" rel="noreferrer">
-            Link de la cita
+            {etiquetaDelEnlace(detalle.linkCalendly)}
           </a>
         ) : null}
         {detalle.linkGrain ? (

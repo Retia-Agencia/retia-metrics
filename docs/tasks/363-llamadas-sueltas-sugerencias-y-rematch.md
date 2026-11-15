@@ -96,9 +96,15 @@ Las invariantes que debe garantizar el sistema (cada una con su prueba y su alar
 - [x] La matriz de casos (punto 6) cubierta por la ruta real; I1 a I4 cada una con una prueba mordida en los dos sentidos.
 - [x] Alarma visible para llamadas sueltas viejas y deals con cita sin llamada.
 - [x] El botón muestra el correo y las sugerencias por nombre ya no repiten botones indistinguibles.
-- [ ] Typecheck, lint, tests del cambio y `npm run build` (toca un componente cliente). La suite completa la valida el CI.
+- [x] Typecheck, lint, tests del cambio y `npm run build` (toca un componente cliente). La suite completa la valida el CI.
 - [x] N8: si cambia una regla, ADR 0049 / 0069 y `docs/overview.md` §11 se reescriben en el mismo commit.
 
 > Verificación local de la ronda 2: typecheck y lint limpios. El runner no alcanzó a iniciar los tests porque
 > `scripts/test.mjs` recibió `spawnSync ps EPERM`; por instrucción del ticket no se intentó un rodeo. La casilla
 > de build queda abierta para la validación de Claude en el checkout principal.
+
+> Avance 14-nov: `npm run build` pasa en main y en la rama del 364 (que incluye el 363); Inbox › Llamadas › Sin deal abierto con
+> `dev:local` sin errores de consola, con la alarma "Sigue suelta hace N horas". Producción (solo lectura): las 5 sueltas de
+> Comunicarte del 30-oct ya no existen y los deals de Santiago y Sandra están en Agendado. Hoy hay 3 sueltas vigentes en otros
+> programas (2 de comunicate-confianza, 1 de tactical-investor), todas con huella `calendly:<uuid>`: las tomará el barrido o
+> quedarán con alarma. Los tests de los casos del ticket no se corrieron en esta ronda (máquina sin aire; los valida el CI).

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { usd } from "@/lib/format";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { PendienteDeal } from "@/lib/deals/etapas";
+import { esCitaManual, etiquetaDelEnlace } from "@/lib/deals/estado-de-llamada";
 import { TONO_DE_PENDIENTE } from "./etapa-tono";
 import type { TarjetaDeal } from "@/lib/queries/kanban";
 import { PREGUNTA_DE_ETAPA, respuestasDe, type Respuesta } from "./pregunta-de-etapa";
@@ -66,6 +67,7 @@ export function TarjetaDealCard({
   const respuestas = respuestasDe(tarjeta.etapa, tarjeta.pendiente);
 
   const avisos = tarjeta.avisos;
+  const llamada = tarjeta.llamada;
   const saldoTexto = tarjeta.saldo != null ? usd(tarjeta.saldo) : null;
 
   return (
@@ -160,6 +162,24 @@ export function TarjetaDealCard({
 
       {tarjeta.pendiente === "proxima_cohorte" && tarjeta.cohorteDestinoTexto ? (
         <p className="mt-2 text-xs text-muted-foreground">Cohorte: {tarjeta.cohorteDestinoTexto}</p>
+      ) : null}
+
+      {llamada?.linkCalendly || (llamada && esCitaManual(llamada.origen)) ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+          {llamada.linkCalendly ? (
+            <a
+              className="relative z-10 text-marca-texto underline-offset-2 hover:underline"
+              href={llamada.linkCalendly}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {etiquetaDelEnlace(llamada.linkCalendly)}
+            </a>
+          ) : null}
+          {esCitaManual(llamada.origen) ? (
+            <Badge className="relative z-10" variant="alerta" title="El lead no recibe invitación: avísale tú.">Cita manual</Badge>
+          ) : null}
+        </div>
       ) : null}
 
       {tieneAvisos(avisos) ? (

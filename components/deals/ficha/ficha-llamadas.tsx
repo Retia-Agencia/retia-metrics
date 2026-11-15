@@ -8,7 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
-import { citaActiva, ETIQUETA_DE_RESULTADO, TONO_DE_RESULTADO } from "@/lib/deals/estado-de-llamada";
+import {
+  citaActiva,
+  esCitaManual,
+  etiquetaDelEnlace,
+  ETIQUETA_DE_RESULTADO,
+  TONO_DE_RESULTADO,
+} from "@/lib/deals/estado-de-llamada";
 import type { FichaDeLlamada, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { agendarLlamadaAccion, completarAgendadaAccion } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
 import { Campo, claseInput, DialogoForm, Vacio } from "./campos";
@@ -79,6 +85,9 @@ export function FichaLlamadas({
           {esActiva
             ? <Badge variant="default">Cita activa</Badge>
             : <Badge variant={TONO_DE_RESULTADO[c.resultado]}>{ETIQUETA_DE_RESULTADO[c.resultado]}</Badge>}
+          {esCitaManual(c.origen) ? (
+            <Badge variant="alerta" title="El lead no recibe invitación: avísale tú.">Cita manual</Badge>
+          ) : null}
           {c.sinGrain ? <Badge variant="peligro">Sin Grain</Badge> : null}
           <span className={anulada ? "cifra line-through" : "cifra"}>
             {c.fechaAgenda ? `Cita ${fechaHoraEnBogota(c.fechaAgenda)}` : "Sin fecha de cita"}
@@ -87,7 +96,7 @@ export function FichaLlamadas({
           <span className="ml-auto text-xs text-muted-foreground">{c.closerNombre ?? "Sin closer"}</span>
         </button>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-          {c.linkCalendly ? <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkCalendly} target="_blank" rel="noreferrer">Link de la cita</a> : null}
+          {c.linkCalendly ? <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkCalendly} target="_blank" rel="noreferrer">{etiquetaDelEnlace(c.linkCalendly)}</a> : null}
           {c.linkGrain ? <a className="text-marca-texto underline-offset-2 hover:underline" href={c.linkGrain} target="_blank" rel="noreferrer">Grain</a> : null}
         </div>
         {c.notas ? <p className="whitespace-pre-wrap text-muted-foreground">{c.notas}</p> : null}

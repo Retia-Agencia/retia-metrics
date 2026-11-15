@@ -43,9 +43,17 @@ Quien trabaja un deal necesita entrar a la llamada, y hoy el link no está donde
 
 ## Done cuando
 
-- [ ] La tarjeta del Kanban abre el link de la llamada activa en una pestaña nueva, y no muestra nada si no hay link.
-- [ ] Una cita manual lleva "Cita manual" y su ayuda en tarjeta, ficha y detalle; una de Calendly no.
-- [ ] El formulario de hora manual avisa que el lead no recibe invitación.
-- [ ] Un test cubre la regla de "¿es manual?" y que la proyección de la tarjeta trae el link (caso con y sin link).
-- [ ] `npm run build` (toca componentes cliente), typecheck y lint limpios; recorrido en navegador con `dev:local`.
+- [x] La tarjeta del Kanban abre el link de la llamada activa en una pestaña nueva, y no muestra nada si no hay link.
+- [x] Una cita manual lleva "Cita manual" y su ayuda en tarjeta, ficha y detalle; una de Calendly no.
+- [x] El formulario de hora manual avisa (texto cambiado; no abierto en pantalla) que el lead no recibe invitación.
+- [x] Un test cubre la regla de "¿es manual?" y que la proyección de la tarjeta trae el link (caso con y sin link).
+- [x] `npm run build` (toca componentes cliente), typecheck y lint limpios; recorrido en navegador con `dev:local` (Kanban de tactical-local, consola sin errores).
 - [ ] Tracker (`docs/tasks/README.md`) igual al `status:` de este archivo.
+
+> Avance 14-nov (rama `364-link-llamada`, sin commit): Codex escribió tarjeta, ficha, detalle, formulario y
+> `esCitaManual` / `etiquetaDelEnlace` en `lib/deals/estado-de-llamada.ts`. Verificado por Claude: typecheck y lint
+> limpios, `tests/estado-de-llamada-manual.test.ts` 10/10, build OK, Kanban con `dev:local` (link y "Cita manual" en la
+> tarjeta, sin errores de consola). **Falta:** el test de la proyección de la tarjeta con y sin link (casilla del test
+> queda abierta). **A decidir:** hoy "manual" es todo origen distinto de `calendly`, así que las llamadas de origen `sheets`
+> (hoja migrada) también salen como "Cita manual"; el ticket lo define así, pero puede ser ruido para las históricas.
+> Test de la proyección agregado (14-nov): `tests/kanban-link-de-llamada.test.ts` (calendly con link, manual con y sin link, sin cita), 1/1 y typecheck limpio.

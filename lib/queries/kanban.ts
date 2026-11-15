@@ -122,6 +122,8 @@ export interface TarjetaDeal {
     fecha: Date | null;
     closerNombre: string | null;
     notas: string | null;
+    linkCalendly: string | null;
+    origen: string;
     puedeMarcarAtendida: boolean;
     mensajeNoPuedeMarcarAtendida: string | null;
   } | null;
@@ -428,6 +430,8 @@ export async function tableroKanban(
           fechaAgenda: calls.fechaAgenda,
           closerNombre: users.nombre,
           notas: calls.notas,
+          linkCalendly: calls.linkCalendly,
+          origen: calls.origen,
           createdAt: calls.createdAt,
         })
         .from(calls)
@@ -509,6 +513,8 @@ export async function tableroKanban(
             fecha: llamadaActiva.fechaAgenda,
             closerNombre: llamadaActiva.closerNombre,
             notas: llamadaActiva.notas,
+            linkCalendly: llamadaActiva.linkCalendly,
+            origen: llamadaActiva.origen,
             ...disponibilidadParaMarcarAtendida(llamadaActiva.fechaAgenda, new Date()),
           }
         : null,

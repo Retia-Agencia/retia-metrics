@@ -35,6 +35,26 @@ export function etiquetaDeOrigen(origen: string): string {
   return origen;
 }
 
+export function esCitaManual(origen: string): boolean {
+  return origen !== "calendly";
+}
+
+export function etiquetaDelEnlace(url: string | null): string {
+  if (!url) return "Link de la reunión";
+
+  try {
+    const hostname = new URL(url).hostname;
+    const esDominio = (dominio: string) => hostname === dominio || hostname.endsWith(`.${dominio}`);
+    if (esDominio("calendly.com")) return "Link de Calendly";
+    if (esDominio("meet.google.com")) return "Link de Meet";
+    if (esDominio("zoom.us")) return "Link de Zoom";
+  } catch {
+    return "Link de la reunión";
+  }
+
+  return "Link de la reunión";
+}
+
 const CAMPO_CANONICO: Record<string, string> = {
   program_id: "programId",
   cohort_id: "cohortId",
