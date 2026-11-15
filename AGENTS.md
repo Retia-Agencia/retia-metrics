@@ -80,6 +80,11 @@ lugar, sin copias entre documentos.** Léelos en este orden:
    Fuente de verdad en el repo: `docs/bocetos/una-forma-de-metrica.html` (se abre con doble clic). Copia publicada (privada, de
    Mani): https://claude.ai/artifact/HSVdjQ6QdPdHeQ9obbEAPS. Si discrepan, manda el HTML del repo. Toda pantalla nueva o tocada se
    compara lado a lado con él en claro, oscuro y 375 px antes de empujar.
+2e. **`docs/estudio-rendimiento-y-conexion.md`** (14-nov) — **la conexión a la base cuelga y cruza parámetros** (pooler de
+   Supabase en modo transaction + `postgres-js` con `prepare: false`; causa raíz del 243 y de los 504 de Programa y de las
+   rutas de salud), el costo medido de las consultas (52 por render de Nerd Stats), el prefetch de la navegación y el
+   borrador del contrato de rendimiento. Insumo de una sesión propia, sin plan aprobado. Léelo antes de tocar `lib/db/`,
+   agregar consultas a una pantalla o diagnosticar un 504.
 3. **`docs/overview.md`** — qué es la herramienta de principio a fin: el problema, los programas, los
    roles y sus historias de usuario, el recorrido de un lead, las métricas, el alcance, los criterios de
    aceptación, de dónde salió y **el vocabulario del dominio** (§11). Es el contrato de producto (lo que

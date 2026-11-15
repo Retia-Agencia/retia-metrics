@@ -45,11 +45,11 @@ si la causa es la hipótesis 1, porque el bug seguiría vivo en otras pantallas.
 
 ## Done cuando
 
-- [ ] Se sabe la causa raíz, escrita aquí, con la evidencia.
+- [x] Se sabe la causa raíz, escrita aquí, con la evidencia (ver Avance, 14-nov).
 - [ ] `/nerd-stats` y `/nerd-stats/bitacora` cargan en producción como developer.
 - [ ] Si la causa es el pooler: el arreglo vive en `lib/db` (una sola vez) y hay un test o una prueba contra Postgres
       real que lo cubre; se revisan las demás pantallas con `Promise.all`.
-- [ ] La tarjeta de corridas del sync se quita (y `ultimasCorridasDeSync` si no la usa nadie más).
+- [x] La tarjeta de corridas del sync se quita (y `ultimasCorridasDeSync` si no la usa nadie más). Hecho por el 401 M13 (`5e368505`, 9-nov).
 
 ## Tickets relacionados
 
@@ -59,3 +59,43 @@ si la causa es la hipótesis 1, porque el bug seguiría vivo en otras pantallas.
 ## Anotaciones
 
 A-150.
+
+## Avance
+
+### 14-nov: SÍ falla, y la causa es la conexión (hipótesis 1 confirmada)
+
+Primera lectura de los logs (7 días) dio `/nerd-stats` en 200 todo el día y ningún `22P02`; se concluyó que ya no fallaba.
+**Era falso:** Mani la abrió a las 21:04 y se quedó cargando; abierta desde el navegador del agente, **504
+`FUNCTION_INVOCATION_TIMEOUT` a los 300 s**. `/nerd-stats/bitacora` entrando directo cargó (72.818 escrituras).
+Lección: "200 en los logs de hoy" no prueba nada en un fallo intermitente; el 504 por tiempo no deja mensaje de error.
+
+**Lo medido** (solo lectura contra producción, scripts desechables ya borrados):
+
+| Prueba | Resultado |
+|---|---|
+| Cada consulta de la página, una por una, por el pooler (6543) | Todas terminan; la más lenta `saludDeFuentes`, 6 a 8 s |
+| Las cinco juntas (`Promise.all` de la página), por el pooler | Ronda 1 ok; luego **cuelgue** (5 de 5 corridas) y una vez **`22P02 invalid input syntax for type uuid: "calendly"`**: el parámetro de otra consulta como `$1` (el mismo síntoma del 14-oct) |
+| Lo mismo con `max_pipeline: 1` | Cuelga igual: el pipelining no es la causa |
+| **Una sola conexión, consultas en serie** (`max: 1`), por el pooler | **Cuelga en la ronda 1**: no es la concurrencia de la página |
+| Las cinco juntas por la conexión en modo sesión (5432, `DATABASE_URL_DIRECTA`) | 5 de 5 ok; y **dos páginas a la vez, 6 rondas: 0 fallos** |
+| `pg_stat_activity` durante el cuelgue | Dos backends `active` en `ClientRead` 45 s: Postgres esperando el resto de un mensaje del cliente que nunca llega |
+
+**Causa raíz.** Con `prepare: false`, `postgres-js` (3.x) manda toda consulta CON parámetros en dos idas
+(`node_modules/postgres/cjs/src/connection.js:238`: `describeFirst = parameters.length && !q.prepared`): primero
+`Parse + Describe + Flush`, y cuando Postgres devuelve los tipos (`:633`), `Bind + Execute`. El pooler de Supabase en modo
+*transaction* (Supavisor, 6543) puede entregar la conexión del cliente a otro backend entre las dos idas: el `Bind` cae
+sobre la sentencia sin nombre de otra consulta (**parámetros cruzados**, el `"f"` del 14-oct y el `"calendly"` de hoy) y el
+primer backend queda esperando para siempre (**cuelgue → 504 a los 300 s**). Por qué Supavisor suelta la conexión entre las
+dos idas es inferencia sobre lo medido (no hay `Sync` hasta la segunda ida), *sin fuente verificada* en su documentación.
+
+**Alcance: no es de Nerd Stats.** Afecta a toda consulta con parámetros de toda pantalla y ruta, más mientras más consultas
+haga. Explica los 504 de 7 días en `/p/[programa]/programa`, `/api/salud/alertas` y `/api/salud/cierre` (las tres llaman
+`saludDeFuentes`, la que más consultas lanza). El 500 diario de `/api/cron/calendly` (`ownerUserId`) es otro bug.
+
+### Pendiente
+
+El arreglo pide una decisión de Mani porque enmienda el ADR 0047 (la app entra hoy por el pooler en modo transaction).
+Mani se inclina por el driver `pg` (14-nov) y lo manda a una sesión propia de estudio, junto con la optimización de
+consultas y navegación y el contrato de rendimiento: **todo el detalle, el arnés que lo reproduce y cómo retomar viven en
+`docs/estudio-rendimiento-y-conexion.md`** (§0). Este ticket se cierra cuando ese arreglo esté en producción y
+`/nerd-stats` cargue varias veces seguidas.
