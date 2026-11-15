@@ -19,6 +19,18 @@ narrativa de las épocas, con sus notas, sigue al final en "Historia". La versi�
 > checkpoint verde.
 
 
+## 23 · Onboarding de un programa (ADR 0132) · 14-nov
+
+Análisis en `docs/onboarding-de-programa.md`. Dos carriles: ficha (430 → 432 → 433) y navegación (431 → 434).
+
+| ✓ | # | Ticket | Depende de | Estado |
+|---|---|---|---|---|
+| [ ] | 430 | [Un registro de pasos de configuración del programa](./430-registro-de-pasos-de-configuracion.md) | — | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
+| [ ] | 431 | [El estado del programa decide las tabs](./431-el-estado-del-programa-decide-las-tabs.md) | — | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
+| [ ] | 432 | [La ficha de un programa activo en tres pestañas](./432-ficha-del-programa-en-tres-pestanas.md) | 430 | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
+| [ ] | 433 | [El recorrido de configuración de un programa inactivo](./433-recorrido-de-configuracion-del-programa.md) | 430, 432 | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
+| [ ] | 434 | [El alta de un programa sin pedir el slug](./434-alta-de-programa-sin-slug.md) | 431 | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
+
 ## 22 · Pedidos del 11-nov (Michael y Paid Media) · 12-nov
 
 Lo que no tenía ticket. Las alertas cada hora quedaron como configuración (268), sin ticket. El push de recién agendado

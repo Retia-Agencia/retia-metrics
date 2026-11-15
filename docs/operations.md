@@ -76,6 +76,8 @@ Cada pieza vive en UN lugar, y ninguna se duplica:
 | Activar la fuente | tab Programa (Formularios) | administrador | inactiva = 404 a todo |
 | URL del formulario y fuente principal | tab Programa, Formularios (campo URL; "Marcar como principal") | administrador | el destino de los links de captación (092, ADR 0068). Una por programa, activa y con URL; sin ella el programa no genera links ni se puede activar |
 
+**Desde el 14-nov (ADR 0132) la app guía este orden:** un programa inactivo abre un recorrido paso a paso que sale del registro `lib/programas/configuracion.ts` (qué pasos hay, cuáles bloquean la activación). Esta tabla explica cada pieza; la lista de pasos vive en el registro.
+
 **Orden que funcionó:** programa → token de Calendly → formulario en borrador → fuente + secreto + activar → pegar URL y
 secreto en el proveedor → **"enviar prueba"** (el CRM la recibe y no crea lead: se ve en `sobres_crudos`) →
 conectar Calendly en el formulario y escoger el evento → cambiar los placeholders → publicar → **un envío real por

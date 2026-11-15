@@ -158,6 +158,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0129](./0129-el-mcp-es-una-puerta-total-con-reglas-de-orientacion.md) | El MCP del CRM es una puerta total con reglas de orientación: capacidad de la app = capacidad del MCP por rol, filtros que nunca devuelven vacío en silencio, escritura con confirmación y deshacer, guardián de cobertura (enmienda el 0119; ticket 411) |
 | [0130](./0130-toda-alerta-tecnica-sale-por-un-solo-contrato.md) | Toda alerta técnica sale por un solo contrato: el CRM la evalúa en un registro exhaustivo, Juanito la entrega al grupo CRM Retia - Health y detecta él mismo cuando el CRM no responde (ticket 425); enmienda del 13-nov: silencio global de 3 h y cierre del día a las 9 p.m. (ticket 426) |
 | [0131](./0131-lo-que-nadie-lee-se-borra-de-la-base.md) | Lo que nadie lee se borra de la base: seis migraciones (0137 a 0142), cada una leída a mano y con respaldo de lo que tenía datos |
+| [0132](./0132-el-estado-del-programa-decide-la-pantalla.md) | El estado del programa decide qué pantallas ofrece: un registro de pasos de configuración (solo token de Calendly y fuente principal bloquean), un recorrido para el inactivo y tres pestañas para el activo (tickets 430 a 434) |
 
 **Plataforma**
 
