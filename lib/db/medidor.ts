@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { cache } from "react";
 
 export interface CostoDeSolicitud {
   ruta: string;
@@ -20,6 +21,18 @@ export interface ResumenDeCosto {
 }
 
 const contexto = new AsyncLocalStorage<CostoDeSolicitud>();
+
+interface EstadoDeMedicionDeRender {
+  costo: CostoDeSolicitud | null;
+  finalizadorEntregado: boolean;
+}
+
+type ObtenerEstadoDeMedicion = () => EstadoDeMedicionDeRender;
+
+const estadoDeMedicionDeRender = cache<ObtenerEstadoDeMedicion>(() => ({
+  costo: null,
+  finalizadorEntregado: false,
+}));
 
 export const SEGMENTOS_DE_RUTA = new Set([
   ".well-known",
@@ -106,6 +119,50 @@ function costoNuevo(ruta: string): CostoDeSolicitud {
   };
 }
 
+/**
+ * Lee el estado compartido por React sin asumir que existe un render activo.
+ * La dependencia inyectada mantiene este borde comprobable sin un renderer.
+ */
+export function costoDeRenderAbierto(
+  obtenerEstado: ObtenerEstadoDeMedicion,
+): CostoDeSolicitud | null {
+  try {
+    return obtenerEstado().costo;
+  } catch {
+    return null;
+  }
+}
+
+/** Abre una sola medición sobre un estado cacheado por solicitud. */
+export function abrirMedicionDeRender(
+  ruta: string,
+  obtenerEstado: ObtenerEstadoDeMedicion,
+  emitir: (linea: string) => void,
+): (() => void) | null {
+  let estado: EstadoDeMedicionDeRender;
+  try {
+    estado = obtenerEstado();
+  } catch {
+    return null;
+  }
+
+  estado.costo ??= costoNuevo(patronDeRuta(ruta));
+  if (estado.finalizadorEntregado) return null;
+  estado.finalizadorEntregado = true;
+
+  const costo = estado.costo;
+  let emitido = false;
+  return () => {
+    if (emitido || costo.consultas === 0) return;
+    emitido = true;
+    emitir(JSON.stringify({ costo: resumir(costo) }));
+  };
+}
+
+function costoActivo(): CostoDeSolicitud | null {
+  return contexto.getStore() ?? costoDeRenderAbierto(estadoDeMedicionDeRender);
+}
+
 /** Convierte un pathname real en la forma privada y estable que se escribe en logs. */
 export function patronDeRuta(pathname: string): string {
   const [ruta] = pathname.split(/[?#]/, 1);
@@ -131,7 +188,7 @@ export function patronDeRuta(pathname: string): string {
 /** Logger único de Drizzle. Fuera de una medición no hace nada. */
 export const loggerDeCosto = {
   logQuery(sentencia: string, parametros: unknown[]): void {
-    const costo = contexto.getStore();
+    const costo = costoActivo();
     if (!costo) return;
     costo.consultas += 1;
     const parametrosSerializados = serializarParametros(parametros);
@@ -162,7 +219,7 @@ function serializarParametros(parametros: unknown[]): string {
 
 /** Lo llama el adaptador de `pg` al terminar cada consulta. */
 export function registrarTiempoEnBase(ms: number): void {
-  const costo = contexto.getStore();
+  const costo = costoActivo();
   if (costo) costo.msEnBase += ms;
 }
 
@@ -202,12 +259,5 @@ export function conContadorDeConsultas<T>(
  */
 export function iniciarMedicionDeSolicitud(ruta: string): (() => void) | null {
   if (contexto.getStore()) return null;
-  const costo = costoNuevo(patronDeRuta(ruta));
-  contexto.enterWith(costo);
-  let emitido = false;
-  return () => {
-    if (emitido || costo.consultas === 0) return;
-    emitido = true;
-    console.log(JSON.stringify({ costo: resumir(costo) }));
-  };
+  return abrirMedicionDeRender(ruta, estadoDeMedicionDeRender, console.log);
 }

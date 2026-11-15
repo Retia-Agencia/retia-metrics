@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { PoolClient } from "pg";
 import { envolverConsultasMedidas } from "@/lib/db";
 import {
-  iniciarMedicionDeSolicitud,
+  abrirMedicionDeRender,
+  conContadorDeConsultas,
+  costoDeRenderAbierto,
   loggerDeCosto,
   medir,
   patronDeRuta,
@@ -24,6 +26,44 @@ describe("patronDeRuta", () => {
 });
 
 describe("medidor de costo", () => {
+  it("comparte un acumulador entre ramas hermanas y entrega un solo finalizador", async () => {
+    const estado = { costo: null, finalizadorEntregado: false };
+    const obtenerEstado = () => estado;
+    const emitir = vi.fn();
+
+    const finalizar = abrirMedicionDeRender("/hub", obtenerEstado, emitir);
+    const segundoFinalizador = abrirMedicionDeRender("/otra-ruta", obtenerEstado, emitir);
+
+    await Promise.all([
+      Promise.resolve().then(() => {
+        const costo = costoDeRenderAbierto(obtenerEstado);
+        if (costo) costo.consultas += 2;
+      }),
+      Promise.resolve().then(() => {
+        const costo = costoDeRenderAbierto(obtenerEstado);
+        if (costo) costo.consultas += 3;
+      }),
+    ]);
+    finalizar?.();
+    finalizar?.();
+
+    expect(segundoFinalizador).toBeNull();
+    expect(emitir).toHaveBeenCalledOnce();
+    expect(JSON.parse(String(emitir.mock.calls[0]?.[0]))).toMatchObject({
+      costo: { ruta: "/hub", consultas: 5 },
+    });
+  });
+
+  it("fuera de un render no abre ni registra una medición", () => {
+    const fueraDeRender = () => {
+      throw new Error("cache() fuera de un render");
+    };
+
+    expect(() => costoDeRenderAbierto(fueraDeRender)).not.toThrow();
+    expect(costoDeRenderAbierto(fueraDeRender)).toBeNull();
+    expect(abrirMedicionDeRender("/hub", fueraDeRender, vi.fn())).toBeNull();
+  });
+
   it("acepta bigint y no considera idénticos los parámetros circulares", async () => {
     const circular: { propio?: unknown } = {};
     circular.propio = circular;
@@ -81,12 +121,26 @@ describe("medidor de costo", () => {
     expect(JSON.stringify(costo)).not.toContain("dato-personal");
   });
 
+  it("conserva el contador explícito del MCP", async () => {
+    const consultas = await conContadorDeConsultas(async (contar) => {
+      loggerDeCosto.logQuery("select 1", []);
+      loggerDeCosto.logQuery("select 2", []);
+      return contar();
+    });
+
+    expect(consultas).toBe(2);
+  });
+
   it("el log nunca contiene el pathname concreto, ids, SQL ni parámetros", () => {
-    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
-    const finalizar = iniciarMedicionDeSolicitud(
+    const estado = { costo: null, finalizadorEntregado: false };
+    const log = vi.fn();
+    const finalizar = abrirMedicionDeRender(
       "/p/comunicarte/leads/01955d65-b3f1-7fed-8e30-613e4cd85b46",
+      () => estado,
+      log,
     );
-    loggerDeCosto.logQuery("select correo from leads where id = $1", ["persona@ejemplo.com"]);
+    const costo = costoDeRenderAbierto(() => estado);
+    if (costo) costo.consultas += 1;
     finalizar?.();
 
     expect(log).toHaveBeenCalledOnce();
@@ -95,6 +149,5 @@ describe("medidor de costo", () => {
       costo: { ruta: "/p/[programa]/leads/[id]", consultas: 1 },
     });
     expect(linea).not.toMatch(/comunicarte|01955d65|persona@|select correo/i);
-    log.mockRestore();
   });
 });
