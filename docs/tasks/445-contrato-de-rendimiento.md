@@ -16,6 +16,9 @@ pantalla nueva no lo pierda.
 > **15-nov:** las filas "Cuánto cuesta un render" y "Una lectura, una vez por solicitud" se adelantan en el
 > [447](./447-guardian-de-consultas-por-pagina.md), con las reglas de la clave y el guardián por página. Este ticket las
 > cita cuando el 447 cierre; no las repite.
+>
+> **15-nov, 447:** las tres filas ("Dónde vive una consulta", "Una lectura, una vez por solicitud" y "Cuánto cuesta
+> un render") ya están en AGENTS.md › Contratos; aquí solo se citan.
 
 ## Las filas (texto para AGENTS.md › Contratos; los números salen de los tickets cerrados, no de aquí)
 
@@ -23,8 +26,6 @@ pantalla nueva no lo pierda.
 |---|---|---|
 | Cómo se conecta la app a la base | Un pool de `pg` por proceso, en `lib/db/index.ts`, por el pooler en modo transaction; tamaño `MAX_CONEXIONES_POR_PROCESO`; nadie más crea un pool (ADR 0047 enmendado, 435) | `tests/conexion-pooler.test.ts` contra Postgres real en el CI; guardián de imports en `tests/base-portable.test.ts` |
 | Presupuesto de conexiones | instancias × pool ≤ lo que admite el pooler; consultas simultáneas ≤ `Pool Size`. La cuenta con números vive en `docs/operations.md` (441) | Revisión cuando cambie el número de usuarios o el tamaño del cómputo; el olor es `ECHECKOUTTIMEOUT` o "too many clients" en los logs |
-| Cuánto cuesta un render | Toda función de página tiene un tope de consultas en `tests/presupuesto-de-consultas.test.ts`; el tope solo baja. Una pantalla nueva agrega su fila en el mismo commit (436) | Ese test: tope, `identicas === 0`, y el mismo número de consultas con 3 y con 6 programas, fuentes, cohortes y closers |
-| Una lectura, una vez por solicitud | `unaVezPorSolicitud` en `lib/db/por-solicitud.ts`, dentro de la función dueña del concepto; nunca en una transacción ni en una server action (437) | `tests/por-solicitud.test.ts` y `identicas === 0` del presupuesto |
 | Consultar por conjunto | Ninguna consulta por elemento de una lista: se pasa la lista (`inArray`) o se agrupa en SQL (438, 439). El programa sigue siendo frontera: se agrupa por `program_id`, nunca se suma entre programas | `tests/n-mas-uno-guardian.test.ts` (abajo) y la prueba de 3 contra 6 |
 | Contar en SQL | Una cifra que es un conteo no baja las filas; ninguna consulta de página selecciona una columna `jsonb` entera para contar o clasificar | `tests/n-mas-uno-guardian.test.ts` (`MAX_SAFE_INTEGER` como tamaño de página) y los tests de SQL emitido del 439 |
 | Fallar rápido | `statement_timeout` de la app, espera de conexión y `maxDuration` por clase de ruta, con los números en `lib/tiempos.ts` (440) | `tests/tiempo-maximo-guardian.test.ts` |

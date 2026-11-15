@@ -1,13 +1,10 @@
-import { db } from "@/lib/db";
-import { enviosPorCanal } from "@/lib/atribucion/envios-por-canal";
 import { NOMBRE_DE_AREA } from "@/lib/atribucion/canal";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { DatosDeCanales } from "@/lib/mi-espacio/datos-canales";
 
 /** Sección de canales derivados de Mi espacio del paid trafficker. */
-export async function TabCanales() {
-  const resumen = await enviosPorCanal(db);
-
+export function TabCanales({ resumen }: { resumen: DatosDeCanales }) {
   return (
     <Card>
       <CardHeader>

@@ -1,5 +1,4 @@
 import { Enlace } from "@/components/enlace";
-import { db } from "@/lib/db";
 import { NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { fecha as fechaCorta, fechaHoraEnBogota } from "@/lib/format";
@@ -10,12 +9,9 @@ import {
   DESCRIPCION_DE_CHIP,
   NOMBRE_DE_CHIP,
   POR_PAGINA,
-  chipPedido,
-  conteoSinVer,
-  conteosDeChips,
-  notificacionesDeChip,
   type ChipNotificacion,
 } from "@/lib/mi-espacio/notificaciones";
+import type { DatosDeNotificaciones } from "@/lib/mi-espacio/datos-notificaciones";
 import { TarjetasNotificacion } from "./tarjetas-notificacion";
 
 /**
@@ -28,32 +24,14 @@ import { TarjetasNotificacion } from "./tarjetas-notificacion";
  * (predicado, conteo y lista). Paginado en el servidor, 24 por página. Sin datos personales en
  * la URL: el chip y la página son opacos.
  */
-export async function TabNotificaciones({
-  programId,
+export function TabNotificaciones({
   slug,
-  userId,
-  chip: chipCrudo,
-  pagina: paginaCruda,
-  q,
+  datos,
 }: {
-  programId: string;
   slug: string;
-  userId: string;
-  chip?: string;
-  pagina?: string;
-  q?: string;
+  datos: DatosDeNotificaciones;
 }) {
-  const chip = chipPedido(chipCrudo);
-  const paginaPedida = Number.parseInt(paginaCruda ?? "", 10);
-  const pagina = Number.isFinite(paginaPedida) && paginaPedida > 0 ? paginaPedida : 0;
-  // La búsqueda viaja con todo; vacía o corta, `leadsQueCasan` no estrecha nada.
-  const busqueda = (q ?? "").trim();
-
-  const [conteos, resultado, sinVer] = await Promise.all([
-    conteosDeChips(db, { programId, userId, q: busqueda }),
-    notificacionesDeChip(db, { programId, userId, chip, pagina, q: busqueda }),
-    conteoSinVer(db, { programId, userId }),
-  ]);
+  const { chip, pagina, busqueda, conteos, resultado, sinVer } = datos;
 
   const paginas = Math.max(1, Math.ceil(resultado.total / POR_PAGINA));
   const origen = origenDeLaPagina("/mi-espacio", {

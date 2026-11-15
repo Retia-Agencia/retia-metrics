@@ -1,28 +1,24 @@
 import { Enlace } from "@/components/enlace";
-import type { ProgramaVisible } from "@/lib/auth/alcance";
-import { db } from "@/lib/db";
 import type { PeriodoResuelto } from "@/lib/periodo";
-import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
+import type { DatosDelHub } from "@/lib/queries/hub-todos";
+import type { NivelPauta, PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { urlDeLista } from "@/lib/queries/vista-metrica";
 import { queryDePeriodo } from "@/lib/queries/vista-todos";
 import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
 import { Button } from "@/components/ui/button";
-import { origenDelPrograma } from "@/lib/queries/origen";
 import { Origen } from "@/components/dashboard/origen";
 import { UNIVERSO_PAUTA } from "@/lib/vocabulario-metricas";
 
 /** Pauta contiene tasas y costos: en "todos" cada programa muestra solo conteos (ADR 0048). */
-export async function PautaPorPrograma({ programas, periodo, hoy, busqueda }: {
-  programas: ProgramaVisible[];
+export function PautaPorPrograma({ filas, periodo, busqueda }: {
+  filas: DatosDelHub["pauta"];
   periodo: PeriodoResuelto;
-  hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
 }) {
   const verPor: VerPorPauta = busqueda.ver_por === "canal" ? "canal" : "campana";
   return <section id="pauta" className="space-y-6">
     <div><h2 className="text-xl font-semibold">Pauta y origen</h2><p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p></div>
-    {await Promise.all(programas.map(async (programa) => {
-      const roas = await cargarRoasDePauta(db, programa.id, periodo.a, hoy);
+    {filas.map(({ programa, roas }) => {
       const query = queryDePeriodo(periodo);
       const base = `/p/${encodeURIComponent(programa.slug)}/hub`;
       const hrefVerPor = (v: VerPorPauta) => {
@@ -43,19 +39,17 @@ export async function PautaPorPrograma({ programas, periodo, hoy, busqueda }: {
         </h3>
         <PautaRoas vista={roas} enlace={enlace} hrefCsv="" verPor={verPor} hrefVerPor={hrefVerPor} soloConteos />
       </div>;
-    }))}
+    })}
   </section>;
 }
 
 /** En Todos, cada programa conserva su frontera y solo muestra magnitudes contables. */
-export async function OrigenPorPrograma({ programas, periodo, hoy, origen }: {
-  programas: ProgramaVisible[];
+export function OrigenPorPrograma({ filas, periodo, origen }: {
+  filas: DatosDelHub["origenes"];
   periodo: PeriodoResuelto;
-  hoy: string;
   origen: string;
 }) {
-  return <section className="space-y-6">{await Promise.all(programas.map(async (programa) => {
-    const vista = await origenDelPrograma(db, { programId: programa.id, rango: periodo.a, hoy });
+  return <section className="space-y-6">{filas.map(({ programa, vista }) => {
     return <div key={programa.id} className="space-y-4"><h2 className="text-xl font-semibold">{programa.nombre}</h2><Origen vista={vista} slug={programa.slug} periodo={periodo} origen={origen} soloConteos /></div>;
-  }))}</section>;
+  })}</section>;
 }

@@ -3,7 +3,6 @@ import { cloneElement, type ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Operacion } from "@/components/dashboard/operacion";
 import { Escalera } from "@/components/dashboard/escalera";
-import { escaleraPorPrograma } from "@/lib/queries/escalera-todos";
 import { Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
 import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
@@ -14,13 +13,13 @@ import { monto, num, usd } from "@/lib/format";
 import { descripcionDeComparacion, type PeriodoResuelto } from "@/lib/periodo";
 import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
-import { detallesDeOperacion, detallesDelDashboard, nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
-import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
+import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 import { nombreCorto, UNIVERSO_COMERCIAL } from "@/lib/vocabulario-metricas";
 import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
 import { pct } from "@/lib/format";
+import type { DatosDelHub } from "@/lib/queries/hub-todos";
 
 type Seccion = "hoy" | "comercial" | "dinero";
 const GRILLA = "grid gap-4 sm:grid-cols-2 xl:grid-cols-4";
@@ -161,7 +160,7 @@ function VentasPorCohorte({ vista, origen }: { vista: VistaDeTodos; origen: stri
 }
 
 /** Solo servidor: las piezas compartidas se importan, nunca se modifican. */
-export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }: { vista: VistaDeTodos; seccion: Seccion; hoy: string; origen: string; conListas: boolean }) {
+export function SeccionDeTodos({ vista, seccion, hoy, origen, comercial }: { vista: VistaDeTodos; seccion: Seccion; hoy: string; origen: string; comercial: DatosDelHub["comercial"] }) {
   if (seccion === "hoy") return <section id="hoy" className="space-y-4">
     <h2 className="text-xl font-semibold">Hoy</h2>
     <HoyPorPrograma vista={vista} hoy={hoy} />
@@ -195,16 +194,11 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
       </>} />
     {/* La escalera es una distribución: una tarjeta por programa, lado a lado, sin total ni % combinado (ADR 0048). */}
     <div className="grid gap-4 lg:grid-cols-2">
-      {(await escaleraPorPrograma({ programas: vista.programas.map((f) => f.programa), hoy, periodo: vista.periodo, origen, conListas })).map(({ programa, vista: escalera }) => (
+      {comercial?.escalera.map(({ programa, vista: escalera }) => (
         <Escalera key={programa.id} vista={escalera} periodo={vista.periodo} programa={programa.nombre} contexto={contextoDeCifra({ cohorte: null, rango: vista.periodo.a, hoy, closer: null })} />
       ))}
     </div>
-    {await Promise.all(vista.programas.map(async (fila) => {
-      const entrada = { programId: fila.programa.id, slug: fila.programa.slug, hoy, periodo: vista.periodo, claveCloser: null, origen };
-      const [detalles, dealsContraAgendas, detallesOperacion] = await Promise.all([
-        detallesDelDashboard(entrada), vistaDealsContraAgendas(entrada),
-        detallesDeOperacion(entrada, fila.dashboard.comparativo.map((c) => c.clave)),
-      ]);
+    {comercial?.operaciones.map(({ fila, detalles, dealsContraAgendas, detallesOperacion }) => {
       // La sección compartida tiene un ancla fija; aquí hay una instancia por programa.
       const operacion = Operacion({
         vista: fila.dashboard, detalles, detallesOperacion, hoy, dealsContraAgendasVista: dealsContraAgendas,
@@ -214,6 +208,6 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
         <h3 className="text-lg font-semibold">{fila.programa.nombre}</h3>
         {cloneElement(operacion, { id: `operacion-${fila.programa.id}` })}
       </div>;
-    }))}
+    })}
   </section>;
 }
