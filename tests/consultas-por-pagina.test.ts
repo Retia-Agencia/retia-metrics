@@ -43,11 +43,14 @@ function datosDelHub(seccion: SeccionDelHubDeTodos) {
   });
 }
 
+// Topes del escenario de ESTE test (3 programas sembrados), medidos en el CI del PR #24 (15-nov) antes
+// de quitar las idénticas que el guardián encontró. No son comparables con la tabla del 437 (dev:local,
+// datos reales). El tope solo baja: al quitar consultas, se baja al nuevo conteo en el mismo commit.
 const PAGINAS = {
-  "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 147, escalaConProgramas: true, cargar: datosDelHub("hoy") },
-  "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 171, escalaConProgramas: true, cargar: datosDelHub("comercial") },
-  "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 150, escalaConProgramas: true, cargar: datosDelHub("pauta") },
-  "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 113, escalaConProgramas: true, cargar: datosDelHub("dinero") },
+  "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 185, escalaConProgramas: true, cargar: datosDelHub("hoy") },
+  "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 263, escalaConProgramas: true, cargar: datosDelHub("comercial") },
+  "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 219, escalaConProgramas: true, cargar: datosDelHub("pauta") },
+  "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
     tope: 34,

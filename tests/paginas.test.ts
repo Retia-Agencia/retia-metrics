@@ -135,6 +135,10 @@ vi.mock("@/lib/queries/vamos-a-llegar", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vamos-a-llegar")>(),
   leerVamosALlegar: vi.fn(async () => ({})),
 }));
+vi.mock("@/lib/queries/origen", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/origen")>(),
+  origenDelPrograma: vi.fn(async () => ({})),
+}));
 const detallesDelDashboard = vi.fn(async () => ({}));
 const detalleDeCifra = vi.fn(async () => ({
   resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
