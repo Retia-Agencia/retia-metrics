@@ -171,6 +171,25 @@ export interface FiltrosDeMetrica {
   paso?: PasoPauta;
 }
 
+/**
+ * Los campos de `FiltrosDeMetrica` que entran a la clave de la memoria por solicitud (437). Un llamador puede
+ * traer más (la página pasa `origen`, `periodo`, `slug`): no cambian la consulta, así que no separan la lectura.
+ * `satisfies` exige los mismos campos que el tipo, ni uno más ni uno menos: un filtro nuevo obliga a decidir aquí.
+ */
+const CAMPOS_DE_LA_CLAVE = {
+  programId: true, rango: true, claveCloser: true, moneda: true, cohorteId: true, origenDeal: true, ahora: true,
+  hoy: true, etapa: true, antiguedad: true, source: true, medium: true, categoria: true, area: true, canal: true,
+  campaign: true, resultado: true, orden: true, escalon: true, grupo: true, pago: true, calidad: true, nivel: true,
+  idMeta: true, paso: true,
+} as const satisfies Record<keyof FiltrosDeMetrica, true>;
+
+/** Solo los filtros que deciden la consulta, sin los vacíos: dos llamadas con la misma consulta dan la misma clave. */
+function filtrosDeLaClave(filtros: Partial<FiltrosDeMetrica>): Partial<FiltrosDeMetrica> {
+  return Object.fromEntries(
+    Object.entries(filtros).filter(([campo, valor]) => campo in CAMPOS_DE_LA_CLAVE && valor !== undefined),
+  ) as Partial<FiltrosDeMetrica>;
+}
+
 export interface FilaDeMetrica {
   id: string;
   dealId: string | null;
@@ -965,9 +984,7 @@ async function leerMetrica(
     cohorteId: alcance.cohorteId ?? null,
   };
   if (!dependeDelReloj(metrica)) delete filtrosDeClave.ahora;
-  const filtrosNormalizados = Object.fromEntries(
-    Object.entries(filtrosDeClave).filter(([, valor]) => valor !== undefined),
-  );
+  const filtrosNormalizados = filtrosDeLaClave(filtrosDeClave);
   return unaVezPorSolicitud(db, claveDe("leerMetrica", metrica, alcance.programId, alcance.rango.desde,
     alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null, filtrosNormalizados, pagina), () =>
     leerMetricaSinMemoria(metrica, alcance, filtros, pagina, db));
@@ -1149,7 +1166,7 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
     }));
   };
   if (filtros.ahora === undefined && dependeDelReloj(metrica)) return leer();
-  return unaVezPorSolicitud(db, claveDe("resumenDeMetrica", metrica, filtros), leer);
+  return unaVezPorSolicitud(db, claveDe("resumenDeMetrica", metrica, filtrosDeLaClave(filtros)), leer);
 }
 
 /**
@@ -1168,9 +1185,7 @@ export async function fechasDeMetrica(
     return filas.map((f) => f.fecha);
   };
   if (filtros.ahora === undefined) return leer();
-  const filtrosNormalizados = Object.fromEntries(
-    Object.entries(filtros).filter(([, valor]) => valor !== undefined),
-  );
+  const filtrosNormalizados = filtrosDeLaClave(filtros);
   return unaVezPorSolicitud(db, claveDe("fechasDeMetrica", metrica, filtrosNormalizados), leer);
 }
 

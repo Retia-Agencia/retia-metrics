@@ -31,6 +31,18 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
 ```
 ## Memory
 
+### 15-nov (tarde) · 437: cero consultas idénticas en el Hub y Mi espacio, sin commitear (sesión de Mani)
+- **Estado:** el código está **sin commitear en el checkout principal** (12 archivos de `lib/` más los tickets 437, 445, 447 y
+  el tracker). `AGENTS.md` también aparece modificado: lo reescribe `next dev`, no va en el commit. Falta commit, push y CI verde
+  (tests del cambio y build: la Mac no tenía aire, 9 GB de swap); con el CI verde, 437 pasa a `done`.
+- **Medido en dev:local:** 0 idénticas en las 13 rutas del estudio, `/mi-espacio` de closer incluido (62 → 34 consultas). Tabla y
+  causas en `docs/tasks/437-una-lectura-por-solicitud.md` ("Segunda pasada"). Abono de USD 100 en el deal de Felipe Torres (base
+  local): saldo 497 → 397 sin recargar.
+- **Hallazgo de fondo (Mani: "no puede volver a pasar"):** ningún test vio estas idénticas. El presupuesto del 436 mide funciones y
+  no páginas, y en PGlite `unaVezPorSolicitud` lee directo. Quedó el **447** (contrato y guardián por página, adelantado del 445).
+- **Visto de paso:** `idsConNovedadCalendly` pide 500 por grupo y `novedadesCalendlyDeUsuario` recorta a 50 sin aviso. Anotado en
+  el 437; sin ticket todavía.
+
 ### 14-nov (noche) · checkpoint cp-20261114-2, fichas de los recorridos de Comercial (419 E-3 desbloqueado) y 429 D-1 decidido (sesión orquestadora de Mani, Codex por /delegate)
 - **Checkpoint:** tag `cp-20261114-2` sobre `6b225924` (CI verde). 430, 415 y 401 a `done` con sus casillas verificadas; 431 a 434 siguen
   `en main` con lo comprobable marcado (faltan sus recorridos visuales, anotado en cada ticket); 339 pasó de `todo` a `en main` (el código

@@ -331,9 +331,7 @@ async function leerRoasDePauta(
     if (envio && envio.dealId === null) { envio.dealId = deal.id; envio.etapa = deal.etapa; }
   }
   const universo = [...canonicos.values()].filter((envio) => cohorteId === null || envio.dealId !== null);
-  const citas = idsDeal.length === 0 ? [] : await db.select({ id: calls.id, dealId: calls.dealId,
-    fechaAgenda: calls.fechaAgenda, fechaLlamada: calls.fechaLlamada, createdAt: calls.createdAt,
-    resultado: calls.resultado }).from(calls).where(and(eq(calls.programId, programId), inArray(calls.dealId, idsDeal), vigente(calls)));
+  const citas = idsDeal.length === 0 ? [] : await citasDeLosDeals(db, programId, idsDeal);
   const envioPorDeal = new Map(dealsDelUniverso.map((d) => [d.id, d.submissionOrigenId!]));
   const dealPorId = new Map(dealsDelUniverso.map((d) => [d.id, d]));
   for (const cita of citas) filaPorEnvioId.get(envioPorDeal.get(cita.dealId!)!)?.citas.push({
@@ -510,4 +508,11 @@ export function renglonRoasDeVista(vista: VistaRoasDePauta, nivel: NivelPauta, i
   if (nivel === "cuenta_meta") return vista.cuentas.find((fila) => fila.id === id) ?? null;
   const exhaustivo: never = nivel;
   return exhaustivo;
+}
+
+/** Las citas vigentes de un lote de deals del programa, una vez por solicitud: sus filas se leen, no se mutan. */
+function citasDeLosDeals(db: Db, programId: string, idsDeal: readonly string[]) {
+  return unaVezPorSolicitud(db, claveDe("citasDeLosDeals", programId, idsDeal), () => db.select({ id: calls.id, dealId: calls.dealId,
+    fechaAgenda: calls.fechaAgenda, fechaLlamada: calls.fechaLlamada, createdAt: calls.createdAt,
+    resultado: calls.resultado }).from(calls).where(and(eq(calls.programId, programId), inArray(calls.dealId, [...idsDeal]), vigente(calls))));
 }

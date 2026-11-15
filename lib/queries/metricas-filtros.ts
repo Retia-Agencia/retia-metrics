@@ -248,6 +248,14 @@ export function ventasConDiaEn(db: Db, rango: Rango) {
 }
 
 /**
+ * `ventasConDiaEn` ejecutada, una vez por solicitud y rango. No lleva programa: quien la lee filtra el suyo
+ * después (como `leerCohortesYVentas`), así que dos programas comparten la lectura sin cruzar cifras.
+ */
+export function leerVentasConDiaEn(db: Db, rango: Rango): Promise<{ dealId: string; dia: string }[]> {
+  return unaVezPorSolicitud(db, claveDe("ventasConDiaEn", rango.desde, rango.hasta), () => ventasConDiaEn(db, rango));
+}
+
+/**
  * Los deals vendidos en el rango, sin el dia: la proyeccion de `ventasConDiaEn` para un `inArray`. No es una
  * segunda definicion de venta; la vigencia ya se decidio dentro del derivado (`incluyendoAnulados`).
  */

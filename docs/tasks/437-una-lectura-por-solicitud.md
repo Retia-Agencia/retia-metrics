@@ -102,10 +102,10 @@ memoiza la función dueña de cada una. No memoices en la página ni en el compo
   dos; en una server action son dos; tras un error se reintenta.
 
 ## Done cuando
-- [ ] `identicas = 0` en las rutas del estudio §13.3, medido con el 436 en `dev:local` (pegar la tabla nueva aquí).
+- [x] `identicas = 0` en las rutas del estudio §13.3, medido en `dev:local` contando sentencias en el log de Postgres (tabla abajo, segunda pasada del 15-nov).
 - [x] Hub › Pauta de un programa baja de 846 a ≤ 331 (medido 15-nov en dev:local: 837 → 323, 1 idéntica) consultas (846 − 515) solo con este ticket.
-- [ ] `lib/auth/solicitud.ts` usa el helper o comparte su regla (una sola copia de "¿es escritura?").
-- [ ] Recorrido en `dev:local`: registrar un abono y ver el saldo nuevo sin recargar (una escritura no lee de la memoria).
+- [x] `lib/auth/solicitud.ts` usa el helper o comparte su regla (una sola copia de "¿es escritura?"): `esEscrituraOFueraDeRequest` vive ahí y `lib/db/por-solicitud.ts` la importa.
+- [x] Recorrido en `dev:local`: registrar un abono y ver el saldo nuevo sin recargar (una escritura no lee de la memoria). 15-nov: deal de Felipe Torres (ComunicArte local), abono de USD 100 → saldo 497 → 397 y abonado 300 → 400 en la misma carga de página, consola limpia.
 - [ ] Typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
 
 ## Medición del 15-nov (dev:local, consultas totales / idénticas; antes → después)
@@ -120,4 +120,39 @@ memoiza la función dueña de cada una. No memoices en la página ni en el compo
 | `/hub?seccion=dinero` | 154 / 45 | 115 / 6 |
 | Hub (programa, Hoy) | 138 / 60 | 87 / 9 |
 
-Pendiente: idénticas restantes (sobre todo la lectura de closers por métrica en `/hub` y Comercial), prueba del abono en el navegador, tests de los módulos tocados y el topes de `presupuesto-de-consultas` (no baja: usa PGlite, el helper lee directo).
+## Segunda pasada del 15-nov (dev:local, rol developer salvo `/mi-espacio`)
+| Ruta | Primera pasada | Ahora |
+|---|---|---|
+| `/hub` | 163 / 24 | 147 / 0 |
+| `/hub?seccion=comercial` | 201 / 44 | 171 / 0 |
+| `/hub?seccion=pauta` | 152 / 6 | 150 / 0 |
+| `/hub?seccion=dinero` | 115 / 6 | 113 / 0 |
+| Hub (programa, Hoy) | 87 / 9 | 82 / 0 (Tactical 81 / 0) |
+| Hub › Comercial (programa) | 152 / 12 | 150 / 0 (Tactical 132 / 0) |
+| Hub › Dinero (programa) | 89 / 5 | 87 / 0 (Tactical 78 / 0) |
+| Hub › Pauta (programa) | 323 / 1 | 322 / 0 (Tactical 290 / 0) |
+| `/mi-espacio` (closer) | 62 / 28 | 34 / 0 |
+
+Las causas, cada una memoizada en su dueño:
+- **`/hub` (Hoy) arma el dashboard de cada programa dos veces** (la vista de todos y el reporte diario, con distinto
+  `ahora`): `ventanasAnterioresDeCohorte`, `ventasDelFiltro`, `ventasPorCohorte`, `closersConCuenta`, `ventasPorCloser` y
+  la caja por closer (`cajaPorCloser`, extraída de `embudoPorCloser` porque no depende del instante).
+- **`ventasConDiaEn` del mes no lleva programa** y cada programa la ejecutaba dentro de `leerCohortesYVentas`:
+  `leerVentasConDiaEn` la lee una vez por rango; el filtro de programa sigue después, así que no cruza cifras.
+- **La clave de `leerMetrica`, `resumenDeMetrica` y `fechasDeMetrica` incluía campos que no tocan la consulta**
+  (`origen`, `periodo`, `slug` de `detalleDeCifra`): la lista blanca `CAMPOS_DE_LA_CLAVE` (exhaustiva contra
+  `FiltrosDeMetrica` con `satisfies`) era la mitad de las idénticas de Comercial.
+- **La serie Deals contra agendas se pide tres veces** (sin origen, completo, parcial) y las agendas por día no dependen
+  del origen: `agendasCreadasPorDia`.
+- Pauta: `cohorteElegida`, `primerosAbonosDeTicket` (escalera) y `citasDeLosDeals` (ROAS).
+- `/mi-espacio`: `cargarUniverso` se cargaba tres veces (chip, conteos, "sin ver") y `q` llegaba `""` o `undefined`; la
+  clave usa `q ?? ""`, igual que la lectura. También `idsConNovedadCalendly`.
+
+Visto de paso, sin tocar: `idsConNovedadCalendly` (`lib/mi-espacio/notificaciones.ts`) pide `porGrupo: 500` y su
+comentario dice "lee hasta 500", pero `novedadesCalendlyDeUsuario` lo recorta a 50 (`Math.min(..., 50)`): un closer con
+más de 50 novedades por grupo pierde las viejas en el chip sin aviso. Merece su ticket.
+
+El guardián que habría cazado estas idénticas no existe: queda en el [447](./447-guardian-de-consultas-por-pagina.md).
+
+Pendiente: tests de los módulos tocados y build (la Mac no tenía aire el 15-nov: 9 GB de swap, carga 6; los corre el
+CI) y los topes de `presupuesto-de-consultas` (no bajan: usa PGlite, el helper lee directo).

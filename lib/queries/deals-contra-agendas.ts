@@ -113,6 +113,16 @@ export async function serieDealsContraAgendas(
     cohorteId ?? null, origen ?? null), () => leerSerieDealsContraAgendas(db, alcance, origen));
 }
 
+/** Las agendas creadas por día. No se parten por origen (una agenda no tiene formulario): las tres mitades la comparten. */
+function agendasCreadasPorDia(db: Db, alcance: AlcanceDeSerie): Promise<{ dia: string; n: number }[]> {
+  return unaVezPorSolicitud(db, claveDe("agendasCreadasPorDia", alcance.programId, alcance.rango.desde, alcance.rango.hasta,
+    alcance.cohorteId ?? null), () => db
+    .select({ dia: fechaAnclaAgendaCreada(), n: sql<number>`count(*)::int` })
+    .from(calls)
+    .where(and(filtroAgendasCreadas(alcance, db), vigente(calls)))
+    .groupBy(fechaAnclaAgendaCreada()));
+}
+
 async function leerSerieDealsContraAgendas(
   db: Db,
   { programId, rango, cohorteId }: AlcanceDeSerie,
@@ -128,11 +138,7 @@ async function leerSerieDealsContraAgendas(
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
       .where(and(dealsCreados, vigente(deals)))
       .groupBy(fechaAnclaDealCreado()),
-    db
-      .select({ dia: fechaAnclaAgendaCreada(), n: sql<number>`count(*)::int` })
-      .from(calls)
-      .where(and(filtroAgendasCreadas(alcance, db), vigente(calls)))
-      .groupBy(fechaAnclaAgendaCreada()),
+    agendasCreadasPorDia(db, alcance),
     // Cada deal que agendó, con el día de su primera agenda. Los mismos filtros que la lista
     // `deals_que_agendaron`, para que el último punto cuadre con ella.
     db

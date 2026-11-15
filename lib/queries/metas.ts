@@ -4,7 +4,8 @@ import { cohorts, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaDeCalendario, diaDeLaSemana, diasHabilesEntre, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
-import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
+import type { Rango } from "@/lib/queries/dashboard";
+import { leerVentasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
 import { dineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { vigente } from "@/lib/queries/vigente";
@@ -283,7 +284,7 @@ export async function leerCohortesYVentas(
   return unaVezPorSolicitud(db, claveDe("leerCohortesYVentas", programId, rangoLectura.desde, rangoLectura.hasta), async () => {
     const [filasCohortes, ventasConDia] = await Promise.all([
       cohortesParaMetas(db, programId),
-      ventasConDiaEn(db, rangoLectura),
+      leerVentasConDiaEn(db, rangoLectura),
     ]);
     const idsVendidos = ventasConDia.map((venta) => venta.dealId);
     const dealsVendidos = idsVendidos.length === 0

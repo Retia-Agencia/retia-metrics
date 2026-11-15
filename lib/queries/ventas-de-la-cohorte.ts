@@ -59,13 +59,15 @@ export async function ventasDelFiltro(
   cohorteId: string | null,
   hasta: string,
 ): Promise<VentaDeLaCohorte[]> {
-  const vendidas = ventasConDiaEn(db, { desde: DESDE_SIEMPRE, hasta }).as("ventas_del_filtro");
-  const filas = await db.select({ dealId: vendidas.dealId, dia: vendidas.dia }).from(vendidas)
-    .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
-    .where(and(
-      eq(deals.programId, programId),
-      cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
-      incluyendoAnulados(vendidas),
-    ));
-  return filas.map(({ dealId, dia }) => ({ dealId, dia: diaDeCalendario(dia) }));
+  return unaVezPorSolicitud(db, claveDe("ventasDelFiltro", programId, cohorteId, hasta), async () => {
+    const vendidas = ventasConDiaEn(db, { desde: DESDE_SIEMPRE, hasta }).as("ventas_del_filtro");
+    const filas = await db.select({ dealId: vendidas.dealId, dia: vendidas.dia }).from(vendidas)
+      .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
+      .where(and(
+        eq(deals.programId, programId),
+        cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
+        incluyendoAnulados(vendidas),
+      ));
+    return filas.map(({ dealId, dia }) => ({ dealId, dia: diaDeCalendario(dia) }));
+  });
 }

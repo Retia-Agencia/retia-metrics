@@ -183,6 +183,15 @@ export async function ventasDelPrograma(db: Db, programId: string, dealIds?: rea
   });
 }
 
+/** El primer abono de ticket de cada deal del lote: no depende del instante, así que se lee una vez por solicitud. */
+function primerosAbonosDeTicket(db: Db, programId: string, dealIds: readonly string[]) {
+  return unaVezPorSolicitud(db, claveDe("primerosAbonosDeTicket", programId, dealIds), () => db
+    .select({ dealId: abonos.dealId, primero: sql<string>`min(${abonos.fecha})` }).from(abonos)
+    .where(and(eq(abonos.programId, programId), inArray(abonos.dealId, [...dealIds]),
+      eq(abonos.concepto, "ticket"), vigente(abonos)))
+    .groupBy(abonos.dealId));
+}
+
 /**
  * Carga los hechos mínimos de un lote ya clasificado como vendido/no vendido. Es la única puerta
  * para que la ficha y las métricas reutilicen el mismo primer abono, citas y corte de la escalera.
@@ -198,10 +207,7 @@ async function cargarHechosDeEscalera(
   }
   const [[programa], filasAbonos, filasCitas] = await Promise.all([
     cortePagoRapidoDelPrograma(db, args.programId),
-    db.select({ dealId: abonos.dealId, primero: sql<string>`min(${abonos.fecha})` }).from(abonos)
-      .where(and(eq(abonos.programId, args.programId), inArray(abonos.dealId, [...args.dealIds]),
-        eq(abonos.concepto, "ticket"), vigente(abonos)))
-      .groupBy(abonos.dealId),
+    primerosAbonosDeTicket(db, args.programId, args.dealIds),
     db.select({
       dealId: calls.dealId,
       dia: fechaAnclaCall(),

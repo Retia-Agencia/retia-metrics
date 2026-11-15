@@ -1,6 +1,7 @@
 import { and, desc, eq, lt } from "drizzle-orm";
 import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 /**
  * Lee las dos cohortes previas para comparar tanto la actual como la anterior con
@@ -11,11 +12,12 @@ import type { Db } from "@/lib/db/tipos";
  * sin inicio de ventas: hacerlo compararía contra otra ventana como si fuera la
  * inmediata anterior y ocultaría el dato que falta (ADR 0022).
  */
-export async function ventanasAnterioresDeCohorte(
-  db: Db,
-  programId: string,
-  cohorteId: string,
-) {
+export function ventanasAnterioresDeCohorte(db: Db, programId: string, cohorteId: string) {
+  return unaVezPorSolicitud(db, claveDe("ventanasAnterioresDeCohorte", programId, cohorteId),
+    () => leerVentanasAnteriores(db, programId, cohorteId));
+}
+
+async function leerVentanasAnteriores(db: Db, programId: string, cohorteId: string) {
   const [actual] = await db
     .select({ inicio: cohorts.fechaInicioClases })
     .from(cohorts)

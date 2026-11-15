@@ -259,11 +259,11 @@ async function leerCortesias(
   return fila?.cortesias ?? 0;
 }
 
-async function ventasPorCloser(
+function ventasPorCloser(
   { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
   db: Db,
 ): Promise<{ clave: string; closerId: string | null; cierres: number }[]> {
-  return db
+  return unaVezPorSolicitud(db, claveDe("ventasPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null), () => db
     .select({
       clave: claveCloserSql(users.id, users.closerId),
       closerId: sql<string | null>`min(${etiquetaDeCloserSql()})`,
@@ -279,7 +279,7 @@ async function ventasPorCloser(
         vigente(deals),
       ),
     )
-    .groupBy(claveCloserSql(users.id, users.closerId));
+    .groupBy(claveCloserSql(users.id, users.closerId)));
 }
 
 export interface VentaDelRangoConValor {
@@ -329,7 +329,12 @@ export interface VentasDeCohorte {
 }
 
 /** Ventas del rango por cohorte, incluidas las que aún no iniciaron clases. */
-export async function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Promise<VentasDeCohorte[]> {
+export function ventasPorCohorte(alcance: Alcance, db: Db = dbDeLaApp): Promise<VentasDeCohorte[]> {
+  return unaVezPorSolicitud(db, claveDe("ventasPorCohorte", alcance.programId, alcance.rango.desde, alcance.rango.hasta,
+    alcance.claveCloser ?? null, alcance.cohorteId ?? null), () => leerVentasPorCohorte(alcance, db));
+}
+
+async function leerVentasPorCohorte(alcance: Alcance, db: Db): Promise<VentasDeCohorte[]> {
   const ventas = await db
     .select({
       dealId: deals.id,
@@ -494,9 +499,17 @@ export interface OpcionDeCloser {
  * closers solo historicos (texto sin cuenta) NO se ofrecen aqui: el comparativo los
  * sigue mostrando como filas, pero el filtro por URL es por id.
  */
-export async function closersConCuenta(
-  { programId, rango }: Omit<Alcance, "claveCloser">,
+export function closersConCuenta(
+  alcance: Omit<Alcance, "claveCloser">,
   db: Db = dbDeLaApp,
+): Promise<OpcionDeCloser[]> {
+  return unaVezPorSolicitud(db, claveDe("closersConCuenta", alcance.programId, alcance.rango.desde, alcance.rango.hasta),
+    () => leerClosersConCuenta(alcance, db));
+}
+
+async function leerClosersConCuenta(
+  { programId, rango }: Omit<Alcance, "claveCloser">,
+  db: Db,
 ): Promise<OpcionDeCloser[]> {
   const owners = db
     .select({ userId: deals.ownerUserId })
@@ -541,28 +554,12 @@ export function embudoPorCloser(
     cohorteId ?? null, ahora), () => leerEmbudoPorCloser(alcance, db, ahora));
 }
 
-async function leerEmbudoPorCloser(
+/** La caja del rango por closer y moneda: no depende del instante, así que el Hub la lee una vez por solicitud. */
+function cajaPorCloser(
   { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
   db: Db,
-  ahora: Date,
-): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
-  const [llamadasPorCloser, abonosPorCloser, cierresPorCloser, grupo] = await Promise.all([
-    db
-      .select({
-        clave: claveCloserSql(users.id),
-        closerId: sql<string | null>`min(${etiquetaDeCloserSql()})`,
-        ...conteosDeLlamadas(ahora),
-      })
-      .from(calls)
-      .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
-      .leftJoin(users, eq(users.id, calls.closerUserId))
-      .where(
-        and(
-          filtroLlamadas({ programId, rango, cohorteId }, db),
-          vigente(calls),
-        ),
-      )
-      .groupBy(claveCloserSql(users.id)),
+): Promise<{ clave: string; closerId: string | null; moneda: string; total: number }[]> {
+  return unaVezPorSolicitud(db, claveDe("cajaPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null), () =>
     db
       .select({
         clave: claveCloserSql(users.id, abonos.closerId),
@@ -589,7 +586,32 @@ async function leerEmbudoPorCloser(
           vigente(abonos),
         ),
       )
-      .groupBy(claveCloserSql(users.id, abonos.closerId), abonos.moneda),
+      .groupBy(claveCloserSql(users.id, abonos.closerId), abonos.moneda));
+}
+
+async function leerEmbudoPorCloser(
+  { programId, rango, cohorteId }: Omit<Alcance, "claveCloser">,
+  db: Db,
+  ahora: Date,
+): Promise<(EmbudoDelRango & { clave: string; closerId: string | null; caja: CajaPorMoneda[] })[]> {
+  const [llamadasPorCloser, abonosPorCloser, cierresPorCloser, grupo] = await Promise.all([
+    db
+      .select({
+        clave: claveCloserSql(users.id),
+        closerId: sql<string | null>`min(${etiquetaDeCloserSql()})`,
+        ...conteosDeLlamadas(ahora),
+      })
+      .from(calls)
+      .leftJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, calls.programId), vigente(deals)))
+      .leftJoin(users, eq(users.id, calls.closerUserId))
+      .where(
+        and(
+          filtroLlamadas({ programId, rango, cohorteId }, db),
+          vigente(calls),
+        ),
+      )
+      .groupBy(claveCloserSql(users.id)),
+    cajaPorCloser({ programId, rango, cohorteId }, db),
     ventasPorCloser({ programId, rango, cohorteId }, db),
     grupoDeCitas(db, { programId, rango, ahora, cohorteId }),
   ]);

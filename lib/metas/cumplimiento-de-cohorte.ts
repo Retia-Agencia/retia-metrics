@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { db as dbDeLaApp } from "@/lib/db";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { diasHabilesEntre, esperadoLineal } from "@/lib/dias-habiles";
@@ -173,8 +174,10 @@ export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoD
 
 async function cohorteElegida(programId: string, cohorteId: string | null, db: Db): Promise<Cohorte | null> {
   if (cohorteId === null) return cohorteActiva(programId, db);
-  const [fila] = await db.select().from(cohorts).where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId))).limit(1);
-  return fila ?? null;
+  return unaVezPorSolicitud(db, claveDe("cohorteElegida", programId, cohorteId), async () => {
+    const [fila] = await db.select().from(cohorts).where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId))).limit(1);
+    return fila ?? null;
+  });
 }
 
 export async function leerCumplimientoDeCohorte(

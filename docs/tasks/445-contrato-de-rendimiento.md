@@ -13,6 +13,10 @@ Reunir en AGENTS.md › Contratos las reglas que dejaron los tickets 435 a 444, 
 guardianes de código que faltan (N+1 y contar en memoria). Este ticket no optimiza nada: fija lo ganado para que una
 pantalla nueva no lo pierda.
 
+> **15-nov:** las filas "Cuánto cuesta un render" y "Una lectura, una vez por solicitud" se adelantan en el
+> [447](./447-guardian-de-consultas-por-pagina.md), con las reglas de la clave y el guardián por página. Este ticket las
+> cita cuando el 447 cierre; no las repite.
+
 ## Las filas (texto para AGENTS.md › Contratos; los números salen de los tickets cerrados, no de aquí)
 
 | Contrato | Estándar / dónde vive | Cómo se enforza |

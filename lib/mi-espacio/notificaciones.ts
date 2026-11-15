@@ -1,6 +1,7 @@
 import { and, inArray } from "drizzle-orm";
 import { calls, deals, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { tableroKanban, type TarjetaDeal } from "@/lib/queries/kanban";
 import type { AlcanceDeals } from "@/lib/auth/alcance-deals";
 import { vigente } from "@/lib/queries/vigente";
@@ -128,13 +129,29 @@ interface Universo {
   hoy: string;
 }
 
-async function cargarUniverso(
+/**
+ * El universo del closer, una vez por solicitud: Mi espacio lo pide para el chip, los conteos y "sin ver" (437).
+ * Sin `ahora` explícito comparten el instante de la primera lectura; con él, la clave lo incluye.
+ */
+function cargarUniverso(
   db: Db,
   programId: string,
   userId: string,
   hoy: string,
   q?: string,
-  ahora: Date = new Date(),
+  ahora?: Date,
+): Promise<Universo> {
+  return unaVezPorSolicitud(db, claveDe("universoDeNotificaciones", programId, userId, hoy, q ?? "", ahora ?? null),
+    () => leerUniverso(db, programId, userId, hoy, q, ahora ?? new Date()));
+}
+
+async function leerUniverso(
+  db: Db,
+  programId: string,
+  userId: string,
+  hoy: string,
+  q: string | undefined,
+  ahora: Date,
 ): Promise<Universo> {
   const alcance: AlcanceDeals = { tipo: "dueno", userId };
   const tablero = await tableroKanban(db, programId, alcance, {}, hoy);
@@ -465,7 +482,11 @@ function mapaCalendlyVacio(): NovedadesCalendly {
  * del 223.
  * ponytail: lee hasta 500 por grupo; si un closer acumula más, pedir un lector sin tope.
  */
-async function idsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<NovedadesCalendly> {
+function idsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<NovedadesCalendly> {
+  return unaVezPorSolicitud(db, claveDe("idsConNovedadCalendly", userId, programId), () => leerIdsConNovedadCalendly(db, userId, programId));
+}
+
+async function leerIdsConNovedadCalendly(db: Db, userId: string, programId: string): Promise<NovedadesCalendly> {
   const { noLeidas, leidas } = await novedadesCalendlyDeUsuario(db, { userId, programId, porGrupo: 500 });
   const todas = new Map<string, Date>();
   for (const n of [...noLeidas, ...leidas]) {
