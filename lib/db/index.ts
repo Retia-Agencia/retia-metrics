@@ -2,7 +2,7 @@ import { attachDatabasePool } from "@vercel/functions";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
-import { loggerDeConsultasMcp } from "@/lib/mcp/contador-de-consultas";
+import { loggerDeCosto, registrarTiempoEnBase } from "./medidor";
 
 type DB = ReturnType<typeof crear>;
 
@@ -30,8 +30,17 @@ function crear() {
   });
   // Un error en una conexion ociosa no puede tumbar el proceso.
   pool.on("error", (error) => console.error("[db] conexion ociosa:", error.message));
+  const consultar = pool.query.bind(pool);
+  pool.query = (async (...argumentos: Parameters<typeof pool.query>) => {
+    const inicio = performance.now();
+    try {
+      return await consultar(...argumentos);
+    } finally {
+      registrarTiempoEnBase(performance.now() - inicio);
+    }
+  }) as typeof pool.query;
   attachDatabasePool(pool);
-  return drizzle(pool, { schema, logger: loggerDeConsultasMcp });
+  return drizzle(pool, { schema, logger: loggerDeCosto });
 }
 
 /**

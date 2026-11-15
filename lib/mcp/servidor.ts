@@ -6,7 +6,7 @@ import { herramientasPara } from "./herramientas";
 import type { ContextoMcp, Herramienta } from "./herramientas/tipos";
 import { sesionDeToken } from "./sesion";
 import { esVistaValida, PREFIJO_SUPLANTACION } from "@/lib/auth/vista";
-import { conContadorDeConsultas } from "./contador-de-consultas";
+import { conContadorDeConsultas } from "@/lib/db/medidor";
 
 function bytesDe(respuesta: unknown): number {
   return Buffer.byteLength(JSON.stringify(respuesta), "utf8");

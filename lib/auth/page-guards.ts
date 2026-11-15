@@ -1,4 +1,6 @@
 import { redirect, notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { after } from "next/server";
 import type { Session } from "next-auth";
 import { sesionDelRequest } from "./sesion";
 import { administraGlobal, administraUsuarios, manejaPautaGlobal, puedeAcceder, type Rol } from "./roles";
@@ -12,6 +14,7 @@ import {
 } from "@/lib/auth/alcance";
 import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
+import { iniciarMedicionDeSolicitud } from "@/lib/db/medidor";
 
 /**
  * Guardas para paginas (no para APIs).
@@ -44,6 +47,17 @@ export async function destinoInicial(
 }
 
 export async function paginaConSesion(): Promise<Session> {
+  // Sin la cabecera del proxy (tests y scripts) la guarda no abre medición implícita.
+  let ruta: string | null = null;
+  try {
+    ruta = (await headers()).get("x-retia-ruta");
+  } catch {
+    // Fuera de un request de Next no existe un store de headers.
+  }
+  if (ruta) {
+    const finalizar = iniciarMedicionDeSolicitud(ruta);
+    if (finalizar) after(finalizar);
+  }
   const session = await sesionDelRequest();
   if (!session?.user?.id) redirect("/login");
   // La sesión EFECTIVA: si un developer suplanta a un closer ("ver como", ticket 172),

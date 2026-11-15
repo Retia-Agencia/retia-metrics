@@ -1,4 +1,6 @@
 import type { Session } from "next-auth";
+import { headers } from "next/headers";
+import { after } from "next/server";
 import { ZodError } from "zod";
 import { ErrorDeApp } from "@/lib/errors";
 import { sesionDelRequest } from "./sesion";
@@ -14,6 +16,7 @@ import {
   type Rol,
 } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
+import { iniciarMedicionDeSolicitud } from "@/lib/db/medidor";
 
 /**
  * Guardas de servidor. TODO route handler y server action pasa por aca.
@@ -104,6 +107,17 @@ async function exigirRol(session: Session, permitidos: Rol[]): Promise<Session> 
  * Un closer NUNCA pasa un requireRole("gerente"), sin importar la ruta.
  */
 export async function requireRole(...permitidos: Rol[]): Promise<Session> {
+  // Server actions y handlers reciben del proxy la misma ruta que las páginas.
+  let ruta: string | null = null;
+  try {
+    ruta = (await headers()).get("x-retia-ruta");
+  } catch {
+    // Tests y llamadas directas no tienen un request de Next: no miden implícitamente.
+  }
+  if (ruta) {
+    const finalizar = iniciarMedicionDeSolicitud(ruta);
+    if (finalizar) after(finalizar);
+  }
   return exigirRol(await requireSession(), permitidos);
 }
 

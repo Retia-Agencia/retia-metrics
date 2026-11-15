@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { inject } from "vitest";
 import * as schema from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { loggerDeConsultasMcp } from "@/lib/mcp/contador-de-consultas";
+import { loggerDeCosto } from "@/lib/db/medidor";
 import { volcarBaseMigrada } from "./volcar-base-migrada";
 
 /**
@@ -95,7 +95,7 @@ function conGuardiaDeFechaCruda(cliente: PGlite): PGlite {
 export async function crearBaseDePrueba(): Promise<BaseDePrueba> {
   plantilla ??= cargarPlantilla();
   const cliente = conGuardiaDeFechaCruda(new PGlite({ loadDataDir: await plantilla, extensions: { btree_gist } }));
-  const db = drizzle(cliente, { schema, logger: loggerDeConsultasMcp });
+  const db = drizzle(cliente, { schema, logger: loggerDeCosto });
   return {
     db: db as Db,
     cerrar: () => cliente.close(),

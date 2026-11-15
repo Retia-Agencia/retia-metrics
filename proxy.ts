@@ -15,6 +15,10 @@ const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname, search } = req.nextUrl;
+  const headersDeSolicitud = new Headers(req.headers);
+  // Contrato propio de Retia: el servidor recibe el pathname real y lo anonimiza antes
+  // de medirlo. No dependemos de una cabecera ni de un patrón interno de Next.
+  headersDeSolicitud.set("x-retia-ruta", pathname);
 
   const esRutaPublica =
     pathname === "/login" ||
@@ -49,7 +53,7 @@ export default auth((req) => {
     // El webhook de Calendly (ticket 096): mismo caso, firma con la clave del programa.
     pathname.startsWith("/api/webhooks/calendly/");
 
-  if (esRutaPublica) return NextResponse.next();
+  if (esRutaPublica) return NextResponse.next({ request: { headers: headersDeSolicitud } });
 
   if (req.auth?.user?.id) {
     // Una precarga de Next no es una visita: si contara, un link precargado a otro
@@ -57,7 +61,7 @@ export default auth((req) => {
     const esPrecarga = req.headers.has("next-router-prefetch") || req.headers.get("purpose") === "prefetch";
     const slug = esPrecarga ? null : slugParaRecordar(pathname, req.nextUrl.searchParams);
     const actual = req.cookies.get(COOKIE_PROGRAMA_PREFERIDO)?.value;
-    const response = NextResponse.next();
+    const response = NextResponse.next({ request: { headers: headersDeSolicitud } });
     const preferencia = {
       httpOnly: true,
       sameSite: "lax",
