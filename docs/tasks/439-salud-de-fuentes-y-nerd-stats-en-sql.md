@@ -3,7 +3,7 @@ id: 439
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §6.2, §13.2 y §13.4 · 504 de /programa, /api/salud/* y Nerd Stats"
 depends: [436]
-status: en_curso
+status: en curso
 ---
 
 # 439 — Salud de fuentes y Nerd Stats cuentan en SQL
