@@ -12,7 +12,8 @@ import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantall
 import { Pestanas, pestanaActiva, urlConSeccion } from "@/components/layout/pestanas";
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
-import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
+import { VamosALlegarVista, type PropsVamosALlegar } from "@/components/metas/vamos-a-llegar";
+import type { VamosALlegar as DatosVamosALlegar } from "@/lib/queries/vamos-a-llegar";
 import { SeccionDeTodos } from "./secciones";
 import { ReporteDiarioVista } from "@/components/dashboard/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
@@ -112,7 +113,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
                   selector={<SelectorDeDia dia={diaDelReporte} hoy={hoy} base={{ path: RUTA_HUB_TODOS, params: {} }} />}
                   vamosALlegar={<div className={`grid gap-4 ${programas.length > 1 ? "xl:grid-cols-2 print:grid-cols-1" : ""}`}>
                     {programas.map((programa) => (
-                      <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={veEquipoComercial(rol)} configurar={null} />
+                      <VamosALlegarVistaDe key={programa.id} datos={datos.vamosALlegar.get(programa.id)} props={{ conNombre: true, programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, hoy: diaDelReporte, origen, conListas: veEquipoComercial(rol), configurar: null }} />
                     ))}
                   </div>}
                 />
@@ -121,11 +122,16 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
           {/* El norte (371): una matriz por programa, lado a lado y nunca sumada (ADR 0048); no lee el periodo. */}
           {esHoy ? null : <div className="mt-6 grid gap-4 xl:grid-cols-2">
             {programas.map((programa) => (
-              <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={veEquipoComercial(rol)} configurar={null} />
+              <VamosALlegarVistaDe key={programa.id} datos={datos.vamosALlegar.get(programa.id)} props={{ conNombre: true, programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, hoy: hoy, origen, conListas: veEquipoComercial(rol), configurar: null }} />
             ))}
           </div>}
         </div>
       </PantallaFija>
     </PageShell>
   );
+}
+
+/** Un programa sin su lectura (no debería pasar: el cargador lee uno por programa) no se dibuja. */
+function VamosALlegarVistaDe({ datos, props }: { datos: DatosVamosALlegar | undefined; props: PropsVamosALlegar }) {
+  return datos ? <VamosALlegarVista datos={datos} props={props} /> : null;
 }

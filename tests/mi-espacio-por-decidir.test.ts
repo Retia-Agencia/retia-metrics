@@ -7,8 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * programa, y Webhook Health como UN semáforo que enlaza a `/ajustes/salud` —no el detalle
  * por fuente—. Un conteo en cero se silencia (sin enlace).
  *
- * `TabPorDecidir` es un componente de servidor que lee la base por los módulos del Inbox;
- * aquí se mockean esas lecturas y se invoca el componente real, inspeccionando el árbol de
+ * `cargarDatosDePorDecidir` lee la base por los módulos del Inbox y `TabPorDecidir` dibuja;
+ * aquí se mockean esas lecturas y se invocan el cargador y el componente reales, inspeccionando el árbol de
  * elementos (entorno `node`, sin DOM), igual que `mi-espacio.test.ts`.
  */
 
@@ -69,10 +69,10 @@ function tieneComponente(nodo: unknown, nombre: string): boolean {
 
 async function render() {
   const { TabPorDecidir } = await import("@/components/mi-espacio/tab-por-decidir");
-  return (TabPorDecidir as (p: { programId: string; slug: string }) => Promise<unknown>)({
-    programId: PROG,
-    slug: SLUG,
-  });
+  const { cargarDatosDePorDecidir } = await import("@/lib/mi-espacio/datos-por-decidir");
+  const { db } = await import("@/lib/db");
+  const datos = await cargarDatosDePorDecidir(db, PROG);
+  return TabPorDecidir({ programId: PROG, slug: SLUG, datos });
 }
 
 function conConteos(opciones: {

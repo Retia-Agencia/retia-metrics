@@ -87,7 +87,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   }
 
   const esCustomerSinTrabajo = marcaOnboarding(rol) && !trabajaLeads(sujeto) && !esAdministrador(rol) && !manejaPauta(rol);
-  const puedeTrabajar = trabajaLeads(sujeto) && !esAccesoTotal(rol);
+  const puedeTrabajar = trabajaLeads(sujeto);
   const secciones = seccionesDeRol(sujeto);
   const seccion = seccionPedida(sujeto, uno(query.tab));
   const programaPedido = uno(query.programa);
@@ -102,6 +102,9 @@ export default async function MiEspacioPage({ searchParams }: Props) {
     seccion,
     programaPedido,
     programaPreferido: preferido,
+    busqueda: query,
+    hoy: hoyEnBogota(),
+    origen: origenDeLaPagina("/mi-espacio", query),
   });
   const conexionesIa = bloqueConexionesIa(datos, rolReal);
 
@@ -221,7 +224,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, programas: visibles, userId, busqueda: query, perfil, calendly, enlaces, origen: origenDeLaPagina("/mi-espacio", query) })}
+          {Seccion({ seccion, programa, perfil, calendly, enlaces, deSeccion: datos.deSeccion })}
           {conexionesIa}
         </div>
       </div>
@@ -269,23 +272,17 @@ function bloqueConexionesIa(datos: DatosDeMiEspacio, rolReal: unknown) {
 function Seccion({
   seccion,
   programa,
-  programas,
-  userId,
-  busqueda,
   perfil,
   calendly,
   enlaces,
-  origen,
+  deSeccion,
 }: {
   seccion: SeccionMiEspacio;
   programa: { id: string; slug: string } | null;
-  programas: { id: string; slug: string; nombre: string }[];
-  userId: string;
-  busqueda: Record<string, string | string[] | undefined>;
   perfil: ReactElement;
   calendly: ReactElement | null;
   enlaces: EnlaceVista[];
-  origen: string;
+  deSeccion: DatosDeMiEspacio["deSeccion"];
 }): ReactElement | null {
   switch (seccion.id) {
     case "info":
@@ -301,28 +298,18 @@ function Seccion({
       );
     case "notificaciones":
       // Lo que te toca HOY, por tipo, con las tarjetas de tus deals (ticket 222).
-      return programa ? (
-        <TabNotificaciones
-          programId={programa.id}
-          slug={programa.slug}
-          userId={userId}
-          chip={uno(busqueda.chip)}
-          pagina={uno(busqueda.pagina)}
-          q={uno(busqueda.q)}
-        />
-      ) : null;
-    case "metricas": {
-      // El closer se identifica por su `users.id` (ticket 167): asi un closer sin el
-      // texto `closer_id` ve igual sus metricas. Ya no hay que exigir el texto.
-      const seleccionado = programa
-        ? { ...programa, nombre: programas.find((p) => p.id === programa.id)?.nombre ?? programa.slug }
+      return programa && deSeccion?.id === "notificaciones"
+        ? <TabNotificaciones slug={programa.slug} datos={deSeccion.datos} />
         : null;
-      return <TabMetricas programas={programas} programa={seleccionado} closerUserId={userId} hoy={hoyEnBogota()} busqueda={busqueda} origen={origen} />;
-    }
+    case "metricas":
+      // El closer se identifica por su `users.id` (ticket 167); los datos los lee el cargador.
+      return deSeccion?.id === "metricas" ? <TabMetricas datos={deSeccion.datos} /> : null;
     case "canales":
-      return <TabCanales />;
+      return deSeccion?.id === "canales" ? <TabCanales resumen={deSeccion.datos} /> : null;
     case "por-decidir":
-      return programa ? <TabPorDecidir programId={programa.id} slug={programa.slug} /> : null;
+      return programa && deSeccion?.id === "por-decidir"
+        ? <TabPorDecidir programId={programa.id} slug={programa.slug} datos={deSeccion.datos} />
+        : null;
   }
 }
 

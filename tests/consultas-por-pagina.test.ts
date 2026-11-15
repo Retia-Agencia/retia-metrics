@@ -1,6 +1,6 @@
 import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { abrirSolicitud } from "./helpers/memoria-por-solicitud";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
 import { programs, sources, leads, miembrosPrograma, users } from "@/lib/db/schema";
@@ -12,6 +12,10 @@ import { SECCIONES } from "@/lib/mi-espacio/secciones";
 import { cargarDatosDeHub, type SeccionDelHubDeTodos } from "@/lib/queries/hub-todos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+
+// La memoria por solicitud ACTIVA sobre PGlite (en producción la decide `cache` de React).
+vi.mock("@/lib/db/por-solicitud", async (importActual) =>
+  (await import("./helpers/memoria-por-solicitud")).moduloConMemoria(importActual));
 
 const HOY = "2026-11-15";
 
@@ -58,6 +62,9 @@ const PAGINAS = {
       seccion: SECCIONES.find((seccion) => seccion.id === "notificaciones")!,
       programaPedido: undefined,
       programaPreferido: null,
+      busqueda: {},
+      hoy: HOY,
+      origen: "/mi-espacio",
     }),
   },
 } satisfies Record<string, Pagina>;
