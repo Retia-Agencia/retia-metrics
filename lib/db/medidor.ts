@@ -22,6 +22,11 @@ export interface ResumenDeCosto {
 
 const contexto = new AsyncLocalStorage<CostoDeSolicitud>();
 
+// DIAGNOSTICO TEMPORAL 436 (retirar): un id por carga del modulo revela copias del modulo en el bundle.
+const DIAG_MODULO = Math.random().toString(36).slice(2, 6);
+let diagSinAcumulador = 0;
+console.log(JSON.stringify({ diag: "modulo", i: DIAG_MODULO }));
+
 interface EstadoDeMedicionDeRender {
   costo: CostoDeSolicitud | null;
   finalizadorEntregado: boolean;
@@ -146,13 +151,17 @@ export function abrirMedicionDeRender(
     return null;
   }
 
+  const eraNuevo = estado.costo === null;
   estado.costo ??= costoNuevo(patronDeRuta(ruta));
+  // DIAGNOSTICO TEMPORAL 436 (retirar): ver si el acumulador es el mismo entre guardas y consultas.
+  console.log(JSON.stringify({ diag: "abrir", i: DIAG_MODULO, nuevo: eraNuevo, entregado: estado.finalizadorEntregado }));
   if (estado.finalizadorEntregado) return null;
   estado.finalizadorEntregado = true;
 
   const costo = estado.costo;
   let emitido = false;
   return () => {
+    console.log(JSON.stringify({ diag: "cierre", i: DIAG_MODULO, consultas: costo.consultas, sinAcumulador: diagSinAcumulador }));
     if (emitido || costo.consultas === 0) return;
     emitido = true;
     emitir(JSON.stringify({ costo: resumir(costo) }));
@@ -189,7 +198,13 @@ export function patronDeRuta(pathname: string): string {
 export const loggerDeCosto = {
   logQuery(sentencia: string, parametros: unknown[]): void {
     const costo = costoActivo();
-    if (!costo) return;
+    if (!costo) {
+      diagSinAcumulador += 1;
+      if (diagSinAcumulador === 1 || diagSinAcumulador % 50 === 0) {
+        console.log(JSON.stringify({ diag: "consulta-sin-acumulador", i: DIAG_MODULO, total: diagSinAcumulador }));
+      }
+      return;
+    }
     costo.consultas += 1;
     const parametrosSerializados = serializarParametros(parametros);
     if (parametrosSerializados !== "[no-serializable]") {
