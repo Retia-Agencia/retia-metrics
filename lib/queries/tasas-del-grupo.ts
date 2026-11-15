@@ -1,6 +1,7 @@
 import { and, between, eq } from "drizzle-orm";
 import { calls, deals, programs, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { claveCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
 import {
@@ -47,8 +48,10 @@ export const UMBRAL_SIN_MARCAR = 0.1;
 
 /** Los dias de madurez del programa; sin fila (programa inexistente) cae al valor por defecto. */
 export async function diasParaMadurarDe(db: Db, programId: string): Promise<number> {
-  const [fila] = await db.select({ dias: programs.diasParaMadurar }).from(programs).where(eq(programs.id, programId));
-  return fila?.dias ?? DIAS_PARA_MADURAR;
+  return unaVezPorSolicitud(db, claveDe("diasParaMadurar", programId), async () => {
+    const [fila] = await db.select({ dias: programs.diasParaMadurar }).from(programs).where(eq(programs.id, programId));
+    return fila?.dias ?? DIAS_PARA_MADURAR;
+  });
 }
 
 export interface CitaParaTasas {
@@ -247,47 +250,50 @@ export async function leerCitasDelGrupo(
   db: Db,
   { programId, rango, cohorteId, area }: { programId: string; rango: Rango; cohorteId?: string | null; area?: "paid" },
 ): Promise<CitaParaTasas[]> {
-  const filas = await db
-    .select({
-      callId: calls.id,
-      dealId: deals.id,
-      claveCloser: claveCloserSql(users.id),
-      closer: etiquetaDeCloserSql(),
-      resultado: calls.resultado,
-      fechaAgenda: calls.fechaAgenda,
-      fechaLlamada: calls.fechaLlamada,
-      etapa: deals.etapa,
-    })
-    .from(calls)
-    .innerJoin(deals, and(
-      eq(deals.id, calls.dealId),
-      eq(deals.programId, calls.programId),
-      eq(deals.cortesia, false),
-      cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
-      vigente(deals),
-    ))
-    .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .leftJoin(users, eq(users.id, calls.closerUserId))
-    .where(and(
-      eq(calls.programId, programId),
-      between(fechaAnclaCall(), rango.desde, rango.hasta),
-      noReagendadaSql(),
-      area === "paid" ? condicionDeAreaDePauta() : undefined,
-      vigente(calls),
-    ));
+  return unaVezPorSolicitud(db, claveDe("leerCitasDelGrupo", programId, rango.desde, rango.hasta,
+    cohorteId ?? null, area ?? null), async () => {
+    const filas = await db
+      .select({
+        callId: calls.id,
+        dealId: deals.id,
+        claveCloser: claveCloserSql(users.id),
+        closer: etiquetaDeCloserSql(),
+        resultado: calls.resultado,
+        fechaAgenda: calls.fechaAgenda,
+        fechaLlamada: calls.fechaLlamada,
+        etapa: deals.etapa,
+      })
+      .from(calls)
+      .innerJoin(deals, and(
+        eq(deals.id, calls.dealId),
+        eq(deals.programId, calls.programId),
+        eq(deals.cortesia, false),
+        cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
+        vigente(deals),
+      ))
+      .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+      .leftJoin(users, eq(users.id, calls.closerUserId))
+      .where(and(
+        eq(calls.programId, programId),
+        between(fechaAnclaCall(), rango.desde, rango.hasta),
+        noReagendadaSql(),
+        area === "paid" ? condicionDeAreaDePauta() : undefined,
+        vigente(calls),
+      ));
 
-  return filas.flatMap((fila) => {
-    const instante = fila.fechaAgenda ?? fila.fechaLlamada;
-    if (!instante) return [];
-    return [{
-      callId: fila.callId,
-      dealId: fila.dealId,
-      claveCloser: fila.claveCloser,
-      closer: fila.closer,
-      resultado: fila.resultado,
-      instante,
-      etapa: fila.etapa,
-    }];
+    return filas.flatMap((fila) => {
+      const instante = fila.fechaAgenda ?? fila.fechaLlamada;
+      if (!instante) return [];
+      return [{
+        callId: fila.callId,
+        dealId: fila.dealId,
+        claveCloser: fila.claveCloser,
+        closer: fila.closer,
+        resultado: fila.resultado,
+        instante,
+        etapa: fila.etapa,
+      }];
+    });
   });
 }
 

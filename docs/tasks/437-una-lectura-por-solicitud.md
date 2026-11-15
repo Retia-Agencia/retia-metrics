@@ -3,7 +3,7 @@ id: 437
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §13.3 (consultas idénticas) · contrato de rendimiento"
 depends: [436]
-status: todo
+status: en curso
 ---
 
 # 437 — Una lectura se hace una vez por solicitud: fuera las consultas idénticas
@@ -103,7 +103,21 @@ memoiza la función dueña de cada una. No memoices en la página ni en el compo
 
 ## Done cuando
 - [ ] `identicas = 0` en las rutas del estudio §13.3, medido con el 436 en `dev:local` (pegar la tabla nueva aquí).
-- [ ] Hub › Pauta de un programa baja de 846 a ≤ 331 consultas (846 − 515) solo con este ticket.
+- [x] Hub › Pauta de un programa baja de 846 a ≤ 331 (medido 15-nov en dev:local: 837 → 323, 1 idéntica) consultas (846 − 515) solo con este ticket.
 - [ ] `lib/auth/solicitud.ts` usa el helper o comparte su regla (una sola copia de "¿es escritura?").
 - [ ] Recorrido en `dev:local`: registrar un abono y ver el saldo nuevo sin recargar (una escritura no lee de la memoria).
 - [ ] Typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
+
+## Medición del 15-nov (dev:local, consultas totales / idénticas; antes → después)
+| Ruta | Antes | Después |
+|---|---|---|
+| Hub › Pauta (programa) | 837 / 506 | 323 / 1 |
+| `/hub` | 286 / 147 | 163 / 24 |
+| `/hub?seccion=comercial` | 278 / 121 | 201 / 44 |
+| Hub › Comercial (programa) | 234 / 94 | 152 / 12 |
+| `/hub?seccion=pauta` | 202 / 56 | 152 / 6 |
+| Hub › Dinero (programa) | 172 / 86 | 89 / 5 |
+| `/hub?seccion=dinero` | 154 / 45 | 115 / 6 |
+| Hub (programa, Hoy) | 138 / 60 | 87 / 9 |
+
+Pendiente: idénticas restantes (sobre todo la lectura de closers por métrica en `/hub` y Comercial), prueba del abono en el navegador, tests de los módulos tocados y el topes de `presupuesto-de-consultas` (no baja: usa PGlite, el helper lee directo).

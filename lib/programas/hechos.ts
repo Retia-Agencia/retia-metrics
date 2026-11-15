@@ -5,8 +5,14 @@ import { plataformasDelPrograma } from "@/lib/catalogo/plataformas";
 import { membresiasConCalendly } from "@/lib/catalogo/usuarios";
 import { programs, sources } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { claveFirmaCalendly, tokenCalendly } from "@/lib/integraciones";
 import type { HechosDeConfiguracion } from "./configuracion";
+
+export async function muestraMinimaDelPrograma(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("muestraMinimaDelPrograma", programId), () =>
+    db.select({ muestraMinima: programs.muestraMinimaConversion }).from(programs).where(eq(programs.id, programId)));
+}
 
 export async function hechosDeConfiguracion(
   db: Db,
@@ -14,14 +20,14 @@ export async function hechosDeConfiguracion(
 ): Promise<HechosDeConfiguracion> {
   const [programa, token, claveFirma, fuentePrincipal, miembros, cohortes, plataformas, cuentas] =
     await Promise.all([
-      db
+      unaVezPorSolicitud(db, claveDe("configuracionComercialParaHechos", programId), () => db
         .select({
           comisionPorcentaje: programs.comisionPorcentaje,
           cortePagoRapidoDias: programs.cortePagoRapidoDias,
         })
         .from(programs)
         .where(eq(programs.id, programId))
-        .then(([fila]) => fila),
+        .then(([fila]) => fila)),
       tokenCalendly(db, programId),
       claveFirmaCalendly(db, programId),
       db

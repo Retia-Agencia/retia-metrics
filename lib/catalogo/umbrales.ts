@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { metricaConUmbralEnum, umbralesAlerta } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { esAdministrador, type Rol } from "@/lib/auth/roles";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -68,15 +69,17 @@ export interface UmbralDeAlerta {
 
 /** Los umbrales de UN programa: el programa es frontera, nunca se leen los de todos. */
 export async function umbralesDelPrograma(db: Db, programId: string): Promise<UmbralDeAlerta[]> {
-  const filas = await db.select().from(umbralesAlerta).where(eq(umbralesAlerta.programId, programId));
-  return filas.map((f) => ({
-    id: f.id,
-    programId: f.programId,
-    metrica: f.metrica,
-    aceptable: Number(f.aceptable),
-    diasSeguidos: f.diasSeguidos,
-    activo: f.activo,
-  }));
+  return unaVezPorSolicitud(db, claveDe("umbralesDelPrograma", programId), async () => {
+    const filas = await db.select().from(umbralesAlerta).where(eq(umbralesAlerta.programId, programId));
+    return filas.map((f) => ({
+      id: f.id,
+      programId: f.programId,
+      metrica: f.metrica,
+      aceptable: Number(f.aceptable),
+      diasSeguidos: f.diasSeguidos,
+      activo: f.activo,
+    }));
+  });
 }
 
 /**

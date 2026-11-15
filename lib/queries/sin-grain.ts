@@ -2,6 +2,7 @@ import { and, isNull, or, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { calls } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { tasa, type Alcance } from "@/lib/queries/dashboard";
 import { filtroLlamadas, llamadaOcurrio } from "@/lib/queries/metricas-filtros";
@@ -43,6 +44,15 @@ export function esAtendidaSinGrain(call: {
 export async function showsSinGrain(
   alcance: Alcance,
   db: Db = dbDeLaApp,
+): Promise<{ sinGrain: number; shows: number; pct: number | null }> {
+  const { programId, rango, claveCloser, cohorteId } = alcance;
+  return unaVezPorSolicitud(db, claveDe("showsSinGrain", programId, rango.desde, rango.hasta,
+    claveCloser ?? null, cohorteId ?? null), () => leerShowsSinGrain(alcance, db));
+}
+
+async function leerShowsSinGrain(
+  alcance: Alcance,
+  db: Db,
 ): Promise<{ sinGrain: number; shows: number; pct: number | null }> {
   const [fila] = await db
     .select({

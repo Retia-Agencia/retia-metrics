@@ -58,7 +58,7 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 |---|---|---|---|---|
 | [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso |
 | [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso |
-| [ ] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | todo |
+| [ ] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | en curso · 15-nov · helper y memoización hechos, sin commit; Hub Pauta 837→323 consultas; quedan idénticas en `/hub` y Comercial, falta prueba del abono y checkpoint |
 | [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |
 | [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | en curso · código listo en rama t439 (sin commit); falta medición contra producción (≤ 2 s) y el índice de `entregas_webhook` |
 | [ ] | 440 | [Una petición lenta falla en segundos y con mensaje](./440-fallar-rapido.md) | 435 | en curso · código listo; falta pg_sleep por el pooler y ver `error.tsx` |

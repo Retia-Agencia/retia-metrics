@@ -1,6 +1,7 @@
 import { db as dbDeLaApp } from "@/lib/db";
 import { programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { eq } from "drizzle-orm";
 import { type SeleccionDeRango } from "@/lib/rangos";
@@ -31,6 +32,11 @@ import { descuentoDeDeal } from "@/lib/queries/saldo";
 import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { leerMetasDelMes, type MetasDelMes } from "@/lib/queries/metas";
 import { embudoPorEtapas, type ResultadoEmbudoEtapas } from "@/lib/queries/embudo-etapas";
+
+async function comisionDelPrograma(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("comisionDelPrograma", programId), () =>
+    db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)));
+}
 
 /**
  * Arma de una sola vez todo lo que pinta `/p/[programa]/dashboard` (tickets 005 y 097).
@@ -239,7 +245,7 @@ export async function armarVistaDelDashboard(
     embudoPorCloser({ programId, rango, cohorteId }, db, ahora),
     comisionesPorCloser({ programId, rango, cohorteId }, db),
     contextoDeVista.closers(),
-    db.select({ comisionPorcentaje: programs.comisionPorcentaje }).from(programs).where(eq(programs.id, programId)),
+    comisionDelPrograma(db, programId),
     periodo.b
       ? Promise.all([
           embudoDelRango({ programId, rango: periodo.b, claveCloser, cohorteId: cohorteIdDeB }, db, ahora),

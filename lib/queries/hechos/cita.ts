@@ -1,12 +1,14 @@
 import { and, between, eq, sql } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ocurrioSql, resultadosQueOcurrieronComoLiterales } from "@/lib/deals/resultados-de-llamada";
 import { fechaAnclaCall } from "@/lib/queries/dashboard";
 import {
   aplicarPagina,
   condicionesDeFiltros,
   expresionDeOrden,
+  filtrosEfectivos,
   seleccionarDimensiones,
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
@@ -83,14 +85,27 @@ export async function agrupar<D extends DimensionCita>(
   db: Db,
   opciones: ConsultaAgrupada<D, D | MedidaCita>,
 ): Promise<Array<Record<D, string | null> & { citas: number; shows: number }>> {
-  return await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { citas: number; shows: number }>;
+  return unaVezPorSolicitud(db, claveDe("agruparCitas", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina), async () =>
+    await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { citas: number; shows: number }>);
 }
 
 export async function contarGrupos<D extends DimensionCita>(db: Db, opciones: ConsultaAgrupada<D, D | MedidaCita>): Promise<number> {
-  return totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined }));
+  return unaVezPorSolicitud(db, claveDe("contarGruposDeCitas", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden), () =>
+    totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined })));
 }
 
 export async function listar<D extends DimensionCita = DimensionCita>(
+  db: Db,
+  opciones: ConsultaDeLista<D, D>,
+): Promise<ListaPaginada<FilaCita>> {
+  return unaVezPorSolicitud(db, claveDe("listarCitas", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina), () =>
+    leerLista(db, opciones));
+}
+
+async function leerLista<D extends DimensionCita = DimensionCita>(
   db: Db,
   opciones: ConsultaDeLista<D, D>,
 ): Promise<ListaPaginada<FilaCita>> {

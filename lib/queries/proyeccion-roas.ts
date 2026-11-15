@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { claveCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import type { RazonConCobertura } from "@/lib/cobertura";
-import { calls, cohorts, deals, programs, proyeccionesRoas, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, proyeccionesRoas, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { citaPorVenirDeDealAbierto, estaAgendada, fueReagendada } from "@/lib/deals/resultados-de-llamada";
 import { sumarDias } from "@/lib/dias-habiles";
@@ -9,6 +9,7 @@ import type { Rango } from "@/lib/queries/dashboard";
 import { cargarRoasDePauta, type VistaRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { grupoDeCitas, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { vigente } from "@/lib/queries/vigente";
+import { muestraMinimaDelPrograma } from "@/lib/programas/hechos";
 
 /**
  * El ROAS proyectado (ticket 375, Daniel Tovar 3-nov): lo vendido a hoy más lo que se espera de las citas que
@@ -157,7 +158,7 @@ export async function calcularProyeccionDeRoas(
       .leftJoin(users, eq(users.id, calls.closerUserId))
       .where(and(eq(calls.programId, programId), inArray(calls.id, ids), vigente(calls))),
     grupoDeCitas(db, { programId, rango: { desde: sumarDias(hoy, -7 * SEMANAS_DE_MUESTRA), hasta: hoy }, ahora }),
-    db.select({ minima: programs.muestraMinimaConversion }).from(programs).where(eq(programs.id, programId)),
+    muestraMinimaDelPrograma(db, programId),
   ]);
   const dueno = new Map(duenos.map((d) => [d.callId, d]));
   const citas: CitaPendiente[] = pendientes.flatMap((p) => {
@@ -169,7 +170,7 @@ export async function calcularProyeccionDeRoas(
     vendidoUsd: roas.total.valorVendidoUsd, gastoUsd: roas.total.gastoUsd, roasAHoy: roas.total.roas,
     pendientes: citas, programa: muestraDe(grupo.tasas),
     porCloser: new Map([...grupo.porCloser].map(([clave, t]) => [clave, muestraDe(t)])),
-    muestraMinima: programa?.minima ?? 20,
+    muestraMinima: programa?.muestraMinima ?? 20,
   });
   const fechas = citas.map((c) => c.fecha.getTime());
   return { ...pura, rango, gastoUsd: roas.total.gastoUsd, vendidoUsd: roas.total.valorVendidoUsd, roasAHoy: roas.total.roas,

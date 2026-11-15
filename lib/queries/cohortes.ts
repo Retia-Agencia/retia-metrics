@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 /**
  * Lecturas de cohortes que necesita el registro nativo (ticket 002) y el dashboard
@@ -25,11 +26,12 @@ export async function cohorteActiva(
   programId: string,
   db: Db = dbDeLaApp,
 ): Promise<Cohorte | null> {
-  const [fila] = await db
-    .select()
-    .from(cohorts)
-    .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "activo")))
-    .limit(1);
-
-  return fila ?? null;
+  return unaVezPorSolicitud(db, claveDe("cohorteActiva", programId), async () => {
+    const [fila] = await db
+      .select()
+      .from(cohorts)
+      .where(and(eq(cohorts.programId, programId), eq(cohorts.estado, "activo")))
+      .limit(1);
+    return fila ?? null;
+  });
 }

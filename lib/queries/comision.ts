@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Rango } from "@/lib/queries/dashboard";
 import { filtroCierres } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
@@ -32,33 +33,35 @@ export async function comisionesPorCloser(
   { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
   db: Db = dbDeLaApp,
 ): Promise<ComisionDeCloser[]> {
-  const filas = await db
-    .select({
-      userId: users.id,
-      closerId: users.closerId,
-      nombre: users.nombre,
-      email: users.email,
-      valorVendidoUsd: deals.valorVendidoUsd,
-      comisionPorcentaje: deals.comisionPorcentaje,
-    })
-    .from(deals)
-    .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .where(and(filtroCierres({ programId, rango, cohorteId }, db), vigente(deals)));
+  return unaVezPorSolicitud(db, claveDe("comisionesPorCloser", programId, rango.desde, rango.hasta, cohorteId ?? null), async () => {
+    const filas = await db
+      .select({
+        userId: users.id,
+        closerId: users.closerId,
+        nombre: users.nombre,
+        email: users.email,
+        valorVendidoUsd: deals.valorVendidoUsd,
+        comisionPorcentaje: deals.comisionPorcentaje,
+      })
+      .from(deals)
+      .leftJoin(users, eq(users.id, deals.ownerUserId))
+      .where(and(filtroCierres({ programId, rango, cohorteId }, db), vigente(deals)));
 
-  const porCloser = new Map<string, ComisionDeCloser>();
-  for (const fila of filas) {
-    const clave = fila.userId ?? "\u0000sin-dueno";
-    const etiqueta = fila.closerId ?? fila.nombre ?? fila.email ?? null;
-    const acumulado = porCloser.get(clave) ?? {
-      userId: fila.userId ?? null,
-      closerId: etiqueta,
-      comisionUsd: 0,
-      ventasSinComision: 0,
-    };
-    const comision = comisionDeDeal(fila.valorVendidoUsd, fila.comisionPorcentaje);
-    if (comision === null) acumulado.ventasSinComision += 1;
-    else acumulado.comisionUsd = Math.round((acumulado.comisionUsd + comision + Number.EPSILON) * 100) / 100;
-    porCloser.set(clave, acumulado);
-  }
-  return [...porCloser.values()];
+    const porCloser = new Map<string, ComisionDeCloser>();
+    for (const fila of filas) {
+      const clave = fila.userId ?? "\u0000sin-dueno";
+      const etiqueta = fila.closerId ?? fila.nombre ?? fila.email ?? null;
+      const acumulado = porCloser.get(clave) ?? {
+        userId: fila.userId ?? null,
+        closerId: etiqueta,
+        comisionUsd: 0,
+        ventasSinComision: 0,
+      };
+      const comision = comisionDeDeal(fila.valorVendidoUsd, fila.comisionPorcentaje);
+      if (comision === null) acumulado.ventasSinComision += 1;
+      else acumulado.comisionUsd = Math.round((acumulado.comisionUsd + comision + Number.EPSILON) * 100) / 100;
+      porCloser.set(clave, acumulado);
+    }
+    return [...porCloser.values()];
+  });
 }

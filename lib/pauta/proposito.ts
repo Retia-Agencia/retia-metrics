@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { changeLog, pautaObjetos, reportesWhatsapp } from "@/lib/db/schema";
 import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 export type PropositoCampana = "agenda" | "lanzamiento";
 
@@ -17,9 +18,11 @@ export interface ParseoDePropositos {
 }
 
 export async function idsDeCampanas(db: Db): Promise<string[]> {
-  const filas = await db.select({ idMeta: pautaObjetos.idMeta }).from(pautaObjetos)
-    .where(eq(pautaObjetos.nivel, "campana"));
-  return filas.map((fila) => fila.idMeta);
+  return unaVezPorSolicitud(db, claveDe("idsDeCampanas"), async () => {
+    const filas = await db.select({ idMeta: pautaObjetos.idMeta }).from(pautaObjetos)
+      .where(eq(pautaObjetos.nivel, "campana"));
+    return filas.map((fila) => fila.idMeta);
+  });
 }
 
 export function codigoCortoDeCampana(idMeta: string, idsDeTodasLasCampanas: readonly string[]): string {

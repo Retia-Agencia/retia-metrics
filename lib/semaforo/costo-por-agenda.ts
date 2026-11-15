@@ -2,6 +2,7 @@ import { and, asc, desc, eq, gte, isNotNull, lte, or } from "drizzle-orm";
 import { razon, type RazonConCobertura } from "@/lib/cobertura";
 import { fotosPauta, gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaHabilAnterior } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import { coberturaDeGasto, diaCubierto, motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
@@ -219,12 +220,14 @@ function totalDeAgendas(filas: Array<{ agendas: number }>): number {
  * tuvo, de verdad no las mide.
  */
 async function programaMideAgendasMeta(db: Db, programId: string): Promise<boolean> {
-  const [fila] = await db.select({ id: gastoPauta.id }).from(gastoPauta).where(and(
-    eq(gastoPauta.programId, programId),
-    eq(gastoPauta.origen, "meta_api"),
-    isNotNull(gastoPauta.agendasMeta),
-  )).limit(1);
-  return fila !== undefined;
+  return unaVezPorSolicitud(db, claveDe("programaMideAgendasMeta", programId), async () => {
+    const [fila] = await db.select({ id: gastoPauta.id }).from(gastoPauta).where(and(
+      eq(gastoPauta.programId, programId),
+      eq(gastoPauta.origen, "meta_api"),
+      isNotNull(gastoPauta.agendasMeta),
+    )).limit(1);
+    return fila !== undefined;
+  });
 }
 
 function completar(
@@ -354,23 +357,8 @@ export async function costoPorAgendaDeVentana(
   db: Db,
   args: { programId: string; desde: string; hasta: string; cohorteId?: string | null },
 ): Promise<CostoPorAgenda> {
-  const filas = await db.select({
-    dia: gastoPauta.fecha,
-    monto: gastoPauta.monto,
-    moneda: gastoPauta.moneda,
-    agendasMeta: gastoPauta.agendasMeta,
-    registrosMeta: gastoPauta.registrosMeta,
-    pautaObjetoId: gastoPauta.pautaObjetoId,
-  }).from(gastoPauta).where(and(
-    eq(gastoPauta.programId, args.programId),
-    gte(gastoPauta.fecha, args.desde),
-    lte(gastoPauta.fecha, args.hasta),
-    or(
-      eq(gastoPauta.origen, "meta_api"),
-      and(eq(gastoPauta.origen, "manual"), eq(gastoPauta.area, "paid")),
-    ),
-  ));
-  const objetos = await db.select({
+  const filas = await gastoParaCostoPorAgenda(db, args.programId, args.desde, args.hasta);
+  const objetos = await unaVezPorSolicitud(db, claveDe("objetosDePautaParaCosto", args.programId), () => db.select({
     id: pautaObjetos.id,
     idMeta: pautaObjetos.idMeta,
     nivel: pautaObjetos.nivel,
@@ -379,7 +367,7 @@ export async function costoPorAgendaDeVentana(
     estado: pautaObjetos.estado,
     proposito: pautaObjetos.proposito,
     cuentaId: pautaObjetos.cuentaId,
-  }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId));
+  }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId)));
   const objetosPorId = new Map(objetos.map((objeto) => [objeto.id, objeto]));
   const objetosPorIdMeta = new Map(objetos.map((objeto) => [objeto.idMeta, objeto]));
   const filasConCampana: FilaDeGasto[] = filas.map((fila) => {
@@ -420,6 +408,25 @@ export async function costoPorAgendaDeVentana(
   }
   return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal,
     { base, faltan, motivo: faltan > 0 ? motivoDeGasto(coberturaGasto) : null, calculable: faltan === 0 }, suma.porCuenta);
+}
+
+async function gastoParaCostoPorAgenda(db: Db, programId: string, desde: string, hasta: string) {
+  return unaVezPorSolicitud(db, claveDe("gastoParaCostoPorAgenda", programId, desde, hasta), () => db.select({
+    dia: gastoPauta.fecha,
+    monto: gastoPauta.monto,
+    moneda: gastoPauta.moneda,
+    agendasMeta: gastoPauta.agendasMeta,
+    registrosMeta: gastoPauta.registrosMeta,
+    pautaObjetoId: gastoPauta.pautaObjetoId,
+  }).from(gastoPauta).where(and(
+    eq(gastoPauta.programId, programId),
+    gte(gastoPauta.fecha, desde),
+    lte(gastoPauta.fecha, hasta),
+    or(
+      eq(gastoPauta.origen, "meta_api"),
+      and(eq(gastoPauta.origen, "manual"), eq(gastoPauta.area, "paid")),
+    ),
+  )));
 }
 
 /**

@@ -5,6 +5,7 @@ import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envi
 import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 import { calls, deals, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { citaPorVenirDeDealAbierto, citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
@@ -189,30 +190,32 @@ function calcularRoas(r: RenglonRoas, envios: readonly FilaPorEnvioPauta[], cobe
   });
 }
 
-/** Carga el universo U una sola vez; la tarjeta agrega estas filas y la lista las filtra sin otra definición. */
-export async function cargarRoasDePauta(
-  db: Db,
-  programId: string,
-  rango: Rango,
-  hoy: string,
-  ahora: Date = new Date(),
-  cohorteId: string | null = null,
-): Promise<VistaRoasDePauta> {
-  const parcial = alias(submissions, "submission_parcial_roas");
-  const completo = alias(submissions, "submission_completo_roas");
-  const seleccionarEnvio = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
-    esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: leads.nombre,
-    fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
-  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha, gastoEnCop, cuentasMeta] = await Promise.all([
-    arbolDePauta(db, programId),
-    db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
-      padreIdMeta: pautaObjetos.padreIdMeta, cuentaId: pautaObjetos.cuentaId }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId)),
-    db.select(seleccionarEnvio)
-      .from(submissions).innerJoin(sources, eq(sources.id, submissions.sourceId))
-      .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
-      .where(and(eq(sources.programId, programId),
-        between(diaDeEnvio(submissions), rango.desde, rango.hasta))),
-    db.select({ parcialId: parcial.id, completoId: completo.id })
+const seleccionarEnvioDeRoas = {
+  id: submissions.id,
+  sourceId: submissions.sourceId,
+  token: submissions.token,
+  esParcial: submissions.esParcial,
+  leadId: submissions.leadId,
+  nombre: leads.nombre,
+  fechaEnvio: submissions.fechaEnvio,
+  createdAt: submissions.createdAt,
+  ...columnasUtmDelEnvio,
+};
+
+async function enviosDeRoas(db: Db, programId: string, rango: Rango) {
+  return unaVezPorSolicitud(db, claveDe("enviosDeRoas", programId, rango.desde, rango.hasta), () => db
+    .select(seleccionarEnvioDeRoas)
+    .from(submissions)
+    .innerJoin(sources, eq(sources.id, submissions.sourceId))
+    .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
+    .where(and(eq(sources.programId, programId), between(diaDeEnvio(submissions), rango.desde, rango.hasta))));
+}
+
+async function parejasDeEnviosDeRoas(db: Db, programId: string, rango: Rango) {
+  return unaVezPorSolicitud(db, claveDe("parejasDeEnviosDeRoas", programId, rango.desde, rango.hasta), () => {
+    const parcial = alias(submissions, "submission_parcial_roas");
+    const completo = alias(submissions, "submission_completo_roas");
+    return db.select({ parcialId: parcial.id, completoId: completo.id })
       .from(parcial)
       .innerJoin(completo, and(eq(completo.sourceId, parcial.sourceId), eq(completo.token, parcial.token),
         eq(completo.esParcial, false)))
@@ -220,7 +223,38 @@ export async function cargarRoasDePauta(
       .where(and(eq(sources.programId, programId), eq(parcial.esParcial, true), or(
         between(diaDeEnvio(parcial), rango.desde, rango.hasta),
         between(diaDeEnvio(completo), rango.desde, rango.hasta),
-      ))),
+      )));
+  });
+}
+
+/** Carga el universo U una sola vez; la tarjeta agrega estas filas y la lista las filtra sin otra definición. */
+export function cargarRoasDePauta(
+  db: Db,
+  programId: string,
+  rango: Rango,
+  hoy: string,
+  ahora: Date = new Date(),
+  cohorteId: string | null = null,
+): Promise<VistaRoasDePauta> {
+  return unaVezPorSolicitud(db, claveDe("cargarRoasDePauta", programId, rango.desde, rango.hasta,
+    hoy, ahora, cohorteId), () => leerRoasDePauta(db, programId, rango, hoy, ahora, cohorteId));
+}
+
+async function leerRoasDePauta(
+  db: Db,
+  programId: string,
+  rango: Rango,
+  hoy: string,
+  ahora: Date,
+  cohorteId: string | null,
+): Promise<VistaRoasDePauta> {
+  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha, gastoEnCop, cuentasMeta] = await Promise.all([
+    arbolDePauta(db, programId),
+    unaVezPorSolicitud(db, claveDe("objetosDePautaParaRoas", programId), () =>
+      db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
+        padreIdMeta: pautaObjetos.padreIdMeta, cuentaId: pautaObjetos.cuentaId }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId))),
+    enviosDeRoas(db, programId, rango),
+    parejasDeEnviosDeRoas(db, programId, rango),
     ventasDelPrograma(db, programId),
     // El hecho de gasto convertido (355): una sola función convierte y mide su cobertura.
     gastoConvertido(db, programId, rango),
@@ -242,7 +276,7 @@ export async function cargarRoasDePauta(
   const idsCargados = new Set(enviosEnRango.map((e) => e.id));
   const idsExtra = [...new Set(parejas.flatMap((p) => [p.parcialId, p.completoId]))]
     .filter((id) => !idsCargados.has(id));
-  const enviosExtra = idsExtra.length === 0 ? [] : await db.select(seleccionarEnvio)
+  const enviosExtra = idsExtra.length === 0 ? [] : await db.select(seleccionarEnvioDeRoas)
     .from(submissions).innerJoin(sources, eq(sources.id, submissions.sourceId))
     .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
     .where(and(eq(sources.programId, programId), inArray(submissions.id, idsExtra)));
@@ -320,11 +354,12 @@ export async function cargarRoasDePauta(
       dia: diaVenta.get(deal.id)!, valorVendidoUsd: valor ?? 0, sinValorVendido: valor == null,
       escalon: ubicaciones.porDeal.get(deal.id)!.escalon };
   }
-  const origenesHistoricos = ventasPrograma.length === 0 ? [] : await db.select({
-    dealId: deals.id, envioId: submissions.id, fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt,
-  }).from(deals).leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-    .where(and(eq(deals.programId, programId), cohorteId === null ? undefined : eq(deals.cohortId, cohorteId),
-      inArray(deals.id, ventasPrograma.map((v) => v.dealId)), vigente(deals)));
+  const origenesHistoricos = await origenesHistoricosDeVentas(
+    db,
+    programId,
+    cohorteId,
+    ventasPrograma.map((venta) => venta.dealId),
+  );
   const fechaOrigen = new Map(origenesHistoricos.map((f) => [f.dealId, f]));
   const diasCierre = ventasPrograma.flatMap((v) => {
     const origen = fechaOrigen.get(v.dealId);
@@ -434,6 +469,20 @@ export async function cargarRoasDePauta(
     canales: [...canalesMap.values()].filter(visible), cobertura, reconciliacion, agendasPendientes, citasSinMarcar,
     ventanaCierreDias, ventasParaMadurez: diasCierre.length,
     trmEtiqueta: gasto.trmEtiqueta, diasSinTrm: gasto.diasSinTrm, coberturaGasto, rango };
+}
+
+async function origenesHistoricosDeVentas(
+  db: Db,
+  programId: string,
+  cohorteId: string | null,
+  dealIds: readonly string[],
+) {
+  if (dealIds.length === 0) return [];
+  return unaVezPorSolicitud(db, claveDe("origenesHistoricosDeVentas", programId, cohorteId, dealIds), () => db.select({
+    dealId: deals.id, envioId: submissions.id, fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt,
+  }).from(deals).leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
+    .where(and(eq(deals.programId, programId), cohorteId === null ? undefined : eq(deals.cohortId, cohorteId),
+      inArray(deals.id, [...dealIds]), vigente(deals))));
 }
 
 export function filtrarEnviosDePauta(envios: readonly FilaPorEnvioPauta[], nivel: NivelPauta, id?: string) {

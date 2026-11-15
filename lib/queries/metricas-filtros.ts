@@ -2,6 +2,7 @@ import { and, asc, between, eq, gt, inArray, isNotNull, isNull, lte, ne, notExis
 import { alias, type PgColumn } from "drizzle-orm/pg-core";
 import { abonos, calls, deals, dealEtapaHistorial, leads, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { llamadaSinDealAnulado } from "@/lib/queries/llamada-sin-deal-anulado";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -203,11 +204,7 @@ export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
  * recuperado deja de estar cerrado), y por eso no importa la definicion de venta (392).
  */
 export async function cerradosEn(db: Db, programId: string, rango: Rango, cohorteId?: string | null): Promise<string[]> {
-  const historial = await db
-    .select({ dealId: dealEtapaHistorial.dealId, a: dealEtapaHistorial.a, fecha: dealEtapaHistorial.fecha })
-    .from(dealEtapaHistorial)
-    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.programId, programId), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals)))
-    .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id));
+  const historial = await historialParaCerrados(db, programId, cohorteId ?? null);
 
   // Recorrido en orden: una entrada abierta borra el cierre; la primera cerrada despues lo fija.
   const cierre = new Map<string, Date | null>();
@@ -222,6 +219,14 @@ export async function cerradosEn(db: Db, programId: string, rango: Rango, cohort
       return dia >= rango.desde && dia <= rango.hasta;
     })
     .map(([dealId]) => dealId);
+}
+
+async function historialParaCerrados(db: Db, programId: string, cohorteId: string | null) {
+  return unaVezPorSolicitud(db, claveDe("historialParaCerrados", programId, cohorteId), () => db
+    .select({ dealId: dealEtapaHistorial.dealId, a: dealEtapaHistorial.a, fecha: dealEtapaHistorial.fecha })
+    .from(dealEtapaHistorial)
+    .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.programId, programId), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals)))
+    .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id)));
 }
 
 function esEtapaDeCierre(etapa: string): boolean {

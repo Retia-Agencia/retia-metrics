@@ -1,6 +1,7 @@
 import { and, desc, eq, lt, lte } from "drizzle-orm";
 import { fotosPauta, gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { olvidarDeLaSolicitud } from "@/lib/db/por-solicitud";
 import { ErrorDeApp } from "@/lib/errors";
 import { fechaDeInstanteEnBogota, instanteDeBogota } from "@/lib/format";
 import {
@@ -75,6 +76,20 @@ export async function sincronizarDiaEnCurso(
         return { estado: "corriendo" };
       }
       throw error;
+    } finally {
+      olvidarDeLaSolicitud("coberturaDeGasto:");
+      olvidarDeLaSolicitud("gastoExtremos:");
+      olvidarDeLaSolicitud("gastoCrudo:");
+      olvidarDeLaSolicitud("gastoParaCostoPorAgenda:");
+      olvidarDeLaSolicitud("programaMideAgendasMeta:");
+      olvidarDeLaSolicitud("arbolDePauta:");
+      olvidarDeLaSolicitud("idsDeCampanas");
+      olvidarDeLaSolicitud("objetosDePautaParaCosto:");
+      olvidarDeLaSolicitud("objetosDePautaParaRoas:");
+      olvidarDeLaSolicitud("objetosDePautaParaOrigen:");
+      olvidarDeLaSolicitud("anunciosActivosParaOrigen:");
+      olvidarDeLaSolicitud("cargarRoasDePauta:");
+      olvidarDeLaSolicitud("resumenDeMetrica:");
     }
     if (sincronizacion.estado === "error") {
       return { estado: "error", error: sincronizacion.error ?? "Error interno." };

@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaDeCalendario, diaDeLaSemana, diasHabilesEntre, metaDeHoy, metaLineal } from "@/lib/dias-habiles";
 import { ventasConDiaEn, type Rango } from "@/lib/queries/dashboard";
 import { vistaDeCohorteActiva } from "@/lib/queries/dashboard";
@@ -279,38 +280,48 @@ export async function leerCohortesYVentas(
   programId: string,
   rangoLectura: Rango,
 ): Promise<{ cohortes: CohorteParaMetas[]; ventas: VentaParaMetas[] }> {
-  const [filasCohortes, ventasConDia] = await Promise.all([
-    db
-      .select({
-        id: cohorts.id,
-        codigo: cohorts.codigo,
-        metaCupos: cohorts.metaCupos,
-        precioUsd: cohorts.precioUsd,
-        fechaInicioVentas: cohorts.fechaInicioVentas,
-        fechaCierreVentas: cohorts.fechaCierreVentas,
-      })
-      .from(cohorts)
-      .where(eq(cohorts.programId, programId)),
-    ventasConDiaEn(db, rangoLectura),
-  ]);
-  const idsVendidos = ventasConDia.map((venta) => venta.dealId);
-  const dealsVendidos = idsVendidos.length === 0
-    ? []
-    : await db
-      .select({ dealId: deals.id, cohortId: deals.cohortId })
-      .from(deals)
-      .where(and(inArray(deals.id, idsVendidos), eq(deals.programId, programId), vigente(deals)));
+  return unaVezPorSolicitud(db, claveDe("leerCohortesYVentas", programId, rangoLectura.desde, rangoLectura.hasta), async () => {
+    const [filasCohortes, ventasConDia] = await Promise.all([
+      cohortesParaMetas(db, programId),
+      ventasConDiaEn(db, rangoLectura),
+    ]);
+    const idsVendidos = ventasConDia.map((venta) => venta.dealId);
+    const dealsVendidos = idsVendidos.length === 0
+      ? []
+      : await cohortesDeDealsVendidos(db, programId, idsVendidos);
 
-  const cohortes = filasCohortes.map<CohorteParaMetas>((cohorte) => ({
-    ...cohorte,
-    precioUsd: Number(cohorte.precioUsd),
-  }));
-  const diaPorDeal = new Map(ventasConDia.map((venta) => [venta.dealId, diaDeCalendario(venta.dia)]));
-  const ventas = dealsVendidos.map<VentaParaMetas>((venta) => ({
-    ...venta,
-    dia: diaPorDeal.get(venta.dealId)!,
-  }));
-  return { cohortes, ventas };
+    const cohortes = filasCohortes.map<CohorteParaMetas>((cohorte) => ({
+      ...cohorte,
+      precioUsd: Number(cohorte.precioUsd),
+    }));
+    const diaPorDeal = new Map(ventasConDia.map((venta) => [venta.dealId, diaDeCalendario(venta.dia)]));
+    const ventas = dealsVendidos.map<VentaParaMetas>((venta) => ({
+      ...venta,
+      dia: diaPorDeal.get(venta.dealId)!,
+    }));
+    return { cohortes, ventas };
+  });
+}
+
+async function cohortesParaMetas(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("cohortesParaMetas", programId), () => db
+    .select({
+      id: cohorts.id,
+      codigo: cohorts.codigo,
+      metaCupos: cohorts.metaCupos,
+      precioUsd: cohorts.precioUsd,
+      fechaInicioVentas: cohorts.fechaInicioVentas,
+      fechaCierreVentas: cohorts.fechaCierreVentas,
+    })
+    .from(cohorts)
+    .where(eq(cohorts.programId, programId)));
+}
+
+async function cohortesDeDealsVendidos(db: Db, programId: string, dealIds: readonly string[]) {
+  return unaVezPorSolicitud(db, claveDe("cohortesDeDealsVendidos", programId, dealIds), () => db
+    .select({ dealId: deals.id, cohortId: deals.cohortId })
+    .from(deals)
+    .where(and(inArray(deals.id, [...dealIds]), eq(deals.programId, programId), vigente(deals))));
 }
 
 export async function leerMetasDelMes(

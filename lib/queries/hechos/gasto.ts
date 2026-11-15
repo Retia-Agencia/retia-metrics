@@ -1,6 +1,7 @@
 import { and, asc, between, eq, isNotNull, or, sql } from "drizzle-orm";
 import { cuentasPublicitarias, gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Rango } from "@/lib/queries/dashboard";
 import { coberturaDeGasto, type CoberturaDeGasto } from "@/lib/pauta/cobertura-de-gasto";
 import { convertirGasto, type MonedaGasto } from "@/lib/pauta/convertir-gasto";
@@ -114,7 +115,7 @@ export async function gastoConvertido(
   destino: MonedaGasto = "USD",
 ): Promise<VistaGasto> {
   const [crudos, tasas, cobertura] = await Promise.all([
-    db
+    unaVezPorSolicitud(db, claveDe("gastoCrudo", programId, rango.desde, rango.hasta), () => db
       .select({
         fecha: gastoPauta.fecha,
         monto: gastoPauta.monto,
@@ -124,7 +125,7 @@ export async function gastoConvertido(
       })
       .from(gastoPauta)
       .leftJoin(pautaObjetos, conObjeto)
-      .where(and(eq(gastoPauta.programId, programId), between(gastoPauta.fecha, rango.desde, rango.hasta), esGastoPaid)),
+      .where(and(eq(gastoPauta.programId, programId), between(gastoPauta.fecha, rango.desde, rango.hasta), esGastoPaid))),
     tasasDelRango(db, rango.desde, rango.hasta),
     coberturaDeGasto(db, programId, rango),
   ]);
@@ -152,6 +153,7 @@ export async function gastoConvertido(
 
 /** Las cuentas de Meta del programa, por nombre: los renglones de «Por cuenta» y «Ver por Cuenta». Nunca de otro programa. */
 export async function cuentasDelPrograma(db: Db, programId: string): Promise<Array<{ id: string; nombre: string }>> {
-  return db.select({ id: cuentasPublicitarias.id, nombre: cuentasPublicitarias.nombre }).from(cuentasPublicitarias)
-    .where(eq(cuentasPublicitarias.programId, programId)).orderBy(asc(cuentasPublicitarias.nombre), asc(cuentasPublicitarias.id));
+  return unaVezPorSolicitud(db, claveDe("cuentasDelPrograma", programId), () =>
+    db.select({ id: cuentasPublicitarias.id, nombre: cuentasPublicitarias.nombre }).from(cuentasPublicitarias)
+      .where(eq(cuentasPublicitarias.programId, programId)).orderBy(asc(cuentasPublicitarias.nombre), asc(cuentasPublicitarias.id)));
 }

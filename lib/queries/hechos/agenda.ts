@@ -1,10 +1,12 @@
 import { and, between, eq, lte, sql } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import {
   aplicarPagina,
   condicionesDeFiltros,
   expresionDeOrden,
+  filtrosEfectivos,
   seleccionarDimensiones,
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
@@ -109,14 +111,28 @@ export async function agrupar<D extends DimensionAgenda>(
   db: Db,
   opciones: ConsultaAgendaAgrupada<D>,
 ): Promise<Array<Record<D, string | null> & { agendas: number }>> {
-  return await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { agendas: number }>;
+  return unaVezPorSolicitud(db, claveDe("agruparAgendas", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina,
+    opciones.creadaHasta), async () =>
+    await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { agendas: number }>);
 }
 
 export async function contarGrupos<D extends DimensionAgenda>(db: Db, opciones: ConsultaAgendaAgrupada<D>): Promise<number> {
-  return totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined }));
+  return unaVezPorSolicitud(db, claveDe("contarGruposDeAgendas", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.creadaHasta), () =>
+    totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined })));
 }
 
 export async function listar<D extends DimensionAgenda = DimensionAgenda>(
+  db: Db,
+  opciones: ConsultaAgendaLista<D>,
+): Promise<ListaPaginada<FilaAgenda>> {
+  return unaVezPorSolicitud(db, claveDe("listarAgendas", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina, opciones.creadaHasta), () =>
+    leerLista(db, opciones));
+}
+
+async function leerLista<D extends DimensionAgenda = DimensionAgenda>(
   db: Db,
   opciones: ConsultaAgendaLista<D>,
 ): Promise<ListaPaginada<FilaAgenda>> {

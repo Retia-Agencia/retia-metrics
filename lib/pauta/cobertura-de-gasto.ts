@@ -1,6 +1,7 @@
 import { and, eq, gte, isNotNull, lte, max, min, or } from "drizzle-orm";
 import { gastoPauta } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { fecha } from "@/lib/format";
 import { sumarDias } from "@/lib/dias-habiles";
 
@@ -22,9 +23,11 @@ export async function coberturaDeGasto(
 ): Promise<CoberturaDeGasto> {
   const delPrograma = and(eq(gastoPauta.programId, programId), esGastoPaid);
   const [[extremos], filas] = await Promise.all([
-    db.select({ primerDia: min(gastoPauta.fecha), ultimoDia: max(gastoPauta.fecha) }).from(gastoPauta).where(delPrograma),
-    db.selectDistinct({ dia: gastoPauta.fecha }).from(gastoPauta)
-      .where(and(delPrograma, gte(gastoPauta.fecha, rango.desde), lte(gastoPauta.fecha, rango.hasta))),
+    unaVezPorSolicitud(db, claveDe("gastoExtremos", programId), () =>
+      db.select({ primerDia: min(gastoPauta.fecha), ultimoDia: max(gastoPauta.fecha) }).from(gastoPauta).where(delPrograma)),
+    unaVezPorSolicitud(db, claveDe("coberturaDeGasto", programId, rango.desde, rango.hasta), () =>
+      db.selectDistinct({ dia: gastoPauta.fecha }).from(gastoPauta)
+        .where(and(delPrograma, gte(gastoPauta.fecha, rango.desde), lte(gastoPauta.fecha, rango.hasta)))),
   ]);
   const enRango = new Set(filas.map((fila) => fila.dia));
   const diasSinFila: string[] = [];

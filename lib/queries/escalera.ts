@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { columnasUtmDelEnvio, type utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { abonos, calls, deals, programs, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { etiquetaDeCloser, normalizarCloserId, parsearClaveCloser } from "@/lib/closers/identidad";
 import { CLAVE_SIN_DUENO } from "@/lib/queries/embudo-con-filas";
 import { diasHabilesEntre, diaDeCalendario, esDiaHabil } from "@/lib/dias-habiles";
@@ -160,19 +161,26 @@ export interface EscaleraCargada {
 
 const RANGO_TOTAL: Rango = { desde: "1900-01-01", hasta: "2999-12-31" };
 
+async function cortePagoRapidoDelPrograma(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("cortePagoRapidoDelPrograma", programId), () =>
+    db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, programId)));
+}
+
 /**
  * Las ventas de TODO el programa con su dia (392): `ventasConDiaEn` sin limite de fechas, porque la escalera y el
  * ROAS miden la vida entera del deal y no un periodo. No es otra definicion de venta.
  */
-export function ventasDelPrograma(db: Db, programId: string, dealIds?: readonly string[]) {
-  const ventas = ventasConDiaEn(db, RANGO_TOTAL).as("ventas_de_la_escalera");
-  return db.select({ dealId: ventas.dealId, dia: ventas.dia }).from(ventas)
-    .innerJoin(deals, and(eq(deals.id, ventas.dealId), vigente(deals)))
-    .where(and(
-      eq(deals.programId, programId),
-      dealIds ? inArray(deals.id, [...dealIds]) : undefined,
-      incluyendoAnulados(ventas),
-    ));
+export async function ventasDelPrograma(db: Db, programId: string, dealIds?: readonly string[]) {
+  return unaVezPorSolicitud(db, claveDe("ventasDelPrograma", programId, dealIds), () => {
+    const ventas = ventasConDiaEn(db, RANGO_TOTAL).as("ventas_de_la_escalera");
+    return db.select({ dealId: ventas.dealId, dia: ventas.dia }).from(ventas)
+      .innerJoin(deals, and(eq(deals.id, ventas.dealId), vigente(deals)))
+      .where(and(
+        eq(deals.programId, programId),
+        dealIds ? inArray(deals.id, [...dealIds]) : undefined,
+        incluyendoAnulados(ventas),
+      ));
+  });
 }
 
 /**
@@ -185,11 +193,11 @@ async function cargarHechosDeEscalera(
   ahora: Date = new Date(),
 ): Promise<{ corteDias: number | null; porDeal: Map<string, HechosDeEscalera> }> {
   if (args.dealIds.length === 0) {
-    const [programa] = await db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, args.programId));
+    const [programa] = await cortePagoRapidoDelPrograma(db, args.programId);
     return { corteDias: programa?.corte ?? null, porDeal: new Map() };
   }
   const [[programa], filasAbonos, filasCitas] = await Promise.all([
-    db.select({ corte: programs.cortePagoRapidoDias }).from(programs).where(eq(programs.id, args.programId)),
+    cortePagoRapidoDelPrograma(db, args.programId),
     db.select({ dealId: abonos.dealId, primero: sql<string>`min(${abonos.fecha})` }).from(abonos)
       .where(and(eq(abonos.programId, args.programId), inArray(abonos.dealId, [...args.dealIds]),
         eq(abonos.concepto, "ticket"), vigente(abonos)))
@@ -260,10 +268,19 @@ export async function ubicacionesDeEscalera(
 }
 
 /** Carga la escalera de un programa en un periodo: el escalón de cada deal de su universo. */
-export async function cargarEscalera(
+export function cargarEscalera(
   db: Db,
   alcance: { programId: string; rango: Rango; cohorteId?: string | null },
   ahora: Date = new Date(),
+): Promise<EscaleraCargada> {
+  return unaVezPorSolicitud(db, claveDe("cargarEscalera", alcance.programId, alcance.rango.desde,
+    alcance.rango.hasta, alcance.cohorteId, ahora), () => leerEscalera(db, alcance, ahora));
+}
+
+async function leerEscalera(
+  db: Db,
+  alcance: { programId: string; rango: Rango; cohorteId?: string | null },
+  ahora: Date,
 ): Promise<EscaleraCargada> {
   const { programId, rango, cohorteId } = alcance;
   const [dias, filasDeals] = await Promise.all([

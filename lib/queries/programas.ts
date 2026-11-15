@@ -2,6 +2,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { miembrosPrograma, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 /**
  * Los programas salen de la tabla `programs` (ADR 0012): agregar una fila los hace
@@ -32,11 +33,11 @@ import type { Db } from "@/lib/db/tipos";
 export async function programasActivos(
   db: Db = dbDeLaApp,
 ): Promise<{ id: string; slug: string; nombre: string }[]> {
-  return db
+  return unaVezPorSolicitud(db, claveDe("programasActivos"), () => db
     .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre })
     .from(programs)
     .where(eq(programs.activo, true))
-    .orderBy(asc(programs.nombre));
+    .orderBy(asc(programs.nombre)));
 }
 
 

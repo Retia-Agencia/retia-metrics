@@ -4,10 +4,12 @@ import { sources, submissions } from "@/lib/db/schema";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import type { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import {
   aplicarPagina,
   condicionesDeFiltros,
   expresionDeOrden,
+  filtrosEfectivos,
   seleccionarDimensiones,
   totalDeConsulta,
 } from "@/lib/queries/hechos/consultar";
@@ -141,14 +143,26 @@ export async function agrupar<D extends DimensionEnvio>(
   db: Db,
   opciones: ConsultaAgrupada<D, D | MedidaEnvio>,
 ): Promise<Array<Record<D, string | null> & { envios: number }>> {
-  return await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { envios: number }>;
+  return unaVezPorSolicitud(db, claveDe("agruparEnvios", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina), async () =>
+    await aplicarPagina(consultaAgrupada(db, opciones), opciones.pagina) as Array<Record<D, string | null> & { envios: number }>);
 }
 
 export async function contarGrupos<D extends DimensionEnvio>(db: Db, opciones: ConsultaAgrupada<D, D | MedidaEnvio>): Promise<number> {
-  return totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined }));
+  return unaVezPorSolicitud(db, claveDe("contarGruposDeEnvios", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, opciones.agruparPor, filtrosEfectivos(opciones.filtros), opciones.orden), () =>
+    totalDeConsulta(db, consultaAgrupada(db, { ...opciones, pagina: undefined })));
 }
 
 export async function listar<D extends DimensionEnvio = DimensionEnvio>(
+  db: Db,
+  opciones: ConsultaDeLista<D, D>,
+): Promise<ListaPaginada<FilaEnvio>> {
+  return unaVezPorSolicitud(db, claveDe("listarEnvios", opciones.programId, opciones.rango.desde,
+    opciones.rango.hasta, filtrosEfectivos(opciones.filtros), opciones.orden, opciones.pagina), () => leerLista(db, opciones));
+}
+
+async function leerLista<D extends DimensionEnvio = DimensionEnvio>(
   db: Db,
   opciones: ConsultaDeLista<D, D>,
 ): Promise<ListaPaginada<FilaEnvio>> {

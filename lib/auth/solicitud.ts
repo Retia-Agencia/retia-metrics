@@ -1,7 +1,8 @@
 import { cache } from "react";
 
 /**
- * Lecturas de identidad UNA vez por request (perf, 6-nov).
+ * Lecturas de identidad UNA vez por request (perf, 6-nov). Para lecturas generales
+ * de base de datos, el borde compartido vive en `lib/db/por-solicitud.ts`.
  *
  * La capa de identidad (`auth()` con su `revalidarToken`, `sesionEfectiva`, `rolDeVista`,
  * `programasVisibles`) se repetia en el layout, en `paginaConRol` y en la propia pagina:
@@ -34,7 +35,7 @@ export async function esEscritura(): Promise<boolean> {
   return h.get("next-action") != null;
 }
 
-async function esEscrituraOFueraDeRequest(): Promise<boolean> {
+export async function esEscrituraOFueraDeRequest(): Promise<boolean> {
   try {
     return await esEscritura();
   } catch {

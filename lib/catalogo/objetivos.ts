@@ -1,9 +1,10 @@
-import { and, eq, inArray, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { editaObjetivo, esAdministrador, type Rol } from "@/lib/auth/roles";
 import { cohorts, objetivos } from "@/lib/db/schema";
 import { esViolacionCheck } from "@/lib/db/errores";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import {
@@ -138,8 +139,28 @@ function aObjetivo(fila: typeof objetivos.$inferSelect): ObjetivoDeCohorte {
 
 export async function objetivosDeCohortes(db: Db, cohortIds: string[]): Promise<ObjetivoDeCohorte[]> {
   if (cohortIds.length === 0) return [];
-  const filas = await db.select().from(objetivos).where(inArray(objetivos.cohortId, cohortIds));
-  return filas.map(aObjetivo);
+  return unaVezPorSolicitud(db, claveDe("objetivosDeCohortes", cohortIds), async () => {
+    const filas = await db.select().from(objetivos).where(inArray(objetivos.cohortId, cohortIds));
+    return filas.map(aObjetivo);
+  });
+}
+
+export async function metaActivaDeObjetivo(
+  db: Db,
+  cohortId: string,
+  metrica: MetricaObjetivo,
+  area: AreaDeObjetivo | null,
+) {
+  return unaVezPorSolicitud(db, claveDe("metaActivaDeObjetivo", cohortId, metrica, area), () => db
+    .select({ meta: objetivos.meta })
+    .from(objetivos)
+    .where(and(
+      eq(objetivos.cohortId, cohortId),
+      eq(objetivos.metrica, metrica),
+      area === null ? isNull(objetivos.area) : eq(objetivos.area, area),
+      eq(objetivos.activo, true),
+    ))
+    .limit(1));
 }
 
 async function datosDeCupos(db: Db, cohortId: string, excluirId?: string, bloquear = false) {

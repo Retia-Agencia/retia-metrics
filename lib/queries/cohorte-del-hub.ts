@@ -2,6 +2,7 @@ import { and, desc, eq, min, sql } from "drizzle-orm";
 import { z } from "zod";
 import { cohorts, leads } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import type { CohorteVieja } from "@/lib/periodo";
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
@@ -40,6 +41,12 @@ export interface CohorteDelHub {
   opciones: OpcionDeCohorte[];
 }
 
+async function cohortesDelHub(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("cohortesDelHub", programId), () => db.select().from(cohorts)
+    .where(eq(cohorts.programId, programId))
+    .orderBy(desc(cohorts.fechaInicioClases), desc(cohorts.id)));
+}
+
 /** La cohorte inmediatamente anterior a `cohorte` por inicio de clases (el orden de `ventanasAnterioresDeCohorte`). */
 function anteriorDe(todas: (typeof cohorts.$inferSelect)[], cohorte: typeof cohorts.$inferSelect) {
   if (!cohorte.fechaInicioClases) return null;
@@ -54,17 +61,18 @@ export async function cohorteDelHub(
   programId: string,
   pedido: { parametro?: string; cohorteVieja?: CohorteVieja },
 ): Promise<CohorteDelHub> {
-  const todas = await db.select().from(cohorts).where(eq(cohorts.programId, programId))
-    .orderBy(desc(cohorts.fechaInicioClases), desc(cohorts.id));
-  const activa = todas.find((c) => c.estado === "activo") ?? null;
-  const opciones = todas.map((c) => ({ id: c.id, codigo: c.codigo, activa: c.id === activa?.id }));
+  return unaVezPorSolicitud(db, claveDe("cohorteDelHub", programId, pedido), async () => {
+    const todas = await cohortesDelHub(db, programId);
+    const activa = todas.find((c) => c.estado === "activo") ?? null;
+    const opciones = todas.map((c) => ({ id: c.id, codigo: c.codigo, activa: c.id === activa?.id }));
 
-  if (pedido.parametro === TODAS_LAS_COHORTES) return { cohorte: null, activa, opciones };
-  const elegida = pedido.parametro ? todas.find((c) => c.id === pedido.parametro) : undefined;
-  if (elegida) return { cohorte: elegida, activa, opciones };
-  // Un enlace viejo con "Cohorte actual/anterior" (periodo) se lee como la cohorte que pedía.
-  if (pedido.cohorteVieja === "anterior" && activa) return { cohorte: anteriorDe(todas, activa), activa, opciones };
-  return { cohorte: activa, activa, opciones };
+    if (pedido.parametro === TODAS_LAS_COHORTES) return { cohorte: null, activa, opciones };
+    const elegida = pedido.parametro ? todas.find((c) => c.id === pedido.parametro) : undefined;
+    if (elegida) return { cohorte: elegida, activa, opciones };
+    // Un enlace viejo con "Cohorte actual/anterior" (periodo) se lee como la cohorte que pedía.
+    if (pedido.cohorteVieja === "anterior" && activa) return { cohorte: anteriorDe(todas, activa), activa, opciones };
+    return { cohorte: activa, activa, opciones };
+  });
 }
 
 export interface ContextoDelFiltro {

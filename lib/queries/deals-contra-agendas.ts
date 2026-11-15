@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Rango } from "@/lib/queries/dashboard";
 import {
   fechaAnclaAgendaCreada,
@@ -99,12 +100,22 @@ export function acumularPorHabil(rango: Rango, conteos: ConteoDelDia[]): PuntoHa
  */
 export async function serieDealsContraAgendas(
   db: Db,
-  { programId, rango, cohorteId }: AlcanceDeSerie,
+  alcance: AlcanceDeSerie,
   /**
    * Una mitad del universo (ticket 372): solo los deals nacidos de un formulario completo, o de un
    * parcial. Con `origen` los deals y los que agendaron salen de la misma mitad; las agendas
    * creadas no se parten (una agenda no tiene formulario), así que esa columna no se lee.
    */
+  origen?: OrigenDeDeal,
+): Promise<SerieDealsContraAgendas> {
+  const { programId, rango, cohorteId } = alcance;
+  return unaVezPorSolicitud(db, claveDe("serieDealsContraAgendas", programId, rango.desde, rango.hasta,
+    cohorteId ?? null, origen ?? null), () => leerSerieDealsContraAgendas(db, alcance, origen));
+}
+
+async function leerSerieDealsContraAgendas(
+  db: Db,
+  { programId, rango, cohorteId }: AlcanceDeSerie,
   origen?: OrigenDeDeal,
 ): Promise<SerieDealsContraAgendas> {
   const alcance = { programId, rango, cohorteId };

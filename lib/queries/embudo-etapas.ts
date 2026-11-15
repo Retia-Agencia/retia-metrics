@@ -1,6 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { cohorts, deals, dealEtapaHistorial, motivos, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ETAPAS_EN_ORDEN, esEtapaVendida, type EtapaDeal } from "@/lib/deals/etapas";
 import { diaDeCalendario, diasHabilesEntre, esDiaHabil } from "@/lib/dias-habiles";
 import { cerradosEn, esReversaDeVenta } from "@/lib/queries/metricas-filtros";
@@ -464,44 +465,23 @@ export async function embudoPorEtapas(
  * Las filas que el nucleo puro necesita, tal como las lee la cifra del dashboard. La lista de
  * cada cifra (ticket 188) carga LO MISMO y recalcula, asi que no puede discrepar de la cifra.
  */
-export async function cargarEntradaDelEmbudo(
+export function cargarEntradaDelEmbudo(
   db: Db,
-  { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
+  alcance: { programId: string; rango: Rango; cohorteId?: string | null },
   ahora: Date = new Date(),
 ): Promise<EntradaCalculoEmbudo> {
+  return unaVezPorSolicitud(db, claveDe("cargarEntradaDelEmbudo", alcance.programId, alcance.rango.desde,
+    alcance.rango.hasta, alcance.cohorteId ?? null, ahora), () => leerEntradaDelEmbudo(db, alcance, ahora));
+}
+
+async function leerEntradaDelEmbudo(
+  db: Db,
+  { programId, rango, cohorteId }: { programId: string; rango: Rango; cohorteId?: string | null },
+  ahora: Date,
+): Promise<EntradaCalculoEmbudo> {
   const [filasDeal, filasHistorial, idsCerrados] = await Promise.all([
-    db.select({
-      id: deals.id,
-      etapa: deals.etapa,
-      ownerUserId: deals.ownerUserId,
-      ownerCloserId: users.closerId,
-      ownerNombre: users.nombre,
-      ownerEmail: users.email,
-      createdAt: deals.createdAt,
-      precioUsd: cohorts.precioUsd,
-      motivoNombre: motivos.nombre,
-      cortesia: deals.cortesia,
-    })
-      .from(deals)
-      .leftJoin(users, eq(users.id, deals.ownerUserId))
-      .leftJoin(cohorts, eq(cohorts.id, deals.cohortId))
-      .leftJoin(motivos, eq(motivos.id, deals.motivoId))
-      .where(and(eq(deals.programId, programId), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))),
-    db.select({
-      id: dealEtapaHistorial.id,
-      dealId: dealEtapaHistorial.dealId,
-      de: dealEtapaHistorial.de,
-      a: dealEtapaHistorial.a,
-      fecha: dealEtapaHistorial.fecha,
-    })
-      .from(dealEtapaHistorial)
-      .innerJoin(deals, and(
-        eq(deals.id, dealEtapaHistorial.dealId),
-        eq(deals.programId, programId),
-        cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
-        vigente(deals),
-      ))
-      .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id)),
+    dealsParaEntradaDelEmbudo(db, programId, cohorteId ?? null),
+    historialParaEntradaDelEmbudo(db, programId, cohorteId ?? null),
     cerradosEn(db, programId, rango, cohorteId),
   ]);
 
@@ -524,6 +504,44 @@ export async function cargarEntradaDelEmbudo(
     rango,
     ahora,
   };
+}
+
+async function dealsParaEntradaDelEmbudo(db: Db, programId: string, cohorteId: string | null) {
+  return unaVezPorSolicitud(db, claveDe("dealsParaEntradaDelEmbudo", programId, cohorteId), () => db.select({
+    id: deals.id,
+    etapa: deals.etapa,
+    ownerUserId: deals.ownerUserId,
+    ownerCloserId: users.closerId,
+    ownerNombre: users.nombre,
+    ownerEmail: users.email,
+    createdAt: deals.createdAt,
+    precioUsd: cohorts.precioUsd,
+    motivoNombre: motivos.nombre,
+    cortesia: deals.cortesia,
+  })
+    .from(deals)
+    .leftJoin(users, eq(users.id, deals.ownerUserId))
+    .leftJoin(cohorts, eq(cohorts.id, deals.cohortId))
+    .leftJoin(motivos, eq(motivos.id, deals.motivoId))
+    .where(and(eq(deals.programId, programId), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))));
+}
+
+async function historialParaEntradaDelEmbudo(db: Db, programId: string, cohorteId: string | null) {
+  return unaVezPorSolicitud(db, claveDe("historialParaEntradaDelEmbudo", programId, cohorteId), () => db.select({
+    id: dealEtapaHistorial.id,
+    dealId: dealEtapaHistorial.dealId,
+    de: dealEtapaHistorial.de,
+    a: dealEtapaHistorial.a,
+    fecha: dealEtapaHistorial.fecha,
+  })
+    .from(dealEtapaHistorial)
+    .innerJoin(deals, and(
+      eq(deals.id, dealEtapaHistorial.dealId),
+      eq(deals.programId, programId),
+      cohorteId ? eq(deals.cohortId, cohorteId) : undefined,
+      vigente(deals),
+    ))
+    .orderBy(asc(dealEtapaHistorial.fecha), asc(dealEtapaHistorial.id)));
 }
 
 /**

@@ -1,8 +1,9 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { cohorts, objetivos, programs } from "@/lib/db/schema";
+import { cohorts } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaHabilAnterior, diaHabilSiguiente, diasHabilesEntre, esDiaHabil, lunesDe, metaDeHoy } from "@/lib/dias-habiles";
 import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { agrupar as agruparAgendas } from "@/lib/queries/hechos/agenda";
@@ -11,6 +12,8 @@ import { agrupar as agruparVentas } from "@/lib/queries/hechos/venta";
 import { grupoDeCitas, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
 import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
+import { muestraMinimaDelPrograma } from "@/lib/programas/hechos";
+import { metaActivaDeObjetivo } from "@/lib/catalogo/objetivos";
 
 /** Las ventanas que se pueden escoger en pantalla (`?ritmo=`), en días hábiles. */
 export const OPCIONES_VENTANA_RITMO = [5, 10, 20] as const;
@@ -378,6 +381,18 @@ const total = <T extends "ventas" | "agendas" | "envios">(
 
 const menor = (a: string, b: string) => (a < b ? a : b);
 
+async function cohortesParaProyeccion(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("cohortesParaProyeccion", programId), () => db.select({
+    id: cohorts.id,
+    codigo: cohorts.codigo,
+    estado: cohorts.estado,
+    metaCupos: cohorts.metaCupos,
+    metaLeadsDia: cohorts.metaLeadsDia,
+    fechaInicioVentas: cohorts.fechaInicioVentas,
+    fechaCierreVentas: cohorts.fechaCierreVentas,
+  }).from(cohorts).where(eq(cohorts.programId, programId)));
+}
+
 /** Lee una sola frontera de programa y delega todos los conteos a la capa de hechos y al grupo del ADR 0079. */
 export async function leerProyeccion(
   { programId, hoy, ahora = new Date(), ventanaDiasHabiles = VENTANA_RITMO_POR_DEFECTO }: {
@@ -389,17 +404,9 @@ export async function leerProyeccion(
   db: Db = dbDeLaApp,
 ): Promise<ProyeccionDeCohorte> {
   const ventanaInicial = inicioDeVentana(hoy, ventanaDiasHabiles);
-  const [programa] = await db.select({ muestraMinima: programs.muestraMinimaConversion }).from(programs).where(eq(programs.id, programId));
+  const [programa] = await muestraMinimaDelPrograma(db, programId);
   const muestraMinima = programa?.muestraMinima ?? MUESTRA_MINIMA_CONVERSION;
-  const cohortes = await db.select({
-    id: cohorts.id,
-    codigo: cohorts.codigo,
-    estado: cohorts.estado,
-    metaCupos: cohorts.metaCupos,
-    metaLeadsDia: cohorts.metaLeadsDia,
-    fechaInicioVentas: cohorts.fechaInicioVentas,
-    fechaCierreVentas: cohorts.fechaCierreVentas,
-  }).from(cohorts).where(eq(cohorts.programId, programId));
+  const cohortes = await cohortesParaProyeccion(db, programId);
   const cohorte = cohortes.find((c) => c.estado === "activo");
 
   if (!cohorte?.fechaInicioVentas || !cohorte.fechaCierreVentas) {
@@ -423,12 +430,7 @@ export async function leerProyeccion(
   const ventanaDesde = ventanaRecortada ? cohorte.fechaInicioVentas : ventanaInicial;
   const ventanaHasta = menor(cohorte.fechaCierreVentas, hoy);
   const rangoVentana = { desde: ventanaDesde, hasta: ventanaHasta };
-  const [objetivo] = await db.select({ meta: objetivos.meta }).from(objetivos).where(and(
-    eq(objetivos.cohortId, cohorte.id),
-    eq(objetivos.metrica, "conversion_agenda_venta"),
-    isNull(objetivos.area),
-    eq(objetivos.activo, true),
-  )).limit(1);
+  const [objetivo] = await metaActivaDeObjetivo(db, cohorte.id, "conversion_agenda_venta", null);
   const [ventasDeLaCohorteHoy, ventasVentana, agendasVentana, registrosVentana] = await Promise.all([
     ventasDeLaCohorte(db, cohorte.id, hoy),
     agruparVentas(db, { programId, rango: rangoVentana, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { META_LEADS_DIA_POR_DEFECTO } from "@/lib/cohortes-por-defecto";
 import { changeLog, cohorts, estadoCohorteEnum } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando as normalizandoZod } from "@/lib/errors-zod";
@@ -261,7 +262,10 @@ const MENSAJE_UNA_ACTIVA =
 
 /** Lista las cohortes de un programa. */
 export async function listarCohortes(db: Db, programId: string) {
-  return db.select().from(cohorts).where(eq(cohorts.programId, idValido(programId)));
+  const id = idValido(programId);
+  const filas = await unaVezPorSolicitud(db, claveDe("listarCohortes", id), () =>
+    db.select().from(cohorts).where(eq(cohorts.programId, id)));
+  return [...filas];
 }
 
 /** Crea una cohorte. Si nace activa, respeta la regla de una sola activa por programa. */

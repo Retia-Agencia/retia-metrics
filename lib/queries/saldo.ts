@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { abonos, deals } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
 /**
@@ -42,13 +43,13 @@ export interface DescuentoDeDeal {
 /** El valor vendido de cada deal elegido por id (`null` si no lo tiene): una sola lectura, sin convertir. */
 export async function valoresVendidosDeDeals(db: Db, dealIds: readonly string[]): Promise<Map<string, number | null>> {
   if (dealIds.length === 0) return new Map();
-
-  const filas = await db
-    .select({ id: deals.id, valorVendidoUsd: deals.valorVendidoUsd })
-    .from(deals)
-    .where(and(inArray(deals.id, [...dealIds]), vigente(deals)));
-
-  return new Map(filas.map((fila) => [fila.id, fila.valorVendidoUsd == null ? null : Number(fila.valorVendidoUsd)]));
+  return unaVezPorSolicitud(db, claveDe("valoresVendidosDeDeals", dealIds), async () => {
+    const filas = await db
+      .select({ id: deals.id, valorVendidoUsd: deals.valorVendidoUsd })
+      .from(deals)
+      .where(and(inArray(deals.id, [...dealIds]), vigente(deals)));
+    return new Map(filas.map((fila) => [fila.id, fila.valorVendidoUsd == null ? null : Number(fila.valorVendidoUsd)]));
+  });
 }
 
 /** Descuento derivado del ticket de la cohorte y el total congelado del deal. */
@@ -66,50 +67,52 @@ export function descuentoDeDeal(
 
 /** El saldo de varios deals de una vez, por id. Un deal que no existe no aparece. */
 export async function saldosDeDeals(db: Db, dealIds: readonly string[]): Promise<Map<string, SaldoDeDeal>> {
-  const resultado = new Map<string, SaldoDeDeal>();
-  if (dealIds.length === 0) return resultado;
+  if (dealIds.length === 0) return new Map();
+  return unaVezPorSolicitud(db, claveDe("saldosDeDeals", dealIds), async () => {
+    const resultado = new Map<string, SaldoDeDeal>();
 
   // `incluyendoAnulados(deals)`: esto no es una metrica sobre deals, es el saldo de
   // deals que el llamador ya eligio por id. Si un deal anulado cuenta o no lo decide
   // quien llama.
   // Son dos lecturas independientes: se piden juntas (una ida a la base, no dos).
-  const [precios, sumas] = await Promise.all([
-    db
-      .select({ dealId: deals.id, precio: deals.valorVendidoUsd })
-      .from(deals)
-      .where(and(inArray(deals.id, [...dealIds]), incluyendoAnulados(deals))),
-    db
-      .select({
-        dealId: abonos.dealId,
-        moneda: abonos.moneda,
-        total: sumaDeAbonos(),
-        cuantos: sql<number>`count(*)::int`,
-      })
-      .from(abonos)
-      .where(and(inArray(abonos.dealId, [...dealIds]), eq(abonos.concepto, "ticket"), vigente(abonos)))
-      .groupBy(abonos.dealId, abonos.moneda),
-  ]);
+    const [precios, sumas] = await Promise.all([
+      db
+        .select({ dealId: deals.id, precio: deals.valorVendidoUsd })
+        .from(deals)
+        .where(and(inArray(deals.id, [...dealIds]), incluyendoAnulados(deals))),
+      db
+        .select({
+          dealId: abonos.dealId,
+          moneda: abonos.moneda,
+          total: sumaDeAbonos(),
+          cuantos: sql<number>`count(*)::int`,
+        })
+        .from(abonos)
+        .where(and(inArray(abonos.dealId, [...dealIds]), eq(abonos.concepto, "ticket"), vigente(abonos)))
+        .groupBy(abonos.dealId, abonos.moneda),
+    ]);
 
-  for (const p of precios) {
-    const suyas = sumas.filter((s) => s.dealId === p.dealId);
-    const abonado = suyas.reduce((acc, s) => acc + Number(s.total), 0);
-    const abonosVigentes = suyas.reduce((acc, s) => acc + Number(s.cuantos), 0);
-    const precio = p.precio == null ? null : Number(p.precio);
-    const moneda = "USD";
-    const monedaDistinta = suyas.some((s) => s.moneda !== moneda);
+    for (const p of precios) {
+      const suyas = sumas.filter((s) => s.dealId === p.dealId);
+      const abonado = suyas.reduce((acc, s) => acc + Number(s.total), 0);
+      const abonosVigentes = suyas.reduce((acc, s) => acc + Number(s.cuantos), 0);
+      const precio = p.precio == null ? null : Number(p.precio);
+      const moneda = "USD";
+      const monedaDistinta = suyas.some((s) => s.moneda !== moneda);
 
-    const sinSaldoPorque = precio == null ? "sin_valor_vendido" : monedaDistinta ? "moneda_distinta" : null;
-    resultado.set(p.dealId, {
-      precio,
-      moneda,
-      // Con monedas mezcladas, "abonado" tampoco es una cifra: se deja en 0 y el saldo en null.
-      abonado: monedaDistinta ? 0 : abonado,
-      abonosVigentes,
-      saldo: sinSaldoPorque ? null : Math.round((precio! - abonado) * 100) / 100,
-      sinSaldoPorque,
-    });
-  }
-  return resultado;
+      const sinSaldoPorque = precio == null ? "sin_valor_vendido" : monedaDistinta ? "moneda_distinta" : null;
+      resultado.set(p.dealId, {
+        precio,
+        moneda,
+        // Con monedas mezcladas, "abonado" tampoco es una cifra: se deja en 0 y el saldo en null.
+        abonado: monedaDistinta ? 0 : abonado,
+        abonosVigentes,
+        saldo: sinSaldoPorque ? null : Math.round((precio! - abonado) * 100) / 100,
+        sinSaldoPorque,
+      });
+    }
+    return resultado;
+  });
 }
 
 /** Suma decimal de abonos: cada lector decide su alcance y agrupa siempre por moneda. */

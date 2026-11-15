@@ -1,6 +1,7 @@
 import { and, asc, gte, lte } from "drizzle-orm";
 import { tasasCambio } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { fecha, num } from "@/lib/format";
 import { desplazarFecha, fechaBogotaSchema } from "./fecha";
 
@@ -11,38 +12,40 @@ export async function tasasDelRango(
 ): Promise<{ porDia: Map<string, number>; faltantes: string[]; etiqueta: string | null }> {
   fechaBogotaSchema.parse(desde);
   fechaBogotaSchema.parse(hasta);
-  const filas = await db.select({
-    vigenteDesde: tasasCambio.vigenteDesde,
-    vigenteHasta: tasasCambio.vigenteHasta,
-    pesosPorDolar: tasasCambio.pesosPorDolar,
-  }).from(tasasCambio).where(and(
-    lte(tasasCambio.vigenteDesde, hasta),
-    gte(tasasCambio.vigenteHasta, desde),
-  )).orderBy(asc(tasasCambio.vigenteDesde));
+  return unaVezPorSolicitud(db, claveDe("tasas", desde, hasta), async () => {
+    const filas = await db.select({
+      vigenteDesde: tasasCambio.vigenteDesde,
+      vigenteHasta: tasasCambio.vigenteHasta,
+      pesosPorDolar: tasasCambio.pesosPorDolar,
+    }).from(tasasCambio).where(and(
+      lte(tasasCambio.vigenteDesde, hasta),
+      gte(tasasCambio.vigenteHasta, desde),
+    )).orderBy(asc(tasasCambio.vigenteDesde));
 
-  const porDia = new Map<string, number>();
-  const faltantes: string[] = [];
-  const publicacionesUsadas = new Map<string, { valor: number; vigenteDesde: string }>();
-  for (let dia = desde; dia <= hasta; dia = desplazarFecha(dia, 1)) {
-    const fila = filas.find((candidata) => candidata.vigenteDesde <= dia && dia <= candidata.vigenteHasta);
-    if (!fila) {
-      faltantes.push(dia);
-      continue;
+    const porDia = new Map<string, number>();
+    const faltantes: string[] = [];
+    const publicacionesUsadas = new Map<string, { valor: number; vigenteDesde: string }>();
+    for (let dia = desde; dia <= hasta; dia = desplazarFecha(dia, 1)) {
+      const fila = filas.find((candidata) => candidata.vigenteDesde <= dia && dia <= candidata.vigenteHasta);
+      if (!fila) {
+        faltantes.push(dia);
+        continue;
+      }
+      const valor = Number(fila.pesosPorDolar);
+      porDia.set(dia, valor);
+      publicacionesUsadas.set(fila.vigenteDesde, { valor, vigenteDesde: fila.vigenteDesde });
     }
-    const valor = Number(fila.pesosPorDolar);
-    porDia.set(dia, valor);
-    publicacionesUsadas.set(fila.vigenteDesde, { valor, vigenteDesde: fila.vigenteDesde });
-  }
 
-  const publicaciones = [...publicacionesUsadas.values()];
-  const valores = [...new Set(publicaciones.map((publicacion) => publicacion.valor))];
-  let etiqueta: string | null = null;
-  if (valores.length === 1) {
-    etiqueta = etiquetaUnica(valores[0], publicaciones[0].vigenteDesde);
-  } else if (valores.length > 1) {
-    etiqueta = `TRM ${num(Math.min(...valores))} a ${num(Math.max(...valores))}`;
-  }
-  return { porDia, faltantes, etiqueta };
+    const publicaciones = [...publicacionesUsadas.values()];
+    const valores = [...new Set(publicaciones.map((publicacion) => publicacion.valor))];
+    let etiqueta: string | null = null;
+    if (valores.length === 1) {
+      etiqueta = etiquetaUnica(valores[0], publicaciones[0].vigenteDesde);
+    } else if (valores.length > 1) {
+      etiqueta = `TRM ${num(Math.min(...valores))} a ${num(Math.max(...valores))}`;
+    }
+    return { porDia, faltantes, etiqueta };
+  });
 }
 
 function etiquetaUnica(valor: number, vigenteDesde: string): string {

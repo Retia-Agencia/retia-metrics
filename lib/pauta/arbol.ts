@@ -2,6 +2,7 @@ import { inArray } from "drizzle-orm";
 import type { ArbolDePauta } from "@/lib/atribucion/emparejar";
 import { pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 function arbolDesdeFilas(filas: {
   idMeta: string;
@@ -48,5 +49,6 @@ export async function arbolesDePauta(db: Db, programIds: string[]): Promise<Map<
 
 /** Proyección mínima del árbol de Meta que consume el emparejador de atribución. */
 export async function arbolDePauta(db: Db, programId: string): Promise<ArbolDePauta> {
-  return (await arbolesDePauta(db, [programId])).get(programId)!;
+  return unaVezPorSolicitud(db, claveDe("arbolDePauta", programId), async () =>
+    (await arbolesDePauta(db, [programId])).get(programId)!);
 }

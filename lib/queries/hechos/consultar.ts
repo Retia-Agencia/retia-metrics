@@ -23,6 +23,14 @@ export function condicionesDeFiltros<D extends Dimension>(
   return and(...condiciones);
 }
 
+/** La forma efectiva del filtro: SQL ignora propiedades ausentes, `undefined` y arreglos vacios. */
+export function filtrosEfectivos<D extends Dimension>(filtros: Filtros<D> | undefined): Filtros<D> | undefined {
+  if (!filtros) return undefined;
+  const entradas = Object.entries(filtros)
+    .filter(([, valores]) => Array.isArray(valores) && valores.length > 0);
+  return entradas.length === 0 ? undefined : Object.fromEntries(entradas) as Filtros<D>;
+}
+
 export function expresionDeOrden<C extends string>(
   columnas: Expresiones<C>,
   orden: Orden<C> | undefined,

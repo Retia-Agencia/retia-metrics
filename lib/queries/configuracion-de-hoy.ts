@@ -2,6 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { cohorts, objetivos, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 export interface DatosConfiguracionHoy {
   programa: {
@@ -18,6 +19,14 @@ export interface DatosConfiguracionHoy {
 export async function leerConfiguracionDeHoy(
   programId: string,
   db: Db = dbDeLaApp,
+): Promise<DatosConfiguracionHoy | null> {
+  return unaVezPorSolicitud(db, claveDe("leerConfiguracionDeHoy", programId), () =>
+    leerConfiguracion(programId, db));
+}
+
+async function leerConfiguracion(
+  programId: string,
+  db: Db,
 ): Promise<DatosConfiguracionHoy | null> {
   const [[programa], [cohorte]] = await Promise.all([
     db.select({

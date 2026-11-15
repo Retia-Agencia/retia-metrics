@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { etapasQueExigen } from "@/lib/deals/requisitos";
 import { tasa } from "@/lib/queries/dashboard";
@@ -98,6 +99,14 @@ export interface BanderasDelPulso {
 export async function banderasDelPulso(
   alcance: { programId: string; claveCloser?: string | null; cohorteId?: string | null },
   db: Db = dbDeLaApp,
+): Promise<BanderasDelPulso> {
+  return unaVezPorSolicitud(db, claveDe("banderasDelPulso", alcance.programId,
+    alcance.claveCloser ?? null, alcance.cohorteId ?? null), () => leerBanderasDelPulso(alcance, db));
+}
+
+async function leerBanderasDelPulso(
+  alcance: { programId: string; claveCloser?: string | null; cohorteId?: string | null },
+  db: Db,
 ): Promise<BanderasDelPulso> {
   const [fila] = await db
     .select({

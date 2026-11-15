@@ -4,6 +4,7 @@ import { proporcionDeOrigen } from "@/lib/atribucion/proporcion";
 import { emparejarFilaDeEnvio, type Traza } from "@/lib/atribucion/emparejar";
 import { cuentasPublicitarias, pautaObjetos, piezas } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { arbolDePauta } from "@/lib/pauta/arbol";
 import { agruparTrazas as agruparTrazasDeAgendas } from "@/lib/queries/hechos/agenda";
@@ -110,7 +111,7 @@ export async function origenDelPrograma(
     agruparTrazas(db, args),
     agruparTrazasDeAgendas(db, args),
     arbolDePauta(db, args.programId),
-    db.select({
+    unaVezPorSolicitud(db, claveDe("anunciosActivosParaOrigen", args.programId), () => db.select({
       cuenta: cuentasPublicitarias.nombre,
       idMeta: pautaObjetos.idMeta,
       nombre: pautaObjetos.nombre,
@@ -123,12 +124,12 @@ export async function origenDelPrograma(
         eq(pautaObjetos.nivel, "anuncio"),
         inArray(pautaObjetos.estado, ["ACTIVE", "active"]),
         eq(cuentasPublicitarias.activo, true),
-      )),
-    db.select({
+      ))),
+    unaVezPorSolicitud(db, claveDe("objetosDePautaParaOrigen", args.programId), () => db.select({
       idMeta: pautaObjetos.idMeta,
       nombre: pautaObjetos.nombre,
       padreIdMeta: pautaObjetos.padreIdMeta,
-    }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId)),
+    }).from(pautaObjetos).where(eq(pautaObjetos.programId, args.programId))),
     // Solo las piezas de ESTE programa (frontera, ADR 0043): el codigo de una pieza de otro
     // programa no se reconoce y cae en `pieza_desconocida`, igual que uno que no existe.
     // Se leen TAMBIEN las anuladas (incluyendoAnulados): esto no es una metrica, es el dato del

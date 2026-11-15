@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { porClaveDeDeal, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -29,19 +30,21 @@ export async function ventasDeLaCohorte(
   hasta: string,
   claveCloser?: string | null,
 ): Promise<VentaDeLaCohorte[]> {
-  const vendidas = ventasConDiaEn(db, { desde: DESDE_SIEMPRE, hasta }).as("ventas_de_la_cohorte");
-  const columnas = { dealId: vendidas.dealId, dia: vendidas.dia };
-  // `vendidas` ya trae `vigente(deals)` adentro (`ventasConDiaEn`): `incluyendoAnulados` lo dice como en hechos/venta.
-  // `vigente(deals)` va DENTRO de cada cadena: el guardián de vigencia lee cadena por cadena.
-  const filas = claveCloser == null
-    ? await db.select(columnas).from(vendidas)
-        .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
-        .where(and(eq(deals.cohortId, cohorteId), incluyendoAnulados(vendidas)))
-    : await db.select(columnas).from(vendidas)
-        .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
-        .innerJoin(users, eq(users.id, deals.ownerUserId))
-        .where(and(eq(deals.cohortId, cohorteId), porClaveDeDeal(claveCloser), incluyendoAnulados(vendidas)));
-  return filas.map(({ dealId, dia }) => ({ dealId, dia: diaDeCalendario(dia) }));
+  return unaVezPorSolicitud(db, claveDe("ventasDeLaCohorte", cohorteId, hasta, claveCloser), async () => {
+    const vendidas = ventasConDiaEn(db, { desde: DESDE_SIEMPRE, hasta }).as("ventas_de_la_cohorte");
+    const columnas = { dealId: vendidas.dealId, dia: vendidas.dia };
+    // `vendidas` ya trae `vigente(deals)` adentro (`ventasConDiaEn`): `incluyendoAnulados` lo dice como en hechos/venta.
+    // `vigente(deals)` va DENTRO de cada cadena: el guardián de vigencia lee cadena por cadena.
+    const filas = claveCloser == null
+      ? await db.select(columnas).from(vendidas)
+          .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
+          .where(and(eq(deals.cohortId, cohorteId), incluyendoAnulados(vendidas)))
+      : await db.select(columnas).from(vendidas)
+          .innerJoin(deals, and(eq(deals.id, vendidas.dealId), vigente(deals)))
+          .innerJoin(users, eq(users.id, deals.ownerUserId))
+          .where(and(eq(deals.cohortId, cohorteId), porClaveDeDeal(claveCloser), incluyendoAnulados(vendidas)));
+    return filas.map(({ dealId, dia }) => ({ dealId, dia: diaDeCalendario(dia) }));
+  });
 }
 
 /**

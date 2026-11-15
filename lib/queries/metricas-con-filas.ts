@@ -5,6 +5,7 @@ import type { PgColumn } from "drizzle-orm/pg-core";
 import { db as dbDeLaApp } from "@/lib/db";
 import { citaPorVenirDeDealAbierto, noAsistio, noAsistioSql, ocurrio, ocurrioSql } from "@/lib/deals/resultados-de-llamada";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
 import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
@@ -102,6 +103,17 @@ export const METRICAS_SIN_CLOSER: readonly Metrica[] = [
 /** Las métricas que son una foto de hoy: el periodo no las acota (las banderas del 191). */
 export const METRICAS_FOTO_DE_HOY: readonly Metrica[] = ["atendidos_sin_valor", "atendidos_sin_grain", "perdidos_con_pagos"];
 export const TAMANO_PAGINA = 50;
+
+function dependeDelReloj(metrica: Metrica): boolean {
+  return metrica === "citas_debidas"
+    || metrica === "citas_sin_marcar"
+    || metrica === "agendas_futuras"
+    || metrica === "sin_resultado"
+    || metrica === "pauta_meta"
+    || metrica === "escalera"
+    || esMetricaDeGrupo(metrica)
+    || esMetricaDeEmbudo(metrica);
+}
 
 /** La misma reja que abre cada lista del Hub, compartida por la página y otros clientes. */
 export function capacidadParaMetrica({
@@ -942,6 +954,32 @@ async function leerMetrica(
   pagina: number | null,
   db: Db,
 ): Promise<FilaDeMetrica[]> {
+  if (dependeDelReloj(metrica) && filtros.ahora === undefined) {
+    return leerMetricaSinMemoria(metrica, alcance, filtros, pagina, db);
+  }
+  const filtrosDeClave: Partial<FiltrosDeMetrica> = {
+    ...filtros,
+    programId: alcance.programId,
+    rango: alcance.rango,
+    claveCloser: alcance.claveCloser ?? null,
+    cohorteId: alcance.cohorteId ?? null,
+  };
+  if (!dependeDelReloj(metrica)) delete filtrosDeClave.ahora;
+  const filtrosNormalizados = Object.fromEntries(
+    Object.entries(filtrosDeClave).filter(([, valor]) => valor !== undefined),
+  );
+  return unaVezPorSolicitud(db, claveDe("leerMetrica", metrica, alcance.programId, alcance.rango.desde,
+    alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null, filtrosNormalizados, pagina), () =>
+    leerMetricaSinMemoria(metrica, alcance, filtros, pagina, db));
+}
+
+async function leerMetricaSinMemoria(
+  metrica: Metrica,
+  alcance: Alcance,
+  filtros: FiltrosDeMetrica,
+  pagina: number | null,
+  db: Db,
+): Promise<FilaDeMetrica[]> {
   if (metrica === "pauta_meta") return leerMetricaDePauta(alcance, filtros, pagina, db);
   if (esMetricaDeGrupo(metrica)) return leerMetricaDeGrupo(metrica, alcance, filtros, pagina, db);
   if (esMetricaDeEmbudo(metrica)) return leerMetricaDeEmbudo(metrica, alcance, filtros, pagina, db);
@@ -1058,51 +1096,60 @@ export function esListaDeVentas(metrica: Metrica, filtros: Pick<FiltrosDeMetrica
 }
 
 /** Los deals de una lista de ventas, sin paginar: el MISMO universo que la cifra y que la lista. */
+async function dealsLeidosDelArea(db: Db, programId: string, area: string) {
+  return unaVezPorSolicitud(db, claveDe("dealsLeidosDelArea", programId, area), () =>
+    dealsDelArea(db, programId, area));
+}
+
 async function dealsDeLaListaDeVentas(metrica: Metrica, alcance: Alcance, filtros: FiltrosDeMetrica, db: Db): Promise<string[]> {
   if (metrica === "escalera") return (await miembrosDeLaEscalera(alcance, filtros, db)).map((m) => m.dealId);
   const ids = (await ventasDelRangoConValor(alcance, db)).map((venta) => venta.dealId);
   if (!filtros.area || ids.length === 0) return ids;
   // El dinero de la lista sale de las MISMAS filas: con área, solo las ventas de esa área.
-  const delArea = new Set((await dealsDelArea(db, alcance.programId, filtros.area)).map((fila) => fila.id));
+  const delArea = new Set((await dealsLeidosDelArea(db, alcance.programId, filtros.area)).map((fila) => fila.id));
   return ids.filter((id) => delArea.has(id));
 }
 
 /** Una sección por programa: no existe una salida que mezcle sus filas. */
 export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetrica, db: Db = dbDeLaApp): Promise<ResumenDeMetrica[]> {
-  const programas = typeof filtros.programId === "string" ? [filtros.programId] : [...new Set(filtros.programId)];
-  return Promise.all(programas.map(async (programId) => {
-    const gruposLeidos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
-    const grupos = metrica === "contratado"
-      ? await Promise.all(gruposLeidos.map(async (grupo) => ({
-          ...grupo,
-          monto: (await dineroDeVentas(db, grupo.dealIds ?? [])).vendido,
-        })))
-      : gruposLeidos;
-    const dinero = esListaDeVentas(metrica, filtros)
-      ? await dineroDeVentas(db, await dealsDeLaListaDeVentas(metrica, { ...filtros, programId }, filtros, db))
-      : undefined;
-    const subtotalDelResumen = subtotal(grupos);
-    const subtotalCentralizado = dinero
-      ? { ...subtotalDelResumen, caja: [{ moneda: "USD", total: dinero.vendido }] }
-      : subtotalDelResumen;
-    return {
-      programId,
-      disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
-      subtotal: subtotalCentralizado,
-      ...(dinero ? { dinero } : {}),
-      grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
-        dealId: null,
-        closer,
-        claveCloser,
-        etapa,
-        bucket,
-        moneda,
-        monto,
-        cantidad,
-        persona: null,
-      })),
-    };
-  }));
+  const leer = async () => {
+    const programas = typeof filtros.programId === "string" ? [filtros.programId] : [...new Set(filtros.programId)];
+    return Promise.all(programas.map(async (programId) => {
+      const gruposLeidos = await leerMetrica(metrica, { ...filtros, programId }, filtros, null, db);
+      const grupos = metrica === "contratado"
+        ? await Promise.all(gruposLeidos.map(async (grupo) => ({
+            ...grupo,
+            monto: (await dineroDeVentas(db, grupo.dealIds ?? [])).vendido,
+          })))
+        : gruposLeidos;
+      const dinero = esListaDeVentas(metrica, filtros)
+        ? await dineroDeVentas(db, await dealsDeLaListaDeVentas(metrica, { ...filtros, programId }, filtros, db))
+        : undefined;
+      const subtotalDelResumen = subtotal(grupos);
+      const subtotalCentralizado = dinero
+        ? { ...subtotalDelResumen, caja: [{ moneda: "USD", total: dinero.vendido }] }
+        : subtotalDelResumen;
+      return {
+        programId,
+        disponible: !(METRICAS_SIN_CLOSER.includes(metrica) && filtros.claveCloser),
+        subtotal: subtotalCentralizado,
+        ...(dinero ? { dinero } : {}),
+        grupos: grupos.map(({ closer, claveCloser, etapa, bucket, moneda, monto, cantidad }) => ({
+          dealId: null,
+          closer,
+          claveCloser,
+          etapa,
+          bucket,
+          moneda,
+          monto,
+          cantidad,
+          persona: null,
+        })),
+      };
+    }));
+  };
+  if (filtros.ahora === undefined && dependeDelReloj(metrica)) return leer();
+  return unaVezPorSolicitud(db, claveDe("resumenDeMetrica", metrica, filtros), leer);
 }
 
 /**
@@ -1115,9 +1162,16 @@ export async function fechasDeMetrica(
   filtros: FiltrosDeMetrica & { programId: string },
   db: Db = dbDeLaApp,
 ): Promise<string[]> {
-  const fuente = fuenteDe(metrica);
-  const filas = await consultaDe(metrica, camposDe(metrica, fuente, filtros.hoy, false), filtros, filtros, db);
-  return filas.map((f) => f.fecha);
+  const leer = async () => {
+    const fuente = fuenteDe(metrica);
+    const filas = await consultaDe(metrica, camposDe(metrica, fuente, filtros.hoy, false), filtros, filtros, db);
+    return filas.map((f) => f.fecha);
+  };
+  if (filtros.ahora === undefined) return leer();
+  const filtrosNormalizados = Object.fromEntries(
+    Object.entries(filtros).filter(([, valor]) => valor !== undefined),
+  );
+  return unaVezPorSolicitud(db, claveDe("fechasDeMetrica", metrica, filtrosNormalizados), leer);
 }
 
 /**

@@ -1,6 +1,7 @@
 import { and, eq, inArray, lte } from "drizzle-orm";
 import { calls, deals, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Alcance } from "@/lib/queries/dashboard";
 import {
   fechaAnclaCall,
@@ -69,11 +70,26 @@ export function pasosDelEmbudoComercial(
 }
 
 /** Carga los hechos una vez y delega la aritmética al núcleo puro. */
-export async function cargarEmbudoComercial(
+export function cargarEmbudoComercial(
   db: Db,
   alcance: Alcance,
   origen?: OrigenEmbudoComercial,
 ): Promise<PasoDelEmbudoComercial[]> {
+  return dealsDelEmbudoComercial(db, alcance).then((filas) => pasosDelEmbudoComercial(filas, origen));
+}
+
+async function dealsDelEmbudoComercial(
+  db: Db,
+  alcance: Alcance,
+): Promise<DealParaEmbudoComercial[]> {
+  return unaVezPorSolicitud(db, claveDe("dealsDelEmbudoComercial", alcance.programId, alcance.rango.desde,
+    alcance.rango.hasta, alcance.claveCloser, alcance.cohorteId), () => leerDealsDelEmbudoComercial(db, alcance));
+}
+
+async function leerDealsDelEmbudoComercial(
+  db: Db,
+  alcance: Alcance,
+): Promise<DealParaEmbudoComercial[]> {
   const ventasDelRango = ventasConDiaEn(db, alcance.rango).as("ventas_embudo_comercial");
   const base = () => db.select({ dealId: deals.id })
     .from(deals)
@@ -107,13 +123,13 @@ export async function cargarEmbudoComercial(
   const idsShows = new Set(shows.flatMap((fila) => fila.dealId ? [fila.dealId] : []));
   const idsVentas = new Set(ventas.map((fila) => fila.dealId));
 
-  return pasosDelEmbudoComercial(creados.map(({ dealId }) => ({
+  return creados.map(({ dealId }) => ({
     dealId,
     origen: idsCompletos.has(dealId) ? "completo" : idsParciales.has(dealId) ? "parcial" : "manual",
     agendo: idsAgendaron.has(dealId),
     tuvoShow: idsShows.has(dealId),
     compro: idsVentas.has(dealId),
-  })), origen);
+  }));
 }
 
 function creadosIdsSubquery(db: Db, alcance: Alcance) {
