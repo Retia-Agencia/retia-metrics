@@ -31,7 +31,7 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
 ```
 ## Memory
 
-### 15-nov (noche) · 437 done; 447 fase 1 en la rama `t447`, PR borrador #24 (sesión de Mani, Codex por /delegate)
+### 15-nov (noche) · 437 done; 447 fase 1 con CI verde en el PR borrador #24 (rama `t447`) (sesión de Mani, Codex por /delegate)
 - **437 cerrado:** CI verde de `282c34e2` (el shard 3 se cortó una vez por el tope de 480 s, sin test rojo, y pasó al
   re-correrlo). Tracker y `status:` en `done`.
 - **447, decidido:** la memoria por solicitud se activa en el test con `vi.mock` de `@/lib/db/por-solicitud` (fábrica real,
@@ -43,18 +43,23 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
   los cuatro mordiscos más el control, trinquete de cobertura de `app/**/page.tsx` con `PENDIENTES_447` y `SIN_CONSULTAS`);
   `lib/queries/hub-todos.ts`, `lib/mi-espacio/cargar-datos.ts` y `lib/mi-espacio/datos-{notificaciones,metricas,canales,por-decidir}.ts`
   (las cuatro tabs quedaron como vistas síncronas).
-- **447, después (Claude, misma sesión, `2c95e5ef` en `t447`):** hechos los puntos que Codex dejó: `puedeTrabajar` volvió a
-  `trabajaLeads(sujeto)`; `cargarDatosDeMiEspacio` lee la tab elegida y sin sección no lee Calendly, enlaces ni programas;
-  `cargarDatosDeHub` corre pauta, origen, comercial y "¿Vamos a llegar?" en paralelo (la página dibuja `VamosALlegarVista`);
-  el `vi.mock` vive en el test (`moduloConMemoria` en el helper); `tests/mi-espacio.test.ts` y `mi-espacio-por-decidir.test.ts`
-  ajustados. Typecheck y lint limpios. **PR borrador [#24](https://github.com/Retia-Agencia/retia-metrics/pull/24)** para que el
-  CI corra el guardián (el CI no corre en ramas sin PR).
-- **447, falta:** (1) leer el CI de #24 y corregir lo que salga (sobre todo los topes y el 3 contra 6 de `/mi-espacio`, nunca
-  corrido); (2) `npm run build` y abrir `/hub` (las cuatro secciones) y `/mi-espacio` (closer, cada tab, y developer con su
-  mensaje del dueño) en `dev:local`, mirando la consola; (3) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447` con
-  topes del estudio §13.3, revisando que ningún componente asíncrono lea datos fuera de su cargador; (4) con CI verde, sacar
-  #24 de borrador, merge, y 447 a `done` en el tracker y en su `status:`.
-- **No verificado:** ningún test del 447 corrió en local (la Mac sin aire: 9 GB de swap); ni build ni pantalla.
+- **447, después (Claude, misma sesión; PR borrador [#24](https://github.com/Retia-Agencia/retia-metrics/pull/24), CI verde
+  en `db2f7c90` con build):**
+  - Mi espacio: `cargarDatosDeMiEspacio` lee la tab elegida (notificaciones, métricas, canales, por decidir) y las cuatro tabs
+    solo dibujan. Para el developer en vista `todo` no lee membresías ni tabs: la página le devuelve el mensaje del dueño antes,
+    como en `282c34e2` (el `!esAccesoTotal` de Codex era correcto; mi "revert" lo rompió y `tests/mi-espacio.test.ts` lo cazó).
+  - `/hub`: `cargarDatosDeHub` corre pauta, origen, comercial y "¿Vamos a llegar?" en paralelo; la página dibuja
+    `VamosALlegarVista`.
+  - **El guardián cazó dos repeticiones reales en `/hub`, ya quitadas:** `inicioDeLaVidaDelPrograma` (`lib/queries/cohorte-del-hub.ts`,
+    la pedían la vista de todos y el reporte diario: 6 idénticas en Hoy) y `dealsDeLaEscalera` (`lib/queries/escalera.ts`, la clave
+    de `cargarEscalera` llevaba `ahora` y el rango: 3 en Comercial).
+  - `medir()` devuelve además las sentencias idénticas y el guardián las imprime al fallar (dice CUÁL, no solo cuántas).
+  - Topes de `/hub` = lo medido en el CI para 3 programas sembrados ANTES de quitar esas idénticas (185, 263, 219, 167): no son
+    comparables con la tabla del 437 (dev:local). Se pueden bajar al conteo nuevo.
+- **447, falta:** (1) recorrido en `dev:local` de `/hub` (cuatro secciones) y `/mi-espacio` (closer en cada tab; developer con su
+  mensaje), mirando la consola: no se hizo (la Mac sin aire); (2) bajar los topes de `/hub` al conteo actual; (3) decidir si #24
+  entra a main como fase 1 o espera la fase 2; (4) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`, revisando que
+  ningún componente asíncrono lea datos fuera de su cargador; (5) con todo, 447 a `done` en el tracker y en su `status:`.
 
 ### 15-nov (tarde) · 437: cero consultas idénticas en el Hub y Mi espacio, sin commitear (sesión de Mani)
 - **Estado:** el código está **sin commitear en el checkout principal** (12 archivos de `lib/` más los tickets 437, 445, 447 y
