@@ -27,8 +27,8 @@ un test con una cita cuyo deal está anulado, otra con el deal en Completo y otr
 3. El cron no se cae entero por una cita: procesa las demás y devuelve cuántas falló, con su razón.
 
 ## Done cuando
-- [ ] Test de regresión con los tres casos; verde.
+- [x] Test de regresión con los tres casos; verde (rojo con el mismo TypeError sin el arreglo, 14-nov).
 - [ ] Qué dejó de reconciliarse entre el 8 y el 14-nov: contarlo contra producción (solo lectura) y pegarlo aquí; si
       hay que re-correr algo, lo decide Mani.
 - [ ] El cron responde 200 al día siguiente del despliegue (`vercel logs --query cron/calendly`).
-- [ ] Typecheck, lint, tests del cambio; tracker y `status:` iguales.
+- [x] Typecheck, lint, tests del cambio (77 verdes); tracker y `status:` iguales (siguen `todo`: faltan las dos casillas de producción).

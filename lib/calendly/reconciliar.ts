@@ -27,6 +27,8 @@ export interface ResumenReconciliacionCalendly {
   dealsReparados: number;
   dudas: number;
   sinLlamada: number;
+  fallidas: number;
+  fallas: { cita: string; motivo: string }[];
 }
 
 export interface AlarmasCalendly {
@@ -99,7 +101,14 @@ export async function reconciliarCalendly(
   opciones: { leadIds?: readonly string[]; reparar?: boolean } = {},
 ): Promise<ResumenReconciliacionCalendly> {
   const alcance = opciones.leadIds ? new Set(opciones.leadIds) : null;
-  const resumen: ResumenReconciliacionCalendly = { sueltas: 0, colgadas: 0, dealsReparados: 0, dudas: 0, sinLlamada: 0 };
+  const resumen: ResumenReconciliacionCalendly = {
+    sueltas: 0, colgadas: 0, dealsReparados: 0, dudas: 0, sinLlamada: 0, fallidas: 0, fallas: [],
+  };
+  const registrarFalla = (cita: string, error: unknown) => {
+    const motivo = error instanceof Error ? error.message : "Error desconocido al reconciliar la cita.";
+    resumen.fallidas++;
+    resumen.fallas.push({ cita, motivo });
+  };
   const sueltas = await db
     .select({
       id: calls.id,
@@ -116,6 +125,7 @@ export async function reconciliarCalendly(
   const closers = await closersConCalendly(db, programId);
 
   for (const llamada of sueltas) {
+    try {
     const uuid = uuidDeHuella(llamada.huella);
     const exacto = uuid ? await dealDelEnvioConLaCita(db, programId, uuid) : null;
     let dealId: string | null = exacto && (!alcance || alcance.has(exacto.leadId)) ? exacto.dealId : null;
@@ -151,10 +161,17 @@ export async function reconciliarCalendly(
       .from(deals)
       .where(and(eq(deals.id, dealId), vigente(deals)));
     if (!deal) continue;
-    await enTransaccion(db, async (tx) => {
-      await colgarSueltaEnDeal(tx, llamada, deal, closerHost(llamada.host, closers), null);
+    const resultado = await enTransaccion(db, async (tx) => {
+      return colgarSueltaEnDeal(tx, llamada, deal, closerHost(llamada.host, closers), null);
     });
+    if (resultado.tipo === "suelta") {
+      registrarFalla(uuid ?? llamada.id, resultado.motivo);
+      continue;
+    }
     resumen.colgadas++;
+    } catch (error) {
+      registrarFalla(uuidDeHuella(llamada.huella) ?? llamada.id, error);
+    }
   }
 
   // ponytail: la reparacion de deals lee todos los envios y puede llamar a Calendly; el webhook la omite (reparar: false) y la corren la ingesta (acotada) y el cron.
@@ -176,6 +193,7 @@ export async function reconciliarCalendly(
   }
   const token = porUuid.size > 0 ? await tokenCalendly(db, programId) : null;
   for (const [uuid, cita] of porUuid) {
+    try {
     const candidatas = await db
       .select({ id: deals.id, leadId: deals.leadId, cohortId: deals.cohortId, etapa: deals.etapa, email: leads.emailNormalizado })
       .from(deals)
@@ -218,6 +236,10 @@ export async function reconciliarCalendly(
       correoHost: resuelta.correoHost ?? null,
     });
     if (registrada.tipo === "colgada") resumen.dealsReparados++;
+    else if (registrada.tipo === "suelta") registrarFalla(uuid, registrada.motivo);
+    } catch (error) {
+      registrarFalla(uuid, error);
+    }
   }
   return resumen;
 }

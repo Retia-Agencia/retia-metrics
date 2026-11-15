@@ -263,7 +263,17 @@ export async function registrarLlamadaDeCalendly(
     const [deal] = await tx
       .select({ id: deals.id, cohortId: deals.cohortId })
       .from(deals)
-      .where(and(eq(deals.id, decision.dealId), vigente(deals)));
+      .where(and(
+        eq(deals.id, decision.dealId),
+        eq(deals.programId, programId),
+        notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+        vigente(deals),
+      ));
+    if (!deal) {
+      const callId = await crearLlamada(tx, { ...valores, dealId: null, cohortId: null }, correo);
+      if (!callId) return { tipo: "repetida", callId: (await llamadaPorHuella(tx, programId, cita.uuidInvitado))! };
+      return { tipo: "suelta", callId, motivo: "sin_deal_abierto" };
+    }
     const callId = await crearLlamada(tx, { ...valores, dealId: deal.id, cohortId: deal.cohortId }, correo);
     if (!callId) return { tipo: "repetida", callId: (await llamadaPorHuella(tx, programId, cita.uuidInvitado))! };
 
@@ -563,6 +573,10 @@ interface DealParaSuelta {
   cohortId: string | null;
 }
 
+type ResultadoColgarSuelta =
+  | ({ tipo: "colgada" } & Awaited<ReturnType<typeof efectoSobreElDeal>>)
+  | { tipo: "suelta"; motivo: "sin_deal_abierto" };
+
 export async function colgarSueltaEnDeal(
   tx: Db,
   llamada: LlamadaSueltaLeida,
@@ -570,18 +584,31 @@ export async function colgarSueltaEnDeal(
   host: string | null,
   actorId: string | null,
   opciones: { origen?: OrigenOperativo } = {},
-): Promise<{ movioAAgendado: boolean; duenoAnterior: string | null; citasACancelar: CitaACancelar[]; rechazo?: string }> {
+): Promise<ResultadoColgarSuelta> {
+  // La decisión pudo hacerse antes de abrir esta transacción. Revalida aquí, donde se
+  // escribe: un deal anulado, cerrado o eliminado deja la cita suelta (ADR 0049).
+  const [actual] = await tx
+    .select({ id: deals.id, programId: deals.programId, etapa: deals.etapa, cohortId: deals.cohortId })
+    .from(deals)
+    .where(and(
+      eq(deals.id, deal.id),
+      eq(deals.programId, deal.programId),
+      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+      vigente(deals),
+    ));
+  if (!actual) return { tipo: "suelta", motivo: "sin_deal_abierto" };
+
   const etiqueta = llamada.emailLead ?? llamada.id;
   await editarConRastro(
     { db: tx, tabla: calls, nombreTabla: "calls", actorId, etiqueta, origen: opciones.origen ?? "app" },
     llamada.id,
     {
-      dealId: deal.id,
-      cohortId: deal.cohortId,
+      dealId: actual.id,
+      cohortId: actual.cohortId,
       ...(llamada.closerUserId === null && host !== null ? { closerUserId: host } : {}),
     },
   );
-  return efectoSobreElDeal(tx, deal.id, llamada.id, host, etiqueta, llamada.fechaAgenda, opciones);
+  return { tipo: "colgada", ...await efectoSobreElDeal(tx, actual.id, llamada.id, host, etiqueta, llamada.fechaAgenda, opciones) };
 }
 
 /**
@@ -648,7 +675,9 @@ export async function asignarLlamadaSueltaSinCalendly(
         throw new ErrorDeApp("El deal está cerrado: no se le cuelgan llamadas.", 409);
       }
 
-      return colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId, opciones);
+      const resultado = await colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId, opciones);
+      if (resultado.tipo === "suelta") throw new ErrorDeApp("El deal dejó de estar abierto.", 409);
+      return resultado;
     });
     return escrito;
   });
@@ -738,6 +767,7 @@ export async function crearDealDesdeSuelta(
         .from(deals)
         .where(and(eq(deals.id, creado.dealId), eq(deals.programId, llamada.programId), vigente(deals)));
       const efecto = await colgarSueltaEnDeal(tx, llamada, deal, host, actor.userId);
+      if (efecto.tipo === "suelta") throw new ErrorDeApp("El deal dejó de estar abierto.", 409);
       return { dealId: creado.dealId, leadId: creado.leadId, movioAAgendado: efecto.movioAAgendado, citasACancelar: efecto.citasACancelar };
     });
     await cancelarCitasReemplazadas(db, escrito.citasACancelar);

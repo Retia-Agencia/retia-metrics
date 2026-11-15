@@ -1,9 +1,11 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { calls, changeLog, deals, leadContactos, leads, programs, sources, submissions } from "@/lib/db/schema";
+import { calls, changeLog, deals, leadContactos, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { abrirDeal } from "@/lib/deals/mover-etapa";
+import { abrirDeal, abrirDealHistorico } from "@/lib/deals/mover-etapa";
 import { reconciliarCalendly } from "@/lib/calendly/reconciliar";
+import { colgarSueltaEnDeal } from "@/lib/calendly/colgar-llamada";
+import { anularDeal } from "@/lib/deals/anular-deal";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -50,6 +52,53 @@ async function escenario(args: { correo?: string; uuid?: string; etapa?: "regist
 }
 
 describe("reconciliarCalendly", () => {
+  async function intentarColgar(caso: { dealId: string }, etapa: "calificado" | "ganado_completo") {
+    const [llamada] = await db.select({
+      id: calls.id, programId: calls.programId, emailLead: calls.emailLead,
+      host: calls.calendlyHostEmail, closerUserId: calls.closerUserId, fechaAgenda: calls.fechaAgenda,
+    }).from(calls);
+    return db.transaction((tx) => colgarSueltaEnDeal(
+      tx as Db,
+      llamada,
+      { id: caso.dealId, programId, etapa, cohortId: null },
+      null,
+      null,
+    ));
+  }
+
+  it("deja suelta la cita si el deal fue anulado después de emparejarlo", async () => {
+    const caso = await escenario({});
+    const [gerente] = await db.insert(users).values({ email: "gerente-calendly@retia.co", rol: "gerente" }).returning();
+    await anularDeal(db, { userId: gerente.id, rol: "gerente", operaComoCloser: false }, { dealId: caso.dealId, motivo: "Duplicado" });
+    const resultado = await intentarColgar(caso, "calificado");
+
+    expect(resultado).toEqual({ tipo: "suelta", motivo: "sin_deal_abierto" });
+    expect((await db.select().from(calls))[0].dealId).toBeNull();
+  });
+
+  it("deja suelta la cita si el deal quedó Completo después de emparejarlo", async () => {
+    const caso = await escenario({});
+    const [gerente] = await db.insert(users).values({ email: "gerente-completo@retia.co", rol: "gerente" }).returning();
+    await anularDeal(db, { userId: gerente.id, rol: "gerente", operaComoCloser: false }, { dealId: caso.dealId, motivo: "Reemplazo" });
+    const completo = await abrirDealHistorico(db, {
+      leadId: caso.leadId, programId, etapa: "ganado_completo", huella: "sheets:test:completo", actorId: gerente.id,
+    });
+    expect(completo.estado).toBe("creado");
+
+    const resultado = await intentarColgar({ dealId: completo.estado === "creado" ? completo.dealId : caso.dealId }, "ganado_completo");
+
+    expect(resultado).toEqual({ tipo: "suelta", motivo: "sin_deal_abierto" });
+    expect((await db.select().from(calls).where(eq(calls.huellaFila, `calendly:${caso.uuid}`)))[0].dealId).toBeNull();
+  });
+
+  it("deja suelta la cita si el deal ya no existe", async () => {
+    const caso = await escenario({});
+    const resultado = await intentarColgar({ dealId: crypto.randomUUID() }, "calificado");
+
+    expect(resultado).toEqual({ tipo: "suelta", motivo: "sin_deal_abierto" });
+    expect((await db.select().from(calls).where(eq(calls.huellaFila, `calendly:${caso.uuid}`)))[0].dealId).toBeNull();
+  });
+
   it("I1/I2: reproduce Santiago y Sandra: el UUID cuelga la suelta aunque el correo sea otro y mueve por el motor", async () => {
     const caso = await escenario({});
     const resumen = await reconciliarCalendly(db, programId, { leadIds: [caso.leadId] });
