@@ -4,6 +4,7 @@ import { calls, changeLog, deals, leads, miembrosPrograma, programs, users } fro
 import type { Db } from "@/lib/db/tipos";
 import { abrirDeal } from "@/lib/deals/mover-etapa";
 import { asignarLlamadasDelHost } from "@/lib/calendly/rellenar-closer";
+import { registrarLlamadaDeCalendly } from "@/lib/calendly/colgar-llamada";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -26,6 +27,7 @@ let programId: string;
 let otroProgramId: string;
 let maru: string;
 let andrea: string;
+let jeronimo: string;
 let gerente: string;
 
 beforeAll(async () => {
@@ -49,6 +51,8 @@ beforeEach(async () => {
   maru = m.id;
   const [a] = await db.insert(users).values({ email: "andrea@retiagrowth.com", rol: "closer" }).returning();
   andrea = a.id;
+  const [j] = await db.insert(users).values({ email: "jeronimo@retiagrowth.com", rol: "closer" }).returning();
+  jeronimo = j.id;
   const [g] = await db.insert(users).values({ email: "gerente@retiagrowth.com", rol: "gerente" }).returning();
   gerente = g.id;
   // La membresia existe sin cuenta: la vinculacion es el acto que estamos probando.
@@ -72,6 +76,7 @@ async function nuevoLeadConDeal(email: string, etapa: "registrado" | "ganado_com
 describe("asignarLlamadasDelHost", () => {
   it("atribuye la llamada que casa por host y deja rastro de closerUserId", async () => {
     const dealId = await nuevoLeadConDeal("ana@correo.co");
+    await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
     const [c] = await db
       .insert(calls)
       .values({
@@ -81,6 +86,7 @@ describe("asignarLlamadasDelHost", () => {
         calendlyHostEmail: "MARU.tactical@calendly.co",
         emailLead: "ana@correo.co",
         fechaAgenda: PASADO,
+        resultado: "show",
         closerUserId: null,
       })
       .returning();
@@ -94,8 +100,46 @@ describe("asignarLlamadasDelHost", () => {
     const rastro = await db.select().from(changeLog).where(eq(changeLog.registroId, c.id));
     expect(rastro.map((r) => r.campo)).toContain("closerUserId");
     expect(rastro.find((r) => r.campo === "closerUserId")?.userId).toBe(gerente);
-    // Una cita pasada no mueve el deal.
-    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].ownerUserId).toBeNull();
+    // Una cita que ya no esta agendada no mueve el deal.
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].ownerUserId).toBe(andrea);
+  });
+
+  it("una cita pasada que sigue agendada pasa el deal abierto a la host", async () => {
+    const dealId = await nuevoLeadConDeal("vigente@correo.co");
+    await db.update(deals).set({ ownerUserId: andrea }).where(eq(deals.id, dealId));
+    await db.insert(calls).values({
+      programId,
+      dealId,
+      origen: "calendly",
+      calendlyHostEmail: HOST,
+      emailLead: "vigente@correo.co",
+      fechaAgenda: PASADO,
+      resultado: "agendada",
+      closerUserId: null,
+    });
+
+    await db.transaction(async (tx) => {
+      await asignarLlamadasDelHost(tx, { programId, correo: HOST, userId: maru, actorId: gerente });
+    });
+
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].ownerUserId).toBe(maru);
+  });
+
+  it("la ruta real atribuye la cita y el deal al correo de login implicito de la host", async () => {
+    const dealId = await nuevoLeadConDeal("andrea-machado@correo.co");
+    await db.update(deals).set({ ownerUserId: jeronimo }).where(eq(deals.id, dealId));
+    await db.insert(miembrosPrograma).values({ userId: andrea, programId, calendlyEmail: null });
+
+    const resultado = await registrarLlamadaDeCalendly(db, programId, {
+      uuidInvitado: "incidente-andrea-machado",
+      inicio: PASADO,
+      correoInvitado: "andrea-machado@correo.co",
+      correoHost: "ANDREA@retiagrowth.com",
+    });
+
+    expect(resultado).toMatchObject({ tipo: "colgada", dealId });
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].ownerUserId).toBe(andrea);
+    expect((await db.select().from(calls).where(eq(calls.dealId, dealId)))[0].closerUserId).toBe(andrea);
   });
 
   it("no toca una llamada de OTRO programa con el mismo correo de host", async () => {

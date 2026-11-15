@@ -98,6 +98,19 @@ describe("vincular la cuenta de una membresia", () => {
 
   const ORGANIZACION = [{ email: "maru@calendly.co", name: "Maru" }, { email: "andrea@calendly.co" }];
 
+  it("usa el correo de login como cuenta implicita sin calendly_email", async () => {
+    expect(closerHost("MARU@retiagrowth.com", await closersConCalendly(db, programId))).toBe(maru);
+  });
+
+  it("una cuenta explicita gana sobre el correo de login implicito de otra closer", async () => {
+    await db
+      .update(miembrosPrograma)
+      .set({ calendlyEmail: "maru@retiagrowth.com" })
+      .where(eq(miembrosPrograma.id, membresiaAndrea));
+
+    expect(closerHost("maru@retiagrowth.com", await closersConCalendly(db, programId))).toBe(andrea);
+  });
+
   it("la closer asigna y cambia su propia cuenta; cada cambio deja su rastro", async () => {
     const fetch = calendly(ORGANIZACION);
     await asignarCalendlyDeMembresia(db, maru, { membresiaId: membresiaMaru, calendlyEmail: "maru@calendly.co" }, { fetch });

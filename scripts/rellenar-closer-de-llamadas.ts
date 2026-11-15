@@ -17,6 +17,7 @@ async function main() {
   const actorId = await actorDelScript(db);
   const resultado = await rellenarCloserDeLlamadas(db, { aplicar, actorId });
   console.log(`Llamadas cuyo host casa: ${resultado.casan}`);
+  console.log(`Deals reasignados: ${resultado.dealsReasignados}`);
   console.log(`Hosts sin cuenta: ${resultado.noCasan.length}`);
   for (const fila of resultado.noCasan) {
     console.log(`  ${fila.callId} · ${fila.programa} · ${fila.hostEmail}`);

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { calls, dealActividades, deals, leadContactos, leads, miembrosPrograma, miembrosProgramaCalendlyExtra, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -108,12 +108,18 @@ function enTransaccion<T>(db: Db, fn: (tx: Db) => Promise<T>): Promise<T> {
 export { huellaDeCita };
 
 /**
- * Los closers del programa con su cuenta de Calendly: membresia ACTIVA, usuario activo y
- * correo cargado. Es lo que `closerHost` necesita para decidir el dueño.
+ * Los closers del programa con sus cuentas explicitas de Calendly y su correo de login como
+ * cuenta implicita: membresia ACTIVA, usuario activo y capacidad de trabajar leads.
  */
 export async function closersConCalendly(db: Db, programId: string): Promise<CloserDelPrograma[]> {
   const filas = await db
-    .select({ userId: miembrosPrograma.userId, correoCalendly: miembrosPrograma.calendlyEmail, rol: users.rol, operaComoCloser: users.operaComoCloser })
+    .select({
+      userId: miembrosPrograma.userId,
+      correoCalendly: miembrosPrograma.calendlyEmail,
+      correoImplicito: users.email,
+      rol: users.rol,
+      operaComoCloser: users.operaComoCloser,
+    })
     .from(miembrosPrograma)
     .innerJoin(users, eq(users.id, miembrosPrograma.userId))
     .where(
@@ -121,7 +127,6 @@ export async function closersConCalendly(db: Db, programId: string): Promise<Clo
         eq(miembrosPrograma.programId, programId),
         eq(miembrosPrograma.activo, true),
         eq(users.activo, true),
-        isNotNull(miembrosPrograma.calendlyEmail),
       ),
     );
   const validas = filas.filter((f) => trabajaLeads(f));
@@ -134,8 +139,11 @@ export async function closersConCalendly(db: Db, programId: string): Promise<Clo
     .where(and(eq(miembrosPrograma.activo, true), eq(users.activo, true), eq(miembrosProgramaCalendlyExtra.programId, programId)));
   const deLaLista = new Set(validas.map((f) => f.userId));
   return [
-    ...validas.map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! })),
+    ...validas
+      .filter((f) => f.correoCalendly !== null)
+      .map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly! })),
     ...adicionales.filter((f) => deLaLista.has(f.userId)).map((f) => ({ userId: f.userId, correoCalendly: f.correoCalendly })),
+    ...validas.map((f) => ({ userId: f.userId, correoCalendly: f.correoImplicito, implicita: true })),
   ];
 }
 

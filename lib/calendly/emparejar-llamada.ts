@@ -53,6 +53,7 @@ export interface LeadCandidato {
 export interface CloserDelPrograma {
   userId: string;
   correoCalendly: string;
+  implicita?: boolean;
 }
 
 export interface LlamadaDeCalendly {
@@ -94,10 +95,17 @@ export function closerHost(
 ): string | null {
   const correo = normalizarEmail(correoHost);
   if (!correo) return null;
-  const ids = new Set(
-    closers.filter((c) => normalizarEmail(c.correoCalendly) === correo).map((c) => c.userId),
-  );
-  return ids.size === 1 ? [...ids][0] : null;
+  const unico = (cuentas: readonly CloserDelPrograma[]) => {
+    const ids = new Set(
+      cuentas.filter((c) => normalizarEmail(c.correoCalendly) === correo).map((c) => c.userId),
+    );
+    return ids.size === 1 ? [...ids][0] : null;
+  };
+  const explicitas = closers.filter((c) => !c.implicita);
+  const hostExplicita = unico(explicitas);
+  if (hostExplicita !== null) return hostExplicita;
+  if (explicitas.some((c) => normalizarEmail(c.correoCalendly) === correo)) return null;
+  return unico(closers.filter((c) => c.implicita));
 }
 
 export function emparejarLlamada(

@@ -41,10 +41,43 @@ export interface LlamadaSinCloserQueNoCasa {
   hostEmail: string;
 }
 
+interface LlamadaAtribuible {
+  callId: string;
+  programId: string;
+  etiqueta: string | null;
+  dealId: string | null;
+  resultado: typeof calls.$inferSelect.resultado;
+}
+
+async function atribuirLlamadaAlHost(
+  tx: Db,
+  fila: LlamadaAtribuible,
+  userId: string,
+  actorId: string | null,
+): Promise<boolean> {
+  await escribirCloserDeLlamada(tx, fila, userId, actorId);
+  if (fila.resultado !== "agendada" || fila.dealId === null) return false;
+
+  const [deal] = await tx
+    .select({ id: deals.id, ownerUserId: deals.ownerUserId })
+    .from(deals)
+    .where(
+      and(
+        eq(deals.id, fila.dealId),
+        eq(deals.programId, fila.programId),
+        notInArray(deals.etapa, ETAPAS_CERRADAS),
+        vigente(deals),
+      ),
+    );
+  if (!deal || deal.ownerUserId === userId) return false;
+  await darDealAlHost(tx, deal.id, deal.ownerUserId, userId, fila.etiqueta ?? deal.id);
+  return true;
+}
+
 export async function rellenarCloserDeLlamadas(
   db: Db,
   opciones: { aplicar: boolean; actorId: string },
-): Promise<{ casan: number; noCasan: LlamadaSinCloserQueNoCasa[] }> {
+): Promise<{ casan: number; dealsReasignados: number; noCasan: LlamadaSinCloserQueNoCasa[] }> {
   return db.transaction(async (tx) => {
     const filas = await tx
       .select({
@@ -53,6 +86,8 @@ export async function rellenarCloserDeLlamadas(
         programa: programs.slug,
         hostEmail: calls.calendlyHostEmail,
         etiqueta: calls.emailLead,
+        dealId: calls.dealId,
+        resultado: calls.resultado,
       })
       .from(calls)
       .innerJoin(programs, eq(programs.id, calls.programId))
@@ -71,6 +106,7 @@ export async function rellenarCloserDeLlamadas(
 
     const noCasan: LlamadaSinCloserQueNoCasa[] = [];
     let casan = 0;
+    let dealsReasignados = 0;
     for (const fila of filas) {
       const host = closerHost(fila.hostEmail, closersPorPrograma.get(fila.programId) ?? []);
       if (host === null) {
@@ -79,10 +115,10 @@ export async function rellenarCloserDeLlamadas(
       }
       casan += 1;
       if (opciones.aplicar) {
-        await escribirCloserDeLlamada(tx, { callId: fila.callId, etiqueta: fila.etiqueta }, host, opciones.actorId);
+        if (await atribuirLlamadaAlHost(tx, fila, host, opciones.actorId)) dealsReasignados += 1;
       }
     }
-    return { casan, noCasan };
+    return { casan, dealsReasignados, noCasan };
   });
 }
 
@@ -94,7 +130,7 @@ export async function rellenarCloserDeLlamadas(
  *  - Toda llamada vigente de ESE programa con origen Calendly, sin closer y cuyo
  *    `calendly_host_email` es el correo recien vinculado pasa a tener `closer_user_id` = el
  *    dueño de la membresia, con rastro (reusa el escritor comun).
- *  - Si ademas la cita es a futuro y cuelga de un deal ABIERTO, el deal pasa a la host como
+ *  - Si ademas la cita sigue agendada y cuelga de un deal ABIERTO, el deal pasa a la host como
  *    si la cita acabara de entrar: `darDealAlHost` deja al dueño anterior como setter.
  *
  * Siempre acotada por `programId` (los programas no se cruzan) y toda lectura de `calls` y
@@ -110,7 +146,8 @@ export async function asignarLlamadasDelHost(
       callId: calls.id,
       etiqueta: calls.emailLead,
       dealId: calls.dealId,
-      fechaAgenda: calls.fechaAgenda,
+      resultado: calls.resultado,
+      programId: calls.programId,
     })
     .from(calls)
     .where(
@@ -123,25 +160,7 @@ export async function asignarLlamadasDelHost(
       ),
     );
 
-  const ahora = new Date();
   for (const fila of filas) {
-    await escribirCloserDeLlamada(tx, { callId: fila.callId, etiqueta: fila.etiqueta }, datos.userId, datos.actorId);
-
-    const aFuturo = fila.fechaAgenda != null && fila.fechaAgenda > ahora;
-    if (!aFuturo || fila.dealId === null) continue;
-
-    const [deal] = await tx
-      .select({ id: deals.id, ownerUserId: deals.ownerUserId })
-      .from(deals)
-      .where(
-        and(
-          eq(deals.id, fila.dealId),
-          eq(deals.programId, datos.programId),
-          notInArray(deals.etapa, ETAPAS_CERRADAS),
-          vigente(deals),
-        ),
-      );
-    if (!deal) continue;
-    await darDealAlHost(tx, deal.id, deal.ownerUserId, datos.userId, fila.etiqueta ?? deal.id);
+    await atribuirLlamadaAlHost(tx, fila, datos.userId, datos.actorId);
   }
 }
