@@ -186,7 +186,10 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
 /** Solo baja cuando una capacidad pendiente entra al MCP o sale justificadamente de su alcance. */
 export const TOPE_DE_PENDIENTES_DEL_MCP = 96;
 
-type RazonSinLista = `Se pide por consultar_hechos: ${string}` | `Cifra de resumen_del_hub: ${string}`;
+type RazonSinLista =
+  | `Se pide por consultar_hechos: ${string}`
+  | `Cifra de resumen_del_hub: ${string}`
+  | `Pendiente en el MCP: ${string}`;
 
 /** Conceptos que no abren filas propias, con la ruta de consulta que conserva su definición canónica. */
 export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
@@ -218,6 +221,9 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
   escalera_sin_resultado: "Se pide por consultar_hechos: es una marca de los deals de la escalera.",
   descuento_promedio: "Cifra de resumen_del_hub: promedia el descuento de las ventas, sin filas propias.",
   descuento_promedio_porcentaje: "Cifra de resumen_del_hub: expresa el mismo descuento como porcentaje.",
+  dias_cita_a_pago: "Pendiente en el MCP: la app la calcula en Comercial; el MCP aún no la devuelve.",
+  perdidos_por_motivo: "Pendiente en el MCP: la app la calcula en Comercial; el MCP aún no la devuelve.",
+  ticket_perdido: "Pendiente en el MCP: la app la calcula en Comercial; el MCP aún no la devuelve.",
   presupuesto: "Cifra de resumen_del_hub: es la parte consumida del presupuesto de la cohorte.",
   agendas_dia: "Cifra de resumen_del_hub: promedia las agendas sobre los días hábiles transcurridos.",
   agendas_req: "Cifra de resumen_del_hub: deriva las agendas necesarias del objetivo y las tasas.",
@@ -244,9 +250,13 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
 /** Solo baja cuando un concepto obtiene una lista consultable propia. */
 export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 49;
 
-export function viaDeConceptoSinLista(clave: ClaveRegistrada): "consultar_hechos" | "resumen_del_hub" {
+/** Solo baja cuando un concepto pendiente entra al MCP. */
+export const TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP = 3;
+
+export function viaDeConceptoSinLista(clave: ClaveRegistrada): "consultar_hechos" | "resumen_del_hub" | "pendiente" {
   const razon = (CONCEPTOS_SIN_LISTA_EN_EL_MCP as Partial<Record<ClaveRegistrada, RazonSinLista>>)[clave];
   if (!razon) throw new Error(`El concepto ${clave} no tiene vía de consulta registrada.`);
+  if (razon.startsWith("Pendiente en el MCP")) return "pendiente";
   return razon.startsWith("Se pide por consultar_hechos")
     ? "consultar_hechos"
     : "resumen_del_hub";

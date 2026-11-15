@@ -3,7 +3,9 @@ import type { Session } from "next-auth";
 import {
   auditarCoberturaDeConceptos,
   CONCEPTOS_SIN_LISTA_EN_EL_MCP,
+  TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP,
   TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP,
+  viaDeConceptoSinLista,
 } from "@/lib/mcp/cobertura";
 import { capacidadesMcp } from "@/lib/mcp/herramientas/capacidades";
 import type { ContextoMcp } from "@/lib/mcp/herramientas";
@@ -39,8 +41,16 @@ describe("cobertura de conceptos del MCP", () => {
   });
 
   it("mantiene el trinquete de conceptos sin lista", () => {
-    expect(Object.keys(CONCEPTOS_SIN_LISTA_EN_EL_MCP).length)
+    const conVia = Object.keys(CONCEPTOS_SIN_LISTA_EN_EL_MCP)
+      .filter((clave) => viaDeConceptoSinLista(clave as ClaveRegistrada) !== "pendiente");
+    expect(conVia.length)
       .toBeLessThanOrEqual(TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP);
+  });
+
+  it("mantiene aparte el trinquete de conceptos pendientes", () => {
+    const pendientes = Object.keys(CONCEPTOS_SIN_LISTA_EN_EL_MCP)
+      .filter((clave) => viaDeConceptoSinLista(clave as ClaveRegistrada) === "pendiente");
+    expect(pendientes).toHaveLength(TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP);
   });
 
   it("muerde en los dos sentidos con fichas sintéticas", () => {
@@ -58,6 +68,9 @@ describe("cobertura de conceptos del MCP", () => {
         excepcionesConLista: ["con_lista"],
         sinCobertura: ["sin_lista"],
       });
+    expect(auditarCoberturaDeConceptos({ pendiente: { listas: ["lista"] } }, ["lista"], {
+      pendiente: "Pendiente en el MCP: todavía solo está en la app.",
+    })).toEqual({ ...SIN_HALLAZGOS, excepcionesConLista: ["pendiente"] });
     expect(auditarCoberturaDeConceptos({ rota: { listas: ["otra"] } }, ["lista"], {}))
       .toEqual({ ...SIN_HALLAZGOS, listasDesconocidas: ["rota:otra"] });
   });
@@ -71,5 +84,14 @@ describe("cobertura de conceptos del MCP", () => {
     const concepto = respuesta.estructurado.concepto as { que: string; formula: unknown };
     expect(concepto.que).toEqual(explicacionDe("ventas").que);
     expect(concepto.formula).toEqual(explicacionDe("ventas").formula);
+  });
+
+  it("capacidades declara un concepto pendiente como disponible solo en la app", async () => {
+    const rol = "developer" as const;
+    const session = { user: { id: "dev", email: "dev@retia.test", name: "Dev", rol, operaComoCloser: false, closerId: null, alcanceLimitado: false } } as Session;
+    const contexto = { db: {} as never, session, rol, tokenId: "token", escritura: false } satisfies ContextoMcp;
+    const respuesta = await capacidadesMcp.ejecutar(contexto, capacidadesMcp.entrada.parse({ concepto: "ticket_perdido" }));
+    expect(respuesta.texto).toContain("todavía solo está disponible en la app");
+    expect((respuesta.estructurado.concepto as { via: string[] } | undefined)?.via).toEqual(["pendiente"]);
   });
 });

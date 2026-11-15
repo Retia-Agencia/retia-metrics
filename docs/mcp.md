@@ -197,7 +197,7 @@ La caducidad de credenciales, la retención de 90 días, la paginación SQL, la 
 llamada (p95: `pauta_roas` 2,8 s, `tablero_de_deals` 2,0 s, `consultar_metrica` 1,0 s) y no se alcanzó el tope de 300/min; las
 fases siguientes están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
 
-La cobertura de consultas también parte del registro de métricas: cada concepto abre sus listas por `consultar_metrica` o declara por qué se consulta mediante `consultar_hechos` o `resumen_del_hub`, y `capacidades({ concepto })` publica su misma explicación canónica.
+La cobertura de consultas también parte del registro de métricas: cada concepto abre sus listas por `consultar_metrica` o declara por qué se consulta mediante `consultar_hechos` o `resumen_del_hub`, y `capacidades({ concepto })` publica su misma explicación canónica. La forma «Pendiente en el MCP» declara honestamente una cifra que todavía solo calcula la app; tiene un trinquete separado que solo baja cuando el concepto entra al MCP.
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

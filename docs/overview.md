@@ -405,6 +405,12 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 - **Abono adicional:** dinero vendido aparte del programa sobre un deal; suma a caja, pero no cambia su ticket, saldo ni etapa. Se registra en el mismo formulario que el abono del ticket, eligiendo primero "Servicio adicional", y pide anotar qué se vendió.
 - **Etapa:** en cuál de los once pasos está un deal (los del HubSpot de 30X). La escribe el CRM, siempre por
   el motor. *No confundir con el Pendiente ni con la Lead Quality del envío.*
+- **Embudo comercial:** de los deals que se abrieron en el periodo, cuántos llegaron a agendar, tener la llamada y comprar.
+- **Conversión por etapa:** de los deals que llegaron a una etapa, cuántos pasaron, cuántos siguen ahí y cuántos se perdieron ahí.
+- **Días en la etapa:** la mediana de días hábiles que un deal tarda en salir de una etapa.
+- **Días de la cita al pago:** la mediana de días hábiles entre la cita atendida y el primer abono de quien no pagó en la llamada.
+- **Perdidos por motivo:** deals cerrados como perdidos en el periodo, agrupados por el motivo que eligió el closer.
+- **Ticket perdido:** el precio de lista, en USD, de los deals perdidos; no es un valor pactado.
 - **Puerta de entrada:** las tres etapas donde nace un deal sin agenda (Potencial, Registrado, Calificado),
   más Agendado si agendó en el formulario. La decide el CRM con agenda y calidad (ADR 0069).
 - **Pendiente:** lo que el closer tiene que hacer con un deal que no avanzó: re-agendar, hacer el

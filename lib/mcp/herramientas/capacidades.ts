@@ -107,17 +107,19 @@ export const capacidadesMcp: Herramienta<typeof entrada> = {
       ? (() => {
           const explicacion = explicacionDe(pedido.concepto);
           const listas = REGISTRO[pedido.concepto].listas;
+          const via: string[] = listas.length > 0 ? [...listas] : [viaDeConceptoSinLista(pedido.concepto)];
           return {
             nombre: explicacion.rotulo,
             que: explicacion.que,
             formula: explicacion.formula,
             variables: explicacion.variables,
-            via: listas.length > 0 ? [...listas] : [viaDeConceptoSinLista(pedido.concepto)],
+            via,
           };
         })()
       : undefined;
+    const conceptoPendiente = concepto?.via.includes("pendiente") ?? false;
     return {
-      texto: `${consultas.length} consultas y ${acciones.length} acciones disponibles. ${todaviaSoloEnLaApp.length} capacidades todavía solo en la app.`,
+      texto: `${consultas.length} consultas y ${acciones.length} acciones disponibles. ${todaviaSoloEnLaApp.length} capacidades todavía solo en la app.${conceptoPendiente ? ` ${concepto?.nombre} todavía solo está disponible en la app; el MCP aún no devuelve esa cifra.` : ""}`,
       estructurado: {
         consultas,
         acciones,

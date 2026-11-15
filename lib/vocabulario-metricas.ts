@@ -20,6 +20,8 @@ export type ClaveDeMetrica =
   | "presupuesto" | "agendas_dia" | "agendas_req" | "inversion_req" | "roas_proy"
   | "envios_sin_id" | "registros_sin_utm" | "ventas_sin_anuncio" | "embudo"
   | "ventas_por_escalon" | "escalera_sin_resultado" | "grupo_de_citas" | "con_show_y_vendidos_hoy"
+  | "embudo_comercial" | "conversion_por_etapa" | "tiempo_en_etapa" | "dias_cita_a_pago"
+  | "perdidos_por_motivo" | "ticket_perdido"
   | "deals_abiertos" | "deals_sin_dueno" | "descuento_promedio" | "descuento_promedio_porcentaje";
 
 /**
@@ -86,6 +88,12 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   escalera_sin_resultado: { corto: "Cita pasada sin resultado", largo: "Cita pasada sin resultado en la escalera", definicion: "Deals no vendidos con una cita pasada que sigue sin resultado; es una marca aparte del escalón." },
   grupo_de_citas: { corto: "Grupo de citas", largo: "Grupo de citas", definicion: "Deals vigentes con al menos una cita que ya debía ocurrir en el periodo." },
   con_show_y_vendidos_hoy: { corto: "Con show y vendidos hoy", largo: "Con show y vendidos hoy", definicion: "Deals del grupo de citas que tuvieron show y hoy están vendidos." },
+  embudo_comercial: { corto: "Embudo comercial", largo: "Embudo comercial", definicion: "Deals creados en el periodo que llegaron a cada paso: agendar, tener la llamada y comprar." },
+  conversion_por_etapa: { corto: "Conversión por etapa", largo: "Conversión por etapa", definicion: "Deals que pasaron, siguen o se perdieron en cada etapa." },
+  tiempo_en_etapa: { corto: "Días en la etapa", largo: "Días en la etapa", definicion: "Mediana de días hábiles que los deals pasan en una etapa." },
+  dias_cita_a_pago: { corto: "Días de la cita al pago", largo: "Días de la cita al pago", definicion: "Mediana de días hábiles entre la cita atendida y el primer abono." },
+  perdidos_por_motivo: { corto: "Perdidos por motivo", largo: "Perdidos por motivo", definicion: "Deals cerrados como perdidos en el periodo, agrupados por motivo." },
+  ticket_perdido: { corto: "Ticket perdido", largo: "Ticket perdido", definicion: "Precio de lista de los deals perdidos, en dólares." },
   deals_abiertos: { corto: "Deals abiertos", largo: "Deals abiertos en la etapa", definicion: "Deals que siguen abiertos en cada etapa del embudo." },
   deals_sin_dueno: { corto: "Deals sin dueño", largo: "Deals abiertos sin dueño", definicion: "Deals abiertos que no tienen una persona responsable." },
   descuento_promedio: { corto: "Descuento promedio", largo: "Descuento promedio en USD", definicion: "Promedio del ticket de la cohorte menos el valor vendido, en dólares." },

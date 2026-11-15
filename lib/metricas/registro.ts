@@ -795,6 +795,48 @@ const REGISTRO_BASE = {
     sumaEntreProgramas: false, cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/escalera.ts", nombre: "escalonDeDeal" }, listas: ["escalera"],
   }),
+  embudo_comercial: ficha("deal", {
+    filaDelDiccionario: "Embudo comercial",
+    tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana", "mes", "cohorte"], vigencia: ["deals", "calls"],
+    sumaEntreProgramas: false, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/embudo-comercial.ts", nombre: "cargarEmbudoComercial" },
+    listas: ["embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron"],
+  }),
+  conversion_por_etapa: ficha("deal", {
+    filaDelDiccionario: "Conversión por etapa",
+    tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["etapa", "cohorte"], vigencia: ["deals", "deal_actividades"],
+    sumaEntreProgramas: false, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/embudo-etapas.ts", nombre: "calcularEmbudoEtapas" },
+    listas: ["etapa_entraron", "etapa_paso", "etapa_siguen", "etapa_perdidos"],
+  }),
+  tiempo_en_etapa: ficha("deal", {
+    filaDelDiccionario: "Días en la etapa",
+    tipo: "derivada", de: ["conversion_por_etapa"], unidad: "dias", monedas: [], anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["etapa", "cohorte"], vigencia: ["deals", "deal_actividades"],
+    sumaEntreProgramas: false, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/embudo-etapas.ts", nombre: "calcularEmbudoEtapas" }, listas: ["etapa_tiempo"],
+  }),
+  dias_cita_a_pago: ficha("deal", {
+    filaDelDiccionario: "Días de la cita al pago",
+    tipo: "derivada", de: ["ventas_por_escalon"], unidad: "dias", monedas: [], anclaDeFecha: "hora_de_la_cita",
+    dimensiones: ["cohorte", "escalon"], vigencia: ["deals", "calls", "abonos"],
+    sumaEntreProgramas: false, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/escalera.ts", nombre: "resumirEscalera" }, listas: [],
+  }),
+  perdidos_por_motivo: ficha("deal", {
+    filaDelDiccionario: "Perdidos por motivo",
+    tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["cohorte"], vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/embudo-etapas.ts", nombre: "calcularEmbudoEtapas" }, listas: [],
+  }),
+  ticket_perdido: ficha("deal", {
+    filaDelDiccionario: "Ticket perdido",
+    tipo: "simple", unidad: "dinero", monedas: ["usd"], anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["cohorte"], vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "exclusiones_contadas_aparte",
+    funcionSql: { archivo: "lib/queries/embudo-etapas.ts", nombre: "calcularEmbudoEtapas" }, listas: [],
+  }),
   escalera_sin_resultado: ficha("deal", {
     filaDelDiccionario: "Cita pasada sin resultado en la escalera",
     tipo: "derivada", de: ["ventas_por_escalon"], unidad: "deals", monedas: [], anclaDeFecha: "hora_de_la_cita",
@@ -1288,6 +1330,41 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
       { nombre: "Ventas sin llamada registrada", explicacion: "Agrupa Pagó sin llamada registrada." },
       { nombre: "No llegaron a la llamada", explicacion: "Agrupa Agendó y no se presentó y Dejó datos y sin cita ocurrida." },
     ],
+  ),
+  embudo_comercial: texto(
+    "De los deals que se abrieron en el periodo, cuántos llegaron a cada paso: agendar, tener la llamada y comprar", "conteo", ["número de deals del paso; cada paso es parte del anterior"],
+    [
+      { nombre: "Deal creado", explicacion: "el que se abrió en el periodo, por formulario o a mano." },
+      { nombre: "Agendó", explicacion: "tiene al menos una cita." },
+      { nombre: "Tuvo show", explicacion: "además tuvo una llamada atendida." },
+      { nombre: "Compró", explicacion: "además hoy está en Abonado o Completo." },
+    ],
+  ),
+  conversion_por_etapa: texto(
+    "De los deals que llegaron a una etapa, cuántos pasaron a la siguiente, cuántos siguen ahí y cuántos se perdieron ahí", "suma", ["pasaron", "siguen aquí", "se perdieron aquí", "llegaron"],
+    [
+      { nombre: "Camino del setter", explicacion: "En gestión, Contactado, Calificado." },
+      { nombre: "Camino de la llamada", explicacion: "Agendado, Atendido, Compromiso, Ganado." },
+    ],
+  ),
+  tiempo_en_etapa: texto(
+    "Cuánto se demora un deal típico en salir de esta etapa", "conteo", ["mediana de los días hábiles que pasan los deals en la etapa"],
+    [{ nombre: "Mediana", explicacion: "la mitad de los deals se demora menos y la otra mitad más. Con menos de cinco deals no se calcula y se muestra \"—\". Es el tiempo de la etapa en el programa, no cambia por camino." }],
+  ),
+  dias_cita_a_pago: texto(
+    "Cuánto se demora en pagar quien no paga en la llamada", "conteo", ["mediana de los días hábiles entre la cita atendida y el primer abono"],
+    [
+      { nombre: "Solo los escalones Pagó rápido y Pagó después", explicacion: "quien pagó en la llamada (0 días) y quien pagó sin llamada no entran." },
+      { nombre: "Primer abono", explicacion: "el primer pago vigente del programa, no un adicional." },
+    ],
+  ),
+  perdidos_por_motivo: texto(
+    "Cuántos deals se cerraron como perdidos en el periodo, y por qué", "conteo", ["número de deals que pasaron a Cierre perdido en el periodo, agrupados por motivo"],
+    [{ nombre: "Motivo", explicacion: "el que eligió el closer al perder el deal; sin motivo se agrupa en \"Sin motivo\". Anular un registro no es perderlo: lo anulado no cuenta." }],
+  ),
+  ticket_perdido: texto(
+    "Cuánta plata dejó de entrar por los deals perdidos, a precio de lista.", "suma", ["precio de lista de la cohorte de cada deal perdido, en USD"],
+    [{ nombre: "Precio de lista de la cohorte", explicacion: "El precio de lista del programa, no un valor pactado (el perdido nunca lo tuvo). Un deal cuya cohorte no tiene precio de lista no suma y se avisa como «Parcial»." }],
   ),
   escalera_sin_resultado: texto(
     "Cuántos deals no vendidos tienen una cita pasada que sigue sin resultado; es una marca aparte del escalón.", "conteo", ["deals no vendidos con cita pasada sin resultado"],
