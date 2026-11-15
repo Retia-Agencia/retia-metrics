@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { GripVertical, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -93,13 +93,13 @@ export function TarjetaDealCard({
             <GripVertical className="mt-0.5 size-4 shrink-0 cursor-grab text-muted-foreground" aria-hidden />
           ) : null}
           <div className="min-w-0">
-            <Link
+            <Enlace precarga="al-pasar"
               href={enlaceConVuelta(`/p/${programaSlug}/deals/${tarjeta.dealId}`, origen)}
               draggable={false}
               className="block truncate text-sm font-medium outline-none after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               {tarjeta.nombreLead ?? tarjeta.emailLead}
-            </Link>
+            </Enlace>
             <p className="truncate text-xs text-muted-foreground">
               {tarjeta.ownerNombre ?? "Sin dueño"}
             </p>

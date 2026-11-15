@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { noShowPorCita } from "@/lib/deals/resultados-de-llamada";
 import type { ReactNode } from "react";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
@@ -22,7 +22,7 @@ function roas(n: number): string {
 }
 
 function Cifra({ n, href }: { n: number; href: string }) {
-  return n === 0 ? <>{num(n)}</> : <Link href={href} className={claseEnlace}>{num(n)}</Link>;
+  return n === 0 ? <>{num(n)}</> : <Enlace precarga="nunca" href={href} className={claseEnlace}>{num(n)}</Enlace>;
 }
 
 function partes(items: Array<[number, string]>) {
@@ -32,9 +32,9 @@ function partes(items: Array<[number, string]>) {
 function CeldaVentas({ fila, enlace }: { fila: RenglonRoas; enlace: Enlace }) {
   if (fila.ventas === 0) return <span className="text-muted-foreground">0 ventas</span>;
   return <span className="block"><span className="block font-medium">
-    <Link href={enlace(fila.nivel, fila.id ?? undefined, "venta")} className={claseEnlace}>
+    <Enlace precarga="nunca" href={enlace(fila.nivel, fila.id ?? undefined, "venta")} className={claseEnlace}>
       {num(fila.ventas)} {fila.ventas === 1 ? "venta" : "ventas"}
-    </Link></span>
+    </Enlace></span>
     <span className="block text-xs text-muted-foreground">Cuándo: {partes([
       [fila.ventasEnLlamada, "en llamada"], [fila.ventasDespues, "después"], [fila.ventasSinLlamada, "sin llamada"],
     ])}</span>
@@ -127,13 +127,13 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloCont
     <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y {VOCABULARIO_PAUTA_SEMANAL.roas}</CardTitle>
       <p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p>
       <p className="text-sm text-muted-foreground">Envíos pagos del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
-    <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <Link href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Link>}</div>
+    <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <Enlace precarga="nunca" href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Enlace>}</div>
   </div>
     <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
       <span className="text-muted-foreground">Ver por:</span>
       {(["campana", "canal"] as const).map((v) => v === verPor
         ? <Badge key={v} variant="info">{v === "campana" ? "Campaña de Meta" : "Canal"}</Badge>
-        : <Link key={v} href={hrefVerPor(v)} className={claseEnlace}>{v === "campana" ? "Campaña de Meta" : "Canal"}</Link>)}
+        : <Enlace precarga="nunca" key={v} href={hrefVerPor(v)} className={claseEnlace}>{v === "campana" ? "Campaña de Meta" : "Canal"}</Enlace>)}
     </div>
   </CardHeader><CardContent className="space-y-3">
     <Tabla cabeceras={CABECERAS(primera, soloConteos, sinGasto)}>

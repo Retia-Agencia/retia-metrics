@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { RefreshCw, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -125,12 +125,12 @@ export function EntregasWebhook({
                   <span className="text-muted-foreground">· {e.fuenteNombre}</span>
                 ) : null}
                 {e.leadId && programaSlug ? (
-                  <Link
+                  <Enlace precarga="al-pasar"
                     href={`/p/${programaSlug}/leads/${e.leadId}`}
                     className="text-marca-texto underline-offset-4 hover:underline"
                   >
                     {e.leadNombre ?? "Ver lead"}
-                  </Link>
+                  </Enlace>
                 ) : null}
                 {e.errorSobre ? (
                   <span className="text-tono-peligro">— {e.errorSobre}</span>

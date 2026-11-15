@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, monto, num } from "@/lib/format";
@@ -138,12 +138,12 @@ function FilaDeal({ deal, slug, origen, abreFicha }: { deal: DealDeLaFicha; slug
   return (
     <li className="py-1 first:pt-0 last:pb-0">
       {abreFicha ? (
-        <Link
+        <Enlace precarga="al-pasar"
           href={enlaceConVuelta(`/p/${slug}/deals/${deal.id}`, origen)}
           className={`${clase} outline-none transition-colors duration-150 hover:border-border hover:bg-muted/50 focus-visible:ring-3 focus-visible:ring-ring/50`}
         >
           {contenido}
-        </Link>
+        </Enlace>
       ) : (
         <div className={clase}>{contenido}</div>
       )}
@@ -365,12 +365,12 @@ export function AvisoOtrosProgramas({ visibles, ocultos }: { visibles: LeadEnOtr
         <ul className="space-y-1.5">
           {visibles.map((o) => (
             <li key={o.leadId} className="flex flex-wrap items-center gap-2">
-              <Link
+              <Enlace precarga="al-pasar"
                 href={`/p/${o.programaSlug}/leads/${o.leadId}`}
                 className="rounded-lg font-medium underline underline-offset-2 outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 {o.programaNombre}
-              </Link>
+              </Enlace>
               {o.deal ? (
                 <Badge variant={TONO_DE_ETAPA[o.deal.etapa]}>{NOMBRE_DE_ETAPA[o.deal.etapa]}</Badge>
               ) : (

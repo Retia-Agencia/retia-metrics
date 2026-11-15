@@ -3,7 +3,7 @@ id: 442
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §7, §8.7 y §13.5 · decisión 4 de la §10"
 depends: [436]
-status: todo
+status: in-progress
 ---
 
 # 442 — Qué enlaces precargan se decide, no se hereda
@@ -71,8 +71,13 @@ Migración: reemplaza cada `<Link` por `<Enlace precarga="…">` según la tabla
 `components/`. Mordido en los dos sentidos.
 
 ## Done cuando
-- [ ] En el build de producción contra la base local, la primera carga de Leads dispara ≤ 15 precargas (hoy 43) y la
-      de Deals ≤ 15; pasar el cursor por una fila dispara la suya. Medido en el navegador (pestaña de red, `_rsc`).
-- [ ] La navegación por menú y pestañas sigue mostrando el `loading.tsx` al instante (contrato vigente).
+- [x] En el build de producción contra la base local, la primera carga de Leads dispara ≤ 15 precargas (hoy 43) y la
+      de Deals ≤ 15; pasar el cursor por una fila dispara la suya. Medido el 15-nov (Chromium headless contra un proxy
+      contador, rol developer): Leads **14 enlaces** precargados (13 de menú y pestañas + 1 pestaña interna), Deals 13,
+      **ninguna fila ni tarjeta**. Cada enlace emite 2 peticiones `_rsc` (`/_tree` y el límite del `loading.tsx`), así que
+      las peticiones son 27 y 26 contra las 43 de antes. Al pasar el cursor por una fila salen 3 (su árbol y su dato).
+- [x] La navegación por menú y pestañas sigue mostrando el `loading.tsx` al instante (contrato vigente): no se tocó
+      ningún `loading.tsx` ni la política de menú y pestañas.
 - [ ] Con el 436 en producción: invocaciones por carga de página antes y después, pegadas aquí.
-- [ ] Guardián verde y mordido; `npm run build`; humo de la UI (`npm run test:humo`) verde; tracker y `status:` iguales.
+- [x] Guardián verde y mordido; `npm run build` verde; humo de la UI (escritorio, 5 roles) verde el 15-nov; typecheck y lint limpios.
+- [ ] Tracker y `status:` iguales al cerrar (sigue en curso hasta la medición con el 436 en producción).

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
@@ -96,7 +96,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
                             <span className="cifra">{fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</span>
                             {fila.concepto === "adicional" ? <span className="block text-xs">Adicional{fila.nota ? `: ${fila.nota}` : ""}</span> : null}
                           </td>}
-                          <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
+                          <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Enlace precarga="al-pasar" href={enlaceConVuelta(`/p/${encodeURIComponent(programa.slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -108,11 +108,11 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
           );
         })}
         <nav aria-label="Paginación" className="flex items-center gap-3">
-          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={hrefPagina(pagina - 1)} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
+          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Enlace precarga="nunca" href={hrefPagina(pagina - 1)} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
           <span className="cifra">Página {num(pagina)}</span>
-          {haySiguiente ? <Button variant="outline" nativeButton={false} render={<Link href={hrefPagina(pagina + 1)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
+          {haySiguiente ? <Button variant="outline" nativeButton={false} render={<Enlace precarga="nunca" href={hrefPagina(pagina + 1)} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
-        <Button variant="outline" nativeButton={false} render={<Link href={vuelta} />}>Volver al Hub</Button>
+        <Button variant="outline" nativeButton={false} render={<Enlace precarga="nunca" href={vuelta} />}>Volver al Hub</Button>
       </div>
     </PageShell>
   );

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
@@ -225,7 +225,7 @@ export function Operacion({
       </div>
     </CardContent></Card>
     {embudoComercial ? <Card><CardHeader><Titulo id="embudo">¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">
-      {enlacesDeOrigen ? <div className="flex flex-wrap gap-1" role="group" aria-label="Origen del deal">{opciones.map((opcion) => <Button key={opcion.clave} size="sm" variant={origenEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Link scroll={false} href={enlacesDeOrigen[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
+      {enlacesDeOrigen ? <div className="flex flex-wrap gap-1" role="group" aria-label="Origen del deal">{opciones.map((opcion) => <Button key={opcion.clave} size="sm" variant={origenEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Enlace precarga="nunca" scroll={false} href={enlacesDeOrigen[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
       <EmbudoDeBarras pasos={embudoComercial.map((paso, indice) => ({ clave: paso.paso, etiqueta: ETIQUETA_DEL_PASO[paso.paso], cantidad: paso.cantidad, detalle: paso.detalle, pctDelPaso: paso.pctDelPaso, perdidos: indice === 0 ? undefined : { cantidad: paso.perdidos, detalle: paso.detallePerdidos } }))} />
       {ventasSinLlamada && ventasSinLlamada.deals > 0 ? <p className="text-sm text-muted-foreground"><Celda titulo="Ventas sin llamada registrada" detalle={ventasSinLlamada.detalle}>{num(ventasSinLlamada.deals)}</Celda> ventas sin llamada registrada</p> : null}
     </CardContent></Card> : null}

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { db } from "@/lib/db";
 import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
 import { llamadasSinCloserDelPrograma, llamadasSueltasDelPrograma } from "@/lib/queries/inbox";
@@ -97,11 +97,11 @@ export async function TabPorDecidir({
               ) : (
                 // Con n > 0: enlace a la pestaña del Inbox, con su tono.
                 <li key={c.href + c.vacio}>
-                  <Link href={c.href} className="group flex items-center gap-2 underline-offset-2 hover:underline">
+                  <Enlace precarga="nunca" href={c.href} className="group flex items-center gap-2 underline-offset-2 hover:underline">
                     <Badge variant={c.tono}>{num(c.n)}</Badge>
                     <span className="font-medium">{c.etiqueta(c.n)}</span>
                     <span aria-hidden className="text-muted-foreground">&rarr;</span>
-                  </Link>
+                  </Enlace>
                 </li>
               ),
             )}
@@ -121,7 +121,7 @@ export async function TabPorDecidir({
               <span className="text-muted-foreground">Webhooks al día</span>
             </div>
           ) : (
-            <Link
+            <Enlace precarga="nunca"
               href={`/ajustes/salud?programa=${slug}`}
               className="group flex items-center gap-2 text-sm underline-offset-2 hover:underline"
             >
@@ -130,7 +130,7 @@ export async function TabPorDecidir({
                 {alarmas.length === 1 ? "1 fuente con alarma" : `${num(alarmas.length)} fuentes con alarma`}
               </span>
               <span aria-hidden className="text-muted-foreground">&rarr;</span>
-            </Link>
+            </Enlace>
           )}
         </CardContent>
       </Card>

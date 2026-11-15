@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Pestanas } from "@/components/layout/pestanas";
 import { Button } from "@/components/ui/button";
@@ -56,7 +56,7 @@ export function listaDeVentas(seccion: ListaDeMetrica, href: string): ListaDeCif
 
 function Configurar({ slug }: { slug: string }) {
   const href = `/p/${encodeURIComponent(slug)}/programa?seccion=ventas`;
-  return <Button size="sm" variant="link" nativeButton={false} render={<Link href={href} />}>Configurar</Button>;
+  return <Button size="sm" variant="link" nativeButton={false} render={<Enlace precarga="nunca" href={href} />}>Configurar</Button>;
 }
 
 /**

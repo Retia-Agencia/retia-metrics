@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { LayoutList, Table2 } from "lucide-react";
 import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
@@ -169,20 +169,20 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   ];
   const vistaToggle = (
     <div className="inline-flex rounded-full border bg-muted p-0.5 text-xs" role="group" aria-label="Vista de leads">
-      <Link
+      <Enlace precarga="nunca"
         href={urlCon({ vista: null, pagina: null })}
         aria-current={vista === "tarjetas" ? "page" : undefined}
         className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tarjetas" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
       >
         <LayoutList aria-hidden className="size-3.5" /> Tarjetas
-      </Link>
-      <Link
+      </Enlace>
+      <Enlace precarga="nunca"
         href={urlCon({ vista: "tabla", pagina: null })}
         aria-current={vista === "tabla" ? "page" : undefined}
         className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 ${vista === "tabla" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
       >
         <Table2 aria-hidden className="size-3.5" /> Tabla
-      </Link>
+      </Enlace>
     </div>
   );
   return (
@@ -248,9 +248,9 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
               {paginas > 1 ? (
                 <nav className="flex shrink-0 items-center justify-between pt-3 text-sm" aria-label="Páginas">
                 {pagina > 0 ? (
-                  <Link href={conPagina(pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
+                  <Enlace precarga="nunca" href={conPagina(pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
                     Anterior
-                  </Link>
+                  </Enlace>
                 ) : (
                   <span />
                 )}
@@ -258,9 +258,9 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
                   Página <span className="cifra">{num(pagina + 1)}</span> de <span className="cifra">{num(paginas)}</span>
                 </span>
                 {pagina + 1 < paginas ? (
-                  <Link href={conPagina(pagina + 1)} className="text-marca-texto underline-offset-2 hover:underline">
+                  <Enlace precarga="nunca" href={conPagina(pagina + 1)} className="text-marca-texto underline-offset-2 hover:underline">
                     Siguiente
-                  </Link>
+                  </Enlace>
                 ) : (
                   <span />
                 )}

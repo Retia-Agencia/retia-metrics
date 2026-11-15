@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,12 +24,12 @@ export function FichaLead({ ficha, rutaDelLead }: { ficha: FichaDeDeal; rutaDelL
     <Card>
       <CardHeader>
         <CardTitle>Lead y contactos</CardTitle>
-        <Link
+        <Enlace precarga="nunca"
           href={rutaDelLead}
           className="w-fit rounded-lg text-xs text-marca-texto underline-offset-2 outline-none transition-colors duration-150 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           Ver la ficha del lead: envíos y otros deals
-        </Link>
+        </Enlace>
       </CardHeader>
       <CardContent className="space-y-4">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-3">

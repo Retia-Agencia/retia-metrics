@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { ReactElement } from "react";
 import { notFound, redirect } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
@@ -375,7 +375,7 @@ function SelectorDePrograma({
   return (
     <nav className="flex flex-wrap gap-2" aria-label="Programa">
       {opciones.map((p) => (
-        <Link
+        <Enlace precarga="navegacion"
           key={p.slug}
           href={href(p.slug)}
           aria-current={p.slug === actual ? "page" : undefined}
@@ -386,7 +386,7 @@ function SelectorDePrograma({
           }
         >
           {p.nombre}
-        </Link>
+        </Enlace>
       ))}
     </nav>
   );

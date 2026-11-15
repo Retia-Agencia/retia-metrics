@@ -63,7 +63,7 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 | [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | todo |
 | [ ] | 440 | [Una petición lenta falla en segundos y con mensaje](./440-fallar-rapido.md) | 435 | todo |
 | [ ] | 441 | [La función junto a la base y la cuenta de conexiones](./441-region-y-presupuesto-de-conexiones.md) | 435, 436 | todo · operación, sesión principal |
-| [ ] | 442 | [Qué enlaces precargan se decide](./442-prefetch-decidido.md) | 436 | todo |
+| [ ] | 442 | [Qué enlaces precargan se decide](./442-prefetch-decidido.md) | 436 | en curso · código listo, falta medir con el 436 en producción |
 | [ ] | 443 | [El navegador recibe solo lo que la pantalla usa](./443-peso-del-cliente.md) | 436 | todo |
 | [ ] | 444 | [Lo que casi no cambia se lee de caché](./444-cache-de-lo-que-casi-no-cambia.md) | 437, 438 | todo |
 | [ ] | 445 | [El contrato de rendimiento, escrito y vigilado](./445-contrato-de-rendimiento.md) | 435 a 444 | todo |

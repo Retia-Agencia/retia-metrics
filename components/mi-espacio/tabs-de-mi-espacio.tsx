@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { SeccionId, SeccionMiEspacio } from "@/lib/mi-espacio/secciones";
 
 export type { SeccionId as TabMiEspacio };
@@ -32,7 +32,7 @@ export function TabsDeMiEspacio({
           ? `/mi-espacio?programa=${slug}&tab=${seccion.id}`
           : `/mi-espacio?tab=${seccion.id}`;
         return (
-          <Link
+          <Enlace precarga="navegacion"
             key={seccion.id}
             href={href}
             aria-current={seccion.id === actual ? "page" : undefined}
@@ -43,7 +43,7 @@ export function TabsDeMiEspacio({
             }
           >
             {seccion.etiqueta}
-          </Link>
+          </Enlace>
         );
       })}
     </nav>

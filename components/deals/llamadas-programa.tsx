@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { DetalleDeLlamada } from "@/components/deals/detalle-de-llamada";
@@ -59,9 +59,9 @@ export function LlamadasPrograma({
       {paginacion.paginas > 1 ? (
         <nav className="flex shrink-0 items-center justify-between px-4 text-sm" aria-label="Páginas">
           {paginacion.anteriorHref ? (
-            <Link href={paginacion.anteriorHref} className="text-marca-texto underline-offset-2 hover:underline">
+            <Enlace precarga="nunca" href={paginacion.anteriorHref} className="text-marca-texto underline-offset-2 hover:underline">
               Anterior
-            </Link>
+            </Enlace>
           ) : (
             <span />
           )}
@@ -69,9 +69,9 @@ export function LlamadasPrograma({
             Página <span className="cifra">{num(paginacion.pagina + 1)}</span> de <span className="cifra">{num(paginacion.paginas)}</span>
           </span>
           {paginacion.siguienteHref ? (
-            <Link href={paginacion.siguienteHref} className="text-marca-texto underline-offset-2 hover:underline">
+            <Enlace precarga="nunca" href={paginacion.siguienteHref} className="text-marca-texto underline-offset-2 hover:underline">
               Siguiente
-            </Link>
+            </Enlace>
           ) : (
             <span />
           )}

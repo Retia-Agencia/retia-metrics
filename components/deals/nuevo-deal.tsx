@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -257,12 +257,12 @@ export function NuevoDeal({ programId, programaSlug, nombreEtapaDeEntrada, puede
           <p className="text-sm text-destructive" role="alert">
             {error}{" "}
             {dealExistente ? (
-              <Link
+              <Enlace precarga="nunca"
                 href={enlaceConVuelta(`/p/${programaSlug}/deals/${dealExistente}`, origen)}
                 className="font-medium text-marca-texto underline underline-offset-4"
               >
                 Abrir el deal existente
-              </Link>
+              </Enlace>
             ) : null}
           </p>
         ) : null}

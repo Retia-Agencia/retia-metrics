@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { cloneElement, type ReactNode } from "react";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Operacion } from "@/components/dashboard/operacion";
@@ -45,7 +45,7 @@ function TablaPorPrograma({ titulo, cabeceras, vista, seccion, celdas }: {
           {vista.programas.map((fila) => (
             <tr key={fila.programa.id}>
               <td className="py-3">
-                <Button variant="link" nativeButton={false} render={<Link href={`${fila.href}&seccion=${seccion}`} />}>{fila.programa.nombre}</Button>
+                <Button variant="link" nativeButton={false} render={<Enlace precarga="al-pasar" href={`${fila.href}&seccion=${seccion}`} />}>{fila.programa.nombre}</Button>
               </td>
               {celdas(fila)}
             </tr>
@@ -148,9 +148,9 @@ function VentasPorCohorte({ vista, origen }: { vista: VistaDeTodos; origen: stri
             const href = cohorte.cohorteId ? urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen, cohorteId: cohorte.cohorteId }) : null;
             return <tr key={`${fila.programa.id}:${cohorte.cohorteId}`}>
               <td className="py-2">{fila.programa.nombre}</td><td className="text-right">{cohorte.codigo ?? "Sin cohorte"}</td>
-              <td className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Link href={href} />}>{num(cohorte.ventas)}</Button> : num(cohorte.ventas)}</td>
+              <td className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Enlace precarga="nunca" href={href} />}>{num(cohorte.ventas)}</Button> : num(cohorte.ventas)}</td>
               {[cohorte.dinero.vendido, cohorte.dinero.recaudado, cohorte.dinero.porCobrar].map((valor, i) => (
-                <td key={i} className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Link href={href} />}>{usd(valor)}</Button> : usd(valor)}</td>
+                <td key={i} className="text-right">{href ? <Button variant="link" nativeButton={false} render={<Enlace precarga="nunca" href={href} />}>{usd(valor)}</Button> : usd(valor)}</td>
               ))}
             </tr>;
           }))}
@@ -174,9 +174,9 @@ export async function SeccionDeTodos({ vista, seccion, hoy, origen, conListas }:
     <TablaPorPrograma titulo="Comisión y descuento por programa" vista={vista} seccion="dinero"
       cabeceras={["Comisión USD", "Sin comisión calculable", "Descuento promedio", "Descuento USD", "Ventas con descuento calculable"]}
       celdas={(fila) => <>
-        <td className="text-right"><Button variant="link" nativeButton={false} render={<Link href={urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen })} />}>{usd(fila.comision.valor)}</Button></td>
+        <td className="text-right"><Button variant="link" nativeButton={false} render={<Enlace precarga="nunca" href={urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen })} />}>{usd(fila.comision.valor)}</Button></td>
         <td className="text-right">{num(fila.dashboard.comision.ventasSinComision)}</td>
-        <td className="text-right"><Button variant="link" nativeButton={false} render={<Link href={urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen })} />}>{tasa(fila.descuento.valor)}</Button></td>
+        <td className="text-right"><Button variant="link" nativeButton={false} render={<Enlace precarga="nunca" href={urlDeLista({ slug: fila.programa.slug, metrica: "contratado", periodo: vista.periodo, origen })} />}>{tasa(fila.descuento.valor)}</Button></td>
         <td className="text-right">{fila.dashboard.descuento.promedioUsd === null ? "—" : usd(fila.dashboard.descuento.promedioUsd)}</td>
         <td className="text-right">{num(fila.dashboard.descuento.ventas)}</td>
       </>} />

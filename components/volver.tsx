@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { accionDeVolver, destinoDeVolver } from "@/lib/navegacion/volver";
 
 /**
@@ -37,7 +37,7 @@ export function Volver({
   }
 
   return (
-    <Link
+    <Enlace precarga="nunca"
       href={destino.href}
       onClick={(event) => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
@@ -50,6 +50,6 @@ export function Volver({
       className="inline-block text-sm text-muted-foreground outline-none transition-colors duration-150 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
     >
       ← {destino.etiqueta}
-    </Link>
+    </Enlace>
   );
 }

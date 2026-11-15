@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { usePathname } from "next/navigation";
 import { Activity, ChartNoAxesColumn, Contact, GraduationCap, Inbox, KanbanSquare, Layers, Library, LineChart, Menu, Settings, UserCircle, X } from "lucide-react";
 import { navParaRol, programaDeRuta, type ItemNav } from "@/lib/nav";
@@ -119,9 +119,9 @@ export function AppSidebar({
         data-zona="marco"
         className="sticky top-0 z-30 flex items-center justify-between bg-sidebar px-4 py-3 text-sidebar-foreground md:hidden"
       >
-        <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Enlace precarga="navegacion" href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <Marca />
-        </Link>
+        </Enlace>
         <button
           type="button"
           onClick={() => setAbiertoEn(pathname)}
@@ -149,9 +149,9 @@ export function AppSidebar({
         )}
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-3">
-          <Link href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <Enlace precarga="navegacion" href="/" className="rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <Marca subtitulo="Gerencia comercial" />
-          </Link>
+          </Enlace>
           <div className="flex items-center gap-1">
             <ThemeToggle />
             {abierto ? (
@@ -188,7 +188,7 @@ export function AppSidebar({
               const Icono = ICONOS[item.icono];
               const activo = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
-                <Link
+                <Enlace precarga="navegacion"
                   key={item.href}
                   href={item.href}
                   aria-current={activo ? "page" : undefined}
@@ -219,7 +219,7 @@ export function AppSidebar({
                   {item.icono === "miespacio" ? (
                     <NumeroSinVer programaDeRespaldo={respaldo} />
                   ) : null}
-                </Link>
+                </Enlace>
               );
             })}
           </div>

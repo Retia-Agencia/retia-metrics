@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { PageShell } from "@/components/page-shell";
 
@@ -20,7 +20,7 @@ export default function NoEncontrado() {
       titulo="No encontramos eso"
       descripcion="El enlace puede estar viejo, o el registro ya no existe."
     >
-      <Button size="sm" nativeButton={false} render={<Link href="/">Volver al inicio</Link>} />
+      <Button size="sm" nativeButton={false} render={<Enlace precarga="nunca" href="/">Volver al inicio</Enlace>} />
     </PageShell>
   );
 }

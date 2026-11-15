@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { CircleHelpIcon, InfoIcon } from "lucide-react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -117,6 +117,7 @@ export function InfoDePagina({ titulo, secciones }: { titulo: string; secciones:
   );
 }
 
+
 /** El "?" de una sección: abre el Info directo en su apartado. No se imprime. */
 export function EnlaceAInfo({ seccion, etiqueta, href }: { seccion: string; etiqueta: string; href?: string }) {
   const { cambiar } = useInfoEnLaUrl();
@@ -127,9 +128,9 @@ export function EnlaceAInfo({ seccion, etiqueta, href }: { seccion: string; etiq
   };
   if (href) {
     return (
-      <Link href={href} {...props}>
+      <Enlace precarga="nunca" href={href} {...props}>
         <CircleHelpIcon className="size-4" aria-hidden="true" />
-      </Link>
+      </Enlace>
     );
   }
   return (
@@ -142,4 +143,3 @@ export function EnlaceAInfo({ seccion, etiqueta, href }: { seccion: string; etiq
     </button>
   );
 }
-

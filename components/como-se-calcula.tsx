@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -160,7 +160,7 @@ export function ExplicacionDeCifra({ cifra }: { cifra: CifraDeMetrica }) {
               </li>
             ))}
           </ul>
-          {x.evidencia.boton ? <Link href={x.evidencia.href} className={buttonVariants({ className: "w-full" })}>{x.evidencia.boton}</Link> : null}
+          {x.evidencia.boton ? <Enlace precarga="nunca" href={x.evidencia.href} className={buttonVariants({ className: "w-full" })}>{x.evidencia.boton}</Enlace> : null}
         </Seccion>
       ) : null}
     </div>

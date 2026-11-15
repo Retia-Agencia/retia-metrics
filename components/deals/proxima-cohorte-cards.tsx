@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -98,7 +98,7 @@ export function ProximaCohorteCards({
                     aria-label={`Elegir ${card.nombreLead}`}
                   />
                 ) : null}
-                <Link className="min-w-0 flex-1 space-y-3" href={`/p/${programaSlug}/deals/${card.dealId}`}>
+                <Enlace precarga="al-pasar" className="min-w-0 flex-1 space-y-3" href={`/p/${programaSlug}/deals/${card.dealId}`}>
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="font-medium">{card.nombreLead}</h2>
                     <Badge variant={card.etapaTono}>{card.etapaNombre}</Badge>
@@ -109,7 +109,7 @@ export function ProximaCohorteCards({
                     <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Dueño</dt><dd>{card.ownerNombre}</dd></div>
                     <div className="flex justify-between gap-3"><dt className="text-muted-foreground">Espera desde</dt><dd className="cifra">{card.esperaDesde}</dd></div>
                   </dl>
-                </Link>
+                </Enlace>
               </div>
             </li>
           ))}

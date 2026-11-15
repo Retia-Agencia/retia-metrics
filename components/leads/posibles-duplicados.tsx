@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -96,12 +96,12 @@ export function PosiblesDuplicados({
             {filas.map((f) => (
               <li key={f.contactoId} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
                 <div className="min-w-0 flex-1 basis-80 space-y-1">
-                  <Link
+                  <Enlace precarga="al-pasar"
                     href={enlaceConVuelta(`/p/${slug}/leads/${f.leadId}`, origen ?? "")}
                     className="block truncate font-medium text-marca-texto underline-offset-2 outline-none hover:underline focus-visible:underline"
                   >
                     {f.nombreLead ?? f.correoPrincipal}
-                  </Link>
+                  </Enlace>
                   {/* Lado a lado y con la razón, para decidir aquí sin buscar a nadie (A-12, P-1). */}
                   <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
                     <div className="min-w-0">
@@ -158,17 +158,17 @@ export function PosiblesDuplicados({
         )}
         {verTodosHref && total > filas.length ? (
           <div className="pt-3 text-sm">
-            <Link href={verTodosHref} className="text-marca-texto underline-offset-2 hover:underline">
+            <Enlace precarga="nunca" href={verTodosHref} className="text-marca-texto underline-offset-2 hover:underline">
               Ver todos
-            </Link>
+            </Enlace>
           </div>
         ) : null}
         {paginacion && paginacion.paginas > 1 ? (
           <nav className="flex items-center justify-between pt-3 text-sm" aria-label="Páginas de posibles duplicados">
             {paginacion.anteriorHref ? (
-              <Link href={paginacion.anteriorHref} className="text-marca-texto underline-offset-2 hover:underline">
+              <Enlace precarga="nunca" href={paginacion.anteriorHref} className="text-marca-texto underline-offset-2 hover:underline">
                 Anterior
-              </Link>
+              </Enlace>
             ) : (
               <span />
             )}
@@ -176,9 +176,9 @@ export function PosiblesDuplicados({
               Página <span className="cifra">{paginacion.pagina + 1}</span> de <span className="cifra">{paginacion.paginas}</span>
             </span>
             {paginacion.siguienteHref ? (
-              <Link href={paginacion.siguienteHref} className="text-marca-texto underline-offset-2 hover:underline">
+              <Enlace precarga="nunca" href={paginacion.siguienteHref} className="text-marca-texto underline-offset-2 hover:underline">
                 Siguiente
-              </Link>
+              </Enlace>
             ) : (
               <span />
             )}

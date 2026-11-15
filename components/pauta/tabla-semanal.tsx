@@ -1,5 +1,5 @@
 import type { JSX, ReactNode } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Pestanas } from "@/components/layout/pestanas";
 import { listaDeVentas } from "@/components/pauta/cumplimiento";
@@ -181,7 +181,7 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
               activa={p.porCuenta ? "cuenta" : "total"}
               etiqueta="Cuentas"
             /> : null}
-            <Button variant="outline" size="sm" nativeButton={false} render={<Link href={hrefCsv} />}>Descargar CSV</Button>
+            <Button variant="outline" size="sm" nativeButton={false} render={<Enlace precarga="nunca" href={hrefCsv} />}>Descargar CSV</Button>
           </div>
         </div>
       </CardHeader>

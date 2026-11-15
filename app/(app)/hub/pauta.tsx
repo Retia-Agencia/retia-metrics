@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { ProgramaVisible } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import type { PeriodoResuelto } from "@/lib/periodo";
@@ -39,7 +39,7 @@ export async function PautaPorPrograma({ programas, periodo, hoy, busqueda }: {
       });
       return <div key={programa.id} className="space-y-4">
         <h3 className="text-lg font-semibold">
-          <Button variant="link" nativeButton={false} render={<Link href={hrefVerPor("campana")} />}>{programa.nombre}</Button>
+          <Button variant="link" nativeButton={false} render={<Enlace precarga="al-pasar" href={hrefVerPor("campana")} />}>{programa.nombre}</Button>
         </h3>
         <PautaRoas vista={roas} enlace={enlace} hrefCsv="" verPor={verPor} hrefVerPor={hrefVerPor} soloConteos />
       </div>;

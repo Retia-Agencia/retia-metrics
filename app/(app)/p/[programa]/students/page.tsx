@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
@@ -310,9 +310,9 @@ function CeldaDeal({
   const destino = abreFicha ? href : hrefBasico;
   if (destino) {
     return (
-      <Link href={destino} tabIndex={enfocable ? undefined : -1} className={clase} title={title}>
+      <Enlace precarga="al-pasar" href={destino} tabIndex={enfocable ? undefined : -1} className={clase} title={title}>
         {children}
-      </Link>
+      </Enlace>
     );
   }
   return (

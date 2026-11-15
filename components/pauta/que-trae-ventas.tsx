@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Pestanas } from "@/components/layout/pestanas";
 import { detalleDeCampana } from "@/components/pauta-roas";
@@ -52,7 +52,7 @@ export function QueTraeVentas({ contexto, verPor, hrefDeVerPor, enlace, canalesD
           <p className="text-xs text-muted-foreground">Inversión, agendas y ventas por origen. «Revisar» marca lo que gastó sin traer agendas.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-        <Link href={hrefCsv} className="text-sm text-marca-texto underline-offset-2 hover:underline">Descargar citas (CSV)</Link>
+        <Enlace precarga="nunca" href={hrefCsv} className="text-sm text-marca-texto underline-offset-2 hover:underline">Descargar citas (CSV)</Enlace>
         <Pestanas
           grupos={[{ pestanas: VER_POR_ORIGEN.map((v) => ({ id: v.id, etiqueta: v.etiqueta, descripcion: `Ver por ${v.etiqueta.toLowerCase()}`, href: hrefDeVerPor[v.id] })) }]}
           activa={verPor}

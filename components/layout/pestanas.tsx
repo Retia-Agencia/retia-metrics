@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { num } from "@/lib/format";
 
 export { pestanaActiva, urlConSeccion } from "@/components/layout/pestana-activa";
@@ -37,7 +37,7 @@ export function Pestanas({
               aria-label={grupo.titulo ? `${etiqueta}: ${grupo.titulo}` : etiqueta}
             >
               {grupo.pestanas.map((pestana) => (
-                <Link
+                <Enlace precarga="navegacion"
                   key={pestana.id}
                   href={pestana.href}
                   aria-current={activa === pestana.id ? "page" : undefined}
@@ -53,7 +53,7 @@ export function Pestanas({
                       {" · "}<span className="cifra">{num(pestana.total)}</span>
                     </>
                   )}
-                </Link>
+                </Enlace>
               ))}
             </div>
           </div>

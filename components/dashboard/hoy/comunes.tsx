@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { tasa } from "@/components/dashboard/piezas";
@@ -76,7 +76,7 @@ export function Ficha({ titulo, ayuda, valor, children }: {
 /** Una cifra que abre su lista por enlace; sin enlace (vista de todos los programas) es solo texto. */
 export function CifraConEnlace({ href, children }: { href?: string; children: ReactNode }) {
   if (!href) return <>{children}</>;
-  return <Link href={href} className="cifra underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{children}</Link>;
+  return <Enlace precarga="nunca" href={href} className="cifra underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{children}</Enlace>;
 }
 
 export const cumplimiento = (llevamos: number, objetivo: number | null) => (objetivo && objetivo > 0 ? tasa(llevamos / objetivo) : "—");

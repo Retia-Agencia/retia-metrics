@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
@@ -431,9 +431,9 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                           {configura ? " Edita el formulario, pega su URL pública y márcalo como principal." : ""}
                         </p>
                         {configura ? (
-                          <Link href={urlConSeccion(base, query, "integraciones")} className={ENLACE}>
+                          <Enlace precarga="nunca" href={urlConSeccion(base, query, "integraciones")} className={ENLACE}>
                             Ir a Formularios
-                          </Link>
+                          </Enlace>
                         ) : null}
                       </div>
                     )}
@@ -480,7 +480,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                               size="sm"
                               variant="ghost"
                               nativeButton={false}
-                              render={<Link href={paso.seccion === "programa" ? `#${paso.clave}` : urlConSeccion(base, query, paso.seccion)} />}
+                              render={<Enlace precarga="nunca" href={paso.seccion === "programa" ? `#${paso.clave}` : urlConSeccion(base, query, paso.seccion)} />}
                             >
                               Configurar
                             </Button>

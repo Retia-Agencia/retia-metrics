@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import {
   FORMAS,
@@ -54,7 +54,7 @@ export function InterruptoresDeGrafica({
                 variant={activa ? "default" : "outline"}
                 nativeButton={false}
                 aria-current={activa ? "true" : undefined}
-                render={<Link scroll={false} href={hrefConConfigDeGrafica(origen, clave, { ...config, [grupo]: valor }, { sinUnidad })} />}
+                render={<Enlace precarga="nunca" scroll={false} href={hrefConConfigDeGrafica(origen, clave, { ...config, [grupo]: valor }, { sinUnidad })} />}
               >
                 {(ROTULOS[grupo] as Record<string, string>)[valor]}
               </Button>

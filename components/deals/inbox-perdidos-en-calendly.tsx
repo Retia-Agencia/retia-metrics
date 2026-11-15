@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
@@ -39,12 +39,12 @@ export function InboxPerdidosEnCalendly({
           {filas.map((fila) => (
             <li key={fila.dealId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <Link
+                <Enlace precarga="al-pasar"
                   href={enlaceConVuelta(`/p/${slug}/deals/${fila.dealId}`, origen)}
                   className="block truncate text-sm font-medium text-marca-texto underline-offset-2 hover:underline"
                 >
                   {fila.leadNombre ?? fila.leadEmail}
-                </Link>
+                </Enlace>
                 <p className="truncate text-xs text-muted-foreground">{fila.leadEmail}</p>
                 <p className="cifra text-xs text-muted-foreground">{textoDeOrigen(fila)}</p>
               </div>

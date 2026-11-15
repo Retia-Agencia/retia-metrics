@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { paginaDeAccesoTotal } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
@@ -142,12 +142,12 @@ export default async function NerdStatsPage() {
                 ? "Ninguna fuente activa está marcada."
                 : `${num(fuentes.filter((f) => f.marcada).length)} de ${num(fuentes.length)} fuentes activas están marcadas.`}{" "}
               El detalle de cada entrega está en{" "}
-              <Link
+              <Enlace precarga="nunca"
                 href={enlaceConVuelta("/ajustes/salud", "/nerd-stats")}
                 className="text-marca-texto underline-offset-4 hover:underline focus-visible:underline"
               >
                 Ajustes → Salud
-              </Link>
+              </Enlace>
               .
             </p>
             {fuentes.length === 0 ? (
@@ -185,9 +185,9 @@ export default async function NerdStatsPage() {
               Qué tabla y qué campo se tocaron, quién y cuándo. Los valores no se muestran a
               propósito: la bitácora guarda datos de leads y esta pantalla no los expone. Todo, con
               los movimientos de etapa y filtros por usuario, tabla y rango, en la{" "}
-              <Link href="/nerd-stats/bitacora" className="text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline">
+              <Enlace precarga="nunca" href="/nerd-stats/bitacora" className="text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline">
                 bitácora
-              </Link>
+              </Enlace>
               .
             </p>
             {cambios.length === 0 ? (

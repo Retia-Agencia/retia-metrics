@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { paginaDeAccesoTotal } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
@@ -73,9 +73,9 @@ export default async function BitacoraPage({ searchParams }: Props) {
       titulo="Bitácora"
       descripcion="Toda escritura del CRM: quién, cuándo y qué tocó. Sin valores: guardan datos de leads."
       acciones={
-        <Link href="/nerd-stats" className={`text-sm ${enlace}`}>
+        <Enlace precarga="nunca" href="/nerd-stats" className={`text-sm ${enlace}`}>
           Volver a Nerd Stats
-        </Link>
+        </Enlace>
       }
     >
       <div className="space-y-4">
@@ -173,9 +173,9 @@ function Registro({ entrada: e, enlace }: { entrada: EntradaBitacora; enlace: st
   const corto = <code className="text-xs">{truncarId(e.registroId)}</code>;
   if (!e.programaSlug) return corto;
   return (
-    <Link href={`/p/${e.programaSlug}/deals/${e.registroId}`} className={enlace}>
+    <Enlace precarga="al-pasar" href={`/p/${e.programaSlug}/deals/${e.registroId}`} className={enlace}>
       {corto}
-    </Link>
+    </Enlace>
   );
 }
 
@@ -193,9 +193,9 @@ function Paginacion({ filtro, paginas, enlace }: { filtro: FiltroBitacora; pagin
   return (
     <nav aria-label="Paginación" className="mt-4 flex items-center justify-between text-sm">
       {filtro.pagina > 1 ? (
-        <Link href={href(filtro.pagina - 1)} className={enlace}>
+        <Enlace precarga="nunca" href={href(filtro.pagina - 1)} className={enlace}>
           Anterior
-        </Link>
+        </Enlace>
       ) : (
         <span />
       )}
@@ -203,9 +203,9 @@ function Paginacion({ filtro, paginas, enlace }: { filtro: FiltroBitacora; pagin
         {num(filtro.pagina)} de {num(paginas)}
       </span>
       {filtro.pagina < paginas ? (
-        <Link href={href(filtro.pagina + 1)} className={enlace}>
+        <Enlace precarga="nunca" href={href(filtro.pagina + 1)} className={enlace}>
           Siguiente
-        </Link>
+        </Enlace>
       ) : (
         <span />
       )}

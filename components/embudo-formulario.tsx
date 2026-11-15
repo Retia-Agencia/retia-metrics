@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { num, pct } from "@/lib/format";
 import {
@@ -50,9 +50,9 @@ function NoAgendaron({ embudo, hrefNoAgendaron }: { embudo: EmbudoDelFormulario;
         <div className="space-y-1 border-t pt-4">
           <p className="text-xs text-muted-foreground">No agendaron</p>
           {hrefNoAgendaron ? (
-            <Link className="cifra inline-block text-lg font-semibold underline underline-offset-4" href={hrefNoAgendaron}>
+            <Enlace precarga="nunca" className="cifra inline-block text-lg font-semibold underline underline-offset-4" href={hrefNoAgendaron}>
               {num(noAgendaron)}
-            </Link>
+            </Enlace>
           ) : (
             <p className="cifra text-lg font-semibold">{num(noAgendaron)}</p>
           )}

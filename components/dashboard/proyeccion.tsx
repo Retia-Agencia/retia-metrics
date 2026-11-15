@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct } from "@/lib/format";
@@ -106,7 +106,7 @@ export function Proyeccion({ datos, ventanas = [] }: { datos: ProyeccionDeCohort
                 variant={v.dias === supuestos.ventanaDiasHabiles ? "secondary" : "ghost"}
                 nativeButton={false}
                 aria-current={v.dias === supuestos.ventanaDiasHabiles ? "true" : undefined}
-                render={<Link href={v.href} scroll={false} />}
+                render={<Enlace precarga="nunca" href={v.href} scroll={false} />}
               >
                 {v.dias}
               </Button>

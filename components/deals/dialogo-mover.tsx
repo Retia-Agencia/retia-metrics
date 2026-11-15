@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -509,9 +509,9 @@ export function DialogoMover({
               el ticket) sí: sin esto el botón quedaba apagado sin decir por qué. */}
           {movimiento.hecho && !esAbonoAdicional && errorDeRevision ? <p className="text-sm text-tono-peligro">{errorDeRevision}</p> : null}
           {!movimiento.hecho && revision?.requisitos.some((q) => !q.cumple && !cubiertos.has(q.codigo) && DONDE[q.codigo]) ? (
-            <Link href={rutaDeLaFicha} className="inline-block text-sm text-marca-texto underline-offset-2 hover:underline">
+            <Enlace precarga="nunca" href={rutaDeLaFicha} className="inline-block text-sm text-marca-texto underline-offset-2 hover:underline">
               Abrir la ficha del deal
-            </Link>
+            </Enlace>
           ) : null}
         </div>
 

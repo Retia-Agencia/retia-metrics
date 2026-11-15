@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { fecha, fechaHoraEnBogota, saldoLegible, usd, pct } from "@/lib/format";
@@ -64,12 +64,12 @@ export function FichaCabecera({
         {ficha.lead.envios >= 2 ? (
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="info">{ficha.lead.envios} envíos</Badge>
-            <Link
+            <Enlace precarga="nunca"
               href={enlaceConVuelta(`/p/${programaSlug}/leads/${ficha.lead.id}`, origen)}
               className="text-sm text-muted-foreground outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring"
             >
               Ver los envíos
-            </Link>
+            </Enlace>
           </div>
         ) : null}
 

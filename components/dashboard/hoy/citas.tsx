@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Comparativo } from "@/components/dashboard/operacion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +39,7 @@ function FilaDeCita({ fila, corte, veEquipo, slug, conCloser }: { fila: FilaDeMe
   return (
     <li>
       {fila.dealId
-        ? <Link className={`${clase} hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring`} href={`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`}>{contenido}</Link>
+        ? <Enlace precarga="al-pasar" className={`${clase} hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring`} href={`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`}>{contenido}</Enlace>
         : <div className={clase}>{contenido}</div>}
     </li>
   );

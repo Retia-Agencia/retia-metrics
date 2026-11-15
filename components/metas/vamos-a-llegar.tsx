@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import type { ReactNode } from "react";
 import { BarraDeAvance } from "@/components/hub/barra-de-avance";
 import { Badge } from "@/components/ui/badge";
@@ -72,7 +72,7 @@ function Fila({ titulo, cierre, cuadrante, href, conProyeccion, aviso }: {
     <h3 className="text-sm font-medium">{titulo}</h3>
     <BarraDeLaCelda celda={cuadrante.cupos} />
     <div>
-      {href ? <Link className="font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring" href={href}>{frase}</Link> : <p className="font-medium">{frase}</p>}
+      {href ? <Enlace precarga="nunca" className="font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring" href={href}>{frase}</Enlace> : <p className="font-medium">{frase}</p>}
     </div>
     {aviso}
     {cuadrante.ventasSinValorVendido > 0
@@ -93,7 +93,7 @@ export function VamosALlegarVista({ datos, props }: { datos: DatosVamosALlegar; 
     ? urlDeLista({ slug: programa.slug, metrica: "cierres", periodo: periodo(datos.cohorte.desdeLista), origen, cohorteId: datos.cohorte.id })
     : null;
   const configurarLink = configurar
-    ? <Button size="sm" variant="link" nativeButton={false} render={<Link href={enlaceConVueltaAFragmento(configurar.hrefBase, configurar.origen, "cohortes")} />}>Configurar</Button>
+    ? <Button size="sm" variant="link" nativeButton={false} render={<Enlace precarga="nunca" href={enlaceConVueltaAFragmento(configurar.hrefBase, configurar.origen, "cohortes")} />}>Configurar</Button>
     : null;
   const mesNombre = datos.mes.nombre.split(" ")[0];
   return <Card data-testid="vamos-a-llegar">

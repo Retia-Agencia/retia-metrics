@@ -21,7 +21,7 @@ import { DescargarDeals } from "@/components/deals/descargar-deals";
 import { ETAPA_DE_ENTRADA } from "@/lib/deals/crear-a-mano";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -101,7 +101,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
           <div className="shrink-0">
             {tablero.enProximaCohorte.length > 0 ? (
               <div className="mb-3 flex justify-end">
-                <Button variant="outline" size="sm" nativeButton={false} render={<Link href={`/p/${programa.slug}/proxima-cohorte`} />}>
+                <Button variant="outline" size="sm" nativeButton={false} render={<Enlace precarga="nunca" href={`/p/${programa.slug}/proxima-cohorte`} />}>
                   <span className="cifra">{tablero.enProximaCohorte.length}</span> en Próxima cohorte
                 </Button>
               </div>

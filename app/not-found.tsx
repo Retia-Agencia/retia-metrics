@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 
 /**
  * El 404 de ultimo recurso: una URL que no cae en ninguna ruta, incluso sin sesion.
@@ -16,9 +16,9 @@ export default function NoEncontrado() {
       <p className="text-sm text-muted-foreground">
         El enlace puede estar viejo o mal escrito.
       </p>
-      <Link href="/" className="text-sm underline underline-offset-4">
+      <Enlace precarga="nunca" href="/" className="text-sm underline underline-offset-4">
         Volver al inicio
-      </Link>
+      </Enlace>
     </div>
   );
 }

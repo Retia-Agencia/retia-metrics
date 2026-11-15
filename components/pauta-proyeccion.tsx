@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ObjetivoDeCohorte } from "@/lib/catalogo/objetivos";
@@ -35,7 +35,7 @@ export function PautaProyeccion({ proyeccion, historial, hrefPendientes, objetiv
       <Cifra cifra={proyectado} />
     </div>
     {n > 0 && hrefPendientes && proyeccion.ultimaCitaEn ? <p className="text-xs text-muted-foreground">
-      <Link href={hrefPendientes} className={claseEnlace}>Ver {n === 1 ? "la cita pendiente" : `las ${num(n)} citas pendientes`}</Link>
+      <Enlace precarga="nunca" href={hrefPendientes} className={claseEnlace}>Ver {n === 1 ? "la cita pendiente" : `las ${num(n)} citas pendientes`}</Enlace>
       {" "}(la última el {fechaCorta(fechaDeInstanteEnBogota(proyeccion.ultimaCitaEn))}).
     </p> : null}
   </CardContent></Card>;

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import {
   Dialog,
   DialogContent,
@@ -187,7 +187,7 @@ export function ResumenDeCifra({ titulo, detalle, descripcionCantidad }: {
           Antigüedad desde la fecha de la fila hasta hoy en Bogotá; las fechas futuras cuentan 0 días.
         </p>
         {/* `nativeButton={false}`: se pinta como <a>; sin eso Base UI avisa en consola. */}
-        <Button nativeButton={false} render={<Link href={href} />}>
+        <Button nativeButton={false} render={<Enlace precarga="nunca" href={href} />}>
           Ver la lista completa
         </Button>
   </>;

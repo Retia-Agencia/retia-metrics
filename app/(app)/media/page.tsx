@@ -21,7 +21,7 @@ import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { ESTADOS } from "@/components/media/estado-de-pieza";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import {
   PestanasDeMedia,
   PESTANAS_DE_MEDIA,
@@ -181,8 +181,8 @@ export default async function MediaPage({
               <nav aria-label="Páginas" className="flex items-center justify-between text-sm text-muted-foreground">
                 <span>Página {pagina} de {paginas}</span>
                 <span className="flex gap-2">
-                  {pagina > 1 ? <Button variant="outline" size="sm" render={<Link href={hrefDePagina(pagina - 1)} />}>Anterior</Button> : null}
-                  {pagina < paginas ? <Button variant="outline" size="sm" render={<Link href={hrefDePagina(pagina + 1)} />}>Siguiente</Button> : null}
+                  {pagina > 1 ? <Button variant="outline" size="sm" render={<Enlace precarga="nunca" href={hrefDePagina(pagina - 1)} />}>Anterior</Button> : null}
+                  {pagina < paginas ? <Button variant="outline" size="sm" render={<Enlace precarga="nunca" href={hrefDePagina(pagina + 1)} />}>Siguiente</Button> : null}
                 </span>
               </nav>
             ) : null}

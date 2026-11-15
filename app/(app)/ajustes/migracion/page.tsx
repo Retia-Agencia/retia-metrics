@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { programasActivos } from "@/lib/queries/programas";
 import { LIMITE_DE_RAREZAS, nombreDeRareza, rarezasDelPrograma } from "@/lib/migracion/rarezas";
@@ -81,7 +81,7 @@ export default async function MigracionPage(props: {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {rarezas.porTipo.map((t) => (
-                  <Link
+                  <Enlace precarga="nunca"
                     key={t.tipo}
                     href={`/ajustes/migracion?programa=${encodeURIComponent(programa.slug)}&tipo=${encodeURIComponent(t.tipo)}`}
                     className="rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -89,7 +89,7 @@ export default async function MigracionPage(props: {
                     <Badge variant={t.tipo === tipo ? "secondary" : "neutro"}>
                       {nombreDeRareza(t.tipo)} <span className="cifra">{num(t.total)}</span>
                     </Badge>
-                  </Link>
+                  </Enlace>
                 ))}
               </div>
             )}
@@ -116,17 +116,17 @@ export default async function MigracionPage(props: {
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="alerta">{nombreDeRareza(r.tipo)}</Badge>
                       {r.dealId ? (
-                        <Link
+                        <Enlace precarga="al-pasar"
                           href={`/p/${programa.slug}/deals/${r.dealId}`}
                           className="text-marca-texto underline-offset-2 hover:underline"
                         >
                           Ver deal
-                        </Link>
+                        </Enlace>
                       ) : null}
                       {r.leadId ? (
-                        <Link href={`/p/${programa.slug}/leads/${r.leadId}`} className="text-marca-texto underline-offset-2 hover:underline">
+                        <Enlace precarga="al-pasar" href={`/p/${programa.slug}/leads/${r.leadId}`} className="text-marca-texto underline-offset-2 hover:underline">
                           Ver lead
-                        </Link>
+                        </Enlace>
                       ) : null}
                     </div>
                     <p>{r.detalle}</p>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { cn } from "@/lib/utils";
 
 /**
@@ -79,7 +79,7 @@ export function PestanasDeMedia({
     <div className="space-y-3">
       <nav aria-label="Secciones de media" className="-mx-4 flex gap-1 overflow-x-auto border-b px-4 md:mx-0 md:px-0">
         {PESTANAS_DE_MEDIA.map((p) => (
-          <Link
+          <Enlace precarga="navegacion"
             key={p.id}
             href={hrefDeMedia(p.id, programa)}
             aria-current={p.id === tab ? "page" : undefined}
@@ -89,12 +89,12 @@ export function PestanasDeMedia({
             )}
           >
             {p.etiqueta}
-          </Link>
+          </Enlace>
         ))}
       </nav>
       <nav aria-label="Programa" className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
         {opciones.map((o) => (
-          <Link
+          <Enlace precarga="navegacion"
             key={o.valor ?? "todos"}
             href={hrefDeMedia(tab, o.valor)}
             aria-current={o.valor === programa ? "true" : undefined}
@@ -104,7 +104,7 @@ export function PestanasDeMedia({
             )}
           >
             {o.etiqueta}
-          </Link>
+          </Enlace>
         ))}
       </nav>
     </div>

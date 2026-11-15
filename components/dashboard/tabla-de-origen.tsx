@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +21,7 @@ export type CanalConEnlaces = Omit<FilaOrigenCanal, "pares"> & {
 };
 
 function Cifra({ href, children }: { href: string; children: React.ReactNode }) {
-  return <Link className="cifra underline underline-offset-4" href={href}>{children}</Link>;
+  return <Enlace precarga="nunca" className="cifra underline underline-offset-4" href={href}>{children}</Enlace>;
 }
 
 function tasa(agendas: number, envios: number) {

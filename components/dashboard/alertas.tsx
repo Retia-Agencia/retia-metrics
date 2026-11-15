@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fecha, num, pct } from "@/lib/format";
@@ -32,7 +32,7 @@ export function Alertas({
             {configurable ? (
               <>
                 {" "}
-                <Link className="text-primary underline-offset-4 hover:underline" href={configurar}>Configurarlos en Programa</Link>.
+                <Enlace precarga="nunca" className="text-primary underline-offset-4 hover:underline" href={configurar}>Configurarlos en Programa</Enlace>.
               </>
             ) : null}
           </p>

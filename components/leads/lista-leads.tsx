@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useSyncExternalStore } from "react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Check, Columns3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -190,12 +190,12 @@ export function ListaLeads({ vista, filas, preguntas, respuestasPorLead, userId,
                 className="relative flex flex-wrap items-start justify-between gap-2 rounded-md px-2 py-3 text-sm hover:bg-muted/50"
               >
                 <div className="min-w-0 space-y-1">
-                  <Link
+                  <Enlace precarga="al-pasar"
                     href={f.href}
                     className="block truncate font-medium text-marca-texto underline-offset-2 outline-none after:absolute after:inset-0 hover:underline focus-visible:ring-3 focus-visible:ring-ring/50"
                   >
                     {f.nombre ?? f.email}
-                  </Link>
+                  </Enlace>
                   {f.nombre ? <p className="truncate text-xs text-muted-foreground">{f.email}</p> : null}
                   <div className="flex flex-wrap items-center gap-1.5">
                     {f.leadQuality ? (
@@ -261,35 +261,35 @@ export function ListaLeads({ vista, filas, preguntas, respuestasPorLead, userId,
               return (
                 <tr key={f.id} className="cursor-pointer border-b hover:bg-muted/50">
                   <td className="whitespace-nowrap">
-                    <Link href={f.href} className={`${clase} font-medium text-marca-texto`}>
+                    <Enlace precarga="al-pasar" href={f.href} className={`${clase} font-medium text-marca-texto`}>
                       {f.nombre ?? f.email}
-                    </Link>
+                    </Enlace>
                   </td>
                   <td className="whitespace-nowrap">
-                    <Link href={f.href} tabIndex={-1} className={clase}>
+                    <Enlace precarga="al-pasar" href={f.href} tabIndex={-1} className={clase}>
                       {f.email}
-                    </Link>
+                    </Enlace>
                   </td>
                   <td className="whitespace-nowrap">
-                    <Link href={f.href} tabIndex={-1} className={`${clase} cifra`}>
+                    <Enlace precarga="al-pasar" href={f.href} tabIndex={-1} className={`${clase} cifra`}>
                       {f.telefono ?? "—"}
-                    </Link>
+                    </Enlace>
                   </td>
                   <td className="whitespace-nowrap">
-                    <Link href={f.href} tabIndex={-1} className={clase}>
+                    <Enlace precarga="al-pasar" href={f.href} tabIndex={-1} className={clase}>
                       {f.leadQuality ?? "Sin calidad"}
-                    </Link>
+                    </Enlace>
                   </td>
                   <td className="whitespace-nowrap">
-                    <Link href={f.href} tabIndex={-1} className={clase}>
+                    <Enlace precarga="al-pasar" href={f.href} tabIndex={-1} className={clase}>
                       {f.etapaNombre ?? "Sin deal"}
-                    </Link>
+                    </Enlace>
                   </td>
                   {columnas.canal ? (
                     <td className="whitespace-nowrap">
-                      <Link href={f.href} tabIndex={-1} className={clase}>
+                      <Enlace precarga="al-pasar" href={f.href} tabIndex={-1} className={clase}>
                         {f.canal ?? "Sin UTM"}
-                      </Link>
+                      </Enlace>
                     </td>
                   ) : null}
                   {preguntasVisibles.map((pregunta) => (
@@ -298,9 +298,9 @@ export function ListaLeads({ vista, filas, preguntas, respuestasPorLead, userId,
                     </td>
                   ))}
                   <td className="whitespace-nowrap">
-                    <Link href={f.href} tabIndex={-1} className={`${clase} cifra`}>
+                    <Enlace precarga="al-pasar" href={f.href} tabIndex={-1} className={`${clase} cifra`}>
                       {f.fechaTexto ?? "—"}
-                    </Link>
+                    </Enlace>
                   </td>
                 </tr>
               );
@@ -353,8 +353,8 @@ function CampoTarjeta({ etiqueta, valor }: { etiqueta: string; valor: string }) 
 /** Una celda de respuesta en la tabla: truncada con CSS, el texto completo al pasar el cursor o tocar. */
 function CeldaRespuesta({ href, clase, valor }: { href: string; clase: string; valor: string }) {
   return (
-    <Link href={href} tabIndex={-1} className={clase} title={valor}>
+    <Enlace precarga="al-pasar" href={href} tabIndex={-1} className={clase} title={valor}>
       <span className="line-clamp-2 break-words">{valor}</span>
-    </Link>
+    </Enlace>
   );
 }

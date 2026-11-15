@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { Activity, FileWarning, ListChecks, Users } from "lucide-react";
 import { paginaConPautaGlobal } from "@/lib/auth/page-guards";
 import { administraGlobal, type Rol } from "@/lib/auth/roles";
@@ -72,7 +72,7 @@ export default async function AjustesPage() {
     <PageShell titulo="Ajustes" descripcion="Usuarios y roles, canales, webhook, motivos y áreas.">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visibles.map(({ href, icono: Icono, titulo, descripcion }) => (
-          <Link key={href} href={href} className="block">
+          <Enlace precarga="navegacion" key={href} href={href} className="block">
             <Card className="h-full transition-colors hover:bg-accent/40">
               <CardHeader className="flex-row items-center gap-2 space-y-0">
                 <Icono className="size-4 text-muted-foreground" />
@@ -80,7 +80,7 @@ export default async function AjustesPage() {
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">{descripcion}</CardContent>
             </Card>
-          </Link>
+          </Enlace>
         ))}
       </div>
     </PageShell>

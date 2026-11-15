@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { db } from "@/lib/db";
 import { NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
@@ -122,9 +122,9 @@ export async function TabNotificaciones({
       {paginas > 1 ? (
         <nav className="flex items-center justify-between text-sm" aria-label="Páginas">
           {pagina > 0 ? (
-            <Link href={hrefDePagina(pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
+            <Enlace precarga="nunca" href={hrefDePagina(pagina - 1)} className="text-marca-texto underline-offset-2 hover:underline">
               Anterior
-            </Link>
+            </Enlace>
           ) : (
             <span />
           )}
@@ -132,9 +132,9 @@ export async function TabNotificaciones({
             Página <span className="cifra">{pagina + 1}</span> de <span className="cifra">{paginas}</span>
           </span>
           {pagina + 1 < paginas ? (
-            <Link href={hrefDePagina(pagina + 1)} className="text-marca-texto underline-offset-2 hover:underline">
+            <Enlace precarga="nunca" href={hrefDePagina(pagina + 1)} className="text-marca-texto underline-offset-2 hover:underline">
               Siguiente
-            </Link>
+            </Enlace>
           ) : (
             <span />
           )}

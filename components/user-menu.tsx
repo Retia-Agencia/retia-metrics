@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, LogOut, Eye, UserCircle, Users } from "lucide-react";
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { signOut } from "next-auth/react";
@@ -224,7 +224,7 @@ export function UserMenu({
          * llamadas y students por programa— en una ruta. Reemplaza el enlace a "Mi
          * perfil". Base UI quiere `render` para que el item sea un enlace, no `asChild`.
          */}
-        <DropdownMenuItem render={<Link href="/mi-espacio" />}>
+        <DropdownMenuItem render={<Enlace precarga="navegacion" href="/mi-espacio" />}>
           <UserCircle className="size-4" />
           Mi espacio
         </DropdownMenuItem>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
@@ -45,8 +45,8 @@ export default async function ProximaCohortePage({ params, searchParams }: {
       <PantallaFija>
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div className="flex gap-2">
-            <Button variant={vista === "sin_asignar" ? "secondary" : "ghost"} nativeButton={false} render={<Link href="?vista=sin_asignar" />}>Sin cohorte asignada</Button>
-            <Button variant={vista === "asignada" ? "secondary" : "ghost"} nativeButton={false} render={<Link href="?vista=asignada" />}>Con cohorte asignada</Button>
+            <Button variant={vista === "sin_asignar" ? "secondary" : "ghost"} nativeButton={false} render={<Enlace precarga="nunca" href="?vista=sin_asignar" />}>Sin cohorte asignada</Button>
+            <Button variant={vista === "asignada" ? "secondary" : "ghost"} nativeButton={false} render={<Enlace precarga="nunca" href="?vista=asignada" />}>Con cohorte asignada</Button>
           </div>
           <span className="text-sm text-muted-foreground"><span className="cifra">{cards.length}</span> deals</span>
         </div>

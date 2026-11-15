@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { useEffect, useState } from "react";
 import { detalleDeLlamadaAccion } from "@/app/(app)/p/[programa]/calls/acciones";
 import { Badge } from "@/components/ui/badge";
@@ -106,7 +106,7 @@ export function DetalleDeLlamada({
 
         <DialogFooter>
           {detalle?.dealId && conIrAlDeal ? (
-            <Button nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${programaSlug}/deals/${detalle.dealId}`, origen ?? "")} />}>
+            <Button nativeButton={false} render={<Enlace precarga="nunca" href={enlaceConVuelta(`/p/${programaSlug}/deals/${detalle.dealId}`, origen ?? "")} />}>
               Ir al deal
             </Button>
           ) : null}

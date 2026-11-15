@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Enlace } from "@/components/enlace";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
@@ -188,11 +188,11 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           <CardContent className="overflow-x-auto pt-4">
             {lista.filas.length === 0 ? <p>No hay filas en esta página para los filtros elegidos.</p> : (
               <table className="w-full text-sm">
-                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Link className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Link> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Link className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Link></th> : conVentas ? <CabecerasDeVentas /> : <th>{rotuloDeImporte(metrica)}</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
+                <thead><tr className="text-left">{(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <th>Persona</th> : null}{veEquipo ? <th>Closer</th> : null}<th>Etapa</th><th>{metrica === "no_agendaron" ? <Enlace precarga="nunca" className="underline underline-offset-2" href={enlaceOrdenado("envio")}>Fecha de envío</Enlace> : "Fecha"}</th><th>Días</th>{metrica === "no_agendaron" ? <th><Enlace precarga="nunca" className="underline underline-offset-2" href={enlaceOrdenado("actividad")}>Última actividad</Enlace></th> : conVentas ? <CabecerasDeVentas /> : <th>{rotuloDeImporte(metrica)}</th>}{veEquipo ? <th>Deal</th> : null}</tr></thead>
                 <tbody className="divide-y">
                   {lista.filas.map((fila) => (
                     <tr key={fila.id}>
-                      {(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <td className="py-3">{fila.persona ? (veEquipo ? <Link className="underline underline-offset-2" href={enlaceConVuelta(fila.dealId ? `/p/${encodeURIComponent(slug)}/deals/${fila.dealId}` : `/p/${encodeURIComponent(slug)}/leads/${fila.persona.leadId}`, origen)}>{fila.persona.nombre ?? "Sin nombre"}</Link> : fila.persona.nombre ?? "Sin nombre") : "Sin nombre"}</td> : null}
+                      {(veEquipo || (veLeads && (esListaDePauta || esListaDeOrigen))) ? <td className="py-3">{fila.persona ? (veEquipo ? <Enlace precarga="al-pasar" className="underline underline-offset-2" href={enlaceConVuelta(fila.dealId ? `/p/${encodeURIComponent(slug)}/deals/${fila.dealId}` : `/p/${encodeURIComponent(slug)}/leads/${fila.persona.leadId}`, origen)}>{fila.persona.nombre ?? "Sin nombre"}</Enlace> : fila.persona.nombre ?? "Sin nombre") : "Sin nombre"}</td> : null}
                       {/* Sin acceso al equipo (`registros` para Pauta), closer y deal llegan proyectados a nulo: no se pintan. */}
                       {veEquipo ? <td>{fila.closer || "Sin closer"}</td> : null}
                       <td>{fila.etapa ? nombreDeEtapa(fila.etapa) : "Sin deal"}</td>
@@ -202,7 +202,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
                         <span className="cifra">{metrica === "no_agendaron" ? (fila.ultimaActividad ? fecha(fila.ultimaActividad) : "—") : fila.moneda && fila.monto !== null ? monto(fila.monto, fila.moneda) : "—"}</span>
                         {fila.concepto === "adicional" ? <span className="block text-xs">Adicional{fila.nota ? `: ${fila.nota}` : ""}</span> : null}
                       </td>}
-                      {veEquipo ? <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Link href={enlaceConVuelta(`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td> : null}
+                      {veEquipo ? <td>{fila.dealId ? <Button variant="link" nativeButton={false} render={<Enlace precarga="al-pasar" href={enlaceConVuelta(`/p/${encodeURIComponent(slug)}/deals/${fila.dealId}`, origen)} />}>Ver deal</Button> : "Sin deal"}</td> : null}
                     </tr>
                   ))}
                 </tbody>
@@ -212,9 +212,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
           </CardContent>
         </Card>
         <nav aria-label="Paginación" className="flex items-center gap-3">
-          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlaceDePagina}&pagina=${pagina - 1}`} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
+          {pagina > 1 ? <Button variant="outline" nativeButton={false} render={<Enlace precarga="nunca" href={`${enlaceDePagina}&pagina=${pagina - 1}`} />}>Anterior</Button> : <Button variant="outline" disabled>Anterior</Button>}
           <span className="cifra">Página {num(pagina)}</span>
-          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Link href={`${enlaceDePagina}&pagina=${pagina + 1}`} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
+          {pagina * TAMANO_PAGINA < lista.subtotal.cantidad ? <Button variant="outline" nativeButton={false} render={<Enlace precarga="nunca" href={`${enlaceDePagina}&pagina=${pagina + 1}`} />}>Siguiente</Button> : <Button variant="outline" disabled>Siguiente</Button>}
         </nav>
       </div>
     </PageShell>
