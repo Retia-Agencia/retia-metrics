@@ -298,6 +298,18 @@ tengan texto aprobado.
 
 ## Avance
 
+- **14-nov (noche) · Carril D: E-3 Comercial desbloqueado (`5676be06`).** Las claves que pedía `lib/hub/cifras-de-recorridos.ts` ya
+  tienen explicación: `explicacionesDeRecorridos()` en `lib/metricas/explicacion.ts` devuelve un `Record<string, ExplicacionDeConcepto>`
+  con TODAS (escalones y grupos, `porcentaje_de_escalera`, `dias_medianos_de_escalera`, `cita_sin_resultado_de_escalera`,
+  `embudo_comercial_{creados,agendaron,tuvieron_show,compraron}`, `conversion_del_paso`, `perdidos_del_paso`, `pasaron`,
+  `siguen_en_etapa`, `perdidos_en_etapa`, `dias_medianos_en_etapa`, `citas_futuras`, `deals_perdidos`, `ticket_perdido`, `shows`,
+  `no_asistio`, `citas_sin_marcar`, `deals_abiertos`, `deals_sin_dueno`). **Para Alejo:** la página pasa
+  `explicacionesDeRecorridos()` como `explicaciones` a los constructores; no hay que renombrar ninguna clave del constructor (la de
+  `tuvieron_show` se resolvió del lado de las variantes; la lista sigue siendo `embudo_comercial_shows`). Seis fichas nuevas
+  (`embudo_comercial`, `conversion_por_etapa`, `tiempo_en_etapa`, `dias_cita_a_pago`, `perdidos_por_motivo`, `ticket_perdido`),
+  texto y fundamento aprobados por Mani en `docs/diseno-cifra-y-pauta.md` §2.2 «Comercial · los recorridos». El catálogo de la
+  escalera vive ahora en `lib/escalones.ts` (puro; `lib/queries/escalera.ts` lo re-exporta). Ninguna cifra cambió.
+
 - **14-nov · E-3 Dinero.** Integrada solo la rama `seccion === "dinero"` y su carga en la página del programa.
   - El servidor arma `cifrasDeDinero` y `cifrasPorCohorte`; `lib/hub/explicaciones-de-dinero.ts` arma una sola vez el
     Record desde las cinco fichas con `explicacionDe`, universo todas las áreas. Test puro nuevo:
