@@ -9,31 +9,50 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, carril D (sesión de Mani). Lee AGENTS.md y la entrada "14-nov (tarde)" en Memory de docs/agents/handoff.md,
-y docs/agents/briefs-codex-14-nov.md (tabla de estado arriba). Orquesta, no implementes: el código va con Codex (/delegate, effort medium,
-worktree dentro del repo, un job por carpeta) y tú revisas diff, typecheck, lint y los tests del ticket; Codex NO commitea (lo haces tú, con
-archivos nombrados). Las migraciones las generas y las aplicas tú, con el ok de Mani, leyendo antes el SQL y mirando el ref de la conexión.
-Estado: main en cp-20261114-1 (21671073) más los commits posteriores; migraciones 0144 y 0145 YA aplicadas en producción (147 en total).
-Lo que sigue, en este orden (cada punto tiene su ticket con el detalle completo, sección «14-nov (tarde)»):
-0. Primero, con Mani: revocar el token del MCP que quedó impreso en el chat de la sesión anterior (Ajustes › Conexiones IA) y emitir otro.
-1. 429 (decisión de Mani, una pregunta): ¿Envíos = completos solamente (recomendado, cierra D-1) o completos y parciales? Hoy el código cuenta
-   solo completos (`lib/queries/hechos/envio.ts:104`) y la nota «Pendiente de Mani» está en `metricas.md`, `registro.ts` y `overview.md` §11.
-2. 428, lo que falta fuera del CRM: Juanito (repo aparte) llama `/api/pendientes/avisos` a las 8:00 y 18:00 de Bogotá y `/confirmar`;
-   cargar el WhatsApp de cada closer (ninguno de los 15 usuarios activos lo tiene); decidir la alerta «comprobante por confirmar»
-   (no existe chip) y qué hacer con el atraso (Andrea 416 deals, Maru 330); probar con dos closers reales; luego medir D-4.
-3. 427: Michael valida `/hub/reporte` contra su reporte manual de una semana real antes del 30-nov; decidir «meta de la semana a la fecha»
-   (no existe en `lib/queries/`); cambiar «hoy» por «del día» en días pasados; probar la vista de impresión real.
-4. 411: F4 anotar la salida de `scripts/informe-mcp.ts` tras unos días; F5 decidir la cesión A-177 (no es acción del MCP) y el hueco de pauta
-   (`resumen_del_hub` no devuelve cifras de pauta aunque `lib/mcp/cobertura.ts` lo declara para ~5 conceptos). Antes de empujar un lote,
-   correr `tests/*guardian*.test.ts tests/mcp-*.test.ts tests/rls-*.test.ts` (el CI se rompió por cuatro guardianes el 14-nov).
-5. 358 (lo que no es WhatsApp): helpers locales de formato, `<InsigniaDeCalidad>`, Mi espacio y listas operativas, DA-7, guardián, regla del vacío.
-   Y 390 (casillas 3, 4 y N8; deuda de cuatro lecturas del predicado de show) y 368 (regla del Re-agenda) siguen en el plan de la ola.
-6. Housekeeping: quitar los worktrees b1 a b7 e integracion-14nov (`git worktree remove --force`, borran su carpeta `node_modules/.vite`), las ramas
-   locales `b*-*` y `integracion-14nov` (ya están en main), y los worktrees viejos 403-f2, 408-aviso-cs, 411-f2-ola2, 419-e1 si sus ramas ya entraron.
-No toques los archivos del carril P (Alejo: Comercial, Dinero y Hoy). Commits con archivos nombrados, `git pull --rebase` antes de push, y un
-solo push a la vez (el CI cancela la corrida anterior). Al cerrar, actualiza docs/agents/handoff.md.
+Seguimos con el CRM de Retia, carril D (sesión de Mani, orquestadora). Lee AGENTS.md y la entrada "14-nov (noche)" en Memory de
+docs/agents/handoff.md. Orquesta, no implementes: el código va con Codex (/delegate, effort medium, worktree dentro del repo, un job por
+carpeta; verifica con codex-busy.sh que quedó BUSY en esa carpeta). Codex NO commitea: tú revisas diff, typecheck, lint y los tests del
+ticket, y commiteas con archivos nombrados. Migraciones: las generas y aplicas tú, con el ok de Mani, leyendo el SQL y mirando el ref.
+Estado: main en fbbfacbc (CI verde), checkpoint cp-20261114-2 sobre 6b225924. El checkout principal tiene archivos sin commitear de
+otras sesiones (243, scripts/_vista-pendientes.ts): no los toques; si necesitas main al día, trabaja desde un worktree.
+Lo que sigue, en este orden:
+1. 429 opción B (decidida por Mani el 14-nov): Envíos cuenta completos y parciales y se muestran las dos cifras, cada una con su lista.
+   Mueve una cifra: hecho de envíos (lib/queries/hechos/envio.ts:104) con desglose por es_parcial, ficha de los parciales, quitar la nota
+   «Pendiente de Mani» de docs/metricas.md (~307), lib/metricas/registro.ts (~1090) y overview §11 en el mismo commit (N8), dorados y el
+   aviso de qué número se movió. Detalle en docs/tasks/429-*.md, sección "Respondido por Mani".
+2. MCP: dias_cita_a_pago, perdidos_por_motivo y ticket_perdido están como «Pendiente en el MCP» (lib/mcp/cobertura.ts, trinquete 3).
+   Darles vía real (lista o cifra en resumen_del_hub) va con el 411.
+3. Lo que espera a personas (carril H): Michael antes del 30-nov (validar /hub/reporte del 427, Q-1 a Q-9, DM-8); WhatsApp de cada closer
+   (428); Daniel define "pago rápido" y el peso de cada escalón (afecta Días de la cita al pago); recorridos visuales de 431 a 434.
+4. Revisar lo que dejen las sesiones paralelas (243 /nerd-stats, 363 llamadas sueltas, Juanito 428/408/426) antes de dar nada por hecho.
+5. Housekeeping: worktrees b1 a b7, integracion-14nov y fichas-comercial ya entraron a main; quitarlos con codex-reap.sh y git worktree remove.
+No toques los archivos del carril P (Alejo: lib/hub/, componentes de Comercial, Dinero y Hoy). Commits con archivos nombrados, pull --rebase
+antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.md.
 ```
 ## Memory
+
+### 14-nov (noche) · checkpoint cp-20261114-2, fichas de los recorridos de Comercial (419 E-3 desbloqueado) y 429 D-1 decidido (sesión orquestadora de Mani, Codex por /delegate)
+- **Checkpoint:** tag `cp-20261114-2` sobre `6b225924` (CI verde). 430, 415 y 401 a `done` con sus casillas verificadas; 431 a 434 siguen
+  `en main` con lo comprobable marcado (faltan sus recorridos visuales, anotado en cada ticket); 339 pasó de `todo` a `en main` (el código
+  está desde el 28-oct, `296cf639`; falta el caso real de Maru).
+- **Alejo estaba detenido desde el 13-nov** en 419 E-3 Comercial por 15 claves sin ficha. Se rastreó cada cifra contra las reuniones
+  (Gerencia 30-sep GC-33, Pauta 29-sep PT-34, weeklies 3 y 13-nov), el HubSpot de Gerencia (`comercial.md` §9.7), los reportes diarios de
+  Michael y el boceto; la tabla con el fundamento quedó en `docs/diseno-cifra-y-pauta.md` §2.2 «Comercial · los recorridos». Conversión por
+  etapa y Días en la etapa no las pidió Gerencia: **Mani decidió dejarlas** (14-nov).
+- **Hecho (`5676be06`):** 6 fichas nuevas (`embudo_comercial`, `conversion_por_etapa`, `tiempo_en_etapa`, `dias_cita_a_pago`,
+  `perdidos_por_motivo`, `ticket_perdido`) y `explicacionesDeRecorridos()` en `lib/metricas/explicacion.ts` (variantes sobre fichas
+  existentes, escalones emparejados por nombre); `lib/escalones.ts` puro con el catálogo de la escalera (`lib/queries/escalera.ts` lo
+  re-exporta); MCP: tres conceptos como «Pendiente en el MCP» con trinquete propio en vez de una vía falsa (`docs/mcp.md`). Ninguna cifra
+  cambió. Nota para Alejo en el ticket 419 (`fbbfacbc`, CI verde). Alejo ya había empujado E-3 Dinero (`1f0111f1`).
+- **Lo que Codex atajó parándose (bien):** dos claves sin base (`citas_sin_marcar` → `citas_pendientes`, `ventas_sin_llamada` → grupo de
+  la escalera), la palabra «ticket» prohibida en explicaciones (se usa «precio de lista de la cohorte», el rótulo no cambia) y el guardián
+  de cobertura del MCP. **Lo que atajé yo en la revisión:** `explicacion.ts` (puro) importaba valores de un módulo que carga `lib/db`
+  (riesgo de `Module not found: 'fs'`) y cuatro variantes sin el texto aprobado.
+- **429 D-1 decidido por Mani:** opción B, Envíos cuenta completos y parciales con las dos cifras a la vista. Falta el código (primer punto
+  del prompt).
+- **Sesiones paralelas abiertas por Mani:** 243 (`/nerd-stats`), 363 y 364 (364 ya empujado, `c2e7c554`) y Juanito (428, 408, 426). Sus
+  resultados no se revisaron desde aquí.
+- **No verificado:** suite completa en local (la corre el CI), `npm run build` local (el cambio no toca componentes cliente), la app abierta.
 
 ### 14-nov (tarde) · B-1 a B-7 hechos con Codex y empujados; checkpoint cp-20261114-1 (21671073, CI verde); migraciones 0144 y 0145 aplicadas
 - **Hecho (sesión de Mani, carril D, Codex por /delegate, yo revisé cada diff):** B-1 411 F4 (bytes y consultas por llamada en `mcp_llamadas`, `scripts/informe-mcp.ts`, `scripts/explain-hechos.ts`); B-2 411 F5 (`tests/mcp-evaluaciones.test.ts`, 8 pasan y 1 `it.todo`: la cesión A-177 no es una acción del MCP); B-6 429 (Envíos documentado como hoy: solo completos; regla de `objetivo_semana` con ejemplo; `agendas_meta` con clave propia); B-3 358 (mensaje de WhatsApp con `cop`/`num`/`pct` y rótulos del vocabulario, test dorado contra Pauta); B-4 427 (`/hub/reporte`); B-5 428 (`/api/pendientes/avisos` y `/confirmar`, secreto `SEMAFORO_SECRETO`); B-7 (Form30x fuera del código).
