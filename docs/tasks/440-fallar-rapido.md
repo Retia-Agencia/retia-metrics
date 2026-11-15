@@ -3,7 +3,7 @@ id: 440
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §7 (tiempo máximo) y §8.8 · contrato de rendimiento"
 depends: [435]
-status: todo
+status: en curso
 ---
 
 # 440 — Una petición lenta falla en segundos y con mensaje, no a los 300
@@ -68,7 +68,9 @@ de un layout, con un valor ≤ al de su clase; excepciones nombradas (los crons)
 
 ## Done cuando
 - [ ] `select pg_sleep(20)` por el cliente de la app contra producción corta a los ~15 s con el error traducido.
-- [ ] Con el pool lleno (prueba local: `max: 1` y dos consultas lentas), la segunda falla a los 10 s con error, no se
-      cuelga.
+      _Pendiente: pide el ok de Mani. Local (Postgres directo) ya corta a 15,0 s con 57014; falta el pooler 6543._
+- [x] Con el pool lleno (prueba local: `max: 1` y dos consultas lentas), la segunda falla a los 10 s con error, no se
+      cuelga. _(medido: 10,0 s, "timeout exceeded when trying to connect")_
 - [ ] Una página con una consulta lenta forzada en `dev:local` muestra el mensaje y el botón de reintentar.
+      _Pendiente: `app/(app)/error.tsx` existe y el build pasa; falta verla renderizada._
 - [ ] Guardián verde y mordido; typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
