@@ -22,6 +22,8 @@ interface PaginaMeta<T> {
   paging?: { next?: unknown };
 }
 
+const TIEMPO_MAXIMO_META_MS = 30_000;
+
 function mensajeSeguro(mensaje: unknown, token: string): string {
   const texto = typeof mensaje === "string" && mensaje.trim() ? mensaje : "respuesta inválida";
   return texto.replaceAll(token, "(oculto)");
@@ -31,7 +33,12 @@ async function consultar<T>(url: URL, token: string, f: FetchMeta): Promise<Resp
   // Meta suele incluir `access_token` en `paging.next`; se elimina antes de volver a
   // consultar porque el único transporte permitido del secreto es el header.
   url.searchParams.delete("access_token");
-  const respuesta = await f(url, { headers: { Authorization: `Bearer ${token}` } });
+  // Sin tope, una llamada colgada de Meta agota los 300 s de la función y el semáforo
+  // de Juanito no llega (21:00 del 14-nov). 30 s sobran para una página de Meta.
+  const respuesta = await f(url, {
+    headers: { Authorization: `Bearer ${token}` },
+    signal: AbortSignal.timeout(TIEMPO_MAXIMO_META_MS),
+  });
   let cuerpo: RespuestaMeta<T> | null = null;
   try {
     cuerpo = (await respuesta.json()) as RespuestaMeta<T>;
