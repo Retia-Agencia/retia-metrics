@@ -364,7 +364,7 @@ describe("guardián: el alcance se pregunta por la función, no con un join prop
       "write-side: resuelve el programa de la membresía que la acción va a tocar, antes de autorizarla",
 
     // Vincular el Calendly de una membresía (096): igual que la de arriba, resuelve el programa
-    // de la membresía y lo compara con programaEnAlcance antes de escribir.
+    // de la membresía y lo pasa a exigirAccesoAlPrograma antes de escribir (vale con el programa inactivo, ADR 0132).
     [path.join("app", "(app)", "ajustes", "usuarios", "acciones.ts")]:
       "write-side: resuelve el programa de la membresía cuyo Calendly se va a vincular, antes de autorizarlo",
   };

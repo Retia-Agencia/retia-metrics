@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { requireAdministracionDeUsuarios } from "@/lib/auth/guards";
-import { programaEnAlcance } from "@/lib/auth/alcance";
 import { esRolValido } from "@/lib/auth/roles";
+import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { rolDeVista } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
 import type { Db } from "@/lib/db/tipos";
@@ -178,9 +178,10 @@ export async function asignarCalendlyDeMembresiaAccion(
       .select({ programId: miembrosPrograma.programId })
       .from(miembrosPrograma)
       .where(eq(miembrosPrograma.id, input.membresiaId));
-    if (!membresia || !(await programaEnAlcance(session.user.id, rol, membresia.programId, db))) {
-      throw new ErrorDeApp("No existe esa membresía activa.", 404);
-    }
+    if (!membresia) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    // Por alcance de administración y no `programaEnAlcance`: el equipo también se arma
+    // mientras el programa está inactivo (ADR 0094 punto 4, ADR 0132).
+    await exigirAccesoAlPrograma(db, { id: session.user.id, rol }, membresia.programId, "No existe esa membresía activa.");
     await asignarCalendlyDeMembresia(db, session.user.id, input);
     revalidar();
     return { ok: true };
@@ -201,9 +202,10 @@ export async function gestionarCalendlyExtraAccion(
       .select({ programId: miembrosPrograma.programId })
       .from(miembrosPrograma)
       .where(eq(miembrosPrograma.id, input.membresiaId));
-    if (!membresia || !(await programaEnAlcance(session.user.id, rol, membresia.programId, db))) {
-      throw new ErrorDeApp("No existe esa membresía activa.", 404);
-    }
+    if (!membresia) throw new ErrorDeApp("No existe esa membresía activa.", 404);
+    // Por alcance de administración y no `programaEnAlcance`: el equipo también se arma
+    // mientras el programa está inactivo (ADR 0094 punto 4, ADR 0132).
+    await exigirAccesoAlPrograma(db, { id: session.user.id, rol }, membresia.programId, "No existe esa membresía activa.");
     await gestionarCalendlyExtra(db, session.user.id, input);
     revalidar();
     return { ok: true };

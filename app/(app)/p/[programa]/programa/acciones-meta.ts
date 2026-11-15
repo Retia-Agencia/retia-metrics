@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
-import { programaEnAlcance } from "@/lib/auth/alcance";
-import { esAdministrador } from "@/lib/auth/roles";
+import { esAdministrador, esRolValido } from "@/lib/auth/roles";
+import { exigirAccesoAlPrograma } from "@/lib/catalogo/acceso-programa";
 import { rolDeVista } from "@/lib/auth/vista";
 import { activarCuenta, desactivarCuenta, vincularCuenta } from "@/lib/catalogo/meta";
 import { db } from "@/lib/db";
@@ -16,10 +16,10 @@ export type ResultadoCuentaMeta =
 async function actorAdministrador(programaId: string): Promise<string> {
   const session = await requireRole("gerente");
   const rol = await rolDeVista(session);
-  if (!esAdministrador(rol)) throw new ErrorDeApp("No autorizado.", 403);
-  if (!(await programaEnAlcance(session.user.id, rol, programaId, db))) {
-    throw new ErrorDeApp("No autorizado para este programa.", 403);
-  }
+  if (!esRolValido(rol) || !esAdministrador(rol)) throw new ErrorDeApp("No autorizado.", 403);
+  // `exigirAccesoAlPrograma` y no `programaEnAlcance`: la cuenta de Meta se vincula también
+  // mientras el programa está inactivo, en su recorrido de configuración (ADR 0094 punto 4, ADR 0132).
+  await exigirAccesoAlPrograma(db, { id: session.user.id, rol }, programaId, "No autorizado para este programa.");
   return session.user.id;
 }
 

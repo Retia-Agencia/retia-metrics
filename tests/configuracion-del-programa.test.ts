@@ -156,3 +156,27 @@ describe("paridad de la reja de activación", () => {
     await comprobarParidad();
   });
 });
+
+/**
+ * 🩸 14-nov: vincular la cuenta de Meta desde el recorrido de un programa INACTIVO respondía
+ * "No autorizado para este programa": la acción preguntaba `programaEnAlcance`, que solo ve
+ * programas activos. Toda acción que un editor del recorrido llama tiene que autorizar con
+ * `exigirAccesoAlPrograma` (ADR 0094 punto 4, ADR 0132). Este guardián lee los módulos de
+ * acciones que esos editores importan.
+ */
+describe("las acciones del recorrido admiten un programa inactivo", () => {
+  const ACCIONES_DEL_RECORRIDO = [
+    "app/(app)/p/[programa]/programa/acciones-programa.ts",
+    "app/(app)/p/[programa]/programa/acciones-integraciones.ts",
+    "app/(app)/p/[programa]/programa/acciones-fuentes.ts",
+    "app/(app)/p/[programa]/programa/acciones-meta.ts",
+    "app/(app)/p/[programa]/programa/acciones.ts",
+    "app/(app)/ajustes/usuarios/acciones.ts",
+  ];
+
+  it.each(ACCIONES_DEL_RECORRIDO)("%s no autoriza con programaEnAlcance", async (ruta) => {
+    const { readFileSync } = await import("node:fs");
+    const codigo = readFileSync(ruta, "utf8").replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(codigo).not.toMatch(/programaEnAlcance\s*\(/);
+  });
+});
