@@ -1,8 +1,7 @@
-import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { administraGlobal, esAdministrador } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import {
@@ -63,8 +62,7 @@ export default async function RecursosPage({ params, searchParams }: Props) {
   // nunca un recurso global. La decision es de servidor y las server actions vuelven a
   // exigir el rol y el acceso por programa (ADR 0003).
   const rolVista = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rolVista, slug);
-  if (!programa) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rolVista, slug);
   const esAdmin = esAdministrador(rolVista);
   const administraLoGlobal = administraGlobal({
     rol: rolVista,

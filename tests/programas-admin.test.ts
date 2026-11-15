@@ -169,8 +169,8 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(422);
     const msg = (error as ErrorDeApp).message.toLowerCase();
-    expect(msg).toContain("fuente principal");
-    expect(msg).toContain("token");
+    expect(msg).toContain("formulario principal");
+    expect(msg).toContain("conectar calendly");
 
     // La fila sigue inactiva y no se escribió nada nuevo en change_log.
     const [enBase] = await db.select().from(programs).where(eq(programs.id, creado.id));
@@ -186,8 +186,8 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(422);
     const msg = (error as ErrorDeApp).message.toLowerCase();
-    expect(msg).toContain("token");
-    expect(msg).not.toContain("fuente principal");
+    expect(msg).toContain("conectar calendly");
+    expect(msg).not.toContain("formulario principal");
   });
 
   it("con token y una fuente activa que NO es principal, reactivar es 422 y no se mueve", async () => {
@@ -198,8 +198,8 @@ describe("la reja de activación (ADR 0057 y 0068)", () => {
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(422);
     const msg = (error as ErrorDeApp).message.toLowerCase();
-    expect(msg).toContain("fuente principal");
-    expect(msg).not.toContain("token");
+    expect(msg).toContain("formulario principal");
+    expect(msg).not.toContain("conectar calendly");
     const [enBase] = await db.select().from(programs).where(eq(programs.id, creado.id));
     expect(enBase.activo).toBe(false);
   });

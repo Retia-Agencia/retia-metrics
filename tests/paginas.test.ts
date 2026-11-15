@@ -328,6 +328,8 @@ beforeEach(() => {
   notFound.mockReset();
   programasActivos.mockReset();
   programaVisiblePorSlug.mockReset();
+  programaDeLaFichaPorSlug.mockReset();
+  programaDeLaFichaPorSlug.mockResolvedValue(null);
   programasVisibles.mockReset();
   programasVisibles.mockResolvedValue([]);
   listarCohortes.mockReset();
@@ -842,6 +844,36 @@ describe("developer pasa toda guarda de pagina (ADR 0025)", () => {
   });
 });
 
+describe("tabs de un programa inactivo (ticket 431)", () => {
+  const SLUG = "programa-inactivo";
+
+  async function abrirDeals(): Promise<string> {
+    const { default: pagina } = await import("@/app/(app)/p/[programa]/deals/page");
+    try {
+      await pagina({ params: Promise.resolve({ programa: SLUG }), searchParams: Promise.resolve({}) });
+      return "paso";
+    } catch (error) {
+      if (error instanceof Redireccion) return error.destino;
+      if (error instanceof NoEncontrado) return "notFound";
+      throw error;
+    }
+  }
+
+  it("redirige al gerente a la ficha del programa", async () => {
+    auth.mockResolvedValue(sesionGerente);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    programaDeLaFichaPorSlug.mockResolvedValue({ id: "p-inactivo", slug: SLUG, nombre: "Inactivo", activo: false });
+    expect(await abrirDeals()).toBe(`/p/${SLUG}/programa`);
+  });
+
+  it("responde 404 al closer", async () => {
+    auth.mockResolvedValue(sesionCloser);
+    programaVisiblePorSlug.mockResolvedValue(null);
+    programaDeLaFichaPorSlug.mockResolvedValue(null);
+    expect(await abrirDeals()).toBe("notFound");
+  });
+});
+
 /**
  * El menú del closer: solo lo que puede abrir (ticket 224, ADR 0082). El Dashboard, su lista,
  * Metas y la ficha del Programa se CIERRAN al closer en el SERVIDOR con 404, no solo se
@@ -977,20 +1009,20 @@ describe("el menú del closer: 4 rutas cerradas en el servidor (ticket 224, ADR 
     expect(await correr("@/app/(app)/p/[programa]/hub/page")).toBe("paso-la-guarda");
     // Una lista comercial sin origen sigue siendo de quien administra.
     expect(await correr("@/app/(app)/p/[programa]/hub/lista/page")).toBe("notFound");
-    // Ficha del Programa: General y Ventas son de lectura, salvo los objetivos de pauta.
+    // Ficha del Programa: Programa y Ventas son de lectura, salvo los objetivos de pauta.
     expect(await correr("@/app/(app)/p/[programa]/programa/page")).toBe("paso-la-guarda");
   });
 
-  it("en Programa el paid trafficker solo ve General y Ventas, sin comisión", async () => {
+  it("en Programa el paid trafficker solo ve Programa y Ventas, sin comisión", async () => {
     const { presentacionDeLaFicha } = await import("@/app/(app)/p/[programa]/programa/page");
     expect(presentacionDeLaFicha("paid_trafficker")).toEqual({
       configura: false,
-      secciones: ["general", "ventas"],
+      secciones: ["programa", "ventas"],
       muestraComision: false,
     });
     expect(presentacionDeLaFicha("gerente")).toEqual({
       configura: true,
-      secciones: ["general", "equipo", "captacion", "integraciones", "ventas"],
+      secciones: ["programa", "ventas", "integraciones"],
       muestraComision: true,
     });
   });

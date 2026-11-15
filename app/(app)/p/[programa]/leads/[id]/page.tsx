@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esRolValido, ROLES_DE_FICHA_DE_LEAD } from "@/lib/auth/roles";
 import { esIdOpaco } from "@/lib/identificadores";
-import { idsDeProgramasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { idsDeProgramasVisibles } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { fichaDeLeadParaActor } from "@/lib/queries/operacion";
 import { abonosDelLead } from "@/lib/queries/abonos-del-lead";
@@ -39,10 +39,10 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
   const { programa: slug, id } = await params;
   const { desde } = (await searchParams) ?? {};
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   // Un id con otra forma es 404 sin tocar la base: un uuid invalido sobre una columna uuid
   // revienta en Postgres, y un 500 diria que algo existe.
-  if (!programa || !esIdOpaco(id) || !esRolValido(rol)) notFound();
+  if (!esIdOpaco(id) || !esRolValido(rol)) notFound();
 
   const resultado = await fichaDeLeadParaActor(db, programa.id, id, { rol, operaComoCloser: session.user.operaComoCloser });
   if (!resultado) notFound();

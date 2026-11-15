@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LayoutList, Table2 } from "lucide-react";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, ROLES_DE_OPERACION } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
   CALIDADES_DE_LEAD,
@@ -69,8 +68,8 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const session = await paginaConRol(...ROLES_DE_OPERACION);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa || !esRolValido(rol)) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
+  if (!esRolValido(rol)) notFound();
 
   const q = await searchParams;
   const pagina = Math.max(0, Number.parseInt(uno(q.pagina) ?? "0", 10) || 0);

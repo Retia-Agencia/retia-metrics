@@ -101,15 +101,17 @@ export function AppSidebar({
     setRecordado(deLaRuta);
   }
   const respaldo = elegirPrograma(programas, recordado)?.slug ?? null;
-  const programa = programas.find((p) => p.slug === deLaRuta)?.slug ?? respaldo;
-  const actual =
-    programas.find((p) => p.slug === deLaRuta)?.slug ??
-    inactivos.find((p) => p.slug === deLaRuta)?.slug ??
-    respaldo;
+  const elegido: { slug: string; activo: boolean } | null = programas.some((p) => p.slug === deLaRuta)
+    ? { slug: deLaRuta!, activo: true }
+    : inactivos.some((p) => p.slug === deLaRuta)
+      ? { slug: deLaRuta!, activo: false }
+      : respaldo
+        ? { slug: respaldo, activo: true }
+        : null;
 
   // La lista viene filtrada por el ROL DE VISTA. Esconder no es seguridad: cada ruta
   // valida en servidor, tambien contra el rol de vista (ticket 028).
-  const items = navParaRol({ rol, operaComoCloser }, programa, alcanceLimitado);
+  const items = navParaRol({ rol, operaComoCloser }, elegido, alcanceLimitado);
 
   return (
     <>
@@ -165,7 +167,7 @@ export function AppSidebar({
           </div>
         </div>
 
-        {actual || puedeCrear ? (
+        {elegido || puedeCrear ? (
           <div className="px-4 pb-2">
             <p className="pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
               Programa
@@ -174,7 +176,7 @@ export function AppSidebar({
               programas={programas}
               inactivos={inactivos}
               puedeCrear={puedeCrear}
-              actual={actual}
+              actual={elegido?.slug ?? null}
               ofreceTodos={veTableroDelPrograma(rol)}
             />
           </div>
@@ -215,7 +217,7 @@ export function AppSidebar({
                   {/* El circulito "sin ver" (223): solo en Mi espacio. El programa de
                       respaldo es el que el menú ya eligió cuando la ruta no trae uno. */}
                   {item.icono === "miespacio" ? (
-                    <NumeroSinVer programaDeRespaldo={programa} />
+                    <NumeroSinVer programaDeRespaldo={respaldo} />
                   ) : null}
                 </Link>
               );

@@ -1,9 +1,9 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { queryConNombresVigentes, traeNombresViejos } from "@/lib/filtros-alias";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { cookies } from "next/headers";
 import { destinosDeCorreccion, ETAPAS_EN_ORDEN, NOMBRE_DE_COLUMNA, NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE, NOMBRE_DE_VISTA, VISTAS_DEL_TABLERO } from "@/lib/deals/etapas";
@@ -43,7 +43,7 @@ type Props = {
 /**
  * El Kanban de Deals de un programa (ADR 0050, ticket 069). Mismo patrón de guarda y
  * alcance que el Dashboard: `paginaConRol("gerente", "closer")`, `rolDeVista`,
- * `programaVisiblePorSlug` -> `notFound()`. El developer pasa por `esAccesoTotal`; nunca
+ * `programaDeTabOConfigurar`. El developer pasa por `esAccesoTotal`; nunca
  * se compara el rol a mano.
  *
  * El filtro sale de la URL, nunca de la sesión (ADR 0023): un closer sin filtro ve el
@@ -54,8 +54,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
 
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
 
   const busqueda = await searchParams;
   // Un enlace viejo (`?owner=`, `?leadQuality=`, `?leadValue=`) pasa al nombre vigente (ticket 360).

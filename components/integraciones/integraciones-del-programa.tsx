@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -31,8 +30,6 @@ export type IntegracionVisible = {
   webhookConectado?: boolean;
 };
 
-type FuenteExterna = { id: string; nombre: string; proveedor: string | null; tieneSecreto: boolean };
-
 function Config({ config }: { config: ConfigVisible }) {
   const etiquetas: Record<string, string> = {
     cuentaId: "ID de cuenta", cuenta: "Cuenta", alias: "Alias",
@@ -47,24 +44,26 @@ function Config({ config }: { config: ConfigVisible }) {
 }
 
 export function IntegracionesDelPrograma({
-  programId, integraciones, cuentasMeta, disponiblesMeta, errorMeta, fuentes, hrefCaptacion, roundRobin, resumenCapi,
+  programId, integraciones, cuentasMeta, disponiblesMeta, errorMeta, roundRobin, resumenCapi, tipos,
 }: {
   programId: string;
   integraciones: IntegracionVisible[];
   cuentasMeta: CuentaDelPrograma[];
   disponiblesMeta: CuentaVisibleMeta[];
   errorMeta: string | null;
-  fuentes: FuenteExterna[];
-  hrefCaptacion: string;
   /** El round robin de Calendly del programa (ADR 0098): su URL, la marca de org compartida
    * y si el evento ya quedó resuelto. Llega por props: el cliente no lee la base. */
   roundRobin: { calendlyUrl: string | null; orgCompartida: boolean; configurado: boolean };
   resumenCapi: ResumenMetaCapi;
+  tipos?: readonly TipoIntegracion[];
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState<TipoIntegracion | null>(null);
   const [valor, setValor] = useState("");
   const [pendiente, startTransition] = useTransition();
+  const integracionesFiltradas = tipos
+    ? integraciones.filter((integracion) => tipos.includes(integracion.tipo))
+    : integraciones;
 
   function guardar(tipo: TipoIntegracion) {
     startTransition(async () => {
@@ -110,7 +109,7 @@ export function IntegracionesDelPrograma({
 
   return (
     <div className="space-y-4">
-      {integraciones.map((integracion) => integracion.tipo === "meta_capi" ? (
+      {integracionesFiltradas.map((integracion) => integracion.tipo === "meta_capi" ? (
         <MetaCapi
           key={integracion.tipo}
           programId={programId}
@@ -186,20 +185,6 @@ export function IntegracionesDelPrograma({
         </Card>
       ))}
 
-      <Card>
-        <CardHeader><CardTitle className="text-base">Fuera de esta pestaña</CardTitle></CardHeader>
-        <CardContent className="space-y-3 text-sm">
-          {fuentes.map((fuente) => (
-            <div key={fuente.id} className="flex flex-wrap items-center justify-between gap-2">
-              <span>{fuente.nombre} · {fuente.proveedor ?? "Webhook"}</span>
-              <Badge variant={fuente.tieneSecreto ? "exito" : "alerta"}>
-                {fuente.tieneSecreto ? "Firma configurada" : "Sin firma"}
-              </Badge>
-            </div>
-          ))}
-          <Link className="font-medium text-marca-texto underline-offset-2 hover:underline" href={hrefCaptacion}>Ir a Captación</Link>
-        </CardContent>
-      </Card>
     </div>
   );
 }

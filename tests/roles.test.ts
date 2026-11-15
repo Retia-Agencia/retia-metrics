@@ -289,8 +289,9 @@ describe("puedeAcceder", () => {
 describe("navegacion por rol", () => {
   // La nav recibe el programa ELEGIDO como dato (sale de la URL o del primero visible),
   // no los conoce de antemano: slugs inventados, nunca los reales.
-  const PROGRAMA = "programa-a";
-  const rutasDe = (rol: Rol, programa: string | null = PROGRAMA, operaComoCloser = false) =>
+  const SLUG = "programa-a";
+  const PROGRAMA = { slug: SLUG, activo: true };
+  const rutasDe = (rol: Rol, programa: { slug: string; activo: boolean } | null = PROGRAMA, operaComoCloser = false) =>
     navParaRol(sujeto(rol, operaComoCloser), programa).map((i) => i.href);
 
   it("el closer no ve las rutas de administracion exclusivas de gerente", () => {
@@ -340,8 +341,8 @@ describe("navegacion por rol", () => {
   });
 
   it("la tab Dashboard apunta al programa que se le pasa, no a uno fijo", () => {
-    expect(rutasDe("gerente", "programa-b")).toContain("/p/programa-b/hub");
-    expect(rutasDe("gerente", "programa-b")).not.toContain("/p/programa-a/hub");
+    expect(rutasDe("gerente", { slug: "programa-b", activo: true })).toContain("/p/programa-b/hub");
+    expect(rutasDe("gerente", { slug: "programa-b", activo: true })).not.toContain("/p/programa-a/hub");
   });
 
   it("los roles operativos ven la tab Calls del programa elegido (ticket 098)", () => {
@@ -367,6 +368,16 @@ describe("navegacion por rol", () => {
     // El closer ya no ve Ajustes (ticket 224); su respaldo sin programa es Mi espacio.
     expect(rutasDe("closer", null)).toContain("/mi-espacio");
     expect(rutasDe("closer", null)).not.toContain("/ajustes");
+  });
+
+  it("un programa inactivo solo ofrece Programa a quien puede leerlo", () => {
+    const inactivo = { slug: SLUG, activo: false };
+    for (const rol of ["gerente", "developer", "paid_trafficker"] as const) {
+      expect(navParaRol(sujeto(rol), inactivo).filter((item) => item.href.startsWith("/p/"))).toEqual([
+        expect.objectContaining({ href: `/p/${SLUG}/programa`, etiqueta: "Programa" }),
+      ]);
+    }
+    expect(navParaRol(sujeto("customer_success"), inactivo).filter((item) => item.href.startsWith("/p/"))).toEqual([]);
   });
 
   it("la barra ya no lleva un item por programa (ADR 0050)", () => {
@@ -416,9 +427,9 @@ describe("navegacion por rol", () => {
     const rutas = rutasDe("gerente", PROGRAMA, true);
     expect(rutas).toContain("/mi-espacio");
     expect(rutas).toContain("/ajustes");
-    expect(rutas).toContain(`/p/${PROGRAMA}/hub`);
+    expect(rutas).toContain(`/p/${SLUG}/hub`);
     expect(navParaRol(sujeto("gerente", true), PROGRAMA).find((i) => i.href === "/mi-espacio")?.roles).toEqual(["closer"]);
-    expect(rutaInicial(sujeto("gerente", true), PROGRAMA)).toBe(`/p/${PROGRAMA}/hub`);
+    expect(rutaInicial(sujeto("gerente", true), SLUG)).toBe(`/p/${SLUG}/hub`);
   });
 
   it("Nerd Stats es SOLO del developer: ni gerente ni closer lo ven (ticket 025)", () => {
@@ -429,10 +440,10 @@ describe("navegacion por rol", () => {
 
   it("el paid trafficker ve Mi espacio, Hub y Programa: ni Ajustes (Canales pasó a Hub › Origen, 248), ni Recursos ni Mi día", () => {
     const rutas = rutasDe("paid_trafficker");
-    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
+    expect(rutas).toEqual(["/mi-espacio", `/p/${SLUG}/hub`, `/p/${SLUG}/programa`]);
     expect(rutas).not.toContain("/mi-dia");
-    expect(rutas).not.toContain(`/p/${PROGRAMA}/recursos`);
-    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${PROGRAMA}/hub`, `/p/${PROGRAMA}/programa`]);
+    expect(rutas).not.toContain(`/p/${SLUG}/recursos`);
+    expect(rutas.filter((r) => r.startsWith("/p/"))).toEqual([`/p/${SLUG}/hub`, `/p/${SLUG}/programa`]);
     // Sin programa visible no hay Dashboard.
     expect(rutasDe("paid_trafficker", null)).toEqual(["/mi-espacio"]);
   });
@@ -444,11 +455,11 @@ describe("navegacion por rol", () => {
 
   it("customer success ve Students y Mi espacio para sus conexiones, sin otras tabs ni Ajustes", () => {
     const rutas = rutasDe("customer_success");
-    expect(rutas).toEqual(["/mi-espacio", `/p/${PROGRAMA}/students`]);
+    expect(rutas).toEqual(["/mi-espacio", `/p/${SLUG}/students`]);
     expect(rutas).not.toContain("/ajustes");
-    expect(rutas).not.toContain(`/p/${PROGRAMA}/recursos`);
-    expect(rutas).not.toContain(`/p/${PROGRAMA}/hub`);
-    expect(rutas).not.toContain(`/p/${PROGRAMA}/deals`);
+    expect(rutas).not.toContain(`/p/${SLUG}/recursos`);
+    expect(rutas).not.toContain(`/p/${SLUG}/hub`);
+    expect(rutas).not.toContain(`/p/${SLUG}/deals`);
     // Sin programa visible conserva Mi espacio para gestionar sus conexiones.
     expect(rutasDe("customer_success", null)).toEqual(["/mi-espacio"]);
   });
@@ -504,6 +515,18 @@ describe("el programa en la URL (ticket 097)", () => {
         new URLSearchParams("seccion=equipo"),
       ),
     ).toBe("/p/programa-b/programa?seccion=equipo");
+  });
+
+  it("un programa inactivo abre su ficha y solo conserva la sección si ya estaba en una ficha", () => {
+    expect(rutaAlCambiarDePrograma("/p/a/deals", "b", undefined, { activo: false })).toBe("/p/b/programa");
+    expect(
+      rutaAlCambiarDePrograma(
+        "/p/a/programa",
+        "b",
+        new URLSearchParams("seccion=ventas"),
+        { activo: false },
+      ),
+    ).toBe("/p/b/programa?seccion=ventas");
   });
 
   it("la opción Todos navega a la ruta superior y desde ella un programa abre su dashboard", () => {
@@ -583,7 +606,7 @@ describe("fallar cerrado sin rol", () => {
 describe("el Hub reemplaza al Dashboard y a Metas (ticket 250, ADR 0086)", () => {
   it("el menú tiene una sola entrada Hub y ninguna de Dashboard ni Metas", () => {
     for (const rol of ["gerente", "developer", "paid_trafficker"] as const) {
-      const items = navParaRol(sujeto(rol), "programa-a");
+      const items = navParaRol(sujeto(rol), { slug: "programa-a", activo: true });
       expect(items.filter((i) => i.etiqueta === "Hub").map((i) => i.href)).toEqual(["/p/programa-a/hub"]);
       expect(items.some((i) => i.etiqueta === "Dashboard" || i.etiqueta === "Metas")).toBe(false);
     }
@@ -645,12 +668,12 @@ describe("media y trabajaContenido (ADR 0107, ticket 315)", () => {
   it("media aterriza en /media y tambien abre Mi espacio para sus conexiones", () => {
     expect(rutaInicial(sujeto("media"), "programa-a")).toBe("/media");
     expect(rutaInicial(sujeto("media"), null)).toBe("/media");
-    expect(navParaRol(sujeto("media"), "programa-a").map((i) => i.href)).toEqual(["/mi-espacio", "/media"]);
+    expect(navParaRol(sujeto("media"), { slug: "programa-a", activo: true }).map((i) => i.href)).toEqual(["/mi-espacio", "/media"]);
     expect(rutaInicial(sujeto("gerente"), "programa-a")).toBe("/p/programa-a/hub");
     // Quien trabaja contenido sin ser solo media (gerente, developer) tambien la tiene en su menu.
-    expect(navParaRol(sujeto("gerente"), "programa-a").map((i) => i.href)).toContain("/media");
-    expect(navParaRol(sujeto("developer"), "programa-a").map((i) => i.href)).toContain("/media");
-    expect(navParaRol(sujeto("closer"), "programa-a").map((i) => i.href)).not.toContain("/media");
-    expect(navParaRol(sujeto("paid_trafficker"), "programa-a").map((i) => i.href)).not.toContain("/media");
+    expect(navParaRol(sujeto("gerente"), { slug: "programa-a", activo: true }).map((i) => i.href)).toContain("/media");
+    expect(navParaRol(sujeto("developer"), { slug: "programa-a", activo: true }).map((i) => i.href)).toContain("/media");
+    expect(navParaRol(sujeto("closer"), { slug: "programa-a", activo: true }).map((i) => i.href)).not.toContain("/media");
+    expect(navParaRol(sujeto("paid_trafficker"), { slug: "programa-a", activo: true }).map((i) => i.href)).not.toContain("/media");
   });
 });

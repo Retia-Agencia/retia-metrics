@@ -57,7 +57,7 @@ export function CuentasDelPrograma({
     <div className="space-y-4">
       {!conectada ? (
         <p className="text-sm text-muted-foreground">
-          Primero conecta Meta en Integraciones para ver las cuentas disponibles.
+          Primero conecta el token de Meta (arriba) para ver las cuentas disponibles.
         </p>
       ) : null}
 

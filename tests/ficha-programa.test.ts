@@ -164,29 +164,6 @@ async function abrirFicha(slug: string, seccion?: string) {
 }
 
 describe("fichaDelPrograma", () => {
-  it.each([
-    ["calendly_token", { tieneTokenCalendly: false, formulario: { fuente: "F", url: "https://f.co" } }],
-    ["fuente_principal", { tieneTokenCalendly: true, formulario: null }],
-  ] as const)("faltaParaActivar incluye %s solo cuando falta", async (clave, programa) => {
-    const { faltaParaActivar } = await import("@/lib/queries/ficha-programa");
-    expect(faltaParaActivar(programa).map((item) => item.clave)).toEqual([clave]);
-  });
-
-  it("faltaParaActivar no reporta requisitos presentes y conserva el orden", async () => {
-    const { faltaParaActivar } = await import("@/lib/queries/ficha-programa");
-    expect(
-      faltaParaActivar({ tieneTokenCalendly: false, formulario: null }).map(
-        (item) => item.clave,
-      ),
-    ).toEqual(["calendly_token", "fuente_principal"]);
-    expect(
-      faltaParaActivar({
-        tieneTokenCalendly: true,
-        formulario: { fuente: "F", url: "https://f.co" },
-      }),
-    ).toEqual([]);
-  });
-
   it("trae solo lo del programa pedido", async () => {
     const { fichaDelPrograma } = await import("@/lib/queries/ficha-programa");
     const ficha = await fichaDelPrograma(programaA, db);
@@ -341,10 +318,10 @@ describe("forjar la escritura desde un closer con membresía", () => {
 describe("la tab en la navegación", () => {
   it("la ven gerente y developer en el programa elegido; el closer ya no (ticket 224, ADR 0082)", () => {
     for (const rol of ["gerente", "developer"] as const) {
-      expect(navParaRol({ rol, operaComoCloser: false }, "a").map((i) => i.href)).toContain("/p/a/programa");
+      expect(navParaRol({ rol, operaComoCloser: false }, { slug: "a", activo: true }).map((i) => i.href)).toContain("/p/a/programa");
     }
     // El closer, que antes la LEÍA, dejó de verla: la ficha es ahora de quien configura.
-    expect(navParaRol({ rol: "closer", operaComoCloser: false }, "a").map((i) => i.href)).not.toContain("/p/a/programa");
+    expect(navParaRol({ rol: "closer", operaComoCloser: false }, { slug: "a", activo: true }).map((i) => i.href)).not.toContain("/p/a/programa");
     expect(navParaRol({ rol: "closer", operaComoCloser: false }, null).map((i) => i.href)).not.toContain("/p/a/programa");
   });
 

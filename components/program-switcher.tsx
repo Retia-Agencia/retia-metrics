@@ -26,6 +26,7 @@ import {
   VALOR_PROGRAMA_TODOS,
   rutaAlCambiarDePrograma,
 } from "@/lib/nav";
+import { slugDesdeNombre } from "@/lib/programas/slug";
 
 type Programa = { slug: string; nombre: string };
 
@@ -57,6 +58,8 @@ export function ProgramSwitcher({
   const [abierto, setAbierto] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const [nuevo, setNuevo] = useState({ nombre: "", slug: "", ticketUsd: "" });
+  const [editandoSlug, setEditandoSlug] = useState(false);
+  const [slugEditado, setSlugEditado] = useState(false);
 
   const ofreceTodos = puedeVerTodos && programas.length >= 2;
   const enTodos = pathname === RUTA_HUB_TODOS || pathname.startsWith(`${RUTA_HUB_TODOS}/`);
@@ -79,14 +82,10 @@ export function ProgramSwitcher({
           items={items}
           onValueChange={(slug) => {
             if (typeof slug !== "string" || slug === seleccionado) return;
-            const destino = rutaAlCambiarDePrograma(pathname, slug, searchParams);
-            // Las otras pantallas exigen un programa activo. Si el destino está inactivo,
-            // solo su ficha existe; desde esa misma ficha sí se conserva la subpestaña.
-            const enFichaDePrograma = pathname.split("/").filter(Boolean)[2] === "programa";
             router.push(
-              slugsInactivos.has(slug) && !enFichaDePrograma
-                ? `/p/${slug}/programa`
-                : destino,
+              rutaAlCambiarDePrograma(pathname, slug, searchParams, {
+                activo: !slugsInactivos.has(slug),
+              }),
             );
           }}
         >
@@ -120,7 +119,7 @@ export function ProgramSwitcher({
           <DialogContent>
             <DialogTitle>Nuevo programa</DialogTitle>
             <DialogDescription>
-              Se crea inactivo. Completa Formularios y Calendly en su ficha antes de activarlo.
+              Se crea inactivo y te lleva a su configuración paso a paso.
             </DialogDescription>
             <form
               className="space-y-3"
@@ -138,20 +137,49 @@ export function ProgramSwitcher({
                 });
               }}
             >
-              {[
-                ["nombre", "Nombre"],
-                ["slug", "Slug"],
-                ["ticketUsd", "Ticket (USD)"],
-              ].map(([campo, etiqueta]) => (
-                <label key={campo} className="block space-y-1 text-sm">
-                  <span className="text-muted-foreground">{etiqueta}</span>
+              <label className="block space-y-1 text-sm">
+                <span className="text-muted-foreground">Nombre</span>
+                <Input
+                  value={nuevo.nombre}
+                  onChange={(event) => {
+                    const nombre = event.target.value;
+                    setNuevo({
+                      ...nuevo,
+                      nombre,
+                      slug: slugEditado ? nuevo.slug : slugDesdeNombre(nombre),
+                    });
+                  }}
+                  required
+                />
+              </label>
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                {editandoSlug ? (
                   <Input
-                    value={nuevo[campo as keyof typeof nuevo]}
-                    onChange={(event) => setNuevo({ ...nuevo, [campo]: event.target.value })}
+                    aria-label="Dirección"
+                    value={nuevo.slug}
+                    onChange={(event) => {
+                      setSlugEditado(true);
+                      setNuevo({ ...nuevo, slug: event.target.value });
+                    }}
                     required
                   />
-                </label>
-              ))}
+                ) : (
+                  <span>Dirección: /p/{nuevo.slug}</span>
+                )}
+                {!editandoSlug ? (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => setEditandoSlug(true)}>
+                    Cambiar
+                  </Button>
+                ) : null}
+              </div>
+              <label className="block space-y-1 text-sm">
+                <span className="text-muted-foreground">Ticket (USD)</span>
+                <Input
+                  value={nuevo.ticketUsd}
+                  onChange={(event) => setNuevo({ ...nuevo, ticketUsd: event.target.value })}
+                  required
+                />
+              </label>
               <div className="flex justify-end gap-2">
                 <Button type="button" size="sm" variant="ghost" onClick={() => setAbierto(false)}>
                   Cancelar

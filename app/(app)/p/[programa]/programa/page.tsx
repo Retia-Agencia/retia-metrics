@@ -9,10 +9,16 @@ import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import {
   fichaDelPrograma,
-  faltaParaActivar,
   fuentesDelProgramaParaAdmin,
   type CohorteVista,
 } from "@/lib/queries/ficha-programa";
+import {
+  SECCIONES_DE_LA_FICHA,
+  pasosDeConfiguracion,
+  seccionDeLaFicha,
+  type ClaveDePaso,
+} from "@/lib/programas/configuracion";
+import { hechosDeConfiguracion } from "@/lib/programas/hechos";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, num, usd } from "@/lib/format";
 import { costoPorAgendaDeLosUltimosHabiles } from "@/lib/semaforo/costo-por-agenda";
 import { PageShell } from "@/components/page-shell";
@@ -57,6 +63,7 @@ import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
 import { estadoDeIntegraciones } from "@/lib/integraciones";
 import { IntegracionesDelPrograma } from "@/components/integraciones/integraciones-del-programa";
 import { resumenMetaCapi } from "@/lib/meta-capi/resumen";
+import { RecorridoDeConfiguracion } from "./recorrido-de-configuracion";
 
 export const dynamic = "force-dynamic";
 
@@ -80,15 +87,14 @@ export function presentacionDeLaFicha(rol: Rol | null) {
   const configura = configuraPrograma(rol);
   return {
     configura,
-    secciones: configura ? ["general", "equipo", "captacion", "integraciones", "ventas"] : ["general", "ventas"],
+    secciones: configura ? ["programa", "ventas", "integraciones"] : ["programa", "ventas"],
     muestraComision: veEquipoComercial(rol),
   } as const;
 }
 
 /**
- * La tab Programa (ticket 100, la tab Programs del ADR 0050): la ficha del programa elegido,
- * con todo lo que lo define sin entrar a Ajustes: cohortes, destinos (formulario y checkouts),
- * Calendly, fuentes de leads, comisión y equipo.
+ * La ficha del programa elegido se reparte en tres pestañas: Programa, Ventas e Integraciones
+ * (ADR 0132), con todo lo que lo define sin entrar a Ajustes.
  *
  * Alcance (ADR 0048): un closer la ve solo en los programas donde tiene membresía activa; un
  * programa ajeno es 404, igual que uno que no existe. La ficha se LEE; quien administra
@@ -116,10 +122,13 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   // ADR 0118: todo gerente agrega existentes; la lista de candidatos ya sale filtrada por su alcance.
   const puedeAgregarMiembros = administraUsuarios(rol);
   const query = await searchParams;
-  const { programa, cohortes, checkouts, fuentes, equipo, plataformas, plataformasDisponibles } =
+  const { programa, cohortes, checkouts, equipo, plataformas, plataformasDisponibles } =
     ficha;
+  const enRecorrido = !programa.activo && configura;
   const activa = cohortes.find((c) => c.estado === "activo") ?? null;
-  const faltan = faltaParaActivar(programa);
+  const pasos = pasosDeConfiguracion(await hechosDeConfiguracion(db, programa.id));
+  const faltan = pasos.filter((paso) => paso.exigidoParaActivar && !paso.hecho);
+  const recomendados = pasos.filter((paso) => !paso.exigidoParaActivar && !paso.hecho);
   const programaParaEditar = {
     id: programa.id,
     slug: programa.slug,
@@ -151,34 +160,22 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   const base = `/p/${programa.slug}/programa`;
   const todasLasPestanas = [
     {
-      id: "general",
-      etiqueta: "General",
-      descripcion: "El estado del programa y a dónde llevan sus links.",
-      href: urlConSeccion(base, query, "general"),
+      id: SECCIONES_DE_LA_FICHA[0],
+      etiqueta: "Programa",
+      descripcion: "Sus datos, a dónde llevan sus links y quién lo trabaja.",
+      href: urlConSeccion(base, query, SECCIONES_DE_LA_FICHA[0]),
     },
     {
-      id: "equipo",
-      etiqueta: "Equipo",
-      descripcion: "Quién trabaja este programa y con qué rol.",
-      href: urlConSeccion(base, query, "equipo"),
-    },
-    {
-      id: "captacion",
-      etiqueta: "Captación",
-      descripcion: "Por dónde entran los leads y las citas.",
-      href: urlConSeccion(base, query, "captacion"),
-    },
-    {
-      id: "integraciones",
-      etiqueta: "Integraciones",
-      descripcion: "Conexiones del programa con sus proveedores.",
-      href: urlConSeccion(base, query, "integraciones"),
-    },
-    {
-      id: "ventas",
+      id: SECCIONES_DE_LA_FICHA[1],
       etiqueta: "Ventas",
       descripcion: "Las cohortes que se venden, cómo se cobra y cuándo alerta la meta.",
-      href: urlConSeccion(base, query, "ventas"),
+      href: urlConSeccion(base, query, SECCIONES_DE_LA_FICHA[1]),
+    },
+    {
+      id: SECCIONES_DE_LA_FICHA[2],
+      etiqueta: "Integraciones",
+      descripcion: "Formularios, Calendly, Meta y los avisos por WhatsApp.",
+      href: urlConSeccion(base, query, SECCIONES_DE_LA_FICHA[2]),
     },
   ];
   const grupos: GrupoDePestanas[] = [
@@ -189,7 +186,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     },
   ];
   const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
-  const seccion = pestanaActiva(uno(query.seccion), pestanas, "general");
+  const seccion = pestanaActiva(seccionDeLaFicha(uno(query.seccion)), pestanas, "programa");
   // Los umbrales de las alertas (147) solo se leen en su pestaña.
   const umbrales = seccion === "ventas" ? await umbralesDelPrograma(db, programa.id) : [];
   const objetivos = seccion === "ventas" ? await objetivosDeCohortes(db, cohortes.map((c) => c.id)) : [];
@@ -230,14 +227,14 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       activo: fila?.activo ?? false,
     };
   });
-  const estadosIntegraciones = seccion === "integraciones"
+  const estadosIntegraciones = seccion === "integraciones" || enRecorrido
     ? await estadoDeIntegraciones(db, programa.id)
     : [];
-  const resumenCapi = seccion === "integraciones"
+  const resumenCapi = seccion === "integraciones" || enRecorrido
     ? await resumenMetaCapi(db, programa.id)
     : { enviado: 0, fallido: 0, vencido: 0, omitido: 0, enviadosConFbc: 0, enviadosTotal: 0 };
   const metaConectada = estadosIntegraciones.find((estado) => estado.tipo === "meta")?.configurada ?? false;
-  const [cuentasMeta, consultaMeta] = seccion === "integraciones"
+  const [cuentasMeta, consultaMeta] = seccion === "integraciones" || enRecorrido
     ? await Promise.all([
         cuentasDelPrograma(db, programa.id),
         configura && metaConectada
@@ -255,7 +252,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     probadaEn: estado.probadaEn ? fechaHoraEnBogota(estado.probadaEn) : null,
     actualizadaEn: estado.actualizadaEn ? fechaHoraEnBogota(estado.actualizadaEn) : null,
   }));
-  const [reporteWhatsapp, objetivosDelReporte] = seccion === "general"
+  const [reporteWhatsapp, objetivosDelReporte] = seccion === "integraciones"
     ? await Promise.all([
         reporteDelPrograma(db, programa.id),
         activa ? objetivosDeCohortes(db, [activa.id]) : Promise.resolve([]),
@@ -277,7 +274,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         metricas: reporteWhatsapp.metricas.filter((metrica) => metrica === "costo_por_agenda"),
       }
     : null;
-  const vistaPrevia = seccion === "general"
+  const vistaPrevia = seccion === "integraciones"
     ? await (async () => {
         const encabezados = await headers();
         const origen = `${encabezados.get("x-forwarded-proto") ?? "http"}://${encabezados.get("host")!}`;
@@ -290,6 +287,60 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         });
       })()
     : { dia: null, cierre: null, aviso: null };
+
+  const propsDeIntegraciones = {
+    programId: programa.id,
+    integraciones: integracionesVisibles,
+    cuentasMeta,
+    disponiblesMeta: consultaMeta.disponibles,
+    errorMeta: consultaMeta.error,
+    roundRobin: {
+      calendlyUrl: programa.calendlyUrl,
+      orgCompartida: programa.calendlyOrgCompartida,
+      configurado: programa.calendlyRoundRobinConfigurado,
+    },
+    resumenCapi,
+  };
+  const editores = {
+    datos: <EditarPrograma programa={programaParaEditar} trigger="Editar datos" />,
+    calendly: <IntegracionesDelPrograma {...propsDeIntegraciones} tipos={["calendly"]} />,
+    fuente_principal: fuentesAdmin ? <FuentesAdmin programas={[fuentesAdmin]} /> : null,
+    avisos_calendly: <IntegracionesDelPrograma {...propsDeIntegraciones} tipos={["calendly"]} />,
+    equipo: (
+      <EquipoDelPrograma
+        programa={{ id: programa.id, nombre: programa.nombre }}
+        membresias={membresias}
+        elegibles={elegibles}
+        puedeAgregar={puedeAgregarMiembros}
+        cuentas={cuentas}
+      />
+    ),
+    cohorte_activa: (
+      <CohortesAdmin
+        slug={programa.slug}
+        programId={programa.id}
+        ticketUsd={programa.ticketUsd}
+        cohortes={cohortes}
+      />
+    ),
+    plataforma_pago: (
+      <PlataformasDelPrograma
+        programId={programa.id}
+        plataformas={plataformas}
+        disponibles={plataformasDisponibles}
+        enlaces={checkouts.map((c) => ({
+          id: c.id,
+          nombre: c.nombre,
+          url: c.url,
+          monto: c.monto,
+          moneda: c.moneda,
+          plataformaId: c.plataformaId,
+        }))}
+        puedeEditar={configura}
+      />
+    ),
+    cuenta_meta: <IntegracionesDelPrograma {...propsDeIntegraciones} tipos={["meta"]} />,
+  } satisfies Record<ClaveDePaso, ReactNode>;
 
   return (
     <PageShell
@@ -308,45 +359,19 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       }
     >
       <PantallaFija>
-        <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del programa" />
+        {!enRecorrido ? <Pestanas grupos={grupos} activa={seccion} etiqueta="Sección del programa" /> : null}
 
         <div className={clasesDeZonaConScroll()}>
-          {seccion === "general" ? (
-            <div className="space-y-4">
-              {!programa.activo && configura ? (
-                <Card>
-                  <CardHeader className="flex-row items-center justify-between gap-3 space-y-0">
-                    <CardTitle className="text-base">Le falta para activarse</CardTitle>
-                    <ActivarPrograma id={programa.id} habilitado={faltan.length === 0} />
-                  </CardHeader>
-                  <CardContent>
-                    {faltan.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">El programa está listo para activarse.</p>
-                    ) : (
-                      <ul className="space-y-2 text-sm">
-                        {faltan.map((item) => (
-                          <li key={item.clave} className="flex items-center justify-between gap-3">
-                            <span>{item.texto}</span>
-                            {item.clave === "fuente_principal" ? (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                nativeButton={false}
-                                render={<Link href={urlConSeccion(base, query, "captacion")} />}
-                              >
-                                Ir a Formularios
-                              </Button>
-                            ) : (
-                              <EditarPrograma programa={programaParaEditar} trigger="Editar" />
-                            )}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
-              ) : null}
+          {enRecorrido ? (
+            <RecorridoDeConfiguracion
+              pasos={pasos}
+              editores={editores}
+              activar={<ActivarPrograma id={programa.id} habilitado={faltan.length === 0} />}
+            />
+          ) : null}
 
+          {!enRecorrido && seccion === "programa" ? (
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                 <Kpi etiqueta="Ticket de referencia">
                   <p className="cifra text-2xl font-semibold">{usd(Number(programa.ticketUsd))}</p>
@@ -406,7 +431,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                           {configura ? " Edita el formulario, pega su URL pública y márcalo como principal." : ""}
                         </p>
                         {configura ? (
-                          <Link href={urlConSeccion(base, query, "captacion")} className={ENLACE}>
+                          <Link href={urlConSeccion(base, query, "integraciones")} className={ENLACE}>
                             Ir a Formularios
                           </Link>
                         ) : null}
@@ -415,6 +440,86 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
                   </div>
                 </CardContent>
               </Card>
+
+              {configura ? (
+                <Card id="equipo" className="scroll-mt-4">
+                  <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+                    <CardTitle className="text-base">
+                      Equipo <span className="cifra text-muted-foreground">· {num(equipo.length)}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm">
+                    <EquipoDelPrograma
+                      programa={{ id: programa.id, nombre: programa.nombre }}
+                      membresias={membresias}
+                      elegibles={elegibles}
+                      puedeAgregar={puedeAgregarMiembros}
+                      cuentas={cuentas}
+                    />
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {configura && programa.activo && recomendados.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Pendientes recomendados</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-3 text-sm">
+                      {recomendados.map((paso) => (
+                        <li key={paso.clave} className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="font-medium">{paso.titulo}</p>
+                            <p className="text-muted-foreground">{paso.explicacion}</p>
+                          </div>
+                          {paso.clave === "datos" ? (
+                            <EditarPrograma programa={programaParaEditar} trigger="Configurar" />
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              nativeButton={false}
+                              render={<Link href={paso.seccion === "programa" ? `#${paso.clave}` : urlConSeccion(base, query, paso.seccion)} />}
+                            >
+                              Configurar
+                            </Button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ) : null}
+            </div>
+          ) : null}
+
+          {!enRecorrido && seccion === "integraciones" ? (
+            <div className="space-y-4">
+              {fuentesAdmin ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Formularios</CardTitle>
+                  </CardHeader>
+                  <CardContent className="md:max-h-[calc(100dvh-18rem)] md:overflow-y-auto">
+                    <FuentesAdmin programas={[fuentesAdmin]} />
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              <IntegracionesDelPrograma
+                programId={programa.id}
+                integraciones={integracionesVisibles}
+                cuentasMeta={cuentasMeta}
+                disponiblesMeta={consultaMeta.disponibles}
+                errorMeta={consultaMeta.error}
+                roundRobin={{
+                  calendlyUrl: programa.calendlyUrl,
+                  orgCompartida: programa.calendlyOrgCompartida,
+                  configurado: programa.calendlyRoundRobinConfigurado,
+                }}
+                resumenCapi={resumenCapi}
+              />
 
               <Card>
                 <CardHeader>
@@ -433,118 +538,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
             </div>
           ) : null}
 
-          {seccion === "equipo" ? (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-                  <CardTitle className="text-base">
-                    Equipo <span className="cifra text-muted-foreground">· {num(equipo.length)}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm">
-                  {configura ? (
-                    <EquipoDelPrograma
-                      programa={{ id: programa.id, nombre: programa.nombre }}
-                      membresias={membresias}
-                      elegibles={elegibles}
-                      puedeAgregar={puedeAgregarMiembros}
-                      cuentas={cuentas}
-                    />
-                  ) : equipo.length === 0 ? (
-                    <p className="text-muted-foreground">
-                      Nadie tiene membresía activa en este programa. Quien administra la asigna en Equipo.
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-border">
-                      {equipo.map((m) => (
-                        <li key={m.membresiaId} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium">{m.nombre}</p>
-                            <p className="truncate text-xs text-muted-foreground">{m.email}</p>
-                          </div>
-                          {m.calendlyEmail ? (
-                            <span className="truncate text-xs text-muted-foreground">Calendly: {m.calendlyEmail}</span>
-                          ) : (
-                            <Badge variant="alerta">Sin cuenta de Calendly</Badge>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          ) : null}
-
-          {seccion === "captacion" ? (
-            <div className="grid gap-4 lg:grid-cols-2">
-              {configura && fuentesAdmin ? (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Formularios</CardTitle>
-                  </CardHeader>
-                  <CardContent className="md:max-h-[calc(100dvh-18rem)] md:overflow-y-auto">
-                    <FuentesAdmin programas={[fuentesAdmin]} />
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card>
-                  <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-                    <CardTitle className="text-base">Fuentes de leads</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm md:max-h-[calc(100dvh-18rem)] md:overflow-y-auto">
-                    {fuentes.length === 0 ? (
-                      <p className="text-muted-foreground">
-                        Este programa no tiene fuentes de leads: ningún formulario le está entregando envíos.
-                        Quien administra la crea en Formularios.
-                      </p>
-                    ) : (
-                      <ul className="divide-y divide-border">
-                        {fuentes.map((f) => (
-                          <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                            <div className="min-w-0">
-                              <p className="truncate font-medium">{f.nombre}</p>
-                              <p className="text-xs text-muted-foreground">{f.proveedor ?? f.tipo}</p>
-                            </div>
-                            <span className="flex flex-wrap items-center gap-1.5">
-                              {f.activo ? <Badge variant="exito">Activa</Badge> : <Badge variant="neutro">Inactiva</Badge>}
-                              {f.activo && f.estado === "rota" ? <Badge variant="peligro">Rota</Badge> : null}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-            </div>
-          ) : null}
-
-          {seccion === "integraciones" ? (
-            <IntegracionesDelPrograma
-              programId={programa.id}
-              integraciones={integracionesVisibles}
-              cuentasMeta={cuentasMeta}
-              disponiblesMeta={consultaMeta.disponibles}
-              errorMeta={consultaMeta.error}
-              fuentes={(fuentesAdmin?.fuentes ?? []).filter((fuente) => fuente.activo && fuente.tipo === "webhook").map((fuente) => ({
-                id: fuente.id,
-                nombre: fuente.nombre,
-                proveedor: fuente.proveedor,
-                tieneSecreto: fuente.tieneSecreto,
-              }))}
-              hrefCaptacion={urlConSeccion(base, query, "captacion")}
-              roundRobin={{
-                calendlyUrl: programa.calendlyUrl,
-                orgCompartida: programa.calendlyOrgCompartida,
-                configurado: programa.calendlyRoundRobinConfigurado,
-              }}
-              resumenCapi={resumenCapi}
-            />
-          ) : null}
-
-          {seccion === "ventas" ? (
+          {!enRecorrido && seccion === "ventas" ? (
             <div className="grid gap-4 lg:grid-cols-2">
               <Card id="cohortes" className="scroll-mt-4">
                 <CardHeader>

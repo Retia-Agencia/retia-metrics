@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
@@ -41,8 +40,8 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
   const session = await paginaConRol("gerente", "closer");
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa || !esRolValido(rol)) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
+  if (!esRolValido(rol)) notFound();
 
   const alcance = await alcanceDeDeals(session);
   const query = await searchParams;

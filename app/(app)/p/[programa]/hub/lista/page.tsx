@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { z } from "zod";
-import { paginaConCapacidad } from "@/lib/auth/page-guards";
+import { paginaConCapacidad, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, veEquipoComercial, veLeadsDePauta } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
 import { capacidadParaMetrica, esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { esMetricaDeEmbudo, METRICAS_DE_EMBUDO_SIN_PERIODO } from "@/lib/queries/embudo-con-filas";
@@ -73,8 +72,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const esAdmin = esAdministrador(rol);
   const veEquipo = veEquipoComercial(rol);
   const veLeads = veLeadsDePauta(rol);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   const { metrica, closer, moneda, cohorte, origen: origenDeal, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
   const { source: sourceNormalizado, medium: mediumNormalizado, canal: canalNormalizado, campaign: campaignNormalizado } = normalizarFiltrosDeOrigen(validado.data);
   if (!combinacionDeFiltrosValida(validado.data, { esAdmin })) notFound();

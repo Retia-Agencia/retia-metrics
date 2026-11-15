@@ -1,8 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
@@ -23,8 +22,7 @@ export default async function ProximaCohortePage({ params, searchParams }: {
   const session = await paginaConRol("gerente", "closer");
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   const busqueda = await searchParams;
   const vista = vistaProximaCohorte(busqueda.vista);
   const [deals, cohortes] = await Promise.all([

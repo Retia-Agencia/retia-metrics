@@ -20,7 +20,6 @@ import {
 import { conectarCalendly } from "@/lib/calendly/suscripcion";
 import { agregarMembresia, exigirUsuarioDentroDelAlcance, quitarMembresia } from "@/lib/catalogo/usuarios";
 import { marcarSetterPorDefecto } from "@/lib/deals/setter-por-defecto";
-import { fichaDelPrograma, faltaParaActivar } from "@/lib/queries/ficha-programa";
 import {
   activarCohorte,
   crearCohorte,
@@ -163,15 +162,7 @@ export async function activarProgramaDesdeFichaAccion(id: string): Promise<Resul
   try {
     const { session, ...actor } = await actorGerente();
     await exigirProgramaPorId({ session, ...actor }, id);
-    const ficha = await fichaDelPrograma(id, db);
-    if (!ficha) throw new ErrorDeApp("No existe el programa.", 404);
-    const faltan = faltaParaActivar(ficha.programa);
-    if (faltan.length > 0) {
-      throw new ErrorDeApp(
-        `No se puede activar: falta ${faltan.map((item) => item.texto).join(", ")}.`,
-        422,
-      );
-    }
+    // La reja del registro (ADR 0132) vive en `reactivarPrograma`: no se repite aquí.
     await reactivarPrograma(db, session.user.id, id);
     revalidarNav();
     return { ok: true };

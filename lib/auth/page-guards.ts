@@ -3,8 +3,13 @@ import type { Session } from "next-auth";
 import { sesionDelRequest } from "./sesion";
 import { administraGlobal, administraUsuarios, manejaPautaGlobal, puedeAcceder, type Rol } from "./roles";
 import { rolDeVista, sesionEfectiva } from "./vista";
-import { rutaInicial } from "@/lib/nav";
-import { programasVisibles } from "@/lib/auth/alcance";
+import { rutaDePrograma, rutaInicial } from "@/lib/nav";
+import {
+  programaDeLaFichaPorSlug,
+  programaVisiblePorSlug,
+  programasVisibles,
+  type ProgramaVisible,
+} from "@/lib/auth/alcance";
 import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 
@@ -46,6 +51,18 @@ export async function paginaConSesion(): Promise<Session> {
   // de la página proyecta con ese usuario sin tocar una línea más. Las páginas son
   // lectura (GET): la reja de solo lectura vive en `requireSession`, no aquí.
   return sesionEfectiva(session);
+}
+
+export async function programaDeTabOConfigurar(
+  userId: string,
+  rol: Rol | null,
+  slug: string,
+): Promise<ProgramaVisible> {
+  const visible = await programaVisiblePorSlug(userId, rol, slug);
+  if (visible) return visible;
+  const deLaFicha = await programaDeLaFichaPorSlug(userId, rol, slug);
+  if (deLaFicha && !deLaFicha.activo) redirect(rutaDePrograma(slug, "programa"));
+  notFound();
 }
 
 export async function paginaConRol(...permitidos: Rol[]): Promise<Session> {

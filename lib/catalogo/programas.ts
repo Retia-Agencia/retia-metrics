@@ -1,7 +1,7 @@
-import { and, eq, getTableColumns } from "drizzle-orm";
+import { eq, getTableColumns } from "drizzle-orm";
 import { z } from "zod";
 import { db as dbDeLaApp } from "@/lib/db";
-import { changeLog, programs, sources } from "@/lib/db/schema";
+import { changeLog, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ejecutarJuntas } from "@/lib/db/ejecutar-juntas";
 import { ErrorDeApp } from "@/lib/errors";
@@ -9,6 +9,8 @@ import { normalizando } from "@/lib/errors-zod";
 import type { MapeoColumnas } from "@/lib/sheets/mapeo";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { claveFirmaCalendly, tokenCalendly } from "@/lib/integraciones";
+import { hechosDeConfiguracion } from "@/lib/programas/hechos";
+import { mensajeDeActivacionBloqueada, pasosPendientes } from "@/lib/programas/configuracion";
 
 /**
  * Programas (ticket 014, ADR 0012), sobre el molde de catalogo.
@@ -181,8 +183,8 @@ export async function programaPorId(db: Db, id: string): Promise<ProgramaVistaCa
  *
  * Nace INACTIVO: es el default de `programs.activo`. El token no entra por el alta:
  * se conecta desde Integraciones. El programa se activa después con `reactivarPrograma`,
- * que además exige la fuente principal
- * (ADR 0068), asi que un programa recien creado no se puede activar hasta tener una.
+ * que aplica el registro de configuración (ADR 0132), asi que un programa recien creado
+ * no se puede activar hasta completar sus pasos exigidos.
  */
 export async function crearPrograma(
   db: Db,
@@ -193,30 +195,6 @@ export async function crearPrograma(
     const fila = await moldePrograma(db).crear(actorId, esquemaPrograma.parse(input));
     return sinToken(db, fila);
   });
-}
-
-/**
- * Comprueba que un programa tenga fuente principal (ADR 0068 punto 4) y token de
- * Calendly (ADR 0057 punto 1) antes de quedar activo. Lanza un 422 que dice que falta y
- * NO toca la fila. La activacion vive en `reactivarPrograma`, que llama a esto primero.
- * Que un programa activo tenga principal no cabe en un indice (es entre dos tablas): esta
- * es la reja.
- */
-async function exigirPrincipalYToken(
-  db: Db,
-  programa: { id: string },
-): Promise<void> {
-  const [principal] = await db
-    .select({ id: sources.id })
-    .from(sources)
-    .where(and(eq(sources.programId, programa.id), eq(sources.principal, true)));
-  const faltan: string[] = [];
-  if (!principal) faltan.push("fuente principal");
-  if (!(await tokenCalendly(db, programa.id))) faltan.push("el token de Calendly");
-  if (faltan.length > 0) {
-    const pista = principal ? "" : " La fuente principal se marca en Formularios.";
-    throw new ErrorDeApp(`No se puede activar el programa sin ${faltan.join(" ni ")}.${pista}`, 422);
-  }
 }
 
 /**
@@ -262,9 +240,9 @@ export async function desactivarPrograma(
 }
 
 /**
- * Reactiva un programa desactivado. Aplica la reja de los ADR 0057 y 0068: sin fuente
- * principal o sin token de Calendly no se activa (422), y la fila no se mueve (ni
- * `change_log`), porque la comprobacion corre ANTES de que el molde escriba nada.
+ * Reactiva un programa desactivado. Aplica los pasos exigidos del registro de
+ * configuración (ADR 0132): si falta alguno no se activa (422), y la fila no se mueve
+ * (ni `change_log`), porque la comprobacion corre ANTES de que el molde escriba nada.
  */
 export async function reactivarPrograma(
   db: Db,
@@ -275,9 +253,12 @@ export async function reactivarPrograma(
     const objetivoId = idValido(id);
     const [actual] = await db.select(columnasPrograma).from(programs).where(eq(programs.id, objetivoId));
     if (!actual) throw new ErrorDeApp("No existe un programa con ese id.", 404);
-    await exigirPrincipalYToken(db, {
-      id: objetivoId,
+    const pendientes = pasosPendientes(await hechosDeConfiguracion(db, objetivoId), {
+      soloExigidos: true,
     });
+    if (pendientes.length) {
+      throw new ErrorDeApp(mensajeDeActivacionBloqueada(pendientes), 422);
+    }
     const fila = await moldePrograma(db).reactivar(actorId, objetivoId);
     return sinToken(db, fila);
   });

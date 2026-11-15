@@ -1,10 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, ROLES_QUE_VEN_STUDENTS, trabajaLeads } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
@@ -54,8 +53,8 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const session = await paginaConRol(...ROLES_QUE_VEN_STUDENTS);
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa || !esRolValido(rol)) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
+  if (!esRolValido(rol)) notFound();
 
   // ¿La fila abre la ficha del deal? La ficha es de quien trabaja leads o administra; el
   // customer success NO entra ahí (la ficha rechaza su rol), así que para él las celdas se

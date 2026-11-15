@@ -101,6 +101,7 @@ export function rutaAlCambiarDePrograma(
   pathname: string,
   nuevoSlug: string,
   query?: Pick<URLSearchParams, "get">,
+  opciones?: { activo?: boolean },
 ): string {
   const [primero, slug, tab] = pathname.split("/").filter(Boolean);
   const conSeccion = (ruta: string): string => {
@@ -108,6 +109,11 @@ export function rutaAlCambiarDePrograma(
     if (!seccion) return ruta;
     return `${ruta}?${new URLSearchParams({ seccion }).toString()}`;
   };
+
+  if (opciones?.activo === false) {
+    const ficha = rutaDePrograma(nuevoSlug, "programa");
+    return primero === "p" && slug && tab === "programa" ? conSeccion(ficha) : ficha;
+  }
 
   if (nuevoSlug === VALOR_PROGRAMA_TODOS) {
     return primero === "p" && slug && tab === "hub"
@@ -127,10 +133,14 @@ export function rutaAlCambiarDePrograma(
  * Navegacion por rol. Es pura y declarativa a proposito: es la misma fuente que usa el
  * sidebar y que se puede testear. Los programas NO viven aqui (ADR 0012): la nav recibe
  * el programa ELEGIDO como dato, y sus tabs apuntan a el. Sin programa visible, las tabs
- * de programa no aparecen.
+ * de programa no aparecen. Si esta inactivo, solo se ofrece su ficha a quien puede leerla.
  * Ojo: esconder un item NO es seguridad — cada ruta valida su rol en el servidor.
  */
-export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, alcanceLimitado = false): ItemNav[] {
+export function navParaRol(
+  sujeto: SujetoDeCapacidad,
+  programa: { slug: string; activo: boolean } | null,
+  alcanceLimitado = false,
+): ItemNav[] {
   const { rol } = sujeto;
   if (!rol) return [];
 
@@ -143,11 +153,13 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   if (manejaPauta(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto)) {
     return [
       { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["paid_trafficker"] },
-      ...(programa
+      ...(programa?.activo
         ? [
-            { href: rutaDePrograma(programa, "hub"), etiqueta: "Hub", icono: "hub", roles: ["paid_trafficker"] } satisfies ItemNav,
-            { href: rutaDePrograma(programa, "programa"), etiqueta: "Programa", icono: "programa", roles: ["paid_trafficker"] } satisfies ItemNav,
+            { href: rutaDePrograma(programa.slug, "hub"), etiqueta: "Hub", icono: "hub", roles: ["paid_trafficker"] } satisfies ItemNav,
+            { href: rutaDePrograma(programa.slug, "programa"), etiqueta: "Programa", icono: "programa", roles: ["paid_trafficker"] } satisfies ItemNav,
           ]
+        : programa && leePrograma(rol)
+          ? [{ href: rutaDePrograma(programa.slug, "programa"), etiqueta: "Programa", icono: "programa", roles: ["paid_trafficker"] } satisfies ItemNav]
         : []),
       // Sin Ajustes: su único ajuste era Canales, que pasó a Hub › Origen (248).
     ];
@@ -160,7 +172,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   if (marcaOnboarding(rol) && !esAdministrador(rol) && !trabajaLeads(sujeto) && !manejaPauta(rol)) {
     return [
       { href: "/mi-espacio", etiqueta: "Mi espacio", icono: "miespacio", roles: ["customer_success"] },
-      ...(programa ? [{ href: rutaDePrograma(programa, "students"), etiqueta: "Students", icono: "students", roles: ["customer_success"] } satisfies ItemNav] : []),
+      ...(programa?.activo ? [{ href: rutaDePrograma(programa.slug, "students"), etiqueta: "Students", icono: "students", roles: ["customer_success"] } satisfies ItemNav] : []),
     ];
   }
 
@@ -189,10 +201,10 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   // rama de arriba); el closer NO (ticket 224, ADR 0082): la ruta le responde 404. El selector
   // solo ofrece los programas visibles y cada ruta valida su rol en el servidor. Se pregunta
   // por capacidad (`veTableroDelPrograma`), nunca por el literal del rol.
-  if (programa) {
+  if (programa?.activo) {
     if (veTableroDelPrograma(rol)) {
       items.push({
-        href: rutaDePrograma(programa, "hub"),
+        href: rutaDePrograma(programa.slug, "hub"),
         etiqueta: "Hub",
         icono: "hub",
         roles: ["gerente"],
@@ -201,7 +213,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
     // Leads: la base del programa, lo que todavia no es oportunidad (ticket 072). Mismo
     // alcance que Deals; Personas se queda como buscador entre programas.
     items.push({
-      href: rutaDePrograma(programa, "leads"),
+      href: rutaDePrograma(programa.slug, "leads"),
       etiqueta: "Leads",
       icono: "leads",
       roles: ["gerente", "closer"],
@@ -209,13 +221,13 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
     // Deals: el Kanban del programa (ADR 0050, ticket 069). Lo ven gerente y closer (y el
     // developer por `esAccesoTotal`); un closer solo en sus programas.
     items.push({
-      href: rutaDePrograma(programa, "deals"),
+      href: rutaDePrograma(programa.slug, "deals"),
       etiqueta: "Deals",
       icono: "deals",
       roles: ["gerente", "closer"],
     });
     items.push({
-      href: `/p/${programa}/proxima-cohorte`,
+      href: `/p/${programa.slug}/proxima-cohorte`,
       etiqueta: "Próxima cohorte",
       icono: "deals",
       roles: ["gerente", "closer"],
@@ -225,13 +237,13 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
     // closer solo en sus programas. El boton de reclamar lo ve quien trabaja leads, pero
     // la reja de verdad es el servidor.
     items.push({
-      href: rutaDePrograma(programa, "inbox"),
+      href: rutaDePrograma(programa.slug, "inbox"),
       etiqueta: "Inbox",
       icono: "inbox",
       roles: ["gerente", "closer"],
     });
     items.push({
-      href: rutaDePrograma(programa, "calls"),
+      href: rutaDePrograma(programa.slug, "calls"),
       etiqueta: "Calls",
       icono: "calls",
       roles: ["gerente", "closer"],
@@ -239,7 +251,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
     // Students: los deals en Ganado Pago Parcial o Ganado Pagado Completo por cohorte (ticket 099). Reemplaza las
     // pestañas `Estudiantes <cohorte>` de las hojas; mismo alcance que Deals.
     items.push({
-      href: rutaDePrograma(programa, "students"),
+      href: rutaDePrograma(programa.slug, "students"),
       etiqueta: "Students",
       icono: "students",
       roles: ["gerente", "closer"],
@@ -250,7 +262,7 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
     // Por capacidad, nunca por el literal del rol.
     if (leePrograma(rol)) {
       items.push({
-        href: rutaDePrograma(programa, "programa"),
+        href: rutaDePrograma(programa.slug, "programa"),
         etiqueta: "Programa",
         icono: "programa",
         roles: ["gerente", "paid_trafficker"],
@@ -264,8 +276,10 @@ export function navParaRol(sujeto: SujetoDeCapacidad, programa: string | null, a
   // Recursos: ambos roles leen (brochures y links de pago vigentes) del programa elegido.
   // Solo quien ADMINISTRA ve los controles de edicion (`esAdministrador`, ADR 0025 punto 5),
   // y eso se decide en el servidor (ticket 023).
-  if (programa) {
-    items.push({ href: rutaDePrograma(programa, "recursos"), etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
+  if (programa?.activo) {
+    items.push({ href: rutaDePrograma(programa.slug, "recursos"), etiqueta: "Recursos", icono: "recursos", roles: ["gerente", "closer"] });
+  } else if (programa && leePrograma(rol)) {
+    items.push({ href: rutaDePrograma(programa.slug, "programa"), etiqueta: "Programa", icono: "programa", roles: ["gerente", "paid_trafficker"] });
   }
 
   // Media (ADR 0107): gerente y developer tambien trabajan el contenido. Por capacidad.

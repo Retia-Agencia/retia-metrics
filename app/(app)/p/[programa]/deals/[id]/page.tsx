@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
@@ -43,7 +42,7 @@ type Props = { params: Promise<{ programa: string; id: string }>; searchParams?:
 /**
  * La ficha de un deal (ticket 074): todo lo de una oportunidad en una pantalla, para que el
  * closer la trabaje sin navegar. Misma guarda y mismo alcance que el Kanban: `paginaConRol`,
- * `rolDeVista` y `programaVisiblePorSlug`.
+ * `rolDeVista` y `programaDeTabOConfigurar`.
  *
  * Un deal inexistente, de OTRO programa o de un programa que la sesion no ve responde 404,
  * igual que un slug inexistente: no se filtra que el deal existe (ADR 0048).
@@ -57,8 +56,8 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
   const { programa: slug, id } = await params;
   const { desde } = (await searchParams) ?? {};
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa || !esIdOpaco(id) || !esRolValido(rol)) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
+  if (!esIdOpaco(id) || !esRolValido(rol)) notFound();
 
   const resultado = await fichaDeDealVisible(db, programa.id, id, session, rol);
   if (!resultado) notFound();

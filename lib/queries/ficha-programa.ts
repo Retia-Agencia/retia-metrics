@@ -224,24 +224,6 @@ function formularioPrincipal(
   return principal?.urlPublica ? { fuente: principal.nombre, url: principal.urlPublica } : null;
 }
 
-export type FaltaParaActivar = {
-  clave: "calendly_token" | "fuente_principal";
-  texto: string;
-};
-
-/** Lista estable de lo que impide activar un programa. */
-export function faltaParaActivar(
-  programa: Pick<DatosDelPrograma, "tieneTokenCalendly" | "formulario">,
-): FaltaParaActivar[] {
-  const faltan: FaltaParaActivar[] = [];
-  if (!programa.tieneTokenCalendly) {
-    faltan.push({ clave: "calendly_token", texto: "Calendly Token" });
-  }
-  if (!programa.formulario) {
-    faltan.push({ clave: "fuente_principal", texto: "Fuente principal" });
-  }
-  return faltan;
-}
 
 type MapeoColumnas = Record<string, string | string[]>;
 

@@ -1,9 +1,8 @@
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { paginaConRol } from "@/lib/auth/page-guards";
+import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
 import { motivos } from "@/lib/db/schema";
 import { duenosPosibles } from "@/lib/deals/duenos";
@@ -39,7 +38,7 @@ const ID_ANTERIOR_DE_SECCION: Record<string, string> = {
 /**
  * El Inbox de un programa (ADR 0050, tickets 070 y 071): con lo que un closer abre el día y
  * ve, sin filtrar nada, qué tiene que hacer. Misma guarda y alcance que Deals:
- * `paginaConRol("gerente", "closer")`, `rolDeVista` y `programaVisiblePorSlug` → `notFound()`.
+ * `paginaConRol("gerente", "closer")`, `rolDeVista` y `programaDeTabOConfigurar` → `notFound()`.
  * El developer pasa por `esAccesoTotal`; nunca se compara el rol a mano.
  *
  * ## Alcance de las listas (regla dura de AGENTS.md)
@@ -59,8 +58,8 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
 
   const { programa: slug } = await params;
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  if (!programa || !esRolValido(rol)) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
+  if (!esRolValido(rol)) notFound();
 
   const administra = esAdministrador(rol);
   const bandejaPendiente = bandejaParaActor(db, programa.id, session, rol);

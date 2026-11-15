@@ -11,11 +11,11 @@ import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
 import { queryDePautaDesdeOrigen, rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
 import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, proyectarDashboardSegunRol, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { programaVisiblePorSlug } from "@/lib/auth/alcance";
+import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { fecha, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard, resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -98,11 +98,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   // DENTRO del alcance de la sesion: un slug de un programa que esta sesion no ve
   // vuelve `null`, igual que uno inexistente o inactivo (ADR 0048, ticket 094).
   const rol = await rolDeVista(session);
-  const programa = await programaVisiblePorSlug(session.user.id, rol, slug);
-  // No existe, esta inactivo, o es de otro programa fuera del alcance: 404 en los
-  // tres casos. `notFound()` lanza y corta el render; nunca 403, para no filtrar que
-  // slugs existen.
-  if (!programa) notFound();
+  const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   // Sin equipo (paid trafficker): ni comparativo, ni comisión, ni filtro de closer, ni la
   // lista detrás de una cifra. Se decide aquí, en el servidor, y se proyecta antes de pintar.
   const veEquipo = veEquipoComercial(rol);
