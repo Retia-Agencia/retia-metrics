@@ -64,6 +64,7 @@ describe("rellenar closer de llamadas de Calendly", () => {
     const resultado = await rellenarCloserDeLlamadas(db, { aplicar: false, actorId });
     expect(resultado).toEqual({
       casan: 1,
+      dealsReasignados: 0,
       noCasan: [{ callId: filas[1].id, programa: "relleno", hostEmail: "otra@calendly.co" }],
     });
     expect((await db.select().from(calls)).every((fila) => fila.closerUserId === null)).toBe(true);

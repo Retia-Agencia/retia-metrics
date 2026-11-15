@@ -3,6 +3,7 @@ import { calls, deals, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { editarConRastro } from "@/lib/crm/rastro";
+import { estaAgendada } from "@/lib/deals/resultados-de-llamada";
 import { vigente } from "@/lib/queries/vigente";
 import { ORIGEN_DE_SUELTA_ASIGNABLE } from "./suelta";
 import { closerHost } from "./emparejar-llamada";
@@ -56,7 +57,7 @@ async function atribuirLlamadaAlHost(
   actorId: string | null,
 ): Promise<boolean> {
   await escribirCloserDeLlamada(tx, fila, userId, actorId);
-  if (fila.resultado !== "agendada" || fila.dealId === null) return false;
+  if (!estaAgendada(fila.resultado) || fila.dealId === null) return false;
 
   const [deal] = await tx
     .select({ id: deals.id, ownerUserId: deals.ownerUserId })
