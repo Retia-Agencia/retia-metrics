@@ -1,15 +1,14 @@
-import Link from "next/link";
 import { Suspense } from "react";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Cifra } from "@/components/cifra-con-lista";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num, usd } from "@/lib/format";
 import type { CargarResumenDePunto } from "@/components/graficas/resumen-de-punto";
 import { GraficasDeDinero } from "@/components/dashboard/graficas-de-dinero";
 import type { SeriesDeDinero } from "@/lib/queries/series-dinero";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import { urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
-import { CajaConVariacion, Tabla } from "@/components/dashboard/piezas";
-import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
+import type { CifrasDeDinero, CifrasDeCohorte } from "@/lib/hub/cifras-de-dinero";
+import { Tabla } from "@/components/dashboard/piezas";
+import { TarjetaDeCifrasDeDinero } from "@/components/dashboard/dinero-de-ventas";
 import { EsqueletoDeGraficas } from "@/components/hub/esqueleto-del-hub";
 import { nombreCorto } from "@/lib/vocabulario-metricas";
 
@@ -20,7 +19,9 @@ async function GraficasDeDineroPendientes({ series, ...resto }: { series: Promis
 /** Responde: ¿cuánto vendimos, cuánto ya se recaudó, cuánto falta y de qué cohorte? */
 export function Dinero({
   vista,
-  detalles,
+  cifras,
+  cohortes,
+  fraccionRecaudada,
   slug,
   series,
   origen,
@@ -29,7 +30,9 @@ export function Dinero({
   cargarResumenDePunto,
 }: {
   vista: VistaDelDashboard;
-  detalles?: DetallesDelDashboard;
+  cifras: CifrasDeDinero;
+  cohortes: CifrasDeCohorte[];
+  fraccionRecaudada: number | null;
   slug: string;
   /** Una promesa: las gráficas llegan por streaming y no frenan las cifras de arriba. */
   series?: Promise<SeriesDeDinero>;
@@ -44,10 +47,11 @@ export function Dinero({
   return (
     <section id="dinero" className="scroll-mt-4 space-y-4">
       <h2 className="text-xl font-semibold">Dinero</h2>
-      <div className="grid gap-4 lg:grid-cols-3">
-        <TarjetaVendido dinero={vista.dinero} anterior={vista.anterior?.dinero ?? null} periodo={vista.periodo}
-          detalle={detalles?.contratado} />
-        <CajaConVariacion vista={vista} detalles={detalles} />
+      <div className="grid gap-3 lg:grid-cols-4">
+        <TarjetaDeCifrasDeDinero cifras={cifras} fraccion={fraccionRecaudada} />
+        <div className="grid min-w-0 content-start gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          {cifras.entroACaja.map((cifra) => <Cifra key={cifra.unidad} cifra={cifra} className="[&_.cifra]:break-words" />)}
+        </div>
       </div>
 
       {series ? (
@@ -66,53 +70,11 @@ export function Dinero({
               <p className="text-sm text-muted-foreground">Sin ventas en el periodo.</p>
             ) : (
               <Tabla cabeceras={["Cohorte", "Ventas", nombreCorto("vendido"), nombreCorto("recaudado"), nombreCorto("por_cobrar")]}>
-                {vista.ventasPorCohorte.map((fila) => {
-                  const href = veEquipo && fila.cohorteId
-                    ? urlDeLista({
-                        slug,
-                        metrica: "contratado",
-                        periodo: vista.periodo,
-                        origen,
-                        claveCloser: vista.claveCloser,
-                        cohorteId: fila.cohorteId,
-                      })
-                    : null;
-                  return (
-                    <tr key={fila.cohorteId ?? "sin-cohorte"}>
-                      <td className="py-2">{fila.codigo ?? "Sin cohorte"}</td>
-                      <td className="py-2 text-right">
-                        {href ? (
-                          <Button
-                            variant="link"
-                            className="cifra h-auto p-0"
-                            nativeButton={false}
-                            render={<Link href={href} />}
-                          >
-                            {num(fila.ventas)}
-                          </Button>
-                        ) : (
-                          num(fila.ventas)
-                        )}
-                      </td>
-                      {[fila.dinero.vendido, fila.dinero.recaudado, fila.dinero.porCobrar].map((valor, i) => (
-                        <td key={i} className="py-2 text-right">
-                          {href ? (
-                            <Button
-                              variant="link"
-                              className="cifra h-auto p-0"
-                              nativeButton={false}
-                              render={<Link href={href} />}
-                            >
-                              {usd(valor)}
-                            </Button>
-                          ) : (
-                            usd(valor)
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  );
-                })}
+                {cohortes.map((fila) => <tr key={fila.clave}>
+                  <td className="py-2">{fila.cohorte}</td>
+                  {[fila.ventas, fila.vendido, fila.recaudado, fila.porCobrar].map((cifra) =>
+                    <td key={cifra.concepto} className="py-2 text-right"><Cifra cifra={cifra} tamano="celda" />{cifra.etiquetas.includes("Parcial") ? <Badge variant="alerta" className="ml-1">Parcial</Badge> : null}</td>)}
+                </tr>)}
               </Tabla>
             )}
           </CardContent>

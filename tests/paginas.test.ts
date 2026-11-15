@@ -144,6 +144,12 @@ vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
   detallesDeOperacion,
   vistaDeLista,
 }));
+// Dinero (419 E-3): la página lee las cinco filas de evidencia de sus listas; aquí no hay base.
+const listaDeMetrica = vi.fn(async () => [{ filas: [] }]);
+vi.mock("@/lib/queries/metricas-con-filas", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/metricas-con-filas")>(),
+  listaDeMetrica,
+}));
 const leerSeriesDeDinero = vi.fn(async () => ({ meses: [] }));
 vi.mock("@/lib/queries/series-dinero", () => ({ leerSeriesDeDinero }));
 // Pauta (355): la tabla única lee la base por `cargarRoasDePauta`; aquí solo importa que la página pase.

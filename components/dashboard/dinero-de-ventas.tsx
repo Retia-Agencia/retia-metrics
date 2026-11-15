@@ -1,3 +1,5 @@
+import { Cifra } from "@/components/cifra-con-lista";
+import type { CifrasDeDinero } from "@/lib/hub/cifras-de-dinero";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,4 +106,25 @@ export function PieDeVentas({ dinero, columnasAntes, columnasDespues = 0 }: { di
       </tr>
     </tfoot>
   );
+}
+
+/** Dinero del programa: las cifras llegan escritas; la barra conserva su lectura visual. */
+export function TarjetaDeCifrasDeDinero({ cifras, fraccion }: {
+  cifras: Pick<CifrasDeDinero, "vendido" | "recaudado" | "porCobrar">;
+  fraccion: number | null;
+}) {
+  return <div className="min-w-0 space-y-3 lg:col-span-3">
+      <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+        {[cifras.vendido, cifras.recaudado, cifras.porCobrar].map((cifra) => <Cifra key={cifra.concepto} cifra={cifra} />)}
+      </div>
+      <div role="img" aria-label={cifras.recaudado.linea
+        ? `${cifras.recaudado.linea.cifra}${cifras.recaudado.linea.despues}`
+        : "Sin ventas con valor vendido"}
+        className="flex h-2 w-full overflow-hidden rounded-full bg-muted">
+        {fraccion === null ? null : <>
+          <div className="bg-primary" style={{ width: `${fraccion * 100}%` }} />
+          <div className="bg-tono-alerta-suave" style={{ width: `${(1 - fraccion) * 100}%` }} />
+        </>}
+      </div>
+  </div>;
 }

@@ -1,3 +1,8 @@
+import { fechaCorta, monto, usd } from "@/lib/format";
+import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
+import { cifrasDeDinero, cifrasPorCohorte } from "@/lib/hub/cifras-de-dinero";
+import { explicacionesDeDinero } from "@/lib/hub/explicaciones-de-dinero";
+import { comparacionesDe, nombreDePedido } from "@/lib/periodo";
 import { after } from "next/server";
 import { Suspense, type ReactNode } from "react";
 import { desc } from "drizzle-orm";
@@ -520,9 +525,42 @@ async function CuerpoDelHub({
     );
   }
   if (seccion === "dinero") {
+    const explicaciones = explicacionesDeDinero();
+    const contextoDeCifras = {
+      programa: programa.nombre,
+      cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
+      rango: vista.periodo.a,
+      hoy,
+      closer: vista.closers.find((closer) => closer.id === vista.claveCloser)?.label ?? null,
+    };
+    const detallesPorCohorte = Object.fromEntries(await Promise.all(
+      (veEquipo ? vista.ventasPorCohorte : []).flatMap((fila) => fila.cohorteId ? [fila.cohorteId] : [])
+        .map(async (id) => [id, await detalleDeCifra("contratado", { ...entradaDetalles, cohorteId: id })] as const),
+    ));
+    // La misma lista probada, con el closer y la cohorte de la cifra; nunca se lee para quien no abre listas.
+    const evidencia = veEquipo ? Object.fromEntries(await Promise.all(
+      (["contratado", "caja"] as const).map(async (metrica) => {
+        const [lista] = await listaDeMetrica(metrica, {
+          programId: programa.id, hoy, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId,
+        }, 1);
+        return [metrica, lista.filas.slice(0, 5).map((fila) => [
+          fila.persona?.nombre ?? "Sin nombre", fechaCorta(fila.fecha),
+          fila.monto === null ? "—" : metrica === "caja" ? monto(fila.monto, fila.moneda ?? "USD") : usd(fila.monto),
+        ])] as const;
+      }),
+    )) : undefined;
+    const primeraComparacion = comparacionesDe(vista.periodo)[0];
+    const cifras = cifrasDeDinero({
+      dinero: vista.dinero, caja: vista.caja, anterior: vista.anterior,
+      referencia: primeraComparacion ? nombreDePedido(primeraComparacion.pedido, vista.periodo.preset) : undefined,
+      detalles, evidencia, explicaciones, contexto: contextoDeCifras,
+    });
+    const cohortes = cifrasPorCohorte({ filas: vista.ventasPorCohorte, detalles: detallesPorCohorte, explicaciones, contexto: contextoDeCifras });
     return (
       <DashboardPrograma
         seccion="dinero"
+        cifrasDinero={{ cifras, cohortes, fraccionRecaudada: vista.dinero.vendido > 0
+          ? Math.min(1, vista.dinero.recaudado / vista.dinero.vendido) : null }}
         cargarResumenDePunto={detalleDePuntoAccion}
         vista={vista}
         detalles={detalles}

@@ -298,6 +298,54 @@ tengan texto aprobado.
 
 ## Avance
 
+- **14-nov · E-3 Dinero.** Integrada solo la rama `seccion === "dinero"` y su carga en la página del programa.
+  - El servidor arma `cifrasDeDinero` y `cifrasPorCohorte`; `lib/hub/explicaciones-de-dinero.ts` arma una sola vez el
+    Record desde las cinco fichas con `explicacionDe`, universo todas las áreas. Test puro nuevo:
+    `tests/explicaciones-de-dinero.test.ts` (fichas, línea base, parcial y dos monedas), sin base ni reloj.
+  - `Dinero` recibe las Cifras mediante `DashboardPrograma`: tarjetas Vendido/Recaudado/Por cobrar, una tarjeta de
+    Entró a caja por moneda, y las cuatro celdas por cohorte. El parcial del constructor se ve en tarjetas y también
+    como badge en celdas (la variante celda de `Cifra` todavía no pinta etiquetas). Ninguna cifra de Dinero necesita
+    `RazonConCobertura`: aquí el parcial significa ventas sin valor vendido o sin saldo calculable.
+  - La barra Recaudado/Por cobrar se conserva; recibe su fracción desde los datos que ya tiene la página. El componente
+    no calcula ni formatea métricas; el porcentaje visible es la línea de Recaudado que escribe el constructor.
+  - Evidencia: detalles y cinco filas de `contratado`/`caja`, con el mismo periodo, cohorte y closer. Las filas se leen
+    solo para quien abre listas. Cada cohorte con id recibe su detalle probado de contratado. **Sin evidencia:**
+    Sin cohorte (no existe lista probada que seleccione solo ventas sin cohorte); quien no abre listas conserva la
+    explicación sin evidencia. Por cohorte hay botón a la lista, pero no cinco filas de vista previa: el constructor
+    existente no recibe `evidencia` por cohorte y se mantiene su contrato.
+  - **Retirado:** `CajaConVariacion` y sus imports exclusivos en `components/dashboard/piezas.tsx`.
+    `rg -n 'CajaConVariacion' app components lib tests` da cero resultados tras retirarlo.
+    `rg -n 'TarjetaVendido|<Caja\b|ResumenDeCifra' app components` confirma los usos conservados: TarjetaVendido
+    en `/hub/secciones.tsx` (todos los programas), Caja en Hoy y Comercial, ResumenDeCifra en CifraConLista y el
+    resumen de punto. La tarjeta vieja compartida y sus formatos no se tocan; Dinero usa `TarjetaDeCifrasDeDinero`.
+    Dinero no tiene Info propio y no se retiró ninguno.
+  - **Hallazgo visible / decisión propuesta:** sin abonos, Entró a caja pasa de «—» de la línea base a **USD 0,00**,
+    exactamente lo que devuelve el constructor. Propuesta: conservar el cero, conforme a la regla del vacío (se midió
+    y no hubo abonos); requiere revisión explícita de Mani. Las tres cifras de la línea base siguen siendo
+    2.391 / 0 / 2.391 en USD; Tactical sigue 0 / 0 / 0. Cuando no hay valor vendido, el constructor no emite la línea
+    porcentual; queda la barra vacía con su descripción accesible, sin inventar una razón. No se comprobó en base/app.
+  - **Gráficas pendientes:** existe `GraficaConExplicacion`, pero no es un cambio directo: las dos gráficas actuales
+    usan `Grafica`, tramos semana/mes y acumulados, dos cohortes alineadas, extras de dinero por moneda, enlaces y
+    resúmenes por punto. La segunda cuenta Cupos con caja, no Entró a caja. Se conserva íntegro
+    `graficas-de-dinero.tsx` y su resumen de punto hasta trasladar ese contrato sin perder cifras ni interacción.
+  - No se tocó ¿Vamos a llegar?, Comercial, Hoy, Pauta, registro, queries, esquema ni migraciones.
+  - **Revisión (Claude, misma fecha, antes del commit):** `docs/agents/handoff.md` devuelto (lo lleva Mani). Las tres
+    cifras y Entró a caja van en una fila de cuatro, sin tarjeta dentro de tarjeta, con la barra bajo las tres.
+    `tests/paginas.test.ts` simula `listaDeMetrica` (la página ahora lee las cinco filas de evidencia; sin eso dos casos
+    de Dinero pedían la base).
+  - **Hallazgo 20, para Mani (carril D):** la ficha `ventas` dice «Cuántos deals **de personas de pauta** pasaron a
+    Abonado o Completo», y en Dinero la celda Ventas por cohorte es de todas las áreas: el panel muestra esa frase junto a
+    «todas las áreas». No se escribió un texto local. Hace falta una frase neutra en la ficha o una variante para el
+    universo de todas las áreas; lo mismo van a necesitar Hoy y Comercial.
+  - **Verificación:** typecheck y lint limpios (7 advertencias ajenas); `npm run build` pasa;
+    `tests/explicaciones-de-dinero`, `cifras-de-dinero`, `dinero-de-ventas`, `paginas`, `frontera-cliente-guardian` y
+    `vigencia-centralizada` en verde (201). Con la base local y el rol developer: mismos valores que la línea base en
+    ComunicArte (2.391 / 0 / 2.391, cohorte C1 con 3 ventas) y «¿Vamos a llegar?» idéntico; cada cifra y cada celda
+    abre su explicación con fórmula, filtros, evidencia y enlace a la lista; consola sin errores; revisado en oscuro,
+    claro y 375 px sin desborde horizontal. **Sin verificar:** dos monedas y sobrepago con datos reales (la semilla no
+    tiene abonos), el rol paid trafficker en pantalla, `npm run test:humo` y el tiempo de la página con la evidencia.
+    E-3 global sigue pendiente.
+
 - **13-nov · E-3 Comercial — detenido antes de modificar código.** Al contrastar los constructores con E-1 se confirma el
   bloqueo del hallazgo 18: `cifras-de-recorridos.ts` requiere explicaciones sin ficha registrada para
   `porcentaje_de_escalera`, `dias_medianos_de_escalera`, `conversion_del_paso`, `perdidos_del_paso`,

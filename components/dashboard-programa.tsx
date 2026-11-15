@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react";
 import type { ReactNode } from "react";
 import type { CargarResumenDePunto } from "@/components/graficas/resumen-de-punto";
 import { Dinero } from "@/components/dashboard/dinero";
@@ -26,6 +27,7 @@ export { textoComisionPrograma } from "@/components/dashboard/operacion";
  *  - Lo que no se sabe se dice: una tasa sin base sale como "—", nunca como cero.
  */
 export function DashboardPrograma({
+  cifrasDinero,
   seccion,
   vista,
   detalles,
@@ -45,6 +47,7 @@ export function DashboardPrograma({
   dineroPorCloser,
 }: {
   seccion: "operacion" | "dinero";
+  cifrasDinero?: Pick<ComponentProps<typeof Dinero>, "cifras" | "cohortes" | "fraccionRecaudada">;
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
@@ -88,5 +91,6 @@ export function DashboardPrograma({
       />
     );
   }
-  return <Dinero vista={vista} detalles={detalles} slug={slug} series={seriesDinero} origen={origen} hoy={hoy} veEquipo={veEquipo} cargarResumenDePunto={cargarResumenDePunto} />;
+  if (!cifrasDinero) throw new Error("Dinero necesita sus cifras preparadas en el servidor");
+  return <Dinero {...cifrasDinero} vista={vista} slug={slug} series={seriesDinero} origen={origen} hoy={hoy} veEquipo={veEquipo} cargarResumenDePunto={cargarResumenDePunto} />;
 }

@@ -1,11 +1,7 @@
 import type { ReactNode } from "react";
-import { CifraConLista } from "@/components/cifra-con-lista";
-import { Variacion } from "@/components/variacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { monto, pct } from "@/lib/format";
 import type { CajaPorMoneda } from "@/lib/queries/dashboard";
-import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
-import type { DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 
 /** Una tasa sin denominador se dice con raya, nunca como cero. */
 export function tasa(valor: number | null): string {
@@ -71,45 +67,5 @@ export function Tabla({ cabeceras, children }: { cabeceras: string[]; children: 
         </tbody>
       </table>
     </div>
-  );
-}
-
-export function CajaConVariacion({
-  vista,
-  detalles,
-}: {
-  vista: VistaDelDashboard;
-  detalles?: DetallesDelDashboard;
-}) {
-  const actual = new Map(vista.caja.map((fila) => [fila.moneda, fila.total]));
-  const anterior = new Map(vista.anterior?.caja.map((fila) => [fila.moneda, fila.total]) ?? []);
-  const monedas = [...new Set([...actual.keys(), ...anterior.keys()])].sort();
-
-  return (
-    <Tarjeta
-      titulo="Entró a caja"
-      valor={
-        <CifraConLista titulo="Entró a caja" detalle={detalles?.caja}>
-          <Caja caja={vista.caja} />
-        </CifraConLista>
-      }
-      nota={
-        <>
-          <p>Todo abono que entró en el periodo, aunque sea de ventas anteriores.</p>
-          {vista.anterior ? (
-            monedas.map((moneda) => (
-              <p key={moneda}>
-                {moneda}: <Variacion
-                  actual={actual.get(moneda) ?? 0}
-                  anterior={anterior.get(moneda) ?? 0}
-                  decimales={2}
-                  periodo={vista.periodo}
-                />
-              </p>
-            ))
-          ) : null}
-        </>
-      }
-    />
   );
 }
