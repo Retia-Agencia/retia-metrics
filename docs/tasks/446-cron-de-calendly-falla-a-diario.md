@@ -28,7 +28,10 @@ un test con una cita cuyo deal está anulado, otra con el deal en Completo y otr
 
 ## Done cuando
 - [x] Test de regresión con los tres casos; verde (rojo con el mismo TypeError sin el arreglo, 14-nov).
-- [ ] Qué dejó de reconciliarse entre el 8 y el 14-nov: contarlo contra producción (solo lectura) y pegarlo aquí; si
-      hay que re-correr algo, lo decide Mani.
+- [x] Qué dejó de reconciliarse entre el 8 y el 14-nov (producción, solo lectura, 14-nov noche): casi nada. Llamadas de
+      Calendly sueltas y vigentes hoy: 3 (Tactical 1 del 6-nov; Comunícate con Confianza 2, una del 20-oct y una de hoy
+      14-nov 22:32, futura). Desde el 8-nov nacieron 114 llamadas ya colgadas de su deal (Tactical 85, Confianza 29,
+      Comunicarte 42): el webhook hizo el trabajo y el cron era solo la red diaria. No hay nada que re-correr; las 3
+      sueltas las toma el cron en su primera pasada con el arreglo, o un closer desde el Inbox.
 - [ ] El cron responde 200 al día siguiente del despliegue (`vercel logs --query cron/calendly`).
 - [x] Typecheck, lint, tests del cambio (77 verdes); tracker y `status:` iguales (siguen `todo`: faltan las dos casillas de producción).
