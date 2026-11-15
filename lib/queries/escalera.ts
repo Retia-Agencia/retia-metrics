@@ -283,17 +283,13 @@ export function cargarEscalera(
     alcance.rango.hasta, alcance.cohorteId, ahora), () => leerEscalera(db, alcance, ahora));
 }
 
-async function leerEscalera(
-  db: Db,
-  alcance: { programId: string; rango: Rango; cohorteId?: string | null },
-  ahora: Date,
-): Promise<EscaleraCargada> {
-  const { programId, rango, cohorteId } = alcance;
-  const [dias, filasDeals] = await Promise.all([
-    // La venta de un deal y su día vienen de la UNICA definición de venta; se pide de siempre y
-    // se reparte en memoria: un deal vendido ayer no es "sin vender" aunque se creara este mes.
-    // `ventasConDiaEn` no filtra por programa: se une a `deals` (vigente, INLINE) y se acota aquí.
-    ventasDelPrograma(db, programId),
+/**
+ * Los deals candidatos de la escalera de un programa (y cohorte). No dependen del rango ni del
+ * instante: el rango se aplica en memoria. Separados para compartirse dentro de una solicitud
+ * entre llamadas con distinto `ahora` o periodo (447, molde `cajaPorCloser`).
+ */
+function dealsDeLaEscalera(db: Db, programId: string, cohorteId: string | null) {
+  return unaVezPorSolicitud(db, claveDe("dealsDeLaEscalera", programId, cohorteId), () =>
     db.select({
       id: deals.id,
       etapa: deals.etapa,
@@ -309,7 +305,21 @@ async function leerEscalera(
     }).from(deals)
       .leftJoin(users, eq(users.id, deals.ownerUserId))
       .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
-      .where(and(eq(deals.programId, programId), eq(deals.cortesia, false), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))),
+      .where(and(eq(deals.programId, programId), eq(deals.cortesia, false), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))));
+}
+
+async function leerEscalera(
+  db: Db,
+  alcance: { programId: string; rango: Rango; cohorteId?: string | null },
+  ahora: Date,
+): Promise<EscaleraCargada> {
+  const { programId, rango, cohorteId } = alcance;
+  const [dias, filasDeals] = await Promise.all([
+    // La venta de un deal y su día vienen de la UNICA definición de venta; se pide de siempre y
+    // se reparte en memoria: un deal vendido ayer no es "sin vender" aunque se creara este mes.
+    // `ventasConDiaEn` no filtra por programa: se une a `deals` (vigente, INLINE) y se acota aquí.
+    ventasDelPrograma(db, programId),
+    dealsDeLaEscalera(db, programId, cohorteId ?? null),
   ]);
 
   const diaDeVenta = new Map(dias.map((fila) => [fila.dealId, diaDeCalendario(fila.dia)]));

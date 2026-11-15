@@ -84,6 +84,18 @@ export interface ContextoDelFiltro {
 }
 
 /**
+ * El primer inicio de ventas y el primer envío del programa: no dependen de `hoy` ni del
+ * periodo, así que se comparten dentro de una solicitud (Hoy los pide la vista de todos y el
+ * reporte diario por programa, 447).
+ */
+function inicioDeLaVidaDelPrograma(db: Db, programId: string) {
+  return unaVezPorSolicitud(db, claveDe("inicioDeLaVidaDelPrograma", programId), () => Promise.all([
+    db.select({ inicio: min(cohorts.fechaInicioVentas) }).from(cohorts).where(eq(cohorts.programId, programId)),
+    db.select({ primero: sql<Date | null>`min(${leads.fechaPrimeraAplicacion})` }).from(leads).where(and(eq(leads.programId, programId), eq(leads.entrada, "formulario"))),
+  ]));
+}
+
+/**
  * "Desde el inicio" arranca en lo MÁS TEMPRANO entre el inicio de ventas de la cohorte y su primera venta
  * real: una venta anterior al inicio (C-08, medido el 3-nov) no puede quedar fuera del periodo.
  * Con "Todas", lo más temprano entre las cohortes del programa, su primera venta y su primer envío.
@@ -100,10 +112,7 @@ export async function contextoDelFiltro(
     cohorte ? ventanasAnterioresDeCohorte(db, programId, cohorte.id).then((v) => v.anterior) : Promise.resolve(null),
     cohorte
       ? Promise.resolve(null)
-      : Promise.all([
-          db.select({ inicio: min(cohorts.fechaInicioVentas) }).from(cohorts).where(eq(cohorts.programId, programId)),
-          db.select({ primero: sql<Date | null>`min(${leads.fechaPrimeraAplicacion})` }).from(leads).where(and(eq(leads.programId, programId), eq(leads.entrada, "formulario"))),
-        ]),
+      : inicioDeLaVidaDelPrograma(db, programId),
   ]);
   const primeraVenta = ventas.map((v) => v.dia).sort()[0] ?? null;
   const candidatas: (string | null)[] = [primeraVenta];

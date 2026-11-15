@@ -5,11 +5,7 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { rolDeVista, rolRealDeSesion } from "@/lib/auth/vista";
 import { esAccesoTotal, esAdministrador, esRolValido, manejaPauta, marcaOnboarding, puedeConectarIa, puedeCrearTokenPersonal, trabajaLeads } from "@/lib/auth/roles";
-import { programasVisibles, programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { membresiasConCalendlyDe } from "@/lib/catalogo/usuarios";
-import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
-import { programasActivos } from "@/lib/queries/programas";
 import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
 import { seccionPedida, seccionesDeRol, type SeccionMiEspacio } from "@/lib/mi-espacio/secciones";
 import { PageShell } from "@/components/page-shell";
@@ -17,19 +13,17 @@ import { PerfilDeMiEspacio } from "@/components/mi-espacio/perfil-de-mi-espacio"
 import { TabsDeMiEspacio } from "@/components/mi-espacio/tabs-de-mi-espacio";
 import { CalendlyMembresias } from "@/components/calendly-membresias";
 import { EnlacesDeCaptacion, type EnlaceVista } from "@/components/mi-espacio/enlaces-de-captacion";
-import { enlacesDeCaptacion } from "@/lib/atribucion/captacion-del-closer";
 import { asignarMiCalendlyAccion } from "./acciones";
 import { TabNotificaciones } from "@/components/mi-espacio/tab-notificaciones";
 import { TabMetricas } from "@/components/mi-espacio/tab-metricas";
 import { TabCanales } from "@/components/mi-espacio/tab-canales";
 import { TabPorDecidir } from "@/components/mi-espacio/tab-por-decidir";
-import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
-import { ETIQUETA_MCP_SCOPE, listarTokensPersonales, MCP_SCOPES } from "@/lib/mcp/token";
+import { ETIQUETA_MCP_SCOPE, MCP_SCOPES } from "@/lib/mcp/token";
 import { urlDelRecurso } from "@/lib/oauth/origen";
 import { ConexionesDeIa } from "@/components/mi-espacio/conexiones-de-ia";
-import { listarConexionesOauth } from "@/lib/oauth/conexiones";
+import { cargarDatosDeMiEspacio, type DatosDeMiEspacio } from "@/lib/mi-espacio/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -79,7 +73,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   const userId = session.user.id;
   const sujeto = { rol, operaComoCloser: session.user.operaComoCloser };
   const query = await searchParams;
-  const conexionesIa = await bloqueConexionesIa(userId, rolRealDeSesion(session));
+  const rolReal = rolRealDeSesion(session);
 
   // El `?tab=atencion` viejo ahora es `?tab=notificaciones` (ticket 221): redirect de
   // servidor para que un enlace guardado no caiga en la sección por defecto por el rename.
@@ -92,12 +86,37 @@ export default async function MiEspacioPage({ searchParams }: Props) {
     redirect(`/mi-espacio?${q}`);
   }
 
+  const esCustomerSinTrabajo = marcaOnboarding(rol) && !trabajaLeads(sujeto) && !esAdministrador(rol) && !manejaPauta(rol);
+  const puedeTrabajar = trabajaLeads(sujeto);
+  const secciones = seccionesDeRol(sujeto);
+  const seccion = seccionPedida(sujeto, uno(query.tab));
+  const programaPedido = uno(query.programa);
+  const preferido = seccion?.usaSelectorDePrograma ? await programaPreferidoDeCookie() : null;
+  // El developer en vista `todo` recibe el mensaje del dueño ANTES de leer membresías y tabs
+  // (más abajo): el cargador no lee nada de eso para él, igual que la página antes del 447.
+  const esDuenoEnTodo = esAccesoTotal(rol);
+  const datos = await cargarDatosDeMiEspacio(db, {
+    userId,
+    rol,
+    puedeTrabajar: puedeTrabajar && !esDuenoEnTodo,
+    puedeConectarIa: puedeConectarIa(rolReal),
+    puedeCrearToken: puedeCrearTokenPersonal(rolReal),
+    cargarProgramasVisibles: esCustomerSinTrabajo,
+    seccion: esDuenoEnTodo ? null : seccion,
+    programaPedido,
+    programaPreferido: preferido,
+    busqueda: query,
+    hoy: hoyEnBogota(),
+    origen: origenDeLaPagina("/mi-espacio", query),
+  });
+  const conexionesIa = bloqueConexionesIa(datos, rolReal);
+
   // El customer success: su pantalla es Students. Si ve algún programa, se le lleva al primero
   // (nunca se queda en Mi espacio con contenido ajeno); si no ve ninguno, el estado vacío que
   // le dice que gerencia debe asignarle un programa. Se decide por CAPACIDAD —`marcaOnboarding`
   // sin administrar, trabajar leads ni manejar pauta—, nunca por el literal del rol (ADR 0025).
-  if (marcaOnboarding(rol) && !trabajaLeads(sujeto) && !esAdministrador(rol) && !manejaPauta(rol)) {
-    const visibles = await programasVisibles(userId, rol);
+  if (esCustomerSinTrabajo) {
+    const visibles = datos.visibles;
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
@@ -122,7 +141,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // "Ver como closer". Se decide con el rol de vista (bajo suplantación la sesión efectiva
   // ya no es acceso total y cae por el camino del closer). Va ANTES de cargar membresías:
   // el dueño no tiene espacio propio por programa.
-  if (esAccesoTotal(rol)) {
+  if (esDuenoEnTodo) {
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">
@@ -143,8 +162,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // Perfil: nombre, foto y rol vienen de Google / la sesión. Para quien trabaja leads el
   // nombre sale de la membresía (local login no mete `users.nombre` en la sesión); el
   // gerente y el paid trafficker no cargan membresías, así que usan el de la sesión.
-  const puedeTrabajar = trabajaLeads(sujeto);
-  const membresias = puedeTrabajar ? await membresiasConCalendlyDe(db, userId) : [];
+  const membresias = datos.membresias;
   const nombrePerfil = membresias[0]?.usuario ?? session.user.name ?? session.user.email ?? "Usuario";
   const perfil = (
     <PerfilDeMiEspacio nombre={nombrePerfil} imagen={session.user.image ?? null} rol={rol} />
@@ -177,8 +195,6 @@ export default async function MiEspacioPage({ searchParams }: Props) {
 
   // Las secciones del rol de vista (dirigidas por el registro). La pedida, si el rol la
   // cumple; si no (sin `?tab=` o una `?tab=` de otra sección forjada a mano), la primera.
-  const secciones = seccionesDeRol(sujeto);
-  const seccion = seccionPedida(sujeto, uno(query.tab));
   if (!seccion) {
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tus conexiones.">
@@ -188,25 +204,18 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   }
 
   // El Calendly solo para quien trabaja leads, y solo de los programas con membresía (169).
-  const calendly = puedeTrabajar ? await bloqueCalendly(membresias) : null;
+  const calendly = puedeTrabajar ? bloqueCalendly(membresias, datos) : null;
   // Sus enlaces de captacion (086), de los mismos programas: calculados, nunca guardados.
-  const enlaces = puedeTrabajar ? await enlacesDeCaptacion(db, userId) : [];
+  const enlaces = datos.enlaces;
 
   // Selector de programa solo para las secciones que lo usan. El programa es frontera: un
   // slug ajeno es 404 (igual que las tabs de programa); sin `?programa` se toma el ultimo
   // visible recordado o el primero.
   let programa: { id: string; slug: string; nombre: string } | null = null;
-  let visibles: { id: string; slug: string; nombre: string }[] = [];
+  const visibles = datos.visibles;
   if (seccion.usaSelectorDePrograma) {
-    visibles = await programasVisibles(userId, rol);
-    const pedido = uno(query.programa);
-    const preferido = await programaPreferidoDeCookie();
-    programa = seccion.id === "metricas" && pedido === "todos"
-      ? null
-      : pedido
-      ? await programaVisiblePorSlug(userId, rol, pedido)
-      : elegirPrograma(visibles, preferido);
-    if (!programa && !(seccion.id === "metricas" && pedido === "todos" && visibles.length > 0)) notFound();
+    programa = datos.programa;
+    if (!programa && !(seccion.id === "metricas" && programaPedido === "todos" && visibles.length > 0)) notFound();
   }
 
   return (
@@ -218,7 +227,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
             <SelectorDePrograma programas={visibles} actual={programa?.slug ?? "todos"} tab={seccion.id} busqueda={query} />
           ) : null}
 
-          {Seccion({ seccion, programa, programas: visibles, userId, busqueda: query, perfil, calendly, enlaces, origen: origenDeLaPagina("/mi-espacio", query) })}
+          {Seccion({ seccion, programa, perfil, calendly, enlaces, deSeccion: datos.deSeccion })}
           {conexionesIa}
         </div>
       </div>
@@ -226,13 +235,10 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   );
 }
 
-async function bloqueConexionesIa(userId: string, rolReal: unknown) {
+function bloqueConexionesIa(datos: DatosDeMiEspacio, rolReal: unknown) {
   if (!esRolValido(rolReal) || !puedeConectarIa(rolReal)) return null;
   const puedeCrear = puedeCrearTokenPersonal(rolReal);
-  const [conexiones, tokens] = await Promise.all([
-    listarConexionesOauth(db, userId),
-    puedeCrear ? listarTokensPersonales(db, userId) : Promise.resolve([]),
-  ]);
+  const [conexiones, tokens] = datos.conexionesIa;
   const fechaDeVencimiento = (instante: Date | null) => instante
     ? `Vence el ${fecha(fechaDeInstanteEnBogota(instante))}`
     : "Sin vencimiento";
@@ -269,23 +275,17 @@ async function bloqueConexionesIa(userId: string, rolReal: unknown) {
 function Seccion({
   seccion,
   programa,
-  programas,
-  userId,
-  busqueda,
   perfil,
   calendly,
   enlaces,
-  origen,
+  deSeccion,
 }: {
   seccion: SeccionMiEspacio;
   programa: { id: string; slug: string } | null;
-  programas: { id: string; slug: string; nombre: string }[];
-  userId: string;
-  busqueda: Record<string, string | string[] | undefined>;
   perfil: ReactElement;
   calendly: ReactElement | null;
   enlaces: EnlaceVista[];
-  origen: string;
+  deSeccion: DatosDeMiEspacio["deSeccion"];
 }): ReactElement | null {
   switch (seccion.id) {
     case "info":
@@ -301,28 +301,18 @@ function Seccion({
       );
     case "notificaciones":
       // Lo que te toca HOY, por tipo, con las tarjetas de tus deals (ticket 222).
-      return programa ? (
-        <TabNotificaciones
-          programId={programa.id}
-          slug={programa.slug}
-          userId={userId}
-          chip={uno(busqueda.chip)}
-          pagina={uno(busqueda.pagina)}
-          q={uno(busqueda.q)}
-        />
-      ) : null;
-    case "metricas": {
-      // El closer se identifica por su `users.id` (ticket 167): asi un closer sin el
-      // texto `closer_id` ve igual sus metricas. Ya no hay que exigir el texto.
-      const seleccionado = programa
-        ? { ...programa, nombre: programas.find((p) => p.id === programa.id)?.nombre ?? programa.slug }
+      return programa && deSeccion?.id === "notificaciones"
+        ? <TabNotificaciones slug={programa.slug} datos={deSeccion.datos} />
         : null;
-      return <TabMetricas programas={programas} programa={seleccionado} closerUserId={userId} hoy={hoyEnBogota()} busqueda={busqueda} origen={origen} />;
-    }
+    case "metricas":
+      // El closer se identifica por su `users.id` (ticket 167); los datos los lee el cargador.
+      return deSeccion?.id === "metricas" ? <TabMetricas datos={deSeccion.datos} /> : null;
     case "canales":
-      return <TabCanales />;
+      return deSeccion?.id === "canales" ? <TabCanales resumen={deSeccion.datos} /> : null;
     case "por-decidir":
-      return programa ? <TabPorDecidir programId={programa.id} slug={programa.slug} /> : null;
+      return programa && deSeccion?.id === "por-decidir"
+        ? <TabPorDecidir programId={programa.id} slug={programa.slug} datos={deSeccion.datos} />
+        : null;
   }
 }
 
@@ -331,14 +321,9 @@ const MENSAJE_DEL_DUENO =
   "Mi espacio muestra el trabajo de una persona según su rol: lo que necesita atención y las métricas de un closer, lo que tiene por decidir un gerente, los canales de un paid trafficker. Como tienes acceso total, no tienes uno propio; cambia la vista a \"Como gerente\" o usa \"Ver como closer\" en el menú de tu usuario.";
 
 /** El Calendly por programa (componente del 169), solo de los programas con membresía. */
-async function bloqueCalendly(
-  membresias: Awaited<ReturnType<typeof membresiasConCalendlyDe>>,
-) {
-  const programIds = membresias.map((m) => m.programId);
-  const [programasDeCalendly, cuentas] = await Promise.all([
-    programasActivos().then((ps) => ps.filter((p) => programIds.includes(p.id))),
-    cuentasPorPrograma(db, programIds),
-  ]);
+function bloqueCalendly(membresias: DatosDeMiEspacio["membresias"], datos: DatosDeMiEspacio) {
+  const programasDeCalendly = datos.calendly?.programas ?? [];
+  const cuentas = datos.calendly?.cuentas ?? {};
   return (
     <CalendlyMembresias
       membresias={membresias}

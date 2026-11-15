@@ -1,11 +1,8 @@
 import { Enlace } from "@/components/enlace";
-import { db } from "@/lib/db";
-import { seccionesSinDueno } from "@/lib/queries/inbox-sin-dueno";
-import { llamadasSinCloserDelPrograma, llamadasSueltasDelPrograma } from "@/lib/queries/inbox";
-import { saludDeFuentes } from "@/lib/queries/salud-fuentes";
 import { num } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { DatosDePorDecidir } from "@/lib/mi-espacio/datos-por-decidir";
 
 /**
  * Sección "Por decidir" de Mi espacio del gerente (ticket 179, rediseño del 183/ADR 0077):
@@ -26,19 +23,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  * Menu**: al quitar la reasignación inline y la lista de sueltas desaparece el popup que
  * reventaba la pantalla del gerente en tiempo de ejecución (composición estricta de Base UI).
  */
-export async function TabPorDecidir({
+export function TabPorDecidir({
   programId,
   slug,
+  datos,
 }: {
   programId: string;
   slug: string;
+  datos: DatosDePorDecidir;
 }) {
-  const [secciones, llamadasSueltas, llamadasSinCloser, salud] = await Promise.all([
-    seccionesSinDueno(db, programId),
-    llamadasSueltasDelPrograma(db, programId),
-    llamadasSinCloserDelPrograma(db, programId),
-    saludDeFuentes(),
-  ]);
+  const { secciones, llamadasSueltas, llamadasSinCloser, salud } = datos;
 
   const inbox = `/p/${slug}/inbox`;
   const contadores: Contador[] = [

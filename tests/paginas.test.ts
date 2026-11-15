@@ -129,6 +129,16 @@ vi.mock("@/lib/queries/vista-todos", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/vista-todos")>(),
   armarVistaDeTodos,
 }));
+// Desde el 447 el cargador del Hub de todos lee "¿Vamos a llegar?" (antes lo leía su componente,
+// que aquí no se ejecuta); la vista no se dibuja en estos tests, así que basta un objeto vacío.
+vi.mock("@/lib/queries/vamos-a-llegar", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/vamos-a-llegar")>(),
+  leerVamosALlegar: vi.fn(async () => ({})),
+}));
+vi.mock("@/lib/queries/origen", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/queries/origen")>(),
+  origenDelPrograma: vi.fn(async () => ({})),
+}));
 const detallesDelDashboard = vi.fn(async () => ({}));
 const detalleDeCifra = vi.fn(async () => ({
   resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
@@ -555,7 +565,7 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     programasVisibles.mockResolvedValue([suyo]);
 
     expect(await correrTodos({ seccion: "pauta" })).toBe("paso");
-    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
+    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }), expect.anything());
   });
 
   it("el gerente solo entrega a la vista sus programas visibles", async () => {
@@ -564,7 +574,7 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     programasVisibles.mockResolvedValue([suyo]);
 
     expect(await correrTodos()).toBe("paso");
-    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
+    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }), expect.anything());
   });
 
   it("un programa fuera del alcance nunca llega al constructor", async () => {

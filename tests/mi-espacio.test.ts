@@ -4,10 +4,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * Ticket 172 — la página `/mi-espacio`: selector de programa obligatorio (frontera), un
  * programa ajeno es 404, y sin membresías se ve el mensaje en vez de una pantalla vacía.
  *
- * Se invoca el componente real. La página devuelve JSX de forma perezosa, así que las
- * tabs (que leen la base) NO se ejecutan al correr la página: solo se crean los
- * elementos. Por eso basta con mockear las lecturas de la propia página —el alcance, las
- * membresías y el Calendly— y afirmar la rama (404 / mensaje / render).
+ * Se invoca el componente real. Desde el 447 los datos de la tab elegida los lee el cargador
+ * de la página (`lib/mi-espacio/cargar-datos.ts`), así que se mockean las lecturas de la
+ * página —el alcance, las membresías, el Calendly— y los cargadores de cada tab, y se
+ * afirma la rama (404 / mensaje / render).
  */
 
 const auth = vi.fn();
@@ -59,6 +59,12 @@ vi.mock("@/lib/queries/programas", () => ({ programasActivos }));
 
 // Los enlaces de captacion (086) se prueban contra la base en captacion-del-closer.test.ts.
 vi.mock("@/lib/atribucion/captacion-del-closer", () => ({ enlacesDeCaptacion: async () => [] }));
+
+// Los datos de cada tab se prueban en sus propios tests; aquí solo importa la rama.
+vi.mock("@/lib/mi-espacio/datos-notificaciones", () => ({ cargarDatosDeNotificaciones: async () => ({}) }));
+vi.mock("@/lib/mi-espacio/datos-metricas", () => ({ cargarDatosDeMetricas: async () => ({}) }));
+vi.mock("@/lib/mi-espacio/datos-canales", () => ({ cargarDatosDeCanales: async () => ({}) }));
+vi.mock("@/lib/mi-espacio/datos-por-decidir", () => ({ cargarDatosDePorDecidir: async () => ({}) }));
 
 const PROG_A = { id: "p-a", slug: "programa-a", nombre: "Programa A" };
 const PROG_B = { id: "p-b", slug: "programa-b", nombre: "Programa B" };
@@ -170,7 +176,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A, PROG_B]);
     programaVisiblePorSlug.mockResolvedValue(PROG_B);
     expect(await correr({ programa: "programa-b" })).toBe("render");
-    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-b");
+    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-b", expect.anything());
   });
 
   it("un programa AJENO (o inexistente) en la URL es 404", async () => {
@@ -288,7 +294,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programaVisiblePorSlug.mockResolvedValue(PROG_A);
     const arbol = await renderizar({ tab: "metricas", programa: "programa-a", closer: "forjado" });
     expect(tieneComponente(arbol, "TabMetricas")).toBe(true);
-    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-a");
+    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-a", expect.anything());
   });
 
   it("Mis métricas devuelve 404 si el closer pide un programa sin membresía", async () => {

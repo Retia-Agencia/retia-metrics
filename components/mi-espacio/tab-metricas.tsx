@@ -1,11 +1,9 @@
-import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
+import type { PeriodoResuelto } from "@/lib/periodo";
 import { monto, num, pct } from "@/lib/format";
 import {
-  armarVistaDeMisMetricas,
-  armarVistaDeMisMetricasTodos,
-  type ProgramaDeMetricas,
   type VistaDeMisMetricas,
 } from "@/lib/queries/mi-espacio-metricas";
+import type { DatosDeMetricas } from "@/lib/mi-espacio/datos-metricas";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 import { CifraConLista } from "@/components/cifra-con-lista";
 import { SelectorPeriodo } from "@/components/selector-periodo";
@@ -14,8 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { textoDeVariacionDeTasa } from "@/lib/variacion";
 import { ComoSeCalcula } from "@/components/como-se-calcula";
 import { CifraDeRazon } from "@/components/cifra-de-razon";
-
-type Busqueda = Record<string, string | string[] | undefined>;
 
 function TarjetaNumero({ titulo, valor, anterior, detalle, periodo }: { titulo: string; valor: number; anterior?: number; detalle: DetalleDeCifra; periodo: PeriodoResuelto }) {
   return (
@@ -114,28 +110,12 @@ function Total({ titulo, actual, anterior, periodo }: { titulo: string; actual: 
   );
 }
 
-export async function TabMetricas({
-  programas,
-  programa,
-  closerUserId,
-  hoy,
-  busqueda,
-  origen,
-}: {
-  programas: ProgramaDeMetricas[];
-  programa: ProgramaDeMetricas | null;
-  closerUserId: string;
-  hoy: string;
-  busqueda: Busqueda;
-  origen: string;
-}) {
-  const periodo = parsearPeriodoUrl(busqueda);
-  if (programa) {
-    const vista = await armarVistaDeMisMetricas({ programa, closerUserId, hoy, periodo, origen });
-    return <BloqueDePrograma vista={vista} />;
+export function TabMetricas({ datos }: { datos: DatosDeMetricas }) {
+  if (datos.tipo === "programa") {
+    return <BloqueDePrograma vista={datos.vista} />;
   }
 
-  const todos = await armarVistaDeMisMetricasTodos({ programas, closerUserId, hoy, periodo, origen });
+  const { todos } = datos;
   const cajasB = new Map(todos.b?.caja.map((c) => [c.moneda, c.valor]));
   return (
     <div className="space-y-6">

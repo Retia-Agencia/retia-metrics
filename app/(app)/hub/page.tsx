@@ -5,17 +5,19 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { veTableroDelPrograma } from "@/lib/auth/roles";
 import { parsearPeriodoUrl } from "@/lib/periodo";
 import { hoyEnBogota } from "@/lib/format";
-import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
+import { db } from "@/lib/db";
+import { cargarDatosDeHub } from "@/lib/queries/hub-todos";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion } from "@/components/layout/pestanas";
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
-import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
+import { VamosALlegarVista, type PropsVamosALlegar } from "@/components/metas/vamos-a-llegar";
+import type { VamosALlegar as DatosVamosALlegar } from "@/lib/queries/vamos-a-llegar";
 import { SeccionDeTodos } from "./secciones";
-import { ReporteDiarioVista, type ProgramaDelReporte } from "@/components/dashboard/reporte-diario";
+import { ReporteDiarioVista } from "@/components/dashboard/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
-import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
+import { resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { veEquipoComercial } from "@/lib/auth/roles";
 import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
 import { queryDePautaDesdeOrigen, RUTA_HUB_TODOS } from "@/lib/nav";
@@ -57,15 +59,16 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
   const diaPedido = resolverDiaDelReporte(typeof busqueda.fecha === "string" ? busqueda.fecha : undefined, hoy);
   const diaDelReporte = diaPedido ?? hoy;
   // La vista de todos y los reportes de Hoy son independientes: arrancan juntos, no uno detrás del otro.
-  const [vista, reportes] = await Promise.all([
-    armarVistaDeTodos({ programas, hoy, periodo: esHoy ? { preset: "hoy" } : parsearPeriodoUrl(busqueda), origen }),
-    esHoy
-      ? Promise.all(programas.map(async (programa): Promise<ProgramaDelReporte> => ({
-          programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre },
-          reporte: await armarReporteDiario({ programId: programa.id, dia: diaDelReporte }),
-        })))
-      : Promise.resolve([] as ProgramaDelReporte[]),
-  ]);
+  const datos = await cargarDatosDeHub(db, {
+    programas,
+    hoy,
+    periodo: parsearPeriodoUrl(busqueda),
+    origen,
+    seccion: seccion === "comercial" || seccion === "pauta" || seccion === "dinero" ? seccion : "hoy",
+    diaDelReporte,
+    conListas: veEquipoComercial(rol),
+  });
+  const { vista, reportes } = datos;
 
   return (
     <PageShell titulo="Todos los programas" descripcion="Sumas en la misma unidad; tasas y metas por programa" fija>
@@ -96,8 +99,8 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
         <div className={clasesDeZonaConScroll()}>
           {seccion === "pauta"
             ? <div className="space-y-6">
-                <PautaPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} busqueda={busqueda} />
-                <OrigenPorPrograma programas={programas} periodo={vista.periodo} hoy={hoy} origen={origen} />
+                <PautaPorPrograma filas={datos.pauta} periodo={vista.periodo} busqueda={busqueda} />
+                <OrigenPorPrograma filas={datos.origenes} periodo={vista.periodo} origen={origen} />
               </div>
             : esHoy
             ? <>
@@ -110,20 +113,25 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
                   selector={<SelectorDeDia dia={diaDelReporte} hoy={hoy} base={{ path: RUTA_HUB_TODOS, params: {} }} />}
                   vamosALlegar={<div className={`grid gap-4 ${programas.length > 1 ? "xl:grid-cols-2 print:grid-cols-1" : ""}`}>
                     {programas.map((programa) => (
-                      <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={diaDelReporte} origen={origen} conListas={veEquipoComercial(rol)} configurar={null} />
+                      <VamosALlegarVistaDe key={programa.id} datos={datos.vamosALlegar.get(programa.id)} props={{ conNombre: true, programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, hoy: diaDelReporte, origen, conListas: veEquipoComercial(rol), configurar: null }} />
                     ))}
                   </div>}
                 />
               </>
-            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} conListas={veEquipoComercial(rol)} />}
+            : <SeccionDeTodos vista={vista} seccion={seccion === "comercial" || seccion === "dinero" ? seccion : "hoy"} hoy={hoy} origen={origen} comercial={datos.comercial} />}
           {/* El norte (371): una matriz por programa, lado a lado y nunca sumada (ADR 0048); no lee el periodo. */}
           {esHoy ? null : <div className="mt-6 grid gap-4 xl:grid-cols-2">
             {programas.map((programa) => (
-              <VamosALlegar key={programa.id} conNombre programa={{ id: programa.id, slug: programa.slug, nombre: programa.nombre }} hoy={hoy} origen={origen} conListas={veEquipoComercial(rol)} configurar={null} />
+              <VamosALlegarVistaDe key={programa.id} datos={datos.vamosALlegar.get(programa.id)} props={{ conNombre: true, programa: { id: programa.id, slug: programa.slug, nombre: programa.nombre }, hoy: hoy, origen, conListas: veEquipoComercial(rol), configurar: null }} />
             ))}
           </div>}
         </div>
       </PantallaFija>
     </PageShell>
   );
+}
+
+/** Un programa sin su lectura (no debería pasar: el cargador lee uno por programa) no se dibuja. */
+function VamosALlegarVistaDe({ datos, props }: { datos: DatosVamosALlegar | undefined; props: PropsVamosALlegar }) {
+  return datos ? <VamosALlegarVista datos={datos} props={props} /> : null;
 }
