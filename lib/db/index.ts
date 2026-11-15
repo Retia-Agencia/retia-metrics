@@ -3,7 +3,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import type { PoolClient } from "pg";
 import * as schema from "./schema";
-import { loggerDeCosto, registrarTiempoEnBase } from "./medidor";
+import { loggerDeCosto, medirTiempoEnBase } from "./medidor";
 
 type DB = ReturnType<typeof crear>;
 
@@ -24,11 +24,11 @@ export function envolverConsultasMedidas(consultable: Consultable): void {
   if (consultable[CONSULTAS_MEDIDAS]) return;
   const consultar = consultable.query.bind(consultable);
   consultable.query = ((...argumentos: unknown[]) => {
-    const inicio = performance.now();
+    const terminar = medirTiempoEnBase();
     const ultimo = argumentos.at(-1);
     if (typeof ultimo === "function") {
       argumentos[argumentos.length - 1] = (...respuesta: unknown[]) => {
-        registrarTiempoEnBase(performance.now() - inicio);
+        terminar();
         return Reflect.apply(ultimo, undefined, respuesta);
       };
       return Reflect.apply(consultar, consultable, argumentos);
@@ -36,10 +36,10 @@ export function envolverConsultasMedidas(consultable: Consultable): void {
     try {
       const resultado = Reflect.apply(consultar, consultable, argumentos);
       return Promise.resolve(resultado).finally(() => {
-        registrarTiempoEnBase(performance.now() - inicio);
+        terminar();
       });
     } catch (error) {
-      registrarTiempoEnBase(performance.now() - inicio);
+      terminar();
       throw error;
     }
   }) as PoolClient["query"];

@@ -8,7 +8,7 @@ import {
   loggerDeCosto,
   medir,
   patronDeRuta,
-  registrarTiempoEnBase,
+  medirTiempoEnBase,
 } from "@/lib/db/medidor";
 
 describe("patronDeRuta", () => {
@@ -106,7 +106,9 @@ describe("medidor de costo", () => {
   it("cuenta consultas idénticas, N+1 y tiempo en base sin guardar parámetros", async () => {
     const { costo } = await medir("/p/comunicarte/hub", async () => {
       loggerDeCosto.logQuery("select * from leads where id = $1", ["dato-personal-1"]);
-      registrarTiempoEnBase(2.4);
+      const terminar = medirTiempoEnBase();
+      await new Promise((resolver) => setTimeout(resolver, 8));
+      terminar();
       loggerDeCosto.logQuery("select * from leads where id = $1", ["dato-personal-1"]);
       loggerDeCosto.logQuery("select * from leads where id = $1", ["dato-personal-2"]);
     });
@@ -116,9 +118,26 @@ describe("medidor de costo", () => {
       consultas: 3,
       identicas: 1,
       nMasUno: 1,
-      msEnBase: 2,
     });
+    expect(costo.msEnBase).toBeGreaterThanOrEqual(5);
     expect(JSON.stringify(costo)).not.toContain("dato-personal");
+  });
+
+  it("suma el tiempo a la petición donde empezó la consulta, aunque termine fuera de su contexto", async () => {
+    let terminar: (() => void) | undefined;
+    const { costo } = await medir("/p/comunicarte/hub", async () => {
+      terminar = medirTiempoEnBase();
+      await new Promise((resolver) => setTimeout(resolver, 8));
+    });
+    terminar?.();
+
+    expect(costo.msEnBase).toBe(0);
+    const otra = await medir("/p/comunicarte/hub", async () => {
+      const cerrar = medirTiempoEnBase();
+      await Promise.resolve().then(() => new Promise((resolver) => setTimeout(resolver, 8)));
+      cerrar();
+    });
+    expect(otra.costo.msEnBase).toBeGreaterThanOrEqual(5);
   });
 
   it("conserva el contador explícito del MCP", async () => {
