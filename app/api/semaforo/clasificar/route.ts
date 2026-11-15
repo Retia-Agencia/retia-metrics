@@ -21,3 +21,4 @@ export async function POST(request: Request) {
   const texto = await clasificarCampanas(db, entrada.data);
   return Response.json({ texto });
 }
+export const maxDuration = 60;

@@ -19,3 +19,9 @@ export class ErrorDeApp extends Error {
     this.name = new.target.name;
   }
 }
+
+export class ErrorTiempoAgotado extends ErrorDeApp {
+  constructor() {
+    super("La consulta tardó demasiado. Vuelve a intentarlo.", 504);
+  }
+}

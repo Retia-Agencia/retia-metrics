@@ -61,3 +61,4 @@ export async function POST(request: Request) {
   }
   return error("unsupported_grant_type", "grant_type no está soportado.");
 }
+export const maxDuration = 60;

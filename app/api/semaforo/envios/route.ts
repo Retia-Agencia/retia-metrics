@@ -234,3 +234,4 @@ export async function POST(request: Request) {
   });
   return Response.json(respuesta);
 }
+export const maxDuration = 60;

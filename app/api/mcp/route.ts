@@ -55,3 +55,4 @@ async function manejar(request: Request): Promise<Response> {
 
 export const GET = manejar;
 export const POST = manejar;
+export const maxDuration = 60;

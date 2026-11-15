@@ -12,17 +12,43 @@
 /** Cuantos niveles de `cause` se recorren antes de rendirse. */
 const NIVELES_DE_CAUSA = 5;
 
+function* recorrerCausas(error: unknown): Generator<unknown> {
+  let actual: unknown = error;
+  for (let i = 0; i < NIVELES_DE_CAUSA && actual != null; i++) {
+    yield actual;
+    actual = typeof actual === "object" ? (actual as { cause?: unknown }).cause : undefined;
+  }
+}
+
 /**
  * Camina el error y su cadena de `cause` buscando el codigo SQLSTATE dado. Es la
  * base parametrizada de los detectores concretos de abajo.
  */
 export function esCodigoPostgres(error: unknown, codigo: string): boolean {
-  let actual: unknown = error;
-  for (let i = 0; i < NIVELES_DE_CAUSA && actual != null; i++) {
+  for (const actual of recorrerCausas(error)) {
     if (typeof actual === "object" && (actual as { code?: unknown }).code === codigo) {
       return true;
     }
-    actual = (actual as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
+const MENSAJES_DE_TIEMPO_AGOTADO = [
+  "Query read timeout",
+  "timeout exceeded when trying to connect",
+  "unable to check out connection",
+];
+
+/** Consulta o espera de conexion cancelada por alcanzar su tope. */
+export function esTiempoAgotado(error: unknown): boolean {
+  if (esCodigoPostgres(error, "57014")) return true;
+  for (const actual of recorrerCausas(error)) {
+    if (
+      actual instanceof Error &&
+      MENSAJES_DE_TIEMPO_AGOTADO.some((mensaje) => actual.message.includes(mensaje))
+    ) {
+      return true;
+    }
   }
   return false;
 }
@@ -51,14 +77,12 @@ export function esViolacionCheck(error: unknown): boolean {
  * `cohorts_definida_si_no_es_futura`) y dar a cada uno su mensaje.
  */
 export function nombreDeConstraint(error: unknown): string | null {
-  let actual: unknown = error;
-  for (let i = 0; i < NIVELES_DE_CAUSA && actual != null; i++) {
+  for (const actual of recorrerCausas(error)) {
     if (typeof actual === "object") {
       const o = actual as { constraint_name?: unknown; constraint?: unknown };
       if (typeof o.constraint_name === "string") return o.constraint_name;
       if (typeof o.constraint === "string") return o.constraint;
     }
-    actual = (actual as { cause?: unknown }).cause;
   }
   return null;
 }

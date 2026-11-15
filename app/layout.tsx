@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ValidacionEnEspanol } from "@/components/validacion-en-espanol";
 import "./globals.css";
 
+export const maxDuration = 30;
+
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 

@@ -12,3 +12,4 @@ export async function POST(request: Request) {
   });
   return Response.json(esquemaRespuestaEstudiantesNuevos.parse(respuesta));
 }
+export const maxDuration = 60;

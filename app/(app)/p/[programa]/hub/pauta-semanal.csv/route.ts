@@ -44,3 +44,4 @@ export async function GET(request: Request, { params }: { params: Promise<{ prog
     return respuestaDeError(error);
   }
 }
+export const maxDuration = 30;

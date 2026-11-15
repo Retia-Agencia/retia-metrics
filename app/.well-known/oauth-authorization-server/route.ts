@@ -18,3 +18,4 @@ export function GET() {
     scopes_supported: ["lectura", "escritura", "offline_access"],
   });
 }
+export const maxDuration = 60;

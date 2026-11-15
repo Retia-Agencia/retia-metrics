@@ -4,11 +4,27 @@ import { Pool } from "pg";
 import type { PoolClient } from "pg";
 import * as schema from "./schema";
 import { loggerDeCosto, medirTiempoEnBase } from "./medidor";
+import {
+  CONEXION_TIMEOUT_MS,
+  QUERY_TIMEOUT_MS,
+  STATEMENT_TIMEOUT_MS,
+} from "@/lib/tiempos";
 
 type DB = ReturnType<typeof crear>;
 
 /** Tope de conexiones de ESTE proceso. La cuenta completa vive en AGENTS.md › Contratos (ticket 441). */
 const MAX_CONEXIONES_POR_PROCESO = 5;
+
+export function opcionesDePool(connectionString: string) {
+  return {
+    connectionString,
+    max: MAX_CONEXIONES_POR_PROCESO,
+    idleTimeoutMillis: 5_000,
+    statement_timeout: STATEMENT_TIMEOUT_MS,
+    query_timeout: QUERY_TIMEOUT_MS,
+    connectionTimeoutMillis: CONEXION_TIMEOUT_MS,
+  };
+}
 
 // Un pool por PROCESO, no por copia del modulo: Next instancia `lib/db` mas de una vez (paginas y route
 // handlers) y `next dev` lo recarga en cada cambio. Medido el 14-nov: 15 conexiones en un proceso de
@@ -54,12 +70,7 @@ function crear() {
         "pooler de Supabase (puerto 6543).",
     );
   }
-  const pool = new Pool({
-    connectionString,
-    max: MAX_CONEXIONES_POR_PROCESO,
-    idleTimeoutMillis: 5_000,
-    connectionTimeoutMillis: 10_000,
-  });
+  const pool = new Pool(opcionesDePool(connectionString));
   // Un error en una conexion ociosa no puede tumbar el proceso.
   pool.on("error", (error) => console.error("[db] conexion ociosa:", error.message));
   // Solo los clientes: `pool.query` consulta por dentro con uno de ellos, y envolver tambien el pool contaria dos veces.

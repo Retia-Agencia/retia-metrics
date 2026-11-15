@@ -27,3 +27,4 @@ export async function GET(request: Request) {
     return respuestaDeError(error);
   }
 }
+export const maxDuration = 300;

@@ -39,3 +39,4 @@ export async function GET(request: Request, contexto: Contexto) {
     ? "image/png" : ruta.endsWith(".webp") ? "image/webp" : "image/jpeg";
   return new Response(contenido.buffer as ArrayBuffer, { headers: { "content-type": tipo, "cache-control": "private, no-store" } });
 }
+export const maxDuration = 60;

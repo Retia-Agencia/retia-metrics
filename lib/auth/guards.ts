@@ -2,7 +2,8 @@ import type { Session } from "next-auth";
 import { headers } from "next/headers";
 import { after } from "next/server";
 import { ZodError } from "zod";
-import { ErrorDeApp } from "@/lib/errors";
+import { esTiempoAgotado } from "@/lib/db/errores";
+import { ErrorDeApp, ErrorTiempoAgotado } from "@/lib/errors";
 import { sesionDelRequest } from "./sesion";
 import { esEscritura } from "./solicitud";
 import {
@@ -169,6 +170,10 @@ export const requireGerente = () => requireRole("gerente");
  * Uso: `try { await requireRole("gerente") } catch (e) { return respuestaDeError(e) }`
  */
 export function respuestaDeError(error: unknown): Response {
+  if (esTiempoAgotado(error)) {
+    const traducido = new ErrorTiempoAgotado();
+    return Response.json({ error: traducido.message }, { status: traducido.status });
+  }
   if (error instanceof ErrorDeApp) {
     return Response.json({ error: error.message }, { status: error.status });
   }

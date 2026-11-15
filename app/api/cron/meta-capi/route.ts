@@ -15,3 +15,4 @@ export async function POST(request: Request) {
     return respuestaDeError(error);
   }
 }
+export const maxDuration = 300;

@@ -61,3 +61,4 @@ export async function GET(
     return respuestaDeError(error);
   }
 }
+export const maxDuration = 30;

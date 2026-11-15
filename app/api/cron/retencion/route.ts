@@ -16,3 +16,4 @@ export async function GET(request: Request) {
     return respuestaDeError(e);
   }
 }
+export const maxDuration = 300;
