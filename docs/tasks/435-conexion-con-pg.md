@@ -106,10 +106,15 @@ de 15 s. Y un guardián de código: `import … from "postgres"` o `new Pool(` f
       principal (solo lectura) y pega la salida aquí.
       **Salida (14-nov, pool `max: 5`, 6543):** lecturas 30 rondas × 52 consultas con parámetro propio: 0 cuelgues,
       0 cruzados, 35,9 s; transacciones 60 rondas × 10: 600 ok, 0 errores, 0 cruzados (93,6 s en total).
-- [ ] Un proceso de `next start` contra la base local, tras recorrer todas las rutas, tiene ≤ 5 conexiones
+- [x] Un proceso de `next start` contra la base local, tras recorrer todas las rutas, tiene ≤ 5 conexiones
       (`select count(*) from pg_stat_activity`). `next dev` tras 200 peticiones: ≤ 5.
+      **Medido el 14-nov (base local, rol developer):** `next start` tras recorrer 17 rutas y 48 peticiones concurrentes: máx. 5
+      conexiones de `pg`; `next dev` tras 200 peticiones: 5 y 0 "too many clients".
 - [ ] `/nerd-stats`, `/p/[programa]/programa` y `POST /api/salud/alertas` responden en producción; 24 h sin 504 en
       `vercel logs --status-code 5xx`.
+      **Parcial (14-nov, 1 h tras el deploy):** `/api/health` 200, `/api/salud/alertas` 401 sin secreto (responde en 0,5 s),
+      `/nerd-stats` 307 a login; `vercel logs --status-code 5xx --since 1h`: sin registros. Faltan las dos rutas con sesión
+      y las 24 h: se revisan el 15-nov con `vercel logs --status-code 5xx --since 24h`.
 - [ ] `postgres` fuera de `package.json` (N7); ADR 0047 enmendado en el mismo commit (título, índice, punto 1 y la
       nota de `prepare: false`); AGENTS.md actualizado.
 - [ ] Ticket 243 cerrado con referencia a este; tracker y `status:` iguales (N9).
