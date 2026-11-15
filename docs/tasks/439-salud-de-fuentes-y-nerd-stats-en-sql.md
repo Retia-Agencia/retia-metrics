@@ -114,4 +114,4 @@ create index entregas_webhook_programa_recibido_id_idx
 
 El indice cubre el filtro por programa y el orden total del cursor sin ordenar ni recorrer entregas de otros programas.
 
-Pendiente fuera de alcance: reconciliarCalendly (reconciliar.ts:180) baja respuestas completa; candidato a ticket aparte.
+Pendiente fuera de alcance: `reconciliarCalendly` (reconciliar.ts:180) baja `respuestas` completa; pasó al ticket 446 (pieza 4).
