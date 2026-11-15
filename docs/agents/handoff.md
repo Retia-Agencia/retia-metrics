@@ -61,7 +61,9 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
   llegar?" en todas); `/mi-espacio` del developer (mensaje del dueño), closer (Notificaciones con chips, búsqueda y Re-agenda, Métricas
   por programa y Todos, Info), gerente (Por decidir) y paid trafficker (Canales). Todo 200, consola limpia, cero errores de servidor. El
   aviso de Calendly en Info es de la base local (token inválido), no del cambio.
-- **447, falta:** (1) hecho; (2) bajar los topes de `/hub` al conteo actual; (3) hecho (merge de la fase 1); (4) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`, revisando que
+- **Topes exactos (`7f41ff46`, squash de #25, CI verde):** el guardián falla si una página usa MENOS que su tope y dice el número
+  nuevo. `/hub` Hoy 179, Comercial 260, Pauta 219, Dinero 167; `/mi-espacio` closer 18 (todos medidos en el CI, 3 programas sembrados).
+- **447, falta solo la fase 2** (Mani la hace en otra sesión): (4) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`, revisando que
   ningún componente asíncrono lea datos fuera de su cargador; (5) con todo, 447 a `done` en el tracker y en su `status:`.
 
 ### 15-nov (tarde) · 437: cero consultas idénticas en el Hub y Mi espacio, sin commitear (sesión de Mani)

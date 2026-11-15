@@ -61,7 +61,7 @@ mismo SQL y mismos parámetros. Para hallar el dueño: un `console.log` temporal
 función sospechosa.
 
 ## Done cuando
-- [ ] Las tres filas en AGENTS.md › Contratos; el 445 las cita en vez de repetirlas.
-- [ ] El guardián corre las páginas del estudio §13.3 con la memoria activa, verde, y mordido con los cuatro casos.
-- [ ] Topes por página tomados de la medición del 437 (tabla en `docs/tasks/437-una-lectura-por-solicitud.md`).
+- [x] Las tres filas en AGENTS.md › Contratos; el 445 las cita en vez de repetirlas.
+- [ ] El guardián corre las páginas del estudio §13.3 con la memoria activa, verde, y mordido con los cuatro casos. Fase 1 hecha (`/hub`, `/mi-espacio`, mordiscos y trinquete de cobertura); falta la fase 2: vaciar `PENDIENTES_447`.
+- [x] Topes por página: exactos y medidos en el CI para el escenario del test (la tabla del 437 es de dev:local y no es comparable). Fase 1: `/hub` y `/mi-espacio`.
 - [ ] Typecheck, lint, tests del cambio; tracker y `status:` iguales (N9).
