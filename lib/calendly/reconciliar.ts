@@ -1,4 +1,4 @@
-import { and, eq, inArray, notInArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, lte, notInArray, or, sql } from "drizzle-orm";
 import { calls, deals, leads, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { tokenCalendly } from "@/lib/integraciones";
@@ -6,7 +6,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { resolverCitaDeEnvio } from "./resolver-cita";
 import { huellaDeCita, uuidDeHuella } from "./huella";
-import { sueltaPorAsignar } from "./suelta";
+import { esSueltaPorAsignar, sueltaPorAsignar } from "./suelta";
 import {
   candidatosPorCorreo,
   closersConCalendly,
@@ -36,44 +36,97 @@ export interface AlarmasCalendly {
   dealsConCitaSinLlamada: number;
 }
 
-/** Lectura pura para Salud: las dos roturas que el barrido debe dejar en cero. */
-export async function alarmasCalendly(db: Db, programId: string, ahora: Date = new Date()): Promise<AlarmasCalendly> {
+/** Lectura pura para Salud, agrupada para todos los programas. */
+export async function alarmasCalendlyDe(
+  db: Db,
+  programIds: string[],
+  ahora: Date = new Date(),
+): Promise<Map<string, AlarmasCalendly>> {
+  const resultado = new Map(programIds.map((programId) => [programId, {
+    llamadasSueltasViejas: 0,
+    dealsConCitaSinLlamada: 0,
+  }]));
+  if (programIds.length === 0) return resultado;
   const limite = new Date(ahora.getTime() - HORAS_PARA_ALERTAR_CITA_SUELTA * 3_600_000);
-  const sueltas = await db
-    .select({ creadaEn: calls.createdAt })
+  const llamadas = await db
+    .select({
+      programId: calls.programId,
+      creadaEn: calls.createdAt,
+      dealId: calls.dealId,
+      origen: calls.origen,
+      resultado: calls.resultado,
+      huella: calls.huellaFila,
+    })
     .from(calls)
-    .where(and(eq(calls.programId, programId), sueltaPorAsignar(), eq(calls.resultado, "agendada"), vigente(calls)));
-  const envios = await db
-    .select({ leadId: submissions.leadId, respuestas: submissions.respuestas })
+    .where(and(
+      inArray(calls.programId, programIds),
+      or(
+        and(sueltaPorAsignar(), eq(calls.resultado, "agendada"), lte(calls.createdAt, limite)),
+        and(isNotNull(calls.dealId), isNotNull(calls.huellaFila)),
+      ),
+      vigente(calls),
+    ));
+
+  for (const llamada of llamadas) {
+    const alarma = resultado.get(llamada.programId)!;
+    if (
+      llamada.resultado === "agendada"
+      && llamada.creadaEn <= limite
+      && esSueltaPorAsignar(llamada)
+    ) alarma.llamadasSueltasViejas += 1;
+  }
+
+  // `#>> '{}'` convierte el string jsonb a texto SQL y desescapa su contenido;
+  // el UUID queda igual que al recorrer el objeto en JavaScript.
+  const citas = await db
+    .select({
+      leadId: submissions.leadId,
+      uuids: sql<(string | null)[]>`array(
+        select (regexp_match(
+          v #>> '{}',
+          '/invitees/([^/?#[:space:]"'']+)'
+        ))[1]
+        from jsonb_path_query(${submissions.respuestas}, 'strict $.**') as v
+        where jsonb_typeof(v) = 'string'
+      )`,
+    })
     .from(submissions)
-    .innerJoin(sources, and(eq(sources.id, submissions.sourceId), eq(sources.programId, programId)));
+    .innerJoin(sources, and(
+      eq(sources.id, submissions.sourceId),
+      inArray(sources.programId, programIds),
+    ));
+
   const uuidsPorLead = new Map<string, Set<string>>();
-  for (const envio of envios) {
-    if (!envio.leadId) continue;
-    const uuids = uuidsPorLead.get(envio.leadId) ?? new Set<string>();
-    for (const cita of linksConUuid(envio.respuestas)) uuids.add(cita.uuid);
-    uuidsPorLead.set(envio.leadId, uuids);
+  for (const cita of citas) {
+    if (!cita.leadId) continue;
+    const uuids = uuidsPorLead.get(cita.leadId) ?? new Set<string>();
+    for (const uuid of cita.uuids) if (uuid) uuids.add(uuid);
+    uuidsPorLead.set(cita.leadId, uuids);
   }
   const bajos = uuidsPorLead.size === 0 ? [] : await db
-    .select({ id: deals.id, leadId: deals.leadId })
+    .select({ programId: deals.programId, id: deals.id, leadId: deals.leadId })
     .from(deals)
     .where(and(
-      eq(deals.programId, programId),
+      inArray(deals.programId, programIds),
       inArray(deals.leadId, [...uuidsPorLead.keys()]),
       inArray(deals.etapa, [...ETAPAS_POR_REPARAR]),
       vigente(deals),
     ));
-  const llamadas = await db
-    .select({ dealId: calls.dealId, huella: calls.huellaFila })
-    .from(calls)
-    .where(and(eq(calls.programId, programId), vigente(calls)));
-  const conLlamada = new Set(llamadas.filter((c) => c.dealId && uuidDeHuella(c.huella)).map((c) => `${c.dealId}:${uuidDeHuella(c.huella)}`));
-  return {
-    llamadasSueltasViejas: sueltas.filter((c) => c.creadaEn <= limite).length,
-    dealsConCitaSinLlamada: bajos.filter((deal) =>
-      [...(uuidsPorLead.get(deal.leadId) ?? [])].some((uuid) => !conLlamada.has(`${deal.id}:${uuid}`)),
-    ).length,
-  };
+
+  const conLlamada = new Set(llamadas
+    .filter((llamada) => llamada.dealId && uuidDeHuella(llamada.huella))
+    .map((llamada) => `${llamada.dealId}:${uuidDeHuella(llamada.huella)}`));
+  for (const deal of bajos) {
+    const tieneFaltante = [...(uuidsPorLead.get(deal.leadId) ?? [])]
+      .some((uuid) => !conLlamada.has(`${deal.id}:${uuid}`));
+    if (tieneFaltante) resultado.get(deal.programId)!.dealsConCitaSinLlamada += 1;
+  }
+  return resultado;
+}
+
+/** Wrapper de un programa; conserva el contrato publico anterior. */
+export async function alarmasCalendly(db: Db, programId: string, ahora: Date = new Date()): Promise<AlarmasCalendly> {
+  return (await alarmasCalendlyDe(db, [programId], ahora)).get(programId)!;
 }
 
 type Transaccion = { transaction: <T>(fn: (tx: Db) => Promise<T>) => Promise<T> };

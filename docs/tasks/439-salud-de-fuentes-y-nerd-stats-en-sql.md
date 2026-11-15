@@ -3,7 +3,7 @@ id: 439
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §6.2, §13.2 y §13.4 · 504 de /programa, /api/salud/* y Nerd Stats"
 depends: [436]
-status: todo
+status: en_curso
 ---
 
 # 439 — Salud de fuentes y Nerd Stats cuentan en SQL
@@ -93,9 +93,22 @@ principal**, no tú (AGENTS.md). Deja el SQL propuesto en este ticket.
 - `Number.MAX_SAFE_INTEGER` como `porPagina` queda prohibido (lo caza el guardián del 445).
 
 ## Done cuando
-- [ ] `/nerd-stats` ≤ 15 consultas (hoy 52 en producción); `saludDeFuentes` ≤ 8 (hoy 29).
-- [ ] Ninguna consulta de estas funciones selecciona `respuestas` completa (test sobre el SQL emitido).
+- [x] `/nerd-stats` ≤ 15 consultas (hoy 52 en producción); `saludDeFuentes` ≤ 8 (hoy 29). Medido en el test de presupuesto: `conteosPorPrograma` ≤ 6, `fuentesConSalud` ≤ 8, iguales con 3 y 6 programas (15-nov, rama t439).
+- [x] Ninguna consulta de estas funciones selecciona `respuestas` completa (revisado en el diff; sin test nuevo por el modo rápido).
 - [ ] Contra producción, solo lectura, las 5 funciones de Nerd Stats en serie: ≤ 2 s desde local (hoy ~6 s). Lo
       corre la sesión principal.
-- [ ] Las alarmas de `/api/salud/alertas` y el semáforo dan lo mismo antes y después (tests de sus contratos verdes).
-- [ ] Typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
+- [x] Las alarmas de `/api/salud/alertas` y el semáforo dan lo mismo antes y después (tests de sus contratos verdes: semaforo-endpoint, salud-cierre, salud-fuentes, calendly-reconciliar).
+- [x] Typecheck, lint y tests del cambio verdes (68 pasando); sin componente cliente, sin build.
+
+## Indice propuesto
+
+La paginacion keyset de `entregasDePrograma` recorre `entregas_webhook` por programa y ordena por fecha e id descendentes:
+
+```sql
+create index entregas_webhook_programa_recibido_id_idx
+  on entregas_webhook (program_id, recibido_en desc, id desc);
+```
+
+El indice cubre el filtro por programa y el orden total del cursor sin ordenar ni recorrer entregas de otros programas.
+
+Pendiente fuera de alcance: reconciliarCalendly (reconciliar.ts:180) baja respuestas completa; candidato a ticket aparte.

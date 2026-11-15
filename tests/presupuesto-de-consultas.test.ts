@@ -38,7 +38,7 @@ interface Presupuesto {
 // cohortes, pauta o configuración completa de una pantalla.
 const PRESUPUESTOS = {
   "nerd-stats/conteos-por-programa": {
-    tope: 12,
+    tope: 6,
     identicas: 0,
     llamar: (db) => conteosPorPrograma(db),
   },
@@ -53,7 +53,7 @@ const PRESUPUESTOS = {
     llamar: (db) => usuariosActivosPorRol(db),
   },
   "nerd-stats/fuentes-con-salud": {
-    tope: 18,
+    tope: 8,
     identicas: 0,
     llamar: (db) => fuentesConSalud(db, AHORA),
   },
@@ -94,13 +94,6 @@ const PRESUPUESTOS = {
     llamar: (db, s) => cargarRoasDePauta(db, s.programaId, RANGO, HOY, AHORA),
   },
 } satisfies Record<string, Presupuesto>;
-
-// Estas dos funciones tienen hoy una consulta por programa/fuente. El ticket 439
-// las reemplaza por agregaciones en SQL y quitará estas excepciones.
-const EXCEPCIONES: Partial<Record<keyof typeof PRESUPUESTOS, { ticket: 439; topeSeis: number }>> = {
-  "nerd-stats/conteos-por-programa": { ticket: 439, topeSeis: 18 },
-  "nerd-stats/fuentes-con-salud": { ticket: 439, topeSeis: 30 },
-};
 
 let base: Awaited<ReturnType<typeof crearBaseReutilizable>>;
 
@@ -161,11 +154,6 @@ describe("presupuesto de consultas", () => {
     expect(conTres.consultas).toBeLessThanOrEqual(presupuesto.tope);
     expect(conTres.identicas).toBeLessThanOrEqual(presupuesto.identicas);
     expect(conSeis.identicas).toBeLessThanOrEqual(presupuesto.identicas);
-    const excepcion = EXCEPCIONES[nombre as keyof typeof PRESUPUESTOS];
-    if (excepcion) {
-      expect(conSeis.consultas).toBeLessThanOrEqual(excepcion.topeSeis);
-    } else {
-      expect(conSeis.consultas).toBeLessThanOrEqual(conTres.consultas);
-    }
+    expect(conSeis.consultas).toBeLessThanOrEqual(conTres.consultas);
   });
 });

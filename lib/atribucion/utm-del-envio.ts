@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { submissions } from "@/lib/db/schema";
 
 export type CampoUtm = "source" | "medium" | "campaign" | "content" | "term" | "id";
@@ -31,6 +32,34 @@ export const columnasUtmDelEnvio = {
   utmId: submissions.utmId,
   respuestas: submissions.respuestas,
 };
+
+/** Proyeccion para salud: conserva solo las respuestas que `utmsDelEnvio` consulta. */
+export const columnasUtmDelEnvioLiviano = {
+  utmSource: submissions.utmSource,
+  utmMedium: submissions.utmMedium,
+  utmCampaign: submissions.utmCampaign,
+  utmContent: submissions.utmContent,
+  utmTerm: submissions.utmTerm,
+  utmId: submissions.utmId,
+  respuestasUtm: sql<unknown>`jsonb_path_query_array(
+    ${submissions.respuestas},
+    '$.keyvalue() ? (@.key like_regex "^ *(fbclid|utm_content|utm_term|utm_id|ad_id|adset_id|campaign_id) *$" flag "i")'
+  )`,
+};
+
+/** Convierte los pares filtrados por SQL en el objeto minimo que espera `utmsDelEnvio`. */
+export function respuestasUtmDelEnvioLiviano(valor: unknown): Record<string, unknown> {
+  if (!Array.isArray(valor)) return {};
+  const respuestas: Record<string, unknown> = {};
+  for (const par of valor) {
+    if (!par || typeof par !== "object") continue;
+    const { key, value } = par as { key?: unknown; value?: unknown };
+    if (typeof key !== "string") continue;
+    const normalizada = key.trim().toLowerCase();
+    if (!(normalizada in respuestas)) respuestas[normalizada] = value;
+  }
+  return respuestas;
+}
 
 /** Recupera los UTM crudos del envio sin interpretar el significado de cada campo. */
 export function utmsDelEnvio(fila: {

@@ -1,12 +1,16 @@
-import { and, count, eq, gte, isNotNull, isNull, lt, max } from "drizzle-orm";
+import { and, count, countDistinct, eq, gte, isNotNull, isNull, lt, max, or } from "drizzle-orm";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { esEnvioPago, esPagoSinId } from "@/lib/atribucion/traza-sin-id";
-import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import {
+  columnasUtmDelEnvioLiviano,
+  respuestasUtmDelEnvioLiviano,
+  utmsDelEnvio,
+} from "@/lib/atribucion/utm-del-envio";
 import { db as dbDeLaApp } from "@/lib/db";
 import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { arbolDePauta } from "@/lib/pauta/arbol";
-import { alarmasCalendly } from "@/lib/calendly/reconciliar";
+import { arbolesDePauta } from "@/lib/pauta/arbol";
+import { alarmasCalendlyDe } from "@/lib/calendly/reconciliar";
 
 /**
  * La salud de una fuente de leads (ticket 107): ¿sigue recibiendo envios?
@@ -133,14 +137,12 @@ export async function recibidosDesde(db: Db, desde: Date): Promise<Map<string, n
  * seria ruido. Lecturas agrupadas que se unen en memoria (AGENTS.md: nada de
  * subconsultas correlacionadas en plantillas `sql`).
  *
- * El penultimo envio se lee con UNA consulta simple por fuente activa, y no con una
- * subconsulta: hay una sola fuente activa por programa (ADR 0039), asi que son tantas
- * consultas como programas, y el guardian de vigencia (con razon) no deja pasar un
- * `.from()` sobre un alias que no puede resolver.
+ * El penultimo sale de una sola lectura agrupada con `created_at < ultimo`: los
+ * empates en el instante del ultimo quedan fuera, igual que en la definicion original.
  */
 export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date()): Promise<SaludDeFuenteConDatos[]> {
   const desde = new Date(ahora.getTime() - HORAS_SIN_CALIDAD * HORA_MS);
-  const [fuentes, filasUltimo, filasSobres, recientesSinCalidad, enviosRecientes] = await Promise.all([
+  const [fuentes, filasUltimo, enviosRecientes] = await Promise.all([
     db
       .select({
         sourceId: sources.id,
@@ -149,44 +151,66 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
         programaNombre: programs.nombre,
         umbralSinRespuestaHoras: sources.umbralSinRespuestaHoras,
         umbralMuertaHoras: sources.umbralMuertaHoras,
+        sobresPendientes: countDistinct(sobresCrudos.id),
       })
       .from(sources)
       .innerJoin(programs, eq(programs.id, sources.programId))
+      .leftJoin(sobresCrudos, and(
+        eq(sobresCrudos.sourceId, sources.id),
+        isNotNull(sobresCrudos.error),
+        isNull(sobresCrudos.reprocesadoEn),
+      ))
       .where(eq(sources.activo, true))
+      .groupBy(sources.id, programs.id)
       .orderBy(programs.nombre, sources.orden),
     db
       .select({ sourceId: submissions.sourceId, ultimo: max(submissions.createdAt) })
       .from(submissions)
       .groupBy(submissions.sourceId),
     db
-      .select({ sourceId: sobresCrudos.sourceId, pendientes: count() })
-      .from(sobresCrudos)
-      .where(and(isNotNull(sobresCrudos.error), isNull(sobresCrudos.reprocesadoEn)))
-      .groupBy(sobresCrudos.sourceId),
-    db
-      .select({ sourceId: submissions.sourceId, n: count() })
-      .from(submissions)
-      .where(and(gte(submissions.createdAt, desde), eq(submissions.esParcial, false), isNull(submissions.leadQuality)))
-      .groupBy(submissions.sourceId),
-    db
-      .select({ sourceId: submissions.sourceId, ...columnasUtmDelEnvio })
+      .select({
+        sourceId: submissions.sourceId,
+        esParcial: submissions.esParcial,
+        leadQuality: submissions.leadQuality,
+        ...columnasUtmDelEnvioLiviano,
+      })
       .from(submissions)
       .where(gte(submissions.createdAt, desde)),
   ]);
 
   const programas = [...new Set(fuentes.map((fuente) => fuente.programId))];
-  const arboles = new Map(await Promise.all(programas.map(async (programId) =>
-    [programId, await arbolDePauta(db, programId)] as const
-  )));
-  const alarmas = new Map(await Promise.all(programas.map(async (programId) =>
-    [programId, await alarmasCalendly(db, programId, ahora)] as const
-  )));
+  const fecha = (v: Date | string | null | undefined) => (v ? new Date(v) : null);
+  const ultimoDe = new Map(filasUltimo.map((fila) => [fila.sourceId, fecha(fila.ultimo)]));
+  const filtrosPenultimo = fuentes.flatMap((fuente) => {
+    const ultimo = ultimoDe.get(fuente.sourceId);
+    return ultimo
+      ? [and(eq(submissions.sourceId, fuente.sourceId), lt(submissions.createdAt, ultimo))]
+      : [];
+  });
+  const [arboles, alarmas, filasPenultimo] = await Promise.all([
+    arbolesDePauta(db, programas),
+    alarmasCalendlyDe(db, programas, ahora),
+    filtrosPenultimo.length === 0
+      ? Promise.resolve([])
+      : db
+        .select({ sourceId: submissions.sourceId, penultimo: max(submissions.createdAt) })
+        .from(submissions)
+        .where(or(...filtrosPenultimo))
+        .groupBy(submissions.sourceId),
+  ]);
   const programaPorFuente = new Map(fuentes.map((fuente) => [fuente.sourceId, fuente.programId]));
   const trazaDe = new Map<string, Omit<DatosDeTraza, "trazaRota" | "fbclidRoto">>();
+  const sinCalidadDe = new Map<string, number>();
   for (const envio of enviosRecientes) {
+    if (envio.esParcial === false && envio.leadQuality === null) {
+      sinCalidadDe.set(envio.sourceId, (sinCalidadDe.get(envio.sourceId) ?? 0) + 1);
+    }
     const programId = programaPorFuente.get(envio.sourceId);
     if (!programId) continue;
-    const utms = utmsDelEnvio(envio);
+    const utms = utmsDelEnvio({
+      ...envio,
+      respuestas: respuestasUtmDelEnvioLiviano(envio.respuestasUtm),
+    });
     if (!esEnvioPago(utms)) continue;
     const conteo = trazaDe.get(envio.sourceId) ?? {
       pagos: 0,
@@ -203,23 +227,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     trazaDe.set(envio.sourceId, conteo);
   }
 
-  const fecha = (v: Date | string | null | undefined) => (v ? new Date(v) : null);
-  const ultimoDe = new Map(filasUltimo.map((f) => [f.sourceId, fecha(f.ultimo)]));
-  const penultimoDe = new Map(
-    await Promise.all(
-      fuentes.map(async (f) => {
-        const ultimo = ultimoDe.get(f.sourceId);
-        if (!ultimo) return [f.sourceId, null] as const;
-        const [fila] = await db
-          .select({ penultimo: max(submissions.createdAt) })
-          .from(submissions)
-          .where(and(eq(submissions.sourceId, f.sourceId), lt(submissions.createdAt, ultimo)));
-        return [f.sourceId, fecha(fila?.penultimo)] as const;
-      }),
-    ),
-  );
-  const sobresDe = new Map(filasSobres.map((f) => [f.sourceId, Number(f.pendientes)]));
-  const sinCalidadDe = new Map(recientesSinCalidad.map((r) => [r.sourceId, Number(r.n)]));
+  const penultimoDe = new Map(filasPenultimo.map((fila) => [fila.sourceId, fecha(fila.penultimo)]));
 
   return fuentes.map((f) => {
     const datos: DatosDeSalud = {
@@ -227,7 +235,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       umbralMuertaHoras: f.umbralMuertaHoras,
       ultimo: ultimoDe.get(f.sourceId) ?? null,
       penultimo: penultimoDe.get(f.sourceId) ?? null,
-      sobresPendientes: sobresDe.get(f.sourceId) ?? 0,
+      sobresPendientes: Number(f.sobresPendientes),
       sinCalidad: sinCalidadDe.get(f.sourceId) ?? 0,
     };
     const traza = trazaDe.get(f.sourceId) ?? {

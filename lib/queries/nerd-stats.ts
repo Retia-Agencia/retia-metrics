@@ -2,7 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { abonos, calls, changeLog, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { posiblesDuplicadosDelPrograma } from "./leads";
+import { leadsConPosibleDuplicado } from "./leads";
 import { saludDeFuentes, type EstadoDeFuente } from "./salud-fuentes";
 import { vigente } from "./vigente";
 
@@ -67,12 +67,19 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
     .innerJoin(sources, eq(sources.id, submissions.sourceId))
     .groupBy(sources.programId, submissions.esParcial);
 
-  const [lista, personas, llamadas, dealsPorPrograma, pagos, envios] = await Promise.all([
+  const [lista, llamadas, dealsPorPrograma, pagos, envios] = await Promise.all([
     db
-      .select({ id: programs.id, slug: programs.slug, nombre: programs.nombre, activo: programs.activo })
+      .select({
+        id: programs.id,
+        slug: programs.slug,
+        nombre: programs.nombre,
+        activo: programs.activo,
+        personas: sql<number>`count(${leads.id})::int`,
+      })
       .from(programs)
+      .leftJoin(leads, eq(leads.programId, programs.id))
+      .groupBy(programs.id)
       .orderBy(programs.nombre),
-    porPrograma(leads.programId, leads),
     porPrograma(calls.programId, calls),
     porPrograma(deals.programId, deals),
     porPrograma(abonos.programId, abonos),
@@ -80,18 +87,10 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
   ]);
   // "Unido por telefono sin resolver" lo define la lista de posibles duplicados de Leads
   // (ticket 072): se cuenta sobre ESA respuesta, por programa, y no se reescribe el predicado.
-  const unidos = new Map(
-    await Promise.all(
-      lista.map(async (p) => {
-        const { filas } = await posiblesDuplicadosDelPrograma(db, p.id, { porPagina: Number.MAX_SAFE_INTEGER });
-        return [p.id, new Set(filas.map((f) => f.leadId)).size] as const;
-      }),
-    ),
-  );
+  const unidos = await leadsConPosibleDuplicado(db, lista.map((programa) => programa.id));
 
   const mapa = (filas: readonly { programId: string; total: number }[]) =>
     new Map(filas.map((f) => [f.programId, f.total]));
-  const dePersonas = mapa(personas);
   const deLlamadas = mapa(llamadas);
   const deDeals = mapa(dealsPorPrograma);
   const deAbonos = mapa(pagos);
@@ -106,7 +105,7 @@ export async function conteosPorPrograma(db: Db = dbDeLaApp) {
     slug: p.slug,
     nombre: p.nombre,
     activo: p.activo,
-    personas: dePersonas.get(p.id) ?? 0,
+    personas: p.personas,
     llamadas: deLlamadas.get(p.id) ?? 0,
     // Son DEALS, no ventas: una venta es un deal en Ganado Pago Parcial o Ganado Pagado Completo (ADR 0037) y
     // llamar "ventas" a todos los deals inflaria la cifra sin lanzar un error. El

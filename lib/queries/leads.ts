@@ -1,4 +1,5 @@
 import { and, asc, between, count, desc, eq, inArray, isNull, notInArray, or, sql, type SQL } from "drizzle-orm";
+import type { SelectedFieldsFlat } from "drizzle-orm/pg-core";
 import { deals, leadContactos, leads, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
@@ -398,6 +399,43 @@ export interface OpcionesDuplicados {
   porPagina?: number;
 }
 
+/** From, joins y predicado unicos de la lista y sus conteos. */
+function posiblesDuplicadosDesde(
+  db: Db,
+  seleccion: SelectedFieldsFlat,
+  programIds: string[],
+  duenoUserId?: string,
+) {
+  const condiciones: (SQL | undefined)[] = [
+    inArray(leadContactos.programId, programIds),
+    inArray(leads.programId, programIds),
+    eq(leadContactos.tipo, "correo"),
+    eq(leadContactos.confirmado, false),
+  ];
+  if (duenoUserId) condiciones.push(eq(deals.ownerUserId, duenoUserId));
+  return db
+    .select(seleccion)
+    .from(leadContactos)
+    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
+    .leftJoin(deals, and(
+      eq(deals.leadId, leads.id),
+      eq(deals.programId, leads.programId),
+      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
+      vigente(deals),
+    ))
+    .where(and(...condiciones));
+}
+
+/** Cuantos leads tienen un posible duplicado, por programa. Misma condicion que la lista; una consulta. */
+export async function leadsConPosibleDuplicado(db: Db, programIds: string[]): Promise<Map<string, number>> {
+  if (programIds.length === 0) return new Map();
+  const filas = await posiblesDuplicadosDesde(db, {
+    programId: leads.programId,
+    n: sql<number>`count(distinct ${leads.id})::int`,
+  }, programIds).groupBy(leads.programId) as { programId: string; n: number }[];
+  return new Map(filas.map((fila) => [fila.programId, fila.n]));
+}
+
 /**
  * Los posibles duplicados del programa (072, 186), paginados en el servidor. El closer ve solo
  * los de SUS deals (`duenoUserId`); quien administra ve los del programa (sin `duenoUserId`).
@@ -412,54 +450,25 @@ export async function posiblesDuplicadosDelPrograma(
   const porPagina = opciones.porPagina ?? DUPLICADOS_POR_PAGINA;
   const pagina = Math.max(0, opciones.pagina ?? 0);
 
-  // El deal ABIERTO del lead (uno a lo sumo, por `deals_uno_abierto_por_lead_y_programa_idx`):
-  // misma frontera que ese índice, con `vigente(deals)` INLINE en cada JOIN (el guardián de
-  // vigencia lee cadena por cadena: un predicado izado a un const le pasa por debajo, AGENTS.md).
-  // Un lead sin deal abierto deja `deals.ownerUserId` en null.
-  const condiciones: (SQL | undefined)[] = [
-    eq(leadContactos.programId, programId),
-    eq(leads.programId, programId),
-    eq(leadContactos.tipo, "correo"),
-    eq(leadContactos.confirmado, false),
-  ];
-  // El closer: solo donde el deal abierto del lead es suyo (si no hay deal abierto, no lo ve).
-  if (opciones.duenoUserId) condiciones.push(eq(deals.ownerUserId, opciones.duenoUserId));
-  const donde = and(...condiciones);
-
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(leadContactos)
-    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
-    .leftJoin(deals, and(
-      eq(deals.leadId, leads.id),
-      eq(deals.programId, programId),
-      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
-      vigente(deals),
-    ))
-    .where(donde);
-
-  const filas = await db
-    .select({
-      contactoId: leadContactos.id,
-      leadId: leads.id,
-      nombreLead: leads.nombre,
-      correoPrincipal: leads.emailNormalizado,
-      correoSinConfirmar: leadContactos.valor,
-      creadoEn: leadContactos.createdAt,
-      duenoUserId: deals.ownerUserId,
-    })
-    .from(leadContactos)
-    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
-    .leftJoin(deals, and(
-      eq(deals.leadId, leads.id),
-      eq(deals.programId, programId),
-      notInArray(deals.etapa, ["ganado_completo", "cierre_perdido"]),
-      vigente(deals),
-    ))
-    .where(donde)
+  const seleccion = {
+    contactoId: leadContactos.id,
+    leadId: leads.id,
+    nombreLead: leads.nombre,
+    correoPrincipal: leads.emailNormalizado,
+    correoSinConfirmar: leadContactos.valor,
+    creadoEn: leadContactos.createdAt,
+    duenoUserId: deals.ownerUserId,
+  };
+  const [{ total }] = await posiblesDuplicadosDesde(
+    db,
+    { total: count() },
+    [programId],
+    opciones.duenoUserId,
+  ) as { total: number }[];
+  const filas = await posiblesDuplicadosDesde(db, seleccion, [programId], opciones.duenoUserId)
     .orderBy(desc(leadContactos.createdAt))
     .limit(porPagina)
-    .offset(pagina * porPagina);
+    .offset(pagina * porPagina) as Omit<PosibleDuplicado, "telefonoEnComun">[];
 
   const telefonos = await telefonosEnComun(db, programId, filas.map((f) => f.leadId));
   return { total, filas: filas.map((f) => ({ ...f, telefonoEnComun: telefonos.get(f.leadId) ?? null })) };
