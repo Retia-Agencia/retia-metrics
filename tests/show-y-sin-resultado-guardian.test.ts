@@ -14,7 +14,6 @@ const DUENOS = new Set([
 const EXCEPCIONES: Record<string, string> = {
   "app/(app)/p/[programa]/deals/[id]/acciones.ts": "Valida que no exista otra cita activa antes de escribir una nueva.",
   "app/(app)/p/[programa]/hub/lista/page.tsx": "Presenta el filtro de resultado ya calculado por la lista del Hub.",
-  "components/dashboard/hoy/citas.tsx": "deuda: reescribe el predicado, ver informe",
   "components/deals/ficha/acciones-de-llamada.tsx": "Decide qué acciones de edición muestra para el estado actual.",
   "components/deals/ficha/ficha-llamadas.tsx": "Presenta acciones y avisos operativos según el estado de la llamada.",
   "components/deals/ficha/ficha-transicion.tsx": "Elige la cita activa para ejecutar una transición del deal.",

@@ -343,6 +343,18 @@
     --chart-4: #0a0a0a;
     --chart-5: #a3a3a3;
   }
+  /* Cifra de Hoy en papel: texto y barra, sin interacción ni panel. */
+  #reporte-diario [data-abre-explicacion] {
+    cursor: default !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    background: transparent !important;
+    transition: none !important;
+    break-inside: avoid;
+  }
+  #reporte-diario .cifra-como-se-calcula {
+    display: none !important;
+  }
   /* Hoja limpia: fondo blanco, tinta casi negra, sin sombras; los colores de las barras sí se imprimen. */
   html,
   body {

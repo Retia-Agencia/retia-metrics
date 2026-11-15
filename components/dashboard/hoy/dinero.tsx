@@ -1,4 +1,4 @@
-import { CifraConLista } from "@/components/cifra-con-lista";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabla } from "@/components/dashboard/piezas";
@@ -25,20 +25,24 @@ function Importe({ rotulo, valor, abre }: { rotulo: string; valor: number; abre:
  */
 export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEquipo: boolean }) {
   return (
-    <Lado programas={programas}>{({ reporte, detalles }) => {
+    <Lado programas={programas}>{({ reporte, detalles, cifras }) => {
       const ventas = reporte.ventas;
       const dinero = reporte.dinero;
       const abrir = (valor: number) => (
         <CifraConLista titulo="Cupos vendidos hoy" detalle={detalles?.cierres}>{usd(valor)}</CifraConLista>
       );
+      const Contenedor = cifras ? "div" : Card;
+      const Contenido = cifras ? "div" : CardContent;
       return (
-        <Card className="partible">
-          <CardContent className="space-y-4">
+        <Contenedor className="partible">
+          <Contenido className="space-y-4">
             {ventas.length === 0 ? <p className="text-sm text-muted-foreground">Hoy no hay cupos vendidos.</p> : <>
               <div className="grid gap-3 sm:grid-cols-3">
+                {cifras ? [cifras.vendido, cifras.recaudado, cifras.porCobrar].map((c) => <Cifra mostrarCobertura key={c.concepto} cifra={c} />) : <>
                 <Importe rotulo={`${nombreCorto("vendido")} hoy`} valor={dinero.vendido} abre={abrir(dinero.vendido)} />
                 <Importe rotulo={nombreCorto("recaudado")} valor={dinero.recaudado} abre={abrir(dinero.recaudado)} />
                 <Importe rotulo={nombreCorto("por_cobrar")} valor={dinero.porCobrar} abre={abrir(dinero.porCobrar)} />
+                </>}
               </div>
               <p className="text-xs text-muted-foreground">
                 {num(ventas.length)} {ventas.length === 1 ? "cupo vendido" : "cupos vendidos"}
@@ -90,8 +94,8 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
                 ) : null}
               </>}
             </div>
-          </CardContent>
-        </Card>
+          </Contenido>
+        </Contenedor>
       );
     }}</Lado>
   );

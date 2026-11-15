@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CifraConLista } from "@/components/cifra-con-lista";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { Caja } from "@/components/dashboard/piezas";
 import { EnlaceAInfo } from "@/components/hub/info-de-pagina";
 import { CuentaDeAsistencia, Ficha, Lado, cumplimiento } from "@/components/dashboard/hoy/comunes";
@@ -21,11 +21,35 @@ function SinObjetivo({ texto, definir }: { texto: string; definir?: ReactNode })
 
 export function CifrasClave({ programas, definirObjetivo }: { programas: ProgramaDelReporte[]; definirObjetivo?: ReactNode }) {
   return (
-    <Lado programas={programas}>{({ reporte, detalles, leadsDelDia, detalleRegistros }) => {
+    <Lado programas={programas}>{({ reporte, detalles, leadsDelDia, detalleRegistros, cifras }) => {
       const dia = reporte.horizontes.find((h) => h.clave === "dia")!;
       const objetivoDeLeads = metaDeLeads(reporte.proyeccion.cohorte);
       const hacenFalta = reporte.proyeccion.leadsRequeridosDia.valor;
       const leads = leadsDelDia ?? 0;
+      if (cifras) return (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 print:grid-cols-2">
+          <div className="space-y-2">
+            <Cifra mostrarCobertura cifra={cifras.cuposVendidos} className="w-full" />
+            {dia.meta !== null ? <BarraDeAvance llevamos={dia.real} objetivo={dia.meta} /> : definirObjetivo}
+          </div>
+          <div className="space-y-2">
+            <Cifra mostrarCobertura cifra={cifras.leads} className="w-full" />
+            {objetivoDeLeads !== null ? <BarraDeAvance llevamos={leads} objetivo={objetivoDeLeads} /> : definirObjetivo}
+            {/* Su ejemplo numérico aún no cabe en el constructor: se conserva hasta el desbloqueo de D. */}
+            <p className="flex items-center gap-1 border-t pt-2 text-xs text-muted-foreground">
+              <span>{nombreCorto("leads_que_hacen_falta")}: <span className="cifra font-medium text-foreground">{hacenFalta === null ? "—" : `${num(hacenFalta, 0)} por día`}</span></span>
+              <EnlaceAInfo seccion="leads-que-hacen-falta" etiqueta={nombreCorto("leads_que_hacen_falta")} />
+            </p>
+          </div>
+          <div className="space-y-2">
+            {cifras.entroACaja.map((c) => <Cifra mostrarCobertura key={c.unidad} cifra={c} className="w-full" />)}
+          </div>
+          <div className="space-y-2">
+            <Cifra mostrarCobertura cifra={cifras.asistencia} className="w-full" />
+            {cifras.sinMarcar ? <Cifra mostrarCobertura cifra={cifras.sinMarcar} className="w-full" /> : null}
+          </div>
+        </div>
+      );
       // DA-3 (353): la cifra de Hoy es el % de show POR DEAL; el de por cita vive en "Cómo se calcula".
       const grupo = reporte.vista.embudo.grupo;
       return (

@@ -93,6 +93,7 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
   pendientes?: ReactNode;
 }) {
   void hoy;
+  const cifrasMigradas = programas.every((p) => p.cifras !== undefined);
   const contenido = [
     { id: "cifras", titulo: "Cifras del día" },
     { id: "embudo", titulo: "Del lead a la venta" },
@@ -116,20 +117,20 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
         <PieDeImpresion generado={fechaHoraEnBogota(new Date())} />
         <Encabezado programas={programas} dia={dia} />
 
-        <Bloque id="cifras" titulo="Cifras del día" pregunta="¿Cómo vamos hoy?" fuente={FUENTES.cifras}>
+        <Bloque conInfo={!cifrasMigradas} id="cifras" titulo="Cifras del día" pregunta="¿Cómo vamos hoy?" fuente={FUENTES.cifras}>
           <CifrasClave programas={programas} definirObjetivo={definirObjetivo} />
           {programas.length > 1 ? <TotalDelDia programas={programas} /> : null}
         </Bloque>
 
-        <Bloque id="embudo" titulo="Del lead a la venta" pregunta="¿Cuántos leads llegan a una cita, a asistir y a comprar?" fuente={FUENTES.embudo}>
+        <Bloque conInfo={!cifrasMigradas} id="embudo" titulo="Del lead a la venta" pregunta="¿Cuántos leads llegan a una cita, a asistir y a comprar?" fuente={FUENTES.embudo}>
           <EmbudoDelDia programas={programas} />
         </Bloque>
 
-        <Bloque id="dinero" titulo="Dinero del día" pregunta="¿Cuánto se vendió y de dónde salió la caja?" fuente={FUENTES.dinero}>
+        <Bloque conInfo={!cifrasMigradas} id="dinero" titulo="Dinero del día" pregunta="¿Cuánto se vendió y de dónde salió la caja?" fuente={FUENTES.dinero}>
           <DineroDelDia programas={programas} veEquipo={veEquipo} />
         </Bloque>
 
-        <Bloque id="citas" titulo="Citas del día" pregunta="¿Qué pasó con cada cita?" fuente={FUENTES.citas}>
+        <Bloque conInfo={!cifrasMigradas} id="citas" titulo="Citas del día" pregunta="¿Qué pasó con cada cita?" fuente={FUENTES.citas}>
           <CitasDelDia programas={programas} veEquipo={veEquipo} />
         </Bloque>
 
@@ -139,7 +140,7 @@ export function ReporteDiarioVista({ programas, dia, hoy, veEquipo, selector, va
           </Bloque>
         ) : null}
 
-        <Bloque id="semana" titulo="La semana" pregunta="¿Vamos al ritmo del objetivo de la semana?" fuente={FUENTES.semana}>
+        <Bloque conInfo={!cifrasMigradas} id="semana" titulo="La semana" pregunta="¿Vamos al ritmo del objetivo de la semana?" fuente={FUENTES.semana}>
           <SemanaEnCurso programas={programas} />
         </Bloque>
 

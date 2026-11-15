@@ -1,3 +1,4 @@
+import { Cifra } from "@/components/cifra-con-lista";
 import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { tasa } from "@/components/dashboard/piezas";
@@ -34,7 +35,7 @@ function Fila({ titulo, llevamos, objetivo, nota }: {
  */
 export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }) {
   return (
-    <Lado programas={programas}>{({ reporte, enlacesDeLaSemana }) => {
+    <Lado programas={programas}>{({ reporte, enlacesDeLaSemana, cifras }) => {
       const semana = reporte.horizontes.find((h) => h.clave === "semana")!;
       const { dia, total } = reporte.contexto.semana;
       const esperadoCupos = semana.meta === null || total === 0 ? null : (semana.meta * dia) / total;
@@ -42,10 +43,13 @@ export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }
       const leads = reporte.leadsDeLaSemana;
       const asistencia = reporte.showDeLaSemana;
       const p = reporte.proyeccion;
+      const Contenedor = cifras ? "div" : Card;
+      const Contenido = cifras ? "div" : CardContent;
       return (
-        <Card className="no-partir">
-          <CardContent className="space-y-5">
+        <Contenedor className="no-partir">
+          <Contenido className="space-y-5">
             <p className="text-xs text-muted-foreground">Día {num(dia)} de {num(total)} hábiles de la semana.</p>
+            {cifras ? <div className="grid gap-3 sm:grid-cols-3">{Object.values(cifras.semana).map((c) => <Cifra mostrarCobertura key={c.concepto} cifra={c} />)}</div> : <>
             <Fila
               titulo="Cupos vendidos"
               llevamos={<CifraConEnlace href={enlacesDeLaSemana?.cupos}>{num(semana.real)}</CifraConEnlace>}
@@ -68,6 +72,7 @@ export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }
               objetivo={null}
               nota={<CuentaDeAsistencia realizadas={asistencia.realizadas} debidas={asistencia.citasQueYaDebianOcurrir} sinMarcar={asistencia.sinMarcar} href={enlacesDeLaSemana?.sinMarcar} />}
             />
+            </>}
             {p.cohorte ? (
               <div className="space-y-2 border-t pt-3">
                 <h4 className="text-sm font-medium">Cupos por semana para llegar a {num(p.cohorte.metaCupos)} desde mañana</h4>
@@ -81,8 +86,8 @@ export function SemanaEnCurso({ programas }: { programas: ProgramaDelReporte[] }
                 </ul>
               </div>
             ) : <p className="border-t pt-3 text-sm text-muted-foreground">Sin cohorte con ventana de ventas.</p>}
-          </CardContent>
-        </Card>
+          </Contenido>
+        </Contenedor>
       );
     }}</Lado>
   );

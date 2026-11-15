@@ -309,6 +309,116 @@ tengan texto aprobado.
   (`embudo_comercial`, `conversion_por_etapa`, `tiempo_en_etapa`, `dias_cita_a_pago`, `perdidos_por_motivo`, `ticket_perdido`),
   texto y fundamento aprobados por Mani en `docs/diseno-cifra-y-pauta.md` §2.2 «Comercial · los recorridos». El catálogo de la
   escalera vive ahora en `lib/escalones.ts` (puro; `lib/queries/escalera.ts` lo re-exporta). Ninguna cifra cambió.
+- **14-nov · E-3 Hoy.** Solo el Hub de un programa, sin commit ni push.
+  - La página arma `cifrasDeHoy` y, solo con `veEquipoComercial`, `cifrasDeClosersDeHoy`; `Hoy` recibe las
+    cifras por props y las entrega al reporte. `ProgramaDelReporte` admite las cifras opcionalmente: `/hub` de
+    todos los programas conserva la presentación anterior, sin cambiar su página ni sus consultas.
+    `lib/hub/explicaciones-de-hoy.ts` resuelve una vez el Record con `explicacionDe`, universo todas las áreas;
+    el de closers reutiliza esas explicaciones. Mapa comprobado contra registro:
+    `citas_realizadas → shows`, `citas_sin_marcar → citas_pendientes`, `citas_de_manana → citas_del_dia`.
+    El resto usa su propia clave. No se editó registro, queries, esquema, migraciones ni fórmulas.
+  - Cifras clave, cierre, conteos del embudo y de citas, dinero del día y semana usan `Cifra`; las cinco columnas
+    numéricas por closer usan `tamano="celda"`. Se conservan embudo de barras, lista de citas, tabla de ventas,
+    caja por origen, reparto semanal, alertas, cabecera y navegación. Sin tarjeta dentro de tarjeta.
+    El bloque Objetivos / ¿Vamos a llegar? y sus explicaciones se conservan íntegros.
+  - **Cobertura (390):** `mostrarCobertura`, opcional en `Cifra` y activado solo en Hoy, muestra en tarjetas y
+    celdas el texto Parcial escrito por el constructor, con la fórmula numérica (su base) y los faltantes.
+    En vacío muestra el motivo que ya escribió el constructor. No cambia ninguno de los dos umbrales de E-2.
+    Pauta y Dinero mantienen su presentación en pantalla. Test puro nuevo `tests/explicaciones-de-hoy.test.ts`:
+    fichas reales, los valores de referencia de los tres días (con entradas sintéticas, no una lectura de la app),
+    y renderizado de tarjetas/celdas con 3 de 10 resueltas, siete sin resultado y Parcial, también por closer.
+  - `hoy/citas.tsx` ya no reescribe cita sin resultado: usa `citaSinResultado` y `fueCancelada` del dueño.
+    Se retira **solo** su entrada de deuda de `tests/show-y-sin-resultado-guardian.test.ts`.
+    `rg -n 'resultado.*(===|!==)|fechaAgenda.*<=' components/dashboard/hoy/citas.tsx` da cero.
+  - **Evidencia:** seis lecturas por listas distintas, en paralelo y solo con `veEquipo`: agendas, shows,
+    canceladas, cierres, grupo_pendientes y caja. Cinco filas como máximo por lista;
+    el corte es el del reporte, día entero, sin cohorte ni closer. Paridad de las cinco primeras en
+    `tests/cifras-de-hoy.test.ts`; caja reutiliza la lista probada de Dinero. Los detalles ya existentes y su
+    proyección `sinListas` conservan la reja. `tests/paginas.test.ts` ya simulaba `listaDeMetrica`; se amplió
+    el reporte simulado con los campos que ahora consume el constructor, sin cambiar afirmaciones.
+    **Sin vista previa del grupo:** Asistencia y Cierre conservan su enlace probado, pero no cinco filas porque
+    falta el indicador de quién suma arriba. **Sin evidencia:** Envíos (formularios frente a personas, H10), Leads del día y Sin resultado (sin prueba
+    específica aquí), Leads que hacen falta, quien no abre listas. Semana lleva los enlaces existentes, sin
+    cinco filas ni total de lista; closers conserva detalles y enlaces probados, sin vista previa (su constructor
+    no recibe filas). Citas de mañana y banderas siguen con sus enlaces anteriores.
+  - **PDF:** reglas de impresión acotadas a `#reporte-diario [data-abre-explicacion]`: sin sombra, borde de
+    interacción, hover ni transición; conserva texto y barras. Oculta «Cómo se calcula →» y el panel se marca
+    `print:hidden`; el portal además queda fuera del reporte con la regla de impresión existente.
+    `DescargarReporte` sigue usando `window.print()` y no depende del Info. No se cambió su comportamiento.
+  - **DC-1, inventario del Info de este programa** (la versión de todos los programas no se retira):
+    - Cupos vendidos → `cupos_vendidos.que/formula/variables`. Objetivo del día **queda** como explicación de
+      ajuste en Info, incluida la frase original sobre faltante de cohorte / días hábiles; no está en esa ficha.
+    - «Leads de hoy / formularios completos» → `leads.que/formula/variables`, que dice personas distintas y
+      primera aplicación, incluyendo parciales. **Discrepancia ya existente, para Mani:** la frase anterior no
+      describe ese dato; no se trasladó como si fuera correcta. No cambia el número (H12, sigue `null → 0`).
+      Objetivo de leads → permanece en Configuración del Info; el valor y avance siguen junto a la Cifra.
+    - Entró a caja → `entro_a_caja.que/formula/variables` (fecha del abono, monedas, adicionales y anulados).
+    - Asistencia del día → `asistencia.que/formula/variables`; cuenta real en fórmula numérica; faltantes y
+      condición de parcial en la lectura del constructor. Asistencia por cita → `show_por_cita.que/formula/variables`
+      en la semana; conserva su denominador distinto. No se conserva una segunda fórmula de show en el Info.
+    - Cierre → `cierre_de_ventas.que/formula/variables` y fórmula numérica. Los cuatro pasos del embudo →
+      `registros`, `citas_del_dia`, `shows`, `cupos_vendidos` (`que/formula/variables`). El ejemplo de barra
+      se sustituye por el visual real y su frase visible «100 % = la barra más larga», que se conserva.
+    - Leads que hacen falta **se detiene y conserva su forma y su Info**, incluido el ejemplo numérico.
+      La ficha `leads_que_hacen_falta` ya tiene `que/formula/variables` y el constructor conserva el motivo
+      de vacío, pero no explican todo el ejemplo anterior. **Falta de campos, pedido a D:** la ficha/construcción no lleva las variables
+      numéricas del antiguo ejemplo (faltante, días restantes, origen/muestra de las tasas, objetivo directo de
+      cita a venta y citas/leads de la ventana). No se inventaron operandos ni se cambió la fórmula. Queda
+      pendiente trasladar ese ejemplo dinámico completo. No se pierde ni cambia su redondeo anterior a entero;
+      tampoco se expone el decimal del constructor (otra diferencia visible fuera de los tres días de base).
+    - Vendido / Recaudado / Por cobrar → fichas homónimas, `que/formula/variables`; parciales del constructor.
+      «Cómo nació» **se conserva** en la sección Lectura del Info, pendiente de decisión de Mani (describe una
+      columna de la tabla conservada). No explica las tres Cifras de dinero.
+    - Citas / realizadas / canceladas / sin resultado → `citas_del_dia`, `shows`, `citas_canceladas`,
+      `citas_pendientes` (`que/formula/variables`). La frase sobre agrupar por closer y abrir el negocio
+      **se conserva** en Lectura, para que Mani decida su destino.
+    - Semana: objetivo × días transcurridos / días de semana → lectura de la barra de `llevamos` y `leads`
+      generada por `armarCifra`; Programa y Semana en filtros. La explicación de la asistencia va a su propia ficha.
+    - **Permanecen:** Pendientes (mañana, Sin Grain, Sin valor y Alertas por persistencia), Configuración
+      (objetivo de leads, días del ritmo, mínimo de citas), Objetivos (fuera de alcance). «Leads y citas son
+      hechos del mismo día, no necesariamente de las mismas personas» queda en Lectura, a decidir por Mani.
+    Los «?» de los cinco títulos de bloque migrados se retiran solo en este programa. El «?» de Leads que
+    hacen falta sigue apuntando a su fórmula anterior. Pendientes y Objetivos conservan
+    su enlace. Ninguna fuente impresa se toma del Info.
+  - **Bloqueos / pedido al carril D:** no se migran `shows_sin_grain`, `atendidos_sin_valor`,
+    `atendidos_sin_grain`, `perdidos_con_pagos`, ni `llamadas_sin_resultado` (retirada por E-1 a favor de
+    `citas_pendientes`). No hay ficha; no se escribió texto sustituto. Se conserva el bloque con casos y
+    «Sin pendientes: …». Citas de mañana tampoco migra: el mapa existe, pero `citas_del_dia.que/formula`
+    dice explícitamente «hoy»; cambiar solo el rótulo mentiría. Hace falta variante de día en la ficha.
+  - **Hallazgos y preservación de línea base:**
+    - H12: Leads sin medir continúa 0, tal como el constructor y la línea base; se propone «—» para otra
+      decisión explícita, no en este cambio.
+    - H13: se preservan las barras simples del día (Cupos y Leads) junto a sus Cifras, con los mismos valores
+      y objetivos. No se introduce una marca de tiempo que afirme que pasó el 100 % del día. El constructor
+      no trae `avance` diario: por eso se conserva la pieza simple, sin alterar la Cifra ni las barras semanales.
+    - Nuevo: el constructor de closers devuelve USD 0,00 cuando no hay caja; la tabla vieja y la base dicen
+      «—». La página conserva la ausencia de filas de caja para mostrar **«—»**, sin tocar el constructor.
+    - H11 sigue abierto: Leads de semana son envíos. Las fichas `ventas` y `cierre_de_ventas` aún dicen
+      «de pauta», y la fórmula de `vendido` dice «venta de pauta», aunque el universo es todas las áreas
+      (extensión de H20). Pedido a D: texto neutral/variante; no se cambió ninguna ficha ni texto local.
+    - La vista previa del grupo no trae el indicador tipado de quién suma arriba de Asistencia (la lista devuelve
+      personas y fecha, no `conShow`): no se conectan las vistas previas de Asistencia/Cierre. Se conserva el enlace a la lista probada.
+      Pedirlo al carril D antes de dar por cerrado el detalle de evidencia; no se reconstruye desde etapas.
+  - **Retirado y `rg`:** se retiran de la ruta migrada el Info de métricas y los resúmenes/cálculos de presentación
+    reemplazados; no se borra ninguna pieza compartida. `rg -n 'Ficha|CifraConEnlace|CuentaDeAsistencia|CifraConLista|ResumenDeCifra|CifraDeRazon|Comparativo' components/dashboard/hoy components/dashboard/operacion.tsx 'app/(app)/hub/secciones.tsx'`
+    devuelve 54 líneas: siguen con llamadores. `Tasa`, `Conteo`, `Importe` y `Fila` siguen siendo llamados por
+    las ramas anteriores que usa `/hub` de todos. No hay retirada de archivos sin prueba de cero llamadores.
+  - **Verificación:** `npm run typecheck` pasó; `npm run lint` pasó con cero errores y las siete advertencias
+    ajenas. `npm test -- tests/explicaciones-de-hoy.test.ts` y `npm test -- tests/paginas.test.ts` fallan antes
+    de Vitest por `spawnSync ps EPERM` en el sandbox; no se saltó el lanzador y no se declaran verdes.
+    Pendientes para la sesión externa: esos dos archivos, `tests/show-y-sin-resultado-guardian.test.ts`,
+    `tests/frontera-cliente-guardian.test.ts`, y las pruebas existentes de cifras de Hoy/closers.
+    No se abrió la app ni se descargó PDF ni se midió rendimiento: la instrucción de esta sesión prohíbe
+    conectar a cualquier base. No se arrancó dev ni build (hay dev vivo). Faltan contraste visual claro/oscuro/375 px,
+    clics y PDF página por página; E-3 y la casilla 4 del 390 **no se declaran cerrados**.
+  - **14-nov, sesión externa (revisión).** Pasaron fuera del sandbox: `explicaciones-de-hoy`, `paginas`,
+    `show-y-sin-resultado-guardian`, `frontera-cliente-guardian`, `cifras-de-hoy`, `vista-hoy` y
+    `configuracion-hoy-acciones` (218 tests); typecheck y lint limpios. Recorrido con `dev:local` (gerente, 1-oct):
+    sin errores de consola, la Cifra abre su explicación, 375 px sin scroll horizontal, claro y oscuro bien.
+    **Arreglo:** en `tamano="celda"` la Cifra vacía ya no imprime el motivo («No se puede calcular… nunca significa
+    cero») debajo del «—»: en la tabla de closers apretaba las cabeceras; el motivo sigue en la explicación y en las
+    tarjetas, y Parcial se sigue mostrando en celdas. **Falta:** `npm run build` (había un `dev` vivo en la carpeta),
+    el PDF página por página y una fecha con closers con datos.
 
 - **14-nov · E-3 Dinero.** Integrada solo la rama `seccion === "dinero"` y su carga en la página del programa.
   - El servidor arma `cifrasDeDinero` y `cifrasPorCohorte`; `lib/hub/explicaciones-de-dinero.ts` arma una sola vez el

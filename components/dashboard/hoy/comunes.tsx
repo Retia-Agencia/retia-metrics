@@ -29,18 +29,19 @@ export function Lado({ programas, children }: {
 }
 
 /** Una sección de Hoy: ancla para la tabla de contenido, título con su "?" y, al imprimir, su fuente. */
-export function Bloque({ id, titulo, pregunta, fuente, children }: {
+export function Bloque({ id, titulo, pregunta, fuente, children, conInfo = true }: {
   id: string;
   titulo: string;
   /** La pregunta que responde el bloque, en una línea. */
   pregunta?: string;
   fuente: string;
+  conInfo?: boolean;
   children: ReactNode;
 }) {
   return (
     <section id={id} className="scroll-mt-4 space-y-3">
       <div className="bloque-titulo">
-        <h3 className="flex items-center gap-1.5 text-lg font-semibold">{titulo}<EnlaceAInfo seccion={id} etiqueta={titulo} /></h3>
+        <h3 className="flex items-center gap-1.5 text-lg font-semibold">{titulo}{conInfo ? <EnlaceAInfo seccion={id} etiqueta={titulo} /> : null}</h3>
         {pregunta ? <p className="text-sm text-muted-foreground">{pregunta}</p> : null}
       </div>
       {children}

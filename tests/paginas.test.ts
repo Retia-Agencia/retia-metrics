@@ -155,6 +155,7 @@ vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
   vistaDeLista,
 }));
 // Dinero (419 E-3): la página lee las cinco filas de evidencia de sus listas; aquí no hay base.
+// 419 E-3 Hoy y Dinero: las cinco filas de evidencia también salen de esta lectura simulada.
 const listaDeMetrica = vi.fn(async () => [{ filas: [] }]);
 vi.mock("@/lib/queries/metricas-con-filas", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/metricas-con-filas")>(),
@@ -214,6 +215,18 @@ vi.mock("@/lib/queries/vista-hoy", async (importOriginal) => ({
 const armarReporteDiario = vi.fn(async (entrada: { programId: string; dia: string }) => ({
   ...(await armarVistaDeHoy(entrada)),
   ventas: [], detalleDeCaja: [], resultados: [], leadsDePauta: 0, leadsDeLaSemana: 0,
+  // 419 E-3: la página ahora construye las Cifras; el mock debe tener los campos del reporte real.
+  registros: 0, citasDeManana: [],
+  horizontes: [{ clave: "dia", real: 0, meta: null }, { clave: "semana", real: 0, meta: null }],
+  proyeccion: { cohorte: null, faltan: 0, diasHabilesRestantes: 0, repartoSemanal: [],
+    leadsRequeridosDia: { valor: null, razon: "Sin cohorte" },
+    supuestos: { agendasPorRegistro: null, agendasVentana: 0, registrosVentana: 0, diasHabilesVentana: 0,
+      conversion: { origen: "sin_medicion", muestra: null, objetivoAgendaAVenta: null,
+        razonCierre: { valor: null, base: 0, faltan: 0, motivo: "Sin citas" },
+        razonShow: { valor: null, base: 0, faltan: 0, motivo: "Sin citas" } } },
+  },
+  dinero: { vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0, sinValorVendido: 0 },
+  showDeLaSemana: { realizadas: 0, citasQueYaDebianOcurrir: 0, sinMarcar: 0, porcentaje: null },
 }));
 vi.mock("@/lib/queries/reporte-diario", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/reporte-diario")>(),
@@ -410,7 +423,8 @@ const VISTA_VACIA = {
     cierres: 0,
     ventas: 0,
     razonCierre: { valor: null, base: 0, faltan: 0, motivo: "Sin shows en el periodo" },
-    grupo: { deals: 0, conShow: 0 },
+    grupo: { deals: 0, conShow: 0, vendidos: 0, sinMarcar: 0 },
+    canceladas: 0,
   },
   anterior: null,
   contratadoUsd: 0,

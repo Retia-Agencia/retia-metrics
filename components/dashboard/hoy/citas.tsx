@@ -1,5 +1,7 @@
 import { Enlace } from "@/components/enlace";
-import { CifraConLista } from "@/components/cifra-con-lista";
+import { citaSinResultado, fueCancelada } from "@/lib/deals/resultados-de-llamada";
+import { Tabla } from "@/components/dashboard/piezas";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { Comparativo } from "@/components/dashboard/operacion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,8 +25,8 @@ function Conteo({ titulo, cantidad, detalle, alerta }: { titulo: string; cantida
 }
 
 function FilaDeCita({ fila, corte, veEquipo, slug, conCloser }: { fila: FilaDeMetrica; corte: Date; veEquipo: boolean; slug: string; conCloser: boolean }) {
-  const cancelada = fila.resultado === "cancelada";
-  const vencida = fila.resultado === "agendada" && fila.citaEn != null && fila.citaEn <= corte;
+  const cancelada = fueCancelada(fila.resultado ?? "");
+  const vencida = citaSinResultado({ resultado: fila.resultado ?? "", fechaAgenda: fila.citaEn ?? null, fechaLlamada: null }, corte);
   const resultado = fila.resultado as keyof typeof ETIQUETA_DE_RESULTADO;
   const contenido = <>
     <span className="cifra w-14 shrink-0 font-medium">{fila.citaEn ? horaEnBogota(fila.citaEn) : "—"}</span>
@@ -61,7 +63,7 @@ function ListaDeCitas({ filas, corte, veEquipo, slug }: { filas: FilaDeMetrica[]
   return (
     <div className="space-y-4">
       {ordenados.map((g) => {
-        const vivas = g.filas.filter((f) => f.resultado !== "cancelada").length;
+        const vivas = g.filas.filter((f) => !fueCancelada(f.resultado ?? "")).length;
         const canceladas = g.filas.length - vivas;
         return (
           <section key={g.closer ?? "sin-closer"} className="space-y-1">
@@ -84,26 +86,39 @@ function ListaDeCitas({ filas, corte, veEquipo, slug }: { filas: FilaDeMetrica[]
  */
 export function CitasDelDia({ programas, veEquipo }: { programas: ProgramaDelReporte[]; veEquipo: boolean }) {
   return (
-    <Lado programas={programas}>{({ programa, reporte, detalles, detallesOperacion }) => {
+    <Lado programas={programas}>{({ programa, reporte, detalles, detallesOperacion, cifras, cifrasDeClosers }) => {
       const e = reporte.vista.embudo;
+      const Contenedor = cifras ? "div" : Card;
+      const Contenido = cifras ? "div" : CardContent;
       return (
         <div className="space-y-4">
-          <Card className="partible">
-            <CardContent className="space-y-4">
+          <Contenedor className="partible">
+            <Contenido className="space-y-4">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {cifras ? Object.values(cifras.citas).map((c) => <Cifra mostrarCobertura key={c.concepto} cifra={c} />) : <>
                 <Conteo titulo={nombreCorto("citas_del_dia")} cantidad={e.agendas} detalle={detalles?.agendas} />
                 <Conteo titulo={nombreCorto("shows")} cantidad={e.llamadasConShow} detalle={detalles?.shows} />
                 <Conteo titulo={nombreCorto("citas_canceladas")} cantidad={e.canceladas} detalle={detalles?.canceladas} />
                 <Conteo titulo={nombreCorto("citas_pendientes")} cantidad={reporte.vista.sinResultado} detalle={detalles?.sin_resultado} alerta />
+                </>}
               </div>
               <div className="space-y-2 border-t pt-3">
                 <h4 className="text-sm font-medium">¿Qué pasó con cada cita?</h4>
                 <ListaDeCitas filas={reporte.agendaDeHoy} corte={reporte.corte} veEquipo={veEquipo} slug={programa.slug} />
               </div>
-            </CardContent>
-          </Card>
+            </Contenido>
+          </Contenedor>
           {veEquipo ? (
-            <div className="no-partir"><Comparativo vista={reporte.vista} detalles={detallesOperacion?.comparativo} titulo="¿Cómo va cada closer?" /></div>
+            <div className="no-partir">{cifrasDeClosers ? <section className="space-y-3">
+              <h4 className="text-sm font-medium">¿Cómo va cada closer?</h4>
+              {cifrasDeClosers.length === 0 ? <p className="text-sm text-muted-foreground">Nadie registró actividad en este rango.</p> : <Tabla cabeceras={["Closer", "Citas", "Asistencia", "Ventas", "Cierre de ventas", "Entró a caja"]}>
+                {cifrasDeClosers.map((f) => <tr key={f.clave}>
+                  <td className="py-2">{f.closer}</td>
+                  {[f.citas, f.asistencia, f.ventas, f.cierreDeVentas].map((c) => <td key={c.concepto} className="py-2 text-right"><Cifra mostrarCobertura cifra={c} tamano="celda" /></td>)}
+                  <td className="py-2 text-right">{f.entroACaja.length ? f.entroACaja.map((c) => <Cifra mostrarCobertura key={c.unidad} cifra={c} tamano="celda" />) : "—"}</td>
+                </tr>)}
+              </Tabla>}
+            </section> : <Comparativo vista={reporte.vista} detalles={detallesOperacion?.comparativo} titulo="¿Cómo va cada closer?" />}</div>
           ) : null}
         </div>
       );

@@ -1,3 +1,7 @@
+import { cifrasDeHoy } from "@/lib/hub/cifras-de-hoy";
+import { cifrasDeClosersDeHoy } from "@/lib/hub/cifras-de-pendientes-y-closers";
+import { explicacionesDeHoy, explicacionesDeClosersDeHoy } from "@/lib/hub/explicaciones-de-hoy";
+import { metaDeLeads } from "@/lib/queries/proyeccion";
 import { fechaCorta, monto, usd } from "@/lib/format";
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { cifrasDeDinero, cifrasPorCohorte } from "@/lib/hub/cifras-de-dinero";
@@ -318,7 +322,7 @@ async function InfoDeHoy({ titulo, programa, reporte }: {
   programa: { id: string; slug: string; nombre: string };
   reporte: Promise<ReporteDiario>;
 }) {
-  return <InfoDePagina titulo={titulo} secciones={seccionesDeInfoDeHoy([{ programa, reporte: await reporte }])} />;
+  return <InfoDePagina titulo={titulo} secciones={seccionesDeInfoDeHoy([{ programa, reporte: await reporte }], true)} />;
 }
 
 /**
@@ -574,6 +578,34 @@ async function CuerpoDelHub({
       />
     );
   }
+  const reporte = vistaDeHoy!;
+  const explicaciones = explicacionesDeHoy();
+  // Solo universos con paridad probada en cifras-de-hoy.test.ts. Una lectura por lista, cinco filas como máximo.
+  const evidenciaDeHoy = veEquipo ? Object.fromEntries(await Promise.all(
+    (["agendas", "shows", "canceladas", "cierres", "grupo_pendientes", "caja"] as const).map(async (metrica) => {
+      const [lista] = await listaDeMetrica(metrica, { programId: programa.id, hoy: diaDelReporte,
+        rango: periodoDelDia.a, claveCloser: null, cohorteId: null, ahora: reporte.corte }, 1);
+      return [metrica, lista.filas.slice(0, 5).map((fila) => [fila.persona?.nombre ?? "Sin nombre", fechaCorta(fila.fecha),
+        fila.monto === null ? "—" : monto(fila.monto, fila.moneda ?? "USD")])] as const;
+    }),
+  )) : undefined;
+  const cifrasHoy = cifrasDeHoy({
+    datos: {
+      embudo: reporte.vista.embudo, sinResultado: reporte.vista.sinResultado, registros: reporte.registros,
+      leadsDelDia: reporte.vista.leads?.leads ?? null,
+      dia: reporte.horizontes.find((h) => h.clave === "dia")!, semana: reporte.horizontes.find((h) => h.clave === "semana")!,
+      diasDeLaSemana: reporte.contexto.semana, objetivoDeLeads: metaDeLeads(reporte.proyeccion.cohorte),
+      leadsQueHacenFalta: reporte.proyeccion.leadsRequeridosDia, caja: reporte.caja, dinero: reporte.dinero,
+      leadsDeLaSemana: reporte.leadsDeLaSemana, showDeLaSemana: reporte.showDeLaSemana, citasDeManana: reporte.citasDeManana.length,
+    },
+    explicaciones, programa: programa.nombre, dia: diaDelReporte, hoy, lunes: semanaDelReporte.desde,
+    detalles: detalles ? { ...detalles, sin_resultado: undefined } : undefined, evidencia: evidenciaDeHoy,
+    enlacesDeLaSemana: listasDeHoy?.enlacesDeLaSemana,
+  });
+  const cifrasClosers = veEquipo ? cifrasDeClosersDeHoy({
+    filas: reporte.vista.comparativo, explicaciones: explicacionesDeClosersDeHoy(explicaciones),
+    programa: programa.nombre, dia: diaDelReporte, hoy, detalles: detallesOperacion?.comparativo,
+  }).map((fila, i) => ({ ...fila, entroACaja: reporte.vista.comparativo[i].caja.length ? fila.entroACaja : [] })) : undefined;
   return (
     <>
       {fechaRechazada ? (
@@ -582,6 +614,8 @@ async function CuerpoDelHub({
         </p>
       ) : null}
       <Hoy
+        cifras={cifrasHoy}
+        cifrasDeClosers={cifrasClosers}
         programas={[{
           programa,
           reporte: vistaDeHoy!,

@@ -1,3 +1,5 @@
+import type { CifrasDeHoy } from "@/lib/hub/cifras-de-hoy";
+import type { cifrasDeClosersDeHoy } from "@/lib/hub/cifras-de-pendientes-y-closers";
 import type { ReactNode } from "react";
 import { Pendientes } from "@/components/dashboard/hoy/pendientes";
 import { ReporteDiarioVista, type ProgramaDelReporte } from "@/components/dashboard/reporte-diario";
@@ -12,6 +14,8 @@ import type { DetalleDeCifra, DetallesDelDashboard } from "@/lib/queries/vista-m
  */
 export function Hoy({
   programas,
+  cifras,
+  cifrasDeClosers,
   dia,
   hoy,
   selector,
@@ -26,6 +30,8 @@ export function Hoy({
   definirObjetivo,
 }: {
   programas: ProgramaDelReporte[];
+  cifras: CifrasDeHoy;
+  cifrasDeClosers?: ReturnType<typeof cifrasDeClosersDeHoy>;
   dia: string;
   hoy: string;
   selector: ReactNode;
@@ -46,7 +52,7 @@ export function Hoy({
   const reporte = programas[0].reporte;
   return (
     <ReporteDiarioVista
-      programas={programas}
+      programas={programas.map((p) => ({ ...p, cifras, cifrasDeClosers }))}
       dia={dia}
       hoy={hoy}
       veEquipo={veEquipo}

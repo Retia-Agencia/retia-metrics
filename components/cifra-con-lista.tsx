@@ -57,10 +57,12 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
  * en un segundo; toda la tarjeta es el botón que abre la explicación en el panel lateral. Tres tamaños de la misma
  * pieza: `tarjeta` (con barra si la cifra trae avance) y `celda` de tabla. No calcula nada: pinta `CifraDeMetrica`.
  */
-export function Cifra({ cifra, tamano = "tarjeta", className }: {
+export function Cifra({ cifra, tamano = "tarjeta", className, mostrarCobertura = false }: {
   cifra: CifraDeMetrica;
   tamano?: "tarjeta" | "celda";
   className?: string;
+  /** Hoy conserva la base y lo que falta también en el reporte impreso. */
+  mostrarCobertura?: boolean;
 }) {
   const disparador = tamano === "celda" ? <CeldaDeCifra cifra={cifra} /> : <TarjetaDeCifra cifra={cifra} />;
   return (
@@ -68,6 +70,7 @@ export function Cifra({ cifra, tamano = "tarjeta", className }: {
       <SheetTrigger
         aria-label={cifra.ariaLabel}
         data-abre-explicacion=""
+        data-cifra-tamano={tamano}
         className={cn(
           tamano === "celda"
             ? "inline-flex cursor-pointer flex-col items-end gap-px rounded-md px-1 py-0.5 text-right transition-colors duration-150 outline-none hover:bg-marca-suave focus-visible:outline-2 focus-visible:outline-marca"
@@ -76,12 +79,24 @@ export function Cifra({ cifra, tamano = "tarjeta", className }: {
         )}
       >
         {disparador}
+        {mostrarCobertura ? <CoberturaDeCifra cifra={cifra} enCelda={tamano === "celda"} /> : null}
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="print:hidden">
         <ExplicacionDeCifra cifra={cifra} />
       </SheetContent>
     </Sheet>
   );
+}
+
+/** El constructor ya escribe la cobertura; aquí no se interpreta ni se cambia su umbral. */
+function CoberturaDeCifra({ cifra, enCelda }: { cifra: CifraDeMetrica; enCelda: boolean }) {
+  const parcial = cifra.explicacion.lectura.find(([nombre]) => nombre === "Parcial");
+  // En una celda el «—» basta: el motivo vive en su explicación y una frase por celda aprieta la tabla.
+  const vacio = cifra.vacio && !enCelda ? cifra.explicacion.lectura.find(([nombre]) => nombre === "—") : undefined;
+  return <>
+    {parcial ? <span className="text-xs text-muted-foreground">{enCelda ? "Parcial · " : ""}{parcial[1]}{cifra.explicacion.formula.conLosNumeros ? ` ${cifra.explicacion.formula.conLosNumeros}` : ""}</span> : null}
+    {vacio ? <span className="text-xs text-muted-foreground">{vacio[1]}</span> : null}
+  </>;
 }
 
 function TarjetaDeCifra({ cifra }: { cifra: CifraDeMetrica }) {
@@ -128,7 +143,7 @@ function TarjetaDeCifra({ cifra }: { cifra: CifraDeMetrica }) {
           {cifra.etiquetas.map((etiqueta) => <Badge key={etiqueta} variant="neutro" className="rounded-lg">{etiqueta}</Badge>)}
         </span>
       ) : null}
-      <span className="text-xs text-marca-texto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
+      <span className="cifra-como-se-calcula text-xs text-marca-texto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100">
         Cómo se calcula →
       </span>
     </>

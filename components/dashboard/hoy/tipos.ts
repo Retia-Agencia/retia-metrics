@@ -1,3 +1,5 @@
+import type { CifrasDeHoy } from "@/lib/hub/cifras-de-hoy";
+import type { cifrasDeClosersDeHoy } from "@/lib/hub/cifras-de-pendientes-y-closers";
 import type { ReporteDiario } from "@/lib/queries/reporte-diario";
 import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 
@@ -5,6 +7,9 @@ import type { DetalleDeCifra, DetallesDeOperacion, DetallesDelDashboard } from "
 export interface ProgramaDelReporte {
   programa: { id: string; slug: string; nombre: string };
   reporte: ReporteDiario;
+  /** Solo el Hub de un programa; todos conserva su presentación hasta E-4. */
+  cifras?: CifrasDeHoy;
+  cifrasDeClosers?: ReturnType<typeof cifrasDeClosersDeHoy>;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
   /** Personas distintas del día, medidas por el concepto `leads`. */

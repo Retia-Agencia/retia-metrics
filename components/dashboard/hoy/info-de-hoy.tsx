@@ -12,7 +12,7 @@ import { pct } from "@/lib/format";
  * cifras reales del programa cuando hay uno solo en pantalla. Cada `id` es el de su bloque en la página.
  * No calcula nada: lee lo que ya trae el reporte.
  */
-export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDeInfo[] {
+function seccionesAnterioresDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDeInfo[] {
   const uno = programas.length === 1 ? programas[0].reporte : null;
   const e = uno?.vista.embudo;
   const p = uno?.proyeccion;
@@ -172,5 +172,20 @@ export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[]): SeccionDe
         { palabra: nombreCorto("citas_minimas"), significa: definicion("citas_minimas") },
       ]} />,
     },
+  ];
+}
+
+/** DC-1: en un programa las métricas se explican en su Cifra. Los ajustes y pendientes siguen aquí. */
+export function seccionesDeInfoDeHoy(programas: ProgramaDelReporte[], cifrasMigradas = false): SeccionDeInfo[] {
+  const anteriores = seccionesAnterioresDeInfoDeHoy(programas);
+  if (!cifrasMigradas) return anteriores;
+  return [
+    ...anteriores.filter((s) => ["pendientes", "objetivos", "configuracion", "leads-que-hacen-falta"].includes(s.id)),
+    { id: "objetivo-del-dia", titulo: "Objetivo del día", contenido: <Frase>Lo que falta por vender de la cohorte, repartido entre los días hábiles que quedan.</Frase> },
+    { id: "lectura", titulo: "Cómo leer el reporte", contenido: <>
+      <Frase>Los leads y las citas son hechos del mismo día, no necesariamente de las mismas personas.</Frase>
+      <Frase>La lista muestra cada cita con lo que pasó y agrupada por closer. Cada fila abre el negocio.</Frase>
+      <Frase>Cómo nació: agenda del día si la persona tuvo su llamada hoy; seguimiento si su última llamada fue antes; sin llamada si nunca tuvo una.</Frase>
+    </> },
   ];
 }

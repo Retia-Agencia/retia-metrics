@@ -20,6 +20,7 @@ function Pendiente({ titulo, cantidad, detalle, nota, alerta }: { titulo: string
 }
 
 /**
+ * 419 E-3: las banderas no tienen ficha y citas_del_dia dice «hoy», no «mañana». Se conserva este bloque.
  * Alertas y pendientes (378): lo que pide atención hoy, las citas de mañana y las alertas por persistencia,
  * en UNA tarjeta. Solo los pendientes con casos se dibujan; los que están en cero se dicen en una línea.
  */

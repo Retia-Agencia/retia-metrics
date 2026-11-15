@@ -1,4 +1,4 @@
-import { CifraConLista } from "@/components/cifra-con-lista";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { Card, CardContent } from "@/components/ui/card";
 import { Lado } from "@/components/dashboard/hoy/comunes";
 import type { ProgramaDelReporte } from "@/components/dashboard/hoy/tipos";
@@ -27,7 +27,7 @@ function Tasa({ titulo, razon, cuenta, detalle }: { titulo: string; razon: Razon
  */
 export function EmbudoDelDia({ programas }: { programas: ProgramaDelReporte[] }) {
   return (
-    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros }) => {
+    <Lado programas={programas}>{({ reporte, detalles, detalleRegistros, cifras }) => {
       const e = reporte.vista.embudo;
       const pasos = [
         { clave: "leads", etiqueta: nombreCorto("registros"), cantidad: reporte.registros, detalle: detalleRegistros },
@@ -36,6 +36,12 @@ export function EmbudoDelDia({ programas }: { programas: ProgramaDelReporte[] })
         { clave: "ventas", etiqueta: nombreCorto("cupos_vendidos"), cantidad: e.cierres, detalle: detalles?.cierres },
       ];
       const mayor = pasos.reduce((m, p) => (p.cantidad > m.cantidad ? p : m), pasos[0]);
+      if (cifras) return <div className="space-y-4">
+        <div className="max-w-sm"><Cifra mostrarCobertura cifra={cifras.cierreDeVentas} className="w-full" /></div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{Object.values(cifras.embudo).map((c) => <Cifra mostrarCobertura key={c.concepto} cifra={c} />)}</div>
+        <EmbudoDeBarras pasos={pasos.map((paso) => ({ ...paso, detalle: undefined }))} />
+        <p className="text-xs text-muted-foreground">100 % = la barra más larga ({mayor.etiqueta}: {num(mayor.cantidad)}). Cada barra mide su cantidad contra esa.{e.canceladas > 0 ? ` ${num(e.canceladas)} citas canceladas no entran.` : ""}</p>
+      </div>;
       return (
         <Card className="no-partir">
           <CardContent className="space-y-4">
