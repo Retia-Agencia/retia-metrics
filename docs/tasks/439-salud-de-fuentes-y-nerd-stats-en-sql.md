@@ -95,8 +95,9 @@ principal**, no tú (AGENTS.md). Deja el SQL propuesto en este ticket.
 ## Done cuando
 - [x] `/nerd-stats` ≤ 15 consultas (hoy 52 en producción); `saludDeFuentes` ≤ 8 (hoy 29). Medido en el test de presupuesto: `conteosPorPrograma` ≤ 6, `fuentesConSalud` ≤ 8, iguales con 3 y 6 programas (15-nov, rama t439).
 - [x] Ninguna consulta de estas funciones selecciona `respuestas` completa (revisado en el diff; sin test nuevo por el modo rápido).
-- [ ] Contra producción, solo lectura, las 5 funciones de Nerd Stats en serie: ≤ 2 s desde local (hoy ~6 s). Lo
-      corre la sesión principal.
+- [x] Contra producción, solo lectura, las 5 funciones de Nerd Stats en serie: ≤ 2 s desde local (hoy ~6 s). Medido el
+      15-nov: 1,4 a 1,6 s con conexión abierta (2,3 s la primera ronda en frío); `saludDeFuentes` 0,8 a 1,2 s. Las alarmas de
+      Calendly se cuentan en SQL: mismas cifras que la versión anterior en producción, 2,7 s → 0,44 s.
 - [x] Las alarmas de `/api/salud/alertas` y el semáforo dan lo mismo antes y después (tests de sus contratos verdes: semaforo-endpoint, salud-cierre, salud-fuentes, calendly-reconciliar).
 - [x] Typecheck, lint y tests del cambio verdes (68 pasando); sin componente cliente, sin build.
 

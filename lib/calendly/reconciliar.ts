@@ -1,12 +1,12 @@
-import { and, eq, inArray, isNotNull, lte, notInArray, or, sql } from "drizzle-orm";
+import { and, eq, inArray, lte, notInArray, sql } from "drizzle-orm";
 import { calls, deals, leads, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { tokenCalendly } from "@/lib/integraciones";
 import { vigente } from "@/lib/queries/vigente";
 import { normalizarEmail } from "@/lib/sheets/mapeo";
 import { resolverCitaDeEnvio } from "./resolver-cita";
-import { huellaDeCita, uuidDeHuella } from "./huella";
-import { esSueltaPorAsignar, sueltaPorAsignar } from "./suelta";
+import { huellaDeCita, uuidDeHuella, uuidDeHuellaSql } from "./huella";
+import { sueltaPorAsignar } from "./suelta";
 import {
   candidatosPorCorreo,
   closersConCalendly,
@@ -48,79 +48,59 @@ export async function alarmasCalendlyDe(
   }]));
   if (programIds.length === 0) return resultado;
   const limite = new Date(ahora.getTime() - HORAS_PARA_ALERTAR_CITA_SUELTA * 3_600_000);
-  const llamadas = await db
+  const llamadasSueltas = await db
     .select({
       programId: calls.programId,
-      creadaEn: calls.createdAt,
-      dealId: calls.dealId,
-      origen: calls.origen,
-      resultado: calls.resultado,
-      huella: calls.huellaFila,
+      n: sql<number>`count(*)::int`,
     })
     .from(calls)
     .where(and(
       inArray(calls.programId, programIds),
-      or(
-        and(sueltaPorAsignar(), eq(calls.resultado, "agendada"), lte(calls.createdAt, limite)),
-        and(isNotNull(calls.dealId), isNotNull(calls.huellaFila)),
-      ),
+      sueltaPorAsignar(),
+      eq(calls.resultado, "agendada"),
+      lte(calls.createdAt, limite),
       vigente(calls),
-    ));
-
-  for (const llamada of llamadas) {
-    const alarma = resultado.get(llamada.programId)!;
-    if (
-      llamada.resultado === "agendada"
-      && llamada.creadaEn <= limite
-      && esSueltaPorAsignar(llamada)
-    ) alarma.llamadasSueltasViejas += 1;
-  }
+    ))
+    .groupBy(calls.programId);
+  for (const fila of llamadasSueltas) resultado.get(fila.programId)!.llamadasSueltasViejas = Number(fila.n);
 
   // `#>> '{}'` convierte el string jsonb a texto SQL y desescapa su contenido;
   // el UUID queda igual que al recorrer el objeto en JavaScript.
-  const citas = await db
-    .select({
-      leadId: submissions.leadId,
-      uuids: sql<(string | null)[]>`array(
-        select (regexp_match(
-          v #>> '{}',
-          '/invitees/([^/?#[:space:]"'']+)'
-        ))[1]
-        from jsonb_path_query(${submissions.respuestas}, 'strict $.**') as v
-        where jsonb_typeof(v) = 'string'
-      )`,
-    })
-    .from(submissions)
-    .innerJoin(sources, and(
-      eq(sources.id, submissions.sourceId),
-      inArray(sources.programId, programIds),
-    ));
-
-  const uuidsPorLead = new Map<string, Set<string>>();
-  for (const cita of citas) {
-    if (!cita.leadId) continue;
-    const uuids = uuidsPorLead.get(cita.leadId) ?? new Set<string>();
-    for (const uuid of cita.uuids) if (uuid) uuids.add(uuid);
-    uuidsPorLead.set(cita.leadId, uuids);
-  }
-  const bajos = uuidsPorLead.size === 0 ? [] : await db
-    .select({ programId: deals.programId, id: deals.id, leadId: deals.leadId })
-    .from(deals)
-    .where(and(
-      inArray(deals.programId, programIds),
-      inArray(deals.leadId, [...uuidsPorLead.keys()]),
-      inArray(deals.etapa, [...ETAPAS_POR_REPARAR]),
-      vigente(deals),
-    ));
-
-  const conLlamada = new Set(llamadas
-    .filter((llamada) => llamada.dealId && uuidDeHuella(llamada.huella))
-    .map((llamada) => `${llamada.dealId}:${uuidDeHuella(llamada.huella)}`));
-  for (const deal of bajos) {
-    const tieneFaltante = [...(uuidsPorLead.get(deal.leadId) ?? [])]
-      .some((uuid) => !conLlamada.has(`${deal.id}:${uuid}`));
-    if (tieneFaltante) resultado.get(deal.programId)!.dealsConCitaSinLlamada += 1;
-  }
+  const respuestaDealsSinLlamada = await db.execute(sql`
+    select "deals"."program_id" as "programId", count(distinct "deals"."id")::int as "n"
+    from "deals"
+    where "deals"."program_id" = any(${sql.param(programIds)}::uuid[])
+      and "deals"."etapa" = any(${sql.param([...ETAPAS_POR_REPARAR])}::etapa_deal[])
+      and ${vigente(deals)}
+      and exists (
+        select 1
+        from "submissions"
+        inner join "sources" on "sources"."id" = "submissions"."source_id"
+        cross join lateral jsonb_path_query("submissions"."respuestas", 'strict $.**') as "valor"("v")
+        where "submissions"."lead_id" = "deals"."lead_id"
+          and "sources"."program_id" = "deals"."program_id"
+          and jsonb_typeof("valor"."v") = 'string'
+          and (regexp_match(
+            "valor"."v" #>> '{}',
+            '/invitees/([^/?#[:space:]"'']+)'
+          ))[1] is not null
+          and not exists (
+            select 1
+            from "calls"
+            where "calls"."deal_id" = "deals"."id"
+              and ${uuidDeHuellaSql(calls.huellaFila)} = (regexp_match(
+                "valor"."v" #>> '{}',
+                '/invitees/([^/?#[:space:]"'']+)'
+              ))[1]
+              and ${vigente(calls)}
+          )
+      )
+    group by "deals"."program_id"
+  `);
+  const dealsSinLlamada = (Array.isArray(respuestaDealsSinLlamada)
+    ? respuestaDealsSinLlamada
+    : respuestaDealsSinLlamada.rows) as { programId: string; n: number }[];
+  for (const fila of dealsSinLlamada) resultado.get(fila.programId)!.dealsConCitaSinLlamada = Number(fila.n);
   return resultado;
 }
 
