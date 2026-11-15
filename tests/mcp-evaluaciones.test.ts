@@ -203,6 +203,8 @@ beforeEach(async () => {
     closerUserId: nicolas.id,
     resultado: "agendada",
     fechaAgenda: new Date("2026-11-14T09:00:00-05:00"),
+    // La agenda se cuenta por el dia en que se creo, asi que se fija: con el reloj real la prueba vencia cada medianoche.
+    createdAt: new Date("2026-11-14T09:00:00-05:00"),
     origen: "app",
   });
   await db.insert(abonos).values({
