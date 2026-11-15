@@ -565,7 +565,7 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     programasVisibles.mockResolvedValue([suyo]);
 
     expect(await correrTodos({ seccion: "pauta" })).toBe("paso");
-    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
+    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }), expect.anything());
   });
 
   it("el gerente solo entrega a la vista sus programas visibles", async () => {
@@ -574,7 +574,7 @@ describe("dashboard de todos los programas (ticket 095)", () => {
     programasVisibles.mockResolvedValue([suyo]);
 
     expect(await correrTodos()).toBe("paso");
-    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }));
+    expect(armarVistaDeTodos).toHaveBeenCalledWith(expect.objectContaining({ programas: [suyo] }), expect.anything());
   });
 
   it("un programa fuera del alcance nunca llega al constructor", async () => {
