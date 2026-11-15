@@ -61,3 +61,10 @@ con un desglose?
 **Qué cierra el ticket:** la respuesta de Mani, quitar la nota provisional de las tres filas (`metricas.md`, `registro.ts`, `overview.md` §11) en el mismo commit (N8) y marcar tracker y `status:` (N9).
 **Hueco relacionado, medido el 14-nov:** `agendas_meta` quedó declarada en `lib/mcp/cobertura.ts` con la razón «Cifra de resumen_del_hub» (el tipo `RazonSinLista` solo admite esa o «Se pide por consultar_hechos»),
 pero `resumen_del_hub` NO devuelve hoy ninguna cifra de pauta (ni costos ni agendas Meta): el MCP no puede consultar `agendas_meta` todavía. `TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP` subió de 48 a 49.
+
+## Respondido por Mani (14-nov, noche): opción B
+**D-1: Envíos cuenta completos y parciales, y se muestran las dos cifras** (Envíos completos y Envíos parciales, cada una con su lista).
+Mueve cifras: el total de Envíos deja de ser solo completos. Falta el código, en un solo commit (N8): el hecho de envíos (`lib/queries/hechos/envio.ts:104`)
+con el desglose por `es_parcial`, la cifra de parciales con su ficha, quitar la nota «Pendiente de Mani» de `docs/metricas.md` (~307), `lib/metricas/registro.ts`
+(~1090) y `docs/overview.md` §11, los dorados que cambien y el aviso de qué número se movió (regla del 419). No se hizo en este commit porque
+`registro.ts` y `metricas.md` los está editando la sesión de las fichas de Comercial; va después.

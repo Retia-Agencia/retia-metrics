@@ -20,6 +20,8 @@ apuntan a otro programa o a rutas del inactivo que responden 404. El selector lo
   Lo usan las 11 páginas de tab bajo `app/(app)/p/[programa]/`.
 
 ## Done cuando
-- [ ] Tests de `navParaRol` y `rutaAlCambiarDePrograma` con un inactivo; páginas forjadas: administrador redirigido, closer 404.
+- [x] Tests de `navParaRol` y `rutaAlCambiarDePrograma` con un inactivo; páginas forjadas: administrador redirigido, closer 404.
 - [ ] Typecheck, lint, tests del cambio y `npm run build` en verde; recorrido en `dev:local` con un inactivo.
 - [ ] Tracker y `status:` iguales (N9).
+
+**14-nov (orquestador):** CI verde en `6b225924` (incluye build). Marcado solo lo que se ve en el código y los tests. Falta con evidencia escrita: el recorrido en `dev:local` con un programa inactivo.

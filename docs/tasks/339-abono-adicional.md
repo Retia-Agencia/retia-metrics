@@ -3,7 +3,7 @@ id: 339
 etapa: deals
 serves: "ADR 0113 (abono adicional con nota opcional) · reporte de Michael Castellanos del 28-oct: Maru no pudo registrar un 1:1 de ComunicArte"
 depends: []
-status: todo
+status: en main
 ---
 
 # 339 — Abono adicional: lo que se vende aparte del programa
@@ -49,3 +49,5 @@ caja y no toca saldo, valor vendido, etapa, ventas, meta ni comisión.
 - Maru puede registrar el 1:1 de su caso con nota, en escritorio y a 375 px, y el saldo del deal del programa sigue
   en USD 797.
 - Acción forjada: un closer que no es dueño del deal recibe 403 y la base no se mueve.
+
+**14-nov (orquestador):** estaba en `todo` pero el código está en main desde el 28-oct (`296cf639`, `e1d82944`): enum `concepto_abono`, nota obligatoria en `lib/deals/abonos.ts:149` y 403 al no dueño en `tests/abonos-del-deal.test.ts:239`. Falta el caso real de Maru (1:1 con nota, saldo sigue en USD 797) en escritorio y 375 px.

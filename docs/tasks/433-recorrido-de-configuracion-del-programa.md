@@ -14,7 +14,9 @@ título, para qué sirve, estado (Listo, Falta, Recomendado) y el editor que ya 
 pendiente abre desplegado. Al final, Activar, habilitado solo con los exigidos listos.
 
 ## Done cuando
-- [ ] Ningún editor reescrito: se reusan los de la ficha.
+- [x] Ningún editor reescrito: se reusan los de la ficha.
 - [ ] Typecheck, lint, tests del cambio y build en verde; `npm run test:humo` y clic en cada paso con la consola abierta,
       en claro, oscuro y 375 px, comparado con `docs/bocetos/una-forma-de-metrica.html`.
 - [ ] Tracker y `status:` iguales (N9).
+
+**14-nov (orquestador):** CI verde en `6b225924` (incluye build). Marcado solo lo que se ve en el código y los tests. Falta con evidencia escrita: `npm run test:humo` y el clic en cada paso con la consola abierta.

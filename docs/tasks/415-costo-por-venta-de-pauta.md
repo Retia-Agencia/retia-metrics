@@ -3,7 +3,7 @@ id: 415
 etapa: pauta
 serves: "docs/paid-media-excels-2026-11-10.md §2 (CAC) y §6 · docs/metricas.md §3.2 (🟡 123) · docs/diseno-cifra-y-pauta.md §2.1 (cac) y §4.3"
 depends: [412]
-status: en main
+status: done
 ---
 
 # 415 — Costo por venta (CAC) de Pauta

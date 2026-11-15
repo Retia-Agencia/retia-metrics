@@ -3,7 +3,7 @@ id: 430
 etapa: configuracion
 serves: "Mani, 14-nov: onboarding de un programa sin fricción · ADR 0132 puntos 1 y 2 · docs/onboarding-de-programa.md F2 y F3"
 depends: []
-status: en main
+status: done
 ---
 
 # 430 — Un registro de pasos de configuración del programa
@@ -21,7 +21,7 @@ Lo que falta para activar estaba escrito dos veces: `faltaParaActivar` (`lib/que
 - `reactivarPrograma` lanza el 422 con los títulos pendientes exigidos; la pantalla pinta lo mismo. Las dos copias se borran.
 
 ## Done cuando
-- [ ] Registro y hechos con tests; test de paridad (pantalla y 422 dicen lo mismo con un requisito a medias).
-- [ ] `faltaParaActivar` y `exigirPrincipalYToken` borrados; sus tests migrados.
-- [ ] Typecheck, lint y tests del cambio en verde; checkpoint verde.
-- [ ] Tracker y `status:` iguales (N9).
+- [x] Registro y hechos con tests; test de paridad (pantalla y 422 dicen lo mismo con un requisito a medias).
+- [x] `faltaParaActivar` y `exigirPrincipalYToken` borrados; sus tests migrados.
+- [x] Typecheck, lint y tests del cambio en verde; checkpoint verde.
+- [x] Tracker y `status:` iguales (N9).

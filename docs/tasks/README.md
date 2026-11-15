@@ -25,11 +25,11 @@ Análisis en `docs/onboarding-de-programa.md`. Dos carriles: ficha (430 → 432 
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 430 | [Un registro de pasos de configuración del programa](./430-registro-de-pasos-de-configuracion.md) | — | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
-| [ ] | 431 | [El estado del programa decide las tabs](./431-el-estado-del-programa-decide-las-tabs.md) | — | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
-| [ ] | 432 | [La ficha de un programa activo en tres pestañas](./432-ficha-del-programa-en-tres-pestanas.md) | 430 | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
-| [ ] | 433 | [El recorrido de configuración de un programa inactivo](./433-recorrido-de-configuracion-del-programa.md) | 430, 432 | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
-| [ ] | 434 | [El alta de un programa sin pedir el slug](./434-alta-de-programa-sin-slug.md) | 431 | en main · 14-nov · falta el checkpoint (probado a mano en `dev:local`) |
+| [x] | 430 | [Un registro de pasos de configuración del programa](./430-registro-de-pasos-de-configuracion.md) | — | done · 14-nov · checkpoint `cp-20261114-2` |
+| [ ] | 431 | [El estado del programa decide las tabs](./431-el-estado-del-programa-decide-las-tabs.md) | — | en main · 14-nov · CI verde; faltan los recorridos de su Done cuando |
+| [ ] | 432 | [La ficha de un programa activo en tres pestañas](./432-ficha-del-programa-en-tres-pestanas.md) | 430 | en main · 14-nov · CI verde; faltan los recorridos de su Done cuando |
+| [ ] | 433 | [El recorrido de configuración de un programa inactivo](./433-recorrido-de-configuracion-del-programa.md) | 430, 432 | en main · 14-nov · CI verde; faltan los recorridos de su Done cuando |
+| [ ] | 434 | [El alta de un programa sin pedir el slug](./434-alta-de-programa-sin-slug.md) | 431 | en main · 14-nov · CI verde; faltan los recorridos de su Done cuando |
 
 ## 22 · Pedidos del 11-nov (Michael y Paid Media) · 12-nov
 
@@ -45,7 +45,7 @@ y el texto del push 1 los hace Mani en el repo de Juanito. El programa de Majo S
 | [ ] | 426 | [Silencio global de 3 h y cierre del día por Juanito](./426-silencio-global-y-cierre-del-dia.md) | 425 | en curso · 13-nov · en producción, falta ver el primer cierre de las 9 p.m. (ADR 0130 punto 6) |
 | [ ] | 427 | [El PDF del reporte diario trae todos los programas](./427-pdf-del-reporte-diario-de-todos-los-programas.md) | 373 | en curso · 13-nov · carril H · **14-nov: `/hub/reporte` en producción (`f24c3502`); falta validación de Michael antes del 30-nov, «meta de la semana a la fecha», rótulos «hoy» y la vista de impresión** |
 | [ ] | 428 | [Juanito avisa por WhatsApp los registros pendientes de cada closer](./428-push-de-juanito-por-registros-pendientes.md) | 390 | en curso · 13-nov · carril H · **14-nov: lado CRM en main (`dc7ba64b`, migración 0144 aplicada); falta Juanito (8:00 y 18:00), WhatsApp de cada closer, alerta «comprobante por confirmar» y probar de punta a punta** |
-| [ ] | 429 | [Tres textos del registro que no tienen fuente](./429-textos-sin-fuente-del-registro.md) | 419 | todo · 13-nov · carril D · Envíos, compensación de `objetivo_semana` y `agendas_meta` · **14-nov: tres filas respaldadas (`f2372cc3`); D-1 de Envíos provisional (el código cuenta solo completos): espera a Mani** |
+| [ ] | 429 | [Tres textos del registro que no tienen fuente](./429-textos-sin-fuente-del-registro.md) | 419 | todo · 13-nov · carril D · Envíos, compensación de `objetivo_semana` y `agendas_meta` · **14-nov: tres filas respaldadas (`f2372cc3`); D-1 respondido por Mani (14-nov): Envíos cuenta completos y parciales, las dos cifras a la vista; falta el código** |
 
 ## 21 · Una forma de métrica y Pauta en dos vistas (10-nov) · ola O12, dos personas
 
@@ -59,7 +59,7 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 | [ ] | 420 | [Hub › Pauta en dos vistas, con la forma aprobada](./420-pauta-en-dos-vistas.md) | 419 | en curso · 11-nov · carril P · dos vistas, ritmo, Origen y calidad, gráfica diaria y resumen hechos; falta «Ver solo» (416) |
 | [ ] | 414 | [Tabla de Pauta por día](./414-tabla-de-pauta-por-dia.md) | 412, 419 | en curso · carril P · cuadre con el Excel espera DM-8 · enmendado 13-nov: casilla nueva, toda celda que abre lista cuenta lo mismo que su lista (test exhaustivo por `ClavePautaSemanal`) |
 | [ ] | 416 | [Pauta por cuenta](./416-pauta-por-cuenta.md) | 412 | en curso · 13-nov · carril P · tabla Por cuenta y Ver por Cuenta hechos; falta Ver solo (420) y Q-8 ajusta la presentación |
-| [ ] | 415 | [Costo por venta (CAC) de Pauta](./415-costo-por-venta-de-pauta.md) | 412 | en main · 13-nov · carril P · todas las casillas: fila, ficha, diccionario, tests y estado contra objetivo (migración 0136 aplicada en producción con el ok de Mani) · falta checkpoint |
+| [x] | 415 | [Costo por venta (CAC) de Pauta](./415-costo-por-venta-de-pauta.md) | 412 | done · 14-nov · checkpoint `cp-20261114-2` · 13-nov · carril P · todas las casillas: fila, ficha, diccionario, tests y estado contra objetivo (migración 0136 aplicada en producción con el ok de Mani) |
 | [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | bloqueado · Q-4 (Paid Media) |
 | [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
 | [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | bloqueado · DM-8 (Michael y Paid Media) y D-C · migración |
@@ -487,7 +487,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [ ] | 336 | [Scoping: el manejo de media en el CRM, con Metricool de referente](./336-scoping-manejo-de-media-tipo-metricool.md) | — | todo · levantamiento, no construcción; **ruta crítica del paso 4** (29-oct); guion en `docs/media/mapa-mece.md`; desbloquea 333 y 334 |
 | [ ] | 337 | [Subir formatos al banco](./337-formatos-al-banco.md) | 321, 324 | todo · faltante de la verificación de crudos (28-oct) |
 | [ ] | 338 | [Insumos del creador e inbox de crudos](./338-insumos-del-creador.md) | 316, 321 | todo · faltante de la verificación de crudos (28-oct) · video espera el presupuesto de almacenamiento |
-| [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | todo · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
+| [ ] | 339 | [Abono adicional: lo vendido aparte del programa](./339-abono-adicional.md) | — | en main · 28-oct (`296cf639`) · falta el caso real de Maru · ADR 0113 · reporte de Michael del 28-oct (1:1 de Maru rechazado por la reja del sobrepago) · lleva migración |
 | [x] | 347 | [Calor en las ventas por escalón](./347-calor-en-la-escalera.md) | 320 | done · pedido de Mani del 29-oct · solo presentación, ninguna cifra cambia · lo reutiliza el 335 |
 | [ ] | 348 | [El MCP del CRM, fase 1: solo lectura, solo developers](./348-mcp-del-crm.md) | — | en main · 7-nov: código, build, tests y peticiones forjadas listos y en main; falta que el developer lo conecte con `claude mcp add` y compare una cifra con el Hub · migración 0117 aplicada |
 | [ ] | 383 | [El MCP del CRM, fase 2: OAuth propio y todos los roles](./383-mcp-oauth-para-todos.md) | 348 | en main · 9-nov · falta conectar en claude.ai, Claude Code y ChatGPT, y `test:humo` · ADR 0119 |
@@ -516,7 +516,7 @@ propuesta). Orden por olas y cola de migraciones en [`plan-reparto.md`](../plan-
 | [x] | 398 | [Diccionario y documentos al día](./398-diccionario-y-documentos-al-dia.md) | — | done · 9-nov · merge `3fd5d18b` · hijo del 385 (F7) · solo documentación |
 | [x] | 399 | [MCP: salida con nombres de negocio y descripciones estándar](./399-mcp-salida-con-nombres-de-negocio.md) | 397 | done · 9-nov · once tools con `outputSchema`, paridad y volumen; la medición de descubrimiento pasa al 387 · hijo del 385 (F7) · sin migración |
 | [x] | 400 | [MCP: rechazos de validación auditados y mes concreto](./400-mcp-rechazos-auditados-y-mes-concreto.md) | — | done · 7-nov · hijo del 385 (F7) · ola 0 · migración M8 solo si hace falta |
-| [ ] | 401 | [Retiro de lo muerto en la base](./401-retiro-de-lo-muerto-en-la-base.md) | 361, 391, 404, 389 | en main · 14-nov · código M9 a M14 hecho el 9-nov · migraciones M9 a M14 (0137 a 0142) aplicadas en producción, ADR 0131; pasa a done con el checkpoint verde que las incluya · 7-nov · hijo del 385 (F7) · ola 4 · migraciones M9 a M14 · ADR 0126 · decisión de Mani sobre `leads.pais` |
+| [x] | 401 | [Retiro de lo muerto en la base](./401-retiro-de-lo-muerto-en-la-base.md) | 361, 391, 404, 389 | done · 14-nov · checkpoint `cp-20261114-2` · código M9 a M14 hecho el 9-nov · migraciones M9 a M14 (0137 a 0142) aplicadas en producción, ADR 0131; pasa a done con el checkpoint verde que las incluya · 7-nov · hijo del 385 (F7) · ola 4 · migraciones M9 a M14 · ADR 0126 · decisión de Mani sobre `leads.pais` |
 | [x] | 402 | [Retención de entregas y notificaciones](./402-retencion-de-entregas-y-notificaciones.md) | — | done · 9-nov · ADR 0127 aceptada por Mani (180/90 días), cron `/api/cron/retencion`, CI verde (`4771f1f7`) · antes: todo · 7-nov · hijo del 385 (F7) · ola 4 · sin migración · ADR 0127 |
 | [x] | 403 | [Registro tipado completo y diccionario generado](./403-registro-tipado-completo-y-diccionario-generado.md) | 397, 389, 390, 391, 404, 392, 393, 351, 355 | done · `cp-20261113-1` · 13-nov · 10-nov · absorbe el 413 (audit del Hub) · **todas las casillas marcadas** (F0 a F5: audit, D-A a D-E, vocabulario único, trinquete en 0, dorados, guardianes, paridad) · migración 0133 aplicada en producción · deuda nombrada: `inbox-perdidos-en-calendly.tsx` e `inbox-sin-dueno.tsx` infieren «Sin UTM» de tres campos nulos
 | [x] | 349 | [Hub › Pauta: no shows por origen, cifras que abren sus personas y periodo visible](./349-pauta-no-shows-y-listas-por-origen.md) | 093, 251, 262 | done · 29-oct · build limpio y revisado en pantalla (base local) |

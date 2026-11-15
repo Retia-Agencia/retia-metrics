@@ -198,6 +198,65 @@ Pie: el escalón de la escalera, "Citas sin marcar", "Deals abiertos", "Deals si
 registrada" son cifras visibles de esta pestaña sin clave en el registro (ver dudas). Citas, Realizadas, No asistió, Ventas y Entró a
 caja salen también en Mi espacio; Vendido, Recaudado y Por cobrar, en Dinero; Asistencia, Cierre de ventas y Realizadas, en Hoy.
 
+#### Comercial · los recorridos (aprobado por Mani el 14-nov: las 6 fichas, con fundamento)
+
+Desbloquea el 419 E-3 Comercial (Alejo se detuvo el 13-nov: `lib/hub/cifras-de-recorridos.ts` pide 15 claves sin ficha). **Regla
+del borrador:** una clave nueva solo si es una medida nueva (otra unidad u otra pregunta); si es la misma medida vista de otra forma,
+es una **variante** de una ficha que ya existe (el molde de `VARIANTES_DE_PAUTA` en `lib/metricas/explicacion.ts`, que "nunca crea una
+segunda ficha del concepto"). Así salen **6 fichas nuevas**; las demás claves son variantes de una ficha o la misma ficha con otra clave. La fuente de cada fórmula es
+`docs/metricas.md` (filas "Embudo comercial", "Conversión por etapa", "Ventas por escalón" y la sección de la escalera) o, donde se
+dice, el código que hoy pinta la cifra.
+
+**Fichas nuevas** (cada una con su fila en `docs/metricas.md` y su nombre en `overview.md` §11, en el mismo commit, N8):
+
+| Clave | Rótulo | Universo | Qué mide | Fórmula | Variables | Fuente |
+|---|---|---|---|---|---|---|
+| embudo_comercial | Embudo comercial | todas | De los deals que se abrieron en el periodo, cuántos llegaron a cada paso: agendar, tener la llamada y comprar | número de deals del paso; cada paso es parte del anterior | Deal creado: el que se abrió en el periodo, por formulario o a mano. Agendó: tiene al menos una cita. Tuvo show: además tuvo una llamada atendida. Compró: además hoy está en Abonado o Completo | fila "Embudo comercial" (hoy sin ficha) |
+| conversion_por_etapa | Conversión por etapa | todas | De los deals que llegaron a una etapa, cuántos pasaron a la siguiente, cuántos siguen ahí y cuántos se perdieron ahí | pasaron + siguen aquí + se perdieron aquí = llegaron | Camino del setter: En gestión, Contactado, Calificado. Camino de la llamada: Agendado, Atendido, Compromiso, Ganado | fila "Conversión por etapa" (hoy sin ficha) |
+| tiempo_en_etapa | Días en la etapa | todas | Cuánto se demora un deal típico en salir de esta etapa | mediana de los días hábiles que pasan los deals en la etapa | Mediana: la mitad de los deals se demora menos y la otra mitad más. Con menos de cinco deals no se calcula y se muestra "—". Es el tiempo de la etapa en el programa, no cambia por camino | misma fila; hoy vive dentro de "Conversión por etapa" y se separa porque es otra unidad (días) |
+| dias_cita_a_pago | Días de la cita al pago | todas | Cuánto se demora en pagar quien no paga en la llamada | mediana de los días hábiles entre la cita atendida y el primer abono | Solo los escalones Pagó rápido y Pagó después; quien pagó en la llamada (0 días) y quien pagó sin llamada no entran. Primer abono: el primer pago vigente del programa, no un adicional | sección de la escalera, "Días medianos" |
+| perdidos_por_motivo | Perdidos por motivo | todas | Cuántos deals se cerraron como perdidos en el periodo, y por qué | número de deals que pasaron a Cierre perdido en el periodo, agrupados por motivo | Motivo: el que eligió el closer al perder el deal; sin motivo se agrupa en "Sin motivo". Anular un registro no es perderlo: lo anulado no cuenta | **nueva fila** (hoy solo en `calcularEmbudoEtapas`) |
+| ticket_perdido | Ticket perdido | todas | Cuánta plata dejó de entrar por los deals perdidos, a precio de lista | Σ ticket de la cohorte de cada deal perdido, en USD | Ticket de la cohorte: el precio de lista del programa, no un valor pactado (el perdido nunca lo tuvo). Un deal sin ticket en su cohorte no suma y se avisa como "Parcial" | **nueva fila** (hoy solo en `calcularEmbudoEtapas`) |
+
+**Fundamento de cada cifra** (pedido de Mani, 14-nov: nada sin fundamento; rastreado en las reuniones, el referente de HubSpot de
+Gerencia, los reportes diarios de Michael, el boceto y los Excels de Paid Media):
+
+| Cifra | Quién la pidió o dónde se usa | Veredicto |
+|---|---|---|
+| Embudo comercial (creados → agendaron → show → compraron) | Dani, reunión con Gerencia 30-sep, GC-33: *"si la generación de deals sube y los agendados no, no estoy trayendo leads calificados"* (`comercial.md:130`); su tablero de HubSpot, gráficas #7 Generación de deals, #14 Deals con agenda y #16 a #18 Ganados / show up (`comercial.md` §9.7); weekly 13-nov: *"embudo comercial funcionando al 100 %"* (`weekly-2026-11-13.md:20`) | ✅ se usa |
+| Citas futuras | HubSpot #10 "Agendas / semana", que mezcla semanas pasadas con futuras (`comercial.md` §9.7): separarlas es el arreglo de esa gráfica | ✅ se usa |
+| Escalones, % del escalón, cita pasada sin resultado | ADR 0109 (Mani, 28-oct); weekly 13-nov, detalle: "Pago rápido contra pago después, y el peso de cada escalón", espera la definición de Daniel (`reportes/weekly-2026-11-13-daniel-detalle.html`); y es la base de media (origen × escalón, 335) | ✅ decidido, con una definición pendiente de Daniel |
+| Días de la cita al pago | ADR 0109; depende de qué cuenta como "pago rápido" (`programs.corte_pago_rapido_dias`), que es justo lo que Daniel tiene que definir | 🟡 entra, marcado: su lectura cambia cuando Daniel defina el corte |
+| Perdidos por motivo y Ticket perdido | Reunión con Pauta 29-sep, PT-34: "ranking de motivos de pérdida con su ticket perdido", Mani: entra (`analytics.md:228` y `:425`); el reporte diario de Michael lee las objeciones (*"El dinero es la objeción dominante: 55 personas"*, 15-sep, v5) y `hub.md` §2.3 lo cruza con esta cifra | ✅ se usa |
+| Conversión por etapa (dos caminos: pasaron, siguen, se perdieron) | Solo el recorrido de Mani del 5-nov (ticket 381) y la propuesta del CRM "Embudo por etapa en número y %" (`comercial.md` §9.8, que es propuesta nuestra, no de Gerencia). Ningún tablero, reporte ni Excel la trae | ✅ Mani, 14-nov: se queda |
+| Días en la etapa | Solo la propuesta "tiempos entre etapas" (`comercial.md` §9.8) y el ticket 065 (plan v2, 4-oct). Nadie la pidió, no está en HubSpot, ni en los reportes, ni en los Excels | ✅ Mani, 14-nov: se queda (no la pidió Gerencia; la decide Mani como Operations Manager) |
+
+**Decidido (Mani, 14-nov):** las dos se quedan; son 6 fichas nuevas.
+
+**Variantes** (misma ficha, otro texto o unidad; ninguna crea concepto):
+
+| Clave que pide hoy el constructor | Ficha base | Rótulo | Qué mide / fórmula |
+|---|---|---|---|
+| un escalón (`pago_en_llamada` … `dejo_datos`) y un grupo de `GRUPOS_DE_CIERRE` (`cerro_en_la_llamada` … `no_llegaron_a_la_llamada`) | ventas_por_escalon | el del escalón | Cuántos deals quedaron en este escalón; el texto de cada uno ya está en las variables de la ficha |
+| porcentaje_de_escalera | ventas_por_escalon | % del escalón | Qué parte de los deals del conjunto quedó en este escalón · deals del escalón ÷ deals del conjunto; base cero "—"; nunca se suma entre programas |
+| ventas_sin_llamada (auditoría) | ventas_por_escalon | Ventas sin llamada registrada | Es el grupo del mismo nombre; la auditoría lo muestra suelto |
+| cita_sin_resultado_de_escalera | escalera_sin_resultado | Cita pasada sin resultado | La ficha ya existe: solo cambia la clave del constructor |
+| embudo_comercial_creados, _agendaron, _tuvieron_show, _compraron | embudo_comercial | Creados · Agendaron · Tuvieron show · Compraron | La cantidad del paso, con su definición de la tabla de arriba |
+| conversion_del_paso | embudo_comercial | Conversión del paso | Qué parte del paso anterior llegó a este · deals del paso ÷ deals del paso anterior; base cero "—" |
+| perdidos_del_paso | embudo_comercial | Se quedaron en el paso anterior | deals del paso anterior − deals de este paso |
+| pasaron, siguen_en_etapa, perdidos_en_etapa | conversion_por_etapa | Pasaron · Siguen aquí · Se perdieron aquí | Cada parte de la suma de la ficha |
+| dias_medianos_en_etapa | tiempo_en_etapa | Días en la etapa | La ficha completa |
+| dias_medianos_de_escalera | dias_cita_a_pago | Días de la cita al pago | La ficha completa |
+| deals_perdidos | perdidos_por_motivo | Deals perdidos | La ficha completa, una fila por motivo |
+| citas_futuras | citas | Citas futuras | Cuántas citas de la semana todavía no ocurren · citas agendadas con hora futura; no son pendientes ni no shows (la lista `agendas_futuras` ya existe) |
+
+**Una clave que no coincide (hallazgo de Alejo):** el paso del embudo se llama `tuvieron_show` en el tipo (`PasoEmbudoComercial`) y su
+lista se llama `embudo_comercial_shows` (vocabulario de listas, ya en URLs). Recomendado: no renombrar ninguna de las dos; el
+constructor traduce paso → lista en un solo mapa tipado y exhaustivo. Renombrar la lista rompería enlaces guardados; renombrar el paso
+toca `lib/queries/embudo-comercial.ts` sin ganar nada.
+
+**Respondido por Mani (14-nov):** aprobado tal cual, con fundamento: 6 fichas nuevas y el resto variantes; los rótulos de la tabla; "Ticket perdido" conserva su nombre y su variable dice que es precio de lista. Codex escribe fichas, variantes, filas del diccionario y vocabulario en un commit del carril D y se le avisa a Alejo para que cambie las claves del constructor (su archivo).
+
 #### Dinero
 
 | Clave | Rótulo | Universo | Qué mide | Fórmula | Variables |

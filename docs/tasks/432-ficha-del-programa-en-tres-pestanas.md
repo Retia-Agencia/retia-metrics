@@ -15,6 +15,8 @@ status: en main
 - `presentacionDeLaFicha`: configura → `programa, ventas, integraciones`; si no → `programa, ventas`.
 
 ## Done cuando
-- [ ] Mapa de secciones viejas con test; `tests/paginas.test.ts` actualizado.
+- [x] Mapa de secciones viejas con test; `tests/paginas.test.ts` actualizado.
 - [ ] Typecheck, lint, tests del cambio y build en verde; recorrido visual en claro, oscuro y 375 px.
 - [ ] Tracker y `status:` iguales (N9).
+
+**14-nov (orquestador):** CI verde en `6b225924` (incluye build). Marcado solo lo que se ve en el código y los tests. Falta con evidencia escrita: el recorrido visual en claro, oscuro y 375 px.

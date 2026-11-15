@@ -14,6 +14,8 @@ El diálogo "Nuevo programa" pide Nombre y Ticket. La dirección (`/p/<slug>`) s
 único siguen siendo la reja.
 
 ## Done cuando
-- [ ] Test de `slugDesdeNombre` (tildes, ñ, espacios, símbolos, guiones repetidos, tope de 60).
+- [x] Test de `slugDesdeNombre` (tildes, ñ, espacios, símbolos, guiones repetidos, tope de 60).
 - [ ] Typecheck, lint, tests del cambio y build en verde; crear un programa en `dev:local`.
 - [ ] Tracker y `status:` iguales (N9).
+
+**14-nov (orquestador):** CI verde en `6b225924` (incluye build). Marcado solo lo que se ve en el código y los tests. Falta con evidencia escrita: crear un programa en `dev:local`.
