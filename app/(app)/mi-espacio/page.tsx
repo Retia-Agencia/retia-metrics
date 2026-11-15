@@ -92,14 +92,17 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   const seccion = seccionPedida(sujeto, uno(query.tab));
   const programaPedido = uno(query.programa);
   const preferido = seccion?.usaSelectorDePrograma ? await programaPreferidoDeCookie() : null;
+  // El developer en vista `todo` recibe el mensaje del dueño ANTES de leer membresías y tabs
+  // (más abajo): el cargador no lee nada de eso para él, igual que la página antes del 447.
+  const esDuenoEnTodo = esAccesoTotal(rol);
   const datos = await cargarDatosDeMiEspacio(db, {
     userId,
     rol,
-    puedeTrabajar,
+    puedeTrabajar: puedeTrabajar && !esDuenoEnTodo,
     puedeConectarIa: puedeConectarIa(rolReal),
     puedeCrearToken: puedeCrearTokenPersonal(rolReal),
     cargarProgramasVisibles: esCustomerSinTrabajo,
-    seccion,
+    seccion: esDuenoEnTodo ? null : seccion,
     programaPedido,
     programaPreferido: preferido,
     busqueda: query,
@@ -138,7 +141,7 @@ export default async function MiEspacioPage({ searchParams }: Props) {
   // "Ver como closer". Se decide con el rol de vista (bajo suplantación la sesión efectiva
   // ya no es acceso total y cae por el camino del closer). Va ANTES de cargar membresías:
   // el dueño no tiene espacio propio por programa.
-  if (esAccesoTotal(rol)) {
+  if (esDuenoEnTodo) {
     return (
       <PageShell titulo="Mi espacio" descripcion="Tu perfil y tu trabajo por programa.">
         <div className="space-y-6">

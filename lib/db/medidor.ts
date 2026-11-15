@@ -6,6 +6,8 @@ export interface CostoDeSolicitud {
   consultas: number;
   identicas: number;
   repetidas: Map<string, number>;
+  /** Cuántas veces se repitió idéntica cada sentencia (para decir CUÁL, no solo cuántas). */
+  identicasPorSentencia: Map<string, number>;
   vistas: Set<string>;
   inicio: number;
   msEnBase: number;
@@ -113,6 +115,7 @@ function costoNuevo(ruta: string): CostoDeSolicitud {
     consultas: 0,
     identicas: 0,
     repetidas: new Map(),
+    identicasPorSentencia: new Map(),
     vistas: new Set(),
     inicio: performance.now(),
     msEnBase: 0,
@@ -194,7 +197,10 @@ export const loggerDeCosto = {
     const parametrosSerializados = serializarParametros(parametros);
     if (parametrosSerializados !== "[no-serializable]") {
       const llave = `${sentencia}\u0000${parametrosSerializados}`;
-      if (costo.vistas.has(llave)) costo.identicas += 1;
+      if (costo.vistas.has(llave)) {
+        costo.identicas += 1;
+        costo.identicasPorSentencia.set(sentencia, (costo.identicasPorSentencia.get(sentencia) ?? 0) + 1);
+      }
       else costo.vistas.add(llave);
     }
     costo.repetidas.set(sentencia, (costo.repetidas.get(sentencia) ?? 0) + 1);
@@ -247,9 +253,15 @@ function resumir(costo: CostoDeSolicitud): ResumenDeCosto {
 export function medir<T>(
   ruta: string,
   ejecutar: () => Promise<T>,
-): Promise<{ valor: T; costo: ResumenDeCosto }> {
+): Promise<{ valor: T; costo: ResumenDeCosto; identicas: Array<{ sentencia: string; veces: number }> }> {
   const costo = costoNuevo(patronDeRuta(ruta));
-  return contexto.run(costo, async () => ({ valor: await ejecutar(), costo: resumir(costo) }));
+  return contexto.run(costo, async () => {
+    const valor = await ejecutar();
+    const identicas = [...costo.identicasPorSentencia]
+      .map(([sentencia, veces]) => ({ sentencia, veces }))
+      .sort((a, b) => b.veces - a.veces);
+    return { valor, costo: resumir(costo), identicas };
+  });
 }
 
 /** Conserva el contrato del MCP mientras mueve el concepto a su módulo único. */

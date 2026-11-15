@@ -151,8 +151,10 @@ async function medirPagina(nombre: string, pagina: Pagina, cantidad: number) {
   await base.vaciar();
   const sembrado = await sembrar(base.db, cantidad);
   abrirSolicitud();
-  const { costo } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
-  return { costo, fallas: fallasDelGuardian(costo, pagina.tope) };
+  const { costo, identicas } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
+  // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
+  const cuales = identicas.slice(0, 5).map(({ sentencia, veces }) => `  ×${veces + 1} ${sentencia.slice(0, 160)}`);
+  return { costo, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
 }
 
 function paginasEn(directorio: string): string[] {

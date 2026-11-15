@@ -176,7 +176,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programasVisibles.mockResolvedValue([PROG_A, PROG_B]);
     programaVisiblePorSlug.mockResolvedValue(PROG_B);
     expect(await correr({ programa: "programa-b" })).toBe("render");
-    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-b");
+    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-b", expect.anything());
   });
 
   it("un programa AJENO (o inexistente) en la URL es 404", async () => {
@@ -294,7 +294,7 @@ describe("/mi-espacio (ticket 172)", () => {
     programaVisiblePorSlug.mockResolvedValue(PROG_A);
     const arbol = await renderizar({ tab: "metricas", programa: "programa-a", closer: "forjado" });
     expect(tieneComponente(arbol, "TabMetricas")).toBe(true);
-    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-a");
+    expect(programaVisiblePorSlug).toHaveBeenCalledWith("u-closer", "closer", "programa-a", expect.anything());
   });
 
   it("Mis métricas devuelve 404 si el closer pide un programa sin membresía", async () => {
