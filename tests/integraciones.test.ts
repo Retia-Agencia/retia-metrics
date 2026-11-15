@@ -66,6 +66,15 @@ describe("integraciones por programa", () => {
     expect(fila.config).toMatchObject({ datasetId: "123", dataset: "Dataset Retia", encendido: true });
   });
 
+  it("Meta CAPI conecta con un token que no puede leer el dataset y sigue exigiendo la prueba", async () => {
+    const f = vi.fn(async () => Response.json({ error: { code: 100 } }, { status: 400 })) as typeof globalThis.fetch;
+    await guardarIntegracion(db, actorId, programId, "meta_capi", "token-solo-envio", f, { datasetId: "123" });
+    const [fila] = await db.select().from(integraciones);
+    expect(fila.config).toMatchObject({ datasetId: "123", dataset: "Dataset", encendido: false });
+    await expect(configurarMetaCapi(db, actorId, programId, { encendido: true }))
+      .rejects.toMatchObject({ status: 422 });
+  });
+
   it("reconectar Meta CAPI apaga el envío y borra la prueba anterior", async () => {
     const f = vi.fn(async (url: string | URL | Request) => {
       const id = String(url).includes("/456?") ? "456" : "123";

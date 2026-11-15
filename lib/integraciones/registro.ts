@@ -75,13 +75,18 @@ export const INTEGRACIONES = {
     probar: async (valor, f, config) => {
       const datasetId = z.string().trim().regex(/^\d+$/, "El ID del dataset debe contener solo números.")
         .parse(config?.datasetId);
-      const cuerpo = await jsonSeguro(await f(`https://graph.facebook.com/v26.0/${datasetId}?fields=id,name`, {
+      // El nombre es solo para mostrar. Un token de Events Manager sirve para ENVIAR eventos pero no
+      // para leer el dataset (medido el 14-nov con el de Líder Arte: scope `read_ads_dataset_quality`,
+      // "(#100) Missing Permission"), así que una respuesta no-ok no rechaza el token: la validación
+      // de verdad es el evento de prueba, que configurarMetaCapi exige antes de encender.
+      const respuesta = await f(`https://graph.facebook.com/v26.0/${datasetId}?fields=id,name`, {
         headers: { Authorization: `Bearer ${valor}` },
-      }), "Meta CAPI");
-      if (typeof cuerpo.name !== "string" || !cuerpo.name.trim()) {
-        throw new ErrorDeApp("Meta CAPI devolvió una respuesta inválida.", 422);
-      }
-      return { dataset: cuerpo.name };
+      });
+      const cuerpo: unknown = respuesta.ok ? await respuesta.json().catch(() => null) : null;
+      const nombre = typeof cuerpo === "object" && cuerpo !== null
+        ? (cuerpo as Record<string, unknown>).name
+        : null;
+      return { dataset: typeof nombre === "string" && nombre.trim() ? nombre : "Dataset" };
     },
   },
 } satisfies Record<TipoIntegracion, Definicion>;
