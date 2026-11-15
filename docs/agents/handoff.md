@@ -56,9 +56,12 @@ antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.m
   - `medir()` devuelve además las sentencias idénticas y el guardián las imprime al fallar (dice CUÁL, no solo cuántas).
   - Topes de `/hub` = lo medido en el CI para 3 programas sembrados ANTES de quitar esas idénticas (185, 263, 219, 167): no son
     comparables con la tabla del 437 (dev:local). Se pueden bajar al conteo nuevo.
-- **447, falta:** (1) recorrido en `dev:local` de `/hub` (cuatro secciones) y `/mi-espacio` (closer en cada tab; developer con su
-  mensaje), mirando la consola: no se hizo (la Mac sin aire); (2) bajar los topes de `/hub` al conteo actual; (3) decidir si #24
-  entra a main como fase 1 o espera la fase 2; (4) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`, revisando que
+- **Fase 1 en main (`948ea4ee`, squash de #24, CI verde y despliegue de Vercel completo).** Recorrido en `dev:local` (15-nov, puerto 3447,
+  un subdominio por rol): `/hub` en Hoy, Comercial, Pauta y Dinero (escalera y operación por programa, Pauta y origen, "¿Vamos a
+  llegar?" en todas); `/mi-espacio` del developer (mensaje del dueño), closer (Notificaciones con chips, búsqueda y Re-agenda, Métricas
+  por programa y Todos, Info), gerente (Por decidir) y paid trafficker (Canales). Todo 200, consola limpia, cero errores de servidor. El
+  aviso de Calendly en Info es de la base local (token inválido), no del cambio.
+- **447, falta:** (1) hecho; (2) bajar los topes de `/hub` al conteo actual; (3) hecho (merge de la fase 1); (4) fase 2: `/p/[programa]/hub` y el resto de `PENDIENTES_447`, revisando que
   ningún componente asíncrono lea datos fuera de su cargador; (5) con todo, 447 a `done` en el tracker y en su `status:`.
 
 ### 15-nov (tarde) · 437: cero consultas idénticas en el Hub y Mi espacio, sin commitear (sesión de Mani)
