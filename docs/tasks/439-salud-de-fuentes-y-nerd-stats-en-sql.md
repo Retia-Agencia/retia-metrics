@@ -101,7 +101,9 @@ principal**, no tú (AGENTS.md). Deja el SQL propuesto en este ticket.
 - [x] Las alarmas de `/api/salud/alertas` y el semáforo dan lo mismo antes y después (tests de sus contratos verdes: semaforo-endpoint, salud-cierre, salud-fuentes, calendly-reconciliar).
 - [x] Typecheck, lint y tests del cambio verdes (68 pasando); sin componente cliente, sin build.
 
-## Indice propuesto
+## Indice propuesto (DESCARTADO el 15-nov, Mani)
+
+Medido contra producción (solo lectura): la paginación por programa ya usa `entregas_webhook_programa_idx`, 3,3 ms de ejecución con el programa de 3.357 entregas; el índice nuevo solo evitaría un sort incremental de 50 filas. Los `seq_scan` vienen de una tabla de ~9.000 filas donde el planificador los prefiere. No se aplica; si la tabla crece por órdenes de magnitud, se revisa con un `EXPLAIN`.
 
 La paginacion keyset de `entregasDePrograma` recorre `entregas_webhook` por programa y ordena por fecha e id descendentes:
 

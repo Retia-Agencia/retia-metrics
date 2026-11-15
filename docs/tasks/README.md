@@ -60,7 +60,7 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 | [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso |
 | [ ] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | en curso · 15-nov · helper y memoización hechos, sin commit; Hub Pauta 837→323 consultas; quedan idénticas en `/hub` y Comercial, falta prueba del abono y checkpoint |
 | [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |
-| [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | en curso · en main el código base (d23c53c3); fix-up de alarmas Calendly en SQL en t439 sin commit; medido en producción 1,4 s (≤ 2 s); falta el índice de `entregas_webhook` (migración, sesión principal) |
+| [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | en curso · en main · 15-nov · medido en producción 1,4 s (≤ 2 s) y alarmas idénticas; sin índice de `entregas_webhook` (descartado, medido); falta el checkpoint verde |
 | [ ] | 440 | [Una petición lenta falla en segundos y con mensaje](./440-fallar-rapido.md) | 435 | en curso · código listo; falta pg_sleep por el pooler y ver `error.tsx` |
 | [ ] | 441 | [La función junto a la base y la cuenta de conexiones](./441-region-y-presupuesto-de-conexiones.md) | 435, 436 | todo · operación, sesión principal |
 | [ ] | 442 | [Qué enlaces precargan se decide](./442-prefetch-decidido.md) | 436 | en curso · código listo, falta medir con el 436 en producción |
