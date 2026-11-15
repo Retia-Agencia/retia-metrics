@@ -1,6 +1,7 @@
 import { attachDatabasePool } from "@vercel/functions";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import type { PoolClient } from "pg";
 import * as schema from "./schema";
 import { loggerDeCosto, registrarTiempoEnBase } from "./medidor";
 
@@ -13,6 +14,37 @@ const MAX_CONEXIONES_POR_PROCESO = 5;
 // handlers) y `next dev` lo recarga en cada cambio. Medido el 14-nov: 15 conexiones en un proceso de
 // produccion y "too many clients" en dev. `globalThis` es lo unico que comparten todas las copias.
 const global = globalThis as unknown as { __retiaDb?: DB };
+
+const CONSULTAS_MEDIDAS = Symbol("consultas-medidas");
+
+type Consultable = Pick<PoolClient, "query"> & { [CONSULTAS_MEDIDAS]?: true };
+
+/** Conserva las variantes Promise y callback de `pg` y evita envolver dos veces un cliente. */
+export function envolverConsultasMedidas(consultable: Consultable): void {
+  if (consultable[CONSULTAS_MEDIDAS]) return;
+  const consultar = consultable.query.bind(consultable);
+  consultable.query = ((...argumentos: unknown[]) => {
+    const inicio = performance.now();
+    const ultimo = argumentos.at(-1);
+    if (typeof ultimo === "function") {
+      argumentos[argumentos.length - 1] = (...respuesta: unknown[]) => {
+        registrarTiempoEnBase(performance.now() - inicio);
+        return Reflect.apply(ultimo, undefined, respuesta);
+      };
+      return Reflect.apply(consultar, consultable, argumentos);
+    }
+    try {
+      const resultado = Reflect.apply(consultar, consultable, argumentos);
+      return Promise.resolve(resultado).finally(() => {
+        registrarTiempoEnBase(performance.now() - inicio);
+      });
+    } catch (error) {
+      registrarTiempoEnBase(performance.now() - inicio);
+      throw error;
+    }
+  }) as PoolClient["query"];
+  consultable[CONSULTAS_MEDIDAS] = true;
+}
 
 function crear() {
   const connectionString = process.env.DATABASE_URL;
@@ -30,15 +62,8 @@ function crear() {
   });
   // Un error en una conexion ociosa no puede tumbar el proceso.
   pool.on("error", (error) => console.error("[db] conexion ociosa:", error.message));
-  const consultar = pool.query.bind(pool);
-  pool.query = (async (...argumentos: Parameters<typeof pool.query>) => {
-    const inicio = performance.now();
-    try {
-      return await consultar(...argumentos);
-    } finally {
-      registrarTiempoEnBase(performance.now() - inicio);
-    }
-  }) as typeof pool.query;
+  // Solo los clientes: `pool.query` consulta por dentro con uno de ellos, y envolver tambien el pool contaria dos veces.
+  pool.on("connect", envolverConsultasMedidas);
   attachDatabasePool(pool);
   return drizzle(pool, { schema, logger: loggerDeCosto });
 }

@@ -36,7 +36,7 @@ interface Presupuesto {
 // origenDelPrograma y cargarRoasDePauta. Todas aceptan una base inyectada y solo
 // necesitan programa y/o periodo; así el presupuesto no depende de sembrar deals,
 // cohortes, pauta o configuración completa de una pantalla.
-const PRESUPUESTOS: Record<string, Presupuesto> = {
+const PRESUPUESTOS = {
   "nerd-stats/conteos-por-programa": {
     tope: 12,
     identicas: 0,
@@ -93,13 +93,13 @@ const PRESUPUESTOS: Record<string, Presupuesto> = {
     identicas: 4,
     llamar: (db, s) => cargarRoasDePauta(db, s.programaId, RANGO, HOY, AHORA),
   },
-};
+} satisfies Record<string, Presupuesto>;
 
 // Estas dos funciones tienen hoy una consulta por programa/fuente. El ticket 439
 // las reemplaza por agregaciones en SQL y quitará estas excepciones.
-const EXCEPCIONES: Partial<Record<keyof typeof PRESUPUESTOS, 439>> = {
-  "nerd-stats/conteos-por-programa": 439,
-  "nerd-stats/fuentes-con-salud": 439,
+const EXCEPCIONES: Partial<Record<keyof typeof PRESUPUESTOS, { ticket: 439; topeSeis: number }>> = {
+  "nerd-stats/conteos-por-programa": { ticket: 439, topeSeis: 18 },
+  "nerd-stats/fuentes-con-salud": { ticket: 439, topeSeis: 30 },
 };
 
 let base: Awaited<ReturnType<typeof crearBaseReutilizable>>;
@@ -161,7 +161,10 @@ describe("presupuesto de consultas", () => {
     expect(conTres.consultas).toBeLessThanOrEqual(presupuesto.tope);
     expect(conTres.identicas).toBeLessThanOrEqual(presupuesto.identicas);
     expect(conSeis.identicas).toBeLessThanOrEqual(presupuesto.identicas);
-    if (!(nombre in EXCEPCIONES)) {
+    const excepcion = EXCEPCIONES[nombre as keyof typeof PRESUPUESTOS];
+    if (excepcion) {
+      expect(conSeis.consultas).toBeLessThanOrEqual(excepcion.topeSeis);
+    } else {
       expect(conSeis.consultas).toBeLessThanOrEqual(conTres.consultas);
     }
   });

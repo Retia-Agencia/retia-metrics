@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import type { PoolClient } from "pg";
+import { envolverConsultasMedidas } from "@/lib/db";
 import {
   iniciarMedicionDeSolicitud,
   loggerDeCosto,
@@ -22,6 +24,45 @@ describe("patronDeRuta", () => {
 });
 
 describe("medidor de costo", () => {
+  it("acepta bigint y no considera idénticos los parámetros circulares", async () => {
+    const circular: { propio?: unknown } = {};
+    circular.propio = circular;
+    const { costo } = await medir("/hub", async () => {
+      loggerDeCosto.logQuery("select $1", [BigInt(1)]);
+      loggerDeCosto.logQuery("select $1", [BigInt(1)]);
+      loggerDeCosto.logQuery("select $1", [circular]);
+      loggerDeCosto.logQuery("select $1", [circular]);
+    });
+
+    expect(costo.consultas).toBe(4);
+    expect(costo.identicas).toBe(1);
+  });
+
+  it("mide las variantes Promise y callback de query y envuelve una sola vez", async () => {
+    const query = vi.fn((...argumentos: unknown[]) => {
+      const callback = argumentos.at(-1);
+      if (typeof callback === "function") {
+        setTimeout(() => callback(null, { rows: [] }), 2);
+        return undefined;
+      }
+      return new Promise((resolver) => setTimeout(() => resolver({ rows: [] }), 2));
+    });
+    const cliente = { query } as unknown as Pick<PoolClient, "query">;
+    envolverConsultasMedidas(cliente);
+    envolverConsultasMedidas(cliente);
+
+    const { costo } = await medir("/hub", async () => {
+      await cliente.query("select 1");
+      await new Promise<void>((resolver) => {
+        const retorno = cliente.query("select 2", () => resolver());
+        expect(retorno).toBeUndefined();
+      });
+    });
+
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(costo.msEnBase).toBeGreaterThan(0);
+  });
+
   it("cuenta consultas idénticas, N+1 y tiempo en base sin guardar parámetros", async () => {
     const { costo } = await medir("/p/comunicarte/hub", async () => {
       loggerDeCosto.logQuery("select * from leads where id = $1", ["dato-personal-1"]);

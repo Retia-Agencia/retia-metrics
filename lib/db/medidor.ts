@@ -21,6 +21,79 @@ export interface ResumenDeCosto {
 
 const contexto = new AsyncLocalStorage<CostoDeSolicitud>();
 
+export const SEGMENTOS_DE_RUTA = new Set([
+  ".well-known",
+  "admin",
+  "ajustes",
+  "alertas",
+  "api",
+  "archivos",
+  "archivos-locales",
+  "auth",
+  "autorizar",
+  "avisos",
+  "bitacora",
+  "calendly",
+  "calls",
+  "canales",
+  "catalogos",
+  "cierre",
+  "clasificar",
+  "comprobantes",
+  "confirmar",
+  "cron",
+  "dashboard",
+  "deals",
+  "descargar.csv",
+  "envios",
+  "estudiantes-nuevos",
+  "formularios",
+  "grain",
+  "grain.csv",
+  "health",
+  "hub",
+  "inbox",
+  "leads",
+  "lista",
+  "lista.csv",
+  "login",
+  "manual",
+  "mcp",
+  "meta-capi",
+  "mcp-retencion",
+  "me",
+  "media",
+  "metas",
+  "mi-dia",
+  "mi-espacio",
+  "migracion",
+  "nerd-stats",
+  "oauth",
+  "oauth-authorization-server",
+  "oauth-protected-resource",
+  "p",
+  "pauta",
+  "pauta-citas.csv",
+  "pauta-semanal.csv",
+  "pendientes",
+  "perfil",
+  "ping",
+  "programa",
+  "proxima-cohorte",
+  "proyeccion-roas",
+  "recursos",
+  "reporte",
+  "retencion",
+  "revocar",
+  "salud",
+  "semaforo",
+  "sin-ver",
+  "students",
+  "token",
+  "usuarios",
+  "webhooks",
+]);
+
 function costoNuevo(ruta: string): CostoDeSolicitud {
   return {
     ruta,
@@ -35,7 +108,8 @@ function costoNuevo(ruta: string): CostoDeSolicitud {
 
 /** Convierte un pathname real en la forma privada y estable que se escribe en logs. */
 export function patronDeRuta(pathname: string): string {
-  const segmentos = pathname.split("/");
+  const [ruta] = pathname.split(/[?#]/, 1);
+  const segmentos = ruta!.split("/");
   let despuesDePrograma = false;
 
   return segmentos
@@ -48,12 +122,8 @@ export function patronDeRuta(pathname: string): string {
         despuesDePrograma = true;
         return segmento;
       }
-      const esIdNumerico = /^\d+$/.test(segmento);
-      const esUuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(segmento);
-      const esIdOpaco = segmento.length >= 12
-        && /\d/.test(segmento)
-        && /^[A-Za-z0-9_-]+$/.test(segmento);
-      return esIdNumerico || esUuid || esIdOpaco ? "[id]" : segmento;
+      if (!segmento || SEGMENTOS_DE_RUTA.has(segmento)) return segmento;
+      return "[id]";
     })
     .join("/");
 }
@@ -64,12 +134,31 @@ export const loggerDeCosto = {
     const costo = contexto.getStore();
     if (!costo) return;
     costo.consultas += 1;
-    const llave = `${sentencia}\u0000${JSON.stringify(parametros)}`;
-    if (costo.vistas.has(llave)) costo.identicas += 1;
-    else costo.vistas.add(llave);
+    const parametrosSerializados = serializarParametros(parametros);
+    if (parametrosSerializados !== "[no-serializable]") {
+      const llave = `${sentencia}\u0000${parametrosSerializados}`;
+      if (costo.vistas.has(llave)) costo.identicas += 1;
+      else costo.vistas.add(llave);
+    }
     costo.repetidas.set(sentencia, (costo.repetidas.get(sentencia) ?? 0) + 1);
   },
 };
+
+function serializarParametros(parametros: unknown[]): string {
+  try {
+    return JSON.stringify(parametros, function (clave, valor: unknown) {
+      const original = clave ? (this as Record<string, unknown>)[clave] : valor;
+      if (typeof original === "bigint") return original.toString();
+      if (original instanceof Date) return original.toISOString();
+      if (Buffer.isBuffer(original) || original instanceof Uint8Array) {
+        return Buffer.from(original).toString("base64");
+      }
+      return valor;
+    }) ?? "[no-serializable]";
+  } catch {
+    return "[no-serializable]";
+  }
+}
 
 /** Lo llama el adaptador de `pg` al terminar cada consulta. */
 export function registrarTiempoEnBase(ms: number): void {
