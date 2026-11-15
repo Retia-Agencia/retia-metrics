@@ -67,8 +67,8 @@ de un layout, con un valor ≤ al de su clase; excepciones nombradas (los crons)
 `tests/loading-guardian.test.ts`.
 
 ## Done cuando
-- [ ] `select pg_sleep(20)` por el cliente de la app contra producción corta a los ~15 s con el error traducido.
-      _Pendiente: pide el ok de Mani. Local (Postgres directo) ya corta a 15,0 s con 57014; falta el pooler 6543._
+- [x] `select pg_sleep(20)` por el cliente de la app contra producción corta a los ~15 s con el error traducido.
+      _Medido el 15-nov por el pooler 6543: el parámetro de arranque `statement_timeout` y `options=-c ...` los IGNORA el pooler (cortó a 20,5 s y 20,7 s). Lo que funciona: `query_timeout: 15_000` del cliente (cortó a 15,5 s, "Query read timeout"; la consulta sigue viva en el servidor) y `SET LOCAL statement_timeout` dentro de las transacciones (57014 a 16,1 s), que `aplicarTopeEnTransacciones` aplica tras cada `begin`._
 - [x] Con el pool lleno (prueba local: `max: 1` y dos consultas lentas), la segunda falla a los 10 s con error, no se
       cuelga. _(medido: 10,0 s, "timeout exceeded when trying to connect")_
 - [ ] Una página con una consulta lenta forzada en `dev:local` muestra el mensaje y el botón de reintentar.

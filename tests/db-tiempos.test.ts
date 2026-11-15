@@ -1,7 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+import type { PoolClient } from "pg";
 import { respuestaDeError } from "@/lib/auth/guards";
 import { esTiempoAgotado } from "@/lib/db/errores";
-import { opcionesDePool } from "@/lib/db";
+import {
+  aplicarTopeEnTransacciones,
+  envolverConsultasMedidas,
+  opcionesDePool,
+} from "@/lib/db";
+import { medir } from "@/lib/db/medidor";
 import {
   CONEXION_TIMEOUT_MS,
   QUERY_TIMEOUT_MS,
@@ -12,14 +18,79 @@ import {
 vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
 
 describe("topes de la base", () => {
-  it("configura el pool con los topes compartidos y una red de cliente más amplia", () => {
+  it("configura el pool con los topes compartidos", () => {
     expect(opcionesDePool("postgres://ejemplo")).toMatchObject({
       connectionString: "postgres://ejemplo",
       statement_timeout: STATEMENT_TIMEOUT_MS,
       query_timeout: QUERY_TIMEOUT_MS,
       connectionTimeoutMillis: CONEXION_TIMEOUT_MS,
     });
-    expect(QUERY_TIMEOUT_MS).toBeGreaterThan(STATEMENT_TIMEOUT_MS);
+    expect(QUERY_TIMEOUT_MS).toBe(15_000);
+    expect(STATEMENT_TIMEOUT_MS).toBe(15_000);
+    expect(QUERY_TIMEOUT_MS).toBeLessThanOrEqual(15_000);
+    expect(STATEMENT_TIMEOUT_MS).toBeLessThanOrEqual(15_000);
+  });
+
+  it("aplica SET LOCAL despues de begin y envuelve una sola vez", async () => {
+    const consultas: unknown[] = [];
+    const query = vi.fn((consulta: unknown) => {
+      consultas.push(consulta);
+      return Promise.resolve({ rows: [] });
+    });
+    const cliente = { query } as unknown as Pick<PoolClient, "query">;
+
+    aplicarTopeEnTransacciones(cliente);
+    aplicarTopeEnTransacciones(cliente);
+    await cliente.query("begin");
+    await cliente.query({ text: "begin" });
+    await cliente.query("select 1");
+
+    expect(consultas).toEqual([
+      "begin",
+      "set local statement_timeout = 15000",
+      { text: "begin" },
+      "set local statement_timeout = 15000",
+      "select 1",
+    ]);
+  });
+
+  it("conserva la variante callback al aplicar el tope", async () => {
+    const consultas: unknown[] = [];
+    const query = vi.fn((...argumentos: unknown[]) => {
+      consultas.push(argumentos[0]);
+      const callback = argumentos.at(-1);
+      if (typeof callback === "function") {
+        callback(null, { rows: [] });
+        return undefined;
+      }
+      return Promise.resolve({ rows: [] });
+    });
+    const cliente = { query } as unknown as Pick<PoolClient, "query">;
+    aplicarTopeEnTransacciones(cliente);
+
+    await new Promise<void>((resolver, rechazar) => {
+      const retorno = cliente.query("begin", (error) => {
+        if (error) rechazar(error);
+        else resolver();
+      });
+      expect(retorno).toBeUndefined();
+    });
+
+    expect(consultas).toEqual(["begin", "set local statement_timeout = 15000"]);
+  });
+
+  it("mantiene la medicion con ambos envoltorios", async () => {
+    const query = vi.fn(
+      () => new Promise((resolver) => setTimeout(() => resolver({ rows: [] }), 2)),
+    );
+    const cliente = { query } as unknown as Pick<PoolClient, "query">;
+    envolverConsultasMedidas(cliente);
+    aplicarTopeEnTransacciones(cliente);
+
+    const { costo } = await medir("/hub", () => cliente.query("select 1"));
+
+    expect(query).toHaveBeenCalledOnce();
+    expect(costo.msEnBase).toBeGreaterThan(0);
   });
 
   it("reconoce query_canceled directo y anidado en cause", () => {

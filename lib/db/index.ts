@@ -32,8 +32,10 @@ export function opcionesDePool(connectionString: string) {
 const global = globalThis as unknown as { __retiaDb?: DB };
 
 const CONSULTAS_MEDIDAS = Symbol("consultas-medidas");
+const TOPE_EN_TRANSACCIONES = Symbol("tope-en-transacciones");
 
 type Consultable = Pick<PoolClient, "query"> & { [CONSULTAS_MEDIDAS]?: true };
+type ClienteConTope = Pick<PoolClient, "query"> & { [TOPE_EN_TRANSACCIONES]?: true };
 
 /** Conserva las variantes Promise y callback de `pg` y evita envolver dos veces un cliente. */
 export function envolverConsultasMedidas(consultable: Consultable): void {
@@ -62,6 +64,49 @@ export function envolverConsultasMedidas(consultable: Consultable): void {
   consultable[CONSULTAS_MEDIDAS] = true;
 }
 
+function textoDeConsulta(consulta: unknown): unknown {
+  if (typeof consulta === "string") return consulta;
+  if (typeof consulta === "object" && consulta !== null && "text" in consulta) {
+    return consulta.text;
+  }
+  return undefined;
+}
+
+/** Aplica el tope del servidor dentro de cada transaccion abierta por Drizzle. */
+export function aplicarTopeEnTransacciones(cliente: ClienteConTope): void {
+  if (cliente[TOPE_EN_TRANSACCIONES]) return;
+  const consultar = cliente.query.bind(cliente);
+  cliente.query = ((...argumentos: unknown[]) => {
+    if (textoDeConsulta(argumentos[0]) !== "begin") {
+      return Reflect.apply(consultar, cliente, argumentos);
+    }
+
+    const aplicarTope = () =>
+      Reflect.apply(consultar, cliente, [
+        `set local statement_timeout = ${STATEMENT_TIMEOUT_MS}`,
+      ]);
+    const ultimo = argumentos.at(-1);
+    if (typeof ultimo === "function") {
+      argumentos[argumentos.length - 1] = (error: unknown, resultado: unknown) => {
+        if (error) return Reflect.apply(ultimo, undefined, [error, resultado]);
+        return Promise.resolve(aplicarTope()).then(
+          () => Reflect.apply(ultimo, undefined, [null, resultado]),
+          (errorDelTope) => Reflect.apply(ultimo, undefined, [errorDelTope]),
+        );
+      };
+      return Reflect.apply(consultar, cliente, argumentos);
+    }
+
+    return Promise.resolve(Reflect.apply(consultar, cliente, argumentos)).then(
+      async (resultado) => {
+        await aplicarTope();
+        return resultado;
+      },
+    );
+  }) as PoolClient["query"];
+  cliente[TOPE_EN_TRANSACCIONES] = true;
+}
+
 function crear() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
@@ -75,6 +120,7 @@ function crear() {
   pool.on("error", (error) => console.error("[db] conexion ociosa:", error.message));
   // Solo los clientes: `pool.query` consulta por dentro con uno de ellos, y envolver tambien el pool contaria dos veces.
   pool.on("connect", envolverConsultasMedidas);
+  pool.on("connect", aplicarTopeEnTransacciones);
   attachDatabasePool(pool);
   return drizzle(pool, { schema, logger: loggerDeCosto });
 }
