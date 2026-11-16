@@ -1044,6 +1044,13 @@
       "when": 1794860430357,
       "tag": "0148_venta_directa_451",
       "breakpoints": true
+    },
+    {
+      "idx": 149,
+      "version": "7",
+      "when": 1794860487516,
+      "tag": "0149_rls_cuadres_pauta",
+      "breakpoints": true
     }
   ]
 }
