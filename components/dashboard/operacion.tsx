@@ -1,6 +1,9 @@
 import { Enlace } from "@/components/enlace";
 import type { ReactNode } from "react";
-import { CifraConLista } from "@/components/cifra-con-lista";
+import type { cifrasClaveDeComercial, CifrasDeCloser } from "@/lib/hub/cifras-de-comercial";
+import type { cifrasDeEscalera, cifrasDelEmbudoComercial, cifrasDeCaminos, cifrasDeCitasPorSemana, cifrasDeAuditoria } from "@/lib/hub/cifras-de-recorridos";
+import type { CifraDeMetrica } from "@/lib/metricas/cifra";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { ContextoDeCifra } from "@/components/dashboard/contexto-de-cifra";
 import { BarraDeCierre, DetalleDeEscalera, Escalera } from "@/components/dashboard/escalera";
 import { BarraApilada100, EmbudoDeBarras, LeyendaDeBarras } from "@/components/graficas/barras";
@@ -79,11 +82,12 @@ export function Comparativo({ vista, detalles, titulo = "¿Cómo va cada closer?
   </CardContent></Card>;
 }
 
-function Titulo({ id, children }: { id: string; children: string }) {
-  return <CardTitle className="flex items-center gap-1.5 text-base">{children}<EnlaceAInfo seccion={id} etiqueta={children} /></CardTitle>;
+function Titulo({ id, children, sinInfo = false }: { id: string; children: string; sinInfo?: boolean }) {
+  return <CardTitle className="flex items-center gap-1.5 text-base">{children}{sinInfo ? null : <EnlaceAInfo seccion={id} etiqueta={children} />}</CardTitle>;
 }
 
-function Celda({ titulo, detalle, children }: { titulo: string; detalle?: DetalleDeCifra | null; children: ReactNode }) {
+function Celda({ titulo, detalle, children, cifra }: { titulo: string; detalle?: DetalleDeCifra | null; children: ReactNode; cifra?: CifraDeMetrica }) {
+  if (cifra) return <Cifra cifra={cifra} tamano="celda">{children}</Cifra>;
   return <CifraConLista titulo={titulo} detalle={detalle ?? undefined}>{children}</CifraConLista>;
 }
 
@@ -95,44 +99,45 @@ function Kpi({ titulo, valor, base, detalle, parcial = false, cobertura }: { tit
   </CardContent></Card>;
 }
 
-function AgendasPorSemana({ semanas, proximas }: Pick<DetallesDeOperacion, "semanas" | "proximas">) {
+function AgendasPorSemana({ semanas, proximas, cifras }: Pick<DetallesDeOperacion, "semanas" | "proximas"> & { cifras?: CifrasDeComercial["semanas"] }) {
   const filas = new Map<string, { desde: string; hasta: string; shows?: DetalleDeCifra; noShows?: DetalleDeCifra; pendientes?: DetalleDeCifra; futuras?: DetalleDeCifra }>();
   for (const s of semanas) filas.set(s.semana.desde, { ...s.semana, shows: s.shows, noShows: s.noShows, pendientes: s.pendientes });
   for (const p of proximas) filas.set(p.semana.desde, { ...(filas.get(p.semana.desde) ?? p.semana), futuras: p.futuras });
   const cantidad = (d?: DetalleDeCifra) => d?.resumen.subtotal.cantidad ?? 0;
   const conCasos = [...filas.values()].filter((s) => cantidad(s.shows) + cantidad(s.noShows) + cantidad(s.pendientes) + cantidad(s.futuras) > 0);
   const titulo = "Citas por semana";
-  return <Card><CardHeader><Titulo id="agendas-semana">{titulo}</Titulo></CardHeader><CardContent className="space-y-4">
+  return <Card><CardHeader><Titulo id="agendas-semana" sinInfo={!!cifras}>{titulo}</Titulo>{cifras ? <p className="text-xs text-muted-foreground">Las citas se agrupan por su semana y resultado: show, no-show, sin marcar o futura.</p> : null}</CardHeader><CardContent className="space-y-4">
     {conCasos.length === 0 ? <p className="text-sm text-muted-foreground">Sin citas en el periodo.</p> : <LeyendaDeBarras items={LEYENDA_DE_AGENDAS} />}
     {conCasos.map((s) => <div key={s.desde} className="space-y-1.5">
       <p className="text-sm font-medium">{fecha(s.desde)} a {fecha(s.hasta)}</p>
       <BarraApilada100 segmentos={[
-        { clave: "show", etiqueta: "Realizadas", cantidad: cantidad(s.shows), detalle: s.shows, tono: "exito" },
-        { clave: "no_show", etiqueta: "No asistió", cantidad: cantidad(s.noShows), detalle: s.noShows, tono: "peligro" },
-        { clave: "sin_marcar", etiqueta: "Sin marcar", cantidad: cantidad(s.pendientes), detalle: s.pendientes, tono: "alerta" },
-        { clave: "futuras", etiqueta: "Futuras", cantidad: cantidad(s.futuras), detalle: s.futuras, tono: "info" },
+        { clave: "show", etiqueta: "Realizadas", cantidad: cantidad(s.shows), cifra: cifras?.find((f) => f.desde === s.desde)?.realizadas, detalle: s.shows, tono: "exito" },
+        { clave: "no_show", etiqueta: "No asistió", cantidad: cantidad(s.noShows), cifra: cifras?.find((f) => f.desde === s.desde)?.noAsistio, detalle: s.noShows, tono: "peligro" },
+        { clave: "sin_marcar", etiqueta: "Sin marcar", cantidad: cantidad(s.pendientes), cifra: cifras?.find((f) => f.desde === s.desde)?.sinMarcar, detalle: s.pendientes, tono: "alerta" },
+        { clave: "futuras", etiqueta: "Futuras", cantidad: cantidad(s.futuras), cifra: cifras?.find((f) => f.desde === s.desde)?.futuras, detalle: s.futuras, tono: "info" },
       ]} />
     </div>)}
   </CardContent></Card>;
 }
 
-function Caminos({ vista, detalles }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"] }) {
+function Caminos({ vista, detalles, cifras }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"]; cifras?: CifrasDeComercial["caminos"] }) {
   const titulo = "¿Dónde se quedan y cuánto tardan?";
   const tiempo = new Map(vista.embudoEtapas.tiempoEnEtapa.map((fila) => [fila.etapa, fila.medianaDiasHabiles]));
   const detalle = (grupo: "pasos" | "siguen" | "perdidos", etapa: EtapaDelCamino) => detalles?.[grupo][etapa];
-  return <Card><CardHeader><Titulo id="etapas">{titulo}</Titulo></CardHeader><CardContent className="space-y-6">
+  return <Card><CardHeader><Titulo id="etapas" sinInfo={!!cifras}>{titulo}</Titulo>{cifras ? <p className="text-xs text-muted-foreground">Abiertos, aunque hayan vuelto a una etapa anterior. Se perdieron aquí: hoy en Cierre Perdido.</p> : null}</CardHeader><CardContent className="space-y-6">
     <LeyendaDeBarras items={LEYENDA_DE_ETAPAS} />
     {vista.embudoEtapas.conversion.porCamino.map((camino) => <section key={camino.camino} className="space-y-3">
       <h3 className="font-medium">{camino.camino === "setter" ? "Camino del setter" : "Camino de la llamada"}</h3>
       {camino.pasos.map((paso, indice) => {
+        const c = cifras?.find((c) => c.camino === camino.camino)?.pasos.find((p) => p.etapa === paso.etapa);
         const mediana = tiempo.get(paso.etapa === "ganado" ? "ganado_parcial" : paso.etapa) ?? null;
         const siguiente = camino.pasos[indice + 1]?.etapa;
         return <div key={paso.etapa} className="space-y-1.5">
-          <div className="flex items-baseline justify-between gap-3"><p className="text-sm">{ETIQUETA_DE_ETAPA[paso.etapa]}</p><p className="cifra text-xs text-muted-foreground">{mediana === null ? "—" : `${num(mediana, mediana % 1 === 0 ? 0 : 1)} días hábiles`}</p></div>
+          <div className="flex items-baseline justify-between gap-3"><p className="text-sm">{ETIQUETA_DE_ETAPA[paso.etapa]}</p><p className="cifra text-xs text-muted-foreground">{c ? <Cifra cifra={c.diasMedianos} tamano="celda">{mediana === null ? "—" : `${num(mediana, mediana % 1 === 0 ? 0 : 1)} días hábiles`}</Cifra> : mediana === null ? "—" : `${num(mediana, mediana % 1 === 0 ? 0 : 1)} días hábiles`}</p></div>
           <BarraApilada100 segmentos={[
-            { clave: "pasaron", etiqueta: "Pasaron", cantidad: paso.pasaron, detalle: siguiente ? detalle("pasos", siguiente) : undefined, tono: "exito" },
-            { clave: "siguen", etiqueta: "Siguen aquí", cantidad: paso.siguenAqui, detalle: detalle("siguen", paso.etapa), tono: "alerta" },
-            { clave: "perdidos", etiqueta: "Se perdieron aquí", cantidad: paso.perdidosAqui, detalle: detalle("perdidos", paso.etapa), tono: "peligro" },
+            { clave: "pasaron", etiqueta: "Pasaron", cantidad: paso.pasaron, cifra: c?.pasaron, detalle: siguiente ? detalle("pasos", siguiente) : undefined, tono: "exito" },
+            { clave: "siguen", etiqueta: "Siguen aquí", cantidad: paso.siguenAqui, cifra: c?.siguen, detalle: detalle("siguen", paso.etapa), tono: "alerta" },
+            { clave: "perdidos", etiqueta: "Se perdieron aquí", cantidad: paso.perdidosAqui, cifra: c?.perdidos, detalle: detalle("perdidos", paso.etapa), tono: "peligro" },
           ]} />
         </div>;
       })}
@@ -140,28 +145,29 @@ function Caminos({ vista, detalles }: { vista: VistaDelDashboard; detalles?: Det
   </CardContent></Card>;
 }
 
-function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"]; escalera: VistaDeEscalera; dinero: Record<string, DineroDeVentas> }) {
+function Closers({ vista, detalles, escalera, dinero, cifras, cifrasEscalera }: { cifras?: CifrasDeCloser[]; cifrasEscalera?: CifrasDeComercial["escalera"]; vista: VistaDelDashboard; detalles?: DetallesDeOperacion["comparativo"]; escalera: VistaDeEscalera; dinero: Record<string, DineroDeVentas> }) {
   const titulo = "Closers";
   if (vista.comparativo.length === 0) return null;
-  return <Card><CardHeader><Titulo id="closers">{titulo}</Titulo></CardHeader><CardContent className="overflow-x-auto">
+  return <Card><CardHeader><Titulo id="closers" sinInfo={!!cifras}>{titulo}</Titulo>{cifras ? <p className="text-xs text-muted-foreground">Las mismas cifras de arriba, por closer, en el periodo elegido. Sin casos sale “—”.</p> : null}</CardHeader><CardContent className="overflow-x-auto">
     <Tabla cabeceras={["Closer", nombreCorto("citas"), nombreCorto("asistencia"), nombreCorto("cierre_de_ventas"), nombreCorto("cita_a_venta"), "Cómo vendió", "Sin marcar", nombreCorto("vendido"), nombreCorto("recaudado"), nombreCorto("por_cobrar")]}>
       {vista.comparativo.map((fila) => {
         const c = detalles?.[fila.clave];
+        const cifrasFila = cifras?.find((c) => c.clave === fila.clave);
         const e = escalera.porCloser.find((x) => x.clave === fila.clave);
         const d = dinero[fila.clave];
         const base = fila.grupo.deals + fila.grupo.sinMarcar;
         const tasa = (valor: number | null) => valor === null ? "—" : formatearTasa(valor);
         return <tr key={fila.clave}>
           <td className="py-2">{fila.closerId ?? "Sin closer"}</td>
-          <td className="cifra text-right"><Celda titulo={nombreLargo("citas")} detalle={c?.agendas}>{fila.agendas ? num(fila.agendas) : "—"}</Celda></td>
-          <td className="cifra text-right"><Celda titulo="Grupo de citas" detalle={c?.grupo_citas}><CifraDeRazon razon={fila.razonShow} formato={pct} /></Celda></td>
-          <td className="cifra text-right"><Celda titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}><CifraDeRazon razon={fila.razonCierre} formato={pct} /></Celda></td>
-          <td className="cifra text-right">{tasa(fila.agendaAVenta)}</td>
-          <td className="w-56 min-w-44 px-4 text-right">{e ? <BarraDeCierre fila={e} /> : "—"}</td>
-          <td className="cifra text-right"><Celda titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
-          {([["Vendido", d?.vendido], ["Recaudado", d?.recaudado], ["Por cobrar", d?.porCobrar]] as const).map(([nombre, valor]) => (
+          <td className="cifra text-right"><Celda cifra={cifrasFila?.citas} titulo={nombreLargo("citas")} detalle={c?.agendas}>{fila.agendas ? num(fila.agendas) : "—"}</Celda></td>
+          <td className="cifra text-right"><Celda cifra={cifrasFila?.asistencia} titulo="Grupo de citas" detalle={c?.grupo_citas}><CifraDeRazon razon={fila.razonShow} formato={pct} /></Celda></td>
+          <td className="cifra text-right"><Celda cifra={cifrasFila?.cierreDeVentas} titulo={nombreLargo("cierre_de_ventas")} detalle={c?.grupo_shows}><CifraDeRazon razon={fila.razonCierre} formato={pct} /></Celda></td>
+          <td className="cifra text-right">{cifrasFila ? <Cifra cifra={cifrasFila.citaAVenta} tamano="celda" /> : tasa(fila.agendaAVenta)}</td>
+          <td className="w-56 min-w-44 px-4 text-right">{e ? <BarraDeCierre fila={e} cifras={cifrasEscalera?.porCloser.find((c) => c.clave === fila.clave)} /> : "—"}</td>
+          <td className="cifra text-right"><Celda cifra={cifrasFila?.sinMarcar ?? undefined} titulo="Citas sin marcar" detalle={c?.grupo_pendientes}>{fila.grupo.sinMarcar ? num(fila.grupo.sinMarcar) : "—"}</Celda>{fila.grupo.parcial ? <Badge className="ml-2" variant="alerta" title={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`} aria-label={`Calculado sobre ${num(fila.grupo.deals)} de ${num(base)} citas: ${num(fila.grupo.sinMarcar)} sin marcar`}>parcial</Badge> : null}</td>
+          {([["Vendido", d?.vendido, cifrasFila?.vendido], ["Recaudado", d?.recaudado, cifrasFila?.recaudado], ["Por cobrar", d?.porCobrar, cifrasFila?.porCobrar]] as const).map(([nombre, valor, cifra]) => (
             <td key={nombre} className="cifra whitespace-nowrap pl-4 text-right">
-              <Celda titulo={`${nombre} del closer`} detalle={c?.cierres}>{d && d.ventas > 0 && valor !== undefined ? usd(valor) : "—"}</Celda>
+              <Celda cifra={cifra} titulo={`${nombre} del closer`} detalle={c?.cierres}>{d && d.ventas > 0 && valor !== undefined ? usd(valor) : "—"}</Celda>
             </td>
           ))}
         </tr>;
@@ -170,16 +176,16 @@ function Closers({ vista, detalles, escalera, dinero }: { vista: VistaDelDashboa
   </CardContent></Card>;
 }
 
-function DetalleAuditoria({ vista, detalles, veEquipo, escalera }: { vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"]; veEquipo: boolean; escalera?: VistaDeEscalera }) {
+function DetalleAuditoria({ vista, detalles, veEquipo, escalera, cifras, cifrasEscalera }: { cifras?: CifrasDeComercial["auditoria"]; cifrasEscalera?: CifrasDeComercial["escalera"]; vista: VistaDelDashboard; detalles?: DetallesDeOperacion["embudo"]; veEquipo: boolean; escalera?: VistaDeEscalera }) {
   return <details className="auditoria-comercial rounded-lg border">
     <summary className="cursor-pointer px-4 py-3 text-base font-semibold">Detalle de auditoría</summary>
     <div className="space-y-4 p-4 pt-0">
       <div className="grid gap-4 lg:grid-cols-2">
-        {veEquipo ? <Card><CardHeader><CardTitle className="text-base">Abiertos por owner</CardTitle></CardHeader><CardContent><Tabla cabeceras={["Etapa", "Owner", "Deals"]}>{vista.embudoEtapas.abiertos.map((fila) => <tr key={`${fila.etapa}:${fila.ownerUserId ?? "sin"}`}><td>{nombreDeEtapa(fila.etapa)}</td><td>{fila.ownerNombre ?? "Sin dueño"}</td><td className="cifra text-right"><Celda titulo="Deals abiertos" detalle={detalles?.abiertos[claveDeAbiertos(fila.etapa, fila.ownerUserId)]}>{num(fila.deals)}</Celda></td></tr>)}</Tabla></CardContent></Card> : null}
-        <Card><CardHeader><CardTitle className="text-base">Sin dueño</CardTitle></CardHeader><CardContent><Tabla cabeceras={["Días", "Deals"]}>{vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => <tr key={fila.bucket}><td>{fila.bucket}</td><td className="cifra text-right"><Celda titulo="Deals sin dueño" detalle={detalles?.sinDueno[fila.bucket]}>{num(fila.deals)}</Celda></td></tr>)}</Tabla></CardContent></Card>
+        {veEquipo ? <Card><CardHeader><CardTitle className="text-base">Abiertos por owner</CardTitle></CardHeader><CardContent><Tabla cabeceras={["Etapa", "Owner", "Deals"]}>{vista.embudoEtapas.abiertos.map((fila, indice) => <tr key={`${fila.etapa}:${fila.ownerUserId ?? "sin"}`}><td>{nombreDeEtapa(fila.etapa)}</td><td>{fila.ownerNombre ?? "Sin dueño"}</td><td className="cifra text-right"><Celda cifra={cifras?.abiertos[indice]?.cifra} titulo="Deals abiertos" detalle={detalles?.abiertos[claveDeAbiertos(fila.etapa, fila.ownerUserId)]}>{num(fila.deals)}</Celda></td></tr>)}</Tabla></CardContent></Card> : null}
+        <Card><CardHeader><CardTitle className="text-base">Sin dueño</CardTitle></CardHeader><CardContent><Tabla cabeceras={["Días", "Deals"]}>{vista.embudoEtapas.sinDuenoPorAntiguedad.map((fila) => <tr key={fila.bucket}><td>{fila.bucket}</td><td className="cifra text-right"><Celda cifra={cifras?.sinDueno.find((c) => c.antiguedad === fila.bucket)?.cifra} titulo="Deals sin dueño" detalle={detalles?.sinDueno[fila.bucket]}>{num(fila.deals)}</Celda></td></tr>)}</Tabla></CardContent></Card>
       </div>
-      <Card><CardHeader><CardTitle className="text-base">Motivos de pérdida</CardTitle></CardHeader><CardContent>{vista.embudoEtapas.motivosDePerdida.length === 0 ? <p className="text-sm text-muted-foreground">Sin motivos en este periodo.</p> : <Tabla cabeceras={["Motivo", "Deals", "Ticket estimado"]}>{vista.embudoEtapas.motivosDePerdida.map((m) => <tr key={m.motivo}><td>{m.motivo}</td><td className="cifra text-right">{num(m.deals)}</td><td className="cifra text-right">{usd(m.ticketPerdidoUsd)}</td></tr>)}</Tabla>}</CardContent></Card>
-      {escalera ? <Card><CardHeader><CardTitle className="text-base">Siete escalones</CardTitle></CardHeader><CardContent><DetalleDeEscalera vista={escalera} periodo={vista.periodo} /></CardContent></Card> : null}
+      <Card><CardHeader><CardTitle className="text-base">Motivos de pérdida</CardTitle></CardHeader><CardContent>{vista.embudoEtapas.motivosDePerdida.length === 0 ? <p className="text-sm text-muted-foreground">Sin motivos en este periodo.</p> : <Tabla cabeceras={["Motivo", "Deals", "Ticket estimado"]}>{vista.embudoEtapas.motivosDePerdida.map((m) => <tr key={m.motivo}><td>{m.motivo}</td><td className="cifra text-right">{cifras ? <Cifra cifra={cifras.motivos.find((c) => c.motivo === m.motivo)!.deals} tamano="celda" /> : num(m.deals)}</td><td className="cifra text-right">{cifras ? <Cifra cifra={cifras.motivos.find((c) => c.motivo === m.motivo)!.ticket} tamano="celda" /> : usd(m.ticketPerdidoUsd)}</td></tr>)}</Tabla>}</CardContent></Card>
+      {escalera ? <Card><CardHeader><CardTitle className="text-base">Siete escalones</CardTitle></CardHeader><CardContent><DetalleDeEscalera vista={escalera} periodo={vista.periodo} cifras={cifrasEscalera} /></CardContent></Card> : null}
     </div>
   </details>;
 }
@@ -189,11 +195,23 @@ export interface PasoComercialConDetalle extends PasoDelEmbudoComercial {
   detallePerdidos?: DetalleDeCifra;
 }
 
+export interface CifrasDeComercial {
+  clave: ReturnType<typeof cifrasClaveDeComercial>;
+  escalera: ReturnType<typeof cifrasDeEscalera>;
+  embudo: ReturnType<typeof cifrasDelEmbudoComercial>;
+  caminos: ReturnType<typeof cifrasDeCaminos>;
+  semanas: ReturnType<typeof cifrasDeCitasPorSemana>;
+  auditoria: ReturnType<typeof cifrasDeAuditoria>;
+  closers?: CifrasDeCloser[];
+}
+
 export function Operacion({
+  cifras,
   vista, detalles, detallesOperacion, dealsContraAgendas, vistaEscalera,
   embudoComercial, origenEmbudo = "completo", enlacesDeOrigen, dineroPorCloser = {},
   hoy, veEquipo = true,
 }: {
+  cifras?: CifrasDeComercial;
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
   detallesOperacion?: DetallesDeOperacion;
@@ -214,26 +232,29 @@ export function Operacion({
   const ventasSinLlamada = vistaEscalera?.principal.grupos.ventas_sin_llamada;
   const opciones = [{ clave: "todos", etiqueta: "Todos" }, { clave: "completo", etiqueta: "Formulario completo" }, { clave: "parcial", etiqueta: "Parcial" }] as const;
   return <section id="operacion" className="scroll-mt-4 space-y-4">
-    <div><h2 className="text-xl font-semibold">Comercial</h2><p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p><ContextoDeCifra texto={contexto} /></div>
-    <Card><CardHeader><Titulo id="cifras">Cifras clave</Titulo></CardHeader><CardContent className="space-y-3">
-      {grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
+    <div><h2 className="text-xl font-semibold">Comercial</h2>{cifras ? null : <p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p>}<ContextoDeCifra texto={contexto} /></div>
+    <Card><CardHeader><Titulo id="cifras" sinInfo={!!cifras}>Cifras clave</Titulo>{cifras ? <p className="text-xs text-muted-foreground">Citas creadas dentro del periodo. Más de 10 % sin marcar vuelve parcial la tasa. Esas citas nunca cuentan como no-show.</p> : null}</CardHeader><CardContent className="space-y-3">
+      {cifras ? cifras.clave.sinMarcar ? <Badge variant="alerta"><Cifra cifra={cifras.clave.sinMarcar} tamano="celda" /> citas sin marcar</Badge> : null : grupo.sinMarcar > 0 ? <Badge variant="alerta"><Celda titulo="Citas sin marcar" detalle={detalles?.grupo_pendientes}>{num(grupo.sinMarcar)} citas sin marcar</Celda></Badge> : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {cifras ? <>{[cifras.clave.citas, cifras.clave.asistencia, cifras.clave.cierreDeVentas, cifras.clave.citaAVenta].map((c) => <Cifra key={c.concepto} cifra={c} mostrarCobertura />)}</> : <>
         <Kpi titulo={nombreCorto("citas")} valor={num(vista.embudo.agendas)} detalle={detalles?.agendas} />
         <Kpi titulo={nombreCorto("asistencia")} valor={valorDeRazon(vista.embudo.razonShow, pct)} base={`${num(grupo.conShow)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} parcial={grupo.parcial} cobertura={cobertura} />
         <Kpi titulo={nombreCorto("cierre_de_ventas")} valor={valorDeRazon(vista.embudo.razonCierre, pct)} base={`${num(grupo.vendidos)} de ${num(grupo.conShow)}`} detalle={detalles?.grupo_shows} parcial={grupo.parcial} cobertura={cobertura} />
         <Kpi titulo={nombreCorto("cita_a_venta")} valor={formatearTasa(vista.embudo.agendaAVenta)} base={`${num(grupo.vendidos)} de ${num(grupo.deals)}`} detalle={detalles?.grupo_citas} />
+        </>}
       </div>
     </CardContent></Card>
-    {embudoComercial ? <Card><CardHeader><Titulo id="embudo">¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">
+    {embudoComercial ? <Card><CardHeader><Titulo id="embudo" sinInfo={!!cifras}>¿Dónde se pierden?</Titulo></CardHeader><CardContent className="space-y-4">
       {enlacesDeOrigen ? <div className="flex flex-wrap gap-1" role="group" aria-label="Origen del deal">{opciones.map((opcion) => <Button key={opcion.clave} size="sm" variant={origenEmbudo === opcion.clave ? "default" : "outline"} nativeButton={false} render={<Enlace precarga="nunca" scroll={false} href={enlacesDeOrigen[opcion.clave]} />}>{opcion.etiqueta}</Button>)}</div> : null}
-      <EmbudoDeBarras pasos={embudoComercial.map((paso, indice) => ({ clave: paso.paso, etiqueta: ETIQUETA_DEL_PASO[paso.paso], cantidad: paso.cantidad, detalle: paso.detalle, pctDelPaso: paso.pctDelPaso, perdidos: indice === 0 ? undefined : { cantidad: paso.perdidos, detalle: paso.detallePerdidos } }))} />
-      {ventasSinLlamada && ventasSinLlamada.deals > 0 ? <p className="text-sm text-muted-foreground"><Celda titulo="Ventas sin llamada registrada" detalle={ventasSinLlamada.detalle}>{num(ventasSinLlamada.deals)}</Celda> ventas sin llamada registrada</p> : null}
+      {cifras ? <p className="text-xs text-muted-foreground">Compraron solo cuenta ventas con show antes del pago; las demás van en su línea aparte. Si el periodo terminó hace poco (los días de madurez del programa), aún pueden llegar ventas. Completo significa que la persona terminó el formulario, aunque haya empezado con un parcial.</p> : null}
+      <EmbudoDeBarras pasos={embudoComercial.map((paso, indice) => ({ clave: paso.paso, etiqueta: ETIQUETA_DEL_PASO[paso.paso], cantidad: paso.cantidad, cifra: cifras?.embudo[indice].cantidad, cifraDelPct: cifras?.embudo[indice].porcentaje, detalle: paso.detalle, pctDelPaso: paso.pctDelPaso, perdidos: indice === 0 ? undefined : { cantidad: paso.perdidos, detalle: paso.detallePerdidos, cifra: cifras?.embudo[indice].perdidos ?? undefined } }))} />
+      {ventasSinLlamada && ventasSinLlamada.deals > 0 ? <p className="text-sm text-muted-foreground"><Celda cifra={cifras?.auditoria.ventasSinLlamada ?? undefined} titulo="Ventas sin llamada registrada" detalle={ventasSinLlamada.detalle}>{num(ventasSinLlamada.deals)}</Celda> ventas sin llamada registrada</p> : null}
     </CardContent></Card> : null}
-    {vistaEscalera ? <Escalera vista={vistaEscalera} /> : null}
+    {vistaEscalera ? <Escalera vista={vistaEscalera} cifras={cifras?.escalera} /> : null}
     {dealsContraAgendas}
-    <Caminos vista={vista} detalles={detallesOperacion?.embudo} />
-    {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} /> : null}
-    {veEquipo && vistaEscalera ? <Closers vista={vista} detalles={detallesOperacion?.comparativo} escalera={vistaEscalera} dinero={dineroPorCloser} /> : null}
-    <DetalleAuditoria vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} escalera={vistaEscalera} />
+    <Caminos vista={vista} detalles={detallesOperacion?.embudo} cifras={cifras?.caminos} />
+    {detallesOperacion ? <AgendasPorSemana semanas={detallesOperacion.semanas} proximas={detallesOperacion.proximas} cifras={cifras?.semanas} /> : null}
+    {veEquipo && vistaEscalera ? <Closers vista={vista} detalles={detallesOperacion?.comparativo} escalera={vistaEscalera} dinero={dineroPorCloser} cifras={cifras?.closers} cifrasEscalera={cifras?.escalera} /> : null}
+    <DetalleAuditoria vista={vista} detalles={detallesOperacion?.embudo} veEquipo={veEquipo} escalera={vistaEscalera} cifras={cifras?.auditoria} cifrasEscalera={cifras?.escalera} />
   </section>;
 }

@@ -1,3 +1,7 @@
+import { cifrasClaveDeComercial, cifrasDeCloser, type ListaDeComercial } from "@/lib/hub/cifras-de-comercial";
+import { cifrasDeEscalera, cifrasDelEmbudoComercial, cifrasDeCaminos, cifrasDeCitasPorSemana, cifrasDeAuditoria } from "@/lib/hub/cifras-de-recorridos";
+import { explicacionesDeComercial } from "@/lib/hub/explicaciones-de-comercial";
+import { explicacionesDeRecorridos } from "@/lib/metricas/explicacion";
 import { cifrasDeHoy } from "@/lib/hub/cifras-de-hoy";
 import { cifrasDeClosersDeHoy } from "@/lib/hub/cifras-de-pendientes-y-closers";
 import { explicacionesDeHoy, explicacionesDeClosersDeHoy } from "@/lib/hub/explicaciones-de-hoy";
@@ -18,7 +22,7 @@ import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte, t
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
 import { queryDePautaDesdeOrigen, rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
-import { detalleDeCifra, detallesDeOperacion, detallesDelDashboard, proyectarDashboardSegunRol, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { claveDeAbiertos, detalleDeCifra, detallesDeOperacion, detallesDelDashboard, proyectarDashboardSegunRol, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -26,7 +30,7 @@ import { paginaConCapacidad } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
-import { fecha, hoyEnBogota } from "@/lib/format";
+import { num, fecha, hoyEnBogota } from "@/lib/format";
 import { armarVistaDelDashboard, resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { EsqueletoDelHub, EsqueletoDelNorte } from "@/components/hub/esqueleto-del-hub";
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
@@ -58,7 +62,6 @@ import { sumarDias } from "@/lib/dias-habiles";
 import { tokensMeta } from "@/lib/integraciones";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
-import { seccionesDeInfoDeComercial } from "@/components/dashboard/info-de-comercial";
 import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte, unidadDeCumplimiento } from "@/components/pauta/cumplimiento";
 import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
@@ -241,8 +244,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
             <Suspense fallback={null}>
               <InfoDeHoy titulo={tituloDelInfo} programa={datosDelPrograma} reporte={reporteDeHoy} />
             </Suspense>
-          ) : (
-            <InfoDePagina titulo={tituloDelInfo} secciones={seccion === "comercial" ? seccionesDeInfoDeComercial() : seccion === "pauta" ? seccionesDeInfoDePauta() : []} />
+          ) : seccion === "comercial" ? null : (
+            <InfoDePagina titulo={tituloDelInfo} secciones={seccion === "pauta" ? seccionesDeInfoDePauta() : []} />
           )}
         </div>
         {esHoy ? null : (
@@ -506,10 +509,70 @@ async function CuerpoDelHub({
     );
   }
   if (seccion === "comercial") {
+    const comercial = vistaComercial!;
+    const contexto = {
+      programa: programa.nombre, cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
+      rango: vista.periodo.a, hoy,
+      closer: vista.closers.find((c) => c.id === vista.claveCloser)?.label ?? null,
+    };
+    const explicaciones = explicacionesDeComercial();
+    const recorridos = { contexto, explicaciones: explicacionesDeRecorridos() };
+    const primeraComparacion = comparacionesDe(vista.periodo)[0];
+    const referencia = primeraComparacion ? nombreDePedido(primeraComparacion.pedido, vista.periodo.preset) : undefined;
+    const listas: ListaDeComercial[] = ["agendas", "grupo_citas", "grupo_shows", "grupo_pendientes"];
+    const evidencia = veEquipo ? Object.fromEntries(await Promise.all(listas.map(async (metrica) => {
+      const [lista] = await listaDeMetrica(metrica, {
+        programId: programa.id, hoy, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId,
+      }, 1);
+      return [metrica, lista.filas.slice(0, 5).map((fila) => [fila.persona?.nombre ?? "Sin nombre", fechaCorta(fila.fecha)])] as const;
+    }))) : undefined;
+    const clave = cifrasClaveDeComercial({ embudo: vista.embudo, anterior: vista.anterior?.embudo, referencia,
+      detalles, evidencia, explicaciones, contexto });
+    // La lista del grupo no expone quién suma arriba. No se inventa ese indicador en la página.
+    for (const cifra of [clave.asistencia, clave.cierreDeVentas, clave.citaAVenta]) {
+      if (cifra.explicacion.evidencia) cifra.explicacion.evidencia.nota = "Personas del grupo de abajo de la fórmula. La lista completa permite revisar cada deal.";
+    }
+    const escalera = cifrasDeEscalera({ ...recorridos, vista: comercial.escalera, referencia });
+    const caminos = cifrasDeCaminos({ ...recorridos, embudo: vista.embudoEtapas });
+    // Los recorridos conservan sus listas proyectadas, sin lectura de cinco filas.
+    for (const camino of caminos) for (const [indice, paso] of camino.pasos.entries()) {
+      const siguiente = camino.pasos[indice + 1]?.etapa;
+      const d = detallesOperacion?.embudo;
+      for (const [cifra, detalle] of [
+        [paso.pasaron, siguiente ? d?.pasos[siguiente] : undefined],
+        [paso.siguen, d?.siguen[paso.etapa]], [paso.perdidos, d?.perdidos[paso.etapa]],
+        [paso.diasMedianos, d?.tiempo[paso.etapa === "ganado" ? "ganado_parcial" : paso.etapa]],
+      ] as const) {
+        if (detalle?.href && detalle.resumen.disponible) cifra.explicacion.evidencia = {
+          href: detalle.href, boton: `Ver los ${num(detalle.resumen.subtotal.cantidad)} deals`, filas: [], nota: null,
+        };
+      }
+    }
+    const embudo = cifrasDelEmbudoComercial({ ...recorridos, pasos: comercial.embudo, origen: comercial.origenEmbudo });
+    for (const [indice, paso] of embudo.entries()) {
+      const detalle = comercial.embudo[indice].detallePerdidos;
+      // La lista heredada es el paso anterior completo, no un filtro de los que se perdieron.
+      if (paso.perdidos && detalle?.href && detalle.resumen.disponible) paso.perdidos.explicacion.evidencia = {
+        href: detalle.href, boton: `Ver los ${num(detalle.resumen.subtotal.cantidad)} deals del paso anterior`, filas: [],
+        nota: "La lista abre el paso anterior completo, incluidos quienes avanzaron.",
+      };
+    }
+    const cifrasComercial = {
+      clave, escalera, caminos, embudo,
+      semanas: cifrasDeCitasPorSemana({ ...recorridos, semanas: detallesOperacion?.semanas ?? [], proximas: detallesOperacion?.proximas ?? [] }),
+      auditoria: cifrasDeAuditoria({ ...recorridos, embudo: {
+        ...vista.embudoEtapas,
+        abiertos: (veEquipo ? vista.embudoEtapas.abiertos : []).map((f) => ({ ...f, detalle: detallesOperacion?.embudo.abiertos[claveDeAbiertos(f.etapa, f.ownerUserId)] })),
+        sinDuenoPorAntiguedad: vista.embudoEtapas.sinDuenoPorAntiguedad.map((f) => ({ ...f, detalle: detallesOperacion?.embudo.sinDueno[f.bucket] })),
+      }, ventasSinLlamada: comercial.escalera.principal.grupos.ventas_sin_llamada }),
+      closers: veEquipo ? vista.comparativo.map((fila) => cifrasDeCloser({ fila, dinero: comercial.dineroPorCloser[fila.clave],
+        detalles: detallesOperacion?.comparativo[fila.clave], explicaciones, contexto })) : undefined,
+    };
     return (
       <div className="space-y-4">
         <DashboardPrograma
           seccion="operacion"
+          cifrasComercial={cifrasComercial}
           vista={vista}
           detalles={detalles}
           detallesOperacion={detallesOperacion}
@@ -523,7 +586,7 @@ async function CuerpoDelHub({
           enlacesDeOrigen={vistaComercial!.enlacesDeOrigen}
           vistaEscalera={vistaComercial!.escalera}
           dineroPorCloser={vistaComercial!.dineroPorCloser}
-          dealsContraAgendas={<DealsContraAgendas vista={vistaComercial!.dealsContraAgendas} origen={origen} hoy={hoy} />}
+          dealsContraAgendas={<DealsContraAgendas sinInfo vista={vistaComercial!.dealsContraAgendas} origen={origen} hoy={hoy} />}
         />
       </div>
     );

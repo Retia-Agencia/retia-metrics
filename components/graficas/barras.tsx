@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { CifraConLista } from "@/components/cifra-con-lista";
+import type { CifraDeMetrica } from "@/lib/metricas/cifra";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { num, pct } from "@/lib/format";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 
@@ -38,7 +39,8 @@ export function LeyendaDeBarras({
   );
 }
 
-function Abrible({ titulo, detalle, children }: { titulo: string; detalle?: DetalleDeCifra; children: ReactNode }) {
+function Abrible({ titulo, detalle, cifra, children }: { titulo: string; detalle?: DetalleDeCifra; cifra?: CifraDeMetrica; children: ReactNode }) {
+  if (cifra) return <Cifra cifra={cifra} tamano="celda" className="justify-center p-0 text-inherit">{children}</Cifra>;
   return (
     <CifraConLista titulo={titulo} detalle={detalle}>
       {children}
@@ -51,9 +53,11 @@ export interface PasoDeBarra {
   etiqueta: string;
   cantidad: number;
   detalle?: DetalleDeCifra;
+  cifra?: CifraDeMetrica;
   pctDelPaso?: number | null;
+  cifraDelPct?: CifraDeMetrica;
   etiquetaDelPct?: string;
-  perdidos?: { cantidad: number; detalle?: DetalleDeCifra };
+  perdidos?: { cantidad: number; detalle?: DetalleDeCifra; cifra?: CifraDeMetrica };
 }
 
 export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
@@ -64,13 +68,13 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
         <div key={paso.clave} className="space-y-1">
           {indice === 0 || paso.pctDelPaso === undefined ? null : (
             <p className="text-center text-xs text-muted-foreground">
-              {paso.pctDelPaso === null ? "—" : pct(paso.pctDelPaso)} {paso.etiquetaDelPct ?? "del paso anterior"}
+              {paso.cifraDelPct ? <Cifra cifra={paso.cifraDelPct} tamano="celda" /> : paso.pctDelPaso === null ? "—" : pct(paso.pctDelPaso)} {paso.etiquetaDelPct ?? "del paso anterior"}
             </p>
           )}
           <div className="flex items-center gap-3">
             <span className="w-28 shrink-0 text-sm">{paso.etiqueta}</span>
             {paso.cantidad === 0 ? (
-              <span className="cifra flex-1 text-sm text-muted-foreground">0</span>
+              <span className="cifra flex-1 text-sm text-muted-foreground">{paso.cifra ? <Cifra cifra={paso.cifra} tamano="celda" /> : 0}</span>
             ) : <div className="h-8 flex-1 rounded-md bg-muted">
               <span
                 className={
@@ -79,7 +83,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
                 }
                 style={{ width: `${paso.cantidad === 0 ? 0 : Math.max(6, (paso.cantidad / maximo) * 100)}%` }}
               >
-                <Abrible titulo={paso.etiqueta} detalle={paso.detalle}>
+                <Abrible titulo={paso.etiqueta} detalle={paso.detalle} cifra={paso.cifra}>
                   <span className="cifra">{num(paso.cantidad)}</span>
                 </Abrible>
               </span>
@@ -88,7 +92,7 @@ export function EmbudoDeBarras({ pasos }: { pasos: PasoDeBarra[] }) {
           {paso.perdidos && paso.perdidos.cantidad > 0 ? (
             <p className="pl-32 text-xs text-muted-foreground">
               Se perdieron:{" "}
-              <Abrible titulo={`Se perdieron después de ${paso.etiqueta}`} detalle={paso.perdidos.detalle}>
+              <Abrible titulo={`Se perdieron después de ${paso.etiqueta}`} detalle={paso.perdidos.detalle} cifra={paso.perdidos.cifra}>
                 <span className="cifra">{num(paso.perdidos.cantidad)}</span>
               </Abrible>
             </p>
@@ -126,6 +130,7 @@ export interface SegmentoDeBarra {
   cantidad: number;
   tono: TonoDeBarra;
   detalle?: DetalleDeCifra;
+  cifra?: CifraDeMetrica;
 }
 
 /** `compacta`: para una celda de tabla (barra más baja y "—" sin casos, sin texto que se desborde). */
@@ -157,7 +162,7 @@ export function BarraApilada100({ segmentos, compacta = false }: { segmentos: Se
                 role="group"
                 aria-label={descripcion}
               >
-                <Abrible titulo={segmento.etiqueta} detalle={segmento.detalle}>
+                <Abrible titulo={segmento.etiqueta} detalle={segmento.detalle} cifra={segmento.cifra}>
                   <span className={`cifra flex ${alto} w-full items-center justify-center overflow-hidden px-1 text-xs`}>
                     {num(segmento.cantidad)}
                   </span>

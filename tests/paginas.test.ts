@@ -188,7 +188,7 @@ vi.mock("@/lib/queries/roas-de-pauta", async (importOriginal) => ({
 // La tarjeta de la escalera (320) también lee la base: aquí solo importa con qué acceso se arma.
 const vistaDeEscalera = vi.fn(async () => ({
   corteDias: null, sinCorte: true, hayComparacion: false, porCloser: [], porCalidad: [],
-  principal: { clave: "", etiqueta: "Todos", total: 0, celdas: {} },
+  principal: { clave: "", etiqueta: "Todos", total: 0, celdas: {}, grupos: {}, citaSinResultado: { deals: 0 } },
 }));
 vi.mock("@/lib/queries/vista-escalera", () => ({ vistaDeEscalera }));
 // Las alertas por persistencia del Pulso (147), igual: sin base, ningún umbral.
@@ -423,7 +423,11 @@ const VISTA_VACIA = {
     cierres: 0,
     ventas: 0,
     razonCierre: { valor: null, base: 0, faltan: 0, motivo: "Sin shows en el periodo" },
-    grupo: { deals: 0, conShow: 0, vendidos: 0, sinMarcar: 0 },
+    agendaAVenta: null,
+    grupo: { deals: 0, conShow: 0, vendidos: 0, sinMarcar: 0, pendientes: 0, cobertura: null, parcial: false,
+      agendaAVenta: null,
+      razonAgendaAVenta: { valor: null, base: 0, faltan: 0, motivo: "Sin citas en el periodo" },
+    },
     canceladas: 0,
   },
   anterior: null,
@@ -447,7 +451,7 @@ const VISTA_VACIA = {
     deudaPct: null,
   },
   embudoEtapas: {
-    conversion: { todas: { entraron: 0, pasos: [] } },
+    conversion: { todas: { entraron: 0, pasos: [] }, porCamino: [] },
     tiempoEnEtapa: [],
     abiertos: [],
     sinDuenoPorAntiguedad: [],

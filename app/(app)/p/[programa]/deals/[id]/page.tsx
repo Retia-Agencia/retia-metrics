@@ -157,7 +157,7 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
                 grupo={grupoDeCierre(ubicacionDeCierre.escalon)}
                 dias={ubicacionDeCierre.diasCitaAPago}
                 nombreDelEscalon={NOMBRE_DE_ESCALON[ubicacionDeCierre.escalon]}
-                hrefInfo={`/p/${encodeURIComponent(programa.slug)}/hub?seccion=comercial&info=escalera`}
+                hrefInfo={`/p/${encodeURIComponent(programa.slug)}/hub?seccion=comercial#como-cierra`}
               />
             ) : null}
             <FichaPerfil perfil={ficha.perfil} />

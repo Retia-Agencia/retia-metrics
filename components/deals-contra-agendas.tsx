@@ -24,10 +24,12 @@ const TITULO = "¿Generamos deals que agendan?";
  * que calculó `vistaDealsContraAgendas`.
  */
 export function DealsContraAgendas({
+  sinInfo = false,
   vista,
   origen,
   hoy,
 }: {
+  sinInfo?: boolean;
   vista: VistaDealsContraAgendas;
   /** Con URL se ofrecen Paso y Forma (370); sin ella, la vista de todos queda acumulada por hábil. */
   origen?: string;
@@ -37,7 +39,8 @@ export function DealsContraAgendas({
     return (
       <Card aria-labelledby="deals-contra-agendas">
         <CardHeader>
-          <CardTitle id="deals-contra-agendas" className="flex items-center gap-1.5">{TITULO}<EnlaceAInfo seccion="deals-agendas" etiqueta={TITULO} /></CardTitle>
+          <CardTitle id="deals-contra-agendas" className="flex items-center gap-1.5">{TITULO}{sinInfo ? null : <EnlaceAInfo seccion="deals-agendas" etiqueta={TITULO} />}</CardTitle>
+          <TextoSinInfo sinInfo={sinInfo} />
           <CardDescription>Disponible solo sin filtro de closer.</CardDescription>
         </CardHeader>
       </Card>
@@ -73,8 +76,9 @@ export function DealsContraAgendas({
     <Card aria-labelledby="deals-contra-agendas">
       <CardHeader>
         <CardTitle id="deals-contra-agendas" className="flex items-center gap-1.5 text-base">
-          {TITULO}<EnlaceAInfo seccion="deals-agendas" etiqueta={TITULO} />
+          {TITULO}{sinInfo ? null : <EnlaceAInfo seccion="deals-agendas" etiqueta={TITULO} />}
         </CardTitle>
+        <TextoSinInfo sinInfo={sinInfo} />
         {nota ? <p role="status" className="text-sm text-muted-foreground">{nota}</p> : null}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -129,4 +133,8 @@ export function DealsContraAgendas({
       </CardContent>
     </Card>
   );
+}
+
+function TextoSinInfo({ sinInfo }: { sinInfo: boolean }) {
+  return sinInfo ? <p className="text-xs text-muted-foreground">Compara cuándo nacen los deals y cuándo se crean sus agendas. Los controles cambian el paso y la forma de la misma serie.</p> : null;
 }

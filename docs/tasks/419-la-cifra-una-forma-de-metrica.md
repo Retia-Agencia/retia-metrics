@@ -298,6 +298,132 @@ tengan texto aprobado.
 
 ## Avance
 
+- **16-nov · E-3 Comercial: integrado en el Hub de un programa; pendiente de verificación de ejecución.**
+  - La página prepara `cifrasClaveDeComercial`, `cifrasDeCloser` y los cinco constructores de recorridos existentes,
+    con detalles YA proyectados. `DashboardPrograma` solo pasa props; `Operacion`, `Escalera` y barras aceptan cifras
+    opcionales y conservan la rama vieja sin ellas. `Comparativo` de Hoy no se cambió. No se tocaron queries,
+    registro, vocabulario, fórmulas, `/hub` de todos, Hoy, Dinero, Pauta ni el guardián 447.
+    Cifras clave son tarjetas; aviso, embudo (cantidad, %, perdidos), escalera, siete escalones, calidad, tiempos,
+    caminos, semanas, closers y auditoría abren la explicación. «Cómo vendió» conserva su barra y recibe los grupos
+    por closer. Los segmentos conservan alto, ancho, color y texto; el cero del embudo también abre explicación.
+    `Cifra` añade `children` opcional para preservar el disparador de barras y formatos heredados de celdas.
+  - **Mapa de claves:** `lib/hub/explicaciones-de-comercial.ts` resuelve una vez `citas`, `asistencia`,
+    `cierre_de_ventas`, `cita_a_venta`, `vendido`, `recaudado`, `por_cobrar` contra su propia ficha;
+    `citas_sin_marcar → citas_pendientes`. Todas con `universo: "todas"`. Recorridos vienen de
+    `explicacionesDeRecorridos()`: escalones/grupos → variables de `ventas_por_escalon`;
+    porcentaje → variante de esa ficha; días escalera → `dias_cita_a_pago`; cita sin resultado →
+    `escalera_sin_resultado`; pasos, conversión y perdidos → `embudo_comercial`;
+    pasaron/siguen/perdidos → `conversion_por_etapa`; días etapa → `tiempo_en_etapa`;
+    semanas → `shows` / `no_asistio` / `citas_pendientes` / variante futura de `citas`;
+    abiertos/sin dueño → sus fichas; motivos → `perdidos_por_motivo` y `ticket_perdido`;
+    ventas sin llamada → grupo de `ventas_por_escalon`. Ninguna ficha nueva o texto de definición inventado.
+  - **Evidencia conectada:** cuatro lecturas en paralelo de `listaDeMetrica`, página 1 y corte a cinco filas,
+    SOLO con `veEquipo`: `agendas`, `grupo_citas`, `grupo_shows`, `grupo_pendientes`. Mismo programa,
+    periodo, cohorte y closer que las cifras clave. Filas con nombre y fecha. El grupo no expone `conShow` /
+    `vendido` en sus filas: la nota ya no promete la columna de quién suma arriba. Son las personas de abajo
+    de la fórmula, y la lista completa permite revisar el deal. Por closer solo botón, nunca cinco filas.
+    `cierres` conecta los botones del dinero por closer; NO se lee para vista previa porque ninguna cifra
+    global de este bloque la consume. Recorridos solo botón de los detalles existentes: escalera, semanas,
+    abiertos y sin dueño; Caminos reutiliza la lista del siguiente paso / siguen / perdidos de la rama vieja,
+    y conecta los días a `embudo.tiempo` (la etapa en el programa, Ganado → ganado_parcial).
+    El último «Pasaron» no tenía lista y sigue sin ella. Porcentajes, días de la escalera y motivos no traían lista y no
+    se inventó una. Perdidos del embudo conserva el enlace anterior, rotulado explícitamente como **lista
+    completa del paso anterior**, incluidos quienes avanzaron; no es una lista exclusiva de pérdidas.
+    Paid trafficker no lee evidencia ni recibe enlaces de los detalles proyectados; no se construyen cifras
+    de closers ni de abiertos por owner para él.
+  - **DC-1 — decisión de la revisión, para confirmar con Mani:** aplicado el addendum del brief.
+    Comercial de un programa ya no monta `InfoDePagina`, ni con `?info=`; Pauta conserva su condición y su Info.
+    `DealsContraAgendas` recibe `sinInfo` solo desde el programa: ambas ramas sustituyen los dos «?» por el
+    texto gris conservado. Sin prop queda igual. `hrefInfo` de la ficha del deal apunta ahora a
+    `hub?seccion=comercial#como-cierra`; `Escalera` añade esa ancla y `scroll-mt-4` solo con cifras.
+    `ficha-cierre.tsx` no se tocó. Se retiró `info-de-comercial.tsx` tras comprobar cero llamadores:
+    `/hub/page.tsx` solo solicita Info de Hoy o secciones vacías, no importaba Comercial.
+  - **Inventario frase por frase de `info-de-comercial.tsx` antes de retirarlo:**
+
+    | Frase del Info | Destino comprobado / conservación visible |
+    |---|---|
+    | Citas creadas dentro del periodo | `citas.que/variables` cuenta por día de cita, no creación: no equivale. Se conserva literal bajo Cifras clave para decisión de Mani; discrepancia preexistente. |
+    | Citas realizadas entre citas ya marcadas | `asistencia.que/formula/variables` (Realizadas, Citas del grupo, Sin marcar). |
+    | Ventas entre citas marcadas con show | `cierre_de_ventas.formula/variables` (asistieron y compraron / asistieron). |
+    | Ventas entre todas las citas marcadas | `cita_a_venta.formula/variables`, grupo de citas con sin marcar fuera. |
+    | Más de 10 % sin marcar vuelve parcial la tasa | Las variables avisan parcial, pero no dan 10 %: literal visible bajo Cifras clave. |
+    | Esas citas nunca cuentan como no-show | `citas_pendientes.variables` y `no_asistio.variables`; además se conserva junto al umbral. |
+    | Deals creados → Agendaron → Tuvieron show → Compraron | `embudo_comercial.que/variables`, y títulos de las cuatro barras conservados. |
+    | Los deals creados en el periodo | `embudo_comercial.que/variables.Deal creado`. |
+    | Cada porcentaje divide una barra por la anterior | Variante `conversion_del_paso.que/formula` de `embudo_comercial`. |
+    | Compraron solo cuenta ventas con show antes del pago | La ficha dice show y Abonado/Completo, no «antes del pago»: frase completa visible bajo el título del embudo. |
+    | Las demás van en su línea aparte | Visible con la frase anterior; la línea y ficha `ventas_sin_llamada` permanecen. |
+    | Si el periodo terminó hace poco (los días de madurez del programa), aún pueden llegar ventas | No está en la ficha: visible en el embudo. |
+    | Completo significa que la persona terminó el formulario, aunque haya empezado con un parcial | No está en la ficha del embudo: visible en el embudo. |
+    | Cerró en la llamada: el primer pago cae el mismo día (Bogotá) que la llamada con show | El segmento abre `cerro_en_la_llamada`, variable «Agrupa Pagó en la llamada». La base `ventas_por_escalon.variables.Pagó en la llamada` define primer abono y día de cita atendida, pero la variante no la incluye ni explicita Bogotá: definición completa visible y etiquetada bajo Escalera. |
+    | Cerró con seguimiento: el primer pago llega días hábiles después de esa llamada | El segmento abre `cerro_con_seguimiento`, variable «Agrupa Pagó rápido y Pagó después». La base explica ambos escalones, la variante no los desarrolla: definición completa visible y etiquetada bajo Escalera. |
+    | No cerró: tuvo show y no hay venta | El segmento abre `no_cerro`, variable «Agrupa Atendió y no compró». La base desarrolla esa variable, la variante no: definición completa visible y etiquetada bajo Escalera. |
+    | Nadie lo etiqueta: se calcula con la llamada marcada y el primer abono | Las variables de escalones cubren llamada/abono, no «Nadie lo etiqueta»: frase completa visible bajo Escalera. |
+    | Una cita sin marcar no entra | No queda completa en las tres variantes: visible bajo Escalera. |
+    | Las ventas sin llamada registrada van aparte | Ficha/variante `ventas_sin_llamada` y línea aparte conservadas; frase también visible bajo Escalera. |
+    | Cada deal lo dice en su ficha | No es definición de métrica: visible bajo Escalera. |
+    | Compara cuándo nacen los deals y cuándo se crean sus agendas | No es cifra: visible bajo Deals y agendas, en sus dos ramas. |
+    | Los controles cambian el paso y la forma de la misma serie | No es cifra: visible en el mismo texto gris de Deals y agendas. |
+    | Camino del setter: deals que pasaron por En gestión, Contactado o Calificado | `conversion_por_etapa.variables.Camino del setter`, con nombres de sus etapas. |
+    | Camino de la llamada: deals que llegaron a Agendado | `conversion_por_etapa.variables.Camino de la llamada`, comienza en Agendado. |
+    | Siguen aquí: abiertos, aunque hayan vuelto a una etapa anterior | La ficha nombra «siguen aquí» pero no la vuelta: visible bajo Caminos. |
+    | Se perdieron aquí: hoy en Cierre Perdido | La ficha no explicita esa etapa: visible bajo Caminos. |
+    | El tiempo es la mediana de días hábiles en la etapa | `tiempo_en_etapa.formula/variables.Mediana`. |
+    | Con menos de cinco deals sale “—” | `tiempo_en_etapa.variables.Mediana`. |
+    | Las citas se agrupan por su semana y resultado: show, no-show, sin marcar o futura | Las cuatro fichas explican resultados, no la agrupación: frase completa visible bajo Citas por semana. |
+    | Las mismas cifras de arriba, por closer, en el periodo elegido | Es contexto de tabla: visible bajo Closers. |
+    | Sin casos sale “—” | Visible bajo Closers, con el disparador heredado preservado. |
+
+  - **Hallazgos de formato y texto (sin esconder diferencias):** las citas de closer en cero pasaban de «—»
+    a «0» con el constructor directo; se conserva «—» como contenido del disparador (el valor explicado es 0).
+    Sin ventas el dinero sigue «—»; con ventas y cero recaudado sigue «USD 0,00». Porcentajes conservan un decimal.
+    Los días con fracción se mantienen en pantalla: Escalera `2,5`, Caminos `2,5 días hábiles`; el constructor
+    de unidad `dias` escribe **«3 días»** en explicación/aria para ese mismo 2,5 (hallazgo pendiente de Mani,
+    no se cambió ficha, formato central ni contrato). La ficha de `cierre_de_ventas.que` aún dice «de pauta»
+    aunque el universo pasado es todas; se conserva el texto real y se reporta, no se inventa una variante.
+    La conservación literal de «Citas creadas» y de «show antes del pago» requiere decisión de Mani frente
+    a las fichas actuales. No se verificó paridad contra datos de producción.
+  - **Retirado / búsquedas:** `rg -n 'info-de-comercial|seccionesDeInfoDeComercial|info=escalera' app components`
+    devuelve cero resultados. `EnlaceAInfo` queda condicional a la rama vieja en Operacion/Escalera y a
+    `!sinInfo` en DealsContraAgendas. Info de Pauta y Hoy conservados. `ESCALONES` se importa del catálogo
+    puro `lib/escalones`, no del reexport de queries. Nuevos imports de constructores en componentes son
+    solo tipos; las explicaciones se resuelven en servidor. Revisión independiente en otra sesión realizada.
+  - **Verificación:** `npm run typecheck` terminó con salida 0; `npm run lint` terminó con salida 0, sin errores
+    y siete advertencias ajenas en `hub/lista/page.tsx`, `lib/mcp/recurso-protegido.ts` y
+    `lib/queries/filtros-de-lista.ts`. `git diff --check` sin errores.
+    Test puro nuevo `tests/explicaciones-de-comercial.test.ts`: ocho fichas reales (`que`, `formula`,
+    `variables`), cifras clave con parcial, formato heredado del cero y variables de grupos.
+    `tests/paginas.test.ts` solo amplía los mocks de escalera y caminos, sin alterar afirmaciones.
+    `npm test -- tests/explicaciones-de-comercial.test.ts tests/paginas.test.ts tests/frontera-cliente-guardian.test.ts`
+    **no ejecutó tests**: el lanzador falló con `spawnSync ps EPERM` en `scripts/test.mjs:98`.
+    Pendientes para quien revisa: esos tests, build y recorrido interactivo de programa y rama vieja, claro,
+    oscuro y 375 px frente al boceto; clic en tarjetas, segmentos, tablas, listas y ancla de ficha.
+    No se arrancó dev ni build, no se abrió la app ni conectó a base, no se leyó `.env*`, no se instalaron
+    paquetes, no hubo git add, commit ni push. `.claude/launch.json` ajeno intacto.
+
+  - **16-nov, sesión externa (revisión, Claude).** Pasaron fuera del sandbox: `explicaciones-de-comercial`,
+    `cifras-de-comercial`, `cifras-de-recorridos`, `cifras-de-hoy`, `explicaciones-de-hoy`, `paginas`,
+    `frontera-cliente-guardian`, `vigencia-centralizada`, `volver-de-listas`, `enlace-guardian`, `explicacion-sin-jerga`,
+    `show-y-sin-resultado-guardian` y `tracker-coherente`; typecheck y lint limpios (7 advertencias ajenas); `npm run build` pasa.
+    **Línea base:** con `dev:local` y el gerente, la pestaña del commit anterior (copia de trabajo aparte) contra la nueva en
+    ComunicArte Local, C1, desde el inicio: todos los valores iguales (cifras clave 8 / 85,7 % / 16,7 % / 14,3 %, embudo
+    22 → 8 → 6 → 1 con sus porcentajes y perdidos, escalera, caminos, citas por semana, las cuatro filas de closers,
+    abiertos, sin dueño y siete escalones). Las 115 cifras de la pantalla abren su panel con fórmula y «Calculada con»;
+    consola sin errores; 375 px sin desborde horizontal; claro y oscuro. Paid trafficker: 75 cifras, ninguna con lista, sin
+    tabla de closers ni abiertos por owner. `/hub` de todos y Hoy siguen con su forma y sin errores.
+    **Arreglo de la revisión (hallazgo que la pasada de Codex no anotó):** las tarjetas de Asistencia y Cierre de ventas
+    perdían el aviso «parcial» de la tarjeta vieja. Hay dos reglas: la tarjeta usaba `grupo.parcial` (más del 10 % sin marcar,
+    `UMBRAL_SIN_MARCAR`) y `entradaDesdeRazon` usa la cobertura de la razón (menos del 80 %); con 1 sin marcar de 8 la primera
+    avisa y la segunda no. `cifrasClaveDeComercial` conserva ahora el aviso del grupo (`avisarSinMarcarDelGrupo`, frase de la
+    tarjeta vieja: «Calculado sobre 7 de 8 citas: 1 sin marcar.»); las filas por closer y Hoy no cambian. Test nuevo en
+    `tests/cifras-de-comercial.test.ts`. **Para Mani:** decidir si queda una sola regla de parcial.
+    **Para Mani, además:** (1) los textos grises bajo cada título son las frases del Info que no están en ninguna ficha; el
+    de la escalera es largo y pide ficha o recorte; (2) la página cuelga los enlaces de lista de Caminos y de «perdidos» del
+    embudo sobre cifras ya armadas, porque esos constructores no reciben lista: conviene pasarlos como parámetro;
+    (3) el enlace «Cómo cerró» de la ficha del deal ahora lleva a la tarjeta de la escalera.
+    **Sin verificar:** `npm run test:humo`, la comparación (Comparar con), un programa con motivos de pérdida y con dos
+    monedas, el boceto lado a lado, y datos reales.
+
 - **14-nov (noche) · Carril D: E-3 Comercial desbloqueado (`5676be06`).** Las claves que pedía `lib/hub/cifras-de-recorridos.ts` ya
   tienen explicación: `explicacionesDeRecorridos()` en `lib/metricas/explicacion.ts` devuelve un `Record<string, ExplicacionDeConcepto>`
   con TODAS (escalones y grupos, `porcentaje_de_escalera`, `dias_medianos_de_escalera`, `cita_sin_resultado_de_escalera`,

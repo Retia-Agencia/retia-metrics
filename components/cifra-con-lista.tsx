@@ -57,12 +57,14 @@ export function CifraConLista({ titulo, detalle, children }: Props) {
  * en un segundo; toda la tarjeta es el botón que abre la explicación en el panel lateral. Tres tamaños de la misma
  * pieza: `tarjeta` (con barra si la cifra trae avance) y `celda` de tabla. No calcula nada: pinta `CifraDeMetrica`.
  */
-export function Cifra({ cifra, tamano = "tarjeta", className, mostrarCobertura = false }: {
+export function Cifra({ cifra, tamano = "tarjeta", className, mostrarCobertura = false, children }: {
   cifra: CifraDeMetrica;
   tamano?: "tarjeta" | "celda";
   className?: string;
   /** Hoy conserva la base y lo que falta también en el reporte impreso. */
   mostrarCobertura?: boolean;
+  /** Presentación heredada de una celda o barra; la explicación conserva el valor completo. */
+  children?: ReactNode;
 }) {
   const disparador = tamano === "celda" ? <CeldaDeCifra cifra={cifra} /> : <TarjetaDeCifra cifra={cifra} />;
   return (
@@ -78,7 +80,7 @@ export function Cifra({ cifra, tamano = "tarjeta", className, mostrarCobertura =
           className,
         )}
       >
-        {disparador}
+        {children ?? disparador}
         {mostrarCobertura ? <CoberturaDeCifra cifra={cifra} enCelda={tamano === "celda"} /> : null}
       </SheetTrigger>
       <SheetContent className="print:hidden">

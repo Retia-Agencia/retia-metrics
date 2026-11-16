@@ -162,6 +162,20 @@ describe("419 E-2: las cifras clave de Comercial", () => {
     expect(leve.sinMarcar?.textoDelValor).toBe("1");
   });
 
+  it("las cifras clave avisan parcial con la regla del grupo (más del 10 % sin marcar), como la tarjeta que reemplazan", () => {
+    // 2 sin marcar de 12: la cobertura (83 %) pasa el umbral de la razón, pero el grupo ya es parcial.
+    const e = embudo({ sinMarcar: 2 });
+    e.razonShow.motivo = null; e.razonCierre.motivo = null;
+    const c = cifrasClaveDeComercial({ embudo: e, explicaciones, contexto });
+    expect(c.asistencia.etiquetas).toEqual(["Parcial"]);
+    expect(c.asistencia.explicacion.lectura).toContainEqual(["Parcial", "Calculado sobre 10 de 12 citas: 2 sin marcar."]);
+    // El cierre ya era parcial por su propia razón (6 de 8): conserva esa frase.
+    expect(c.cierreDeVentas.etiquetas).toEqual(["Parcial"]);
+    // La fila de un closer no usa esa regla: conserva la de la razón.
+    const fila = cifrasDeCloser({ fila: { ...e, clave: "ana", closerId: "Ana" }, explicaciones, contexto });
+    expect(fila.asistencia.etiquetas).toEqual([]);
+  });
+
   it("parcial por madurez: citas por venir de esas personas", () => {
     const c = cifrasClaveDeComercial({ embudo: embudo({ pendientes: 3 }), explicaciones, contexto });
     expect(c.asistencia.explicacion.lectura).toContainEqual(["Parcial", "Hay 3 citas por venir de estas personas: cuando ocurran, la tasa puede cambiar."]);

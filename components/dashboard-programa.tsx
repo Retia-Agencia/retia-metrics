@@ -28,6 +28,7 @@ export { textoComisionPrograma } from "@/components/dashboard/operacion";
  */
 export function DashboardPrograma({
   cifrasDinero,
+  cifrasComercial,
   seccion,
   vista,
   detalles,
@@ -47,6 +48,7 @@ export function DashboardPrograma({
   dineroPorCloser,
 }: {
   seccion: "operacion" | "dinero";
+  cifrasComercial?: ComponentProps<typeof Operacion>["cifras"];
   cifrasDinero?: Pick<ComponentProps<typeof Dinero>, "cifras" | "cohortes" | "fraccionRecaudada">;
   vista: VistaDelDashboard;
   detalles?: DetallesDelDashboard;
@@ -76,6 +78,7 @@ export function DashboardPrograma({
   if (seccion === "operacion") {
     return (
       <Operacion
+        cifras={cifrasComercial}
         vista={vista}
         detalles={detalles}
         detallesOperacion={detallesOperacion}

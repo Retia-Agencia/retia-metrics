@@ -15,6 +15,7 @@ import {
   comparacionCon as comparar, enCurso as estaEnCurso, filtrosDelHub as filtrosDe, listaDeDetalle as listaDe, periodoEnPalabras,
   type ContextoDelHub, type FilasDeEvidencia,
 } from "@/lib/hub/contexto-de-cifras";
+import { num } from "@/lib/format";
 import { fraseSinSaldo, fraseSinValorVendido } from "@/lib/hub/cifras-de-dinero";
 import { armarCifra, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
 import { entradaDesdeRazon } from "@/lib/metricas/razon-a-cifra";
@@ -73,6 +74,19 @@ export interface PartesDelGrupo {
   filtros: Array<readonly [string, string]>;
   periodo: string;
   enCurso: boolean;
+  /**
+   * Las cifras clave del programa avisan «parcial» con la regla del grupo de citas (más del 10 % sin marcar,
+   * `UMBRAL_SIN_MARCAR`), igual que la tarjeta que reemplazan. Las filas por closer y Hoy no la usan.
+   */
+  avisarSinMarcarDelGrupo?: boolean;
+}
+
+/** El aviso de la tarjeta vieja, en una frase: solo si la razón no trae ya el suyo. */
+function parcialDelGrupo(p: PartesDelGrupo, deLaRazon: { valor?: number | null; parcial?: string }): string | undefined {
+  if (deLaRazon.parcial) return deLaRazon.parcial;
+  const g = p.embudo.grupo;
+  if (!p.avisarSinMarcarDelGrupo || !g.parcial || deLaRazon.valor == null) return undefined;
+  return `Calculado sobre ${num(g.deals)} de ${num(g.deals + g.sinMarcar)} citas: ${num(g.sinMarcar)} sin marcar.`;
 }
 
 const comunDe = (p: PartesDelGrupo) => ({ filtros: p.filtros, periodo: p.periodo, enCurso: p.enCurso });
@@ -82,10 +96,12 @@ const referenciaDe = (p: PartesDelGrupo) => (p.anterior ? p.referencia : undefin
 
 export function cifraDeAsistencia(p: PartesDelGrupo, explicacion: ExplicacionDeConcepto): CifraDeMetrica {
   const g = p.embudo.grupo;
+  const deLaRazon = entradaDesdeRazon(p.embudo.razonShow, { base: BASE_DE_LAS_TASAS });
   return armarCifra({
     concepto: "asistencia",
     explicacion,
-    ...entradaDesdeRazon(p.embudo.razonShow, { base: BASE_DE_LAS_TASAS }),
+    ...deLaRazon,
+    parcial: parcialDelGrupo(p, deLaRazon),
     partes: [g.conShow, g.deals],
     comparacion: comparar(referenciaDe(p), p.anterior?.razonShow.valor),
     lista: listaDe(p.detalles?.grupo_citas, p.evidencia?.grupo_citas, { nombre: "personas con resultado marcado", articulo: "las", parte: "abajo" }),
@@ -95,10 +111,12 @@ export function cifraDeAsistencia(p: PartesDelGrupo, explicacion: ExplicacionDeC
 
 export function cifraDeCierreDeVentas(p: PartesDelGrupo, explicacion: ExplicacionDeConcepto): CifraDeMetrica {
   const g = p.embudo.grupo;
+  const deLaRazon = entradaDesdeRazon(p.embudo.razonCierre, { base: BASE_DE_LAS_TASAS });
   return armarCifra({
     concepto: "cierre_de_ventas",
     explicacion,
-    ...entradaDesdeRazon(p.embudo.razonCierre, { base: BASE_DE_LAS_TASAS }),
+    ...deLaRazon,
+    parcial: parcialDelGrupo(p, deLaRazon),
     partes: [g.vendidos, g.conShow],
     comparacion: comparar(referenciaDe(p), p.anterior?.razonCierre.valor),
     lista: listaDe(p.detalles?.grupo_shows, p.evidencia?.grupo_shows, { nombre: "personas con cita realizada", articulo: "las", parte: "abajo" }),
@@ -156,6 +174,7 @@ export function cifrasClaveDeComercial(e: EntradaDeCifrasClave): CifrasClaveDeCo
     filtros: filtrosDe(c),
     periodo: periodoEnPalabras(c),
     enCurso: estaEnCurso(c),
+    avisarSinMarcarDelGrupo: true,
   };
   return {
     citas: armarCifra({
