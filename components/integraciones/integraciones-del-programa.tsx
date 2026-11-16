@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { conectarCalendlyAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
+import { LARGO_MAXIMO_SECRETO } from "@/lib/integraciones/limites";
 import { configurarMetaCapiAccion, guardarIntegracionAccion, guardarRoundRobinAccion, mandarPruebaMetaCapiAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
 
 type ConfigVisible = Record<string, string | boolean | null>;
@@ -132,7 +133,7 @@ export function IntegracionesDelPrograma({
             {editando === integracion.tipo ? (
               <form className="flex flex-col gap-2 sm:flex-row" onSubmit={(e) => { e.preventDefault(); guardar(integracion.tipo); }}>
                 <input
-                  type="password" autoComplete="new-password" required maxLength={500}
+                  type="password" autoComplete="new-password" required maxLength={LARGO_MAXIMO_SECRETO}
                   value={valor} onChange={(e) => setValor(e.target.value)}
                   aria-label={integracion.campo}
                   className="h-9 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -376,7 +377,7 @@ function MetaCapi({
             <label className="block space-y-1">
               <span className="text-sm font-medium">Token de acceso</span>
               <textarea
-                rows={3} required maxLength={500} value={token} onChange={(e) => setToken(e.target.value)}
+                rows={3} required maxLength={LARGO_MAXIMO_SECRETO} value={token} onChange={(e) => setToken(e.target.value)}
                 autoComplete="off" spellCheck={false}
                 className="h-auto w-full min-w-0 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />

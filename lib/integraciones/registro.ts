@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { TipoIntegracion } from "@/lib/db/schema";
 import { ErrorDeApp } from "@/lib/errors";
-import { organizacionDelToken, type FetchLike } from "@/lib/calendly/cita";
+import { ErrorDeCalendly, organizacionDelToken, type FetchLike } from "@/lib/calendly/cita";
+import { LARGO_MAXIMO_SECRETO } from "./limites";
 import { cuentasVisibles, usuarioDelToken } from "@/lib/pauta/meta-api";
 
 type Fetch = typeof globalThis.fetch;
@@ -16,7 +17,7 @@ type Definicion = {
 
 const valorPegado = (nombre: string) => z.string().trim()
   .min(1, `${nombre} es obligatorio.`)
-  .max(500, `${nombre} debe tener máximo 500 caracteres.`);
+  .max(LARGO_MAXIMO_SECRETO, `${nombre} debe tener máximo ${LARGO_MAXIMO_SECRETO} caracteres.`);
 
 async function jsonSeguro(respuesta: Response, proveedor: string): Promise<Record<string, unknown>> {
   if (!respuesta.ok) throw new ErrorDeApp(`${proveedor} rechazó la conexión. Revisa el valor e inténtalo de nuevo.`, 422);
@@ -94,7 +95,10 @@ export const INTEGRACIONES = {
 export async function probarIntegracion(tipo: TipoIntegracion, valor: string, f: Fetch, config?: ConfigIntegracion) {
   try {
     return await INTEGRACIONES[tipo].probar(valor, f, config);
-  } catch {
-    throw new ErrorDeApp(`No se pudo probar ${INTEGRACIONES[tipo].nombre}. Revisa el ${INTEGRACIONES[tipo].campo} e inténtalo de nuevo.`, 422);
+  } catch (error) {
+    // El motivo que da el proveedor (token rechazado, 429, 5xx) es lo que permite actuar; sin él el
+    // gerente no distingue un token malo de una caída. Solo pasan mensajes escritos por nosotros.
+    const causa = error instanceof ErrorDeCalendly || error instanceof ErrorDeApp ? ` ${error.message}` : "";
+    throw new ErrorDeApp(`No se pudo probar ${INTEGRACIONES[tipo].nombre}.${causa} Revisa el ${INTEGRACIONES[tipo].campo} e inténtalo de nuevo.`, 422);
   }
 }
