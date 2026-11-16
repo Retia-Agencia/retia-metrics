@@ -87,6 +87,7 @@ export const SEGMENTOS_DE_RUTA = new Set([
   "oauth-authorization-server",
   "oauth-protected-resource",
   "p",
+  "pagos",
   "pauta",
   "pauta-citas.csv",
   "pauta-semanal.csv",

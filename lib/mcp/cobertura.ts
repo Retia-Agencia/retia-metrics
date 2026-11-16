@@ -165,6 +165,8 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/inbox/acciones.ts#descartarLlamadaSueltaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Descartar una llamada suelta que no corresponde a ningún deal." },
   "app/(app)/p/[programa]/inbox/acciones.ts#crearDealDesdeSueltaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Crear un deal desde una llamada sin asignar." },
   "app/(app)/p/[programa]/inbox/acciones.ts#buscarDealsAbiertosAccion": { clase: "lectura", herramienta: "tablero_de_deals" },
+  "app/(app)/p/[programa]/inbox/acciones.ts#buscarLeadsParaPagoAccion": { clase: "lectura", herramienta: "buscar_leads", razon: "La misma búsqueda de leads, para elegir a quién se asigna una compra de la pasarela." },
+  "app/(app)/p/[programa]/inbox/acciones.ts#asignarCompraAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Asignar a un lead una compra de la pasarela que no se emparejó sola." },
   "app/(app)/p/[programa]/calls/acciones.ts#detalleDeLlamadaAccion": { clase: "lectura", herramienta: "ficha_de_deal" },
 
   "app/(app)/mi-espacio/acciones.ts#emitirMiTokenAccion": { clase: "fuera", razon: "Emitir o revocar credenciales siempre queda fuera del MCP." },
@@ -183,8 +185,12 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
   anular_llamada: "La app solo anula una llamada al deshacer su registro; no tiene server action propia.",
 } as const;
 
-/** Solo baja cuando una capacidad pendiente entra al MCP o sale justificadamente de su alcance. */
-export const TOPE_DE_PENDIENTES_DEL_MCP = 96;
+/**
+ * Solo baja cuando una capacidad pendiente entra al MCP o sale justificadamente de su alcance.
+ * 16-nov (Alejandro): 96 → 97 por una capacidad nueva, no por una regresión: asignar a un lead una compra de la
+ * pasarela que no se emparejó sola (451, Hotmart). Entra como pendiente de operación hasta que el MCP la exponga.
+ */
+export const TOPE_DE_PENDIENTES_DEL_MCP = 97;
 
 type RazonSinLista =
   | `Se pide por consultar_hechos: ${string}`

@@ -50,3 +50,11 @@ sistema) · `abonos.origen` (hoy `app` o `mcp`).
   preguntar "¿es venta directa?" por esa columna.
 - **Migración pendiente** (la genera la sesión principal con `db:generate`): `abonos.referencia_externa` + índice único
   parcial, `deals.venta_directa_en`, los dos CHECK y el valor `hotmart` en `origen_cambio`.
+
+## Arreglo del CI (16-nov, Alejandro, carril P)
+
+El CI de `552f9aa4` quedó en rojo por dos guardianes que no conocían lo nuevo de Hotmart:
+- `tests/patron-de-ruta.test.ts`: la carpeta `app/api/webhooks/pagos` no estaba en `SEGMENTOS_DE_RUTA` (`lib/db/medidor.ts`). Agregada.
+- `tests/mcp-cobertura-guardian.test.ts`: `buscarLeadsParaPagoAccion` queda como lectura (`buscar_leads`) y
+  `asignarCompraAccion` como pendiente de operación en `lib/mcp/cobertura.ts`. El trinquete
+  `TOPE_DE_PENDIENTES_DEL_MCP` sube de 96 a 97 por esa capacidad nueva (decisión de Alejandro); baja cuando el MCP la exponga.
