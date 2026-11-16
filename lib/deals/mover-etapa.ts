@@ -29,6 +29,7 @@ import {
   FLECHA_CORRECCION,
   destinosDeCorreccion as destinosDeCorreccionPuros,
   transicion,
+  transicionDeVentaDirecta,
   transicionPendiente,
   type EtapaDeal,
   type FlechaBase,
@@ -137,6 +138,8 @@ export interface Movimiento {
   reversionId?: string;
   /** Excepción interna: deshacer una cortesía debe sacar el deal de Completo. */
   permitirSalirDeGanado?: true;
+  /** Excepción S4: pago confirmado de un deal que todavía no tiene dueño. */
+  ventaDirecta?: true;
   /**
    * Los campos que la flecha pide, escritos en la misma transaccion que el movimiento
    * (punto 6). Opcional: una flecha que no pide nada no los necesita.
@@ -273,13 +276,21 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
       : null;
     const resuelta = mov.correccion
       ? { transicion: FLECHA_CORRECCION, pendienteA: pendienteCorregido }
-      : resolverTransicion(de, pendienteDe, mov.a, mov.pendiente ?? null);
+      : mov.ventaDirecta
+        ? { transicion: transicionDeVentaDirecta(de, mov.a), pendienteA: null }
+        : resolverTransicion(de, pendienteDe, mov.a, mov.pendiente ?? null);
     const { transicion: t, pendienteA } = resuelta;
     if (!t) {
       const faltantes = mov.a === de
         ? [{ codigo: "transicion_no_permitida" as const, mensaje: `Este movimiento no está permitido en ${NOMBRE_DE_ETAPA[de]}.` }]
         : queLeFalta(de, mov.a, HECHOS_VACIOS);
       throw new MovimientoRechazado(faltantes[0].mensaje, faltantes);
+    }
+    if (mov.ventaDirecta && mov.actor.tipo !== "sistema") {
+      throw new MovimientoRechazado("Una venta directa solo la mueve el sistema.", [], 403);
+    }
+    if (mov.ventaDirecta && deal.ownerUserId != null) {
+      throw new MovimientoRechazado("Una venta directa solo aplica a un deal sin dueño.", [], 409);
     }
     if (t.tipo === "etapa" && t.soloConPendiente && pendienteDe == null) {
       const faltantes = [{ codigo: "transicion_no_permitida" as const, mensaje: "Este movimiento solo está permitido cuando el deal tiene un pendiente." }];
@@ -371,6 +382,7 @@ export async function moverEtapa(db: Db, mov: Movimiento): Promise<MovimientoHec
         updatedAt: new Date(),
         ...(comisionPorcentaje !== undefined ? { comisionPorcentaje } : {}),
         ...(mov.a === "cierre_perdido" ? { motivoId: mov.motivoId ?? null } : {}),
+        ...(t.id === "S4" ? { ventaDirectaEn: sql`clock_timestamp()` } : {}),
       })
       .where(and(eq(deals.id, deal.id), eq(deals.etapa, de), sql`${deals.pendiente} IS NOT DISTINCT FROM ${pendienteDe}`))
       .returning();

@@ -100,7 +100,7 @@ type FilaDeal = typeof deals.$inferSelect;
  * `incluyendoAnulados` porque si un deal anulado se toca o no es una regla de quien
  * llama (no se toca), y dicha con su nombre queda en el grep.
  */
-async function dealBloqueado(tx: Db, dealId: string): Promise<{ deal: FilaDeal; emailLead: string }> {
+export async function dealBloqueado(tx: Db, dealId: string): Promise<{ deal: FilaDeal; emailLead: string }> {
   const [fila] = await tx
     .select({ deal: deals, emailLead: leads.emailNormalizado })
     .from(deals)
@@ -109,6 +109,46 @@ async function dealBloqueado(tx: Db, dealId: string): Promise<{ deal: FilaDeal; 
     .for("update", { of: deals });
   if (!fila) throw new ErrorDeApp("No existe el deal.", 404);
   return fila;
+}
+
+export async function exigirSaldoParaAbono(
+  tx: Db,
+  entrada: { dealId: string; concepto: "ticket" | "adicional"; moneda: string; monto: string | number },
+): Promise<void> {
+  const antes = (await saldosDeDeals(tx, [entrada.dealId])).get(entrada.dealId);
+  if (entrada.concepto === "ticket" && antes?.moneda != null && antes.moneda !== entrada.moneda) {
+    throw new ErrorDeApp(
+      `El valor vendido del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
+      422,
+    );
+  }
+  if (entrada.concepto === "ticket" && (!antes || antes.saldo === null)) {
+    throw new ErrorDeApp(
+      antes?.sinSaldoPorque === "moneda_distinta"
+        ? "El deal tiene abonos en otra moneda: no se puede calcular el saldo."
+        : "El deal no tiene valor vendido: escríbelo antes de registrar un abono.",
+      409,
+    );
+  }
+  const monto = Number(entrada.monto);
+  if (entrada.concepto === "ticket" && monto > antes!.saldo!) {
+    throw new ErrorDeApp(
+      `El abono (${usd(monto)}) supera el saldo del deal (${usd(antes!.saldo!)}). Un sobrepago no se registra.`,
+      422,
+    );
+  }
+}
+
+export async function destinoDespuesDelAbono(
+  tx: Db,
+  dealId: string,
+): Promise<{ saldo: number; destino: Extract<EtapaDeal, "ganado_parcial" | "ganado_completo"> }> {
+  const despues = (await saldosDeDeals(tx, [dealId])).get(dealId);
+  if (!despues || despues.saldo === null) {
+    throw new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409);
+  }
+  const saldo = despues.saldo;
+  return { saldo, destino: saldo <= 0 ? "ganado_completo" : "ganado_parcial" };
 }
 
 /** El closer (texto copiado de su cuenta, ADR 0011) de quien actua, para el rastro y la reja de anular. */
@@ -188,28 +228,7 @@ export async function registrarAbono(
       // La reja del sobrepago: el abono no puede pasar de lo que queda. Es la MISMA cifra
       // que ve el closer (`saldosDeDeals`), y el deal bloqueado impide que otro abono la
       // cambie entre esta lectura y la escritura.
-      const antes = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
-      if (entrada.concepto === "ticket" && antes?.moneda != null && antes.moneda !== entrada.moneda) {
-        throw new ErrorDeApp(
-          `El valor vendido del deal está en ${antes.moneda} y los abonos se registran en ${entrada.moneda}: no se convierte moneda.`,
-          422,
-        );
-      }
-      if (entrada.concepto === "ticket" && (!antes || antes.saldo === null)) {
-        throw new ErrorDeApp(
-          antes?.sinSaldoPorque === "moneda_distinta"
-            ? "El deal tiene abonos en otra moneda: no se puede calcular el saldo."
-            : "El deal no tiene valor vendido: escríbelo antes de registrar un abono.",
-          409,
-        );
-      }
-      const monto = Number(entrada.monto);
-      if (entrada.concepto === "ticket" && monto > antes!.saldo!) {
-        throw new ErrorDeApp(
-          `El abono (${usd(monto)}) supera el saldo del deal (${usd(antes!.saldo!)}). Un sobrepago no se registra.`,
-          422,
-        );
-      }
+      await exigirSaldoParaAbono(tx, { dealId: deal.id, concepto: entrada.concepto, moneda: entrada.moneda, monto: entrada.monto });
 
       if (archivo) {
         await exigirArchivoDelAbono(tx, actor.userId, archivo.archivoId, deal.programId, false);
@@ -238,9 +257,8 @@ export async function registrarAbono(
         },
       );
 
-      // El movimiento lo decide el saldo que dejo el abono, leido de nuevo del modulo.
-      const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
       if (entrada.concepto === "adicional") {
+        const despues = (await saldosDeDeals(tx, [deal.id])).get(deal.id);
         return {
           abonoId,
           etapa: deal.etapa,
@@ -249,11 +267,7 @@ export async function registrarAbono(
           cohorteAsignada: null,
         };
       }
-      if (!despues || despues.saldo === null) {
-        throw new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409);
-      }
-      const saldo = despues.saldo;
-      const destino: EtapaDeal = saldo <= 0 ? "ganado_completo" : "ganado_parcial";
+      const { saldo, destino } = await destinoDespuesDelAbono(tx, deal.id);
 
       if (deal.etapa === destino) return { abonoId, etapa: deal.etapa, movioElDeal: false, saldo, cohorteAsignada };
       if (!aceptaAbono(deal.etapa) || !transicion(deal.etapa, destino)) {

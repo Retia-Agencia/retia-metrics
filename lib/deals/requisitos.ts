@@ -25,6 +25,7 @@ export interface PropiedadesDelDeal {
   cortesia: boolean;
   tieneCohorte: boolean;
   tieneDueno: boolean;
+  esVentaDirecta?: boolean;
   tieneContactoRegistrado: boolean;
   tieneLlamadaConFecha: boolean;
   llamadaSucedio: boolean;
@@ -63,9 +64,12 @@ export const MENSAJES: Record<CodigoReal, string> = {
   motivo: "Falta el motivo.",
 };
 type HechosEvaluables = PropiedadesDelDeal & Partial<HechosDelDeal>;
+export function cumpleDueno(h: Pick<PropiedadesDelDeal, "tieneDueno" | "esVentaDirecta">): boolean {
+  return h.tieneDueno || h.esVentaDirecta === true;
+}
 const CUMPLE: Record<CodigoReal, (h: HechosEvaluables, eximirHistorico?: boolean) => boolean> = {
   cohorte: (h) => h.tieneCohorte,
-  dueno: (h) => h.tieneDueno,
+  dueno: cumpleDueno,
   actividad: (h) => h.tieneActividadComercial === true,
   contacto: (h) => h.tieneContactoRegistrado,
   llamada_con_fecha: (h) => h.tieneLlamadaConFecha,
@@ -91,6 +95,7 @@ function requisitosDe(t: FlechaConRequisitos): CodigoReal[] {
   let requisitos: CodigoReal[];
   switch (t.id) {
     case "S1": case "S2": case "S3": requisitos = []; break;
+    case "S4": requisitos = segunDestino((t as Transicion).a); break;
     case "E1": requisitos = ["dueno", "actividad"]; break;
     case "E2": case "E3": case "PS2": requisitos = ["contacto"]; break;
     case "E4": case "E7": case "E9": requisitos = ["llamada_con_fecha"]; break;

@@ -179,7 +179,7 @@ export const estadoSincronizacionPautaEnum = pgEnum("estado_sincronizacion_pauta
  * encabezado renombrado apagara el intake del programa en silencio.
  */
 export const estadoFuenteEnum = pgEnum("estado_fuente", ["activa", "rota"]);
-export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload", "whatsapp", "mcp"]);
+export const origenCambioEnum = pgEnum("origen_cambio", ["sync", "app", "upload", "whatsapp", "mcp", "hotmart"]);
 
 // ─────────────────────────────────────────────────────────── usuarios
 
@@ -909,6 +909,11 @@ export const deals = pgTable(
      */
     ownerUserId: uuid("owner_user_id").references(() => users.id, { onDelete: "restrict" }),
     /**
+     * ADR 0133 puntos 5 y D5: momento en que S4 convirtió el deal en venta directa
+     * de pasarela sin dueño. Solo S4 la escribe y nunca se limpia.
+     */
+    ventaDirectaEn: timestamp("venta_directa_en", { withTimezone: true }),
+    /**
      * Desde cuándo la asignación actual es nueva para su dueño (ticket 201). Nulo = ya la
      * vio, no tiene dueño o es historia anterior al ticket. Cambiar el dueño y esta marca
      * es una sola operación en `lib/deals/cambiar-dueno.ts`.
@@ -1076,10 +1081,15 @@ export const deals = pgTable(
     // Una venta tiene dueno (ticket 391, ADR 0122, auditoria 385 F3-07): un deal vigente en
     // Abonado o Completo sin `owner_user_id` deja la comision sin a quien atribuirla y a
     // "Sin closer" crecer sin error. Un deal ANULADO es un registro que no existio (ADR 0038):
-    // puede quedar sin dueno. Las dos etapas de venta son `etapaVendida` (metricas-filtros.ts). Excepcion nombrada (ADR 0122, decision de Mani 8-nov): un deal historico migrado de la hoja (`huella_migracion`) puede quedar sin dueno cuando su closer ya no existe como usuario del programa.
+    // puede quedar sin dueno. Las dos etapas de venta son `etapaVendida` (metricas-filtros.ts). Excepcion nombrada (ADR 0122, decision de Mani 8-nov): un deal historico migrado de la hoja (`huella_migracion`) puede quedar sin dueno cuando su closer ya no existe como usuario del programa. Excepción nombrada (ADR 0133 D5): una venta directa de la pasarela (`venta_directa_en`) queda sin dueño para siempre.
     check(
       "deals_venta_con_dueno",
-      sql`${t.anuladoEn} IS NOT NULL OR ${t.etapa} NOT IN ('ganado_parcial', 'ganado_completo') OR ${t.ownerUserId} IS NOT NULL OR ${t.huellaMigracion} IS NOT NULL`,
+      sql`${t.anuladoEn} IS NOT NULL OR ${t.etapa} NOT IN ('ganado_parcial', 'ganado_completo') OR ${t.ownerUserId} IS NOT NULL OR ${t.huellaMigracion} IS NOT NULL OR ${t.ventaDirectaEn} IS NOT NULL`,
+    ),
+    // ADR 0133 D5: una venta directa nunca recibe dueño.
+    check(
+      "deals_venta_directa_sin_dueno",
+      sql`${t.ventaDirectaEn} IS NULL OR ${t.ownerUserId} IS NULL`,
     ),
     // Esperando corte (ticket 293): el texto solo vive con el pendiente Proxima Cohorte,
     // y un deal en espera sin cohorte destino lleva texto. Sin la primera mitad, salir del
@@ -1477,6 +1487,8 @@ export const abonos = pgTable(
     /** Texto historico para el corte de datos; no identifica abonos nuevos. */
     closerId: text("closer_id"),
     origen: text("origen").notNull().default("app"),
+    /** Referencia idempotente asignada por la pasarela; nula para abonos que no nacen allí. */
+    referenciaExterna: text("referencia_externa"),
     /**
      * `ticket` paga el valor vendido del deal; `adicional` es lo vendido aparte (un 1:1):
      * suma a la caja y nada mas, ni saldo ni etapa ni ventas (ADR 0113).
@@ -1502,6 +1514,9 @@ export const abonos = pgTable(
     uniqueIndex("abonos_huella_migracion_idx")
       .on(t.huellaMigracion)
       .where(sql`${t.huellaMigracion} is not null`),
+    uniqueIndex("abonos_origen_referencia_externa_idx")
+      .on(t.origen, t.referenciaExterna)
+      .where(sql`${t.referenciaExterna} is not null`),
     index("abonos_programa_fecha_idx").on(t.programId, t.fecha),
     index("abonos_deal_idx").on(t.dealId),
     // Moneda cerrada en la base (ADR 0124): COP o USD. La app solo acepta USD hoy (zod); la base deja la puerta
