@@ -2,6 +2,8 @@ import { fechaCorta, fechaHoraEnBogota, monto, num } from "@/lib/format";
 import { hostsDeCalendlySinCloser, type HostDeCalendlySinCloser } from "@/lib/calendly/hosts-sin-closer";
 import { saludDeFuentes, type SaludDeFuenteConDatos } from "@/lib/queries/salud-fuentes";
 import type { Db } from "@/lib/db/tipos";
+import { comprasPasarela, programs } from "@/lib/db/schema";
+import { eq, sql } from "drizzle-orm";
 import {
   descuadresRecientesDePauta,
   TOLERANCIA_CUADRE,
@@ -15,12 +17,14 @@ export type TipoDeAlerta =
   | "traza_de_pauta_rota"
   | "host_de_calendly_sin_closer"
   | "pauta_descuadrada"
+  | "pagos_sin_emparejar"
   | "sin_envios_global";
 
 export interface ContextoDeAlertas {
   fuentes: SaludDeFuenteConDatos[];
   hostsSinCloser: HostDeCalendlySinCloser[];
   descuadres?: DescuadreDePauta[];
+  pagosSinEmparejar?: { programId: string; programaNombre: string; cantidad: number }[];
 }
 
 type DefinicionDeAlerta = {
@@ -120,6 +124,13 @@ export const REGISTRO_DE_ALERTAS = {
       });
     },
   },
+  pagos_sin_emparejar: {
+    severidad: "critica",
+    evaluar: ({ pagosSinEmparejar = [] }) => pagosSinEmparejar.map((fila) => ({
+      clave: `pagos_sin_emparejar:${fila.programId}`,
+      texto: `🔴 ${fila.programaNombre}: ${num(fila.cantidad)} ${fila.cantidad === 1 ? "pago" : "pagos"} de Hotmart sin emparejar con un lead. Revisar en el Inbox › Pagos sin emparejar.`,
+    })),
+  },
   sin_envios_global: {
     severidad: "critica",
     evaluar: ({ fuentes }, ahora) => {
@@ -144,12 +155,15 @@ export const REGISTRO_DE_ALERTAS = {
 export const TIPOS_DE_ALERTA = Object.keys(REGISTRO_DE_ALERTAS) as [TipoDeAlerta, ...TipoDeAlerta[]];
 
 export async function alertasActivas(db: Db, ahora: Date) {
-  const [fuentes, hostsSinCloser, descuadres] = await Promise.all([
+  const [fuentes, hostsSinCloser, descuadres, pagosSinEmparejar] = await Promise.all([
     saludDeFuentes(db, ahora),
     hostsDeCalendlySinCloser(db),
     descuadresRecientesDePauta(db, ahora),
+    db.select({ programId: comprasPasarela.programId, programaNombre: programs.nombre, cantidad: sql<number>`count(*)::int` })
+      .from(comprasPasarela).innerJoin(programs, eq(programs.id, comprasPasarela.programId))
+      .where(eq(comprasPasarela.estado, "sin_emparejar")).groupBy(comprasPasarela.programId, programs.nombre),
   ]);
-  return alertasDelContexto({ fuentes, hostsSinCloser, descuadres }, ahora);
+  return alertasDelContexto({ fuentes, hostsSinCloser, descuadres, pagosSinEmparejar }, ahora);
 }
 
 /** Las alertas de un contexto ya calculado: quien ya tiene sus consultas no las recalcula. */

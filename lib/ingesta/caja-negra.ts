@@ -6,22 +6,23 @@ import type { Db } from "@/lib/db/tipos";
  * La CAJA NEGRA de los webhooks (ADR 0058, migraciones 0034 y 0039): apenas la firma
  * cuadra, el cuerpo crudo se guarda con `error: null`; si algo despues no se puede
  * procesar, esa MISMA fila se actualiza con el error y la ruta responde 200. La usan las
- * dos rutas que reciben webhooks: la de formularios (una fuente) y la de Calendly (el
+ * rutas que reciben webhooks: formularios (una fuente), Calendly y pagos (estos dos del
  * programa, sin fuente).
  *
  * Guardar el sobre NUNCA tumba el procesamiento: si la escritura falla se loguea y se
  * sigue.
  */
 
-/** De donde viene el sobre: la fuente de un formulario, o Calendly (del programa). */
+/** De donde viene el sobre: formulario, Calendly o pago. */
 export type DuenoDelSobre =
   | { canal: "formulario"; sourceId: string; programId: string }
-  | { canal: "calendly"; programId: string };
+  | { canal: "calendly"; programId: string }
+  | { canal: "pago"; programId: string };
 
 function valores(dueno: DuenoDelSobre, cuerpo: string, error: string | null) {
   return {
     origen: dueno.canal,
-    sourceId: dueno.canal === "calendly" ? null : dueno.sourceId,
+    sourceId: dueno.canal === "formulario" ? dueno.sourceId : null,
     programId: dueno.programId,
     cuerpo,
     error,

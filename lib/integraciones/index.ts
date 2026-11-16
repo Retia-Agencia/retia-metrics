@@ -7,7 +7,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { INTEGRACIONES, probarIntegracion, type ConfigIntegracion } from "./registro";
 import { registrarCambioDeSecreto } from "./rastro";
 
-type Secretos = { token?: string; llaveApi?: string; claveFirma?: string };
+type Secretos = { token?: string; llaveApi?: string; claveFirma?: string; hottok?: string };
 export type TokensMeta = ReadonlyMap<string, string>;
 
 async function programa(db: Db, programId: string) {
@@ -112,6 +112,15 @@ async function secreto(db: Db, programId: string, tipo: TipoIntegracion, llave: 
 export const tokenCalendly = (db: Db, programId: string) => secreto(db, programId, "calendly", "token");
 export const claveFirmaCalendly = (db: Db, programId: string) => secreto(db, programId, "calendly", "claveFirma");
 export const tokenTypeform = (db: Db, programId: string) => secreto(db, programId, "typeform", "token");
+export const hottokHotmart = (db: Db, programId: string) => secreto(db, programId, "hotmart", "hottok");
+
+export async function integracionHotmartPorId(db: Db, id: string) {
+  const [fila] = await db.select({ id: integraciones.id, programId: integraciones.programId, secretos: integraciones.secretos })
+    .from(integraciones).where(and(eq(integraciones.id, id), eq(integraciones.tipo, "hotmart"))).limit(1);
+  if (!fila) return null;
+  const hottok = (fila.secretos as Secretos).hottok;
+  return { id: fila.id, programId: fila.programId, hottok: typeof hottok === "string" && hottok ? hottok : null };
+}
 
 export async function tokensCalendly(db: Db, programIds: readonly string[]): Promise<Map<string, string>> {
   if (programIds.length === 0) return new Map();
@@ -189,14 +198,14 @@ export async function registrarPruebaMetaCapi(db: Db, actorId: string, programId
 }
 
 export type EstadoIntegracion = {
-  tipo: TipoIntegracion; nombre: string; campo: string; configurada: boolean;
+  id: string | null; tipo: TipoIntegracion; nombre: string; campo: string; configurada: boolean;
   probadaEn: Date | null; config: ConfigIntegracion; actualizadaEn: Date | null;
   webhookConectado?: boolean;
 };
 
 export async function estadoDeIntegraciones(db: Db, programId: string): Promise<EstadoIntegracion[]> {
   const filas = await db.select({
-    tipo: integraciones.tipo, probadaEn: integraciones.probadaEn,
+    id: integraciones.id, tipo: integraciones.tipo, probadaEn: integraciones.probadaEn,
     config: integraciones.config, actualizadaEn: integraciones.updatedAt,
     webhookConectado: sql<boolean>`${integraciones.secretos} ? 'claveFirma'`,
   }).from(integraciones).where(eq(integraciones.programId, programId)).orderBy(asc(integraciones.createdAt));
@@ -204,7 +213,7 @@ export async function estadoDeIntegraciones(db: Db, programId: string): Promise<
   return (Object.keys(INTEGRACIONES) as TipoIntegracion[]).map((tipo) => {
     const fila = porTipo.get(tipo);
     return {
-      tipo, nombre: INTEGRACIONES[tipo].nombre, campo: INTEGRACIONES[tipo].campo,
+      id: fila?.id ?? null, tipo, nombre: INTEGRACIONES[tipo].nombre, campo: INTEGRACIONES[tipo].campo,
       configurada: Boolean(fila), probadaEn: fila?.probadaEn ?? null,
       config: (fila?.config ?? {}) as ConfigIntegracion, actualizadaEn: fila?.actualizadaEn ?? null,
       ...(tipo === "calendly" ? { webhookConectado: fila?.webhookConectado ?? false } : {}),

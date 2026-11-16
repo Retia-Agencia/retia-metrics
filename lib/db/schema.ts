@@ -87,6 +87,7 @@ export const pendienteDealEnum = pgEnum("pendiente_deal", ["reagenda", "seguimie
 export const tipoContactoEnum = pgEnum("tipo_contacto", ["correo", "telefono"]);
 export const estadoArchivoEnum = pgEnum("estado_archivo", ["pendiente", "listo"]);
 export const conceptoAbonoEnum = pgEnum("concepto_abono", ["ticket", "adicional"]);
+export const estadoCompraPasarelaEnum = pgEnum("estado_compra_pasarela", ["sin_emparejar", "emparejada", "en_revision"]);
 
 /**
  * Que clase de actividad quedo registrada sobre un deal (ADR 0037, ADR 0071). Es tipo
@@ -836,7 +837,7 @@ export const sobresCrudos = pgTable(
       .where(sql`${t.error} is not null and ${t.reprocesadoEn} is null`),
     check(
       "sobres_crudos_origen_chk",
-      sql`(${t.origen} = 'formulario' AND ${t.sourceId} IS NOT NULL) OR (${t.origen} = 'calendly' AND ${t.sourceId} IS NULL)`,
+      sql`(${t.origen} = 'formulario' AND ${t.sourceId} IS NOT NULL) OR (${t.origen} in ('calendly', 'pago') AND ${t.sourceId} IS NULL)`,
     ),
   ],
 );
@@ -2242,7 +2243,7 @@ export const enlacesPago = pgTable(
  * decide con el como se prueba y quien lee su secreto (`INTEGRACIONES` en
  * `lib/integraciones/`). Agregar una integracion es un valor aqui y una entrada alli.
  */
-export const tipoIntegracionEnum = pgEnum("tipo_integracion", ["dapta", "typeform", "calendly", "meta", "meta_capi"]);
+export const tipoIntegracionEnum = pgEnum("tipo_integracion", ["dapta", "typeform", "calendly", "meta", "meta_capi", "hotmart"]);
 
 /**
  * Las conexiones de un programa con sus proveedores (ADR 0095, ticket 278): una fila por
@@ -2270,6 +2271,33 @@ export const integraciones = pgTable(
   },
   (t) => [uniqueIndex("integraciones_programa_tipo_idx").on(t.programId, t.tipo)],
 );
+
+/** Una fila por compra aceptada por una pasarela; la transacción es la reja de idempotencia. */
+export const comprasPasarela = pgTable("compras_pasarela", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+  integracionId: uuid("integracion_id").notNull().references(() => integraciones.id, { onDelete: "restrict" }),
+  sobreId: uuid("sobre_id").references(() => sobresCrudos.id, { onDelete: "set null" }),
+  proveedor: text("proveedor").notNull(), transaccion: text("transaccion").notNull(), evento: text("evento").notNull(),
+  estado: estadoCompraPasarelaEnum("estado").notNull(),
+  motivoRevision: text("motivo_revision"), codigoOferta: text("codigo_oferta"),
+  enlacePagoId: uuid("enlace_pago_id").references(() => enlacesPago.id, { onDelete: "restrict" }),
+  cohortId: uuid("cohort_id").references(() => cohorts.id, { onDelete: "restrict" }),
+  monto: numeric("monto", { precision: 12, scale: 2 }), moneda: text("moneda"),
+  correo: text("correo"), telefono: text("telefono"), nombre: text("nombre"),
+  leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
+  emparejadaPor: text("emparejada_por"), notaSistema: text("nota_sistema"),
+  asignadaPorUserId: uuid("asignada_por_user_id").references(() => users.id, { onDelete: "set null" }),
+  aprobadaEn: timestamp("aprobada_en", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("compras_pasarela_proveedor_transaccion_idx").on(t.proveedor, t.transaccion),
+  index("compras_pasarela_programa_estado_idx").on(t.programId, t.estado),
+  check("compras_pasarela_moneda_chk", sql`${t.moneda} is null or ${t.moneda} in ('COP', 'USD')`),
+  check("compras_pasarela_emparejada_por_chk", sql`${t.emparejadaPor} is null or ${t.emparejadaPor} in ('correo', 'telefono', 'manual')`),
+  check("compras_pasarela_motivo_revision_chk", sql`${t.motivoRevision} is null or ${t.motivoRevision} in ('oferta_desconocida', 'sin_oferta', 'moneda_no_soportada', 'sin_cohorte', 'cohorte_ambigua')`),
+]);
 
 /**
  * Que evento del CRM le llega a Meta por la API de Conversiones (ADR 0097, ticket 281). Es un
@@ -2814,6 +2842,7 @@ export type EnlacePago = typeof enlacesPago.$inferSelect;
 export type SobreCrudo = typeof sobresCrudos.$inferSelect;
 export type EntregaWebhook = typeof entregasWebhook.$inferSelect;
 export type TipoIntegracion = (typeof tipoIntegracionEnum.enumValues)[number];
+export type CompraPasarela = typeof comprasPasarela.$inferSelect;
 export type CuentaPublicitaria = typeof cuentasPublicitarias.$inferSelect;
 export type PautaObjeto = typeof pautaObjetos.$inferSelect;
 export type NuevoPautaObjeto = typeof pautaObjetos.$inferInsert;

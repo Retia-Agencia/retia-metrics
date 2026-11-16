@@ -1,0 +1,17 @@
+{
+  "id": "1234567890123456789",
+  "event": "PURCHASE_APPROVED",
+  "version": "2.0.0",
+  "data": {
+    "product": { "id": 213344, "name": "Product Name" },
+    "buyer": { "email": "comprador@ejemplo.com", "name": "Buyer Name", "checkout_phone": "999999999", "checkout_phone_code": "31" },
+    "purchase": {
+      "approved_date": 1231241434453,
+      "full_price": { "value": 99, "currency_value": "USD" },
+      "price": { "value": 150.6, "currency_value": "BRL" },
+      "offer": { "code": "n82b9jqz" },
+      "status": "APPROVED",
+      "transaction": "HP02316330308193"
+    }
+  }
+}

@@ -28,5 +28,5 @@ plataforma; el descuento lo escribe gerencia después.
 4. Oferta desconocida → la compra queda en revisión (448 la guardó), nunca se adivina el programa.
 
 ## Done cuando
-- [ ] Tests con las tres ofertas de LiderArte (USD 99 desde P6, USD 99 desde P7, USD 49) y una oferta desconocida.
+- [x] Tests con las tres ofertas de LiderArte (USD 99 desde P6, USD 99 desde P7, USD 49) y una oferta desconocida.
 - [ ] Los enlaces de LiderArte están cargados en producción con su `off=`.

@@ -10,7 +10,7 @@ export type ConfigIntegracion = Record<string, string | boolean | null>;
 type Definicion = {
   nombre: string;
   campo: string;
-  llave: "llaveApi" | "token";
+  llave: "llaveApi" | "token" | "hottok";
   esquema: z.ZodType<string>;
   probar: (valor: string, f: Fetch, config?: ConfigIntegracion) => Promise<ConfigIntegracion>;
 };
@@ -89,6 +89,12 @@ export const INTEGRACIONES = {
         : null;
       return { dataset: typeof nombre === "string" && nombre.trim() ? nombre : "Dataset" };
     },
+  },
+  hotmart: {
+    nombre: "Hotmart", campo: "hottok", llave: "hottok",
+    esquema: valorPegado("El hottok de Hotmart"),
+    // Hotmart no ofrece una API para probar el hottok: la prueba real es el primer evento.
+    probar: async () => ({}),
   },
 } satisfies Record<TipoIntegracion, Definicion>;
 
