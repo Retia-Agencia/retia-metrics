@@ -16,11 +16,13 @@ import { Switch } from "@/components/ui/switch";
 import { CuentasDelPrograma } from "@/components/pauta/cuentas-del-programa";
 import { conectarCalendlyAccion } from "@/app/(app)/p/[programa]/programa/acciones-programa";
 import { LARGO_MAXIMO_SECRETO } from "@/lib/integraciones/limites";
+import { rutaDelWebhookDePagos } from "@/lib/pagos/ruta";
 import { configurarMetaCapiAccion, guardarIntegracionAccion, guardarRoundRobinAccion, mandarPruebaMetaCapiAccion, probarIntegracionAccion, sincronizarMetaDelProgramaAccion } from "@/app/(app)/p/[programa]/programa/acciones-integraciones";
 
 type ConfigVisible = Record<string, string | boolean | null>;
 
 export type IntegracionVisible = {
+  id: string | null;
   tipo: TipoIntegracion;
   nombre: string;
   campo: string;
@@ -174,6 +176,9 @@ export function IntegracionesDelPrograma({
                   Calendly le avisa al CRM en el momento en que alguien agenda, cancela o no asiste, y la cita queda en la ficha de su persona. Se conecta solo al guardar el token.
                 </p>
               </div>
+            ) : null}
+            {integracion.tipo === "hotmart" && integracion.id ? (
+              <p className="break-all text-xs text-muted-foreground">Webhook: {rutaDelWebhookDePagos(integracion.id)}</p>
             ) : null}
 
             {integracion.tipo === "calendly" ? (

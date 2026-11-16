@@ -28,6 +28,6 @@ https://developers.hotmart.com/docs/en/2.0.0/webhook/purchase-webhook/
 5. Se aceptan los eventos de compra aprobada y completa; los demás se guardan y se ignoran hasta el 452.
 
 ## Done cuando
-- [ ] Test: firma buena, firma mala, evento repetido (una sola fila), evento ignorado.
+- [x] Test: firma buena, firma mala, evento repetido (una sola fila), evento ignorado.
 - [ ] El primer evento real de Hotmart queda en `sobres_crudos` sin error y su fixture está en `tests/fixtures/`.
-- [ ] La ruta está en la lista de endpoints públicos de `docs/agents/restricciones.md`.
+- [x] La ruta está en la lista de endpoints públicos de `docs/agents/restricciones.md`.

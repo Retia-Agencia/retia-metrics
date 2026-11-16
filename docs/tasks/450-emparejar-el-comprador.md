@@ -29,5 +29,5 @@ emparejar, donde alguien la asigna a un lead y entonces sigue su camino (455).
    agregar `[correo]` al `redirectUrl` de los outcomes de LiderArte (skill `dforms-api`). Sin fuente verificada todavía.
 
 ## Done cuando
-- [ ] Tests: cruza por correo, cruza por teléfono, no cruza (va a la bandeja y alerta), correo de otro programa
+- [x] Tests: cruza por correo, cruza por teléfono, no cruza (va a la bandeja y alerta), correo de otro programa
       (no cruza), asignar desde la bandeja con un rol que no puede (403, base sin moverse).

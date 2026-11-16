@@ -115,7 +115,7 @@ describe("integraciones por programa", () => {
   it("el estado no contiene el secreto y conserva el orden del registro", async () => {
     await sembrarIntegracion(db, programId, "dapta", { llaveApi: "ultrasecreta" }, { cuenta: "Retia" });
     const estado = await estadoDeIntegraciones(db, programId);
-    expect(estado.map((fila) => fila.tipo)).toEqual(["dapta", "typeform", "calendly", "meta", "meta_capi"]);
+    expect(estado.map((fila) => fila.tipo)).toEqual(["dapta", "typeform", "calendly", "meta", "meta_capi", "hotmart"]);
     expect(JSON.stringify(estado)).not.toContain("ultrasecreta");
   });
 

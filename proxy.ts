@@ -51,7 +51,8 @@ export default auth((req) => {
     // HMAC en el propio handler. Nunca redirige a /login, o cada envio se perderia.
     pathname.startsWith("/api/webhooks/formularios/") ||
     // El webhook de Calendly (ticket 096): mismo caso, firma con la clave del programa.
-    pathname.startsWith("/api/webhooks/calendly/");
+    pathname.startsWith("/api/webhooks/calendly/") ||
+    pathname.startsWith("/api/webhooks/pagos/");
 
   if (esRutaPublica) return NextResponse.next({ request: { headers: headersDeSolicitud } });
 

@@ -5,7 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Session } from "next-auth";
 import { requireRole, requireRoleDeLectura } from "@/lib/auth/guards";
-import { esRolValido, type Rol } from "@/lib/auth/roles";
+import { asignaPagosDePasarela, AuthorizationError, esRolValido, type Rol } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaEnAlcance } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
@@ -19,6 +19,8 @@ import { completarAgendada } from "@/lib/deals/llamadas";
 import { asignarLlamadaSuelta, crearDealDesdeSuelta, descartarLlamadaSuelta, esquemaDescartarSuelta } from "@/lib/calendly/colgar-llamada";
 import { buscarDealsAbiertos, type DealAbiertoBuscado } from "@/lib/queries/inbox";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
+import { buscarLeads } from "@/lib/queries/leads";
+import { asignarCompraALead } from "@/lib/pagos/asignar";
 
 /**
  * Server actions del Inbox de un programa (ticket 070), MISMO patron que
@@ -100,6 +102,29 @@ async function correr<T extends object>(cuerpo: (ctx: Contexto) => Promise<T>): 
 }
 
 const id = (mensaje: string) => z.string().uuid(mensaje);
+
+export async function buscarLeadsParaPagoAccion(entrada: { programId: string; q: string }): Promise<ResultadoInbox<{ leads: Awaited<ReturnType<typeof buscarLeads>> }>> {
+  try {
+    const ctx = await contextoDe(true);
+    if (!asignaPagosDePasarela(ctx.actor.rol)) throw new AuthorizationError();
+    const programId = id("Programa inválido.").parse(entrada.programId);
+    await exigirProgramaVisible(ctx, programId);
+    return { ok: true, leads: await buscarLeads(db, programId, entrada.q) };
+  } catch (error) {
+    return aError(error);
+  }
+}
+export async function asignarCompraAccion(entrada: { compraId:string; leadId:string }): Promise<ResultadoInbox> {
+  return correr(async (ctx) => {
+    await asignarCompraALead(
+      db,
+      ctx.actor,
+      id("Compra inválida.").parse(entrada.compraId),
+      id("Lead inválido.").parse(entrada.leadId),
+    );
+    return {};
+  });
+}
 const vacioAUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 const textoOpcional = <T extends z.ZodTypeAny>(esquema: T) => z.preprocess(vacioAUndefined, esquema.optional());
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");

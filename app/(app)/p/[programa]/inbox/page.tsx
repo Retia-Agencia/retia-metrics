@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
+import { asignaPagosDePasarela, esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { motivos } from "@/lib/db/schema";
 import { duenosPosibles } from "@/lib/deals/duenos";
@@ -16,6 +16,8 @@ import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
 import { InboxPerdidosEnCalendly } from "@/components/deals/inbox-perdidos-en-calendly";
 import { HostsSinCuenta } from "@/components/mi-espacio/hosts-sin-cuenta";
+import { pagosPendientes } from "@/lib/pagos/inbox";
+import { InboxPagosSinEmparejar } from "@/components/deals/inbox-pagos-sin-emparejar";
 
 export const dynamic = "force-dynamic";
 
@@ -65,10 +67,11 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
   const bandejaPendiente = bandejaParaActor(db, programa.id, session, rol);
   const query = await searchParams;
 
-  const [bandeja, duenos, motivosFilas] = await Promise.all([
+  const [bandeja, duenos, motivosFilas, pagos] = await Promise.all([
     bandejaPendiente,
     duenosPosibles(db, programa.id),
     db.select().from(motivos).where(eq(motivos.activo, true)),
+    asignaPagosDePasarela(rol) ? pagosPendientes(db, programa.id) : Promise.resolve([]),
   ]);
   if (!bandeja) notFound();
   const { actor, inbox, perdidos, secciones } = bandeja;
@@ -129,6 +132,18 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
       ],
     },
   ];
+  if (asignaPagosDePasarela(rol)) {
+    grupos.push({
+      titulo: "Pagos",
+      pestanas: [{
+        id: "pagos-sin-emparejar",
+        etiqueta: "Pagos sin emparejar",
+        total: pagos.length,
+        descripcion: "Compras de Hotmart que esperan un lead o requieren revisión.",
+        href: urlConSeccion(base, query, "pagos-sin-emparejar"),
+      }],
+    });
+  }
   const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
   const seccionPedida = uno(query.seccion);
   const seccion = pestanaActiva(seccionPedida ? (ID_ANTERIOR_DE_SECCION[seccionPedida] ?? seccionPedida) : undefined, pestanas);
@@ -182,6 +197,7 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
           {seccion === "no-agendaron" ? (
             <InboxPerdidosEnCalendly filas={perdidos} slug={programa.slug} origen={origen} />
           ) : null}
+          {seccion === "pagos-sin-emparejar" ? <InboxPagosSinEmparejar filas={pagos} programId={programa.id} /> : null}
         </div>
       </PantallaFija>
     </PageShell>

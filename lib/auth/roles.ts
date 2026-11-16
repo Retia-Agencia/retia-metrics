@@ -98,6 +98,9 @@ export function esAdministrador(rol: Rol | undefined | null): boolean {
   return rol === "gerente" || rol === "developer";
 }
 
+/** ADR 0133: Customer Success se decide aparte; hoy solo administración asigna pagos. */
+export function asignaPagosDePasarela(rol: Rol | undefined | null): boolean { return esAdministrador(rol); }
+
 /** Quien administra usuarios, incluso cuando su gestión está limitada por programa. */
 export function administraUsuarios(rol: Rol | undefined | null): boolean {
   return esAccesoTotal(rol) || esAdministrador(rol);
