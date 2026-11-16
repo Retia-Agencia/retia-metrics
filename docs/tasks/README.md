@@ -30,7 +30,7 @@ el pago y el deal cae en Students sin dueño. D1 a D6 decididas por Mani el 16-n
 | [ ] | 448 | [El webhook de Hotmart entra, se guarda y se procesa una vez](./448-webhook-de-hotmart.md) | — | todo |
 | [ ] | 449 | [La oferta de la compra dice programa, monto y moneda](./449-la-oferta-dice-que-se-vendio.md) | 448 | todo |
 | [ ] | 450 | [El comprador se empareja con su lead, o espera en la bandeja](./450-emparejar-el-comprador.md) | 448 | todo |
-| [ ] | 451 | [La venta directa: abono del sistema y flecha a Ganado sin dueño](./451-venta-directa-en-el-motor.md) | — | todo |
+| [x] | 451 | [La venta directa: abono del sistema y flecha a Ganado sin dueño](./451-venta-directa-en-el-motor.md) | — | done · 16-nov · migración 0148 |
 | [ ] | 452 | [La venta directa se lee como tal en el Hub, Students y Deals](./452-la-venta-directa-en-metricas-y-pantallas.md) | 451 | todo |
 | [ ] | 453 | [Reembolso y contracargo: una persona escoge](./453-reembolsos-de-la-pasarela.md) | 455 | todo |
 | [ ] | 454 | [Conectar el Hotmart de LiderArte y recuperar las compras que ya pasaron](./454-conectar-hotmart-de-liderarte.md) | 455 | todo · espera acceso a Hotmart |

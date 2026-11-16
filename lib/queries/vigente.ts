@@ -62,6 +62,11 @@ export function vigente(tabla: PgTable): SQL {
  * capa de hechos sobre `ventasConDiaEn`, un conjunto cerrado que YA aplico
  * `vigente(deals)` adentro: el nombre dice en voz alta que la vigencia se decidio dentro
  * del derivado y la consulta externa no la re-filtra.
+ *
+ * **Cuarto uso, agregado el 16-nov (ticket 451):** la idempotencia de un pago de la
+ * pasarela. El índice único (origen, referencia_externa) de `abonos` cubre también los
+ * anulados, así que un reenvío de Hotmart de un pago anulado tiene que encontrarlo y no
+ * intentar insertarlo de nuevo. Como el segundo uso, no mide nada: pregunta si la fila existe.
  */
 export function incluyendoAnulados(tabla: PgTable | SQLWrapper): SQL {
   // El argumento no se usa: esta para que la consulta diga SOBRE QUE tabla tomo la

@@ -7,6 +7,7 @@ import { normalizando } from "@/lib/errors-zod";
 import { exigirPlataformaActiva } from "@/lib/abonos/plataforma";
 import { crearConRastro } from "@/lib/crm/rastro";
 import { saldosDeDeals } from "@/lib/queries/saldo";
+import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { moverEtapa } from "./mover-etapa";
 import {
   dealBloqueado,
@@ -61,7 +62,12 @@ export async function registrarVentaDeLaPasarela(
       const [existente] = await tx
         .select({ id: abonos.id })
         .from(abonos)
-        .where(and(eq(abonos.origen, entrada.origen), eq(abonos.referenciaExterna, entrada.referenciaExterna)))
+        // Idempotencia contra el índice único, que incluye anulados (vigente.ts, cuarto uso).
+        .where(and(
+          eq(abonos.origen, entrada.origen),
+          eq(abonos.referenciaExterna, entrada.referenciaExterna),
+          incluyendoAnulados(abonos),
+        ))
         .limit(1);
       if (existente) {
         const saldo = (await saldosDeDeals(tx, [deal.id])).get(deal.id)?.saldo ?? null;

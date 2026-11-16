@@ -37,9 +37,9 @@ const GENERICOS = new Set([
 
 /** `tabla.campo` → hallazgo de F3 o ticket que lo retira. Una columna aquí NO tiene lector hoy. */
 const SIN_LECTOR_CONOCIDOS: Record<string, string> = {
-  "abonos.origen": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "cohorts.notas": "385 F7: sin lector el 7-nov y no está en F3; decidir si se elimina o se lee",
   "deals.creadoPor": "385 F7: sin lector el 7-nov y no está en F3 (el rastro vive en change_log); decidir",
+  "deals.ventaDirectaEn": "451: el motor la escribe en S4; la leen las métricas y pantallas del 452",
 };
 
 /** Auditoría de fila (cuándo se creó o tocó): se escribe siempre y nadie la mide; no es deuda de métricas. */
