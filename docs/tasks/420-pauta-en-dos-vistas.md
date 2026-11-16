@@ -48,6 +48,43 @@ Rótulos y fórmulas en D-A, D-B, D-C, D-E (403 F1): se construye la forma y se 
 
 ## Avance (11-nov)
 
+**16-nov · «Ver solo» fase 1: atribución compartida**
+
+- **Hecho:** `lib/queries/atribucion-de-pauta.ts` recibe exclusivamente los envíos, las parejas parcial/completo, los
+  objetos y el árbol que ya lee el ROAS. Centraliza el canónico y sus alias, la jerarquía anuncio → conjunto → campaña →
+  cuenta de Meta y la resolución de deal a envío, heredada por citas y ventas. Sigue llamando a `emparejar`; no copia sus
+  reglas. Exporta `AtribucionDePauta`, `CortePauta` y `perteneceAlCorte` (pura, todavía sin uso para filtrar).
+  Las identidades internas conservan los ids del árbol de Meta y la FK de cuenta; la fase 2 resolverá la URL con UUID
+  contra el programa en el servidor antes de construir el corte.
+- **ROAS:** consume esa atribución; conserva todas las lecturas SQL, sus claves de caché, sumas, presentación, orden y
+  residuales «Anuncio sin identificar», «Sin campaña de Meta» y `SIN_CUENTA`. `NIVELES_PAUTA`, `SIN_CUENTA` y el export
+  de `diaDelEnvio` siguen disponibles en el mismo módulo para sus llamadores, incluido el MCP. No se agregaron consultas.
+- **Tests nuevos:** `tests/atribucion-de-pauta.test.ts`, con PGlite reutilizable: anuncio, conjunto, campaña por id y por
+  nombre, ambigüedad, sin anuncio, parcial + completo canónico, deal por alias, gasto manual sin cuenta y pertenencia
+  exacta en los cuatro niveles, sin repartir residuales. No se editaron tests existentes ni sus expectativas.
+- **No tocado:** interfaz ni filtros, hechos ni su dimensión `campana` (sigue siendo `utmCampaign` literal), registro de
+  métricas y `lib/metricas/*`, esquema, ADRs, vocabulario, handoff y tracker. Sin lectura de `.env*`, servicios externos,
+  bases reales, migraciones, commit ni push.
+- **Verificado:** `npm run typecheck` pasó; `npm run lint` terminó con 0 errores y 7 advertencias en archivos no tocados.
+  Revisión del diff: ninguna consulta SQL modificada.
+- **No verificado:** los tests nuevos y los existentes de ROAS, proyección, `atribucion-*`, pauta por cuenta y `mcp-*`.
+  Se intentaron juntos por `npm test -- …`; el lanzador se detuvo antes de Vitest con `spawnSync ps EPERM`
+  (`scripts/test.mjs:98`, sandbox). No se eludió el lanzador. Sin suite completa (CI) ni recorrido visual; no se abrió
+  la app para evitar acceso a servicios reales. No se declara paridad de resultados ejecutada.
+
+**Decisiones de Alejandro (16-nov)** para las fases siguientes:
+
+- Canal (plataforma o canal compuesto actual) lo decide Mani; va en la fase 3, no bloquea la 2.
+- Costo por agenda de hoy sigue el corte por cuenta y campaña; con conjunto o anuncio dice «No disponible para este corte:
+  el detalle de hoy se guarda por campaña».
+- «¿Qué llega sin origen?» se queda con todo el programa, rotulado «Todo el programa en el periodo: este diagnóstico no sigue
+  «Ver solo».».
+- Conjunto cuenta solo atribución exacta y sus anuncios identificados; no se reparten residuales.
+- «Sin cuenta de Meta» no es opción del selector.
+- El ROAS proyectado corta los pendientes con las tasas históricas del programa y la explicación lo dice.
+- URL: `?corte=<nivel>&corte_id=<uuid de pauta_objetos>`, validado contra el programa en el servidor.
+
+
 Commits: `1818d66c` (dos vistas), `4e4f7f39` (Cupos | Plata y ritmo), `738da751` (Origen y calidad), `cc3769f1` (gráfica
 diaria), `41695ecd` (resumen de filtros y «Elegir fechas…»).
 

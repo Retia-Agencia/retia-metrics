@@ -1,14 +1,13 @@
+import { atribuirEnviosDePauta, atribucionPorDeal, diaDelEnvio, type AtribucionDePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, between, eq, inArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { emparejar } from "@/lib/atribucion/emparejar";
-import { columnasUtmDelEnvio, utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
+import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 import { calls, deals, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { citaPorVenirDeDealAbierto, citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
 import { diaDeCalendario } from "@/lib/dias-habiles";
-import { fechaDeInstanteEnBogota } from "@/lib/format";
 import { arbolDePauta } from "@/lib/pauta/arbol";
 import { diaCubierto, motivoDeGasto, type CoberturaDeGasto } from "@/lib/pauta/cobertura-de-gasto";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -19,6 +18,8 @@ import { ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { diaDeEnvio } from "@/lib/queries/hechos/fechas";
+
+export { diaDelEnvio } from "@/lib/queries/atribucion-de-pauta";
 
 export const NIVELES_PAUTA = ["cuenta_meta", "campana", "conjunto", "anuncio", "anuncio_sin_identificar", "sin_anuncio", "canal", "total"] as const;
 /**
@@ -39,26 +40,9 @@ export interface CitaDePauta {
   etapa: string;
 }
 
-export interface FilaPorEnvioPauta {
-  envioId: string;
-  leadId: string;
-  nombre: string | null;
-  fechaEnvio: Date;
-  diaEnvio: string;
-  cuentaComoRegistro: boolean;
-  canal: string;
-  /** La clave estable del canal (`resolverCanal`), para agrupar y profundizar por canal. */
-  canalClave: string;
+export interface FilaPorEnvioPauta extends AtribucionDePauta {
   dealId: string | null;
   etapa: string | null;
-  campanaId: string | null;
-  campanaNombre: string | null;
-  /** La cuenta de Meta de su campaña (`pauta_objetos.cuenta_id`, 416); nula sin campaña de Meta. */
-  cuentaId: string | null;
-  conjuntoId: string | null;
-  conjuntoNombre: string | null;
-  anuncioId: string | null;
-  anuncioNombre: string | null;
   citas: CitaDePauta[];
   venta: { dealId: string; etapa: string; dia: string; valorVendidoUsd: number; sinValorVendido: boolean; escalon: Escalon } | null;
 }
@@ -126,13 +110,6 @@ export interface VistaRoasDePauta {
   rango: Rango;
 }
 
-
-/** El día de negocio de un envío: el parcial no trae `fechaEnvio`, así que usa su creación. */
-export function diaDelEnvio(envio: { fechaEnvio: Date | null; createdAt: Date }): string {
-  return fechaDeInstanteEnBogota(envio.fechaEnvio ?? envio.createdAt);
-}
-
-const enRango = (dia: string, rango: Rango) => dia >= rango.desde && dia <= rango.hasta;
 
 function diasEntre(desde: string, hasta: string): number {
   const partes = (v: string) => v.split("-").map(Number) as [number, number, number];
@@ -281,60 +258,26 @@ async function leerRoasDePauta(
     .leftJoin(leads, and(eq(leads.id, submissions.leadId), eq(leads.programId, sources.programId)))
     .where(and(eq(sources.programId, programId), inArray(submissions.id, idsExtra)));
   const enviosCrudos = [...enviosEnRango, ...enviosExtra];
-  const envioPorId = new Map(enviosCrudos.map((e) => [e.id, e]));
-  const completoPorParcial = new Map(parejas.map((p) => [p.parcialId, p.completoId]));
-  const nombres = new Map(objetos.map((o) => [o.idMeta, o.nombre]));
-  const cuentaDeCampana = new Map(objetos.filter((o) => o.nivel === "campana").map((o) => [o.idMeta, o.cuentaId]));
-  const pagados = enviosCrudos.flatMap((e) => {
-    const completoId = e.esParcial ? completoPorParcial.get(e.id) : undefined;
-    const base = completoId ? envioPorId.get(completoId) : e;
-    if (!base || !enRango(diaDelEnvio(base), rango)) return [];
-    const traza = emparejar(utmsDelEnvio(base), arbol);
-    if (traza.origen.area !== "paid") return [];
-    return [{ envio: e, base, traza }];
-  });
-  const canonicos = new Map<string, FilaPorEnvioPauta>();
-  const filaPorEnvioId = new Map<string, FilaPorEnvioPauta>();
-  for (const { envio: e, base, traza } of pagados) {
-    const idCanonico = base.id;
-    let fila = canonicos.get(idCanonico);
-    if (!fila) {
-      const anuncio = traza.anuncio;
-      const conjunto = traza.conjunto;
-      const campanaId = traza.campana?.tipo === "meta" ? traza.campana.campanaId : null;
-      const instante = base.fechaEnvio ?? base.createdAt;
-      fila = { envioId: idCanonico, leadId: base.leadId!, nombre: base.nombre,
-        fechaEnvio: instante, diaEnvio: diaDelEnvio(base),
-        cuentaComoRegistro: !base.esParcial,
-        canal: traza.origen.canal?.nombre ?? "Paid",
-        canalClave: traza.origen.canal?.clave ?? "paid",
-        dealId: null, etapa: null,
-        campanaId, campanaNombre: campanaId ? nombres.get(campanaId) ?? campanaId : null,
-        cuentaId: campanaId ? cuentaDeCampana.get(campanaId) ?? null : null,
-        conjuntoId: conjunto?.conjuntoId ?? null,
-        conjuntoNombre: conjunto ? nombres.get(conjunto.conjuntoId) ?? conjunto.conjuntoId : null,
-        anuncioId: anuncio?.anuncioId ?? null,
-        anuncioNombre: anuncio ? nombres.get(anuncio.anuncioId) ?? anuncio.anuncioId : null,
-        citas: [], venta: null };
-      canonicos.set(idCanonico, fila);
-    }
-    filaPorEnvioId.set(e.id, fila);
-  }
+  const atribucion = atribuirEnviosDePauta(enviosCrudos, parejas, objetos, arbol, rango);
+  const canonicos = new Map<string, FilaPorEnvioPauta>([...atribucion.canonicos].map(([id, envio]) =>
+    [id, { ...envio, dealId: null, etapa: null, citas: [], venta: null }]));
+  const filaPorEnvioId = new Map([...atribucion.filaPorEnvioId].map(([id, envio]) =>
+    [id, canonicos.get(envio.envioId)!]));
   const idsEnvio = [...filaPorEnvioId.keys()];
   const dealsDelUniverso = idsEnvio.length === 0 ? [] : await db.select({ id: deals.id, submissionOrigenId: deals.submissionOrigenId,
     etapa: deals.etapa }).from(deals).where(and(eq(deals.programId, programId), eq(deals.cortesia, false),
       cohorteId === null ? undefined : eq(deals.cohortId, cohorteId),
       inArray(deals.submissionOrigenId, idsEnvio), vigente(deals)));
   const idsDeal = dealsDelUniverso.map((d) => d.id);
+  const envioPorDeal = atribucionPorDeal(filaPorEnvioId, dealsDelUniverso);
   for (const deal of dealsDelUniverso) {
-    const envio = filaPorEnvioId.get(deal.submissionOrigenId!);
+    const envio = envioPorDeal.get(deal.id);
     if (envio && envio.dealId === null) { envio.dealId = deal.id; envio.etapa = deal.etapa; }
   }
   const universo = [...canonicos.values()].filter((envio) => cohorteId === null || envio.dealId !== null);
   const citas = idsDeal.length === 0 ? [] : await citasDeLosDeals(db, programId, idsDeal);
-  const envioPorDeal = new Map(dealsDelUniverso.map((d) => [d.id, d.submissionOrigenId!]));
   const dealPorId = new Map(dealsDelUniverso.map((d) => [d.id, d]));
-  for (const cita of citas) filaPorEnvioId.get(envioPorDeal.get(cita.dealId!)!)?.citas.push({
+  for (const cita of citas) envioPorDeal.get(cita.dealId!)?.citas.push({
     id: cita.id, fecha: cita.fechaAgenda ?? cita.fechaLlamada ?? cita.createdAt, resultado: cita.resultado,
     dealId: cita.dealId!, etapa: dealPorId.get(cita.dealId!)!.etapa,
   });
@@ -348,7 +291,7 @@ async function leerRoasDePauta(
   const valorPorDeal = await valoresVendidosDeDeals(db, vendidos.map((d) => d.id));
   for (const deal of vendidos) {
     const valor = valorPorDeal.get(deal.id);
-    filaPorEnvioId.get(deal.submissionOrigenId!)!.venta = { dealId: deal.id, etapa: deal.etapa,
+    envioPorDeal.get(deal.id)!.venta = { dealId: deal.id, etapa: deal.etapa,
       dia: diaVenta.get(deal.id)!, valorVendidoUsd: valor ?? 0, sinValorVendido: valor == null,
       escalon: ubicaciones.porDeal.get(deal.id)!.escalon };
   }

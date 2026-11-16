@@ -29,6 +29,17 @@ status: en curso
 
 ## Avance
 
+**16-nov · «Ver solo» fase 1: atribución compartida**
+
+La canonización, los alias y la jerarquía hasta cuenta de Meta pasan a `lib/queries/atribucion-de-pauta.ts`, consumido por
+el ROAS sin consultas nuevas ni cambio de pantalla. `CortePauta` y `perteneceAlCorte` aún no filtran; el selector queda
+pendiente. Las **decisiones de Alejandro (16-nov)** para fases 2 y 3 están en el [420](420-pauta-en-dos-vistas.md#avance-11-nov),
+incluida la exclusión de «Sin cuenta de Meta» del selector. Sin cambios en hechos, métricas, esquema ni expectativas
+existentes. Typecheck pasó; lint: 0 errores y 7 advertencias en archivos no tocados. Tests de dominio y MCP no verificados:
+`npm test -- …` se detuvo antes de Vitest por `spawnSync ps EPERM` del sandbox; sin eludir el lanzador, suite completa ni
+recorrido visual. Sin `.env*`, bases reales, servicios externos, migraciones, commit ni push.
+
+
 ### 13-nov · tabla y «Ver por Cuenta» (carril P)
 
 - **Una sola respuesta a "¿de qué cuenta es este gasto?"**: `cuentaDelGasto` (`pauta_objetos.cuenta_id` del objeto del gasto)
