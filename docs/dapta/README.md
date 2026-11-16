@@ -119,6 +119,16 @@ El Typeform no redirige, muestra un mensaje final: sin redirect, Dapta mostrarí
 - Dapta le pasa a Calendly `utm_content = sessionId`, el mismo `submission.id` que el CRM usa como token. Es una
   llave exacta para emparejar la cita con el envío, sin depender del correo; nadie la usa todavía.
 - Con el anti-spam prendido, el parcial se guarda pero no se entrega a ningún destino.
+- **Un paso de tipo `name` manda `firstname` y `lastname` sueltos en `data`**, no `nombre` ni un objeto (medido el
+  16-nov en `sobres_crudos` de LiderArte). Los formularios de ComunicArte y Memorable preguntan el nombre con un paso
+  `text` de llave `nombre` y no se afectan. Hasta el 16-nov el adaptador solo unía las dos partes si llegaban anidadas,
+  así que los 14 leads de LiderArte entraron sin nombre; arreglado y recuperado (operations.md §9, 16-nov).
+- **Los placeholders de un `redirectUrl` solo son respuestas de pasos** (`[correo]`, `[telefono]`, `[firstname]`…).
+  Dapta no expone el id del envío para pegarlo en un link de pago, así que un checkout se empareja con su lead por el
+  correo, no por el token.
+- **Un outcome con `redirectUrl` a Hotmart o Stripe prueba que la persona llegó al link de pago, no que pagó.** El
+  webhook trae la etiqueta del outcome (`submission.outcome`, p. ej. "Checkout Black Friday USD 99 (desde P7)"), pero
+  la venta solo la confirma la pasarela.
 - **El botón "enviar prueba" de la destinación** manda un parcial firmado con `data.test: true`,
   `submission.id: "test-submission"` y `sample@example.com`. El CRM lo responde con 200 y lo deja en `sobres_crudos`
   con el error "Entrega de prueba de Dapta", **sin crear lead** (`esEntregaDePrueba`, 30-sep). Se puede usar para

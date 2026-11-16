@@ -176,6 +176,12 @@ export function entradaDesdeDapta(
     }
   }
 
+  // El paso `name` de Dapta manda `firstname` y `lastname` sueltos al nivel de `data` (medido en
+  // LiderArte, 16-nov), no un objeto: sin esto ningun lead de ese paso tenia nombre.
+  if (columnas.nombre === undefined && tieneNombreDividido(payload.data)) {
+    columnas.nombre = nombreDividido(payload.data);
+  }
+
   for (const campo of CAMPOS_UTM) {
     // utm_id tambien puede venir del campo oculto del generador (`data.utm_id`).
     columnas[campo] = payload.utm[campo] ?? (campo === "utm_id" ? textoPlano(payload.data.utm_id) : null);

@@ -104,6 +104,17 @@ describe("entradaDesdeDapta", () => {
     expect(resultado.envio.identidad.correo).toBeTruthy();
   });
 
+  it("🩸 un paso `name` manda firstname y lastname sueltos en data y el nombre llega igual (LiderArte, 16-nov)", () => {
+    // Forma medida en sobres_crudos de LiderArte: el paso `name` de Dapta no manda `nombre`
+    // ni un objeto, sino dos llaves al nivel de `data`. Todos sus leads entraban sin nombre.
+    const p = payload();
+    p.data = { ...p.data, firstname: "Katalina", lastname: "Valencia" };
+    const resultado = construirEnvio(entradaDesdeDapta(p, OPCIONES));
+    expect(resultado.ok).toBe(true);
+    if (!resultado.ok) return;
+    expect(resultado.envio.nombre).toBe("Katalina Valencia");
+  });
+
   it("marca como parcial solo phase partial", () => {
     expect(entradaDesdeDapta(payloadDaptaSchema.parse(parcial), OPCIONES).esParcial).toBe(true);
     expect(entradaDesdeDapta(payload(), OPCIONES).esParcial).toBe(false);
