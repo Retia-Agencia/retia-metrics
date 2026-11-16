@@ -305,7 +305,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     datos: <EditarPrograma programa={programaParaEditar} trigger="Editar datos" />,
     calendly: <IntegracionesDelPrograma {...propsDeIntegraciones} tipos={["calendly"]} />,
     fuente_principal: fuentesAdmin ? <FuentesAdmin programas={[fuentesAdmin]} /> : null,
-    avisos_calendly: <IntegracionesDelPrograma {...propsDeIntegraciones} tipos={["calendly"]} />,
     equipo: (
       <EquipoDelPrograma
         programa={{ id: programa.id, nombre: programa.nombre }}

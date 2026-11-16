@@ -12,12 +12,17 @@ import { programs, tipoIntegracionEnum, type TipoIntegracion } from "@/lib/db/sc
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota } from "@/lib/format";
 import { configurarMetaCapi, guardarIntegracion, probarIntegracionGuardada, tokensMeta } from "@/lib/integraciones";
+import { conectarCalendly } from "@/lib/calendly/suscripcion";
 import { mandarPruebaMetaCapi } from "@/lib/meta-capi/prueba";
 import { guardarRoundRobin } from "@/lib/calendly/round-robin";
 import { sincronizarPauta, type ResumenSincronizacionPauta } from "@/lib/pauta/sincronizar";
 import type { ResultadoAccion } from "./acciones-programa";
 
 const esquemaTipo = z.enum(tipoIntegracionEnum.enumValues);
+
+type ResultadoGuardarIntegracion =
+  | { ok: true; avisoWebhook?: string }
+  | { ok: false; error: string };
 
 async function actorGerente(programId: string) {
   const session = await requireRole("gerente");
@@ -37,7 +42,7 @@ function fallo(error: unknown): { ok: false; error: string } {
 
 export async function guardarIntegracionAccion(
   programId: string, tipoCrudo: TipoIntegracion, valor: string, datasetId?: string,
-): Promise<ResultadoAccion> {
+): Promise<ResultadoGuardarIntegracion> {
   try {
     const actorId = await actorGerente(programId);
     const tipoLeido = esquemaTipo.safeParse(tipoCrudo);
@@ -45,8 +50,18 @@ export async function guardarIntegracionAccion(
     const tipo = tipoLeido.data;
     const config = tipo === "meta_capi" ? { datasetId: datasetId ?? "" } : undefined;
     await guardarIntegracion(db, actorId, programId, tipo, valor, globalThis.fetch, config);
+    let avisoWebhook: string | undefined;
+    if (tipo === "calendly") {
+      try {
+        await conectarCalendly(db, actorId, programId, { urlBase: process.env.AUTH_URL });
+      } catch (error) {
+        avisoWebhook = error instanceof ErrorDeApp
+          ? error.message
+          : "No se pudo conectar el webhook.";
+      }
+    }
     revalidatePath("/p/[programa]/programa", "page");
-    return { ok: true };
+    return avisoWebhook ? { ok: true, avisoWebhook } : { ok: true };
   } catch (error) {
     return fallo(error);
   }

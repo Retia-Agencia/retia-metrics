@@ -75,7 +75,11 @@ export function IntegracionesDelPrograma({
       }
       setValor("");
       setEditando(null);
-      toast.success("Integración conectada y probada");
+      if (resultado.avisoWebhook) {
+        toast.warning("Token guardado, pero los avisos de Calendly no quedaron conectados", {
+          description: resultado.avisoWebhook,
+        });
+      } else toast.success("Integración conectada y probada");
       router.refresh();
     });
   }
@@ -92,8 +96,8 @@ export function IntegracionesDelPrograma({
   function conectarWebhook() {
     startTransition(async () => {
       const resultado = await conectarCalendlyAccion(programId);
-      if (!resultado.ok) toast.error("No se pudo conectar el webhook", { description: resultado.error });
-      else toast.success("Webhook de Calendly conectado");
+      if (!resultado.ok) toast.error("No se pudieron conectar los avisos de Calendly", { description: resultado.error });
+      else toast.success("Avisos de Calendly conectados");
       router.refresh();
     });
   }
@@ -155,13 +159,20 @@ export function IntegracionesDelPrograma({
             )}
 
             {integracion.tipo === "calendly" ? (
-              <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                <Badge variant={integracion.webhookConectado ? "exito" : "alerta"}>
-                  {integracion.webhookConectado ? "Webhook conectado" : "Webhook sin conectar"}
-                </Badge>
-                <Button type="button" size="sm" variant="outline" disabled={pendiente || !integracion.configurada} onClick={conectarWebhook}>
-                  Conectar webhook
-                </Button>
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant={integracion.webhookConectado ? "exito" : "alerta"}>
+                    {integracion.webhookConectado ? "Avisos en vivo activos" : "Avisos en vivo sin conectar"}
+                  </Badge>
+                  {!integracion.webhookConectado ? (
+                    <Button type="button" size="sm" variant="outline" disabled={pendiente || !integracion.configurada} onClick={conectarWebhook}>
+                      Reintentar conexión
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Calendly le avisa al CRM en el momento en que alguien agenda, cancela o no asiste, y la cita queda en la ficha de su persona. Se conecta solo al guardar el token.
+                </p>
               </div>
             ) : null}
 

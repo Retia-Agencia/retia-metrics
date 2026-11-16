@@ -317,14 +317,14 @@ export function FilaMembresia({
                   value={evento}
                   onChange={(e) => guardarEvento(e.target.value)}
                   disabled={pendiente}
-                  aria-label={`Evento de Calendly de ${membresia.usuario}`}
+                  aria-label={`Evento personal de Calendly de ${membresia.usuario}`}
                   className="h-8 max-w-64 rounded-lg border border-border bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
                 >
-                  <option value="">Sin evento personal</option>
+                  <option value="">Elige su evento personal</option>
                   {evento && !eventos.some((e) => e.uri === evento) ? <option value={evento}>Evento guardado (ya no disponible)</option> : null}
                   {eventos.map((e) => <option key={e.uri} value={e.uri}>{e.nombre}</option>)}
                 </select>
-                <span className="text-xs text-muted-foreground">Un evento por programa.</span>
+                <span className="text-xs text-muted-foreground">Su agenda individual: el CRM agenda aquí reagendas y seguimientos desde la ficha. No elijas el de postulación.</span>
               </span>
             ) : null}
             {error ? <span className="max-w-64 text-xs text-destructive">{error}</span> : null}

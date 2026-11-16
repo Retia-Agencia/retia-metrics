@@ -2,7 +2,6 @@ export const CLAVES_DE_PASO = [
   "datos",
   "calendly",
   "fuente_principal",
-  "avisos_calendly",
   "equipo",
   "cohorte_activa",
   "plataforma_pago",
@@ -55,11 +54,11 @@ export const PASOS_DE_CONFIGURACION: Record<
     hecho: (h) => h.comisionCargada && h.pagoRapidoDefinido,
   },
   calendly: {
-    titulo: "Conectar Calendly",
-    explicacion: "Para que el CRM vea las citas de cada persona.",
+    titulo: "Calendly",
+    explicacion: "El token y los avisos en vivo, para que el CRM vea cada cita y la cuelgue de su persona.",
     exigidoParaActivar: true,
     seccion: "integraciones",
-    hecho: (h) => h.tieneTokenCalendly,
+    hecho: (h) => h.tieneTokenCalendly && h.webhookCalendlyConectado,
   },
   fuente_principal: {
     titulo: "Formulario principal",
@@ -67,13 +66,6 @@ export const PASOS_DE_CONFIGURACION: Record<
     exigidoParaActivar: true,
     seccion: "integraciones",
     hecho: (h) => h.tieneFuentePrincipal,
-  },
-  avisos_calendly: {
-    titulo: "Avisos de Calendly",
-    explicacion: "Para que cada cita se cuelgue sola de su persona.",
-    exigidoParaActivar: false,
-    seccion: "integraciones",
-    hecho: (h) => h.webhookCalendlyConectado,
   },
   equipo: {
     titulo: "Equipo",

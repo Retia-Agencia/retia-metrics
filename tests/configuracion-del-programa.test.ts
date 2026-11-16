@@ -57,9 +57,7 @@ describe("registro de configuración del programa", () => {
   });
 
   it.each([
-    ["calendly", { tieneTokenCalendly: true }],
     ["fuente_principal", { tieneFuentePrincipal: true }],
-    ["avisos_calendly", { webhookCalendlyConectado: true }],
     ["equipo", { miembrosActivos: 1 }],
     ["cohorte_activa", { tieneCohorteActiva: true }],
     ["plataforma_pago", { plataformasDePago: 1 }],
@@ -78,6 +76,17 @@ describe("registro de configuración del programa", () => {
     },
   );
 
+  it("Calendly exige el token y los avisos en vivo", () => {
+    const estado = (hechos: Partial<HechosDeConfiguracion>) =>
+      pasosDeConfiguracion({ ...SIN_CONFIGURAR, ...hechos }).find(
+        (paso) => paso.clave === "calendly",
+      )!.hecho;
+
+    expect(estado({ tieneTokenCalendly: true })).toBe(false);
+    expect(estado({ webhookCalendlyConectado: true })).toBe(false);
+    expect(estado({ tieneTokenCalendly: true, webhookCalendlyConectado: true })).toBe(true);
+  });
+
   it("soloExigidos devuelve Calendly y el formulario principal en ese orden", () => {
     expect(
       pasosPendientes(SIN_CONFIGURAR, { soloExigidos: true }).map((paso) => paso.clave),
@@ -87,7 +96,7 @@ describe("registro de configuración del programa", () => {
   it("arma el mensaje con los títulos tal como están registrados", () => {
     const pendientes = pasosPendientes(SIN_CONFIGURAR, { soloExigidos: true });
     expect(mensajeDeActivacionBloqueada(pendientes)).toBe(
-      "Todavía no se puede activar el programa. Falta: Conectar Calendly y Formulario principal.",
+      "Todavía no se puede activar el programa. Falta: Calendly y Formulario principal.",
     );
   });
 });
