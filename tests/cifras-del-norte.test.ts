@@ -28,6 +28,22 @@ describe("419 E-2: el norte", () => {
     expect(c.mes.cupos.llevamos.explicacion.filtros).toEqual([["Programa", "Prueba"]]);
     expect(c.mes.cupos.porDiaHabil.textoDelValor).toBe("1,3");
   });
+  it("en cupos, Esperado a hoy y Faltan se escriben con su decimal, como la barra; USD no cambia", () => {
+    const c = cifrasDelNorte(entrada({ meta: 8.8, esperado: 4.6, faltan: 5.8 }));
+    expect(c.mes.cupos.esperado.textoDelValor).toBe("4,6");
+    expect(c.mes.cupos.faltan.textoDelValor).toBe("5,8");
+    expect(c.mes.cupos.llevamos.barra?.rotuloDeMarca).toBe("a hoy 4,6");
+    expect(cifrasDelNorte(entrada({ faltan: 7 })).mes.cupos.faltan.textoDelValor).toBe("7");
+    expect(c.mes.usd.esperado.textoDelValor).toBe("USD 4,60");
+  });
+  it("la lista de cada horizonte va solo en Llevamos y Vendido", () => {
+    const lista = (n: number) => ({ href: `/lista-${n}`, nombre: "ventas", total: n, filas: [["Ana", "Ganado", "USD 900,00"]] as string[][] });
+    const c = cifrasDelNorte({ ...entrada(), listas: { mes: lista(2), cohorte: lista(3) } });
+    expect(c.mes.cupos.llevamos.explicacion.evidencia).not.toBeNull();
+    expect(c.mes.usd.llevamos.explicacion.evidencia).not.toBeNull();
+    expect(JSON.stringify(c.cohorte!.cupos.llevamos.explicacion.evidencia)).toContain("/lista-3");
+    expect(c.mes.cupos.faltan.explicacion.evidencia).toBeNull();
+  });
   it.each([[2, "peligro"], [3, "alerta"], [5, "exito"]])("el estado de %s sale de lo esperado, sin usar el tono viejo", (llevamos, tono) => {
     expect(cifrasDelNorte(entrada({ llevamos: llevamos as number })).mes.cupos.llevamos.estado?.tono).toBe(tono);
   });

@@ -1,4 +1,9 @@
 import { Enlace } from "@/components/enlace";
+import { VamosALlegarProgramaVista } from "@/components/metas/vamos-a-llegar-programa";
+import { cifrasDelNorte, type ListasDelNorte } from "@/lib/hub/cifras-del-norte";
+import { listaDeVentas } from "@/components/pauta/cumplimiento";
+import { leerEvidenciaDeVentas } from "@/lib/metas/cumplimiento-de-cohorte";
+import { explicacionesDelNorte } from "@/lib/hub/explicaciones-del-norte";
 import type { ReactNode } from "react";
 import { BarraDeAvance } from "@/components/hub/barra-de-avance";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +90,7 @@ function Fila({ titulo, cierre, cuadrante, href, conProyeccion, aviso }: {
   </section>;
 }
 
+// /hub de todos los programas conserva esta vista hasta E-4.
 export function VamosALlegarVista({ datos, props }: { datos: DatosVamosALlegar; props: PropsVamosALlegar }) {
   const { programa, hoy, origen, conListas, configurar, conNombre } = props;
   const periodo = (desde: string) => ({ preset: "custom" as const, a: { desde, hasta: hoy }, b: null });
@@ -122,5 +128,29 @@ export function VamosALlegarVista({ datos, props }: { datos: DatosVamosALlegar; 
 
 export async function VamosALlegar(props: PropsVamosALlegar) {
   const datos = await leerVamosALlegar(props.programa.id, props.hoy);
-  return <VamosALlegarVista datos={datos} props={props} />;
+  const cifras = cifrasDelNorte({
+    datos, programa: props.programa.nombre, explicaciones: explicacionesDelNorte(), listas: await listasDelNorte(datos, props),
+  });
+  return <VamosALlegarProgramaVista datos={datos} cifras={cifras} props={props} />;
+}
+
+/**
+ * Las cinco filas de cierres de cada horizonte, solo para quien abre listas. Es la misma lista que contaba la frase de
+ * avance, y cuenta lo mismo que Llevamos (`tests/norte-evidencia.test.ts`).
+ */
+async function listasDelNorte(datos: DatosVamosALlegar, props: PropsVamosALlegar): Promise<ListasDelNorte | undefined> {
+  if (!props.conListas) return undefined;
+  const { programa, hoy, origen } = props;
+  const horizonte = async (desde: string, cohorteId: string | null) => listaDeVentas(
+    await leerEvidenciaDeVentas({ programId: programa.id, cohorteId, desde, hoy }),
+    urlDeLista({
+      slug: programa.slug, metrica: "cierres", origen, ...(cohorteId ? { cohorteId } : {}),
+      periodo: { preset: "custom", a: { desde, hasta: hoy }, b: null },
+    }),
+  );
+  const [mes, cohorte] = await Promise.all([
+    horizonte(`${datos.mes.clave}-01`, null),
+    datos.cohorte ? horizonte(datos.cohorte.desdeLista, datos.cohorte.id) : Promise.resolve(undefined),
+  ]);
+  return { mes, cohorte };
 }

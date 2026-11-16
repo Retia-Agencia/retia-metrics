@@ -298,6 +298,58 @@ tengan texto aprobado.
 
 ## Avance
 
+- **16-nov · E-3 ¿Vamos a llegar?** Integrado solo el norte del Hub de un programa.
+  - **Revisión de Claude (corrige lo de abajo donde choca):** la paridad SÍ corrió y está en verde
+    (`tests/norte-evidencia.test.ts`: cierres del mes y de la cohorte = Llevamos de cupos), así que la evidencia quedó
+    **conectada**: `cifrasDelNorte` recibe `listas` (puro) y `VamosALlegar` lee las cinco filas con
+    `leerEvidenciaDeVentas` solo cuando `conListas`; la misma lista va en Llevamos y en Vendido (USD), como en el
+    cumplimiento de Pauta. Decidido por Alejandro: **la frase de avance se retira** del norte del programa (repetía la
+    barra con el dato redondeado: «3 de 9, vas 2 atrás» junto a «de 8,8 · vamos 1,6 atrás»; su enlace a la lista ahora
+    sale de la Cifra) y **en cupos Esperado a hoy y Faltan se escriben con su decimal**, como la barra (antes 5 y 6, ahora
+    4,6 y 5,8: la misma cantidad, otra forma). `fraseDeAvance` sigue viva para `/hub` hasta E-4. Rendimiento: el norte
+    va en todas las pestañas y ahora hace dos lecturas más (una por horizonte) para quien abre listas; sin medir.
+    Verificado en `dev:local` como gerente: panel de Llevamos con sus secciones, consola limpia, 375 px sin scroll
+    horizontal; `npm run build` en verde.
+  - `VamosALlegar` sigue leyendo únicamente programa y hoy; ahora resuelve las seis fichas con
+    `explicacionesDelNorte()` (`universo: "todas"`), arma `cifrasDelNorte` y pasa sus resultados a
+    `VamosALlegarProgramaVista`. La página no requiere cambios: conserva su componente, ubicación en todas
+    las pestañas y reutilización dentro del reporte de Hoy. La vista vieja `VamosALlegarVista` sigue intacta
+    para `/hub` de todos los programas hasta E-4 (comentario junto a su exportación).
+  - **Mapa de lo anterior:** cada `Fila` pasa a una fila de mes/cohorte con dos columnas, Cupos y Vendido (USD).
+    `BarraDeLaCelda` y Llevamos pasan a la Cifra principal con meta, barra, atraso y marca «a hoy» en ambas
+    columnas. Los `Dato` de Faltan, Esperado a hoy y Por día hábil pasan a Cifras de tamaño celda; Proyección
+    también, únicamente en cohorte. Los encabezados conservan mes, código y fecha de cierre. Título, subtítulo,
+    `data-testid`, Configurar, Sin cohorte activa y razón de no proyectar siguen presentes. `fraseDeAvance`
+    y su enlace a cierres conservan los mismos argumentos y rangos. El badge suelto de ventas sin valor pasa
+    al `parcial` de la Cifra USD; `mostrarCobertura` mantiene visible su motivo una vez por horizonte.
+    No había Info del norte para retirar. El reporte reutiliza los estilos de impresión existentes de Cifra.
+  - **Evidencia NO conectada:** se escribió primero `tests/norte-evidencia.test.ts`, con PGlite explícito y
+    cliente real bloqueado, para comparar cierres del mes (`{mes.clave}-01` a hoy) y de la cohorte
+    (`desdeLista` a hoy + cohorteId) contra cupos llevados. Siembra venta anulada, otro programa, venta futura,
+    venta anterior a la apertura y venta sin valor vendido. El lanzador falla antes de iniciar Vitest con
+    `spawnSync ps EPERM` (`scripts/test.mjs:98`). No hay resultado de paridad: no se afirma que cuadre ni que
+    difiera. Por la regla «una cifra sin lista probada no lleva evidencia», no se agrega todavía `listas`
+    al constructor ni se leen cinco filas. El enlace histórico de la frase se conserva. Sin lecturas nuevas,
+    no hacen falta cambios de mocks en `tests/paginas.test.ts`.
+  - **Hallazgos:** como anticipaba el 19, el tono por umbrales pasa a la escala contra esperado de la Cifra:
+    pueden cambiar etiquetas y colores, no cantidades. La barra USD ahora es visible. El constructor E-2
+    conserva su formato decimal para Por día hábil y sus motivos de vacío; no se reescriben cuentas ni redondeos.
+    La ficha compartida de Vendido todavía dice «valor vendido de cada venta de pauta» en su fórmula aunque
+    aquí el universo es todas las áreas; las fichas de ritmo hablan de ventas/cohorte también al usarlas en
+    USD/mes. Se deja a carril D la revisión de estos textos, sin variantes locales ni cambios de registro.
+  - **No tocado:** consultas (incluida `vamos-a-llegar.ts`), constructor E-2, `lib/metricas/*`, vocabulario,
+    esquema, migraciones, ADRs, handoff, `/hub`, ni las demás pestañas. No se leyeron `.env*` ni se accedió a
+    bases o servicios reales. No se cambió `status:` ni ninguna casilla de Done cuando.
+  - **Verificado:** `npm run typecheck` pasa. `npm run lint` pasa con cero errores y las siete advertencias
+    ajenas ya existentes. `git diff --check` limpio. Nuevos tests de fichas y render estático cubren las seis
+    explicaciones sin jerga, barras/celdas, enlaces originales, acceso sin listas y vacío sin meta/cohorte.
+    **Pendiente:** ejecutar esos tests y la paridad; la corrida por `npm test --` de norte-evidencia,
+    explicaciones-del-norte, cifras-del-norte, vamos-a-llegar, paginas y frontera-cliente-guardian se bloqueó
+    por el mismo `ps EPERM`; no se saltó el lanzador y no se declaran verdes. Tampoco se verificaron build,
+    clics con gerente/paid trafficker, comparación visual claro/oscuro/375 px, PDF de Hoy página por página,
+    humo ni rendimiento. No se arrancó Next (carga archivos de entorno) ni se preparó una base local con
+    migraciones bajo las restricciones de esta tarea. E-3 sigue pendiente de esa verificación.
+
 - **16-nov · E-3 Comercial: integrado en el Hub de un programa; pendiente de verificación de ejecución.**
   - La página prepara `cifrasClaveDeComercial`, `cifrasDeCloser` y los cinco constructores de recorridos existentes,
     con detalles YA proyectados. `DashboardPrograma` solo pasa props; `Operacion`, `Escalera` y barras aceptan cifras
