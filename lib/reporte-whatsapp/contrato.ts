@@ -43,7 +43,7 @@ export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
     costo: z.number().nullable(),
     registrosMeta: z.number().nullable(),
     costoPorRegistro: z.number().nullable(),
-    proposito: z.enum(["agenda", "lanzamiento"]).nullable(),
+    proposito: z.enum(["agenda", "lanzamiento", "otro"]).nullable(),
   }).strict()),
   lanzamiento: z.object({
     gasto: z.number(),
@@ -58,7 +58,7 @@ export const esquemaMetricaSemaforo: z.ZodType<MetricaSemaforo> = z.object({
       costo: z.number().nullable(),
       registrosMeta: z.number().nullable(),
       costoPorRegistro: z.number().nullable(),
-      proposito: z.enum(["agenda", "lanzamiento"]).nullable(),
+      proposito: z.enum(["agenda", "lanzamiento", "otro"]).nullable(),
     }).strict()),
   }).strict(),
   gastoTotal: z.number(),

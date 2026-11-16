@@ -1,12 +1,85 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   anunciosQueNecesitanCreativo,
+  arbolDeCuenta,
   creativosDeAnuncios,
+  ESTADOS_ADS_META,
+  ESTADOS_ADSETS_META,
+  ESTADOS_CAMPAIGNS_META,
   insightsPorAnuncioYDia,
+  objetosPorId,
 } from "@/lib/pauta/meta-api";
 
 const TOKEN = "token-de-prueba";
 describe("creativos de Meta", () => {
+  it("busca objetos por borde, id y todos los estados; pagina lotes e ignora desconocidos", async () => {
+    const estadosPorBorde = {
+      ads: ESTADOS_ADS_META,
+      adsets: ESTADOS_ADSETS_META,
+      campaigns: ESTADOS_CAMPAIGNS_META,
+    };
+    const llamadasPorBorde = new Map<string, number>();
+    const f = vi.fn(async (entrada: string | URL | Request) => {
+      const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
+      const borde = url.pathname.split("/").at(-1) as keyof typeof estadosPorBorde;
+      expect(url.pathname).toBe(`/v26.0/act_123/${borde}`);
+      expect(url.searchParams.has("ids")).toBe(false);
+      expect(url.searchParams.get("fields")).toBe("id");
+      expect(url.searchParams.get("limit")).toBe("50");
+      const filtros = JSON.parse(url.searchParams.get("filtering") ?? "[]") as Array<{
+        field: string;
+        operator: string;
+        value: string[];
+      }>;
+      expect(filtros).toEqual([
+        { field: "id", operator: "IN", value: filtros[0].value },
+        { field: "effective_status", operator: "IN", value: [...estadosPorBorde[borde]] },
+      ]);
+      llamadasPorBorde.set(borde, (llamadasPorBorde.get(borde) ?? 0) + 1);
+      return Response.json({
+        data: filtros[0].value.filter((id) => id !== "desconocido").map((id) => ({ id })),
+      });
+    }) as typeof globalThis.fetch;
+
+    const idsAds = [...Array.from({ length: 50 }, (_, indice) => `ad-${indice}`), "desconocido"];
+    const anuncios = await objetosPorId("123", "ads", idsAds, "id", TOKEN, f);
+    const conjuntos = await objetosPorId("123", "adsets", ["set-1"], "id", TOKEN, f);
+    const campanas = await objetosPorId("123", "campaigns", ["camp-1"], "id", TOKEN, f);
+
+    expect(anuncios).toHaveLength(50);
+    expect(conjuntos).toEqual([{ id: "set-1" }]);
+    expect(campanas).toEqual([{ id: "camp-1" }]);
+    expect(Object.fromEntries(llamadasPorBorde)).toEqual({ ads: 2, adsets: 1, campaigns: 1 });
+  });
+
+  it("mapea el evento de optimización solo en conjuntos", async () => {
+    const f = vi.fn(async (entrada: string | URL | Request) => {
+      const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
+      const borde = url.pathname.split("/").at(-1);
+      if (borde === "campaigns") return Response.json({ data: [
+        { id: "camp", name: "Campaña", effective_status: "ACTIVE", objective: "OUTCOME_LEADS" },
+      ] });
+      if (borde === "adsets") return Response.json({ data: [
+        { id: "set", name: "Conjunto", effective_status: "ACTIVE", campaign_id: "camp",
+          promoted_object: { custom_event_str: "invitee_meeting_scheduled", custom_event_type: "OTHER" } },
+      ] });
+      if (borde === "ads") return Response.json({ data: [
+        { id: "ad", name: "Anuncio", effective_status: "ACTIVE", adset_id: "set" },
+      ] });
+      return Response.json({ data: [] });
+    }) as typeof globalThis.fetch;
+
+    const objetos = await arbolDeCuenta("123", TOKEN, new Map(), f);
+
+    expect(objetos.find((objeto) => objeto.nivel === "conjunto")?.eventoOptimizacion)
+      .toBe("invitee_meeting_scheduled");
+    expect(objetos.filter((objeto) => objeto.nivel !== "conjunto"))
+      .toEqual(expect.arrayContaining([
+        expect.objectContaining({ nivel: "campana", eventoOptimizacion: null }),
+        expect.objectContaining({ nivel: "anuncio", eventoOptimizacion: null }),
+      ]));
+  });
+
   it("identifica anuncios nuevos, cambiados o sin fecha legible", () => {
     const conocidos = new Map([
       ["igual", { actualizadoEn: new Date("2026-10-14T12:00:00Z"), formato: "video" as const, urlTags: null }],

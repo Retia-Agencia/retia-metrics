@@ -165,7 +165,7 @@ export const proveedorFormularioEnum = pgEnum("proveedor_formulario", ["typeform
 export const nivelPautaEnum = pgEnum("nivel_pauta", ["campana", "conjunto", "anuncio"]);
 
 /** Para qué es una campaña (ticket 314): nulo = sin clasificar, y cuenta como agenda. */
-export const propositoCampanaEnum = pgEnum("proposito_campana", ["agenda", "lanzamiento"]);
+export const propositoCampanaEnum = pgEnum("proposito_campana", ["agenda", "lanzamiento", "otro"]);
 export const origenGastoEnum = pgEnum("origen_gasto", ["meta_api", "manual"]);
 export const estadoSincronizacionPautaEnum = pgEnum("estado_sincronizacion_pauta", [
   "corriendo",
@@ -2460,6 +2460,7 @@ export const pautaObjetos = pgTable(
     estado: text("estado").notNull(),
     objetivo: text("objetivo"),
     proposito: propositoCampanaEnum("proposito"),
+    eventoOptimizacion: text("evento_optimizacion"),
     formato: text("formato"),
     urlTags: text("url_tags"),
     actualizadoEn: timestamp("actualizado_en", { withTimezone: true }).notNull().defaultNow(),
@@ -2476,6 +2477,10 @@ export const pautaObjetos = pgTable(
     check(
       "pauta_objetos_proposito_campana_chk",
       sql`${t.proposito} is null or ${t.nivel} = 'campana'`,
+    ),
+    check(
+      "pauta_objetos_evento_optimizacion_conjunto_chk",
+      sql`${t.eventoOptimizacion} is null or ${t.nivel} = 'conjunto'`,
     ),
     check(
       "pauta_objetos_formato_anuncio_chk",

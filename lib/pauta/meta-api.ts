@@ -1,6 +1,21 @@
 import { ErrorDeApp } from "@/lib/errors";
 
 const META_BASE = "https://graph.facebook.com/v26.0";
+export const EVENTO_AGENDA_META = "invitee_meeting_scheduled";
+export const CAMPOS_CAMPANA_META = "id,name,effective_status,objective";
+export const CAMPOS_CONJUNTO_META = "id,name,effective_status,campaign_id,promoted_object";
+export const CAMPOS_ANUNCIO_META = "id,name,effective_status,adset_id,campaign_id,url_tags,updated_time";
+export const ESTADOS_ADS_META = [
+  "ACTIVE", "PAUSED", "DELETED", "PENDING_REVIEW", "DISAPPROVED", "PREAPPROVED",
+  "PENDING_BILLING_INFO", "CAMPAIGN_PAUSED", "ARCHIVED", "ADSET_PAUSED", "IN_PROCESS",
+  "WITH_ISSUES",
+] as const;
+export const ESTADOS_ADSETS_META = [
+  "ACTIVE", "PAUSED", "DELETED", "CAMPAIGN_PAUSED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES",
+] as const;
+export const ESTADOS_CAMPAIGNS_META = [
+  "ACTIVE", "PAUSED", "DELETED", "ARCHIVED", "IN_PROCESS", "WITH_ISSUES",
+] as const;
 
 type FetchMeta = typeof globalThis.fetch;
 
@@ -79,6 +94,34 @@ async function consultarPaginas<T>(url: URL, token: string, f: FetchMeta): Promi
     siguiente = typeof cuerpo.paging?.next === "string" ? new URL(cuerpo.paging.next) : null;
   }
   return filas;
+}
+
+/** Objetos concretos por id, incluyendo todos los estados que el borde omite por defecto. */
+export async function objetosPorId(
+  cuentaIdMeta: string,
+  borde: "campaigns" | "adsets" | "ads",
+  ids: readonly string[],
+  fields: string,
+  token: string,
+  f: FetchMeta = globalThis.fetch,
+): Promise<Record<string, unknown>[]> {
+  const objetos: Record<string, unknown>[] = [];
+  const estados = borde === "ads"
+    ? ESTADOS_ADS_META
+    : borde === "adsets"
+      ? ESTADOS_ADSETS_META
+      : ESTADOS_CAMPAIGNS_META;
+  for (let i = 0; i < ids.length; i += 50) {
+    const url = new URL(`${META_BASE}/act_${cuentaIdMeta}/${borde}`);
+    url.searchParams.set("fields", fields);
+    url.searchParams.set("limit", "50");
+    url.searchParams.set("filtering", JSON.stringify([
+      { field: "id", operator: "IN", value: ids.slice(i, i + 50) },
+      { field: "effective_status", operator: "IN", value: estados },
+    ]));
+    objetos.push(...await consultarPaginas<Record<string, unknown>>(url, token, f));
+  }
+  return objetos;
 }
 
 export interface EstadoDeCuentaMeta {
@@ -186,6 +229,7 @@ export interface ObjetoDePautaMeta {
   nombre: string;
   estado: string;
   objetivo: string | null;
+  eventoOptimizacion: string | null;
   formato: "video" | "imagen" | "carrusel" | null;
   urlTags: string | null;
 }
@@ -283,6 +327,42 @@ function exigirBase(fila: Record<string, unknown>): { id: string; nombre: string
   return { id, nombre, estado };
 }
 
+/** Mapeo único de las respuestas del árbol y de las búsquedas puntuales por id. */
+export function mapearObjetosDePauta(
+  nivel: ObjetoDePautaMeta["nivel"],
+  filas: readonly Record<string, unknown>[],
+  conocidos: ReadonlyMap<string, AnuncioConocido> = new Map(),
+  creativos: ReadonlyMap<string, CreativoDeAnuncio> = new Map(),
+): ObjetoDePautaMeta[] {
+  return filas.map((fila) => {
+    const b = exigirBase(fila);
+    if (nivel === "campana") {
+      return { idMeta: b.id, nivel, padreIdMeta: null, nombre: b.nombre,
+        estado: b.estado, objetivo: texto(fila.objective), eventoOptimizacion: null,
+        formato: null, urlTags: null };
+    }
+    const campoPadre = nivel === "conjunto" ? "campaign_id" : "adset_id";
+    const padre = texto(fila[campoPadre]);
+    if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+    if (nivel === "conjunto") {
+      const promovido = fila.promoted_object && typeof fila.promoted_object === "object"
+        ? fila.promoted_object as Record<string, unknown>
+        : {};
+      return { idMeta: b.id, nivel, padreIdMeta: padre, nombre: b.nombre,
+        estado: b.estado, objetivo: null,
+        eventoOptimizacion: texto(promovido.custom_event_str) ?? texto(promovido.custom_event_type),
+        formato: null, urlTags: null };
+    }
+    const conocido = conocidos.get(b.id);
+    const creativo = creativos.get(b.id);
+    return { idMeta: b.id, nivel, padreIdMeta: padre, nombre: b.nombre,
+      estado: b.estado, objetivo: null, eventoOptimizacion: null,
+      formato: creativo ? creativo.formato : conocido?.formato ?? null,
+      urlTags: texto(fila.url_tags)
+        ?? (creativo ? creativo.urlTagsDelCreativo : conocido?.urlTags ?? null) };
+  });
+}
+
 /** Árbol completo de campañas, conjuntos y anuncios visibles en una cuenta. */
 export async function arbolDeCuenta(
   idMeta: string,
@@ -299,13 +379,13 @@ export async function arbolDeCuenta(
   };
   const [campanas, conjuntos, anuncios] = await Promise.all([
     consultarPaginas<Record<string, unknown>>(
-      url("campaigns", "id,name,effective_status,objective"), token, f,
+      url("campaigns", CAMPOS_CAMPANA_META), token, f,
     ),
     consultarPaginas<Record<string, unknown>>(
-      url("adsets", "id,name,effective_status,campaign_id"), token, f,
+      url("adsets", CAMPOS_CONJUNTO_META), token, f,
     ),
     consultarPaginas<Record<string, unknown>>(
-      url("ads", "id,name,effective_status,adset_id,campaign_id,url_tags,updated_time"),
+      url("ads", CAMPOS_ANUNCIO_META),
       token,
       f,
     ),
@@ -318,30 +398,9 @@ export async function arbolDeCuenta(
   );
 
   return [
-    ...campanas.map((fila): ObjetoDePautaMeta => {
-      const b = exigirBase(fila);
-      return { idMeta: b.id, nivel: "campana", padreIdMeta: null, nombre: b.nombre,
-        estado: b.estado, objetivo: texto(fila.objective), formato: null, urlTags: null };
-    }),
-    ...conjuntos.map((fila): ObjetoDePautaMeta => {
-      const b = exigirBase(fila);
-      const padre = texto(fila.campaign_id);
-      if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
-      return { idMeta: b.id, nivel: "conjunto", padreIdMeta: padre, nombre: b.nombre,
-        estado: b.estado, objetivo: null, formato: null, urlTags: null };
-    }),
-    ...anuncios.map((fila): ObjetoDePautaMeta => {
-      const b = exigirBase(fila);
-      const padre = texto(fila.adset_id);
-      if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
-      const conocido = conocidos.get(b.id);
-      const creativo = creativos.get(b.id);
-      return { idMeta: b.id, nivel: "anuncio", padreIdMeta: padre, nombre: b.nombre,
-        estado: b.estado, objetivo: null,
-        formato: creativo ? creativo.formato : conocido?.formato ?? null,
-        urlTags: texto(fila.url_tags)
-          ?? (creativo ? creativo.urlTagsDelCreativo : conocido?.urlTags ?? null) };
-    }),
+    ...mapearObjetosDePauta("campana", campanas),
+    ...mapearObjetosDePauta("conjunto", conjuntos),
+    ...mapearObjetosDePauta("anuncio", anuncios, conocidos, creativos),
   ];
 }
 
@@ -399,7 +458,7 @@ export async function insightsPorAnuncioYDia(
     const conversion = Array.isArray(fila.conversions)
       ? fila.conversions.find((c) => c && typeof c === "object" &&
         (c as { action_type?: unknown }).action_type ===
-          "offsite_conversion.fb_pixel_custom.invitee_meeting_scheduled")
+          `offsite_conversion.fb_pixel_custom.${EVENTO_AGENDA_META}`)
       : undefined;
     const valor = conversion && typeof conversion === "object"
       ? Number((conversion as { value?: unknown }).value)

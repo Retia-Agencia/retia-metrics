@@ -81,6 +81,14 @@ describe("proposito de campanas desde WhatsApp", () => {
       ambiguos: [],
     });
     expect(codigoCortoDeCampana("1234521", ["1234521", "9934521"]).length).toBeGreaterThan(4);
+    expect(parsearClasificacionDeCampanas("10541 O, 400541 otro")).toEqual({
+      asignaciones: [
+        { codigo: "10541", proposito: "otro" },
+        { codigo: "400541", proposito: "otro" },
+      ],
+      sinProposito: [],
+      ambiguos: [],
+    });
   });
 
   it("solo acepta mensajes cuyo texto entero sea una clasificacion", () => {
@@ -114,9 +122,9 @@ describe("proposito de campanas desde WhatsApp", () => {
     const respuesta = await POST(request(entrada("1111, A 2222 L")));
     expect(await respuesta.json()).toEqual({
       texto: [
-        "⚠️ 1111 necesita agenda o lanzamiento",
-        "⚠️ 2222: pon solo A o L",
-        "Responde con el código y A (agenda) o L (lanzamiento), por ejemplo: 4521 A, 8830 L",
+        "⚠️ 1111 necesita agenda, lanzamiento u otro",
+        "⚠️ 2222: pon solo A, L u O",
+        "Responde con el código y A (agenda), L (lanzamiento) u O (otro: compras, interacción), por ejemplo: 4521 A, 8830 L",
       ].join("\n"),
     });
   });

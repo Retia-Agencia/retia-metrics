@@ -1023,6 +1023,13 @@
       "when": 1794673575001,
       "tag": "0145_retira_form30x",
       "breakpoints": true
+    },
+    {
+      "idx": 146,
+      "version": "7",
+      "when": 1794854170279,
+      "tag": "0146_proposito_otro_y_evento_optimizacion",
+      "breakpoints": true
     }
   ]
 }

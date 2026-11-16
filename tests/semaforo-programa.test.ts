@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import {
   calls,
   cohorts,
@@ -161,6 +162,23 @@ async function gastoCerrado(programId: string, dia: string, monto: number, agend
 }
 
 describe("semáforo del programa", () => {
+  it("suma otro solo al gasto total y lo excluye de las listas de campañas", async () => {
+    const p = await crearPrograma("proposito-otro");
+    await db.update(pautaObjetos).set({ proposito: "otro" })
+      .where(eq(pautaObjetos.id, p.campanaId));
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 250000, agendasMeta: 3, registrosMeta: 4 });
+
+    const resultado = await costoPorAgenda(db, {
+      programId: p.programId, dia: "2026-10-16", hasta: new Date("2026-10-16T11:05:00-05:00"),
+    });
+
+    expect(resultado).toMatchObject({ gasto: 0, gastoTotal: 250000, campanas: [] });
+    expect(resultado.lanzamiento).toMatchObject({ gasto: 0, registrosMeta: null, campanas: [] });
+    expect(resultado.porCuenta).toEqual([
+      expect.objectContaining({ cuentaId: p.cuentaId, gasto: 0, gastoTotal: 250000 }),
+    ]);
+  });
+
   it("separa lanzamiento y deja sin clasificar dentro del costo de agenda", async () => {
     const p = await crearPrograma("propositos");
     const [lanzamiento] = await db.insert(pautaObjetos).values({
@@ -440,6 +458,27 @@ describe("semáforo del programa", () => {
     });
 
     expect(dia).toMatchObject({ color: "peligro", motivo: null, agendasMeta: 0, costo: null, gasto: 63902 });
+  });
+
+  it("mide agendas sin historia cuando un conjunto optimiza para el evento de agenda", async () => {
+    const p = await crearPrograma("mide-por-evento");
+    await db.insert(pautaObjetos).values({
+      cuentaId: p.cuentaId,
+      programId: p.programId,
+      idMeta: "conjunto-mide-por-evento",
+      nivel: "conjunto",
+      padreIdMeta: "campana-mide-por-evento",
+      nombre: "Conjunto de agenda",
+      estado: "ACTIVE",
+      eventoOptimizacion: "invitee_meeting_scheduled",
+    });
+    await foto({ ...p, dia: "2026-10-16", hora: "11:00", gasto: 63902, agendasMeta: null });
+
+    const dia = await semaforoDelPrograma(db, {
+      programId: p.programId, ahora: new Date("2026-10-16T11:05:00-05:00"), tipo: "dia",
+    });
+
+    expect(dia).toMatchObject({ color: "peligro", motivo: null, agendasMeta: 0, gasto: 63902 });
   });
 
   it("durante el día espera a Meta si el CRM ya tiene agendas", async () => {

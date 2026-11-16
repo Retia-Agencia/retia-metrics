@@ -96,11 +96,11 @@ function lineasMetrica(metrica: Metrica, tipo: Bloque["tipo"]): string[] {
     (campana) => campana.codigo !== null && campana.proposito === null && campana.gasto > 0,
   );
   if (nuevas.length > 0) {
-    lineas.push("🆕 Campañas nuevas: ¿agenda o lanzamiento?");
+    lineas.push("🆕 Campañas nuevas: ¿agenda, lanzamiento u otro?");
     for (const campana of nuevas) {
       lineas.push(`#${campana.codigo} ${campana.nombre} · ${ROTULO.inversion} ${pesos(campana.gasto)}`);
     }
-    lineas.push("👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:");
+    lineas.push("👉 Responde citando este mensaje con el código y A (agenda), L (lanzamiento) u O (otro: compras, interacción), por ejemplo:");
     lineas.push(nuevas.length === 1
       ? `${nuevas[0].codigo} A`
       : `${nuevas[0].codigo} A, ${nuevas[1].codigo} L`);

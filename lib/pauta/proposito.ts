@@ -4,7 +4,7 @@ import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
-export type PropositoCampana = "agenda" | "lanzamiento";
+export type PropositoCampana = "agenda" | "lanzamiento" | "otro";
 
 export interface AsignacionDeProposito {
   codigo: string;
@@ -48,14 +48,15 @@ export function parsearClasificacionDeCampanas(texto: string): ParseoDeProposito
     const marcas: string[] = [];
     for (const token of trozo.split(/\s+/)) {
       if (/^#?\d{4,}$/.test(token)) codigos.push(token.replace(/^#/, ""));
-      else if (/^(?:a|l|agenda|lanzamiento|lanz)$/.test(token)) marcas.push(token);
+      else if (/^(?:a|l|o|agenda|lanzamiento|lanz|otro)$/.test(token)) marcas.push(token);
       else return null;
     }
     if (codigos.length === 0) continue;
     tieneCodigos = true;
-    const propositos = new Set<PropositoCampana>(marcas.map((marca) =>
-      marca === "agenda" || marca === "a" ? "agenda" : "lanzamiento"
-    ));
+    const propositos = new Set<PropositoCampana>(marcas.map((marca) => {
+      if (marca === "agenda" || marca === "a") return "agenda";
+      return marca === "otro" || marca === "o" ? "otro" : "lanzamiento";
+    }));
     if (propositos.size !== 1) {
       if (propositos.size === 0) sinProposito.push(...codigos);
       else ambiguos.push(codigos);
@@ -73,7 +74,8 @@ export function parsearClasificacionDeCampanas(texto: string): ParseoDeProposito
 }
 
 function nombreDelProposito(proposito: PropositoCampana): string {
-  return proposito === "agenda" ? "Agenda" : "Lanzamiento";
+  if (proposito === "agenda") return "Agenda";
+  return proposito === "lanzamiento" ? "Lanzamiento" : "Otro";
 }
 
 export async function clasificarCampanas(
@@ -87,9 +89,9 @@ export async function clasificarCampanas(
   const parseo = parsearClasificacionDeCampanas(args.texto);
   if (parseo === null) return null;
   if (parseo.asignaciones.length === 0) {
-    const avisos = parseo.sinProposito.map((codigo) => `⚠️ ${codigo} necesita agenda o lanzamiento`);
-    avisos.push(...parseo.ambiguos.map((codigos) => `⚠️ ${codigos.join(" ")}: pon solo A o L`));
-    avisos.push("Responde con el código y A (agenda) o L (lanzamiento), por ejemplo: 4521 A, 8830 L");
+    const avisos = parseo.sinProposito.map((codigo) => `⚠️ ${codigo} necesita agenda, lanzamiento u otro`);
+    avisos.push(...parseo.ambiguos.map((codigos) => `⚠️ ${codigos.join(" ")}: pon solo A, L u O`));
+    avisos.push("Responde con el código y A (agenda), L (lanzamiento) u O (otro: compras, interacción), por ejemplo: 4521 A, 8830 L");
     return avisos.join("\n");
   }
 
@@ -112,8 +114,8 @@ export async function clasificarCampanas(
         : eq(reportesWhatsapp.destino, args.destino),
     ));
     const exitos: string[] = [];
-    const avisos = parseo.sinProposito.map((codigo) => `⚠️ ${codigo} necesita agenda o lanzamiento`);
-    avisos.push(...parseo.ambiguos.map((codigos) => `⚠️ ${codigos.join(" ")}: pon solo A o L`));
+    const avisos = parseo.sinProposito.map((codigo) => `⚠️ ${codigo} necesita agenda, lanzamiento u otro`);
+    avisos.push(...parseo.ambiguos.map((codigos) => `⚠️ ${codigos.join(" ")}: pon solo A, L u O`));
     const autor = args.autor.nombre?.trim() || args.autor.telefono?.trim() || "Autor desconocido";
     for (const asignacion of parseo.asignaciones) {
       const coincidencias = campanas.filter((campana) => campana.idMeta.endsWith(asignacion.codigo));
@@ -152,7 +154,7 @@ export async function clasificarCampanas(
     }
     lineas.push(...avisos);
     if (lineas.length === 0) {
-      lineas.push("Responde con el código y A (agenda) o L (lanzamiento), por ejemplo: 4521 A, 8830 L");
+      lineas.push("Responde con el código y A (agenda), L (lanzamiento) u O (otro: compras, interacción), por ejemplo: 4521 A, 8830 L");
     }
     return lineas.join("\n");
   });

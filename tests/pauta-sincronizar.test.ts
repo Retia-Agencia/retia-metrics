@@ -18,6 +18,7 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const TOKEN = "token-super-secreto";
+const CAMPOS_CREATIVO = "id,creative{object_type,video_id,asset_feed_spec,url_tags}";
 let db: Db;
 let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
@@ -25,7 +26,11 @@ let programId: string;
 
 function fetchMeta(
   datosInsights: unknown = insights,
-  opciones: { actualizadoEn?: string; fallarCuenta?: string } = {},
+  opciones: {
+    actualizadoEn?: string;
+    fallarCuenta?: string;
+    objetosPorId?: Record<string, Record<string, unknown>>;
+  } = {},
 ) {
   return vi.fn(async (entrada: string | URL | Request, init?: RequestInit) => {
     const url = new URL(entrada instanceof Request ? entrada.url : String(entrada));
@@ -35,6 +40,27 @@ function fetchMeta(
       return Response.json({ error: { message: `falló ${TOKEN}` } }, { status: 500 });
     }
     const borde = url.pathname.split("/").at(-1);
+    const fields = url.searchParams.get("fields");
+    if (url.searchParams.has("filtering")
+      && fields !== CAMPOS_CREATIVO) {
+      expect(["ads", "adsets", "campaigns"]).toContain(borde);
+      expect(url.pathname).toMatch(new RegExp(`/act_[^/]+/${borde}$`));
+      expect(url.searchParams.has("ids")).toBe(false);
+      expect(url.searchParams.get("limit")).toBe("50");
+      const filtros = JSON.parse(url.searchParams.get("filtering") ?? "[]") as Array<{
+        field: string;
+        operator: string;
+        value: string[];
+      }>;
+      expect(filtros).toHaveLength(2);
+      expect(filtros[0]).toMatchObject({ field: "id", operator: "IN" });
+      expect(filtros[1]).toMatchObject({ field: "effective_status", operator: "IN" });
+      expect(filtros[1].value).toContain("ARCHIVED");
+      return Response.json({ data: filtros[0].value.flatMap((id) => {
+        const objeto = opciones.objetosPorId?.[id];
+        return objeto ? [objeto] : [];
+      }) });
+    }
     if (borde === "campaigns" || borde === "adsets") {
       return Response.json({ data: arbol[borde] });
     }
@@ -91,7 +117,7 @@ describe("sincronización de pauta", () => {
     await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f });
     await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f });
     const llamadasCreativo = f.mock.calls.filter(([entrada]) =>
-      new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.has("filtering"));
+      new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.get("fields") === CAMPOS_CREATIVO);
     expect(llamadasCreativo).toHaveLength(1);
     const [anuncio] = await db.select().from(pautaObjetos)
       .where(eq(pautaObjetos.nivel, "anuncio"));
@@ -115,7 +141,7 @@ describe("sincronización de pauta", () => {
     const f = fetchMeta(insights, { actualizadoEn: "2099-10-14T12:00:00-05:00" });
     await sincronizarPauta(db, { tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "manual", f });
     expect(f.mock.calls.filter(([entrada]) =>
-      new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.has("filtering")))
+      new URL(entrada instanceof Request ? entrada.url : String(entrada)).searchParams.get("fields") === CAMPOS_CREATIVO))
       .toHaveLength(1);
   });
 
@@ -165,6 +191,39 @@ describe("sincronización de pauta", () => {
     expect(externo.programId).toBe(otroPrograma.id);
     expect(await db.select().from(gastoPauta).where(eq(gastoPauta.pautaObjetoId, externo.id)))
       .toHaveLength(0);
+  });
+
+  it("recupera un anuncio archivado fuera del árbol y conserva como omitido el irresoluble", async () => {
+    const datos = { data: [
+      { ad_id: "ad-archivado", spend: "152000", date_start: "2026-10-14", conversions: [] },
+      { ad_id: "ad-irresoluble", spend: "99", date_start: "2026-10-14", conversions: [] },
+    ] };
+    const objetosPorId = {
+      "ad-archivado": {
+        id: "ad-archivado", name: "Anuncio archivado", effective_status: "ARCHIVED",
+        adset_id: "set-archivado", campaign_id: "camp-archivada", updated_time: "2026-10-14T12:00:00-05:00",
+      },
+      "set-archivado": {
+        id: "set-archivado", name: "Conjunto archivado", effective_status: "ARCHIVED",
+        campaign_id: "camp-archivada", promoted_object: {},
+      },
+      "camp-archivada": {
+        id: "camp-archivada", name: "Campaña archivada", effective_status: "ARCHIVED",
+        objective: "OUTCOME_LEADS",
+      },
+    };
+
+    const resumen = await sincronizarPauta(db, {
+      tokens: new Map([[programId, TOKEN]]), hoy: "2026-10-14", disparadaPor: "cron",
+      f: fetchMeta(datos, { objetosPorId }),
+    });
+
+    expect(resumen).toMatchObject({ estado: "ok", filas: 1, omitidas: 1 });
+    const [anuncio] = await db.select().from(pautaObjetos)
+      .where(eq(pautaObjetos.idMeta, "ad-archivado"));
+    expect(anuncio).toMatchObject({ estado: "ARCHIVED", padreIdMeta: "set-archivado" });
+    expect(await db.select().from(gastoPauta).where(eq(gastoPauta.pautaObjetoId, anuncio.id)))
+      .toHaveLength(1);
   });
 
   it("rechaza una segunda corrida mientras existe el candado", async () => {

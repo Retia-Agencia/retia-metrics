@@ -4,7 +4,17 @@ import type { Db } from "@/lib/db/tipos";
 import { esViolacionUnica } from "@/lib/db/errores";
 import { ErrorDeApp } from "@/lib/errors";
 import { sumarDias } from "@/lib/dias-habiles";
-import { arbolDeCuenta, insightsPorAnuncioYDia, type AnuncioConocido } from "./meta-api";
+import {
+  arbolDeCuenta,
+  CAMPOS_ANUNCIO_META,
+  CAMPOS_CAMPANA_META,
+  CAMPOS_CONJUNTO_META,
+  insightsPorAnuncioYDia,
+  mapearObjetosDePauta,
+  objetosPorId,
+  type AnuncioConocido,
+  type ObjetoDePautaMeta,
+} from "./meta-api";
 import { registrarGasto } from "./gasto";
 import type { TokensMeta } from "@/lib/integraciones";
 
@@ -43,6 +53,35 @@ type ArgsSincronizacionPauta = {
   f?: FetchMeta;
   programId?: string;
 };
+
+async function guardarObjetosDePauta(
+  db: Db,
+  cuenta: { id: string; programId: string },
+  objetos: readonly ObjetoDePautaMeta[],
+): Promise<void> {
+  for (let i = 0; i < objetos.length; i += LOTE) {
+    await db.insert(pautaObjetos).values(objetos.slice(i, i + LOTE).map((objeto) => ({
+      ...objeto,
+      cuentaId: cuenta.id,
+      programId: cuenta.programId,
+    }))).onConflictDoUpdate({
+      target: pautaObjetos.idMeta,
+      set: {
+        cuentaId: cuenta.id,
+        programId: cuenta.programId,
+        nivel: sql`excluded.nivel`,
+        padreIdMeta: sql`excluded.padre_id_meta`,
+        nombre: sql`excluded.nombre`,
+        estado: sql`excluded.estado`,
+        objetivo: sql`excluded.objetivo`,
+        eventoOptimizacion: sql`excluded.evento_optimizacion`,
+        formato: sql`excluded.formato`,
+        urlTags: sql`excluded.url_tags`,
+        actualizadoEn: sql`now()`,
+      },
+    });
+  }
+}
 
 /** Escritor compartido por el cron y las fotos del día; `refrescarArbol` conserva el refresco total del cron. */
 export async function sincronizarPautaEnVentana(
@@ -114,35 +153,46 @@ export async function sincronizarPautaEnVentana(
           urlTags: anuncio.urlTags,
         }]));
         const arbol = await arbolDeCuenta(cuenta.idMeta, token, conocidos, args.f);
-        for (let i = 0; i < arbol.length; i += LOTE) {
-          await db.insert(pautaObjetos).values(arbol.slice(i, i + LOTE).map((objeto) => ({
-            ...objeto,
-            cuentaId: cuenta.id,
-            programId: cuenta.programId,
-          }))).onConflictDoUpdate({
-            target: pautaObjetos.idMeta,
-            set: {
-              cuentaId: cuenta.id,
-              programId: cuenta.programId,
-              nivel: sql`excluded.nivel`,
-              padreIdMeta: sql`excluded.padre_id_meta`,
-              nombre: sql`excluded.nombre`,
-              estado: sql`excluded.estado`,
-              objetivo: sql`excluded.objetivo`,
-              formato: sql`excluded.formato`,
-              urlTags: sql`excluded.url_tags`,
-              actualizadoEn: sql`now()`,
-            },
-          });
-        }
+        await guardarObjetosDePauta(db, cuenta, arbol);
       }
-      const objetos = await db.select({ id: pautaObjetos.id, idMeta: pautaObjetos.idMeta })
+      let objetos = await db.select({ id: pautaObjetos.id, idMeta: pautaObjetos.idMeta })
         .from(pautaObjetos)
         .where(eq(pautaObjetos.cuentaId, cuenta.id));
-      const ids = new Map(objetos.map((objeto) => [objeto.idMeta, objeto.id]));
+      let ids = new Map(objetos.map((objeto) => [objeto.idMeta, objeto.id]));
       const insights = await insightsPorAnuncioYDia(
         cuenta.idMeta, args.desde, args.hasta, token, args.f,
       );
+      const idsDesconocidos = [...new Set(insights
+        .filter((insight) => !ids.has(insight.adId))
+        .map((insight) => insight.adId))];
+      if (idsDesconocidos.length > 0) {
+        const anunciosCrudos = await objetosPorId(
+          cuenta.idMeta, "ads", idsDesconocidos, CAMPOS_ANUNCIO_META, token, args.f,
+        );
+        const idsConjuntos = [...new Set(anunciosCrudos.flatMap((anuncio) => {
+          const id = typeof anuncio.adset_id === "string" ? anuncio.adset_id : null;
+          return id && !ids.has(id) ? [id] : [];
+        }))];
+        const conjuntosCrudos = await objetosPorId(
+          cuenta.idMeta, "adsets", idsConjuntos, CAMPOS_CONJUNTO_META, token, args.f,
+        );
+        const idsCampanas = [...new Set([...anunciosCrudos, ...conjuntosCrudos].flatMap((objeto) => {
+          const id = typeof objeto.campaign_id === "string" ? objeto.campaign_id : null;
+          return id && !ids.has(id) ? [id] : [];
+        }))];
+        const campanasCrudas = await objetosPorId(
+          cuenta.idMeta, "campaigns", idsCampanas, CAMPOS_CAMPANA_META, token, args.f,
+        );
+        await guardarObjetosDePauta(db, cuenta, [
+          ...mapearObjetosDePauta("campana", campanasCrudas),
+          ...mapearObjetosDePauta("conjunto", conjuntosCrudos),
+          ...mapearObjetosDePauta("anuncio", anunciosCrudos),
+        ]);
+        objetos = await db.select({ id: pautaObjetos.id, idMeta: pautaObjetos.idMeta })
+          .from(pautaObjetos)
+          .where(eq(pautaObjetos.cuentaId, cuenta.id));
+        ids = new Map(objetos.map((objeto) => [objeto.idMeta, objeto.id]));
+      }
       const aceptados = insights.flatMap((insight) => {
         const pautaObjetoId = ids.get(insight.adId);
         if (!pautaObjetoId) {

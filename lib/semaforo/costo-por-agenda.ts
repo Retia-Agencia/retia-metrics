@@ -11,6 +11,7 @@ import { agendasDePauta } from "@/lib/queries/hechos/agenda";
 import { sumarDias } from "@/lib/dias-habiles";
 import { tasasDelRango } from "@/lib/trm/consultar";
 import { codigoCortoDeCampana, idsDeCampanas, type PropositoCampana } from "@/lib/pauta/proposito";
+import { EVENTO_AGENDA_META } from "@/lib/pauta/meta-api";
 
 export interface NotaSemaforo {
   tipo: "problema" | "info";
@@ -133,6 +134,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
 
   for (const [i, fila] of filas.entries()) {
     const esLanzamiento = fila.proposito === "lanzamiento";
+    const esOtro = fila.proposito === "otro";
     const claveCampana = fila.campanaId ?? "sin-campana";
     const campana = campanas.get(claveCampana) ?? {
       idMeta: fila.campanaIdMeta ?? "",
@@ -150,25 +152,25 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
     if (convertido === null) sinTrm.set(fila.dia, (sinTrm.get(fila.dia) ?? 0) + 1);
     gastoTotal += montoCop;
     if (esLanzamiento) gastoLanzamiento += montoCop;
-    else gasto += montoCop;
+    else if (!esOtro) gasto += montoCop;
     const cuenta = porCuenta.get(fila.cuentaId) ?? { gasto: 0, gastoTotal: 0, agendasMeta: 0, tieneAgendasMeta: false };
     cuenta.gastoTotal += montoCop;
-    if (!esLanzamiento) cuenta.gasto += montoCop;
-    if (!esLanzamiento && fila.agendasMeta !== null) {
+    if (!esLanzamiento && !esOtro) cuenta.gasto += montoCop;
+    if (!esLanzamiento && !esOtro && fila.agendasMeta !== null) {
       cuenta.agendasMeta += fila.agendasMeta;
       cuenta.tieneAgendasMeta = true;
     }
     porCuenta.set(fila.cuentaId, cuenta);
     campana.gasto += montoCop;
-    if (!esLanzamiento && fila.agendasMeta !== null) {
+    if (!esLanzamiento && !esOtro && fila.agendasMeta !== null) {
       agendasMeta += fila.agendasMeta;
       tieneAgendasMeta = true;
     }
-    if (fila.agendasMeta !== null) {
+    if (!esOtro && fila.agendasMeta !== null) {
       campana.agendasMeta += fila.agendasMeta;
       campana.tieneAgendasMeta = true;
     }
-    if (fila.registrosMeta !== null) {
+    if (!esOtro && fila.registrosMeta !== null) {
       campana.registrosMeta += fila.registrosMeta;
       campana.tieneRegistrosMeta = true;
       if (esLanzamiento) {
@@ -199,7 +201,7 @@ async function sumarEnCop(db: Db, filas: FilaDeGasto[], idsCampanas: readonly st
   return {
     gasto, gastoTotal,
     agendasMeta: tieneAgendasMeta ? agendasMeta : null,
-    campanas: todas.filter((campana) => campana.proposito !== "lanzamiento"),
+    campanas: todas.filter((campana) => campana.proposito !== "lanzamiento" && campana.proposito !== "otro"),
     lanzamiento: {
       gasto: gastoLanzamiento,
       registrosMeta: tieneRegistrosMetaLanzamiento ? registrosMetaLanzamiento : null,
@@ -215,9 +217,8 @@ function totalDeAgendas(filas: Array<{ agendas: number }>): number {
 }
 
 /**
- * Meta omite la conversión de agenda cuando cuenta 0, así que una fila sin agendas es ambigua: si el
- * programa ya tuvo agendas de Meta alguna vez, mide con el pixel y la ausencia es un 0; si nunca las
- * tuvo, de verdad no las mide.
+ * Meta omite la conversión de agenda cuando cuenta 0. El programa mide agendas si ya reportó alguna
+ * vez ese dato o si un conjunto del árbol optimiza para el evento de agenda configurado en Meta.
  */
 async function programaMideAgendasMeta(db: Db, programId: string): Promise<boolean> {
   return unaVezPorSolicitud(db, claveDe("programaMideAgendasMeta", programId), async () => {
@@ -226,7 +227,13 @@ async function programaMideAgendasMeta(db: Db, programId: string): Promise<boole
       eq(gastoPauta.origen, "meta_api"),
       isNotNull(gastoPauta.agendasMeta),
     )).limit(1);
-    return fila !== undefined;
+    if (fila !== undefined) return true;
+    const [conjunto] = await db.select({ id: pautaObjetos.id }).from(pautaObjetos).where(and(
+      eq(pautaObjetos.programId, programId),
+      eq(pautaObjetos.nivel, "conjunto"),
+      eq(pautaObjetos.eventoOptimizacion, EVENTO_AGENDA_META),
+    )).limit(1);
+    return conjunto !== undefined;
   });
 }
 
