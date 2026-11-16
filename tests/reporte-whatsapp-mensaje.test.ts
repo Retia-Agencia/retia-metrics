@@ -69,10 +69,10 @@ describe("mensaje del reporte por WhatsApp", () => {
       }],
     }], "09:00", null, ORIGEN);
     expect(mensaje).toContain([
-      "🆕 Campañas nuevas: ¿agenda o lanzamiento?",
+      "🆕 Campañas nuevas: ¿agenda, lanzamiento u otro?",
       "#1001 Ventas abiertas · Inversión COP 300.000",
       "#1002 Retargeting · Inversión COP 200.000",
-      "👉 Responde citando este mensaje con el código y A (agenda) o L (lanzamiento), por ejemplo:",
+      "👉 Responde citando este mensaje con el código y A (agenda), L (lanzamiento) u O (otro: compras, interacción), por ejemplo:",
       "1001 A, 1002 L",
     ].join("\n"));
     expect(mensaje).toContain("🚀 Lanzamiento: Inversión COP 322.697 · 7 registros Meta · CPL COP 46.100\n• #5102 Registro Lanzamiento: Inversión COP 322.697 · 7 reg · COP 46.100 c/u");
@@ -158,7 +158,7 @@ describe("mensaje del reporte por WhatsApp", () => {
       ORIGEN,
     );
 
-    expect(mensaje).toMatch(/^🌙 Cierre del viernes 16-oct/);
+    expect(mensaje).toMatch(/^🌙 Cierre del viernes 16-oct · 1(🔴|🟡|🟢|⚪)\n/);
     expect(mensaje).toContain("Trayectoria: 09:00 Inversión COP 0 · Agendas según Meta 0 | 11:00 Inversión COP 120.000 · Agendas según Meta 1");
     expect(mensaje).not.toContain("Las agendas de hoy pueden seguir subiendo");
   });

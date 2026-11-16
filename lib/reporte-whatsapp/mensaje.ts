@@ -240,7 +240,7 @@ export function armarMensajeDeLaHora(
   const tiposMixtos = new Set(bloques.map((bloque) => bloque.tipo)).size > 1;
   const conteo = conteoDeColores(bloques);
   const titulo = todosSonCierre
-    ? `🌙 Cierre del ${fechaDeCierre(bloques[0]?.metricas[0]?.dia ?? "")}`
+    ? `🌙 Cierre del ${fechaDeCierre(bloques[0]?.metricas[0]?.dia ?? "")}${conteo ? ` · ${conteo}` : ""}`
     : `🚦 Semáforo de pauta · ${hora}${conteo ? ` · ${conteo}` : ""}`;
   const lineas = [titulo, ""];
 

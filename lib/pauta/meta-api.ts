@@ -341,8 +341,7 @@ export function mapearObjetosDePauta(
         estado: b.estado, objetivo: texto(fila.objective), eventoOptimizacion: null,
         formato: null, urlTags: null };
     }
-    const campoPadre = nivel === "conjunto" ? "campaign_id" : "adset_id";
-    const padre = texto(fila[campoPadre]);
+    const padre = texto(nivel === "conjunto" ? fila.campaign_id : fila.adset_id);
     if (!padre) throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
     if (nivel === "conjunto") {
       const promovido = fila.promoted_object && typeof fila.promoted_object === "object"
