@@ -158,6 +158,14 @@ const FILAS_ETAPA: readonly FilaEtapa[] = [
   ["A1", "ganado_parcial", ["contactado", "calificado", "atendido", "compromiso_verbal"], "sistema"],
   ["A2", "ganado_completo", "ganado_parcial", "sistema"],
 ];
+/**
+ * S4 vive fuera de `FILAS_ETAPA`: Calificado → Ganado ya pertenece a E6 y el índice
+ * general rechaza correctamente dos flechas para el mismo par. Esta tabla solo la
+ * consulta la puerta explícita de venta directa.
+ */
+const FILAS_VENTA_DIRECTA: readonly FilaEtapa[] = [
+  ["S4", ["potencial", "registrado", "calificado"], ["ganado_parcial", "ganado_completo"], "sistema"],
+];
 const FILAS_PENDIENTE: readonly FilaPendiente[] = [
   ["PR1", "agendado", "reagenda", "sistema"],
   ["PR2", "atendido", "reagenda", "closer", "reagenda"],
@@ -170,6 +178,13 @@ const FILAS_PENDIENTE: readonly FilaPendiente[] = [
 const comoLista = <T>(valor: T | readonly T[]): readonly T[] => Array.isArray(valor) ? valor as readonly T[] : [valor as T];
 export const TRANSICIONES: readonly Transicion[] = FILAS_ETAPA.flatMap(([id, de, a, quien, opciones]) =>
   comoLista(de).flatMap((origen) => comoLista(a).map((destino) => ({
+    tipo: "etapa" as const, id, de: origen, a: destino, quien,
+    exigeMotivo: opciones?.motivo != null, tipoDeMotivo: opciones?.motivo ?? null,
+    soloConPendiente: opciones?.soloConPendiente ?? false,
+  }))),
+);
+export const TRANSICIONES_VENTA_DIRECTA: readonly Transicion[] = FILAS_VENTA_DIRECTA.flatMap(
+  ([id, de, a, quien, opciones]) => comoLista(de).flatMap((origen) => comoLista(a).map((destino) => ({
     tipo: "etapa" as const, id, de: origen, a: destino, quien,
     exigeMotivo: opciones?.motivo != null, tipoDeMotivo: opciones?.motivo ?? null,
     soloConPendiente: opciones?.soloConPendiente ?? false,
@@ -199,6 +214,9 @@ for (const t of TRANSICIONES_PENDIENTE) {
 
 export function transicion(de: EtapaDeal, a: EtapaDeal): Transicion | null {
   return INDICE_ETAPA.get(claveEtapa(de, a)) ?? null;
+}
+export function transicionDeVentaDirecta(de: EtapaDeal, a: EtapaDeal): Transicion | null {
+  return TRANSICIONES_VENTA_DIRECTA.find((t) => t.de === de && t.a === a) ?? null;
 }
 export function transicionPendiente(etapa: EtapaDeal, pone: PendienteDeal): TransicionPendiente | null {
   return INDICE_PENDIENTE.get(clavePendiente(etapa, pone)) ?? null;

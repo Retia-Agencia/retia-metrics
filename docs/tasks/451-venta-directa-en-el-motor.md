@@ -3,7 +3,7 @@ id: 451
 etapa: deal
 serves: "ADR 0133 puntos 4, 5 y 6 · D1, D2, D5"
 depends: []
-status: todo
+status: done
 ---
 
 # 451 — La venta directa: abono del sistema y flecha a Ganado sin dueño
@@ -36,8 +36,17 @@ sistema) · `abonos.origen` (hoy `app` o `mcp`).
 6. Un deal ya en Agendado o más adelante y sin dueño no existe hoy (Agendado exige dueño); si aparece, test que lo diga.
 
 ## Done cuando
-- [ ] Tests: completo sin dueño, parcial sin dueño, con dueño (flecha de closer), compra repetida (un solo abono),
-      deal anulado (no se toca).
-- [ ] Test: el Purchase de Meta queda en cola y el aviso a CS se encola (los dispara `moverEtapa`).
-- [ ] No corre `db:generate` ni `db:migrate`: deja el cambio en `lib/db/schema.ts` y la sesión principal genera la
+- [x] Tests: completo sin dueño, parcial sin dueño, con dueño (flecha de closer), compra repetida (un solo abono),
+      deal anulado (no se toca). (`tests/venta-directa.test.ts`)
+- [x] Test: el Purchase de Meta queda en cola y el aviso a CS se encola (los dispara `moverEtapa`).
+- [x] No corre `db:generate` ni `db:migrate`: deja el cambio en `lib/db/schema.ts` y la sesión principal genera la
       migración (memoria del repo).
+
+## Hecho (16-nov)
+- `registrarVentaDeLaPasarela` (`lib/deals/venta-de-la-pasarela.ts`) es la puerta que llama el 455.
+- S4 vive aparte del índice (`FILAS_VENTA_DIRECTA`, `lib/deals/etapas.ts`): Calificado → Ganado ya es E6.
+- La base prohibía una venta sin dueño (`deals_venta_con_dueno`). Excepción nombrada nueva: `deals.venta_directa_en`,
+  que escribe solo S4; y `deals_venta_directa_sin_dueno` impide que esa venta reciba dueño (D5). El 452 puede
+  preguntar "¿es venta directa?" por esa columna.
+- **Migración pendiente** (la genera la sesión principal con `db:generate`): `abonos.referencia_externa` + índice único
+  parcial, `deals.venta_directa_en`, los dos CHECK y el valor `hotmart` en `origen_cambio`.

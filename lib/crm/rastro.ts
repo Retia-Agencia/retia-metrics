@@ -53,7 +53,7 @@ import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
 export const TABLAS_CON_RASTRO = ["deals", "calls", "abonos", "deal_actividades", "piezas"] as const;
 
 export type TablaConRastro = (typeof TABLAS_CON_RASTRO)[number];
-export type OrigenOperativo = "app" | "mcp";
+export type OrigenOperativo = "app" | "mcp" | "hotmart";
 
 /**
  * Como se escribe un valor en `change_log`: vive en un solo modulo, `textoDeBitacora`,
