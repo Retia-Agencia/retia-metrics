@@ -1037,6 +1037,13 @@
       "when": 1794858351265,
       "tag": "0147_cuadres_pauta",
       "breakpoints": true
+    },
+    {
+      "idx": 148,
+      "version": "7",
+      "when": 1794860430357,
+      "tag": "0148_venta_directa_451",
+      "breakpoints": true
     }
   ]
 }
