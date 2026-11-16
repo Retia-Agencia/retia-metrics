@@ -80,6 +80,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0016](./0016-productos-por-programa-los-gestionan-gerentes-y-closers.md) | Los productos de cada programa los gestionan gerentes y closers (**lo del precio lo reemplaza el 0065: `productos` se retira; recursos y plataformas siguen**) |
 | [0034](./0034-una-plataforma-de-pago-sirve-a-programas.md) | Una plataforma de pago sirve a programas, por tabla puente |
 | [0017](./0017-recursos-solo-como-links.md) | Los recursos son links; el comprobante de un abono puede ser foto |
+| [0133](./0133-la-venta-directa-entra-por-el-webhook-de-la-pasarela.md) | La venta directa entra por el webhook de la pasarela (Hotmart), se empareja por correo o teléfono (si no, bandeja), y cae en Students sin dueño para siempre; valor vendido = ticket de la cohorte; un reembolso lo decide una persona (tickets 448 a 455) |
 
 **Origen y atribución**
 
