@@ -482,3 +482,28 @@ export async function insightsPorAnuncioYDia(
     };
   });
 }
+
+/** Gasto diario que Meta atribuye a una cuenta, en la moneda propia de esa cuenta. */
+export async function gastoDiarioDeCuenta(
+  idMeta: string,
+  desde: string,
+  hasta: string,
+  token: string,
+  f: FetchMeta = globalThis.fetch,
+): Promise<Map<string, string>> {
+  const url = new URL(`${META_BASE}/act_${idMeta}/insights`);
+  url.searchParams.set("level", "account");
+  url.searchParams.set("time_increment", "1");
+  url.searchParams.set("time_range", JSON.stringify({ since: desde, until: hasta }));
+  url.searchParams.set("fields", "spend,date_start");
+  url.searchParams.set("limit", "500");
+  const filas = await consultarPaginas<Record<string, unknown>>(url, token, f);
+  return new Map(filas.map((fila) => {
+    const fecha = texto(fila.date_start);
+    const monto = texto(fila.spend);
+    if (!fecha || !monto || !Number.isFinite(Number(monto))) {
+      throw new ErrorDeApp("Meta rechazó la consulta: respuesta inválida", 422);
+    }
+    return [fecha, monto];
+  }));
+}

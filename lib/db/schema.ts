@@ -2611,6 +2611,23 @@ export const pautaSincronizaciones = pgTable(
   ],
 );
 
+export const cuadresPauta = pgTable(
+  "cuadres_pauta",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    cuentaId: uuid("cuenta_id")
+      .notNull()
+      .references(() => cuentasPublicitarias.id, { onDelete: "restrict" }),
+    fecha: date("fecha").notNull(),
+    gastoMeta: numeric("gasto_meta", { precision: 14, scale: 2 }).notNull(),
+    gastoCrm: numeric("gasto_crm", { precision: 14, scale: 2 }).notNull(),
+    revisadoEn: timestamp("revisado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("cuadres_pauta_cuenta_fecha_idx").on(t.cuentaId, t.fecha),
+  ],
+);
+
 // ─────────────────────────────────────────────────────────── TRM del día (ticket 244, ADR 0088)
 
 /**
@@ -2804,6 +2821,8 @@ export type GastoPauta = typeof gastoPauta.$inferSelect;
 export type NuevoGastoPauta = typeof gastoPauta.$inferInsert;
 export type PautaSincronizacion = typeof pautaSincronizaciones.$inferSelect;
 export type NuevaPautaSincronizacion = typeof pautaSincronizaciones.$inferInsert;
+export type CuadrePauta = typeof cuadresPauta.$inferSelect;
+export type NuevoCuadrePauta = typeof cuadresPauta.$inferInsert;
 
 export type TasaCambio = typeof tasasCambio.$inferSelect;
 export type NuevaTasaCambio = typeof tasasCambio.$inferInsert;

@@ -1030,6 +1030,13 @@
       "when": 1794854170279,
       "tag": "0146_proposito_otro_y_evento_optimizacion",
       "breakpoints": true
+    },
+    {
+      "idx": 147,
+      "version": "7",
+      "when": 1794858351265,
+      "tag": "0147_cuadres_pauta",
+      "breakpoints": true
     }
   ]
 }

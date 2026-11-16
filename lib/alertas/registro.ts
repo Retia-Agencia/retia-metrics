@@ -1,7 +1,12 @@
-import { fechaHoraEnBogota, num } from "@/lib/format";
+import { fechaCorta, fechaHoraEnBogota, monto, num } from "@/lib/format";
 import { hostsDeCalendlySinCloser, type HostDeCalendlySinCloser } from "@/lib/calendly/hosts-sin-closer";
 import { saludDeFuentes, type SaludDeFuenteConDatos } from "@/lib/queries/salud-fuentes";
 import type { Db } from "@/lib/db/tipos";
+import {
+  descuadresRecientesDePauta,
+  TOLERANCIA_CUADRE,
+  type DescuadreDePauta,
+} from "@/lib/pauta/cuadre";
 
 export type TipoDeAlerta =
   | "fuente_silenciosa"
@@ -9,11 +14,13 @@ export type TipoDeAlerta =
   | "completos_sin_calidad"
   | "traza_de_pauta_rota"
   | "host_de_calendly_sin_closer"
+  | "pauta_descuadrada"
   | "sin_envios_global";
 
 export interface ContextoDeAlertas {
   fuentes: SaludDeFuenteConDatos[];
   hostsSinCloser: HostDeCalendlySinCloser[];
+  descuadres?: DescuadreDePauta[];
 }
 
 type DefinicionDeAlerta = {
@@ -77,6 +84,42 @@ export const REGISTRO_DE_ALERTAS = {
       texto: `🔴 ${programaNombre}: la cuenta de Calendly ${host} tiene ${num(citas)} ${citas === 1 ? "cita agendada" : "citas agendadas"} y no está vinculada a ningún closer del programa. Esos deals no cambian de dueño hasta vincularla. Revisar en Ajustes › Usuarios.`,
     })),
   },
+  pauta_descuadrada: {
+    severidad: "critica",
+    evaluar: ({ descuadres = [] }) => {
+      const porCuenta = Map.groupBy(
+        descuadres.filter((fila) =>
+          Math.abs(Number(fila.gastoMeta) - Number(fila.gastoCrm)) > TOLERANCIA_CUADRE),
+        (descuadre) => descuadre.cuentaId,
+      );
+      return [...porCuenta.entries()].map(([cuentaId, filas]) => {
+        const ordenadas = filas.toSorted((a, b) => a.fecha.localeCompare(b.fecha));
+        const primera = ordenadas[0];
+        const gastoMeta = ordenadas.reduce((total, fila) => total + Number(fila.gastoMeta), 0);
+        const gastoCrm = ordenadas.reduce((total, fila) => total + Number(fila.gastoCrm), 0);
+        const faltantes = ordenadas.filter((fila) => Number(fila.gastoCrm) < Number(fila.gastoMeta));
+        const sobrantes = ordenadas.filter((fila) => Number(fila.gastoCrm) > Number(fila.gastoMeta));
+        const periodo = (grupo: DescuadreDePauta[]) => grupo.length === 1
+          ? fechaCorta(grupo[0].fecha)
+          : `${fechaCorta(grupo[0].fecha)} a ${fechaCorta(grupo.at(-1)!.fecha)}`;
+        const detalle = (direccion: "faltan" | "sobran", grupo: DescuadreDePauta[]) => {
+          const diferencia = grupo.reduce((total, fila) => total + Math.abs(
+            Number(fila.gastoMeta) - Number(fila.gastoCrm),
+          ), 0);
+          return `${direccion} ${monto(diferencia, primera.moneda)} en ${grupo.length} ${grupo.length === 1 ? "día" : "días"} (${periodo(grupo)})`;
+        };
+        const diferencia = Math.abs(gastoMeta - gastoCrm);
+        const esMixto = faltantes.length > 0 && sobrantes.length > 0;
+        const balance = esMixto
+          ? `${detalle("faltan", faltantes)} y ${detalle("sobran", sobrantes)}`
+          : `(${gastoCrm < gastoMeta ? "faltan" : "sobran"} ${monto(diferencia, primera.moneda)}) en ${ordenadas.length} ${ordenadas.length === 1 ? "día" : "días"} (${periodo(ordenadas)})`;
+        return {
+          clave: `pauta_descuadrada:${cuentaId}`,
+          texto: `🔴 ${primera.programaNombre} · cuenta ${primera.idMeta}: Meta reporta ${monto(gastoMeta, primera.moneda)} y el CRM ${monto(gastoCrm, primera.moneda)}; ${balance}. Correr el relleno de gasto de esa ventana.`,
+        };
+      });
+    },
+  },
   sin_envios_global: {
     severidad: "critica",
     evaluar: ({ fuentes }, ahora) => {
@@ -101,11 +144,12 @@ export const REGISTRO_DE_ALERTAS = {
 export const TIPOS_DE_ALERTA = Object.keys(REGISTRO_DE_ALERTAS) as [TipoDeAlerta, ...TipoDeAlerta[]];
 
 export async function alertasActivas(db: Db, ahora: Date) {
-  const [fuentes, hostsSinCloser] = await Promise.all([
+  const [fuentes, hostsSinCloser, descuadres] = await Promise.all([
     saludDeFuentes(db, ahora),
     hostsDeCalendlySinCloser(db),
+    descuadresRecientesDePauta(db, ahora),
   ]);
-  return alertasDelContexto({ fuentes, hostsSinCloser }, ahora);
+  return alertasDelContexto({ fuentes, hostsSinCloser, descuadres }, ahora);
 }
 
 /** Las alertas de un contexto ya calculado: quien ya tiene sus consultas no las recalcula. */
