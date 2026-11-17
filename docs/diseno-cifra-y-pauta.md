@@ -547,7 +547,7 @@ Ninguna cifra desaparece; lo que se quita es la repetición. La gráfica por dí
 | DM-5 | Pauta en dos vistas | **Aprobada** | Resultados \| Origen y calidad, mismos filtros, `?vista=` |
 | DM-6 | Qué se mide, siempre visible | **Aprobada** | "de pauta" / "todas las áreas" en cada cifra y el detalle al abrir |
 | DM-7 | Lo que está en curso | **Aprobada** | Última columna "en curso", tasas "Parcial"; toda etiqueta se explica al abrir, "organizada y breve" |
-| DM-8 | Agenda, confirmada y llamada | **Propuesta** (falta el sí de Michael y Paid Media) | §7.1 |
+| DM-8 | Agenda, confirmada y llamada | **Aprobada** (Michael, 17-nov: «Si, cita confirmada así») | §7.1 |
 | DM-9 | Toda cifra se explica al abrirla | **Aprobada** (feedback de Mani, 10-nov) | §2; aplica a todo el Hub |
 | Q-8 | Por cuenta: ¿columnas fijas o desplegable? | Abierta (Paid Media) | El boceto usa el interruptor Total \| Por cuenta |
 

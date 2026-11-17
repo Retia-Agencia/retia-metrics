@@ -3,13 +3,12 @@ id: 421
 etapa: comercial
 serves: "docs/diseno-cifra-y-pauta.md §7.1 (DM-8) · Q-2 y Q-3 de docs/paid-media-excels-2026-11-10.md · D-C del audit (docs/audit-hub-2026-11-10.md §8) · Mani, 10-nov"
 depends: []
-status: bloqueado
+status: todo  # 17-nov: DM-8 aprobada; espera el ok de Mani para la migración
 ---
 
 # 421 — Una sola cita con estados, y la cita confirmada
 
-**Bloqueado por:** el sí de Michael y Paid Media a DM-8 (que "agendas del día" = Agendadas y "llamadas realizadas" =
-Realizadas) y por la D-C del 403.
+**DM-8 aprobada (Michael, 17-nov: «Si, cita confirmada así»)** con los estados Agendada, Confirmada, Realizada, No asistió, Reagendada, Cancelada. Falta la D-C del 403. Lleva migración (estado Confirmada): **no se genera hasta el ok de Mani**.
 
 ## Alcance
 
@@ -21,6 +20,7 @@ Realizadas) y por la D-C del 403.
 
 ## Done cuando
 
-- [ ] DM-8 confirmada por Michael y Paid Media, con fecha.
+- [x] DM-8 confirmada por Michael, 17-nov (Paid Media no la objetó; la pregunta iba a Michael).
+- [ ] Ok de Mani a la migración del estado Confirmada.
 - [ ] ADR, diccionario y vocabulario en el mismo commit.
 - [ ] El closer confirma una cita desde la ficha del deal; la métrica abre su lista.
