@@ -254,14 +254,20 @@ function resumir(costo: CostoDeSolicitud): ResumenDeCosto {
 export function medir<T>(
   ruta: string,
   ejecutar: () => Promise<T>,
-): Promise<{ valor: T; costo: ResumenDeCosto; identicas: Array<{ sentencia: string; veces: number }> }> {
+): Promise<{
+  valor: T;
+  costo: ResumenDeCosto;
+  identicas: Array<{ sentencia: string; veces: number }>;
+  /** Cuántas veces corrió cada sentencia (con o sin los mismos parámetros): dice QUÉ crece entre dos mediciones. */
+  porSentencia: Map<string, number>;
+}> {
   const costo = costoNuevo(patronDeRuta(ruta));
   return contexto.run(costo, async () => {
     const valor = await ejecutar();
     const identicas = [...costo.identicasPorSentencia]
       .map(([sentencia, veces]) => ({ sentencia, veces }))
       .sort((a, b) => b.veces - a.veces);
-    return { valor, costo: resumir(costo), identicas };
+    return { valor, costo: resumir(costo), identicas, porSentencia: new Map(costo.repetidas) };
   });
 }
 

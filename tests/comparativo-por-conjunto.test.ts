@@ -89,7 +89,7 @@ beforeEach(async () => {
   const anaVenta = await nuevoDeal(programId, ana.id, "ganado_parcial", { valor: "900" });
   const betoVenta = await nuevoDeal(programId, beto.id, "ganado_completo", { valor: "1000" });
   const caraVenta = await nuevoDeal(programId, cara.id, "ganado_parcial", { valor: "800" });
-  const sinDueno = await nuevoDeal(programId, null, "ganado_parcial", { valor: "700" });
+  const sinDueno = await nuevoDeal(programId, null, "contactado", { valor: "700" });
   const abierto = await nuevoDeal(programId, beto.id, "atendido");
   const perdido = await nuevoDeal(programId, cara.id, "cierre_perdido");
   const anulado = await nuevoDeal(programId, ana.id, "ganado_completo", { anulado: true });
@@ -141,10 +141,10 @@ describe("comparativo por conjunto", () => {
 
   it("conserva exactamente el dinero de cada closer", async () => {
     const clavesDeDinero = [...claves, claveHistorica("Cara")];
-    const porConjunto = await dineroPorCloserDelRango({ programId, rango, cohorteId }, clavesDeDinero, db);
+    const porConjunto = await dineroPorCloserDelRango({ programId, rango, cohorteId: cohortId }, clavesDeDinero, db);
     for (const clave of clavesDeDinero) {
       expect(porConjunto.get(clave), clave).toEqual(
-        await dineroDelRango({ programId, rango, cohorteId, claveCloser: clave }, db),
+        await dineroDelRango({ programId, rango, cohorteId: cohortId, claveCloser: clave }, db),
       );
     }
     expect(porConjunto.get(claves[0])?.vendido).toBe(900);

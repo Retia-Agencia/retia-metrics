@@ -358,10 +358,10 @@ async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dea
   await base.vaciar();
   const sembrado = await sembrar(base.db, cantidad, dealsExtra, variedad);
   abrirSolicitud();
-  const { costo, identicas } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
+  const { costo, identicas, porSentencia } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
   const cuales = identicas.slice(0, 5).map(({ sentencia, veces }) => `  ×${veces + 1} ${sentencia.slice(0, 160)}`);
-  return { costo, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
+  return { costo, porSentencia, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
 }
 
 function paginasEn(directorio: string): string[] {
@@ -408,7 +408,14 @@ describe("consultas por pagina", () => {
     async (nombre, pagina) => {
       const base3 = await medirPagina(nombre, pagina, 3);
       const conVariedad = await medirPagina(nombre, pagina, 3, 0, 4);
-      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} sin variedad, ${conVariedad.costo.consultas} con variedad 4`)
+      // Dice QUÉ sentencias crecieron: es el dueño del N+1 que hay que quitar.
+      const crecieron = [...conVariedad.porSentencia]
+        .map(([sentencia, veces]) => ({ sentencia, mas: veces - (base3.porSentencia.get(sentencia) ?? 0) }))
+        .filter(({ mas }) => mas > 0)
+        .sort((a, b) => b.mas - a.mas)
+        .slice(0, 8)
+        .map(({ sentencia, mas }) => `  +${mas} ${sentencia.slice(0, 170)}`);
+      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} sin variedad, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
         .toBe(base3.costo.consultas);
       expect(conVariedad.costo.identicas).toBe(0);
     },

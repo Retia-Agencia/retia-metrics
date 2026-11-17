@@ -253,7 +253,7 @@ async function detallesDelComparativoConDinero(
   const resumenPorMetrica = {
     ...Object.fromEntries(resumenes),
     caja: { programId: entrada.programId, disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
-  } as Record<"agendas" | "shows" | "cierres" | "caja", ResumenDeMetrica>;
+  } as unknown as Record<"agendas" | "shows" | "cierres" | "caja", ResumenDeMetrica>;
   const deGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_pendientes", clave: string): DetalleDeCifra => {
     const miembros = metrica === "grupo_pendientes"
       ? pendientesDe(grupo, clave)
