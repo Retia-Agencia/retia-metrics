@@ -90,6 +90,21 @@ export const VARIANTES_DE_PAUTA = {
   },
 } as const satisfies Record<string, VarianteDeExplicacion>;
 
+/**
+ * Las fichas se escribieron para Pauta. Donde el texto dice "de pauta" y la vista cuenta todas las áreas
+ * (Hoy, Comercial, Dinero y el norte), la variante `universo: "todas"` toma estas frases neutras. Nunca crean una segunda ficha.
+ */
+const FRASE_PARA_TODAS_LAS_AREAS: Partial<Record<ClaveRegistrada, VarianteDeExplicacion>> = {
+  agendadas: {
+    que: "Cuántas citas se reservaron, vengan de pauta, orgánico, referidos o sin origen.",
+    formula: { forma: "conteo", terminos: ["citas reservadas en el periodo"] },
+    variables: [{ nombre: "Cita reservada", explicacion: "La llamada que el lead apartó en el calendario. Cuenta el día en que la reservó, no el día de la llamada." }],
+  },
+  cierre_de_ventas: { que: "De los deals que asistieron a su cita, qué parte ya compró." },
+  ventas: { que: "Cuántos deals pasaron a Abonado o Completo, vengan de pauta, orgánico, referidos o sin origen." },
+  vendido: { formula: { forma: "suma", terminos: ["valor vendido de cada venta"] } },
+};
+
 export function explicacionDe(
   clave: ClaveRegistrada,
   variante: VarianteDeExplicacion = {},
@@ -106,6 +121,7 @@ export function explicacionDe(
     ...(ficha.aliasExcel ? { aliasExcel: ficha.aliasExcel } : {}),
     ...(ficha.admiteObjetivo ? { admiteObjetivo: true } : {}),
     ...(ficha.unidadesDePartes ? { unidadesDePartes: ficha.unidadesDePartes } : {}),
+    ...(universo === "todas" ? FRASE_PARA_TODAS_LAS_AREAS[clave] : undefined),
     ...texto,
   };
 }
