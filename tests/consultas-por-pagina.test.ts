@@ -33,7 +33,16 @@ import { cargarDatosDeStudents } from "@/lib/students/cargar-datos";
 import { cargarDatosDeAutorizacion } from "@/lib/oauth/cargar-datos-de-autorizacion";
 import { cargarDatosDePrograma } from "@/lib/programa/cargar-datos";
 import { cargarDatosDeListaDelPrograma } from "@/lib/hub-programa/lista/cargar-datos";
+import {
+  cargarDatosDelHubDelPrograma,
+  type SeccionDelHubDelPrograma,
+} from "@/lib/hub-programa/cargar-datos";
 import { resolverPeriodo } from "@/lib/periodo";
+import { resolverContextoDeVista, type EntradaDeVista } from "@/lib/queries/vista-dashboard";
+import { armarReporteDiario } from "@/lib/queries/reporte-diario";
+import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
+import { rutaDePrograma } from "@/lib/nav";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -73,6 +82,49 @@ function datosDelHub(seccion: SeccionDelHubDeTodos) {
   });
 }
 
+function datosDelHubDelPrograma(seccion: SeccionDelHubDelPrograma) {
+  return async (db: Db, sembrado: Sembrado) => {
+    const programa = sembrado.programas[0]!;
+    const esHoy = seccion === "hoy";
+    const busqueda = esHoy ? {} : { seccion };
+    const base = rutaDePrograma(programa.slug, "hub");
+    const origen = origenDeLaPagina(base, busqueda);
+    const entradaDeVista: EntradaDeVista = esHoy
+      ? { programId: programa.id, hoy: HOY, periodo: { preset: "hoy" }, preset: "hoy", claveCloser: null }
+      : {
+          programId: programa.id,
+          hoy: HOY,
+          periodo: { preset: "este_mes" },
+          filtroDeCohorte: { parametro: undefined },
+          preset: "hoy",
+          claveCloser: null,
+        };
+    const contextoPendiente = resolverContextoDeVista(entradaDeVista, db);
+    const ventanaRitmo = ventanaRitmoDeUrl(undefined);
+    const reporteDeHoy = esHoy
+      ? armarReporteDiario({ programId: programa.id, dia: HOY, ventanaRitmo, contexto: contextoPendiente }, db)
+      : null;
+    const contexto = await contextoPendiente;
+    const datos = await cargarDatosDelHubDelPrograma(db, {
+      programa,
+      rol: "developer",
+      busqueda,
+      seccion,
+      hoy: HOY,
+      diaDelReporte: HOY,
+      hoyDeLaPestana: HOY,
+      ventanaRitmo,
+      entradaDeVista,
+      contexto,
+      reporteDeHoy,
+      origen,
+      configurar: { hrefBase: `/p/${programa.slug}/programa?seccion=ventas`, origen },
+    });
+    if (datos.seccion === "dinero") await datos.seriesDeDinero;
+    return datos;
+  };
+}
+
 // Topes del escenario de ESTE test (3 programas sembrados), medidos en el CI. No son comparables con la
 // tabla del 437 (dev:local, datos reales). El tope es EXACTO: si una página usa menos, el guardián falla
 // con el número nuevo, y se baja en el mismo commit (el trinquete nunca queda holgado).
@@ -81,6 +133,10 @@ const PAGINAS = {
   "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
   "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 219, escalaConProgramas: true, cargar: datosDelHub("pauta") },
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
+  "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
+  "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },
+  "/p/[programa]/hub?seccion=pauta": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("pauta") },
+  "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
     tope: 31, // 18 antes de la fase 2: la siembra ahora incluye un deal. Costo fijo, probado: con 4 deals de más da lo mismo (test de abajo)
@@ -123,11 +179,6 @@ const PAGINAS = {
   "/p/[programa]/recursos": { pagina: "app/(app)/p/[programa]/recursos/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeRecursos(db, { programId: s.programas[0]!.id, userId: s.closerId, consultarGestionables: true }) },
   "/p/[programa]/students": { pagina: "app/(app)/p/[programa]/students/page.tsx", tope: 2, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeStudents(db, { programId: s.programas[0]!.id, busqueda: {} }) },
 } satisfies Record<string, Pagina>;
-
-// Paginas del estudio §13.3 aun no cubiertas; la fase 2 vacia esta lista.
-const PENDIENTES_447 = [
-  "app/(app)/p/[programa]/hub/page.tsx",
-] as const;
 
 const SIN_CONSULTAS = [
   "app/page.tsx",
@@ -262,7 +313,7 @@ describe("consultas por pagina", () => {
 
   it("mantiene todas las paginas en un grupo del trinquete", () => {
     const cubiertas = new Set(Object.values(PAGINAS).map((pagina) => pagina.pagina));
-    const clasificadas = new Set([...cubiertas, ...PENDIENTES_447, ...SIN_CONSULTAS]);
+    const clasificadas = new Set([...cubiertas, ...SIN_CONSULTAS]);
     const actuales = paginasEn(join(process.cwd(), "app"));
     expect(actuales.filter((pagina) => !clasificadas.has(pagina))).toEqual([]);
     expect([...clasificadas].filter((pagina) => !actuales.includes(pagina))).toEqual([]);
