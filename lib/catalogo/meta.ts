@@ -5,6 +5,7 @@ import {
   programs,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { cuentasVisibles, type CuentaVisibleMeta } from "@/lib/pauta/meta-api";
@@ -134,20 +135,22 @@ export interface CuentaDelPrograma {
 }
 
 export async function cuentasDelPrograma(db: Db, programaId: string): Promise<CuentaDelPrograma[]> {
-  const filas = await db
-    .select({
-      id: cuentasPublicitarias.id,
-      idMeta: cuentasPublicitarias.idMeta,
-      nombre: cuentasPublicitarias.nombre,
-      moneda: cuentasPublicitarias.moneda,
-      zonaHoraria: cuentasPublicitarias.zonaHoraria,
-      activo: cuentasPublicitarias.activo,
-    })
-    .from(cuentasPublicitarias)
-    .where(and(eq(cuentasPublicitarias.programId, programaId)))
-    .orderBy(asc(cuentasPublicitarias.nombre));
-  return filas.map((fila) => ({
-    ...fila,
-    zonaDistintaDeBogota: fila.zonaHoraria !== "America/Bogota",
-  }));
+  return unaVezPorSolicitud(db, claveDe("cuentasDelPrograma", programaId), async () => {
+    const filas = await db
+      .select({
+        id: cuentasPublicitarias.id,
+        idMeta: cuentasPublicitarias.idMeta,
+        nombre: cuentasPublicitarias.nombre,
+        moneda: cuentasPublicitarias.moneda,
+        zonaHoraria: cuentasPublicitarias.zonaHoraria,
+        activo: cuentasPublicitarias.activo,
+      })
+      .from(cuentasPublicitarias)
+      .where(and(eq(cuentasPublicitarias.programId, programaId)))
+      .orderBy(asc(cuentasPublicitarias.nombre));
+    return filas.map((fila) => ({
+      ...fila,
+      zonaDistintaDeBogota: fila.zonaHoraria !== "America/Bogota",
+    }));
+  });
 }

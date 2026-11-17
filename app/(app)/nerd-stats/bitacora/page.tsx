@@ -5,14 +5,12 @@ import { NOMBRE_DE_ETAPA, NOMBRE_DE_PENDIENTE } from "@/lib/deals/etapas";
 import { fechaHoraEnBogota, num, truncarId } from "@/lib/format";
 import {
   CAMPOS_DE_FECHA_DE_BITACORA,
-  filtroDeLaUrl,
-  opcionesDeBitacora,
-  paginaDeBitacora,
   TABLA_MOVIMIENTOS,
   USUARIO_SISTEMA,
   type EntradaBitacora,
   type FiltroBitacora,
 } from "@/lib/queries/bitacora";
+import { cargarDatosDeBitacora } from "@/lib/nerd-stats/bitacora/cargar-datos";
 import { PageShell } from "@/components/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -40,9 +38,8 @@ export default async function BitacoraPage({ searchParams }: Props) {
   await paginaDeAccesoTotal();
 
   const query = await searchParams;
-  const filtro = filtroDeLaUrl(query);
+  const { filtro, pagina, opciones } = await cargarDatosDeBitacora(db, { busqueda: query });
   const filtroDeFecha = filtroDeFechaDeLaUrl(query, CAMPOS_DE_FECHA_DE_BITACORA, hoyEnBogota());
-  const [pagina, opciones] = await Promise.all([paginaDeBitacora(filtro, db), opcionesDeBitacora(db)]);
   const enlace = "text-marca-texto underline-offset-4 outline-none hover:underline focus-visible:underline";
 
   // Usuario y Tabla a la vista; Desde/Hasta son un rango compuesto en el popover (ticket 202).

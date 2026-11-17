@@ -11,12 +11,7 @@ import {
   type GrupoDePestanas,
 } from "@/components/layout/pestanas";
 import { rutaDePrograma } from "@/lib/nav";
-import { programasGestionablesPorUsuario } from "@/lib/queries/programas";
-import {
-  enlacesDePagoVigentes,
-  historialesDeRecursos,
-  recursosVigentes,
-} from "@/lib/queries/recursos";
+import { cargarDatosDeRecursos } from "@/lib/recursos/cargar-datos";
 import { RecursosPantalla } from "@/components/resources/recursos-pantalla";
 
 export const dynamic = "force-dynamic";
@@ -71,22 +66,12 @@ export default async function RecursosPage({ params, searchParams }: Props) {
 
   // Los programas que un closer puede EDITAR son sus membresias activas, un subconjunto
   // de lo que ve. Quien administra edita todo sin ser miembro.
-  const editaPrograma =
-    esAdmin ||
-    (await programasGestionablesPorUsuario(session.user.id, "closer", db)).some((p) => p.id === programa.id);
-
   const busqueda = await searchParams;
   const q = texto(busqueda.q);
-
-  const [recursos, enlaces] = await Promise.all([
-    // `programId` trae los de este programa y SIEMPRE los globales.
-    recursosVigentes({ programId: programa.id, q }, db),
-    enlacesDePagoVigentes({ programId: programa.id }, db),
-  ]);
-
-  // El historial de cada recurso se resuelve en el servidor: el desplegable ya trae
-  // sus versiones anteriores, sin un ida y vuelta de cliente.
-  const historiales = await historialesDeRecursos(recursos.map((r) => r.id), db);
+  const { gestionables, recursos, enlaces, historiales } = await cargarDatosDeRecursos(db, {
+    programId: programa.id, userId: session.user.id, q, consultarGestionables: !esAdmin,
+  });
+  const editaPrograma = esAdmin || gestionables.some((p) => p.id === programa.id);
   const conHistorial = recursos.map((r) => ({
     id: r.id,
     titulo: r.titulo,

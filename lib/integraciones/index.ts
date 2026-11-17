@@ -6,6 +6,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
 import { INTEGRACIONES, probarIntegracion, type ConfigIntegracion } from "./registro";
 import { registrarCambioDeSecreto } from "./rastro";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 type Secretos = { token?: string; llaveApi?: string; claveFirma?: string; hottok?: string };
 export type TokensMeta = ReadonlyMap<string, string>;
@@ -103,8 +104,11 @@ export async function probarIntegracionGuardada(
 }
 
 async function secreto(db: Db, programId: string, tipo: TipoIntegracion, llave: keyof Secretos): Promise<string | null> {
-  const [fila] = await db.select({ secretos: integraciones.secretos }).from(integraciones)
-    .where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, tipo)));
+  const fila = await unaVezPorSolicitud(db, claveDe("secretosDeIntegracion", programId, tipo), () => db
+    .select({ secretos: integraciones.secretos })
+    .from(integraciones)
+    .where(and(eq(integraciones.programId, programId), eq(integraciones.tipo, tipo)))
+    .then(([encontrada]) => encontrada));
   const valor = (fila?.secretos as Secretos | undefined)?.[llave];
   return typeof valor === "string" && valor.length > 0 ? valor : null;
 }

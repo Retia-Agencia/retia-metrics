@@ -7,27 +7,17 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { administraUsuarios, configuraPrograma, editaObjetivo, leePrograma, veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import { programaDeLaFichaPorSlug } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import {
-  fichaDelPrograma,
-  fuentesDelProgramaParaAdmin,
-  type CohorteVista,
-} from "@/lib/queries/ficha-programa";
+import type { CohorteVista } from "@/lib/queries/ficha-programa";
 import {
   SECCIONES_DE_LA_FICHA,
-  pasosDeConfiguracion,
-  seccionDeLaFicha,
   type ClaveDePaso,
 } from "@/lib/programas/configuracion";
-import { hechosDeConfiguracion } from "@/lib/programas/hechos";
 import { fecha, fechaHoraEnBogota, hoyEnBogota, num, usd } from "@/lib/format";
-import { costoPorAgendaDeLosUltimosHabiles } from "@/lib/semaforo/costo-por-agenda";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
-import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
+import { Pestanas, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
 import { CohortesAdmin } from "@/components/cohortes-admin";
 import { FuentesAdmin } from "@/components/admin/fuentes-admin";
-import { listarUsuarios, membresiasConCalendly } from "@/lib/catalogo/usuarios";
-import { cuentasPorPrograma } from "@/lib/calendly/cuentas";
 import { puedeSerMiembro } from "@/lib/auth/roles";
 import { PlataformasDelPrograma } from "./plataformas-del-programa";
 import { UmbralesDelPrograma } from "./umbrales-del-programa";
@@ -36,22 +26,13 @@ import {
   DIAS_SEGUIDOS_POR_DEFECTO,
   METRICAS_CON_UMBRAL,
   NOMBRE_DE_METRICA_CON_UMBRAL,
-  umbralesDelPrograma,
 } from "@/lib/catalogo/umbrales";
 import { ActivarPrograma, EditarPrograma } from "./editar-programa";
 import { EquipoDelPrograma } from "./equipo-del-programa";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  cuentasDelPrograma,
-  cuentasDisponibles,
-} from "@/lib/catalogo/meta";
-import { cuposSinAsignar, objetivosDeCohortes } from "@/lib/catalogo/objetivos";
-import {
-  METRICAS_DEL_REPORTE,
-  reporteDelPrograma,
-} from "@/lib/catalogo/reportes-whatsapp";
+import { METRICAS_DEL_REPORTE } from "@/lib/catalogo/reportes-whatsapp";
 import { ReporteWhatsapp } from "@/components/pauta/reporte-whatsapp";
 import {
   DEFINICION_METRICAS_OBJETIVO,
@@ -59,11 +40,9 @@ import {
   METRICAS_OFRECIDAS,
 } from "@/lib/objetivos/metricas";
 import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
-import { vistaPreviaDelReporte } from "@/lib/reporte-whatsapp/vista-previa";
-import { estadoDeIntegraciones } from "@/lib/integraciones";
 import { IntegracionesDelPrograma } from "@/components/integraciones/integraciones-del-programa";
-import { resumenMetaCapi } from "@/lib/meta-capi/resumen";
 import { RecorridoDeConfiguracion } from "./recorrido-de-configuracion";
+import { cargarDatosDePrograma } from "@/lib/programa/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -114,19 +93,46 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
   const visible = await programaDeLaFichaPorSlug(session.user.id, rol, slug);
   if (!visible) notFound();
 
-  const ficha = await fichaDelPrograma(visible.id, db);
-  if (!ficha) notFound();
-
   const presentacion = presentacionDeLaFicha(rol);
   const { configura } = presentacion;
   // ADR 0118: todo gerente agrega existentes; la lista de candidatos ya sale filtrada por su alcance.
   const puedeAgregarMiembros = administraUsuarios(rol);
   const query = await searchParams;
-  const { programa, cohortes, checkouts, equipo, plataformas, plataformasDisponibles } =
-    ficha;
-  const enRecorrido = !programa.activo && configura;
-  const activa = cohortes.find((c) => c.estado === "activo") ?? null;
-  const pasos = pasosDeConfiguracion(await hechosDeConfiguracion(db, programa.id));
+  const encabezados = await headers();
+  const origen = `${encabezados.get("x-forwarded-proto") ?? "http"}://${encabezados.get("host")!}`;
+  const datos = await cargarDatosDePrograma(db, {
+    visibleId: visible.id,
+    userId: session.user.id,
+    rol,
+    busqueda: query,
+    hoy: hoyEnBogota(),
+    origen,
+    ahora: new Date(),
+  });
+  if (!datos) notFound();
+  const {
+    ficha,
+    enRecorrido,
+    activa,
+    pasos,
+    fuentesAdmin,
+    membresias,
+    usuarios,
+    cuentas,
+    seccion,
+    umbrales,
+    objetivos,
+    costoReciente,
+    sinAsignar,
+    estadosIntegraciones,
+    resumenCapi,
+    cuentasMeta,
+    consultaMeta,
+    reporteWhatsapp,
+    objetivosDelReporte,
+    vistaPrevia,
+  } = datos;
+  const { programa, cohortes, checkouts, equipo, plataformas, plataformasDisponibles } = ficha;
   const faltan = pasos.filter((paso) => paso.exigidoParaActivar && !paso.hecho);
   const recomendados = pasos.filter((paso) => !paso.exigidoParaActivar && !paso.hecho);
   const programaParaEditar = {
@@ -142,14 +148,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     activo: programa.activo,
   };
 
-  const [fuentesAdmin, membresias, usuarios, cuentas] = configura
-    ? await Promise.all([
-        fuentesDelProgramaParaAdmin(programa.id, db),
-        membresiasConCalendly(db, programa.id),
-        puedeAgregarMiembros ? listarUsuarios(db, { id: session.user.id, rol }) : Promise.resolve([]),
-        cuentasPorPrograma(db, [programa.id]),
-      ])
-    : [null, [], [], {}];
   const miembros = new Set(membresias.map((m) => m.userId));
   // Quién se puede AGREGAR al equipo: quien puede ser miembro de un programa (closer,
   // developer y customer success, ticket 145), no solo quien trabaja leads. Es la pregunta
@@ -185,20 +183,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         : todasLasPestanas.filter((pestana) => presentacion.secciones.includes(pestana.id)),
     },
   ];
-  const pestanas = grupos.flatMap((grupo) => grupo.pestanas);
-  const seccion = pestanaActiva(seccionDeLaFicha(uno(query.seccion)), pestanas, "programa");
-  // Los umbrales de las alertas (147) solo se leen en su pestaña.
-  const umbrales = seccion === "ventas" ? await umbralesDelPrograma(db, programa.id) : [];
-  const objetivos = seccion === "ventas" ? await objetivosDeCohortes(db, cohortes.map((c) => c.id)) : [];
-  // El valor de hoy al lado del umbral (264): la misma definición que usa el semáforo (258, ADR 0024).
-  const costoReciente = seccion === "ventas"
-    ? await costoPorAgendaDeLosUltimosHabiles(db, { programId: programa.id, hoy: hoyEnBogota(), dias: 7 })
-    : null;
-  // Lo sin asignar sale de la misma función que usa la reja del reparto (ADR 0024: una cifra, un módulo).
-  const sinAsignar =
-    seccion === "ventas"
-      ? await Promise.all(cohortes.map((c) => cuposSinAsignar(db, c.id)))
-      : cohortes.map(() => 0);
   const cohortesConObjetivos = cohortes.map((cohorte, i) => {
     const filas = objetivos.filter((objetivo) => objetivo.cohortId === cohorte.id);
     const anterior = cohorteAnterior(cohortes, cohorte.id);
@@ -227,37 +211,11 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
       activo: fila?.activo ?? false,
     };
   });
-  const estadosIntegraciones = seccion === "integraciones" || enRecorrido
-    ? await estadoDeIntegraciones(db, programa.id)
-    : [];
-  const resumenCapi = seccion === "integraciones" || enRecorrido
-    ? await resumenMetaCapi(db, programa.id)
-    : { enviado: 0, fallido: 0, vencido: 0, omitido: 0, enviadosConFbc: 0, enviadosTotal: 0 };
-  const metaConectada = estadosIntegraciones.find((estado) => estado.tipo === "meta")?.configurada ?? false;
-  const [cuentasMeta, consultaMeta] = seccion === "integraciones" || enRecorrido
-    ? await Promise.all([
-        cuentasDelPrograma(db, programa.id),
-        configura && metaConectada
-          ? cuentasDisponibles(db, programa.id)
-              .then((disponibles) => ({ disponibles, error: null as string | null }))
-              .catch((error: unknown) => ({
-                disponibles: [],
-                error: error instanceof Error ? error.message : "Error desconocido",
-              }))
-          : Promise.resolve({ disponibles: [], error: null as string | null }),
-      ])
-    : [[], { disponibles: [], error: null }];
   const integracionesVisibles = estadosIntegraciones.map((estado) => ({
     ...estado,
     probadaEn: estado.probadaEn ? fechaHoraEnBogota(estado.probadaEn) : null,
     actualizadaEn: estado.actualizadaEn ? fechaHoraEnBogota(estado.actualizadaEn) : null,
   }));
-  const [reporteWhatsapp, objetivosDelReporte] = seccion === "integraciones"
-    ? await Promise.all([
-        reporteDelPrograma(db, programa.id),
-        activa ? objetivosDeCohortes(db, [activa.id]) : Promise.resolve([]),
-      ])
-    : [null, []];
   const metricasDelReporte = METRICAS_DEL_REPORTE.map((metrica) => ({
     metrica,
     nombre: DEFINICION_METRICAS_OBJETIVO[metrica].nombre,
@@ -274,19 +232,6 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
         metricas: reporteWhatsapp.metricas.filter((metrica) => metrica === "costo_por_agenda"),
       }
     : null;
-  const vistaPrevia = seccion === "integraciones"
-    ? await (async () => {
-        const encabezados = await headers();
-        const origen = `${encabezados.get("x-forwarded-proto") ?? "http"}://${encabezados.get("host")!}`;
-        return vistaPreviaDelReporte(db, {
-          programId: programa.id,
-          programa: programa.nombre,
-          slug: programa.slug,
-          origen,
-          ahora: new Date(),
-        });
-      })()
-    : { dia: null, cierre: null, aviso: null };
 
   const propsDeIntegraciones = {
     programId: programa.id,

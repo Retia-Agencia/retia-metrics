@@ -83,6 +83,7 @@ describe("otrosProgramasDelCorreo (PGlite)", () => {
  */
 const PERMITIDOS = new Set([
   path.join("lib", "queries", "otros-programas-del-correo.ts"),
+  path.join("lib", "leads", "ficha", "cargar-datos.ts"),
   path.join("app", "(app)", "p", "[programa]", "leads", "[id]", "page.tsx"),
   // Solo importa el TIPO para pintar el aviso; no puede llamar a la funcion.
   path.join("components", "leads", "ficha-lead.tsx"),

@@ -7,10 +7,11 @@ import { requireSesionReal } from "@/lib/auth/guards";
 import { etiquetaDeRol } from "@/lib/auth/roles";
 import { rolRealDeSesion, sesionEfectiva } from "@/lib/auth/vista";
 import { db } from "@/lib/db";
-import { ErrorDeAutorizar, validarPeticionDeAutorizar } from "@/lib/oauth/autorizar";
+import { ErrorDeAutorizar } from "@/lib/oauth/autorizar";
 import { issuer } from "@/lib/oauth/origen";
 import { scopeConcedido } from "@/lib/oauth/scope";
 import { cancelarConexion, permitirConexion } from "./acciones";
+import { cargarDatosDeAutorizacion } from "@/lib/oauth/cargar-datos-de-autorizacion";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +49,9 @@ export default async function AutorizarPage({ searchParams }: { searchParams: Bu
   const real = await requireSesionReal();
   const efectiva = await sesionEfectiva(real);
   const params = simples(await searchParams);
-  let peticion: Awaited<ReturnType<typeof validarPeticionDeAutorizar>>;
+  let peticion: Awaited<ReturnType<typeof cargarDatosDeAutorizacion>>;
   try {
-    peticion = await validarPeticionDeAutorizar(db, params);
+    peticion = await cargarDatosDeAutorizacion(db, { params });
   } catch (error) {
     if (error instanceof ErrorDeAutorizar && error.redirigir) redirect(redireccionDeError(error));
     return <Marco><TarjetaDeError /></Marco>;

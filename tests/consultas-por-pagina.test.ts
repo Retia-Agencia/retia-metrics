@@ -1,15 +1,39 @@
 import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Session } from "next-auth";
 import { abrirSolicitud } from "./helpers/memoria-por-solicitud";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
-import { programs, sources, leads, miembrosPrograma, users } from "@/lib/db/schema";
+import { programs, sources, leads, miembrosPrograma, users, deals, oauthClientes } from "@/lib/db/schema";
 import { medir, type ResumenDeCosto } from "@/lib/db/medidor";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Db } from "@/lib/db/tipos";
 import { cargarDatosDeMiEspacio } from "@/lib/mi-espacio/cargar-datos";
 import { SECCIONES } from "@/lib/mi-espacio/secciones";
 import { cargarDatosDeHub, type SeccionDelHubDeTodos } from "@/lib/queries/hub-todos";
+import { cargarDatosDeCatalogos } from "@/lib/ajustes/catalogos/cargar-datos";
+import { cargarDatosDeMigracion } from "@/lib/ajustes/migracion/cargar-datos";
+import { cargarDatosDeSalud } from "@/lib/ajustes/salud/cargar-datos";
+import { cargarDatosDeUsuarios } from "@/lib/ajustes/usuarios/cargar-datos";
+import { cargarDatosDeListaDelHub } from "@/lib/hub-todos/lista/cargar-datos";
+import { cargarDatosDeReporteDelHub } from "@/lib/hub-todos/reporte/cargar-datos";
+import { cargarDatosDeMedia } from "@/lib/media/cargar-datos";
+import { cargarDatosDeBitacora } from "@/lib/nerd-stats/bitacora/cargar-datos";
+import { cargarDatosDeNerdStats } from "@/lib/nerd-stats/cargar-datos";
+import { cargarDatosDeCalls } from "@/lib/calls/cargar-datos";
+import { cargarDatosDeDeals } from "@/lib/deals/cargar-datos";
+import { cargarDatosDeFichaDeDeal } from "@/lib/deals/ficha/cargar-datos";
+import { cargarDatosDeInbox } from "@/lib/inbox/cargar-datos";
+import { cargarDatosDeLeads } from "@/lib/leads/cargar-datos";
+import { cargarDatosDeFichaDeLead } from "@/lib/leads/ficha/cargar-datos";
+import { cargarDatosDeProximaCohorte } from "@/lib/proxima-cohorte/cargar-datos";
+import { cargarDatosDeRecursos } from "@/lib/recursos/cargar-datos";
+import { cargarDatosDeRedireccionARecursos } from "@/lib/recursos/redireccion/cargar-datos";
+import { cargarDatosDeStudents } from "@/lib/students/cargar-datos";
+import { cargarDatosDeAutorizacion } from "@/lib/oauth/cargar-datos-de-autorizacion";
+import { cargarDatosDePrograma } from "@/lib/programa/cargar-datos";
+import { cargarDatosDeListaDelPrograma } from "@/lib/hub-programa/lista/cargar-datos";
+import { resolverPeriodo } from "@/lib/periodo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -22,6 +46,12 @@ const HOY = "2026-11-15";
 interface Sembrado {
   programas: ProgramaVisible[];
   closerId: string;
+  leadId: string;
+  dealId: string;
+}
+
+function sesionCloser(sembrado: Sembrado): Session {
+  return { user: { id: sembrado.closerId, email: "closer-paginas@retia.test", name: "Closer paginas", rol: "closer", operaComoCloser: true, closerId: "Closer paginas", alcanceLimitado: true } } as Session;
 }
 
 interface Pagina {
@@ -53,7 +83,7 @@ const PAGINAS = {
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
-    tope: 18,
+    tope: 31, // 18 antes de la fase 2: la siembra ahora incluye un deal (447 f2), no una regresión
     escalaConProgramas: false,
     cargar: (db, sembrado) => cargarDatosDeMiEspacio(db, {
       userId: sembrado.closerId,
@@ -70,33 +100,33 @@ const PAGINAS = {
       origen: "/mi-espacio",
     }),
   },
+  "/ajustes/catalogos": { pagina: "app/(app)/ajustes/catalogos/page.tsx", tope: 4, escalaConProgramas: false, cargar: (db) => cargarDatosDeCatalogos(db) },
+  "/ajustes/migracion": { pagina: "app/(app)/ajustes/migracion/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeMigracion(db, { slugPedido: s.programas[0]!.slug }) },
+  "/ajustes/salud": { pagina: "app/(app)/ajustes/salud/page.tsx", tope: 23, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeSalud(db, { slugPedido: s.programas[0]!.slug, hoy: HOY, ahora: new Date(`${HOY}T12:00:00-05:00`), fetchCalendly: async () => new Response("{}") }) },
+  "/ajustes/usuarios": { pagina: "app/(app)/ajustes/usuarios/page.tsx", tope: 7, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeUsuarios(db, { userId: s.closerId, rol: "developer" }) },
+  "/hub/lista": { pagina: "app/(app)/hub/lista/page.tsx", tope: 6, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeListaDelHub(db, { programas: s.programas, metrica: "leads", periodo: resolverPeriodo({ preset: "este_mes" }, { hoy: HOY }), hoy: HOY, pagina: 1 }) },
+  "/hub/reporte": { pagina: "app/(app)/hub/reporte/page.tsx", tope: 139, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeReporteDelHub(db, { programas: s.programas, dia: HOY, puedeVerEquipo: true }) },
+  "/media": { pagina: "app/(app)/media/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeMedia(db, { userId: s.closerId, rol: "developer", pedido: {}, hoy: HOY }) },
+  "/nerd-stats/bitacora": { pagina: "app/(app)/nerd-stats/bitacora/page.tsx", tope: 6, escalaConProgramas: false, cargar: (db) => cargarDatosDeBitacora(db, { busqueda: {} }) },
+  "/nerd-stats": { pagina: "app/(app)/nerd-stats/page.tsx", tope: 17, escalaConProgramas: false, cargar: (db) => cargarDatosDeNerdStats(db) },
+  "/recursos": { pagina: "app/(app)/recursos/page.tsx", tope: 1, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeRedireccionARecursos(db, { userId: s.closerId, rol: "closer" }) },
+  "/oauth/autorizar": { pagina: "app/oauth/autorizar/page.tsx", tope: 1, escalaConProgramas: false, cargar: (db) => cargarDatosDeAutorizacion(db, { params: { client_id: "https://cliente.paginas.test/cimd", redirect_uri: "https://cliente.paginas.test/callback", response_type: "code", code_challenge_method: "S256", code_challenge: "a".repeat(43) } }) },
+  "/p/[programa]/calls": { pagina: "app/(app)/p/[programa]/calls/page.tsx", tope: 9, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeCalls(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {} }) },
+  "/p/[programa]/deals": { pagina: "app/(app)/p/[programa]/deals/page.tsx", tope: 21, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeDeals(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {}, vistaRecordada: null }) },
+  "/p/[programa]/deals/[id]": { pagina: "app/(app)/p/[programa]/deals/[id]/page.tsx", tope: 48, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeFichaDeDeal(db, { session: sesionCloser(s), programId: s.programas[0]!.id, dealId: s.dealId, rol: "closer" }) },
+  "/p/[programa]/inbox": { pagina: "app/(app)/p/[programa]/inbox/page.tsx", tope: 21, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeInbox(db, { session: sesionCloser(s), programId: s.programas[0]!.id, rol: "closer" }) },
+  "/p/[programa]/hub/lista": { pagina: "app/(app)/p/[programa]/hub/lista/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeListaDelPrograma(db, { programId: s.programas[0]!.id, metrica: "leads", busqueda: { preset: "este_mes" }, hoy: HOY, pagina: 1, ahora: new Date(`${HOY}T12:00:00-05:00`) }) },
+  "/p/[programa]/leads": { pagina: "app/(app)/p/[programa]/leads/page.tsx", tope: 10, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeLeads(db, { programId: s.programas[0]!.id, busqueda: {}, pagina: 0, paginaDuplicados: 0, duenoUserId: s.closerId }) },
+  "/p/[programa]/leads/[id]": { pagina: "app/(app)/p/[programa]/leads/[id]/page.tsx", tope: 9, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeFichaDeLead(db, { programId: s.programas[0]!.id, leadId: s.leadId, userId: s.closerId, rol: "closer", operaComoCloser: true }) },
+  "/p/[programa]/programa": { pagina: "app/(app)/p/[programa]/programa/page.tsx", tope: 30, escalaConProgramas: false, cargar: (db, s) => cargarDatosDePrograma(db, { visibleId: s.programas[0]!.id, userId: s.closerId, rol: "developer", busqueda: {}, hoy: HOY, origen: "https://retia.test", ahora: new Date(`${HOY}T12:00:00-05:00`), cargarCuentasDisponibles: async () => [] }) },
+  "/p/[programa]/proxima-cohorte": { pagina: "app/(app)/p/[programa]/proxima-cohorte/page.tsx", tope: 2, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeProximaCohorte(db, { programId: s.programas[0]!.id, busqueda: {} }) },
+  "/p/[programa]/recursos": { pagina: "app/(app)/p/[programa]/recursos/page.tsx", tope: 3, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeRecursos(db, { programId: s.programas[0]!.id, userId: s.closerId, consultarGestionables: true }) },
+  "/p/[programa]/students": { pagina: "app/(app)/p/[programa]/students/page.tsx", tope: 2, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeStudents(db, { programId: s.programas[0]!.id, busqueda: {} }) },
 } satisfies Record<string, Pagina>;
 
 // Paginas del estudio §13.3 aun no cubiertas; la fase 2 vacia esta lista.
 const PENDIENTES_447 = [
-  "app/(app)/ajustes/catalogos/page.tsx",
-  "app/(app)/ajustes/migracion/page.tsx",
-  "app/(app)/ajustes/salud/page.tsx",
-  "app/(app)/ajustes/usuarios/page.tsx",
-  "app/(app)/hub/lista/page.tsx",
-  "app/(app)/hub/reporte/page.tsx",
-  "app/(app)/media/page.tsx",
-  "app/(app)/nerd-stats/bitacora/page.tsx",
-  "app/(app)/nerd-stats/page.tsx",
-  "app/(app)/p/[programa]/calls/page.tsx",
-  "app/(app)/p/[programa]/deals/[id]/page.tsx",
-  "app/(app)/p/[programa]/deals/page.tsx",
-  "app/(app)/p/[programa]/hub/lista/page.tsx",
   "app/(app)/p/[programa]/hub/page.tsx",
-  "app/(app)/p/[programa]/inbox/page.tsx",
-  "app/(app)/p/[programa]/leads/[id]/page.tsx",
-  "app/(app)/p/[programa]/leads/page.tsx",
-  "app/(app)/p/[programa]/programa/page.tsx",
-  "app/(app)/p/[programa]/proxima-cohorte/page.tsx",
-  "app/(app)/p/[programa]/recursos/page.tsx",
-  "app/(app)/p/[programa]/students/page.tsx",
-  "app/(app)/recursos/page.tsx",
-  "app/oauth/autorizar/page.tsx",
 ] as const;
 
 const SIN_CONSULTAS = [
@@ -116,7 +146,7 @@ const SIN_CONSULTAS = [
 
 let base: Awaited<ReturnType<typeof crearBaseReutilizable>>;
 
-async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
+async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0): Promise<Sembrado> {
   const programas = await db.insert(programs).values(Array.from({ length: cantidadDeProgramas }, (_, indice) => ({
     ...PROGRAMA_DE_PRUEBA,
     slug: `pagina-${indice + 1}`,
@@ -133,14 +163,44 @@ async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
       nombre: `Fuente ${programaIndice + 1}-${fuenteIndice + 1}`,
     })),
   ));
-  await db.insert(leads).values(programas.flatMap((programa, programaIndice) =>
+  const leadsSembrados = await db.insert(leads).values(programas.flatMap((programa, programaIndice) =>
     Array.from({ length: 2 }, (_, leadIndice) => ({
       programId: programa.id,
       emailNormalizado: `persona-${programaIndice + 1}-${leadIndice + 1}@paginas.test`,
       fechaPrimeraAplicacion: new Date(`2026-11-0${leadIndice + 1}T12:00:00-05:00`),
     })),
-  ));
-  return { programas: programas.map(({ id, slug, nombre }) => ({ id, slug, nombre })), closerId: closer!.id };
+  )).returning();
+  const [deal] = await db.insert(deals).values({
+    programId: programas[0]!.id,
+    leadId: leadsSembrados[0]!.id,
+    ownerUserId: closer!.id,
+    etapa: "contactado",
+  }).returning();
+  // Filas de más en el programa del closer: el costo de una página no puede crecer con ellas (N+1).
+  if (dealsExtra > 0) {
+    const leadsExtra = await db.insert(leads).values(Array.from({ length: dealsExtra }, (_, indice) => ({
+      programId: programas[0]!.id,
+      emailNormalizado: `extra-${indice + 1}@paginas.test`,
+      fechaPrimeraAplicacion: new Date(`2026-11-1${indice % 5}T12:00:00-05:00`),
+    }))).returning();
+    await db.insert(deals).values(leadsExtra.map((lead, indice) => ({
+      programId: programas[0]!.id,
+      leadId: lead.id,
+      ownerUserId: closer!.id,
+      etapa: (["contactado", "agendado"] as const)[indice % 2]!,
+    })));
+  }
+  await db.insert(oauthClientes).values({
+    clientId: "https://cliente.paginas.test/cimd",
+    nombre: "Cliente paginas",
+    redirectUris: ["https://cliente.paginas.test/callback"],
+  });
+  return {
+    programas: programas.map(({ id, slug, nombre }) => ({ id, slug, nombre })),
+    closerId: closer!.id,
+    leadId: leadsSembrados[0]!.id,
+    dealId: deal!.id,
+  };
 }
 
 function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
@@ -152,9 +212,9 @@ function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
   ];
 }
 
-async function medirPagina(nombre: string, pagina: Pagina, cantidad: number) {
+async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0) {
   await base.vaciar();
-  const sembrado = await sembrar(base.db, cantidad);
+  const sembrado = await sembrar(base.db, cantidad, dealsExtra);
   abrirSolicitud();
   const { costo, identicas } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
@@ -189,6 +249,15 @@ describe("consultas por pagina", () => {
       expect(conSeis.costo.consultas).toBeLessThanOrEqual(pagina.tope);
       expect(conSeis.costo.consultas).toBe(conTres.costo.consultas);
     }
+  });
+
+  // N+1 por filas: con 4 deals de más en el programa, ninguna página pide una consulta más por cada uno.
+  it.each(Object.entries(PAGINAS))("%s no crece con las filas del programa", async (nombre, pagina) => {
+    const base3 = await medirPagina(nombre, pagina, 3);
+    const conFilas = await medirPagina(nombre, pagina, 3, 4);
+    expect(conFilas.costo.consultas, `${nombre}: ${base3.costo.consultas} sin filas extra, ${conFilas.costo.consultas} con 4 deals más`)
+      .toBe(base3.costo.consultas);
+    expect(conFilas.costo.identicas).toBe(0);
   });
 
   it("mantiene todas las paginas en un grupo del trinquete", () => {

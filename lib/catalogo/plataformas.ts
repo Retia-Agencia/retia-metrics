@@ -14,6 +14,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { administraGlobal } from "@/lib/auth/roles";
 import { exigirAccesoAlPrograma, type ActorConAcceso } from "./acceso-programa";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 /**
  * Plataformas de pago (ADR 0012), estrenando el molde de catalogo.
@@ -127,20 +128,22 @@ export async function plataformasDelPrograma(
   db: Db,
   programId: string,
 ): Promise<FilaCatalogo[]> {
-  const vinculos = await db
-    .select({ plataformaId: plataformasPrograma.plataformaId })
-    .from(plataformasPrograma)
-    .where(eq(plataformasPrograma.programId, programId));
+  return unaVezPorSolicitud(db, claveDe("plataformasDelPrograma", programId), async () => {
+    const vinculos = await db
+      .select({ plataformaId: plataformasPrograma.plataformaId })
+      .from(plataformasPrograma)
+      .where(eq(plataformasPrograma.programId, programId));
 
-  const ids = vinculos.map((v) => v.plataformaId);
-  if (ids.length === 0) return [];
+    const ids = vinculos.map((v) => v.plataformaId);
+    if (ids.length === 0) return [];
 
-  const filas = await db
-    .select()
-    .from(plataformasPago)
-    .where(and(inArray(plataformasPago.id, ids), eq(plataformasPago.activo, true)));
+    const filas = await db
+      .select()
+      .from(plataformasPago)
+      .where(and(inArray(plataformasPago.id, ids), eq(plataformasPago.activo, true)));
 
-  return filas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    return filas.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  });
 }
 
 /** Lee la plataforma y el programa, o lanza el 404 que corresponda. */

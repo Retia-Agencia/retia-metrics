@@ -306,8 +306,12 @@ export async function creadoresVisibles(actor: ActorDeMedia, db: Db = dbDeLaApp)
 }
 
 /** Links fijos vivos de los creadores visibles para el actor. */
-export async function linksFijosVisibles(actor: ActorDeMedia, db: Db = dbDeLaApp) {
-  const visibles = await creadoresVisibles(actor, db);
+export async function linksFijosVisibles(
+  actor: ActorDeMedia,
+  db: Db = dbDeLaApp,
+  creadoresYaLeidos?: Awaited<ReturnType<typeof creadoresVisibles>>,
+) {
+  const visibles = creadoresYaLeidos ?? await creadoresVisibles(actor, db);
   if (visibles.length === 0) return [];
   return db
     .select()

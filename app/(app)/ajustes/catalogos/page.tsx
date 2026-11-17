@@ -2,10 +2,8 @@ import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
-import { CatalogosAdmin, type CatalogoVista } from "@/components/catalogos-admin";
-import { REGISTRO_CATALOGOS } from "@/lib/catalogo/registro";
-import { vinculosDePlataformas } from "@/lib/catalogo/plataformas";
-import { programasActivos } from "@/lib/queries/programas";
+import { CatalogosAdmin } from "@/components/catalogos-admin";
+import { cargarDatosDeCatalogos } from "@/lib/ajustes/catalogos/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -26,37 +24,7 @@ export default async function CatalogosPage() {
 
   // Quien llega aqui administra: ve todos los catalogos del registro y todos los
   // programas activos para vincular una plataforma.
-  const programas = await programasActivos(db);
-
-  // Los vinculos de TODAS las plataformas en una sola consulta (nunca un N+1).
-  const necesitaVinculos = REGISTRO_CATALOGOS.some((c) => c.vinculadoAProgramas);
-  const vinculos = necesitaVinculos ? await vinculosDePlataformas(db) : new Map<string, string[]>();
-
-  const catalogos: CatalogoVista[] = await Promise.all(
-    REGISTRO_CATALOGOS.map(async (def) => {
-      const items = await def.fabrica(db).listar();
-      return {
-        slug: def.slug,
-        nombre: def.nombre,
-        // Quien llega aqui administra, asi que puede renombrar, desactivar y borrar en
-        // todos los catalogos.
-        puedeAdministrar: true,
-        camposBooleanos: def.camposBooleanos,
-        programas: def.vinculadoAProgramas
-          ? programas.map((p) => ({ id: p.id, nombre: p.nombre }))
-          : undefined,
-        items: items.map((i) => ({
-          id: i.id,
-          nombre: String(i.nombre),
-          activo: i.activo,
-          booleanos: Object.fromEntries(
-            def.camposBooleanos.map(({ campo }) => [campo, i[campo] === true]),
-          ),
-          programas: def.vinculadoAProgramas ? (vinculos.get(i.id) ?? []) : undefined,
-        })),
-      };
-    }),
-  );
+  const { catalogos } = await cargarDatosDeCatalogos(db);
 
   return (
     <PageShell

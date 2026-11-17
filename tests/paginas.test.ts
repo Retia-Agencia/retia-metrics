@@ -154,12 +154,31 @@ vi.mock("@/lib/queries/vista-metrica", async (importOriginal) => ({
   detallesDeOperacion,
   vistaDeLista,
 }));
+// Los cargadores del 447 reciben `db`, pero estas pruebas de página conservan el contrato
+// observable anterior de la consulta de dominio (una entrada, sin materializar el Proxy de db).
+vi.mock("@/lib/hub-programa/lista/cargar-datos", () => ({
+  cargarDatosDeListaDelPrograma: async (_db: unknown, entrada: unknown) => vistaDeLista(entrada),
+}));
 // Dinero (419 E-3): la página lee las cinco filas de evidencia de sus listas; aquí no hay base.
 // 419 E-3 Hoy y Dinero: las cinco filas de evidencia también salen de esta lectura simulada.
-const listaDeMetrica = vi.fn(async () => [{ filas: [] }]);
+const listaDeMetrica = vi.fn(async (..._args: unknown[]) => [{ filas: [] }]);
 vi.mock("@/lib/queries/metricas-con-filas", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/metricas-con-filas")>(),
   listaDeMetrica,
+}));
+vi.mock("@/lib/hub-todos/lista/cargar-datos", () => ({
+  cargarDatosDeListaDelHub: async (_db: unknown, entrada: {
+    programas: { id: string }[];
+    metrica: string;
+    periodo: { a: unknown };
+    hoy: string;
+    moneda?: string;
+    pagina: number;
+  }) => listaDeMetrica(
+    entrada.metrica,
+    { programId: entrada.programas.map((programa) => programa.id), rango: entrada.periodo.a, hoy: entrada.hoy, moneda: entrada.moneda },
+    entrada.pagina,
+  ),
 }));
 const leerSeriesDeDinero = vi.fn(async () => ({ meses: [] }));
 vi.mock("@/lib/queries/series-dinero", () => ({ leerSeriesDeDinero }));
@@ -231,6 +250,15 @@ const armarReporteDiario = vi.fn(async (entrada: { programId: string; dia: strin
 vi.mock("@/lib/queries/reporte-diario", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/reporte-diario")>(),
   armarReporteDiario,
+}));
+vi.mock("@/lib/hub-todos/reporte/cargar-datos", () => ({
+  cargarDatosDeReporteDelHub: async (_db: unknown, entrada: {
+    programas: { id: string; slug: string; nombre: string }[];
+    dia: string;
+  }) => Promise.all(entrada.programas.map(async (programa) => ({
+    programa,
+    reporte: await armarReporteDiario({ programId: programa.id, dia: entrada.dia }),
+  }))),
 }));
 // La configuracion de Hoy (378): sin base, sin panel.
 vi.mock("@/lib/queries/configuracion-de-hoy", () => ({ leerConfiguracionDeHoy: vi.fn(async () => null) }));

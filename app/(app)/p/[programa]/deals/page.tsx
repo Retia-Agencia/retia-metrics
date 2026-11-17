@@ -10,7 +10,7 @@ import { destinosDeCorreccion, ETAPAS_EN_ORDEN, NOMBRE_DE_COLUMNA, NOMBRE_DE_ETA
 import { COOKIE_VISTA_DEL_TABLERO } from "@/lib/deals/vista-recordada";
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { type CampoDeFechaDeDeal } from "@/lib/queries/kanban";
-import { tableroDeDealsParaActor } from "@/lib/queries/operacion";
+import { cargarDatosDeDeals } from "@/lib/deals/cargar-datos";
 import { PageShell } from "@/components/page-shell";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { FiltroKanban } from "@/components/deals/filtro-kanban";
@@ -60,13 +60,12 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
   // Un enlace viejo (`?owner=`, `?leadQuality=`, `?leadValue=`) pasa al nombre vigente (ticket 360).
   if (traeNombresViejos(busqueda)) redirect(`/p/${programa.slug}/deals?${queryConNombresVigentes(busqueda)}`);
   // La vista decide columnas, no cifras (ADR 0103): sin `vista` en la URL, la última de la persona.
-  const tableroLeido = await tableroDeDealsParaActor(
-    db,
-    programa.id,
+  const tableroLeido = await cargarDatosDeDeals(db, {
+    programId: programa.id,
     session,
     busqueda,
-    (await cookies()).get(COOKIE_VISTA_DEL_TABLERO)?.value ?? null,
-  );
+    vistaRecordada: (await cookies()).get(COOKIE_VISTA_DEL_TABLERO)?.value ?? null,
+  });
   const { alcance: alcanceDeals, activa, vista, filtros, tablero, opciones } = tableroLeido;
   const origen = origenDeLaPagina(`/p/${programa.slug}/deals`, busqueda);
   const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);

@@ -1,20 +1,13 @@
 import { notFound } from "next/navigation";
-import { asc } from "drizzle-orm";
 import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
-import { programasVisibles } from "@/lib/auth/alcance";
 import { esRolValido, trabajaContenido } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { tiposPieza } from "@/lib/db/schema";
-import { ErrorDeApp } from "@/lib/errors";
 import { UTM_MEDIUM_CONTENIDO } from "@/lib/atribucion/canal";
-import { desglosarLink } from "@/lib/atribucion/parametros-de-contenido";
-import { linkDePieza } from "@/lib/atribucion/link-de-pieza";
 import { hoyEnBogota } from "@/lib/format";
-import { creadoresVisibles, linksFijosVisibles, veCreadoresSinPrograma } from "@/lib/media/piezas";
 import { REDES_DE_CONTENIDO } from "@/lib/media/redes";
-import { ORDENES_DE_PIEZAS, filtroDePiezasDesdeUrl, hayFiltroActivo, piezasDeMedia } from "@/lib/media/lista-de-piezas";
-import { ESTADOS_DE_PIEZA, estadoDePieza } from "@/lib/media/estado-de-pieza";
+import { ORDENES_DE_PIEZAS, hayFiltroActivo } from "@/lib/media/lista-de-piezas";
+import { ESTADOS_DE_PIEZA } from "@/lib/media/estado-de-pieza";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
@@ -25,13 +18,11 @@ import { Enlace } from "@/components/enlace";
 import {
   PestanasDeMedia,
   PESTANAS_DE_MEDIA,
-  SIN_PROGRAMA,
-  pestanaValida,
 } from "@/components/media/pestanas-de-media";
 import { PanelDeMedia } from "@/components/media/panel-de-media";
 import { PanelDeCreadores } from "@/components/media/panel-de-creadores";
-import type { CreadorConLinksVista, OpcionesDeMedia, PiezaVista } from "@/components/media/tipos";
 import { InfoUtmDeMedia } from "@/components/media/info-utm";
+import { cargarDatosDeMedia } from "@/lib/media/cargar-datos";
 
 /**
  * La pagina de media (ADR 0107, tickets 316, 317 y 321): donde aterriza quien
@@ -48,93 +39,11 @@ export default async function MediaPage({
   const rol = await rolDeVista(session);
   if (!esRolValido(rol) || !trabajaContenido(rol)) notFound();
 
-  const actor = { id: session.user.id, rol };
   const pedido = (await searchParams) ?? {};
-  const tab = pestanaValida(pedido.tab);
-  const visibles = await programasVisibles(session.user.id, rol);
-  const conSinPrograma = await veCreadoresSinPrograma(actor);
-  // El programa de la URL solo vale si esta en el alcance: cualquier otro valor equivale a "todos".
-  const programa =
-    pedido.programa === SIN_PROGRAMA
-      ? conSinPrograma ? SIN_PROGRAMA : undefined
-      : visibles.find((p) => p.id === pedido.programa)?.id;
-  const todos = await creadoresVisibles(actor);
-  const lista = programa === undefined ? todos : todos.filter((c) => (programa === SIN_PROGRAMA ? c.programId === null : c.programId === programa));
-  const nombreDePrograma = new Map(visibles.map((p) => [p.id, p.nombre]));
-  const tipos = await db
-    .select({ id: tiposPieza.id, nombre: tiposPieza.nombre, activo: tiposPieza.activo })
-    .from(tiposPieza)
-    .orderBy(asc(tiposPieza.nombre));
-  const nombreDeTipo = new Map(tipos.map((t) => [t.id, t.nombre]));
-  const tiposActivos = tipos.filter((t) => t.activo).map(({ id, nombre }) => ({ id, nombre }));
-  const linksFijos = (await linksFijosVisibles(actor)).filter((p) => lista.some((c) => c.id === p.creadorId));
-
-  async function resolverLink(piezaId: string): Promise<PiezaVista["link"]> {
-    try {
-      const url = await linkDePieza(db, piezaId);
-      return { ok: true, url, desglose: desglosarLink(url, REDES_DE_CONTENIDO) };
-    } catch (e) {
-      if (!(e instanceof ErrorDeApp)) throw e;
-      return { ok: false, motivo: e.message };
-    }
-  }
-
-  // Filtros, orden y pagina se resuelven en la base; el link se arma solo de las 15 que se muestran.
-  const filtro = filtroDePiezasDesdeUrl(pedido);
   const hoy = hoyEnBogota();
-  const { filas, total, paginas, pagina } = await piezasDeMedia(
-    db,
-    lista.map((c) => c.id),
-    filtro,
-    hoy,
-    Number.parseInt(pedido.pagina ?? "1", 10) || 1,
-  );
-
-  const creadorDe = new Map(lista.map((c) => [c.id, c]));
-  const vistas: PiezaVista[] = await Promise.all(
-    filas.map(async (p) => {
-      const link = await resolverLink(p.id);
-      const estado = estadoDePieza(p, hoy);
-      const creador = creadorDe.get(p.creadorId);
-      return {
-        id: p.id,
-        nombre: p.nombre,
-        creador: creador?.nombre ?? "—",
-        programa: creador?.programId ? (nombreDePrograma.get(creador.programId) ?? "otro programa") : null,
-        tipo: nombreDeTipo.get(p.tipoId) ?? "—",
-        red: p.red,
-        cta: p.cta,
-        fecha: p.fechaPublicacion,
-        permanente: p.permanente,
-        estado,
-        link,
-      };
-    }),
-  );
-
-  const creadoresConLinks: CreadorConLinksVista[] = await Promise.all(lista.map(async (creador) => ({
-    id: creador.id,
-    nombre: creador.nombre,
-    programa: creador.programId ? (nombreDePrograma.get(creador.programId) ?? "otro programa") : null,
-    activo: creador.activo,
-    links: await Promise.all(
-      linksFijos
-        .filter((p) => p.creadorId === creador.id)
-        .map(async (p) => ({ id: p.id, red: p.red, link: await resolverLink(p.id) })),
-    ),
-  })));
-
-  const opciones: OpcionesDeMedia = {
-    redes: REDES_DE_CONTENIDO,
-    tipos: tiposActivos,
-    programas: visibles.map((p) => ({ id: p.id, nombre: p.nombre })),
-    creadores: lista
-      .filter((c) => c.activo)
-      .map((c) => ({ id: c.id, nombre: c.nombre, slug: c.slug, programa: c.programId ? (nombreDePrograma.get(c.programId) ?? "otro programa") : null })),
-    conSinPrograma,
-    programaInicial: programa && programa !== SIN_PROGRAMA ? programa : "",
-    medioDeContenido: UTM_MEDIUM_CONTENIDO,
-  };
+  const { tab, visibles, conSinPrograma, programa, lista, tipos, filtro, total, paginas, pagina, vistas, creadoresConLinks, opciones } = await cargarDatosDeMedia(db, {
+    userId: session.user.id, rol, pedido, hoy,
+  });
 
   const filtros: FiltroDeclarado[] = [
     { tipo: "select", nombre: "estado", etiqueta: "Estado", opciones: ESTADOS_DE_PIEZA.map((e) => ({ value: e, label: ESTADOS[e].texto })) },

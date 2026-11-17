@@ -4,7 +4,7 @@ import { z } from "zod";
 import { paginaConCapacidad, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, veEquipoComercial, veLeadsDePauta } from "@/lib/auth/roles";
-import { nombreDeEtapa, vistaDeLista, urlDeLista } from "@/lib/queries/vista-metrica";
+import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import { capacidadParaMetrica, esListaDeVentas, METRICAS_FOTO_DE_HOY, proyectarListaSegunRol, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { esMetricaDeEmbudo, METRICAS_DE_EMBUDO_SIN_PERIODO } from "@/lib/queries/embudo-con-filas";
 import { NOMBRE_DE_ESCALON } from "@/lib/queries/escalera";
@@ -17,6 +17,8 @@ import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/das
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { db } from "@/lib/db";
+import { cargarDatosDeListaDelPrograma } from "@/lib/hub-programa/lista/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +78,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const { metrica, closer, moneda, cohorte, origen: origenDeal, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
   const { source: sourceNormalizado, medium: mediumNormalizado, canal: canalNormalizado, campaign: campaignNormalizado } = normalizarFiltrosDeOrigen(validado.data);
   if (!combinacionDeFiltrosValida(validado.data, { esAdmin })) notFound();
-  const vista = await vistaDeLista({
+  const vista = await cargarDatosDeListaDelPrograma(db, {
     programId: programa.id,
     metrica,
     busqueda,

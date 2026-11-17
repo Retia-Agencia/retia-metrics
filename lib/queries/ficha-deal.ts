@@ -893,6 +893,10 @@ export async function opcionesDeFicha(
   /** Sin etapa (p. ej. el listado de llamadas) conserva el catalogo general. */
   etapa?: EtapaDeal,
   esperandoCorte: boolean = false,
+  yaLeido?: {
+    cohortesVendiendoHoy?: { id: string; codigo: string }[];
+    enlacesDePago?: EnlaceDeLaPantalla[];
+  },
 ): Promise<OpcionesDeFicha> {
   const esEstudiante = etapa === "ganado_parcial" || etapa === "ganado_completo";
   const cohortesFilas = await db
@@ -900,11 +904,11 @@ export async function opcionesDeFicha(
     .from(cohorts)
     .where(and(eq(cohorts.programId, programId), ne(cohorts.estado, "cerrado")));
   const cohortesParaCambiar = etapa !== undefined && !esEstudiante && !esperandoCorte
-    ? await cohortesVendiendo(db, programId, hoyEnBogota())
+    ? yaLeido?.cohortesVendiendoHoy ?? await cohortesVendiendo(db, programId, hoyEnBogota())
     : cohortesFilas;
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));
   const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));
-  const enlacesDePago = await enlacesDePagoVigentes({ programId }, db);
+  const enlacesDePago = yaLeido?.enlacesDePago ?? await enlacesDePagoVigentes({ programId }, db);
 
   const owners = new Map((await duenosPosibles(db, programId)).map((d) => [d.id, d.nombre] as const));
   // El dueño actual se muestra aunque ya no sea dueño posible (se fue del programa): la

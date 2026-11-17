@@ -3,15 +3,14 @@ import { paginaConRol } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
-import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { dealsDeProximaCohorte, vistaProximaCohorte } from "@/lib/queries/proxima-cohorte";
 import { fechaHoraEnBogota } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, ZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Button } from "@/components/ui/button";
 import { ProximaCohorteCards } from "@/components/deals/proxima-cohorte-cards";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
+import { cargarDatosDeProximaCohorte } from "@/lib/proxima-cohorte/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +23,7 @@ export default async function ProximaCohortePage({ params, searchParams }: {
   const rol = await rolDeVista(session);
   const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   const busqueda = await searchParams;
-  const vista = vistaProximaCohorte(busqueda.vista);
-  const [deals, cohortes] = await Promise.all([
-    dealsDeProximaCohorte(db, programa.id, vista),
-    listarCohortes(db, programa.id),
-  ]);
+  const { vista, deals, cohortes } = await cargarDatosDeProximaCohorte(db, { programId: programa.id, busqueda });
   const cards = deals.map((deal) => ({
     dealId: deal.dealId,
     nombreLead: deal.nombreLead ?? "Lead sin nombre",

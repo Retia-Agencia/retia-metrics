@@ -7,13 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { haceCuanto, num } from "@/lib/format";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import type { EstadoDeFuente } from "@/lib/queries/salud-fuentes";
-import {
-  conteosPorOrigen,
-  conteosPorPrograma,
-  fuentesConSalud,
-  ultimosCambiosDesdeLaApp,
-  usuariosActivosPorRol,
-} from "@/lib/queries/nerd-stats";
+import { cargarDatosDeNerdStats } from "@/lib/nerd-stats/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -36,13 +30,7 @@ export const dynamic = "force-dynamic";
 export default async function NerdStatsPage() {
   await paginaDeAccesoTotal();
 
-  const [programas, fuentes, origenes, cambios, roles] = await Promise.all([
-    conteosPorPrograma(db),
-    fuentesConSalud(db),
-    conteosPorOrigen(db),
-    ultimosCambiosDesdeLaApp(15, db),
-    usuariosActivosPorRol(db),
-  ]);
+  const { programas, fuentes, origenes, cambios, roles } = await cargarDatosDeNerdStats(db);
 
   // Metadatos del despliegue.
   const commit = process.env.VERCEL_GIT_COMMIT_SHA ?? null;

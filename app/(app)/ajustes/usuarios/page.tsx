@@ -2,14 +2,10 @@ import { paginaConAdministracionDeUsuarios } from "@/lib/auth/page-guards";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija } from "@/components/layout/pantalla-fija";
-import { UsuariosAdmin, type UsuarioVista } from "@/components/usuarios-admin";
-import { listarUsuarios } from "@/lib/catalogo/usuarios";
+import { UsuariosAdmin } from "@/components/usuarios-admin";
 import { administraGlobal, esAccesoTotal, esRolValido } from "@/lib/auth/roles";
 import { rolDeVista } from "@/lib/auth/vista";
-import { programasVisibles } from "@/lib/auth/alcance";
-import { listarConexionesOauthDeUsuarios } from "@/lib/oauth/conexiones";
-import { ETIQUETA_MCP_SCOPE } from "@/lib/mcp/token";
-import { fecha, fechaDeInstanteEnBogota, fechaHoraEnBogota } from "@/lib/format";
+import { cargarDatosDeUsuarios } from "@/lib/ajustes/usuarios/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -25,47 +21,12 @@ export default async function UsuariosPage() {
   const session = await paginaConAdministracionDeUsuarios();
   const rol = await rolDeVista(session);
   if (!esRolValido(rol)) return null;
-  const actor = { id: session.user.id, rol };
   const puedeEditarAlcance = administraGlobal({
     rol,
     alcanceLimitado: session.user.alcanceLimitado,
   });
 
-  const [usuarios, programas] = await Promise.all([
-    listarUsuarios(db, actor),
-    programasVisibles(session.user.id, rol, db),
-  ]);
-  const conexiones = await listarConexionesOauthDeUsuarios(db, usuarios.map((usuario) => usuario.id));
-  const conexionesPorUsuario = new Map<string, typeof conexiones>();
-  for (const conexion of conexiones) {
-    const lista = conexionesPorUsuario.get(conexion.userId) ?? [];
-    lista.push(conexion);
-    conexionesPorUsuario.set(conexion.userId, lista);
-  }
-
-  const vista: UsuarioVista[] = usuarios.map((u) => ({
-    id: u.id,
-    email: u.email,
-    nombre: u.nombre,
-    rol: u.rol,
-    operaComoCloser: u.operaComoCloser,
-    closerId: u.closerId,
-    activo: u.activo,
-    programas: u.programas,
-    programasQueVe: u.programasQueVe,
-    whatsapps: u.whatsapps,
-    creadoEn: u.creadoEn.toISOString(),
-    conexionesIa: (conexionesPorUsuario.get(u.id) ?? []).map((conexion) => ({
-      id: conexion.id,
-      clienteNombre: conexion.clienteNombre,
-      scopeEtiqueta: ETIQUETA_MCP_SCOPE[conexion.scope],
-      creado: fechaHoraEnBogota(conexion.creadoEn),
-      ultimoUso: conexion.ultimoUsoEn ? fechaHoraEnBogota(conexion.ultimoUsoEn) : "—",
-      vence: conexion.refreshVenceEn
-        ? `Vence el ${fecha(fechaDeInstanteEnBogota(conexion.refreshVenceEn))}`
-        : "Sin vencimiento",
-    })),
-  }));
+  const { vista, programas } = await cargarDatosDeUsuarios(db, { userId: session.user.id, rol });
 
   return (
     <PageShell
