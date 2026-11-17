@@ -134,7 +134,9 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const subtitulo = etapa ? (etapa === "vendido" ? "Vendido" : nombreDeEtapa(etapa)) : antiguedad ? `${antiguedad} días` : escalon ? (escalon === "ventas" ? "Ventas" : escalon === "despues" ? "Pagaron después" : escalon === "cita_sin_resultado" ? "Con la cita pasada sin resultado" : NOMBRE_DE_ESCALON[escalon]) : null;
   // El `desde` de donde se abrió esta lista (ticket 174, 197): va al "Volver" de la
   // cabecera y se conserva en los enlaces de paginación, siempre por `enlaceConVuelta`.
-  const enlaceDePagina = orden ? `${enlace}&orden=${orden}` : enlace;
+  const corteQuery = esListaDePauta && typeof busqueda.corte === "string" && typeof busqueda.corte_id === "string"
+    ? `&${new URLSearchParams({ corte: busqueda.corte, corte_id: busqueda.corte_id })}` : "";
+  const enlaceDePagina = (orden ? `${enlace}&orden=${orden}` : enlace) + corteQuery;
   const enlaceOrdenado = (campo: "envio" | "actividad") => `${enlace}&orden=${campo}`;
   // La etiqueta visible del closer filtrado sale de los grupos (nunca la clave
   // interna, que puede ser un uuid o `historico:...`): todas las filas del filtro

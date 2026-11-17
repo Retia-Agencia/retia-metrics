@@ -14,12 +14,13 @@ import { trazaPorAnuncio } from "@/lib/queries/traza-por-anuncio";
  * enlaces. Reemplaza a la Traza de pauta y recoge lo que Origen decía del rastreo (precisión hasta el anuncio y el
  * contenido con código que no reconocemos), así ninguna de esas cifras se pierde.
  */
-export async function SinOrigen({ contexto, programId, rango, vistaOrigen, hrefPiezasDesconocidas }: {
+export async function SinOrigen({ contexto, programId, rango, vistaOrigen, hrefPiezasDesconocidas, aviso }: {
   contexto: ContextoDeOrigen;
   programId: string;
   rango: { desde: string; hasta: string };
   vistaOrigen: VistaOrigen;
   hrefPiezasDesconocidas: string;
+  aviso?: string;
 }): Promise<JSX.Element> {
   const traza = await trazaPorAnuncio(db, { programId, rango });
   const [sinAnuncio, ventasSinAnuncio] = cifrasDeSinOrigen(contexto);
@@ -36,6 +37,7 @@ export async function SinOrigen({ contexto, programId, rango, vistaOrigen, hrefP
     <Card aria-labelledby="sin-origen" data-testid="sin-origen">
       <CardHeader className="space-y-1">
         <CardTitle id="sin-origen">¿Qué llega sin origen?</CardTitle>
+        {aviso ? <p className="text-xs text-muted-foreground">{aviso}</p> : null}
         <p className="text-xs text-muted-foreground">Lo que no se puede atribuir a un anuncio. Es la lista para corregir los enlaces.</p>
       </CardHeader>
       <CardContent className="space-y-4">

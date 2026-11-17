@@ -1,3 +1,5 @@
+import { resolverCorteDePauta } from "@/lib/pauta/corte-de-pauta";
+import { opcionesDeCorteDePauta } from "@/lib/pauta/opciones-de-corte";
 import { z } from "zod";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { requireSession, respuestaDeError } from "@/lib/auth/guards";
@@ -24,7 +26,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ prog
     const rango = z.object({ desde: fechaBogota, hasta: fechaBogota }).parse({
       desde: url.searchParams.get("a_desde"), hasta: url.searchParams.get("a_hasta"),
     });
-    const vista = await cargarRoasDePauta(db, programa.id, rango, hoyEnBogota());
+    const corte = url.searchParams.has("corte") && url.searchParams.has("corte_id")
+      ? resolverCorteDePauta(await opcionesDeCorteDePauta(db, programa.id), url.searchParams.get("corte") ?? undefined, url.searchParams.get("corte_id") ?? undefined) : null;
+    const vista = corte ? await cargarRoasDePauta(db, programa.id, rango, hoyEnBogota(), new Date(), null, corte)
+      : await cargarRoasDePauta(db, programa.id, rango, hoyEnBogota());
     return new Response(csvDeCitasPauta(vista), { headers: {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="pauta-citas-${programa.slug}-${rango.desde}-${rango.hasta}.csv"`,

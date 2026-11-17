@@ -143,7 +143,7 @@ export function citasPendientesDeLaVista(vista: VistaRoasDePauta, ahora: Date) {
 /** Calcula la proyección del rango con el ROAS vivo. No escribe. */
 export async function calcularProyeccionDeRoas(
   db: Db,
-  { programId, rango, hoy, ahora, vista }: { programId: string; rango: Rango; hoy: string; ahora: Date; vista?: VistaRoasDePauta },
+  { programId, rango, hoy, ahora, vista, tasasDelPrograma = false }: { programId: string; rango: Rango; hoy: string; ahora: Date; vista?: VistaRoasDePauta; tasasDelPrograma?: boolean },
 ): Promise<ProyeccionDeRoas> {
   const roas = vista ?? await cargarRoasDePauta(db, programId, rango, hoy, ahora);
   const pendientes = citasPendientesDeLaVista(roas, ahora);
@@ -169,7 +169,7 @@ export async function calcularProyeccionDeRoas(
   const pura = proyectarRoas({
     vendidoUsd: roas.total.valorVendidoUsd, gastoUsd: roas.total.gastoUsd, roasAHoy: roas.total.roas,
     pendientes: citas, programa: muestraDe(grupo.tasas),
-    porCloser: new Map([...grupo.porCloser].map(([clave, t]) => [clave, muestraDe(t)])),
+    porCloser: tasasDelPrograma ? new Map() : new Map([...grupo.porCloser].map(([clave, t]) => [clave, muestraDe(t)])),
     muestraMinima: programa?.muestraMinima ?? 20,
   });
   const fechas = citas.map((c) => c.fecha.getTime());

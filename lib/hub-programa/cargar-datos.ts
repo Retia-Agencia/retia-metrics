@@ -8,6 +8,7 @@ import { sumarDias } from "@/lib/dias-habiles";
 import { fechaCorta, monto, usd } from "@/lib/format";
 import type { SeccionDelHub } from "@/lib/nav";
 import { vistaDePauta } from "@/lib/pauta/vista-de-pauta";
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
 import { dineroPorCloserDelRango } from "@/lib/queries/dashboard";
@@ -52,6 +53,8 @@ export interface EntradaDeDatosDelHubDelPrograma {
   reporteDeHoy: Promise<ReporteDiario> | null;
   origen: string;
   configurar: { hrefBase: string; origen: string } | null;
+  /** «Ver solo» de Pauta (420), ya validado contra el programa; nulo es todo el programa. */
+  corte?: CortePauta | null;
 }
 
 export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDatosDelHubDelPrograma) {
@@ -251,6 +254,7 @@ async function cargarVistaComercial(
 
 async function cargarDatosDePauta(db: Db, entrada: EntradaDeDatosDelHubDelPrograma) {
   const { programa, busqueda, hoy, contexto } = entrada;
+  const corte = entrada.corte ?? null;
   const ahora = new Date();
   const [ultimaSincronizacion] = await db
     .select({ inicio: pautaSincronizaciones.inicio })
@@ -261,25 +265,27 @@ async function cargarDatosDePauta(db: Db, entrada: EntradaDeDatosDelHubDelProgra
 
   if (vista === "resultados") {
     const [roas, objetivosDeLaCohorte] = await Promise.all([
-      cargarRoasDePauta(db, programa.id, contexto.seleccion.rango, hoy, ahora),
+      cargarRoasDePauta(db, programa.id, contexto.seleccion.rango, hoy, ahora, null, corte),
       contexto.filtroDeCohorte.elegida?.id
         ? objetivosDeCohortes(db, [contexto.filtroDeCohorte.elegida.id])
         : Promise.resolve([]),
     ]);
     const [proyeccion, historial] = await Promise.all([
-      calcularProyeccionDeRoas(db, { programId: programa.id, rango: contexto.seleccion.rango, hoy, ahora, vista: roas }),
+      calcularProyeccionDeRoas(db, { programId: programa.id, rango: contexto.seleccion.rango, hoy, ahora, vista: roas, tasasDelPrograma: corte !== null }),
       proyeccionesConfirmadas(db, programa.id),
     ]);
     return { seccion: "pauta", vista, ahora, ultimaSincronizacion, roas, objetivosDeLaCohorte, proyeccion, historial } as const;
   }
 
   const [roas, vistaOrigen, formulario, porPregunta] = await Promise.all([
-    cargarRoasDePauta(db, programa.id, contexto.seleccion.rango, hoy, ahora),
+    cargarRoasDePauta(db, programa.id, contexto.seleccion.rango, hoy, ahora, null, corte),
     origenDelPrograma(db, { programId: programa.id, rango: contexto.seleccion.rango, hoy }),
     embudoDelFormulario(db, { programId: programa.id, rango: contexto.seleccion.rango }),
     embudoPorPregunta(db, programa.id),
   ]);
-  return { seccion: "pauta", vista, ahora, ultimaSincronizacion, roas, vistaOrigen, formulario, porPregunta } as const;
+  // «¿Qué llega sin origen?» no sigue «Ver solo»: con corte lee además el ROAS de todo el programa.
+  const roasDelDiagnostico = corte ? await cargarRoasDePauta(db, programa.id, contexto.seleccion.rango, hoy, ahora) : roas;
+  return { seccion: "pauta", vista, ahora, ultimaSincronizacion, roas, roasDelDiagnostico, vistaOrigen, formulario, porPregunta } as const;
 }
 
 function texto(valor: string | string[] | undefined): string | undefined {

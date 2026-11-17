@@ -1,3 +1,4 @@
+import type { CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 /**
  * "¿Qué trae ventas?" y "¿Qué llega sin origen?" como Cifras (420, `docs/diseno-cifra-y-pauta.md` §5.1 y §5.2).
  *
@@ -40,6 +41,7 @@ export interface ContextoDeOrigen {
   /** El enlace a la lista de una fila y un paso; sin él (la sesión no abre listas) ninguna cifra trae evidencia. */
   enlace?: Enlace;
   programa?: string;
+  corte?: CorteResuelto | null;
   /** El periodo en palabras ("del 12 oct al 10 nov"), para "Calculada con". */
   periodo: string;
 }
@@ -129,6 +131,7 @@ export function notasDelRoasTotal(vista: VistaRoasDePauta): Array<readonly [stri
 export function filaDeQueTraeVentas(r: RenglonRoas, c: ContextoDeOrigen, clave: string, nombre = r.nombre): FilaDeQueTraeVentas {
   const filtros: Array<readonly [string, string]> = [];
   if (c.programa) filtros.push(["Programa", c.programa]);
+  if (c.corte) filtros.push(["Solo", c.corte.etiqueta]);
   filtros.push(["Área", "Paid"]);
   if (r.nivel !== "total") filtros.push([etiquetaDeNivel(r.nivel), nombre]);
   filtros.push(["Periodo", c.periodo]);
@@ -174,7 +177,7 @@ export function filaDeQueTraeVentas(r: RenglonRoas, c: ContextoDeOrigen, clave: 
       motivo: sinGasto ?? (roas.valor === null ? roas.motivo ?? "No se puede calcular con los datos del periodo." : undefined),
       partes: sinGasto || r.gastoUsd === null ? undefined : [r.valorVendidoUsd, r.gastoUsd],
       parcial: !sinGasto && roas.valor !== null && roas.faltan > 0 ? `${num(roas.faltan)} de ${num(roas.base + roas.faltan)} ventas vienen de días sin gasto cargado.` : undefined,
-      notas: r.nivel === "total" ? notasDelRoasTotal(c.vista) : undefined,
+      notas: r.nivel === "total" ? notasDelRoasTotal(c.vista).filter(([titulo]) => !c.corte || titulo !== "Contra Comercial") : undefined,
     }),
   };
 }

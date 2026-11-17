@@ -1,4 +1,6 @@
+import { and, eq } from "drizzle-orm";
 import { emparejar, type ArbolDePauta } from "@/lib/atribucion/emparejar";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { utmsDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
 import type { Rango } from "@/lib/queries/dashboard";
@@ -41,6 +43,15 @@ export type EnvioParaAtribucion = Parameters<typeof utmsDelEnvio>[0] & {
 export interface ObjetoParaAtribucion {
   idMeta: string; nombre: string; nivel: "campana" | "conjunto" | "anuncio";
   cuentaId: string; padreIdMeta: string | null;
+}
+
+/**
+ * El completo que corresponde a un parcial: mismo formulario y mismo token. ÚNICA definición del emparejamiento
+ * canónico; la usan el ROAS (por rango) y las agendas de «Ver solo» (por ids), cada una con sus alias.
+ */
+type ColumnasDePareja = { sourceId: AnyPgColumn; token: AnyPgColumn; esParcial: AnyPgColumn };
+export function completoDelParcial(parcial: ColumnasDePareja, completo: ColumnasDePareja) {
+  return and(eq(completo.sourceId, parcial.sourceId), eq(completo.token, parcial.token), eq(completo.esParcial, false));
 }
 
 /** El día de negocio de un envío: el parcial no trae `fechaEnvio`, así que usa su creación. */

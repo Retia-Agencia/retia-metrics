@@ -1,3 +1,4 @@
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { saldosDeDeals, sumaDeAbonos } from "@/lib/queries/saldo";
 import { dineroDeUnaVenta, dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, or, sql, type SQL } from "drizzle-orm";
@@ -131,6 +132,7 @@ export function capacidadParaMetrica({
 }
 
 export interface FiltrosDeMetrica {
+  corte?: CortePauta;
   programId: string | readonly string[];
   rango: Rango;
   /** La clave de identidad del closer (ticket 167): `users.id` o `historico:<texto>`. */
@@ -180,7 +182,7 @@ const CAMPOS_DE_LA_CLAVE = {
   programId: true, rango: true, claveCloser: true, moneda: true, cohorteId: true, origenDeal: true, ahora: true,
   hoy: true, etapa: true, antiguedad: true, source: true, medium: true, categoria: true, area: true, canal: true,
   campaign: true, resultado: true, orden: true, escalon: true, grupo: true, pago: true, calidad: true, nivel: true,
-  idMeta: true, paso: true,
+  idMeta: true, paso: true, corte: true,
 } as const satisfies Record<keyof FiltrosDeMetrica, true>;
 
 /** Solo los filtros que deciden la consulta, sin los vacíos: dos llamadas con la misma consulta dan la misma clave. */
@@ -1042,7 +1044,7 @@ async function leerMetricaDePauta(
 ): Promise<FilaDeMetrica[]> {
   if (!filtros.nivel || !filtros.paso) return [];
   const ahora = filtros.ahora ?? new Date();
-  const vista = await cargarRoasDePauta(db, alcance.programId, alcance.rango, filtros.hoy, ahora);
+  const vista = await cargarRoasDePauta(db, alcance.programId, alcance.rango, filtros.hoy, ahora, null, filtros.corte);
   const envios = filtrarEnviosDePauta(vista.envios, filtros.nivel, filtros.idMeta);
   const filas: FilaDeMetrica[] = [];
   const base = (e: (typeof envios)[number], id: string, fecha: string, dealId: string | null, etapa: string | null): FilaDeMetrica => {

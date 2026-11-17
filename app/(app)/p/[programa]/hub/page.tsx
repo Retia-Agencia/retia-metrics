@@ -1,3 +1,5 @@
+import { resolverCorteDePauta, ROTULO_DIAGNOSTICO_SIN_CORTE, ROTULO_TABLA_SIN_CORTE, type CorteResuelto } from "@/lib/pauta/corte-de-pauta";
+import { opcionesDeCorteDePauta } from "@/lib/pauta/opciones-de-corte";
 import { cifrasClaveDeComercial, cifrasDeCloser } from "@/lib/hub/cifras-de-comercial";
 import { cifrasDeEscalera, cifrasDelEmbudoComercial, cifrasDeCaminos, cifrasDeCitasPorSemana, cifrasDeAuditoria } from "@/lib/hub/cifras-de-recorridos";
 import { explicacionesDeComercial } from "@/lib/hub/explicaciones-de-comercial";
@@ -140,6 +142,8 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
     },
   ] satisfies (Pestana & { id: SeccionDelHub })[];
   const seccion = pestanaActiva(texto(busqueda.seccion), pestanas, "hoy") as SeccionDelHub;
+  const opcionesDeCorte = seccion === "pauta" ? await opcionesDeCorteDePauta(db, programa.id) : [];
+  const corte = resolverCorteDePauta(opcionesDeCorte, busqueda.corte, busqueda.corte_id);
 
   // El filtro sale de la URL, nunca de la sesion: un closer que entra sin filtro ve
   // el programa completo, igual que un gerente (ADR 0048: dentro de su programa, ve
@@ -256,6 +260,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               filtraCloser={veEquipo}
               cohorte={conFiltroDeCohorte ? { valor: elegida?.id ?? TODAS_LAS_COHORTES, opciones } : undefined}
               lineaDeCohorte={lineaDeCohorte}
+              corte={seccion === "pauta" ? { opciones: opcionesDeCorte, elegido: corte } : undefined}
             />
             {seccion === "pauta" ? (
               <p className="mt-1 text-xs text-muted-foreground" data-testid="resumen-de-filtros">
@@ -266,6 +271,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
                   comparacion: contexto.periodo.b,
                   closer: closersDelFiltro.find((c) => c.id === contexto.claveCloser)?.label ?? null,
                   escribirFecha: fecha,
+                  corte,
                 })}
               </p>
             ) : null}
@@ -279,6 +285,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
               rol={rol}
               programa={datosDelPrograma}
               busqueda={busqueda}
+              corte={corte}
               seccion={seccion}
               hoy={hoy}
               diaDelReporte={diaDelReporte}
@@ -323,11 +330,12 @@ async function InfoDeHoy({ titulo, programa, reporte }: {
  */
 async function CuerpoDelHub({
   rol, programa, busqueda, seccion, hoy, diaDelReporte, hoyDeLaPestana, fechaRechazada, ventanaRitmo,
-  entradaDeVista, contexto, reporteDeHoy, origen, base, configurar, norte,
+  entradaDeVista, contexto, reporteDeHoy, origen, base, configurar, norte, corte,
 }: {
   rol: Awaited<ReturnType<typeof rolDeVista>>;
   programa: { id: string; slug: string; nombre: string };
   busqueda: Record<string, string | string[] | undefined>;
+  corte: CorteResuelto | null;
   seccion: SeccionDelHubDelPrograma;
   hoy: string;
   diaDelReporte: string;
@@ -346,7 +354,7 @@ async function CuerpoDelHub({
   const veEquipo = veEquipoComercial(rol);
   const entradaDelCargador = {
     programa, rol, busqueda, seccion, hoy, diaDelReporte, hoyDeLaPestana, ventanaRitmo,
-    entradaDeVista, contexto, reporteDeHoy, origen, configurar,
+    entradaDeVista, contexto, reporteDeHoy, origen, configurar, corte,
   };
   if (seccion === "pauta") {
     return (
@@ -358,6 +366,7 @@ async function CuerpoDelHub({
         periodo={contexto.periodo}
         origen={origen}
         hoy={hoy}
+        corte={corte}
         busqueda={busqueda}
         cohorteId={contexto.filtroDeCohorte.elegida?.id ?? null}
         cohorteCodigo={contexto.filtroDeCohorte.elegida?.codigo ?? null}
@@ -613,6 +622,7 @@ async function SeccionPauta({
   puedeVerVentas,
   listasQueAbre,
   entradaDelCargador,
+  corte,
 }: {
   programId: string;
   programaNombre: string;
@@ -622,6 +632,7 @@ async function SeccionPauta({
   origen: string;
   hoy: string;
   busqueda: Record<string, string | string[] | undefined>;
+  corte: CorteResuelto | null;
   cohorteId: string | null;
   cohorteCodigo: string | null;
   puedeAbrirLista: boolean;
@@ -651,9 +662,13 @@ async function SeccionPauta({
   }
   // La vista de Pauta (420): Resultados o Origen y calidad, con los mismos filtros. Solo corren las consultas de
   // la vista que se ve (197 §5); la proyección del ROAS necesita la vista del ROAS, así que la carga Resultados.
-  const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
+  const enlaceSinCorte = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
     slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
   });
+  const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => {
+    const href = enlaceSinCorte(nivel, id, paso);
+    return corte ? `${href}&${new URLSearchParams({ corte: corte.nivel, corte_id: corte.uuid })}` : href;
+  };
 
   if (datos.vista === "resultados") {
     return (
@@ -664,7 +679,8 @@ async function SeccionPauta({
             cupos: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "cumpl" }),
             plata: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "plata", { parametro: "cumpl" }),
           }} />
-        <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} />
+        <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} corte={corte} />
+        {corte ? <p className="text-xs text-muted-foreground">{ROTULO_TABLA_SIN_CORTE}</p> : null}
         <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre}
           paso={pasoDeTablaDePauta(busqueda.tabla)}
           hrefDePaso={{
@@ -676,8 +692,8 @@ async function SeccionPauta({
             total: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "por_cuenta" }),
             cuenta: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "1", { parametro: "por_cuenta" }),
           }} />
-        <PautaProyeccion proyeccion={datos.proyeccion} historial={datos.historial} objetivos={datos.objetivosDeLaCohorte} hoy={hoy}
-          programa={programaNombre} cohorte={cohorteCodigo ?? undefined}
+        <PautaProyeccion proyeccion={datos.proyeccion} historial={corte ? [] : datos.historial} objetivos={datos.objetivosDeLaCohorte} hoy={hoy}
+          programa={programaNombre} cohorte={cohorteCodigo ?? undefined} corte={corte}
           hrefPendientes={datos.proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
       </section>
     );
@@ -689,15 +705,15 @@ async function SeccionPauta({
   const hrefDeVerPor = Object.fromEntries(VER_POR_ORIGEN.map((v) => [v.id,
     urlConSeccion(base, busqueda, v.id === "campana" ? null : v.id, { parametro: "ver_por" })])) as Record<VerPorOrigen, string>;
   const periodoEnPalabras = rango.desde === rango.hasta ? `el ${fecha(rango.desde)}` : `del ${fecha(rango.desde)} al ${fecha(rango.hasta)}`;
-  const contexto = { vista: datos.roas, enlace: puedeAbrirLista ? enlaceRoas : undefined, programa: programaNombre, periodo: periodoEnPalabras };
+  const contexto = { vista: datos.roas, enlace: puedeAbrirLista ? enlaceRoas : undefined, programa: programaNombre, periodo: periodoEnPalabras, corte };
 
   return (
     <section className="space-y-4" data-vista-de-pauta="calidad">
       <QueTraeVentas contexto={contexto} verPor={verPor} hrefDeVerPor={hrefDeVerPor} enlace={enlaceRoas}
-        hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" })}`}
+        hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1", ...(corte ? { corte: corte.nivel, corte_id: corte.uuid } : {}) })}`}
         canalesDeOrigen={verPor === "canal" ? { canales: canalesConEnlaces(datos.vistaOrigen, slug, periodo, origen), totalEnvios: datos.vistaOrigen.totalEnvios } : undefined} />
       <div className="grid gap-4 xl:grid-cols-2">
-        <SinOrigen contexto={contexto} programId={programId} rango={rango} vistaOrigen={datos.vistaOrigen}
+        <SinOrigen aviso={corte ? ROTULO_DIAGNOSTICO_SIN_CORTE : undefined} contexto={{ ...contexto, vista: datos.roasDelDiagnostico, corte: null, enlace: puedeAbrirLista ? enlaceSinCorte : undefined }} programId={programId} rango={rango} vistaOrigen={datos.vistaOrigen}
           hrefPiezasDesconocidas={hrefDePiezasDesconocidas(slug, periodo, origen)} />
         <DondeSeVaLaGente embudo={datos.formulario} porPregunta={datos.porPregunta} programa={programaNombre} periodo={periodoEnPalabras}
           hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined} />

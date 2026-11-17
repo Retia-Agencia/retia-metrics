@@ -48,6 +48,36 @@ Rótulos y fórmulas en D-A, D-B, D-C, D-E (403 F1): se construye la forma y se 
 
 ## Avance (11-nov)
 
+**17-nov · «Ver solo» fase 2a: selector, URL, ROAS, proyección y costo de hoy**
+
+- **Hecho:** control «Ver solo» en la barra de Pauta (`components/hub/filtros-del-hub.tsx`), con Todo el programa y los
+  grupos Cuenta de Meta · Campaña · Conjunto · Anuncio; sin Canal (fase 3) ni «Sin cuenta de Meta». URL
+  `?corte=<nivel>&corte_id=<uuid>`; `lib/pauta/opciones-de-corte.ts` (una lectura liviana por programa, sin datos
+  personales) alimenta el selector y valida en servidor; `lib/pauta/corte-de-pauta.ts` traduce el UUID al id del árbol
+  (o a la FK de la cuenta) y descarta en silencio un id de otro programa o de otro nivel. El resumen en palabras dice
+  «solo Campaña · X». «¿Qué trae ventas?», el ROAS, sus listas, la paginación y el CSV de citas siguen el corte; el gasto
+  es el del objeto y sus descendientes (cuenta: sus objetos), sin residuales ni gasto manual. La proyección corta los
+  pendientes con las tasas del programa y lo dice; con corte no pinta el historial proyectado/real (es de todo el
+  programa). Costo por agenda de hoy: cuenta y campaña filtran fotos, gasto y agendas del CRM (`agendasDelCorte` en
+  `lib/queries/hechos/agenda.ts`, mismo ancla que `agendasDePauta`); conjunto y anuncio dicen «No disponible para este
+  corte: el detalle de hoy se guarda por campaña». «¿Qué llega sin origen?» queda con todo el programa y su rótulo.
+  Las explicaciones del semáforo, la proyección y Origen agregan «Solo · …».
+- **Una sola definición:** el emparejamiento parcial → completo pasa a `completoDelParcial`
+  (`lib/queries/atribucion-de-pauta.ts`); lo usan el ROAS (mismo SQL) y `agendasDelCorte` (lo pidió el guardián N1).
+- **Sin corte nada cambia:** las cifras corren por la misma rama y claves de caché; el corte usa claves propias
+  (`cargarRoasDePautaConCorte`). La única lectura nueva sin corte es la de las opciones del selector.
+- **Tests:** nuevos `tests/corte-de-pauta.test.ts` y `tests/corte-de-pauta-rotulos.test.ts`. En `tests/paginas.test.ts`
+  se agregó solo el mock de `opcionesDeCorteDePauta` (la página lee una base que ese test simula); ninguna expectativa
+  cambió.
+- **Verificado:** typecheck; lint 0 errores (7 advertencias ajenas); suite completa 4.605 verde; dev:local como gerente:
+  selector, corte por campaña en las dos vistas, conjunto con el «No disponible», id de nivel equivocado ignorado,
+  375 px sin scroll horizontal, consola limpia.
+- **Pendiente (2b y después):** la tabla semanal y la gráfica diaria todavía muestran todo el programa (dicen «La
+  tabla todavía muestra todo el programa…»). El detalle por campaña de «¿Qué trae ventas?» (`CifraDeRazon`) no lleva
+  «Solo» en su explicación. Dos objetos con el mismo nombre no se distinguen en el selector (en la semilla, dos
+  «Conjunto»); el selector lista todos los objetos del programa, también archivados: revisar con datos reales (escala).
+  Sin `npm run build` ni `test:humo`.
+
 **16-nov · «Ver solo» fase 1: atribución compartida**
 
 - **Hecho:** `lib/queries/atribucion-de-pauta.ts` recibe exclusivamente los envíos, las parejas parcial/completo, los

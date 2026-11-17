@@ -1,4 +1,4 @@
-import { atribuirEnviosDePauta, atribucionPorDeal, diaDelEnvio, type AtribucionDePauta } from "@/lib/queries/atribucion-de-pauta";
+import { atribuirEnviosDePauta, atribucionPorDeal, completoDelParcial, diaDelEnvio, perteneceAlCorte, type CortePauta, type AtribucionDePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, between, eq, inArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -194,8 +194,7 @@ async function parejasDeEnviosDeRoas(db: Db, programId: string, rango: Rango) {
     const completo = alias(submissions, "submission_completo_roas");
     return db.select({ parcialId: parcial.id, completoId: completo.id })
       .from(parcial)
-      .innerJoin(completo, and(eq(completo.sourceId, parcial.sourceId), eq(completo.token, parcial.token),
-        eq(completo.esParcial, false)))
+      .innerJoin(completo, completoDelParcial(parcial, completo))
       .innerJoin(sources, eq(sources.id, parcial.sourceId))
       .where(and(eq(sources.programId, programId), eq(parcial.esParcial, true), or(
         between(diaDeEnvio(parcial), rango.desde, rango.hasta),
@@ -212,7 +211,10 @@ export function cargarRoasDePauta(
   hoy: string,
   ahora: Date = new Date(),
   cohorteId: string | null = null,
+  corte: CortePauta | null = null,
 ): Promise<VistaRoasDePauta> {
+  if (corte) return unaVezPorSolicitud(db, claveDe("cargarRoasDePautaConCorte", programId, rango.desde, rango.hasta,
+    hoy, ahora, cohorteId, corte.nivel, corte.id), () => leerRoasDePauta(db, programId, rango, hoy, ahora, cohorteId, corte));
   return unaVezPorSolicitud(db, claveDe("cargarRoasDePauta", programId, rango.desde, rango.hasta,
     hoy, ahora, cohorteId), () => leerRoasDePauta(db, programId, rango, hoy, ahora, cohorteId));
 }
@@ -224,8 +226,9 @@ async function leerRoasDePauta(
   hoy: string,
   ahora: Date,
   cohorteId: string | null,
+  corte: CortePauta | null = null,
 ): Promise<VistaRoasDePauta> {
-  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gasto, ventasPorFecha, gastoEnCop, cuentasMeta] = await Promise.all([
+  const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gastoLeido, ventasPorFecha, gastoEnCopLeido, cuentasMeta] = await Promise.all([
     arbolDePauta(db, programId),
     unaVezPorSolicitud(db, claveDe("objetosDePautaParaRoas", programId), () =>
       db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
@@ -249,6 +252,31 @@ async function leerRoasDePauta(
     gastoConvertido(db, programId, rango, "COP"),
     cuentasDelPrograma(db, programId),
   ]);
+  const gasto = { ...gastoLeido };
+  const gastoEnCop = { ...gastoEnCopLeido };
+  // El gasto admite objetos de cualquier nivel: el corte incluye el objeto y sus descendientes.
+  const objetosPorMeta = new Map(objetos.map((o) => [o.idMeta, o]));
+  const dentro = (id: string): boolean => {
+    let objeto = objetosPorMeta.get(id);
+    if (corte?.nivel === "cuenta_meta") return objeto?.cuentaId === corte.id;
+    const visitados = new Set<string>();
+    while (objeto && !visitados.has(objeto.idMeta)) {
+      if (objeto.nivel === corte?.nivel && objeto.idMeta === corte.id) return true;
+      visitados.add(objeto.idMeta);
+      objeto = objeto.padreIdMeta ? objetosPorMeta.get(objeto.padreIdMeta) : undefined;
+    }
+    return false;
+  };
+  if (corte) for (const g of [gasto, gastoEnCop]) {
+    // Derivados nuevos: no mutar los mapas compartidos por la caché del hecho.
+    g.porAnuncio = new Map([...g.porAnuncio].filter(([id]) => dentro(id)));
+    g.totalUsd = [...g.porAnuncio.values()].reduce((suma, monto) => suma + monto, 0);
+    g.porCuenta = new Map();
+    for (const [id, monto] of g.porAnuncio) {
+      const cuenta = objetosPorMeta.get(id)?.cuentaId ?? null;
+      g.porCuenta.set(cuenta, (g.porCuenta.get(cuenta) ?? 0) + monto);
+    }
+  }
   const coberturaGasto = gasto.cobertura;
   const idsCargados = new Set(enviosEnRango.map((e) => e.id));
   const idsExtra = [...new Set(parejas.flatMap((p) => [p.parcialId, p.completoId]))]
@@ -259,9 +287,9 @@ async function leerRoasDePauta(
     .where(and(eq(sources.programId, programId), inArray(submissions.id, idsExtra)));
   const enviosCrudos = [...enviosEnRango, ...enviosExtra];
   const atribucion = atribuirEnviosDePauta(enviosCrudos, parejas, objetos, arbol, rango);
-  const canonicos = new Map<string, FilaPorEnvioPauta>([...atribucion.canonicos].map(([id, envio]) =>
+  const canonicos = new Map<string, FilaPorEnvioPauta>([...atribucion.canonicos].filter(([, e]) => !corte || perteneceAlCorte(e, corte)).map(([id, envio]) =>
     [id, { ...envio, dealId: null, etapa: null, citas: [], venta: null }]));
-  const filaPorEnvioId = new Map([...atribucion.filaPorEnvioId].map(([id, envio]) =>
+  const filaPorEnvioId = new Map([...atribucion.filaPorEnvioId].filter(([, e]) => canonicos.has(e.envioId)).map(([id, envio]) =>
     [id, canonicos.get(envio.envioId)!]));
   const idsEnvio = [...filaPorEnvioId.keys()];
   const dealsDelUniverso = idsEnvio.length === 0 ? [] : await db.select({ id: deals.id, submissionOrigenId: deals.submissionOrigenId,
@@ -335,7 +363,7 @@ async function leerRoasDePauta(
     if (e.anuncioId) {
       const a = anuncios.get(e.anuncioId) ?? renglonBase("anuncio", e.anuncioId, e.anuncioNombre!, e.conjuntoId);
       sumarEnvio(a, e, hoy); anuncios.set(e.anuncioId, a);
-    } else {
+    } else if (!corte) {
       const residual = anunciosSinIdentificar.get(e.campanaId)
         ?? renglonBase("anuncio_sin_identificar", e.campanaId, "Anuncio sin identificar", e.campanaId);
       sumarEnvio(residual, e, hoy); anunciosSinIdentificar.set(e.campanaId, residual);
@@ -348,6 +376,17 @@ async function leerRoasDePauta(
   total.gastoCop = gastoEnCop.totalUsd;
   const repartir = (porAnuncio: Map<string, number>, campo: "gastoUsd" | "gastoCop") => {
     for (const [idMeta, monto] of porAnuncio) {
+      if (corte) {
+        let objeto = objetosPorMeta.get(idMeta);
+        const visitados = new Set<string>();
+        while (objeto && !visitados.has(objeto.idMeta)) {
+          visitados.add(objeto.idMeta);
+          const fila = (objeto.nivel === "campana" ? campanas : objeto.nivel === "conjunto" ? conjuntos : anuncios).get(objeto.idMeta);
+          if (fila) fila[campo] = (fila[campo] ?? 0) + monto;
+          objeto = objeto.padreIdMeta ? objetosPorMeta.get(objeto.padreIdMeta) : undefined;
+        }
+        continue;
+      }
       const a = anuncios.get(idMeta); if (a) a[campo] = (a[campo] ?? 0) + monto;
       const arbolAnuncio = arbol.anuncios.find((x) => x.id === idMeta);
       if (arbolAnuncio) { const s = conjuntos.get(arbolAnuncio.conjuntoId); if (s) s[campo] = (s[campo] ?? 0) + monto;

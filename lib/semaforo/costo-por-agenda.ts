@@ -1,3 +1,4 @@
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, asc, desc, eq, gte, isNotNull, lte, or } from "drizzle-orm";
 import { razon, type RazonConCobertura } from "@/lib/cobertura";
 import { fotosPauta, gastoPauta, pautaObjetos } from "@/lib/db/schema";
@@ -7,7 +8,7 @@ import { diaHabilAnterior } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import { coberturaDeGasto, diaCubierto, motivoDeGasto } from "@/lib/pauta/cobertura-de-gasto";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
-import { agendasDePauta } from "@/lib/queries/hechos/agenda";
+import { agendasDePauta, agendasDelCorte } from "@/lib/queries/hechos/agenda";
 import { sumarDias } from "@/lib/dias-habiles";
 import { tasasDelRango } from "@/lib/trm/consultar";
 import { codigoCortoDeCampana, idsDeCampanas, type PropositoCampana } from "@/lib/pauta/proposito";
@@ -308,7 +309,7 @@ function completar(
 
 async function costoDesdeFotos(
   db: Db,
-  args: { programId: string; dia: string; hasta: Date },
+  args: { programId: string; dia: string; hasta: Date; corte?: CortePauta | null },
 ): Promise<CostoPorAgenda> {
   const fotos = await db.selectDistinctOn([fotosPauta.campanaId], {
     dia: fotosPauta.fecha,
@@ -330,39 +331,42 @@ async function costoDesdeFotos(
     .orderBy(asc(fotosPauta.campanaId), desc(fotosPauta.tomadaEn));
   const [idsCampanas, agendasCrm, mide] = await Promise.all([
     idsDeCampanas(db),
-    agendasDePauta(db, {
+    args.corte ? agendasDelCorte(db, { programId: args.programId, desde: args.dia, hasta: args.dia, creadaHasta: args.hasta, corte: args.corte }) : agendasDePauta(db, {
       programId: args.programId,
       rango: { desde: args.dia, hasta: args.dia },
       creadaHasta: args.hasta,
     }).then(totalDeAgendas),
     programaMideAgendasMeta(db, args.programId),
   ]);
-  const suma = await sumarEnCop(db, fotos, idsCampanas);
+  const suma = await sumarEnCop(db, args.corte ? fotos.filter((f) => args.corte!.nivel === "cuenta_meta"
+    ? f.cuentaId === args.corte!.id : f.campanaIdMeta === args.corte!.id) : fotos, idsCampanas);
   return completar(suma.gasto, agendasCrm, suma.agendasMeta, suma.notas, mide, suma.campanas, suma.lanzamiento, suma.gastoTotal,
     { base: 1, faltan: 0, motivo: null, calculable: true }, suma.porCuenta);
 }
 
 export async function costoPorAgenda(
   db: Db,
-  args: { programId: string; dia: string; hasta?: Date },
+  args: { programId: string; dia: string; hasta?: Date; corte?: CortePauta | null },
 ): Promise<CostoPorAgenda> {
   if (args.hasta || args.dia === hoyEnBogota()) {
     return costoDesdeFotos(db, {
       programId: args.programId,
       dia: args.dia,
       hasta: args.hasta ?? new Date(),
+      corte: args.corte,
     });
   }
   return costoPorAgendaDeVentana(db, {
     programId: args.programId,
     desde: args.dia,
     hasta: args.dia,
+    corte: args.corte,
   });
 }
 
 export async function costoPorAgendaDeVentana(
   db: Db,
-  args: { programId: string; desde: string; hasta: string; cohorteId?: string | null },
+  args: { programId: string; desde: string; hasta: string; cohorteId?: string | null; corte?: CortePauta | null },
 ): Promise<CostoPorAgenda> {
   const filas = await gastoParaCostoPorAgenda(db, args.programId, args.desde, args.hasta);
   const objetos = await unaVezPorSolicitud(db, claveDe("objetosDePautaParaCosto", args.programId), () => db.select({
@@ -398,7 +402,7 @@ export async function costoPorAgendaDeVentana(
   });
   const [idsCampanas, agendasCrm, mide, coberturaGasto] = await Promise.all([
     idsDeCampanas(db),
-    agendasDePauta(db, {
+    args.corte ? agendasDelCorte(db, { ...args, corte: args.corte }) : agendasDePauta(db, {
       programId: args.programId,
       rango: { desde: args.desde, hasta: args.hasta },
       cohorteId: args.cohorteId,
@@ -406,7 +410,8 @@ export async function costoPorAgendaDeVentana(
     programaMideAgendasMeta(db, args.programId),
     coberturaDeGasto(db, args.programId, { desde: args.desde, hasta: args.hasta }),
   ]);
-  const suma = await sumarEnCop(db, filasConCampana, idsCampanas);
+  const suma = await sumarEnCop(db, args.corte ? filasConCampana.filter((f) => args.corte!.nivel === "cuenta_meta"
+    ? f.cuentaId === args.corte!.id : f.campanaIdMeta === args.corte!.id) : filasConCampana, idsCampanas);
   let base = 0;
   let faltan = 0;
   for (let dia = args.desde; dia <= args.hasta; dia = sumarDias(dia, 1)) {

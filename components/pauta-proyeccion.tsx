@@ -1,3 +1,4 @@
+import type { CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 import { Enlace } from "@/components/enlace";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,7 @@ const claseEnlace = "rounded-lg text-marca-texto underline-offset-2 hover:underl
  * el ROAS a hoy, parcial mientras haya citas por venir, y el proyectado con las tasas de cada closer. Un proyectado
  * que no se puede calcular dice "—" y por qué; nunca un número a medias.
  */
-export function PautaProyeccion({ proyeccion, historial, hrefPendientes, objetivos, hoy, programa, cohorte }: {
+export function PautaProyeccion({ proyeccion, historial, hrefPendientes, objetivos, hoy, programa, cohorte, corte }: {
   proyeccion: ProyeccionDeRoas;
   historial: readonly ProyeccionGuardada[];
   /** La lista de las citas pendientes; `null` si no hay ninguna. */
@@ -22,10 +23,11 @@ export function PautaProyeccion({ proyeccion, historial, hrefPendientes, objetiv
   hoy: string;
   programa?: string;
   cohorte?: string;
+  corte?: CorteResuelto | null;
 }) {
   const n = proyeccion.citasPendientes;
   if (n === 0 && historial.length === 0) return null;
-  const { aHoy, proyectado } = cifrasDeProyeccion({ proyeccion, historial, objetivos, hoy, programa, cohorte });
+  const { aHoy, proyectado } = cifrasDeProyeccion({ proyeccion, historial, objetivos, hoy, programa, cohorte, corte });
   return <Card aria-labelledby="roas-proyectado"><CardHeader>
     <CardTitle id="roas-proyectado">¿Qué ROAS esperamos cuando ocurran las citas que faltan?</CardTitle>
     <p className="text-xs text-muted-foreground">El ROAS de hoy es parcial mientras haya citas pendientes; el proyectado estima cuánto subirá.</p>

@@ -1,3 +1,4 @@
+import type { CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 /**
  * "¿Cómo va el costo por agenda hoy?" como cuatro Cifras (ticket 419 paso 3, `docs/diseno-cifra-y-pauta.md` §4.2).
  *
@@ -30,6 +31,7 @@ export interface EntradaDeCifrasDelSemaforo {
   /** Solo si se pidió comparar en la página. */
   comparar: boolean;
   programa?: string;
+  corte?: CorteResuelto | null;
 }
 
 export interface CifrasDelSemaforo {
@@ -64,6 +66,7 @@ export function cifrasDelSemaforo(e: EntradaDeCifrasDelSemaforo): CifrasDelSemaf
   const periodo = e.tipo === "cierre" ? `el ${fechaCorta(m.dia)} completo` : `hoy (hasta las ${e.hora})`;
   const filtros: Array<readonly [string, string]> = [];
   if (e.programa) filtros.push(["Programa", e.programa]);
+  if (e.corte) filtros.push(["Solo", e.corte.etiqueta]);
   filtros.push(["Área", "Paid"]);
   filtros.push(["Día", e.tipo === "cierre" ? `${fechaCorta(m.dia)} completo` : `Hoy hasta las ${e.hora}`]);
   const ref = m.comparacion && e.comparar ? m.comparacion : null;

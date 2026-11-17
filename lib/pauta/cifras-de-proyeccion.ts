@@ -1,3 +1,4 @@
+import type { CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 /**
  * "¿Qué ROAS esperamos cuando ocurran las citas que faltan?" como dos Cifras (ticket 419 paso 3,
  * `docs/diseno-cifra-y-pauta.md` §4.5). Recibe lo que ya calculó `calcularProyeccionDeRoas` y lo vuelve
@@ -17,6 +18,7 @@ export interface EntradaDeCifrasDeProyeccion {
   objetivos: readonly ObjetivoDeCohorte[];
   hoy: string;
   programa?: string;
+  corte?: CorteResuelto | null;
   cohorte?: string;
 }
 
@@ -34,6 +36,7 @@ export function cifrasDeProyeccion(e: EntradaDeCifrasDeProyeccion): { aHoy: Cifr
   const periodo = `del ${etiquetaDeSemana(p.rango)}`;
   const filtros: Array<readonly [string, string]> = [];
   if (e.programa) filtros.push(["Programa", e.programa]);
+  if (e.corte) filtros.push(["Solo", e.corte.etiqueta]);
   if (e.cohorte) filtros.push(["Cohorte", e.cohorte]);
   filtros.push(["Área", "Paid"]);
   filtros.push(["Periodo", etiquetaDeSemana(p.rango)]);
@@ -60,7 +63,7 @@ export function cifrasDeProyeccion(e: EntradaDeCifrasDeProyeccion): { aHoy: Cifr
   const supuestos = p.valor === null ? [] : p.supuestos.porCloser.map((s): readonly [string, string] => [
     s.closer ?? "Sin closer",
     `${citas(s.citas)} pendientes: se presenta ${pct(s.pShow!)} y compra ${pct(s.pCierre!)}`
-      + (s.usaPrograma
+      + (e.corte ? ", con las tasas históricas del programa completo." : s.usaPrograma
         ? `, con la tasa del programa (tiene ${num(s.muestra)} ${s.muestra === 1 ? "persona" : "personas"} con cita y se piden ${num(p.supuestos.muestraMinima)}).`
         : `, con sus ${num(s.muestra)} personas con cita.`),
   ]);
@@ -81,6 +84,7 @@ export function cifrasDeProyeccion(e: EntradaDeCifrasDeProyeccion): { aHoy: Cifr
       }
       : undefined,
     notas: [
+      ...(e.corte ? [["Proyección", "Las citas pendientes de este corte se proyectan con las tasas históricas del programa completo."] as const] : []),
       ...(confirmada ? [["Proyectado y real", `El ${fechaCorta(confirmada.dia)} se proyectó ${confirmada.roasProyectado === null ? "«—»" : veces(confirmada.roasProyectado)}; cuando ocurrieron esas citas, el ROAS fue ${veces(confirmada.roasReal!)}. Sirve para saber cuánto creerle a la proyección.`] as const] : []),
       ...supuestos,
     ],

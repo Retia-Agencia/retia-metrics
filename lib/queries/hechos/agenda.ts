@@ -1,5 +1,8 @@
-import { and, between, eq, lte, sql } from "drizzle-orm";
-import { calls, deals, submissions } from "@/lib/db/schema";
+import { arbolDePauta } from "@/lib/pauta/arbol";
+import { atribuirEnviosDePauta, atribucionPorDeal, completoDelParcial, perteneceAlCorte, type CortePauta } from "@/lib/queries/atribucion-de-pauta";
+import { alias } from "drizzle-orm/pg-core";
+import { and, between, eq, inArray, lte, sql } from "drizzle-orm";
+import { calls, deals, pautaObjetos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import {
@@ -214,4 +217,46 @@ export async function listarAgendasDePauta(
   opciones: Omit<ConsultaAgendaLista<"area">, "filtros">,
 ): Promise<ListaPaginada<FilaAgenda>> {
   return await listar<"area">(db, { ...opciones, filtros: { area: AREA_DE_PAUTA } });
+}
+
+/** Las agendas creadas del corte heredan el envío del deal; conserva el ancla de agendasDePauta. */
+export async function agendasDelCorte(db: Db, args: {
+  programId: string; desde: string; hasta: string; creadaHasta?: Date; cohorteId?: string | null; corte: CortePauta;
+}): Promise<number> {
+  const citas = await db.select({ id: calls.id, dealId: deals.id, envioId: deals.submissionOrigenId }).from(calls)
+    .innerJoin(deals, and(eq(deals.id, calls.dealId), eq(deals.programId, args.programId), vigente(deals)))
+    .where(and(eq(calls.programId, args.programId), vigente(calls), llamadaSinDealAnulado(db),
+      between(dimensionesDeFecha(calls.createdAt).dia, args.desde, args.hasta),
+      args.creadaHasta ? lte(calls.createdAt, args.creadaHasta) : undefined,
+      args.cohorteId ? eq(deals.cohortId, args.cohorteId) : undefined));
+  const ids = [...new Set(citas.flatMap((c) => c.envioId ? [c.envioId] : []))];
+  if (ids.length === 0) return 0;
+  const columnas = { id: submissions.id, sourceId: submissions.sourceId, token: submissions.token,
+    esParcial: submissions.esParcial, leadId: submissions.leadId, nombre: sql<null>`null`,
+    fechaEnvio: submissions.fechaEnvio, createdAt: submissions.createdAt, ...columnasUtmDelEnvio };
+  const originales = await db.select(columnas).from(submissions)
+    .innerJoin(sources, eq(sources.id, submissions.sourceId))
+    .where(and(eq(sources.programId, args.programId), inArray(submissions.id, ids)));
+  const idsParciales = originales.filter((e) => e.esParcial).map((e) => e.id);
+  const parcial = alias(submissions, "submission_parcial_corte");
+  const completo = alias(submissions, "submission_completo_corte");
+  const parejas = idsParciales.length === 0 ? [] : await db.select({ parcialId: parcial.id, completoId: completo.id })
+    .from(parcial).innerJoin(completo, completoDelParcial(parcial, completo))
+    .where(inArray(parcial.id, idsParciales));
+  const completos = parejas.length === 0 ? [] : await db.select(columnas).from(submissions)
+    .innerJoin(sources, eq(sources.id, submissions.sourceId))
+    .where(and(eq(sources.programId, args.programId), inArray(submissions.id, parejas.map((p) => p.completoId))));
+  const [arbol, objetos] = await Promise.all([arbolDePauta(db, args.programId),
+    unaVezPorSolicitud(db, claveDe("objetosParaAgendasDelCorte", args.programId), () =>
+      db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
+        cuentaId: pautaObjetos.cuentaId, padreIdMeta: pautaObjetos.padreIdMeta }).from(pautaObjetos)
+        .where(eq(pautaObjetos.programId, args.programId)))]);
+  const atribucion = atribuirEnviosDePauta([...originales, ...completos], parejas, objetos, arbol,
+    { desde: "0000-01-01", hasta: "9999-12-31" });
+  const porDeal = atribucionPorDeal(atribucion.filaPorEnvioId,
+    citas.map((c) => ({ id: c.dealId, submissionOrigenId: c.envioId })));
+  return citas.filter((c) => {
+    const envio = porDeal.get(c.dealId);
+    return envio && perteneceAlCorte(envio, args.corte);
+  }).length;
 }

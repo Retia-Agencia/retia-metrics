@@ -1,3 +1,4 @@
+import { ROTULO_COSTO_NO_DISPONIBLE, type CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 import { Badge } from "@/components/ui/badge";
 import { Cifra } from "@/components/cifra-con-lista";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,16 +34,21 @@ function horaTexto(instante: Date): string {
  * "¿Cómo va el costo por agenda hoy?" (419 paso 3, diseño §4.2): cuatro Cifras que arma el servidor. El costo y su
  * color son los del semáforo y del reporte de WhatsApp; debajo, la trayectoria del día, la racha y las notas.
  */
-export async function SemaforoDelPrograma({ programId, programa, comparar = false }: {
+export async function SemaforoDelPrograma({ programId, programa, comparar = false, corte }: {
   programId: string;
   programa?: string;
   /** Solo si se pidió comparar en la página: "Ayer a esta hora". */
   comparar?: boolean;
+  corte?: CorteResuelto | null;
 }) {
+  if (corte && (corte.nivel === "conjunto" || corte.nivel === "anuncio")) return <Card>
+    <CardHeader><CardTitle>¿Cómo va el costo por agenda hoy?</CardTitle></CardHeader>
+    <CardContent><p className="text-sm text-muted-foreground">{ROTULO_COSTO_NO_DISPONIBLE}</p></CardContent>
+  </Card>;
   const ahora = new Date();
   const tipo = horaEnBogota(ahora) >= 18 ? "cierre" : "dia";
-  const metrica = await semaforoDelPrograma(db, { programId, ahora, tipo });
-  const cifras = cifrasDelSemaforo({ metrica, tipo, hora: horaTexto(ahora), comparar, programa });
+  const metrica = await semaforoDelPrograma(db, { programId, ahora, tipo, corte });
+  const cifras = cifrasDelSemaforo({ metrica, tipo, hora: horaTexto(ahora), comparar, programa, corte });
   const problemas = metrica.notas.filter((nota) => nota.tipo === "problema");
 
   return (

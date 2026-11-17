@@ -24,10 +24,12 @@ export function resumenDeFiltrosDePauta(f: {
   rango: { desde: string; hasta: string };
   comparacion: { desde: string; hasta: string } | null;
   closer: string | null;
+  corte?: { etiqueta: string } | null;
   escribirFecha: (dia: string) => string;
 }): string {
   const rango = (r: { desde: string; hasta: string }) => r.desde === r.hasta ? f.escribirFecha(r.desde) : `${f.escribirFecha(r.desde)} a ${f.escribirFecha(r.hasta)}`;
   const partes = [`Viendo ${f.programa}`, f.cohorte ? `cohorte ${f.cohorte}` : "todas las cohortes", rango(f.rango)];
+  if (f.corte) partes.push(`solo ${f.corte.etiqueta}`);
   if (f.closer) partes.push(`solo ${f.closer}`);
   if (f.comparacion) partes.push(`comparado con ${rango(f.comparacion)}`);
   return `${partes.join(", ")}. Un programa a la vez: nunca se mezclan.`;

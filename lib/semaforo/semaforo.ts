@@ -1,3 +1,4 @@
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, desc, eq, lte } from "drizzle-orm";
 import { fotosPauta, pautaSincronizaciones } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -104,7 +105,7 @@ async function leerUmbral(db: Db, programId: string): Promise<{
 
 async function trayectoriaDelDia(
   db: Db,
-  args: { programId: string; dia: string; ahora: Date; horas?: number[] },
+  args: { programId: string; dia: string; ahora: Date; horas?: number[]; corte?: CortePauta | null },
 ): Promise<PuntoSemaforo[]> {
   const { hora } = partesDeHoraEnBogota(args.ahora);
   const horas = args.horas === undefined
@@ -121,7 +122,7 @@ async function trayectoriaDelDia(
     const horaTexto = `${String(horaPunto).padStart(2, "0")}:00`;
     const hasta = corteDeHora(args.dia, horaPunto);
     if (primera.tomadaEn > hasta) return null;
-    const datos = await costoPorAgenda(db, { programId: args.programId, dia: args.dia, hasta });
+    const datos = await costoPorAgenda(db, { programId: args.programId, dia: args.dia, hasta, corte: args.corte });
     return {
       hora: horaTexto,
       gasto: datos.gasto,
@@ -135,7 +136,7 @@ async function trayectoriaDelDia(
 
 async function rachaDeDiasCerrados(
   db: Db,
-  args: { programId: string; hoy: string; tieneCohorte: boolean; umbral: UmbralCostoPorAgenda | null },
+  args: { programId: string; hoy: string; tieneCohorte: boolean; umbral: UmbralCostoPorAgenda | null; corte?: CortePauta | null },
 ): Promise<RachaSemaforo | null> {
   let dia = diaCalendarioAnterior(args.hoy);
   let colorDeRacha: RachaSemaforo["color"] | null = null;
@@ -146,6 +147,7 @@ async function rachaDeDiasCerrados(
       programId: args.programId,
       desde: dia,
       hasta: dia,
+      corte: args.corte,
     });
     const { color } = colorDelCosto({ datos, tieneCohorte: args.tieneCohorte, umbral: args.umbral });
     if (color === "sin_dato" || (colorDeRacha !== null && color !== colorDeRacha)) break;
@@ -215,7 +217,7 @@ function resumen(datos: CostoPorAgenda): Omit<PuntoSemaforo, "hora"> {
 
 export async function semaforoDelPrograma(
   db: Db,
-  args: { programId: string; ahora: Date; tipo: "dia" | "cierre"; horas?: number[] },
+  args: { programId: string; ahora: Date; tipo: "dia" | "cierre"; horas?: number[]; corte?: CortePauta | null },
 ): Promise<MetricaSemaforo> {
   const hoy = fechaDeInstanteEnBogota(args.ahora);
   const dia = args.tipo === "cierre" ? diaCalendarioAnterior(hoy) : hoy;
@@ -233,19 +235,21 @@ export async function semaforoDelPrograma(
   const [{ tieneCohorte, umbral }, datos, datosComparacion] = await Promise.all([
     leerUmbral(db, args.programId),
     args.tipo === "cierre"
-      ? costoPorAgendaDeVentana(db, { programId: args.programId, desde: dia, hasta: dia })
-      : costoPorAgenda(db, { programId: args.programId, dia, hasta: corteDeHora(dia, hora.hora) }),
+      ? costoPorAgendaDeVentana(db, { programId: args.programId, desde: dia, hasta: dia, corte: args.corte })
+      : costoPorAgenda(db, { programId: args.programId, dia, hasta: corteDeHora(dia, hora.hora), corte: args.corte }),
     args.tipo === "cierre"
       ? costoPorAgendaDeVentana(db, {
         programId: args.programId,
         desde: diaComparacion,
         hasta: diaComparacion,
+        corte: args.corte,
       })
       : fotoComparacion
         ? costoPorAgenda(db, {
           programId: args.programId,
           dia: diaComparacion,
           hasta: instanteComparacion,
+          corte: args.corte,
         })
         : Promise.resolve(null),
   ]);
@@ -260,8 +264,9 @@ export async function semaforoDelPrograma(
       dia,
       ahora: ahoraTrayectoria,
       horas: args.horas,
+      corte: args.corte,
     }),
-    rachaDeDiasCerrados(db, { programId: args.programId, hoy, tieneCohorte, umbral }),
+    rachaDeDiasCerrados(db, { programId: args.programId, hoy, tieneCohorte, umbral, corte: args.corte }),
     notasDeCalidad(db, {
       programId: args.programId,
       hoy: dia,

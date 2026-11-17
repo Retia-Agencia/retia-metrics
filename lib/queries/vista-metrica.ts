@@ -1,3 +1,5 @@
+import { resolverCorteDePauta } from "@/lib/pauta/corte-de-pauta";
+import { opcionesDeCorteDePauta } from "@/lib/pauta/opciones-de-corte";
 import { createHash } from "node:crypto";
 import { noShowPorDeal } from "@/lib/deals/resultados-de-llamada";
 import { parsearPeriodoUrl, resolverPeriodo, type PeriodoResuelto } from "@/lib/periodo";
@@ -572,7 +574,9 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
   const periodo = entrada.busqueda.sin_b === "1" && !seleccion.b
     ? { ...resuelto, b: null, aviso: seleccion.aviso }
     : resuelto;
-  const filtros = { programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
+  const corte = metrica === "pauta_meta" && typeof entrada.busqueda.corte === "string" && typeof entrada.busqueda.corte_id === "string"
+    ? resolverCorteDePauta(await opcionesDeCorteDePauta(db, programId), entrada.busqueda.corte, entrada.busqueda.corte_id) : null;
+  const filtros = { ...(corte ? { corte } : {}), programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

@@ -3,7 +3,8 @@
 import { useId } from "react";
 import { SelectorPeriodo } from "@/components/selector-periodo";
 import { useFiltrosUrl } from "@/components/filtros/use-filtros-url";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { NIVELES_DE_CORTE, type CorteResuelto, type OpcionDeCorte } from "@/lib/pauta/corte-de-pauta";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import type { OpcionDeCloser } from "@/lib/queries/dashboard";
 
@@ -30,6 +31,7 @@ export interface FiltrosDelHubProps {
   cohorte?: { valor: string; opciones: readonly { id: string; codigo: string; activa: boolean }[] };
   /** La línea bajo el filtro Cohorte: cuándo se vende y cuándo fue la primera venta. */
   lineaDeCohorte?: string;
+  corte?: { opciones: readonly OpcionDeCorte[]; elegido: CorteResuelto | null };
 }
 
 const TODAS = "todas";
@@ -54,6 +56,7 @@ export function FiltrosDelHub({
   filtraCloser = true,
   cohorte,
   lineaDeCohorte,
+  corte,
 }: FiltrosDelHubProps) {
   const { poner, pendiente } = useFiltrosUrl();
 
@@ -97,6 +100,24 @@ export function FiltrosDelHub({
         ) : null}
 
         <SelectorPeriodo periodo={periodo} anteriorDisponible={anteriorDisponible} partes="comparacion" variante="chip" />
+        {corte ? <ControlConEtiqueta etiqueta="Ver solo">
+          <Select value={corte.elegido ? `${corte.elegido.nivel}:${corte.elegido.uuid}` : TODOS}
+            items={[{ value: TODOS, label: "Todo el programa" }, ...corte.opciones.map((o) => ({ value: `${o.nivel}:${o.id}`, label: o.nombre }))]}
+            onValueChange={(valor: string | null) => {
+              const opcion = corte.opciones.find((o) => `${o.nivel}:${o.id}` === valor);
+              poner({ corte: opcion?.nivel ?? null, corte_id: opcion?.id ?? null, pagina: null });
+            }}>
+            <SelectTrigger size="sm" aria-label="Ver solo" className="max-w-64"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={TODOS}>Todo el programa</SelectItem>
+              {NIVELES_DE_CORTE.map((nivel) => <SelectGroup key={nivel.id}>
+                <SelectLabel>{nivel.etiqueta}</SelectLabel>
+                {corte.opciones.filter((o) => o.nivel === nivel.id).map((o) =>
+                  <SelectItem key={o.id} value={`${o.nivel}:${o.id}`}>{o.nombre}</SelectItem>)}
+              </SelectGroup>)}
+            </SelectContent>
+          </Select>
+        </ControlConEtiqueta> : null}
       </div>
       {lineaDeCohorte ? <p className="cifra text-xs text-muted-foreground">{lineaDeCohorte}</p> : null}
       {periodo.aviso ? <p role="status" className="text-xs text-muted-foreground">{periodo.aviso}</p> : null}
