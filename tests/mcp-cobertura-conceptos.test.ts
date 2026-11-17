@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import type { Session } from "next-auth";
 import {
   auditarCoberturaDeConceptos,
+  CIFRAS_EN_EL_RESUMEN,
   CONCEPTOS_SIN_LISTA_EN_EL_MCP,
   TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP,
   TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP,
@@ -13,6 +15,7 @@ import { consultarMetricaMcp } from "@/lib/mcp/herramientas/metricas";
 import { explicacionDe } from "@/lib/metricas/explicacion";
 import { REGISTRO, type ClaveRegistrada } from "@/lib/metricas/registro";
 import { METRICAS_DE_LISTA } from "@/lib/queries/filtros-de-lista";
+import { salidaDeResumen } from "@/lib/mcp/salidas/resumen";
 
 const SIN_HALLAZGOS = {
   sinCobertura: [],
@@ -53,6 +56,35 @@ describe("cobertura de conceptos del MCP", () => {
     expect(pendientes).toHaveLength(TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP);
   });
 
+  it("cada cifra registrada de resumen_del_hub apunta a una ruta real de su esquema", () => {
+    const declaradas = Object.entries(CONCEPTOS_SIN_LISTA_EN_EL_MCP)
+      .filter(([, razon]) => razon.startsWith("Cifra de resumen_del_hub:"))
+      .map(([concepto]) => concepto);
+    expect(declaradas.filter((concepto) => !(concepto in CIFRAS_EN_EL_RESUMEN)).sort())
+      .toEqual([]);
+    const desenvolver = (schema: z.ZodType): z.ZodType => {
+      let actual = schema;
+      while (actual instanceof z.ZodNullable || actual instanceof z.ZodOptional) {
+        actual = actual.unwrap() as unknown as z.ZodType;
+      }
+      return actual;
+    };
+    const existe = (ruta: string) => {
+      let actual: z.ZodType = salidaDeResumen;
+      for (const segmento of ruta.split(".")) {
+        actual = desenvolver(actual);
+        if (!(actual instanceof z.ZodObject) || !(segmento in actual.shape)) return false;
+        actual = actual.shape[segmento] as unknown as z.ZodType;
+      }
+      return true;
+    };
+    for (const [concepto, ruta] of Object.entries(CIFRAS_EN_EL_RESUMEN)) {
+      expect(CONCEPTOS_SIN_LISTA_EN_EL_MCP[concepto as keyof typeof CONCEPTOS_SIN_LISTA_EN_EL_MCP], concepto)
+        .toMatch(/^Cifra de resumen_del_hub:/);
+      expect(existe(ruta), `${concepto}: ${ruta}`).toBe(true);
+    }
+  });
+
   it("muerde en los dos sentidos con fichas sintéticas", () => {
     const registro = { con_lista: { listas: ["lista"] }, sin_lista: { listas: [] } };
     expect(auditarCoberturaDeConceptos(registro, ["lista"], {})).toEqual({
@@ -86,12 +118,12 @@ describe("cobertura de conceptos del MCP", () => {
     expect(concepto.formula).toEqual(explicacionDe("ventas").formula);
   });
 
-  it("capacidades declara un concepto pendiente como disponible solo en la app", async () => {
+  it("capacidades dirige ticket_perdido al resumen del Hub", async () => {
     const rol = "developer" as const;
     const session = { user: { id: "dev", email: "dev@retia.test", name: "Dev", rol, operaComoCloser: false, closerId: null, alcanceLimitado: false } } as Session;
     const contexto = { db: {} as never, session, rol, tokenId: "token", escritura: false } satisfies ContextoMcp;
     const respuesta = await capacidadesMcp.ejecutar(contexto, capacidadesMcp.entrada.parse({ concepto: "ticket_perdido" }));
-    expect(respuesta.texto).toContain("todavía solo está disponible en la app");
-    expect((respuesta.estructurado.concepto as { via: string[] } | undefined)?.via).toEqual(["pendiente"]);
+    expect(respuesta.texto).not.toContain("todavía solo está disponible en la app");
+    expect((respuesta.estructurado.concepto as { via: string[] } | undefined)?.via).toEqual(["resumen_del_hub"]);
   });
 });

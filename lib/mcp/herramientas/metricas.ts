@@ -20,6 +20,12 @@ import { nombreCorto, nombreLargo, TITULOS_DE_LISTA } from "@/lib/vocabulario-me
 import { aSalidaDeResumen, salidaDeResumen } from "@/lib/mcp/salidas/resumen";
 import { salidaDeConsultaDeMetrica } from "@/lib/mcp/salidas/metrica";
 import { textoDeRazon, type RazonConCobertura } from "@/lib/cobertura";
+import { cargarPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
+import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
+import { leerProyeccion, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
+import { leerCumplimientoDeCohorte } from "@/lib/metas/cumplimiento-de-cohorte";
+import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
+import { calcularProyeccionDeRoas } from "@/lib/queries/proyeccion-roas";
 
 function tasaLegible(nombre: string, razon: RazonConCobertura, cobertura: number | null, parcial: boolean): string {
   return `${nombre}: ${textoDeRazon(razon, pct)} · cobertura ${cobertura === null ? "—" : pct(cobertura)}${parcial ? " (parcial)" : ""}`;
@@ -31,7 +37,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   nombre: "resumen_del_hub",
   titulo: "Resumen del Hub",
   descripcion:
-    `Úsala cuando necesites las cifras principales del Hub de un programa para un periodo. Devuelve ${nombreCorto("ventas").toLocaleLowerCase()}, ${nombreCorto("vendido").toLocaleLowerCase()}, recaudado, por cobrar, dinero que entró a caja, ${nombreCorto("citas").toLocaleLowerCase()}, ${nombreCorto("shows").toLocaleLowerCase()} y tasas con cobertura. ` +
+    `Úsala cuando necesites las cifras principales del Hub de un programa para un periodo. Devuelve ${nombreCorto("ventas").toLocaleLowerCase()}, ${nombreCorto("vendido").toLocaleLowerCase()}, recaudado, por cobrar, dinero que entró a caja, ${nombreCorto("citas").toLocaleLowerCase()}, ${nombreCorto("shows").toLocaleLowerCase()} y tasas con cobertura. También devuelve la columna Total de Pauta, pérdidas por motivo con ticket perdido en USD, medianas de días hábiles de cita a pago y las proyecciones de Planeación, Cumplimiento y ROAS. ` +
     "Las fechas son días de Bogotá (AAAA-MM-DD), cada monto conserva su moneda y toda tasa informa su cobertura; " +
     "— significa que no se puede calcular. No mezcla programas ni devuelve filas individuales.",
   entrada: entradaResumen,
@@ -41,11 +47,42 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
   async ejecutar(contexto, entrada) {
     const programa = await programaVisible(contexto, entrada.programa);
     const hoy = hoyEnBogota();
+    const ahora = new Date();
     const periodoPedido = parsearPeriodoUrl(busquedaDePeriodoMcp(entrada));
-    const entradaDeVista = { programId: programa.id, hoy, periodo: periodoPedido, preset: presetDePeriodoMcp(entrada) };
+    const entradaDeVista = { programId: programa.id, hoy, ahora, periodo: periodoPedido, preset: presetDePeriodoMcp(entrada) };
     const contextoDeVista = await resolverContextoDeVista(entradaDeVista, contexto.db);
     const sinProyectar = await armarVistaDelDashboard(entradaDeVista, contexto.db, contextoDeVista);
     const vista = proyectarDashboardSegunRol(sinProyectar, contexto.rol);
+    const cohorteDePauta = contextoDeVista.filtroDeCohorte.elegida?.id ?? null;
+    const ventanaRitmo = ventanaRitmoDeUrl(undefined);
+    const [pauta, escalera, planeacion, cumplimiento, roasProyectado] = await Promise.all([
+      cargarPautaSemanal(contexto.db, {
+        programId: programa.id,
+        rango: vista.periodo.a,
+        hoy,
+        // La pestaña Pauta usa la cohorte elegida del contexto, aunque resumen_del_hub no reciba un filtro de cohorte.
+        cohorteId: cohorteDePauta,
+        paso: "semana",
+        porCuenta: false,
+      }),
+      vistaDeEscalera({
+        programId: programa.id,
+        slug: programa.slug,
+        hoy,
+        periodo: vista.periodo,
+        claveCloser: vista.claveCloser,
+        cohorteId: vista.filtroDeCohorte.cohorteId,
+        cohorteIdDeB: vista.filtroDeCohorte.cohorteIdDeB,
+        origen: enlaceDeSeccionHub(programa.slug, "comercial"),
+        conEquipo: veEquipoComercial(contexto.rol),
+      }, contexto.db),
+      leerProyeccion({ programId: programa.id, hoy, ahora, ventanaDiasHabiles: ventanaRitmo }, contexto.db),
+      leerCumplimientoDeCohorte(programa.id, cohorteDePauta, hoy, contexto.db),
+      (async () => {
+        const roas = await cargarRoasDePauta(contexto.db, programa.id, vista.periodo.a, hoy, ahora);
+        return calcularProyeccionDeRoas(contexto.db, { programId: programa.id, rango: vista.periodo.a, hoy, ahora, vista: roas });
+      })(),
+    ]);
     const grupo = vista.embudo.grupo;
     const caja = vista.caja.map((valor) => monto(valor.total, valor.moneda));
     const enlace = enlaceDeSeccionHub(programa.slug, "comercial");
@@ -61,7 +98,15 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       `${nombreCorto("cita_a_venta")}: ${vista.embudo.agendaAVenta === null ? "—" : pct(vista.embudo.agendaAVenta)} · cobertura ${grupo.cobertura === null ? "—" : pct(grupo.cobertura)}${grupo.parcial ? " (parcial)" : ""}`,
       enlace,
     ];
-    return { texto: lineas.join("\n"), estructurado: aSalidaDeResumen(vista, { nombre: programa.nombre, slug: programa.slug }, enlace) };
+    return {
+      texto: lineas.join("\n"),
+      estructurado: aSalidaDeResumen(
+        vista,
+        { pauta: pauta.filas, escalera, planeacion, cumplimiento, roasProyectado },
+        { nombre: programa.nombre, slug: programa.slug },
+        enlace,
+      ),
+    };
   },
 };
 

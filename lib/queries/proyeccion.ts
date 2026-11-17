@@ -169,6 +169,8 @@ export interface ProyeccionDeCohorte {
   leadsRequeridosDia: ValorDeProyeccion;
   repartoSemanal: TramoSemanal[];
   supuestos: {
+    /** Muestra mínima configurada para confiar en las tasas del programa. */
+    muestraMinima: number;
     /** La ventana escogida, en días hábiles. */
     ventanaDiasHabiles: VentanaRitmo;
     /** Los días hábiles que de verdad cubre: menos si la venta de la cohorte empezó después. */
@@ -206,6 +208,8 @@ export interface DatosParaProyeccion {
   ventanaHasta: string;
   ventanaRecortada?: boolean;
   conversion: ConversionElegida;
+  /** Configuración del programa; los cálculos puros conservan el valor por defecto si no la reciben. */
+  muestraMinima?: number;
 }
 
 const disponible = (valor: number): ValorDeProyeccion => ({ valor, razon: null });
@@ -256,6 +260,7 @@ export function calcularProyeccion(datos: DatosParaProyeccion): ProyeccionDeCoho
       fechaCierreVentas: datos.cohorte.fechaCierreVentas,
     },
     supuestos: {
+      muestraMinima: datos.muestraMinima ?? MUESTRA_MINIMA_CONVERSION,
       ventanaDiasHabiles: datos.ventanaDiasHabiles,
       diasHabilesVentana: datos.diasHabilesVentana,
       ventanaDesde: datos.ventanaDesde,
@@ -423,6 +428,7 @@ export async function leerProyeccion(
       ventanaDesde: ventanaInicial,
       ventanaHasta: hoy,
       conversion: elegirConversion({ objetivo: null, anterior: null, enCurso: null }),
+      muestraMinima,
     });
   }
 
@@ -478,5 +484,6 @@ export async function leerProyeccion(
       enCurso: medidaEnCurso,
       muestraMinima,
     }),
+    muestraMinima,
   });
 }

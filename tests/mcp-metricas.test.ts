@@ -7,6 +7,12 @@ import type { ContextoMcp } from "@/lib/mcp/herramientas";
 import { resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { vistaDeLista } from "@/lib/queries/vista-metrica";
 import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
+import { cargarPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
+import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
+import { hoyEnBogota } from "@/lib/format";
+import { leerProyeccion, ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
+import { leerCumplimientoDeCohorte } from "@/lib/metas/cumplimiento-de-cohorte";
+import { calcularProyeccionDeRoas } from "@/lib/queries/proyeccion-roas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
@@ -128,6 +134,67 @@ describe("herramientas MCP de métricas", () => {
     expect(Object.keys(salida.estructurado)).not.toContain("vista");
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:contratadoUsd|embudo|cierres|dinero)"\s*:/);
     expect(salida.texto).toContain("cobertura");
+  });
+
+  it("resumen_del_hub conserva Pauta, pérdidas y cita a pago de los loaders de las pantallas", async () => {
+    const hoyMcp = hoyEnBogota();
+    const entradaDeVista = { programId: programaA, hoy: HOY, periodo: { preset: "custom" as const, a: RANGO, comparaciones: [] }, preset: "custom" };
+    const contextoVista = await resolverContextoDeVista(entradaDeVista, db);
+    const pagina = await armarVistaDelDashboard(entradaDeVista, db, contextoVista);
+    const [pauta, escalera, salida] = await Promise.all([
+      cargarPautaSemanal(db, { programId: programaA, rango: pagina.periodo.a, hoy: hoyMcp, cohorteId: contextoVista.filtroDeCohorte.elegida?.id ?? null, paso: "semana", porCuenta: false }),
+      vistaDeEscalera({ programId: programaA, slug: "programa-a", hoy: hoyMcp, periodo: pagina.periodo, claveCloser: pagina.claveCloser, cohorteId: pagina.filtroDeCohorte.cohorteId, cohorteIdDeB: pagina.filtroDeCohorte.cohorteIdDeB, origen: "/p/programa-a/hub?seccion=comercial", conEquipo: true }, db),
+      resumenDelHubMcp.ejecutar(contexto(gerenteId, "gerente"), { programa: "programa-a", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta }),
+    ]);
+    const mcp = salida.estructurado as {
+      pauta: Array<{ clave: string; nombre: string; unidad: string; valor: number | null; cobertura: unknown }>;
+      perdidos: Array<{ motivo: string; deals: number; ticket_perdido_usd: number; deals_sin_ticket: number }>;
+      dias_cita_a_pago: { pago_rapido: number | null; pago_despues: number | null };
+    };
+    expect(mcp.pauta).toEqual(pauta.filas.map(({ clave, nombre, unidad, celdas }) => ({ clave, nombre, unidad, valor: celdas.total.valor, cobertura: celdas.total.cobertura })));
+    expect(mcp.perdidos).toEqual(pagina.embudoEtapas.motivosDePerdida.map((fila) => ({ motivo: fila.motivo, deals: fila.deals, ticket_perdido_usd: fila.ticketPerdidoUsd, deals_sin_ticket: fila.dealsSinTicket })));
+    expect(mcp.dias_cita_a_pago).toMatchObject({
+      pago_rapido: escalera.principal.celdas.pago_rapido.diasMedianos,
+      pago_despues: escalera.principal.celdas.pago_despues.diasMedianos,
+    });
+    expect(mcp.dias_cita_a_pago.pago_rapido).toBeNull();
+    expect(mcp.dias_cita_a_pago.pago_despues).toBeNull();
+    expect(mcp.pauta.some((fila) => fila.valor === null)).toBe(true);
+  });
+
+  it("resumen_del_hub conserva Planeación, Cumplimiento y ROAS de los loaders de las pantallas", async () => {
+    const hoy = hoyEnBogota();
+    const ahora = new Date();
+    const ventana = ventanaRitmoDeUrl(undefined);
+    const contextoVista = await resolverContextoDeVista({
+      programId: programaA, hoy, periodo: { preset: "custom" as const, a: RANGO, comparaciones: [] }, preset: "custom",
+    }, db);
+    const cohorteId = contextoVista.filtroDeCohorte.elegida?.id ?? null;
+    const [planeacion, cumplimiento, roas, salida] = await Promise.all([
+      leerProyeccion({ programId: programaA, hoy, ahora, ventanaDiasHabiles: ventana }, db),
+      leerCumplimientoDeCohorte(programaA, cohorteId, hoy, db),
+      calcularProyeccionDeRoas(db, { programId: programaA, rango: RANGO, hoy, ahora }),
+      resumenDelHubMcp.ejecutar(contexto(gerenteId, "gerente"), {
+        programa: "programa-a", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta,
+      }),
+    ]);
+    const proyeccion = (salida.estructurado as { proyeccion: Record<string, Record<string, unknown>> }).proyeccion;
+    expect(proyeccion.dias_del_ritmo.valor).toBe(planeacion.supuestos.ventanaDiasHabiles);
+    expect(proyeccion.citas_minimas.valor).toBe(planeacion.supuestos.muestraMinima);
+    expect(proyeccion.ventas).toMatchObject(planeacion.proyeccion);
+    expect(proyeccion.leads_que_hacen_falta).toMatchObject(planeacion.leadsRequeridosDia);
+    expect(proyeccion.presupuesto).toMatchObject({ valor: cumplimiento.inversion?.llevamos ?? null, meta: cumplimiento.inversion?.meta ?? null, moneda: "COP" });
+    expect(proyeccion.agendas_dia.valor).toBe(cumplimiento.agendasPorDia?.valor ?? null);
+    expect(proyeccion.agendas_req.valor).toBe(cumplimiento.requeridos?.agendasDia.valor ?? null);
+    expect(proyeccion.inversion_req).toMatchObject({ valor: cumplimiento.requeridos?.inversionDiaMeta ?? null, moneda: "COP" });
+    expect(proyeccion.roas_proy).toMatchObject({ valor: roas.valor, razon: roas.motivo });
+  });
+
+  it("resumen_del_hub conserva su gate y oculta un programa ajeno", async () => {
+    expect(resumenDelHubMcp.puede(contexto(closerId, "closer"))).toBe(false);
+    await expect(resumenDelHubMcp.ejecutar(contexto(closerId, "closer"), {
+      programa: "programa-b", periodo: "custom", desde: RANGO.desde, hasta: RANGO.hasta,
+    })).rejects.toMatchObject({ status: 404, message: "No existe ese programa" });
   });
 
   it("consultar_metrica conserva el número de la función de página", async () => {

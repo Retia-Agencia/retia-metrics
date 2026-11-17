@@ -227,9 +227,9 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
   escalera_sin_resultado: "Se pide por consultar_hechos: es una marca de los deals de la escalera.",
   descuento_promedio: "Cifra de resumen_del_hub: promedia el descuento de las ventas, sin filas propias.",
   descuento_promedio_porcentaje: "Cifra de resumen_del_hub: expresa el mismo descuento como porcentaje.",
-  dias_cita_a_pago: "Pendiente en el MCP: la app la calcula en Comercial; el MCP aún no la devuelve.",
-  perdidos_por_motivo: "Pendiente en el MCP: la app la calcula en Comercial; el MCP aún no la devuelve.",
-  ticket_perdido: "Pendiente en el MCP: la app la calcula en Comercial; el MCP aún no la devuelve.",
+  dias_cita_a_pago: "Cifra de resumen_del_hub: devuelve las medianas de pago rápido y pago después de la escalera de Comercial.",
+  perdidos_por_motivo: "Cifra de resumen_del_hub: agrupa los deals perdidos por su motivo vigente.",
+  ticket_perdido: "Cifra de resumen_del_hub: suma en USD el ticket perdido por cada motivo y declara los deals sin ticket.",
   presupuesto: "Cifra de resumen_del_hub: es la parte consumida del presupuesto de la cohorte.",
   agendas_dia: "Cifra de resumen_del_hub: promedia las agendas sobre los días hábiles transcurridos.",
   agendas_req: "Cifra de resumen_del_hub: deriva las agendas necesarias del objetivo y las tasas.",
@@ -253,11 +253,59 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
   frecuencia: "Cifra de resumen_del_hub: agrega impresiones y alcance reportados por Meta.",
 } as const satisfies Partial<Record<ClaveDeConcepto, RazonSinLista>>;
 
-/** Solo baja cuando un concepto obtiene una lista consultable propia. */
-export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 49;
+/**
+ * Solo baja cuando un concepto obtiene una lista consultable propia.
+ * 17-nov (411): 49 → 52 porque `dias_cita_a_pago`, `perdidos_por_motivo` y `ticket_perdido` pasaron de «Pendiente en el MCP»
+ * a «Cifra de resumen_del_hub» (sin filas propias). El total de excepciones no creció (49 + 3 = 52); los pendientes bajaron de 3 a 0.
+ */
+export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 52;
 
 /** Solo baja cuando un concepto pendiente entra al MCP. */
-export const TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP = 3;
+export const TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP = 0;
+
+/** Ruta estable de cada concepto que resumen_del_hub ya devuelve en su salida estructurada. */
+export const CIFRAS_EN_EL_RESUMEN = {
+  llevamos: "norte.cohorte.vendidos",
+  recaudado: "cifras.recaudado",
+  por_cobrar: "cifras.por_cobrar",
+  comision: "cifras_derivadas.comision.total_usd",
+  show_por_cita: "tasas.asistencia",
+  cita_a_venta: "tasas.cita_a_venta",
+  meta: "norte.cohorte.meta",
+  objetivo_cohorte: "norte.cohorte.meta",
+  objetivo_de_leads: "cifras_derivadas.leads.objetivo_por_dia",
+  dias_del_ritmo: "proyeccion.dias_del_ritmo",
+  citas_minimas: "proyeccion.citas_minimas",
+  objetivo_mes: "norte.metas_del_mes.meta_cupos",
+  objetivo_semana: "norte.metas_del_mes.objetivo_semana",
+  esperado_a_hoy: "norte.cohorte.ventana.esperado",
+  faltan: "norte.cohorte.faltan",
+  por_dia_habil: "norte.metas_del_mes.por_dia_habil",
+  objetivo_del_dia: "norte.cohorte.ventana.meta_dinamica",
+  proyeccion: "proyeccion.ventas",
+  leads_que_hacen_falta: "proyeccion.leads_que_hacen_falta",
+  descuento_promedio: "cifras_derivadas.descuento.promedio_usd",
+  descuento_promedio_porcentaje: "cifras_derivadas.descuento.promedio_porcentaje",
+  dias_cita_a_pago: "dias_cita_a_pago",
+  perdidos_por_motivo: "perdidos",
+  ticket_perdido: "perdidos",
+  presupuesto: "proyeccion.presupuesto",
+  agendas_dia: "proyeccion.agendas_dia",
+  agendas_req: "proyeccion.agendas_req",
+  inversion_req: "proyeccion.inversion_req",
+  roas_proy: "proyeccion.roas_proy",
+  costo_agenda_crm: "pauta",
+  cac: "pauta",
+  costo_agenda_meta: "pauta",
+  agendas_meta: "pauta",
+  roas: "pauta",
+  profit: "pauta",
+  cpm: "pauta",
+  ctr: "pauta",
+  llegada_landing: "pauta",
+  conversion_landing: "pauta",
+  frecuencia: "pauta",
+} as const satisfies Partial<Record<ClaveDeConcepto, string>>;
 
 export function viaDeConceptoSinLista(clave: ClaveRegistrada): "consultar_hechos" | "resumen_del_hub" | "pendiente" {
   const razon = (CONCEPTOS_SIN_LISTA_EN_EL_MCP as Partial<Record<ClaveRegistrada, RazonSinLista>>)[clave];

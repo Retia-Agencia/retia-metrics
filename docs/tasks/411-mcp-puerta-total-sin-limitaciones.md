@@ -3,7 +3,7 @@ id: 411
 etapa: mcp
 serves: "Pedido de Mani del 9-nov (el MCP no limita acciones ni métricas: puerta de entrada con reglas de orientación, visibilidad completa y control total según el rol) · ADR 0129 · ADR 0119 · A-177 · A-178 a A-185"
 depends: [348, 383]
-status: en curso  # 13-nov: F0, F1, F2 y F3 hechas; faltan F4 y F5
+status: en curso  # 17-nov: F0 a F4 hechas; F5 espera la decisión de Mani sobre A-177
 ---
 
 # 411 — El MCP del CRM como puerta total: sin límites de acciones ni de métricas
@@ -164,10 +164,10 @@ pre-armada: es una **puerta con reglas de orientación** sobre los mismos servic
 - [x] **F2 Escritura (reemplaza al 384).** Registro de acciones, vista previa, confirmación, rastro `mcp`, deshacer; revisión
   adversarial (`/codex:adversarial-review`) y petición forjada por rol y programa. Ola 1 en main el 13-nov: registro `ACCIONES` con `mover_etapa` y `deshacer_evento`, un solo caso de uso (`lib/deals/mover-deal.ts`), `mcp_vistas_previas` de un uso (0134) y el origen del movimiento en `deal_etapa_historial` (0135); ola 2 en main el 13-nov: diez acciones más (`marcar_show`, `pegar_grain`, `corregir_resultado`, `marcar_fallida`, `asignar_llamada_suelta`, `registrar_abono`, `cambiar_plataforma_de_abono`, `anular_deal`, `anular_abono`, `anular_llamada`) sobre los mismos casos de uso de la app, vista previa por ensayo con rollback (`lib/mcp/acciones/ensayo.ts`), guarda de alcance única con 404 (`lib/deals/alcance.ts`), anular mudado a `lib/deals/anular.ts`, Calendly y Grain después del commit, y el origen de cada movimiento en la ficha y en `ficha_de_deal`. Decisiones de Mani del 13-nov: sin reagendar ni agendar (reservan en Calendly); `cancelada` y asignar suelta entran avisando que cancelan en Calendly; el enlace del comprobante es obligatorio en el MCP; las anulaciones, `marcar_fallida`, `asignar_llamada_suelta`, `corregir_resultado`, `marcar_show`, `pegar_grain` y `cambiar_plataforma_de_abono` no se deshacen en un paso, igual que en la app. Hallazgo de la app, sin tocar: deshacer el resultado de una fallida deja Re-agenda puesto (fijado en `tests/mcp-acciones-ola2.test.ts`).
 - [x] **F3 Guardián de cobertura** mordido en los dos sentidos.
-- [ ] **F4 Medición** (migración propia, aplicada por la sesión principal, con `lock_timeout`) e informe.
-- [ ] **F5 Descubrimiento y evaluaciones.**
+- [x] **F4 Medición** (migración 0143 aplicada, código `d182f274`) e informe: salida de 7 días anotada abajo (17-nov); ninguna herramienta pasa el tope de bytes.
+- [ ] **F5 Descubrimiento y evaluaciones.** Hecho: `capacidades`, 8 evaluaciones, cliente real y hueco de pauta cerrado (17-nov). Falta solo la decisión de Mani sobre A-177 (opciones abajo).
 - [x] `docs/mcp.md` reescrito (§1, §3, §4 puntos 7, 8 y 20, §7) en el mismo commit que el código (N8); `INSTRUCCIONES_MCP` al día.
-- [ ] Tracker y `status:` coinciden (N9).
+- [x] Tracker y `status:` coinciden (N9), 17-nov.
 
 ## F3 en detalle (enmienda del 13-nov, para implementar sin huecos)
 
@@ -240,4 +240,31 @@ cerrado. Es la prueba de aceptación de todo el frente de métricas y nadie la h
 - **F5, cliente real (hecho el 14-nov):** Claude Code conectado a `https://retia-metrics-seven.vercel.app/api/mcp` (`claude mcp add`). Comunicarte, octubre-2026, todas las cohortes: MCP (`resumen_del_hub`) vendido USD 22.136, recaudado 18.273, por cobrar 3.863, entró a caja 24.364, ventas 28 (también por `consultar_hechos`); Hub en pantalla (Dinero) las mismas cuatro cifras en USD; consulta independiente a la base: 28 ventas. **Ojo:** la pestaña Comercial del Hub trae por defecto el filtro de cohorte C3 (otra población: 15 «compraron» en el embudo); comparar siempre con `cohorte=todas`. El mensaje de WhatsApp no imprime ventas: su paridad con Pauta está en `tests/numeros-dorados-whatsapp.test.ts`.
 - **Seguridad:** al revisar la conexión con `claude mcp get` el token Bearer personal quedó impreso en la sesión. **Revocarlo y emitir otro** (Ajustes › Conexiones IA) y no volver a imprimir esa salida.
 - **Hueco abierto:** `resumen_del_hub` no devuelve cifras de pauta; ver el ticket 429 (`agendas_meta`, `costo_agenda_meta`, `cac`, `roas` declarados como «Cifra de resumen_del_hub» en `lib/mcp/cobertura.ts` sin que esa herramienta las dé). Revisar cuáles de las ~49 excepciones son aspiracionales.
+**17-nov, F4: medición (solo lectura, producción, 7 días del 10 al 17-nov).** Comando: `npx tsx --env-file=.env.local scripts/informe-mcp.ts --dias 7`. Las columnas de bytes y consultas solo se llenan desde el despliegue del 14-nov: las herramientas con `null` casi no se usaron después (o se llamaron antes de esa fecha). Uso bajo (unas 300 llamadas en 7 días), así que son cifras indicativas, no una línea base firme.
+
+| Herramienta | Llamadas | p50 / p95 ms | Bytes p50 / p95 | Consultas (prom.) |
+|---|---|---|---|---|
+| `ficha_de_lead` | 105 | 400 / 473 | sin dato | sin dato |
+| `pauta_roas` | 49 (6 denegadas 404) | 1.523 / 2.390 | sin dato | sin dato |
+| `buscar_leads` | 41 | 315 / 468 | sin dato | sin dato |
+| `consultar_metrica` | 29 (11 denegadas 404) | 419 / 1.559 | sin dato | sin dato |
+| `ficha_de_deal` | 28 | 1.589 / 2.086 | 6.398 / 6.894 | 63,2 |
+| `consultar_hechos` | 14 (2 error 422) | 246 / 583 | 750 / 4.216 | 12,8 |
+| `buscar` | 11 | 454 / 841 | 1.360 / 2.130 | 15,4 |
+| `programas_visibles` | 10 | 111 / 158 | 435 / 435 | 3 |
+| `origen_del_programa` | 8 | 1.080 / 1.629 | 2.316 / 2.810 | 16 |
+| `tablero_de_deals` | 5 | 675 / 887 | sin dato | sin dato |
+| `resumen_del_hub` | 3 | 699 / 913 | sin dato | sin dato |
+| `preparar_accion` / `confirmar_cambio` | 2 / 1 | 338 / 592; 578 | 722 / 822; 306 | 15,5; 33 |
+| `capacidades`, `opciones_de_filtros` | 1 / 1 | 98; 1.069 | sin dato | sin dato |
+
+- **Ninguna herramienta pasa el tope de bytes** (`TOPE_BYTES_POR_DEFECTO`, 64 KiB): la columna `sobreTope` es 0 en todas; la respuesta más grande es `consultar_hechos` p95 4.216 bytes. Tope de 300 llamadas por minuto: no alcanzado.
+- **Consultas:** la que más gasta es `ficha_de_deal` con 63 por llamada (y la más lenta por llamada, p50 1.589 ms). Es candidata a revisar; `consultas` no tiene tope declarado todavía, así que ninguna se marca por encima de uno. Pendiente de otro ticket (rendimiento 435 a 447).
+- **Fallas:** 11 `consultar_metrica` y 6 `pauta_roas` denegadas con 404 (programa u objeto fuera del alcance del rol, comportamiento esperado), 2 `consultar_hechos` 422, 1 `preparar_accion` 400 y 1 `tablero_de_deals` 400 (esquema).
+**17-nov, F5: cesión A-177, decisión que espera a Mani (nada construido).** Hallazgo que separa dos cosas que A-177 mezcla: (1) **reasignar un deal por un administrador ya existe en la app** (`reasignarDealAccion` → `editarDeal`, `app/(app)/p/[programa]/inbox/acciones.ts:180`, exige `esAdministrador` y dueño posible, ADR 0043) y está como `pendiente` de operación en `lib/mcp/cobertura.ts`; (2) **que un closer ceda su propio deal** sí es regla nueva (enmienda al ADR 0003).
+- **Opción (a): acción nueva de cesión por el closer.** Costo: `/grill-with-docs` sobre las 9 preguntas abiertas de A-177 (aceptación, llamada activa y Calendly, comisión, `traido_por`, historia y deshacer, aviso por Juanito, carrera, métricas, norma), ADR que enmienda el 0003, caso de uso en `lib/` con bloqueo de fila, pantalla en la ficha y solo después la fila en `ACCIONES` con preparar, confirmar y deshacer. Es lo que ya dijo D5 (12-nov): primero ADR y pantalla. Días de trabajo y decisiones de negocio (comisión, Calendly) que no son del MCP.
+- **Opción (b): ADR que la descarta del MCP por ahora.** Costo: un ADR corto que diga que el MCP no tiene cesión mientras la app no la tenga (D5), que la ruta hoy es que un administrador reasigne, y que el `it.todo` de `tests/mcp-evaluaciones.test.ts` pasa a una evaluación que espera esa respuesta. Reabre solo si la app construye la cesión.
+- **Complemento barato a cualquiera de las dos:** exponer `reasignar_deal` (solo administradores) como fila de `ACCIONES`: el caso de uso existe, falta registro, vista previa (dueño actual → nuevo, llamada pendiente que seguiría a nombre del anterior, hallazgo del 9-nov) y su test. Bajaría el trinquete de pendientes en 1.
+- **Recomendación:** (b) + `reasignar_deal`. Cierra el 411 sin construir una norma de negocio dentro del MCP. Pendiente de tu sí.
+**17-nov, hueco de pauta y las tres «Pendiente en el MCP».** `resumen_del_hub` ahora trae `pauta` (la columna Total de `cargarPautaSemanal`: `agendas_meta`, `costo_agenda_meta`, `cac`, `roas`, `profit`, `cpm`, `ctr`, landing, frecuencia), `perdidos` (`vista.embudoEtapas.motivosDePerdida`: motivo, deals y ticket perdido en USD), `dias_cita_a_pago` (`vistaDeEscalera`), `norte` y `cifras_derivadas` (campos ya calculados de la vista) y `proyeccion` (`leerProyeccion`, `leerCumplimientoDeCohorte`, `calcularProyeccionDeRoas`). Auditoría de las excepciones: de 40 declaradas como «Cifra de resumen_del_hub», 9 eran aspiracionales (`proyeccion`, `leads_que_hacen_falta`, `presupuesto`, `agendas_dia`, `agendas_req`, `inversion_req`, `roas_proy`, `dias_del_ritmo`, `citas_minimas`); más las 11 de pauta; todas tienen hoy ruta real en `CIFRAS_EN_EL_RESUMEN`, vigilada por test. Pendientes de concepto: 3 → 0; tope sin lista 49 → 52 (las tres pasan de pendientes a cifra del resumen; el total de excepciones no crece). **Pendiente de revisión humana:** el bloque `pauta` usa la cohorte elegida del contexto de la vista (comentario en `metricas.ts`); comparar con la pestaña Pauta en pantalla con login de Mani. Las 98 acciones de la app sin equivalente en el MCP (hoy 97 pendientes + 1) siguen en el 386 y otro ticket: conteo del 17-nov, 97 pendientes (33 de operación, 64 de configuración) y 20 fuera.
 - **Cierra 411:** F4 con la salida del informe, F5 con la decisión sobre A-177 (acción nueva o ADR que la descarte) y el hueco de pauta, N9.
