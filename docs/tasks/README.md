@@ -73,8 +73,8 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso |
-| [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso |
+| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso · 17-nov · en main, CI verde, `postgres` fuera, 24 h sin 5xx; falta abrir `/nerd-stats` con sesión y cerrar el 243 |
+| [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso · 17-nov · medidor en producción y tabla p50/p95 en el estudio §13.8; falta el presupuesto de 15 rutas (lo cubre el guardián del 447) |
 | [x] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | done · 15-nov · 0 idénticas en todas las rutas del estudio (dev:local), abono probado sin recargar, CI verde (282c34e2) |
 | [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |
 | [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | en curso · en main · 15-nov · medido en producción 1,4 s (≤ 2 s) y alarmas idénticas; sin índice de `entregas_webhook` (descartado, medido); falta el checkpoint verde |
@@ -85,7 +85,7 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 | [ ] | 444 | [Lo que casi no cambia se lee de caché](./444-cache-de-lo-que-casi-no-cambia.md) | 437, 438 | todo |
 | [ ] | 445 | [El contrato de rendimiento, escrito y vigilado](./445-contrato-de-rendimiento.md) | 435 a 444 | todo |
 | [ ] | 446 | [El cron de Calendly falla todos los días](./446-cron-de-calendly-falla-a-diario.md) | — | todo |
-| [ ] | 447 | [Una página no repite una consulta: contrato y guardián por página](./447-guardian-de-consultas-por-pagina.md) | 437 | en curso · 15-nov · WIP en la rama `t447` (falta lo del handoff 15-nov noche); adelanta del 445 las filas de consultas; el presupuesto del 436 no ve las idénticas del 437 (mide funciones y en PGlite la memoria no corre) |
+| [ ] | 447 | [Una página no repite una consulta: contrato y guardián por página](./447-guardian-de-consultas-por-pagina.md) | 437 | en main · 17-nov · fase 2 en main (`24e9f2a4`, CI verde): 22 páginas más y prueba de que ninguna crece con las filas; falta cubrir `/p/[programa]/hub`, que se cubre en el 438 |
 
 ## 22 · Pedidos del 11-nov (Michael y Paid Media) · 12-nov
 

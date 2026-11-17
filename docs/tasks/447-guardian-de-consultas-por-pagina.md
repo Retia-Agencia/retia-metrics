@@ -3,7 +3,7 @@ id: 447
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §8.2 · ticket 445 (adelanta sus filas de consultas) · AGENTS.md › Contratos"
 depends: [437]
-status: en curso
+status: en main  # 17-nov: fase 2 en main (24e9f2a4, CI verde); falta solo cubrir /p/[programa]/hub, que pasa al 438
 ---
 
 # 447 — Una página no repite una consulta: contrato escrito y guardián por página
@@ -62,6 +62,7 @@ función sospechosa.
 
 ## Done cuando
 - [x] Las tres filas en AGENTS.md › Contratos; el 445 las cita en vez de repetirlas.
-- [ ] El guardián corre las páginas del estudio §13.3 con la memoria activa, verde, y mordido con los cuatro casos. Fase 1 hecha (`/hub`, `/mi-espacio`, mordiscos y trinquete de cobertura); falta la fase 2: vaciar `PENDIENTES_447`.
-- [x] Topes por página: exactos y medidos en el CI para el escenario del test (la tabla del 437 es de dev:local y no es comparable). Fase 1: `/hub` y `/mi-espacio`.
-- [ ] Typecheck, lint, tests del cambio; tracker y `status:` iguales (N9).
+- [ ] El guardián corre las páginas del estudio §13.3 con la memoria activa, verde, y mordido con los cuatro casos. Fase 1 (`/hub`, `/mi-espacio`, mordiscos, trinquete) y fase 2 (22 páginas más, #27, `24e9f2a4`, 17-nov, CI verde) hechas. **Falta una página:** `/p/[programa]/hub` sigue en `PENDIENTES_447` porque sus lecturas están repartidas en `lib/hub/` y los componentes del Hub (ticket 419 en curso). Se cubre dentro del 438, que reescribe esas lecturas; ahí `PENDIENTES_447` queda vacía y el 447 pasa a `done`.
+- [x] Ninguna página crece con las filas: el guardián mide cada página con 0 y con 4 deals de más y exige el mismo número de consultas (17-nov, e891f1d3). `/mi-espacio` 18→31 era la siembra con un deal (costo fijo, probado).
+- [x] Topes por página: exactos y medidos en el CI para el escenario del test (la tabla del 437 es de dev:local y no es comparable). Fase 1: `/hub` y `/mi-espacio`; fase 2: las otras 22.
+- [x] Typecheck, lint y CI verde (fase 2); tracker y `status:` iguales (N9).

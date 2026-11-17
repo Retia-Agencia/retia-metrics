@@ -494,8 +494,40 @@ Toda ruta carga ~290 KB comprimidos de JavaScript aunque no tenga gráficas. 93 
   (https://supabase.com/kb/troubleshooting/how-do-i-update-connection-pool-settings-in-my-dashboard-wAxTJ_).
 - Los logs de Vercel (`vercel logs --json`) **no traen duración**.
 
-### 13.8 Lo único que sigue sin medir
+### 13.8 Tiempos en Vercel (17-nov): p50 y p95 de 24 h de logs reales
 
-**Tiempos reales en producción** (render por ruta en Vercel, y el peso del prefetch allá). El navegador del agente no
-tiene sesión de Google y los logs no traen duración. Sale del 436 (log estructurado por petición) o de una sesión de
-Mani en el panel del navegador.
+El 436 está en producción: cada petición escribe `{"costo":{…}}` y se lee con `vercel logs --query costo`. Muestra: 199
+peticiones de producción de las últimas 24 h (17-nov, 16:40 hora local), `GET` y `POST` de la misma ruta juntos (un `POST` es
+una acción del servidor que re-renderiza). `ms` es el total de la petición dentro de la función; `ms en base` va aparte en
+cada línea del log. Percentil por rango más cercano; con menos de 20 peticiones el p95 es indicativo, no estadístico.
+
+| Ruta (patrón) | n | ms p50 | ms p95 | consultas p50 | consultas p95 | idénticas (máx.) |
+|---|---:|---:|---:|---:|---:|---:|
+| `/p/[programa]/deals/[id]` | 98 | 1.214 | 1.766 | 77 | 87 | 19 |
+| `/p/[programa]/students` | 26 | 304 | 574 | 14 | 19 | 3 |
+| `/p/[programa]/deals` | 25 | 250 | 836 | 26 | 29 | 1 |
+| `/p/[programa]/calls` | 20 | 283 | 544 | 12 | 12 | 0 |
+| `/p/[programa]/leads/[id]` | 17 | 334 | 411 | 12 | 12 | 0 |
+| `/p/[programa]/programa` | 4 | 1.084 | 1.296 | 48 | 55 | 21 |
+| `/p/[programa]/hub` | 3 | 1.502 | 2.705 | 107 | 107 | 2 |
+| `/mi-espacio` | 2 | 789 | 1.073 | 34 | 35 | 1 |
+| `/p/[programa]/leads` | 2 | 199 | 353 | 12 | 12 | 0 |
+| `/ajustes/usuarios` | 2 | 187 | 203 | 12 | 12 | 4 |
+
+Lectura:
+- **El costo está en la ficha del deal, no en las listas.** `deals/[id]` pide 77 consultas (87 en p95) y repite 19 idénticas;
+  es además la ruta más visitada (las acciones de registrar abono, llamada y etapa re-renderizan la ficha). Es la primera
+  candidata de la fase 2 del 445 y del 438.
+- `programa` repite 21 idénticas; el guardián del 447 todavía no la cubre (está en `PENDIENTES_447`).
+- Las listas (`calls`, `leads`, `deals`, `students`) están en 12 a 29 consultas y por debajo de 850 ms en p95.
+- Las rutas con pocas peticiones (`hub`, `mi-espacio`, `ajustes/usuarios`) salieron porque el equipo casi no las abrió en
+  esas 24 h; hay que repetir la tabla cuando haya más tráfico. No hay filas de `/nerd-stats` ni de `/p/[programa]/programa`
+  con sesión de Mani.
+- La CLI de Vercel devuelve 50 líneas por consulta: la tabla se armó con 24 ventanas de una hora (`--since Nh --until Mh`).
+  Reproducir: `vercel logs --query costo --json --since 2h --until 1h`, una vez por hora.
+
+### 13.9 Lo que sigue sin medir
+
+El peso del prefetch en producción (invocaciones por carga de página, ticket 442) y los tiempos de `/nerd-stats` y
+`/p/[programa]/programa` con sesión: el navegador del agente no tiene sesión de Google. Los demás tiempos ya salen del
+log del 436 (§13.8).

@@ -3,7 +3,7 @@ id: 436
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §8.2, §9.1, §9.3 y §13.8 · contrato de rendimiento"
 depends: [435]
-status: en curso  # 15-nov: código, tests y build verdes en rama t436; faltan los logs y la tabla de Vercel (producción)
+status: en curso  # 17-nov: en producción con línea por petición y tabla §13.8; falta la casilla del presupuesto de 15 rutas, que cubre el guardián del 447
 ---
 
 # 436 — Cada petición dice cuánto costó: consultas y milisegundos, en producción y en un test
@@ -96,8 +96,8 @@ it.each(Object.entries(PRESUPUESTOS))("%s no pasa de su tope y no repite consult
 ## Done cuando
 - [x] `conContadorDeConsultas` del MCP usa el medidor nuevo y `lib/mcp/contador-de-consultas.ts` se borra (N7); los
       tests del MCP siguen verdes.
-- [ ] En producción, `vercel logs --query costo` muestra una línea por petición con ruta, consultas, idénticas y ms.
-- [ ] El estudio §13 gana la tabla **"Tiempos en Vercel"**: p50 y p95 de ms y consultas por ruta, de 24 h de logs
+- [x] En producción (17-nov: 199 líneas en 24 h), `vercel logs --query costo` muestra una línea por petición con ruta, consultas, idénticas y ms.
+- [x] (17-nov, §13.8) El estudio §13 gana la tabla **"Tiempos en Vercel"**: p50 y p95 de ms y consultas por ruta, de 24 h de logs
       reales (la llena la sesión principal). Con eso se cierra §13.8.
 - [ ] (parcial: 10 funciones cubiertas, faltan las de las demás rutas del §13.3; el trinquete ya muerde) `tests/presupuesto-de-consultas.test.ts` cubre las funciones de página de las 15 rutas más caras del estudio
       §13.3, con su tope y la prueba de 3 contra 6 programas.
