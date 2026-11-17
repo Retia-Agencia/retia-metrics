@@ -63,7 +63,7 @@ import {
 } from "@/lib/pauta/dia-en-curso";
 import {
   cargarDatosDelHubDelPrograma,
-  type DatosDelHubDelPrograma,
+  type EntradaDeDatosDelHubDelPrograma,
   type SeccionDelHubDelPrograma,
 } from "@/lib/hub-programa/cargar-datos";
 
@@ -344,12 +344,11 @@ async function CuerpoDelHub({
 }) {
   const slug = programa.slug;
   const veEquipo = veEquipoComercial(rol);
-  const datos = await cargarDatosDelHubDelPrograma(db, {
+  const entradaDelCargador = {
     programa, rol, busqueda, seccion, hoy, diaDelReporte, hoyDeLaPestana, ventanaRitmo,
     entradaDeVista, contexto, reporteDeHoy, origen, configurar,
-  });
-
-  if (datos.seccion === "pauta") {
+  };
+  if (seccion === "pauta") {
     return (
       <SeccionPauta
         programId={programa.id}
@@ -365,10 +364,14 @@ async function CuerpoDelHub({
         puedeAbrirLista={veEquipo}
         puedeVerVentas={capacidadParaMetrica({ metrica: "cierres", tieneOrigen: false })(rol)}
         listasQueAbre={LISTAS_DE_LA_TABLA_SEMANAL.filter((metrica) => capacidadParaMetrica({ metrica, tieneOrigen: true })(rol))}
-        datos={datos}
+        entradaDelCargador={entradaDelCargador}
       />
     );
   }
+
+  const datos = await cargarDatosDelHubDelPrograma(db, entradaDelCargador);
+  if (datos.seccion === "pauta") throw new Error("La sección de Pauta se arma en SeccionPauta");
+
 
   const { vista, cohorteId, sinActividad, detalles } = datos;
   const { elegida } = vista.filtroDeCohorte;
@@ -609,7 +612,7 @@ async function SeccionPauta({
   puedeAbrirLista,
   puedeVerVentas,
   listasQueAbre,
-  datos,
+  entradaDelCargador,
 }: {
   programId: string;
   programaNombre: string;
@@ -626,8 +629,10 @@ async function SeccionPauta({
   puedeVerVentas: boolean;
   /** Las listas de la tabla semanal que la sesión abre: la evidencia de sus celdas. */
   listasQueAbre: readonly Metrica[];
-  datos: Extract<DatosDelHubDelPrograma, { seccion: "pauta" }>;
+  entradaDelCargador: EntradaDeDatosDelHubDelPrograma;
 }) {
+  const datos = await cargarDatosDelHubDelPrograma(db, entradaDelCargador);
+  if (datos.seccion !== "pauta") throw new Error("SeccionPauta solo se arma con la sección de Pauta");
   if (debeSincronizarDesdeElHub(datos.ultimaSincronizacion?.inicio ?? null, datos.ahora)) {
     after(async () => {
       try {

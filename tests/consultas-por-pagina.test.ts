@@ -4,7 +4,21 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Session } from "next-auth";
 import { abrirSolicitud } from "./helpers/memoria-por-solicitud";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
-import { programs, sources, leads, miembrosPrograma, users, deals, oauthClientes } from "@/lib/db/schema";
+import {
+  abonos,
+  calls,
+  cohorts,
+  cuentasPublicitarias,
+  deals,
+  gastoPauta,
+  leads,
+  miembrosPrograma,
+  oauthClientes,
+  pautaObjetos,
+  programs,
+  sources,
+  users,
+} from "@/lib/db/schema";
 import { medir, type ResumenDeCosto } from "@/lib/db/medidor";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Db } from "@/lib/db/tipos";
@@ -197,7 +211,7 @@ const SIN_CONSULTAS = [
 
 let base: Awaited<ReturnType<typeof crearBaseReutilizable>>;
 
-async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0): Promise<Sembrado> {
+async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, variedad = 0): Promise<Sembrado> {
   const programas = await db.insert(programs).values(Array.from({ length: cantidadDeProgramas }, (_, indice) => ({
     ...PROGRAMA_DE_PRUEBA,
     slug: `pagina-${indice + 1}`,
@@ -241,6 +255,82 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0): Pro
       etapa: (["contactado", "agendado"] as const)[indice % 2]!,
     })));
   }
+  if (variedad > 0) {
+    const closersExtra = await db.insert(users).values(Array.from({ length: variedad }, (_, indice) => ({
+      email: `closer-variedad-${indice + 1}@retia.test`,
+      nombre: `Closer variedad ${indice + 1}`,
+      rol: "closer" as const,
+      closerId: `Closer variedad ${indice + 1}`,
+    }))).returning();
+    await db.insert(miembrosPrograma).values(closersExtra.map((closerExtra) => ({
+      userId: closerExtra.id,
+      programId: programas[0]!.id,
+    })));
+    const cohortesExtra = await db.insert(cohorts).values(Array.from({ length: variedad }, (_, indice) => ({
+      programId: programas[0]!.id,
+      codigo: `VAR-${indice + 1}`,
+      metaCupos: 10,
+      precioUsd: "1000.00",
+      fechaInicioVentas: "2026-11-01",
+      fechaCierreVentas: "2026-11-30",
+      fechaInicioClases: `2026-12-${String(indice + 1).padStart(2, "0")}`,
+      estado: "cerrado" as const,
+    }))).returning();
+    const leadsDeVariedad = await db.insert(leads).values(Array.from({ length: variedad }, (_, indice) => ({
+      programId: programas[0]!.id,
+      emailNormalizado: `variedad-${indice + 1}@paginas.test`,
+      fechaPrimeraAplicacion: new Date(`2026-11-${String(indice + 2).padStart(2, "0")}T12:00:00-05:00`),
+    }))).returning();
+    const dealsDeVariedad = await db.insert(deals).values(leadsDeVariedad.map((lead, indice) => ({
+      programId: programas[0]!.id,
+      leadId: lead.id,
+      ownerUserId: closersExtra[indice]!.id,
+      cohortId: cohortesExtra[indice]!.id,
+      etapa: "ganado_parcial" as const,
+      valorVendidoUsd: "1000.00",
+      createdAt: new Date(`2026-11-${String(indice + 2).padStart(2, "0")}T12:00:00-05:00`),
+    }))).returning();
+    await db.insert(calls).values(dealsDeVariedad.map((dealDeVariedad, indice) => ({
+      programId: programas[0]!.id,
+      dealId: dealDeVariedad.id,
+      closerUserId: closersExtra[indice]!.id,
+      fechaAgenda: new Date(`2026-11-${String(indice + 3).padStart(2, "0")}T10:00:00-05:00`),
+      fechaLlamada: new Date(`2026-11-${String(indice + 3).padStart(2, "0")}T10:00:00-05:00`),
+      resultado: "show" as const,
+      origen: "crm",
+    })));
+    await db.insert(abonos).values(dealsDeVariedad.map((dealDeVariedad, indice) => ({
+      programId: programas[0]!.id,
+      dealId: dealDeVariedad.id,
+      fecha: `2026-11-${String(indice + 3).padStart(2, "0")}`,
+      monto: "100.00",
+      moneda: "USD",
+      registradoPorUserId: closersExtra[indice]!.id,
+    })));
+
+    const [cuenta] = await db.insert(cuentasPublicitarias).values({
+      programId: programas[0]!.id,
+      idMeta: "cuenta-variedad-paginas",
+      nombre: "Cuenta variedad paginas",
+      moneda: "USD",
+      zonaHoraria: "America/Bogota",
+    }).returning();
+    const objetosDePauta = await db.insert(pautaObjetos).values(Array.from({ length: variedad }, (_, indice) => [
+      { cuentaId: cuenta!.id, programId: programas[0]!.id, idMeta: `variedad-campana-${indice + 1}`, nivel: "campana" as const, nombre: `Campaña variedad ${indice + 1}`, estado: "ACTIVE", proposito: "agenda" as const },
+      { cuentaId: cuenta!.id, programId: programas[0]!.id, idMeta: `variedad-conjunto-${indice + 1}`, nivel: "conjunto" as const, padreIdMeta: `variedad-campana-${indice + 1}`, nombre: `Conjunto variedad ${indice + 1}`, estado: "ACTIVE" },
+      { cuentaId: cuenta!.id, programId: programas[0]!.id, idMeta: `variedad-anuncio-${indice + 1}`, nivel: "anuncio" as const, padreIdMeta: `variedad-conjunto-${indice + 1}`, nombre: `Anuncio variedad ${indice + 1}`, estado: "ACTIVE" },
+    ]).flat()).returning();
+    const anuncios = objetosDePauta.filter((objeto) => objeto.nivel === "anuncio");
+    await db.insert(gastoPauta).values(anuncios.map((anuncio, indice) => ({
+      programId: programas[0]!.id,
+      fecha: `2026-11-${String(2 + indice * 7).padStart(2, "0")}`,
+      monto: "100.00",
+      moneda: "USD",
+      origen: "meta_api" as const,
+      pautaObjetoId: anuncio.id,
+      agendasMeta: 1,
+    })));
+  }
   await db.insert(oauthClientes).values({
     clientId: "https://cliente.paginas.test/cimd",
     nombre: "Cliente paginas",
@@ -263,9 +353,9 @@ function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
   ];
 }
 
-async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0) {
+async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0, variedad = 0) {
   await base.vaciar();
-  const sembrado = await sembrar(base.db, cantidad, dealsExtra);
+  const sembrado = await sembrar(base.db, cantidad, dealsExtra, variedad);
   abrirSolicitud();
   const { costo, identicas } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
@@ -310,6 +400,18 @@ describe("consultas por pagina", () => {
       .toBe(base3.costo.consultas);
     expect(conFilas.costo.identicas).toBe(0);
   });
+
+  it.each(Object.entries(PAGINAS).filter(([nombre, pagina]) =>
+    nombre.startsWith("/p/[programa]/hub") && pagina.pagina === "app/(app)/p/[programa]/hub/page.tsx"))(
+    "%s no crece con closers, cohortes ni campañas",
+    async (nombre, pagina) => {
+      const base3 = await medirPagina(nombre, pagina, 3);
+      const conVariedad = await medirPagina(nombre, pagina, 3, 0, 4);
+      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} sin variedad, ${conVariedad.costo.consultas} con variedad 4`)
+        .toBe(base3.costo.consultas);
+      expect(conVariedad.costo.identicas).toBe(0);
+    },
+  );
 
   it("mantiene todas las paginas en un grupo del trinquete", () => {
     const cubiertas = new Set(Object.values(PAGINAS).map((pagina) => pagina.pagina));
