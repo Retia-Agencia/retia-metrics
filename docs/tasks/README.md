@@ -116,9 +116,9 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 | [ ] | 414 | [Tabla de Pauta por día](./414-tabla-de-pauta-por-dia.md) | 412, 419 | en curso · carril P · cuadre con el Excel espera DM-8 · enmendado 13-nov: casilla nueva, toda celda que abre lista cuenta lo mismo que su lista (test exhaustivo por `ClavePautaSemanal`) |
 | [ ] | 416 | [Pauta por cuenta](./416-pauta-por-cuenta.md) | 412 | en curso · 13-nov · carril P · tabla Por cuenta y Ver por Cuenta hechos; falta Ver solo (420) y Q-8 ajusta la presentación |
 | [x] | 415 | [Costo por venta (CAC) de Pauta](./415-costo-por-venta-de-pauta.md) | 412 | done · 14-nov · checkpoint `cp-20261114-2` · 13-nov · carril P · todas las casillas: fila, ficha, diccionario, tests y estado contra objetivo (migración 0136 aplicada en producción con el ok de Mani) |
-| [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | bloqueado · Q-4 (Paid Media) |
+| [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | todo · Q-4 respondida el 17-nov; la migración espera el ok de Mani |
 | [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
-| [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | bloqueado · DM-8 (Michael y Paid Media) y D-C · migración |
+| [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | todo · DM-8 aprobada el 17-nov; la migración espera el ok de Mani |
 | [ ] | 422 | [Hub de todos los programas: la Pauta con la misma forma, sin cruzar programas](./422-hub-de-todos-los-programas-pauta.md) | 419, 420 | todo · carril P (compañero) · nace del 403 · DT-1 a DT-3 decididas (10-nov, con la recomendación) · sin migración · enmendado 13-nov: costura con el 419 E-4 (Hoy, Comercial y Dinero de `/hub`); primero este, después E-4 |
 
 ## 20 · Entrega del Hub a Gerencia (weekly con Daniel Tovar, 3-nov) · PRIORIDAD ÚNICA DEL HUB

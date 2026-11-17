@@ -3,7 +3,7 @@ id: 421
 etapa: comercial
 serves: "docs/diseno-cifra-y-pauta.md §7.1 (DM-8) · Q-2 y Q-3 de docs/paid-media-excels-2026-11-10.md · D-C del audit (docs/audit-hub-2026-11-10.md §8) · Mani, 10-nov"
 depends: []
-status: listo para construir (esperando ok de Mani para la migración)
+status: todo  # 17-nov: DM-8 aprobada; espera el ok de Mani para la migración
 ---
 
 # 421 — Una sola cita con estados, y la cita confirmada

@@ -3,7 +3,7 @@ id: 417
 etapa: pauta
 serves: "docs/paid-media-excels-2026-11-10.md §2 (inversión sugerida, diferencia vs plan) y §6 · Q-4"
 depends: [414, 416]
-status: pendiente (esperando ok de Mani para la migración)
+status: todo  # 17-nov: Q-4 respondida (Pauta fija la inversión); espera el ok de Mani para la migración
 ---
 
 # 417 — Plan de inversión diario y diferencia contra el plan
