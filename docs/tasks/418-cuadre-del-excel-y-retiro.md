@@ -17,5 +17,5 @@ criterio para dejar de llenar el Excel. Necesita DM-8 cerrada (qué es "agendas 
 ## Done cuando
 
 - [ ] Documento del cuadre con cada diferencia explicada.
-- [ ] Fecha acordada para apagar el Excel, escrita aquí. Decidido 17-nov (Q-7, Mani): el CRM manda desde el 1-oct y el Excel de ago-sep se archiva en solo lectura, sin migrar.
+- [ ] Fecha acordada para apagar el Excel, escrita aquí. Decidido 17-nov (Q-7, Mani): el CRM manda desde el 1-oct y el Excel de ago-sep se archiva en solo lectura, sin migrar. Corte confirmado: 30-sep.
 - [ ] Condición de retiro: cero ventas del Excel sin deal en el CRM. Hoy: Tactical 2-8 nov, 7 sin registrar; ComunicArte 26-sep a 30-oct, 6 sin explicar (`docs/reportes/respuestas-pauta-2026-11-17.md` §1).
