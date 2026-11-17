@@ -6,7 +6,6 @@ import { razon } from "@/lib/cobertura";
 import { CONCEPTOS_DE_COMERCIAL, cifrasClaveDeComercial, cifrasDeCloser } from "@/lib/hub/cifras-de-comercial";
 import { explicacionesDeComercial } from "@/lib/hub/explicaciones-de-comercial";
 import { explicacionDe, explicacionesDeRecorridos } from "@/lib/metricas/explicacion";
-import { fichaDe } from "@/lib/metricas/registro";
 import type { EmbudoDelRango } from "@/lib/queries/dashboard";
 
 const explicaciones = explicacionesDeComercial();
@@ -30,13 +29,9 @@ describe("419 E-3 Comercial: fichas reales y cifras sin consultas", () => {
     expect(Object.keys(explicaciones)).toEqual([...CONCEPTOS_DE_COMERCIAL]);
     for (const clave of CONCEPTOS_DE_COMERCIAL) {
       const registrada = clave === "citas_sin_marcar" ? "citas_pendientes" : clave;
-      const ficha = fichaDe(registrada);
       expect(explicaciones[clave]).toEqual(explicacionDe(registrada, { universo: "todas" }));
-      expect(explicaciones[clave].que).toBe(ficha.que);
       expect(explicaciones[clave].que.length).toBeGreaterThan(0);
-      expect(explicaciones[clave].formula).toEqual(ficha.formula);
       expect(explicaciones[clave].formula.terminos.length).toBeGreaterThan(0);
-      expect(explicaciones[clave].variables).toEqual(ficha.variables);
       expect(explicaciones[clave].variables.length).toBeGreaterThan(0);
     }
   });
