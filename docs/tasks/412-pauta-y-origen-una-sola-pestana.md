@@ -133,7 +133,7 @@ migración esté en `main`.
       Cómo calcula el Excel: inversión y "Agendas en Meta" a mano desde Meta; costo por agenda = inversión ÷ agendas de
       Meta; "Agendas del día", "Llamadas realizadas" y "Ventas" a mano; % conversión = ventas ÷ llamadas; CAC = inversión
       ÷ ventas; **Ingresos = ventas × ticket fijo en COP** (Tactical 4.776.000, ComunicArte 2.537.648); ROAS = ingresos ÷
-      inversión. Todo en COP; ComunicArte separa las cuentas de Milena y Rosario y corta la semana de sábado a viernes (corregido 17-nov).
+      inversión. Todo en COP; ComunicArte separa las cuentas de Milena y Rosario y corta la semana de sábado a viernes (corregido 17-nov). **Q-6 (Paid Media, 17-nov): las semanas de los tres programas son de lunes a domingo; el CRM no cambia, solo ese corte del Excel de ComunicArte es la diferencia.**
 
       | Tactical, 12-18 oct | Excel | CRM | Lectura |
       |---|---|---|---|

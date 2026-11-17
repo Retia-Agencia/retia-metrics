@@ -309,3 +309,30 @@ la fecha de corte del Excel sea el 30-sep (último día sin gasto en el CRM) o l
 - La inversión y las agendas de Meta por semana contra el CRM: `pauta_roas` falló con "Error interno" en producción el 10-nov
   (`paid-media-excels-2026-11-10.md:§8`); no se volvió a probar aquí.
 - Quién registró las 11 ventas del 11-nov: se pudo leer (usuario del abono), pero no se incluyó para no poner datos de personas en este documento.
+
+## 9. Respuestas del 17-nov y las dos verificaciones que pidió Michael
+
+**Respuestas (Mani, de Paid Media y Michael).** Q-1 sí, Power Talk es Comunícate con Confianza. Q-2 el CRM manda; el Excel tiene error humano. Q-3 los closers no marcan. Q-4 Pauta fija la inversión sugerida (417 necesita migración, espera el ok de Mani). Q-6 semanas de lunes a domingo. Q-8 botón Total / Por cuenta para N cuentas. Q-9 descartada. DM-8 aprobada (421 necesita migración, espera el ok de Mani). Tickets y §7 ya actualizados.
+
+### 9.1 Conciliación de comprobantes (grupos «Ventas ComunicArte» y «Ventas JP Vieira», solo lectura)
+**No se pudo emparejar comprobante por persona.** Los closers anuncian cada venta con un texto «Venta …» y una imagen del comprobante **sin pie de foto**: no hay nombre, correo ni monto en texto, y el puente de WhatsApp no descarga las imágenes ni las lee (`auto_download_media` apagado). Es lo que ya dijo Michael: el número se pone a mano y no hay forma de saber quién es. Lo que sí se puede es contar por día, que es una prueba más débil (cuenta, no identifica).
+Leído: ComunicArte desde el 24-ago hasta hoy (4 páginas de 500 mensajes, completas); Tactical desde el 15-oct hasta hoy (1 página, **no** llega al inicio de la cohorte). Fechas en Bogotá, desde el 7-oct (inicio del historial del CRM).
+
+| | Posts «Venta» en el grupo | Ventas del CRM (primer paso a Abonado/Completo) | Lectura |
+|---|---|---|---|
+| ComunicArte, 7-oct a 10-nov | 32 en 21 días | 42, de las cuales 13 el 11-nov (carga del lote de las 11 registradas ese día y su pago anterior, §1) | Sin el lote del 11-nov el CRM tiene 29 contra 32 posts. Días con post y sin venta del CRM: 9, 16, 24, 29-oct y 10-nov. Días con más posts que ventas: 31-oct (5 contra 2) y 6-nov (3 contra 1) |
+| Tactical, 21-oct a 9-nov | 14 | 8 | Faltan alrededor de 6 en el CRM, en línea con los 7 de la semana del 2 al 8-nov ya medidos (§1) |
+
+Conclusiones: (1) para Tactical la brecha es real y es de captura (ticket 418); (2) para ComunicArte los posts de más caen en días con venta tardía en el CRM, o sea fecha, no ventas perdidas, pero con esta evidencia **no se puede descartar** que haya alguna sin deal; (3) para cerrarlo hace falta que alguien con el comprobante a la vista (Pauta o los closers) pase por correo las ventas de esos días, o que el comprobante lleve el correo del lead al anunciarse. El mensaje del 3-nov de Alejo (transferencias a Global66 «no cuenten la venta hasta confirmar») y el del 9-nov (pago directo a Bancolombia sin forma de confirmar) muestran el riesgo contrario: posts de venta que aún no son plata confirmada. En ningún chat se envió ni se marcó nada.
+
+### 9.2 ¿Salieron los avisos de Juanito (ticket 428)? Sí, y con horario exacto
+Registro `avisos_pendientes_closer_envios` (producción, solo lectura), fechas de Bogotá:
+
+| Día | Mañana 8:00 | Tarde 18:00 |
+|---|---|---|
+| lun 16-nov | 5 closers, 08:00:27 | 5 closers, 18:00:18 |
+| mar 17-nov | 5 closers, 08:00:28 | 4 closers, 18:00:17 |
+
+Cuatro de cuatro ventanas, a la hora, sin repetir (el índice único por closer, día y ventana lo impide). El sábado 15 y el domingo 16 no hubo envío, como debe ser. Hoy a las 6 p.m. salieron 4 y no 5: el quinto closer no tenía nada de hoy que avisar (el aviso de la tarde solo manda lo de hoy). Cada envío guarda el teléfono al que fue (últimos 4 dígitos cargados). Ya hay 10 números cargados (desde el 9-nov), no 0 como el 14-nov.
+**Qué no se puede probar desde el CRM:** que el mensaje llegó al teléfono y lo leyeron. La fila se escribe cuando Juanito confirma el envío, no cuando WhatsApp entrega. Esa prueba sale de preguntar a 2 closers si lo recibieron (casilla abierta del 428) y de medir citas sin resultado por semana antes y después (D-4, línea base en el 390). Nota: el 17-nov a las 18:00 la cola de «Alertas Paid Media» muestra el semáforo de pauta, no los avisos de closers; esos van por mensaje directo y no son visibles desde aquí.
+Si Michael pregunta por qué los closers siguen sin marcar: los avisos están saliendo, así que el cuello ya no es el empuje sino el hábito y el atraso (Andrea 416 y Maru 330 citas sin resultado el 14-nov, decisión de limpiarlo pendiente de Mani).

@@ -88,3 +88,6 @@ El de las 6:00 p.m.: "Andrea, hoy tuviste 6 citas y 4 siguen sin resultado: Cami
 5. **El enlace «Márcalas aquí»:** Codex usó la ruta de Mi espacio; verificar en el primer envío real que el filtro «Sin resultado» llega aplicado.
 6. **D-4 (medir el efecto):** línea base en el ticket 390; medir citas pasadas sin resultado por semana tras empezar a mandar. D-2 y D-3 siguen siendo provisionales (Mani no dio su ok explícito; se aprobaron horarios y formato).
 **Cierra el ticket:** probado de punta a punta con Juanito en dos closers reales, la ventana de silencio comprobada en producción, N8 y N9.
+
+## Verificación del 17-nov (solo lectura; pedida por Michael vía Mani)
+Los avisos **salieron**: 16 y 17-nov, mañana 08:00 y tarde 18:00 (Bogotá), 5 closers cada ventana salvo la tarde del 17 (4, porque el quinto no tenía nada de hoy), sin repetición. Hay 10 WhatsApp cargados (desde el 9-nov), no 0. Lo que el CRM no prueba es la entrega y la lectura: la fila se escribe al confirmar Juanito. Falta preguntar a 2 closers si los recibieron y medir D-4. Detalle: `docs/reportes/respuestas-pauta-2026-11-17.md` §9.2.

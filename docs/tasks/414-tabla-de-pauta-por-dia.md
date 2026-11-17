@@ -59,3 +59,7 @@ concepto aparte; **archivo del carril D, una línea**).
 (oscuro escritorio, claro 375 px sin scroll de página, CSV 200, vista semanal intacta, consola limpia).
 **Falta:** el chip «Cambio contra el día anterior» como interruptor (hoy la comparación va siempre y la leyenda lo dice);
 comparar con el boceto; `test:humo`; el cuadre con el Excel (DM-8).
+
+## 17-nov: respuestas de Paid Media
+- **Q-6: toda semana va de lunes a domingo, en los tres programas.** La columna semanal de la tabla ya es lunes a domingo (D-3); no hay que soportar el corte sábado a viernes de la hoja de ComunicArte. Al cuadrar contra ese Excel, comparar por días, no por su semana.
+- Q-2 (Michael): el CRM es la fuente de verdad en agendas; el Excel deja de ser referencia de cuadre. Q-3: los resultados faltan porque los closers no marcan, no por la tabla. Bloqueo restante: la cobertura diaria de resultados (428).
