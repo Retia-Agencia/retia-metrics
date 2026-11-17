@@ -10,7 +10,7 @@ import type { SeccionDelHub } from "@/lib/nav";
 import { vistaDePauta } from "@/lib/pauta/vista-de-pauta";
 import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
-import { dineroDelRango } from "@/lib/queries/dashboard";
+import { dineroPorCloserDelRango } from "@/lib/queries/dashboard";
 import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
 import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
 import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
@@ -91,6 +91,13 @@ export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDat
     claveCloser: vista.claveCloser, cohorteId, origen,
   };
   const comparativoClaves = vista.comparativo.map((fila) => fila.clave);
+  const dineroPorCloserPendiente = seccion === "comercial" && !sinActividad && veEquipo
+    ? dineroPorCloserDelRango(
+        { programId: programa.id, rango: vista.periodo.a, cohorteId },
+        comparativoClaves,
+        db,
+      )
+    : undefined;
   const periodoDelDia = { preset: "custom" as const, a: { desde: diaDelReporte, hasta: diaDelReporte }, b: null };
   const listaDelDia = (metrica: "leads" | "citas_debidas" | "citas_sin_marcar") =>
     detalleDeCifra(metrica, {
@@ -125,10 +132,13 @@ export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDat
           { programId: programa.id, slug, hoy: hoyDeLaPestana, periodo: vista.periodo, cohorteId, origen },
           comparativoClaves,
           db,
+          dineroPorCloserPendiente,
         )
       : undefined,
     seccion === "comercial" && !sinActividad
-      ? cargarVistaComercial(db, { programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, rol })
+      ? cargarVistaComercial(db, {
+          programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, rol, dineroPorCloserPendiente,
+        })
       : null,
     esHoy ? alertasDelPrograma(programa.id, hoy, db) : undefined,
     esHoy && configurar ? leerConfiguracionDeHoy(programa.id, db) : null,
@@ -192,7 +202,7 @@ export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDat
 
 async function cargarVistaComercial(
   db: Db,
-  { programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, rol }: {
+  { programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, rol, dineroPorCloserPendiente }: {
     programa: { id: string; slug: string };
     busqueda: Record<string, string | string[] | undefined>;
     vista: VistaDelDashboard;
@@ -202,6 +212,7 @@ async function cargarVistaComercial(
     hoy: string;
     veEquipo: boolean;
     rol: Rol | null;
+    dineroPorCloserPendiente?: ReturnType<typeof dineroPorCloserDelRango>;
   },
 ) {
   const slug = programa.slug;
@@ -215,10 +226,7 @@ async function cargarVistaComercial(
     cargarEmbudoComercial(db, { programId: programa.id, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId }, filtroDeOrigen),
     Promise.all(metricas.map((metrica) => detalleDeCifra(metrica, { ...datos, origenDeal: filtroDeOrigen }, db))),
     vistaDeEscalera({ ...datos, cohorteIdDeB, conEquipo: veEquipo }, db),
-    Promise.all((veEquipo ? vista.comparativo : []).map(async (fila) => [
-      fila.clave,
-      await dineroDelRango({ programId: programa.id, rango: vista.periodo.a, claveCloser: fila.clave, cohorteId }, db),
-    ] as const)),
+    dineroPorCloserPendiente ?? Promise.resolve(new Map()),
   ]);
   const enlacesDeOrigen = Object.fromEntries((["todos", "completo", "parcial"] as const).map((valor) => {
     const url = new URL(origen, "http://retia.local");

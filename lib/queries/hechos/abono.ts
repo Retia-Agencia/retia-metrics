@@ -1,10 +1,11 @@
-import { and, eq, sql } from "drizzle-orm";
-import { abonos, deals } from "@/lib/db/schema";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { abonos, deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import { claveCloserSql, claveDeCloserSql } from "@/lib/closers/identidad";
 import { aplicarPagina, condicionesDeFiltros, expresionDeOrden, seleccionarDimensiones, totalDeConsulta } from "@/lib/queries/hechos/consultar";
 import type { ConsultaAgrupada, ConsultaDeLista, ListaPaginada } from "@/lib/queries/hechos/dimensiones";
 import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
-import { filtroCaja } from "@/lib/queries/metricas-filtros";
+import { closerDeAbono, filtroCaja } from "@/lib/queries/metricas-filtros";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 
@@ -32,6 +33,55 @@ export interface FilaAbono {
   dueno: string | null;
   cohorte: string | null;
   monto: number;
+}
+
+/**
+ * Caja agrupada por la identidad reconciliada del comparativo. Una fila histórica sin FK toma el
+ * `users.id` cuya clave normalizada coincide, igual que `porClaveConFk` al filtrar por esa cuenta.
+ */
+export async function gruposDeCajaPorCloser(
+  db: Db,
+  opciones: { programId: string; rango: { desde: string; hasta: string }; cohorteId?: string | null; hoy: string },
+) {
+  const edad = sql<number>`greatest(0, ${opciones.hoy}::date - (${abonos.fecha})::date)`;
+  const bucket = sql<string>`case
+    when ${edad} <= 7 then '0-7'
+    when ${edad} <= 30 then '8-30'
+    when ${edad} <= 90 then '31-90'
+    else '>90' end`;
+  const claveDeReparto = claveCloserSql(users.id, abonos.closerId);
+  const claveOriginal = claveCloserSql(abonos.registradoPorUserId, abonos.closerId);
+  return db
+    .select({
+      dealId: sql<null>`null::text`,
+      closer: sql<string | null>`min(${closerDeAbono()})`,
+      claveReparto: sql<string>`min(${claveDeReparto})`,
+      claveCloser: sql<string>`min(${claveOriginal})`,
+      etapa: sql<string | null>`${deals.etapa}::text`,
+      bucket: bucket.as("bucket_antiguedad"),
+      moneda: abonos.moneda,
+      monto: sql<number>`${sumaDeAbonos()}::float8`,
+      cantidad: sql<number>`count(*)::int`,
+      persona: sql<null>`null::jsonb`,
+    })
+    .from(abonos)
+    .leftJoin(deals, and(eq(deals.id, abonos.dealId), eq(deals.programId, abonos.programId), vigente(deals)))
+    .leftJoin(
+      users,
+      or(
+        eq(users.id, abonos.registradoPorUserId),
+        and(
+          isNull(abonos.registradoPorUserId),
+          eq(claveDeCloserSql(users.closerId), claveDeCloserSql(abonos.closerId)),
+        ),
+      ),
+    )
+    .where(and(
+      filtroCaja({ programId: opciones.programId, rango: opciones.rango, cohorteId: opciones.cohorteId }, db),
+      vigente(abonos),
+      vigente(deals),
+    ))
+    .groupBy(claveDeReparto, claveOriginal, deals.etapa, sql`"bucket_antiguedad"`, abonos.moneda);
 }
 
 function alcance(db: Db, opciones: { programId: string; rango: { desde: string; hasta: string }; filtros?: Partial<Record<DimensionAbono, readonly (string | null)[]>> }) {
