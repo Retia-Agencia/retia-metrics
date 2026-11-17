@@ -4,7 +4,7 @@
 > *cómo se cambia sin romperlo*. El *por qué* de cada decisión vive en el [ADR 0119](./adr/0119-el-mcp-del-crm.md); el avance en
 > los tickets 348, 383, 384, 385 y 386; cómo conectarse y revocar, en `operations.md` §8.1. Si algo de aquí contradice al
 > código, manda el código (ADR 0115 N8) y este archivo se corrige en el mismo commit.
-> Última revisión: 13-nov-2026.
+> Última revisión: 17-nov-2026.
 
 ## 1. Qué es y dónde vive
 
@@ -73,7 +73,7 @@ Las consultas son de solo lectura. Las escrituras siguen el molde preparar → c
 |---|---|---|---|
 | `programas_visibles` | Programas visibles | Para saber qué programas puede consultar la persona y obtener su slug | todos |
 | `capacidades` | Capacidades | Para descubrir las consultas y, con detalle esquema, sus filtros, dimensiones y medidas | todos |
-| `resumen_del_hub` | Resumen del Hub | Para responder con las cifras principales de un periodo: ventas, dinero, citas, realizadas y tasas | gerente, paid trafficker |
+| `resumen_del_hub` | Resumen del Hub | Para responder con las cifras de un periodo: ventas, dinero, citas, realizadas y tasas, más pauta (columna Total), pérdidas por motivo, cita a pago, norte de la cohorte y proyecciones | gerente, paid trafficker |
 | `consultar_metrica` | Consultar una métrica | Para explicar una métrica, filtrarla o abrir sus desgloses y filas | gerente, paid trafficker, closer (según la métrica) |
 | `consultar_hechos` | Consultar hechos | Para listar o agrupar envíos, agendas, citas, ventas, abonos y gasto nativo | gerente, paid trafficker (sin trabajo por closer) |
 | `buscar` | Buscar en el CRM | Para encontrar una persona, sus deals, llamadas y último traspaso, con una sección por programa | gerente, closer |
@@ -91,7 +91,7 @@ Las consultas son de solo lectura. Las escrituras siguen el molde preparar → c
 
 Las acciones disponibles son `mover_etapa`, `deshacer_evento`, `marcar_show`, `pegar_grain`,
 `corregir_resultado`, `registrar_abono`, `cambiar_plataforma_de_abono`, `anular_deal`,
-`anular_abono`, `anular_llamada`, `marcar_fallida` y `asignar_llamada_suelta`. Todas llaman el mismo caso de uso que la app y vuelven a
+`anular_abono`, `anular_llamada`, `marcar_fallida`, `asignar_llamada_suelta` y `reasignar_deal`. Todas llaman el mismo caso de uso que la app y vuelven a
 validar el alcance: un deal, una llamada o un abono de otro programa responde 404 y no revela que
 existe.
 
@@ -193,11 +193,13 @@ Estas reglas se aplican a **toda** herramienta nueva o modificada. Las marcadas 
 
 La caducidad de credenciales, la retención de 90 días, la paginación SQL, la búsqueda global, los filtros resueltos y la consulta genérica de hechos quedaron resueltos. El tope de 300 llamadas por minuto admite un sobrepaso pequeño bajo ráfaga, margen aceptado para el volumen actual. Quedan los `EXPLAIN` a 10× de las herramientas de operación y las evaluaciones de descubrimiento (386). `consultar_metrica` todavía usa `closer` como código opaco, un concepto distinto del dueño del deal; es candidato a renombrarse en F5.
 
-**Alcance y límites del MCP (13-nov, ticket 411, ADR 0129):** la app y el MCP se comparan mediante el registro exhaustivo de `lib/mcp/cobertura.ts`; su guardián detecta funciones nuevas sin clasificar, filas obsoletas y acciones del MCP sin server action cubierta. El trinquete permite hoy 96 capacidades todavía solo en la app: 32 de operación y 64 de configuración; solo puede bajar. Una acción del MCP sin server action propia va en `ACCIONES_SIN_PAR_EN_LA_APP` con su razón: hoy `anular_llamada`, porque la app solo anula una llamada al deshacer su registro. El destino sigue siendo una puerta total con reglas de orientación (todo lo que la app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
+**Alcance y límites del MCP (13-nov, ticket 411, ADR 0129):** la app y el MCP se comparan mediante el registro exhaustivo de `lib/mcp/cobertura.ts`; su guardián detecta funciones nuevas sin clasificar, filas obsoletas y acciones del MCP sin server action cubierta. El trinquete permite hoy 96 capacidades todavía solo en la app (32 de operación y 64 de configuración, 20 «fuera» por seguridad); solo puede bajar. El 97 subió una vez, desde 96, por una capacidad nueva de la app (asignar compras de Hotmart, 451), no por una regresión. Una acción del MCP sin server action propia va en `ACCIONES_SIN_PAR_EN_LA_APP` con su razón: hoy `anular_llamada`, porque la app solo anula una llamada al deshacer su registro. El destino sigue siendo una puerta total con reglas de orientación (todo lo que la app muestra o permite por rol, también por el MCP). Medido el 9-nov en `mcp_llamadas`: el servidor responde en 98 a 3.053 ms por
 llamada (p95: `pauta_roas` 2,8 s, `tablero_de_deals` 2,0 s, `consultar_metrica` 1,0 s) y no se alcanzó el tope de 300/min; las
 fases siguientes están en `docs/tasks/411-mcp-puerta-total-sin-limitaciones.md`.
 
-La cobertura de consultas también parte del registro de métricas: cada concepto abre sus listas por `consultar_metrica` o declara por qué se consulta mediante `consultar_hechos` o `resumen_del_hub`, y `capacidades({ concepto })` publica su misma explicación canónica. La forma «Pendiente en el MCP» declara honestamente una cifra que todavía solo calcula la app; tiene un trinquete separado que solo baja cuando el concepto entra al MCP.
+La cobertura de consultas también parte del registro de métricas: cada concepto abre sus listas por `consultar_metrica` o declara por qué se consulta mediante `consultar_hechos` o `resumen_del_hub`, y `capacidades({ concepto })` publica su misma explicación canónica. Toda excepción que dice «Cifra de resumen_del_hub» está respaldada por `CIFRAS_EN_EL_RESUMEN` (`lib/mcp/cobertura.ts`): cada concepto declarado tiene la ruta de su valor en la salida de `resumen_del_hub` y un test camina el esquema para comprobar que existe, así que una declaración sin vía real falla (17-nov, ticket 411). `resumen_del_hub` trae esos bloques de los mismos módulos que las pantallas (`cargarPautaSemanal`, `vistaDeEscalera`, `leerProyeccion`, `leerCumplimientoDeCohorte`, `calcularProyeccionDeRoas`, `vista.embudoEtapas`), sin copiar ninguna proyección. La forma «Pendiente en el MCP» sigue disponible para una cifra que solo calcule la app, con su trinquete propio (`TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP`), hoy en 0; las excepciones sin lista bajaron de «pendientes» a «cifra del resumen» y su tope es 52 (los 49 anteriores más los tres: `dias_cita_a_pago`, `perdidos_por_motivo` y `ticket_perdido`).
+
+**Cesión de deal (A-177), ADR 0134:** que un closer ceda su deal no es una acción del MCP mientras la app no la tenga. La ruta de hoy es que un administrador reasigne con `reasignar_deal` (mismo caso de uso que la app, `editarDeal`; vista previa con dueño actual → nuevo y la llamada pendiente que sigue a nombre del anterior; se deshace como cambio de dueño).
 
 **Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
 

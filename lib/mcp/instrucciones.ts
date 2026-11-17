@@ -11,7 +11,7 @@ Qué herramienta usar, sin explorar las demás:
 - No sabes qué consultas están disponibles: Capacidades (capacidades). No adivines una capacidad.
 - Para mover un deal, registrar o corregir una llamada, registrar o corregir un abono, o anular un registro, prepara la acción (preparar_accion), muestra la vista previa y confirma (confirmar_cambio) solo con el sí explícito. Al terminar, explica cómo deshacer solo si el CRM devolvió un evento; una anulación no se puede deshacer.
 - No sabes los valores válidos antes de filtrar: Opciones de filtros (opciones_de_filtros).
-- Cifras de un periodo (ventas, caja, citas, realizadas y tasas): Resumen del Hub (resumen_del_hub).
+- Cifras de un periodo (ventas, caja, citas, realizadas, tasas, totales de Pauta, pérdidas, cita a pago, ritmos y proyecciones): Resumen del Hub (resumen_del_hub).
 - Una métrica en detalle, sus filas, o filtrada por origen, closer, etapa o pauta: Consultar una métrica (consultar_metrica).
 - Cualquier conteo o lista de envíos, agendas, citas, ventas, abonos o gasto, por dimensiones: Consultar hechos (consultar_hechos).
 - Los filtros de dueño y cohorte aceptan nombre o id; si un error ofrece opciones, corrige el valor y vuelve a pedirlo. Las respuestas declaran los filtros aplicados por defecto y cómo quitarlos.

@@ -29,9 +29,16 @@ let db: Db;
 let cerrar: () => Promise<void>;
 let vaciar: () => Promise<void>;
 let gerenteId: string;
+let closerId: string;
+let otroCloserId: string;
+let dealIdEvaluacion: string;
 
 interface ContextoDeEvaluacion {
-  llamar(nombre: string, entrada: Record<string, unknown>): Promise<ResultadoDeHerramienta>;
+  llamar(
+    nombre: string,
+    entrada: Record<string, unknown>,
+    opciones?: { como: "gerente" | "closer"; escritura: boolean },
+  ): Promise<ResultadoDeHerramienta>;
 }
 
 interface Evaluacion {
@@ -54,9 +61,23 @@ const EVALUACIONES: Evaluacion[] = [
   },
   {
     pregunta: "Como closer, ¿puedo ceder mi deal a otro closer del programa? (A-177)",
-    herramientasEsperadas: [],
-    maxLlamadas: 0,
-    async ejecutar() {},
+    herramientasEsperadas: ["capacidades", "preparar_accion"],
+    maxLlamadas: 3,
+    async ejecutar(ctx) {
+      const entrada = {
+        programa: PROGRAMA,
+        accion: "reasignar_deal",
+        argumentos: { deal_id: dealIdEvaluacion, id_del_usuario: otroCloserId },
+      };
+      const comoCloser = await ctx.llamar("capacidades", {}, { como: "closer", escritura: true });
+      expect((comoCloser.estructurado.acciones as { clave: string }[]).map((accion) => accion.clave))
+        .not.toContain("reasignar_deal");
+      await expect(ctx.llamar("preparar_accion", entrada, { como: "closer", escritura: true }))
+        .rejects.toThrow("No puedes usar esa acción");
+      const comoGerente = await ctx.llamar("capacidades", {}, { como: "gerente", escritura: true });
+      expect((comoGerente.estructurado.acciones as { clave: string }[]).map((accion) => accion.clave))
+        .toContain("reasignar_deal");
+    },
   },
   {
     pregunta: "¿Cuántas ventas hizo cada closer esta semana?",
@@ -149,6 +170,8 @@ beforeEach(async () => {
     { email: "gerente-evaluaciones@retia.test", nombre: "Mani", rol: "gerente" },
   ]).returning();
   gerenteId = gerente.id;
+  closerId = alejo.id;
+  otroCloserId = nicolas.id;
   await db.insert(miembrosPrograma).values([
     { userId: alejo.id, programId: programa.id },
     { userId: nicolas.id, programId: programa.id },
@@ -189,6 +212,7 @@ beforeEach(async () => {
     valorVendidoUsd: "800",
     fechaLimitePago: "2026-11-01",
   }).returning();
+  dealIdEvaluacion = deal.id;
   await editarDeal(db, { userId: gerente.id, rol: "gerente", operaComoCloser: false }, { dealId: deal.id, ownerUserId: nicolas.id });
   await db.insert(dealEtapaHistorial).values({
     dealId: deal.id,
@@ -227,21 +251,22 @@ beforeEach(async () => {
 
 afterAll(async () => cerrar());
 
-function contexto(): ContextoMcp {
+function contexto(opciones: { como?: "gerente" | "closer"; escritura?: boolean } = {}): ContextoMcp {
+  const comoCloser = opciones.como === "closer";
   return {
     db,
-    rol: "gerente",
+    rol: comoCloser ? "closer" : "gerente",
     tokenId: crypto.randomUUID(),
-    escritura: false,
+    escritura: opciones.escritura ?? false,
     session: {
       user: {
-        id: gerenteId,
-        email: "gerente-evaluaciones@retia.test",
-        name: "Mani",
-        rol: "gerente",
+        id: comoCloser ? closerId : gerenteId,
+        email: comoCloser ? "alejo-evaluaciones@retia.test" : "gerente-evaluaciones@retia.test",
+        name: comoCloser ? "Alejo Carvajal" : "Mani",
+        rol: comoCloser ? "closer" : "gerente",
         operaComoCloser: false,
-        closerId: null,
-        alcanceLimitado: false,
+        closerId: comoCloser ? "alejo-evaluaciones" : null,
+        alcanceLimitado: comoCloser,
       },
     } as Session,
   };
@@ -255,26 +280,27 @@ async function herramientasDescubribles(ctx: ContextoMcp): Promise<Set<string>> 
 
 describe("evaluaciones de preguntas reales del MCP", () => {
   for (const evaluacion of EVALUACIONES) {
-    if (evaluacion.pregunta.includes("A-177")) {
-      it.todo(`${evaluacion.pregunta} — pendiente: la cesión espera ADR, caso de uso en lib/ y registro en ACCIONES`);
-      continue;
-    }
-
     it(evaluacion.pregunta, async () => {
       const ctx = contexto();
       const descubribles = await herramientasDescubribles(ctx);
-      for (const nombre of evaluacion.herramientasEsperadas) expect(descubribles).toContain(nombre);
+      for (const nombre of evaluacion.herramientasEsperadas) {
+        if (nombre === "preparar_accion") expect(HERRAMIENTAS.some((herramienta) => herramienta.nombre === nombre)).toBe(true);
+        else expect(descubribles).toContain(nombre);
+      }
 
       const llamadas: string[] = [];
       const evaluacionCtx: ContextoDeEvaluacion = {
-        async llamar(nombre, entrada) {
+        async llamar(nombre, entrada, opciones) {
           llamadas.push(nombre);
           expect(llamadas.length, `La pregunta superó ${evaluacion.maxLlamadas} llamadas`).toBeLessThanOrEqual(evaluacion.maxLlamadas);
           expect(evaluacion.herramientasEsperadas, `La herramienta ${nombre} no estaba esperada`).toContain(nombre);
           const herramienta = HERRAMIENTAS.find((candidata) => candidata.nombre === nombre);
           expect(herramienta, `No existe el handler ${nombre}`).toBeDefined();
           const pedido = herramienta!.entrada.parse(entrada) as never;
-          return herramienta!.ejecutar(ctx, pedido);
+          const contextoDeLlamada = opciones
+            ? contexto({ como: opciones.como, escritura: opciones.escritura })
+            : ctx;
+          return herramienta!.ejecutar(contextoDeLlamada, pedido);
         },
       };
 
