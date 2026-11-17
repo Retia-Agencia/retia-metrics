@@ -1,15 +1,39 @@
 import { readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import type { Session } from "next-auth";
 import { abrirSolicitud } from "./helpers/memoria-por-solicitud";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
-import { programs, sources, leads, miembrosPrograma, users } from "@/lib/db/schema";
+import { programs, sources, leads, miembrosPrograma, users, deals, oauthClientes } from "@/lib/db/schema";
 import { medir, type ResumenDeCosto } from "@/lib/db/medidor";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Db } from "@/lib/db/tipos";
 import { cargarDatosDeMiEspacio } from "@/lib/mi-espacio/cargar-datos";
 import { SECCIONES } from "@/lib/mi-espacio/secciones";
 import { cargarDatosDeHub, type SeccionDelHubDeTodos } from "@/lib/queries/hub-todos";
+import { cargarDatosDeCatalogos } from "@/lib/ajustes/catalogos/cargar-datos";
+import { cargarDatosDeMigracion } from "@/lib/ajustes/migracion/cargar-datos";
+import { cargarDatosDeSalud } from "@/lib/ajustes/salud/cargar-datos";
+import { cargarDatosDeUsuarios } from "@/lib/ajustes/usuarios/cargar-datos";
+import { cargarDatosDeListaDelHub } from "@/lib/hub-todos/lista/cargar-datos";
+import { cargarDatosDeReporteDelHub } from "@/lib/hub-todos/reporte/cargar-datos";
+import { cargarDatosDeMedia } from "@/lib/media/cargar-datos";
+import { cargarDatosDeBitacora } from "@/lib/nerd-stats/bitacora/cargar-datos";
+import { cargarDatosDeNerdStats } from "@/lib/nerd-stats/cargar-datos";
+import { cargarDatosDeCalls } from "@/lib/calls/cargar-datos";
+import { cargarDatosDeDeals } from "@/lib/deals/cargar-datos";
+import { cargarDatosDeFichaDeDeal } from "@/lib/deals/ficha/cargar-datos";
+import { cargarDatosDeInbox } from "@/lib/inbox/cargar-datos";
+import { cargarDatosDeLeads } from "@/lib/leads/cargar-datos";
+import { cargarDatosDeFichaDeLead } from "@/lib/leads/ficha/cargar-datos";
+import { cargarDatosDeProximaCohorte } from "@/lib/proxima-cohorte/cargar-datos";
+import { cargarDatosDeRecursos } from "@/lib/recursos/cargar-datos";
+import { cargarDatosDeRedireccionARecursos } from "@/lib/recursos/redireccion/cargar-datos";
+import { cargarDatosDeStudents } from "@/lib/students/cargar-datos";
+import { cargarDatosDeAutorizacion } from "@/lib/oauth/cargar-datos-de-autorizacion";
+import { cargarDatosDePrograma } from "@/lib/programa/cargar-datos";
+import { cargarDatosDeListaDelPrograma } from "@/lib/hub-programa/lista/cargar-datos";
+import { resolverPeriodo } from "@/lib/periodo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -22,6 +46,12 @@ const HOY = "2026-11-15";
 interface Sembrado {
   programas: ProgramaVisible[];
   closerId: string;
+  leadId: string;
+  dealId: string;
+}
+
+function sesionCloser(sembrado: Sembrado): Session {
+  return { user: { id: sembrado.closerId, email: "closer-paginas@retia.test", name: "Closer paginas", rol: "closer", operaComoCloser: true, closerId: "Closer paginas", alcanceLimitado: true } } as Session;
 }
 
 interface Pagina {
@@ -70,33 +100,33 @@ const PAGINAS = {
       origen: "/mi-espacio",
     }),
   },
+  "/ajustes/catalogos": { pagina: "app/(app)/ajustes/catalogos/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db) => cargarDatosDeCatalogos(db) }, // medir
+  "/ajustes/migracion": { pagina: "app/(app)/ajustes/migracion/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeMigracion(db, { slugPedido: s.programas[0]!.slug }) }, // medir
+  "/ajustes/salud": { pagina: "app/(app)/ajustes/salud/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeSalud(db, { slugPedido: s.programas[0]!.slug, hoy: HOY, ahora: new Date(`${HOY}T12:00:00-05:00`), fetchCalendly: async () => new Response("{}") }) }, // medir
+  "/ajustes/usuarios": { pagina: "app/(app)/ajustes/usuarios/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeUsuarios(db, { userId: s.closerId, rol: "developer" }) }, // medir
+  "/hub/lista": { pagina: "app/(app)/hub/lista/page.tsx", tope: 999, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeListaDelHub(db, { programas: s.programas, metrica: "leads", periodo: resolverPeriodo({ preset: "este_mes" }, { hoy: HOY }), hoy: HOY, pagina: 1 }) }, // medir
+  "/hub/reporte": { pagina: "app/(app)/hub/reporte/page.tsx", tope: 999, escalaConProgramas: true, cargar: (db, s) => cargarDatosDeReporteDelHub(db, { programas: s.programas, dia: HOY, puedeVerEquipo: true }) }, // medir
+  "/media": { pagina: "app/(app)/media/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeMedia(db, { userId: s.closerId, rol: "developer", pedido: {}, hoy: HOY }) }, // medir
+  "/nerd-stats/bitacora": { pagina: "app/(app)/nerd-stats/bitacora/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db) => cargarDatosDeBitacora(db, { busqueda: {} }) }, // medir
+  "/nerd-stats": { pagina: "app/(app)/nerd-stats/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db) => cargarDatosDeNerdStats(db) }, // medir
+  "/recursos": { pagina: "app/(app)/recursos/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeRedireccionARecursos(db, { userId: s.closerId, rol: "closer" }) }, // medir
+  "/oauth/autorizar": { pagina: "app/oauth/autorizar/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db) => cargarDatosDeAutorizacion(db, { params: { client_id: "https://cliente.paginas.test/cimd", redirect_uri: "https://cliente.paginas.test/callback", response_type: "code", code_challenge_method: "S256", code_challenge: "a".repeat(43) } }) }, // medir
+  "/p/[programa]/calls": { pagina: "app/(app)/p/[programa]/calls/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeCalls(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {} }) }, // medir
+  "/p/[programa]/deals": { pagina: "app/(app)/p/[programa]/deals/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeDeals(db, { session: sesionCloser(s), programId: s.programas[0]!.id, busqueda: {}, vistaRecordada: null }) }, // medir
+  "/p/[programa]/deals/[id]": { pagina: "app/(app)/p/[programa]/deals/[id]/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeFichaDeDeal(db, { session: sesionCloser(s), programId: s.programas[0]!.id, dealId: s.dealId, rol: "closer" }) }, // medir
+  "/p/[programa]/inbox": { pagina: "app/(app)/p/[programa]/inbox/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeInbox(db, { session: sesionCloser(s), programId: s.programas[0]!.id, rol: "closer" }) }, // medir
+  "/p/[programa]/hub/lista": { pagina: "app/(app)/p/[programa]/hub/lista/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeListaDelPrograma(db, { programId: s.programas[0]!.id, metrica: "leads", busqueda: { preset: "este_mes" }, hoy: HOY, pagina: 1, ahora: new Date(`${HOY}T12:00:00-05:00`) }) }, // medir
+  "/p/[programa]/leads": { pagina: "app/(app)/p/[programa]/leads/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeLeads(db, { programId: s.programas[0]!.id, busqueda: {}, pagina: 0, paginaDuplicados: 0, duenoUserId: s.closerId }) }, // medir
+  "/p/[programa]/leads/[id]": { pagina: "app/(app)/p/[programa]/leads/[id]/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeFichaDeLead(db, { programId: s.programas[0]!.id, leadId: s.leadId, userId: s.closerId, rol: "closer", operaComoCloser: true }) }, // medir
+  "/p/[programa]/programa": { pagina: "app/(app)/p/[programa]/programa/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDePrograma(db, { visibleId: s.programas[0]!.id, userId: s.closerId, rol: "developer", busqueda: {}, hoy: HOY, origen: "https://retia.test", ahora: new Date(`${HOY}T12:00:00-05:00`), cargarCuentasDisponibles: async () => [] }) }, // medir
+  "/p/[programa]/proxima-cohorte": { pagina: "app/(app)/p/[programa]/proxima-cohorte/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeProximaCohorte(db, { programId: s.programas[0]!.id, busqueda: {} }) }, // medir
+  "/p/[programa]/recursos": { pagina: "app/(app)/p/[programa]/recursos/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeRecursos(db, { programId: s.programas[0]!.id, userId: s.closerId, consultarGestionables: true }) }, // medir
+  "/p/[programa]/students": { pagina: "app/(app)/p/[programa]/students/page.tsx", tope: 999, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeStudents(db, { programId: s.programas[0]!.id, busqueda: {} }) }, // medir
 } satisfies Record<string, Pagina>;
 
 // Paginas del estudio §13.3 aun no cubiertas; la fase 2 vacia esta lista.
 const PENDIENTES_447 = [
-  "app/(app)/ajustes/catalogos/page.tsx",
-  "app/(app)/ajustes/migracion/page.tsx",
-  "app/(app)/ajustes/salud/page.tsx",
-  "app/(app)/ajustes/usuarios/page.tsx",
-  "app/(app)/hub/lista/page.tsx",
-  "app/(app)/hub/reporte/page.tsx",
-  "app/(app)/media/page.tsx",
-  "app/(app)/nerd-stats/bitacora/page.tsx",
-  "app/(app)/nerd-stats/page.tsx",
-  "app/(app)/p/[programa]/calls/page.tsx",
-  "app/(app)/p/[programa]/deals/[id]/page.tsx",
-  "app/(app)/p/[programa]/deals/page.tsx",
-  "app/(app)/p/[programa]/hub/lista/page.tsx",
   "app/(app)/p/[programa]/hub/page.tsx",
-  "app/(app)/p/[programa]/inbox/page.tsx",
-  "app/(app)/p/[programa]/leads/[id]/page.tsx",
-  "app/(app)/p/[programa]/leads/page.tsx",
-  "app/(app)/p/[programa]/programa/page.tsx",
-  "app/(app)/p/[programa]/proxima-cohorte/page.tsx",
-  "app/(app)/p/[programa]/recursos/page.tsx",
-  "app/(app)/p/[programa]/students/page.tsx",
-  "app/(app)/recursos/page.tsx",
-  "app/oauth/autorizar/page.tsx",
 ] as const;
 
 const SIN_CONSULTAS = [
@@ -133,14 +163,30 @@ async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
       nombre: `Fuente ${programaIndice + 1}-${fuenteIndice + 1}`,
     })),
   ));
-  await db.insert(leads).values(programas.flatMap((programa, programaIndice) =>
+  const leadsSembrados = await db.insert(leads).values(programas.flatMap((programa, programaIndice) =>
     Array.from({ length: 2 }, (_, leadIndice) => ({
       programId: programa.id,
       emailNormalizado: `persona-${programaIndice + 1}-${leadIndice + 1}@paginas.test`,
       fechaPrimeraAplicacion: new Date(`2026-11-0${leadIndice + 1}T12:00:00-05:00`),
     })),
-  ));
-  return { programas: programas.map(({ id, slug, nombre }) => ({ id, slug, nombre })), closerId: closer!.id };
+  )).returning();
+  const [deal] = await db.insert(deals).values({
+    programId: programas[0]!.id,
+    leadId: leadsSembrados[0]!.id,
+    ownerUserId: closer!.id,
+    etapa: "contactado",
+  }).returning();
+  await db.insert(oauthClientes).values({
+    clientId: "https://cliente.paginas.test/cimd",
+    nombre: "Cliente paginas",
+    redirectUris: ["https://cliente.paginas.test/callback"],
+  });
+  return {
+    programas: programas.map(({ id, slug, nombre }) => ({ id, slug, nombre })),
+    closerId: closer!.id,
+    leadId: leadsSembrados[0]!.id,
+    dealId: deal!.id,
+  };
 }
 
 function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {

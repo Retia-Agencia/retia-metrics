@@ -7,7 +7,6 @@ import { aceptaAbono, ETAPAS_EN_ORDEN, NOMBRE_DE_ETAPA } from "@/lib/deals/etapa
 import { mapaDeTransiciones } from "@/lib/deals/mapa-transiciones";
 import { puedeDecidirDuplicado, puedeTrabajarDeal } from "@/lib/deals/permiso";
 import { nombreDelDeal } from "@/lib/deals/nombre";
-import { alertasDelDeal, opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { PageShell } from "@/components/page-shell";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { TONO_DE_ETAPA } from "@/components/deals/etapa-tono";
@@ -23,17 +22,16 @@ import { FichaPerfil } from "@/components/deals/ficha/ficha-perfil";
 import { FichaLead } from "@/components/deals/ficha/ficha-lead";
 import { FichaAlertas } from "@/components/deals/ficha/ficha-alertas";
 import { FichaCierre } from "@/components/deals/ficha/ficha-cierre";
-import { fichaDeDealVisible } from "@/lib/queries/operacion";
 import { requireSesionReal } from "@/lib/auth/guards";
 import { marcarDealVisto } from "@/lib/deals/cambiar-dueno";
 import { hoyEnBogota } from "@/lib/format";
 import { esIdOpaco } from "@/lib/identificadores";
 import {
-  cargarHechosDeEscaleraDeDeal,
   escalonDeDeal,
   grupoDeCierre,
   NOMBRE_DE_ESCALON,
 } from "@/lib/queries/escalera";
+import { cargarDatosDeFichaDeDeal } from "@/lib/deals/ficha/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -59,9 +57,9 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
   const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   if (!esIdOpaco(id) || !esRolValido(rol)) notFound();
 
-  const resultado = await fichaDeDealVisible(db, programa.id, id, session, rol);
-  if (!resultado) notFound();
-  const { ficha, actor } = resultado;
+  const datos = await cargarDatosDeFichaDeDeal(db, { programId: programa.id, dealId: id, session, rol });
+  if (!datos) notFound();
+  const { resultado: { ficha, actor }, opciones, alertas, hechosDeEscalera } = datos;
   // Una vista suplantada no consume la señal de la persona real. Para el dueño normal,
   // abrir esta ficha es exactamente el gesto que marca el Deal como visto.
   const real = await requireSesionReal();
@@ -73,18 +71,6 @@ export default async function FichaDelDealPage({ params, searchParams }: Props) 
       etiqueta: ficha.lead.nombre ?? ficha.lead.email,
     });
   }
-  const [opciones, alertas, hechosDeEscalera] = await Promise.all([
-    opcionesDeFicha(
-      db,
-      programa.id,
-      ficha.owner?.id ?? null,
-      ficha.cohorte?.id ?? null,
-      ficha.etapa,
-      ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null,
-    ),
-    alertasDelDeal(db, programa.id, ficha.dealId),
-    cargarHechosDeEscaleraDeDeal(db, { programId: programa.id, dealId: ficha.dealId }),
-  ]);
   const sinCierreQueMostrar = !hechosDeEscalera.hechos.vendido
     && hechosDeEscalera.hechos.citasAtendidas.length === 0
     && !hechosDeEscalera.hechos.citaVencidaSinAtender;

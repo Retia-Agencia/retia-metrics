@@ -10,12 +10,7 @@ import {
   CAMPOS_DE_FECHA_DE_LEAD,
   DUPLICADOS_POR_PAGINA,
   LEADS_POR_PAGINA,
-  leadsDelPrograma,
-  posiblesDuplicadosDelPrograma,
-  preguntasDisponiblesDelPrograma,
-  respuestasDelUltimoEnvio,
 } from "@/lib/queries/leads";
-import { filtrosDeLeads } from "@/lib/queries/filtros-de-leads";
 import { fecha, fechaDeInstanteEnBogota, num } from "@/lib/format";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
@@ -30,6 +25,7 @@ import { enlaceConVuelta, origenDeLaPagina } from "@/lib/navegacion/volver";
 import { Card, CardContent } from "@/components/ui/card";
 import { PosiblesDuplicados } from "@/components/leads/posibles-duplicados";
 import { ListaLeads, type FilaLeadVista } from "@/components/leads/lista-leads";
+import { cargarDatosDeLeads } from "@/lib/leads/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -76,21 +72,12 @@ export default async function LeadsDelProgramaPage({ params, searchParams }: Pro
   const paginaDup = Math.max(0, Number.parseInt(uno(q.pdup) ?? "0", 10) || 0);
   const vista = uno(q.vista) === "tabla" ? "tabla" : "tarjetas";
   const seccion = uno(q.seccion) === "duplicados" ? "duplicados" : "leads";
-  const { filtro, filtroDeFecha } = filtrosDeLeads(q, pagina);
   // El closer ve solo los duplicados de SUS deals (186); quien administra, los del programa.
   const administra = esAdministrador(rol);
-  const [{ total, filas }, duplicados, preguntasFormulario] = await Promise.all([
-    leadsDelPrograma(db, programa.id, filtro),
-    posiblesDuplicadosDelPrograma(db, programa.id, {
-      duenoUserId: administra ? undefined : session.user.id,
-      pagina: paginaDup,
-    }),
-    preguntasDisponiblesDelPrograma(db, programa.id),
-  ]);
-  // Las respuestas del último envío, SOLO para los leads de esta página (ticket 209).
-  const respuestasPorLead = Object.fromEntries(
-    await respuestasDelUltimoEnvio(db, programa.id, filas.map((f) => f.id)),
-  );
+  const { filtro, filtroDeFecha, total, filas, duplicados, preguntasFormulario, respuestasPorLead } = await cargarDatosDeLeads(db, {
+    programId: programa.id, busqueda: q, pagina, paginaDuplicados: paginaDup,
+    duenoUserId: administra ? undefined : session.user.id,
+  });
 
   const paginas = Math.max(1, Math.ceil(total / LEADS_POR_PAGINA));
   const paginasDup = Math.max(1, Math.ceil(duplicados.total / DUPLICADOS_POR_PAGINA));

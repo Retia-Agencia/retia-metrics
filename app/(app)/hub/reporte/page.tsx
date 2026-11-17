@@ -4,12 +4,13 @@ import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
 import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { fechaHoraEnBogota, hoyEnBogota } from "@/lib/format";
-import { armarReporteDiario, resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
-import { sinListas } from "@/lib/queries/vista-metrica";
+import { resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { PageShell } from "@/components/page-shell";
 import { Button } from "@/components/ui/button";
 import { GuardarComoPdf } from "@/components/hub-reporte/guardar-como-pdf";
 import { ReporteDeTodosLosProgramas } from "@/components/hub-reporte/reporte";
+import { db } from "@/lib/db";
+import { cargarDatosDeReporteDelHub } from "@/lib/hub-todos/reporte/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +29,7 @@ export default async function ReporteDelHubPage({ searchParams }: Props) {
   const diaPedido = resolverDiaDelReporte(typeof busqueda.fecha === "string" ? busqueda.fecha : undefined, hoy);
   const dia = diaPedido ?? hoy;
   const puedeVerEquipo = veEquipoComercial(rol);
-  const reportes = await Promise.all(programas.map(async (programa) => {
-    const reporte = await armarReporteDiario({ programId: programa.id, dia });
-    return { programa, reporte: puedeVerEquipo ? reporte : sinListas(reporte) };
-  }));
+  const reportes = await cargarDatosDeReporteDelHub(db, { programas, dia, puedeVerEquipo });
   const generado = fechaHoraEnBogota(new Date());
 
   return (

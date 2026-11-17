@@ -1,7 +1,6 @@
 import { Enlace } from "@/components/enlace";
 import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
-import { programasActivos } from "@/lib/queries/programas";
-import { LIMITE_DE_RAREZAS, nombreDeRareza, rarezasDelPrograma } from "@/lib/migracion/rarezas";
+import { LIMITE_DE_RAREZAS, nombreDeRareza } from "@/lib/migracion/rarezas";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
@@ -9,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { num } from "@/lib/format";
 import { BarraDeLista } from "@/components/filtros/barra-de-lista";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
-import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
+import { db } from "@/lib/db";
+import { cargarDatosDeMigracion } from "@/lib/ajustes/migracion/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,13 @@ export default async function MigracionPage(props: {
   // La guarda antes de leer cualquier cosa, tambien las props.
   await paginaConAdministracionGlobal();
 
-  const programas = await programasActivos();
+  const { programa: slugPedido, tipo: tipoPedido } = await props.searchParams;
+  const preferido = await programaPreferidoDeCookie();
+  const { programas, programa, rarezas } = await cargarDatosDeMigracion(db, {
+    slugPedido,
+    tipoPedido,
+    programaPreferido: preferido,
+  });
   if (programas.length === 0) {
     return (
       <PageShell
@@ -50,10 +56,7 @@ export default async function MigracionPage(props: {
     );
   }
 
-  const { programa: slugPedido, tipo: tipoPedido } = await props.searchParams;
-  const preferido = await programaPreferidoDeCookie();
-  const programa = programas.find((p) => p.slug === slugPedido) ?? elegirPrograma(programas, preferido)!;
-  const rarezas = await rarezasDelPrograma(programa.id, tipoPedido || null);
+  if (!programa || !rarezas) return null;
   const { tipo } = rarezas;
   const enLaLista = tipo ? (rarezas.porTipo.find((t) => t.tipo === tipo)?.total ?? 0) : rarezas.total;
 

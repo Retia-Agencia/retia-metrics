@@ -5,10 +5,8 @@ import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, ROLES_QUE_VEN_STUDENTS, trabajaLeads } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { NOMBRE_DE_ETAPA } from "@/lib/deals/etapas";
-import { studentsDelPrograma, ORDENES_STUDENTS, resolverFiltroStudents } from "@/lib/queries/estudiantes";
-import { leadsQueCasan } from "@/lib/queries/busqueda-de-leads";
+import { ORDENES_STUDENTS } from "@/lib/queries/estudiantes";
 import { totalesDeStudents } from "@/lib/queries/estudiantes-totales";
 import { fecha, fechaDeInstanteEnBogota, monto, num, saldoLegible } from "@/lib/format";
 import { PageShell } from "@/components/page-shell";
@@ -22,7 +20,7 @@ import { puedeMarcarOnboarding } from "@/lib/deals/permiso";
 import { BarraDeLista, ControlDeOrden } from "@/components/filtros/barra-de-lista";
 import { BuscadorUrl } from "@/components/filtros/buscador-url";
 import type { FiltroDeclarado } from "@/components/filtros/declaracion";
-import { pagosDeStudents } from "@/lib/queries/pagos-de-students";
+import { cargarDatosDeStudents } from "@/lib/students/cargar-datos";
 import { PagosDeStudentCelda } from "@/components/deals/pagos-de-student";
 
 export const dynamic = "force-dynamic";
@@ -31,10 +29,6 @@ type Props = {
   params: Promise<{ programa: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
-
-function uno(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
-}
 
 /**
  * La tab Students (ticket 099): reemplaza las pestañas `Estudiantes <cohorte>` de las hojas.
@@ -63,21 +57,7 @@ export default async function StudentsDelProgramaPage({ params, searchParams }: 
   const abreFicha = trabajaLeads({ rol, operaComoCloser: session.user.operaComoCloser }) || esAdministrador(rol);
 
   const query = await searchParams;
-  const cohortes = (await listarCohortes(db, programa.id)).sort((a, b) =>
-    (b.fechaInicioVentas ?? "").localeCompare(a.fechaInicioVentas ?? ""),
-  );
-  // La búsqueda: `leadsQueCasan` devuelve `null` con texto corto (no filtra) o el conjunto
-  // de leads del programa que casan. El programa es frontera: la consulta ya recibe su id.
-  const leadsCasan = await leadsQueCasan(db, programa.id, uno(query.q) ?? "");
-  const { activa, cohorte, orden, filtro } = resolverFiltroStudents({
-    cohortes,
-    cohorte: uno(query.cohorte),
-    onboarding: uno(query.onboarding),
-    orden: uno(query.orden),
-    leadsCasan,
-  });
-  const filas = await studentsDelPrograma(db, programa.id, filtro);
-  const pagos = await pagosDeStudents(db, programa.id, filas.map((fila) => fila.dealId));
+  const { cohortes, activa, cohorte, orden, filas, pagos } = await cargarDatosDeStudents(db, { programId: programa.id, busqueda: query });
   const totales = totalesDeStudents(filas);
 
   // El origen de ESTA lista para los enlaces al detalle (ticket 174).

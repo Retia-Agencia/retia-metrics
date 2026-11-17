@@ -1,15 +1,10 @@
 import { notFound } from "next/navigation";
 import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
-import { alcanceDeDeals } from "@/lib/auth/alcance-deals";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esAdministrador, esRolValido, trabajaLeads } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { opcionesDeFicha } from "@/lib/queries/ficha-deal";
 import {
   LLAMADAS_POR_PAGINA,
-  filtroDeLlamadasDesdeUrl,
-  llamadasDelPrograma,
-  opcionesDeLlamadas,
   ORDENES_LLAMADAS,
   RESULTADOS,
 } from "@/lib/queries/llamadas";
@@ -23,7 +18,7 @@ import type { FiltroDeclarado } from "@/components/filtros/declaracion";
 import { FiltroFechaLista } from "@/components/filtro-fecha-lista";
 import { CLAVES_DE_FECHA_LISTA } from "@/lib/claves-de-fecha-lista";
 import { Button } from "@/components/ui/button";
-import { listarCohortes } from "@/lib/catalogo/cohortes";
+import { cargarDatosDeCalls } from "@/lib/calls/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -43,19 +38,11 @@ export default async function CallsDelProgramaPage({ params, searchParams }: Pro
   const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
   if (!esRolValido(rol)) notFound();
 
-  const alcance = await alcanceDeDeals(session);
   const query = await searchParams;
   const pagina = Math.max(0, Number.parseInt(uno(query.pagina) ?? "0", 10) || 0);
-  const filtro = await filtroDeLlamadasDesdeUrl(db, programa.id, alcance, query);
-  const [llamadas, opciones, opcionesFicha, cohortesSinOrdenar] = await Promise.all([
-    llamadasDelPrograma(db, programa.id, alcance, filtro),
-    opcionesDeLlamadas(db, programa.id),
-    opcionesDeFicha(db, programa.id, null, null),
-    listarCohortes(db, programa.id),
-  ]);
-  const cohortes = cohortesSinOrdenar.sort((a, b) =>
-    (b.fechaInicioVentas ?? "").localeCompare(a.fechaInicioVentas ?? ""),
-  );
+  const { alcance, filtro, llamadas, opciones, opcionesFicha, cohortes } = await cargarDatosDeCalls(db, {
+    session, programId: programa.id, busqueda: query,
+  });
   const paginas = Math.max(1, Math.ceil(llamadas.length / LLAMADAS_POR_PAGINA));
   const llamadasDeLaPagina = llamadas.slice(
     pagina * LLAMADAS_POR_PAGINA,

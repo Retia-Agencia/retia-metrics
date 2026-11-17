@@ -7,7 +7,7 @@ import { programasVisibles } from "@/lib/auth/alcance";
 import { rolDeVista } from "@/lib/auth/vista";
 import { fecha, hoyEnBogota, monto, num } from "@/lib/format";
 import { parsearPeriodoUrl, resolverPeriodo } from "@/lib/periodo";
-import { esListaDeVentas, listaDeMetrica, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
+import { esListaDeVentas, TAMANO_PAGINA } from "@/lib/queries/metricas-con-filas";
 import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import { urlDeListaTodos } from "@/lib/queries/vista-todos";
 import { PageShell } from "@/components/page-shell";
@@ -17,6 +17,8 @@ import { CabecerasDeVentas, CeldasDeVentas, PieDeVentas } from "@/components/das
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { db } from "@/lib/db";
+import { cargarDatosDeListaDelHub } from "@/lib/hub-todos/lista/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -46,11 +48,7 @@ export default async function ListaDeTodosPage({ searchParams }: Props) {
   const conVentas = esListaDeVentas(metrica);
   const hoy = hoyEnBogota();
   const periodo = resolverPeriodo(parsearPeriodoUrl(busqueda), { hoy });
-  const secciones = await listaDeMetrica(
-    metrica,
-    { programId: programas.map((p) => p.id), rango: periodo.a, hoy, moneda },
-    pagina,
-  );
+  const secciones = await cargarDatosDeListaDelHub(db, { programas, metrica, periodo, hoy, moneda, pagina });
   const programasPorId = new Map(programas.map((p) => [p.id, p]));
   const desde = typeof busqueda.desde === "string" ? busqueda.desde : undefined;
   const vuelta = origenValido(desde) ?? "/hub";

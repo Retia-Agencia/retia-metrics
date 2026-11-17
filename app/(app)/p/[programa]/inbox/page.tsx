@@ -1,12 +1,8 @@
-import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { asignaPagosDePasarela, esAdministrador, esRolValido, ROLES_DE_OPERACION, trabajaLeads } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { motivos } from "@/lib/db/schema";
-import { duenosPosibles } from "@/lib/deals/duenos";
-import { bandejaParaActor } from "@/lib/queries/operacion";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Pestanas, pestanaActiva, urlConSeccion, type GrupoDePestanas } from "@/components/layout/pestanas";
@@ -16,8 +12,8 @@ import { InboxLlamadasDeHoy } from "@/components/deals/inbox-llamadas-de-hoy";
 import { InboxLlamadasSueltas } from "@/components/deals/inbox-llamadas-sueltas";
 import { InboxPerdidosEnCalendly } from "@/components/deals/inbox-perdidos-en-calendly";
 import { HostsSinCuenta } from "@/components/mi-espacio/hosts-sin-cuenta";
-import { pagosPendientes } from "@/lib/pagos/inbox";
 import { InboxPagosSinEmparejar } from "@/components/deals/inbox-pagos-sin-emparejar";
+import { cargarDatosDeInbox } from "@/lib/inbox/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -64,15 +60,8 @@ export default async function InboxDelProgramaPage({ params, searchParams }: Pro
   if (!esRolValido(rol)) notFound();
 
   const administra = esAdministrador(rol);
-  const bandejaPendiente = bandejaParaActor(db, programa.id, session, rol);
   const query = await searchParams;
-
-  const [bandeja, duenos, motivosFilas, pagos] = await Promise.all([
-    bandejaPendiente,
-    duenosPosibles(db, programa.id),
-    db.select().from(motivos).where(eq(motivos.activo, true)),
-    asignaPagosDePasarela(rol) ? pagosPendientes(db, programa.id) : Promise.resolve([]),
-  ]);
+  const { bandeja, duenos, motivosFilas, pagos } = await cargarDatosDeInbox(db, { programId: programa.id, session, rol });
   if (!bandeja) notFound();
   const { actor, inbox, perdidos, secciones } = bandeja;
   const puedeTrabajar = trabajaLeads(actor);

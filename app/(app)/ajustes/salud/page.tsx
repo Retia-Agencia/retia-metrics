@@ -1,9 +1,5 @@
 import { paginaConAdministracionGlobal } from "@/lib/auth/page-guards";
-import { programasActivos } from "@/lib/queries/programas";
-import { entregasDePrograma, entregasHuerfanas } from "@/lib/queries/entregas-webhook";
-import { conciliarProgramaConHoja } from "@/lib/queries/conciliacion-sheets";
-import { HORAS_SIN_CALIDAD, saludDeFuentes, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
-import { saludDeGrain } from "@/lib/grain/transcripciones";
+import { HORAS_SIN_CALIDAD, type EstadoDeFuente } from "@/lib/queries/salud-fuentes";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +10,11 @@ import {
   SelectorYRefresco,
   type EntregaVista,
 } from "@/components/admin/entregas-webhook";
-import { elegirPrograma } from "@/lib/programa-preferido";
 import { programaPreferidoDeCookie } from "@/lib/programa-preferido-servidor";
-import { auditarCalendly, type EstadoSuscripcion } from "@/lib/calendly/auditoria";
+import { type AuditoriaCalendly, type EstadoSuscripcion } from "@/lib/calendly/auditoria";
 import { db } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { programs } from "@/lib/db/schema";
-import { Suspense } from "react";
-import { origenDelPrograma } from "@/lib/queries/origen";
 import { TablaDePlantillas } from "@/components/dashboard/tabla-de-plantillas";
+import { cargarDatosDeSalud } from "@/lib/ajustes/salud/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +61,10 @@ export default async function SaludPage({
 
   // Quien administra ve todos los programas activos (no una membresia de closer): esta
   // pantalla es de operacion del sistema.
-  const programas = await programasActivos();
+  const preferido = await programaPreferidoDeCookie();
+  const hoy = hoyEnBogota();
+  const datos = await cargarDatosDeSalud(db, { slugPedido, programaPreferido: preferido, hoy, ahora: new Date() });
+  const { programas, programa } = datos;
   if (programas.length === 0) {
     return (
       <PageShell
@@ -90,21 +85,8 @@ export default async function SaludPage({
     );
   }
 
-  const preferido = await programaPreferidoDeCookie();
-  const programa = programas.find((p) => p.slug === slugPedido) ?? elegirPrograma(programas, preferido)!;
-
-  const [paginaEntregas, paginaHuerfanas, salud, conciliacion, calendlyPrograma, grain] = await Promise.all([
-    entregasDePrograma(programa.id),
-    entregasHuerfanas(),
-    saludDeFuentes(),
-    conciliarProgramaConHoja(programa.id),
-    db
-      .select({ orgCompartida: programs.calendlyOrgCompartida, eventType: programs.calendlyEventType })
-      .from(programs)
-      .where(eq(programs.id, programa.id))
-      .then((filas) => filas[0] ?? { orgCompartida: false, eventType: null }),
-    saludDeGrain(db, programa.id),
-  ]);
+  if (!programa || !("paginaEntregas" in datos)) return null;
+  const { paginaEntregas, paginaHuerfanas, salud, conciliacion, calendlyPrograma, grain, auditoriaCalendly, vistaDeOrigen } = datos;
   // Org compartida sin round robin (ADR 0098): en ese estado solo entran los eventos
   // personales de los closers. El aviso vive en la tarjeta de Calendly.
   const faltaRoundRobinCompartida = calendlyPrograma.orgCompartida && calendlyPrograma.eventType === null;
@@ -209,26 +191,10 @@ export default async function SaludPage({
         </Card>
 
         <div className={clasesDeZonaConScroll("space-y-6")}>
-          <Suspense
-            key={programa.id}
-            fallback={
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Calendly</CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  Revisando Calendly…
-                </CardContent>
-              </Card>
-            }
-          >
-            <TarjetaCalendly programId={programa.id} faltaRoundRobinCompartida={faltaRoundRobinCompartida} />
-          </Suspense>
+          <TarjetaCalendly auditoriaCalendly={auditoriaCalendly} faltaRoundRobinCompartida={faltaRoundRobinCompartida} />
 
           {/* Las plantillas de URL de los anuncios activos: salieron del Hub (374), son de quien configura la pauta. */}
-          <Suspense fallback={null}>
-            <TarjetaPlantillas programId={programa.id} />
-          </Suspense>
+          <TablaDePlantillas plantillas={vistaDeOrigen.plantillas} descripciones={DESCRIPCIONES_DE_PLANTILLA} />
 
           {/* Las entregas del programa, 25 por página y "Ver anteriores" bajo demanda. */}
           <EntregasWebhook
@@ -290,9 +256,7 @@ export default async function SaludPage({
   );
 }
 
-async function TarjetaCalendly({ programId, faltaRoundRobinCompartida }: { programId: string; faltaRoundRobinCompartida: boolean }) {
-  const auditoriaCalendly = await auditarCalendly(db, programId);
-
+function TarjetaCalendly({ auditoriaCalendly, faltaRoundRobinCompartida }: { auditoriaCalendly: AuditoriaCalendly; faltaRoundRobinCompartida: boolean }) {
   return (
     <Card>
       <CardHeader>
@@ -400,10 +364,3 @@ const DESCRIPCIONES_DE_PLANTILLA = {
   otra: "Trae algún id pero no es ninguna de las dos; revisar.",
   sinId: "El anuncio no tiene parámetros de URL o no trae ad_id ni utm_id: sus registros no se pueden atribuir al anuncio.",
 } as const;
-
-async function TarjetaPlantillas({ programId }: { programId: string }) {
-  const hoy = hoyEnBogota();
-  // Las plantillas son de los anuncios activos: el rango no las toca.
-  const vista = await origenDelPrograma(db, { programId, rango: { desde: hoy, hasta: hoy }, hoy });
-  return <TablaDePlantillas plantillas={vista.plantillas} descripciones={DESCRIPCIONES_DE_PLANTILLA} />;
-}

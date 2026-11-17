@@ -3,11 +3,8 @@ import { paginaConRol, programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { rolDeVista } from "@/lib/auth/vista";
 import { esRolValido, ROLES_DE_FICHA_DE_LEAD } from "@/lib/auth/roles";
 import { esIdOpaco } from "@/lib/identificadores";
-import { idsDeProgramasVisibles } from "@/lib/auth/alcance";
 import { db } from "@/lib/db";
-import { fichaDeLeadParaActor } from "@/lib/queries/operacion";
-import { abonosDelLead } from "@/lib/queries/abonos-del-lead";
-import { otrosProgramasDelCorreo } from "@/lib/queries/otros-programas-del-correo";
+import { cargarDatosDeFichaDeLead } from "@/lib/leads/ficha/cargar-datos";
 import { enlaceConVuelta } from "@/lib/navegacion/volver";
 import { PageShell } from "@/components/page-shell";
 import {
@@ -44,17 +41,14 @@ export default async function FichaDelLeadPage({ params, searchParams }: Props) 
   // revienta en Postgres, y un 500 diria que algo existe.
   if (!esIdOpaco(id) || !esRolValido(rol)) notFound();
 
-  const resultado = await fichaDeLeadParaActor(db, programa.id, id, { rol, operaComoCloser: session.user.operaComoCloser });
-  if (!resultado) notFound();
-  const { ficha, basico } = resultado;
+  const datos = await cargarDatosDeFichaDeLead(db, {
+    programId: programa.id, leadId: id, userId: session.user.id, rol, operaComoCloser: session.user.operaComoCloser,
+  });
+  if (!datos) notFound();
+  const { resultado: { ficha, basico }, otros, visibles, abonos } = datos;
 
   // El aviso de otros programas (091): la funcion da el hecho; que se ve de cada programa lo
   // decide el alcance de ESTA sesion (ADR 0048). De un programa que no ve, solo que existe.
-  const [otros, visibles, abonos] = await Promise.all([
-    otrosProgramasDelCorreo(db, ficha.email, programa.id),
-    idsDeProgramasVisibles(session.user.id, rol),
-    abonosDelLead(db, programa.id, ficha.id),
-  ]);
   const otrosVisibles = otros.filter((o) => visibles.has(o.programId));
 
   // El origen de ESTA ficha, con su propio `desde`: lo hereda el enlace de aqui al deal.
