@@ -74,8 +74,20 @@ export const REGISTRO_DE_ALERTAS = {
     severidad: "aviso",
     evaluar: porFuente("traza_de_pauta_rota", (fuente) => {
       if (!fuente.trazaRota && !fuente.fbclidRoto) return null;
+      if (fuente.trazaRota) {
+        let texto: string;
+        if (fuente.diagnosticoTraza === "se_pierde_antes_del_formulario") {
+          texto = `🟡 ${contexto(fuente)}: de ${num(fuente.pagos)} envíos pagos, ${num(fuente.pagosSinId)} sin identificador del anuncio. Los anuncios de Meta sí lo mandan: se pierde entre el clic y el formulario. Revisar la landing o el formulario.`;
+        } else if (fuente.diagnosticoTraza === "anuncios_sin_id") {
+          texto = `🟡 ${contexto(fuente)}: de ${num(fuente.pagos)} envíos pagos, ${num(fuente.pagosSinId)} sin identificador del anuncio. Estos anuncios de Meta no lo llevan en sus parámetros de URL: ${fuente.anunciosSinId.join(", ")}. Corregirlos en Meta.`;
+        } else {
+          texto = `🟡 ${contexto(fuente)}: de ${num(fuente.pagos)} envíos pagos, ${num(fuente.pagosSinId)} sin identificador del anuncio. ${destino}`;
+        }
+        return fuente.fbclidRoto
+          ? `${texto} Además, ${num(fuente.pagosSinFbclid)} sin identificador del clic.`
+          : texto;
+      }
       const problemas = [
-        fuente.trazaRota ? `${num(fuente.pagosSinId)} sin identificador del anuncio` : null,
         fuente.fbclidRoto ? `${num(fuente.pagosSinFbclid)} sin identificador del clic` : null,
       ].filter((problema): problema is string => problema !== null).join(" y ");
       return `🟡 ${contexto(fuente)}: de ${num(fuente.pagos)} envíos pagos, ${problemas}. ${destino}`;
