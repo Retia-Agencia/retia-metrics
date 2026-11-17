@@ -628,4 +628,5 @@ Lo que hoy suma el gasto de cada programa (`cuentas_publicitarias`, todas en `Am
 
 `[CP] - Milena - [Nas & Be]` (USD) es visible para el usuario de sistema pero está restringida y **no entra**
 (Mani, 15-oct). Las cuentas que nombró Pauta son todas las de la tabla: la de Juan Pablo Vieira es Tactical Assets
-SAS (Tactical) y la de Francisco es 567726836094755 (Power Talk, Comunícate con Confianza).
+SAS (Tactical) y la de Francisco es 567726836094755 (Power Talk, Comunícate con Confianza). Power Talk **es** Comunícate con Confianza
+(Paid Media, 17-nov, Q-1 de `docs/paid-media-excels-2026-11-10.md` §7): no se crea ningún programa nuevo.

@@ -64,3 +64,6 @@ recorrido visual. Sin `.env*`, bases reales, servicios externos, migraciones, co
   boceto.
 - **Base local**: la 0133 no migraba en Docker por dos objetivos de inversión sin moneda cargados a mano antes de la migración;
   se borraron (solo Docker).
+
+## 17-nov: Q-8 respondida (Paid Media)
+El desglose es un **botón Total / Por cuenta**, escalable: debe servir para N cuentas por programa (hoy ComunicArte tiene dos, Milena y Rosario, en COP y USD), **nunca dos columnas fijas**. Las cuentas salen de `cuentas_publicitarias` del programa, no de nombres escritos en el código.
