@@ -122,15 +122,15 @@ export const salidaDeResumen = z.object({
       moneda: z.literal("COP").describe("Moneda del presupuesto, sin conversiones."),
     }).strict().describe("Presupuesto de la cohorte calculado por Cumplimiento."),
     agendas_dia: z.object({
-      valor: numeroNulo("Agendas reales por día hábil"),
+      valor: numeroNulo("Agendas por día hábil"),
       razon: z.string().nullable().describe("Razón cuando el promedio no se puede calcular."),
       unidad: z.literal("citas_por_dia_habil").describe("Unidad del promedio de agendas."),
     }).strict().describe("Ritmo real de agendas calculado por Cumplimiento."),
     agendas_req: z.object({
-      valor: numeroNulo("Agendas requeridas por día"),
+      valor: numeroNulo("Agendas por día necesarias"),
       razon: z.string().nullable().describe("Razón cuando las agendas requeridas no se pueden calcular."),
       unidad: z.literal("citas_por_dia_habil").describe("Unidad de las agendas requeridas."),
-    }).strict().describe("Agendas diarias requeridas calculadas por Cumplimiento."),
+    }).strict().describe("Agendas por día necesarias, calculadas por Cumplimiento."),
     inversion_req: z.object({
       valor: numeroNulo("Inversión requerida por día"),
       razon: z.string().nullable().describe("Razón cuando la inversión requerida no se puede calcular."),

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { esAdministrador } from "@/lib/auth/roles";
 import { editarDeal } from "@/lib/deals/editar-deal";
+import { estaAgendada } from "@/lib/deals/resultados-de-llamada";
 import { estadoParaAccionDeal, huellaDeAccionDeal } from "@/lib/deals/estado-para-accion";
 import { historiaDeDeals } from "@/lib/queries/ficha-deal";
 import { nombresDeUsuariosYCohortes } from "@/lib/queries/resolver-filtros";
@@ -51,7 +52,7 @@ export const reasignarDealMcp: AccionMcp<typeof argumentos> = {
     ]);
     const prueba = await ensayar(db, (tx) => ejecutar(tx, actor, objetivo));
     const llamadaPendiente = historia?.llamadas
-      .filter((llamada) => llamada.anuladoEn == null && llamada.resultado === "agendada")
+      .filter((llamada) => llamada.anuladoEn == null && estaAgendada(llamada.resultado))
       .sort((a, b) => (b.fechaAgenda?.getTime() ?? 0) - (a.fechaAgenda?.getTime() ?? 0))[0] ?? null;
     const dueno = (id: string | null) => id == null
       ? null
