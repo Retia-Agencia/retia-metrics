@@ -15,6 +15,7 @@ import { administraGlobal, administraUsuarios, AuthorizationError, esAccesoTotal
 import { idsDeProgramasVisibles } from "@/lib/auth/alcance";
 import { moldeDeCatalogo, type FilaCatalogo } from "./molde";
 import { tokenCalendly } from "@/lib/integraciones";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 /**
  * Usuarios y closers (ticket 015, ADR 0012), sobre el molde de catalogo.
@@ -1231,7 +1232,11 @@ export async function membresiasConCalendly(
 ): Promise<MembresiaConCalendly[]> {
   const condiciones = [eq(miembrosPrograma.activo, true), eq(users.activo, true)];
   if (programId !== undefined) condiciones.push(eq(miembrosPrograma.programId, programId));
-  return consultarMembresiasConCalendly(db, condiciones);
+  return unaVezPorSolicitud(
+    db,
+    claveDe("membresiasConCalendly", programId),
+    () => consultarMembresiasConCalendly(db, condiciones),
+  );
 }
 
 /** Las membresias activas del usuario, para que vincule su propia cuenta de Calendly. */

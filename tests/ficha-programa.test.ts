@@ -33,7 +33,10 @@ import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 
 const auth = vi.fn();
 vi.mock("@/lib/auth", () => ({ auth }));
-vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
+vi.mock("next/headers", () => ({
+  cookies: async () => ({ get: () => undefined }),
+  headers: async () => ({ get: () => null }),
+}));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 class NoEncontrado extends Error {}

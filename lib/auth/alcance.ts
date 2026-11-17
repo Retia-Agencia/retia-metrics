@@ -4,6 +4,7 @@ import { miembrosPrograma, programs, usuariosProgramasAlcance } from "@/lib/db/s
 import type { Db } from "@/lib/db/tipos";
 import { memoizadaPorSolicitud } from "./solicitud";
 import { esAccesoTotal, esAdministrador, tieneAlcanceConfigurable, type Rol } from "./roles";
+import { programasActivos } from "@/lib/queries/programas";
 
 /**
  * "¿Qué programas ve esta sesión?" — LA respuesta, en un solo módulo (ADR 0048
@@ -83,11 +84,7 @@ async function leerProgramasVisibles(
   // punto 2): el paid trafficker no tiene membresías —son del equipo que trabaja leads— y Pauta
   // lleva todos los programas.
   if (esAccesoTotal(rol)) {
-    return db
-      .select(columnas)
-      .from(programs)
-      .where(eq(programs.activo, true))
-      .orderBy(asc(programs.nombre));
+    return programasActivos(db);
   }
 
   if (tieneAlcanceConfigurable(rol)) {

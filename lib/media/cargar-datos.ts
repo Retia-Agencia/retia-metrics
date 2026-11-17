@@ -29,7 +29,7 @@ export async function cargarDatosDeMedia(db: Db, entrada: { userId: string; rol:
   const nombreDePrograma = new Map(visibles.map((fila) => [fila.id, fila.nombre]));
   const tipos = await db.select({ id: tiposPieza.id, nombre: tiposPieza.nombre, activo: tiposPieza.activo }).from(tiposPieza).orderBy(asc(tiposPieza.nombre));
   const nombreDeTipo = new Map(tipos.map((tipo) => [tipo.id, tipo.nombre]));
-  const linksFijos = (await linksFijosVisibles(actor, db)).filter((pieza) => lista.some((creador) => creador.id === pieza.creadorId));
+  const linksFijos = (await linksFijosVisibles(actor, db, todos)).filter((pieza) => lista.some((creador) => creador.id === pieza.creadorId));
   async function resolverLink(piezaId: string): Promise<PiezaVista["link"]> {
     try {
       const url = await linkDePieza(db, piezaId);

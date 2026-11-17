@@ -13,6 +13,7 @@ import {
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { objetivosDeCohortes } from "./objetivos";
 import { moldeDeCatalogo } from "./molde";
+import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 
 export const METRICAS_DEL_REPORTE = ["costo_por_agenda"] as const satisfies readonly MetricaObjetivo[];
 export type MetricaDelReporte = (typeof METRICAS_DEL_REPORTE)[number];
@@ -101,11 +102,13 @@ function catalogo(db: Db) {
 }
 
 export async function reporteDelPrograma(db: Db, programId: string): Promise<ReporteWhatsapp | null> {
-  const [fila] = await db
-    .select()
-    .from(reportesWhatsapp)
-    .where(eq(reportesWhatsapp.programId, programId));
-  return fila ?? null;
+  return unaVezPorSolicitud(db, claveDe("reporteDelPrograma", programId), async () => {
+    const [fila] = await db
+      .select()
+      .from(reportesWhatsapp)
+      .where(eq(reportesWhatsapp.programId, programId));
+    return fila ?? null;
+  });
 }
 
 function exigirAdministrador(actor: ActorReporte) {

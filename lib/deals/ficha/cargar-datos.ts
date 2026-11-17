@@ -10,7 +10,15 @@ export async function cargarDatosDeFichaDeDeal(db: Db, entrada: { programId: str
   if (!resultado) return null;
   const { ficha } = resultado;
   const [opciones, alertas, hechosDeEscalera] = await Promise.all([
-    opcionesDeFicha(db, entrada.programId, ficha.owner?.id ?? null, ficha.cohorte?.id ?? null, ficha.etapa, ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null),
+    opcionesDeFicha(
+      db,
+      entrada.programId,
+      ficha.owner?.id ?? null,
+      ficha.cohorte?.id ?? null,
+      ficha.etapa,
+      ficha.pendiente === "proxima_cohorte" && ficha.cohorteDestinoTexto != null,
+      { cohortesVendiendoHoy: ficha.cohortesVendiendoHoy, enlacesDePago: ficha.enlacesDePago },
+    ),
     alertasDelDeal(db, entrada.programId, ficha.dealId),
     cargarHechosDeEscaleraDeDeal(db, { programId: entrada.programId, dealId: ficha.dealId }),
   ]);
