@@ -46,7 +46,7 @@ Reacomodar Pauta (420), las filas nuevas (414 a 416), los rótulos que dependen 
 ## Done cuando
 
 - [x] `CifraDeMetrica` armada en el servidor; la pantalla no calcula nada.
-- [ ] Ficha con `que`, `formula`, `variables`, `aliasExcel?`; todas las cifras de Pauta con su texto (§2.1).
+- [x] Ficha con `que`, `formula`, `variables`, `aliasExcel?`; todas las cifras de Pauta con su texto (§2.1). *(17-nov: las 52 fichas de E-1, con `tests/registro-de-metricas.test.ts:118-121`; verificado en verde.)*
 - [ ] Tarjeta, barra y celda iguales al boceto en claro, oscuro y 375 px (comparar lado a lado con `docs/bocetos/una-forma-de-metrica.html`).
 - [x] Panel con las cinco secciones; foco, Escape y vuelta del foco; la lista completa sabe volver.
 - [x] Los ocho casos raros, cada uno con test de su frase.
@@ -298,6 +298,12 @@ tengan texto aprobado.
 
 ## Avance
 
+- **17-nov · Carril D: hallazgo 20 resuelto.** Las fichas `agendadas`, `cierre_de_ventas`, `ventas` y `vendido` decían «de pauta»
+  aunque Hoy, Comercial, Dinero y el norte cuentan todas las áreas. `explicacionDe` (`lib/metricas/explicacion.ts`) toma ahora una
+  frase neutra por concepto cuando la variante es `universo: "todas"`; Pauta conserva su ficha y una variante explícita manda.
+  Sin tocar `registro.ts` ni los archivos de `lib/hub/` ni de componentes. Test nuevo `tests/explicacion-por-universo.test.ts`;
+  en `tests/explicaciones-de-comercial.test.ts` se quitaron tres igualdades contra la ficha (ya las cubre `explicacionDe` en
+  la línea anterior). No cambia ninguna cantidad.
 - **16-nov · E-3 ¿Vamos a llegar?** Integrado solo el norte del Hub de un programa.
   - **Revisión de Claude (corrige lo de abajo donde choca):** la paridad SÍ corrió y está en verde
     (`tests/norte-evidencia.test.ts`: cierres del mes y de la cohorte = Llevamos de cupos), así que la evidencia quedó
