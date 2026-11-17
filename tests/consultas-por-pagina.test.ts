@@ -271,9 +271,10 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, vari
       codigo: `VAR-${indice + 1}`,
       metaCupos: 10,
       precioUsd: "1000.00",
-      fechaInicioVentas: "2026-11-01",
-      fechaCierreVentas: "2026-11-30",
-      fechaInicioClases: `2026-12-${String(indice + 1).padStart(2, "0")}`,
+      // Ventanas de venta distintas: la base prohíbe que se solapen dentro de un programa (0122).
+      fechaInicioVentas: `2026-0${indice + 4}-01`,
+      fechaCierreVentas: `2026-0${indice + 4}-20`,
+      fechaInicioClases: `2026-0${indice + 4}-25`,
       estado: "cerrado" as const,
     }))).returning();
     const leadsDeVariedad = await db.insert(leads).values(Array.from({ length: variedad }, (_, indice) => ({
