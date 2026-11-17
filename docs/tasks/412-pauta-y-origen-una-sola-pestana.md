@@ -133,7 +133,7 @@ migración esté en `main`.
       Cómo calcula el Excel: inversión y "Agendas en Meta" a mano desde Meta; costo por agenda = inversión ÷ agendas de
       Meta; "Agendas del día", "Llamadas realizadas" y "Ventas" a mano; % conversión = ventas ÷ llamadas; CAC = inversión
       ÷ ventas; **Ingresos = ventas × ticket fijo en COP** (Tactical 4.776.000, ComunicArte 2.537.648); ROAS = ingresos ÷
-      inversión. Todo en COP; ComunicArte separa las cuentas de Milena y Rosario y corta la semana de viernes a jueves.
+      inversión. Todo en COP; ComunicArte separa las cuentas de Milena y Rosario y corta la semana de sábado a viernes (corregido 17-nov).
 
       | Tactical, 12-18 oct | Excel | CRM | Lectura |
       |---|---|---|---|
@@ -170,6 +170,8 @@ migración esté en `main`.
       **Propuesta (Mani, 12-nov: "se podrían mostrar ambos"):** en la tabla semanal, junto al ROAS de Paid por envío, un
       segundo ROAS de todas las ventas cerradas en la semana × valor vendido ÷ inversión (la pregunta del Excel con el valor
       real, no el ticket fijo). Enmienda D-B ("es el único ROAS de la pestaña Pauta") y el ADR 0063 (N8); carril P.
+
+      **17-nov:** de 41 contra 28, 7 ventas son de fecha (11 deals registrados el 11-nov con pago anterior); quedan 6 sin explicar (`docs/reportes/respuestas-pauta-2026-11-17.md` §1).
 
       **Falta para cerrar:** (1) que comercial registre o explique las 13 ventas de ComunicArte; (2) abrir la tabla semanal de Pauta en
       producción con 12-18 oct y comparar sus 16 filas; (3) agregar a "Cómo se calcula" (`components/dashboard/info-de-pauta.tsx`,
