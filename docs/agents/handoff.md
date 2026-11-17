@@ -20,7 +20,7 @@ Lo que sigue, en este orden:
    Mueve una cifra: hecho de envíos (lib/queries/hechos/envio.ts:104) con desglose por es_parcial, ficha de los parciales, quitar la nota
    «Pendiente de Mani» de docs/metricas.md (~307), lib/metricas/registro.ts (~1090) y overview §11 en el mismo commit (N8), dorados y el
    aviso de qué número se movió. Detalle en docs/tasks/429-*.md, sección "Respondido por Mani".
-2. MCP (411, 17-nov): `resumen_del_hub` trae pauta, perdidos, cita a pago, norte y proyecciones (`CIFRAS_EN_EL_RESUMEN` en `lib/mcp/cobertura.ts`, vigilado por test); conceptos pendientes 0. F4 anotada. Falta solo que Mani decida A-177 (acción nueva o ADR que la descarta, opciones en el ticket) y comparar `pauta` con la pestaña Pauta en pantalla. Recordar: revocar y reemitir el token Bearer personal que quedó impreso el 14-nov (Ajustes › Conexiones IA).
+2. MCP (411, 17-nov): `resumen_del_hub` trae pauta, perdidos, cita a pago, norte y proyecciones (`CIFRAS_EN_EL_RESUMEN` en `lib/mcp/cobertura.ts`, vigilado por test); conceptos pendientes 0. F4 anotada. A-177 decidida (b, 17-nov): ADR 0134 y `reasignar_deal`. Falta el CI del PR borrador y comparar `pauta` con la pestaña Pauta en pantalla. Recordar: revocar y reemitir el token Bearer personal que quedó impreso el 14-nov (Ajustes › Conexiones IA).
    Darles vía real (lista o cifra en resumen_del_hub) va con el 411.
 3. Lo que espera a personas (carril H): Michael antes del 30-nov (validar /hub/reporte del 427, Q-1 a Q-9, DM-8); WhatsApp de cada closer
    (428); Daniel define "pago rápido" y el peso de cada escalón (afecta Días de la cita al pago); recorridos visuales de 431 a 434.

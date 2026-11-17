@@ -81,6 +81,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0034](./0034-una-plataforma-de-pago-sirve-a-programas.md) | Una plataforma de pago sirve a programas, por tabla puente |
 | [0017](./0017-recursos-solo-como-links.md) | Los recursos son links; el comprobante de un abono puede ser foto |
 | [0133](./0133-la-venta-directa-entra-por-el-webhook-de-la-pasarela.md) | La venta directa entra por el webhook de la pasarela (Hotmart), se empareja por correo o teléfono (si no, bandeja), y cae en Students sin dueño para siempre; valor vendido = ticket de la cohorte; un reembolso lo decide una persona (tickets 448 a 455) |
+| [0134](./0134-la-cesion-de-deal-por-el-closer-queda-fuera-del-mcp.md) | La cesión de un deal por el closer queda fuera del MCP mientras la app no la tenga; hoy reasigna un administrador (`reasignar_deal`, mismo caso de uso que la app; A-177, ticket 411) |
 
 **Origen y atribución**
 

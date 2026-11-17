@@ -3,7 +3,7 @@ id: 411
 etapa: mcp
 serves: "Pedido de Mani del 9-nov (el MCP no limita acciones ni métricas: puerta de entrada con reglas de orientación, visibilidad completa y control total según el rol) · ADR 0129 · ADR 0119 · A-177 · A-178 a A-185"
 depends: [348, 383]
-status: en curso  # 17-nov: F0 a F4 hechas; F5 espera la decisión de Mani sobre A-177
+status: en curso  # 17-nov: F0 a F5 hechas; A-177 decidida (b) con ADR 0134; en PR borrador, pasa a done cuando el CI sea verde y se mergee
 ---
 
 # 411 — El MCP del CRM como puerta total: sin límites de acciones ni de métricas
@@ -165,7 +165,7 @@ pre-armada: es una **puerta con reglas de orientación** sobre los mismos servic
   adversarial (`/codex:adversarial-review`) y petición forjada por rol y programa. Ola 1 en main el 13-nov: registro `ACCIONES` con `mover_etapa` y `deshacer_evento`, un solo caso de uso (`lib/deals/mover-deal.ts`), `mcp_vistas_previas` de un uso (0134) y el origen del movimiento en `deal_etapa_historial` (0135); ola 2 en main el 13-nov: diez acciones más (`marcar_show`, `pegar_grain`, `corregir_resultado`, `marcar_fallida`, `asignar_llamada_suelta`, `registrar_abono`, `cambiar_plataforma_de_abono`, `anular_deal`, `anular_abono`, `anular_llamada`) sobre los mismos casos de uso de la app, vista previa por ensayo con rollback (`lib/mcp/acciones/ensayo.ts`), guarda de alcance única con 404 (`lib/deals/alcance.ts`), anular mudado a `lib/deals/anular.ts`, Calendly y Grain después del commit, y el origen de cada movimiento en la ficha y en `ficha_de_deal`. Decisiones de Mani del 13-nov: sin reagendar ni agendar (reservan en Calendly); `cancelada` y asignar suelta entran avisando que cancelan en Calendly; el enlace del comprobante es obligatorio en el MCP; las anulaciones, `marcar_fallida`, `asignar_llamada_suelta`, `corregir_resultado`, `marcar_show`, `pegar_grain` y `cambiar_plataforma_de_abono` no se deshacen en un paso, igual que en la app. Hallazgo de la app, sin tocar: deshacer el resultado de una fallida deja Re-agenda puesto (fijado en `tests/mcp-acciones-ola2.test.ts`).
 - [x] **F3 Guardián de cobertura** mordido en los dos sentidos.
 - [x] **F4 Medición** (migración 0143 aplicada, código `d182f274`) e informe: salida de 7 días anotada abajo (17-nov); ninguna herramienta pasa el tope de bytes.
-- [ ] **F5 Descubrimiento y evaluaciones.** Hecho: `capacidades`, 8 evaluaciones, cliente real y hueco de pauta cerrado (17-nov). Falta solo la decisión de Mani sobre A-177 (opciones abajo).
+- [x] **F5 Descubrimiento y evaluaciones.** Hecho: `capacidades`, 8 evaluaciones, cliente real y hueco de pauta cerrado (17-nov). A-177: Mani eligió (b) el 17-nov: ADR 0134 y acción `reasignar_deal` (solo administradores, mismo caso de uso que la app); el `it.todo` es ahora una evaluación real.
 - [x] `docs/mcp.md` reescrito (§1, §3, §4 puntos 7, 8 y 20, §7) en el mismo commit que el código (N8); `INSTRUCCIONES_MCP` al día.
 - [x] Tracker y `status:` coinciden (N9), 17-nov.
 

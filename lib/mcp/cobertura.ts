@@ -159,7 +159,7 @@ export const COBERTURA_MCP = {
 
   "app/(app)/p/[programa]/inbox/acciones.ts#reclamarDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Reclamar un deal sin responsable." },
   "app/(app)/p/[programa]/inbox/acciones.ts#reclamarTodosPorSettearAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Reclamar todos los deals pendientes de contacto." },
-  "app/(app)/p/[programa]/inbox/acciones.ts#reasignarDealAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Reasignar un deal a otra persona responsable." },
+  "app/(app)/p/[programa]/inbox/acciones.ts#reasignarDealAccion": { clase: "expuesta", accion: "reasignar_deal" },
   "app/(app)/p/[programa]/inbox/acciones.ts#completarAgendadaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Completar los datos de una cita agendada desde la bandeja." },
   "app/(app)/p/[programa]/inbox/acciones.ts#asignarLlamadaSueltaAccion": { clase: "expuesta", accion: "asignar_llamada_suelta" },
   "app/(app)/p/[programa]/inbox/acciones.ts#descartarLlamadaSueltaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Descartar una llamada suelta que no corresponde a ningún deal." },
@@ -189,8 +189,9 @@ export const ACCIONES_SIN_PAR_EN_LA_APP = {
  * Solo baja cuando una capacidad pendiente entra al MCP o sale justificadamente de su alcance.
  * 16-nov (Alejandro): 96 → 97 por una capacidad nueva, no por una regresión: asignar a un lead una compra de la
  * pasarela que no se emparejó sola (451, Hotmart). Entra como pendiente de operación hasta que el MCP la exponga.
+ * 17-nov: reasignar_deal expuesta (411, ADR 0134), 97 → 96.
  */
-export const TOPE_DE_PENDIENTES_DEL_MCP = 97;
+export const TOPE_DE_PENDIENTES_DEL_MCP = 96;
 
 type RazonSinLista =
   | `Se pide por consultar_hechos: ${string}`

@@ -10,6 +10,7 @@ import { anularAbonoMcp } from "./anular-abono";
 import { anularLlamadaMcp } from "./anular-llamada";
 import { marcarFallidaMcp } from "./marcar-fallida";
 import { asignarLlamadaSueltaMcp } from "./asignar-llamada-suelta";
+import { reasignarDealMcp } from "./reasignar-deal";
 import type { AccionMcp } from "./tipos";
 
 export const ACCIONES = [
@@ -25,6 +26,7 @@ export const ACCIONES = [
   anularLlamadaMcp,
   marcarFallidaMcp,
   asignarLlamadaSueltaMcp,
+  reasignarDealMcp,
 ] as const satisfies readonly AccionMcp[];
 export const CLAVES_DE_ACCION = ACCIONES.map((accion) => accion.clave) as [string, ...string[]];
 
