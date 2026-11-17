@@ -406,7 +406,8 @@ describe("consultas por pagina", () => {
     nombre.startsWith("/p/[programa]/hub") && pagina.pagina === "app/(app)/p/[programa]/hub/page.tsx"))(
     "%s no crece con closers, cohortes ni campañas",
     async (nombre, pagina) => {
-      const base3 = await medirPagina(nombre, pagina, 3);
+      // Con 1 contra 4: una página vacía salta ramas enteras (listas sin filas no consultan), y eso no es N+1.
+      const base3 = await medirPagina(nombre, pagina, 3, 0, 1);
       const conVariedad = await medirPagina(nombre, pagina, 3, 0, 4);
       // Dice QUÉ sentencias crecieron: es el dueño del N+1 que hay que quitar.
       const crecieron = [...conVariedad.porSentencia]
@@ -415,7 +416,7 @@ describe("consultas por pagina", () => {
         .sort((a, b) => b.mas - a.mas)
         .slice(0, 8)
         .map(({ sentencia, mas }) => `  +${mas} ${sentencia.slice(0, 170)}`);
-      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} sin variedad, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
+      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} con variedad 1, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
         .toBe(base3.costo.consultas);
       expect(conVariedad.costo.identicas).toBe(0);
     },
