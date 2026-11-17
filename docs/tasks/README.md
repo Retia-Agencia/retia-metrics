@@ -73,8 +73,8 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 
 | ✓ | # | Ticket | Depende de | Estado |
 |---|---|---|---|---|
-| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso |
-| [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso |
+| [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso · 17-nov · en main, CI verde, `postgres` fuera, 24 h sin 5xx; falta abrir `/nerd-stats` con sesión y cerrar el 243 |
+| [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso · 17-nov · medidor en producción y tabla p50/p95 en el estudio §13.8; falta el presupuesto de 15 rutas (lo cubre el guardián del 447) |
 | [x] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | done · 15-nov · 0 idénticas en todas las rutas del estudio (dev:local), abono probado sin recargar, CI verde (282c34e2) |
 | [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |
 | [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | en curso · en main · 15-nov · medido en producción 1,4 s (≤ 2 s) y alarmas idénticas; sin índice de `entregas_webhook` (descartado, medido); falta el checkpoint verde |

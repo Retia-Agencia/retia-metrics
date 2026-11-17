@@ -3,7 +3,7 @@ id: 435
 etapa: rendimiento
 serves: "Ticket 243 (causa raíz) · docs/estudio-rendimiento-y-conexion.md §3, §5.1 y §13.1 · ADR 0047 (enmienda)"
 depends: []
-status: en curso  # 14-nov: código listo sin commit; faltan CI, conexiones locales, 24 h en producción y cierre del 243
+status: en curso  # 17-nov: en main, CI verde, `postgres` fuera, ADR enmendado, 24 h sin 5xx; falta abrir /nerd-stats con sesión y cerrar el 243
 ---
 
 # 435 — La app se conecta con `pg`: un pool por proceso, sin cuelgues por el pooler
@@ -100,7 +100,7 @@ de 15 s. Y un guardián de código: `import … from "postgres"` o `new Pool(` f
 (amplía `tests/base-portable.test.ts`).
 
 ## Done cuando
-- [ ] `npm run typecheck`, `npm run lint` y los tests del cambio en verde (hecho el 14-nov, local); **falta el CI completo verde** (incluye Postgres real).
+- [x] `npm run typecheck`, `npm run lint` y los tests del cambio en verde (14-nov, local); CI completo verde en main (17-nov, run 44145232321, incluye Postgres real).
 - [x] **El bucle del estudio §3.3 contra producción, con el cliente nuevo por 6543: 30 rondas de las 5 funciones de
       Nerd Stats en paralelo y 60 rondas de transacciones, 0 cuelgues y 0 parámetros cruzados.** Lo corre la sesión
       principal (solo lectura) y pega la salida aquí.
@@ -115,8 +115,9 @@ de 15 s. Y un guardián de código: `import … from "postgres"` o `new Pool(` f
       **Parcial (14-nov, 1 h tras el deploy):** `/api/health` 200, `/api/salud/alertas` 401 sin secreto (responde en 0,5 s),
       `/nerd-stats` 307 a login; `vercel logs --status-code 5xx --since 1h`: sin registros. Faltan las dos rutas con sesión
       y las 24 h: se revisan el 15-nov con `vercel logs --status-code 5xx --since 24h`.
-- [ ] `postgres` fuera de `package.json` (N7); ADR 0047 enmendado en el mismo commit (título, índice, punto 1 y la
-      nota de `prepare: false`); AGENTS.md actualizado.
+      **17-nov:** `vercel logs --status-code 5xx --since 24h`: sin registros; `POST /api/salud/alertas` 200 cada 5 min en los logs reales; el medidor del 436 muestra `/p/[programa]/programa` (4 peticiones, p95 1,3 s) y 0 errores. **Falta** `/nerd-stats` con sesión (sin tráfico en 24 h; el navegador del agente no tiene sesión de Google): lo abre Mani una vez.
+- [x] `postgres` fuera de `package.json` (N7); ADR 0047 enmendado en el mismo commit (título, índice, punto 1 y la
+      nota de `prepare: false`); AGENTS.md actualizado. Verificado el 17-nov: sin `postgres` en `package.json` ni imports en `lib/`, `app/`, `scripts/`, `tests/`; ADR 0047 con la enmienda del 14-nov (`2812687a`).
 - [ ] Ticket 243 cerrado con referencia a este; tracker y `status:` iguales (N9).
 
 ## Riesgos
