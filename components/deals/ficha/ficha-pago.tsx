@@ -316,11 +316,15 @@ function DialogoRegistrarAbono({
 }) {
   const { pendiente, correr } = useAccion();
   const [datos, setDatos] = useState(() => ({ ...datosInicialesDeAbono("USD"), fecha: hoy }));
-  const completo = Boolean(
-    datos.concepto && datos.fecha && datos.monto.trim() && datos.plataformaId
-    && (datos.comprobanteUrl.trim() || datos.archivoId)
-    && (datos.concepto !== "adicional" || datos.nota.trim()),
-  );
+  const faltan = [
+    !datos.concepto && "qué está pagando",
+    datos.concepto === "adicional" && !datos.nota.trim() && "qué se vendió",
+    !datos.fecha && "fecha del pago",
+    !datos.monto.trim() && "monto",
+    !datos.plataformaId && "plataforma de pago",
+    !(datos.comprobanteUrl.trim() || datos.archivoId) && "comprobante",
+  ].filter((f): f is string => Boolean(f));
+  const completo = faltan.length === 0;
   return (
     <DialogoForm
       titulo="Registrar abono"
@@ -328,6 +332,7 @@ function DialogoRegistrarAbono({
       pendiente={pendiente}
       onCerrar={onCerrar}
       deshabilitarConfirmar={!completo}
+      faltan={faltan}
       confirmar={{
         texto: "Registrar abono",
         enCurso: "Registrando…",

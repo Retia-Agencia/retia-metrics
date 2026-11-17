@@ -53,6 +53,7 @@ export function DialogoForm({
   pendiente,
   confirmar,
   deshabilitarConfirmar = false,
+  faltan = [],
   peligro = false,
   onCerrar,
   children,
@@ -63,6 +64,8 @@ export function DialogoForm({
   /** Sin `confirmar` el diálogo solo tiene "Cancelar": las opciones son botones propios (177). */
   confirmar?: { texto: string; enCurso: string; onClick: () => void };
   deshabilitarConfirmar?: boolean;
+  /** Campos obligatorios vacíos: se nombran junto al botón para que nunca quede gris sin razón. */
+  faltan?: string[];
   peligro?: boolean;
   onCerrar: () => void;
   children: ReactNode;
@@ -75,6 +78,9 @@ export function DialogoForm({
           {descripcion ? <DialogDescription>{descripcion}</DialogDescription> : null}
         </DialogHeader>
         <div className="min-w-0 space-y-3">{children}</div>
+        {confirmar && faltan.length > 0 ? (
+          <p className="text-sm text-muted-foreground" role="status">Falta: {faltan.join(", ")}.</p>
+        ) : null}
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={onCerrar} disabled={pendiente}>
             Cancelar
