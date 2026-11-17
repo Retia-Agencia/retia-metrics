@@ -146,7 +146,7 @@ const SIN_CONSULTAS = [
 
 let base: Awaited<ReturnType<typeof crearBaseReutilizable>>;
 
-async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
+async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0): Promise<Sembrado> {
   const programas = await db.insert(programs).values(Array.from({ length: cantidadDeProgramas }, (_, indice) => ({
     ...PROGRAMA_DE_PRUEBA,
     slug: `pagina-${indice + 1}`,
@@ -176,6 +176,20 @@ async function sembrar(db: Db, cantidadDeProgramas: number): Promise<Sembrado> {
     ownerUserId: closer!.id,
     etapa: "contactado",
   }).returning();
+  // Filas de más en el programa del closer: el costo de una página no puede crecer con ellas (N+1).
+  if (dealsExtra > 0) {
+    const leadsExtra = await db.insert(leads).values(Array.from({ length: dealsExtra }, (_, indice) => ({
+      programId: programas[0]!.id,
+      emailNormalizado: `extra-${indice + 1}@paginas.test`,
+      fechaPrimeraAplicacion: new Date(`2026-11-1${indice % 5}T12:00:00-05:00`),
+    }))).returning();
+    await db.insert(deals).values(leadsExtra.map((lead, indice) => ({
+      programId: programas[0]!.id,
+      leadId: lead.id,
+      ownerUserId: closer!.id,
+      etapa: (["contactado", "agendado"] as const)[indice % 2]!,
+    })));
+  }
   await db.insert(oauthClientes).values({
     clientId: "https://cliente.paginas.test/cimd",
     nombre: "Cliente paginas",
@@ -198,9 +212,9 @@ function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
   ];
 }
 
-async function medirPagina(nombre: string, pagina: Pagina, cantidad: number) {
+async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0) {
   await base.vaciar();
-  const sembrado = await sembrar(base.db, cantidad);
+  const sembrado = await sembrar(base.db, cantidad, dealsExtra);
   abrirSolicitud();
   const { costo, identicas } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
@@ -235,6 +249,15 @@ describe("consultas por pagina", () => {
       expect(conSeis.costo.consultas).toBeLessThanOrEqual(pagina.tope);
       expect(conSeis.costo.consultas).toBe(conTres.costo.consultas);
     }
+  });
+
+  // N+1 por filas: con 4 deals de más en el programa, ninguna página pide una consulta más por cada uno.
+  it.each(Object.entries(PAGINAS))("%s no crece con las filas del programa", async (nombre, pagina) => {
+    const base3 = await medirPagina(nombre, pagina, 3);
+    const conFilas = await medirPagina(nombre, pagina, 3, 4);
+    expect(conFilas.costo.consultas, `${nombre}: ${base3.costo.consultas} sin filas extra, ${conFilas.costo.consultas} con 4 deals más`)
+      .toBe(base3.costo.consultas);
+    expect(conFilas.costo.identicas).toBe(0);
   });
 
   it("mantiene todas las paginas en un grupo del trinquete", () => {
