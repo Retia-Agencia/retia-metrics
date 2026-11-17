@@ -1,13 +1,75 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { alertasActivas } from "@/lib/alertas/registro";
+import { alertasActivas, REGISTRO_DE_ALERTAS } from "@/lib/alertas/registro";
 import { calls, programs, sobresCrudos, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
+import type { SaludDeFuenteConDatos } from "@/lib/queries/salud-fuentes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
 const AHORA = new Date("2026-11-13T10:00:00-05:00");
 const hace = (horas: number) => new Date(AHORA.getTime() - horas * 3_600_000);
+
+const FUENTE_CON_TRAZA: SaludDeFuenteConDatos = {
+  sourceId: "fuente-traza",
+  nombre: "Formulario principal",
+  programId: "programa-traza",
+  programaNombre: "Programa Alertas",
+  estado: "al_dia",
+  marcada: true,
+  sobresPendientes: 0,
+  sinCalidad: 0,
+  pagos: 5,
+  pagosSinId: 4,
+  pagosSinFbclid: 0,
+  pagosIdDesconocido: 0,
+  trazaRota: true,
+  fbclidRoto: false,
+  umbralSinRespuestaHoras: 48,
+  umbralMuertaHoras: 120,
+  ultimo: AHORA,
+  penultimo: hace(1),
+  llamadasSueltasViejas: 0,
+  dealsConCitaSinLlamada: 0,
+  diagnosticoTraza: null,
+  anunciosSinId: [],
+};
+
+const textoDeTraza = (cambios: Partial<SaludDeFuenteConDatos>) =>
+  REGISTRO_DE_ALERTAS.traza_de_pauta_rota.evaluar({
+    fuentes: [{ ...FUENTE_CON_TRAZA, ...cambios }],
+    hostsSinCloser: [],
+  }, AHORA)[0].texto;
+
+describe("texto de traza_de_pauta_rota", () => {
+  it("explica cuando la traza se pierde antes del formulario", () => {
+    expect(textoDeTraza({ diagnosticoTraza: "se_pierde_antes_del_formulario" })).toBe(
+      "🟡 Programa Alertas · Formulario principal: de 5 envíos pagos, 4 sin identificador del anuncio. Los anuncios de Meta sí lo mandan: se pierde entre el clic y el formulario. Revisar la landing o el formulario.",
+    );
+  });
+
+  it("nombra los anuncios cuyas plantillas no mandan el identificador", () => {
+    expect(textoDeTraza({ diagnosticoTraza: "anuncios_sin_id", anunciosSinId: ["Anuncio A", "Anuncio B"] })).toBe(
+      "🟡 Programa Alertas · Formulario principal: de 5 envíos pagos, 4 sin identificador del anuncio. Estos anuncios de Meta no lo llevan en sus parámetros de URL: Anuncio A, Anuncio B. Corregirlos en Meta.",
+    );
+  });
+
+  it("conserva el texto actual cuando no hay diagnostico", () => {
+    expect(textoDeTraza({ diagnosticoTraza: null })).toBe(
+      "🟡 Programa Alertas · Formulario principal: de 5 envíos pagos, 4 sin identificador del anuncio. Revisar en Ajustes › Webhook Health.",
+    );
+  });
+
+  it("agrega el problema de clic como una frase aparte", () => {
+    expect(textoDeTraza({
+      diagnosticoTraza: "se_pierde_antes_del_formulario",
+      fbclidRoto: true,
+      pagosSinFbclid: 3,
+    })).toBe(
+      "🟡 Programa Alertas · Formulario principal: de 5 envíos pagos, 4 sin identificador del anuncio. Los anuncios de Meta sí lo mandan: se pierde entre el clic y el formulario. Revisar la landing o el formulario. Además, 3 sin identificador del clic.",
+    );
+  });
+});
 
 describe("registro de alertas tecnicas", () => {
   let db: Db;

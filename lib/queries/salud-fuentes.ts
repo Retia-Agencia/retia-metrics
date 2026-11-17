@@ -1,13 +1,15 @@
-import { and, count, countDistinct, eq, gte, isNotNull, isNull, lt, max, or } from "drizzle-orm";
+import { and, count, countDistinct, eq, gte, inArray, isNotNull, isNull, lt, max, or } from "drizzle-orm";
+import { tipoDePlantilla } from "@/lib/atribucion/canal";
 import { emparejar } from "@/lib/atribucion/emparejar";
 import { esEnvioPago, esPagoSinId } from "@/lib/atribucion/traza-sin-id";
 import {
   columnasUtmDelEnvioLiviano,
+  esMacro,
   respuestasUtmDelEnvioLiviano,
   utmsDelEnvio,
 } from "@/lib/atribucion/utm-del-envio";
 import { db as dbDeLaApp } from "@/lib/db";
-import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
+import { pautaObjetos, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { arbolesDePauta } from "@/lib/pauta/arbol";
 import { alarmasCalendlyDe } from "@/lib/calendly/reconciliar";
@@ -120,6 +122,38 @@ export interface SaludDeFuenteConDatos extends SaludDeFuente, DatosDeSalud {
   programaNombre: string;
   llamadasSueltasViejas: number;
   dealsConCitaSinLlamada: number;
+  diagnosticoTraza: DiagnosticoTraza;
+  anunciosSinId: string[];
+}
+
+export type DiagnosticoTraza = "se_pierde_antes_del_formulario" | "anuncios_sin_id" | null;
+
+export function diagnosticarTraza(
+  nombresDeEnviosSinId: string[],
+  anunciosActivos: { nombre: string; urlTags: string | null }[],
+): { diagnostico: DiagnosticoTraza; anuncios: string[] } {
+  const nombresSinId = new Set<string>();
+  let algunAnuncioMandaId = false;
+
+  for (const nombre of nombresDeEnviosSinId) {
+    for (const anuncio of anunciosActivos) {
+      if (anuncio.nombre !== nombre) continue;
+      const tipo = tipoDePlantilla(anuncio.urlTags);
+      if (tipo === "sin_id") nombresSinId.add(anuncio.nombre);
+      else if (tipo === "pauta" || tipo === "vieja") algunAnuncioMandaId = true;
+    }
+  }
+
+  if (nombresSinId.size > 0) {
+    return {
+      diagnostico: "anuncios_sin_id",
+      anuncios: [...nombresSinId].sort((a, b) => a.localeCompare(b, "es")).slice(0, 3),
+    };
+  }
+  return {
+    diagnostico: algunAnuncioMandaId ? "se_pierde_antes_del_formulario" : null,
+    anuncios: [],
+  };
 }
 
 /** Envíos recibidos desde un instante, agrupados en una sola lectura. */
@@ -187,8 +221,22 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
       ? [and(eq(submissions.sourceId, fuente.sourceId), lt(submissions.createdAt, ultimo))]
       : [];
   });
-  const [arboles, alarmas, filasPenultimo] = await Promise.all([
+  const [arboles, anunciosActivos, alarmas, filasPenultimo] = await Promise.all([
     arbolesDePauta(db, programas),
+    programas.length === 0
+      ? Promise.resolve([])
+      : db
+        .select({
+          programId: pautaObjetos.programId,
+          nombre: pautaObjetos.nombre,
+          urlTags: pautaObjetos.urlTags,
+        })
+        .from(pautaObjetos)
+        .where(and(
+          inArray(pautaObjetos.programId, programas),
+          eq(pautaObjetos.nivel, "anuncio"),
+          eq(pautaObjetos.estado, "ACTIVE"),
+        )),
     alarmasCalendlyDe(db, programas, ahora),
     filtrosPenultimo.length === 0
       ? Promise.resolve([])
@@ -200,6 +248,7 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
   ]);
   const programaPorFuente = new Map(fuentes.map((fuente) => [fuente.sourceId, fuente.programId]));
   const trazaDe = new Map<string, Omit<DatosDeTraza, "trazaRota" | "fbclidRoto">>();
+  const nombresSinIdDe = new Map<string, string[]>();
   const sinCalidadDe = new Map<string, number>();
   for (const envio of enviosRecientes) {
     if (envio.esParcial === false && envio.leadQuality === null) {
@@ -220,7 +269,15 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     };
     conteo.pagos += 1;
     if (!utms.fbclid) conteo.pagosSinFbclid += 1;
-    if (esPagoSinId(utms)) conteo.pagosSinId += 1;
+    if (esPagoSinId(utms)) {
+      conteo.pagosSinId += 1;
+      const nombre = utms.content?.trim();
+      if (nombre && !esMacro(nombre)) {
+        const nombres = nombresSinIdDe.get(envio.sourceId) ?? [];
+        nombres.push(nombre);
+        nombresSinIdDe.set(envio.sourceId, nombres);
+      }
+    }
     else if (emparejar(utms, arboles.get(programId)!).avisos.includes("anuncio_desconocido")) {
       conteo.pagosIdDesconocido += 1;
     }
@@ -246,6 +303,18 @@ export async function saludDeFuentes(db: Db = dbDeLaApp, ahora: Date = new Date(
     };
     const alarma = alarmas.get(f.programId) ?? { llamadasSueltasViejas: 0, dealsConCitaSinLlamada: 0 };
     const salud = saludDeFuente({ ...datos, ...traza }, ahora);
-    return { ...f, ...datos, ...salud, marcada: salud.marcada || alarma.llamadasSueltasViejas > 0 || alarma.dealsConCitaSinLlamada > 0, ...alarma };
+    const diagnostico = diagnosticarTraza(
+      nombresSinIdDe.get(f.sourceId) ?? [],
+      anunciosActivos.filter((anuncio) => anuncio.programId === f.programId),
+    );
+    return {
+      ...f,
+      ...datos,
+      ...salud,
+      marcada: salud.marcada || alarma.llamadasSueltasViejas > 0 || alarma.dealsConCitaSinLlamada > 0,
+      ...alarma,
+      diagnosticoTraza: diagnostico.diagnostico,
+      anunciosSinId: diagnostico.anuncios,
+    };
   });
 }

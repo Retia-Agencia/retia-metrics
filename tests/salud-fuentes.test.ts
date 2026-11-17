@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
+import { cuentasPublicitarias, pautaObjetos, programs, sobresCrudos, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
-import { MIN_PAGOS_TRAZA, saludDeFuente, saludDeFuentes } from "@/lib/queries/salud-fuentes";
+import {
+  diagnosticarTraza,
+  MIN_PAGOS_TRAZA,
+  saludDeFuente,
+  saludDeFuentes,
+} from "@/lib/queries/salud-fuentes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -14,6 +19,39 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 const AHORA = new Date("2026-09-28T20:00:00Z");
 const hace = (horas: number) => new Date(AHORA.getTime() - horas * 3_600_000);
 const UMBRALES = { umbralSinRespuestaHoras: 48, umbralMuertaHoras: 120 };
+
+describe("diagnosticarTraza", () => {
+  it("ubica la perdida antes del formulario cuando los anuncios resueltos mandan el id", () => {
+    expect(diagnosticarTraza(
+      ["Pauta nueva", "Pauta vieja", "Otra", "No existe"],
+      [
+        { nombre: "Pauta nueva", urlTags: "utm_medium=paid_social&utm_id={{ad.id}}" },
+        { nombre: "Pauta vieja", urlTags: "utm_source=facebook&utm_medium=cpc&ad_id={{ad.id}}" },
+        { nombre: "Otra", urlTags: "utm_medium=organic&utm_id={{ad.id}}" },
+      ],
+    )).toEqual({ diagnostico: "se_pierde_antes_del_formulario", anuncios: [] });
+  });
+
+  it("los anuncios sin id ganan, con nombres unicos, ordenados y maximo tres", () => {
+    expect(diagnosticarTraza(
+      ["Zulu", "Beta", "Alfa", "Beta", "Delta", "Manda id"],
+      [
+        { nombre: "Zulu", urlTags: "utm_medium=paid_social" },
+        { nombre: "Beta", urlTags: "utm_medium=paid_social" },
+        { nombre: "Alfa", urlTags: "utm_medium=paid_social" },
+        { nombre: "Delta", urlTags: "utm_medium=paid_social" },
+        { nombre: "Manda id", urlTags: "utm_medium=paid_social&utm_id={{ad.id}}" },
+      ],
+    )).toEqual({ diagnostico: "anuncios_sin_id", anuncios: ["Alfa", "Beta", "Delta"] });
+  });
+
+  it("no diagnostica cuando solo hay una plantilla otra o un nombre que no resuelve", () => {
+    expect(diagnosticarTraza(
+      ["Otra", "No existe"],
+      [{ nombre: "Otra", urlTags: "utm_medium=organic&utm_id={{ad.id}}" }],
+    )).toEqual({ diagnostico: null, anuncios: [] });
+  });
+});
 
 describe("saludDeFuente (pura)", () => {
   it("con un envio reciente esta al dia", () => {
@@ -200,6 +238,52 @@ describe("saludDeFuentes (contra la base)", () => {
       trazaRota: false,
       fbclidRoto: false,
     });
+  });
+
+  it("diagnostica la perdida antes del formulario con la plantilla del anuncio ACTIVE", async () => {
+    const id = await fuente("Typeform");
+    const [cuenta] = await db.insert(cuentasPublicitarias).values({
+      programId,
+      idMeta: "cuenta-diagnostico",
+      nombre: "Cuenta diagnostico",
+      moneda: "COP",
+      zonaHoraria: "America/Bogota",
+    }).returning();
+    await db.insert(pautaObjetos).values([
+      { cuentaId: cuenta.id, programId, idMeta: "campana-diagnostico", nivel: "campana", nombre: "Campana", estado: "ACTIVE" },
+      { cuentaId: cuenta.id, programId, idMeta: "conjunto-diagnostico", nivel: "conjunto", padreIdMeta: "campana-diagnostico", nombre: "Conjunto", estado: "ACTIVE" },
+      {
+        cuentaId: cuenta.id,
+        programId,
+        idMeta: "anuncio-activo",
+        nivel: "anuncio",
+        padreIdMeta: "conjunto-diagnostico",
+        nombre: "Anuncio exacto",
+        estado: "ACTIVE",
+        urlTags: "utm_source=facebook&utm_medium=paid_social&utm_id={{ad.id}}",
+      },
+      {
+        cuentaId: cuenta.id,
+        programId,
+        idMeta: "anuncio-archivado",
+        nivel: "anuncio",
+        padreIdMeta: "conjunto-diagnostico",
+        nombre: "Anuncio exacto",
+        estado: "ARCHIVED",
+        urlTags: "",
+      },
+    ]);
+    await db.insert(submissions).values({
+      sourceId: id,
+      token: "pago-sin-id",
+      createdAt: hace(1),
+      utmMedium: "paid_social",
+      utmContent: "Anuncio exacto",
+    });
+
+    const [s] = await saludDeFuentes(db, AHORA);
+    expect(s.diagnosticoTraza).toBe("se_pierde_antes_del_formulario");
+    expect(s.anunciosSinId).toEqual([]);
   });
 
   it("solo mira las fuentes activas", async () => {
