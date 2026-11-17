@@ -95,6 +95,7 @@ No cambies qué muestra ninguna pantalla ni ninguna definición de `docs/metrica
 - [ ] Las cifras del Hub son idénticas antes y después (tests de paridad y comparación visual de un programa en
       `dev:local`, en claro y oscuro).
 - [ ] `docs/metricas.md` sin cambios de definición; si cambió el nombre de una función citada ahí, se actualiza.
+- [ ] `/p/[programa]/hub` entra a `PAGINAS` en `tests/consultas-por-pagina.test.ts` (con cargador compartido) y `PENDIENTES_447` queda vacía; con eso el 447 pasa a `done`.
 - [ ] Typecheck, lint, tests del cambio, build; tracker y `status:` iguales.
 
 ## Nota para quien implementa
