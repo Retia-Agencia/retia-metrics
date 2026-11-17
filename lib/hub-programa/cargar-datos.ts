@@ -40,7 +40,7 @@ export type SeccionDelHubDelPrograma = SeccionDelHub;
 
 export interface EntradaDeDatosDelHubDelPrograma {
   programa: { id: string; slug: string; nombre: string };
-  rol: Rol;
+  rol: Rol | null;
   busqueda: Record<string, string | string[] | undefined>;
   seccion: SeccionDelHubDelPrograma;
   hoy: string;
@@ -182,7 +182,7 @@ export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDat
     }),
   )) : undefined;
   return {
-    seccion, vista, vistaDeHoy, cohorteId, sinActividad, detalles, detalleManana, detallesOperacion,
+    seccion, vista, vistaDeHoy: reporte, cohorteId, sinActividad, detalles, detalleManana, detallesOperacion,
     detalleRegistros: proyectar(detalleRegistros!),
     detalleCitasDebidas: proyectar(detalleCitasDebidas!),
     detalleCitasSinMarcar: proyectar(detalleCitasSinMarcar!),
@@ -201,7 +201,7 @@ async function cargarVistaComercial(
     origen: string;
     hoy: string;
     veEquipo: boolean;
-    rol: Rol;
+    rol: Rol | null;
   },
 ) {
   const slug = programa.slug;

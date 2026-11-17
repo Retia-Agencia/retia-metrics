@@ -133,10 +133,10 @@ const PAGINAS = {
   "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
   "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 219, escalaConProgramas: true, cargar: datosDelHub("pauta") },
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
-  "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
-  "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },
-  "/p/[programa]/hub?seccion=pauta": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("pauta") },
-  "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 999, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
+  "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 66, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
+  "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 82, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },
+  "/p/[programa]/hub?seccion=pauta": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 22, escalaConProgramas: false, cargar: datosDelHubDelPrograma("pauta") },
+  "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 55, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
     tope: 31, // 18 antes de la fase 2: la siembra ahora incluye un deal. Costo fijo, probado: con 4 deals de más da lo mismo (test de abajo)
