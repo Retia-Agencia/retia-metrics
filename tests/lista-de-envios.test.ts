@@ -110,6 +110,20 @@ describe("ticket 309: una sola lista de envíos", () => {
     expect(lista.filas).toHaveLength(TAMANO_PAGINA);
   });
 
+  it("429: un parcial sin fecha_envio cae en la semana y el mes de su creación en Bogotá, no en NULL", async () => {
+    const [persona] = await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "persona-3@retia.test"));
+    const [fuente] = await db.select({ id: sources.id }).from(sources).where(eq(sources.programId, programId));
+    // 2026-10-05 02:00 UTC = domingo 4-oct 21:00 en Bogotá: la semana (lunes 28-sep) y el día salen de Bogotá, no de UTC.
+    await db.insert(submissions).values({
+      leadId: persona.id, sourceId: fuente.id, token: "sin-fecha", esParcial: true, fechaEnvio: null,
+      createdAt: new Date("2026-10-05T02:00:00Z"),
+    });
+    const filas = await agrupar(db, { programId, rango: RANGO, agruparPor: ["tipo", "dia", "semana", "mes"], filtros: { tipo: ["parcial"] } });
+    const fila = filas.find((f) => f.dia === "2026-10-04");
+    expect(fila).toMatchObject({ semana: "2026-09-28", mes: "2026-10-01", envios: 1 });
+    expect(filas.every((f) => f.semana !== null && f.mes !== null)).toBe(true);
+  });
+
   it("429: separa completos y parciales, cada uno con su lista, y el parcial de quien completó no cuenta aparte", async () => {
     const [persona] = await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "persona-2@retia.test"));
     const [fuente] = await db.select({ id: sources.id }).from(sources).where(eq(sources.programId, programId));

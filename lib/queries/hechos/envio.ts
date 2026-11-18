@@ -18,7 +18,7 @@ import type {
   ConsultaDeLista,
   ListaPaginada,
 } from "@/lib/queries/hechos/dimensiones";
-import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
+import { anclaEnvio, dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 import { fechaAnclaEnvio } from "@/lib/queries/metricas-filtros";
 
 export type DimensionEnvio = "tipo" | "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "campana" | "fuente" | "utm_source" | "utm_medium" | "categoria";
@@ -47,7 +47,7 @@ const idEnArbol = idEnArbolSql({
 });
 const dimensiones = {
   tipo: tipoSql,
-  ...dimensionesDeFecha(submissions.fechaEnvio),
+  ...dimensionesDeFecha(anclaEnvio()),
   dia: fechaAnclaEnvio(),
   area: areaSql(columnas, idEnArbol),
   canal: canalSql(columnas),
