@@ -32,6 +32,20 @@ pull --rebase antes de push, un solo push a la vez. Al cerrar, actualiza docs/ag
 ```
 ## Memory
 
+### 18-nov · UI de la forma de métrica: 419 E-4 y E-5, 420 y 422 en commits locales (sesión de UI, rama `claude/ui-forma-de-metrica-fedaf2`, PR borrador #39 de la sesión padre)
+
+**Qué se hizo** (un commit por paso, ninguno empujado por esta sesión): `/hub` Hoy, Comercial y Dinero con la Cifra (totales sumables y una
+tasa por programa, `lib/hub/cifras-de-todos.ts`); Mi espacio › Métricas con la Cifra y el universo nuevo «tuyas» (DC-4,
+`lib/hub/cifras-de-mi-espacio.ts`); se borra el diálogo `ComoSeCalcula`; 420: la celda de la tabla dice «Solo · …» con corte y se
+retira el Info de Pauta; 422: la Pauta de `/hub` con franja de totales, agendas por programa y la tabla semanal de cada uno.
+**Decidido por la sesión, pendiente de que Mani confirme** (detalle en el 422): un programa sin dato no aporta cero y deja la cifra
+«Parcial»; la gráfica de agendas por programa no ofrece Unidad; el cargador de `/hub` Pauta lee la tabla semanal de cada programa, así
+que el guardián de consultas de esa pantalla sube de 219 a 298 (esa lectura ya no se esconde en un componente; para el 438).
+**Queda:** E-6 y E-7 completos del 419 (rama vieja de Comercial y Hoy por programa dentro de `/hub`, gráficas de Dinero con
+`ResumenDeCifra`, Info de Hoy); las cinco cifras sin ficha (Realizadas sin Grain, Llamadas sin resultado y las tres banderas) esperan
+el texto de Mani; dos frases del diálogo retirado de Mi espacio no están en ninguna ficha; 420: «Ver solo › Canal» y los atajos de 7, 14
+y 28 días esperan a Mani; claro, 375 px, paid trafficker, `build` y `test:humo` sin verificar en todo lo anterior.
+
 ### 17-nov (noche) · rendimiento, MCP, Cifra y Pauta en main; 421 fase 1 en PR con su migración aplicada (sesión de Mani, orquestadora)
 - **En main con CI verde (squash):** #27 y #29 (447 fase 2 y cierre: el guardián mide cada página con 0 y 4 deals de más y exige el
   mismo número de consultas y 0 idénticas), #28 (411: `resumen_del_hub` con pauta, perdidos, cita a pago y proyecciones; `reasignar_deal`;
