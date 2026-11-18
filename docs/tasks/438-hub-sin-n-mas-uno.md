@@ -3,7 +3,7 @@ id: 438
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §13.3 (N+1 del Hub) · C-2 (docs/hub.md §8) · contrato de rendimiento"
 depends: [437]
-status: todo
+status: en curso  # 17-nov: fases A y B1 en el PR 31; faltan Pauta (tabla semanal), Dinero/Hoy, el Hub de todos y las mediciones de p95
 ---
 
 # 438 — El Hub consulta por conjunto, no por elemento
@@ -101,3 +101,16 @@ No cambies qué muestra ninguna pantalla ni ninguna definición de `docs/metrica
 ## Nota para quien implementa
 Es el ticket más grande del frente. Pártelo por sección (Pauta, Comercial, Dinero, Hoy, Todos) y entrega cada una con
 su medición antes y después; no reescribas dos secciones en el mismo commit.
+
+## Avance (17-nov, PR 31)
+Hecho, con evidencia del CI:
+- **Fase A.** El Hub de un programa lee por `lib/hub-programa/cargar-datos.ts` (`cargarDatosDelHubDelPrograma`); la página conserva el JSX, la guarda y los `Suspense`, y `SeccionPauta` sigue leyendo dentro de su componente. Las cuatro secciones entraron a `PAGINAS` con topes exactos medidos en el CI (3 programas sembrados): Hoy 66, Comercial 82, Pauta 22, Dinero 55. `PENDIENTES_447` quedó vacía.
+- **Guardián de variedad.** `tests/consultas-por-pagina.test.ts` siembra closers, cohortes y campañas de más y exige el mismo número de consultas con 1 y con 4 (y 0 idénticas), y dice qué sentencias crecen. Se compara 1 contra 4 porque una página vacía salta ramas (listas sin filas no consultan): contra 0 daba +6 que no eran N+1.
+- **B1 (Comercial).** `detallesDelComparativo` y el dinero por closer (`dineroPorCloserDelRango`) leen una vez para todos los closers y reparten en memoria por la identidad central de closer. Medido antes de B1: 82 consultas con 0 closers extra y 107 con 4 (+25, unas 6 por closer). Paridad celda a celda y dinero por closer en `tests/comparativo-por-conjunto.test.ts` (con anulado, otro programa, identidad histórica y dos monedas). `personasDeDeals` pasó a una lectura por solicitud y conjunto de ids (dos listas de evidencia pedían los mismos deals).
+
+Falta (no marcado):
+- Pauta: `components/pauta/tabla-semanal.tsx` y `lib/queries/hechos/pauta-semanal.ts` leen desde el componente, así que el guardián no los ve (el tope de Pauta 22 no incluye la tabla). Hay que llevar esa lectura a una función de `lib/` por conjunto (métricas × semanas) y meterla al cargador.
+- `detallesPorCohorte` (Dinero) y los `listaDeMetrica` de evidencia.
+- Hub de todos (`hub-todos.ts`, `vista-todos.ts`, `escalera-todos.ts`): una consulta con `program_id in (…)`.
+- Topes del ticket (Pauta ≤ 60, demás ≤ 40, todos ≤ 40 + 10 por programa), p95 de 30 peticiones concurrentes y comparación visual: sin medir.
+- `dineroDelRango` por closer sigue existiendo solo como referencia de la prueba de paridad (N7: borrar cuando el 438 cierre).
