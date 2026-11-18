@@ -134,20 +134,22 @@ afterAll(async () => cerrar());
 describe("capa de hechos", () => {
   it("envio: agrupar y listar comparten universo, filtros, orden y pagina", async () => {
     const grupos = await envio.agrupar(db, {
+      universo: "completos_y_parciales",
       programId,
       rango: RANGO,
       agruparPor: ["dia", "area", "canal"],
       orden: { campo: "dia", sentido: "desc" },
     });
-    const p1 = await envio.listar(db, { programId, rango: RANGO, pagina: { numero: 1, tamano: 1 }, orden: { campo: "dia", sentido: "asc" } });
-    const p2 = await envio.listar(db, { programId, rango: RANGO, pagina: { numero: 2, tamano: 1 }, orden: { campo: "dia", sentido: "asc" } });
+    const p1 = await envio.listar(db, { universo: "completos_y_parciales", programId, rango: RANGO, pagina: { numero: 1, tamano: 1 }, orden: { campo: "dia", sentido: "asc" } });
+    const p2 = await envio.listar(db, { universo: "completos_y_parciales", programId, rango: RANGO, pagina: { numero: 2, tamano: 1 }, orden: { campo: "dia", sentido: "asc" } });
     expect(grupos.reduce((n, fila) => n + fila.envios, 0)).toBe(p1.total);
     expect([...p1.filas, ...p2.filas]).toHaveLength(2);
     expect(p1.filas[0].dia < p2.filas[0].dia).toBe(true);
-    const pagados = await envio.listar(db, { programId, rango: RANGO, filtros: { area: ["paid"] }, pagina: { limite: 10, offset: 0 } });
+    const pagados = await envio.listar(db, { universo: "completos_y_parciales", programId, rango: RANGO, filtros: { area: ["paid"] }, pagina: { limite: 10, offset: 0 } });
     expect(pagados.total).toBe(1);
-    const sinCampana = await envio.listar(db, { programId, rango: RANGO, filtros: { campana: [null] }, pagina: { limite: 10, offset: 0 } });
-    expect(sinCampana.total).toBe(1);
+    const sinCampana = await envio.listar(db, { universo: "completos_y_parciales", programId, rango: RANGO, filtros: { campana: [null] }, pagina: { limite: 10, offset: 0 } });
+    // 2 y no 1 desde el 429: el parcial de `uno` nunca se completó, así que cuenta como envío (sin campaña).
+    expect(sinCampana.total).toBe(2);
   });
 
   it("agenda y cita cuadran con sus listas y excluyen anuladas y otros programas", async () => {
@@ -190,9 +192,9 @@ describe("capa de hechos", () => {
   it("rechaza dimensiones desconocidas y alcances sin programa en tipos", () => {
     if (false) {
       // @ts-expect-error Una dimension fuera de la lista blanca no compila.
-      void envio.agrupar(db, { programId, rango: RANGO, agruparPor: ["inventada"] });
+      void envio.agrupar(db, { universo: "completos_y_parciales", programId, rango: RANGO, agruparPor: ["inventada"] });
       // @ts-expect-error Una llave de filtro fuera de la lista blanca no compila.
-      void envio.listar(db, { programId, rango: RANGO, filtros: { inventada: ["x"] }, pagina: { limite: 1, offset: 0 } });
+      void envio.listar(db, { universo: "completos_y_parciales", programId, rango: RANGO, filtros: { inventada: ["x"] }, pagina: { limite: 1, offset: 0 } });
       // @ts-expect-error El programa es frontera obligatoria, no un filtro opcional.
       void venta.listar(db, { rango: RANGO, pagina: { limite: 1, offset: 0 } });
     }

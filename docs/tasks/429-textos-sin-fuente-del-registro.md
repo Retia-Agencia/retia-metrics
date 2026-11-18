@@ -68,3 +68,18 @@ Mueve cifras: el total de Envíos deja de ser solo completos. Falta el código, 
 con el desglose por `es_parcial`, la cifra de parciales con su ficha, quitar la nota «Pendiente de Mani» de `docs/metricas.md` (~307), `lib/metricas/registro.ts`
 (~1090) y `docs/overview.md` §11, los dorados que cambien y el aviso de qué número se movió (regla del 419). No se hizo en este commit porque
 `registro.ts` y `metricas.md` los está editando la sesión de las fichas de Comercial; va después.
+
+## Hecho (18-nov): opción B implementada, con el universo declarado
+**Definición (`lib/queries/hechos/envio.ts`):** el hecho de envíos exige un `universo` explícito en cada consulta (obligatorio en el tipo):
+- `completos_y_parciales` = la cifra **Envíos (completos y parciales)**: completos + parciales de quien nunca completó. Un parcial con completo del mismo formulario y token es la misma aplicación y no cuenta aparte (N1). La dimensión `tipo` los separa; la lista `registros` acepta `tipo` (página, CSV, MCP). Lo usan: la lista, Hoy (con «N completos y M parciales») y `consultar_hechos` (que declara su `universo` en la salida).
+- `completos` = **Registros completos**, lo que cuentan Meta y el Excel: tabla semanal de Pauta, costo por registro, conversión de la landing, proyección, reporte diario y Origen (`agruparTrazas`). Rótulo «Registros completos» en Pauta, `envios_sin_id` y `registros_sin_utm`. Origen enlaza a la lista con `tipo=completo` para que cuadre.
+- Guardián `tests/universo-de-envios-guardian.test.ts`: ningún rótulo «Envíos»/«Registros» del vocabulario, de Pauta o del registro sin «completos» o «parciales», y ningún llamador sin universo.
+**Arreglo de semana y mes:** los parciales traen `fecha_envio` nulo; las dimensiones salen del ancla (`anclaEnvio()`), no de la columna cruda (test con parcial sin fecha).
+**Qué número se movió (golden) y cuánto — solo la cifra Envíos; Pauta, landing, proyección, reporte diario y Origen NO se mueven:**
+| Cifra | Antes | Después |
+|---|---|---|
+| Lista de Envíos (test `lista-de-envios`) | 53 | 54 (+1 parcial sin completar) |
+| Envíos del día en Hoy (test `vista-hoy`) | 2 | 3 (+1 parcial) |
+| Envíos sin campaña en la capa de hechos (test `capa-hechos`, con universo `completos_y_parciales`) | 1 | 2 (+1) |
+Efecto sobre producción: no medido (sin acceso a datos); solo suben Envíos de Hoy y la lista de Envíos.
+**Falta / no verificado:** `resumen_del_hub` no devuelve Envíos como cifra (solo `consultar_hechos`); UI no abierta en navegador; casilla N9 sin marcar hasta integrar.

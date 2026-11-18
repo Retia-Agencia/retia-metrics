@@ -48,8 +48,8 @@ async function main() {
       nombreActual = nombre;
       await consulta();
     };
-    await ejecutar("envíos agrupados", () => envios.agrupar(base, { ...alcance, agruparPor: ["dia"] }));
-    await ejecutar("envíos listados", () => envios.listar(base, { ...alcance, pagina }));
+    await ejecutar("envíos agrupados", () => envios.agrupar(base, { ...alcance, agruparPor: ["dia"], universo: "completos_y_parciales" }));
+    await ejecutar("envíos listados", () => envios.listar(base, { ...alcance, pagina, universo: "completos_y_parciales" }));
     await ejecutar("agendas agrupadas", () => agendas.agrupar(base, { ...alcance, agruparPor: ["dia"] }));
     await ejecutar("agendas listadas", () => agendas.listar(base, { ...alcance, pagina }));
     await ejecutar("citas agrupadas", () => citas.agrupar(base, { ...alcance, agruparPor: ["dia"] }));

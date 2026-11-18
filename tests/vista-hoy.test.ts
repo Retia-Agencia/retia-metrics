@@ -318,7 +318,7 @@ describe("la caja de hoy por origen (252)", () => {
     expect(resultado.agendasCreadas).toBe(detalle.resumen.subtotal.cantidad);
   });
 
-  it("registros cuenta cada envío completo del día y coincide con su lista", async () => {
+  it("registros cuenta completos y parciales sin completar del día y coincide con su lista", async () => {
     const dia = "2026-10-14";
     const [programa, otroPrograma] = await db.insert(programs).values([
       { ...PROGRAMA_DE_PRUEBA, slug: "registros", nombre: "Registros", ticketUsd: "797" },
@@ -350,7 +350,9 @@ describe("la caja de hoy por origen (252)", () => {
       origen: `/p/${programa.slug}/hub?seccion=hoy`,
     }, db);
 
-    expect(resultado.registros).toBe(2);
+    // 2 completos + 1 parcial de quien nunca completó (429); antes el total era 2.
+    expect(resultado.registros).toBe(3);
+    expect(resultado.registrosParciales).toBe(1);
     expect(resultado.registros).toBe(detalle.resumen.subtotal.cantidad);
   });
 });

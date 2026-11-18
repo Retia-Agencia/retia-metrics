@@ -92,6 +92,7 @@ const NOMBRES_APROBADOS = [
   "Agendas por día necesarias",
   "Agendas por día hábil",
   "Agendas por día",
+  "Registros completos",
   "Registros de pauta sin anuncio identificado",
   "Registros de pauta sin anuncio",
   "Registros de pauta",

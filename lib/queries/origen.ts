@@ -108,7 +108,7 @@ export async function origenDelPrograma(
   args: { programId: string; rango: Rango; hoy: string },
 ): Promise<VistaOrigen> {
   const [{ grupos, primeros }, agendas, arbol, anuncios, objetosDePauta, piezasDelPrograma] = await Promise.all([
-    agruparTrazas(db, args),
+    agruparTrazas(db, { ...args, universo: "completos" }),
     agruparTrazasDeAgendas(db, args),
     arbolDePauta(db, args.programId),
     unaVezPorSolicitud(db, claveDe("anunciosActivosParaOrigen", args.programId), () => db.select({

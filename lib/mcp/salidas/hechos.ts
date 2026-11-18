@@ -14,6 +14,7 @@ export const salidaDeConsultaDeHechos = z.object({
     slug: z.string().describe("Identificador opaco del programa."),
   }).strict().describe("Programa consultado."),
   hecho: z.string().describe("Tipo de hecho consultado."),
+  universo: z.string().nullable().describe("Solo en envíos: qué formularios cuenta la cifra (completos más parciales sin completar). La dimensión tipo los separa. Nulo en los demás hechos."),
   periodo: z.object({
     desde: z.string().describe("Primer día incluido, en Bogotá."),
     hasta: z.string().describe("Último día incluido, en Bogotá."),

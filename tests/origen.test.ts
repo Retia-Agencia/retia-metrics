@@ -69,6 +69,7 @@ describe("Hub Origen", () => {
     expect(vista.filas.reduce((total, fila) => total + fila.envios, 0)).toBe(vista.totalEnvios);
     expect(vista.totalEnvios).toBe(2);
     const hechos = await agrupar(db, {
+      universo: "completos",
       programId, rango: { desde: "2026-10-01", hasta: "2026-10-24" }, agruparPor: ["canal"],
     });
     expect(vista.canales.reduce((total, fila) => total + fila.envios, 0))

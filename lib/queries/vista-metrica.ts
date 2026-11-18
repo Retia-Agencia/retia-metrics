@@ -110,7 +110,7 @@ export function urlDeLista({
   moneda?: string;
   cohorteId?: string | null;
   subconjunto?: SubconjuntoDelEmbudo;
-  filtrosDeOrigen?: { source?: string | null; medium?: string | null; campaign?: string | null; resultado?: "show" | "no_show"; categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida"; area?: string; canal?: string | null };
+  filtrosDeOrigen?: { source?: string | null; medium?: string | null; campaign?: string | null; resultado?: "show" | "no_show"; categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida"; tipo?: "completo" | "parcial"; area?: string; canal?: string | null };
   /** Solo la escalera de conversión (ADR 0109): el escalón y la calidad de la cifra. */
   escalera?: { escalon?: string; grupo?: string; calidad?: string; pago?: "completo" | "parcial" };
   pauta?: { nivel: NivelPauta; id?: string; paso: PasoPauta };
@@ -145,6 +145,7 @@ export function urlDeLista({
   if (filtrosDeOrigen?.campaign !== undefined) q.set("campaign", filtrosDeOrigen.campaign ?? "__null__");
   if (filtrosDeOrigen?.resultado) q.set("resultado", filtrosDeOrigen.resultado);
   if (filtrosDeOrigen?.categoria) q.set("categoria", filtrosDeOrigen.categoria);
+  if (filtrosDeOrigen?.tipo) q.set("tipo", filtrosDeOrigen.tipo);
   if (filtrosDeOrigen?.area) q.set("area", filtrosDeOrigen.area);
   if (filtrosDeOrigen?.canal !== undefined) q.set("canal", filtrosDeOrigen.canal ?? "__null__");
   return enlaceConVuelta(`/p/${encodeURIComponent(slug)}/hub/lista?${q}`, origen);
@@ -544,6 +545,7 @@ export interface EntradaDeLista {
   campaign?: string | null;
   resultado?: "show" | "no_show";
   categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida";
+  tipo?: "completo" | "parcial";
   area?: string;
   canal?: string | null;
   orden?: "envio" | "actividad";
@@ -562,7 +564,7 @@ export interface EntradaDeLista {
 
 /** Resuelve el mismo periodo del dashboard, sin cargar el resto de sus métricas. */
 export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) {
-  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
+  const { programId, hoy, metrica, codigoCloser, moneda, cohorteId, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, pagina } = entrada;
   const seleccion = parsearPeriodoUrl(entrada.busqueda);
   // Un id de cohorte que no es de este programa se ignora: la lista no se filtra (el programa es frontera).
   const delHub = await cohorteDelHub(db, programId, { parametro: cohorteId ?? undefined, cohorteVieja: seleccion.cohorteVieja });
@@ -577,7 +579,7 @@ export async function vistaDeLista(entrada: EntradaDeLista, db: Db = dbDeLaApp) 
     : resuelto;
   const corte = (metrica === "pauta_meta" || listaDeTablaAdmiteCorte(metrica, area)) && typeof entrada.busqueda.corte === "string" && typeof entrada.busqueda.corte_id === "string"
     ? resolverCorteDePauta(await opcionesDeCorteDePauta(db, programId), entrada.busqueda.corte, entrada.busqueda.corte_id) : null;
-  const filtros = { ...(corte ? { corte } : {}), programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
+  const filtros = { ...(corte ? { corte } : {}), programId, hoy, rango: periodo.a, moneda, cohorteId: cohorteAplicada, origenDeal, etapa, antiguedad, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, idMeta, paso, ahora: entrada.ahora ?? new Date() };
   let claveCloser: string | null = null;
   if (codigoCloser) {
     const [sinFiltro] = await resumenDeMetrica(metrica, filtros, db);

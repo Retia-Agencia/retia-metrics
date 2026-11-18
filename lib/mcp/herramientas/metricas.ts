@@ -156,6 +156,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
       campaign,
       resultado: entrada.resultado,
       categoria: entrada.categoria,
+      tipo: entrada.tipo,
       orden: entrada.orden,
       area: entrada.area,
       canal,

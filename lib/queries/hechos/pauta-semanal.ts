@@ -517,6 +517,7 @@ export async function cargarPautaSemanal(
       rango: args.rango,
       agruparPor: ["dia", "semana"],
       filtros: { area: ["paid"] },
+      universo: "completos",
     }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, envios: fila.envios }))),
     args.porCuenta ? cuentasDelPrograma(db, args.programId) : Promise.resolve([]),
     args.porCuenta ? tasasDelRango(db, args.rango.desde, args.rango.hasta) : Promise.resolve(null),

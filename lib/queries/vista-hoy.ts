@@ -172,7 +172,7 @@ export async function armarVistaDeHoy(
   const [caja, filasDeAgendas, filasDeEnvios, showPorCita, proyeccion, citasDeHoy, canceladasDeHoy, citasDeManana] = await Promise.all([
     cajaDelDiaPorOrigen({ programId, hoy: dia }, db),
     agruparAgendas(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
-    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
+    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: ["tipo"], universo: "completos_y_parciales" }),
     showPorCitaDelRango({ programId, rango: { desde: dia, hasta: dia }, claveCloser: null }, instante, db),
     leerProyeccion({ programId, hoy: dia, ahora: instante, ventanaDiasHabiles: ventanaRitmo }, db),
     cargarFilas("agendas", rangoDeHoy),
@@ -189,6 +189,8 @@ export async function armarVistaDeHoy(
     caja,
     agendasCreadas: filasDeAgendas.reduce((total, fila) => total + fila.agendas, 0),
     registros: filasDeEnvios.reduce((total, fila) => total + fila.envios, 0),
+    /** De `registros`, los parciales (429): quien se fue a mitad del formulario. Los completos son el resto. */
+    registrosParciales: filasDeEnvios.filter((fila) => fila.tipo === "parcial").reduce((total, fila) => total + fila.envios, 0),
     showPorCita,
     proyeccion,
     agendaDeHoy: [...citasDeHoy.sort(porHora), ...canceladasDeHoy.sort(porHora)],

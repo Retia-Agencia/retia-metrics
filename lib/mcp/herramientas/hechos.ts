@@ -3,6 +3,8 @@ import { veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { ErrorDeApp } from "@/lib/errors";
 import { hoyEnBogota, num } from "@/lib/format";
 import { parsearPeriodoUrl } from "@/lib/periodo";
+import { ROTULO_DE_UNIVERSO_DE_ENVIO } from "@/lib/queries/hechos/envio";
+import { UNIVERSO_DE_ENVIO_CONSULTABLE } from "@/lib/queries/hechos/registro";
 import { salidaDeConsultaDeHechos } from "@/lib/mcp/salidas/hechos";
 import { DIMENSIONES_DEL_EQUIPO_COMERCIAL, HECHOS_CONSULTABLES, type HechoConsultable } from "@/lib/queries/hechos/registro";
 import { nombresDeUsuariosYCohortes, resolverCohorte, resolverDueno, type FiltroAplicado } from "@/lib/queries/resolver-filtros";
@@ -140,7 +142,7 @@ export const consultarHechosMcp: Herramienta<typeof entrada> = {
       && (campos.includes(clave) || campos.some((campo) => clave === `${campo}_nombre`)),
     )));
     const hayOtra = pedido.pagina * pedido.tamano_de_pagina < total;
-    const estructurado = { programa: { nombre: programa.nombre, slug: programa.slug }, hecho: pedido.hecho, periodo: rango, filtros_aplicados: aplicados, agrupado, filas, total, pagina: pedido.pagina, tamano_de_pagina: pedido.tamano_de_pagina, hay_otra_pagina: hayOtra };
-    return { texto: `${num(filas.length)} ${agrupado ? "grupos" : "filas"} de ${num(total)}. ${hayOtra ? `Hay otra página; pide pagina ${pedido.pagina + 1}.` : "No hay otra página."}`, estructurado };
+    const estructurado = { programa: { nombre: programa.nombre, slug: programa.slug }, hecho: pedido.hecho, universo: pedido.hecho === "envio" ? ROTULO_DE_UNIVERSO_DE_ENVIO[UNIVERSO_DE_ENVIO_CONSULTABLE] : null, periodo: rango, filtros_aplicados: aplicados, agrupado, filas, total, pagina: pedido.pagina, tamano_de_pagina: pedido.tamano_de_pagina, hay_otra_pagina: hayOtra };
+    return { texto: `${num(filas.length)} ${agrupado ? "grupos" : "filas"} de ${num(total)}. ${hayOtra ? `Hay otra página; pide pagina ${pedido.pagina + 1}.` : "No hay otra página."}${pedido.hecho === "envio" ? ` Envíos: ${ROTULO_DE_UNIVERSO_DE_ENVIO[UNIVERSO_DE_ENVIO_CONSULTABLE]}; agrupa por tipo para separarlos.` : ""}`, estructurado };
   },
 };

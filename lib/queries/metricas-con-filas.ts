@@ -155,6 +155,8 @@ export interface FiltrosDeMetrica {
   source?: string | null;
   medium?: string | null;
   categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida";
+  /** Solo registros (Envíos, 429): completos o parciales; sin él, los dos. */
+  tipo?: "completo" | "parcial";
   area?: string;
   canal?: string | null;
   /** Solo registros y agendas creadas: el `utm_campaign` crudo (Pauta profundiza canal, campaña y contenido). */
@@ -181,7 +183,7 @@ export interface FiltrosDeMetrica {
  */
 const CAMPOS_DE_LA_CLAVE = {
   programId: true, rango: true, claveCloser: true, moneda: true, cohorteId: true, origenDeal: true, ahora: true,
-  hoy: true, etapa: true, antiguedad: true, source: true, medium: true, categoria: true, area: true, canal: true,
+  hoy: true, etapa: true, antiguedad: true, source: true, medium: true, categoria: true, tipo: true, area: true, canal: true,
   campaign: true, resultado: true, orden: true, escalon: true, grupo: true, pago: true, calidad: true, nivel: true,
   idMeta: true, paso: true, corte: true,
 } as const satisfies Record<keyof FiltrosDeMetrica, true>;
@@ -686,9 +688,11 @@ function consultaDe(
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
           filtroDeEnvios({
+            universo: "completos_y_parciales",
             programId: alcance.programId,
             rango: alcance.rango,
             filtros: {
+              ...(filtros.tipo ? { tipo: [filtros.tipo] } : {}),
               ...(filtros.source !== undefined ? { utm_source: [filtros.source] } : {}),
               ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
               ...(filtros.campaign !== undefined ? { campana: [filtros.campaign] } : {}),

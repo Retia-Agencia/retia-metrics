@@ -86,6 +86,7 @@ describe.skipIf(!medir)("capa de hechos a 10x del volumen actual", () => {
   it("agrupa un mes por dia y area en menos de un segundo", async () => {
     const inicio = performance.now();
     const filas = await agrupar(db, {
+      universo: "completos_y_parciales",
       programId,
       rango: { desde: "2026-09-01", hasta: "2026-09-30" },
       agruparPor: ["dia", "area"],
