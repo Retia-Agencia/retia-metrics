@@ -90,6 +90,8 @@ it("los días del periodo cuadran con las cifras; anulación, reversa y otro pro
   await venta({ dia: "2026-10-01", valor: "800", revertida: true });
   const ajena = await venta({ dia: "2026-10-02", valor: "700", programa: otroPrograma });
   await db.insert(abonos).values([
+    // El primer pago fecha la venta (ADR 0136): septiembre pagó el 30-sep (su venta) y el saldo llega en octubre.
+    { programId, dealId: septiembre, registradoPorUserId: ana, fecha: "2026-09-30", moneda: "USD", monto: "55" },
     { programId, dealId: septiembre, registradoPorUserId: ana, fecha: "2026-10-03", moneda: "USD", monto: "25.15" },
     { programId, dealId: octubre, registradoPorUserId: ana, fecha: "2026-10-04", moneda: "COP", monto: "450000" },
     { programId, dealId: octubre, fecha: "2026-10-02", moneda: "USD", monto: "999", anuladoEn: new Date(), anuladoPor: ana, motivoAnulacion: "Error" },
@@ -104,7 +106,8 @@ it("los días del periodo cuadran con las cifras; anulación, reversa y otro pro
   expect(total(serie.a.cuposPorDia)).toBe(metas.vendidos);
   expect(total(serie.a.usdPorDia)).toBe(vista.contratadoUsd);
   expect(serie.a.sinValorVendido).toBe(vista.sinValorVendido);
-  expect(serie.a.cuposPorDia.get("2026-10-02")).toBe(1);
+  // `octubre` pasó a etapa el 02-oct pero su primer pago vigente (el del 02-oct está anulado) es del 04-oct: la venta cae ahí.
+  expect(serie.a.cuposPorDia.get("2026-10-04")).toBe(1);
   expect([...serie.a.cajaPorMoneda].map(([moneda, dias]) => ({ moneda, total: total(dias) })).sort((x, y) => x.moneda.localeCompare(y.moneda)))
     .toEqual([...vista.caja].sort((x, y) => x.moneda.localeCompare(y.moneda)));
   expect(serie.monedas).toEqual(["COP", "USD"]);

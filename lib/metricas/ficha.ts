@@ -13,7 +13,7 @@ const UNIDADES = {
   cupos: "cupos", personas: "personas", citas: "citas", deals: "deals", dinero: "dinero", porcentaje: "%", veces: "veces", dias: "días hábiles",
 } as const;
 const ANCLAS = {
-  primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
+  primer_pago_del_deal: "día de su primer pago (abono vigente más antiguo; sin abono, el día de su entrada a Abonado o Completo)",
   fecha_del_abono: "fecha del abono",
   fecha_del_envio: "fecha del envío",
   fecha_de_creacion_de_la_cita: "fecha de creación de la cita",

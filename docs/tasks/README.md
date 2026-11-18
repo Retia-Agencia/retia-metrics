@@ -35,6 +35,7 @@ el pago y el deal cae en Students sin dueño. D1 a D6 decididas por Mani el 16-n
 | [ ] | 453 | [Reembolso y contracargo: una persona escoge](./453-reembolsos-de-la-pasarela.md) | 455 | todo |
 | [ ] | 454 | [Conectar el Hotmart de LiderArte y recuperar las compras que ya pasaron](./454-conectar-hotmart-de-liderarte.md) | 455 | todo · espera acceso a Hotmart |
 | [ ] | 455 | [Una compra de Hotmart recorre todo: del webhook a Students](./455-la-compra-recorre-todo.md) | 448 a 451 | todo |
+| [ ] | 456 | [La venta cuenta por el día de su primer pago](./456-la-venta-por-el-primer-pago.md) | — | en curso · 18-nov · código, ADR 0136 y guardianes hechos; falta confirmar cifras con la base viva |
 
 ## 23 · Onboarding de un programa (ADR 0132) · 14-nov
 

@@ -95,6 +95,8 @@ describe("el reporte contra la base", () => {
   it("un abono de saldo de una venta de otro día entra a caja, no suma cupo y dice la venta y el closer", async () => {
     const { programa, venta } = await sembrar();
     const anterior = await venta("d@x.co", "2026-08-31", "1500", "Maryce");
+    // El primer pago fecha la venta (ADR 0136): el del 31-ago la deja en agosto y el de hoy es saldo.
+    await db.insert(abonos).values({ dealId: anterior.id, programId: programa.id, fecha: "2026-08-31", monto: "750", moneda: "USD" });
     await db.insert(abonos).values({ dealId: anterior.id, programId: programa.id, fecha: DIA, monto: "750", moneda: "USD" });
     const desglose = await desgloseDeCaja({ programId: programa.id, dia: DIA }, db);
     expect(desglose).toHaveLength(1);

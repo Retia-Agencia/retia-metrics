@@ -12,13 +12,13 @@ import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } fr
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
 import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
-import { vigente } from "@/lib/queries/vigente";
+import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
 import { conAbonoVigente, conLlamadaSinGrain, filtroAtendidos, filtroPerdidosConPagos, sinValorVendido } from "@/lib/queries/banderas-del-pulso";
 import {
   fechaAnclaAgendaCreada, fechaAnclaCall, fechaAnclaDealCreado, fechaAnclaEnvio, fechaAnclaLead, filtroAgendasCreadas,
   closerDeAbono, citaDebida, citaDebidaSinMarcar, citaNoCancelada, dealsDelArea, filtroCaja, filtroCierres, filtroCortesias, filtroDealsCreados, filtroDealsDesde, filtroDealsDesdeQueAgendaron, filtroDealsQueAgendaron, type OrigenDeDeal, filtroLeads, filtroLlamadas, llamadaOcurrio,
-  primerosMovimientosDeVenta, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
+  primerosMovimientosDeVenta, ventasConDiaEn, filtroNoShows, citaVencidaSinResultado, filtroAgendasFuturas,
 } from "@/lib/queries/metricas-filtros";
 import { diaEnBogota } from "@/lib/queries/hechos/fechas";
 import { grupoDeCitas, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
@@ -304,6 +304,9 @@ interface FuenteDeMetrica {
   claveCloser: SQL<string>;
 }
 
+/** Alias del derivado de ventas que une la lista de cierres; la fecha de la fila lo nombra (ADR 0136). */
+const VENTAS_DE_LA_LISTA = "ventas_de_la_lista";
+
 function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
   switch (metrica) {
     case "caja":
@@ -337,6 +340,13 @@ function fuenteDe(metrica: MetricaSql): FuenteDeMetrica {
       };
     case "cierres":
     case "contratado":
+      // La fecha de la venta es la de `ventasConDiaEn` (primer pago, ADR 0136): la lista une ese derivado con este alias.
+      return {
+        id: deals.id,
+        fecha: sql<string>`"${sql.raw(VENTAS_DE_LA_LISTA)}"."dia"`,
+        columnaCloser: etiquetaDeCloserSql(),
+        claveCloser: claveCloserSql(users.id, users.closerId),
+      };
     case "cortesias":
       return {
         id: deals.id,
@@ -572,25 +582,21 @@ function consultaDe(
         .where(and(filtroLeads(alcance, db), vigente(deals)));
     }
     case "cierres":
-    case "contratado":
+    case "contratado": {
+      const ventas = ventasConDiaEn(db, alcance.rango).as(VENTAS_DE_LA_LISTA);
       return db
         .select(campos)
         .from(deals)
         .leftJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))
         .leftJoin(users, eq(users.id, deals.ownerUserId))
-        .innerJoin(
-          dealEtapaHistorial,
-          and(
-            eq(dealEtapaHistorial.dealId, deals.id),
-            inArray(dealEtapaHistorial.id, primerosMovimientosDeVenta(db)),
-          ),
-        )
+        .innerJoin(ventas, and(eq(ventas.dealId, deals.id), incluyendoAnulados(ventas)))
         .where(and(
           filtroCierres(alcance, db),
           // La lista de ventas de un área (Pauta, cumplimiento): la misma regla que la cifra de ventas de esa área.
           idsDelCorte ? inArray(deals.id, idsDelCorte) : filtros.area ? inArray(deals.id, dealsDelArea(db, alcance.programId, filtros.area)) : undefined,
           vigente(deals),
         ));
+    }
     case "cortesias":
       return db
         .select(campos)
