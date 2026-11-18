@@ -76,14 +76,14 @@ Los demás guardianes (tiempo máximo, enlaces, peso de cliente, caché, N+1) se
 | [ ] | 435 | [La app se conecta con `pg`: un pool por proceso](./435-conexion-con-pg.md) | — | en curso · 17-nov · en main, CI verde, `postgres` fuera, 24 h sin 5xx; falta abrir `/nerd-stats` con sesión y cerrar el 243 |
 | [ ] | 436 | [Cada petición dice cuánto costó](./436-costo-por-peticion-medido.md) | 435 | en curso · 17-nov · medidor en producción y tabla p50/p95 en el estudio §13.8; falta el presupuesto de 15 rutas (lo cubre el guardián del 447) |
 | [x] | 437 | [Una lectura se hace una vez por solicitud](./437-una-lectura-por-solicitud.md) | 436 | done · 15-nov · 0 idénticas en todas las rutas del estudio (dev:local), abono probado sin recargar, CI verde (282c34e2) |
-| [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | todo |
+| [ ] | 438 | [El Hub consulta por conjunto, no por elemento](./438-hub-sin-n-mas-uno.md) | 437 | en curso · 17-nov · fases A y B1 en main (PR 31, `e3453b6d`, CI verde): el Hub de un programa tiene cargador y guardián por sección, y el comparativo de Comercial dejó de crecer con los closers; faltan la tabla de Pauta, Dinero, el Hub de todos y el p95 |
 | [ ] | 439 | [Salud de fuentes y Nerd Stats cuentan en SQL](./439-salud-de-fuentes-y-nerd-stats-en-sql.md) | 436 | en curso · en main · 15-nov · medido en producción 1,4 s (≤ 2 s) y alarmas idénticas; sin índice de `entregas_webhook` (descartado, medido); falta el checkpoint verde |
 | [x] | 440 | [Una petición lenta falla en segundos y con mensaje](./440-fallar-rapido.md) | 435 | done · `error.tsx` visto en dev:local; topes medidos contra el pooler (query_timeout 15 s + SET LOCAL) |
 | [ ] | 441 | [La función junto a la base y la cuenta de conexiones](./441-region-y-presupuesto-de-conexiones.md) | 435, 436 | todo · operación, sesión principal |
 | [ ] | 442 | [Qué enlaces precargan se decide](./442-prefetch-decidido.md) | 436 | en curso · código listo, falta medir con el 436 en producción |
 | [ ] | 443 | [El navegador recibe solo lo que la pantalla usa](./443-peso-del-cliente.md) | 436 | todo |
 | [ ] | 444 | [Lo que casi no cambia se lee de caché](./444-cache-de-lo-que-casi-no-cambia.md) | 437, 438 | todo |
-| [ ] | 445 | [El contrato de rendimiento, escrito y vigilado](./445-contrato-de-rendimiento.md) | 435 a 444 | todo |
+| [ ] | 445 | [El contrato de rendimiento, escrito y vigilado](./445-contrato-de-rendimiento.md) | 435 a 444 | en curso · 17-nov · escrito lo real de hoy (filas de 435, 437, 439, 440, 447 y 438 parcial, estudio §14); falta el cierre del 438, 441 a 444 y el guardián `n-mas-uno` |
 | [ ] | 446 | [El cron de Calendly falla todos los días](./446-cron-de-calendly-falla-a-diario.md) | — | todo |
 | [ ] | 447 | [Una página no repite una consulta: contrato y guardián por página](./447-guardian-de-consultas-por-pagina.md) | 437 | en main · 17-nov · fase 2 en main (`24e9f2a4`, CI verde): 22 páginas más y prueba de que ninguna crece con las filas; falta cubrir `/p/[programa]/hub`, que se cubre en el 438 |
 

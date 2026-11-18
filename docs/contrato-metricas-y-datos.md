@@ -254,8 +254,11 @@ su olor.
 403); 🔒 show/ocurrió y cita sin resultado (`tests/show-y-sin-resultado-guardian.test.ts`, 390); 🔒 dorados de Comercial
 (`tests/numeros-dorados-comercial.test.ts`, 390); 🔒 moneda (`moneda-check`, 395); 🔒 programa garantizado por la base (`programa-garantizado`, 394).
 
+**Rendimiento (17-nov; el estudio los proponía, hoy existen):** 🔒 conexión por el pooler (`conexion-pooler`, 435, Postgres real en el CI) y un solo pool (`base-portable`); 🔒 tiempos máximos (`tiempo-maximo-guardian`, 440); 🔒 cada página con su tope exacto de consultas, 0 idénticas y sin crecer con las filas, con los programas (salvo `escalaConProgramas`) ni, en el Hub de un programa, con closers, cohortes y campañas (`consultas-por-pagina`, 437, 447, 438); 🔒 una lectura por solicitud con claves honestas (`por-solicitud`, 437); 🔒 presupuesto de las funciones de Nerd Stats y salud de fuentes (`presupuesto-de-consultas`, 439). Las filas con sus números están en `docs/agents/contratos.md`.
+
 **Pendientes (🟡), verificados en `tests/` el 12-nov:**
 
 1. **Título del ADR contra la fila del diccionario** (§2): no hay test; hoy 👁.
 2. **Que toda superficie consuma el registro:** la Cifra y el MCP lo leen; el mensaje de WhatsApp no, y ningún test lo exige.
 3. **Endurecer los de arriba cuando se retiren sus excepciones:** cada lista nombrada se vacía con su ticket.
+4. **Rendimiento, aún sin guardián (445):** que ninguna consulta se haga dentro de `.map(async …)` (`tests/n-mas-uno-guardian.test.ts`, se escribe cuando el 438 cierre y se sepan sus excepciones), que ninguna cifra baje filas para contarlas (`porPagina: Number.MAX_SAFE_INTEGER`), y los de precarga (442), peso de cliente (443) y caché (444), que dependen de tickets abiertos.

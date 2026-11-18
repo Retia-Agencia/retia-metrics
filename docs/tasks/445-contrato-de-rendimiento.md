@@ -3,7 +3,7 @@ id: 445
 etapa: rendimiento
 serves: "docs/estudio-rendimiento-y-conexion.md §8 · AGENTS.md › Contratos · decisión 2 de la §10"
 depends: [435, 436, 437, 438, 439, 440, 441, 442, 443, 444]
-status: todo
+status: en curso  # 17-nov: escrito lo que es real hoy (435, 437, 439, 440, 447, 438 parcial); faltan 438 (cierre), 441, 442, 443, 444 y el guardián n-mas-uno
 ---
 
 # 445 — El contrato de rendimiento, escrito y vigilado
@@ -70,3 +70,29 @@ bucle: por eso el contrato fuerte es la prueba de 3 contra 6 del presupuesto; es
       después por ruta (consultas, ms en Vercel, JavaScript), y sus decisiones de la §10 respondidas.
 - [ ] Inventario final de las 37 páginas con el medidor del 436, pegado en el estudio; ninguna sobre su tope.
 - [ ] Checkpoint verde que incluya los tickets 435 a 444; tracker y `status:` iguales (N9).
+
+## Avance (17-nov)
+
+Hecho, con evidencia:
+- [x] `docs/agents/contratos.md` (que es donde vive AGENTS.md › Contratos): filas nuevas de **conexión (435)**, **fallar rápido (440)**,
+      **consultar por conjunto (438, en curso)** y **contar en SQL (439)**, con los números medidos; las de 437 y 447
+      ya estaban y no se repiten. Cada fila dice qué guardián existe y cuál falta.
+- [x] `docs/contrato-metricas-y-datos.md` §8: los guardianes de rendimiento que existen pasaron a 🔒; los que faltan quedan
+      como pendiente 4.
+- [x] El estudio gana la §14 "Cerrado": antes y después por ruta (solo lo medido), ms y JavaScript (lo que no se midió, dicho),
+      el inventario de las 31 secciones de página con su tope y las decisiones de la §10 respondidas.
+- [x] Encabezado del estudio: ya no dice "sin plan aprobado".
+
+**Falta, y de quién depende (no está marcado):**
+- [ ] **438 cierre** (el PR 31 entró con las fases A y B1): tabla semanal de Pauta, `detallesPorCohorte`, Hub de todos
+      por `program_id in (…)`, p95 de 30 peticiones. De él dependen el guardián `n-mas-uno` (sus excepciones se conocen al
+      cerrar) y la fila "Consultar por conjunto" sin "en curso".
+- [ ] **Guardián `tests/n-mas-uno-guardian.test.ts`** y el de `porPagina: Number.MAX_SAFE_INTEGER` / `jsonb` entero (depende del 438).
+- [ ] **Fila "Presupuesto de conexiones"** (441, `todo`, sesión principal: la cuenta con números vive en `docs/operations.md`).
+- [ ] **Fila "Qué precarga"** (442, código listo, falta medirlo en producción) y su guardián `enlace-guardian` (existe; falta el número).
+- [ ] **Fila "Qué recibe el navegador"** (443, `todo`) y **"Qué se cachea"** (444, `todo`, depende además del 438).
+- [ ] **Fila "Índices"**: sin ticket que la mida; se escribe con el primer `EXPLAIN` a 10×.
+- [ ] Los cuatro cambios de texto de AGENTS.md: *Rendimiento y escala* (hechos medidos del 14-nov), *Feedback loops* (medir una
+      pantalla y el bucle de conexión), *Agent skills 2e* y *Conventions*. Solo el de «el estudio ya no dice sin plan» está hecho.
+- [ ] Inventario final con el medidor del 436 en producción (la tabla de la §14.3 es del guardián, no de Vercel).
+- [ ] Checkpoint verde que incluya 435 a 444.

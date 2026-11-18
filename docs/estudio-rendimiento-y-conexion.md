@@ -1,7 +1,7 @@
 # Estudio: conexión a la base, rendimiento de consultas y navegación
 
-> **Estado:** hallazgos del 14-nov (sesión del ticket 243), **sin plan aprobado ni código**. Es el insumo de una sesión
-> propia de estudio y diseño. Rango N8: documento de investigación; manda el código sobre qué hace hoy, y un ADR o un
+> **Estado (17-nov):** hallazgos del 14-nov (sesión del ticket 243). El plan está aprobado y vive en los tickets 435 a 447
+> (`docs/tasks/README.md`); lo hecho está en la §14. Fue el insumo de una sesión propia de estudio y diseño. Rango N8: documento de investigación; manda el código sobre qué hace hoy, y un ADR o un
 > ticket sobre qué debería hacer. Toda cifra de aquí se midió contra producción **solo con lecturas**, con scripts
 > desechables que ya se borraron; lo que es inferencia lo dice ("*sin fuente verificada*").
 
@@ -531,3 +531,81 @@ Lectura:
 El peso del prefetch en producción (invocaciones por carga de página, ticket 442) y los tiempos de `/nerd-stats` y
 `/p/[programa]/programa` con sesión: el navegador del agente no tiene sesión de Google. Los demás tiempos ya salen del
 log del 436 (§13.8).
+
+## 14. Cerrado (17-nov): lo medido antes y después, y lo que sigue abierto
+
+Solo se escribe lo que tiene evidencia. El **antes** sale de la §13.3 (`dev:local`, 3 programas, rol developer); el
+**después** sale de cada ticket y se dice con qué se midió. Los topes del guardián son de **otro escenario** (la siembra
+mínima de `tests/consultas-por-pagina.test.ts`, 3 programas) y no se comparan con la columna del antes.
+
+### 14.1 Consultas por ruta
+
+| Ruta | Antes (§13.3) | Después | Fuente |
+|---|---|---|---|
+| `/p/[programa]/hub?seccion=pauta` | 846 consultas, 515 idénticas | 323 consultas, 1 idéntica (`dev:local`, 15-nov) y **0 idénticas** en el guardián | 437 |
+| Rutas del §13.3 en general | idénticas 515, 139, 107, 84, 83 en las cinco peores | `identicas = 0` en todas (`dev:local`, 15-nov) | 437 |
+| `/nerd-stats` | 52 en producción | ≤ 15 en las funciones (`conteosPorPrograma` ≤ 6, `fuentesConSalud` ≤ 8), iguales con 3 y 6 programas; la página tiene tope 17 | 439 |
+| `saludDeFuentes` | 29 | ≤ 8 | 439 |
+| Hub de un programa, Comercial | +25 consultas al sumar 4 closers (82 → 107, CI del 17-nov) | costo fijo con 1 y con 4 closers (el test compara 1 contra 4 porque una página vacía salta ramas) | 438, PR 31 |
+| Las 31 secciones de página del guardián | sin tope | tope exacto por sección (tabla de la §14.3) | 447 |
+
+### 14.2 Milisegundos y JavaScript
+- **Vercel:** solo existe el después. El medidor del 436 entró en producción el 17-nov y la §13.8 es la tabla p50/p95 de 24 h
+  (199 peticiones). El antes en producción no se midió: la §13.2 es de local y la latencia local (101 ms por ida y vuelta)
+  no es comparable. `/nerd-stats` en producción: 1,4 a 1,6 s contra ~6 s (439, medido desde local por el pooler).
+- **Conexión (435):** 0 cuelgues y 0 parámetros cruzados en 30 rondas de 52 consultas y 60 de transacciones; máx. 5 conexiones
+  por proceso tras 48 peticiones concurrentes.
+- **Fallar rápido (440):** `pg_sleep(20)` corta a 15,5 s; con el pool lleno la segunda consulta falla a los 10,0 s.
+- **JavaScript de primera carga:** **sin medir** (el 443 está en `todo`).
+
+### 14.3 Inventario de las páginas con su tope (guardián, 17-nov, escenario de 3 programas)
+
+| Página (sección) | Tope de consultas | Crece con los programas |
+|---|---:|---|
+| `/hub` | 179 | sí (deuda del 438) |
+| `/hub?seccion=comercial` | 260 | sí (deuda del 438) |
+| `/hub?seccion=pauta` | 219 | sí (deuda del 438) |
+| `/hub?seccion=dinero` | 167 | sí (deuda del 438) |
+| `/p/[programa]/hub` | 66 | no |
+| `/p/[programa]/hub?seccion=comercial` | 82 | no |
+| `/p/[programa]/hub?seccion=pauta` | 22 | no |
+| `/p/[programa]/hub?seccion=dinero` | 55 | no |
+| `/mi-espacio (closer)` | 31 | no |
+| `/ajustes/catalogos` | 4 | no |
+| `/ajustes/migracion` | 3 | no |
+| `/ajustes/salud` | 23 | no |
+| `/ajustes/usuarios` | 7 | no |
+| `/hub/lista` | 6 | sí (deuda del 438) |
+| `/hub/reporte` | 139 | sí (deuda del 438) |
+| `/media` | 3 | no |
+| `/nerd-stats/bitacora` | 6 | no |
+| `/nerd-stats` | 17 | no |
+| `/recursos` | 1 | no |
+| `/oauth/autorizar` | 1 | no |
+| `/p/[programa]/calls` | 9 | no |
+| `/p/[programa]/deals` | 21 | no |
+| `/p/[programa]/deals/[id]` | 48 | no |
+| `/p/[programa]/inbox` | 21 | no |
+| `/p/[programa]/hub/lista` | 3 | no |
+| `/p/[programa]/leads` | 10 | no |
+| `/p/[programa]/leads/[id]` | 9 | no |
+| `/p/[programa]/programa` | 30 | no |
+| `/p/[programa]/proxima-cohorte` | 2 | no |
+| `/p/[programa]/recursos` | 3 | no |
+| `/p/[programa]/students` | 2 | no |
+| 12 páginas sin consultas propias (`SIN_CONSULTAS`) | 0 | no |
+
+Ninguna página supera su tope: el guardián es un trinquete (si usa menos, falla y pide bajarlo). La pregunta que el estudio
+hacía en la §13.8 (el tiempo real por ruta) la responde `vercel logs --query costo`, no esta tabla.
+
+### 14.4 Decisiones de la §10
+1. **Driver:** `pg` por el pooler en modo transaction (435, en producción; ADR 0047 enmendado). Respondida.
+2. **Presupuestos concretos:** consultas por página, el tope exacto del guardián (447); tiempos, `lib/tiempos.ts` (440).
+   Los topes pedidos en el 438 (Pauta ≤ 60, demás ≤ 40, todos ≤ 40 + 10 por programa) **no están medidos**: el Hub de todos
+   sigue en 167 a 260 y crece con los programas. Parcialmente respondida.
+3. **Qué se cachea:** sin decidir; es el 444 (`todo`).
+4. **Prefetch:** código listo (442), falta medirlo con el 436 en producción.
+5. **Cambiar de plan o de pooler:** sin cambio; la cuenta de conexiones y la región son el 441 (`todo`, sesión principal).
+
+### 14.5 Lo que sigue abierto
+Ver la lista del ticket 445.
