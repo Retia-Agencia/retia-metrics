@@ -14,6 +14,7 @@ import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ven
 import * as agenda from "@/lib/queries/hechos/agenda";
 import * as envio from "@/lib/queries/hechos/envio";
 import { cuentaDelGasto, cuentasDelPrograma, esGastoPaid, gastoConvertido, NOMBRE_SIN_CUENTA, type VistaGasto } from "@/lib/queries/hechos/gasto";
+import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
 import * as venta from "@/lib/queries/hechos/venta";
 import { valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { semanasDelRango } from "@/lib/rangos";
@@ -106,6 +107,9 @@ export interface VistaPautaSemanal {
   /** Serie diaria del mismo universo para la gráfica del contrato 370. */
   dias: PuntoDiarioPautaSemanal[];
 }
+
+/** D-11: el corte de semana (lunes) es el de `fechas.ts`, no una copia del `date_trunc`. */
+const semanaDelGasto = dimensionesDeDate(gastoPauta.fecha).semana;
 
 type GastoAgrupado = {
   /** `cuentaDelGasto`: la cuenta de Meta del objeto del gasto; nula en el gasto cargado a mano (416). */
@@ -476,7 +480,7 @@ export async function cargarPautaSemanal(
   const [gastos, agendas, ventas, registros, cuentasMeta, tasasDelPeriodo] = await Promise.all([
     db.select({
       cuentaId: cuentaDelGasto,
-      semana: sql<string>`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
+      semana: semanaDelGasto,
       fecha: gastoPauta.fecha,
       moneda: gastoPauta.moneda,
       filas: count(),
@@ -502,7 +506,7 @@ export async function cargarPautaSemanal(
       esGastoPaid,
       condicionDelGasto,
     )).groupBy(
-      sql`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
+      semanaDelGasto,
       gastoPauta.fecha,
       gastoPauta.moneda,
       cuentaDelGasto,
