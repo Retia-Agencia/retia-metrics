@@ -159,9 +159,9 @@ describe("el catálogo coincide con la base", () => {
 describe("paridad: la vista dice lo mismo que lib/queries", () => {
   const lib = { rango: RANGO, pagina: PAGINA };
 
-  it("envios: sin parciales, día de Bogotá (23:30 sigue siendo el 5) y área por árbol de pauta", async () => {
-    const filas = await leer("select id_del_envio, dia, area, canal, cuenta, categoria from mcp_lectura.envios where tipo = 'completo'");
-    const esperado = await envioHecho.listar(db, { programId: programaA, ...lib });
+  it("envios: completos y parciales sin completar como lib (429), día de Bogotá (23:30 sigue siendo el 5) y área por árbol de pauta", async () => {
+    const filas = await leer("select id_del_envio, dia, area, canal, cuenta, categoria from mcp_lectura.envios");
+    const esperado = await envioHecho.listar(db, { programId: programaA, universo: "completos_y_parciales", ...lib });
     expect(new Set(filas.map((f) => f.id_del_envio))).toEqual(new Set(esperado.filas.map((f) => f.envioId)));
     for (const fila of esperado.filas) {
       const vista = filas.find((f) => f.id_del_envio === fila.envioId)!;
@@ -227,11 +227,11 @@ describe("paridad: la vista dice lo mismo que lib/queries", () => {
     const esperado = await ventaHecho.listar(db, { programId: programaA, ...lib });
     expect(new Set(filas.map((f) => f.id_del_deal))).toEqual(new Set(esperado.filas.map((f) => f.dealId)));
     expect(filas.map((f) => f.id_del_deal)).toEqual([ids.d1]);
-    // Hoy el módulo de lib todavía fecha por la etapa: se compara contra `dia_de_etapa`; la definición nueva (primer pago) se afirma aparte.
+    // Paridad con lib (ADR 0136): la venta se fecha por el primer pago vigente del concepto ticket; la etapa queda aparte.
     const [fecha] = await leer("select dia, dia_de_venta, dia_de_etapa from mcp_lectura.ventas");
     expect(dia(fecha.dia_de_etapa)).toBe("2026-11-08");
-    expect(dia(fecha.dia_de_etapa)).toBe(dia(esperado.filas[0].dia));
     expect(dia(fecha.dia_de_venta)).toBe("2026-11-02");
+    expect(dia(fecha.dia_de_venta)).toBe(dia(esperado.filas[0].dia));
     expect(dia(fecha.dia)).toBe(dia(fecha.dia_de_venta));
     expect({ area: filas[0].area, canal: filas[0].canal, dueno: filas[0].dueno }).toEqual({ area: esperado.filas[0].area, canal: esperado.filas[0].canal, dueno: esperado.filas[0].dueno });
   });

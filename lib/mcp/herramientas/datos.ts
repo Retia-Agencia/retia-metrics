@@ -33,7 +33,7 @@ function metricasDeLaVista(vista: VistaDeLectura) {
 }
 
 const ANCLAS_EN_PALABRAS = {
-  primera_entrada_a_venta: "día de su primera entrada a Abonado o Completo",
+  primer_pago_del_deal: "día de su primer pago vigente (o de su entrada a Abonado o Completo si no tiene abono)",
   fecha_del_abono: "fecha del abono",
   fecha_del_envio: "fecha del envío",
   fecha_de_creacion_de_la_cita: "fecha de creación de la cita",

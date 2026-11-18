@@ -244,7 +244,7 @@ export const VISTA_POR_ANCLA = {
   fecha_del_envio: "envios",
   fecha_de_creacion_de_la_cita: "agendas",
   hora_de_la_cita: "citas",
-  primera_entrada_a_venta: "ventas",
+  primer_pago_del_deal: "ventas",
   fecha_del_abono: "abonos",
   fecha_del_gasto: "gasto",
   primera_aplicacion: "leads",

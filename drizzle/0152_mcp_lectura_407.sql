@@ -212,7 +212,7 @@ LEFT JOIN public.leads l ON l.id = d.lead_id
 LEFT JOIN public.users u ON u.id = d.owner_user_id
 LEFT JOIN public.cohorts co ON co.id = d.cohort_id
 CROSS JOIN LATERAL (SELECT (v.fecha_venta AT TIME ZONE 'America/Bogota')::date AS dia_de_etapa) e
-CROSS JOIN LATERAL (SELECT min(a.fecha) AS primer_pago FROM public.abonos a WHERE a.deal_id = d.id AND a.anulado_en IS NULL) pp
+CROSS JOIN LATERAL (SELECT min(a.fecha) AS primer_pago FROM public.abonos a WHERE a.deal_id = d.id AND a.anulado_en IS NULL AND a.concepto = 'ticket') pp
 CROSS JOIN LATERAL (SELECT coalesce(pp.primer_pago, e.dia_de_etapa) AS dia) f;--> statement-breakpoint
 CREATE VIEW mcp_lectura.abonos WITH (security_barrier = true) AS
 SELECT a.id AS id_del_abono, a.deal_id AS id_del_deal, a.program_id AS programa_id, p.slug AS programa,
