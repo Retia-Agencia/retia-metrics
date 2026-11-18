@@ -802,6 +802,8 @@ export async function fichaDeDeal(
         closerNombre: nombreDe(c.closerUserId),
         notas: c.notas,
         origen: c.origen,
+        confirmacion: c.confirmacion,
+        confirmacionEn: c.confirmacionEn,
         anuladoEn: c.anuladoEn,
         motivoAnulacion: c.motivoAnulacion,
         anuladoPorNombre: nombreDe(c.anuladoPor),

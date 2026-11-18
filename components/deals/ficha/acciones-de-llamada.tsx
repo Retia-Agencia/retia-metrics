@@ -99,7 +99,7 @@ export function AccionesDeLlamada({
         <ConfirmacionDeCita
           callId={callId}
           confirmacion={confirmacion}
-          resultado={resultado}
+          sinResultado={resultado === "agendada"}
           unToque
           onCambio={onCambio}
         />
@@ -157,7 +157,7 @@ export function AccionesDeLlamada({
 export function ConfirmacionDeCita({
   callId,
   confirmacion,
-  resultado,
+  sinResultado,
   onCambio,
   mostrarEtiqueta = true,
   puedeCambiar = true,
@@ -166,7 +166,7 @@ export function ConfirmacionDeCita({
 }: {
   callId: string;
   confirmacion: (typeof calls.$inferSelect)["confirmacion"];
-  resultado: string;
+  sinResultado: boolean;
   onCambio?: () => void;
   mostrarEtiqueta?: boolean;
   puedeCambiar?: boolean;
@@ -190,7 +190,7 @@ export function ConfirmacionDeCita({
     </div>
   );
 
-  if (confirmacion == null && (resultado !== "agendada" || !puedeCambiar)) return null;
+  if (confirmacion == null && (!sinResultado || !puedeCambiar)) return null;
   if (confirmacion == null) {
     return <div className="space-y-1.5"><p className="text-xs font-medium">¿El lead confirmó que va?</p>{botones}</div>;
   }
@@ -201,7 +201,7 @@ export function ConfirmacionDeCita({
         {puedeCambiar && !unToque ? <Button size="xs" variant="ghost" disabled={pendiente} onClick={() => setCambiando((valor) => !valor)}>Cambiar</Button> : null}
       </div>
       {detalle ? <p className="cifra text-xs text-muted-foreground">{detalle}</p> : null}
-      {puedeCambiar && (cambiando || (unToque && resultado === "agendada")) ? botones : null}
+      {puedeCambiar && (cambiando || (unToque && sinResultado)) ? botones : null}
     </div>
   );
 }

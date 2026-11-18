@@ -126,7 +126,7 @@ describe("acciones MCP", () => {
     const dealId = await nuevoDeal();
     const capacidades = contenido(await post("tools/call", { name: "capacidades", arguments: {} }, tokenEscritura.valor))!;
     expect((capacidades.acciones as { clave: string }[]).map((accion) => accion.clave)).toEqual([
-      "mover_etapa", "deshacer_evento", "marcar_show", "pegar_grain", "corregir_resultado",
+      "mover_etapa", "deshacer_evento", "marcar_show", "pegar_grain", "corregir_resultado", "marcar_confirmacion",
       "registrar_abono", "cambiar_plataforma_de_abono", "anular_deal", "anular_abono", "anular_llamada",
       "marcar_fallida", "asignar_llamada_suelta",
     ]);

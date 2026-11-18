@@ -102,7 +102,7 @@ function FilaDeHoy({ fila, puedeRegistrar, onAbrir }: { fila: FilaLlamada; puede
         <ConfirmacionDeCita
           callId={fila.callId}
           confirmacion={fila.confirmacion ?? null}
-          resultado="agendada"
+          sinResultado
           puedeCambiar={puedeRegistrar}
           unToque
         />

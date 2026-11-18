@@ -4,6 +4,7 @@ import { Enlace } from "@/components/enlace";
 import { useEffect, useState } from "react";
 import { detalleDeLlamadaAccion } from "@/app/(app)/p/[programa]/calls/acciones";
 import { Badge } from "@/components/ui/badge";
+import { estaAgendada } from "@/lib/deals/resultados-de-llamada";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -163,9 +164,9 @@ function Contenido({ detalle, esActiva, puedeConfirmar, onCambio, explicacionDeS
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Badge variant={TONO_DE_RESULTADO[detalle.resultado]}>
-          {ETIQUETA_DE_RESULTADO[detalle.resultado]}{detalle.resultado === "agendada" && detalle.confirmacion ? ` · ${ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}` : ""}
+          {ETIQUETA_DE_RESULTADO[detalle.resultado]}{estaAgendada(detalle.resultado) && detalle.confirmacion ? ` · ${ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}` : ""}
         </Badge>
-        {detalle.resultado !== "agendada" && detalle.confirmacion ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}</Badge> : null}
+        {!estaAgendada(detalle.resultado) && detalle.confirmacion ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[detalle.confirmacion]}</Badge> : null}
         {esActiva ? <Badge variant="default">Cita activa</Badge> : null}
         {esCitaManual(detalle.origen) ? (
           <Badge variant="alerta" title="El lead no recibe invitación: avísale tú.">Cita manual</Badge>
@@ -176,7 +177,7 @@ function Contenido({ detalle, esActiva, puedeConfirmar, onCambio, explicacionDeS
         <ConfirmacionDeCita
           callId={detalle.id}
           confirmacion={detalle.confirmacion}
-          resultado={detalle.resultado}
+          sinResultado={estaAgendada(detalle.resultado)}
           mostrarEtiqueta={false}
           detalle={detalleConfirmacion}
           onCambio={onCambio}
