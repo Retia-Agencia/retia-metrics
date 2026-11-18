@@ -5,6 +5,7 @@ import { carteraVencidaMcp, origenDelProgramaMcp, pautaRoasMcp } from "./decisio
 import type { ContextoMcp, Herramienta } from "./tipos";
 import { capacidadesMcp } from "./capacidades";
 import { consultarHechosMcp } from "./hechos";
+import { consultarDatosMcp, definicionesDeMetricasMcp } from "./datos";
 import { confirmarCambioMcp, prepararAccionMcp } from "./acciones";
 
 /** Registro exhaustivo: una herramienta que no aparece aquí no existe para el MCP. */
@@ -14,6 +15,8 @@ export const HERRAMIENTAS = [
   resumenDelHubMcp,
   consultarMetricaMcp,
   consultarHechosMcp,
+  definicionesDeMetricasMcp,
+  consultarDatosMcp,
   buscarMcp,
   buscarLeadsMcp,
   fichaDeLeadMcp,

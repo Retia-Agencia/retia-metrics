@@ -4,7 +4,7 @@
 > *cómo se cambia sin romperlo*. El *por qué* de cada decisión vive en el [ADR 0119](./adr/0119-el-mcp-del-crm.md); el avance en
 > los tickets 348, 383, 384, 385 y 386; cómo conectarse y revocar, en `operations.md` §8.1. Si algo de aquí contradice al
 > código, manda el código (ADR 0115 N8) y este archivo se corrige en el mismo commit.
-> Última revisión: 17-nov-2026.
+> Última revisión: 18-nov-2026.
 
 ## 1. Qué es y dónde vive
 
@@ -57,6 +57,8 @@ por cada tools/call:
 | `lib/mcp/herramientas/{programas,metricas,operacion,decisiones,hechos,capacidades}.ts` | Las herramientas, agrupadas por familia. Adaptadores delgados. |
 | `lib/mcp/vocabulario.ts` | Vocabulario canónico de identificadores y alias retrocompatibles de entrada. |
 | `lib/queries/hechos/registro.ts`, `lib/queries/resolver-filtros.ts` | Registro exhaustivo de hechos consultables y resolución de nombres o ids antes de consultar. |
+| `lib/mcp/herramientas/datos.ts`, `lib/mcp/salidas/datos.ts` | `consultar_datos` y `definiciones_de_metricas`. Adaptadores delgados: el SQL vive en `lib/queries/mcp-lectura/` (§9). |
+| `lib/queries/mcp-lectura/{catalogo,validar,consultar}.ts`, `lib/db/mcp-lectura.ts` | El catálogo tipado de las vistas, la validación previa, la transacción acotada y el pool propio de lectura (ADR 0135). El SQL vive en `lib/queries` y `lib/db`, no en `lib/mcp`: no amplía la lista de límites con SQL del guardián. |
 | `lib/mcp/herramientas/{programa,periodo}.ts`, `lib/mcp/enlaces.ts` | Piezas compartidas: resolver un programa visible, el periodo en formato MCP (atajo, `custom` con desde y hasta, o un mes `AAAA-MM`; el esquema del mes y su rango viven en `lib/periodo.ts` y los comparte con la URL), los enlaces al CRM. |
 | `lib/auth/roles.ts` | **Quién puede qué.** Cada herramienta pregunta a una función de aquí; nunca compara un rol a mano. |
 | `lib/queries/*` | Las consultas y reglas que las pantallas **y** las herramientas comparten (filtros, proyecciones por rol, alcance). El MCP no define ninguna métrica. |
@@ -76,6 +78,8 @@ Las consultas son de solo lectura. Las escrituras siguen el molde preparar → c
 | `resumen_del_hub` | Resumen del Hub | Para responder con las cifras de un periodo: ventas, dinero, citas, realizadas y tasas, más pauta (columna Total), pérdidas por motivo, cita a pago, norte de la cohorte y proyecciones | gerente, paid trafficker |
 | `consultar_metrica` | Consultar una métrica | Para explicar una métrica, filtrarla o abrir sus desgloses y filas | gerente, paid trafficker, closer (según la métrica) |
 | `consultar_hechos` | Consultar hechos | Para listar o agrupar envíos, agendas, citas, ventas, abonos y gasto nativo | gerente, paid trafficker (sin trabajo por closer) |
+| `definiciones_de_metricas` | Definiciones de métricas | Antes de `consultar_datos`: qué vistas y columnas existen, qué cuenta cada una, con qué fecha, y qué métricas oficiales del Hub salen de ellas | gerente, paid trafficker, developer (`puedeConsultarDatos`) |
+| `consultar_datos` | Consultar datos | Para explorar con un SELECT sobre las vistas de `mcp_lectura` cuando ninguna otra herramienta responde; nunca para una métrica registrada del Hub | gerente, paid trafficker, developer, y solo si `DATABASE_URL_MCP_LECTURA` está configurada |
 | `buscar` | Buscar en el CRM | Para encontrar una persona, sus deals, llamadas y último traspaso, con una sección por programa | gerente, closer |
 | `buscar_leads` | Buscar personas | Para encontrar una persona por nombre, correo o teléfono | gerente, closer |
 | `ficha_de_lead` | Ficha de una persona | Para consultar el detalle de una persona ya identificada | gerente, closer, customer success (proyección reducida) |
@@ -201,7 +205,7 @@ La cobertura de consultas también parte del registro de métricas: cada concept
 
 **Cesión de deal (A-177), ADR 0134:** que un closer ceda su deal no es una acción del MCP mientras la app no la tenga. La ruta de hoy es que un administrador reasigne con `reasignar_deal` (mismo caso de uso que la app, `editarDeal`; vista previa con dueño actual → nuevo y la llamada pendiente que sigue a nombre del anterior; se deshace como cambio de dueño).
 
-**Familia analítica para gerencia y pauta:** idea del 8-nov en el ticket 407 (capa semántica de solo lectura, definiciones de métricas y respuestas proactivas); no se construye antes del 383, 397, 399 y 403.
+**Familia analítica para gerencia y pauta (ticket 407, ADR 0135):** la fase 1 está construida (§9). Pendiente: la fase 2 (que `lib/queries/hechos` lea las vistas `mcp_lectura`, para que cada hecho tenga una sola definición), `siguientes_pasos` en `consultar_metrica` y los *prompts* MCP.
 
 ## 8. Visualizaciones dentro del chat
 
@@ -215,7 +219,28 @@ con sandbox y que habla con el servidor por JSON-RPC. Es opcional y se negocia p
 construye todavía; primero la salida limpia del 385 (una gráfica sobre cifras ambiguas las hace más creíbles, no más
 correctas). Cuando se haga, será el ticket 387 (junto con la administración visual y la evaluación de descubrimiento), que reutilice el tema de Tinta y las series de `lib/series-pasos.ts`.
 
-## 9. Fuentes
+## 9. Datos con SQL de solo lectura (ticket 407, ADR 0135)
+
+`consultar_datos` deja a gerencia, pauta y developer explorar la base con un SELECT, sin una herramienta por pregunta. La
+barrera es la base, no la herramienta:
+
+```
+consultar_datos(sql) ── validarSoloSelect (solo da mejores errores) ──► pool propio (DATABASE_URL_MCP_LECTURA, usuario mcp_lectura_login)
+   BEGIN
+   select mcp_lectura.fijar_alcance(programas_visibles, ve_equipo)   ← SECURITY DEFINER, una sola vez por transacción
+   set local transaction_read_only = on ; set local statement_timeout = 5000
+   select * from (<sql del agente>) limit tope+1
+   ROLLBACK                                                           ← el alcance tampoco queda
+```
+
+- **Por qué un login propio y no `SET LOCAL ROLE`:** `SET ROLE` se autoriza contra el usuario de sesión (el de la app), así que un solo SELECT con `set_config('role', …)` lo recuperaba. Con `mcp_lectura_login` como usuario de sesión no hay a dónde subir. Los tests de ese escape corren contra Postgres real (`tests/mcp-lectura-postgres.test.ts`, `DATABASE_URL_PRUEBA_POSTGRES`); PGlite es superusuario y no los prueba.
+- **Alcance:** `mcp_lectura.alcance` (txid, programa, `ve_equipo`) solo la escribe `fijar_alcance`; cada vista cruza con `txid_current()`. Sin alcance fijado las vistas devuelven cero filas. `ve_equipo` (`veEquipoComercial`) pone en nulo dueño, registrador y quien trajo al lead para quien no ve al equipo comercial (pauta).
+- **Vistas** (`CATALOGO_DE_VISTAS`; enmienda del 18-nov en el ADR: venta fechada por el primer pago con `dia_de_venta`/`dia_de_etapa`, `envios.tipo`, `universo_paid` en citas): `programas`, `envios`, `agendas`, `citas`, `ventas`, `abonos`, `gasto`, `leads`, `deals`. Día de Bogotá, moneda explícita, vigencia aplicada, `security_barrier`. Nombres, correos y teléfonos no se censuran (8-nov). El catálogo tipado es la única copia del texto que ve el agente; `tests/mcp-lectura-vistas.test.ts` lo compara con las columnas reales y cada vista con su módulo de `lib/queries/hechos` (paridad, con anulado, correo repetido, borde del día de Bogotá, venta reversada y árbol de pauta).
+- **Sin la variable no hay herramienta:** `consultar_datos` no se registra y `definiciones_de_metricas` dice que falta; nunca cae a la conexión de la app. Un usuario de cadena distinto de `mcp_lectura_login` también la apaga.
+- **Cada respuesta** trae `como_se_calculo` (de `CATALOGO_DE_VISTAS`), `es_cifra_del_hub: false` y las métricas del Hub relacionadas (las del registro cuya ancla de fecha cae en esa vista, `VISTA_POR_ANCLA`). Una métrica registrada se responde con `consultar_metrica`.
+- **Operación:** el rol se crea `NOLOGIN` sin contraseña en la migración 0152; LOGIN, contraseña y la variable en Vercel los fija una persona, fuera del repo. Conexiones: 2 más por proceso (ticket 441).
+
+## 10. Fuentes
 
 - Anthropic Engineering, *Writing effective tools for agents* (consolidar, nombrar, devolver alta señal, paginar, describir, evaluar): https://www.anthropic.com/engineering/writing-tools-for-agents
 - MCP, especificación de Tools (nombres, `title`, `outputSchema`, `structuredContent`, errores, seguridad): https://modelcontextprotocol.io/specification/latest/server/tools

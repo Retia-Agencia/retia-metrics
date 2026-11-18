@@ -3,7 +3,7 @@ id: 407
 etapa: mcp
 serves: "ADR 0119 · pedido de Mani del 8-nov: acceso analítico libre pero controlado para gerencia y pauta"
 depends: [383, 397, 399, 403]
-status: idea
+status: en curso (fase 1 construida; falta aplicar la migración 0152, dar LOGIN al rol y la variable en Vercel)
 ---
 
 # 407 — MCP analítico para gerencia y pauta: datos libres bajo contrato, y un agente proactivo
@@ -70,7 +70,9 @@ ven nombres porque su trabajo es operar; el MCP de operación mantiene sus herra
 
 ## Done cuando
 
-- [ ] Grill con Mani y ADR del diseño (esquema `mcp_lectura`, alcance por sesión, fórmula en cada respuesta).
-- [ ] Migración de las vistas y del rol de solo lectura (la hace la sesión padre).
-- [ ] `consultar_datos`, `definiciones_de_metricas` y `siguientes_pasos` con tests: programa ajeno, escritura rechazada, tope, alcance por rol (un closer solo lo suyo), la fórmula en cada respuesta, paridad con `consultar_metrica` en cada métrica registrada.
-- [ ] Revisión de petición forjada con el token de un gerente limitado y de un paid trafficker.
+- [x] Grill con Mani y ADR del diseño (esquema `mcp_lectura`, alcance por sesión, fórmula en cada respuesta): `docs/adr/0135-el-mcp-lee-datos-con-sql-por-un-usuario-de-base-propio.md`. El `set_config` de la idea original se descartó: el agente lo puede llamar.
+- [x] Migración de las vistas y del rol de solo lectura: `drizzle/0152_mcp_lectura_407.sql`, **generada, NO aplicada** (la aplica la sesión padre con el ok de Mani; después LOGIN y contraseña del rol y `DATABASE_URL_MCP_LECTURA` en Vercel).
+- [x] `consultar_datos` y `definiciones_de_metricas` con tests: programa ajeno, escritura rechazada, tope de filas y de tiempo, alcance por rol (pauta no ve al equipo comercial; closer y customer success no tienen la herramienta), la fórmula en cada respuesta, paridad de cada vista con su módulo de `lib/queries/hechos`.
+- [ ] `siguientes_pasos` en `consultar_metrica`, *prompts* MCP y paridad con `consultar_metrica` en cada métrica registrada (fase 2, junto con que `lib/queries/hechos` lea las vistas).
+- [ ] Revisión de petición forjada con el token de un gerente limitado y de un paid trafficker (por la ruta real, con la migración aplicada).
+- [x] Escape probado contra Postgres real: `tests/mcp-lectura-postgres.test.ts` (`set_config('role')`, `SET ROLE`, `RESET ROLE`, `query_to_xml`, segunda llamada a `fijar_alcance`, tiempo, alcance concurrente).

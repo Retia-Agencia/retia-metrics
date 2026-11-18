@@ -1065,6 +1065,13 @@
       "when": 1794960888566,
       "tag": "0151_confirmacion_cita_421",
       "breakpoints": true
+    },
+    {
+      "idx": 152,
+      "version": "7",
+      "when": 1795024541064,
+      "tag": "0152_mcp_lectura_407",
+      "breakpoints": true
     }
   ]
 }

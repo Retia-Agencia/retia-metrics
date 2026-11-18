@@ -253,6 +253,15 @@ export function veLeadsDePauta(rol: Rol | undefined | null): boolean {
 }
 
 /**
+ * Quien puede leer los datos con SQL de solo lectura por el MCP (`consultar_datos`, ADR 0135): gerencia y pauta, y el
+ * developer por ser el acceso total. Closer y customer success siguen con las herramientas fijas de operación.
+ * La base impone además el alcance por programa y oculta el trabajo del equipo a quien no lo ve (`veEquipoComercial`).
+ */
+export function puedeConsultarDatos(rol: Rol | undefined | null): boolean {
+  return manejaPauta(rol);
+}
+
+/**
  * Quien CONFIGURA un programa: la ficha del programa (`/p/<programa>/programa`), con cohortes,
  * destinos, Calendly, fuentes, comision y equipo (ticket 224, ADR 0082). Es exactamente quien
  * administra la app (`esAdministrador`: gerente y developer); el closer, que antes la LEIA,
