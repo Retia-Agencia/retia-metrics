@@ -1,24 +1,24 @@
 import { Enlace } from "@/components/enlace";
 import { cloneElement, type ReactNode } from "react";
-import { CifraConLista } from "@/components/cifra-con-lista";
+import { Cifra, CifraConLista } from "@/components/cifra-con-lista";
 import { Operacion } from "@/components/dashboard/operacion";
 import { Escalera } from "@/components/dashboard/escalera";
 import { Tabla, Tarjeta, tasa } from "@/components/dashboard/piezas";
-import { TarjetaVendido } from "@/components/dashboard/dinero-de-ventas";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
 import { Variacion } from "@/components/variacion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { monto, num, usd } from "@/lib/format";
-import { descripcionDeComparacion, type PeriodoResuelto } from "@/lib/periodo";
-import { desglosesDelResumen } from "@/lib/queries/metricas-con-filas";
+import { num, usd } from "@/lib/format";
+import { comparacionesDe, descripcionDeComparacion, nombreDePedido, type PeriodoResuelto } from "@/lib/periodo";
 import { contextoDeCifra } from "@/lib/contexto-de-cifra";
-import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
-import { urlDeListaTodos, type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
+import { urlDeLista } from "@/lib/queries/vista-metrica";
+import { type FilaDePrograma, type VistaDeTodos } from "@/lib/queries/vista-todos";
 import { nombreCorto, UNIVERSO_COMERCIAL } from "@/lib/vocabulario-metricas";
 import { contextoDelDia, horizontesDeCupos } from "@/lib/queries/vista-hoy";
-import { CifraDeRazon } from "@/components/cifra-de-razon";
-import { pct } from "@/lib/format";
+import { cifrasDeDinero } from "@/lib/hub/cifras-de-dinero";
+import { explicacionesDeDinero } from "@/lib/hub/explicaciones-de-dinero";
+import { cifrasDeConteosDeTodos, cifrasDeTasasDeUnPrograma, conNotaDeSuma, contextoDeTodos } from "@/lib/hub/cifras-de-todos";
+import { explicacionesDeConteosDeTodos, explicacionesDeTasasDeTodos } from "@/lib/hub/explicaciones-de-todos";
 import type { DatosDelHub } from "@/lib/queries/hub-todos";
 
 type Seccion = "hoy" | "comercial" | "dinero";
@@ -55,47 +55,51 @@ function TablaPorPrograma({ titulo, cabeceras, vista, seccion, celdas }: {
   );
 }
 
-/** Vendido · Recaudado · Por cobrar (369) y, aparte, lo que entró a caja en el periodo por moneda. */
-function VendidoYCaja({ vista, origen }: { vista: VistaDeTodos; origen: string }) {
-  const monedas = [...new Set([...vista.a.caja, ...(vista.b?.caja ?? [])].map((c) => c.moneda))].sort();
-  if (monedas.length === 0) monedas.push("USD");
+/** Contra qué se compara, en palabras («el periodo anterior»), igual que el Hub de un programa. */
+function referenciaDe(periodo: PeriodoResuelto): string | undefined {
+  const primera = comparacionesDe(periodo)[0];
+  return primera ? nombreDePedido(primera.pedido, periodo.preset) : undefined;
+}
+
+/**
+ * Vendido · Recaudado · Por cobrar (369) y, aparte, lo que entró a caja en el periodo, una Cifra por moneda (nunca una
+ * suma entre monedas). Las cuatro son sumas de los programas que la persona ve, en la misma unidad (ADR 0048).
+ */
+function VendidoYCaja({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
+  const caja = (t: { caja: VistaDeTodos["a"]["caja"] }) => t.caja.map((c) => ({ moneda: c.moneda, total: c.valor }));
+  const cifras = cifrasDeDinero({
+    dinero: vista.a.dinero, caja: caja(vista.a),
+    anterior: vista.b ? { dinero: vista.b.dinero, caja: caja(vista.b) } : null,
+    referencia: referenciaDe(vista.periodo),
+    detalles: { contratado: vista.detalles.contratado, caja: vista.detalles.caja },
+    explicaciones: explicacionesDeDinero(), contexto: contextoDeTodos(vista, hoy),
+  });
   return <>
-    <TarjetaVendido dinero={vista.a.dinero} anterior={vista.b?.dinero ?? null} periodo={vista.periodo}
-      detalle={vista.detalles.contratado} />
-    {monedas.map((moneda) => {
-      const actual = vista.a.caja.find((c) => c.moneda === moneda)?.valor ?? 0;
-      const anterior = vista.b ? vista.b.caja.find((c) => c.moneda === moneda)?.valor ?? 0 : null;
-      // El resumen y la lista usan exactamente la moneda que se está mostrando.
-      const grupos = vista.detalles.caja.resumen.grupos.filter((g) => g.moneda === moneda);
-      const detalle = {
-        resumen: {
-          ...vista.detalles.caja.resumen,
-          grupos,
-          subtotal: { cantidad: grupos.reduce((n, g) => n + g.cantidad, 0), caja: [{ moneda, total: actual }] },
-        },
-        desgloses: desglosesDelResumen(grupos, nombreDeEtapa),
-        href: urlDeListaTodos({ metrica: "caja", periodo: vista.periodo, origen, moneda }),
-      };
-      return <Tarjeta key={moneda} titulo={`Entró a caja · ${moneda}`} valor={
-        <CifraConLista titulo={`Entró a caja en ${moneda}`} detalle={detalle}>{monto(actual, moneda)}</CifraConLista>
-      } nota={<ContraB actual={actual} anterior={anterior} periodo={vista.periodo} decimales={2} />} />;
-    })}
+    {[cifras.vendido, cifras.recaudado, cifras.porCobrar, ...cifras.entroACaja].map(conNotaDeSuma).map((cifra) => (
+      <Cifra key={`${cifra.concepto}:${cifra.explicacion.filtros.map(([, v]) => v).join("|")}`} cifra={cifra} />
+    ))}
   </>;
 }
 
-function Conteos({ vista, pulso = false }: { vista: VistaDeTodos; pulso?: boolean }) {
-  const campos = pulso ? [
+/** Realizadas sin Grain y Llamadas sin resultado: aún sin ficha en el registro (pendiente del 419), conservan la tarjeta anterior. */
+function ConteosDelPulso({ vista }: { vista: VistaDeTodos }) {
+  const campos = [
     ["Realizadas sin Grain", "showsSinGrain", "shows_sin_grain"],
     ["Llamadas pasadas sin resultado", "sinResultado", "sin_resultado"],
-  ] as const : [
-    ["Leads", "leads", "leads"], ["Citas", "agendas", "agendas"],
-    ["Realizadas", "shows", "shows"], ["Ventas", "cierres", "cierres"],
   ] as const;
   return campos.map(([titulo, campo, metrica]) => (
     <Tarjeta key={campo} titulo={titulo} valor={
       <CifraConLista titulo={titulo} detalle={vista.detalles[metrica]}>{num(vista.a[campo].valor)}</CifraConLista>
     } nota={<ContraB actual={vista.a[campo].valor} anterior={vista.b?.[campo].valor ?? null} periodo={vista.periodo} />} />
   ));
+}
+
+/** Leads, Citas, Realizadas y Ventas: conteos sumables entre programas, una Cifra de total cada uno. */
+function Conteos({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
+  const cifras = cifrasDeConteosDeTodos({
+    vista, referencia: referenciaDe(vista.periodo), explicaciones: explicacionesDeConteosDeTodos(), contexto: contextoDeTodos(vista, hoy),
+  });
+  return cifras.map((cifra) => <Cifra key={cifra.concepto} cifra={cifra} />);
 }
 
 /** Las banderas del Pulso (ticket 191): foto de hoy, sin comparación; el % va por programa en su Hub. */
@@ -119,6 +123,14 @@ function Banderas({ vista }: { vista: VistaDeTodos }) {
  * Hoy de cada programa lado a lado (252): en qué día de la cohorte va, sus ventas contra su meta de
  * hoy y el embudo del día. Nada de esto se suma entre programas (ADR 0048): es una fila por programa.
  */
+/** La tasa de cada programa con su propia explicación: nunca una tasa combinada (ADR 0048). */
+function tasasDe(fila: FilaDePrograma, vista: VistaDeTodos, hoy: string) {
+  return cifrasDeTasasDeUnPrograma({
+    fila, referencia: vista.b ? referenciaDe(vista.periodo) : undefined,
+    explicaciones: explicacionesDeTasasDeTodos(), contexto: contextoDeTodos(vista, hoy),
+  });
+}
+
 function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
   return <TablaPorPrograma titulo="Hoy por programa" vista={vista} seccion="hoy"
     cabeceras={["Día de la cohorte", `${nombreCorto("ventas")} / objetivo de hoy`, nombreCorto("citas"), nombreCorto("shows"), nombreCorto("asistencia"), nombreCorto("cierre_de_ventas")]}
@@ -126,13 +138,14 @@ function HoyPorPrograma({ vista, hoy }: { vista: VistaDeTodos; hoy: string }) {
       const { cohorte } = contextoDelDia(hoy, fila.dashboard.cohorte);
       const [delDia] = horizontesDeCupos(fila.dashboard);
       const { embudo } = fila.dashboard;
+      const tasas = tasasDe(fila, vista, hoy);
       return <>
         <td className="text-right">{cohorte ? `${cohorte.codigo}: ${num(cohorte.dia)} de ${num(cohorte.total)}` : "—"}</td>
         <td className="text-right">{num(delDia.real)} / {delDia.meta === null ? "—" : num(delDia.meta, 1)}</td>
         <td className="text-right">{num(embudo.agendas)}</td>
         <td className="text-right">{num(embudo.llamadasConShow)}</td>
-        <td className="text-right"><CifraDeRazon razon={embudo.razonShow} formato={pct} /></td>
-        <td className="text-right"><CifraDeRazon razon={embudo.razonCierre} formato={pct} /></td>
+        <td className="text-right"><Cifra tamano="celda" cifra={tasas.asistencia} /></td>
+        <td className="text-right"><Cifra tamano="celda" cifra={tasas.cierreDeVentas} /></td>
       </>;
     }} />;
 }
@@ -164,12 +177,12 @@ export function SeccionDeTodos({ vista, seccion, hoy, origen, comercial }: { vis
   if (seccion === "hoy") return <section id="hoy" className="space-y-4">
     <h2 className="text-xl font-semibold">Hoy</h2>
     <HoyPorPrograma vista={vista} hoy={hoy} />
-    <div className={GRILLA}><VendidoYCaja vista={vista} origen={origen} /><Conteos vista={vista} pulso /><Banderas vista={vista} /></div>
+    <div className={GRILLA}><VendidoYCaja vista={vista} hoy={hoy} /><ConteosDelPulso vista={vista} /><Banderas vista={vista} /></div>
   </section>;
 
   if (seccion === "dinero") return <section id="dinero" className="space-y-4">
     <h2 className="text-xl font-semibold">Dinero</h2>
-    <div className={GRILLA}><VendidoYCaja vista={vista} origen={origen} /></div>
+    <div className={GRILLA}><VendidoYCaja vista={vista} hoy={hoy} /></div>
     <TablaPorPrograma titulo="Comisión y descuento por programa" vista={vista} seccion="dinero"
       cabeceras={["Comisión USD", "Sin comisión calculable", "Descuento promedio", "Descuento USD", "Ventas con descuento calculable"]}
       celdas={(fila) => <>
@@ -184,14 +197,17 @@ export function SeccionDeTodos({ vista, seccion, hoy, origen, comercial }: { vis
 
   return <section id="comercial" className="space-y-4">
     <div><h2 className="text-xl font-semibold">Comercial</h2><p className="text-xs text-muted-foreground">{UNIVERSO_COMERCIAL}</p></div>
-    <div className={GRILLA}><Conteos vista={vista} /></div>
+    <div className={GRILLA}><Conteos vista={vista} hoy={hoy} /></div>
     <TablaPorPrograma titulo="Tasas por programa" vista={vista} seccion="comercial"
       cabeceras={[nombreCorto("asistencia"), nombreCorto("cierre_de_ventas"), "% realizadas sin Grain"]}
-      celdas={(fila) => <>
-        <td className="text-right"><CifraDeRazon razon={fila.razonShow} formato={pct} /></td>
-        <td className="text-right"><CifraDeRazon razon={fila.razonCierre} formato={pct} /></td>
+      celdas={(fila) => {
+        const tasas = tasasDe(fila, vista, hoy);
+        return <>
+        <td className="text-right"><Cifra tamano="celda" cifra={tasas.asistencia} /></td>
+        <td className="text-right"><Cifra tamano="celda" cifra={tasas.cierreDeVentas} /></td>
         <td className="text-right">{tasa(fila.pctSinGrain.valor)}</td>
-      </>} />
+      </>;
+      }} />
     {/* La escalera es una distribución: una tarjeta por programa, lado a lado, sin total ni % combinado (ADR 0048). */}
     <div className="grid gap-4 lg:grid-cols-2">
       {comercial?.escalera.map(({ programa, vista: escalera }) => (

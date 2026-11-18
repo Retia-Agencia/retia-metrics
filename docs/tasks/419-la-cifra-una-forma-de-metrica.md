@@ -313,6 +313,17 @@ Dinero, Hoy y el norte. Lo que queda, pantalla por pantalla:
 
 ## Avance
 
+- **18-nov · E-4 `/hub` (Hoy, Comercial, Dinero): hecho; Pauta es del 422.** `lib/hub/cifras-de-todos.ts` (puro) arma los totales
+  sumables (Leads, Citas, Realizadas y Ventas, una Cifra cada uno con la nota «Suma de programas») y la tasa de cada programa
+  (Asistencia y Cierre de ventas, con el nombre del programa en «Calculada con», nunca combinadas); Vendido, Recaudado, Por
+  cobrar y Entró a caja (una por moneda) salen de `cifrasDeDinero`, sin cambiar su módulo. Texto en
+  `lib/hub/explicaciones-de-todos.ts` (universo «todas las áreas»). `secciones.tsx` ya no importa `CifraDeRazon` ni
+  `TarjetaVendido`. Ninguna cifra cambia. Test: `tests/cifras-de-todos.test.ts`. **Queda con la forma vieja en `/hub`:**
+  Realizadas sin Grain, Llamadas pasadas sin resultado y las tres banderas (Atendidos sin valor, sin Grain, Cierre perdido con
+  pagos) porque no tienen ficha en el registro (escribirla necesita el texto aprobado por Mani); las columnas de Comisión y
+  Descuento de la tabla de Dinero; «Hoy por programa» conserva su Ventas/objetivo en texto; `vamos-a-llegar.tsx` (vista vieja del
+  norte) y el Info de `/hub`. Sin cambio de consultas (el guardián por página sigue igual).
+
 - **17-nov · Carril D: hallazgo 20 resuelto.** Las fichas `agendadas`, `cierre_de_ventas`, `ventas` y `vendido` decían «de pauta»
   aunque Hoy, Comercial, Dinero y el norte cuentan todas las áreas. `explicacionDe` (`lib/metricas/explicacion.ts`) toma ahora una
   frase neutra por concepto cuando la variante es `universo: "todas"`; Pauta conserva su ficha y una variante explícita manda.
