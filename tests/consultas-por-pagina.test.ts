@@ -361,7 +361,7 @@ async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dea
   const { costo, identicas, porSentencia } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
   const cuales = identicas.slice(0, 5).map(({ sentencia, veces }) => `  ×${veces + 1} ${sentencia.slice(0, 160)}`);
-  return { costo, porSentencia, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
+  return { costo, porSentencia, cuales, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
 }
 
 function paginasEn(directorio: string): string[] {
@@ -418,7 +418,7 @@ describe("consultas por pagina", () => {
         .map(({ sentencia, mas }) => `  +${mas} ${sentencia.slice(0, 170)}`);
       expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} con variedad 1, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
         .toBe(base3.costo.consultas);
-      expect(conVariedad.costo.identicas).toBe(0);
+      expect(conVariedad.costo.identicas, `${nombre}: consultas idénticas con variedad 4\n${conVariedad.cuales.join("\n")}`).toBe(0);
     },
   );
 
