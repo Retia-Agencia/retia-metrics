@@ -1,6 +1,7 @@
 import type { AuthInfo } from "@modelcontextprotocol/server";
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { db } from "@/lib/db";
+import { conexionMcpLectura } from "@/lib/db/mcp-lectura";
 import { INSTRUCCIONES_MCP } from "@/lib/mcp/instrucciones";
 import { registrarHerramientas } from "@/lib/mcp/servidor";
 import { sesionDeToken } from "@/lib/mcp/sesion";
@@ -36,6 +37,7 @@ async function atender(request: Request): Promise<Response> {
       rol: sesion.rol,
       tokenId: extra.tokenId,
       escritura: sesion.escritura,
+      conexionDeLectura: conexionMcpLectura(),
     }),
     { serverInfo: { name: "retia-crm", version: "1.0.0" }, instructions: INSTRUCCIONES_MCP },
   );

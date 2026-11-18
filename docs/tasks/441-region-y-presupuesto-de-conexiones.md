@@ -52,6 +52,8 @@ Regla: en modo transaction un cliente solo ocupa un backend mientras dura su con
 real es **consultas simultáneas ≤ Pool Size**. Por eso el presupuesto por render (436 a 439) es parte de esta cuenta:
 un render de 846 consultas ocupa el pool 60 veces más que uno de 14.
 
+> **Nota del 18-nov (ticket 407, ADR 0135):** `consultar_datos` abre un pool propio por proceso (`lib/db/mcp-lectura.ts`, `max: 2`, usuario `mcp_lectura_login`, la misma cadena de pooler en modo transacción). Suma **2 conexiones por proceso** a las 5 de la app y un usuario más en `pg_stat_activity` (anótalo en «Conexiones en reposo por rol»). Cada consulta del agente usa una conexión como máximo 5 s.
+
 ## Done cuando
 - [ ] `vercel.json` con `cle1` desplegado; ida y vuelta promedio por consulta antes y después, pegada aquí.
 - [ ] `Pool Size` y `Max client connections` reales anotados; cambio de `Pool Size` hecho o descartado con la cuenta.

@@ -55,6 +55,8 @@ describe("contrato de herramientas del MCP", () => {
       "resumen_del_hub",
       "consultar_metrica",
       "consultar_hechos",
+      "definiciones_de_metricas",
+      "consultar_datos",
       "buscar",
       "buscar_leads",
       "ficha_de_lead",
