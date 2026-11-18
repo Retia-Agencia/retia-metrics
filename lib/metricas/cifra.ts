@@ -12,7 +12,8 @@ import type {
   FichaDeMetrica, FormaDeFormula, FormulaDeMetrica, MonedaDeMetrica, VariableDeMetrica,
 } from "@/lib/metricas/registro";
 
-export type UniversoDeCifra = "pauta" | "todas";
+/** "tuyas": Mi espacio, solo lo del closer que mira (DC-4, 13-nov). */
+export type UniversoDeCifra = "pauta" | "todas" | "tuyas";
 
 /** "decimal" es un promedio con un decimal; "veces" escribe el ROAS como 6,1×. */
 export type UnidadDeCifra = "conteo" | "decimal" | "cop" | "usd" | "porcentaje" | "veces" | "dias";
@@ -261,6 +262,7 @@ export function fraseEnCurso(periodo: string | undefined): string {
 const UNIVERSO: Record<UniversoDeCifra, { corto: string; explicacion: string }> = {
   pauta: { corto: "de pauta", explicacion: "Solo personas o gasto que vienen de anuncios pagos." },
   todas: { corto: "todas las áreas", explicacion: "Pauta, orgánico, referidos y registros sin origen, juntos." },
+  tuyas: { corto: "tuyas", explicacion: "Solo tus deals y tus llamadas." },
 };
 
 const OPERADOR: Record<FormaDeFormula, string> = { razon: "÷", resta: "−", producto: "×", suma: "", conteo: "" };

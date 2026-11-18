@@ -313,6 +313,18 @@ Dinero, Hoy y el norte. Lo que queda, pantalla por pantalla:
 
 ## Avance
 
+- **18-nov · E-5 Mi espacio › Métricas: hecho.** `lib/hub/cifras-de-mi-espacio.ts` (puro) arma, por programa, Citas, Realizadas,
+  No asistió, Ventas, Cierre de ventas, las citas sin resultado (solo si hay), Entró a caja (una por moneda) y Comisión; y, en
+  «Todos», los totales sumables (la comisión y las tasas no se suman). Universo nuevo «tuyas» en `UniversoDeCifra` (DC-4) y en
+  `overview.md` §11; texto en `lib/hub/explicaciones-de-mi-espacio.ts`. `tab-metricas.tsx` ya no usa `CifraConLista`,
+  `CifraDeRazon`, `ComoSeCalcula`, `Variacion` ni `Tarjeta`. Test: `tests/cifras-de-mi-espacio.test.ts`. **Frases del
+  diálogo «Cómo se calcula» retirado, a dónde fueron:** «las llamadas que tomaste» y «los deals de los que eres dueño hoy» →
+  universo «tuyas» («Solo tus deals y tus llamadas») más `que`/`variables` de cada ficha; «los abonos que registraste» (Entró a
+  caja) NO está en la ficha (la ficha dice abonos del periodo): pendiente de decisión de Mani; el criterio del % de cierre («cada
+  deal cuenta contigo si tomaste su último show o, sin show, su última cita») tampoco está en `cierre_de_ventas`: pendiente.
+  **Pendiente del texto de Mani (no se inventó copia):** Realizadas sin Grain, Llamadas pasadas sin resultado y las banderas
+  Atendidos sin valor vendido, Atendidos sin Grain y Cierre perdido con pagos (siguen con la tarjeta vieja en `/hub`).
+
 - **18-nov · E-4 `/hub` (Hoy, Comercial, Dinero): hecho; Pauta es del 422.** `lib/hub/cifras-de-todos.ts` (puro) arma los totales
   sumables (Leads, Citas, Realizadas y Ventas, una Cifra cada uno con la nota «Suma de programas») y la tasa de cada programa
   (Asistencia y Cierre de ventas, con el nombre del programa en «Calculada con», nunca combinadas); Vendido, Recaudado, Por
