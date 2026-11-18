@@ -37,7 +37,7 @@ export function pasoDeTablaDePauta(valor: string | string[] | undefined): PasoDe
 }
 export type UnidadPautaSemanal = "COP" | "USD" | "conteo" | "razon" | "porcentaje";
 export type ClavePautaSemanal =
-  | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "cac" | "facturacion" | "roas" | "profit"
+  | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "cac" | "facturacion" | "vendido_cohorte" | "ventas_cohorte" | "roas" | "profit"
   | "show" | "cierre_ventas" | "agenda_venta"
   | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "agendas_meta" | "costo_agenda_meta" | "frecuencia";
 
@@ -296,6 +296,12 @@ async function celdasDelRango(
       ? sinDato(cac.motivo ?? "Faltan datos para calcularlo")
       : conPartes(celda(cac.valor), [inversion.valor, conteos.ventas]),
     facturacion: celda(conteos.vendido, coberturaVenta),
+    // D-2: el numerador del ROAS (y del Profit) a la vista, de la MISMA lectura que el ROAS: ROAS = esta fila ÷ gasto en USD.
+    vendido_cohorte: roasDeCohorte
+      ? celda(roasDeCohorte.valorVendidoUsd, roasDeCohorte.sinValorVendido > 0
+        ? { estado: "parcial", razon: `${roasDeCohorte.sinValorVendido} ventas sin valor vendido` } : OK)
+      : sinDato("Vendido por cohorte no disponible"),
+    ventas_cohorte: roasDeCohorte ? celda(roasDeCohorte.ventas) : sinDato("Ventas por cohorte no disponibles"),
     roas: roasDeCohorte
       ? conPartes(celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS"), [roasDeCohorte.valorVendidoUsd, roasDeCohorte.gastoUsd])
       : sinDato("ROAS por cohorte no disponible"),
@@ -348,6 +354,8 @@ const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombr
   { clave: "ventas", bloque: "general", nombre: nombreCorto("ventas"), unidad: "conteo" },
   { clave: "cac", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.cac, unidad: "COP" },
   { clave: "facturacion", bloque: "general", nombre: nombreCorto("vendido"), unidad: "USD" },
+  { clave: "vendido_cohorte", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.vendido_cohorte, unidad: "USD" },
+  { clave: "ventas_cohorte", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.ventas_cohorte, unidad: "conteo" },
   { clave: "roas", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.roas, unidad: "razon" },
   { clave: "profit", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.profit, unidad: "USD" },
   { clave: "show", bloque: "comercial", nombre: nombreCorto("asistencia"), unidad: "porcentaje" },

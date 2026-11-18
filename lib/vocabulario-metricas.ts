@@ -113,6 +113,9 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
   costo_agenda_meta: "Costo por agenda (según Meta)",
   cac: "Costo por venta",
   roas: "ROAS",
+  // D-2 (18-nov): el numerador del ROAS con nombre propio. «Vendido de esta cohorte de registro» lo aprobó Mani; el de ventas es su gemelo (propuesto).
+  vendido_cohorte: "Vendido de esta cohorte de registro",
+  ventas_cohorte: "Ventas de esta cohorte de registro",
   gasto: "Gasto",
   pct_no_asistio: "% no asistió",
   /** Pauta cuenta solo formularios completos (lo que cuentan Meta y el Excel): otra pregunta que «Envíos». */
@@ -132,7 +135,7 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
  * `envios`, `pct_no_asistio` y `otras_campaignas` no son conceptos aparte (son una suma, otro concepto o un desglose).
  */
 export type ClaveDePauta =
-  | "inversion" | "agendas_meta" | "costo_agenda_crm" | "costo_agenda_meta" | "cac" | "roas" | "profit"
+  | "inversion" | "agendas_meta" | "costo_agenda_crm" | "costo_agenda_meta" | "cac" | "roas" | "profit" | "vendido_cohorte" | "ventas_cohorte"
   | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "frecuencia";
 
 /** Toda clave que puede tener ficha: las del Hub y las de Pauta. Los nombres no se solapan (lo vigila el test del registro). */

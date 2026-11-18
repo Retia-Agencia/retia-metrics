@@ -1057,6 +1057,33 @@ const REGISTRO_BASE = {
     funcionSql: { archivo: "lib/queries/roas-de-pauta.ts", nombre: "cargarRoasDePauta" },
     listas: [],
   }),
+  // D-2 (18-nov): el numerador del ROAS y del Profit como fila propia, para que ROAS = esta fila ÷ gasto en USD se pueda comprobar.
+  vendido_cohorte: ficha("gasto", {
+    filaDelDiccionario: "Vendido de esta cohorte de registro",
+    tipo: "simple",
+    unidad: "dinero",
+    monedas: ["usd"],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "razon_con_cobertura",
+    funcionSql: { archivo: "lib/queries/roas-de-pauta.ts", nombre: "cargarRoasDePauta" },
+    listas: [],
+  }),
+  ventas_cohorte: ficha("gasto", {
+    filaDelDiccionario: "Ventas de esta cohorte de registro",
+    tipo: "simple",
+    unidad: "cupos",
+    monedas: [],
+    anclaDeFecha: "fecha_del_envio",
+    dimensiones: ["dia", "semana"],
+    vigencia: ["deals"],
+    sumaEntreProgramas: false,
+    cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/roas-de-pauta.ts", nombre: "cargarRoasDePauta" },
+    listas: [],
+  }),
   profit: ficha("gasto", {
     filaDelDiccionario: "Profit",
     tipo: "derivada",
@@ -1490,6 +1517,17 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
       { nombre: "Parcial", explicacion: "Si alguna venta viene de un día sin gasto cargado, el ROAS sale como parcial o «—»: dividir esa venta por un gasto que falta lo inflaría." },
     ],
     { admiteObjetivo: true, unidadesDePartes: ["usd", "usd"] },
+  ),
+  vendido_cohorte: texto(
+    "Lo vendido, en dólares, a las personas que se registraron en este periodo por pauta, aunque hayan comprado después. Es el numerador del ROAS y del Profit.", "suma", ["valor vendido de las ventas de pauta de las personas registradas en el periodo"],
+    [
+      { nombre: "Cohorte de registro", explicacion: "Cuenta en la semana en que la persona se registró, no en la semana de la venta: por eso no coincide con «Vendido»." },
+      { nombre: "Parcial", explicacion: "Si alguna venta no tiene valor vendido, la cifra sale como parcial: sumar sin ese valor la dejaría corta." },
+    ],
+  ),
+  ventas_cohorte: texto(
+    "Cuántas ventas hicieron las personas que se registraron en este periodo por pauta, aunque hayan comprado después.", "conteo", ["ventas de pauta de las personas registradas en el periodo"],
+    [{ nombre: "Cohorte de registro", explicacion: "Cuenta en la semana en que la persona se registró, no en la semana de la venta: por eso no coincide con «Ventas»." }],
   ),
   profit: texto(
     "Lo vendido en pauta menos lo invertido, los dos en dólares.", "resta", ["Vendido de pauta", "Inversión en dólares"],

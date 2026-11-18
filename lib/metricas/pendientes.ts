@@ -32,6 +32,8 @@ export const CONCEPTO_DE_PAUTA_SEMANAL: Record<ClavePautaSemanal, ClaveDeConcept
   costo_agenda_meta: "costo_agenda_meta",
   roas: "roas",
   profit: "profit",
+  vendido_cohorte: "vendido_cohorte",
+  ventas_cohorte: "ventas_cohorte",
   cpm: "cpm",
   ctr: "ctr",
   llegada_landing: "llegada_landing",

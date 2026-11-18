@@ -611,6 +611,7 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   Un show posterior a la venta no la explica (403).
 - **Semana sin gasto cargado:** en la tabla semanal, Inversión, Profit y CPM muestran «—» con «Gasto de Meta desde el …»; 0 es cero
   gastado, «—» es «no se puede calcular» (ADR 0115, enmienda 10-nov).
+- **Vendido de esta cohorte de registro / Ventas de esta cohorte de registro:** el numerador del ROAS y del Profit como fila propia de la tabla semanal de Pauta: lo vendido (USD) y las ventas de las personas de Paid que se registraron en la semana, aunque compraran después. ROAS = Vendido de esta cohorte de registro ÷ gasto en USD (D-2, 18-nov). No es «Vendido» (que cuenta por día de venta).
 - **Profit:** valor vendido de la cohorte de registro de Paid menos el gasto total de Paid, ambos en USD y con la TRM de cada día.
 - **CPM:** gasto de las filas que tienen impresiones, dividido por sus impresiones y multiplicado por mil.
 - **CTR:** clics al enlace divididos por impresiones; se suman los conteos antes de calcular la tasa.
