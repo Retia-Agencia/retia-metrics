@@ -324,6 +324,9 @@ Dinero, Hoy y el norte. Lo que queda, pantalla por pantalla:
   deal cuenta contigo si tomaste su último show o, sin show, su última cita») tampoco está en `cierre_de_ventas`: pendiente.
   **Pendiente del texto de Mani (no se inventó copia):** Realizadas sin Grain, Llamadas pasadas sin resultado y las banderas
   Atendidos sin valor vendido, Atendidos sin Grain y Cierre perdido con pagos (siguen con la tarjeta vieja en `/hub`).
+  **E-6 parcial:** borrado el diálogo `ComoSeCalcula` (`grep -rn ComoSeCalcula app components lib tests` = 0 fuera de su archivo);
+  el archivo conserva `BadgeDeEstado`, `PUNTO` y `ExplicacionDeCifra`. Siguen vivos `CifraConLista`, `CifraDeRazon`,
+  `ResumenDeCifra`, `Variacion` y `resumen-de-punto` por la rama vieja de Comercial y Hoy de `/hub` y las gráficas de Dinero.
 
 - **18-nov · E-4 `/hub` (Hoy, Comercial, Dinero): hecho; Pauta es del 422.** `lib/hub/cifras-de-todos.ts` (puro) arma los totales
   sumables (Leads, Citas, Realizadas y Ventas, una Cifra cada uno con la nota «Suma de programas») y la tasa de cada programa

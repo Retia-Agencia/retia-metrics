@@ -3,38 +3,9 @@
 import type { ReactNode } from "react";
 import { Enlace } from "@/components/enlace";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { buttonVariants } from "@/components/ui/button";
 import { SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { CifraDeMetrica, EstadoDeCifra, FormulaEscrita } from "@/lib/metricas/cifra";
-
-/**
- * "Cómo se calcula" de un bloque entero, con texto libre. Lo usan los bloques que todavía no pintan sus cifras con la
- * Cifra; cuando migran, cada cifra abre su propia explicación (`ExplicacionDeCifra`) y este diálogo desaparece.
- */
-export function ComoSeCalcula({ children }: { children: ReactNode }) {
-  return (
-    <Dialog>
-      <DialogTrigger render={<Button type="button" variant="link" size="sm" className="print:hidden" />}>
-        Cómo se calcula
-      </DialogTrigger>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-lg overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Cómo se calcula</DialogTitle>
-          <DialogDescription>Fuentes, fórmulas y datos que todavía pueden completar la lectura.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4 text-sm">{children}</div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 /** El badge de estado con su punto (DM-1). Sin estado no se pinta: nunca un gris inventado. */
 export function BadgeDeEstado({ estado }: { estado: EstadoDeCifra | null }) {
