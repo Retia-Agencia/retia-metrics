@@ -15,6 +15,16 @@ updates:
     open-pull-requests-limit: 5
     commit-message:
       prefix: "deps"
+    # Mayores que no se pueden tomar hasta que cambie otra pieza (18-nov):
+    # - typescript >=6.1: typescript-eslint (via eslint-config-next) solo soporta <6.1.0; TS 7 rompe lint.
+    #   Quitar cuando typescript-eslint acepte la version nueva.
+    # - @types/node: deben ser los de la version de Node que corre (24 en CI y en Vercel);
+    #   tipos de una version mayor dejan usar APIs que el runtime no tiene. Subir junto con el runtime.
+    ignore:
+      - dependency-name: typescript
+        versions: [">=6.1.0"]
+      - dependency-name: "@types/node"
+        versions: [">=25.0.0"]
     groups:
       produccion:
         dependency-type: production
