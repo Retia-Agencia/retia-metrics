@@ -89,3 +89,17 @@ describe("Total de Pauta: una sola definición para la pantalla y el MCP (D-13)"
     expect(cohorteDeLaPauta(conFiltro)).toBe(c1);
   });
 });
+
+describe("metas_del_mes y cohorte con un periodo pasado (D-8)", () => {
+  it("se rotulan como del mes en curso / cohorte activa, no del periodo pedido", async () => {
+    const octubre = { desde: "2026-10-05", hasta: "2026-10-11" };
+    const salida = await resumenDelHubMcp.ejecutar(contexto(), { programa: "total-pauta", periodo: "custom", ...octubre });
+    const e = salida.estructurado as { periodo: { desde: string }; norte: { metas_del_mes: { rotulo: string; mes_en_curso: string }; cohorte: { rotulo: string } | null } };
+    expect(e.periodo.desde).toBe(octubre.desde);
+    expect(e.norte.metas_del_mes.mes_en_curso).toBe(hoyEnBogota().slice(0, 7));
+    expect(e.norte.metas_del_mes.mes_en_curso).not.toBe(octubre.desde.slice(0, 7));
+    expect(e.norte.metas_del_mes.rotulo).toMatch(/mes en curso/);
+    expect(e.norte.cohorte?.rotulo).toMatch(/activa/);
+  });
+});
+

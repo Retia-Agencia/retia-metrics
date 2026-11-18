@@ -103,7 +103,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       texto: lineas.join("\n"),
       estructurado: aSalidaDeResumen(
         vista,
-        { pauta: pauta.filas, escalera, planeacion, cumplimiento, roasProyectado },
+        { hoy, pauta: pauta.filas, escalera, planeacion, cumplimiento, roasProyectado },
         { nombre: programa.nombre, slug: programa.slug },
         enlace,
       ),
