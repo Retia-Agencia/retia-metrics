@@ -883,8 +883,13 @@ async function miembrosDeLaEscalera(alcance: Alcance, filtros: FiltrosDeMetrica,
   }).filter((deal) => !delOrigen || coincideConOrigen(deal.envio, filtros));
 }
 
-async function personasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
-  if (dealIds.length === 0) return new Map<string, FilaDeMetrica["persona"]>();
+function personasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
+  if (dealIds.length === 0) return Promise.resolve(new Map<string, FilaDeMetrica["persona"]>());
+  // Dos listas de una misma pantalla suelen compartir deals: una lectura por conjunto de ids (437).
+  return unaVezPorSolicitud(db, claveDe("personasDeDeals", programId, [...dealIds]), () => leerPersonasDeDeals(db, programId, dealIds));
+}
+
+async function leerPersonasDeDeals(db: Db, programId: string, dealIds: readonly string[]) {
   const filas = await db.select({ dealId: deals.id, nombre: leads.nombre, leadId: leads.id })
     .from(deals)
     .innerJoin(leads, and(eq(leads.id, deals.leadId), eq(leads.programId, deals.programId)))

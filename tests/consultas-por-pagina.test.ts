@@ -4,7 +4,21 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Session } from "next-auth";
 import { abrirSolicitud } from "./helpers/memoria-por-solicitud";
 import { programasVisibles, type ProgramaVisible } from "@/lib/auth/alcance";
-import { programs, sources, leads, miembrosPrograma, users, deals, oauthClientes } from "@/lib/db/schema";
+import {
+  abonos,
+  calls,
+  cohorts,
+  cuentasPublicitarias,
+  deals,
+  gastoPauta,
+  leads,
+  miembrosPrograma,
+  oauthClientes,
+  pautaObjetos,
+  programs,
+  sources,
+  users,
+} from "@/lib/db/schema";
 import { medir, type ResumenDeCosto } from "@/lib/db/medidor";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Db } from "@/lib/db/tipos";
@@ -33,7 +47,16 @@ import { cargarDatosDeStudents } from "@/lib/students/cargar-datos";
 import { cargarDatosDeAutorizacion } from "@/lib/oauth/cargar-datos-de-autorizacion";
 import { cargarDatosDePrograma } from "@/lib/programa/cargar-datos";
 import { cargarDatosDeListaDelPrograma } from "@/lib/hub-programa/lista/cargar-datos";
+import {
+  cargarDatosDelHubDelPrograma,
+  type SeccionDelHubDelPrograma,
+} from "@/lib/hub-programa/cargar-datos";
 import { resolverPeriodo } from "@/lib/periodo";
+import { resolverContextoDeVista, type EntradaDeVista } from "@/lib/queries/vista-dashboard";
+import { armarReporteDiario } from "@/lib/queries/reporte-diario";
+import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
+import { rutaDePrograma } from "@/lib/nav";
+import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 
@@ -73,6 +96,49 @@ function datosDelHub(seccion: SeccionDelHubDeTodos) {
   });
 }
 
+function datosDelHubDelPrograma(seccion: SeccionDelHubDelPrograma) {
+  return async (db: Db, sembrado: Sembrado) => {
+    const programa = sembrado.programas[0]!;
+    const esHoy = seccion === "hoy";
+    const busqueda = esHoy ? {} : { seccion };
+    const base = rutaDePrograma(programa.slug, "hub");
+    const origen = origenDeLaPagina(base, busqueda);
+    const entradaDeVista: EntradaDeVista = esHoy
+      ? { programId: programa.id, hoy: HOY, periodo: { preset: "hoy" }, preset: "hoy", claveCloser: null }
+      : {
+          programId: programa.id,
+          hoy: HOY,
+          periodo: { preset: "este_mes" },
+          filtroDeCohorte: { parametro: undefined },
+          preset: "hoy",
+          claveCloser: null,
+        };
+    const contextoPendiente = resolverContextoDeVista(entradaDeVista, db);
+    const ventanaRitmo = ventanaRitmoDeUrl(undefined);
+    const reporteDeHoy = esHoy
+      ? armarReporteDiario({ programId: programa.id, dia: HOY, ventanaRitmo, contexto: contextoPendiente }, db)
+      : null;
+    const contexto = await contextoPendiente;
+    const datos = await cargarDatosDelHubDelPrograma(db, {
+      programa,
+      rol: "developer",
+      busqueda,
+      seccion,
+      hoy: HOY,
+      diaDelReporte: HOY,
+      hoyDeLaPestana: HOY,
+      ventanaRitmo,
+      entradaDeVista,
+      contexto,
+      reporteDeHoy,
+      origen,
+      configurar: { hrefBase: `/p/${programa.slug}/programa?seccion=ventas`, origen },
+    });
+    if (datos.seccion === "dinero") await datos.seriesDeDinero;
+    return datos;
+  };
+}
+
 // Topes del escenario de ESTE test (3 programas sembrados), medidos en el CI. No son comparables con la
 // tabla del 437 (dev:local, datos reales). El tope es EXACTO: si una página usa menos, el guardián falla
 // con el número nuevo, y se baja en el mismo commit (el trinquete nunca queda holgado).
@@ -81,6 +147,10 @@ const PAGINAS = {
   "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
   "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 219, escalaConProgramas: true, cargar: datosDelHub("pauta") },
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
+  "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 66, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
+  "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 82, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },
+  "/p/[programa]/hub?seccion=pauta": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 22, escalaConProgramas: false, cargar: datosDelHubDelPrograma("pauta") },
+  "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 55, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
     tope: 31, // 18 antes de la fase 2: la siembra ahora incluye un deal. Costo fijo, probado: con 4 deals de más da lo mismo (test de abajo)
@@ -124,11 +194,6 @@ const PAGINAS = {
   "/p/[programa]/students": { pagina: "app/(app)/p/[programa]/students/page.tsx", tope: 2, escalaConProgramas: false, cargar: (db, s) => cargarDatosDeStudents(db, { programId: s.programas[0]!.id, busqueda: {} }) },
 } satisfies Record<string, Pagina>;
 
-// Paginas del estudio §13.3 aun no cubiertas; la fase 2 vacia esta lista.
-const PENDIENTES_447 = [
-  "app/(app)/p/[programa]/hub/page.tsx",
-] as const;
-
 const SIN_CONSULTAS = [
   "app/page.tsx",
   "app/login/page.tsx",
@@ -146,7 +211,7 @@ const SIN_CONSULTAS = [
 
 let base: Awaited<ReturnType<typeof crearBaseReutilizable>>;
 
-async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0): Promise<Sembrado> {
+async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0, variedad = 0): Promise<Sembrado> {
   const programas = await db.insert(programs).values(Array.from({ length: cantidadDeProgramas }, (_, indice) => ({
     ...PROGRAMA_DE_PRUEBA,
     slug: `pagina-${indice + 1}`,
@@ -190,6 +255,83 @@ async function sembrar(db: Db, cantidadDeProgramas: number, dealsExtra = 0): Pro
       etapa: (["contactado", "agendado"] as const)[indice % 2]!,
     })));
   }
+  if (variedad > 0) {
+    const closersExtra = await db.insert(users).values(Array.from({ length: variedad }, (_, indice) => ({
+      email: `closer-variedad-${indice + 1}@retia.test`,
+      nombre: `Closer variedad ${indice + 1}`,
+      rol: "closer" as const,
+      closerId: `Closer variedad ${indice + 1}`,
+    }))).returning();
+    await db.insert(miembrosPrograma).values(closersExtra.map((closerExtra) => ({
+      userId: closerExtra.id,
+      programId: programas[0]!.id,
+    })));
+    const cohortesExtra = await db.insert(cohorts).values(Array.from({ length: variedad }, (_, indice) => ({
+      programId: programas[0]!.id,
+      codigo: `VAR-${indice + 1}`,
+      metaCupos: 10,
+      precioUsd: "1000.00",
+      // Ventanas de venta distintas: la base prohíbe que se solapen dentro de un programa (0122).
+      fechaInicioVentas: `2026-0${indice + 4}-01`,
+      fechaCierreVentas: `2026-0${indice + 4}-20`,
+      fechaInicioClases: `2026-0${indice + 4}-25`,
+      estado: "cerrado" as const,
+    }))).returning();
+    const leadsDeVariedad = await db.insert(leads).values(Array.from({ length: variedad }, (_, indice) => ({
+      programId: programas[0]!.id,
+      emailNormalizado: `variedad-${indice + 1}@paginas.test`,
+      fechaPrimeraAplicacion: new Date(`2026-11-${String(indice + 2).padStart(2, "0")}T12:00:00-05:00`),
+    }))).returning();
+    const dealsDeVariedad = await db.insert(deals).values(leadsDeVariedad.map((lead, indice) => ({
+      programId: programas[0]!.id,
+      leadId: lead.id,
+      ownerUserId: closersExtra[indice]!.id,
+      cohortId: cohortesExtra[indice]!.id,
+      etapa: "ganado_parcial" as const,
+      valorVendidoUsd: "1000.00",
+      createdAt: new Date(`2026-11-${String(indice + 2).padStart(2, "0")}T12:00:00-05:00`),
+    }))).returning();
+    await db.insert(calls).values(dealsDeVariedad.map((dealDeVariedad, indice) => ({
+      programId: programas[0]!.id,
+      dealId: dealDeVariedad.id,
+      closerUserId: closersExtra[indice]!.id,
+      fechaAgenda: new Date(`2026-11-${String(indice + 3).padStart(2, "0")}T10:00:00-05:00`),
+      fechaLlamada: new Date(`2026-11-${String(indice + 3).padStart(2, "0")}T10:00:00-05:00`),
+      resultado: "show" as const,
+      origen: "crm",
+    })));
+    await db.insert(abonos).values(dealsDeVariedad.map((dealDeVariedad, indice) => ({
+      programId: programas[0]!.id,
+      dealId: dealDeVariedad.id,
+      fecha: `2026-11-${String(indice + 3).padStart(2, "0")}`,
+      monto: "100.00",
+      moneda: "USD",
+      registradoPorUserId: closersExtra[indice]!.id,
+    })));
+
+    const [cuenta] = await db.insert(cuentasPublicitarias).values({
+      programId: programas[0]!.id,
+      idMeta: "cuenta-variedad-paginas",
+      nombre: "Cuenta variedad paginas",
+      moneda: "USD",
+      zonaHoraria: "America/Bogota",
+    }).returning();
+    const objetosDePauta = await db.insert(pautaObjetos).values(Array.from({ length: variedad }, (_, indice) => [
+      { cuentaId: cuenta!.id, programId: programas[0]!.id, idMeta: `variedad-campana-${indice + 1}`, nivel: "campana" as const, nombre: `Campaña variedad ${indice + 1}`, estado: "ACTIVE", proposito: "agenda" as const },
+      { cuentaId: cuenta!.id, programId: programas[0]!.id, idMeta: `variedad-conjunto-${indice + 1}`, nivel: "conjunto" as const, padreIdMeta: `variedad-campana-${indice + 1}`, nombre: `Conjunto variedad ${indice + 1}`, estado: "ACTIVE" },
+      { cuentaId: cuenta!.id, programId: programas[0]!.id, idMeta: `variedad-anuncio-${indice + 1}`, nivel: "anuncio" as const, padreIdMeta: `variedad-conjunto-${indice + 1}`, nombre: `Anuncio variedad ${indice + 1}`, estado: "ACTIVE" },
+    ]).flat()).returning();
+    const anuncios = objetosDePauta.filter((objeto) => objeto.nivel === "anuncio");
+    await db.insert(gastoPauta).values(anuncios.map((anuncio, indice) => ({
+      programId: programas[0]!.id,
+      fecha: `2026-11-${String(2 + indice * 7).padStart(2, "0")}`,
+      monto: "100.00",
+      moneda: "USD",
+      origen: "meta_api" as const,
+      pautaObjetoId: anuncio.id,
+      agendasMeta: 1,
+    })));
+  }
   await db.insert(oauthClientes).values({
     clientId: "https://cliente.paginas.test/cimd",
     nombre: "Cliente paginas",
@@ -212,14 +354,14 @@ function fallasDelGuardian(costo: ResumenDeCosto, tope: number): string[] {
   ];
 }
 
-async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0) {
+async function medirPagina(nombre: string, pagina: Pagina, cantidad: number, dealsExtra = 0, variedad = 0) {
   await base.vaciar();
-  const sembrado = await sembrar(base.db, cantidad, dealsExtra);
+  const sembrado = await sembrar(base.db, cantidad, dealsExtra, variedad);
   abrirSolicitud();
-  const { costo, identicas } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
+  const { costo, identicas, porSentencia } = await medir(nombre, () => pagina.cargar(base.db, sembrado));
   // Una falla dice CUÁL consulta se repitió, para encontrar su dueño sin medir a mano.
   const cuales = identicas.slice(0, 5).map(({ sentencia, veces }) => `  ×${veces + 1} ${sentencia.slice(0, 160)}`);
-  return { costo, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
+  return { costo, porSentencia, cuales, fallas: [...fallasDelGuardian(costo, pagina.tope), ...cuales] };
 }
 
 function paginasEn(directorio: string): string[] {
@@ -260,9 +402,29 @@ describe("consultas por pagina", () => {
     expect(conFilas.costo.identicas).toBe(0);
   });
 
+  it.each(Object.entries(PAGINAS).filter(([nombre, pagina]) =>
+    nombre.startsWith("/p/[programa]/hub") && pagina.pagina === "app/(app)/p/[programa]/hub/page.tsx"))(
+    "%s no crece con closers, cohortes ni campañas",
+    async (nombre, pagina) => {
+      // Con 1 contra 4: una página vacía salta ramas enteras (listas sin filas no consultan), y eso no es N+1.
+      const base3 = await medirPagina(nombre, pagina, 3, 0, 1);
+      const conVariedad = await medirPagina(nombre, pagina, 3, 0, 4);
+      // Dice QUÉ sentencias crecieron: es el dueño del N+1 que hay que quitar.
+      const crecieron = [...conVariedad.porSentencia]
+        .map(([sentencia, veces]) => ({ sentencia, mas: veces - (base3.porSentencia.get(sentencia) ?? 0) }))
+        .filter(({ mas }) => mas > 0)
+        .sort((a, b) => b.mas - a.mas)
+        .slice(0, 8)
+        .map(({ sentencia, mas }) => `  +${mas} ${sentencia.slice(0, 170)}`);
+      expect(conVariedad.costo.consultas, `${nombre}: ${base3.costo.consultas} con variedad 1, ${conVariedad.costo.consultas} con variedad 4\n${crecieron.join("\n")}`)
+        .toBe(base3.costo.consultas);
+      expect(conVariedad.costo.identicas, `${nombre}: consultas idénticas con variedad 4\n${conVariedad.cuales.join("\n")}`).toBe(0);
+    },
+  );
+
   it("mantiene todas las paginas en un grupo del trinquete", () => {
     const cubiertas = new Set(Object.values(PAGINAS).map((pagina) => pagina.pagina));
-    const clasificadas = new Set([...cubiertas, ...PENDIENTES_447, ...SIN_CONSULTAS]);
+    const clasificadas = new Set([...cubiertas, ...SIN_CONSULTAS]);
     const actuales = paginasEn(join(process.cwd(), "app"));
     expect(actuales.filter((pagina) => !clasificadas.has(pagina))).toEqual([]);
     expect([...clasificadas].filter((pagina) => !actuales.includes(pagina))).toEqual([]);

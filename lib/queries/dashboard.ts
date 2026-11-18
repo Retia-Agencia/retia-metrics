@@ -40,7 +40,8 @@ import { ventasDeLaCohorte } from "@/lib/queries/ventas-de-la-cohorte";
 import { claveCloserSql, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { cohorteActiva } from "@/lib/queries/cohortes";
 import { vigente } from "@/lib/queries/vigente";
-import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import { dineroDeSaldos, dineroDeVentas, SIN_DINERO, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
+import { saldosDeDeals } from "@/lib/queries/saldo";
 import { grupoDeCitas, tasasDelAlcance, type TasasDelGrupo } from "@/lib/queries/tasas-del-grupo";
 import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 
@@ -284,6 +285,9 @@ function ventasPorCloser(
 
 export interface VentaDelRangoConValor {
   dealId: string;
+  claveCloser: string;
+  /** La clave que usaría el filtro histórico del mismo dueño; null si su cuenta no tiene texto de closer. */
+  claveCloserHistorica: string | null;
   cohortId: string | null;
   ticketUsd: string | null;
   valorVendidoUsd: string | null;
@@ -299,6 +303,12 @@ export async function ventasDelRangoConValor(
     alcance.rango.hasta, alcance.claveCloser ?? null, alcance.cohorteId ?? null), () => db
     .select({
       dealId: deals.id,
+      claveCloser: claveCloserSql(users.id, users.closerId),
+      claveCloserHistorica: sql<string | null>`case
+        when ${users.id} is null or ${users.closerId} is not null
+          then ${claveCloserSql(sql`null::uuid`, users.closerId)}
+        else null
+      end`,
       cohortId: deals.cohortId,
       ticketUsd: cohorts.precioUsd,
       valorVendidoUsd: deals.valorVendidoUsd,
@@ -317,6 +327,38 @@ export async function ventasDelRangoConValor(
 export async function dineroDelRango(alcance: Alcance, db: Db = dbDeLaApp): Promise<DineroDeVentas> {
   const ventas = await ventasDelRangoConValor(alcance, db);
   return dineroDeVentas(db, ventas.map((venta) => venta.dealId));
+}
+
+/** El dinero de todas las filas del comparativo desde una sola lectura de ventas y otra de sus saldos. */
+export async function dineroPorCloserDelRango(
+  alcance: Omit<Alcance, "claveCloser">,
+  claves: readonly string[],
+  db: Db = dbDeLaApp,
+): Promise<Map<string, DineroDeVentas>> {
+  const unicas = [...new Set(claves)];
+  const resultado = new Map<string, DineroDeVentas>(
+    unicas.map((clave): [string, DineroDeVentas] => [clave, { ...SIN_DINERO }]),
+  );
+  if (unicas.length === 0) return resultado;
+
+  const ventas = await ventasDelRangoConValor(alcance, db);
+  const saldos = await saldosDeDeals(db, ventas.map((venta) => venta.dealId));
+  const idsPorCloser = new Map<string, string[]>();
+  for (const venta of ventas) {
+    for (const clave of new Set([venta.claveCloser, venta.claveCloserHistorica])) {
+      if (clave === null || !resultado.has(clave)) continue;
+      const ids = idsPorCloser.get(clave);
+      if (ids) ids.push(venta.dealId);
+      else idsPorCloser.set(clave, [venta.dealId]);
+    }
+  }
+  for (const [clave, ids] of idsPorCloser) {
+    resultado.set(clave, dineroDeSaldos(ids.flatMap((id) => {
+      const saldo = saldos.get(id);
+      return saldo ? [saldo] : [];
+    })));
+  }
+  return resultado;
 }
 
 export interface VentasDeCohorte {

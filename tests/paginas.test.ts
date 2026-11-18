@@ -1992,10 +1992,10 @@ describe("el paid trafficker en el Dashboard (ticket 102)", () => {
     expect(buscar(arbol, "FiltrosDelHub")).toBeNull();
     expect(buscar(await renderizar({ seccion: "comercial" }), "FiltrosDelHub")?.props).toMatchObject({ filtraCloser: false, closers: [] });
     // La escalera (320) se arma sin closers ni listas para quien no ve el equipo, y con ellos para el gerente.
-    expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: false }));
+    expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: false }), expect.anything());
     auth.mockResolvedValue(sesionGerente);
     await renderizar({ seccion: "comercial" });
-    expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: true }));
+    expect(vistaDeEscalera).toHaveBeenLastCalledWith(expect.objectContaining({ conEquipo: true }), expect.anything());
   });
 
   /** Un detalle de cifra con lista, desglose por closer y enlace: lo que `sinListas` tiene que vaciar. */

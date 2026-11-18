@@ -27,7 +27,8 @@ import {
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
 import { grupoDeCitas, gruposPorSemana, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
-import { type Rango } from "@/lib/queries/dashboard";
+import { dineroPorCloserDelRango, type Rango } from "@/lib/queries/dashboard";
+import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { lunesDe, sumarDias } from "@/lib/dias-habiles";
 import { db as dbDeLaApp } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -35,6 +36,7 @@ import type { Db } from "@/lib/db/tipos";
 import { veEquipoComercial, type Rol } from "@/lib/auth/roles";
 import type { NivelPauta, PasoPauta } from "@/lib/queries/roas-de-pauta";
 import type { OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
+import { gruposDeCajaPorCloser } from "@/lib/queries/hechos/abono";
 
 /**
  * Codigo opaco estable de una CLAVE de closer (ticket 167): el sha256 de la
@@ -208,26 +210,125 @@ export async function detallesDelComparativo(
   db: Db = dbDeLaApp,
   ahora: Date = new Date(),
 ): Promise<DetallesDelComparativo> {
-  // El grupo de citas se carga UNA vez y se acota por closer en memoria, con la misma regla que su
-  // lista (`miembrosDe`); las otras cuatro celdas son agregados SQL por clave.
-  const grupo = await grupoDeCitas(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora });
+  if (claves.length === 0) {
+    // Conserva el costo fijo previo de esta función; no abre las cuatro lecturas por conjunto sin filas.
+    await grupoDeCitas(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora });
+    return {};
+  }
+  return detallesDelComparativoConDinero(entrada, claves, db, ahora);
+}
+
+async function detallesDelComparativoConDinero(
+  entrada: Omit<EntradaDeDetalles, "claveCloser">,
+  claves: readonly string[],
+  db: Db,
+  ahora: Date,
+  dineroPendiente?: Promise<Map<string, DineroDeVentas>>,
+): Promise<DetallesDelComparativo> {
+  // Cada fuente se carga UNA vez sin closer. Sus grupos ya traen `claveCloser`, calculada por la
+  // misma expresión central que usa el filtro SQL; las filas del comparativo se acotan en memoria.
+  const metricasPorConjunto = ["agendas", "shows", "cierres"] as const;
+  const [grupo, resumenes, gruposDeCaja, dineroPorCloser] = await Promise.all([
+    grupoDeCitas(db, { programId: entrada.programId, rango: entrada.periodo.a, ahora }),
+    Promise.all(metricasPorConjunto.map(async (metrica) => {
+      const [resumen] = await resumenDeMetrica(metrica, {
+        ...entrada,
+        rango: entrada.periodo.a,
+        claveCloser: null,
+      }, db);
+      return [metrica, resumen] as const;
+    })),
+    gruposDeCajaPorCloser(db, {
+      programId: entrada.programId,
+      rango: entrada.periodo.a,
+      cohorteId: entrada.cohorteId,
+      hoy: entrada.hoy,
+    }),
+    dineroPendiente ?? dineroPorCloserDelRango(
+        { programId: entrada.programId, rango: entrada.periodo.a, cohorteId: entrada.cohorteId },
+        claves,
+        db,
+      ),
+  ]);
+  const resumenPorMetrica = {
+    ...Object.fromEntries(resumenes),
+    caja: { programId: entrada.programId, disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },
+  } as unknown as Record<"agendas" | "shows" | "cierres" | "caja", ResumenDeMetrica>;
   const deGrupo = (metrica: "grupo_citas" | "grupo_shows" | "grupo_pendientes", clave: string): DetalleDeCifra => {
     const miembros = metrica === "grupo_pendientes"
       ? pendientesDe(grupo, clave)
       : miembrosDe(grupo, clave).filter((m) => metrica === "grupo_citas" || m.conShow);
     return detalleDeDeals(entrada, metrica, resumenDeDeals(entrada.programId, miembros, entrada.hoy), clave);
   };
-  const filas = await Promise.all(claves.map(async (clave) => {
-    const celdas = await Promise.all(CELDAS_DEL_COMPARATIVO.map(async (metrica) =>
+  const filas = claves.map((clave) => {
+    const celdas = CELDAS_DEL_COMPARATIVO.map((metrica) =>
       [
         metrica,
         metrica === "grupo_citas" || metrica === "grupo_shows" || metrica === "grupo_pendientes"
           ? deGrupo(metrica, clave)
-          : await detalleDeCifra(metrica, { ...entrada, claveCloser: clave }, db),
-      ] as const));
+          : detalleDelResumen(
+              entrada,
+              metrica,
+              resumenPorMetrica[metrica],
+              clave,
+              metrica === "cierres" ? dineroPorCloser.get(clave) : undefined,
+              metrica === "caja"
+                ? gruposDeCaja
+                    .filter((grupo) => grupo.claveReparto === clave || grupo.claveCloser === clave)
+                    .map(({ claveReparto: _claveReparto, ...grupo }) => grupo)
+                : undefined,
+            ),
+      ] as const);
     return [clave, Object.fromEntries(celdas) as Record<CeldaDelComparativo, DetalleDeCifra>] as const;
-  }));
+  });
   return Object.fromEntries(filas);
+}
+
+/** Reparte un resumen agregado por la clave de identidad que produjo su propio SQL. */
+function detalleDelResumen(
+  entrada: Omit<EntradaDeDetalles, "claveCloser">,
+  metrica: "agendas" | "shows" | "cierres" | "caja",
+  resumen: ResumenDeMetrica,
+  claveCloser: string,
+  dinero?: DineroDeVentas,
+  gruposYaFiltrados?: ResumenDeMetrica["grupos"],
+): DetalleDeCifra {
+  const grupos = gruposYaFiltrados ?? resumen.grupos.filter((grupo) => grupo.claveCloser === claveCloser);
+  const caja = new Map<string, number>();
+  let cantidad = 0;
+  for (const grupo of grupos) {
+    cantidad += grupo.cantidad;
+    if (grupo.moneda !== null && grupo.monto !== null) {
+      caja.set(grupo.moneda, (caja.get(grupo.moneda) ?? 0) + grupo.monto);
+    }
+  }
+  const subtotal = {
+    cantidad,
+    caja: dinero
+      ? [{ moneda: "USD", total: dinero.vendido }]
+      : [...caja].map(([moneda, total]) => ({ moneda, total: Math.round(total * 100) / 100 })),
+  };
+  const resumenDelCloser: ResumenDeMetrica = {
+    programId: resumen.programId,
+    disponible: resumen.disponible,
+    subtotal,
+    ...(dinero ? { dinero } : {}),
+    grupos,
+  };
+  return {
+    resumen: resumenDelCloser,
+    desgloses: desglosesDelResumen(grupos, nombreDeEtapa),
+    href: urlDeLista({
+      slug: entrada.slug,
+      metrica,
+      periodo: entrada.periodo,
+      origen: entrada.origen,
+      claveCloser,
+      cohorteId: entrada.cohorteId,
+      origenDeal: entrada.origenDeal,
+    }),
+    fotoDeHoy: METRICAS_FOTO_DE_HOY.includes(metrica),
+  };
 }
 
 /** El detalle de una cifra cuyo resumen ya se armó en memoria: su desglose y su enlace a la lista. */
@@ -410,9 +511,12 @@ export async function detallesDeOperacion(
   entrada: Omit<EntradaDeDetalles, "claveCloser">,
   clavesDelComparativo: readonly string[],
   db: Db = dbDeLaApp,
+  dineroPendiente?: Promise<Map<string, DineroDeVentas>>,
 ): Promise<DetallesDeOperacion> {
   const [comparativo, embudo, semanas, proximas] = await Promise.all([
-    detallesDelComparativo(entrada, clavesDelComparativo, db),
+    clavesDelComparativo.length === 0
+      ? detallesDelComparativo(entrada, clavesDelComparativo, db)
+      : detallesDelComparativoConDinero(entrada, clavesDelComparativo, db, new Date(), dineroPendiente),
     detallesDelEmbudo(entrada, db),
     detallesPorSemana(entrada, db),
     proximasPorSemana(entrada, db),

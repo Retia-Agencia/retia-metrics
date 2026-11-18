@@ -1,4 +1,4 @@
-import { cifrasClaveDeComercial, cifrasDeCloser, type ListaDeComercial } from "@/lib/hub/cifras-de-comercial";
+import { cifrasClaveDeComercial, cifrasDeCloser } from "@/lib/hub/cifras-de-comercial";
 import { cifrasDeEscalera, cifrasDelEmbudoComercial, cifrasDeCaminos, cifrasDeCitasPorSemana, cifrasDeAuditoria } from "@/lib/hub/cifras-de-recorridos";
 import { explicacionesDeComercial } from "@/lib/hub/explicaciones-de-comercial";
 import { explicacionesDeRecorridos } from "@/lib/metricas/explicacion";
@@ -6,15 +6,11 @@ import { cifrasDeHoy } from "@/lib/hub/cifras-de-hoy";
 import { cifrasDeClosersDeHoy } from "@/lib/hub/cifras-de-pendientes-y-closers";
 import { explicacionesDeHoy, explicacionesDeClosersDeHoy } from "@/lib/hub/explicaciones-de-hoy";
 import { metaDeLeads } from "@/lib/queries/proyeccion";
-import { fechaCorta, monto, usd } from "@/lib/format";
-import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { cifrasDeDinero, cifrasPorCohorte } from "@/lib/hub/cifras-de-dinero";
 import { explicacionesDeDinero } from "@/lib/hub/explicaciones-de-dinero";
 import { comparacionesDe, nombreDePedido } from "@/lib/periodo";
 import { after } from "next/server";
 import { Suspense, type ReactNode } from "react";
-import { desc } from "drizzle-orm";
-import { alertasDelPrograma } from "@/lib/queries/alertas";
 import { VamosALlegar } from "@/components/metas/vamos-a-llegar";
 import { canalesConEnlaces, hrefDePiezasDesconocidas } from "@/components/dashboard/origen";
 import { Hoy } from "@/components/dashboard/hoy";
@@ -22,7 +18,7 @@ import { armarReporteDiario, rangoDeLaSemanaDelReporte, resolverDiaDelReporte, t
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { ConfiguracionHoy } from "@/components/dashboard/configuracion-hoy";
 import { queryDePautaDesdeOrigen, rutaDePrograma, type SeccionDelHub } from "@/lib/nav";
-import { claveDeAbiertos, detalleDeCifra, detallesDeOperacion, detallesDelDashboard, proyectarDashboardSegunRol, urlDeLista, type DetallesDelDashboard } from "@/lib/queries/vista-metrica";
+import { claveDeAbiertos, urlDeLista } from "@/lib/queries/vista-metrica";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma } from "@/lib/auth/roles";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -31,14 +27,10 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { num, fecha, hoyEnBogota } from "@/lib/format";
-import { armarVistaDelDashboard, resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista, type VistaDelDashboard } from "@/lib/queries/vista-dashboard";
+import { resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista } from "@/lib/queries/vista-dashboard";
 import { EsqueletoDelHub, EsqueletoDelNorte } from "@/components/hub/esqueleto-del-hub";
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
 import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte";
-import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
-import { origenDelPrograma } from "@/lib/queries/origen";
-import { embudoDelFormulario } from "@/lib/queries/embudo-formulario";
-import { embudoPorPregunta } from "@/lib/queries/embudo-por-pregunta";
 import { db } from "@/lib/db";
 import { PageShell } from "@/components/page-shell";
 import { PantallaFija, clasesDeZonaConScroll } from "@/components/layout/pantalla-fija";
@@ -46,19 +38,12 @@ import { Pestanas, pestanaActiva, urlConSeccion, type Pestana } from "@/componen
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { DashboardPrograma } from "@/components/dashboard-programa";
 import { detalleDePuntoAccion } from "./acciones-graficas";
-import { vistaDeEscalera } from "@/lib/queries/vista-escalera";
 import { FiltrosDelHub } from "@/components/hub/filtros-del-hub";
 import { PautaProyeccion } from "@/components/pauta-proyeccion";
-import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
-import { calcularProyeccionDeRoas, proyeccionesConfirmadas } from "@/lib/queries/proyeccion-roas";
-import { cargarRoasDePauta, type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
+import { type NivelPauta, type PasoPauta } from "@/lib/queries/roas-de-pauta";
 import { DealsContraAgendas } from "@/components/deals-contra-agendas";
-import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { SemaforoDelPrograma } from "@/components/semaforo/semaforo-del-programa";
-import { pautaSincronizaciones } from "@/lib/db/schema";
-import { leerConfiguracionDeHoy } from "@/lib/queries/configuracion-de-hoy";
 import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
-import { sumarDias } from "@/lib/dias-habiles";
 import { tokensMeta } from "@/lib/integraciones";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
@@ -72,12 +57,15 @@ import { SinOrigen } from "@/components/pauta/sin-origen";
 import { DondeSeVaLaGente } from "@/components/pauta/embudo-del-formulario";
 import { VER_POR_ORIGEN, verPorOrigen, type VerPorOrigen } from "@/lib/pauta/cifras-de-origen";
 import { resumenDeFiltrosDePauta, VISTAS_DE_PAUTA, vistaDePauta } from "@/lib/pauta/vista-de-pauta";
-import { cargarEmbudoComercial, type OrigenEmbudoComercial } from "@/lib/queries/embudo-comercial";
-import { dineroDelRango } from "@/lib/queries/dashboard";
 import {
   debeSincronizarDesdeElHub,
   sincronizarDiaEnCurso,
 } from "@/lib/pauta/dia-en-curso";
+import {
+  cargarDatosDelHubDelPrograma,
+  type EntradaDeDatosDelHubDelPrograma,
+  type SeccionDelHubDelPrograma,
+} from "@/lib/hub-programa/cargar-datos";
 
 export const dynamic = "force-dynamic";
 
@@ -151,7 +139,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
       href: urlConSeccion(base, busqueda, "pauta"),
     },
   ] satisfies (Pestana & { id: SeccionDelHub })[];
-  const seccion = pestanaActiva(texto(busqueda.seccion), pestanas, "hoy");
+  const seccion = pestanaActiva(texto(busqueda.seccion), pestanas, "hoy") as SeccionDelHub;
 
   // El filtro sale de la URL, nunca de la sesion: un closer que entra sin filtro ve
   // el programa completo, igual que un gerente (ADR 0048: dentro de su programa, ve
@@ -340,7 +328,7 @@ async function CuerpoDelHub({
   rol: Awaited<ReturnType<typeof rolDeVista>>;
   programa: { id: string; slug: string; nombre: string };
   busqueda: Record<string, string | string[] | undefined>;
-  seccion: string;
+  seccion: SeccionDelHubDelPrograma;
   hoy: string;
   diaDelReporte: string;
   hoyDeLaPestana: string;
@@ -355,10 +343,11 @@ async function CuerpoDelHub({
   norte: ReactNode;
 }) {
   const slug = programa.slug;
-  const esHoy = seccion === "hoy";
   const veEquipo = veEquipoComercial(rol);
-  const proyectar = <T,>(valor: T): T => proyectarDashboardSegunRol(valor, rol);
-
+  const entradaDelCargador = {
+    programa, rol, busqueda, seccion, hoy, diaDelReporte, hoyDeLaPestana, ventanaRitmo,
+    entradaDeVista, contexto, reporteDeHoy, origen, configurar,
+  };
   if (seccion === "pauta") {
     return (
       <SeccionPauta
@@ -375,121 +364,50 @@ async function CuerpoDelHub({
         puedeAbrirLista={veEquipo}
         puedeVerVentas={capacidadParaMetrica({ metrica: "cierres", tieneOrigen: false })(rol)}
         listasQueAbre={LISTAS_DE_LA_TABLA_SEMANAL.filter((metrica) => capacidadParaMetrica({ metrica, tieneOrigen: true })(rol))}
+        entradaDelCargador={entradaDelCargador}
       />
     );
   }
 
-  // Las gráficas de Dinero solo necesitan el periodo y la cohorte del contexto: arrancan YA, a la par de las
-  // cifras, y llegan por su cuenta. Si la pestaña resulta vacía nadie las espera: el `catch` evita el aviso.
-  const seriesDeDinero = seccion === "dinero"
-    ? leerSeriesDeDinero({
-        programId: programa.id,
-        // El eje es el periodo elegido y A y B cada uno con su cohorte (370): sin meses fijos.
-        a: { rango: contexto.periodo.a, cohorteId: contexto.filtroDeCohorte.cohorteId },
-        b: contexto.periodo.b ? { rango: contexto.periodo.b, cohorteId: contexto.filtroDeCohorte.cohorteIdDeB } : null,
-        claveCloser: contexto.claveCloser,
-        hoy,
-      })
-    : undefined;
-  seriesDeDinero?.catch(() => undefined);
+  const datos = await cargarDatosDelHubDelPrograma(db, entradaDelCargador);
+  if (datos.seccion === "pauta") throw new Error("La sección de Pauta se arma en SeccionPauta");
 
-  const vistaDeHoy = reporteDeHoy ? await reporteDeHoy : null;
-  const vista = vistaDeHoy?.vista ?? await armarVistaDelDashboard(entradaDeVista, undefined, contexto);
 
-  // La cohorte que filtra las cifras de esta pestaña; Hoy es del día entero y no la usa (373).
-  const cohorteId = esHoy ? null : vista.filtroDeCohorte.cohorteId;
-  const cohorteIdDeB = esHoy ? null : vista.filtroDeCohorte.cohorteIdDeB;
-  const conFiltroDeCohorte = seccion === "comercial" || seccion === "dinero" || seccion === "pauta";
+  const { vista, cohorteId, sinActividad, detalles } = datos;
   const { elegida } = vista.filtroDeCohorte;
-  // Cohorte y periodo que no se tocan se dicen; no se pinta una pantalla de ceros (N5).
-  const sinActividad = conFiltroDeCohorte && elegida !== null
-    && vista.embudo.agendas === 0 && vista.embudo.cierres === 0 && vista.caja.length === 0
-    && (vista.leads.leads ?? 0) === 0 && vista.cortesias === 0;
-
-  const configuracionDeHoy = esHoy && configurar ? leerConfiguracionDeHoy(programa.id) : null;
-
-  // Las consultas de la pestaña son independientes entre sí: arrancan juntas (un viaje a la base, no seis).
-  const entradaDetalles = { programId: programa.id, slug, hoy: hoyDeLaPestana, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, origen };
-  const comparativoClaves = vista.comparativo.map((fila) => fila.clave);
-  const periodoDelDia = { preset: "custom" as const, a: { desde: diaDelReporte, hasta: diaDelReporte }, b: null };
   const semanaDelReporte = rangoDeLaSemanaDelReporte(diaDelReporte);
   const periodoDeLaSemana = { preset: "custom" as const, a: semanaDelReporte, b: null };
-  const listaDelDia = (metrica: "leads" | "citas_debidas" | "citas_sin_marcar") =>
-    detalleDeCifra(metrica, { programId: programa.id, slug, hoy: diaDelReporte, periodo: periodoDelDia, claveCloser: null, origen });
 
-  const [
-    detallesCrudos,
-    detalleMananaCrudo,
-    detalleRegistros,
-    detalleCitasDebidas,
-    detalleCitasSinMarcar,
-    detallesOperacionCrudos,
-    vistaComercial,
-    alertas,
-    configuracionCruda,
-  ] = await Promise.all([
-    // Solo se calcula lo de la pestaña activa (ticket 197 §5).
-    detallesDelDashboard(entradaDetalles),
-    esHoy
-      ? detalleDeCifra("agendas", {
-          programId: programa.id,
-          slug,
-          hoy,
-          periodo: { preset: "custom", a: { desde: sumarDias(hoy, 1), hasta: sumarDias(hoy, 1) }, b: null },
-          claveCloser: null,
-          origen,
-        })
-      : undefined,
-    esHoy ? listaDelDia("leads") : undefined,
-    esHoy ? listaDelDia("citas_debidas") : undefined,
-    esHoy ? listaDelDia("citas_sin_marcar") : undefined,
-    (esHoy && veEquipo) || (seccion === "comercial" && !sinActividad)
-      ? detallesDeOperacion(
-          { programId: programa.id, slug, hoy: hoyDeLaPestana, periodo: vista.periodo, cohorteId, origen },
-          comparativoClaves,
-        )
-      : undefined,
-    seccion === "comercial" && !sinActividad
-      ? cargarVistaComercial({ programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, proyectar })
-      : null,
-    esHoy ? alertasDelPrograma(programa.id, hoy) : undefined,
-    configuracionDeHoy,
-  ]);
-
-  const detalles: DetallesDelDashboard | undefined = proyectar(detallesCrudos);
-  const detalleManana = esHoy ? proyectar(detalleMananaCrudo) : undefined;
-  const detallesOperacion = detallesOperacionCrudos ? proyectar(detallesOperacionCrudos) : undefined;
-
-  const datosConfiguracionHoy = configuracionCruda
+  const datosConfiguracionHoy = datos.seccion === "hoy" && datos.configuracionCruda
     ? {
-        ...configuracionCruda,
+        ...datos.configuracionCruda,
         slug: programa.slug,
         ritmo: ventanaRitmo,
         // Los números vivos para los ejemplos del panel: salen de la misma proyección que pinta Hoy.
         vivo: {
-          faltan: vistaDeHoy!.proyeccion.faltan,
-          diasHabilesRestantes: vistaDeHoy!.proyeccion.diasHabilesRestantes,
-          ventasPorDia: vistaDeHoy!.proyeccion.ventasRequeridasDia.valor,
-          leadsPorDia: vistaDeHoy!.proyeccion.leadsRequeridosDia.valor,
-          razonCierre: vistaDeHoy!.proyeccion.supuestos.conversion.razonCierre,
-          razonShow: vistaDeHoy!.proyeccion.supuestos.conversion.razonShow,
-          objetivoAgendaAVenta: vistaDeHoy!.proyeccion.supuestos.conversion.objetivoAgendaAVenta,
-          citasPorLead: vistaDeHoy!.proyeccion.supuestos.agendasPorRegistro,
-          origenDeLaTasa: vistaDeHoy!.proyeccion.supuestos.conversion.origen === "cohorte_anterior" ? "cohorte anterior" : vistaDeHoy!.proyeccion.supuestos.conversion.origen === "cohorte_en_curso" ? "cohorte en curso" : "sin medición suficiente",
-          personasConCita: vistaDeHoy!.proyeccion.supuestos.conversion.muestra?.personas ?? null,
-          asistentes: vistaDeHoy!.proyeccion.supuestos.conversion.muestra?.shows ?? null,
+          faltan: datos.vistaDeHoy.proyeccion.faltan,
+          diasHabilesRestantes: datos.vistaDeHoy.proyeccion.diasHabilesRestantes,
+          ventasPorDia: datos.vistaDeHoy.proyeccion.ventasRequeridasDia.valor,
+          leadsPorDia: datos.vistaDeHoy.proyeccion.leadsRequeridosDia.valor,
+          razonCierre: datos.vistaDeHoy.proyeccion.supuestos.conversion.razonCierre,
+          razonShow: datos.vistaDeHoy.proyeccion.supuestos.conversion.razonShow,
+          objetivoAgendaAVenta: datos.vistaDeHoy.proyeccion.supuestos.conversion.objetivoAgendaAVenta,
+          citasPorLead: datos.vistaDeHoy.proyeccion.supuestos.agendasPorRegistro,
+          origenDeLaTasa: datos.vistaDeHoy.proyeccion.supuestos.conversion.origen === "cohorte_anterior" ? "cohorte anterior" : datos.vistaDeHoy.proyeccion.supuestos.conversion.origen === "cohorte_en_curso" ? "cohorte en curso" : "sin medición suficiente",
+          personasConCita: datos.vistaDeHoy.proyeccion.supuestos.conversion.muestra?.personas ?? null,
+          asistentes: datos.vistaDeHoy.proyeccion.supuestos.conversion.muestra?.shows ?? null,
         },
       }
     : null;
 
   // Las listas de las cifras de Hoy que no están en el tablero (378): los leads del día y las citas que ya
   // debían ocurrir (el denominador de la asistencia), y los enlaces de lo que llevamos en la semana.
-  const listasDeHoy = esHoy
+  const listasDeHoy = datos.seccion === "hoy"
       ? {
-        leadsDelDia: vistaDeHoy!.vista.leads?.leads ?? 0,
-        detalleRegistros: proyectar(detalleRegistros!),
-        detalleCitasDebidas: proyectar(detalleCitasDebidas!),
-        detalleCitasSinMarcar: proyectar(detalleCitasSinMarcar!),
+        leadsDelDia: datos.vistaDeHoy.vista.leads?.leads ?? 0,
+        detalleRegistros: datos.detalleRegistros,
+        detalleCitasDebidas: datos.detalleCitasDebidas,
+        detalleCitasSinMarcar: datos.detalleCitasSinMarcar,
         enlacesDeLaSemana: veEquipo
           ? {
               cupos: urlDeLista({ slug, metrica: "cierres", periodo: periodoDeLaSemana, origen }),
@@ -508,8 +426,9 @@ async function CuerpoDelHub({
       </p>
     );
   }
-  if (seccion === "comercial") {
-    const comercial = vistaComercial!;
+  if (datos.seccion === "comercial") {
+    const comercial = datos.vistaComercial!;
+    const detallesOperacion = datos.detallesOperacion;
     const contexto = {
       programa: programa.nombre, cohorte: vista.filtroDeCohorte.elegida?.codigo ?? null,
       rango: vista.periodo.a, hoy,
@@ -519,15 +438,8 @@ async function CuerpoDelHub({
     const recorridos = { contexto, explicaciones: explicacionesDeRecorridos() };
     const primeraComparacion = comparacionesDe(vista.periodo)[0];
     const referencia = primeraComparacion ? nombreDePedido(primeraComparacion.pedido, vista.periodo.preset) : undefined;
-    const listas: ListaDeComercial[] = ["agendas", "grupo_citas", "grupo_shows", "grupo_pendientes"];
-    const evidencia = veEquipo ? Object.fromEntries(await Promise.all(listas.map(async (metrica) => {
-      const [lista] = await listaDeMetrica(metrica, {
-        programId: programa.id, hoy, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId,
-      }, 1);
-      return [metrica, lista.filas.slice(0, 5).map((fila) => [fila.persona?.nombre ?? "Sin nombre", fechaCorta(fila.fecha)])] as const;
-    }))) : undefined;
     const clave = cifrasClaveDeComercial({ embudo: vista.embudo, anterior: vista.anterior?.embudo, referencia,
-      detalles, evidencia, explicaciones, contexto });
+      detalles, evidencia: datos.evidencia, explicaciones, contexto });
     // La lista del grupo no expone quién suma arriba. No se inventa ese indicador en la página.
     for (const cifra of [clave.asistencia, clave.cierreDeVentas, clave.citaAVenta]) {
       if (cifra.explicacion.evidencia) cifra.explicacion.evidencia.nota = "Personas del grupo de abajo de la fórmula. La lista completa permite revisar cada deal.";
@@ -580,18 +492,18 @@ async function CuerpoDelHub({
           origen={origen}
           veEquipo={veEquipo}
           hoy={hoy}
-          dealsContraAgendasVista={vistaComercial!.dealsContraAgendas}
-          embudoComercial={vistaComercial!.embudo}
-          origenEmbudo={vistaComercial!.origenEmbudo}
-          enlacesDeOrigen={vistaComercial!.enlacesDeOrigen}
-          vistaEscalera={vistaComercial!.escalera}
-          dineroPorCloser={vistaComercial!.dineroPorCloser}
-          dealsContraAgendas={<DealsContraAgendas sinInfo vista={vistaComercial!.dealsContraAgendas} origen={origen} hoy={hoy} />}
+          dealsContraAgendasVista={comercial.dealsContraAgendas}
+          embudoComercial={comercial.embudo}
+          origenEmbudo={comercial.origenEmbudo}
+          enlacesDeOrigen={comercial.enlacesDeOrigen}
+          vistaEscalera={comercial.escalera}
+          dineroPorCloser={comercial.dineroPorCloser}
+          dealsContraAgendas={<DealsContraAgendas sinInfo vista={comercial.dealsContraAgendas} origen={origen} hoy={hoy} />}
         />
       </div>
     );
   }
-  if (seccion === "dinero") {
+  if (datos.seccion === "dinero") {
     const explicaciones = explicacionesDeDinero();
     const contextoDeCifras = {
       programa: programa.nombre,
@@ -600,29 +512,13 @@ async function CuerpoDelHub({
       hoy,
       closer: vista.closers.find((closer) => closer.id === vista.claveCloser)?.label ?? null,
     };
-    const detallesPorCohorte = Object.fromEntries(await Promise.all(
-      (veEquipo ? vista.ventasPorCohorte : []).flatMap((fila) => fila.cohorteId ? [fila.cohorteId] : [])
-        .map(async (id) => [id, await detalleDeCifra("contratado", { ...entradaDetalles, cohorteId: id })] as const),
-    ));
-    // La misma lista probada, con el closer y la cohorte de la cifra; nunca se lee para quien no abre listas.
-    const evidencia = veEquipo ? Object.fromEntries(await Promise.all(
-      (["contratado", "caja"] as const).map(async (metrica) => {
-        const [lista] = await listaDeMetrica(metrica, {
-          programId: programa.id, hoy, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId,
-        }, 1);
-        return [metrica, lista.filas.slice(0, 5).map((fila) => [
-          fila.persona?.nombre ?? "Sin nombre", fechaCorta(fila.fecha),
-          fila.monto === null ? "—" : metrica === "caja" ? monto(fila.monto, fila.moneda ?? "USD") : usd(fila.monto),
-        ])] as const;
-      }),
-    )) : undefined;
     const primeraComparacion = comparacionesDe(vista.periodo)[0];
     const cifras = cifrasDeDinero({
       dinero: vista.dinero, caja: vista.caja, anterior: vista.anterior,
       referencia: primeraComparacion ? nombreDePedido(primeraComparacion.pedido, vista.periodo.preset) : undefined,
-      detalles, evidencia, explicaciones, contexto: contextoDeCifras,
+      detalles, evidencia: datos.evidencia, explicaciones, contexto: contextoDeCifras,
     });
-    const cohortes = cifrasPorCohorte({ filas: vista.ventasPorCohorte, detalles: detallesPorCohorte, explicaciones, contexto: contextoDeCifras });
+    const cohortes = cifrasPorCohorte({ filas: vista.ventasPorCohorte, detalles: datos.detallesPorCohorte, explicaciones, contexto: contextoDeCifras });
     return (
       <DashboardPrograma
         seccion="dinero"
@@ -637,21 +533,14 @@ async function CuerpoDelHub({
         dealsContraAgendas={null}
         origen={origen}
         veEquipo={veEquipo}
-        seriesDinero={seriesDeDinero}
+        seriesDinero={datos.seriesDeDinero}
       />
     );
   }
-  const reporte = vistaDeHoy!;
+  const reporte = datos.vistaDeHoy;
+  const detallesOperacion = datos.detallesOperacion;
   const explicaciones = explicacionesDeHoy();
   // Solo universos con paridad probada en cifras-de-hoy.test.ts. Una lectura por lista, cinco filas como máximo.
-  const evidenciaDeHoy = veEquipo ? Object.fromEntries(await Promise.all(
-    (["agendas", "shows", "canceladas", "cierres", "grupo_pendientes", "caja"] as const).map(async (metrica) => {
-      const [lista] = await listaDeMetrica(metrica, { programId: programa.id, hoy: diaDelReporte,
-        rango: periodoDelDia.a, claveCloser: null, cohorteId: null, ahora: reporte.corte }, 1);
-      return [metrica, lista.filas.slice(0, 5).map((fila) => [fila.persona?.nombre ?? "Sin nombre", fechaCorta(fila.fecha),
-        fila.monto === null ? "—" : monto(fila.monto, fila.moneda ?? "USD")])] as const;
-    }),
-  )) : undefined;
   const cifrasHoy = cifrasDeHoy({
     datos: {
       embudo: reporte.vista.embudo, sinResultado: reporte.vista.sinResultado, registros: reporte.registros,
@@ -662,7 +551,7 @@ async function CuerpoDelHub({
       leadsDeLaSemana: reporte.leadsDeLaSemana, showDeLaSemana: reporte.showDeLaSemana, citasDeManana: reporte.citasDeManana.length,
     },
     explicaciones, programa: programa.nombre, dia: diaDelReporte, hoy, lunes: semanaDelReporte.desde,
-    detalles: detalles ? { ...detalles, sin_resultado: undefined } : undefined, evidencia: evidenciaDeHoy,
+    detalles: detalles ? { ...detalles, sin_resultado: undefined } : undefined, evidencia: datos.evidenciaDeHoy,
     enlacesDeLaSemana: listasDeHoy?.enlacesDeLaSemana,
   });
   const cifrasClosers = veEquipo ? cifrasDeClosersDeHoy({
@@ -681,7 +570,7 @@ async function CuerpoDelHub({
         cifrasDeClosers={cifrasClosers}
         programas={[{
           programa,
-          reporte: vistaDeHoy!,
+          reporte,
           detalles,
           detallesOperacion: veEquipo ? detallesOperacion : undefined,
           ...listasDeHoy,
@@ -692,65 +581,15 @@ async function CuerpoDelHub({
         vamosALlegar={norte}
         vista={vista}
         detalles={detalles}
-        alertas={alertas!}
+        alertas={datos.alertas!}
         slug={slug}
         veEquipo={veEquipo}
-        detalleManana={detalleManana}
+        detalleManana={datos.detalleManana}
         configuracion={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} /> : undefined}
         definirObjetivo={datosConfiguracionHoy ? <ConfiguracionHoy datos={datosConfiguracionHoy} enlace /> : undefined}
       />
     </>
   );
-}
-
-/** Comercial (381): un solo embudo de deals, filtrable por el origen del formulario. Sus consultas corren juntas. */
-async function cargarVistaComercial({ programa, busqueda, vista, cohorteId, cohorteIdDeB, origen, hoy, veEquipo, proyectar }: {
-  programa: { id: string; slug: string };
-  busqueda: Record<string, string | string[] | undefined>;
-  vista: VistaDelDashboard;
-  cohorteId: string | null;
-  cohorteIdDeB: string | null;
-  origen: string;
-  hoy: string;
-  veEquipo: boolean;
-  proyectar: <T>(valor: T) => T;
-}) {
-  const slug = programa.slug;
-  const origenPedido = texto(busqueda.origen);
-  const origenEmbudo = origenPedido === "completo" || origenPedido === "parcial" ? origenPedido : "todos";
-  const filtroDeOrigen: OrigenEmbudoComercial | undefined = origenEmbudo === "todos" ? undefined : origenEmbudo;
-  const entrada = { programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, origen };
-  const metricas = ["embudo_comercial_creados", "embudo_comercial_agendaron", "embudo_comercial_shows", "embudo_comercial_compraron"] as const;
-  const [dealsContraAgendas, pasos, detallesEmbudo, escalera, dineroPorCloser] = await Promise.all([
-    vistaDealsContraAgendas({
-      programId: programa.id,
-      slug,
-      hoy,
-      periodo: vista.periodo,
-      claveCloser: vista.claveCloser,
-      cohorteId,
-      cohorteIdDeB,
-      origen,
-    }),
-    cargarEmbudoComercial(db, { programId: programa.id, rango: vista.periodo.a, claveCloser: vista.claveCloser, cohorteId }, filtroDeOrigen),
-    Promise.all(metricas.map((metrica) => detalleDeCifra(metrica, { ...entrada, origenDeal: filtroDeOrigen }))),
-    vistaDeEscalera({ programId: programa.id, slug, hoy, periodo: vista.periodo, claveCloser: vista.claveCloser, cohorteId, cohorteIdDeB, origen, conEquipo: veEquipo }),
-    Promise.all((veEquipo ? vista.comparativo : []).map(async (fila) => [fila.clave, await dineroDelRango({ programId: programa.id, rango: vista.periodo.a, claveCloser: fila.clave, cohorteId })] as const)),
-  ]);
-  const enlacesDeOrigen = Object.fromEntries((["todos", "completo", "parcial"] as const).map((valor) => {
-    const url = new URL(origen, "http://retia.local");
-    if (valor === "todos") url.searchParams.delete("origen");
-    else url.searchParams.set("origen", valor);
-    return [valor, `${url.pathname}${url.search}`];
-  })) as Record<"todos" | "completo" | "parcial", string>;
-  return {
-    dealsContraAgendas: proyectar(dealsContraAgendas),
-    embudo: proyectar(pasos.map((paso, indice) => ({ ...paso, detalle: detallesEmbudo[indice], detallePerdidos: indice > 0 ? detallesEmbudo[indice - 1] : undefined }))),
-    origenEmbudo: origenEmbudo as "todos" | "completo" | "parcial",
-    enlacesDeOrigen,
-    escalera: proyectar(escalera),
-    dineroPorCloser: Object.fromEntries(dineroPorCloser),
-  };
 }
 
 /**
@@ -773,6 +612,7 @@ async function SeccionPauta({
   puedeAbrirLista,
   puedeVerVentas,
   listasQueAbre,
+  entradaDelCargador,
 }: {
   programId: string;
   programaNombre: string;
@@ -789,19 +629,16 @@ async function SeccionPauta({
   puedeVerVentas: boolean;
   /** Las listas de la tabla semanal que la sesión abre: la evidencia de sus celdas. */
   listasQueAbre: readonly Metrica[];
+  entradaDelCargador: EntradaDeDatosDelHubDelPrograma;
 }) {
-  const ahora = new Date();
-  const [ultimaSincronizacion] = await db
-    .select({ inicio: pautaSincronizaciones.inicio })
-    .from(pautaSincronizaciones)
-    .orderBy(desc(pautaSincronizaciones.inicio))
-    .limit(1);
-  if (debeSincronizarDesdeElHub(ultimaSincronizacion?.inicio ?? null, ahora)) {
+  const datos = await cargarDatosDelHubDelPrograma(db, entradaDelCargador);
+  if (datos.seccion !== "pauta") throw new Error("SeccionPauta solo se arma con la sección de Pauta");
+  if (debeSincronizarDesdeElHub(datos.ultimaSincronizacion?.inicio ?? null, datos.ahora)) {
     after(async () => {
       try {
         const resultado = await sincronizarDiaEnCurso(db, {
           tokens: await tokensMeta(db),
-          ahora,
+          ahora: datos.ahora,
           disparadaPor: "hub",
         });
         if (resultado.estado === "error") {
@@ -814,20 +651,11 @@ async function SeccionPauta({
   }
   // La vista de Pauta (420): Resultados o Origen y calidad, con los mismos filtros. Solo corren las consultas de
   // la vista que se ve (197 §5); la proyección del ROAS necesita la vista del ROAS, así que la carga Resultados.
-  const vista = vistaDePauta(busqueda.vista);
   const enlaceRoas = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
     slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
   });
 
-  if (vista === "resultados") {
-    const [roas, objetivosDeLaCohorte] = await Promise.all([
-      cargarRoasDePauta(db, programId, rango, hoy, ahora),
-      cohorteId ? objetivosDeCohortes(db, [cohorteId]) : Promise.resolve([]),
-    ]);
-    const [proyeccion, historial] = await Promise.all([
-      calcularProyeccionDeRoas(db, { programId, rango, hoy, ahora, vista: roas }),
-      proyeccionesConfirmadas(db, programId),
-    ]);
+  if (datos.vista === "resultados") {
     return (
       <section className="space-y-4" data-vista-de-pauta="resultados">
         <CumplimientoDeCohorte programId={programId} programa={programaNombre} slug={slug} cohorteId={cohorteId} hoy={hoy} origen={origen} puedeVerVentas={puedeVerVentas}
@@ -848,36 +676,30 @@ async function SeccionPauta({
             total: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "por_cuenta" }),
             cuenta: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "1", { parametro: "por_cuenta" }),
           }} />
-        <PautaProyeccion proyeccion={proyeccion} historial={historial} objetivos={objetivosDeLaCohorte} hoy={hoy}
+        <PautaProyeccion proyeccion={datos.proyeccion} historial={datos.historial} objetivos={datos.objetivosDeLaCohorte} hoy={hoy}
           programa={programaNombre} cohorte={cohorteCodigo ?? undefined}
-          hrefPendientes={proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
+          hrefPendientes={datos.proyeccion.citasPendientes > 0 ? enlaceRoas("total", undefined, "pendiente") : null} />
       </section>
     );
   }
 
-  const [roas, vistaOrigen, formulario, porPregunta] = await Promise.all([
-    cargarRoasDePauta(db, programId, rango, hoy, ahora),
-    origenDelPrograma(db, { programId, rango, hoy }),
-    embudoDelFormulario(db, { programId, rango }),
-    embudoPorPregunta(db, programId),
-  ]);
   // "Ver por" vive en la URL (`ver_por`) y reemplaza solo ese parámetro; Campaña es el valor por defecto.
   const verPor = verPorOrigen(busqueda.ver_por);
   const base = rutaDePrograma(slug, "hub");
   const hrefDeVerPor = Object.fromEntries(VER_POR_ORIGEN.map((v) => [v.id,
     urlConSeccion(base, busqueda, v.id === "campana" ? null : v.id, { parametro: "ver_por" })])) as Record<VerPorOrigen, string>;
   const periodoEnPalabras = rango.desde === rango.hasta ? `el ${fecha(rango.desde)}` : `del ${fecha(rango.desde)} al ${fecha(rango.hasta)}`;
-  const contexto = { vista: roas, enlace: puedeAbrirLista ? enlaceRoas : undefined, programa: programaNombre, periodo: periodoEnPalabras };
+  const contexto = { vista: datos.roas, enlace: puedeAbrirLista ? enlaceRoas : undefined, programa: programaNombre, periodo: periodoEnPalabras };
 
   return (
     <section className="space-y-4" data-vista-de-pauta="calidad">
       <QueTraeVentas contexto={contexto} verPor={verPor} hrefDeVerPor={hrefDeVerPor} enlace={enlaceRoas}
         hrefCsv={`/p/${encodeURIComponent(slug)}/hub/pauta-citas.csv?${new URLSearchParams({ periodo: "custom", a_desde: rango.desde, a_hasta: rango.hasta, sin_b: "1" })}`}
-        canalesDeOrigen={verPor === "canal" ? { canales: canalesConEnlaces(vistaOrigen, slug, periodo, origen), totalEnvios: vistaOrigen.totalEnvios } : undefined} />
+        canalesDeOrigen={verPor === "canal" ? { canales: canalesConEnlaces(datos.vistaOrigen, slug, periodo, origen), totalEnvios: datos.vistaOrigen.totalEnvios } : undefined} />
       <div className="grid gap-4 xl:grid-cols-2">
-        <SinOrigen contexto={contexto} programId={programId} rango={rango} vistaOrigen={vistaOrigen}
+        <SinOrigen contexto={contexto} programId={programId} rango={rango} vistaOrigen={datos.vistaOrigen}
           hrefPiezasDesconocidas={hrefDePiezasDesconocidas(slug, periodo, origen)} />
-        <DondeSeVaLaGente embudo={formulario} porPregunta={porPregunta} programa={programaNombre} periodo={periodoEnPalabras}
+        <DondeSeVaLaGente embudo={datos.formulario} porPregunta={datos.porPregunta} programa={programaNombre} periodo={periodoEnPalabras}
           hrefNoAgendaron={puedeAbrirLista ? urlDeLista({ slug, metrica: "no_agendaron", periodo, origen }) : undefined} />
       </div>
     </section>
