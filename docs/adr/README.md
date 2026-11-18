@@ -82,6 +82,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0017](./0017-recursos-solo-como-links.md) | Los recursos son links; el comprobante de un abono puede ser foto |
 | [0133](./0133-la-venta-directa-entra-por-el-webhook-de-la-pasarela.md) | La venta directa entra por el webhook de la pasarela (Hotmart), se empareja por correo o teléfono (si no, bandeja), y cae en Students sin dueño para siempre; valor vendido = ticket de la cohorte; un reembolso lo decide una persona (tickets 448 a 455) |
 | [0134](./0134-la-cesion-de-deal-por-el-closer-queda-fuera-del-mcp.md) | La cesión de un deal por el closer queda fuera del MCP mientras la app no la tenga; hoy reasigna un administrador (`reasignar_deal`, mismo caso de uso que la app; A-177, ticket 411) |
+| [0136](./0136-la-venta-cuenta-por-el-dia-del-primer-pago.md) | La venta cuenta por el día de su primer pago (abono vigente más antiguo, respaldo al día de la etapa): reemplaza fechar la venta por la entrada a Abonado o Completo |
 
 **Origen y atribución**
 

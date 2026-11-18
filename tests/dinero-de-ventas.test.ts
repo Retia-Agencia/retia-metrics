@@ -58,7 +58,7 @@ async function vender(valor: string | null, abonosUsd: number[], extra: { progra
   }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: extra.etapa ?? "ganado_parcial", fecha: new Date(`${extra.dia ?? "2026-10-05"}T10:00:00-05:00`) });
   for (const monto of abonosUsd) {
-    await db.insert(abonos).values({ programId: programa, dealId: deal.id, registradoPorUserId: closerA.id, fecha: "2026-10-06", monto: String(monto), moneda: "USD" });
+    await db.insert(abonos).values({ programId: programa, dealId: deal.id, registradoPorUserId: closerA.id, fecha: extra.dia ?? "2026-10-06", monto: String(monto), moneda: "USD" }); // el primer pago fecha la venta (ADR 0136)
   }
   return deal;
 }

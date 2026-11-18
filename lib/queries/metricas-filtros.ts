@@ -122,16 +122,48 @@ export function claveDeRegistradorDeAbono() {
 
 export { ETAPAS_VENDIDAS };
 /**
- * La fecha de VENTA de cada deal: el dia (Bogota) de su PRIMERA entrada a Ganado Pago Parcial o Ganado Pagado Completo.
- * Es la unica respuesta a "¿cuando se vendio?": la usan las consultas de cierres de este modulo.
+ * El dia (Bogota) en que la etapa registro la venta: la PRIMERA entrada del deal a Ganado Pago Parcial o
+ * Ganado Pagado Completo. Es una pregunta distinta de "¿cuando se vendio?" (ADR 0136): contesta "¿cuando
+ * se capturo la venta en el CRM?". Hoy la leen dos cosas: el respaldo de `diaDeVenta` (un deal vendido sin
+ * abono) y las cortesias, que por definicion no tienen pago.
  *
  * 🩸 Contar cualquier fila del historial que llegue a Ganado Pago Parcial o Ganado Pagado Completo dentro del rango
  * (como se hacia hasta el 29-sep) cuenta la MISMA venta en dos periodos: un deal que pasa a
  * Abonado en septiembre y a Completo en octubre salia como cierre en los dos meses, y la
  * comision (ticket 062) se habria pagado dos veces. Sin error y con cifras creibles.
  */
-function diaDeVenta() {
+function diaDeEtapaDeVenta() {
   return diaEnBogota(sql`min(${dealEtapaHistorial.fecha})`);
+}
+
+const PRIMER_PAGO = "primer_pago_por_deal";
+
+/**
+ * El primer pago de cada deal: su abono VIGENTE mas antiguo del concepto `ticket` (el `adicional` es plata
+ * aparte y no vende, ADR 0113). `abonos.fecha` ya es un dia de calendario de Bogota. Subconsulta cerrada, sin
+ * correlacion, agrupada una vez por deal (AGENTS.md): se une por `dealId` y no suma consultas por pagina.
+ */
+function primerPagoPorDeal(db: Db) {
+  return db
+    .select({ dealId: abonos.dealId, dia: sql<string>`min(${abonos.fecha})`.as("dia_primer_pago") })
+    .from(abonos)
+    .where(and(vigente(abonos), eq(abonos.concepto, "ticket")))
+    .groupBy(abonos.dealId)
+    .as(PRIMER_PAGO);
+}
+
+/**
+ * La fecha de VENTA de cada deal (ADR 0136, Mani 18-nov): el dia del PRIMER PAGO, el abono vigente mas antiguo
+ * del deal. Un deal vendido sin abono (cortesia aparte; venta directa por pasarela sin abono) cae al dia de la
+ * etapa (`diaDeEtapaDeVenta`). Es la unica respuesta a "¿cuando se vendio?": toda venta, cohorte, ROAS y
+ * proyeccion la leen de `ventasConDiaEn`, que la usa.
+ *
+ * Por que el pago y no la etapa: un lote capturado tarde movia la venta de mes (el 11-nov, 9 ventas de
+ * un programa de octubre a noviembre). El pago es el hecho; la etapa es cuando alguien lo anoto.
+ * Exige la subconsulta `primerPagoPorDeal` unida al deal por el llamador.
+ */
+function diaDeVenta(primerPago: ReturnType<typeof primerPagoPorDeal>) {
+  return sql<string>`coalesce(min(${primerPago.dia}), ${diaDeEtapaDeVenta()})`;
 }
 
 /**
@@ -184,7 +216,7 @@ export const esMovimientoDeVenta = (db: Db) => and(
  */
 export const etapaVendida = () => inArray(deals.etapa, [...ETAPAS_VENDIDAS]);
 
-const vendidoEnElRango = (rango: Rango) => between(diaDeVenta(), rango.desde, rango.hasta);
+const vendidoEnElRango = (rango: Rango) => between(diaDeEtapaDeVenta(), rango.desde, rango.hasta);
 
 export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
 
@@ -193,7 +225,7 @@ export const ETAPAS_DE_CIERRE = [...ETAPAS_VENDIDAS, "cierre_perdido"] as const;
  * ganados y los perdidos. Es el dia (Bogota) en que el deal entro a su cierre ACTUAL: la primera
  * entrada a Abonado, Completo o Cierre Perdido despues de su ultima reapertura.
  *
- * - Abonado y despues Completo es UN cierre: cuenta el dia de Abonado, como `diaDeVenta`.
+ * - Abonado y despues Completo es UN cierre: cuenta el dia de Abonado (la etapa, no el pago: es la Close date).
  * - Un perdido que se recupera (Cierre Perdido -> En Contacto, transicion R) deja de estar
  *   cerrado: su fecha vieja no cuenta, y si despues se vende, cierra el dia de la venta.
  * - Un deal abierto no tiene fecha de cierre.
@@ -238,13 +270,17 @@ function esEtapaDeCierre(etapa: string): boolean {
  * venta. Todo recorrido de ventas (Hub, series, escalera, ficha, Students, hechos) sale de aqui.
  */
 export function ventasConDiaEn(db: Db, rango: Rango) {
+  const primerPago = primerPagoPorDeal(db);
+  const dia = diaDeVenta(primerPago);
   return db
-    .select({ dealId: dealEtapaHistorial.dealId, dia: diaDeVenta().as("dia") })
+    .select({ dealId: dealEtapaHistorial.dealId, dia: dia.as("dia") })
     .from(dealEtapaHistorial)
     .innerJoin(deals, and(eq(deals.id, dealEtapaHistorial.dealId), eq(deals.cortesia, false), etapaVendida(), vigente(deals)))
-    .where(esMovimientoDeVenta(db))
+    .leftJoin(primerPago, eq(primerPago.dealId, dealEtapaHistorial.dealId))
+    // `primerPago` ya trae `vigente(abonos)` adentro: se nombra para el guardian (ADR 0026), como `ventas` en los lectores.
+    .where(and(esMovimientoDeVenta(db), incluyendoAnulados(primerPago)))
     .groupBy(dealEtapaHistorial.dealId)
-    .having(vendidoEnElRango(rango));
+    .having(between(dia, rango.desde, rango.hasta));
 }
 
 /**
