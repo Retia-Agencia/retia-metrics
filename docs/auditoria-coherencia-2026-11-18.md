@@ -2,11 +2,14 @@
 
 **Alcance:** solo lectura. No se cambió código de producción ni datos. Línea base para el ticket 407 (esquema de vistas `mcp_lectura`).
 **Sin datos personales:** ninguna fila de persona, nombre ni correo; las cifras son agregados.
+**Actualización (misma fecha, tarde):** Mani inició sesión y se leyó la pantalla (A) del Hub en el navegador integrado: Comunicarte octubre en
+Comercial, Dinero y Pauta, y Tactical octubre en Pauta (cohorte «Todas», periodo elegido 1 a 31 oct). Resultado en §3 y hallazgos D-13 y D-14. Hoy y las
+ventanas del 1 al 17 de nov quedan sin leer en pantalla.
+
 **Cómo se midió:** (B) MCP `resumen_del_hub`, `consultar_metrica`, `consultar_hechos`, `pauta_roas` contra producción; (C) `SELECT` independiente sobre
-la base de producción (ref `hfqmiyiuyqapdsbywrag`), escrito a mano sin llamar a las funciones de la app; (A) la pantalla del Hub **no se pudo leer**: el
-navegador integrado muestra el login de Google (no hay sesión iniciada ahí). Se sustituye por lectura de código: `lib/mcp/salidas/resumen.ts` arma el
-resumen desde la misma `VistaDelDashboard` que pinta el Hub, así que (A)=(B) por construcción. Lo que la pantalla pinta distinto de la vista (formato,
-vacíos) sí se auditó en `components/**` (hallazgo D-3). **Pendiente:** un barrido visual con sesión de Mani (ver §6).
+la base de producción (ref `hfqmiyiuyqapdsbywrag`), escrito a mano sin llamar a las funciones de la app; (A) la pantalla del Hub se leyó después, con la sesión de Mani (ver la actualización de arriba). `lib/mcp/salidas/resumen.ts` arma el resumen desde la misma
+`VistaDelDashboard` que pinta el Hub, pero la prueba en pantalla mostró que (A)=(B) **no** siempre se cumple (D-13). Lo que la pantalla pinta distinto de la
+vista (formato, vacíos) se auditó en `components/**` (D-3).
 
 Filtros de cada lectura: programa único; periodo `2026-10` (1 a 31 oct) o 1 a 17 nov; cohorte «Todas» (el MCP no aplica filtro de cohorte
 salvo que se pida; el Hub de Comercial sí trae cohorte por defecto, otra población); sin filtro de closer ni de origen salvo donde se indica «Paid».
@@ -37,6 +40,8 @@ Severidad: **R** = rompe una cifra que gerencia ve · **L** = riesgo latente · 
 | D-10 | **Lead de prueba cuenta** | `leads` / registros; guardián `tests/lead-de-prueba-guardian.test.ts` | 1 lead de prueba por programa y rango (SQL), y un deal de prueba aparece en la lista de «Registros» de Comunicarte oct | El guardián cubre rutas de creación, no la lectura: el lead de prueba entra a Leads, Registros y a las etapas | L |
 | D-11 | **Semana: dos implementaciones del corte lunes** | `lib/queries/hechos/pauta-semanal.ts:471,497` (`date_trunc('week', …)`) y `lib/queries/hechos/fechas.ts:45` | Mismo `date_trunc` escrito dos veces; el Excel de Comunicarte corta sáb a vie | Una copia del convertidor de semana en SQL fuera de `fechas.ts` | C |
 | D-12 | **«Caja» en el MCP de métricas por responsable** | `consultar_metrica registros` | `entro_a_caja: []` en un `registros` (por diseño no aplica) | Mismo vacío que D-3 | C |
+| D-13 | **Pantalla de Pauta ≠ `resumen_del_hub` en Comunicarte octubre** | Tabla semanal de Pauta, columna Total (`lib/queries/hechos/pauta-semanal.ts`) frente a `lib/mcp/salidas/resumen.ts` (`pauta`) | Comunicarte oct, misma cohorte y periodo: Agendadas **258** (pantalla; suma de las 5 semanas) vs **257** (MCP, repetido dos veces con el mismo resultado). Asistencia 66,7 % vs 66,0 %; Cierre 58,8 % vs 57,6 %; Cita a venta 39,2 % vs 38,0 %; ROAS 2,1× vs 2,03 (parcial: «1 agenda pendiente»); **Profit USD 9.091 vs USD 8.294 (diferencia USD 797 = un ticket)**. En **Tactical octubre todo coincide** al peso (inversión, 327 agendas, 8 ventas, USD 12.000, ROAS 1,19, Profit USD 2.101) | Causa **no determinada**. Hipótesis: la pantalla suma semanas (el Profit del Total = suma de las cinco semanas) mientras el MCP calcula el Total sobre el periodo entero, y una agenda cuya madurez cambia entre ambas lecturas mueve una venta de ROAS. No se confirmó con el código | R (una cifra de Pauta cambia según quién la lea) |
+| D-14 | **Embudo de Comercial: pasos que no cuadran con las cifras clave** | Embudo comercial de la pantalla Comercial (`lib/queries/embudo-comercial.ts`) frente a las cifras clave | Comunicarte oct en pantalla: «Tuvieron show» **45** vs Shows **47** (cifras clave y MCP); «Compraron» **15** vs Ventas **28** (la pantalla aclara «13 ventas sin llamada registrada»: 15 + 13 = 28); «Deals creados» **1.110** vs Leads 1.096, Registros 985, 928 personas (cinco poblaciones distintas del mismo mes) | Son poblaciones por diseño (deals por creación, show por grupo de citas, compraron solo con show antes del pago), pero ninguna cifra dice contra cuál otra se compara; 45 ≠ 47 en el mismo programa y periodo es lo que primero ve un gerente | L |
 
 ## 3. Paridad con datos reales (lo que cuadra)
 
@@ -53,6 +58,10 @@ Todas las cifras son USD y días de Bogotá, cohorte «Todas», sin anulados, si
 | Comunicarte · oct | Registros (envíos completos) | 985 | 985 |
 | Comunicarte · oct | Leads | 1.096 | 1.096 (por primera aplicación) |
 | Tactical · oct | Registros / Leads | 809 / 930 | 809 / 930 |
+
+Contra la **pantalla** del Hub (A), Comunicarte oct: Citas **313**, Asistencia 66,2 % (47 ÷ 71), Cierre 59,6 %, Cita a venta 39,4 % en Comercial = MCP; Dinero: Vendido
+USD 22.136, Recaudado USD 18.273, Por cobrar USD 3.863, Entró a caja USD 24.364 = MCP = SQL. Pauta de **Tactical oct** = MCP en todas las filas. Pauta de
+**Comunicarte oct** no coincide (D-13).
 
 Notas: (1) «Recaudado» (abonos de las ventas del periodo, de cualquier fecha) ≠ «Entró a caja» (abonos con fecha del periodo): por definición dos
 preguntas (Comunicarte oct 18.273 vs 24.364); la respuesta las nombra distinto, no hay divergencia. (2) Abonos anulados: 0 en octubre; **USD 2.028 anulados
@@ -97,7 +106,7 @@ Guardianes transversales que faltan:
 
 ## 6. Pendientes de esta auditoría
 
-- (a) **Pantalla del Hub** sin leer: el navegador integrado pide login de Google. Hace falta una sesión iniciada (o Mani en el navegador) para cotejar Hoy, Comercial,
-  Pauta y Dinero contra el MCP; por lectura de código deben coincidir salvo el vacío de D-3.
+- (a) **Pantalla del Hub** leída solo para octubre (Comunicarte: Comercial, Dinero, Pauta; Tactical: Pauta). Faltan Hoy, el rango 1 a 17 de nov y Tactical en
+  Comercial y Dinero. D-13 pide mirar cómo se calcula la columna Total de Pauta de Comunicarte.
 - Cifras de **Envíos completos vs parciales (429)**: la tabla del ticket deja de ser comprobable hasta resolver D-5.
 - No se auditaron el reporte de WhatsApp ni Mi espacio más allá de D-3.
