@@ -3,12 +3,12 @@ import { abonos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { vigente } from "@/lib/queries/vigente";
 
+/** Sin soporte = sin enlace ni archivo. `vigente(abonos)` va en cada consulta: el guardián de vigencia lo exige ahí (ADR 0026). */
 function condicionAbonoSinComprobante(dealIds: readonly string[]) {
   return and(
     inArray(abonos.dealId, [...dealIds]),
     isNull(abonos.comprobanteUrl),
     isNull(abonos.comprobanteArchivoId),
-    vigente(abonos),
   );
 }
 
@@ -18,7 +18,7 @@ export async function dealsConAbonoSinComprobante(db: Db, dealIds: readonly stri
   const filas = await db
     .select({ dealId: abonos.dealId })
     .from(abonos)
-    .where(condicionAbonoSinComprobante(dealIds));
+    .where(and(condicionAbonoSinComprobante(dealIds), vigente(abonos)));
   return new Set(filas.map((fila) => fila.dealId));
 }
 
@@ -31,7 +31,7 @@ export async function fechaDeAbonoSinComprobantePorDeal(
   const filas = await db
     .select({ dealId: abonos.dealId, fecha: abonos.fecha })
     .from(abonos)
-    .where(condicionAbonoSinComprobante(dealIds));
+    .where(and(condicionAbonoSinComprobante(dealIds), vigente(abonos)));
   const fechas = new Map<string, string>();
   for (const fila of filas) {
     const previa = fechas.get(fila.dealId);
