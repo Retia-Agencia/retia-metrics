@@ -83,7 +83,8 @@ function explicacionDeCuenta(clave: ClavePautaSemanal, cuenta: string) {
   return { ...base, que };
 }
 
-function explicacionSemanal(clave: ClavePautaSemanal) {
+/** El texto del concepto de una fila de la tabla semanal (lo usa también la franja de totales de `/hub`, 422). */
+export function explicacionSemanal(clave: ClavePautaSemanal) {
   return explicacionDe(
     CONCEPTO_DE_PAUTA_SEMANAL[clave],
     clave === "agendas_meta" ? VARIANTES_DE_PAUTA.agendas_meta : undefined,

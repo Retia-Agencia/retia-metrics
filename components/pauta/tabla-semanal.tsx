@@ -22,6 +22,7 @@ import {
   type FilaPautaSemanal,
   type PasoDeTablaDePauta,
   type SubfilaPautaSemanal,
+  type VistaPautaSemanal,
 } from "@/lib/queries/hechos/pauta-semanal";
 import { nombreDeEtapa, urlDeLista } from "@/lib/queries/vista-metrica";
 import type { Metrica } from "@/lib/queries/metricas-con-filas";
@@ -107,6 +108,10 @@ interface PropsTabla {
   /** «Por cuenta» (`?por_cuenta=1`, 416): subfilas por cuenta de Meta bajo las filas de Meta; sin enlaces no hay interruptor. */
   porCuenta?: boolean;
   hrefDeCuenta?: { total: string; cuenta: string };
+  /** La lectura ya hecha (la de `/hub`, 422, que también saca de ella los totales): evita leer dos veces lo mismo. */
+  vistaLeida?: VistaPautaSemanal;
+  /** `/hub` pinta una sola gráfica de agendas para todos los programas, no una por programa. */
+  sinGrafica?: boolean;
 }
 
 const TEXTOS_DEL_PASO = {
@@ -128,7 +133,7 @@ function filasPorBloque(filas: FilaPautaSemanal[], bloque: FilaPautaSemanal["blo
 
 export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
   const [vista, objetivos] = await Promise.all([
-    cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId, paso: p.paso, porCuenta: p.porCuenta, corte: p.corte }),
+    p.vistaLeida ?? cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId, paso: p.paso, porCuenta: p.porCuenta, corte: p.corte }),
     p.cohorteId ? objetivosDeCohortes(db, [p.cohorteId]) : Promise.resolve([]),
   ]);
   const paso = vista.paso;
@@ -243,8 +248,8 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
 
       </CardContent>
     </Card>
-    <MovimientoDiario programId={p.programId} programa={p.programa} cohorte={p.cohorte} rango={p.rango} periodo={p.periodo}
-      origen={p.origen} hoy={p.hoy} cohorteId={p.cohorteId} corte={p.corte} dias={vista.dias} />
+    {p.sinGrafica ? null : <MovimientoDiario programId={p.programId} programa={p.programa} cohorte={p.cohorte} rango={p.rango} periodo={p.periodo}
+      origen={p.origen} hoy={p.hoy} cohorteId={p.cohorteId} corte={p.corte} dias={vista.dias} />}
     </>
   );
 }

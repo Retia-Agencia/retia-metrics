@@ -2,10 +2,10 @@ import type { ProgramaVisible } from "@/lib/auth/alcance";
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaDePeriodo } from "@/lib/periodo";
 import { escaleraPorPrograma } from "@/lib/queries/escalera-todos";
-import { origenDelPrograma } from "@/lib/queries/origen";
+import { cohorteActiva } from "@/lib/queries/cohortes";
+import { cargarPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import { leerVamosALlegar, type VamosALlegar as DatosVamosALlegar } from "@/lib/queries/vamos-a-llegar";
 import { armarReporteDiario } from "@/lib/queries/reporte-diario";
-import { cargarRoasDePauta } from "@/lib/queries/roas-de-pauta";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
 import { armarVistaDeTodos } from "@/lib/queries/vista-todos";
 import { detallesDeOperacion, detallesDelDashboard } from "@/lib/queries/vista-metrica";
@@ -37,18 +37,19 @@ export async function cargarDatosDeHub(db: Db, entrada: EntradaDeDatosDelHub) {
 
   // Antes eran componentes hermanos que React renderizaba a la vez: aquí corren en paralelo igual.
   const diaDeVamos = esHoy ? diaDelReporte : hoy;
-  const [pauta, origenes, comercial, vamosALlegar] = await Promise.all([
+  const [pauta, comercial, vamosALlegar] = await Promise.all([
+    // Pauta de todos (422): la tabla semanal de CADA programa, en el rango común y con su cohorte activa. De ella salen
+    // también la franja de totales y la gráfica de agendas; el ROAS y el origen por campaña viven en el Hub del programa.
     seccion === "pauta"
-      ? Promise.all(programas.map(async (programa) => ({
-          programa,
-          roas: await cargarRoasDePauta(db, programa.id, vista.periodo.a, hoy),
-        })))
-      : Promise.resolve([]),
-    seccion === "pauta"
-      ? Promise.all(programas.map(async (programa) => ({
-          programa,
-          vista: await origenDelPrograma(db, { programId: programa.id, rango: vista.periodo.a, hoy }),
-        })))
+      ? Promise.all(programas.map(async (programa) => {
+          const cohorte = await cohorteActiva(programa.id, db);
+          return {
+            programa,
+            cohorteId: cohorte?.id ?? null,
+            cohorteCodigo: cohorte?.codigo ?? null,
+            semanal: await cargarPautaSemanal(db, { programId: programa.id, rango: vista.periodo.a, hoy, cohorteId: cohorte?.id ?? null }),
+          };
+        }))
       : Promise.resolve([]),
     seccion === "comercial" ? cargarComercial(db, vista, hoy, origen, conListas) : Promise.resolve(null),
     // "¿Vamos a llegar?" sale en todas las secciones; en Hoy, con el día del reporte.
@@ -56,7 +57,7 @@ export async function cargarDatosDeHub(db: Db, entrada: EntradaDeDatosDelHub) {
       .then((pares) => new Map<string, DatosVamosALlegar>(pares)),
   ]);
 
-  return { vista, reportes, pauta, origenes, comercial, vamosALlegar };
+  return { vista, reportes, pauta, comercial, vamosALlegar };
 }
 
 type VistaDeTodosCargada = Awaited<ReturnType<typeof armarVistaDeTodos>>;

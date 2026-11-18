@@ -31,10 +31,9 @@ function tasa(agendas: number, envios: number) {
 
 const MAX_PARES = 10;
 
-export function TablaDeOrigen({ canales, totalEnvios, soloConteos, dentroDeOtraTarjeta = false }: {
+export function TablaDeOrigen({ canales, totalEnvios, dentroDeOtraTarjeta = false }: {
   canales: CanalConEnlaces[];
   totalEnvios: number;
-  soloConteos: boolean;
   /** Dentro de "¿Qué trae ventas?" › Canal (420): la misma tabla, sin tarjeta propia. */
   dentroDeOtraTarjeta?: boolean;
 }) {
@@ -92,7 +91,7 @@ export function TablaDeOrigen({ canales, totalEnvios, soloConteos, dentroDeOtraT
               </td>
               <td className="text-right">
                 <Cifra href={fila.enlaces.registros}>{num(fila.envios)}</Cifra>
-                {especial && !soloConteos ? <span className="cifra text-muted-foreground"> · {pct(proporcionDeOrigen(fila.envios, totalEnvios) ?? 0)}</span> : null}
+                {especial ? <span className="cifra text-muted-foreground"> · {pct(proporcionDeOrigen(fila.envios, totalEnvios) ?? 0)}</span> : null}
               </td>
               <td className="text-right"><Cifra href={fila.enlaces.agendas}>{num(fila.agendas)}</Cifra></td>
               <td className="cifra text-right text-muted-foreground">{tasa(fila.agendas, fila.envios)}</td>

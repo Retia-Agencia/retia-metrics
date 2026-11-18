@@ -1,7 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { num, pct } from "@/lib/format";
-import { nombreDeCanalOrigen, PRECISION_PAID, type FilaOrigenCanal, type FilaOrigenUtm, type VistaOrigen } from "@/lib/queries/origen";
-import { TablaDeOrigen } from "@/components/dashboard/tabla-de-origen";
+import { nombreDeCanalOrigen, type FilaOrigenCanal, type FilaOrigenUtm, type VistaOrigen } from "@/lib/queries/origen";
 import type { PeriodoResuelto } from "@/lib/periodo";
 import { urlDeLista } from "@/lib/queries/vista-metrica";
 
@@ -54,41 +51,4 @@ export function canalesConEnlaces(vista: VistaOrigen, slug: string, periodo: Per
 /** El enlace a la lista de los envíos de contenido con código que no reconocemos. */
 export function hrefDePiezasDesconocidas(slug: string, periodo: PeriodoResuelto, origen: string) {
   return hrefDeLista(slug, periodo, origen, "registros", { categoria: "pieza_desconocida" });
-}
-
-export function Origen({ vista, slug, periodo, origen, soloConteos = false }: { vista: VistaOrigen; slug: string; periodo: PeriodoResuelto; origen: string; soloConteos?: boolean }) {
-  const totalPaid = vista.trazaPaid.N3 + vista.trazaPaid.N2 + vista.trazaPaid.N1;
-  const canales = canalesConEnlaces(vista, slug, periodo, origen);
-  return <section className="space-y-4">
-    <TablaDeOrigen canales={canales} totalEnvios={vista.totalEnvios} soloConteos={soloConteos} />
-
-    <Card><CardHeader className="space-y-1">
-      <CardTitle className="text-base">Contenido con código que no reconocemos</CardTitle>
-      <p className="text-xs text-muted-foreground">Envíos que llegaron por un link de contenido, pero su código no es de ninguna pieza viva de este programa (descartada, de otro programa o mal copiado).</p>
-    </CardHeader><CardContent className="space-y-2">
-      {vista.piezasDesconocidas.envios === 0
-        ? <p className="text-sm text-muted-foreground">Ninguno en este periodo.</p>
-        : <>
-            <p className="cifra text-lg"><a className="underline underline-offset-2" href={hrefDeLista(slug, periodo, origen, "registros", { categoria: "pieza_desconocida" })}>{num(vista.piezasDesconocidas.envios)}</a></p>
-            <ul className="space-y-1 text-sm">
-              {vista.piezasDesconocidas.lista.map((fila) => <li key={fila.codigo ?? "sin-codigo"} className="flex gap-2">
-                <span className="font-mono">{fila.codigo ?? "sin código"}</span>
-                <span className="cifra text-muted-foreground">{num(fila.envios)}</span>
-              </li>)}
-            </ul>
-          </>}
-    </CardContent></Card>
-
-    <Card><CardHeader className="space-y-1">
-      <CardTitle className="text-base">Calidad del rastreo: ¿de qué anuncio vino cada registro pagado?</CardTitle>
-      <p className="text-xs text-muted-foreground">Entre más registros identificados hasta el anuncio, más exacto es el costo por anuncio.</p>
-    </CardHeader><CardContent className="grid gap-4 sm:grid-cols-3">
-      {PRECISION_PAID.map(({ nivel, titulo, detalle }) => <div key={nivel} className="space-y-1">
-        <p className="text-sm font-medium">{titulo}</p>
-        <p className="cifra text-lg">{num(vista.trazaPaid[nivel])}{soloConteos ? null : <span className="text-muted-foreground"> · {pct(totalPaid === 0 ? 0 : vista.trazaPaid[nivel] / totalPaid)}</span>}</p>
-        <p className="text-xs text-muted-foreground">{detalle}</p>
-      </div>)}
-    </CardContent></Card>
-
-  </section>;
 }

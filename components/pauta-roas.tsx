@@ -45,8 +45,8 @@ function CeldaVentas({ fila, enlace }: { fila: RenglonRoas; enlace: Enlace }) {
 }
 
 /** Las mismas columnas en las dos vistas: solo cambia la primera (nombre / sangría). */
-function Celdas({ fila, enlace, nombre, sangria = "", soloConteos = false, sinGasto = false }: {
-  fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string; soloConteos?: boolean; sinGasto?: boolean;
+function Celdas({ fila, enlace, nombre, sangria = "", sinGasto = false }: {
+  fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string; sinGasto?: boolean;
 }) {
   const resueltas = fila.shows + fila.noShows;
   return <>
@@ -55,29 +55,26 @@ function Celdas({ fila, enlace, nombre, sangria = "", soloConteos = false, sinGa
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.agendas} href={enlace(fila.nivel, fila.id ?? undefined, "agenda")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.shows} href={enlace(fila.nivel, fila.id ?? undefined, "show")} /></td>
     <td className="cifra py-2 pl-1 text-right align-top"><Cifra n={fila.noShows} href={enlace(fila.nivel, fila.id ?? undefined, "no_show")} /></td>
-    {soloConteos ? null : <td className="cifra py-2 pl-1 text-right align-top">{noShowPorCita(fila.noShows, fila.shows) === null ? "—" : <><span className="block">{pct(noShowPorCita(fila.noShows, fila.shows)!)}</span>
-      <span className="block text-xs text-muted-foreground">{num(fila.noShows)} de {num(resueltas)} con resultado</span></>}</td>}
+    <td className="cifra py-2 pl-1 text-right align-top">{noShowPorCita(fila.noShows, fila.shows) === null ? "—" : <><span className="block">{pct(noShowPorCita(fila.noShows, fila.shows)!)}</span>
+      <span className="block text-xs text-muted-foreground">{num(fila.noShows)} de {num(resueltas)} con resultado</span></>}</td>
     <td className="cifra py-2 pl-3 text-right align-top"><CeldaVentas fila={fila} enlace={enlace} /></td>
-    {soloConteos ? null : <>
-      <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.valorVendidoUsd)}</td>
-      {sinGasto ? null : <>
-        <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === null ? "—" : usd(fila.gastoUsd)}</td>
-        <td className="cifra py-2 pl-1 text-right align-top"><CifraDeRazon razon={fila.roas} formato={roas} /></td>
-      </>}
+    <td className="cifra py-2 pl-1 text-right align-top">{usd(fila.valorVendidoUsd)}</td>
+    {sinGasto ? null : <>
+      <td className="cifra py-2 pl-1 text-right align-top">{fila.gastoUsd === null ? "—" : usd(fila.gastoUsd)}</td>
+      <td className="cifra py-2 pl-1 text-right align-top"><CifraDeRazon razon={fila.roas} formato={roas} /></td>
     </>}
   </>;
 }
 
-function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string; soloConteos?: boolean; sinGasto?: boolean }) {
+function Fila(props: { fila: RenglonRoas; enlace: Enlace; nombre?: ReactNode; sangria?: string; sinGasto?: boolean }) {
   return <tr><Celdas {...props} /></tr>;
 }
 
 const COLUMNAS_COMPLETAS = [VOCABULARIO_PAUTA_SEMANAL.envios, nombreCorto("agendadas"), nombreCorto("shows"), nombreCorto("no_asistio"), VOCABULARIO_PAUTA_SEMANAL.pct_no_asistio, nombreCorto("ventas"), nombreCorto("vendido"), VOCABULARIO_PAUTA_SEMANAL.gasto, VOCABULARIO_PAUTA_SEMANAL.roas];
-const COLUMNAS_CONTEOS = [VOCABULARIO_PAUTA_SEMANAL.envios, nombreCorto("agendadas"), nombreCorto("shows"), nombreCorto("no_asistio"), nombreCorto("ventas")];
 // Meta reporta el gasto por anuncio, no por canal: en la vista por canal no hay Gasto ni ROAS que mostrar (355).
 const COLUMNAS_SIN_GASTO = COLUMNAS_COMPLETAS.filter((c) => c !== VOCABULARIO_PAUTA_SEMANAL.gasto && c !== VOCABULARIO_PAUTA_SEMANAL.roas);
-const CABECERAS = (primera: string, soloConteos = false, sinGasto = false) =>
-  [primera, ...(soloConteos ? COLUMNAS_CONTEOS : sinGasto ? COLUMNAS_SIN_GASTO : COLUMNAS_COMPLETAS)];
+const CABECERAS = (primera: string, sinGasto = false) =>
+  [primera, ...(sinGasto ? COLUMNAS_SIN_GASTO : COLUMNAS_COMPLETAS)];
 
 /** El detalle de una campaña (conjuntos y anuncios), que el diálogo muestra. */
 export function detalleDeCampana(vista: VistaRoasDePauta, campana: RenglonRoas, enlace: Enlace): ReactNode {
@@ -112,14 +109,12 @@ function NotaReconciliacion({ reconciliacion }: { reconciliacion: VistaRoasDePau
  * agrupación con un parámetro de la URL. El gasto por canal no se puede repartir (Meta lo da por anuncio), así que
  * la vista por canal oculta Gasto y ROAS (decisión de Mani, 9-nov); el resto de columnas es el mismo.
  */
-export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloConteos = false }: {
+export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor }: {
   vista: VistaRoasDePauta;
   enlace: Enlace;
   hrefCsv: string;
   verPor: VerPorPauta;
   hrefVerPor: (v: VerPorPauta) => string;
-  /** La vista "todos los programas" muestra solo conteos: ninguna tasa, gasto ni ROAS cruza programas (ADR 0048). */
-  soloConteos?: boolean;
 }) {
   const primera = verPor === "campana" ? "Campaña › conjunto › anuncio" : "Canal";
   const sinGasto = verPor === "canal";
@@ -127,7 +122,7 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloCont
     <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y {VOCABULARIO_PAUTA_SEMANAL.roas}</CardTitle>
       <p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p>
       <p className="text-sm text-muted-foreground">Envíos pagos del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
-    <div className="flex flex-wrap items-center gap-2">{soloConteos ? null : <Enlace precarga="nunca" href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Enlace>}</div>
+    <div className="flex flex-wrap items-center gap-2"><Enlace precarga="nunca" href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Enlace></div>
   </div>
     <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
       <span className="text-muted-foreground">Ver por:</span>
@@ -136,16 +131,16 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor, soloCont
         : <Enlace precarga="nunca" key={v} href={hrefVerPor(v)} className={claseEnlace}>{v === "campana" ? "Campaña de Meta" : "Canal"}</Enlace>)}
     </div>
   </CardHeader><CardContent className="space-y-3">
-    <Tabla cabeceras={CABECERAS(primera, soloConteos, sinGasto)}>
-      <Fila fila={vista.total} enlace={enlace} soloConteos={soloConteos} sinGasto={sinGasto} />
+    <Tabla cabeceras={CABECERAS(primera, sinGasto)}>
+      <Fila fila={vista.total} enlace={enlace} sinGasto={sinGasto} />
       {verPor === "campana" ? <>
         {vista.campanas.map((campana) => <FilaDeCampana key={campana.id} id={campana.id!} nombre={campana.nombre} detalle={detalleDeCampana(vista, campana, enlace)}>
-          <Celdas fila={campana} enlace={enlace} soloConteos={soloConteos}
+          <Celdas fila={campana} enlace={enlace}
             nombre={<button type="button" className="rounded-lg break-words text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">▸ {campana.nombre}</button>} />
         </FilaDeCampana>)}
         {(vista.sinAnuncio.registros > 0 || vista.sinAnuncio.agendas > 0 || vista.sinAnuncio.ventas > 0)
-          ? <Fila fila={vista.sinAnuncio} enlace={enlace} soloConteos={soloConteos} /> : null}
-      </> : vista.canales.map((canal) => <Fila key={canal.id} fila={canal} enlace={enlace} soloConteos={soloConteos} sinGasto={sinGasto} />)}
+          ? <Fila fila={vista.sinAnuncio} enlace={enlace} /> : null}
+      </> : vista.canales.map((canal) => <Fila key={canal.id} fila={canal} enlace={enlace} sinGasto={sinGasto} />)}
     </Tabla>
     <NotaReconciliacion reconciliacion={vista.reconciliacion} />
   </CardContent></Card>;
