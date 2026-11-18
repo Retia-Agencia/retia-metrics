@@ -19,6 +19,14 @@ function listaExacta<U extends string>() {
   return <A extends readonly U[]>(valores: A & (Exclude<U, A[number]> extends never ? unknown : never)) => valores;
 }
 
+/** Lo que el MCP llama «envíos»: completos y parciales sin completar. Cada fila declara el universo (`tipo` los separa). */
+export const UNIVERSO_DE_ENVIO_CONSULTABLE = "completos_y_parciales" as const;
+const envioConsultable = {
+  agrupar: (db: Db, o: Parameters<typeof envio.agrupar>[1] extends infer T ? Omit<T & object, "universo"> : never) => envio.agrupar(db, { ...(o as object), universo: UNIVERSO_DE_ENVIO_CONSULTABLE } as Parameters<typeof envio.agrupar>[1]),
+  contarGrupos: (db: Db, o: Parameters<typeof envio.contarGrupos>[1] extends infer T ? Omit<T & object, "universo"> : never) => envio.contarGrupos(db, { ...(o as object), universo: UNIVERSO_DE_ENVIO_CONSULTABLE } as Parameters<typeof envio.contarGrupos>[1]),
+  listar: (db: Db, o: Parameters<typeof envio.listar>[1] extends infer T ? Omit<T & object, "universo"> : never) => envio.listar(db, { ...(o as object), universo: UNIVERSO_DE_ENVIO_CONSULTABLE } as Parameters<typeof envio.listar>[1]),
+};
+
 const dimensionesEnvio = listaExacta<DimensionEnvio>()(["tipo", "dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"] as const);
 const dimensionesAgenda = listaExacta<DimensionAgenda>()(["dia", "semana", "mes", "hora", "area", "canal", "cuenta", "utm_source", "utm_medium", "categoria", "tiene_envio", "dueno", "cohorte", "etapa"] as const);
 const dimensionesCita = listaExacta<DimensionCita>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa", "ocurrio"] as const);
@@ -40,7 +48,7 @@ interface DefinicionDeHecho {
 type DefinicionFuente = Omit<DefinicionDeHecho, "modulo"> & { modulo: object };
 
 const definiciones = {
-  envio: { dimensiones: dimensionesEnvio, medidas: ["envios"] as const satisfies readonly MedidaEnvio[], camposDeLista: ["id_del_envio", ...dimensionesEnvio], modulo: envio },
+  envio: { dimensiones: dimensionesEnvio, medidas: ["envios"] as const satisfies readonly MedidaEnvio[], camposDeLista: ["id_del_envio", ...dimensionesEnvio], modulo: envioConsultable },
   agenda: { dimensiones: dimensionesAgenda, medidas: ["agendas"] as const satisfies readonly MedidaAgenda[], camposDeLista: ["id_de_la_llamada", "id_del_deal", "hora_minuto", ...dimensionesAgenda], modulo: agenda },
   cita: { dimensiones: dimensionesCita, medidas: ["citas", "shows"] as const satisfies readonly MedidaCita[], camposDeLista: ["id_de_la_llamada", "id_del_deal", ...dimensionesCita], modulo: cita },
   venta: { dimensiones: dimensionesVenta, medidas: ["ventas"] as const satisfies readonly MedidaVenta[], camposDeLista: ["id_del_deal", ...dimensionesVenta], modulo: venta },

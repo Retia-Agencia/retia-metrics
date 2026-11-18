@@ -207,8 +207,8 @@ export async function armarReporteDiario(
     todasLasFilas("cierres", programId, dia, base.corte, db),
     desgloseDeCaja({ programId, dia }, db),
     motivosDeAgendas(db, base.agendaDeHoy.map((f) => f.id)),
-    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: ["area"] }),
-    agruparEnvios(db, { programId, rango: rangoDeLaSemana, agruparPor: [] }),
+    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: ["area"], universo: "completos" }),
+    agruparEnvios(db, { programId, rango: rangoDeLaSemana, agruparPor: [], universo: "completos" }),
     showPorCitaDelRango({ programId, rango: rangoDeLaSemana, claveCloser: null }, base.corte, db),
   ]);
   const dealIds = filasDeVentas.map((f) => f.dealId).filter((id): id is string => id !== null);

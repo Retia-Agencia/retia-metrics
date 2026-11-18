@@ -9,6 +9,7 @@ type FiltrosOrigen = {
   source?: string | null;
   medium?: string | null;
   categoria?: "con_utm" | "sin_utm" | "macro" | "pieza_desconocida";
+  tipo?: "completo" | "parcial";
   area?: string;
   canal?: string | null;
 };
@@ -20,7 +21,8 @@ function hrefDeLista(
   metrica: "registros" | "agendas_creadas",
   filtros: FiltrosOrigen,
 ) {
-  return urlDeLista({ slug, metrica, periodo: { ...periodo, b: null }, origen, filtrosDeOrigen: filtros });
+  // Origen cuenta registros completos (agruparTrazas): su lista de envíos se acota a los completos para cuadrar.
+  return urlDeLista({ slug, metrica, periodo: { ...periodo, b: null }, origen, filtrosDeOrigen: metrica === "registros" ? { ...filtros, tipo: "completo" } : filtros });
 }
 
 function filtrosDelCanal(fila: FilaOrigenCanal): FiltrosOrigen {

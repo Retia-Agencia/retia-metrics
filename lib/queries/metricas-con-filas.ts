@@ -688,6 +688,7 @@ function consultaDe(
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
           filtroDeEnvios({
+            universo: "completos_y_parciales",
             programId: alcance.programId,
             rango: alcance.rango,
             filtros: {

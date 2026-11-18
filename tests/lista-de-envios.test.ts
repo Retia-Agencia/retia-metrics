@@ -101,7 +101,7 @@ async function todasLasFilas(filtros: Omit<FiltrosDeMetrica, "programId" | "rang
 
 describe("ticket 309: una sola lista de envíos", () => {
   it("registros y el hecho cuentan los mismos envíos (completos y parciales sin completar) en todas las páginas", async () => {
-    const grupos = await agrupar(db, { programId, rango: RANGO, agruparPor: ["utm_source", "utm_medium", "categoria"] });
+    const grupos = await agrupar(db, { universo: "completos_y_parciales", programId, rango: RANGO, agruparPor: ["utm_source", "utm_medium", "categoria"] });
     const { lista, filas } = await todasLasFilas();
     // 53 completos + 1 parcial de quien nunca completó (429, opción B): antes el total era 53.
     expect(grupos.reduce((total, grupo) => total + grupo.envios, 0)).toBe(54);
@@ -118,7 +118,7 @@ describe("ticket 309: una sola lista de envíos", () => {
       leadId: persona.id, sourceId: fuente.id, token: "sin-fecha", esParcial: true, fechaEnvio: null,
       createdAt: new Date("2026-10-05T02:00:00Z"),
     });
-    const filas = await agrupar(db, { programId, rango: RANGO, agruparPor: ["tipo", "dia", "semana", "mes"], filtros: { tipo: ["parcial"] } });
+    const filas = await agrupar(db, { universo: "completos_y_parciales", programId, rango: RANGO, agruparPor: ["tipo", "dia", "semana", "mes"], filtros: { tipo: ["parcial"] } });
     const fila = filas.find((f) => f.dia === "2026-10-04");
     expect(fila).toMatchObject({ semana: "2026-09-28", mes: "2026-10-01", envios: 1 });
     expect(filas.every((f) => f.semana !== null && f.mes !== null)).toBe(true);
@@ -133,7 +133,7 @@ describe("ticket 309: una sola lista de envíos", () => {
       fechaEnvio: new Date("2026-10-03T09:00:00-05:00"),
     });
 
-    const porTipo = await agrupar(db, { programId, rango: RANGO, agruparPor: ["tipo"] });
+    const porTipo = await agrupar(db, { universo: "completos_y_parciales", programId, rango: RANGO, agruparPor: ["tipo"] });
     expect(Object.fromEntries(porTipo.map((g) => [g.tipo, g.envios]))).toEqual({ completo: 53, parcial: 1 });
 
     const parciales = await todasLasFilas({ tipo: "parcial" });
@@ -148,6 +148,7 @@ describe("ticket 309: una sola lista de envíos", () => {
     [{ categoria: "macro" as const }, { categoria: ["macro"] }],
   ])("los filtros de Origen conservan el mismo conteo (%o)", async (filtrosLista, filtrosHecho) => {
     const grupos = await agrupar(db, {
+      universo: "completos_y_parciales",
       programId,
       rango: RANGO,
       agruparPor: ["utm_source", "utm_medium", "categoria"],

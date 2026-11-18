@@ -442,7 +442,7 @@ export async function leerProyeccion(
     agruparVentas(db, { programId, rango: rangoVentana, agruparPor: [], filtros: { cohorte: [cohorte.id] } }),
     // Mismo universo que los registros (C-18): el programa entero, no solo la cohorte.
     agruparAgendas(db, { programId, rango: rangoVentana, agruparPor: [] }),
-    agruparEnvios(db, { programId, rango: rangoVentana, agruparPor: [] }),
+    agruparEnvios(db, { programId, rango: rangoVentana, agruparPor: [], universo: "completos" }),
   ]);
 
   const anterior = cohorteAnterior(cohortes, cohorte.id);

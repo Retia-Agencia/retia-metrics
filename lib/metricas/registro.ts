@@ -199,7 +199,7 @@ const CITA_SIN_RESULTADO_EN_MEMORIA: ReferenciaAFuncion = { archivo: "lib/deals/
  */
 const REGISTRO_BASE = {
   registros: ficha("envio", {
-    filaDelDiccionario: "Envíos",
+    filaDelDiccionario: "Envíos (completos y parciales)",
     tipo: "simple",
     unidad: "personas",
     monedas: [],
@@ -914,14 +914,14 @@ const REGISTRO_BASE = {
     funcionSql: { archivo: "lib/queries/proyeccion-roas.ts", nombre: "calcularProyeccionDeRoas" }, listas: [],
   }),
   envios_sin_id: ficha("envio", {
-    filaDelDiccionario: "Registros de pauta sin anuncio",
+    filaDelDiccionario: "Registros completos de pauta sin anuncio",
     tipo: "simple", unidad: "personas", monedas: [], anclaDeFecha: "fecha_del_envio",
     dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"],
     vigencia: [], sumaEntreProgramas: true, cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/roas-de-pauta.ts", nombre: "cargarRoasDePauta" }, listas: [],
   }),
   registros_sin_utm: ficha("envio", {
-    filaDelDiccionario: "Registros sin origen",
+    filaDelDiccionario: "Registros completos sin origen",
     tipo: "simple", unidad: "personas", monedas: [], anclaDeFecha: "fecha_del_envio",
     dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"],
     vigencia: [], sumaEntreProgramas: true, cobertura: "no_aplica",

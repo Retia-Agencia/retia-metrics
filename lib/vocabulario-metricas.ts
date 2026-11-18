@@ -35,7 +35,7 @@ export const EXPLICACION_AGENDA_CRM_VS_META =
 export type EntradaDeVocabulario = { corto: string; largo: string; definicion: string };
 
 export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
-  registros: { corto: "Envíos", largo: "Envíos del formulario (completos y parciales)", definicion: "Cada formulario enviado, completo o parcial." },
+  registros: { corto: "Envíos (completos y parciales)", largo: "Envíos del formulario: completos más parciales sin completar", definicion: "Formularios completos más los parciales de quien se fue a mitad y nunca lo completó; cada grupo tiene su cifra y su lista. No es la cifra de Pauta: allí se cuentan solo los completos (Registros completos)." },
   leads: { corto: "Leads", largo: "Leads (personas)", definicion: "Personas distintas del programa; la misma persona cuenta una vez." },
   deals_desde_completo: { corto: "Deals (completo)", largo: "Deals creados desde un formulario completo", definicion: "Oportunidades abiertas por un registro que terminó el formulario." },
   deals_desde_parcial: { corto: "Deals (parcial)", largo: "Deals creados desde un formulario parcial", definicion: "Oportunidades abiertas por un registro que dejó el formulario a medias." },
@@ -80,8 +80,8 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   agendas_req: { corto: "Agendas por día necesarias", largo: "Agendas por día necesarias", definicion: "Citas por día que hacen falta para llegar al objetivo." },
   inversion_req: { corto: "Inversión por día necesaria", largo: "Inversión por día necesaria", definicion: "Inversión diaria necesaria para conseguir las agendas requeridas." },
   roas_proy: { corto: "ROAS proyectado", largo: "ROAS proyectado", definicion: "ROAS esperado cuando terminen las citas de pauta pendientes." },
-  envios_sin_id: { corto: "Registros de pauta sin anuncio", largo: "Registros de pauta sin anuncio identificado", definicion: "Registros de pauta en los que no se sabe qué anuncio trajo a la persona." },
-  registros_sin_utm: { corto: "Registros sin origen", largo: "Registros sin origen", definicion: "Registros cuyo enlace no dijo de dónde llegaron." },
+  envios_sin_id: { corto: "Registros completos de pauta sin anuncio", largo: "Registros completos de pauta sin anuncio identificado", definicion: "Registros completos de pauta en los que no se sabe qué anuncio trajo a la persona." },
+  registros_sin_utm: { corto: "Registros completos sin origen", largo: "Registros completos sin origen", definicion: "Registros completos cuyo enlace no dijo de dónde llegaron." },
   ventas_sin_anuncio: { corto: "Ventas sin anuncio identificado", largo: "Ventas sin anuncio identificado", definicion: "Ventas de pauta en las que no se sabe qué anuncio trajo a la persona." },
   embudo: { corto: "Paso del formulario", largo: "Paso del formulario", definicion: "Personas que llegaron a un paso del formulario." },
   ventas_por_escalon: { corto: "Ventas por escalón", largo: "Ventas por escalón", definicion: "Distribución de los deals entre los siete escalones de la conversión." },
@@ -110,7 +110,8 @@ export const VOCABULARIO_PAUTA_SEMANAL = {
   roas: "ROAS",
   gasto: "Gasto",
   pct_no_asistio: "% no asistió",
-  envios: nombreCorto("registros"),
+  /** Pauta cuenta solo formularios completos (lo que cuentan Meta y el Excel): otra pregunta que «Envíos». */
+  envios: "Registros completos",
   profit: "Profit",
   cpm: "CPM",
   ctr: "CTR",

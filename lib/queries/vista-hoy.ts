@@ -172,7 +172,7 @@ export async function armarVistaDeHoy(
   const [caja, filasDeAgendas, filasDeEnvios, showPorCita, proyeccion, citasDeHoy, canceladasDeHoy, citasDeManana] = await Promise.all([
     cajaDelDiaPorOrigen({ programId, hoy: dia }, db),
     agruparAgendas(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: [] }),
-    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: ["tipo"] }),
+    agruparEnvios(db, { programId, rango: { desde: dia, hasta: dia }, agruparPor: ["tipo"], universo: "completos_y_parciales" }),
     showPorCitaDelRango({ programId, rango: { desde: dia, hasta: dia }, claveCloser: null }, instante, db),
     leerProyeccion({ programId, hoy: dia, ahora: instante, ventanaDiasHabiles: ventanaRitmo }, db),
     cargarFilas("agendas", rangoDeHoy),
