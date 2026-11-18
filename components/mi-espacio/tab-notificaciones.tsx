@@ -131,7 +131,7 @@ function resumenDeChip(
   const base = `Tienes ${total} en ${NOMBRE_DE_CHIP[chip]}.`;
   if (total === 0 || proxima == null) return base;
   const texto = typeof proxima === "string" ? fechaCorta(proxima) : fechaHoraEnBogota(proxima);
-  // Vencidos y Sin Grain ordenan del más antiguo: su fecha clave ya pasó.
-  const cual = chip === "vencidos" || chip === "sin_grain" || chip === "sin_resultado" ? "La más antigua es" : "La próxima es";
+  // Estos chips ordenan del más antiguo: su fecha clave ya pasó.
+  const cual = chip === "vencidos" || chip === "sin_comprobante" || chip === "sin_grain" || chip === "sin_resultado" ? "La más antigua es" : "La próxima es";
   return `${base} ${cual} ${texto}.`;
 }

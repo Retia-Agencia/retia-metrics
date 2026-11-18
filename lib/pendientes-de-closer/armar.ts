@@ -13,16 +13,16 @@ import {
   type ChipNotificacion,
   type NotificacionCompleta,
 } from "@/lib/mi-espacio/notificaciones";
-import { nombreDeEtapa } from "@/lib/queries/vista-metrica";
 import type { RespuestaAvisosPendientes, VentanaPendientes } from "./contrato";
 import {
+  ORDEN_PENDIENTES,
   textoDePendientesDeCloser,
   type DealConPendientes,
   type PendienteDeDeal,
   type TipoPendienteCloser,
 } from "./texto";
 
-const CHIPS_DE_AVISO = ["sin_resultado", "sin_grain", "reagenda", "vencidos", "nuevos"] as const satisfies readonly ChipNotificacion[];
+const CHIPS_DE_AVISO = ["sin_resultado", "sin_comprobante", "sin_grain", "reagenda", "vencidos", "nuevos"] as const satisfies readonly ChipNotificacion[];
 
 /**
  * Un aviso es para actuar hoy: sin_grain, reagenda y nuevos de hace más de este número de días
@@ -43,6 +43,12 @@ interface CloserElegible {
   nombre: string;
   telefonos: string[];
   programas: ProgramaDelCloser[];
+}
+
+interface CitasAntiguasDePrograma {
+  programa: string;
+  programSlug: string;
+  cantidad: number;
 }
 
 function fechaDeNotificacion(n: NotificacionCompleta): Date {
@@ -100,9 +106,10 @@ async function pendientesDelCloser(
   ventana: VentanaPendientes,
   dia: string,
   ahora: Date,
-): Promise<{ deals: DealConPendientes[]; citasAntiguas: number }> {
+  origen: string,
+): Promise<{ deals: DealConPendientes[]; citasAntiguas: CitasAntiguasDePrograma[] }> {
   const porDeal = new Map<string, DealConPendientes>();
-  let citasAntiguas = 0;
+  const citasAntiguasPorPrograma = new Map<string, CitasAntiguasDePrograma>();
   for (const programa of closer.programas) {
     for (const chip of CHIPS_DE_AVISO) {
       const notificaciones = await notificacionesCompletasDeChip(
@@ -118,7 +125,14 @@ async function pendientesDelCloser(
         const antiguedad = Math.floor((new Date(`${dia}T12:00:00-05:00`).getTime() - fecha.getTime()) / 86_400_000);
         if (CHIPS_CON_TOPE_DE_ANTIGUEDAD.includes(chip) && antiguedad > DIAS_MAXIMOS_DE_AVISO) continue;
         if (chip === "sin_resultado" && antiguedad > 7) {
-          if (ventana === "manana") citasAntiguas += 1;
+          if (ventana === "manana") {
+            const actual = citasAntiguasPorPrograma.get(programa.slug);
+            citasAntiguasPorPrograma.set(programa.slug, {
+              programa: programa.nombre,
+              programSlug: programa.slug,
+              cantidad: (actual?.cantidad ?? 0) + 1,
+            });
+          }
           continue;
         }
         if (ventana === "tarde" && (chip !== "sin_resultado" && chip !== "sin_grain" || diaDeCalendario(fecha) !== dia)) {
@@ -128,7 +142,8 @@ async function pendientesDelCloser(
           dealId: notificacion.tarjeta.dealId,
           nombreLead: notificacion.tarjeta.nombreLead ?? "Sin nombre",
           programa: programa.nombre,
-          etapa: nombreDeEtapa(notificacion.tarjeta.etapa),
+          programSlug: programa.slug,
+          url: `${origen}/p/${programa.slug}/deals/${notificacion.tarjeta.dealId}`,
           fechaUrgencia: fecha,
           pendientes: [],
         };
@@ -139,7 +154,49 @@ async function pendientesDelCloser(
     }
   }
   const deals = [...porDeal.values()].sort((a, b) => a.fechaUrgencia.getTime() - b.fechaUrgencia.getTime() || a.dealId.localeCompare(b.dealId));
-  return { deals, citasAntiguas };
+  return { deals, citasAntiguas: [...citasAntiguasPorPrograma.values()] };
+}
+
+/** Chip con más pendientes por programa; la prioridad desempata cantidades (ticket 428). */
+function enlacesDePendientes(
+  origen: string,
+  ventana: VentanaPendientes,
+  deals: DealConPendientes[],
+  citasAntiguas: CitasAntiguasDePrograma[],
+): { programa: string; url: string }[] {
+  const porPrograma = new Map<string, { programa: string; conteos: Record<TipoPendienteCloser, number> }>();
+  const obtener = (slug: string, programa: string) => {
+    const actual = porPrograma.get(slug);
+    if (actual) return actual;
+    const creado = {
+      programa,
+      conteos: Object.fromEntries(ORDEN_PENDIENTES.map((tipo) => [tipo, 0])) as Record<TipoPendienteCloser, number>,
+    };
+    porPrograma.set(slug, creado);
+    return creado;
+  };
+  for (const deal of deals) {
+    const programa = obtener(deal.programSlug, deal.programa);
+    for (const pendiente of deal.pendientes) programa.conteos[pendiente.tipo] += 1;
+  }
+  for (const cita of citasAntiguas) {
+    obtener(cita.programSlug, cita.programa).conteos.sin_resultado += cita.cantidad;
+  }
+  return [...porPrograma.entries()].map(([slug, programa]) => {
+    let chip: TipoPendienteCloser;
+    if (ventana === "tarde") {
+      chip = programa.conteos.sin_resultado > 0 ? "sin_resultado" : "sin_grain";
+    } else {
+      chip = ORDEN_PENDIENTES[0];
+      for (const tipo of ORDEN_PENDIENTES) {
+        if (programa.conteos[tipo] > programa.conteos[chip]) chip = tipo;
+      }
+    }
+    return {
+      programa: programa.programa,
+      url: `${origen}/mi-espacio?tab=notificaciones&programa=${encodeURIComponent(slug)}&chip=${chip}`,
+    };
+  });
 }
 
 export async function avisosPendientesDeClosers(
@@ -160,20 +217,19 @@ export async function avisosPendientesDeClosers(
   const respuesta: RespuestaAvisosPendientes = { avisos: [], sinDestinatario: [] };
   for (const closer of closers) {
     if (yaEnviados.has(closer.userId)) continue;
-    const pendientes = await pendientesDelCloser(db, closer, input.ventana, dia, ahora);
-    if (pendientes.deals.length === 0 && pendientes.citasAntiguas === 0) continue;
+    const pendientes = await pendientesDelCloser(db, closer, input.ventana, dia, ahora, input.origen);
+    if (pendientes.deals.length === 0 && pendientes.citasAntiguas.length === 0) continue;
     if (closer.telefonos.length === 0) {
       respuesta.sinDestinatario.push(closer.userId);
       continue;
     }
-    const enlace = `${input.origen}/mi-espacio?tab=notificaciones&chip=sin_resultado`;
+    const enlaces = enlacesDePendientes(input.origen, input.ventana, pendientes.deals, pendientes.citasAntiguas);
     const texto = textoDePendientesDeCloser({
       nombreCloser: closer.nombre,
       ventana: input.ventana,
-      dia,
       deals: pendientes.deals,
-      citasAntiguas: pendientes.citasAntiguas,
-      enlace,
+      citasAntiguas: pendientes.citasAntiguas.reduce((total, grupo) => total + grupo.cantidad, 0),
+      enlaces,
     });
     for (const telefono of closer.telefonos) {
       respuesta.avisos.push({ userId: closer.userId, telefono, ventana: input.ventana, dia, texto });

@@ -153,7 +153,7 @@ const PAGINAS = {
   "/p/[programa]/hub?seccion=dinero": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 55, escalaConProgramas: false, cargar: datosDelHubDelPrograma("dinero") },
   "/mi-espacio (closer)": {
     pagina: "app/(app)/mi-espacio/page.tsx",
-    tope: 31, // 18 antes de la fase 2: la siembra ahora incluye un deal. Costo fijo, probado: con 4 deals de más da lo mismo (test de abajo)
+    tope: 32, // 18 antes de la fase 2: la siembra ahora incluye un deal. +1 (428): el chip Sin comprobante lee los abonos del universo en UNA consulta. Costo fijo, probado: con 4 deals de más da lo mismo (test de abajo)
     escalaConProgramas: false,
     cargar: (db, sembrado) => cargarDatosDeMiEspacio(db, {
       userId: sembrado.closerId,

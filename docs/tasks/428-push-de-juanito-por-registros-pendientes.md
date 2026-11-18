@@ -91,3 +91,8 @@ El de las 6:00 p.m.: "Andrea, hoy tuviste 6 citas y 4 siguen sin resultado: Cami
 
 ## Verificación del 17-nov (solo lectura; pedida por Michael vía Mani)
 Los avisos **salieron**: 16 y 17-nov, mañana 08:00 y tarde 18:00 (Bogotá), 5 closers cada ventana salvo la tarde del 17 (4, porque el quinto no tenía nada de hoy), sin repetición. Hay 10 WhatsApp cargados (desde el 9-nov), no 0. Lo que el CRM no prueba es la entrega y la lectura: la fila se escribe al confirmar Juanito. Falta preguntar a 2 closers si los recibieron y medir D-4. Detalle: `docs/reportes/respuestas-pauta-2026-11-17.md` §9.2.
+
+## Decisiones del 18-nov (Mani)
+- **Alerta 5 = «abono sin comprobante»**, no «por confirmar»: en el CRM no existe un paso de confirmar comprobantes. Usa el único predicado (`lib/deals/abono-sin-comprobante.ts`); chip nuevo `sin_comprobante` en Mi espacio y en el aviso de las 8 a.m., **sin tope de antigüedad** (es plata y son pocos: 45 el 18-nov, 43 de Andrea y 2 de Maru).
+- **Enlace por programa:** el enlace único abría el último programa usado (Andrea está en 3, Dana y Maru en 2) y siempre el chip «Sin resultado». Ahora lleva `programa=` y el chip que corresponde.
+- **El mensaje de las 8 a.m. pasa a ser un resumen por tipo.** Medido el 18-nov con el aviso de Andrea: «194 registros en 141 deals» y los 8 deals que se mostraban eran todos «Cartera vencida» (14 carteras sin fecha límite caían a la fecha de creación del deal y quedaban de primeras); las 75 citas sin resultado de la semana no aparecían. Objetivo de Mani: «que el mensaje sea directo y muestre la visibilidad completa del estado de la operación comercial de cada closer», para tener el CRM al día. Formato: conteo por tipo arriba, luego los 3 más urgentes de cada tipo con su enlace por programa.

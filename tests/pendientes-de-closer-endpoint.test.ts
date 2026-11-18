@@ -1,5 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  abonos,
   avisosPendientesCloserEnvios,
   cohorts,
   dealEtapaHistorial,
@@ -142,7 +143,8 @@ describe("avisos de registros pendientes", () => {
     const cuerpo = esquemaRespuestaAvisosPendientes.parse(await response.json());
     expect(cuerpo.avisos).toHaveLength(1);
     expect(cuerpo.avisos[0]).toMatchObject({ userId: closer, telefono, ventana: "manana", dia: "2026-11-13" });
-    expect(cuerpo.avisos[0].texto).toContain("Camilo Moreno · Tactical · Registrado");
+    expect(cuerpo.avisos[0].texto).toContain("Camilo Moreno (Tactical): ábrelo y haz el primer contacto");
+    expect(cuerpo.avisos[0].texto).toContain(`/p/tactical/deals/`);
     expect(cuerpo.avisos[0].texto).not.toContain("Nombre Ajeno");
     expect(cuerpo.sinDestinatario).toEqual([otro]);
   });
@@ -158,6 +160,23 @@ describe("avisos de registros pendientes", () => {
     expect(texto).toContain("Reciente Uno");
     expect(texto).not.toContain("Viejo Atrasado");
     expect(texto).not.toContain("Perdido Cierre");
+  });
+
+  it("avisa un abono viejo sin comprobante en la mañana y no en la tarde", async () => {
+    const dealId = await dealNuevo(closer, "Abono Sin Soporte", { creadoEn: new Date("2026-10-01T10:00:00Z") });
+    await db.insert(abonos).values({ dealId, programId, fecha: "2026-10-01", monto: "100", moneda: "USD" });
+
+    const manana = esquemaRespuestaAvisosPendientes.parse(await (await listar(
+      request("/api/pendientes/avisos", { ventana: "manana" }),
+    )).json());
+    expect(manana.avisos[0].texto).toContain("Abono Sin Soporte");
+    expect(manana.avisos[0].texto).toContain("sin comprobante");
+    expect(manana.avisos[0].texto).toContain("programa=tactical&chip=sin_comprobante");
+
+    const tarde = esquemaRespuestaAvisosPendientes.parse(await (await listar(
+      request("/api/pendientes/avisos", { ventana: "tarde" }),
+    )).json());
+    expect(tarde.avisos).toEqual([]);
   });
 
   it("solo confirma pares elegibles y no repite la ventana del día", async () => {
