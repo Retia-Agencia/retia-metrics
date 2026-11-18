@@ -9,27 +9,48 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, carril D (sesión de Mani, orquestadora). Lee AGENTS.md y la entrada "14-nov (noche)" en Memory de
+Seguimos con el CRM de Retia, carril D (sesión de Mani, orquestadora). Lee AGENTS.md y la entrada "17-nov (noche)" en Memory de
 docs/agents/handoff.md. Orquesta, no implementes: el código va con Codex (/delegate, effort medium, worktree dentro del repo, un job por
-carpeta; verifica con codex-busy.sh que quedó BUSY en esa carpeta). Codex NO commitea: tú revisas diff, typecheck, lint y los tests del
-ticket, y commiteas con archivos nombrados. Migraciones: las generas y aplicas tú, con el ok de Mani, leyendo el SQL y mirando el ref.
-Estado: main en fbbfacbc (CI verde), checkpoint cp-20261114-2 sobre 6b225924. El checkout principal tiene archivos sin commitear de
-otras sesiones (243, scripts/_vista-pendientes.ts): no los toques; si necesitas main al día, trabaja desde un worktree.
+carpeta; verifica con codex-busy.sh que quedó BUSY en esa carpeta). Codex NO commitea: tú revisas el diff y commiteas con archivos
+nombrados. Todo entra por PR y lo valida el CI (la máquina se queda sin memoria: el guardián heavy-command-admission bloquea typecheck y
+suite en local; no lo saltes sin el ok de Mani). Migraciones: las generas y aplicas tú, con el ok de Mani, leyendo el SQL y con lock_timeout.
+Estado: main en 10e9bf43 (CI verde). PR #34 (421 fase 1) abierto, rama t421-confirmacion; su migración 0151 YA está aplicada en producción.
 Lo que sigue, en este orden:
-1. 429 opción B (decidida por Mani el 14-nov): Envíos cuenta completos y parciales y se muestran las dos cifras, cada una con su lista.
-   Mueve una cifra: hecho de envíos (lib/queries/hechos/envio.ts:104) con desglose por es_parcial, ficha de los parciales, quitar la nota
-   «Pendiente de Mani» de docs/metricas.md (~307), lib/metricas/registro.ts (~1090) y overview §11 en el mismo commit (N8), dorados y el
-   aviso de qué número se movió. Detalle en docs/tasks/429-*.md, sección "Respondido por Mani".
-2. MCP (411, 17-nov): `resumen_del_hub` trae pauta, perdidos, cita a pago, norte y proyecciones (`CIFRAS_EN_EL_RESUMEN` en `lib/mcp/cobertura.ts`, vigilado por test); conceptos pendientes 0. F4 anotada. A-177 decidida (b, 17-nov): ADR 0134 y `reasignar_deal`. Falta el CI del PR borrador y comparar `pauta` con la pestaña Pauta en pantalla. Recordar: revocar y reemitir el token Bearer personal que quedó impreso el 14-nov (Ajustes › Conexiones IA).
-   Darles vía real (lista o cifra en resumen_del_hub) va con el 411.
-3. Lo que espera a personas (carril H): Michael antes del 30-nov (validar /hub/reporte del 427, Q-1 a Q-9, DM-8); WhatsApp de cada closer
-   (428); Daniel define "pago rápido" y el peso de cada escalón (afecta Días de la cita al pago); recorridos visuales de 431 a 434.
-4. Revisar lo que dejen las sesiones paralelas (243 /nerd-stats, 363 llamadas sueltas, Juanito 428/408/426) antes de dar nada por hecho.
-5. Housekeeping: worktrees b1 a b7, integracion-14nov y fichas-comercial ya entraron a main; quitarlos con codex-reap.sh y git worktree remove.
-No toques los archivos del carril P (Alejo: lib/hub/, componentes de Comercial, Dinero y Hoy). Commits con archivos nombrados, pull --rebase
-antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.md.
+1. PR #34: leer su CI (78413f9b). Verde → pedir a Mani el merge. Rojo → `gh run view --log-failed`, arreglo y CI otra vez.
+2. 421 fase 2: métrica «Confirmadas» (de las citas del día) en Hoy y Comercial: ficha en lib/metricas/registro.ts, fila en docs/metricas.md,
+   overview §11 y vocabulario en el mismo commit (N8), con su lista. Diseño en docs/tasks/421-*.md.
+3. 417: Mani ya dio el ok a su migración (17-nov). Tabla `plan_inversion` por el molde de lib/catalogo/: tramos de fecha (desde, hasta),
+   monto, moneda y cuenta de Meta, con actor y rastro; sirve para N cuentas por programa (Q-8). Fila «Diferencia contra el plan» en la
+   tabla por día y por cuenta, con su ficha. Pauta fija el número con su criterio (Q-4).
+4. 438 (en curso): tabla semanal de Pauta (se lee desde un componente y el guardián no la ve), Dinero, Hub de todos con
+   `program_id in (…)`, p95 de 30 peticiones y comparación visual; medir los topes del ticket (Pauta ≤ 60, demás ≤ 40). Luego 445:
+   guardián n-mas-uno, filas de 441 a 444 y 4 textos de AGENTS.md. Mani pidió hacerlo en una sesión aparte.
+5. 429 opción B (decidida el 14-nov), detalle en docs/tasks/429-*.md, sección "Respondido por Mani".
+6. Lo que necesita a Mani en producción (sesión iniciada): /nerd-stats y cerrar el 243; casillas de producción del 435 y el 436.
+No toques los archivos del carril P (Alejo: lib/hub/, componentes de Comercial, Dinero y Hoy) sin su ok. Commits con archivos nombrados,
+pull --rebase antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.md.
 ```
 ## Memory
+
+### 17-nov (noche) · rendimiento, MCP, Cifra y Pauta en main; 421 fase 1 en PR con su migración aplicada (sesión de Mani, orquestadora)
+- **En main con CI verde (squash):** #27 y #29 (447 fase 2 y cierre: el guardián mide cada página con 0 y 4 deals de más y exige el
+  mismo número de consultas y 0 idénticas), #28 (411: `resumen_del_hub` con pauta, perdidos, cita a pago y proyecciones; `reasignar_deal`;
+  ADR 0134 deja la cesión por el closer fuera del MCP), #30 (419 hallazgo 20), #31 (438 fases A y B1: topes del Hub de programa 66, 82,
+  22 y 55; el comparativo de closers de Comercial ya es costo fijo), #32 (respuestas de Pauta), #33 (411 done), #35 (445 escrito con lo
+  real de hoy y avance del 438). CI de main verde tras #28 a #30 juntos.
+- **Decisiones de Mani (17-nov):** Q-1 Power Talk = Comunícate con Confianza; Q-4 Pauta fija la inversión sugerida; Q-5 dos filas
+  (ventas por día de cierre y ROAS por día del registro); Q-6 semanas de lunes a domingo; Q-7 el CRM manda desde el 1-oct y el Excel
+  anterior se archiva con corte al 30-sep; Q-8 botón Total / Por cuenta para N cuentas; Q-9 descartada; DM-8 aprobada; el CRM es la
+  fuente de verdad de agendas (el Excel se llena a mano). Detalle: docs/reportes/respuestas-pauta-2026-11-17.md.
+- **421, diseño (Mani, 17-nov):** la confirmación es una columna aparte del resultado (`calls.confirmacion` y `confirmacion_en`,
+  compartida con el 343 de Juanito), para que marcar Asistió no borre que había confirmado; se puede cambiar o quitar siempre.
+  Migración 0151 aplicada en producción el 17-nov. Fase 1 en el PR #34; falta la métrica «Confirmadas» (fase 2).
+- **Hallazgos abiertos:** ComunicArte trae 6 ventas del Excel sin explicar en octubre y Tactical unas 6 o 7 sin registrar en el CRM
+  (2 a 8-nov); los comprobantes de WhatsApp no traen nombre, así que cerrarlo pide que Pauta o los closers pasen las ventas por correo.
+  Los avisos de pendientes de Juanito (428) sí salen a la hora; el cuello es el hábito y el atraso (Andrea 416 y Maru 330 citas sin
+  resultado al 14-nov; Mani decide si se limpia). 419: Mani decide si «Entró a caja» sin abonos muestra USD 0,00 o «—».
+- **Pendiente de Mani:** revocar y reemitir el token Bearer personal del MCP que quedó impreso el 14-nov (Ajustes › Conexiones IA).
+  Dependabot tiene 6 PR abiertos (#18 a #26); el #21 sube TypeScript de 5.9 a 7.0 y pide revisión antes de mergear.
 
 ### 15-nov (noche) · 437 done; 447 fase 1 con CI verde en el PR borrador #24 (rama `t447`) (sesión de Mani, Codex por /delegate)
 - **437 cerrado:** CI verde de `282c34e2` (el shard 3 se cortó una vez por el tope de 480 s, sin test rojo, y pasó al
