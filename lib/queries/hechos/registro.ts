@@ -19,7 +19,7 @@ function listaExacta<U extends string>() {
   return <A extends readonly U[]>(valores: A & (Exclude<U, A[number]> extends never ? unknown : never)) => valores;
 }
 
-const dimensionesEnvio = listaExacta<DimensionEnvio>()(["dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"] as const);
+const dimensionesEnvio = listaExacta<DimensionEnvio>()(["tipo", "dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"] as const);
 const dimensionesAgenda = listaExacta<DimensionAgenda>()(["dia", "semana", "mes", "hora", "area", "canal", "cuenta", "utm_source", "utm_medium", "categoria", "tiene_envio", "dueno", "cohorte", "etapa"] as const);
 const dimensionesCita = listaExacta<DimensionCita>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte", "etapa", "ocurrio"] as const);
 const dimensionesVenta = listaExacta<DimensionVenta>()(["dia", "semana", "mes", "area", "canal", "cuenta", "dueno", "cohorte"] as const);

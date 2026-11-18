@@ -57,13 +57,14 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 ### 1.1 Envío (registro)
 
 - **Tabla:** `submissions`, unida a `sources` (la fuente dice el programa).
-- **Cuenta:** envíos **completos** (`es_parcial = false`) de las fuentes del programa.
+- **Cuenta:** envíos **completos** (`es_parcial = false`) más los **parciales sin completar** (mismo formulario y token sin un completo), de las fuentes del programa (429). La dimensión `tipo` los separa en `completo` y `parcial`.
 - **Fecha:** `submissions.fecha_envio`, en Bogotá.
 - **Función:** `filtroDeEnvios` en `lib/queries/hechos/envio.ts` es el único predicado de registros/envíos;
   tanto `agrupar` como `listar` y la lista de `registros` del Hub lo usan.
-- **Ojo:** un envío parcial y su completo son el mismo registro (ADR 0063); el parcial solo cuenta en el embudo
-  del formulario.
-- **Verificar:** contar en el Typeform las respuestas completas del día (zona Bogotá) y comparar.
+- **Ojo:** un envío parcial y su completo son el mismo registro (ADR 0063): el parcial cuenta aparte solo si la persona
+  nunca completó (429); si completó, cuenta el completo.
+- **Verificar:** contar en el Typeform las respuestas completas del día (zona Bogotá) y comparar; los parciales sin completar
+  se cuentan aparte con el filtro `tipo = parcial`.
 
 ### 1.2 Agenda
 
@@ -208,7 +209,7 @@ Las cifras de Hub › Origen son:
 
 | Figura | Definición | Función |
 |---|---|---|
-| Registros y agendas por canal y par UTM | envíos completos y llamadas vigentes creadas en el rango, atribuidas al envío que abrió su deal; los pares se agrupan bajo su área y canal | `origenDelPrograma` |
+| Registros y agendas por canal y par UTM | envíos (completos y parciales sin completar) y llamadas vigentes creadas en el rango, atribuidas al envío que abrió su deal; los pares se agrupan bajo su área y canal | `origenDelPrograma` |
 | Sin UTM | envíos del rango cuya regla resulta `sin_utm`; siempre se muestra con conteo y porcentaje | `origenDelPrograma` |
 | Macros sin expandir | envíos del rango con al menos un UTM centinela `{{…}}`; siempre se muestra con conteo y porcentaje | `origenDelPrograma` |
 | Nuevo | el par se vio por primera vez entre hoy y los seis días anteriores | `origenDelPrograma` |
@@ -229,7 +230,7 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 <!-- registro:inicio (generado por `npm run docs:metricas`; no editar a mano) -->
 | Concepto | Tipo | Unidad · moneda | Se ubica por | ¿Se suma entre programas? | Cobertura | Dimensiones | Vigencia | Función | Listas |
 |---|---|---|---|---|---|---|---|---|---|
-| Envíos (`registros`) | simple | personas | fecha del envío | sí | — | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `campana`, `fuente`, `utm_source`, `utm_medium`, `categoria` |  | `filtroDeEnvios` (`lib/queries/hechos/envio.ts`) | `registros` |
+| Envíos (`registros`) | simple | personas | fecha del envío | sí | — | `tipo`, `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `campana`, `fuente`, `utm_source`, `utm_medium`, `categoria` |  | `filtroDeEnvios` (`lib/queries/hechos/envio.ts`) | `registros` |
 | Agendadas (`agendadas`) | simple | citas | fecha de creación de la cita | sí | — | `dia`, `semana`, `mes`, `hora`, `area`, `canal`, `cuenta`, `utm_source`, `utm_medium`, `categoria`, `tiene_envio`, `dueno`, `cohorte`, `etapa` | `calls` | `agrupar` (`lib/queries/hechos/agenda.ts`) | `agendas_creadas` |
 | Citas (`citas`) | simple | citas | hora de la cita (agenda, o la llamada si no tiene) | sí | — | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte`, `etapa`, `ocurrio` | `calls` | `embudoDelRango` (`lib/queries/dashboard.ts`) | `agendas`, `citas_debidas`, `citas_sin_marcar`, `agendas_futuras` |
 | Realizadas (`shows`) | simple | citas | hora de la cita (agenda, o la llamada si no tiene) | sí | — | `dia`, `semana`, `mes`, `area`, `canal`, `cuenta`, `dueno`, `cohorte`, `etapa` | `calls` | `ocurrioSql` (`lib/deals/resultados-de-llamada.ts`) · gemela `ocurrio` (`lib/deals/resultados-de-llamada.ts`) | `shows`, `shows_sin_grain`, `atendidos_sin_valor`, `atendidos_sin_grain` |
@@ -310,7 +311,7 @@ ticket abierto (con su número). Los colores 🟢 🟡 🔴 ⚪ de §3.3 son del
 
 | Métrica | Fórmula | Estado |
 |---|---|---|
-| Envíos | formularios completos del rango (§1.1). Los parciales —cuando la persona se fue a mitad del formulario— no entran en este número. **Pendiente de Mani:** D-1 pidió completos y parciales con los parciales aparte; hoy los parciales no se muestran aparte en Envíos. Comercial sí los separa mediante `filtroDealsDesde("parcial", …)` (`lib/queries/embudo-comercial.ts:83-90`, ticket 372) | ✅ 397 · definición provisional 429 |
+| Envíos | formularios completos del rango, más los parciales de quien se fue a mitad del formulario y nunca lo completó (429, opción B de Mani, 14-nov). El parcial de una persona que luego completó (mismo formulario y mismo token) no cuenta aparte. Se muestran las dos cifras, completos y parciales, cada una con su lista (filtro `tipo`); la dimensión `tipo` del hecho las separa también en el MCP. Comercial separa sus propios parciales con `filtroDealsDesde("parcial", …)` (`lib/queries/embudo-comercial.ts:83-90`, ticket 372) | ✅ 397 · 429 |
 | Leads | personas distintas (`leads`, entrada por formulario) del programa cuya **primera aplicación** cae en el rango, en Bogotá (`fechaAnclaLead`), la misma persona una vez. La fecha la escribe la ingesta al nacer el lead: la del envío, o cuando el CRM lo recibió si es un parcial sin fecha. **Quien solo dejó un parcial cuenta** (decisión de Mani, 8-nov, 406; test de paridad cifra = lista en `tests/ingesta-escritura.test.ts`); el alta manual no es lead de formulario y no cuenta. Con closer no hay cifra (`—`) y la cohorte la da un deal vigente en ella. La lista Leads «creado» usa el mismo ancla (alta manual: su alta) | ✅ 389 |
 | Dejó datos · Llegó al Calendly | embudo del formulario (ADR 0069, ticket 126) *(Unidad: personas. ¿Se suma entre programas?: sí. Función: `lib/queries/embudo-formulario.ts`.)* | ✅ |
 | Agendó sobre llegó al Calendly | registros que agendaron ÷ registros que llegaron al Calendly; cada paso del embudo muestra su tasa sobre el paso anterior, nombrado ("de los que llegaron al Calendly"), y debajo la del total (Dejó datos); en la tabla por canal, solo la del paso anterior; base cero se muestra `—` (ADR 0067) *(Unidad: registros (`fuente`, `token`), por el día de Bogotá de su primer envío, sin filtro de closer. ¿Se suma entre programas?: no: por programa, nunca en "todos" (ADR 0048). Función: `tasasDelEmbudo` sobre `embudoDelFormulario`.)* | ✅ |
@@ -437,7 +438,7 @@ un escalón, y el escalón se calcula al leer, nunca se guarda.
 | CPM | Gasto COP de las filas que tienen impresiones ÷ suma de impresiones × 1.000. Nunca promedia CPM diarios; una fila nula da cobertura parcial y todas nulas dan «—». Fecha: `gasto_pauta.fecha`, Bogotá. Verificar contra la suma de gasto e impresiones de Meta del rango | COP | no | `cargarPautaSemanal` en `lib/queries/hechos/pauta-semanal.ts` | ✅ |
 | CTR | Σ `gasto_pauta.clics_enlace` ÷ Σ impresiones de las mismas filas. Nunca promedia porcentajes; parcial si Meta omitió parte de las filas. Fecha: `gasto_pauta.fecha`, Bogotá. Verificar contra los totales de clics e impresiones de Meta | porcentaje | no | `cargarPautaSemanal` en `lib/queries/hechos/pauta-semanal.ts` | ✅ |
 | Llegada a la landing | Σ `gasto_pauta.vistas_landing` ÷ Σ clics al enlace de las mismas filas. Nunca promedia porcentajes; parcial si Meta omitió parte de las filas. Fecha: `gasto_pauta.fecha`, Bogotá. Verificar contra los totales de Meta | porcentaje | no | `cargarPautaSemanal` en `lib/queries/hechos/pauta-semanal.ts` | ✅ |
-| Conversión de la landing | Registros completos de Paid del CRM (`hechos/envio`) ÷ Σ `gasto_pauta.vistas_landing`. Los registros se anclan al día del envío y la vista al día de gasto; Total y semana recalculan la razón. Verificar contra registros Paid y vistas de Meta del mismo rango | porcentaje | no | `cargarPautaSemanal` en `lib/queries/hechos/pauta-semanal.ts` | ✅ |
+| Conversión de la landing | Registros de Paid del CRM (completos y parciales sin completar, 429) (`hechos/envio`) ÷ Σ `gasto_pauta.vistas_landing`. Los registros se anclan al día del envío y la vista al día de gasto; Total y semana recalculan la razón. Verificar contra registros Paid y vistas de Meta del mismo rango | porcentaje | no | `cargarPautaSemanal` en `lib/queries/hechos/pauta-semanal.ts` | ✅ |
 | Frecuencia | Σ impresiones ÷ alcance cuando el rango es un solo día. Para más de un día devuelve «—» porque el alcance no es aditivo; una cobertura parcial de Meta se declara. Fecha: `gasto_pauta.fecha`, Bogotá. Verificar contra impresiones y alcance diarios de Meta | razón | no | `cargarPautaSemanal` en `lib/queries/hechos/pauta-semanal.ts` | ✅ |
 | Presupuesto usado | Σ gasto desde que abrió la venta de la cohorte, comparado con la inversión planeada en Programa › Objetivos; no convierte monedas ni inventa presupuesto | COP | sí | `armarCumplimiento` en `lib/metas/cumplimiento-de-cohorte.ts` | ✅ 419 |
 | Agendas por día (real) | agendadas de la cohorte ÷ días hábiles transcurridos de su venta; antes de abrir no hay ritmo y, sin un día hábil completo, sale «—» | agendas/día | no | `armarCumplimiento` en `lib/metas/cumplimiento-de-cohorte.ts` | ✅ 420 |
@@ -519,7 +520,7 @@ instante de corte es las 23:59:59.999 −05:00). Con el día de hoy da lo mismo 
   tasa hasta registrar el resultado. ~~No hay una segunda fórmula por cita.~~ **Enmendada el 24-oct (Mani, 299):** al
   lado del % por deal, Hub › Hoy muestra el % de show por cita (§3.1, `showPorCitaDelRango`), que es otra pregunta.
 - **DA-3 (Mani, 7-nov), cierra D2 y 299:** el «%» de show de Hoy es **por deal**, con la cita en «Cómo se calcula». **DA-4 (Mani, 7-nov):** la agenda es la cita creada en el CRM (la reagenda cuenta como otra); la de Meta se muestra aparte y la pantalla explica que pueden diferir.
-- **D3, leads.** Registros del día (§1.1, envíos completos, igual a Typeform) sin meta hasta el 253: excepción
+- **D3, leads.** Registros del día (§1.1, envíos completos y parciales sin completar, 429) sin meta hasta el 253: excepción
   temporal al ADR 0086 punto 3, que el 253 cierra. Una persona que aplica dos veces son dos registros.
 - **D4, caja.** Por moneda, partida en ventas de hoy y ventas anteriores; los nombres están en la lista de la cifra.
 - **Objetivo del día** (antes "Meta del día"). Lo que faltaba **al abrir hoy** (meta menos lo vendido hasta ayer) ÷ días hábiles de venta que

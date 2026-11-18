@@ -147,7 +147,8 @@ describe("capa de hechos", () => {
     const pagados = await envio.listar(db, { programId, rango: RANGO, filtros: { area: ["paid"] }, pagina: { limite: 10, offset: 0 } });
     expect(pagados.total).toBe(1);
     const sinCampana = await envio.listar(db, { programId, rango: RANGO, filtros: { campana: [null] }, pagina: { limite: 10, offset: 0 } });
-    expect(sinCampana.total).toBe(1);
+    // 2 y no 1 desde el 429: el parcial de `uno` nunca se completó, así que cuenta como envío (sin campaña).
+    expect(sinCampana.total).toBe(2);
   });
 
   it("agenda y cita cuadran con sus listas y excluyen anuladas y otros programas", async () => {

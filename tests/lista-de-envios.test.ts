@@ -100,13 +100,32 @@ async function todasLasFilas(filtros: Omit<FiltrosDeMetrica, "programId" | "rang
 }
 
 describe("ticket 309: una sola lista de envíos", () => {
-  it("registros y el hecho cuentan los mismos envíos completos en todas las páginas", async () => {
+  it("registros y el hecho cuentan los mismos envíos (completos y parciales sin completar) en todas las páginas", async () => {
     const grupos = await agrupar(db, { programId, rango: RANGO, agruparPor: ["utm_source", "utm_medium", "categoria"] });
     const { lista, filas } = await todasLasFilas();
-    expect(grupos.reduce((total, grupo) => total + grupo.envios, 0)).toBe(53);
-    expect(lista.subtotal.cantidad).toBe(53);
-    expect(filas).toHaveLength(53);
+    // 53 completos + 1 parcial de quien nunca completó (429, opción B): antes el total era 53.
+    expect(grupos.reduce((total, grupo) => total + grupo.envios, 0)).toBe(54);
+    expect(lista.subtotal.cantidad).toBe(54);
+    expect(filas).toHaveLength(54);
     expect(lista.filas).toHaveLength(TAMANO_PAGINA);
+  });
+
+  it("429: separa completos y parciales, cada uno con su lista, y el parcial de quien completó no cuenta aparte", async () => {
+    const [persona] = await db.select({ id: leads.id }).from(leads).where(eq(leads.emailNormalizado, "persona-2@retia.test"));
+    const [fuente] = await db.select({ id: sources.id }).from(sources).where(eq(sources.programId, programId));
+    // Mismo formulario y mismo token que el completo `paid-2`: es la misma aplicación.
+    await db.insert(submissions).values({
+      leadId: persona.id, sourceId: fuente.id, token: "paid-2", esParcial: true,
+      fechaEnvio: new Date("2026-10-03T09:00:00-05:00"),
+    });
+
+    const porTipo = await agrupar(db, { programId, rango: RANGO, agruparPor: ["tipo"] });
+    expect(Object.fromEntries(porTipo.map((g) => [g.tipo, g.envios]))).toEqual({ completo: 53, parcial: 1 });
+
+    const parciales = await todasLasFilas({ tipo: "parcial" });
+    expect(parciales.lista.subtotal.cantidad).toBe(1);
+    const completos = await todasLasFilas({ tipo: "completo" });
+    expect(completos.lista.subtotal.cantidad).toBe(53);
   });
 
   it.each([

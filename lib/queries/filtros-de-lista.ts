@@ -30,6 +30,7 @@ export const camposDeFiltrosDeLista = {
   origen: z.enum(["completo", "parcial", "manual"]).optional(),
   source: z.string().max(300).optional(),
   medium: z.string().max(300).optional(),
+  tipo: z.enum(["completo", "parcial"]).optional(),
   categoria: z.enum(["con_utm", "sin_utm", "macro", "pieza_desconocida"]).optional(),
   area: z.enum(["paid", "organico", "referidos", "sin_utm"]).optional(),
   canal: z.string().max(300).optional(),
@@ -78,8 +79,9 @@ const METRICAS_CON_AREA: readonly string[] = ["cierres", "contratado"];
 const METRICAS_DE_GRUPO_CON_AREA: readonly string[] = ["grupo_citas", "grupo_shows", "grupo_vendidos", "grupo_sin_show", "grupo_pendientes"];
 
 export function combinacionDeFiltrosValida(filtros: FiltrosDeLista, { esAdmin }: { esAdmin: boolean }): boolean {
-  const { metrica, resultado, area, canal, pago, source, medium, campaign, categoria, closer, orden, nivel, id, paso, escalon, grupo, calidad, moneda, origen, etapa, antiguedad } = filtros;
+  const { metrica, tipo, resultado, area, canal, pago, source, medium, campaign, categoria, closer, orden, nivel, id, paso, escalon, grupo, calidad, moneda, origen, etapa, antiguedad } = filtros;
   const { esListaDePauta, esListaDeOrigen } = tipoDeLista(filtros);
+  if (tipo !== undefined && metrica !== "registros") return false;
   if (resultado !== undefined && metrica !== "agendas_creadas") return false;
   if (metrica === "escalera" && (area !== undefined || canal !== undefined)) return false;
   if (pago !== undefined && metrica !== "escalera") return false;

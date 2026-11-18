@@ -1,4 +1,4 @@
-import { and, between, eq, sql } from "drizzle-orm";
+import { and, between, eq, or, sql } from "drizzle-orm";
 import { areaSql, canalSql, categoriaUtmSql, columnasIdMetaDelEnvio, cuentaSql, idEnArbolSql } from "@/lib/atribucion/canal-sql";
 import { sources, submissions } from "@/lib/db/schema";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
@@ -21,8 +21,24 @@ import type {
 import { dimensionesDeFecha } from "@/lib/queries/hechos/fechas";
 import { fechaAnclaEnvio } from "@/lib/queries/metricas-filtros";
 
-export type DimensionEnvio = "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "campana" | "fuente" | "utm_source" | "utm_medium" | "categoria";
+export type DimensionEnvio = "tipo" | "dia" | "semana" | "mes" | "area" | "canal" | "cuenta" | "campana" | "fuente" | "utm_source" | "utm_medium" | "categoria";
 export type MedidaEnvio = "envios";
+
+/**
+ * Qué cuenta como un envío (429, opción B de Mani, 14-nov): los completos y los parciales de quien se fue a mitad
+ * del formulario. El parcial de una persona que luego completó (mismo formulario y mismo token) es la misma
+ * aplicación: no cuenta aparte, o la persona valdría dos. UNA definición, para la cifra, la lista y el MCP.
+ */
+export const TIPOS_DE_ENVIO = ["completo", "parcial"] as const;
+export type TipoDeEnvio = (typeof TIPOS_DE_ENVIO)[number];
+
+const tipoSql = sql<TipoDeEnvio>`case when ${submissions.esParcial} then 'parcial' else 'completo' end`;
+const parcialSinCompleto = sql`(${submissions.esParcial} and not exists (
+  select 1 from submissions c
+  where c.source_id = ${submissions.sourceId} and c.token = ${submissions.token} and not c.es_parcial
+))`;
+/** Completos, más los parciales que nunca se completaron. */
+const cuentaComoEnvio = or(eq(submissions.esParcial, false), parcialSinCompleto);
 
 const columnas = { source: submissions.utmSource, medium: submissions.utmMedium };
 const idEnArbol = idEnArbolSql({
@@ -30,6 +46,7 @@ const idEnArbol = idEnArbolSql({
   ...columnasIdMetaDelEnvio,
 });
 const dimensiones = {
+  tipo: tipoSql,
   ...dimensionesDeFecha(submissions.fechaEnvio),
   dia: fechaAnclaEnvio(),
   area: areaSql(columnas, idEnArbol),
@@ -44,6 +61,7 @@ const dimensiones = {
 
 export interface FilaEnvio {
   envioId: string;
+  tipo: TipoDeEnvio;
   dia: string;
   semana: string;
   mes: string;
@@ -77,9 +95,10 @@ export async function agruparTrazas(
   opciones: { programId: string; rango: { desde: string; hasta: string }; hoy: string },
 ): Promise<{ grupos: GrupoDeTrazaDeEnvio[]; primeros: PrimerDiaDeParUtm[] }> {
   const dia = dimensiones.dia;
+  // La misma definición de envío que la cifra y la lista (429): si no, Origen y su lista no cuadran.
   const alcanceDelPrograma = and(
     eq(sources.programId, opciones.programId),
-    eq(submissions.esParcial, false),
+    cuentaComoEnvio,
   );
   const grupos = db.select({
     ...columnasUtmDelEnvio,
@@ -105,7 +124,7 @@ export async function agruparTrazas(
 
 const alcance = (programId: string, rango: { desde: string; hasta: string }) => and(
   eq(sources.programId, programId),
-  eq(submissions.esParcial, false),
+  cuentaComoEnvio,
   between(dimensiones.dia, rango.desde, rango.hasta),
 );
 

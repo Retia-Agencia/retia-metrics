@@ -53,6 +53,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prog
       campaign,
       resultado: validado.resultado,
       categoria: validado.categoria,
+      tipo: validado.tipo,
       orden: validado.orden,
       area: validado.area,
       canal,

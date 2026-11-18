@@ -204,7 +204,7 @@ const REGISTRO_BASE = {
     unidad: "personas",
     monedas: [],
     anclaDeFecha: "fecha_del_envio",
-    dimensiones: ["dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"],
+    dimensiones: ["tipo", "dia", "semana", "mes", "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria"],
     vigencia: [],
     sumaEntreProgramas: true,
     cobertura: "no_aplica",
@@ -1130,10 +1130,10 @@ const DIAS_HABILES: VariableDeMetrica = {
 
 const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
   registros: texto(
-    "Cuántos formularios completos llegaron; los parciales, cuando la persona se fue a mitad del formulario, no entran en este número.", "conteo", ["formularios completos enviados en el periodo"],
+    "Cuántos formularios llegaron: los completos y los parciales de quien se fue a mitad, cada grupo con su cifra y su lista.", "conteo", ["formularios completos enviados en el periodo", "más los parciales de personas que nunca lo completaron"],
     [
       { nombre: "Completo", explicacion: "La persona terminó el formulario. Una persona que aplica dos veces son dos envíos; cuenta el día del envío." },
-      { nombre: "Parcial", explicacion: "La persona se fue a mitad del formulario. Hoy no entra en Envíos ni se muestra aparte en esta cifra." },
+      { nombre: "Parcial", explicacion: "La persona se fue a mitad del formulario y no lo completó. Si luego lo completa, ese parcial ya no cuenta aparte: es el mismo envío y la persona no vale dos." },
     ],
   ),
   agendadas: texto(

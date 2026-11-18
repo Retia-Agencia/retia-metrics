@@ -75,7 +75,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
   const veEquipo = veEquipoComercial(rol);
   const veLeads = veLeadsDePauta(rol);
   const programa = await programaDeTabOConfigurar(session.user.id, rol, slug);
-  const { metrica, closer, moneda, cohorte, origen: origenDeal, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
+  const { metrica, closer, moneda, cohorte, origen: origenDeal, etapa, antiguedad, pagina = 1, source, medium, campaign, resultado, categoria, tipo, area, canal, orden, escalon, grupo, calidad, pago, nivel, id, paso } = validado.data;
   const { source: sourceNormalizado, medium: mediumNormalizado, canal: canalNormalizado, campaign: campaignNormalizado } = normalizarFiltrosDeOrigen(validado.data);
   if (!combinacionDeFiltrosValida(validado.data, { esAdmin })) notFound();
   const vista = await cargarDatosDeListaDelPrograma(db, {
@@ -94,6 +94,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     campaign: campaignNormalizado,
     resultado,
     categoria,
+    tipo,
     orden,
     area,
     canal: canalNormalizado,
@@ -123,7 +124,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
     cohorteId: cohorte,
     origenDeal,
     subconjunto: { etapa, antiguedad },
-    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, area, canal: canalNormalizado },
+    filtrosDeOrigen: { source: sourceNormalizado, medium: mediumNormalizado, campaign: campaignNormalizado, resultado, categoria, tipo, area, canal: canalNormalizado },
     escalera: { escalon, grupo, calidad, pago },
     pauta: nivel && paso ? { nivel, id, paso } : undefined,
   });
@@ -175,6 +176,7 @@ export default async function ListaDeCifraPage({ params, searchParams }: Props) 
             <Badge variant="secondary">Origen: {sourceNormalizado ?? "—"} / {mediumNormalizado ?? "—"}</Badge>
           ) : null}
           {campaignNormalizado !== undefined ? <Badge variant="secondary">Campaña: {campaignNormalizado ?? "—"}</Badge> : null}
+          {tipo ? <Badge variant="secondary">{tipo === "parcial" ? "Solo parciales" : "Solo completos"}</Badge> : null}
           {categoria ? <Badge variant="secondary">{categoria === "sin_utm" ? "Sin UTM" : categoria === "macro" ? "Plantilla sin completar" : categoria === "con_utm" ? "Con UTM" : "Pieza desconocida"}</Badge> : null}
           <Button variant="outline" nativeButton={false} render={<a href={enlaceCsv(slug, busqueda, "leads")} />}>Descargar leads</Button>
           <Button variant="outline" nativeButton={false} render={<a href={enlaceCsv(slug, busqueda, "traza")} />}>Descargar historia</Button>

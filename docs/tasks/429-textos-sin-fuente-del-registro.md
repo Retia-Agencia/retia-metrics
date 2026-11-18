@@ -68,3 +68,12 @@ Mueve cifras: el total de Envíos deja de ser solo completos. Falta el código, 
 con el desglose por `es_parcial`, la cifra de parciales con su ficha, quitar la nota «Pendiente de Mani» de `docs/metricas.md` (~307), `lib/metricas/registro.ts`
 (~1090) y `docs/overview.md` §11, los dorados que cambien y el aviso de qué número se movió (regla del 419). No se hizo en este commit porque
 `registro.ts` y `metricas.md` los está editando la sesión de las fichas de Comercial; va después.
+
+## Hecho (18-nov): opción B implementada
+**Definición única (`lib/queries/hechos/envio.ts`):** Envíos = completos + parciales de quien nunca completó. Un parcial con un completo del mismo formulario y mismo token es la misma aplicación y **no** cuenta aparte (si no, la persona valdría dos: N1). Dimensión nueva `tipo` (`completo`|`parcial`) en el hecho, filtro `tipo` en la lista `registros` (página, CSV y MCP `consultar_metrica`) y en `consultar_hechos` por la dimensión. Hoy muestra «N completos y M parciales» en el pie del embudo.
+**Qué número se movió y cuánto (golden):**
+- `lista-de-envios`: total de Envíos 53 → 54 (+1 parcial sin completar).
+- `capa-hechos`: envíos sin campaña 1 → 2 (+1, el parcial).
+- `vista-hoy`: Envíos del día 2 → 3 (+1 parcial); `registrosParciales` = 1.
+- En vivo se mueven, sin cambiar de definición: Envíos de Hoy, Origen (`agruparTrazas`, ahora misma definición que su lista), registros Paid de la tabla semanal de Pauta, denominador de la conversión de la landing, y los leads/día de la proyección y del reporte diario. No se midió el efecto sobre producción (sin acceso a datos).
+**Falta / no verificado:** el MCP (`resumen_del_hub`) no expone Envíos como cifra; las dos cifras salen por `consultar_hechos` (dimensión `tipo`). La pantalla Hoy no abre lista desde el pie (Hoy no ofrece lista de Envíos, ver `cifras-de-hoy.ts`). Casilla de tracker (N9) queda sin marcar hasta integrar.

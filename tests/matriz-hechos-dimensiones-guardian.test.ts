@@ -21,7 +21,7 @@ const RAIZ = process.cwd();
 
 /** Dimensiones conformes: una definición con un módulo (`hechos/fechas.ts`, `hechos/origen.ts`, ...). */
 const DIMENSIONES = [
-  "dia", "semana", "mes", "hora",
+  "dia", "semana", "mes", "hora", "tipo",
   "area", "canal", "cuenta", "campana", "fuente", "utm_source", "utm_medium", "categoria", "tiene_envio",
   "dueno", "cohorte", "etapa", "ocurrio",
   "moneda", "plataforma", "registrado_por", "objeto_de_pauta", "cuenta_meta",
@@ -34,6 +34,7 @@ const DEL_DEAL = "no:es del deal, no del hecho";
 
 const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
   Envio: {
+    tipo: "si",
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
     area: "si", canal: "si", cuenta: "si", campana: "si", fuente: "si", utm_source: "si", utm_medium: "si", categoria: "si",
     tiene_envio: "no:todo envío es un envío",
@@ -46,6 +47,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     cuenta_meta: "aun",
   },
   Agenda: {
+    tipo: "no:solo el envío tiene parcialidad (429)",
     dia: "si", semana: "si", mes: "si", hora: "si",
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "si", utm_medium: "si", categoria: "si", tiene_envio: "si",
     dueno: "si", cohorte: "si", etapa: "si",
@@ -57,6 +59,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     cuenta_meta: "aun",
   },
   Cita: {
+    tipo: "no:solo el envío tiene parcialidad (429)",
     dia: "si", semana: "si", mes: "si", hora: "aun",
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
     dueno: "si", cohorte: "si", etapa: "si",
@@ -68,6 +71,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     cuenta_meta: "aun",
   },
   Venta: {
+    tipo: "no:solo el envío tiene parcialidad (429)",
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
     area: "si", canal: "si", cuenta: "si", campana: "aun", fuente: "aun", utm_source: "aun", utm_medium: "aun", categoria: "aun", tiene_envio: "aun",
     dueno: "si", cohorte: "si", etapa: "no:una venta ya es Abonado o Completo; la etapa no la separa",
@@ -79,6 +83,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     cuenta_meta: "aun",
   },
   Abono: {
+    tipo: "no:solo el envío tiene parcialidad (429)",
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
     area: "no:el abono mide caja, no el origen del lead",
     canal: "no:el abono mide caja, no el origen del lead",
@@ -97,6 +102,7 @@ const MATRIZ: Record<string, Record<DimensionConforme, Celda>> = {
     cuenta_meta: "no:el abono mide caja, no el origen del lead",
   },
   Gasto: {
+    tipo: "no:solo el envío tiene parcialidad (429)",
     dia: "si", semana: "si", mes: "si", hora: SOLO_DIA,
     area: "no:todo gasto incluido pertenece al área de pauta",
     canal: "no:el gasto se identifica por su objeto de pauta",

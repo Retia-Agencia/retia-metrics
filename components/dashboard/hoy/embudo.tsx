@@ -40,7 +40,7 @@ export function EmbudoDelDia({ programas }: { programas: ProgramaDelReporte[] })
         <div className="max-w-sm"><Cifra mostrarCobertura cifra={cifras.cierreDeVentas} className="w-full" /></div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{Object.values(cifras.embudo).map((c) => <Cifra mostrarCobertura key={c.concepto} cifra={c} />)}</div>
         <EmbudoDeBarras pasos={pasos.map((paso) => ({ ...paso, detalle: undefined }))} />
-        <p className="text-xs text-muted-foreground">100 % = la barra más larga ({mayor.etiqueta}: {num(mayor.cantidad)}). Cada barra mide su cantidad contra esa.{e.canceladas > 0 ? ` ${num(e.canceladas)} citas canceladas no entran.` : ""}</p>
+        <p className="text-xs text-muted-foreground">{nombreCorto("registros")}: {num(reporte.registros - reporte.registrosParciales)} completos y {num(reporte.registrosParciales)} parciales (quien se fue a mitad del formulario). 100 % = la barra más larga ({mayor.etiqueta}: {num(mayor.cantidad)}). Cada barra mide su cantidad contra esa.{e.canceladas > 0 ? ` ${num(e.canceladas)} citas canceladas no entran.` : ""}</p>
       </div>;
       return (
         <Card className="no-partir">
@@ -55,7 +55,8 @@ export function EmbudoDelDia({ programas }: { programas: ProgramaDelReporte[] })
             </div>
             <EmbudoDeBarras pasos={pasos} />
             <p className="text-xs text-muted-foreground">
-              100 % = la barra más larga ({mayor.etiqueta}: {num(mayor.cantidad)}). Cada barra mide su cantidad contra esa.
+              {nombreCorto("registros")}: {num(reporte.registros - reporte.registrosParciales)} completos y {num(reporte.registrosParciales)} parciales (quien se fue a mitad del formulario).
+              {" "}100 % = la barra más larga ({mayor.etiqueta}: {num(mayor.cantidad)}). Cada barra mide su cantidad contra esa.
               {e.canceladas > 0 ? ` ${num(e.canceladas)} citas canceladas no entran.` : ""}
             </p>
           </CardContent>
