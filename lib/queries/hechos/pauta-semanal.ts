@@ -14,6 +14,7 @@ import { dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ven
 import * as agenda from "@/lib/queries/hechos/agenda";
 import * as envio from "@/lib/queries/hechos/envio";
 import { cuentaDelGasto, cuentasDelPrograma, esGastoPaid, gastoConvertido, NOMBRE_SIN_CUENTA, type VistaGasto } from "@/lib/queries/hechos/gasto";
+import { dimensionesDeDate } from "@/lib/queries/hechos/fechas";
 import * as venta from "@/lib/queries/hechos/venta";
 import { valoresVendidosDeDeals } from "@/lib/queries/saldo";
 import { semanasDelRango } from "@/lib/rangos";
@@ -37,7 +38,7 @@ export function pasoDeTablaDePauta(valor: string | string[] | undefined): PasoDe
 }
 export type UnidadPautaSemanal = "COP" | "USD" | "conteo" | "razon" | "porcentaje";
 export type ClavePautaSemanal =
-  | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "cac" | "facturacion" | "roas" | "profit"
+  | "inversion" | "agendas" | "costo_agenda_crm" | "ventas" | "cac" | "facturacion" | "vendido_cohorte" | "ventas_cohorte" | "roas" | "profit"
   | "show" | "cierre_ventas" | "agenda_venta"
   | "cpm" | "ctr" | "llegada_landing" | "conversion_landing" | "agendas_meta" | "costo_agenda_meta" | "frecuencia";
 
@@ -106,6 +107,9 @@ export interface VistaPautaSemanal {
   /** Serie diaria del mismo universo para la gráfica del contrato 370. */
   dias: PuntoDiarioPautaSemanal[];
 }
+
+/** D-11: el corte de semana (lunes) es el de `fechas.ts`, no una copia del `date_trunc`. */
+const semanaDelGasto = dimensionesDeDate(gastoPauta.fecha).semana;
 
 type GastoAgrupado = {
   /** `cuentaDelGasto`: la cuenta de Meta del objeto del gasto; nula en el gasto cargado a mano (416). */
@@ -296,6 +300,12 @@ async function celdasDelRango(
       ? sinDato(cac.motivo ?? "Faltan datos para calcularlo")
       : conPartes(celda(cac.valor), [inversion.valor, conteos.ventas]),
     facturacion: celda(conteos.vendido, coberturaVenta),
+    // D-2: el numerador del ROAS (y del Profit) a la vista, de la MISMA lectura que el ROAS: ROAS = esta fila ÷ gasto en USD.
+    vendido_cohorte: roasDeCohorte
+      ? celda(roasDeCohorte.valorVendidoUsd, roasDeCohorte.sinValorVendido > 0
+        ? { estado: "parcial", razon: `${roasDeCohorte.sinValorVendido} ventas sin valor vendido` } : OK)
+      : sinDato("Vendido por cohorte no disponible"),
+    ventas_cohorte: roasDeCohorte ? celda(roasDeCohorte.ventas) : sinDato("Ventas por cohorte no disponibles"),
     roas: roasDeCohorte
       ? conPartes(celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS"), [roasDeCohorte.valorVendidoUsd, roasDeCohorte.gastoUsd])
       : sinDato("ROAS por cohorte no disponible"),
@@ -348,6 +358,8 @@ const DEFINICION_FILAS: Array<Pick<FilaPautaSemanal, "clave" | "bloque" | "nombr
   { clave: "ventas", bloque: "general", nombre: nombreCorto("ventas"), unidad: "conteo" },
   { clave: "cac", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.cac, unidad: "COP" },
   { clave: "facturacion", bloque: "general", nombre: nombreCorto("vendido"), unidad: "USD" },
+  { clave: "vendido_cohorte", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.vendido_cohorte, unidad: "USD" },
+  { clave: "ventas_cohorte", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.ventas_cohorte, unidad: "conteo" },
   { clave: "roas", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.roas, unidad: "razon" },
   { clave: "profit", bloque: "general", nombre: VOCABULARIO_PAUTA_SEMANAL.profit, unidad: "USD" },
   { clave: "show", bloque: "comercial", nombre: nombreCorto("asistencia"), unidad: "porcentaje" },
@@ -468,7 +480,7 @@ export async function cargarPautaSemanal(
   const [gastos, agendas, ventas, registros, cuentasMeta, tasasDelPeriodo] = await Promise.all([
     db.select({
       cuentaId: cuentaDelGasto,
-      semana: sql<string>`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
+      semana: semanaDelGasto,
       fecha: gastoPauta.fecha,
       moneda: gastoPauta.moneda,
       filas: count(),
@@ -494,7 +506,7 @@ export async function cargarPautaSemanal(
       esGastoPaid,
       condicionDelGasto,
     )).groupBy(
-      sql`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
+      semanaDelGasto,
       gastoPauta.fecha,
       gastoPauta.moneda,
       cuentaDelGasto,

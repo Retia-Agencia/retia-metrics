@@ -248,6 +248,8 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
   agendas_meta: "Cifra de resumen_del_hub: agendas que reporta el pixel de Meta, el denominador del costo según Meta.",
   roas: "Cifra de resumen_del_hub: relaciona vendido atribuido con inversión convertida.",
   profit: "Cifra de resumen_del_hub: resta la inversión al vendido atribuido.",
+  vendido_cohorte: "Cifra de resumen_del_hub: el numerador del ROAS, vendido de la cohorte de registro del periodo.",
+  ventas_cohorte: "Cifra de resumen_del_hub: las ventas de la cohorte de registro que suman al numerador del ROAS.",
   cpm: "Cifra de resumen_del_hub: agrega costo e impresiones reportados por Meta.",
   ctr: "Cifra de resumen_del_hub: agrega clics e impresiones reportados por Meta.",
   llegada_landing: "Cifra de resumen_del_hub: agrega llegadas y clics reportados por Meta.",
@@ -259,8 +261,10 @@ export const CONCEPTOS_SIN_LISTA_EN_EL_MCP = {
  * Solo baja cuando un concepto obtiene una lista consultable propia.
  * 17-nov (411): 49 → 52 porque `dias_cita_a_pago`, `perdidos_por_motivo` y `ticket_perdido` pasaron de «Pendiente en el MCP»
  * a «Cifra de resumen_del_hub» (sin filas propias). El total de excepciones no creció (49 + 3 = 52); los pendientes bajaron de 3 a 0.
+ * 18-nov (auditoría D-2): 52 → 54 por dos conceptos NUEVOS, `vendido_cohorte` y `ventas_cohorte`, el numerador del ROAS que la
+ * tabla de Pauta muestra para que ROAS = vendido de la cohorte ÷ inversión se pueda comprobar. Salen en el bloque `pauta`.
  */
-export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 52;
+export const TOPE_DE_CONCEPTOS_SIN_LISTA_DEL_MCP = 54;
 
 /** Solo baja cuando un concepto pendiente entra al MCP. */
 export const TOPE_DE_CONCEPTOS_PENDIENTES_DEL_MCP = 0;
@@ -302,6 +306,8 @@ export const CIFRAS_EN_EL_RESUMEN = {
   agendas_meta: "pauta",
   roas: "pauta",
   profit: "pauta",
+  vendido_cohorte: "pauta",
+  ventas_cohorte: "pauta",
   cpm: "pauta",
   ctr: "pauta",
   llegada_landing: "pauta",

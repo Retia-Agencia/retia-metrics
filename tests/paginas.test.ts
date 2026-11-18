@@ -115,7 +115,7 @@ const resolverContextoDeVista = vi.fn(async (entrada: unknown) => {
   const vista = await armarVistaDelDashboard(entrada);
   return { ...vista, closers: async () => vista.closers };
 });
-vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard, resolverContextoDeVista }));
+vi.mock("@/lib/queries/vista-dashboard", () => ({ armarVistaDelDashboard, resolverContextoDeVista, cohorteDeLaPauta: (c: { filtroDeCohorte: { cohorteId: string | null } }) => c.filtroDeCohorte.cohorteId }));
 vi.mock("@/lib/queries/dashboard", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/dashboard")>(),
   dineroDelRango: vi.fn(async () => ({ vendido: 0, recaudado: 0, porCobrar: 0, sobrepago: 0, ventas: 0, sinSaldoCalculable: 0, sinValorVendido: 0 })),

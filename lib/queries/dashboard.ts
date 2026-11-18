@@ -131,6 +131,20 @@ export interface CajaPorMoneda {
 }
 
 /**
+ * La moneda en que el CRM recauda (los abonos solo entran en USD, decisión del 16-sep; `abonos.moneda`).
+ * «Entró a caja» sin abonos es 0 en esta moneda, no «—» ni «sin datos» (ADR 0115 N5: una suma sin filas es 0).
+ */
+export const MONEDA_DE_CAJA = "USD";
+
+/**
+ * D-3: el ÚNICO sitio que decide el vacío de la caja. Sin filas, una de la moneda del programa con 0; con filas, las mismas.
+ * Cada pantalla y el MCP leen esto; ninguna inventa su propio «—», «[]» o texto (lo vigila `tests/caja-vacia-guardian.test.ts`).
+ */
+export function cajaConMonedaDelPrograma(filas: readonly CajaPorMoneda[]): CajaPorMoneda[] {
+  return filas.length === 0 ? [{ moneda: MONEDA_DE_CAJA, total: 0 }] : [...filas];
+}
+
+/**
  * `agendas`, `llamadasConShow` y `cierres` son CANTIDADES del periodo, cada una por su fecha. Las tres
  * tasas salen del grupo de citas del rango (ADR 0079, `tasas-del-grupo.ts`): nunca dividen dos
  * cantidades de grupos distintos.
@@ -435,7 +449,8 @@ export async function sinResultadoDelRango(
 /**
  * Caja recaudada del rango, agrupada por moneda (ADR 0013). Suma `abonos.monto`
  * por `abonos.fecha` entre `desde` y `hasta`, inclusive. Nunca convierte moneda:
- * devuelve una fila por moneda presente en el rango.
+ * devuelve una fila por moneda presente en el rango, y sin abonos una sola de la moneda del
+ * programa con 0 (D-3, `cajaConMonedaDelPrograma`).
  */
 export async function cajaRecaudada(
   { programId, rango, claveCloser, cohorteId }: Alcance,
@@ -454,7 +469,8 @@ export async function cajaRecaudada(
         vigente(abonos),
       ),
     )
-    .groupBy(abonos.moneda));
+    .groupBy(abonos.moneda)
+    .then(cajaConMonedaDelPrograma));
 }
 
 /**
@@ -704,6 +720,7 @@ async function leerEmbudoPorCloser(
 
   // Un closer con grupo y sin otra actividad del periodo igual tiene fila: su tasa existe.
   for (const [clave, tasas] of grupo.porCloser) asegurar(clave, tasas.closer);
+  for (const fila of porClave.values()) fila.caja = cajaConMonedaDelPrograma(fila.caja);
 
   // Las tasas salen del grupo de citas (ADR 0079): cada deal cuenta en un solo closer.
   for (const fila of porClave.values()) {

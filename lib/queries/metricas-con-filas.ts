@@ -10,7 +10,7 @@ import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { esAdministrador, veEquipoComercial, veTableroDelPrograma, type Rol } from "@/lib/auth/roles";
 import { abonos, calls, deals, dealEtapaHistorial, leads, piezas, sources, submissions, users } from "@/lib/db/schema";
-import { ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
+import { cajaConMonedaDelPrograma, ventasDelRangoConValor, type Alcance, type CajaPorMoneda, type Rango } from "@/lib/queries/dashboard";
 import { claveCloserSql, claveDeCloser, claveDeCloserSql, etiquetaDeCloserSql } from "@/lib/closers/identidad";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { atendidaSinGrain } from "@/lib/queries/sin-grain";
@@ -1169,7 +1169,9 @@ export async function resumenDeMetrica(metrica: Metrica, filtros: FiltrosDeMetri
       const dinero = esListaDeVentas(metrica, filtros)
         ? await dineroDeVentas(db, await dealsDeLaListaDeVentas(metrica, { ...filtros, programId }, filtros, db))
         : undefined;
-      const subtotalDelResumen = subtotal(grupos);
+      const subtotalSinMonedas = subtotal(grupos);
+      // D-3: la lista de «Entró a caja» sin abonos es 0 en la moneda del programa, igual que la cifra.
+      const subtotalDelResumen = metrica === "caja" ? { ...subtotalSinMonedas, caja: cajaConMonedaDelPrograma(subtotalSinMonedas.caja) } : subtotalSinMonedas;
       const subtotalCentralizado = dinero
         ? { ...subtotalDelResumen, caja: [{ moneda: "USD", total: dinero.vendido }] }
         : subtotalDelResumen;

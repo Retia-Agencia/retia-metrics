@@ -62,7 +62,7 @@ function TotalDelDia({ programas }: { programas: ProgramaDelReporte[] }) {
       <strong>Total, solo conteos:</strong>{" "}
       <span className="cifra">{num(t.registros)}</span> leads · <span className="cifra">{num(t.agendas)}</span> citas ·{" "}
       <span className="cifra">{num(t.realizadas)}</span> realizadas · <span className="cifra">{num(t.ventas)}</span> cupos vendidos ·{" "}
-      caja {t.caja.length === 0 ? "—" : t.caja.map((c) => monto(c.total, c.moneda)).join(" + ")}
+      caja {t.caja.map((c) => monto(c.total, c.moneda)).join(" + ")}
     </p>
   );
 }

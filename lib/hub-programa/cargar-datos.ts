@@ -86,7 +86,7 @@ export async function cargarDatosDelHubDelPrograma(db: Db, entrada: EntradaDeDat
   const cohorteIdDeB = esHoy ? null : vista.filtroDeCohorte.cohorteIdDeB;
   const { elegida } = vista.filtroDeCohorte;
   const sinActividad = seccion !== "hoy" && elegida !== null
-    && vista.embudo.agendas === 0 && vista.embudo.cierres === 0 && vista.caja.length === 0
+    && vista.embudo.agendas === 0 && vista.embudo.cierres === 0 && vista.caja.every((c) => c.total === 0)
     && (vista.leads.leads ?? 0) === 0 && vista.cortesias === 0;
 
   const entradaDetalles = {

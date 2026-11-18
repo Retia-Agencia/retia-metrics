@@ -10,7 +10,7 @@ import {
   TAMANO_PAGINA,
 } from "@/lib/queries/metricas-con-filas";
 import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, METRICAS_DE_LISTA, normalizarFiltrosDeOrigen, tipoDeLista } from "@/lib/queries/filtros-de-lista";
-import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
+import { armarVistaDelDashboard, cohorteDeLaPauta, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/queries/vista-metrica";
 import type { Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
@@ -54,14 +54,15 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
     const sinProyectar = await armarVistaDelDashboard(entradaDeVista, contexto.db, contextoDeVista);
     const vista = proyectarDashboardSegunRol(sinProyectar, contexto.rol);
     const cohorteDePauta = contextoDeVista.filtroDeCohorte.elegida?.id ?? null;
+    const cohorteDeLaTabla = cohorteDeLaPauta(contextoDeVista);
     const ventanaRitmo = ventanaRitmoDeUrl(undefined);
     const [pauta, escalera, planeacion, cumplimiento, roasProyectado] = await Promise.all([
       cargarPautaSemanal(contexto.db, {
         programId: programa.id,
         rango: vista.periodo.a,
         hoy,
-        // La pestaña Pauta usa la cohorte elegida del contexto, aunque resumen_del_hub no reciba un filtro de cohorte.
-        cohorteId: cohorteDePauta,
+        // La misma cohorte que filtra el resto de la vista (D-13): sin filtro de cohorte, «Todas», como la pantalla.
+        cohorteId: cohorteDeLaTabla,
         paso: "semana",
         porCuenta: false,
       }),
@@ -91,7 +92,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `${nombreLargo("ventas")}: ${num(vista.embudo.cierres)}`,
       `${nombreCorto("vendido")}: ${monto(vista.dinero.vendido, "USD")}`,
-      `${nombreCorto("entro_a_caja")}: ${caja.length ? caja.join(", ") : monto(0, "USD")}`,
+      `${nombreCorto("entro_a_caja")}: ${caja.join(", ")}`,
       `${nombreCorto("citas")}: ${num(vista.embudo.agendas)} · ${nombreCorto("shows")}: ${num(vista.embudo.llamadasConShow)}`,
       tasaLegible(nombreCorto("asistencia"), vista.embudo.razonShow, grupo.cobertura, grupo.parcial),
       tasaLegible(nombreCorto("cierre_de_ventas"), vista.embudo.razonCierre, grupo.cobertura, grupo.parcial),
@@ -102,7 +103,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       texto: lineas.join("\n"),
       estructurado: aSalidaDeResumen(
         vista,
-        { pauta: pauta.filas, escalera, planeacion, cumplimiento, roasProyectado },
+        { hoy, pauta: pauta.filas, escalera, planeacion, cumplimiento, roasProyectado },
         { nombre: programa.nombre, slug: programa.slug },
         enlace,
       ),
@@ -173,7 +174,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
     const lista = proyectarListaSegunRol(vista.lista, { rol: contexto.rol, metrica: entrada.metrica, esListaDePauta, esListaDeOrigen });
     const desgloses = desglosesDelResumen(lista.grupos, nombreDeEtapa);
     const haySiguiente = entrada.pagina * TAMANO_PAGINA < lista.subtotal.cantidad;
-    const caja = lista.subtotal.caja.map((valor) => monto(valor.total, valor.moneda));
+    const montosDeLaLista = lista.subtotal.caja.map((valor) => monto(valor.total, valor.moneda));
     const filas = lista.filas.map((fila) => {
       const enlace = fila.dealId
         ? enlaceDeDeal(programa.slug, fila.dealId)
@@ -209,7 +210,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
     });
     const texto = [
       `${TITULOS_DE_LISTA[entrada.metrica]}: ${lista.disponible ? num(lista.subtotal.cantidad) : "—"}`,
-      ...(caja.length ? [`Montos: ${caja.join(", ")}`] : []),
+      ...(montosDeLaLista.length ? [`Montos: ${montosDeLaLista.join(", ")}`] : []),
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `Página ${num(entrada.pagina)}: ${num(lista.filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${entrada.pagina + 1}.` : "No hay otra página."}`,
     ].join("\n");

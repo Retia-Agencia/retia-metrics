@@ -144,6 +144,30 @@ describe("dorado de Pauta: la tabla semanal", () => {
   });
 });
 
+describe("dorado de Pauta: el numerador del ROAS a la vista (D-2)", () => {
+  it("ROAS = «Vendido de esta cohorte de registro» ÷ gasto en USD, en cada semana y en el Total", async () => {
+    await personaDePaid("2026-10-12", { diaVenta: "2026-10-13", valor: "700" });
+    const v = await cargarPautaSemanal(db, { programId, rango: { desde: "2026-10-05", hasta: "2026-10-18" }, hoy: HOY, cohorteId: null });
+    const vendido = fila(v, "vendido_cohorte");
+    const ventas = fila(v, "ventas_cohorte");
+    expect(vendido).toMatchObject({ bloque: "general", unidad: "USD", nombre: VOCABULARIO_PAUTA_SEMANAL.vendido_cohorte });
+    expect(total(v, "vendido_cohorte").valor).toBe(2100);
+    expect(total(v, "ventas_cohorte").valor).toBe(2);
+    const roas = fila(v, "roas");
+    const columnas = [[total(v, "roas"), total(v, "vendido_cohorte")], ...roas.celdas.porColumna.map((c, i) => [c, vendido.celdas.porColumna[i]])];
+    let comprobadas = 0;
+    for (const [r, numerador] of columnas) {
+      if (r.valor === null || !r.partes) continue;
+      expect(r.partes[0]).toBe(numerador.valor);
+      expect(numerador.valor! / r.partes[1]!).toBeCloseTo(r.valor);
+      comprobadas++;
+    }
+    expect(comprobadas).toBeGreaterThan(0);
+    // Las ventas de la fila suman las del Total (la cohorte no se reparte dos veces).
+    expect(ventas.celdas.porColumna.reduce((n, c) => n + (c.valor ?? 0), 0)).toBe(total(v, "ventas_cohorte").valor);
+  });
+});
+
 describe("dorado de Pauta: costo por venta (415)", () => {
   it("es la celda Inversión entre la celda Ventas, y las muestra como sus partes", async () => {
     const v = await vista();

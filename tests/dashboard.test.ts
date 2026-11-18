@@ -664,7 +664,7 @@ describe("alcance acotado a un closer", () => {
     const nadie = await embudoDelRango({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db);
     expect(nadie.agendas).toBe(0);
     expect(nadie.razonShow.valor).toBeNull();
-    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db)).toEqual([]);
+    expect(await cajaRecaudada({ programId: programaA, rango, claveCloser: claveHistorica("Zoe") }, db)).toEqual([{ moneda: "USD", total: 0 }]);
   });
 });
 

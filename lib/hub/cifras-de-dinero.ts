@@ -17,7 +17,7 @@ import {
   type ContextoDelHub, type FilasDeEvidencia,
 } from "@/lib/hub/contexto-de-cifras";
 import { armarCifra, type CifraDeMetrica, type ExplicacionDeConcepto } from "@/lib/metricas/cifra";
-import type { CajaPorMoneda, VentasDeCohorte } from "@/lib/queries/dashboard";
+import { MONEDA_DE_CAJA, type CajaPorMoneda, type VentasDeCohorte } from "@/lib/queries/dashboard";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
 
@@ -160,7 +160,7 @@ export function cifrasDeEntroACaja(p: {
   const actual = new Map(p.caja.map((fila) => [fila.moneda, fila.total]));
   const antes = new Map((p.anterior ?? []).map((fila) => [fila.moneda, fila.total]));
   const monedas = [...new Set([...actual.keys(), ...antes.keys()])].sort();
-  if (monedas.length === 0) monedas.push("USD");
+  if (monedas.length === 0) monedas.push(MONEDA_DE_CAJA);
   const lista = listaDeDetalle(p.detalle, p.evidencia, { nombre: "abonos", articulo: "los" });
   return monedas.map((moneda) => {
     if (!esMoneda(moneda)) throw new Error(`Entró a caja trae una moneda que el CRM no registra: ${moneda}.`);

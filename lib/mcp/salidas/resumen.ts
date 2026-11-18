@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cajaConMonedaDelPrograma } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { FilaPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import type { VistaDeEscalera } from "@/lib/queries/vista-escalera";
@@ -59,6 +60,7 @@ export const salidaDeResumen = z.object({
   }).strict().describe("Medianas de cita a pago calculadas por la escalera de Comercial."),
   norte: z.object({
     cohorte: z.object({
+      rotulo: z.string().describe("Aviso de que esta cohorte es la activa de HOY, aunque el periodo pedido sea otro."),
       meta: z.number().describe("Meta de cupos declarada para la cohorte activa."),
       vendidos: z.number().describe("Ventas acumuladas de la cohorte activa."),
       faltan: z.number().describe("Cupos que faltan para la meta de la cohorte."),
@@ -70,6 +72,8 @@ export const salidaDeResumen = z.object({
       }).strict().nullable().describe("Ventana de venta; null cuando la cohorte no tiene fechas completas."),
     }).strict().nullable().describe("Cifras directas de la cohorte activa; null cuando no hay cohorte activa."),
     metas_del_mes: z.object({
+      rotulo: z.string().describe("Aviso de que estas metas son del MES EN CURSO, aunque el periodo pedido sea otro (D-8)."),
+      mes_en_curso: z.string().describe("El mes al que pertenecen estas metas, AAAA-MM en Bogotá."),
       meta_cupos: z.number().describe("Objetivo de cupos del mes."),
       meta_usd: z.number().describe("Objetivo monetario del mes, en USD."),
       vendidos: z.number().describe("Ventas acumuladas del mes."),
@@ -147,6 +151,8 @@ export const salidaDeResumen = z.object({
 
 type ProgramaDeResumen = { nombre: string; slug: string };
 type ExtrasDeResumen = {
+  /** El día de hoy en Bogotá: de él sale el mes en curso al que pertenecen las metas (D-8). */
+  hoy: string;
   pauta: readonly FilaPautaSemanal[];
   escalera: VistaDeEscalera;
   planeacion: ProyeccionDeCohorte;
@@ -177,7 +183,7 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, extras: ExtrasDeResum
       citas: { valor: vista.embudo.agendas, unidad: "citas" as const },
       shows: { valor: vista.embudo.llamadasConShow, unidad: "citas" as const },
     },
-    entro_a_caja: vista.caja.map(({ moneda, total }) => ({ moneda, total })),
+    entro_a_caja: cajaConMonedaDelPrograma(vista.caja).map(({ moneda, total }) => ({ moneda, total })),
     tasas: {
       asistencia: { valor: vista.embudo.razonShow.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
       cierre_de_ventas: { valor: vista.embudo.razonCierre.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
@@ -188,6 +194,7 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, extras: ExtrasDeResum
     dias_cita_a_pago: { pago_rapido: dias("pago_rapido"), pago_despues: dias("pago_despues"), unidad: "dias_habiles" as const },
     norte: {
       cohorte: vista.cohorte ? {
+        rotulo: "De la cohorte activa a hoy, no del periodo pedido.",
         meta: vista.cohorte.meta, vendidos: vista.cohorte.vendidos, faltan: vista.cohorte.faltan,
         ventana: vista.cohorte.ventana ? {
           esperado: vista.cohorte.ventana.esperado,
@@ -197,6 +204,8 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, extras: ExtrasDeResum
         } : null,
       } : null,
       metas_del_mes: {
+        rotulo: "Del mes en curso, no del periodo pedido.",
+        mes_en_curso: extras.hoy.slice(0, 7),
         meta_cupos: vista.metasDelMes.metaCupos, meta_usd: vista.metasDelMes.metaUsd,
         vendidos: vista.metasDelMes.vendidos, esperado: vista.metasDelMes.esperado, deuda: vista.metasDelMes.deuda,
         objetivo_semana: vista.metasDelMes.compensacionSemanal?.meta ?? null,

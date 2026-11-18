@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ProgramaVisible } from "@/lib/auth/alcance";
-import { monto, num, pct, usd } from "@/lib/format";
+import { monto, num, pct } from "@/lib/format";
 import { valorDeRazon } from "@/lib/cobertura";
 import { metaDeLeads } from "@/lib/queries/proyeccion";
 import type { ReporteDiario } from "@/lib/queries/reporte-diario";
@@ -40,7 +40,7 @@ function TarjetaDePrograma({ titulo, children }: { titulo: string; children: Rea
 }
 
 function cajaLegible(reporte: ReporteDiario): string {
-  return reporte.caja.length === 0 ? usd(0) : reporte.caja.map((c) => monto(c.total, c.moneda)).join(" + ");
+  return reporte.caja.map((c) => monto(c.total, c.moneda)).join(" + ");
 }
 
 function Seccion({ numero, titulo, children }: { numero: string; titulo: string; children: ReactNode }) {

@@ -152,6 +152,8 @@ describe("Ver solo en la tabla de Pauta", () => {
       ventas: cuenta ? 2 : 1,
       facturacion: cuenta ? 2_000 : 1_400,
       cac: cuenta ? 1_600_000 : 2_800_000,
+      vendido_cohorte: cuenta ? 2_000 : 1_400,
+      ventas_cohorte: cuenta ? 2 : 1,
       roas: cuenta ? 2.5 : 2,
       profit: cuenta ? 1_200 : 700,
       costo_agenda_crm: cuenta ? 640_000 : 700_000,

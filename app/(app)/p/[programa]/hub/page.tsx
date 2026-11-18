@@ -29,7 +29,7 @@ import { rolDeVista } from "@/lib/auth/vista";
 import { programaDeTabOConfigurar } from "@/lib/auth/page-guards";
 import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { num, fecha, hoyEnBogota } from "@/lib/format";
-import { resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista } from "@/lib/queries/vista-dashboard";
+import { cohorteDeLaPauta, resolverContextoDeVista, type ContextoDeVista, type EntradaDeVista } from "@/lib/queries/vista-dashboard";
 import { EsqueletoDelHub, EsqueletoDelNorte } from "@/components/hub/esqueleto-del-hub";
 import { cohorteDeLaUrl, TODAS_LAS_COHORTES } from "@/lib/queries/cohorte-del-hub";
 import { fraseSinActividad, lineaDeLaCohorte } from "@/lib/hub/linea-de-cohorte";
@@ -361,7 +361,7 @@ async function CuerpoDelHub({
         hoy={hoy}
         corte={corte}
         busqueda={busqueda}
-        cohorteId={contexto.filtroDeCohorte.elegida?.id ?? null}
+        cohorteId={cohorteDeLaPauta(contexto)}
         cohorteCodigo={contexto.filtroDeCohorte.elegida?.codigo ?? null}
         puedeAbrirLista={veEquipo}
         puedeVerVentas={capacidadParaMetrica({ metrica: "cierres", tieneOrigen: false })(rol)}
@@ -559,7 +559,7 @@ async function CuerpoDelHub({
   const cifrasClosers = veEquipo ? cifrasDeClosersDeHoy({
     filas: reporte.vista.comparativo, explicaciones: explicacionesDeClosersDeHoy(explicaciones),
     programa: programa.nombre, dia: diaDelReporte, hoy, detalles: detallesOperacion?.comparativo,
-  }).map((fila, i) => ({ ...fila, entroACaja: reporte.vista.comparativo[i].caja.length ? fila.entroACaja : [] })) : undefined;
+  }) : undefined;
   return (
     <>
       {fechaRechazada ? (

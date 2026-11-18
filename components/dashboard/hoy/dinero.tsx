@@ -67,7 +67,7 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
 
             <div className="space-y-2 border-t pt-3">
               <h4 className="text-sm font-medium">De dónde salió la caja del día</h4>
-              {reporte.caja.length === 0 ? <p className="text-sm text-muted-foreground">Hoy no se registró ningún abono.</p> : <>
+              <>
                 <Tabla cabeceras={["Moneda", "De ventas de hoy", "Completan ventas anteriores"]}>
                   {reporte.caja.map((fila) => (
                     <tr key={fila.moneda}>
@@ -77,7 +77,7 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
                     </tr>
                   ))}
                 </Tabla>
-                {veEquipo ? (
+                {veEquipo && reporte.detalleDeCaja.length > 0 ? (
                   <Tabla cabeceras={["Quién abonó", "Abono", "Por qué"]}>
                     {reporte.detalleDeCaja.map((a) => (
                       <tr key={a.id}>
@@ -92,7 +92,7 @@ export function DineroDelDia({ programas, veEquipo }: { programas: ProgramaDelRe
                     ))}
                   </Tabla>
                 ) : null}
-              </>}
+              </>
             </div>
           </Contenido>
         </Contenedor>
