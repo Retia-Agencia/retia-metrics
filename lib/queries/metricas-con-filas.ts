@@ -1,3 +1,4 @@
+import { idsDeDealsDelCorte } from "@/lib/queries/deals-del-corte-de-pauta";
 import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { saldosDeDeals, sumaDeAbonos } from "@/lib/queries/saldo";
 import { dineroDeUnaVenta, dineroDeVentas, type DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
@@ -458,6 +459,7 @@ function consultaDe(
   alcance: Alcance,
   filtros: FiltrosDeMetrica,
   db: Db,
+  idsDelCorte?: string[],
 ) {
   switch (metrica) {
     case "caja":
@@ -584,7 +586,7 @@ function consultaDe(
         .where(and(
           filtroCierres(alcance, db),
           // La lista de ventas de un área (Pauta, cumplimiento): la misma regla que la cifra de ventas de esa área.
-          filtros.area ? inArray(deals.id, dealsDelArea(db, alcance.programId, filtros.area)) : undefined,
+          idsDelCorte ? inArray(deals.id, idsDelCorte) : filtros.area ? inArray(deals.id, dealsDelArea(db, alcance.programId, filtros.area)) : undefined,
           vigente(deals),
         ));
     case "cortesias":
@@ -644,6 +646,7 @@ function consultaDe(
         .leftJoin(users, eq(users.id, deals.ownerUserId))
         .where(and(
           filtroAgendasCreadas(alcance, db),
+          idsDelCorte ? inArray(calls.dealId, idsDelCorte) : undefined,
           condicionesDeFiltros({
             ...dimensionesDeOrigen(submissions.id, submissions.utmSource, submissions.utmMedium, calls.programId),
             utm_source: submissions.utmSource,
@@ -655,7 +658,7 @@ function consultaDe(
             ...(filtros.medium !== undefined ? { utm_medium: [filtros.medium] } : {}),
             ...(filtros.campaign !== undefined ? { campana: [filtros.campaign] } : {}),
             ...(filtros.categoria && filtros.categoria !== "pieza_desconocida" ? { categoria: [filtros.categoria] } : {}),
-            ...(filtros.area ? { area: [filtros.area] } : {}),
+            ...(filtros.area && !idsDelCorte ? { area: [filtros.area] } : {}),
             ...(filtros.canal !== undefined ? { canal: [filtros.canal] } : {}),
           }),
           // Sin envío de origen, las columnas UTM llegan nulas y la regla diría "sin_utm"; la tabla de
@@ -760,6 +763,7 @@ async function leerMetricaDeGrupo(
     cohorteId: alcance.cohorteId,
     // El grupo de citas de Paid (D-A, tabla semanal de Pauta): la misma lectura que la cifra de esa tabla.
     area: filtros.area === "paid" ? "paid" : undefined,
+    corte: filtros.corte,
   });
   const base = metrica === "grupo_pendientes"
     ? pendientesDe(grupo, filtros.claveCloser)
@@ -1013,7 +1017,9 @@ async function leerMetricaSinMemoria(
   const resumen = pagina === null;
   const fuente = fuenteDe(metrica);
   const campos = camposDe(metrica, fuente, filtros.hoy, resumen);
-  const consulta = consultaDe(metrica, campos, alcance, filtros, db);
+  const idsDelCorte = filtros.corte && (metrica === "agendas_creadas" || metrica === "cierres")
+    ? await idsDeDealsDelCorte(db, alcance.programId, filtros.corte) : undefined;
+  const consulta = consultaDe(metrica, campos, alcance, filtros, db, idsDelCorte);
 
   if (resumen) {
     // El alias evita repetir el parámetro de hoy con posiciones distintas: Postgres no
@@ -1128,6 +1134,10 @@ async function dealsLeidosDelArea(db: Db, programId: string, area: string) {
 async function dealsDeLaListaDeVentas(metrica: Metrica, alcance: Alcance, filtros: FiltrosDeMetrica, db: Db): Promise<string[]> {
   if (metrica === "escalera") return (await miembrosDeLaEscalera(alcance, filtros, db)).map((m) => m.dealId);
   const ids = (await ventasDelRangoConValor(alcance, db)).map((venta) => venta.dealId);
+  if (filtros.corte && metrica === "cierres") {
+    const idsDelCorte = new Set(await idsDeDealsDelCorte(db, alcance.programId, filtros.corte));
+    return ids.filter((id) => idsDelCorte.has(id));
+  }
   if (!filtros.area || ids.length === 0) return ids;
   // El dinero de la lista sale de las MISMAS filas: con área, solo las ventas de esa área.
   const delArea = new Set((await dealsLeidosDelArea(db, alcance.programId, filtros.area)).map((fila) => fila.id));

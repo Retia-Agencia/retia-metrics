@@ -48,6 +48,32 @@ Rótulos y fórmulas en D-A, D-B, D-C, D-E (403 F1): se construye la forma y se 
 
 ## Avance (11-nov)
 
+**17-nov · «Ver solo» fase 2b: tabla semanal/diaria, CSV, listas y gráfica**
+
+- **Hecho:** `cargarPautaSemanal` acepta `corte`. Inversión, CPM, CTR, llegada y frecuencia usan solo el gasto del
+  objeto y sus descendientes (el gasto manual no entra); agendas, ventas, vendido, CAC, profit, registros y la serie
+  diaria usan los deals que heredan un envío del corte (`lib/queries/deals-del-corte-de-pauta.ts`, que reutiliza
+  `completoDelParcial` y `atribucionPorDeal`); % show, cierre y cita a venta leen el grupo de citas de esos deals
+  (`leerCitasDelGrupo` con `corte`). Agendas de Meta y los dos costos por agenda siguen cuenta y campaña; con conjunto o
+  anuncio dicen «No disponible para este corte: el detalle se guarda por campaña». El CSV valida `corte`/`corte_id`
+  con el mismo resolver; las listas de agendas, cierres, shows y vendidos que abre la tabla llevan el corte; la gráfica
+  diaria agrega «Solo · …». Se quitó el aviso «La tabla todavía muestra todo el programa…».
+- **Una sola definición:** la pertenencia de un objeto al corte (`objetoPerteneceAlCorte`) y la lectura de objetos
+  (`lib/queries/objetos-para-atribucion.ts`, misma clave de caché del ROAS) salen del ROAS y se comparten.
+  `agendasDelCorte` pasa a sumar `agendasPorDiaDelCorte`.
+- **Sin corte nada cambia:** misma rama, mismas consultas y claves; lo fija el test de paridad (las marcas de tiempo
+  del reloj de pared que ya usaba una lectura existente se normalizan en la comparación).
+- **Tests:** nuevo `tests/corte-de-pauta-semanal.test.ts`. Ningún test existente cambió.
+- **Verificado:** typecheck; lint 0 errores; suite completa 4.611 verde; dev:local como gerente: Agenda Milena y Agenda
+  Rosario suman las agendas de Meta del total (10 + 30 = 40) y su inversión excluye el gasto manual; conjunto deja
+  Agendas de Meta sin dato; CSV con corte de campaña corta y con id de nivel equivocado da lo mismo que sin corte;
+  consola limpia. En la semilla ninguna cita tiene ids de Meta, así que las agendas por campaña dan 0 (correcto).
+- **Pendiente:** la explicación de cada celda de la tabla no lleva «Solo · …» (`cifraDeCeldaSemanal` arma sus filtros
+  por dentro; ampliarlo es otra entrega). `idsDeDealsDelCorte` atribuye todos los deals del programa por lotes en cada
+  solicitud con corte: revisar el tiempo con datos reales. Con corte, el costo por agenda de hoy reconoce gasto
+  cargado directo a una campaña o conjunto (sin corte cae en «sin campaña» como antes). Sin `npm run build` ni
+  `test:humo`. Fase 3 (Canal) espera a Mani.
+
 **17-nov · «Ver solo» fase 2a: selector, URL, ROAS, proyección y costo de hoy**
 
 - **Hecho:** control «Ver solo» en la barra de Pauta (`components/hub/filtros-del-hub.tsx`), con Todo el programa y los

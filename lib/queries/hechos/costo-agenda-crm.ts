@@ -1,3 +1,4 @@
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { razonDeCosto, type RazonConCobertura } from "@/lib/cobertura";
 import type { Db } from "@/lib/db/tipos";
 import { costoPorAgendaDeVentana } from "@/lib/semaforo/costo-por-agenda";
@@ -19,9 +20,9 @@ export interface CostoPorAgendaDelCrm {
  */
 export async function costoPorAgendaDelCrm(
   db: Db,
-  args: { programId: string; desde: string; hasta: string; agendasCrm: number },
+  args: { programId: string; desde: string; hasta: string; agendasCrm: number; corte?: CortePauta | null },
 ): Promise<CostoPorAgendaDelCrm> {
-  const ventana = await costoPorAgendaDeVentana(db, { programId: args.programId, desde: args.desde, hasta: args.hasta });
+  const ventana = await costoPorAgendaDeVentana(db, { programId: args.programId, desde: args.desde, hasta: args.hasta, corte: args.corte });
   const { base, faltan, motivo } = ventana.costoCobertura;
   // Una campaña sin propósito es "Otras campañas"; el gasto manual sin campaña cuenta como agenda (D-2).
   const gastoDeAgenda = ventana.campanas

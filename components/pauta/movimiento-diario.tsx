@@ -1,3 +1,4 @@
+import { ROTULO_COSTO_HISTORICO_NO_DISPONIBLE, type CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 import type { JSX } from "react";
 import { InterruptoresDeGrafica } from "@/components/graficas/interruptores";
 import { crearModeloGrafica, type ExplicacionDeSerie, type SerieDeGrafica } from "@/components/graficas/contrato";
@@ -54,7 +55,7 @@ function acumular(valores: Array<number | null>, forma: ConfigDeGrafica["forma"]
 async function agendasSegunMeta(p: PropsMovimiento, tramos: readonly Tramo[]): Promise<Array<number | null> | null> {
   if (tramos.length > TRAMOS_MAXIMOS_SEGUN_META) return null;
   const costos = await Promise.all(tramos.map((tramo) => costoPorAgendaDeVentana(db, {
-    programId: p.programId, desde: tramo.desde, hasta: tramo.hasta, cohorteId: p.cohorteId,
+    programId: p.programId, desde: tramo.desde, hasta: tramo.hasta, cohorteId: p.cohorteId, corte: p.corte,
   })));
   return costos.map((costo) => costo.agendasMeta);
 }
@@ -68,6 +69,7 @@ interface PropsMovimiento {
   origen: string;
   hoy: string;
   cohorteId: string | null;
+  corte?: CorteResuelto | null;
   dias: PuntoDiarioPautaSemanal[];
 }
 
@@ -84,12 +86,15 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
     new Map(p.dias.flatMap((punto) => typeof punto[campo] === "number" ? [[punto.dia, punto[campo] as number] as const] : []));
   const serie = (campo: "inversionCop" | "agendas" | "ventas" | "vendidoUsd") => valoresPorTramo(porDia(campo), tramos, config.forma);
 
+  const { corte } = p;
+  const sinDetalleDeMeta = corte?.nivel === "conjunto" || corte?.nivel === "anuncio";
   const [cumplimiento, anterior, segunMeta] = await Promise.all([
     leerCumplimientoDeCohorte(p.programId, p.cohorteId, p.hoy),
     p.periodo.b && config.unidad !== "plata"
-      ? agenda.agendasDePauta(db, { programId: p.programId, rango: p.periodo.b, cohorteId: p.cohorteId })
+      ? (corte ? agenda.agendasPorDiaDelCorte(db, { programId: p.programId, ...p.periodo.b, cohorteId: p.cohorteId, corte })
+        : agenda.agendasDePauta(db, { programId: p.programId, rango: p.periodo.b, cohorteId: p.cohorteId }))
       : Promise.resolve(null),
-    config.unidad === "cupos" ? agendasSegunMeta(p, tramos) : Promise.resolve(null),
+    config.unidad === "cupos" && !sinDetalleDeMeta ? agendasSegunMeta(p, tramos) : Promise.resolve(null),
   ]);
 
   const series: SerieDeGrafica[] = [];
@@ -112,6 +117,7 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
   const filtros: Array<readonly [string, string]> = [];
   if (p.programa) filtros.push(["Programa", p.programa]);
   filtros.push(["Área", "Paid"]);
+  if (corte) filtros.push(["Solo", corte.etiqueta]);
   if (p.cohorte) filtros.push(["Cohorte", p.cohorte]);
   const porDiaTexto = config.paso === "dia";
   const explicacion = (concepto: ClaveRegistrada, motivoVacio: string, variante?: Parameters<typeof explicacionDe>[1]): ExplicacionDeSerie => ({
@@ -146,7 +152,9 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
   const metaPorDia = cumplimiento.requeridos?.agendasDia.valor ?? null;
   const titulo = porDiaTexto ? "¿Cómo se mueve día a día?" : "¿Cómo se mueve semana a semana?";
   const tieneDatos = series.some((s) => s.valores.some((valor) => valor !== null && valor !== 0));
-  const omitioMeta = config.unidad === "cupos" && segunMeta === null;
+  const motivoSinMeta = config.unidad === "cupos" && segunMeta === null
+    ? sinDetalleDeMeta ? ROTULO_COSTO_HISTORICO_NO_DISPONIBLE : "Las agendas de Meta se ven por semana con periodos largos."
+    : null;
 
   return (
     <Card aria-labelledby="movimiento-diario" data-testid="movimiento-diario">
@@ -167,7 +175,7 @@ export async function MovimientoDiario(p: PropsMovimiento): Promise<JSX.Element>
           ? <GraficaConExplicacion modelo={modelo} explicaciones={explicaciones}
             titulo={`${titulo} Ejes lineales con cero visible.`}
             tituloDeTabla={`${titulo}, por ${porDiaTexto ? "día" : "semana"}`}
-            frescura={`Datos hasta el ${fecha(p.rango.hasta < p.hoy ? p.rango.hasta : p.hoy)}.${omitioMeta ? " Las agendas de Meta se ven por semana con periodos largos." : ""}`} />
+            frescura={`Datos hasta el ${fecha(p.rango.hasta < p.hoy ? p.rango.hasta : p.hoy)}.${motivoSinMeta ? ` ${motivoSinMeta}` : ""}`} />
           : <p className="text-sm text-muted-foreground">Sin inversión, agendas ni ventas de Paid en este periodo.</p>}
       </CardContent>
     </Card>

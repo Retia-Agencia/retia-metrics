@@ -1,3 +1,4 @@
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, eq } from "drizzle-orm";
 import { objetivosDeCohortes } from "@/lib/catalogo/objetivos";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -256,7 +257,7 @@ export async function leerEvidenciaDeVentas(
   return leerEvidencia("cierres", args, db);
 }
 
-type ArgsDeEvidencia = { programId: string; cohorteId: string | null; desde: string; hasta?: string; hoy: string; area?: "paid" };
+type ArgsDeEvidencia = { programId: string; cohorteId: string | null; desde: string; hasta?: string; hoy: string; area?: "paid"; corte?: CortePauta | null };
 
 /**
  * La primera página de cualquier lista del Hub, con los mismos filtros que la cifra que la abre (419): la usan las
@@ -270,6 +271,7 @@ export async function leerEvidencia(metrica: Metrica, args: ArgsDeEvidencia, db:
     cohorteId: args.cohorteId,
     hoy: args.hoy,
     ...(args.area ? { area: args.area } : {}),
+    ...(args.corte ? { corte: args.corte } : {}),
   }, 1, db);
   return seccion;
 }

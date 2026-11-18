@@ -1,3 +1,4 @@
+import type { CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 import type { JSX, ReactNode } from "react";
 import { Enlace } from "@/components/enlace";
 import { Cifra } from "@/components/cifra-con-lista";
@@ -53,8 +54,8 @@ function periodoDelRango(rango: { desde: string; hasta: string }): PeriodoResuel
 }
 
 async function listaDelRango(p: PropsTabla, metrica: Metrica, rango: { desde: string; hasta: string }): Promise<Lista> {
-  const seccion = await leerEvidencia(metrica, { programId: p.programId, cohorteId: p.cohorteId, desde: rango.desde, hasta: rango.hasta, hoy: p.hoy, area: "paid" });
-  const href = urlDeLista({
+  const seccion = await leerEvidencia(metrica, { programId: p.programId, cohorteId: p.cohorteId, desde: rango.desde, hasta: rango.hasta, hoy: p.hoy, area: "paid", corte: p.corte });
+  const enlace = urlDeLista({
     slug: p.slug,
     metrica,
     periodo: periodoDelRango(rango),
@@ -62,6 +63,7 @@ async function listaDelRango(p: PropsTabla, metrica: Metrica, rango: { desde: st
     cohorteId: p.cohorteId,
     filtrosDeOrigen: { area: "paid" },
   });
+  const href = p.corte ? `${enlace}&${new URLSearchParams({ corte: p.corte.nivel, corte_id: p.corte.uuid })}` : enlace;
   if (metrica === "cierres") return listaDeVentas(seccion, href);
   return {
     href,
@@ -96,6 +98,7 @@ interface PropsTabla {
   origen: string;
   hoy: string;
   cohorteId: string | null;
+  corte?: CorteResuelto | null;
   /** Las listas que la sesión abre (la reja de la página de lista): solo esas celdas traen su evidencia. */
   listasQueAbre?: readonly Metrica[];
   /** Por semana o por día (`?tabla=dia`, 414), y el enlace de cada lado del interruptor; sin enlaces no se muestra. */
@@ -125,7 +128,7 @@ function filasPorBloque(filas: FilaPautaSemanal[], bloque: FilaPautaSemanal["blo
 
 export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
   const [vista, objetivos] = await Promise.all([
-    cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId, paso: p.paso, porCuenta: p.porCuenta }),
+    cargarPautaSemanal(db, { programId: p.programId, rango: p.rango, hoy: p.hoy, cohorteId: p.cohorteId, paso: p.paso, porCuenta: p.porCuenta, corte: p.corte }),
     p.cohorteId ? objetivosDeCohortes(db, [p.cohorteId]) : Promise.resolve([]),
   ]);
   const paso = vista.paso;
@@ -155,6 +158,10 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
   if (p.cohorteId) paramsCsv.set("cohorte", p.cohorteId);
   if (paso === "dia") paramsCsv.set("tabla", "dia");
   if (p.porCuenta) paramsCsv.set("por_cuenta", "1");
+  if (p.corte) {
+    paramsCsv.set("corte", p.corte.nivel);
+    paramsCsv.set("corte_id", p.corte.uuid);
+  }
   const hrefCsv = `/p/${encodeURIComponent(p.slug)}/hub/pauta-semanal.csv?${paramsCsv}`;
   const bloques = ["general", "comercial", "trafico"] as const;
 
@@ -237,7 +244,7 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
       </CardContent>
     </Card>
     <MovimientoDiario programId={p.programId} programa={p.programa} cohorte={p.cohorte} rango={p.rango} periodo={p.periodo}
-      origen={p.origen} hoy={p.hoy} cohorteId={p.cohorteId} dias={vista.dias} />
+      origen={p.origen} hoy={p.hoy} cohorteId={p.cohorteId} corte={p.corte} dias={vista.dias} />
     </>
   );
 }

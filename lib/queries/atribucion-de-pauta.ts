@@ -29,7 +29,7 @@ export interface AtribucionDePauta {
 /** Usa las identidades resueltas del árbol. La URL futura deberá resolver su UUID en el servidor. */
 export type CortePauta = { nivel: "cuenta_meta" | "campana" | "conjunto" | "anuncio"; id: string };
 
-/** Solo pertenencia exacta y ancestros identificados; nunca reparte residuales. Aún no filtra ninguna vista. */
+/** Solo pertenencia exacta y ancestros identificados; nunca reparte residuales. */
 export function perteneceAlCorte(atribucion: AtribucionDePauta, corte: CortePauta): boolean {
   const ids = { cuenta_meta: atribucion.cuentaId, campana: atribucion.campanaId,
     conjunto: atribucion.conjuntoId, anuncio: atribucion.anuncioId };
@@ -121,4 +121,16 @@ export function atribucionPorDeal<T extends AtribucionDePauta>(
     if (envio !== undefined) porDeal.set(deal.id, envio);
   }
   return porDeal;
+}
+
+export function objetoPerteneceAlCorte(id: string, objetosPorMeta: ReadonlyMap<string, ObjetoParaAtribucion>, corte: CortePauta): boolean {
+  let objeto = objetosPorMeta.get(id);
+  if (corte.nivel === "cuenta_meta") return objeto?.cuentaId === corte.id;
+  const visitados = new Set<string>();
+  while (objeto && !visitados.has(objeto.idMeta)) {
+    if (objeto.nivel === corte.nivel && objeto.idMeta === corte.id) return true;
+    visitados.add(objeto.idMeta);
+    objeto = objeto.padreIdMeta ? objetosPorMeta.get(objeto.padreIdMeta) : undefined;
+  }
+  return false;
 }

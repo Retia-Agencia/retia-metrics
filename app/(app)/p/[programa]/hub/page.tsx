@@ -1,4 +1,4 @@
-import { resolverCorteDePauta, ROTULO_DIAGNOSTICO_SIN_CORTE, ROTULO_TABLA_SIN_CORTE, type CorteResuelto } from "@/lib/pauta/corte-de-pauta";
+import { resolverCorteDePauta, ROTULO_DIAGNOSTICO_SIN_CORTE, type CorteResuelto } from "@/lib/pauta/corte-de-pauta";
 import { opcionesDeCorteDePauta } from "@/lib/pauta/opciones-de-corte";
 import { cifrasClaveDeComercial, cifrasDeCloser } from "@/lib/hub/cifras-de-comercial";
 import { cifrasDeEscalera, cifrasDelEmbudoComercial, cifrasDeCaminos, cifrasDeCitasPorSemana, cifrasDeAuditoria } from "@/lib/hub/cifras-de-recorridos";
@@ -680,8 +680,7 @@ async function SeccionPauta({
             plata: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, "plata", { parametro: "cumpl" }),
           }} />
         <SemaforoDelPrograma programId={programId} programa={programaNombre} comparar={periodo.b !== null} corte={corte} />
-        {corte ? <p className="text-xs text-muted-foreground">{ROTULO_TABLA_SIN_CORTE}</p> : null}
-        <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre}
+        <TablaSemanalDePauta programId={programId} programa={programaNombre} cohorte={cohorteCodigo ?? undefined} slug={slug} rango={rango} periodo={periodo} origen={origen} hoy={hoy} cohorteId={cohorteId} listasQueAbre={listasQueAbre} corte={corte}
           paso={pasoDeTablaDePauta(busqueda.tabla)}
           hrefDePaso={{
             semana: urlConSeccion(rutaDePrograma(slug, "hub"), busqueda, null, { parametro: "tabla" }),

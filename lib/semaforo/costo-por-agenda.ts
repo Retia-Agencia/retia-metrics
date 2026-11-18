@@ -383,10 +383,10 @@ export async function costoPorAgendaDeVentana(
   const objetosPorIdMeta = new Map(objetos.map((objeto) => [objeto.idMeta, objeto]));
   const filasConCampana: FilaDeGasto[] = filas.map((fila) => {
     const anuncio = fila.pautaObjetoId ? objetosPorId.get(fila.pautaObjetoId) : undefined;
-    const conjunto = anuncio?.nivel === "anuncio" && anuncio.padreIdMeta
+    const conjunto = args.corte && anuncio?.nivel === "conjunto" ? anuncio : anuncio?.nivel === "anuncio" && anuncio.padreIdMeta
       ? objetosPorIdMeta.get(anuncio.padreIdMeta)
       : undefined;
-    const campana = conjunto?.nivel === "conjunto" && conjunto.padreIdMeta
+    const campana = args.corte && anuncio?.nivel === "campana" ? anuncio : conjunto?.nivel === "conjunto" && conjunto.padreIdMeta
       ? objetosPorIdMeta.get(conjunto.padreIdMeta)
       : undefined;
     return {

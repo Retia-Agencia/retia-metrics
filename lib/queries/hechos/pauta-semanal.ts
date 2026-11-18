@@ -1,4 +1,9 @@
-import { and, between, count, eq, sql } from "drizzle-orm";
+import { ROTULO_COSTO_HISTORICO_NO_DISPONIBLE } from "@/lib/pauta/corte-de-pauta";
+import { instanteDeBogota } from "@/lib/format";
+import { objetoPerteneceAlCorte, type CortePauta } from "@/lib/queries/atribucion-de-pauta";
+import { idsDeDealsDelCorte } from "@/lib/queries/deals-del-corte-de-pauta";
+import { objetosParaAtribucionDePauta } from "@/lib/queries/objetos-para-atribucion";
+import { and, between, count, eq, inArray, sql } from "drizzle-orm";
 import { gastoPauta, pautaObjetos } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
@@ -170,23 +175,25 @@ async function convertirFilas(
 
 async function leerTodasLasVentas(
   db: Db,
-  args: { programId: string; rango: Rango; cohorteId: string | null },
+  args: { programId: string; rango: Rango; cohorteId: string | null; corte?: CortePauta | null },
 ): Promise<VentaLeida[]> {
+  const idsDelCorte = args.corte ? new Set(await idsDeDealsDelCorte(db, args.programId, args.corte)) : null;
   const filas: Array<{ dealId: string; dia: string; semana: string }> = [];
   const tamano = 500;
   for (let offset = 0; ; offset += tamano) {
     const pagina = await venta.listar<"dia" | "semana" | "area" | "cohorte">(db, {
       programId: args.programId,
       rango: args.rango,
-      filtros: { area: ["paid"], ...(args.cohorteId ? { cohorte: [args.cohorteId] } : {}) },
+      filtros: { ...(idsDelCorte ? {} : { area: ["paid"] }), ...(args.cohorteId ? { cohorte: [args.cohorteId] } : {}) },
       orden: { campo: "dia", sentido: "asc" },
       pagina: { limite: tamano, offset },
     });
     filas.push(...pagina.filas.map(({ dealId, dia, semana }) => ({ dealId, dia, semana })));
     if (filas.length >= pagina.total) break;
   }
-  const valores = await valoresVendidosDeDeals(db, filas.map((fila) => fila.dealId));
-  return filas.map((fila) => ({ ...fila, valor: valores.get(fila.dealId) ?? null }));
+  const elegidas = idsDelCorte ? filas.filter((fila) => idsDelCorte.has(fila.dealId)) : filas;
+  const valores = await valoresVendidosDeDeals(db, elegidas.map((fila) => fila.dealId));
+  return elegidas.map((fila) => ({ ...fila, valor: valores.get(fila.dealId) ?? null }));
 }
 
 function enRango(dia: string, rango: Rango): boolean {
@@ -230,19 +237,21 @@ async function celdasDelRango(
   rango: Rango,
   gastos: readonly GastoAgrupado[],
   conteos: Conteos,
-  gastoUsd: VistaGasto,
-  costoMeta: CostoPorAgenda,
-  costoCrm: CostoPorAgendaDelCrm,
+  gastoUsd: VistaGasto | null,
+  costoMeta: CostoPorAgenda | null,
+  costoCrm: CostoPorAgendaDelCrm | null,
   grupo: GrupoDeCitas,
   roasDeCohorte: RenglonRoas | null,
+  corte: CortePauta | null | undefined,
 ): Promise<Record<ClavePautaSemanal, CeldaPautaSemanal>> {
   const filasGasto = gastos.reduce((n, fila) => n + fila.filas, 0);
   const inversionCop = await convertirFilas(db, gastos, rango, "monto", "COP");
   const gastoCpmCop = await convertirFilas(db, gastos.filter((fila) => fila.filasImpresiones > 0), rango, "montoConImpresiones", "COP");
-  const otrasCampanasCop = inversionCop.valor === null ? undefined : costoCrm.gastoOtras;
+  const otrasCampanasCop = inversionCop.valor === null ? undefined : costoCrm?.gastoOtras;
+  const inversionUsd = corte ? await convertirFilas(db, gastos, rango, "monto", "USD") : null;
   const coberturaVenta = coberturaDeVenta(conteos);
-  const razonGasto = gastoUsd.diasSinTrm.length > 0
-    ? `Falta TRM para ${gastoUsd.diasSinTrm.join(", ")}`
+  const razonGasto = !gastoUsd ? "Sin gasto de Meta para este corte"
+    : gastoUsd.diasSinTrm.length > 0 ? `Falta TRM para ${gastoUsd.diasSinTrm.join(", ")}`
     : motivoDeGasto(gastoUsd.cobertura);
   const impresiones = sumarCampo(gastos, "impresiones");
   const presentesImpresiones = sumarCampo(gastos, "filasImpresiones");
@@ -259,8 +268,8 @@ async function celdasDelRango(
   const coberturaCtr = coberturaDeColumnas(filasGasto, sumarCampo(gastos, "filasCtr"));
   const coberturaLanding = coberturaDeColumnas(filasGasto, sumarCampo(gastos, "filasLlegada"));
   const coberturaConversion = coberturaDeColumnas(filasGasto, presentesLanding);
-  const costoCobertura = costoMeta.costoCobertura;
-  const costoMetaCelda = costoCobertura.valor === null
+  const costoCobertura = costoMeta?.costoCobertura;
+  const costoMetaCelda = !costoMeta || !costoCobertura ? sinDato(ROTULO_COSTO_HISTORICO_NO_DISPONIBLE) : costoCobertura.valor === null
     ? sinDato(costoCobertura.motivo ?? (costoMeta.agendasMeta === 0 ? "Sin agendas según Meta" : "Sin gasto de agenda"))
     : conPartes(celda(costoCobertura.valor, costoCobertura.faltan > 0
       ? { estado: "parcial", razon: costoCobertura.motivo }
@@ -277,7 +286,7 @@ async function celdasDelRango(
   return {
     inversion,
     agendas: celda(conteos.agendas),
-    costo_agenda_crm: costoCrm.costo.valor === null
+    costo_agenda_crm: !costoCrm ? sinDato(ROTULO_COSTO_HISTORICO_NO_DISPONIBLE) : costoCrm.costo.valor === null
       ? sinDato(costoCrm.costo.motivo ?? (costoCrm.agendasCrm === 0 ? "Sin agendas del CRM en el periodo" : "Sin gasto de agenda"))
       : conPartes(celda(costoCrm.costo.valor, costoCrm.costo.faltan > 0
         ? { estado: "parcial", razon: costoCrm.costo.motivo }
@@ -290,7 +299,10 @@ async function celdasDelRango(
     roas: roasDeCohorte
       ? conPartes(celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular ROAS"), [roasDeCohorte.valorVendidoUsd, roasDeCohorte.gastoUsd])
       : sinDato("ROAS por cohorte no disponible"),
-    profit: roasDeCohorte
+    profit: corte && filasGasto === 0 ? sinDato(razonGasto)
+      : inversionUsd?.razon ? sinDato(inversionUsd.razon)
+      : corte && roasDeCohorte?.sinValorVendido ? sinDato("Falta el valor vendido de parte de las ventas")
+      : roasDeCohorte
       ? (() => {
         const base = celdaDeRazonConCobertura(roasDeCohorte.roas, "Sin datos para calcular profit");
         return base.valor === null
@@ -315,7 +327,7 @@ async function celdasDelRango(
     conversion_landing: landing === 0
       ? sinDato("Sin dato de Meta")
       : conPartes(celda(conteos.registros / landing, coberturaConversion), [conteos.registros, landing]),
-    agendas_meta: costoMeta.agendasMeta === null
+    agendas_meta: !costoMeta ? sinDato(ROTULO_COSTO_HISTORICO_NO_DISPONIBLE) : costoMeta.agendasMeta === null
       ? sinDato("Sin dato de Meta")
       : filasGasto === 0
       ? sinDato(razonGasto)
@@ -405,7 +417,7 @@ function subfilasPorCuenta(e: {
   gastos: readonly GastoAgrupado[];
   cuentas: Array<{ id: string; nombre: string }>;
   tasas: Map<string, number>;
-  costos: CostoPorAgenda[];
+  costos: Array<CostoPorAgenda | null>;
 }): Map<ClavePautaSemanal, SubfilaPautaSemanal[]> {
   const inversionDe = (cuentaId: string | null, rango: Rango): number => {
     const filas = e.gastos.filter((g) => g.cuentaId === cuentaId && enRango(g.fecha, rango));
@@ -413,16 +425,16 @@ function subfilasPorCuenta(e: {
     return convertido.montos.reduce<number>((n, monto) => n + (monto ?? 0), 0);
   };
   const conCuenta = (cuentaId: string | null) => e.gastos.some((g) => g.cuentaId === cuentaId)
-    || (e.costos[0].porCuenta.find((c) => c.cuentaId === cuentaId)?.agendasMeta ?? 0) > 0;
+    || (e.costos[0]?.porCuenta.find((c) => c.cuentaId === cuentaId)?.agendasMeta ?? 0) > 0;
   const renglones = [...e.cuentas, { id: null, nombre: NOMBRE_SIN_CUENTA }]
     .filter((c) => conCuenta(c.id))
     .map((c) => ({ ...c, inversion: inversionDe(c.id, e.rangos[0]) }))
     .sort((a, b) => Number(a.id === null) - Number(b.id === null) || b.inversion - a.inversion);
   const celdaDe = (clave: (typeof CLAVES_POR_CUENTA)[number], cuentaId: string | null, i: number): CeldaPautaSemanal => {
     const fila = e.celdas[i][clave];
-    if (clave !== "costo_agenda_meta" && fila.valor === null) return fila;
+    if (fila.valor === null && (clave !== "costo_agenda_meta" || !e.costos[i])) return fila;
     const rango = e.rangos[i];
-    const deLaCuenta = e.costos[i].porCuenta.find((c) => c.cuentaId === cuentaId);
+    const deLaCuenta = e.costos[i]?.porCuenta.find((c) => c.cuentaId === cuentaId);
     if (clave === "inversion") return celda(inversionDe(cuentaId, rango));
     if (clave === "agendas_meta") return deLaCuenta?.agendasMeta === null ? sinDato("Sin dato de Meta") : celda(deLaCuenta?.agendasMeta ?? 0);
     if (!deLaCuenta || deLaCuenta.gasto === 0) return sinDato("Sin gasto de agenda de esta cuenta");
@@ -439,10 +451,20 @@ function subfilasPorCuenta(e: {
 
 export async function cargarPautaSemanal(
   db: Db,
-  args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null; paso?: PasoDeTablaDePauta; porCuenta?: boolean },
+  args: { programId: string; rango: Rango; hoy: string; cohorteId: string | null; paso?: PasoDeTablaDePauta; porCuenta?: boolean; corte?: CortePauta | null },
 ): Promise<VistaPautaSemanal> {
   const paso = args.paso ?? "semana";
   const columnas = columnasDelPaso(args.rango, paso, args.hoy);
+  const { corte } = args;
+  // El mismo instante con y sin corte: una cita madura igual en las dos lecturas.
+  const ahora = new Date(instanteDeBogota(args.hoy, "23:59")!.getTime() + 59_000);
+  const condicionDelGasto = corte ? await objetosParaAtribucionDePauta(db, args.programId).then((objetos) => {
+    const porMeta = new Map(objetos.map((objeto) => [objeto.idMeta, objeto]));
+    return inArray(pautaObjetos.idMeta, objetos.filter((objeto) => objetoPerteneceAlCorte(objeto.idMeta, porMeta, corte))
+      .map((objeto) => objeto.idMeta));
+  }) : undefined;
+  const roasDelPeriodo = corte ? cargarRoasDePauta(db, args.programId, args.rango, args.hoy, ahora, null, corte) : null;
+  const sinDetalleDeAgenda = corte?.nivel === "conjunto" || corte?.nivel === "anuncio";
   const [gastos, agendas, ventas, registros, cuentasMeta, tasasDelPeriodo] = await Promise.all([
     db.select({
       cuentaId: cuentaDelGasto,
@@ -470,19 +492,27 @@ export async function cargarPautaSemanal(
       eq(gastoPauta.programId, args.programId),
       between(gastoPauta.fecha, args.rango.desde, args.rango.hasta),
       esGastoPaid,
+      condicionDelGasto,
     )).groupBy(
       sql`date_trunc('week', ${gastoPauta.fecha}::timestamp)::date`,
       gastoPauta.fecha,
       gastoPauta.moneda,
       cuentaDelGasto,
     ) as Promise<GastoAgrupado[]>,
-    agenda.agendasDePauta(db, {
-      programId: args.programId,
-      rango: args.rango,
-      cohorteId: args.cohorteId,
-    }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, agendas: fila.agendas }))),
+    corte ? agenda.agendasPorDiaDelCorte(db, { programId: args.programId, ...args.rango, cohorteId: args.cohorteId, corte })
+      : agenda.agendasDePauta(db, {
+        programId: args.programId,
+        rango: args.rango,
+        cohorteId: args.cohorteId,
+      }).then((filas) => filas.map((fila) => ({ dia: fila.dia!, agendas: fila.agendas }))),
     leerTodasLasVentas(db, args),
-    envio.agrupar<"dia" | "semana" | "area">(db, {
+    roasDelPeriodo ? roasDelPeriodo.then((roas) => {
+      const porDia = new Map<string, number>();
+      for (const envio of roas.envios) {
+        if (envio.cuentaComoRegistro) porDia.set(envio.diaEnvio, (porDia.get(envio.diaEnvio) ?? 0) + 1);
+      }
+      return [...porDia].map(([dia, envios]) => ({ dia, envios }));
+    }) : envio.agrupar<"dia" | "semana" | "area">(db, {
       programId: args.programId,
       rango: args.rango,
       agruparPor: ["dia", "semana"],
@@ -492,26 +522,28 @@ export async function cargarPautaSemanal(
     args.porCuenta ? tasasDelRango(db, args.rango.desde, args.rango.hasta) : Promise.resolve(null),
   ]);
   const rangos = [args.rango, ...columnas];
-  const ahora = new Date(`${args.hoy}T23:59:59-05:00`);
   const [porRango, grupoTotal, gruposDeColumnas] = await Promise.all([
     porColumnas(rangos, async (rango) => {
       const [gastoUsd, costoMeta, costoCrm, dinero, roas] = await Promise.all([
-        gastoConvertido(db, args.programId, rango),
-        costoPorAgendaDeVentana(db, {
+        corte ? null : gastoConvertido(db, args.programId, rango),
+        sinDetalleDeAgenda ? null : costoPorAgendaDeVentana(db, {
           programId: args.programId,
           desde: rango.desde,
           hasta: rango.hasta,
+          corte,
           cohorteId: args.cohorteId,
         }),
         // El denominador del costo es la MISMA cifra que pinta la celda "Agendadas" de ese rango (412 F).
-        costoPorAgendaDelCrm(db, {
+        sinDetalleDeAgenda ? null : costoPorAgendaDelCrm(db, {
           programId: args.programId,
           desde: rango.desde,
           hasta: rango.hasta,
+          corte,
           agendasCrm: agendas.filter((fila) => enRango(fila.dia, rango)).reduce((n, fila) => n + fila.agendas, 0),
         }),
         dineroDeVentas(db, ventas.filter((fila) => enRango(fila.dia, rango)).map((fila) => fila.dealId)),
-        cargarRoasDePauta(db, args.programId, rango, args.hoy, ahora, args.cohorteId),
+        roasDelPeriodo && rango === args.rango && args.cohorteId === null ? roasDelPeriodo
+          : cargarRoasDePauta(db, args.programId, rango, args.hoy, ahora, args.cohorteId, corte),
       ]);
       return { gastoUsd, costoMeta, costoCrm, dinero, roas };
     }),
@@ -521,6 +553,7 @@ export async function cargarPautaSemanal(
       ahora,
       cohorteId: args.cohorteId,
       area: "paid",
+      corte,
     }),
     gruposPorTramo(db, {
       programId: args.programId,
@@ -528,6 +561,7 @@ export async function cargarPautaSemanal(
       ahora,
       cohorteId: args.cohorteId,
       area: "paid",
+      corte,
       tramos: columnas,
     }),
   ]);
@@ -542,6 +576,7 @@ export async function cargarPautaSemanal(
     porRango[i].costoCrm,
     grupos[i],
     porRango[i].roas?.total ?? null,
+    corte,
   ), rango, args.hoy, paso, i === 0)));
   const subfilas = tasasDelPeriodo === null ? null : subfilasPorCuenta({
     rangos, celdas, gastos, cuentas: cuentasMeta, tasas: tasasDelPeriodo.porDia,

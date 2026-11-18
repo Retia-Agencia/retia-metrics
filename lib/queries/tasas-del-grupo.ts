@@ -1,4 +1,6 @@
-import { and, between, eq } from "drizzle-orm";
+import type { CortePauta } from "@/lib/queries/atribucion-de-pauta";
+import { idsDeDealsDelCorte } from "@/lib/queries/deals-del-corte-de-pauta";
+import { and, between, eq, inArray } from "drizzle-orm";
 import { calls, deals, programs, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
@@ -248,10 +250,11 @@ export function tasasDelAlcance(grupo: GrupoDeCitas, claveCloser: string | null 
  */
 export async function leerCitasDelGrupo(
   db: Db,
-  { programId, rango, cohorteId, area }: { programId: string; rango: Rango; cohorteId?: string | null; area?: "paid" },
+  { programId, rango, cohorteId, area, corte }: { programId: string; rango: Rango; cohorteId?: string | null; area?: "paid"; corte?: CortePauta | null },
 ): Promise<CitaParaTasas[]> {
   return unaVezPorSolicitud(db, claveDe("leerCitasDelGrupo", programId, rango.desde, rango.hasta,
-    cohorteId ?? null, area ?? null), async () => {
+    cohorteId ?? null, area ?? null, ...(corte ? [corte.nivel, corte.id] : [])), async () => {
+    const idsDelCorte = corte ? await idsDeDealsDelCorte(db, programId, corte) : null;
     const filas = await db
       .select({
         callId: calls.id,
@@ -277,7 +280,7 @@ export async function leerCitasDelGrupo(
         eq(calls.programId, programId),
         between(fechaAnclaCall(), rango.desde, rango.hasta),
         noReagendadaSql(),
-        area === "paid" ? condicionDeAreaDePauta() : undefined,
+        idsDelCorte ? inArray(deals.id, idsDelCorte) : area === "paid" ? condicionDeAreaDePauta() : undefined,
         vigente(calls),
       ));
 
@@ -300,10 +303,10 @@ export async function leerCitasDelGrupo(
 /** Lectura y cuenta juntas, para quien solo quiere el grupo del rango. */
 export async function grupoDeCitas(
   db: Db,
-  { programId, rango, ahora, cohorteId, area }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid" },
+  { programId, rango, ahora, cohorteId, area, corte }: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid"; corte?: CortePauta | null },
 ): Promise<GrupoDeCitas> {
   const [citas, diasParaMadurar] = await Promise.all([
-    leerCitasDelGrupo(db, { programId, rango, cohorteId, area }),
+    leerCitasDelGrupo(db, { programId, rango, cohorteId, area, corte }),
     diasParaMadurarDe(db, programId),
   ]);
   return calcularTasasDelGrupo({ citas, rango, hoy: diaDeCalendario(ahora), ahora, diasParaMadurar });
@@ -317,7 +320,7 @@ export async function grupoDeCitas(
  */
 export async function gruposPorSemana(
   db: Db,
-  args: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid" },
+  args: { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid"; corte?: CortePauta | null },
 ): Promise<{ semana: Rango; grupo: GrupoDeCitas }[]> {
   const grupos = await gruposPorTramo(db, { ...args, tramos: semanasDelRango(args.rango) });
   return grupos.map(({ tramo, grupo }) => ({ semana: tramo, grupo }));
@@ -329,11 +332,11 @@ export async function gruposPorSemana(
  */
 export async function gruposPorTramo(
   db: Db,
-  { programId, rango, ahora, cohorteId, area, tramos }:
-    { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid"; tramos: readonly Rango[] },
+  { programId, rango, ahora, cohorteId, area, corte, tramos }:
+    { programId: string; rango: Rango; ahora: Date; cohorteId?: string | null; area?: "paid"; corte?: CortePauta | null; tramos: readonly Rango[] },
 ): Promise<{ tramo: Rango; grupo: GrupoDeCitas }[]> {
   const [citas, diasParaMadurar] = await Promise.all([
-    leerCitasDelGrupo(db, { programId, rango, cohorteId, area }),
+    leerCitasDelGrupo(db, { programId, rango, cohorteId, area, corte }),
     diasParaMadurarDe(db, programId),
   ]);
   const hoy = diaDeCalendario(ahora);

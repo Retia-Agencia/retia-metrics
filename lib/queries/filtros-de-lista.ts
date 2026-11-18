@@ -108,3 +108,8 @@ export function normalizarFiltrosDeOrigen<T extends Pick<FiltrosDeLista, "source
     campaign: filtros.campaign === "__null__" ? null : filtros.campaign,
   };
 }
+
+/** Listas de la tabla de Pauta que admiten el corte de Meta con el filtro de área de la tabla. */
+export function listaDeTablaAdmiteCorte(metrica: Metrica, area: string | undefined): boolean {
+  return area === "paid" && ["agendas_creadas", "cierres", "grupo_shows", "grupo_vendidos"].includes(metrica);
+}

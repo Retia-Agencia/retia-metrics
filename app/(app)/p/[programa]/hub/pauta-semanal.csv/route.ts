@@ -1,3 +1,5 @@
+import { resolverCorteDePauta } from "@/lib/pauta/corte-de-pauta";
+import { opcionesDeCorteDePauta } from "@/lib/pauta/opciones-de-corte";
 import { z } from "zod";
 import { programaVisiblePorSlug } from "@/lib/auth/alcance";
 import { requireSession, respuestaDeError } from "@/lib/auth/guards";
@@ -27,12 +29,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ prog
     });
     const cohorteId = url.searchParams.get("cohorte");
     const paso = pasoDeTablaDePauta(url.searchParams.get("tabla") ?? undefined);
+    const niveles = url.searchParams.getAll("corte");
+    const ids = url.searchParams.getAll("corte_id");
+    const corte = niveles.length === 1 && ids.length === 1
+      ? resolverCorteDePauta(await opcionesDeCorteDePauta(db, programa.id), niveles[0], ids[0]) : null;
     const vista = await cargarPautaSemanal(db, {
       programId: programa.id,
       rango,
       hoy: hoyEnBogota(),
       cohorteId,
       paso,
+      corte,
       porCuenta: url.searchParams.get("por_cuenta") === "1",
     });
     return new Response(csvDePautaSemanal(vista), { headers: {

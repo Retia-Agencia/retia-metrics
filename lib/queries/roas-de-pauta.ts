@@ -1,9 +1,10 @@
-import { atribuirEnviosDePauta, atribucionPorDeal, completoDelParcial, diaDelEnvio, perteneceAlCorte, type CortePauta, type AtribucionDePauta } from "@/lib/queries/atribucion-de-pauta";
+import { objetosParaAtribucionDePauta } from "@/lib/queries/objetos-para-atribucion";
+import { objetoPerteneceAlCorte, atribuirEnviosDePauta, atribucionPorDeal, completoDelParcial, diaDelEnvio, perteneceAlCorte, type CortePauta, type AtribucionDePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, between, eq, inArray, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { columnasUtmDelEnvio } from "@/lib/atribucion/utm-del-envio";
 import { razon, razonVacia, type RazonConCobertura } from "@/lib/cobertura";
-import { calls, deals, leads, pautaObjetos, sources, submissions } from "@/lib/db/schema";
+import { calls, deals, leads, sources, submissions } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import { citaPorVenirDeDealAbierto, citaSinResultado, noAsistio, ocurrio } from "@/lib/deals/resultados-de-llamada";
@@ -230,9 +231,7 @@ async function leerRoasDePauta(
 ): Promise<VistaRoasDePauta> {
   const [arbol, objetos, enviosEnRango, parejas, ventasPrograma, gastoLeido, ventasPorFecha, gastoEnCopLeido, cuentasMeta] = await Promise.all([
     arbolDePauta(db, programId),
-    unaVezPorSolicitud(db, claveDe("objetosDePautaParaRoas", programId), () =>
-      db.select({ idMeta: pautaObjetos.idMeta, nombre: pautaObjetos.nombre, nivel: pautaObjetos.nivel,
-        padreIdMeta: pautaObjetos.padreIdMeta, cuentaId: pautaObjetos.cuentaId }).from(pautaObjetos).where(eq(pautaObjetos.programId, programId))),
+    objetosParaAtribucionDePauta(db, programId),
     enviosDeRoas(db, programId, rango),
     parejasDeEnviosDeRoas(db, programId, rango),
     ventasDelPrograma(db, programId),
@@ -256,20 +255,9 @@ async function leerRoasDePauta(
   const gastoEnCop = { ...gastoEnCopLeido };
   // El gasto admite objetos de cualquier nivel: el corte incluye el objeto y sus descendientes.
   const objetosPorMeta = new Map(objetos.map((o) => [o.idMeta, o]));
-  const dentro = (id: string): boolean => {
-    let objeto = objetosPorMeta.get(id);
-    if (corte?.nivel === "cuenta_meta") return objeto?.cuentaId === corte.id;
-    const visitados = new Set<string>();
-    while (objeto && !visitados.has(objeto.idMeta)) {
-      if (objeto.nivel === corte?.nivel && objeto.idMeta === corte.id) return true;
-      visitados.add(objeto.idMeta);
-      objeto = objeto.padreIdMeta ? objetosPorMeta.get(objeto.padreIdMeta) : undefined;
-    }
-    return false;
-  };
   if (corte) for (const g of [gasto, gastoEnCop]) {
     // Derivados nuevos: no mutar los mapas compartidos por la caché del hecho.
-    g.porAnuncio = new Map([...g.porAnuncio].filter(([id]) => dentro(id)));
+    g.porAnuncio = new Map([...g.porAnuncio].filter(([id]) => objetoPerteneceAlCorte(id, objetosPorMeta, corte)));
     g.totalUsd = [...g.porAnuncio.values()].reduce((suma, monto) => suma + monto, 0);
     g.porCuenta = new Map();
     for (const [id, monto] of g.porAnuncio) {

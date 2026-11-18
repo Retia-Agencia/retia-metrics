@@ -31,5 +31,5 @@ export function resolverCorteDePauta(
 }
 
 export const ROTULO_DIAGNOSTICO_SIN_CORTE = "Todo el programa en el periodo: este diagnóstico no sigue «Ver solo».";
-export const ROTULO_TABLA_SIN_CORTE = "La tabla todavía muestra todo el programa: «Ver solo» llega aquí en la siguiente entrega.";
 export const ROTULO_COSTO_NO_DISPONIBLE = "No disponible para este corte: el detalle de hoy se guarda por campaña";
+export const ROTULO_COSTO_HISTORICO_NO_DISPONIBLE = "No disponible para este corte: el detalle se guarda por campaña";
