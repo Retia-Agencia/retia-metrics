@@ -145,8 +145,7 @@ function datosDelHubDelPrograma(seccion: SeccionDelHubDelPrograma) {
 const PAGINAS = {
   "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 179, escalaConProgramas: true, cargar: datosDelHub("hoy") },
   "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
-  // 422: el 219 era ROAS y origen por programa (solo conteos); ahora cada programa trae su tabla semanal (~26 consultas c/u, 3 programas = +79).
-  "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 298, escalaConProgramas: true, cargar: datosDelHub("pauta") },
+    "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("pauta") },
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
   "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 66, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
   "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 82, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },

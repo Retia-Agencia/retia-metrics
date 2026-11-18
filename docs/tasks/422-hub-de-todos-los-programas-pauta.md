@@ -69,9 +69,9 @@ mismos del 420 y 419 (carril P, Alejandro): **no se empieza hasta que el 420 est
 ## Done cuando
 
 - [x] DT-1 a DT-3 contestadas por Mani (10-nov): las tres con la recomendación (franja de totales sumables; gráfica de agendas diarias por programa; Resultados por programa y Origen y calidad con enlace al Hub del programa).
-- [ ] `/hub` Pauta: la misma forma que el Hub de un programa, comparada lado a lado con el boceto en claro, oscuro y 375 px. *(18-nov: construida y vista en oscuro; falta claro y 375 px.)*
-- [x] Ninguna tasa, ROAS ni costo combinado entre programas; solo entran las filas que el registro marca sumables (`FILAS_SUMABLES_DE_PAUTA`) y `tests/cifras-de-pauta-de-todos.test.ts` lo muerde con las tasas.
-- [x] Test de paridad: total de «todos» = suma de los programas y un programa sin gasto no aporta cero (`tests/cifras-de-pauta-de-todos.test.ts`). Las monedas no se mezclan: Inversión es solo COP y Vendido solo USD, cada una en su Cifra.
+- [ ] `/hub` Pauta: la misma forma que el Hub de un programa, comparada lado a lado con el boceto en claro, oscuro y 375 px. *(18-nov: la pantalla solo enlaza a cada programa; falta la forma completa.)*
+- [ ] Ninguna tasa, ROAS ni costo combinado entre programas. *(Hoy la pantalla no muestra ninguna; `FILAS_SUMABLES_DE_PAUTA` y su test lo muerden para cuando se conecte.)*
+- [ ] Test de paridad: total de «todos» = suma de los programas y un programa sin gasto no aporta cero. *(El módulo y su test existen; falta conectarlo cuando haya cargador por conjunto.)*
 - [ ] Rótulos solo del vocabulario; el subtítulo «solo Paid» y «todas las áreas» donde corresponda.
 - [x] `PautaRoas soloConteos` y `OrigenPorPrograma` borrados (también el componente `Origen`, que solo ellos usaban, y el parámetro `soloConteos` de `TablaDeOrigen`).
 - [ ] Recorrido del gerente y del paid trafficker con alcance limitado; `npm run build`, `test:humo` y consola limpia.
@@ -84,31 +84,27 @@ vez**. Orden: primero este 422 (Pauta), después E-4 del 419; quien termine avis
 
 ## Avance
 
-**18-nov · Sesión de UI: la Pauta de `/hub` con la forma del Hub de un programa** (commit local; PR de la sesión padre).
+**18-nov · Sesión de UI: parcial. La Pauta de `/hub` lleva a la de cada programa; la tabla semanal por programa espera el cargador por conjunto.**
 
-- **Hecho:** `/hub?seccion=pauta` pinta (1) una franja de totales sumables, cada uno una Cifra en su unidad: Inversión (COP),
-  Agendadas, Ventas y Vendido (USD), con «Suma de programas» y los programas que la componen en «Calculada con»
-  (`lib/hub/cifras-de-pauta-de-todos.ts`, puro); (2) «¿Cuántas agendas trae cada programa?», una línea por programa, solo
-  agendas de Paid, con Paso y Forma en la URL (`?g_pauta-programas=…`) y clic en un punto que abre su explicación
-  (`components/pauta/agendas-por-programa.tsx`); (3) por programa, su cumplimiento de cohorte y su tabla semanal, sin la
-  gráfica propia, y el enlace «Origen y calidad →» a su Hub (DT-3). El cargador (`lib/queries/hub-todos.ts`) lee la tabla
-  semanal de cada programa con su cohorte activa y la pasa a `TablaSemanalDePauta` (`vistaLeida`) para no leerla dos veces.
-- **Decisiones que tomé (Mani, confirma):** (a) un programa sin dato (sin gasto cargado) **no aporta cero**: no suma, se nombra
-  en la explicación y la cifra queda «Parcial»; si ninguno tiene dato, «—» con su motivo. (b) La gráfica ofrece Paso y Forma
-  pero **no Unidad**: agendas es la única unidad que cruza programas, así que el tercer interruptor del 370 sería un botón
-  único. (c) Cada programa usa **su cohorte activa** para el cumplimiento y la tabla; el periodo es el común de `/hub`.
-- **Retirado (N7):** `PautaRoas` ya no tiene parámetro `soloConteos`, se borró `OrigenPorPrograma` y el componente `Origen`.
-  `PautaRoas` sigue exportado solo para `tests/roas-de-pauta.test.ts` y `detalleDeCampana`; sin llamador en pantalla.
-- **Guardián de consultas por página:** `/hub?seccion=pauta` sube de 219 a **298** en el escenario de 3 programas. Por qué: el
-  219 era el ROAS y el origen por programa (solo conteos); ahora cada programa trae su tabla semanal completa (~26 consultas
-  cada uno, +79 en total). No hay consultas idénticas ni crecimiento con las filas (el guardián sigue en verde); crece con el
-  número de programas, que es lo que `escalaConProgramas` declara. Las lecturas del cumplimiento corren dentro de su componente,
-  como en el Hub de un programa, y no entran a esa cuenta.
-- **Verificado:** typecheck, lint 0 errores, tests de la franja, páginas, consultas por página, ROAS, celdas y corte; `dev:local`
-  como gerente con dos programas: franja con «Parcial» en Inversión, gráfica, cumplimiento y tabla de cada programa, explicación
-  de Inversión con los programas sumados.
-- **No verificado:** claro y 375 px, paid trafficker con alcance limitado, `npm run build`, `test:humo`, ni el clic en un punto de
-  la gráfica (la semilla no tiene agendas de Paid).
+- **Estado de la pantalla:** `/hub?seccion=pauta` ya no lee ROAS ni origen por programa (se borraron `OrigenPorPrograma`, el componente
+  `Origen`, `soloConteos` y las lecturas del cargador) y no carga nada por programa: lista cada programa con enlace a su Pauta y a
+  «Origen y calidad». El guardián de consultas de esa pantalla **baja de 219 a 167**. Un primer intento cargaba la tabla semanal
+  de cada programa en el cargador (298, +79 con 3 programas): crecía lineal con los programas y va contra el 438, así que se
+  retiró. **La franja de totales, la gráfica de agendas por programa y la tabla y el cumplimiento de cada programa esperan el
+  cargador por conjunto para N programas (`lib/queries/hechos/pauta-semanal.ts`, de la sesión de arreglos de la auditoría).**
+  Cuando exista, `PautaPorPrograma` lo consume y el tope no puede crecer con los programas.
+- **Listo y sin conectar:** `lib/hub/cifras-de-pauta-de-todos.ts` (franja: Inversión COP, Agendadas, Ventas y Vendido USD, con test
+  `tests/cifras-de-pauta-de-todos.test.ts`) y `components/pauta/agendas-por-programa.tsx` (una línea por programa, Paso y Forma en
+  la URL). La gráfica no tiene aún test propio.
+- **Decisiones de Mani (18-nov), vigentes:** un programa sin dato no aporta cero: no suma y deja la cifra «Parcial» (N3, N5); la
+  gráfica de agendas no ofrece Unidad (agendas es la única unidad que cruza programas). En Pauta todo envío es completo, así que
+  cada rótulo dice su universo: la columna y el diagnóstico dicen «Envíos completos» (`VOCABULARIO_PAUTA_SEMANAL.envios`, la tabla de
+  origen, «¿Qué llega sin origen?» y la descripción del ROAS por campaña).
+- **Fila nueva de Mani:** «Vendido de esta cohorte de registro» (el numerador del ROAS) la expone la sesión de arreglos de la auditoría
+  en `pauta-semanal.ts`; esta sesión solo la pinta cuando exista.
+- **Verificado:** typecheck, tests de páginas, consultas por página, registro de métricas, rótulos, vocabulario, tracker, ROAS y
+  frontera; lint. **No verificado:** la pantalla final de `/hub` Pauta tras la reversión (en el navegador solo vi la versión con
+  tabla, ya retirada), claro y 375 px, `build` y `test:humo`.
 
 ## Lo que falta contra el boceto (18-nov, sesión de UI)
 

@@ -139,15 +139,6 @@ vi.mock("@/lib/queries/origen", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/queries/origen")>(),
   origenDelPrograma: vi.fn(async () => ({})),
 }));
-// Pauta de todos (422): el cargador lee la cohorte activa y la tabla semanal de cada programa; aquí, sin base.
-vi.mock("@/lib/queries/cohortes", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/queries/cohortes")>(),
-  cohorteActiva: vi.fn(async () => null),
-}));
-vi.mock("@/lib/queries/hechos/pauta-semanal", async (importOriginal) => ({
-  ...await importOriginal<typeof import("@/lib/queries/hechos/pauta-semanal")>(),
-  cargarPautaSemanal: vi.fn(async () => ({ paso: "semana", columnas: [], filas: [], dias: [] })),
-}));
 const detallesDelDashboard = vi.fn(async () => ({}));
 const detalleDeCifra = vi.fn(async () => ({
   resumen: { programId: "p-1", disponible: true, subtotal: { cantidad: 0, caja: [] }, grupos: [] },

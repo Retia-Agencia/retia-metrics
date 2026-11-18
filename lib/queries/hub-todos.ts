@@ -2,8 +2,6 @@ import type { ProgramaVisible } from "@/lib/auth/alcance";
 import type { Db } from "@/lib/db/tipos";
 import type { EntradaDePeriodo } from "@/lib/periodo";
 import { escaleraPorPrograma } from "@/lib/queries/escalera-todos";
-import { cohorteActiva } from "@/lib/queries/cohortes";
-import { cargarPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import { leerVamosALlegar, type VamosALlegar as DatosVamosALlegar } from "@/lib/queries/vamos-a-llegar";
 import { armarReporteDiario } from "@/lib/queries/reporte-diario";
 import { vistaDealsContraAgendas } from "@/lib/queries/vista-deals-contra-agendas";
@@ -37,27 +35,14 @@ export async function cargarDatosDeHub(db: Db, entrada: EntradaDeDatosDelHub) {
 
   // Antes eran componentes hermanos que React renderizaba a la vez: aquí corren en paralelo igual.
   const diaDeVamos = esHoy ? diaDelReporte : hoy;
-  const [pauta, comercial, vamosALlegar] = await Promise.all([
-    // Pauta de todos (422): la tabla semanal de CADA programa, en el rango común y con su cohorte activa. De ella salen
-    // también la franja de totales y la gráfica de agendas; el ROAS y el origen por campaña viven en el Hub del programa.
-    seccion === "pauta"
-      ? Promise.all(programas.map(async (programa) => {
-          const cohorte = await cohorteActiva(programa.id, db);
-          return {
-            programa,
-            cohorteId: cohorte?.id ?? null,
-            cohorteCodigo: cohorte?.codigo ?? null,
-            semanal: await cargarPautaSemanal(db, { programId: programa.id, rango: vista.periodo.a, hoy, cohorteId: cohorte?.id ?? null }),
-          };
-        }))
-      : Promise.resolve([]),
+  const [comercial, vamosALlegar] = await Promise.all([
     seccion === "comercial" ? cargarComercial(db, vista, hoy, origen, conListas) : Promise.resolve(null),
     // "¿Vamos a llegar?" sale en todas las secciones; en Hoy, con el día del reporte.
     Promise.all(programas.map(async (programa) => [programa.id, await leerVamosALlegar(programa.id, diaDeVamos, db)] as const))
       .then((pares) => new Map<string, DatosVamosALlegar>(pares)),
   ]);
 
-  return { vista, reportes, pauta, comercial, vamosALlegar };
+  return { vista, reportes, comercial, vamosALlegar };
 }
 
 type VistaDeTodosCargada = Awaited<ReturnType<typeof armarVistaDeTodos>>;

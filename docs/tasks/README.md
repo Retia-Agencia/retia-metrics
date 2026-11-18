@@ -119,7 +119,7 @@ Los rótulos y fórmulas de D-A a D-E ya están decididos y en `main` (403 F1 a 
 | [ ] | 417 | [Plan de inversión diario y diferencia contra el plan](./417-plan-de-inversion-diario.md) | 414, 416 | todo · Q-4 respondida el 17-nov; la migración espera el ok de Mani |
 | [ ] | 418 | [Cuadre del Excel y retiro](./418-cuadre-del-excel-y-retiro.md) | 414, 415, 416 | todo · carril H (Mani con Paid Media) |
 | [ ] | 421 | [Una sola cita con estados, y la cita confirmada](./421-cita-confirmada-y-una-sola-cita.md) | — | en curso · 17-nov · fase 1 con migración 0151 aplicada; falta la métrica Confirmadas |
-| [ ] | 422 | [Hub de todos los programas: la Pauta con la misma forma, sin cruzar programas](./422-hub-de-todos-los-programas-pauta.md) | 419, 420 | en curso · 18-nov · Pauta de `/hub` construida (franja, gráfica, tabla por programa) · nace del 403 · DT-1 a DT-3 decididas (10-nov, con la recomendación) · sin migración · enmendado 13-nov: costura con el 419 E-4 (Hoy, Comercial y Dinero de `/hub`); primero este, después E-4 |
+| [ ] | 422 | [Hub de todos los programas: la Pauta con la misma forma, sin cruzar programas](./422-hub-de-todos-los-programas-pauta.md) | 419, 420 | en curso · 18-nov · `/hub` Pauta enlaza a cada programa (tope 167); franja, gráfica y tabla por programa esperan el cargador por conjunto (438) · nace del 403 · DT-1 a DT-3 decididas (10-nov, con la recomendación) · sin migración · enmendado 13-nov: costura con el 419 E-4 (Hoy, Comercial y Dinero de `/hub`); primero este, después E-4 |
 
 ## 20 · Entrega del Hub a Gerencia (weekly con Daniel Tovar, 3-nov) · PRIORIDAD ÚNICA DEL HUB
 

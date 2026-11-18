@@ -20,8 +20,6 @@ import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { veEquipoComercial } from "@/lib/auth/roles";
 import { PautaPorPrograma } from "./pauta";
-import { LISTAS_DE_LA_TABLA_SEMANAL } from "@/components/pauta/tabla-semanal";
-import { capacidadParaMetrica } from "@/lib/queries/metricas-con-filas";
 import { queryDePautaDesdeOrigen, RUTA_HUB_TODOS } from "@/lib/nav";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
@@ -100,9 +98,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
         </div>
         <div className={clasesDeZonaConScroll()}>
           {seccion === "pauta"
-            ? <PautaPorPrograma filas={datos.pauta} periodo={vista.periodo} hoy={hoy} origen={origen}
-                puedeVerVentas={capacidadParaMetrica({ metrica: "cierres", tieneOrigen: false })(rol)}
-                listasQueAbre={LISTAS_DE_LA_TABLA_SEMANAL.filter((metrica) => capacidadParaMetrica({ metrica, tieneOrigen: true })(rol))} />
+            ? <PautaPorPrograma programas={programas} periodo={vista.periodo} />
             : esHoy
             ? <>
                 {diaPedido === null ? <p role="alert" className="mb-3 rounded-md border border-tono-peligro/40 px-3 py-2 text-sm text-tono-peligro">Esa fecha no es válida (no puede ser futura): se muestra hoy.</p> : null}

@@ -121,7 +121,7 @@ export function PautaRoas({ vista, enlace, hrefCsv, verPor, hrefVerPor }: {
   return <Card aria-labelledby="roas-pauta"><CardHeader><div className="flex flex-wrap items-start justify-between gap-2">
     <div className="space-y-1"><CardTitle id="roas-pauta">Pauta: origen, embudo y {VOCABULARIO_PAUTA_SEMANAL.roas}</CardTitle>
       <p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p>
-      <p className="text-sm text-muted-foreground">Envíos pagos del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
+      <p className="text-sm text-muted-foreground">Envíos completos de pauta del periodo, anclados a la cohorte de registro. Toca una fila para profundizar o una cifra para ver sus personas.</p></div>
     <div className="flex flex-wrap items-center gap-2"><Enlace precarga="nunca" href={hrefCsv} className={claseEnlace}>Descargar citas (CSV)</Enlace></div>
   </div>
     <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">

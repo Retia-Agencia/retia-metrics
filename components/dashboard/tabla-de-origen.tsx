@@ -65,7 +65,7 @@ export function TablaDeOrigen({ canales, totalEnvios, dentroDeOtraTarjeta = fals
           <colgroup><col /><col className="w-32" /><col className="w-28" /><col className="w-28" /></colgroup>
           <thead><tr className="border-b text-xs text-muted-foreground">
             <th className="py-2 pr-3 text-left font-medium">Área · canal / UTM</th>
-            <th className="py-2 text-right font-medium">Envíos</th>
+            <th className="py-2 text-right font-medium">Envíos completos</th>
             <th className="py-2 text-right font-medium">Agendadas</th>
             <th className="py-2 text-right font-medium">% agenda</th>
           </tr></thead>

@@ -48,6 +48,13 @@ Rótulos y fórmulas en D-A, D-B, D-C, D-E (403 F1): se construye la forma y se 
 
 ## Avance (11-nov)
 
+**18-nov · Decisiones de Mani para una sesión futura (NO implementadas):**
+
+- **«Ver solo › Canal» = plataforma** (el origen de plataforma del registro: Meta, orgánico, referidos…), no el canal compuesto actual. Va en
+  la fase 3 de «Ver solo».
+- **Atajos «Últimos 7 · 14 · 28 días» en todo el Hub**, no solo en Pauta, **sin quitar «Elegir fechas» ni los meses**. Enmienda a los
+  ADR 0067 y 0106 (el periodo es de todo el Hub).
+
 **18-nov · Sesión de UI: Info de Pauta retirado y «Solo» en las celdas de la tabla**
 
 - **Hecho:** cada celda de la tabla semanal/diaria dice «Solo · …» en «Calculada con» cuando hay corte

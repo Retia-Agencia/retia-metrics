@@ -313,6 +313,35 @@ Dinero, Hoy y el norte. Lo que queda, pantalla por pantalla:
 
 ## Avance
 
+- **18-nov · Textos nuevos redactados por la sesión de UI (Mani los revisa en el PR #39).** Cuatro conceptos nuevos, cada uno con
+  su ficha en `lib/metricas/registro.ts`, su nombre en `lib/vocabulario-metricas.ts`, su fila en `docs/metricas.md` §3.1 (y §3.0
+  regenerado) y su entrada en `docs/overview.md` §11. Sus listas pasan de `shows` a su concepto. Texto de cada uno:
+  - `realizadas_sin_grain` · «Realizadas sin Grain»: *Cuántas citas realizadas del periodo no tienen pegado el enlace de la
+    grabación de la llamada.* Fórmula: conteo de «citas realizadas sin enlace de grabación». Variable *Grain*: el enlace de la
+    grabación; sin él no se puede revisar la cita, pero no cambia si cuenta como realizada.
+  - `realizadas_sin_valor_vendido` · «Realizadas sin valor vendido» (antes «Atendidos sin valor vendido»): *Cuántos deals con la
+    llamada realizada están en una etapa que pide el valor vendido y lo tienen en cero o vacío.* Variables *Realizado* (Atendido,
+    Compromiso verbal, Ganado parcial o Completo; sin cortesías) y *Valor vendido* (sin él la venta no suma en Vendido ni en Por
+    cobrar; foto de hoy).
+  - `realizadas_sin_grain_a_hoy` · «Realizadas sin Grain a hoy» (antes «Atendidos sin Grain»): *Cuántos deals con la llamada
+    realizada tienen al menos una llamada vigente sin el enlace de la grabación.* Variables *Realizado* y *Grain* (foto de hoy).
+  - `cierre_perdido_con_pagos` · «Cierre perdido con pagos» (largo: «Cierre perdido con pagos registrados»): *Cuántos negocios
+    están en Cierre perdido y aun así tienen un abono vigente: plata cobrada sobre una venta perdida.* Variables *Abono vigente*
+    (no anulado) y *Cierre perdido* (inconsistencia de datos, hoy debería dar cero, foto de hoy, sin porcentaje).
+  - «Llamadas pasadas sin resultado» **no es concepto nuevo**: es `citas_pendientes` («Sin resultado»), que ya tiene ficha.
+    Comisión y Descuento tampoco: `comision`, `descuento_promedio` y `descuento_promedio_porcentaje` ya tienen ficha.
+  - **Rótulo de Pauta:** «Envíos completos» (en Pauta todo envío es completo; decisión de Mani, 18-nov).
+- **18-nov · Pendiente del 419 que la sesión de UI NO empezó** (quedó anotado para otra sesión):
+  - Conectar las cuatro fichas nuevas y `citas_pendientes` a `/hub` Hoy (hoy siguen con `Tarjeta` y `CifraConLista`), y pintar
+    Comisión y Descuento de la tabla de Dinero de `/hub` con la Cifra (las fichas existen; falta el constructor).
+  - Dos frases del diálogo retirado de Mi espacio (variante «tuyas» en `lib/metricas/explicacion.ts`): *Entró a caja* = «los abonos
+    que registraste tú», y *Cierre de ventas* = «cada deal cuenta contigo si tomaste su último show o, sin show, su última cita».
+  - E-6 completo: rama vieja de Comercial y Hoy por programa dentro de `/hub` (`operacion.tsx`, `escalera.tsx`, `hoy/*`), gráficas de
+    Dinero con `ResumenDeCifra` (`graficas/resumen-de-punto.tsx`), `Variacion`, `CifraDeRazon`, `CifraConLista` y el Info de Hoy.
+  - E-7: `tests/una-forma-de-cifra-guardian.test.ts`, mordido en los dos sentidos. E-8: `structure.md` §9 y el ADR 0067.
+  - Visual en claro y a 375 px de lo migrado (Hub de un programa, `/hub`, Mi espacio), recorrido de Pauta como paid trafficker (que
+    no vea dueños ni cifras por closer), `npm run build` y `npm run test:humo`.
+
 - **18-nov · E-5 Mi espacio › Métricas: hecho.** `lib/hub/cifras-de-mi-espacio.ts` (puro) arma, por programa, Citas, Realizadas,
   No asistió, Ventas, Cierre de ventas, las citas sin resultado (solo si hay), Entró a caja (una por moneda) y Comisión; y, en
   «Todos», los totales sumables (la comisión y las tasas no se suman). Universo nuevo «tuyas» en `UniversoDeCifra` (DC-4) y en

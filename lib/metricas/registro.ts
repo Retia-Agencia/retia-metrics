@@ -252,7 +252,7 @@ const REGISTRO_BASE = {
     cobertura: "no_aplica",
     funcionSql: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "ocurrioSql" },
     gemelaTs: { archivo: "lib/deals/resultados-de-llamada.ts", nombre: "ocurrio" },
-    listas: ["shows", "shows_sin_grain", "atendidos_sin_valor", "atendidos_sin_grain"],
+    listas: ["shows"],
   }),
   no_asistio: ficha("cita", {
     filaDelDiccionario: "No asistió",
@@ -857,6 +857,35 @@ const REGISTRO_BASE = {
     sumaEntreProgramas: true, cobertura: "no_aplica",
     funcionSql: { archivo: "lib/queries/tasas-del-grupo.ts", nombre: "grupoDeCitas" }, listas: ["grupo_vendidos"],
   }),
+  // Los tres controles de calidad de las llamadas realizadas y la inconsistencia de plata: cada uno es un concepto, no una
+  // variante de Realizadas (sus listas vivían en `shows` y pasan aquí).
+  realizadas_sin_grain: ficha("cita", {
+    filaDelDiccionario: "Realizadas sin Grain",
+    tipo: "simple", unidad: "citas", monedas: [], anclaDeFecha: "hora_de_la_cita", dimensiones: ["dia", "semana", "mes", "dueno", "cohorte"],
+    criterioDeCloser: "quien_tomo_la_llamada", vigencia: ["calls"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/sin-grain.ts", nombre: "showsSinGrain" }, listas: ["shows_sin_grain"],
+  }),
+  realizadas_sin_valor_vendido: ficha("deal", {
+    filaDelDiccionario: "Realizadas sin valor vendido",
+    tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "sin_fecha", dimensiones: ["etapa", "cohorte"],
+    criterioDeCloser: "dueno_del_deal", vigencia: ["deals"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/banderas-del-pulso.ts", nombre: "sinValorVendido" },
+    gemelaTs: { archivo: "lib/queries/banderas-del-pulso.ts", nombre: "filtroAtendidos" }, listas: ["atendidos_sin_valor"],
+  }),
+  realizadas_sin_grain_a_hoy: ficha("deal", {
+    filaDelDiccionario: "Realizadas sin Grain a hoy",
+    tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "sin_fecha", dimensiones: ["etapa", "cohorte"],
+    criterioDeCloser: "dueno_del_deal", vigencia: ["deals", "calls"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/banderas-del-pulso.ts", nombre: "conLlamadaSinGrain" },
+    gemelaTs: { archivo: "lib/queries/sin-grain.ts", nombre: "esAtendidaSinGrain" }, listas: ["atendidos_sin_grain"],
+  }),
+  cierre_perdido_con_pagos: ficha("deal", {
+    filaDelDiccionario: "Cierre perdido con pagos",
+    tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "sin_fecha", dimensiones: ["etapa", "cohorte"],
+    criterioDeCloser: "dueno_del_deal", vigencia: ["deals", "abonos"], sumaEntreProgramas: true, cobertura: "no_aplica",
+    funcionSql: { archivo: "lib/queries/banderas-del-pulso.ts", nombre: "filtroPerdidosConPagos" },
+    gemelaTs: { archivo: "lib/queries/banderas-del-pulso.ts", nombre: "conAbonoVigente" }, listas: ["perdidos_con_pagos"],
+  }),
   deals_abiertos: ficha("deal", {
     filaDelDiccionario: "Deals abiertos",
     tipo: "simple", unidad: "deals", monedas: [], anclaDeFecha: "sin_fecha", dimensiones: ["etapa", "cohorte"],
@@ -1213,6 +1242,31 @@ const TEXTOS: Record<keyof typeof REGISTRO_BASE, CamposDeExplicacion> = {
   citas_pendientes: texto(
     "Citas cuya hora ya pasó y el closer no marcó cómo terminaron.", "conteo", ["citas pasadas que siguen en agendada"],
     [{ nombre: "Sin resultado", explicacion: "Es un dato que falta, no una inasistencia. Solo cuenta deals no cerrados; la cita suelta vive en el Inbox." }],
+  ),
+  realizadas_sin_grain: texto(
+    "Cuántas citas realizadas del periodo no tienen pegado el enlace de la grabación de la llamada.", "conteo", ["citas realizadas sin enlace de grabación"],
+    [{ nombre: "Grain", explicacion: "El enlace de la grabación de la llamada. Sin él no se puede revisar qué pasó en la cita; no cambia si la cita cuenta como realizada." }],
+  ),
+  realizadas_sin_valor_vendido: texto(
+    "Cuántos deals con la llamada realizada están en una etapa que pide el valor vendido y lo tienen en cero o vacío.", "conteo", ["deals realizados en una etapa que exige valor vendido y sin él"],
+    [
+      { nombre: "Realizado", explicacion: "Un deal en Atendido, Compromiso verbal, Ganado parcial o Completo. Las cortesías no cuentan." },
+      { nombre: "Valor vendido", explicacion: "El precio pactado con el cliente. Sin él la venta no suma en Vendido ni en Por cobrar. Es una foto de hoy: el periodo no la acota." },
+    ],
+  ),
+  realizadas_sin_grain_a_hoy: texto(
+    "Cuántos deals con la llamada realizada tienen al menos una llamada vigente sin el enlace de la grabación.", "conteo", ["deals realizados con una llamada vigente sin enlace de grabación"],
+    [
+      { nombre: "Realizado", explicacion: "Un deal en Atendido, Compromiso verbal, Ganado parcial o Completo. Las cortesías no cuentan." },
+      { nombre: "Grain", explicacion: "El enlace de la grabación de la llamada. Es una foto de hoy: el periodo no la acota." },
+    ],
+  ),
+  cierre_perdido_con_pagos: texto(
+    "Cuántos negocios están en Cierre perdido y aun así tienen un abono vigente: plata cobrada sobre una venta perdida.", "conteo", ["deals en Cierre perdido con al menos un abono vigente"],
+    [
+      { nombre: "Abono vigente", explicacion: "Un pago registrado que no se anuló. Los abonos anulados no cuentan." },
+      { nombre: "Cierre perdido", explicacion: "Es una inconsistencia de datos, no un resultado del negocio: hoy debería dar cero, y la cifra existe para que, si aparece uno, se vea. Es una foto de hoy y no tiene porcentaje." },
+    ],
   ),
   citas_del_dia: texto(
     "Cuántas citas hay hoy, sin contar las canceladas.", "conteo", ["citas de hoy que no se cancelaron"],
