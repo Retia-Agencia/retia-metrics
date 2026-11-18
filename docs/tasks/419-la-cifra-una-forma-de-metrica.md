@@ -296,6 +296,21 @@ E-0 Mani. E-1 carril D (Mani con Codex): es su archivo. E-2 a E-7 carril P (comp
 ir en paralelo si E-2 arranca con los conceptos que ya tienen texto en el puente; E-3 de una pestaña espera a que sus fichas
 tengan texto aprobado.
 
+## Lo que falta contra el boceto (18-nov, sesión de UI; medido con `grep` sobre `main` c0cea03c)
+
+Hecho en `main` (Alejo, 13 a 17-nov): el contrato, las 52 fichas, la pieza, y la Cifra en el Hub **de un programa** para Comercial,
+Dinero, Hoy y el norte. Lo que queda, pantalla por pantalla:
+
+| Pantalla | Falta |
+|---|---|
+| **Hoy** (programa) | Cifras clave, embudo, citas, dinero y pendientes siguen importando `CifraConLista`/`CifraDeRazon` en su rama vieja (`hoy/cifras-clave.tsx` 4+1, `embudo.tsx`, `citas.tsx`, `dinero.tsx`, `pendientes.tsx`, `comunes.tsx`); `hoy/semana.tsx` sigue con `Fila` y `Variacion`; el botón Info de Hoy sigue montado (`p/[programa]/hub/page.tsx:323`, DC-1). PDF de Hoy sin verificar antes/después. |
+| **Comercial** (programa) | Hecha. Queda la rama vieja en `operacion.tsx` (3 `CifraDeRazon`, 1 `CifraConLista`), `escalera.tsx` y `EnlaceAInfo` en `deals-contra-agendas.tsx` (E-6). |
+| **Dinero** (programa) | Cifras hechas. Las gráficas abren `ResumenDeCifra` (`graficas/resumen-de-punto.tsx`) y no la explicación; `dinero-de-ventas.tsx` conserva `CifraConLista` y `Variacion`. |
+| **Pauta** (programa) | Cifras hechas (420). Queda `pauta-roas.tsx` con `CifraDeRazon` y el Info de Pauta montado (`page.tsx:240`, DC-1). |
+| **Hub de todos** (`/hub`) | E-4 entero: `secciones.tsx` con 3 `CifraConLista`, 4 `CifraDeRazon`, `Tarjeta`, `Variacion`; `vamos-a-llegar.tsx` (vista vieja); Info montado (`hub/page.tsx`). |
+| **Mi espacio** | E-5 entero: `tab-metricas.tsx` (8 `CifraConLista`, `CifraDeRazon`, `ComoSeCalcula`, 5 `Variacion`, 6 `Tarjeta`); universo «tuyas» (DC-4). |
+| **Transversal** | E-6 (borrar lo huérfano), E-7 (guardián `una-forma-de-cifra-guardian`), E-8 (`structure.md` §9, ADR 0067), comparación visual con el boceto en claro, oscuro y 375 px, Rams, `build`, `test:humo`. |
+
 ## Avance
 
 - **17-nov · Carril D: hallazgo 20 resuelto.** Las fichas `agendadas`, `cierre_de_ventas`, `ventas` y `vendido` decían «de pauta»

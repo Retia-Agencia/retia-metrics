@@ -81,3 +81,11 @@ mismos del 420 y 419 (carril P, Alejandro): **no se empieza hasta que el 420 est
 del 419**. Los dos tocan `app/(app)/hub/secciones.tsx`, `app/(app)/hub/page.tsx` y `components/pauta-roas.tsx`: **no van a la
 vez**. Orden: primero este 422 (Pauta), después E-4 del 419; quien termine avisa en el archivo del otro ticket. Medido el 13-nov:
 `soloConteos` aparece en 5 archivos y `OrigenPorPrograma` en 2; repetir el `grep` antes de borrar.
+
+## Lo que falta contra el boceto (18-nov, sesión de UI)
+
+Todo: el ticket sigue en `todo` y `/hub?seccion=pauta` pinta solo `PautaRoas soloConteos` y `OrigenPorPrograma`
+(`app/(app)/hub/pauta.tsx`). Falta la franja de totales sumables con moneda (DT-1), la tabla semanal y el cumplimiento por
+programa lado a lado (DT-3), la gráfica de agendas diarias por programa (DT-2), la Cifra y su explicación en cada número, el
+enlace a Origen y calidad de cada programa, el test de paridad con dos monedas y un programa sin gasto, y borrar
+`soloConteos` y `OrigenPorPrograma`. El 420 ya está en `main`, así que ya no bloquea.
