@@ -48,6 +48,19 @@ Rótulos y fórmulas en D-A, D-B, D-C, D-E (403 F1): se construye la forma y se 
 
 ## Avance (11-nov)
 
+**18-nov · Sesión de UI: Info de Pauta retirado y «Solo» en las celdas de la tabla**
+
+- **Hecho:** cada celda de la tabla semanal/diaria dice «Solo · …» en «Calculada con» cuando hay corte
+  (`cifraDeCeldaSemanal` recibe `corte`; la tabla se lo pasa). El botón Info de Pauta se retira (DC-1 del 419): se borra
+  `components/dashboard/info-de-pauta.tsx`. Frase por frase: «De dónde vienen los registros», «Qué rindió la plata» y «Cómo
+  va la cohorte» describen la estructura de la pantalla y ya las dicen el subtítulo de la pestaña y los títulos de cada
+  bloque; las tres equivalencias con el Excel (% de show, % cierre zoom a cliente, % cierre agenda a cliente) viven en
+  `aliasExcel` de `asistencia`, `cierre_de_ventas` y `cita_a_venta`. Test nuevo en `tests/pauta-semanal-celdas.test.ts`.
+- **Verificado:** typecheck, lint 0 errores, tests de celdas, corte, páginas, consultas por página y frontera; `dev:local` como
+  gerente: la pestaña ya no trae el botón Info y la explicación de una celda con corte de campaña dice «Solo: Campaña · …».
+- **Sigue pendiente:** «Ver solo › Canal» (decisión de Mani), los atajos «Últimos 7 · 14 · 28 días» (enmienda ADR 0067/0106,
+  decisión de Mani), `npm run build` y `test:humo`. `pauta-roas.tsx` ya solo lo usa `/hub` de todos: se reemplaza en el 422.
+
 **17-nov · «Ver solo» fase 2b: tabla semanal/diaria, CSV, listas y gráfica**
 
 - **Hecho:** `cargarPautaSemanal` acepta `corte`. Inversión, CPM, CTR, llegada y frecuencia usan solo el gasto del

@@ -49,7 +49,6 @@ import { ventanaRitmoDeUrl } from "@/lib/queries/proyeccion";
 import { tokensMeta } from "@/lib/integraciones";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
 import { seccionesDeInfoDeHoy } from "@/components/dashboard/hoy/info-de-hoy";
-import { seccionesDeInfoDePauta } from "@/components/dashboard/info-de-pauta";
 import { CumplimientoDeCohorte, unidadDeCumplimiento } from "@/components/pauta/cumplimiento";
 import { capacidadParaMetrica, type Metrica } from "@/lib/queries/metricas-con-filas";
 import { LISTAS_DE_LA_TABLA_SEMANAL, TablaSemanalDePauta } from "@/components/pauta/tabla-semanal";
@@ -204,11 +203,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
   const configurar = esAdministrador(rol)
     ? { hrefBase: `/p/${encodeURIComponent(programa.slug)}/programa?seccion=ventas`, origen }
     : null;
-  const tituloDelInfo = seccion === "comercial"
-    ? "Comercial: qué hay y cómo se calcula"
-    : seccion === "pauta"
-      ? "Pauta: qué hay y cómo se calcula"
-      : "Hoy: qué hay y cómo se calcula";
+  const tituloDelInfo = "Hoy: qué hay y cómo se calcula";
   const datosDelPrograma = { id: programa.id, slug: programa.slug, nombre: programa.nombre };
   const norte = <VamosALlegar programa={datosDelPrograma} hoy={hoy} origen={origen} conListas={veEquipo} configurar={configurar} />;
 
@@ -236,9 +231,7 @@ export default async function HubDelProgramaPage({ params, searchParams }: Props
             <Suspense fallback={null}>
               <InfoDeHoy titulo={tituloDelInfo} programa={datosDelPrograma} reporte={reporteDeHoy} />
             </Suspense>
-          ) : seccion === "comercial" ? null : (
-            <InfoDePagina titulo={tituloDelInfo} secciones={seccion === "pauta" ? seccionesDeInfoDePauta() : []} />
-          )}
+          ) : null}
         </div>
         {esHoy ? null : (
           <div className="flex min-w-0 max-w-full flex-wrap items-start justify-between gap-2">

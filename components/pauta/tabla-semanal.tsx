@@ -150,7 +150,7 @@ export async function TablaSemanalDePauta(p: PropsTabla): Promise<JSX.Element> {
     const anterior = columna > 1 ? { celda: celdas.porColumna[columna - 2], rango: vista.columnas[columna - 2] } : undefined;
     return cifraDeCeldaSemanal({
       fila, celda, rango, esTotal, paso, anterior, hoy: p.hoy, objetivos, programa: p.programa, cohorte: p.cohorte,
-      cuenta: sub?.nombre,
+      cuenta: sub?.nombre, corte: p.corte ?? undefined,
       lista: sub ? undefined : listaDe(fila.clave, columna),
     });
   };
