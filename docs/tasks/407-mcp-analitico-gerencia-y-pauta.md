@@ -3,7 +3,7 @@ id: 407
 etapa: mcp
 serves: "ADR 0119 · pedido de Mani del 8-nov: acceso analítico libre pero controlado para gerencia y pauta"
 depends: [383, 397, 399, 403]
-status: en curso (fase 1 construida; falta aplicar la migración 0152, dar LOGIN al rol y la variable en Vercel)
+status: en curso  # fase 1 construida; falta aplicar la migración 0152, dar LOGIN al rol y la variable en Vercel
 ---
 
 # 407 — MCP analítico para gerencia y pauta: datos libres bajo contrato, y un agente proactivo

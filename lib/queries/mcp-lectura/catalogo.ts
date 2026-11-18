@@ -188,8 +188,8 @@ export const CATALOGO_DE_VISTAS = {
       alcance: c("numero", "Alcance del día."),
       clics_enlace: c("numero", "Clics en el enlace del día."),
       vistas_landing: c("numero", "Vistas de la página de aterrizaje del día."),
-      registros_meta: c("numero", "Registros que reporta Meta."),
-      agendas_meta: c("numero", "Agendas que reporta Meta."),
+      registros_meta: c("numero", "Formularios completos que reporta Meta (leads del píxel)."),
+      agendas_meta: c("numero", "Agendas según Meta: las que reporta el píxel."),
     },
   },
   leads: {
