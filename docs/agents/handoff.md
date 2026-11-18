@@ -9,28 +9,50 @@
 > acumulaba las sesiones 53 a 68: `git show df6b1be:docs/agents/handoff.md`. Lo de cada sesión sigue en Memory.
 
 ```
-Seguimos con el CRM de Retia, carril D (sesión de Mani, orquestadora). Lee AGENTS.md y la entrada "17-nov (noche)" en Memory de
-docs/agents/handoff.md. Orquesta, no implementes: el código va con Codex (/delegate, effort medium, worktree dentro del repo, un job por
-carpeta; verifica con codex-busy.sh que quedó BUSY en esa carpeta). Codex NO commitea: tú revisas el diff y commiteas con archivos
-nombrados. Todo entra por PR y lo valida el CI (la máquina se queda sin memoria: el guardián heavy-command-admission bloquea typecheck y
-suite en local; no lo saltes sin el ok de Mani). Migraciones: las generas y aplicas tú, con el ok de Mani, leyendo el SQL y con lock_timeout.
-Estado: main en 10e9bf43 (CI verde). PR #34 (421 fase 1) abierto, rama t421-confirmacion; su migración 0151 YA está aplicada en producción.
-Lo que sigue, en este orden:
-1. PR #34: leer su CI (78413f9b). Verde → pedir a Mani el merge. Rojo → `gh run view --log-failed`, arreglo y CI otra vez.
-2. 421 fase 2: métrica «Confirmadas» (de las citas del día) en Hoy y Comercial: ficha en lib/metricas/registro.ts, fila en docs/metricas.md,
-   overview §11 y vocabulario en el mismo commit (N8), con su lista. Diseño en docs/tasks/421-*.md.
-3. 417: Mani ya dio el ok a su migración (17-nov). Tabla `plan_inversion` por el molde de lib/catalogo/: tramos de fecha (desde, hasta),
-   monto, moneda y cuenta de Meta, con actor y rastro; sirve para N cuentas por programa (Q-8). Fila «Diferencia contra el plan» en la
-   tabla por día y por cuenta, con su ficha. Pauta fija el número con su criterio (Q-4).
-4. 438 (en curso): tabla semanal de Pauta (se lee desde un componente y el guardián no la ve), Dinero, Hub de todos con
-   `program_id in (…)`, p95 de 30 peticiones y comparación visual; medir los topes del ticket (Pauta ≤ 60, demás ≤ 40). Luego 445:
-   guardián n-mas-uno, filas de 441 a 444 y 4 textos de AGENTS.md. Mani pidió hacerlo en una sesión aparte.
-5. 429 opción B (decidida el 14-nov), detalle en docs/tasks/429-*.md, sección "Respondido por Mani".
-6. Lo que necesita a Mani en producción (sesión iniciada): /nerd-stats y cerrar el 243; casillas de producción del 435 y el 436.
-No toques los archivos del carril P (Alejo: lib/hub/, componentes de Comercial, Dinero y Hoy) sin su ok. Commits con archivos nombrados,
-pull --rebase antes de push, un solo push a la vez. Al cerrar, actualiza docs/agents/handoff.md.
+Seguimos con el CRM de Retia (sesión de Mani, orquestadora; sesiones hijas en Sonnet medium, una por frente, la padre revisa e integra).
+Lee AGENTS.md y la entrada "18-nov" en Memory de docs/agents/handoff.md. Las hijas no empujan: commit local, la padre revisa el diff,
+rebasa sobre origin/main, empuja, abre el PR y mergea con CI verde. Migraciones: las genera la hija, las aplica la padre con el ok de Mani.
+Estado: main en el commit de este handoff (CI verde), con #37 a #42 dentro. La 0152 (mcp_lectura) está aplicada en producción.
+Lo que sigue, cada punto se puede abrir como una sesión aparte:
+1. 407: llamar `consultar_datos` y `definiciones_de_metricas` desde un cliente MCP reconectado (Claude con el conector del CRM) como
+   developer, gerente y paid trafficker. Probar la petición forjada (programa ajeno, `set_config`, varias sentencias). Después, fase 2:
+   `lib/queries/hechos` lee las vistas de `mcp_lectura` (una sola definición), `siguientes_pasos` y prompts MCP.
+2. Cargador por conjunto de la tabla semanal de Pauta (`lib/queries/hechos/pauta-semanal.ts`): número fijo de consultas para N programas.
+   Con él, el Hub de todos › Pauta vuelve a pintar la tabla de cada programa (hoy solo enlaza; tope 167). Va con el 438 y el 445.
+3. 420: «Ver solo › Canal» = plataforma; atajos «Últimos 7 · 14 · 28 días» en todo el Hub, sin quitar «Elegir fechas» ni los meses
+   (enmienda el ADR 0067/0106). Decidido por Mani el 18-nov.
+4. 419 E-6/E-7: la rama vieja de Comercial y Hoy por programa dentro de /hub, las gráficas de Dinero, el Info de Hoy; visual en claro y a
+   375 px; recorrido como paid trafficker. Mani revisa las fichas nuevas listadas en el 419.
+5. Auditoría (docs/auditoria-coherencia-2026-11-18.md §7): D-10 (falta decidir cómo se marca un lead de prueba), D-4, D-6, D-9, D-12, D-14.
+   D-7 son ventas sin registrar (6 de Comunicarte, 7 de Tactical): las pasa Pauta o los closers, no es código.
+6. 456: confirmar con la base viva cuánto se movieron las ventas por mes y decidir el índice `abonos(deal_id, fecha)`.
+7. Lo que venía de antes: 421 fase 2 («Confirmadas»), 417 (plan de inversión, migración con ok), 438 y 445.
+Pendiente de Mani: revocar y reemitir el token Bearer del MCP impreso el 14-nov; avisarle a Alejo que la UI del 419, 420 y 422 la tomó
+esta sesión (decisión de Mani del 18-nov). Commits con archivos nombrados, pull --rebase antes de push. Al cerrar, actualiza este handoff.
 ```
 ## Memory
+
+### 18-nov · métricas coherentes, MCP analítico y la forma de métrica en main (sesión padre de Mani, seis hijas en Sonnet)
+- **En main con CI verde (squash):** #34 (421 fase 1), #36 (handoff 17-nov), #37 (auditoría de coherencia), #38 (429: Envíos = completos y
+  parciales sin completar; Pauta, landing, proyección, reporte y Origen siguen con «Registros completos», cada cifra declara su universo),
+  #39 (419 E-4/E-5, 420 «Solo» y retiro del Info de Pauta, 422 con enlace por programa), #40 (456: la venta cuenta por el día del primer
+  pago del ticket, ADR 0136), #41 (auditoría D-13, D-2, D-3, D-8, D-11), #42 (407 fase 1: `consultar_datos` y `definiciones_de_metricas`
+  sobre `mcp_lectura`, ADR 0135).
+- **Decisiones de Mani (18-nov):** `consultar_datos` solo para gerente, paid trafficker y developer; las vistas serán la única fuente de cada
+  hecho (fase 2: la app las lee); la venta por el primer pago; Pauta sigue con completos y no debe quedar duda del universo; la tabla de
+  Pauta muestra el numerador del ROAS («Vendido de esta cohorte de registro»); los textos nuevos los redacta la sesión y Mani los revisa
+  en el PR; la UI del 419, 420 y 422 la toma la sesión aunque estaba en el carril de Alejo; Canal = plataforma; atajos 7/14/28 sin quitar
+  el periodo libre.
+- **Hallazgo de seguridad (407):** el primer diseño (`SET LOCAL ROLE` y alcance por `set_config`) dejaba al agente volver a `postgres`
+  con `set_config('role','postgres',true)`. Se cambió a un usuario de base propio (`mcp_lectura_login`, sin membresías) y un alcance que
+  solo fija `mcp_lectura.fijar_alcance` (SECURITY DEFINER, una vez por transacción). Probado en producción por el pooler: el escape, las
+  tablas crudas y el segundo alcance se rechazan.
+- **Producción:** 0152 aplicada; el rol tiene LOGIN con contraseña aleatoria que no está en ningún archivo; `DATABASE_URL_MCP_LECTURA`
+  en Vercel › Production (sensible). Tras el deploy de `87677ab8`, `capacidades` lista `consultar_datos`. No se llamó desde un cliente.
+- **Auditoría:** ventas, vendido, recaudado y caja cuadran al peso entre pantalla, MCP y SQL. D-13 era la tabla de Pauta del MCP con otra
+  cohorte que la pantalla. El 422 subía `/hub?seccion=pauta` de 219 a 298 consultas (lineal por programa, contra el 438): se dejó en enlace.
+- **No verificado:** suite completa en local (la corre el CI), recorrido visual de lo nuevo en producción, la llamada real a
+  `consultar_datos`, cuánto se movieron las ventas por mes con la base viva.
 
 ### 18-nov · UI de la forma de métrica: 419 E-4 y E-5, 420 y 422 en commits locales (sesión de UI, rama `claude/ui-forma-de-metrica-fedaf2`, PR borrador #39 de la sesión padre)
 
