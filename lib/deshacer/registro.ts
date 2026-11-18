@@ -154,6 +154,19 @@ const restaurarDatoDeCita = (campo: "fechaAgenda" | "linkCalendly"): ReglaDeCamp
   },
 });
 
+const restaurarFechaDeConfirmacion: ReglaDeCampo = {
+  restaurar: async (tx, actor, registroId, valorAnterior, reversionId, contexto) => {
+    const [llamada] = await tx.select().from(calls)
+      .where(and(eq(calls.id, registroId), incluyendoAnulados(calls)));
+    if (!llamada) throw new ErrorDeApp("No existe la llamada.", 404);
+    await editarConRastro(
+      { db: tx, tabla: calls, nombreTabla: "calls", actorId: actor.userId, etiqueta: llamada.emailLead ?? llamada.id, reversionId, origen: contexto.origen },
+      registroId,
+      { confirmacionEn: valorAnterior == null ? null : new Date(valorAnterior) },
+    );
+  },
+};
+
 export const registroDeals = {
   id: identidad, leadId: identidad, programId: identidad,
   cohortId: restaurarCohorte,
@@ -191,6 +204,8 @@ export const registroCalls = {
   fechaAgenda: restaurarDatoDeCita("fechaAgenda"),
   fechaLlamada: restaurar(calls, "calls", "fechaLlamada"),
   resultado: restaurarResultado,
+  confirmacion: restaurar(calls, "calls", "confirmacion"),
+  confirmacionEn: restaurarFechaDeConfirmacion,
   fechaSeguimiento: restaurar(calls, "calls", "fechaSeguimiento"),
   motivoId: restaurar(calls, "calls", "motivoId"),
   notas: restaurar(calls, "calls", "notas"),

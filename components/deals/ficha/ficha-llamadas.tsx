@@ -13,6 +13,7 @@ import {
   esCitaManual,
   etiquetaDelEnlace,
   ETIQUETA_DE_RESULTADO,
+  ETIQUETA_DE_CONFIRMACION,
   TONO_DE_RESULTADO,
 } from "@/lib/deals/estado-de-llamada";
 import type { FichaDeLlamada, OpcionesDeFicha } from "@/lib/queries/ficha-deal";
@@ -83,8 +84,9 @@ export function FichaLlamadas({
       <li key={c.id} className={anulada ? "space-y-1 px-4 py-3 text-sm opacity-60" : "space-y-1 px-4 py-3 text-sm"}>
         <button type="button" className="-mx-2 flex w-[calc(100%+1rem)] cursor-pointer flex-wrap items-center gap-2 rounded-lg px-2 py-2 text-left outline-none transition-colors duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring" onClick={() => setDetalleId(c.id)}>
           {esActiva
-            ? <Badge variant="default">Cita activa</Badge>
+            ? <Badge variant="default">{c.confirmacion ? `Cita activa · ${ETIQUETA_DE_CONFIRMACION[c.confirmacion]}` : "Cita activa"}</Badge>
             : <Badge variant={TONO_DE_RESULTADO[c.resultado]}>{ETIQUETA_DE_RESULTADO[c.resultado]}</Badge>}
+          {!esActiva && c.confirmacion ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[c.confirmacion]}</Badge> : null}
           {esCitaManual(c.origen) ? (
             <Badge variant="alerta" title="El lead no recibe invitación: avísale tú.">Cita manual</Badge>
           ) : null}
@@ -109,6 +111,7 @@ export function FichaLlamadas({
               dealId={dealId}
               linkGrain={c.linkGrain}
               resultado={c.resultado}
+              confirmacion={c.confirmacion}
               motivosReagenda={opciones.motivos}
               puedeMarcarAtendida={c.puedeMarcarAtendida}
               mensajeNoPuedeMarcarAtendida={c.mensajeNoPuedeMarcarAtendida}

@@ -56,6 +56,8 @@ import { cambiosDeDeals } from "@/lib/queries/cambios-de-dueno";
 export interface FichaDeLlamada {
   id: string;
   resultado: (typeof calls.$inferSelect)["resultado"];
+  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
+  confirmacionEn: Date | null;
   fechaAgenda: Date | null;
   fechaLlamada: Date | null;
   linkCalendly: string | null;

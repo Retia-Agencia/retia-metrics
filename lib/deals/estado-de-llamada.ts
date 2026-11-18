@@ -2,6 +2,7 @@ import type { calls } from "@/lib/db/schema";
 import { fechaHoraEnBogota } from "@/lib/format";
 
 type Resultado = (typeof calls.$inferSelect)["resultado"];
+type Confirmacion = NonNullable<(typeof calls.$inferSelect)["confirmacion"]>;
 
 export const ETIQUETA_DE_RESULTADO: Record<Resultado, string> = {
   agendada: "Agendada",
@@ -12,6 +13,12 @@ export const ETIQUETA_DE_RESULTADO: Record<Resultado, string> = {
   compromiso_pago: "Compromiso de pago",
   cerrada: "Cerrada",
   perdida: "Perdida",
+};
+
+export const ETIQUETA_DE_CONFIRMACION: Record<Confirmacion, string> = {
+  confirmada: "Confirmó",
+  no_confirmada: "No confirmó",
+  cancelada_segun_closer: "Cancelada según el closer",
 };
 
 export const TONO_DE_RESULTADO: Record<
@@ -61,6 +68,7 @@ const CAMPO_CANONICO: Record<string, string> = {
   huella_fila: "huellaFila",
   fecha_agenda: "fechaAgenda",
   fecha_llamada: "fechaLlamada",
+  confirmacion_en: "confirmacionEn",
   fecha_seguimiento: "fechaSeguimiento",
   closer_user_id: "closerUserId",
   closer_id: "closerId",
@@ -78,6 +86,7 @@ const CAMPO_CANONICO: Record<string, string> = {
 
 const ETIQUETA_DE_CAMPO: Record<string, string> = {
   resultado: "Estado",
+  confirmacion: "Confirmación",
   fechaAgenda: "Cita",
   fechaLlamada: "Ocurrió",
   fechaSeguimiento: "Seguimiento",
@@ -97,8 +106,8 @@ const ETIQUETA_DE_CAMPO: Record<string, string> = {
   motivoAnulacion: "Motivo de anulación",
 };
 
-const CAMPOS_OCULTOS = new Set(["programId", "cohortId", "huellaFila", "raw"]);
-const CAMPOS_FECHA = new Set(["fechaAgenda", "fechaLlamada", "fechaSeguimiento", "anuladoEn"]);
+const CAMPOS_OCULTOS = new Set(["programId", "cohortId", "huellaFila", "raw", "confirmacionEn"]);
+const CAMPOS_FECHA = new Set(["fechaAgenda", "fechaLlamada", "fechaSeguimiento", "confirmacionEn", "anuladoEn"]);
 const CAMPOS_CON_NOMBRE = new Set(["closerUserId", "anuladoPor", "motivoId"]);
 
 export function cambioLegible(
@@ -111,6 +120,7 @@ export function cambioLegible(
   const valorLegible = (valor: string | null): string | null => {
     if (valor == null) return null;
     if (campo === "resultado") return ETIQUETA_DE_RESULTADO[valor as Resultado] ?? valor;
+    if (campo === "confirmacion") return ETIQUETA_DE_CONFIRMACION[valor as Confirmacion] ?? valor;
     if (campo === "origen") return etiquetaDeOrigen(valor);
     if (CAMPOS_FECHA.has(campo)) {
       const fecha = new Date(valor);

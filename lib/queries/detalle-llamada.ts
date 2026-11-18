@@ -7,6 +7,8 @@ import { disponibilidadParaMarcarAtendida } from "@/lib/queries/disponibilidad-d
 export interface DetalleDeLlamada {
   id: string;
   resultado: (typeof calls.$inferSelect)["resultado"];
+  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
+  confirmacionEn: Date | null;
   fechaAgenda: Date | null;
   fechaLlamada: Date | null;
   fechaSeguimiento: Date | null;
@@ -31,6 +33,7 @@ export interface DetalleDeLlamada {
     valorNuevo: string | null;
     detectadoEn: Date;
     userNombre: string | null;
+    userEmail: string | null;
   }[];
   nombresDelHistorial: Record<string, string>;
   puedeMarcarAtendida: boolean;
@@ -72,6 +75,7 @@ export async function detalleDeLlamada(
         valorNuevo: changeLog.valorNuevo,
         detectadoEn: changeLog.detectadoEn,
         userNombre: users.nombre,
+        userEmail: users.email,
       })
       .from(changeLog)
       .leftJoin(users, eq(users.id, changeLog.userId))
@@ -107,6 +111,8 @@ export async function detalleDeLlamada(
     ...disponibilidadParaMarcarAtendida(fila.llamada.fechaAgenda, new Date()),
     id: fila.llamada.id,
     resultado: fila.llamada.resultado,
+    confirmacion: fila.llamada.confirmacion,
+    confirmacionEn: fila.llamada.confirmacionEn,
     fechaAgenda: fila.llamada.fechaAgenda,
     fechaLlamada: fila.llamada.fechaLlamada,
     fechaSeguimiento: fila.llamada.fechaSeguimiento,

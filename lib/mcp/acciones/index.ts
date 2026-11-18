@@ -3,6 +3,7 @@ import { moverEtapaMcp } from "./mover-etapa";
 import { marcarShowMcp } from "./marcar-show";
 import { pegarGrainMcp } from "./pegar-grain";
 import { corregirResultadoMcp } from "./corregir-resultado";
+import { marcarConfirmacionMcp } from "./marcar-confirmacion";
 import { registrarAbonoMcp } from "./registrar-abono";
 import { cambiarPlataformaDeAbonoMcp } from "./cambiar-plataforma-de-abono";
 import { anularDealMcp } from "./anular-deal";
@@ -19,6 +20,7 @@ export const ACCIONES = [
   marcarShowMcp,
   pegarGrainMcp,
   corregirResultadoMcp,
+  marcarConfirmacionMcp,
   registrarAbonoMcp,
   cambiarPlataformaDeAbonoMcp,
   anularDealMcp,

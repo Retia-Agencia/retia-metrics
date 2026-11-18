@@ -113,6 +113,7 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#completarAgendadaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Completar los datos de una cita agendada." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#pegarGrainAccion": { clase: "expuesta", accion: "pegar_grain" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#marcarShowAccion": { clase: "expuesta", accion: "marcar_show" },
+  "app/(app)/p/[programa]/deals/[id]/acciones.ts#marcarConfirmacionAccion": { clase: "expuesta", accion: "marcar_confirmacion" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#reagendarLlamadaAccion": { clase: "pendiente", grupo: "operacion", capacidad: "Reagendar una llamada en Calendly." },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#marcarFallidaAccion": { clase: "expuesta", accion: "marcar_fallida" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#corregirResultadoAccion": { clase: "expuesta", accion: "corregir_resultado" },
