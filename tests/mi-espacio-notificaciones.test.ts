@@ -1,6 +1,8 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
+  abonos,
+  archivos,
   calls,
   cohorts,
   dealEtapaHistorial,
@@ -271,6 +273,28 @@ describe("notificaciones de Mi espacio (222)", () => {
 
     const ids = await todas("vencidos");
     expect(new Set(ids)).toEqual(new Set([segVencido, compromisoVencido]));
+  });
+
+  it("sin_comprobante: exige abono vigente sin URL ni archivo y ordena por el más antiguo", async () => {
+    const antiguo = await deal({ etapa: "atendido" });
+    const reciente = await deal({ etapa: "atendido" });
+    const anulado = await deal({ etapa: "atendido" });
+    const conArchivo = await deal({ etapa: "atendido" });
+    const [archivo] = await db.insert(archivos).values({
+      programId,
+      ruta: "comprobantes/428.png",
+      tipoMime: "image/png",
+      bytes: 8,
+      subidoPorUserId: yo,
+    }).returning();
+    await db.insert(abonos).values([
+      { dealId: antiguo.dealId, programId, fecha: "2026-10-01", monto: "100", moneda: "USD" },
+      { dealId: reciente.dealId, programId, fecha: "2026-10-18", monto: "100", moneda: "USD" },
+      { dealId: anulado.dealId, programId, fecha: "2026-09-01", monto: "100", moneda: "USD", anuladoEn: new Date(), anuladoPor: yo, motivoAnulacion: "Error" },
+      { dealId: conArchivo.dealId, programId, fecha: "2026-09-01", monto: "100", moneda: "USD", comprobanteArchivoId: archivo.id },
+    ]);
+
+    expect(await todas("sin_comprobante")).toEqual([antiguo.dealId, reciente.dealId]);
   });
 
   it("sin_grain: un Show sin link entra; con link, anulado o de otro dueño no (226)", async () => {

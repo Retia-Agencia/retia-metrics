@@ -12,6 +12,7 @@ import { novedadesCalendlyDeUsuario } from "@/lib/notificaciones-calendly/notifi
 import { diaDeCalendario } from "@/lib/dias-habiles";
 import { hoyEnBogota } from "@/lib/format";
 import { citaCuentaComoPorMarcar } from "@/lib/deals/resultados-de-llamada";
+import { fechaDeAbonoSinComprobantePorDeal } from "@/lib/deals/abono-sin-comprobante";
 
 /**
  * Las Notificaciones de Mi espacio (ticket 222): lo que le toca al closer HOY, por tipo,
@@ -34,6 +35,7 @@ export const CHIPS_NOTIFICACIONES = [
   "seguimiento",
   "proxima_cohorte",
   "vencidos",
+  "sin_comprobante",
   "sin_grain",
   "sin_resultado",
   "calendly",
@@ -52,6 +54,7 @@ export const NOMBRE_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   seguimiento: "Seguimiento",
   proxima_cohorte: "Próxima Cohorte",
   vencidos: "Vencidos",
+  sin_comprobante: "Sin comprobante",
   sin_grain: "Sin Grain",
   sin_resultado: "Sin resultado",
   calendly: "Calendly",
@@ -70,6 +73,7 @@ export const DESCRIPCION_DE_CHIP: Readonly<Record<ChipNotificacion, string>> = {
   seguimiento: "Deals con un próximo contacto puesto, por fecha.",
   proxima_cohorte: "Leads que esperan otra cohorte; se gestionan en la pantalla Próxima cohorte.",
   vencidos: "Seguimientos, compromisos de pago o cartera con la fecha ya pasada.",
+  sin_comprobante: "Abonos registrados que todavía no tienen comprobante. Pega el enlace o sube el archivo en el deal.",
   sin_grain: "Llamadas que ya se hicieron y todavía no tienen el link de Grain.",
   sin_resultado: "Citas que ya pasaron y no marcaste cómo terminaron. Márcalas: sin eso no se sabe si hubo show.",
   calendly: "Citas nuevas, cambiadas o canceladas en Calendly.",
@@ -124,6 +128,8 @@ interface Universo {
   llamadaDeHoy: Map<string, Date>;
   /** La llamada Show sin Grain más antigua de cada deal (ticket 226), por dealId. */
   showSinGrain: Map<string, Date>;
+  /** El abono vigente sin comprobante más antiguo de cada deal (ticket 428), por dealId. */
+  abonoSinComprobante: Map<string, string>;
   /** La cita pasada sin resultado más antigua de cada deal (390), por dealId: lo que el closer debe marcar. */
   citaSinResultado: Map<string, Date>;
   hoy: string;
@@ -170,6 +176,7 @@ async function leerUniverso(
   const llamadaDeHoy = new Map<string, Date>();
   const showSinGrain = new Map<string, Date>();
   const citaSinResultado = new Map<string, Date>();
+  let abonoSinComprobante = new Map<string, string>();
   const etapaPorDeal = new Map(tarjetas.map((t) => [t.dealId, t.etapa as string]));
   if (ids.length > 0) {
     const filasDeal = await db
@@ -186,6 +193,8 @@ async function leerUniverso(
         fechaLimitePago: f.fechaLimitePago,
       });
     }
+
+    abonoSinComprobante = await fechaDeAbonoSinComprobantePorDeal(db, ids);
 
     // Llamadas VIGENTES de los deals del universo (vigente(calls) obligatorio). Nos quedamos
     // con la más reciente por deal; la fecha de la llamada es un timestamp (instante).
@@ -221,7 +230,7 @@ async function leerUniverso(
     }
   }
 
-  return { tarjetas, fechas, llamadaDeHoy, showSinGrain, citaSinResultado, hoy };
+  return { tarjetas, fechas, llamadaDeHoy, showSinGrain, abonoSinComprobante, citaSinResultado, hoy };
 }
 
 /** ¿La tarjeta pasa el chip? Y, de pasar, ¿cuál es su fecha clave para ordenar y mostrar? */
@@ -264,6 +273,10 @@ function evaluar(
       const masAntigua = candidatas.length > 0 ? candidatas.sort()[0] : null;
       return { pasa: vencido, fechaClave: masAntigua };
     }
+    case "sin_comprobante": {
+      const fecha = u.abonoSinComprobante.get(t.dealId) ?? null;
+      return { pasa: fecha != null, fechaClave: fecha };
+    }
     case "sin_grain": {
       const llamada = u.showSinGrain.get(t.dealId) ?? null;
       return { pasa: llamada != null, fechaClave: llamada };
@@ -301,6 +314,7 @@ function compararPorChip(
       // Por creación ascendente.
       return (fa - fb) || desempate(a, b);
     case "vencidos":
+    case "sin_comprobante":
     case "sin_grain":
     case "sin_resultado":
       // El vencido (o el Show sin Grain) más antiguo primero (fecha ascendente).
@@ -460,7 +474,7 @@ function deberiaVerse(
 
 /** ¿El chip ordena/muestra por una fecha? (Nuevos y Próxima Cohorte no tienen fecha propia). */
 function chipConFecha(chip: ChipNotificacion): boolean {
-  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "sin_grain" || chip === "sin_resultado" || chip === "calendly";
+  return chip === "hoy" || chip === "reagenda" || chip === "seguimiento" || chip === "vencidos" || chip === "sin_comprobante" || chip === "sin_grain" || chip === "sin_resultado" || chip === "calendly";
 }
 
 /** Novedades de Calendly del universo: todas (leídas o no) y el subconjunto no leído. */
