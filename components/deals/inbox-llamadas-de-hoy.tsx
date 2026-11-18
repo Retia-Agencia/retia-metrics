@@ -8,6 +8,7 @@ import { fechaHoraEnBogota } from "@/lib/format";
 import type { FilaLlamada } from "@/lib/queries/inbox";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { Vacio } from "@/components/deals/ficha/campos";
+import { ConfirmacionDeCita } from "@/components/deals/ficha/acciones-de-llamada";
 
 /**
  * Sección 1 del Inbox (ticket 071; segunda pasada, ticket 176): "Llamadas que ya pasaron sin
@@ -49,7 +50,7 @@ export function InboxLlamadasDeHoy({
         ) : (
           <ul className="divide-y">
             {llamadas.map((fila) => (
-              <FilaDeHoy key={fila.callId} fila={fila} onAbrir={() => fila.callId && setDetalleId(fila.callId)} />
+              <FilaDeHoy key={fila.callId} fila={fila} puedeRegistrar={puedeRegistrar} onAbrir={() => fila.callId && setDetalleId(fila.callId)} />
             ))}
           </ul>
         )}
@@ -69,7 +70,7 @@ export function InboxLlamadasDeHoy({
   );
 }
 
-function FilaDeHoy({ fila, onAbrir }: { fila: FilaLlamada; onAbrir: () => void }) {
+function FilaDeHoy({ fila, puedeRegistrar, onAbrir }: { fila: FilaLlamada; puedeRegistrar: boolean; onAbrir: () => void }) {
   const nombre = fila.leadNombre ?? fila.leadEmail ?? "Ver llamada";
   return (
     <li className="relative flex flex-col gap-2 px-4 py-3">
@@ -97,6 +98,15 @@ function FilaDeHoy({ fila, onAbrir }: { fila: FilaLlamada; onAbrir: () => void }
           Cita en Calendly
         </a>
       ) : null}
+      <div className="relative z-10">
+        <ConfirmacionDeCita
+          callId={fila.callId}
+          confirmacion={fila.confirmacion ?? null}
+          sinResultado
+          puedeCambiar={puedeRegistrar}
+          unToque
+        />
+      </div>
     </li>
   );
 }

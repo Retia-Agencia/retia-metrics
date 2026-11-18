@@ -29,7 +29,7 @@ import { exigirAbonoVisible as exigirAbonoVisibleEnLib, exigirDealVisible as exi
 import { editarDeal } from "@/lib/deals/editar-deal";
 import { marcarLinkEnviado } from "@/lib/deals/handoff";
 import { programarLecturaDeGrain, programarLecturaDeGrainDelDeal } from "@/lib/grain/despues";
-import { agregarLlamada, completarAgendada, corregirResultado, esquemaCorregirResultado, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS, type DatosCorregirResultado } from "@/lib/deals/llamadas";
+import { agregarLlamada, completarAgendada, corregirResultado, esquemaCorregirResultado, esquemaMarcarConfirmacion, marcarConfirmacion, marcarFallida, marcarShow, pegarGrain, reagendarLlamada, RESULTADOS_FALLIDOS, type DatosCorregirResultado, type DatosMarcarConfirmacion } from "@/lib/deals/llamadas";
 import { eventoParaAgendar, horarioDelEvento, horasDisponibles, reservarCita, type CitaReservada, type HorarioDeEvento } from "@/lib/calendly/escritura";
 import { editarAcuerdoDePago } from "@/lib/deals/pago";
 import { cambiarCohorte, desmarcarOnboarded, marcarOnboarded } from "@/lib/deals/estudiante";
@@ -664,6 +664,17 @@ export async function marcarShowAccion(entrada: EntradaMarcarShow): Promise<Resu
     await exigirLlamadaVisible(ctx, callId);
     const r = await marcarShow(db, actor, { callId });
     return { etapa: r.etapa, movioAAtendido: r.movioAAtendido };
+  });
+}
+
+export type EntradaMarcarConfirmacion = DatosMarcarConfirmacion;
+
+export async function marcarConfirmacionAccion(entrada: EntradaMarcarConfirmacion): Promise<ResultadoFicha<{ confirmacion: DatosMarcarConfirmacion["confirmacion"] }>> {
+  return correr(async (ctx) => {
+    const datos = esquemaMarcarConfirmacion.parse(entrada);
+    await exigirLlamadaVisible(ctx, datos.callId);
+    await marcarConfirmacion(db, ctx.actor, datos);
+    return { confirmacion: datos.confirmacion };
   });
 }
 

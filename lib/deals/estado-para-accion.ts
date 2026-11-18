@@ -61,7 +61,8 @@ export async function huellaDeAccionDeal(db: Db, dealId: string, opciones: { blo
 export async function estadoParaAccionLlamada(db: Db, callId: string, opciones: { bloquear?: true } = {}) {
   const consulta = db.select({
     id: calls.id, dealId: calls.dealId, resultado: calls.resultado, linkGrain: calls.linkGrain,
-    fechaAgenda: calls.fechaAgenda, anuladoEn: calls.anuladoEn,
+    fechaAgenda: calls.fechaAgenda, confirmacion: calls.confirmacion, confirmacionEn: calls.confirmacionEn,
+    anuladoEn: calls.anuladoEn,
   }).from(calls).where(and(eq(calls.id, callId), incluyendoAnulados(calls)));
   const [fila] = opciones.bloquear ? await consulta.for("update", { of: calls }) : await consulta;
   return fila ?? null;

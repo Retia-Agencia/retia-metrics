@@ -369,6 +369,41 @@ export const esquemaMarcarShow = z.object({
 
 export type DatosMarcarShow = z.input<typeof esquemaMarcarShow>;
 
+export const esquemaMarcarConfirmacion = z.object({
+  callId: z.string().uuid("La llamada no es válida."),
+  confirmacion: z.enum(["confirmada", "no_confirmada"]).nullable(),
+});
+
+export type DatosMarcarConfirmacion = z.input<typeof esquemaMarcarConfirmacion>;
+
+/** Marca, cambia o limpia la confirmación sin alterar el resultado ni la etapa del deal. */
+export async function marcarConfirmacion(
+  db: Db,
+  actor: ActorDeLlamada,
+  datos: DatosMarcarConfirmacion,
+  contexto: { reversionId?: string; origen?: OrigenOperativo } = {},
+): Promise<void> {
+  return normalizando(async () => {
+    const { callId, confirmacion } = esquemaMarcarConfirmacion.parse(datos);
+    exigirQueTrabajeLeads(actor);
+    const { call } = await llamadaVigenteDeDealCorregible(db, callId, actor);
+    if (call.confirmacion === confirmacion) return;
+    await editarConRastro(
+      {
+        db,
+        tabla: calls,
+        nombreTabla: "calls",
+        actorId: actor.userId,
+        etiqueta: call.emailLead ?? call.id,
+        reversionId: contexto.reversionId,
+        origen: contexto.origen ?? "app",
+      },
+      call.id,
+      { confirmacion, confirmacionEn: confirmacion == null ? null : new Date() },
+    );
+  });
+}
+
 export const RESULTADOS_CORREGIBLES = ["show", "no_show", "cancelada"] as const;
 
 export const esquemaCorregirResultado = z.object({

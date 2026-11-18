@@ -101,6 +101,8 @@ export interface FilaLlamada {
   leadEmail: string | null;
   /** El día/hora de la cita (instante). `null` si la llamada no tiene fecha de cita. */
   fechaAgenda: Date | null;
+  confirmacion?: (typeof calls.$inferSelect)["confirmacion"];
+  confirmacionEn?: Date | null;
   linkCalendly: string | null;
   /** El dueño del deal de la llamada, para "equipo" (nulo en las sueltas y en "mío"). */
   ownerNombre: string | null;
@@ -301,6 +303,8 @@ async function seccionLlamadasDeHoy(
       callId: calls.id,
       dealId: deals.id,
       fechaAgenda: calls.fechaAgenda,
+      confirmacion: calls.confirmacion,
+      confirmacionEn: calls.confirmacionEn,
       linkCalendly: calls.linkCalendly,
       leadNombre: leads.nombre,
       leadEmail: leads.emailNormalizado,
@@ -331,6 +335,8 @@ async function seccionLlamadasDeHoy(
     leadNombre: f.leadNombre,
     leadEmail: f.leadEmail,
     fechaAgenda: f.fechaAgenda,
+    confirmacion: f.confirmacion,
+    confirmacionEn: f.confirmacionEn,
     linkCalendly: f.linkCalendly,
     ownerNombre: alcance === "equipo" ? (f.ownerNombre ?? f.ownerEmail ?? null) : null,
   }));

@@ -56,6 +56,8 @@ import { cambiosDeDeals } from "@/lib/queries/cambios-de-dueno";
 export interface FichaDeLlamada {
   id: string;
   resultado: (typeof calls.$inferSelect)["resultado"];
+  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
+  confirmacionEn: Date | null;
   fechaAgenda: Date | null;
   fechaLlamada: Date | null;
   linkCalendly: string | null;
@@ -800,6 +802,8 @@ export async function fichaDeDeal(
         closerNombre: nombreDe(c.closerUserId),
         notas: c.notas,
         origen: c.origen,
+        confirmacion: c.confirmacion,
+        confirmacionEn: c.confirmacionEn,
         anuladoEn: c.anuladoEn,
         motivoAnulacion: c.motivoAnulacion,
         anuladoPorNombre: nombreDe(c.anuladoPor),

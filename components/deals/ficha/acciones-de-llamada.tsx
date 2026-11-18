@@ -6,10 +6,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { horaElegidaCompleta, SelectorDeHora, type HoraElegida } from "@/components/calendly/selector-de-hora";
 import {
   corregirResultadoAccion,
+  marcarConfirmacionAccion,
   marcarFallidaAccion,
   marcarShowAccion,
   reagendarLlamadaAccion,
 } from "@/app/(app)/p/[programa]/deals/[id]/acciones";
+import { Badge } from "@/components/ui/badge";
+import { ETIQUETA_DE_CONFIRMACION } from "@/lib/deals/estado-de-llamada";
+import type { calls } from "@/lib/db/schema";
 import type { OpcionesDeFicha } from "@/lib/queries/ficha-deal";
 import { Campo, claseTextarea, DialogoForm } from "./campos";
 import { CampoGrain } from "./campo-grain";
@@ -46,10 +50,12 @@ export function AccionesDeLlamada({
   dealId,
   linkGrain,
   resultado,
+  confirmacion,
   motivosReagenda,
   puedeMarcarAtendida,
   mensajeNoPuedeMarcarAtendida,
   puedeReagendar = true,
+  mostrarConfirmacion = true,
   abrirInicial = null,
   onCambio,
 }: {
@@ -58,11 +64,13 @@ export function AccionesDeLlamada({
   dealId: string | null;
   linkGrain: string | null;
   resultado: string;
+  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
   motivosReagenda: OpcionesDeFicha["motivos"];
   puedeMarcarAtendida: boolean;
   mensajeNoPuedeMarcarAtendida: string | null;
   /** Crear la cita sucesora requiere que el deal siga abierto. */
   puedeReagendar?: boolean;
+  mostrarConfirmacion?: boolean;
   abrirInicial?: "resultado" | null;
   /**
    * Se llama tras CADA resultado exitoso (Show, fallida, reagendada, Grain), ticket 229 (A-141):
@@ -87,6 +95,15 @@ export function AccionesDeLlamada({
 
   return (
     <div className="space-y-2">
+      {mostrarConfirmacion ? (
+        <ConfirmacionDeCita
+          callId={callId}
+          confirmacion={confirmacion}
+          sinResultado={resultado === "agendada"}
+          unToque
+          onCambio={onCambio}
+        />
+      ) : null}
       {resultado === "show" || linkGrain ? (
         <CampoGrain
           callId={callId}
@@ -133,6 +150,58 @@ export function AccionesDeLlamada({
           onCambio={onCambio}
         />
       ) : null}
+    </div>
+  );
+}
+
+export function ConfirmacionDeCita({
+  callId,
+  confirmacion,
+  sinResultado,
+  onCambio,
+  mostrarEtiqueta = true,
+  puedeCambiar = true,
+  unToque = false,
+  detalle,
+}: {
+  callId: string;
+  confirmacion: (typeof calls.$inferSelect)["confirmacion"];
+  sinResultado: boolean;
+  onCambio?: () => void;
+  mostrarEtiqueta?: boolean;
+  puedeCambiar?: boolean;
+  unToque?: boolean;
+  detalle?: string | null;
+}) {
+  const { pendiente, correr } = useAccion();
+  const [cambiando, setCambiando] = useState(false);
+  const guardar = (valor: "confirmada" | "no_confirmada" | null) => correr(
+    () => marcarConfirmacionAccion({ callId, confirmacion: valor }),
+    {
+      exito: valor === null ? "Confirmación quitada." : "Confirmación guardada.",
+      alExito: () => { setCambiando(false); onCambio?.(); },
+    },
+  );
+  const botones = (
+    <div className="flex flex-wrap gap-2">
+      <Button size="xs" variant="outline" disabled={pendiente} onClick={() => guardar("confirmada")}>Confirmó</Button>
+      <Button size="xs" variant="outline" disabled={pendiente} onClick={() => guardar("no_confirmada")}>No confirmó</Button>
+      {confirmacion != null ? <Button size="xs" variant="ghost" disabled={pendiente} onClick={() => guardar(null)}>Quitar</Button> : null}
+    </div>
+  );
+
+  if (confirmacion == null && (!sinResultado || !puedeCambiar)) return null;
+  if (confirmacion == null) {
+    return <div className="space-y-1.5"><p className="text-xs font-medium">¿El lead confirmó que va?</p>{botones}</div>;
+  }
+  return (
+    <div className="space-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
+        {mostrarEtiqueta ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[confirmacion]}</Badge> : null}
+        {puedeCambiar && !unToque ? <Button size="xs" variant="ghost" disabled={pendiente} onClick={() => setCambiando((valor) => !valor)}>Cambiar</Button> : null}
+      </div>
+      {detalle ? <p className="cifra text-xs text-muted-foreground">{detalle}</p> : null}
+      {puedeCambiar && (cambiando || (unToque && sinResultado)) ? botones : null}
     </div>
   );
 }

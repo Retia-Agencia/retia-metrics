@@ -126,6 +126,12 @@ export const resultadoLlamadaEnum = pgEnum("resultado_llamada", [
   "perdida",
 ]);
 
+export const confirmacionCitaEnum = pgEnum("confirmacion_cita", [
+  "confirmada",
+  "no_confirmada",
+  "cancelada_segun_closer",
+]);
+
 /** Cambios de Calendly que el closer consume en Mi espacio (ticket 201). */
 export const tipoNotificacionCalendlyEnum = pgEnum("tipo_notificacion_calendly", [
   "cita_nueva",
@@ -1276,6 +1282,12 @@ export const calls = pgTable(
     fechaAgenda: timestamp("fecha_agenda", { withTimezone: true }),
     fechaLlamada: timestamp("fecha_llamada", { withTimezone: true }),
     resultado: resultadoLlamadaEnum("resultado").notNull().default("agendada"),
+    /**
+     * La confirmación es ortogonal a `resultado`: marcar show o no_show nunca la limpia.
+     * Nulo significa que nadie preguntó todavía.
+     */
+    confirmacion: confirmacionCitaEnum("confirmacion"),
+    confirmacionEn: timestamp("confirmacion_en", { withTimezone: true }),
     /** Fecha prometida de un compromiso de pago o nueva cita de una reagendada (ADR 0015). */
     fechaSeguimiento: timestamp("fecha_seguimiento", { withTimezone: true }),
     /** Motivo de perdida como catalogo (ADR 0015). */
