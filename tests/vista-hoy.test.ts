@@ -169,9 +169,11 @@ describe("la caja de hoy por origen (252)", () => {
     expect(dia.real).toBe(1);
   });
 
-  it("sin abonos hoy no hay filas, no hay ceros inventados", async () => {
+  it("sin abonos hoy la caja es 0 en la moneda del programa (D-3), no un vacío", async () => {
     const [programa] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "vacio", nombre: "Vacío", ticketUsd: "797" }).returning();
-    expect(await cajaDelDiaPorOrigen({ programId: programa.id, hoy: HOY }, db)).toEqual([]);
+    expect(await cajaDelDiaPorOrigen({ programId: programa.id, hoy: HOY }, db)).toEqual([
+      { moneda: "USD", total: 0, deVentasDeHoy: 0, deVentasAnteriores: 0 },
+    ]);
   });
 
   it("hoy arma la misma vista, contexto, horizontes y caja que el camino anterior", async () => {

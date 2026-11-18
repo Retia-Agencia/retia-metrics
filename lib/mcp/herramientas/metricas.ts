@@ -92,7 +92,7 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `${nombreLargo("ventas")}: ${num(vista.embudo.cierres)}`,
       `${nombreCorto("vendido")}: ${monto(vista.dinero.vendido, "USD")}`,
-      `${nombreCorto("entro_a_caja")}: ${caja.length ? caja.join(", ") : monto(0, "USD")}`,
+      `${nombreCorto("entro_a_caja")}: ${caja.join(", ")}`,
       `${nombreCorto("citas")}: ${num(vista.embudo.agendas)} · ${nombreCorto("shows")}: ${num(vista.embudo.llamadasConShow)}`,
       tasaLegible(nombreCorto("asistencia"), vista.embudo.razonShow, grupo.cobertura, grupo.parcial),
       tasaLegible(nombreCorto("cierre_de_ventas"), vista.embudo.razonCierre, grupo.cobertura, grupo.parcial),
@@ -174,7 +174,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
     const lista = proyectarListaSegunRol(vista.lista, { rol: contexto.rol, metrica: entrada.metrica, esListaDePauta, esListaDeOrigen });
     const desgloses = desglosesDelResumen(lista.grupos, nombreDeEtapa);
     const haySiguiente = entrada.pagina * TAMANO_PAGINA < lista.subtotal.cantidad;
-    const caja = lista.subtotal.caja.map((valor) => monto(valor.total, valor.moneda));
+    const montosDeLaLista = lista.subtotal.caja.map((valor) => monto(valor.total, valor.moneda));
     const filas = lista.filas.map((fila) => {
       const enlace = fila.dealId
         ? enlaceDeDeal(programa.slug, fila.dealId)
@@ -210,7 +210,7 @@ export const consultarMetricaMcp: Herramienta<typeof entradaMetrica> = {
     });
     const texto = [
       `${TITULOS_DE_LISTA[entrada.metrica]}: ${lista.disponible ? num(lista.subtotal.cantidad) : "—"}`,
-      ...(caja.length ? [`Montos: ${caja.join(", ")}`] : []),
+      ...(montosDeLaLista.length ? [`Montos: ${montosDeLaLista.join(", ")}`] : []),
       `Periodo: ${vista.periodo.a.desde} a ${vista.periodo.a.hasta} (Bogotá)`,
       `Página ${num(entrada.pagina)}: ${num(lista.filas.length)} filas. ${haySiguiente ? `Hay otra página; pide pagina ${entrada.pagina + 1}.` : "No hay otra página."}`,
     ].join("\n");

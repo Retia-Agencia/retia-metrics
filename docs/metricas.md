@@ -120,6 +120,7 @@ que agrupa, filtra y lista con la **misma** consulta: la lista detrás de una ci
 - **Función:** `filtroCaja` y `cajaRecaudada`; lo abonado y el saldo de un deal, en `lib/queries/saldo.ts`, cuentan solo abonos de ticket.
 - **Hecho:** `lib/queries/hechos/abono.ts` (411 F1) agrupa, cuenta y lista la caja sobre `filtroCaja` y suma con `sumaDeAbonos` (`saldo.ts`), siempre separada por moneda: nunca suma COP con USD. Dimensiones: `dia`, `semana`, `mes`, `moneda`, `plataforma`, `registrado_por`, `dueno`, `cohorte`; `dueno` y `registrado_por` solo para quien ve el trabajo del equipo comercial. Lo lee `consultar_hechos` del MCP.
 - **Ojo:** caja y ventas son métricas separadas: un abono no es una venta ni al revés (ADR 0013).
+- **Caja sin abonos = 0 (D-3, 18-nov; ADR 0115 N5):** `cajaRecaudada` (y la caja por closer y la lista de «Entró a caja») devuelve **una fila de la moneda del programa (`MONEDA_DE_CAJA`, USD) con 0** cuando no hay abonos; una suma sin filas es 0, no «—» ni «sin datos». El vacío lo decide solo `cajaConMonedaDelPrograma` (`lib/queries/dashboard.ts`); ninguna pantalla ni el MCP lo reinventa. Guardián: `tests/caja-vacia-guardian.test.ts` (falla si una pantalla pregunta `caja.length`, fabrica `USD 0` a mano o escribe su texto de vacío).
 
 ### 1.6 Gasto de pauta (días cerrados)
 

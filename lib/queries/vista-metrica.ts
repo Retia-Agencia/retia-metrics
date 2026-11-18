@@ -30,7 +30,7 @@ import {
 } from "@/lib/queries/embudo-con-filas";
 import { PASOS_DE_CONVERSION } from "@/lib/queries/embudo-etapas";
 import { grupoDeCitas, gruposPorSemana, miembrosDe, pendientesDe } from "@/lib/queries/tasas-del-grupo";
-import { dineroPorCloserDelRango, type Rango } from "@/lib/queries/dashboard";
+import { cajaConMonedaDelPrograma, dineroPorCloserDelRango, type Rango } from "@/lib/queries/dashboard";
 import type { DineroDeVentas } from "@/lib/queries/dinero-de-ventas";
 import { lunesDe, sumarDias } from "@/lib/dias-habiles";
 import { db as dbDeLaApp } from "@/lib/db";
@@ -310,7 +310,9 @@ function detalleDelResumen(
     cantidad,
     caja: dinero
       ? [{ moneda: "USD", total: dinero.vendido }]
-      : [...caja].map(([moneda, total]) => ({ moneda, total: Math.round(total * 100) / 100 })),
+      : metrica === "caja"
+        ? cajaConMonedaDelPrograma([...caja].map(([moneda, total]) => ({ moneda, total: Math.round(total * 100) / 100 })))
+        : [...caja].map(([moneda, total]) => ({ moneda, total: Math.round(total * 100) / 100 })),
   };
   const resumenDelCloser: ResumenDeMetrica = {
     programId: resumen.programId,

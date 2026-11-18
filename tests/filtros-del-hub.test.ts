@@ -115,7 +115,7 @@ describe("Cohorte y Periodo se cruzan con Y", () => {
     const octubre = { desde: "2026-10-01", hasta: "2026-10-31" };
     const vista = await vistaCon(c2, periodoDe(octubre));
     expect(vista.embudo.cierres).toBe(0);
-    expect(vista.caja).toEqual([]);
+    expect(vista.caja).toEqual([{ moneda: "USD", total: 0 }]);
     expect(fraseSinActividad("C2", { ...periodoDe(octubre), preset: "mes_pasado" })).toBe("C2 no tuvo actividad en octubre. Elige otro periodo o Desde el inicio.");
   });
 });

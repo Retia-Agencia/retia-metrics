@@ -115,7 +115,7 @@ export function CitasDelDia({ programas, veEquipo }: { programas: ProgramaDelRep
                 {cifrasDeClosers.map((f) => <tr key={f.clave}>
                   <td className="py-2">{f.closer}</td>
                   {[f.citas, f.asistencia, f.ventas, f.cierreDeVentas].map((c) => <td key={c.concepto} className="py-2 text-right"><Cifra mostrarCobertura cifra={c} tamano="celda" /></td>)}
-                  <td className="py-2 text-right">{f.entroACaja.length ? f.entroACaja.map((c) => <Cifra mostrarCobertura key={c.unidad} cifra={c} tamano="celda" />) : "—"}</td>
+                  <td className="py-2 text-right">{f.entroACaja.map((c) => <Cifra mostrarCobertura key={c.unidad} cifra={c} tamano="celda" />)}</td>
                 </tr>)}
               </Tabla>}
             </section> : <Comparativo vista={reporte.vista} detalles={detallesOperacion?.comparativo} titulo="¿Cómo va cada closer?" />}</div>

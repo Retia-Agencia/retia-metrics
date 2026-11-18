@@ -12,6 +12,7 @@ import { showPorCitaDelRango } from "@/lib/queries/tasa-show-por-cita";
 import { fechaAnclaCall, filtroCaja, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
 import { agrupar as agruparEnvios } from "@/lib/queries/hechos/envio";
 import { armarVistaDeHoy } from "@/lib/queries/vista-hoy";
+import { cajaConMonedaDelPrograma } from "@/lib/queries/dashboard";
 import type { ContextoDeVista } from "@/lib/queries/vista-dashboard";
 import type { VentanaRitmo } from "@/lib/queries/proyeccion";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
@@ -279,6 +280,6 @@ export function totalDeConteos(
     agendas: reportes.reduce((t, r) => t + r.vista.embudo.agendas, 0),
     realizadas: reportes.reduce((t, r) => t + r.vista.embudo.llamadasConShow, 0),
     ventas: reportes.reduce((t, r) => t + r.ventas.length, 0),
-    caja: [...caja].map(([moneda, total]) => ({ moneda, total })).sort((a, b) => a.moneda.localeCompare(b.moneda)),
+    caja: cajaConMonedaDelPrograma([...caja].map(([moneda, total]) => ({ moneda, total })).sort((a, b) => a.moneda.localeCompare(b.moneda))),
   };
 }

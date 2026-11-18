@@ -34,7 +34,6 @@ export function Tarjeta({
 
 /** La caja lleva su moneda al lado, una línea por moneda. Nunca se suma. */
 export function Caja({ caja }: { caja: CajaPorMoneda[] }) {
-  if (caja.length === 0) return <>—</>;
   return (
     <>
       {caja.map((fila) => (

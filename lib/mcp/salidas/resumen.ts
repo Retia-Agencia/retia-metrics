@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cajaConMonedaDelPrograma } from "@/lib/queries/dashboard";
 import type { VistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import type { FilaPautaSemanal } from "@/lib/queries/hechos/pauta-semanal";
 import type { VistaDeEscalera } from "@/lib/queries/vista-escalera";
@@ -177,7 +178,7 @@ export function aSalidaDeResumen(vista: VistaDelDashboard, extras: ExtrasDeResum
       citas: { valor: vista.embudo.agendas, unidad: "citas" as const },
       shows: { valor: vista.embudo.llamadasConShow, unidad: "citas" as const },
     },
-    entro_a_caja: vista.caja.map(({ moneda, total }) => ({ moneda, total })),
+    entro_a_caja: cajaConMonedaDelPrograma(vista.caja).map(({ moneda, total }) => ({ moneda, total })),
     tasas: {
       asistencia: { valor: vista.embudo.razonShow.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },
       cierre_de_ventas: { valor: vista.embudo.razonCierre.valor, cobertura: grupo.cobertura, parcial: grupo.parcial },

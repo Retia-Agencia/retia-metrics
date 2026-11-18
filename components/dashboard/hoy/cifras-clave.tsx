@@ -87,7 +87,7 @@ export function CifrasClave({ programas, definirObjetivo }: { programas: Program
           <Ficha
             titulo="Entró a caja hoy"
             ayuda="dinero"
-            valor={<CifraConLista titulo="Entró a caja del día" detalle={detalles?.caja}><Caja caja={reporte.caja.length ? reporte.caja : [{ moneda: "USD", total: 0 }]} /></CifraConLista>}
+            valor={<CifraConLista titulo="Entró a caja del día" detalle={detalles?.caja}><Caja caja={reporte.caja} /></CifraConLista>}
           >
             <p className="text-xs text-muted-foreground">Abonos de hoy, por su moneda.</p>
           </Ficha>

@@ -559,7 +559,7 @@ async function CuerpoDelHub({
   const cifrasClosers = veEquipo ? cifrasDeClosersDeHoy({
     filas: reporte.vista.comparativo, explicaciones: explicacionesDeClosersDeHoy(explicaciones),
     programa: programa.nombre, dia: diaDelReporte, hoy, detalles: detallesOperacion?.comparativo,
-  }).map((fila, i) => ({ ...fila, entroACaja: reporte.vista.comparativo[i].caja.length ? fila.entroACaja : [] })) : undefined;
+  }) : undefined;
   return (
     <>
       {fechaRechazada ? (
