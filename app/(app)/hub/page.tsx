@@ -19,7 +19,7 @@ import { ReporteDiarioVista } from "@/components/dashboard/reporte-diario";
 import { SelectorDeDia } from "@/components/dashboard/selector-de-dia";
 import { resolverDiaDelReporte } from "@/lib/queries/reporte-diario";
 import { veEquipoComercial } from "@/lib/auth/roles";
-import { OrigenPorPrograma, PautaPorPrograma } from "./pauta";
+import { PautaPorPrograma } from "./pauta";
 import { queryDePautaDesdeOrigen, RUTA_HUB_TODOS } from "@/lib/nav";
 import { origenDeLaPagina } from "@/lib/navegacion/volver";
 import { InfoDePagina } from "@/components/hub/info-de-pagina";
@@ -98,10 +98,7 @@ export default async function HubDeTodosPage({ searchParams }: Props) {
         </div>
         <div className={clasesDeZonaConScroll()}>
           {seccion === "pauta"
-            ? <div className="space-y-6">
-                <PautaPorPrograma filas={datos.pauta} periodo={vista.periodo} busqueda={busqueda} />
-                <OrigenPorPrograma filas={datos.origenes} periodo={vista.periodo} origen={origen} />
-              </div>
+            ? <PautaPorPrograma programas={programas} periodo={vista.periodo} />
             : esHoy
             ? <>
                 {diaPedido === null ? <p role="alert" className="mb-3 rounded-md border border-tono-peligro/40 px-3 py-2 text-sm text-tono-peligro">Esa fecha no es válida (no puede ser futura): se muestra hoy.</p> : null}

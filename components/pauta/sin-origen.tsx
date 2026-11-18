@@ -70,7 +70,7 @@ export async function SinOrigen({ contexto, programId, rango, vistaOrigen, hrefP
           </section>}
         <section className="space-y-1" aria-label="Contenido con código que no reconocemos">
           <h3 className="text-sm font-medium">Contenido con código que no reconocemos</h3>
-          <p className="text-xs text-muted-foreground">Envíos que llegaron por un enlace de contenido cuyo código no es de ninguna pieza viva de este programa (descartada, de otro programa o mal copiado).</p>
+          <p className="text-xs text-muted-foreground">Envíos completos que llegaron por un enlace de contenido cuyo código no es de ninguna pieza viva de este programa (descartada, de otro programa o mal copiado).</p>
           {vistaOrigen.piezasDesconocidas.envios === 0
             ? <p className="text-sm text-muted-foreground">Ninguno en este periodo.</p>
             : <>

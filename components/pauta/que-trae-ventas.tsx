@@ -79,7 +79,7 @@ export function QueTraeVentas({ contexto, verPor, hrefDeVerPor, enlace, canalesD
         </table>
       </div>
       {verPor === "canal" && canalesDeOrigen
-        ? <TablaDeOrigen canales={canalesDeOrigen.canales} totalEnvios={canalesDeOrigen.totalEnvios} soloConteos={false} dentroDeOtraTarjeta />
+        ? <TablaDeOrigen canales={canalesDeOrigen.canales} totalEnvios={canalesDeOrigen.totalEnvios} dentroDeOtraTarjeta />
         : null}
     </CardContent>
   </Card>;

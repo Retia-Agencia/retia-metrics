@@ -145,7 +145,7 @@ function datosDelHubDelPrograma(seccion: SeccionDelHubDelPrograma) {
 const PAGINAS = {
   "/hub": { pagina: "app/(app)/hub/page.tsx", tope: 179, escalaConProgramas: true, cargar: datosDelHub("hoy") },
   "/hub?seccion=comercial": { pagina: "app/(app)/hub/page.tsx", tope: 260, escalaConProgramas: true, cargar: datosDelHub("comercial") },
-  "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 219, escalaConProgramas: true, cargar: datosDelHub("pauta") },
+    "/hub?seccion=pauta": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("pauta") },
   "/hub?seccion=dinero": { pagina: "app/(app)/hub/page.tsx", tope: 167, escalaConProgramas: true, cargar: datosDelHub("dinero") },
   "/p/[programa]/hub": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 66, escalaConProgramas: false, cargar: datosDelHubDelPrograma("hoy") },
   "/p/[programa]/hub?seccion=comercial": { pagina: "app/(app)/p/[programa]/hub/page.tsx", tope: 82, escalaConProgramas: false, cargar: datosDelHubDelPrograma("comercial") },

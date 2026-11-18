@@ -296,7 +296,77 @@ E-0 Mani. E-1 carril D (Mani con Codex): es su archivo. E-2 a E-7 carril P (comp
 ir en paralelo si E-2 arranca con los conceptos que ya tienen texto en el puente; E-3 de una pestaña espera a que sus fichas
 tengan texto aprobado.
 
+## Lo que falta contra el boceto (18-nov, sesión de UI; medido con `grep` sobre `main` c0cea03c)
+
+Hecho en `main` (Alejo, 13 a 17-nov): el contrato, las 52 fichas, la pieza, y la Cifra en el Hub **de un programa** para Comercial,
+Dinero, Hoy y el norte. Lo que queda, pantalla por pantalla:
+
+| Pantalla | Falta |
+|---|---|
+| **Hoy** (programa) | Cifras clave, embudo, citas, dinero y pendientes siguen importando `CifraConLista`/`CifraDeRazon` en su rama vieja (`hoy/cifras-clave.tsx` 4+1, `embudo.tsx`, `citas.tsx`, `dinero.tsx`, `pendientes.tsx`, `comunes.tsx`); `hoy/semana.tsx` sigue con `Fila` y `Variacion`; el botón Info de Hoy sigue montado (`p/[programa]/hub/page.tsx:323`, DC-1). PDF de Hoy sin verificar antes/después. |
+| **Comercial** (programa) | Hecha. Queda la rama vieja en `operacion.tsx` (3 `CifraDeRazon`, 1 `CifraConLista`), `escalera.tsx` y `EnlaceAInfo` en `deals-contra-agendas.tsx` (E-6). |
+| **Dinero** (programa) | Cifras hechas. Las gráficas abren `ResumenDeCifra` (`graficas/resumen-de-punto.tsx`) y no la explicación; `dinero-de-ventas.tsx` conserva `CifraConLista` y `Variacion`. |
+| **Pauta** (programa) | Cifras hechas (420). Queda `pauta-roas.tsx` con `CifraDeRazon` y el Info de Pauta montado (`page.tsx:240`, DC-1). |
+| **Hub de todos** (`/hub`) | E-4 entero: `secciones.tsx` con 3 `CifraConLista`, 4 `CifraDeRazon`, `Tarjeta`, `Variacion`; `vamos-a-llegar.tsx` (vista vieja); Info montado (`hub/page.tsx`). |
+| **Mi espacio** | E-5 entero: `tab-metricas.tsx` (8 `CifraConLista`, `CifraDeRazon`, `ComoSeCalcula`, 5 `Variacion`, 6 `Tarjeta`); universo «tuyas» (DC-4). |
+| **Transversal** | E-6 (borrar lo huérfano), E-7 (guardián `una-forma-de-cifra-guardian`), E-8 (`structure.md` §9, ADR 0067), comparación visual con el boceto en claro, oscuro y 375 px, Rams, `build`, `test:humo`. |
+
 ## Avance
+
+- **18-nov · Textos nuevos redactados por la sesión de UI (Mani los revisa en el PR #39).** Cuatro conceptos nuevos, cada uno con
+  su ficha en `lib/metricas/registro.ts`, su nombre en `lib/vocabulario-metricas.ts`, su fila en `docs/metricas.md` §3.1 (y §3.0
+  regenerado) y su entrada en `docs/overview.md` §11. Sus listas pasan de `shows` a su concepto. Texto de cada uno:
+  - `realizadas_sin_grain` · «Realizadas sin Grain»: *Cuántas citas realizadas del periodo no tienen pegado el enlace de la
+    grabación de la llamada.* Fórmula: conteo de «citas realizadas sin enlace de grabación». Variable *Grain*: el enlace de la
+    grabación; sin él no se puede revisar la cita, pero no cambia si cuenta como realizada.
+  - `realizadas_sin_valor_vendido` · «Realizadas sin valor vendido» (antes «Atendidos sin valor vendido»): *Cuántos deals con la
+    llamada realizada están en una etapa que pide el valor vendido y lo tienen en cero o vacío.* Variables *Realizado* (Atendido,
+    Compromiso verbal, Ganado parcial o Completo; sin cortesías) y *Valor vendido* (sin él la venta no suma en Vendido ni en Por
+    cobrar; foto de hoy).
+  - `realizadas_sin_grain_a_hoy` · «Realizadas sin Grain a hoy» (antes «Atendidos sin Grain»): *Cuántos deals con la llamada
+    realizada tienen al menos una llamada vigente sin el enlace de la grabación.* Variables *Realizado* y *Grain* (foto de hoy).
+  - `cierre_perdido_con_pagos` · «Cierre perdido con pagos» (largo: «Cierre perdido con pagos registrados»): *Cuántos negocios
+    están en Cierre perdido y aun así tienen un abono vigente: plata cobrada sobre una venta perdida.* Variables *Abono vigente*
+    (no anulado) y *Cierre perdido* (inconsistencia de datos, hoy debería dar cero, foto de hoy, sin porcentaje).
+  - «Llamadas pasadas sin resultado» **no es concepto nuevo**: es `citas_pendientes` («Sin resultado»), que ya tiene ficha.
+    Comisión y Descuento tampoco: `comision`, `descuento_promedio` y `descuento_promedio_porcentaje` ya tienen ficha.
+  - **Rótulo de Pauta:** «Envíos completos» (en Pauta todo envío es completo; decisión de Mani, 18-nov).
+- **18-nov · Pendiente del 419 que la sesión de UI NO empezó** (quedó anotado para otra sesión):
+  - Conectar las cuatro fichas nuevas y `citas_pendientes` a `/hub` Hoy (hoy siguen con `Tarjeta` y `CifraConLista`), y pintar
+    Comisión y Descuento de la tabla de Dinero de `/hub` con la Cifra (las fichas existen; falta el constructor).
+  - Dos frases del diálogo retirado de Mi espacio (variante «tuyas» en `lib/metricas/explicacion.ts`): *Entró a caja* = «los abonos
+    que registraste tú», y *Cierre de ventas* = «cada deal cuenta contigo si tomaste su último show o, sin show, su última cita».
+  - E-6 completo: rama vieja de Comercial y Hoy por programa dentro de `/hub` (`operacion.tsx`, `escalera.tsx`, `hoy/*`), gráficas de
+    Dinero con `ResumenDeCifra` (`graficas/resumen-de-punto.tsx`), `Variacion`, `CifraDeRazon`, `CifraConLista` y el Info de Hoy.
+  - E-7: `tests/una-forma-de-cifra-guardian.test.ts`, mordido en los dos sentidos. E-8: `structure.md` §9 y el ADR 0067.
+  - Visual en claro y a 375 px de lo migrado (Hub de un programa, `/hub`, Mi espacio), recorrido de Pauta como paid trafficker (que
+    no vea dueños ni cifras por closer), `npm run build` y `npm run test:humo`.
+
+- **18-nov · E-5 Mi espacio › Métricas: hecho.** `lib/hub/cifras-de-mi-espacio.ts` (puro) arma, por programa, Citas, Realizadas,
+  No asistió, Ventas, Cierre de ventas, las citas sin resultado (solo si hay), Entró a caja (una por moneda) y Comisión; y, en
+  «Todos», los totales sumables (la comisión y las tasas no se suman). Universo nuevo «tuyas» en `UniversoDeCifra` (DC-4) y en
+  `overview.md` §11; texto en `lib/hub/explicaciones-de-mi-espacio.ts`. `tab-metricas.tsx` ya no usa `CifraConLista`,
+  `CifraDeRazon`, `ComoSeCalcula`, `Variacion` ni `Tarjeta`. Test: `tests/cifras-de-mi-espacio.test.ts`. **Frases del
+  diálogo «Cómo se calcula» retirado, a dónde fueron:** «las llamadas que tomaste» y «los deals de los que eres dueño hoy» →
+  universo «tuyas» («Solo tus deals y tus llamadas») más `que`/`variables` de cada ficha; «los abonos que registraste» (Entró a
+  caja) NO está en la ficha (la ficha dice abonos del periodo): pendiente de decisión de Mani; el criterio del % de cierre («cada
+  deal cuenta contigo si tomaste su último show o, sin show, su última cita») tampoco está en `cierre_de_ventas`: pendiente.
+  **Pendiente del texto de Mani (no se inventó copia):** Realizadas sin Grain, Llamadas pasadas sin resultado y las banderas
+  Atendidos sin valor vendido, Atendidos sin Grain y Cierre perdido con pagos (siguen con la tarjeta vieja en `/hub`).
+  **E-6 parcial:** borrado el diálogo `ComoSeCalcula` (`grep -rn ComoSeCalcula app components lib tests` = 0 fuera de su archivo);
+  el archivo conserva `BadgeDeEstado`, `PUNTO` y `ExplicacionDeCifra`. Siguen vivos `CifraConLista`, `CifraDeRazon`,
+  `ResumenDeCifra`, `Variacion` y `resumen-de-punto` por la rama vieja de Comercial y Hoy de `/hub` y las gráficas de Dinero.
+
+- **18-nov · E-4 `/hub` (Hoy, Comercial, Dinero): hecho; Pauta es del 422.** `lib/hub/cifras-de-todos.ts` (puro) arma los totales
+  sumables (Leads, Citas, Realizadas y Ventas, una Cifra cada uno con la nota «Suma de programas») y la tasa de cada programa
+  (Asistencia y Cierre de ventas, con el nombre del programa en «Calculada con», nunca combinadas); Vendido, Recaudado, Por
+  cobrar y Entró a caja (una por moneda) salen de `cifrasDeDinero`, sin cambiar su módulo. Texto en
+  `lib/hub/explicaciones-de-todos.ts` (universo «todas las áreas»). `secciones.tsx` ya no importa `CifraDeRazon` ni
+  `TarjetaVendido`. Ninguna cifra cambia. Test: `tests/cifras-de-todos.test.ts`. **Queda con la forma vieja en `/hub`:**
+  Realizadas sin Grain, Llamadas pasadas sin resultado y las tres banderas (Atendidos sin valor, sin Grain, Cierre perdido con
+  pagos) porque no tienen ficha en el registro (escribirla necesita el texto aprobado por Mani); las columnas de Comisión y
+  Descuento de la tabla de Dinero; «Hoy por programa» conserva su Ventas/objetivo en texto; `vamos-a-llegar.tsx` (vista vieja del
+  norte) y el Info de `/hub`. Sin cambio de consultas (el guardián por página sigue igual).
 
 - **17-nov · Carril D: hallazgo 20 resuelto.** Las fichas `agendadas`, `cierre_de_ventas`, `ventas` y `vendido` decían «de pauta»
   aunque Hoy, Comercial, Dinero y el norte cuentan todas las áreas. `explicacionDe` (`lib/metricas/explicacion.ts`) toma ahora una

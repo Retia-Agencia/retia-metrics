@@ -22,7 +22,8 @@ export type ClaveDeMetrica =
   | "ventas_por_escalon" | "escalera_sin_resultado" | "grupo_de_citas" | "con_show_y_vendidos_hoy"
   | "embudo_comercial" | "conversion_por_etapa" | "tiempo_en_etapa" | "dias_cita_a_pago"
   | "perdidos_por_motivo" | "ticket_perdido"
-  | "deals_abiertos" | "deals_sin_dueno" | "descuento_promedio" | "descuento_promedio_porcentaje";
+  | "deals_abiertos" | "deals_sin_dueno" | "descuento_promedio" | "descuento_promedio_porcentaje"
+  | "realizadas_sin_grain" | "realizadas_sin_valor_vendido" | "realizadas_sin_grain_a_hoy" | "cierre_perdido_con_pagos";
 
 /**
  * Por qué la agenda del CRM y la de Meta pueden diferir (DA-4, Mani, 7-nov; ticket 353). UN texto para el semáforo, el
@@ -97,6 +98,10 @@ export const VOCABULARIO: Record<ClaveDeMetrica, EntradaDeVocabulario> = {
   deals_abiertos: { corto: "Deals abiertos", largo: "Deals abiertos en la etapa", definicion: "Deals que siguen abiertos en cada etapa del embudo." },
   deals_sin_dueno: { corto: "Deals sin dueño", largo: "Deals abiertos sin dueño", definicion: "Deals abiertos que no tienen una persona responsable." },
   descuento_promedio: { corto: "Descuento promedio", largo: "Descuento promedio en USD", definicion: "Promedio del ticket de la cohorte menos el valor vendido, en dólares." },
+  realizadas_sin_grain: { corto: "Realizadas sin Grain", largo: "Realizadas sin Grain en el periodo", definicion: "Citas realizadas del periodo cuya llamada no tiene pegado el enlace de la grabación." },
+  realizadas_sin_valor_vendido: { corto: "Realizadas sin valor vendido", largo: "Realizadas sin valor vendido, a hoy", definicion: "Deals con la llamada realizada que están en una etapa que exige el valor vendido y lo tienen en cero o vacío." },
+  realizadas_sin_grain_a_hoy: { corto: "Realizadas sin Grain a hoy", largo: "Realizadas sin Grain, a hoy", definicion: "Deals con la llamada realizada que tienen al menos una llamada vigente sin enlace de grabación." },
+  cierre_perdido_con_pagos: { corto: "Cierre perdido con pagos", largo: "Cierre perdido con pagos registrados", definicion: "Negocios en Cierre perdido que aun así conservan un abono vigente: plata cobrada sobre una venta perdida." },
   descuento_promedio_porcentaje: { corto: "% de descuento promedio", largo: "Descuento promedio en porcentaje", definicion: "Promedio del descuento de cada venta como porcentaje de su ticket." },
 };
 

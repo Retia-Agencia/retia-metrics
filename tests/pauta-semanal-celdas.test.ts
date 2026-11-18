@@ -76,6 +76,15 @@ describe("419: la celda semanal de Pauta", () => {
     expect(estadoDeCeldaSemanal("roas", [objetivo({ metrica: "roas", meta: 3, aceptable: null, moneda: null })])).toMatchObject({ aceptable: 3 });
   });
 
+  it("420 «Ver solo»: con corte, la explicación de la celda dice «Solo · …» y sin corte no cambia", () => {
+    const base = { fila: { clave: "agendas" as const }, celda: celda(7), rango: S1, esTotal: false, hoy: "2026-11-20", objetivos: [], programa: "Tactical", cohorte: "C6" };
+    const conCorte = cifraDeCeldaSemanal({ ...base, corte: { etiqueta: "Campaña · Agenda Milena" } });
+    expect(conCorte.explicacion.filtros).toEqual([
+      ["Programa", "Tactical"], ["Solo", "Campaña · Agenda Milena"], ["Cohorte", "C6"], ["Área", "Paid"], ["Semana", "2-nov a 8-nov"],
+    ]);
+    expect(cifraDeCeldaSemanal(base).explicacion.filtros.map(([nombre]) => nombre)).not.toContain("Solo");
+  });
+
   it("el costo por venta se colorea contra su objetivo en pesos, y no contra el del costo por agenda (415)", () => {
     const cac = objetivo({ metrica: "costo_por_venta", meta: 1_500_000, aceptable: 2_000_000 });
     expect(estadoDeCeldaSemanal("cac", [cac])).toEqual({ fuente: "objetivo", objetivo: 1_500_000, aceptable: 2_000_000, menorEsMejor: true });

@@ -66,6 +66,8 @@ export interface EntradaDeCeldaSemanal {
   cohorte?: string;
   /** La cuenta de Meta de una subfila de «Por cuenta» (416): va a los filtros de la explicación y a "Calculada con". */
   cuenta?: string;
+  /** «Ver solo»: la rama de Meta a la que se cortó la tabla; va a los filtros de la explicación («Solo · Campaña · X»). */
+  corte?: { etiqueta: string };
   lista?: EntradaDeCifra["lista"];
 }
 
@@ -81,7 +83,8 @@ function explicacionDeCuenta(clave: ClavePautaSemanal, cuenta: string) {
   return { ...base, que };
 }
 
-function explicacionSemanal(clave: ClavePautaSemanal) {
+/** El texto del concepto de una fila de la tabla semanal (lo usa también la franja de totales de `/hub`, 422). */
+export function explicacionSemanal(clave: ClavePautaSemanal) {
   return explicacionDe(
     CONCEPTO_DE_PAUTA_SEMANAL[clave],
     clave === "agendas_meta" ? VARIANTES_DE_PAUTA.agendas_meta : undefined,
@@ -99,6 +102,7 @@ export function cifraDeCeldaSemanal(e: EntradaDeCeldaSemanal): CifraDeMetrica {
   const periodo = textoDePeriodoDeCelda(rango, e.esTotal, e.paso);
   const filtros: Array<readonly [string, string]> = [];
   if (e.programa) filtros.push(["Programa", e.programa]);
+  if (e.corte) filtros.push(["Solo", e.corte.etiqueta]);
   if (e.cohorte) filtros.push(["Cohorte", e.cohorte]);
   filtros.push(["Área", "Paid"]);
   if (e.cuenta) filtros.push(["Cuenta de Meta", e.cuenta]);

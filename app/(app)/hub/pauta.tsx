@@ -1,55 +1,31 @@
 import { Enlace } from "@/components/enlace";
-import type { PeriodoResuelto } from "@/lib/periodo";
-import type { DatosDelHub } from "@/lib/queries/hub-todos";
-import type { NivelPauta, PasoPauta } from "@/lib/queries/roas-de-pauta";
-import { urlDeLista } from "@/lib/queries/vista-metrica";
-import { queryDePeriodo } from "@/lib/queries/vista-todos";
-import { PautaRoas, type VerPorPauta } from "@/components/pauta-roas";
 import { Button } from "@/components/ui/button";
-import { Origen } from "@/components/dashboard/origen";
+import type { ProgramaVisible } from "@/lib/auth/alcance";
+import type { PeriodoResuelto } from "@/lib/periodo";
+import { queryDePeriodo } from "@/lib/queries/vista-todos";
 import { UNIVERSO_PAUTA } from "@/lib/vocabulario-metricas";
 
-/** Pauta contiene tasas y costos: en "todos" cada programa muestra solo conteos (ADR 0048). */
-export function PautaPorPrograma({ filas, periodo, busqueda }: {
-  filas: DatosDelHub["pauta"];
-  periodo: PeriodoResuelto;
-  busqueda: Record<string, string | string[] | undefined>;
-}) {
-  const verPor: VerPorPauta = busqueda.ver_por === "canal" ? "canal" : "campana";
-  return <section id="pauta" className="space-y-6">
-    <div><h2 className="text-xl font-semibold">Pauta y origen</h2><p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p></div>
-    {filas.map(({ programa, roas }) => {
-      const query = queryDePeriodo(periodo);
-      const base = `/p/${encodeURIComponent(programa.slug)}/hub`;
-      const hrefVerPor = (v: VerPorPauta) => {
-        const q = new URLSearchParams(query);
-        q.set("seccion", "pauta");
-        if (v !== "campana") q.set("ver_por", v);
-        return `${base}?${q}`;
-      };
-      const origenQuery = new URLSearchParams(query);
-      origenQuery.set("seccion", "pauta");
-      const origen = `${base}?${origenQuery}`;
-      const enlace = (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => urlDeLista({
-        slug: programa.slug, metrica: "pauta_meta", periodo: { ...periodo, b: null }, origen, pauta: { nivel, id, paso },
-      });
-      return <div key={programa.id} className="space-y-4">
-        <h3 className="text-lg font-semibold">
-          <Button variant="link" nativeButton={false} render={<Enlace precarga="al-pasar" href={hrefVerPor("campana")} />}>{programa.nombre}</Button>
-        </h3>
-        <PautaRoas vista={roas} enlace={enlace} hrefCsv="" verPor={verPor} hrefVerPor={hrefVerPor} soloConteos />
-      </div>;
-    })}
+/**
+ * Pauta de todos los programas (422), mientras llega el cargador por conjunto (438): cada programa lleva a su Hub, donde
+ * están Resultados (cumplimiento, tabla semanal, gráfica) y Origen y calidad. Aquí no se lee nada por programa: la tabla
+ * semanal de cada uno crecía lineal con los programas y el guardián de consultas no lo admite. Quedan listos, sin
+ * conectar, `lib/hub/cifras-de-pauta-de-todos.ts` (franja de totales sumables) y `components/pauta/agendas-por-programa.tsx`.
+ */
+export function PautaPorPrograma({ programas, periodo }: { programas: readonly ProgramaVisible[]; periodo: PeriodoResuelto }) {
+  const hrefDe = (slug: string, vista?: "calidad") => {
+    const q = new URLSearchParams(queryDePeriodo(periodo));
+    q.set("seccion", "pauta");
+    if (vista) q.set("vista", vista);
+    return `/p/${encodeURIComponent(slug)}/hub?${q}`;
+  };
+  return <section id="pauta" className="space-y-4">
+    <div><h2 className="text-xl font-semibold">Pauta</h2><p className="text-xs text-muted-foreground">{UNIVERSO_PAUTA}</p></div>
+    <p className="text-sm text-muted-foreground">Cada programa tiene su Pauta: nunca se mezclan. Entra al de cada uno para ver su cumplimiento, su tabla semanal y de dónde vienen sus registros.</p>
+    <ul className="space-y-2">
+      {programas.map((programa) => <li key={programa.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card p-3.5 shadow-tarjeta">
+        <Button variant="link" nativeButton={false} render={<Enlace precarga="al-pasar" href={hrefDe(programa.slug)} />}>{programa.nombre}</Button>
+        <Button variant="link" size="sm" nativeButton={false} render={<Enlace precarga="nunca" href={hrefDe(programa.slug, "calidad")} />}>Origen y calidad →</Button>
+      </li>)}
+    </ul>
   </section>;
-}
-
-/** En Todos, cada programa conserva su frontera y solo muestra magnitudes contables. */
-export function OrigenPorPrograma({ filas, periodo, origen }: {
-  filas: DatosDelHub["origenes"];
-  periodo: PeriodoResuelto;
-  origen: string;
-}) {
-  return <section className="space-y-6">{filas.map(({ programa, vista }) => {
-    return <div key={programa.id} className="space-y-4"><h2 className="text-xl font-semibold">{programa.nombre}</h2><Origen vista={vista} slug={programa.slug} periodo={periodo} origen={origen} soloConteos /></div>;
-  })}</section>;
 }

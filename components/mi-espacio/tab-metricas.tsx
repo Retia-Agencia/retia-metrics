@@ -1,122 +1,40 @@
-import type { PeriodoResuelto } from "@/lib/periodo";
-import { monto, num, pct } from "@/lib/format";
-import {
-  type VistaDeMisMetricas,
-} from "@/lib/queries/mi-espacio-metricas";
+import { comparacionesDe, nombreDePedido, type PeriodoResuelto } from "@/lib/periodo";
+import { hoyEnBogota } from "@/lib/format";
+import type { VistaDeMisMetricas } from "@/lib/queries/mi-espacio-metricas";
 import type { DatosDeMetricas } from "@/lib/mi-espacio/datos-metricas";
-import type { DetalleDeCifra } from "@/lib/queries/vista-metrica";
-import { CifraConLista } from "@/components/cifra-con-lista";
+import { cifrasDeMiPrograma, cifrasDeMisTotales } from "@/lib/hub/cifras-de-mi-espacio";
+import { explicacionesDeMiEspacio } from "@/lib/hub/explicaciones-de-mi-espacio";
+import { Cifra } from "@/components/cifra-con-lista";
 import { SelectorPeriodo } from "@/components/selector-periodo";
-import { Variacion } from "@/components/variacion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { textoDeVariacionDeTasa } from "@/lib/variacion";
-import { ComoSeCalcula } from "@/components/como-se-calcula";
-import { CifraDeRazon } from "@/components/cifra-de-razon";
 
-function TarjetaNumero({ titulo, valor, anterior, detalle, periodo }: { titulo: string; valor: number; anterior?: number; detalle: DetalleDeCifra; periodo: PeriodoResuelto }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2"><CardTitle className="text-sm">{titulo}</CardTitle></CardHeader>
-      <CardContent className="space-y-2">
-        <CifraConLista titulo={titulo} detalle={detalle}><span className="cifra text-2xl font-semibold">{num(valor)}</span></CifraConLista>
-        {anterior !== undefined ? <p className="text-xs text-muted-foreground"><Variacion actual={valor} anterior={anterior} periodo={periodo} /></p> : null}
-      </CardContent>
-    </Card>
-  );
+/** Contra qué se compara, en palabras («el periodo anterior»), igual que el Hub. */
+function referenciaDe(periodo: PeriodoResuelto): string | undefined {
+  const primera = comparacionesDe(periodo)[0];
+  return primera ? nombreDePedido(primera.pedido, periodo.preset) : undefined;
 }
 
-function TarjetaTasa({ vista }: { vista: VistaDeMisMetricas }) {
-  return (
-    <Card>
-      <CardHeader className="pb-2"><CardTitle className="text-sm">% de cierre sobre atendidas</CardTitle></CardHeader>
-      <CardContent className="space-y-2">
-        <CifraConLista titulo="Con show y vendidos hoy" detalle={vista.detalles.grupoVendidos}>
-          <span className="cifra text-2xl font-semibold"><CifraDeRazon razon={vista.a.razonCierre} formato={pct} /></span>
-        </CifraConLista>
-        {vista.b ? <p className="cifra text-xs text-muted-foreground">{textoDeVariacionDeTasa(vista.a.razonCierre.valor, vista.b.razonCierre.valor)}</p> : null}
-        {vista.a.pendientesDeResultado > 0 ? (
-          <p className="text-xs text-muted-foreground">
-            <CifraConLista titulo="Citas pasadas sin resultado" detalle={vista.detalles.grupoPendientes}>{num(vista.a.pendientesDeResultado)}</CifraConLista>
-            {vista.a.pendientesDeResultado === 1 ? " cita ya pasó sin resultado registrado" : " citas ya pasaron sin resultado registrado"}: no cuentan en el % de show ni en el % de cierre hasta que el closer lo registre.
-          </p>
-        ) : null}
-        {vista.a.madurando ? <p className="text-xs text-muted-foreground">Aún madurando: el rango terminó hace menos de 30 días.</p> : null}
-      </CardContent>
-    </Card>
-  );
-}
-
-function TarjetasDinero({ vista }: { vista: VistaDeMisMetricas }) {
-  const anterior = new Map(vista.b?.caja.map((c) => [c.moneda, c.total]));
-  const cajas = vista.a.caja.length > 0 ? vista.a.caja : [{ moneda: "USD", total: 0 }];
-  return (
-    <>
-      {cajas.map((c) => (
-        <Card key={c.moneda}>
-          <CardHeader className="pb-2"><CardTitle className="text-sm">Entró a caja</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            <CifraConLista titulo={`Entró a caja en ${c.moneda}`} detalle={vista.detalles.caja}>
-              <span className="cifra text-2xl font-semibold">{monto(c.total, c.moneda)}</span>
-            </CifraConLista>
-            {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.total} anterior={anterior.get(c.moneda) ?? 0} decimales={2} periodo={vista.periodo} /></p> : null}
-          </CardContent>
-        </Card>
-      ))}
-      <Card>
-        <CardHeader className="pb-2"><CardTitle className="text-sm">Comisión</CardTitle></CardHeader>
-        <CardContent className="space-y-2">
-          <CifraConLista titulo="Ventas que generan comisión" detalle={vista.detalles.cierres}>
-            <span className="cifra text-2xl font-semibold">{monto(vista.a.comisionUsd, "USD")}</span>
-          </CifraConLista>
-          {vista.b ? <p className="text-xs text-muted-foreground"><Variacion actual={vista.a.comisionUsd} anterior={vista.b.comisionUsd} decimales={2} periodo={vista.periodo} /></p> : null}
-        </CardContent>
-      </Card>
-    </>
-  );
-}
-
-function BloqueDePrograma({ vista, conSelector = true }: { vista: VistaDeMisMetricas; conSelector?: boolean }) {
+function BloqueDePrograma({ vista, hoy, conSelector = true }: { vista: VistaDeMisMetricas; hoy: string; conSelector?: boolean }) {
+  const cifras = cifrasDeMiPrograma({ vista, referencia: referenciaDe(vista.periodo), explicaciones: explicacionesDeMiEspacio(), hoy });
   return (
     <div className="space-y-4">
       {conSelector ? <SelectorPeriodo periodo={vista.periodo} anteriorDisponible={vista.anteriorDisponible} /> : null}
       {vista.periodo.aviso ? <p role="status" className="text-sm text-muted-foreground">{vista.periodo.aviso}</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label={`Métricas de ${vista.programa.nombre}`}>
-        <TarjetaNumero titulo="Citas" valor={vista.a.agendas} anterior={vista.b?.agendas} detalle={vista.detalles.agendas} periodo={vista.periodo} />
-        <TarjetaNumero titulo="Realizadas" valor={vista.a.shows} anterior={vista.b?.shows} detalle={vista.detalles.shows} periodo={vista.periodo} />
-        <TarjetaNumero titulo="No asistió" valor={vista.a.noShows} anterior={vista.b?.noShows} detalle={vista.detalles.noShows} periodo={vista.periodo} />
-        <TarjetaNumero titulo="Ventas" valor={vista.a.cierres} anterior={vista.b?.cierres} detalle={vista.detalles.cierres} periodo={vista.periodo} />
-        <TarjetaTasa vista={vista} />
-        <TarjetasDinero vista={vista} />
+        {[cifras.citas, cifras.realizadas, cifras.noAsistio, cifras.ventas, cifras.cierre, cifras.sinResultado, ...cifras.entroACaja, cifras.comision].map((cifra) =>
+          cifra ? <Cifra key={`${cifra.concepto}:${cifra.explicacion.filtros.map(([, v]) => v).join("|")}`} cifra={cifra} /> : null)}
       </section>
-      <ComoSeCalcula>
-        <p><strong>Citas:</strong> las llamadas que tomaste.</p>
-        <p><strong>Realizadas:</strong> las llamadas que tomaste.</p>
-        <p><strong>No asistió:</strong> las llamadas que tomaste.</p>
-        <p><strong>Ventas:</strong> los deals de los que eres dueño hoy.</p>
-        <p><strong>Comisión:</strong> los deals de los que eres dueño hoy.</p>
-        <p><strong>Entró a caja:</strong> los abonos que registraste.</p>
-        <p><strong>% de cierre:</strong> va sobre el grupo de citas; cada deal cuenta contigo si tomaste su último show o, sin show, su última cita.</p>
-      </ComoSeCalcula>
     </div>
   );
 }
 
-function Total({ titulo, actual, anterior, periodo }: { titulo: string; actual: number; anterior?: number; periodo: PeriodoResuelto }) {
-  return (
-    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">{titulo}</CardTitle></CardHeader><CardContent className="space-y-2">
-      <p className="cifra text-2xl font-semibold">{num(actual)}</p>
-      {anterior !== undefined ? <p className="text-xs text-muted-foreground"><Variacion actual={actual} anterior={anterior} periodo={periodo} /></p> : null}
-    </CardContent></Card>
-  );
-}
-
 export function TabMetricas({ datos }: { datos: DatosDeMetricas }) {
+  const hoy = hoyEnBogota();
   if (datos.tipo === "programa") {
-    return <BloqueDePrograma vista={datos.vista} />;
+    return <BloqueDePrograma vista={datos.vista} hoy={hoy} />;
   }
 
   const { todos } = datos;
-  const cajasB = new Map(todos.b?.caja.map((c) => [c.moneda, c.valor]));
+  const totales = cifrasDeMisTotales({ todos, referencia: referenciaDe(todos.periodo), explicaciones: explicacionesDeMiEspacio(), hoy });
   return (
     <div className="space-y-6">
       <SelectorPeriodo
@@ -125,22 +43,15 @@ export function TabMetricas({ datos }: { datos: DatosDeMetricas }) {
       />
       {todos.periodo.preset === "desde_el_inicio" ? <p className="text-sm text-muted-foreground">Cada programa cuenta desde el inicio de su cohorte activa.</p> : null}
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Totales entre programas">
-        <Total titulo="Citas" actual={todos.a.agendas.valor} anterior={todos.b?.agendas.valor} periodo={todos.periodo} />
-        <Total titulo="Realizadas" actual={todos.a.shows.valor} anterior={todos.b?.shows.valor} periodo={todos.periodo} />
-        <Total titulo="No asistió" actual={todos.a.noShows.valor} anterior={todos.b?.noShows.valor} periodo={todos.periodo} />
-        <Total titulo="Ventas" actual={todos.a.cierres.valor} anterior={todos.b?.cierres.valor} periodo={todos.periodo} />
-        {(todos.a.caja.length > 0 ? todos.a.caja : [{ tipo: "dinero" as const, moneda: "USD", valor: 0 }]).map((c) => (
-          <Card key={c.moneda}><CardHeader className="pb-2"><CardTitle className="text-sm">Entró a caja</CardTitle></CardHeader><CardContent className="space-y-2">
-            <p className="cifra text-2xl font-semibold">{monto(c.valor, c.moneda)}</p>
-            {todos.b ? <p className="text-xs text-muted-foreground"><Variacion actual={c.valor} anterior={cajasB.get(c.moneda) ?? 0} decimales={2} periodo={todos.periodo} /></p> : null}
-          </CardContent></Card>
+        {[...totales.conteos, ...totales.entroACaja].map((cifra) => (
+          <Cifra key={`${cifra.concepto}:${cifra.explicacion.filtros.map(([, v]) => v).join("|")}`} cifra={cifra} />
         ))}
       </section>
       <div className="space-y-6">
         {todos.programas.map(({ vista }) => (
           <section key={vista.programa.id} className="space-y-3">
             <h3 className="text-base font-semibold">{vista.programa.nombre}</h3>
-            <BloqueDePrograma vista={vista} conSelector={false} />
+            <BloqueDePrograma vista={vista} hoy={hoy} conSelector={false} />
           </section>
         ))}
       </div>
