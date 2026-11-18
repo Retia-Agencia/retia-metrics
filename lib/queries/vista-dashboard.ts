@@ -149,6 +149,13 @@ export interface ContextoDeVista {
   closers: () => Promise<OpcionDeCloser[]>;
 }
 
+/**
+ * La cohorte con que se filtra la tabla de Pauta: la MISMA que filtra el resto de la vista (`filtroDeCohorte.cohorteId`).
+ * `elegida` no sirve: sin filtro pedido (el MCP, `?cohorte=todas`) sigue trayendo la cohorte activa y la Pauta salía de
+ * otra población que el resto de la respuesta (D-13: Agendadas 258 contra 257, Profit 9.091 contra 8.294).
+ */
+export const cohorteDeLaPauta = (contexto: Pick<ContextoDeVista, "filtroDeCohorte">): string | null => contexto.filtroDeCohorte.cohorteId;
+
 export async function resolverContextoDeVista(entrada: EntradaDeVista, db: Db = dbDeLaApp): Promise<ContextoDeVista> {
   const { programId, hoy, preset, desde, hasta } = entrada;
   const claveCloser = entrada.claveCloser ?? null;

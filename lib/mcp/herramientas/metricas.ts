@@ -10,7 +10,7 @@ import {
   TAMANO_PAGINA,
 } from "@/lib/queries/metricas-con-filas";
 import { camposDeFiltrosDeLista, combinacionDeFiltrosValida, METRICAS_DE_LISTA, normalizarFiltrosDeOrigen, tipoDeLista } from "@/lib/queries/filtros-de-lista";
-import { armarVistaDelDashboard, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
+import { armarVistaDelDashboard, cohorteDeLaPauta, resolverContextoDeVista } from "@/lib/queries/vista-dashboard";
 import { nombreDeEtapa, proyectarDashboardSegunRol, vistaDeLista } from "@/lib/queries/vista-metrica";
 import type { Herramienta } from "./tipos";
 import { programaVisible } from "./programa";
@@ -54,14 +54,15 @@ export const resumenDelHubMcp: Herramienta<typeof entradaResumen> = {
     const sinProyectar = await armarVistaDelDashboard(entradaDeVista, contexto.db, contextoDeVista);
     const vista = proyectarDashboardSegunRol(sinProyectar, contexto.rol);
     const cohorteDePauta = contextoDeVista.filtroDeCohorte.elegida?.id ?? null;
+    const cohorteDeLaTabla = cohorteDeLaPauta(contextoDeVista);
     const ventanaRitmo = ventanaRitmoDeUrl(undefined);
     const [pauta, escalera, planeacion, cumplimiento, roasProyectado] = await Promise.all([
       cargarPautaSemanal(contexto.db, {
         programId: programa.id,
         rango: vista.periodo.a,
         hoy,
-        // La pestaña Pauta usa la cohorte elegida del contexto, aunque resumen_del_hub no reciba un filtro de cohorte.
-        cohorteId: cohorteDePauta,
+        // La misma cohorte que filtra el resto de la vista (D-13): sin filtro de cohorte, «Todas», como la pantalla.
+        cohorteId: cohorteDeLaTabla,
         paso: "semana",
         porCuenta: false,
       }),
