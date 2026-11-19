@@ -503,10 +503,20 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 
 - **Cohorte:** el ciclo de venta de un programa, con su meta, su precio y su ventana de venta (dos
   cohortes del programa no comparten ningún día de venta, ADR 0123; nace con una meta de 50 leads por día). Se
-  nombran C1, C2, C3; como máximo una activa por programa. *Evitar: "corte".* En el Hub es un **filtro
-  propio**, separado del Periodo: elegir C3 deja solo los hechos de los deals de C3, sin importar la fecha
-  (377). **SKU** = producto × cohorte; con un solo producto por programa, el filtro Cohorte ES el de SKU
-  (el 376 suma Producto al lado).
+  nombran C1, C2, C3. **Activa** es la que tiene hoy dentro de su ventana (a lo sumo una por programa); nadie la
+  activa a mano, y nace con el primer SKU que nombra su número (ADR 0137). *Evitar: "corte".* En el Hub es un
+  **filtro propio**, separado del Periodo: elegir C3 deja solo los hechos de los deals de C3, sin importar la fecha
+  (377).
+- **Producto:** lo que se vende dentro de un programa, sin importar el ciclo: "Programa virtual", "Uno a uno". Un
+  producto tiene un SKU por cohorte. *Evitar: "servicio adicional", "aparte del programa".*
+- **SKU:** un producto de un programa en una cohorte, con su precio de lista y si cuenta como cupo
+  (`tactical_investor_uno_a_uno_c3`). Su código lo arma el sistema; solo gerencia lo crea, el closer lo asigna
+  (ADR 0137).
+- **SKU del deal:** un SKU asignado a un deal. **Propuesto** mientras no tiene abonos (muestra su saldo, no cuenta);
+  **vendido** desde su primer abono vigente, por su valor vendido completo. *No confundir con la Venta, que es el
+  deal.*
+- **SKUs vendidos:** cuántos SKUs del deal están vendidos. Una persona con Virtual C3 y Uno a uno C3 es 1 venta y 2
+  SKUs vendidos.
 - **Ventana de venta:** los dos días entre los que una cohorte vende, inclusive. Los declara el
   negocio; no se deducen.
 - **Día hábil, meta de cupos, meta dinámica, contribución:** ver §7.
@@ -521,7 +531,8 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
 **El dinero**
 
 - **Ticket base:** el precio de lista de una cohorte, en USD. Contra él se mide la meta en cash y el
-  descuento. Puede cambiar de una cohorte a otra (ADR 0065). *Evitar: "producto", que se retira.*
+  descuento. Puede cambiar de una cohorte a otra (ADR 0065). Con SKUs, cada SKU tiene su precio de lista
+  (ADR 0137).
 - **Valor vendido:** lo que el closer escribe que vendió en un deal, en USD. Vacío hasta que lo escribe;
   obligatorio para que el deal sea venta. *No confundir con el ticket base ni con lo abonado.*
 - **Descuento:** ticket base de la cohorte menos el valor vendido, en número y %.
