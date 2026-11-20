@@ -12,6 +12,8 @@ status: todo
 el plan de ejecución. Una sesión que lo retome **no rediseña**: ejecuta los cortes en orden y, si algo del código
 contradice el ADR, para y pregunta a Mani en vez de decidir.
 
+**20-nov: después del corte 1, el ADR 0139 rehízo los cortes siguientes en los tickets 459 a 463 (abajo).**
+
 Antes era fase 2 del Hub (`docs/hub.md` §0). **Mani, 19-nov: arranca ya**, en una sesión padre aparte.
 
 ## Por qué (resumen; citas en el ADR 0137)
@@ -121,56 +123,113 @@ Nombres orientativos; respetar las convenciones de `docs/agents/convenciones.md`
       abono no impide el completo; anular recalcula.
 - [ ] Lista de adicionales entregada a Mani.
 
-### Corte 2 — Operación: popup de SKUs, líneas en la ficha, abono por línea
+### Después del corte 1: el SKU reemplaza todo (ADR 0139, 20-nov)
 
-1. **Popup "Nuevo SKU"** en la vista del programa (`app/(app)/p/[programa]/programa/page.tsx`, misma familia de
-   popups que el resto del CRM), visible solo para `esAdministrador`. Campos: Producto (texto libre con autocompletar),
-   Cohorte (número), Precio (USD, prellenado con `programs.ticket_usd`), Cuenta como cupo (check, sí). % de comisión (prellenado con `programs.comision_porcentaje`, editable). Programa
-   prellenado y fijo. Si el número de cohorte no existe, aparecen Inicio y Cierre de ventas (y la meta de leads/día con
-   su defecto de 50); el choque de ventanas se traduce al 400 que ya existe (ADR 0123). Muestra el código que se va a
-   crear antes de guardar. Tabla de SKUs del programa con editar y desactivar por el molde.
-2. **Ficha del deal**: sección "SKUs" con cada línea (código decodificado: producto, cohorte, precio de lista, valor
-   vendido, recaudado, por cobrar, estado propuesta/vendida/anulada). Closer dueño o admin: Asignar SKU (lista de SKUs
-   activos del programa), editar valor, quitar si no tiene abonos; con abonos, Anular.
-3. **`FormularioAbono`** (`components/deals/formulario-abono.tsx`): en vez de "¿Qué está pagando? Programa / Servicio
-   adicional", pregunta "¿Qué SKU está pagando?" entre las líneas del deal, con "Asignar otro SKU" ahí mismo. Se retira
-   `abonos.concepto` y el texto "Aparte del programa".
-4. **La cohorte deja de crearse a mano** (Mani, 19-nov: "todo desde SKUs"): se quita Crear cohorte de
-   `components/cohortes-admin.tsx` y de su acción; la única puerta es el popup de SKU. Se retira el puente del corte 1
-   (crear cohorte crea su SKU Programa virtual).
-5. Re-colgar los adicionales de la lista del corte 1 a los SKUs que Mani creó (script o acción de admin).
-6. Permisos: forjar un POST de closer creando un SKU → 403 y la base no se mueve; closer sobre deal ajeno → 403.
+**El ADR 0139 reemplaza el punto 5 del 0137** y cambia lo que sigue. Lo que había aquí como cortes 2 y 3 se rehízo en
+cinco tickets. Resumen de lo que cambia: no hay tabla `productos` (el nombre vive en el SKU); precio, % de comisión y
+cuenta como cupo son del SKU y el popup llega vacío; la cohorte es el ciclo C<N>, nace desde el popup con ventana y meta
+obligatorias y se edita en Objetivos de la vista del programa; salen la pantalla de cohortes, `programs.ticket_usd`,
+`programs.comision_porcentaje` y `cohorts.precio_usd`; el **precio de referencia del ciclo** es el menor precio de los
+SKUs activos con cupo del ciclo.
 
-**Done del corte 2**
-- [ ] Test: una persona con Virtual C3 y 1:1 C3 tiene dos líneas y dos saldos en su deal.
-- [ ] Test: un closer no puede crear un SKU (403 forjado); sí puede asignarlo, editar su valor y quitarlo sin abonos.
-- [ ] Test: una línea propuesta no suma a Vendido, Ventas, cupos ni comisión; con su primer abono suma su valor completo
-      ese día.
+**Fecha:** la C3 de Tactical cierra ventas el 15-dic-2026. El 459 va a producción **antes del 10-dic**. Hasta entonces
+la pantalla de cohortes no se toca (es la única puerta para crear la C4, con el puente del corte 1).
+
+Orden: 459 → 460 → 461 → 462 → 463. 460 y 461 no se pisan (ficha y formulario de abono contra lecturas de dinero) y
+pueden ir en paralelo después del 459.
+
+#### 459 — Popup "Nuevo SKU" y el ciclo nace con él (urgente, antes del 10-dic)
+
+**Marcado para salir en este ticket:** `components/cohortes-admin.tsx` (la pantalla de cohortes y su botón "Nueva
+cohorte"), `crearCohorteAccion` (`app/(app)/p/[programa]/programa/acciones-programa.ts`) y el puente de `crearCohorte`
+(`lib/catalogo/cohortes.ts`). El botón Activar ya salió en el corte 1.
+
+1. Migración (la aplica la sesión principal con el ok de Mani): `skus.nombre`, `skus.slug`, `skus.cuenta_como_cupo`
+   (default `false`), `skus.comision_porcentaje` (0 a 100). Backfill: nombre y slug del producto del SKU; cupo del
+   producto; % = `programs.comision_porcentaje` del programa (así ninguna comisión se mueve); `sin_clasificar` en 0 %.
+   Único `(program_id, slug, cohort_id)`. `skus.producto_id` pasa a nullable (sale en el 463).
+2. `lib/deals/lineas.ts` y `lib/pagos/traducir.ts` leen el cupo de `skus.cuenta_como_cupo`, no de `productos`.
+   `lib/catalogo/skus.ts` (molde, `change_log`) crea, edita y desactiva; el código se arma con `programa_slug_c<N>`.
+3. Popup "Nuevo SKU" en `app/(app)/p/[programa]/programa/page.tsx`, solo `esAdministrador` (la capacidad central, nunca
+   un `rol ===`): Nombre (autocompletar con los slugs del programa), Cohorte (N), Precio USD, % de comisión, Cuenta
+   como cupo. **Vacío, sin prellenar** (ADR 0139 punto 1). Si N no existe: Inicio y Cierre de ventas y Meta de cupos
+   obligatorios, Meta de leads/día en 50; la cohorte y el SKU se crean en una transacción; el choque de ventanas es el
+   400 del ADR 0123. Muestra el código antes de guardar. Tabla de SKUs del programa con editar y desactivar.
+4. La ventana, la meta de cupos, la meta de leads/día, el inicio de clases y las notas de un ciclo existente se editan en
+   Objetivos de la cohorte (`objetivos-de-la-cohorte.tsx`), por el molde.
+5. Sale lo marcado arriba. Sale el estado "por definir" de `lib/cohortes/estado.ts` para ciclos nuevos (los que ya
+   existen sin fechas se listan para Mani antes de migrar; no se inventan fechas).
+
+**Done**
+- [ ] Test: forjar el POST de un closer creando un SKU → 403 y la base no se mueve.
+- [ ] Test: crear Virtual C4 con N nuevo crea el ciclo con su ventana; con ventana que choca → 400 y no queda nada.
+- [ ] Test: el código sale `tactical_investor_uno_a_uno_c3` desde "Uno a Uno" y "uno a uno" (mismo slug).
+- [ ] Test de paridad: cupos, comisión y metas por programa y cohorte idénticos antes y después de la migración.
+- [ ] Gerencia crea la C4 de Tactical en producción desde el popup antes del 15-dic.
+
+#### 460 — Líneas en la ficha del deal y abono por línea (antes corte 2, pasos 2, 3, 5 y 6)
+
+1. **Ficha del deal**: sección "SKUs" con cada línea (nombre, cohorte, precio de lista, valor vendido, recaudado, por
+   cobrar, propuesta/vendida/anulada). Closer dueño o admin: Asignar SKU (activos del programa), editar valor, quitar
+   sin abonos; con abonos, Anular.
+2. **`FormularioAbono`** (`components/deals/formulario-abono.tsx`): "¿Qué SKU está pagando?" entre las líneas del deal,
+   con "Asignar otro SKU" ahí mismo. Se retira `abonos.concepto` y el texto "Aparte del programa".
+3. Re-colgar los adicionales de `sin_clasificar` a los SKUs que Mani cree con el popup del 459.
+4. Permisos: closer sobre deal ajeno → 403.
+
+**Done**
+- [ ] Test: una persona con Virtual C3 y Uno a uno C3 tiene dos líneas y dos saldos en su deal.
+- [ ] Test: el closer asigna, edita valor y quita sin abonos; con abonos solo anula.
+- [ ] Test: una línea propuesta no suma a Vendido, Ventas, cupos ni comisión; con su primer abono suma su valor completo ese día.
 - [ ] `sin_clasificar` vacío en producción.
 
-### Corte 3 — Hub y ficha del lead
+#### 461 — Dinero sin ticket del programa: precio de referencia y comisión por línea
 
-1. Filtros del Hub (los de 377, `lib/queries/metricas-filtros.ts`): **Producto** y **SKU** al lado de Cohorte, con
-   opciones que salen de los SKUs que existen en el programa (nunca una lista fija). Programa sigue siendo la ruta y
-   el Hub de todos (`/hub`, 422) nunca mezcla programas en una cifra.
-2. Vendido, Recaudado y Por cobrar (369) por línea; Ventas por deal; "SKUs vendidos" como cifra nueva con su entrada en
-   `docs/metricas.md` y en el registro de métricas. Desaparece "Aparte del programa".
-3. Cupos de la meta = SKUs vendidos con Cuenta como cupo (`lib/queries/metas.ts`); comisión por línea vendida con su % congelado
-   (`lib/queries/comision.ts`; columnas `skus.comision_porcentaje` y `deal_lineas.comision_porcentaje`, migración con
-   el % ya congelado de cada deal y 0 % para `sin_clasificar`). **Antes de construir este paso, Mani confirma D9 con Daniel Tovar.**
-4. Ficha del lead: "Compras", todas las líneas de todos sus deals en orden de fecha (SKU, fecha de venta, valor
-   vendido, recaudado, por cobrar, closer).
-5. **Pestaña Students por producto** (`app/(app)/p/[programa]/students/page.tsx`): deja de filtrar por la cohorte del
-   deal y agrupa por producto (Programa virtual, 1:1 Rosario, ...), cada persona con lo que pagó y su saldo por línea.
-   Pedido de Mani el 19-nov: "visibilidad completa de quiénes han pagado qué".
-6. MCP (`lib/mcp`): exponer producto y SKU como filtros de `consultar_metrica` y `consultar_hechos`, y las líneas en
-   `ficha_de_deal` y `ficha_de_lead`.
+**Antes de la parte de comisión, Mani confirma D9 con Daniel Tovar.**
 
-**Done del corte 3**
-- [ ] Test: una persona con Virtual C3 y 1:1 C3 cuenta 1 en Ventas, 2 en SKUs vendidos y aparece en el filtro de cada
-      producto.
+1. Una función, `precioDeReferenciaDelCiclo` (en `lib/cohortes/`), = menor `precio_lista_usd` de los SKUs activos con
+   cupo del ciclo; nulo si no hay. La leen, en vez de `cohorts.precio_usd`: `lib/queries/metas.ts`,
+   `lib/queries/vamos-a-llegar.ts`, `lib/metas/cumplimiento-de-cohorte.ts`, `lib/queries/series-dinero.ts`,
+   `lib/queries/embudo-etapas.ts` (ticket perdido), `lib/queries/proyeccion-roas.ts`, `lib/queries/configuracion-de-hoy.ts`,
+   `lib/queries/ficha-programa.ts`, `lib/queries/kanban.ts`, `lib/queries/ficha-deal.ts`, `lib/mcp/salidas/operacion.ts` y la
+   venta directa (`lib/deals/venta-de-la-pasarela.ts`, cuando la pasarela no trae SKU).
+2. **Descuento por línea**: `precio_lista_usd − valor_vendido_usd` de la línea (`descuentoDeDeal` en
+   `lib/queries/saldo.ts`, `lib/queries/dashboard.ts`, `lib/queries/vista-dashboard.ts`, `lib/queries/pagos-de-students.ts`).
+3. **Comisión por línea**: `deal_lineas.comision_porcentaje`, congelado del SKU con el primer abono vigente
+   (`lib/deals/lineas.ts`); migración con el % ya congelado de cada deal. `lib/queries/comision.ts` suma por línea.
+   `deals.comision_porcentaje` queda derivado o sale (decidir al medir sus lectores).
+4. Al crear o editar un programa ya no se pide ticket ni % (`components/program-switcher.tsx`,
+   `components/programas-admin.tsx`, `lib/catalogo/programas.ts`, `acciones-programa.ts`, `lib/programas/hechos.ts`
+   y el recorrido de configuración); la vista del programa deja de mostrarlos.
+
+**Done**
+- [ ] Ningún lector de `programs.ticket_usd`, `programs.comision_porcentaje` ni `cohorts.precio_usd` en `lib`, `app`, `components`.
+- [ ] Test de paridad: meta en USD, ticket perdido, proyección de ROAS y comisión idénticos donde el ciclo tiene un solo SKU con cupo.
+- [ ] Test: ciclo sin SKU con cupo → la cifra dice "sin precio" (nulo), nunca 0.
+
+#### 462 — Hub, ficha del lead, Students y MCP por SKU (antes corte 3, pasos 1, 2, 4, 5 y 6)
+
+1. Filtros del Hub (`lib/queries/metricas-filtros.ts`): **Nombre del SKU** (agrupa por `skus.slug`) y **SKU**, al lado
+   de Cohorte, con opciones de los SKUs que existen. Programa sigue siendo frontera.
+2. Vendido, Recaudado y Por cobrar por línea; Ventas por deal; "SKUs vendidos" como cifra nueva, en `docs/metricas.md` y
+   en el registro de métricas. Cupos = SKUs vendidos con `skus.cuenta_como_cupo`. Desaparece "Aparte del programa".
+3. Ficha del lead: "Compras" (todas las líneas de sus deals por fecha).
+4. Students agrupado por nombre de SKU, con lo pagado y el saldo por línea.
+5. MCP: nombre del SKU y SKU como filtros de `consultar_metrica` y `consultar_hechos`; líneas en `ficha_de_deal` y `ficha_de_lead`.
+
+**Done**
+- [ ] Test: Virtual C3 + Uno a uno C3 cuenta 1 en Ventas, 2 en SKUs vendidos y aparece en el filtro de cada nombre.
 - [ ] Las cifras del Hub con los filtros nuevos cuadran con la suma de las líneas (test de coherencia).
-- [ ] D9 confirmada por Daniel Tovar y anotada en el ADR 0137.
+
+#### 463 — Migración de retiro (destructiva, al final)
+
+Cuando 459 a 462 están en producción y sin lectores: sale la tabla `productos` y `skus.producto_id`; salen
+`programs.ticket_usd`, `programs.comision_porcentaje` y `cohorts.precio_usd`. La lee a mano la sesión principal, con
+respaldo de lo que tenía datos (ADR 0131), y la aplica con el ok de Mani.
+
+**Done**
+- [ ] `git grep` de las cinco columnas y de `productos` vacío fuera de `drizzle/`.
+- [ ] Respaldo de los valores retirados guardado antes de aplicar.
 
 ## Fuera de este ticket
 

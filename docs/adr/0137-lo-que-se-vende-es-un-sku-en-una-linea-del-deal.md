@@ -1,6 +1,6 @@
 # 0137 — Lo que se vende es un SKU, en una línea del deal; la cohorte deja de administrarse a mano
 
-- **Estado:** aceptada · 19-nov-2026 (Mani, grill del ticket 376). Nace del weekly con Daniel Tovar del 3-nov
+- **Estado:** aceptada · 19-nov-2026. **El punto 5, el producto del punto 1 y las enmiendas del cupo en el producto y de la comisión del programa como defecto los reemplaza el ADR 0139 (20-nov).** (Mani, grill del ticket 376). Nace del weekly con Daniel Tovar del 3-nov
   (`docs/weekly-2026-11-03.md` §Modelo de producto; transcripción `docs/reportes/weekly-2026-11-04-transcripcion.md:166-235`).
 - **Reemplaza:** ADR 0113 (el abono adicional): el 1:1 deja de ser un abono sin producto y pasa a ser la venta de su SKU.
 - **Enmienda:** ADR 0037 (la venta es el deal: sigue siéndolo, ver punto 6), ADR 0065 (el valor vendido lo escribe el
@@ -36,7 +36,7 @@ demás (cohorte, precio, producto) se lea del SKU.
    son el mismo producto) y con autocompletar de los productos que ya existen en el programa. Por debajo es una fila
    propia por programa, para que el filtro Producto no se parta. Riesgo aceptado: "1:1" y "uno a uno" serían dos
    productos; lo controla que solo los admins crean.
-5. **La cohorte sigue existiendo, pero nadie la administra.** Nace con el primer SKU que nombra su número; si el número
+5. **[Reemplazado por el ADR 0139.]** **La cohorte sigue existiendo, pero nadie la administra.** Nace con el primer SKU que nombra su número; si el número
    es nuevo, el popup pide las fechas de su ventana de venta. Se conserva porque es la dueña de la ventana sin solape
    (ADR 0123), de las metas y de la meta de leads por día, que son del ciclo y no del producto: un Virtual C3 y un 1:1 C3
    comparten ventana y meta. **"Activa" se deduce:** es la cohorte cuya ventana contiene hoy (a lo sumo una, ADR 0123).

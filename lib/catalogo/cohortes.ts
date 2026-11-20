@@ -201,7 +201,11 @@ export async function listarCohortes(db: Db, programId: string) {
   return [...filas];
 }
 
-/** Crea una cohorte; su estado se deduce de la ventana de ventas. */
+/**
+ * Crea una cohorte; su estado se deduce de la ventana de ventas.
+ * SALE como puerta propia en el ticket 459 (ADR 0139): la cohorte nace en la misma transacción que el primer SKU que
+ * nombra su número, y el puente que crea aquí el SKU Programa virtual se retira.
+ */
 export async function crearCohorte(db: Db, actorId: string, input: EntradaCohorte) {
   return normalizando(async () => {
     const datos = esquemaCohorte.parse(input);
