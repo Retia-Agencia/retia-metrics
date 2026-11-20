@@ -71,7 +71,8 @@ describe("cohorte por definir (ticket 227)", () => {
     const activa = await editarCohorte(db, actorId, cohorte.id, porDefinir({
       fechaInicioClases: hoyEnBogota(),
       fechaInicioVentas: hoyEnBogota(),
-      fechaCierreVentas: null,
+      // ADR 0137: sin cierre la ventana esta incompleta y la cohorte sigue "por definir".
+      fechaCierreVentas: hoyEnBogota(),
     }));
     expect(activa.estado).toBe("activo");
     expect(activa.fechaInicioVentas).toBe(hoyEnBogota());

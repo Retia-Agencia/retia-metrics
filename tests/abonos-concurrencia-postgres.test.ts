@@ -12,6 +12,8 @@ import { vigente } from "@/lib/queries/vigente";
 import { validarUrlLocal } from "../scripts/db-local-url";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import type { Db } from "@/lib/db/tipos";
 
 const url = process.env.DATABASE_URL_PRUEBA_POSTGRES;
 // PGlite serializa las transacciones y no prueba la exclusion entre conexiones.
@@ -57,7 +59,8 @@ conPostgres("registrarAbono: concurrencia contra Postgres real", () => {
       const [lead] = await db.insert(schema.leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa.id, emailNormalizado: "lead@prueba.local" }).returning();
       const [deal] = await db.insert(schema.deals).values({ programId: programa.id, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial", valorVendidoUsd: "1000" }).returning();
       const [plataforma] = await db.insert(schema.plataformasPago).values({ nombre: "Plataforma concurrencia" }).returning();
-      await db.insert(schema.abonos).values({ programId: programa.id, dealId: deal.id, monto: "400", moneda: "USD", fecha: "2026-09-28", comprobanteUrl: "https://prueba.local/400" });
+      // El abono previo cuelga de la linea con cupo del deal (ADR 0137): el helper la crea.
+      await abonoDePrueba(db as unknown as Db, { programId: programa.id, dealId: deal.id, monto: "400", moneda: "USD", fecha: "2026-09-28", comprobanteUrl: "https://prueba.local/400" });
 
       const actor = { userId: closer.id, rol: "closer", operaComoCloser: false } as const;
       const datos = { dealId: deal.id, monto: "600", fecha: "2026-09-28", plataformaId: plataforma.id, comprobanteUrl: "https://prueba.local/600" };
