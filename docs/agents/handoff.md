@@ -14,6 +14,8 @@ Lee AGENTS.md y la entrada "18-nov" en Memory de docs/agents/handoff.md. Las hij
 rebasa sobre origin/main, empuja, abre el PR y mergea con CI verde. Migraciones: las genera la hija, las aplica la padre con el ok de Mani.
 Estado: main en el commit de este handoff (CI verde), con #37 a #42 dentro. La 0152 (mcp_lectura) está aplicada en producción.
 Lo que sigue, cada punto se puede abrir como una sesión aparte:
+0. PRIORIDAD (20-nov): SKUs por deal, para que gerencia lo maneje todo y los closers operen sin huecos. Lee la entrada "20-nov" en
+   Memory. Orden: 459 (popup y tabla de SKUs, antes del 10-dic) → 460 + 464 en paralelo, salen juntos (ADR 0140) → 461 → 462 → 463.
 1. 407: llamar `consultar_datos` y `definiciones_de_metricas` desde un cliente MCP reconectado (Claude con el conector del CRM) como
    developer, gerente y paid trafficker. Probar la petición forjada (programa ajeno, `set_config`, varias sentencias). Después, fase 2:
    `lib/queries/hechos` lee las vistas de `mcp_lectura` (una sola definición), `siguientes_pasos` y prompts MCP.
@@ -31,6 +33,25 @@ Pendiente de Mani: revocar y reemitir el token Bearer del MCP impreso el 14-nov;
 esta sesión (decisión de Mani del 18-nov). Commits con archivos nombrados, pull --rebase antes de push. Al cerrar, actualiza este handoff.
 ```
 ## Memory
+
+### 20-nov · SKUs por deal: ADR 0140 y ticket 464 (sesión de Mani, solo docs)
+- **Por qué:** los closers preguntan "ya vendemos corte 2, me llegó un deal y apareció en la corte 2 pero no estoy seguro". Hoy un deal
+  nace con la cohorte de la fecha del día (`abrirDeal` → `cohorteActiva`, `lib/deals/mover-etapa.ts:654`) y el tablero de Deals filtra
+  por la cohorte activa (`lib/queries/kanban.ts:303`). Nadie elige ese ciclo. Mani (y el weekly con Daniel Tovar): lo que se necesita es
+  SKU por deal, y de ahí sale ciclo y programa; gerencia lo maneja todo desde la app, Mani no mantiene fechas en código.
+- **Decidido (ADR 0140, resuelve D-0, D-2 y D-3 del `docs/norte-del-sku.html`):** interruptor `skus.predeterminado`, varios por programa,
+  sin bloqueo (como "Cuenta como cupo"). Todo deal nuevo nace con una línea propuesta por cada SKU activo predeterminado; sin ninguno queda
+  "Sin SKU" visible. El ciclo del deal sale de sus líneas. Deals filtra por Nombre del SKU, SKU, Ciclo y "Sin SKU", sin cohorte activa por
+  defecto. La ventana de fechas se queda solo para ritmo, proyección, semáforo y alertas.
+- **Plan (docs/tasks/376-productos-y-skus.md):** 459 (popup Nuevo SKU, tabla, el ciclo nace con él; sale la pantalla de cohortes; antes
+  del 10-dic porque la C3 de Tactical cierra el 15-dic). La sesión del 459 aplica también los "completar" del Norte (quitar los
+  `innerJoin(productos)`, H3). Luego 460 (ficha del deal con líneas y abono por línea) y 464 (predeterminados, abrirDeal, filtros de
+  Deals, flujos del closer sin `cohorteActiva`) en paralelo en dos worktrees; se mergea primero el 460 y se despliegan juntos: con varios
+  predeterminados el abono tiene que elegir línea. 461 a 463 después; no bloquean a gerencia.
+- **Abierto:** D-1 (¿cuántos SKUs con cupo por ciclo?, el Norte recomienda uno con índice) y D-4 a D-10 del Norte; D9 (cupo y comisión
+  por SKU) con Daniel Tovar antes de la comisión del 461. Cuando 459 + 460 + 464 estén en producción, Michael revisa y configura los SKUs
+  y los predeterminados de cada programa.
+- **Implementa Codex** vía `/delegate` (effort medium); la sesión verifica con los tests del cambio y aplica migraciones con ok de Mani.
 
 ### 18-nov · métricas coherentes, MCP analítico y la forma de métrica en main (sesión padre de Mani, seis hijas en Sonnet)
 - **En main con CI verde (squash):** #34 (421 fase 1), #36 (handoff 17-nov), #37 (auditoría de coherencia), #38 (429: Envíos = completos y

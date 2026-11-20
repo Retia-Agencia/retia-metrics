@@ -140,7 +140,7 @@ SKUs activos con cupo del ciclo.
 **Fecha:** la C3 de Tactical cierra ventas el 15-dic-2026. El 459 va a producción **antes del 10-dic**. Hasta entonces
 la pantalla de cohortes no se toca (es la única puerta para crear la C4, con el puente del corte 1).
 
-Orden: 459 → 460 → 461 → 462 → 463. 460 y 461 no se pisan (ficha y formulario de abono contra lecturas de dinero) y
+Orden: 459 → 460 + 464 (ADR 0140, prioridad de los closers) → 461 → 462 → 463. 460 y 461 no se pisan (ficha y formulario de abono contra lecturas de dinero) y
 pueden ir en paralelo después del 459.
 
 #### 459 — Popup "Nuevo SKU" y el ciclo nace con él (urgente, antes del 10-dic)
@@ -235,6 +235,40 @@ respaldo de lo que tenía datos (ADR 0131), y la aplica con el ok de Mani.
 **Done**
 - [ ] `git grep` de las cinco columnas y de `productos` vacío fuera de `drizzle/`.
 - [ ] Respaldo de los valores retirados guardado antes de aplicar.
+
+#### 464 — El ciclo del deal lo define su SKU; SKUs predeterminados (ADR 0140)
+
+**Depende de 459. Va a producción junto con el 460 o después** (con varios predeterminados el abono tiene que elegir
+línea). Prioridad de Mani, 20-nov: que los closers operen sin huecos lo antes posible.
+
+1. Migración (la aplica la sesión principal con el ok de Mani): `skus.predeterminado` boolean, default `false`. Sin índice
+   único: varios por programa.
+2. Tabla de SKUs de la vista del programa: interruptor **Predeterminado** al lado de **Cuenta como cupo**, solo
+   `esAdministrador`, por el molde con `change_log`.
+3. `abrirDeal` (`lib/deals/mover-etapa.ts:654`) deja de llamar a `cohorteActiva`: `lib/deals/lineas.ts` asigna una
+   línea propuesta por cada SKU activo y predeterminado del programa, en la misma transacción. Cero predeterminados →
+   deal sin líneas, ciclo nulo. La pasarela que trae SKU asigna ese.
+4. Derivado `deals.cohort_id` con la regla del D12 y el desempate del ADR 0140 punto 4.
+5. Tablero de Deals: sale el filtro por defecto de cohorte activa (`lib/queries/kanban.ts:303`,
+   `components/deals/filtro-kanban.tsx`, `app/(app)/p/[programa]/deals/page.tsx:112`). Filtros nuevos **Nombre del SKU**,
+   **SKU**, **Ciclo** y la opción **Sin SKU**, con opciones leídas de los SKUs del programa. Sin filtro de ciclo por
+   defecto. Los enlaces viejos con `?cohorte=` siguen funcionando.
+6. Flujos del closer sin `cohorteActiva`: ficha (`components/deals/ficha/ficha-acciones.tsx`,
+   `lib/deals/ficha/cargar-datos.ts`), `lib/deals/estudiante.ts`, `lib/deals/pago.ts`, `lib/deals/valor-vendido.ts`.
+   Cada uno lee el ciclo de las líneas del deal. Hub, Juanito (`lib/catalogo/reportes-whatsapp.ts`), semáforo y alertas
+   siguen por fechas (ADR 0140 punto 7).
+7. MCP: el tablero y la ficha del deal muestran los mismos filtros y "Sin SKU" (`lib/mcp/herramientas/operacion.ts`,
+   `lib/mcp/salidas/operacion.ts`).
+
+**Done**
+- [ ] Test: con dos SKUs predeterminados activos, un deal que entra por webhook nace con dos líneas propuestas y nada
+      suma a Vendido, Ventas, cupos ni comisión.
+- [ ] Test: sin predeterminados, el deal nace "Sin SKU" y aparece con ese filtro.
+- [ ] Test: un SKU predeterminado desactivado no se asigna.
+- [ ] Test: forjar el POST de un closer que prende Predeterminado → 403 y la base no se mueve.
+- [ ] Test: el tablero sin parámetros no filtra por ciclo; `?cohorte=<id>` viejo sigue filtrando.
+- [ ] `git grep cohorteActiva` solo en Hub, Juanito, semáforo, alertas y metas.
+- [ ] Recorrido en producción con un closer: crea deal, ve su SKU, lo cambia, registra abono.
 
 ## Fuera de este ticket
 

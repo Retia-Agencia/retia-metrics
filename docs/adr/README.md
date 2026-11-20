@@ -86,6 +86,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0136](./0136-la-venta-cuenta-por-el-dia-del-primer-pago.md) | La venta cuenta por el día de su primer pago (abono vigente más antiguo, respaldo al día de la etapa): reemplaza fechar la venta por la entrada a Abonado o Completo |
 | [0138](./0138-pauta-abre-las-listas-del-embudo-comercial.md) | Pauta abre las cuatro listas del embudo comercial con la capacidad del tablero y la proyección de persona (sin closer, deal ni monto); el Hub conserva solo esos detalles para quien ve el tablero (enmienda al ADR 0052, ticket 458) |
 | [0139](./0139-el-sku-es-lo-unico-que-se-administra-la-cohorte-es-su-ciclo.md) | El SKU es lo único que se administra (nombre, cohorte, precio, % de comisión y cupo); la cohorte queda como el ciclo C<N> que nace desde el popup del SKU con ventana y metas obligatorias; salen `productos`, el ticket y el % del programa y el precio de la cohorte (reemplaza el punto 5 del ADR 0137, ticket 376) |
+| [0140](./0140-el-ciclo-del-deal-lo-define-su-sku-y-gerencia-marca-predeterminados.md) | El ciclo de un deal sale de sus líneas, no de la fecha; gerencia marca SKUs predeterminados (varios, sin bloqueo) que todo deal nuevo recibe como líneas propuestas; el tablero de Deals filtra por SKU y deja la cohorte activa (enmienda los ADR 0139 y 0137, ticket 464) |
 
 **Origen y atribución**
 

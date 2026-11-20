@@ -150,6 +150,7 @@ a fase 2.
 | [ ] | 461 | [376 › Dinero sin ticket del programa: precio de referencia y comisión por línea](./376-productos-y-skus.md#461--dinero-sin-ticket-del-programa-precio-de-referencia-y-comisión-por-línea) | 459 | todo · D9 con Daniel Tovar antes de la comisión · migración |
 | [ ] | 462 | [376 › Hub, ficha del lead, Students y MCP por SKU](./376-productos-y-skus.md#462--hub-ficha-del-lead-students-y-mcp-por-sku-antes-corte-3-pasos-1-2-4-5-y-6) | 460, 461 | todo |
 | [ ] | 463 | [376 › Migración de retiro: productos, ticket y % del programa, precio de la cohorte](./376-productos-y-skus.md#463--migración-de-retiro-destructiva-al-final) | 459 a 462 | todo · migración destructiva |
+| [ ] | 464 | [376 › El ciclo del deal lo define su SKU; SKUs predeterminados; filtros de Deals por SKU](./376-productos-y-skus.md#464--el-ciclo-del-deal-lo-define-su-sku-skus-predeterminados-adr-0140) | 459, 460 | todo · ADR 0140 · migración · prioridad: closers operando sin huecos |
 
 ## 1 · Entrada y lead
 

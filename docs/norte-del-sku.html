@@ -81,6 +81,7 @@ footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line);paddin
 <header class="stack prose">
   <span class="eyebrow">Retia Metrics · audit · 20-nov-2026 · base en la migración 0156</span>
   <h1>El SKU reemplaza a la cohorte, al ticket y al % del programa: qué falta y qué se contradice</h1>
+  <p class="rec"><b>Actualización 20-nov, ADR 0140:</b> D-0, D-2 y D-3 quedaron decididos en la variante «más barata»: el ciclo del deal sale de sus líneas; gerencia marca SKUs <b>predeterminados</b> (varios, sin bloqueo) y todo deal nuevo nace con una línea propuesta de cada uno; el tablero de Deals filtra por Nombre del SKU, SKU, Ciclo y «Sin SKU», sin cohorte activa por defecto; la ventana se queda solo para ritmo y proyección. El 464 ya existe en <code>docs/tasks/376-productos-y-skus.md</code>. Con eso el 459 ya no depende del 464: orden 459 → 460 + 464 (salen juntos) → 461 → 462 → 463. Siguen abiertas D-1 y D-4 a D-10.</p>
   <p>Contraste del ADR 0137 (con sus enmiendas del 19 y 20-nov), el ADR 0139 y el plan del ticket 376 (cortes 459 a 463) contra el código de <code>main</code> en <code>91963d31</code> y contra los datos vivos del CRM. No rediseña lo decidido: dice dónde el código todavía no lo cumple, qué rompe cada corte y qué hueco no tiene ticket. Todo lo citado es <code>archivo:línea</code> medido hoy con <code>git grep</code>; las cifras de deals y ventas salen del CRM en producción (vistas de lectura del MCP, 20-nov).</p>
   <nav class="toc" aria-label="Secciones">
     <a href="#hallazgos">Hallazgos que cambian el plan</a>
