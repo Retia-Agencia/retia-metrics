@@ -175,7 +175,7 @@ export function armarCumplimiento(entrada: EntradaDeCumplimiento): CumplimientoD
 }
 
 async function cohorteElegida(programId: string, cohorteId: string | null, hoy: string, db: Db): Promise<Cohorte | null> {
-  if (cohorteId === null) return cohorteActiva(programId, db);
+  if (cohorteId === null) return cohorteActiva(programId, db, hoy);
   return unaVezPorSolicitud(db, claveDe("cohorteElegida", programId, cohorteId, hoy), async () => {
     const [fila] = await db.select(columnasCohorteConEstado(hoy)).from(cohorts).where(and(eq(cohorts.id, cohorteId), eq(cohorts.programId, programId))).limit(1);
     return fila ?? null;
@@ -188,7 +188,7 @@ export async function leerCumplimientoDeCohorte(
   hoy: string,
   db: Db = dbDeLaApp,
 ): Promise<CumplimientoDeCohorteLeido> {
-  const [cohorte, activa] = await Promise.all([cohorteElegida(programId, cohorteId, hoy, db), cohorteActiva(programId, db)]);
+  const [cohorte, activa] = await Promise.all([cohorteElegida(programId, cohorteId, hoy, db), cohorteActiva(programId, db, hoy)]);
   if (!cohorte) return armarCumplimiento({
     hoy, cohorte: null, esActiva: false,
     ventasTotales: { cantidad: 0, vendidoUsd: 0 }, ventasPauta: { cantidad: 0, vendidoUsd: 0 },

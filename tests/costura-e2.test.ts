@@ -29,6 +29,16 @@ import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
 import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
 
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-08T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 /**
  * Prueba de COSTURA de la etapa E2 (`docs/plan-reparto.md`, E2): "una cita de Calendly cae en
  * su deal, el Grain lo pasa a Atendido, un abono a Abonado, el que salda a Completo, y anular

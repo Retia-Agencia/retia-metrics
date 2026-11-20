@@ -1,3 +1,5 @@
+import { valorComisionableSql } from "@/lib/queries/comision";
+import { hoyEnBogota } from "@/lib/format";
 import { sumaDeAbonos } from "@/lib/queries/saldo";
 import {
   agendadaSql,
@@ -305,6 +307,8 @@ export interface VentaDelRangoConValor {
   cohortId: string | null;
   ticketUsd: string | null;
   valorVendidoUsd: string | null;
+  /** Base de la comisión: valor vendido sin las líneas `sin_clasificar` (ADR 0137, enmienda del 20-nov). */
+  valorComisionableUsd: string | null;
   comisionPorcentaje: string | null;
 }
 
@@ -326,6 +330,7 @@ export async function ventasDelRangoConValor(
       cohortId: deals.cohortId,
       ticketUsd: cohorts.precioUsd,
       valorVendidoUsd: deals.valorVendidoUsd,
+      valorComisionableUsd: valorComisionableSql(),
       comisionPorcentaje: deals.comisionPorcentaje,
     })
     .from(deals)
@@ -749,7 +754,7 @@ export async function vistaDeCohorteActiva(
   hoy: string,
   db: Db = dbDeLaApp,
 ): Promise<VistaDeCohorte | null> {
-  const cohorte = await cohorteActiva(programId, db);
+  const cohorte = await cohorteActiva(programId, db, hoy);
   if (!cohorte) return null;
 
   const meta = cohorte.metaCupos;
@@ -842,7 +847,9 @@ async function leerLeadsDelRango(
 
   const diasHabiles = diasHabilesEntre(rango.desde, rango.hasta);
 
-  const cohorte = await cohorteActiva(programId, db);
+  // La meta de leads es la de la cohorte que vendia al final del rango (o hoy, si el rango sigue abierto).
+  const hoy = hoyEnBogota();
+  const cohorte = await cohorteActiva(programId, db, rango.hasta < hoy ? rango.hasta : hoy);
   const metaLeadsDia = cohorte?.metaLeadsDia ?? null;
   const metaDelRango = metaLeadsDia === null ? null : metaLeadsDia * diasHabiles;
   const cumplimiento =

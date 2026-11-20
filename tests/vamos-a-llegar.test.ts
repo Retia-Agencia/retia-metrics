@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it, afterEach, vi } from "vitest";
 import { cohorts, dealEtapaHistorial, deals, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { PropsVamosALlegar } from "@/components/metas/vamos-a-llegar";
@@ -8,6 +8,16 @@ import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-20T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Ticket 371: "¿Vamos a llegar?" — mes y cohorte × cupos y USD, sin leer ningun filtro.
@@ -89,7 +99,8 @@ describe("371: las cuatro combinaciones", () => {
   });
 
   it("sin cohorte activa la cohorte es nula; el mes sigue con la meta de 146", async () => {
-    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" });
+    // Cerró el 2-nov (ADR 0137 punto 5): el 4-nov ya no está activa, pero su ventana sí toca el mes.
+    await db.update(cohorts).set({ fechaCierreVentas: "2026-11-02" });
     const datos = await leerVamosALlegar(programId, CIERRE, db);
     expect(datos.cohorte).toBeNull();
     // El mes sigue tomando la meta de toda cohorte cuya ventana toque el mes (146), este o no activa.

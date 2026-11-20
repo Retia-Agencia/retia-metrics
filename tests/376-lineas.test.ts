@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, isNull } from "drizzle-orm";
 import {
   abonos, cohorts, dealEtapaHistorial, dealLineas, deals, leads, plataformasPago,
@@ -11,6 +11,7 @@ import {
   anularLinea, asignarLinea, editarValorDeLinea, quitarLinea,
 } from "@/lib/deals/lineas";
 import { saldosDeDeals, saldosDeLineas } from "@/lib/queries/saldo";
+import { comisionesPorCloser } from "@/lib/queries/comision";
 import { crearCohorte, editarCohorte } from "@/lib/catalogo/cohortes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -32,6 +33,15 @@ const contexto = (etiqueta = "lineas@test.local") => ({ actorId: closerId, etiqu
 
 beforeAll(async () => {
   ({ db, cerrar, vaciar } = await crearBaseReutilizable());
+});
+
+// Las cohortes del test venden en noviembre de 2026: el día queda fijo para que no caduquen.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-19T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 beforeEach(async () => {
@@ -204,6 +214,21 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     expect(saldoDeal).toMatchObject({ precio: 150, abonado: 60, saldo: 90 });
     expect([...saldos.values()].filter((linea) => linea.vendida).reduce((n, linea) => n + linea.saldo!, 0)).toBe(90);
     await expect(pago(deal.id, "61", virtual.id)).rejects.toThrow("supera el saldo de la línea");
+  });
+
+  it("ADR 0137 enmienda del 20-nov: la línea sin clasificar no paga comisión", async () => {
+    const { deal } = await crearDeal();
+    // Abono parcial al programa (el deal sigue abierto) y el 1:1 aparte.
+    await pago(deal.id, "40");
+    await pago(deal.id, "25", undefined, "adicional");
+    const [venta] = await db.select().from(deals).where(eq(deals.id, deal.id));
+    expect(Number(venta.valorVendidoUsd)).toBe(125);
+    const porcentaje = Number(venta.comisionPorcentaje);
+    expect(porcentaje).toBeGreaterThan(0);
+
+    const [fila] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
+    expect(fila.comisionUsd).toBe(Math.round(100 * porcentaje) / 100);
+    expect(fila.ventasSinComision).toBe(0);
   });
 
   it("ADR 0137 punto 14: un adicional crea línea sin clasificar y mueve el deal", async () => {

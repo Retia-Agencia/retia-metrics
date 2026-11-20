@@ -120,7 +120,7 @@ export async function alertasDelPrograma(programId: string, hoy: string, db: Db 
   const umbrales = (await umbralesDelPrograma(db, programId)).filter((u) => u.activo);
   if (umbrales.length === 0) return [];
   const masViejo = habilesCerradosAntesDe(hoy, Math.max(RACHA_MAXIMA, ...umbrales.map((u) => u.diasSeguidos))).at(-1)!;
-  const activa = await cohorteActiva(programId, db);
+  const activa = await cohorteActiva(programId, db, hoy);
   const [{ cohortes, ventas }, ventasCohorte] = await Promise.all([
     leerCohortesYVentas(db, programId, { desde: `${masViejo.slice(0, 7)}-01`, hasta: hoy }),
     activa ? ventasDeLaCohorte(db, activa.id, hoy) : Promise.resolve([]),

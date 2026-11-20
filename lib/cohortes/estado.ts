@@ -8,18 +8,22 @@ export interface VentanaDeCohorte {
   fechaCierreVentas: string | null;
 }
 
-/** Estado de negocio de una cohorte en un dia de Bogota (ADR 0137, punto 5). */
+/**
+ * Estado de negocio de una cohorte en un dia de Bogota (ADR 0137, punto 5). Sin ventana completa
+ * (falta inicio o cierre) es futura "por definir" y nunca vende (ticket 227).
+ */
 export function estadoDeCohorte(c: VentanaDeCohorte, hoy: string): EstadoCohorte {
-  if (c.fechaInicioVentas === null || hoy < c.fechaInicioVentas) return "futuro";
-  if (c.fechaCierreVentas !== null && hoy > c.fechaCierreVentas) return "cerrado";
+  if (c.fechaInicioVentas === null || c.fechaCierreVentas === null || hoy < c.fechaInicioVentas) return "futuro";
+  if (hoy > c.fechaCierreVentas) return "cerrado";
   return "activo";
 }
 
 /** Gemela SQL de `estadoDeCohorte`; `hoy` siempre es un dia ISO de Bogota. */
 export function estadoDeCohorteSql(hoy: string): SQL<EstadoCohorte> {
   return sql<EstadoCohorte>`case
-    when ${cohorts.fechaInicioVentas} is null or ${hoy} < ${cohorts.fechaInicioVentas} then 'futuro'
-    when ${cohorts.fechaCierreVentas} is not null and ${hoy} > ${cohorts.fechaCierreVentas} then 'cerrado'
+    when ${cohorts.fechaInicioVentas} is null or ${cohorts.fechaCierreVentas} is null
+      or ${hoy} < ${cohorts.fechaInicioVentas} then 'futuro'
+    when ${hoy} > ${cohorts.fechaCierreVentas} then 'cerrado'
     else 'activo'
   end`;
 }

@@ -88,11 +88,11 @@ function partesDeHoraEnBogota(instante: Date): { hora: number; minuto: number; t
   return { hora, minuto, texto: `${mapa.hour}:${mapa.minute}` };
 }
 
-async function leerUmbral(db: Db, programId: string): Promise<{
+async function leerUmbral(db: Db, programId: string, hoy: string): Promise<{
   tieneCohorte: boolean;
   umbral: UmbralCostoPorAgenda | null;
 }> {
-  const cohorte = await cohorteActiva(programId, db);
+  const cohorte = await cohorteActiva(programId, db, hoy);
   if (!cohorte) return { tieneCohorte: false, umbral: null };
   const objetivo = (await objetivosDeCohortes(db, [cohorte.id])).find((fila) =>
     fila.activo && fila.area === null && fila.metrica === "costo_por_agenda"
@@ -233,7 +233,7 @@ export async function semaforoDelPrograma(
     : [null];
 
   const [{ tieneCohorte, umbral }, datos, datosComparacion] = await Promise.all([
-    leerUmbral(db, args.programId),
+    leerUmbral(db, args.programId, hoy),
     args.tipo === "cierre"
       ? costoPorAgendaDeVentana(db, { programId: args.programId, desde: dia, hasta: dia, corte: args.corte })
       : costoPorAgenda(db, { programId: args.programId, dia, hasta: corteDeHora(dia, hora.hora), corte: args.corte }),

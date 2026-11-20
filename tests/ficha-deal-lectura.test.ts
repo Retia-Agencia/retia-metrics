@@ -1,5 +1,5 @@
 import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   calls,
@@ -27,6 +27,16 @@ import { fichaDeDeal, opcionesDeFicha, respuestasLegibles } from "@/lib/queries/
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-15T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Ticket 074: `fichaDeDeal`, la lectura de la pantalla. Cubre: la cabecera con sus nombres,
@@ -395,7 +405,8 @@ describe("opcionesDeFicha", () => {
     const [c2, c3] = await db.insert(cohorts).values([
       { programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
       { programId, codigo: "C3", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
-      { programId, codigo: "C4", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaCierreVentas: "2026-12-31" },
+      // Cerrada porque su ventana ya pasó (ADR 0137 punto 5), no porque alguien la cerrara a mano.
+      { programId, codigo: "C4", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-08-31" },
       { programId: otroPrograma, codigo: "C5", metaCupos: 10, precioUsd: "500", fechaInicioClases: "2027-02-01", fechaCierreVentas: "2027-01-31" },
     ]).returning();
     await db.update(deals).set({ cohortId: c2.id }).where(eq(deals.id, dealId));

@@ -449,7 +449,8 @@ describe("meta dinamica no divide por cero", () => {
       codigo: "C2",
       metaCupos: 30,
       fechaInicioVentas: "2026-08-14",
-      fechaCierreVentas: "2026-09-21",
+      // Cierra un sábado: ese día la cohorte sigue activa (ADR 0137 punto 5) y ya no quedan días hábiles.
+      fechaCierreVentas: "2026-09-19",
     });
     // 5 ventas de la cohorte: faltan 25. Una venta es un deal en Abonado o Completo
     // (ADR 0037), no un deal cualquiera.
@@ -459,8 +460,9 @@ describe("meta dinamica no divide por cero", () => {
       await sembrarVenta(programaA, { cohortId: cohorteDeLaMeta, etapa: "ganado_parcial", ownerUserId: await duenoDePrueba(db, programaA) });
     }
 
-    // hoy despues del cierre: 22-sep. habilesRestantes = 0.
-    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-22", db);
+    // Último día de la ventana, sábado 19-sep: habilesRestantes = 0. Un día después ya no hay
+    // cohorte activa: la que cerró no se queda activa a mano.
+    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-19", db);
     expect(vista!.ventana!.habilesRestantes).toBe(0);
     expect(Number.isNaN(vista!.ventana!.metaDinamica)).toBe(false);
     expect(vista!.ventana!.metaDinamica).toBe(25);

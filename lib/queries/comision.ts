@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db as dbDeLaApp } from "@/lib/db";
 import { deals, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -6,6 +6,24 @@ import { claveDe, unaVezPorSolicitud } from "@/lib/db/por-solicitud";
 import type { Rango } from "@/lib/queries/dashboard";
 import { filtroCierres } from "@/lib/queries/metricas-filtros";
 import { vigente } from "@/lib/queries/vigente";
+
+/**
+ * Base de la comision del deal: su valor vendido sin las lineas vendidas del SKU `sin_clasificar`,
+ * que paga 0 % hasta que exista su SKU real (ADR 0137, enmienda del 20-nov). Nulo si el deal no
+ * tiene valor vendido.
+ */
+export function valorComisionableSql() {
+  return sql<string | null>`(${deals.valorVendidoUsd} - coalesce((
+    select sum(dl.valor_vendido_usd)
+    from deal_lineas dl
+    join skus s on s.id = dl.sku_id
+    join productos p on p.id = s.producto_id
+    where dl.deal_id = ${deals.id}
+      and dl.anulada_en is null
+      and p.slug = 'sin_clasificar'
+      and exists (select 1 from abonos a where a.linea_id = dl.id and a.anulado_en is null)
+  ), 0))`;
+}
 
 /**
  * La comision se calcula, nunca se guarda: valor vendido por el porcentaje congelado
@@ -40,7 +58,7 @@ export async function comisionesPorCloser(
         closerId: users.closerId,
         nombre: users.nombre,
         email: users.email,
-        valorVendidoUsd: deals.valorVendidoUsd,
+        valorComisionableUsd: valorComisionableSql(),
         comisionPorcentaje: deals.comisionPorcentaje,
       })
       .from(deals)
@@ -57,7 +75,7 @@ export async function comisionesPorCloser(
         comisionUsd: 0,
         ventasSinComision: 0,
       };
-      const comision = comisionDeDeal(fila.valorVendidoUsd, fila.comisionPorcentaje);
+      const comision = comisionDeDeal(fila.valorComisionableUsd, fila.comisionPorcentaje);
       if (comision === null) acumulado.ventasSinComision += 1;
       else acumulado.comisionUsd = Math.round((acumulado.comisionUsd + comision + Number.EPSILON) * 100) / 100;
       porCloser.set(clave, acumulado);

@@ -27,9 +27,10 @@ export type Cohorte = typeof cohorts.$inferSelect & { estado: EstadoCohorte };
 export async function cohorteActiva(
   programId: string,
   db: Db = dbDeLaApp,
+  // El dia que se mide: quien calcula para una fecha pasa la suya; sin ella, hoy en Bogota.
+  hoy: string = hoyEnBogota(),
 ): Promise<Cohorte | null> {
-  return unaVezPorSolicitud(db, claveDe("cohorteActiva", programId), async () => {
-    const hoy = hoyEnBogota();
+  return unaVezPorSolicitud(db, claveDe("cohorteActiva", programId, hoy), async () => {
     const [fila] = await db
       .select(columnasCohorteConEstado(hoy))
       .from(cohorts)

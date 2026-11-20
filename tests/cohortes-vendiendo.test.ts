@@ -89,8 +89,8 @@ describe("cohortesVendiendo", () => {
     await crearCohorte({ codigo: "Ajena", inicio: "2026-06-01", cierre: "2026-06-30", programa: otroProgramId });
 
     expect((await cohortesVendiendo(db, programId, "2026-06-15")).map((c) => c.codigo)).toEqual(["C3"]);
-    // Dentro de la ventana de la cerrada, tampoco vende: el estado manda, no solo la fecha.
-    expect(await cohortesVendiendo(db, programId, "2026-05-15")).toEqual([]);
+    // Cerrada = su ventana ya pasó (ADR 0137 punto 5): ya no existe cerrar a mano dentro de la ventana.
+    expect((await cohortesVendiendo(db, programId, "2026-06-01")).map((c) => c.codigo)).toEqual(["C3"]);
   });
 
   it("incluye ambos limites de la ventana de ventas", async () => {

@@ -4,6 +4,8 @@ import { asc, eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/pglite";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { fileURLToPath } from "node:url";
 import * as schema from "@/lib/db/schema";
 import { abonos, dealLineas, productos, skus } from "@/lib/db/schema";
@@ -22,9 +24,19 @@ const USUARIO = "00000000-0000-4000-8000-000000000201";
 let cliente: PGlite;
 let db: ReturnType<typeof drizzle<typeof schema>>;
 
+/** Posición de una migración en el journal: las de después (0155...) no corren antes de sembrar. */
+function indiceDe(prefijo: string): number {
+  const journal = JSON.parse(readFileSync(path.join(CARPETA_MIGRACIONES, "meta/_journal.json"), "utf8")) as {
+    entries: { tag: string }[];
+  };
+  const indice = journal.entries.findIndex((e) => e.tag.startsWith(prefijo));
+  if (indice < 0) throw new Error(`No existe la migración ${prefijo}.`);
+  return indice;
+}
+
 async function aplicarHasta0152(): Promise<void> {
   const migraciones = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES });
-  for (const migracion of migraciones.slice(0, -2)) {
+  for (const migracion of migraciones.slice(0, indiceDe("0153_"))) {
     await cliente.exec(migracion.sql.join("\n"));
   }
 }
@@ -61,17 +73,24 @@ async function sembrarAntesDe0153(): Promise<void> {
 }
 
 async function aplicar0153(): Promise<void> {
-  const migracion = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES }).at(-2)!;
+  const migracion = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES })[indiceDe("0153_")];
   await cliente.transaction(async (tx) => {
     for (const sentencia of migracion.sql) await tx.exec(sentencia);
   });
 }
 
 async function aplicar0154(): Promise<void> {
-  const migracion = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES }).at(-1)!;
+  const migracion = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES })[indiceDe("0154_")];
   await cliente.transaction(async (tx) => {
     for (const sentencia of migracion.sql) await tx.exec(sentencia);
   });
+}
+
+async function aplicarDespuesDe0154(): Promise<void> {
+  const migraciones = readMigrationFiles({ migrationsFolder: CARPETA_MIGRACIONES });
+  for (const migracion of migraciones.slice(indiceDe("0154_") + 1)) {
+    await cliente.exec(migracion.sql.join("\n"));
+  }
 }
 
 beforeAll(async () => {
@@ -80,6 +99,7 @@ beforeAll(async () => {
   await sembrarAntesDe0153();
   await aplicar0153();
   await aplicar0154();
+  await aplicarDespuesDe0154();
   db = drizzle(cliente, { schema });
 });
 

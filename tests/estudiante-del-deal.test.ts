@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, dealActividades, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -10,6 +10,16 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-08-20T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Ticket 063: el onboarding es un timestamp que marca el closer dueño o quien administra, y
@@ -234,6 +244,8 @@ describe("cambiarCohorte", () => {
   });
 
   it("cualquier deal vigente del actor cambia a una cohorte vendiendo; otro closer no", async () => {
+    // Hoy dentro de la ventana de Octubre, que es la que vende.
+    vi.setSystemTime(new Date("2026-09-20T17:00:00.000Z"));
     const enContacto = await nuevoDeal("atendido");
     await cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" });
     expect((await fila(enContacto)).cohortId).toBe(octubre);

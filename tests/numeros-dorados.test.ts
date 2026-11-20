@@ -114,7 +114,8 @@ const HUB: Record<Programa, Record<Periodo, EsperadoHub>> = {
     mesCerrado: {
       cierres: 4, dinero: { vendido: 4120, recaudado: 2920, porCobrar: 1200, ventas: 4, sinSaldoCalculable: 0 },
       caja: [{ moneda: "USD", total: 3000 }], contratadoUsd: 4120, sinValorVendido: 0,
-      comision: { totalUsd: 412, ventasSinComision: 0 }, cortesias: 0,
+      // La línea adicional de USD 120 es Vendido pero paga 0 % (ADR 0137, enmienda del 20-nov).
+      comision: { totalUsd: 400, ventasSinComision: 0 }, cortesias: 0,
       porCohorte: [["C1", 1, 1000, 1000], ["C2", 3, 3120, 1920]], comparativo: [["Ana", 4]],
     },
     // caja 120 (adicional) + 700 + 100 + 150 = 1.070

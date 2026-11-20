@@ -1,5 +1,5 @@
 import { abonoDePrueba, lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import {
   abonos,
@@ -22,6 +22,16 @@ import { descuentoDeDeal } from "@/lib/queries/saldo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-15T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -249,6 +259,8 @@ describe("ticket 134 — cohorte y descuento", () => {
   });
 
   it("cambiarCohorte funciona fuera de Students hacia una cohorte vendiendo, exige motivo y conserva el total vendido", async () => {
+    // Hoy dentro de la ventana de C3, que es la que vende.
+    vi.setSystemTime(new Date("2026-11-15T17:00:00.000Z"));
     const [futura] = await db
       .insert(cohorts)
       .values({

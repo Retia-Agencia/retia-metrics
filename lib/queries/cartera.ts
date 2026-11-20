@@ -70,7 +70,7 @@ export async function carteraVencida(db: Db, programId: string, hoy: string = ho
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, deals.programId)))
     .where(and(eq(deals.programId, programId), eq(deals.etapa, "ganado_parcial"), cohorteId ? eq(deals.cohortId, cohorteId) : undefined, vigente(deals))),
-    cohorteActiva(programId, db),
+    cohorteActiva(programId, db, hoy),
   ]);
   if (filas.length === 0) return { vencidos: [], sinFechaDeReferencia: 0 };
 

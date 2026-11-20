@@ -81,6 +81,15 @@ del mismo producto discrepen. Apagado por defecto, olvidar marcarlo subcuenta cu
 cada 1:1 inflaría los cupos sin que nadie lo vea. La migración marca `programa_virtual` y deja `sin_clasificar`
 sin marcar, así las cifras de hoy no se mueven.
 
+### Enmienda del 20-nov-2026 (Mani): la cohorte se va; nada de "activa"
+
+Al quitar el botón Activar se pierde un efecto suyo: mudar a la cohorte recién activada los deals en "Próxima
+cohorte" (`mudarDealsDeProximaCohorte`). **No se reemplaza** (ni con un cron diario): Mani, "cohortes va a
+desaparecer; nada de activo ni eso. La cohorte se va a manejar por los SKUs de los deals". Un deal que espera la
+siguiente cohorte recibe el SKU de esa cohorte, asignado por el closer, y eso lo ubica. El 20-nov hay un solo deal en
+"Próxima cohorte" (ComunicArte). La dirección queda fijada para un ticket posterior: la cohorte deja de ser una
+entidad administrada y se lee de los SKUs; mientras exista la tabla, el punto 5 rige tal cual.
+
 ### Enmienda del 20-nov-2026 (Mani): la comisión es de cada SKU
 
 Hasta hoy el % de comisión es del programa (`programs.comision_porcentaje`, ADR 0065 punto 7) y se congela en el deal
