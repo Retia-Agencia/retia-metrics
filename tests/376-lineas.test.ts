@@ -15,6 +15,7 @@ import { comisionesPorCloser } from "@/lib/queries/comision";
 import { crearCohorte, editarCohorte } from "@/lib/catalogo/cohortes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -65,9 +66,9 @@ beforeEach(async () => {
     { programId, nombre: "Uno a uno", slug: "uno_a_uno" },
   ]).returning();
   const filasSku = await db.insert(skus).values([
-    { programId, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true },
-    { programId, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true },
-    { programId, productoId: unoAUno.id, cohortId, codigo: "lineas_376_uno_a_uno_c1", precioListaUsd: "50" },
+    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true },
+    { programId, nombre: virtual.nombre, slug: virtual.slug, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true },
+    { programId, nombre: unoAUno.nombre, slug: unoAUno.slug, productoId: unoAUno.id, cohortId, codigo: "lineas_376_uno_a_uno_c1", precioListaUsd: "50" },
   ]).returning();
   virtual1 = filasSku[0].id;
   virtual2 = filasSku[1].id;
@@ -103,10 +104,11 @@ const pago = (dealId: string, monto: string, lineaId?: string, concepto: "ticket
   });
 
 describe("ticket 376 B1: líneas como fuente de verdad", () => {
-  it("crea el SKU virtual con la cohorte y no cambia su precio de lista al editarla", async () => {
+  it("el SKU virtual de prueba conserva su precio de lista al editar la cohorte", async () => {
     const cohorte = await crearCohorte(db, closerId, {
       programId, codigo: "PUENTE", metaCupos: 3, precioUsd: "275", fechaInicioVentas: null, fechaCierreVentas: null, fechaInicioClases: null,
     });
+    await skuVirtualDePrueba(db, cohorte.id);
     const [skuCreado] = await db.select({ sku: skus, producto: productos }).from(skus)
       .innerJoin(productos, eq(productos.id, skus.productoId))
       .where(eq(skus.cohortId, cohorte.id));
@@ -258,7 +260,7 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     const [abono] = await db.select().from(abonos).where(eq(abonos.id, registrado.abonoId));
     const [linea] = await db.select().from(dealLineas).where(eq(dealLineas.id, abono.lineaId));
     const [sku] = await db.select().from(skus).where(eq(skus.id, linea.skuId));
-    const [producto] = await db.select().from(productos).where(eq(productos.id, sku.productoId));
+    const [producto] = await db.select().from(productos).where(eq(productos.id, sku.productoId!));
     expect(producto.slug).toBe("sin_clasificar");
     expect(linea.valorVendidoUsd).toBe("25.00");
   });

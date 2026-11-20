@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import { enlacesPago, plataformasPago, productos, skus } from "@/lib/db/schema";
+import { enlacesPago, plataformasPago, skus } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { fechaDeInstanteEnBogota } from "@/lib/format";
@@ -27,10 +27,9 @@ export async function traducirCompra(db: Db, programId: string, compra: EventoHo
   const cohorte = resolverCohorte(cohortes);
   if (cohorte.motivoRevision) return { ...conLink, estado: "en_revision" as const, ...cohorte };
   const skusConCupo = await db.select({ id: skus.id }).from(skus)
-    .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
     .where(and(
       eq(skus.programId, programId), eq(skus.cohortId, cohorte.cohortId!), eq(skus.activo, true),
-      eq(productos.activo, true), eq(skus.cuentaComoCupo, true),
+      eq(skus.cuentaComoCupo, true),
     ));
   const skuResuelto = resolverCohorte(skusConCupo);
   if (skuResuelto.motivoRevision) {

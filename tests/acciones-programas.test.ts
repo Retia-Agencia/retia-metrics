@@ -111,6 +111,21 @@ const cohorteValida = {
   fechaCierreVentas: "2026-08-11",
 };
 
+const skuValido = (programa = programId, cohorteN = 1) => ({
+  programId: programa,
+  nombre: "Programa virtual",
+  cohorteN,
+  precioListaUsd: "797.00",
+  comisionPorcentaje: 10,
+  cuentaComoCupo: true,
+  ventana: {
+    fechaInicioVentas: "2026-08-11",
+    fechaCierreVentas: "2026-08-11",
+    metaCupos: 30,
+    metaLeadsDia: 10,
+  },
+});
+
 describe("acciones de programas — barrera de rol (ADR 0003)", () => {
   it("un closer es rechazado en todas las acciones de programa", async () => {
     auth.mockResolvedValue(sesionCloser);
@@ -144,12 +159,12 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
   it("un closer es rechazado en todas las acciones de cohorte", async () => {
     auth.mockResolvedValue(sesionCloser);
     const {
-      crearCohorteAccion,
+      crearSkuAccion,
       editarCohorteAccion,
     } = await acciones();
 
     for (const llamada of [
-      () => crearCohorteAccion("programa-a", { ...cohorteValida, programId }),
+      () => crearSkuAccion("programa-a", skuValido()),
       () => editarCohorteAccion("programa-a", UUID, { ...cohorteValida, programId }),
     ]) {
       const res = await llamada();
@@ -193,9 +208,9 @@ describe("acciones de programas — el gerente administra", () => {
   });
 
   it("un programa INACTIVO se sigue configurando: la reja de alcance no mira si esta activo (ADR 0094)", async () => {
-    const { crearCohorteAccion } = await acciones();
+    const { crearSkuAccion } = await acciones();
     await db.update(programs).set({ activo: false }).where(eq(programs.id, programId));
-    const resultado = await crearCohorteAccion("programa-a", { ...cohorteValida, codigo: "INACT", programId });
+    const resultado = await crearSkuAccion("programa-a", skuValido());
     expect(resultado).toEqual({ ok: true });
   });
 
@@ -228,8 +243,8 @@ describe("acciones de programas — el gerente administra", () => {
   });
 
   it("el objetivo agenda a venta usa la acción existente y una petición sin administración no lo mueve", async () => {
-    const { crearCohorteAccion } = await acciones();
-    expect(await crearCohorteAccion("programa-a", { ...cohorteValida, programId })).toEqual({ ok: true });
+    const { crearSkuAccion } = await acciones();
+    expect(await crearSkuAccion("programa-a", skuValido())).toEqual({ ok: true });
     const [cohorte] = await db.select().from(cohorts).where(eq(cohorts.programId, programId));
     const { guardarObjetivoAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-objetivos");
     expect(await guardarObjetivoAccion({
