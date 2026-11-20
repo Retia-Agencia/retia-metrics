@@ -142,6 +142,7 @@ export default async function FichaDelProgramaPage({ params, searchParams }: Pro
     id: programa.id,
     slug: programa.slug,
     nombre: programa.nombre,
+    comisionPorcentaje: programa.comisionPorcentaje,
     webUrl: null,
     calendlyUrl: programa.calendlyUrl,
     diasSinActividad: programa.diasSinActividad,

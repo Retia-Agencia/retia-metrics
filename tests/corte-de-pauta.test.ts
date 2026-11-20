@@ -19,7 +19,7 @@ import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
-import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
+import { lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -201,6 +201,7 @@ describe("Ver solo, fase 2a", () => {
   it("proyecta solo pendientes del corte usando las tasas del programa, aunque el closer tenga muestra propia", async () => {
     await db.update(programs).set({ muestraMinimaConversion: 1 }).where(eq(programs.id, programId));
     const [cohorte] = await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000" }).returning();
+    await skuVirtualDePrueba(db, cohorte.id);
     const [otroCloser] = await db.insert(users).values({ email: "otro@corte.test", rol: "closer", closerId: "Otro" }).returning();
     for (const vendido of [true, false]) {
       const e = await envio("ad"); const d = await dealDelEnvio(e, vendido);

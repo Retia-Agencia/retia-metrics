@@ -319,15 +319,9 @@ const NIVEL_DE_ALERTA: Record<MotivoAlertaDeal, "urgente" | "alerta"> = {
 
 /** Lo urgente y lo que falta para mover este deal, calculado por los módulos que deciden ambas cosas. */
 export async function alertasDelDeal(db: Db, programId: string, dealId: string): Promise<AlertasDelDeal | null> {
-  const [deal] = await db
-    .select()
-    .from(deals)
-    .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
-  if (!deal) return null;
-
-  const hechos = await leerHechos(db, deal, deal.motivoId, null);
-  const duplicadosFilas = await db
+  const filasDeal = await db
     .select({
+      deal: deals,
       contactoId: leadContactos.id,
       correoPrincipal: leads.emailNormalizado,
       correoSinConfirmar: leadContactos.valor,
@@ -336,16 +330,26 @@ export async function alertasDelDeal(db: Db, programId: string, dealId: string):
       envioCreadoEn: submissions.createdAt,
       fuente: sources.nombre,
     })
-    .from(leadContactos)
-    .innerJoin(leads, eq(leads.id, leadContactos.leadId))
-    .leftJoin(submissions, eq(submissions.id, leadContactos.submissionId))
-    .leftJoin(sources, eq(sources.id, submissions.sourceId))
-    .where(and(
-      eq(leadContactos.leadId, deal.leadId),
-      eq(leadContactos.programId, programId),
+    .from(deals)
+    .leftJoin(leadContactos, and(
+      eq(leadContactos.leadId, deals.leadId),
+      eq(leadContactos.programId, deals.programId),
       eq(leadContactos.tipo, "correo"),
       eq(leadContactos.confirmado, false),
-    ));
+    ))
+    .leftJoin(leads, eq(leads.id, deals.leadId))
+    .leftJoin(submissions, eq(submissions.id, leadContactos.submissionId))
+    .leftJoin(sources, eq(sources.id, submissions.sourceId))
+    .where(and(eq(deals.id, dealId), eq(deals.programId, programId), vigente(deals)));
+  const deal = filasDeal[0]?.deal;
+  if (!deal) return null;
+
+  const hechos = await leerHechos(db, deal, deal.motivoId, null);
+  const duplicadosFilas = filasDeal.filter((fila): fila is typeof fila & {
+    contactoId: string;
+    correoPrincipal: string;
+    correoSinConfirmar: string;
+  } => fila.contactoId != null && fila.correoPrincipal != null && fila.correoSinConfirmar != null);
   const telefonos = duplicadosFilas.length > 0 ? await telefonosEnComun(db, programId, [deal.leadId]) : new Map<string, string>();
   const posiblesDuplicados = duplicadosFilas.map((fila) => ({
     contactoId: fila.contactoId,
