@@ -206,6 +206,10 @@ vi.mock("@/lib/queries/roas-de-pauta", async (importOriginal) => ({
 }));
 // «Ver solo» (420) lee las opciones del selector: aquí sin base, ninguna opción.
 vi.mock("@/lib/pauta/opciones-de-corte", () => ({ opcionesDeCorteDePauta: vi.fn(async () => []) }));
+vi.mock("@/lib/queries/filtros-de-sku", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/queries/filtros-de-sku")>()),
+  opcionesDeFiltrosDeSku: vi.fn(async () => ({ nombres: [], skus: [] })),
+}));
 // La tarjeta de la escalera (320) también lee la base: aquí solo importa con qué acceso se arma.
 const vistaDeEscalera = vi.fn(async () => ({
   corteDias: null, sinCorte: true, hayComparacion: false, porCloser: [], porCalidad: [],
@@ -1646,6 +1650,7 @@ const FICHA_VACIA = {
   envios: [],
   contactos: [],
   deals: [],
+  compras: [],
 };
 
 describe("la ficha del lead /p/[programa]/leads/[id] (ticket 073)", () => {
