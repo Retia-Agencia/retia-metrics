@@ -66,7 +66,7 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
     busqueda,
     vistaRecordada: (await cookies()).get(COOKIE_VISTA_DEL_TABLERO)?.value ?? null,
   });
-  const { alcance: alcanceDeals, activa, vista, filtros, tablero, opciones } = tableroLeido;
+  const { alcance: alcanceDeals, vista, filtros, tablero, opciones } = tableroLeido;
   const origen = origenDeLaPagina(`/p/${programa.slug}/deals`, busqueda);
   const tarjetas = tablero.columnas.flatMap((c) => c.tarjetas);
   const destinosDeCorreccionPorDeal = Object.fromEntries(tarjetas.map((tarjeta) => [
@@ -109,10 +109,11 @@ export default async function DealsDelProgramaPage({ params, searchParams }: Pro
               total={tablero.total}
               buscador={<BuscadorUrl />}
               mostrarDueno={alcanceDeals.tipo === "todos"}
-              cohorteActivaId={activa?.id ?? null}
               antiguedadMinima={filtros.antiguedadMinima ?? null}
               owners={opciones.owners}
-              cohortes={opciones.cohortes}
+              ciclos={opciones.ciclos}
+              skus={opciones.skus}
+              nombresDeSku={opciones.nombresDeSku}
               canales={opciones.canales}
               leadQualities={opciones.leadQualities}
               leadValues={opciones.leadValues}

@@ -1,14 +1,17 @@
-import { and, asc, between, desc, eq, gte, inArray, lt, max, or, sql } from "drizzle-orm";
+import { and, asc, between, desc, eq, gte, inArray, lt, max, notInArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import {
   cohorts,
   calls,
   dealActividades,
   dealEtapaHistorial,
+  dealLineas,
   deals,
   leadContactos,
   leads,
   motivos,
+  productos,
+  skus,
   submissions,
   users,
 } from "@/lib/db/schema";
@@ -172,6 +175,8 @@ export interface FiltrosKanban {
   ownerUserId?: string | null;
   /** Cohorte de origen del deal (`cohort_id`). */
   cohorteId?: string | null;
+  sku?: string;
+  nombreSku?: string;
   /** Canal del envio de origen del deal: `utm_source|utm_medium` (par exacto, ADR 0060). */
   canal?: string | null;
   /** Antiguedad minima en la etapa, en dias. */
@@ -222,6 +227,8 @@ export const camposDeFiltrosKanban = {
   q: z.string().max(300).optional(),
   closer: z.string().max(300).optional(),
   cohorte: z.string().max(300).optional(),
+  sku: z.string().max(300).optional(),
+  nombre_sku: z.string().max(300).optional(),
   canal: z.string().max(300).optional(),
   calidad: z.string().max(300).optional(),
   valor: z.string().max(300).optional(),
@@ -256,16 +263,50 @@ export function canalDeLeadSql(): ReturnType<typeof sql<string | null>> {
 
 type RangosDelTablero = ReturnType<typeof rangosDeFecha>;
 
+/**
+ * El nombre del SKU, en UN solo lugar. Hoy vive en `productos` (vía `skus.producto_id`); el
+ * ticket 459 lo mueve a `skus.nombre` y `skus.slug`, y este par de columnas y el join cambian aquí.
+ */
+const nombreDelSku = { slug: productos.slug, nombre: productos.nombre } as const;
+const joinNombreDelSku = and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId));
+
+function condicionDeNombreSku(db: Db, programId: string, nombreSku: string) {
+  const conNombre = db.select({ dealId: dealLineas.dealId })
+    .from(dealLineas)
+    .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
+    .innerJoin(productos, joinNombreDelSku)
+    .where(and(
+      eq(dealLineas.programId, programId),
+      vigente(dealLineas, dealLineas.anuladaEn),
+      eq(nombreDelSku.slug, nombreSku),
+    ));
+  return inArray(deals.id, conNombre);
+}
+
 /** El WHERE común de la pantalla y de la página operativa. */
 function condicionesBaseDelTablero(
+  db: Db,
   programId: string,
   alcance: AlcanceDeals,
   rangos: RangosDelTablero,
+  filtros: FiltrosDeEntradaKanban,
   previos: { cerrados: string[] | null; conLlamadaEnRango: string[] | null },
   soloDeals?: readonly string[],
 ) {
+  const sku = filtros.sku;
+  const conLineaVigente = sku ? db.select({ dealId: dealLineas.dealId })
+    .from(dealLineas)
+    .where(and(
+      eq(dealLineas.programId, programId),
+      vigente(dealLineas, dealLineas.anuladaEn),
+      sku === "sin" ? undefined : z.guid().safeParse(sku).success ? eq(dealLineas.skuId, sku) : sql`false`,
+    )) : undefined;
   return and(
     eq(deals.programId, programId),
+    conLineaVigente
+      ? (sku === "sin" ? notInArray(deals.id, conLineaVigente) : inArray(deals.id, conLineaVigente))
+      : undefined,
+    filtros.nombreSku ? condicionDeNombreSku(db, programId, filtros.nombreSku) : undefined,
     soloDeals ? (soloDeals.length > 0 ? inArray(deals.id, [...soloDeals]) : sql`false`) : undefined,
     alcance.tipo === "dueno" ? eq(deals.ownerUserId, alcance.userId) : undefined,
     rangos.creado ? between(fechaAnclaDealCreado(), rangos.creado.desde, rangos.creado.hasta) : undefined,
@@ -286,7 +327,6 @@ function condicionesBaseDelTablero(
 export function parsearFiltros(
   busquedaCruda: Record<string, string | string[] | undefined>,
   hoy: string = hoyEnBogota(),
-  cohorteActivaId: string | null = null,
 ): FiltrosKanban {
   // Los enlaces viejos (`owner`, `leadQuality`, `leadValue`) siguen funcionando (ticket 360).
   const busqueda = conNombresVigentes(busquedaCruda);
@@ -300,7 +340,9 @@ export function parsearFiltros(
   return {
     q: texto(busqueda.q),
     ownerUserId: texto(busqueda.closer) ?? null,
-    cohorteId: cohorte === "todas" ? null : cohorte ?? cohorteActivaId,
+    cohorteId: cohorte === "todas" ? null : cohorte ?? null,
+    sku: texto(busqueda.sku),
+    nombreSku: texto(busqueda.nombre_sku),
     canal: texto(busqueda.canal) ?? null,
     ...(texto(busqueda.calidad) !== undefined ? { leadQuality: texto(busqueda.calidad) } : {}),
     ...(texto(busqueda.valor) !== undefined ? { leadValue: texto(busqueda.valor) } : {}),
@@ -367,7 +409,7 @@ export async function tableroKanban(
     .leftJoin(users, eq(users.id, deals.ownerUserId))
     .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, programId)))
     .where(and(
-      condicionesBaseDelTablero(programId, alcance, rangos, { cerrados, conLlamadaEnRango }, opcionesInternas.soloDeals),
+      condicionesBaseDelTablero(db, programId, alcance, rangos, filtros, { cerrados, conLlamadaEnRango }, opcionesInternas.soloDeals),
       vigente(deals),
     ));
   const [filasLeidas, leadsCasan] = await Promise.all([filasPendientes, leadsCasanPendiente]);
@@ -608,7 +650,7 @@ export async function paginaDelTablero(
     : new Date(inicioDeDia(hoy).getTime() - (filtrosVisibles.antiguedadMinima - 1) * MS_POR_DIA);
   const q = filtrosVisibles.q?.trim();
   const condiciones = and(
-    condicionesBaseDelTablero(programId, alcance, rangos, { cerrados, conLlamadaEnRango }),
+    condicionesBaseDelTablero(db, programId, alcance, rangos, filtros, { cerrados, conLlamadaEnRango }),
     filtrosVisibles.ownerUserId ? eq(deals.ownerUserId, filtrosVisibles.ownerUserId) : undefined,
     filtrosVisibles.cohorteId ? eq(deals.cohortId, filtrosVisibles.cohorteId) : undefined,
     filtrosVisibles.canal ? eq(canal, filtrosVisibles.canal) : undefined,
@@ -773,6 +815,9 @@ export interface OpcionesDeTablero {
   owners: OpcionCatalogo[];
   cohortes: OpcionCatalogo[];
   cohortesDestino: OpcionCatalogo[];
+  ciclos: OpcionCatalogo[];
+  skus: OpcionCatalogo[];
+  nombresDeSku: { slug: string; nombre: string }[];
   canales: OpcionCanal[];
   leadQualities: string[];
   leadValues: string[];
@@ -800,6 +845,23 @@ export async function duenosConDealsDelPrograma(db: Db, programId: string): Prom
   })).sort((a, b) => a.nombre.localeCompare(b.nombre));
 }
 
+function opcionesDeSkuYCiclo(db: Db, programId: string, hoy: string) {
+  return db.select({
+    id: skus.id,
+    codigo: skus.codigo,
+    cicloId: cohorts.id,
+    cicloCodigo: cohorts.codigo,
+    estado: estadoDeCohorteSql(hoy),
+    slug: nombreDelSku.slug,
+    nombre: nombreDelSku.nombre,
+  })
+    .from(cohorts)
+    .leftJoin(skus, and(eq(skus.cohortId, cohorts.id), eq(skus.programId, cohorts.programId)))
+    .leftJoin(productos, joinNombreDelSku)
+    .where(eq(cohorts.programId, programId))
+    .orderBy(asc(skus.codigo));
+}
+
 /**
  * Las opciones del programa para poblar los selectores del Kanban: los duenos que
  * tienen algun deal, las cohortes con deals, los canales presentes, y los catalogos
@@ -811,13 +873,12 @@ export async function duenosConDealsDelPrograma(db: Db, programId: string): Prom
  */
 export async function opcionesDeTablero(db: Db, programId: string): Promise<OpcionesDeTablero> {
   const hoy = hoyEnBogota();
-  // Las nueve lecturas son independientes entre si y de solo lectura: van JUNTAS. En serie eran
-  // ~10 viajes a la base (~2,4 s medidos con ~106 ms de RTT); juntas cuestan lo que la mas lenta.
+  // Las lecturas son independientes y van juntas para evitar viajes en serie a la base.
   const [
     ownerFilas,
     cohorteFilas,
     activa,
-    cohortesFuturas,
+    cicloFilas,
     canalFilas,
     etiquetasFilas,
     motivoFilas,
@@ -831,10 +892,8 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
       .innerJoin(cohorts, eq(cohorts.id, deals.cohortId))
       .where(and(eq(deals.programId, programId), vigente(deals))),
     cohorteActiva(programId, db),
-    db
-      .select({ id: cohorts.id, nombre: cohorts.codigo })
-      .from(cohorts)
-      .where(and(eq(cohorts.programId, programId), eq(estadoDeCohorteSql(hoy), "futuro"))),
+    // Los tres filtros y los destinos de arrastre comparten una lectura del catálogo.
+    opcionesDeSkuYCiclo(db, programId, hoy),
     // Canales presentes: pares source+medium del envio de origen de los deals vigentes.
     db
       .selectDistinct({ utmSource: submissions.utmSource, utmMedium: submissions.utmMedium })
@@ -855,11 +914,26 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
     plataformasDelPrograma(db, programId),
   ]);
 
+  const porNombre = (a: { nombre: string }, b: { nombre: string }) => a.nombre.localeCompare(b.nombre);
+  const ciclosConSku = new Map<string, OpcionCatalogo>();
+  const destinosFuturos = new Map<string, OpcionCatalogo>();
+  const nombresPorSlug = new Map<string, { slug: string; nombre: string }>();
+  const opcionesSku: OpcionCatalogo[] = [];
+  for (const fila of cicloFilas) {
+    const ciclo = { id: fila.cicloId, nombre: fila.cicloCodigo };
+    if (fila.estado === "futuro") destinosFuturos.set(ciclo.id, ciclo);
+    if (fila.id == null || fila.codigo == null || fila.slug == null || fila.nombre == null) continue;
+    ciclosConSku.set(ciclo.id, ciclo);
+    opcionesSku.push({ id: fila.id, nombre: fila.codigo });
+    nombresPorSlug.set(fila.slug, { slug: fila.slug, nombre: fila.nombre });
+  }
+  const ciclos = [...ciclosConSku.values()].sort(porNombre);
+  const nombresDeSku = [...nombresPorSlug.values()].sort(porNombre);
   const owners = ownerFilas;
   const cohortes = cohorteFilas.map((c) => ({ id: c.id, nombre: c.codigo }));
   if (activa && !cohortes.some((c) => c.id === activa.id)) cohortes.push({ id: activa.id, nombre: activa.codigo });
   cohortes.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  const cohortesDestino = cohortesFuturas.sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const cohortesDestino = [...destinosFuturos.values()].sort(porNombre);
   const canales = canalFilas
     .filter((c) => c.utmSource && c.utmMedium)
     .map((c) => ({ clave: `${c.utmSource}|${c.utmMedium}`, utmSource: c.utmSource!, utmMedium: c.utmMedium! }))
@@ -876,7 +950,7 @@ export async function opcionesDeTablero(db: Db, programId: string): Promise<Opci
   const inicioDeLaCohorteActiva = activa?.fechaInicioClases ?? null;
   const plataformas = plataformasDelProg.map((p) => ({ id: p.id, nombre: String(p.nombre) }));
 
-  return { owners, cohortes, cohortesDestino, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas };
+  return { owners, cohortes, cohortesDestino, ciclos, skus: opcionesSku, nombresDeSku, canales, leadQualities, leadValues, inicioDeClases, inicioDeLaCohorteActiva, motivos: listaMotivos, plataformas };
 }
 
 /** El rango del filtro de fecha, bajo la llave del campo que filtra; los otros, ausentes. */

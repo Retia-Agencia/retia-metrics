@@ -163,7 +163,7 @@ describe("herramientas MCP de operación", () => {
     expect(tablero.total).toBe(directo.tablero.total);
     expect(salida.estructurado).toMatchObject({ pagina: 1, hay_otra_pagina: false });
     expect(salida.estructurado).not.toHaveProperty("opciones");
-    expect(salida.estructurado.filtros_aplicados).toEqual(expect.arrayContaining([expect.objectContaining({ campo: "cohorte", nombre: "A1", origen: "por_defecto", como_quitarlo: 'pide cohorte: "todas"' })]));
+    expect(salida.estructurado.filtros_aplicados).toEqual([]);
     expect(tablero.columnas.flatMap((c) => c.tarjetas).map((t) => t.id_del_deal)).toEqual([dealId]);
     expect(tableroDeDealsMcp.salida.safeParse(salida.estructurado).success).toBe(true);
     expect(JSON.stringify(salida.estructurado)).not.toMatch(/"(?:dealId|leadId|ownerUserId|leadQuality|leadValue|enlaceLead|enProximaCohorte)"\s*:/);
@@ -214,7 +214,7 @@ describe("herramientas MCP de operación", () => {
     ]));
   });
 
-  it("cohorte todas incluye una cohorte que el valor predeterminado excluye", async () => {
+  it("omitir cohorte equivale a pedir todas y un ciclo explícito sigue filtrando", async () => {
     const [otra] = await db.insert(cohorts).values({
       programId: programaA, codigo: "A0", metaCupos: 10, precioUsd: "797",
       fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-01", fechaInicioClases: "2026-08-02", }).returning();
@@ -223,8 +223,10 @@ describe("herramientas MCP de operación", () => {
     const ctx = contexto(gerenteId, "gerente");
     const predeterminado = await tableroDeDealsMcp.ejecutar(ctx, tableroDeDealsMcp.entrada.parse({ programa: "operacion-a" }));
     const todas = await tableroDeDealsMcp.ejecutar(ctx, tableroDeDealsMcp.entrada.parse({ programa: "operacion-a", cohorte: "todas" }));
-    expect((todas.estructurado.tablero as { total: number }).total)
-      .toBe((predeterminado.estructurado.tablero as { total: number }).total + 1);
+    const ciclo = await tableroDeDealsMcp.ejecutar(ctx, tableroDeDealsMcp.entrada.parse({ programa: "operacion-a", cohorte: otra.id }));
+    expect(predeterminado.estructurado.tablero).toEqual(todas.estructurado.tablero);
+    expect(ciclo.estructurado.tablero).toMatchObject({ total: 1 });
+    expect((predeterminado.estructurado.tablero as { total: number }).total).toBeGreaterThan(1);
   });
 
   it("bandeja conserva el alcance y las secciones de la composición de página", async () => {
