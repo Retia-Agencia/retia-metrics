@@ -396,8 +396,8 @@ describe("tableroKanban", () => {
       { programId, slug: "intensivo", nombre: "Intensivo" },
     ]).returning();
     const [sku1, sku2] = await db.insert(skus).values([
-      { programId, productoId: virtual.id, cohortId, codigo: "virtual_c1", precioListaUsd: "1000" },
-      { programId, productoId: intensivo.id, cohortId: otroCiclo.id, codigo: "intensivo_c2", precioListaUsd: "1000", activo: false },
+      { programId, productoId: virtual.id, slug: "virtual", nombre: "Virtual", cohortId, codigo: "virtual_c1", precioListaUsd: "1000" },
+      { programId, productoId: intensivo.id, slug: "intensivo", nombre: "Intensivo", cohortId: otroCiclo.id, codigo: "intensivo_c2", precioListaUsd: "1000", activo: false },
     ]).returning();
     const primero = await deal({ etapa: "contactado", valorVendido: null });
     const segundo = await deal({ etapa: "contactado", cohort: otroCiclo.id, valorVendido: null });

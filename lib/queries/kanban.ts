@@ -10,11 +10,11 @@ import {
   leadContactos,
   leads,
   motivos,
-  productos,
   skus,
   submissions,
   users,
 } from "@/lib/db/schema";
+import { preciosDeReferenciaDeCiclos } from "@/lib/cohortes/precio-de-referencia";
 import type { Db } from "@/lib/db/tipos";
 import {
   COLUMNAS_DE_VISTA,
@@ -263,18 +263,13 @@ export function canalDeLeadSql(): ReturnType<typeof sql<string | null>> {
 
 type RangosDelTablero = ReturnType<typeof rangosDeFecha>;
 
-/**
- * El nombre del SKU, en UN solo lugar. Hoy vive en `productos` (vía `skus.producto_id`); el
- * ticket 459 lo mueve a `skus.nombre` y `skus.slug`, y este par de columnas y el join cambian aquí.
- */
-const nombreDelSku = { slug: productos.slug, nombre: productos.nombre } as const;
-const joinNombreDelSku = and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId));
+/** El nombre del SKU, en UN solo lugar: `skus.slug` y `skus.nombre` (459, ADR 0139). */
+const nombreDelSku = { slug: skus.slug, nombre: skus.nombre } as const;
 
 function condicionDeNombreSku(db: Db, programId: string, nombreSku: string) {
   const conNombre = db.select({ dealId: dealLineas.dealId })
     .from(dealLineas)
     .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
-    .innerJoin(productos, joinNombreDelSku)
     .where(and(
       eq(dealLineas.programId, programId),
       vigente(dealLineas),
@@ -388,7 +383,6 @@ export async function tableroKanban(
       fechaLimitePago: deals.fechaLimitePago,
       fechaSeguimiento: deals.fechaSeguimiento,
       cohortId: deals.cohortId,
-      cohortePrecioUsd: cohorts.precioUsd,
       valorVendidoUsd: deals.valorVendidoUsd,
       motivoId: deals.motivoId,
       createdAt: deals.createdAt,
@@ -407,7 +401,6 @@ export async function tableroKanban(
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .leftJoin(submissions, eq(submissions.id, deals.submissionOrigenId))
     .leftJoin(users, eq(users.id, deals.ownerUserId))
-    .leftJoin(cohorts, and(eq(cohorts.id, deals.cohortId), eq(cohorts.programId, programId)))
     .where(and(
       condicionesBaseDelTablero(db, programId, alcance, rangos, filtros, { cerrados, conLlamadaEnRango }, opcionesInternas.soloDeals),
       vigente(deals),
@@ -499,6 +492,8 @@ export async function tableroKanban(
     llamadasPorDeal.set(llamada.dealId, suyas);
   }
   const contactos = new Set(actividades.filter(esContactoRegistrado).map((a) => a.dealId));
+  // Sin líneas, el potencial del deal es el precio de referencia de su ciclo (461, una sola definición).
+  const precioDelCiclo = await preciosDeReferenciaDeCiclos(db, filas.flatMap((f) => f.cohortId ? [f.cohortId] : []));
   const valorDeLineasPorDeal = new Map<string, number>();
   for (const linea of saldosPorLinea.values()) {
     valorDeLineasPorDeal.set(linea.dealId, (valorDeLineasPorDeal.get(linea.dealId) ?? 0) + linea.precio);
@@ -554,7 +549,7 @@ export async function tableroKanban(
       creadoEn: f.createdAt,
       ultimaActividadEn: ultimaActividad.get(f.dealId) ?? f.createdAt,
       potencialUsd: redondearUsd(
-        valorDeLineasPorDeal.get(f.dealId) ?? (f.cohortePrecioUsd == null ? 0 : Number(f.cohortePrecioUsd)),
+        valorDeLineasPorDeal.get(f.dealId) ?? ((f.cohortId ? precioDelCiclo.get(f.cohortId) : null) ?? 0),
       ),
       confirmadoUsd: redondearUsd(saldo?.abonado ?? 0),
       llamada: llamadaActiva
@@ -857,7 +852,6 @@ function opcionesDeSkuYCiclo(db: Db, programId: string, hoy: string) {
   })
     .from(cohorts)
     .leftJoin(skus, and(eq(skus.cohortId, cohorts.id), eq(skus.programId, cohorts.programId)))
-    .leftJoin(productos, joinNombreDelSku)
     .where(eq(cohorts.programId, programId))
     .orderBy(asc(skus.codigo));
 }
