@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { num } from "@/lib/format";
 import type {
@@ -23,6 +24,7 @@ import {
   quitarObjetivoAccion,
   type ResultadoAccionObjetivo,
 } from "./acciones-objetivos";
+import { editarVentanaDeCohorteAccion } from "./acciones-programa";
 
 interface MetricaEditable {
   metrica: MetricaObjetivo;
@@ -42,6 +44,12 @@ export interface CohorteConObjetivos {
   cuposSinAsignar: number;
   tieneObjetivos: boolean;
   anteriorId: string | null;
+  metaCupos: number;
+  metaLeadsDia: number | null;
+  fechaInicioClases: string | null;
+  fechaInicioVentas: string | null;
+  fechaCierreVentas: string | null;
+  notas: string | null;
 }
 
 const NOMBRE_AREA: Record<AreaDeObjetivo, string> = {
@@ -91,12 +99,14 @@ function fraseDeUmbrales(
 }
 
 export function ObjetivosDeLaCohorte({
+  slug,
   cohortes,
   objetivos,
   metricas,
   valoresDeHoy,
   puedeCopiar,
 }: {
+  slug: string;
   cohortes: CohorteConObjetivos[];
   objetivos: ObjetivoDeCohorte[];
   metricas: MetricaEditable[];
@@ -107,6 +117,7 @@ export function ObjetivosDeLaCohorte({
   const [cohortId, setCohortId] = useState(predeterminada);
   const [editando, setEditando] = useState<ObjetivoDeCohorte | null>(null);
   const [versionFormulario, setVersionFormulario] = useState(0);
+  const [editandoVentana, setEditandoVentana] = useState(false);
   const [pendiente, startTransition] = useTransition();
   const router = useRouter();
   const cohorte = cohortes.find((fila) => fila.id === cohortId) ?? null;
@@ -168,23 +179,40 @@ export function ObjetivosDeLaCohorte({
             </SelectContent>
           </Select>
         </label>
-        {puedeCopiar && cohorte && !cohorte.tieneObjetivos && cohorte.anteriorId ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={pendiente}
-            onClick={() =>
-              ejecutar(
-                () => copiarObjetivosAccion({ desdeCohorteId: cohorte.anteriorId!, haciaCohorteId: cohorte.id }),
-                "Objetivos copiados",
-              )
-            }
-          >
-            Copiar de la cohorte anterior
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap justify-end gap-2">
+          {puedeCopiar && cohorte ? (
+            <Button type="button" variant="outline" size="sm" disabled={pendiente} onClick={() => setEditandoVentana(true)}>
+              Editar ventana y metas
+            </Button>
+          ) : null}
+          {puedeCopiar && cohorte && !cohorte.tieneObjetivos && cohorte.anteriorId ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={pendiente}
+              onClick={() =>
+                ejecutar(
+                  () => copiarObjetivosAccion({ desdeCohorteId: cohorte.anteriorId!, haciaCohorteId: cohorte.id }),
+                  "Objetivos copiados",
+                )
+              }
+            >
+              Copiar de la cohorte anterior
+            </Button>
+          ) : null}
+        </div>
       </div>
+
+      {cohorte && editandoVentana ? (
+        <Dialog open onOpenChange={(abierto) => setEditandoVentana(abierto)}>
+          <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-2xl overflow-y-auto">
+            <DialogTitle>Editar ventana y metas de {cohorte.codigo}</DialogTitle>
+            <DialogDescription>Las fechas de venta y la meta de cupos son obligatorias.</DialogDescription>
+            <FormularioVentana slug={slug} cohorte={cohorte} alCerrar={() => setEditandoVentana(false)} />
+          </DialogContent>
+        </Dialog>
+      ) : null}
 
       {cohorte ? (
         <p className="text-sm">
@@ -262,6 +290,58 @@ export function ObjetivosDeLaCohorte({
         />
       ) : null}
     </div>
+  );
+}
+
+function FormularioVentana({ slug, cohorte, alCerrar }: {
+  slug: string;
+  cohorte: CohorteConObjetivos;
+  alCerrar: () => void;
+}) {
+  const router = useRouter();
+  const [pendiente, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [inicioVentas, setInicioVentas] = useState(cohorte.fechaInicioVentas ?? "");
+  const [cierreVentas, setCierreVentas] = useState(cohorte.fechaCierreVentas ?? "");
+  const [metaCupos, setMetaCupos] = useState(String(cohorte.metaCupos));
+  const [metaLeadsDia, setMetaLeadsDia] = useState(cohorte.metaLeadsDia === null ? "" : String(cohorte.metaLeadsDia));
+  const [inicioClases, setInicioClases] = useState(cohorte.fechaInicioClases ?? "");
+  const [notas, setNotas] = useState(cohorte.notas ?? "");
+
+  return (
+    <form className="grid gap-3 sm:grid-cols-2" onSubmit={(evento) => {
+      evento.preventDefault();
+      setError(null);
+      startTransition(async () => {
+        const resultado = await editarVentanaDeCohorteAccion(slug, cohorte.id, {
+          fechaInicioVentas: inicioVentas,
+          fechaCierreVentas: cierreVentas,
+          metaCupos,
+          metaLeadsDia: metaLeadsDia === "" ? null : metaLeadsDia,
+          fechaInicioClases: inicioClases === "" ? null : inicioClases,
+          notas,
+        });
+        if (!resultado.ok) {
+          setError(resultado.error);
+          return;
+        }
+        toast.success("Ventana y metas actualizadas");
+        alCerrar();
+        router.refresh();
+      });
+    }}>
+      <label className="space-y-1 text-sm"><span className="text-muted-foreground">Inicio de ventas</span><Input type="date" required value={inicioVentas} onChange={(e) => setInicioVentas(e.target.value)} /></label>
+      <label className="space-y-1 text-sm"><span className="text-muted-foreground">Cierre de ventas</span><Input type="date" required value={cierreVentas} onChange={(e) => setCierreVentas(e.target.value)} /></label>
+      <label className="space-y-1 text-sm"><span className="text-muted-foreground">Meta de cupos</span><Input inputMode="numeric" required value={metaCupos} onChange={(e) => setMetaCupos(e.target.value)} /></label>
+      <label className="space-y-1 text-sm"><span className="text-muted-foreground">Meta de leads/día</span><Input inputMode="numeric" value={metaLeadsDia} onChange={(e) => setMetaLeadsDia(e.target.value)} /></label>
+      <label className="space-y-1 text-sm"><span className="text-muted-foreground">Inicio de clases</span><Input type="date" value={inicioClases} onChange={(e) => setInicioClases(e.target.value)} /></label>
+      <label className="space-y-1 text-sm sm:col-span-2"><span className="text-muted-foreground">Notas</span><textarea className="min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" maxLength={500} value={notas} onChange={(e) => setNotas(e.target.value)} /></label>
+      {error ? <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p> : null}
+      <DialogFooter className="sm:col-span-2">
+        <Button type="button" size="sm" variant="ghost" onClick={alCerrar}>Cancelar</Button>
+        <Button type="submit" size="sm" disabled={pendiente}>{pendiente ? "Guardando…" : "Guardar"}</Button>
+      </DialogFooter>
+    </form>
   );
 }
 

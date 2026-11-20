@@ -45,13 +45,18 @@ export async function skuVirtualDePrueba(db: Db, cohortId: string) {
     eq(skus.productoId, producto.id), eq(skus.cohortId, cohorte.id),
   ));
   if (!sku) {
-    const [programa] = await db.select({ slug: programs.slug }).from(programs)
+    const [programa] = await db.select({
+      slug: programs.slug,
+      comisionPorcentaje: programs.comisionPorcentaje,
+    }).from(programs)
       .where(eq(programs.id, cohorte.programId));
     if (!programa) throw new Error("No existe el programa de la cohorte de prueba.");
     [sku] = await db.insert(skus).values({
-      programId: cohorte.programId, productoId: producto.id, cohortId: cohorte.id,
+      programId: cohorte.programId, nombre: producto.nombre, slug: producto.slug,
+      productoId: producto.id, cohortId: cohorte.id,
       codigo: `${programa.slug.replaceAll("-", "_")}_programa_virtual_${cohorte.codigo.toLowerCase()}`,
       precioListaUsd: cohorte.precioUsd, cuentaComoCupo: true,
+      comisionPorcentaje: programa.comisionPorcentaje,
     }).onConflictDoNothing().returning();
     if (!sku) {
       [sku] = await db.select().from(skus).where(and(

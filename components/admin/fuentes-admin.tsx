@@ -36,7 +36,7 @@ import {
  * era de solo lectura y el mapeo se editaba en `scripts/seed-datos.ts`; ahora se
  * crea, edita, prueba, activa y desactiva desde aca.
  *
- * Deliberadamente usa `<input>`/`<select>` HTML nativos (como `cohortes-admin`), NO
+ * Deliberadamente usa `<input>`/`<select>` HTML nativos (como los formularios de la ficha), NO
  * los Select/Menu de Base UI: Base UI es estricto con la composicion y una parte
  * fuera de su contenedor revienta la pagina al interactuar, y ningun test de este
  * repo ve ese error (AGENTS.md). El HTML nativo no tiene ese riesgo.

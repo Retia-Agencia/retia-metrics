@@ -458,7 +458,9 @@ export const skus = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
-    productoId: uuid("producto_id").notNull(),
+    nombre: text("nombre").notNull(),
+    slug: text("slug").notNull(),
+    productoId: uuid("producto_id"),
     cohortId: uuid("cohort_id").notNull(),
     codigo: text("codigo").notNull(),
     precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
@@ -477,6 +479,7 @@ export const skus = pgTable(
     ),
     uniqueIndex("skus_codigo_idx").on(t.codigo),
     uniqueIndex("skus_producto_cohorte_idx").on(t.productoId, t.cohortId),
+    uniqueIndex("skus_programa_slug_cohorte_idx").on(t.programId, t.slug, t.cohortId),
     unique("skus_id_programa_uq").on(t.id, t.programId),
     foreignKey({
       name: "skus_producto_programa_fk",

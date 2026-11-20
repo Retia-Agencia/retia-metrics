@@ -88,8 +88,7 @@ export interface CheckoutDeLaFicha {
 }
 
 /**
- * Una cohorte como la pinta la ficha. Misma forma que `CohorteVista` de `CohortesAdmin`,
- * que la recibe tal cual (tipado estructural): lib no importa de un componente.
+ * Una cohorte como la pinta la ficha y los componentes de la vista del programa.
  */
 export interface CohorteVista {
   id: string;
@@ -102,6 +101,7 @@ export interface CohorteVista {
   fechaInicioVentas: string | null;
   /** Nula cuando la cohorte futura esta "por definir" (ticket 227). */
   fechaCierreVentas: string | null;
+  notas: string | null;
   estado: Cohorte["estado"];
 }
 
@@ -116,7 +116,7 @@ export interface FichaDelPrograma {
 }
 
 /**
- * Una cohorte en la forma que pinta `CohortesAdmin` y la lista de la ficha. Vive aqui, y no
+ * Una cohorte en la forma que pintan los componentes y la lista de la ficha. Vive aqui, y no
  * en el componente, porque el componente es de cliente y una pagina de servidor no puede
  * llamar a una funcion exportada desde un modulo `"use client"`.
  */
@@ -130,6 +130,7 @@ export function aCohorteVista(c: Cohorte): CohorteVista {
     fechaInicioClases: c.fechaInicioClases ?? null,
     fechaInicioVentas: c.fechaInicioVentas ?? null,
     fechaCierreVentas: c.fechaCierreVentas ?? null,
+    notas: c.notas ?? null,
     estado: c.estado,
   };
 }

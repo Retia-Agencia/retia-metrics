@@ -261,12 +261,12 @@ describe("la página de la ficha", () => {
     await expect(abrirFicha("a")).rejects.toBeInstanceOf(NoEncontrado);
   });
 
-  it("quien administra (gerente y developer) la ve con el editor de cohortes", async () => {
-    const { CohortesAdmin } = await import("@/components/cohortes-admin");
+  it("quien administra (gerente y developer) la ve con el editor de SKUs", async () => {
+    const { SkusDelPrograma } = await import("@/components/skus-del-programa");
     for (const s of [sesion(ids.gerente, "gerente"), sesion(ids.gerente, "developer")]) {
       auth.mockResolvedValue(s);
       const arbol = elementos(await abrirFicha("a", "ventas"));
-      const editor = arbol.find((e) => e.type === CohortesAdmin);
+      const editor = arbol.find((e) => e.type === SkusDelPrograma);
       expect(editor).toBeDefined();
       expect((editor!.props as { programId: string }).programId).toBe(programaA);
     }
@@ -283,17 +283,22 @@ describe("forjar la escritura desde un closer con membresía", () => {
     return (await db.select().from(changeLog)).length;
   }
 
-  it("crear una cohorte se rechaza y la base no se mueve", async () => {
+  it("crear un SKU y su cohorte se rechaza y la base no se mueve", async () => {
     auth.mockResolvedValue(sesion(ids.closerA, "closer"));
-    const { crearCohorteAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-programa");
+    const { crearSkuAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-programa");
     const antes = await bitacora();
-    const r = await crearCohorteAccion("a", {
+    const r = await crearSkuAccion("a", {
       programId: programaA,
-      codigo: "A-C2",
-      metaCupos: 5,
-      precioUsd: "797",
-      fechaInicioClases: "2026-12-01",
-      fechaCierreVentas: "2026-11-25",
+      nombre: "Programa virtual",
+      cohorteN: 2,
+      precioListaUsd: "797",
+      comisionPorcentaje: 10,
+      cuentaComoCupo: true,
+      ventana: {
+        metaCupos: 5,
+        fechaInicioVentas: "2026-12-01",
+        fechaCierreVentas: "2026-12-25",
+      },
     });
     expect(r.ok).toBe(false);
     expect(await db.select().from(cohorts).where(eq(cohorts.programId, programaA))).toHaveLength(1);
