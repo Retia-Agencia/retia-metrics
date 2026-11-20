@@ -1,5 +1,5 @@
 import "./load-env";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db";
 import { abonos, cohorts, dealLineas, deals, leads, productos, programs, skus } from "../lib/db/schema";
 import { incluyendoAnulados } from "../lib/queries/vigente";
@@ -25,7 +25,7 @@ async function main(): Promise<void> {
     .innerJoin(leads, eq(leads.id, deals.leadId))
     .innerJoin(programs, eq(programs.id, abonos.programId))
     .innerJoin(cohorts, eq(cohorts.id, skus.cohortId))
-    .where(and(eq(productos.slug, "sin_clasificar"), incluyendoAnulados(abonos), incluyendoAnulados(deals)))
+    .where(and(inArray(productos.slug, ["sin_clasificar", "1_1_con_rosario"]), incluyendoAnulados(abonos), incluyendoAnulados(deals)))
     .orderBy(asc(programs.slug), asc(abonos.fecha), asc(deals.id), asc(abonos.id));
 
   console.log("programa\tdeal_id\tnombre\tcorreo\tcohorte\tfecha\tmoneda\tmonto\tnota");

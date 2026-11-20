@@ -307,7 +307,7 @@ export interface VentaDelRangoConValor {
   cohortId: string | null;
   ticketUsd: string | null;
   valorVendidoUsd: string | null;
-  /** Base de la comisión: valor vendido sin las líneas `sin_clasificar` (ADR 0137, enmienda del 20-nov). */
+  /** Base de la comisión: valor vendido sin las líneas de SKUs con 0 % de comisión (ADR 0137, enmienda del 20-nov). */
   valorComisionableUsd: string | null;
   comisionPorcentaje: string | null;
 }

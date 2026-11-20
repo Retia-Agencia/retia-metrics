@@ -100,6 +100,22 @@ deal = suma de valor vendido × % congelado de cada línea vendida. Migración: 
 tenía congelado su deal (las cifras de hoy no se mueven); el SKU `sin_clasificar` lleva 0 % hasta que Mani cree el SKU
 real. Por qué: Mani, "se le ajusta a cada SKU"; el programa como defecto evita teclear el % en cada SKU nuevo.
 
+### Enmienda del 20-nov-2026 (Mani): el SKU es el objeto completo; cupo y comisión viven en él
+
+Mani: "los SKUs van a reemplazar todo". El SKU es la fila que se administra con formato estándar: código =
+programa + nombre del SKU + `c<N>`, precio de lista, **% de comisión** y **cuenta como cupo**, los dos marcados en el
+popup de creación. Esto **reemplaza la enmienda del 19-nov que ponía el cupo en el producto**: `productos` queda solo
+como nombre que agrupa SKUs para el filtro Producto, y `skus.cuenta_como_cupo` (apagado por defecto) y
+`skus.comision_porcentaje` nacen en la migración 0153 (no se había aplicado en producción). La base comisionable del
+deal excluye las líneas vendidas de SKUs con 0 % (`lib/queries/comision.ts`), ya no el slug `sin_clasificar`.
+
+Migración: el SKU virtual de cada cohorte cuenta como cupo y toma el % actual del programa. Los adicionales de
+ComunicArte (el 20-nov son 3 abonos de 1.431 USD, el 1:1 con Rosario) nacen en su producto real `1_1_con_rosario`,
+sin cupo y con 0 % ("los 1:1 no tienen comisión por ahora"); `sin_clasificar` queda solo como respaldo de otros
+programas. Lo que sigue en un ticket aparte, después del PR 53: retirar `cohorts` como entidad (el SKU lleva `c<N>`),
+`programs.ticket_usd` y `programs.comision_porcentaje`, y no crear ni activar cohortes. Mientras tanto la C3 de
+Tactical Investor cierra ventas el 15-dic-2026 como puente (cambio por el molde, con rastro).
+
 ### Enmienda del 19-nov-2026 (Mani): la etapa del deal sale de sus líneas
 
 Hasta hoy solo el abono `ticket` movía la etapa (`lib/deals/abonos.ts`, `destinoDespuesDelAbono`) y el adicional

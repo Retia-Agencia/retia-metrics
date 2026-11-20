@@ -231,7 +231,7 @@ export async function crearCohorte(db: Db, actorId: string, input: EntradaCohort
         const productoId = crypto.randomUUID();
         [producto] = await tx.insert(productos).values({
           id: productoId, programId: datos.programId, nombre: "Programa virtual",
-          slug: "programa_virtual", cuentaComoCupo: true,
+          slug: "programa_virtual",
         }).onConflictDoNothing().returning();
         if (!producto) {
           [producto] = await tx.select().from(productos).where(and(
@@ -240,7 +240,7 @@ export async function crearCohorte(db: Db, actorId: string, input: EntradaCohort
         } else {
           await tx.insert(changeLog).values([
             ["programId", datos.programId], ["nombre", "Programa virtual"],
-            ["slug", "programa_virtual"], ["cuentaComoCupo", "true"],
+            ["slug", "programa_virtual"],
           ].map(([campo, valor]) => ({
             tabla: "productos", registroId: productoId, etiqueta: "Programa virtual", campo,
             valorAnterior: null, valorNuevo: valor, origen: "app" as const, userId: actorId,
@@ -249,18 +249,20 @@ export async function crearCohorte(db: Db, actorId: string, input: EntradaCohort
       }
       if (!producto) throw new Error("No se pudo crear el producto Programa virtual.");
 
-      const [programa] = await tx.select({ slug: programs.slug }).from(programs)
-        .where(eq(programs.id, datos.programId));
+      const [programa] = await tx.select({ slug: programs.slug, comisionPorcentaje: programs.comisionPorcentaje })
+        .from(programs).where(eq(programs.id, datos.programId));
       if (!programa) throw new Error("No existe el programa de la cohorte.");
+      // Puente del corte 1: el SKU virtual cuenta como cupo y toma el % del programa como valor inicial.
+      const comisionPorcentaje = programa.comisionPorcentaje;
       const codigo = `${programa.slug.replaceAll("-", "_")}_programa_virtual_${datos.codigo.toLowerCase()}`;
       const skuId = crypto.randomUUID();
       const [sku] = await tx.insert(skus).values({
         id: skuId, programId: datos.programId, productoId: producto.id, cohortId: id,
-        codigo, precioListaUsd: datos.precioUsd,
+        codigo, precioListaUsd: datos.precioUsd, cuentaComoCupo: true, comisionPorcentaje,
       }).returning();
       await tx.insert(changeLog).values(Object.entries({
         programId: datos.programId, productoId: producto.id, cohortId: id,
-        codigo, precioListaUsd: datos.precioUsd,
+        codigo, precioListaUsd: datos.precioUsd, cuentaComoCupo: "true", comisionPorcentaje,
       }).map(([campo, valor]) => ({
         tabla: "skus", registroId: sku.id, etiqueta: codigo, campo,
         valorAnterior: null, valorNuevo: valor, origen: "app" as const, userId: actorId,

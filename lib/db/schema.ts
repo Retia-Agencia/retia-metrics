@@ -443,7 +443,6 @@ export const productos = pgTable(
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     nombre: text("nombre").notNull(),
     slug: text("slug").notNull(),
-    cuentaComoCupo: boolean("cuenta_como_cupo").notNull().default(false),
     activo: boolean("activo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -463,11 +462,19 @@ export const skus = pgTable(
     cohortId: uuid("cohort_id").notNull(),
     codigo: text("codigo").notNull(),
     precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
+    /** El SKU decide si ocupa un cupo de la meta; nace apagado (ADR 0137, enmienda del 20-nov). */
+    cuentaComoCupo: boolean("cuenta_como_cupo").notNull().default(false),
+    /** % de comision del SKU; 0 no paga comision (ADR 0137, enmienda del 20-nov). */
+    comisionPorcentaje: numeric("comision_porcentaje", { precision: 5, scale: 2 }),
     activo: boolean("activo").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
+    check(
+      "skus_comision_porcentaje_rango",
+      sql`${t.comisionPorcentaje} IS NULL OR (${t.comisionPorcentaje} >= 0 AND ${t.comisionPorcentaje} <= 100)`,
+    ),
     uniqueIndex("skus_codigo_idx").on(t.codigo),
     uniqueIndex("skus_producto_cohorte_idx").on(t.productoId, t.cohortId),
     unique("skus_id_programa_uq").on(t.id, t.programId),

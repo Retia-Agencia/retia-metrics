@@ -61,12 +61,12 @@ beforeEach(async () => {
   cohortId = cohortes[0].id;
   cohort2Id = cohortes[1].id;
   const [virtual, unoAUno] = await db.insert(productos).values([
-    { programId, nombre: "Programa virtual", slug: "programa_virtual", cuentaComoCupo: true },
-    { programId, nombre: "Uno a uno", slug: "uno_a_uno", cuentaComoCupo: false },
+    { programId, nombre: "Programa virtual", slug: "programa_virtual" },
+    { programId, nombre: "Uno a uno", slug: "uno_a_uno" },
   ]).returning();
   const filasSku = await db.insert(skus).values([
-    { programId, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100" },
-    { programId, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120" },
+    { programId, productoId: virtual.id, cohortId, codigo: "lineas_376_programa_virtual_c1", precioListaUsd: "100", cuentaComoCupo: true },
+    { programId, productoId: virtual.id, cohortId: cohort2Id, codigo: "lineas_376_programa_virtual_c2", precioListaUsd: "120", cuentaComoCupo: true },
     { programId, productoId: unoAUno.id, cohortId, codigo: "lineas_376_uno_a_uno_c1", precioListaUsd: "50" },
   ]).returning();
   virtual1 = filasSku[0].id;
@@ -110,11 +110,11 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     const [skuCreado] = await db.select({ sku: skus, producto: productos }).from(skus)
       .innerJoin(productos, eq(productos.id, skus.productoId))
       .where(eq(skus.cohortId, cohorte.id));
-    expect(skuCreado.producto).toMatchObject({
-      nombre: "Programa virtual", slug: "programa_virtual", cuentaComoCupo: true,
-    });
+    expect(skuCreado.producto).toMatchObject({ nombre: "Programa virtual", slug: "programa_virtual" });
+    const [programa] = await db.select().from(programs).where(eq(programs.id, programId));
     expect(skuCreado.sku).toMatchObject({
-      codigo: "lineas_376_programa_virtual_puente", precioListaUsd: "275.00",
+      codigo: "lineas_376_programa_virtual_puente", precioListaUsd: "275.00", cuentaComoCupo: true,
+      comisionPorcentaje: programa.comisionPorcentaje,
     });
 
     await editarCohorte(db, closerId, cohorte.id, {
@@ -229,6 +229,26 @@ describe("ticket 376 B1: líneas como fuente de verdad", () => {
     const [fila] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
     expect(fila.comisionUsd).toBe(Math.round(100 * porcentaje) / 100);
     expect(fila.ventasSinComision).toBe(0);
+  });
+
+  it("ADR 0137 enmienda del 20-nov: un SKU con 0 % no paga comisión y uno con % nulo sí", async () => {
+    await db.update(skus).set({ comisionPorcentaje: "0" }).where(eq(skus.id, unoAUno1));
+    const { deal } = await crearDeal();
+    const virtual = await asignar(deal, virtual1, 100);
+    const unoAUno = await asignar(deal, unoAUno1, 50);
+    await pago(deal.id, "40", virtual.id);
+    await pago(deal.id, "50", unoAUno.id);
+    const [venta] = await db.select().from(deals).where(eq(deals.id, deal.id));
+    expect(Number(venta.valorVendidoUsd)).toBe(150);
+    const porcentaje = Number(venta.comisionPorcentaje);
+    expect(porcentaje).toBeGreaterThan(0);
+    const [conCero] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
+    expect(conCero.comisionUsd).toBe(Math.round(100 * porcentaje) / 100);
+
+    // Con % nulo el SKU no se excluye: la base vuelve a ser el valor vendido completo.
+    await db.update(skus).set({ comisionPorcentaje: null }).where(eq(skus.id, unoAUno1));
+    const [conNulo] = await comisionesPorCloser({ programId, rango: { desde: "2026-11-01", hasta: "2026-11-30" } }, db);
+    expect(conNulo.comisionUsd).toBe(Math.round(150 * porcentaje) / 100);
   });
 
   it("ADR 0137 punto 14: un adicional crea línea sin clasificar y mueve el deal", async () => {

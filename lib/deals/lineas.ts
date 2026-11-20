@@ -34,7 +34,7 @@ export async function skuConCupoDeCohorte(tx: Db, programId: string, cohortId: s
     .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
     .where(and(
       eq(skus.programId, programId), eq(skus.cohortId, cohortId), eq(skus.activo, true),
-      eq(productos.activo, true), eq(productos.cuentaComoCupo, true),
+      eq(productos.activo, true), eq(skus.cuentaComoCupo, true),
     ));
   if (filas.length !== 1) {
     throw new ErrorDeApp(
@@ -57,7 +57,7 @@ export async function lineaConCupoVigente(tx: Db, dealId: string) {
     .from(dealLineas)
     .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
     .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
-    .where(and(eq(dealLineas.dealId, dealId), vigente(dealLineas), eq(productos.cuentaComoCupo, true)))
+    .where(and(eq(dealLineas.dealId, dealId), vigente(dealLineas), eq(skus.cuentaComoCupo, true)))
     .orderBy(asc(dealLineas.asignadaEn), asc(dealLineas.id));
   if (filas.length > 1) throw new ErrorDeApp("El deal tiene más de una línea vigente que cuenta como cupo.", 409);
   return filas[0]?.linea ?? null;
@@ -70,14 +70,14 @@ async function escribirDerivados(tx: Db, dealId: string, actor: Actor): Promise<
   const filas = await tx.select({
     linea: dealLineas,
     cohortId: skus.cohortId,
-    cuentaComoCupo: productos.cuentaComoCupo,
+    cuentaComoCupo: skus.cuentaComoCupo,
     abonosVigentes: sql<number>`count(${abonos.id})::int`,
   }).from(dealLineas)
     .innerJoin(skus, and(eq(skus.id, dealLineas.skuId), eq(skus.programId, dealLineas.programId)))
     .innerJoin(productos, and(eq(productos.id, skus.productoId), eq(productos.programId, skus.programId)))
     .leftJoin(abonos, and(eq(abonos.lineaId, dealLineas.id), vigente(abonos)))
     .where(and(eq(dealLineas.dealId, dealId), vigente(dealLineas)))
-    .groupBy(dealLineas.id, skus.cohortId, productos.cuentaComoCupo)
+    .groupBy(dealLineas.id, skus.cohortId, skus.cuentaComoCupo)
     .orderBy(asc(dealLineas.asignadaEn), asc(dealLineas.id));
 
   const abonosVigentesDelDeal = filas.reduce((total, fila) => total + Number(fila.abonosVigentes), 0);
@@ -153,13 +153,12 @@ export async function crearLineaSinClasificar(tx: Db, entrada: {
     const id = crypto.randomUUID();
     [producto] = await tx.insert(productos).values({
       id, programId: entrada.deal.programId, nombre: "Sin clasificar", slug: "sin_clasificar",
-      cuentaComoCupo: false,
     }).onConflictDoNothing().returning();
     if (producto) {
-      await tx.insert(changeLog).values(["programId", "nombre", "slug", "cuentaComoCupo"].map((campo) => ({
+      await tx.insert(changeLog).values(["programId", "nombre", "slug"].map((campo) => ({
         tabla: "productos", registroId: id, etiqueta: "Sin clasificar", campo,
         valorAnterior: null,
-        valorNuevo: campo === "cuentaComoCupo" ? "false" : campo === "programId" ? entrada.deal.programId : campo === "nombre" ? "Sin clasificar" : "sin_clasificar",
+        valorNuevo: campo === "programId" ? entrada.deal.programId : campo === "nombre" ? "Sin clasificar" : "sin_clasificar",
         origen: entrada.origen ?? "app", userId: entrada.actorId,
       })));
     } else {
@@ -182,10 +181,10 @@ export async function crearLineaSinClasificar(tx: Db, entrada: {
     const id = crypto.randomUUID();
     [sku] = await tx.insert(skus).values({
       id, programId: entrada.deal.programId, productoId: producto.id,
-      cohortId: entrada.cohortId, codigo, precioListaUsd: "0",
+      cohortId: entrada.cohortId, codigo, precioListaUsd: "0", cuentaComoCupo: false, comisionPorcentaje: "0",
     }).onConflictDoNothing().returning();
     if (sku) {
-      const valores = { programId: entrada.deal.programId, productoId: producto.id, cohortId: entrada.cohortId, codigo, precioListaUsd: "0" };
+      const valores = { programId: entrada.deal.programId, productoId: producto.id, cohortId: entrada.cohortId, codigo, precioListaUsd: "0", cuentaComoCupo: "false", comisionPorcentaje: "0" };
       await tx.insert(changeLog).values(Object.entries(valores).map(([campo, valor]) => ({
         tabla: "skus", registroId: id, etiqueta: codigo, campo,
         valorAnterior: null, valorNuevo: valor, origen: entrada.origen ?? "app", userId: entrada.actorId,
@@ -229,7 +228,7 @@ export async function cambiarSkuDeLineaConCupo(tx: Db, entrada: {
       .where(and(
         eq(skus.programId, entrada.deal.programId), eq(skus.cohortId, entrada.cohortId),
         eq(skus.productoId, origen.productoId), eq(skus.activo, true),
-        eq(productos.activo, true), eq(productos.cuentaComoCupo, true),
+        eq(productos.activo, true), eq(skus.cuentaComoCupo, true),
       ))
     : [];
   const sku = mismoProducto?.sku ?? await skuConCupoDeCohorte(tx, entrada.deal.programId, entrada.cohortId);
