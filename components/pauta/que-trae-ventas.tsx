@@ -7,6 +7,7 @@ import { TablaDeOrigen, type CanalConEnlaces } from "@/components/dashboard/tabl
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { filasDeQueTraeVentas, VER_POR_ORIGEN, type ContextoDeOrigen, type FilaDeQueTraeVentas, type VerPorOrigen } from "@/lib/pauta/cifras-de-origen";
+import { PASOS_DE_LA_TABLA, type FilaDeLaTablaDelEmbudo } from "@/lib/pauta/cifras-del-embudo-comercial";
 import type { NivelPauta, PasoPauta } from "@/lib/queries/roas-de-pauta";
 
 /**
@@ -31,16 +32,20 @@ function Nombre({ fila, detalle }: { fila: FilaDeQueTraeVentas; detalle: boolean
   </td>;
 }
 
-export function QueTraeVentas({ contexto, verPor, hrefDeVerPor, enlace, canalesDeOrigen, hrefCsv }: {
+export function QueTraeVentas({ contexto, verPor, hrefDeVerPor, enlace, canalesDeOrigen, hrefCsv, hrefEmbudo, tablaDelEmbudo }: {
   contexto: ContextoDeOrigen;
   /** Las citas de pauta del periodo en CSV, con su envío de origen. */
   hrefCsv: string;
+  /** «Ver el embudo de pauta»: la pestaña Comercial con `area=paid`, el periodo y la cohorte activos (458). */
+  hrefEmbudo?: string;
   verPor: VerPorOrigen;
   hrefDeVerPor: Record<VerPorOrigen, string>;
   /** El enlace a la lista de un renglón (para el detalle de una campaña). */
   enlace: (nivel: NivelPauta, id: string | undefined, paso: PasoPauta) => string;
   /** Vista Canal: todos los orígenes con sus enlaces, la tabla de la regla que clasificó cada uno. */
   canalesDeOrigen?: { canales: CanalConEnlaces[]; totalEnvios: number };
+  /** La tabla de etapas por campaña o anuncio (458): el universo de Comercial, no el del ROAS de arriba. */
+  tablaDelEmbudo?: { nivel: "campana" | "anuncio"; filas: FilaDeLaTablaDelEmbudo[] };
 }) {
   const filas = filasDeQueTraeVentas(contexto, verPor);
   const primera = VER_POR_ORIGEN.find((v) => v.id === verPor)!.etiqueta;
@@ -52,6 +57,7 @@ export function QueTraeVentas({ contexto, verPor, hrefDeVerPor, enlace, canalesD
           <p className="text-xs text-muted-foreground">Inversión, agendas y ventas por origen. «Revisar» marca lo que gastó sin traer agendas.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+        {hrefEmbudo ? <Enlace precarga="nunca" href={hrefEmbudo} className="text-sm text-marca-texto underline-offset-2 hover:underline">Ver el embudo de pauta</Enlace> : null}
         <Enlace precarga="nunca" href={hrefCsv} className="text-sm text-marca-texto underline-offset-2 hover:underline">Descargar citas (CSV)</Enlace>
         <Pestanas
           grupos={[{ pestanas: VER_POR_ORIGEN.map((v) => ({ id: v.id, etiqueta: v.etiqueta, descripcion: `Ver por ${v.etiqueta.toLowerCase()}`, href: hrefDeVerPor[v.id] })) }]}
@@ -81,6 +87,40 @@ export function QueTraeVentas({ contexto, verPor, hrefDeVerPor, enlace, canalesD
       {verPor === "canal" && canalesDeOrigen
         ? <TablaDeOrigen canales={canalesDeOrigen.canales} totalEnvios={canalesDeOrigen.totalEnvios} dentroDeOtraTarjeta />
         : null}
+      {tablaDelEmbudo ? <TablaDelEmbudo tabla={tablaDelEmbudo} /> : null}
     </CardContent>
   </Card>;
+}
+
+/**
+ * «¿Dónde se pierden? por campaña / por anuncio» (458): las cuatro etapas del embudo comercial por objeto de Meta,
+ * del MISMO universo que el bloque de Comercial (deals creados en el periodo, seguidos hasta hoy), no el de la tabla
+ * del ROAS de arriba. Cada celda es una Cifra que abre su lista filtrada por el corte.
+ */
+function TablaDelEmbudo({ tabla }: { tabla: { nivel: "campana" | "anuncio"; filas: FilaDeLaTablaDelEmbudo[] } }) {
+  return <section className="space-y-2">
+    <div className="space-y-1">
+      <h3 className="text-sm font-semibold">{tabla.nivel === "campana" ? "¿Dónde se pierden? por campaña" : "¿Dónde se pierden? por anuncio"}</h3>
+      <p className="text-xs text-muted-foreground">Deals creados en el periodo, seguidos hasta hoy: el mismo universo que Comercial, no el de la tabla de arriba.</p>
+    </div>
+    {tabla.filas.length === 0
+      ? <p className="text-sm text-muted-foreground">No hay deals en el periodo.</p>
+      : <div className="overflow-x-auto">
+        <table className="w-full min-w-[40rem] text-sm">
+          <thead><tr className="border-b text-xs text-muted-foreground">
+            <th className="py-2 pr-2 text-left font-medium">{tabla.nivel === "campana" ? "Campaña" : "Anuncio"}</th>
+            {PASOS_DE_LA_TABLA.map((columna) => <th key={columna.paso} className="py-2 pl-2 text-right font-medium">{columna.etiqueta}</th>)}
+          </tr></thead>
+          <tbody className="divide-y [&_tr]:transition-colors [&_tr:hover]:bg-muted/40">
+            {tabla.filas.map((fila) => <tr key={fila.clave}>
+              <td className="break-words py-2 pr-2 align-top">{fila.nombre}</td>
+              {fila.celdas.map((celda, indice) => <td key={PASOS_DE_LA_TABLA[indice]!.paso} className="py-1.5 pl-2 text-right align-top">
+                <Cifra cifra={celda.cantidad} tamano="celda" />
+                {indice > 0 ? <div className="text-xs text-muted-foreground"><Cifra cifra={celda.porcentaje} tamano="celda" /></div> : null}
+              </td>)}
+            </tr>)}
+          </tbody>
+        </table>
+      </div>}
+  </section>;
 }

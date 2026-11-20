@@ -84,6 +84,7 @@ comentarios; esta tabla es la que los resuelve.
 | [0134](./0134-la-cesion-de-deal-por-el-closer-queda-fuera-del-mcp.md) | La cesión de un deal por el closer queda fuera del MCP mientras la app no la tenga; hoy reasigna un administrador (`reasignar_deal`, mismo caso de uso que la app; A-177, ticket 411) |
 | [0135](./0135-el-mcp-lee-datos-con-sql-por-un-usuario-de-base-propio.md) | El MCP lee datos con SQL de solo lectura (`consultar_datos`) por un usuario de base propio (`mcp_lectura_login`) y un alcance que fija el servidor una sola vez por transacción; `SET LOCAL ROLE` se descartó porque `SET ROLE` se autoriza contra el usuario de sesión (ticket 407, fase 1) |
 | [0136](./0136-la-venta-cuenta-por-el-dia-del-primer-pago.md) | La venta cuenta por el día de su primer pago (abono vigente más antiguo, respaldo al día de la etapa): reemplaza fechar la venta por la entrada a Abonado o Completo |
+| [0138](./0138-pauta-abre-las-listas-del-embudo-comercial.md) | Pauta abre las cuatro listas del embudo comercial con la capacidad del tablero y la proyección de persona (sin closer, deal ni monto); el Hub conserva solo esos detalles para quien ve el tablero (enmienda al ADR 0052, ticket 458) |
 
 **Origen y atribución**
 

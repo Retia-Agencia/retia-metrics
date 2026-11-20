@@ -91,7 +91,7 @@ export function cargarEmbudoComercial(
   return dealsDelEmbudoComercial(db, alcance).then((filas) => pasosDelEmbudoComercial(filas, origen, area));
 }
 
-async function dealsDelEmbudoComercial(
+export async function dealsDelEmbudoComercial(
   db: Db,
   alcance: Alcance,
 ): Promise<DealParaEmbudoComercial[]> {
