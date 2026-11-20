@@ -104,7 +104,6 @@ function FilaDeHoy({ fila, puedeRegistrar, onAbrir }: { fila: FilaLlamada; puede
           confirmacion={fila.confirmacion ?? null}
           sinResultado
           puedeCambiar={puedeRegistrar}
-          unToque
         />
       </div>
     </li>

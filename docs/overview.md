@@ -708,8 +708,9 @@ Los términos del negocio son los mismos en la conversación, en el código, en 
   Notificaciones, que es la pestaña de Mi espacio.*
 - **Pulso del día:** el aviso al grupo de ventas de un programa que responde "¿cómo vamos hoy?": agenda del día,
   confirmadas, ventas contra la meta del día y lo que quedó sin resultado.
-- **Confirmación (de una llamada):** lo que el closer dice que respondió el lead antes de la llamada: confirmada, no
-  confirmada o cancelada según el closer. Es un dato de la llamada, no su resultado: "cancelada según el closer" no
-  cancela la llamada.
+- **Confirmación (de una llamada):** lo que el equipo dice que respondió el lead antes de la llamada: confirmada o
+  cancelada según el closer. Sin marca, la llamada no está confirmada: desde el 19-nov no existe "No confirmó" y el CRM
+  ya no escribe `no_confirmada` (las filas históricas se leen como sin confirmar). Es un dato de la llamada, no su
+  resultado: "cancelada según el closer" no cancela la llamada.
 - **Corte (de la confirmación):** la víspera, la cita de quien no confirmó se libera para que entre otra. La cancela el
   CRM en Calendly, solo en los casos seguros y, al principio, con el sí del closer (ADR 0114 punto 10).

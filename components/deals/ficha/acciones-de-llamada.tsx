@@ -95,15 +95,6 @@ export function AccionesDeLlamada({
 
   return (
     <div className="space-y-2">
-      {mostrarConfirmacion ? (
-        <ConfirmacionDeCita
-          callId={callId}
-          confirmacion={confirmacion}
-          sinResultado={resultado === "agendada"}
-          unToque
-          onCambio={onCambio}
-        />
-      ) : null}
       {resultado === "show" || linkGrain ? (
         <CampoGrain
           callId={callId}
@@ -114,10 +105,18 @@ export function AccionesDeLlamada({
           onGuardado={onCambio}
         />
       ) : null}
-      {resultado === "agendada" ? (
+      {resultado === "agendada" || (mostrarConfirmacion && confirmacion === "confirmada") ? (
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("resultado")}>Resultado</Button>
-          <span className="text-xs text-muted-foreground">Realizada, no asistió, cancelada o reagendada.</span>
+          {resultado === "agendada" ? <Button size="xs" variant="outline" disabled={pendiente} onClick={() => setDialogo("resultado")}>Resultado</Button> : null}
+          {mostrarConfirmacion ? (
+            <ConfirmacionDeCita
+              callId={callId}
+              confirmacion={confirmacion}
+              sinResultado={resultado === "agendada"}
+              onCambio={onCambio}
+            />
+          ) : null}
+          {resultado === "agendada" ? <span className="text-xs text-muted-foreground">Realizada, no asistió, cancelada o reagendada.</span> : null}
         </div>
       ) : null}
       {resultado === "show" || resultado === "no_show" || resultado === "cancelada" ? (
@@ -161,7 +160,6 @@ export function ConfirmacionDeCita({
   onCambio,
   mostrarEtiqueta = true,
   puedeCambiar = true,
-  unToque = false,
   detalle,
 }: {
   callId: string;
@@ -170,38 +168,26 @@ export function ConfirmacionDeCita({
   onCambio?: () => void;
   mostrarEtiqueta?: boolean;
   puedeCambiar?: boolean;
-  unToque?: boolean;
   detalle?: string | null;
 }) {
   const { pendiente, correr } = useAccion();
-  const [cambiando, setCambiando] = useState(false);
-  const guardar = (valor: "confirmada" | "no_confirmada" | null) => correr(
+  const guardar = (valor: "confirmada" | null) => correr(
     () => marcarConfirmacionAccion({ callId, confirmacion: valor }),
     {
       exito: valor === null ? "Confirmación quitada." : "Confirmación guardada.",
-      alExito: () => { setCambiando(false); onCambio?.(); },
+      alExito: onCambio,
     },
   );
-  const botones = (
-    <div className="flex flex-wrap gap-2">
-      <Button size="xs" variant="outline" disabled={pendiente} onClick={() => guardar("confirmada")}>Confirmó</Button>
-      <Button size="xs" variant="outline" disabled={pendiente} onClick={() => guardar("no_confirmada")}>No confirmó</Button>
-      {confirmacion != null ? <Button size="xs" variant="ghost" disabled={pendiente} onClick={() => guardar(null)}>Quitar</Button> : null}
-    </div>
-  );
+  const estaConfirmada = confirmacion === "confirmada";
 
-  if (confirmacion == null && (!sinResultado || !puedeCambiar)) return null;
-  if (confirmacion == null) {
-    return <div className="space-y-1.5"><p className="text-xs font-medium">¿El lead confirmó que va?</p>{botones}</div>;
-  }
+  if (!estaConfirmada && (!sinResultado || !puedeCambiar)) return null;
   return (
-    <div className="space-y-1.5">
-      <div className="flex flex-wrap items-center gap-2">
-        {mostrarEtiqueta ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION[confirmacion]}</Badge> : null}
-        {puedeCambiar && !unToque ? <Button size="xs" variant="ghost" disabled={pendiente} onClick={() => setCambiando((valor) => !valor)}>Cambiar</Button> : null}
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      {estaConfirmada && mostrarEtiqueta ? <Badge variant="neutro">{ETIQUETA_DE_CONFIRMACION.confirmada}</Badge> : null}
+      {puedeCambiar && (estaConfirmada
+        ? <Button size="xs" variant="ghost" disabled={pendiente} onClick={() => guardar(null)}>Quitar</Button>
+        : <Button size="xs" variant="outline" disabled={pendiente} onClick={() => guardar("confirmada")}>Confirmó</Button>)}
       {detalle ? <p className="cifra text-xs text-muted-foreground">{detalle}</p> : null}
-      {puedeCambiar && (cambiando || (unToque && sinResultado)) ? botones : null}
     </div>
   );
 }

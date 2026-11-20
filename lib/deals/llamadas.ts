@@ -371,7 +371,7 @@ export type DatosMarcarShow = z.input<typeof esquemaMarcarShow>;
 
 export const esquemaMarcarConfirmacion = z.object({
   callId: z.string().uuid("La llamada no es válida."),
-  confirmacion: z.enum(["confirmada", "no_confirmada"]).nullable(),
+  confirmacion: z.enum(["confirmada"]).nullable(),
 });
 
 export type DatosMarcarConfirmacion = z.input<typeof esquemaMarcarConfirmacion>;
@@ -402,6 +402,33 @@ export async function marcarConfirmacion(
       { confirmacion, confirmacionEn: confirmacion == null ? null : new Date() },
     );
   });
+}
+
+/** Confirma las citas agendadas visibles de un programa; una omisión no frena el resto. */
+export async function marcarConfirmacionMasiva(
+  db: Db,
+  actor: ActorDeLlamada,
+  programId: string,
+  callIds: string[],
+): Promise<{ marcadas: number; omitidas: number }> {
+  let marcadas = 0;
+  let omitidas = 0;
+  for (const callId of callIds) {
+    try {
+      const [call] = await db.select({ programId: calls.programId, resultado: calls.resultado })
+        .from(calls)
+        .where(and(eq(calls.id, callId), vigente(calls)));
+      if (!call || call.programId !== programId || call.resultado !== "agendada") {
+        omitidas += 1;
+        continue;
+      }
+      await marcarConfirmacion(db, actor, { callId, confirmacion: "confirmada" });
+      marcadas += 1;
+    } catch {
+      omitidas += 1;
+    }
+  }
+  return { marcadas, omitidas };
 }
 
 export const RESULTADOS_CORREGIBLES = ["show", "no_show", "cancelada"] as const;
