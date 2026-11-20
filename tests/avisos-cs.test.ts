@@ -1,10 +1,10 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { agregarWhatsappDeUsuario } from "@/lib/catalogo/usuarios";
 import { confirmarEstudiantesNuevos, estudiantesNuevosPendientes } from "@/lib/avisos-cs/pendientes";
 import { moverEtapa } from "@/lib/deals/mover-etapa";
 import {
-  abonos,
   avisosEstudianteNuevo,
   avisosEstudianteNuevoEnvios,
   cohorts,
@@ -51,7 +51,6 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-10-31",
     fechaInicioClases: "2026-11-01",
-    estado: "cerrado",
   }).returning();
   cohorteA = cohorte.id;
   const insertados = await db.insert(users).values([
@@ -104,7 +103,7 @@ async function crearDeal(programId = programaA, conCohorte = true) {
 }
 
 async function abonar(dealId: string, monto: string) {
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     dealId,
     programId: programaA,
     fecha: hoyEnBogota(),
@@ -153,7 +152,7 @@ describe("avisos de estudiante nuevo", () => {
     await db.update(deals).set({ anuladoEn: new Date(), anuladoPor: gerente, motivoAnulacion: "duplicado" }).where(eq(deals.id, anulado));
 
     const sinDestino = await crearDeal(programaB, false);
-    await db.insert(abonos).values({ dealId: sinDestino, programId: programaB, fecha: hoyEnBogota(), monto: "1000", moneda: "USD", comprobanteUrl: "https://example.test/b" });
+    await abonoDePrueba(db, { dealId: sinDestino, programId: programaB, fecha: hoyEnBogota(), monto: "1000", moneda: "USD", comprobanteUrl: "https://example.test/b" });
     await moverEtapa(db, { dealId: sinDestino, a: "ganado_completo", actor: sistema });
     await db.update(miembrosPrograma).set({ activo: false }).where(eq(miembrosPrograma.userId, csB));
 

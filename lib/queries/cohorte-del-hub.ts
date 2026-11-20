@@ -7,6 +7,8 @@ import { diaDeCalendario } from "@/lib/dias-habiles";
 import type { CohorteVieja } from "@/lib/periodo";
 import { ventanasAnterioresDeCohorte } from "@/lib/queries/ventanas-de-cohortes";
 import { ventasDelFiltro } from "@/lib/queries/ventas-de-la-cohorte";
+import { columnasCohorteConEstado, type EstadoCohorte } from "@/lib/cohortes/estado";
+import { hoyEnBogota } from "@/lib/format";
 
 /**
  * El filtro de COHORTE del Hub (377, G-1): independiente del periodo. `?cohorte=<id>` elige una,
@@ -32,23 +34,26 @@ export interface OpcionDeCohorte {
   activa: boolean;
 }
 
+type CohorteConEstado = typeof cohorts.$inferSelect & { estado: EstadoCohorte };
+
 export interface CohorteDelHub {
   /** La elegida, o `null` con "Todas" (y en un programa sin cohortes). */
-  cohorte: typeof cohorts.$inferSelect | null;
+  cohorte: CohorteConEstado | null;
   /** La activa del programa: la que rige sin `?cohorte=`. */
-  activa: typeof cohorts.$inferSelect | null;
+  activa: CohorteConEstado | null;
   /** Todas las del programa, la más reciente primero: las opciones del selector. */
   opciones: OpcionDeCohorte[];
 }
 
 async function cohortesDelHub(db: Db, programId: string) {
-  return unaVezPorSolicitud(db, claveDe("cohortesDelHub", programId), () => db.select().from(cohorts)
+  const hoy = hoyEnBogota();
+  return unaVezPorSolicitud(db, claveDe("cohortesDelHub", programId, hoy), () => db.select(columnasCohorteConEstado(hoy)).from(cohorts)
     .where(eq(cohorts.programId, programId))
     .orderBy(desc(cohorts.fechaInicioClases), desc(cohorts.id)));
 }
 
 /** La cohorte inmediatamente anterior a `cohorte` por inicio de clases (el orden de `ventanasAnterioresDeCohorte`). */
-function anteriorDe(todas: (typeof cohorts.$inferSelect)[], cohorte: typeof cohorts.$inferSelect) {
+function anteriorDe(todas: CohorteConEstado[], cohorte: CohorteConEstado): CohorteConEstado | null {
   if (!cohorte.fechaInicioClases) return null;
   const inicio = cohorte.fechaInicioClases;
   return todas

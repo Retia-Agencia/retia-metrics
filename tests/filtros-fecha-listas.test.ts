@@ -1,7 +1,8 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { abonos, calls, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { filtroDeFechaDeLaUrl } from "@/lib/periodo";
 import { CAMPOS_DE_FECHA_DE_DEAL, parsearFiltros, tableroKanban } from "@/lib/queries/kanban";
@@ -87,7 +88,7 @@ describe("141: la lista de deals y la base de leads, contra la base", () => {
 
     // Última actividad: un deal viejo con un abono reciente, y otro viejo y quieto.
     const activo = await deal("viejoActivo", bogota("2026-08-01"));
-    await db.insert(abonos).values({ programId, dealId: activo.deal.id, fecha: "2026-09-29", monto: "100", moneda: "USD" });
+    await abonoDePrueba(db, { programId, dealId: activo.deal.id, fecha: "2026-09-29", monto: "100", moneda: "USD" });
     await deal("viejoQuieto", bogota("2026-08-01"));
 
     // Cierre: la primera entrada a Abonado, Completo o Cierre Perdido.

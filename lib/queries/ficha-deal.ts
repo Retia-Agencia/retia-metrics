@@ -29,6 +29,7 @@ import { esAtendidaSinGrain } from "@/lib/queries/sin-grain";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { descuentoDeDeal, saldosDeDeals, type DescuentoDeDeal, type SaldoDeDeal } from "@/lib/queries/saldo";
 import { cohorteActiva } from "@/lib/queries/cohortes";
+import { columnasCohorteConEstado, estadoDeCohorteSql } from "@/lib/cohortes/estado";
 import { esEtapaVendida } from "@/lib/deals/etapas";
 import { incluyendoAnulados, vigente } from "@/lib/queries/vigente";
 import { inboxDelPrograma, type MotivoAtencion } from "@/lib/queries/inbox";
@@ -903,12 +904,13 @@ export async function opcionesDeFicha(
   },
 ): Promise<OpcionesDeFicha> {
   const esEstudiante = etapa === "ganado_parcial" || etapa === "ganado_completo";
+  const hoy = hoyEnBogota();
   const cohortesFilas = await db
-    .select()
+    .select(columnasCohorteConEstado(hoy))
     .from(cohorts)
-    .where(and(eq(cohorts.programId, programId), ne(cohorts.estado, "cerrado")));
+    .where(and(eq(cohorts.programId, programId), ne(estadoDeCohorteSql(hoy), "cerrado")));
   const cohortesParaCambiar = etapa !== undefined && !esEstudiante && !esperandoCorte
-    ? yaLeido?.cohortesVendiendoHoy ?? await cohortesVendiendo(db, programId, hoyEnBogota())
+    ? yaLeido?.cohortesVendiendoHoy ?? await cohortesVendiendo(db, programId, hoy)
     : cohortesFilas;
   const motivosFilas = await db.select().from(motivos).where(eq(motivos.activo, true));
   const plataformas = (await plataformasDelPrograma(db, programId)).map((p) => ({ id: p.id, nombre: String(p.nombre) }));

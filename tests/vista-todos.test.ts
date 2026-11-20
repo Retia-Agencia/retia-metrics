@@ -1,7 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  abonos,
   calls,
   cohorts,
   dealEtapaHistorial,
@@ -48,7 +48,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-      estado: "activo",
     });
     const [lead] = await db.insert(leads).values({
       programId: programa.id,
@@ -70,7 +69,7 @@ beforeEach(async () => {
       a: "ganado_parcial",
       fecha: new Date("2026-09-15T15:00:00Z"),
     });
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: deal.id,
       programId: programa.id,
       closerId: `Closer ${indice}`,
@@ -79,7 +78,7 @@ beforeEach(async () => {
       moneda: "USD",
     });
   }
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     dealId: (await db.select({ id: deals.id }).from(deals))[0].id,
     programId: programas[0].id,
     closerId: "Closer 0",

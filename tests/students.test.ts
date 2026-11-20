@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { studentsDelPrograma } from "@/lib/queries/estudiantes";
@@ -68,7 +69,7 @@ async function deal(etapa: EtapaDeal, pagado: string, extra: Partial<typeof deal
     .insert(deals)
     .values({ leadId: l.id, programId: programa, cohortId: c2, etapa, ownerUserId: closer,valorVendidoUsd: "1000.00", ...extra })
     .returning();
-  if (Number(pagado) > 0) await db.insert(abonos).values({ dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
+  if (Number(pagado) > 0) await abonoDePrueba(db, { dealId: d.id, programId: programa, fecha: "2026-10-01", monto: pagado });
   return d;
 }
 

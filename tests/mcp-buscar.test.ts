@@ -33,7 +33,7 @@ beforeEach(async () => {
   await db.insert(miembrosPrograma).values([
     { userId: alejo.id, programId: a.id }, { userId: nicolas.id, programId: a.id }, { userId: closer.id, programId: a.id },
   ]);
-  const [cohorte] = await db.insert(cohorts).values({ programId: a.id, codigo: "C-11", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", estado: "activo" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: a.id, codigo: "C-11", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const [personaA] = await db.insert(leads).values([
     { programId: a.id, emailNormalizado: "alexander-a@retia.test", nombre: "Alexander Ruiz", fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA },
     { programId: b.id, emailNormalizado: "alexander-b@retia.test", nombre: "Alexander Tactical", fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA },

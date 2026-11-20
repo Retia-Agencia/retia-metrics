@@ -5,6 +5,7 @@ import { armarMetasDelMes, leerMetasDelMes, moverMes, nombreDelMes, type Cohorte
 import { listaDeMetrica } from "@/lib/queries/metricas-con-filas";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 const cohorteBase: CohorteParaMetas = {
   id: "c-1",
@@ -116,10 +117,11 @@ describe("146: lectura de metas con ventas reales", () => {
     [programaA, programaB] = programas.map((programa) => programa.id);
     [ownerId] = (await db.insert(users).values({ email: "metas@example.test", rol: "closer", closerId: "Meta" }).returning()).map((usuario) => usuario.id);
     const cohortes = await db.insert(cohorts).values([
-      { programId: programaA, codigo: "C1", metaCupos: 10, precioUsd: "2000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30", estado: "cerrado" },
-      { programId: programaA, codigo: "C2", metaCupos: 10, precioUsd: "2000", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31", estado: "futuro" },
+      { programId: programaA, codigo: "C1", metaCupos: 10, precioUsd: "2000", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
+      { programId: programaA, codigo: "C2", metaCupos: 10, precioUsd: "2000", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31" },
     ]).returning();
     [cohorte1, cohorte2] = cohortes.map((cohorte) => cohorte.id);
+    await Promise.all(cohortes.map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));
 
     let numero = 0;
     async function venta(args: {
@@ -165,6 +167,9 @@ describe("146: lectura de metas con ventas reales", () => {
           fecha: new Date(`${args.completoEn}T11:00:00-05:00`),
         });
       }
+      // ADR 0137 punto 8: toda venta con valor tiene una línea; el nulo conserva
+      // el caso histórico de cobertura incompleta que este test mide.
+      if (deal.valorVendidoUsd != null) await lineaConCupoDePrueba(db, deal.id);
     }
 
     await venta({ cohortId: cohorte1, dia: "2026-10-05", valor: "1200" });

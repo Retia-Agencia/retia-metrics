@@ -1,3 +1,4 @@
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 import {
@@ -10,6 +11,8 @@ import {
   leads,
   plataformasPago,
   programs,
+  productos,
+  skus,
   users,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -18,7 +21,7 @@ import { anularAbono, cambiarPlataformaDeAbono, pegarComprobante, registrarAbono
 import { dealsConAbonoSinComprobante } from "@/lib/deals/abono-sin-comprobante";
 import { ErrorDeApp } from "@/lib/errors";
 import { saldosDeDeals } from "@/lib/queries/saldo";
-import * as moduloSaldo from "@/lib/queries/saldo";
+import * as moduloLineas from "@/lib/deals/lineas";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -65,10 +68,16 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
+  const [producto] = await db.insert(productos).values({
+    programId, nombre: "Programa virtual", slug: "programa_virtual", cuentaComoCupo: true,
+  }).returning();
+  await db.insert(skus).values({
+    programId, productoId: producto.id, cohortId, codigo: `p_programa_virtual_${crypto.randomUUID()}`,
+    precioListaUsd: "1000",
+  });
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();
@@ -204,25 +213,23 @@ describe("registrarAbono: el dinero mueve el deal", () => {
 });
 
 describe("abono adicional", () => {
-  it("acepta un monto mayor al saldo sin congelar valor vendido ni mover la etapa", async () => {
+  it("ADR 0137 punto 14: crea su línea y mueve la etapa como cualquier abono", async () => {
     const dealId = await nuevoDeal("atendido", { valorVendidoUsd: null });
 
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "1500", { concepto: "adicional", nota: "Mentoría" }));
 
-    expect(r).toMatchObject({ etapa: "atendido", movioElDeal: false, saldo: null, cohorteAsignada: null });
-    expect(await etapaDe(dealId)).toBe("atendido");
-    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].valorVendidoUsd).toBeNull();
-    expect(await historial(dealId)).toHaveLength(0);
+    expect(r).toMatchObject({ etapa: "ganado_completo", movioElDeal: true, saldo: 0, cohorteAsignada: null });
+    expect(await etapaDe(dealId)).toBe("ganado_completo");
+    expect((await db.select().from(deals).where(eq(deals.id, dealId)))[0].valorVendidoUsd).toBe("1500.00");
     expect((await abonosDe(dealId))[0]).toMatchObject({ concepto: "adicional", monto: "1500.00" });
   });
 
-  it("acepta un adicional sobre un deal Ganado Pagado Completo", async () => {
+  it("ADR 0137 punto 14: rechaza también el adicional sobre un deal cerrado", async () => {
     const dealId = await nuevoDeal("ganado_completo");
 
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" }));
-
-    expect(r).toMatchObject({ etapa: "ganado_completo", movioElDeal: false, saldo: 1000 });
-    expect(await abonosDe(dealId)).toHaveLength(1);
+    const error = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" })));
+    expect(error.status).toBe(409);
+    expect(await abonosDe(dealId)).toHaveLength(0);
   });
 
   it("rechaza un adicional sobre un deal anulado", async () => {
@@ -251,14 +258,14 @@ describe("abono adicional", () => {
     ]);
   });
 
-  it("anular un adicional no mueve la etapa", async () => {
-    const dealId = await nuevoDeal("ganado_completo");
+  it("ADR 0137 punto 14: anular el único adicional aplica la reversión A1", async () => {
+    const dealId = await nuevoDeal("atendido");
     const adicional = await registrarAbono(db, comoCloser(), abono(dealId, "250", { concepto: "adicional", nota: "Mentoría" }));
 
     const r = await anularAbono(db, comoCloser(), { abonoId: adicional.abonoId, motivo: "No correspondía" });
 
-    expect(r).toEqual({ etapa: "ganado_completo", movioElDeal: false });
-    expect(await etapaDe(dealId)).toBe("ganado_completo");
+    expect(r).toEqual({ etapa: "atendido", movioElDeal: true });
+    expect(await etapaDe(dealId)).toBe("atendido");
   });
 });
 
@@ -276,10 +283,8 @@ describe("registrarAbono: las rejas", () => {
 
   it("un saldo no calculable despues del insert deshace el abono con un error claro", async () => {
     const dealId = await nuevoDeal("ganado_parcial");
-    const antes = await saldosDeDeals(db, [dealId]);
-    vi.spyOn(moduloSaldo, "saldosDeDeals")
-      .mockResolvedValueOnce(antes)
-      .mockResolvedValueOnce(new Map([[dealId, { ...antes.get(dealId)!, saldo: null, sinSaldoPorque: "moneda_distinta" }]]));
+    vi.spyOn(moduloLineas, "estadoDePagoPorLineas")
+      .mockRejectedValueOnce(new ErrorDeApp("No se puede calcular el saldo del deal después del abono: se deshace el registro.", 409));
     const e = await capturar(registrarAbono(db, comoCloser(), abono(dealId, "400")));
     expect(e).toMatchObject({ status: 409, message: "No se puede calcular el saldo del deal después del abono: se deshace el registro." });
     expect(await abonosDe(dealId)).toHaveLength(0);
@@ -554,10 +559,8 @@ describe("anularAbono: la etapa se recalcula", () => {
 
   it("sin historial de pago (deal migrado) vuelve a Compromiso Verbal", async () => {
     const dealId = await nuevoDeal("ganado_parcial");
-    const [a] = await db
-      .insert(abonos)
-      .values({ dealId, programId, fecha: "2026-09-01", monto: "300", closerId: "Maru" })
-      .returning();
+    const [a] = await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-01", monto: "300", closerId: "Maru" })
+      ;
     const r = await anularAbono(db, comoCloser(), { abonoId: a.id, motivo: "No entró la plata" });
     expect(r.etapa).toBe("compromiso_verbal");
   });
@@ -585,7 +588,7 @@ describe("anularAbono: la etapa se recalcula", () => {
 
     expect((await capturar(anularAbono(db, { userId: otroCloser, rol: "closer", operaComoCloser: false }, { abonoId: a.abonoId, motivo: "x" }))).status).toBe(403);
 
-    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" }).where(eq(cohorts.id, cohortId));
     const r = await anularAbono(db, comoCloser(), { abonoId: a.abonoId, motivo: "x" });
     expect(r.etapa).toBe("atendido");
   });
@@ -629,7 +632,7 @@ describe("anularAbono: la etapa se recalcula", () => {
 
   it("anular en un deal perdido escribe la anulación y no mueve la etapa", async () => {
     const dealId = await nuevoDeal("cierre_perdido");
-    const [a] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-01", monto: "100", closerId: "Maru" }).returning();
+    const [a] = await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-01", monto: "100", closerId: "Maru" });
     const r = await anularAbono(db, { userId: gerente, rol: "gerente", operaComoCloser: false }, { abonoId: a.id, motivo: "Devuelto" });
     expect(r).toMatchObject({ etapa: "cierre_perdido", movioElDeal: false });
   });
@@ -638,14 +641,14 @@ describe("anularAbono: la etapa se recalcula", () => {
 describe("comprobante posterior", () => {
   it("completa el comprobante de Ganado completo y deja la nota firmada por el actor", async () => {
     const dealId = await nuevoDeal("ganado_completo");
-    const [registrado] = await db.insert(abonos).values({
+    const [registrado] = await abonoDePrueba(db, {
       dealId,
       programId,
       fecha: "2026-09-28",
       monto: "1000",
       moneda: "USD",
       registradoPorUserId: closer,
-    }).returning();
+    });
 
     await pegarComprobante(db, comoCloser(), {
       abonoId: registrado.id,
@@ -715,8 +718,9 @@ describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal r
   it("un deal que ya tiene cohorte no se toca", async () => {
     const [otra] = await db
       .insert(cohorts)
-      .values({ programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
+      .values({ programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
+    await skuVirtualDePrueba(db, otra.id);
     const dealId = await nuevoDeal("atendido", { cohortId: otra.id });
     const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
     expect(r.cohorteAsignada).toBeNull();
@@ -724,15 +728,24 @@ describe("registrarAbono: la cohorte se asigna sola la primera vez que el deal r
     expect(d.cohortId).toBe(otra.id);
   });
 
-  it("sin cohorte activa el cobro entra igual y el deal sigue sin cohorte (no se bloquea plata real)", async () => {
-    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
-    const dealId = await nuevoDeal("atendido", { cohortId: null });
-    const r = await registrarAbono(db, comoCloser(), abono(dealId, "300"));
-    expect(r).toMatchObject({ etapa: "ganado_parcial", cohorteAsignada: null });
+  it("ADR 0137 puntos 11 y 12: un abono de prueba completa la cohorte y su SKU", async () => {
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" }).where(eq(cohorts.id, cohortId));
+    const dealId = await nuevoDeal("atendido", { cohortId: null, valorVendidoUsd: null });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "300" });
     const [d] = await db.select({ cohortId: deals.cohortId }).from(deals).where(eq(deals.id, dealId));
-    expect(d.cohortId).toBeNull();
+    expect(d.cohortId).not.toBeNull();
   });
 });
 
 import "./142-nuevas-abonos-del-deal";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-15T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});

@@ -50,7 +50,7 @@ import { textoDeBitacora } from "@/lib/db/texto-de-bitacora";
  */
 
 /** Las tablas operativas, por su nombre en la base. Es lo que vigila el guardian. */
-export const TABLAS_CON_RASTRO = ["deals", "calls", "abonos", "deal_actividades", "piezas"] as const;
+export const TABLAS_CON_RASTRO = ["deals", "deal_lineas", "calls", "abonos", "deal_actividades", "piezas"] as const;
 
 export type TablaConRastro = (typeof TABLAS_CON_RASTRO)[number];
 export type OrigenOperativo = "app" | "mcp" | "hotmart";

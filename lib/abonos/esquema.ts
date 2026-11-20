@@ -19,6 +19,7 @@ import { z } from "zod";
  */
 export const esquemaAbono = z.object({
   dealId: z.string().uuid("Deal inválido."),
+  lineaId: z.string().uuid("Línea inválida.").optional(),
   programId: z.string().uuid("Programa inválido."),
   fecha: z
     .string()

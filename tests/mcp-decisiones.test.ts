@@ -1,7 +1,7 @@
+import { abonoDePrueba, lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Session } from "next-auth";
 import {
-  abonos,
   cohorts,
   cuentasPublicitarias,
   deals,
@@ -66,9 +66,9 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
     fechaInicioClases: "2026-12-01",
-    estado: "activo",
   }).returning();
   cohorteA = ca.id;
+  await skuVirtualDePrueba(db, cohorteA);
   await db.insert(cohorts).values({
     programId: programaB,
     codigo: "B1",
@@ -77,7 +77,6 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
     fechaInicioClases: "2026-12-01",
-    estado: "activo",
   });
   const [sa, sb] = await db.insert(sources).values([
     { programId: programaA, nombre: "Formulario A" },
@@ -176,7 +175,7 @@ async function dealVencido(args: {
     anuladoPor: args.anulado ? actorId : null,
     motivoAnulacion: args.anulado ? "Duplicado" : null,
   }).returning();
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     programId,
     dealId: deal.id,
     fecha: "2026-10-20",
@@ -229,7 +228,6 @@ describe("cartera_vencida", () => {
       fechaInicioVentas: "2027-01-01",
       fechaCierreVentas: "2027-01-31",
       fechaInicioClases: "2027-02-01",
-      estado: "cerrado",
     }).returning();
     const saldoMenor = await dealVencido({
       correo: "alfa@retia.test", cohortId: cohorteA, valorVendidoUsd: "700", abono: "300", fechaLimitePago: "2026-10-20",
@@ -297,6 +295,8 @@ describe("pauta_roas", () => {
       etapa: "ganado_completo",
       valorVendidoUsd: "300",
     }).returning();
+    // ADR 0137 punto 8: el contratado de ROAS sale de la línea vendida.
+    await lineaConCupoDePrueba(db, venta.id);
     await db.insert(dealEtapaHistorial).values({ dealId: venta.id, a: "ganado_completo", fecha: new Date("2026-11-03T12:00:00-05:00") });
     const anulado = await envio(programaA, fuenteA, "anulado-roas@retia.test", "ad-a");
     await db.insert(deals).values({
@@ -354,6 +354,7 @@ describe("pauta_roas", () => {
     const e = await envio(programaA, fuenteA, "madurez@retia.test", "ad-a");
     const [venta] = await db.insert(deals).values({ programId: programaA, leadId: e.persona.id, submissionOrigenId: e.fila.id,
       ownerUserId: closerId, etapa: "ganado_completo", valorVendidoUsd: "300" }).returning();
+    await lineaConCupoDePrueba(db, venta.id);
     await db.insert(dealEtapaHistorial).values({ dealId: venta.id, a: "ganado_completo", fecha: new Date("2026-11-03T12:00:00-05:00") });
     const abierto = await envio(programaA, fuenteA, "madurez-abierto@retia.test", "ad-a");
     const [dealAbierto] = await db.insert(deals).values({ programId: programaA, leadId: abierto.persona.id, submissionOrigenId: abierto.fila.id,

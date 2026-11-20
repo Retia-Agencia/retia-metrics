@@ -7,6 +7,7 @@ import type { EtapaDeal } from "@/lib/deals/etapas";
 import { crearBaseDePrueba } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 describe("contratos nuevos de abonos del ticket 142", () => {
 let db: Db;
@@ -21,7 +22,8 @@ beforeEach(async () => {
   ({ db, cerrar } = await crearBaseDePrueba());
   const p = (await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "p", nombre: "P", ticketUsd: "1000" }).returning())[0];
   programId = p.id;
-  cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", estado: "activo", fechaInicioVentas: "2026-09-01" }).returning())[0].id;
+  cohortId = (await db.insert(cohorts).values({ programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", fechaInicioVentas: "2026-09-01" }).returning())[0].id;
+  await skuVirtualDePrueba(db, cohortId);
   closer = (await db.insert(users).values({ email: "closer@retia.co", rol: "closer", closerId: "Closer" }).returning())[0].id;
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma 142" }).returning())[0].id;
 });

@@ -1,7 +1,8 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import type { Session } from "next-auth";
-import { abonos, calls, cohorts, dealEtapaHistorial, deals, gastoPauta, leads, miembrosPrograma, programs, sources, submissions, users, usuariosProgramasAlcance } from "@/lib/db/schema";
+import { calls, cohorts, dealEtapaHistorial, deals, gastoPauta, leads, miembrosPrograma, programs, sources, submissions, users, usuariosProgramasAlcance } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { capacidadesMcp } from "@/lib/mcp/herramientas/capacidades";
 import { consultarHechosMcp } from "@/lib/mcp/herramientas/hechos";
@@ -37,7 +38,7 @@ beforeEach(async () => {
   closerId = closer.id;
   await db.insert(miembrosPrograma).values({ userId: closerId, programId: programa.id });
   await db.insert(usuariosProgramasAlcance).values({ userId: paidId, programId: programa.id });
-  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "H-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", estado: "activo" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: programa.id, codigo: "H-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
   const [lead] = await db.insert(leads).values({ programId: programa.id, emailNormalizado: "hecho@retia.test", nombre: "Hecho", fechaPrimeraAplicacion: new Date("2026-11-01T12:00:00-05:00") }).returning();
   leadId = lead.id;
@@ -45,7 +46,7 @@ beforeEach(async () => {
   const [deal] = await db.insert(deals).values({ programId: programa.id, leadId, submissionOrigenId: envio.id, cohortId: cohorte.id, ownerUserId: closer.id, etapa: "ganado_parcial", valorVendidoUsd: "797" }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, de: "agendado", a: "ganado_parcial", userId: closer.id, fecha: new Date("2026-11-06T12:00:00-05:00") });
   await db.insert(calls).values({ programId: programa.id, dealId: deal.id, closerUserId: closer.id, resultado: "show", fechaAgenda: new Date("2026-11-06T09:00:00-05:00"), fechaLlamada: new Date("2026-11-06T09:00:00-05:00"), origen: "app" });
-  await db.insert(abonos).values([
+  await abonoDePrueba(db, [
     { programId: programa.id, dealId: deal.id, fecha: "2026-11-07", monto: "100", moneda: "USD", registradoPorUserId: closer.id },
     { programId: programa.id, dealId: deal.id, fecha: "2026-11-07", monto: "200000", moneda: "COP", registradoPorUserId: closer.id },
     { programId: programa.id, dealId: deal.id, fecha: "2026-11-07", monto: "50", moneda: "USD", registradoPorUserId: closer.id, anuladoEn: new Date(), anuladoPor: gerente.id, motivoAnulacion: "prueba" },

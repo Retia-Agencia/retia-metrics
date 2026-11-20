@@ -1,6 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import {
-  abonos,
   calls,
   dealEtapaHistorial,
   deals,
@@ -121,7 +121,7 @@ beforeEach(async () => {
     { dealId: dealAjeno.id, programId: otroProgramId, fechaAgenda: new Date("2026-09-17T10:00:00-05:00"), resultado: "show", createdAt: new Date("2026-09-10T10:00:00-05:00") },
   ]);
 
-  await db.insert(abonos).values([
+  await abonoDePrueba(db, [
     { dealId: filasDeal[0].id, programId, fecha: "2026-09-20", monto: "100", moneda: "USD" },
     { dealId: filasDeal[1].id, programId, fecha: "2026-09-21", monto: "200", moneda: "USD" },
     { dealId: filasDeal[0].id, programId, fecha: "2026-09-22", monto: "999", moneda: "USD", anuladoEn: new Date(), anuladoPor: ownerId, motivoAnulacion: "error" },

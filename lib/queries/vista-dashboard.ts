@@ -276,7 +276,7 @@ export async function armarVistaDelDashboard(
   let totalComision = 0;
   let ventasSinComision = 0;
   const descuentos = ventasConValor.flatMap((venta) => {
-    const comision = comisionDeDeal(venta.valorVendidoUsd, venta.comisionPorcentaje);
+    const comision = comisionDeDeal(venta.valorComisionableUsd, venta.comisionPorcentaje);
     if (comision === null) ventasSinComision += 1;
     else totalComision += comision;
     const descuento = descuentoDeDeal(venta.ticketUsd, venta.valorVendidoUsd);

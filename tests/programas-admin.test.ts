@@ -12,9 +12,7 @@ import {
   reactivarPrograma,
 } from "@/lib/catalogo/programas";
 import {
-  activarCohorte,
   crearCohorte,
-  desactivarCohorte,
   editarCohorte,
   esquemaCohorte,
   listarCohortes,
@@ -406,7 +404,6 @@ describe("desactivar y reactivar programa", () => {
       fechaInicioClases: "2026-08-11",
       fechaInicioVentas: "2026-08-11",
       fechaCierreVentas: "2026-08-11",
-      estado: "activo",
     });
 
     await desactivarPrograma(db, gerenteId, creado.id);
@@ -457,7 +454,6 @@ const cohorteBase = {
   fechaInicioClases: "2026-08-11",
   fechaInicioVentas: "2026-08-11",
   fechaCierreVentas: "2026-08-11",
-  estado: "futuro" as const,
 };
 
 /** `cohorteBase` sin `fechaInicioVentas`, para probar la regla del ADR 0022. */
@@ -482,32 +478,19 @@ describe("esquema de cohorte", () => {
     ).toBe(false);
   });
 
-  it("rechaza un estado fuera del enum", () => {
-    expect(
-      esquemaCohorte.safeParse({
-        ...cohorteBase,
-        programId: "00000000-0000-0000-0000-000000000000",
-        estado: "inventado",
-      }).success,
-    ).toBe(false);
-  });
-
-  // ADR 0022: la ventana de venta es dato por cohorte. El inicio es opcional para
-  // cohortes cerradas o futuras, pero OBLIGATORIO cuando el estado es activo.
-  it("una cohorte activa SIN inicio de ventas no valida (ADR 0022)", () => {
+  // ADR 0137 punto 5: sin inicio de ventas la cohorte queda futura por definición.
+  it("una cohorte por definir SIN inicio de ventas valida", () => {
     const res = esquemaCohorte.safeParse({
       ...sinInicioVentas(),
       programId: "00000000-0000-0000-0000-000000000000",
-      estado: "activo",
     });
-    expect(res.success).toBe(false);
+    expect(res.success).toBe(true);
   });
 
-  it("una cohorte activa CON inicio de ventas valida y normaliza la fecha", () => {
+  it("una cohorte con inicio de ventas valida y normaliza la fecha", () => {
     const res = esquemaCohorte.safeParse({
       ...cohorteBase,
       programId: "00000000-0000-0000-0000-000000000000",
-      estado: "activo",
       fechaInicioVentas: "2026-08-14",
       fechaCierreVentas: "2026-09-21",
     });
@@ -515,11 +498,10 @@ describe("esquema de cohorte", () => {
     if (res.success) expect(res.data.fechaInicioVentas).toBe("2026-08-14");
   });
 
-  it("una cohorte cerrada o futura puede quedar sin inicio de ventas (las dos C1)", () => {
+  it("una cohorte por definir puede quedar sin inicio de ventas", () => {
     const cerrada = esquemaCohorte.safeParse({
       ...sinInicioVentas(),
       programId: "00000000-0000-0000-0000-000000000000",
-      estado: "cerrado",
     });
     expect(cerrada.success).toBe(true);
     if (cerrada.success) expect(cerrada.data.fechaInicioVentas).toBeNull();
@@ -529,7 +511,6 @@ describe("esquema de cohorte", () => {
     const res = esquemaCohorte.safeParse({
       ...cohorteBase,
       programId: "00000000-0000-0000-0000-000000000000",
-      estado: "activo",
       fechaInicioVentas: "2026-09-21",
       fechaCierreVentas: "2026-08-14",
     });
@@ -561,76 +542,19 @@ describe("cohortes de un programa", () => {
     expect(log[0].tabla).toBe("cohorts");
   });
 
-  it("activar una SEGUNDA cohorte en el mismo programa falla con un 400 claro", async () => {
-    // La primera nace activa.
-    await crearCohorte(db, gerenteId, { ...cohorteBase, codigo: "C1", estado: "activo", programId });
-    // La segunda se crea futura y luego se intenta activar: choca con el indice parcial.
-    const c2 = await crearCohorte(db, gerenteId, {
-      ...cohorteBase,
-      codigo: "C2",
-      fechaInicioVentas: "2026-08-12",
-      fechaCierreVentas: "2026-08-12",
-      estado: "futuro",
-      programId,
-    });
-    const error = await activarCohorte(db, gerenteId, c2.id).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-    expect((error as ErrorDeApp).message.toLowerCase()).toContain("activa");
-  });
-
-  it("crear directamente una SEGUNDA cohorte activa tambien falla con 400", async () => {
-    await crearCohorte(db, gerenteId, { ...cohorteBase, codigo: "C1", estado: "activo", programId });
-    const error = await crearCohorte(db, gerenteId, {
-      ...cohorteBase,
-      codigo: "C2",
-      fechaInicioVentas: "2026-08-12",
-      fechaCierreVentas: "2026-08-12",
-      estado: "activo",
-      programId,
-    }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-    expect((error as ErrorDeApp).message.toLowerCase()).toContain("activa");
-  });
-
   it("dos programas distintos pueden tener cada uno su cohorte activa", async () => {
     const otro = await crearPrograma(db, gerenteId, {
       ...programaValido,
       nombre: "Beta",
       slug: "beta",
     });
-    await crearCohorte(db, gerenteId, { ...cohorteBase, codigo: "C1", estado: "activo", programId });
+    await crearCohorte(db, gerenteId, { ...cohorteBase, codigo: "C1", programId });
     const okOtro = await crearCohorte(db, gerenteId, {
       ...cohorteBase,
       codigo: "C1",
-      estado: "activo",
       programId: otro.id,
     });
-    expect(okOtro.estado).toBe("activo");
-  });
-
-  it("desactivar una cohorte la pasa a estado 'cerrado' y libera el cupo de activa", async () => {
-    const c1 = await crearCohorte(db, gerenteId, {
-      ...cohorteBase,
-      codigo: "C1",
-      estado: "activo",
-      programId,
-    });
-    await desactivarCohorte(db, gerenteId, c1.id);
-    const [enBase] = await db.select().from(cohorts).where(eq(cohorts.id, c1.id));
-    expect(enBase.estado).toBe("cerrado");
-    // Ahora otra puede activarse en el mismo programa.
-    const c2 = await crearCohorte(db, gerenteId, {
-      ...cohorteBase,
-      codigo: "C2",
-      fechaInicioVentas: "2026-08-12",
-      fechaCierreVentas: "2026-08-12",
-      estado: "futuro",
-      programId,
-    });
-    const activada = await activarCohorte(db, gerenteId, c2.id);
-    expect(activada.estado).toBe("activo");
+    expect(okOtro.programId).toBe(otro.id);
   });
 
   it("editar una cohorte registra los campos que cambian", async () => {
@@ -641,36 +565,11 @@ describe("cohortes de un programa", () => {
   });
 
   it("un id que no es uuid es un 400", async () => {
-    const error = await activarCohorte(db, gerenteId, "no-uuid").catch((e) => e);
+    const error = await editarCohorte(db, gerenteId, "no-uuid", { ...cohorteBase, programId }).catch((e) => e);
     expect(error).toBeInstanceOf(ErrorDeApp);
     expect((error as ErrorDeApp).status).toBe(400);
   });
 
-  // ── Ventana de venta (ADR 0022) ────────────────────────────────
-  it("crear una cohorte activa sin inicio de ventas falla con 400 (zod)", async () => {
-    const error = await crearCohorte(db, gerenteId, {
-      ...sinInicioVentas(),
-      estado: "activo",
-      programId,
-    }).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-  });
-
-  it("si la validacion se salta, el CHECK de la base rechaza y sale como 400 (23514)", async () => {
-    // Se crea una cohorte futura sin inicio de ventas: pasa zod (opcional para
-    // futura). Activarla no re-valida el esquema: llega directo al UPDATE y choca
-    // con el CHECK cohorts_activa_con_inicio_ventas, que debe traducirse a 400.
-    const futura = await crearCohorte(db, gerenteId, {
-      ...sinInicioVentas(),
-      codigo: "CF",
-      estado: "futuro",
-      programId,
-    });
-    const error = await activarCohorte(db, gerenteId, futura.id).catch((e) => e);
-    expect(error).toBeInstanceOf(ErrorDeApp);
-    expect((error as ErrorDeApp).status).toBe(400);
-  });
 });
 
 describe("activar un programa (ADR 0057, enmendado por el 0068 y el 0095)", () => {

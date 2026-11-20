@@ -1,17 +1,26 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { anotar } from "@/lib/deals/anotar";
 import { asignarProximaCohorte } from "@/lib/deals/asignar-proxima-cohorte";
-import { activarCohorte, desactivarCohorte } from "@/lib/catalogo/cohortes";
-import { changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
-import { ventasPorCohorte } from "@/lib/queries/dashboard";
 import { dealsDeProximaCohorte } from "@/lib/queries/proxima-cohorte";
 import { tableroKanban } from "@/lib/queries/kanban";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-15T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -41,21 +50,19 @@ beforeEach(async () => {
   programId = programa.id;
   const filas = await db.insert(cohorts).values([
     {
-      programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", estado: "activo",
-      fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
+      programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
     },
     {
-      programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", estado: "futuro",
-      fechaInicioClases: "2027-02-01", fechaInicioVentas: "2027-01-01", fechaCierreVentas: "2027-01-31",
+      programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-02-01", fechaInicioVentas: "2027-01-01", fechaCierreVentas: "2027-01-31",
     },
     {
-      programId, codigo: "C0", metaCupos: 10, precioUsd: "1000", estado: "cerrado",
-      fechaInicioClases: "2026-08-01", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-07-31",
+      programId, codigo: "C0", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-08-01", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-07-31",
     },
   ]).returning();
   activaId = filas[0].id;
   futuraId = filas[1].id;
   cerradaId = filas[2].id;
+  await Promise.all(filas.map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));
   closerId = (await db.insert(users).values({ email: "closer@retia.co", nombre: "Closer", rol: "closer" }).returning())[0].id;
   gerenteId = (await db.insert(users).values({ email: "gerente@retia.co", nombre: "Gerente", rol: "gerente" }).returning())[0].id;
 });
@@ -114,7 +121,7 @@ describe("Próxima cohorte", () => {
     await esperarTexto(anulado.id);
     await db.update(deals).set({ anuladoEn: new Date(), anuladoPor: gerenteId, motivoAnulacion: "duplicado" }).where(eq(deals.id, anulado.id));
     const [otroPrograma] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "otro-proxima", nombre: "Otro", ticketUsd: "1000" }).returning();
-    const [otraCohorte] = await db.insert(cohorts).values({ programId: otroPrograma.id, codigo: "O1", metaCupos: 1, precioUsd: "1000", estado: "futuro" }).returning();
+    const [otraCohorte] = await db.insert(cohorts).values({ programId: otroPrograma.id, codigo: "O1", metaCupos: 1, precioUsd: "1000" }).returning();
     const ajeno = await nuevoDeal(otraCohorte.id, closerId, otroPrograma.id);
     await db.update(deals).set({ pendiente: "proxima_cohorte", cohorteDestinoTexto: "otra" }).where(eq(deals.id, ajeno.id));
 
@@ -147,8 +154,7 @@ describe("Próxima cohorte", () => {
       ...PROGRAMA_DE_PRUEBA, slug: "asignar-ajeno", nombre: "Asignar ajeno", ticketUsd: "1000",
     }).returning();
     const [cohorteAjena] = await db.insert(cohorts).values({
-      programId: programaAjeno.id, codigo: "A1", metaCupos: 1, precioUsd: "1000", estado: "futuro",
-    }).returning();
+      programId: programaAjeno.id, codigo: "A1", metaCupos: 1, precioUsd: "1000", }).returning();
     const extranjero = await nuevoDeal(cohorteAjena.id, closerId, programaAjeno.id);
     await db.update(deals).set({ pendiente: "proxima_cohorte", cohorteDestinoTexto: "otra" }).where(eq(deals.id, extranjero.id));
     await expect(asignarProximaCohorte(db, { dealIds: [valido.id, extranjero.id], destinoId: futuraId, actor: gerente() }))
@@ -175,41 +181,6 @@ describe("Próxima cohorte", () => {
     expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0]).toMatchObject({
       cohortId: activaId, etapa: "contactado", pendiente: null, cohorteDestinoId: null, cohorteDestinoTexto: null,
     });
-  });
-
-  it("activar muda solo el destino coincidente, con etapa, nota y change_log, y cambia las métricas", async () => {
-    const mueve = await nuevoDeal(activaId);
-    await esperarTexto(mueve.id);
-    await db.update(deals).set({
-      etapa: "ganado_parcial", valorVendidoUsd: "1000", cohorteDestinoId: futuraId,
-    }).where(eq(deals.id, mueve.id));
-    await db.insert(dealEtapaHistorial).values({ dealId: mueve.id, de: "contactado", a: "ganado_parcial" });
-    const [otraFutura] = await db.insert(cohorts).values({ programId, codigo: "C3", metaCupos: 2, precioUsd: "1000", estado: "futuro" }).returning();
-    const quieto = await nuevoDeal();
-    await esperarTexto(quieto.id);
-    await db.update(deals).set({ cohorteDestinoId: otraFutura.id }).where(eq(deals.id, quieto.id));
-    const alcance = { programId, rango: { desde: "2020-01-01", hasta: "2099-12-31" } };
-    expect((await ventasPorCohorte(alcance, db)).find((f) => f.cohorteId === activaId)?.ventas).toBe(1);
-
-    await desactivarCohorte(db, gerenteId, activaId);
-    await activarCohorte(db, gerenteId, futuraId);
-
-    expect((await db.select().from(deals).where(eq(deals.id, mueve.id)))[0]).toMatchObject({
-      cohortId: futuraId, etapa: "ganado_parcial", pendiente: null, cohorteDestinoId: null, cohorteDestinoTexto: null,
-    });
-    expect((await db.select().from(deals).where(eq(deals.id, quieto.id)))[0]).toMatchObject({
-      cohortId: activaId, pendiente: "proxima_cohorte", cohorteDestinoId: otraFutura.id,
-    });
-    expect(await db.select().from(dealActividades).where(eq(dealActividades.dealId, mueve.id))).toEqual(expect.arrayContaining([
-      expect.objectContaining({ nota: "Próxima cohorte: C1 → C2. Estaba en Ganado Pago Parcial." }),
-    ]));
-    expect(await db.select().from(changeLog).where(eq(changeLog.registroId, mueve.id))).toEqual(expect.arrayContaining([
-      expect.objectContaining({ campo: "cohortId", valorAnterior: activaId, valorNuevo: futuraId }),
-      expect.objectContaining({ campo: "pendiente", valorAnterior: "proxima_cohorte", valorNuevo: null }),
-    ]));
-    const despues = await ventasPorCohorte(alcance, db);
-    expect(despues.find((f) => f.cohorteId === activaId)?.ventas ?? 0).toBe(0);
-    expect(despues.find((f) => f.cohorteId === futuraId)?.ventas).toBe(1);
   });
 
   it("el Kanban excluye los etiquetados y devuelve el conteo aun con otra cohorte filtrada", async () => {

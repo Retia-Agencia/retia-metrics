@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { claveHistorica } from "@/lib/closers/identidad";
 import { dineroDelRango, dineroPorCloserDelRango } from "@/lib/queries/dashboard";
@@ -42,7 +43,6 @@ beforeEach(async () => {
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: rango.desde,
     fechaCierreVentas: "2026-11-30",
-    estado: "activo",
   }).returning();
   cohortId = cohorte.id;
   const [ana, beto, cara] = await db.insert(users).values([
@@ -105,7 +105,7 @@ beforeEach(async () => {
     { programId, dealId: anulado.id, closerUserId: ana.id, fechaAgenda: new Date("2026-11-11T10:00:00-05:00"), resultado: "show" },
     { programId: ajeno.id, dealId: ajenoDeal.id, closerUserId: ana.id, fechaAgenda: new Date("2026-11-12T10:00:00-05:00"), resultado: "show" },
   ]);
-  await db.insert(abonos).values([
+  await abonoDePrueba(db, [
     { programId, dealId: anaVenta.id, registradoPorUserId: ana.id, fecha: "2026-11-10", monto: "300", moneda: "USD" },
     { programId, dealId: betoVenta.id, registradoPorUserId: beto.id, fecha: "2026-11-10", monto: "200", moneda: "USD" },
     { programId, dealId: betoVenta.id, registradoPorUserId: beto.id, fecha: "2026-11-11", monto: "50000", moneda: "COP" },

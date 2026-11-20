@@ -218,7 +218,7 @@ export async function leerVamosALlegar(programId: string, hoy: string, db: Db = 
   const mesClave = hoy.slice(0, 7);
   const [{ cohortes, ventas }, activa, alertas, proyeccion] = await Promise.all([
     leerCohortesYVentas(db, programId, { desde: `${mesClave}-01`, hasta: hoy }),
-    cohorteActiva(programId, db),
+    cohorteActiva(programId, db, hoy),
     alertasDelPrograma(programId, hoy, db),
     leerProyeccion({ programId, hoy }, db),
   ]);

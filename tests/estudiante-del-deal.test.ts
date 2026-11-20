@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, dealActividades, deals, leads, miembrosPrograma, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,6 +9,17 @@ import { estudiantesDe } from "@/lib/queries/estudiantes";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-08-20T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Ticket 063: el onboarding es un timestamp que marca el closer dueño o quien administra, y
@@ -39,19 +50,20 @@ beforeEach(async () => {
   const base = { programId, metaCupos: 10, precioUsd: "1000" };
   const [a] = await db
     .insert(cohorts)
-    .values({ ...base, codigo: "Agosto", fechaInicioClases: "2026-08-15", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-10", estado: "cerrado" })
+    .values({ ...base, codigo: "Agosto", fechaInicioClases: "2026-08-15", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-08-10" })
     .returning();
   agosto = a.id;
   const [s] = await db
     .insert(cohorts)
-    .values({ ...base, codigo: "Septiembre", fechaInicioClases: "2026-09-15", fechaInicioVentas: "2026-08-11", fechaCierreVentas: "2026-09-10", estado: "activo" })
+    .values({ ...base, codigo: "Septiembre", fechaInicioClases: "2026-09-15", fechaInicioVentas: "2026-08-11", fechaCierreVentas: "2026-09-10" })
     .returning();
   septiembre = s.id;
   const [o] = await db
     .insert(cohorts)
-    .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-11", fechaCierreVentas: "2999-12-31", estado: "futuro" })
+    .values({ ...base, codigo: "Octubre", fechaInicioClases: "2026-10-15", fechaInicioVentas: "2026-09-11", fechaCierreVentas: "2999-12-31" })
     .returning();
   octubre = o.id;
+  await Promise.all([agosto, septiembre, octubre].map((id) => skuVirtualDePrueba(db, id)));
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();
@@ -224,7 +236,7 @@ describe("cambiarCohorte", () => {
     const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [ajena] = await db
       .insert(cohorts)
-      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
+      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
     expect((await capturar(cambiarCohorte(db, comoCloser(), { dealId, cohortId: ajena.id, motivo: "x" }))).status).toBe(422);
     expect((await fila(dealId)).cohortId).toBe(septiembre);
@@ -232,6 +244,8 @@ describe("cambiarCohorte", () => {
   });
 
   it("cualquier deal vigente del actor cambia a una cohorte vendiendo; otro closer no", async () => {
+    // Hoy dentro de la ventana de Octubre, que es la que vende.
+    vi.setSystemTime(new Date("2026-09-20T17:00:00.000Z"));
     const enContacto = await nuevoDeal("atendido");
     await cambiarCohorte(db, comoCloser(), { dealId: enContacto, cohortId: octubre, motivo: "x" });
     expect((await fila(enContacto)).cohortId).toBe(octubre);
@@ -279,7 +293,7 @@ describe("estudiantesDe: Students es una consulta sobre la etapa", () => {
     const [otroProg] = await db.insert(programs).values({ ...PROGRAMA_DE_PRUEBA, slug: "q", nombre: "Q", ticketUsd: "1500" }).returning();
     const [ajena] = await db
       .insert(cohorts)
-      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
+      .values({ programId: otroProg.id, codigo: "Q1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
     expect(await estudiantesDe(db, programId, { cohortId: ajena.id })).toHaveLength(0);
   });

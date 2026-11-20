@@ -10,6 +10,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { transicion } from "./etapas";
 import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
+import { recalcularDealPorLineas } from "./lineas";
 
 export const esquemaMarcarCortesia = z.object({ dealId: z.string().uuid("El deal no es válido.") });
 export type DatosMarcarCortesia = z.input<typeof esquemaMarcarCortesia>;
@@ -34,7 +35,7 @@ export async function marcarCortesia(
       const [pagos] = await tx
         .select({ n: sql<number>`count(*)::int` })
         .from(abonos)
-        .where(and(eq(abonos.dealId, deal.id), eq(abonos.concepto, "ticket"), vigente(abonos)));
+        .where(and(eq(abonos.dealId, deal.id), vigente(abonos)));
       if ((pagos?.n ?? 0) > 0) {
         throw new ErrorDeApp("El deal ya tiene abonos: una cortesía no lleva pagos.", 409);
       }
@@ -50,6 +51,7 @@ export async function marcarCortesia(
         deal.id,
         { cortesia: true, valorVendidoUsd: "0" },
       );
+      await recalcularDealPorLineas(tx, deal.id, { actorId: actor.userId, etiqueta: emailLead });
       await moverEtapa(tx, { dealId: deal.id, a: "ganado_completo", actor: { tipo: "sistema" } });
     });
   });

@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs } from "@/lib/db/schema";
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, afterEach, vi } from "vitest";
+import { cohorts, deals, dealEtapaHistorial, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
 import { listaDeMetrica, resumenDeMetrica } from "@/lib/queries/metricas-con-filas";
@@ -10,6 +11,16 @@ import { parsearPeriodoUrl, type PeriodoResuelto } from "@/lib/periodo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-15T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Ticket 377 — los filtros del Hub: Cohorte y Periodo cada uno por su lado.
@@ -42,7 +53,7 @@ async function vender(programId: string, cohortId: string, email: string, dia: s
     programId, leadId: lead.id, cohortId, etapa: "ganado_parcial", valorVendidoUsd: "100", ownerUserId: ownerUserId ?? await duenoDePrueba(db, programId),
   }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date(`${dia}T10:00:00-05:00`) });
-  await db.insert(abonos).values({ programId, dealId: deal.id, fecha: dia, monto: "50", moneda: "USD" });
+  await abonoDePrueba(db, { programId, dealId: deal.id, fecha: dia, monto: "50", moneda: "USD" });
   return deal.id;
 }
 
@@ -54,9 +65,9 @@ beforeEach(async () => {
   otroPrograma = b.id;
   const base = { metaCupos: 50, precioUsd: "797.00" };
   const filas = await db.insert(cohorts).values([
-    { ...base, programId: programaA, codigo: "C2", estado: "activo", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
-    { ...base, programId: programaA, codigo: "C1", estado: "cerrado", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },
-    { ...base, programId: otroPrograma, codigo: "AJENA", estado: "activo", fechaInicioClases: "2026-10-05", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-09-30" },
+    { ...base, programId: programaA, codigo: "C2", fechaInicioClases: "2026-10-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-09-30" },
+    { ...base, programId: programaA, codigo: "C1", fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-08-03", fechaCierreVentas: "2026-08-31" },
+    { ...base, programId: otroPrograma, codigo: "AJENA", fechaInicioClases: "2026-10-05", fechaInicioVentas: "2026-07-01", fechaCierreVentas: "2026-09-30" },
   ]).returning();
   c2 = filas.find((c) => c.codigo === "C2")!.id;
   c1 = filas.find((c) => c.codigo === "C1")!.id;

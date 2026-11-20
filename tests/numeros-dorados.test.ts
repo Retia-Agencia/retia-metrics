@@ -103,33 +103,34 @@ interface EsperadoHub {
 
 /**
  * Cada cifra, derivada a mano de la semilla:
- *  - vendido = valor vendido de toda venta con valor (con abonos en otra moneda tambien); recaudado = sus abonos de ticket vigentes.
+ *  - vendido = valor vendido de toda línea vendida (con abonos en otra moneda también); recaudado = todos sus abonos vigentes.
  *  - caja = abonos vigentes (ticket y adicional) con fecha en el rango, por moneda, de ventas o no: el
  *    abono de a3 (Cierre Perdido) SIGUE contando; el anulado de a1 (77) y el de a9 (999) no.
- *  - comision = 10 % del valor vendido de cada venta con valor; a7 no tiene valor, por eso "sin comision".
+ *  - comisión = 10 % del valor vendido de cada venta con valor.
  */
 const HUB: Record<Programa, Record<Periodo, EsperadoHub>> = {
   A: {
     // caja 500 + 600 + 400 + 200 (a3) + 300 + 1000 = 3.000
     mesCerrado: {
-      cierres: 4, dinero: { vendido: 4000, recaudado: 2800, porCobrar: 1200, ventas: 4, sinSaldoCalculable: 0 },
-      caja: [{ moneda: "USD", total: 3000 }], contratadoUsd: 4000, sinValorVendido: 0,
+      cierres: 4, dinero: { vendido: 4120, recaudado: 2920, porCobrar: 1200, ventas: 4, sinSaldoCalculable: 0 },
+      caja: [{ moneda: "USD", total: 3000 }], contratadoUsd: 4120, sinValorVendido: 0,
+      // La línea adicional de USD 120 es Vendido pero paga 0 % (ADR 0137, enmienda del 20-nov).
       comision: { totalUsd: 400, ventasSinComision: 0 }, cortesias: 0,
-      porCohorte: [["C1", 1, 1000, 1000], ["C2", 3, 3000, 1800]], comparativo: [["Ana", 4]],
+      porCohorte: [["C1", 1, 1000, 1000], ["C2", 3, 3120, 1920]], comparativo: [["Ana", 4]],
     },
     // caja 120 (adicional) + 700 + 100 + 150 = 1.070
     mesEnCurso: {
-      cierres: 3, dinero: { vendido: 2000, recaudado: 800, porCobrar: 1200, ventas: 2, sinSaldoCalculable: 1 },
-      caja: [{ moneda: "USD", total: 1070 }], contratadoUsd: 2000, sinValorVendido: 1,
-      comision: { totalUsd: 200, ventasSinComision: 1 }, cortesias: 1,
-      porCohorte: [["C3", 2, 1000, 700], [null, 1, 1000, 100]], comparativo: [["Ana", 2], [null, 1]],
+      cierres: 3, dinero: { vendido: 3000, recaudado: 950, porCobrar: 2050, ventas: 3, sinSaldoCalculable: 0 },
+      caja: [{ moneda: "USD", total: 1070 }], contratadoUsd: 3000, sinValorVendido: 0,
+      comision: { totalUsd: 300, ventasSinComision: 0 }, cortesias: 1,
+      porCohorte: [["C2", 1, 1000, 100], ["C3", 2, 2000, 850]], comparativo: [["Ana", 2], [null, 1]],
     },
     // caja 400 (28-oct) + 300 (31-oct) + 1.070 = 1.770; cruza C2 y C3
     custom14: {
-      cierres: 4, dinero: { vendido: 3000, recaudado: 1100, porCobrar: 1900, ventas: 3, sinSaldoCalculable: 1 },
-      caja: [{ moneda: "USD", total: 1770 }], contratadoUsd: 3000, sinValorVendido: 1,
-      comision: { totalUsd: 300, ventasSinComision: 1 }, cortesias: 1,
-      porCohorte: [["C2", 1, 1000, 300], ["C3", 2, 1000, 700], [null, 1, 1000, 100]], comparativo: [["Ana", 3], [null, 1]],
+      cierres: 4, dinero: { vendido: 4000, recaudado: 1250, porCobrar: 2750, ventas: 4, sinSaldoCalculable: 0 },
+      caja: [{ moneda: "USD", total: 1770 }], contratadoUsd: 4000, sinValorVendido: 0,
+      comision: { totalUsd: 400, ventasSinComision: 0 }, cortesias: 1,
+      porCohorte: [["C2", 2, 2000, 400], ["C3", 2, 2000, 850]], comparativo: [["Ana", 3], [null, 1]],
     },
   },
   B: {
@@ -223,20 +224,20 @@ describe("Metas y cohorte", () => {
     expect(m.esperado).toBe(20);
     expect(m.deuda).toBe(16);
     expect(m.cumplimiento).toBeCloseTo(0.2, 10);
-    expect(m.contratadoUsd).toBe(4000);
+    expect(m.contratadoUsd).toBe(4120);
     expect(m.ventasSinValorVendido).toBe(0);
   });
 
-  it("A noviembre: la venta sin cohorte sale en su propia fila y la sin valor se avisa", async () => {
+  it("ADR 0137 puntos 8, 11 y 12: los abonos materializan valor y cohorte", async () => {
     const m = await leerMetasDelMes(s.programaA, "2026-11", HOY_DORADO, db);
     expect(m.vendidos).toBe(3);
-    expect(m.filas.map((f) => [f.codigo, f.vendidos])).toEqual([["C3", 2], ["Sin cohorte", 1]]);
+    expect(m.filas.map((f) => [f.codigo, f.vendidos])).toEqual([["C2", 1], ["C3", 2]]);
     expect(m.metaCupos).toBe(20);
     expect(m.esperado).toBeCloseTo((20 * 5) / 15, 10);
     expect(m.deuda).toBeCloseTo((20 * 5) / 15 - 3, 10);
     expect(m.cumplimiento).toBeCloseTo(3 / ((20 * 5) / 15), 10);
-    expect(m.contratadoUsd).toBe(2000);
-    expect(m.ventasSinValorVendido).toBe(1);
+    expect(m.contratadoUsd).toBe(3000);
+    expect(m.ventasSinValorVendido).toBe(0);
   });
 
   it("B: la meta del mes se prorratea por habiles de la ventana de la cohorte", async () => {
@@ -260,18 +261,16 @@ describe("Metas y cohorte", () => {
 });
 
 describe("Students y cartera", () => {
-  // Students son los deals vendidos (cortesia incluida, con precio 0). Recaudado = abonos de ticket vigentes
-  // (sin el adicional de 120, sin el anulado de 77); por cobrar = saldo positivo.
-  //  A: recaudado 1000 + 500 + 1000 + 300 + 700 + 100 + 150 = 3.750; por cobrar 500 + 700 + 300 + 900 = 2.400.
+  // ADR 0137 punto 14: Students suma todas las líneas vendidas y sus abonos vigentes.
   it("A: totales y saldo de cada deal", async () => {
     const filas = await studentsDelPrograma(db, s.programaA, {}, HOY_DORADO);
     const porClave = new Map(filas.map((f) => [s.claveDe(f.dealId), f.saldo]));
     compararConteoYClaves([...porClave.keys()], ["a1_parcial", "a2_completo", "a4_noche", "a5_cohorte3", "a6_sin_cohorte", "a7_sin_valor", "a8_cortesia", "a10_cohorte1"]);
     expect(porClave.get("a1_parcial")).toMatchObject({ abonado: 500, saldo: 500 });
-    expect(porClave.get("a2_completo")).toMatchObject({ abonado: 1000, saldo: 0, abonosVigentes: 2 });
-    expect(porClave.get("a7_sin_valor")).toMatchObject({ abonado: 150, saldo: null, sinSaldoPorque: "sin_valor_vendido" });
+    expect(porClave.get("a2_completo")).toMatchObject({ abonado: 1120, saldo: 0, abonosVigentes: 3 });
+    expect(porClave.get("a7_sin_valor")).toMatchObject({ precio: 1000, abonado: 150, saldo: 850, sinSaldoPorque: null });
     expect(porClave.get("a8_cortesia")).toMatchObject({ precio: 0, abonado: 0, saldo: 0 });
-    expect(totalesDeStudents(filas)).toEqual({ porMoneda: [{ moneda: "USD", recaudado: 3750, porCobrar: 2400 }], sinValorVendido: 1 });
+    expect(totalesDeStudents(filas)).toEqual({ porMoneda: [{ moneda: "USD", recaudado: 3870, porCobrar: 3250 }], sinValorVendido: 0 });
   });
 
   // OJO (hallazgo del 385): el abono de 2.000.000 COP de b1 NO aparece en el total de Students: el deal queda
@@ -287,10 +286,10 @@ describe("Students y cartera", () => {
 
   it("el recaudado de Students de las ventas del mes en curso coincide con el recaudado del Hub (A, ventas de noviembre)", async () => {
     // Students de A incluye todas las cohortes; el de noviembre son a5, a6 y a7: 700 + 100 + 150 = 950.
-    // El Hub da 800 porque deja fuera a7 (sin valor: saldo no calculable). Las dos son legitimas y distintas.
+    // ADR 0137 punto 8: a7 ya tiene el precio de su SKU, así que Students y Hub coinciden.
     const filas = await studentsDelPrograma(db, s.programaA, {}, HOY_DORADO);
     const deNoviembre = filas.filter((f) => ["a5_cohorte3", "a6_sin_cohorte", "a7_sin_valor"].includes(s.claveDe(f.dealId)));
     expect(deNoviembre.reduce((suma, f) => suma + (f.saldo?.abonado ?? 0), 0)).toBe(950);
-    expect((await vistaDe("A", "mesEnCurso")).dinero.recaudado).toBe(800);
+    expect((await vistaDe("A", "mesEnCurso")).dinero.recaudado).toBe(950);
   });
 });

@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { abonos, calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { calls, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { CONCEPTOS_DE_CLOSERS_DE_HOY, CONCEPTOS_DE_PENDIENTES, cifrasDeClosersDeHoy, cifrasDePendientes, type ExplicacionesDeClosersDeHoy, type ExplicacionesDePendientes } from "@/lib/hub/cifras-de-pendientes-y-closers";
 import type { ExplicacionDeConcepto } from "@/lib/metricas/cifra";
@@ -77,7 +78,7 @@ beforeAll(async () => {
     await db.insert(calls).values({ programId: programa, dealId: d.id, closerUserId: ana.id, fechaAgenda: instante, resultado: c.resultado });
     if ("venta" in c) await db.insert(dealEtapaHistorial).values({ dealId: d.id, a: "ganado_parcial", fecha: instante });
     // Beto cobra ventas de Ana: la tabla debe conservar ese reparto, incluso con COP y USD.
-    if ("venta" in c || "pago" in c) await db.insert(abonos).values([
+    if ("venta" in c || "pago" in c) await abonoDePrueba(db, [
       { programId: programa, dealId: d.id, registradoPorUserId: beto.id, fecha: comun.dia, monto: "100", moneda: "USD" },
       { programId: programa, dealId: d.id, registradoPorUserId: beto.id, fecha: comun.dia, monto: "50000", moneda: "COP" },
     ]);
@@ -103,7 +104,8 @@ describe("419 E-2: pendientes y closers, paridad con listas reales en PGlite", (
       expect(await total(detalles[clave]), clave).toBe(c.banderas[i].valor);
       expect(c.banderas[i].explicacion.evidencia?.href).toBe(detalles[clave].href);
     }
-    expect(c.banderas.map((x) => x.valor)).toEqual([2, 2, 1, 2, 1]);
+    // ADR 0137 punto 8: el abono de la venta materializa su línea y ya no deja un vendido sin valor.
+    expect(c.banderas.map((x) => x.valor)).toEqual([2, 2, 0, 2, 1]);
     const sin = cifrasDePendientes({ ...comun, datos, detalles: sinListas(detalles), explicaciones: pendientes });
     expect(sin.banderas.every((x) => x.explicacion.evidencia === null)).toBe(true);
   });

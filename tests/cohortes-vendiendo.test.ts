@@ -9,6 +9,7 @@ import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -41,13 +42,11 @@ async function crearCohorte({
   codigo,
   inicio,
   cierre,
-  estado = "futuro",
   programa = programId,
 }: {
   codigo: string;
   inicio: string | null;
   cierre: string;
-  estado?: "futuro" | "activo" | "cerrado";
   programa?: string;
 }) {
   const [cohorte] = await db
@@ -60,9 +59,9 @@ async function crearCohorte({
       fechaInicioClases: "2026-07-01",
       fechaInicioVentas: inicio,
       fechaCierreVentas: cierre,
-      estado,
     })
     .returning();
+  await skuVirtualDePrueba(db, cohorte.id);
   return cohorte;
 }
 
@@ -85,13 +84,13 @@ describe("cohortesVendiendo", () => {
   });
 
   it("excluye cohortes cerradas y las de otro programa", async () => {
-    await crearCohorte({ codigo: "Cerrada", inicio: "2026-05-01", cierre: "2026-05-31", estado: "cerrado" });
+    await crearCohorte({ codigo: "Cerrada", inicio: "2026-05-01", cierre: "2026-05-31" });
     await crearCohorte({ codigo: "C3", inicio: "2026-06-01", cierre: "2026-06-30" });
     await crearCohorte({ codigo: "Ajena", inicio: "2026-06-01", cierre: "2026-06-30", programa: otroProgramId });
 
     expect((await cohortesVendiendo(db, programId, "2026-06-15")).map((c) => c.codigo)).toEqual(["C3"]);
-    // Dentro de la ventana de la cerrada, tampoco vende: el estado manda, no solo la fecha.
-    expect(await cohortesVendiendo(db, programId, "2026-05-15")).toEqual([]);
+    // Cerrada = su ventana ya pasó (ADR 0137 punto 5): ya no existe cerrar a mano dentro de la ventana.
+    expect((await cohortesVendiendo(db, programId, "2026-06-01")).map((c) => c.codigo)).toEqual(["C3"]);
   });
 
   it("incluye ambos limites de la ventana de ventas", async () => {
@@ -112,7 +111,6 @@ describe("cohortesVendiendo", () => {
       fechaInicioClases: null,
       fechaInicioVentas: null,
       fechaCierreVentas: null,
-      estado: "futuro",
     });
     expect(await cohortesVendiendo(db, programId, "2026-06-15")).toEqual([]);
 
@@ -125,7 +123,6 @@ describe("cohortesVendiendo", () => {
       fechaInicioClases: null,
       fechaInicioVentas: "2026-06-01",
       fechaCierreVentas: null,
-      estado: "futuro",
     });
     expect(await cohortesVendiendo(db, programId, "2026-06-15")).toEqual([]);
   });
@@ -133,7 +130,7 @@ describe("cohortesVendiendo", () => {
 
 describe("cambiarCohorte segun la etapa", () => {
   it("un deal no estudiante solo cambia a una cohorte que vende hoy", async () => {
-    const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2025-12-31", estado: "activo" });
+    const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2025-12-31" });
     const vendiendo = await crearCohorte({ codigo: "Vendiendo", inicio: "2026-01-01", cierre: "2998-12-31" });
     const futura = await crearCohorte({ codigo: "Futura", inicio: "2999-01-01", cierre: "2999-12-31" });
     const [dueno] = await db.insert(users).values({ email: "closer@retia.test", rol: "closer", closerId: "Closer" }).returning();
@@ -163,7 +160,7 @@ describe("cambiarCohorte segun la etapa", () => {
   });
 
   it("un estudiante todavia puede cambiar a una cohorte futura", async () => {
-    const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2999-12-31", estado: "activo" });
+    const origen = await crearCohorte({ codigo: "Origen", inicio: "2000-01-01", cierre: "2999-12-31" });
     const futura = await crearCohorte({ codigo: "Futura", inicio: null, cierre: "2999-12-31" });
     const [dueno] = await db.insert(users).values({ email: "estudiante@retia.test", rol: "closer", closerId: "Closer" }).returning();
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId, emailNormalizado: "lead@retia.test" }).returning();

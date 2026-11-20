@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import {
   armarReporteDiario, comoNacioLaVenta, desgloseDeCaja, resolverDiaDelReporte, resultadosPorCloser, totalDeConteos,
@@ -96,8 +97,8 @@ describe("el reporte contra la base", () => {
     const { programa, venta } = await sembrar();
     const anterior = await venta("d@x.co", "2026-08-31", "1500", "Maryce");
     // El primer pago fecha la venta (ADR 0136): el del 31-ago la deja en agosto y el de hoy es saldo.
-    await db.insert(abonos).values({ dealId: anterior.id, programId: programa.id, fecha: "2026-08-31", monto: "750", moneda: "USD" });
-    await db.insert(abonos).values({ dealId: anterior.id, programId: programa.id, fecha: DIA, monto: "750", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: anterior.id, programId: programa.id, fecha: "2026-08-31", monto: "750", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: anterior.id, programId: programa.id, fecha: DIA, monto: "750", moneda: "USD" });
     const desglose = await desgloseDeCaja({ programId: programa.id, dia: DIA }, db);
     expect(desglose).toHaveLength(1);
     expect(desglose[0]).toMatchObject({ persona: "Maryce", origen: "saldo_anterior", ventaDelDia: "2026-08-31", closerDeLaVenta: "Jero", monto: 750 });

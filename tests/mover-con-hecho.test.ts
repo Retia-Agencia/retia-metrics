@@ -10,6 +10,7 @@ import { vigente } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -43,8 +44,8 @@ beforeEach(async () => {
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-30",
-    estado: "activo",
   }).returning())[0].id;
+  await skuVirtualDePrueba(db, cohortId);
   closerId = (await db.insert(users).values({ email: "closer-mover-hecho@retia.co", rol: "closer" }).returning())[0].id;
   motivoOtroId = (await db.insert(motivos).values({ nombre: "Otro", tipo: "reagenda", pideTexto: true }).returning())[0].id;
   plataformaId = (await db.insert(plataformasPago).values({ nombre: "Plataforma mover" }).returning())[0].id;
@@ -130,7 +131,7 @@ describe("moverConHecho", () => {
     expect(await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos)))).toHaveLength(1);
   });
 
-  it("registra un servicio adicional mayor al saldo sin mover ni escribir datos del deal", async () => {
+  it("un servicio adicional pagado mueve a Completo y pasa a ser el valor vendido", async () => {
     const deal = await nuevoDeal("atendido");
     await db.update(deals).set({ valorVendidoUsd: "797" }).where(eq(deals.id, deal.id));
 
@@ -149,10 +150,11 @@ describe("moverConHecho", () => {
       },
     });
 
-    expect(resultado.etapa).toBe("atendido");
-    expect(await etapaDe(deal.id)).toBe("atendido");
-    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id))).toHaveLength(0);
-    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("797.00");
+    // ADR 0137 punto 14: cualquier línea vendida determina la etapa y el valor del deal.
+    expect(resultado.etapa).toBe("ganado_completo");
+    expect(await etapaDe(deal.id)).toBe("ganado_completo");
+    expect(await db.select().from(dealEtapaHistorial).where(eq(dealEtapaHistorial.dealId, deal.id))).toHaveLength(1);
+    expect((await db.select().from(deals).where(eq(deals.id, deal.id)))[0].valorVendidoUsd).toBe("1437.00");
     expect((await db.select().from(abonos).where(and(eq(abonos.dealId, deal.id), vigente(abonos))))[0]).toMatchObject({
       concepto: "adicional",
       monto: "1437.00",

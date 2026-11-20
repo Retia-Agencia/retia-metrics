@@ -14,6 +14,7 @@ import { cohorteAnterior } from "@/lib/objetivos/cohorte-anterior";
 import { razonVacia, type RazonConCobertura } from "@/lib/cobertura";
 import { muestraMinimaDelPrograma } from "@/lib/programas/hechos";
 import { metaActivaDeObjetivo } from "@/lib/catalogo/objetivos";
+import { estadoDeCohorteSql } from "@/lib/cohortes/estado";
 
 /** Las ventanas que se pueden escoger en pantalla (`?ritmo=`), en días hábiles. */
 export const OPCIONES_VENTANA_RITMO = [5, 10, 20] as const;
@@ -386,11 +387,11 @@ const total = <T extends "ventas" | "agendas" | "envios">(
 
 const menor = (a: string, b: string) => (a < b ? a : b);
 
-async function cohortesParaProyeccion(db: Db, programId: string) {
-  return unaVezPorSolicitud(db, claveDe("cohortesParaProyeccion", programId), () => db.select({
+async function cohortesParaProyeccion(db: Db, programId: string, hoy: string) {
+  return unaVezPorSolicitud(db, claveDe("cohortesParaProyeccion", programId, hoy), () => db.select({
     id: cohorts.id,
     codigo: cohorts.codigo,
-    estado: cohorts.estado,
+    estado: estadoDeCohorteSql(hoy),
     metaCupos: cohorts.metaCupos,
     metaLeadsDia: cohorts.metaLeadsDia,
     fechaInicioVentas: cohorts.fechaInicioVentas,
@@ -411,7 +412,7 @@ export async function leerProyeccion(
   const ventanaInicial = inicioDeVentana(hoy, ventanaDiasHabiles);
   const [programa] = await muestraMinimaDelPrograma(db, programId);
   const muestraMinima = programa?.muestraMinima ?? MUESTRA_MINIMA_CONVERSION;
-  const cohortes = await cohortesParaProyeccion(db, programId);
+  const cohortes = await cohortesParaProyeccion(db, programId, hoy);
   const cohorte = cohortes.find((c) => c.estado === "activo");
 
   if (!cohorte?.fechaInicioVentas || !cohorte.fechaCierreVentas) {

@@ -14,6 +14,8 @@ import { dealBloqueadoConLead } from "./leer-deal";
 import { moverEtapa } from "./mover-etapa";
 import { puedeTrabajarDeal, type ActorDeDeal } from "./permiso";
 import type { CambioHecho } from "./resumen-del-cambio";
+import { columnasCohorteConEstado } from "@/lib/cohortes/estado";
+import { hoyEnBogota } from "@/lib/format";
 
 const dia = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe ser YYYY-MM-DD.");
 const comentario = z.string().trim().max(4000, "El comentario es muy largo.").optional();
@@ -163,7 +165,7 @@ export async function anotar(
           pendiente = mov.pendienteA;
         } else {
         const [destino] = await tx
-          .select()
+          .select(columnasCohorteConEstado(hoyEnBogota()))
           .from(cohorts)
           .where(eq(cohorts.id, datos.proximaCohorte.cohorteDestinoId));
         if (!destino || destino.programId !== original.programId) {

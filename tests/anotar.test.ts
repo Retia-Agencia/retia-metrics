@@ -58,7 +58,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-      estado: "activo",
     },
     {
       programId,
@@ -68,7 +67,6 @@ beforeEach(async () => {
       fechaInicioClases: "2027-02-01",
       fechaInicioVentas: "2027-01-01",
       fechaCierreVentas: "2027-01-31",
-      estado: "futuro",
     },
   ]).returning();
   cohortId = actual.id;
@@ -230,7 +228,6 @@ describe("anotar", () => {
       codigo: "A1",
       metaCupos: 10,
       precioUsd: "1500",
-      estado: "futuro",
     }).returning();
     await expect(anotar(db, actor(), {
       dealId: deal.id,
@@ -245,7 +242,6 @@ describe("anotar", () => {
       fechaInicioClases: "2026-08-01",
       fechaInicioVentas: "2026-07-01",
       fechaCierreVentas: "2026-07-31",
-      estado: "cerrado",
     }).returning();
     await expect(anotar(db, actor(), {
       dealId: deal.id,

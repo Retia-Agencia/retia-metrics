@@ -50,8 +50,7 @@ beforeEach(async () => {
   gerenteId = g.id;
   [{ id: c1 }] = await db.insert(cohorts).values({
     programId, codigo: "C1", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-11-01",
-    fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", estado: "activo",
-  }).returning();
+    fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", }).returning();
   await agenda(c1);
   await agenda(c1);
   await agenda(null);

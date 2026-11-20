@@ -1,7 +1,8 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { abonos, calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { armarReporteDiario } from "@/lib/queries/reporte-diario";
 import { ReporteDeTodosLosProgramas } from "@/components/hub-reporte/reporte";
@@ -61,7 +62,7 @@ describe("/hub/reporte", () => {
           fechaAgenda: new Date(`${DIA}T14:00:00Z`),
           resultado: "cerrada",
         });
-        await db.insert(abonos).values({
+        await abonoDePrueba(db, {
           dealId: deal.id, programId: programa.id, fecha: DIA, monto: "100", moneda: "USD",
         });
       }

@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { changeLog, cohorts, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -9,6 +9,16 @@ import { ErrorDeApp } from "@/lib/errors";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-01T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Ticket 061 (ADR 0053): el acuerdo de pago es una nota y una fecha límite, y el inicio de
@@ -43,7 +53,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
@@ -98,7 +107,7 @@ describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => 
 
     const [otra] = await db
       .insert(cohorts)
-      .values({ programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25", estado: "futuro" })
+      .values({ programId, codigo: "C2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-25" })
       .returning();
     const enOtra = await nuevoDeal("compromiso_verbal", { cohortId: otra.id });
     expect(await fechaLimiteMaxima(db, enOtra)).toBe("2026-12-01");
@@ -106,7 +115,7 @@ describe("fechaLimiteMaxima: el inicio de clases de la cohorte del deal", () => 
     const sinCohorte = await nuevoDeal("compromiso_verbal", { cohortId: null });
     expect(await fechaLimiteMaxima(db, sinCohorte)).toBe("2026-10-15");
 
-    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" }).where(eq(cohorts.id, cohortId));
     expect(await fechaLimiteMaxima(db, sinCohorte)).toBeNull();
   });
 });
@@ -156,7 +165,7 @@ describe("editarAcuerdoDePago", () => {
   });
 
   it("sin cohorte de referencia no hay tope", async () => {
-    await db.update(cohorts).set({ estado: "cerrado" }).where(eq(cohorts.id, cohortId));
+    await db.update(cohorts).set({ fechaInicioVentas: "2000-01-01", fechaCierreVentas: "2000-01-02" }).where(eq(cohorts.id, cohortId));
     const d = await nuevoDeal("compromiso_verbal", { cohortId: null });
     await editarAcuerdoDePago(db, comoCloser(), { dealId: d.id, fechaLimitePago: "2027-01-01" });
     const [f] = await db.select().from(deals).where(eq(deals.id, d.id));

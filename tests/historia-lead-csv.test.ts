@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { abonos, calls, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -76,7 +77,7 @@ beforeEach(async () => {
     userId: gerente.user.id,
     fecha: new Date("2026-10-23T10:00:00-05:00"),
   });
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     programId,
     dealId: deal.id,
     fecha: "2026-10-24",

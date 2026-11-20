@@ -10,6 +10,7 @@ import { grupoDeCitas } from "@/lib/queries/tasas-del-grupo";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * Paridad N2 de la tabla semanal de Pauta contra las otras superficies (403 F3, ADR 0115 N1/N2, D-A/D-B/D-E del
@@ -69,6 +70,7 @@ async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: str
     cohortId: opciones.cohortId ?? null,
   }).returning())[0];
   if (venta) {
+    await lineaConCupoDePrueba(db, deal.id);
     await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date(`${venta.diaVenta}T12:00:00-05:00`) });
   }
   return deal;
@@ -153,8 +155,7 @@ describe("el filtro de cohorte y el área llegan igual a todas las superficies",
   async function cohorte(codigo: string, inicio: string, cierre: string) {
     return (await db.insert(cohorts).values({
       programId, codigo, metaCupos: 10, precioUsd: "1000", fechaInicioVentas: inicio,
-      fechaCierreVentas: cierre, fechaInicioClases: "2027-01-10", estado: "cerrado",
-    }).returning())[0].id;
+      fechaCierreVentas: cierre, fechaInicioClases: "2027-01-10", }).returning())[0].id;
   }
 
   it("con cohorte elegida, el ROAS de la tabla semanal es el de esa cohorte (no «—») y coincide con la tabla por campaña", async () => {

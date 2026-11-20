@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
-import { abonos, archivos, calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, deals, leads, miembrosPrograma, motivos, programs, reversiones, users } from "@/lib/db/schema";
+import { abonos, archivos, calls, changeLog, cohorts, dealActividades, dealEtapaHistorial, dealLineas, deals, leads, miembrosPrograma, motivos, programs, reversiones, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
@@ -15,6 +15,7 @@ import { ventasConDiaEn } from "@/lib/queries/dashboard";
 import { fichaDeDeal } from "@/lib/queries/ficha-deal";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
 import { marcarFallida } from "@/lib/deals/llamadas";
+import { lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 let db: Db;
 let cerrar: () => Promise<void>;
@@ -262,6 +263,7 @@ describe("deshacer cambios", () => {
   it("deshacer una cortesía restaura el valor y saca el deal de Completo", async () => {
     const dealId = await deal(gerente);
     await db.update(deals).set({ etapa: "ganado_completo", valorVendidoUsd: "1000" }).where(eq(deals.id, dealId));
+    const linea = await lineaConCupoDePrueba(db, dealId);
     await db.insert(dealEtapaHistorial).values({ dealId, de: "contactado", a: "ganado_completo", userId: gerente });
     await editarConRastro(
       { db, tabla: deals, nombreTabla: "deals", actorId: gerente, etiqueta: "Lead" },
@@ -273,7 +275,9 @@ describe("deshacer cambios", () => {
       evento: { tipo: "cambio", changeLogId: await evento("deals", dealId, "cortesia") },
     });
     expect((await db.select({ etapa: deals.etapa, cortesia: deals.cortesia, valor: deals.valorVendidoUsd }).from(deals).where(eq(deals.id, dealId)))[0])
-      .toEqual({ etapa: "contactado", cortesia: false, valor: "1000.00" });
+      .toEqual({ etapa: "contactado", cortesia: false, valor: null });
+    // ADR 0137 punto 8: al salir de cortesía el valor propuesto sigue congelado en la línea.
+    expect((await db.select().from(dealLineas).where(eq(dealLineas.id, linea.id)))[0].valorVendidoUsd).toBe("1000.00");
     expect(await ventasConDiaEn(db, { desde: "2026-01-01", hasta: "2026-12-31" })).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ dealId })]),
     );
@@ -293,10 +297,11 @@ describe("deshacer cambios", () => {
   it("deshacer la creación de un abono lo anula y recalcula la etapa", async () => {
     const dealId = await deal();
     await db.update(deals).set({ etapa: "ganado_parcial", valorVendidoUsd: "1000" }).where(eq(deals.id, dealId));
+    const linea = await lineaConCupoDePrueba(db, dealId);
     await db.insert(dealEtapaHistorial).values({ dealId, de: "atendido", a: "ganado_parcial", userId: autor });
     const abonoId = await crearConRastro(
       { db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" },
-      { dealId, programId, fecha: "2026-11-03", monto: "300", moneda: "USD", registradoPorUserId: autor, origen: "app", concepto: "ticket" },
+      { dealId, lineaId: linea.id, programId, fecha: "2026-11-03", monto: "300", moneda: "USD", registradoPorUserId: autor, origen: "app", concepto: "ticket" },
     );
     await deshacerEvento(db, actor(autor), {
       dealId,
@@ -308,9 +313,10 @@ describe("deshacer cambios", () => {
 
   it("un campo contable del abono no se ofrece ni se restaura en crudo", async () => {
     const dealId = await deal();
+    const linea = await lineaConCupoDePrueba(db, dealId);
     const abonoId = await crearConRastro(
       { db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" },
-      { dealId, programId, fecha: "2026-11-03", monto: "300", moneda: "USD", registradoPorUserId: autor, concepto: "ticket" },
+      { dealId, lineaId: linea.id, programId, fecha: "2026-11-03", monto: "300", moneda: "USD", registradoPorUserId: autor, concepto: "ticket" },
     );
     await editarConRastro({ db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" }, abonoId, { monto: "400" });
     const changeLogId = await eventoEditado("abonos", abonoId, "monto");
@@ -430,6 +436,7 @@ describe("deshacer cambios", () => {
 
   it("un choque de otro índice único no se traduce como evento ya deshecho", async () => {
     const dealId = await deal();
+    const linea = await lineaConCupoDePrueba(db, dealId);
     const archivoId = crypto.randomUUID();
     await db.insert(archivos).values({
       id: archivoId, programId, ruta: `${archivoId}.png`, tipoMime: "image/png", bytes: 8,
@@ -437,13 +444,13 @@ describe("deshacer cambios", () => {
     });
     const primero = await crearConRastro(
       { db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" },
-      { dealId, programId, fecha: "2026-11-03", monto: "100", moneda: "USD", registradoPorUserId: autor, concepto: "adicional" },
+      { dealId, lineaId: linea.id, programId, fecha: "2026-11-03", monto: "100", moneda: "USD", registradoPorUserId: autor, concepto: "adicional" },
     );
     await editarConRastro({ db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" }, primero, { comprobanteArchivoId: archivoId });
     await editarConRastro({ db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" }, primero, { comprobanteArchivoId: null });
     await crearConRastro(
       { db, tabla: abonos, nombreTabla: "abonos", actorId: autor, etiqueta: "Lead" },
-      { dealId, programId, fecha: "2026-11-03", monto: "50", moneda: "USD", registradoPorUserId: autor, concepto: "adicional", comprobanteArchivoId: archivoId },
+      { dealId, lineaId: linea.id, programId, fecha: "2026-11-03", monto: "50", moneda: "USD", registradoPorUserId: autor, concepto: "adicional", comprobanteArchivoId: archivoId },
     );
     const filas = await db.select().from(changeLog).where(and(
       eq(changeLog.registroId, primero), eq(changeLog.campo, "comprobanteArchivoId"),
@@ -461,17 +468,18 @@ describe("deshacer cambios", () => {
   it("restaura la cohorte por el dominio y deja todas sus escrituras ligadas a la reversión", async () => {
     const [activa, futura] = await db.insert(cohorts).values([
       {
-        programId, codigo: "ACT", metaCupos: 10, precioUsd: "1000", estado: "activo",
-        fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-15",
+        programId, codigo: "ACT", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-15",
       },
       {
-        programId, codigo: "FUT", metaCupos: 10, precioUsd: "1000", estado: "futuro",
-        fechaInicioVentas: "2026-12-01", fechaCierreVentas: "2027-01-15", fechaInicioClases: "2027-02-01",
+        programId, codigo: "FUT", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-12-01", fechaCierreVentas: "2027-01-15", fechaInicioClases: "2027-02-01",
       },
     ]).returning();
+    const [skuActiva, skuFutura] = await Promise.all([activa, futura].map((cohorte) => skuVirtualDePrueba(db, cohorte.id)));
     const dealId = await deal();
     await db.update(deals).set({ cohortId: activa.id }).where(eq(deals.id, dealId));
+    const linea = await lineaConCupoDePrueba(db, dealId);
     await editarConRastro({ db, tabla: deals, nombreTabla: "deals", actorId: autor, etiqueta: "Lead" }, dealId, { cohortId: futura.id });
+    await db.update(dealLineas).set({ skuId: skuFutura.id, precioListaUsd: skuFutura.precioListaUsd }).where(eq(dealLineas.id, linea.id));
     await deshacerEvento(db, actor(autor), {
       dealId,
       evento: { tipo: "cambio", changeLogId: await eventoEditado("deals", dealId, "cohortId") },
@@ -481,13 +489,13 @@ describe("deshacer cambios", () => {
     const [reversion] = await db.select().from(reversiones);
     const rastros = await db.select().from(changeLog).where(eq(changeLog.reversionId, reversion.id));
     expect(rastros.some((fila) => fila.campo === "cohortId")).toBe(true);
+    expect(rastros.some((fila) => fila.tabla === "deal_lineas" && fila.campo === "skuId" && fila.valorNuevo === skuActiva.id)).toBe(true);
     expect(rastros.some((fila) => fila.tabla === "deal_actividades")).toBe(true);
   });
 
   it("valida la fecha límite anterior antes de restaurarla", async () => {
     const [cohorte] = await db.insert(cohorts).values({
-      programId, codigo: "LIM", metaCupos: 10, precioUsd: "1000", estado: "activo",
-      fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-15", fechaInicioClases: "2026-11-20",
+      programId, codigo: "LIM", metaCupos: 10, precioUsd: "1000", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-11-15", fechaInicioClases: "2026-11-20",
     }).returning();
     const dealId = await deal();
     await db.update(deals).set({ cohortId: cohorte.id, fechaLimitePago: "2026-12-01" }).where(eq(deals.id, dealId));

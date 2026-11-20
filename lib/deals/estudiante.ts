@@ -9,6 +9,7 @@ import { programaEnAlcance } from "@/lib/auth/alcance";
 import { editarConRastro } from "@/lib/crm/rastro";
 import { cohortesVendiendo } from "@/lib/cohortes/vendiendo";
 import { hoyEnBogota } from "@/lib/format";
+import { columnasCohorteConEstado } from "@/lib/cohortes/estado";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { cambiarCohorteDelDeal } from "./cambiar-cohorte";
 import { puedeMarcarOnboarding, puedeTrabajarDeal } from "./permiso";
@@ -165,7 +166,8 @@ export async function cambiarCohorte(
     return (db as unknown as Transaccion).transaction(async (tx) => {
       const { deal, emailLead } = await estudianteDelActor(tx, dealId, actor, { soloEstudiante: false });
 
-      const [destino] = await tx.select().from(cohorts).where(eq(cohorts.id, cohortId));
+      const [destino] = await tx.select(columnasCohorteConEstado(hoyEnBogota()))
+        .from(cohorts).where(eq(cohorts.id, cohortId));
       if (!destino || destino.programId !== deal.programId) {
         throw new ErrorDeApp("La cohorte no existe o es de otro programa.", 422);
       }

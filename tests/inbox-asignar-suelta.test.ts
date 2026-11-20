@@ -96,7 +96,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-30",
-      estado: "activo",
     })
     .returning();
 

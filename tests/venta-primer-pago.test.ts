@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, dealEtapaHistorial, deals, leads, programs } from "@/lib/db/schema";
+import { cohorts, dealEtapaHistorial, deals, leads, programs } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { EtapaDeal } from "@/lib/deals/etapas";
 import { idsDeVentasEn, ventasConDiaEn } from "@/lib/queries/metricas-filtros";
@@ -34,8 +35,7 @@ beforeEach(async () => {
   programId = p.id;
   await db.insert(cohorts).values({
     programId, codigo: "C1", metaCupos: 20, precioUsd: "1000",
-    fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-12-04", estado: "activo",
-  });
+    fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-12-04", });
 });
 
 async function dealVendido(diaEtapa: string, pagos: Array<{ fecha: string; concepto?: "ticket" | "adicional"; anulado?: boolean }>) {
@@ -43,7 +43,7 @@ async function dealVendido(diaEtapa: string, pagos: Array<{ fecha: string; conce
   const [deal] = await db.insert(deals).values({ programId, leadId: lead.id, etapa: "ganado_parcial" as EtapaDeal, ownerUserId: await duenoDePrueba(db, programId) }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial" as EtapaDeal, fecha: new Date(`${diaEtapa}T11:00:00-05:00`) });
   for (const p of pagos) {
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       dealId: deal.id, programId, fecha: p.fecha, monto: "500", moneda: "USD", comprobanteUrl: "https://example.test/c",
       concepto: p.concepto ?? "ticket", ...(p.anulado ? { anuladoEn: new Date(), anuladoPor: await duenoDePrueba(db, programId), motivoAnulacion: "prueba" } : {}),
     });

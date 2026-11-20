@@ -143,7 +143,6 @@ export const tipoNotificacionCalendlyEnum = pgEnum("tipo_notificacion_calendly",
 
 /** Por donde entro una persona al CRM (ADR 0021). */
 export const entradaPersonaEnum = pgEnum("entrada_persona", ["formulario", "crm"]);
-export const estadoCohorteEnum = pgEnum("estado_cohorte", ["cerrado", "activo", "futuro"]);
 export const tipoFuenteEnum = pgEnum("tipo_fuente", ["google_sheet", "upload", "webhook"]);
 /**
  * Que paso con una entrega del webhook (ticket 110). Es TIPO: la pantalla de salud
@@ -414,17 +413,12 @@ export const cohorts = pgTable(
     /** Meta de leads por dia habil de la cohorte. Editable desde /ajustes (ticket 014). */
     metaLeadsDia: integer("meta_leads_dia").default(META_LEADS_DIA_POR_DEFECTO),
     precioUsd: numeric("precio_usd", { precision: 10, scale: 2 }).notNull(),
-    /**
-     * Nullable solo mientras la cohorte es futura y "por definir" (ticket 227): Gerencia la
-     * crea antes de saber las fechas. El CHECK `cohorts_definida_si_no_es_futura` impide
-     * activarla o cerrarla sin ellas.
-     */
+    /** Nullable mientras la cohorte esta "por definir" (ticket 227). */
     fechaInicioClases: date("fecha_inicio_clases"),
     /**
      * Primer dia de la ventana de venta (ADR 0022). Lo declara el negocio por
-     * cohorte: no se deduce del cierre de la cohorte anterior. Nullable solo para
-     * las cohortes cerradas cuyo inicio real nadie sabe; el CHECK de abajo impide
-     * que una cohorte quede activa sin el.
+     * cohorte: no se deduce del cierre de la cohorte anterior. Nullable para una
+     * cohorte futura cuya ventana aun esta por definir.
      */
     fechaInicioVentas: date("fecha_inicio_ventas"),
     /**
@@ -433,32 +427,60 @@ export const cohorts = pgTable(
      * clases y otros hasta la vispera (ADR 0022).
      */
     fechaCierreVentas: date("fecha_cierre_ventas"),
-    estado: estadoCohorteEnum("estado").notNull().default("futuro"),
     notas: text("notas"),
   },
   (t) => [
     uniqueIndex("cohorts_programa_codigo_idx").on(t.programId, t.codigo),
     // ADR 0125: destino de las FK compuestas (cohort_id, program_id) de `deals`.
     unique("cohorts_id_programa_uq").on(t.id, t.programId),
-    // Maximo una cohorte activa por programa (ADR 0005: la garantia vive en la base,
-    // no solo en codigo). Indice unico PARCIAL: solo las filas en estado 'activo'
-    // compiten por la unicidad; 'cerrado' y 'futuro' no. Un segundo intento de
-    // activar choca con 23505, que `lib/catalogo/cohortes.ts` traduce a un 400 claro.
-    uniqueIndex("cohorts_una_activa_por_programa_idx")
-      .on(t.programId)
-      .where(sql`${t.estado} = 'activo'`),
-    // La cohorte que esta vendiendo necesita su inicio de ventas para poder contar
-    // dias habiles y meta dinamica (ADR 0022). Igual que el indice de arriba, la
-    // garantia vive en la base (ADR 0005) y no solo en la validacion zod.
-    check(
-      "cohorts_activa_con_inicio_ventas",
-      sql`${t.estado} <> 'activo' OR ${t.fechaInicioVentas} IS NOT NULL`,
-    ),
-    // Una cohorte "por definir" solo puede ser futura (ticket 227).
-    check(
-      "cohorts_definida_si_no_es_futura",
-      sql`${t.estado} = 'futuro' OR (${t.fechaInicioClases} IS NOT NULL AND ${t.fechaCierreVentas} IS NOT NULL)`,
-    ),
+  ],
+);
+
+export const productos = pgTable(
+  "productos",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    nombre: text("nombre").notNull(),
+    slug: text("slug").notNull(),
+    cuentaComoCupo: boolean("cuenta_como_cupo").notNull().default(false),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("productos_programa_slug_idx").on(t.programId, t.slug),
+    unique("productos_id_programa_uq").on(t.id, t.programId),
+  ],
+);
+
+export const skus = pgTable(
+  "skus",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    productoId: uuid("producto_id").notNull(),
+    cohortId: uuid("cohort_id").notNull(),
+    codigo: text("codigo").notNull(),
+    precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
+    activo: boolean("activo").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("skus_codigo_idx").on(t.codigo),
+    uniqueIndex("skus_producto_cohorte_idx").on(t.productoId, t.cohortId),
+    unique("skus_id_programa_uq").on(t.id, t.programId),
+    foreignKey({
+      name: "skus_producto_programa_fk",
+      columns: [t.productoId, t.programId],
+      foreignColumns: [productos.id, productos.programId],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "skus_cohorte_programa_fk",
+      columns: [t.cohortId, t.programId],
+      foreignColumns: [cohorts.id, cohorts.programId],
+    }).onDelete("restrict"),
   ],
 );
 
@@ -1111,6 +1133,43 @@ export const deals = pgTable(
   ],
 );
 
+export const dealLineas = pgTable(
+  "deal_lineas",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id").notNull(),
+    programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
+    skuId: uuid("sku_id").notNull(),
+    precioListaUsd: numeric("precio_lista_usd", { precision: 10, scale: 2 }).notNull(),
+    valorVendidoUsd: numeric("valor_vendido_usd", { precision: 10, scale: 2 }).notNull(),
+    asignadaPor: uuid("asignada_por").references(() => users.id, { onDelete: "restrict" }),
+    asignadaEn: timestamp("asignada_en", { withTimezone: true }).notNull().defaultNow(),
+    anuladaEn: timestamp("anulada_en", { withTimezone: true }),
+    anuladaPor: uuid("anulada_por").references(() => users.id, { onDelete: "restrict" }),
+  },
+  (t) => [
+    unique("deal_lineas_id_programa_uq").on(t.id, t.programId),
+    foreignKey({
+      name: "deal_lineas_deal_programa_fk",
+      columns: [t.dealId, t.programId],
+      foreignColumns: [deals.id, deals.programId],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "deal_lineas_sku_programa_fk",
+      columns: [t.skuId, t.programId],
+      foreignColumns: [skus.id, skus.programId],
+    }).onDelete("restrict"),
+    check("deal_lineas_valor_vendido_no_negativo", sql`${t.valorVendidoUsd} >= 0`),
+    check(
+      "deal_lineas_anulacion_completa",
+      sql`(${t.anuladaEn} IS NULL AND ${t.anuladaPor} IS NULL)
+          OR (${t.anuladaEn} IS NOT NULL AND ${t.anuladaPor} IS NOT NULL)`,
+    ),
+    index("deal_lineas_deal_idx").on(t.dealId),
+    index("deal_lineas_sku_idx").on(t.skuId),
+  ],
+);
+
 /**
  * Todo movimiento de etapa de un deal (ADR 0037 punto 4, ADR 0042).
  *
@@ -1486,6 +1545,9 @@ export const abonos = pgTable(
      * de siempre: no se borra un deal que ya recibio plata.
      */
     dealId: uuid("deal_id").notNull(),
+    lineaId: uuid("linea_id").notNull().$defaultFn(() => {
+      throw new Error("Todo abono nuevo necesita linea_id.");
+    }),
     programId: uuid("program_id").notNull().references(() => programs.id, { onDelete: "restrict" }),
     fecha: date("fecha").notNull(),
     monto: numeric("monto", { precision: 12, scale: 2 }).notNull(),
@@ -1523,6 +1585,11 @@ export const abonos = pgTable(
       name: "abonos_deal_programa_fk",
       columns: [t.dealId, t.programId],
       foreignColumns: [deals.id, deals.programId],
+    }).onDelete("restrict"),
+    foreignKey({
+      name: "abonos_linea_programa_fk",
+      columns: [t.lineaId, t.programId],
+      foreignColumns: [dealLineas.id, dealLineas.programId],
     }).onDelete("restrict"),
     uniqueIndex("abonos_huella_migracion_idx")
       .on(t.huellaMigracion)

@@ -1,3 +1,4 @@
+import { abonoDePrueba, lineaConCupoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, asc, eq } from "drizzle-orm";
 import { abonos, calls, changeLog, cohorts, dealActividades, deals, leads, miembrosPrograma, plataformasPago, plataformasPrograma, programs, users } from "@/lib/db/schema";
@@ -61,7 +62,8 @@ beforeEach(async () => {
   token = (await emitirTokenPersonal(db, { userId: closerId, actorId: closerId, nombre: "Ola 2", scope: "escritura" })).valor;
   [plataformaId, otraPlataformaId] = (await db.insert(plataformasPago).values([{ nombre: "Wompi ola 2" }, { nombre: "PayPal ola 2" }]).returning()).map((x) => x.id);
   await db.insert(plataformasPrograma).values([{ programId, plataformaId }, { programId, plataformaId: otraPlataformaId }]);
-  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "O2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaInicioVentas: "2026-01-01", fechaCierreVentas: "2026-12-31", estado: "activo" }).returning())[0].id;
+  cohorteId = (await db.insert(cohorts).values({ programId, codigo: "O2", metaCupos: 10, precioUsd: "1000", fechaInicioClases: "2027-01-01", fechaInicioVentas: "2026-01-01", fechaCierreVentas: "2026-12-31" }).returning())[0].id;
+  await skuVirtualDePrueba(db, cohorteId);
 });
 
 async function nuevoDeal(
@@ -165,7 +167,7 @@ async function casoDeAbono(
 ): Promise<CasoMatriz> {
   const frontera = fronteraDe(escenario);
   const dealId = await nuevoDeal("atendido", frontera.programa, frontera.ownerUserId);
-  const [abono] = await db.insert(abonos).values({
+  const [abono] = await abonoDePrueba(db, {
     dealId,
     programId: frontera.programa,
     fecha: "2026-11-13",
@@ -175,7 +177,7 @@ async function casoDeAbono(
     nota: "Mentoría",
     plataformaId,
     registradoPorUserId: frontera.ownerUserId,
-  }).returning();
+  });
   return {
     argumentos: accion === "cambiar" ? {
       deal_id: dealId,
@@ -361,7 +363,7 @@ describe("acciones MCP ola 2", () => {
 
   it("cambiar_plataforma_de_abono confirma, deja rastro mcp y, como en la app, no se deshace", async () => {
     const dealId = await nuevoDeal();
-    const [abono] = await db.insert(abonos).values({ dealId, programId, fecha: "2026-11-13", monto: "25", moneda: "USD", concepto: "adicional", nota: "Mentoría", plataformaId, registradoPorUserId: closerId }).returning();
+    const [abono] = await abonoDePrueba(db, { dealId, programId, fecha: "2026-11-13", monto: "25", moneda: "USD", concepto: "adicional", nota: "Mentoría", plataformaId, registradoPorUserId: closerId });
     const resultado = await aplicar("cambiar_plataforma_de_abono", { deal_id: dealId, abono_id: abono.id, plataforma_id: otraPlataformaId });
     expect((await db.select().from(abonos).where(eq(abonos.id, abono.id)))[0].plataformaId).toBe(otraPlataformaId);
     expect(evento(resultado)).toBeNull();
@@ -375,7 +377,7 @@ describe("acciones MCP ola 2", () => {
     let argumentos: Record<string, unknown> = { deal_id: dealId, motivo };
     let tabla: typeof deals | typeof abonos | typeof calls = deals;
     let id = dealId;
-    if (accion === "anular_abono") { const fila = (await db.insert(abonos).values({ dealId, programId, fecha: "2026-11-13", monto: "25", moneda: "USD", concepto: "adicional", nota: "Mentoría", plataformaId, registradoPorUserId: closerId }).returning())[0]; id = fila.id; tabla = abonos; argumentos = { ...argumentos, abono_id: id }; }
+    if (accion === "anular_abono") { const fila = (await abonoDePrueba(db, { dealId, programId, fecha: "2026-11-13", monto: "25", moneda: "USD", concepto: "adicional", nota: "Mentoría", plataformaId, registradoPorUserId: closerId }))[0]; id = fila.id; tabla = abonos; argumentos = { ...argumentos, abono_id: id }; }
     if (accion === "anular_llamada") { id = await nuevaLlamada(dealId); tabla = calls; argumentos = { ...argumentos, llamada_id: id }; }
     const previa = await preparar(accion, argumentos);
     expect(previa.filas).toEqual([expect.objectContaining({ detalle: { aviso: "Una anulación no se puede deshacer." } })]);
@@ -397,6 +399,8 @@ describe("acciones MCP ola 2", () => {
   it("registrar_abono rechaza sobrepago, plataforma inactiva y comprobante ausente", async () => {
     const dealId = await nuevoDeal("compromiso_verbal");
     await db.update(deals).set({ valorVendidoUsd: "100" }).where(eq(deals.id, dealId));
+    // ADR 0137 punto 8: el valor que limita el abono vive en la línea.
+    await lineaConCupoDePrueba(db, dealId);
     const base = { deal_id: dealId, fecha: "2026-11-13", concepto: "ticket", plataforma_id: plataformaId, comprobante_url: "https://example.test/abono" };
     expect((await preparar("registrar_abono", { ...base, monto: "100.01" }).then((x) => x.filas) as { se_puede_aplicar: boolean }[])[0].se_puede_aplicar).toBe(false);
     const [inactiva] = await db.insert(plataformasPago).values({ nombre: "Inactiva ola 2", activo: false }).returning();
@@ -421,7 +425,7 @@ describe("acciones MCP ola 2", () => {
     "%s rechaza si otro abono cambió el saldo después de preparar",
     async (accion) => {
       const dealId = await nuevoDeal();
-      const [objetivo] = await db.insert(abonos).values({
+      const [objetivo] = await abonoDePrueba(db, {
         dealId,
         programId,
         fecha: "2026-11-12",
@@ -430,7 +434,7 @@ describe("acciones MCP ola 2", () => {
         concepto: "adicional",
         plataformaId,
         registradoPorUserId: closerId,
-      }).returning();
+      });
       const argumentos = accion === "registrar_abono" ? {
         deal_id: dealId,
         fecha: "2026-11-13",

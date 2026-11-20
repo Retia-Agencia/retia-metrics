@@ -1,8 +1,9 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { sql } from "drizzle-orm";
 import type { Session } from "next-auth";
 import {
-  abonos, calls, cohorts, cuentasPublicitarias, dealEtapaHistorial, deals, gastoPauta, leads, pautaObjetos, programs, sources,
+  calls, cohorts, cuentasPublicitarias, dealEtapaHistorial, deals, gastoPauta, leads, pautaObjetos, programs, sources,
   submissions, users, usuariosProgramasAlcance,
 } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
@@ -54,7 +55,7 @@ beforeEach(async () => {
   paidId = paid.id;
   closerId = closer.id;
   await db.insert(usuariosProgramasAlcance).values({ userId: paidId, programId: programaA });
-  const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "L-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01", estado: "activo" }).returning();
+  const [cohorte] = await db.insert(cohorts).values({ programId: programaA, codigo: "L-1", metaCupos: 10, precioUsd: "797", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", fechaInicioClases: "2026-12-01" }).returning();
   const [fuente, fuenteB] = await db.insert(sources).values([
     { programId: programaA, nombre: "Formulario A" },
     { programId: programaB, nombre: "Formulario B" },
@@ -111,7 +112,7 @@ beforeEach(async () => {
     llamada({ fechaAgenda: fecha("2026-11-11T10:00:00-05:00"), createdAt: fecha("2026-11-10T12:00:00-05:00") }),
   ]).returning();
   Object.assign(ids, { c1: c1.id, c2: c2.id, c3: c3.id, c4: c4.id, c5: c5.id });
-  const [a1, a2, a3, a4] = await db.insert(abonos).values([
+  const [a1, a2, a3, a4] = await abonoDePrueba(db, [
     { programId: programaA, dealId: d1.id, fecha: "2026-11-08", monto: "100.50", moneda: "USD", registradoPorUserId: closerId },
     { programId: programaA, dealId: d1.id, fecha: "2026-11-08", monto: "200000", moneda: "COP", registradoPorUserId: closerId },
     { programId: programaA, dealId: d1.id, fecha: "2026-11-08", monto: "50", moneda: "USD", registradoPorUserId: closerId, anuladoEn: new Date(), anuladoPor: gerenteId, motivoAnulacion: "prueba" },
@@ -120,7 +121,7 @@ beforeEach(async () => {
     { programId: programaA, dealId: d1.id, fecha: "2026-11-02", monto: "10", moneda: "USD", registradoPorUserId: closerId },
     // Un pago anulado todavía más viejo no fecha nada.
     { programId: programaA, dealId: d1.id, fecha: "2026-10-01", monto: "5", moneda: "USD", registradoPorUserId: closerId, anuladoEn: new Date(), anuladoPor: gerenteId, motivoAnulacion: "prueba" },
-  ]).returning();
+  ]);
   Object.assign(ids, { a1: a1.id, a2: a2.id, a3: a3.id, a4: a4.id });
   const [g1, g2, g3] = await db.insert(gastoPauta).values([
     { programId: programaA, fecha: "2026-11-05", monto: "300000", moneda: "COP", origen: "manual", area: "paid" },

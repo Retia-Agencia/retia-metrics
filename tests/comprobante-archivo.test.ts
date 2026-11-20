@@ -1,3 +1,4 @@
+import { abonoDePrueba, skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, inArray } from "drizzle-orm";
 
@@ -45,9 +46,9 @@ beforeEach(async () => {
     fechaInicioClases: "2026-11-01",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-10-31",
-    estado: "activo",
   }).returning();
   cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohortId);
   const actores = await db.insert(users).values([
     { email: "dueno@retia.co", rol: "closer", closerId: "Dueño" },
     { email: "otro@retia.co", rol: "closer", closerId: "Otro" },
@@ -76,14 +77,14 @@ async function nuevoAbono(opciones: { etapa?: "atendido" | "ganado_completo"; an
     etapa: opciones.etapa ?? "atendido",
     valorVendidoUsd: "1000",
   }).returning();
-  const [abono] = await db.insert(abonos).values({
+  const [abono] = await abonoDePrueba(db, {
     dealId: deal.id,
     programId,
     fecha: "2026-10-13",
     monto: "100",
     registradoPorUserId: closer,
     ...(opciones.anulado ? { anuladoEn: new Date(), anuladoPor: closer, motivoAnulacion: "Error" } : {}),
-  }).returning();
+  });
   return { dealId: deal.id, abonoId: abono.id };
 }
 

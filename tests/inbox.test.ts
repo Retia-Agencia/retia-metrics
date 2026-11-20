@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
@@ -65,7 +66,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-30",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
@@ -328,7 +328,7 @@ describe("inboxDelPrograma — atención: próximo contacto vencido", () => {
 describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
   it("positivo: abonado con fecha límite pasada y saldo entra con su saldo", async () => {
     const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-19", monto: "400", moneda: "USD", comprobanteUrl: "https://soporte.test/400" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     const fila = inbox.atencion.find((f) => f.dealId === dealId)!;
     expect(fila.motivo).toBe("pago_vencido");
@@ -338,7 +338,7 @@ describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
 
   it("negativo: abonado pagado completo (saldo 0) no entra", async () => {
     const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD", comprobanteUrl: "https://soporte.test/1000" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-19", monto: "1000", moneda: "USD", comprobanteUrl: "https://soporte.test/1000" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("pago_vencido");
   });
@@ -347,13 +347,13 @@ describe("inboxDelPrograma — atención: pago vencido con saldo (c)", () => {
 describe("inboxDelPrograma — atención: abono sin comprobante", () => {
   it("aparece antes que los otros motivos y un abono anulado no cuenta", async () => {
     const { dealId } = await crearDeal({ etapa: "ganado_parcial", fechaLimitePago: "2026-09-20" });
-    const [abono] = await db.insert(abonos).values({
+    const [abono] = await abonoDePrueba(db, {
       dealId,
       programId,
       fecha: "2026-09-19",
       monto: "400",
       moneda: "USD",
-    }).returning();
+    });
     expect((await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY)).atencion.find((f) => f.dealId === dealId)?.motivo)
       .toBe("abono_sin_comprobante");
 
@@ -420,7 +420,7 @@ describe("inboxDelPrograma — atención: estancado (e), en días hábiles", () 
 
   it("un abono o un movimiento de etapa cuentan como actividad y sacan del estancamiento", async () => {
     const { dealId } = await crearDeal({ etapa: "ganado_parcial", createdAt: enBogota("2026-09-01"), fechaLimitePago: null });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-25", monto: "100", moneda: "USD" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-25", monto: "100", moneda: "USD" });
     const inbox = await inboxDelPrograma(db, programId, { ownerUserId: closer }, HOY);
     expect(inbox.atencion.find((f) => f.dealId === dealId)?.motivo).not.toBe("estancado");
   });

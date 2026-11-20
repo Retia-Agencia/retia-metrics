@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, dealEtapaHistorial, deals, programs, users } from "@/lib/db/schema";
+import { calls, dealEtapaHistorial, deals, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { REGISTRO } from "@/lib/metricas/registro";
 import { embudoDelRango, embudoPorCloser } from "@/lib/queries/dashboard";
@@ -58,7 +59,7 @@ describe("closer: una pregunta y una definicion", () => {
         fecha,
         userId: ownerUserId,
       });
-      await db.insert(abonos).values({
+      await abonoDePrueba(db, {
         dealId: deal.id,
         programId: programa.id,
         registradoPorUserId: ownerUserId,

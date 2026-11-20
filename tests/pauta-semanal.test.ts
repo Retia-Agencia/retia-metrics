@@ -1,7 +1,7 @@
+import { abonoDePrueba, lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  abonos,
   calls,
   cuentasPublicitarias,
   deals,
@@ -114,6 +114,7 @@ async function crearDeal(
     motivoAnulacion: anulado ? "Duplicado" : null,
   }).returning())[0];
   if (opciones.venta) {
+    await lineaConCupoDePrueba(db, deal.id);
     await db.insert(dealEtapaHistorial).values({
       dealId: deal.id,
       a: "ganado_completo",
@@ -245,7 +246,7 @@ describe("tabla semanal de Paid Media", () => {
     const envioAnulado = await crearEnvio(programId, "2026-10-05");
     const dealAnulado = await crearDeal(envioAnulado, { venta: true, valor: "500", diaVenta: "2026-10-05", anulado: true });
     await crearCita(dealAnulado.id, "2026-10-05", "show", true);
-    await db.insert(abonos).values({
+    await abonoDePrueba(db, {
       programId,
       dealId: dealAnulado.id,
       fecha: "2026-10-05",

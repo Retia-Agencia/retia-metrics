@@ -1,6 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, expect, it } from "vitest";
-import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { leerSeriesDeDinero } from "@/lib/queries/series-dinero";
 import { armarVistaDelDashboard } from "@/lib/queries/vista-dashboard";
@@ -41,8 +42,7 @@ beforeEach(async () => {
   const [cohorte] = await db.insert(cohorts).values({
     programId, codigo: "SERIE", metaCupos: 22, precioUsd: "100",
     fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-31",
-    fechaInicioClases: "2026-11-01", estado: "activo",
-  }).returning();
+    fechaInicioClases: "2026-11-01", }).returning();
   cohortId = cohorte.id;
   contador = 0;
 });
@@ -89,7 +89,7 @@ it("los días del periodo cuadran con las cifras; anulación, reversa y otro pro
   await venta({ dia: "2026-10-01", valor: "900", anulada: true });
   await venta({ dia: "2026-10-01", valor: "800", revertida: true });
   const ajena = await venta({ dia: "2026-10-02", valor: "700", programa: otroPrograma });
-  await db.insert(abonos).values([
+  await abonoDePrueba(db, [
     // El primer pago fecha la venta (ADR 0136): septiembre pagó el 30-sep (su venta) y el saldo llega en octubre.
     { programId, dealId: septiembre, registradoPorUserId: ana, fecha: "2026-09-30", moneda: "USD", monto: "55" },
     { programId, dealId: septiembre, registradoPorUserId: ana, fecha: "2026-10-03", moneda: "USD", monto: "25.15" },
@@ -117,7 +117,7 @@ it("los días del periodo cuadran con las cifras; anulación, reversa y otro pro
 it("cupos con caja: cada deal cuenta una vez, el día de su primer abono vigente del periodo", async () => {
   const dosAbonos = await venta({ dia: "2026-10-01" });
   const anulado = await venta({ dia: "2026-10-01" });
-  await db.insert(abonos).values([
+  await abonoDePrueba(db, [
     { programId, dealId: dosAbonos, registradoPorUserId: ana, fecha: "2026-10-02", moneda: "USD", monto: "10" },
     { programId, dealId: dosAbonos, registradoPorUserId: ana, fecha: "2026-10-04", moneda: "USD", monto: "10" },
     { programId, dealId: dosAbonos, registradoPorUserId: ana, fecha: "2026-09-20", moneda: "USD", monto: "10" },
@@ -134,7 +134,7 @@ it("cupos con caja: cada deal cuenta una vez, el día de su primer abono vigente
 it("respeta el closer como las tarjetas: dueño en ventas y registrador en caja, sin repartir meta", async () => {
   const deAna = await venta({ dia: "2026-10-01", owner: ana, valor: "80" });
   const deBeto = await venta({ dia: "2026-10-02", owner: beto, valor: "140" });
-  await db.insert(abonos).values([
+  await abonoDePrueba(db, [
     { programId, dealId: deBeto, registradoPorUserId: ana, fecha: hoy, moneda: "USD", monto: "20" },
     { programId, dealId: deAna, registradoPorUserId: beto, fecha: hoy, moneda: "USD", monto: "30" },
     { programId, dealId: deBeto, closerId: " ANA ", fecha: hoy, moneda: "USD", monto: "5" },
@@ -151,8 +151,7 @@ it("la cohorte elegida filtra A y B con su propia cohorte, y su meta es cupos po
   const [otra] = await db.insert(cohorts).values({
     programId, codigo: "ANTES", metaCupos: 10, precioUsd: "50",
     fechaInicioVentas: "2026-08-01", fechaCierreVentas: "2026-08-31",
-    fechaInicioClases: "2026-09-01", estado: "cerrado",
-  }).returning();
+    fechaInicioClases: "2026-09-01", }).returning();
   await venta({ dia: "2026-10-02", valor: "100" });
   const deAntes = await venta({ dia: "2026-08-05", valor: "50" });
   await db.update(deals).set({ cohortId: otra.id }).where(eq(deals.id, deAntes));

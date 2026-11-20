@@ -29,6 +29,7 @@ import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * Ticket 074: las tres mutaciones NUEVAS de la ficha del deal (editar, anular, registrar
@@ -69,10 +70,10 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;
+  await skuVirtualDePrueba(db, cohortId);
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;
   const [u2] = await db.insert(users).values({ email: "jero@retiagrowth.com", rol: "closer", closerId: "Jero" }).returning();

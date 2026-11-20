@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { abonos, calls, changeLog, dealActividades, dealEtapaHistorial, deals, motivos, reversiones } from "@/lib/db/schema";
+import { abonos, calls, changeLog, dealActividades, dealEtapaHistorial, dealLineas, deals, motivos, reversiones } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { ErrorDeApp } from "@/lib/errors";
 import { normalizando } from "@/lib/errors-zod";
@@ -15,6 +15,7 @@ import { anularLlamada, RESULTADOS_CORREGIBLES } from "@/lib/deals/llamadas";
 import { REGISTRO, type ContextoDeRestauracion, type FilaDeGrupo, type ReglaDeCampo, type TablaDeshacible } from "./registro";
 import type { OrigenOperativo } from "@/lib/crm/rastro";
 import { restaurarPendienteAlDeshacerLlamadaFallida } from "./reagenda";
+import { anularLinea, recalcularDealPorLineas } from "@/lib/deals/lineas";
 
 export const esquemaDeshacerEvento = z.object({
   dealId: z.string().uuid("El deal no es válido."),
@@ -148,7 +149,13 @@ async function insertarReversion(
 
 async function dealIdDeRegistro(tx: Db, tabla: TablaDeshacible, registroId: string): Promise<string | null> {
   if (tabla === "deals") return registroId;
-  const tablaDrizzle = tabla === "calls" ? calls : tabla === "abonos" ? abonos : dealActividades;
+  const tablaDrizzle = tabla === "calls"
+    ? calls
+    : tabla === "abonos"
+      ? abonos
+      : tabla === "deal_lineas"
+        ? dealLineas
+        : dealActividades;
   const [fila] = await tx.select({ dealId: tablaDrizzle.dealId }).from(tablaDrizzle)
     .where(and(eq(tablaDrizzle.id, registroId), incluyendoAnulados(tablaDrizzle)));
   return fila?.dealId ?? null;
@@ -192,6 +199,10 @@ async function deshacerCambio(
     if (tabla === "abonos") await anularAbono(tx, actor, { abonoId: evento.registroId, motivo: entrada.motivo }, { reversionId, origen: opciones.origen });
     else if (tabla === "deals") await anularDeal(tx, actor, { dealId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true, origen: opciones.origen });
     else if (tabla === "calls") await anularLlamada(tx, actor, { callId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true, origen: opciones.origen });
+    else if (tabla === "deal_lineas") await anularLinea(tx, {
+      deal, lineaId: evento.registroId, actorId: actor.userId, etiqueta: evento.etiqueta ?? evento.registroId,
+      reversionId, origen: opciones.origen,
+    });
     else await anularActividad(tx, actor, { actividadId: evento.registroId, motivo: entrada.motivo }, { reversionId, permisoValidado: true, origen: opciones.origen });
     return;
   }
@@ -227,6 +238,9 @@ async function deshacerCambio(
       .orderBy(desc(dealEtapaHistorial.fecha), desc(dealEtapaHistorial.id)).limit(1);
     if (!origen?.de) throw new ErrorDeApp("No se encontró la etapa anterior de la cortesía.", 409);
     await moverEtapa(tx, { dealId: deal.id, a: origen.de, actor: { tipo: "usuario", ...actor }, correccion: true, reversionId, permitirSalirDeGanado: true, origen: opciones.origen });
+    await recalcularDealPorLineas(tx, deal.id, {
+      actorId: actor.userId, etiqueta: deal.id, reversionId, origen: opciones.origen,
+    });
   }
 }
 
@@ -304,12 +318,13 @@ export function entradaDeEventoDeshacible(evento: EventoDeshacible): z.output<ty
 export async function eventosDeshacibles(db: Db, actor: ActorDeDeal, dealId: string): Promise<EventoDeshacible[]> {
   const [deal] = await db.select().from(deals).where(and(eq(deals.id, dealId), incluyendoAnulados(deals)));
   if (!deal) throw new ErrorDeApp("No existe el deal.", 404);
-  const [llamadas, pagos, actividades] = await Promise.all([
+  const [llamadas, lineas, pagos, actividades] = await Promise.all([
     db.select({ id: calls.id }).from(calls).where(and(eq(calls.dealId, dealId), incluyendoAnulados(calls))),
+    db.select({ id: dealLineas.id }).from(dealLineas).where(and(eq(dealLineas.dealId, dealId), incluyendoAnulados(dealLineas))),
     db.select({ id: abonos.id }).from(abonos).where(and(eq(abonos.dealId, dealId), incluyendoAnulados(abonos))),
     db.select({ id: dealActividades.id }).from(dealActividades).where(and(eq(dealActividades.dealId, dealId), incluyendoAnulados(dealActividades))),
   ]);
-  const ids = [dealId, ...llamadas.map((fila) => fila.id), ...pagos.map((fila) => fila.id), ...actividades.map((fila) => fila.id)];
+  const ids = [dealId, ...llamadas.map((fila) => fila.id), ...lineas.map((fila) => fila.id), ...pagos.map((fila) => fila.id), ...actividades.map((fila) => fila.id)];
   const filas = await db.select().from(changeLog)
     .where(inArray(changeLog.registroId, ids)).orderBy(desc(changeLog.detectadoEn));
   const grupos = agrupar(filas);

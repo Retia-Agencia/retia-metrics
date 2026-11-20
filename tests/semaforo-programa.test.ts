@@ -72,7 +72,6 @@ async function crearPrograma(slug: string, opciones: { cohorte?: boolean; objeti
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-31",
       fechaInicioClases: "2026-11-01",
-      estado: "activo",
     }).returning();
     cohortId = cohorte.id;
     if (opciones.objetivo !== false) {

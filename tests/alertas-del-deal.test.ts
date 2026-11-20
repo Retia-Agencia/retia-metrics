@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
+import { calls, dealActividades, deals, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { transicion, type EtapaDeal } from "@/lib/deals/etapas";
 import { MovimientoRechazado, moverEtapa } from "@/lib/deals/mover-etapa";
@@ -209,7 +210,7 @@ describe("alertasDelDeal — urgencia y fronteras", () => {
 
   it("un Ganado Completo con abono vigente sin comprobante muestra la alerta roja", async () => {
     const ganado = await crearDeal("ganado_completo");
-    await db.insert(abonos).values({ dealId: ganado, programId, fecha: "2026-10-01", monto: "1000" });
+    await abonoDePrueba(db, { dealId: ganado, programId, fecha: "2026-10-01", monto: "1000" });
     expect((await alertasDelDeal(db, programId, ganado))!.urgentes).toContainEqual({
       motivo: "abono_sin_comprobante",
       mensaje: "Hay un abono sin comprobante.",

@@ -310,7 +310,6 @@ describe("embudoPorEtapas con PGlite", () => {
       fechaInicioClases: "2026-10-01",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-09-30",
-      estado: "activo",
     }).returning();
     cohortId = cohorte.id;
     const [closer] = await db.insert(users).values({

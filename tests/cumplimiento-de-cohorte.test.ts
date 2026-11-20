@@ -133,7 +133,6 @@ async function sembrarPrograma(slug: string, cantidad: number) {
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-11-02",
     fechaCierreVentas: "2026-11-06",
-    estado: "activo",
   }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: `Fuente ${slug}` }).returning();
   const ownerUserId = await duenoDePrueba(db, programa.id);

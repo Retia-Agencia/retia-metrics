@@ -48,8 +48,7 @@ beforeEach(async () => {
   programId = p.id;
   const [c] = await db.insert(cohorts).values({
     programId, codigo: "C1", metaCupos: 20, precioUsd: "1000",
-    fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-10-12", fechaCierreVentas: "2026-11-04", estado: "activo",
-  }).returning();
+    fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-10-12", fechaCierreVentas: "2026-11-04", }).returning();
   cohortId = c.id;
 });
 

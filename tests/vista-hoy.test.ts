@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
+import { calls, cohorts, dealEtapaHistorial, deals, leads, programs, sources, submissions, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { hoyEnBogota } from "@/lib/format";
 import { cajaRecaudada, type VistaDeCohorte } from "@/lib/queries/dashboard";
@@ -123,7 +124,7 @@ describe("la caja de hoy por origen (252)", () => {
     const deAntes = await deal(programa.id, "antes@retia.co", "2026-10-02");
     const ajeno = await deal(otro.id, "ajeno@retia.co", HOY);
     const [gerente] = await db.insert(users).values({ email: "gerente@retia.co", rol: "gerente" }).returning();
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: deHoy.id, programId: programa.id, fecha: HOY, monto: "300", moneda: "USD" },
       { dealId: deAntes.id, programId: programa.id, fecha: HOY, monto: "200", moneda: "USD" },
       { dealId: deAntes.id, programId: programa.id, fecha: HOY, monto: "400000", moneda: "COP" },
@@ -215,7 +216,6 @@ describe("la caja de hoy por origen (252)", () => {
       fechaInicioClases: "2026-11-01",
       fechaInicioVentas: "2026-10-12",
       fechaCierreVentas: "2026-10-16",
-      estado: "activo",
     }).returning();
     let secuencia = 0;
     const venta = async (vendidoEl: string) => {

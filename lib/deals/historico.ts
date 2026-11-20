@@ -6,6 +6,7 @@ import { ErrorDeApp } from "@/lib/errors";
 import { mismoCloser } from "@/lib/closers/identidad";
 import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { duenosPosibles } from "./duenos";
+import { asegurarLineaConCupo, lineaConCupoVigente, recalcularDealPorLineas } from "./lineas";
 
 export { abrirDealHistorico, abrirDealesHistoricos, type AltaHistorica, type DealHistorico } from "./mover-etapa";
 
@@ -85,6 +86,17 @@ export async function registrarAbonosHistoricos(db: Db, lista: readonly AbonoHis
 
   return (db as unknown as Transaccion).transaction(async (tx) => {
     const deal = await dealesDeLaMigracion(tx, lista.map((a) => a.dealId));
+    const lineaPorDeal = new Map<string, string>();
+    for (const d of deal.values()) {
+      let linea = await lineaConCupoVigente(tx, d.id);
+      if (!linea) {
+        if (!d.cohortId) throw new ErrorDeApp("El deal histórico necesita cohorte para registrar su abono.", 409);
+        linea = await asegurarLineaConCupo(tx, {
+          deal: d, cohortId: d.cohortId, actorId, etiqueta: d.id,
+        });
+      }
+      lineaPorDeal.set(d.id, linea.id);
+    }
     const ids = await crearVariosConRastro(
       { db: tx, tabla: abonos, nombreTabla: "abonos", actorId, omitirChoques: true },
       lista.map((abono) => {
@@ -93,6 +105,7 @@ export async function registrarAbonosHistoricos(db: Db, lista: readonly AbonoHis
           etiqueta: d.id,
           valores: {
             dealId: d.id,
+            lineaId: lineaPorDeal.get(d.id)!,
             programId: d.programId,
             fecha: abono.fecha,
             monto: abono.monto,
@@ -106,6 +119,10 @@ export async function registrarAbonosHistoricos(db: Db, lista: readonly AbonoHis
         };
       }),
     );
+
+    for (const d of deal.values()) {
+      await recalcularDealPorLineas(tx, d.id, { actorId, etiqueta: d.id });
+    }
 
     const chocadas = lista.filter((_, i) => ids[i] == null).map((a) => a.huella);
     const previos = new Map<string, string>();

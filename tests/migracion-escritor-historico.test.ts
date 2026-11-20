@@ -4,6 +4,7 @@ import {
   abonos,
   calls,
   changeLog,
+  cohorts,
   dealActividades,
   dealEtapaHistorial,
   deals,
@@ -28,6 +29,7 @@ import {
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { FECHA_LEAD_DE_PRUEBA } from "./helpers/crear-lead-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 
 /**
  * ADR 0059 y ticket 078 — el escritor de lo historico.
@@ -45,6 +47,7 @@ let otroPrograma: string;
 let lead: string;
 let script: string;
 let maru: string;
+let cohortId: string;
 
 const H = (llave: string) => `sheets:programa-a:Estudiantes:${llave}`;
 
@@ -64,6 +67,12 @@ beforeEach(async () => {
     .returning();
   programa = p.id;
   otroPrograma = q.id;
+  const [cohorte] = await db.insert(cohorts).values({
+    programId: programa, codigo: "C1", metaCupos: 10, precioUsd: "1000",
+    fechaInicioClases: "2026-09-01", fechaInicioVentas: "2026-07-01",
+    fechaCierreVentas: "2026-08-31", }).returning();
+  cohortId = cohorte.id;
+  await skuVirtualDePrueba(db, cohortId);
   const [l] = await db
     .insert(leads)
     .values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programa, emailNormalizado: "ana@correo.co", nombre: "Ana" })
@@ -216,6 +225,7 @@ describe("registrarAbonoHistorico", () => {
       etapa: "compromiso_verbal",
       huella: H("ana"),
       actorId: script,
+      cohortId,
     });
     deal = (r as { dealId: string }).dealId;
   });
@@ -386,7 +396,7 @@ describe("en lote (ticket 078)", () => {
 
   it("abonos y llamadas: la segunda corrida del lote no duplica ni deja bitacora nueva", async () => {
     const [d] = await abrirDealesHistoricos(db, [
-      { leadId: caro, programId: programa, etapa: "compromiso_verbal", huella: H("caro"), actorId: script },
+      { leadId: caro, programId: programa, etapa: "compromiso_verbal", huella: H("caro"), actorId: script, cohortId },
     ]);
     const dealId = (d as { dealId: string }).dealId;
     const listaAbonos = [1, 2].map((n) => ({ dealId, huella: H(`caro:abono:${n}`), actorId: script, fecha: "2026-08-18", monto: "100" }));

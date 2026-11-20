@@ -74,25 +74,21 @@ async function main() {
     {
       programa: "comunicarte", codigo: "C1", metaCupos: 30, precioUsd: "697.00",
       fechaInicioClases: "2026-08-11", fechaInicioVentas: null, fechaCierreVentas: "2026-08-11",
-      estado: "cerrado" as const,
       notas: "Cerro con 30 compradores. Lead a venta 2,64%, invitado a venta 21,5%.",
     },
     {
       programa: "comunicarte", codigo: "C2", metaCupos: 50, precioUsd: "797.00",
       fechaInicioClases: "2026-09-22", fechaInicioVentas: "2026-08-14", fechaCierreVentas: "2026-09-21",
-      estado: "activo" as const,
       notas: "Precio subio de 697 a 797 el 13-ago. Se respeta el anterior a quien ya lo tenia cotizado.",
     },
     {
       programa: "tactical-investor", codigo: "C1", metaCupos: 30, precioUsd: "1500.00",
       fechaInicioClases: "2026-08-18", fechaInicioVentas: null, fechaCierreVentas: "2026-08-18",
-      estado: "cerrado" as const,
       notas: "31 matriculados sobre meta de 30, pero solo 17 pasaron por el registro de llamadas.",
     },
     {
       programa: "tactical-investor", codigo: "C2", metaCupos: 50, precioUsd: "1500.00",
       fechaInicioClases: "2026-09-29", fechaInicioVentas: "2026-08-19", fechaCierreVentas: "2026-09-29",
-      estado: "activo" as const,
       notas: "Meta de 50 cerrados por el equipo. Lo que entre por webinar es adicional.",
     },
   ];

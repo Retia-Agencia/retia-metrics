@@ -85,8 +85,7 @@ describe("los umbrales y las alertas del programa", () => {
     ]).returning()).map((u) => u.id);
     const [c] = await db.insert(cohorts).values({
       programId: programaA, codigo: "C1", metaCupos: 22, precioUsd: "100", fechaInicioClases: "2026-11-02",
-      fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-30", estado: "activo",
-    }).returning();
+      fechaInicioVentas: "2026-10-01", fechaCierreVentas: "2026-10-30", }).returning();
     // Una sola venta, el 1-oct: después todo queda bajo el 80 %.
     const [lead] = await db.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: programaA, emailNormalizado: "l@a147.test" }).returning();
     const [deal] = await db.insert(deals).values({ programId: programaA, leadId: lead.id, ownerUserId: closer, etapa: "ganado_completo", cohortId: c.id }).returning();

@@ -1,7 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Session } from "next-auth";
 import {
-  abonos,
   calls,
   cohorts,
   dealEtapaHistorial,
@@ -184,7 +184,6 @@ beforeEach(async () => {
     fechaInicioVentas: "2026-11-01",
     fechaCierreVentas: "2026-11-30",
     fechaInicioClases: "2026-12-01",
-    estado: "activo",
   }).returning();
   const [fuente] = await db.insert(sources).values({ programId: programa.id, nombre: "Formulario" }).returning();
   const [lead] = await db.insert(leads).values({
@@ -231,7 +230,7 @@ beforeEach(async () => {
     createdAt: new Date("2026-11-14T09:00:00-05:00"),
     origen: "app",
   });
-  await db.insert(abonos).values({
+  await abonoDePrueba(db, {
     programId: programa.id,
     dealId: deal.id,
     fecha: "2026-11-11",

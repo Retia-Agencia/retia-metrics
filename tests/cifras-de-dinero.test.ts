@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
@@ -172,7 +173,7 @@ describe("419 E-2: paridad cifra = lista en Dinero", () => {
       }).returning();
       await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_parcial", fecha: new Date("2026-10-05T10:00:00-05:00") });
       for (const [monto, moneda] of pagos) {
-        await db.insert(abonos).values({ programId: programa, dealId: deal.id, registradoPorUserId: closer.id, fecha: "2026-10-06", monto: String(monto), moneda });
+        await abonoDePrueba(db, { programId: programa, dealId: deal.id, registradoPorUserId: closer.id, fecha: "2026-10-06", monto: String(monto), moneda });
       }
       if (extra.anulada) await db.update(deals).set({ anuladoEn: ahora, anuladoPor: closer.id, motivoAnulacion: "Prueba" }).where(eq(deals.id, deal.id));
       return deal;

@@ -1,3 +1,4 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { abonos, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
@@ -58,7 +59,7 @@ async function vender(valor: string | null, abonosUsd: number[], extra: { progra
   }).returning();
   await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: extra.etapa ?? "ganado_parcial", fecha: new Date(`${extra.dia ?? "2026-10-05"}T10:00:00-05:00`) });
   for (const monto of abonosUsd) {
-    await db.insert(abonos).values({ programId: programa, dealId: deal.id, registradoPorUserId: closerA.id, fecha: extra.dia ?? "2026-10-06", monto: String(monto), moneda: "USD" }); // el primer pago fecha la venta (ADR 0136)
+    await abonoDePrueba(db, { programId: programa, dealId: deal.id, registradoPorUserId: closerA.id, fecha: extra.dia ?? "2026-10-06", monto: String(monto), moneda: "USD" }); // el primer pago fecha la venta (ADR 0136)
   }
   return deal;
 }
@@ -74,16 +75,20 @@ describe("las tres cifras (369)", () => {
     });
   });
 
-  it("un abono anulado no cuenta; un abono adicional no cambia ninguna de las tres y sí Entró a caja", async () => {
+  it("ADR 0137 punto 14: un abono anulado no cuenta y un adicional suma su propia línea vendida", async () => {
     const venta = await vender("1500", [500]);
-    const [anulado] = await db.insert(abonos).values({ programId, dealId: venta.id, registradoPorUserId: closerA.id, fecha: "2026-10-07", monto: "400", moneda: "USD" }).returning();
+    const [anulado] = await abonoDePrueba(db, { programId, dealId: venta.id, registradoPorUserId: closerA.id, fecha: "2026-10-07", monto: "400", moneda: "USD" });
     await db.update(abonos).set({ anuladoEn: AHORA, anuladoPor: closerA.id, motivoAnulacion: "Error de prueba" }).where(eq(abonos.id, anulado.id));
     const antes = await dineroDeVentas(db, [venta.id]);
     const cajaAntes = await cajaRecaudada(alcance(), db);
-    await db.insert(abonos).values({ programId, dealId: venta.id, registradoPorUserId: closerA.id, fecha: "2026-10-08", monto: "100", moneda: "USD", concepto: "adicional" });
+    await abonoDePrueba(db, { programId, dealId: venta.id, registradoPorUserId: closerA.id, fecha: "2026-10-08", monto: "100", moneda: "USD", concepto: "adicional" });
 
     expect(antes).toMatchObject({ vendido: 1500, recaudado: 500, porCobrar: 1000 });
-    expect(await dineroDeVentas(db, [venta.id])).toEqual(antes);
+    expect(await dineroDeVentas(db, [venta.id])).toEqual({
+      ...antes,
+      vendido: antes.vendido + 100,
+      recaudado: antes.recaudado + 100,
+    });
     const cajaDespues = await cajaRecaudada(alcance(), db);
     expect(cajaDespues.find((c) => c.moneda === "USD")?.total).toBe((cajaAntes.find((c) => c.moneda === "USD")?.total ?? 0) + 100);
   });
@@ -103,9 +108,11 @@ describe("las tres cifras (369)", () => {
   });
 
   it("sin valor vendido queda fuera; con abonos en otra moneda cuenta en Vendido pero no en Recaudado ni Por cobrar, y se cuenta aparte", async () => {
-    const sinValor = await vender(null, [50]);
+    // ADR 0137 punto 8: un abono siempre materializa una línea con valor; el caso incompleto
+    // sin valor se representa como una venta histórica sin línea ni abonos.
+    const sinValor = await vender(null, []);
     const otraMoneda = await vender("100", []);
-    await db.insert(abonos).values({ programId, dealId: otraMoneda.id, registradoPorUserId: closerA.id, fecha: "2026-10-06", monto: "400000", moneda: "COP" });
+    await abonoDePrueba(db, { programId, dealId: otraMoneda.id, registradoPorUserId: closerA.id, fecha: "2026-10-06", monto: "400000", moneda: "COP" });
     const buena = await vender("100", [40]);
     expect(await dineroDeVentas(db, [sinValor.id, otraMoneda.id, buena.id])).toEqual({
       vendido: 200, recaudado: 40, porCobrar: 60, sobrepago: 0, ventas: 1, sinSaldoCalculable: 2, sinValorVendido: 1,
@@ -116,8 +123,8 @@ describe("las tres cifras (369)", () => {
 describe("siguen los filtros del Hub y la lista suma lo mismo (369)", () => {
   it("cohorte, periodo y closer acotan las tres cifras; otro programa, cortesía y anulado no entran", async () => {
     const [c1, c2] = await db.insert(cohorts).values([
-      { programId, codigo: "C1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-31", estado: "activo" },
-      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30", estado: "cerrado" },
+      { programId, codigo: "C1", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-11-01", fechaInicioVentas: "2026-09-01", fechaCierreVentas: "2026-10-31" },
+      { programId, codigo: "C2", metaCupos: 10, precioUsd: "1500", fechaInicioClases: "2026-12-01", fechaInicioVentas: "2026-11-01", fechaCierreVentas: "2026-11-30" },
     ]).returning();
     await vender("1500", [1500], { cohortId: c1.id, owner: closerA, etapa: "ganado_completo" });
     await vender("1000", [250], { cohortId: c1.id, owner: closerB });

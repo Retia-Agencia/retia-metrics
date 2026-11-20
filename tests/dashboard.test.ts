@@ -1,7 +1,7 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  abonos,
   calls,
   cohorts,
   dealEtapaHistorial,
@@ -123,9 +123,7 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
   it("un abono de hoy sobre un deal del mes pasado suma a la caja de hoy", async () => {
     const venta = { id: await sembrarDeal(programaA) };
 
-    await db
-      .insert(abonos)
-      .values({ dealId: venta.id, programId: programaA, fecha: "2026-09-15", monto: "750.00", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: venta.id, programId: programaA, fecha: "2026-09-15", monto: "750.00", moneda: "USD" });
 
     const rango = { desde: "2026-09-15", hasta: "2026-09-15" };
 
@@ -137,7 +135,8 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
 
   it("un abono adicional cuenta en caja", async () => {
     const dealId = await sembrarDeal(programaA);
-    await db.insert(abonos).values({
+    const actorId = await duenoDePrueba(db, programaA);
+    await abonoDePrueba(db, {
       dealId,
       programId: programaA,
       fecha: "2026-09-15",
@@ -145,6 +144,7 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
       moneda: "USD",
       concepto: "adicional",
       nota: "Mentoría 1:1",
+      registradoPorUserId: actorId,
     });
 
     expect(await cajaRecaudada({ programId: programaA, rango: { desde: "2026-09-15", hasta: "2026-09-15" } }, db))
@@ -155,7 +155,7 @@ describe("la caja se ancla en la fecha del abono (ADR 0013)", () => {
     const ventaUsd = { id: await sembrarDeal(programaA) };
     const ventaCop = { id: await sembrarDeal(programaA) };
 
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: ventaUsd.id, programId: programaA, fecha: "2026-09-15", monto: "500.00", moneda: "USD" },
       { dealId: ventaUsd.id, programId: programaA, fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
       { dealId: ventaCop.id, programId: programaA, fecha: "2026-09-15", monto: "2000000.00", moneda: "COP" },
@@ -181,7 +181,7 @@ describe("sheets y app se suman sin logica especial", () => {
     const vSheets = { id: await sembrarDeal(programaA) };
     const vApp = { id: await sembrarDeal(programaA) };
 
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: vSheets.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD", origen: "sheets" },
       { dealId: vApp.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD", origen: "app" },
     ]);
@@ -208,9 +208,7 @@ describe("nunca se suman programas distintos", () => {
       resultado: "agendada",
     });
     const ventaA = { id: await sembrarDeal(programaA) };
-    await db
-      .insert(abonos)
-      .values({ dealId: ventaA.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: ventaA.id, programId: programaA, fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
 
     // Programa B: 3 agendas, 2 ventas, un abono de 999.
     await db.insert(calls).values([
@@ -220,9 +218,7 @@ describe("nunca se suman programas distintos", () => {
     ]);
     const ventaB = { id: await sembrarDeal(programaB) };
     await sembrarDeal(programaB);
-    await db
-      .insert(abonos)
-      .values({ dealId: ventaB.id, programId: programaB, fecha: "2026-09-15", monto: "999.00", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: ventaB.id, programId: programaB, fecha: "2026-09-15", monto: "999.00", moneda: "USD" });
 
     const embudoA = await embudoDelRango({ programId: programaA, rango: rango }, db);
     expect(embudoA.agendas).toBe(1);
@@ -337,7 +333,7 @@ describe("rangos: hoy, esta semana y custom", () => {
     ]);
     const v14 = { id: await sembrarDeal(programaA) };
     const v15 = { id: await sembrarDeal(programaA) };
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: v14.id, programId: programaA, fecha: "2026-09-14", monto: "100.00", moneda: "USD" },
       { dealId: v15.id, programId: programaA, fecha: "2026-09-15", monto: "200.00", moneda: "USD" },
     ]);
@@ -379,7 +375,6 @@ async function crearCohorteActiva(args: {
       fechaInicioClases: args.fechaCierreVentas,
       fechaInicioVentas: args.fechaInicioVentas,
       fechaCierreVentas: args.fechaCierreVentas,
-      estado: "activo",
     })
     .returning();
   return c.id;
@@ -438,7 +433,6 @@ describe("cohorte sin fechaInicioVentas no inventa dias habiles (ADR 0022)", () 
       fechaInicioClases: "2026-08-11",
       fechaInicioVentas: null,
       fechaCierreVentas: "2026-09-10",
-      estado: "cerrado",
     });
 
     const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-15", db);
@@ -455,7 +449,8 @@ describe("meta dinamica no divide por cero", () => {
       codigo: "C2",
       metaCupos: 30,
       fechaInicioVentas: "2026-08-14",
-      fechaCierreVentas: "2026-09-21",
+      // Cierra un sábado: ese día la cohorte sigue activa (ADR 0137 punto 5) y ya no quedan días hábiles.
+      fechaCierreVentas: "2026-09-19",
     });
     // 5 ventas de la cohorte: faltan 25. Una venta es un deal en Abonado o Completo
     // (ADR 0037), no un deal cualquiera.
@@ -465,8 +460,9 @@ describe("meta dinamica no divide por cero", () => {
       await sembrarVenta(programaA, { cohortId: cohorteDeLaMeta, etapa: "ganado_parcial", ownerUserId: await duenoDePrueba(db, programaA) });
     }
 
-    // hoy despues del cierre: 22-sep. habilesRestantes = 0.
-    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-22", db);
+    // Último día de la ventana, sábado 19-sep: habilesRestantes = 0. Un día después ya no hay
+    // cohorte activa: la que cerró no se queda activa a mano.
+    const vista = await vistaDeCohorteActiva({ programId: programaA }, "2026-09-19", db);
     expect(vista!.ventana!.habilesRestantes).toBe(0);
     expect(Number.isNaN(vista!.ventana!.metaDinamica)).toBe(false);
     expect(vista!.ventana!.metaDinamica).toBe(25);
@@ -544,15 +540,11 @@ describe("embudoPorCloser", () => {
       { programId: programaA, closerUserId: betoId, fechaAgenda: fecha, resultado: "no_show" },
     ]);
     const ventaAna = { id: await sembrarDeal(programaA) };
-    await db
-      .insert(abonos)
-      .values({ dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" });
 
     // Caro: SOLO un abono en el rango (sobre una venta vieja sin closer), sin llamadas.
     const ventaVieja = { id: await sembrarDeal(programaA) };
-    await db
-      .insert(abonos)
-      .values({ dealId: ventaVieja.id, programId: programaA, closerId: "Caro", fecha: "2026-09-15", monto: "50.00", moneda: "USD" });
+    await abonoDePrueba(db, { dealId: ventaVieja.id, programId: programaA, closerId: "Caro", fecha: "2026-09-15", monto: "50.00", moneda: "USD" });
 
     const total = await embudoDelRango({ programId: programaA, rango: rango }, db);
     const porCloser = await embudoPorCloser({ programId: programaA, rango: rango }, db);
@@ -587,7 +579,7 @@ describe("embudoPorCloser", () => {
     const dealId = await sembrarDeal(programaA, { ownerUserId: closer.id, valorVendidoUsd: "100" });
     await marcarVenta(dealId, fecha, closer.id);
     await db.insert(calls).values({ programId: programaA, dealId, closerUserId: closer.id, fechaAgenda: fecha, resultado: "show" });
-    await db.insert(abonos).values({ programId: programaA, dealId, registradoPorUserId: closer.id, fecha: "2026-09-15", monto: "40", moneda: "USD" });
+    await abonoDePrueba(db, { programId: programaA, dealId, registradoPorUserId: closer.id, fecha: "2026-09-15", monto: "40", moneda: "USD" });
 
     const filas = await embudoPorCloser({ programId: programaA, rango }, db);
     expect(filas).toHaveLength(1);
@@ -632,7 +624,7 @@ describe("alcance acotado a un closer", () => {
     const ventaBeto = { id: await sembrarDeal(programaA, { ownerUserId: betoId }) };
     await marcarVenta(ventaAna.id, fecha, anaId);
     await marcarVenta(ventaBeto.id, fecha, betoId);
-    await db.insert(abonos).values([
+    await abonoDePrueba(db, [
       { dealId: ventaAna.id, programId: programaA, closerId: "Ana", fecha: "2026-09-15", monto: "100.00", moneda: "USD" },
       { dealId: ventaBeto.id, programId: programaA, closerId: "Beto", fecha: "2026-09-15", monto: "250.00", moneda: "USD" },
     ]);

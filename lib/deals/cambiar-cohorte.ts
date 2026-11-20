@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/tipos";
 import { crearConRastro, editarConRastro, type OrigenOperativo } from "@/lib/crm/rastro";
 import { fechaLimiteMaxima } from "./pago";
 import { limpiarPendientePorCambioDeCohorte } from "./mover-etapa";
+import { cambiarSkuDeLineaConCupo } from "./lineas";
 
 type FilaDeal = typeof deals.$inferSelect;
 type FilaCohorte = typeof cohorts.$inferSelect;
@@ -44,7 +45,16 @@ export async function cambiarCohorteDelDeal(
     origenCodigo = origen?.codigo ?? origenCodigo;
   }
 
-  const cambios: Record<string, unknown> = { cohortId: datos.destino.id };
+  await cambiarSkuDeLineaConCupo(tx, {
+    deal: datos.deal,
+    cohortId: datos.destino.id,
+    actorId: datos.actorId,
+    etiqueta: datos.etiqueta,
+    origen: datos.origen,
+    reversionId: datos.reversionId,
+  });
+
+  const cambios: Record<string, unknown> = {};
   let fechaLimiteAjustada: string | null = null;
   const maxima = await fechaLimiteMaxima(tx, {
     programId: datos.deal.programId,
@@ -55,19 +65,21 @@ export async function cambiarCohorteDelDeal(
     fechaLimiteAjustada = maxima;
   }
 
-  await editarConRastro(
-    {
-      db: tx,
-      tabla: deals,
-      nombreTabla: "deals",
-      actorId: datos.actorId,
-      etiqueta: datos.etiqueta,
-      reversionId: datos.reversionId,
-      origen: datos.origen ?? "app",
-    },
-    datos.deal.id,
-    cambios,
-  );
+  if (Object.keys(cambios).length > 0) {
+    await editarConRastro(
+      {
+        db: tx,
+        tabla: deals,
+        nombreTabla: "deals",
+        actorId: datos.actorId,
+        etiqueta: datos.etiqueta,
+        reversionId: datos.reversionId,
+        origen: datos.origen ?? "app",
+      },
+      datos.deal.id,
+      cambios,
+    );
+  }
   if (datos.limpiarProximaCohorte) {
     await limpiarPendientePorCambioDeCohorte(tx, datos.deal, datos.actorId, datos.etiqueta, datos.reversionId);
   }

@@ -1,5 +1,5 @@
 import type { PgTable } from "drizzle-orm/pg-core";
-import { deals, calls, abonos, dealActividades } from "@/lib/db/schema";
+import { deals, dealLineas, calls, abonos, dealActividades } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import type { ActorDeDeal } from "@/lib/deals/permiso";
 import { editarConRastro, type Contexto } from "@/lib/crm/rastro";
@@ -185,7 +185,7 @@ export const registroDeals = {
   onboardedAt: restaurar(deals, "deals", "onboardedAt"),
   cohorteDestinoId: restaurar(deals, "deals", "cohorteDestinoId"),
   cohorteDestinoTexto: restaurar(deals, "deals", "cohorteDestinoTexto"),
-  valorVendidoUsd: restaurar(deals, "deals", "valorVendidoUsd"),
+  valorVendidoUsd: sistema,
   comisionPorcentaje: sistema,
   cortesia: restaurar(deals, "deals", "cortesia"),
   creadoPor: identidad,
@@ -214,7 +214,7 @@ export const registroCalls = {
 } satisfies Record<keyof typeof calls.$inferSelect, ReglaDeCampo>;
 
 export const registroAbonos = {
-  id: identidad, dealId: identidad, programId: identidad,
+  id: identidad, dealId: identidad, lineaId: sistema, programId: identidad,
   fecha: no("Un pago mal registrado se deshace anulando el abono."),
   monto: no("Un pago mal registrado se deshace anulando el abono."),
   moneda: no("Un pago mal registrado se deshace anulando el abono."),
@@ -227,6 +227,12 @@ export const registroAbonos = {
   anuladoEn: anulacion, anuladoPor: anulacion, motivoAnulacion: anulacion,
   huellaMigracion: sistema, createdAt: identidad,
 } satisfies Record<keyof typeof abonos.$inferSelect, ReglaDeCampo>;
+
+export const registroLineas = {
+  id: identidad, dealId: identidad, programId: identidad, skuId: identidad,
+  precioListaUsd: sistema, valorVendidoUsd: sistema, asignadaPor: identidad,
+  asignadaEn: identidad, anuladaEn: anulacion, anuladaPor: anulacion,
+} satisfies Record<keyof typeof dealLineas.$inferSelect, ReglaDeCampo>;
 
 export const registroActividades = {
   id: identidad, dealId: identidad,
@@ -241,6 +247,7 @@ export const registroActividades = {
 
 export const REGISTRO = {
   deals: registroDeals,
+  deal_lineas: registroLineas,
   calls: registroCalls,
   abonos: registroAbonos,
   deal_actividades: registroActividades,

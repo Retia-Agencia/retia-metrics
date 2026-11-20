@@ -40,7 +40,6 @@ beforeEach(async () => {
     codigo: "A-1",
     metaCupos: 70,
     precioUsd: "1000.00",
-    estado: "futuro",
   }).returning();
   cohortId = cohorte.id;
   const [usuario] = await db.insert(users).values({ email: "objetivos@retia.test", rol: "gerente" }).returning();
@@ -208,7 +207,6 @@ describe("objetivos de la cohorte", () => {
       codigo: "B-1",
       metaCupos: 70,
       precioUsd: "1000.00",
-      estado: "futuro",
     }).returning();
     await expect(copiarObjetivos(db, actor(), {
       desdeCohorteId: cohortId,
@@ -220,7 +218,6 @@ describe("objetivos de la cohorte", () => {
       codigo: "A-2",
       metaCupos: 70,
       precioUsd: "1000.00",
-      estado: "futuro",
     }).returning();
     await copiarObjetivos(db, actor(), { desdeCohorteId: cohortId, haciaCohorteId: destino.id });
     const copiadas = await db.select().from(objetivos).where(eq(objetivos.cohortId, destino.id));

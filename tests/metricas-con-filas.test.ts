@@ -1,5 +1,6 @@
+import { abonoDePrueba, lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
+import { calls, cohorts, deals, dealEtapaHistorial, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { cajaRecaudada, embudoDelRango, leadsDelRango, sinResultadoDelRango } from "@/lib/queries/dashboard";
 import { desglosesDelResumen, listaDeMetrica, resumenDeMetrica, TAMANO_PAGINA, type Metrica, type FilaDeMetrica } from "@/lib/queries/metricas-con-filas";
@@ -55,7 +56,7 @@ beforeAll(async () => {
         { dealId: deal.id, a: "ganado_parcial", fecha },
         { dealId: deal.id, de: "ganado_parcial", a: "ganado_completo", fecha: new Date("2026-10-02T23:30:00-05:00") },
       ]);
-      await db.insert(abonos).values({
+      await abonoDePrueba(db, {
         programId,
         dealId: deal.id,
         fecha: dia,
@@ -234,7 +235,7 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
     const [closer] = await base.insert(users).values({ email: "sinid@d.co", rol: "closer", closerId: null }).returning();
     const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "l@d.co" }).returning();
     const [deal] = await base.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: closer.id, etapa: "ganado_parcial" }).returning();
-    await base.insert(abonos).values([
+    await abonoDePrueba(base, [
       { dealId: deal.id, programId: prog, registradoPorUserId: closer.id, fecha: h, monto: "100", moneda: "USD" },
       // Un abono de OTRO registrador para comprobar que el filtro no lo trae.
       { dealId: deal.id, programId: prog, closerId: "Otro", fecha: h, monto: "50", moneda: "USD" },
@@ -260,7 +261,7 @@ describe("ticket 167: el drill-down de la lista por clave de closer", () => {
     const [lead] = await base.insert(leads).values({ fechaPrimeraAplicacion: FECHA_LEAD_DE_PRUEBA, programId: prog, emailNormalizado: "caro@e.co" }).returning();
     const [dueno] = await base.insert(users).values({ email: "dueno@e.co", rol: "closer", closerId: "Dueno" }).returning();
     const [deal] = await base.insert(deals).values({ programId: prog, leadId: lead.id, ownerUserId: dueno.id, etapa: "ganado_parcial" }).returning();
-    await base.insert(abonos).values({ dealId: deal.id, programId: prog, closerId: "Caro", fecha: h, monto: "100", moneda: "USD" });
+    await abonoDePrueba(base, { dealId: deal.id, programId: prog, closerId: "Caro", fecha: h, monto: "100", moneda: "USD" });
 
     // Su clave es historica. La fila del resumen la expone en `claveCloser`.
     const [resumen] = await resumenDeMetrica("caja", { programId: prog, rango: r, hoy: h }, base);
@@ -307,14 +308,15 @@ describe("ticket 148: listas de contratado y sin resultado", () => {
 
   async function vender(programId: string, extra: Record<string, unknown> = {}) {
     const fila = await deal(programId, { etapa: "ganado_parcial", valorVendidoUsd: "80", ...extra });
+    if (!fila.cortesia && fila.valorVendidoUsd !== null) await lineaConCupoDePrueba(base, fila.id);
     await base.insert(dealEtapaHistorial).values({ dealId: fila.id, a: "ganado_parcial", fecha: new Date("2026-10-02T10:00:00-05:00") });
     return fila;
   }
 
   it("contratado suma el valor de sus filas y cohorte acota sin incluir cortesía, anulado ni otro programa", async () => {
     const cohortes = await base.insert(cohorts).values([
-      { programId: prog, codigo: "C1", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31", estado: "cerrado" },
-      { programId: prog, codigo: "C2", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30", estado: "cerrado" },
+      { programId: prog, codigo: "C1", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-11-01", fechaCierreVentas: "2026-10-31" },
+      { programId: prog, codigo: "C2", metaCupos: 10, precioUsd: "100", fechaInicioClases: "2026-12-01", fechaCierreVentas: "2026-11-30" },
     ]).returning();
     await vender(prog, { cohortId: cohortes[0].id, valorVendidoUsd: "80" });
     await vender(prog, { cohortId: cohortes[1].id, valorVendidoUsd: "70" });

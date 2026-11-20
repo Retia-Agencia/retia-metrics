@@ -84,8 +84,6 @@ export const COBERTURA_MCP = {
   "app/(app)/p/[programa]/programa/acciones-programa.ts#conectarCalendlyAccion": { clase: "fuera", razon: "Los tokens y secretos de integraciones siempre quedan fuera del MCP." },
   "app/(app)/p/[programa]/programa/acciones-programa.ts#crearCohorteAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Crear una cohorte." },
   "app/(app)/p/[programa]/programa/acciones-programa.ts#editarCohorteAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Editar una cohorte." },
-  "app/(app)/p/[programa]/programa/acciones-programa.ts#activarCohorteAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Activar una cohorte." },
-  "app/(app)/p/[programa]/programa/acciones-programa.ts#desactivarCohorteAccion": { clase: "pendiente", grupo: "configuracion", capacidad: "Desactivar una cohorte." },
 
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#moverConHechoAccion": { clase: "expuesta", accion: "mover_etapa" },
   "app/(app)/p/[programa]/deals/[id]/acciones.ts#deshacerEventoAccion": { clase: "expuesta", accion: "deshacer_evento" },

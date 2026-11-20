@@ -39,8 +39,7 @@ beforeEach(async () => {
 
 function cohorte(programId: string, codigo: string, inicio: string | null, cierre: string | null): EntradaCohorte {
   return {
-    programId, codigo, metaCupos: 10, precioUsd: "100", estado: "futuro",
-    fechaInicioClases: null, fechaInicioVentas: inicio, fechaCierreVentas: cierre,
+    programId, codigo, metaCupos: 10, precioUsd: "100", fechaInicioClases: null, fechaInicioVentas: inicio, fechaCierreVentas: cierre,
   };
 }
 

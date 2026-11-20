@@ -109,7 +109,6 @@ const cohorteValida = {
   fechaInicioClases: "2026-08-11",
   fechaInicioVentas: "2026-08-11",
   fechaCierreVentas: "2026-08-11",
-  estado: "activo" as const,
 };
 
 describe("acciones de programas — barrera de rol (ADR 0003)", () => {
@@ -147,15 +146,11 @@ describe("acciones de programas — barrera de rol (ADR 0003)", () => {
     const {
       crearCohorteAccion,
       editarCohorteAccion,
-      activarCohorteAccion,
-      desactivarCohorteAccion,
     } = await acciones();
 
     for (const llamada of [
       () => crearCohorteAccion("programa-a", { ...cohorteValida, programId }),
       () => editarCohorteAccion("programa-a", UUID, { ...cohorteValida, programId }),
-      () => activarCohorteAccion("programa-a", UUID),
-      () => desactivarCohorteAccion("programa-a", UUID),
     ]) {
       const res = await llamada();
       expect(res.ok).toBe(false);
@@ -276,26 +271,6 @@ describe("acciones de programas — el gerente administra", () => {
     expect((await editarProgramaAccion(programId, { ...entrada, cortePagoRapidoDias: "0" })).ok).toBe(false);
   });
 
-  it("activar una segunda cohorte en el mismo programa devuelve ok:false con mensaje claro", async () => {
-    const { crearCohorteAccion, activarCohorteAccion } = await acciones();
-    // Primera cohorte activa.
-    const ok1 = await crearCohorteAccion("programa-a", { ...cohorteValida, codigo: "C1", programId });
-    expect(ok1.ok).toBe(true);
-    // Segunda futura, luego se intenta activar.
-    const ok2 = await crearCohorteAccion("programa-a", {
-      ...cohorteValida,
-      codigo: "C2",
-      fechaInicioVentas: "2026-08-12",
-      fechaCierreVentas: "2026-08-12",
-      estado: "futuro",
-      programId,
-    });
-    expect(ok2.ok).toBe(true);
-    const [c2] = await db.select().from(cohorts).where(eq(cohorts.codigo, "C2"));
-    const res = await activarCohorteAccion("programa-a", c2.id);
-    expect(res.ok).toBe(false);
-    if (!res.ok) expect(res.error.toLowerCase()).toContain("activa");
-  });
 });
 
 describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094)", () => {
@@ -321,13 +296,13 @@ describe("acciones de Programa respetan el alcance de la fila objetivo (ADR 0094
       .returning();
     const [cohorte] = await db
       .insert(cohorts)
-      .values({ ...cohorteValida, programId: programaAjenoId, codigo: "AJENA", estado: "futuro" })
+      .values({ ...cohorteValida, programId: programaAjenoId, codigo: "AJENA" })
       .returning();
     const { editarProgramaAccion, editarCohorteAccion, quitarDelProgramaAccion } = await acciones();
     const { editarPlantillaLeadAccion } = await import("@/app/(app)/p/[programa]/programa/acciones-fuentes");
 
     expect((await editarProgramaAccion(programaAjenoId, { ...programaValido, slug: "programa-ajeno" })).ok).toBe(false);
-    expect((await editarCohorteAccion("slug-forjado", cohorte.id, { ...cohorteValida, programId: programaAjenoId, codigo: "CAMBIO", estado: "futuro" })).ok).toBe(false);
+    expect((await editarCohorteAccion("slug-forjado", cohorte.id, { ...cohorteValida, programId: programaAjenoId, codigo: "CAMBIO" })).ok).toBe(false);
     expect((await quitarDelProgramaAccion({ userId: miembro.id, programId: programaAjenoId })).ok).toBe(false);
     expect((await editarPlantillaLeadAccion(programaAjenoId, { correo: "Email forjado" })).ok).toBe(false);
 

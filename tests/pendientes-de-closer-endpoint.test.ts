@@ -1,6 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  abonos,
   avisosPendientesCloserEnvios,
   cohorts,
   dealEtapaHistorial,
@@ -62,7 +62,6 @@ beforeEach(async () => {
     fechaInicioClases: "2026-12-01",
     fechaInicioVentas: "2026-10-01",
     fechaCierreVentas: "2026-11-30",
-    estado: "activo",
   }).returning())[0].id;
   const cuentas = await db.insert(users).values([
     { email: "andrea@retia.test", nombre: "Andrea Pérez", rol: "closer", closerId: "Andrea" },
@@ -164,7 +163,7 @@ describe("avisos de registros pendientes", () => {
 
   it("avisa un abono viejo sin comprobante en la mañana y no en la tarde", async () => {
     const dealId = await dealNuevo(closer, "Abono Sin Soporte", { creadoEn: new Date("2026-10-01T10:00:00Z") });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-10-01", monto: "100", moneda: "USD" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-10-01", monto: "100", moneda: "USD" });
 
     const manana = esquemaRespuestaAvisosPendientes.parse(await (await listar(
       request("/api/pendientes/avisos", { ventana: "manana" }),

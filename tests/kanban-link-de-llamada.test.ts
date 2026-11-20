@@ -51,7 +51,6 @@ beforeEach(async () => {
       fechaInicioClases: "2026-11-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-11-14",
-      estado: "activo",
     })
     .returning();
   cohortId = c.id;

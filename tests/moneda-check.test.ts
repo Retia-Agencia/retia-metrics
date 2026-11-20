@@ -1,5 +1,6 @@
+import { abonoDePrueba } from "./helpers/catalogo-de-prueba";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { abonos, cohorts, cuentasPublicitarias, deals, gastoPauta, leads, programs, users } from "@/lib/db/schema";
+import { cohorts, cuentasPublicitarias, deals, gastoPauta, leads, programs, users } from "@/lib/db/schema";
 import type { Db } from "@/lib/db/tipos";
 import { convertirGasto } from "@/lib/pauta/convertir-gasto";
 import { saldosDeDeals } from "@/lib/queries/saldo";
@@ -47,10 +48,10 @@ describe("el CHECK de moneda rechaza lo que no es una moneda del sistema", () =>
   const abonoBase = () => ({ dealId, programId, fecha: "2026-09-28", monto: "100" });
 
   it("abonos: 'usd' en minuscula y 'EUR' se rechazan; COP y USD pasan", async () => {
-    await expect(db.insert(abonos).values({ ...abonoBase(), moneda: "usd" })).rejects.toBeDefined();
-    await expect(db.insert(abonos).values({ ...abonoBase(), moneda: "EUR" })).rejects.toBeDefined();
-    await expect(db.insert(abonos).values({ ...abonoBase(), moneda: "USD" })).resolves.toBeDefined();
-    await expect(db.insert(abonos).values({ ...abonoBase(), moneda: "COP" })).resolves.toBeDefined();
+    await expect(abonoDePrueba(db, { ...abonoBase(), moneda: "usd" })).rejects.toBeDefined();
+    await expect(abonoDePrueba(db, { ...abonoBase(), moneda: "EUR" })).rejects.toBeDefined();
+    await expect(abonoDePrueba(db, { ...abonoBase(), moneda: "USD" })).resolves.toBeDefined();
+    await expect(abonoDePrueba(db, { ...abonoBase(), moneda: "COP" })).resolves.toBeDefined();
   });
 
   it("cuentas publicitarias y gasto de pauta: solo COP o USD", async () => {
@@ -67,8 +68,8 @@ describe("el CHECK de moneda rechaza lo que no es una moneda del sistema", () =>
 
 describe("una suma que mezcla monedas no se calcula en silencio", () => {
   it("el saldo de un deal con un abono en COP es null con su razon, no una resta de pesos contra dolares", async () => {
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-28", monto: "400", moneda: "USD" });
-    await db.insert(abonos).values({ dealId, programId, fecha: "2026-09-29", monto: "1500000", moneda: "COP" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-28", monto: "400", moneda: "USD" });
+    await abonoDePrueba(db, { dealId, programId, fecha: "2026-09-29", monto: "1500000", moneda: "COP" });
 
     const saldo = (await saldosDeDeals(db, [dealId])).get(dealId)!;
     expect(saldo.saldo).toBeNull();

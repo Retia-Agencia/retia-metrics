@@ -596,7 +596,6 @@ export async function sembrarLocal(): Promise<void> {
     fechaInicioClases: "2026-11-01",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-10-31",
-    estado: "activo",
   });
 
   const coh2 = await crearCohorte(db, actorId, {
@@ -607,7 +606,6 @@ export async function sembrarLocal(): Promise<void> {
     fechaInicioClases: "2026-11-15",
     fechaInicioVentas: "2026-09-01",
     fechaCierreVentas: "2026-11-14",
-    estado: "activo",
   });
 
   // 7. Fuentes Webhook activas

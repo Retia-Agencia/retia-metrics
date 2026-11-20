@@ -14,6 +14,7 @@ import { cargarPautaSemanal, type ClavePautaSemanal, type VistaPautaSemanal } fr
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { duenoDePrueba } from "./helpers/dueno-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
+import { lineaConCupoDePrueba } from "./helpers/catalogo-de-prueba";
 
 const base = vi.hoisted(() => ({ db: null as Db | null, programId: "" }));
 vi.mock("@/lib/db", () => ({ get db() { return base.db; } }));
@@ -100,6 +101,7 @@ async function personaDePaid(dia: string, venta?: { diaVenta: string; valor: str
     valorVendidoUsd: venta ? venta.valor : null,
   }).returning())[0];
   if (venta) {
+    await lineaConCupoDePrueba(db, deal.id);
     await db.insert(dealEtapaHistorial).values({ dealId: deal.id, a: "ganado_completo", fecha: new Date(`${venta.diaVenta}T12:00:00-05:00`) });
   }
   return deal;
@@ -282,5 +284,4 @@ describe("Ver solo en la tabla de Pauta", () => {
     }
   });
 });
-
 

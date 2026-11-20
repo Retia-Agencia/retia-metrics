@@ -6,6 +6,7 @@ import {
   cuotasPactadas,
   dealActividades,
   dealEtapaHistorial,
+  dealLineas,
   deals,
   rarezasMigracion,
 } from "@/lib/db/schema";
@@ -95,6 +96,11 @@ export async function deshacerMigracion(db: Db, op: { programId: string; actorId
         .from(dealActividades)
         .where(and(inArray(dealActividades.dealId, dealIds), incluyendoAnulados(dealActividades)))
     : [];
+  const lineas = dealIds.length
+    ? await db.select({ id: dealLineas.id, dealId: dealLineas.dealId })
+        .from(dealLineas)
+        .where(and(inArray(dealLineas.dealId, dealIds), incluyendoAnulados(dealLineas)))
+    : [];
 
   // ── ¿alguien trabajo encima?
   const motivos = await trabajoEncima(db, {
@@ -116,6 +122,11 @@ export async function deshacerMigracion(db: Db, op: { programId: string; actorId
       tabla: "deal_actividades",
       id: a.id,
       huella: dealsMigrados.find((d) => d.id === a.dealId)?.huella ?? null,
+    })),
+    ...lineas.map((linea) => ({
+      tabla: "deal_lineas",
+      id: linea.id,
+      huella: dealsMigrados.find((d) => d.id === linea.dealId)?.huella ?? null,
     })),
   ].map((r) => ({
     tabla: r.tabla,
@@ -147,6 +158,9 @@ export async function deshacerMigracion(db: Db, op: { programId: string; actorId
   );
   const nHistorial = await borrar(dealIds, (l) =>
     db.delete(dealEtapaHistorial).where(inArray(dealEtapaHistorial.dealId, l)).returning(),
+  );
+  await borrar(dealIds, (l) =>
+    db.delete(dealLineas).where(and(inArray(dealLineas.dealId, l), incluyendoAnulados(dealLineas))).returning(),
   );
   const nDeals = await borrar(dealIds, (l) => db.delete(deals).where(inArray(deals.id, l)).returning());
 

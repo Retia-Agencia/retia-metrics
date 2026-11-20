@@ -26,7 +26,18 @@ import { incluyendoAnulados } from "@/lib/queries/vigente";
 import { crearBaseReutilizable } from "./helpers/base-de-prueba";
 import { PROGRAMA_DE_PRUEBA } from "./helpers/programa-de-prueba";
 import { sembrarIntegracion } from "./helpers/integracion-de-prueba";
+import { skuVirtualDePrueba } from "./helpers/catalogo-de-prueba";
 import real from "./fixtures/typeform-real-tactical.json";
+
+// La cohorte activa se deduce de su ventana y del día de hoy (ADR 0137 punto 5): el test fija
+// un día dentro de las ventanas que siembra, en vez de marcar la cohorte activa a mano.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-10-08T17:00:00.000Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 /**
  * Prueba de COSTURA de la etapa E2 (`docs/plan-reparto.md`, E2): "una cita de Calendly cae en
@@ -135,7 +146,7 @@ beforeEach(async () => {
   await sembrarIntegracion(db, p.id, "calendly", { token: "token-de-prueba" });
 
   // Cohorte activa que arranca el 15-oct: el tope del plazo de pago y la que se asigna sola.
-  await db
+  const [cohorte] = await db
     .insert(cohorts)
     .values({
       programId,
@@ -145,8 +156,9 @@ beforeEach(async () => {
       fechaInicioClases: "2026-10-15",
       fechaInicioVentas: "2026-09-01",
       fechaCierreVentas: "2026-10-10",
-      estado: "activo",
-    });
+    })
+    .returning();
+  await skuVirtualDePrueba(db, cohorte.id);
 
   const [u] = await db.insert(users).values({ email: "maru@retiagrowth.com", rol: "closer", closerId: "Maru" }).returning();
   closer = u.id;

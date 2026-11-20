@@ -42,7 +42,6 @@ async function enProximaCohorte(fechaInicioVentas: string | null) {
     // Antigua a proposito: el destino puede vender desde el 2000 y no pueden solaparse (0122).
     fechaInicioVentas: "1999-01-01",
     fechaCierreVentas: "1999-12-31",
-    estado: "activo",
   }).returning())[0];
   const destino = (await db.insert(cohorts).values({
     programId,
@@ -52,7 +51,6 @@ async function enProximaCohorte(fechaInicioVentas: string | null) {
     fechaInicioClases: "2099-02-01",
     fechaInicioVentas,
     fechaCierreVentas: "2099-01-31",
-    estado: "futuro",
   }).returning())[0];
   const deal = await nuevo("contactado");
   await db.update(deals).set({

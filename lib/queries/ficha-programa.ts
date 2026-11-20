@@ -1,5 +1,5 @@
 import { db as dbDeLaApp } from "@/lib/db";
-import type { Cohorte } from "@/lib/db/schema";
+import type { Cohorte } from "@/lib/queries/cohortes";
 import type { Db } from "@/lib/db/tipos";
 import { listarCohortes } from "@/lib/catalogo/cohortes";
 import { listarFuentes } from "@/lib/catalogo/fuentes";
