@@ -1,6 +1,6 @@
 import type { AtribucionDePauta } from "@/lib/queries/atribucion-de-pauta";
 import { and, eq, inArray } from "drizzle-orm";
-import { deals as dealsTabla } from "@/lib/db/schema";
+import { deals } from "@/lib/db/schema";
 import {
   dealsDelEmbudoComercial,
   pasosDelEmbudoComercial,
@@ -70,11 +70,11 @@ export async function cargarEmbudoComercialPorPauta(
   alcance: Alcance,
   nivel: NivelDeEmbudoComercial,
 ): Promise<GrupoDelEmbudoComercial[]> {
-  const deals = await dealsDelEmbudoComercial(db, alcance);
-  if (deals.length === 0) return [];
-  const origenes = await db.select({ id: dealsTabla.id, submissionOrigenId: dealsTabla.submissionOrigenId })
-    .from(dealsTabla)
-    .where(and(eq(dealsTabla.programId, alcance.programId), inArray(dealsTabla.id, deals.map((d) => d.dealId)), vigente(dealsTabla)));
+  const delEmbudo = await dealsDelEmbudoComercial(db, alcance);
+  if (delEmbudo.length === 0) return [];
+  const origenes = await db.select({ id: deals.id, submissionOrigenId: deals.submissionOrigenId })
+    .from(deals)
+    .where(and(eq(deals.programId, alcance.programId), inArray(deals.id, delEmbudo.map((d) => d.dealId)), vigente(deals)));
   const atribucion = await atribucionDePautaPorDeal(db, alcance.programId, origenes);
-  return agruparEmbudoComercialPorPauta(deals, atribucion, nivel);
+  return agruparEmbudoComercialPorPauta(delEmbudo, atribucion, nivel);
 }
